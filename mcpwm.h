@@ -1,5 +1,5 @@
 /*
-	Copyright 2012 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -155,7 +155,7 @@ extern volatile int ADC_curr_norm_value[];
  */
 
 /*
- * Selden parameters (black motor):
+ * The black motor from my box:
  * MCPWM_USE_BIPOLAR_PWM: 0
  * MCPWM_MAX_COMM_START_DIFF: 20
  * MCPWM_START_DUTY_CYCLE_L: 0.1
@@ -170,7 +170,7 @@ extern volatile int ADC_curr_norm_value[];
  */
 
 /*
- * Selden parameters (orange motor):
+ * The orange motor from my box:
  * MCPWM_USE_BIPOLAR_PWM: 0
  * MCPWM_MAX_COMM_START_DIFF: 10
  * MCPWM_START_DUTY_CYCLE_L: 0.15

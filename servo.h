@@ -1,5 +1,5 @@
 /*
-	Copyright 2009-2012 Benjamin Vedder benjamin@vedder.se
+	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,6 +23,10 @@
  *
  *
  * Changelog:
+ * 2013-12-XX
+ * - Port to ChibiOS and STM32F4
+ * - probably more changes
+ *
  * 2011-12-08
  * - Renamed functions
  * - Fixed pulse issue when pulses are close together
