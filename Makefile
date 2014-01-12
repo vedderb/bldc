@@ -132,7 +132,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various/devices_lib/accel \
          $(CHIBIOS)/os/various \
-         $(CHIBIOS)/os/various $(CC2520INC)
+         $(CHIBIOS)/os/various
 
 #
 # Project, sources and paths
