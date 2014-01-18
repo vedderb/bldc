@@ -110,7 +110,7 @@ extern volatile int ADC_curr_norm_value[];
 #define MCPWM_START_DUTY_CYCLE_REV_H	0.2		// Startup duty cycle HIGH @ 20V
 #define MCPWM_MIN_START_STEPS			1		// Minimum steps to run in open loop
 #define MCPWM_CLOSED_STARTPWM_COMMS		1		// Run at least this many commutations in closed loop with start duty cycle
-#define MCPWM_CYCLE_INT_LIMIT			150.0	// Flux integrator limit
+#define MCPWM_CYCLE_INT_LIMIT			50.0	// Flux integrator limit
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 #define MCPWM_COMM_RPM_FACTOR			0.4		// at least run one commutation for the expected times times this factor
 
