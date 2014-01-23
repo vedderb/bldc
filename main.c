@@ -118,13 +118,13 @@ static msg_t periodic_thread(void *arg) {
 
 		if (pwr < MIN_PWR) {
 			mcpwm_use_pid(0);
-			mcpwm_set_duty(0);
+			mcpwm_set_duty(0.0);
 		} else {
 			mcpwm_use_pid(0);
 			mcpwm_set_duty(pwr);
 		}
 #endif
-		chThdSleepMilliseconds(1);
+		chThdSleepMilliseconds(20);
 	}
 
 	return 0;

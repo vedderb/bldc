@@ -86,7 +86,7 @@ extern volatile int ADC_curr_norm_value[];
  */
 #define MCPWM_SWITCH_FREQUENCY			40000	// Switching frequency in HZ
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
-#define MCPWM_PWM_MODE					PWM_MODE_BIPOLAR // Default PWM mode
+#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
@@ -94,7 +94,7 @@ extern volatile int ADC_curr_norm_value[];
 #define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
 #define MCPWM_RAMP_STEP					0.005	// Ramping step (1000 times/sec)
 #define MCPWM_CURRENT_MAX				30.0	// Current limit in Amperes
-#define MCPWM_CURRENT_MIN				-10.0	// Current limit in Amperes
+#define MCPWM_CURRENT_MIN				-30.0	// Current limit in Amperes
 #define MCPWM_IN_CURRENT_LIMIT			20.0	// Input current limit in Amperes
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 

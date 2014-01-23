@@ -562,8 +562,13 @@ void mcpwm_set_duty(float dutyCycle) {
 
 	dutycycle_set = dutyCycle;
 
-	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle(dutyCycle);
+	if (state != MC_STATE_RUNNING && dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
+		if (dutyCycle > 0.0) {
+			dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
+		} else {
+			dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
+		}
+		set_duty_cycle(dutycycle_now);
 	}
 }
 
@@ -734,6 +739,7 @@ static void set_duty_cycle(float dutyCycle) {
 	if (dutyCycle < MCPWM_MIN_DUTY_CYCLE) {
 		switch (state) {
 		case MC_STATE_STARTING:
+		case MC_STATE_RUNNING:
 			state = MC_STATE_OFF;
 			if (MCPWM_FULL_BRAKE_AT_STOP) {
 				mcpwm_full_brake();
@@ -745,13 +751,6 @@ static void set_duty_cycle(float dutyCycle) {
 		case MC_STATE_DETECTING:
 			state = MC_STATE_OFF;
 			stop_pwm(); // TODO: Full break?
-			break;
-
-		case MC_STATE_RUNNING:
-			if (!MCPWM_FULL_BRAKE_AT_STOP) {
-				state = MC_STATE_OFF;
-				stop_pwm();
-			}
 			break;
 
 		default:
@@ -1235,29 +1234,20 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		if (fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE) {
 			if (dutycycle_set_tmp > MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = MCPWM_MIN_DUTY_CYCLE + 0.01;
+#if MCPWM_IS_SENSORLESS
 				direction = 1;
 				set_open_loop();
+#endif
 			} else if (dutycycle_set_tmp < -MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = -MCPWM_MIN_DUTY_CYCLE - 0.01;
+#if MCPWM_IS_SENSORLESS
 				direction = 0;
 				set_open_loop();
+#endif
 			}
 		}
 
 		set_duty_cycle(dutycycle_now);
-
-		if (state == MC_STATE_RUNNING &&
-				fabsf(dutycycle_set) < MCPWM_MIN_DUTY_CYCLE &&
-				fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE + 0.03) {
-			state = MC_STATE_OFF;
-			dutycycle_now = 0.0;
-			dutycycle_set = 0.0;
-			if (MCPWM_FULL_BRAKE_AT_STOP) {
-				mcpwm_full_brake();
-			} else {
-				stop_pwm();
-			}
-		}
 	}
 
 	main_dma_adc_handler();
