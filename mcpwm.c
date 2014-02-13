@@ -560,9 +560,14 @@ void mcpwm_set_duty(float dutyCycle) {
 		dutyCycle = -MCPWM_MAX_DUTY_CYCLE;
 	}
 
+	if (state == MC_STATE_DETECTING) {
+		state = MC_STATE_OFF;
+		stop_pwm();
+	}
+
 	dutycycle_set = dutyCycle;
 
-	if (state != MC_STATE_RUNNING && dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
+	if (state != MC_STATE_RUNNING && fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
 		if (dutyCycle > 0.0) {
 			dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
 		} else {
@@ -573,6 +578,11 @@ void mcpwm_set_duty(float dutyCycle) {
 }
 
 void mcpwm_use_pid(int use_pid) {
+	if (use_pid != is_using_pid && state == MC_STATE_DETECTING) {
+		state = MC_STATE_OFF;
+		stop_pwm();
+	}
+
 	is_using_pid = use_pid;
 }
 
@@ -708,7 +718,7 @@ static float get_start_duty(void) {
 		ret = MCPWM_START_DUTY_CYCLE_L * (1 - ratio)
 				+ MCPWM_START_DUTY_CYCLE_H * ratio;
 	} else {
-		ret = -MCPWM_START_DUTY_CYCLE_REV_L * (1 - ratio) + MCPWM_START_DUTY_CYCLE_REV_H * ratio;
+		ret = -(MCPWM_START_DUTY_CYCLE_REV_L * (1 - ratio) + MCPWM_START_DUTY_CYCLE_REV_H * ratio);
 	}
 
 	ret *= 20.0 / GET_BRIDGE_VOLTAGE;
@@ -1233,13 +1243,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		// starts again after stopping completely
 		if (fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE) {
 			if (dutycycle_set_tmp > MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = MCPWM_MIN_DUTY_CYCLE + 0.01;
+				dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
 #if MCPWM_IS_SENSORLESS
 				direction = 1;
 				set_open_loop();
 #endif
 			} else if (dutycycle_set_tmp < -MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = -MCPWM_MIN_DUTY_CYCLE - 0.01;
+				dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
 #if MCPWM_IS_SENSORLESS
 				direction = 0;
 				set_open_loop();
