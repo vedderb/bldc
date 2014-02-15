@@ -80,7 +80,7 @@ static volatile int sample_int = 1;
 static volatile int sample_ready = 1;
 static volatile int sample_now = 0;
 static volatile int sample_at_start = 0;
-static volatile int was_start_wample = 0;
+static volatile int was_start_sample = 0;
 static volatile float main_last_adc_duration = 0.0;
 
 static WORKING_AREA(periodic_thread_wa, 1024);
@@ -180,7 +180,7 @@ void main_dma_adc_handler(void) {
 	if (sample_at_start && mcpwm_get_state() == MC_STATE_STARTING) {
 		sample_now = 0;
 		sample_ready = 0;
-		was_start_wample = 1;
+		was_start_sample = 1;
 		sample_at_start = 0;
 	}
 
@@ -201,7 +201,7 @@ void main_dma_adc_handler(void) {
 			} else {
 				uint8_t tmp;
 
-				if (was_start_wample) {
+				if (was_start_sample) {
 					if (mcpwm_get_state() == MC_STATE_STARTING) {
 						tmp = 1;
 					} else if (mcpwm_get_state() == MC_STATE_RUNNING) {
@@ -223,7 +223,7 @@ void main_dma_adc_handler(void) {
 			if (sample_now == sample_len) {
 				sample_ready = 1;
 				sample_now = 0;
-				was_start_wample = 0;
+				was_start_sample = 0;
 				chSysLockFromIsr();
 				chEvtSignalI(sample_send_tp, (eventmask_t) 1);
 				chSysUnlockFromIsr();

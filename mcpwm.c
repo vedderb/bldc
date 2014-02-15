@@ -1397,7 +1397,7 @@ static void update_adc_sample_pos(void) {
 
 	// Sample the ADC at an appropriate time during the pwm cycle
 	if (pwm_mode == PWM_MODE_BIPOLAR) {
-		TIM8->CCR1 = samp_neg + 500; // ??
+		TIM8->CCR1 = samp_neg; // ??
 
 		switch (comm_step) {
 		case 1:

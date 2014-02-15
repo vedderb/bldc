@@ -26,28 +26,37 @@
 #include "servo_dec.h"
 
 CH_IRQ_HANDLER(TIM7_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	TIM_ClearITPendingBit(TIM7, TIM_IT_Update);
 	servo_irq();
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(TIM1_TRG_COM_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	TIM_ClearITPendingBit(TIM1, TIM_IT_COM );
 	mcpwm_comm_int_handler();
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
 	mcpwm_adc_inj_int_handler();
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(EXTI3_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
 		EXTI_ClearITPendingBit(EXTI_Line3);
 		servodec_int_handler();
 	}
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(EXTI15_10_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	if (EXTI_GetITStatus(EXTI_Line13) != RESET) {
 		EXTI_ClearITPendingBit(EXTI_Line13);
 		servodec_int_handler();
@@ -57,4 +66,5 @@ CH_IRQ_HANDLER(EXTI15_10_IRQHandler) {
 		EXTI_ClearITPendingBit(EXTI_Line14);
 		servodec_int_handler();
 	}
+	CH_IRQ_EPILOGUE();
 }
