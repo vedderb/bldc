@@ -124,7 +124,7 @@ static msg_t periodic_thread(void *arg) {
 			mcpwm_set_duty(pwr);
 		}
 #endif
-		chThdSleepMilliseconds(20);
+		chThdSleepMilliseconds(10);
 	}
 
 	return 0;

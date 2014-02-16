@@ -93,9 +93,9 @@ extern volatile int ADC_curr_norm_value[];
 #define MCPWM_NUM_POLES					2		// Motor pole number (for RPM calculation)
 #define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
 #define MCPWM_RAMP_STEP					0.005	// Ramping step (1000 times/sec)
-#define MCPWM_CURRENT_MAX				30.0	// Current limit in Amperes
-#define MCPWM_CURRENT_MIN				-10.0	// Current limit in Amperes
-#define MCPWM_IN_CURRENT_LIMIT			20.0	// Input current limit in Amperes
+#define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes
+#define MCPWM_CURRENT_MIN				-20.0	// Current limit in Amperes
+#define MCPWM_IN_CURRENT_LIMIT			40.0	// Input current limit in Amperes
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 
 // Sensorless settings

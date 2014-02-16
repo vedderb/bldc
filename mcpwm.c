@@ -397,6 +397,7 @@ void mcpwm_init(void) {
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
 	// ADC Common Init
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
