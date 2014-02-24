@@ -55,6 +55,9 @@
  * to
  * otgp->GCCFG = GCCFG_NOVBUSSENS | GCCFG_PWRDWN;
  *
+ * This should be handled automatically with the latest version of
+ * ChibiOS since I have added an option to the makefile.
+ *
  */
 
 // Settings
