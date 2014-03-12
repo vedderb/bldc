@@ -54,7 +54,6 @@ static Mutex send_mutex;
 static Thread *process_tp;
 
 // Private functions
-static void send_ping(void);
 static void handle_res_packet(unsigned char *data, unsigned char len);
 static void handle_nores_packet(unsigned char *data, unsigned char len);
 static void process_packet(unsigned char *buffer, unsigned char len);
@@ -175,13 +174,8 @@ void comm_init(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 }
 
-static void send_ping(void) {
-	unsigned char byte = CAR_PACKET_PING;
-	packet_send_packet(&byte, 1);
-}
-
 static void handle_res_packet(unsigned char *data, unsigned char len) {
-	CAR_RES_PACKET_ID car_res_packet;
+	COMM_RES_PACKET_ID car_res_packet;
 	uint8_t buffer2[256];
 	int32_t index;
 
@@ -192,9 +186,9 @@ static void handle_res_packet(unsigned char *data, unsigned char len) {
 	len--;
 
 	switch (car_res_packet) {
-	case CAR_PACKET_READ_VALUES:
+	case COMM_READ_VALUES:
 		index = 0;
-		buffer2[index++] = CAR_PACKET_READ_VALUES;
+		buffer2[index++] = COMM_READ_VALUES;
 		buffer_append_int16(buffer2, (int16_t)(37.0 * 10.0), &index);
 		buffer_append_int16(buffer2, (int16_t)(38.0 * 10.0), &index);
 		buffer_append_int16(buffer2, (int16_t)(39.0 * 10.0), &index);
@@ -210,36 +204,13 @@ static void handle_res_packet(unsigned char *data, unsigned char len) {
 		packet_send_packet(buffer2, index);
 		break;
 
-	case CAR_PACKET_READ_POS:
-		/*
-		 * Read dead reckoning position.
-		 */
-
-		break;
-
-	case CAR_PACKET_READ_SENS_ULTRA:
-
-		break;
-
-	case CAR_PACKET_READ_SENS_IR:
-
-		break;
-
-	case CAR_PACKET_READ_TRAVEL_COUNTER:
-
-		break;
-
-	case CAR_PACKET_PING:
-		send_ping();
-		break;
-
 	default:
 		break;
 	}
 }
 
 static void handle_nores_packet(unsigned char *data, unsigned char len) {
-	CAR_NORES_PACKET_ID car_nores_packet;
+	COMM_NORES_PACKET_ID car_nores_packet;
 
 	(void)len;
 
@@ -248,47 +219,19 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 	len--;
 
 	switch (car_nores_packet) {
-	case CAR_PACKET_SET_POWER_SERVO:
-
-		break;
-
-	case CAR_PACKET_WRITE_POS:
-
-		break;
-
-	case CAR_PACKET_ADD_POINT:
-
-		break;
-
-	case CAR_PACKET_AP_RUN:
-
-		break;
-
-	case CAR_PACKET_AP_CLEAR:
-
-		break;
-
-	case CAR_PACKET_RESET_TRAVEL_CNT:
-
-		break;
-
-	case CAR_PACKET_SET_LIMITED:
-
-		break;
-
-	case CAR_PACKET_FULL_BRAKE:
+	case COMM_FULL_BRAKE:
 		mcpwm_full_brake();
 		break;
 
-	case CAR_PACKET_SERVO_OFFSET:
+	case COMM_SERVO_OFFSET:
 		servos[0].offset = data[0];
 		break;
 
-	case CAR_PACKET_CAN_TEST:
+	case COMM_CAN_TEST:
 
 		break;
 
-	case CAR_PACKET_TERMINAL_CMD:
+	case COMM_TERMINAL_CMD:
 		data[len] = '\0';
 		terminal_process_string((char*)data);
 		break;
@@ -301,7 +244,7 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 void comm_print(char* str) {
 	static char print_buffer[255];
 	int i;
-	print_buffer[0] = CAR_PACKET_PRINT;
+	print_buffer[0] = COMM_PRINT;
 
 	for (i = 0;i < 255;i++) {
 		if (str[i] == '\0') {
@@ -318,7 +261,7 @@ void comm_send_samples(uint8_t *data, int len) {
 	uint8_t buffer[len + 1];
 	int index = 0;
 
-	buffer[index++] = CAR_PACKET_SEND_SAMPLES;
+	buffer[index++] = COMM_SEND_SAMPLES;
 
 	for (int i = 0;i < len;i++) {
 		buffer[index++] = data[i];
