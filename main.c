@@ -127,6 +127,10 @@ static msg_t periodic_thread(void *arg) {
 			mcpwm_set_duty(pwr);
 		}
 #endif
+		if (mcpwm_get_state() == MC_STATE_DETECTING) {
+			comm_send_rotor_pos(mcpwm_get_detect_pos());
+		}
+
 		chThdSleepMilliseconds(10);
 	}
 
@@ -192,34 +196,36 @@ void main_dma_adc_handler(void) {
 		a++;
 		if (a >= sample_int) {
 			a = 0;
-			curr0_samples[sample_now] = ADC_curr_norm_value[0];
+
+			if (mcpwm_get_state() == MC_STATE_DETECTING) {
+				curr0_samples[sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
+			} else {
+				curr0_samples[sample_now] = ADC_curr_norm_value[0];
+			}
+
 			curr1_samples[sample_now] = ADC_curr_norm_value[1];
 			ph1_samples[sample_now] = ADC_V_L1;
 			ph2_samples[sample_now] = ADC_V_L2;
 			ph3_samples[sample_now] = ADC_V_L3;
 			vzero_samples[sample_now] = ADC_V_ZERO * MCPWM_VZERO_FACT;
 
-			if (mcpwm_get_state() == MC_STATE_DETECTING && 0) {
-				status_samples[sample_now] = mcpwm_get_detect_top();
-			} else {
-				uint8_t tmp;
+			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100);
 
-				if (was_start_sample) {
-					if (mcpwm_get_state() == MC_STATE_STARTING) {
-						tmp = 1;
-					} else if (mcpwm_get_state() == MC_STATE_RUNNING) {
-						tmp = 2;
-					} else {
-						tmp = 3;
-					}
+			uint8_t tmp;
+
+			if (was_start_sample) {
+				if (mcpwm_get_state() == MC_STATE_STARTING) {
+					tmp = 1;
+				} else if (mcpwm_get_state() == MC_STATE_RUNNING) {
+					tmp = 2;
 				} else {
-					tmp = mcpwm_read_hall_phase();
+					tmp = 3;
 				}
-
-				status_samples[sample_now] = mcpwm_get_comm_step() | (tmp << 3);
+			} else {
+				tmp = mcpwm_read_hall_phase();
 			}
 
-			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100);
+			status_samples[sample_now] = mcpwm_get_comm_step() | (tmp << 3);
 
 			sample_now++;
 

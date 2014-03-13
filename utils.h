@@ -27,5 +27,6 @@
 
 void step_towards(float *value, float goal, float step);
 float calc_ratio(float low, float high, float val);
+void utils_norm_angle(float *angle);
 
 #endif /* UTILS_H_ */

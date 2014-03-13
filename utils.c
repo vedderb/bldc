@@ -22,6 +22,9 @@
  *      Author: benjamin
  */
 
+#include "utils.h"
+#include <math.h>
+
 void step_towards(float *value, float goal, float step) {
     if (*value < goal) {
         if ((*value + step) < goal) {
@@ -40,4 +43,17 @@ void step_towards(float *value, float goal, float step) {
 
 float calc_ratio(float low, float high, float val) {
 	return (val - low) / (high - low);
+}
+
+/**
+ * Make sure that 0 <= angle < 360
+ * @param angle
+ * The angle to normalize.
+ */
+void utils_norm_angle(float *angle) {
+	*angle = fmodf(*angle, 360.0);
+
+	if (*angle < 0.0) {
+		*angle += 360.0;
+	}
 }

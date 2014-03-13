@@ -269,3 +269,13 @@ void comm_send_samples(uint8_t *data, int len) {
 
 	packet_send_packet(buffer, index);
 }
+
+void comm_send_rotor_pos(float rotor_pos) {
+	uint8_t buffer[5];
+	int32_t index = 0;
+
+	buffer[index++] = COMM_ROTOR_POSITION;
+	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
+
+	packet_send_packet(buffer, index);
+}

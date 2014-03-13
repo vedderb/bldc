@@ -57,6 +57,7 @@ float mcpwm_get_tot_current(void);
 float mcpwm_get_tot_current_in(void);
 void mcpwm_set_detect(void);
 int mcpwm_get_detect_top(void);
+float mcpwm_get_detect_pos(void);
 mc_state mcpwm_get_state(void);
 signed int mcpwm_read_hall_phase(void);
 void mcpwm_full_brake(void);
@@ -75,6 +76,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags);
 // External variables
 extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
+extern volatile float mcpwm_detect_currents[];
 
 // Macros
 #define READ_HALL1()			palReadPad(GPIOB, 6)

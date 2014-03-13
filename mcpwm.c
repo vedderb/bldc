@@ -52,7 +52,6 @@ static volatile int curr_start_samples;
 static volatile int curr0_offset;
 static volatile int curr1_offset;
 static volatile mc_state state;
-static volatile float detect_currents[6];
 static volatile int detect_steps;
 static volatile int detect_now;
 static volatile int detect_inc;
@@ -162,6 +161,7 @@ static volatile float last_inj_adc_isr_duration;
 // Global variables
 volatile uint16_t ADC_Value[MCPWM_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
+volatile float mcpwm_detect_currents[6];
 
 // Private functions
 static void set_duty_cycle(float dutyCycle);
@@ -650,7 +650,7 @@ void mcpwm_set_detect(void) {
 	stop_pwm();
 
 	for(int i = 0;i < 6;i++) {
-		detect_currents[i] = 0;
+		mcpwm_detect_currents[i] = 0;
 	}
 
 	state = MC_STATE_DETECTING;
@@ -660,13 +660,35 @@ int mcpwm_get_detect_top(void) {
 	float max = 0;
 	int pos = 1;
 	for(int i = 0;i < 6;i++) {
-		if (detect_currents[i] > max) {
-			max = detect_currents[i];
+		if (mcpwm_detect_currents[i] > max) {
+			max = mcpwm_detect_currents[i];
 			pos = i + 1;
 		}
 	}
 
 	return pos;
+}
+
+float mcpwm_get_detect_pos(void) {
+	float v[3];
+	v[0] = mcpwm_detect_currents[0] + mcpwm_detect_currents[3];
+	v[1] = mcpwm_detect_currents[1] + mcpwm_detect_currents[4];
+	v[2] = mcpwm_detect_currents[2] + mcpwm_detect_currents[5];
+
+	float offset = v[0] + v[1] + v[2];
+	v[0] -= offset;
+	v[1] -= offset;
+	v[2] -= offset;
+
+	float amp = sqrtf((v[0]*v[0])/1.5 + (v[1]*v[1])/1.5 + (v[2]*v[2])/1.5);
+	v[0] /= amp;
+
+	float ph[1];
+	ph[0] = asinf(v[0]) * 180.0 / M_PI;
+
+	utils_norm_angle(&ph[0]);
+
+	return ph[0];
 }
 
 static void stop_pwm(void) {
@@ -797,7 +819,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	}
 
 	uint16_t period;
-	if (pwm_mode == PWM_MODE_BIPOLAR) {
+	if (pwm_mode == PWM_MODE_BIPOLAR && state != MC_STATE_DETECTING) {
 		period = (uint16_t)(((float)TIM1->ARR / 2.0) * dutyCycle + ((float)TIM1->ARR / 2.0));
 	} else {
 		period = (uint16_t)((float)TIM1->ARR * dutyCycle);
@@ -1044,9 +1066,9 @@ void mcpwm_adc_inj_int_handler(void) {
 		float b = fabsf(ADC_curr_norm_value[1]);
 
 		if (a > b) {
-			detect_currents[comm_step] = a;
+			mcpwm_detect_currents[comm_step - 1] = a;
 		} else {
-			detect_currents[comm_step] = b;
+			mcpwm_detect_currents[comm_step - 1] = b;
 		}
 
 		stop_pwm();
@@ -1397,7 +1419,7 @@ static void update_adc_sample_pos(void) {
 	uint32_t samp_zero = TIM1->ARR - 2;
 
 	// Sample the ADC at an appropriate time during the pwm cycle
-	if (pwm_mode == PWM_MODE_BIPOLAR) {
+	if (pwm_mode == PWM_MODE_BIPOLAR && state != MC_STATE_DETECTING) {
 		TIM8->CCR1 = samp_neg; // ??
 
 		switch (comm_step) {
@@ -1559,23 +1581,25 @@ static void set_next_comm_step(int next_step) {
 	uint16_t negative_highside = TIM_CCx_Enable;
 	uint16_t negative_lowside = TIM_CCxN_Enable;
 
-	switch (pwm_mode) {
-	case PWM_MODE_NONSYNCHRONOUS_LOSW:
-		positive_oc_mode = TIM_OCMode_Active;
-		negative_oc_mode = TIM_OCMode_PWM2;
-		negative_highside = TIM_CCx_Disable;
-		break;
+	if (state != MC_STATE_DETECTING) {
+		switch (pwm_mode) {
+		case PWM_MODE_NONSYNCHRONOUS_LOSW:
+			positive_oc_mode = TIM_OCMode_Active;
+			negative_oc_mode = TIM_OCMode_PWM2;
+			negative_highside = TIM_CCx_Disable;
+			break;
 
-	case PWM_MODE_NONSYNCHRONOUS_HISW:
-		positive_lowside = TIM_CCxN_Disable;
-		break;
+		case PWM_MODE_NONSYNCHRONOUS_HISW:
+			positive_lowside = TIM_CCxN_Disable;
+			break;
 
-	case PWM_MODE_SYNCHRONOUS:
-		break;
+		case PWM_MODE_SYNCHRONOUS:
+			break;
 
-	case PWM_MODE_BIPOLAR:
-		negative_oc_mode = TIM_OCMode_PWM2;
-		break;
+		case PWM_MODE_BIPOLAR:
+			negative_oc_mode = TIM_OCMode_PWM2;
+			break;
+		}
 	}
 
 	if (next_step == 1) {
