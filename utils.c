@@ -41,7 +41,7 @@ void step_towards(float *value, float goal, float step) {
     }
 }
 
-float calc_ratio(float low, float high, float val) {
+float utils_calc_ratio(float low, float high, float val) {
 	return (val - low) / (high - low);
 }
 

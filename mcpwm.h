@@ -35,7 +35,6 @@ typedef enum {
 } mc_state;
 
 typedef enum {
-	PWM_MODE_NONSYNCHRONOUS_LOSW = 0,	// Note: Does not work!
 	PWM_MODE_NONSYNCHRONOUS_HISW,
 	PWM_MODE_SYNCHRONOUS,
 	PWM_MODE_BIPOLAR
@@ -56,7 +55,6 @@ float mcpwm_get_tot_current_filtered(void);
 float mcpwm_get_tot_current(void);
 float mcpwm_get_tot_current_in(void);
 void mcpwm_set_detect(void);
-int mcpwm_get_detect_top(void);
 float mcpwm_get_detect_pos(void);
 mc_state mcpwm_get_state(void);
 signed int mcpwm_read_hall_phase(void);
@@ -77,6 +75,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags);
 extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 extern volatile float mcpwm_detect_currents[];
+extern volatile int mcpwm_vzero;
 
 // Macros
 #define READ_HALL1()			palReadPad(GPIOB, 6)
@@ -86,10 +85,11 @@ extern volatile float mcpwm_detect_currents[];
 /*
  * Parameters
  */
-#define MCPWM_SWITCH_FREQUENCY			40000	// Switching frequency in HZ
+#define MCPWM_SWITCH_FREQUENCY_MIN		8000	// Switching frequency in HZ
+#define MCPWM_SWITCH_FREQUENCY_MAX		40000	// Switching frequency in HZ
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
-#define MCPWM_PWM_MODE					PWM_MODE_BIPOLAR // Default PWM mode
-#define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
+#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
+#define MCPWM_MIN_DUTY_CYCLE			0.03	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
 #define MCPWM_NUM_POLES					2		// Motor pole number (for RPM calculation)
@@ -112,7 +112,7 @@ extern volatile float mcpwm_detect_currents[];
 #define MCPWM_START_DUTY_CYCLE_REV_H	0.2		// Startup duty cycle HIGH @ 20V
 #define MCPWM_MIN_START_STEPS			1		// Minimum steps to run in open loop
 #define MCPWM_CLOSED_STARTPWM_COMMS		1		// Run at least this many commutations in closed loop with start duty cycle
-#define MCPWM_CYCLE_INT_LIMIT			50.0	// Flux integrator limit
+#define MCPWM_CYCLE_INT_LIMIT			100.0	// Flux integrator limit
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 #define MCPWM_COMM_RPM_FACTOR			0.4		// at least run one commutation for the expected times times this factor
 

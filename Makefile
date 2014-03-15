@@ -52,6 +52,14 @@ ifeq ($(USE_FWLIB),)
   USE_FWLIB = yes
 endif
 
+# CMSIS DSP library
+# Note the the includes in
+# os/ports/common/ARMCMx/CMSIS
+# have to be replaced with the proper versions in order for this to work
+ifeq ($(USE_CMSIS),)
+  USE_DSPLIB = no
+endif
+
 #
 # Architecture or project specific options
 ##############################################################################
@@ -235,6 +243,13 @@ ifeq ($(USE_FWLIB),yes)
   CSRC += $(STM32SRC)
   INCDIR += $(STM32INC)
   USE_OPT += -DUSE_STDPERIPH_DRIVER
+endif
+
+ifeq ($(USE_DSPLIB),yes)
+  include $(CHIBIOS)/ext/DSP_Lib/dsplib.mk
+  CSRC += $(DSPSRC)
+  ASMXSRC += $(DSPASM)
+  USE_OPT += -D__FPU_PRESENT -D__FPU_USED -DARM_MATH_CM4 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk

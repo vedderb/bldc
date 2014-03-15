@@ -69,12 +69,12 @@
 
 // Private variables
 #define ADC_SAMPLE_MAX_LEN		4000
-static volatile uint16_t curr0_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint16_t curr1_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint16_t ph1_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint16_t ph2_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint16_t ph3_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint16_t vzero_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t curr0_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t curr1_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t ph1_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t ph2_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t ph3_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t vzero_samples[ADC_SAMPLE_MAX_LEN];
 static volatile uint8_t status_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int16_t curr_fir_samples[ADC_SAMPLE_MAX_LEN];
 
@@ -131,7 +131,7 @@ static msg_t periodic_thread(void *arg) {
 			comm_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
-		chThdSleepMilliseconds(10);
+		chThdSleepMilliseconds(25);
 	}
 
 	return 0;
@@ -204,10 +204,10 @@ void main_dma_adc_handler(void) {
 			}
 
 			curr1_samples[sample_now] = ADC_curr_norm_value[1];
-			ph1_samples[sample_now] = ADC_V_L1;
-			ph2_samples[sample_now] = ADC_V_L2;
-			ph3_samples[sample_now] = ADC_V_L3;
-			vzero_samples[sample_now] = ADC_V_ZERO * MCPWM_VZERO_FACT;
+			ph1_samples[sample_now] = ADC_V_L1 - mcpwm_vzero;
+			ph2_samples[sample_now] = ADC_V_L2 - mcpwm_vzero;
+			ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;
+			vzero_samples[sample_now] = mcpwm_vzero;
 
 			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100);
 

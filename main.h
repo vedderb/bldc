@@ -76,7 +76,6 @@ extern volatile uint16_t ADC_Value[];
 #define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
 #define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Function prototypes
 void main_dma_adc_handler(void);
