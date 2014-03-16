@@ -222,7 +222,7 @@ void mcpwm_init(void) {
 	input_current_sum = 0.0;
 	motor_current_iterations = 0.0;
 	input_current_iterations = 0.0;
-	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MIN;
+	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 
 #if MCPWM_IS_SENSORLESS
 	start_pulses = 0;
@@ -529,15 +529,14 @@ void mcpwm_init(void) {
 
 	// Calibrate current offset
 	ENABLE_GATE();
-	chThdSleepMilliseconds(100);
-	DCCAL_ON();
+	DCCAL_OFF();
+	chThdSleepMilliseconds(500);
 	curr0_sum = 0;
 	curr1_sum = 0;
 	curr_start_samples = 0;
-	while(curr_start_samples < 5000) {};
-	curr0_offset = curr0_sum / curr_start_samples;
-	curr1_offset = curr1_sum / curr_start_samples;
-	DCCAL_OFF();
+	while(curr_start_samples < 2000) {};
+	curr0_offset = curr0_sum / curr_start_samples - 1;
+	curr1_offset = curr1_sum / curr_start_samples - 1;
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -568,13 +567,18 @@ void mcpwm_set_duty(float dutyCycle) {
 
 	dutycycle_set = dutyCycle;
 
-	if (state != MC_STATE_RUNNING && fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
-		if (dutyCycle > 0.0) {
-			dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
+	if (state != MC_STATE_RUNNING) {
+		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
+			if (dutyCycle > 0.0) {
+				dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
+			} else {
+				dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
+			}
+			set_duty_cycle(dutycycle_now);
 		} else {
-			dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
+			state = MC_STATE_OFF;
+			stop_pwm();
 		}
-		set_duty_cycle(dutycycle_now);
 	}
 }
 
@@ -661,6 +665,9 @@ static void stop_pwm(void) {
 	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
+	set_switch_frequency_hw(switching_frequency_now);
 }
 
 void mcpwm_full_brake(void) {
@@ -682,6 +689,9 @@ void mcpwm_full_brake(void) {
 	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
+	set_switch_frequency_hw(switching_frequency_now);
 }
 
 #if MCPWM_IS_SENSORLESS
@@ -751,7 +761,11 @@ static void set_duty_cycle(float dutyCycle) {
 
 #if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING && state != MC_STATE_STARTING) {
-		set_open_loop();
+		if (rpm_now < MCPWM_MIN_CLOSED_RPM) {
+			set_open_loop();
+		} else {
+			state = MC_STATE_RUNNING;
+		}
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
@@ -782,7 +796,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	TIM1->CCR2 = period;
 	TIM1->CCR3 = period;
 
-	if (state == MC_STATE_DETECTING) {
+	if (state == MC_STATE_DETECTING || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
@@ -923,7 +937,6 @@ static msg_t timer_thread(void *arg) {
 
 		switch (state) {
 		case MC_STATE_OFF:
-			stop_pwm();
 			break;
 
 		case MC_STATE_DETECTING:
@@ -1105,11 +1118,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if (pwm_mode == PWM_MODE_BIPOLAR) {
-		comm_time = 3.0 / MCPWM_COMM_RPM_FACTOR;
-	}
-
-	if (pwm_adc_cycles >= (int)(comm_time * MCPWM_COMM_RPM_FACTOR)) {
+	if (pwm_adc_cycles > 3) {
 		int inc_step = 0;
 		int ph1, ph2, ph3;
 		int v_diff = 0;
@@ -1203,11 +1212,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 #endif
 
 	if (state == MC_STATE_RUNNING) {
-		const float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
+		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
 		const float current = mcpwm_get_tot_current();
 		const float current_in = mcpwm_get_tot_current_in();
 
 		float dutycycle_set_tmp = dutycycle_set;
+
+		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
+			ramp_step *= fabsf(dutycycle_now);
+		}
 
 #if MCPWM_IS_SENSORLESS
 		if (closed_cycles < MCPWM_CLOSED_STARTPWM_COMMS) {
@@ -1237,16 +1250,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		if (fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE) {
 			if (dutycycle_set_tmp > MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.001);
-#if MCPWM_IS_SENSORLESS
-				direction = 1;
-				set_open_loop();
-#endif
 			} else if (dutycycle_set_tmp < -MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
-#if MCPWM_IS_SENSORLESS
-				direction = 0;
-				set_open_loop();
-#endif
 			}
 		}
 
@@ -1342,7 +1347,11 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 #if MCPWM_IS_SENSORLESS
 static int integrate_cycle(float v_diff) {
 	cycle_integrator += v_diff;
-	const float limit = (MCPWM_CYCLE_INT_LIMIT * 0.0005) * (float)switching_frequency_now;
+
+	const float rpm_fac = rpm_now / 100000.0;
+	const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
+			MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
+	const float limit = (cycle_int_limit * 0.0005) * (float)switching_frequency_now;
 
 	if (cycle_integrator >= limit) {
 		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
@@ -1520,23 +1529,8 @@ static void update_adc_sample_pos(void) {
 				break;
 			}
 		} else {
+			// Voltage samples
 			TIM8->CCR1 = period / 2;
-
-			// TODO: WTF??
-//			const uint32_t low_samp = 215;
-//			const uint32_t norm_samp = period / 2;
-//			const uint32_t low = TIM1->ARR / 12;
-//			const uint32_t high = TIM1->ARR / 8;
-//
-//			if (period <= low) {
-//				TIM8->CCR1 = low_samp;
-//			} else if (period < high) {
-//				float ratio = utils_calc_ratio(low, high, period);
-//				TIM8->CCR1 = (uint32_t) ((float) low_samp * (1.0 - ratio)
-//						+ (float) norm_samp * ratio);
-//			} else {
-//				TIM8->CCR1 = norm_samp;
-//			}
 
 			// Current samples
 			TIM1->CCR4 = period + (TIM1->ARR - period) / 2;
@@ -1588,7 +1582,7 @@ void mcpwm_comm_int_handler(void) {
 #if MCPWM_IS_SENSORLESS
 	// PWM commutation in advance for next step.
 
-	if (!(state == MC_STATE_STARTING || state == MC_STATE_RUNNING)) {
+	if (state == MC_STATE_DETECTING) {
 		return;
 	}
 
@@ -1602,6 +1596,10 @@ void mcpwm_comm_int_handler(void) {
 	int next_step = comm_step + 1;
 	if (next_step > 6) {
 		next_step = 1;
+	}
+
+	if (!(state == MC_STATE_STARTING || state == MC_STATE_RUNNING)) {
+		return;
 	}
 
 	set_next_comm_step(next_step);
