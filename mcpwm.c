@@ -529,14 +529,15 @@ void mcpwm_init(void) {
 
 	// Calibrate current offset
 	ENABLE_GATE();
-	DCCAL_OFF();
+	DCCAL_ON();
 	chThdSleepMilliseconds(500);
 	curr0_sum = 0;
 	curr1_sum = 0;
 	curr_start_samples = 0;
 	while(curr_start_samples < 2000) {};
-	curr0_offset = curr0_sum / curr_start_samples - 1;
-	curr1_offset = curr1_sum / curr_start_samples - 1;
+	curr0_offset = curr0_sum / curr_start_samples;
+	curr1_offset = curr1_sum / curr_start_samples;
+	DCCAL_OFF();
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -1098,17 +1099,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 
 #if MCPWM_IS_SENSORLESS
-	// See if current RPM is large enough to consider it updated,
-	// otherwise use low enough RPM value
-	float div_rpm = rpm_now;
-
-	if (div_rpm < (float)MCPWM_MIN_CLOSED_RPM) {
-		div_rpm = (float)MCPWM_MIN_CLOSED_RPM;
-	}
-
 	// Compute the theoretical commutation time at the current RPM
 	float comm_time = ((float)switching_frequency_now) /
-			((div_rpm / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
+			((MCPWM_MIN_CLOSED_RPM / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
 
 	if (pwm_adc_cycles >= (int)(comm_time * (1.0 / MCPWM_COMM_RPM_FACTOR))) {
 		if (state == MC_STATE_RUNNING) {
