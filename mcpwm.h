@@ -101,7 +101,7 @@ extern volatile int mcpwm_vzero;
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_CLOSED_RPM			200		// Switch to open loop below this RPM
+#define MCPWM_MIN_RPM					200		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 100K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment

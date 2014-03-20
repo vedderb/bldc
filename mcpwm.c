@@ -46,6 +46,7 @@ static volatile int is_using_pid;
 static volatile float pid_set_rpm;
 static volatile int tachometer;
 static volatile int pwm_adc_cycles;
+static volatile int pwm_last_adc_cycles;
 static volatile int curr0_sum;
 static volatile int curr1_sum;
 static volatile int curr_start_samples;
@@ -206,6 +207,7 @@ void mcpwm_init(void) {
 	pid_set_rpm = 0.0;
 	tachometer = 0;
 	pwm_adc_cycles = 0;
+	pwm_last_adc_cycles = 0;
 	state = MC_STATE_OFF;
 	detect_now = 0;
 	detect_inc = 0;
@@ -724,8 +726,10 @@ static void set_duty_cycle(float dutyCycle) {
 #if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
-		set_next_comm_step(comm_step);
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		if (rpm_now < MCPWM_MIN_RPM) {
+			set_next_comm_step(comm_step);
+			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		}
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
@@ -998,8 +1002,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 #if MCPWM_IS_SENSORLESS
 	// Compute the theoretical commutation time at the current RPM
-	float comm_time = ((float)switching_frequency_now) /
-			((MCPWM_MIN_CLOSED_RPM / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
+	const float comm_time = ((float)switching_frequency_now) /
+			((MCPWM_MIN_RPM / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
 
 	if (pwm_adc_cycles >= (int)comm_time) {
 		if (state == MC_STATE_RUNNING) {
@@ -1008,7 +1012,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if (pwm_adc_cycles > 3) {
+	if (pwm_adc_cycles > pwm_last_adc_cycles / 4) {
 		int inc_step = 0;
 		int ph1, ph2, ph3;
 		int v_diff = 0;
@@ -1416,6 +1420,7 @@ static void update_adc_sample_pos(void) {
 }
 
 static void update_rpm_tacho(void) {
+	pwm_last_adc_cycles = pwm_adc_cycles;
 	pwm_adc_cycles = 0;
 
 	static uint32_t comm_counter = 0;
