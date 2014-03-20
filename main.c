@@ -184,7 +184,7 @@ static msg_t sample_send_thread(void *arg) {
 void main_dma_adc_handler(void) {
 	ledpwm_update_pwm();
 
-	if (sample_at_start && mcpwm_get_state() == MC_STATE_STARTING) {
+	if (sample_at_start && mcpwm_get_state() == MC_STATE_RUNNING) {
 		sample_now = 0;
 		sample_ready = 0;
 		was_start_sample = 1;
@@ -214,7 +214,7 @@ void main_dma_adc_handler(void) {
 			uint8_t tmp;
 
 			if (was_start_sample) {
-				if (mcpwm_get_state() == MC_STATE_STARTING) {
+				if (mcpwm_get_state() == MC_STATE_OFF) {
 					tmp = 1;
 				} else if (mcpwm_get_state() == MC_STATE_RUNNING) {
 					tmp = 2;

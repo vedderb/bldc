@@ -28,7 +28,6 @@
 typedef enum {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
-   MC_STATE_STARTING,
    MC_STATE_RUNNING,
    MC_STATE_FULL_BRAKE,
    MC_STATE_STATIC_VECTOR
@@ -102,17 +101,8 @@ extern volatile int mcpwm_vzero;
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MAX_COMM_START_DIFF		2		// The lower the number, the more picky the the closed loop detector
-#define MCPWM_MIN_CLOSED_RPM			300		// Switch to open loop below this RPM
-#define MCPWM_START_COMM_TIME_MS_L		7		// Commutation time during startup in msecs LOW
-#define MCPWM_START_COMM_TIME_MS_H		20		// Commutation time during startup in msecs HIGH
-#define MCPWM_START_DUTY_CYCLE_L		0.06	// Startup duty cycle min @ 20V
-#define MCPWM_START_DUTY_CYCLE_H		0.2		// Startup duty cycle max @ 20V
-#define MCPWM_START_DUTY_CYCLE_REV_L	0.06	// Startup duty cycle min @ 20V
-#define MCPWM_START_DUTY_CYCLE_REV_H	0.2		// Startup duty cycle max @ 20V
-#define MCPWM_MIN_START_STEPS			1		// Minimum steps to run in open loop
-#define MCPWM_CLOSED_STARTPWM_COMMS		1		// Run at least this many commutations in closed loop with start duty cycle
-#define MCPWM_CYCLE_INT_LIMIT_LOW		200.0	// Flux integrator limit 0 ERPM
+#define MCPWM_MIN_CLOSED_RPM			200		// Switch to open loop below this RPM
+#define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 100K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 #define MCPWM_COMM_RPM_FACTOR			0.4		// at least run one commutation for the expected times times this factor

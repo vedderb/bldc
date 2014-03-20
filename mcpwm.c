@@ -66,10 +66,7 @@ static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
 
 #if MCPWM_IS_SENSORLESS
-static volatile int start_pulses;
-static volatile int closed_cycles;
 static volatile float cycle_integrator;
-static volatile int start_time_ms_now;
 #endif
 
 // KV FIR filter
@@ -176,9 +173,7 @@ static void update_adc_sample_pos(void);
 static void set_switch_frequency_hw(int freq);
 
 #if MCPWM_IS_SENSORLESS
-static void set_open_loop(void);
 static int integrate_cycle(float v_diff);
-static float get_start_duty(void);
 #endif
 
 // Defines
@@ -225,10 +220,7 @@ void mcpwm_init(void) {
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 
 #if MCPWM_IS_SENSORLESS
-	start_pulses = 0;
-	closed_cycles = 0;
 	cycle_integrator = CYCLE_INT_START;
-	start_time_ms_now = MCPWM_START_COMM_TIME_MS_L;
 #endif
 
 	// Create KV FIR filter
@@ -695,36 +687,6 @@ void mcpwm_full_brake(void) {
 	set_switch_frequency_hw(switching_frequency_now);
 }
 
-#if MCPWM_IS_SENSORLESS
-static float get_start_duty(void) {
-	float ret = 0.0;
-	float ratio = utils_calc_ratio(MCPWM_START_COMM_TIME_MS_L,
-			MCPWM_START_COMM_TIME_MS_H, start_time_ms_now);
-
-	if (direction) {
-		ret = MCPWM_START_DUTY_CYCLE_L * (1 - ratio)
-				+ MCPWM_START_DUTY_CYCLE_H * ratio;
-	} else {
-		ret = -(MCPWM_START_DUTY_CYCLE_REV_L * (1 - ratio) + MCPWM_START_DUTY_CYCLE_REV_H * ratio);
-	}
-
-	ret *= 20.0 / GET_BRIDGE_VOLTAGE;
-
-	return ret;
-}
-
-static void set_open_loop(void) {
-	start_pulses = 0;
-	state = MC_STATE_STARTING;
-	closed_cycles = 0;
-	cycle_integrator = CYCLE_INT_START;
-	start_time_ms_now = MCPWM_START_COMM_TIME_MS_L;
-
-	dutycycle_now = get_start_duty();
-	set_duty_cycle(dutycycle_now);
-}
-#endif
-
 static void set_duty_cycle(float dutyCycle) {
 	if (dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
 		direction = 1;
@@ -735,7 +697,6 @@ static void set_duty_cycle(float dutyCycle) {
 
 	if (dutyCycle < MCPWM_MIN_DUTY_CYCLE) {
 		switch (state) {
-		case MC_STATE_STARTING:
 		case MC_STATE_RUNNING:
 			state = MC_STATE_OFF;
 			if (MCPWM_FULL_BRAKE_AT_STOP) {
@@ -761,12 +722,10 @@ static void set_duty_cycle(float dutyCycle) {
 	}
 
 #if MCPWM_IS_SENSORLESS
-	if (state != MC_STATE_RUNNING && state != MC_STATE_STARTING) {
-		if (rpm_now < MCPWM_MIN_CLOSED_RPM) {
-			set_open_loop();
-		} else {
-			state = MC_STATE_RUNNING;
-		}
+	if (state != MC_STATE_RUNNING) {
+		state = MC_STATE_RUNNING;
+		set_next_comm_step(comm_step);
+		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
@@ -836,15 +795,6 @@ static void run_pid_controller(void) {
 		return;
 	}
 
-#if MCPWM_IS_SENSORLESS
-	// Start sequence running. Return.
-	if (state == MC_STATE_STARTING || closed_cycles < MCPWM_CLOSED_STARTPWM_COMMS) {
-		i_term = 0;
-		prev_error = 0;
-		return;
-	}
-#endif
-
 	// Compensation for supply voltage variations
 	float scale = 1.0 / GET_INPUT_VOLTAGE;
 
@@ -900,10 +850,6 @@ static msg_t timer_thread(void *arg) {
 		uint32_t tim_val = TIM2->CNT;
 		uint32_t tim_diff = tim_val - last_comm_time;
 
-#if MCPWM_IS_SENSORLESS
-		static int start_time_cnt = 0;
-#endif
-
 		if (tim_diff > 0) {
 			float rpm_tmp = ((float)MCPWM_AVG_COM_RPM * 1000000.0 * 60.0) /
 					((float)tim_diff *  (float)MCPWM_NUM_POLES * 3.0);
@@ -913,28 +859,7 @@ static msg_t timer_thread(void *arg) {
 			if (rpm_tmp < rpm_now) {
 				rpm_now = rpm_tmp;
 			}
-
-#if MCPWM_IS_SENSORLESS
-			if (rpm_now < MCPWM_MIN_CLOSED_RPM && state == MC_STATE_RUNNING && closed_cycles > 40) {
-				set_open_loop();
-			}
-#endif
 		}
-
-#if MCPWM_IS_SENSORLESS
-		// Duty-cycle, detect and startup
-		static int start_time = 0;
-
-		if (state != MC_STATE_STARTING) {
-			if (state == MC_STATE_RUNNING) {
-				if (closed_cycles >= MCPWM_CLOSED_STARTPWM_COMMS) {
-					start_time_ms_now = MCPWM_START_COMM_TIME_MS_L;
-				}
-			} else {
-				start_time_ms_now = MCPWM_START_COMM_TIME_MS_L;
-			}
-		}
-#endif
 
 		switch (state) {
 		case MC_STATE_OFF:
@@ -944,34 +869,7 @@ static msg_t timer_thread(void *arg) {
 			detect_do_step = 1;
 			break;
 
-#if MCPWM_IS_SENSORLESS
-		case MC_STATE_STARTING:
-			start_time++;
-
-			if (start_time >= start_time_ms_now) {
-				start_time = 0;
-				start_pulses++;
-				TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-
-				start_time_cnt++;
-				if (start_time_cnt > 6) {
-					start_time_cnt = 0;
-					start_time_ms_now++;
-					if (start_time_ms_now > MCPWM_START_COMM_TIME_MS_H) {
-						start_time_ms_now = MCPWM_START_COMM_TIME_MS_L;
-					}
-
-					dutycycle_now = get_start_duty();
-					set_duty_cycle(dutycycle_now);
-				}
-			}
-			break;
-#endif
-
 		case MC_STATE_RUNNING:
-#if MCPWM_IS_SENSORLESS
-			start_time = 0;
-#endif
 			break;
 
 		case MC_STATE_FULL_BRAKE:
@@ -1103,10 +1001,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	float comm_time = ((float)switching_frequency_now) /
 			((MCPWM_MIN_CLOSED_RPM / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
 
-	if (pwm_adc_cycles >= (int)(comm_time * (1.0 / MCPWM_COMM_RPM_FACTOR))) {
+	if (pwm_adc_cycles >= (int)comm_time) {
 		if (state == MC_STATE_RUNNING) {
 			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-			closed_cycles++;
 			cycle_integrator = CYCLE_INT_START;
 		}
 	}
@@ -1174,14 +1071,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		if (inc_step) {
-			const int ratio = (100 * v_diff) / mcpwm_vzero;
-
-			if (state == MC_STATE_STARTING && ratio < MCPWM_MAX_COMM_START_DIFF
-					&& start_pulses > MCPWM_MIN_START_STEPS) {
-				// We think we are running in closed loop. Stop start sequence!
-				state = MC_STATE_RUNNING;
-				cycle_integrator = CYCLE_INT_START;
-			} else if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
+			if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
 				integrate_cycle((float)v_diff);
 			}
 		} else {
@@ -1214,12 +1104,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
 			ramp_step *= fabsf(dutycycle_now);
 		}
-
-#if MCPWM_IS_SENSORLESS
-		if (closed_cycles < MCPWM_CLOSED_STARTPWM_COMMS) {
-			dutycycle_set_tmp = get_start_duty();
-		}
-#endif
 
 		motor_current_sum += current;
 		input_current_sum += current_in;
@@ -1348,7 +1232,6 @@ static int integrate_cycle(float v_diff) {
 
 	if (cycle_integrator >= limit) {
 		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-		closed_cycles++;
 		cycle_integrator = CYCLE_INT_START;
 		return 1;
 	}
@@ -1591,7 +1474,7 @@ void mcpwm_comm_int_handler(void) {
 		next_step = 1;
 	}
 
-	if (!(state == MC_STATE_STARTING || state == MC_STATE_RUNNING)) {
+	if (!(state == MC_STATE_RUNNING)) {
 		return;
 	}
 
