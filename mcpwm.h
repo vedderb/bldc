@@ -99,10 +99,9 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
-#define MCPWM_NUM_POLES					2		// Motor pole number (for RPM calculation)
 #define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes
+#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes
 #define MCPWM_CURRENT_MIN				-20.0	// Current limit in Amperes
 #define MCPWM_IN_CURRENT_LIMIT			40.0	// Input current limit in Amperes
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
@@ -113,9 +112,9 @@ extern volatile int mcpwm_vzero;
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					200		// Auto-commutate below this RPM
+#define MCPWM_MIN_RPM					400		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 100K ERPM
+#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 
 // PID parameters
@@ -127,5 +126,28 @@ extern volatile int mcpwm_vzero;
 
 // Misc settings
 #define MCPWM_ADC_CHANNELS				12
+
+/*
+ * ==== Parameters guidelines ====
+ *
+ * Most hobby inruners:
+ * MCPWM_CYCLE_INT_LIMIT_LOW	15
+ * MCPWM_CYCLE_INT_LIMIT_HIGH	2
+ *
+ * Most hobby outrunners (1kw - 5kw):
+ * MCPWM_CYCLE_INT_LIMIT_LOW	150
+ * MCPWM_CYCLE_INT_LIMIT_HIGH	20
+ *
+ * Large 12V high-inductance motor
+ * MCPWM_CYCLE_INT_LIMIT_LOW	250
+ * MCPWM_CYCLE_INT_LIMIT_HIGH	30
+ *
+ *
+ * ==== Some notes ====
+ *
+ * - Decreasing the MCPWM_MIN_RPM parameter gives a bit more
+ *   startup torque, but will make the start more rough.
+ *
+ */
 
 #endif /* MC_PWM_H_ */

@@ -607,7 +607,7 @@ float mcpwm_get_rpm(void) {
 }
 
 float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * mcpwm_get_duty_cycle());
+	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
 }
 
 mc_state mcpwm_get_state(void) {
@@ -876,7 +876,7 @@ static msg_t timer_thread(void *arg) {
 
 		if (tim_diff > 0) {
 			float rpm_tmp = ((float)MCPWM_AVG_COM_RPM * 1000000.0 * 60.0) /
-					((float)tim_diff *  (float)MCPWM_NUM_POLES * 3.0);
+					((float)tim_diff *  6.0);
 
 			// Re-calculate RPM between commutations
 			// This will end up being used when slowing down
@@ -1052,7 +1052,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 #if MCPWM_IS_SENSORLESS
 	// Compute the theoretical commutation time at the current RPM
 	const float comm_time = ((float)switching_frequency_now) /
-			((MCPWM_MIN_RPM / 60.0) * (float)MCPWM_NUM_POLES * 3.0);
+			((MCPWM_MIN_RPM / 60.0) * 6.0);
 
 	if (pwm_adc_cycles >= (int)comm_time) {
 		if (state == MC_STATE_RUNNING) {
@@ -1282,7 +1282,7 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 static int integrate_cycle(float v_diff) {
 	cycle_integrator += v_diff;
 
-	const float rpm_fac = rpm_now / 100000.0;
+	const float rpm_fac = rpm_now / 50000.0;
 	const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
 			MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
 	const float limit = (cycle_int_limit * 0.0005) * (float)switching_frequency_now;
@@ -1487,7 +1487,7 @@ static void update_rpm_tacho(void) {
 
 		if (tim_diff > 0) {
 			rpm_now = ((float)MCPWM_AVG_COM_RPM * 1000000.0 * 60.0) /
-					((float)tim_diff *  (float)MCPWM_NUM_POLES * 3.0);
+					((float)tim_diff *  6.0);
 		}
 	}
 
