@@ -53,6 +53,7 @@ static volatile int curr_start_samples;
 static volatile int curr0_offset;
 static volatile int curr1_offset;
 static volatile mc_state state;
+static volatile mc_fault_code fault_now;
 static volatile int detect_now;
 static volatile int detect_inc;
 static volatile int detect_do_step;
@@ -65,6 +66,7 @@ static volatile float input_current_iterations;
 static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
+static volatile int fault_iterations;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -167,6 +169,7 @@ volatile int mcpwm_vzero;
 static void set_duty_cycle(float dutyCycle);
 static void set_duty_cycle_hw(float dutyCycle);
 static void stop_pwm(void);
+static void fault_stop(mc_fault_code fault);
 static void run_pid_controller(void);
 static void set_next_comm_step(int next_step);
 static void update_rpm_tacho(void);
@@ -209,6 +212,7 @@ void mcpwm_init(void) {
 	pwm_adc_cycles = 0;
 	pwm_last_adc_cycles = 0;
 	state = MC_STATE_OFF;
+	fault_now = FAULT_CODE_NONE;
 	detect_now = 0;
 	detect_inc = 0;
 	detect_do_step = 0;
@@ -220,6 +224,7 @@ void mcpwm_init(void) {
 	motor_current_iterations = 0.0;
 	input_current_iterations = 0.0;
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
+	fault_iterations = 0;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -549,6 +554,10 @@ void mcpwm_init(void) {
 }
 
 void mcpwm_set_duty(float dutyCycle) {
+	if (fault_now != FAULT_CODE_NONE) {
+		return;
+	}
+
 	if (dutyCycle > MCPWM_MAX_DUTY_CYCLE) {
 		dutyCycle = MCPWM_MAX_DUTY_CYCLE;
 	} else if (dutyCycle < -MCPWM_MAX_DUTY_CYCLE) {
@@ -578,6 +587,10 @@ void mcpwm_set_duty(float dutyCycle) {
 }
 
 void mcpwm_use_pid(int use_pid) {
+	if (fault_now != FAULT_CODE_NONE) {
+		return;
+	}
+
 	if (use_pid != is_using_pid && state == MC_STATE_DETECTING) {
 		state = MC_STATE_OFF;
 		stop_pwm();
@@ -603,11 +616,15 @@ float mcpwm_get_rpm(void) {
 }
 
 float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE * mcpwm_get_duty_cycle());
+	return rpm_now / (GET_INPUT_VOLTAGE() * mcpwm_get_duty_cycle());
 }
 
 mc_state mcpwm_get_state(void) {
 	return state;
+}
+
+mc_fault_code mcpwm_get_fault(void) {
+	return fault_now;
 }
 
 float mcpwm_get_kv_filtered(void) {
@@ -665,7 +682,19 @@ static void stop_pwm(void) {
 	set_switch_frequency_hw(switching_frequency_now);
 }
 
+static void fault_stop(mc_fault_code fault) {
+	fault_iterations = MCPWM_FAULT_STOP_TIME;
+	is_using_pid = 0;
+	state = MC_STATE_OFF;
+	stop_pwm();
+	fault_now = fault;
+}
+
 void mcpwm_full_brake(void) {
+	if (fault_now != FAULT_CODE_NONE) {
+		return;
+	}
+
 	state = MC_STATE_FULL_BRAKE;
 
 	dutycycle_set = 0;
@@ -800,7 +829,7 @@ static void run_pid_controller(void) {
 	}
 
 	// Compensation for supply voltage variations
-	float scale = 1.0 / GET_INPUT_VOLTAGE;
+	float scale = 1.0 / GET_INPUT_VOLTAGE();
 
 	// Compute error
 	float error = pid_set_rpm - mcpwm_get_rpm();
@@ -894,6 +923,20 @@ static msg_t timer_thread(void *arg) {
 			if (state == MC_STATE_RUNNING) {
 				filter_add_sample((float*)kv_fir_samples, mcpwm_get_kv(),
 						KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
+			}
+		}
+
+		// Check if the DRV8302 indicates any fault
+		if (IS_FAULT()) {
+			fault_stop(FAULT_CODE_DRV8302);
+		}
+
+		// Decrease fault iterations
+		if (fault_iterations > 0) {
+			fault_iterations--;
+		} else {
+			if (!IS_FAULT()) {
+				fault_now = FAULT_CODE_NONE;
 			}
 		}
 
@@ -997,6 +1040,21 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)flags;
 
 	TIM4->CNT = 0;
+
+	const float input_voltage = GET_INPUT_VOLTAGE();
+	static float wrong_voltage_iterations = 0;
+
+	if (input_voltage < MCPWM_MIN_VOLTAGE ||
+			input_voltage > MCPWM_MAX_VOLTAGE) {
+		wrong_voltage_iterations++;
+
+		if ((wrong_voltage_iterations >= MCPWM_MAX_WRONG_VOLTAGE_ITR)) {
+			fault_stop(input_voltage < MCPWM_MIN_VOLTAGE ?
+					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
+		}
+	} else {
+		wrong_voltage_iterations = 0;
+	}
 
 	mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 
@@ -1145,6 +1203,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 }
 
 void mcpwm_set_detect(void) {
+	if (fault_now != FAULT_CODE_NONE) {
+		return;
+	}
+
 	is_using_pid = 0;
 	stop_pwm();
 	set_switch_frequency_hw(MCPWM_SWITCH_FREQUENCY_MAX);

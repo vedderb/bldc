@@ -39,6 +39,13 @@ typedef enum {
 	PWM_MODE_BIPOLAR
 } mc_pwm_mode;
 
+typedef enum {
+	FAULT_CODE_NONE = 0,
+	FAULT_CODE_OVER_VOLTAGE,
+	FAULT_CODE_UNDER_VOLTAGE,
+	FAULT_CODE_DRV8302
+} mc_fault_code;
+
 // Functions
 void mcpwm_init(void);
 void mcpwm_set_duty(float dutyCycle);
@@ -56,6 +63,7 @@ float mcpwm_get_tot_current_in(void);
 void mcpwm_set_detect(void);
 float mcpwm_get_detect_pos(void);
 mc_state mcpwm_get_state(void);
+mc_fault_code mcpwm_get_fault(void);
 signed int mcpwm_read_hall_phase(void);
 void mcpwm_full_brake(void);
 float mcpwm_read_reset_avg_motor_current(void);
@@ -97,7 +105,11 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes
 #define MCPWM_CURRENT_MIN				-20.0	// Current limit in Amperes
 #define MCPWM_IN_CURRENT_LIMIT			40.0	// Input current limit in Amperes
+#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
+#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
+#define MCPWM_MAX_WRONG_VOLTAGE_ITR		3		// PWM cycles with wrong voltage before shutdown
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
+#define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
@@ -115,66 +127,5 @@ extern volatile int mcpwm_vzero;
 
 // Misc settings
 #define MCPWM_ADC_CHANNELS				12
-
-/*
- * Turnigy big
- * MCPWM_USE_BIPOLAR_PWM: 0
- * MCPWM_MAX_COMM_START_DIFF: 20
- * MCPWM_START_DUTY_CYCLE_L: 0.05
- * MCPWM_START_DUTY_CYCLE_H: 0.12
- * MCPWM_START_DUTY_CYCLE_REV_L: 0.05
- * MCPWM_START_DUTY_CYCLE_REV_H. 0.12
- * MCPWM_CYCLE_INT_LIMIT: 150
- * MCPWM_PID_KP: 0.0001
- * MCPWM_PID_KI: 0.002
- * MCPWM_VZERO_FACT: 1.0
- * MCPWM_COMM_RPM_FACTOR: ??
- */
-
-/*
- * Gurgalof
- * MCPWM_USE_BIPOLAR_PWM: 0
- * MCPWM_MAX_COMM_START_DIFF: 20
- * MCPWM_START_DUTY_CYCLE_L: 0.2
- * MCPWM_START_DUTY_CYCLE_H: 0.5
- * MCPWM_START_DUTY_CYCLE_REV_L: 0.2
- * MCPWM_START_DUTY_CYCLE_REV_H. 0.5
- * MCPWM_CYCLE_INT_LIMIT: 350
- * MCPWM_PID_KP: 0.0001
- * MCPWM_PID_KI: 0.002
- * MCPWM_VZERO_FACT: 1.0
- * MCPWM_COMM_RPM_FACTOR: ??
- */
-
-/*
- * The black motor from my box:
- * MCPWM_USE_BIPOLAR_PWM: 0
- * MCPWM_MAX_COMM_START_DIFF: 20
- * MCPWM_START_DUTY_CYCLE_L: 0.1
- * MCPWM_START_DUTY_CYCLE_H: 0.3
- * MCPWM_START_DUTY_CYCLE_REV_L: 0.1
- * MCPWM_START_DUTY_CYCLE_REV_H. 0.18
- * MCPWM_CYCLE_INT_LIMIT: 110
- * MCPWM_PID_KP: 0.0001
- * MCPWM_PID_KI: 0.002
- * MCPWM_VZERO_FACT: 1.0
- * MCPWM_COMM_RPM_FACTOR: ??
- */
-
-/*
- * The orange motor from my box:
- * MCPWM_USE_BIPOLAR_PWM: 0
- * MCPWM_MAX_COMM_START_DIFF: 10
- * MCPWM_START_DUTY_CYCLE_L: 0.15
- * MCPWM_START_DUTY_CYCLE_H: 0.4
- * MCPWM_START_DUTY_CYCLE_REV_L: 0.15
- * MCPWM_START_DUTY_CYCLE_REV_H. 0.2
- * MCPWM_CYCLE_INT_LIMIT: 110
- * MCPWM_PID_KP: 0.0001
- * MCPWM_PID_KI: 0.002
- * MCPWM_VZERO_FACT: 1.0
- * MCPWM_COMM_RPM_FACTOR: 0.4
- */
-
 
 #endif /* MC_PWM_H_ */

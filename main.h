@@ -29,14 +29,11 @@
 
 // Component parameters
 #define V_REG		3.3
-#define VIN_R1		22000.0
+#define VIN_R1		33000.0
 #define VIN_R2		2200.0
-#define HV_R1		33000.0
-#define HV_R2		2200.0
 
 // Input voltage
-#define GET_INPUT_VOLTAGE	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-#define GET_BRIDGE_VOLTAGE	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((HV_R1 + HV_R2) / HV_R2))
+#define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)

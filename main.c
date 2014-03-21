@@ -64,9 +64,6 @@
 #define USE_SERVO_INPUT			0
 #define USE_THROTTLE_ADC		0
 
-// Macros
-#define IS_FAULT()				(!palReadPad(GPIOC, 12))
-
 // Private variables
 #define ADC_SAMPLE_MAX_LEN		4000
 static volatile int16_t curr0_samples[ADC_SAMPLE_MAX_LEN];
@@ -103,8 +100,8 @@ static msg_t periodic_thread(void *arg) {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
 		}
 
-		if (IS_FAULT()) {
-			ledpwm_set_intensity(LED_RED, 0.5);
+		if (mcpwm_get_fault() != FAULT_CODE_NONE) {
+			ledpwm_set_intensity(LED_RED, 1.0);
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
 		}
