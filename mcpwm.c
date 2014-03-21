@@ -638,7 +638,7 @@ float mcpwm_get_tot_current(void) {
 }
 
 float mcpwm_get_tot_current_in(void) {
-	return mcpwm_get_tot_current() * dutycycle_now;
+	return mcpwm_get_tot_current() * fabsf(dutycycle_now);
 }
 
 int mcpwm_get_tachometer_value(int reset) {
