@@ -88,10 +88,6 @@ static volatile float current_fir_coeffs[CURR_FIR_LEN];
 static volatile float current_fir_samples[CURR_FIR_LEN];
 static volatile int current_fir_index = 0;
 
-// Sine table (to be generated in init)
-#define SINE_TABLE_LEN		3600
-static volatile float sine_table[SINE_TABLE_LEN];
-
 // Hall sensor shift table
 const unsigned int mc_shift_table[] = {
 	// 0
@@ -235,11 +231,6 @@ void mcpwm_init(void) {
 
 	// Create current FIR filter
 	filter_create_fir((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
-
-	// Generate sine table (Range: 0.0 - 1.0)
-	for (int i = 0;i < SINE_TABLE_LEN;i++) {
-		sine_table[i] = (sinf((2.0 * M_PI * (float)i) / SINE_TABLE_LEN) + 1.0) / 2.0;
-	}
 
 	// Start the timer thread
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
