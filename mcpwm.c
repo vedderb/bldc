@@ -1061,7 +1061,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if (pwm_adc_cycles > pwm_last_adc_cycles / 4) {
+	if (pwm_adc_cycles > pwm_last_adc_cycles / 3) {
 		int inc_step = 0;
 		int ph1, ph2, ph3;
 		int v_diff = 0;
