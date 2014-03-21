@@ -105,7 +105,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 100K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
-#define MCPWM_COMM_RPM_FACTOR			0.4		// at least run one commutation for the expected times times this factor
 
 // PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
