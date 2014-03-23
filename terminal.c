@@ -89,6 +89,28 @@ void terminal_process_string(char *str) {
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
 		comm_print("");
+	} else if (strcmp(argv[0], "fault") == 0) {
+		switch (mcpwm_get_fault()) {
+		case FAULT_CODE_NONE:
+			comm_print("FAULT_CODE_NONE\n");
+			break;
+
+		case FAULT_CODE_OVER_VOLTAGE:
+			comm_print("FAULT_CODE_OVER_VOLTAGE\n");
+			break;
+
+		case FAULT_CODE_UNDER_VOLTAGE:
+			comm_print("FAULT_CODE_UNDER_VOLTAGE\n");
+			break;
+
+		case FAULT_CODE_DRV8302:
+			comm_print("FAULT_CODE_DRV8302\n");
+			break;
+
+		default:
+			break;
+		}
+
 	} else if (strcmp(argv[0], "help") == 0) {
 		comm_print("Valid commands are:");
 		comm_print("help");
@@ -110,7 +132,10 @@ void terminal_process_string(char *str) {
 		comm_print("  Show memory usage");
 
 		comm_print("threads");
-		comm_print("  List all threads\n");
+		comm_print("  List all threads");
+
+		comm_print("fault");
+		comm_print("  Prints the current fault code\n");
 	} else {
 		sprintf(buffer, "Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

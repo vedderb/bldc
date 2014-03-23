@@ -730,7 +730,7 @@ static void set_duty_cycle(float dutyCycle) {
 
 		case MC_STATE_DETECTING:
 			state = MC_STATE_OFF;
-			stop_pwm(); // TODO: Full break?
+			stop_pwm();
 			break;
 
 		default:
@@ -887,6 +887,8 @@ static msg_t timer_thread(void *arg) {
 
 		switch (state) {
 		case MC_STATE_OFF:
+			// TODO: Track the motor speed and follow it with dutycycle_now
+			// If possible, track the direction and follow it as well
 			break;
 
 		case MC_STATE_DETECTING:

@@ -130,7 +130,7 @@ extern volatile int mcpwm_vzero;
 /*
  * ==== Parameters guidelines ====
  *
- * Most hobby inruners:
+ * Most hobby inrunners and small motors:
  * MCPWM_CYCLE_INT_LIMIT_LOW	15
  * MCPWM_CYCLE_INT_LIMIT_HIGH	2
  *
