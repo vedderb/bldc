@@ -1154,8 +1154,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		const float current = mcpwm_get_tot_current();
 		const float current_in = mcpwm_get_tot_current_in();
 
-		float dutycycle_set_tmp = dutycycle_set;
-
 		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
 			ramp_step *= fabsf(dutycycle_now);
 		}
@@ -1174,15 +1172,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			step_towards((float*) &dutycycle_now, 0.0,
 					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_LIMIT));
 		} else {
-			step_towards((float*)&dutycycle_now, dutycycle_set_tmp, ramp_step);
+			step_towards((float*)&dutycycle_now, dutycycle_set, ramp_step);
 		}
 
 		// When the set duty cycle is in the opposite direction, make sure that the motor
 		// starts again after stopping completely
 		if (fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE) {
-			if (dutycycle_set_tmp > MCPWM_MIN_DUTY_CYCLE) {
+			if (dutycycle_set > MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.001);
-			} else if (dutycycle_set_tmp < -MCPWM_MIN_DUTY_CYCLE) {
+			} else if (dutycycle_set < -MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 			}
 		}
