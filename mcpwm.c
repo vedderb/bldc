@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include "main.h"
 #include "mcpwm.h"
 #include "digital_filter.h"
@@ -45,8 +46,9 @@ static volatile float rpm_now;
 static volatile int is_using_pid;
 static volatile float pid_set_rpm;
 static volatile int tachometer;
-static volatile float pwm_adc_cycles_sum;
-static volatile float pwm_last_adc_cycles_sum;
+static volatile int tachometer_for_direction;
+static volatile float pwm_cycles_sum;
+static volatile float last_pwm_cycles_sum;
 static volatile int curr0_sum;
 static volatile int curr1_sum;
 static volatile int curr_start_samples;
@@ -67,6 +69,7 @@ static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
 static volatile int fault_iterations;
+static volatile float last_pwm_cycles_sums[6];
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -213,8 +216,9 @@ void mcpwm_init(void) {
 	is_using_pid = 0;
 	pid_set_rpm = 0.0;
 	tachometer = 0;
-	pwm_adc_cycles_sum = 0.0;
-	pwm_last_adc_cycles_sum = 0.0;
+	tachometer_for_direction = 0;
+	pwm_cycles_sum = 0.0;
+	last_pwm_cycles_sum = 0.0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
 	detect_now = 0;
@@ -229,6 +233,7 @@ void mcpwm_init(void) {
 	input_current_iterations = 0.0;
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	fault_iterations = 0;
+	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -878,6 +883,8 @@ static msg_t timer_thread(void *arg) {
 	chRegSetThreadName("mcpwm timer");
 
 	float amp;
+	float min_s;
+	float max_s;
 
 	for(;;) {
 		// Update RPM in case it has slowed down
@@ -897,10 +904,45 @@ static msg_t timer_thread(void *arg) {
 
 		switch (state) {
 		case MC_STATE_OFF:
-			// Track the motor back-emf and follow it with dutycycle_now.
-			// TODO: If possible, track the direction and follow it as well
+			// Track the motor back-emf and follow it with dutycycle_now. Also track
+			// the direction of the motor.
 			amp = filter_run_fir_iteration((float*)amp_fir_samples,
 					(float*)amp_fir_coeffs, AMP_FIR_TAPS_BITS, amp_fir_index);
+
+			min_s = 9999999999999.0;
+			max_s = 0.0;
+
+			for (int i = 0;i < 6;i++) {
+				if (last_pwm_cycles_sums[i] < min_s) {
+					min_s = last_pwm_cycles_sums[i];
+				}
+
+				if (last_pwm_cycles_sums[i] > max_s) {
+					max_s = last_pwm_cycles_sums[i];
+				}
+			}
+
+			// If the relative difference between the longest and shortest commutation is
+			// too large, we probably got the direction wrong. In that case, try the other
+			// direction.
+			//
+			// The tachometer_for_direction value is used to make sure that the samples
+			// have enough time after a direction change to get stable before trying to
+			// change direction again.
+
+			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
+				if (tachometer_for_direction > 18) {
+					if (direction == 1) {
+						direction = 0;
+					} else {
+						direction = 1;
+					}
+					tachometer_for_direction = 0;
+				}
+			} else {
+				tachometer_for_direction = 0;
+			}
+
 			if (direction == 1) {
 				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS] * sqrtf(3.0);
 			} else {
@@ -1096,14 +1138,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	const float comm_time_sum = ((float)MCPWM_SWITCH_FREQUENCY_MAX) /
 			(((float)MCPWM_MIN_RPM / 60.0) * 6.0);
 
-	if (pwm_adc_cycles_sum >= comm_time_sum) {
+	if (pwm_cycles_sum >= comm_time_sum) {
 		if (state == MC_STATE_RUNNING) {
 			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 			cycle_integrator = CYCLE_INT_START;
 		}
 	}
 
-	if (pwm_adc_cycles_sum > pwm_last_adc_cycles_sum / 3 || state != MC_STATE_RUNNING) {
+	if (pwm_cycles_sum > last_pwm_cycles_sum / 3 || state != MC_STATE_RUNNING) {
 		int inc_step = 0;
 		int v_diff = 0;
 
@@ -1163,7 +1205,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	pwm_adc_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / (float)switching_frequency_now;
+	pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / (float)switching_frequency_now;
 #else
 	int hall_phase = mcpwm_read_hall_phase();
 	if (comm_step != hall_phase) {
@@ -1502,8 +1544,9 @@ static void update_adc_sample_pos(void) {
 }
 
 static void update_rpm_tacho(void) {
-	pwm_last_adc_cycles_sum = pwm_adc_cycles_sum;
-	pwm_adc_cycles_sum = 0;
+	last_pwm_cycles_sum = pwm_cycles_sum;
+	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
+	pwm_cycles_sum = 0;
 
 	static uint32_t comm_counter = 0;
 	comm_counter++;
@@ -1533,7 +1576,9 @@ static void update_rpm_tacho(void) {
 
 	last_step = comm_step;
 
-	// Tachometer
+	// Tachometers
+	tachometer_for_direction += tacho_diff;
+
 	if (direction) {
 		tachometer += tacho_diff;
 	} else {

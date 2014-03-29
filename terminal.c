@@ -111,6 +111,12 @@ void terminal_process_string(char *str) {
 			break;
 		}
 
+	} else if (strcmp(argv[0], "rpm") == 0) {
+		sprintf(buffer, "Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
+		comm_print(buffer);
+	} else if (strcmp(argv[0], "tacho") == 0) {
+		sprintf(buffer, "Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
+		comm_print(buffer);
 	} else if (strcmp(argv[0], "help") == 0) {
 		comm_print("Valid commands are:");
 		comm_print("help");
@@ -135,7 +141,13 @@ void terminal_process_string(char *str) {
 		comm_print("  List all threads");
 
 		comm_print("fault");
-		comm_print("  Prints the current fault code\n");
+		comm_print("  Prints the current fault code");
+
+		comm_print("rpm");
+		comm_print("  Prints the current electrical RPM");
+
+		comm_print("tacho");
+		comm_print("  Prints tachometer value\n");
 	} else {
 		sprintf(buffer, "Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);
