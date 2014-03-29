@@ -128,7 +128,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_ADC_CHANNELS				12
 
 /*
- * ==== Parameters guidelines ====
+ * ==== Parameter guidelines ====
  *
  * Most hobby inrunners and small motors:
  * MCPWM_CYCLE_INT_LIMIT_LOW	15
@@ -148,6 +148,8 @@ extern volatile int mcpwm_vzero;
  * - Decreasing the MCPWM_MIN_RPM parameter gives a bit more
  *   startup torque, but will make the start more rough.
  *
+ * - Starting at a low MCPWM_CYCLE_INT_LIMIT and then increasing
+ *   it usually works well.
  */
 
 #endif /* MC_PWM_H_ */
