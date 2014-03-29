@@ -34,8 +34,8 @@ typedef enum {
 } mc_state;
 
 typedef enum {
-	PWM_MODE_NONSYNCHRONOUS_HISW,
-	PWM_MODE_SYNCHRONOUS,
+	PWM_MODE_NONSYNCHRONOUS_HISW, // This mode is not recommended
+	PWM_MODE_SYNCHRONOUS, // The recommended mode
 	PWM_MODE_BIPOLAR
 } mc_pwm_mode;
 
@@ -112,7 +112,7 @@ extern volatile int mcpwm_vzero;
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					400		// Auto-commutate below this RPM
+#define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment

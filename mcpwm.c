@@ -45,8 +45,8 @@ static volatile float rpm_now;
 static volatile int is_using_pid;
 static volatile float pid_set_rpm;
 static volatile int tachometer;
-static volatile int pwm_adc_cycles;
-static volatile int pwm_last_adc_cycles;
+static volatile float pwm_adc_cycles_sum;
+static volatile float pwm_last_adc_cycles_sum;
 static volatile int curr0_sum;
 static volatile int curr1_sum;
 static volatile int curr_start_samples;
@@ -213,8 +213,8 @@ void mcpwm_init(void) {
 	is_using_pid = 0;
 	pid_set_rpm = 0.0;
 	tachometer = 0;
-	pwm_adc_cycles = 0;
-	pwm_last_adc_cycles = 0;
+	pwm_adc_cycles_sum = 0.0;
+	pwm_last_adc_cycles_sum = 0.0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
 	detect_now = 0;
@@ -1093,17 +1093,17 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 #if MCPWM_IS_SENSORLESS
 	// Compute the theoretical commutation time at the current RPM
-	const float comm_time = ((float)switching_frequency_now) /
+	const float comm_time_sum = ((float)MCPWM_SWITCH_FREQUENCY_MAX) /
 			(((float)MCPWM_MIN_RPM / 60.0) * 6.0);
 
-	if (pwm_adc_cycles >= (int)comm_time) {
+	if (pwm_adc_cycles_sum >= comm_time_sum) {
 		if (state == MC_STATE_RUNNING) {
 			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 			cycle_integrator = CYCLE_INT_START;
 		}
 	}
 
-	if (pwm_adc_cycles > pwm_last_adc_cycles / 3) {
+	if (pwm_adc_cycles_sum > pwm_last_adc_cycles_sum / 3 || state != MC_STATE_RUNNING) {
 		int inc_step = 0;
 		int v_diff = 0;
 
@@ -1163,7 +1163,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	pwm_adc_cycles++;
+	pwm_adc_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / (float)switching_frequency_now;
 #else
 	int hall_phase = mcpwm_read_hall_phase();
 	if (comm_step != hall_phase) {
@@ -1502,8 +1502,8 @@ static void update_adc_sample_pos(void) {
 }
 
 static void update_rpm_tacho(void) {
-	pwm_last_adc_cycles = pwm_adc_cycles;
-	pwm_adc_cycles = 0;
+	pwm_last_adc_cycles_sum = pwm_adc_cycles_sum;
+	pwm_adc_cycles_sum = 0;
 
 	static uint32_t comm_counter = 0;
 	comm_counter++;
