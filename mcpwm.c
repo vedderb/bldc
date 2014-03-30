@@ -43,8 +43,8 @@ static volatile int last_comm_time;
 static volatile float dutycycle_set;
 static volatile float dutycycle_now;
 static volatile float rpm_now;
-static volatile int is_using_pid;
-static volatile float pid_set_rpm;
+static volatile float speed_pid_set_rpm;
+static volatile float current_set;
 static volatile int tachometer;
 static volatile int tachometer_for_direction;
 static volatile float pwm_cycles_sum;
@@ -60,6 +60,7 @@ static volatile int detect_now;
 static volatile int detect_inc;
 static volatile int detect_do_step;
 static volatile mc_pwm_mode pwm_mode;
+static volatile mc_control_mode control_mode;
 static volatile float last_current_sample;
 static volatile float motor_current_sum;
 static volatile float input_current_sum;
@@ -173,7 +174,8 @@ volatile float mcpwm_detect_currents[6];
 volatile int mcpwm_vzero;
 
 // Private functions
-static void set_duty_cycle(float dutyCycle);
+static void set_duty_cycle_hl(float dutyCycle);
+static void set_duty_cycle_ll(float dutyCycle);
 static void set_duty_cycle_hw(float dutyCycle);
 static void stop_pwm(void);
 static void fault_stop(mc_fault_code fault);
@@ -213,8 +215,8 @@ void mcpwm_init(void) {
 	last_comm_time = 0;
 	dutycycle_set = 0.0;
 	dutycycle_now = 0.0;
-	is_using_pid = 0;
-	pid_set_rpm = 0.0;
+	speed_pid_set_rpm = 0.0;
+	current_set = 0.0;
 	tachometer = 0;
 	tachometer_for_direction = 0;
 	pwm_cycles_sum = 0.0;
@@ -226,6 +228,7 @@ void mcpwm_init(void) {
 	detect_do_step = 0;
 	hall_sensor_order = MCPWM_HALL_SENSOR_ORDER;
 	pwm_mode = MCPWM_PWM_MODE;
+	control_mode = CONTROL_MODE_DUTY;
 	last_current_sample = 0.0;
 	motor_current_sum = 0.0;
 	input_current_sum = 0.0;
@@ -569,48 +572,44 @@ void mcpwm_set_duty(float dutyCycle) {
 		return;
 	}
 
-	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+	control_mode = CONTROL_MODE_DUTY;
 
-	if (state == MC_STATE_DETECTING) {
-		state = MC_STATE_OFF;
-		stop_pwm();
-	}
-
-	if (fabsf(dutyCycle) < MCPWM_MIN_DUTY_CYCLE) {
-		state = MC_STATE_OFF;
-		stop_pwm();
-	}
-
-	dutycycle_set = dutyCycle;
-
-	if (state != MC_STATE_RUNNING) {
-		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
-			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-				if (dutyCycle > 0.0) {
-					dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
-				} else {
-					dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
-				}
-			}
-
-			set_duty_cycle(dutycycle_now);
-		} else {
-			state = MC_STATE_OFF;
-			stop_pwm();
-		}
-	}
+	set_duty_cycle_hl(dutyCycle);
 }
 
-void mcpwm_use_pid(int use_pid) {
+void mcpwm_set_pid_speed(float rpm) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
 	}
 
-	is_using_pid = use_pid;
+	control_mode = CONTROL_MODE_SPEED;
+	speed_pid_set_rpm = rpm;
 }
 
-void mcpwm_set_pid_speed(float rpm) {
-	pid_set_rpm = rpm;
+void mcpwm_set_current(float current) {
+	if (fault_now != FAULT_CODE_NONE) {
+		return;
+	}
+
+	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+		state = MC_STATE_OFF;
+		control_mode = CONTROL_MODE_DUTY;
+		stop_pwm();
+		return;
+	}
+
+	utils_truncate_number(&current, -MCPWM_CURRENT_MAX, MCPWM_CURRENT_MAX);
+
+	control_mode = CONTROL_MODE_CURRENT;
+	current_set = current;
+
+	if (state != MC_STATE_RUNNING) {
+		if (current > 0) {
+			set_duty_cycle_hl(MCPWM_MIN_DUTY_CYCLE + 0.001);
+		} else {
+			set_duty_cycle_hl(-(MCPWM_MIN_DUTY_CYCLE + 0.001));
+		}
+	}
 }
 
 int mcpwm_get_comm_step(void) {
@@ -693,7 +692,7 @@ static void stop_pwm(void) {
 
 static void fault_stop(mc_fault_code fault) {
 	fault_iterations = MCPWM_FAULT_STOP_TIME;
-	is_using_pid = 0;
+	control_mode = CONTROL_MODE_DUTY;
 	state = MC_STATE_OFF;
 	stop_pwm();
 	fault_now = fault;
@@ -726,7 +725,40 @@ void mcpwm_full_brake(void) {
 	set_switch_frequency_hw(switching_frequency_now);
 }
 
-static void set_duty_cycle(float dutyCycle) {
+static void set_duty_cycle_hl(float dutyCycle) {
+	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+
+	if (state == MC_STATE_DETECTING) {
+		state = MC_STATE_OFF;
+		stop_pwm();
+	}
+
+	if (fabsf(dutyCycle) < MCPWM_MIN_DUTY_CYCLE) {
+		state = MC_STATE_OFF;
+		stop_pwm();
+	}
+
+	dutycycle_set = dutyCycle;
+
+	if (state != MC_STATE_RUNNING) {
+		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
+			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
+				if (dutyCycle > 0.0) {
+					dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
+				} else {
+					dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
+				}
+			}
+
+			set_duty_cycle_ll(dutycycle_now);
+		} else {
+			state = MC_STATE_OFF;
+			stop_pwm();
+		}
+	}
+}
+
+static void set_duty_cycle_ll(float dutyCycle) {
 	if (dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
 		direction = 1;
 	} else if (dutyCycle < -MCPWM_MIN_DUTY_CYCLE) {
@@ -818,17 +850,17 @@ static void run_pid_controller(void) {
 	float d_term;
 
 	// PID is off. Return.
-	if (!is_using_pid) {
+	if (control_mode != CONTROL_MODE_SPEED) {
 		i_term = 0;
 		prev_error = 0;
 		return;
 	}
 
 	// Too low RPM set. Stop and return.
-	if (fabsf(pid_set_rpm) < MCPWM_PID_MIN_RPM) {
+	if (fabsf(speed_pid_set_rpm) < MCPWM_PID_MIN_RPM) {
 		i_term = 0;
 		prev_error = 0;
-		mcpwm_set_duty(0.0);
+		set_duty_cycle_hl(0.0);
 		return;
 	}
 
@@ -836,7 +868,7 @@ static void run_pid_controller(void) {
 	float scale = 1.0 / GET_INPUT_VOLTAGE();
 
 	// Compute error
-	float error = pid_set_rpm - mcpwm_get_rpm();
+	float error = speed_pid_set_rpm - mcpwm_get_rpm();
 
 	// Compute parameters
 	p_term = error * MCPWM_PID_KP * scale;
@@ -862,15 +894,15 @@ static void run_pid_controller(void) {
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
-	if (pid_set_rpm > 0.0 && output < 0.0) {
+	if (speed_pid_set_rpm > 0.0 && output < 0.0) {
 		output = MCPWM_MIN_DUTY_CYCLE + 0.001;
 		i_term = 0.0;
-	} else if (pid_set_rpm < 0.0 && output > 0.0) {
+	} else if (speed_pid_set_rpm < 0.0 && output > 0.0) {
 		output = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 		i_term = 0.0;
 	}
 
-	mcpwm_set_duty(output);
+	set_duty_cycle_hl(output);
 }
 
 static msg_t timer_thread(void *arg) {
@@ -1104,6 +1136,22 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	static float wrong_voltage_iterations = 0;
 	volatile int ph1, ph2, ph3;
 
+	/*
+	 * Changing the duty cycle too rapidly after a stop or after a direction change
+	 * seems to cause problems for some reason. Therefore, slow down the ramping
+	 * after such events.
+	 *
+	 * TODO: Figure out what the real problem is...
+	 */
+	static volatile unsigned int cycles_running = 0;
+	static volatile int direction_before = 1;
+	if (state == MC_STATE_RUNNING && direction == direction_before) {
+		cycles_running++;
+	} else {
+		cycles_running = 0;
+	}
+	direction_before = direction;
+
 	if (input_voltage < MCPWM_MIN_VOLTAGE ||
 			input_voltage > MCPWM_MAX_VOLTAGE) {
 		wrong_voltage_iterations++;
@@ -1222,6 +1270,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 #endif
 
 	if (state == MC_STATE_RUNNING) {
+		// Compensation for supply voltage variations
+		const float voltage_scale = 20.0 / GET_INPUT_VOLTAGE();
 		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
 		const float current = mcpwm_get_tot_current();
 		const float current_in = mcpwm_get_tot_current_in();
@@ -1235,14 +1285,44 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		motor_current_iterations++;
 		input_current_iterations++;
 
-		if (current > MCPWM_CURRENT_MAX) {
-			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
-		} else if (current < MCPWM_CURRENT_MIN) {
-			step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step * 0.5);
-		} else if (fabsf(current_in) > MCPWM_IN_CURRENT_LIMIT) {
-			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+		float dutycycle_now_tmp = dutycycle_now;
+
+		if (control_mode == CONTROL_MODE_CURRENT) {
+			// Compute error
+			float error = current_set - (direction ? current : -current);
+			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
+
+			if (cycles_running < 1000) {
+				utils_truncate_number(&step, -ramp_step, ramp_step);
+			}
+
+			dutycycle_now_tmp += step;
+
+			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
+					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+				} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
+					dutycycle_now_tmp = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+				}
+			}
+
+			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 		} else {
-			step_towards((float*)&dutycycle_now, dutycycle_set, ramp_step);
+			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
+		}
+
+		if (current > MCPWM_CURRENT_MAX) {
+			step_towards((float*) &dutycycle_now, 0.0,
+					ramp_step * fabsf(current - MCPWM_CURRENT_MAX));
+		} else if (current < MCPWM_CURRENT_MIN) {
+			step_towards((float*) &dutycycle_now,
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+					ramp_step * 0.5);
+		} else if (fabsf(current_in) > MCPWM_IN_CURRENT_LIMIT) {
+			step_towards((float*) &dutycycle_now, 0.0,
+					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_LIMIT));
+		} else {
+			dutycycle_now = dutycycle_now_tmp;
 		}
 
 		// When the set duty cycle is in the opposite direction, make sure that the motor
@@ -1255,7 +1335,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 		}
 
-		set_duty_cycle(dutycycle_now);
+		set_duty_cycle_ll(dutycycle_now);
 	}
 
 	main_dma_adc_handler();
@@ -1287,7 +1367,7 @@ void mcpwm_set_detect(void) {
 		return;
 	}
 
-	is_using_pid = 0;
+	control_mode = CONTROL_MODE_DUTY;
 	stop_pwm();
 	set_switch_frequency_hw(MCPWM_SWITCH_FREQUENCY_MAX);
 

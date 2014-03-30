@@ -52,7 +52,6 @@ void terminal_process_string(char *str) {
 	if (strcmp(argv[0], "ping") == 0) {
 		comm_print("pong\n");
 	} else if (strcmp(argv[0], "stop") == 0) {
-		mcpwm_use_pid(0);
 		mcpwm_set_duty(0);
 		comm_print("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {

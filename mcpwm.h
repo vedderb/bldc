@@ -45,14 +45,20 @@ typedef enum {
 	FAULT_CODE_DRV8302
 } mc_fault_code;
 
+typedef enum {
+	CONTROL_MODE_DUTY = 0,
+	CONTROL_MODE_SPEED,
+	CONTROL_MODE_CURRENT
+} mc_control_mode;
+
 // Functions
 void mcpwm_init(void);
 void mcpwm_set_duty(float dutyCycle);
+void mcpwm_set_pid_speed(float rpm);
+void mcpwm_set_current(float current);
 int mcpwm_get_comm_step(void);
 float mcpwm_get_duty_cycle(void);
 float mcpwm_get_rpm(void);
-void mcpwm_use_pid(int use_pid);
-void mcpwm_set_pid_speed(float rpm);
 float mcpwm_get_kv(void);
 float mcpwm_get_kv_filtered(void);
 int mcpwm_get_tachometer_value(int reset);
@@ -116,12 +122,16 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
 #define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 
-// PID parameters
+// Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
 #define MCPWM_PID_KP					0.0001	// Proportional gain
 #define MCPWM_PID_KI					0.002	// Integral gain
 #define MCPWM_PID_KD					0.0		// Derivative gain
 #define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
+
+// Current control parameters
+#define MCPWM_CURRENT_CONTROL_GAIN		0.001	// Current controller error gain
+#define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
 // Misc settings
 #define MCPWM_ADC_CHANNELS				12

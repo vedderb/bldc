@@ -270,14 +270,12 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 	case 2:
 		// Duty Control
 		value16 = (int)data[1] << 8 | (int)data[2];
-		mcpwm_use_pid(0);
 		mcpwm_set_duty((float)value16 / 1000.0);
 		break;
 
 	case 3:
 		// PID Control
 		value32 = (int)data[1] << 24 | (int)data[2] << 16 | (int)data[3] << 8 | (int)data[4];
-		mcpwm_use_pid(1);
 		mcpwm_set_pid_speed((float)value32);
 		break;
 
@@ -302,6 +300,12 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 		sample_int = data[3];
 		sample_at_start = 1;
 		start_comm = mcpwm_get_comm_step();
+		break;
+
+	case 7:
+		// Current Control
+		value16 = (int)data[1] << 8 | (int)data[2];
+		mcpwm_set_current((float)value16 / 100.0);
 		break;
 
 	default:
