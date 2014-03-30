@@ -81,6 +81,7 @@ static volatile int sample_ready = 1;
 static volatile int sample_now = 0;
 static volatile int sample_at_start = 0;
 static volatile int was_start_sample = 0;
+static volatile int start_comm = 0;
 static volatile float main_last_adc_duration = 0.0;
 
 static WORKING_AREA(periodic_thread_wa, 1024);
@@ -181,7 +182,8 @@ static msg_t sample_send_thread(void *arg) {
 void main_dma_adc_handler(void) {
 	ledpwm_update_pwm();
 
-	if (sample_at_start && mcpwm_get_state() == MC_STATE_RUNNING) {
+	if (sample_at_start && (mcpwm_get_state() == MC_STATE_RUNNING ||
+			start_comm != mcpwm_get_comm_step())) {
 		sample_now = 0;
 		sample_ready = 0;
 		was_start_sample = 1;
@@ -299,6 +301,7 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 		sample_len = value16;
 		sample_int = data[3];
 		sample_at_start = 1;
+		start_comm = mcpwm_get_comm_step();
 		break;
 
 	default:

@@ -30,7 +30,6 @@ typedef enum {
    MC_STATE_DETECTING,
    MC_STATE_RUNNING,
    MC_STATE_FULL_BRAKE,
-   MC_STATE_STATIC_VECTOR
 } mc_state;
 
 typedef enum {

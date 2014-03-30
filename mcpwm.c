@@ -316,7 +316,7 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+	TIM_OCInitStructure.TIM_Pulse = 200;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -485,7 +485,7 @@ void mcpwm_init(void) {
 
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = 100;
+	TIM_OCInitStructure.TIM_Pulse = 500;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -526,9 +526,11 @@ void mcpwm_init(void) {
 	// TIM2 enable counter
 	TIM_Cmd(TIM2, ENABLE);
 
-	// Sample injected channels at end of PWM cycle
-	TIM1->CCR4 = TIM1->ARR - 300;
-	TIM8->CCR2 = TIM1->ARR - 300;
+	// ADC sampling locations
+	stop_pwm();
+	TIM8->CCR1 = TIM1->ARR / 2;
+	TIM1->CCR4 = TIM1->ARR - 200;
+	TIM8->CCR2 = TIM1->ARR - 200;
 
 	// Calibrate current offset
 	ENABLE_GATE();
@@ -558,8 +560,6 @@ void mcpwm_init(void) {
 
 	// Start the timer thread
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
-
-	update_adc_sample_pos();
 }
 
 void mcpwm_set_duty(float dutyCycle) {
@@ -929,7 +929,7 @@ static msg_t timer_thread(void *arg) {
 			// change direction again.
 
 			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
-				if (tachometer_for_direction > 18) {
+				if (tachometer_for_direction > 12) {
 					if (direction == 1) {
 						direction = 0;
 					} else {
@@ -1462,7 +1462,7 @@ static void update_adc_sample_pos(void) {
 		TIM8->CCR2 = (TIM1->ARR - period) / 2 + period;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
-			uint32_t samp_neg = period - (TIM1->ARR - period) / 2;
+			uint32_t samp_neg = period - 500;
 			uint32_t samp_pos = period + (TIM1->ARR - period) / 2;
 			uint32_t samp_zero = TIM1->ARR - 2;
 
