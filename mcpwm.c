@@ -316,7 +316,7 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = 200;
+	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -543,6 +543,8 @@ void mcpwm_init(void) {
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
 	DCCAL_OFF();
+
+	update_adc_sample_pos();
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -1234,13 +1236,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		input_current_iterations++;
 
 		if (current > MCPWM_CURRENT_MAX) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current - MCPWM_CURRENT_MAX));
+			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
 		} else if (current < MCPWM_CURRENT_MIN) {
 			step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step * 0.5);
 		} else if (fabsf(current_in) > MCPWM_IN_CURRENT_LIMIT) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_LIMIT));
+			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
 		} else {
 			step_towards((float*)&dutycycle_now, dutycycle_set, ramp_step);
 		}
@@ -1462,12 +1462,12 @@ static void update_adc_sample_pos(void) {
 		TIM8->CCR2 = (TIM1->ARR - period) / 2 + period;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
-			uint32_t samp_neg = period - 500;
+			uint32_t samp_neg = period / 2 - 200;
 			uint32_t samp_pos = period + (TIM1->ARR - period) / 2;
 			uint32_t samp_zero = TIM1->ARR - 2;
 
 			// Voltage and other sampling
-			TIM8->CCR1 = 200;
+			TIM8->CCR1 = period / 2 + 100;
 
 			// Current sampling
 			switch (comm_step) {
