@@ -604,10 +604,6 @@ void mcpwm_use_pid(int use_pid) {
 		return;
 	}
 
-	if (use_pid && state == MC_STATE_DETECTING) {
-		return;
-	}
-
 	is_using_pid = use_pid;
 }
 
@@ -674,7 +670,6 @@ int mcpwm_get_tachometer_value(int reset) {
 
 static void stop_pwm(void) {
 	dutycycle_set = 0;
-	dutycycle_now = 0;
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -710,7 +705,6 @@ void mcpwm_full_brake(void) {
 	state = MC_STATE_FULL_BRAKE;
 
 	dutycycle_set = 0;
-	dutycycle_now = 0;
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -902,6 +896,10 @@ static msg_t timer_thread(void *arg) {
 			}
 		}
 
+		if (state != MC_STATE_OFF) {
+			tachometer_for_direction = 0;
+		}
+
 		switch (state) {
 		case MC_STATE_OFF:
 			// Track the motor back-emf and follow it with dutycycle_now. Also track
@@ -953,6 +951,7 @@ static msg_t timer_thread(void *arg) {
 
 		case MC_STATE_DETECTING:
 			detect_do_step = 1;
+			dutycycle_now = 0;
 			break;
 
 		case MC_STATE_RUNNING:
