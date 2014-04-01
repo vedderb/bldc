@@ -79,7 +79,7 @@ float mcpwm_get_last_inj_adc_isr_duration(void);
 
 // Interrupt handlers
 void mcpwm_time_int_handler(void);
-void mcpwm_comm_int_handler(void);
+void mcpwm_update_int_handler(void);
 void mcpwm_adc_inj_int_handler(void);
 void mcpwm_adc_int_handler(void *p, uint32_t flags);
 
@@ -130,7 +130,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
 
 // Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.001	// Current controller error gain
+#define MCPWM_CURRENT_CONTROL_GAIN		0.0002	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
 // Misc settings

@@ -36,6 +36,15 @@
 #include "ledpwm.h"
 #include "comm.h"
 
+// Structs
+typedef struct {
+	volatile unsigned int top;
+	volatile unsigned int duty;
+	volatile unsigned int val_sample;
+	volatile unsigned int curr1_sample;
+	volatile unsigned int curr2_sample;
+} mc_timer_struct;
+
 // Private variables
 static volatile int comm_step;
 static volatile int direction;
@@ -71,6 +80,8 @@ static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
 static volatile int fault_iterations;
 static volatile float last_pwm_cycles_sums[6];
+static volatile mc_timer_struct timer_struct;
+static volatile int timer_struct_updated;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -182,8 +193,10 @@ static void fault_stop(mc_fault_code fault);
 static void run_pid_controller(void);
 static void set_next_comm_step(int next_step);
 static void update_rpm_tacho(void);
-static void update_adc_sample_pos(void);
-static void set_switch_frequency_hw(int freq);
+static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
+static void commutate(void);
+static void set_next_timer_settings(mc_timer_struct *settings);
+static void set_switching_frequency(int frequency);
 
 #if MCPWM_IS_SENSORLESS
 static int integrate_cycle(float v_diff);
@@ -237,6 +250,7 @@ void mcpwm_init(void) {
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	fault_iterations = 0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
+	timer_struct_updated = 0;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -299,13 +313,6 @@ void mcpwm_init(void) {
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_FLOATING);
 
-	// Enable the TIM1 Trigger and commutation interrupt
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_TRG_COM_TIM11_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -330,10 +337,10 @@ void mcpwm_init(void) {
 	TIM_OC3Init(TIM1, &TIM_OCInitStructure);
 	TIM_OC4Init(TIM1, &TIM_OCInitStructure);
 
-	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Disable);
-	TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Disable);
-	TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Disable);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Disable);
+	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
+	TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
+	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
 
 	// Automatic Output enable, Break, dead time and lock configuration
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
@@ -346,7 +353,7 @@ void mcpwm_init(void) {
 
 	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
 	TIM_CCPreloadControl(TIM1, ENABLE);
-	TIM_ITConfig(TIM1, TIM_IT_COM, ENABLE);
+	TIM_ARRPreloadConfig(TIM1, ENABLE);
 
 	/*
 	 * ADC!
@@ -494,9 +501,12 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
 	TIM_OC1Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Disable);
+	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
 	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Disable);
+	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+
+	TIM_ARRPreloadConfig(TIM8, ENABLE);
+	TIM_CCPreloadControl(TIM8, ENABLE);
 
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
 	TIM_CtrlPWMOutputs(TIM8, ENABLE);
@@ -507,6 +517,14 @@ void mcpwm_init(void) {
 	TIM_SelectMasterSlaveMode(TIM8, TIM_MasterSlaveMode_Enable);
 	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
 	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Gated);
+
+	// Update interrupt
+	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
+	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
 
 	// Enable TIM8 first to make sure timers are in sync
 	TIM_Cmd(TIM8, ENABLE);
@@ -531,9 +549,10 @@ void mcpwm_init(void) {
 
 	// ADC sampling locations
 	stop_pwm();
-	TIM8->CCR1 = TIM1->ARR / 2;
-	TIM1->CCR4 = TIM1->ARR - 200;
-	TIM8->CCR2 = TIM1->ARR - 200;
+	timer_struct.top = TIM1->ARR;
+	timer_struct.duty = TIM1->ARR / 2;
+	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
+	timer_struct_updated = 1;
 
 	// Calibrate current offset
 	ENABLE_GATE();
@@ -546,8 +565,6 @@ void mcpwm_init(void) {
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
 	DCCAL_OFF();
-
-	update_adc_sample_pos();
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -686,8 +703,7 @@ static void stop_pwm(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
-	set_switch_frequency_hw(switching_frequency_now);
+	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
 
 static void fault_stop(mc_fault_code fault) {
@@ -721,8 +737,7 @@ void mcpwm_full_brake(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
-	set_switch_frequency_hw(switching_frequency_now);
+	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
 
 static void set_duty_cycle_hl(float dutyCycle) {
@@ -797,14 +812,14 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		state = MC_STATE_RUNNING;
 		if (rpm_now < MCPWM_MIN_RPM) {
 			set_next_comm_step(comm_step);
-			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+			commutate();
 		}
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
 		set_next_comm_step(mcpwm_read_hall_phase());
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		commutate();
 	}
 #endif
 
@@ -812,18 +827,17 @@ static void set_duty_cycle_ll(float dutyCycle) {
 }
 
 static void set_duty_cycle_hw(float dutyCycle) {
+	mc_timer_struct timer_tmp;
+	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-	uint16_t period;
 	if (pwm_mode == PWM_MODE_BIPOLAR && state != MC_STATE_DETECTING) {
-		period = (uint16_t)(((float)TIM1->ARR / 2.0) * dutyCycle + ((float)TIM1->ARR / 2.0));
+		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
+				+ ((float) timer_tmp.top / 2.0));
 	} else {
-		period = (uint16_t)((float)TIM1->ARR * dutyCycle);
+		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
 	}
-
-	TIM1->CCR1 = period;
-	TIM1->CCR2 = period;
-	TIM1->CCR3 = period;
 
 	if (state == MC_STATE_DETECTING || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
@@ -832,15 +846,9 @@ static void set_duty_cycle_hw(float dutyCycle) {
 				MCPWM_SWITCH_FREQUENCY_MAX * fabsf(dutyCycle);
 	}
 
-	set_switch_frequency_hw(switching_frequency_now);
-}
-
-static void set_switch_frequency_hw(int freq) {
-	TIM_Cmd(TIM1, DISABLE);
-	TIM1->ARR = 168000000 / freq;
-	TIM8->ARR = 168000000 / freq;
-	TIM_Cmd(TIM1, ENABLE);
-	update_adc_sample_pos();
+	timer_tmp.top = 168000000 / switching_frequency_now;
+	update_adc_sample_pos(&timer_tmp);
+	set_next_timer_settings(&timer_tmp);
 }
 
 static void run_pid_controller(void) {
@@ -1037,6 +1045,20 @@ static msg_t timer_thread(void *arg) {
 	return 0;
 }
 
+void mcpwm_update_int_handler(void) {
+	if (timer_struct_updated) {
+		TIM1->ARR = timer_struct.top;
+		TIM8->ARR = timer_struct.top;
+		TIM1->CCR1 = timer_struct.duty;
+		TIM1->CCR2 = timer_struct.duty;
+		TIM1->CCR3 = timer_struct.duty;
+		TIM8->CCR1 = timer_struct.val_sample;
+		TIM1->CCR4 = timer_struct.curr1_sample;
+		TIM8->CCR2 = timer_struct.curr2_sample;
+		timer_struct_updated = 0;
+	}
+}
+
 void mcpwm_adc_inj_int_handler(void) {
 	TIM4->CNT = 0;
 
@@ -1111,7 +1133,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 
 		set_next_comm_step(comm_step);
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		commutate();
 		detect_do_step = 0;
 	}
 
@@ -1189,7 +1211,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	if (pwm_cycles_sum >= comm_time_sum) {
 		if (state == MC_STATE_RUNNING) {
-			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+			commutate();
 			cycle_integrator = CYCLE_INT_START;
 		}
 	}
@@ -1273,8 +1295,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / GET_INPUT_VOLTAGE();
 		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
-		const float current = mcpwm_get_tot_current();
-		const float current_in = mcpwm_get_tot_current_in();
+		const float current = mcpwm_get_tot_current_filtered();
+		const float current_in = current * fabsf(dutycycle_now);
 
 		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
 			ramp_step *= fabsf(dutycycle_now);
@@ -1307,6 +1329,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+			dutycycle_set = dutycycle_now_tmp > 0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 		} else {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
 		}
@@ -1345,15 +1368,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 #if MCPWM_IS_SENSORLESS
 static int integrate_cycle(float v_diff) {
-	cycle_integrator += v_diff;
+	cycle_integrator += v_diff / (float)switching_frequency_now;
 
 	const float rpm_fac = rpm_now / 50000.0;
 	const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
 			MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
-	const float limit = (cycle_int_limit * 0.0005) * (float)switching_frequency_now;
+	const float limit = (cycle_int_limit * 0.0005);
 
 	if (cycle_integrator >= limit) {
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		commutate();
 		cycle_integrator = CYCLE_INT_START;
 		return 1;
 	}
@@ -1369,7 +1392,8 @@ void mcpwm_set_detect(void) {
 
 	control_mode = CONTROL_MODE_DUTY;
 	stop_pwm();
-	set_switch_frequency_hw(MCPWM_SWITCH_FREQUENCY_MAX);
+
+	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 
 	for(int i = 0;i < 6;i++) {
 		mcpwm_detect_currents[i] = 0;
@@ -1529,97 +1553,105 @@ signed int mcpwm_read_hall_phase(void) {
  * 6		-		0		+
  */
 
-static void update_adc_sample_pos(void) {
-	uint32_t period = TIM1->CCR1;
+static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
+	volatile uint32_t duty = timer_tmp->duty;
+	volatile uint32_t top = timer_tmp->top;
+	volatile uint32_t val_sample = timer_tmp->val_sample;
+	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
+	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
 	// Sample the ADC at an appropriate time during the pwm cycle
 	if (state == MC_STATE_DETECTING) {
 		// Voltage samples
-		TIM8->CCR1 = 200;
+		val_sample = 200;
 
 		// Current samples
-		TIM1->CCR4 = (TIM1->ARR - period) / 2 + period;
-		TIM8->CCR2 = (TIM1->ARR - period) / 2 + period;
+		curr1_sample = (top - duty) / 2 + duty;
+		curr2_sample = (top - duty) / 2 + duty;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
-			uint32_t samp_neg = period / 2 - 200;
-			uint32_t samp_pos = period + (TIM1->ARR - period) / 2;
-			uint32_t samp_zero = TIM1->ARR - 2;
+			uint32_t samp_neg = duty / 2 - 200;
+			uint32_t samp_pos = duty + (top - duty) / 2;
+			uint32_t samp_zero = top - 2;
 
 			// Voltage and other sampling
-			TIM8->CCR1 = period / 2 + 100;
+			val_sample = duty / 2 + 100;
 
 			// Current sampling
 			switch (comm_step) {
 			case 1:
 				if (direction) {
-					TIM1->CCR4 = samp_zero;
-					TIM8->CCR2 = samp_neg;
+					curr1_sample = samp_zero;
+					curr2_sample = samp_neg;
 				} else {
-					TIM1->CCR4 = samp_zero;
-					TIM8->CCR2 = samp_pos;
+					curr1_sample = samp_zero;
+					curr2_sample = samp_pos;
 				}
 				break;
 
 			case 2:
 				if (direction) {
-					TIM1->CCR4 = samp_pos;
-					TIM8->CCR2 = samp_neg;
+					curr1_sample = samp_pos;
+					curr2_sample = samp_neg;
 				} else {
-					TIM1->CCR4 = samp_pos;
-					TIM8->CCR2 = samp_zero;
+					curr1_sample = samp_pos;
+					curr2_sample = samp_zero;
 				}
 				break;
 
 			case 3:
 				if (direction) {
-					TIM1->CCR4 = samp_pos;
-					TIM8->CCR2 = samp_zero;
+					curr1_sample = samp_pos;
+					curr2_sample = samp_zero;
 				} else {
-					TIM1->CCR4 = samp_pos;
-					TIM8->CCR2 = samp_neg;
+					curr1_sample = samp_pos;
+					curr2_sample = samp_neg;
 				}
 				break;
 
 			case 4:
 				if (direction) {
-					TIM1->CCR4 = samp_zero;
-					TIM8->CCR2 = samp_pos;
+					curr1_sample = samp_zero;
+					curr2_sample = samp_pos;
 				} else {
-					TIM1->CCR4 = samp_zero;
-					TIM8->CCR2 = samp_neg;
+					curr1_sample = samp_zero;
+					curr2_sample = samp_neg;
 				}
 				break;
 
 			case 5:
 				if (direction) {
-					TIM1->CCR4 = samp_neg;
-					TIM8->CCR2 = samp_pos;
+					curr1_sample = samp_neg;
+					curr2_sample = samp_pos;
 				} else {
-					TIM1->CCR4 = samp_neg;
-					TIM8->CCR2 = samp_zero;
+					curr1_sample = samp_neg;
+					curr2_sample = samp_zero;
 				}
 				break;
 
 			case 6:
 				if (direction) {
-					TIM1->CCR4 = samp_neg;
-					TIM8->CCR2 = samp_zero;
+					curr1_sample = samp_neg;
+					curr2_sample = samp_zero;
 				} else {
-					TIM1->CCR4 = samp_neg;
-					TIM8->CCR2 = samp_pos;
+					curr1_sample = samp_neg;
+					curr2_sample = samp_pos;
 				}
 				break;
 			}
 		} else {
 			// Voltage samples
-			TIM8->CCR1 = period / 2;
+			val_sample = duty / 2;
 
 			// Current samples
-			TIM1->CCR4 = period + (TIM1->ARR - period) / 2;
-			TIM8->CCR2 = period + (TIM1->ARR - period) / 2;
+			curr1_sample = duty + (top - duty) / 2;
+			curr2_sample = duty + (top - duty) / 2;
 		}
 	}
+
+	timer_tmp->val_sample = val_sample;
+	timer_tmp->curr1_sample = curr1_sample;
+	timer_tmp->curr2_sample = curr2_sample;
 }
 
 static void update_rpm_tacho(void) {
@@ -1665,10 +1697,10 @@ static void update_rpm_tacho(void) {
 	}
 }
 
-void mcpwm_comm_int_handler(void) {
-#if MCPWM_IS_SENSORLESS
-	// PWM commutation in advance for next step.
+static void commutate(void) {
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
+#if MCPWM_IS_SENSORLESS
 	if (state == MC_STATE_DETECTING) {
 		return;
 	}
@@ -1691,6 +1723,26 @@ void mcpwm_comm_int_handler(void) {
 
 	set_next_comm_step(next_step);
 #endif
+	mc_timer_struct timer_tmp;
+	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	update_adc_sample_pos(&timer_tmp);
+	set_next_timer_settings(&timer_tmp);
+}
+
+static void set_next_timer_settings(mc_timer_struct *settings) {
+	chSysLock();
+	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
+	timer_struct_updated = 1;
+	chSysUnlock();
+}
+
+static void set_switching_frequency(int frequency) {
+	switching_frequency_now = frequency;
+	mc_timer_struct timer_tmp;
+	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	timer_tmp.top = 168000000 / switching_frequency_now;
+	update_adc_sample_pos(&timer_tmp);
+	set_next_timer_settings(&timer_tmp);
 }
 
 static void set_next_comm_step(int next_step) {
@@ -1937,6 +1989,4 @@ static void set_next_comm_step(int next_step) {
 		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
 	}
-
-	update_adc_sample_pos();
 }

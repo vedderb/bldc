@@ -109,12 +109,35 @@ void terminal_process_string(char *str) {
 		default:
 			break;
 		}
-
 	} else if (strcmp(argv[0], "rpm") == 0) {
 		sprintf(buffer, "Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
 		comm_print(buffer);
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		sprintf(buffer, "Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
+		comm_print(buffer);
+	} else if (strcmp(argv[0], "tim") == 0) {
+		TIM_Cmd(TIM1, DISABLE);
+		int t1_cnt = TIM1->CNT;
+		int t8_cnt = TIM8->CNT;
+		int duty = TIM1->CCR1;
+		int top = TIM1->ARR;
+		int voltage_samp = TIM8->CCR1;
+		int current1_samp = TIM1->CCR4;
+		int current2_samp = TIM8->CCR2;
+		TIM_Cmd(TIM1, ENABLE);
+		sprintf(buffer, "Tim1 CNT: %i", t1_cnt);
+		comm_print(buffer);
+		sprintf(buffer, "Tim8 CNT: %u", t8_cnt);
+		comm_print(buffer);
+		sprintf(buffer, "Duty cycle: %u", duty);
+		comm_print(buffer);
+		sprintf(buffer, "Top: %u", top);
+		comm_print(buffer);
+		sprintf(buffer, "Voltage sample: %u", voltage_samp);
+		comm_print(buffer);
+		sprintf(buffer, "Current 1 sample: %u", current1_samp);
+		comm_print(buffer);
+		sprintf(buffer, "Current 2 sample: %u\n", current2_samp);
 		comm_print(buffer);
 	} else if (strcmp(argv[0], "help") == 0) {
 		comm_print("Valid commands are:");
@@ -146,7 +169,10 @@ void terminal_process_string(char *str) {
 		comm_print("  Prints the current electrical RPM");
 
 		comm_print("tacho");
-		comm_print("  Prints tachometer value\n");
+		comm_print("  Prints tachometer value");
+
+		comm_print("tim");
+		comm_print("  Prints tim1 and tim8 settings\n");
 	} else {
 		sprintf(buffer, "Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

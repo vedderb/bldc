@@ -32,10 +32,10 @@ CH_IRQ_HANDLER(TIM7_IRQHandler) {
 	CH_IRQ_EPILOGUE();
 }
 
-CH_IRQ_HANDLER(TIM1_TRG_COM_IRQHandler) {
+CH_IRQ_HANDLER(TIM1_UP_IRQHandler) {
 	CH_IRQ_PROLOGUE();
-	TIM_ClearITPendingBit(TIM1, TIM_IT_COM );
-	mcpwm_comm_int_handler();
+	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+	mcpwm_update_int_handler();
 	CH_IRQ_EPILOGUE();
 }
 
