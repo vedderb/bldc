@@ -867,9 +867,9 @@ static void set_duty_cycle_hl(float dutyCycle) {
 		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
 			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
 				if (dutyCycle > 0.0) {
-					dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.01);
+					dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.001);
 				} else {
-					dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.01);
+					dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 				}
 			}
 
@@ -1453,7 +1453,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			dutycycle_now_tmp += step;
 
-			// TODO: Change and test this.
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
 				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
 					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
@@ -1466,7 +1465,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// The set dutycycle should be in the correct direction in case the output is lower
 			// than the minimum duty cycle and the mechanism below gets activated.
-			// TODO: remove depending on the change above.
 			dutycycle_set = dutycycle_now_tmp > 0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 		} else {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
@@ -1866,7 +1864,25 @@ static void commutate(void) {
 static void set_next_timer_settings(mc_timer_struct *settings) {
 	chSysLock();
 	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
-	timer_struct_updated = 1;
+
+	int cnt = TIM1->CNT;
+	int top = TIM1->ARR;
+
+	// If there is enough time to update all values at once during this cycle,
+	// do it here. Otherwise, schedule the update for the next cycle.
+	if ((top - cnt) > 400) {
+		TIM1->ARR = timer_struct.top;
+		TIM8->ARR = timer_struct.top;
+		TIM1->CCR1 = timer_struct.duty;
+		TIM1->CCR2 = timer_struct.duty;
+		TIM1->CCR3 = timer_struct.duty;
+		TIM8->CCR1 = timer_struct.val_sample;
+		TIM1->CCR4 = timer_struct.curr1_sample;
+		TIM8->CCR2 = timer_struct.curr2_sample;
+	} else {
+		timer_struct_updated = 1;
+	}
+
 	chSysUnlock();
 }
 
