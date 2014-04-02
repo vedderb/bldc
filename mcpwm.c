@@ -71,6 +71,7 @@ static volatile int detect_do_step;
 static volatile mc_pwm_mode pwm_mode;
 static volatile mc_control_mode control_mode;
 static volatile float last_current_sample;
+static volatile float last_current_sample_filtered;
 static volatile float motor_current_sum;
 static volatile float input_current_sum;
 static volatile float motor_current_iterations;
@@ -243,6 +244,7 @@ void mcpwm_init(void) {
 	pwm_mode = MCPWM_PWM_MODE;
 	control_mode = CONTROL_MODE_DUTY;
 	last_current_sample = 0.0;
+	last_current_sample_filtered = 0.0;
 	motor_current_sum = 0.0;
 	input_current_sum = 0.0;
 	motor_current_iterations = 0.0;
@@ -371,7 +373,7 @@ void mcpwm_init(void) {
 			(stm32_dmaisr_t)mcpwm_adc_int_handler,
 			(void *)0);
 
-	// DMA
+	// DMA for the ADC
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC_Value;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC_CDR_ADDRESS;
@@ -584,6 +586,13 @@ void mcpwm_init(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 }
 
+/**
+ * Use duty cycle control. Absolute values less than MCPWM_MIN_DUTY_CYCLE will
+ * stop the motor.
+ *
+ * @param dutyCycle
+ * The duty cycle to use.
+ */
 void mcpwm_set_duty(float dutyCycle) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
@@ -594,6 +603,13 @@ void mcpwm_set_duty(float dutyCycle) {
 	set_duty_cycle_hl(dutyCycle);
 }
 
+/**
+ * Use PID rpm control. Note that this value has to be multiplied by half of
+ * the number of motor poles.
+ *
+ * @param rpm
+ * The electrical RPM goal value to use.
+ */
 void mcpwm_set_pid_speed(float rpm) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
@@ -603,6 +619,14 @@ void mcpwm_set_pid_speed(float rpm) {
 	speed_pid_set_rpm = rpm;
 }
 
+/**
+ * Use current control and specify a goal current to use. The sign determines
+ * the direction of the torque. Absolute values less than
+ * MCPWM_CURRENT_CONTROL_MIN will stop the motor.
+ *
+ * @param current
+ * The current to use.
+ */
 void mcpwm_set_current(float current) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
@@ -629,20 +653,34 @@ void mcpwm_set_current(float current) {
 	}
 }
 
+/**
+ * Get the electrical position (or commutation step) of the motor.
+ *
+ * @return
+ * The current commutation step. Range [1 6]
+ */
 int mcpwm_get_comm_step(void) {
 	return comm_step;
 }
 
-float mcpwm_get_duty_cycle(void) {
+float mcpwm_get_duty_cycle_set(void) {
 	return dutycycle_set;
 }
 
-float mcpwm_get_rpm(void) {
-	return direction ? rpm_now : -rpm_now;
+float mcpwm_get_dutycycle_now(void) {
+	return dutycycle_now;
 }
 
-float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+/**
+ * Calculate the current RPM of the motor. This is a signed value and the sign
+ * depends on the direction the motor is rotating in. Note that this value has
+ * to be divided by half the number of motor poles.
+ *
+ * @return
+ * The RPM value.
+ */
+float mcpwm_get_rpm(void) {
+	return direction ? rpm_now : -rpm_now;
 }
 
 mc_state mcpwm_get_state(void) {
@@ -653,6 +691,26 @@ mc_fault_code mcpwm_get_fault(void) {
 	return fault_now;
 }
 
+/**
+ * Calculate the KV (RPM per volt) value for the motor. This function has to
+ * be used while the motor is moving. Note that the return value has to be
+ * divided by half the number of motor poles.
+ *
+ * @return
+ * The KV value.
+ */
+float mcpwm_get_kv(void) {
+	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+}
+
+/**
+ * Calculate the FIR-filtered KV (RPM per volt) value for the motor. This
+ * function has to be used while the motor is moving. Note that the return
+ * value has to be divided by half the number of motor poles.
+ *
+ * @return
+ * The filtered KV value.
+ */
 float mcpwm_get_kv_filtered(void) {
 	float value = filter_run_fir_iteration((float*)kv_fir_samples,
 			(float*)kv_fir_coeffs, KV_FIR_TAPS_BITS, kv_fir_index);
@@ -660,22 +718,57 @@ float mcpwm_get_kv_filtered(void) {
 	return value;
 }
 
-float mcpwm_get_tot_current_filtered(void) {
-	float value = filter_run_fir_iteration((float*)current_fir_samples,
-			(float*)current_fir_coeffs, CURR_FIR_TAPS_BITS, current_fir_index);
-
-	value *= (3.3 / 4095.0) / (0.001 * 10.0);
-	return value;
-}
-
+/**
+ * Get the motor current.
+ *
+ * @return
+ * The motor current.
+ */
 float mcpwm_get_tot_current(void) {
 	return last_current_sample * (3.3 / 4095.0) / (0.001 * 10.0);
 }
 
+/**
+ * Get the FIR-filtered motor current.
+ *
+ * @return
+ * The filtered motor current.
+ */
+float mcpwm_get_tot_current_filtered(void) {
+	return last_current_sample_filtered * (3.3 / 4095.0) / (0.001 * 10.0);
+}
+
+/**
+ * Get the input current to the motor controller.
+ *
+ * @return
+ * The input current.
+ */
 float mcpwm_get_tot_current_in(void) {
 	return mcpwm_get_tot_current() * fabsf(dutycycle_now);
 }
 
+/**
+ * Get the FIR-filtered input current to the motor controller.
+ *
+ * @return
+ * The filtered input current.
+ */
+float mcpwm_get_tot_current_in_filtered(void) {
+	return mcpwm_get_tot_current_filtered() * fabsf(dutycycle_now);
+}
+
+/**
+ * Read the number of steps the motor has rotated. This number is signed and
+ * will return a negative number when the motor is rotating backwards.
+ *
+ * @param reset
+ * If true (!= 0), the tachometer counter will be reset after this call.
+ *
+ * @return
+ * The tachometer value in motor steps. The number of motor revolutions will
+ * be this number divided by (3 * MOTOR_POLE_NUMBER).
+ */
 int mcpwm_get_tachometer_value(int reset) {
 	int val = tachometer;
 
@@ -714,6 +807,10 @@ static void fault_stop(mc_fault_code fault) {
 	fault_now = fault;
 }
 
+/*
+ * TODO: make full brake static and use a proper braking method for the public
+ * version that will not destroy MOSFETs in when used wrongly.
+ */
 void mcpwm_full_brake(void) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
@@ -740,6 +837,17 @@ void mcpwm_full_brake(void) {
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
 
+/**
+ * High-level duty cycle setter. Will set the ramping goal of the duty cycle.
+ * If motor is not running, it will be started in different ways depending on
+ * whether it is moving or not.
+ *
+ * @param dutyCycle
+ * The duty cycle in the range [-MCPWM_MAX_DUTY_CYCLE MCPWM_MAX_DUTY_CYCLE]
+ * If the absolute value of the duty cycle is less than MCPWM_MIN_DUTY_CYCLE,
+ * the motor will be switched off with or without braking depending on the
+ * MCPWM_FULL_BRAKE_AT_STOP setting.
+ */
 static void set_duty_cycle_hl(float dutyCycle) {
 	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
@@ -748,7 +856,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 		stop_pwm();
 	}
 
-	if (fabsf(dutyCycle) < MCPWM_MIN_DUTY_CYCLE) {
+	if (!MCPWM_FULL_BRAKE_AT_STOP && fabsf(dutyCycle) < MCPWM_MIN_DUTY_CYCLE) {
 		state = MC_STATE_OFF;
 		stop_pwm();
 	}
@@ -768,11 +876,27 @@ static void set_duty_cycle_hl(float dutyCycle) {
 			set_duty_cycle_ll(dutycycle_now);
 		} else {
 			state = MC_STATE_OFF;
-			stop_pwm();
+			if (MCPWM_FULL_BRAKE_AT_STOP) {
+				mcpwm_full_brake();
+			} else {
+				stop_pwm();
+			}
 		}
 	}
 }
 
+/**
+ * Low-level duty cycle setter. Will update the state of the application
+ * and the motor direction accordingly.
+ *
+ * This function should be used with care. Ramping together with current
+ * limiting should be used.
+ *
+ * @param dutyCycle
+ * The duty cycle in the range [-MCPWM_MAX_DUTY_CYCLE MCPWM_MAX_DUTY_CYCLE]
+ * If the absolute value of the duty cycle is less than MCPWM_MIN_DUTY_CYCLE,
+ * the motor will be switched off.
+ */
 static void set_duty_cycle_ll(float dutyCycle) {
 	if (dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
 		direction = 1;
@@ -801,7 +925,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 			break;
 		}
 
-		dutycycle_set = dutyCycle;
+		dutycycle_set = direction ? dutyCycle : -dutyCycle;
 		return;
 	} else if (dutyCycle > MCPWM_MAX_DUTY_CYCLE) {
 		dutyCycle = MCPWM_MAX_DUTY_CYCLE;
@@ -826,6 +950,14 @@ static void set_duty_cycle_ll(float dutyCycle) {
 	set_duty_cycle_hw(dutyCycle);
 }
 
+/**
+ * Lowest level (hardware) dyty cycle setter. Will set the hardware timer to
+ * the specified duty cycle and update the ADC sampling positions.
+ *
+ * @param dutyCycle
+ * The dutycycle in the range [MCPWM_MIN_DUTY_CYCLE  MCPWM_MAX_DUTY_CYCLE]
+ * (Only positive)
+ */
 static void set_duty_cycle_hw(float dutyCycle) {
 	mc_timer_struct timer_tmp;
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
@@ -1073,7 +1205,6 @@ void mcpwm_adc_inj_int_handler(void) {
 	ADC_curr_norm_value[1] = curr1 - curr1_offset;
 	ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
 
-	// Run current FIR filter
 	float curr_tot_sample = 0;
 
 	switch (comm_step) {
@@ -1138,11 +1269,13 @@ void mcpwm_adc_inj_int_handler(void) {
 	}
 
 	last_current_sample = curr_tot_sample;
+	filter_add_sample((float*) current_fir_samples, curr_tot_sample,
+			CURR_FIR_TAPS_BITS, (uint32_t*) &current_fir_index);
+	last_current_sample_filtered = filter_run_fir_iteration(
+			(float*) current_fir_samples, (float*) current_fir_coeffs,
+			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	filter_add_sample((float*)current_fir_samples, curr_tot_sample,
-			CURR_FIR_TAPS_BITS, (uint32_t*)&current_fir_index);
-
-	last_inj_adc_isr_duration = (float)TIM4->CNT / 10000000;
+	last_inj_adc_isr_duration = (float) TIM4 ->CNT / 10000000;
 }
 
 /*
@@ -1286,7 +1419,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		if (state == MC_STATE_RUNNING) {
 			set_next_comm_step(hall_phase);
-			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+			commutate();
 		}
 	}
 #endif
@@ -1320,6 +1453,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			dutycycle_now_tmp += step;
 
+			// TODO: Change and test this.
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
 				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
 					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
@@ -1329,6 +1463,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+
+			// The set dutycycle should be in the correct direction in case the output is lower
+			// than the minimum duty cycle and the mechanism below gets activated.
+			// TODO: remove depending on the change above.
 			dutycycle_set = dutycycle_now_tmp > 0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 		} else {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
@@ -1457,10 +1595,6 @@ float mcpwm_read_reset_avg_input_current(void) {
 	input_current_sum = 0;
 	input_current_iterations = 0;
 	return res;
-}
-
-float mcpwm_get_dutycycle_now(void) {
-	return dutycycle_now;
 }
 
 float mcpwm_get_last_adc_isr_duration(void) {
