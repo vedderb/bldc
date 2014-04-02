@@ -114,6 +114,8 @@ static msg_t periodic_thread(void *arg) {
 		// Use decoded servo inputs
 		if (servodec_get_time_since_update() < 500 && mcpwm_get_duty_cycle_now() > -0.01) {
 			float servo_val = (float)servodec_get_servo(0) / 128.0;
+			servo_val /= (1.0 - HYST);
+
 			if (servo_val > HYST) {
 				servo_val -= HYST;
 				mcpwm_set_current(servo_val * CURR_FACT);
@@ -130,16 +132,17 @@ static msg_t periodic_thread(void *arg) {
 
 		// Gurgalof bicycle-throttle
 #if USE_THROTTLE_ADC
-#define MIN_PWR	0.24
+#define MIN_PWR	0.2
 		float pwr = (float)ADC_Value[ADC_IND_EXT];
 		pwr /= 4095.0;
+		pwr /= (1.0 - MIN_PWR);
+		pwr -= MIN_PWR;
 
-		if (pwr < MIN_PWR) {
-			mcpwm_use_pid(0);
+		if (pwr < 0.0) {
 			mcpwm_set_duty(0.0);
 		} else {
-			mcpwm_use_pid(0);
 			mcpwm_set_duty(pwr);
+//			mcpwm_set_current(pwr * 40.0);
 		}
 #endif
 		if (mcpwm_get_state() == MC_STATE_DETECTING) {
