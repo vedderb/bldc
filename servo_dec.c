@@ -30,13 +30,22 @@
 /*
  * Settings
  */
+#define USE_PROGRAMMING_CONN	0
+
+#if USE_PROGRAMMING_CONN
 #define SERVO_NUM				3
+#else
+#define SERVO_NUM				1
+#endif
+
 #define TIMER_FREQ				1000000
 #define INTERRUPT_TRESHOLD		4
 
 static volatile uint32_t interrupt_time = 0;
 static volatile int8_t servo_pos[SERVO_NUM];
 static volatile uint32_t time_since_update;
+static WORKING_AREA(timer_thread_wa, 128);
+static msg_t timer_thread(void *arg);
 
 void servodec_init(void) {
 	// Initialize variables
@@ -51,27 +60,35 @@ void servodec_init(void) {
 	// ------------- EXTI -------------- //
 	// Clocks
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+#if USE_PROGRAMMING_CONN
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+#endif
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-	// Configure GPIO input floating
-	palSetPadMode(GPIOA, 13, PAL_MODE_INPUT_PULLDOWN);
-	palSetPadMode(GPIOA, 14, PAL_MODE_INPUT_PULLDOWN);
-	palSetPadMode(GPIOB, 3, PAL_MODE_INPUT_PULLDOWN);
+#if USE_PROGRAMMING_CONN
+	palSetPadMode(GPIOA, 13, PAL_MODE_INPUT);
+	palSetPadMode(GPIOA, 14, PAL_MODE_INPUT);
+	palSetPadMode(GPIOB, 3, PAL_MODE_INPUT);
 
-	// Connect EXTI Lines
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource13);
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource14);
 	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource3);
 
-	// Configure EXTI Lines
 	EXTI_InitStructure.EXTI_Line = EXTI_Line3 | EXTI_Line13 | EXTI_Line14;
+#else
+	palSetPadMode(GPIOB, 5, PAL_MODE_INPUT);
+
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource5);
+
+	EXTI_InitStructure.EXTI_Line = EXTI_Line5;
+#endif
+
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	// Enable and set EXTI Line Interrupts
+#if USE_PROGRAMMING_CONN
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
@@ -83,6 +100,13 @@ void servodec_init(void) {
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+#else
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+#endif
 
 	// ------------- Timer3 ------------- //
 	/* Compute the prescaler value */
@@ -104,11 +128,22 @@ void servodec_init(void) {
 
 	/* TIM3 enable counter */
 	TIM_Cmd(TIM3, ENABLE);
+
+	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 }
 
-void servodec_timerfunc(void) {
-	interrupt_time++;
-	time_since_update++;
+static msg_t timer_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("Servodec timer");
+
+	for(;;) {
+		interrupt_time++;
+		time_since_update++;
+		chThdSleepMilliseconds(1);
+	}
+
+	return 0;
 }
 
 void servodec_int_handler(void) {

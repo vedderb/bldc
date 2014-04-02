@@ -68,3 +68,12 @@ CH_IRQ_HANDLER(EXTI15_10_IRQHandler) {
 	}
 	CH_IRQ_EPILOGUE();
 }
+
+CH_IRQ_HANDLER(EXTI9_5_IRQHandler) {
+	CH_IRQ_PROLOGUE();
+	if (EXTI_GetITStatus(EXTI_Line5) != RESET) {
+		EXTI_ClearITPendingBit(EXTI_Line5);
+		servodec_int_handler();
+	}
+	CH_IRQ_EPILOGUE();
+}

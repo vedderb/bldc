@@ -667,7 +667,7 @@ float mcpwm_get_duty_cycle_set(void) {
 	return dutycycle_set;
 }
 
-float mcpwm_get_dutycycle_now(void) {
+float mcpwm_get_duty_cycle_now(void) {
 	return dutycycle_now;
 }
 
@@ -1480,6 +1480,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		} else if (fabsf(current_in) > MCPWM_IN_CURRENT_LIMIT) {
 			step_towards((float*) &dutycycle_now, 0.0,
 					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_LIMIT));
+		} else if (fabsf(rpm_now) > MCPWM_MAX_RPM) {
+			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+			cycles_running = 0;
 		} else {
 			dutycycle_now = dutycycle_now_tmp;
 		}

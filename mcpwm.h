@@ -58,7 +58,7 @@ void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
 int mcpwm_get_comm_step(void);
 float mcpwm_get_duty_cycle_set(void);
-float mcpwm_get_dutycycle_now(void);
+float mcpwm_get_duty_cycle_now(void);
 float mcpwm_get_rpm(void);
 mc_state mcpwm_get_state(void);
 mc_fault_code mcpwm_get_fault(void);
@@ -115,6 +115,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_MAX_WRONG_VOLTAGE_ITR		3		// PWM cycles with wrong voltage before shutdown
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
+#define MCPWM_MAX_RPM					100000.0	// The motor speed limit
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation

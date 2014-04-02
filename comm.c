@@ -198,7 +198,7 @@ static void handle_res_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int16(buffer2, (int16_t)(43.0 * 10.0), &index);
 		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_motor_current() * 100.0), &index);
 		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_input_current() * 100.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(mcpwm_get_dutycycle_now() * 1000.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &index);
 		buffer_append_int32(buffer2, (int32_t)mcpwm_get_rpm(), &index);
 		buffer_append_int16(buffer2, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &index);
 		packet_send_packet(buffer2, index);

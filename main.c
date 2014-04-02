@@ -62,6 +62,7 @@
 
 // Settings
 #define USE_SERVO_INPUT			0
+#define USE_SERVO_OUTPUT		0
 #define USE_THROTTLE_ADC		0
 
 // Private variables
@@ -108,7 +109,23 @@ static msg_t periodic_thread(void *arg) {
 		}
 
 #if USE_SERVO_INPUT
+#define HYST		0.1
+#define CURR_FACT	40.0
 		// Use decoded servo inputs
+		if (servodec_get_time_since_update() < 500 && mcpwm_get_duty_cycle_now() > -0.01) {
+			float servo_val = (float)servodec_get_servo(0) / 128.0;
+			if (servo_val > HYST) {
+				servo_val -= HYST;
+				mcpwm_set_current(servo_val * CURR_FACT);
+			} else if (servo_val < -HYST) {
+				servo_val += HYST;
+				mcpwm_set_current(servo_val * CURR_FACT);
+			} else {
+				mcpwm_set_duty(0.0);
+			}
+		} else {
+			mcpwm_set_duty(0.0);
+		}
 #endif
 
 		// Gurgalof bicycle-throttle
@@ -319,7 +336,10 @@ int main(void) {
 	ledpwm_init();
 	mcpwm_init();
 	comm_init();
+
+#if USE_SERVO_OUTPUT
 	servo_init();
+#endif
 
 #if USE_SERVO_INPUT
 	servodec_init();
