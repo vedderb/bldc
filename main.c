@@ -90,6 +90,12 @@ static WORKING_AREA(sample_send_thread_wa, 1024);
 
 static Thread *sample_send_tp;
 
+#if USE_SERVO_INPUT
+static WORKING_AREA(servodec_handling_thread_wa, 1024);
+static Thread *servodec_handling_tp;
+static void servodec_func(void);
+#endif
+
 static msg_t periodic_thread(void *arg) {
 	(void)arg;
 
@@ -107,28 +113,6 @@ static msg_t periodic_thread(void *arg) {
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
 		}
-
-#if USE_SERVO_INPUT
-#define HYST		0.1
-#define CURR_FACT	40.0
-		// Use decoded servo inputs
-		if (servodec_get_time_since_update() < 500 && mcpwm_get_duty_cycle_now() > -0.01) {
-			float servo_val = (float)servodec_get_servo(0) / 128.0;
-			servo_val /= (1.0 - HYST);
-
-			if (servo_val > HYST) {
-				servo_val -= HYST;
-				mcpwm_set_current(servo_val * CURR_FACT);
-			} else if (servo_val < -HYST) {
-				servo_val += HYST;
-				mcpwm_set_current(servo_val * CURR_FACT);
-			} else {
-				mcpwm_set_duty(0.0);
-			}
-		} else {
-			mcpwm_set_duty(0.0);
-		}
-#endif
 
 		// Gurgalof bicycle-throttle
 #if USE_THROTTLE_ADC
@@ -333,6 +317,47 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 	}
 }
 
+#if USE_SERVO_INPUT
+static void servodec_func(void) {
+	chSysLockFromIsr();
+	chEvtSignalI(servodec_handling_tp, (eventmask_t) 1);
+	chSysUnlockFromIsr();
+}
+
+static msg_t servodec_handling_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("Servodec handler");
+	servodec_handling_tp = chThdSelf();
+
+	for(;;) {
+		chEvtWaitAny((eventmask_t) 1);
+
+		// Use decoded servo inputs
+#define HYST		0.1
+#define CURR_FACT	40.0
+		if (servodec_get_time_since_update() < 500 && mcpwm_get_duty_cycle_now() > -0.01) {
+			float servo_val = servodec_get_servo_as_float(0);
+			servo_val /= (1.0 - HYST);
+
+			if (servo_val > HYST) {
+				servo_val -= HYST;
+				mcpwm_set_current(servo_val * CURR_FACT);
+			} else if (servo_val < -HYST) {
+				servo_val += HYST;
+				mcpwm_set_current(servo_val * CURR_FACT);
+			} else {
+				mcpwm_set_duty(0.0);
+			}
+		} else {
+			mcpwm_set_duty(0.0);
+		}
+	}
+
+	return 0;
+}
+#endif
+
 int main(void) {
 	halInit();
 	chSysInit();
@@ -345,12 +370,15 @@ int main(void) {
 #endif
 
 #if USE_SERVO_INPUT
-	servodec_init();
+	servodec_init(servodec_func);
 #endif
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
+#if USE_SERVO_INPUT
+	chThdCreateStatic(servodec_handling_thread_wa, sizeof(servodec_handling_thread_wa), NORMALPRIO, servodec_handling_thread, NULL);
+#endif
 
 	for(;;) {
 		chThdSleepMilliseconds(100);

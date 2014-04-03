@@ -33,10 +33,10 @@
 #define SERVODEC_IND_AUX			2
 
 // Functions
-void servodec_init(void);
-void servodec_timerfunc(void);
+void servodec_init(void (*d_func)(void));
 void servodec_int_handler(void);
 int8_t servodec_get_servo(int servo_num);
+float servodec_get_servo_as_float(int servo_num);
 uint32_t servodec_get_time_since_update(void);
 
 #endif /* SERVO_DEC_H_ */

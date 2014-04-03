@@ -39,15 +39,28 @@
 #endif
 
 #define TIMER_FREQ				1000000
-#define INTERRUPT_TRESHOLD		4
+#define INTERRUPT_TRESHOLD		3
 
+// Private variables
 static volatile uint32_t interrupt_time = 0;
 static volatile int8_t servo_pos[SERVO_NUM];
 static volatile uint32_t time_since_update;
-static WORKING_AREA(timer_thread_wa, 128);
-static msg_t timer_thread(void *arg);
+static VirtualTimer vt;
 
-void servodec_init(void) {
+// Private functions
+static void update_counters(void *p);
+
+// Function pointers
+static void(*done_func)(void) = 0;
+
+/**
+ * Initialize the serve decoding driver.
+ *
+ * @param d_func
+ * A function that should be called every time the servo signals have been
+ * decoded. Can be NULL.
+ */
+void servodec_init(void (*d_func)(void)) {
 	// Initialize variables
 	time_since_update = 0;
 	interrupt_time = 0;
@@ -129,21 +142,24 @@ void servodec_init(void) {
 	/* TIM3 enable counter */
 	TIM_Cmd(TIM3, ENABLE);
 
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	// Set up a virtual timer to update the counters
+	chSysLock();
+	chVTSetI(&vt, MS2ST(1), update_counters, NULL);
+	chSysUnlock();
+
+	// Set our function pointer
+	done_func = d_func;
 }
 
-static msg_t timer_thread(void *arg) {
-	(void)arg;
+static void update_counters(void *p) {
+	(void)p;
 
-	chRegSetThreadName("Servodec timer");
+	chSysLockFromIsr();
+	chVTSetI(&vt, MS2ST(1), update_counters, p);
+	chSysUnlockFromIsr();
 
-	for(;;) {
-		interrupt_time++;
-		time_since_update++;
-		chThdSleepMilliseconds(1);
-	}
-
-	return 0;
+	interrupt_time++;
+	time_since_update++;
 }
 
 void servodec_int_handler(void) {
@@ -189,11 +205,25 @@ void servodec_int_handler(void) {
 
 	if (curr_index == SERVO_NUM) {
 		time_since_update = 0;
+
+		// Call the function pointer if it is not NULL.
+		if (done_func) {
+			done_func();
+		}
 	}
 
 	interrupt_time = 0;
 }
 
+/**
+ * Get a decoded servo value as an integer.
+ *
+ * @param servo_num
+ * The servo index. If it is out of range, 0 will be returned.
+ *
+ * @return
+ * The servo value in the range [-128 127].
+ */
 int8_t servodec_get_servo(int servo_num) {
 	if (servo_num < SERVO_NUM) {
 		return servo_pos[servo_num];
@@ -202,9 +232,25 @@ int8_t servodec_get_servo(int servo_num) {
 	}
 }
 
-/*
+/**
+ * Get a decoded servo value as a float.
+ *
+ * @param servo_num
+ * The servo index. If it is out of range, 0 will be returned.
+ *
+ * @return
+ * The servo value in the range [-1.0 1.0].
+ */
+float servodec_get_servo_as_float(int servo_num) {
+	return (float)servodec_get_servo(servo_num) / 128.0;
+}
+
+/**
  * Get the amount of milliseconds that has passed since
- * the last time servo positions were received
+ * the last time servo positions were received.
+ *
+ * @return
+ * The amount of milliseconds that have passed since an update.
  */
 uint32_t servodec_get_time_since_update(void) {
 	return time_since_update;
