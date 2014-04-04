@@ -56,8 +56,6 @@ static volatile float speed_pid_set_rpm;
 static volatile float current_set;
 static volatile int tachometer;
 static volatile int tachometer_for_direction;
-static volatile float pwm_cycles_sum;
-static volatile float last_pwm_cycles_sum;
 static volatile int curr0_sum;
 static volatile int curr1_sum;
 static volatile int curr_start_samples;
@@ -80,12 +78,14 @@ static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
 static volatile int fault_iterations;
-static volatile float last_pwm_cycles_sums[6];
 static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
+static volatile float pwm_cycles_sum;
+static volatile float last_pwm_cycles_sum;
+static volatile float last_pwm_cycles_sums[6];
 #endif
 
 // KV FIR filter
@@ -233,8 +233,6 @@ void mcpwm_init(void) {
 	current_set = 0.0;
 	tachometer = 0;
 	tachometer_for_direction = 0;
-	pwm_cycles_sum = 0.0;
-	last_pwm_cycles_sum = 0.0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
 	detect_now = 0;
@@ -251,11 +249,13 @@ void mcpwm_init(void) {
 	input_current_iterations = 0.0;
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	fault_iterations = 0;
-	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 	timer_struct_updated = 0;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
+	pwm_cycles_sum = 0.0;
+	last_pwm_cycles_sum = 0.0;
+	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 #endif
 
 	// Create KV FIR filter
@@ -1051,8 +1051,11 @@ static msg_t timer_thread(void *arg) {
 	chRegSetThreadName("mcpwm timer");
 
 	float amp;
+
+#if MCPWM_IS_SENSORLESS
 	float min_s;
 	float max_s;
+#endif
 
 	for(;;) {
 		// Update RPM in case it has slowed down
@@ -1081,6 +1084,8 @@ static msg_t timer_thread(void *arg) {
 			amp = filter_run_fir_iteration((float*)amp_fir_samples,
 					(float*)amp_fir_coeffs, AMP_FIR_TAPS_BITS, amp_fir_index);
 
+			// Direction tracking
+#if MCPWM_IS_SENSORLESS
 			min_s = 9999999999999.0;
 			max_s = 0.0;
 
@@ -1114,6 +1119,20 @@ static msg_t timer_thread(void *arg) {
 			} else {
 				tachometer_for_direction = 0;
 			}
+#else
+			// If the direction tachometer is counting backwards, the motor is
+			// not moving in the direction we think it is.
+			if (tachometer_for_direction < -3) {
+				if (direction == 1) {
+					direction = 0;
+				} else {
+					direction = 1;
+				}
+				tachometer_for_direction = 0;
+			} else if (tachometer_for_direction > 0) {
+				tachometer_for_direction = 0;
+			}
+#endif
 
 			if (direction == 1) {
 				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS] * sqrtf(3.0);
@@ -1288,7 +1307,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	TIM4->CNT = 0;
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
-	static float wrong_voltage_iterations = 0;
 	volatile int ph1, ph2, ph3;
 
 	/*
@@ -1307,6 +1325,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 	direction_before = direction;
 
+	// Check for faults that should stop the motor
+	static float wrong_voltage_iterations = 0;
 	if (input_voltage < MCPWM_MIN_VOLTAGE ||
 			input_voltage > MCPWM_MAX_VOLTAGE) {
 		wrong_voltage_iterations++;
@@ -1418,7 +1438,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		update_rpm_tacho();
 
 		if (state == MC_STATE_RUNNING) {
-			set_next_comm_step(hall_phase);
+			set_next_comm_step(comm_step);
 			commutate();
 		}
 	}
@@ -1426,10 +1446,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	if (state == MC_STATE_RUNNING) {
 		// Compensation for supply voltage variations
-		const float voltage_scale = 20.0 / GET_INPUT_VOLTAGE();
+		const float voltage_scale = 20.0 / input_voltage;
 		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
 		const float current = mcpwm_get_tot_current_filtered();
 		const float current_in = current * fabsf(dutycycle_now);
+		const float rpm = mcpwm_get_rpm();
 
 		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
 			ramp_step *= fabsf(dutycycle_now);
@@ -1470,17 +1491,25 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
 		}
 
+		// Apply limits in priority order
 		if (current > MCPWM_CURRENT_MAX) {
 			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current - MCPWM_CURRENT_MAX));
+					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 		} else if (current < MCPWM_CURRENT_MIN) {
 			step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
-					ramp_step * 0.5);
-		} else if (fabsf(current_in) > MCPWM_IN_CURRENT_LIMIT) {
+					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+		} else if (current_in > MCPWM_IN_CURRENT_MAX) {
 			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_LIMIT));
-		} else if (fabsf(rpm_now) > MCPWM_MAX_RPM) {
+					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+		} else if (current_in < MCPWM_IN_CURRENT_MIN) {
+			step_towards((float*) &dutycycle_now,
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MIN) * MCPWM_CURRENT_LIMIT_GAIN);
+		} else if (rpm > MCPWM_RPM_MAX) {
+			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+			cycles_running = 0;
+		} else if (rpm < MCPWM_RPM_MIN) {
 			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
 			cycles_running = 0;
 		} else {
@@ -1654,12 +1683,10 @@ signed int mcpwm_read_hall_phase(void) {
 	}
 
 	// This is NOT a proper way to solve this...
-	if (!direction && tmp_phase >= 0) {
+	if (!direction && tmp_phase > 0) {
 		signed int p_tmp = tmp_phase;
 		p_tmp += 4;
-		if (p_tmp < 0) {
-			p_tmp += 6;
-		} else if (p_tmp > 5) {
+		if (p_tmp > 5) {
 			p_tmp -= 6;
 		}
 		tmp_phase = 6 - p_tmp;
@@ -1790,10 +1817,6 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 }
 
 static void update_rpm_tacho(void) {
-	last_pwm_cycles_sum = pwm_cycles_sum;
-	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
-	pwm_cycles_sum = 0;
-
 	static uint32_t comm_counter = 0;
 	comm_counter++;
 
@@ -1839,6 +1862,10 @@ static void commutate(void) {
 	if (state == MC_STATE_DETECTING) {
 		return;
 	}
+
+	last_pwm_cycles_sum = pwm_cycles_sum;
+	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
+	pwm_cycles_sum = 0;
 
 	update_rpm_tacho();
 

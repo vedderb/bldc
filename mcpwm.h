@@ -107,15 +107,18 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
 #define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes
-#define MCPWM_CURRENT_MIN				-20.0	// Current limit in Amperes
-#define MCPWM_IN_CURRENT_LIMIT			40.0	// Input current limit in Amperes
+#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
+#define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
+#define MCPWM_IN_CURRENT_MAX			40.0	// Input current limit in Amperes (Upper)
+#define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
+#define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #define MCPWM_MAX_WRONG_VOLTAGE_ITR		3		// PWM cycles with wrong voltage before shutdown
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
-#define MCPWM_MAX_RPM					100000.0	// The motor speed limit
+#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
+#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
@@ -162,5 +165,56 @@ extern volatile int mcpwm_vzero;
  * - Starting at a low MCPWM_CYCLE_INT_LIMIT and then increasing
  *   it usually works well.
  */
+
+/*
+ * ADC macros and settings
+ */
+
+// Component parameters
+#define V_REG		3.3
+#define VIN_R1		33000.0
+#define VIN_R2		2200.0
+
+// Input voltage
+#define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+
+// Voltage on ADC channel
+#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)
+
+// Sharp sensors
+
+// EXternal Variables
+extern volatile uint16_t ADC_Value[];
+
+/*
+ * ADC Vector
+ *
+ * 0:	IN0		SENS3
+ * 1:	IN1		SENS2
+ * 2:	IN2		SENS1
+ * 3:	IN5		CURR1
+ * 4:	IN6		CURR2
+ * 5:	IN3		NC
+ * 6:	IN10	TEMP_MOTOR
+ * 7:	IN11	NC
+ * 8:	IN12	AN_IN
+ * 9:	IN13	NC
+ * 10:	IN15	ADC_EXT
+ * 11:	IN3		NC
+ */
+
+// ADC Indexes
+#define ADC_IND_SENS1		2
+#define ADC_IND_SENS2		1
+#define ADC_IND_SENS3		0
+#define ADC_IND_CURR1		3
+#define ADC_IND_CURR2		4
+#define ADC_IND_VIN_SENS	8
+#define ADC_IND_EXT			10
+
+// Measurement macros
+#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
 
 #endif /* MC_PWM_H_ */
