@@ -168,7 +168,7 @@ void filter_zeroPad(float *data, float *result, int dataLen, int resultLen) {
 	}
 }
 
-void filter_create_fir(float *filter_vector, float f_break, int bits, int use_hamming) {
+void filter_create_fir_lowpass(float *filter_vector, float f_break, int bits, int use_hamming) {
 	int taps = 1 << bits;
 	float imag[taps];
 

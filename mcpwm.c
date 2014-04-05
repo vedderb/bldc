@@ -259,13 +259,13 @@ void mcpwm_init(void) {
 #endif
 
 	// Create KV FIR filter
-	filter_create_fir((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
 
 	// Create amplitude FIR filter
-	filter_create_fir((float*)amp_fir_coeffs, AMP_FIR_FCUT, AMP_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)amp_fir_coeffs, AMP_FIR_FCUT, AMP_FIR_TAPS_BITS, 1);
 
 	// Create current FIR filter
-	filter_create_fir((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
+	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -1331,7 +1331,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			input_voltage > MCPWM_MAX_VOLTAGE) {
 		wrong_voltage_iterations++;
 
-		if ((wrong_voltage_iterations >= MCPWM_MAX_WRONG_VOLTAGE_ITR)) {
+		if ((wrong_voltage_iterations >= 3)) {
 			fault_stop(input_voltage < MCPWM_MIN_VOLTAGE ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
 		}

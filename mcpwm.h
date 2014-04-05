@@ -114,7 +114,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
-#define MCPWM_MAX_WRONG_VOLTAGE_ITR		3		// PWM cycles with wrong voltage before shutdown
 #define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
