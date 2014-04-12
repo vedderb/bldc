@@ -237,7 +237,7 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 		break;
 
 	case COMM_RELEASE:
-		mcpwm_releaso_motor();
+		mcpwm_release_motor();
 		break;
 
 	default:

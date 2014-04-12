@@ -585,7 +585,7 @@ void mcpwm_brake_now(void) {
 /**
  * Disconnect the motor and let it turn freely.
  */
-void mcpwm_releaso_motor(void) {
+void mcpwm_release_motor(void) {
 	mcpwm_set_current(0.0);
 }
 
