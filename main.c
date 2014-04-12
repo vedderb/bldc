@@ -33,6 +33,7 @@
 #include "servo.h"
 #include "ledpwm.h"
 #include "terminal.h"
+#include "hw.h"
 
 /*
  * Timers used:
@@ -59,11 +60,6 @@
  * ChibiOS since I have added an option to the makefile.
  *
  */
-
-// Settings
-#define USE_SERVO_INPUT			0
-#define USE_SERVO_OUTPUT		0
-#define USE_THROTTLE_ADC		0
 
 // Private variables
 #define ADC_SAMPLE_MAX_LEN		4000
@@ -101,6 +97,8 @@ static msg_t periodic_thread(void *arg) {
 
 	chRegSetThreadName("Main periodic");
 
+	int fault_print = 0;
+
 	for(;;) {
 		if (mcpwm_get_state() == MC_STATE_RUNNING) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
@@ -110,8 +108,13 @@ static msg_t periodic_thread(void *arg) {
 
 		if (mcpwm_get_fault() != FAULT_CODE_NONE) {
 			ledpwm_set_intensity(LED_RED, 1.0);
+			if (!fault_print && AUTO_PRINT_FAULTS) {
+				fault_print = 1;
+				comm_print_fault_code(mcpwm_get_fault());
+			}
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
+			fault_print = 0;
 		}
 
 		// Gurgalof bicycle-throttle
@@ -361,6 +364,7 @@ static msg_t servodec_handling_thread(void *arg) {
 int main(void) {
 	halInit();
 	chSysInit();
+	hw_init_gpio();
 	ledpwm_init();
 	mcpwm_init();
 	comm_init();

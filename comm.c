@@ -27,12 +27,12 @@
 #include "comm.h"
 #include "main.h"
 #include "stm32f4xx_conf.h"
-#include "mcpwm.h"
 #include "servo.h"
 #include "buffer.h"
 #include "packet.h"
 #include "myUSB.h"
 #include "terminal.h"
+#include "hw.h"
 
 #include <math.h>
 #include <string.h>
@@ -189,13 +189,13 @@ static void handle_res_packet(unsigned char *data, unsigned char len) {
 	case COMM_READ_VALUES:
 		index = 0;
 		buffer2[index++] = COMM_READ_VALUES;
-		buffer_append_int16(buffer2, (int16_t)(37.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(38.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(39.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(40.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(41.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(42.0 * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(43.0 * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS1) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS2) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS3) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS4) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS5) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS6) * 10.0), &index);
+		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_PCB) * 10.0), &index);
 		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_motor_current() * 100.0), &index);
 		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_input_current() * 100.0), &index);
 		buffer_append_int16(buffer2, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &index);
@@ -220,7 +220,7 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 
 	switch (car_nores_packet) {
 	case COMM_FULL_BRAKE:
-		mcpwm_full_brake();
+		mcpwm_brake_now();
 		break;
 
 	case COMM_SERVO_OFFSET:
@@ -234,6 +234,10 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 	case COMM_TERMINAL_CMD:
 		data[len] = '\0';
 		terminal_process_string((char*)data);
+		break;
+
+	case COMM_RELEASE:
+		mcpwm_releaso_motor();
 		break;
 
 	default:
@@ -278,4 +282,27 @@ void comm_send_rotor_pos(float rotor_pos) {
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
 
 	packet_send_packet(buffer, index);
+}
+
+void comm_print_fault_code(mc_fault_code fault_code) {
+	switch (fault_code) {
+	case FAULT_CODE_NONE:
+		comm_print("FAULT_CODE_NONE\n");
+		break;
+
+	case FAULT_CODE_OVER_VOLTAGE:
+		comm_print("FAULT_CODE_OVER_VOLTAGE\n");
+		break;
+
+	case FAULT_CODE_UNDER_VOLTAGE:
+		comm_print("FAULT_CODE_UNDER_VOLTAGE\n");
+		break;
+
+	case FAULT_CODE_DRV8302:
+		comm_print("FAULT_CODE_DRV8302\n");
+		break;
+
+	default:
+		break;
+	}
 }

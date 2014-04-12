@@ -26,6 +26,7 @@
 #define COMM_H_
 
 #include <stdint.h>
+#include "mcpwm.h"
 
 // Packets that expect response
 typedef enum {
@@ -40,7 +41,8 @@ typedef enum {
 	COMM_FULL_BRAKE = 0,
 	COMM_SERVO_OFFSET,
 	COMM_CAN_TEST,
-	COMM_TERMINAL_CMD
+	COMM_TERMINAL_CMD,
+	COMM_RELEASE
 } COMM_NORES_PACKET_ID;
 
 // Functions
@@ -48,5 +50,6 @@ void comm_init(void);
 void comm_print(char* str);
 void comm_send_samples(uint8_t *data, int len);
 void comm_send_rotor_pos(float rotor_pos);
+void comm_print_fault_code(mc_fault_code fault_code);
 
 #endif /* COMM_INTERFACE_H_ */

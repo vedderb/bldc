@@ -27,25 +27,13 @@
 #include "hal.h"
 #include <string.h>
 #include <math.h>
-
-// Macros
-#define LED1_ON()		palSetPad(GPIOC, 4)
-#define LED1_OFF()		palClearPad(GPIOC, 4)
-#define LED2_ON()		palSetPad(GPIOA, 7)
-#define LED2_OFF()		palClearPad(GPIOA, 7)
+#include "hw.h"
 
 // Private variables
 static volatile int led_values[LEDPWM_LED_NUM];
 
 void ledpwm_init(void) {
 	memset((int*)led_values, 0, sizeof(led_values));
-
-	palSetPadMode(GPIOC, 4,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOA, 7,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
 }
 
 /*

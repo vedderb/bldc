@@ -28,6 +28,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "hw.h"
 
 volatile SERVO servos[SERVOS_NUM];
 
@@ -113,20 +114,7 @@ static void servo_init_timer(void) {
 }
 
 void servo_init(void) {
-	// Set up GPIO ports
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-	// Set up servo structures
-	servos[0].gpio = GPIOB;
-	servos[0].pin = 5;
-	servos[0].offset = 0;
-	servos[0].pos = 0;
-
-	servos[1].gpio = GPIOB;
-	servos[1].pin = 4;
-	servos[1].offset = 0;
-	servos[1].pos = 0;
+	hw_setup_servo_outputs();
 
 	for (int i = 0; i < SERVOS_NUM; i++) {
 		palSetPadMode(servos[i].gpio, servos[i].pin, PAL_MODE_OUTPUT_PUSHPULL |

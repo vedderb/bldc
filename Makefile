@@ -107,7 +107,8 @@ CSRC = $(PORTSRC) \
        utils.c \
        servo.c \
        packet.c \
-       terminal.c
+       terminal.c \
+       hw.c
        
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

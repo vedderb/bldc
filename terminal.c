@@ -89,26 +89,7 @@ void terminal_process_string(char *str) {
 		} while (tp != NULL);
 		comm_print("");
 	} else if (strcmp(argv[0], "fault") == 0) {
-		switch (mcpwm_get_fault()) {
-		case FAULT_CODE_NONE:
-			comm_print("FAULT_CODE_NONE\n");
-			break;
-
-		case FAULT_CODE_OVER_VOLTAGE:
-			comm_print("FAULT_CODE_OVER_VOLTAGE\n");
-			break;
-
-		case FAULT_CODE_UNDER_VOLTAGE:
-			comm_print("FAULT_CODE_UNDER_VOLTAGE\n");
-			break;
-
-		case FAULT_CODE_DRV8302:
-			comm_print("FAULT_CODE_DRV8302\n");
-			break;
-
-		default:
-			break;
-		}
+		comm_print_fault_code(mcpwm_get_fault());
 	} else if (strcmp(argv[0], "rpm") == 0) {
 		sprintf(buffer, "Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
 		comm_print(buffer);

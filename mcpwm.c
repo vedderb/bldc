@@ -35,6 +35,7 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "comm.h"
+#include "hw.h"
 
 // Structs
 typedef struct {
@@ -80,6 +81,7 @@ static volatile int switching_frequency_now;
 static volatile int fault_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
+static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -180,7 +182,7 @@ static volatile float last_adc_isr_duration;
 static volatile float last_inj_adc_isr_duration;
 
 // Global variables
-volatile uint16_t ADC_Value[MCPWM_ADC_CHANNELS];
+volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
 volatile float mcpwm_detect_currents[6];
 volatile int mcpwm_vzero;
@@ -198,6 +200,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(void);
 static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(int frequency);
+static void full_brake(void);
 
 #if MCPWM_IS_SENSORLESS
 static int integrate_cycle(float v_diff);
@@ -205,11 +208,6 @@ static int integrate_cycle(float v_diff);
 
 // Defines
 #define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
-#define ENABLE_GATE()			palSetPad(GPIOC, 10)
-#define DISABLE_GATE()			palClearPad(GPIOC, 10)
-#define DCCAL_ON()				palSetPad(GPIOB, 12)
-#define DCCAL_OFF()				palClearPad(GPIOB, 12)
-#define IS_FAULT()				(!palReadPad(GPIOC, 12))
 #define CYCLE_INT_START			(0)
 
 // Threads
@@ -217,6 +215,7 @@ static WORKING_AREA(timer_thread_wa, 1024);
 static msg_t timer_thread(void *arg);
 
 void mcpwm_init(void) {
+	chSysLock();
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
@@ -240,7 +239,7 @@ void mcpwm_init(void) {
 	detect_do_step = 0;
 	hall_sensor_order = MCPWM_HALL_SENSOR_ORDER;
 	pwm_mode = MCPWM_PWM_MODE;
-	control_mode = CONTROL_MODE_DUTY;
+	control_mode = CONTROL_MODE_NONE;
 	last_current_sample = 0.0;
 	last_current_sample_filtered = 0.0;
 	motor_current_sum = 0.0;
@@ -250,6 +249,7 @@ void mcpwm_init(void) {
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	fault_iterations = 0;
 	timer_struct_updated = 0;
+	curr_samp_volt = 0;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -267,53 +267,8 @@ void mcpwm_init(void) {
 	// Create current FIR filter
 	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
-	// GPIO clock enable
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-
-	// GPIOC (ENABLE_GATE)
-	palSetPadMode(GPIOC, 10,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-	DISABLE_GATE();
-
-	// GPIOB (DCCAL)
-	palSetPadMode(GPIOB, 12,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-
-	// GPIOB (hall sensors)
-	palSetPadMode(GPIOB, 6, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
-
-	// Fault pin
-	palSetPadMode(GPIOC, 12, PAL_MODE_INPUT_PULLUP);
-
 	// TIM1 clock enable
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
-
-	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
-	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-
-	palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
 
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -351,7 +306,7 @@ void mcpwm_init(void) {
 	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
-	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Enable;
+	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 
 	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
 	TIM_CCPreloadControl(TIM1, ENABLE);
@@ -378,7 +333,7 @@ void mcpwm_init(void) {
 	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC_Value;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC_CDR_ADDRESS;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_BufferSize = MCPWM_ADC_CHANNELS;
+	DMA_InitStructure.DMA_BufferSize = HW_ADC_CHANNELS;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -397,23 +352,6 @@ void mcpwm_init(void) {
 	// Enable transfer complete interrupt
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
-	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
-
-	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
-
-	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-
 	// ADC Common Init
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
@@ -428,7 +366,7 @@ void mcpwm_init(void) {
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Falling;
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfConversion = 4;
+	ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
 	ADC_Init(ADC1, &ADC_InitStructure);
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
@@ -436,23 +374,7 @@ void mcpwm_init(void) {
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
 
-	// ADC1 regular channels 0, 5, 10, 13
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 4, ADC_SampleTime_3Cycles);
-
-	// ADC2 regular channels 1, 6, 11, 15
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 2, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_3Cycles);
-
-	// ADC3 regular channels 2, 3, 12, 3
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 2, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 4, ADC_SampleTime_3Cycles);
+	hw_setup_adc_channels();
 
 	// Enable DMA request after last transfer (Multi-ADC mode)
 	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
@@ -464,8 +386,6 @@ void mcpwm_init(void) {
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_InjectedSequencerLengthConfig(ADC1, 1);
 	ADC_InjectedSequencerLengthConfig(ADC2, 1);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_6, 1, ADC_SampleTime_3Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
 
 	// Interrupt
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
@@ -556,6 +476,8 @@ void mcpwm_init(void) {
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
 	timer_struct_updated = 1;
 
+	chSysUnlock();
+
 	// Calibrate current offset
 	ENABLE_GATE();
 	DCCAL_ON();
@@ -634,7 +556,7 @@ void mcpwm_set_current(float current) {
 
 	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
 		state = MC_STATE_OFF;
-		control_mode = CONTROL_MODE_DUTY;
+		control_mode = CONTROL_MODE_NONE;
 		stop_pwm();
 		return;
 	}
@@ -651,6 +573,20 @@ void mcpwm_set_current(float current) {
 			set_duty_cycle_hl(-(MCPWM_MIN_DUTY_CYCLE + 0.001));
 		}
 	}
+}
+
+/**
+ * Stop the motor and use braking.
+ */
+void mcpwm_brake_now(void) {
+	mcpwm_set_duty(0.0);
+}
+
+/**
+ * Disconnect the motor and let it turn freely.
+ */
+void mcpwm_releaso_motor(void) {
+	mcpwm_set_current(0.0);
 }
 
 /**
@@ -801,17 +737,13 @@ static void stop_pwm(void) {
 
 static void fault_stop(mc_fault_code fault) {
 	fault_iterations = MCPWM_FAULT_STOP_TIME;
-	control_mode = CONTROL_MODE_DUTY;
+	control_mode = CONTROL_MODE_NONE;
 	state = MC_STATE_OFF;
 	stop_pwm();
 	fault_now = fault;
 }
 
-/*
- * TODO: make full brake static and use a proper braking method for the public
- * version that will not destroy MOSFETs in when used wrongly.
- */
-void mcpwm_full_brake(void) {
+static void full_brake(void) {
 	if (fault_now != FAULT_CODE_NONE) {
 		return;
 	}
@@ -845,8 +777,7 @@ void mcpwm_full_brake(void) {
  * @param dutyCycle
  * The duty cycle in the range [-MCPWM_MAX_DUTY_CYCLE MCPWM_MAX_DUTY_CYCLE]
  * If the absolute value of the duty cycle is less than MCPWM_MIN_DUTY_CYCLE,
- * the motor will be switched off with or without braking depending on the
- * MCPWM_FULL_BRAKE_AT_STOP setting.
+ * the motor phases will be shorted to brake the motor.
  */
 static void set_duty_cycle_hl(float dutyCycle) {
 	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
@@ -854,11 +785,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	if (state == MC_STATE_DETECTING) {
 		state = MC_STATE_OFF;
 		stop_pwm();
-	}
-
-	if (!MCPWM_FULL_BRAKE_AT_STOP && fabsf(dutyCycle) < MCPWM_MIN_DUTY_CYCLE) {
-		state = MC_STATE_OFF;
-		stop_pwm();
+		return;
 	}
 
 	dutycycle_set = dutyCycle;
@@ -875,10 +802,12 @@ static void set_duty_cycle_hl(float dutyCycle) {
 
 			set_duty_cycle_ll(dutycycle_now);
 		} else {
-			state = MC_STATE_OFF;
-			if (MCPWM_FULL_BRAKE_AT_STOP) {
-				mcpwm_full_brake();
+			if (state == MC_STATE_OFF) {
+				// In case the motor is already spinning, set the state to running
+				// so that it can be ramped down before the full brake is applied.
+				state = MC_STATE_RUNNING;
 			} else {
+				state = MC_STATE_OFF;
 				stop_pwm();
 			}
 		}
@@ -909,11 +838,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		switch (state) {
 		case MC_STATE_RUNNING:
 			state = MC_STATE_OFF;
-			if (MCPWM_FULL_BRAKE_AT_STOP) {
-				mcpwm_full_brake();
-			} else {
-				stop_pwm();
-			}
+			full_brake();
 			break;
 
 		case MC_STATE_DETECTING:
@@ -931,6 +856,8 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		dutyCycle = MCPWM_MAX_DUTY_CYCLE;
 	}
 
+	set_duty_cycle_hw(dutyCycle);
+
 #if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
@@ -946,8 +873,6 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		commutate();
 	}
 #endif
-
-	set_duty_cycle_hw(dutyCycle);
 }
 
 /**
@@ -1151,7 +1076,6 @@ static msg_t timer_thread(void *arg) {
 			break;
 
 		case MC_STATE_FULL_BRAKE:
-
 			break;
 
 		default:
@@ -1177,7 +1101,7 @@ static msg_t timer_thread(void *arg) {
 		}
 
 		// Check if the DRV8302 indicates any fault
-		if (IS_FAULT()) {
+		if (IS_DRV_FAULT()) {
 			fault_stop(FAULT_CODE_DRV8302);
 		}
 
@@ -1185,7 +1109,7 @@ static msg_t timer_thread(void *arg) {
 		if (fault_iterations > 0) {
 			fault_iterations--;
 		} else {
-			if (!IS_FAULT()) {
+			if (!IS_DRV_FAULT()) {
 				fault_now = FAULT_CODE_NONE;
 			}
 		}
@@ -1215,6 +1139,12 @@ void mcpwm_adc_inj_int_handler(void) {
 
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+
+	if (curr_samp_volt == 1) {
+		curr0 = ADC_Value[ADC_IND_CURR1];
+	} else if (curr_samp_volt == 2) {
+		curr1 = ADC_Value[ADC_IND_CURR2];
+	}
 
 	curr0_sum += curr0;
 	curr1_sum += curr1;
@@ -1283,7 +1213,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 
 		set_next_comm_step(comm_step);
-		commutate();
+		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 		detect_do_step = 0;
 	}
 
@@ -1558,7 +1488,7 @@ void mcpwm_set_detect(void) {
 		return;
 	}
 
-	control_mode = CONTROL_MODE_DUTY;
+	control_mode = CONTROL_MODE_NONE;
 	stop_pwm();
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
@@ -1732,12 +1662,13 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 		curr2_sample = (top - duty) / 2 + duty;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
-			uint32_t samp_neg = duty / 2 - 200;
+			uint32_t samp_neg = top - 2;
 			uint32_t samp_pos = duty + (top - duty) / 2;
 			uint32_t samp_zero = top - 2;
 
 			// Voltage and other sampling
-			val_sample = duty / 2 + 100;
+			val_sample = duty / 2;
+			curr_samp_volt = 0;
 
 			// Current sampling
 			switch (comm_step) {
@@ -1745,6 +1676,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				if (direction) {
 					curr1_sample = samp_zero;
 					curr2_sample = samp_neg;
+					curr_samp_volt = 2;
 				} else {
 					curr1_sample = samp_zero;
 					curr2_sample = samp_pos;
@@ -1755,6 +1687,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				if (direction) {
 					curr1_sample = samp_pos;
 					curr2_sample = samp_neg;
+					curr_samp_volt = 2;
 				} else {
 					curr1_sample = samp_pos;
 					curr2_sample = samp_zero;
@@ -1768,6 +1701,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				} else {
 					curr1_sample = samp_pos;
 					curr2_sample = samp_neg;
+					curr_samp_volt = 2;
 				}
 				break;
 
@@ -1778,6 +1712,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				} else {
 					curr1_sample = samp_zero;
 					curr2_sample = samp_neg;
+					curr_samp_volt = 2;
 				}
 				break;
 
@@ -1785,9 +1720,11 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				if (direction) {
 					curr1_sample = samp_neg;
 					curr2_sample = samp_pos;
+					curr_samp_volt = 1;
 				} else {
 					curr1_sample = samp_neg;
 					curr2_sample = samp_zero;
+					curr_samp_volt = 1;
 				}
 				break;
 
@@ -1795,9 +1732,11 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				if (direction) {
 					curr1_sample = samp_neg;
 					curr2_sample = samp_zero;
+					curr_samp_volt = 1;
 				} else {
 					curr1_sample = samp_neg;
 					curr2_sample = samp_pos;
+					curr_samp_volt = 1;
 				}
 				break;
 			}
@@ -1859,10 +1798,6 @@ static void commutate(void) {
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
 #if MCPWM_IS_SENSORLESS
-	if (state == MC_STATE_DETECTING) {
-		return;
-	}
-
 	last_pwm_cycles_sum = pwm_cycles_sum;
 	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
 	pwm_cycles_sum = 0;

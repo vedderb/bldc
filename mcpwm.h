@@ -34,8 +34,8 @@ typedef enum {
 
 typedef enum {
 	PWM_MODE_NONSYNCHRONOUS_HISW, // This mode is not recommended
-	PWM_MODE_SYNCHRONOUS, // The recommended mode
-	PWM_MODE_BIPOLAR
+	PWM_MODE_SYNCHRONOUS, // The recommended and most tested mode
+	PWM_MODE_BIPOLAR // Some glitches occasionally, can kill MOSFETs
 } mc_pwm_mode;
 
 typedef enum {
@@ -48,7 +48,8 @@ typedef enum {
 typedef enum {
 	CONTROL_MODE_DUTY = 0,
 	CONTROL_MODE_SPEED,
-	CONTROL_MODE_CURRENT
+	CONTROL_MODE_CURRENT,
+	CONTROL_MODE_NONE
 } mc_control_mode;
 
 // Functions
@@ -56,6 +57,8 @@ void mcpwm_init(void);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
+void mcpwm_brake_at_stop(int brake);
+void mcpwm_brake_now(void);
 int mcpwm_get_comm_step(void);
 float mcpwm_get_duty_cycle_set(void);
 float mcpwm_get_duty_cycle_now(void);
@@ -72,7 +75,6 @@ float mcpwm_get_tot_current_in_filtered(void);
 void mcpwm_set_detect(void);
 float mcpwm_get_detect_pos(void);
 signed int mcpwm_read_hall_phase(void);
-void mcpwm_full_brake(void);
 float mcpwm_read_reset_avg_motor_current(void);
 float mcpwm_read_reset_avg_input_current(void);
 float mcpwm_get_last_adc_isr_duration(void);
@@ -89,11 +91,6 @@ extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 extern volatile float mcpwm_detect_currents[];
 extern volatile int mcpwm_vzero;
-
-// Macros
-#define READ_HALL1()			palReadPad(GPIOB, 6)
-#define READ_HALL2()			palReadPad(GPIOB, 7)
-#define READ_HALL3()			palReadPad(GPIOB, 8)
 
 /*
  * Parameters
@@ -114,7 +111,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
-#define MCPWM_FULL_BRAKE_AT_STOP		0		// Brake the motor when the power is set to stopped
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
@@ -136,9 +132,6 @@ extern volatile int mcpwm_vzero;
 // Current control parameters
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0002	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
-
-// Misc settings
-#define MCPWM_ADC_CHANNELS				12
 
 /*
  * ==== Parameter guidelines ====
@@ -164,56 +157,5 @@ extern volatile int mcpwm_vzero;
  * - Starting at a low MCPWM_CYCLE_INT_LIMIT and then increasing
  *   it usually works well.
  */
-
-/*
- * ADC macros and settings
- */
-
-// Component parameters
-#define V_REG		3.3
-#define VIN_R1		33000.0
-#define VIN_R2		2200.0
-
-// Input voltage
-#define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-
-// Voltage on ADC channel
-#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)
-
-// Sharp sensors
-
-// EXternal Variables
-extern volatile uint16_t ADC_Value[];
-
-/*
- * ADC Vector
- *
- * 0:	IN0		SENS3
- * 1:	IN1		SENS2
- * 2:	IN2		SENS1
- * 3:	IN5		CURR1
- * 4:	IN6		CURR2
- * 5:	IN3		NC
- * 6:	IN10	TEMP_MOTOR
- * 7:	IN11	NC
- * 8:	IN12	AN_IN
- * 9:	IN13	NC
- * 10:	IN15	ADC_EXT
- * 11:	IN3		NC
- */
-
-// ADC Indexes
-#define ADC_IND_SENS1		2
-#define ADC_IND_SENS2		1
-#define ADC_IND_SENS3		0
-#define ADC_IND_CURR1		3
-#define ADC_IND_CURR2		4
-#define ADC_IND_VIN_SENS	8
-#define ADC_IND_EXT			10
-
-// Measurement macros
-#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
 
 #endif /* MC_PWM_H_ */
