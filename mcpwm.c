@@ -390,8 +390,8 @@ void mcpwm_init(void) {
 	// Interrupt
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
 	NVIC_InitStructure.NVIC_IRQChannel = ADC_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
@@ -1240,11 +1240,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	volatile int ph1, ph2, ph3;
 
 	/*
-	 * Changing the duty cycle too rapidly after a stop or after a direction change
-	 * seems to cause problems for some reason. Therefore, slow down the ramping
-	 * after such events.
-	 *
-	 * TODO: Figure out what the real problem is...
+	 * When the motor just has started, some measurements and operations have
+	 * to be made differently. Therefore, keep track of how many ADC cycles
+	 * it has been running.
 	 */
 	static volatile unsigned int cycles_running = 0;
 	static volatile int direction_before = 1;
@@ -1269,7 +1267,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		wrong_voltage_iterations = 0;
 	}
 
-	mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+	/*
+	 * If the motor has been running for a while use half the input voltage
+	 * as the zero reference. Otherwise, calculate the zero reference manually.
+	 */
+	if (cycles_running > 1000) {
+		mcpwm_vzero = ADC_V_ZERO;
+	} else {
+		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+	}
 
 	if (direction) {
 		ph1 = ADC_V_L1 - mcpwm_vzero;
@@ -1299,7 +1305,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if (pwm_cycles_sum > last_pwm_cycles_sum / 3 || state != MC_STATE_RUNNING) {
+	if ((pwm_cycles_sum > last_pwm_cycles_sum / 3 || state != MC_STATE_RUNNING) && (pwm_cycles_sum > 2)) {
 		int inc_step = 0;
 		int v_diff = 0;
 
@@ -1374,22 +1380,20 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 
+	const float current = mcpwm_get_tot_current_filtered();
+	const float current_in = current * fabsf(dutycycle_now);
+	motor_current_sum += current;
+	input_current_sum += current_in;
+	motor_current_iterations++;
+	input_current_iterations++;
+
 	if (state == MC_STATE_RUNNING) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / input_voltage;
 		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
-		const float current = mcpwm_get_tot_current_filtered();
-		const float current_in = current * fabsf(dutycycle_now);
 		const float rpm = mcpwm_get_rpm();
 
-		if (fabsf(dutycycle_now) > MCPWM_MIN_DUTY_CYCLE) {
-			ramp_step *= fabsf(dutycycle_now);
-		}
-
-		motor_current_sum += current;
-		input_current_sum += current_in;
-		motor_current_iterations++;
-		input_current_iterations++;
+		ramp_step *= fabsf(dutycycle_now);
 
 		float dutycycle_now_tmp = dutycycle_now;
 
@@ -1400,6 +1404,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			if (cycles_running < 1000) {
 				utils_truncate_number(&step, -ramp_step, ramp_step);
+			} else {
+				utils_truncate_number(&step, -0.1, 0.1);
 			}
 
 			dutycycle_now_tmp += step;
@@ -1427,15 +1433,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 		} else if (current < MCPWM_CURRENT_MIN) {
 			step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
-					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
 		} else if (current_in > MCPWM_IN_CURRENT_MAX) {
 			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 		} else if (current_in < MCPWM_IN_CURRENT_MIN) {
 			step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
-					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MIN) * MCPWM_CURRENT_LIMIT_GAIN);
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
 		} else if (rpm > MCPWM_RPM_MAX) {
 			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
 			cycles_running = 0;
@@ -1667,7 +1671,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			uint32_t samp_zero = top - 2;
 
 			// Voltage and other sampling
-			val_sample = duty / 2;
+			val_sample = top / 4;
 			curr_samp_volt = 0;
 
 			// Current sampling
@@ -1795,8 +1799,6 @@ static void update_rpm_tacho(void) {
 }
 
 static void commutate(void) {
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-
 #if MCPWM_IS_SENSORLESS
 	last_pwm_cycles_sum = pwm_cycles_sum;
 	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
@@ -1809,17 +1811,14 @@ static void commutate(void) {
 		comm_step = 1;
 	}
 
-	int next_step = comm_step + 1;
-	if (next_step > 6) {
-		next_step = 1;
-	}
-
 	if (!(state == MC_STATE_RUNNING)) {
 		return;
 	}
 
-	set_next_comm_step(next_step);
+	set_next_comm_step(comm_step);
 #endif
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
 	mc_timer_struct timer_tmp;
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
 	update_adc_sample_pos(&timer_tmp);
@@ -1827,28 +1826,8 @@ static void commutate(void) {
 }
 
 static void set_next_timer_settings(mc_timer_struct *settings) {
-	chSysLock();
 	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
-
-	int cnt = TIM1->CNT;
-	int top = TIM1->ARR;
-
-	// If there is enough time to update all values at once during this cycle,
-	// do it here. Otherwise, schedule the update for the next cycle.
-	if ((top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
-	} else {
-		timer_struct_updated = 1;
-	}
-
-	chSysUnlock();
+	timer_struct_updated = 1;
 }
 
 static void set_switching_frequency(int frequency) {

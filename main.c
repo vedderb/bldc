@@ -337,23 +337,24 @@ static msg_t servodec_handling_thread(void *arg) {
 		chEvtWaitAny((eventmask_t) 1);
 
 		// Use decoded servo inputs
-#define HYST		0.1
-#define CURR_FACT	40.0
-		if (servodec_get_time_since_update() < 500 && mcpwm_get_duty_cycle_now() > -0.01) {
+#define HYST		0.15
+#define ALLOW_REV	1
+
+		if (servodec_get_time_since_update() < 500 && (ALLOW_REV || mcpwm_get_duty_cycle_now() > -0.01)) {
 			float servo_val = servodec_get_servo_as_float(0);
 			servo_val /= (1.0 - HYST);
 
 			if (servo_val > HYST) {
 				servo_val -= HYST;
-				mcpwm_set_current(servo_val * CURR_FACT);
+				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
 			} else if (servo_val < -HYST) {
 				servo_val += HYST;
-				mcpwm_set_current(servo_val * CURR_FACT);
+				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
 			} else {
-				mcpwm_set_duty(0.0);
+				mcpwm_set_current(0.0);
 			}
 		} else {
-			mcpwm_set_duty(0.0);
+			mcpwm_set_current(0.0);
 		}
 	}
 
