@@ -306,3 +306,20 @@ void comm_print_fault_code(mc_fault_code fault_code) {
 		break;
 	}
 }
+
+void comm_send_experiment_samples(float *samples, int len) {
+	if (len > 254) {
+		return;
+	}
+
+	uint8_t buffer[len * 4 + 1];
+	int32_t index = 0;
+
+	buffer[index++] = COMM_EXPERIMENT_SAMPLE;
+
+	for (int i = 0;i < len;i++) {
+		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
+	}
+
+	packet_send_packet(buffer, index);
+}

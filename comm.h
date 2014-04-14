@@ -33,7 +33,8 @@ typedef enum {
 	COMM_READ_VALUES = 0,
 	COMM_PRINT,
 	COMM_SEND_SAMPLES,
-	COMM_ROTOR_POSITION
+	COMM_ROTOR_POSITION,
+	COMM_EXPERIMENT_SAMPLE
 } COMM_RES_PACKET_ID;
 
 // Packets that don't expect any response
@@ -51,5 +52,6 @@ void comm_print(char* str);
 void comm_send_samples(uint8_t *data, int len);
 void comm_send_rotor_pos(float rotor_pos);
 void comm_print_fault_code(mc_fault_code fault_code);
+void comm_send_experiment_samples(float *samples, int len);
 
 #endif /* COMM_INTERFACE_H_ */

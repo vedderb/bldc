@@ -25,6 +25,8 @@
 #ifndef MCPWM_H_
 #define MCPWM_H_
 
+#include "conf_general.h"
+
 typedef enum {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
@@ -93,70 +95,46 @@ extern volatile int ADC_curr_norm_value[];
 extern volatile float mcpwm_detect_currents[];
 extern volatile int mcpwm_vzero;
 
+#ifdef MCCONF_OUTRUNNER1
+#include "mcconf_outrunner1.h"
+#elif defined MCCONF_RCCAR1
+#include "mcconf_rccar1.h"
+#elif defined MCCONF_STEN
+#include "mcconf_sten.h"
+#endif
+
 /*
  * Parameters
  */
 #define MCPWM_SWITCH_FREQUENCY_MIN		8000	// The lowest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_MAX		40000	// The highest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
-#define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
-#define MCPWM_IN_CURRENT_MAX			40.0	// Input current limit in Amperes (Upper)
-#define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
-#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
-#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
-#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
-#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
-
-// Sensorless settings
-#define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
-#define MCPWM_VZERO_FACT				1.0		// Virtual zero adjustment
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
-#define MCPWM_PID_KP					0.0001	// Proportional gain
-#define MCPWM_PID_KI					0.002	// Integral gain
-#define MCPWM_PID_KD					0.0		// Derivative gain
-#define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
 
-// Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.0002	// Current controller error gain
-#define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
-
-/*
- * ==== Parameter guidelines ====
- *
- * Most hobby inrunners and small motors:
- * MCPWM_CYCLE_INT_LIMIT_LOW	15
- * MCPWM_CYCLE_INT_LIMIT_HIGH	2
- *
- * Most hobby outrunners (1kw - 5kw):
- * MCPWM_CYCLE_INT_LIMIT_LOW	150
- * MCPWM_CYCLE_INT_LIMIT_HIGH	20
- *
- * Large 12V high-inductance motor
- * MCPWM_CYCLE_INT_LIMIT_LOW	250
- * MCPWM_CYCLE_INT_LIMIT_HIGH	30
- *
- *
- * ==== Some notes ====
- *
- * - Decreasing the MCPWM_MIN_RPM parameter gives a bit more
- *   startup torque, but will make the start more rough.
- *
- * - Starting at a low MCPWM_CYCLE_INT_LIMIT and then increasing
- *   it usually works well.
- */
+// Parameters that can be overridden
+#ifndef MCPWM_HALL_SENSOR_ORDER
+#define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
+#endif
+#ifndef MCPWM_MIN_VOLTAGE
+#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
+#endif
+#ifndef MCPWM_MAX_VOLTAGE
+#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
+#endif
+#ifndef MCPWM_RPM_MAX
+#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
+#endif
+#ifndef MCPWM_RPM_MIN
+#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
+#endif
 
 #endif /* MC_PWM_H_ */

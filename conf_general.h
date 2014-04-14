@@ -16,26 +16,34 @@
     */
 
 /*
- * hw.h
+ * conf_general.h
  *
- *  Created on: 12 apr 2014
+ *  Created on: 14 apr 2014
  *      Author: benjamin
  */
 
-#ifndef HW_H_
-#define HW_H_
+#ifndef CONF_GENERAL_H_
+#define CONF_GENERAL_H_
 
-#include "conf_general.h"
+/*
+ * Settings
+ */
+#define USE_SERVO_INPUT			0
+#define USE_SERVO_OUTPUT		0
+#define USE_THROTTLE_ADC		0
+#define AUTO_PRINT_FAULTS		0
 
-#ifdef HW_VERSION_40
-#include "hw_40.h"
-#elif defined HW_VERSION_R2
-#include "hw_r2.h"
-#endif
+/*
+ * Select only one hardware version
+ */
+//#define HW_VERSION_40
+#define HW_VERSION_R2
 
-// Functions
-void hw_init_gpio(void);
-void hw_setup_adc_channels(void);
-void hw_setup_servo_outputs(void);
+/*
+ * Select only one motor configuration
+ */
+#define MCCONF_OUTRUNNER1
+//#define MCCONF_RCCAR1
+//#define MCCONF_STEN
 
-#endif /* HW_H_ */
+#endif /* CONF_GENERAL_H_ */

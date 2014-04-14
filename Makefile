@@ -108,7 +108,8 @@ CSRC = $(PORTSRC) \
        servo.c \
        packet.c \
        terminal.c \
-       hw.c
+       hwconf/hw_40.c \
+       hwconf/hw_r2.c
        
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -141,7 +142,9 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various/devices_lib/accel \
          $(CHIBIOS)/os/various \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         mcconf \
+         hwconf
 
 #
 # Project, sources and paths

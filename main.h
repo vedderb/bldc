@@ -26,12 +26,7 @@
 #define MAIN_H_
 
 #include <stdint.h>
-
-// Settings
-#define USE_SERVO_INPUT			0
-#define USE_SERVO_OUTPUT		0
-#define USE_THROTTLE_ADC		0
-#define AUTO_PRINT_FAULTS		0
+#include "conf_general.h"
 
 // Function prototypes
 void main_dma_adc_handler(void);

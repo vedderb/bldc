@@ -16,17 +16,19 @@
     */
 
 /*
- * hw.c
+ * hw_r2.c
  *
- *  Created on: 12 apr 2014
+ *  Created on: 14 apr 2014
  *      Author: benjamin
  */
+
+#include "hw.h"
+#ifdef HW_VERSION_R2
 
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "servo.h"
-#include "hw.h"
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
@@ -35,15 +37,15 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
 	// LEDs
-	palSetPadMode(GPIOC, 4,
+	palSetPadMode(GPIOB, 6,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOA, 7,
+	palSetPadMode(GPIOB, 7,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
 	// GPIOC (ENABLE_GATE)
-	palSetPadMode(GPIOC, 10,
+	palSetPadMode(GPIOC, 9,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 	DISABLE_GATE();
@@ -75,9 +77,9 @@ void hw_init_gpio(void) {
 			PAL_STM32_PUDR_FLOATING);
 
 	// GPIOB (hall sensors)
-	palSetPadMode(GPIOB, 6, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_PULLUP);
 
 	// Fault pin
 	palSetPadMode(GPIOC, 12, PAL_MODE_INPUT_PULLUP);
@@ -90,6 +92,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
@@ -98,45 +101,51 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 }
 
 void hw_setup_adc_channels(void) {
-	// ADC1 regular channels 0, 5, 10, 13
+	// ADC1 regular channels 0, 5, 4, 7, 14
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 3, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_7, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 5, ADC_SampleTime_3Cycles);
 
-	// ADC2 regular channels 1, 6, 11, 15
+	// ADC2 regular channels 1, 6, 9, 15, 8
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 2, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_9, 3, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_8, 5, ADC_SampleTime_3Cycles);
 
-	// ADC3 regular channels 2, 3, 12, 3
+	// ADC3 regular channels 2, 10, 12, 11, 13
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 2, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 2, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_11, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 5, ADC_SampleTime_3Cycles);
 
 	// Injected channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_6, 1, ADC_SampleTime_3Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_6, 1, ADC_SampleTime_3Cycles);
 }
 
 void hw_setup_servo_outputs(void) {
 	// Set up GPIO ports
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
-	// Set up servo structures
 	servos[0].gpio = GPIOB;
 	servos[0].pin = 5;
 	servos[0].offset = 0;
 	servos[0].pos = 128;
 
-	servos[1].gpio = GPIOB;
-	servos[1].pin = 4;
+	servos[1].gpio = GPIOD;
+	servos[1].pin = 2;
 	servos[1].offset = 0;
 	servos[1].pos = 0;
 }
+
+#endif
