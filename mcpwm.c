@@ -1827,7 +1827,28 @@ static void commutate(void) {
 
 static void set_next_timer_settings(mc_timer_struct *settings) {
 	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
-	timer_struct_updated = 1;
+
+	chSysLock();
+
+	int cnt = TIM1->CNT;
+	int top = TIM1->ARR;
+
+	// If there is enough time to update all values at once during this cycle,
+	// do it here. Otherwise, schedule the update for the next cycle.
+	if ((top - cnt) > 400) {
+		TIM1->ARR = timer_struct.top;
+		TIM8->ARR = timer_struct.top;
+		TIM1->CCR1 = timer_struct.duty;
+		TIM1->CCR2 = timer_struct.duty;
+		TIM1->CCR3 = timer_struct.duty;
+		TIM8->CCR1 = timer_struct.val_sample;
+		TIM1->CCR4 = timer_struct.curr1_sample;
+		TIM8->CCR2 = timer_struct.curr2_sample;
+	} else {
+		timer_struct_updated = 1;
+	}
+
+	chSysUnlock();
 }
 
 static void set_switching_frequency(int frequency) {
