@@ -1,6 +1,5 @@
 #include "ch.h"
 #include "hal.h"
-#include "shell.h"
 
 #include "myUSB.h"
 #include "usbdescriptor.h"
@@ -156,12 +155,6 @@ int isUsbActive(void){
 }
 
 void myUSBinit(void){
-
-	/*
-	 * Shell manager initialization.
-	 */
-	shellInit();
-
 	/*
 	 * Initializes a serial-over-USB CDC driver.
 	 */
