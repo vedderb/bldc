@@ -46,6 +46,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "hw.h"
 
 #include "stm32f4xx_conf.h"
 
@@ -62,7 +63,7 @@
 #endif
 
 // Change these parameters
-#define SERVOS_NUM	2		// Number of servos to use
+#define SERVOS_NUM	HW_SERVO_NUM		// Number of servos to use
 
 // Servo timer speed in HZ
 #define SERVO_CNT_SPEED		1000000L

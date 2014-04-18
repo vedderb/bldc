@@ -104,4 +104,7 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)
 
+// Number of servo outputs
+#define HW_SERVO_NUM		2
+
 #endif /* HW_R2_H_ */

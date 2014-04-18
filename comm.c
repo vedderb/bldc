@@ -308,7 +308,7 @@ void comm_print_fault_code(mc_fault_code fault_code) {
 }
 
 void comm_send_experiment_samples(float *samples, int len) {
-	if (len > 254) {
+	if ((len * 4 + 1) > 256) {
 		return;
 	}
 

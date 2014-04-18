@@ -59,7 +59,6 @@ void mcpwm_init(void);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
-void mcpwm_brake_at_stop(int brake);
 void mcpwm_brake_now(void);
 void mcpwm_release_motor(void);
 int mcpwm_get_comm_step(void);

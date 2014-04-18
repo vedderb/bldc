@@ -16,38 +16,23 @@
     */
 
 /*
- * conf_general.h
+ * app.h
  *
- *  Created on: 14 apr 2014
+ *  Created on: 18 apr 2014
  *      Author: benjamin
  */
 
-#ifndef CONF_GENERAL_H_
-#define CONF_GENERAL_H_
+#ifndef APP_H_
+#define APP_H_
 
-/*
- * Settings
- */
-#define AUTO_PRINT_FAULTS		0
+#include "conf_general.h"
 
-/*
- * Select only one hardware version
- */
-#define HW_VERSION_40
-//#define HW_VERSION_R2
+// Functions
+void app_init(void);
 
-/*
- * Select only one motor configuration
- */
-#define MCCONF_OUTRUNNER1
-//#define MCCONF_RCCAR1
-//#define MCCONF_STEN
+// The init functions for all applications
+void app_rccar_init(void);
+void app_sten_init(void);
+void app_gurgalof_init(void);
 
-/*
- * Select which application to use
- */
-//#define USE_APP_RCCAR
-//#define USE_APP_STEN
-//#define USE_APP_GURGALOF
-
-#endif /* CONF_GENERAL_H_ */
+#endif /* APP_H_ */

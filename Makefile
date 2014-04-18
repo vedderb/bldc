@@ -78,6 +78,8 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include hwconf/hwconf.mk
+include applications/applications.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -108,8 +110,8 @@ CSRC = $(PORTSRC) \
        servo.c \
        packet.c \
        terminal.c \
-       hwconf/hw_40.c \
-       hwconf/hw_r2.c
+       $(HWSRC) \
+       $(APPSRC)
        
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -144,7 +146,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
          $(CHIBIOS)/os/various \
          mcconf \
-         hwconf
+         $(HWINC) \
+         $(APPINC)
 
 #
 # Project, sources and paths

@@ -94,4 +94,7 @@
 #define NTC_RES(adc_val)	(0.0)
 #define NTC_TEMP(adc_ind)	(32.0)
 
+// Number of servo outputs
+#define HW_SERVO_NUM		2
+
 #endif /* HW_40_H_ */

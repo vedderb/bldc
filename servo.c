@@ -28,7 +28,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "hw.h"
 
 volatile SERVO servos[SERVOS_NUM];
 

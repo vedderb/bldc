@@ -27,13 +27,11 @@
 #include "main.h"
 #include "mcpwm.h"
 #include "ledpwm.h"
-#include "servo.h"
-#include "servo_dec.h"
 #include "comm.h"
-#include "servo.h"
 #include "ledpwm.h"
 #include "terminal.h"
 #include "hw.h"
+#include "app.h"
 
 /*
  * Timers used:
@@ -86,12 +84,6 @@ static WORKING_AREA(sample_send_thread_wa, 1024);
 
 static Thread *sample_send_tp;
 
-#if USE_SERVO_INPUT
-static WORKING_AREA(servodec_handling_thread_wa, 1024);
-static Thread *servodec_handling_tp;
-static void servodec_func(void);
-#endif
-
 static msg_t periodic_thread(void *arg) {
 	(void)arg;
 
@@ -117,21 +109,6 @@ static msg_t periodic_thread(void *arg) {
 			fault_print = 0;
 		}
 
-		// Gurgalof bicycle-throttle
-#if USE_THROTTLE_ADC
-#define MIN_PWR	0.2
-		float pwr = (float)ADC_Value[ADC_IND_EXT];
-		pwr /= 4095.0;
-		pwr /= (1.0 - MIN_PWR);
-		pwr -= MIN_PWR;
-
-		if (pwr < 0.0) {
-			mcpwm_set_duty(0.0);
-		} else {
-			mcpwm_set_duty(pwr);
-//			mcpwm_set_current(pwr * 40.0);
-		}
-#endif
 		if (mcpwm_get_state() == MC_STATE_DETECTING) {
 			comm_send_rotor_pos(mcpwm_get_detect_pos());
 		}
@@ -320,48 +297,6 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 	}
 }
 
-#if USE_SERVO_INPUT
-static void servodec_func(void) {
-	chSysLockFromIsr();
-	chEvtSignalI(servodec_handling_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
-}
-
-static msg_t servodec_handling_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("Servodec handler");
-	servodec_handling_tp = chThdSelf();
-
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
-
-		// Use decoded servo inputs
-#define HYST		0.15
-#define ALLOW_REV	1
-
-		if (servodec_get_time_since_update() < 500 && (ALLOW_REV || mcpwm_get_duty_cycle_now() > -0.01)) {
-			float servo_val = servodec_get_servo_as_float(0);
-			servo_val /= (1.0 - HYST);
-
-			if (servo_val > HYST) {
-				servo_val -= HYST;
-				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
-			} else if (servo_val < -HYST) {
-				servo_val += HYST;
-				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
-			} else {
-				mcpwm_set_current(0.0);
-			}
-		} else {
-			mcpwm_set_current(0.0);
-		}
-	}
-
-	return 0;
-}
-#endif
-
 int main(void) {
 	halInit();
 	chSysInit();
@@ -369,21 +304,11 @@ int main(void) {
 	ledpwm_init();
 	mcpwm_init();
 	comm_init();
-
-#if USE_SERVO_OUTPUT
-	servo_init();
-#endif
-
-#if USE_SERVO_INPUT
-	servodec_init(servodec_func);
-#endif
+	app_init();
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
-#if USE_SERVO_INPUT
-	chThdCreateStatic(servodec_handling_thread_wa, sizeof(servodec_handling_thread_wa), NORMALPRIO, servodec_handling_thread, NULL);
-#endif
 
 	for(;;) {
 		chThdSleepMilliseconds(100);

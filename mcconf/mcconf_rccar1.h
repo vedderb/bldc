@@ -16,7 +16,7 @@
     */
 
 /*
- * mcconf_outrunner1.h
+ * mcconf_rccar1.h
  *
  *  Created on: 14 apr 2014
  *      Author: benjamin
