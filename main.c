@@ -182,11 +182,12 @@ void main_dma_adc_handler(void) {
 
 			if (mcpwm_get_state() == MC_STATE_DETECTING) {
 				curr0_samples[sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
+				curr1_samples[sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
 			} else {
 				curr0_samples[sample_now] = ADC_curr_norm_value[0];
+				curr1_samples[sample_now] = ADC_curr_norm_value[1];
 			}
 
-			curr1_samples[sample_now] = ADC_curr_norm_value[1];
 			ph1_samples[sample_now] = ADC_V_L1 - mcpwm_vzero;
 			ph2_samples[sample_now] = ADC_V_L2 - mcpwm_vzero;
 			ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;

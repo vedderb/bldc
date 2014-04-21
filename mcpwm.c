@@ -47,7 +47,8 @@ typedef struct {
 } mc_timer_struct;
 
 // Private variables
-static volatile int comm_step;
+static volatile int comm_step; // Range [1 6]
+static volatile int detect_step; // Range [0 5]
 static volatile int direction;
 static volatile int last_comm_time;
 static volatile float dutycycle_set;
@@ -64,9 +65,6 @@ static volatile int curr0_offset;
 static volatile int curr1_offset;
 static volatile mc_state state;
 static volatile mc_fault_code fault_now;
-static volatile int detect_now;
-static volatile int detect_inc;
-static volatile int detect_do_step;
 static volatile mc_pwm_mode pwm_mode;
 static volatile mc_control_mode control_mode;
 static volatile float last_current_sample;
@@ -185,6 +183,7 @@ static volatile float last_inj_adc_isr_duration;
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
 volatile float mcpwm_detect_currents[6];
+volatile float mcpwm_detect_currents_diff[6];
 volatile int mcpwm_vzero;
 
 // Private functions
@@ -208,7 +207,8 @@ static int integrate_cycle(float v_diff);
 
 // Defines
 #define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
-#define CYCLE_INT_START			(0)
+#define CYCLE_INT_START			(0.0)
+#define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
 static WORKING_AREA(timer_thread_wa, 1024);
@@ -223,6 +223,7 @@ void mcpwm_init(void) {
 
 	// Initialize variables
 	comm_step = 1;
+	detect_step = 0;
 	direction = 1;
 	rpm_now = 0;
 	last_comm_time = 0;
@@ -234,9 +235,6 @@ void mcpwm_init(void) {
 	tachometer_for_direction = 0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
-	detect_now = 0;
-	detect_inc = 0;
-	detect_do_step = 0;
 	hall_sensor_order = MCPWM_HALL_SENSOR_ORDER;
 	pwm_mode = MCPWM_PWM_MODE;
 	control_mode = CONTROL_MODE_NONE;
@@ -716,8 +714,6 @@ int mcpwm_get_tachometer_value(int reset) {
 }
 
 static void stop_pwm(void) {
-	dutycycle_set = 0;
-
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -744,13 +740,7 @@ static void fault_stop(mc_fault_code fault) {
 }
 
 static void full_brake(void) {
-	if (fault_now != FAULT_CODE_NONE) {
-		return;
-	}
-
 	state = MC_STATE_FULL_BRAKE;
-
-	dutycycle_set = 0;
 
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -849,8 +839,6 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		default:
 			break;
 		}
-
-		dutycycle_set = direction ? dutyCycle : -dutyCycle;
 		return;
 	} else if (dutyCycle > MCPWM_MAX_DUTY_CYCLE) {
 		dutyCycle = MCPWM_MAX_DUTY_CYCLE;
@@ -889,14 +877,14 @@ static void set_duty_cycle_hw(float dutyCycle) {
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-	if (pwm_mode == PWM_MODE_BIPOLAR && state != MC_STATE_DETECTING) {
+	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
 		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
 				+ ((float) timer_tmp.top / 2.0));
 	} else {
 		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
 	}
 
-	if (state == MC_STATE_DETECTING || pwm_mode == PWM_MODE_BIPOLAR) {
+	if (IS_DETECTING() || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
@@ -1068,8 +1056,6 @@ static msg_t timer_thread(void *arg) {
 			break;
 
 		case MC_STATE_DETECTING:
-			detect_do_step = 1;
-			dutycycle_now = 0;
 			break;
 
 		case MC_STATE_RUNNING:
@@ -1137,6 +1123,8 @@ void mcpwm_update_int_handler(void) {
 void mcpwm_adc_inj_int_handler(void) {
 	TIM4->CNT = 0;
 
+	static int detect_now = 0;
+
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
@@ -1181,40 +1169,50 @@ void mcpwm_adc_inj_int_handler(void) {
 		break;
 	}
 
-	if (detect_now == 1) {
+	if (detect_now == 4) {
 		float a = fabsf(ADC_curr_norm_value[0]);
 		float b = fabsf(ADC_curr_norm_value[1]);
 
 		if (a > b) {
-			mcpwm_detect_currents[comm_step - 1] = a;
+			mcpwm_detect_currents[detect_step] = a;
 		} else {
-			mcpwm_detect_currents[comm_step - 1] = b;
+			mcpwm_detect_currents[detect_step] = b;
 		}
 
-		mcpwm_detect_currents_avg[comm_step - 1] += mcpwm_detect_currents[comm_step - 1];
-		mcpwm_detect_currents_avg_samples[comm_step - 1]++;
+		if (detect_step > 0) {
+			mcpwm_detect_currents_diff[detect_step] =
+					mcpwm_detect_currents[detect_step - 1] - mcpwm_detect_currents[detect_step];
+		} else {
+			mcpwm_detect_currents_diff[detect_step] =
+					mcpwm_detect_currents[5] - mcpwm_detect_currents[detect_step];
+		}
 
-		stop_pwm();
+		mcpwm_detect_currents_avg[detect_step] += mcpwm_detect_currents[detect_step];
+		mcpwm_detect_currents_avg_samples[detect_step]++;
+
+		if (detect_now > 1) {
+			stop_pwm();
+		}
 	}
 
 	if (detect_now) {
 		detect_now--;
 	}
 
-	if (detect_do_step) {
-		detect_now = 2;
+	if (IS_DETECTING() && detect_now == 0) {
+		detect_now = 5;
 
-		set_duty_cycle_hw(0.5);
+		set_duty_cycle_hw(0.2);
 
-		direction = 1;
-		comm_step++;
-		if (comm_step > 6) {
-			comm_step = 1;
+		detect_step++;
+		if (detect_step > 5) {
+			detect_step = 0;
 		}
 
-		set_next_comm_step(comm_step);
+		comm_step = detect_step + 1;
+
+		set_next_comm_step(detect_step + 1);
 		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-		detect_do_step = 0;
 	}
 
 	last_current_sample = curr_tot_sample;
@@ -1224,7 +1222,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM4 ->CNT / 10000000;
+	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
 }
 
 /*
@@ -1306,49 +1304,30 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	if ((pwm_cycles_sum > last_pwm_cycles_sum / 3 || state != MC_STATE_RUNNING) && (pwm_cycles_sum > 2)) {
-		int inc_step = 0;
 		int v_diff = 0;
 
 		switch (comm_step) {
 		case 1:
-			if (ph1 > 0) {
-				inc_step = 1;
-			}
 			v_diff = ph1;
 			break;
 
 		case 2:
-			if (ph2 < 0) {
-				inc_step = 1;
-			}
 			v_diff = -ph2;
 			break;
 
 		case 3:
-			if (ph3 > 0) {
-				inc_step = 1;
-			}
 			v_diff = ph3;
 			break;
 
 		case 4:
-			if (ph1 < 0) {
-				inc_step = 1;
-			}
 			v_diff = -ph1;
 			break;
 
 		case 5:
-			if (ph2 > 0) {
-				inc_step = 1;
-			}
 			v_diff = ph2;
 			break;
 
 		case 6:
-			if (ph3 < 0) {
-				inc_step = 1;
-			}
 			v_diff = -ph3;
 			break;
 
@@ -1356,7 +1335,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			break;
 		}
 
-		if (inc_step) {
+		if (v_diff > 0) {
 			if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
 				integrate_cycle((float)v_diff);
 			}
@@ -1657,7 +1636,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
 	// Sample the ADC at an appropriate time during the pwm cycle
-	if (state == MC_STATE_DETECTING) {
+	if (IS_DETECTING()) {
 		// Voltage samples
 		val_sample = 200;
 
@@ -1870,7 +1849,7 @@ static void set_next_comm_step(int next_step) {
 	uint16_t negative_highside = TIM_CCx_Enable;
 	uint16_t negative_lowside = TIM_CCxN_Enable;
 
-	if (state != MC_STATE_DETECTING) {
+	if (!IS_DETECTING()) {
 		switch (pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
 			positive_lowside = TIM_CCxN_Disable;
