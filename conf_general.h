@@ -39,15 +39,15 @@
 /*
  * Select only one motor configuration
  */
-#define MCCONF_OUTRUNNER1
+//#define MCCONF_OUTRUNNER1
 //#define MCCONF_RCCAR1
-//#define MCCONF_STEN
+#define MCCONF_STEN
 
 /*
  * Select which application to use
  */
 //#define USE_APP_RCCAR
-//#define USE_APP_STEN
+#define USE_APP_STEN
 //#define USE_APP_GURGALOF
 
 #endif /* CONF_GENERAL_H_ */

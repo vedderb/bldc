@@ -34,6 +34,8 @@
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
 #define MCPWM_RPM_MAX					29000.0	// The motor speed limit (Upper)
 #define MCPWM_RPM_MIN					-10.0	// The motor speed limit (Lower)
+#define MCPWM_MIN_VOLTAGE				34.0	// Minimum input voltage
+#define MCPWM_MAX_VOLTAGE				45.0	// Maximum input voltage
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
