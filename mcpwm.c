@@ -795,10 +795,11 @@ static void set_duty_cycle_hl(float dutyCycle) {
 			if (state == MC_STATE_OFF) {
 				// In case the motor is already spinning, set the state to running
 				// so that it can be ramped down before the full brake is applied.
-				state = MC_STATE_RUNNING;
+				if (fabsf(rpm_now) > MCPWM_MIN_RPM) {
+					state = MC_STATE_RUNNING;
+				}
 			} else {
-				state = MC_STATE_OFF;
-				stop_pwm();
+				full_brake();
 			}
 		}
 	}
@@ -827,7 +828,6 @@ static void set_duty_cycle_ll(float dutyCycle) {
 	if (dutyCycle < MCPWM_MIN_DUTY_CYCLE) {
 		switch (state) {
 		case MC_STATE_RUNNING:
-			state = MC_STATE_OFF;
 			full_brake();
 			break;
 
