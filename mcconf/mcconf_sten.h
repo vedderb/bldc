@@ -28,8 +28,8 @@
 /*
  * Parameters
  */
-#define MCPWM_CURRENT_MAX				50.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-50.0	// Current limit in Amperes (Lower)
+#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
+#define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
 #define MCPWM_RPM_MAX					29000.0	// The motor speed limit (Upper)
@@ -39,7 +39,7 @@
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
+#define MCPWM_MIN_RPM					250		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_LOW		250.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit 50K ERPM
 

@@ -559,7 +559,7 @@ void mcpwm_set_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -MCPWM_CURRENT_MAX, MCPWM_CURRENT_MAX);
+	utils_truncate_number(&current, MCPWM_CURRENT_MIN, MCPWM_CURRENT_MAX);
 
 	control_mode = CONTROL_MODE_CURRENT;
 	current_set = current;

@@ -38,9 +38,11 @@ static msg_t log_thread(void *arg);
 static WORKING_AREA(sten_thread_wa, 1024);
 static WORKING_AREA(log_thread_wa, 1024);
 static Thread *sten_tp;
+static VirtualTimer vt;
 
 // Private functions
 static void servodec_func(void);
+static void trig_func(void *p);
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -101,6 +103,20 @@ void app_sten_init(void) {
 	chThdCreateStatic(sten_thread_wa, sizeof(sten_thread_wa), NORMALPRIO, sten_thread, NULL);
 	chThdCreateStatic(log_thread_wa, sizeof(log_thread_wa), NORMALPRIO - 1, log_thread, NULL);
 	servodec_init(servodec_func);
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
+}
+
+static void trig_func(void *p) {
+	(void)p;
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
+
+	chEvtSignalI(sten_tp, (eventmask_t) 1);
 }
 
 static msg_t log_thread(void *arg) {
@@ -159,14 +175,15 @@ static msg_t sten_thread(void *arg) {
 			}
 
 			// Use duty cycle control when running slowly, otherwise use current control.
-			if (fabsf(mcpwm_get_rpm()) < 4000 && fabsf(servo_val) > MCPWM_MIN_DUTY_CYCLE) {
+			if (fabsf(mcpwm_get_rpm()) < 2500 && fabsf(servo_val) > MCPWM_MIN_DUTY_CYCLE) {
 				if (servo_val > 0.0) {
+					utils
 					mcpwm_set_duty(servo_val);
 				} else {
 					mcpwm_set_duty(0.0);
 				}
 			} else {
-				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
+				mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
 			}
 		} else {
 			mcpwm_set_current(0.0);

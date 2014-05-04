@@ -36,13 +36,29 @@
 static msg_t rccar_thread(void *arg);
 static WORKING_AREA(rccar_thread_wa, 1024);
 static Thread *rccar_tp;
+static VirtualTimer vt;
 
 // Private functions
 static void servodec_func(void);
+static void trig_func(void *p);
 
 void app_rccar_init(void) {
 	chThdCreateStatic(rccar_thread_wa, sizeof(rccar_thread_wa), NORMALPRIO, rccar_thread, NULL);
 	servodec_init(servodec_func);
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
+}
+
+static void trig_func(void *p) {
+	(void)p;
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
+
+	chEvtSignalI(rccar_tp, (eventmask_t) 1);
 }
 
 static void servodec_func(void) {
@@ -78,7 +94,7 @@ static msg_t rccar_thread(void *arg) {
 			if (fabsf(mcpwm_get_rpm()) < 5000 && fabsf(servo_val) > MCPWM_MIN_DUTY_CYCLE) {
 				mcpwm_set_duty(servo_val);
 			} else {
-				mcpwm_set_current(servo_val * MCPWM_IN_CURRENT_MAX);
+				mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
 			}
 		} else {
 			mcpwm_set_current(0.0);
