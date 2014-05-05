@@ -97,6 +97,8 @@ extern volatile int mcpwm_vzero;
 
 #ifdef MCCONF_OUTRUNNER1
 #include "mcconf_outrunner1.h"
+#elif defined MCCONF_OUTRUNNER2
+#include "mcconf_outrunner2.h"
 #elif defined MCCONF_RCCAR1
 #include "mcconf_rccar1.h"
 #elif defined MCCONF_STEN
@@ -114,8 +116,11 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
+#define MCPWM_RAMP_STEP_CURRENT_MAX		0.03	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
+#define MCPWM_CMD_STOP_TIME				20		// Ignore commands for this duration in msec after a stop has been sent
+#define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
