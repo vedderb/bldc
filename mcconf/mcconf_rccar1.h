@@ -46,7 +46,7 @@
 #define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
 
 // Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.0002	// Current controller error gain
+#define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
 #endif /* MCCONF_RCCAR1_H_ */

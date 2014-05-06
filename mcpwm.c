@@ -76,7 +76,7 @@ static volatile float input_current_iterations;
 static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile int switching_frequency_now;
-static volatile int fault_iterations;
+static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
@@ -190,7 +190,10 @@ volatile int mcpwm_vzero;
 static void set_duty_cycle_hl(float dutyCycle);
 static void set_duty_cycle_ll(float dutyCycle);
 static void set_duty_cycle_hw(float dutyCycle);
-static void stop_pwm(void);
+static void stop_pwm_ll(void);
+static void stop_pwm_hw(void);
+static void full_brake_ll(void);
+static void full_brake_hw(void);
 static void fault_stop(mc_fault_code fault);
 static void run_pid_controller(void);
 static void set_next_comm_step(int next_step);
@@ -199,7 +202,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(void);
 static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(int frequency);
-static void full_brake(void);
+static int try_input(void);
 
 #if MCPWM_IS_SENSORLESS
 static int integrate_cycle(float v_diff);
@@ -245,7 +248,7 @@ void mcpwm_init(void) {
 	motor_current_iterations = 0.0;
 	input_current_iterations = 0.0;
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
-	fault_iterations = 0;
+	ignore_iterations = 0;
 	timer_struct_updated = 0;
 	curr_samp_volt = 0;
 
@@ -468,7 +471,7 @@ void mcpwm_init(void) {
 	TIM_Cmd(TIM2, ENABLE);
 
 	// ADC sampling locations
-	stop_pwm();
+	stop_pwm_hw();
 	timer_struct.top = TIM1->ARR;
 	timer_struct.duty = TIM1->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
@@ -514,7 +517,7 @@ void mcpwm_init(void) {
  * The duty cycle to use.
  */
 void mcpwm_set_duty(float dutyCycle) {
-	if (fault_now != FAULT_CODE_NONE) {
+	if (try_input()) {
 		return;
 	}
 
@@ -531,7 +534,7 @@ void mcpwm_set_duty(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_set_pid_speed(float rpm) {
-	if (fault_now != FAULT_CODE_NONE) {
+	if (try_input()) {
 		return;
 	}
 
@@ -548,14 +551,13 @@ void mcpwm_set_pid_speed(float rpm) {
  * The current to use.
  */
 void mcpwm_set_current(float current) {
-	if (fault_now != FAULT_CODE_NONE) {
+	if (try_input()) {
 		return;
 	}
 
 	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
-		state = MC_STATE_OFF;
 		control_mode = CONTROL_MODE_NONE;
-		stop_pwm();
+		stop_pwm_ll();
 		return;
 	}
 
@@ -713,7 +715,13 @@ int mcpwm_get_tachometer_value(int reset) {
 	return val;
 }
 
-static void stop_pwm(void) {
+static void stop_pwm_ll(void) {
+	state = MC_STATE_OFF;
+	ignore_iterations = MCPWM_CMD_STOP_TIME;
+	stop_pwm_hw();
+}
+
+static void stop_pwm_hw(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -731,17 +739,13 @@ static void stop_pwm(void) {
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
 
-static void fault_stop(mc_fault_code fault) {
-	fault_iterations = MCPWM_FAULT_STOP_TIME;
-	control_mode = CONTROL_MODE_NONE;
-	state = MC_STATE_OFF;
-	stop_pwm();
-	fault_now = fault;
+static void full_brake_ll(void) {
+	state = MC_STATE_FULL_BRAKE;
+	ignore_iterations = MCPWM_CMD_STOP_TIME;
+	full_brake_hw();
 }
 
-static void full_brake(void) {
-	state = MC_STATE_FULL_BRAKE;
-
+static void full_brake_hw(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
@@ -759,6 +763,32 @@ static void full_brake(void) {
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
 
+static void fault_stop(mc_fault_code fault) {
+	ignore_iterations = MCPWM_FAULT_STOP_TIME;
+	control_mode = CONTROL_MODE_NONE;
+	state = MC_STATE_OFF;
+	stop_pwm_hw();
+	fault_now = fault;
+}
+
+/**
+ * A helper function that should be called before sending commands to control
+ * the motor. If the state is detecting, the detection will be stopped.
+ *
+ * @return
+ * The amount if milliseconds left until user commands are allowed again.
+ *
+ */
+static int try_input(void) {
+	if (state == MC_STATE_DETECTING) {
+		state = MC_STATE_OFF;
+		stop_pwm_hw();
+		ignore_iterations = MCPWM_DETECT_STOP_TIME;
+	}
+
+	return ignore_iterations;
+}
+
 /**
  * High-level duty cycle setter. Will set the ramping goal of the duty cycle.
  * If motor is not running, it will be started in different ways depending on
@@ -773,8 +803,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
 	if (state == MC_STATE_DETECTING) {
-		state = MC_STATE_OFF;
-		stop_pwm();
+		stop_pwm_ll();
 		return;
 	}
 
@@ -792,14 +821,12 @@ static void set_duty_cycle_hl(float dutyCycle) {
 
 			set_duty_cycle_ll(dutycycle_now);
 		} else {
-			if (state == MC_STATE_OFF) {
-				// In case the motor is already spinning, set the state to running
-				// so that it can be ramped down before the full brake is applied.
-				if (fabsf(rpm_now) > MCPWM_MIN_RPM) {
-					state = MC_STATE_RUNNING;
-				}
+			// In case the motor is already spinning, set the state to running
+			// so that it can be ramped down before the full brake is applied.
+			if (fabsf(rpm_now) > MCPWM_MIN_RPM) {
+				state = MC_STATE_RUNNING;
 			} else {
-				full_brake();
+				full_brake_ll();
 			}
 		}
 	}
@@ -828,12 +855,11 @@ static void set_duty_cycle_ll(float dutyCycle) {
 	if (dutyCycle < MCPWM_MIN_DUTY_CYCLE) {
 		switch (state) {
 		case MC_STATE_RUNNING:
-			full_brake();
+			full_brake_ll();
 			break;
 
 		case MC_STATE_DETECTING:
-			state = MC_STATE_OFF;
-			stop_pwm();
+			stop_pwm_ll();
 			break;
 
 		default:
@@ -1092,8 +1118,8 @@ static msg_t timer_thread(void *arg) {
 		}
 
 		// Decrease fault iterations
-		if (fault_iterations > 0) {
-			fault_iterations--;
+		if (ignore_iterations > 0) {
+			ignore_iterations--;
 		} else {
 			if (!IS_DRV_FAULT()) {
 				fault_now = FAULT_CODE_NONE;
@@ -1107,6 +1133,8 @@ static msg_t timer_thread(void *arg) {
 }
 
 void mcpwm_update_int_handler(void) {
+	chSysLockFromIsr();
+
 	if (timer_struct_updated) {
 		TIM1->ARR = timer_struct.top;
 		TIM8->ARR = timer_struct.top;
@@ -1118,9 +1146,13 @@ void mcpwm_update_int_handler(void) {
 		TIM8->CCR2 = timer_struct.curr2_sample;
 		timer_struct_updated = 0;
 	}
+
+	chSysUnlockFromIsr();
 }
 
 void mcpwm_adc_inj_int_handler(void) {
+	chSysLockFromIsr();
+
 	TIM4->CNT = 0;
 
 	static int detect_now = 0;
@@ -1191,7 +1223,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		mcpwm_detect_currents_avg_samples[detect_step]++;
 
 		if (detect_now > 1) {
-			stop_pwm();
+			stop_pwm_hw();
 		}
 	}
 
@@ -1223,6 +1255,8 @@ void mcpwm_adc_inj_int_handler(void) {
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
 	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
+
+	chSysUnlockFromIsr();
 }
 
 /*
@@ -1231,6 +1265,8 @@ void mcpwm_adc_inj_int_handler(void) {
 void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
+
+	chSysLockFromIsr();
 
 	TIM4->CNT = 0;
 
@@ -1303,7 +1339,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if ((pwm_cycles_sum > last_pwm_cycles_sum / 3 || state != MC_STATE_RUNNING) && (pwm_cycles_sum > 2)) {
+	if ((pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || state != MC_STATE_RUNNING) && (pwm_cycles_sum > 2)) {
 		int v_diff = 0;
 
 		switch (comm_step) {
@@ -1381,10 +1417,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			float error = current_set - (direction ? current : -current);
 			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
 
+			// Do not ramp too much
+			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
+					MCPWM_RAMP_STEP_CURRENT_MAX);
+
+			// Switching frequency correction
+			step /= (switching_frequency_now / 1000.0);
+
 			if (cycles_running < 1000) {
 				utils_truncate_number(&step, -ramp_step, ramp_step);
-			} else {
-				utils_truncate_number(&step, -0.1, 0.1);
 			}
 
 			dutycycle_now_tmp += step;
@@ -1445,6 +1486,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	main_dma_adc_handler();
 
 	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
+	chSysUnlockFromIsr();
 }
 
 #if MCPWM_IS_SENSORLESS
@@ -1467,12 +1509,12 @@ static int integrate_cycle(float v_diff) {
 #endif
 
 void mcpwm_set_detect(void) {
-	if (fault_now != FAULT_CODE_NONE) {
+	if (try_input()) {
 		return;
 	}
 
 	control_mode = CONTROL_MODE_NONE;
-	stop_pwm();
+	stop_pwm_hw();
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 
