@@ -108,18 +108,18 @@ extern volatile int mcpwm_vzero;
 /*
  * Parameters
  */
-#define MCPWM_SWITCH_FREQUENCY_MIN		8000	// The lowest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_MIN		4000	// The lowest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
-#define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
+#define MCPWM_MIN_DUTY_CYCLE			0.02	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
 #define MCPWM_RAMP_STEP_CURRENT_MAX		0.03	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
-#define MCPWM_CMD_STOP_TIME				20		// Ignore commands for this duration in msec after a stop has been sent
+#define MCPWM_CMD_STOP_TIME				50		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 
 // Speed PID parameters
@@ -140,6 +140,12 @@ extern volatile int mcpwm_vzero;
 #endif
 #ifndef MCPWM_RPM_MIN
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
+#endif
+#ifndef MCPWM_CURRENT_CONTROL_NO_REV
+#define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
+#endif
+#ifndef MCPWM_CURRENT_STARTUP_BOOST
+#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #endif
 
 #endif /* MC_PWM_H_ */

@@ -16,34 +16,30 @@
     */
 
 /*
- * mcconf_sten.h
+ * mcconf_outrunner1.h
+ *
+ * A configuration for my 3kw black outrunner.
  *
  *  Created on: 14 apr 2014
  *      Author: benjamin
  */
 
-#ifndef MCCONF_STEN_H_
-#define MCCONF_STEN_H_
+#ifndef MCCONF_OUTRUNNER2_H_
+#define MCCONF_OUTRUNNER2_H_
 
 /*
  * Parameters
  */
-#define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-40.0	// Current limit in Amperes (Lower)
-#define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
-#define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
-#define MCPWM_RPM_MAX					29000.0	// The motor speed limit (Upper)
-#define MCPWM_RPM_MIN					-10.0	// The motor speed limit (Lower)
-#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
-#define MCPWM_MAX_VOLTAGE				45.0	// Maximum input voltage
-#define MCPWM_CURRENT_CONTROL_NO_REV	1		// Do not reverse the direction in current control mode, brake only
-#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
+#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
+#define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
+#define MCPWM_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
+#define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
 #define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_LIMIT_LOW		250.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit 50K ERPM
+#define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
+#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
 
 // Speed PID parameters
 #define MCPWM_PID_KP					0.0001	// Proportional gain
@@ -55,4 +51,4 @@
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
-#endif /* MCCONF_STEN_H_ */
+#endif /* MCCONF_OUTRUNNER2_H_ */

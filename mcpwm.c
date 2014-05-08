@@ -507,6 +507,12 @@ void mcpwm_init(void) {
 
 	// Start the timer thread
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+
+	// WWDG configuration
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	WWDG_SetPrescaler(WWDG_Prescaler_1);
+	WWDG_SetWindowValue(255);
+	WWDG_Enable(100);
 }
 
 /**
@@ -1270,6 +1276,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	TIM4->CNT = 0;
 
+	// Reset the watchdog
+	WWDG_SetCounter(100);
+
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	volatile int ph1, ph2, ph3;
 
@@ -1428,21 +1437,47 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				utils_truncate_number(&step, -ramp_step, ramp_step);
 			}
 
-			dutycycle_now_tmp += step;
-
-			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
-					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
-				} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
-					dutycycle_now_tmp = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+			if (!MCPWM_CURRENT_CONTROL_NO_REV || dutycycle_now_tmp > 0.0) {
+				if (fabsf(dutycycle_now_tmp) < MCPWM_CURRENT_STARTUP_BOOST) {
+					step_towards(&dutycycle_now_tmp,
+							current_set > 0.0 ?
+									MCPWM_CURRENT_STARTUP_BOOST :
+									-MCPWM_CURRENT_STARTUP_BOOST, ramp_step);
+				} else {
+					dutycycle_now_tmp += step;
 				}
 			}
 
+			// Upper truncation
 			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-			// The set dutycycle should be in the correct direction in case the output is lower
-			// than the minimum duty cycle and the mechanism below gets activated.
-			dutycycle_set = dutycycle_now_tmp > 0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+			// Lower truncation
+			if (MCPWM_CURRENT_CONTROL_NO_REV) {
+				if (dutycycle_now > -(MCPWM_MIN_DUTY_CYCLE + 0.01)) {
+					if (dutycycle_now_tmp < 0.0) {
+						dutycycle_now_tmp = 0.0;
+						dutycycle_set = 0.0;
+					} else {
+						if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE && current_set > 0.0) {
+							dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+						}
+					}
+				} else {
+					step_towards(&dutycycle_now_tmp, 0.0, ramp_step);
+				}
+			} else {
+				if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+					if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
+						dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+					} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
+						dutycycle_now_tmp = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+					}
+				}
+
+				// The set dutycycle should be in the correct direction in case the output is lower
+				// than the minimum duty cycle and the mechanism below gets activated.
+				dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+			}
 		} else {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
 		}
@@ -1456,7 +1491,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
 		} else if (current_in > MCPWM_IN_CURRENT_MAX) {
 			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 		} else if (current_in < MCPWM_IN_CURRENT_MIN) {
 			step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
