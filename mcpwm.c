@@ -204,10 +204,6 @@ static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(int frequency);
 static int try_input(void);
 
-#if MCPWM_IS_SENSORLESS
-static int integrate_cycle(float v_diff);
-#endif
-
 // Defines
 #define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
 #define CYCLE_INT_START			(0.0)
@@ -528,7 +524,6 @@ void mcpwm_set_duty(float dutyCycle) {
 	}
 
 	control_mode = CONTROL_MODE_DUTY;
-
 	set_duty_cycle_hl(dutyCycle);
 }
 
@@ -881,10 +876,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 #if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
-		if (rpm_now < MCPWM_MIN_RPM) {
-			set_next_comm_step(comm_step);
-			commutate();
-		}
+		pwm_cycles_sum = 0.0;
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
@@ -1355,34 +1347,38 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		case 1:
 			v_diff = ph1;
 			break;
-
 		case 2:
 			v_diff = -ph2;
 			break;
-
 		case 3:
 			v_diff = ph3;
 			break;
-
 		case 4:
 			v_diff = -ph1;
 			break;
-
 		case 5:
 			v_diff = ph2;
 			break;
-
 		case 6:
 			v_diff = -ph3;
 			break;
-
 		default:
 			break;
 		}
 
 		if (v_diff > 0) {
 			if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
-				integrate_cycle((float)v_diff);
+				cycle_integrator += v_diff / (float)switching_frequency_now;
+
+				const float rpm_fac = rpm_now / 50000.0;
+				const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
+						MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
+				const float limit = (cycle_int_limit * 0.0005);
+
+				if (cycle_integrator >= limit) {
+					commutate();
+					cycle_integrator = CYCLE_INT_START;
+				}
 			}
 		} else {
 			cycle_integrator = CYCLE_INT_START;
@@ -1523,25 +1519,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
 	chSysUnlockFromIsr();
 }
-
-#if MCPWM_IS_SENSORLESS
-static int integrate_cycle(float v_diff) {
-	cycle_integrator += v_diff / (float)switching_frequency_now;
-
-	const float rpm_fac = rpm_now / 50000.0;
-	const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
-			MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
-	const float limit = (cycle_int_limit * 0.0005);
-
-	if (cycle_integrator >= limit) {
-		commutate();
-		cycle_integrator = CYCLE_INT_START;
-		return 1;
-	}
-
-	return 0;
-}
-#endif
 
 void mcpwm_set_detect(void) {
 	if (try_input()) {

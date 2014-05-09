@@ -175,17 +175,7 @@ static msg_t sten_thread(void *arg) {
 				servo_val = 0.0;
 			}
 
-			// Use duty cycle control when running slowly, otherwise use current control.
-			if (fabsf(mcpwm_get_rpm()) < 4500 && fabsf(servo_val) > MCPWM_MIN_DUTY_CYCLE) {
-				if (servo_val > 0.0) {
-					utils_truncate_number(&servo_val, 0.1, 0.3);
-					mcpwm_set_duty(servo_val);
-				} else {
-					mcpwm_set_duty(0.0);
-				}
-			} else {
-				mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
-			}
+			mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
 		} else {
 			mcpwm_set_current(0.0);
 		}
