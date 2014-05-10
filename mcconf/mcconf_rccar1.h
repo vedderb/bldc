@@ -32,6 +32,7 @@
 #define MCPWM_CURRENT_MIN				-80.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			80.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
+#define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode @ 20V.
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation

@@ -102,12 +102,7 @@ static UARTConfig uart_cfg = {
 
 void app_sten_init(void) {
 	chThdCreateStatic(sten_thread_wa, sizeof(sten_thread_wa), NORMALPRIO, sten_thread, NULL);
-	chThdCreateStatic(log_thread_wa, sizeof(log_thread_wa), NORMALPRIO - 1, log_thread, NULL);
-	servodec_init(servodec_func);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
+//	chThdCreateStatic(log_thread_wa, sizeof(log_thread_wa), NORMALPRIO - 1, log_thread, NULL);
 }
 
 static void trig_func(void *p) {
@@ -157,6 +152,12 @@ static msg_t sten_thread(void *arg) {
 
 	chRegSetThreadName("APP_STEN");
 	sten_tp = chThdSelf();
+
+	servodec_init(servodec_func);
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);

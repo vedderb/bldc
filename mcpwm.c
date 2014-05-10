@@ -1419,8 +1419,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		if (control_mode == CONTROL_MODE_CURRENT) {
 			// Compute error
-			float error = current_set - (direction ? current : -current);
+			const float error = current_set - (direction ? current : -current);
 			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
+			const float start_boost = MCPWM_CURRENT_STARTUP_BOOST / voltage_scale;
 
 			// Do not ramp too much
 			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
@@ -1433,12 +1434,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				utils_truncate_number(&step, -ramp_step, ramp_step);
 			}
 
+			// Optionally apply startup boost.
 			if (!MCPWM_CURRENT_CONTROL_NO_REV || dutycycle_now_tmp > 0.0) {
-				if (fabsf(dutycycle_now_tmp) < MCPWM_CURRENT_STARTUP_BOOST) {
+				if (fabsf(dutycycle_now_tmp) < start_boost) {
 					step_towards(&dutycycle_now_tmp,
 							current_set > 0.0 ?
-									MCPWM_CURRENT_STARTUP_BOOST :
-									-MCPWM_CURRENT_STARTUP_BOOST, ramp_step);
+									start_boost :
+									-start_boost, ramp_step);
 				} else {
 					dutycycle_now_tmp += step;
 				}
@@ -1449,17 +1451,28 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Lower truncation
 			if (MCPWM_CURRENT_CONTROL_NO_REV) {
+				// This means that the motor shouldn't go in reverse, only brake.
+
 				if (dutycycle_now > -(MCPWM_MIN_DUTY_CYCLE + 0.01)) {
-					if (dutycycle_now_tmp < 0.0) {
+					// Going forwards...
+
+					if (dutycycle_now_tmp < (MCPWM_MIN_DUTY_CYCLE + 0.01) && current_set < 0.0) {
+						// Apply full brake
 						dutycycle_now_tmp = 0.0;
 						dutycycle_set = 0.0;
 					} else {
 						if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE && current_set > 0.0) {
+							// Too low duty cycle, use the minimum one.
 							dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+							dutycycle_set = dutycycle_now_tmp;
 						}
 					}
 				} else {
+					// Going reverse, ramp down...
 					step_towards(&dutycycle_now_tmp, 0.0, ramp_step);
+
+					// If the set current is > 0, brake when stopping, otherwise change direction
+					dutycycle_set = current_set > 0.0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : 0.0;
 				}
 			} else {
 				if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {

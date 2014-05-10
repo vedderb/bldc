@@ -112,7 +112,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
-#define MCPWM_MIN_DUTY_CYCLE			0.02	// Minimum duty cycle
+#define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
 #define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
@@ -145,7 +145,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
 #endif
 #ifndef MCPWM_CURRENT_STARTUP_BOOST
-#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
+#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode @ 20V.
 #endif
 
 #endif /* MC_PWM_H_ */

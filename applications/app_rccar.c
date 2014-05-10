@@ -44,11 +44,6 @@ static void trig_func(void *p);
 
 void app_rccar_init(void) {
 	chThdCreateStatic(rccar_thread_wa, sizeof(rccar_thread_wa), NORMALPRIO, rccar_thread, NULL);
-	servodec_init(servodec_func);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
 }
 
 static void trig_func(void *p) {
@@ -73,6 +68,12 @@ static msg_t rccar_thread(void *arg) {
 	chRegSetThreadName("APP_RCCAR");
 	rccar_tp = chThdSelf();
 
+	servodec_init(servodec_func);
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
+	chSysUnlock();
+
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
@@ -90,12 +91,7 @@ static msg_t rccar_thread(void *arg) {
 				servo_val = 0.0;
 			}
 
-			// Use duty cycle control when running slowly, otherwise use current control.
-			if (fabsf(mcpwm_get_rpm()) < 5000 && fabsf(servo_val) > MCPWM_MIN_DUTY_CYCLE) {
-				mcpwm_set_duty(servo_val);
-			} else {
-				mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
-			}
+			mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
 		} else {
 			mcpwm_set_current(0.0);
 		}
