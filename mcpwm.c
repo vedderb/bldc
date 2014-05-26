@@ -937,7 +937,7 @@ static void run_pid_controller(void) {
 	if (fabsf(speed_pid_set_rpm) < MCPWM_PID_MIN_RPM) {
 		i_term = 0;
 		prev_error = 0;
-		set_duty_cycle_hl(0.0);
+		mcpwm_set_duty(0.0);
 		return;
 	}
 
@@ -964,9 +964,9 @@ static void run_pid_controller(void) {
 	// Make sure that at least minimum output is used
 	if (fabsf(output) < MCPWM_MIN_DUTY_CYCLE) {
 		if (output > 0.0) {
-			output = MCPWM_MIN_DUTY_CYCLE;
+			output = MCPWM_MIN_DUTY_CYCLE + 0.001;
 		} else {
-			output = -MCPWM_MIN_DUTY_CYCLE;
+			output = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
 		}
 	}
 

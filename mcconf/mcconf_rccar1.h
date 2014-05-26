@@ -33,6 +33,8 @@
 #define MCPWM_IN_CURRENT_MAX			80.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
 #define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode @ 20V.
+#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
+#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
@@ -44,7 +46,7 @@
 #define MCPWM_PID_KP					0.0001	// Proportional gain
 #define MCPWM_PID_KI					0.002	// Integral gain
 #define MCPWM_PID_KD					0.0		// Derivative gain
-#define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
+#define MCPWM_PID_MIN_RPM				950.0	// Minimum allowed RPM
 
 // Current control parameters
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain

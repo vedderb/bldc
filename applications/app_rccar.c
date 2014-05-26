@@ -77,7 +77,9 @@ static msg_t rccar_thread(void *arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-#define HYST		0.1
+#define HYST			0.1
+#define USE_PID			0
+#define PID_MAX_RPM		8000
 
 		if (servodec_get_time_since_update() < 500) {
 			float servo_val = servodec_get_servo_as_float(0);
@@ -91,7 +93,11 @@ static msg_t rccar_thread(void *arg) {
 				servo_val = 0.0;
 			}
 
+#if USE_PID
+			mcpwm_set_pid_speed(servo_val * PID_MAX_RPM);
+#else
 			mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
+#endif
 		} else {
 			mcpwm_set_current(0.0);
 		}
