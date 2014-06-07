@@ -1505,11 +1505,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
 		} else if (rpm > MCPWM_RPM_MAX) {
-			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
-			cycles_running = 0;
+			if (current > 0.0) {
+				step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+				cycles_running = 0;
+			}
 		} else if (rpm < MCPWM_RPM_MIN) {
-			step_towards((float*) &dutycycle_now, 0.0, ramp_step);
-			cycles_running = 0;
+			if (current < 0.0) {
+				step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+				cycles_running = 0;
+			}
 		} else {
 			dutycycle_now = dutycycle_now_tmp;
 		}

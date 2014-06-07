@@ -34,16 +34,22 @@
 #include <math.h>
 
 // Threads
-static msg_t sten_thread(void *arg);
-static msg_t log_thread(void *arg);
-static WORKING_AREA(sten_thread_wa, 1024);
-static WORKING_AREA(log_thread_wa, 1024);
-static Thread *sten_tp;
+static msg_t servo_thread(void *arg);
+static msg_t uart_thread(void *arg);
+static WORKING_AREA(servo_thread_wa, 1024);
+static WORKING_AREA(uart_thread_wa, 1024);
+static Thread *servo_tp;
 static VirtualTimer vt;
+static volatile systime_t last_uart_update_time;
 
 // Private functions
 static void servodec_func(void);
 static void trig_func(void *p);
+static void set_output(float output);
+
+// Settings
+#define TIMEOUT		500
+#define HYST		0.10
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -75,7 +81,10 @@ static void rxerr(UARTDriver *uartp, uartflags_t e) {
  */
 static void rxchar(UARTDriver *uartp, uint16_t c) {
 	(void)uartp;
-	(void)c;
+
+	float val = ((float)c / 128) - 1.0;
+	set_output(val);
+	last_uart_update_time = chTimeNow();
 }
 
 /*
@@ -94,15 +103,15 @@ static UARTConfig uart_cfg = {
 		rxend,
 		rxchar,
 		rxerr,
-		115200,
+		9600,
 		0,
 		USART_CR2_LINEN,
 		0
 };
 
 void app_sten_init(void) {
-	chThdCreateStatic(sten_thread_wa, sizeof(sten_thread_wa), NORMALPRIO, sten_thread, NULL);
-//	chThdCreateStatic(log_thread_wa, sizeof(log_thread_wa), NORMALPRIO - 1, log_thread, NULL);
+//	chThdCreateStatic(servo_thread_wa, sizeof(servo_thread_wa), NORMALPRIO, servo_thread, NULL);
+	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
 }
 
 static void trig_func(void *p) {
@@ -112,10 +121,10 @@ static void trig_func(void *p) {
 	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
 	chSysUnlock();
 
-	chEvtSignalI(sten_tp, (eventmask_t) 1);
+	chEvtSignalI(servo_tp, (eventmask_t) 1);
 }
 
-static msg_t log_thread(void *arg) {
+static msg_t uart_thread(void *arg) {
 	(void)arg;
 
 	chRegSetThreadName("LOGGING");
@@ -133,7 +142,10 @@ static msg_t log_thread(void *arg) {
 	for(;;) {
 		time += MS2ST(40);
 
-		// UART code...
+		if ((systime_t) ((float) chTimeElapsedSince(last_uart_update_time)
+				/ ((float) CH_FREQUENCY / 1000.0)) > (float)TIMEOUT) {
+			mcpwm_set_current(0.0);
+		}
 
 		chThdSleepUntil(time);
 	}
@@ -143,15 +155,15 @@ static msg_t log_thread(void *arg) {
 
 static void servodec_func(void) {
 	chSysLockFromIsr();
-	chEvtSignalI(sten_tp, (eventmask_t) 1);
+	chEvtSignalI(servo_tp, (eventmask_t) 1);
 	chSysUnlockFromIsr();
 }
 
-static msg_t sten_thread(void *arg) {
+static msg_t servo_thread(void *arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_STEN");
-	sten_tp = chThdSelf();
+	servo_tp = chThdSelf();
 
 	servodec_init(servodec_func);
 
@@ -162,27 +174,28 @@ static msg_t sten_thread(void *arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-#define HYST		0.10
-
-		if (servodec_get_time_since_update() < 500) {
-			float servo_val = servodec_get_servo_as_float(0);
-			servo_val /= (1.0 - HYST);
-
-			if (servo_val > HYST) {
-				servo_val -= HYST;
-			} else if (servo_val < -HYST) {
-				servo_val += HYST;
-			} else {
-				servo_val = 0.0;
-			}
-
-			mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
+		if (servodec_get_time_since_update() < TIMEOUT) {
+			set_output(servodec_get_servo_as_float(0));
 		} else {
 			mcpwm_set_current(0.0);
 		}
 	}
 
 	return 0;
+}
+
+static void set_output(float output) {
+	output /= (1.0 - HYST);
+
+	if (output > HYST) {
+		output -= HYST;
+	} else if (output < -HYST) {
+		output += HYST;
+	} else {
+		output = 0.0;
+	}
+
+	mcpwm_set_current(output * MCPWM_CURRENT_MAX);
 }
 
 #endif

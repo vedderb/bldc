@@ -32,12 +32,12 @@
 #define MCPWM_CURRENT_MIN				-40.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
-#define MCPWM_RPM_MAX					29000.0	// The motor speed limit (Upper)
-#define MCPWM_RPM_MIN					-10.0	// The motor speed limit (Lower)
+#define MCPWM_RPM_MAX					43500.0	// The motor speed limit (Upper) (29000 = 20kmh)
+#define MCPWM_RPM_MIN					-10000.0	// The motor speed limit (Lower)
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
-#define MCPWM_MAX_VOLTAGE				45.0	// Maximum input voltage
+#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #define MCPWM_CURRENT_CONTROL_NO_REV	1		// Do not reverse the direction in current control mode, brake only
-#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
+#define MCPWM_CURRENT_STARTUP_BOOST		0.035	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
