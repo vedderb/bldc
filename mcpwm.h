@@ -147,5 +147,8 @@ extern volatile int mcpwm_vzero;
 #ifndef MCPWM_CURRENT_STARTUP_BOOST
 #define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode @ 20V.
 #endif
+#ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
+#define MCPWM_RPM_LIMIT_NEG_TORQUE		1		// Use negative torque to limit the RPM
+#endif
 
 #endif /* MC_PWM_H_ */
