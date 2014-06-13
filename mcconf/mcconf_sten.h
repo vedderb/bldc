@@ -29,10 +29,10 @@
  * Parameters
  */
 #define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-40.0	// Current limit in Amperes (Lower)
+#define MCPWM_CURRENT_MIN				-30.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
-#define MCPWM_RPM_MAX					29000.0	// The motor speed limit (Upper) (29000 = 20kmh)
+#define MCPWM_RPM_MAX					36250.0	// The motor speed limit (Upper) (29000 = 20kmh)
 #define MCPWM_RPM_MIN					-10000.0	// The motor speed limit (Lower)
 #define MCPWM_MIN_VOLTAGE				15.0		// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage

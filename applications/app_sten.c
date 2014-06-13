@@ -144,7 +144,7 @@ static msg_t uart_thread(void *arg) {
 
 		if ((systime_t) ((float) chTimeElapsedSince(last_uart_update_time)
 				/ ((float) CH_FREQUENCY / 1000.0)) > (float)TIMEOUT) {
-			mcpwm_set_current(0.0);
+			mcpwm_set_current(-10.0);
 		}
 
 		chThdSleepUntil(time);
@@ -177,7 +177,7 @@ static msg_t servo_thread(void *arg) {
 		if (servodec_get_time_since_update() < TIMEOUT) {
 			set_output(servodec_get_servo_as_float(0));
 		} else {
-			mcpwm_set_current(0.0);
+			mcpwm_set_current(-10.0);
 		}
 	}
 
