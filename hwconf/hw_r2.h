@@ -90,9 +90,11 @@
 // ADC macros and settings
 
 // Component parameters
-#define V_REG		3.3
-#define VIN_R1		33000.0
-#define VIN_R2		2200.0
+#define V_REG				3.3
+#define VIN_R1				33000.0
+#define VIN_R2				2200.0
+#define CURRENT_AMP_GAIN	10.0
+#define CURRENT_SHUNT_RES	0.001
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))

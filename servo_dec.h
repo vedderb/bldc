@@ -26,6 +26,7 @@
 #define SERVO_DEC_H_
 
 #include <stdint.h>
+#include <conf_general.h>
 
 // Servo function indexes
 #define SERVODEC_IND_STEERING		0

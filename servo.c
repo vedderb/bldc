@@ -83,7 +83,7 @@ static void servo_init_timer(void) {
 	// TIM7 clock enable
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7, ENABLE);
 
-	PrescalerValue = (uint16_t) ((168e6L / 2) / SERVO_CNT_SPEED) - 1;
+	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / SERVO_CNT_SPEED) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;

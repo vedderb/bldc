@@ -126,7 +126,7 @@ void servodec_init(void (*d_func)(void)) {
 	/* TIM3 clock enable */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 
-	PrescalerValue = (uint16_t) ((168000000 / 2) / TIMER_FREQ) - 1;
+	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / TIMER_FREQ) - 1;
 
 	/* Time base configuration */
 	TIM_TimeBaseStructure.TIM_Period = 65535;

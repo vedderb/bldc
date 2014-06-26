@@ -29,6 +29,7 @@
  * Settings
  */
 #define AUTO_PRINT_FAULTS		0
+#define SYSTEM_CORE_CLOCK		168000000
 
 /*
  * Select only one hardware version

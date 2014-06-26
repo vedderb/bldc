@@ -270,7 +270,7 @@ void mcpwm_init(void) {
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = 168000000 / switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / switching_frequency_now;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -407,7 +407,7 @@ void mcpwm_init(void) {
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = 168000000 / switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / switching_frequency_now;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
@@ -454,7 +454,7 @@ void mcpwm_init(void) {
 
 	// 32-bit timer for RPM measurement
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	uint16_t PrescalerValue = (uint16_t) ((168000000 / 2) / 1000000) - 1;
+	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 1000000) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -489,7 +489,7 @@ void mcpwm_init(void) {
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
-	PrescalerValue = (uint16_t) ((168000000 / 2) / 10000000) - 1;
+	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -662,7 +662,7 @@ float mcpwm_get_kv_filtered(void) {
  * The motor current.
  */
 float mcpwm_get_tot_current(void) {
-	return last_current_sample * (3.3 / 4095.0) / (0.001 * 10.0);
+	return last_current_sample * (3.3 / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
 }
 
 /**
@@ -672,7 +672,7 @@ float mcpwm_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_get_tot_current_filtered(void) {
-	return last_current_sample_filtered * (3.3 / 4095.0) / (0.001 * 10.0);
+	return last_current_sample_filtered * (3.3 / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
 }
 
 /**
@@ -915,7 +915,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 				MCPWM_SWITCH_FREQUENCY_MAX * fabsf(dutyCycle);
 	}
 
-	timer_tmp.top = 168000000 / switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1905,7 +1905,7 @@ static void set_switching_frequency(int frequency) {
 	switching_frequency_now = frequency;
 	mc_timer_struct timer_tmp;
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
-	timer_tmp.top = 168000000 / switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
