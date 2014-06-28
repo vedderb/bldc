@@ -31,6 +31,10 @@
 #include "hw_40.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
+#elif defined HW_VERSION_BW
+#include "hw_bw.h"
+#else
+#error "No hardware version defined"
 #endif
 
 // Functions

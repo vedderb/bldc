@@ -34,7 +34,8 @@
 /*
  * Select only one hardware version
  */
-#define HW_VERSION_40
+#define HW_VERSION_BW
+//#define HW_VERSION_40
 //#define HW_VERSION_R2
 
 /*
@@ -46,7 +47,7 @@
 //#define MCCONF_STEN
 
 /*
- * Select which application to use
+ * Select which application to use (if any)
  */
 //#define USE_APP_RCCAR
 //#define USE_APP_STEN

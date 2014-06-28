@@ -90,7 +90,7 @@
 #define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)
+#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * V_REG)
 
 // NTC Termistors
 #define NTC_RES(adc_val)	(0.0)
