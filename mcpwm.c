@@ -1590,10 +1590,9 @@ void init_hall_table (void)
 {
 	int i;
 
-	hall_to_phase_table[8+0] = -2;
-	hall_to_phase_table[8+7] = -2;
-	for (i=1;i<7;i++) {
-		hall_to_phase_table[8+i] = 1 + (7-hall_to_phase_table[i])%6;
+	for (i=0;i<8;i++) {
+		if (hall_to_phase_table[i] < 0) hall_to_phase_table[8+i] = -2;
+		else hall_to_phase_table[8+i] = 1 + (7-hall_to_phase_table[i])%6;
 	}
 }
 
