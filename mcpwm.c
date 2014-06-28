@@ -213,6 +213,21 @@ static int try_input(void);
 static WORKING_AREA(timer_thread_wa, 1024);
 static msg_t timer_thread(void *arg);
 
+
+void do_dc_cal (void)
+{
+	DCCAL_ON();
+	chThdSleepMilliseconds(1000);
+	curr0_sum = 0;
+	curr1_sum = 0;
+	curr_start_samples = 0;
+	while(curr_start_samples < 2000) {};
+	curr0_offset = curr0_sum / curr_start_samples;
+	curr1_offset = curr1_sum / curr_start_samples;
+	DCCAL_OFF();
+}
+
+
 void mcpwm_init(void) {
 	chSysLock();
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -477,15 +492,7 @@ void mcpwm_init(void) {
 
 	// Calibrate current offset
 	ENABLE_GATE();
-	DCCAL_ON();
-	chThdSleepMilliseconds(500);
-	curr0_sum = 0;
-	curr1_sum = 0;
-	curr_start_samples = 0;
-	while(curr_start_samples < 2000) {};
-	curr0_offset = curr0_sum / curr_start_samples;
-	curr1_offset = curr1_sum / curr_start_samples;
-	DCCAL_OFF();
+	do_dc_cal ();
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -569,7 +576,6 @@ void mcpwm_set_current(float current) {
 
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(SIGN(current)*(MCPWM_MIN_DUTY_CYCLE + 0.001));
-		}
 	}
 }
 
