@@ -52,4 +52,6 @@
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
+// Hall sensor
+
 #endif /* MCCONF_OUTRUNNER1_H_ */

@@ -112,70 +112,6 @@ static volatile float current_fir_coeffs[CURR_FIR_LEN];
 static volatile float current_fir_samples[CURR_FIR_LEN];
 static volatile int current_fir_index = 0;
 
-// Hall sensor shift table
-const unsigned int mc_shift_table[] = {
-	// 0
-	0b000,	// 000
-	0b001,	// 001
-	0b010,	// 010
-	0b011,	// 011
-	0b100,	// 100
-	0b101,	// 101
-	0b110,	// 110
-	0b111,	// 111
-
-	// 1
-	0b000,	// 000
-	0b001,	// 001
-	0b100,	// 010
-	0b101,	// 011
-	0b010,	// 100
-	0b011,	// 101
-	0b110,	// 110
-	0b111,	// 111
-
-	// 2
-	0b000,	// 000
-	0b010,	// 001
-	0b001,	// 010
-	0b011,	// 011
-	0b100,	// 100
-	0b110,	// 101
-	0b101,	// 110
-	0b111,	// 111
-
-	// 3
-	0b000,	// 000
-	0b100,	// 001
-	0b010,	// 010
-	0b110,	// 011
-	0b001,	// 100
-	0b101,	// 101
-	0b011,	// 110
-	0b111,	// 111
-
-	// 4
-	0b000,	// 000
-	0b010,	// 001
-	0b100,	// 010
-	0b110,	// 011
-	0b001,	// 100
-	0b011,	// 101
-	0b101,	// 110
-	0b111,	// 111
-
-	// 5
-	0b000,	// 000
-	0b100,	// 001
-	0b001,	// 010
-	0b101,	// 011
-	0b010,	// 100
-	0b110,	// 101
-	0b011,	// 110
-	0b111	// 111
-};
-
-static volatile unsigned int hall_sensor_order;
 static volatile float last_adc_isr_duration;
 static volatile float last_inj_adc_isr_duration;
 
@@ -203,6 +139,7 @@ static void commutate(void);
 static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(int frequency);
 static int try_input(void);
+static void init_hall_table(void);
 
 // Defines
 #define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
@@ -235,6 +172,7 @@ void mcpwm_init(void) {
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
+	init_hall_table ();
 	// Initialize variables
 	comm_step = 1;
 	detect_step = 0;
@@ -249,7 +187,6 @@ void mcpwm_init(void) {
 	tachometer_for_direction = 0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
-	hall_sensor_order = MCPWM_HALL_SENSOR_ORDER;
 	pwm_mode = MCPWM_PWM_MODE;
 	control_mode = CONTROL_MODE_NONE;
 	last_current_sample = 0.0;
@@ -1614,6 +1551,53 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 	return last_inj_adc_isr_duration;
 }
 
+
+#if MCPWM_HALL_SENSOR_ORDER == 0
+int hall_to_phase_table [16] = {-2,1,5,6,3,2,4,-2};
+#endif
+#if MCPWM_HALL_SENSOR_ORDER == 1
+int hall_to_phase_table [16] = {-2,1,3,2,5,6,4,-2};
+#endif
+#if MCPWM_HALL_SENSOR_ORDER == 2
+int hall_to_phase_table [16] = {-2,5,1,6,3,4,2,-2};
+#endif
+#if MCPWM_HALL_SENSOR_ORDER == 3
+int hall_to_phase_table [16] = {-2,3,5,4,1,2,6,-2};
+#endif
+#if MCPWM_HALL_SENSOR_ORDER == 4
+int hall_to_phase_table [16] = {-2,5,3,4,1,6,2,-2};
+#endif
+#if MCPWM_HALL_SENSOR_ORDER == 5
+int hall_to_phase_table [16] = {-2,3,1,2,5,4,6,-2};
+#endif
+
+/**
+ * Convert raw HALL state to state. 
+ * @return
+ * the phase.
+ */
+signed int hall_to_phase (int hall)
+{
+	return hall_to_phase_table[hall | direction << 3];
+}
+
+/**
+ * Compute the "reverse" direction of the hall-to-state table 
+ * @return
+ * nothing
+ */
+void init_hall_table (void)
+{
+	int i;
+
+	hall_to_phase_table[8+0] = -2;
+	hall_to_phase_table[8+7] = -2;
+	for (i=1;i<7;i++) {
+		hall_to_phase_table[8+i] = 1 + (7-hall_to_phase_table[i])%6;
+	}
+}
+
+
 /**
  * Read the current phase of the motor using hall effect sensors
  * @return
@@ -1622,56 +1606,9 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 signed int mcpwm_read_hall_phase(void) {
 	int hall = READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
 
-	signed int tmp_phase = -1;
-	int shift = mc_shift_table[hall + (hall_sensor_order << 3)];
-
-	switch (shift) {
-	case 0b101:
-		tmp_phase = 1;
-		break;
-
-	case 0b001:
-		tmp_phase = 2;
-		break;
-
-	case 0b011:
-		tmp_phase = 3;
-		break;
-
-	case 0b010:
-		tmp_phase = 4;
-		break;
-
-	case 0b110:
-		tmp_phase = 5;
-		break;
-
-	case 0b100:
-		tmp_phase = 6;
-		break;
-	case 0b000:
-	case 0b111:
-		tmp_phase = -1;
-		break;
-	}
-
 	// TODO: Gurgalof-fix
-	tmp_phase--;
-	if (tmp_phase == 0) {
-		tmp_phase = 6;
-	}
 
-	// This is NOT a proper way to solve this...
-	if (!direction && tmp_phase > 0) {
-		signed int p_tmp = tmp_phase;
-		p_tmp += 4;
-		if (p_tmp > 5) {
-			p_tmp -= 6;
-		}
-		tmp_phase = 6 - p_tmp;
-	}
-
-	return tmp_phase;
+	return hall_to_phase (hall);
 }
 
 /*
