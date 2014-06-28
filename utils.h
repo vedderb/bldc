@@ -31,4 +31,7 @@ void utils_norm_angle(float *angle);
 int utils_truncate_number(float *number, float min, float max);
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
 
+// return the sign of the argument. -1 if negative, 1 if 0 or positive. 
+#define SIGN(x) ((x<0)?-1:1)
+
 #endif /* UTILS_H_ */

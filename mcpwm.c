@@ -568,10 +568,7 @@ void mcpwm_set_current(float current) {
 	current_set = current;
 
 	if (state != MC_STATE_RUNNING) {
-		if (current > 0) {
-			set_duty_cycle_hl(MCPWM_MIN_DUTY_CYCLE + 0.001);
-		} else {
-			set_duty_cycle_hl(-(MCPWM_MIN_DUTY_CYCLE + 0.001));
+		set_duty_cycle_hl(SIGN(current)*(MCPWM_MIN_DUTY_CYCLE + 0.001));
 		}
 	}
 }
@@ -813,11 +810,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	if (state != MC_STATE_RUNNING) {
 		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
 			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-				if (dutyCycle > 0.0) {
-					dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.001);
-				} else {
-					dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
-				}
+				dutycycle_now = SIGN (dutyCycle) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
 			}
 
 			set_duty_cycle_ll(dutycycle_now);
@@ -963,11 +956,7 @@ static void run_pid_controller(void) {
 
 	// Make sure that at least minimum output is used
 	if (fabsf(output) < MCPWM_MIN_DUTY_CYCLE) {
-		if (output > 0.0) {
-			output = MCPWM_MIN_DUTY_CYCLE + 0.001;
-		} else {
-			output = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
-		}
+		output = SIGN(output) * MCPWM_MIN_DUTY_CYCLE + 0.001;
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
