@@ -104,7 +104,7 @@
 #define NTC_TEMP(adc_ind)	(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * 3.3)
+#define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * V_REG)
 
 // Number of servo outputs
 #define HW_SERVO_NUM		2
