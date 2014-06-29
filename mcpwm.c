@@ -537,7 +537,7 @@ void mcpwm_set_current(float current) {
 	current_set = current;
 
 	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(SIGN(current)*(MCPWM_MIN_DUTY_CYCLE + 0.001));
+		set_duty_cycle_hl(SIGN(current) * MCPWM_MIN_DUTY_CYCLE);
 	}
 }
 
@@ -776,9 +776,9 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	dutycycle_set = dutyCycle;
 
 	if (state != MC_STATE_RUNNING) {
-		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
+		if (fabsf(dutyCycle) >= MCPWM_MIN_DUTY_CYCLE) {
 			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = SIGN(dutyCycle) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
+				dutycycle_now = SIGN(dutyCycle) * MCPWM_MIN_DUTY_CYCLE;
 			}
 
 			set_duty_cycle_ll(dutycycle_now);
@@ -807,9 +807,9 @@ static void set_duty_cycle_hl(float dutyCycle) {
  * the motor will be switched off.
  */
 static void set_duty_cycle_ll(float dutyCycle) {
-	if (dutyCycle > MCPWM_MIN_DUTY_CYCLE) {
+	if (dutyCycle >= MCPWM_MIN_DUTY_CYCLE) {
 		direction = 1;
-	} else if (dutyCycle < -MCPWM_MIN_DUTY_CYCLE) {
+	} else if (dutyCycle <= -MCPWM_MIN_DUTY_CYCLE) {
 		dutyCycle = -dutyCycle;
 		direction = 0;
 	}
@@ -924,15 +924,15 @@ static void run_pid_controller(void) {
 
 	// Make sure that at least minimum output is used
 	if (fabsf(output) < MCPWM_MIN_DUTY_CYCLE) {
-		output = SIGN(output) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
+		output = SIGN(output) * MCPWM_MIN_DUTY_CYCLE;
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
 	if (speed_pid_set_rpm > 0.0 && output < 0.0) {
-		output = MCPWM_MIN_DUTY_CYCLE + 0.001;
+		output = MCPWM_MIN_DUTY_CYCLE;
 		i_term = 0.0;
 	} else if (speed_pid_set_rpm < 0.0 && output > 0.0) {
-		output = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+		output = -MCPWM_MIN_DUTY_CYCLE;
 		i_term = 0.0;
 	}
 
@@ -1060,7 +1060,7 @@ static msg_t timer_thread(void *arg) {
 				filter_add_sample((float*)kv_fir_samples, mcpwm_get_kv(),
 						KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
 			} else if (state == MC_STATE_OFF) {
-				if (dutycycle_now > MCPWM_MIN_DUTY_CYCLE) {
+				if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE) {
 					filter_add_sample((float*)kv_fir_samples, mcpwm_get_kv(),
 							KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
 				}
@@ -1410,17 +1410,17 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			if (MCPWM_CURRENT_CONTROL_NO_REV) {
 				// This means that the motor shouldn't go in reverse, only brake.
 
-				if (dutycycle_now > -(MCPWM_MIN_DUTY_CYCLE + 0.01)) {
+				if (dutycycle_now > -MCPWM_MIN_DUTY_CYCLE) {
 					// Going forwards...
 
-					if (dutycycle_now_tmp < (MCPWM_MIN_DUTY_CYCLE + 0.01) && current_set < 0.0) {
+					if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE  && current_set < 0.0) {
 						// Apply full brake
 						dutycycle_now_tmp = 0.0;
 						dutycycle_set = 0.0;
 					} else {
 						if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE && current_set > 0.0) {
 							// Too low duty cycle, use the minimum one.
-							dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+							dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
 							dutycycle_set = dutycycle_now_tmp;
 						}
 					}
@@ -1429,20 +1429,20 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					step_towards(&dutycycle_now_tmp, 0.0, ramp_step);
 
 					// If the set current is > 0, brake when stopping, otherwise change direction
-					dutycycle_set = current_set > 0.0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : 0.0;
+					dutycycle_set = current_set > 0.0 ? MCPWM_MIN_DUTY_CYCLE : 0.0;
 				}
 			} else {
 				if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
 					if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
-						dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE + 0.001;
+						dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
 					} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
-						dutycycle_now_tmp = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+						dutycycle_now_tmp = -MCPWM_MIN_DUTY_CYCLE;
 					}
 				}
 
 				// The set dutycycle should be in the correct direction in case the output is lower
 				// than the minimum duty cycle and the mechanism below gets activated.
-				dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE + 0.001 : -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+				dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE : -MCPWM_MIN_DUTY_CYCLE;
 			}
 		} else {
 			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
@@ -1477,11 +1477,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		// When the set duty cycle is in the opposite direction, make sure that the motor
 		// starts again after stopping completely
-		if (fabsf(dutycycle_now) <= MCPWM_MIN_DUTY_CYCLE) {
-			if (dutycycle_set > MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = (MCPWM_MIN_DUTY_CYCLE + 0.001);
-			} else if (dutycycle_set < -MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = -(MCPWM_MIN_DUTY_CYCLE + 0.001);
+		if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
+			if (dutycycle_set >= MCPWM_MIN_DUTY_CYCLE) {
+				dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
+			} else if (dutycycle_set <= -MCPWM_MIN_DUTY_CYCLE) {
+				dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
 			}
 		}
 

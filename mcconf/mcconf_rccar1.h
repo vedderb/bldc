@@ -33,7 +33,8 @@
 #define MCPWM_IN_CURRENT_MAX			80.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
 #define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode @ 20V.
-#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
+#define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
+#define MCPWM_RPM_MAX					10000.0	// The motor speed limit (Upper)
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 
 // Sensorless settings
