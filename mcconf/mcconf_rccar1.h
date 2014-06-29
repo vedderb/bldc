@@ -42,6 +42,11 @@
 #define MCPWM_CYCLE_INT_LIMIT_LOW		50.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		10.0	// Flux integrator limit 50K ERPM
 
+// Hall sensor settings
+#define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
+#define MCPWM_HALL_FWD_ADD				2		// Hall sensor offset fwd [0 to 5]
+#define MCPWM_HALL_REV_ADD				3		// Hall sensor offset fwd [0 to 5]
+
 // Speed PID parameters
 #define MCPWM_PID_KP					0.0001	// Proportional gain
 #define MCPWM_PID_KI					0.002	// Integral gain

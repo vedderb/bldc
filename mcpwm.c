@@ -80,6 +80,7 @@ static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
+static int hall_to_phase_table[16];
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -139,7 +140,7 @@ static void commutate(void);
 static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(int frequency);
 static int try_input(void);
-static void init_hall_table(void);
+static void do_dc_cal(void);
 
 // Defines
 #define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
@@ -150,21 +151,6 @@ static void init_hall_table(void);
 static WORKING_AREA(timer_thread_wa, 1024);
 static msg_t timer_thread(void *arg);
 
-
-void do_dc_cal (void)
-{
-	DCCAL_ON();
-	chThdSleepMilliseconds(1000);
-	curr0_sum = 0;
-	curr1_sum = 0;
-	curr_start_samples = 0;
-	while(curr_start_samples < 2000) {};
-	curr0_offset = curr0_sum / curr_start_samples;
-	curr1_offset = curr1_sum / curr_start_samples;
-	DCCAL_OFF();
-}
-
-
 void mcpwm_init(void) {
 	chSysLock();
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -172,7 +158,7 @@ void mcpwm_init(void) {
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	init_hall_table ();
+	mcpwm_init_hall_table(MCPWM_HALL_DIR, MCPWM_HALL_FWD_ADD, MCPWM_HALL_REV_ADD);
 	// Initialize variables
 	comm_step = 1;
 	detect_step = 0;
@@ -429,7 +415,7 @@ void mcpwm_init(void) {
 
 	// Calibrate current offset
 	ENABLE_GATE();
-	do_dc_cal ();
+	do_dc_cal();
 
 	// Various time measurements
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -453,6 +439,45 @@ void mcpwm_init(void) {
 	WWDG_SetPrescaler(WWDG_Prescaler_1);
 	WWDG_SetWindowValue(255);
 	WWDG_Enable(100);
+}
+
+/**
+ * Initialize the hall sensor lookup table
+ *
+ * @param dir
+ * Invert the direction
+ *
+ * @param fwd_add
+ * Offset to add when the motor is spinning forwards
+ *
+ * @param rev_add
+ * Offset to add when the motor is spinning reverse
+ */
+void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add) {
+	if (dir) {
+		memcpy(hall_to_phase_table + 8, (int[8]){-1,1,5,6,3,2,4,-1}, sizeof(int[8]));
+		memcpy(hall_to_phase_table, (int[8]){-1,1,3,2,5,6,4,-1}, sizeof(int[8]));
+	} else {
+		memcpy(hall_to_phase_table, (int[8]){-1,1,5,6,3,2,4,-1}, sizeof(int[8]));
+		memcpy(hall_to_phase_table + 8, (int[8]){-1,1,3,2,5,6,4,-1}, sizeof(int[8]));
+	}
+
+	for (int i = 1;i < 7;i++) {
+		hall_to_phase_table[i] = ((hall_to_phase_table[i] + rev_add) % 6) + 1;
+		hall_to_phase_table[8 + i] = ((hall_to_phase_table[8 + i] + fwd_add) % 6) + 1;
+	}
+}
+
+static void do_dc_cal(void) {
+	DCCAL_ON();
+	chThdSleepMilliseconds(1000);
+	curr0_sum = 0;
+	curr1_sum = 0;
+	curr_start_samples = 0;
+	while(curr_start_samples < 2000) {};
+	curr0_offset = curr0_sum / curr_start_samples;
+	curr1_offset = curr1_sum / curr_start_samples;
+	DCCAL_OFF();
 }
 
 /**
@@ -602,7 +627,7 @@ float mcpwm_get_kv_filtered(void) {
  * The motor current.
  */
 float mcpwm_get_tot_current(void) {
-	return last_current_sample * (3.3 / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+	return last_current_sample * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
 }
 
 /**
@@ -612,7 +637,7 @@ float mcpwm_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_get_tot_current_filtered(void) {
-	return last_current_sample_filtered * (3.3 / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+	return last_current_sample_filtered * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
 }
 
 /**
@@ -753,7 +778,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	if (state != MC_STATE_RUNNING) {
 		if (fabsf(dutyCycle) > MCPWM_MIN_DUTY_CYCLE) {
 			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = SIGN (dutyCycle) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
+				dutycycle_now = SIGN(dutyCycle) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
 			}
 
 			set_duty_cycle_ll(dutycycle_now);
@@ -899,7 +924,7 @@ static void run_pid_controller(void) {
 
 	// Make sure that at least minimum output is used
 	if (fabsf(output) < MCPWM_MIN_DUTY_CYCLE) {
-		output = SIGN(output) * MCPWM_MIN_DUTY_CYCLE + 0.001;
+		output = SIGN(output) * (MCPWM_MIN_DUTY_CYCLE + 0.001);
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
@@ -1551,52 +1576,6 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 	return last_inj_adc_isr_duration;
 }
 
-
-#if MCPWM_HALL_SENSOR_ORDER == 0
-int hall_to_phase_table [16] = {-2,1,5,6,3,2,4,-2};
-#endif
-#if MCPWM_HALL_SENSOR_ORDER == 1
-int hall_to_phase_table [16] = {-2,1,3,2,5,6,4,-2};
-#endif
-#if MCPWM_HALL_SENSOR_ORDER == 2
-int hall_to_phase_table [16] = {-2,5,1,6,3,4,2,-2};
-#endif
-#if MCPWM_HALL_SENSOR_ORDER == 3
-int hall_to_phase_table [16] = {-2,3,5,4,1,2,6,-2};
-#endif
-#if MCPWM_HALL_SENSOR_ORDER == 4
-int hall_to_phase_table [16] = {-2,5,3,4,1,6,2,-2};
-#endif
-#if MCPWM_HALL_SENSOR_ORDER == 5
-int hall_to_phase_table [16] = {-2,3,1,2,5,4,6,-2};
-#endif
-
-/**
- * Convert raw HALL state to state. 
- * @return
- * the phase.
- */
-signed int hall_to_phase (int hall)
-{
-	return hall_to_phase_table[hall | direction << 3];
-}
-
-/**
- * Compute the "reverse" direction of the hall-to-state table 
- * @return
- * nothing
- */
-void init_hall_table (void)
-{
-	int i;
-
-	for (i=0;i<8;i++) {
-		if (hall_to_phase_table[i] < 0) hall_to_phase_table[8+i] = -2;
-		else hall_to_phase_table[8+i] = 1 + (7-hall_to_phase_table[i])%6;
-	}
-}
-
-
 /**
  * Read the current phase of the motor using hall effect sensors
  * @return
@@ -1604,10 +1583,7 @@ void init_hall_table (void)
  */
 signed int mcpwm_read_hall_phase(void) {
 	int hall = READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
-
-	// TODO: Gurgalof-fix
-
-	return hall_to_phase (hall);
+	return hall_to_phase_table[hall | direction << 3];
 }
 
 /*

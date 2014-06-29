@@ -56,6 +56,7 @@ typedef enum {
 
 // Functions
 void mcpwm_init(void);
+void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
@@ -126,8 +127,14 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
 
 // Parameters that can be overridden
-#ifndef MCPWM_HALL_SENSOR_ORDER
-#define MCPWM_HALL_SENSOR_ORDER			5		// Order in which hall sensors are connected
+#ifndef MCPWM_HALL_DIR
+#define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
+#endif
+#ifndef MCPWM_HALL_FWD_ADD
+#define MCPWM_HALL_FWD_ADD				0		// Hall sensor offset fwd [0 to 5]
+#endif
+#ifndef MCPWM_HALL_REV_ADD
+#define MCPWM_HALL_REV_ADD				0		// Hall sensor offset fwd [0 to 5]
 #endif
 #ifndef MCPWM_MIN_VOLTAGE
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage

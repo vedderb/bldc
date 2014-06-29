@@ -120,7 +120,33 @@ void terminal_process_string(char *str) {
 		comm_print(buffer);
 		sprintf(buffer, "Current 2 sample: %u\n", current2_samp);
 		comm_print(buffer);
-	} else if (strcmp(argv[0], "help") == 0) {
+	}
+
+	// Setters
+	else if (strcmp(argv[0], "set_hall_table") == 0) {
+		if (argc == 4) {
+			int dir = -1;
+			int fwd_add = -1;
+			int rev_add = -1;
+			sscanf(argv[1], "%i", &dir);
+			sscanf(argv[2], "%i", &fwd_add);
+			sscanf(argv[3], "%i", &rev_add);
+
+			if (dir >= 0 && fwd_add >= 0 && rev_add >= 0) {
+				mcpwm_init_hall_table(dir, fwd_add, rev_add);
+				sprintf(buffer, "New hall sensor dir: %i fwd_add %i rev_add %i\n",
+						dir, fwd_add, rev_add);
+				comm_print(buffer);
+			} else {
+				comm_print("Invalid argument(s).\n");
+			}
+		} else {
+			comm_print("This command requires three arguments.\n");
+		}
+	}
+
+	// The help command
+	else if (strcmp(argv[0], "help") == 0) {
 		comm_print("Valid commands are:");
 		comm_print("help");
 		comm_print("  Show this help");
@@ -153,7 +179,10 @@ void terminal_process_string(char *str) {
 		comm_print("  Prints tachometer value");
 
 		comm_print("tim");
-		comm_print("  Prints tim1 and tim8 settings\n");
+		comm_print("  Prints tim1 and tim8 settings");
+
+		comm_print("set_hall_table [dir] [fwd_add] [rev_add]");
+		comm_print("  Update the hall sensor lookup table\n");
 	} else {
 		sprintf(buffer, "Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

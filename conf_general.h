@@ -34,8 +34,8 @@
 /*
  * Select only one hardware version
  */
-#define HW_VERSION_BW
-//#define HW_VERSION_40
+//#define HW_VERSION_BW
+#define HW_VERSION_40
 //#define HW_VERSION_R2
 
 /*
