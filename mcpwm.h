@@ -134,7 +134,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_HALL_FWD_ADD				0		// Hall sensor offset fwd [0 to 5]
 #endif
 #ifndef MCPWM_HALL_REV_ADD
-#define MCPWM_HALL_REV_ADD				0		// Hall sensor offset fwd [0 to 5]
+#define MCPWM_HALL_REV_ADD				0		// Hall sensor offset rev [0 to 5]
 #endif
 #ifndef MCPWM_MIN_VOLTAGE
 #define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage

@@ -46,7 +46,7 @@
 // Hall sensor settings
 #define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
 #define MCPWM_HALL_FWD_ADD				2		// Hall sensor offset fwd [0 to 5]
-#define MCPWM_HALL_REV_ADD				3		// Hall sensor offset fwd [0 to 5]
+#define MCPWM_HALL_REV_ADD				3		// Hall sensor offset rev [0 to 5]
 
 // Speed PID parameters
 #define MCPWM_PID_KP					0.0001	// Proportional gain

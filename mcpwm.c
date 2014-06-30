@@ -158,7 +158,6 @@ void mcpwm_init(void) {
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	mcpwm_init_hall_table(MCPWM_HALL_DIR, MCPWM_HALL_FWD_ADD, MCPWM_HALL_REV_ADD);
 	// Initialize variables
 	comm_step = 1;
 	detect_step = 0;
@@ -192,6 +191,8 @@ void mcpwm_init(void) {
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 #endif
+
+	mcpwm_init_hall_table(MCPWM_HALL_DIR, MCPWM_HALL_FWD_ADD, MCPWM_HALL_REV_ADD);
 
 	// Create KV FIR filter
 	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
@@ -454,16 +455,14 @@ void mcpwm_init(void) {
  * Offset to add when the motor is spinning reverse
  */
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add) {
-	if (dir) {
-		memcpy(hall_to_phase_table + 8, (int[8]){-1,1,5,6,3,2,4,-1}, sizeof(int[8]));
-		memcpy(hall_to_phase_table, (int[8]){-1,1,3,2,5,6,4,-1}, sizeof(int[8]));
-	} else {
-		memcpy(hall_to_phase_table, (int[8]){-1,1,5,6,3,2,4,-1}, sizeof(int[8]));
-		memcpy(hall_to_phase_table + 8, (int[8]){-1,1,3,2,5,6,4,-1}, sizeof(int[8]));
-	}
+	const int comms1[8] = {-1,1,3,2,5,6,4,-1};
+	const int comms2[8] = {-1,1,5,6,3,2,4,-1};
+
+	memcpy(hall_to_phase_table, dir ? comms1 : comms2, sizeof(int[8]));
+	memcpy(hall_to_phase_table + 8, dir ? comms2 : comms1, sizeof(int[8]));
 
 	for (int i = 1;i < 7;i++) {
-		hall_to_phase_table[i] = ((hall_to_phase_table[i] + rev_add) % 6) + 1;
+		hall_to_phase_table[i    ] = ((hall_to_phase_table[i    ] + rev_add) % 6) + 1;
 		hall_to_phase_table[8 + i] = ((hall_to_phase_table[8 + i] + fwd_add) % 6) + 1;
 	}
 }
@@ -1583,7 +1582,7 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
  */
 signed int mcpwm_read_hall_phase(void) {
 	int hall = READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
-	return hall_to_phase_table[hall | direction << 3];
+	return hall_to_phase_table[hall + (direction ? 8 : 0)];
 }
 
 /*
