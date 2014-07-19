@@ -34,5 +34,6 @@ void app_init(void);
 void app_rccar_init(void);
 void app_sten_init(void);
 void app_gurgalof_init(void);
+void app_uartcomm_init(void);
 
 #endif /* APP_H_ */

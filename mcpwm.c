@@ -1406,6 +1406,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
 			// Lower truncation
+
+			/*
+			 * TODO:
+			 * Remove MCPWM_CURRENT_CONTROL_NO_REV and use a generic braking state that works for any direction.
+			 */
 			if (MCPWM_CURRENT_CONTROL_NO_REV) {
 				// This means that the motor shouldn't go in reverse, only brake.
 

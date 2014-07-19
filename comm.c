@@ -49,7 +49,6 @@ static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
 static WORKING_AREA(serial_read_thread_wa, 1024);
 static WORKING_AREA(serial_process_thread_wa, 2048);
-static WORKING_AREA(timer_thread_wa, 128);
 static Mutex send_mutex;
 static Thread *process_tp;
 
@@ -102,25 +101,12 @@ static msg_t serial_process_thread(void *arg) {
 		chEvtWaitAny((eventmask_t) 1);
 
 		while (serial_rx_read_pos != serial_rx_write_pos) {
-			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++]);
+			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], 0);
 
 			if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
 				serial_rx_read_pos = 0;
 			}
 		}
-	}
-
-	return 0;
-}
-
-static msg_t timer_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("Serial timer");
-
-	for(;;) {
-		packet_timerfunc();
-		chThdSleepMilliseconds(1);
 	}
 
 	return 0;
@@ -164,14 +150,13 @@ static void send_packet(unsigned char *buffer, unsigned char len) {
 
 void comm_init(void) {
 	myUSBinit();
-	packet_init(send_packet, process_packet);
+	packet_init(send_packet, process_packet, 0);
 
 	chMtxInit(&send_mutex);
 
 	// Threads
 	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 }
 
 static void handle_res_packet(unsigned char *data, unsigned char len) {
@@ -201,7 +186,7 @@ static void handle_res_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int16(buffer2, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &index);
 		buffer_append_int32(buffer2, (int32_t)mcpwm_get_rpm(), &index);
 		buffer_append_int16(buffer2, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &index);
-		packet_send_packet(buffer2, index);
+		packet_send_packet(buffer2, index, 0);
 		break;
 
 	default:
@@ -257,7 +242,7 @@ void comm_print(char* str) {
 		print_buffer[i + 1] = str[i];
 	}
 
-	packet_send_packet((unsigned char*)print_buffer, i + 1);
+	packet_send_packet((unsigned char*)print_buffer, i + 1, 0);
 	return;
 }
 
@@ -271,7 +256,7 @@ void comm_send_samples(uint8_t *data, int len) {
 		buffer[index++] = data[i];
 	}
 
-	packet_send_packet(buffer, index);
+	packet_send_packet(buffer, index, 0);
 }
 
 void comm_send_rotor_pos(float rotor_pos) {
@@ -281,7 +266,7 @@ void comm_send_rotor_pos(float rotor_pos) {
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
 
-	packet_send_packet(buffer, index);
+	packet_send_packet(buffer, index, 0);
 }
 
 void comm_print_fault_code(mc_fault_code fault_code) {
@@ -321,5 +306,5 @@ void comm_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
-	packet_send_packet(buffer, index);
+	packet_send_packet(buffer, index, 0);
 }

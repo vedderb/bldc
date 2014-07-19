@@ -32,6 +32,7 @@
 #include "terminal.h"
 #include "hw.h"
 #include "app.h"
+#include "packet.h"
 
 /*
  * Timers used:
@@ -81,6 +82,7 @@ static volatile float main_last_adc_duration = 0.0;
 
 static WORKING_AREA(periodic_thread_wa, 1024);
 static WORKING_AREA(sample_send_thread_wa, 1024);
+static WORKING_AREA(timer_thread_wa, 128);
 
 static Thread *sample_send_tp;
 
@@ -154,6 +156,19 @@ static msg_t sample_send_thread(void *arg) {
 			// TODO: wait??
 			chThdSleep(2);
 		}
+	}
+
+	return 0;
+}
+
+static msg_t timer_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("msec_timer");
+
+	for(;;) {
+		packet_timerfunc();
+		chThdSleepMilliseconds(1);
 	}
 
 	return 0;
@@ -310,6 +325,7 @@ int main(void) {
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
+	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {
 		chThdSleepMilliseconds(100);

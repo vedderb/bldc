@@ -38,4 +38,7 @@ void app_init(void) {
 #ifdef USE_APP_GURGALOF
 	app_gurgalof_init();
 #endif
+#ifdef USE_APP_UARTCOMM
+	app_uartcomm_init();
+#endif
 }

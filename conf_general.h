@@ -52,5 +52,6 @@
 //#define USE_APP_RCCAR
 //#define USE_APP_STEN
 //#define USE_APP_GURGALOF
+//#define USE_APP_UARTCOMM
 
 #endif /* CONF_GENERAL_H_ */

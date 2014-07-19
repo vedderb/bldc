@@ -28,23 +28,30 @@
 
 // Settings
 #define RX_TIMEOUT				2
+#define PACKET_HANDLERS			2
 
-// Packet variables
-static volatile unsigned char rx_state = 0;
-static volatile unsigned char rx_timeout = 0;
+typedef struct {
+	volatile unsigned char rx_state;
+	volatile unsigned char rx_timeout;
+	void(*send_func)(unsigned char *data, unsigned char len);
+	void(*process_func)(unsigned char *data, unsigned char len);
+	unsigned char payload_length;
+	unsigned char rx_buffer[256];
+	unsigned char rx_data_ptr;
+	unsigned char crc_low;
+	unsigned char crc_high;
+} PACKET_STATE_t;
 
-// Function pointers
-static void(*send_func)(unsigned char *data, unsigned char len) = 0;
-static void(*process_func)(unsigned char *data, unsigned char len) = 0;
+static PACKET_STATE_t handler_states[PACKET_HANDLERS];
 
 void packet_init(void (*s_func)(unsigned char *data, unsigned char len),
-		void (*p_func)(unsigned char *data, unsigned char len)) {
-	send_func = s_func;
-	process_func = p_func;
+		void (*p_func)(unsigned char *data, unsigned char len), int handler_num) {
+	handler_states[handler_num].send_func = s_func;
+	handler_states[handler_num].process_func = p_func;
 }
 
-void packet_send_packet(unsigned char *data, unsigned char len) {
-	static uint8_t data_buffer[261];
+void packet_send_packet(unsigned char *data, unsigned char len, int handler_num) {
+	uint8_t data_buffer[256];
 	int b_ind = 0;
 
 	data_buffer[b_ind++] = 2;
@@ -59,85 +66,79 @@ void packet_send_packet(unsigned char *data, unsigned char len) {
 	data_buffer[b_ind++] = (uint8_t)(crc & 0xFF);
 	data_buffer[b_ind++] = 3;
 
-	if (send_func) {
-		send_func(data_buffer, len + 5);
+	if (handler_states[handler_num].send_func) {
+		handler_states[handler_num].send_func(data_buffer, len + 5);
 	}
 }
 
+/**
+ * Call this function every millisecond.
+ */
 void packet_timerfunc(void) {
-	if (rx_timeout) {
-		rx_timeout--;
-	} else {
-		rx_state = 0;
+	for (int i = 0;i < PACKET_HANDLERS;i++) {
+		if (handler_states[i].rx_timeout) {
+			handler_states[i].rx_timeout--;
+		} else {
+			handler_states[i].rx_state = 0;
+		}
 	}
 }
 
-void packet_process_byte(uint8_t rx_data) {
-	static unsigned char payload_length = 0;
-	static unsigned char rx_buffer[256];
-	static unsigned char rx_data_ptr = 0;
-	static unsigned char crc_low = 0;
-	static unsigned char crc_high = 0;
-
-	switch (rx_state) {
+void packet_process_byte(uint8_t rx_data, int handler_num) {
+	switch (handler_states[handler_num].rx_state) {
 	case 0:
 		if (rx_data == 2) {
-			rx_state++;
-			rx_timeout = RX_TIMEOUT
-					;
-			rx_data_ptr = 0;
+			handler_states[handler_num].rx_state++;
+			handler_states[handler_num].rx_timeout = RX_TIMEOUT;
+			handler_states[handler_num].rx_data_ptr = 0;
 		} else {
-			rx_state = 0;
+			handler_states[handler_num].rx_state = 0;
 		}
 		break;
 
 	case 1:
-		payload_length = rx_data;
-		rx_state++;
-		rx_timeout = RX_TIMEOUT
-				;
+		handler_states[handler_num].payload_length = rx_data;
+		handler_states[handler_num].rx_state++;
+		handler_states[handler_num].rx_timeout = RX_TIMEOUT;
 		break;
 
 	case 2:
-		rx_buffer[rx_data_ptr++] = rx_data;
-		if (rx_data_ptr == payload_length) {
-			rx_state++;
+		handler_states[handler_num].rx_buffer[handler_states[handler_num].rx_data_ptr++] = rx_data;
+		if (handler_states[handler_num].rx_data_ptr == handler_states[handler_num].payload_length) {
+			handler_states[handler_num].rx_state++;
 		}
-		rx_timeout = RX_TIMEOUT
-				;
+		handler_states[handler_num].rx_timeout = RX_TIMEOUT;
 		break;
 
 	case 3:
-		crc_high = rx_data;
-		rx_state++;
-		rx_timeout = RX_TIMEOUT
-				;
+		handler_states[handler_num].crc_high = rx_data;
+		handler_states[handler_num].rx_state++;
+		handler_states[handler_num].rx_timeout = RX_TIMEOUT;
 		break;
 
 	case 4:
-		crc_low = rx_data;
-		rx_state++;
-		rx_timeout = RX_TIMEOUT
-				;
+		handler_states[handler_num].crc_low = rx_data;
+		handler_states[handler_num].rx_state++;
+		handler_states[handler_num].rx_timeout = RX_TIMEOUT;
 		break;
 
 	case 5:
 		if (rx_data == 3) {
-			if (crc16(rx_buffer, payload_length)
-					== ((unsigned short) crc_high << 8
-							| (unsigned short) crc_low)) {
+			if (crc16(handler_states[handler_num].rx_buffer, handler_states[handler_num].payload_length)
+					== ((unsigned short)handler_states[handler_num].crc_high << 8
+							| (unsigned short)handler_states[handler_num].crc_low)) {
 				// Packet received!
-				if (process_func) {
-					process_func(rx_buffer, payload_length);
+				if (handler_states[handler_num].process_func) {
+					handler_states[handler_num].process_func(handler_states[handler_num].rx_buffer,
+							handler_states[handler_num].payload_length);
 				}
 			}
 		}
-
-		rx_state = 0;
+		handler_states[handler_num].rx_state = 0;
 		break;
 
 	default:
-		rx_state = 0;
+		handler_states[handler_num].rx_state = 0;
 		break;
 	}
 }
