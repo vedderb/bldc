@@ -25,7 +25,7 @@
 #include "utils.h"
 #include <math.h>
 
-void step_towards(float *value, float goal, float step) {
+void utils_step_towards(float *value, float goal, float step) {
     if (*value < goal) {
         if ((*value + step) < goal) {
             *value += step;

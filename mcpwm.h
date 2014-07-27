@@ -51,6 +51,7 @@ typedef enum {
 	CONTROL_MODE_DUTY = 0,
 	CONTROL_MODE_SPEED,
 	CONTROL_MODE_CURRENT,
+	CONTROL_MODE_CURRENT_BRAKE,
 	CONTROL_MODE_NONE
 } mc_control_mode;
 
@@ -60,6 +61,7 @@ void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
+void mcpwm_set_brake_current(float current);
 void mcpwm_brake_now(void);
 void mcpwm_release_motor(void);
 int mcpwm_get_comm_step(void);
@@ -113,11 +115,11 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
-#define MCPWM_MIN_DUTY_CYCLE			0.01	// Minimum duty cycle
+#define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
-#define MCPWM_AVG_COM_RPM				6		// Number of commutations to average RPM over
-#define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_RAMP_STEP_CURRENT_MAX		0.03	// Maximum ramping step (1000 times/sec) for the current control
+#define MCPWM_AVG_COM_RPM				3		// Number of commutations to average RPM over
+#define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
+#define MCPWM_RAMP_STEP_CURRENT_MAX		0.04	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #define MCPWM_CMD_STOP_TIME				50		// Ignore commands for this duration in msec after a stop has been sent
@@ -148,14 +150,14 @@ extern volatile int mcpwm_vzero;
 #ifndef MCPWM_RPM_MIN
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 #endif
-#ifndef MCPWM_CURRENT_CONTROL_NO_REV
-#define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
-#endif
 #ifndef MCPWM_CURRENT_STARTUP_BOOST
-#define MCPWM_CURRENT_STARTUP_BOOST		0.05	// The lowest duty cycle to use in current control mode @ 20V.
+#define MCPWM_CURRENT_STARTUP_BOOST		0.01	// The lowest duty cycle to use in current control mode @ 20V.
 #endif
 #ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		1		// Use negative torque to limit the RPM
+#endif
+#ifndef MCPWM_CURR_MIN_RPM_FBRAKE
+#define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
 #endif
 
 #endif /* MC_PWM_H_ */

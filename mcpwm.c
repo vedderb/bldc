@@ -81,6 +81,9 @@ static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
 static int hall_to_phase_table[16];
+static volatile unsigned int cycles_running;
+static volatile unsigned int slow_ramping_cycles;
+static volatile int has_commutated;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -184,6 +187,9 @@ void mcpwm_init(void) {
 	ignore_iterations = 0;
 	timer_struct_updated = 0;
 	curr_samp_volt = 0;
+	cycles_running = 0;
+	slow_ramping_cycles = 0;
+	has_commutated = 0;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -469,6 +475,7 @@ void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add) {
 
 static void do_dc_cal(void) {
 	DCCAL_ON();
+	while(IS_DRV_FAULT()){};
 	chThdSleepMilliseconds(1000);
 	curr0_sum = 0;
 	curr1_sum = 0;
@@ -514,7 +521,7 @@ void mcpwm_set_pid_speed(float rpm) {
 /**
  * Use current control and specify a goal current to use. The sign determines
  * the direction of the torque. Absolute values less than
- * MCPWM_CURRENT_CONTROL_MIN will stop the motor.
+ * MCPWM_CURRENT_CONTROL_MIN will release the motor.
  *
  * @param current
  * The current to use.
@@ -537,6 +544,41 @@ void mcpwm_set_current(float current) {
 
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(SIGN(current) * MCPWM_MIN_DUTY_CYCLE);
+	}
+}
+
+/**
+ * Brake the motor with a desired current. Absolute values less than
+ * MCPWM_CURRENT_CONTROL_MIN will release the motor.
+ *
+ * @param current
+ * The current to use. Positive and negative values give the same effect.
+ */
+void mcpwm_set_brake_current(float current) {
+	if (try_input()) {
+		return;
+	}
+
+	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+		control_mode = CONTROL_MODE_NONE;
+		stop_pwm_ll();
+		return;
+	}
+
+	utils_truncate_number(&current, -fabsf(MCPWM_CURRENT_MIN), fabsf(MCPWM_CURRENT_MIN));
+
+	control_mode = CONTROL_MODE_CURRENT_BRAKE;
+	current_set = current;
+
+	if (state != MC_STATE_RUNNING) {
+		// In case the motor is already spinning, set the state to running
+		// so that it can be ramped down before the full brake is applied.
+		// TODO: The number 500 is a hack...
+		if (fabsf(rpm_now) > 500) {
+			state = MC_STATE_RUNNING;
+		} else {
+			full_brake_ll();
+		}
 	}
 }
 
@@ -776,6 +818,8 @@ static void set_duty_cycle_hl(float dutyCycle) {
 
 	if (state != MC_STATE_RUNNING) {
 		if (fabsf(dutyCycle) >= MCPWM_MIN_DUTY_CYCLE) {
+			// dutycycle_now is updated by the back-emf detection. If the motor already
+			// is spinning, it will be non-zero.
 			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
 				dutycycle_now = SIGN(dutyCycle) * MCPWM_MIN_DUTY_CYCLE;
 			}
@@ -836,7 +880,6 @@ static void set_duty_cycle_ll(float dutyCycle) {
 #if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
-		pwm_cycles_sum = 0.0;
 	}
 #else
 	if (state != MC_STATE_RUNNING) {
@@ -1000,8 +1043,8 @@ static msg_t timer_thread(void *arg) {
 			// have enough time after a direction change to get stable before trying to
 			// change direction again.
 
-			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
-				if (tachometer_for_direction > 12) {
+			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.0) {
+				if (tachometer_for_direction > 20) {
 					if (direction == 1) {
 						direction = 0;
 					} else {
@@ -1028,9 +1071,9 @@ static msg_t timer_thread(void *arg) {
 #endif
 
 			if (direction == 1) {
-				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS] * sqrtf(3.0);
+				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS];
 			} else {
-				dutycycle_now = -amp / (float)ADC_Value[ADC_IND_VIN_SENS] * sqrtf(3.0);
+				dutycycle_now = -amp / (float)ADC_Value[ADC_IND_VIN_SENS];
 			}
 			utils_truncate_number((float*)&dutycycle_now, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 			break;
@@ -1230,17 +1273,12 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	volatile int ph1, ph2, ph3;
 
-	/*
-	 * When the motor just has started, some measurements and operations have
-	 * to be made differently. Therefore, keep track of how many ADC cycles
-	 * it has been running.
-	 */
-	static volatile unsigned int cycles_running = 0;
 	static volatile int direction_before = 1;
 	if (state == MC_STATE_RUNNING && direction == direction_before) {
 		cycles_running++;
 	} else {
 		cycles_running = 0;
+		has_commutated = 0;
 	}
 	direction_before = direction;
 
@@ -1278,7 +1316,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		ph3 = ADC_V_L2 - mcpwm_vzero;
 	}
 
-	float amp = sqrtf(((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) / 1.5);
+	float amp = 0.0;
+
+	if (cycles_running == 0) {
+		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
+	} else {
+		amp = fabsf(dutycycle_now) * (float)ADC_Value[ADC_IND_VIN_SENS];
+	}
 
 	// Fill the amplitude FIR filter
 	filter_add_sample((float*)amp_fir_samples, amp,
@@ -1363,13 +1407,17 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
-	if (state == MC_STATE_RUNNING) {
+	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / input_voltage;
 		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
+		float ramp_step_no_lim = ramp_step;
 		const float rpm = mcpwm_get_rpm();
 
-		ramp_step *= fabsf(dutycycle_now);
+		if (slow_ramping_cycles) {
+			slow_ramping_cycles--;
+			ramp_step *= 0.1;
+		}
 
 		float dutycycle_now_tmp = dutycycle_now;
 
@@ -1386,95 +1434,107 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			// Switching frequency correction
 			step /= (switching_frequency_now / 1000.0);
 
-			if (cycles_running < 1000) {
-				utils_truncate_number(&step, -ramp_step, ramp_step);
+			if (slow_ramping_cycles) {
+				slow_ramping_cycles--;
+				step *= 0.1;
 			}
 
 			// Optionally apply startup boost.
-			if (!MCPWM_CURRENT_CONTROL_NO_REV || dutycycle_now_tmp > 0.0) {
-				if (fabsf(dutycycle_now_tmp) < start_boost) {
-					step_towards(&dutycycle_now_tmp,
-							current_set > 0.0 ?
-									start_boost :
-									-start_boost, ramp_step);
-				} else {
-					dutycycle_now_tmp += step;
-				}
+			if (fabsf(dutycycle_now_tmp) < start_boost) {
+				utils_step_towards(&dutycycle_now_tmp,
+						current_set > 0.0 ?
+								start_boost :
+								-start_boost, ramp_step);
+			} else {
+				dutycycle_now_tmp += step;
 			}
 
 			// Upper truncation
 			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
 			// Lower truncation
+			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
+					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
+				} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
+					dutycycle_now_tmp = -MCPWM_MIN_DUTY_CYCLE;
+				}
+			}
 
-			/*
-			 * TODO:
-			 * Remove MCPWM_CURRENT_CONTROL_NO_REV and use a generic braking state that works for any direction.
-			 */
-			if (MCPWM_CURRENT_CONTROL_NO_REV) {
-				// This means that the motor shouldn't go in reverse, only brake.
+			// The set dutycycle should be in the correct direction in case the output is lower
+			// than the minimum duty cycle and the mechanism below gets activated.
+			dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE : -MCPWM_MIN_DUTY_CYCLE;
+		} else if (control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			// Compute error
+			const float error = -fabsf(current_set) - current;
+			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
 
-				if (dutycycle_now > -MCPWM_MIN_DUTY_CYCLE) {
-					// Going forwards...
+			// Do not ramp too much
+			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
+					MCPWM_RAMP_STEP_CURRENT_MAX);
 
-					if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE  && current_set < 0.0) {
-						// Apply full brake
-						dutycycle_now_tmp = 0.0;
-						dutycycle_set = 0.0;
-					} else {
-						if (dutycycle_now_tmp < MCPWM_MIN_DUTY_CYCLE && current_set > 0.0) {
-							// Too low duty cycle, use the minimum one.
-							dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
-							dutycycle_set = dutycycle_now_tmp;
-						}
-					}
+			// Switching frequency correction
+			step /= (switching_frequency_now / 1000.0);
+
+			if (slow_ramping_cycles) {
+				slow_ramping_cycles--;
+				step *= 0.1;
+			}
+
+			dutycycle_now_tmp += SIGN(dutycycle_now_tmp) * step;
+
+			// Upper truncation
+			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+
+			// Lower truncation
+			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+				if (fabsf(rpm_now) < MCPWM_CURR_MIN_RPM_FBRAKE) {
+					dutycycle_now_tmp = 0.0;
+					dutycycle_set = dutycycle_now_tmp;
 				} else {
-					// Going reverse, ramp down...
-					step_towards(&dutycycle_now_tmp, 0.0, ramp_step);
-
-					// If the set current is > 0, brake when stopping, otherwise change direction
-					dutycycle_set = current_set > 0.0 ? MCPWM_MIN_DUTY_CYCLE : 0.0;
+					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * MCPWM_MIN_DUTY_CYCLE;
+					dutycycle_set = dutycycle_now_tmp;
 				}
-			} else {
-				if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-					if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
-						dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
-					} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
-						dutycycle_now_tmp = -MCPWM_MIN_DUTY_CYCLE;
-					}
-				}
-
-				// The set dutycycle should be in the correct direction in case the output is lower
-				// than the minimum duty cycle and the mechanism below gets activated.
-				dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE : -MCPWM_MIN_DUTY_CYCLE;
 			}
 		} else {
-			step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
+			utils_step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);
 		}
+
+		static int limit_delay = 0;
 
 		// Apply limits in priority order
 		if (current > MCPWM_CURRENT_MAX) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+			utils_step_towards((float*) &dutycycle_now, 0.0,
+					ramp_step_no_lim * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+			limit_delay = 1;
 		} else if (current < MCPWM_CURRENT_MIN) {
-			step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
+			utils_step_towards((float*) &dutycycle_now,
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
+			limit_delay = 1;
 		} else if (current_in > MCPWM_IN_CURRENT_MAX) {
-			step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+			utils_step_towards((float*) &dutycycle_now, 0.0,
+					ramp_step_no_lim * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+			limit_delay = 1;
 		} else if (current_in < MCPWM_IN_CURRENT_MIN) {
-			step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step);
+			utils_step_towards((float*) &dutycycle_now,
+					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
+			limit_delay = 1;
 		} else if (rpm > MCPWM_RPM_MAX) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > 0.0) && dutycycle_now <= dutycycle_now_tmp) {
-				step_towards((float*) &dutycycle_now, 0.0, ramp_step);
-				cycles_running = 0;
+			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -4.0) && dutycycle_now <= dutycycle_now_tmp) {
+				utils_step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+				limit_delay = 1;
+				slow_ramping_cycles = 500;
 			}
 		} else if (rpm < MCPWM_RPM_MIN) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > 0.0) && dutycycle_now >= dutycycle_now_tmp) {
-				step_towards((float*) &dutycycle_now, 0.0, ramp_step);
-				cycles_running = 0;
+			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -4.0) && dutycycle_now >= dutycycle_now_tmp) {
+				utils_step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+				limit_delay = 1;
+				slow_ramping_cycles = 500;
 			}
+		}
+
+		if (limit_delay > 0) {
+			limit_delay--;
 		} else {
 			dutycycle_now = dutycycle_now_tmp;
 		}
@@ -1779,6 +1839,7 @@ static void commutate(void) {
 	set_next_comm_step(comm_step);
 #endif
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	has_commutated = 1;
 
 	mc_timer_struct timer_tmp;
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));

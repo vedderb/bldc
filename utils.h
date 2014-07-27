@@ -25,7 +25,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-void step_towards(float *value, float goal, float step);
+void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);
 int utils_truncate_number(float *number, float min, float max);

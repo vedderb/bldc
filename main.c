@@ -308,6 +308,12 @@ void main_process_packet(unsigned char *data, unsigned char len) {
 		mcpwm_set_current((float)value16 / 100.0);
 		break;
 
+	case 8:
+		// Brake current control
+		value16 = (int)data[1] << 8 | (int)data[2];
+		mcpwm_set_brake_current((float)value16 / 100.0);
+		break;
+
 	default:
 		break;
 	}
