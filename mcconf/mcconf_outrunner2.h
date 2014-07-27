@@ -34,7 +34,6 @@
 #define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
-#define MCPWM_RPM_MAX					10000.0	// The motor speed limit (Upper)
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
