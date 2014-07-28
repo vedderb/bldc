@@ -1520,14 +1520,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
 		} else if (rpm > MCPWM_RPM_MAX) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -4.0) && dutycycle_now <= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
+				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
 			}
 		} else if (rpm < MCPWM_RPM_MIN) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -4.0) && dutycycle_now >= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, ramp_step);
+			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -1.0) && dutycycle_now >= dutycycle_now_tmp) {
+				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
 			}
