@@ -114,6 +114,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_SWITCH_FREQUENCY_MIN		4000	// The lowest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
+#define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
@@ -123,7 +124,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
 #define MCPWM_CURRENT_LIMIT_GAIN		0.1		// The error gain of the current limiting algorithm
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
-#define MCPWM_CMD_STOP_TIME				50		// Ignore commands for this duration in msec after a stop has been sent
+#define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 
 // Speed PID parameters

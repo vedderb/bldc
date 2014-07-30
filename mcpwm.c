@@ -399,7 +399,7 @@ void mcpwm_init(void) {
 
 	// 32-bit timer for RPM measurement
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 1000000) - 1;
+	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / MCPWM_RPM_TIMER_FREQ) - 1;
 
 	// Time base configuration
 	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
@@ -999,7 +999,7 @@ static msg_t timer_thread(void *arg) {
 		uint32_t tim_diff = tim_val - last_comm_time;
 
 		if (tim_diff > 0) {
-			float rpm_tmp = ((float)MCPWM_AVG_COM_RPM * 1000000.0 * 60.0) /
+			float rpm_tmp = ((float)MCPWM_AVG_COM_RPM * MCPWM_RPM_TIMER_FREQ * 60.0) /
 					((float)tim_diff *  6.0);
 
 			// Re-calculate RPM between commutations
@@ -1340,49 +1340,50 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if ((pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || state != MC_STATE_RUNNING) && (pwm_cycles_sum > 2)) {
-		int v_diff = 0;
+	int v_diff = 0;
 
-		switch (comm_step) {
-		case 1:
-			v_diff = ph1;
-			break;
-		case 2:
-			v_diff = -ph2;
-			break;
-		case 3:
-			v_diff = ph3;
-			break;
-		case 4:
-			v_diff = -ph1;
-			break;
-		case 5:
-			v_diff = ph2;
-			break;
-		case 6:
-			v_diff = -ph3;
-			break;
-		default:
-			break;
-		}
+	switch (comm_step) {
+	case 1:
+		v_diff = ph1;
+		break;
+	case 2:
+		v_diff = -ph2;
+		break;
+	case 3:
+		v_diff = ph3;
+		break;
+	case 4:
+		v_diff = -ph1;
+		break;
+	case 5:
+		v_diff = ph2;
+		break;
+	case 6:
+		v_diff = -ph3;
+		break;
+	default:
+		break;
+	}
 
-		if (v_diff > 0) {
-			if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
-				cycle_integrator += v_diff / (float)switching_frequency_now;
+	if (v_diff > 0) {
+		if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
+			cycle_integrator += v_diff / (float)switching_frequency_now;
 
-				const float rpm_fac = rpm_now / 50000.0;
-				const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
-						MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
-				const float limit = (cycle_int_limit * 0.0005);
+			const float rpm_fac = rpm_now / 50000.0;
+			const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
+					MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
 
-				if (cycle_integrator >= limit) {
-					commutate();
-					cycle_integrator = CYCLE_INT_START;
-				}
+			const float limit = (cycle_int_limit * 0.0005);
+
+			if ((cycle_integrator >= 10 * limit || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || state != MC_STATE_RUNNING)
+					&& (pwm_cycles_sum > 2)
+					&& cycle_integrator >= limit) {
+				commutate();
+				cycle_integrator = CYCLE_INT_START;
 			}
-		} else {
-			cycle_integrator = CYCLE_INT_START;
 		}
+	} else {
+		cycle_integrator = CYCLE_INT_START;
 	}
 
 	pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / (float)switching_frequency_now;
@@ -1791,7 +1792,7 @@ static void update_rpm_tacho(void) {
 		last_comm_time = tim_val;
 
 		if (tim_diff > 0) {
-			rpm_now = ((float)MCPWM_AVG_COM_RPM * 1000000.0 * 60.0) /
+			rpm_now = ((float)MCPWM_AVG_COM_RPM * MCPWM_RPM_TIMER_FREQ * 60.0) /
 					((float)tim_diff *  6.0);
 		}
 	}

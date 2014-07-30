@@ -28,28 +28,27 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "servo_dec.h"
 #include "mcpwm.h"
 #include "utils.h"
 #include <math.h>
 
-// Threads
-static msg_t servo_thread(void *arg);
-static msg_t uart_thread(void *arg);
-static WORKING_AREA(servo_thread_wa, 1024);
-static WORKING_AREA(uart_thread_wa, 1024);
-static Thread *servo_tp;
-static VirtualTimer vt;
-static volatile systime_t last_uart_update_time;
-
-// Private functions
-static void servodec_func(void);
-static void trig_func(void *p);
-static void set_output(float output);
-
 // Settings
 #define TIMEOUT		500
 #define HYST		0.10
+// 29000rpm = 20kmh
+#define RPM_MAX_1	41000	// Start decreasing output here
+#define RPM_MAX_2	44000	// Completely stop output here
+
+// Private variables
+static volatile float out_received = 0.0;
+
+// Threads
+static msg_t uart_thread(void *arg);
+static WORKING_AREA(uart_thread_wa, 1024);
+static volatile systime_t last_uart_update_time;
+
+// Private functions
+static void set_output(float output);
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -82,8 +81,7 @@ static void rxerr(UARTDriver *uartp, uartflags_t e) {
 static void rxchar(UARTDriver *uartp, uint16_t c) {
 	(void)uartp;
 
-	float val = ((float)c / 128) - 1.0;
-	set_output(val);
+	out_received = ((float)c / 128) - 1.0;
 	last_uart_update_time = chTimeNow();
 }
 
@@ -110,18 +108,7 @@ static UARTConfig uart_cfg = {
 };
 
 void app_sten_init(void) {
-//	chThdCreateStatic(servo_thread_wa, sizeof(servo_thread_wa), NORMALPRIO, servo_thread, NULL);
 	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
-}
-
-static void trig_func(void *p) {
-	(void)p;
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
-
-	chEvtSignalI(servo_tp, (eventmask_t) 1);
 }
 
 static msg_t uart_thread(void *arg) {
@@ -140,45 +127,16 @@ static msg_t uart_thread(void *arg) {
 	systime_t time = chTimeNow();
 
 	for(;;) {
-		time += MS2ST(40);
+		time += MS2ST(1);
 
 		if ((systime_t) ((float) chTimeElapsedSince(last_uart_update_time)
 				/ ((float) CH_FREQUENCY / 1000.0)) > (float)TIMEOUT) {
 			mcpwm_set_brake_current(-10.0);
+		} else {
+			set_output(out_received);
 		}
 
 		chThdSleepUntil(time);
-	}
-
-	return 0;
-}
-
-static void servodec_func(void) {
-	chSysLockFromIsr();
-	chEvtSignalI(servo_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
-}
-
-static msg_t servo_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("APP_STEN");
-	servo_tp = chThdSelf();
-
-	servodec_init(servodec_func);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
-
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
-
-		if (servodec_get_time_since_update() < TIMEOUT) {
-			set_output(servodec_get_servo_as_float(0));
-		} else {
-			mcpwm_set_brake_current(-10.0);
-		}
 	}
 
 	return 0;
@@ -195,8 +153,22 @@ static void set_output(float output) {
 		output = 0.0;
 	}
 
-	if (output > 0.0 && mcpwm_get_rpm() > -500) {
-		mcpwm_set_current(output * MCPWM_CURRENT_MAX);
+	const float rpm = mcpwm_get_rpm();
+
+	if (output > 0.0 && rpm > -500) {
+		float current = output * MCPWM_CURRENT_MAX;
+
+		// Soft RPM limit
+		if (rpm > RPM_MAX_2) {
+			current = -MCPWM_CURRENT_CONTROL_MIN;
+		} else if (rpm > RPM_MAX_1) {
+			current = utils_map(rpm, RPM_MAX_2, RPM_MAX_1, -MCPWM_CURRENT_CONTROL_MIN, output);
+			if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+				current = -MCPWM_CURRENT_CONTROL_MIN;
+			}
+		}
+
+		mcpwm_set_current(current);
 	} else {
 		mcpwm_set_brake_current(output * MCPWM_CURRENT_MIN);
 	}

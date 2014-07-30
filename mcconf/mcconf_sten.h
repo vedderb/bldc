@@ -28,21 +28,21 @@
 /*
  * Parameters
  */
-#define MCPWM_CURRENT_MAX				35.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-28.0	// Current limit in Amperes (Lower)
+#define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes (Upper)
+#define MCPWM_CURRENT_MIN				-30.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
-#define MCPWM_RPM_MAX					36250.0	// The motor speed limit (Upper) (29000 = 20kmh)
-#define MCPWM_RPM_MIN					-10000.0	// The motor speed limit (Lower)
-#define MCPWM_MIN_VOLTAGE				20.0		// Minimum input voltage
+#define MCPWM_RPM_MAX					50000.0	// The motor speed limit (Upper)
+#define MCPWM_RPM_MIN					-50000.0	// The motor speed limit (Lower)
+#define MCPWM_MIN_VOLTAGE				20.0	// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #define MCPWM_CURRENT_STARTUP_BOOST		0.03	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		0		// Use negative torque to limit the RPM
-#define MCPWM_CURR_MIN_RPM_FBRAKE		900		// Minimum electrical RPM to use full brake at
+#define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					200		// Auto-commutate below this RPM
+#define MCPWM_MIN_RPM					250		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_LOW		200.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit 50K ERPM
 
@@ -54,6 +54,6 @@
 
 // Current control parameters
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
-#define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
+#define MCPWM_CURRENT_CONTROL_MIN		0.2		// Minimum allowed current
 
 #endif /* MCCONF_STEN_H_ */
