@@ -38,8 +38,10 @@
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
 #define MCPWM_MIN_RPM					200		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_LIMIT_LOW		150.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 50K ERPM
+#define MCPWM_CYCLE_INT_START_RPM_BR	5000.0	// RPM border between the START and LOW interval
+#define MCPWM_CYCLE_INT_LIMIT_START		1200.0	// Flux integrator limit 0 ERPM
+#define MCPWM_CYCLE_INT_LIMIT_LOW		120.0	// Flux integrator limit MCPWM_CYCLE_INT_START_RPM_BR ERPM
+#define MCPWM_CYCLE_INT_LIMIT_HIGH		20.0	// Flux integrator limit 80K ERPM
 
 // Speed PID parameters
 #define MCPWM_PID_KP					0.0001	// Proportional gain

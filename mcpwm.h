@@ -111,14 +111,13 @@ extern volatile int mcpwm_vzero;
 /*
  * Parameters
  */
-#define MCPWM_SWITCH_FREQUENCY_MIN		4000	// The lowest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_MAX		30000	// The highest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_MAX		35000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
-#define MCPWM_AVG_COM_RPM				3		// Number of commutations to average RPM over
 #define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
 #define MCPWM_RAMP_STEP_CURRENT_MAX		0.04	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM

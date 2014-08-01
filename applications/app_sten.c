@@ -36,8 +36,8 @@
 #define TIMEOUT		500
 #define HYST		0.10
 // 29000rpm = 20kmh
-#define RPM_MAX_1	41000	// Start decreasing output here
-#define RPM_MAX_2	44000	// Completely stop output here
+#define RPM_MAX_1	41000.0	// Start decreasing output here
+#define RPM_MAX_2	44000.0	// Completely stop output here
 
 // Private variables
 static volatile float out_received = 0.0;
@@ -162,10 +162,18 @@ static void set_output(float output) {
 		if (rpm > RPM_MAX_2) {
 			current = -MCPWM_CURRENT_CONTROL_MIN;
 		} else if (rpm > RPM_MAX_1) {
-			current = utils_map(rpm, RPM_MAX_2, RPM_MAX_1, -MCPWM_CURRENT_CONTROL_MIN, output);
-			if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
-				current = -MCPWM_CURRENT_CONTROL_MIN;
-			}
+			current = utils_map(rpm, RPM_MAX_1, RPM_MAX_2, current, -MCPWM_CURRENT_CONTROL_MIN);
+		}
+
+		// Some low-pass filtering
+		static float current_p1 = 0.0;
+		static float current_p2 = 0.0;
+		current = (current + current_p1 + current_p2) / 3;
+		current_p2 = current_p1;
+		current_p1 = current;
+
+		if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+			current = -MCPWM_CURRENT_CONTROL_MIN;
 		}
 
 		mcpwm_set_current(current);

@@ -46,11 +46,17 @@ typedef struct {
 	volatile unsigned int curr2_sample;
 } mc_timer_struct;
 
+typedef struct {
+	volatile float cycle_int_limit;
+	volatile float cycle_int_limit_running;
+	volatile uint32_t comms;
+	volatile uint32_t time_at_comm;
+} rpm_dep_struct;
+
 // Private variables
 static volatile int comm_step; // Range [1 6]
 static volatile int detect_step; // Range [0 5]
 static volatile int direction;
-static volatile int last_comm_time;
 static volatile float dutycycle_set;
 static volatile float dutycycle_now;
 static volatile float rpm_now;
@@ -84,6 +90,7 @@ static int hall_to_phase_table[16];
 static volatile unsigned int cycles_running;
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
+static volatile rpm_dep_struct rpm_dep;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -146,13 +153,14 @@ static int try_input(void);
 static void do_dc_cal(void);
 
 // Defines
-#define ADC_CDR_ADDRESS			((uint32_t)0x40012308)
 #define CYCLE_INT_START			(0.0)
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
 static WORKING_AREA(timer_thread_wa, 1024);
 static msg_t timer_thread(void *arg);
+static WORKING_AREA(rpm_thread_wa, 1024);
+static msg_t rpm_thread(void *arg);
 
 void mcpwm_init(void) {
 	chSysLock();
@@ -166,7 +174,6 @@ void mcpwm_init(void) {
 	detect_step = 0;
 	direction = 1;
 	rpm_now = 0;
-	last_comm_time = 0;
 	dutycycle_set = 0.0;
 	dutycycle_now = 0.0;
 	speed_pid_set_rpm = 0.0;
@@ -190,6 +197,7 @@ void mcpwm_init(void) {
 	cycles_running = 0;
 	slow_ramping_cycles = 0;
 	has_commutated = 0;
+	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -273,7 +281,7 @@ void mcpwm_init(void) {
 	// DMA for the ADC
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC_Value;
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC_CDR_ADDRESS;
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC->CDR;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_BufferSize = HW_ADC_CHANNELS;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -438,8 +446,9 @@ void mcpwm_init(void) {
 	// TIM3 enable counter
 	TIM_Cmd(TIM4, ENABLE);
 
-	// Start the timer thread
+	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
 	// WWDG configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
@@ -981,6 +990,58 @@ static void run_pid_controller(void) {
 	set_duty_cycle_hl(output);
 }
 
+static msg_t rpm_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("rpm timer");
+
+	for (;;) {
+		if (rpm_dep.comms > 0.0) {
+			chSysLock();
+			const float comms = (float) rpm_dep.comms;
+			const float time_at_comm = (float) rpm_dep.time_at_comm;
+			rpm_dep.comms = 0;
+			rpm_dep.time_at_comm = 0;
+			chSysUnlock();
+
+			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0)
+					/ (time_at_comm * 6.0);
+		} else {
+			// In case we have slowed down
+			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0)
+					/ ((float) TIM2 ->CNT * 6.0);
+
+			if (rpm_tmp < rpm_now) {
+				rpm_now = rpm_tmp;
+			}
+		}
+
+		// Some low-pass filtering
+		static float rpm_p1 = 0.0;
+		static float rpm_p2 = 0.0;
+		rpm_now = (rpm_now + rpm_p1 + rpm_p2) / 3;
+		rpm_p2 = rpm_p1;
+		rpm_p1 = rpm_now;
+
+		// Update the cycle integrator limit
+		rpm_dep.cycle_int_limit = utils_map(rpm_now,
+				MCPWM_CYCLE_INT_START_RPM_BR, 80000.0,
+				MCPWM_CYCLE_INT_LIMIT_LOW, MCPWM_CYCLE_INT_LIMIT_HIGH);
+
+		if (rpm_now < MCPWM_CYCLE_INT_START_RPM_BR) {
+			rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
+					MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT_START,
+					MCPWM_CYCLE_INT_LIMIT_LOW);
+		} else {
+			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit;
+		}
+
+		chThdSleepMilliseconds(1);
+	}
+
+	return 0;
+}
+
 static msg_t timer_thread(void *arg) {
 	(void)arg;
 
@@ -994,21 +1055,6 @@ static msg_t timer_thread(void *arg) {
 #endif
 
 	for(;;) {
-		// Update RPM in case it has slowed down
-		uint32_t tim_val = TIM2->CNT;
-		uint32_t tim_diff = tim_val - last_comm_time;
-
-		if (tim_diff > 0) {
-			float rpm_tmp = ((float)MCPWM_AVG_COM_RPM * MCPWM_RPM_TIMER_FREQ * 60.0) /
-					((float)tim_diff *  6.0);
-
-			// Re-calculate RPM between commutations
-			// This will end up being used when slowing down
-			if (rpm_tmp < rpm_now) {
-				rpm_now = rpm_tmp;
-			}
-		}
-
 		if (state != MC_STATE_OFF) {
 			tachometer_for_direction = 0;
 		}
@@ -1271,9 +1317,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	WWDG_SetCounter(100);
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
-	volatile int ph1, ph2, ph3;
+	int ph1, ph2, ph3;
 
-	static volatile int direction_before = 1;
+	static int direction_before = 1;
 	if (state == MC_STATE_RUNNING && direction == direction_before) {
 		cycles_running++;
 	} else {
@@ -1300,7 +1346,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	 * If the motor has been running for a while use half the input voltage
 	 * as the zero reference. Otherwise, calculate the zero reference manually.
 	 */
-	if (cycles_running > 1000) {
+	if (cycles_running > 1000.0) {
 		mcpwm_vzero = ADC_V_ZERO;
 	} else {
 		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
@@ -1318,10 +1364,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	float amp = 0.0;
 
-	if (cycles_running == 0) {
-		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
-	} else {
+	if (has_commutated) {
 		amp = fabsf(dutycycle_now) * (float)ADC_Value[ADC_IND_VIN_SENS];
+	} else {
+		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
 	}
 
 	// Fill the amplitude FIR filter
@@ -1340,47 +1386,48 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	int v_diff = 0;
+	if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
+		int v_diff = 0;
+		switch (comm_step) {
+		case 1:
+			v_diff = ph1;
+			break;
+		case 2:
+			v_diff = -ph2;
+			break;
+		case 3:
+			v_diff = ph3;
+			break;
+		case 4:
+			v_diff = -ph1;
+			break;
+		case 5:
+			v_diff = ph2;
+			break;
+		case 6:
+			v_diff = -ph3;
+			break;
+		default:
+			break;
+		}
 
-	switch (comm_step) {
-	case 1:
-		v_diff = ph1;
-		break;
-	case 2:
-		v_diff = -ph2;
-		break;
-	case 3:
-		v_diff = ph3;
-		break;
-	case 4:
-		v_diff = -ph1;
-		break;
-	case 5:
-		v_diff = ph2;
-		break;
-	case 6:
-		v_diff = -ph3;
-		break;
-	default:
-		break;
-	}
+		if (v_diff > 0) {
+			cycle_integrator += (float)v_diff / (float)switching_frequency_now;
 
-	if (v_diff > 0) {
-		if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
-			cycle_integrator += v_diff / (float)switching_frequency_now;
+			float limit;
+			if (has_commutated) {
+				limit = rpm_dep.cycle_int_limit_running * 0.0005;
+			} else {
+				limit = rpm_dep.cycle_int_limit * 0.0005;
+			}
 
-			const float rpm_fac = rpm_now / 50000.0;
-			const float cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_LOW * (1.0 - rpm_fac) +
-					MCPWM_CYCLE_INT_LIMIT_HIGH * rpm_fac;
-
-			const float limit = (cycle_int_limit * 0.0005);
-
-			if ((cycle_integrator >= 10 * limit || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || state != MC_STATE_RUNNING)
-					&& (pwm_cycles_sum > 2)
+			if ((cycle_integrator >= MCPWM_CYCLE_INT_LIMIT_START * 0.0005 || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
 					&& cycle_integrator >= limit) {
 				commutate();
 				cycle_integrator = CYCLE_INT_START;
 			}
+		} else {
+			cycle_integrator = CYCLE_INT_START;
 		}
 	} else {
 		cycle_integrator = CYCLE_INT_START;
@@ -1782,20 +1829,9 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 }
 
 static void update_rpm_tacho(void) {
-	static uint32_t comm_counter = 0;
-	comm_counter++;
-
-	if (comm_counter == MCPWM_AVG_COM_RPM) {
-		comm_counter = 0;
-		uint32_t tim_val = TIM2->CNT;
-		uint32_t tim_diff = tim_val - last_comm_time;
-		last_comm_time = tim_val;
-
-		if (tim_diff > 0) {
-			rpm_now = ((float)MCPWM_AVG_COM_RPM * MCPWM_RPM_TIMER_FREQ * 60.0) /
-					((float)tim_diff *  6.0);
-		}
-	}
+	rpm_dep.comms++;
+	rpm_dep.time_at_comm += TIM2->CNT;
+	TIM2->CNT = 0;
 
 	static int last_step = 0;
 	int tacho_diff = 0;
