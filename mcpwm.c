@@ -430,6 +430,7 @@ void mcpwm_init(void) {
 
 	// Calibrate current offset
 	ENABLE_GATE();
+	DCCAL_OFF();
 	do_dc_cal();
 
 	// Various time measurements
@@ -489,7 +490,7 @@ static void do_dc_cal(void) {
 	curr0_sum = 0;
 	curr1_sum = 0;
 	curr_start_samples = 0;
-	while(curr_start_samples < 2000) {};
+	while(curr_start_samples < 4000) {};
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
 	DCCAL_OFF();
@@ -1089,8 +1090,8 @@ static msg_t timer_thread(void *arg) {
 			// have enough time after a direction change to get stable before trying to
 			// change direction again.
 
-			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.0) {
-				if (tachometer_for_direction > 20) {
+			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
+				if (tachometer_for_direction > 12) {
 					if (direction == 1) {
 						direction = 0;
 					} else {
@@ -1386,7 +1387,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	if (state == MC_STATE_RUNNING || state == MC_STATE_OFF) {
+	if ((state == MC_STATE_RUNNING && pwm_cycles_sum >= 2.0) || state == MC_STATE_OFF) {
 		int v_diff = 0;
 		switch (comm_step) {
 		case 1:
