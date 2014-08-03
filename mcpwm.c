@@ -1489,7 +1489,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Optionally apply startup boost.
-			if (fabsf(dutycycle_now_tmp) < start_boost) {
+			if (fabsf(dutycycle_now_tmp) < start_boost && (direction ? dutycycle_now > 0.0 : dutycycle_now < 0.0)) {
 				utils_step_towards(&dutycycle_now_tmp,
 						current_set > 0.0 ?
 								start_boost :

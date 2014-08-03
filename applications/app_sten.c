@@ -155,7 +155,7 @@ static void set_output(float output) {
 
 	const float rpm = mcpwm_get_rpm();
 
-	if (output > 0.0 && rpm > -500) {
+	if (output > 0.0 && rpm > -MCPWM_MIN_RPM) {
 		float current = output * MCPWM_CURRENT_MAX;
 
 		// Soft RPM limit
