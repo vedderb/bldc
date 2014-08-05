@@ -81,7 +81,7 @@ static volatile float motor_current_iterations;
 static volatile float input_current_iterations;
 static volatile float mcpwm_detect_currents_avg[6];
 static volatile float mcpwm_detect_currents_avg_samples[6];
-static volatile int switching_frequency_now;
+static volatile float switching_frequency_now;
 static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int timer_struct_updated;
@@ -148,7 +148,7 @@ static void update_rpm_tacho(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(void);
 static void set_next_timer_settings(mc_timer_struct *settings);
-static void set_switching_frequency(int frequency);
+static void set_switching_frequency(float frequency);
 static int try_input(void);
 static void do_dc_cal(void);
 
@@ -223,7 +223,7 @@ void mcpwm_init(void) {
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -360,7 +360,7 @@ void mcpwm_init(void) {
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
@@ -622,6 +622,16 @@ float mcpwm_get_duty_cycle_set(void) {
 
 float mcpwm_get_duty_cycle_now(void) {
 	return dutycycle_now;
+}
+
+/**
+ * Get the current switching frequency.
+ *
+ * @return
+ * The switching frequency in Hz.
+ */
+float mcpwm_get_switching_frequency_now(void) {
+	return switching_frequency_now;
 }
 
 /**
@@ -924,11 +934,11 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	if (IS_DETECTING() || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
-		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
-				MCPWM_SWITCH_FREQUENCY_MAX * fabsf(dutyCycle);
+		switching_frequency_now = (float)MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
+				(float)MCPWM_SWITCH_FREQUENCY_MAX * fabsf(dutyCycle);
 	}
 
-	timer_tmp.top = SYSTEM_CORE_CLOCK / switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1347,7 +1357,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	 * If the motor has been running for a while use half the input voltage
 	 * as the zero reference. Otherwise, calculate the zero reference manually.
 	 */
-	if (cycles_running > 1000.0) {
+	if (has_commutated) {
 		mcpwm_vzero = ADC_V_ZERO;
 	} else {
 		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
@@ -1413,7 +1423,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		if (v_diff > 0) {
-			cycle_integrator += (float)v_diff / (float)switching_frequency_now;
+			cycle_integrator += (float)v_diff / switching_frequency_now;
 
 			float limit;
 			if (has_commutated) {
@@ -1434,7 +1444,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		cycle_integrator = CYCLE_INT_START;
 	}
 
-	pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / (float)switching_frequency_now;
+	pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
 #else
 	int hall_phase = mcpwm_read_hall_phase();
 	if (comm_step != hall_phase) {
@@ -1481,7 +1491,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					MCPWM_RAMP_STEP_CURRENT_MAX);
 
 			// Switching frequency correction
-			step /= (switching_frequency_now / 1000.0);
+			step /= switching_frequency_now / 1000.0;
 
 			if (slow_ramping_cycles) {
 				slow_ramping_cycles--;
@@ -1523,7 +1533,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					MCPWM_RAMP_STEP_CURRENT_MAX);
 
 			// Switching frequency correction
-			step /= (switching_frequency_now / 1000.0);
+			step /= switching_frequency_now / 1000.0;
 
 			if (slow_ramping_cycles) {
 				slow_ramping_cycles--;
@@ -1911,11 +1921,11 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 	chSysUnlock();
 }
 
-static void set_switching_frequency(int frequency) {
+static void set_switching_frequency(float frequency) {
 	switching_frequency_now = frequency;
 	mc_timer_struct timer_tmp;
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
-	timer_tmp.top = SYSTEM_CORE_CLOCK / switching_frequency_now;
+	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }

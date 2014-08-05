@@ -70,6 +70,7 @@ static volatile int16_t ph3_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int16_t vzero_samples[ADC_SAMPLE_MAX_LEN];
 static volatile uint8_t status_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int16_t curr_fir_samples[ADC_SAMPLE_MAX_LEN];
+static volatile int16_t f_sw_samples[ADC_SAMPLE_MAX_LEN];
 
 static volatile int sample_len = 1000;
 static volatile int sample_int = 1;
@@ -150,6 +151,8 @@ static msg_t sample_send_thread(void *arg) {
 			buffer[index++] = status_samples[i];
 			buffer[index++] = curr_fir_samples[i] >> 8;
 			buffer[index++] = curr_fir_samples[i];
+			buffer[index++] = f_sw_samples[i] >> 8;
+			buffer[index++] = f_sw_samples[i];
 
 			comm_send_samples(buffer, index);
 
@@ -208,7 +211,8 @@ void main_dma_adc_handler(void) {
 			ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;
 			vzero_samples[sample_now] = mcpwm_vzero;
 
-			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100);
+			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100.0);
+			f_sw_samples[sample_now] = (int16_t)(mcpwm_get_switching_frequency_now() / 10.0);
 
 			uint8_t tmp;
 

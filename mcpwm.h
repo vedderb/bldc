@@ -67,6 +67,7 @@ void mcpwm_release_motor(void);
 int mcpwm_get_comm_step(void);
 float mcpwm_get_duty_cycle_set(void);
 float mcpwm_get_duty_cycle_now(void);
+float mcpwm_get_switching_frequency_now(void);
 float mcpwm_get_rpm(void);
 mc_state mcpwm_get_state(void);
 mc_fault_code mcpwm_get_fault(void);
