@@ -1461,6 +1461,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	const float current = mcpwm_get_tot_current_filtered();
 	const float current_in = current * fabsf(dutycycle_now);
+	const float current_nofilter = mcpwm_get_tot_current();
+	const float current_in_nofilter = current_nofilter * fabsf(dutycycle_now);
 	motor_current_sum += current;
 	input_current_sum += current_in;
 	motor_current_iterations++;
@@ -1562,19 +1564,19 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
-		if (current > MCPWM_CURRENT_MAX) {
+		if (current_nofilter > MCPWM_CURRENT_MAX) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_nofilter - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current < MCPWM_CURRENT_MIN) {
+		} else if (current_nofilter < MCPWM_CURRENT_MIN) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
-		} else if (current_in > MCPWM_IN_CURRENT_MAX) {
+		} else if (current_in_nofilter > MCPWM_IN_CURRENT_MAX) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_in - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_in_nofilter - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current_in < MCPWM_IN_CURRENT_MIN) {
+		} else if (current_in_nofilter < MCPWM_IN_CURRENT_MIN) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
