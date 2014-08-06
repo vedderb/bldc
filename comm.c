@@ -287,6 +287,10 @@ void comm_print_fault_code(mc_fault_code fault_code) {
 		comm_print("FAULT_CODE_DRV8302\n");
 		break;
 
+	case FAULT_CODE_ABS_OVER_CURRENT:
+		comm_print("FAULT_CODE_ABS_OVER_CURRENT\n");
+		break;
+
 	default:
 		break;
 	}

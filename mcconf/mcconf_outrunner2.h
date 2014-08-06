@@ -34,6 +34,7 @@
 #define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
+#define MCPWM_MAX_ABS_CURRENT			90.0	// The maximum absolute current above which a fault is generated
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
@@ -47,10 +48,10 @@
 #define MCPWM_PID_KP					0.0001	// Proportional gain
 #define MCPWM_PID_KI					0.002	// Integral gain
 #define MCPWM_PID_KD					0.0		// Derivative gain
-#define MCPWM_PID_MIN_RPM				1200.0	// Minimum allowed RPM
+#define MCPWM_PID_MIN_RPM				900.0	// Minimum allowed RPM
 
 // Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
+#define MCPWM_CURRENT_CONTROL_GAIN		0.0036	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
 #endif /* MCCONF_OUTRUNNER2_H_ */

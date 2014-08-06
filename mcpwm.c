@@ -1468,6 +1468,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
+	if (fabsf(current_nofilter) > MCPWM_MAX_ABS_CURRENT) {
+		fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+	}
+
 	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / input_voltage;
@@ -1484,7 +1488,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		if (control_mode == CONTROL_MODE_CURRENT) {
 			// Compute error
-			const float error = current_set - (direction ? current : -current);
+			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
 			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
 			const float start_boost = MCPWM_CURRENT_STARTUP_BOOST / voltage_scale;
 
@@ -1527,7 +1531,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE : -MCPWM_MIN_DUTY_CYCLE;
 		} else if (control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Compute error
-			const float error = -fabsf(current_set) - current;
+			const float error = -fabsf(current_set) - current_nofilter;
 			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
 
 			// Do not ramp too much

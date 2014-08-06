@@ -32,6 +32,7 @@
 #define MCPWM_CURRENT_MIN				-80.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			80.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
+#define MCPWM_MAX_ABS_CURRENT			110.0	// The maximum absolute current above which a fault is generated
 #define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode @ 20V.
 #define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
@@ -57,7 +58,7 @@
 #define MCPWM_PID_MIN_RPM				950.0	// Minimum allowed RPM
 
 // Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.0016	// Current controller error gain
+#define MCPWM_CURRENT_CONTROL_GAIN		0.0036	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
 #endif /* MCCONF_RCCAR1_H_ */
