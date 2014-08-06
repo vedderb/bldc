@@ -42,8 +42,8 @@
  * Select only one motor configuration
  */
 //#define MCCONF_OUTRUNNER1
-//#define MCCONF_OUTRUNNER2
-#define MCCONF_RCCAR1
+#define MCCONF_OUTRUNNER2
+//#define MCCONF_RCCAR1
 //#define MCCONF_STEN
 
 /*

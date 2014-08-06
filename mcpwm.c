@@ -217,6 +217,11 @@ void mcpwm_init(void) {
 	// Create current FIR filter
 	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
+	TIM_DeInit(TIM1);
+	TIM_DeInit(TIM8);
+	TIM1->CNT = 0;
+	TIM8->CNT = 0;
+
 	// TIM1 clock enable
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
@@ -1906,8 +1911,8 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 
 	chSysLock();
 
-	int cnt = TIM1->CNT;
-	int top = TIM1->ARR;
+	volatile uint32_t cnt = TIM1->CNT;
+	volatile uint32_t top = TIM1->ARR;
 
 	// If there is enough time to update all values at once during this cycle,
 	// do it here. Otherwise, schedule the update for the next cycle.
