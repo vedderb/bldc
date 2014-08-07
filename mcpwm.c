@@ -1434,10 +1434,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			if (has_commutated) {
 				limit = rpm_dep.cycle_int_limit_running * 0.0005;
 			} else {
-				limit = rpm_dep.cycle_int_limit * 0.0005;
+				limit = rpm_dep.cycle_int_limit * 0.0002;
 			}
 
-			if ((cycle_integrator >= MCPWM_CYCLE_INT_LIMIT_START * 0.0005 || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
+			if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_START * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
 					&& cycle_integrator >= limit) {
 				commutate();
 				cycle_integrator = CYCLE_INT_START;
