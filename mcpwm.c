@@ -1194,7 +1194,23 @@ static msg_t timer_thread(void *arg) {
 void mcpwm_update_int_handler(void) {
 	chSysLockFromIsr();
 
-	if (timer_struct_updated) {
+	// Check if the timers still are in sync. If not, re-sync them.
+	volatile int32_t t1 = TIM1->CNT;
+	volatile int32_t t8 = TIM8->CNT;
+	volatile int32_t diff = t8 - t1;
+	if (diff < 0 || diff > 20) {
+		TIM_Cmd(TIM1, DISABLE);
+		TIM8->CNT = TIM1->CNT;
+		TIM_Cmd(TIM1, ENABLE);
+	}
+
+	// The check whether we are too close to the top is needed, even
+	// if this interrupt is triggered after a timer update. This
+	// is because some other interrupt could have delayed this one.
+	volatile uint32_t cnt = TIM1->CNT;
+	volatile uint32_t top = TIM1->ARR;
+
+	if (timer_struct_updated && (top - cnt) > 400) {
 		TIM1->ARR = timer_struct.top;
 		TIM8->ARR = timer_struct.top;
 		TIM1->CCR1 = timer_struct.duty;
@@ -1925,6 +1941,7 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 		TIM8->CCR1 = timer_struct.val_sample;
 		TIM1->CCR4 = timer_struct.curr1_sample;
 		TIM8->CCR2 = timer_struct.curr2_sample;
+		timer_struct_updated = 0;
 	} else {
 		timer_struct_updated = 1;
 	}
