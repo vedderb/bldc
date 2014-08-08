@@ -1378,7 +1378,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	 * If the motor has been running for a while use half the input voltage
 	 * as the zero reference. Otherwise, calculate the zero reference manually.
 	 */
-	if (has_commutated) {
+	if (cycles_running > 1000) {
 		mcpwm_vzero = ADC_V_ZERO;
 	} else {
 		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
@@ -1526,7 +1526,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Optionally apply startup boost.
-			if (fabsf(dutycycle_now_tmp) < start_boost && (direction ? dutycycle_now > 0.0 : dutycycle_now < 0.0)) {
+			if (fabsf(dutycycle_now_tmp) < start_boost) {
 				utils_step_towards(&dutycycle_now_tmp,
 						current_set > 0.0 ?
 								start_boost :

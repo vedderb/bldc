@@ -154,7 +154,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 #endif
 #ifndef MCPWM_CURRENT_STARTUP_BOOST
-#define MCPWM_CURRENT_STARTUP_BOOST		0.01	// The lowest duty cycle to use in current control mode @ 20V.
+#define MCPWM_CURRENT_STARTUP_BOOST		0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #endif
 #ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		1		// Use negative torque to limit the RPM
