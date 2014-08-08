@@ -1375,10 +1375,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	/*
-	 * If the motor has been running for a while use half the input voltage
-	 * as the zero reference. Otherwise, calculate the zero reference manually.
+	 * Calculate the virtual ground, depending on the state.
 	 */
-	if (cycles_running > 1000) {
+	if (has_commutated && fabsf(dutycycle_now) > 0.1) {
 		mcpwm_vzero = ADC_V_ZERO;
 	} else {
 		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;

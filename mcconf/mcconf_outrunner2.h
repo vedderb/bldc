@@ -34,7 +34,7 @@
 #define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
 #define MCPWM_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
-#define MCPWM_MAX_ABS_CURRENT			90.0	// The maximum absolute current above which a fault is generated
+#define MCPWM_MAX_ABS_CURRENT			110.0	// The maximum absolute current above which a fault is generated
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation

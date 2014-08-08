@@ -30,7 +30,7 @@
  */
 #define MCPWM_CURRENT_MAX				40.0	// Current limit in Amperes (Upper)
 #define MCPWM_CURRENT_MIN				-30.0	// Current limit in Amperes (Lower)
-#define MCPWM_MAX_ABS_CURRENT			90.0	// The maximum absolute current above which a fault is generated
+#define MCPWM_MAX_ABS_CURRENT			100.0	// The maximum absolute current above which a fault is generated
 #define MCPWM_IN_CURRENT_MAX			25.0	// Input current limit in Amperes (Upper)
 #define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
 #define MCPWM_RPM_MAX					50000.0	// The motor speed limit (Upper)
