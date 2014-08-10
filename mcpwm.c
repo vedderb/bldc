@@ -588,8 +588,7 @@ void mcpwm_set_brake_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		// In case the motor is already spinning, set the state to running
 		// so that it can be ramped down before the full brake is applied.
-		// TODO: The number 500 is a hack...
-		if (fabsf(rpm_now) > 500) {
+		if (fabsf(rpm_now) > MCPWM_CURR_MIN_RPM_FBRAKE) {
 			state = MC_STATE_RUNNING;
 		} else {
 			full_brake_ll();
@@ -853,7 +852,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 		} else {
 			// In case the motor is already spinning, set the state to running
 			// so that it can be ramped down before the full brake is applied.
-			if (fabsf(rpm_now) > MCPWM_MIN_RPM) {
+			if (fabsf(rpm_now) > MCPWM_CURR_MIN_RPM_FBRAKE) {
 				state = MC_STATE_RUNNING;
 			} else {
 				full_brake_ll();

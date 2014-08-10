@@ -64,18 +64,18 @@ uint16_t buffer_get_uint16(const uint8_t *buffer, int32_t *index) {
 
 int32_t buffer_get_int32(const uint8_t *buffer, int32_t *index) {
 	int32_t res =	((uint32_t) buffer[*index]) << 24 |
-					((uint32_t) buffer[*index]) << 16 |
-					((uint32_t) buffer[*index]) << 8 |
-					((uint32_t) buffer[*index + 1]);
+					((uint32_t) buffer[*index + 1]) << 16 |
+					((uint32_t) buffer[*index + 2]) << 8 |
+					((uint32_t) buffer[*index + 3]);
 	*index += 4;
 	return res;
 }
 
 uint32_t buffer_get_uint32(const uint8_t *buffer, int32_t *index) {
 	uint32_t res =	((uint32_t) buffer[*index]) << 24 |
-					((uint32_t) buffer[*index]) << 16 |
-					((uint32_t) buffer[*index]) << 8 |
-					((uint32_t) buffer[*index + 1]);
+					((uint32_t) buffer[*index + 1]) << 16 |
+					((uint32_t) buffer[*index + 2]) << 8 |
+					((uint32_t) buffer[*index + 3]);
 	*index += 4;
 	return res;
 }

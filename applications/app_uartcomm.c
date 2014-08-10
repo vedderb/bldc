@@ -136,7 +136,7 @@ static void process_packet(unsigned char *buffer, unsigned char len) {
 
 	switch (buffer[0]) {
 	case UARTCOMM_CMD_SET_DUTY:
-		mcpwm_set_duty((float)buffer_get_int16(buffer, &ind) / 1000.0);
+		mcpwm_set_duty((float)buffer_get_int32(buffer, &ind) / 100000.0);
 		last_uart_update_time = chTimeNow();
 		break;
 
