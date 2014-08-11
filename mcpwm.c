@@ -1039,16 +1039,14 @@ static msg_t rpm_thread(void *arg) {
 		rpm_p1 = rpm_now;
 
 		// Update the cycle integrator limit
-		rpm_dep.cycle_int_limit = utils_map(rpm_now,
-				MCPWM_CYCLE_INT_START_RPM_BR, 80000.0,
-				MCPWM_CYCLE_INT_LIMIT_LOW, MCPWM_CYCLE_INT_LIMIT_HIGH);
+		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
+									MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT_LOW,
+									MCPWM_CYCLE_INT_LIMIT_HIGH);
+		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
+				MCPWM_BEMF_INPUT_COUPLING_K / (rpm_now > MCPWM_MIN_RPM ? rpm_now : MCPWM_MIN_RPM);
 
-		if (rpm_now < MCPWM_CYCLE_INT_START_RPM_BR) {
-			rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
-					MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT_START,
-					MCPWM_CYCLE_INT_LIMIT_LOW);
-		} else {
-			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit;
+		if (rpm_dep.cycle_int_limit_running > MCPWM_CYCLE_INT_LIMIT_MAX) {
+			rpm_dep.cycle_int_limit_running = MCPWM_CYCLE_INT_LIMIT_MAX;
 		}
 
 		chThdSleepMilliseconds(1);
@@ -1376,7 +1374,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	/*
 	 * Calculate the virtual ground, depending on the state.
 	 */
-	if (has_commutated && fabsf(dutycycle_now) > 0.1) {
+	if (has_commutated && fabsf(dutycycle_now) > 0.2) {
 		mcpwm_vzero = ADC_V_ZERO;
 	} else {
 		mcpwm_vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
@@ -1448,10 +1446,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			if (has_commutated) {
 				limit = rpm_dep.cycle_int_limit_running * 0.0005;
 			} else {
-				limit = rpm_dep.cycle_int_limit * 0.0002;
+				limit = rpm_dep.cycle_int_limit * 0.0005;
 			}
 
-			if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_START * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
+			if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_MAX * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
 					&& cycle_integrator >= limit) {
 				commutate();
 				cycle_integrator = CYCLE_INT_START;
@@ -1487,9 +1485,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
+#if MCPWM_SLOW_ABS_OVERCURRENT
+	if (fabsf(current) > MCPWM_MAX_ABS_CURRENT) {
+		fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+	}
+#else
 	if (fabsf(current_nofilter) > MCPWM_MAX_ABS_CURRENT) {
 		fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
 	}
+#endif
 
 	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations

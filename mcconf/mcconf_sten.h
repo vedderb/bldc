@@ -37,17 +37,18 @@
 #define MCPWM_RPM_MIN					-50000.0	// The motor speed limit (Lower)
 #define MCPWM_MIN_VOLTAGE				20.0	// Minimum input voltage
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
-#define MCPWM_CURRENT_STARTUP_BOOST		0.03	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
+#define MCPWM_CURRENT_STARTUP_BOOST		0.02	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		0		// Use negative torque to limit the RPM
 #define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_START_RPM_BR	6000.0	// RPM border between the START and LOW interval
-#define MCPWM_CYCLE_INT_LIMIT_START		1700.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_LOW		260.0	// Flux integrator limit MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit 80K ERPM
+#define MCPWM_MIN_RPM					250		// Auto-commutate below this RPM
+#define MCPWM_CYCLE_INT_LIMIT_MAX		2800.0	// Maximum allowed flux integrator limit
+#define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM at the higher flux integrator limit
+#define MCPWM_CYCLE_INT_LIMIT_LOW		90.0	// Flux integrator limit 0 ERPM
+#define MCPWM_CYCLE_INT_LIMIT_HIGH		40.0	// Flux integrator limit MCPWM_CYCLE_INT_START_RPM_BR ERPM
+#define MCPWM_BEMF_INPUT_COUPLING_K		300.0	// Input voltage to bemf coupling constant
 
 // Speed PID parameters
 #define MCPWM_PID_KP					0.0001	// Proportional gain

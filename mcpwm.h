@@ -106,6 +106,8 @@ extern volatile int mcpwm_vzero;
 #include "mcconf_outrunner2.h"
 #elif defined MCCONF_RCCAR1
 #include "mcconf_rccar1.h"
+#elif defined MCCONF_RCCAR2
+#include "mcconf_rccar2.h"
 #elif defined MCCONF_STEN
 #include "mcconf_sten.h"
 #endif
@@ -161,6 +163,9 @@ extern volatile int mcpwm_vzero;
 #endif
 #ifndef MCPWM_CURR_MIN_RPM_FBRAKE
 #define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
+#endif
+#ifndef MCPWM_SLOW_ABS_OVERCURRENT
+#define MCPWM_SLOW_ABS_OVERCURRENT		0		// Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
 
 #endif /* MC_PWM_H_ */

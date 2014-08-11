@@ -16,16 +16,17 @@
     */
 
 /*
- * mcconf_rccar1.h
+ * mcconf_rccar2.h
  *
- * This configuration is for my 4-pole 2.6kw inrunner.
+ * This configuration is for my crappy coreless inrunner. Since this motor is coreless,
+ * the coupling constant is extremeley low compared to the other motors.
  *
  *  Created on: 14 apr 2014
  *      Author: benjamin
  */
 
-#ifndef MCCONF_RCCAR1_H_
-#define MCCONF_RCCAR1_H_
+#ifndef MCCONF_RCCAR2_H_
+#define MCCONF_RCCAR2_H_
 
 /*
  * Parameters
@@ -43,12 +44,12 @@
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
-#define MCPWM_MIN_RPM					300		// Auto-commutate below this RPM
+#define MCPWM_MIN_RPM					900		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_MAX		1000.0	// Maximum allowed flux integrator limit
 #define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
-#define MCPWM_CYCLE_INT_LIMIT_LOW		50.0	// Flux integrator limit 0 ERPM
+#define MCPWM_CYCLE_INT_LIMIT_LOW		40.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#define MCPWM_BEMF_INPUT_COUPLING_K		350.0	// Input voltage to bemf coupling constant
+#define MCPWM_BEMF_INPUT_COUPLING_K		5.0		// Input voltage to bemf coupling constant
 
 // Hall sensor settings
 #define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
@@ -65,4 +66,4 @@
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0046	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
 
-#endif /* MCCONF_RCCAR1_H_ */
+#endif /* MCCONF_RCCAR2_H_ */
