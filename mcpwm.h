@@ -110,6 +110,8 @@ extern volatile int mcpwm_vzero;
 #include "mcconf_rccar2.h"
 #elif defined MCCONF_STEN
 #include "mcconf_sten.h"
+#elif defined MCCONF_GURGALOF
+#include "mcconf_gurgalof.h"
 #endif
 
 /*

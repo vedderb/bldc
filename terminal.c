@@ -28,6 +28,7 @@
 #include "comm.h"
 #include "mcpwm.h"
 #include "main.h"
+#include "hw.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -120,6 +121,9 @@ void terminal_process_string(char *str) {
 		comm_print(buffer);
 		sprintf(buffer, "Current 2 sample: %u\n", current2_samp);
 		comm_print(buffer);
+	} else if (strcmp(argv[0], "volt") == 0) {
+		sprintf(buffer, "Input voltage: %.2f\n", GET_INPUT_VOLTAGE());
+		comm_print(buffer);
 	}
 
 	// Setters
@@ -182,7 +186,10 @@ void terminal_process_string(char *str) {
 		comm_print("  Prints tim1 and tim8 settings");
 
 		comm_print("set_hall_table [dir] [fwd_add] [rev_add]");
-		comm_print("  Update the hall sensor lookup table\n");
+		comm_print("  Update the hall sensor lookup table");
+
+		comm_print("volt");
+		comm_print("  Prints different voltages\n");
 	} else {
 		sprintf(buffer, "Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

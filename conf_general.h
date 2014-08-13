@@ -35,8 +35,8 @@
  * Select only one hardware version
  */
 //#define HW_VERSION_BW
-#define HW_VERSION_40
-//#define HW_VERSION_R2
+//#define HW_VERSION_40
+#define HW_VERSION_R2
 
 /*
  * Select only one motor configuration
@@ -46,6 +46,7 @@
 //#define MCCONF_RCCAR1
 //#define MCCONF_RCCAR2
 //#define MCCONF_STEN
+//#define MCCONF_GURGALOF
 
 /*
  * Select which application to use (if any)

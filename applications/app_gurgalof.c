@@ -53,10 +53,10 @@ static msg_t gurgalof_thread(void *arg) {
 		pwr -= MIN_PWR;
 
 		if (pwr < 0.0) {
-			mcpwm_set_duty(0.0);
+			mcpwm_set_current(0.0);
 		} else {
 			mcpwm_set_duty(pwr);
-//			mcpwm_set_current(pwr * 40.0);
+//			mcpwm_set_current(pwr * MCPWM_CURRENT_MAX);
 		}
 
 		chThdSleepMilliseconds(10);

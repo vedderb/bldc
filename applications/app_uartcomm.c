@@ -33,12 +33,12 @@
 #include "utils.h"
 #include "packet.h"
 #include "buffer.h"
+#include "hw.h"
 #include <stdint.h>
 
 // Settings
 #define TIMEOUT_MSEC				1000
 #define BAUDRATE					115200
-#define UART_DEV					UARTD6
 #define PACKET_HANDLER				1
 #define SERIAL_RX_BUFFER_SIZE		1024
 
@@ -161,7 +161,7 @@ static void process_packet(unsigned char *buffer, unsigned char len) {
 }
 
 static void send_packet(unsigned char *buffer, unsigned char len) {
-	uartStartSend(&UART_DEV, len, buffer);
+	uartStartSend(&HW_UART_DEV, len, buffer);
 }
 
 void app_uartcomm_init(void) {
@@ -175,11 +175,11 @@ static msg_t uart_thread(void *arg) {
 
 	chRegSetThreadName("UARTCOMM");
 
-	uartStart(&UART_DEV, &uart_cfg);
-	palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATE(GPIO_AF_USART6) |
+	uartStart(&HW_UART_DEV, &uart_cfg);
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(GPIOC, 7, PAL_MODE_ALTERNATE(GPIO_AF_USART6) |
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 
