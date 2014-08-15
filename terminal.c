@@ -37,7 +37,6 @@ void terminal_process_string(char *str) {
 	enum { kMaxArgs = 64 };
 	int argc = 0;
 	char *argv[kMaxArgs];
-	static char buffer[256];
 
 	char *p2 = strtok(str, " ");
 	while (p2 && argc < kMaxArgs) {
@@ -56,24 +55,17 @@ void terminal_process_string(char *str) {
 		mcpwm_set_duty(0);
 		comm_print("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
-		sprintf(buffer, "Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
-		comm_print(buffer);
-		sprintf(buffer, "Latest injected ADC duration: %.4f ms", (double)(mcpwm_get_last_inj_adc_isr_duration() * 1000.0));
-		comm_print(buffer);
-		sprintf(buffer, "Latest main ADC duration: %.4f ms\n", (double)(main_get_last_adc_isr_duration() * 1000.0));
-				comm_print(buffer);
+		comm_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
+		comm_printf("Latest injected ADC duration: %.4f ms", (double)(mcpwm_get_last_inj_adc_isr_duration() * 1000.0));
+		comm_printf("Latest main ADC duration: %.4f ms\n", (double)(main_get_last_adc_isr_duration() * 1000.0));
 	} else if (strcmp(argv[0], "kv") == 0) {
-		sprintf(buffer, "Calculated KV: %.2f rpm/volt\n", (double)mcpwm_get_kv_filtered());
-		comm_print(buffer);
+		comm_printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm_get_kv_filtered());
 	} else if (strcmp(argv[0], "mem") == 0) {
 		size_t n, size;
 		n = chHeapStatus(NULL, &size);
-		sprintf(buffer, "core free memory : %u bytes", chCoreStatus());
-		comm_print(buffer);
-		sprintf(buffer, "heap fragments   : %u", n);
-		comm_print(buffer);
-		sprintf(buffer, "heap free total  : %u bytes\n", size);
-		comm_print(buffer);
+		comm_printf("core free memory : %u bytes", chCoreStatus());
+		comm_printf("heap fragments   : %u", n);
+		comm_printf("heap free total  : %u bytes\n", size);
 	} else if (strcmp(argv[0], "threads") == 0) {
 		Thread *tp;
 		static const char *states[] = {THD_STATE_NAMES};
@@ -81,22 +73,19 @@ void terminal_process_string(char *str) {
 		comm_print("-------------------------------------------------------------");
 		tp = chRegFirstThread();
 		do {
-			sprintf(buffer, "%.8lx %.8lx %4lu %4lu %9s %14s %lu",
+			comm_printf("%.8lx %.8lx %4lu %4lu %9s %14s %lu",
 					(uint32_t)tp, (uint32_t)tp->p_ctx.r13,
 					(uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
 					states[tp->p_state], tp->p_name, (uint32_t)tp->p_time);
-			comm_print(buffer);
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
 		comm_print("");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		comm_print_fault_code(mcpwm_get_fault());
 	} else if (strcmp(argv[0], "rpm") == 0) {
-		sprintf(buffer, "Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
-		comm_print(buffer);
+		comm_printf("Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
-		sprintf(buffer, "Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
-		comm_print(buffer);
+		comm_printf("Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
 	} else if (strcmp(argv[0], "tim") == 0) {
 		TIM_Cmd(TIM1, DISABLE);
 		int t1_cnt = TIM1->CNT;
@@ -107,23 +96,15 @@ void terminal_process_string(char *str) {
 		int current1_samp = TIM1->CCR4;
 		int current2_samp = TIM8->CCR2;
 		TIM_Cmd(TIM1, ENABLE);
-		sprintf(buffer, "Tim1 CNT: %i", t1_cnt);
-		comm_print(buffer);
-		sprintf(buffer, "Tim8 CNT: %u", t8_cnt);
-		comm_print(buffer);
-		sprintf(buffer, "Duty cycle: %u", duty);
-		comm_print(buffer);
-		sprintf(buffer, "Top: %u", top);
-		comm_print(buffer);
-		sprintf(buffer, "Voltage sample: %u", voltage_samp);
-		comm_print(buffer);
-		sprintf(buffer, "Current 1 sample: %u", current1_samp);
-		comm_print(buffer);
-		sprintf(buffer, "Current 2 sample: %u\n", current2_samp);
-		comm_print(buffer);
+		comm_printf("Tim1 CNT: %i", t1_cnt);
+		comm_printf("Tim8 CNT: %u", t8_cnt);
+		comm_printf("Duty cycle: %u", duty);
+		comm_printf("Top: %u", top);
+		comm_printf("Voltage sample: %u", voltage_samp);
+		comm_printf("Current 1 sample: %u", current1_samp);
+		comm_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
-		sprintf(buffer, "Input voltage: %.2f\n", GET_INPUT_VOLTAGE());
-		comm_print(buffer);
+		comm_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
 	}
 
 	// Setters
@@ -138,9 +119,8 @@ void terminal_process_string(char *str) {
 
 			if (dir >= 0 && fwd_add >= 0 && rev_add >= 0) {
 				mcpwm_init_hall_table(dir, fwd_add, rev_add);
-				sprintf(buffer, "New hall sensor dir: %i fwd_add %i rev_add %i\n",
+				comm_printf("New hall sensor dir: %i fwd_add %i rev_add %i\n",
 						dir, fwd_add, rev_add);
-				comm_print(buffer);
 			} else {
 				comm_print("Invalid argument(s).\n");
 			}
@@ -191,8 +171,7 @@ void terminal_process_string(char *str) {
 		comm_print("volt");
 		comm_print("  Prints different voltages\n");
 	} else {
-		sprintf(buffer, "Invalid command: %s\n"
+		comm_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);
-		comm_print(buffer);
 	}
 }

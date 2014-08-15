@@ -36,6 +36,8 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 // Settings
 #define PACKET_BUFFER_LEN	30
@@ -51,6 +53,7 @@ static WORKING_AREA(serial_read_thread_wa, 1024);
 static WORKING_AREA(serial_process_thread_wa, 2048);
 static Mutex send_mutex;
 static Thread *process_tp;
+static char print_buffer[255];
 
 // Private functions
 static void handle_res_packet(unsigned char *data, unsigned char len);
@@ -231,7 +234,6 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 }
 
 void comm_print(char* str) {
-	static char print_buffer[255];
 	int i;
 	print_buffer[0] = COMM_PRINT;
 
@@ -243,6 +245,22 @@ void comm_print(char* str) {
 	}
 
 	packet_send_packet((unsigned char*)print_buffer, i + 1, 0);
+	return;
+}
+
+void comm_printf(char* format, ...) {
+	va_list arg;
+	va_start (arg, format);
+	int len;
+
+	print_buffer[0] = COMM_PRINT;
+	len = vsnprintf(print_buffer+1, 254, format, arg);
+	va_end (arg);
+
+	if(len>0) {
+		packet_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255, 0);
+	}
+
 	return;
 }
 
@@ -272,7 +290,7 @@ void comm_send_rotor_pos(float rotor_pos) {
 void comm_print_fault_code(mc_fault_code fault_code) {
 	switch (fault_code) {
 	case FAULT_CODE_NONE:
-		comm_print("FAULT_CODE_NONE\n");
+		comm_printf("FAULT_CODE_NONE\n");
 		break;
 
 	case FAULT_CODE_OVER_VOLTAGE:
