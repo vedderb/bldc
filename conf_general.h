@@ -43,6 +43,8 @@
  */
 //#define MCCONF_OUTRUNNER1
 #define MCCONF_OUTRUNNER2
+//#define MCCONF_OUTRUNNER_OR
+//#define MCCONF_OUTRUNNER_BL
 //#define MCCONF_RCCAR1
 //#define MCCONF_RCCAR2
 //#define MCCONF_STEN

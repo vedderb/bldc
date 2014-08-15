@@ -1033,9 +1033,7 @@ static msg_t rpm_thread(void *arg) {
 
 		// Some low-pass filtering
 		static float rpm_p1 = 0.0;
-		static float rpm_p2 = 0.0;
-		rpm_now = (rpm_now + rpm_p1 + rpm_p2) / 3;
-		rpm_p2 = rpm_p1;
+		rpm_now = (rpm_now + rpm_p1) / 2;
 		rpm_p1 = rpm_now;
 
 		// Update the cycle integrator limit

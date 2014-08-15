@@ -104,6 +104,10 @@ extern volatile int mcpwm_vzero;
 #include "mcconf_outrunner1.h"
 #elif defined MCCONF_OUTRUNNER2
 #include "mcconf_outrunner2.h"
+#elif defined MCCONF_OUTRUNNER_OR
+#include "mcconf_outrunner_or.h"
+#elif defined MCCONF_OUTRUNNER_BL
+#include "mcconf_outrunner_bl.h"
 #elif defined MCCONF_RCCAR1
 #include "mcconf_rccar1.h"
 #elif defined MCCONF_RCCAR2
