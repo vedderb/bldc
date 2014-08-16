@@ -1635,6 +1635,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 		}
 
+		// Don't start in the opposite direction when the RPM is too high even if the current is low enough.
+		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -MCPWM_CURR_MIN_RPM_FBRAKE) {
+			dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
+		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > MCPWM_CURR_MIN_RPM_FBRAKE) {
+			dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
+		}
+
 		set_duty_cycle_ll(dutycycle_now);
 	}
 
