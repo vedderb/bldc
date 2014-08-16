@@ -30,6 +30,7 @@
 #include "stm32f4xx_conf.h"
 #include "mcpwm.h"
 #include "utils.h"
+#include "hw.h"
 #include <math.h>
 
 // Settings
@@ -114,13 +115,13 @@ void app_sten_init(void) {
 static msg_t uart_thread(void *arg) {
 	(void)arg;
 
-	chRegSetThreadName("LOGGING");
+	chRegSetThreadName("UART");
 
-	uartStart(&UARTD6, &uart_cfg);
-	palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATE(GPIO_AF_USART6) |
+	uartStart(&HW_UART_DEV, &uart_cfg);
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(GPIOC, 7, PAL_MODE_ALTERNATE(GPIO_AF_USART6) |
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 

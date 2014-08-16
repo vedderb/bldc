@@ -49,6 +49,7 @@
 //#define MCCONF_RCCAR2
 //#define MCCONF_STEN
 //#define MCCONF_GURGALOF
+//#define MCCONF_HDD
 
 /*
  * Select which application to use (if any)

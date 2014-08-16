@@ -116,6 +116,8 @@ extern volatile int mcpwm_vzero;
 #include "mcconf_sten.h"
 #elif defined MCCONF_GURGALOF
 #include "mcconf_gurgalof.h"
+#elif defined MCCONF_HDD
+#include "mcconf_hdd.h"
 #endif
 
 /*
@@ -125,7 +127,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_SWITCH_FREQUENCY_MAX		35000	// The highest switching frequency in Hz
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
-#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
@@ -140,6 +141,9 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
 
 // Parameters that can be overridden
+#ifndef MCPWM_PWM_MODE
+#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
+#endif
 #ifndef MCPWM_HALL_DIR
 #define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
 #endif
