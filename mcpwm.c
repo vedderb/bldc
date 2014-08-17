@@ -1407,6 +1407,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	if (pwm_cycles_sum >= comm_time_sum) {
 		if (state == MC_STATE_RUNNING) {
+			// This means that the motor is stuck. If this commutation does not
+			// produce any torque because of misalignment at start, two
+			// commutations ahead should produce full torque.
+			commutate();
 			commutate();
 			cycle_integrator = CYCLE_INT_START;
 		}
