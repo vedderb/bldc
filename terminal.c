@@ -45,15 +45,15 @@ void terminal_process_string(char *str) {
 	}
 
 	if (argc == 0) {
-		comm_print("No command received\n");
+		comm_printf("No command received\n");
 		return;
 	}
 
 	if (strcmp(argv[0], "ping") == 0) {
-		comm_print("pong\n");
+		comm_printf("pong\n");
 	} else if (strcmp(argv[0], "stop") == 0) {
 		mcpwm_set_duty(0);
-		comm_print("Motor stopped\n");
+		comm_printf("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
 		comm_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		comm_printf("Latest injected ADC duration: %.4f ms", (double)(mcpwm_get_last_inj_adc_isr_duration() * 1000.0));
@@ -69,8 +69,8 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "threads") == 0) {
 		Thread *tp;
 		static const char *states[] = {THD_STATE_NAMES};
-		comm_print("    addr    stack prio refs     state           name time    ");
-		comm_print("-------------------------------------------------------------");
+		comm_printf("    addr    stack prio refs     state           name time    ");
+		comm_printf("-------------------------------------------------------------");
 		tp = chRegFirstThread();
 		do {
 			comm_printf("%.8lx %.8lx %4lu %4lu %9s %14s %lu",
@@ -79,7 +79,7 @@ void terminal_process_string(char *str) {
 					states[tp->p_state], tp->p_name, (uint32_t)tp->p_time);
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
-		comm_print("");
+		comm_printf("");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		comm_print_fault_code(mcpwm_get_fault());
 	} else if (strcmp(argv[0], "rpm") == 0) {
@@ -122,54 +122,54 @@ void terminal_process_string(char *str) {
 				comm_printf("New hall sensor dir: %i fwd_add %i rev_add %i\n",
 						dir, fwd_add, rev_add);
 			} else {
-				comm_print("Invalid argument(s).\n");
+				comm_printf("Invalid argument(s).\n");
 			}
 		} else {
-			comm_print("This command requires three arguments.\n");
+			comm_printf("This command requires three arguments.\n");
 		}
 	}
 
 	// The help command
 	else if (strcmp(argv[0], "help") == 0) {
-		comm_print("Valid commands are:");
-		comm_print("help");
-		comm_print("  Show this help");
+		comm_printf("Valid commands are:");
+		comm_printf("help");
+		comm_printf("  Show this help");
 
-		comm_print("ping");
-		comm_print("  Print pong here to see if the reply works");
+		comm_printf("ping");
+		comm_printf("  Print pong here to see if the reply works");
 
-		comm_print("stop");
-		comm_print("  Stop the motor");
+		comm_printf("stop");
+		comm_printf("  Stop the motor");
 
-		comm_print("last_adc_duration");
-		comm_print("  The time the latest ADC interrupt consumed");
+		comm_printf("last_adc_duration");
+		comm_printf("  The time the latest ADC interrupt consumed");
 
-		comm_print("kv");
-		comm_print("  The calculated kv of the motor");
+		comm_printf("kv");
+		comm_printf("  The calculated kv of the motor");
 
-		comm_print("mem");
-		comm_print("  Show memory usage");
+		comm_printf("mem");
+		comm_printf("  Show memory usage");
 
-		comm_print("threads");
-		comm_print("  List all threads");
+		comm_printf("threads");
+		comm_printf("  List all threads");
 
-		comm_print("fault");
-		comm_print("  Prints the current fault code");
+		comm_printf("fault");
+		comm_printf("  Prints the current fault code");
 
-		comm_print("rpm");
-		comm_print("  Prints the current electrical RPM");
+		comm_printf("rpm");
+		comm_printf("  Prints the current electrical RPM");
 
-		comm_print("tacho");
-		comm_print("  Prints tachometer value");
+		comm_printf("tacho");
+		comm_printf("  Prints tachometer value");
 
-		comm_print("tim");
-		comm_print("  Prints tim1 and tim8 settings");
+		comm_printf("tim");
+		comm_printf("  Prints tim1 and tim8 settings");
 
-		comm_print("set_hall_table [dir] [fwd_add] [rev_add]");
-		comm_print("  Update the hall sensor lookup table");
+		comm_printf("set_hall_table [dir] [fwd_add] [rev_add]");
+		comm_printf("  Update the hall sensor lookup table");
 
-		comm_print("volt");
-		comm_print("  Prints different voltages\n");
+		comm_printf("volt");
+		comm_printf("  Prints different voltages\n");
 	} else {
 		comm_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

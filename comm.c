@@ -53,7 +53,6 @@ static WORKING_AREA(serial_read_thread_wa, 1024);
 static WORKING_AREA(serial_process_thread_wa, 2048);
 static Mutex send_mutex;
 static Thread *process_tp;
-static char print_buffer[255];
 
 // Private functions
 static void handle_res_packet(unsigned char *data, unsigned char len);
@@ -233,25 +232,11 @@ static void handle_nores_packet(unsigned char *data, unsigned char len) {
 	}
 }
 
-void comm_print(char* str) {
-	int i;
-	print_buffer[0] = COMM_PRINT;
-
-	for (i = 0;i < 255;i++) {
-		if (str[i] == '\0') {
-			break;
-		}
-		print_buffer[i + 1] = str[i];
-	}
-
-	packet_send_packet((unsigned char*)print_buffer, i + 1, 0);
-	return;
-}
-
 void comm_printf(char* format, ...) {
 	va_list arg;
 	va_start (arg, format);
 	int len;
+	static char print_buffer[255];
 
 	print_buffer[0] = COMM_PRINT;
 	len = vsnprintf(print_buffer+1, 254, format, arg);
@@ -289,28 +274,12 @@ void comm_send_rotor_pos(float rotor_pos) {
 
 void comm_print_fault_code(mc_fault_code fault_code) {
 	switch (fault_code) {
-	case FAULT_CODE_NONE:
-		comm_printf("FAULT_CODE_NONE\n");
-		break;
-
-	case FAULT_CODE_OVER_VOLTAGE:
-		comm_print("FAULT_CODE_OVER_VOLTAGE\n");
-		break;
-
-	case FAULT_CODE_UNDER_VOLTAGE:
-		comm_print("FAULT_CODE_UNDER_VOLTAGE\n");
-		break;
-
-	case FAULT_CODE_DRV8302:
-		comm_print("FAULT_CODE_DRV8302\n");
-		break;
-
-	case FAULT_CODE_ABS_OVER_CURRENT:
-		comm_print("FAULT_CODE_ABS_OVER_CURRENT\n");
-		break;
-
-	default:
-		break;
+	case FAULT_CODE_NONE: comm_printf("FAULT_CODE_NONE\n"); break;
+	case FAULT_CODE_OVER_VOLTAGE: comm_printf("FAULT_CODE_OVER_VOLTAGE\n"); break;
+	case FAULT_CODE_UNDER_VOLTAGE: comm_printf("FAULT_CODE_UNDER_VOLTAGE\n"); break;
+	case FAULT_CODE_DRV8302: comm_printf("FAULT_CODE_DRV8302\n"); break;
+	case FAULT_CODE_ABS_OVER_CURRENT: comm_printf("FAULT_CODE_ABS_OVER_CURRENT\n"); break;
+	default: break;
 	}
 }
 
