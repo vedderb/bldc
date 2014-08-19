@@ -901,22 +901,19 @@ static void set_duty_cycle_ll(float dutyCycle) {
 
 	set_duty_cycle_hw(dutyCycle);
 
-#if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
 
+#if MCPWM_IS_SENSORLESS
 		if (rpm_now < MCPWM_MIN_RPM) {
 			commutate();
 		}
-	}
 #else
-	if (state != MC_STATE_RUNNING) {
-		state = MC_STATE_RUNNING;
 		comm_step = mcpwm_read_hall_phase();
 		set_next_comm_step(comm_step);
 		commutate();
-	}
 #endif
+	}
 }
 
 /**

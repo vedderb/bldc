@@ -33,6 +33,8 @@
 #include "hw_r2.h"
 #elif defined HW_VERSION_BW
 #include "hw_bw.h"
+#elif defined HW_VERSION_PL
+#include "hw_pl.h"
 #else
 #error "No hardware version defined"
 #endif
