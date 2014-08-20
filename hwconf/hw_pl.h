@@ -80,6 +80,9 @@
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 #define ADC_FROMVOLTS(volts)	((float)volts / V_REG * 4096.0)
 
+// Define which TIMER to use for timer-related hardware
+#define PWM_TIMER	8
+
 // Measurement macros
 /* If we PWM the upper switch and drive permanently the lower switch,
  * if sample during PWM off time when upper phase is freewheeling,

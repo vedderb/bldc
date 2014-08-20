@@ -217,13 +217,13 @@ void mcpwm_init(void) {
 	// Create current FIR filter
 	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
-	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM8);
-	TIM1->CNT = 0;
-	TIM8->CNT = 0;
+	TIM_DeInit(TIM_PWM);
+	TIM_DeInit(TIM_ADC);
+	TIM_PWM->CNT = 0;
+	TIM_ADC->CNT = 0;
 
-	// TIM1 clock enable
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	// TIM_PWM clock enable
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM_PWM, ENABLE);
 
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -232,27 +232,27 @@ void mcpwm_init(void) {
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM_PWM, &TIM_TimeBaseStructure);
 
 	// Channel 1, 2 and 3 Configuration in PWM mode
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+	TIM_OCInitStructure.TIM_Pulse = TIM_PWM->ARR / 2;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
 
-	TIM_OC1Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC2Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC3Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC4Init(TIM1, &TIM_OCInitStructure);
+	TIM_OC1Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC2Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC3Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC4Init(TIM_PWM, &TIM_OCInitStructure);
 
-	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+	TIM_OC1PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC3PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC4PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
 
 	// Automatic Output enable, Break, dead time and lock configuration
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
@@ -263,9 +263,9 @@ void mcpwm_init(void) {
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 
-	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
-	TIM_CCPreloadControl(TIM1, ENABLE);
-	TIM_ARRPreloadConfig(TIM1, ENABLE);
+	TIM_BDTRConfig(TIM_PWM, &TIM_BDTRInitStructure);
+	TIM_CCPreloadControl(TIM_PWM, ENABLE);
+	TIM_ARRPreloadConfig(TIM_PWM, ENABLE);
 
 	/*
 	 * ADC!
@@ -319,7 +319,7 @@ void mcpwm_init(void) {
 	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Falling;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T_ADC_CC1;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
@@ -335,8 +335,8 @@ void mcpwm_init(void) {
 	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 
 	// Injected channels for current measurement at end of cycle
-	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
-	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
+	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T_PWM_CC4);
+	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T_ADC_CC4);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_InjectedSequencerLengthConfig(ADC1, 1);
@@ -361,14 +361,14 @@ void mcpwm_init(void) {
 
 	// ------------- Timer8 for ADC sampling ------------- //
 	// Time Base configuration
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM_ADC, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM_ADC, &TIM_TimeBaseStructure);
 
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
@@ -377,38 +377,38 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
-	TIM_OC1Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
-	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+	TIM_OC1Init(TIM_ADC, &TIM_OCInitStructure);
+	TIM_OC1PreloadConfig(TIM_ADC, TIM_OCPreload_Enable);
+	TIM_OC2Init(TIM_ADC, &TIM_OCInitStructure);
+	TIM_OC2PreloadConfig(TIM_ADC, TIM_OCPreload_Enable);
 
-	TIM_ARRPreloadConfig(TIM8, ENABLE);
-	TIM_CCPreloadControl(TIM8, ENABLE);
+	TIM_ARRPreloadConfig(TIM_ADC, ENABLE);
+	TIM_CCPreloadControl(TIM_ADC, ENABLE);
 
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
-	TIM_CtrlPWMOutputs(TIM8, ENABLE);
+	TIM_CtrlPWMOutputs(TIM_ADC, ENABLE);
 
-	// TIM1 Master and TIM8 slave
-	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
-	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
-	TIM_SelectMasterSlaveMode(TIM8, TIM_MasterSlaveMode_Enable);
-	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
-	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Gated);
+	// TIM_PWM Master and TIM_ADC slave
+	TIM_SelectOutputTrigger(TIM_PWM, TIM_TRGOSource_Enable);
+	TIM_SelectMasterSlaveMode(TIM_PWM, TIM_MasterSlaveMode_Enable);
+	TIM_SelectMasterSlaveMode(TIM_ADC, TIM_MasterSlaveMode_Enable);
+	TIM_SelectInputTrigger(TIM_ADC, TIM_TS_PWM);
+	TIM_SelectSlaveMode(TIM_ADC, TIM_SlaveMode_Gated);
 
 	// Update interrupt
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
+	TIM_ITConfig(TIM_PWM, TIM_IT_Update, ENABLE);
+	NVIC_InitStructure.NVIC_IRQChannel = TIM_PWM_UP_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
-	// Enable TIM8 first to make sure timers are in sync
-	TIM_Cmd(TIM8, ENABLE);
-	TIM_Cmd(TIM1, ENABLE);
+	// Enable TIM_ADC first to make sure timers are in sync
+	TIM_Cmd(TIM_ADC, ENABLE);
+	TIM_Cmd(TIM_PWM, ENABLE);
 
 	// Main Output Enable
-	TIM_CtrlPWMOutputs(TIM1, ENABLE);
+	TIM_CtrlPWMOutputs(TIM_PWM, ENABLE);
 
 	// 32-bit timer for RPM measurement and measuring duration of interrupt routines
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
@@ -425,13 +425,14 @@ void mcpwm_init(void) {
 	TIM_Cmd(TIM2, ENABLE);
 
 	// ADC sampling locations
-	stop_pwm_hw();	/** warning: this dirty function call will also perform chSysUnlock(); */
-	timer_struct.top = TIM1->ARR;
-	timer_struct.duty = TIM1->ARR / 2;
+
+	stop_pwm_hw(); /** warning: this dirty function call will also perform chSysUnlock(); */
+	timer_struct.top = TIM_PWM->ARR;
+	timer_struct.duty = TIM_PWM->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
 	timer_struct_updated = 1;
 
-	chSysUnlock();	// unnecessary as is performed above by stop_pwm_hw(); above
+	chSysUnlock(); // unnecessary as is performed above by stop_pwm_hw(); above
 
 	// Calibrate current offset
 	ENABLE_GATE();
@@ -439,7 +440,7 @@ void mcpwm_init(void) {
 	do_dc_cal();
 
 	// Various time measurements (interrupt routine duration),  32bits, clock = 168MHz, prescaled clock = ?
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
 	// Time base configuration
@@ -447,10 +448,10 @@ void mcpwm_init(void) {
 	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM14, &TIM_TimeBaseStructure);
 
-	// TIM4 enable counter
-	TIM_Cmd(TIM4, ENABLE);
+	// TIM14 enable counter
+	TIM_Cmd(TIM14, ENABLE);
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -753,19 +754,19 @@ static void stop_pwm_ll(void) {
 }
 
 static void stop_pwm_hw(void) {
-	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_1, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_1, TIM_CCxN_Disable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_2, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_2, TIM_CCxN_Disable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_3, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_3, TIM_CCxN_Disable);
 
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
@@ -777,19 +778,19 @@ static void full_brake_ll(void) {
 }
 
 static void full_brake_hw(void) {
-	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_1, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_1, TIM_CCxN_Enable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_2, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_2, TIM_CCxN_Enable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_3, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_3, TIM_CCxN_Enable);
 
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
@@ -1192,30 +1193,30 @@ void mcpwm_update_int_handler(void) {
 	chSysLockFromIsr();
 
 	// Check if the timers still are in sync. If not, re-sync them.
-	volatile int32_t t1 = TIM1->CNT;
-	volatile int32_t t8 = TIM8->CNT;
-	volatile int32_t diff = t8 - t1;
+	volatile int32_t t_pwm = TIM_PWM->CNT;
+	volatile int32_t t_adc = TIM_ADC->CNT;
+	volatile int32_t diff = t_adc - t_pwm;
 	if (diff < 0 || diff > 20) {
-		TIM_Cmd(TIM1, DISABLE);
-		TIM8->CNT = TIM1->CNT;
-		TIM_Cmd(TIM1, ENABLE);
+		TIM_Cmd(TIM_PWM, DISABLE);
+		TIM_ADC->CNT = TIM_PWM->CNT;
+		TIM_Cmd(TIM_PWM, ENABLE);
 	}
 
 	// The check whether we are too close to the top is needed, even
 	// if this interrupt is triggered after a timer update. This
 	// is because some other interrupt could have delayed this one.
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
+	volatile uint32_t cnt = TIM_PWM->CNT;
+	volatile uint32_t top = TIM_PWM->ARR;
 
 	if (timer_struct_updated && (top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIM_PWM->ARR = timer_struct.top;
+		TIM_ADC->ARR = timer_struct.top;
+		TIM_PWM->CCR1 = timer_struct.duty;
+		TIM_PWM->CCR2 = timer_struct.duty;
+		TIM_PWM->CCR3 = timer_struct.duty;
+		TIM_ADC->CCR1 = timer_struct.val_sample;
+		TIM_PWM->CCR4 = timer_struct.curr1_sample;
+		TIM_ADC->CCR2 = timer_struct.curr2_sample;
 		timer_struct_updated = 0;
 	}
 
@@ -1225,7 +1226,7 @@ void mcpwm_update_int_handler(void) {
 void mcpwm_adc_inj_int_handler(void) {
 	chSysLockFromIsr();
 
-	TIM4->CNT = 0;
+	TIM14->CNT = 0;
 
 	static int detect_now = 0;
 
@@ -1316,7 +1317,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		comm_step = detect_step + 1;
 
 		set_next_comm_step(detect_step + 1);
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 	}
 
 	last_current_sample = curr_tot_sample;
@@ -1326,7 +1327,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
+	last_inj_adc_isr_duration = (float) TIM14->CNT / 10000000;
 
 	chSysUnlockFromIsr();
 }
@@ -1340,7 +1341,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	chSysLockFromIsr();
 
-	TIM4->CNT = 0;
+	TIM14->CNT = 0;
 
 	// Reset the watchdog
 	WWDG_SetCounter(100);
@@ -1653,7 +1654,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	main_dma_adc_handler();
 
-	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
+	last_adc_isr_duration = (float)TIM14->CNT / 10000000;
 	chSysUnlockFromIsr();
 }
 
@@ -1930,7 +1931,7 @@ static void commutate(void) {
 
 	set_next_comm_step(comm_step);
 #endif
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 	has_commutated = 1;
 
 	mc_timer_struct timer_tmp;
@@ -1944,20 +1945,20 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 
 	chSysLock();
 
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
+	volatile uint32_t cnt = TIM_PWM->CNT;
+	volatile uint32_t top = TIM_PWM->ARR;
 
 	// If there is enough time to update all values at once during this cycle,
 	// do it here. Otherwise, schedule the update for the next cycle.
 	if ((top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIM_PWM->ARR = timer_struct.top;
+		TIM_ADC->ARR = timer_struct.top;
+		TIM_PWM->CCR1 = timer_struct.duty;
+		TIM_PWM->CCR2 = timer_struct.duty;
+		TIM_PWM->CCR3 = timer_struct.duty;
+		TIM_ADC->CCR1 = timer_struct.val_sample;
+		TIM_PWM->CCR4 = timer_struct.curr1_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample;
 		timer_struct_updated = 0;
 	} else {
 		timer_struct_updated = 1;
@@ -2058,9 +2059,9 @@ static void set_next_comm_step(int next_step) {
 	}
 	
 	for (channel=0; channel<3; channel++) {
-		TIM_SelectOCxM(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
-		TIM_CCxCmd(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
-		TIM_CCxNCmd(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_SelectOCxM(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxNCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
 	}
 
 }

@@ -35,13 +35,32 @@
 #include "packet.h"
 
 /*
- * Timers used:
- * TIM7: servo
- * TIM1: mcpwm
- * TIM2: mcpwm
- * TIM4: mcpwm
- * TIM8: mcpwm
- * TIM3: servo_dec
+ * This implementation is using many timers which are available anyway
+ * Timers marked # do not need to configure, reset and read own timer, could read and substract on shared timer
+ *
+ * Timers used mcpwm:
+ * 		TIM1 and TIM8 can be used for motor drive
+ * 		TIM2, TIM3, TIM4, TIM8	can be slaves of TIM1
+ * 		TIM2, TIM4, TIM5		can be slaves of TIM8
+ *
+ * TIM1: mcpwm (Advanced control timer, M1 Motor drive)
+ * TIM8: mcpwm (Advanced control timer, M2 Motor drive)
+ * 	CCR1: phase1 PWM output
+ * 	CCR2: phase2 PWM output
+ * 	CCR3: phase3 PWM output
+ * 	CCR4: trigger ADC1 injected (phase 1 currant sample)
+ * TIM3: mcpwm (16bits, slave to M1 motor drive timer, trigger ADC sampling)
+ * TIM5: mcpwm (32bits, slave to M2 motor drive timer, trigger ADC sampling)
+ * 	CCR1: trigger ADC1 (and subsequently all ADC channels
+ * 	CCR4: trigger ADC2 injected (phase 3 currant sample)
+ * TIM2#: mcpwm (32 bits, M1 and M2 RPM measurement)
+ * TIM14#: mcpwm (16 bits used to count the duration of interrupt routines)
+ *
+ * For now single motor implementation, TIM1 or TIM8 (TIM_PWM) and its slave (TIM_ADC) are defined in hw.h
+  * 
+ * Timers used servo:
+ * TIM4#: servo_dec time counting
+ * TIM7: servo		
  */
 
 /*
