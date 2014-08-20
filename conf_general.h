@@ -36,8 +36,8 @@
  */
 //#define HW_VERSION_BW
 //#define HW_VERSION_40
-#define HW_VERSION_R2
-//#define HW_VERSION_PL
+//#define HW_VERSION_R2
+#define HW_VERSION_PL
 
 /*
  * Select only one motor configuration
