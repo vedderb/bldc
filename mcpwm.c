@@ -1719,15 +1719,19 @@ float mcpwm_get_detect_pos(void) {
 
 float mcpwm_read_reset_avg_motor_current(void) {
 	float res = motor_current_sum / motor_current_iterations;
+	chSysLock();
 	motor_current_sum = 0;
 	motor_current_iterations = 0;
+	chSysUnlock();
 	return res;
 }
 
 float mcpwm_read_reset_avg_input_current(void) {
 	float res = input_current_sum / input_current_iterations;
+	chSysLock();
 	input_current_sum = 0;
 	input_current_iterations = 0;
+	chSysUnlock();
 	return res;
 }
 
