@@ -410,7 +410,7 @@ void mcpwm_init(void) {
 	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 
-	// 32-bit timer for RPM measurement
+	// 32-bit timer for RPM measurement and measuring duration of interrupt routines
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / MCPWM_RPM_TIMER_FREQ) - 1;
 
@@ -425,20 +425,20 @@ void mcpwm_init(void) {
 	TIM_Cmd(TIM2, ENABLE);
 
 	// ADC sampling locations
-	stop_pwm_hw();
+	stop_pwm_hw();	/** warning: this dirty function call will also perform chSysUnlock(); */
 	timer_struct.top = TIM1->ARR;
 	timer_struct.duty = TIM1->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
 	timer_struct_updated = 1;
 
-	chSysUnlock();
+	chSysUnlock();	// unnecessary as is performed above by stop_pwm_hw(); above
 
 	// Calibrate current offset
 	ENABLE_GATE();
 	DCCAL_OFF();
 	do_dc_cal();
 
-	// Various time measurements
+	// Various time measurements (interrupt routine duration),  32bits, clock = 168MHz, prescaled clock = ?
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
@@ -449,7 +449,7 @@ void mcpwm_init(void) {
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
-	// TIM3 enable counter
+	// TIM4 enable counter
 	TIM_Cmd(TIM4, ENABLE);
 
 	// Start threads
@@ -1972,247 +1972,91 @@ static void set_switching_frequency(float frequency) {
 }
 
 static void set_next_comm_step(int next_step) {
-	uint16_t positive_oc_mode = TIM_OCMode_PWM1;
-	uint16_t negative_oc_mode = TIM_OCMode_Inactive;
 
-	uint16_t positive_highside = TIM_CCx_Enable;
-	uint16_t positive_lowside = TIM_CCxN_Enable;
+	/* Depending on next_step and direction, set 3 PWM pairs complementary output one as +-, one as -+ and one inactive */
+	int channel;
+	uint16_t TIM_channel[] = {TIM_Channel_1, TIM_Channel_2, TIM_Channel_3};
+	typedef enum {
+		STOP = 0,	// Invalid phase.. stop PWM!
+		INACTIVE,	// inactive phase
+		POSITVE,	// phase connected to VBAT via PWM
+		NEGATIVE,	// phase connected to GND
+		SINE,		// sine modulation. Switch on all phases
+	} phase_mode;
+	
+	uint16_t next_parameters[5][3] = {
+		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// Invalid phase.. stop PWM!
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// inactive phase
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// phase connected to VBAT via PWM
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// phase connected to VCC
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// sine modulation. Switch on all phases
+	};
 
-	uint16_t negative_highside = TIM_CCx_Enable;
-	uint16_t negative_lowside = TIM_CCxN_Enable;
+	// Next mode, default for illegal next_step: switch off all phases (we should really reboot here!)
+	phase_mode next_mode[3] = {STOP,STOP,STOP};
+
+	// Commutation sequence, 6 phases, channel 1/2/3 if direction=1, else channel 1/3/2
+	const phase_mode phase_lookup[6][3] = {
+		{INACTIVE, POSITVE, NEGATIVE},
+		{POSITVE, INACTIVE, NEGATIVE},
+		{POSITVE, NEGATIVE, INACTIVE},
+		{INACTIVE, NEGATIVE, POSITVE},
+		{NEGATIVE, INACTIVE, POSITVE},
+		{NEGATIVE, POSITVE, INACTIVE}
+	};
 
 	if (!IS_DETECTING()) {
 		switch (pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
-			positive_lowside = TIM_CCxN_Disable;
+			next_parameters[POSITVE][2] = TIM_CCxN_Disable;	// positive_lowside
 			break;
 
 		case PWM_MODE_SYNCHRONOUS:
 			break;
 
 		case PWM_MODE_BIPOLAR:
-			negative_oc_mode = TIM_OCMode_PWM2;
+			next_parameters[NEGATIVE][0] = TIM_OCMode_PWM2;	// negative_oc_mode
 			break;
 		}
 	}
 
-	if (next_step == 1) {
+	
+	switch (next_step) {
+
+	// next 3 phases for normal PWM mode
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6: 
+		next_mode[0] = phase_lookup[next_step][0];
 		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
+			next_mode[1] = phase_lookup[next_step][1];
+			next_mode[2] = phase_lookup[next_step][2];
 		}
-	} else if (next_step == 2) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
+		else {
+			next_mode[1] = phase_lookup[next_step][2];
+			next_mode[2] = phase_lookup[next_step][1];
 		}
-	} else if (next_step == 3) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+		break;
+		
+	// next 3 phases for next_step=32 (This means we are going to use sine modulation. Switch on all phases!)
+	case 32:
+		next_mode[0] = SINE;
+		next_mode[1] = SINE;
+		next_mode[2] = SINE;
+		break;
 
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		}
-	} else if (next_step == 4) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		}
-	} else if (next_step == 5) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		}
-	} else if (next_step == 6) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		}
-	} else if (next_step == 32) {
-		// NOTE: This means we are going to use sine modulation. Switch on all phases!
-		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
-	} else {
-		// Invalid phase.. stop PWM!
-		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+	// by default illegal next_step will switch off all phases but this can't happen right?
+	default :
+		break;
 	}
+	
+	for (channel=0; channel<3; channel++) {
+		TIM_SelectOCxM(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxCmd(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxNCmd(TIM1, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+	}
+
 }
