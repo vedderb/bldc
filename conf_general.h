@@ -36,21 +36,21 @@
  */
 //#define HW_VERSION_BW
 //#define HW_VERSION_40
-//#define HW_VERSION_R2
-#define HW_VERSION_PL
+#define HW_VERSION_R2
+//#define HW_VERSION_PL
 
 /*
  * Select only one motor configuration
  */
 //#define MCCONF_OUTRUNNER1
-#define MCCONF_OUTRUNNER2
+//#define MCCONF_OUTRUNNER2
 //#define MCCONF_OUTRUNNER_OR
 //#define MCCONF_OUTRUNNER_BL
 //#define MCCONF_RCCAR1
 //#define MCCONF_RCCAR2
 //#define MCCONF_STEN
 //#define MCCONF_GURGALOF
-//#define MCCONF_HDD
+#define MCCONF_HDD
 
 /*
  * Select which application to use (if any)

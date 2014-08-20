@@ -50,7 +50,7 @@
 //TIM4 slave of TIM1
 #define TIM_ADC								TIM3
 #define TIM_TS_PWM 							TIM_TS_ITR0
-#define ADC_ExternalTrigConv_T_ADC_CCx		ADC_ExternalTrigConv_T3_CC1
+#define ADC_ExternalTrigConv_T_ADC_CC1		ADC_ExternalTrigConv_T3_CC1
 #define ADC_ExternalTrigInjecConv_T_ADC_CC4	ADC_ExternalTrigInjecConv_T3_CC4
 #define RCC_APB1Periph_TIM_ADC				RCC_APB1Periph_TIM3
 
