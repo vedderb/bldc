@@ -104,9 +104,9 @@ void hw_init_gpio(void) {
 /*
  * ADC Vector
  *
- * 0:	IN10	M2_SENS1
- * 1:	IN11	M2_SENS2
- * 2:	IN12	M2_SENS3
+ * 0:	IN12	M2_SENS1	(phase connected to TIM8_CH1, but called M2_SENS3 on schematic)
+ * 1:	IN11	M2_SENS2	(phase connected to TIM8_CH2)
+ * 2:	IN10	M2_SENS3	(phase connected to TIM8_CH3, but called M2_SENS1 on schematic)
  * 3:	IN0		M1_SENS1
  * 4:	IN1		M1_SENS2
  * 5:	IN2		M1_SENS3
@@ -121,8 +121,8 @@ void hw_init_gpio(void) {
  */
  
 void hw_setup_adc_channels(void) {
-	// ADC1 regular channels 10, 0, 14, 6
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_3Cycles);
+	// ADC1 regular channels 12, 0, 14, 6
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 2, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 3, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_6, 4, ADC_SampleTime_3Cycles);
@@ -133,8 +133,8 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_TempSensor, 3, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_3, 4, ADC_SampleTime_3Cycles);
 	
-	// ADC3 regular channels 12, 2, 15, 13, 
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
+	// ADC3 regular channels 10, 2, 15, 13, 
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 1, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 2, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_15, 3, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_3Cycles);

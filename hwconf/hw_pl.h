@@ -42,9 +42,9 @@
 /*
  * ADC Vector (from hw_pl.c)
  *
- * 0:	IN10	M2_SENS1
- * 1:	IN11	M2_SENS2
- * 2:	IN12	M2_SENS3
+ * 0:	IN12	M2_SENS1	(phase connected to TIM8_CH1, but called M2_SENS3 on schematic)
+ * 1:	IN11	M2_SENS2	(phase connected to TIM8_CH2)
+ * 2:	IN10	M2_SENS3	(phase connected to TIM8_CH3, but called M2_SENS1 on schematic)
  * 3:	IN0		M1_SENS1
  * 4:	IN1		M1_SENS2
  * 5:	IN2		M1_SENS3
@@ -84,17 +84,21 @@
 #define PWM_TIMER	8
 
 // Measurement macros
-/* If we PWM the upper switch and drive permanently the lower switch,
+
+/* UNUSED, depends on a PWM implementation not chosen now
+ * If we PWM the upper switch and drive permanently the lower switch,
  * if sample during PWM off time when upper phase is freewheeling,
  * zero crossing is true phase 0V crossing.
- * ADC_V_ZERO is a constant value depending on voltage divider / pull resistor
-*/
+ * ADC_V_ZERO is a constant value near 0 depending on voltage divider / pull resistor
 #define SENS_OFFSET				(3.3*33.0/(220.0+33.0))
 #define OPAMP_GAIN				((220.0+100.0)/100.0)
+*/
+
+/* USED: mounted 15k/235k divider on VIN_SENS and 2k/35k divider on M2_SENS. VIN_SENS is multiplied by 235 / 15 * 2 / 35 = 0.964 to compensate */
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				ADC_FROMVOLTS(SENS_OFFSET*OPAMP_GAIN)
+#define ADC_V_ZERO				((uint16_t) (ADC_Value[ADC_IND_VIN_SENS] / 2 * (253./15.*2./35.)))
 
 // Macros (hall sensors)
 #define READ_HALL1()			0
