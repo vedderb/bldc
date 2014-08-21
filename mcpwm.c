@@ -1216,7 +1216,7 @@ void mcpwm_update_int_handler(void) {
 		TIM_PWM->CCR3 = timer_struct.duty;
 		TIM_ADC->CCR1 = timer_struct.val_sample;
 		TIM_PWM->CCR4 = timer_struct.curr1_sample;
-		TIM_ADC->CCR2 = timer_struct.curr2_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample;
 		timer_struct_updated = 0;
 	}
 
