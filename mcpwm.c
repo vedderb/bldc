@@ -2060,8 +2060,8 @@ static void set_next_comm_step(int next_step) {
 	
 	for (channel=0; channel<3; channel++) {
 		TIM_SelectOCxM(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
-		TIM_CCxCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
-		TIM_CCxNCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][1]);
+		TIM_CCxNCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][2]);
 	}
 
 }
