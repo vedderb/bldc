@@ -1396,7 +1396,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	if (has_commutated) {
 		amp = fabsf(dutycycle_now) * (float)ADC_Value[ADC_IND_VIN_SENS];
 	} else {
-		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
+		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3) * 2.0);
 	}
 
 	// Fill the amplitude FIR filter
@@ -1990,11 +1990,11 @@ static void set_next_comm_step(int next_step) {
 	} phase_mode;
 	
 	uint16_t next_parameters[5][3] = {
-		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// Invalid phase.. stop PWM!
-		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// inactive phase
-		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// phase connected to VBAT via PWM
-		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// phase connected to VCC
-		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// sine modulation. Switch on all phases
+		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// STOP:		invalid phase.. stop PWM! (notice we stop it at VBAT instead of GND??)
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// INACTIVE:	inactive phase
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT via PWM
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to VCC
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// SINE:		sine modulation. Switch on all phases
 	};
 
 	// Next mode, default for illegal next_step: switch off all phases (we should really reboot here!)
@@ -2035,14 +2035,14 @@ static void set_next_comm_step(int next_step) {
 	case 4:
 	case 5:
 	case 6: 
-		next_mode[0] = phase_lookup[next_step][0];
+		next_mode[0] = phase_lookup[next_step-1][0];
 		if (direction) {
-			next_mode[1] = phase_lookup[next_step][1];
-			next_mode[2] = phase_lookup[next_step][2];
+			next_mode[1] = phase_lookup[next_step-1][1];
+			next_mode[2] = phase_lookup[next_step-1][2];
 		}
 		else {
-			next_mode[1] = phase_lookup[next_step][2];
-			next_mode[2] = phase_lookup[next_step][1];
+			next_mode[1] = phase_lookup[next_step-1][2];
+			next_mode[2] = phase_lookup[next_step-1][1];
 		}
 		break;
 		
