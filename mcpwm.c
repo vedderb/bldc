@@ -1991,7 +1991,7 @@ static void set_next_comm_step(int next_step) {
 	
 	uint16_t next_parameters[5][3] = {
 		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// STOP:		invalid phase.. stop PWM! (notice we stop it at VBAT instead of GND??)
-		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// INACTIVE:	inactive phase
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Disable},	// INACTIVE:	inactive phase
 		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT via PWM
 		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to VCC
 		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// SINE:		sine modulation. Switch on all phases
