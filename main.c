@@ -44,6 +44,10 @@
  * 		TIM2, TIM4, TIM5		can be slaves of TIM8
  *		TIM1>3 and TIM8>5 make a good choice because TIM3 and TIM5 share ADC trigger capabilities on same CCR
  *
+ * Clock strategy (mcuconf.h):
+ *  APB2 clock (TIM1, TIM8 and some peripherals) : clock/2
+ *  APB1 clock (other timers, some peripherals?) : clock/4
+ *
  * TIM1: mcpwm (Advanced control timer, M1 Motor drive)
  * TIM8: mcpwm (Advanced control timer, M2 Motor drive)
  * 	CCR1: phase1 PWM output

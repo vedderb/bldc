@@ -58,6 +58,7 @@ typedef enum {
 
 // Functions
 void mcpwm_init(void);
+void mcpwm_reset_driver(void);
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);

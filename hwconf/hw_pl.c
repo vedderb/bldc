@@ -56,6 +56,11 @@ void hw_init_gpio(void) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
+	// DEBUG:
+	palSetPadMode(GPIOA, 0, PAL_MODE_ALTERNATE(GPIO_AF_TIM5) |
+			PAL_STM32_OSPEED_HIGHEST |
+			PAL_STM32_PUDR_FLOATING);
+			
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	/** TODO: add second gate */
 	palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATE(GPIO_AF_TIM8) |
@@ -83,7 +88,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
 
 	// ADC Pins
-	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);

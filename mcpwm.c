@@ -359,13 +359,13 @@ void mcpwm_init(void) {
 	// Enable ADC3
 	ADC_Cmd(ADC3, ENABLE);
 
-	// ------------- Timer8 for ADC sampling ------------- //
+	// ------------- Timer for ADC sampling ------------- //
 	// Time Base configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM_ADC, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM_ADC, &TIM_TimeBaseStructure);
@@ -393,7 +393,7 @@ void mcpwm_init(void) {
 	TIM_SelectMasterSlaveMode(TIM_PWM, TIM_MasterSlaveMode_Enable);
 	TIM_SelectMasterSlaveMode(TIM_ADC, TIM_MasterSlaveMode_Enable);
 	TIM_SelectInputTrigger(TIM_ADC, TIM_TS_PWM);
-	TIM_SelectSlaveMode(TIM_ADC, TIM_SlaveMode_Gated);
+	TIM_SelectSlaveMode(TIM_ADC, TIM_SlaveMode_Reset);
 
 	// Update interrupt
 	TIM_ITConfig(TIM_PWM, TIM_IT_Update, ENABLE);
@@ -462,6 +462,11 @@ void mcpwm_init(void) {
 	WWDG_SetPrescaler(WWDG_Prescaler_1);
 	WWDG_SetWindowValue(255);
 	WWDG_Enable(100);
+}
+
+void mcpwm_reset_driver(void) {
+	DISABLE_GATE();
+	ENABLE_GATE();
 }
 
 /**
@@ -1210,13 +1215,13 @@ void mcpwm_update_int_handler(void) {
 
 	if (timer_struct_updated && (top - cnt) > 400) {
 		TIM_PWM->ARR = timer_struct.top;
-		TIM_ADC->ARR = timer_struct.top;
+		//TIM_ADC->ARR = timer_struct.top/2;
 		TIM_PWM->CCR1 = timer_struct.duty;
 		TIM_PWM->CCR2 = timer_struct.duty;
 		TIM_PWM->CCR3 = timer_struct.duty;
-		TIM_ADC->CCR1 = timer_struct.val_sample;
+		TIM_ADC->CCR1 = timer_struct.val_sample/2;
 		TIM_PWM->CCR4 = timer_struct.curr1_sample;
-		TIM_ADC->CCR4 = timer_struct.curr2_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample/2;
 		timer_struct_updated = 0;
 	}
 
@@ -1230,9 +1235,20 @@ void mcpwm_adc_inj_int_handler(void) {
 
 	static int detect_now = 0;
 
+#ifdef HW_HAS_TOTAL_CURRENT
+	int curr = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
+	curr0_sum += curr;
+	curr1_sum += curr;
+	curr_start_samples++;
+	ADC_curr_norm_value[0] = ADC_curr_norm_value[1] = ADC_curr_norm_value[2] = curr - curr0_offset;
+	
+	float curr_tot_sample = curr - curr0_offset;
+	
+#else
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
+	// This "if" is so far only for PWM_MODE_BIPOLAR
 	if (curr_samp_volt == 1) {
 		curr0 = ADC_Value[ADC_IND_CURR1];
 	} else if (curr_samp_volt == 2) {
@@ -1273,7 +1289,8 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 		break;
 	}
-
+#endif
+	
 	if (detect_now == 4) {
 		float a = fabsf(ADC_curr_norm_value[0]);
 		float b = fabsf(ADC_curr_norm_value[1]);
@@ -1781,6 +1798,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+	
 	// Sample the ADC at an appropriate time during the pwm cycle
 	if (IS_DETECTING()) {
 		// Voltage samples
@@ -1870,6 +1888,11 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				break;
 			}
 		} else {
+		
+			/** TODO: update not at DC/2 but at as late as possible in that state to sample as little transient as possible
+			 * This may not be visible as sensorless voltage samples are during ON time which is rather constant and small (DC mostly affect OFF time)
+			 */
+
 			// Voltage samples
 			val_sample = duty / 2;
 
@@ -1952,13 +1975,13 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 	// do it here. Otherwise, schedule the update for the next cycle.
 	if ((top - cnt) > 400) {
 		TIM_PWM->ARR = timer_struct.top;
-		TIM_ADC->ARR = timer_struct.top;
+		//TIM_ADC->ARR = timer_struct.top/2;
 		TIM_PWM->CCR1 = timer_struct.duty;
 		TIM_PWM->CCR2 = timer_struct.duty;
 		TIM_PWM->CCR3 = timer_struct.duty;
-		TIM_ADC->CCR1 = timer_struct.val_sample;
+		TIM_ADC->CCR1 = timer_struct.val_sample/2;
 		TIM_PWM->CCR4 = timer_struct.curr1_sample;
-		TIM_ADC->CCR4 = timer_struct.curr2_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample/2;
 		timer_struct_updated = 0;
 	} else {
 		timer_struct_updated = 1;
@@ -1991,9 +2014,9 @@ static void set_next_comm_step(int next_step) {
 	
 	uint16_t next_parameters[5][3] = {
 		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// STOP:		invalid phase.. stop PWM! (notice we stop it at VBAT instead of GND??)
-		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Disable},	// INACTIVE:	inactive phase
-		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT via PWM
-		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to VCC
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Disable},	// INACTIVE:	inactive phase, high impedance
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT/VCC via PWM
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to GND
 		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// SINE:		sine modulation. Switch on all phases
 	};
 

@@ -105,8 +105,11 @@ void terminal_process_string(char *str) {
 		comm_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		comm_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+	} else if (strcmp(argv[0], "reset_drv") == 0) {
+		comm_printf("reset driver\n");
+		mcpwm_reset_driver();
 	}
-
+	
 	// Setters
 	else if (strcmp(argv[0], "set_hall_table") == 0) {
 		if (argc == 4) {
@@ -164,6 +167,9 @@ void terminal_process_string(char *str) {
 
 		comm_printf("tim");
 		comm_printf("  Prints TIM_PWM and TIM_ADC settings");
+
+		comm_printf("reset_drv");
+		comm_printf("  Short pulse on EN_GATE to reset latched driver fault");
 
 		comm_printf("set_hall_table [dir] [fwd_add] [rev_add]");
 		comm_printf("  Update the hall sensor lookup table");

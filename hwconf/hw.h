@@ -62,7 +62,7 @@
 #define RCC_APB2Periph_TIM_PWM				RCC_APB2Periph_TIM8
 #define TIM_PWM_UP_IRQHandler				TIM8_UP_IRQHandler
 #define ADC_ExternalTrigInjecConv_T_PWM_CC4	ADC_ExternalTrigInjecConv_T8_CC4
-//TIM4 slave of TIM8
+//TIM5 slave of TIM8
 #define TIM_ADC								TIM5
 #define TIM_TS_PWM							TIM_TS_ITR3
 #define ADC_ExternalTrigConv_T_ADC_CC1		ADC_ExternalTrigConv_T5_CC1

@@ -61,6 +61,8 @@
 #define HW_ADC_CHANNELS				12
 #define HW_ADC_NBR_CONV				4
 
+#define HW_HAS_TOTAL_CURRENT
+
 // ADC Indexes
 #define ADC_IND_M2_SENS1	0
 #define ADC_IND_M2_SENS2	1
