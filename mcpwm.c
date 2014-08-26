@@ -239,10 +239,10 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM_PWM->ARR / 2;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
-	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
-	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;		// high-side gate driver input high => high-side high-impedance
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;		// low-side gate driver input low => low-side high-impedance
+	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;		// when MOE is clear when high-side xor low-side disabled, output goes to idle state
+	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;	// when high-side xor low-side disabled, output goes to idle state
 
 	TIM_OC1Init(TIM_PWM, &TIM_OCInitStructure);
 	TIM_OC2Init(TIM_PWM, &TIM_OCInitStructure);
@@ -255,8 +255,8 @@ void mcpwm_init(void) {
 	TIM_OC4PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
 
 	// Automatic Output enable, Break, dead time and lock configuration
-	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
-	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSRState_Enable;
+	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable; // if MOE is set, if a channel is enabled and complementary is disabled, complementary channel is output enable in inactive state (instead of output disable)
+	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable; // if MOE is clear, if at least a channel is enabled, both outputs enable in idle state (instead of output disable)
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
 	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
@@ -2036,7 +2036,7 @@ static void set_next_comm_step(int next_step) {
 	if (!IS_DETECTING()) {
 		switch (pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
-			next_parameters[POSITVE][2] = TIM_CCxN_Disable;	// positive_lowside
+			next_parameters[POSITVE][2] = TIM_CCxN_Disable;	// positive_lowside: positive phase lowside is floating during PWM OFF time (in PWM off-time, use lowside freewheel diode)
 			break;
 
 		case PWM_MODE_SYNCHRONOUS:
