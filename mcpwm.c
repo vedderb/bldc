@@ -936,13 +936,6 @@ static void set_duty_cycle_hw(float dutyCycle) {
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
-		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
-				+ ((float) timer_tmp.top / 2.0));
-	} else {
-		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
-	}
-
 	if (IS_DETECTING() || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
@@ -951,6 +944,14 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	}
 
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	
+	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
+		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
+				+ ((float) timer_tmp.top / 2.0));
+	} else {
+		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
+	}
+
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1197,15 +1198,9 @@ static msg_t timer_thread(void *arg) {
 void mcpwm_update_int_handler(void) {
 	chSysLockFromIsr();
 
-	// Check if the timers still are in sync. If not, re-sync them.
-	volatile int32_t t_pwm = TIM_PWM->CNT;
-	volatile int32_t t_adc = TIM_ADC->CNT;
-	volatile int32_t diff = t_adc - t_pwm;
-	if (diff < 0 || diff > 20) {
-		TIM_Cmd(TIM_PWM, DISABLE);
-		TIM_ADC->CNT = TIM_PWM->CNT;
-		TIM_Cmd(TIM_PWM, ENABLE);
-	}
+	/** TODO: Is that function at all necessary since set_next_timer_settings() should do the job? */
+	
+	// Drivers are in Sync since we are in SlaveReset mode.
 
 	// The check whether we are too close to the top is needed, even
 	// if this interrupt is triggered after a timer update. This
@@ -1215,7 +1210,6 @@ void mcpwm_update_int_handler(void) {
 
 	if (timer_struct_updated && (top - cnt) > 400) {
 		TIM_PWM->ARR = timer_struct.top;
-		//TIM_ADC->ARR = timer_struct.top/2;
 		TIM_PWM->CCR1 = timer_struct.duty;
 		TIM_PWM->CCR2 = timer_struct.duty;
 		TIM_PWM->CCR3 = timer_struct.duty;
@@ -1975,7 +1969,6 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 	// do it here. Otherwise, schedule the update for the next cycle.
 	if ((top - cnt) > 400) {
 		TIM_PWM->ARR = timer_struct.top;
-		//TIM_ADC->ARR = timer_struct.top/2;
 		TIM_PWM->CCR1 = timer_struct.duty;
 		TIM_PWM->CCR2 = timer_struct.duty;
 		TIM_PWM->CCR3 = timer_struct.duty;
