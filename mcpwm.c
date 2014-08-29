@@ -2002,7 +2002,6 @@ static void set_next_comm_step(int next_step) {
 		INACTIVE,	// inactive phase
 		POSITVE,	// phase connected to VBAT via PWM
 		NEGATIVE,	// phase connected to GND
-		SINE,		// sine modulation. Switch on all phases
 	} phase_mode;
 	
 	uint16_t next_parameters[5][3] = {
@@ -2010,7 +2009,6 @@ static void set_next_comm_step(int next_step) {
 		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Disable},	// INACTIVE:	inactive phase, high impedance
 		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT/VCC via PWM
 		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to GND
-		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable}	// SINE:		sine modulation. Switch on all phases
 	};
 
 	// Next mode, default for illegal next_step: switch off all phases (we should really reboot here!)
@@ -2060,14 +2058,6 @@ static void set_next_comm_step(int next_step) {
 			next_mode[1] = phase_lookup[next_step-1][2];
 			next_mode[2] = phase_lookup[next_step-1][1];
 		}
-		break;
-		
-	// next 3 phases for next_step=32 (This means we are going to use sine modulation. Switch on all phases!)
-	// I can't see how this step can be reached by the current code... not more so in 'first commit'
-	case 32:
-		next_mode[0] = SINE;
-		next_mode[1] = SINE;
-		next_mode[2] = SINE;
 		break;
 
 	// by default illegal next_step will switch off all phases but this can't happen right?

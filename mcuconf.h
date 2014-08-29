@@ -44,9 +44,10 @@
 #define STM32_LSE_ENABLED                   FALSE
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
+// HSE = 8MHz crystal, VCO = HSE*N/M= 336MHz, PLL = VCO / P = 168MHz, USB = VCO/Q = 48MHz
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
-#define STM32_PLLM_VALUE                    8
-#define STM32_PLLN_VALUE                    336
+#define STM32_PLLM_VALUE                    5
+#define STM32_PLLN_VALUE                    210
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
 #define STM32_HPRE                          STM32_HPRE_DIV1
