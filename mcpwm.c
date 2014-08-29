@@ -54,6 +54,7 @@ typedef struct {
 } rpm_dep_struct;
 
 // Private variables
+/** TODO: a bunch of those should not be volatile (written by HW or interrupt or reading or writing it has side effects)... e.g. pwm_mode is a constant! */
 static volatile int comm_step; // Range [1 6]
 static volatile int detect_step; // Range [0 5]
 static volatile int direction;
@@ -389,9 +390,8 @@ void mcpwm_init(void) {
 	TIM_CtrlPWMOutputs(TIM_ADC, ENABLE);
 
 	// TIM_PWM Master and TIM_ADC slave
-	TIM_SelectOutputTrigger(TIM_PWM, TIM_TRGOSource_Enable);
+	TIM_SelectOutputTrigger(TIM_PWM, TIM_TRGOSource_Update);
 	TIM_SelectMasterSlaveMode(TIM_PWM, TIM_MasterSlaveMode_Enable);
-	TIM_SelectMasterSlaveMode(TIM_ADC, TIM_MasterSlaveMode_Enable);
 	TIM_SelectInputTrigger(TIM_ADC, TIM_TS_PWM);
 	TIM_SelectSlaveMode(TIM_ADC, TIM_SlaveMode_Reset);
 
@@ -2063,6 +2063,7 @@ static void set_next_comm_step(int next_step) {
 		break;
 		
 	// next 3 phases for next_step=32 (This means we are going to use sine modulation. Switch on all phases!)
+	// I can't see how this step can be reached by the current code... not more so in 'first commit'
 	case 32:
 		next_mode[0] = SINE;
 		next_mode[1] = SINE;
