@@ -1939,9 +1939,9 @@ static void commutate(void) {
 }
 
 static void set_next_timer_settings(mc_timer_struct *settings) {
-	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
-
 	chSysLock();
+
+	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
 
 	volatile uint32_t cnt = TIM1->CNT;
 	volatile uint32_t top = TIM1->ARR;

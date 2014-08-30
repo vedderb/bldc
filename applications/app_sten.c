@@ -50,6 +50,7 @@ static volatile systime_t last_uart_update_time;
 
 // Private functions
 static void set_output(float output);
+static uint16_t middle_of_3(uint16_t a, uint16_t b, uint16_t c);
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -82,7 +83,15 @@ static void rxerr(UARTDriver *uartp, uartflags_t e) {
 static void rxchar(UARTDriver *uartp, uint16_t c) {
 	(void)uartp;
 
-	out_received = ((float)c / 128) - 1.0;
+	static uint16_t c1 = 128;
+	static uint16_t c2 = 128;
+
+	uint16_t med = middle_of_3(c, c1, c2);
+
+	c2 = c1;
+	c1 = c;
+
+	out_received = ((float)med / 128) - 1.0;
 	last_uart_update_time = chTimeNow();
 }
 
@@ -181,6 +190,19 @@ static void set_output(float output) {
 	} else {
 		mcpwm_set_brake_current(output * MCPWM_CURRENT_MIN);
 	}
+}
+
+static uint16_t middle_of_3(uint16_t a, uint16_t b, uint16_t c) {
+	uint16_t middle;
+
+	if ((a <= b) && (a <= c)) {
+		middle = (b <= c) ? b : c;
+	} else if ((b <= a) && (b <= c)) {
+		middle = (a <= c) ? a : c;
+	} else {
+		middle = (a <= b) ? a : b;
+	}
+	return middle;
 }
 
 #endif
