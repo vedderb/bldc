@@ -16,7 +16,7 @@
     */
 
 /*
- * mcconf_outrunner1.h
+ * mcconf_outrunner_bl.h
  *
  * A configuration for my 3kw black outrunner
  * should have a similar configuration.

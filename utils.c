@@ -23,7 +23,11 @@
  */
 
 #include "utils.h"
+#include "ch.h"
 #include <math.h>
+
+// Private variables
+static volatile int sys_lock_cnt = 0;
 
 void utils_step_towards(float *value, float goal, float step) {
     if (*value < goal) {
@@ -75,3 +79,33 @@ int utils_truncate_number(float *number, float min, float max) {
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+/**
+ * A system locking function with a counter. For every lock, a corresponding unlock must
+ * exist to unlock the system. That means, if lock is called five times, unlock has to
+ * be called five times as well. Note that chSysLock and chSysLockFromIsr are the same
+ * for this port.
+ */
+void utils_sys_lock_cnt(void) {
+	if (!sys_lock_cnt) {
+		chSysLock();
+	}
+	sys_lock_cnt++;
+}
+
+/**
+ * A system unlocking function with a counter. For every lock, a corresponding unlock must
+ * exist to unlock the system. That means, if lock is called five times, unlock has to
+ * be called five times as well. Note that chSysUnlock and chSysUnlockFromIsr are the same
+ * for this port.
+ */
+void utils_sys_unlock_cnt(void) {
+	if (sys_lock_cnt) {
+		sys_lock_cnt--;
+		if (!sys_lock_cnt) {
+			chSysUnlock();
+		}
+	}
+}
+
+
