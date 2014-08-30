@@ -1937,7 +1937,11 @@ static void commutate(void) {
 	has_commutated = 1;
 
 	mc_timer_struct timer_tmp;
+
+	utils_sys_lock_cnt();
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	utils_sys_unlock_cnt();
+
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1972,7 +1976,11 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 static void set_switching_frequency(float frequency) {
 	switching_frequency_now = frequency;
 	mc_timer_struct timer_tmp;
+
+	utils_sys_lock_cnt();
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	utils_sys_unlock_cnt();
+
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
