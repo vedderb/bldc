@@ -308,9 +308,11 @@ void mcpwm_init(void) {
 	// Enable transfer complete interrupt
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
-	// ADC Common Init
-	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
-	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
+	// The ADC settings here mean conversion time is 12+3=15 cycles at 21MHz = 0,714us... max time is 5 consecutive conversions = 3,57us
+	
+	// ADC Common Init:
+	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult_AlterTrig;	// Simultaneous Regular channels and triggered injected channels
+	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div4; 			// Clock is APB2/4 = 21MHz, maximum clock for STM32F405 is 36MHz
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
@@ -457,11 +459,11 @@ void mcpwm_init(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
-	// WWDG configuration
+	// WWDG configuration: APB1 runs at 42MHz, WDT counts at most from 0x7F down to 0x40
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
+	WWDG_SetPrescaler(WWDG_Prescaler_1);	// 42MHz/4096
+	WWDG_SetWindowValue(255);				// No window
+	WWDG_Enable(100);						// 100-0x40 = 36*4096/42MHz = 3,5ms
 }
 
 void mcpwm_reset_driver(void) {
@@ -1888,11 +1890,16 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			 */
 
 			// Voltage samples
-			val_sample = duty / 2;
+			val_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
 
 			// Current samples
+#ifdef HW_HAS_TOTAL_CURRENT
+			curr1_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
+			curr2_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
+#else
 			curr1_sample = duty + (top - duty) / 2;
 			curr2_sample = duty + (top - duty) / 2;
+#endif
 		}
 	}
 

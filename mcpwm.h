@@ -56,16 +56,21 @@ typedef enum {
 	CONTROL_MODE_NONE
 } mc_control_mode;
 
-// Functions
-void mcpwm_init(void);
-void mcpwm_reset_driver(void);
-void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
+//Write functions
+void mcpwm_init(void);											/* called at boot only */
+void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);	/* called at boot and from Terminal (debug?) */
+void mcpwm_reset_driver(void); 									/* only affect gate driver hardware */
+
+//Write functions (directly affecting motor drive in real time)
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_current(float current);
 void mcpwm_set_brake_current(float current);
 void mcpwm_brake_now(void);
 void mcpwm_release_motor(void);
+void mcpwm_set_detect(void);
+
+// Read Functions
 int mcpwm_get_comm_step(void);
 float mcpwm_get_duty_cycle_set(void);
 float mcpwm_get_duty_cycle_now(void);
@@ -80,7 +85,6 @@ float mcpwm_get_tot_current(void);
 float mcpwm_get_tot_current_filtered(void);
 float mcpwm_get_tot_current_in(void);
 float mcpwm_get_tot_current_in_filtered(void);
-void mcpwm_set_detect(void);
 float mcpwm_get_detect_pos(void);
 signed int mcpwm_read_hall_phase(void);
 float mcpwm_read_reset_avg_motor_current(void);
@@ -137,6 +141,8 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
+#define MCPWM_ADC_CONVERSION			((15*HW_ADC_NBR_CONV+1)*4*2)	// Number of TIM_PWM cycles for all ADC conversions... TIM_PWM clock is APB2*2 is ADCCLK*4*2 
+#define MCPWM_ADC_INJ_CONVERSION		((15                +1)*4*2)	// Number of TIM_PWM cycles for an injected ADC conversion... TIM_PWM clock is APB2*2 is ADCCLK*4*2 
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
