@@ -1308,12 +1308,13 @@ void mcpwm_adc_inj_int_handler(void) {
 		mcpwm_detect_currents_avg[detect_step] += mcpwm_detect_currents[detect_step];
 		mcpwm_detect_currents_avg_samples[detect_step]++;
 
+
+		/** warning: this is an always true test or dirty code or typo error */
 		if (detect_now > 1) {
 			stop_pwm_hw();
 		}
 	}
 
-	/** warning: this is an always true test or dirty code or typo error */
 	if (detect_now) {
 		detect_now--;
 	}
