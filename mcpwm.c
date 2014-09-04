@@ -1313,6 +1313,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 	}
 
+	/** warning: this is an always true test or dirty code or typo error */
 	if (detect_now) {
 		detect_now--;
 	}
