@@ -110,10 +110,10 @@ static volatile int kv_fir_index = 0;
 
 // Amplitude FIR filter
 #define AMP_FIR_TAPS_BITS		7
-#define AMP_FIR_LEN				(1 << KV_FIR_TAPS_BITS)
+#define AMP_FIR_LEN				(1 << AMP_FIR_TAPS_BITS)
 #define AMP_FIR_FCUT			0.02
-static volatile float amp_fir_coeffs[KV_FIR_LEN];
-static volatile float amp_fir_samples[KV_FIR_LEN];
+static volatile float amp_fir_coeffs[AMP_FIR_LEN];
+static volatile float amp_fir_samples[AMP_FIR_LEN];
 static volatile int amp_fir_index = 0;
 
 // Current FIR filter
