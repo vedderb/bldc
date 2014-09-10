@@ -1803,8 +1803,12 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 		val_sample = 200;
 
 		// Current samples
+#ifdef HW_HAS_TOTAL_CURRENT
+		curr1_sample = 200;
+#else
 		curr1_sample = (top - duty) / 2 + duty;
-		curr2_sample = (top - duty) / 2 + duty;
+#endif
+		curr2_sample = curr1_sample;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
 			uint32_t samp_neg = top - 2;
@@ -1892,7 +1896,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			 */
 
 			// Voltage samples
-			val_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
+			val_sample = duty - MCPWM_ADC_CONVERSION;
 
 			// Current samples
 #ifdef HW_HAS_TOTAL_CURRENT
