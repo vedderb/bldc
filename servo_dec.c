@@ -121,10 +121,10 @@ void servodec_init(void (*d_func)(void)) {
 	NVIC_Init(&NVIC_InitStructure);
 #endif
 
-	// ------------- Timer3 ------------- //
+	// ------------- Timer4 ------------- //
 	/* Compute the prescaler value */
-	/* TIM3 clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	/* TIM4 clock enable */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
 
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / TIMER_FREQ) - 1;
 
@@ -134,13 +134,13 @@ void servodec_init(void (*d_func)(void)) {
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
-	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
 	/* Prescaler configuration */
-	TIM_PrescalerConfig(TIM3, PrescalerValue, TIM_PSCReloadMode_Immediate);
+	TIM_PrescalerConfig(TIM4, PrescalerValue, TIM_PSCReloadMode_Immediate);
 
-	/* TIM3 enable counter */
-	TIM_Cmd(TIM3, ENABLE);
+	/* TIM4 enable counter */
+	TIM_Cmd(TIM4, ENABLE);
 
 	// Set up a virtual timer to update the counters
 	chSysLock();
@@ -169,20 +169,20 @@ void servodec_int_handler(void) {
 	if (interrupt_time >= INTERRUPT_TRESHOLD) {
 		curr_index = 0;
 		interrupt_time = 0;
-		TIM3->CNT = 0;
+		TIM4->CNT = 0;
 		return;
 	}
 
 	if (curr_index < SERVO_NUM) {
 		// Use floating point because we can :)
-		float time_ms = (float)(TIM3->CNT);
+		float time_ms = (float)(TIM4->CNT);
 		time_ms = (time_ms * 1000.0) / (float)TIMER_FREQ;
 
 		if (time_ms < 0.4) {
 			return;
 		}
 
-		TIM3->CNT = 0;
+		TIM4->CNT = 0;
 
 		// Check if pulse is within valid range
 		if (time_ms > 0.8 && time_ms < 2.2) {

@@ -92,6 +92,9 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * V_REG)
 
+// Define which TIMER to use for timer-related hardware
+#define PWM_TIMER	1
+
 // NTC Termistors
 #define NTC_RES(adc_val)	(0.0)
 #define NTC_TEMP(adc_ind)	(32.0)

@@ -19,6 +19,7 @@
 #include "hal.h"
 #include <stm32f4xx.h>
 #include "stm32f4xx_conf.h"
+#include "hw.h"
 #include "main.h"
 #include "mcpwm.h"
 #include "servo.h"
@@ -32,9 +33,9 @@ CH_IRQ_HANDLER(TIM7_IRQHandler) {
 	CH_IRQ_EPILOGUE();
 }
 
-CH_IRQ_HANDLER(TIM1_UP_IRQHandler) {
+CH_IRQ_HANDLER(TIM_PWM_UP_IRQHandler) {
 	CH_IRQ_PROLOGUE();
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+	TIM_ClearITPendingBit(TIM_PWM, TIM_IT_Update);
 	mcpwm_update_int_handler();
 	CH_IRQ_EPILOGUE();
 }

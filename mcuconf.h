@@ -44,9 +44,10 @@
 #define STM32_LSE_ENABLED                   FALSE
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
+// HSE = 8MHz crystal, VCO = HSE*N/M= 336MHz, PLL = VCO / P = 168MHz, USB = VCO/Q = 48MHz
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
-#define STM32_PLLM_VALUE                    8
-#define STM32_PLLN_VALUE                    336
+#define STM32_PLLM_VALUE                    5
+#define STM32_PLLN_VALUE                    210
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
 #define STM32_HPRE                          STM32_HPRE_DIV1
@@ -117,13 +118,17 @@
 #define STM32_GPT_USE_TIM3                  FALSE
 #define STM32_GPT_USE_TIM4                  FALSE
 #define STM32_GPT_USE_TIM5                  FALSE
+#define STM32_GPT_USE_TIM7                  FALSE
 #define STM32_GPT_USE_TIM8                  FALSE
+#define STM32_GPT_USE_TIM14                 FALSE
 #define STM32_GPT_TIM1_IRQ_PRIORITY         7
 #define STM32_GPT_TIM2_IRQ_PRIORITY         7
 #define STM32_GPT_TIM3_IRQ_PRIORITY         7
 #define STM32_GPT_TIM4_IRQ_PRIORITY         7
 #define STM32_GPT_TIM5_IRQ_PRIORITY         7
+#define STM32_GPT_TIM7_IRQ_PRIORITY         7
 #define STM32_GPT_TIM8_IRQ_PRIORITY         7
+#define STM32_GPT_TIM14_IRQ_PRIORITY        7
 
 /*
  * I2C driver system settings.
@@ -155,13 +160,17 @@
 #define STM32_ICU_USE_TIM3                  FALSE
 #define STM32_ICU_USE_TIM4                  FALSE
 #define STM32_ICU_USE_TIM5                  FALSE
+#define STM32_ICU_USE_TIM7                  FALSE
 #define STM32_ICU_USE_TIM8                  FALSE
+#define STM32_ICU_USE_TIM14                 FALSE
 #define STM32_ICU_TIM1_IRQ_PRIORITY         7
 #define STM32_ICU_TIM2_IRQ_PRIORITY         7
 #define STM32_ICU_TIM3_IRQ_PRIORITY         7
 #define STM32_ICU_TIM4_IRQ_PRIORITY         7
 #define STM32_ICU_TIM5_IRQ_PRIORITY         7
+#define STM32_ICU_TIM7_IRQ_PRIORITY         7
 #define STM32_ICU_TIM8_IRQ_PRIORITY         7
+#define STM32_ICU_TIM14_IRQ_PRIORITY        7
 
 /*
  * PWM driver system settings.

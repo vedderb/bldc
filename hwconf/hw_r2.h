@@ -106,6 +106,9 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * V_REG)
 
+// Define which TIMER to use for timer-related hardware
+#define PWM_TIMER	1
+
 // Number of servo outputs
 #define HW_SERVO_NUM		2
 

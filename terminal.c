@@ -87,17 +87,17 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		comm_printf("Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
 	} else if (strcmp(argv[0], "tim") == 0) {
-		TIM_Cmd(TIM1, DISABLE);
-		int t1_cnt = TIM1->CNT;
-		int t8_cnt = TIM8->CNT;
-		int duty = TIM1->CCR1;
-		int top = TIM1->ARR;
-		int voltage_samp = TIM8->CCR1;
-		int current1_samp = TIM1->CCR4;
-		int current2_samp = TIM8->CCR2;
-		TIM_Cmd(TIM1, ENABLE);
-		comm_printf("Tim1 CNT: %i", t1_cnt);
-		comm_printf("Tim8 CNT: %u", t8_cnt);
+		TIM_Cmd(TIM_PWM, DISABLE);
+		int t_pwm_cnt = TIM_PWM->CNT;
+		int t_adc_cnt = TIM_ADC->CNT;
+		int duty = TIM_PWM->CCR1;
+		int top = TIM_PWM->ARR;
+		int voltage_samp = TIM_ADC->CCR1;
+		int current1_samp = TIM_PWM->CCR4;
+		int current2_samp = TIM_ADC->CCR4;
+		TIM_Cmd(TIM_PWM, ENABLE);
+		comm_printf("TIM_PWM CNT: %i", t_pwm_cnt);
+		comm_printf("TIM_ADC CNT: %u", t_adc_cnt);
 		comm_printf("Duty cycle: %u", duty);
 		comm_printf("Top: %u", top);
 		comm_printf("Voltage sample: %u", voltage_samp);
@@ -105,8 +105,11 @@ void terminal_process_string(char *str) {
 		comm_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		comm_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+	} else if (strcmp(argv[0], "reset_drv") == 0) {
+		comm_printf("reset driver\n");
+		mcpwm_reset_driver();
 	}
-
+	
 	// Setters
 	else if (strcmp(argv[0], "set_hall_table") == 0) {
 		if (argc == 4) {
@@ -163,7 +166,10 @@ void terminal_process_string(char *str) {
 		comm_printf("  Prints tachometer value");
 
 		comm_printf("tim");
-		comm_printf("  Prints tim1 and tim8 settings");
+		comm_printf("  Prints TIM_PWM and TIM_ADC settings");
+
+		comm_printf("reset_drv");
+		comm_printf("  Short pulse on EN_GATE to reset latched driver fault");
 
 		comm_printf("set_hall_table [dir] [fwd_add] [rev_add]");
 		comm_printf("  Update the hall sensor lookup table");

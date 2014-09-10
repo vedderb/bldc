@@ -54,6 +54,7 @@ typedef struct {
 } rpm_dep_struct;
 
 // Private variables
+/** TODO: a bunch of those should not be volatile (written by HW or interrupt or reading or writing it has side effects)... e.g. pwm_mode is a constant! */
 static volatile int comm_step; // Range [1 6]
 static volatile int detect_step; // Range [0 5]
 static volatile int direction;
@@ -109,10 +110,10 @@ static volatile int kv_fir_index = 0;
 
 // Amplitude FIR filter
 #define AMP_FIR_TAPS_BITS		7
-#define AMP_FIR_LEN				(1 << KV_FIR_TAPS_BITS)
+#define AMP_FIR_LEN				(1 << AMP_FIR_TAPS_BITS)
 #define AMP_FIR_FCUT			0.02
-static volatile float amp_fir_coeffs[KV_FIR_LEN];
-static volatile float amp_fir_samples[KV_FIR_LEN];
+static volatile float amp_fir_coeffs[AMP_FIR_LEN];
+static volatile float amp_fir_samples[AMP_FIR_LEN];
 static volatile int amp_fir_index = 0;
 
 // Current FIR filter
@@ -218,13 +219,13 @@ void mcpwm_init(void) {
 	// Create current FIR filter
 	filter_create_fir_lowpass((float*)current_fir_coeffs, CURR_FIR_FCUT, CURR_FIR_TAPS_BITS, 1);
 
-	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM8);
-	TIM1->CNT = 0;
-	TIM8->CNT = 0;
+	TIM_DeInit(TIM_PWM);
+	TIM_DeInit(TIM_ADC);
+	TIM_PWM->CNT = 0;
+	TIM_ADC->CNT = 0;
 
-	// TIM1 clock enable
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+	// TIM_PWM clock enable
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM_PWM, ENABLE);
 
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -233,40 +234,40 @@ void mcpwm_init(void) {
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
-	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM_PWM, &TIM_TimeBaseStructure);
 
 	// Channel 1, 2 and 3 Configuration in PWM mode
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
-	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
-	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
+	TIM_OCInitStructure.TIM_Pulse = TIM_PWM->ARR / 2;
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;		// high-side gate driver input high => high-side high-impedance
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;		// low-side gate driver input low => low-side high-impedance
+	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;		// when MOE is clear when high-side xor low-side disabled, output goes to idle state
+	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;	// when high-side xor low-side disabled, output goes to idle state
 
-	TIM_OC1Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC2Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC3Init(TIM1, &TIM_OCInitStructure);
-	TIM_OC4Init(TIM1, &TIM_OCInitStructure);
+	TIM_OC1Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC2Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC3Init(TIM_PWM, &TIM_OCInitStructure);
+	TIM_OC4Init(TIM_PWM, &TIM_OCInitStructure);
 
-	TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
-	TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
+	TIM_OC1PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC2PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC3PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
+	TIM_OC4PreloadConfig(TIM_PWM, TIM_OCPreload_Enable);
 
 	// Automatic Output enable, Break, dead time and lock configuration
-	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
-	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSRState_Enable;
+	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable; // if MOE is set, if a channel is enabled and complementary is disabled, complementary channel is output enable in inactive state (instead of output disable)
+	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable; // if MOE is clear, if at least a channel is enabled, both outputs enable in idle state (instead of output disable)
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
 	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 
-	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
-	TIM_CCPreloadControl(TIM1, ENABLE);
-	TIM_ARRPreloadConfig(TIM1, ENABLE);
+	TIM_BDTRConfig(TIM_PWM, &TIM_BDTRInitStructure);
+	TIM_CCPreloadControl(TIM_PWM, ENABLE);
+	TIM_ARRPreloadConfig(TIM_PWM, ENABLE);
 
 	/*
 	 * ADC!
@@ -308,9 +309,11 @@ void mcpwm_init(void) {
 	// Enable transfer complete interrupt
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
-	// ADC Common Init
-	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
-	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
+	// The ADC settings here mean conversion time is 12+3=15 cycles at 21MHz = 0,714us... max time is 5 consecutive conversions = 3,57us
+	
+	// ADC Common Init:
+	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult_AlterTrig;	// Simultaneous Regular channels and triggered injected channels
+	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div4; 			// Clock is APB2/4 = 21MHz, maximum clock for STM32F405 is 36MHz
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
@@ -320,7 +323,7 @@ void mcpwm_init(void) {
 	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Falling;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T_ADC_CC1;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
@@ -336,8 +339,8 @@ void mcpwm_init(void) {
 	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 
 	// Injected channels for current measurement at end of cycle
-	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
-	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
+	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T_PWM_CC4);
+	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T_ADC_CC4);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_InjectedSequencerLengthConfig(ADC1, 1);
@@ -360,16 +363,16 @@ void mcpwm_init(void) {
 	// Enable ADC3
 	ADC_Cmd(ADC3, ENABLE);
 
-	// ------------- Timer8 for ADC sampling ------------- //
+	// ------------- Timer for ADC sampling ------------- //
 	// Time Base configuration
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM_ADC, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM_ADC, &TIM_TimeBaseStructure);
 
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
@@ -378,40 +381,39 @@ void mcpwm_init(void) {
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
-	TIM_OC1Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
-	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
-	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+	TIM_OC1Init(TIM_ADC, &TIM_OCInitStructure);
+	TIM_OC1PreloadConfig(TIM_ADC, TIM_OCPreload_Enable);
+	TIM_OC2Init(TIM_ADC, &TIM_OCInitStructure);
+	TIM_OC2PreloadConfig(TIM_ADC, TIM_OCPreload_Enable);
 
-	TIM_ARRPreloadConfig(TIM8, ENABLE);
-	TIM_CCPreloadControl(TIM8, ENABLE);
+	TIM_ARRPreloadConfig(TIM_ADC, ENABLE);
+	TIM_CCPreloadControl(TIM_ADC, ENABLE);
 
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
-	TIM_CtrlPWMOutputs(TIM8, ENABLE);
+	TIM_CtrlPWMOutputs(TIM_ADC, ENABLE);
 
-	// TIM1 Master and TIM8 slave
-	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
-	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
-	TIM_SelectMasterSlaveMode(TIM8, TIM_MasterSlaveMode_Enable);
-	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
-	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Gated);
+	// TIM_PWM Master and TIM_ADC slave
+	TIM_SelectOutputTrigger(TIM_PWM, TIM_TRGOSource_Update);
+	TIM_SelectMasterSlaveMode(TIM_PWM, TIM_MasterSlaveMode_Enable);
+	TIM_SelectInputTrigger(TIM_ADC, TIM_TS_PWM);
+	TIM_SelectSlaveMode(TIM_ADC, TIM_SlaveMode_Reset);
 
 	// Update interrupt
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
+	TIM_ITConfig(TIM_PWM, TIM_IT_Update, ENABLE);
+	NVIC_InitStructure.NVIC_IRQChannel = TIM_PWM_UP_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
-	// Enable TIM8 first to make sure timers are in sync
-	TIM_Cmd(TIM8, ENABLE);
-	TIM_Cmd(TIM1, ENABLE);
+	// Enable TIM_ADC first to make sure timers are in sync
+	TIM_Cmd(TIM_ADC, ENABLE);
+	TIM_Cmd(TIM_PWM, ENABLE);
 
 	// Main Output Enable
-	TIM_CtrlPWMOutputs(TIM1, ENABLE);
+	TIM_CtrlPWMOutputs(TIM_PWM, ENABLE);
 
-	// 32-bit timer for RPM measurement
+	// 32-bit timer for RPM measurement and measuring duration of interrupt routines
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / MCPWM_RPM_TIMER_FREQ) - 1;
 
@@ -426,9 +428,10 @@ void mcpwm_init(void) {
 	TIM_Cmd(TIM2, ENABLE);
 
 	// ADC sampling locations
+
 	stop_pwm_hw();
-	timer_struct.top = TIM1->ARR;
-	timer_struct.duty = TIM1->ARR / 2;
+	timer_struct.top = TIM_PWM->ARR;
+	timer_struct.duty = TIM_PWM->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
 	timer_struct_updated = 1;
 
@@ -439,8 +442,8 @@ void mcpwm_init(void) {
 	DCCAL_OFF();
 	do_dc_cal();
 
-	// Various time measurements
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+	// Various time measurements (interrupt routine duration),  32bits, clock = 168MHz, prescaled clock = ?
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
 	// Time base configuration
@@ -448,20 +451,25 @@ void mcpwm_init(void) {
 	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM14, &TIM_TimeBaseStructure);
 
-	// TIM3 enable counter
-	TIM_Cmd(TIM4, ENABLE);
+	// TIM14 enable counter
+	TIM_Cmd(TIM14, ENABLE);
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
-	// WWDG configuration
+	// WWDG configuration: APB1 runs at 42MHz, WDT counts at most from 0x7F down to 0x40
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
+	WWDG_SetPrescaler(WWDG_Prescaler_1);	// 42MHz/4096
+	WWDG_SetWindowValue(255);				// No window
+	WWDG_Enable(100);						// 100-0x40 = 36*4096/42MHz = 3,5ms
+}
+
+void mcpwm_reset_driver(void) {
+	DISABLE_GATE();
+	ENABLE_GATE();
 }
 
 /**
@@ -754,19 +762,19 @@ static void stop_pwm_ll(void) {
 }
 
 static void stop_pwm_hw(void) {
-	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_1, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_1, TIM_CCxN_Disable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_2, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_2, TIM_CCxN_Disable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_3, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_3, TIM_CCxN_Disable);
 
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
@@ -778,19 +786,19 @@ static void full_brake_ll(void) {
 }
 
 static void full_brake_hw(void) {
-	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_1, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_1, TIM_CCxN_Enable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_2, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_2, TIM_CCxN_Enable);
 
-	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_SelectOCxM(TIM_PWM, TIM_Channel_3, TIM_ForcedAction_InActive);
+	TIM_CCxCmd(TIM_PWM, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM_PWM, TIM_Channel_3, TIM_CCxN_Enable);
 
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 
 	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
 }
@@ -902,22 +910,19 @@ static void set_duty_cycle_ll(float dutyCycle) {
 
 	set_duty_cycle_hw(dutyCycle);
 
-#if MCPWM_IS_SENSORLESS
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
 
+#if MCPWM_IS_SENSORLESS
 		if (rpm_now < MCPWM_MIN_RPM) {
 			commutate();
 		}
-	}
 #else
-	if (state != MC_STATE_RUNNING) {
-		state = MC_STATE_RUNNING;
 		comm_step = mcpwm_read_hall_phase();
 		set_next_comm_step(comm_step);
 		commutate();
-	}
 #endif
+	}
 }
 
 /**
@@ -937,13 +942,6 @@ static void set_duty_cycle_hw(float dutyCycle) {
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
-		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
-				+ ((float) timer_tmp.top / 2.0));
-	} else {
-		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
-	}
-
 	if (IS_DETECTING() || pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
@@ -952,6 +950,14 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	}
 
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	
+	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
+		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
+				+ ((float) timer_tmp.top / 2.0));
+	} else {
+		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
+	}
+
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1198,31 +1204,24 @@ static msg_t timer_thread(void *arg) {
 void mcpwm_update_int_handler(void) {
 	utils_sys_lock_cnt();
 
-	// Check if the timers still are in sync. If not, re-sync them.
-	volatile int32_t t1 = TIM1->CNT;
-	volatile int32_t t8 = TIM8->CNT;
-	volatile int32_t diff = t8 - t1;
-	if (diff < 0 || diff > 20) {
-		TIM_Cmd(TIM1, DISABLE);
-		TIM8->CNT = TIM1->CNT;
-		TIM_Cmd(TIM1, ENABLE);
-	}
+	/** TODO: Is that function at all necessary since set_next_timer_settings() should do the job? */
+	
+	// Drivers are in Sync since we are in SlaveReset mode.
 
 	// The check whether we are too close to the top is needed, even
 	// if this interrupt is triggered after a timer update. This
 	// is because some other interrupt could have delayed this one.
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
+	volatile uint32_t cnt = TIM_PWM->CNT;
+	volatile uint32_t top = TIM_PWM->ARR;
 
 	if (timer_struct_updated && (top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIM_PWM->ARR = timer_struct.top;
+		TIM_PWM->CCR1 = timer_struct.duty;
+		TIM_PWM->CCR2 = timer_struct.duty;
+		TIM_PWM->CCR3 = timer_struct.duty;
+		TIM_ADC->CCR1 = timer_struct.val_sample/2;
+		TIM_PWM->CCR4 = timer_struct.curr1_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample/2;
 		timer_struct_updated = 0;
 	}
 
@@ -1232,13 +1231,24 @@ void mcpwm_update_int_handler(void) {
 void mcpwm_adc_inj_int_handler(void) {
 	utils_sys_lock_cnt();
 
-	TIM4->CNT = 0;
+	TIM14->CNT = 0;
 
 	static int detect_now = 0;
 
+#ifdef HW_HAS_TOTAL_CURRENT
+	int curr = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
+	curr0_sum += curr;
+	curr1_sum += curr;
+	curr_start_samples++;
+	ADC_curr_norm_value[0] = ADC_curr_norm_value[1] = ADC_curr_norm_value[2] = curr - curr0_offset;
+	
+	float curr_tot_sample = curr - curr0_offset;
+	
+#else
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
+	// This "if" is so far only for PWM_MODE_BIPOLAR
 	if (curr_samp_volt == 1) {
 		curr0 = ADC_Value[ADC_IND_CURR1];
 	} else if (curr_samp_volt == 2) {
@@ -1279,7 +1289,8 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 		break;
 	}
-
+#endif
+	
 	if (detect_now == 4) {
 		float a = fabsf(ADC_curr_norm_value[0]);
 		float b = fabsf(ADC_curr_norm_value[1]);
@@ -1301,6 +1312,8 @@ void mcpwm_adc_inj_int_handler(void) {
 		mcpwm_detect_currents_avg[detect_step] += mcpwm_detect_currents[detect_step];
 		mcpwm_detect_currents_avg_samples[detect_step]++;
 
+
+		/** warning: this is an always true test or dirty code or typo error */
 		if (detect_now > 1) {
 			stop_pwm_hw();
 		}
@@ -1323,7 +1336,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		comm_step = detect_step + 1;
 
 		set_next_comm_step(detect_step + 1);
-		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 	}
 
 	last_current_sample = curr_tot_sample;
@@ -1333,7 +1346,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
+	last_inj_adc_isr_duration = (float) TIM14->CNT / 10000000;
 
 	utils_sys_unlock_cnt();
 }
@@ -1347,7 +1360,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	utils_sys_lock_cnt();
 
-	TIM4->CNT = 0;
+	TIM14->CNT = 0;
 
 	// Reset the watchdog
 	WWDG_SetCounter(100);
@@ -1402,7 +1415,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	if (has_commutated) {
 		amp = fabsf(dutycycle_now) * (float)ADC_Value[ADC_IND_VIN_SENS];
 	} else {
-		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3)) * sqrtf(2.0);
+		amp = sqrtf((float)(ph1*ph1 + ph2*ph2 + ph3*ph3) * 2.0);
 	}
 
 	// Fill the amplitude FIR filter
@@ -1660,7 +1673,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	main_dma_adc_handler();
 
-	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
+	last_adc_isr_duration = (float)TIM14->CNT / 10000000;
 	utils_sys_unlock_cnt();
 }
 
@@ -1726,15 +1739,19 @@ float mcpwm_get_detect_pos(void) {
 
 float mcpwm_read_reset_avg_motor_current(void) {
 	float res = motor_current_sum / motor_current_iterations;
+	chSysLock();
 	motor_current_sum = 0;
 	motor_current_iterations = 0;
+	chSysUnlock();
 	return res;
 }
 
 float mcpwm_read_reset_avg_input_current(void) {
 	float res = input_current_sum / input_current_iterations;
+	chSysLock();
 	input_current_sum = 0;
 	input_current_iterations = 0;
+	chSysUnlock();
 	return res;
 }
 
@@ -1783,14 +1800,19 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+	
 	// Sample the ADC at an appropriate time during the pwm cycle
 	if (IS_DETECTING()) {
 		// Voltage samples
 		val_sample = 200;
 
 		// Current samples
+#ifdef HW_HAS_TOTAL_CURRENT
+		curr1_sample = 200;
+#else
 		curr1_sample = (top - duty) / 2 + duty;
-		curr2_sample = (top - duty) / 2 + duty;
+#endif
+		curr2_sample = curr1_sample;
 	} else {
 		if (pwm_mode == PWM_MODE_BIPOLAR) {
 			uint32_t samp_neg = top - 2;
@@ -1872,12 +1894,22 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				break;
 			}
 		} else {
+		
+			/** TODO: update not at DC/2 but at as late as possible in that state to sample as little transient as possible
+			 * This may not be visible as sensorless voltage samples are during ON time which is rather constant and small (DC mostly affect OFF time)
+			 */
+
 			// Voltage samples
-			val_sample = duty / 2;
+			val_sample = duty - MCPWM_ADC_CONVERSION;
 
 			// Current samples
+#ifdef HW_HAS_TOTAL_CURRENT
+			curr1_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
+			curr2_sample = duty - MCPWM_ADC_CONVERSION - MCPWM_ADC_INJ_CONVERSION;
+#else
 			curr1_sample = duty + (top - duty) / 2;
 			curr2_sample = duty + (top - duty) / 2;
+#endif
 		}
 	}
 
@@ -1933,7 +1965,7 @@ static void commutate(void) {
 
 	set_next_comm_step(comm_step);
 #endif
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+	TIM_GenerateEvent(TIM_PWM, TIM_EventSource_COM);
 	has_commutated = 1;
 
 	mc_timer_struct timer_tmp;
@@ -1951,20 +1983,19 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 
 	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
 
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
+	volatile uint32_t cnt = TIM_PWM->CNT;
+	volatile uint32_t top = TIM_PWM->ARR;
 
 	// If there is enough time to update all values at once during this cycle,
 	// do it here. Otherwise, schedule the update for the next cycle.
 	if ((top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
+		TIM_PWM->ARR = timer_struct.top;
+		TIM_PWM->CCR1 = timer_struct.duty;
+		TIM_PWM->CCR2 = timer_struct.duty;
+		TIM_PWM->CCR3 = timer_struct.duty;
+		TIM_ADC->CCR1 = timer_struct.val_sample/2;
+		TIM_PWM->CCR4 = timer_struct.curr1_sample;
+		TIM_ADC->CCR4 = timer_struct.curr2_sample/2;
 		timer_struct_updated = 0;
 	} else {
 		timer_struct_updated = 1;
@@ -1987,247 +2018,82 @@ static void set_switching_frequency(float frequency) {
 }
 
 static void set_next_comm_step(int next_step) {
-	uint16_t positive_oc_mode = TIM_OCMode_PWM1;
-	uint16_t negative_oc_mode = TIM_OCMode_Inactive;
 
-	uint16_t positive_highside = TIM_CCx_Enable;
-	uint16_t positive_lowside = TIM_CCxN_Enable;
+	/* Depending on next_step and direction, set 3 PWM pairs complementary output one as +-, one as -+ and one inactive */
+	int channel;
+	uint16_t TIM_channel[] = {TIM_Channel_1, TIM_Channel_2, TIM_Channel_3};
+	typedef enum {
+		STOP = 0,	// Invalid phase.. stop PWM!
+		INACTIVE,	// inactive phase
+		POSITVE,	// phase connected to VBAT via PWM
+		NEGATIVE,	// phase connected to GND
+	} phase_mode;
+	
+	uint16_t next_parameters[5][3] = {
+		{TIM_ForcedAction_InActive, TIM_CCx_Enable,	TIM_CCxN_Disable},	// STOP:		invalid phase.. stop PWM! (notice we stop it at VBAT instead of GND??)
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Disable},	// INACTIVE:	inactive phase, high impedance
+		{TIM_OCMode_PWM1,			TIM_CCx_Enable,	TIM_CCxN_Enable},	// POSITIVE:	phase connected to VBAT/VCC via PWM
+		{TIM_OCMode_Inactive,		TIM_CCx_Enable,	TIM_CCxN_Enable},	// NEGATIVE:	phase connected to GND
+	};
 
-	uint16_t negative_highside = TIM_CCx_Enable;
-	uint16_t negative_lowside = TIM_CCxN_Enable;
+	// Next mode, default for illegal next_step: switch off all phases (we should really reboot here!)
+	phase_mode next_mode[3] = {STOP,STOP,STOP};
+
+	// Commutation sequence, 6 phases, channel 1/2/3 if direction=1, else channel 1/3/2
+	const phase_mode phase_lookup[6][3] = {
+		{INACTIVE, POSITVE, NEGATIVE},
+		{POSITVE, INACTIVE, NEGATIVE},
+		{POSITVE, NEGATIVE, INACTIVE},
+		{INACTIVE, NEGATIVE, POSITVE},
+		{NEGATIVE, INACTIVE, POSITVE},
+		{NEGATIVE, POSITVE, INACTIVE}
+	};
 
 	if (!IS_DETECTING()) {
 		switch (pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
-			positive_lowside = TIM_CCxN_Disable;
+			next_parameters[POSITVE][2] = TIM_CCxN_Disable;	// positive_lowside: positive phase lowside is floating during PWM OFF time (in PWM off-time, use lowside freewheel diode)
 			break;
 
 		case PWM_MODE_SYNCHRONOUS:
 			break;
 
 		case PWM_MODE_BIPOLAR:
-			negative_oc_mode = TIM_OCMode_PWM2;
+			next_parameters[NEGATIVE][0] = TIM_OCMode_PWM2;	// negative_oc_mode
 			break;
 		}
 	}
 
-	if (next_step == 1) {
+	
+	switch (next_step) {
+
+	// next 3 phases for normal PWM mode
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+	case 6: 
+		next_mode[0] = phase_lookup[next_step-1][0];
 		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
+			next_mode[1] = phase_lookup[next_step-1][1];
+			next_mode[2] = phase_lookup[next_step-1][2];
 		}
-	} else if (next_step == 2) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
+		else {
+			next_mode[1] = phase_lookup[next_step-1][2];
+			next_mode[2] = phase_lookup[next_step-1][1];
 		}
-	} else if (next_step == 3) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+		break;
 
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		}
-	} else if (next_step == 4) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
-		}
-	} else if (next_step == 5) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		}
-	} else if (next_step == 6) {
-		if (direction) {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		} else {
-			// 0
-			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
-			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-			TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-			// +
-			TIM_SelectOCxM(TIM1, TIM_Channel_3, positive_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_3, positive_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_3, positive_lowside);
-
-			// -
-			TIM_SelectOCxM(TIM1, TIM_Channel_1, negative_oc_mode);
-			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
-			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
-		}
-	} else if (next_step == 32) {
-		// NOTE: This means we are going to use sine modulation. Switch on all phases!
-		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
-	} else {
-		// Invalid phase.. stop PWM!
-		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
+	// by default illegal next_step will switch off all phases but this can't happen right?
+	default :
+		break;
 	}
+	
+	for (channel=0; channel<3; channel++) {
+		TIM_SelectOCxM(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][0]);
+		TIM_CCxCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][1]);
+		TIM_CCxNCmd(TIM_PWM, TIM_channel[channel], next_parameters[next_mode[channel]][2]);
+	}
+
 }

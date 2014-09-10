@@ -101,7 +101,7 @@ static void servo_init_timer(void) {
 	// Interrupt generation
 	TIM_ITConfig(TIM7, TIM_IT_Update, ENABLE);
 
-	// TIM6 enable counter
+	// TIM7 enable counter
 	TIM_Cmd(TIM7, ENABLE);
 
 	// NVIC
