@@ -16,7 +16,7 @@
     */
 
 /*
- * mcconf_outrunner1.h
+ * mcconf_outrunner2.h
  *
  * A configuration for my scorpion 225kv outrunner.
  *

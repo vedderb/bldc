@@ -16,7 +16,7 @@
     */
 
 /*
- * mcconf_outrunner1.h
+ * mcconf_outrunner_or.h
  *
  * A configuration for my 3kw orange outrunner
  * should have a similar configuration.

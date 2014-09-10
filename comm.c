@@ -245,8 +245,6 @@ void comm_printf(char* format, ...) {
 	if(len>0) {
 		packet_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255, 0);
 	}
-
-	return;
 }
 
 void comm_send_samples(uint8_t *data, int len) {

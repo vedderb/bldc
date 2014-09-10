@@ -164,7 +164,8 @@ static WORKING_AREA(rpm_thread_wa, 1024);
 static msg_t rpm_thread(void *arg);
 
 void mcpwm_init(void) {
-	chSysLock();
+	utils_sys_lock_cnt();
+
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
@@ -428,13 +429,13 @@ void mcpwm_init(void) {
 
 	// ADC sampling locations
 
-	stop_pwm_hw(); /** warning: this dirty function call will also perform chSysUnlock(); */
+	stop_pwm_hw();
 	timer_struct.top = TIM_PWM->ARR;
 	timer_struct.duty = TIM_PWM->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
 	timer_struct_updated = 1;
 
-	chSysUnlock(); // unnecessary as is performed above by stop_pwm_hw(); above
+	utils_sys_unlock_cnt();
 
 	// Calibrate current offset
 	ENABLE_GATE();
@@ -934,7 +935,10 @@ static void set_duty_cycle_ll(float dutyCycle) {
  */
 static void set_duty_cycle_hw(float dutyCycle) {
 	mc_timer_struct timer_tmp;
+
+	utils_sys_lock_cnt();
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	utils_sys_unlock_cnt();
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
@@ -1023,12 +1027,12 @@ static msg_t rpm_thread(void *arg) {
 
 	for (;;) {
 		if (rpm_dep.comms > 0.0) {
-			chSysLock();
+			utils_sys_lock_cnt();
 			const float comms = (float) rpm_dep.comms;
 			const float time_at_comm = (float) rpm_dep.time_at_comm;
 			rpm_dep.comms = 0;
 			rpm_dep.time_at_comm = 0;
-			chSysUnlock();
+			utils_sys_unlock_cnt();
 
 			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0)
 					/ (time_at_comm * 6.0);
@@ -1198,7 +1202,7 @@ static msg_t timer_thread(void *arg) {
 }
 
 void mcpwm_update_int_handler(void) {
-	chSysLockFromIsr();
+	utils_sys_lock_cnt();
 
 	/** TODO: Is that function at all necessary since set_next_timer_settings() should do the job? */
 	
@@ -1221,11 +1225,11 @@ void mcpwm_update_int_handler(void) {
 		timer_struct_updated = 0;
 	}
 
-	chSysUnlockFromIsr();
+	utils_sys_unlock_cnt();
 }
 
 void mcpwm_adc_inj_int_handler(void) {
-	chSysLockFromIsr();
+	utils_sys_lock_cnt();
 
 	TIM14->CNT = 0;
 
@@ -1344,7 +1348,7 @@ void mcpwm_adc_inj_int_handler(void) {
 
 	last_inj_adc_isr_duration = (float) TIM14->CNT / 10000000;
 
-	chSysUnlockFromIsr();
+	utils_sys_unlock_cnt();
 }
 
 /*
@@ -1354,7 +1358,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	chSysLockFromIsr();
+	utils_sys_lock_cnt();
 
 	TIM14->CNT = 0;
 
@@ -1670,7 +1674,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	main_dma_adc_handler();
 
 	last_adc_isr_duration = (float)TIM14->CNT / 10000000;
-	chSysUnlockFromIsr();
+	utils_sys_unlock_cnt();
 }
 
 void mcpwm_set_detect(void) {
@@ -1965,15 +1969,19 @@ static void commutate(void) {
 	has_commutated = 1;
 
 	mc_timer_struct timer_tmp;
+
+	utils_sys_lock_cnt();
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	utils_sys_unlock_cnt();
+
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
 
 static void set_next_timer_settings(mc_timer_struct *settings) {
-	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
+	utils_sys_lock_cnt();
 
-	chSysLock();
+	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
 
 	volatile uint32_t cnt = TIM_PWM->CNT;
 	volatile uint32_t top = TIM_PWM->ARR;
@@ -1993,13 +2001,17 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 		timer_struct_updated = 1;
 	}
 
-	chSysUnlock();
+	utils_sys_unlock_cnt();
 }
 
 static void set_switching_frequency(float frequency) {
 	switching_frequency_now = frequency;
 	mc_timer_struct timer_tmp;
+
+	utils_sys_lock_cnt();
 	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	utils_sys_unlock_cnt();
+
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
