@@ -105,6 +105,99 @@ void terminal_process_string(char *str) {
 		comm_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		comm_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+	} else if (strcmp(argv[0], "param_detect") == 0) {
+		// Use COMM_MODE_DELAY and try to figure out the motor parameters.
+		if (argc == 4) {
+			float current = -1.0;
+			float min_rpm = -1.0;
+			float low_duty = -1.0;
+			sscanf(argv[1], "%f", &current);
+			sscanf(argv[2], "%f", &min_rpm);
+			sscanf(argv[3], "%f", &low_duty);
+
+			if (current > 0.0 && current < MCPWM_CURRENT_MAX &&
+					min_rpm > 10.0 && min_rpm < 3000.0 &&
+					low_duty > 0.02 && low_duty < 0.8) {
+				mc_comm_mode comm_mode_last = mcpwm_get_comm_mode();
+
+				mcpwm_set_min_rpm(min_rpm);
+				mcpwm_set_comm_mode(COMM_MODE_DELAY);
+				mcpwm_set_current(current);
+
+				// Spin up the motor
+				for (int i = 0;i < 5000;i++) {
+					if (mcpwm_get_duty_cycle_now() < 0.6) {
+						chThdSleepMilliseconds(1);
+					} else {
+						break;
+					}
+				}
+
+				// Release the motor and wait a few commutations
+				mcpwm_set_current(0.0);
+				int tacho = mcpwm_get_tachometer_value(0);
+				for (int i = 0;i < 2000;i++) {
+					if ((mcpwm_get_tachometer_value(0) - tacho) < 3) {
+						chThdSleepMilliseconds(1);
+					} else {
+						break;
+					}
+				}
+
+				// Average the cycle integrator for 50 commutations
+				mcpwm_read_reset_avg_cycle_integrator();
+				tacho = mcpwm_get_tachometer_value(0);
+				for (int i = 0;i < 3000;i++) {
+					if ((mcpwm_get_tachometer_value(0) - tacho) < 50) {
+						chThdSleepMilliseconds(1);
+					} else {
+						break;
+					}
+				}
+				float avg_cycle_integrator = mcpwm_read_reset_avg_cycle_integrator();
+				comm_printf("Cycle integrator limit: %.2f", (double)avg_cycle_integrator);
+
+				// Wait for the motor to slow down
+				for (int i = 0;i < 5000;i++) {
+					if (mcpwm_get_duty_cycle_now() > low_duty) {
+						chThdSleepMilliseconds(1);
+					} else {
+						break;
+					}
+				}
+				mcpwm_set_duty(low_duty);
+
+				// Average the cycle integrator for 100 commutations
+				mcpwm_read_reset_avg_cycle_integrator();
+				tacho = mcpwm_get_tachometer_value(0);
+				for (int i = 0;i < 3000;i++) {
+					if ((mcpwm_get_tachometer_value(0) - tacho) < 100) {
+						chThdSleepMilliseconds(1);
+					} else {
+						break;
+					}
+				}
+
+				float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
+				float rpm = mcpwm_get_rpm();
+
+				mcpwm_set_current(0.0);
+
+				// Try to figure out the coupling factor
+				avg_cycle_integrator_running -= avg_cycle_integrator;
+				avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
+				avg_cycle_integrator_running *= rpm;
+				comm_printf("Coupling factor: %.2f", (double)avg_cycle_integrator_running);
+
+				// Restore settings
+				mcpwm_set_comm_mode(comm_mode_last);
+				mcpwm_set_min_rpm(MCPWM_MIN_RPM);
+			} else {
+				comm_printf("Invalid argument(s).\n");
+			}
+		} else {
+			comm_printf("This command requires three arguments.\n");
+		}
 	}
 
 	// Setters
@@ -169,7 +262,12 @@ void terminal_process_string(char *str) {
 		comm_printf("  Update the hall sensor lookup table");
 
 		comm_printf("volt");
-		comm_printf("  Prints different voltages\n");
+		comm_printf("  Prints different voltages");
+
+		comm_printf("param_detect [current] [min_rpm] [low_duty]");
+		comm_printf("  Spin up the motor in COMM_MODE_DELAY and compute its parameters.");
+		comm_printf("  This test should be performed without load on the motor.");
+		comm_printf("  Example: param_detect 5.0 600 0.06\n");
 	} else {
 		comm_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

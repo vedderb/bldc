@@ -49,6 +49,8 @@ typedef struct {
 typedef struct {
 	volatile float cycle_int_limit;
 	volatile float cycle_int_limit_running;
+	volatile float comm_time_sum;
+	volatile float comm_time_sum_min_rpm;
 	volatile uint32_t comms;
 	volatile uint32_t time_at_comm;
 } rpm_dep_struct;
@@ -90,6 +92,10 @@ static volatile unsigned int cycles_running;
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
 static volatile rpm_dep_struct rpm_dep;
+static volatile mc_comm_mode comm_mode;
+static volatile float cycle_integrator_sum;
+static volatile float cycle_integrator_iterations;
+static volatile float min_rpm;
 
 #if MCPWM_IS_SENSORLESS
 static volatile float cycle_integrator;
@@ -108,10 +114,10 @@ static volatile int kv_fir_index = 0;
 
 // Amplitude FIR filter
 #define AMP_FIR_TAPS_BITS		7
-#define AMP_FIR_LEN				(1 << KV_FIR_TAPS_BITS)
+#define AMP_FIR_LEN				(1 << AMP_FIR_TAPS_BITS)
 #define AMP_FIR_FCUT			0.02
-static volatile float amp_fir_coeffs[KV_FIR_LEN];
-static volatile float amp_fir_samples[KV_FIR_LEN];
+static volatile float amp_fir_coeffs[AMP_FIR_LEN];
+static volatile float amp_fir_samples[AMP_FIR_LEN];
 static volatile int amp_fir_index = 0;
 
 // Current FIR filter
@@ -197,6 +203,10 @@ void mcpwm_init(void) {
 	slow_ramping_cycles = 0;
 	has_commutated = 0;
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
+	cycle_integrator_sum = 0.0;
+	cycle_integrator_iterations = 0.0;
+	comm_mode = MCPWM_COMM_MODE;
+	min_rpm = MCPWM_MIN_RPM;
 
 #if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
@@ -898,7 +908,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 	if (state != MC_STATE_RUNNING) {
 		state = MC_STATE_RUNNING;
 
-		if (rpm_now < MCPWM_MIN_RPM) {
+		if (rpm_now < min_rpm) {
 			commutate();
 		}
 	}
@@ -913,11 +923,11 @@ static void set_duty_cycle_ll(float dutyCycle) {
 }
 
 /**
- * Lowest level (hardware) dyty cycle setter. Will set the hardware timer to
+ * Lowest level (hardware) duty cycle setter. Will set the hardware timer to
  * the specified duty cycle and update the ADC sampling positions.
  *
  * @param dutyCycle
- * The dutycycle in the range [MCPWM_MIN_DUTY_CYCLE  MCPWM_MAX_DUTY_CYCLE]
+ * The duty cycle in the range [MCPWM_MIN_DUTY_CYCLE  MCPWM_MAX_DUTY_CYCLE]
  * (Only positive)
  */
 static void set_duty_cycle_hw(float dutyCycle) {
@@ -1039,14 +1049,17 @@ static msg_t rpm_thread(void *arg) {
 
 		// Update the cycle integrator limit
 		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
-									MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT_LOW,
-									MCPWM_CYCLE_INT_LIMIT_HIGH);
+									MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT,
+									MCPWM_CYCLE_INT_LIMIT * MCPWM_CYCLE_INT_LIMIT_HIGH_FAC);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
-				MCPWM_BEMF_INPUT_COUPLING_K / (rpm_now > MCPWM_MIN_RPM ? rpm_now : MCPWM_MIN_RPM);
+				MCPWM_BEMF_INPUT_COUPLING_K / (rpm_now > min_rpm ? rpm_now : min_rpm);
 
 		if (rpm_dep.cycle_int_limit_running > MCPWM_CYCLE_INT_LIMIT_MAX) {
 			rpm_dep.cycle_int_limit_running = MCPWM_CYCLE_INT_LIMIT_MAX;
 		}
+
+		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_now / 60.0) * 6.0);
+		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((min_rpm / 60.0) * 6.0);
 
 		chThdSleepMilliseconds(1);
 	}
@@ -1360,11 +1373,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
 
 #if MCPWM_IS_SENSORLESS
-	// Compute the theoretical commutation time at the current RPM
-	const float comm_time_sum = ((float)MCPWM_SWITCH_FREQUENCY_MAX) /
-			(((float)MCPWM_MIN_RPM / 60.0) * 6.0);
-
-	if (pwm_cycles_sum >= comm_time_sum) {
+	if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
 		if (state == MC_STATE_RUNNING) {
 			// This means that the motor is stuck. If this commutation does not
 			// produce any torque because of misalignment at start, two
@@ -1400,23 +1409,38 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			break;
 		}
 
+		static float cycle_sum = 0.0;
+
 		if (v_diff > 0) {
 			cycle_integrator += (float)v_diff / switching_frequency_now;
 
-			float limit;
-			if (has_commutated) {
-				limit = rpm_dep.cycle_int_limit_running * 0.0005;
-			} else {
-				limit = rpm_dep.cycle_int_limit * 0.0005;
-			}
+			if (comm_mode == COMM_MODE_INTEGRATE) {
+				float limit;
+				if (has_commutated) {
+					limit = rpm_dep.cycle_int_limit_running * 0.0005;
+				} else {
+					limit = rpm_dep.cycle_int_limit * 0.0005;
+				}
 
-			if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_MAX * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
-					&& cycle_integrator >= limit) {
-				commutate();
-				cycle_integrator = CYCLE_INT_START;
+				if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_MAX * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
+						&& cycle_integrator >= limit) {
+					commutate();
+					cycle_integrator = CYCLE_INT_START;
+				}
+			} else if (comm_mode == COMM_MODE_DELAY) {
+				cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
+
+				if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
+					commutate();
+					cycle_integrator_sum += cycle_integrator * (1.0 / 0.0005);
+					cycle_integrator_iterations += 1.0;
+					cycle_integrator = CYCLE_INT_START;
+					cycle_sum = 0.0;
+				}
 			}
 		} else {
 			cycle_integrator = CYCLE_INT_START;
+			cycle_sum = 0.0;
 		}
 	} else {
 		cycle_integrator = CYCLE_INT_START;
@@ -1685,6 +1709,41 @@ float mcpwm_read_reset_avg_input_current(void) {
 	input_current_sum = 0;
 	input_current_iterations = 0;
 	return res;
+}
+
+float mcpwm_read_reset_avg_cycle_integrator(void) {
+	float res = cycle_integrator_sum / cycle_integrator_iterations;
+	cycle_integrator_sum = 0;
+	cycle_integrator_iterations = 0;
+	return res;
+}
+
+/**
+ * Set the minimum allowed RPM in sensorless mode. This will affect startup
+ * performance. WARNING: Setting this too high can break stuff.
+ *
+ * @param rpm
+ * The minimum allowed RPM. Default is MCPWM_MIN_RPM.
+ */
+void mcpwm_set_min_rpm(float rpm) {
+	min_rpm = rpm;
+}
+
+/**
+ * Set the commutation mode for sensorless commutation.
+ *
+ * @param mode
+ * COMM_MODE_INTEGRATE: More robust, but requires many parameters.
+ * COMM_MODE_DELAY: Like most hobby ESCs. Requires less parameters,
+ * but has worse startup and ins less robust.
+ *
+ */
+void mcpwm_set_comm_mode(mc_comm_mode mode) {
+	comm_mode = mode;
+}
+
+mc_comm_mode mcpwm_get_comm_mode(void) {
+	return comm_mode;
 }
 
 float mcpwm_get_last_adc_isr_duration(void) {

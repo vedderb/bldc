@@ -41,6 +41,11 @@ typedef enum {
 } mc_pwm_mode;
 
 typedef enum {
+	COMM_MODE_INTEGRATE = 0,
+	COMM_MODE_DELAY
+} mc_comm_mode;
+
+typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_OVER_VOLTAGE,
 	FAULT_CODE_UNDER_VOLTAGE,
@@ -84,6 +89,10 @@ float mcpwm_get_detect_pos(void);
 signed int mcpwm_read_hall_phase(void);
 float mcpwm_read_reset_avg_motor_current(void);
 float mcpwm_read_reset_avg_input_current(void);
+float mcpwm_read_reset_avg_cycle_integrator(void);
+void mcpwm_set_min_rpm(float rpm);
+void mcpwm_set_comm_mode(mc_comm_mode mode);
+mc_comm_mode mcpwm_get_comm_mode(void);
 float mcpwm_get_last_adc_isr_duration(void);
 float mcpwm_get_last_inj_adc_isr_duration(void);
 
@@ -174,6 +183,18 @@ extern volatile int mcpwm_vzero;
 #endif
 #ifndef MCPWM_SLOW_ABS_OVERCURRENT
 #define MCPWM_SLOW_ABS_OVERCURRENT		0		// Use the filtered (and hence slower) current for the overcurrent fault detection
+#endif
+#ifndef MCPWM_COMM_MODE
+#define MCPWM_COMM_MODE					COMM_MODE_INTEGRATE	// The commutation mode to use
+#endif
+#ifndef MCPWM_CYCLE_INT_LIMIT_HIGH_FAC
+#define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
+#endif
+#ifndef MCPWM_CYCLE_INT_LIMIT_MAX
+#define MCPWM_CYCLE_INT_LIMIT_MAX		9e9		// Maximum allowed flux integrator limit
+#endif
+#ifndef MCPWM_CYCLE_INT_START_RPM_BR
+#define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
 #endif
 
 #endif /* MC_PWM_H_ */

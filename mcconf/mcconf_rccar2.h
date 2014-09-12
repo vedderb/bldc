@@ -46,10 +46,9 @@
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
 #define MCPWM_MIN_RPM					900		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_MAX		1000.0	// Maximum allowed flux integrator limit
-#define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
-#define MCPWM_CYCLE_INT_LIMIT_LOW		40.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH		30.0	// Flux integrator limit MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#define MCPWM_BEMF_INPUT_COUPLING_K		5.0		// Input voltage to bemf coupling constant
+#define MCPWM_CYCLE_INT_LIMIT			40.0	// Flux integrator limit 0 ERPM
+#define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
+#define MCPWM_BEMF_INPUT_COUPLING_K		100.0	// Input voltage to bemf coupling constant
 
 // Hall sensor settings
 #define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
