@@ -418,10 +418,11 @@ void mcpwm_init(void) {
 
 	// ADC sampling locations
 	stop_pwm_hw();
-	timer_struct.top = TIM1->ARR;
-	timer_struct.duty = TIM1->ARR / 2;
-	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
-	set_next_timer_settings((mc_timer_struct*)&timer_struct);
+	mc_timer_struct timer_tmp;
+	timer_tmp.top = TIM1->ARR;
+	timer_tmp.duty = TIM1->ARR / 2;
+	update_adc_sample_pos(&timer_tmp);
+	set_next_timer_settings(&timer_tmp);
 
 	utils_sys_unlock_cnt();
 
