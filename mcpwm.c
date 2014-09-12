@@ -84,7 +84,6 @@ static volatile float mcpwm_detect_currents_avg_samples[6];
 static volatile float switching_frequency_now;
 static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
-static volatile int timer_struct_updated;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
 static int hall_to_phase_table[16];
 static volatile unsigned int cycles_running;
@@ -193,7 +192,6 @@ void mcpwm_init(void) {
 	input_current_iterations = 0.0;
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	ignore_iterations = 0;
-	timer_struct_updated = 0;
 	curr_samp_volt = 0;
 	cycles_running = 0;
 	slow_ramping_cycles = 0;
@@ -309,6 +307,8 @@ void mcpwm_init(void) {
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
 	// ADC Common Init
+	// Note that the ADC is running at 42MHz, which is higher than the
+	// specified 36MHz in the data sheet, but it works.
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
@@ -366,7 +366,7 @@ void mcpwm_init(void) {
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
@@ -390,23 +390,14 @@ void mcpwm_init(void) {
 	TIM_CtrlPWMOutputs(TIM8, ENABLE);
 
 	// TIM1 Master and TIM8 slave
-	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
+	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);
 	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
-	TIM_SelectMasterSlaveMode(TIM8, TIM_MasterSlaveMode_Enable);
 	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
-	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Gated);
+	TIM_SelectSlaveMode(TIM8, TIM_SlaveMode_Reset);
 
-	// Update interrupt
-	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
-	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
-	// Enable TIM8 first to make sure timers are in sync
-	TIM_Cmd(TIM8, ENABLE);
+	// Enable TIM1 and TIM8
 	TIM_Cmd(TIM1, ENABLE);
+	TIM_Cmd(TIM8, ENABLE);
 
 	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
@@ -430,7 +421,7 @@ void mcpwm_init(void) {
 	timer_struct.top = TIM1->ARR;
 	timer_struct.duty = TIM1->ARR / 2;
 	update_adc_sample_pos((mc_timer_struct*)&timer_struct);
-	timer_struct_updated = 1;
+	set_next_timer_settings((mc_timer_struct*)&timer_struct);
 
 	utils_sys_unlock_cnt();
 
@@ -1195,43 +1186,7 @@ static msg_t timer_thread(void *arg) {
 	return 0;
 }
 
-void mcpwm_update_int_handler(void) {
-	utils_sys_lock_cnt();
-
-	// Check if the timers still are in sync. If not, re-sync them.
-	volatile int32_t t1 = TIM1->CNT;
-	volatile int32_t t8 = TIM8->CNT;
-	volatile int32_t diff = t8 - t1;
-	if (diff < 0 || diff > 20) {
-		TIM_Cmd(TIM1, DISABLE);
-		TIM8->CNT = TIM1->CNT;
-		TIM_Cmd(TIM1, ENABLE);
-	}
-
-	// The check whether we are too close to the top is needed, even
-	// if this interrupt is triggered after a timer update. This
-	// is because some other interrupt could have delayed this one.
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
-
-	if (timer_struct_updated && (top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
-		timer_struct_updated = 0;
-	}
-
-	utils_sys_unlock_cnt();
-}
-
 void mcpwm_adc_inj_int_handler(void) {
-	utils_sys_lock_cnt();
-
 	TIM4->CNT = 0;
 
 	static int detect_now = 0;
@@ -1301,9 +1256,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		mcpwm_detect_currents_avg[detect_step] += mcpwm_detect_currents[detect_step];
 		mcpwm_detect_currents_avg_samples[detect_step]++;
 
-		if (detect_now > 1) {
-			stop_pwm_hw();
-		}
+		stop_pwm_hw();
 	}
 
 	if (detect_now) {
@@ -1334,8 +1287,6 @@ void mcpwm_adc_inj_int_handler(void) {
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
 	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
-
-	utils_sys_unlock_cnt();
 }
 
 /*
@@ -1344,8 +1295,6 @@ void mcpwm_adc_inj_int_handler(void) {
 void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
-
-	utils_sys_lock_cnt();
 
 	TIM4->CNT = 0;
 
@@ -1661,7 +1610,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	main_dma_adc_handler();
 
 	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
-	utils_sys_unlock_cnt();
 }
 
 void mcpwm_set_detect(void) {
@@ -1951,24 +1899,22 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 
 	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
 
-	volatile uint32_t cnt = TIM1->CNT;
-	volatile uint32_t top = TIM1->ARR;
+	// Disable preload register updates
+	TIM1->CR1 |= TIM_CR1_UDIS;
+	TIM8->CR1 |= TIM_CR1_UDIS;
 
-	// If there is enough time to update all values at once during this cycle,
-	// do it here. Otherwise, schedule the update for the next cycle.
-	if ((top - cnt) > 400) {
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = timer_struct.top;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
-		timer_struct_updated = 0;
-	} else {
-		timer_struct_updated = 1;
-	}
+	// Set the new configuration
+	TIM1->ARR = timer_struct.top;
+	TIM1->CCR1 = timer_struct.duty;
+	TIM1->CCR2 = timer_struct.duty;
+	TIM1->CCR3 = timer_struct.duty;
+	TIM8->CCR1 = timer_struct.val_sample;
+	TIM1->CCR4 = timer_struct.curr1_sample;
+	TIM8->CCR2 = timer_struct.curr2_sample;
+
+	// Enables preload register updates
+	TIM1->CR1 &= ~TIM_CR1_UDIS;
+	TIM8->CR1 &= ~TIM_CR1_UDIS;
 
 	utils_sys_unlock_cnt();
 }
@@ -2203,19 +2149,6 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		}
-	} else if (next_step == 32) {
-		// NOTE: This means we are going to use sine modulation. Switch on all phases!
-		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
-
-		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
-		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
 	} else {
 		// Invalid phase.. stop PWM!
 		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);

@@ -32,13 +32,6 @@ CH_IRQ_HANDLER(TIM7_IRQHandler) {
 	CH_IRQ_EPILOGUE();
 }
 
-CH_IRQ_HANDLER(TIM1_UP_IRQHandler) {
-	CH_IRQ_PROLOGUE();
-	TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
-	mcpwm_update_int_handler();
-	CH_IRQ_EPILOGUE();
-}
-
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);

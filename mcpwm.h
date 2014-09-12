@@ -88,8 +88,6 @@ float mcpwm_get_last_adc_isr_duration(void);
 float mcpwm_get_last_inj_adc_isr_duration(void);
 
 // Interrupt handlers
-void mcpwm_time_int_handler(void);
-void mcpwm_update_int_handler(void);
 void mcpwm_adc_inj_int_handler(void);
 void mcpwm_adc_int_handler(void *p, uint32_t flags);
 

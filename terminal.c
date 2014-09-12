@@ -87,15 +87,15 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		comm_printf("Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
 	} else if (strcmp(argv[0], "tim") == 0) {
-		TIM_Cmd(TIM1, DISABLE);
-		int t1_cnt = TIM1->CNT;
-		int t8_cnt = TIM8->CNT;
+		chSysLock();
+		volatile int t1_cnt = TIM1->CNT;
+		volatile int t8_cnt = TIM8->CNT;
+		chSysUnlock();
 		int duty = TIM1->CCR1;
 		int top = TIM1->ARR;
 		int voltage_samp = TIM8->CCR1;
 		int current1_samp = TIM1->CCR4;
 		int current2_samp = TIM8->CCR2;
-		TIM_Cmd(TIM1, ENABLE);
 		comm_printf("Tim1 CNT: %i", t1_cnt);
 		comm_printf("Tim8 CNT: %u", t8_cnt);
 		comm_printf("Duty cycle: %u", duty);
