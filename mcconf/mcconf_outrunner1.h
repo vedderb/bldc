@@ -40,7 +40,7 @@
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
 #define MCPWM_MIN_RPM					200		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_LIMIT_MAX		1700.0	// Maximum allowed flux integrator limit
+#define MCPWM_CYCLE_INT_LIMIT_MIN_RPM	800.0	// Minimum RPM to calculate the BEMF coupling from
 #define MCPWM_CYCLE_INT_LIMIT			50.0	// Flux integrator limit 0 ERPM
 #define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.5		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
 #define MCPWM_BEMF_INPUT_COUPLING_K		300.0	// Input voltage to bemf coupling constant

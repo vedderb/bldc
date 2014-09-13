@@ -187,7 +187,7 @@ void terminal_process_string(char *str) {
 				avg_cycle_integrator_running -= avg_cycle_integrator;
 				avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
 				avg_cycle_integrator_running *= rpm;
-				comm_printf("Coupling factor: %.2f", (double)avg_cycle_integrator_running);
+				comm_printf("Coupling factor: %.2f\n", (double)avg_cycle_integrator_running);
 
 				// Restore settings
 				mcpwm_set_comm_mode(comm_mode_last);
@@ -198,6 +198,11 @@ void terminal_process_string(char *str) {
 		} else {
 			comm_printf("This command requires three arguments.\n");
 		}
+	} else if (strcmp(argv[0], "rpm_dep") == 0) {
+		mc_rpm_dep_struct rpm_dep = mcpwm_get_rpm_dep();
+		comm_printf("Cycle int limit: %.2f", (double)rpm_dep.cycle_int_limit);
+		comm_printf("Cycle int limit running: %.2f", (double)rpm_dep.cycle_int_limit_running);
+		comm_printf("Cycle int limit max: %.2f\n", (double)rpm_dep.cycle_int_limit_max);
 	}
 
 	// Setters
@@ -267,7 +272,10 @@ void terminal_process_string(char *str) {
 		comm_printf("param_detect [current] [min_rpm] [low_duty]");
 		comm_printf("  Spin up the motor in COMM_MODE_DELAY and compute its parameters.");
 		comm_printf("  This test should be performed without load on the motor.");
-		comm_printf("  Example: param_detect 5.0 600 0.06\n");
+		comm_printf("  Example: param_detect 5.0 600 0.06");
+
+		comm_printf("rpm_dep");
+				comm_printf("  Prints some rpm-dep values\n");
 	} else {
 		comm_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

@@ -46,15 +46,6 @@ typedef struct {
 	volatile unsigned int curr2_sample;
 } mc_timer_struct;
 
-typedef struct {
-	volatile float cycle_int_limit;
-	volatile float cycle_int_limit_running;
-	volatile float comm_time_sum;
-	volatile float comm_time_sum_min_rpm;
-	volatile uint32_t comms;
-	volatile uint32_t time_at_comm;
-} rpm_dep_struct;
-
 // Private variables
 static volatile int comm_step; // Range [1 6]
 static volatile int detect_step; // Range [0 5]
@@ -91,7 +82,7 @@ static int hall_to_phase_table[16];
 static volatile unsigned int cycles_running;
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
-static volatile rpm_dep_struct rpm_dep;
+static volatile mc_rpm_dep_struct rpm_dep;
 static volatile mc_comm_mode comm_mode;
 static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
@@ -1053,9 +1044,11 @@ static msg_t rpm_thread(void *arg) {
 									MCPWM_CYCLE_INT_LIMIT * MCPWM_CYCLE_INT_LIMIT_HIGH_FAC);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				MCPWM_BEMF_INPUT_COUPLING_K / (rpm_now > min_rpm ? rpm_now : min_rpm);
+		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
+				MCPWM_BEMF_INPUT_COUPLING_K / MCPWM_CYCLE_INT_LIMIT_MIN_RPM;
 
-		if (rpm_dep.cycle_int_limit_running > MCPWM_CYCLE_INT_LIMIT_MAX) {
-			rpm_dep.cycle_int_limit_running = MCPWM_CYCLE_INT_LIMIT_MAX;
+		if (rpm_dep.cycle_int_limit_running > rpm_dep.cycle_int_limit_max) {
+			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
 
 		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_now / 60.0) * 6.0);
@@ -1422,7 +1415,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					limit = rpm_dep.cycle_int_limit * 0.0005;
 				}
 
-				if ((cycle_integrator >= (MCPWM_CYCLE_INT_LIMIT_MAX * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
+				if ((cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
 						&& cycle_integrator >= limit) {
 					commutate();
 					cycle_integrator = CYCLE_INT_START;
@@ -1752,6 +1745,10 @@ float mcpwm_get_last_adc_isr_duration(void) {
 
 float mcpwm_get_last_inj_adc_isr_duration(void) {
 	return last_inj_adc_isr_duration;
+}
+
+mc_rpm_dep_struct mcpwm_get_rpm_dep(void) {
+	return rpm_dep;
 }
 
 /**

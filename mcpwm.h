@@ -27,6 +27,7 @@
 
 #include "conf_general.h"
 
+// Data types
 typedef enum {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
@@ -60,6 +61,16 @@ typedef enum {
 	CONTROL_MODE_CURRENT_BRAKE,
 	CONTROL_MODE_NONE
 } mc_control_mode;
+
+typedef struct {
+	volatile float cycle_int_limit;
+	volatile float cycle_int_limit_running;
+	volatile float cycle_int_limit_max;
+	volatile float comm_time_sum;
+	volatile float comm_time_sum_min_rpm;
+	volatile uint32_t comms;
+	volatile uint32_t time_at_comm;
+} mc_rpm_dep_struct;
 
 // Functions
 void mcpwm_init(void);
@@ -95,6 +106,7 @@ void mcpwm_set_comm_mode(mc_comm_mode mode);
 mc_comm_mode mcpwm_get_comm_mode(void);
 float mcpwm_get_last_adc_isr_duration(void);
 float mcpwm_get_last_inj_adc_isr_duration(void);
+mc_rpm_dep_struct mcpwm_get_rpm_dep(void);
 
 // Interrupt handlers
 void mcpwm_adc_inj_int_handler(void);
@@ -189,9 +201,6 @@ extern volatile int mcpwm_vzero;
 #endif
 #ifndef MCPWM_CYCLE_INT_LIMIT_HIGH_FAC
 #define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#endif
-#ifndef MCPWM_CYCLE_INT_LIMIT_MAX
-#define MCPWM_CYCLE_INT_LIMIT_MAX		9e9		// Maximum allowed flux integrator limit
 #endif
 #ifndef MCPWM_CYCLE_INT_START_RPM_BR
 #define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
