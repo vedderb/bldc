@@ -36,8 +36,7 @@
 #define MCPWM_IN_CURRENT_MIN			-25.0	// Input current limit in Amperes (Lower)
 #define MCPWM_MAX_ABS_CURRENT			110.0	// The maximum absolute current above which a fault is generated
 #define MCPWM_SLOW_ABS_OVERCURRENT		1		// Use the filtered (and hence slower) current for the overcurrent fault detection
-#define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode @ 20V.
-#define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
+#define MCPWM_CURRENT_STARTUP_BOOST		0.08	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
 
