@@ -115,10 +115,11 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &min_rpm);
 			sscanf(argv[3], "%f", &low_duty);
 
-			if (current > 0.0 && current < MCPWM_CURRENT_MAX &&
+			mc_configuration mcconf = mcpwm_get_configuration();
+
+			if (current > 0.0 && current < mcconf.l_current_max &&
 					min_rpm > 10.0 && min_rpm < 3000.0 &&
 					low_duty > 0.02 && low_duty < 0.8) {
-				mc_comm_mode comm_mode_last = mcpwm_get_comm_mode();
 
 				mcpwm_set_min_rpm(min_rpm);
 				mcpwm_set_comm_mode(COMM_MODE_DELAY);
@@ -190,8 +191,8 @@ void terminal_process_string(char *str) {
 				comm_printf("Coupling factor: %.2f\n", (double)avg_cycle_integrator_running);
 
 				// Restore settings
-				mcpwm_set_comm_mode(comm_mode_last);
-				mcpwm_set_min_rpm(MCPWM_MIN_RPM);
+				mcpwm_set_comm_mode(mcconf.comm_mode);
+				mcpwm_set_min_rpm(mcconf.sl_min_erpm);
 			} else {
 				comm_printf("Invalid argument(s).\n");
 			}

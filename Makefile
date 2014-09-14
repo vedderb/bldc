@@ -108,6 +108,8 @@ CSRC = $(PORTSRC) \
        servo.c \
        packet.c \
        terminal.c \
+       conf_general.c \
+       eeprom.c \
        $(HWSRC) \
        $(APPSRC)
        

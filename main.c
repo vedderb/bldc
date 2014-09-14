@@ -250,85 +250,30 @@ float main_get_last_adc_isr_duration(void) {
 	return main_last_adc_duration;
 }
 
-void main_process_packet(unsigned char *data, unsigned char len) {
-	if (!len) {
-		return;
-	}
+void main_sample_print_data(bool at_start, uint16_t len, uint8_t decimation) {
+	sample_len = len;
+	sample_int = decimation;
 
-	int16_t value16;
-	int32_t value32;
-
-	switch (data[0]) {
-	case 1:
-		// Sample and print data
-		value16 = (int)data[1] << 8 | (int)data[2];
-		if (value16 > ADC_SAMPLE_MAX_LEN) {
-			value16 = ADC_SAMPLE_MAX_LEN;
-		}
-		sample_len = value16;
-		sample_int = data[3];
-		sample_now = 0;
-		sample_ready = 0;
-		break;
-
-	case 2:
-		// Duty Control
-		value16 = (int)data[1] << 8 | (int)data[2];
-		mcpwm_set_duty((float)value16 / 1000.0);
-		break;
-
-	case 3:
-		// PID Control
-		value32 = (int)data[1] << 24 | (int)data[2] << 16 | (int)data[3] << 8 | (int)data[4];
-		mcpwm_set_pid_speed((float)value32);
-		break;
-
-	case 4:
-		// Detect
-		mcpwm_set_detect();
-		break;
-
-	case 5:
-		// Reset Fault
-		// TODO
-		break;
-
-	case 6:
-		// Sample and print data at start
-		value16 = (int)data[1] << 8 | (int)data[2];
-		if (value16 > ADC_SAMPLE_MAX_LEN) {
-			value16 = ADC_SAMPLE_MAX_LEN;
-		}
-
-		sample_len = value16;
-		sample_int = data[3];
+	if (at_start) {
 		sample_at_start = 1;
 		start_comm = mcpwm_get_comm_step();
-		break;
-
-	case 7:
-		// Current Control
-		value16 = (int)data[1] << 8 | (int)data[2];
-		mcpwm_set_current((float)value16 / 100.0);
-		break;
-
-	case 8:
-		// Brake current control
-		value16 = (int)data[1] << 8 | (int)data[2];
-		mcpwm_set_brake_current((float)value16 / 100.0);
-		break;
-
-	default:
-		break;
+	} else {
+		sample_now = 0;
+		sample_ready = 0;
 	}
 }
 
 int main(void) {
 	halInit();
 	chSysInit();
+	conf_general_init();
 	hw_init_gpio();
 	ledpwm_init();
-	mcpwm_init();
+
+	mc_configuration mcconf;
+	conf_general_read_mc_configuration(&mcconf);
+	mcpwm_init(&mcconf);
+
 	comm_init();
 	app_init();
 

@@ -25,26 +25,7 @@
 #ifndef COMM_H_
 #define COMM_H_
 
-#include <stdint.h>
-#include "mcpwm.h"
-
-// Packets that expect response
-typedef enum {
-	COMM_READ_VALUES = 0,
-	COMM_PRINT,
-	COMM_SEND_SAMPLES,
-	COMM_ROTOR_POSITION,
-	COMM_EXPERIMENT_SAMPLE
-} COMM_RES_PACKET_ID;
-
-// Packets that don't expect any response
-typedef enum {
-	COMM_FULL_BRAKE = 0,
-	COMM_SERVO_OFFSET,
-	COMM_CAN_TEST,
-	COMM_TERMINAL_CMD,
-	COMM_RELEASE
-} COMM_NORES_PACKET_ID;
+#include "conf_general.h"
 
 // Functions
 void comm_init(void);

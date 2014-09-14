@@ -33,11 +33,30 @@
 #include "myUSB.h"
 #include "terminal.h"
 #include "hw.h"
+#include "mcpwm.h"
 
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+
+// Internal data types
+typedef enum {
+	COMM_GET_VALUES = 0,
+	COMM_SET_DUTY,
+	COMM_SET_CURRENT,
+	COMM_SET_CURRENT_BRAKE,
+	COMM_SET_RPM,
+	COMM_SET_DETECT,
+	COMM_SET_SERVO_OFFSET,
+	COMM_SET_CONF,
+	COMM_GET_CONF,
+	COMM_SAMPLE_PRINT,
+	COMM_TERMINAL_CMD,
+	COMM_PRINT,
+	COMM_ROTOR_POSITION,
+	COMM_EXPERIMENT_SAMPLE
+} COMM_PACKET_ID;
 
 // Settings
 #define PACKET_BUFFER_LEN	30
@@ -55,9 +74,7 @@ static Mutex send_mutex;
 static Thread *process_tp;
 
 // Private functions
-static void handle_res_packet(unsigned char *data, unsigned char len);
-static void handle_nores_packet(unsigned char *data, unsigned char len);
-static void process_packet(unsigned char *buffer, unsigned char len);
+static void process_packet(unsigned char *data, unsigned char len);
 static void send_packet(unsigned char *buffer, unsigned char len);
 
 static msg_t serial_read_thread(void *arg) {
@@ -114,29 +131,90 @@ static msg_t serial_process_thread(void *arg) {
 	return 0;
 }
 
-static void process_packet(unsigned char *buffer, unsigned char len) {
+static void process_packet(unsigned char *data, unsigned char len) {
 	if (!len) {
 		return;
 	}
 
-	switch (buffer[0]) {
-	case 0:
-		// Send the received data to the main loop
-		main_process_packet(buffer + 1, len - 1);
+	COMM_PACKET_ID packet_id;
+	uint8_t send_buffer[256];
+	int32_t ind = 0;
+	uint16_t sample_len;
+	uint8_t decimation;
+	bool at_start;
+
+	(void)len;
+
+	packet_id = data[0];
+	data++;
+	len--;
+
+	switch (packet_id) {
+	case COMM_GET_VALUES:
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_VALUES;
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS1) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS2) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS3) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS4) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS5) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS6) * 10.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_PCB) * 10.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_read_reset_avg_motor_current() * 100.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_read_reset_avg_input_current() * 100.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)mcpwm_get_rpm(), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &ind);
+		packet_send_packet(send_buffer, ind, 0);
 		break;
 
-	case 1:
-		/*
-		 * Packet that expects response
-		 */
-		handle_res_packet(buffer + 1, len - 1);
+	case COMM_SET_DUTY:
+		ind = 0;
+		mcpwm_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
 		break;
 
-	case 2:
-		/*
-		 * Packet that expects no response
-		 */
-		handle_nores_packet(buffer + 1, len - 1);
+	case COMM_SET_CURRENT:
+		ind = 0;
+		mcpwm_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		break;
+
+	case COMM_SET_CURRENT_BRAKE:
+		ind = 0;
+		mcpwm_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		break;
+
+	case COMM_SET_RPM:
+		ind = 0;
+		mcpwm_set_pid_speed((float)buffer_get_int32(data, &ind));
+		break;
+
+	case COMM_SET_DETECT:
+		mcpwm_set_detect();
+		break;
+
+	case COMM_SET_SERVO_OFFSET:
+		servos[0].offset = data[0];
+		break;
+
+	case COMM_SET_CONF:
+		// TODO
+		break;
+
+	case COMM_GET_CONF:
+		// TODO
+		break;
+
+	case COMM_SAMPLE_PRINT:
+		ind = 0;
+		at_start = data[ind++];
+		sample_len = buffer_get_uint16(data, &ind);
+		decimation = data[ind++];
+		main_sample_print_data(at_start, sample_len, decimation);
+		break;
+
+	case COMM_TERMINAL_CMD:
+		data[len] = '\0';
+		terminal_process_string((char*)data);
 		break;
 
 	default:
@@ -161,77 +239,6 @@ void comm_init(void) {
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
 }
 
-static void handle_res_packet(unsigned char *data, unsigned char len) {
-	COMM_RES_PACKET_ID car_res_packet;
-	uint8_t buffer2[256];
-	int32_t index;
-
-	(void)len;
-
-	car_res_packet = data[0];
-	data++;
-	len--;
-
-	switch (car_res_packet) {
-	case COMM_READ_VALUES:
-		index = 0;
-		buffer2[index++] = COMM_READ_VALUES;
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS1) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS2) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS3) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS4) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS5) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS6) * 10.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(NTC_TEMP(ADC_IND_TEMP_PCB) * 10.0), &index);
-		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_motor_current() * 100.0), &index);
-		buffer_append_int32(buffer2, (int32_t)(mcpwm_read_reset_avg_input_current() * 100.0), &index);
-		buffer_append_int16(buffer2, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &index);
-		buffer_append_int32(buffer2, (int32_t)mcpwm_get_rpm(), &index);
-		buffer_append_int16(buffer2, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &index);
-		packet_send_packet(buffer2, index, 0);
-		break;
-
-	default:
-		break;
-	}
-}
-
-static void handle_nores_packet(unsigned char *data, unsigned char len) {
-	COMM_NORES_PACKET_ID car_nores_packet;
-
-	(void)len;
-
-	car_nores_packet = data[0];
-	data++;
-	len--;
-
-	switch (car_nores_packet) {
-	case COMM_FULL_BRAKE:
-		mcpwm_brake_now();
-		break;
-
-	case COMM_SERVO_OFFSET:
-		servos[0].offset = data[0];
-		break;
-
-	case COMM_CAN_TEST:
-
-		break;
-
-	case COMM_TERMINAL_CMD:
-		data[len] = '\0';
-		terminal_process_string((char*)data);
-		break;
-
-	case COMM_RELEASE:
-		mcpwm_release_motor();
-		break;
-
-	default:
-		break;
-	}
-}
-
 void comm_printf(char* format, ...) {
 	va_list arg;
 	va_start (arg, format);
@@ -251,7 +258,7 @@ void comm_send_samples(uint8_t *data, int len) {
 	uint8_t buffer[len + 1];
 	int index = 0;
 
-	buffer[index++] = COMM_SEND_SAMPLES;
+	buffer[index++] = COMM_SAMPLE_PRINT;
 
 	for (int i = 0;i < len;i++) {
 		buffer[index++] = data[i];

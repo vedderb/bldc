@@ -25,6 +25,8 @@
 #ifndef CONF_GENERAL_H_
 #define CONF_GENERAL_H_
 
+#include "datatypes.h"
+
 /*
  * Settings
  */
@@ -58,5 +60,10 @@
 //#define USE_APP_STEN
 //#define USE_APP_GURGALOF
 //#define USE_APP_UARTCOMM
+
+// Functions
+void conf_general_init(void);
+void conf_general_read_mc_configuration(mc_configuration *conf);
+bool conf_general_store_mc_configuration(mc_configuration *conf);
 
 #endif /* CONF_GENERAL_H_ */

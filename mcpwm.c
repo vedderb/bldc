@@ -64,7 +64,6 @@ static volatile int curr0_offset;
 static volatile int curr1_offset;
 static volatile mc_state state;
 static volatile mc_fault_code fault_now;
-static volatile mc_pwm_mode pwm_mode;
 static volatile mc_control_mode control_mode;
 static volatile float last_current_sample;
 static volatile float last_current_sample_filtered;
@@ -83,17 +82,13 @@ static volatile unsigned int cycles_running;
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
 static volatile mc_rpm_dep_struct rpm_dep;
-static volatile mc_comm_mode comm_mode;
 static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
-static volatile float min_rpm;
-
-#if MCPWM_IS_SENSORLESS
+static volatile mc_configuration conf;
 static volatile float cycle_integrator;
 static volatile float pwm_cycles_sum;
 static volatile float last_pwm_cycles_sum;
 static volatile float last_pwm_cycles_sums[6];
-#endif
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -158,13 +153,15 @@ static msg_t timer_thread(void *arg);
 static WORKING_AREA(rpm_thread_wa, 1024);
 static msg_t rpm_thread(void *arg);
 
-void mcpwm_init(void) {
+void mcpwm_init(mc_configuration *configuration) {
 	utils_sys_lock_cnt();
 
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
+
+	conf = *configuration;
 
 	// Initialize variables
 	comm_step = 1;
@@ -179,7 +176,6 @@ void mcpwm_init(void) {
 	tachometer_for_direction = 0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
-	pwm_mode = MCPWM_PWM_MODE;
 	control_mode = CONTROL_MODE_NONE;
 	last_current_sample = 0.0;
 	last_current_sample_filtered = 0.0;
@@ -196,17 +192,12 @@ void mcpwm_init(void) {
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
 	cycle_integrator_sum = 0.0;
 	cycle_integrator_iterations = 0.0;
-	comm_mode = MCPWM_COMM_MODE;
-	min_rpm = MCPWM_MIN_RPM;
-
-#if MCPWM_IS_SENSORLESS
 	cycle_integrator = CYCLE_INT_START;
 	pwm_cycles_sum = 0.0;
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
-#endif
 
-	mcpwm_init_hall_table(MCPWM_HALL_DIR, MCPWM_HALL_FWD_ADD, MCPWM_HALL_REV_ADD);
+	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
 
 	// Create KV FIR filter
 	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
@@ -457,6 +448,21 @@ void mcpwm_init(void) {
 	WWDG_Enable(100);
 }
 
+mc_configuration mcpwm_get_configuration(void) {
+	return conf;
+}
+
+void mcpwm_set_configuration(mc_configuration *configuration) {
+	// Stop everything first to be safe
+	control_mode = CONTROL_MODE_NONE;
+	stop_pwm_ll();
+
+	utils_sys_lock_cnt();
+	conf = *configuration;
+	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
+	utils_sys_unlock_cnt();
+}
+
 /**
  * Initialize the hall sensor lookup table
  *
@@ -530,7 +536,7 @@ void mcpwm_set_pid_speed(float rpm) {
 /**
  * Use current control and specify a goal current to use. The sign determines
  * the direction of the torque. Absolute values less than
- * MCPWM_CURRENT_CONTROL_MIN will release the motor.
+ * conf.cc_min_current will release the motor.
  *
  * @param current
  * The current to use.
@@ -540,13 +546,13 @@ void mcpwm_set_current(float current) {
 		return;
 	}
 
-	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+	if (fabsf(current) < conf.cc_min_current) {
 		control_mode = CONTROL_MODE_NONE;
 		stop_pwm_ll();
 		return;
 	}
 
-	utils_truncate_number(&current, MCPWM_CURRENT_MIN, MCPWM_CURRENT_MAX);
+	utils_truncate_number(&current, conf.l_current_min, conf.l_current_max);
 
 	control_mode = CONTROL_MODE_CURRENT;
 	current_set = current;
@@ -558,7 +564,7 @@ void mcpwm_set_current(float current) {
 
 /**
  * Brake the motor with a desired current. Absolute values less than
- * MCPWM_CURRENT_CONTROL_MIN will release the motor.
+ * conf.cc_min_current will release the motor.
  *
  * @param current
  * The current to use. Positive and negative values give the same effect.
@@ -568,13 +574,13 @@ void mcpwm_set_brake_current(float current) {
 		return;
 	}
 
-	if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
+	if (fabsf(current) < conf.cc_min_current) {
 		control_mode = CONTROL_MODE_NONE;
 		stop_pwm_ll();
 		return;
 	}
 
-	utils_truncate_number(&current, -fabsf(MCPWM_CURRENT_MIN), fabsf(MCPWM_CURRENT_MIN));
+	utils_truncate_number(&current, -fabsf(conf.l_current_min), fabsf(conf.l_current_min));
 
 	control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	current_set = current;
@@ -582,7 +588,7 @@ void mcpwm_set_brake_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		// In case the motor is already spinning, set the state to running
 		// so that it can be ramped down before the full brake is applied.
-		if (fabsf(rpm_now) > MCPWM_CURR_MIN_RPM_FBRAKE) {
+		if (fabsf(rpm_now) > conf.l_min_erpm_fbrake) {
 			state = MC_STATE_RUNNING;
 		} else {
 			full_brake_ll();
@@ -846,7 +852,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 		} else {
 			// In case the motor is already spinning, set the state to running
 			// so that it can be ramped down before the full brake is applied.
-			if (fabsf(rpm_now) > MCPWM_CURR_MIN_RPM_FBRAKE) {
+			if (fabsf(rpm_now) > conf.l_min_erpm_fbrake) {
 				state = MC_STATE_RUNNING;
 			} else {
 				full_brake_ll();
@@ -895,22 +901,22 @@ static void set_duty_cycle_ll(float dutyCycle) {
 
 	set_duty_cycle_hw(dutyCycle);
 
-#if MCPWM_IS_SENSORLESS
-	if (state != MC_STATE_RUNNING) {
-		state = MC_STATE_RUNNING;
+	if (conf.sl_is_sensorless) {
+		if (state != MC_STATE_RUNNING) {
+			state = MC_STATE_RUNNING;
 
-		if (rpm_now < min_rpm) {
+			if (rpm_now < conf.sl_min_erpm) {
+				commutate();
+			}
+		}
+	} else {
+		if (state != MC_STATE_RUNNING) {
+			state = MC_STATE_RUNNING;
+			comm_step = mcpwm_read_hall_phase();
+			set_next_comm_step(comm_step);
 			commutate();
 		}
 	}
-#else
-	if (state != MC_STATE_RUNNING) {
-		state = MC_STATE_RUNNING;
-		comm_step = mcpwm_read_hall_phase();
-		set_next_comm_step(comm_step);
-		commutate();
-	}
-#endif
 }
 
 /**
@@ -930,14 +936,14 @@ static void set_duty_cycle_hw(float dutyCycle) {
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
 
-	if (pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
+	if (conf.pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
 		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
 				+ ((float) timer_tmp.top / 2.0));
 	} else {
 		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
 	}
 
-	if (IS_DETECTING() || pwm_mode == PWM_MODE_BIPOLAR) {
+	if (IS_DETECTING() || conf.pwm_mode == PWM_MODE_BIPOLAR) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	} else {
 		switching_frequency_now = (float)MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
@@ -963,7 +969,7 @@ static void run_pid_controller(void) {
 	}
 
 	// Too low RPM set. Stop and return.
-	if (fabsf(speed_pid_set_rpm) < MCPWM_PID_MIN_RPM) {
+	if (fabsf(speed_pid_set_rpm) < conf.s_pid_min_rpm) {
 		i_term = 0;
 		prev_error = 0;
 		mcpwm_set_duty(0.0);
@@ -977,9 +983,9 @@ static void run_pid_controller(void) {
 	float error = speed_pid_set_rpm - mcpwm_get_rpm();
 
 	// Compute parameters
-	p_term = error * MCPWM_PID_KP * scale;
-	i_term += error * (MCPWM_PID_KI * MCPWM_PID_TIME_K) * scale;
-	d_term = (error - prev_error) * (MCPWM_PID_KD / MCPWM_PID_TIME_K) * scale;
+	p_term = error * conf.s_pid_kp * scale;
+	i_term += error * (conf.s_pid_ki * MCPWM_PID_TIME_K) * scale;
+	d_term = (error - prev_error) * (conf.s_pid_kd / MCPWM_PID_TIME_K) * scale;
 
 	// I-term wind-up protection
 	utils_truncate_number(&i_term, -1.0, 1.0);
@@ -1040,19 +1046,19 @@ static msg_t rpm_thread(void *arg) {
 
 		// Update the cycle integrator limit
 		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
-									MCPWM_CYCLE_INT_START_RPM_BR, MCPWM_CYCLE_INT_LIMIT,
-									MCPWM_CYCLE_INT_LIMIT * MCPWM_CYCLE_INT_LIMIT_HIGH_FAC);
+									conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
+									conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
-				MCPWM_BEMF_INPUT_COUPLING_K / (rpm_now > min_rpm ? rpm_now : min_rpm);
+				conf.sl_bemf_coupling_k / (rpm_now > conf.sl_min_erpm ? rpm_now : rpm_now > conf.sl_min_erpm);
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
-				MCPWM_BEMF_INPUT_COUPLING_K / MCPWM_CYCLE_INT_LIMIT_MIN_RPM;
+				conf.sl_bemf_coupling_k / conf.sl_min_erpm_cycle_int_limit;
 
 		if (rpm_dep.cycle_int_limit_running > rpm_dep.cycle_int_limit_max) {
 			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
 
 		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_now / 60.0) * 6.0);
-		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((min_rpm / 60.0) * 6.0);
+		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((conf.sl_min_erpm / 60.0) * 6.0);
 
 		chThdSleepMilliseconds(1);
 	}
@@ -1066,11 +1072,8 @@ static msg_t timer_thread(void *arg) {
 	chRegSetThreadName("mcpwm timer");
 
 	float amp;
-
-#if MCPWM_IS_SENSORLESS
 	float min_s;
 	float max_s;
-#endif
 
 	for(;;) {
 		if (state != MC_STATE_OFF) {
@@ -1085,54 +1088,54 @@ static msg_t timer_thread(void *arg) {
 					(float*)amp_fir_coeffs, AMP_FIR_TAPS_BITS, amp_fir_index);
 
 			// Direction tracking
-#if MCPWM_IS_SENSORLESS
-			min_s = 9999999999999.0;
-			max_s = 0.0;
+			if (conf.sl_is_sensorless) {
+				min_s = 9999999999999.0;
+				max_s = 0.0;
 
-			for (int i = 0;i < 6;i++) {
-				if (last_pwm_cycles_sums[i] < min_s) {
-					min_s = last_pwm_cycles_sums[i];
+				for (int i = 0;i < 6;i++) {
+					if (last_pwm_cycles_sums[i] < min_s) {
+						min_s = last_pwm_cycles_sums[i];
+					}
+
+					if (last_pwm_cycles_sums[i] > max_s) {
+						max_s = last_pwm_cycles_sums[i];
+					}
 				}
 
-				if (last_pwm_cycles_sums[i] > max_s) {
-					max_s = last_pwm_cycles_sums[i];
+				// If the relative difference between the longest and shortest commutation is
+				// too large, we probably got the direction wrong. In that case, try the other
+				// direction.
+				//
+				// The tachometer_for_direction value is used to make sure that the samples
+				// have enough time after a direction change to get stable before trying to
+				// change direction again.
+
+				if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
+					if (tachometer_for_direction > 12) {
+						if (direction == 1) {
+							direction = 0;
+						} else {
+							direction = 1;
+						}
+						tachometer_for_direction = 0;
+					}
+				} else {
+					tachometer_for_direction = 0;
 				}
-			}
-
-			// If the relative difference between the longest and shortest commutation is
-			// too large, we probably got the direction wrong. In that case, try the other
-			// direction.
-			//
-			// The tachometer_for_direction value is used to make sure that the samples
-			// have enough time after a direction change to get stable before trying to
-			// change direction again.
-
-			if ((max_s - min_s) / ((max_s + min_s) / 2.0) > 1.2) {
-				if (tachometer_for_direction > 12) {
+			} else {
+				// If the direction tachometer is counting backwards, the motor is
+				// not moving in the direction we think it is.
+				if (tachometer_for_direction < -3) {
 					if (direction == 1) {
 						direction = 0;
 					} else {
 						direction = 1;
 					}
 					tachometer_for_direction = 0;
+				} else if (tachometer_for_direction > 0) {
+					tachometer_for_direction = 0;
 				}
-			} else {
-				tachometer_for_direction = 0;
 			}
-#else
-			// If the direction tachometer is counting backwards, the motor is
-			// not moving in the direction we think it is.
-			if (tachometer_for_direction < -3) {
-				if (direction == 1) {
-					direction = 0;
-				} else {
-					direction = 1;
-				}
-				tachometer_for_direction = 0;
-			} else if (tachometer_for_direction > 0) {
-				tachometer_for_direction = 0;
-			}
-#endif
 
 			if (direction == 1) {
 				dutycycle_now = amp / (float)ADC_Value[ADC_IND_VIN_SENS];
@@ -1322,12 +1325,12 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	// Check for faults that should stop the motor
 	static float wrong_voltage_iterations = 0;
-	if (input_voltage < MCPWM_MIN_VOLTAGE ||
-			input_voltage > MCPWM_MAX_VOLTAGE) {
+	if (input_voltage < conf.l_min_vin ||
+			input_voltage > conf.l_max_vin) {
 		wrong_voltage_iterations++;
 
 		if ((wrong_voltage_iterations >= 3)) {
-			fault_stop(input_voltage < MCPWM_MIN_VOLTAGE ?
+			fault_stop(input_voltage < conf.l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
 		}
 	} else {
@@ -1365,94 +1368,94 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	filter_add_sample((float*)amp_fir_samples, amp,
 			AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
 
-#if MCPWM_IS_SENSORLESS
-	if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
-		if (state == MC_STATE_RUNNING) {
-			// This means that the motor is stuck. If this commutation does not
-			// produce any torque because of misalignment at start, two
-			// commutations ahead should produce full torque.
-			commutate();
-			commutate();
-			cycle_integrator = CYCLE_INT_START;
-		}
-	}
-
-	if ((state == MC_STATE_RUNNING && pwm_cycles_sum >= 2.0) || state == MC_STATE_OFF) {
-		int v_diff = 0;
-		switch (comm_step) {
-		case 1:
-			v_diff = ph1;
-			break;
-		case 2:
-			v_diff = -ph2;
-			break;
-		case 3:
-			v_diff = ph3;
-			break;
-		case 4:
-			v_diff = -ph1;
-			break;
-		case 5:
-			v_diff = ph2;
-			break;
-		case 6:
-			v_diff = -ph3;
-			break;
-		default:
-			break;
+	if (conf.sl_is_sensorless) {
+		if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
+			if (state == MC_STATE_RUNNING) {
+				// This means that the motor is stuck. If this commutation does not
+				// produce any torque because of misalignment at start, two
+				// commutations ahead should produce full torque.
+				commutate();
+				commutate();
+				cycle_integrator = CYCLE_INT_START;
+			}
 		}
 
-		static float cycle_sum = 0.0;
+		if ((state == MC_STATE_RUNNING && pwm_cycles_sum >= 2.0) || state == MC_STATE_OFF) {
+			int v_diff = 0;
+			switch (comm_step) {
+			case 1:
+				v_diff = ph1;
+				break;
+			case 2:
+				v_diff = -ph2;
+				break;
+			case 3:
+				v_diff = ph3;
+				break;
+			case 4:
+				v_diff = -ph1;
+				break;
+			case 5:
+				v_diff = ph2;
+				break;
+			case 6:
+				v_diff = -ph3;
+				break;
+			default:
+				break;
+			}
 
-		if (v_diff > 0) {
-			cycle_integrator += (float)v_diff / switching_frequency_now;
+			static float cycle_sum = 0.0;
 
-			if (comm_mode == COMM_MODE_INTEGRATE) {
-				float limit;
-				if (has_commutated) {
-					limit = rpm_dep.cycle_int_limit_running * 0.0005;
-				} else {
-					limit = rpm_dep.cycle_int_limit * 0.0005;
+			if (v_diff > 0) {
+				cycle_integrator += (float)v_diff / switching_frequency_now;
+
+				if (conf.comm_mode == COMM_MODE_INTEGRATE) {
+					float limit;
+					if (has_commutated) {
+						limit = rpm_dep.cycle_int_limit_running * 0.0005;
+					} else {
+						limit = rpm_dep.cycle_int_limit * 0.0005;
+					}
+
+					if ((cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
+							&& cycle_integrator >= limit) {
+						commutate();
+						cycle_integrator = CYCLE_INT_START;
+					}
+				} else if (conf.comm_mode == COMM_MODE_DELAY) {
+					cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
+
+					if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
+						commutate();
+						cycle_integrator_sum += cycle_integrator * (1.0 / 0.0005);
+						cycle_integrator_iterations += 1.0;
+						cycle_integrator = CYCLE_INT_START;
+						cycle_sum = 0.0;
+					}
 				}
-
-				if ((cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
-						&& cycle_integrator >= limit) {
-					commutate();
-					cycle_integrator = CYCLE_INT_START;
-				}
-			} else if (comm_mode == COMM_MODE_DELAY) {
-				cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
-
-				if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
-					commutate();
-					cycle_integrator_sum += cycle_integrator * (1.0 / 0.0005);
-					cycle_integrator_iterations += 1.0;
-					cycle_integrator = CYCLE_INT_START;
-					cycle_sum = 0.0;
-				}
+			} else {
+				cycle_integrator = CYCLE_INT_START;
+				cycle_sum = 0.0;
 			}
 		} else {
 			cycle_integrator = CYCLE_INT_START;
-			cycle_sum = 0.0;
 		}
+
+		pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
 	} else {
-		cycle_integrator = CYCLE_INT_START;
-	}
+		int hall_phase = mcpwm_read_hall_phase();
+		if (comm_step != hall_phase) {
+			comm_step = hall_phase;
 
-	pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
-#else
-	int hall_phase = mcpwm_read_hall_phase();
-	if (comm_step != hall_phase) {
-		comm_step = hall_phase;
+			update_rpm_tacho();
 
-		update_rpm_tacho();
-
-		if (state == MC_STATE_RUNNING) {
-			set_next_comm_step(comm_step);
-			commutate();
+			if (state == MC_STATE_RUNNING) {
+				set_next_comm_step(comm_step);
+				commutate();
+			}
 		}
 	}
-#endif
 
 	const float current = mcpwm_get_tot_current_filtered();
 	const float current_in = current * fabsf(dutycycle_now);
@@ -1463,15 +1466,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
-#if MCPWM_SLOW_ABS_OVERCURRENT
-	if (fabsf(current) > MCPWM_MAX_ABS_CURRENT) {
-		fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+	if (conf.l_slow_abs_current) {
+		if (fabsf(current) > conf.l_abs_current_max) {
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+		}
+	} else {
+		if (fabsf(current_nofilter) > conf.l_abs_current_max) {
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+		}
 	}
-#else
-	if (fabsf(current_nofilter) > MCPWM_MAX_ABS_CURRENT) {
-		fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
-	}
-#endif
 
 	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations
@@ -1490,8 +1493,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		if (control_mode == CONTROL_MODE_CURRENT) {
 			// Compute error
 			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
-			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
-			const float start_boost = MCPWM_CURRENT_STARTUP_BOOST / voltage_scale;
+			float step = error * conf.cc_gain * voltage_scale;
+			const float start_boost = conf.cc_startup_boost_duty / voltage_scale;
 
 			// Do not ramp too much
 			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
@@ -1533,7 +1536,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		} else if (control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Compute error
 			const float error = -fabsf(current_set) - current_nofilter;
-			float step = error * MCPWM_CURRENT_CONTROL_GAIN * voltage_scale;
+			float step = error * conf.cc_gain * voltage_scale;
 
 			// Do not ramp too much
 			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
@@ -1554,7 +1557,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-				if (fabsf(rpm_now) < MCPWM_CURR_MIN_RPM_FBRAKE) {
+				if (fabsf(rpm_now) < conf.l_min_erpm_fbrake) {
 					dutycycle_now_tmp = 0.0;
 					dutycycle_set = dutycycle_now_tmp;
 				} else {
@@ -1569,30 +1572,30 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
-		if (current_nofilter > MCPWM_CURRENT_MAX) {
+		if (current_nofilter > conf.l_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_nofilter - MCPWM_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_nofilter - conf.l_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current_nofilter < MCPWM_CURRENT_MIN) {
+		} else if (current_nofilter < conf.l_current_min) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
-		} else if (current_in_nofilter > MCPWM_IN_CURRENT_MAX) {
+		} else if (current_in_nofilter > conf.l_in_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_in_nofilter - MCPWM_IN_CURRENT_MAX) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_in_nofilter - conf.l_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current_in_nofilter < MCPWM_IN_CURRENT_MIN) {
+		} else if (current_in_nofilter < conf.l_in_current_min) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
-		} else if (rpm > MCPWM_RPM_MAX) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
+		} else if (rpm > conf.l_max_erpm) {
+			if ((conf.l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
 				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
 			}
-		} else if (rpm < MCPWM_RPM_MIN) {
-			if ((MCPWM_RPM_LIMIT_NEG_TORQUE || current > -1.0) && dutycycle_now >= dutycycle_now_tmp) {
+		} else if (rpm < conf.l_min_erpm) {
+			if ((conf.l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now >= dutycycle_now_tmp) {
 				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
@@ -1616,9 +1619,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// Don't start in the opposite direction when the RPM is too high even if the current is low enough.
-		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -MCPWM_CURR_MIN_RPM_FBRAKE) {
+		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -conf.l_min_erpm_fbrake) {
 			dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
-		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > MCPWM_CURR_MIN_RPM_FBRAKE) {
+		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > conf.l_min_erpm_fbrake) {
 			dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
 		}
 
@@ -1716,10 +1719,20 @@ float mcpwm_read_reset_avg_cycle_integrator(void) {
  * performance. WARNING: Setting this too high can break stuff.
  *
  * @param rpm
- * The minimum allowed RPM. Default is MCPWM_MIN_RPM.
+ * The minimum allowed RPM.
  */
 void mcpwm_set_min_rpm(float rpm) {
-	min_rpm = rpm;
+	conf.sl_min_erpm = rpm;
+}
+
+/**
+ * Get the minimum allowed RPM in sensorless mode.
+ *
+ * @return
+ * The minimum allowed RPM.
+ */
+float mcpwm_get_min_rpm(void) {
+	return conf.sl_min_erpm;
 }
 
 /**
@@ -1732,11 +1745,11 @@ void mcpwm_set_min_rpm(float rpm) {
  *
  */
 void mcpwm_set_comm_mode(mc_comm_mode mode) {
-	comm_mode = mode;
+	conf.comm_mode = mode;
 }
 
 mc_comm_mode mcpwm_get_comm_mode(void) {
-	return comm_mode;
+	return conf.comm_mode;
 }
 
 float mcpwm_get_last_adc_isr_duration(void) {
@@ -1797,7 +1810,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 		curr1_sample = (top - duty) / 2 + duty;
 		curr2_sample = (top - duty) / 2 + duty;
 	} else {
-		if (pwm_mode == PWM_MODE_BIPOLAR) {
+		if (conf.pwm_mode == PWM_MODE_BIPOLAR) {
 			uint32_t samp_neg = top - 2;
 			uint32_t samp_pos = duty + (top - duty) / 2;
 			uint32_t samp_zero = top - 2;
@@ -1920,24 +1933,25 @@ static void update_rpm_tacho(void) {
 }
 
 static void commutate(void) {
-#if MCPWM_IS_SENSORLESS
-	last_pwm_cycles_sum = pwm_cycles_sum;
-	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
-	pwm_cycles_sum = 0;
+	if (conf.sl_is_sensorless) {
+		last_pwm_cycles_sum = pwm_cycles_sum;
+		last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
+		pwm_cycles_sum = 0;
 
-	update_rpm_tacho();
+		update_rpm_tacho();
 
-	comm_step++;
-	if (comm_step > 6) {
-		comm_step = 1;
+		comm_step++;
+		if (comm_step > 6) {
+			comm_step = 1;
+		}
+
+		if (!(state == MC_STATE_RUNNING)) {
+			return;
+		}
+
+		set_next_comm_step(comm_step);
 	}
 
-	if (!(state == MC_STATE_RUNNING)) {
-		return;
-	}
-
-	set_next_comm_step(comm_step);
-#endif
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 	has_commutated = 1;
 
@@ -2000,7 +2014,7 @@ static void set_next_comm_step(int next_step) {
 	uint16_t negative_lowside = TIM_CCxN_Enable;
 
 	if (!IS_DETECTING()) {
-		switch (pwm_mode) {
+		switch (conf.pwm_mode) {
 		case PWM_MODE_NONSYNCHRONOUS_HISW:
 			positive_lowside = TIM_CCxN_Disable;
 			break;

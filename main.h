@@ -31,6 +31,6 @@
 // Function prototypes
 void main_dma_adc_handler(void);
 float main_get_last_adc_isr_duration(void);
-void main_process_packet(unsigned char *data, unsigned char len);
+void main_sample_print_data(bool at_start, uint16_t len, uint8_t decimation);
 
 #endif /* MAIN_H_ */

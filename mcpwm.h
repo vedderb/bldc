@@ -26,54 +26,13 @@
 #define MCPWM_H_
 
 #include "conf_general.h"
-
-// Data types
-typedef enum {
-   MC_STATE_OFF = 0,
-   MC_STATE_DETECTING,
-   MC_STATE_RUNNING,
-   MC_STATE_FULL_BRAKE,
-} mc_state;
-
-typedef enum {
-	PWM_MODE_NONSYNCHRONOUS_HISW, // This mode is not recommended
-	PWM_MODE_SYNCHRONOUS, // The recommended and most tested mode
-	PWM_MODE_BIPOLAR // Some glitches occasionally, can kill MOSFETs
-} mc_pwm_mode;
-
-typedef enum {
-	COMM_MODE_INTEGRATE = 0,
-	COMM_MODE_DELAY
-} mc_comm_mode;
-
-typedef enum {
-	FAULT_CODE_NONE = 0,
-	FAULT_CODE_OVER_VOLTAGE,
-	FAULT_CODE_UNDER_VOLTAGE,
-	FAULT_CODE_DRV8302,
-	FAULT_CODE_ABS_OVER_CURRENT
-} mc_fault_code;
-
-typedef enum {
-	CONTROL_MODE_DUTY = 0,
-	CONTROL_MODE_SPEED,
-	CONTROL_MODE_CURRENT,
-	CONTROL_MODE_CURRENT_BRAKE,
-	CONTROL_MODE_NONE
-} mc_control_mode;
-
-typedef struct {
-	volatile float cycle_int_limit;
-	volatile float cycle_int_limit_running;
-	volatile float cycle_int_limit_max;
-	volatile float comm_time_sum;
-	volatile float comm_time_sum_min_rpm;
-	volatile uint32_t comms;
-	volatile uint32_t time_at_comm;
-} mc_rpm_dep_struct;
+#include "datatypes.h"
+#include <stdbool.h>
 
 // Functions
-void mcpwm_init(void);
+void mcpwm_init(mc_configuration *configuration);
+mc_configuration mcpwm_get_configuration(void);
+void mcpwm_set_configuration(mc_configuration *configuration);
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
@@ -102,6 +61,7 @@ float mcpwm_read_reset_avg_motor_current(void);
 float mcpwm_read_reset_avg_input_current(void);
 float mcpwm_read_reset_avg_cycle_integrator(void);
 void mcpwm_set_min_rpm(float rpm);
+float mcpwm_get_min_rpm(void);
 void mcpwm_set_comm_mode(mc_comm_mode mode);
 mc_comm_mode mcpwm_get_comm_mode(void);
 float mcpwm_get_last_adc_isr_duration(void);
@@ -119,28 +79,8 @@ extern volatile float mcpwm_detect_currents[];
 extern volatile float mcpwm_detect_currents_diff[];
 extern volatile int mcpwm_vzero;
 
-#ifdef MCCONF_OUTRUNNER1
-#include "mcconf_outrunner1.h"
-#elif defined MCCONF_OUTRUNNER2
-#include "mcconf_outrunner2.h"
-#elif defined MCCONF_OUTRUNNER_OR
-#include "mcconf_outrunner_or.h"
-#elif defined MCCONF_OUTRUNNER_BL
-#include "mcconf_outrunner_bl.h"
-#elif defined MCCONF_RCCAR1
-#include "mcconf_rccar1.h"
-#elif defined MCCONF_RCCAR2
-#include "mcconf_rccar2.h"
-#elif defined MCCONF_STEN
-#include "mcconf_sten.h"
-#elif defined MCCONF_GURGALOF
-#include "mcconf_gurgalof.h"
-#elif defined MCCONF_HDD
-#include "mcconf_hdd.h"
-#endif
-
 /*
- * Parameters
+ * Fixed parameters
  */
 #define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_MAX		35000	// The highest switching frequency in Hz
@@ -158,52 +98,5 @@ extern volatile int mcpwm_vzero;
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
-
-// Parameters that can be overridden
-#ifndef MCPWM_PWM_MODE
-#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
-#endif
-#ifndef MCPWM_HALL_DIR
-#define MCPWM_HALL_DIR					0		// Hall sensor direction [0 or 1]
-#endif
-#ifndef MCPWM_HALL_FWD_ADD
-#define MCPWM_HALL_FWD_ADD				0		// Hall sensor offset fwd [0 to 5]
-#endif
-#ifndef MCPWM_HALL_REV_ADD
-#define MCPWM_HALL_REV_ADD				0		// Hall sensor offset rev [0 to 5]
-#endif
-#ifndef MCPWM_MIN_VOLTAGE
-#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
-#endif
-#ifndef MCPWM_MAX_VOLTAGE
-#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
-#endif
-#ifndef MCPWM_RPM_MAX
-#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
-#endif
-#ifndef MCPWM_RPM_MIN
-#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
-#endif
-#ifndef MCPWM_CURRENT_STARTUP_BOOST
-#define MCPWM_CURRENT_STARTUP_BOOST		0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
-#endif
-#ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
-#define MCPWM_RPM_LIMIT_NEG_TORQUE		1		// Use negative torque to limit the RPM
-#endif
-#ifndef MCPWM_CURR_MIN_RPM_FBRAKE
-#define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
-#endif
-#ifndef MCPWM_SLOW_ABS_OVERCURRENT
-#define MCPWM_SLOW_ABS_OVERCURRENT		0		// Use the filtered (and hence slower) current for the overcurrent fault detection
-#endif
-#ifndef MCPWM_COMM_MODE
-#define MCPWM_COMM_MODE					COMM_MODE_INTEGRATE	// The commutation mode to use
-#endif
-#ifndef MCPWM_CYCLE_INT_LIMIT_HIGH_FAC
-#define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#endif
-#ifndef MCPWM_CYCLE_INT_START_RPM_BR
-#define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
-#endif
 
 #endif /* MC_PWM_H_ */
