@@ -31,7 +31,7 @@
 
 // Functions
 void mcpwm_init(mc_configuration *configuration);
-mc_configuration mcpwm_get_configuration(void);
+const mc_configuration* mcpwm_get_configuration(void);
 void mcpwm_set_configuration(mc_configuration *configuration);
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);

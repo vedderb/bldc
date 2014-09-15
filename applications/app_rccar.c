@@ -96,7 +96,7 @@ static msg_t rccar_thread(void *arg) {
 #if USE_PID
 			mcpwm_set_pid_speed(servo_val * PID_MAX_RPM);
 #else
-			mcpwm_set_current(servo_val * MCPWM_CURRENT_MAX);
+			mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
 #endif
 		} else {
 			mcpwm_set_current(0.0);

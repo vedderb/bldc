@@ -180,7 +180,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	int ok_steps = 0;
 
-	mc_configuration mcconf = mcpwm_get_configuration();
+	mc_configuration mcconf = *mcpwm_get_configuration();
 
 	mcpwm_set_min_rpm(min_rpm);
 	mcpwm_set_comm_mode(COMM_MODE_DELAY);

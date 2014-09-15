@@ -115,9 +115,9 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &min_rpm);
 			sscanf(argv[3], "%f", &low_duty);
 
-			mc_configuration mcconf = mcpwm_get_configuration();
+			const mc_configuration *mcconf = mcpwm_get_configuration();
 
-			if (current > 0.0 && current < mcconf.l_current_max &&
+			if (current > 0.0 && current < mcconf->l_current_max &&
 					min_rpm > 10.0 && min_rpm < 3000.0 &&
 					low_duty > 0.02 && low_duty < 0.8) {
 

@@ -55,7 +55,8 @@ typedef enum {
 	COMM_TERMINAL_CMD,
 	COMM_PRINT,
 	COMM_ROTOR_POSITION,
-	COMM_EXPERIMENT_SAMPLE
+	COMM_EXPERIMENT_SAMPLE,
+	COMM_DETECT_MOTOR_PARAM
 } COMM_PACKET_ID;
 
 // Settings
@@ -143,6 +144,11 @@ static void process_packet(unsigned char *data, unsigned char len) {
 	uint8_t decimation;
 	bool at_start;
 	mc_configuration mcconf;
+	float detect_cycle_int_limit;
+	float detect_coupling_k;
+	float detect_current;
+	float detect_min_rpm;
+	float detect_low_duty;
 
 	(void)len;
 
@@ -241,7 +247,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		break;
 
 	case COMM_GET_MCCONF:
-		mcconf = mcpwm_get_configuration();
+		mcconf = *mcpwm_get_configuration();
 
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_MCCONF;
@@ -297,6 +303,25 @@ static void process_packet(unsigned char *data, unsigned char len) {
 	case COMM_TERMINAL_CMD:
 		data[len] = '\0';
 		terminal_process_string((char*)data);
+		break;
+
+	case COMM_DETECT_MOTOR_PARAM:
+		ind = 0;
+		detect_current = (float)buffer_get_int32(data, &ind) / 1000.0;
+		detect_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		detect_low_duty = (float)buffer_get_int32(data, &ind) / 1000.0;
+
+		if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
+				detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k)) {
+			detect_cycle_int_limit = 0.0;
+			detect_coupling_k = 0.0;
+		}
+
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
+		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
+		packet_send_packet(send_buffer, ind, 0);
 		break;
 
 	default:

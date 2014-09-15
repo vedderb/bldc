@@ -448,8 +448,8 @@ void mcpwm_init(mc_configuration *configuration) {
 	WWDG_Enable(100);
 }
 
-mc_configuration mcpwm_get_configuration(void) {
-	return conf;
+const mc_configuration* mcpwm_get_configuration(void) {
+	return &conf;
 }
 
 void mcpwm_set_configuration(mc_configuration *configuration) {
