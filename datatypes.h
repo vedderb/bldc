@@ -20,7 +20,7 @@ typedef enum {
 } mc_state;
 
 typedef enum {
-	PWM_MODE_NONSYNCHRONOUS_HISW, // This mode is not recommended
+	PWM_MODE_NONSYNCHRONOUS_HISW = 0, // This mode is not recommended
 	PWM_MODE_SYNCHRONOUS, // The recommended and most tested mode
 	PWM_MODE_BIPOLAR // Some glitches occasionally, can kill MOSFETs
 } mc_pwm_mode;
@@ -68,7 +68,7 @@ typedef struct {
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
-	float l_min_erpm_fbrake;
+	float l_max_erpm_fbrake;
 	float l_min_vin;
 	float l_max_vin;
 	bool l_slow_abs_current;

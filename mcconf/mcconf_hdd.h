@@ -40,7 +40,7 @@
 #define MCPWM_CURRENT_CONTROL_NO_REV	0		// Do not reverse the direction in current control mode, brake only
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
 #define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
-#define MCPWM_CURR_MIN_RPM_FBRAKE		500	// Minimum electrical RPM to use full brake at
+#define MCPWM_CURR_MAX_RPM_FBRAKE		500	// Minimum electrical RPM to use full brake at
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation

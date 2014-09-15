@@ -588,7 +588,7 @@ void mcpwm_set_brake_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		// In case the motor is already spinning, set the state to running
 		// so that it can be ramped down before the full brake is applied.
-		if (fabsf(rpm_now) > conf.l_min_erpm_fbrake) {
+		if (fabsf(rpm_now) > conf.l_max_erpm_fbrake) {
 			state = MC_STATE_RUNNING;
 		} else {
 			full_brake_ll();
@@ -852,7 +852,7 @@ static void set_duty_cycle_hl(float dutyCycle) {
 		} else {
 			// In case the motor is already spinning, set the state to running
 			// so that it can be ramped down before the full brake is applied.
-			if (fabsf(rpm_now) > conf.l_min_erpm_fbrake) {
+			if (fabsf(rpm_now) > conf.l_max_erpm_fbrake) {
 				state = MC_STATE_RUNNING;
 			} else {
 				full_brake_ll();
@@ -1557,7 +1557,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-				if (fabsf(rpm_now) < conf.l_min_erpm_fbrake) {
+				if (fabsf(rpm_now) < conf.l_max_erpm_fbrake) {
 					dutycycle_now_tmp = 0.0;
 					dutycycle_set = dutycycle_now_tmp;
 				} else {
@@ -1619,9 +1619,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// Don't start in the opposite direction when the RPM is too high even if the current is low enough.
-		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -conf.l_min_erpm_fbrake) {
+		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -conf.l_max_erpm_fbrake) {
 			dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
-		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > conf.l_min_erpm_fbrake) {
+		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > conf.l_max_erpm_fbrake) {
 			dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
 		}
 
@@ -1801,6 +1801,8 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+	curr_samp_volt = 0;
+
 	// Sample the ADC at an appropriate time during the pwm cycle
 	if (IS_DETECTING()) {
 		// Voltage samples
@@ -1817,7 +1819,6 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 
 			// Voltage and other sampling
 			val_sample = top / 4;
-			curr_samp_volt = 0;
 
 			// Current sampling
 			switch (comm_step) {

@@ -49,8 +49,8 @@ typedef enum {
 	COMM_SET_RPM,
 	COMM_SET_DETECT,
 	COMM_SET_SERVO_OFFSET,
-	COMM_SET_CONF,
-	COMM_GET_CONF,
+	COMM_SET_MCCONF,
+	COMM_GET_MCCONF,
 	COMM_SAMPLE_PRINT,
 	COMM_TERMINAL_CMD,
 	COMM_PRINT,
@@ -142,6 +142,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 	uint16_t sample_len;
 	uint8_t decimation;
 	bool at_start;
+	mc_configuration mcconf;
 
 	(void)len;
 
@@ -196,12 +197,93 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		servos[0].offset = data[0];
 		break;
 
-	case COMM_SET_CONF:
-		// TODO
+	case COMM_SET_MCCONF:
+		ind = 0;
+		mcconf.pwm_mode = data[ind++];
+		mcconf.comm_mode = data[ind++];
+
+		mcconf.l_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_in_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_in_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_abs_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_max_erpm_fbrake = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_min_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_max_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_slow_abs_current = data[ind++];
+		mcconf.l_rpm_lim_neg_torque = data[ind++];
+
+		mcconf.sl_is_sensorless = data[ind++];
+		mcconf.sl_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_min_erpm_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_cycle_int_limit_high_fac = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_cycle_int_rpm_br = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_bemf_coupling_k = (float)buffer_get_int32(data, &ind) / 1000.0;
+
+		mcconf.hall_dir = data[ind++];
+		mcconf.hall_fwd_add = data[ind++];
+		mcconf.hall_rev_add = data[ind++];
+
+		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.s_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.s_pid_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+
+		mcconf.cc_startup_boost_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.cc_min_current = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.cc_gain = (float)buffer_get_int32(data, &ind) / 1000000.0;
+
+		conf_general_store_mc_configuration(&mcconf);
+		mcpwm_set_configuration(&mcconf);
 		break;
 
-	case COMM_GET_CONF:
-		// TODO
+	case COMM_GET_MCCONF:
+		mcconf = mcpwm_get_configuration();
+
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_MCCONF;
+
+		send_buffer[ind++] = mcconf.pwm_mode;
+		send_buffer[ind++] = mcconf.comm_mode;
+
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_max * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_min * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_in_current_max * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_in_current_min * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_abs_current_max * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_vin * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_vin * 1000.0), &ind);
+		send_buffer[ind++] = mcconf.l_slow_abs_current;
+		send_buffer[ind++] = mcconf.l_rpm_lim_neg_torque;
+
+		send_buffer[ind++] = mcconf.sl_is_sensorless;
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm_cycle_int_limit * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit_high_fac * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_rpm_br * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_bemf_coupling_k * 1000.0), &ind);
+
+		send_buffer[ind++] = mcconf.hall_dir;
+		send_buffer[ind++] = mcconf.hall_fwd_add;
+		send_buffer[ind++] = mcconf.hall_rev_add;
+
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kd * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_min_rpm * 1000.0), &ind);
+
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_startup_boost_duty * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_min_current * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_gain * 1000000.0), &ind);
+
+		packet_send_packet(send_buffer, ind, 0);
 		break;
 
 	case COMM_SAMPLE_PRINT:

@@ -61,8 +61,8 @@
 #ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		true		// Use negative torque to limit the RPM
 #endif
-#ifndef MCPWM_CURR_MIN_RPM_FBRAKE
-#define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
+#ifndef MCPWM_CURR_MAX_RPM_FBRAKE
+#define MCPWM_CURR_MAX_RPM_FBRAKE		1500	// Maximum electrical RPM to use full brake at
 #endif
 #ifndef MCPWM_SLOW_ABS_OVERCURRENT
 #define MCPWM_SLOW_ABS_OVERCURRENT		false	// Use the filtered (and hence slower) current for the overcurrent fault detection
@@ -84,6 +84,7 @@
 uint16_t VirtAddVarTab[NB_OF_VAR];
 
 void conf_general_init(void) {
+	FLASH_Unlock();
 	EE_Init();
 }
 
@@ -95,7 +96,7 @@ void conf_general_init(void) {
  */
 void conf_general_read_mc_configuration(mc_configuration *conf) {
 	bool is_ok = true;
-	uint8_t *conf_addr = (uint8_t*)&conf;
+	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
 
 	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
@@ -119,7 +120,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_abs_current_max = MCPWM_MAX_ABS_CURRENT;
 		conf->l_min_erpm = MCPWM_RPM_MIN;
 		conf->l_max_erpm = MCPWM_RPM_MAX;
-		conf->l_min_erpm_fbrake = MCPWM_CURR_MIN_RPM_FBRAKE;
+		conf->l_max_erpm_fbrake = MCPWM_CURR_MAX_RPM_FBRAKE;
 		conf->l_min_vin = MCPWM_MIN_VOLTAGE;
 		conf->l_max_vin = MCPWM_MAX_VOLTAGE;
 		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;

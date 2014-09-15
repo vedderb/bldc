@@ -40,7 +40,7 @@
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #define MCPWM_CURRENT_STARTUP_BOOST		0.02	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		0		// Use negative torque to limit the RPM
-#define MCPWM_CURR_MIN_RPM_FBRAKE		1500	// Minimum electrical RPM to use full brake at
+#define MCPWM_CURR_MAX_RPM_FBRAKE		1500	// Maximum electrical RPM to use full brake at
 
 // Sensorless settings
 #define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation

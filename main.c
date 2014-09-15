@@ -266,6 +266,9 @@ void main_sample_print_data(bool at_start, uint16_t len, uint8_t decimation) {
 int main(void) {
 	halInit();
 	chSysInit();
+
+	chThdSleepMilliseconds(1000);
+
 	conf_general_init();
 	hw_init_gpio();
 	ledpwm_init();
