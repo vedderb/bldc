@@ -83,9 +83,9 @@
 #define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
-#define READ_HALL1()				palReadPad(GPIOC, 1)
-#define READ_HALL2()				palReadPad(GPIOC, 2)
-#define READ_HALL3()				palReadPad(GPIOC, 3)
+#define READ_HALL1()				palReadPad(GPIOC, 6)
+#define READ_HALL2()				palReadPad(GPIOC, 7)
+#define READ_HALL3()				palReadPad(GPIOC, 8)
 
 // ADC macros and settings
 

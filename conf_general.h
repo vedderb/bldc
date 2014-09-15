@@ -65,5 +65,7 @@
 void conf_general_init(void);
 void conf_general_read_mc_configuration(mc_configuration *conf);
 bool conf_general_store_mc_configuration(mc_configuration *conf);
+bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
+		float *int_limit, float *bemf_coupling_k);
 
 #endif /* CONF_GENERAL_H_ */

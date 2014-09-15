@@ -155,9 +155,6 @@ static msg_t sample_send_thread(void *arg) {
 			buffer[index++] = f_sw_samples[i];
 
 			comm_send_samples(buffer, index);
-
-			// TODO: wait??
-			chThdSleep(2);
 		}
 	}
 
@@ -282,7 +279,7 @@ int main(void) {
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO, sample_send_thread, NULL);
+	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {

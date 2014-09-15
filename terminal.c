@@ -121,78 +121,14 @@ void terminal_process_string(char *str) {
 					min_rpm > 10.0 && min_rpm < 3000.0 &&
 					low_duty > 0.02 && low_duty < 0.8) {
 
-				mcpwm_set_min_rpm(min_rpm);
-				mcpwm_set_comm_mode(COMM_MODE_DELAY);
-				mcpwm_set_current(current);
-
-				// Spin up the motor
-				for (int i = 0;i < 5000;i++) {
-					if (mcpwm_get_duty_cycle_now() < 0.6) {
-						chThdSleepMilliseconds(1);
-					} else {
-						break;
-					}
+				float cycle_integrator;
+				float coupling_k;
+				if (conf_general_detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k)) {
+					comm_printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
+					comm_printf("Coupling factor: %.2f\n", (double)coupling_k);
+				} else {
+					comm_printf("Detection failed. Try again with different parameters.\n");
 				}
-
-				// Release the motor and wait a few commutations
-				mcpwm_set_current(0.0);
-				int tacho = mcpwm_get_tachometer_value(0);
-				for (int i = 0;i < 2000;i++) {
-					if ((mcpwm_get_tachometer_value(0) - tacho) < 3) {
-						chThdSleepMilliseconds(1);
-					} else {
-						break;
-					}
-				}
-
-				// Average the cycle integrator for 50 commutations
-				mcpwm_read_reset_avg_cycle_integrator();
-				tacho = mcpwm_get_tachometer_value(0);
-				for (int i = 0;i < 3000;i++) {
-					if ((mcpwm_get_tachometer_value(0) - tacho) < 50) {
-						chThdSleepMilliseconds(1);
-					} else {
-						break;
-					}
-				}
-				float avg_cycle_integrator = mcpwm_read_reset_avg_cycle_integrator();
-				comm_printf("Cycle integrator limit: %.2f", (double)avg_cycle_integrator);
-
-				// Wait for the motor to slow down
-				for (int i = 0;i < 5000;i++) {
-					if (mcpwm_get_duty_cycle_now() > low_duty) {
-						chThdSleepMilliseconds(1);
-					} else {
-						break;
-					}
-				}
-				mcpwm_set_duty(low_duty);
-
-				// Average the cycle integrator for 100 commutations
-				mcpwm_read_reset_avg_cycle_integrator();
-				tacho = mcpwm_get_tachometer_value(0);
-				for (int i = 0;i < 3000;i++) {
-					if ((mcpwm_get_tachometer_value(0) - tacho) < 100) {
-						chThdSleepMilliseconds(1);
-					} else {
-						break;
-					}
-				}
-
-				float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
-				float rpm = mcpwm_get_rpm();
-
-				mcpwm_set_current(0.0);
-
-				// Try to figure out the coupling factor
-				avg_cycle_integrator_running -= avg_cycle_integrator;
-				avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
-				avg_cycle_integrator_running *= rpm;
-				comm_printf("Coupling factor: %.2f\n", (double)avg_cycle_integrator_running);
-
-				// Restore settings
-				mcpwm_set_comm_mode(mcconf.comm_mode);
-				mcpwm_set_min_rpm(mcconf.sl_min_erpm);
 			} else {
 				comm_printf("Invalid argument(s).\n");
 			}

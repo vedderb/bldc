@@ -1454,6 +1454,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				set_next_comm_step(comm_step);
 				commutate();
 			}
+		} else if (state == MC_STATE_RUNNING && !has_commutated) {
+			set_next_comm_step(comm_step);
+			commutate();
 		}
 	}
 

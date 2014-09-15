@@ -8,6 +8,8 @@
 #include "conf_general.h"
 #include "ch.h"
 #include "eeprom.h"
+#include "mcpwm.h"
+#include "hw.h"
 
 // Default configuration file
 #ifdef MCCONF_OUTRUNNER1
@@ -171,4 +173,92 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	}
 
 	return is_ok;
+}
+
+bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
+		float *int_limit, float *bemf_coupling_k) {
+
+	int ok_steps = 0;
+
+	mc_configuration mcconf = mcpwm_get_configuration();
+
+	mcpwm_set_min_rpm(min_rpm);
+	mcpwm_set_comm_mode(COMM_MODE_DELAY);
+	mcpwm_set_current(current);
+
+	// Spin up the motor
+	for (int i = 0;i < 5000;i++) {
+		if (mcpwm_get_duty_cycle_now() < 0.6) {
+			chThdSleepMilliseconds(1);
+		} else {
+			ok_steps++;
+			break;
+		}
+	}
+
+	// Release the motor and wait a few commutations
+	mcpwm_set_current(0.0);
+	int tacho = mcpwm_get_tachometer_value(0);
+	for (int i = 0;i < 2000;i++) {
+		if ((mcpwm_get_tachometer_value(0) - tacho) < 3) {
+			chThdSleepMilliseconds(1);
+		} else {
+			ok_steps++;
+			break;
+		}
+	}
+
+	// Average the cycle integrator for 50 commutations
+	mcpwm_read_reset_avg_cycle_integrator();
+	tacho = mcpwm_get_tachometer_value(0);
+	for (int i = 0;i < 3000;i++) {
+		if ((mcpwm_get_tachometer_value(0) - tacho) < 50) {
+			chThdSleepMilliseconds(1);
+		} else {
+			ok_steps++;
+			break;
+		}
+	}
+
+	*int_limit = mcpwm_read_reset_avg_cycle_integrator();
+
+	// Wait for the motor to slow down
+	for (int i = 0;i < 5000;i++) {
+		if (mcpwm_get_duty_cycle_now() > low_duty) {
+			chThdSleepMilliseconds(1);
+		} else {
+			ok_steps++;
+			break;
+		}
+	}
+	mcpwm_set_duty(low_duty);
+
+	// Average the cycle integrator for 100 commutations
+	mcpwm_read_reset_avg_cycle_integrator();
+	tacho = mcpwm_get_tachometer_value(0);
+	for (int i = 0;i < 3000;i++) {
+		if ((mcpwm_get_tachometer_value(0) - tacho) < 100) {
+			chThdSleepMilliseconds(1);
+		} else {
+			ok_steps++;
+			break;
+		}
+	}
+
+	float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
+	float rpm = mcpwm_get_rpm();
+
+	mcpwm_set_current(0.0);
+
+	// Try to figure out the coupling factor
+	avg_cycle_integrator_running -= *int_limit;
+	avg_cycle_integrator_running /= (float)ADC_Value[ADC_IND_VIN_SENS];
+	avg_cycle_integrator_running *= rpm;
+	*bemf_coupling_k = avg_cycle_integrator_running;
+
+	// Restore settings
+	mcpwm_set_comm_mode(mcconf.comm_mode);
+	mcpwm_set_min_rpm(mcconf.sl_min_erpm);
+
+	return ok_steps == 5 ? true : false;
 }
