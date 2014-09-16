@@ -236,8 +236,12 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	// Average the cycle integrator for 100 commutations
 	mcpwm_read_reset_avg_cycle_integrator();
 	tacho = mcpwm_get_tachometer_value(0);
+	float rpm_sum = 0.0;
+	float rpm_iterations = 0.0;
 	for (int i = 0;i < 3000;i++) {
 		if ((mcpwm_get_tachometer_value(0) - tacho) < 100) {
+			rpm_sum += mcpwm_get_rpm();
+			rpm_iterations += 1;
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -246,7 +250,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
-	float rpm = mcpwm_get_rpm();
+	float rpm = rpm_sum / rpm_iterations;
 
 	mcpwm_set_current(0.0);
 
