@@ -448,7 +448,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	WWDG_Enable(100);
 }
 
-const mc_configuration* mcpwm_get_configuration(void) {
+const volatile mc_configuration* mcpwm_get_configuration(void) {
 	return &conf;
 }
 
@@ -905,7 +905,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		if (state != MC_STATE_RUNNING) {
 			state = MC_STATE_RUNNING;
 
-			if (rpm_now < conf.sl_min_erpm) {
+			if (fabsf(rpm_now) < conf.sl_min_erpm) {
 				commutate();
 			}
 		}
@@ -1019,10 +1019,10 @@ static msg_t rpm_thread(void *arg) {
 	chRegSetThreadName("rpm timer");
 
 	for (;;) {
-		if (rpm_dep.comms > 0.0) {
+		if (rpm_dep.comms != 0) {
 			utils_sys_lock_cnt();
-			const float comms = (float) rpm_dep.comms;
-			const float time_at_comm = (float) rpm_dep.time_at_comm;
+			const float comms = (float)rpm_dep.comms;
+			const float time_at_comm = (float)rpm_dep.time_at_comm;
 			rpm_dep.comms = 0;
 			rpm_dep.time_at_comm = 0;
 			utils_sys_unlock_cnt();
@@ -1034,7 +1034,7 @@ static msg_t rpm_thread(void *arg) {
 			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0)
 					/ ((float) TIM2 ->CNT * 6.0);
 
-			if (rpm_tmp < rpm_now) {
+			if (fabsf(rpm_tmp) < fabsf(rpm_now)) {
 				rpm_now = rpm_tmp;
 			}
 		}
@@ -1049,7 +1049,7 @@ static msg_t rpm_thread(void *arg) {
 									conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
 									conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
-				conf.sl_bemf_coupling_k / (rpm_now > conf.sl_min_erpm ? rpm_now : rpm_now > conf.sl_min_erpm);
+				conf.sl_bemf_coupling_k / (rpm_now > conf.sl_min_erpm ? rpm_now : conf.sl_min_erpm);
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / conf.sl_min_erpm_cycle_int_limit;
 
@@ -1296,7 +1296,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000;
+	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000.0;
 }
 
 /*
@@ -1633,7 +1633,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	main_dma_adc_handler();
 
-	last_adc_isr_duration = (float)TIM4->CNT / 10000000;
+	last_adc_isr_duration = (float)TIM4->CNT / 10000000.0;
 }
 
 void mcpwm_set_detect(void) {
@@ -1909,22 +1909,22 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 }
 
 static void update_rpm_tacho(void) {
-	rpm_dep.comms++;
-	rpm_dep.time_at_comm += TIM2->CNT;
-	TIM2->CNT = 0;
-
+	int step = comm_step - 1;
 	static int last_step = 0;
-	int tacho_diff = 0;
+	int tacho_diff = (step - last_step) % 6;
+	last_step = step;
 
-	if (comm_step == 1 && last_step == 6) {
-		tacho_diff++;
-	} else if (comm_step == 6 && last_step == 1) {
-		tacho_diff--;
-	} else {
-		tacho_diff += comm_step - last_step;
+	if (tacho_diff > 3) {
+		tacho_diff -= 6;
+	} else if (tacho_diff < -2) {
+		tacho_diff += 6;
 	}
 
-	last_step = comm_step;
+	if (tacho_diff != 0) {
+		rpm_dep.comms += tacho_diff;
+		rpm_dep.time_at_comm += TIM2->CNT;
+		TIM2->CNT = 0;
+	}
 
 	// Tachometers
 	tachometer_for_direction += tacho_diff;

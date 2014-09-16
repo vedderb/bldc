@@ -52,7 +52,7 @@ typedef struct {
 	volatile float cycle_int_limit_max;
 	volatile float comm_time_sum;
 	volatile float comm_time_sum_min_rpm;
-	volatile uint32_t comms;
+	volatile int32_t comms;
 	volatile uint32_t time_at_comm;
 } mc_rpm_dep_struct;
 
