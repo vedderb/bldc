@@ -83,12 +83,24 @@
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
-#define EEPROM_BASE_GENCONF		2000
+#define EEPROM_BASE_APPCONF		2000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 
 void conf_general_init(void) {
+	// First, make sure that all relevant virtual addresses are assigned for page swapping.
+	memset(VirtAddVarTab, 0, sizeof(VirtAddVarTab));
+
+	int ind = 0;
+	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_MCCONF + i;
+	}
+
+	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_APPCONF + i;
+	}
+
 	FLASH_Unlock();
 	EE_Init();
 }
@@ -105,7 +117,7 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 	uint16_t var;
 
 	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
-		if (EE_ReadVariable(EEPROM_BASE_GENCONF + i, &var) == 0) {
+		if (EE_ReadVariable(EEPROM_BASE_APPCONF + i, &var) == 0) {
 			conf_addr[2 * i] = (var >> 8) & 0xFF;
 			conf_addr[2 * i + 1] = var & 0xFF;
 		} else {
@@ -139,7 +151,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 		var = (conf_addr[2 * i] << 8) & 0xFF00;
 		var |= conf_addr[2 * i + 1] & 0xFF;
 
-		if (EE_WriteVariable(EEPROM_BASE_GENCONF + i, var) != FLASH_COMPLETE) {
+		if (EE_WriteVariable(EEPROM_BASE_APPCONF + i, var) != FLASH_COMPLETE) {
 			is_ok = false;
 			break;
 		}
