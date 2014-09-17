@@ -56,7 +56,7 @@ static msg_t gurgalof_thread(void *arg) {
 			mcpwm_set_current(0.0);
 		} else {
 			mcpwm_set_duty(pwr);
-//			mcpwm_set_current(pwr * MCPWM_CURRENT_MAX);
+//			mcpwm_set_current(pwr * mcpwm_get_configuration()->l_current_max);
 		}
 
 		chThdSleepMilliseconds(10);

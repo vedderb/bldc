@@ -248,6 +248,10 @@ float main_get_last_adc_isr_duration(void) {
 }
 
 void main_sample_print_data(bool at_start, uint16_t len, uint8_t decimation) {
+	if (len > ADC_SAMPLE_MAX_LEN) {
+		len = ADC_SAMPLE_MAX_LEN;
+	}
+
 	sample_len = len;
 	sample_int = decimation;
 
@@ -275,7 +279,10 @@ int main(void) {
 	mcpwm_init(&mcconf);
 
 	comm_init();
-	app_init();
+
+	app_configuration appconf;
+	conf_general_read_app_configuration(&appconf);
+	app_init(&appconf);
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);

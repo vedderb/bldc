@@ -41,7 +41,7 @@
 //#define HW_VERSION_R2
 
 /*
- * Select only one motor configuration
+ * Select only one (default) motor configuration
  */
 //#define MCCONF_OUTRUNNER1
 #define MCCONF_OUTRUNNER2
@@ -54,15 +54,17 @@
 //#define MCCONF_HDD
 
 /*
- * Select which application to use (if any)
+ * Select which custom application to use. To configure the default applications and
+ * their settings, go to conf_general_read_app_configuration and enter the default init
+ * values.
  */
-//#define USE_APP_RCCAR
 //#define USE_APP_STEN
 //#define USE_APP_GURGALOF
-//#define USE_APP_UARTCOMM
 
 // Functions
 void conf_general_init(void);
+void conf_general_read_app_configuration(app_configuration *conf);
+bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
 bool conf_general_store_mc_configuration(mc_configuration *conf);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,

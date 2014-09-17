@@ -11,6 +11,8 @@
 #include "mcpwm.h"
 #include "hw.h"
 
+#include <string.h>
+
 // Default configuration file
 #ifdef MCCONF_OUTRUNNER1
 #include "mcconf_outrunner1.h"
@@ -80,7 +82,8 @@
 #endif
 
 // EEPROM settings
-#define EEPROM_BASE_MCCONF		100
+#define EEPROM_BASE_MCCONF		1000
+#define EEPROM_BASE_GENCONF		2000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
@@ -88,6 +91,61 @@ uint16_t VirtAddVarTab[NB_OF_VAR];
 void conf_general_init(void) {
 	FLASH_Unlock();
 	EE_Init();
+}
+
+/**
+ * Read app_configuration from EEPROM. If this fails, default values will be used.
+ *
+ * @param conf
+ * A pointer to a app_configuration struct to write the read configuration to.
+ */
+void conf_general_read_app_configuration(app_configuration *conf) {
+	bool is_ok = true;
+	uint8_t *conf_addr = (uint8_t*)conf;
+	uint16_t var;
+
+	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+		if (EE_ReadVariable(EEPROM_BASE_GENCONF + i, &var) == 0) {
+			conf_addr[2 * i] = (var >> 8) & 0xFF;
+			conf_addr[2 * i + 1] = var & 0xFF;
+		} else {
+			is_ok = false;
+			break;
+		}
+	}
+
+	// Set the default configuration
+	if (!is_ok) {
+		memset(conf, 0, sizeof(app_configuration));
+		conf->app_to_use = APP_NONE;
+		conf->app_ppm_use_rev = true;
+		conf->app_ppm_ctrl_type = PPM_CTRL_TYPE_CURRENT;
+		conf->app_ppm_pid_max_erpm = 15000;
+	}
+}
+
+/**
+ * Write app_configuration to EEPROM.
+ *
+ * @param conf
+ * A pointer to the configuration that should be stored.
+ */
+bool conf_general_store_app_configuration(app_configuration *conf) {
+	bool is_ok = true;
+	uint8_t *conf_addr = (uint8_t*)conf;
+	uint16_t var;
+
+	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+		var = (conf_addr[2 * i] << 8) & 0xFF00;
+		var |= conf_addr[2 * i + 1] & 0xFF;
+
+		if (EE_WriteVariable(EEPROM_BASE_GENCONF + i, var) != FLASH_COMPLETE) {
+			is_ok = false;
+			break;
+		}
+	}
+
+	return is_ok;
 }
 
 /**

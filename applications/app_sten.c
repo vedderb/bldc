@@ -165,14 +165,14 @@ static void set_output(float output) {
 
 	const float rpm = mcpwm_get_rpm();
 
-	if (output > 0.0 && rpm > -MCPWM_MIN_RPM) {
-		float current = output * MCPWM_CURRENT_MAX;
+	if (output > 0.0 && rpm > -mcpwm_get_configuration()->l_min_erpm) {
+		float current = output * mcpwm_get_configuration()->l_current_max;
 
 		// Soft RPM limit
 		if (rpm > RPM_MAX_2) {
-			current = -MCPWM_CURRENT_CONTROL_MIN;
+			current = -mcpwm_get_configuration()->cc_min_current;
 		} else if (rpm > RPM_MAX_1) {
-			current = utils_map(rpm, RPM_MAX_1, RPM_MAX_2, current, -MCPWM_CURRENT_CONTROL_MIN);
+			current = utils_map(rpm, RPM_MAX_1, RPM_MAX_2, current, -mcpwm_get_configuration()->cc_min_current);
 		}
 
 		// Some low-pass filtering
@@ -182,13 +182,13 @@ static void set_output(float output) {
 		current_p2 = current_p1;
 		current_p1 = current;
 
-		if (fabsf(current) < MCPWM_CURRENT_CONTROL_MIN) {
-			current = -MCPWM_CURRENT_CONTROL_MIN;
+		if (fabsf(current) < mcpwm_get_configuration()->cc_min_current) {
+			current = -mcpwm_get_configuration()->cc_min_current;
 		}
 
 		mcpwm_set_current(current);
 	} else {
-		mcpwm_set_brake_current(output * MCPWM_CURRENT_MIN);
+		mcpwm_set_brake_current(output * mcpwm_get_configuration()->l_current_min);
 	}
 }
 

@@ -28,12 +28,19 @@
 #include "conf_general.h"
 
 // Functions
-void app_init(void);
+void app_init(app_configuration *conf);
+const app_configuration* app_get_configuration(void);
 
-// The init functions for all applications
-void app_rccar_init(void);
-void app_sten_init(void);
-void app_gurgalof_init(void);
+// The init and deinit functions for all applications
+void app_ppm_configure(ppm_control_type ctrlt, float pme, bool rev);
+void app_set_configuration(app_configuration *conf);
+
+// Standard apps
+void app_ppm_start(void);
 void app_uartcomm_init(void);
+
+// Custom apps
+void app_gurgalof_init(void);
+void app_sten_init(void);
 
 #endif /* APP_H_ */

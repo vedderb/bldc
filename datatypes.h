@@ -47,13 +47,13 @@ typedef enum {
 } mc_control_mode;
 
 typedef struct {
-	volatile float cycle_int_limit;
-	volatile float cycle_int_limit_running;
-	volatile float cycle_int_limit_max;
-	volatile float comm_time_sum;
-	volatile float comm_time_sum_min_rpm;
-	volatile int32_t comms;
-	volatile uint32_t time_at_comm;
+	float cycle_int_limit;
+	float cycle_int_limit_running;
+	float cycle_int_limit_max;
+	float comm_time_sum;
+	float comm_time_sum_min_rpm;
+	int32_t comms;
+	uint32_t time_at_comm;
 } mc_rpm_dep_struct;
 
 typedef struct {
@@ -95,5 +95,30 @@ typedef struct {
 	float cc_min_current;
 	float cc_gain;
 } mc_configuration;
+
+// Applications to use
+typedef enum {
+	APP_NONE = 0,
+	APP_PPM,
+	APP_UARTCOMM,
+	APP_CUSTOM
+} app_use;
+
+// PPM control types
+typedef enum {
+	PPM_CTRL_TYPE_CURRENT = 0,
+	PPM_CTRL_TYPE_DUTY,
+	PPM_CTRL_TYPE_PID
+} ppm_control_type;
+
+typedef struct {
+	// Application to use
+	app_use app_to_use;
+
+	// PPM application settings
+	ppm_control_type app_ppm_ctrl_type;
+	float app_ppm_pid_max_erpm;
+	bool app_ppm_use_rev;
+} app_configuration;
 
 #endif /* DATATYPES_H_ */

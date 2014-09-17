@@ -23,7 +23,6 @@
  */
 
 #include "app.h"
-#ifdef USE_APP_UARTCOMM
 
 #include "ch.h"
 #include "hal.h"
@@ -219,5 +218,3 @@ static msg_t packet_process_thread(void *arg) {
 
 	return 0;
 }
-
-#endif

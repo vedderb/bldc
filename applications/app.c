@@ -25,20 +25,49 @@
 #include "app.h"
 #include "ch.h"
 #include "hal.h"
-#include "stm32f4xx_conf.h"
-#include "servo.h"
 
-void app_init(void) {
-#ifdef USE_APP_RCCAR
-	app_rccar_init();
-#endif
+// Private variables
+static app_configuration app_conf;
+
+void app_init(app_configuration *conf) {
+	app_conf = *conf;
+
+	switch (app_conf.app_to_use) {
+	case APP_PPM:
+		app_ppm_configure(app_conf.app_ppm_ctrl_type, app_conf.app_ppm_pid_max_erpm, app_conf.app_ppm_use_rev);
+		app_ppm_start();
+		break;
+
+	case APP_UARTCOMM:
+		app_uartcomm_init();
+		break;
+
+	case APP_CUSTOM:
 #ifdef USE_APP_STEN
-	app_sten_init();
+		app_sten_init();
 #endif
 #ifdef USE_APP_GURGALOF
-	app_gurgalof_init();
+		app_gurgalof_init();
 #endif
-#ifdef USE_APP_UARTCOMM
-	app_uartcomm_init();
-#endif
+		break;
+
+	default:
+		break;
+	}
+}
+
+const app_configuration* app_get_configuration(void) {
+	return &app_conf;
+}
+
+/**
+ * Reconfigure all apps. Note that this will not start apps that are not already running, that
+ * should be done at boot. Some apps don't have any configuration options.
+ *
+ * @param conf
+ * The new configuration to use.
+ */
+void app_set_configuration(app_configuration *conf) {
+	app_conf = *conf;
+	app_ppm_configure(app_conf.app_ppm_ctrl_type, app_conf.app_ppm_pid_max_erpm, app_conf.app_ppm_use_rev);
 }
