@@ -795,7 +795,7 @@ static void full_brake_hw(void) {
 }
 
 static void fault_stop(mc_fault_code fault) {
-	ignore_iterations = MCPWM_FAULT_STOP_TIME;
+	ignore_iterations = conf.m_fault_stop_time_ms;
 	control_mode = CONTROL_MODE_NONE;
 	state = MC_STATE_OFF;
 	stop_pwm_hw();

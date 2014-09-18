@@ -166,7 +166,13 @@ static void set_output(float output) {
 	const float rpm = mcpwm_get_rpm();
 
 	if (output > 0.0 && rpm > -mcpwm_get_configuration()->l_min_erpm) {
-		float current = output * mcpwm_get_configuration()->l_current_max;
+		float current;
+
+		if (output > 0.0) {
+			current = output * mcpwm_get_configuration()->l_current_max;
+		} else {
+			current = output * fabsf(mcpwm_get_configuration()->l_current_min);
+		}
 
 		// Soft RPM limit
 		if (rpm > RPM_MAX_2) {

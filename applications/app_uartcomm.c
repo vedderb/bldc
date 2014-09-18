@@ -53,6 +53,7 @@ static volatile systime_t last_uart_update_time;
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
+static int is_running = 0;
 
 // Private functions
 static void process_packet(unsigned char *buffer, unsigned char len);
@@ -163,10 +164,18 @@ static void send_packet(unsigned char *buffer, unsigned char len) {
 	uartStartSend(&HW_UART_DEV, len, buffer);
 }
 
-void app_uartcomm_init(void) {
+void app_uartcomm_start(void) {
 	packet_init(send_packet, process_packet, PACKET_HANDLER);
 	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
 	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
+}
+
+void app_uartcomm_configure(uint32_t baudrate) {
+	uart_cfg.speed = baudrate;
+
+	if (is_running) {
+		uartStart(&HW_UART_DEV, &uart_cfg);
+	}
 }
 
 static msg_t uart_thread(void *arg) {
@@ -181,6 +190,8 @@ static msg_t uart_thread(void *arg) {
 	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
+
+	is_running = 1;
 
 	systime_t time = chTimeNow();
 

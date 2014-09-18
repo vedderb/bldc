@@ -44,12 +44,10 @@ static void trig_func(void *p);
 // Private variables
 static volatile ppm_control_type ctrl_type;
 static volatile float pid_max_erpm;
-static volatile bool use_rev;
 
-void app_ppm_configure(ppm_control_type ctrlt, float pme, bool rev) {
+void app_ppm_configure(ppm_control_type ctrlt, float pme) {
 	ctrl_type = ctrlt;
 	pid_max_erpm = pme;
-	use_rev = rev;
 }
 
 void app_ppm_start(void) {
@@ -92,10 +90,16 @@ static msg_t ppm_thread(void *arg) {
 		if (servodec_get_time_since_update() < 500) {
 			float servo_val = servodec_get_servo_as_float(0);
 
-			if (!use_rev) {
+			switch (ctrl_type) {
+			case PPM_CTRL_TYPE_CURRENT_NOREV:
+			case PPM_CTRL_TYPE_DUTY_NOREV:
+			case PPM_CTRL_TYPE_PID_NOREV:
 				servo_val += 1.0;
 				servo_val /= 2.0;
-				servo_val /= (1.0 - HYST);
+				break;
+
+			default:
+				break;
 			}
 
 			servo_val /= (1.0 - HYST);
@@ -110,14 +114,29 @@ static msg_t ppm_thread(void *arg) {
 
 			switch (ctrl_type) {
 			case PPM_CTRL_TYPE_CURRENT:
-				mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+			case PPM_CTRL_TYPE_CURRENT_NOREV:
+				if (servo_val >= 0.0) {
+					mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+				} else {
+					mcpwm_set_current(servo_val * fabsf(mcpwm_get_configuration()->l_current_min));
+				}
+				break;
+
+			case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
+				if (servo_val >= 0.0) {
+					mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+				} else {
+					mcpwm_set_brake_current(fabsf(servo_val * mcpwm_get_configuration()->l_current_min));
+				}
 				break;
 
 			case PPM_CTRL_TYPE_DUTY:
+			case PPM_CTRL_TYPE_DUTY_NOREV:
 				mcpwm_set_duty(servo_val);
 				break;
 
 			case PPM_CTRL_TYPE_PID:
+			case PPM_CTRL_TYPE_PID_NOREV:
 				mcpwm_set_pid_speed(servo_val * pid_max_erpm);
 				break;
 

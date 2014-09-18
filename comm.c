@@ -34,6 +34,7 @@
 #include "terminal.h"
 #include "hw.h"
 #include "mcpwm.h"
+#include "app.h"
 
 #include <math.h>
 #include <string.h>
@@ -51,12 +52,15 @@ typedef enum {
 	COMM_SET_SERVO_OFFSET,
 	COMM_SET_MCCONF,
 	COMM_GET_MCCONF,
+	COMM_SET_APPCONF,
+	COMM_GET_APPCONF,
 	COMM_SAMPLE_PRINT,
 	COMM_TERMINAL_CMD,
 	COMM_PRINT,
 	COMM_ROTOR_POSITION,
 	COMM_EXPERIMENT_SAMPLE,
-	COMM_DETECT_MOTOR_PARAM
+	COMM_DETECT_MOTOR_PARAM,
+	COMM_REBOOT
 } COMM_PACKET_ID;
 
 // Settings
@@ -144,6 +148,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 	uint8_t decimation;
 	bool at_start;
 	mc_configuration mcconf;
+	app_configuration appconf;
 	float detect_cycle_int_limit;
 	float detect_coupling_k;
 	float detect_current;
@@ -242,6 +247,8 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		mcconf.cc_min_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.cc_gain = (float)buffer_get_int32(data, &ind) / 1000000.0;
 
+		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
+
 		conf_general_store_mc_configuration(&mcconf);
 		mcpwm_set_configuration(&mcconf);
 		break;
@@ -289,6 +296,32 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_min_current * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_gain * 1000000.0), &ind);
 
+		buffer_append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
+
+		packet_send_packet(send_buffer, ind, 0);
+		break;
+
+	case COMM_SET_APPCONF:
+		ind = 0;
+		appconf.app_to_use = data[ind++];
+		appconf.app_ppm_ctrl_type = data[ind++];
+		appconf.app_ppm_pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
+
+		conf_general_store_app_configuration(&appconf);
+		app_set_configuration(&appconf);
+		break;
+
+	case COMM_GET_APPCONF:
+		appconf = *app_get_configuration();
+
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_APPCONF;
+		send_buffer[ind++] = appconf.app_to_use;
+		send_buffer[ind++] = appconf.app_ppm_ctrl_type;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pid_max_erpm * 1000.0), &ind);
+		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
+
 		packet_send_packet(send_buffer, ind, 0);
 		break;
 
@@ -322,6 +355,12 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
 		packet_send_packet(send_buffer, ind, 0);
+		break;
+
+	case COMM_REBOOT:
+		// Lock the system and enter an infinite loop. The watchdog will reboot.
+		__disable_irq();
+		for(;;){};
 		break;
 
 	default:

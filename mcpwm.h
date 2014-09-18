@@ -92,7 +92,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_RAMP_STEP_CURRENT_MAX		0.04	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
 #define MCPWM_CURRENT_LIMIT_GAIN		1.0		// The error gain of the current limiting algorithm
-#define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 

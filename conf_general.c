@@ -10,6 +10,7 @@
 #include "eeprom.h"
 #include "mcpwm.h"
 #include "hw.h"
+#include "utils.h"
 
 #include <string.h>
 
@@ -80,6 +81,9 @@
 #ifndef MCPWM_CYCLE_INT_START_RPM_BR
 #define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
 #endif
+#ifndef MCPWM_FAULT_STOP_TIME
+#define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
+#endif
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -130,9 +134,9 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 	if (!is_ok) {
 		memset(conf, 0, sizeof(app_configuration));
 		conf->app_to_use = APP_NONE;
-		conf->app_ppm_use_rev = true;
 		conf->app_ppm_ctrl_type = PPM_CTRL_TYPE_CURRENT;
 		conf->app_ppm_pid_max_erpm = 15000;
+		conf->app_uart_baudrate = 115200;
 	}
 }
 
@@ -143,6 +147,11 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_app_configuration(app_configuration *conf) {
+	mcpwm_release_motor();
+
+	utils_sys_lock_cnt();
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
@@ -156,6 +165,9 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 			break;
 		}
 	}
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	utils_sys_unlock_cnt();
 
 	return is_ok;
 }
@@ -218,6 +230,8 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->cc_startup_boost_duty = MCPWM_CURRENT_STARTUP_BOOST;
 		conf->cc_min_current = MCPWM_CURRENT_CONTROL_MIN;
 		conf->cc_gain = MCPWM_CURRENT_CONTROL_GAIN;
+
+		conf->m_fault_stop_time_ms = MCPWM_FAULT_STOP_TIME;
 	}
 }
 
@@ -228,6 +242,11 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_mc_configuration(mc_configuration *conf) {
+	mcpwm_release_motor();
+
+	utils_sys_lock_cnt();
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
@@ -241,6 +260,9 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 			break;
 		}
 	}
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	utils_sys_unlock_cnt();
 
 	return is_ok;
 }

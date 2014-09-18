@@ -82,9 +82,9 @@ typedef struct {
 	float sl_cycle_int_rpm_br;
 	float sl_bemf_coupling_k;
 	// Hall sensor
-	int hall_dir;
-	int hall_fwd_add;
-	int hall_rev_add;
+	int8_t hall_dir;
+	int8_t hall_fwd_add;
+	int8_t hall_rev_add;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -94,6 +94,8 @@ typedef struct {
 	float cc_startup_boost_duty;
 	float cc_min_current;
 	float cc_gain;
+	// Misc
+	int32_t m_fault_stop_time_ms;
 } mc_configuration;
 
 // Applications to use
@@ -107,8 +109,12 @@ typedef enum {
 // PPM control types
 typedef enum {
 	PPM_CTRL_TYPE_CURRENT = 0,
+	PPM_CTRL_TYPE_CURRENT_NOREV,
+	PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE,
 	PPM_CTRL_TYPE_DUTY,
-	PPM_CTRL_TYPE_PID
+	PPM_CTRL_TYPE_DUTY_NOREV,
+	PPM_CTRL_TYPE_PID,
+	PPM_CTRL_TYPE_PID_NOREV
 } ppm_control_type;
 
 typedef struct {
@@ -118,7 +124,9 @@ typedef struct {
 	// PPM application settings
 	ppm_control_type app_ppm_ctrl_type;
 	float app_ppm_pid_max_erpm;
-	bool app_ppm_use_rev;
+
+	// UART application settings
+	uint32_t app_uart_baudrate;
 } app_configuration;
 
 #endif /* DATATYPES_H_ */
