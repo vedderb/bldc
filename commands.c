@@ -35,6 +35,7 @@
 #include "mcpwm.h"
 #include "app.h"
 #include "timeout.h"
+#include "servo_dec.h"
 
 #include <math.h>
 #include <string.h>
@@ -316,6 +317,13 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 
 	case COMM_ALIVE:
 		// Do nothing, just reset the timeout so the motor keeps running.
+		break;
+
+	case COMM_GET_DECODED_PPM:
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_DECODED_PPM;
+		buffer_append_int32(send_buffer, (int32_t)(servodec_get_servo(0) * 1000000.0), &ind);
+		send_packet(send_buffer, ind);
 		break;
 
 	default:
