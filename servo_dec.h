@@ -28,16 +28,10 @@
 #include <stdint.h>
 #include <conf_general.h>
 
-// Servo function indexes
-#define SERVODEC_IND_STEERING		0
-#define SERVODEC_IND_THROTTLE		1
-#define SERVODEC_IND_AUX			2
-
 // Functions
 void servodec_init(void (*d_func)(void));
-void servodec_int_handler(void);
-int8_t servodec_get_servo(int servo_num);
-float servodec_get_servo_as_float(int servo_num);
+void servodec_set_pulse_options(float start, float width);
+float servodec_get_servo(int servo_num);
 uint32_t servodec_get_time_since_update(void);
 
 #endif /* SERVO_DEC_H_ */

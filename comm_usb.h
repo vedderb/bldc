@@ -16,23 +16,18 @@
     */
 
 /*
- * comm.h
+ * comm_usb.h
  *
  *  Created on: 22 nov 2012
  *      Author: benjamin
  */
 
-#ifndef COMM_H_
-#define COMM_H_
+#ifndef COMM_USB_H_
+#define COMM_USB_H_
 
 #include "conf_general.h"
 
 // Functions
-void comm_init(void);
-void comm_printf(char* format, ...);
-void comm_send_samples(uint8_t *data, int len);
-void comm_send_rotor_pos(float rotor_pos);
-void comm_print_fault_code(mc_fault_code fault_code);
-void comm_send_experiment_samples(float *samples, int len);
+void comm_usb_init(void);
 
-#endif /* COMM_INTERFACE_H_ */
+#endif /* COMM_USB_H_ */

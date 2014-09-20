@@ -102,7 +102,8 @@ typedef struct {
 typedef enum {
 	APP_NONE = 0,
 	APP_PPM,
-	APP_UARTCOMM,
+	APP_UART,
+	APP_PPM_UART,
 	APP_CUSTOM
 } app_use;
 
@@ -124,9 +125,36 @@ typedef struct {
 	// PPM application settings
 	ppm_control_type app_ppm_ctrl_type;
 	float app_ppm_pid_max_erpm;
+	float app_ppm_hyst;
+	uint32_t app_ppm_timeout;
+	float app_ppm_pulse_start;
+	float app_ppm_pulse_width;
 
 	// UART application settings
 	uint32_t app_uart_baudrate;
+	uint32_t app_uart_timeout;
 } app_configuration;
+
+// Communication commands
+typedef enum {
+	COMM_GET_VALUES = 0,
+	COMM_SET_DUTY,
+	COMM_SET_CURRENT,
+	COMM_SET_CURRENT_BRAKE,
+	COMM_SET_RPM,
+	COMM_SET_DETECT,
+	COMM_SET_SERVO_OFFSET,
+	COMM_SET_MCCONF,
+	COMM_GET_MCCONF,
+	COMM_SET_APPCONF,
+	COMM_GET_APPCONF,
+	COMM_SAMPLE_PRINT,
+	COMM_TERMINAL_CMD,
+	COMM_PRINT,
+	COMM_ROTOR_POSITION,
+	COMM_EXPERIMENT_SAMPLE,
+	COMM_DETECT_MOTOR_PARAM,
+	COMM_REBOOT
+} COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

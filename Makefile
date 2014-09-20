@@ -99,7 +99,7 @@ CSRC = $(PORTSRC) \
        myUSB.c \
        irq_handlers.c \
        buffer.c \
-       comm.c \
+       comm_usb.c \
        crc.c \
        digital_filter.c \
        ledpwm.c \
@@ -111,6 +111,7 @@ CSRC = $(PORTSRC) \
        terminal.c \
        conf_general.c \
        eeprom.c \
+       commands.c \
        $(HWSRC) \
        $(APPSRC)
        

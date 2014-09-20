@@ -136,7 +136,12 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_to_use = APP_NONE;
 		conf->app_ppm_ctrl_type = PPM_CTRL_TYPE_CURRENT;
 		conf->app_ppm_pid_max_erpm = 15000;
+		conf->app_ppm_hyst = 0.15;
+		conf->app_ppm_timeout = 1000.0;
+		conf->app_ppm_pulse_start = 1.0;
+		conf->app_ppm_pulse_width = 1.0;
 		conf->app_uart_baudrate = 115200;
+		conf->app_uart_timeout = 1000;
 	}
 }
 

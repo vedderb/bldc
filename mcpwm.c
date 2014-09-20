@@ -34,7 +34,6 @@
 #include "digital_filter.h"
 #include "utils.h"
 #include "ledpwm.h"
-#include "comm.h"
 #include "hw.h"
 
 // Structs

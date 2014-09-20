@@ -13,7 +13,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 /*
  * app.c
@@ -27,19 +27,28 @@
 #include "hal.h"
 
 // Private variables
-static app_configuration app_conf;
+static app_configuration appconf;
 
 void app_init(app_configuration *conf) {
-	app_conf = *conf;
+	appconf = *conf;
 
-	switch (app_conf.app_to_use) {
+	switch (appconf.app_to_use) {
 	case APP_PPM:
-		app_ppm_configure(app_conf.app_ppm_ctrl_type, app_conf.app_ppm_pid_max_erpm);
+		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
+				appconf.app_ppm_timeout, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
 		app_ppm_start();
 		break;
 
-	case APP_UARTCOMM:
-		app_uartcomm_configure(app_conf.app_uart_baudrate);
+	case APP_UART:
+		app_uartcomm_configure(appconf.app_uart_baudrate, appconf.app_uart_timeout);
+		app_uartcomm_start();
+		break;
+
+	case APP_PPM_UART:
+		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
+				appconf.app_ppm_timeout, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
+		app_ppm_start();
+		app_uartcomm_configure(appconf.app_uart_baudrate, appconf.app_uart_timeout);
 		app_uartcomm_start();
 		break;
 
@@ -58,7 +67,7 @@ void app_init(app_configuration *conf) {
 }
 
 const app_configuration* app_get_configuration(void) {
-	return &app_conf;
+	return &appconf;
 }
 
 /**
@@ -69,7 +78,8 @@ const app_configuration* app_get_configuration(void) {
  * The new configuration to use.
  */
 void app_set_configuration(app_configuration *conf) {
-	app_conf = *conf;
-	app_ppm_configure(app_conf.app_ppm_ctrl_type, app_conf.app_ppm_pid_max_erpm);
-	app_uartcomm_configure(app_conf.app_uart_baudrate);
+	appconf = *conf;
+	app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
+			appconf.app_ppm_timeout, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
+	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.app_uart_timeout);
 }

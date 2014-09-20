@@ -23,20 +23,16 @@
  */
 
 #include "app.h"
-
 #include "ch.h"
 #include "hal.h"
-#include "stm32f4xx_conf.h"
-#include "servo_dec.h"
-#include "mcpwm.h"
-#include "utils.h"
-#include "packet.h"
-#include "buffer.h"
 #include "hw.h"
-#include <stdint.h>
+#include "mcpwm.h"
+#include "packet.h"
+#include "commands.h"
+
+#include <string.h>
 
 // Settings
-#define TIMEOUT_MSEC				1000
 #define BAUDRATE					115200
 #define PACKET_HANDLER				1
 #define SERIAL_RX_BUFFER_SIZE		1024
@@ -45,26 +41,21 @@
 static msg_t uart_thread(void *arg);
 static msg_t packet_process_thread(void *arg);
 static WORKING_AREA(uart_thread_wa, 1024);
-static WORKING_AREA(packet_process_thread_wa, 1024);
+static WORKING_AREA(packet_process_thread_wa, 4096);
 static Thread *process_tp;
 
 // Variables
 static volatile systime_t last_uart_update_time;
+static volatile systime_t timeout_msec = 1000;
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
 static int is_running = 0;
 
 // Private functions
-static void process_packet(unsigned char *buffer, unsigned char len);
-static void send_packet(unsigned char *buffer, unsigned char len);
-
-typedef enum {
-	UARTCOMM_CMD_SET_DUTY = 0,
-	UARTCOMM_CMD_SET_CURRENT,
-	UARTCOMM_CMD_SET_CURRENT_BRAKE,
-	UARTCOMM_CMD_SET_RPM
-} UARTCOMM_CMD;
+static void process_packet(unsigned char *data, unsigned char len);
+static void send_packet_wrapper(unsigned char *data, unsigned char len);
+static void send_packet(unsigned char *data, unsigned char len);
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -127,40 +118,27 @@ static UARTConfig uart_cfg = {
 		0
 };
 
-static void process_packet(unsigned char *buffer, unsigned char len) {
-	if (!len) {
-		return;
-	}
-
-	int32_t ind = 1;
-
-	switch (buffer[0]) {
-	case UARTCOMM_CMD_SET_DUTY:
-		mcpwm_set_duty((float)buffer_get_int32(buffer, &ind) / 100000.0);
-		last_uart_update_time = chTimeNow();
-		break;
-
-	case UARTCOMM_CMD_SET_CURRENT:
-		mcpwm_set_current((float)buffer_get_int32(buffer, &ind) / 1000.0);
-		last_uart_update_time = chTimeNow();
-		break;
-
-	case UARTCOMM_CMD_SET_CURRENT_BRAKE:
-		mcpwm_set_brake_current((float)buffer_get_int32(buffer, &ind) / 1000.0);
-		last_uart_update_time = chTimeNow();
-		break;
-
-	case UARTCOMM_CMD_SET_RPM:
-		mcpwm_set_pid_speed((float)buffer_get_int32(buffer, &ind));
-		last_uart_update_time = chTimeNow();
-		break;
-
-	default:
-		break;
-	}
+static void process_packet(unsigned char *data, unsigned char len) {
+	commands_set_send_func(send_packet_wrapper);
+	commands_process_packet(data, len);
+	last_uart_update_time = chTimeNow();
 }
 
-static void send_packet(unsigned char *buffer, unsigned char len) {
+static void send_packet_wrapper(unsigned char *data, unsigned char len) {
+	packet_send_packet(data, len, PACKET_HANDLER);
+}
+
+static void send_packet(unsigned char *data, unsigned char len) {
+	// Wait for the previous transmission to finish.
+	while (HW_UART_DEV.txstate == UART_TX_ACTIVE) {
+		chThdSleep(1);
+	}
+
+	// Copy this data to a new buffer in case the provided one is re-used
+	// after this function returns.
+	static uint8_t buffer[300];
+	memcpy(buffer, data, len);
+
 	uartStartSend(&HW_UART_DEV, len, buffer);
 }
 
@@ -170,8 +148,9 @@ void app_uartcomm_start(void) {
 	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
 }
 
-void app_uartcomm_configure(uint32_t baudrate) {
+void app_uartcomm_configure(uint32_t baudrate, uint32_t timeout) {
 	uart_cfg.speed = baudrate;
+	timeout_msec = timeout;
 
 	if (is_running) {
 		uartStart(&HW_UART_DEV, &uart_cfg);
@@ -198,8 +177,8 @@ static msg_t uart_thread(void *arg) {
 	for(;;) {
 		time += MS2ST(40);
 
-		if (chTimeElapsedSince(last_uart_update_time) > MS2ST(TIMEOUT_MSEC)) {
-			mcpwm_set_duty(0.0);
+		if (timeout_msec != 0 && chTimeElapsedSince(last_uart_update_time) > MS2ST(timeout_msec)) {
+			mcpwm_release_motor();
 		}
 
 		chThdSleepUntil(time);

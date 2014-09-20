@@ -13,7 +13,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 /*
  * app_ppm.c
@@ -31,6 +31,12 @@
 #include "mcpwm.h"
 #include <math.h>
 
+// Types
+typedef enum {
+	EV_TYPE_SERVO = 0,
+	EV_TYPE_TIMER
+} ev_type;
+
 // Threads
 static msg_t ppm_thread(void *arg);
 static WORKING_AREA(ppm_thread_wa, 1024);
@@ -42,12 +48,27 @@ static void servodec_func(void);
 static void trig_func(void *p);
 
 // Private variables
-static volatile ppm_control_type ctrl_type;
-static volatile float pid_max_erpm;
+static volatile ppm_control_type ctrl_type = PPM_CTRL_TYPE_CURRENT;
+static volatile float pid_max_erpm = 15000.0;
+static volatile systime_t pulse_timeout = 1000.0;;
+static volatile bool is_running = false;
+static volatile ev_type ev = EV_TYPE_SERVO;
+static volatile float hysteres = 0.15;
+static volatile float pulse_s = 1.0;
+static volatile float pulse_e = 1.0;
 
-void app_ppm_configure(ppm_control_type ctrlt, float pme) {
+void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
+		float timeout, float pulse_start, float pulse_width) {
 	ctrl_type = ctrlt;
 	pid_max_erpm = pme;
+	pulse_timeout = timeout;
+	hysteres = hyst;
+	pulse_s = pulse_start;
+	pulse_e = pulse_width;
+
+	if (is_running) {
+		servodec_set_pulse_options(pulse_s, pulse_e);
+	}
 }
 
 void app_ppm_start(void) {
@@ -59,13 +80,14 @@ static void trig_func(void *p) {
 
 	chSysLock();
 	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
-
+	ev = EV_TYPE_TIMER;
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
+	chSysUnlock();
 }
 
 static void servodec_func(void) {
 	chSysLockFromIsr();
+	ev = EV_TYPE_SERVO;
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromIsr();
 }
@@ -76,19 +98,20 @@ static msg_t ppm_thread(void *arg) {
 	chRegSetThreadName("APP_PPM");
 	ppm_tp = chThdSelf();
 
+	servodec_set_pulse_options(pulse_s, pulse_e);
 	servodec_init(servodec_func);
 
 	chSysLock();
 	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
 	chSysUnlock();
 
+	is_running = true;
+
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-#define HYST			0.15
-
-		if (servodec_get_time_since_update() < 500) {
-			float servo_val = servodec_get_servo_as_float(0);
+		if (ev == EV_TYPE_SERVO) {
+			float servo_val = servodec_get_servo(0);
 
 			switch (ctrl_type) {
 			case PPM_CTRL_TYPE_CURRENT_NOREV:
@@ -102,12 +125,12 @@ static msg_t ppm_thread(void *arg) {
 				break;
 			}
 
-			servo_val /= (1.0 - HYST);
+			servo_val /= (1.0 - hysteres);
 
-			if (servo_val > HYST) {
-				servo_val -= HYST;
-			} else if (servo_val < -HYST) {
-				servo_val += HYST;
+			if (servo_val > hysteres) {
+				servo_val -= hysteres;
+			} else if (servo_val < -hysteres) {
+				servo_val += hysteres;
 			} else {
 				servo_val = 0.0;
 			}
@@ -144,7 +167,9 @@ static msg_t ppm_thread(void *arg) {
 				break;
 			}
 		} else {
-			mcpwm_set_current(0.0);
+			if (pulse_timeout != 0 && servodec_get_time_since_update() > pulse_timeout) {
+				mcpwm_set_current(0.0);
+			}
 		}
 	}
 

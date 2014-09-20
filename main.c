@@ -27,12 +27,13 @@
 #include "main.h"
 #include "mcpwm.h"
 #include "ledpwm.h"
-#include "comm.h"
+#include "comm_usb.h"
 #include "ledpwm.h"
 #include "terminal.h"
 #include "hw.h"
 #include "app.h"
 #include "packet.h"
+#include "commands.h"
 
 /*
  * Timers used:
@@ -105,7 +106,7 @@ static msg_t periodic_thread(void *arg) {
 			ledpwm_set_intensity(LED_RED, 1.0);
 			if (!fault_print && AUTO_PRINT_FAULTS) {
 				fault_print = 1;
-				comm_print_fault_code(mcpwm_get_fault());
+				commands_print_fault_code(mcpwm_get_fault());
 			}
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
@@ -113,7 +114,7 @@ static msg_t periodic_thread(void *arg) {
 		}
 
 		if (mcpwm_get_state() == MC_STATE_DETECTING) {
-			comm_send_rotor_pos(mcpwm_get_detect_pos());
+			commands_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
 		chThdSleepMilliseconds(25);
@@ -154,7 +155,7 @@ static msg_t sample_send_thread(void *arg) {
 			buffer[index++] = f_sw_samples[i] >> 8;
 			buffer[index++] = f_sw_samples[i];
 
-			comm_send_samples(buffer, index);
+			commands_send_samples(buffer, index);
 		}
 	}
 
@@ -278,7 +279,7 @@ int main(void) {
 	conf_general_read_mc_configuration(&mcconf);
 	mcpwm_init(&mcconf);
 
-	comm_init();
+	comm_usb_init();
 
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);

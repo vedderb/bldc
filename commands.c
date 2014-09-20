@@ -1,35 +1,17 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
-
-	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
-
-/*
- * comm.c
+ * commands.c
  *
- *  Created on: 22 nov 2012
+ *  Created on: 19 sep 2014
  *      Author: benjamin
  */
 
+#include "commands.h"
 #include "ch.h"
 #include "hal.h"
-#include "comm.h"
 #include "main.h"
 #include "stm32f4xx_conf.h"
 #include "servo.h"
 #include "buffer.h"
-#include "packet.h"
 #include "myUSB.h"
 #include "terminal.h"
 #include "hw.h"
@@ -41,108 +23,40 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-// Internal data types
-typedef enum {
-	COMM_GET_VALUES = 0,
-	COMM_SET_DUTY,
-	COMM_SET_CURRENT,
-	COMM_SET_CURRENT_BRAKE,
-	COMM_SET_RPM,
-	COMM_SET_DETECT,
-	COMM_SET_SERVO_OFFSET,
-	COMM_SET_MCCONF,
-	COMM_GET_MCCONF,
-	COMM_SET_APPCONF,
-	COMM_GET_APPCONF,
-	COMM_SAMPLE_PRINT,
-	COMM_TERMINAL_CMD,
-	COMM_PRINT,
-	COMM_ROTOR_POSITION,
-	COMM_EXPERIMENT_SAMPLE,
-	COMM_DETECT_MOTOR_PARAM,
-	COMM_REBOOT
-} COMM_PACKET_ID;
+static void(*send_func)(unsigned char *data, unsigned char len) = 0;
 
-// Settings
-#define PACKET_BUFFER_LEN	30
-#define PRINT_BUFFER_LEN	10
-#define PRINT_MAXLEN		240
-
-// Private variables
-#define SERIAL_RX_BUFFER_SIZE		4096
-static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
-static int serial_rx_read_pos = 0;
-static int serial_rx_write_pos = 0;
-static WORKING_AREA(serial_read_thread_wa, 1024);
-static WORKING_AREA(serial_process_thread_wa, 4096);
-static Mutex send_mutex;
-static Thread *process_tp;
-
-// Private functions
-static void process_packet(unsigned char *data, unsigned char len);
-static void send_packet(unsigned char *buffer, unsigned char len);
-
-static msg_t serial_read_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("Serial read");
-
-	uint8_t buffer[128];
-	int i;
-	int len;
-	int had_data = 0;
-
-	for(;;) {
-		len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
-
-		for (i = 0;i < len;i++) {
-			serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
-
-			if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
-				serial_rx_write_pos = 0;
-			}
-
-			had_data = 1;
-		}
-
-		if (had_data) {
-			chEvtSignal(process_tp, (eventmask_t) 1);
-			had_data = 0;
-		}
+static void send_packet(unsigned char *data, unsigned char len) {
+	if (send_func) {
+		send_func(data, len);
 	}
-
-	return 0;
 }
 
-static msg_t serial_process_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("Serial process");
-
-	process_tp = chThdSelf();
-
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
-
-		while (serial_rx_read_pos != serial_rx_write_pos) {
-			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], 0);
-
-			if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
-				serial_rx_read_pos = 0;
-			}
-		}
-	}
-
-	return 0;
+/**
+ * Provide a function to use the next time there are packets to be sent.
+ *
+ * @param func
+ * A pointer to the packet sending function.
+ */
+void commands_set_send_func(void(*func)(unsigned char *data, unsigned char len)) {
+	send_func = func;
 }
 
-static void process_packet(unsigned char *data, unsigned char len) {
+/**
+ * Process a received buffer with commands and data.
+ *
+ * @param data
+ * The buffer to process.
+ *
+ * @param len
+ * The length of the buffer.
+ */
+void commands_process_packet(unsigned char *data, unsigned char len) {
 	if (!len) {
 		return;
 	}
 
 	COMM_PACKET_ID packet_id;
-	uint8_t send_buffer[256];
+	static uint8_t send_buffer[256];
 	int32_t ind = 0;
 	uint16_t sample_len;
 	uint8_t decimation;
@@ -177,7 +91,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int16(send_buffer, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)mcpwm_get_rpm(), &ind);
 		buffer_append_int16(send_buffer, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &ind);
-		packet_send_packet(send_buffer, ind, 0);
+		send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_DUTY:
@@ -209,6 +123,8 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		break;
 
 	case COMM_SET_MCCONF:
+		mcconf = *mcpwm_get_configuration();
+
 		ind = 0;
 		mcconf.pwm_mode = data[ind++];
 		mcconf.comm_mode = data[ind++];
@@ -298,15 +214,23 @@ static void process_packet(unsigned char *data, unsigned char len) {
 
 		buffer_append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
 
-		packet_send_packet(send_buffer, ind, 0);
+		send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_APPCONF:
+		appconf = *app_get_configuration();
+
 		ind = 0;
 		appconf.app_to_use = data[ind++];
 		appconf.app_ppm_ctrl_type = data[ind++];
 		appconf.app_ppm_pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_timeout = buffer_get_uint32(data, &ind);
+		appconf.app_ppm_pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
+
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
+		appconf.app_uart_timeout = buffer_get_uint32(data, &ind);
 
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
@@ -320,9 +244,15 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = appconf.app_to_use;
 		send_buffer[ind++] = appconf.app_ppm_ctrl_type;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pid_max_erpm * 1000.0), &ind);
-		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_hyst * 1000.0), &ind);
+		buffer_append_uint32(send_buffer, appconf.app_ppm_timeout, &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_width * 1000.0), &ind);
 
-		packet_send_packet(send_buffer, ind, 0);
+		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
+		buffer_append_uint32(send_buffer, appconf.app_uart_timeout, &ind);
+
+		send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SAMPLE_PRINT:
@@ -354,7 +284,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
 		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
-		packet_send_packet(send_buffer, ind, 0);
+		send_packet(send_buffer, ind);
 		break;
 
 	case COMM_REBOOT:
@@ -368,24 +298,7 @@ static void process_packet(unsigned char *data, unsigned char len) {
 	}
 }
 
-static void send_packet(unsigned char *buffer, unsigned char len) {
-	chMtxLock(&send_mutex);
-	chSequentialStreamWrite(&SDU1, buffer, len);
-	chMtxUnlock();
-}
-
-void comm_init(void) {
-	myUSBinit();
-	packet_init(send_packet, process_packet, 0);
-
-	chMtxInit(&send_mutex);
-
-	// Threads
-	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
-	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
-}
-
-void comm_printf(char* format, ...) {
+void commands_printf(char* format, ...) {
 	va_list arg;
 	va_start (arg, format);
 	int len;
@@ -396,11 +309,11 @@ void comm_printf(char* format, ...) {
 	va_end (arg);
 
 	if(len>0) {
-		packet_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255, 0);
+		send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
 	}
 }
 
-void comm_send_samples(uint8_t *data, int len) {
+void commands_send_samples(uint8_t *data, int len) {
 	uint8_t buffer[len + 1];
 	int index = 0;
 
@@ -410,31 +323,31 @@ void comm_send_samples(uint8_t *data, int len) {
 		buffer[index++] = data[i];
 	}
 
-	packet_send_packet(buffer, index, 0);
+	send_packet(buffer, index);
 }
 
-void comm_send_rotor_pos(float rotor_pos) {
+void commands_send_rotor_pos(float rotor_pos) {
 	uint8_t buffer[5];
 	int32_t index = 0;
 
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
 
-	packet_send_packet(buffer, index, 0);
+	send_packet(buffer, index);
 }
 
-void comm_print_fault_code(mc_fault_code fault_code) {
+void commands_print_fault_code(mc_fault_code fault_code) {
 	switch (fault_code) {
-	case FAULT_CODE_NONE: comm_printf("FAULT_CODE_NONE\n"); break;
-	case FAULT_CODE_OVER_VOLTAGE: comm_printf("FAULT_CODE_OVER_VOLTAGE\n"); break;
-	case FAULT_CODE_UNDER_VOLTAGE: comm_printf("FAULT_CODE_UNDER_VOLTAGE\n"); break;
-	case FAULT_CODE_DRV8302: comm_printf("FAULT_CODE_DRV8302\n"); break;
-	case FAULT_CODE_ABS_OVER_CURRENT: comm_printf("FAULT_CODE_ABS_OVER_CURRENT\n"); break;
+	case FAULT_CODE_NONE: commands_printf("FAULT_CODE_NONE\n"); break;
+	case FAULT_CODE_OVER_VOLTAGE: commands_printf("FAULT_CODE_OVER_VOLTAGE\n"); break;
+	case FAULT_CODE_UNDER_VOLTAGE: commands_printf("FAULT_CODE_UNDER_VOLTAGE\n"); break;
+	case FAULT_CODE_DRV8302: commands_printf("FAULT_CODE_DRV8302\n"); break;
+	case FAULT_CODE_ABS_OVER_CURRENT: commands_printf("FAULT_CODE_ABS_OVER_CURRENT\n"); break;
 	default: break;
 	}
 }
 
-void comm_send_experiment_samples(float *samples, int len) {
+void commands_send_experiment_samples(float *samples, int len) {
 	if ((len * 4 + 1) > 256) {
 		return;
 	}
@@ -448,5 +361,5 @@ void comm_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
-	packet_send_packet(buffer, index, 0);
+	send_packet(buffer, index);
 }

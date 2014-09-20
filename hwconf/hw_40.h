@@ -107,4 +107,10 @@
 #define HW_UART_RX_PORT		GPIOC
 #define HW_UART_RX_PIN		7
 
+// ICU Peripheral for servo decoding
+#define HW_ICU_CHANNEL		ICU_CHANNEL_2
+#define HW_ICU_GPIO_AF		GPIO_AF_TIM3
+#define HW_ICU_GPIO			GPIOB
+#define HW_ICU_PIN			5
+
 #endif /* HW_40_H_ */

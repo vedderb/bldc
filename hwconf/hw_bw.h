@@ -99,4 +99,18 @@
 // Number of servo outputs
 #define HW_SERVO_NUM		2
 
+// UART Peripheral
+#define HW_UART_DEV			UARTD6
+#define HW_UART_GPIO_AF		GPIO_AF_USART6
+#define HW_UART_TX_PORT		GPIOC
+#define HW_UART_TX_PIN		6
+#define HW_UART_RX_PORT		GPIOC
+#define HW_UART_RX_PIN		7
+
+// ICU Peripheral for servo decoding
+#define HW_ICU_CHANNEL		ICU_CHANNEL_2
+#define HW_ICU_GPIO_AF		GPIO_AF_TIM3
+#define HW_ICU_GPIO			GPIOB
+#define HW_ICU_PIN			5
+
 #endif /* HW_40_H_ */

@@ -26,32 +26,58 @@
 #include "stm32f4xx_conf.h"
 #include "ch.h"
 #include "hal.h"
+#include "hw.h"
 
 /*
  * Settings
  */
-#define USE_PROGRAMMING_CONN	0
-
-#if USE_PROGRAMMING_CONN
-#define SERVO_NUM				3
-#else
 #define SERVO_NUM				1
-#endif
-
 #define TIMER_FREQ				1000000
-#define INTERRUPT_TRESHOLD		3
 
 // Private variables
-static volatile uint32_t interrupt_time = 0;
-static volatile int8_t servo_pos[SERVO_NUM];
-static volatile uint32_t time_since_update;
-static VirtualTimer vt;
-
-// Private functions
-static void update_counters(void *p);
+static volatile systime_t last_update_time;
+static volatile float servo_pos[SERVO_NUM];
+static volatile float pulse_start = 1.0;
+static volatile float pulse_width = 1.0;
 
 // Function pointers
 static void(*done_func)(void) = 0;
+
+static void icuwidthcb(ICUDriver *icup) {
+	float len = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0)) - pulse_start;
+
+	if (len > pulse_width) {
+		if (len < pulse_width * 1.2) {
+			len = pulse_width;
+		} else {
+			// Too long pulse. Most likely something is wrong.
+			len = -1.0;
+		}
+	}
+
+	if (len > 0.0) {
+		servo_pos[0] = (len * 2.0 - pulse_width) / pulse_width;
+		last_update_time = chTimeNow();
+
+		if (done_func) {
+			done_func();
+		}
+	}
+}
+
+static void icuperiodcb(ICUDriver *icup) {
+	(void)icup;
+}
+
+static ICUConfig icucfg = {
+		ICU_INPUT_ACTIVE_HIGH,
+		TIMER_FREQ,
+		icuwidthcb,
+		icuperiodcb,
+		NULL,
+		HW_ICU_CHANNEL,
+		0
+};
 
 /**
  * Initialize the serve decoding driver.
@@ -61,188 +87,43 @@ static void(*done_func)(void) = 0;
  * decoded. Can be NULL.
  */
 void servodec_init(void (*d_func)(void)) {
-	// Initialize variables
-	time_since_update = 0;
-	interrupt_time = 0;
-
-	NVIC_InitTypeDef   NVIC_InitStructure;
-	EXTI_InitTypeDef   EXTI_InitStructure;
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-	uint16_t PrescalerValue = 0;
-
-	// ------------- EXTI -------------- //
-	// Clocks
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-#if USE_PROGRAMMING_CONN
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-#endif
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-#if USE_PROGRAMMING_CONN
-	palSetPadMode(GPIOA, 13, PAL_MODE_INPUT);
-	palSetPadMode(GPIOA, 14, PAL_MODE_INPUT);
-	palSetPadMode(GPIOB, 3, PAL_MODE_INPUT);
-
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource13);
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource14);
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource3);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line3 | EXTI_Line13 | EXTI_Line14;
-#else
-	palSetPadMode(GPIOB, 5, PAL_MODE_INPUT);
-
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource5);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line5;
-#endif
-
-	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-	EXTI_Init(&EXTI_InitStructure);
-
-#if USE_PROGRAMMING_CONN
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-#else
-	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
-#endif
-
-	// ------------- Timer3 ------------- //
-	/* Compute the prescaler value */
-	/* TIM3 clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-
-	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / TIMER_FREQ) - 1;
-
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 65535;
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-
-	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
-
-	/* Prescaler configuration */
-	TIM_PrescalerConfig(TIM3, PrescalerValue, TIM_PSCReloadMode_Immediate);
-
-	/* TIM3 enable counter */
-	TIM_Cmd(TIM3, ENABLE);
-
-	// Set up a virtual timer to update the counters
-	chSysLock();
-	chVTSetI(&vt, MS2ST(1), update_counters, NULL);
-	chSysUnlock();
+	icuStart(&ICUD3, &icucfg);
+	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF));
+	icuEnable(&ICUD3);
 
 	// Set our function pointer
 	done_func = d_func;
 }
 
-static void update_counters(void *p) {
-	(void)p;
-
-	chSysLockFromIsr();
-	chVTSetI(&vt, MS2ST(1), update_counters, p);
-	chSysUnlockFromIsr();
-
-	interrupt_time++;
-	time_since_update++;
-}
-
-void servodec_int_handler(void) {
-	static int curr_index = 0;
-
-	// Long time since last interrupt means that a new cycle has started
-	if (interrupt_time >= INTERRUPT_TRESHOLD) {
-		curr_index = 0;
-		interrupt_time = 0;
-		TIM3->CNT = 0;
-		return;
-	}
-
-	if (curr_index < SERVO_NUM) {
-		// Use floating point because we can :)
-		float time_ms = (float)(TIM3->CNT);
-		time_ms = (time_ms * 1000.0) / (float)TIMER_FREQ;
-
-		if (time_ms < 0.4) {
-			return;
-		}
-
-		TIM3->CNT = 0;
-
-		// Check if pulse is within valid range
-		if (time_ms > 0.8 && time_ms < 2.2) {
-
-			// Truncate (just in case)
-			if (time_ms > 2.0) {
-				time_ms = 2.0;
-			}
-
-			if (time_ms < 1.0) {
-				time_ms = 1.0;
-			}
-
-			// Update position
-			servo_pos[curr_index] = (int8_t)((time_ms - 1.5)  * 255.0);
-		}
-	}
-
-	curr_index++;
-
-	if (curr_index == SERVO_NUM) {
-		time_since_update = 0;
-
-		// Call the function pointer if it is not NULL.
-		if (done_func) {
-			done_func();
-		}
-	}
-
-	interrupt_time = 0;
-}
-
 /**
- * Get a decoded servo value as an integer.
+ * Change the limits of how the servo pulses should be decoded.
  *
- * @param servo_num
- * The servo index. If it is out of range, 0 will be returned.
+ * @param start
+ * The amount of milliseconds the pulse starts at (default is 1.0)
  *
- * @return
- * The servo value in the range [-128 127].
+ * @param width
+ * The width of the pulse in milliseconds (default is 1.0)
  */
-int8_t servodec_get_servo(int servo_num) {
-	if (servo_num < SERVO_NUM) {
-		return servo_pos[servo_num];
-	} else {
-		return 0;
-	}
+void servodec_set_pulse_options(float start, float width) {
+	pulse_start = start;
+	pulse_width = width;
 }
 
 /**
- * Get a decoded servo value as a float.
+ * Get a decoded servo value.
  *
  * @param servo_num
- * The servo index. If it is out of range, 0 will be returned.
+ * The servo index. If it is out of range, 0.0 will be returned.
  *
  * @return
  * The servo value in the range [-1.0 1.0].
  */
-float servodec_get_servo_as_float(int servo_num) {
-	return (float)servodec_get_servo(servo_num) / 128.0;
+float servodec_get_servo(int servo_num) {
+	if (servo_num < SERVO_NUM) {
+		return servo_pos[servo_num];
+	} else {
+		return 0.0;
+	}
 }
 
 /**
@@ -253,5 +134,5 @@ float servodec_get_servo_as_float(int servo_num) {
  * The amount of milliseconds that have passed since an update.
  */
 uint32_t servodec_get_time_since_update(void) {
-	return time_since_update;
+	return chTimeElapsedSince(last_update_time) / (CH_FREQUENCY / 1000);
 }
