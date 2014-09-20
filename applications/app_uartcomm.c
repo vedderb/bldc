@@ -38,15 +38,11 @@
 #define SERIAL_RX_BUFFER_SIZE		1024
 
 // Threads
-static msg_t uart_thread(void *arg);
 static msg_t packet_process_thread(void *arg);
-static WORKING_AREA(uart_thread_wa, 1024);
 static WORKING_AREA(packet_process_thread_wa, 4096);
 static Thread *process_tp;
 
 // Variables
-static volatile systime_t last_uart_update_time;
-static volatile systime_t timeout_msec = 1000;
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
@@ -121,7 +117,6 @@ static UARTConfig uart_cfg = {
 static void process_packet(unsigned char *data, unsigned char len) {
 	commands_set_send_func(send_packet_wrapper);
 	commands_process_packet(data, len);
-	last_uart_update_time = chTimeNow();
 }
 
 static void send_packet_wrapper(unsigned char *data, unsigned char len) {
@@ -144,23 +139,6 @@ static void send_packet(unsigned char *data, unsigned char len) {
 
 void app_uartcomm_start(void) {
 	packet_init(send_packet, process_packet, PACKET_HANDLER);
-	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
-	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
-}
-
-void app_uartcomm_configure(uint32_t baudrate, uint32_t timeout) {
-	uart_cfg.speed = baudrate;
-	timeout_msec = timeout;
-
-	if (is_running) {
-		uartStart(&HW_UART_DEV, &uart_cfg);
-	}
-}
-
-static msg_t uart_thread(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("UARTCOMM");
 
 	uartStart(&HW_UART_DEV, &uart_cfg);
 	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
@@ -172,19 +150,15 @@ static msg_t uart_thread(void *arg) {
 
 	is_running = 1;
 
-	systime_t time = chTimeNow();
+	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
+}
 
-	for(;;) {
-		time += MS2ST(40);
+void app_uartcomm_configure(uint32_t baudrate) {
+	uart_cfg.speed = baudrate;
 
-		if (timeout_msec != 0 && chTimeElapsedSince(last_uart_update_time) > MS2ST(timeout_msec)) {
-			mcpwm_release_motor();
-		}
-
-		chThdSleepUntil(time);
+	if (is_running) {
+		uartStart(&HW_UART_DEV, &uart_cfg);
 	}
-
-	return 0;
 }
 
 static msg_t packet_process_thread(void *arg) {

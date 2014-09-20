@@ -29,39 +29,29 @@
 #include "stm32f4xx_conf.h"
 #include "servo_dec.h"
 #include "mcpwm.h"
+#include "timeout.h"
 #include <math.h>
-
-// Types
-typedef enum {
-	EV_TYPE_SERVO = 0,
-	EV_TYPE_TIMER
-} ev_type;
 
 // Threads
 static msg_t ppm_thread(void *arg);
 static WORKING_AREA(ppm_thread_wa, 1024);
 static Thread *ppm_tp;
-static VirtualTimer vt;
 
 // Private functions
 static void servodec_func(void);
-static void trig_func(void *p);
 
 // Private variables
 static volatile ppm_control_type ctrl_type = PPM_CTRL_TYPE_CURRENT;
 static volatile float pid_max_erpm = 15000.0;
-static volatile systime_t pulse_timeout = 1000.0;;
 static volatile bool is_running = false;
-static volatile ev_type ev = EV_TYPE_SERVO;
 static volatile float hysteres = 0.15;
 static volatile float pulse_s = 1.0;
 static volatile float pulse_e = 1.0;
 
-void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
-		float timeout, float pulse_start, float pulse_width) {
+void app_ppm_configure(ppm_control_type ctrlt, float pme,
+		float hyst, float pulse_start, float pulse_width) {
 	ctrl_type = ctrlt;
 	pid_max_erpm = pme;
-	pulse_timeout = timeout;
 	hysteres = hyst;
 	pulse_s = pulse_start;
 	pulse_e = pulse_width;
@@ -75,19 +65,8 @@ void app_ppm_start(void) {
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
 }
 
-static void trig_func(void *p) {
-	(void)p;
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	ev = EV_TYPE_TIMER;
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlock();
-}
-
 static void servodec_func(void) {
 	chSysLockFromIsr();
-	ev = EV_TYPE_SERVO;
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromIsr();
 }
@@ -100,76 +79,66 @@ static msg_t ppm_thread(void *arg) {
 
 	servodec_set_pulse_options(pulse_s, pulse_e);
 	servodec_init(servodec_func);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(10), trig_func, NULL);
-	chSysUnlock();
-
 	is_running = true;
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		if (ev == EV_TYPE_SERVO) {
-			float servo_val = servodec_get_servo(0);
+		timeout_reset();
+		float servo_val = servodec_get_servo(0);
 
-			switch (ctrl_type) {
-			case PPM_CTRL_TYPE_CURRENT_NOREV:
-			case PPM_CTRL_TYPE_DUTY_NOREV:
-			case PPM_CTRL_TYPE_PID_NOREV:
-				servo_val += 1.0;
-				servo_val /= 2.0;
-				break;
+		switch (ctrl_type) {
+		case PPM_CTRL_TYPE_CURRENT_NOREV:
+		case PPM_CTRL_TYPE_DUTY_NOREV:
+		case PPM_CTRL_TYPE_PID_NOREV:
+			servo_val += 1.0;
+			servo_val /= 2.0;
+			break;
 
-			default:
-				break;
-			}
+		default:
+			break;
+		}
 
-			servo_val /= (1.0 - hysteres);
+		servo_val /= (1.0 - hysteres);
 
-			if (servo_val > hysteres) {
-				servo_val -= hysteres;
-			} else if (servo_val < -hysteres) {
-				servo_val += hysteres;
-			} else {
-				servo_val = 0.0;
-			}
-
-			switch (ctrl_type) {
-			case PPM_CTRL_TYPE_CURRENT:
-			case PPM_CTRL_TYPE_CURRENT_NOREV:
-				if (servo_val >= 0.0) {
-					mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
-				} else {
-					mcpwm_set_current(servo_val * fabsf(mcpwm_get_configuration()->l_current_min));
-				}
-				break;
-
-			case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
-				if (servo_val >= 0.0) {
-					mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
-				} else {
-					mcpwm_set_brake_current(fabsf(servo_val * mcpwm_get_configuration()->l_current_min));
-				}
-				break;
-
-			case PPM_CTRL_TYPE_DUTY:
-			case PPM_CTRL_TYPE_DUTY_NOREV:
-				mcpwm_set_duty(servo_val);
-				break;
-
-			case PPM_CTRL_TYPE_PID:
-			case PPM_CTRL_TYPE_PID_NOREV:
-				mcpwm_set_pid_speed(servo_val * pid_max_erpm);
-				break;
-
-			default:
-				break;
-			}
+		if (servo_val > hysteres) {
+			servo_val -= hysteres;
+		} else if (servo_val < -hysteres) {
+			servo_val += hysteres;
 		} else {
-			if (pulse_timeout != 0 && servodec_get_time_since_update() > pulse_timeout) {
-				mcpwm_set_current(0.0);
+			servo_val = 0.0;
+		}
+
+		switch (ctrl_type) {
+		case PPM_CTRL_TYPE_CURRENT:
+		case PPM_CTRL_TYPE_CURRENT_NOREV:
+			if (servo_val >= 0.0) {
+				mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+			} else {
+				mcpwm_set_current(servo_val * fabsf(mcpwm_get_configuration()->l_current_min));
 			}
+			break;
+
+		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
+			if (servo_val >= 0.0) {
+				mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+			} else {
+				mcpwm_set_brake_current(fabsf(servo_val * mcpwm_get_configuration()->l_current_min));
+			}
+			break;
+
+		case PPM_CTRL_TYPE_DUTY:
+		case PPM_CTRL_TYPE_DUTY_NOREV:
+			mcpwm_set_duty(servo_val);
+			break;
+
+		case PPM_CTRL_TYPE_PID:
+		case PPM_CTRL_TYPE_PID_NOREV:
+			mcpwm_set_pid_speed(servo_val * pid_max_erpm);
+			break;
+
+		default:
+			break;
 		}
 	}
 

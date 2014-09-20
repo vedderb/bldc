@@ -112,6 +112,7 @@ CSRC = $(PORTSRC) \
        conf_general.c \
        eeprom.c \
        commands.c \
+       timeout.c \
        $(HWSRC) \
        $(APPSRC)
        

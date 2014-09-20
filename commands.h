@@ -28,6 +28,7 @@
 #include "datatypes.h"
 
 // Functions
+void commands_init(void);
 void commands_set_send_func(void(*func)(unsigned char *data, unsigned char len));
 void commands_process_packet(unsigned char *data, unsigned char len);
 void commands_printf(char* format, ...);

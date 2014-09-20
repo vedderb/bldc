@@ -1059,6 +1059,8 @@ static msg_t rpm_thread(void *arg) {
 		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_now / 60.0) * 6.0);
 		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((conf.sl_min_erpm / 60.0) * 6.0);
 
+		run_pid_controller();
+
 		chThdSleepMilliseconds(1);
 	}
 
@@ -1156,8 +1158,6 @@ static msg_t timer_thread(void *arg) {
 		default:
 			break;
 		}
-
-		run_pid_controller();
 
 		// Fill KV filter vector at 100Hz
 		static int cnt_tmp = 0;

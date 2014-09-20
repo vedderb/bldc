@@ -126,7 +126,8 @@ typedef enum {
 
 // PPM control types
 typedef enum {
-	PPM_CTRL_TYPE_CURRENT = 0,
+	PPM_CTRL_TYPE_NONE = 0,
+	PPM_CTRL_TYPE_CURRENT,
 	PPM_CTRL_TYPE_CURRENT_NOREV,
 	PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE,
 	PPM_CTRL_TYPE_DUTY,
@@ -136,6 +137,10 @@ typedef enum {
 } ppm_control_type;
 
 typedef struct {
+	// Settings
+	uint32_t timeout_msec;
+	float timeout_brake_current;
+
 	// Application to use
 	app_use app_to_use;
 
@@ -143,13 +148,11 @@ typedef struct {
 	ppm_control_type app_ppm_ctrl_type;
 	float app_ppm_pid_max_erpm;
 	float app_ppm_hyst;
-	uint32_t app_ppm_timeout;
 	float app_ppm_pulse_start;
 	float app_ppm_pulse_width;
 
 	// UART application settings
 	uint32_t app_uart_baudrate;
-	uint32_t app_uart_timeout;
 } app_configuration;
 
 // Communication commands
@@ -171,7 +174,8 @@ typedef enum {
 	COMM_ROTOR_POSITION,
 	COMM_EXPERIMENT_SAMPLE,
 	COMM_DETECT_MOTOR_PARAM,
-	COMM_REBOOT
+	COMM_REBOOT,
+	COMM_ALIVE
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

@@ -34,10 +34,10 @@ void app_set_configuration(app_configuration *conf);
 
 // Standard apps
 void app_ppm_start(void);
-void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
-		float timeout, float pulse_start, float pulse_width);
+void app_ppm_configure(ppm_control_type ctrlt, float pme,
+		float hyst, float pulse_start, float pulse_width);
 void app_uartcomm_start(void);
-void app_uartcomm_configure(uint32_t baudrate, uint32_t timeout);
+void app_uartcomm_configure(uint32_t baudrate);
 
 // Custom apps
 void app_gurgalof_init(void);

@@ -34,18 +34,35 @@
 #include "hw.h"
 #include "mcpwm.h"
 #include "app.h"
+#include "timeout.h"
 
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 
+// Threads
+static msg_t detect_thread(void *arg);
+static WORKING_AREA(detect_thread_wa, 2048);
+static Thread *detect_tp;
+
+// Private variables
+static uint8_t send_buffer[256];
+static float detect_cycle_int_limit;
+static float detect_coupling_k;
+static float detect_current;
+static float detect_min_rpm;
+static float detect_low_duty;
 static void(*send_func)(unsigned char *data, unsigned char len) = 0;
 
 static void send_packet(unsigned char *data, unsigned char len) {
 	if (send_func) {
 		send_func(data, len);
 	}
+}
+
+void commands_init(void) {
+	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
 }
 
 /**
@@ -72,19 +89,15 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		return;
 	}
 
+	timeout_reset();
+
 	COMM_PACKET_ID packet_id;
-	static uint8_t send_buffer[256];
 	int32_t ind = 0;
 	uint16_t sample_len;
 	uint8_t decimation;
 	bool at_start;
 	mc_configuration mcconf;
 	app_configuration appconf;
-	float detect_cycle_int_limit;
-	float detect_coupling_k;
-	float detect_current;
-	float detect_min_rpm;
-	float detect_low_duty;
 
 	(void)len;
 
@@ -238,19 +251,20 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf = *app_get_configuration();
 
 		ind = 0;
+		appconf.timeout_msec = buffer_get_uint32(data, &ind);
+		appconf.timeout_brake_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_to_use = data[ind++];
 		appconf.app_ppm_ctrl_type = data[ind++];
 		appconf.app_ppm_pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_timeout = buffer_get_uint32(data, &ind);
 		appconf.app_ppm_pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
-		appconf.app_uart_timeout = buffer_get_uint32(data, &ind);
 
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
+		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 		break;
 
 	case COMM_GET_APPCONF:
@@ -258,16 +272,16 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_APPCONF;
+		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
 		send_buffer[ind++] = appconf.app_to_use;
 		send_buffer[ind++] = appconf.app_ppm_ctrl_type;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pid_max_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_hyst * 1000.0), &ind);
-		buffer_append_uint32(send_buffer, appconf.app_ppm_timeout, &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_width * 1000.0), &ind);
 
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
-		buffer_append_uint32(send_buffer, appconf.app_uart_timeout, &ind);
 
 		send_packet(send_buffer, ind);
 		break;
@@ -291,23 +305,17 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		detect_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		detect_low_duty = (float)buffer_get_int32(data, &ind) / 1000.0;
 
-		if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
-				detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k)) {
-			detect_cycle_int_limit = 0.0;
-			detect_coupling_k = 0.0;
-		}
-
-		ind = 0;
-		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
-		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
-		send_packet(send_buffer, ind);
+		chEvtSignal(detect_tp, (eventmask_t) 1);
 		break;
 
 	case COMM_REBOOT:
 		// Lock the system and enter an infinite loop. The watchdog will reboot.
 		__disable_irq();
 		for(;;){};
+		break;
+
+	case COMM_ALIVE:
+		// Do nothing, just reset the timeout so the motor keeps running.
 		break;
 
 	default:
@@ -379,4 +387,30 @@ void commands_send_experiment_samples(float *samples, int len) {
 	}
 
 	send_packet(buffer, index);
+}
+
+static msg_t detect_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("Detect");
+
+	detect_tp = chThdSelf();
+
+	for(;;) {
+		chEvtWaitAny((eventmask_t) 1);
+
+		if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
+				detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k)) {
+			detect_cycle_int_limit = 0.0;
+			detect_coupling_k = 0.0;
+		}
+
+		int32_t ind = 0;
+		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
+		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
+		send_packet(send_buffer, ind);
+	}
+
+	return 0;
 }
