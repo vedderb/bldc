@@ -31,10 +31,10 @@
 #include "mcpwm.h"
 #include "utils.h"
 #include "hw.h"
+#include "timeout.h"
 #include <math.h>
 
 // Settings
-#define TIMEOUT		500
 #define HYST		0.10
 // 29000rpm = 20kmh
 #define RPM_MAX_1	41000.0	// Start decreasing output here
@@ -46,7 +46,6 @@ static volatile float out_received = 0.0;
 // Threads
 static msg_t uart_thread(void *arg);
 static WORKING_AREA(uart_thread_wa, 1024);
-static volatile systime_t last_uart_update_time;
 
 // Private functions
 static void set_output(float output);
@@ -92,7 +91,7 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
 	c1 = c;
 
 	out_received = ((float)med / 128) - 1.0;
-	last_uart_update_time = chTimeNow();
+	timeout_reset();
 }
 
 /*
@@ -139,10 +138,7 @@ static msg_t uart_thread(void *arg) {
 	for(;;) {
 		time += MS2ST(1);
 
-		if ((systime_t) ((float) chTimeElapsedSince(last_uart_update_time)
-				/ ((float) CH_FREQUENCY / 1000.0)) > (float)TIMEOUT) {
-			mcpwm_set_brake_current(-10.0);
-		} else {
+		if (!timeout_has_timeout()) {
 			set_output(out_received);
 		}
 
