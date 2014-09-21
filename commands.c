@@ -260,6 +260,8 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.app_ppm_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
 
@@ -281,6 +283,8 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_hyst * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_width * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_rpm_lim_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_rpm_lim_end * 1000.0), &ind);
 
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
 

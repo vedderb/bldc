@@ -30,12 +30,14 @@
 #include "servo_dec.h"
 #include "mcpwm.h"
 #include "timeout.h"
+#include "utils.h"
 #include <math.h>
 
 // Threads
 static msg_t ppm_thread(void *arg);
 static WORKING_AREA(ppm_thread_wa, 1024);
 static Thread *ppm_tp;
+VirtualTimer vt;
 
 // Private functions
 static void servodec_func(void);
@@ -47,14 +49,21 @@ static volatile bool is_running = false;
 static volatile float hysteres = 0.15;
 static volatile float pulse_s = 1.0;
 static volatile float pulse_e = 1.0;
+static volatile float rpm_lim_start = 200000.0;
+static volatile float rpm_lim_end = 250000.0;
 
-void app_ppm_configure(ppm_control_type ctrlt, float pme,
-		float hyst, float pulse_start, float pulse_width) {
+// Private functions
+void update(void *p);
+
+void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
+		float pulse_start, float pulse_width, float lim_rpm_start, float lim_rpm_end) {
 	ctrl_type = ctrlt;
 	pid_max_erpm = pme;
 	hysteres = hyst;
 	pulse_s = pulse_start;
 	pulse_e = pulse_width;
+	rpm_lim_start = lim_rpm_start;
+	rpm_lim_end = lim_rpm_end;
 
 	if (is_running) {
 		servodec_set_pulse_options(pulse_s, pulse_e);
@@ -63,10 +72,22 @@ void app_ppm_configure(ppm_control_type ctrlt, float pme,
 
 void app_ppm_start(void) {
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
+
+	chSysLock();
+	chVTSetI(&vt, MS2ST(1), update, NULL);
+	chSysUnlock();
 }
 
 static void servodec_func(void) {
 	chSysLockFromIsr();
+	timeout_reset();
+	chEvtSignalI(ppm_tp, (eventmask_t) 1);
+	chSysUnlockFromIsr();
+}
+
+void update(void *p) {
+	chSysLockFromIsr();
+	chVTSetI(&vt, MS2ST(1), update, p);
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromIsr();
 }
@@ -84,7 +105,10 @@ static msg_t ppm_thread(void *arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		timeout_reset();
+		if (timeout_has_timeout()) {
+			continue;
+		}
+
 		float servo_val = servodec_get_servo(0);
 
 		switch (ctrl_type) {
@@ -109,21 +133,29 @@ static msg_t ppm_thread(void *arg) {
 			servo_val = 0.0;
 		}
 
+		float current = 0;
+		bool current_mode = false;
+		bool current_mode_brake = false;
+		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
+
 		switch (ctrl_type) {
 		case PPM_CTRL_TYPE_CURRENT:
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
+			current_mode = true;
 			if (servo_val >= 0.0) {
-				mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+				current = servo_val * mcconf->l_current_max;
 			} else {
-				mcpwm_set_current(servo_val * fabsf(mcpwm_get_configuration()->l_current_min));
+				current = servo_val * fabsf(mcconf->l_current_min);
 			}
 			break;
 
 		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
+			current_mode = true;
 			if (servo_val >= 0.0) {
-				mcpwm_set_current(servo_val * mcpwm_get_configuration()->l_current_max);
+				current = servo_val * mcconf->l_current_max;
 			} else {
-				mcpwm_set_brake_current(fabsf(servo_val * mcpwm_get_configuration()->l_current_min));
+				current = fabsf(servo_val * mcconf->l_current_min);
+				current_mode_brake = true;
 			}
 			break;
 
@@ -140,6 +172,31 @@ static msg_t ppm_thread(void *arg) {
 		default:
 			break;
 		}
+
+		if (current_mode) {
+			if (current_mode_brake) {
+				mcpwm_set_brake_current(current);
+			} else {
+				// Apply soft RPM limit
+				float rpm = mcpwm_get_rpm();
+
+				if (rpm > rpm_lim_end && current > 0.0) {
+					current = mcconf->cc_min_current;
+				} else if (rpm > rpm_lim_start && current > 0.0) {
+					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
+				} else if (rpm < -rpm_lim_end && current < 0.0) {
+					current = mcconf->cc_min_current;
+				} else if (rpm < -rpm_lim_start && current < 0.0) {
+					rpm = -rpm;
+					current = -current;
+					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
+					current = -current;
+				}
+
+				mcpwm_set_current(current);
+			}
+		}
+
 	}
 
 	return 0;

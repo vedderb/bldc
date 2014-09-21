@@ -141,6 +141,8 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_ppm_hyst = 0.15;
 		conf->app_ppm_pulse_start = 1.0;
 		conf->app_ppm_pulse_width = 1.0;
+		conf->app_ppm_rpm_lim_start = 200000.0;
+		conf->app_ppm_rpm_lim_end = 250000.0;
 		conf->app_uart_baudrate = 115200;
 	}
 }

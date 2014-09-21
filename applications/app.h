@@ -34,8 +34,8 @@ void app_set_configuration(app_configuration *conf);
 
 // Standard apps
 void app_ppm_start(void);
-void app_ppm_configure(ppm_control_type ctrlt, float pme,
-		float hyst, float pulse_start, float pulse_width);
+void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
+		float pulse_start, float pulse_width, float lim_rpm_start, float lim_rpm_end);
 void app_uartcomm_start(void);
 void app_uartcomm_configure(uint32_t baudrate);
 

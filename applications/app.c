@@ -34,8 +34,9 @@ void app_init(app_configuration *conf) {
 
 	switch (appconf.app_to_use) {
 	case APP_PPM:
-		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
-				appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
+		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm,
+				appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
+				appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
 		app_ppm_start();
 		break;
 
@@ -45,8 +46,9 @@ void app_init(app_configuration *conf) {
 		break;
 
 	case APP_PPM_UART:
-		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
-				appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
+		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm,
+				appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
+				appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
 		app_ppm_start();
 		app_uartcomm_configure(appconf.app_uart_baudrate);
 		app_uartcomm_start();
@@ -79,7 +81,8 @@ const app_configuration* app_get_configuration(void) {
  */
 void app_set_configuration(app_configuration *conf) {
 	appconf = *conf;
-	app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm, appconf.app_ppm_hyst,
-			appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width);
+	app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm,
+			appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
+			appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
 }
