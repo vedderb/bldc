@@ -161,7 +161,7 @@ static void set_output(float output) {
 
 	const float rpm = mcpwm_get_rpm();
 
-	if (output > 0.0 && rpm > -mcpwm_get_configuration()->l_min_erpm) {
+	if (output > 0.0 && rpm > -mcpwm_get_configuration()->l_max_erpm_fbrake) {
 		float current;
 
 		if (output > 0.0) {
