@@ -84,7 +84,6 @@ static volatile mc_rpm_dep_struct rpm_dep;
 static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
 static volatile mc_configuration conf;
-static volatile float cycle_integrator;
 static volatile float pwm_cycles_sum;
 static volatile float last_pwm_cycles_sum;
 static volatile float last_pwm_cycles_sums[6];
@@ -136,14 +135,13 @@ static void run_pid_controller(void);
 static void set_next_comm_step(int next_step);
 static void update_rpm_tacho(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
-static void commutate(void);
+static void commutate(int steps);
 static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(float frequency);
 static int try_input(void);
 static void do_dc_cal(void);
 
 // Defines
-#define CYCLE_INT_START			(0.0)
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
@@ -191,7 +189,6 @@ void mcpwm_init(mc_configuration *configuration) {
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
 	cycle_integrator_sum = 0.0;
 	cycle_integrator_iterations = 0.0;
-	cycle_integrator = CYCLE_INT_START;
 	pwm_cycles_sum = 0.0;
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
@@ -905,7 +902,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 			state = MC_STATE_RUNNING;
 
 			if (fabsf(rpm_now) < conf.sl_min_erpm) {
-				commutate();
+				commutate(1);
 			}
 		}
 	} else {
@@ -913,7 +910,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 			state = MC_STATE_RUNNING;
 			comm_step = mcpwm_read_hall_phase();
 			set_next_comm_step(comm_step);
-			commutate();
+			commutate(1);
 		}
 	}
 }
@@ -1042,13 +1039,14 @@ static msg_t rpm_thread(void *arg) {
 		static float rpm_p1 = 0.0;
 		rpm_now = (rpm_now + rpm_p1) / 2;
 		rpm_p1 = rpm_now;
+		const float rpm_abs = fabsf(rpm_now);
 
 		// Update the cycle integrator limit
-		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_now, 0,
+		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
 									conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
 									conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
-				conf.sl_bemf_coupling_k / (rpm_now > conf.sl_min_erpm ? rpm_now : conf.sl_min_erpm);
+				conf.sl_bemf_coupling_k / (rpm_abs > conf.sl_min_erpm ? rpm_abs : conf.sl_min_erpm);
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / conf.sl_min_erpm_cycle_int_limit;
 
@@ -1056,7 +1054,7 @@ static msg_t rpm_thread(void *arg) {
 			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
 
-		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_now / 60.0) * 6.0);
+		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_abs / 60.0) * 6.0);
 		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((conf.sl_min_erpm / 60.0) * 6.0);
 
 		run_pid_controller();
@@ -1312,6 +1310,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	int ph1, ph2, ph3;
+	int ph1_raw, ph2_raw, ph3_raw;
 
 	static int direction_before = 1;
 	if (state == MC_STATE_RUNNING && direction == direction_before) {
@@ -1349,10 +1348,16 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		ph1 = ADC_V_L1 - mcpwm_vzero;
 		ph2 = ADC_V_L2 - mcpwm_vzero;
 		ph3 = ADC_V_L3 - mcpwm_vzero;
+		ph1_raw = ADC_V_L1;
+		ph2_raw = ADC_V_L2;
+		ph3_raw = ADC_V_L3;
 	} else {
 		ph1 = ADC_V_L1 - mcpwm_vzero;
 		ph2 = ADC_V_L3 - mcpwm_vzero;
 		ph3 = ADC_V_L2 - mcpwm_vzero;
+		ph1_raw = ADC_V_L1;
+		ph2_raw = ADC_V_L3;
+		ph3_raw = ADC_V_L2;
 	}
 
 	float amp = 0.0;
@@ -1368,37 +1373,46 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
 
 	if (conf.sl_is_sensorless) {
+		static float cycle_integrator = 0;
+
 		if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
 			if (state == MC_STATE_RUNNING) {
 				// This means that the motor is stuck. If this commutation does not
 				// produce any torque because of misalignment at start, two
 				// commutations ahead should produce full torque.
-				commutate();
-				commutate();
-				cycle_integrator = CYCLE_INT_START;
+				commutate(2);
+				cycle_integrator = 0.0;
 			}
 		}
 
 		if ((state == MC_STATE_RUNNING && pwm_cycles_sum >= 2.0) || state == MC_STATE_OFF) {
 			int v_diff = 0;
+			int ph_now_raw = 0;
+
 			switch (comm_step) {
 			case 1:
 				v_diff = ph1;
+				ph_now_raw = ph1_raw;
 				break;
 			case 2:
 				v_diff = -ph2;
+				ph_now_raw = ph2_raw;
 				break;
 			case 3:
 				v_diff = ph3;
+				ph_now_raw = ph3_raw;
 				break;
 			case 4:
 				v_diff = -ph1;
+				ph_now_raw = ph1_raw;
 				break;
 			case 5:
 				v_diff = ph2;
+				ph_now_raw = ph2_raw;
 				break;
 			case 6:
 				v_diff = -ph3;
+				ph_now_raw = ph3_raw;
 				break;
 			default:
 				break;
@@ -1406,39 +1420,50 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			static float cycle_sum = 0.0;
 
+			if (abs(v_diff) < 10) {
+				v_diff = 0;
+			}
+
 			if (v_diff > 0) {
 				cycle_integrator += (float)v_diff / switching_frequency_now;
+			} else {
+				cycle_integrator = 0;
+			}
 
-				if (conf.comm_mode == COMM_MODE_INTEGRATE) {
-					float limit;
-					if (has_commutated) {
-						limit = rpm_dep.cycle_int_limit_running * 0.0005;
-					} else {
-						limit = rpm_dep.cycle_int_limit * 0.0005;
-					}
+			if (pwm_cycles_sum < (last_pwm_cycles_sum / 3.0) && has_commutated && (ph_now_raw < 20 || ph_now_raw > (ADC_Value[ADC_IND_VIN_SENS] - 20))) {
+				cycle_integrator = 0;
+			}
 
-					if ((cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || pwm_cycles_sum > last_pwm_cycles_sum / 3.0 || !has_commutated)
-							&& cycle_integrator >= limit) {
-						commutate();
-						cycle_integrator = CYCLE_INT_START;
-					}
-				} else if (conf.comm_mode == COMM_MODE_DELAY) {
+			if (conf.comm_mode == COMM_MODE_INTEGRATE) {
+				float limit;
+				if (has_commutated) {
+					limit = rpm_dep.cycle_int_limit_running * 0.0005;
+				} else {
+					limit = rpm_dep.cycle_int_limit * 0.0005;
+				}
+
+				if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || cycle_integrator >= limit) {
+					commutate(1);
+					cycle_integrator = 0.0;
+				}
+			} else if (conf.comm_mode == COMM_MODE_DELAY) {
+				if (v_diff > 0) {
 					cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
 
 					if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
-						commutate();
+						commutate(1);
 						cycle_integrator_sum += cycle_integrator * (1.0 / 0.0005);
 						cycle_integrator_iterations += 1.0;
-						cycle_integrator = CYCLE_INT_START;
+						cycle_integrator = 0.0;
 						cycle_sum = 0.0;
 					}
+				} else {
+					cycle_integrator = 0.0;
+					cycle_sum = 0.0;
 				}
-			} else {
-				cycle_integrator = CYCLE_INT_START;
-				cycle_sum = 0.0;
 			}
 		} else {
-			cycle_integrator = CYCLE_INT_START;
+			cycle_integrator = 0.0;
 		}
 
 		pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
@@ -1451,11 +1476,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			if (state == MC_STATE_RUNNING) {
 				set_next_comm_step(comm_step);
-				commutate();
+				commutate(0);
 			}
 		} else if (state == MC_STATE_RUNNING && !has_commutated) {
 			set_next_comm_step(comm_step);
-			commutate();
+			commutate(0);
 		}
 	}
 
@@ -1935,18 +1960,21 @@ static void update_rpm_tacho(void) {
 	}
 }
 
-static void commutate(void) {
+static void commutate(int steps) {
 	if (conf.sl_is_sensorless) {
 		last_pwm_cycles_sum = pwm_cycles_sum;
 		last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
 		pwm_cycles_sum = 0;
 
-		update_rpm_tacho();
-
-		comm_step++;
-		if (comm_step > 6) {
-			comm_step = 1;
+		comm_step += steps;
+		while (comm_step > 6) {
+			comm_step -= 6;
 		}
+		while (comm_step < 1) {
+			comm_step += 6;
+		}
+
+		update_rpm_tacho();
 
 		if (!(state == MC_STATE_RUNNING)) {
 			return;
