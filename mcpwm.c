@@ -452,6 +452,10 @@ void mcpwm_init(mc_configuration *configuration) {
 	WWDG_SetPrescaler(WWDG_Prescaler_1);
 	WWDG_SetWindowValue(255);
 	WWDG_Enable(100);
+
+	// Reset tachometers again
+	tachometer = 0;
+	tachometer_abs = 0;
 }
 
 const volatile mc_configuration* mcpwm_get_configuration(void) {
@@ -1413,7 +1417,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	// Set the next timer settings if an update is far enough away
 	utils_sys_lock_cnt();
-	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 200)) {
+	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 400)) {
 		// Disable preload register updates
 		TIM1->CR1 |= TIM_CR1_UDIS;
 		TIM8->CR1 |= TIM_CR1_UDIS;
@@ -2069,8 +2073,8 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			val_sample = duty / 2;
 
 			// Current samples
-			curr1_sample = duty + (top - duty) / 2;
-			curr2_sample = duty + (top - duty) / 2;
+			curr1_sample = duty + 2 * (top - duty) / 3;
+			curr2_sample = duty + 2 * (top - duty) / 3;
 		}
 	}
 
@@ -2150,7 +2154,7 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 	timer_struct = *settings;
 
 	// Set the next timer settings if an update is far enough away
-	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 200)) {
+	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 400)) {
 		// Disable preload register updates
 		TIM1->CR1 |= TIM_CR1_UDIS;
 		TIM8->CR1 |= TIM_CR1_UDIS;

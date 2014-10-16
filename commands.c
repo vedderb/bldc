@@ -126,6 +126,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_watt_hours_charged(false) * 10000.0), &ind);
 		buffer_append_int32(send_buffer, mcpwm_get_tachometer_value(false), &ind);
 		buffer_append_int32(send_buffer, mcpwm_get_tachometer_abs_value(false), &ind);
+		send_buffer[ind++] = mcpwm_get_fault();
 		send_packet(send_buffer, ind);
 		break;
 
