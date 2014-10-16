@@ -90,8 +90,6 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		return;
 	}
 
-	timeout_reset();
-
 	COMM_PACKET_ID packet_id;
 	int32_t ind = 0;
 	uint16_t sample_len;
@@ -122,31 +120,42 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int16(send_buffer, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)mcpwm_get_rpm(), &ind);
 		buffer_append_int16(send_buffer, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_amp_hours(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_amp_hours_charged(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_watt_hours(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_watt_hours_charged(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, mcpwm_get_tachometer_value(false), &ind);
+		buffer_append_int32(send_buffer, mcpwm_get_tachometer_abs_value(false), &ind);
 		send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_DUTY:
 		ind = 0;
 		mcpwm_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
+		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT:
 		ind = 0;
 		mcpwm_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT_BRAKE:
 		ind = 0;
 		mcpwm_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		timeout_reset();
 		break;
 
 	case COMM_SET_RPM:
 		ind = 0;
 		mcpwm_set_pid_speed((float)buffer_get_int32(data, &ind));
+		timeout_reset();
 		break;
 
 	case COMM_SET_DETECT:
 		mcpwm_set_detect();
+		timeout_reset();
 		break;
 
 	case COMM_SET_SERVO_OFFSET:
@@ -320,7 +329,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		break;
 
 	case COMM_ALIVE:
-		// Do nothing, just reset the timeout so the motor keeps running.
+		timeout_reset();
 		break;
 
 	case COMM_GET_DECODED_PPM:

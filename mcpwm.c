@@ -55,6 +55,7 @@ static volatile float rpm_now;
 static volatile float speed_pid_set_rpm;
 static volatile float current_set;
 static volatile int tachometer;
+static volatile int tachometer_abs;
 static volatile int tachometer_for_direction;
 static volatile int curr0_sum;
 static volatile int curr1_sum;
@@ -87,6 +88,10 @@ static volatile mc_configuration conf;
 static volatile float pwm_cycles_sum;
 static volatile float last_pwm_cycles_sum;
 static volatile float last_pwm_cycles_sums[6];
+static volatile float amp_seconds;
+static volatile float amp_seconds_charged;
+static volatile float watt_seconds;
+static volatile float watt_seconds_charged;
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -170,6 +175,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	speed_pid_set_rpm = 0.0;
 	current_set = 0.0;
 	tachometer = 0;
+	tachometer_abs = 0;
 	tachometer_for_direction = 0;
 	state = MC_STATE_OFF;
 	fault_now = FAULT_CODE_NONE;
@@ -192,6 +198,10 @@ void mcpwm_init(mc_configuration *configuration) {
 	pwm_cycles_sum = 0.0;
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
+	amp_seconds = 0.0;
+	amp_seconds_charged = 0.0;
+	watt_seconds = 0.0;
+	watt_seconds_charged = 0.0;
 
 	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
 
@@ -726,17 +736,113 @@ float mcpwm_get_tot_current_in_filtered(void) {
  * will return a negative number when the motor is rotating backwards.
  *
  * @param reset
- * If true (!= 0), the tachometer counter will be reset after this call.
+ * If true, the tachometer counter will be reset after this call.
  *
  * @return
  * The tachometer value in motor steps. The number of motor revolutions will
  * be this number divided by (3 * MOTOR_POLE_NUMBER).
  */
-int mcpwm_get_tachometer_value(int reset) {
+int mcpwm_get_tachometer_value(bool reset) {
 	int val = tachometer;
 
 	if (reset) {
 		tachometer = 0;
+	}
+
+	return val;
+}
+
+/**
+ * Read the absolute number of steps the motor has rotated.
+ *
+ * @param reset
+ * If true, the tachometer counter will be reset after this call.
+ *
+ * @return
+ * The tachometer value in motor steps. The number of motor revolutions will
+ * be this number divided by (3 * MOTOR_POLE_NUMBER).
+ */
+int mcpwm_get_tachometer_abs_value(bool reset) {
+	int val = tachometer_abs;
+
+	if (reset) {
+		tachometer_abs = 0;
+	}
+
+	return val;
+}
+
+/**
+ * Get the amount of amp hours drawn from the input source.
+ *
+ * @param reset
+ * If true, the counter will be reset after this call.
+ *
+ * @return
+ * The amount of amp hours drawn.
+ */
+float mcpwm_get_amp_hours(bool reset) {
+	float val = amp_seconds / 3600;
+
+	if (reset) {
+		amp_seconds = 0.0;
+	}
+
+	return val;
+}
+
+/**
+ * Get the amount of amp hours fed back into the input source.
+ *
+ * @param reset
+ * If true, the counter will be reset after this call.
+ *
+ * @return
+ * The amount of amp hours fed back.
+ */
+float mcpwm_get_amp_hours_charged(bool reset) {
+	float val = amp_seconds_charged / 3600;
+
+	if (reset) {
+		amp_seconds_charged = 0.0;
+	}
+
+	return val;
+}
+
+/**
+ * Get the amount of watt hours drawn from the input source.
+ *
+ * @param reset
+ * If true, the counter will be reset after this call.
+ *
+ * @return
+ * The amount of watt hours drawn.
+ */
+float mcpwm_get_watt_hours(bool reset) {
+	float val = watt_seconds / 3600;
+
+	if (reset) {
+		amp_seconds = 0.0;
+	}
+
+	return val;
+}
+
+/**
+ * Get the amount of watt hours fed back into the input source.
+ *
+ * @param reset
+ * If true, the counter will be reset after this call.
+ *
+ * @return
+ * The amount of watt hours fed back.
+ */
+float mcpwm_get_watt_hours_charged(bool reset) {
+	float val = watt_seconds_charged / 3600;
+
+	if (reset) {
+		watt_seconds_charged = 0.0;
 	}
 
 	return val;
@@ -927,7 +1033,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	mc_timer_struct timer_tmp;
 
 	utils_sys_lock_cnt();
-	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	timer_tmp = timer_struct;
 	utils_sys_unlock_cnt();
 
 	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
@@ -1305,6 +1411,29 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	TIM4->CNT = 0;
 
+	// Set the next timer settings if an update is far enough away
+	utils_sys_lock_cnt();
+	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 200)) {
+		// Disable preload register updates
+		TIM1->CR1 |= TIM_CR1_UDIS;
+		TIM8->CR1 |= TIM_CR1_UDIS;
+
+		// Set the new configuration
+		TIM1->ARR = timer_struct.top;
+		TIM8->ARR = 0xFFFF;
+		TIM1->CCR1 = timer_struct.duty;
+		TIM1->CCR2 = timer_struct.duty;
+		TIM1->CCR3 = timer_struct.duty;
+		TIM8->CCR1 = timer_struct.val_sample;
+		TIM1->CCR4 = timer_struct.curr1_sample;
+		TIM8->CCR2 = timer_struct.curr2_sample;
+
+		// Enables preload register updates
+		TIM1->CR1 &= ~TIM_CR1_UDIS;
+		TIM8->CR1 &= ~TIM_CR1_UDIS;
+	}
+	utils_sys_unlock_cnt();
+
 	// Reset the watchdog
 	WWDG_SetCounter(100);
 
@@ -1418,19 +1547,24 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				break;
 			}
 
-			static float cycle_sum = 0.0;
-
 			if (abs(v_diff) < 10) {
 				v_diff = 0;
 			}
 
+			static int zero_diff_iterations = 0;
+
 			if (v_diff > 0) {
 				cycle_integrator += (float)v_diff / switching_frequency_now;
+				zero_diff_iterations = 0;
 			} else {
-				cycle_integrator = 0;
+				zero_diff_iterations++;
+				if (zero_diff_iterations >= 2) {
+					cycle_integrator = 0;
+				}
 			}
 
-			if (pwm_cycles_sum < (last_pwm_cycles_sum / 3.0) && has_commutated && (ph_now_raw < 20 || ph_now_raw > (ADC_Value[ADC_IND_VIN_SENS] - 20))) {
+			if (pwm_cycles_sum < (last_pwm_cycles_sum / 4.0) &&
+					has_commutated && (ph_now_raw < 20 || ph_now_raw > (ADC_Value[ADC_IND_VIN_SENS] - 20))) {
 				cycle_integrator = 0;
 			}
 
@@ -1442,11 +1576,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					limit = rpm_dep.cycle_int_limit * 0.0005;
 				}
 
-				if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) || cycle_integrator >= limit) {
+				if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) ||
+						cycle_integrator >= limit) {
 					commutate(1);
 					cycle_integrator = 0.0;
 				}
 			} else if (conf.comm_mode == COMM_MODE_DELAY) {
+				static float cycle_sum = 0.0;
 				if (v_diff > 0) {
 					cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
 
@@ -1492,6 +1628,17 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	input_current_sum += current_in;
 	motor_current_iterations++;
 	input_current_iterations++;
+
+	if (fabsf(current) > 0.5) {
+		float curr_diff = current_in * 1.0 / switching_frequency_now;
+		if (curr_diff > 0.0) {
+			amp_seconds += curr_diff;
+			watt_seconds += curr_diff * input_voltage;
+		} else {
+			amp_seconds_charged -= curr_diff;
+			watt_seconds_charged -= curr_diff * input_voltage;
+		}
+	}
 
 	if (conf.l_slow_abs_current) {
 		if (fabsf(current) > conf.l_abs_current_max) {
@@ -1952,6 +2099,7 @@ static void update_rpm_tacho(void) {
 
 	// Tachometers
 	tachometer_for_direction += tacho_diff;
+	tachometer_abs += tacho_diff;
 
 	if (direction) {
 		tachometer += tacho_diff;
@@ -1989,7 +2137,7 @@ static void commutate(int steps) {
 	mc_timer_struct timer_tmp;
 
 	utils_sys_lock_cnt();
-	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	timer_tmp = timer_struct;
 	utils_sys_unlock_cnt();
 
 	update_adc_sample_pos(&timer_tmp);
@@ -1999,24 +2147,28 @@ static void commutate(int steps) {
 static void set_next_timer_settings(mc_timer_struct *settings) {
 	utils_sys_lock_cnt();
 
-	memcpy((void*)&timer_struct, settings, sizeof(mc_timer_struct));
+	timer_struct = *settings;
 
-	// Disable preload register updates
-	TIM1->CR1 |= TIM_CR1_UDIS;
-	TIM8->CR1 |= TIM_CR1_UDIS;
+	// Set the next timer settings if an update is far enough away
+	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 200)) {
+		// Disable preload register updates
+		TIM1->CR1 |= TIM_CR1_UDIS;
+		TIM8->CR1 |= TIM_CR1_UDIS;
 
-	// Set the new configuration
-	TIM1->ARR = timer_struct.top;
-	TIM1->CCR1 = timer_struct.duty;
-	TIM1->CCR2 = timer_struct.duty;
-	TIM1->CCR3 = timer_struct.duty;
-	TIM8->CCR1 = timer_struct.val_sample;
-	TIM1->CCR4 = timer_struct.curr1_sample;
-	TIM8->CCR2 = timer_struct.curr2_sample;
+		// Set the new configuration
+		TIM1->ARR = timer_struct.top;
+		TIM8->ARR = 0xFFFF;
+		TIM1->CCR1 = timer_struct.duty;
+		TIM1->CCR2 = timer_struct.duty;
+		TIM1->CCR3 = timer_struct.duty;
+		TIM8->CCR1 = timer_struct.val_sample;
+		TIM1->CCR4 = timer_struct.curr1_sample;
+		TIM8->CCR2 = timer_struct.curr2_sample;
 
-	// Enables preload register updates
-	TIM1->CR1 &= ~TIM_CR1_UDIS;
-	TIM8->CR1 &= ~TIM_CR1_UDIS;
+		// Enables preload register updates
+		TIM1->CR1 &= ~TIM_CR1_UDIS;
+		TIM8->CR1 &= ~TIM_CR1_UDIS;
+	}
 
 	utils_sys_unlock_cnt();
 }
@@ -2026,7 +2178,7 @@ static void set_switching_frequency(float frequency) {
 	mc_timer_struct timer_tmp;
 
 	utils_sys_lock_cnt();
-	memcpy(&timer_tmp, (void*)&timer_struct, sizeof(mc_timer_struct));
+	timer_tmp = timer_struct;
 	utils_sys_unlock_cnt();
 
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
