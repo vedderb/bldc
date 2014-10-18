@@ -143,4 +143,14 @@ void hw_setup_servo_outputs(void) {
 	servos[1].pos = 0;
 }
 
+void hw_stop_i2c_uart(void) {
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+	palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
+	palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
+
+	uartStop(&HW_UART_DEV);
+	i2cStop(&HW_I2C_DEV);
+}
+
 #endif

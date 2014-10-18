@@ -121,6 +121,7 @@ typedef enum {
 	APP_PPM,
 	APP_UART,
 	APP_PPM_UART,
+	APP_NUNCHUK,
 	APP_CUSTOM
 } app_use;
 
@@ -135,6 +136,13 @@ typedef enum {
 	PPM_CTRL_TYPE_PID,
 	PPM_CTRL_TYPE_PID_NOREV
 } ppm_control_type;
+
+// Nunchuk control types
+typedef enum {
+	CHUK_CTRL_TYPE_NONE = 0,
+	CHUK_CTRL_TYPE_CURRENT,
+	CHUK_CTRL_TYPE_CURRENT_NOREV
+} chuk_control_type;
 
 typedef struct {
 	// Settings
@@ -155,6 +163,12 @@ typedef struct {
 
 	// UART application settings
 	uint32_t app_uart_baudrate;
+
+	// Nunchuk
+	chuk_control_type app_chuk_ctrl_type;
+	float app_chuk_hyst;
+	float app_chuk_rpm_lim_start;
+	float app_chuk_rpm_lim_end;
 } app_configuration;
 
 // Communication commands
@@ -178,7 +192,8 @@ typedef enum {
 	COMM_DETECT_MOTOR_PARAM,
 	COMM_REBOOT,
 	COMM_ALIVE,
-	COMM_GET_DECODED_PPM
+	COMM_GET_DECODED_PPM,
+	COMM_GET_DECODED_CHUK
 } COMM_PACKET_ID;
 
 #endif /* DATATYPES_H_ */

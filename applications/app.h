@@ -38,6 +38,10 @@ void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
 		float pulse_start, float pulse_width, float lim_rpm_start, float lim_rpm_end);
 void app_uartcomm_start(void);
 void app_uartcomm_configure(uint32_t baudrate);
+void app_nunchuk_start(void);
+void app_nunchuk_configure(chuk_control_type ctrlt,
+		float hyst, float lim_rpm_start, float lim_rpm_end);
+float app_nunchuk_get_decoded_chuk(void);
 
 // Custom apps
 void app_gurgalof_init(void);

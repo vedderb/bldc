@@ -41,5 +41,6 @@
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
 void hw_setup_servo_outputs(void);
+void hw_stop_i2c_uart(void);
 
 #endif /* HW_H_ */

@@ -1069,14 +1069,14 @@ static void run_pid_controller(void) {
 
 	// PID is off. Return.
 	if (control_mode != CONTROL_MODE_SPEED) {
-		i_term = 0;
+		i_term = dutycycle_now;
 		prev_error = 0;
 		return;
 	}
 
 	// Too low RPM set. Stop and return.
 	if (fabsf(speed_pid_set_rpm) < conf.s_pid_min_rpm) {
-		i_term = 0;
+		i_term = dutycycle_now;
 		prev_error = 0;
 		mcpwm_set_duty(0.0);
 		return;
@@ -1633,14 +1633,25 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
-	if (fabsf(current) > 0.5) {
-		float curr_diff = current_in * 1.0 / switching_frequency_now;
-		if (curr_diff > 0.0) {
-			amp_seconds += curr_diff;
-			watt_seconds += curr_diff * input_voltage;
-		} else {
-			amp_seconds_charged -= curr_diff;
-			watt_seconds_charged -= curr_diff * input_voltage;
+	if (fabsf(current) > 1.0) {
+		// Some extra filtering
+		static float curr_diff_sum = 0.0;
+		static float curr_diff_samples = 0;
+
+		curr_diff_sum += current_in / switching_frequency_now;
+		curr_diff_samples += 1.0 / switching_frequency_now;
+
+		if (curr_diff_samples >= 0.01) {
+			if (curr_diff_sum > 0.0) {
+				amp_seconds += curr_diff_sum;
+				watt_seconds += curr_diff_sum * input_voltage;
+			} else {
+				amp_seconds_charged -= curr_diff_sum;
+				watt_seconds_charged -= curr_diff_sum * input_voltage;
+			}
+
+			curr_diff_samples = 0.0;
+			curr_diff_sum = 0.0;
 		}
 	}
 

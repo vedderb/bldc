@@ -265,6 +265,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.timeout_msec = buffer_get_uint32(data, &ind);
 		appconf.timeout_brake_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_to_use = data[ind++];
+
 		appconf.app_ppm_ctrl_type = data[ind++];
 		appconf.app_ppm_pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -274,6 +275,11 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.app_ppm_rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
+
+		appconf.app_chuk_ctrl_type = data[ind++];
+		appconf.app_chuk_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
@@ -288,6 +294,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
 		send_buffer[ind++] = appconf.app_to_use;
+
 		send_buffer[ind++] = appconf.app_ppm_ctrl_type;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pid_max_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_hyst * 1000.0), &ind);
@@ -297,6 +304,11 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_rpm_lim_end * 1000.0), &ind);
 
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
+
+		send_buffer[ind++] = appconf.app_chuk_ctrl_type;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_hyst * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_rpm_lim_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_rpm_lim_end * 1000.0), &ind);
 
 		send_packet(send_buffer, ind);
 		break;
@@ -337,6 +349,13 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_servo(0) * 1000000.0), &ind);
+		send_packet(send_buffer, ind);
+		break;
+
+	case COMM_GET_DECODED_CHUK:
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
+		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
 		send_packet(send_buffer, ind);
 		break;
 

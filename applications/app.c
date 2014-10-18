@@ -25,6 +25,7 @@
 #include "app.h"
 #include "ch.h"
 #include "hal.h"
+#include "hw.h"
 
 // Private variables
 static app_configuration appconf;
@@ -41,11 +42,13 @@ void app_init(app_configuration *conf) {
 		break;
 
 	case APP_UART:
+		hw_stop_i2c_uart();
 		app_uartcomm_configure(appconf.app_uart_baudrate);
 		app_uartcomm_start();
 		break;
 
 	case APP_PPM_UART:
+		hw_stop_i2c_uart();
 		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm,
 				appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
 				appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
@@ -54,8 +57,15 @@ void app_init(app_configuration *conf) {
 		app_uartcomm_start();
 		break;
 
+	case APP_NUNCHUK:
+		app_nunchuk_configure(appconf.app_chuk_ctrl_type, appconf.app_chuk_hyst,
+				appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end);
+		app_nunchuk_start();
+		break;
+
 	case APP_CUSTOM:
 #ifdef USE_APP_STEN
+		hw_stop_i2c_uart();
 		app_sten_init();
 #endif
 #ifdef USE_APP_GURGALOF
@@ -85,4 +95,6 @@ void app_set_configuration(app_configuration *conf) {
 			appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
 			appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
+	app_nunchuk_configure(appconf.app_chuk_ctrl_type, appconf.app_chuk_hyst,
+			appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end);
 }
