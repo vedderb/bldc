@@ -16,22 +16,28 @@
  */
 
 /*
- * hw_40.c
+ * hw_45.c
  *
- *  Created on: 14 apr 2014
+ *  Created on: 19 okt 2014
  *      Author: benjamin
  */
 
 #include "hw.h"
-#ifdef HW_VERSION_40
+#ifdef HW_VERSION_45
 
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "servo.h"
+#include "commands.h"
+
+// Threads
+static msg_t temp_thread(void *arg);
+static WORKING_AREA(temp_thread_wa, 1024);
 
 // Variables
 static volatile bool i2c_running = false;
+static volatile float temp_now = 30.0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -135,6 +141,9 @@ void hw_setup_adc_channels(void) {
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_6, 1, ADC_SampleTime_3Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_5, 1, ADC_SampleTime_3Cycles);
+
+	// Setup i2c temperature sensor here
+	chThdCreateStatic(temp_thread_wa, sizeof(temp_thread_wa), NORMALPRIO, temp_thread, NULL);
 }
 
 void hw_setup_servo_outputs(void) {
@@ -188,6 +197,46 @@ void hw_stop_i2c(void) {
 	}
 
 	i2cReleaseBus(&HW_I2C_DEV);
+}
+
+static msg_t temp_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("I2C Temp samp");
+
+	uint8_t rxbuf[10];
+	uint8_t txbuf[10];
+	msg_t status = RDY_OK;
+	systime_t tmo = MS2ST(5);
+	i2caddr_t temp_addr = 0x48;
+
+	hw_start_i2c();
+	chThdSleepMilliseconds(10);
+
+	for(;;) {
+		if (i2c_running) {
+			txbuf[0] = 0x00;
+			i2cAcquireBus(&HW_I2C_DEV);
+			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 1, rxbuf, 2, tmo);
+			i2cReleaseBus(&HW_I2C_DEV);
+
+			if (status == RDY_OK){
+				int16_t tempi = rxbuf[0] << 8 | rxbuf[1];
+				float temp = (float)tempi;
+				temp /= 128;
+
+				temp_now = temp;
+			}
+		}
+
+		chThdSleepMilliseconds(100);
+	}
+
+	return 0;
+}
+
+float hw45_get_temp(void) {
+	return temp_now;
 }
 
 #endif

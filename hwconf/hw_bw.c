@@ -30,6 +30,16 @@
 #include "stm32f4xx_conf.h"
 #include "servo.h"
 
+// Variables
+static volatile bool i2c_running = false;
+
+// I2C configuration
+static const I2CConfig i2cfg = {
+		OPMODE_I2C,
+		100000,
+		FAST_DUTY_CYCLE_2
+};
+
 void hw_init_gpio(void) {
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -143,14 +153,41 @@ void hw_setup_servo_outputs(void) {
 	servos[1].pos = 0;
 }
 
-void hw_stop_i2c_uart(void) {
-	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
-	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
-	palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
-	palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
+void hw_start_i2c(void) {
+	i2cAcquireBus(&HW_I2C_DEV);
 
-	uartStop(&HW_UART_DEV);
-	i2cStop(&HW_I2C_DEV);
+	if (!i2c_running) {
+		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+				PAL_STM32_OTYPE_OPENDRAIN |
+				PAL_STM32_OSPEED_MID1 |
+				PAL_STM32_PUDR_PULLUP);
+		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+				PAL_STM32_OTYPE_OPENDRAIN |
+				PAL_STM32_OSPEED_MID1 |
+				PAL_STM32_PUDR_PULLUP);
+
+		i2cStart(&HW_I2C_DEV, &i2cfg);
+		i2c_running = true;
+	}
+
+	i2cReleaseBus(&HW_I2C_DEV);
+}
+
+void hw_stop_i2c(void) {
+	i2cAcquireBus(&HW_I2C_DEV);
+
+	if (i2c_running) {
+		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
+		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
+
+		i2cStop(&HW_I2C_DEV);
+		i2c_running = false;
+
+	}
+
+	i2cReleaseBus(&HW_I2C_DEV);
 }
 
 #endif

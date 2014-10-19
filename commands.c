@@ -183,6 +183,11 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.l_slow_abs_current = data[ind++];
 		mcconf.l_rpm_lim_neg_torque = data[ind++];
 
+		mcconf.lo_current_max = mcconf.l_current_max;
+		mcconf.lo_current_min = mcconf.l_current_min;
+		mcconf.lo_in_current_max = mcconf.l_in_current_max;
+		mcconf.lo_in_current_min = mcconf.l_in_current_min;
+
 		mcconf.sl_is_sensorless = data[ind++];
 		mcconf.sl_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_min_erpm_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;

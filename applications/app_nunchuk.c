@@ -57,15 +57,7 @@ static volatile float hysteres = 0.15;
 static volatile float rpm_lim_start = 200000.0;
 static volatile float rpm_lim_end = 250000.0;
 static volatile CHUCK_DATA chuck_data;
-static i2cflags_t i2c_errors = 0;
-static int chuck_error = 0;
-
-// I2C configuration
-static const I2CConfig i2cfg = {
-		OPMODE_I2C,
-		100000,
-		FAST_DUTY_CYCLE_2
-};
+static volatile int chuck_error = 0;
 
 void app_nunchuk_configure(chuk_control_type ctrlt,
 		float hyst, float lim_rpm_start, float lim_rpm_end) {
@@ -98,19 +90,7 @@ static msg_t chuk_thread(void *arg) {
 	systime_t tmo = MS2ST(5);
 	i2caddr_t chuck_addr = 0x52;
 
-	palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-			PAL_STM32_OTYPE_OPENDRAIN |
-			PAL_STM32_OSPEED_MID1 |
-			PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-			PAL_STM32_OTYPE_OPENDRAIN |
-			PAL_STM32_OSPEED_MID1 |
-			PAL_STM32_PUDR_PULLUP);
-
-	i2cStart(&HW_I2C_DEV, &i2cfg);
-
+	hw_start_i2c();
 	chThdSleepMilliseconds(10);
 
 	for(;;) {
@@ -138,12 +118,9 @@ static msg_t chuk_thread(void *arg) {
 		i2cReleaseBus(&HW_I2C_DEV);
 
 		if (status == RDY_OK){
-			i2c_errors = 0;
-
 			static uint8_t last_buffer[10];
-			static int same_cnt = 0;
-
 			int same = 1;
+
 			for (int i = 0;i < 6;i++) {
 				if (last_buffer[i] != rxbuf[i]) {
 					same = 0;
@@ -152,11 +129,8 @@ static msg_t chuk_thread(void *arg) {
 
 			memcpy(last_buffer, rxbuf, 6);
 
-			if (same) {
-				same_cnt++;
-			} else {
-				same_cnt = 0;
-
+			if (!same) {
+				chuck_error = 0;
 				chuck_data.js_x = rxbuf[0];
 				chuck_data.js_y = rxbuf[1];
 				chuck_data.acc_x = (rxbuf[2] << 2) | ((rxbuf[5] >> 2) & 3);
@@ -164,17 +138,14 @@ static msg_t chuk_thread(void *arg) {
 				chuck_data.acc_z = (rxbuf[4] << 2) | ((rxbuf[5] >> 6) & 3);
 				chuck_data.bt_z = !((rxbuf[5] >> 0) & 1);
 				chuck_data.bt_c = !((rxbuf[5] >> 1) & 1);
+
+				timeout_reset();
 			}
 
-			if (same_cnt < 100) {
-				chuck_error = 0;
-				timeout_reset();
-			} else {
+			if (timeout_has_timeout()) {
 				chuck_error = 1;
-				// Do nothing and let the motor controller handle the problem
 			}
 		} else {
-			i2c_errors = i2cGetErrors(&HW_I2C_DEV);
 			chuck_error = 2;
 			// Do nothing and let the motor controller handle the problem
 		}

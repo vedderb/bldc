@@ -90,6 +90,11 @@ typedef struct {
 	float l_max_vin;
 	bool l_slow_abs_current;
 	bool l_rpm_lim_neg_torque;
+	// Overridden limits (Computed during runtime)
+	float lo_current_max;
+	float lo_current_min;
+	float lo_in_current_max;
+	float lo_in_current_min;
 	// Sensorless
 	bool sl_is_sensorless;
 	float sl_min_erpm;

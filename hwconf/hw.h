@@ -29,6 +29,8 @@
 
 #ifdef HW_VERSION_40
 #include "hw_40.h"
+#elif defined HW_VERSION_45
+#include "hw_45.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
 #elif defined HW_VERSION_BW
@@ -41,6 +43,7 @@
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
 void hw_setup_servo_outputs(void);
-void hw_stop_i2c_uart(void);
+void hw_start_i2c(void);
+void hw_stop_i2c(void);
 
 #endif /* HW_H_ */

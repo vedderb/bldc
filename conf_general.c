@@ -224,6 +224,11 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;
 		conf->l_rpm_lim_neg_torque = MCPWM_RPM_LIMIT_NEG_TORQUE;
 
+		conf->lo_current_max = conf->l_current_max;
+		conf->lo_current_min = conf->l_current_min;
+		conf->lo_in_current_max = conf->l_in_current_max;
+		conf->lo_in_current_min = conf->l_in_current_min;
+
 		conf->sl_is_sensorless = MCPWM_IS_SENSORLESS;
 		conf->sl_min_erpm = MCPWM_MIN_RPM;
 		conf->sl_min_erpm_cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_MIN_RPM;

@@ -42,13 +42,13 @@ void app_init(app_configuration *conf) {
 		break;
 
 	case APP_UART:
-		hw_stop_i2c_uart();
+		hw_stop_i2c();
 		app_uartcomm_configure(appconf.app_uart_baudrate);
 		app_uartcomm_start();
 		break;
 
 	case APP_PPM_UART:
-		hw_stop_i2c_uart();
+		hw_stop_i2c();
 		app_ppm_configure(appconf.app_ppm_ctrl_type, appconf.app_ppm_pid_max_erpm,
 				appconf.app_ppm_hyst, appconf.app_ppm_pulse_start, appconf.app_ppm_pulse_width,
 				appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
@@ -65,7 +65,7 @@ void app_init(app_configuration *conf) {
 
 	case APP_CUSTOM:
 #ifdef USE_APP_STEN
-		hw_stop_i2c_uart();
+		hw_stop_i2c();
 		app_sten_init();
 #endif
 #ifdef USE_APP_GURGALOF

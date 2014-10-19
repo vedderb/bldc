@@ -145,6 +145,7 @@ static void set_next_timer_settings(mc_timer_struct *settings);
 static void set_switching_frequency(float frequency);
 static int try_input(void);
 static void do_dc_cal(void);
+static void update_override_limits(volatile mc_configuration *conf);
 
 // Defines
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
@@ -469,6 +470,7 @@ void mcpwm_set_configuration(mc_configuration *configuration) {
 
 	utils_sys_lock_cnt();
 	conf = *configuration;
+	update_override_limits(&conf);
 	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
 	utils_sys_unlock_cnt();
 }
@@ -509,6 +511,42 @@ static void do_dc_cal(void) {
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
 	DCCAL_OFF();
+}
+
+/**
+ * Update the override limits for a configuration based on MOSFET temperature etc.
+ *
+ * @param conf
+ * The configaration to update.
+ */
+static void update_override_limits(volatile mc_configuration *conf) {
+	float temp = NTC_TEMP(ADC_IND_TEMP_MOS1);
+
+	if (temp < MCPWM_OVERTEMP_LIM_START) {
+		conf->lo_current_min = conf->l_current_min;
+		conf->lo_current_max = conf->l_current_max;
+	} else if (temp > MCPWM_OVERTEMP_LIM_END) {
+		conf->lo_current_min = 0.0;
+		conf->lo_current_max = 0.0;
+	} else {
+		float maxc = fabsf(conf->l_current_max);
+		if (fabsf(conf->l_current_min) > maxc) {
+			maxc = fabsf(conf->l_current_min);
+		}
+
+		maxc = utils_map(temp, MCPWM_OVERTEMP_LIM_START, MCPWM_OVERTEMP_LIM_END, maxc, conf->cc_min_current);
+
+		if (fabsf(conf->l_current_max) > maxc) {
+			conf->lo_current_max = SIGN(conf->l_current_max) * maxc;
+		}
+
+		if (fabsf(conf->l_current_min) > maxc) {
+			conf->lo_current_min = SIGN(conf->l_current_min) * maxc;
+		}
+	}
+
+	conf->lo_in_current_max = conf->l_in_current_max;
+	conf->lo_in_current_min = conf->l_in_current_min;
 }
 
 /**
@@ -562,7 +600,7 @@ void mcpwm_set_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, conf.l_current_min, conf.l_current_max);
+	utils_truncate_number(&current, conf.lo_current_min, conf.lo_current_max);
 
 	control_mode = CONTROL_MODE_CURRENT;
 	current_set = current;
@@ -590,7 +628,7 @@ void mcpwm_set_brake_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -fabsf(conf.l_current_min), fabsf(conf.l_current_min));
+	utils_truncate_number(&current, -fabsf(conf.lo_current_min), fabsf(conf.lo_current_min));
 
 	control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	current_set = current;
@@ -1297,6 +1335,8 @@ static msg_t timer_thread(void *arg) {
 			}
 		}
 
+		update_override_limits(&conf);
+
 		chThdSleepMilliseconds(1);
 	}
 
@@ -1761,19 +1801,19 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		static int limit_delay = 0;
 
 		// Apply limits in priority order
-		if (current_nofilter > conf.l_current_max) {
+		if (current_nofilter > conf.lo_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_nofilter - conf.l_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current_nofilter < conf.l_current_min) {
+		} else if (current_nofilter < conf.lo_current_min) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
-		} else if (current_in_nofilter > conf.l_in_current_max) {
+		} else if (current_in_nofilter > conf.lo_in_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_in_nofilter - conf.l_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
-		} else if (current_in_nofilter < conf.l_in_current_min) {
+		} else if (current_in_nofilter < conf.lo_in_current_min) {
 			utils_step_towards((float*) &dutycycle_now,
 					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
 			limit_delay = 1;
