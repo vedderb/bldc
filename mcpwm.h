@@ -99,8 +99,8 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_CURRENT_LIMIT_GAIN		1.0		// The error gain of the current limiting algorithm
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
-#define MCPWM_OVERTEMP_LIM_START		80.0	// Temperature where current limiting should begin
-#define MCPWM_OVERTEMP_LIM_END			100.0	// Temperature where everything should be shut off
+#define MCPWM_OVERTEMP_LIM_START		90.0	// Temperature where current limiting should begin
+#define MCPWM_OVERTEMP_LIM_END			110.0	// Temperature where everything should be shut off
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds

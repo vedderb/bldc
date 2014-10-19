@@ -1595,14 +1595,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				v_diff = 0;
 			}
 
-			static int zero_diff_iterations = 0;
+			static int neg_diff_iterations = 0;
 
 			if (v_diff > 0) {
 				cycle_integrator += (float)v_diff / switching_frequency_now;
-				zero_diff_iterations = 0;
+				neg_diff_iterations = 0;
 			} else {
-				zero_diff_iterations++;
-				if (zero_diff_iterations >= 2) {
+				neg_diff_iterations++;
+				if (neg_diff_iterations >= 2) {
 					cycle_integrator = 0;
 				}
 			}
