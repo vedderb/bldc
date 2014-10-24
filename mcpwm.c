@@ -13,7 +13,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 /*
  * mcpwm.c
@@ -35,9 +35,11 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "hw.h"
+#include "terminal.h"
 
 // Structs
 typedef struct {
+	volatile bool updated;
 	volatile unsigned int top;
 	volatile unsigned int duty;
 	volatile unsigned int val_sample;
@@ -92,6 +94,7 @@ static volatile float amp_seconds;
 static volatile float amp_seconds_charged;
 static volatile float watt_seconds;
 static volatile float watt_seconds_charged;
+static volatile bool dccal_done;
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -142,6 +145,7 @@ static void update_rpm_tacho(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(int steps);
 static void set_next_timer_settings(mc_timer_struct *settings);
+static void update_timer_attempt(void);
 static void set_switching_frequency(float frequency);
 static int try_input(void);
 static void do_dc_cal(void);
@@ -203,6 +207,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	amp_seconds_charged = 0.0;
 	watt_seconds = 0.0;
 	watt_seconds_charged = 0.0;
+	dccal_done = false;
 
 	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
 
@@ -511,6 +516,7 @@ static void do_dc_cal(void) {
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
 	DCCAL_OFF();
+	dccal_done = true;
 }
 
 /**
@@ -704,6 +710,17 @@ mc_state mcpwm_get_state(void) {
 
 mc_fault_code mcpwm_get_fault(void) {
 	return fault_now;
+}
+
+const char* mcpwm_fault_to_string(mc_fault_code fault) {
+	switch (fault) {
+	case FAULT_CODE_NONE: return "FAULT_CODE_NONE"; break;
+	case FAULT_CODE_OVER_VOLTAGE: return "FAULT_CODE_OVER_VOLTAGE"; break;
+	case FAULT_CODE_UNDER_VOLTAGE: return "FAULT_CODE_UNDER_VOLTAGE"; break;
+	case FAULT_CODE_DRV8302: return "FAULT_CODE_DRV8302"; break;
+	case FAULT_CODE_ABS_OVER_CURRENT: return "FAULT_CODE_ABS_OVER_CURRENT"; break;
+	default: return "FAULT_UNKNOWN"; break;
+	}
 }
 
 /**
@@ -939,6 +956,28 @@ static void full_brake_hw(void) {
 }
 
 static void fault_stop(mc_fault_code fault) {
+	if (dccal_done && fault_now == FAULT_CODE_NONE) {
+		// Sent to terminal fault logger so that all faults and their conditions
+		// can be printed for debugging.
+		chSysLock();
+		volatile int t1_cnt = TIM1->CNT;
+		volatile int t8_cnt = TIM8->CNT;
+		chSysUnlock();
+
+		fault_data fdata;
+		fdata.fault = fault;
+		fdata.current = mcpwm_get_tot_current();
+		fdata.current_filtered = mcpwm_get_tot_current_filtered();
+		fdata.duty = dutycycle_now;
+		fdata.rpm = mcpwm_get_rpm();
+		fdata.tacho = mcpwm_get_tachometer_value(false);
+		fdata.tim_pwm_cnt = t1_cnt;
+		fdata.tim_samp_cnt = t8_cnt;
+		fdata.comm_step = comm_step;
+		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS1);
+		terminal_add_fault_data(&fdata);
+	}
+
 	ignore_iterations = conf.m_fault_stop_time_ms;
 	control_mode = CONTROL_MODE_NONE;
 	state = MC_STATE_OFF;
@@ -1171,12 +1210,10 @@ static msg_t rpm_thread(void *arg) {
 			rpm_dep.time_at_comm = 0;
 			utils_sys_unlock_cnt();
 
-			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0)
-					/ (time_at_comm * 6.0);
+			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
 		} else {
 			// In case we have slowed down
-			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0)
-					/ ((float) TIM2 ->CNT * 6.0);
+			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0) / ((float) TIM2 ->CNT * 6.0);
 
 			if (fabsf(rpm_tmp) < fabsf(rpm_now)) {
 				rpm_now = rpm_tmp;
@@ -1191,8 +1228,8 @@ static msg_t rpm_thread(void *arg) {
 
 		// Update the cycle integrator limit
 		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
-									conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
-									conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
+				conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
+				conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / (rpm_abs > conf.sl_min_erpm ? rpm_abs : conf.sl_min_erpm);
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
@@ -1367,11 +1404,35 @@ void mcpwm_adc_inj_int_handler(void) {
 
 	float curr_tot_sample = 0;
 
+	/*
+	 * Commutation Steps FORWARDS
+	 * STEP		BR1		BR2		BR3
+	 * 1		0		+		-
+	 * 2		+		0		-
+	 * 3		+		-		0
+	 * 4		0		-		+
+	 * 5		-		0		+
+	 * 6		-		+		0
+	 *
+	 * Commutation Steps REVERSE (switch phase 2 and 3)
+	 * STEP		BR1		BR2		BR3
+	 * 1		0		-		+
+	 * 2		+		-		0
+	 * 3		+		0		-
+	 * 4		0		+		-
+	 * 5		-		+		0
+	 * 6		-		0		+
+	 */
+
 	switch (comm_step) {
 	case 1:
 	case 6:
 		if (direction) {
-			curr_tot_sample = (float)ADC_curr_norm_value[2];
+			if (comm_step == 1) {
+				curr_tot_sample = -(float)ADC_curr_norm_value[1];
+			} else {
+				curr_tot_sample = -(float)ADC_curr_norm_value[0];
+			}
 		} else {
 			curr_tot_sample = (float)ADC_curr_norm_value[1];
 		}
@@ -1387,7 +1448,11 @@ void mcpwm_adc_inj_int_handler(void) {
 		if (direction) {
 			curr_tot_sample = (float)ADC_curr_norm_value[1];
 		} else {
-			curr_tot_sample = (float)ADC_curr_norm_value[2];
+			if (comm_step == 4) {
+				curr_tot_sample = -(float)ADC_curr_norm_value[1];
+			} else {
+				curr_tot_sample = -(float)ADC_curr_norm_value[0];
+			}
 		}
 		break;
 	}
@@ -1456,27 +1521,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	TIM4->CNT = 0;
 
 	// Set the next timer settings if an update is far enough away
-	utils_sys_lock_cnt();
-	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 400)) {
-		// Disable preload register updates
-		TIM1->CR1 |= TIM_CR1_UDIS;
-		TIM8->CR1 |= TIM_CR1_UDIS;
-
-		// Set the new configuration
-		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = 0xFFFF;
-		TIM1->CCR1 = timer_struct.duty;
-		TIM1->CCR2 = timer_struct.duty;
-		TIM1->CCR3 = timer_struct.duty;
-		TIM8->CCR1 = timer_struct.val_sample;
-		TIM1->CCR4 = timer_struct.curr1_sample;
-		TIM8->CCR2 = timer_struct.curr2_sample;
-
-		// Enables preload register updates
-		TIM1->CR1 &= ~TIM_CR1_UDIS;
-		TIM8->CR1 &= ~TIM_CR1_UDIS;
-	}
-	utils_sys_unlock_cnt();
+	update_timer_attempt();
 
 	// Reset the watchdog
 	WWDG_SetCounter(100);
@@ -1532,6 +1577,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		ph2_raw = ADC_V_L3;
 		ph3_raw = ADC_V_L2;
 	}
+
+	update_timer_attempt();
 
 	float amp = 0.0;
 
@@ -1591,25 +1638,17 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				break;
 			}
 
+			// Don't commutate while the motor is standing still and the signal only consists
+			// of weak noise.
 			if (abs(v_diff) < 10) {
 				v_diff = 0;
 			}
 
-			static int neg_diff_iterations = 0;
-
 			if (v_diff > 0) {
-				cycle_integrator += (float)v_diff / switching_frequency_now;
-				neg_diff_iterations = 0;
-			} else {
-				neg_diff_iterations++;
-				if (neg_diff_iterations >= 2) {
-					cycle_integrator = 0;
+				if (pwm_cycles_sum > (last_pwm_cycles_sum / 2.0) ||
+						!has_commutated || (ph_now_raw > 100 && ph_now_raw < (ADC_Value[ADC_IND_VIN_SENS] - 100))) {
+					cycle_integrator += (float)v_diff / switching_frequency_now;
 				}
-			}
-
-			if (pwm_cycles_sum < (last_pwm_cycles_sum / 4.0) &&
-					has_commutated && (ph_now_raw < 20 || ph_now_raw > (ADC_Value[ADC_IND_VIN_SENS] - 20))) {
-				cycle_integrator = 0;
 			}
 
 			if (conf.comm_mode == COMM_MODE_INTEGRATE) {
@@ -1673,6 +1712,16 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	motor_current_iterations++;
 	input_current_iterations++;
 
+	if (conf.l_slow_abs_current) {
+		if (fabsf(current) > conf.l_abs_current_max) {
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+		}
+	} else {
+		if (fabsf(current_nofilter) > conf.l_abs_current_max) {
+			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
+		}
+	}
+
 	if (fabsf(current) > 1.0) {
 		// Some extra filtering
 		static float curr_diff_sum = 0.0;
@@ -1692,16 +1741,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			curr_diff_samples = 0.0;
 			curr_diff_sum = 0.0;
-		}
-	}
-
-	if (conf.l_slow_abs_current) {
-		if (fabsf(current) > conf.l_abs_current_max) {
-			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
-		}
-	} else {
-		if (fabsf(current_nofilter) > conf.l_abs_current_max) {
-			fault_stop(FAULT_CODE_ABS_OVER_CURRENT);
 		}
 	}
 
@@ -1806,16 +1845,16 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_nofilter < conf.lo_current_min) {
-			utils_step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
+			utils_step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_in_nofilter > conf.lo_in_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_in_nofilter < conf.lo_in_current_min) {
-			utils_step_towards((float*) &dutycycle_now,
-					direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE, ramp_step_no_lim);
+			utils_step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (rpm > conf.l_max_erpm) {
 			if ((conf.l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
@@ -2126,6 +2165,8 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			// Current samples
 			curr1_sample = duty + 2 * (top - duty) / 3;
 			curr2_sample = duty + 2 * (top - duty) / 3;
+			//			curr1_sample = top - 20;
+			//			curr2_sample = top - 20;
 		}
 	}
 
@@ -2201,18 +2242,28 @@ static void commutate(int steps) {
 
 static void set_next_timer_settings(mc_timer_struct *settings) {
 	utils_sys_lock_cnt();
-
 	timer_struct = *settings;
+	timer_struct.updated = false;
+	utils_sys_unlock_cnt();
+
+	update_timer_attempt();
+}
+
+/**
+ * Try to apply the new timer settings. This is really not an elegant solution, but for now it is
+ * the best I can come up with.
+ */
+static void update_timer_attempt(void) {
+	utils_sys_lock_cnt();
 
 	// Set the next timer settings if an update is far enough away
-	if (TIM1->CNT > 20 && TIM1->CNT < (TIM1->ARR - 400)) {
+	if (!timer_struct.updated && TIM1->CNT > 10 && TIM1->CNT < (TIM1->ARR - 500)) {
 		// Disable preload register updates
 		TIM1->CR1 |= TIM_CR1_UDIS;
 		TIM8->CR1 |= TIM_CR1_UDIS;
 
 		// Set the new configuration
 		TIM1->ARR = timer_struct.top;
-		TIM8->ARR = 0xFFFF;
 		TIM1->CCR1 = timer_struct.duty;
 		TIM1->CCR2 = timer_struct.duty;
 		TIM1->CCR3 = timer_struct.duty;
@@ -2223,6 +2274,7 @@ static void set_next_timer_settings(mc_timer_struct *settings) {
 		// Enables preload register updates
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
+		timer_struct.updated = true;
 	}
 
 	utils_sys_unlock_cnt();

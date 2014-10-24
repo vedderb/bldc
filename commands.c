@@ -407,17 +407,6 @@ void commands_send_rotor_pos(float rotor_pos) {
 	send_packet(buffer, index);
 }
 
-void commands_print_fault_code(mc_fault_code fault_code) {
-	switch (fault_code) {
-	case FAULT_CODE_NONE: commands_printf("FAULT_CODE_NONE\n"); break;
-	case FAULT_CODE_OVER_VOLTAGE: commands_printf("FAULT_CODE_OVER_VOLTAGE\n"); break;
-	case FAULT_CODE_UNDER_VOLTAGE: commands_printf("FAULT_CODE_UNDER_VOLTAGE\n"); break;
-	case FAULT_CODE_DRV8302: commands_printf("FAULT_CODE_DRV8302\n"); break;
-	case FAULT_CODE_ABS_OVER_CURRENT: commands_printf("FAULT_CODE_ABS_OVER_CURRENT\n"); break;
-	default: break;
-	}
-}
-
 void commands_send_experiment_samples(float *samples, int len) {
 	if ((len * 4 + 1) > 256) {
 		return;

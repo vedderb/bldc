@@ -26,12 +26,16 @@
 #include "hal.h"
 #include "terminal.h"
 #include "commands.h"
-#include "mcpwm.h"
 #include "main.h"
 #include "hw.h"
 
 #include <string.h>
 #include <stdio.h>
+
+// Private variables
+#define FAULT_VEC_LEN						30
+static volatile fault_data fault_vec[FAULT_VEC_LEN];
+static volatile int fault_vec_write = 0;
 
 void terminal_process_string(char *str) {
 	enum { kMaxArgs = 64 };
@@ -81,7 +85,25 @@ void terminal_process_string(char *str) {
 		} while (tp != NULL);
 		commands_printf("");
 	} else if (strcmp(argv[0], "fault") == 0) {
-		commands_print_fault_code(mcpwm_get_fault());
+		commands_printf("%s\n", mcpwm_fault_to_string(mcpwm_get_fault()));
+	} else if (strcmp(argv[0], "faults") == 0) {
+		if (fault_vec_write == 0) {
+			commands_printf("No faults registered since startup\n");
+		} else {
+			commands_printf("The following faults were registered since start:\n");
+			for (int i = 0;i < fault_vec_write;i++) {
+				commands_printf("Fault            : %s", mcpwm_fault_to_string(fault_vec[i].fault));
+				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
+				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
+				commands_printf("Duty             : %.2f", (double)fault_vec[i].duty);
+				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
+				commands_printf("Tacho            : %d", fault_vec[i].tacho);
+				commands_printf("TIM PWM CNT      : %d", fault_vec[i].tim_pwm_cnt);
+				commands_printf("TIM Samp CNT     : %d", fault_vec[i].tim_samp_cnt);
+				commands_printf("Comm step        : %d", fault_vec[i].comm_step);
+				commands_printf("Temperature      : %.2f\n", (double)fault_vec[i].temperature);
+			}
+		}
 	} else if (strcmp(argv[0], "rpm") == 0) {
 		commands_printf("Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
@@ -191,6 +213,9 @@ void terminal_process_string(char *str) {
 		commands_printf("fault");
 		commands_printf("  Prints the current fault code");
 
+		commands_printf("faults");
+		commands_printf("  Prints all stored fault codes and conditions when they arrived");
+
 		commands_printf("rpm");
 		commands_printf("  Prints the current electrical RPM");
 
@@ -218,3 +243,11 @@ void terminal_process_string(char *str) {
 				"type help to list all available commands\n", argv[0]);
 	}
 }
+
+void terminal_add_fault_data(fault_data *data) {
+	fault_vec[fault_vec_write++] = *data;
+	if (fault_vec_write >= FAULT_VEC_LEN) {
+		fault_vec_write = 0;
+	}
+}
+

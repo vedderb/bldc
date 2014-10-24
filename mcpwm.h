@@ -47,6 +47,7 @@ float mcpwm_get_switching_frequency_now(void);
 float mcpwm_get_rpm(void);
 mc_state mcpwm_get_state(void);
 mc_fault_code mcpwm_get_fault(void);
+const char* mcpwm_fault_to_string(mc_fault_code fault);
 float mcpwm_get_kv(void);
 float mcpwm_get_kv_filtered(void);
 int mcpwm_get_tachometer_value(bool reset);
@@ -96,7 +97,7 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
 #define MCPWM_RAMP_STEP_CURRENT_MAX		0.04	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
-#define MCPWM_CURRENT_LIMIT_GAIN		1.0		// The error gain of the current limiting algorithm
+#define MCPWM_CURRENT_LIMIT_GAIN		2.0		// The error gain of the current limiting algorithm
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 #define MCPWM_OVERTEMP_LIM_START		90.0	// Temperature where current limiting should begin

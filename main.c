@@ -107,7 +107,7 @@ static msg_t periodic_thread(void *arg) {
 			ledpwm_set_intensity(LED_RED, 1.0);
 			if (!fault_print && AUTO_PRINT_FAULTS) {
 				fault_print = 1;
-				commands_print_fault_code(mcpwm_get_fault());
+				commands_printf("%s\n", mcpwm_fault_to_string(mcpwm_get_fault()));
 			}
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
