@@ -35,6 +35,8 @@
 #include "hw_r2.h"
 #elif defined HW_VERSION_BW
 #include "hw_bw.h"
+#elif defined HW_VERSION_VICTOR_R1A
+#include "hw_victor_r1a.h"
 #else
 #error "No hardware version defined"
 #endif
