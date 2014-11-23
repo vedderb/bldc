@@ -199,6 +199,36 @@ void hw_stop_i2c(void) {
 	i2cReleaseBus(&HW_I2C_DEV);
 }
 
+/**
+ * Try to restore the i2c bus
+ */
+void hw_try_restore_i2c(void) {
+	if (i2c_running) {
+		i2cAcquireBus(&HW_I2C_DEV);
+		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+				PAL_STM32_OTYPE_OPENDRAIN |
+				PAL_STM32_OSPEED_MID1 |
+				PAL_STM32_PUDR_PULLUP);
+
+		for(int i = 0;i < 16;i++) {
+			palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+			chThdSleep(1);
+			palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+			chThdSleep(1);
+		}
+
+		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+				PAL_STM32_OTYPE_OPENDRAIN |
+				PAL_STM32_OSPEED_MID1 |
+				PAL_STM32_PUDR_PULLUP);
+
+		i2cStop(&HW_I2C_DEV);
+		i2cStart(&HW_I2C_DEV, &i2cfg);
+		i2cReleaseBus(&HW_I2C_DEV);
+	}
+}
+
 static msg_t temp_thread(void *arg) {
 	(void)arg;
 
@@ -227,29 +257,7 @@ static msg_t temp_thread(void *arg) {
 
 				temp_now = temp;
 			} else {
-				// Try to restore the i2c bus
-				i2cAcquireBus(&HW_I2C_DEV);
-				palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-						PAL_STM32_OTYPE_OPENDRAIN |
-						PAL_STM32_OSPEED_MID1 |
-						PAL_STM32_PUDR_PULLUP);
-
-				for(int i = 0;i < 16;i++) {
-					palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-					chThdSleep(1);
-					palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-					chThdSleep(1);
-				}
-
-				palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-						PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-						PAL_STM32_OTYPE_OPENDRAIN |
-						PAL_STM32_OSPEED_MID1 |
-						PAL_STM32_PUDR_PULLUP);
-
-				i2cStop(&HW_I2C_DEV);
-				i2cStart(&HW_I2C_DEV, &i2cfg);
-				i2cReleaseBus(&HW_I2C_DEV);
+				hw_try_restore_i2c();
 			}
 		}
 

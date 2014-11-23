@@ -16,14 +16,14 @@
  */
 
 /*
- * hw_bw.c
+ * hw_46.c
  *
- *  Created on: 14 apr 2014
+ *  Created on: 22 nov 2014
  *      Author: benjamin
  */
 
 #include "hw.h"
-#ifdef HW_VERSION_BW
+#ifdef HW_VERSION_46
 
 #include "ch.h"
 #include "hal.h"
@@ -114,11 +114,11 @@ void hw_init_gpio(void) {
 }
 
 void hw_setup_adc_channels(void) {
-	// ADC1 regular channels 0, 5, 10, 13
+	// ADC1 regular channels 0, 5, 10, 4
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 2, ADC_SampleTime_3Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_3Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 4, ADC_SampleTime_3Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 4, ADC_SampleTime_3Cycles);
 
 	// ADC2 regular channels 1, 6, 11, 15
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_3Cycles);

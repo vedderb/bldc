@@ -94,30 +94,42 @@ static msg_t chuk_thread(void *arg) {
 	chThdSleepMilliseconds(10);
 
 	for(;;) {
+		bool is_ok = true;
+
 		txbuf[0] = 0xF0;
 		txbuf[1] = 0x55;
 		i2cAcquireBus(&HW_I2C_DEV);
 		status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 2, rxbuf, 0, tmo);
 		i2cReleaseBus(&HW_I2C_DEV);
+		is_ok = status == RDY_OK;
 
-		txbuf[0] = 0xFB;
-		txbuf[1] = 0x00;
-		i2cAcquireBus(&HW_I2C_DEV);
-		status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 2, rxbuf, 0, tmo);
-		i2cReleaseBus(&HW_I2C_DEV);
+		if (is_ok) {
+			txbuf[0] = 0xFB;
+			txbuf[1] = 0x00;
+			i2cAcquireBus(&HW_I2C_DEV);
+			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 2, rxbuf, 0, tmo);
+			i2cReleaseBus(&HW_I2C_DEV);
+			is_ok = status == RDY_OK;
+		}
 
-		txbuf[0] = 0x00;
-		i2cAcquireBus(&HW_I2C_DEV);
-		status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 1, rxbuf, 0, tmo);
-		i2cReleaseBus(&HW_I2C_DEV);
+		if (is_ok) {
+			txbuf[0] = 0x00;
+			i2cAcquireBus(&HW_I2C_DEV);
+			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 1, rxbuf, 0, tmo);
+			i2cReleaseBus(&HW_I2C_DEV);
+			is_ok = status == RDY_OK;
+		}
 
-		chThdSleepMilliseconds(3);
+		if (is_ok) {
+			chThdSleepMilliseconds(3);
 
-		i2cAcquireBus(&HW_I2C_DEV);
-		status = i2cMasterReceiveTimeout(&HW_I2C_DEV, chuck_addr, rxbuf, 6, tmo);
-		i2cReleaseBus(&HW_I2C_DEV);
+			i2cAcquireBus(&HW_I2C_DEV);
+			status = i2cMasterReceiveTimeout(&HW_I2C_DEV, chuck_addr, rxbuf, 6, tmo);
+			i2cReleaseBus(&HW_I2C_DEV);
+			is_ok = status == RDY_OK;
+		}
 
-		if (status == RDY_OK){
+		if (is_ok) {
 			static uint8_t last_buffer[10];
 			int same = 1;
 
@@ -147,7 +159,8 @@ static msg_t chuk_thread(void *arg) {
 			}
 		} else {
 			chuck_error = 2;
-			// Do nothing and let the motor controller handle the problem
+			hw_try_restore_i2c();
+			chThdSleepMilliseconds(30);
 		}
 
 		chThdSleepMilliseconds(10);

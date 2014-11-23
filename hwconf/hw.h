@@ -31,6 +31,8 @@
 #include "hw_40.h"
 #elif defined HW_VERSION_45
 #include "hw_45.h"
+#elif defined HW_VERSION_46
+#include "hw_46.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
 #elif defined HW_VERSION_BW
@@ -47,5 +49,6 @@ void hw_setup_adc_channels(void);
 void hw_setup_servo_outputs(void);
 void hw_start_i2c(void);
 void hw_stop_i2c(void);
+void hw_try_restore_i2c(void);
 
 #endif /* HW_H_ */
