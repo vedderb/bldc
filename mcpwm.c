@@ -528,10 +528,10 @@ static void do_dc_cal(void) {
 static void update_override_limits(volatile mc_configuration *conf) {
 	float temp = NTC_TEMP(ADC_IND_TEMP_MOS1);
 
-	if (temp < MCPWM_OVERTEMP_LIM_START) {
+	if (temp < conf->l_temp_fet_start) {
 		conf->lo_current_min = conf->l_current_min;
 		conf->lo_current_max = conf->l_current_max;
-	} else if (temp > MCPWM_OVERTEMP_LIM_END) {
+	} else if (temp > conf->l_temp_fet_end) {
 		conf->lo_current_min = 0.0;
 		conf->lo_current_max = 0.0;
 	} else {
@@ -540,7 +540,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 			maxc = fabsf(conf->l_current_min);
 		}
 
-		maxc = utils_map(temp, MCPWM_OVERTEMP_LIM_START, MCPWM_OVERTEMP_LIM_END, maxc, conf->cc_min_current);
+		maxc = utils_map(temp, conf->l_temp_fet_start, temp > conf->l_temp_fet_end, maxc, conf->cc_min_current);
 
 		if (fabsf(conf->l_current_max) > maxc) {
 			conf->lo_current_max = SIGN(conf->l_current_max) * maxc;

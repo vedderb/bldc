@@ -123,15 +123,7 @@ static msg_t ppm_thread(void *arg) {
 			break;
 		}
 
-		servo_val /= (1.0 - hysteres);
-
-		if (servo_val > hysteres) {
-			servo_val -= hysteres;
-		} else if (servo_val < -hysteres) {
-			servo_val += hysteres;
-		} else {
-			servo_val = 0.0;
-		}
+		utils_deadband(&servo_val, hysteres, 1.0);
 
 		float current = 0;
 		bool current_mode = false;

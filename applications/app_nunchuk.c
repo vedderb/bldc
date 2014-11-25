@@ -182,16 +182,7 @@ static msg_t output_thread(void *arg) {
 		}
 
 		float out_val = app_nunchuk_get_decoded_chuk();
-
-		out_val /= (1.0 - hysteres);
-
-		if (out_val > hysteres) {
-			out_val -= hysteres;
-		} else if (out_val < -hysteres) {
-			out_val += hysteres;
-		} else {
-			out_val = 0.0;
-		}
+		utils_deadband(&out_val, hysteres, 1.0);
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;

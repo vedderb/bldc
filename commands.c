@@ -182,6 +182,10 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.l_max_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_slow_abs_current = data[ind++];
 		mcconf.l_rpm_lim_neg_torque = data[ind++];
+		mcconf.l_temp_fet_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_temp_fet_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_temp_motor_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_temp_motor_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		mcconf.lo_current_max = mcconf.l_current_max;
 		mcconf.lo_current_min = mcconf.l_current_min;
@@ -236,6 +240,10 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_vin * 1000.0), &ind);
 		send_buffer[ind++] = mcconf.l_slow_abs_current;
 		send_buffer[ind++] = mcconf.l_rpm_lim_neg_torque;
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_end * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_end * 1000.0), &ind);
 
 		send_buffer[ind++] = mcconf.sl_is_sensorless;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm * 1000.0), &ind);

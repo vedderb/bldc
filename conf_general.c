@@ -84,6 +84,18 @@
 #ifndef MCPWM_FAULT_STOP_TIME
 #define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
 #endif
+#ifndef MCPWM_LIM_TEMP_FET_START
+#define MCPWM_LIM_TEMP_FET_START		80.0	// MOSFET temperature where current limiting should begin
+#endif
+#ifndef MCPWM_LIM_TEMP_FET_END
+#define MCPWM_LIM_TEMP_FET_END			100.0	// MOSFET temperature where everything should be shut off
+#endif
+#ifndef MCPWM_LIM_TEMP_MOTOR_START
+#define MCPWM_LIM_TEMP_MOTOR_START		80.0	// MOTOR temperature where current limiting should begin
+#endif
+#ifndef MCPWM_LIM_TEMP_MOTOR_END
+#define MCPWM_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
+#endif
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -106,6 +118,8 @@ void conf_general_init(void) {
 	}
 
 	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 }
 
@@ -170,6 +184,9 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
 
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
 	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
 		var = (conf_addr[2 * i] << 8) & 0xFF00;
 		var |= conf_addr[2 * i + 1] & 0xFF;
@@ -223,6 +240,10 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_max_vin = MCPWM_MAX_VOLTAGE;
 		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;
 		conf->l_rpm_lim_neg_torque = MCPWM_RPM_LIMIT_NEG_TORQUE;
+		conf->l_temp_fet_start = MCPWM_LIM_TEMP_FET_START;
+		conf->l_temp_fet_end = MCPWM_LIM_TEMP_FET_END;
+		conf->l_temp_motor_start = MCPWM_LIM_TEMP_MOTOR_START;
+		conf->l_temp_motor_end = MCPWM_LIM_TEMP_MOTOR_END;
 
 		conf->lo_current_max = conf->l_current_max;
 		conf->lo_current_min = conf->l_current_min;
@@ -269,6 +290,9 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
+
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
 	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
 		var = (conf_addr[2 * i] << 8) & 0xFF00;

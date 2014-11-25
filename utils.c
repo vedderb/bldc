@@ -81,6 +81,24 @@ float utils_map(float x, float in_min, float in_max, float out_min, float out_ma
 }
 
 /**
+ * Truncate absolute values less than tres to zero. The value
+ * tres will be mapped to 0 and the value max to max.
+ */
+void utils_deadband(float *value, float tres, float max) {
+	if (fabsf(*value) < tres) {
+		*value = 0.0;
+	} else {
+		float k = max / (max - tres);
+		if (*value > 0.0) {
+			*value = k * *value + max * (1.0 - k);
+		} else {
+			*value = -(k * -*value + max * (1.0 - k));
+		}
+
+	}
+}
+
+/**
  * A system locking function with a counter. For every lock, a corresponding unlock must
  * exist to unlock the system. That means, if lock is called five times, unlock has to
  * be called five times as well. Note that chSysLock and chSysLockFromIsr are the same
