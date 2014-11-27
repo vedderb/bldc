@@ -27,20 +27,6 @@
 
 #include "mcpwm.h"
 
-// Types
-typedef struct {
-	mc_fault_code fault;
-	float current;
-	float current_filtered;
-	float duty;
-	float rpm;
-	int tacho;
-	int tim_pwm_cnt;
-	int tim_samp_cnt;
-	int comm_step;
-	float temperature;
-} fault_data;
-
 // Functions
 void terminal_process_string(char *str);
 void terminal_add_fault_data(fault_data *data);

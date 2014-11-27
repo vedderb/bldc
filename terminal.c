@@ -95,6 +95,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Fault            : %s", mcpwm_fault_to_string(fault_vec[i].fault));
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
+				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
 				commands_printf("Duty             : %.2f", (double)fault_vec[i].duty);
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);

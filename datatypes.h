@@ -205,4 +205,19 @@ typedef enum {
 	COMM_GET_DECODED_CHUK
 } COMM_PACKET_ID;
 
+// Logged fault data
+typedef struct {
+	mc_fault_code fault;
+	float current;
+	float current_filtered;
+	float voltage;
+	float duty;
+	float rpm;
+	int tacho;
+	int tim_pwm_cnt;
+	int tim_samp_cnt;
+	int comm_step;
+	float temperature;
+} fault_data;
+
 #endif /* DATATYPES_H_ */

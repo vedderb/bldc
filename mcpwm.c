@@ -968,6 +968,7 @@ static void fault_stop(mc_fault_code fault) {
 		fdata.fault = fault;
 		fdata.current = mcpwm_get_tot_current();
 		fdata.current_filtered = mcpwm_get_tot_current_filtered();
+		fdata.voltage = GET_INPUT_VOLTAGE();
 		fdata.duty = dutycycle_now;
 		fdata.rpm = mcpwm_get_rpm();
 		fdata.tacho = mcpwm_get_tachometer_value(false);
@@ -1545,7 +1546,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			input_voltage > conf.l_max_vin) {
 		wrong_voltage_iterations++;
 
-		if ((wrong_voltage_iterations >= 3)) {
+		if ((wrong_voltage_iterations >= 5)) {
 			fault_stop(input_voltage < conf.l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
 		}
