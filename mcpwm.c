@@ -155,7 +155,7 @@ static void update_override_limits(volatile mc_configuration *conf);
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
-static WORKING_AREA(timer_thread_wa, 1024);
+static WORKING_AREA(timer_thread_wa, 2048);
 static msg_t timer_thread(void *arg);
 static WORKING_AREA(rpm_thread_wa, 1024);
 static msg_t rpm_thread(void *arg);
@@ -540,7 +540,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 			maxc = fabsf(conf->l_current_min);
 		}
 
-		maxc = utils_map(temp, conf->l_temp_fet_start, temp > conf->l_temp_fet_end, maxc, conf->cc_min_current);
+		maxc = utils_map(temp, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
 
 		if (fabsf(conf->l_current_max) > maxc) {
 			conf->lo_current_max = SIGN(conf->l_current_max) * maxc;
