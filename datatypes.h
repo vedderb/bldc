@@ -205,6 +205,14 @@ typedef enum {
 	COMM_GET_DECODED_CHUK
 } COMM_PACKET_ID;
 
+// CAN commands
+typedef enum {
+	CAN_PACKET_SET_DUTY = 0,
+	CAN_PACKET_SET_CURRENT,
+	CAN_PACKET_SET_CURRENT_BRAKE,
+	CAN_PACKET_SET_RPM
+} CAN_PACKET_ID;
+
 // Logged fault data
 typedef struct {
 	mc_fault_code fault;

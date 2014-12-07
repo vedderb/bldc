@@ -35,6 +35,7 @@
 #include "packet.h"
 #include "commands.h"
 #include "timeout.h"
+#include "comm_can.h"
 
 /*
  * Timers used:
@@ -44,6 +45,16 @@
  * TIM4: mcpwm
  * TIM8: mcpwm
  * TIM3: servo_dec
+ *
+ * DMA/stream	Device		Function
+ * 1, 2			I2C1		Nunchuk, temp on rev 4.5
+ * 1, 7			I2C1		Nunchuk, temp on rev 4.5
+ * 1, 1			UART3		HW_R2
+ * 1, 3			UART3		HW_R2
+ * 2, 2			UART6		Other HW
+ * 2, 7			UART6		Other HW
+ * 2, 4			ADC			mcpwm
+ *
  */
 
 /*
@@ -282,6 +293,7 @@ int main(void) {
 
 	commands_init();
 	comm_usb_init();
+	comm_can_init();
 
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
