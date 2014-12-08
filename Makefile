@@ -114,6 +114,8 @@ CSRC = $(PORTSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
+       ws2811.c \
+       led_external.c \
        $(HWSRC) \
        $(APPSRC)
        

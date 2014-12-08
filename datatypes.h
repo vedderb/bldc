@@ -228,4 +228,15 @@ typedef struct {
 	float temperature;
 } fault_data;
 
+// External LED state
+typedef enum {
+	LED_EXT_OFF = 0,
+	LED_EXT_NORMAL,
+	LED_EXT_BRAKE,
+	LED_EXT_TURN_LEFT,
+	LED_EXT_TURN_RIGHT,
+	LED_EXT_BRAKE_TURN_LEFT,
+	LED_EXT_BRAKE_TURN_RIGHT
+} LED_EXT_STATE;
+
 #endif /* DATATYPES_H_ */

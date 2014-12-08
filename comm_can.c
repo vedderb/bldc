@@ -132,7 +132,7 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 		txmsg.data8[i] = data[i];
 	}
 
-	msg_t res = canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
+	canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
 }
 
 void comm_can_set_duty(uint8_t controller_id, float duty) {

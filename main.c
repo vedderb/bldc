@@ -36,15 +36,18 @@
 #include "commands.h"
 #include "timeout.h"
 #include "comm_can.h"
+#include "ws2811.h"
+#include "led_external.h"
 
 /*
  * Timers used:
  * TIM7: servo
  * TIM1: mcpwm
  * TIM2: mcpwm
- * TIM4: mcpwm
+ * TIM12: mcpwm
  * TIM8: mcpwm
  * TIM3: servo_dec
+ * TIM4: WS2811/WS2812 LEDs
  *
  * DMA/stream	Device		Function
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
@@ -54,6 +57,7 @@
  * 2, 2			UART6		Other HW
  * 2, 7			UART6		Other HW
  * 2, 4			ADC			mcpwm
+ * 1, 0			TIM4		WS2811/WS2812 LEDs
  *
  */
 
@@ -300,6 +304,11 @@ int main(void) {
 	app_init(&appconf);
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+
+#if WS2811_ENABLE
+	ws2811_init();
+	led_external_init();
+#endif
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);

@@ -436,7 +436,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	do_dc_cal();
 
 	// Various time measurements
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
 	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
 
 	// Time base configuration
@@ -444,10 +444,10 @@ void mcpwm_init(mc_configuration *configuration) {
 	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
 
 	// TIM3 enable counter
-	TIM_Cmd(TIM4, ENABLE);
+	TIM_Cmd(TIM12, ENABLE);
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -1382,7 +1382,7 @@ static msg_t timer_thread(void *arg) {
 }
 
 void mcpwm_adc_inj_int_handler(void) {
-	TIM4->CNT = 0;
+	TIM12->CNT = 0;
 
 	static int detect_now = 0;
 
@@ -1509,7 +1509,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM4->CNT / 10000000.0;
+	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
 }
 
 /*
@@ -1519,7 +1519,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	TIM4->CNT = 0;
+	TIM12->CNT = 0;
 
 	// Set the next timer settings if an update is far enough away
 	update_timer_attempt();
@@ -1899,7 +1899,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	main_dma_adc_handler();
 
-	last_adc_isr_duration = (float)TIM4->CNT / 10000000.0;
+	last_adc_isr_duration = (float)TIM12->CNT / 10000000.0;
 }
 
 void mcpwm_set_detect(void) {

@@ -64,6 +64,14 @@
 //#define USE_APP_STEN
 //#define USE_APP_GURGALOF
 
+/*
+ * Output WS2811 singal on the HALL1 pin. Notice that hall sensors can't be used
+ * at the same time.
+ */
+#define WS2811_ENABLE			0
+#define WS2811_CLK_HZ			800000
+#define WS2811_LED_NUM			16
+
 // Functions
 void conf_general_init(void);
 void conf_general_read_app_configuration(app_configuration *conf);

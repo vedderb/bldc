@@ -32,6 +32,7 @@
 #include "timeout.h"
 #include <string.h>
 #include <math.h>
+#include "led_external.h"
 
 // Types
 typedef struct {
@@ -179,6 +180,26 @@ static msg_t output_thread(void *arg) {
 
 		if (timeout_has_timeout() || chuck_error != 0 || ctrl_type == CHUK_CTRL_TYPE_NONE) {
 			continue;
+		}
+
+		// LEDs
+		float x_axis = ((float)chuck_data.js_x - 128.0) / 128.0;
+		if (mcpwm_get_tot_current_filtered() < -15) {
+			if (x_axis < -0.4) {
+				led_external_set_state(LED_EXT_BRAKE_TURN_LEFT);
+			} else if (x_axis > 0.4) {
+				led_external_set_state(LED_EXT_BRAKE_TURN_RIGHT);
+			} else {
+				led_external_set_state(LED_EXT_BRAKE);
+			}
+		} else {
+			if (x_axis < -0.4) {
+				led_external_set_state(LED_EXT_TURN_LEFT);
+			} else if (x_axis > 0.4) {
+				led_external_set_state(LED_EXT_TURN_RIGHT);
+			} else {
+				led_external_set_state(LED_EXT_NORMAL);
+			}
 		}
 
 		float out_val = app_nunchuk_get_decoded_chuk();
