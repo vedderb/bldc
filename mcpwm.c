@@ -1840,8 +1840,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now_tmp = 0.0;
-				dutycycle_set = dutycycle_now_tmp;
+				if (fabsf(rpm_now) < conf.l_max_erpm_fbrake_cc) {
+					dutycycle_now_tmp = 0.0;
+					dutycycle_set = dutycycle_now_tmp;
+				} else {
+					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * MCPWM_MIN_DUTY_CYCLE;
+					dutycycle_set = dutycycle_now_tmp;
+				}
 			}
 		} else {
 			utils_step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);

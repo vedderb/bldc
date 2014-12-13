@@ -178,6 +178,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.l_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_max_erpm_fbrake = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_max_erpm_fbrake_cc = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_min_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_max_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_slow_abs_current = data[ind++];
@@ -237,6 +238,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake_cc * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_vin * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_vin * 1000.0), &ind);
 		send_buffer[ind++] = mcconf.l_slow_abs_current;

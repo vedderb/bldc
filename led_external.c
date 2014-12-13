@@ -111,8 +111,8 @@ static msg_t led_thread(void *arg) {
 
 				while (state == state_last && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						ws2811_set_led_color(WS2811_LED_NUM / 2 - 1, COLOR_ORANGE);
-						ws2811_set_led_color(WS2811_LED_NUM / 2, COLOR_ORANGE);
+						ws2811_set_led_color(WS2811_LED_NUM / 2 - 1, 0xFF9900);
+						ws2811_set_led_color(WS2811_LED_NUM / 2, 0xFF9900);
 					} else {
 						ws2811_set_led_color(WS2811_LED_NUM / 2 - 1, COLOR_BLACK);
 						ws2811_set_led_color(WS2811_LED_NUM / 2, COLOR_BLACK);
@@ -134,8 +134,8 @@ static msg_t led_thread(void *arg) {
 
 				while (state == state_last && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						ws2811_set_led_color(0, COLOR_ORANGE);
-						ws2811_set_led_color(WS2811_LED_NUM - 1, COLOR_ORANGE);
+						ws2811_set_led_color(0, 0xFF9900);
+						ws2811_set_led_color(WS2811_LED_NUM - 1, 0xFF9900);
 					} else {
 						ws2811_set_led_color(0, COLOR_BLACK);
 						ws2811_set_led_color(WS2811_LED_NUM - 1, COLOR_BLACK);

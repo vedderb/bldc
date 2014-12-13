@@ -69,6 +69,9 @@
 #ifndef MCPWM_CURR_MAX_RPM_FBRAKE
 #define MCPWM_CURR_MAX_RPM_FBRAKE		1500	// Maximum electrical RPM to use full brake at
 #endif
+#ifndef MCPWM_CURR_MAX_RPM_FBRAKE_CC
+#define MCPWM_CURR_MAX_RPM_FBRAKE_CC	1500	// Maximum electrical RPM to use full brake at with current control
+#endif
 #ifndef MCPWM_SLOW_ABS_OVERCURRENT
 #define MCPWM_SLOW_ABS_OVERCURRENT		false	// Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
@@ -239,6 +242,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_min_erpm = MCPWM_RPM_MIN;
 		conf->l_max_erpm = MCPWM_RPM_MAX;
 		conf->l_max_erpm_fbrake = MCPWM_CURR_MAX_RPM_FBRAKE;
+		conf->l_max_erpm_fbrake_cc = MCPWM_CURR_MAX_RPM_FBRAKE_CC;
 		conf->l_min_vin = MCPWM_MIN_VOLTAGE;
 		conf->l_max_vin = MCPWM_MAX_VOLTAGE;
 		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;
