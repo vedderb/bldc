@@ -182,9 +182,12 @@ static msg_t output_thread(void *arg) {
 			continue;
 		}
 
+		float out_val = app_nunchuk_get_decoded_chuk();
+		utils_deadband(&out_val, hysteres, 1.0);
+
 		// LEDs
 		float x_axis = ((float)chuck_data.js_x - 128.0) / 128.0;
-		if (mcpwm_get_tot_current_filtered() < -15) {
+		if (out_val < -0.001) {
 			if (x_axis < -0.4) {
 				led_external_set_state(LED_EXT_BRAKE_TURN_LEFT);
 			} else if (x_axis > 0.4) {
@@ -201,9 +204,6 @@ static msg_t output_thread(void *arg) {
 				led_external_set_state(LED_EXT_NORMAL);
 			}
 		}
-
-		float out_val = app_nunchuk_get_decoded_chuk();
-		utils_deadband(&out_val, hysteres, 1.0);
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;

@@ -70,7 +70,7 @@
  */
 #define WS2811_ENABLE			0
 #define WS2811_CLK_HZ			800000
-#define WS2811_LED_NUM			16
+#define WS2811_LED_NUM			14
 
 // Functions
 void conf_general_init(void);

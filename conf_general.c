@@ -96,6 +96,9 @@
 #ifndef MCPWM_LIM_TEMP_MOTOR_END
 #define MCPWM_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
 #endif
+#ifndef MCPWM_MAX_FB_CURR_DIR_CHANGE
+#define MCPWM_MAX_FB_CURR_DIR_CHANGE	10.0	// Maximum current during full brake during which a direction change is allowed
+#endif
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -252,6 +255,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 
 		conf->sl_is_sensorless = MCPWM_IS_SENSORLESS;
 		conf->sl_min_erpm = MCPWM_MIN_RPM;
+		conf->sl_max_fullbreak_current_dir_change = MCPWM_MAX_FB_CURR_DIR_CHANGE;
 		conf->sl_min_erpm_cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_MIN_RPM;
 		conf->sl_cycle_int_limit = MCPWM_CYCLE_INT_LIMIT;
 		conf->sl_cycle_int_limit_high_fac = MCPWM_CYCLE_INT_LIMIT_HIGH_FAC;

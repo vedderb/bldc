@@ -1087,10 +1087,17 @@ static void set_duty_cycle_ll(float dutyCycle) {
 
 	if (conf.sl_is_sensorless) {
 		if (state != MC_STATE_RUNNING) {
-			state = MC_STATE_RUNNING;
+			if (state == MC_STATE_OFF) {
+				state = MC_STATE_RUNNING;
 
-			if (fabsf(rpm_now) < conf.sl_min_erpm) {
-				commutate(1);
+				if (fabsf(rpm_now) < conf.sl_min_erpm) {
+					commutate(1);
+				}
+			} else if (state == MC_STATE_FULL_BRAKE) {
+				if (fabsf(rpm_now) < conf.sl_min_erpm && mcpwm_get_tot_current_filtered() < conf.sl_max_fullbreak_current_dir_change) {
+					state = MC_STATE_RUNNING;
+					commutate(1);
+				}
 			}
 		}
 	} else {
@@ -1425,37 +1432,44 @@ void mcpwm_adc_inj_int_handler(void) {
 	 * 6		-		0		+
 	 */
 
-	switch (comm_step) {
-	case 1:
-	case 6:
-		if (direction) {
-			if (comm_step == 1) {
-				curr_tot_sample = -(float)ADC_curr_norm_value[1];
+	if (state == MC_STATE_FULL_BRAKE) {
+		float c0 = (float)ADC_curr_norm_value[0];
+		float c1 = (float)ADC_curr_norm_value[1];
+		float c2 = (float)ADC_curr_norm_value[2];
+		curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
+	} else {
+		switch (comm_step) {
+		case 1:
+		case 6:
+			if (direction) {
+				if (comm_step == 1) {
+					curr_tot_sample = -(float)ADC_curr_norm_value[1];
+				} else {
+					curr_tot_sample = -(float)ADC_curr_norm_value[0];
+				}
 			} else {
-				curr_tot_sample = -(float)ADC_curr_norm_value[0];
+				curr_tot_sample = (float)ADC_curr_norm_value[1];
 			}
-		} else {
-			curr_tot_sample = (float)ADC_curr_norm_value[1];
-		}
-		break;
+			break;
 
-	case 2:
-	case 3:
-		curr_tot_sample = (float)ADC_curr_norm_value[0];
-		break;
+		case 2:
+		case 3:
+			curr_tot_sample = (float)ADC_curr_norm_value[0];
+			break;
 
-	case 4:
-	case 5:
-		if (direction) {
-			curr_tot_sample = (float)ADC_curr_norm_value[1];
-		} else {
-			if (comm_step == 4) {
-				curr_tot_sample = -(float)ADC_curr_norm_value[1];
+		case 4:
+		case 5:
+			if (direction) {
+				curr_tot_sample = (float)ADC_curr_norm_value[1];
 			} else {
-				curr_tot_sample = -(float)ADC_curr_norm_value[0];
+				if (comm_step == 4) {
+					curr_tot_sample = -(float)ADC_curr_norm_value[1];
+				} else {
+					curr_tot_sample = -(float)ADC_curr_norm_value[0];
+				}
 			}
+			break;
 		}
-		break;
 	}
 
 	if (detect_now == 4) {
@@ -1826,13 +1840,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 			// Lower truncation
 			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
-				if (fabsf(rpm_now) < conf.l_max_erpm_fbrake) {
-					dutycycle_now_tmp = 0.0;
-					dutycycle_set = dutycycle_now_tmp;
-				} else {
-					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * MCPWM_MIN_DUTY_CYCLE;
-					dutycycle_set = dutycycle_now_tmp;
-				}
+				dutycycle_now_tmp = 0.0;
+				dutycycle_set = dutycycle_now_tmp;
 			}
 		} else {
 			utils_step_towards((float*)&dutycycle_now_tmp, dutycycle_set, ramp_step);

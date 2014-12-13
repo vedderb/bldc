@@ -195,6 +195,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.sl_is_sensorless = data[ind++];
 		mcconf.sl_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_min_erpm_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_max_fullbreak_current_dir_change = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_cycle_int_limit_high_fac = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_cycle_int_rpm_br = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -248,6 +249,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = mcconf.sl_is_sensorless;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm_cycle_int_limit * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_max_fullbreak_current_dir_change * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit_high_fac * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_rpm_br * 1000.0), &ind);
