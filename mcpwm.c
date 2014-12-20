@@ -751,7 +751,9 @@ float mcpwm_get_kv_filtered(void) {
 }
 
 /**
- * Get the motor current.
+ * Get the motor current. The sign of this value will
+ * represent whether the motor is drawing (positive) or generating
+ * (negative) current.
  *
  * @return
  * The motor current.
@@ -761,13 +763,39 @@ float mcpwm_get_tot_current(void) {
 }
 
 /**
- * Get the FIR-filtered motor current.
+ * Get the FIR-filtered motor current. The sign of this value will
+ * represent whether the motor is drawing (positive) or generating
+ * (negative) current.
  *
  * @return
  * The filtered motor current.
  */
 float mcpwm_get_tot_current_filtered(void) {
 	return last_current_sample_filtered * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+}
+
+/**
+ * Get the motor current. The sign of this value represents the direction
+ * in which the motor generates torque.
+ *
+ * @return
+ * The motor current.
+ */
+float mcpwm_get_tot_current_directional(void) {
+	const float retval = mcpwm_get_tot_current();
+	return dutycycle_now > 0.0 ? retval : -retval;
+}
+
+/**
+ * Get the filtered motor current. The sign of this value represents the
+ * direction in which the motor generates torque.
+ *
+ * @return
+ * The filtered motor current.
+ */
+float mcpwm_get_tot_current_directional_filtered(void) {
+	const float retval = mcpwm_get_tot_current_filtered();
+	return dutycycle_now > 0.0 ? retval : -retval;
 }
 
 /**

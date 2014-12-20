@@ -33,17 +33,11 @@
 #include <string.h>
 #include <math.h>
 #include "led_external.h"
+#include "datatypes.h"
 
-// Types
-typedef struct {
-	int js_x;
-	int js_y;
-	int acc_x;
-	int acc_y;
-	int acc_z;
-	bool bt_c;
-	bool bt_z;
-} CHUCK_DATA;
+// Settings
+#define OUTPUT_ITERATION_TIME_MS		1
+#define MAX_CURR_DIFFERENCE				5.0
 
 // Threads
 static msg_t chuk_thread(void *arg);
@@ -57,15 +51,20 @@ static volatile bool is_running = false;
 static volatile float hysteres = 0.15;
 static volatile float rpm_lim_start = 200000.0;
 static volatile float rpm_lim_end = 250000.0;
-static volatile CHUCK_DATA chuck_data;
+static volatile chuck_data_t chuck_data;
 static volatile int chuck_error = 0;
+static volatile float ramp_time_pos = 1.0;
+static volatile float ramp_time_neg = 0.5;
 
 void app_nunchuk_configure(chuk_control_type ctrlt,
-		float hyst, float lim_rpm_start, float lim_rpm_end) {
+		float hyst, float lim_rpm_start, float lim_rpm_end,
+		float r_time_pos, float r_time_neg) {
 	ctrl_type = ctrlt;
 	hysteres = hyst;
 	rpm_lim_start = lim_rpm_start;
 	rpm_lim_end = lim_rpm_end;
+	ramp_time_pos = r_time_pos;
+	ramp_time_neg = r_time_neg;
 }
 
 void app_nunchuk_start(void) {
@@ -176,11 +175,28 @@ static msg_t output_thread(void *arg) {
 	chRegSetThreadName("Nunchuk output");
 
 	for(;;) {
-		chThdSleepMilliseconds(1);
+		chThdSleepMilliseconds(OUTPUT_ITERATION_TIME_MS);
 
 		if (timeout_has_timeout() || chuck_error != 0 || ctrl_type == CHUK_CTRL_TYPE_NONE) {
 			continue;
 		}
+
+		static bool is_reverse = false;
+		static bool was_z = false;
+		const float current_now = mcpwm_get_tot_current_directional_filtered();
+
+		if (chuck_data.bt_z && !was_z && ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
+				fabsf(current_now) < MAX_CURR_DIFFERENCE) {
+			if (is_reverse) {
+				is_reverse = false;
+			} else {
+				is_reverse = true;
+			}
+		}
+
+		was_z = chuck_data.bt_z;
+
+		led_external_set_reversed(is_reverse);
 
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, hysteres, 1.0);
@@ -216,7 +232,7 @@ static msg_t output_thread(void *arg) {
 				pid_rpm = mcpwm_get_rpm();
 			}
 
-			if (ctrl_type == CHUK_CTRL_TYPE_CURRENT || pid_rpm > 0.0) {
+			if ((is_reverse && pid_rpm < 0.0) || (!is_reverse && pid_rpm > 0.0)) {
 				mcpwm_set_pid_speed(pid_rpm);
 			}
 
@@ -226,38 +242,78 @@ static msg_t output_thread(void *arg) {
 		was_pid = false;
 
 		float current = 0;
-		bool current_mode_brake = false;
 		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
 
 		if (out_val >= 0.0) {
 			current = out_val * mcconf->l_current_max;
 		} else {
 			current = out_val * fabsf(mcconf->l_current_min);
-			current_mode_brake = ctrl_type == CHUK_CTRL_TYPE_CURRENT_NOREV;
 		}
 
-		if (current_mode_brake) {
-			mcpwm_set_brake_current(current);
-		} else {
+		// Apply ramping
+		static float prev_current = 0.0;
+		const float current_range = mcconf->l_current_max + fabsf(mcconf->l_current_min);
+		const float ramp_time = fabsf(current) > fabsf(prev_current) ? ramp_time_pos : ramp_time_neg;
 
-			// Apply soft RPM limit if z is not pressed.
-			if (!chuck_data.bt_z) {
-				float rpm = mcpwm_get_rpm();
-				if (rpm > rpm_lim_end && current > 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm > rpm_lim_start && current > 0.0) {
-					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
-				} else if (rpm < -rpm_lim_end && current < 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm < -rpm_lim_start && current < 0.0) {
-					rpm = -rpm;
-					current = -current;
-					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
-					current = -current;
+		if (ramp_time > 0.01) {
+			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
+
+			float current_goal = prev_current;
+			const float goal_tmp = current_goal;
+			utils_step_towards(&current_goal, current, ramp_step);
+			bool is_decreasing = current_goal < goal_tmp;
+
+			// Make sure the desired current is close to the actual current to avoid surprises
+			// when changing direction
+			float goal_tmp2 = current_goal;
+			if (is_reverse) {
+				if (fabsf(current_goal + current_now) > MAX_CURR_DIFFERENCE) {
+					utils_step_towards(&goal_tmp2, -current_now, 2.0 * ramp_step);
+				}
+			} else {
+				if (fabsf(current_goal - current_now) > MAX_CURR_DIFFERENCE) {
+					utils_step_towards(&goal_tmp2, current_now, 2.0 * ramp_step);
 				}
 			}
 
-			mcpwm_set_current(current);
+			// Always allow negative ramping
+			bool is_decreasing2 = goal_tmp2 < current_goal;
+			if (!is_decreasing || is_decreasing2) {
+				current_goal = goal_tmp2;
+			}
+
+			current = current_goal;
+		}
+
+		prev_current = current;
+
+		if (current < 0.0) {
+			mcpwm_set_brake_current(current);
+		} else {
+			// Apply soft RPM limit
+			float rpm = mcpwm_get_rpm();
+			if (is_reverse) {
+				rpm = -rpm;
+			}
+
+			if (rpm > rpm_lim_end && current > 0.0) {
+				current = mcconf->cc_min_current;
+			} else if (rpm > rpm_lim_start && current > 0.0) {
+				current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
+			} else if (rpm < -rpm_lim_end && current < 0.0) {
+				current = mcconf->cc_min_current;
+			} else if (rpm < -rpm_lim_start && current < 0.0) {
+				rpm = -rpm;
+				current = -current;
+				current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
+				current = -current;
+			}
+
+			if (is_reverse) {
+				mcpwm_set_current(-current);
+			} else {
+				mcpwm_set_current(current);
+			}
 		}
 	}
 

@@ -180,6 +180,8 @@ typedef struct {
 	float app_chuk_hyst;
 	float app_chuk_rpm_lim_start;
 	float app_chuk_rpm_lim_end;
+	float app_chuk_ramp_time_pos;
+	float app_chuk_ramp_time_neg;
 } app_configuration;
 
 // Communication commands
@@ -240,5 +242,15 @@ typedef enum {
 	LED_EXT_BRAKE_TURN_LEFT,
 	LED_EXT_BRAKE_TURN_RIGHT
 } LED_EXT_STATE;
+
+typedef struct {
+	int js_x;
+	int js_y;
+	int acc_x;
+	int acc_y;
+	int acc_z;
+	bool bt_c;
+	bool bt_z;
+} chuck_data_t;
 
 #endif /* DATATYPES_H_ */

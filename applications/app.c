@@ -59,7 +59,8 @@ void app_init(app_configuration *conf) {
 
 	case APP_NUNCHUK:
 		app_nunchuk_configure(appconf.app_chuk_ctrl_type, appconf.app_chuk_hyst,
-				appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end);
+				appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end,
+				appconf.app_chuk_ramp_time_pos, appconf.app_chuk_ramp_time_neg);
 		app_nunchuk_start();
 		break;
 
@@ -96,5 +97,6 @@ void app_set_configuration(app_configuration *conf) {
 			appconf.app_ppm_rpm_lim_start, appconf.app_ppm_rpm_lim_end);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
 	app_nunchuk_configure(appconf.app_chuk_ctrl_type, appconf.app_chuk_hyst,
-			appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end);
+			appconf.app_chuk_rpm_lim_start, appconf.app_chuk_rpm_lim_end,
+			appconf.app_chuk_ramp_time_pos, appconf.app_chuk_ramp_time_neg);
 }

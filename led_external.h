@@ -30,5 +30,6 @@
 // Functions
 void led_external_init(void);
 void led_external_set_state(LED_EXT_STATE new_state);
+void led_external_set_reversed(bool newstate);
 
 #endif /* LED_EXTERNAL_H_ */

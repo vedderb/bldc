@@ -34,18 +34,26 @@
 // Private variables
 static WORKING_AREA(led_thread_wa, 1024);
 static volatile LED_EXT_STATE state;
+static volatile bool reverse_leds;
 
 // Private function prototypes
 static msg_t led_thread(void *arg);
 static uint32_t scale_color(uint32_t color, float scale);
 static void wait_for_state_change(void);
+static void set_led_wrapper(int led, uint32_t color);
 
 void led_external_init(void) {
+	reverse_leds = false;
+	state = LED_EXT_OFF;
 	chThdCreateStatic(led_thread_wa, sizeof(led_thread_wa), LOWPRIO, led_thread, NULL);
 }
 
 void led_external_set_state(LED_EXT_STATE new_state) {
 	state = new_state;
+}
+
+void led_external_set_reversed(bool newstate) {
+	reverse_leds = newstate;
 }
 
 static msg_t led_thread(void *arg) {
@@ -57,7 +65,7 @@ static msg_t led_thread(void *arg) {
 		if (fault != FAULT_CODE_NONE) {
 			ws2811_set_all(COLOR_BLACK);
 			for (int i = 0;i < (int)fault;i++) {
-				ws2811_set_led_color(i, COLOR_RED);
+				set_led_wrapper(i, COLOR_RED);
 				chThdSleepMilliseconds(200);
 			}
 
@@ -68,13 +76,14 @@ static msg_t led_thread(void *arg) {
 				scale -= 0.02;
 				uint32_t color = scale_color(COLOR_RED, scale);
 				for (int i = 0;i < (int)fault;i++) {
-					ws2811_set_led_color(i, color);
+					set_led_wrapper(i, color);
 				}
 				chThdSleepMilliseconds(10);
 			}
 		} else {
 			uint32_t red_weak = scale_color(COLOR_RED, 0.3);
 			LED_EXT_STATE state_last = state;
+			bool rev_last = reverse_leds;
 
 			switch (state) {
 			case LED_EXT_OFF:
@@ -84,16 +93,16 @@ static msg_t led_thread(void *arg) {
 
 			case LED_EXT_NORMAL:
 				for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
-					ws2811_set_led_color(i, red_weak);
-					ws2811_set_led_color(i + WS2811_LED_NUM / 2, COLOR_WHITE);
+					set_led_wrapper(i, red_weak);
+					set_led_wrapper(i + WS2811_LED_NUM / 2, COLOR_WHITE);
 				}
 				wait_for_state_change();
 				break;
 
 			case LED_EXT_BRAKE:
 				for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
-					ws2811_set_led_color(i, COLOR_RED);
-					ws2811_set_led_color(i + WS2811_LED_NUM / 2, COLOR_WHITE);
+					set_led_wrapper(i, COLOR_RED);
+					set_led_wrapper(i + WS2811_LED_NUM / 2, COLOR_WHITE);
 				}
 				wait_for_state_change();
 				break;
@@ -102,20 +111,20 @@ static msg_t led_thread(void *arg) {
 			case LED_EXT_BRAKE_TURN_LEFT:
 				for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
 					if (state == LED_EXT_TURN_LEFT) {
-						ws2811_set_led_color(i, red_weak);
+						set_led_wrapper(i, red_weak);
 					} else {
-						ws2811_set_led_color(i, COLOR_RED);
+						set_led_wrapper(i, COLOR_RED);
 					}
-					ws2811_set_led_color(i + WS2811_LED_NUM / 2, COLOR_WHITE);
+					set_led_wrapper(i + WS2811_LED_NUM / 2, COLOR_WHITE);
 				}
 
-				while (state == state_last && !HAS_FAULT()) {
+				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						ws2811_set_led_color(WS2811_LED_NUM / 2 - 1, 0xFF9900);
-						ws2811_set_led_color(WS2811_LED_NUM / 2, 0xFF9900);
+						set_led_wrapper(WS2811_LED_NUM / 2 - 1, 0xFF9900);
+						set_led_wrapper(WS2811_LED_NUM / 2, 0xFF9900);
 					} else {
-						ws2811_set_led_color(WS2811_LED_NUM / 2 - 1, COLOR_BLACK);
-						ws2811_set_led_color(WS2811_LED_NUM / 2, COLOR_BLACK);
+						set_led_wrapper(WS2811_LED_NUM / 2 - 1, COLOR_BLACK);
+						set_led_wrapper(WS2811_LED_NUM / 2, COLOR_BLACK);
 					}
 					chThdSleepMilliseconds(10);
 				}
@@ -125,20 +134,20 @@ static msg_t led_thread(void *arg) {
 			case LED_EXT_BRAKE_TURN_RIGHT:
 				for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
 					if (state == LED_EXT_TURN_RIGHT) {
-						ws2811_set_led_color(i, red_weak);
+						set_led_wrapper(i, red_weak);
 					} else {
-						ws2811_set_led_color(i, COLOR_RED);
+						set_led_wrapper(i, COLOR_RED);
 					}
-					ws2811_set_led_color(i + WS2811_LED_NUM / 2, COLOR_WHITE);
+					set_led_wrapper(i + WS2811_LED_NUM / 2, COLOR_WHITE);
 				}
 
-				while (state == state_last && !HAS_FAULT()) {
+				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						ws2811_set_led_color(0, 0xFF9900);
-						ws2811_set_led_color(WS2811_LED_NUM - 1, 0xFF9900);
+						set_led_wrapper(0, 0xFF9900);
+						set_led_wrapper(WS2811_LED_NUM - 1, 0xFF9900);
 					} else {
-						ws2811_set_led_color(0, COLOR_BLACK);
-						ws2811_set_led_color(WS2811_LED_NUM - 1, COLOR_BLACK);
+						set_led_wrapper(0, COLOR_BLACK);
+						set_led_wrapper(WS2811_LED_NUM - 1, COLOR_BLACK);
 					}
 					chThdSleepMilliseconds(10);
 				}
@@ -170,7 +179,20 @@ static uint32_t scale_color(uint32_t color, float scale) {
 
 static void wait_for_state_change(void) {
 	LED_EXT_STATE st = state;
-	while (state == st && !HAS_FAULT()) {
+	bool reversed = reverse_leds;
+	while (state == st && reversed == reverse_leds && !HAS_FAULT()) {
 		chThdSleepMilliseconds(10);
+	}
+}
+
+static void set_led_wrapper(int led, uint32_t color) {
+	if (reverse_leds) {
+		if (led < WS2811_LED_NUM / 2) {
+			ws2811_set_led_color(led + WS2811_LED_NUM / 2, color);
+		} else {
+			ws2811_set_led_color(led - WS2811_LED_NUM / 2, color);
+		}
+	} else {
+		ws2811_set_led_color(led, color);
 	}
 }

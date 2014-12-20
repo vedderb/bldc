@@ -57,7 +57,8 @@
  * 2, 2			UART6		Other HW
  * 2, 7			UART6		Other HW
  * 2, 4			ADC			mcpwm
- * 1, 0			TIM4		WS2811/WS2812 LEDs
+ * 1, 0			TIM4		WS2811/WS2812 LEDs CH1 (Ch 1)
+ * 1, 3			TIM4		WS2811/WS2812 LEDs CH2 (Ch 2)
  *
  */
 
@@ -118,12 +119,21 @@ static msg_t periodic_thread(void *arg) {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
 		}
 
-		if (mcpwm_get_fault() != FAULT_CODE_NONE) {
-			ledpwm_set_intensity(LED_RED, 1.0);
+		mc_fault_code fault = mcpwm_get_fault();
+		if (fault != FAULT_CODE_NONE) {
 			if (!fault_print && AUTO_PRINT_FAULTS) {
 				fault_print = 1;
 				commands_printf("%s\n", mcpwm_fault_to_string(mcpwm_get_fault()));
 			}
+
+			for (int i = 0;i < (int)fault;i++) {
+				ledpwm_set_intensity(LED_RED, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_RED, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
+			chThdSleepMilliseconds(500);
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
 			fault_print = 0;

@@ -162,15 +162,17 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_ppm_hyst = 0.15;
 		conf->app_ppm_pulse_start = 1.0;
 		conf->app_ppm_pulse_width = 1.0;
-		conf->app_ppm_rpm_lim_start = 200000.0;
-		conf->app_ppm_rpm_lim_end = 250000.0;
+		conf->app_ppm_rpm_lim_start = 150000.0;
+		conf->app_ppm_rpm_lim_end = 200000.0;
 
 		conf->app_uart_baudrate = 115200;
 
 		conf->app_chuk_ctrl_type = CHUK_CTRL_TYPE_CURRENT_NOREV;
 		conf->app_chuk_hyst = 0.15;
-		conf->app_chuk_rpm_lim_start = 20000.0;
-		conf->app_chuk_rpm_lim_end = 25000.0;
+		conf->app_chuk_rpm_lim_start = 150000.0;
+		conf->app_chuk_rpm_lim_end = 250000.0;
+		conf->app_chuk_ramp_time_pos = 1.0;
+		conf->app_chuk_ramp_time_neg = 0.5;
 	}
 }
 

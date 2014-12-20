@@ -58,6 +58,8 @@ float mcpwm_get_watt_hours(bool reset);
 float mcpwm_get_watt_hours_charged(bool reset);
 float mcpwm_get_tot_current(void);
 float mcpwm_get_tot_current_filtered(void);
+float mcpwm_get_tot_current_directional(void);
+float mcpwm_get_tot_current_directional_filtered(void);
 float mcpwm_get_tot_current_in(void);
 float mcpwm_get_tot_current_in_filtered(void);
 void mcpwm_set_detect(void);
