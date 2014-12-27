@@ -120,8 +120,8 @@ static msg_t led_thread(void *arg) {
 
 				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						set_led_wrapper(WS2811_LED_NUM / 2 - 1, 0xFF9900);
-						set_led_wrapper(WS2811_LED_NUM / 2, 0xFF9900);
+						set_led_wrapper(WS2811_LED_NUM / 2 - 1, COLOR_ORANGE);
+						set_led_wrapper(WS2811_LED_NUM / 2, COLOR_ORANGE);
 					} else {
 						set_led_wrapper(WS2811_LED_NUM / 2 - 1, COLOR_BLACK);
 						set_led_wrapper(WS2811_LED_NUM / 2, COLOR_BLACK);
@@ -143,8 +143,8 @@ static msg_t led_thread(void *arg) {
 
 				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
 					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
-						set_led_wrapper(0, 0xFF9900);
-						set_led_wrapper(WS2811_LED_NUM - 1, 0xFF9900);
+						set_led_wrapper(0, COLOR_ORANGE);
+						set_led_wrapper(WS2811_LED_NUM - 1, COLOR_ORANGE);
 					} else {
 						set_led_wrapper(0, COLOR_BLACK);
 						set_led_wrapper(WS2811_LED_NUM - 1, COLOR_BLACK);

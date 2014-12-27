@@ -22,6 +22,7 @@
  *      Author: benjamin
  */
 
+#include <math.h>
 #include "ws2811.h"
 #include "stm32f4xx_conf.h"
 #include "ch.h"
@@ -38,6 +39,7 @@
 // Private variables
 static uint16_t bitbuffer[BITBUFFER_LEN];
 static uint32_t RGBdata[LED_BUFFER_LEN];
+static uint8_t gamma_table[256];
 
 // Private function prototypes
 static uint32_t rgb_to_local(uint32_t color);
@@ -71,6 +73,11 @@ void ws2811_init(void) {
 	// after sending all bits
 	for (i = 0;i < BITBUFFER_PAD;i++) {
 		bitbuffer[BITBUFFER_LEN - BITBUFFER_PAD - 1 + i] = 0;
+	}
+
+	// Generate gamma correction table
+	for (int i = 0;i < 256;i++) {
+		gamma_table[i] = (int)roundf(powf((float)i / 255.0, 1.0 / 0.45) * 255.0);
 	}
 
 #if WS2811_USE_CH2
@@ -223,6 +230,10 @@ static uint32_t rgb_to_local(uint32_t color) {
 	uint32_t r = (color >> 16) & 0xFF;
 	uint32_t g = (color >> 8) & 0xFF;
 	uint32_t b = color & 0xFF;
+
+	r = gamma_table[r];
+	g = gamma_table[g];
+	b = gamma_table[b];
 
 	return (g << 16) | (r << 8) | b;
 }

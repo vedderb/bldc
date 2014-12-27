@@ -275,7 +275,7 @@ build/$(PROJECT).bin: build/$(PROJECT).elf
 # Program
 upload: build/$(PROJECT).bin
 	#qstlink2 --cli --erase --write build/$(PROJECT).bin
-	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset"
+	openocd -f board/stm32f4discovery.cfg -c "program build/$(PROJECT).elf verify reset" -c "reset_config trst_only combined"
 
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
