@@ -81,7 +81,7 @@ static msg_t led_thread(void *arg) {
 				chThdSleepMilliseconds(10);
 			}
 		} else {
-			uint32_t red_weak = scale_color(COLOR_RED, 0.3);
+			uint32_t red_weak = scale_color(COLOR_RED, 0.5);
 			LED_EXT_STATE state_last = state;
 			bool rev_last = reverse_leds;
 

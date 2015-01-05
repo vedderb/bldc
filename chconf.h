@@ -32,8 +32,10 @@
 #ifndef _CHCONF_H_
 #define _CHCONF_H_
 
-#define CHPRINTF_USE_FLOAT            TRUE
-#define CORTEX_SIMPLIFIED_PRIORITY    TRUE
+#define CHPRINTF_USE_FLOAT				TRUE
+#define CORTEX_SIMPLIFIED_PRIORITY		TRUE
+#define PORT_IDLE_THREAD_STACK_SIZE		64
+#define PORT_INT_REQUIRED_STACK			128
 
 /*===========================================================================*/
 /**

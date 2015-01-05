@@ -53,8 +53,8 @@ static volatile float rpm_lim_start = 200000.0;
 static volatile float rpm_lim_end = 250000.0;
 static volatile chuck_data_t chuck_data;
 static volatile int chuck_error = 0;
-static volatile float ramp_time_pos = 1.0;
-static volatile float ramp_time_neg = 0.5;
+static volatile float ramp_time_pos = 0.5;
+static volatile float ramp_time_neg = 0.25;
 
 void app_nunchuk_configure(chuk_control_type ctrlt,
 		float hyst, float lim_rpm_start, float lim_rpm_end,
@@ -160,7 +160,7 @@ static msg_t chuk_thread(void *arg) {
 		} else {
 			chuck_error = 2;
 			hw_try_restore_i2c();
-			chThdSleepMilliseconds(30);
+			chThdSleepMilliseconds(100);
 		}
 
 		chThdSleepMilliseconds(10);

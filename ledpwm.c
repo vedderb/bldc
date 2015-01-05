@@ -31,9 +31,15 @@
 
 // Private variables
 static volatile int led_values[LEDPWM_LED_NUM];
+static uint8_t gamma_table[LEDPWM_CNT_TOP + 1];
 
 void ledpwm_init(void) {
 	memset((int*)led_values, 0, sizeof(led_values));
+
+	// Generate gamma correction table
+	for (int i = 0;i < (LEDPWM_CNT_TOP + 1);i++) {
+		gamma_table[i] = (int)roundf(powf((float)i / (float)LEDPWM_CNT_TOP, 1.0 / 0.45) * (float)LEDPWM_CNT_TOP);
+	}
 }
 
 /*
@@ -55,7 +61,7 @@ void ledpwm_set_intensity(unsigned int led, float intensity) {
 		intensity = 1.0;
 	}
 
-	led_values[led] = (int)roundf(powf(intensity, 2.5) * ((float)LEDPWM_CNT_TOP - 1.0));
+	led_values[led] = gamma_table[(int)(intensity * LEDPWM_CNT_TOP)];
 }
 
 void ledpwm_led_on(int led) {

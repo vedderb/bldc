@@ -67,7 +67,7 @@
 #define MCPWM_RPM_LIMIT_NEG_TORQUE		true		// Use negative torque to limit the RPM
 #endif
 #ifndef MCPWM_CURR_MAX_RPM_FBRAKE
-#define MCPWM_CURR_MAX_RPM_FBRAKE		1500	// Maximum electrical RPM to use full brake at
+#define MCPWM_CURR_MAX_RPM_FBRAKE		300	// Maximum electrical RPM to use full brake at
 #endif
 #ifndef MCPWM_CURR_MAX_RPM_FBRAKE_CC
 #define MCPWM_CURR_MAX_RPM_FBRAKE_CC	1500	// Maximum electrical RPM to use full brake at with current control
@@ -167,12 +167,12 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 
 		conf->app_uart_baudrate = 115200;
 
-		conf->app_chuk_ctrl_type = CHUK_CTRL_TYPE_CURRENT_NOREV;
+		conf->app_chuk_ctrl_type = CHUK_CTRL_TYPE_CURRENT;
 		conf->app_chuk_hyst = 0.15;
 		conf->app_chuk_rpm_lim_start = 150000.0;
 		conf->app_chuk_rpm_lim_end = 250000.0;
-		conf->app_chuk_ramp_time_pos = 1.0;
-		conf->app_chuk_ramp_time_neg = 0.5;
+		conf->app_chuk_ramp_time_pos = 0.5;
+		conf->app_chuk_ramp_time_neg = 0.25;
 	}
 }
 
