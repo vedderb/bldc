@@ -639,7 +639,7 @@ void mcpwm_set_brake_current(float current) {
 	control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	current_set = current;
 
-	if (state != MC_STATE_RUNNING) {
+	if (state != MC_STATE_RUNNING && state != MC_STATE_FULL_BRAKE) {
 		// In case the motor is already spinning, set the state to running
 		// so that it can be ramped down before the full brake is applied.
 		if (fabsf(rpm_now) > conf.l_max_erpm_fbrake) {
