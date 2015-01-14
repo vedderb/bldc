@@ -1640,10 +1640,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
 			if (state == MC_STATE_RUNNING) {
-				// This means that the motor is stuck. If this commutation does not
-				// produce any torque because of misalignment at start, two
-				// commutations ahead should produce full torque.
-				commutate(2);
+				if (conf.comm_mode == COMM_MODE_INTEGRATE) {
+					// This means that the motor is stuck. If this commutation does not
+					// produce any torque because of misalignment at start, two
+					// commutations ahead should produce full torque.
+					commutate(2);
+				} else if (conf.comm_mode == COMM_MODE_DELAY) {
+					commutate(1);
+				}
+
 				cycle_integrator = 0.0;
 			}
 		}
@@ -2206,10 +2211,17 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			val_sample = duty / 2;
 
 			// Current samples
-			curr1_sample = duty + 2 * (top - duty) / 3;
-			curr2_sample = duty + 2 * (top - duty) / 3;
-			//			curr1_sample = top - 20;
-			//			curr2_sample = top - 20;
+			curr1_sample = duty + (top - duty) / 2 + 1000;
+			if (curr1_sample > (top - 20)) {
+				curr1_sample = top - 20;
+			}
+
+//			curr1_sample = duty + 1500;
+//			curr1_sample = duty + (top - duty) / 2;
+//			curr1_sample = duty + 2 * (top - duty) / 3;
+//			curr1_sample = top - 20;
+
+			curr2_sample = curr1_sample;
 		}
 	}
 
