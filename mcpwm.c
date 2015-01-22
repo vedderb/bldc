@@ -534,6 +534,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	} else if (temp > conf->l_temp_fet_end) {
 		conf->lo_current_min = 0.0;
 		conf->lo_current_max = 0.0;
+		fault_stop(FAULT_CODE_OVER_TEMP_FET);
 	} else {
 		float maxc = fabsf(conf->l_current_max);
 		if (fabsf(conf->l_current_min) > maxc) {
@@ -719,6 +720,8 @@ const char* mcpwm_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_UNDER_VOLTAGE: return "FAULT_CODE_UNDER_VOLTAGE"; break;
 	case FAULT_CODE_DRV8302: return "FAULT_CODE_DRV8302"; break;
 	case FAULT_CODE_ABS_OVER_CURRENT: return "FAULT_CODE_ABS_OVER_CURRENT"; break;
+	case FAULT_CODE_OVER_TEMP_FET: return "FAULT_CODE_OVER_TEMP_FET"; break;
+	case FAULT_CODE_OVER_TEMP_MOTOR: return "FAULT_CODE_OVER_TEMP_MOTOR"; break;
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
