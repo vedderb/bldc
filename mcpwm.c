@@ -1702,12 +1702,12 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			if (conf.comm_mode == COMM_MODE_INTEGRATE) {
 				float limit;
 				if (has_commutated) {
-					limit = rpm_dep.cycle_int_limit_running * 0.0005;
+					limit = rpm_dep.cycle_int_limit_running * (0.0005 * VDIV_CORR);
 				} else {
-					limit = rpm_dep.cycle_int_limit * 0.0005;
+					limit = rpm_dep.cycle_int_limit * (0.0005 * VDIV_CORR);
 				}
 
-				if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * 0.0005) ||
+				if (cycle_integrator >= (rpm_dep.cycle_int_limit_max * (0.0005 * VDIV_CORR)) ||
 						cycle_integrator >= limit) {
 					commutate(1);
 					cycle_integrator = 0.0;
@@ -1719,7 +1719,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 					if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
 						commutate(1);
-						cycle_integrator_sum += cycle_integrator * (1.0 / 0.0005);
+						cycle_integrator_sum += cycle_integrator * (1.0 / (0.0005 * VDIV_CORR));
 						cycle_integrator_iterations += 1.0;
 						cycle_integrator = 0.0;
 						cycle_sum = 0.0;

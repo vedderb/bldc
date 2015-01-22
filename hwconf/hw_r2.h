@@ -89,18 +89,28 @@
 
 // ADC macros and settings
 
-// Component parameters
+// Component parameters (can be overridden)
+#ifndef V_REG
 #define V_REG				3.3
+#endif
+#ifndef VIN_R1
 #define VIN_R1				33000.0
+#endif
+#ifndef VIN_R2
 #define VIN_R2				2200.0
+#endif
+#ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN	10.0
+#endif
+#ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES	0.001
+#endif
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // NTC Termistors
-#define NTC_RES(adc_val)	(10000.0 / ((4096.0 / (float)adc_val) - 1.0))
+#define NTC_RES(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
 #define NTC_TEMP(adc_ind)	(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
