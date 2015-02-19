@@ -34,14 +34,11 @@ void app_set_configuration(app_configuration *conf);
 
 // Standard apps
 void app_ppm_start(void);
-void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
-		float pulse_start, float pulse_width, float lim_rpm_start, float lim_rpm_end);
+void app_ppm_configure(ppm_config *conf);
 void app_uartcomm_start(void);
 void app_uartcomm_configure(uint32_t baudrate);
 void app_nunchuk_start(void);
-void app_nunchuk_configure(chuk_control_type ctrlt,
-		float hyst, float lim_rpm_start, float lim_rpm_end,
-		float r_time_pos, float r_time_neg);
+void app_nunchuk_configure(chuk_config *conf);
 float app_nunchuk_get_decoded_chuk(void);
 
 // Custom apps

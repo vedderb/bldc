@@ -31,7 +31,11 @@
 #include "mcpwm.h"
 #include "timeout.h"
 #include "utils.h"
+#include "comm_can.h"
 #include <math.h>
+
+// Settings
+#define MAX_CAN_AGE						0.1
 
 // Threads
 static msg_t ppm_thread(void *arg);
@@ -43,30 +47,17 @@ VirtualTimer vt;
 static void servodec_func(void);
 
 // Private variables
-static volatile ppm_control_type ctrl_type = PPM_CTRL_TYPE_CURRENT;
-static volatile float pid_max_erpm = 15000.0;
 static volatile bool is_running = false;
-static volatile float hysteres = 0.15;
-static volatile float pulse_s = 1.0;
-static volatile float pulse_e = 1.0;
-static volatile float rpm_lim_start = 200000.0;
-static volatile float rpm_lim_end = 250000.0;
+static volatile ppm_config config;
 
 // Private functions
 void update(void *p);
 
-void app_ppm_configure(ppm_control_type ctrlt, float pme, float hyst,
-		float pulse_start, float pulse_width, float lim_rpm_start, float lim_rpm_end) {
-	ctrl_type = ctrlt;
-	pid_max_erpm = pme;
-	hysteres = hyst;
-	pulse_s = pulse_start;
-	pulse_e = pulse_width;
-	rpm_lim_start = lim_rpm_start;
-	rpm_lim_end = lim_rpm_end;
+void app_ppm_configure(ppm_config *conf) {
+	config = *conf;
 
 	if (is_running) {
-		servodec_set_pulse_options(pulse_s, pulse_e);
+		servodec_set_pulse_options(config.pulse_start, config.pulse_width);
 	}
 }
 
@@ -98,7 +89,7 @@ static msg_t ppm_thread(void *arg) {
 	chRegSetThreadName("APP_PPM");
 	ppm_tp = chThdSelf();
 
-	servodec_set_pulse_options(pulse_s, pulse_e);
+	servodec_set_pulse_options(config.pulse_start, config.pulse_width);
 	servodec_init(servodec_func);
 	is_running = true;
 
@@ -111,7 +102,7 @@ static msg_t ppm_thread(void *arg) {
 
 		float servo_val = servodec_get_servo(0);
 
-		switch (ctrl_type) {
+		switch (config.ctrl_type) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 		case PPM_CTRL_TYPE_DUTY_NOREV:
 		case PPM_CTRL_TYPE_PID_NOREV:
@@ -123,14 +114,32 @@ static msg_t ppm_thread(void *arg) {
 			break;
 		}
 
-		utils_deadband(&servo_val, hysteres, 1.0);
+		utils_deadband(&servo_val, config.hyst, 1.0);
+
+		// Find lowest RPM
+		float rpm_local = mcpwm_get_rpm();
+		float rpm_lowest = rpm_local;
+		if (config.multi_esc) {
+			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+				can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+					float rpm_tmp = msg->rpm;
+
+					if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
+						rpm_lowest = rpm_tmp;
+					}
+				}
+			}
+		}
 
 		float current = 0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
 		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
+		bool send_duty = false;
 
-		switch (ctrl_type) {
+		switch (config.ctrl_type) {
 		case PPM_CTRL_TYPE_CURRENT:
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 			current_mode = true;
@@ -154,38 +163,110 @@ static msg_t ppm_thread(void *arg) {
 		case PPM_CTRL_TYPE_DUTY:
 		case PPM_CTRL_TYPE_DUTY_NOREV:
 			mcpwm_set_duty(servo_val);
+			send_duty = true;
 			break;
 
 		case PPM_CTRL_TYPE_PID:
 		case PPM_CTRL_TYPE_PID_NOREV:
-			mcpwm_set_pid_speed(servo_val * pid_max_erpm);
+			mcpwm_set_pid_speed(servo_val * config.pid_max_erpm);
+			send_duty = true;
 			break;
 
 		default:
 			break;
 		}
 
+		if (send_duty && config.multi_esc) {
+			float duty = mcpwm_get_duty_cycle_now();
+
+			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+				can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+					comm_can_set_duty(msg->id, duty);
+				}
+			}
+		}
+
 		if (current_mode) {
 			if (current_mode_brake) {
 				mcpwm_set_brake_current(current);
+
+				// Send brake command to all ESCs seen recently on the CAN bus
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_current_brake(msg->id, current);
+					}
+				}
 			} else {
 				// Apply soft RPM limit
-				float rpm = mcpwm_get_rpm();
-
-				if (rpm > rpm_lim_end && current > 0.0) {
+				if (rpm_lowest > config.rpm_lim_end && current > 0.0) {
 					current = mcconf->cc_min_current;
-				} else if (rpm > rpm_lim_start && current > 0.0) {
-					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
-				} else if (rpm < -rpm_lim_end && current < 0.0) {
+				} else if (rpm_lowest > config.rpm_lim_start && current > 0.0) {
+					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
+				} else if (rpm_lowest < -config.rpm_lim_end && current < 0.0) {
 					current = mcconf->cc_min_current;
-				} else if (rpm < -rpm_lim_start && current < 0.0) {
-					rpm = -rpm;
+				} else if (rpm_lowest < -config.rpm_lim_start && current < 0.0) {
+					rpm_lowest = -rpm_lowest;
 					current = -current;
-					current = utils_map(rpm, rpm_lim_start, rpm_lim_end, current, mcconf->cc_min_current);
+					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
 					current = -current;
+					rpm_lowest = -rpm_lowest;
 				}
 
-				mcpwm_set_current(current);
+				float current_out = current;
+				bool is_reverse = false;
+				if (current_out < 0.0) {
+					is_reverse = true;
+					current_out = -current_out;
+					current = -current;
+					rpm_local = -rpm_local;
+					rpm_lowest = -rpm_lowest;
+				}
+
+				// Traction control
+				if (config.multi_esc) {
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+							if (config.tc) {
+								float rpm_tmp = msg->rpm;
+								if (is_reverse) {
+									rpm_tmp = -rpm_tmp;
+								}
+
+								float diff = rpm_tmp - rpm_lowest;
+								current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+								if (current_out < mcconf->cc_min_current) {
+									current_out = 0.0;
+								}
+							}
+
+							if (is_reverse) {
+								comm_can_set_current(msg->id, -current_out);
+							} else {
+								comm_can_set_current(msg->id, current_out);
+							}
+						}
+					}
+
+					if (config.tc) {
+						float diff = rpm_local - rpm_lowest;
+						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
+						if (current_out < mcconf->cc_min_current) {
+							current_out = 0.0;
+						}
+					}
+				}
+
+				if (is_reverse) {
+					mcpwm_set_current(-current_out);
+				} else {
+					mcpwm_set_current(current_out);
+				}
 			}
 		}
 

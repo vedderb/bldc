@@ -1266,11 +1266,12 @@ static msg_t rpm_thread(void *arg) {
 		const float rpm_abs = fabsf(rpm_now);
 
 		// Update the cycle integrator limit
-		rpm_dep.cycle_int_limit = rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
-				conf.sl_cycle_int_rpm_br, conf.sl_cycle_int_limit,
-				conf.sl_cycle_int_limit * conf.sl_cycle_int_limit_high_fac);
+		rpm_dep.cycle_int_limit = conf.sl_cycle_int_limit;
 		rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / (rpm_abs > conf.sl_min_erpm ? rpm_abs : conf.sl_min_erpm);
+		rpm_dep.cycle_int_limit_running = utils_map(rpm_abs, 0,
+				conf.sl_cycle_int_rpm_br, rpm_dep.cycle_int_limit_running,
+				rpm_dep.cycle_int_limit_running * conf.sl_phase_advance_at_br);
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / conf.sl_min_erpm_cycle_int_limit;
 
@@ -1591,7 +1592,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			input_voltage > conf.l_max_vin) {
 		wrong_voltage_iterations++;
 
-		if ((wrong_voltage_iterations >= 5)) {
+		if ((wrong_voltage_iterations >= 8)) {
 			fault_stop(input_voltage < conf.l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE);
 		}
@@ -1720,7 +1721,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				if (v_diff > 0) {
 					cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
 
-					if (cycle_sum >= (rpm_dep.comm_time_sum / 2.0)) {
+					if (cycle_sum >= utils_map(fabsf(rpm_now), 0,
+							conf.sl_cycle_int_rpm_br, rpm_dep.comm_time_sum / 2.0,
+							(rpm_dep.comm_time_sum / 2.0) * conf.sl_phase_advance_at_br)) {
 						commutate(1);
 						cycle_integrator_sum += cycle_integrator * (1.0 / (0.0005 * VDIV_CORR));
 						cycle_integrator_iterations += 1.0;
@@ -2060,7 +2063,7 @@ float mcpwm_get_min_rpm(void) {
  * @param mode
  * COMM_MODE_INTEGRATE: More robust, but requires many parameters.
  * COMM_MODE_DELAY: Like most hobby ESCs. Requires less parameters,
- * but has worse startup and ins less robust.
+ * but has worse startup and is less robust.
  *
  */
 void mcpwm_set_comm_mode(mc_comm_mode mode) {

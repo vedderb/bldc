@@ -28,6 +28,8 @@
 #include "commands.h"
 #include "main.h"
 #include "hw.h"
+#include "comm_can.h"
+#include "utils.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -163,6 +165,20 @@ void terminal_process_string(char *str) {
 		commands_printf("Cycle int limit: %.2f", (double)rpm_dep.cycle_int_limit);
 		commands_printf("Cycle int limit running: %.2f", (double)rpm_dep.cycle_int_limit_running);
 		commands_printf("Cycle int limit max: %.2f\n", (double)rpm_dep.cycle_int_limit_max);
+	} else if (strcmp(argv[0], "can_devs") == 0) {
+		commands_printf("CAN devices seen on the bus the past second:\n");
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
+				commands_printf("ID                 : %i", msg->id);
+				commands_printf("RX Time            : %i", msg->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(msg->rx_time) * 1000.0));
+				commands_printf("RPM                : %.2f", (double)msg->rpm);
+				commands_printf("Current            : %.2f", (double)msg->current);
+				commands_printf("Duty               : %.2f\n", (double)msg->duty);
+			}
+		}
 	}
 
 	// Setters
@@ -238,7 +254,10 @@ void terminal_process_string(char *str) {
 		commands_printf("  Example: param_detect 5.0 600 0.06");
 
 		commands_printf("rpm_dep");
-		commands_printf("  Prints some rpm-dep values\n");
+		commands_printf("  Prints some rpm-dep values");
+
+		commands_printf("can_devs");
+		commands_printf("  Prints all CAN devices seen on the bus the past second\n");
 	} else {
 		commands_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

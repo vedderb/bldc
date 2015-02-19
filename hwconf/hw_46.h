@@ -82,7 +82,7 @@
 // Macros
 #define READ_HALL1()				palReadPad(GPIOB, 6)
 #define READ_HALL2()				palReadPad(GPIOB, 7)
-#define READ_HALL3()				palReadPad(GPIOB, 8)
+#define READ_HALL3()				palReadPad(GPIOC, 11)
 
 // ADC macros and settings
 

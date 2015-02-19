@@ -198,7 +198,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.sl_min_erpm_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_max_fullbreak_current_dir_change = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.sl_cycle_int_limit_high_fac = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.sl_phase_advance_at_br = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_cycle_int_rpm_br = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_bemf_coupling_k = (float)buffer_get_int32(data, &ind) / 1000.0;
 
@@ -253,7 +253,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_max_fullbreak_current_dir_change * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_limit_high_fac * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_phase_advance_at_br * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_rpm_br * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_bemf_coupling_k * 1000.0), &ind);
 
@@ -279,26 +279,35 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf = *app_get_configuration();
 
 		ind = 0;
+		appconf.controller_id = data[ind++];
 		appconf.timeout_msec = buffer_get_uint32(data, &ind);
 		appconf.timeout_brake_current = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.send_can_status = data[ind++];
+
 		appconf.app_to_use = data[ind++];
 
-		appconf.app_ppm_ctrl_type = data[ind++];
-		appconf.app_ppm_pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.ctrl_type = data[ind++];
+		appconf.app_ppm_conf.pid_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.multi_esc = data[ind++];
+		appconf.app_ppm_conf.tc = data[ind++];
+		appconf.app_ppm_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
 
-		appconf.app_chuk_ctrl_type = data[ind++];
-		appconf.app_chuk_hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_ramp_time_pos = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_ramp_time_neg = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.ctrl_type = data[ind++];
+		appconf.app_chuk_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.ramp_time_pos = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.ramp_time_neg = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.multi_esc = data[ind++];
+		appconf.app_chuk_conf.tc = data[ind++];
+		appconf.app_chuk_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
@@ -310,26 +319,35 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_APPCONF;
+		send_buffer[ind++] = appconf.controller_id;
 		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
+		send_buffer[ind++] = appconf.send_can_status;
+
 		send_buffer[ind++] = appconf.app_to_use;
 
-		send_buffer[ind++] = appconf.app_ppm_ctrl_type;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pid_max_erpm * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_hyst * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_pulse_width * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_rpm_lim_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_rpm_lim_end * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_ppm_conf.ctrl_type;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pid_max_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.hyst * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_width * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_end * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_ppm_conf.multi_esc;
+		send_buffer[ind++] = appconf.app_ppm_conf.tc;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.tc_max_diff * 1000.0), &ind);
 
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
 
-		send_buffer[ind++] = appconf.app_chuk_ctrl_type;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_hyst * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_rpm_lim_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_rpm_lim_end * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_ramp_time_pos * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_ramp_time_neg * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_chuk_conf.ctrl_type;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.hyst * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.rpm_lim_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.rpm_lim_end * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.ramp_time_pos * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.ramp_time_neg * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_chuk_conf.multi_esc;
+		send_buffer[ind++] = appconf.app_chuk_conf.tc;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.tc_max_diff * 1000.0), &ind);
 
 		send_packet(send_buffer, ind);
 		break;
