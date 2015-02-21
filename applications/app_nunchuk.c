@@ -317,7 +317,7 @@ static msg_t output_thread(void *arg) {
 
 			// Always allow negative ramping
 			bool is_decreasing2 = goal_tmp2 < current_goal;
-			if (!is_decreasing || is_decreasing2) {
+			if ((!is_decreasing || is_decreasing2) && fabsf(out_val) > 0.001) {
 				current_goal = goal_tmp2;
 			}
 
