@@ -1275,6 +1275,10 @@ static msg_t rpm_thread(void *arg) {
 		rpm_dep.cycle_int_limit_max = rpm_dep.cycle_int_limit + (float)ADC_Value[ADC_IND_VIN_SENS] *
 				conf.sl_bemf_coupling_k / conf.sl_min_erpm_cycle_int_limit;
 
+		if (rpm_dep.cycle_int_limit_running < 1.0) {
+			rpm_dep.cycle_int_limit_running = 1.0;
+		}
+
 		if (rpm_dep.cycle_int_limit_running > rpm_dep.cycle_int_limit_max) {
 			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
