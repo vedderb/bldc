@@ -175,6 +175,11 @@ static msg_t output_thread(void *arg) {
 		static bool was_z = false;
 		const float current_now = mcpwm_get_tot_current_directional_filtered();
 
+		if (chuck_d.bt_c && chuck_d.bt_z) {
+			led_external_set_state(LED_EXT_BATT);
+			continue;
+		}
+
 		if (chuck_d.bt_z && !was_z && config.ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
 				fabsf(current_now) < MAX_CURR_DIFFERENCE) {
 			if (is_reverse) {

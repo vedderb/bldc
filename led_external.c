@@ -27,6 +27,8 @@
 #include "hal.h"
 #include "ws2811.h"
 #include "mcpwm.h"
+#include "utils.h"
+#include "hw.h"
 
 // Macros
 #define HAS_FAULT()		(mcpwm_get_fault() != FAULT_CODE_NONE)
@@ -59,6 +61,8 @@ void led_external_set_reversed(bool newstate) {
 static msg_t led_thread(void *arg) {
 	(void) arg;
 	chRegSetThreadName("LEDs External");
+
+	float batt_level = 0.0;
 
 	for(;;) {
 		mc_fault_code fault = mcpwm_get_fault();
@@ -148,6 +152,30 @@ static msg_t led_thread(void *arg) {
 					} else {
 						set_led_wrapper(0, COLOR_BLACK);
 						set_led_wrapper(WS2811_LED_NUM - 1, COLOR_BLACK);
+					}
+					chThdSleepMilliseconds(10);
+				}
+				break;
+
+			case LED_EXT_BATT:
+				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
+					batt_level = utils_map(GET_INPUT_VOLTAGE(), LED_EXT_BATT_LOW, LED_EXT_BATT_HIGH, 0.0, 1.0);
+					for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
+						if (i < (WS2811_LED_NUM / 2) * batt_level) {
+							if (i < (WS2811_LED_NUM / 2) / 3) {
+								set_led_wrapper(i, COLOR_RED);
+								set_led_wrapper(WS2811_LED_NUM - i - 1, COLOR_RED);
+							} else if (i < (2 * (WS2811_LED_NUM / 2)) / 3) {
+								set_led_wrapper(i, COLOR_YELLOW);
+								set_led_wrapper(WS2811_LED_NUM - i - 1, COLOR_YELLOW);
+							} else {
+								set_led_wrapper(i, COLOR_GREEN);
+								set_led_wrapper(WS2811_LED_NUM - i - 1, COLOR_GREEN);
+							}
+						} else {
+							set_led_wrapper(i, COLOR_BLACK);
+							set_led_wrapper(WS2811_LED_NUM - i - 1, COLOR_BLACK);
+						}
 					}
 					chThdSleepMilliseconds(10);
 				}

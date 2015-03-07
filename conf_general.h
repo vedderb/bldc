@@ -83,6 +83,12 @@
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
 
+/*
+ * Settings for the external LEDs (hardcoded for now)
+ */
+#define LED_EXT_BATT_LOW		25.6
+#define LED_EXT_BATT_HIGH		33.0
+
 // Functions
 void conf_general_init(void);
 void conf_general_read_app_configuration(app_configuration *conf);
