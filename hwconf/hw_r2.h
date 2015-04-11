@@ -76,17 +76,6 @@
 #define ADC_IND_TEMP_MOS6	9
 #define ADC_IND_TEMP_PCB	6
 
-// Measurement macros
-#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
-
-// Macros
-#define READ_HALL1()				palReadPad(GPIOC, 6)
-#define READ_HALL2()				palReadPad(GPIOC, 7)
-#define READ_HALL3()				palReadPad(GPIOC, 8)
-
 // ADC macros and settings
 
 // Component parameters (can be overridden)
@@ -140,5 +129,42 @@
 #define HW_I2C_SCL_PIN		10
 #define HW_I2C_SDA_PORT		GPIOB
 #define HW_I2C_SDA_PIN		11
+
+// Hall/encoder pins
+#define HW_HALL_ENC_GPIO1		GPIOC
+#define HW_HALL_ENC_PIN1		6
+#define HW_HALL_ENC_GPIO2		GPIOC
+#define HW_HALL_ENC_PIN2		7
+#define HW_HALL_ENC_GPIO3		GPIOC
+#define HW_HALL_ENC_PIN3		8
+#define HW_ENC_TIM				TIM3
+#define HW_ENC_TIM_AF			GPIO_AF_TIM3
+#define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+#define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
+#define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
+#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
+#define HW_ENC_EXTI_LINE		EXTI_Line8
+#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
+
+// NRF pins
+#define NRF_PORT_CSN	HW_ICU_GPIO
+#define NRF_PIN_CSN		HW_ICU_PIN
+#define NRF_PORT_SCK	GPIOC
+#define NRF_PIN_SCK		5
+#define NRF_PORT_MOSI	HW_I2C_SDA_PORT
+#define NRF_PIN_MOSI	HW_I2C_SDA_PIN
+#define NRF_PORT_MISO	HW_I2C_SCL_PORT
+#define NRF_PIN_MISO	HW_I2C_SCL_PIN
+
+// Measurement macros
+#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
+#define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
+
+// Macros
+#define READ_HALL1()				palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
+#define READ_HALL2()				palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
+#define READ_HALL3()				palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 #endif /* HW_R2_H_ */

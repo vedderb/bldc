@@ -136,6 +136,7 @@ typedef enum {
 	APP_UART,
 	APP_PPM_UART,
 	APP_NUNCHUK,
+	APP_NRF,
 	APP_CUSTOM
 } app_use;
 
@@ -281,5 +282,19 @@ typedef struct {
 	float current;
 	float duty;
 } can_status_msg;
+
+typedef struct {
+	uint8_t js_x;
+	uint8_t js_y;
+	bool bt_c;
+	bool bt_z;
+	bool bt_push;
+	float vbat;
+} mote_state;
+
+typedef enum {
+	MOTE_PACKET_BATT_LEVEL = 0,
+	MOTE_PACKET_BUTTONS
+} MOTE_PACKET;
 
 #endif /* DATATYPES_H_ */

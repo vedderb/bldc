@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include "comm_can.h"
 #include "ws2811.h"
 #include "led_external.h"
+#include "encoder.h"
 
 /*
  * Timers used:
@@ -46,8 +47,8 @@
  * TIM2: mcpwm
  * TIM12: mcpwm
  * TIM8: mcpwm
- * TIM3: servo_dec
- * TIM4: WS2811/WS2812 LEDs
+ * TIM3: servo_dec/Encoder (HW_R2)
+ * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
  *
  * DMA/stream	Device		Function
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
@@ -319,6 +320,8 @@ int main(void) {
 	ws2811_init();
 	led_external_init();
 #endif
+
+//	encoder_init();
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);

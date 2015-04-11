@@ -22,6 +22,7 @@
 #include "main.h"
 #include "mcpwm.h"
 #include "servo.h"
+#include "hw.h"
 
 CH_IRQ_HANDLER(TIM7_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -35,4 +36,14 @@ CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
 	mcpwm_adc_inj_int_handler();
 	CH_IRQ_EPILOGUE();
+}
+
+CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
+	if (EXTI_GetITStatus(HW_ENC_EXTI_LINE) != RESET) {
+		// Clear the encoder counter
+		HW_ENC_TIM->CNT = 0;
+
+		// Clear the EXTI line pending bit
+		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);
+	}
 }

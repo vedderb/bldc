@@ -26,36 +26,36 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
+#include "nrf_driver.h"
 
 // Private variables
 static app_configuration appconf;
 
 void app_init(app_configuration *conf) {
-	appconf = *conf;
+	app_set_configuration(conf);
 
 	switch (appconf.app_to_use) {
 	case APP_PPM:
-		app_ppm_configure(&appconf.app_ppm_conf);
 		app_ppm_start();
 		break;
 
 	case APP_UART:
 		hw_stop_i2c();
-		app_uartcomm_configure(appconf.app_uart_baudrate);
 		app_uartcomm_start();
 		break;
 
 	case APP_PPM_UART:
 		hw_stop_i2c();
-		app_ppm_configure(&appconf.app_ppm_conf);
 		app_ppm_start();
-		app_uartcomm_configure(appconf.app_uart_baudrate);
 		app_uartcomm_start();
 		break;
 
 	case APP_NUNCHUK:
-		app_nunchuk_configure(&appconf.app_chuk_conf);
 		app_nunchuk_start();
+		break;
+
+	case APP_NRF:
+		nrf_driver_init();
 		break;
 
 	case APP_CUSTOM:

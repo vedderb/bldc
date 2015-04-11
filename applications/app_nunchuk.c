@@ -52,6 +52,7 @@ static volatile bool is_running = false;
 static volatile chuck_data chuck_d;
 static volatile int chuck_error = 0;
 static volatile chuk_config config;
+static volatile bool output_running = false;
 
 void app_nunchuk_configure(chuk_config *conf) {
 	config = *conf;
@@ -59,19 +60,28 @@ void app_nunchuk_configure(chuk_config *conf) {
 
 void app_nunchuk_start(void) {
 	chuck_d.js_y = 128;
-
 	chThdCreateStatic(chuk_thread_wa, sizeof(chuk_thread_wa), NORMALPRIO, chuk_thread, NULL);
-	chThdCreateStatic(output_thread_wa, sizeof(output_thread_wa), NORMALPRIO, output_thread, NULL);
 }
 
 float app_nunchuk_get_decoded_chuk(void) {
 	return ((float)chuck_d.js_y - 128.0) / 128.0;
 }
 
+void app_nunchuk_update_output(chuck_data *data) {
+	if (!output_running) {
+		output_running = true;
+		chuck_d.js_y = 128;
+		chThdCreateStatic(output_thread_wa, sizeof(output_thread_wa), NORMALPRIO, output_thread, NULL);
+	}
+
+	chuck_d = *data;
+	timeout_reset();
+}
+
 static msg_t chuk_thread(void *arg) {
 	(void)arg;
 
-	chRegSetThreadName("APP Nunchuk");
+	chRegSetThreadName("Nunchuk i2c");
 	is_running = true;
 
 	uint8_t rxbuf[10];
@@ -79,6 +89,7 @@ static msg_t chuk_thread(void *arg) {
 	msg_t status = RDY_OK;
 	systime_t tmo = MS2ST(5);
 	i2caddr_t chuck_addr = 0x52;
+	chuck_data chuck_d_tmp;
 
 	hw_start_i2c();
 	chThdSleepMilliseconds(10);
@@ -133,15 +144,15 @@ static msg_t chuk_thread(void *arg) {
 
 			if (!same) {
 				chuck_error = 0;
-				chuck_d.js_x = rxbuf[0];
-				chuck_d.js_y = rxbuf[1];
-				chuck_d.acc_x = (rxbuf[2] << 2) | ((rxbuf[5] >> 2) & 3);
-				chuck_d.acc_y = (rxbuf[3] << 2) | ((rxbuf[5] >> 4) & 3);
-				chuck_d.acc_z = (rxbuf[4] << 2) | ((rxbuf[5] >> 6) & 3);
-				chuck_d.bt_z = !((rxbuf[5] >> 0) & 1);
-				chuck_d.bt_c = !((rxbuf[5] >> 1) & 1);
+				chuck_d_tmp.js_x = rxbuf[0];
+				chuck_d_tmp.js_y = rxbuf[1];
+				chuck_d_tmp.acc_x = (rxbuf[2] << 2) | ((rxbuf[5] >> 2) & 3);
+				chuck_d_tmp.acc_y = (rxbuf[3] << 2) | ((rxbuf[5] >> 4) & 3);
+				chuck_d_tmp.acc_z = (rxbuf[4] << 2) | ((rxbuf[5] >> 6) & 3);
+				chuck_d_tmp.bt_z = !((rxbuf[5] >> 0) & 1);
+				chuck_d_tmp.bt_c = !((rxbuf[5] >> 1) & 1);
 
-				timeout_reset();
+				app_nunchuk_update_output(&chuck_d_tmp);
 			}
 
 			if (timeout_has_timeout()) {
