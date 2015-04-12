@@ -169,6 +169,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		ind = 0;
 		mcconf.pwm_mode = data[ind++];
 		mcconf.comm_mode = data[ind++];
+		mcconf.motor_type = data[ind++];
 
 		mcconf.l_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -229,6 +230,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 
 		send_buffer[ind++] = mcconf.pwm_mode;
 		send_buffer[ind++] = mcconf.comm_mode;
+		send_buffer[ind++] = mcconf.motor_type;
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_max * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_min * 1000.0), &ind);

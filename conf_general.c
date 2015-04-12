@@ -36,6 +36,9 @@
 #endif
 
 // Parameters that can be overridden
+#ifndef MC_DEFAULT_MOTOR_TYPE
+#define MC_DEFAULT_MOTOR_TYPE			MOTOR_TYPE_BLDC
+#endif
 #ifndef MCPWM_PWM_MODE
 #define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
 #endif
@@ -244,6 +247,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 	if (!is_ok) {
 		conf->pwm_mode = MCPWM_PWM_MODE;
 		conf->comm_mode = MCPWM_COMM_MODE;
+		conf->motor_type = MC_DEFAULT_MOTOR_TYPE;
 
 		conf->l_current_max = MCPWM_CURRENT_MAX;
 		conf->l_current_min = MCPWM_CURRENT_MIN;

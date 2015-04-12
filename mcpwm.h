@@ -92,6 +92,7 @@ extern volatile int mcpwm_vzero;
  */
 #define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_MAX		35000	// The highest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	25000	// The DC motor switching frequency
 #define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
 #define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
