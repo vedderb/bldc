@@ -39,9 +39,23 @@ static volatile systime_t last_update_time;
 static volatile float servo_pos[SERVO_NUM];
 static volatile float pulse_start = 1.0;
 static volatile float pulse_width = 1.0;
+static volatile bool use_median_filter = false;
 
 // Function pointers
 static void(*done_func)(void) = 0;
+
+static float middle_of_3(float a, float b, float c) {
+	float middle;
+
+	if ((a <= b) && (a <= c)) {
+		middle = (b <= c) ? b : c;
+	} else if ((b <= a) && (b <= c)) {
+		middle = (a <= c) ? a : c;
+	} else {
+		middle = (a <= b) ? a : b;
+	}
+	return middle;
+}
 
 static void icuwidthcb(ICUDriver *icup) {
 	float len = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0)) - pulse_start;
@@ -56,7 +70,20 @@ static void icuwidthcb(ICUDriver *icup) {
 	}
 
 	if (len > 0.0) {
-		servo_pos[0] = (len * 2.0 - pulse_width) / pulse_width;
+		if (use_median_filter) {
+			float c = (len * 2.0 - pulse_width) / pulse_width;
+			static float c1 = 0.5;
+			static float c2 = 0.5;
+			float med = middle_of_3(c, c1, c2);
+
+			c2 = c1;
+			c1 = c;
+
+			servo_pos[0] = med;
+		} else {
+			servo_pos[0] = (len * 2.0 - pulse_width) / pulse_width;
+		}
+
 		last_update_time = chTimeNow();
 
 		if (done_func) {
@@ -104,9 +131,10 @@ void servodec_init(void (*d_func)(void)) {
  * @param width
  * The width of the pulse in milliseconds (default is 1.0)
  */
-void servodec_set_pulse_options(float start, float width) {
+void servodec_set_pulse_options(float start, float width, bool median_filter) {
 	pulse_start = start;
 	pulse_width = width;
+	use_median_filter = median_filter;
 }
 
 /**

@@ -293,6 +293,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.app_ppm_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.pulse_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.pulse_width = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_ppm_conf.median_filter = data[ind++];
 		appconf.app_ppm_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.multi_esc = data[ind++];
@@ -333,6 +334,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.hyst * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_width * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_ppm_conf.median_filter;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_end * 1000.0), &ind);
 		send_buffer[ind++] = appconf.app_ppm_conf.multi_esc;

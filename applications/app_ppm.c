@@ -57,7 +57,7 @@ void app_ppm_configure(ppm_config *conf) {
 	config = *conf;
 
 	if (is_running) {
-		servodec_set_pulse_options(config.pulse_start, config.pulse_width);
+		servodec_set_pulse_options(config.pulse_start, config.pulse_width, config.median_filter);
 	}
 }
 
@@ -89,7 +89,7 @@ static msg_t ppm_thread(void *arg) {
 	chRegSetThreadName("APP_PPM");
 	ppm_tp = chThdSelf();
 
-	servodec_set_pulse_options(config.pulse_start, config.pulse_width);
+	servodec_set_pulse_options(config.pulse_start, config.pulse_width, config.median_filter);
 	servodec_init(servodec_func);
 	is_running = true;
 

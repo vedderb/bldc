@@ -30,7 +30,7 @@
 
 // Functions
 void servodec_init(void (*d_func)(void));
-void servodec_set_pulse_options(float start, float width);
+void servodec_set_pulse_options(float start, float width, bool median_filter);
 float servodec_get_servo(int servo_num);
 uint32_t servodec_get_time_since_update(void);
 

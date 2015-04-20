@@ -164,6 +164,7 @@ typedef struct {
 	float hyst;
 	float pulse_start;
 	float pulse_width;
+	bool median_filter;
 	float rpm_lim_start;
 	float rpm_lim_end;
 	bool multi_esc;
