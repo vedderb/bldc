@@ -36,6 +36,7 @@
 #include "ledpwm.h"
 #include "hw.h"
 #include "terminal.h"
+#include "encoder.h"
 
 // Structs
 typedef struct {
@@ -55,6 +56,7 @@ static volatile float dutycycle_set;
 static volatile float dutycycle_now;
 static volatile float rpm_now;
 static volatile float speed_pid_set_rpm;
+static volatile float pos_pid_set_pos;
 static volatile float current_set;
 static volatile int tachometer;
 static volatile int tachometer_abs;
@@ -139,7 +141,8 @@ static void stop_pwm_hw(void);
 static void full_brake_ll(void);
 static void full_brake_hw(void);
 static void fault_stop(mc_fault_code fault);
-static void run_pid_controller(void);
+static void run_pid_control_speed(void);
+static void run_pid_control_pos(float dt);
 static void set_next_comm_step(int next_step);
 static void update_rpm_tacho(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
@@ -178,6 +181,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	dutycycle_set = 0.0;
 	dutycycle_now = 0.0;
 	speed_pid_set_rpm = 0.0;
+	pos_pid_set_pos = 0.0;
 	current_set = 0.0;
 	tachometer = 0;
 	tachometer_abs = 0;
@@ -586,6 +590,26 @@ void mcpwm_set_pid_speed(float rpm) {
 
 	control_mode = CONTROL_MODE_SPEED;
 	speed_pid_set_rpm = rpm;
+}
+
+/**
+ * Use PID position control. Note that this only works when encoder support
+ * is enabled.
+ *
+ * @param pos
+ * The desired position of the motor in degrees.
+ */
+void mcpwm_set_pid_pos(float pos) {
+	if (try_input() || !ENCODER_ENABLE) {
+		return;
+	}
+
+	control_mode = CONTROL_MODE_POS;
+	pos_pid_set_pos = pos;
+
+	if (state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(MCPWM_MIN_DUTY_CYCLE);
+	}
 }
 
 /**
@@ -1203,7 +1227,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	set_next_timer_settings(&timer_tmp);
 }
 
-static void run_pid_controller(void) {
+static void run_pid_control_speed(void) {
 	static float i_term = 0;
 	static float prev_error = 0;
 	float p_term;
@@ -1261,6 +1285,40 @@ static void run_pid_controller(void) {
 	set_duty_cycle_hl(output);
 }
 
+static void run_pid_control_pos(float dt) {
+	static float i_term = 0;
+	static float prev_error = 0;
+	float p_term;
+	float d_term;
+
+	// PID is off. Return.
+	if (control_mode != CONTROL_MODE_POS) {
+		i_term = 0;
+		prev_error = 0;
+		return;
+	}
+
+	// Compute error
+	float error = utils_angle_difference(encoder_read_deg(), pos_pid_set_pos);
+
+	// Compute parameters
+	p_term = error * conf.p_pid_kp;
+	i_term += error * (conf.p_pid_ki * dt);
+	d_term = (error - prev_error) * (conf.p_pid_kd / dt);
+
+	// I-term wind-up protection
+	utils_truncate_number(&i_term, -1.0, 1.0);
+
+	// Store previous error
+	prev_error = error;
+
+	// Calculate output
+	float output = p_term + i_term + d_term;
+	utils_truncate_number(&output, -1.0, 1.0);
+
+	current_set = output * conf.lo_current_max;
+}
+
 static msg_t rpm_thread(void *arg) {
 	(void)arg;
 
@@ -1312,7 +1370,7 @@ static msg_t rpm_thread(void *arg) {
 		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_abs / 60.0) * 6.0);
 		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((conf.sl_min_erpm / 60.0) * 6.0);
 
-		run_pid_controller();
+		run_pid_control_speed();
 
 		chThdSleepMilliseconds(1);
 	}
@@ -1879,15 +1937,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		float dutycycle_now_tmp = dutycycle_now;
 
-		if (control_mode == CONTROL_MODE_CURRENT) {
+		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_POS) {
 			// Compute error
 			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
 			float step = error * conf.cc_gain * voltage_scale;
 			const float start_boost = conf.cc_startup_boost_duty / voltage_scale;
 
 			// Do not ramp too much
-			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
-					MCPWM_RAMP_STEP_CURRENT_MAX);
+			utils_truncate_number(&step, -conf.cc_ramp_step_max, conf.cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= switching_frequency_now / 1000.0;
@@ -1928,8 +1985,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			float step = error * conf.cc_gain * voltage_scale;
 
 			// Do not ramp too much
-			utils_truncate_number(&step, -MCPWM_RAMP_STEP_CURRENT_MAX,
-					MCPWM_RAMP_STEP_CURRENT_MAX);
+			utils_truncate_number(&step, -conf.cc_ramp_step_max, conf.cc_ramp_step_max);
 
 			// Switching frequency correction
 			step /= switching_frequency_now / 1000.0;
@@ -2018,6 +2074,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	main_dma_adc_handler();
+
+	if (ENCODER_ENABLE) {
+		run_pid_control_pos(1.0 / switching_frequency_now);
+	}
 
 	last_adc_isr_duration = (float)TIM12->CNT / 10000000.0;
 }

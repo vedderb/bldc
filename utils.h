@@ -31,6 +31,7 @@ void utils_norm_angle(float *angle);
 int utils_truncate_number(float *number, float min, float max);
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
 void utils_deadband(float *value, float tres, float max);
+float utils_angle_difference(float angle1, float angle2);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 

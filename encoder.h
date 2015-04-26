@@ -25,9 +25,6 @@
 #ifndef ENCODER_H_
 #define ENCODER_H_
 
-// Settings
-#define ENCODER_CONTS			14400
-
 // Functions
 void encoder_init(void);
 float encoder_read_deg(void);

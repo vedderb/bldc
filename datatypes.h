@@ -68,6 +68,7 @@ typedef enum {
 	CONTROL_MODE_SPEED,
 	CONTROL_MODE_CURRENT,
 	CONTROL_MODE_CURRENT_BRAKE,
+	CONTROL_MODE_POS,
 	CONTROL_MODE_NONE
 } mc_control_mode;
 
@@ -127,10 +128,15 @@ typedef struct {
 	float s_pid_ki;
 	float s_pid_kd;
 	float s_pid_min_rpm;
+	// Pos PID
+	float p_pid_kp;
+	float p_pid_ki;
+	float p_pid_kd;
 	// Current controller
 	float cc_startup_boost_duty;
 	float cc_min_current;
 	float cc_gain;
+	float cc_ramp_step_max;
 	// Misc
 	int32_t m_fault_stop_time_ms;
 } mc_configuration;
@@ -197,6 +203,7 @@ typedef struct {
 	uint32_t timeout_msec;
 	float timeout_brake_current;
 	bool send_can_status;
+	uint32_t send_can_status_rate_hz;
 
 	// Application to use
 	app_use app_to_use;
@@ -218,6 +225,7 @@ typedef enum {
 	COMM_SET_CURRENT,
 	COMM_SET_CURRENT_BRAKE,
 	COMM_SET_RPM,
+	COMM_SET_POS,
 	COMM_SET_DETECT,
 	COMM_SET_SERVO_OFFSET,
 	COMM_SET_MCCONF,
@@ -233,7 +241,8 @@ typedef enum {
 	COMM_REBOOT,
 	COMM_ALIVE,
 	COMM_GET_DECODED_PPM,
-	COMM_GET_DECODED_CHUK
+	COMM_GET_DECODED_CHUK,
+	COMM_FORWARD_CAN
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -242,6 +251,9 @@ typedef enum {
 	CAN_PACKET_SET_CURRENT,
 	CAN_PACKET_SET_CURRENT_BRAKE,
 	CAN_PACKET_SET_RPM,
+	CAN_PACKET_SET_POS,
+	CAN_PACKET_FILL_RX_BUFFER,
+	CAN_PACKET_PROCESS_RX_BUFFER,
 	CAN_PACKET_STATUS
 } CAN_PACKET_ID;
 

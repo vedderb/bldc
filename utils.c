@@ -99,6 +99,30 @@ void utils_deadband(float *value, float tres, float max) {
 }
 
 /**
+ * Get the difference between two angles. Will always be between -180 and +180 degrees.
+ * @param angle1
+ * The first angle
+ * @param angle2
+ * The second angle
+ * @return
+ * The difference between the angles
+ */
+float utils_angle_difference(float angle1, float angle2) {
+	utils_norm_angle(&angle1);
+	utils_norm_angle(&angle2);
+
+	if (fabsf(angle1 - angle2) > 180.0) {
+		if (angle1 < angle2) {
+			angle1 += 360.0;
+		} else {
+			angle2 += 360.0;
+		}
+	}
+
+	return angle1 - angle2;
+}
+
+/**
  * A system locking function with a counter. For every lock, a corresponding unlock must
  * exist to unlock the system. That means, if lock is called five times, unlock has to
  * be called five times as well. Note that chSysLock and chSysLockFromIsr are the same

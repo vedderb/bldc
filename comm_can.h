@@ -34,10 +34,12 @@
 // Functions
 void comm_can_init(void);
 void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len);
+void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, bool send);
 void comm_can_set_duty(uint8_t controller_id, float duty);
 void comm_can_set_current(uint8_t controller_id, float current);
 void comm_can_set_current_brake(uint8_t controller_id, float current);
 void comm_can_set_rpm(uint8_t controller_id, float rpm);
+void comm_can_set_pos(uint8_t controller_id, float pos);
 can_status_msg *comm_can_get_status_msg_index(int index);
 can_status_msg *comm_can_get_status_msg_id(int id);
 

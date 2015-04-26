@@ -22,6 +22,7 @@
  *      Author: benjamin
  */
 
+#include <string.h>
 #include "comm_can.h"
 #include "ch.h"
 #include "hal.h"
@@ -31,12 +32,13 @@
 #include "timeout.h"
 #include "commands.h"
 #include "app.h"
+#include "crc.h"
 
 // Settings
 #define CANDx			CAND1
 
 // Threads
-static WORKING_AREA(cancom_thread_wa, 1024);
+static WORKING_AREA(cancom_thread_wa, 4096);
 static WORKING_AREA(cancom_status_thread_wa, 1024);
 static msg_t cancom_thread(void *arg);
 static msg_t cancom_status_thread(void *arg);
@@ -44,6 +46,8 @@ static msg_t cancom_status_thread(void *arg);
 // Variables
 static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
 static Mutex can_mtx;
+static uint8_t rx_buffer[256];
+static uint8_t rx_buffer_last_id;
 
 /*
  * 500KBaud, automatic wakeup, automatic recover
@@ -55,6 +59,9 @@ static const CANConfig cancfg = {
 		CAN_BTR_SJW(0) | CAN_BTR_TS2(1) |
 		CAN_BTR_TS1(8) | CAN_BTR_BRP(6)
 };
+
+// Private functions
+static void send_packet_wrapper(unsigned char *data, unsigned char len);
 
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -89,6 +96,10 @@ static msg_t cancom_thread(void *arg) {
 	EventListener el;
 	CANRxFrame rxmsg;
 	int32_t ind = 0;
+	int32_t rxbuf_len;
+	uint8_t crc_low;
+	uint8_t crc_high;
+	bool commands_send;
 
 	chEvtRegister(&CANDx.rxfull_event, &el, 0);
 
@@ -131,6 +142,37 @@ static msg_t cancom_thread(void *arg) {
 						ind = 0;
 						mcpwm_set_pid_speed((float)buffer_get_int32(rxmsg.data8, &ind));
 						timeout_reset();
+						break;
+
+					case CAN_PACKET_SET_POS:
+						ind = 0;
+						mcpwm_set_pid_pos((float)buffer_get_int32(rxmsg.data8, &ind) / 1000000.0);
+						timeout_reset();
+						break;
+
+					case CAN_PACKET_FILL_RX_BUFFER:
+						memcpy(rx_buffer + rxmsg.data8[0], rxmsg.data8 + 1, rxmsg.DLC - 1);
+						break;
+
+					case CAN_PACKET_PROCESS_RX_BUFFER:
+						ind = 0;
+						rx_buffer_last_id = rxmsg.data8[ind++];
+						commands_send = rxmsg.data8[ind++];
+						rxbuf_len = rxmsg.data8[ind++];
+						crc_high = rxmsg.data8[ind++];
+						crc_low = rxmsg.data8[ind++];
+
+						if (crc16(rx_buffer, rxbuf_len)
+								== ((unsigned short) crc_high << 8
+										| (unsigned short) crc_low)) {
+
+							if (commands_send) {
+								commands_send_packet(rx_buffer, rxbuf_len);
+							} else {
+								commands_set_send_func(send_packet_wrapper);
+								commands_process_packet(rx_buffer, rxbuf_len);
+							}
+						}
 						break;
 
 					default:
@@ -184,27 +226,78 @@ static msg_t cancom_status_thread(void *arg) {
 			comm_can_transmit(app_get_configuration()->controller_id | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 
-		chThdSleepMilliseconds(CAN_STATUS_MSG_INT_MS);
+		chThdSleep(CH_FREQUENCY / app_get_configuration()->send_can_status_rate_hz);
 	}
 
 	return 0;
 }
 
 void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
-	CANTxFrame txmsg;
+	chMtxLock(&can_mtx);
 
-	txmsg.IDE = CAN_IDE_EXT;
-	txmsg.EID = id;
-	txmsg.RTR = CAN_RTR_DATA;
-	txmsg.DLC = len;
+	static CANTxFrame txmsg[10];
+	static int txmsg_ind = 0;
 
-	for (int i = 0;i < len;i++) {
-		txmsg.data8[i] = data[i];
+	txmsg[txmsg_ind].IDE = CAN_IDE_EXT;
+	txmsg[txmsg_ind].EID = id;
+	txmsg[txmsg_ind].RTR = CAN_RTR_DATA;
+	txmsg[txmsg_ind].DLC = len;
+
+	memcpy(txmsg[txmsg_ind].data8, data, len);
+
+	canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg[txmsg_ind], MS2ST(50));
+
+	txmsg_ind++;
+	if (txmsg_ind >= 10) {
+		txmsg_ind = 0;
 	}
 
-	chMtxLock(&can_mtx);
-	canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg, MS2ST(2));
 	chMtxUnlock();
+}
+
+/**
+ * Send a buffer up to 256 bytes as fragments.
+ *
+ * @param controller_id
+ * The controller id to send to.
+ *
+ * @param data
+ * The payload.
+ *
+ * @param len
+ * The payload length.
+ *
+ * @param send
+ * If true, this packet will be passed to the send function of commands.
+ * Otherwise, it will be passed to the process function.
+ */
+void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, bool send) {
+	uint8_t send_buffer[8];
+
+	for (int i = 0;i < len;i += 7) {
+		uint8_t send_len = 7;
+
+		send_buffer[0] = i;
+
+		if ((i + 7) <= len) {
+			memcpy(send_buffer + 1, data + i, send_len);
+		} else {
+			send_len = len - i;
+			memcpy(send_buffer + 1, data + i, send_len);
+		}
+
+		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
+	}
+
+	uint32_t ind = 0;
+	send_buffer[ind++] = app_get_configuration()->controller_id;
+	send_buffer[ind++] = send;
+	send_buffer[ind++] = len;
+	unsigned short crc = crc16(data, len);
+	send_buffer[ind++] = (uint8_t)(crc >> 8);
+	send_buffer[ind++] = (uint8_t)(crc & 0xFF);
+
+	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, 5);
 }
 
 void comm_can_set_duty(uint8_t controller_id, float duty) {
@@ -233,6 +326,13 @@ void comm_can_set_rpm(uint8_t controller_id, float rpm) {
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)rpm, &send_index);
 	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
+}
+
+void comm_can_set_pos(uint8_t controller_id, float pos) {
+	int32_t send_index = 0;
+	uint8_t buffer[4];
+	buffer_append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
+	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
 }
 
 /**
@@ -269,4 +369,8 @@ can_status_msg *comm_can_get_status_msg_id(int id) {
 	}
 
 	return 0;
+}
+
+static void send_packet_wrapper(unsigned char *data, unsigned char len) {
+	comm_can_send_buffer(rx_buffer_last_id, data, len, true);
 }

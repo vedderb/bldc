@@ -36,6 +36,7 @@
 #include "app.h"
 #include "timeout.h"
 #include "servo_dec.h"
+#include "comm_can.h"
 
 #include <math.h>
 #include <string.h>
@@ -56,12 +57,6 @@ static float detect_min_rpm;
 static float detect_low_duty;
 static void(*send_func)(unsigned char *data, unsigned char len) = 0;
 
-static void send_packet(unsigned char *data, unsigned char len) {
-	if (send_func) {
-		send_func(data, len);
-	}
-}
-
 void commands_init(void) {
 	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
 }
@@ -74,6 +69,21 @@ void commands_init(void) {
  */
 void commands_set_send_func(void(*func)(unsigned char *data, unsigned char len)) {
 	send_func = func;
+}
+
+/**
+ * Send a packet using the set send function.
+ *
+ * @param data
+ * The packet data.
+ *
+ * @param len
+ * The data length.
+ */
+void commands_send_packet(unsigned char *data, unsigned char len) {
+	if (send_func) {
+		send_func(data, len);
+	}
 }
 
 /**
@@ -127,7 +137,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, mcpwm_get_tachometer_value(false), &ind);
 		buffer_append_int32(send_buffer, mcpwm_get_tachometer_abs_value(false), &ind);
 		send_buffer[ind++] = mcpwm_get_fault();
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_DUTY:
@@ -151,6 +161,12 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 	case COMM_SET_RPM:
 		ind = 0;
 		mcpwm_set_pid_speed((float)buffer_get_int32(data, &ind));
+		timeout_reset();
+		break;
+
+	case COMM_SET_POS:
+		ind = 0;
+		mcpwm_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
 		timeout_reset();
 		break;
 
@@ -212,9 +228,14 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.s_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
+		mcconf.p_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.p_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.p_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
+
 		mcconf.cc_startup_boost_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.cc_min_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.cc_gain = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.cc_ramp_step_max = (float)buffer_get_int32(data, &ind) / 1000000.0;
 
 		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
 
@@ -268,13 +289,18 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kd * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_min_rpm * 1000.0), &ind);
 
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_kp * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_ki * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_kd * 1000000.0), &ind);
+
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_startup_boost_duty * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_min_current * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_gain * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_ramp_step_max * 1000000.0), &ind);
 
 		buffer_append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
 
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_APPCONF:
@@ -285,6 +311,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.timeout_msec = buffer_get_uint32(data, &ind);
 		appconf.timeout_brake_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.send_can_status = data[ind++];
+		appconf.send_can_status_rate_hz = buffer_get_uint16(data, &ind);
 
 		appconf.app_to_use = data[ind++];
 
@@ -326,6 +353,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
 		send_buffer[ind++] = appconf.send_can_status;
+		buffer_append_uint16(send_buffer, appconf.send_can_status_rate_hz, &ind);
 
 		send_buffer[ind++] = appconf.app_to_use;
 
@@ -353,7 +381,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = appconf.app_chuk_conf.tc;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.tc_max_diff * 1000.0), &ind);
 
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SAMPLE_PRINT:
@@ -392,14 +420,18 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_servo(0) * 1000000.0), &ind);
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_GET_DECODED_CHUK:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
 		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
+		break;
+
+	case COMM_FORWARD_CAN:
+		comm_can_send_buffer(data[0], data + 1, len - 1, false);
 		break;
 
 	default:
@@ -418,7 +450,7 @@ void commands_printf(char* format, ...) {
 	va_end (arg);
 
 	if(len>0) {
-		send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
+		commands_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
 	}
 }
 
@@ -432,7 +464,7 @@ void commands_send_samples(uint8_t *data, int len) {
 		buffer[index++] = data[i];
 	}
 
-	send_packet(buffer, index);
+	commands_send_packet(buffer, index);
 }
 
 void commands_send_rotor_pos(float rotor_pos) {
@@ -442,7 +474,7 @@ void commands_send_rotor_pos(float rotor_pos) {
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
 
-	send_packet(buffer, index);
+	commands_send_packet(buffer, index);
 }
 
 void commands_send_experiment_samples(float *samples, int len) {
@@ -459,7 +491,7 @@ void commands_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
-	send_packet(buffer, index);
+	commands_send_packet(buffer, index);
 }
 
 static msg_t detect_thread(void *arg) {
@@ -482,7 +514,7 @@ static msg_t detect_thread(void *arg) {
 		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
 		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
-		send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind);
 	}
 
 	return 0;

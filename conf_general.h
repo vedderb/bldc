@@ -58,13 +58,7 @@
  */
 //#define MCCONF_OUTRUNNER1
 #define MCCONF_OUTRUNNER2
-//#define MCCONF_OUTRUNNER_OR
-//#define MCCONF_OUTRUNNER_BL
-//#define MCCONF_RCCAR1
-//#define MCCONF_RCCAR2
 //#define MCCONF_STEN
-//#define MCCONF_GURGALOF
-//#define MCCONF_HDD
 
 /*
  * Select which custom application to use. To configure the default applications and
@@ -82,6 +76,13 @@
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
+
+/*
+ * Use encoder
+ */
+#define ENCODER_ENABLE			0
+#define ENCODER_CONTS			14400
+//#define ENCODER_CONTS			10000
 
 /*
  * Settings for the external LEDs (hardcoded for now)

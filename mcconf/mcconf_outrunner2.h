@@ -50,6 +50,11 @@
 #define MCPWM_PID_KD					0.0		// Derivative gain
 #define MCPWM_PID_MIN_RPM				900.0	// Minimum allowed RPM
 
+// Position PID parameters
+#define MCPWM_P_PID_KP					0.0001	// Proportional gain
+#define MCPWM_P_PID_KI					0.002	// Integral gain
+#define MCPWM_P_PID_KD					0.0		// Derivative gain
+
 // Current control parameters
 #define MCPWM_CURRENT_CONTROL_GAIN		0.0046	// Current controller error gain
 #define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current

@@ -19,20 +19,8 @@
 #include "mcconf_outrunner1.h"
 #elif defined MCCONF_OUTRUNNER2
 #include "mcconf_outrunner2.h"
-#elif defined MCCONF_OUTRUNNER_OR
-#include "mcconf_outrunner_or.h"
-#elif defined MCCONF_OUTRUNNER_BL
-#include "mcconf_outrunner_bl.h"
-#elif defined MCCONF_RCCAR1
-#include "mcconf_rccar1.h"
-#elif defined MCCONF_RCCAR2
-#include "mcconf_rccar2.h"
 #elif defined MCCONF_STEN
 #include "mcconf_sten.h"
-#elif defined MCCONF_GURGALOF
-#include "mcconf_gurgalof.h"
-#elif defined MCCONF_HDD
-#include "mcconf_hdd.h"
 #endif
 
 // Parameters that can be overridden
@@ -159,7 +147,8 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->controller_id = 0;
 		conf->timeout_msec = 1000;
 		conf->timeout_brake_current = 0.0;
-		conf->send_can_status = true;
+		conf->send_can_status = false;
+		conf->send_can_status_rate_hz = 500;
 
 		conf->app_to_use = APP_NONE;
 
@@ -290,9 +279,14 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->s_pid_kd = MCPWM_PID_KD;
 		conf->s_pid_min_rpm = MCPWM_PID_MIN_RPM;
 
+		conf->p_pid_kp = MCPWM_P_PID_KP;
+		conf->p_pid_ki = MCPWM_P_PID_KI;
+		conf->p_pid_kd = MCPWM_P_PID_KD;
+
 		conf->cc_startup_boost_duty = MCPWM_CURRENT_STARTUP_BOOST;
 		conf->cc_min_current = MCPWM_CURRENT_CONTROL_MIN;
 		conf->cc_gain = MCPWM_CURRENT_CONTROL_GAIN;
+		conf->cc_ramp_step_max = 0.04;
 
 		conf->m_fault_stop_time_ms = MCPWM_FAULT_STOP_TIME;
 	}

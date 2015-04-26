@@ -36,6 +36,7 @@ void mcpwm_set_configuration(mc_configuration *configuration);
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add);
 void mcpwm_set_duty(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
+void mcpwm_set_pid_pos(float pos);
 void mcpwm_set_current(float current);
 void mcpwm_set_brake_current(float current);
 void mcpwm_brake_now(void);
@@ -98,7 +99,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_MIN_DUTY_CYCLE			0.005	// Minimum duty cycle
 #define MCPWM_MAX_DUTY_CYCLE			0.95	// Maximum duty cycle
 #define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_RAMP_STEP_CURRENT_MAX		0.04	// Maximum ramping step (1000 times/sec) for the current control
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
 #define MCPWM_CURRENT_LIMIT_GAIN		2.0		// The error gain of the current limiting algorithm
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent

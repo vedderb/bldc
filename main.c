@@ -144,7 +144,12 @@ static msg_t periodic_thread(void *arg) {
 			commands_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
-		chThdSleepMilliseconds(25);
+#if ENCODER_ENABLE
+//		commands_send_rotor_pos(encoder_read_deg());
+//		comm_can_set_pos(0, encoder_read_deg());
+#endif
+
+		chThdSleepMilliseconds(10);
 	}
 
 	return 0;
@@ -308,20 +313,24 @@ int main(void) {
 
 	commands_init();
 	comm_usb_init();
-	comm_can_init();
 
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
 	app_init(&appconf);
+
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+
+	comm_can_init();
 
 #if WS2811_ENABLE
 	ws2811_init();
 	led_external_init();
 #endif
 
-//	encoder_init();
+#if ENCODER_ENABLE
+	encoder_init();
+#endif
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
