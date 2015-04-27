@@ -175,6 +175,19 @@ static msg_t cancom_thread(void *arg) {
 						}
 						break;
 
+					case CAN_PACKET_PROCESS_SHORT_BUFFER:
+						ind = 0;
+						rx_buffer_last_id = rxmsg.data8[ind++];
+						commands_send = rxmsg.data8[ind++];
+
+						if (commands_send) {
+							commands_send_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+						} else {
+							commands_set_send_func(send_packet_wrapper);
+							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+						}
+						break;
+
 					default:
 						break;
 					}
@@ -233,6 +246,7 @@ static msg_t cancom_status_thread(void *arg) {
 }
 
 void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
+#if CAN_ENABLE
 	chMtxLock(&can_mtx);
 
 	static CANTxFrame txmsg[10];
@@ -253,10 +267,17 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 	}
 
 	chMtxUnlock();
+#else
+	(void)id;
+	(void)data;
+	(void)len;
+#endif
 }
 
 /**
- * Send a buffer up to 256 bytes as fragments.
+ * Send a buffer up to 256 bytes as fragments. If the buffer is 6 bytes or less
+ * it will be sent in a single CAN frame, otherwise it will be split into
+ * several frames.
  *
  * @param controller_id
  * The controller id to send to.
@@ -274,30 +295,39 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, bool send) {
 	uint8_t send_buffer[8];
 
-	for (int i = 0;i < len;i += 7) {
-		uint8_t send_len = 7;
+	if (len <= 6) {
+		uint32_t ind = 0;
+		send_buffer[ind++] = app_get_configuration()->controller_id;
+		send_buffer[ind++] = send;
+		memcpy(send_buffer + ind, data, len);
+		ind += len;
+		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
+	} else {
+		for (int i = 0;i < len;i += 7) {
+			uint8_t send_len = 7;
 
-		send_buffer[0] = i;
+			send_buffer[0] = i;
 
-		if ((i + 7) <= len) {
-			memcpy(send_buffer + 1, data + i, send_len);
-		} else {
-			send_len = len - i;
-			memcpy(send_buffer + 1, data + i, send_len);
+			if ((i + 7) <= len) {
+				memcpy(send_buffer + 1, data + i, send_len);
+			} else {
+				send_len = len - i;
+				memcpy(send_buffer + 1, data + i, send_len);
+			}
+
+			comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
 		}
 
-		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
+		uint32_t ind = 0;
+		send_buffer[ind++] = app_get_configuration()->controller_id;
+		send_buffer[ind++] = send;
+		send_buffer[ind++] = len;
+		unsigned short crc = crc16(data, len);
+		send_buffer[ind++] = (uint8_t)(crc >> 8);
+		send_buffer[ind++] = (uint8_t)(crc & 0xFF);
+
+		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, 5);
 	}
-
-	uint32_t ind = 0;
-	send_buffer[ind++] = app_get_configuration()->controller_id;
-	send_buffer[ind++] = send;
-	send_buffer[ind++] = len;
-	unsigned short crc = crc16(data, len);
-	send_buffer[ind++] = (uint8_t)(crc >> 8);
-	send_buffer[ind++] = (uint8_t)(crc & 0xFF);
-
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, 5);
 }
 
 void comm_can_set_duty(uint8_t controller_id, float duty) {

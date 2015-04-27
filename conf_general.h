@@ -69,6 +69,24 @@
 //#define USE_APP_GURGALOF
 
 /*
+ * Use encoder
+ */
+#define ENCODER_ENABLE			0
+//#define ENCODER_COUNTS			14400
+#define ENCODER_COUNTS			10000
+
+/*
+ * Enable CAN-bus
+ */
+#define CAN_ENABLE				1
+
+/*
+ * Settings for the external LEDs (hardcoded for now)
+ */
+#define LED_EXT_BATT_LOW		25.6
+#define LED_EXT_BATT_HIGH		33.0
+
+/*
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
  * at the same time.
  */
@@ -76,19 +94,6 @@
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
-
-/*
- * Use encoder
- */
-#define ENCODER_ENABLE			0
-#define ENCODER_COUNTS			14400
-//#define ENCODER_COUNTS			10000
-
-/*
- * Settings for the external LEDs (hardcoded for now)
- */
-#define LED_EXT_BATT_LOW		25.6
-#define LED_EXT_BATT_HIGH		33.0
 
 // Functions
 void conf_general_init(void);

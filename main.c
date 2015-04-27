@@ -80,7 +80,7 @@
  */
 
 // Private variables
-#define ADC_SAMPLE_MAX_LEN		4000
+#define ADC_SAMPLE_MAX_LEN		2000
 static volatile int16_t curr0_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int16_t curr1_samples[ADC_SAMPLE_MAX_LEN];
 static volatile int16_t ph1_samples[ADC_SAMPLE_MAX_LEN];
@@ -321,7 +321,9 @@ int main(void) {
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
+#if CAN_ENABLE
 	comm_can_init();
+#endif
 
 #if WS2811_ENABLE
 	ws2811_init();
