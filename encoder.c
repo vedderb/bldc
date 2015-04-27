@@ -52,7 +52,7 @@ void encoder_init(void) {
 	TIM_EncoderInterfaceConfig (HW_ENC_TIM, TIM_EncoderMode_TI12,
 			TIM_ICPolarity_Rising,
 			TIM_ICPolarity_Rising);
-	TIM_SetAutoreload(HW_ENC_TIM, ENCODER_CONTS - 1);
+	TIM_SetAutoreload(HW_ENC_TIM, ENCODER_COUNTS - 1);
 
 	TIM_Cmd (HW_ENC_TIM, ENABLE);
 
@@ -77,5 +77,5 @@ void encoder_init(void) {
 }
 
 float encoder_read_deg(void) {
-	return ((float)HW_ENC_TIM->CNT * 360.0) / (float)ENCODER_CONTS;
+	return ((float)HW_ENC_TIM->CNT * 360.0) / (float)ENCODER_COUNTS;
 }

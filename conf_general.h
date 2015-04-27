@@ -81,8 +81,8 @@
  * Use encoder
  */
 #define ENCODER_ENABLE			0
-#define ENCODER_CONTS			14400
-//#define ENCODER_CONTS			10000
+#define ENCODER_COUNTS			14400
+//#define ENCODER_COUNTS			10000
 
 /*
  * Settings for the external LEDs (hardcoded for now)
