@@ -38,7 +38,8 @@
 static volatile systime_t last_update_time;
 static volatile float servo_pos[SERVO_NUM];
 static volatile float pulse_start = 1.0;
-static volatile float pulse_width = 1.0;
+static volatile float pulse_end = 2.0;
+static volatile float last_len_received[SERVO_NUM];
 static volatile bool use_median_filter = false;
 
 // Function pointers
@@ -58,11 +59,13 @@ static float middle_of_3(float a, float b, float c) {
 }
 
 static void icuwidthcb(ICUDriver *icup) {
-	float len = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0)) - pulse_start;
+	last_len_received[0] = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0));
+	float len = last_len_received[0] - pulse_start;
+	const float len_set = (pulse_end - pulse_start);
 
-	if (len > pulse_width) {
-		if (len < pulse_width * 1.2) {
-			len = pulse_width;
+	if (len > len_set) {
+		if (len < len_set * 1.2) {
+			len = len_set;
 		} else {
 			// Too long pulse. Most likely something is wrong.
 			len = -1.0;
@@ -71,7 +74,7 @@ static void icuwidthcb(ICUDriver *icup) {
 
 	if (len > 0.0) {
 		if (use_median_filter) {
-			float c = (len * 2.0 - pulse_width) / pulse_width;
+			float c = (len * 2.0 - len_set) / len_set;
 			static float c1 = 0.5;
 			static float c2 = 0.5;
 			float med = middle_of_3(c, c1, c2);
@@ -81,7 +84,7 @@ static void icuwidthcb(ICUDriver *icup) {
 
 			servo_pos[0] = med;
 		} else {
-			servo_pos[0] = (len * 2.0 - pulse_width) / pulse_width;
+			servo_pos[0] = (len * 2.0 - len_set) / len_set;
 		}
 
 		last_update_time = chTimeNow();
@@ -118,6 +121,11 @@ void servodec_init(void (*d_func)(void)) {
 	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF));
 	icuEnable(&ICUD3);
 
+	for (int i = 0;i < SERVO_NUM;i++) {
+		servo_pos[i] = 0.0;
+		last_len_received[i] = 0.0;
+	}
+
 	// Set our function pointer
 	done_func = d_func;
 }
@@ -128,12 +136,12 @@ void servodec_init(void (*d_func)(void)) {
  * @param start
  * The amount of milliseconds the pulse starts at (default is 1.0)
  *
- * @param width
- * The width of the pulse in milliseconds (default is 1.0)
+ * @param end
+ * he amount of milliseconds the pulse ends at (default is 2.0)
  */
-void servodec_set_pulse_options(float start, float width, bool median_filter) {
+void servodec_set_pulse_options(float start, float end, bool median_filter) {
 	pulse_start = start;
-	pulse_width = width;
+	pulse_end = end;
 	use_median_filter = median_filter;
 }
 
@@ -163,4 +171,21 @@ float servodec_get_servo(int servo_num) {
  */
 uint32_t servodec_get_time_since_update(void) {
 	return chTimeElapsedSince(last_update_time) / (CH_FREQUENCY / 1000);
+}
+
+/**
+ * Get the length of the last received pulse.
+ *
+ * @param servo_num
+ * The servo index. If it is out of range, 0.0 will be returned.
+ *
+ * @return
+ * The length of the last received pulse.
+ */
+float servodec_get_last_pulse_len(int servo_num) {
+	if (servo_num < SERVO_NUM) {
+		return last_len_received[servo_num];
+	} else {
+		return 0.0;
+	}
 }

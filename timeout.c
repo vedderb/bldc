@@ -58,6 +58,10 @@ bool timeout_has_timeout(void) {
 	return has_timeout;
 }
 
+systime_t timeout_get_timeout_msec(void) {
+	return timeout_msec;
+}
+
 static msg_t timeout_thread(void *arg) {
 	(void)arg;
 

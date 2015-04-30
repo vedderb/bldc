@@ -36,6 +36,7 @@
 
 // Settings
 #define MAX_CAN_AGE						0.1
+#define MIN_PULSES_WITHOUT_POWER		50
 
 // Threads
 static msg_t ppm_thread(void *arg);
@@ -49,15 +50,17 @@ static void servodec_func(void);
 // Private variables
 static volatile bool is_running = false;
 static volatile ppm_config config;
+static volatile int pulses_without_power = 0;
 
 // Private functions
 void update(void *p);
 
 void app_ppm_configure(ppm_config *conf) {
 	config = *conf;
+	pulses_without_power = 0;
 
 	if (is_running) {
-		servodec_set_pulse_options(config.pulse_start, config.pulse_width, config.median_filter);
+		servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	}
 }
 
@@ -78,7 +81,7 @@ static void servodec_func(void) {
 
 void update(void *p) {
 	chSysLockFromIsr();
-	chVTSetI(&vt, MS2ST(1), update, p);
+	chVTSetI(&vt, MS2ST(2), update, p);
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromIsr();
 }
@@ -89,14 +92,15 @@ static msg_t ppm_thread(void *arg) {
 	chRegSetThreadName("APP_PPM");
 	ppm_tp = chThdSelf();
 
-	servodec_set_pulse_options(config.pulse_start, config.pulse_width, config.median_filter);
+	servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	servodec_init(servodec_func);
 	is_running = true;
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		if (timeout_has_timeout()) {
+		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec()) {
+			pulses_without_power = 0;
 			continue;
 		}
 
@@ -116,23 +120,6 @@ static msg_t ppm_thread(void *arg) {
 
 		utils_deadband(&servo_val, config.hyst, 1.0);
 
-		// Find lowest RPM
-		float rpm_local = mcpwm_get_rpm();
-		float rpm_lowest = rpm_local;
-		if (config.multi_esc) {
-			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-				can_status_msg *msg = comm_can_get_status_msg_index(i);
-
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					float rpm_tmp = msg->rpm;
-
-					if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
-						rpm_lowest = rpm_tmp;
-					}
-				}
-			}
-		}
-
 		float current = 0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
@@ -148,6 +135,10 @@ static msg_t ppm_thread(void *arg) {
 			} else {
 				current = servo_val * fabsf(mcconf->l_current_min);
 			}
+
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
 			break;
 
 		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
@@ -158,22 +149,64 @@ static msg_t ppm_thread(void *arg) {
 				current = fabsf(servo_val * mcconf->l_current_min);
 				current_mode_brake = true;
 			}
+
+			if (servo_val < 0.001) {
+				pulses_without_power++;
+			}
 			break;
 
 		case PPM_CTRL_TYPE_DUTY:
 		case PPM_CTRL_TYPE_DUTY_NOREV:
-			mcpwm_set_duty(servo_val);
-			send_duty = true;
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
+
+			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
+				mcpwm_set_duty(servo_val);
+				send_duty = true;
+			}
 			break;
 
 		case PPM_CTRL_TYPE_PID:
 		case PPM_CTRL_TYPE_PID_NOREV:
-			mcpwm_set_pid_speed(servo_val * config.pid_max_erpm);
-			send_duty = true;
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
+
+			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
+				mcpwm_set_pid_speed(servo_val * config.pid_max_erpm);
+				send_duty = true;
+			}
 			break;
 
 		default:
-			break;
+			continue;
+		}
+
+		if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
+			static int pulses_without_power_before = 0;
+			if (pulses_without_power == pulses_without_power_before) {
+				pulses_without_power = 0;
+			}
+			pulses_without_power_before = pulses_without_power;
+			continue;
+		}
+
+		// Find lowest RPM
+		float rpm_local = mcpwm_get_rpm();
+		float rpm_lowest = rpm_local;
+		if (config.multi_esc) {
+			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+				can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+					float rpm_tmp = msg->rpm;
+
+					if (fabsf(rpm_tmp) < fabsf(rpm_lowest)) {
+						rpm_lowest = rpm_tmp;
+					}
+				}
+			}
 		}
 
 		if (send_duty && config.multi_esc) {

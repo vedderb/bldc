@@ -32,5 +32,6 @@ void timeout_init(void);
 void timeout_configure(systime_t timeout, float brake_current);
 void timeout_reset(void);
 bool timeout_has_timeout(void);
+systime_t timeout_get_timeout_msec(void);
 
 #endif /* TIMEOUT_H_ */

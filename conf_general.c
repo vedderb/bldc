@@ -156,7 +156,9 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_ppm_conf.pid_max_erpm = 15000;
 		conf->app_ppm_conf.hyst = 0.15;
 		conf->app_ppm_conf.pulse_start = 1.0;
-		conf->app_ppm_conf.pulse_width = 1.0;
+		conf->app_ppm_conf.pulse_end = 2.0;
+		conf->app_ppm_conf.median_filter = false;
+		conf->app_ppm_conf.safe_start = false;
 		conf->app_ppm_conf.rpm_lim_start = 150000.0;
 		conf->app_ppm_conf.rpm_lim_end = 200000.0;
 		conf->app_ppm_conf.multi_esc = true;

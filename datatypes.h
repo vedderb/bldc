@@ -169,8 +169,9 @@ typedef struct {
 	float pid_max_erpm;
 	float hyst;
 	float pulse_start;
-	float pulse_width;
+	float pulse_end;
 	bool median_filter;
+	bool safe_start;
 	float rpm_lim_start;
 	float rpm_lim_end;
 	bool multi_esc;
