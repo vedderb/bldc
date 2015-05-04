@@ -145,8 +145,10 @@ typedef struct {
 typedef enum {
 	APP_NONE = 0,
 	APP_PPM,
+	APP_ADC,
 	APP_UART,
 	APP_PPM_UART,
+	APP_ADC_UART,
 	APP_NUNCHUK,
 	APP_NRF,
 	APP_CUSTOM
@@ -178,6 +180,36 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 } ppm_config;
+
+// ADC control types
+typedef enum {
+	ADC_CTRL_TYPE_NONE = 0,
+	ADC_CTRL_TYPE_CURRENT,
+	ADC_CTRL_TYPE_CURRENT_REV_CENTER,
+	ADC_CTRL_TYPE_CURRENT_REV_BUTTON,
+	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER,
+	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON,
+	ADC_CTRL_TYPE_DUTY,
+	ADC_CTRL_TYPE_DUTY_REV_CENTER,
+	ADC_CTRL_TYPE_DUTY_REV_BUTTON
+} adc_control_type;
+
+typedef struct {
+	adc_control_type ctrl_type;
+	float hyst;
+	float voltage_start;
+	float voltage_end;
+	bool use_filter;
+	bool safe_start;
+	bool button_inverted;
+	bool voltage_inverted;
+	float rpm_lim_start;
+	float rpm_lim_end;
+	bool multi_esc;
+	bool tc;
+	float tc_max_diff;
+	uint32_t update_rate_hz;
+} adc_config;
 
 // Nunchuk control types
 typedef enum {
@@ -212,6 +244,9 @@ typedef struct {
 	// PPM application settings
 	ppm_config app_ppm_conf;
 
+	// ADC application settings
+	adc_config app_adc_conf;
+
 	// UART application settings
 	uint32_t app_uart_baudrate;
 
@@ -221,7 +256,8 @@ typedef struct {
 
 // Communication commands
 typedef enum {
-	COMM_GET_VALUES = 0,
+	COMM_FW_VERSION = 0,
+	COMM_GET_VALUES,
 	COMM_SET_DUTY,
 	COMM_SET_CURRENT,
 	COMM_SET_CURRENT_BRAKE,
@@ -242,6 +278,7 @@ typedef enum {
 	COMM_REBOOT,
 	COMM_ALIVE,
 	COMM_GET_DECODED_PPM,
+	COMM_GET_DECODED_ADC,
 	COMM_GET_DECODED_CHUK,
 	COMM_FORWARD_CAN
 } COMM_PACKET_ID;

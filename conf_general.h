@@ -25,6 +25,10 @@
 #ifndef CONF_GENERAL_H_
 #define CONF_GENERAL_H_
 
+// Software version
+#define FW_VERSION_MAJOR	1
+#define FW_VERSION_MINOR	0
+
 #include "datatypes.h"
 
 /*

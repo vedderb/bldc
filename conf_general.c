@@ -152,18 +152,33 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 
 		conf->app_to_use = APP_NONE;
 
-		conf->app_ppm_conf.ctrl_type = PPM_CTRL_TYPE_CURRENT;
+		conf->app_ppm_conf.ctrl_type = PPM_CTRL_TYPE_NONE;
 		conf->app_ppm_conf.pid_max_erpm = 15000;
 		conf->app_ppm_conf.hyst = 0.15;
 		conf->app_ppm_conf.pulse_start = 1.0;
 		conf->app_ppm_conf.pulse_end = 2.0;
 		conf->app_ppm_conf.median_filter = false;
-		conf->app_ppm_conf.safe_start = false;
+		conf->app_ppm_conf.safe_start = true;
 		conf->app_ppm_conf.rpm_lim_start = 150000.0;
 		conf->app_ppm_conf.rpm_lim_end = 200000.0;
-		conf->app_ppm_conf.multi_esc = true;
+		conf->app_ppm_conf.multi_esc = false;
 		conf->app_ppm_conf.tc = false;
 		conf->app_ppm_conf.tc_max_diff = 3000.0;
+
+		conf->app_adc_conf.ctrl_type = ADC_CTRL_TYPE_NONE;
+		conf->app_adc_conf.hyst = 0.15;
+		conf->app_adc_conf.voltage_start = 0.9;
+		conf->app_adc_conf.voltage_end = 3.0;
+		conf->app_adc_conf.use_filter = true;
+		conf->app_adc_conf.safe_start = true;
+		conf->app_adc_conf.button_inverted = false;
+		conf->app_adc_conf.voltage_inverted = false;
+		conf->app_adc_conf.rpm_lim_start = 150000;
+		conf->app_adc_conf.rpm_lim_end = 200000;
+		conf->app_adc_conf.multi_esc = false;
+		conf->app_adc_conf.tc = false;
+		conf->app_adc_conf.tc_max_diff = 3000.0;
+		conf->app_adc_conf.update_rate_hz = 500;
 
 		conf->app_uart_baudrate = 115200;
 

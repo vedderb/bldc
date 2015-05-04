@@ -239,7 +239,12 @@ static msg_t cancom_status_thread(void *arg) {
 			comm_can_transmit(app_get_configuration()->controller_id | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 
-		chThdSleep(CH_FREQUENCY / app_get_configuration()->send_can_status_rate_hz);
+		systime_t sleep_time = CH_FREQUENCY / app_get_configuration()->send_can_status_rate_hz;
+		if (sleep_time == 0) {
+			sleep_time = 1;
+		}
+
+		chThdSleep(sleep_time);
 	}
 
 	return 0;

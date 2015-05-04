@@ -16,9 +16,9 @@
  */
 
 /*
- * app_ppm.c
+ * app_adc.c
  *
- *  Created on: 18 apr 2014
+ *  Created on: 1 may 2015
  *      Author: benjamin
  */
 
@@ -27,98 +27,128 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "servo_dec.h"
 #include "mcpwm.h"
 #include "timeout.h"
 #include "utils.h"
 #include "comm_can.h"
+#include "hw.h"
 #include <math.h>
 
 // Settings
 #define MAX_CAN_AGE						0.1
-#define MIN_PULSES_WITHOUT_POWER		50
+#define MIN_MS_WITHOUT_POWER			500
+#define FILTER_SAMPLES					5
 
 // Threads
-static msg_t ppm_thread(void *arg);
-static WORKING_AREA(ppm_thread_wa, 1024);
-static Thread *ppm_tp;
-VirtualTimer vt;
-
-// Private functions
-static void servodec_func(void);
+static msg_t adc_thread(void *arg);
+static WORKING_AREA(adc_thread_wa, 1024);
 
 // Private variables
-static volatile bool is_running = false;
-static volatile ppm_config config;
-static volatile int pulses_without_power = 0;
+static volatile adc_config config;
+static volatile float ms_without_power = 0;
+static volatile float decoded_level = 0.0;
+static volatile float read_voltage = 0.0;
 
-// Private functions
-static void update(void *p);
-
-void app_ppm_configure(ppm_config *conf) {
+void app_adc_configure(adc_config *conf) {
 	config = *conf;
-	pulses_without_power = 0;
-
-	if (is_running) {
-		servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
-	}
+	ms_without_power = 0.0;
 }
 
-void app_ppm_start(void) {
-	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(1), update, NULL);
-	chSysUnlock();
+void app_adc_start(void) {
+	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
 
-static void servodec_func(void) {
-	chSysLockFromIsr();
-	timeout_reset();
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
+float app_adc_get_decoded_level(void) {
+	return decoded_level;
 }
 
-static void update(void *p) {
-	chSysLockFromIsr();
-	chVTSetI(&vt, MS2ST(2), update, p);
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
+float app_adc_get_voltage(void) {
+	return read_voltage;
 }
 
-static msg_t ppm_thread(void *arg) {
+static msg_t adc_thread(void *arg) {
 	(void)arg;
 
-	chRegSetThreadName("APP_PPM");
-	ppm_tp = chThdSelf();
+	chRegSetThreadName("APP_ADC");
 
-	servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
-	servodec_init(servodec_func);
-	is_running = true;
+	// Set servo pin as an input with pullup
+	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
 
 	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
+		// Sleep for a time according to the specified rate
+		systime_t sleep_time = CH_FREQUENCY / config.update_rate_hz;
 
-		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec()) {
-			pulses_without_power = 0;
-			continue;
+		// At least one tick should be slept to not block the other threads
+		if (sleep_time == 0) {
+			sleep_time = 1;
+		}
+		chThdSleep(sleep_time);
+
+		// Read the external ADC pin and convert the value to a voltage.
+		float pwr = (float)ADC_Value[ADC_IND_EXT];
+		pwr /= 4095;
+		pwr *= V_REG;
+
+		read_voltage = pwr;
+
+		// Optionally apply a mean value filter
+		if (config.use_filter) {
+			static float filter_buffer[FILTER_SAMPLES];
+			static int filter_ptr = 0;
+
+			filter_buffer[filter_ptr++] = pwr;
+			if (filter_ptr >= FILTER_SAMPLES) {
+				filter_ptr = 0;
+			}
+
+			pwr = 0.0;
+			for (int i = 0;i < FILTER_SAMPLES;i++) {
+				pwr += filter_buffer[i];
+			}
+			pwr /= FILTER_SAMPLES;
 		}
 
-		float servo_val = servodec_get_servo(0);
+		// Map and truncate the read voltage
+		pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
+		utils_truncate_number(&pwr, 0.0, 1.0);
+
+		// Optionally invert the read voltage
+		if (config.voltage_inverted) {
+			pwr = 1.0 - pwr;
+		}
+
+		decoded_level = pwr;
+
+		// Read the servo pin and optionally invert it.
+		bool button_val = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+		if (config.button_inverted) {
+			button_val = !button_val;
+		}
 
 		switch (config.ctrl_type) {
-		case PPM_CTRL_TYPE_CURRENT_NOREV:
-		case PPM_CTRL_TYPE_DUTY_NOREV:
-		case PPM_CTRL_TYPE_PID_NOREV:
-			servo_val += 1.0;
-			servo_val /= 2.0;
+		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
+		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
+			// Scale the voltage and set 0 at the center
+			pwr *= 2.0;
+			pwr -= 1.0;
+			break;
+
+		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
+		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
+			// Invert the voltage if the button is pressed
+			if (button_val) {
+				pwr = -pwr;
+			}
 			break;
 
 		default:
 			break;
 		}
 
-		utils_deadband(&servo_val, config.hyst, 1.0);
+		// Apply a deadband
+		utils_deadband(&pwr, config.hyst, 1.0);
 
 		float current = 0;
 		bool current_mode = false;
@@ -126,55 +156,47 @@ static msg_t ppm_thread(void *arg) {
 		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
 		bool send_duty = false;
 
+		// Use the filtered and mapped voltage for control according to the configuration.
 		switch (config.ctrl_type) {
-		case PPM_CTRL_TYPE_CURRENT:
-		case PPM_CTRL_TYPE_CURRENT_NOREV:
+		case ADC_CTRL_TYPE_CURRENT:
+		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
+		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
 			current_mode = true;
-			if (servo_val >= 0.0) {
-				current = servo_val * mcconf->l_current_max;
+			if (pwr >= 0.0) {
+				current = pwr * mcconf->l_current_max;
 			} else {
-				current = servo_val * fabsf(mcconf->l_current_min);
+				current = pwr * fabsf(mcconf->l_current_min);
 			}
 
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
+			if (fabsf(pwr) < 0.001) {
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
 			}
 			break;
 
-		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 			current_mode = true;
-			if (servo_val >= 0.0) {
-				current = servo_val * mcconf->l_current_max;
+			if (pwr >= 0.0) {
+				current = pwr * mcconf->l_current_max;
 			} else {
-				current = fabsf(servo_val * mcconf->l_current_min);
+				current = fabsf(pwr * mcconf->l_current_min);
 				current_mode_brake = true;
 			}
 
-			if (servo_val < 0.001) {
-				pulses_without_power++;
+			if (pwr < 0.001) {
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
 			}
 			break;
 
-		case PPM_CTRL_TYPE_DUTY:
-		case PPM_CTRL_TYPE_DUTY_NOREV:
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
+		case ADC_CTRL_TYPE_DUTY:
+		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
+		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
+			if (fabsf(pwr) < 0.001) {
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
 			}
 
-			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mcpwm_set_duty(servo_val);
-				send_duty = true;
-			}
-			break;
-
-		case PPM_CTRL_TYPE_PID:
-		case PPM_CTRL_TYPE_PID_NOREV:
-			if (fabsf(servo_val) < 0.001) {
-				pulses_without_power++;
-			}
-
-			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mcpwm_set_pid_speed(servo_val * config.pid_max_erpm);
+			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
+				mcpwm_set_duty(pwr);
 				send_duty = true;
 			}
 			break;
@@ -183,16 +205,21 @@ static msg_t ppm_thread(void *arg) {
 			continue;
 		}
 
-		if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
+		// If safe start is enabled and the output has not been zero for long enough
+		if (ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) {
 			static int pulses_without_power_before = 0;
-			if (pulses_without_power == pulses_without_power_before) {
-				pulses_without_power = 0;
+			if (ms_without_power == pulses_without_power_before) {
+				ms_without_power = 0;
 			}
-			pulses_without_power_before = pulses_without_power;
+			pulses_without_power_before = ms_without_power;
+			mcpwm_set_current(0.0);
 			continue;
 		}
 
-		// Find lowest RPM
+		// Reset timeout
+		timeout_reset();
+
+		// Find lowest RPM (for traction control)
 		float rpm_local = mcpwm_get_rpm();
 		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
@@ -209,6 +236,7 @@ static msg_t ppm_thread(void *arg) {
 			}
 		}
 
+		// Optionally send the duty cycles to the other ESCs seen on the CAN-bus
 		if (send_duty && config.multi_esc) {
 			float duty = mcpwm_get_duty_cycle_now();
 
@@ -302,7 +330,6 @@ static msg_t ppm_thread(void *arg) {
 				}
 			}
 		}
-
 	}
 
 	return 0;

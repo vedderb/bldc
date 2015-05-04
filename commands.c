@@ -115,6 +115,14 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 	len--;
 
 	switch (packet_id) {
+	case COMM_FW_VERSION:
+		ind = 0;
+		send_buffer[ind++] = COMM_FW_VERSION;
+		send_buffer[ind++] = FW_VERSION_MAJOR;
+		send_buffer[ind++] = FW_VERSION_MINOR;
+		commands_send_packet(send_buffer, ind);
+		break;
+
 	case COMM_GET_VALUES:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_VALUES;
@@ -241,6 +249,10 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 
 		conf_general_store_mc_configuration(&mcconf);
 		mcpwm_set_configuration(&mcconf);
+
+		ind = 0;
+		send_buffer[ind++] = COMM_SET_MCCONF;
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_GET_MCCONF:
@@ -328,6 +340,21 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		appconf.app_ppm_conf.tc = data[ind++];
 		appconf.app_ppm_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
 
+		appconf.app_adc_conf.ctrl_type = data[ind++];
+		appconf.app_adc_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.voltage_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.voltage_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.use_filter = data[ind++];
+		appconf.app_adc_conf.safe_start = data[ind++];
+		appconf.app_adc_conf.button_inverted = data[ind++];
+		appconf.app_adc_conf.voltage_inverted = data[ind++];
+		appconf.app_adc_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.multi_esc = data[ind++];
+		appconf.app_adc_conf.tc = data[ind++];
+		appconf.app_adc_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.update_rate_hz = buffer_get_uint16(data, &ind);
+
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
 
 		appconf.app_chuk_conf.ctrl_type = data[ind++];
@@ -343,6 +370,10 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
 		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+
+		ind = 0;
+		send_buffer[ind++] = COMM_SET_MCCONF;
+		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_GET_APPCONF:
@@ -370,6 +401,21 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = appconf.app_ppm_conf.multi_esc;
 		send_buffer[ind++] = appconf.app_ppm_conf.tc;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.tc_max_diff * 1000.0), &ind);
+
+		send_buffer[ind++] = appconf.app_adc_conf.ctrl_type;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.hyst * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_end * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_adc_conf.use_filter;
+		send_buffer[ind++] = appconf.app_adc_conf.safe_start;
+		send_buffer[ind++] = appconf.app_adc_conf.button_inverted;
+		send_buffer[ind++] = appconf.app_adc_conf.voltage_inverted;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.rpm_lim_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.rpm_lim_end * 1000.0), &ind);
+		send_buffer[ind++] = appconf.app_adc_conf.multi_esc;
+		send_buffer[ind++] = appconf.app_adc_conf.tc;
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.tc_max_diff * 1000.0), &ind);
+		buffer_append_uint16(send_buffer, appconf.app_adc_conf.update_rate_hz, &ind);
 
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
 
@@ -423,6 +469,14 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_servo(0) * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_last_pulse_len(0) * 1000000.0), &ind);
+		commands_send_packet(send_buffer, ind);
+		break;
+
+	case COMM_GET_DECODED_ADC:
+		ind = 0;
+		send_buffer[ind++] = COMM_GET_DECODED_ADC;
+		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage() * 1000000.0), &ind);
 		commands_send_packet(send_buffer, ind);
 		break;
 

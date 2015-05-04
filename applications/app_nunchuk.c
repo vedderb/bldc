@@ -40,6 +40,7 @@
 #define OUTPUT_ITERATION_TIME_MS		1
 #define MAX_CURR_DIFFERENCE				5.0
 #define MAX_CAN_AGE						0.1
+#define RPM_FILTER_SAMPLES				8
 
 // Threads
 static msg_t chuk_thread(void *arg);
@@ -230,12 +231,27 @@ static msg_t output_thread(void *arg) {
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
 
+		// Filter RPM to avoid glitches
+		static float filter_buffer[RPM_FILTER_SAMPLES];
+		static int filter_ptr = 0;
+		float rpm_filtered = mcpwm_get_rpm();
+		filter_buffer[filter_ptr++] = rpm_filtered;
+		if (filter_ptr >= RPM_FILTER_SAMPLES) {
+			filter_ptr = 0;
+		}
+
+		rpm_filtered = 0.0;
+		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
+			rpm_filtered += filter_buffer[i];
+		}
+		rpm_filtered /= RPM_FILTER_SAMPLES;
+
 		if (chuck_d.bt_c && out_val == 0.0) {
 			static float pid_rpm = 0.0;
 
 			if (!was_pid) {
 				was_pid = true;
-				pid_rpm = mcpwm_get_rpm();
+				pid_rpm = rpm_filtered;
 			}
 
 			if ((is_reverse && pid_rpm < 0.0) || (!is_reverse && pid_rpm > 0.0)) {
