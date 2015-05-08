@@ -118,6 +118,7 @@ CSRC = $(PORTSRC) \
        ws2811.c \
        led_external.c \
        encoder.c \
+       flash_helper.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC)
@@ -277,5 +278,3 @@ upload: build/$(PROJECT).bin
 
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
-	
-	

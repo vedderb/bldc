@@ -36,18 +36,25 @@
 
 // Settings
 #define CANDx			CAND1
+#define RX_FRAMES_SIZE	10
 
 // Threads
-static WORKING_AREA(cancom_thread_wa, 4096);
+static WORKING_AREA(cancom_read_thread_wa, 512);
+static WORKING_AREA(cancom_process_thread_wa, 4096);
 static WORKING_AREA(cancom_status_thread_wa, 1024);
-static msg_t cancom_thread(void *arg);
+static msg_t cancom_read_thread(void *arg);
 static msg_t cancom_status_thread(void *arg);
+static msg_t cancom_process_thread(void *arg);
 
 // Variables
 static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
 static Mutex can_mtx;
 static uint8_t rx_buffer[256];
 static uint8_t rx_buffer_last_id;
+static CANRxFrame rx_frames[RX_FRAMES_SIZE];
+static int rx_frame_read;
+static int rx_frame_write;
+static Thread *process_tp;
 
 /*
  * 500KBaud, automatic wakeup, automatic recover
@@ -68,6 +75,9 @@ void comm_can_init(void) {
 		stat_msgs[i].id = -1;
 	}
 
+	rx_frame_read = 0;
+	rx_frame_write = 0;
+
 	chMtxInit(&can_mtx);
 
 	palSetPadMode(GPIOB, 8,
@@ -79,27 +89,22 @@ void comm_can_init(void) {
 			PAL_STM32_OTYPE_PUSHPULL |
 			PAL_STM32_OSPEED_MID1);
 
-	chMtxLock(&can_mtx);
 	canStart(&CANDx, &cancfg);
-	chMtxUnlock();
 
-	chThdCreateStatic(cancom_thread_wa, sizeof(cancom_thread_wa), NORMALPRIO,
-			cancom_thread, NULL);
+	chThdCreateStatic(cancom_read_thread_wa, sizeof(cancom_read_thread_wa), NORMALPRIO + 1,
+			cancom_read_thread, NULL);
 	chThdCreateStatic(cancom_status_thread_wa, sizeof(cancom_status_thread_wa), NORMALPRIO,
 			cancom_status_thread, NULL);
+	chThdCreateStatic(cancom_process_thread_wa, sizeof(cancom_process_thread_wa), NORMALPRIO,
+			cancom_process_thread, NULL);
 }
 
-static msg_t cancom_thread(void *arg) {
+static msg_t cancom_read_thread(void *arg) {
 	(void)arg;
 	chRegSetThreadName("CAN");
 
 	EventListener el;
 	CANRxFrame rxmsg;
-	int32_t ind = 0;
-	int32_t rxbuf_len;
-	uint8_t crc_low;
-	uint8_t crc_high;
-	bool commands_send;
 
 	chEvtRegister(&CANDx.rxfull_event, &el, 0);
 
@@ -108,11 +113,42 @@ static msg_t cancom_thread(void *arg) {
 			continue;
 		}
 
-		chMtxLock(&can_mtx);
 		msg_t result = canReceive(&CANDx, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
-		chMtxUnlock();
 
 		while (result == RDY_OK) {
+			rx_frames[rx_frame_write++] = rxmsg;
+			if (rx_frame_write == RX_FRAMES_SIZE) {
+				rx_frame_write = 0;
+			}
+
+			chEvtSignal(process_tp, (eventmask_t) 1);
+
+			result = canReceive(&CANDx, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
+		}
+	}
+
+	chEvtUnregister(&CANDx.rxfull_event, &el);
+	return 0;
+}
+
+static msg_t cancom_process_thread(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("Cancom process");
+	process_tp = chThdSelf();
+
+	int32_t ind = 0;
+	int32_t rxbuf_len;
+	uint8_t crc_low;
+	uint8_t crc_high;
+	bool commands_send;
+
+	for(;;) {
+		chEvtWaitAny((eventmask_t) 1);
+
+		while (rx_frame_read != rx_frame_write) {
+			CANRxFrame rxmsg = rx_frames[rx_frame_read++];
+
 			if (rxmsg.IDE == CAN_IDE_EXT) {
 				uint8_t id = rxmsg.EID & 0xFF;
 				CAN_PACKET_ID cmd = rxmsg.EID >> 8;
@@ -214,13 +250,12 @@ static msg_t cancom_thread(void *arg) {
 				}
 			}
 
-			chMtxLock(&can_mtx);
-			result = canReceive(&CANDx, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
-			chMtxUnlock();
+			if (rx_frame_read == RX_FRAMES_SIZE) {
+				rx_frame_read = 0;
+			}
 		}
 	}
 
-	chEvtUnregister(&CAND1.rxfull_event, &el);
 	return 0;
 }
 
@@ -252,26 +287,17 @@ static msg_t cancom_status_thread(void *arg) {
 
 void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 #if CAN_ENABLE
+	CANTxFrame txmsg;
+	txmsg.IDE = CAN_IDE_EXT;
+	txmsg.EID = id;
+	txmsg.RTR = CAN_RTR_DATA;
+	txmsg.DLC = len;
+	memcpy(txmsg.data8, data, len);
+
 	chMtxLock(&can_mtx);
-
-	static CANTxFrame txmsg[10];
-	static int txmsg_ind = 0;
-
-	txmsg[txmsg_ind].IDE = CAN_IDE_EXT;
-	txmsg[txmsg_ind].EID = id;
-	txmsg[txmsg_ind].RTR = CAN_RTR_DATA;
-	txmsg[txmsg_ind].DLC = len;
-
-	memcpy(txmsg[txmsg_ind].data8, data, len);
-
-	canTransmit(&CAND1, CAN_ANY_MAILBOX, &txmsg[txmsg_ind], MS2ST(50));
-
-	txmsg_ind++;
-	if (txmsg_ind >= 10) {
-		txmsg_ind = 0;
-	}
-
+	canTransmit(&CANDx, CAN_ANY_MAILBOX, &txmsg, MS2ST(20));
 	chMtxUnlock();
+
 #else
 	(void)id;
 	(void)data;
@@ -331,7 +357,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, boo
 		send_buffer[ind++] = (uint8_t)(crc >> 8);
 		send_buffer[ind++] = (uint8_t)(crc & 0xFF);
 
-		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, 5);
+		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, ind++);
 	}
 }
 

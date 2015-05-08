@@ -257,6 +257,9 @@ typedef struct {
 // Communication commands
 typedef enum {
 	COMM_FW_VERSION = 0,
+	COMM_JUMP_TO_BOOTLOADER,
+	COMM_ERASE_NEW_APP,
+	COMM_WRITE_NEW_APP_DATA,
 	COMM_GET_VALUES,
 	COMM_SET_DUTY,
 	COMM_SET_CURRENT,

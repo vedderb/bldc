@@ -340,6 +340,6 @@ int main(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {
-		chThdSleepMilliseconds(100);
+		chThdSleepMilliseconds(5000);
 	}
 }

@@ -91,14 +91,14 @@ void ledpwm_update_pwm(void) {
 	}
 
 	if (cnt >= led_values[0]) {
-		LED1_OFF();
+		LED_GREEN_OFF();
 	} else {
-		LED1_ON();
+		LED_GREEN_ON();
 	}
 
 	if (cnt >= led_values[1]) {
-		LED2_OFF();
+		LED_RED_OFF();
 	} else {
-		LED2_ON();
+		LED_RED_ON();
 	}
 }

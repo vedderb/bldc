@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,6 +37,8 @@
 #include "timeout.h"
 #include "servo_dec.h"
 #include "comm_can.h"
+#include "flash_helper.h"
+#include "utils.h"
 
 #include <math.h>
 #include <string.h>
@@ -107,6 +109,8 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 	bool at_start;
 	mc_configuration mcconf;
 	app_configuration appconf;
+	uint16_t flash_res;
+	uint32_t new_app_offset;
 
 	(void)len;
 
@@ -120,6 +124,31 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
+		commands_send_packet(send_buffer, ind);
+		break;
+
+	case COMM_JUMP_TO_BOOTLOADER:
+		utils_jump_to_bootloader();
+		break;
+
+	case COMM_ERASE_NEW_APP:
+		ind = 0;
+		flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
+
+		ind = 0;
+		send_buffer[ind++] = COMM_ERASE_NEW_APP;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		commands_send_packet(send_buffer, ind);
+		break;
+
+	case COMM_WRITE_NEW_APP_DATA:
+		ind = 0;
+		new_app_offset = buffer_get_uint32(data, &ind);
+		flash_res = flash_helper_write_new_app_data(new_app_offset, data + ind, len - ind);
+
+		ind = 0;
+		send_buffer[ind++] = COMM_WRITE_NEW_APP_DATA;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
 		commands_send_packet(send_buffer, ind);
 		break;
 
