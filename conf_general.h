@@ -39,7 +39,7 @@
 
 // Component parameters to override
 //#define V_REG				3.3
-//#define VIN_R1				39000.0
+#define VIN_R1				39000.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
 //#define CURRENT_SHUNT_RES	0.001
