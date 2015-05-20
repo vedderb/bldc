@@ -30,5 +30,6 @@
 // Functions
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size);
 uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_t len);
+void flash_helper_jump_to_bootloader(void);
 
 #endif /* FLASH_HELPER_H_ */

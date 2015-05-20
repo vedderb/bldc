@@ -25,7 +25,6 @@
 #include "utils.h"
 #include "ch.h"
 #include "hal.h"
-#include "mcpwm.h"
 #include <math.h>
 
 // Private variables
@@ -150,46 +149,4 @@ void utils_sys_unlock_cnt(void) {
 			chSysUnlock();
 		}
 	}
-}
-
-/**
- * Stop the system and jump to the bootloader.
- */
-void utils_jump_to_bootloader(void) {
-	typedef void (*pFunction)(void);
-
-	mcpwm_release_motor();
-	usbDisconnectBus(&USBD1);
-	usbStop(&USBD1);
-
-	// Disable watchdog
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
-
-	chSysDisable();
-
-	pFunction jump_to_bootloader;
-
-	// Variable that will be loaded with the start address of the application
-	vu32* jump_address;
-	const vu32* bootloader_address = (vu32*)0x080E0000;
-
-	// Get jump address from application vector table
-	jump_address = (vu32*) bootloader_address[1];
-
-	// Load this address into function pointer
-	jump_to_bootloader = (pFunction) jump_address;
-
-	// Clear pending interrupts
-	SCB_ICSR = ICSR_PENDSVCLR;
-
-	// Disable all interrupts
-	for(int i = 0;i < 8;i++) {
-		NVIC->ICER[i] = NVIC->IABR[i];
-	}
-
-	// Set stack pointer
-	__set_MSP((u32) (bootloader_address[0]));
-
-	// Jump to the bootloader
-	jump_to_bootloader();
 }

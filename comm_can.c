@@ -33,10 +33,12 @@
 #include "commands.h"
 #include "app.h"
 #include "crc.h"
+#include "packet.h"
 
 // Settings
 #define CANDx			CAND1
-#define RX_FRAMES_SIZE	10
+#define RX_FRAMES_SIZE	100
+#define RX_BUFFER_SIZE	PACKET_MAX_PL_LEN
 
 // Threads
 static WORKING_AREA(cancom_read_thread_wa, 512);
@@ -49,8 +51,8 @@ static msg_t cancom_process_thread(void *arg);
 // Variables
 static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
 static Mutex can_mtx;
-static uint8_t rx_buffer[256];
-static uint8_t rx_buffer_last_id;
+static uint8_t rx_buffer[RX_BUFFER_SIZE];
+static unsigned int rx_buffer_last_id;
 static CANRxFrame rx_frames[RX_FRAMES_SIZE];
 static int rx_frame_read;
 static int rx_frame_write;
@@ -68,7 +70,7 @@ static const CANConfig cancfg = {
 };
 
 // Private functions
-static void send_packet_wrapper(unsigned char *data, unsigned char len);
+static void send_packet_wrapper(unsigned char *data, unsigned int len);
 
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -138,7 +140,8 @@ static msg_t cancom_process_thread(void *arg) {
 	process_tp = chThdSelf();
 
 	int32_t ind = 0;
-	int32_t rxbuf_len;
+	unsigned int rxbuf_len;
+	unsigned int rxbuf_ind;
 	uint8_t crc_low;
 	uint8_t crc_high;
 	bool commands_send;
@@ -190,11 +193,25 @@ static msg_t cancom_process_thread(void *arg) {
 						memcpy(rx_buffer + rxmsg.data8[0], rxmsg.data8 + 1, rxmsg.DLC - 1);
 						break;
 
+					case CAN_PACKET_FILL_RX_BUFFER_LONG:
+						rxbuf_ind = (unsigned int)rxmsg.data8[0] << 8;
+						rxbuf_ind |= rxmsg.data8[1];
+						if (rxbuf_ind < RX_BUFFER_SIZE) {
+							memcpy(rx_buffer + rxbuf_ind, rxmsg.data8 + 2, rxmsg.DLC - 2);
+						}
+						break;
+
 					case CAN_PACKET_PROCESS_RX_BUFFER:
 						ind = 0;
 						rx_buffer_last_id = rxmsg.data8[ind++];
 						commands_send = rxmsg.data8[ind++];
-						rxbuf_len = rxmsg.data8[ind++];
+						rxbuf_len = (unsigned int)rxmsg.data8[ind++] << 8;
+						rxbuf_len |= (unsigned int)rxmsg.data8[ind++];
+
+						if (rxbuf_len > RX_BUFFER_SIZE) {
+							break;
+						}
+
 						crc_high = rxmsg.data8[ind++];
 						crc_low = rxmsg.data8[ind++];
 
@@ -306,7 +323,7 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 }
 
 /**
- * Send a buffer up to 256 bytes as fragments. If the buffer is 6 bytes or less
+ * Send a buffer up to RX_BUFFER_SIZE bytes as fragments. If the buffer is 6 bytes or less
  * it will be sent in a single CAN frame, otherwise it will be split into
  * several frames.
  *
@@ -323,7 +340,7 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
  * If true, this packet will be passed to the send function of commands.
  * Otherwise, it will be passed to the process function.
  */
-void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, bool send) {
+void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, bool send) {
 	uint8_t send_buffer[8];
 
 	if (len <= 6) {
@@ -334,9 +351,15 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, boo
 		ind += len;
 		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
 	} else {
-		for (int i = 0;i < len;i += 7) {
-			uint8_t send_len = 7;
+		unsigned int end_a = 0;
+		for (unsigned int i = 0;i < len;i += 7) {
+			end_a = i;
 
+			if (i > 256) {
+				break;
+			}
+
+			uint8_t send_len = 7;
 			send_buffer[0] = i;
 
 			if ((i + 7) <= len) {
@@ -349,10 +372,26 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, uint8_t len, boo
 			comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
 		}
 
+		for (unsigned int i = end_a;i < len;i += 6) {
+			uint8_t send_len = 6;
+			send_buffer[0] = i >> 8;
+			send_buffer[1] = i & 0xFF;
+
+			if ((i + 6) <= len) {
+				memcpy(send_buffer + 2, data + i, send_len);
+			} else {
+				send_len = len - i;
+				memcpy(send_buffer + 2, data + i, send_len);
+			}
+
+			comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER_LONG << 8), send_buffer, send_len + 2);
+		}
+
 		uint32_t ind = 0;
 		send_buffer[ind++] = app_get_configuration()->controller_id;
 		send_buffer[ind++] = send;
-		send_buffer[ind++] = len;
+		send_buffer[ind++] = len >> 8;
+		send_buffer[ind++] = len & 0xFF;
 		unsigned short crc = crc16(data, len);
 		send_buffer[ind++] = (uint8_t)(crc >> 8);
 		send_buffer[ind++] = (uint8_t)(crc & 0xFF);
@@ -432,6 +471,6 @@ can_status_msg *comm_can_get_status_msg_id(int id) {
 	return 0;
 }
 
-static void send_packet_wrapper(unsigned char *data, unsigned char len) {
+static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 	comm_can_send_buffer(rx_buffer_last_id, data, len, true);
 }

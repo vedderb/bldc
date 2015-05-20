@@ -93,6 +93,12 @@
 #ifndef MCPWM_MAX_FB_CURR_DIR_CHANGE
 #define MCPWM_MAX_FB_CURR_DIR_CHANGE	10.0	// Maximum current during full brake during which a direction change is allowed
 #endif
+#ifndef MCPWM_MIN_DUTY
+#define MCPWM_MIN_DUTY					0.01	// Minimum duty cycle
+#endif
+#ifndef MCPWM_MAX_DUTY
+#define MCPWM_MAX_DUTY					0.95	// Maximum duty cycle
+#endif
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -150,7 +156,9 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->send_can_status = false;
 		conf->send_can_status_rate_hz = 500;
 
-		conf->app_to_use = APP_NONE;
+		// The default app is UART in case the UART port is used for
+		// firmware updates.
+		conf->app_to_use = APP_UART;
 
 		conf->app_ppm_conf.ctrl_type = PPM_CTRL_TYPE_NONE;
 		conf->app_ppm_conf.pid_max_erpm = 15000;
@@ -272,6 +280,8 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_temp_fet_end = MCPWM_LIM_TEMP_FET_END;
 		conf->l_temp_motor_start = MCPWM_LIM_TEMP_MOTOR_START;
 		conf->l_temp_motor_end = MCPWM_LIM_TEMP_MOTOR_END;
+		conf->l_min_duty = MCPWM_MIN_DUTY;
+		conf->l_max_duty = MCPWM_MAX_DUTY;
 
 		conf->lo_current_max = conf->l_current_max;
 		conf->lo_current_min = conf->l_current_min;

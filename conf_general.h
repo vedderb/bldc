@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	1
+#define FW_VERSION_MINOR	2
 
 #include "datatypes.h"
 
@@ -39,7 +39,7 @@
 
 // Component parameters to override
 //#define V_REG				3.3
-#define VIN_R1				39000.0
+//#define VIN_R1				39000.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
 //#define CURRENT_SHUNT_RES	0.001
@@ -94,7 +94,7 @@
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
  * at the same time.
  */
-#define WS2811_ENABLE			0
+#define WS2811_ENABLE			1
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)

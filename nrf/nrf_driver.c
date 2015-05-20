@@ -103,7 +103,7 @@ static msg_t rx_thread(void *arg) {
 					mstate.bt_push = buttons & (1 << 2);
 					mstate.vbat = (float)buffer_get_int16(buf, &index) / 1000.0;
 
-					cdata.js_x = mstate.js_x;
+					cdata.js_x = 255 - mstate.js_x;
 					cdata.js_y = mstate.js_y;
 					cdata.bt_c = mstate.bt_c;
 					cdata.bt_z = mstate.bt_z;

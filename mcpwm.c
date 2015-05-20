@@ -608,7 +608,7 @@ void mcpwm_set_pid_pos(float pos) {
 	pos_pid_set_pos = pos;
 
 	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(MCPWM_MIN_DUTY_CYCLE);
+		set_duty_cycle_hl(conf.l_min_duty);
 	}
 }
 
@@ -637,7 +637,7 @@ void mcpwm_set_current(float current) {
 	current_set = current;
 
 	if (state != MC_STATE_RUNNING) {
-		set_duty_cycle_hl(SIGN(current) * MCPWM_MIN_DUTY_CYCLE);
+		set_duty_cycle_hl(SIGN(current) * conf.l_min_duty);
 	}
 }
 
@@ -1078,7 +1078,7 @@ static int try_input(void) {
  * the motor phases will be shorted to brake the motor.
  */
 static void set_duty_cycle_hl(float dutyCycle) {
-	utils_truncate_number(&dutyCycle, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+	utils_truncate_number(&dutyCycle, -conf.l_max_duty, conf.l_max_duty);
 
 	if (state == MC_STATE_DETECTING) {
 		stop_pwm_ll();
@@ -1088,11 +1088,11 @@ static void set_duty_cycle_hl(float dutyCycle) {
 	dutycycle_set = dutyCycle;
 
 	if (state != MC_STATE_RUNNING) {
-		if (fabsf(dutyCycle) >= MCPWM_MIN_DUTY_CYCLE) {
+		if (fabsf(dutyCycle) >= conf.l_min_duty) {
 			// dutycycle_now is updated by the back-emf detection. If the motor already
 			// is spinning, it will be non-zero.
-			if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = SIGN(dutyCycle) * MCPWM_MIN_DUTY_CYCLE;
+			if (fabsf(dutycycle_now) < conf.l_min_duty) {
+				dutycycle_now = SIGN(dutyCycle) * conf.l_min_duty;
 			}
 
 			set_duty_cycle_ll(dutycycle_now);
@@ -1129,14 +1129,14 @@ static void set_duty_cycle_hl(float dutyCycle) {
  * the motor will be switched off.
  */
 static void set_duty_cycle_ll(float dutyCycle) {
-	if (dutyCycle >= MCPWM_MIN_DUTY_CYCLE) {
+	if (dutyCycle >= conf.l_min_duty) {
 		direction = 1;
-	} else if (dutyCycle <= -MCPWM_MIN_DUTY_CYCLE) {
+	} else if (dutyCycle <= -conf.l_min_duty) {
 		dutyCycle = -dutyCycle;
 		direction = 0;
 	}
 
-	if (dutyCycle < MCPWM_MIN_DUTY_CYCLE) {
+	if (dutyCycle < conf.l_min_duty) {
 		switch (state) {
 		case MC_STATE_RUNNING:
 			full_brake_ll();
@@ -1150,8 +1150,8 @@ static void set_duty_cycle_ll(float dutyCycle) {
 			break;
 		}
 		return;
-	} else if (dutyCycle > MCPWM_MAX_DUTY_CYCLE) {
-		dutyCycle = MCPWM_MAX_DUTY_CYCLE;
+	} else if (dutyCycle > conf.l_max_duty) {
+		dutyCycle = conf.l_max_duty;
 	}
 
 	set_duty_cycle_hw(dutyCycle);
@@ -1202,7 +1202,7 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	timer_tmp = timer_struct;
 	utils_sys_unlock_cnt();
 
-	utils_truncate_number(&dutyCycle, MCPWM_MIN_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+	utils_truncate_number(&dutyCycle, conf.l_min_duty, conf.l_max_duty);
 
 	if (conf.motor_type == MOTOR_TYPE_BLDC && conf.pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
 		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
@@ -1269,16 +1269,16 @@ static void run_pid_control_speed(void) {
 	float output = p_term + i_term + d_term;
 
 	// Make sure that at least minimum output is used
-	if (fabsf(output) < MCPWM_MIN_DUTY_CYCLE) {
-		output = SIGN(output) * MCPWM_MIN_DUTY_CYCLE;
+	if (fabsf(output) < conf.l_min_duty) {
+		output = SIGN(output) * conf.l_min_duty;
 	}
 
 	// Do not output in reverse direction to oppose too high rpm
 	if (speed_pid_set_rpm > 0.0 && output < 0.0) {
-		output = MCPWM_MIN_DUTY_CYCLE;
+		output = conf.l_min_duty;
 		i_term = 0.0;
 	} else if (speed_pid_set_rpm < 0.0 && output > 0.0) {
-		output = -MCPWM_MIN_DUTY_CYCLE;
+		output = -conf.l_min_duty;
 		i_term = 0.0;
 	}
 
@@ -1463,7 +1463,7 @@ static msg_t timer_thread(void *arg) {
 			} else {
 				dutycycle_now = -amp / (float)ADC_Value[ADC_IND_VIN_SENS];
 			}
-			utils_truncate_number((float*)&dutycycle_now, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+			utils_truncate_number((float*)&dutycycle_now, -conf.l_max_duty, conf.l_max_duty);
 			break;
 
 		case MC_STATE_DETECTING:
@@ -1488,7 +1488,7 @@ static msg_t timer_thread(void *arg) {
 				filter_add_sample((float*)kv_fir_samples, mcpwm_get_kv(),
 						KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
 			} else if (state == MC_STATE_OFF) {
-				if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE) {
+				if (dutycycle_now >= conf.l_min_duty) {
 					filter_add_sample((float*)kv_fir_samples, mcpwm_get_kv(),
 							KV_FIR_TAPS_BITS, (uint32_t*)&kv_fir_index);
 				}
@@ -1965,20 +1965,20 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			// Upper truncation
-			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+			utils_truncate_number((float*)&dutycycle_now_tmp, -conf.l_max_duty, conf.l_max_duty);
 
 			// Lower truncation
-			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+			if (fabsf(dutycycle_now_tmp) < conf.l_min_duty) {
 				if (dutycycle_now_tmp < 0.0 && current_set > 0.0) {
-					dutycycle_now_tmp = MCPWM_MIN_DUTY_CYCLE;
+					dutycycle_now_tmp = conf.l_min_duty;
 				} else if (dutycycle_now_tmp > 0.0 && current_set < 0.0) {
-					dutycycle_now_tmp = -MCPWM_MIN_DUTY_CYCLE;
+					dutycycle_now_tmp = -conf.l_min_duty;
 				}
 			}
 
 			// The set dutycycle should be in the correct direction in case the output is lower
 			// than the minimum duty cycle and the mechanism below gets activated.
-			dutycycle_set = dutycycle_now_tmp >= 0.0 ? MCPWM_MIN_DUTY_CYCLE : -MCPWM_MIN_DUTY_CYCLE;
+			dutycycle_set = dutycycle_now_tmp >= 0.0 ? conf.l_min_duty : -conf.l_min_duty;
 		} else if (control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Compute error
 			const float error = -fabsf(current_set) - current_nofilter;
@@ -1998,15 +1998,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			dutycycle_now_tmp += SIGN(dutycycle_now_tmp) * step;
 
 			// Upper truncation
-			utils_truncate_number((float*)&dutycycle_now_tmp, -MCPWM_MAX_DUTY_CYCLE, MCPWM_MAX_DUTY_CYCLE);
+			utils_truncate_number((float*)&dutycycle_now_tmp, -conf.l_max_duty, conf.l_max_duty);
 
 			// Lower truncation
-			if (fabsf(dutycycle_now_tmp) < MCPWM_MIN_DUTY_CYCLE) {
+			if (fabsf(dutycycle_now_tmp) < conf.l_min_duty) {
 				if (fabsf(rpm_now) < conf.l_max_erpm_fbrake_cc) {
 					dutycycle_now_tmp = 0.0;
 					dutycycle_set = dutycycle_now_tmp;
 				} else {
-					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * MCPWM_MIN_DUTY_CYCLE;
+					dutycycle_now_tmp = SIGN(dutycycle_now_tmp) * conf.l_min_duty;
 					dutycycle_set = dutycycle_now_tmp;
 				}
 			}
@@ -2022,7 +2022,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_nofilter < conf.lo_current_min) {
-			utils_step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+			utils_step_towards((float*) &dutycycle_now, direction ? conf.l_max_duty : -conf.l_max_duty,
 					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_in_nofilter > conf.lo_in_current_max) {
@@ -2030,7 +2030,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (current_in_nofilter < conf.lo_in_current_min) {
-			utils_step_towards((float*) &dutycycle_now, direction ? MCPWM_MAX_DUTY_CYCLE : -MCPWM_MAX_DUTY_CYCLE,
+			utils_step_towards((float*) &dutycycle_now, direction ? conf.l_max_duty : -conf.l_max_duty,
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
 			limit_delay = 1;
 		} else if (rpm > conf.l_max_erpm) {
@@ -2055,19 +2055,19 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		// When the set duty cycle is in the opposite direction, make sure that the motor
 		// starts again after stopping completely
-		if (fabsf(dutycycle_now) < MCPWM_MIN_DUTY_CYCLE) {
-			if (dutycycle_set >= MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
-			} else if (dutycycle_set <= -MCPWM_MIN_DUTY_CYCLE) {
-				dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
+		if (fabsf(dutycycle_now) < conf.l_min_duty) {
+			if (dutycycle_set >= conf.l_min_duty) {
+				dutycycle_now = conf.l_min_duty;
+			} else if (dutycycle_set <= -conf.l_min_duty) {
+				dutycycle_now = -conf.l_min_duty;
 			}
 		}
 
 		// Don't start in the opposite direction when the RPM is too high even if the current is low enough.
-		if (dutycycle_now >= MCPWM_MIN_DUTY_CYCLE && rpm < -conf.l_max_erpm_fbrake) {
-			dutycycle_now = -MCPWM_MIN_DUTY_CYCLE;
-		} else if (dutycycle_now <= -MCPWM_MIN_DUTY_CYCLE && rpm > conf.l_max_erpm_fbrake) {
-			dutycycle_now = MCPWM_MIN_DUTY_CYCLE;
+		if (dutycycle_now >= conf.l_min_duty && rpm < -conf.l_max_erpm_fbrake) {
+			dutycycle_now = -conf.l_min_duty;
+		} else if (dutycycle_now <= -conf.l_min_duty && rpm > conf.l_max_erpm_fbrake) {
+			dutycycle_now = conf.l_min_duty;
 		}
 
 		set_duty_cycle_ll(dutycycle_now);

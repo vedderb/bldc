@@ -39,6 +39,7 @@
 #include "comm_can.h"
 #include "flash_helper.h"
 #include "utils.h"
+#include "packet.h"
 
 #include <math.h>
 #include <string.h>
@@ -51,13 +52,13 @@ static WORKING_AREA(detect_thread_wa, 2048);
 static Thread *detect_tp;
 
 // Private variables
-static uint8_t send_buffer[256];
+static uint8_t send_buffer[PACKET_MAX_PL_LEN];
 static float detect_cycle_int_limit;
 static float detect_coupling_k;
 static float detect_current;
 static float detect_min_rpm;
 static float detect_low_duty;
-static void(*send_func)(unsigned char *data, unsigned char len) = 0;
+static void(*send_func)(unsigned char *data, unsigned int len) = 0;
 
 void commands_init(void) {
 	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
@@ -69,7 +70,7 @@ void commands_init(void) {
  * @param func
  * A pointer to the packet sending function.
  */
-void commands_set_send_func(void(*func)(unsigned char *data, unsigned char len)) {
+void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len)) {
 	send_func = func;
 }
 
@@ -82,7 +83,7 @@ void commands_set_send_func(void(*func)(unsigned char *data, unsigned char len))
  * @param len
  * The data length.
  */
-void commands_send_packet(unsigned char *data, unsigned char len) {
+void commands_send_packet(unsigned char *data, unsigned int len) {
 	if (send_func) {
 		send_func(data, len);
 	}
@@ -97,7 +98,7 @@ void commands_send_packet(unsigned char *data, unsigned char len) {
  * @param len
  * The length of the buffer.
  */
-void commands_process_packet(unsigned char *data, unsigned char len) {
+void commands_process_packet(unsigned char *data, unsigned int len) {
 	if (!len) {
 		return;
 	}
@@ -128,7 +129,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		break;
 
 	case COMM_JUMP_TO_BOOTLOADER:
-		utils_jump_to_bootloader();
+		flash_helper_jump_to_bootloader();
 		break;
 
 	case COMM_ERASE_NEW_APP:
@@ -241,6 +242,8 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		mcconf.l_temp_fet_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_temp_motor_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_temp_motor_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_min_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.l_max_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
 
 		mcconf.lo_current_max = mcconf.l_current_max;
 		mcconf.lo_current_min = mcconf.l_current_min;
@@ -311,6 +314,8 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_end * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_end * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_duty * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_duty * 1000000.0), &ind);
 
 		send_buffer[ind++] = mcconf.sl_is_sensorless;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm * 1000.0), &ind);
@@ -401,7 +406,7 @@ void commands_process_packet(unsigned char *data, unsigned char len) {
 		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 		ind = 0;
-		send_buffer[ind++] = COMM_SET_MCCONF;
+		send_buffer[ind++] = COMM_SET_APPCONF;
 		commands_send_packet(send_buffer, ind);
 		break;
 

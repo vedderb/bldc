@@ -105,6 +105,8 @@ typedef struct {
 	float l_temp_fet_end;
 	float l_temp_motor_start;
 	float l_temp_motor_end;
+	float l_min_duty;
+	float l_max_duty;
 	// Overridden limits (Computed during runtime)
 	float lo_current_max;
 	float lo_current_min;
@@ -294,6 +296,7 @@ typedef enum {
 	CAN_PACKET_SET_RPM,
 	CAN_PACKET_SET_POS,
 	CAN_PACKET_FILL_RX_BUFFER,
+	CAN_PACKET_FILL_RX_BUFFER_LONG,
 	CAN_PACKET_PROCESS_RX_BUFFER,
 	CAN_PACKET_PROCESS_SHORT_BUFFER,
 	CAN_PACKET_STATUS

@@ -34,7 +34,6 @@ void utils_deadband(float *value, float tres, float max);
 float utils_angle_difference(float angle1, float angle2);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
-void utils_jump_to_bootloader(void);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x<0)?-1:1)

@@ -49,9 +49,9 @@ static int serial_rx_write_pos = 0;
 static int is_running = 0;
 
 // Private functions
-static void process_packet(unsigned char *data, unsigned char len);
-static void send_packet_wrapper(unsigned char *data, unsigned char len);
-static void send_packet(unsigned char *data, unsigned char len);
+static void process_packet(unsigned char *data, unsigned int len);
+static void send_packet_wrapper(unsigned char *data, unsigned int len);
+static void send_packet(unsigned char *data, unsigned int len);
 
 /*
  * This callback is invoked when a transmission buffer has been completely
@@ -114,16 +114,16 @@ static UARTConfig uart_cfg = {
 		0
 };
 
-static void process_packet(unsigned char *data, unsigned char len) {
+static void process_packet(unsigned char *data, unsigned int len) {
 	commands_set_send_func(send_packet_wrapper);
 	commands_process_packet(data, len);
 }
 
-static void send_packet_wrapper(unsigned char *data, unsigned char len) {
+static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 	packet_send_packet(data, len, PACKET_HANDLER);
 }
 
-static void send_packet(unsigned char *data, unsigned char len) {
+static void send_packet(unsigned char *data, unsigned int len) {
 	// Wait for the previous transmission to finish.
 	while (HW_UART_DEV.txstate == UART_TX_ACTIVE) {
 		chThdSleep(1);
@@ -131,7 +131,7 @@ static void send_packet(unsigned char *data, unsigned char len) {
 
 	// Copy this data to a new buffer in case the provided one is re-used
 	// after this function returns.
-	static uint8_t buffer[300];
+	static uint8_t buffer[PACKET_MAX_PL_LEN + 5];
 	memcpy(buffer, data, len);
 
 	uartStartSend(&HW_UART_DEV, len, buffer);
