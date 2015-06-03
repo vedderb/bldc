@@ -94,7 +94,7 @@
 #define MCPWM_MAX_FB_CURR_DIR_CHANGE	10.0	// Maximum current during full brake during which a direction change is allowed
 #endif
 #ifndef MCPWM_MIN_DUTY
-#define MCPWM_MIN_DUTY					0.01	// Minimum duty cycle
+#define MCPWM_MIN_DUTY					0.005	// Minimum duty cycle
 #endif
 #ifndef MCPWM_MAX_DUTY
 #define MCPWM_MAX_DUTY					0.95	// Maximum duty cycle
