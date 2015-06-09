@@ -97,6 +97,8 @@ static volatile float amp_seconds_charged;
 static volatile float watt_seconds;
 static volatile float watt_seconds_charged;
 static volatile bool dccal_done;
+static volatile bool lock_enabled;
+static volatile bool lock_override_once;
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -212,6 +214,8 @@ void mcpwm_init(mc_configuration *configuration) {
 	watt_seconds = 0.0;
 	watt_seconds_charged = 0.0;
 	dccal_done = false;
+	lock_enabled = false;
+	lock_override_once = false;
 
 	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
 
@@ -499,6 +503,7 @@ void mcpwm_set_configuration(mc_configuration *configuration) {
 void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add) {
 	const int comms1[8] = {-1,1,3,2,5,6,4,-1};
 	const int comms2[8] = {-1,1,5,6,3,2,4,-1};
+//	const int fwd_to_rev[7] = {-1,4,3,2,1,6,5};
 
 	memcpy(hall_to_phase_table, dir ? comms1 : comms2, sizeof(int[8]));
 	memcpy(hall_to_phase_table + 8, dir ? comms2 : comms1, sizeof(int[8]));
@@ -695,6 +700,27 @@ void mcpwm_brake_now(void) {
  */
 void mcpwm_release_motor(void) {
 	mcpwm_set_current(0.0);
+}
+
+/**
+ * Lock the control by disabling all control commands.
+ */
+void mcpwm_lock(void) {
+	lock_enabled = true;
+}
+
+/**
+ * Unlock all control commands.
+ */
+void mcpwm_unlock(void) {
+	lock_enabled = false;
+}
+
+/**
+ * Allow just one motor control command in the locked state.
+ */
+void mcpwm_lock_override_once(void) {
+	lock_override_once = true;
 }
 
 /**
@@ -1064,7 +1090,17 @@ static int try_input(void) {
 		ignore_iterations = MCPWM_DETECT_STOP_TIME;
 	}
 
-	return ignore_iterations;
+	int retval = ignore_iterations;
+
+	if (!ignore_iterations && lock_enabled) {
+		if (!lock_override_once) {
+			retval = 1;
+		} else {
+			lock_override_once = false;
+		}
+	}
+
+	return retval;
 }
 
 /**

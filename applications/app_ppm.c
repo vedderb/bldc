@@ -189,6 +189,7 @@ static msg_t ppm_thread(void *arg) {
 				pulses_without_power = 0;
 			}
 			pulses_without_power_before = pulses_without_power;
+			mcpwm_set_brake_current(timeout_get_brake_current());
 			continue;
 		}
 

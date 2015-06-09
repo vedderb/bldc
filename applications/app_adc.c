@@ -212,7 +212,7 @@ static msg_t adc_thread(void *arg) {
 				ms_without_power = 0;
 			}
 			pulses_without_power_before = ms_without_power;
-			mcpwm_set_current(0.0);
+			mcpwm_set_brake_current(timeout_get_brake_current());
 			continue;
 		}
 

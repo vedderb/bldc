@@ -209,6 +209,7 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_app_configuration(app_configuration *conf) {
+	mcpwm_unlock();
 	mcpwm_release_motor();
 
 	utils_sys_lock_cnt();
@@ -326,6 +327,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_mc_configuration(mc_configuration *conf) {
+	mcpwm_unlock();
 	mcpwm_release_motor();
 
 	utils_sys_lock_cnt();
@@ -367,6 +369,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mcconf.sl_min_erpm = min_rpm;
 	mcpwm_set_configuration(&mcconf);
 
+	mcpwm_lock();
+
+	mcpwm_lock_override_once();
 	mcpwm_set_current(current);
 
 	// Spin up the motor
@@ -380,6 +385,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	// Release the motor and wait a few commutations
+	mcpwm_lock_override_once();
 	mcpwm_set_current(0.0);
 	int tacho = mcpwm_get_tachometer_value(0);
 	for (int i = 0;i < 2000;i++) {
@@ -414,6 +420,8 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 			break;
 		}
 	}
+
+	mcpwm_lock_override_once();
 	mcpwm_set_duty(low_duty);
 
 	// Average the cycle integrator for 100 commutations
@@ -435,7 +443,8 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	float avg_cycle_integrator_running = mcpwm_read_reset_avg_cycle_integrator();
 	float rpm = rpm_sum / rpm_iterations;
 
-	mcpwm_set_current(0.0);
+	mcpwm_lock_override_once();
+	mcpwm_release_motor();
 
 	// Try to figure out the coupling factor
 	avg_cycle_integrator_running -= *int_limit;
@@ -445,6 +454,8 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Restore settings
 	mcpwm_set_configuration(&mcconf_old);
+
+	mcpwm_unlock();
 
 	return ok_steps == 5 ? true : false;
 }

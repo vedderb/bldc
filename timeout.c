@@ -62,6 +62,10 @@ systime_t timeout_get_timeout_msec(void) {
 	return timeout_msec;
 }
 
+float timeout_get_brake_current(void) {
+	return timeout_brake_current;
+}
+
 static msg_t timeout_thread(void *arg) {
 	(void)arg;
 
@@ -69,6 +73,7 @@ static msg_t timeout_thread(void *arg) {
 
 	for(;;) {
 		if (timeout_msec != 0 && chTimeElapsedSince(last_update_time) > MS2ST(timeout_msec)) {
+			mcpwm_unlock();
 			mcpwm_set_brake_current(timeout_brake_current);
 			has_timeout = true;
 		} else {
