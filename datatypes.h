@@ -49,6 +49,12 @@ typedef enum {
 } mc_comm_mode;
 
 typedef enum {
+	SENSOR_MODE_SENSORLESS = 0,
+	SENSOR_MODE_SENSORED,
+	SENSOR_MODE_HYBRID
+} mc_sensor_mode;
+
+typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
 } mc_motor_type;
@@ -87,6 +93,7 @@ typedef struct {
 	mc_pwm_mode pwm_mode;
 	mc_comm_mode comm_mode;
 	mc_motor_type motor_type;
+	mc_sensor_mode sensor_mode;
 	// Limits
 	float l_current_max;
 	float l_current_min;
@@ -113,7 +120,6 @@ typedef struct {
 	float lo_in_current_max;
 	float lo_in_current_min;
 	// Sensorless
-	bool sl_is_sensorless;
 	float sl_min_erpm;
 	float sl_min_erpm_cycle_int_limit;
 	float sl_max_fullbreak_current_dir_change;
@@ -122,9 +128,8 @@ typedef struct {
 	float sl_cycle_int_rpm_br;
 	float sl_bemf_coupling_k;
 	// Hall sensor
-	int8_t hall_dir;
-	int8_t hall_fwd_add;
-	int8_t hall_rev_add;
+	int8_t hall_table[8];
+	float hall_sl_erpm;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;

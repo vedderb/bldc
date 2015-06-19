@@ -43,7 +43,7 @@
 #define MCPWM_CURR_MAX_RPM_FBRAKE		1500	// Maximum electrical RPM to use full brake at
 
 // Sensorless settings
-#define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
+#define MCPWM_SENSOR_MODE				SENSOR_MODE_SENSORLESS // Sensor mode
 #define MCPWM_MIN_RPM					250		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_MIN_RPM	500.0	// Minimum RPM to calculate the BEMF coupling from
 #define MCPWM_CYCLE_INT_LIMIT			80.0	// Flux integrator limit 0 ERPM

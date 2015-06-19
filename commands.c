@@ -58,6 +58,8 @@ static float detect_coupling_k;
 static float detect_current;
 static float detect_min_rpm;
 static float detect_low_duty;
+static int8_t detect_hall_table[8];
+static int detect_hall_res;
 static void(*send_func)(unsigned char *data, unsigned int len) = 0;
 
 void commands_init(void) {
@@ -224,6 +226,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.pwm_mode = data[ind++];
 		mcconf.comm_mode = data[ind++];
 		mcconf.motor_type = data[ind++];
+		mcconf.sensor_mode = data[ind++];
 
 		mcconf.l_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.l_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -250,7 +253,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.lo_in_current_max = mcconf.l_in_current_max;
 		mcconf.lo_in_current_min = mcconf.l_in_current_min;
 
-		mcconf.sl_is_sensorless = data[ind++];
 		mcconf.sl_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_min_erpm_cycle_int_limit = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_max_fullbreak_current_dir_change = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -259,9 +261,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.sl_cycle_int_rpm_br = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.sl_bemf_coupling_k = (float)buffer_get_int32(data, &ind) / 1000.0;
 
-		mcconf.hall_dir = data[ind++];
-		mcconf.hall_fwd_add = data[ind++];
-		mcconf.hall_rev_add = data[ind++];
+		memcpy(mcconf.hall_table, data + ind, 8);
+		ind += 8;
+		mcconf.hall_sl_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
@@ -296,6 +298,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = mcconf.pwm_mode;
 		send_buffer[ind++] = mcconf.comm_mode;
 		send_buffer[ind++] = mcconf.motor_type;
+		send_buffer[ind++] = mcconf.sensor_mode;
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_max * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_min * 1000.0), &ind);
@@ -317,7 +320,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_duty * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_duty * 1000000.0), &ind);
 
-		send_buffer[ind++] = mcconf.sl_is_sensorless;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_min_erpm_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_max_fullbreak_current_dir_change * 1000.0), &ind);
@@ -326,9 +328,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_cycle_int_rpm_br * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.sl_bemf_coupling_k * 1000.0), &ind);
 
-		send_buffer[ind++] = mcconf.hall_dir;
-		send_buffer[ind++] = mcconf.hall_fwd_add;
-		send_buffer[ind++] = mcconf.hall_rev_add;
+		memcpy(send_buffer + ind, mcconf.hall_table, 8);
+		ind += 8;
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.hall_sl_erpm * 1000.0), &ind);
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
@@ -596,7 +598,8 @@ static msg_t detect_thread(void *arg) {
 		chEvtWaitAny((eventmask_t) 1);
 
 		if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
-				detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k)) {
+				detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
+				detect_hall_table, &detect_hall_res)) {
 			detect_cycle_int_limit = 0.0;
 			detect_coupling_k = 0.0;
 		}
@@ -605,6 +608,9 @@ static msg_t detect_thread(void *arg) {
 		send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
 		buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);
+		memcpy(send_buffer + ind, detect_hall_table, 8);
+		ind += 8;
+		send_buffer[ind++] = detect_hall_res;
 		commands_send_packet(send_buffer, ind);
 	}
 

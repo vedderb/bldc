@@ -38,7 +38,7 @@
 #define MCPWM_SLOW_ABS_OVERCURRENT		1		// Use the filtered (and hence slower) current for the overcurrent fault detection
 
 // Sensorless settings
-#define MCPWM_IS_SENSORLESS				1		// Use sensorless commutation
+#define MCPWM_SENSOR_MODE				SENSOR_MODE_SENSORLESS // Sensor mode
 #define MCPWM_MIN_RPM					150		// Auto-commutate below this RPM
 #define MCPWM_CYCLE_INT_LIMIT_MIN_RPM	1100.0	// Minimum RPM to calculate the BEMF coupling from
 #define MCPWM_CYCLE_INT_LIMIT			62.0	// Flux integrator limit 0 ERPM

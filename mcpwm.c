@@ -99,6 +99,8 @@ static volatile float watt_seconds_charged;
 static volatile bool dccal_done;
 static volatile bool lock_enabled;
 static volatile bool lock_override_once;
+static volatile bool sensorless_now;
+static volatile int hall_detect_table[8][7];
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -147,6 +149,8 @@ static void run_pid_control_speed(void);
 static void run_pid_control_pos(float dt);
 static void set_next_comm_step(int next_step);
 static void update_rpm_tacho(void);
+static void update_sensor_mode(void);
+static int read_hall(void);
 static void update_adc_sample_pos(mc_timer_struct *timer_tmp);
 static void commutate(int steps);
 static void set_next_timer_settings(mc_timer_struct *settings);
@@ -179,7 +183,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	comm_step = 1;
 	detect_step = 0;
 	direction = 1;
-	rpm_now = 0;
+	rpm_now = 0.0;
 	dutycycle_set = 0.0;
 	dutycycle_now = 0.0;
 	speed_pid_set_rpm = 0.0;
@@ -216,8 +220,10 @@ void mcpwm_init(mc_configuration *configuration) {
 	dccal_done = false;
 	lock_enabled = false;
 	lock_override_once = false;
+	memset(hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+	update_sensor_mode();
 
-	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
+	mcpwm_init_hall_table((int8_t*)conf.hall_table);
 
 	// Create KV FIR filter
 	filter_create_fir_lowpass((float*)kv_fir_coeffs, KV_FIR_FCUT, KV_FIR_TAPS_BITS, 1);
@@ -484,33 +490,42 @@ void mcpwm_set_configuration(mc_configuration *configuration) {
 	utils_sys_lock_cnt();
 	conf = *configuration;
 	update_override_limits(&conf);
-	mcpwm_init_hall_table(conf.hall_dir, conf.hall_fwd_add, conf.hall_rev_add);
+	mcpwm_init_hall_table((int8_t*)conf.hall_table);
+	if (conf.sensor_mode == SENSOR_MODE_SENSORLESS ||
+			(conf.sensor_mode == SENSOR_MODE_HYBRID &&
+					fabsf(mcpwm_get_rpm()) > conf.hall_sl_erpm)) {
+		sensorless_now = true;
+	} else {
+		sensorless_now = false;
+	}
 	utils_sys_unlock_cnt();
 }
 
 /**
  * Initialize the hall sensor lookup table
  *
- * @param dir
- * Invert the direction
- *
- * @param fwd_add
- * Offset to add when the motor is spinning forwards
- *
- * @param rev_add
- * Offset to add when the motor is spinning reverse
+ * @param table
+ * The commutations corresponding to the hall sensor states in the forward direction-
  */
-void mcpwm_init_hall_table(int dir, int fwd_add, int rev_add) {
-	const int comms1[8] = {-1,1,3,2,5,6,4,-1};
-	const int comms2[8] = {-1,1,5,6,3,2,4,-1};
-//	const int fwd_to_rev[7] = {-1,4,3,2,1,6,5};
+void mcpwm_init_hall_table(int8_t *table) {
+	const int fwd_to_rev[7] = {-1,4,3,2,1,6,5};
 
-	memcpy(hall_to_phase_table, dir ? comms1 : comms2, sizeof(int[8]));
-	memcpy(hall_to_phase_table + 8, dir ? comms2 : comms1, sizeof(int[8]));
+	for (int i = 0;i < 8;i++) {
+		hall_to_phase_table[8 + i] = table[i];
+		int ind_now = hall_to_phase_table[8 + i];
 
-	for (int i = 1;i < 7;i++) {
-		hall_to_phase_table[i    ] = ((hall_to_phase_table[i    ] + rev_add) % 6) + 1;
-		hall_to_phase_table[8 + i] = ((hall_to_phase_table[8 + i] + fwd_add) % 6) + 1;
+		if (ind_now < 1) {
+			hall_to_phase_table[i] = ind_now;
+			continue;
+		}
+
+		ind_now += 2;
+		if (ind_now > 6) {
+			ind_now -= 6;
+		}
+		ind_now = fwd_to_rev[ind_now];
+
+		hall_to_phase_table[i] = ind_now;
 	}
 }
 
@@ -1197,7 +1212,7 @@ static void set_duty_cycle_ll(float dutyCycle) {
 		set_next_comm_step(comm_step);
 		commutate(1);
 	} else {
-		if (conf.sl_is_sensorless) {
+		if (sensorless_now) {
 			if (state != MC_STATE_RUNNING) {
 				if (state == MC_STATE_OFF) {
 					state = MC_STATE_RUNNING;
@@ -1444,7 +1459,7 @@ static msg_t timer_thread(void *arg) {
 					amp = -amp;
 				}
 			} else {
-				if (conf.sl_is_sensorless) {
+				if (sensorless_now) {
 					min_s = 9999999999999.0;
 					max_s = 0.0;
 
@@ -1782,7 +1797,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		filter_add_sample((float*)amp_fir_samples, amp,
 				AMP_FIR_TAPS_BITS, (uint32_t*)&amp_fir_index);
 
-		if (conf.sl_is_sensorless) {
+		if (sensorless_now) {
 			static float cycle_integrator = 0;
 
 			if (pwm_cycles_sum >= rpm_dep.comm_time_sum_min_rpm) {
@@ -1831,6 +1846,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					break;
 				default:
 					break;
+				}
+
+				// Collect hall sensor samples in the first half of the commutation cycle. This is
+				// because positive timing is much better than negative timing in case they are
+				// mis-aligned.
+				if (v_diff < 50) {
+					hall_detect_table[read_hall()][comm_step]++;
 				}
 
 				// Don't commutate while the motor is standing still and the signal only consists
@@ -2250,13 +2272,77 @@ mc_rpm_dep_struct mcpwm_get_rpm_dep(void) {
 }
 
 /**
+ * Reset the hall sensor detection table
+ */
+void mcpwm_reset_hall_detect_table(void) {
+	memset(hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+}
+
+/**
+ * Get the current detected hall sensor table
+ *
+ * @param table
+ * Pointer to a table where the result should be stored
+ *
+ * @return
+ * 0: OK
+ * -1: Invalid hall sensor output
+ * -2: WS2811 enabled
+ * -3: Encoder enabled
+ */
+int mcpwm_get_hall_detect_result(int8_t *table) {
+	if (WS2811_ENABLE) {
+		return -2;
+	} else if (ENCODER_ENABLE) {
+		return -3;
+	}
+
+	for (int i = 0;i < 8;i++) {
+		int samples = 0;
+		int res = -1;
+		for (int j = 1;j < 7;j++) {
+			if (hall_detect_table[i][j] > samples) {
+				samples = hall_detect_table[i][j];
+				if (samples > 15) {
+					res = j;
+				}
+			}
+			table[i] = res;
+		}
+	}
+
+	int invalid_samp_num = 0;
+	int nums[7] = {0, 0, 0, 0, 0, 0, 0};
+	int tot_nums = 0;
+	for (int i = 0;i < 8;i++) {
+		if (table[i] == -1) {
+			invalid_samp_num++;
+		} else {
+			if (!nums[table[i]]) {
+				nums[table[i]] = 1;
+				tot_nums++;
+			}
+		}
+	}
+
+	if (invalid_samp_num == 2 && tot_nums == 6) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+/**
  * Read the current phase of the motor using hall effect sensors
  * @return
  * The phase read.
  */
-signed int mcpwm_read_hall_phase(void) {
-	int hall = READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
-	return hall_to_phase_table[hall + (direction ? 8 : 0)];
+int mcpwm_read_hall_phase(void) {
+	return hall_to_phase_table[read_hall() + (direction ? 8 : 0)];
+}
+
+static int read_hall(void) {
+	return READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
 }
 
 /*
@@ -2446,12 +2532,22 @@ static void update_rpm_tacho(void) {
 	}
 }
 
-static void commutate(int steps) {
-	if (conf.motor_type == MOTOR_TYPE_BLDC && conf.sl_is_sensorless) {
-		last_pwm_cycles_sum = pwm_cycles_sum;
-		last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
-		pwm_cycles_sum = 0;
+static void update_sensor_mode(void) {
+	if (conf.sensor_mode == SENSOR_MODE_SENSORLESS ||
+			(conf.sensor_mode == SENSOR_MODE_HYBRID &&
+					fabsf(mcpwm_get_rpm()) > conf.hall_sl_erpm)) {
+		sensorless_now = true;
+	} else {
+		sensorless_now = false;
+	}
+}
 
+static void commutate(int steps) {
+	last_pwm_cycles_sum = pwm_cycles_sum;
+	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
+	pwm_cycles_sum = 0;
+
+	if (conf.motor_type == MOTOR_TYPE_BLDC && sensorless_now) {
 		comm_step += steps;
 		while (comm_step > 6) {
 			comm_step -= 6;
@@ -2463,6 +2559,7 @@ static void commutate(int steps) {
 		update_rpm_tacho();
 
 		if (!(state == MC_STATE_RUNNING)) {
+			update_sensor_mode();
 			return;
 		}
 
@@ -2480,6 +2577,7 @@ static void commutate(int steps) {
 
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
+	update_sensor_mode();
 }
 
 static void set_next_timer_settings(mc_timer_struct *settings) {

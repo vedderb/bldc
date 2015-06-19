@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	4
+#define FW_VERSION_MINOR	5
 
 #include "datatypes.h"
 
@@ -94,7 +94,7 @@
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
  * at the same time.
  */
-#define WS2811_ENABLE			1
+#define WS2811_ENABLE			0
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
@@ -106,6 +106,6 @@ bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
 bool conf_general_store_mc_configuration(mc_configuration *conf);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
-		float *int_limit, float *bemf_coupling_k);
+		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 
 #endif /* CONF_GENERAL_H_ */

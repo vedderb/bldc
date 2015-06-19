@@ -148,9 +148,27 @@ void terminal_process_string(char *str) {
 
 				float cycle_integrator;
 				float coupling_k;
-				if (conf_general_detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k)) {
+				int8_t hall_table[8];
+				int hall_res;
+				if (conf_general_detect_motor_param(current, min_rpm, low_duty, &cycle_integrator, &coupling_k, hall_table, &hall_res)) {
 					commands_printf("Cycle integrator limit: %.2f", (double)cycle_integrator);
-					commands_printf("Coupling factor: %.2f\n", (double)coupling_k);
+					commands_printf("Coupling factor: %.2f", (double)coupling_k);
+
+					if (hall_res == 0) {
+						commands_printf("Detected hall sensor table:");
+						commands_printf("%i, %i, %i, %i, %i, %i, %i, %i\n",
+								hall_table[0], hall_table[1], hall_table[2], hall_table[3],
+								hall_table[4], hall_table[5], hall_table[6], hall_table[7]);
+					} else if (hall_res == -1) {
+						commands_printf("Hall sensor detection failed:");
+						commands_printf("%i, %i, %i, %i, %i, %i, %i, %i\n",
+								hall_table[0], hall_table[1], hall_table[2], hall_table[3],
+								hall_table[4], hall_table[5], hall_table[6], hall_table[7]);
+					} else if (hall_res == -2) {
+						commands_printf("WS2811 enabled. Hall sensors cannot be used.\n");
+					} else if (hall_res == -3) {
+						commands_printf("Encoder enabled. Hall sensors cannot be used.\n");
+					}
 				} else {
 					commands_printf("Detection failed. Try again with different parameters.\n");
 				}
@@ -178,28 +196,6 @@ void terminal_process_string(char *str) {
 				commands_printf("Current            : %.2f", (double)msg->current);
 				commands_printf("Duty               : %.2f\n", (double)msg->duty);
 			}
-		}
-	}
-
-	// Setters
-	else if (strcmp(argv[0], "set_hall_table") == 0) {
-		if (argc == 4) {
-			int dir = -1;
-			int fwd_add = -1;
-			int rev_add = -1;
-			sscanf(argv[1], "%i", &dir);
-			sscanf(argv[2], "%i", &fwd_add);
-			sscanf(argv[3], "%i", &rev_add);
-
-			if (dir >= 0 && fwd_add >= 0 && rev_add >= 0) {
-				mcpwm_init_hall_table(dir, fwd_add, rev_add);
-				commands_printf("New hall sensor dir: %i fwd_add %i rev_add %i\n",
-						dir, fwd_add, rev_add);
-			} else {
-				commands_printf("Invalid argument(s).\n");
-			}
-		} else {
-			commands_printf("This command requires three arguments.\n");
 		}
 	}
 
@@ -241,9 +237,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");
-
-		commands_printf("set_hall_table [dir] [fwd_add] [rev_add]");
-		commands_printf("  Update the hall sensor lookup table");
 
 		commands_printf("volt");
 		commands_printf("  Prints different voltages");
