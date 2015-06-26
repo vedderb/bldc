@@ -96,7 +96,6 @@ static volatile int sample_int = 1;
 static volatile int sample_ready = 1;
 static volatile int sample_now = 0;
 static volatile int sample_at_start = 0;
-static volatile int was_start_sample = 0;
 static volatile int start_comm = 0;
 static volatile float main_last_adc_duration = 0.0;
 
@@ -218,7 +217,6 @@ void main_dma_adc_handler(void) {
 			start_comm != mcpwm_get_comm_step())) {
 		sample_now = 0;
 		sample_ready = 0;
-		was_start_sample = 1;
 		sample_at_start = 0;
 	}
 
@@ -231,41 +229,31 @@ void main_dma_adc_handler(void) {
 			if (mcpwm_get_state() == MC_STATE_DETECTING) {
 				curr0_samples[sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
 				curr1_samples[sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
+
+				ph1_samples[sample_now] = (int16_t)mcpwm_detect_voltages[0];
+				ph2_samples[sample_now] = (int16_t)mcpwm_detect_voltages[1];
+				ph3_samples[sample_now] = (int16_t)mcpwm_detect_voltages[2];
 			} else {
 				curr0_samples[sample_now] = ADC_curr_norm_value[0];
 				curr1_samples[sample_now] = ADC_curr_norm_value[1];
+
+				ph1_samples[sample_now] = ADC_V_L1 - mcpwm_vzero;
+				ph2_samples[sample_now] = ADC_V_L2 - mcpwm_vzero;
+				ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;
 			}
 
-			ph1_samples[sample_now] = ADC_V_L1 - mcpwm_vzero;
-			ph2_samples[sample_now] = ADC_V_L2 - mcpwm_vzero;
-			ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;
 			vzero_samples[sample_now] = mcpwm_vzero;
 
 			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100.0);
 			f_sw_samples[sample_now] = (int16_t)(mcpwm_get_switching_frequency_now() / 10.0);
 
-			uint8_t tmp;
-
-			if (was_start_sample) {
-				if (mcpwm_get_state() == MC_STATE_OFF) {
-					tmp = 1;
-				} else if (mcpwm_get_state() == MC_STATE_RUNNING) {
-					tmp = 2;
-				} else {
-					tmp = 3;
-				}
-			} else {
-				tmp = mcpwm_read_hall_phase();
-			}
-
-			status_samples[sample_now] = mcpwm_get_comm_step() | (tmp << 3);
+			status_samples[sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
 			sample_now++;
 
 			if (sample_now == sample_len) {
 				sample_ready = 1;
 				sample_now = 0;
-				was_start_sample = 0;
 				chSysLockFromIsr();
 				chEvtSignalI(sample_send_tp, (eventmask_t) 1);
 				chSysUnlockFromIsr();

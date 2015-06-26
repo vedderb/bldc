@@ -90,6 +90,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags);
 extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 extern volatile float mcpwm_detect_currents[];
+extern volatile float mcpwm_detect_voltages[6];
 extern volatile float mcpwm_detect_currents_diff[];
 extern volatile int mcpwm_vzero;
 

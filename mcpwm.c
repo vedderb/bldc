@@ -76,7 +76,7 @@ static volatile float input_current_sum;
 static volatile float motor_current_iterations;
 static volatile float input_current_iterations;
 static volatile float mcpwm_detect_currents_avg[6];
-static volatile float mcpwm_detect_currents_avg_samples[6];
+static volatile float mcpwm_detect_avg_samples[6];
 static volatile float switching_frequency_now;
 static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
@@ -133,6 +133,7 @@ static volatile float last_inj_adc_isr_duration;
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
 volatile float mcpwm_detect_currents[6];
+volatile float mcpwm_detect_voltages[6];
 volatile float mcpwm_detect_currents_diff[6];
 volatile int mcpwm_vzero;
 
@@ -491,13 +492,7 @@ void mcpwm_set_configuration(mc_configuration *configuration) {
 	conf = *configuration;
 	update_override_limits(&conf);
 	mcpwm_init_hall_table((int8_t*)conf.hall_table);
-	if (conf.sensor_mode == SENSOR_MODE_SENSORLESS ||
-			(conf.sensor_mode == SENSOR_MODE_HYBRID &&
-					fabsf(mcpwm_get_rpm()) > conf.hall_sl_erpm)) {
-		sensorless_now = true;
-	} else {
-		sensorless_now = false;
-	}
+	update_sensor_mode();
 	utils_sys_unlock_cnt();
 }
 
@@ -1677,8 +1672,31 @@ void mcpwm_adc_inj_int_handler(void) {
 						mcpwm_detect_currents[5] - mcpwm_detect_currents[detect_step];
 			}
 
+			int vzero = ADC_V_ZERO;
+//			int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+
+			switch (comm_step) {
+			case 1:
+			case 4:
+				mcpwm_detect_voltages[detect_step] = ADC_V_L1 - vzero;
+				break;
+
+			case 2:
+			case 5:
+				mcpwm_detect_voltages[detect_step] = ADC_V_L2 - vzero;
+				break;
+
+			case 3:
+			case 6:
+				mcpwm_detect_voltages[detect_step] = ADC_V_L3 - vzero;
+				break;
+
+			default:
+				break;
+			}
+
 			mcpwm_detect_currents_avg[detect_step] += mcpwm_detect_currents[detect_step];
-			mcpwm_detect_currents_avg_samples[detect_step]++;
+			mcpwm_detect_avg_samples[detect_step]++;
 
 			stop_pwm_hw();
 		}
@@ -1699,7 +1717,7 @@ void mcpwm_adc_inj_int_handler(void) {
 
 			comm_step = detect_step + 1;
 
-			set_next_comm_step(detect_step + 1);
+			set_next_comm_step(comm_step);
 			TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 		}
 	}
@@ -2153,7 +2171,7 @@ void mcpwm_set_detect(void) {
 	for(int i = 0;i < 6;i++) {
 		mcpwm_detect_currents[i] = 0;
 		mcpwm_detect_currents_avg[i] = 0;
-		mcpwm_detect_currents_avg_samples[i] = 0;
+		mcpwm_detect_avg_samples[i] = 0;
 	}
 
 	state = MC_STATE_DETECTING;
@@ -2161,16 +2179,16 @@ void mcpwm_set_detect(void) {
 
 float mcpwm_get_detect_pos(void) {
 	float v[6];
-	v[0] = mcpwm_detect_currents_avg[0] / mcpwm_detect_currents_avg_samples[0];
-	v[1] = mcpwm_detect_currents_avg[1] / mcpwm_detect_currents_avg_samples[1];
-	v[2] = mcpwm_detect_currents_avg[2] / mcpwm_detect_currents_avg_samples[2];
-	v[3] = mcpwm_detect_currents_avg[3] / mcpwm_detect_currents_avg_samples[3];
-	v[4] = mcpwm_detect_currents_avg[4] / mcpwm_detect_currents_avg_samples[4];
-	v[5] = mcpwm_detect_currents_avg[5] / mcpwm_detect_currents_avg_samples[5];
+	v[0] = mcpwm_detect_currents_avg[0] / mcpwm_detect_avg_samples[0];
+	v[1] = mcpwm_detect_currents_avg[1] / mcpwm_detect_avg_samples[1];
+	v[2] = mcpwm_detect_currents_avg[2] / mcpwm_detect_avg_samples[2];
+	v[3] = mcpwm_detect_currents_avg[3] / mcpwm_detect_avg_samples[3];
+	v[4] = mcpwm_detect_currents_avg[4] / mcpwm_detect_avg_samples[4];
+	v[5] = mcpwm_detect_currents_avg[5] / mcpwm_detect_avg_samples[5];
 
 	for(int i = 0;i < 6;i++) {
 		mcpwm_detect_currents_avg[i] = 0;
-		mcpwm_detect_currents_avg_samples[i] = 0;
+		mcpwm_detect_avg_samples[i] = 0;
 	}
 
 	float v0 = v[0] + v[3];
@@ -2394,7 +2412,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 		// Sample the ADC at an appropriate time during the pwm cycle
 		if (IS_DETECTING()) {
 			// Voltage samples
-			val_sample = 200;
+			val_sample = duty / 2;
 
 			// Current samples
 			curr1_sample = (top - duty) / 2 + duty;
