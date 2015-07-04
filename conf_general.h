@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	6
+#define FW_VERSION_MINOR	7
 
 #include "datatypes.h"
 
@@ -53,7 +53,7 @@
 //#define HW_VERSION_BW
 //#define HW_VERSION_40
 //#define HW_VERSION_45
-#define HW_VERSION_46
+#define HW_VERSION_46 // Also for 4.7
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 

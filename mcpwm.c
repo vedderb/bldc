@@ -2017,7 +2017,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			// Compute error
 			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
 			float step = error * conf.cc_gain * voltage_scale;
-			const float start_boost = conf.cc_startup_boost_duty / voltage_scale;
+			const float start_boost = conf.cc_startup_boost_duty * voltage_scale;
 
 			// Do not ramp too much
 			utils_truncate_number(&step, -conf.cc_ramp_step_max, conf.cc_ramp_step_max);
