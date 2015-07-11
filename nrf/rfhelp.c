@@ -163,6 +163,7 @@ int rfhelp_read_rx_data(char *data, int *len, int *pipe) {
 		if (*len <= 32 && *len >= 0) {
 			rf_read_rx_payload(data, *len);
 			rf_clear_rx_irq();
+			rf_flush_rx();
 
 			s = rf_status();
 			if (NRF_STATUS_GET_RX_P_NO(s) == 7) {

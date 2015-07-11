@@ -80,10 +80,7 @@ void spi_sw_end(void) {
 }
 
 static void spi_sw_delay(void) {
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
+	for (volatile int i = 0;i < 5;i++) {
+		__NOP();
+	}
 }
