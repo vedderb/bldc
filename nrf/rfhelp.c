@@ -19,6 +19,7 @@
 #include "rf.h"
 #include "ch.h"
 #include "hal.h"
+#include "crc.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -130,6 +131,33 @@ int rfhelp_send_data(char *data, int len) {
 }
 
 /**
+ * Same as rfhelp_send_data, but will add a crc checksum to the end. This is
+ * useful for protecting against corruption between the NRF and the MCU in case
+ * there are errors on the SPI bus.
+ *
+ * @param data
+ * The data to be sent.
+ *
+ * @param len
+ * Length of the data. Should be no more than 30 bytes.
+ *
+ * @return
+ * 0: Send OK.
+ * -1: Max RT.
+ * -2: Timeout
+ */
+int rfhelp_send_data_crc(char *data, int len) {
+	char buffer[len + 2];
+	unsigned short crc = crc16((unsigned char*)data, len);
+
+	memcpy(buffer, data, len);
+	buffer[len] = (char)(crc >> 8);
+	buffer[len + 1] = (char)(crc & 0xFF);
+
+	return rfhelp_send_data(buffer, len + 2);
+}
+
+/**
  * Read data from the RX fifo
  *
  * @param data
@@ -182,6 +210,42 @@ int rfhelp_read_rx_data(char *data, int *len, int *pipe) {
 	return retval;
 }
 
+/**
+ * Same as rfhelp_read_rx_data, but will check if there is a valid CRC in the
+ * end of the payload.
+ *
+ * @param data
+ * Pointer to the array in which to store the data.
+ *
+ * @param len
+ * Pointer to variable storing the data length.
+ *
+ * @param pipe
+ * Pointer to the pipe on which the data was received. Can be 0.
+ *
+ * @return
+ * 1: Read OK, more data to read.
+ * 0: Read OK
+ * -1: No RX data
+ * -2: Wrong length read. Something is likely wrong.
+ * -3: Data read, but CRC does not match.
+ */
+int rfhelp_read_rx_data_crc(char *data, int *len, int *pipe) {
+	int res = rfhelp_read_rx_data(data, len, pipe);
+
+	if (res >= 0 && *len > 2) {
+		unsigned short crc = crc16((unsigned char*)data, *len - 2);
+
+		if (crc	!= ((unsigned short) data[*len - 2] << 8 | (unsigned short) data[*len - 1])) {
+			res = -3;
+		}
+	}
+
+	*len -= 2;
+
+	return res;
+}
+
 int rfhelp_rf_status(void) {
 	chMtxLock(&rf_mutex);
 	int s = rf_status();
@@ -210,5 +274,17 @@ void rfhelp_set_rx_addr(int pipe, const char *addr, int addr_len) {
 	rx_addr_set[pipe] = true;
 
 	rf_set_rx_addr(pipe, addr, address_length);
+	chMtxUnlock();
+}
+
+void rfhelp_power_down(void) {
+	chMtxLock(&rf_mutex);
+	rf_power_down();
+	chMtxUnlock();
+}
+
+void rfhelp_power_up(void) {
+	chMtxLock(&rf_mutex);
+	rf_power_up();
 	chMtxUnlock();
 }

@@ -58,9 +58,12 @@ static msg_t tx_thread(void *arg) {
 	chRegSetThreadName("Nrf TX");
 
 	for(;;) {
-		// TODO! Send status
+		uint8_t pl[6];
+		int32_t index = 0;
+		pl[index++] = MOTE_PACKET_ALIVE;
+		rfhelp_send_data_crc((char*)pl, index);
 
-		chThdSleepMilliseconds(500);
+		chThdSleepMilliseconds(50);
 	}
 
 	return 0;
@@ -79,7 +82,7 @@ static msg_t rx_thread(void *arg) {
 		int pipe;
 
 		for(;;) {
-			int res = rfhelp_read_rx_data((char*)buf, &len, &pipe);
+			int res = rfhelp_read_rx_data_crc((char*)buf, &len, &pipe);
 			chuck_data cdata;
 			int32_t index = 0;
 			int buttons;

@@ -39,6 +39,8 @@
 #include "ws2811.h"
 #include "led_external.h"
 #include "encoder.h"
+#include "servo.h"
+#include "servo_simple.h"
 
 /*
  * Timers used:
@@ -47,7 +49,7 @@
  * TIM2: mcpwm
  * TIM12: mcpwm
  * TIM8: mcpwm
- * TIM3: servo_dec/Encoder (HW_R2)
+ * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
  * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
  *
  * DMA/stream	Device		Function
@@ -320,6 +322,14 @@ int main(void) {
 
 #if ENCODER_ENABLE
 	encoder_init();
+#endif
+
+#if SERVO_OUT_ENABLE
+#if SERVO_OUT_SIMPLE
+	servo_simple_init();
+#else
+	servo_init();
+#endif
 #endif
 
 	// Threads

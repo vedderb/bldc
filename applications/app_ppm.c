@@ -34,6 +34,9 @@
 #include "comm_can.h"
 #include <math.h>
 
+// Only available if servo output is not active
+#if !SERVO_OUT_ENABLE
+
 // Settings
 #define MAX_CAN_AGE						0.1
 #define MIN_PULSES_WITHOUT_POWER		50
@@ -54,24 +57,32 @@ static volatile int pulses_without_power = 0;
 
 // Private functions
 static void update(void *p);
+#endif
 
 void app_ppm_configure(ppm_config *conf) {
+#if !SERVO_OUT_ENABLE
 	config = *conf;
 	pulses_without_power = 0;
 
 	if (is_running) {
 		servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	}
+#else
+	(void)conf;
+#endif
 }
 
 void app_ppm_start(void) {
+#if !SERVO_OUT_ENABLE
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
 
 	chSysLock();
 	chVTSetI(&vt, MS2ST(1), update, NULL);
 	chSysUnlock();
+#endif
 }
 
+#if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
 	chSysLockFromIsr();
 	timeout_reset();
@@ -308,3 +319,4 @@ static msg_t ppm_thread(void *arg) {
 
 	return 0;
 }
+#endif

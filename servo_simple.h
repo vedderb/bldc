@@ -1,5 +1,5 @@
 /*
-	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,20 +15,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef RFHELP_H_
-#define RFHELP_H_
+/*
+ * servo_simple.h
+ *
+ *  Created on: 31 jul 2015
+ *      Author: benjamin
+ */
+
+#ifndef SERVO_SIMPLE_H_
+#define SERVO_SIMPLE_H_
 
 // Functions
-void rfhelp_init(void);
-void rfhelp_restart(void);
-int rfhelp_send_data(char *data, int len);
-int rfhelp_send_data_crc(char *data, int len);
-int rfhelp_read_rx_data(char *data, int *len, int *pipe);
-int rfhelp_read_rx_data_crc(char *data, int *len, int *pipe);
-int rfhelp_rf_status(void);
-void rfhelp_set_tx_addr(const char *addr, int addr_len);
-void rfhelp_set_rx_addr(int pipe, const char *addr, int addr_len);
-void rfhelp_power_down(void);
-void rfhelp_power_up(void);
+void servo_simple_init(void);
+void servo_simple_set_output(float out);
 
-#endif /* RFHELP_H_ */
+#endif /* SERVO_SIMPLE_H_ */

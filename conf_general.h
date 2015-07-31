@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	8
+#define FW_VERSION_MINOR	9
 
 #include "datatypes.h"
 
@@ -87,7 +87,7 @@
 /*
  * Settings for the external LEDs (hardcoded for now)
  */
-#define LED_EXT_BATT_LOW		25.6
+#define LED_EXT_BATT_LOW		28.0
 #define LED_EXT_BATT_HIGH		33.0
 
 /*
@@ -98,6 +98,15 @@
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
+
+/*
+ * Servo output driver
+ */
+#define SERVO_OUT_ENABLE		0		// Enable servo output
+#define SERVO_OUT_SIMPLE		1		// Use simple HW-based driver (recommended)
+#define SERVO_OUT_PULSE_MIN_US	1000	// Minimum pulse length in microseconds
+#define SERVO_OUT_PULSE_MAX_US	2000	// Maximum pulse length in microseconds
+#define SERVO_OUT_RATE_HZ		50		// Update rate in Hz
 
 // Functions
 void conf_general_init(void);

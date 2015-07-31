@@ -29,6 +29,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#if SERVO_OUT_ENABLE && !SERVO_OUT_SIMPLE
+
 volatile SERVO servos[SERVOS_NUM];
 
 #if USE_COMMANDS
@@ -526,3 +528,5 @@ static void servo_get_copy(SERVO *a) {
 		a[i].offset = servos[i].offset;
 	}
 }
+
+#endif

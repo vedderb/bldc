@@ -47,7 +47,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
-
+#include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
 #ifndef _BV
@@ -85,16 +85,16 @@
  * #define S_COOLDOWN		20000L
  *
  * You can experiment with these to make your servo move further.
- * For mg995 these can be WAY out of spec.
+ * For some servos these can be way out of spec.
  *
  * Note that S_PULSELEN is not accurate at all for low F_CPU. However,
  * it will be rounded up to the nearest possible value (hence the strange
  * calculation below)
  *
  */
-#define S_STARTPULSE	1000L
-#define S_PULSELEN		1000L
-#define S_COOLDOWN		20000L
+#define S_STARTPULSE	SERVO_OUT_PULSE_MIN_US
+#define S_PULSELEN		(SERVO_OUT_PULSE_MAX_US - SERVO_OUT_PULSE_MIN_US)
+#define S_COOLDOWN		(1000000 / SERVO_OUT_RATE_HZ)
 
 /*
  * Dynamic servo parameters

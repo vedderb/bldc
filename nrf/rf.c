@@ -23,7 +23,7 @@
 void rf_init(void) {
 	spi_sw_init();
 
-	rf_power_up();
+	rf_power_down();
 
 	// Set default register values (TODO for the rest)
 	rf_write_reg_byte(NRF_REG_EN_RXADDR, 0);
@@ -44,6 +44,7 @@ void rf_init(void) {
 
 	// Note: The address should be set by the application.
 
+	rf_power_up();
 	rf_mode_rx();
 	rf_flush_all();
 	rf_clear_irq();
