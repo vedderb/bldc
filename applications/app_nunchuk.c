@@ -186,6 +186,7 @@ static msg_t output_thread(void *arg) {
 		static bool is_reverse = false;
 		static bool was_z = false;
 		const float current_now = mcpwm_get_tot_current_directional_filtered();
+		static float prev_current = 0.0;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
@@ -271,6 +272,10 @@ static msg_t output_thread(void *arg) {
 				}
 			}
 
+			// Set the previous ramping current to not get a spike when releasing
+			// PID control and to get a smooth transition.
+			prev_current = current_now;
+
 			continue;
 		}
 
@@ -322,7 +327,6 @@ static msg_t output_thread(void *arg) {
 		}
 
 		// Apply ramping
-		static float prev_current = 0.0;
 		const float current_range = mcconf->l_current_max + fabsf(mcconf->l_current_min);
 		const float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
