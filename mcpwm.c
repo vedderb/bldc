@@ -90,6 +90,7 @@ static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
 static volatile mc_configuration conf;
 static volatile float pwm_cycles_sum;
+static volatile float pwm_cycles;
 static volatile float last_pwm_cycles_sum;
 static volatile float last_pwm_cycles_sums[6];
 static volatile float amp_seconds;
@@ -212,6 +213,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	cycle_integrator_sum = 0.0;
 	cycle_integrator_iterations = 0.0;
 	pwm_cycles_sum = 0.0;
+	pwm_cycles = 0.0;
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 	amp_seconds = 0.0;
@@ -349,7 +351,8 @@ void mcpwm_init(mc_configuration *configuration) {
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
 
-	hw_setup_adc_channels();
+	// Enable Vrefint channel
+	ADC_TempSensorVrefintCmd(ENABLE);
 
 	// Enable DMA request after last transfer (Multi-ADC mode)
 	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
@@ -359,8 +362,10 @@ void mcpwm_init(mc_configuration *configuration) {
 	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
-	ADC_InjectedSequencerLengthConfig(ADC1, 1);
-	ADC_InjectedSequencerLengthConfig(ADC2, 1);
+	ADC_InjectedSequencerLengthConfig(ADC1, 2);
+	ADC_InjectedSequencerLengthConfig(ADC2, 2);
+
+	hw_setup_adc_channels();
 
 	// Interrupt
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
@@ -830,7 +835,7 @@ float mcpwm_get_kv_filtered(void) {
  * The motor current.
  */
 float mcpwm_get_tot_current(void) {
-	return last_current_sample * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+	return last_current_sample;
 }
 
 /**
@@ -842,7 +847,7 @@ float mcpwm_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_get_tot_current_filtered(void) {
-	return last_current_sample_filtered * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+	return last_current_sample_filtered;
 }
 
 /**
@@ -1059,8 +1064,9 @@ static void fault_stop(mc_fault_code fault) {
 		// Sent to terminal fault logger so that all faults and their conditions
 		// can be printed for debugging.
 		chSysLock();
-		volatile int t1_cnt = TIM1->CNT;
-		volatile int t8_cnt = TIM8->CNT;
+		volatile int val_samp = TIM8->CCR1;
+		volatile int current_samp = TIM1->CCR4;
+		volatile int tim_top = TIM1->ARR;
 		chSysUnlock();
 
 		fault_data fdata;
@@ -1071,8 +1077,10 @@ static void fault_stop(mc_fault_code fault) {
 		fdata.duty = dutycycle_now;
 		fdata.rpm = mcpwm_get_rpm();
 		fdata.tacho = mcpwm_get_tachometer_value(false);
-		fdata.tim_pwm_cnt = t1_cnt;
-		fdata.tim_samp_cnt = t8_cnt;
+		fdata.cycles_running = cycles_running;
+		fdata.tim_val_samp = val_samp;
+		fdata.tim_current_samp = current_samp;
+		fdata.tim_top = tim_top;
 		fdata.comm_step = comm_step;
 		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS1);
 		terminal_add_fault_data(&fdata);
@@ -1183,19 +1191,32 @@ static void set_duty_cycle_ll(float dutyCycle) {
 	}
 
 	if (dutyCycle < conf.l_min_duty) {
+		float max_erpm_fbrake;
+		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			max_erpm_fbrake = conf.l_max_erpm_fbrake_cc;
+		} else {
+			max_erpm_fbrake = conf.l_max_erpm_fbrake;
+		}
+
 		switch (state) {
 		case MC_STATE_RUNNING:
-			full_brake_ll();
+			// TODO!!!
+			if (fabsf(rpm_now) > max_erpm_fbrake) {
+				dutyCycle = conf.l_min_duty;
+			} else {
+				full_brake_ll();
+				return;
+			}
 			break;
 
 		case MC_STATE_DETECTING:
 			stop_pwm_ll();
+			return;
 			break;
 
 		default:
-			break;
+			return;
 		}
-		return;
 	} else if (dutyCycle > conf.l_max_duty) {
 		dutyCycle = conf.l_max_duty;
 	}
@@ -1434,12 +1455,7 @@ static msg_t timer_thread(void *arg) {
 	float max_s;
 
 	for(;;) {
-		if (state != MC_STATE_OFF) {
-			tachometer_for_direction = 0;
-		}
-
-		switch (state) {
-		case MC_STATE_OFF:
+		if (state == MC_STATE_OFF) {
 			// Track the motor back-emf and follow it with dutycycle_now. Also track
 			// the direction of the motor.
 			amp = filter_run_fir_iteration((float*)amp_fir_samples,
@@ -1510,19 +1526,8 @@ static msg_t timer_thread(void *arg) {
 				dutycycle_now = -amp / (float)ADC_Value[ADC_IND_VIN_SENS];
 			}
 			utils_truncate_number((float*)&dutycycle_now, -conf.l_max_duty, conf.l_max_duty);
-			break;
-
-		case MC_STATE_DETECTING:
-			break;
-
-		case MC_STATE_RUNNING:
-			break;
-
-		case MC_STATE_FULL_BRAKE:
-			break;
-
-		default:
-			break;
+		} else {
+			tachometer_for_direction = 0;
 		}
 
 		// Fill KV filter vector at 100Hz
@@ -1569,22 +1574,68 @@ void mcpwm_adc_inj_int_handler(void) {
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
+	int curr0_2 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
+	int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
+
+	float curr0_currsamp = curr0;
+	float curr1_currsamp = curr1;
+
 	if (curr_samp_volt == 1) {
 		curr0 = ADC_Value[ADC_IND_CURR1];
 	} else if (curr_samp_volt == 2) {
 		curr1 = ADC_Value[ADC_IND_CURR2];
+	} else if (curr_samp_volt == 3) {
+		curr0 = ADC_Value[ADC_IND_CURR1];
+		curr1 = ADC_Value[ADC_IND_CURR2];
 	}
+
+	// DCCal every other cycle
+//	static bool sample_ofs = true;
+//	if (sample_ofs) {
+//		sample_ofs = false;
+//		curr0_offset = curr0;
+//		curr1_offset = curr1;
+//		DCCAL_OFF();
+//		return;
+//	} else {
+//		sample_ofs = true;
+//		DCCAL_ON();
+//	}
 
 	curr0_sum += curr0;
 	curr1_sum += curr1;
 	curr_start_samples++;
 
-	ADC_curr_norm_value[0] = curr0 - curr0_offset;
-	ADC_curr_norm_value[1] = curr1 - curr1_offset;
+	curr0_currsamp -= curr0_offset;
+	curr1_currsamp -= curr1_offset;
+	curr0 -= curr0_offset;
+	curr1 -= curr1_offset;
+	curr0_2 -= curr0_offset;
+	curr1_2 -= curr1_offset;
+
+#if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
+	if (conf.pwm_mode != PWM_MODE_BIPOLAR && conf.motor_type == MOTOR_TYPE_BLDC) {
+		if (direction) {
+			if (CURR1_DOUBLE_SAMPLE && comm_step == 3) {
+				curr0 = (curr0 + curr0_2) / 2.0;
+			} else if (CURR2_DOUBLE_SAMPLE && comm_step == 4) {
+				curr1 = (curr1 + curr1_2) / 2.0;
+			}
+		} else {
+			if (CURR1_DOUBLE_SAMPLE && comm_step == 2) {
+				curr0 = (curr0 + curr0_2) / 2.0;
+			} else if (CURR2_DOUBLE_SAMPLE && comm_step == 1) {
+				curr1 = (curr1 + curr1_2) / 2.0;
+			}
+		}
+	}
+#endif
+
+	ADC_curr_norm_value[0] = curr0;
+	ADC_curr_norm_value[1] = curr1;
 	ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
 
 	float curr_tot_sample = 0;
-
 	if (conf.motor_type == MOTOR_TYPE_DC) {
 		if (direction) {
 			curr_tot_sample = -(float)(ADC_Value[ADC_IND_CURR2] - curr1_offset);
@@ -1620,43 +1671,41 @@ void mcpwm_adc_inj_int_handler(void) {
 			float c2 = (float)ADC_curr_norm_value[2];
 			curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
 		} else {
-			switch (comm_step) {
-			case 1:
-			case 6:
-				if (direction) {
-					if (comm_step == 1) {
-						curr_tot_sample = -(float)ADC_curr_norm_value[1];
-					} else {
-						curr_tot_sample = -(float)ADC_curr_norm_value[0];
-					}
-				} else {
-					curr_tot_sample = (float)ADC_curr_norm_value[1];
+			if (direction) {
+				switch (comm_step) {
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 3: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
+				case 4: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				default: break;
 				}
-				break;
-
-			case 2:
-			case 3:
-				curr_tot_sample = (float)ADC_curr_norm_value[0];
-				break;
-
-			case 4:
-			case 5:
-				if (direction) {
-					curr_tot_sample = (float)ADC_curr_norm_value[1];
-				} else {
-					if (comm_step == 4) {
-						curr_tot_sample = -(float)ADC_curr_norm_value[1];
-					} else {
-						curr_tot_sample = -(float)ADC_curr_norm_value[0];
-					}
+			} else {
+				switch (comm_step) {
+				case 1: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				default: break;
 				}
-				break;
 			}
+
+			const float tot_sample_tmp = curr_tot_sample;
+			static int comm_step_prev = 1;
+			static float prev_tot_sample = 0.0;
+			if (comm_step != comm_step_prev) {
+				curr_tot_sample = prev_tot_sample;
+			}
+			comm_step_prev = comm_step;
+			prev_tot_sample = tot_sample_tmp;
 		}
 
 		if (detect_now == 4) {
-			float a = fabsf(ADC_curr_norm_value[0]);
-			float b = fabsf(ADC_curr_norm_value[1]);
+			const float a = fabsf(ADC_curr_norm_value[0]);
+			const float b = fabsf(ADC_curr_norm_value[1]);
 
 			if (a > b) {
 				mcpwm_detect_currents[detect_step] = a;
@@ -1672,8 +1721,8 @@ void mcpwm_adc_inj_int_handler(void) {
 						mcpwm_detect_currents[5] - mcpwm_detect_currents[detect_step];
 			}
 
-			int vzero = ADC_V_ZERO;
-//			int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+			const int vzero = ADC_V_ZERO;
+//			const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 
 			switch (comm_step) {
 			case 1:
@@ -1722,8 +1771,14 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 	}
 
-	last_current_sample = curr_tot_sample;
-	filter_add_sample((float*) current_fir_samples, curr_tot_sample,
+	last_current_sample = curr_tot_sample * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+
+	// Filter out outliers
+	if (fabsf(last_current_sample) > (conf.l_abs_current_max * 1.2)) {
+		last_current_sample = SIGN(last_current_sample) * conf.l_abs_current_max * 1.2;
+	}
+
+	filter_add_sample((float*) current_fir_samples, last_current_sample,
 			CURR_FIR_TAPS_BITS, (uint32_t*) &current_fir_index);
 	last_current_sample_filtered = filter_run_fir_iteration(
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
@@ -1761,7 +1816,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	direction_before = direction;
 
 	// Check for faults that should stop the motor
-	static float wrong_voltage_iterations = 0;
+	static int wrong_voltage_iterations = 0;
 	if (input_voltage < conf.l_min_vin ||
 			input_voltage > conf.l_max_vin) {
 		wrong_voltage_iterations++;
@@ -1833,7 +1888,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				}
 			}
 
-			if ((state == MC_STATE_RUNNING && pwm_cycles_sum >= 2.0) || state == MC_STATE_OFF) {
+			if ((state == MC_STATE_RUNNING && pwm_cycles >= 2.0) || state == MC_STATE_OFF) {
 				int v_diff = 0;
 				int ph_now_raw = 0;
 
@@ -1923,8 +1978,9 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			}
 
 			pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
+			pwm_cycles++;
 		} else {
-			int hall_phase = mcpwm_read_hall_phase();
+			const int hall_phase = mcpwm_read_hall_phase();
 			if (comm_step != hall_phase) {
 				comm_step = hall_phase;
 
@@ -2390,6 +2446,10 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+	if (duty > (uint32_t)((float)top * conf.l_max_duty)) {
+		duty = (uint32_t)((float)top * conf.l_max_duty);
+	}
+
 	curr_samp_volt = 0;
 
 	if (conf.motor_type == MOTOR_TYPE_DC) {
@@ -2501,17 +2561,59 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				val_sample = duty / 2;
 
 				// Current samples
-				curr1_sample = duty + (top - duty) / 2 + 1000;
-				if (curr1_sample > (top - 20)) {
-					curr1_sample = top - 20;
+				curr1_sample = duty + (top - duty) / 2;
+				if (curr1_sample > (top - 70)) {
+					curr1_sample = top - 70;
 				}
 
-				//			curr1_sample = duty + 1500;
-				//			curr1_sample = duty + (top - duty) / 2;
-				//			curr1_sample = duty + 2 * (top - duty) / 3;
-				//			curr1_sample = top - 20;
-
 				curr2_sample = curr1_sample;
+
+				// The off sampling time is short, so use the on sampling time
+				// where possible
+				if (duty > (top / 2)) {
+#if CURR1_DOUBLE_SAMPLE
+					if (comm_step == 2 || comm_step == 3) {
+						curr1_sample = duty + 90;
+						curr2_sample = top - 230;
+					}
+#endif
+
+#if CURR2_DOUBLE_SAMPLE
+					if (direction) {
+						if (comm_step == 4 || comm_step == 5) {
+							curr1_sample = duty + 90;
+							curr2_sample = top - 230;
+						}
+					} else {
+						if (comm_step == 1 || comm_step == 6) {
+							curr1_sample = duty + 90;
+							curr2_sample = top - 230;
+						}
+					}
+#endif
+
+					if (direction) {
+						switch (comm_step) {
+						case 1: curr_samp_volt = 3; break;
+						case 2: curr_samp_volt = 2; break;
+						case 3: curr_samp_volt = 2; break;
+						case 4: curr_samp_volt = 1; break;
+						case 5: curr_samp_volt = 1; break;
+						case 6: curr_samp_volt = 3; break;
+						default: break;
+						}
+					} else {
+						switch (comm_step) {
+						case 1: curr_samp_volt = 1; break;
+						case 2: curr_samp_volt = 2; break;
+						case 3: curr_samp_volt = 2; break;
+						case 4: curr_samp_volt = 3; break;
+						case 5: curr_samp_volt = 3; break;
+						case 6: curr_samp_volt = 1; break;
+						default: break;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -2564,6 +2666,7 @@ static void commutate(int steps) {
 	last_pwm_cycles_sum = pwm_cycles_sum;
 	last_pwm_cycles_sums[comm_step - 1] = pwm_cycles_sum;
 	pwm_cycles_sum = 0;
+	pwm_cycles = 0;
 
 	if (conf.motor_type == MOTOR_TYPE_BLDC && sensorless_now) {
 		comm_step += steps;

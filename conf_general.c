@@ -139,9 +139,9 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_APPCONF + i;
 	}
 
-	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	FLASH_Unlock();
 	EE_Init();
 }
 
@@ -198,7 +198,8 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_adc_conf.voltage_end = 3.0;
 		conf->app_adc_conf.use_filter = true;
 		conf->app_adc_conf.safe_start = true;
-		conf->app_adc_conf.button_inverted = false;
+		conf->app_adc_conf.cc_button_inverted = false;
+		conf->app_adc_conf.rev_button_inverted = false;
 		conf->app_adc_conf.voltage_inverted = false;
 		conf->app_adc_conf.rpm_lim_start = 150000;
 		conf->app_adc_conf.rpm_lim_end = 200000;

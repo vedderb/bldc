@@ -208,7 +208,8 @@ typedef struct {
 	float voltage_end;
 	bool use_filter;
 	bool safe_start;
-	bool button_inverted;
+	bool cc_button_inverted;
+	bool rev_button_inverted;
 	bool voltage_inverted;
 	float rpm_lim_start;
 	float rpm_lim_end;
@@ -316,8 +317,10 @@ typedef struct {
 	float duty;
 	float rpm;
 	int tacho;
-	int tim_pwm_cnt;
-	int tim_samp_cnt;
+	int cycles_running;
+	int tim_val_samp;
+	int tim_current_samp;
+	int tim_top;
 	int comm_step;
 	float temperature;
 } fault_data;

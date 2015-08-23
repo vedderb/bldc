@@ -235,13 +235,12 @@ static msg_t output_thread(void *arg) {
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
 		static int filter_ptr = 0;
-		float rpm_filtered = mcpwm_get_rpm();
-		filter_buffer[filter_ptr++] = rpm_filtered;
+		filter_buffer[filter_ptr++] = mcpwm_get_rpm();
 		if (filter_ptr >= RPM_FILTER_SAMPLES) {
 			filter_ptr = 0;
 		}
 
-		rpm_filtered = 0.0;
+		float rpm_filtered = 0.0;
 		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
 			rpm_filtered += filter_buffer[i];
 		}

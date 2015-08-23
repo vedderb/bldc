@@ -46,12 +46,12 @@
  * 3:	IN5		CURR2
  * 4:	IN6		CURR1
  * 5:	IN3		NC
- * 6:	IN10	TEMP_MOTOR
+ * 6:	VREFINT
  * 7:	IN11	NC
  * 8:	IN12	AN_IN
  * 9:	IN13	NC
  * 10:	IN15	ADC_EXT
- * 11:	IN3		NC
+ * 11:	IN10	TEMP_MOTOR
  */
 
 #define HW_ADC_CHANNELS				12
@@ -65,6 +65,7 @@
 #define ADC_IND_CURR2				3
 #define ADC_IND_VIN_SENS			8
 #define ADC_IND_EXT					10
+#define ADC_IND_VREFINT				6
 
 // ADC macros and settings
 
@@ -94,6 +95,15 @@
 // NTC Termistors
 #define NTC_RES(adc_val)	(0.0)
 #define NTC_TEMP(adc_ind)	(32.0)
+
+// Double samples in beginning and end for positive current measurement.
+// Useful when the shunt sense traces have noise that causes offset.
+#ifndef CURR1_DOUBLE_SAMPLE
+#define CURR1_DOUBLE_SAMPLE	1
+#endif
+#ifndef CURR2_DOUBLE_SAMPLE
+#define CURR2_DOUBLE_SAMPLE	0
+#endif
 
 // Number of servo outputs
 #define HW_SERVO_NUM		2

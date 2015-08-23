@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	10
+#define FW_VERSION_MINOR	11
 
 #include "datatypes.h"
 
@@ -38,19 +38,17 @@
 #define SYSTEM_CORE_CLOCK		168000000
 
 // Component parameters to override
-//#define V_REG				3.3
-#define VIN_R1				39000.0
+//#define VIN_R1				33000.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
-//#define CURRENT_SHUNT_RES	0.001
-
-// Correction factor for computations that depend on the old resistor division factor
-#define VDIV_CORR			((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
+//#define CURRENT_SHUNT_RES	0.0005
+//#define WS2811_ENABLE			1
+//#define CURR1_DOUBLE_SAMPLE		0
+//#define CURR2_DOUBLE_SAMPLE		0
 
 /*
  * Select only one hardware version
  */
-//#define HW_VERSION_BW
 //#define HW_VERSION_40
 //#define HW_VERSION_45
 #define HW_VERSION_46 // Also for 4.7
@@ -94,7 +92,9 @@
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
  * at the same time.
  */
+#ifndef WS2811_ENABLE
 #define WS2811_ENABLE			0
+#endif
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			14
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
@@ -102,11 +102,20 @@
 /*
  * Servo output driver
  */
+#ifndef SERVO_OUT_ENABLE
 #define SERVO_OUT_ENABLE		0		// Enable servo output
+#endif
 #define SERVO_OUT_SIMPLE		1		// Use simple HW-based driver (recommended)
 #define SERVO_OUT_PULSE_MIN_US	1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US	2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ		50		// Update rate in Hz
+
+// Correction factor for computations that depend on the old resistor division factor
+#define VDIV_CORR			((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
+
+// Actual voltage on 3.3V net based on internal reference
+//#define V_REG				(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
+#define V_REG				3.3
 
 // Functions
 void conf_general_init(void);

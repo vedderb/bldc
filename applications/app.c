@@ -40,7 +40,7 @@ void app_init(app_configuration *conf) {
 		break;
 
 	case APP_ADC:
-		app_adc_start();
+		app_adc_start(true);
 		break;
 
 	case APP_UART:
@@ -56,7 +56,7 @@ void app_init(app_configuration *conf) {
 
 	case APP_ADC_UART:
 		hw_stop_i2c();
-		app_adc_start();
+		app_adc_start(false);
 		app_uartcomm_start();
 		break;
 

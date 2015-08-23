@@ -246,7 +246,7 @@ void main_dma_adc_handler(void) {
 
 			vzero_samples[sample_now] = mcpwm_vzero;
 
-			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current_filtered() * 100.0);
+			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current() * 100.0);
 			f_sw_samples[sample_now] = (int16_t)(mcpwm_get_switching_frequency_now() / 10.0);
 
 			status_samples[sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);

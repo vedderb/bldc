@@ -38,6 +38,7 @@
 #define MAX_CAN_AGE						0.1
 #define MIN_MS_WITHOUT_POWER			500
 #define FILTER_SAMPLES					5
+#define RPM_FILTER_SAMPLES				8
 
 // Threads
 static msg_t adc_thread(void *arg);
@@ -48,13 +49,15 @@ static volatile adc_config config;
 static volatile float ms_without_power = 0;
 static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
+static volatile bool use_rx_tx_as_buttons = false;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
 	ms_without_power = 0.0;
 }
 
-void app_adc_start(void) {
+void app_adc_start(bool use_rx_tx) {
+	use_rx_tx_as_buttons = use_rx_tx;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
 
@@ -72,7 +75,12 @@ static msg_t adc_thread(void *arg) {
 	chRegSetThreadName("APP_ADC");
 
 	// Set servo pin as an input with pullup
-	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+	if (use_rx_tx_as_buttons) {
+		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+	} else {
+		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+	}
 
 	for(;;) {
 		// Sleep for a time according to the specified rate
@@ -83,6 +91,11 @@ static msg_t adc_thread(void *arg) {
 			sleep_time = 1;
 		}
 		chThdSleep(sleep_time);
+
+		// For safe start when fault codes occur
+		if (mcpwm_get_fault() != FAULT_CODE_NONE) {
+			ms_without_power = 0;
+		}
 
 		// Read the external ADC pin and convert the value to a voltage.
 		float pwr = (float)ADC_Value[ADC_IND_EXT];
@@ -119,10 +132,33 @@ static msg_t adc_thread(void *arg) {
 
 		decoded_level = pwr;
 
-		// Read the servo pin and optionally invert it.
-		bool button_val = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-		if (config.button_inverted) {
-			button_val = !button_val;
+		// Read the button pins
+		bool cc_button = false;
+		bool rev_button = false;
+		if (use_rx_tx_as_buttons) {
+			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
+			if (config.cc_button_inverted) {
+				cc_button = !cc_button;
+			}
+			rev_button = !palReadPad(HW_UART_RX_PORT, HW_UART_RX_PIN);
+			if (config.rev_button_inverted) {
+				rev_button = !rev_button;
+			}
+		} else {
+			// When only one button input is available, use it differently depending on the control mode
+			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
+					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
+					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON) {
+				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+				if (config.rev_button_inverted) {
+					rev_button = !rev_button;
+				}
+			} else {
+				cc_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+				if (config.cc_button_inverted) {
+					cc_button = !cc_button;
+				}
+			}
 		}
 
 		switch (config.ctrl_type) {
@@ -138,7 +174,7 @@ static msg_t adc_thread(void *arg) {
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
 			// Invert the voltage if the button is pressed
-			if (button_val) {
+			if (rev_button) {
 				pwr = -pwr;
 			}
 			break;
@@ -147,10 +183,10 @@ static msg_t adc_thread(void *arg) {
 			break;
 		}
 
-		// Apply a deadband
+		// Apply deadband
 		utils_deadband(&pwr, config.hyst, 1.0);
 
-		float current = 0;
+		float current = 0.0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
 		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
@@ -218,6 +254,51 @@ static msg_t adc_thread(void *arg) {
 
 		// Reset timeout
 		timeout_reset();
+
+		// If c is pressed and no throttle is used, maintain the current speed with PID control
+		static bool was_pid = false;
+
+		// Filter RPM to avoid glitches
+		static float filter_buffer[RPM_FILTER_SAMPLES];
+		static int filter_ptr = 0;
+		filter_buffer[filter_ptr++] = mcpwm_get_rpm();
+		if (filter_ptr >= RPM_FILTER_SAMPLES) {
+			filter_ptr = 0;
+		}
+
+		float rpm_filtered = 0.0;
+		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
+			rpm_filtered += filter_buffer[i];
+		}
+		rpm_filtered /= RPM_FILTER_SAMPLES;
+
+		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
+			static float pid_rpm = 0.0;
+
+			if (!was_pid) {
+				was_pid = true;
+				pid_rpm = rpm_filtered;
+			}
+
+			mcpwm_set_pid_speed(pid_rpm);
+
+			// Send the same duty cycle to the other controllers
+			if (config.multi_esc) {
+				float duty = mcpwm_get_duty_cycle_now();
+
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_duty(msg->id, duty);
+					}
+				}
+			}
+
+			continue;
+		}
+
+		was_pid = false;
 
 		// Find lowest RPM (for traction control)
 		float rpm_local = mcpwm_get_rpm();

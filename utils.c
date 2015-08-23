@@ -81,6 +81,10 @@ float utils_map(float x, float in_min, float in_max, float out_min, float out_ma
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max) {
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 /**
  * Truncate absolute values less than tres to zero. The value
  * tres will be mapped to 0 and the value max to max.
@@ -121,6 +125,62 @@ float utils_angle_difference(float angle1, float angle2) {
 	}
 
 	return angle1 - angle2;
+}
+
+/**
+ * Get the middle value of three values
+ *
+ * @param a
+ * First value
+ *
+ * @param b
+ * Second value
+ *
+ * @param c
+ * Third value
+ *
+ * @return
+ * The middle value
+ */
+float utils_middle_of_3(float a, float b, float c) {
+	float middle;
+
+	if ((a <= b) && (a <= c)) {
+		middle = (b <= c) ? b : c;
+	} else if ((b <= a) && (b <= c)) {
+		middle = (a <= c) ? a : c;
+	} else {
+		middle = (a <= b) ? a : b;
+	}
+	return middle;
+}
+
+/**
+ * Get the middle value of three values
+ *
+ * @param a
+ * First value
+ *
+ * @param b
+ * Second value
+ *
+ * @param c
+ * Third value
+ *
+ * @return
+ * The middle value
+ */
+int utils_middle_of_3_int(int a, int b, int c) {
+	int middle;
+
+	if ((a <= b) && (a <= c)) {
+		middle = (b <= c) ? b : c;
+	} else if ((b <= a) && (b <= c)) {
+		middle = (a <= c) ? a : c;
+	} else {
+		middle = (a <= b) ? a : b;
+	}
+	return middle;
 }
 
 /**

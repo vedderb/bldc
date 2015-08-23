@@ -46,12 +46,12 @@
  * 3:	IN5		CURR2
  * 4:	IN6		CURR1
  * 5:	IN3		NC
- * 6:	IN10	TEMP_MOTOR
+ * 6:	Vrefint
  * 7:	IN11	NC
  * 8:	IN12	AN_IN
  * 9:	IN4		TEMP_MOSFET
  * 10:	IN15	ADC_EXT
- * 11:	IN3		NC
+ * 11:	IN10	TEMP_MOTOR
  */
 
 #define HW_ADC_CHANNELS				12
@@ -72,15 +72,16 @@
 #define ADC_IND_TEMP_MOS5			9
 #define ADC_IND_TEMP_MOS6			9
 #define ADC_IND_TEMP_PCB			9
+#define ADC_IND_VREFINT				6
 
 // ADC macros and settings
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG				3.3
+//#define V_REG				3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1				33000.0
+#define VIN_R1				39000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2				2200.0
@@ -102,6 +103,15 @@
 //#define NTC_RES(adc_val)	(10000.0 / ((4096.0 / (float)adc_val) - 1.0))
 #define NTC_RES(adc_val)	((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_TEMP(adc_ind)	(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
+
+// Double samples in beginning and end for positive current measurement.
+// Useful when the shunt sense traces have noise that causes offset.
+#ifndef CURR1_DOUBLE_SAMPLE
+#define CURR1_DOUBLE_SAMPLE	1
+#endif
+#ifndef CURR2_DOUBLE_SAMPLE
+#define CURR2_DOUBLE_SAMPLE	0
+#endif
 
 // Number of servo outputs
 #define HW_SERVO_NUM		2

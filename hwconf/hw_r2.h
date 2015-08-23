@@ -49,7 +49,7 @@
  * 6:	IN4		TEMP_PCB
  * 7:	IN9		TEMP_MOS_5
  * 8:	IN12	TEMP_MOS_2
- * 9:	IN7		TEMP_MOS_6
+ * 9:	Vrefint
  * 10:	IN15	ADC_EXT
  * 11:	IN11	TEMP_MOS_1
  * 12:	IN14	AN_IN
@@ -73,8 +73,9 @@
 #define ADC_IND_TEMP_MOS3	14
 #define ADC_IND_TEMP_MOS4	13
 #define ADC_IND_TEMP_MOS5	7
-#define ADC_IND_TEMP_MOS6	9
+#define ADC_IND_TEMP_MOS6	7 // TODO! Same as MOS5
 #define ADC_IND_TEMP_PCB	6
+#define ADC_IND_VREFINT		9
 
 // ADC macros and settings
 
@@ -104,6 +105,15 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)		((float)ADC_Value[ch] / 4096.0 * V_REG)
+
+// Double samples in beginning and end for positive current measurement.
+// Useful when the shunt sense traces have noise that causes offset.
+#ifndef CURR1_DOUBLE_SAMPLE
+#define CURR1_DOUBLE_SAMPLE	0
+#endif
+#ifndef CURR2_DOUBLE_SAMPLE
+#define CURR2_DOUBLE_SAMPLE	0
+#endif
 
 // Number of servo outputs
 #define HW_SERVO_NUM		2

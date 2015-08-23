@@ -35,7 +35,7 @@
 #include <stdio.h>
 
 // Private variables
-#define FAULT_VEC_LEN						30
+#define FAULT_VEC_LEN						25
 static volatile fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
 
@@ -101,8 +101,11 @@ void terminal_process_string(char *str) {
 				commands_printf("Duty             : %.2f", (double)fault_vec[i].duty);
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);
-				commands_printf("TIM PWM CNT      : %d", fault_vec[i].tim_pwm_cnt);
-				commands_printf("TIM Samp CNT     : %d", fault_vec[i].tim_samp_cnt);
+				commands_printf("Cycles running   : %d", fault_vec[i].cycles_running);
+				commands_printf("TIM duty         : %d", (int)((float)fault_vec[i].tim_top * fault_vec[i].duty));
+				commands_printf("TIM val samp     : %d", fault_vec[i].tim_val_samp);
+				commands_printf("TIM current samp : %d", fault_vec[i].tim_current_samp);
+				commands_printf("TIM top          : %d", fault_vec[i].tim_top);
 				commands_printf("Comm step        : %d", fault_vec[i].comm_step);
 				commands_printf("Temperature      : %.2f\n", (double)fault_vec[i].temperature);
 			}

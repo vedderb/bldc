@@ -35,7 +35,7 @@ void app_set_configuration(app_configuration *conf);
 // Standard apps
 void app_ppm_start(void);
 void app_ppm_configure(ppm_config *conf);
-void app_adc_start(void);
+void app_adc_start(bool use_rx_tx);
 void app_adc_configure(adc_config *conf);
 float app_adc_get_decoded_level(void);
 float app_adc_get_voltage(void);

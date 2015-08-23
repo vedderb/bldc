@@ -90,7 +90,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags);
 extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 extern volatile float mcpwm_detect_currents[];
-extern volatile float mcpwm_detect_voltages[6];
+extern volatile float mcpwm_detect_voltages[];
 extern volatile float mcpwm_detect_currents_diff[];
 extern volatile int mcpwm_vzero;
 
@@ -98,13 +98,13 @@ extern volatile int mcpwm_vzero;
  * Fixed parameters
  */
 #define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_MAX		35000	// The highest switching frequency in Hz
+#define MCPWM_SWITCH_FREQUENCY_MAX		40000	// The highest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	25000	// The DC motor switching frequency
-#define MCPWM_DEAD_TIME_CYCLES			80		// Dead time
+#define MCPWM_DEAD_TIME_CYCLES			100		// Dead time
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
-#define MCPWM_RAMP_STEP					0.01	// Ramping step (1000 times/sec) at maximum duty cycle
+#define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
 #define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
-#define MCPWM_CURRENT_LIMIT_GAIN		2.0		// The error gain of the current limiting algorithm
+#define MCPWM_CURRENT_LIMIT_GAIN		0.7		// The error gain of the current limiting algorithm
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 

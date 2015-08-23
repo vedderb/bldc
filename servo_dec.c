@@ -27,6 +27,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
+#include "utils.h"
 
 /*
  * Settings
@@ -45,39 +46,33 @@ static volatile bool use_median_filter = false;
 // Function pointers
 static void(*done_func)(void) = 0;
 
-static float middle_of_3(float a, float b, float c) {
-	float middle;
-
-	if ((a <= b) && (a <= c)) {
-		middle = (b <= c) ? b : c;
-	} else if ((b <= a) && (b <= c)) {
-		middle = (a <= c) ? a : c;
-	} else {
-		middle = (a <= b) ? a : b;
-	}
-	return middle;
-}
-
 static void icuwidthcb(ICUDriver *icup) {
 	last_len_received[0] = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0));
 	float len = last_len_received[0] - pulse_start;
 	const float len_set = (pulse_end - pulse_start);
 
 	if (len > len_set) {
-		if (len < len_set * 1.2) {
+		if (len < (len_set * 1.2)) {
 			len = len_set;
 		} else {
 			// Too long pulse. Most likely something is wrong.
 			len = -1.0;
 		}
+	} else if (len < 0.0) {
+		if ((len + pulse_start) > (pulse_start * 0.8)) {
+			len = 0.0;
+		} else {
+			// Too short pulse. Most likely something is wrong.
+			len = -1.0;
+		}
 	}
 
-	if (len > 0.0) {
+	if (len >= 0.0) {
 		if (use_median_filter) {
 			float c = (len * 2.0 - len_set) / len_set;
 			static float c1 = 0.5;
 			static float c2 = 0.5;
-			float med = middle_of_3(c, c1, c2);
+			float med = utils_middle_of_3(c, c1, c2);
 
 			c2 = c1;
 			c1 = c;
