@@ -102,6 +102,7 @@ void terminal_process_string(char *str) {
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);
 				commands_printf("Cycles running   : %d", fault_vec[i].cycles_running);
+				commands_printf("PWM cycles       : %d", fault_vec[i].pwm_cycles);
 				commands_printf("TIM duty         : %d", (int)((float)fault_vec[i].tim_top * fault_vec[i].duty));
 				commands_printf("TIM val samp     : %d", fault_vec[i].tim_val_samp);
 				commands_printf("TIM current samp : %d", fault_vec[i].tim_current_samp);

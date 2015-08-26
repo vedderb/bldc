@@ -116,8 +116,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	uint16_t flash_res;
 	uint32_t new_app_offset;
 
-	(void)len;
-
 	packet_id = data[0];
 	data++;
 	len--;
@@ -236,25 +234,27 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.motor_type = data[ind++];
 		mcconf.sensor_mode = data[ind++];
 
-		mcconf.l_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_in_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_in_current_min = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_abs_current_max = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_max_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_max_erpm_fbrake = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_max_erpm_fbrake_cc = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_min_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_max_vin = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.l_current_max = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_current_min = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_in_current_max = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_in_current_min = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_abs_current_max = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_min_erpm = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_max_erpm = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_max_erpm_fbrake = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_max_erpm_fbrake_cc = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_min_vin = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_max_vin = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_battery_cut_start = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_battery_cut_end = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_slow_abs_current = data[ind++];
 		mcconf.l_rpm_lim_neg_torque = data[ind++];
-		mcconf.l_temp_fet_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_temp_fet_end = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_temp_motor_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_temp_motor_end = (float)buffer_get_int32(data, &ind) / 1000.0;
-		mcconf.l_min_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
-		mcconf.l_max_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.l_temp_fet_start = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_temp_fet_end = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_temp_motor_start = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_temp_motor_end = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_min_duty = buffer_get_float32(data, 1000000.0, &ind);
+		mcconf.l_max_duty = buffer_get_float32(data, 1000000.0, &ind);
 
 		mcconf.lo_current_max = mcconf.l_current_max;
 		mcconf.lo_current_min = mcconf.l_current_min;
@@ -288,6 +288,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.cc_ramp_step_max = (float)buffer_get_int32(data, &ind) / 1000000.0;
 
 		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
+		mcconf.m_duty_ramp_step = (float)buffer_get_float32(data, 1000000.0, &ind);
+		mcconf.m_duty_ramp_step_rpm_lim = (float)buffer_get_float32(data, 1000000.0, &ind);
+		mcconf.m_current_backoff_gain = (float)buffer_get_float32(data, 1000000.0, &ind);
 
 		conf_general_store_mc_configuration(&mcconf);
 		mcpwm_set_configuration(&mcconf);
@@ -319,6 +322,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake_cc * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_vin * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_vin * 1000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.l_battery_cut_start, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_battery_cut_end, 1000.0, &ind);
 		send_buffer[ind++] = mcconf.l_slow_abs_current;
 		send_buffer[ind++] = mcconf.l_rpm_lim_neg_torque;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_start * 1000.0), &ind);
@@ -355,6 +360,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_ramp_step_max * 1000000.0), &ind);
 
 		buffer_append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
+		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step, 1000000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step_rpm_lim, 1000000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.m_current_backoff_gain, 1000000.0, &ind);
 
 		commands_send_packet(send_buffer, ind);
 		break;

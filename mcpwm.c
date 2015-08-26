@@ -90,7 +90,7 @@ static volatile float cycle_integrator_sum;
 static volatile float cycle_integrator_iterations;
 static volatile mc_configuration conf;
 static volatile float pwm_cycles_sum;
-static volatile float pwm_cycles;
+static volatile int pwm_cycles;
 static volatile float last_pwm_cycles_sum;
 static volatile float last_pwm_cycles_sums[6];
 static volatile float amp_seconds;
@@ -213,7 +213,7 @@ void mcpwm_init(mc_configuration *configuration) {
 	cycle_integrator_sum = 0.0;
 	cycle_integrator_iterations = 0.0;
 	pwm_cycles_sum = 0.0;
-	pwm_cycles = 0.0;
+	pwm_cycles = 0;
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 	amp_seconds = 0.0;
@@ -550,8 +550,10 @@ static void do_dc_cal(void) {
  * The configaration to update.
  */
 static void update_override_limits(volatile mc_configuration *conf) {
-	float temp = NTC_TEMP(ADC_IND_TEMP_MOS1);
+	const float temp = NTC_TEMP(ADC_IND_TEMP_MOS1);
+	const float v_in = GET_INPUT_VOLTAGE();
 
+	// Temperature
 	if (temp < conf->l_temp_fet_start) {
 		conf->lo_current_min = conf->l_current_min;
 		conf->lo_current_max = conf->l_current_max;
@@ -576,7 +578,16 @@ static void update_override_limits(volatile mc_configuration *conf) {
 		}
 	}
 
-	conf->lo_in_current_max = conf->l_in_current_max;
+	// Battery cutoff
+	if (v_in > conf->l_battery_cut_start) {
+		conf->lo_in_current_max = conf->l_in_current_max;
+	} else if (v_in < conf->l_battery_cut_end) {
+		conf->lo_in_current_max = 0.0;
+	} else {
+		conf->lo_in_current_max = utils_map(v_in, conf->l_battery_cut_start,
+				conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
+	}
+
 	conf->lo_in_current_min = conf->l_in_current_min;
 }
 
@@ -1078,6 +1089,7 @@ static void fault_stop(mc_fault_code fault) {
 		fdata.rpm = mcpwm_get_rpm();
 		fdata.tacho = mcpwm_get_tachometer_value(false);
 		fdata.cycles_running = cycles_running;
+		fdata.pwm_cycles = pwm_cycles;
 		fdata.tim_val_samp = val_samp;
 		fdata.tim_current_samp = current_samp;
 		fdata.tim_top = tim_top;
@@ -1888,7 +1900,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				}
 			}
 
-			if ((state == MC_STATE_RUNNING && pwm_cycles >= 2.0) || state == MC_STATE_OFF) {
+			if ((state == MC_STATE_RUNNING && pwm_cycles >= 2) || state == MC_STATE_OFF) {
 				int v_diff = 0;
 				int ph_now_raw = 0;
 
@@ -1935,8 +1947,15 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				}
 
 				if (v_diff > 0) {
+					// TODO!
+//					const int min = 100;
+					int min = (int)((1.0 - fabsf(dutycycle_now)) * (float)ADC_Value[ADC_IND_VIN_SENS] * 0.3);
+					if (min > ADC_Value[ADC_IND_VIN_SENS] / 4) {
+						min = ADC_Value[ADC_IND_VIN_SENS] / 4;
+					}
+
 					if (pwm_cycles_sum > (last_pwm_cycles_sum / 2.0) ||
-							!has_commutated || (ph_now_raw > 100 && ph_now_raw < (ADC_Value[ADC_IND_VIN_SENS] - 100))) {
+							!has_commutated || (ph_now_raw > min && ph_now_raw < (ADC_Value[ADC_IND_VIN_SENS] - min))) {
 						cycle_integrator += (float)v_diff / switching_frequency_now;
 					}
 				}
@@ -2058,7 +2077,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	if (state == MC_STATE_RUNNING && has_commutated) {
 		// Compensation for supply voltage variations
 		const float voltage_scale = 20.0 / input_voltage;
-		float ramp_step = MCPWM_RAMP_STEP / (switching_frequency_now / 1000.0);
+		float ramp_step = conf.m_duty_ramp_step / (switching_frequency_now / 1000.0);
 		float ramp_step_no_lim = ramp_step;
 		const float rpm = mcpwm_get_rpm();
 
@@ -2151,29 +2170,29 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		// Apply limits in priority order
 		if (current_nofilter > conf.lo_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_max) * conf.m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_nofilter < conf.lo_current_min) {
 			utils_step_towards((float*) &dutycycle_now, direction ? conf.l_max_duty : -conf.l_max_duty,
-					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_nofilter - conf.lo_current_min) * conf.m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter > conf.lo_in_current_max) {
 			utils_step_towards((float*) &dutycycle_now, 0.0,
-					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_max) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_max) * conf.m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (current_in_nofilter < conf.lo_in_current_min) {
 			utils_step_towards((float*) &dutycycle_now, direction ? conf.l_max_duty : -conf.l_max_duty,
-					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_min) * MCPWM_CURRENT_LIMIT_GAIN);
+					ramp_step_no_lim * fabsf(current_in_nofilter - conf.lo_in_current_min) * conf.m_current_backoff_gain);
 			limit_delay = 1;
 		} else if (rpm > conf.l_max_erpm) {
 			if ((conf.l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
+				utils_step_towards((float*) &dutycycle_now, 0.0, conf.m_duty_ramp_step_rpm_lim);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
 			}
 		} else if (rpm < conf.l_min_erpm) {
 			if ((conf.l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now >= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, MCPWM_RAMP_STEP_RPM_LIMIT);
+				utils_step_towards((float*) &dutycycle_now, 0.0, conf.m_duty_ramp_step_rpm_lim);
 				limit_delay = 1;
 				slow_ramping_cycles = 500;
 			}

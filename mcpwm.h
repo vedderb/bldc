@@ -102,9 +102,6 @@ extern volatile int mcpwm_vzero;
 #define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	25000	// The DC motor switching frequency
 #define MCPWM_DEAD_TIME_CYCLES			100		// Dead time
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
-#define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
-#define MCPWM_CURRENT_LIMIT_GAIN		0.7		// The error gain of the current limiting algorithm
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command
 

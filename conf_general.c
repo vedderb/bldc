@@ -36,6 +36,12 @@
 #ifndef MCPWM_MAX_VOLTAGE
 #define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
 #endif
+#ifndef MCPWM_BATTERY_CUT_START
+#define MCPWM_BATTERY_CUT_START			10.0	// Start limiting the positive current at this voltage
+#endif
+#ifndef MCPWM_BATTERY_CUT_END
+#define MCPWM_BATTERY_CUT_END			8.0		// Limit the positive current completely at this voltage
+#endif
 #ifndef MCPWM_RPM_MAX
 #define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
 #endif
@@ -89,6 +95,15 @@
 #endif
 #ifndef MCPWM_MAX_DUTY
 #define MCPWM_MAX_DUTY					0.95	// Maximum duty cycle
+#endif
+#ifndef MCPWM_RAMP_STEP
+#define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
+#endif
+#ifndef MCPWM_RAMP_STEP_RPM_LIMIT
+#define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
+#endif
+#ifndef MCPWM_CURRENT_LIMIT_GAIN
+#define MCPWM_CURRENT_LIMIT_GAIN		0.5		// The error gain of the current limiting algorithm
 #endif
 #ifndef MCPWM_HALL_ERPM
 #define MCPWM_HALL_ERPM					2000.0	// ERPM above which sensorless commutation is used in hybrid mode
@@ -214,8 +229,8 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		conf->app_chuk_conf.hyst = 0.15;
 		conf->app_chuk_conf.rpm_lim_start = 150000.0;
 		conf->app_chuk_conf.rpm_lim_end = 250000.0;
-		conf->app_chuk_conf.ramp_time_pos = 0.5;
-		conf->app_chuk_conf.ramp_time_neg = 0.25;
+		conf->app_chuk_conf.ramp_time_pos = 0.9;
+		conf->app_chuk_conf.ramp_time_neg = 0.3;
 		conf->app_chuk_conf.multi_esc = true;
 		conf->app_chuk_conf.tc = false;
 		conf->app_chuk_conf.tc_max_diff = 3000.0;
@@ -296,6 +311,8 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->l_max_erpm_fbrake_cc = MCPWM_CURR_MAX_RPM_FBRAKE_CC;
 		conf->l_min_vin = MCPWM_MIN_VOLTAGE;
 		conf->l_max_vin = MCPWM_MAX_VOLTAGE;
+		conf->l_battery_cut_start = MCPWM_BATTERY_CUT_START;
+		conf->l_battery_cut_end = MCPWM_BATTERY_CUT_END;
 		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;
 		conf->l_rpm_lim_neg_torque = MCPWM_RPM_LIMIT_NEG_TORQUE;
 		conf->l_temp_fet_start = MCPWM_LIM_TEMP_FET_START;
@@ -343,6 +360,9 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 		conf->cc_ramp_step_max = 0.04;
 
 		conf->m_fault_stop_time_ms = MCPWM_FAULT_STOP_TIME;
+		conf->m_duty_ramp_step = MCPWM_RAMP_STEP;
+		conf->m_duty_ramp_step_rpm_lim = MCPWM_RAMP_STEP_RPM_LIMIT;
+		conf->m_current_backoff_gain = MCPWM_CURRENT_LIMIT_GAIN;
 	}
 }
 
