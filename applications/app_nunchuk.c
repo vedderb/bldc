@@ -231,6 +231,7 @@ static msg_t output_thread(void *arg) {
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
+		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
 
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
@@ -246,17 +247,39 @@ static msg_t output_thread(void *arg) {
 		}
 		rpm_filtered /= RPM_FILTER_SAMPLES;
 
-		if (chuck_d.bt_c && out_val == 0.0) {
+		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;
 
 			if (!was_pid) {
-				was_pid = true;
 				pid_rpm = rpm_filtered;
+
+				if ((is_reverse && pid_rpm > 0.0) || (!is_reverse && pid_rpm < 0.0)) {
+					if (fabsf(pid_rpm) > mcconf->s_pid_min_erpm) {
+						// Abort if the speed is too high in the opposite direction
+						continue;
+					} else {
+						pid_rpm = 0.0;
+					}
+				}
+
+				was_pid = true;
+			} else {
+				if (is_reverse) {
+					if (pid_rpm > 0.0) {
+						pid_rpm = 0.0;
+					}
+
+					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+				} else {
+					if (pid_rpm < 0.0) {
+						pid_rpm = 0.0;
+					}
+
+					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+				}
 			}
 
-			if ((is_reverse && pid_rpm < 0.0) || (!is_reverse && pid_rpm > 0.0)) {
-				mcpwm_set_pid_speed(pid_rpm);
-			}
+			mcpwm_set_pid_speed(pid_rpm);
 
 			// Send the same duty cycle to the other controllers
 			if (config.multi_esc) {
@@ -281,7 +304,6 @@ static msg_t output_thread(void *arg) {
 		was_pid = false;
 
 		float current = 0;
-		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
 
 		if (out_val >= 0.0) {
 			current = out_val * mcconf->l_current_max;

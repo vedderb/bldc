@@ -155,6 +155,7 @@ INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          mcconf \
+         appconf \
          $(HWINC) \
          $(APPINC) \
          $(NRFINC)

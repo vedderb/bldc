@@ -1,0 +1,166 @@
+/*
+	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+
+	This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    */
+
+#ifndef APPCONF_DEFAULT_H_
+#define APPCONF_DEFAULT_H_
+
+// Default app configuration
+#ifndef APPCONF_CONTROLLER_ID
+#define APPCONF_CONTROLLER_ID				0
+#endif
+#ifndef APPCONF_TIMEOUT_MSEC
+#define APPCONF_TIMEOUT_MSEC				1000
+#endif
+#ifndef APPCONF_TIMEOUT_BRAKE_CURRENT
+#define APPCONF_TIMEOUT_BRAKE_CURRENT		0.0
+#endif
+#ifndef APPCONF_SEND_CAN_STATUS
+#define APPCONF_SEND_CAN_STATUS				false
+#endif
+#ifndef APPCONF_SEND_CAN_STATUS_RATE_HZ
+#define APPCONF_SEND_CAN_STATUS_RATE_HZ		500
+#endif
+
+// The default app is UART in case the UART port is used for
+// firmware updates.
+#ifndef APPCONF_APP_TO_USE
+#define APPCONF_APP_TO_USE					APP_UART
+#endif
+
+// PPM app
+#ifndef APPCONF_PPM_CTRL_TYPE
+#define APPCONF_PPM_CTRL_TYPE				PPM_CTRL_TYPE_NONE
+#endif
+#ifndef APPCONF_PPM_PID_MAX_ERPM
+#define APPCONF_PPM_PID_MAX_ERPM			15000
+#endif
+#ifndef APPCONF_PPM_HYST
+#define APPCONF_PPM_HYST					0.15
+#endif
+#ifndef APPCONF_PPM_PULSE_START
+#define APPCONF_PPM_PULSE_START				1.0
+#endif
+#ifndef APPCONF_PPM_PULSE_END
+#define APPCONF_PPM_PULSE_END				2.0
+#endif
+#ifndef APPCONF_PPM_MEDIAN_FILTER
+#define APPCONF_PPM_MEDIAN_FILTER			true
+#endif
+#ifndef APPCONF_PPM_SAFE_START
+#define APPCONF_PPM_SAFE_START				true
+#endif
+#ifndef APPCONF_PPM_RPM_LIM_START
+#define APPCONF_PPM_RPM_LIM_START			150000
+#endif
+#ifndef APPCONF_PPM_RPM_LIM_END
+#define APPCONF_PPM_RPM_LIM_END				200000
+#endif
+#ifndef APPCONF_PPM_MULTI_ESC
+#define APPCONF_PPM_MULTI_ESC				false
+#endif
+#ifndef APPCONF_PPM_TC
+#define APPCONF_PPM_TC						false
+#endif
+#ifndef APPCONF_PPM_TC_MAX_DIFF
+#define APPCONF_PPM_TC_MAX_DIFF				3000.0
+#endif
+
+// ADC app configureation
+#ifndef APPCONF_ADC_CTRL_TYPE
+#define APPCONF_ADC_CTRL_TYPE				ADC_CTRL_TYPE_NONE
+#endif
+#ifndef APPCONF_ADC_HYST
+#define APPCONF_ADC_HYST					0.15
+#endif
+#ifndef APPCONF_ADC_VOLTAGE_START
+#define APPCONF_ADC_VOLTAGE_START			0.9
+#endif
+#ifndef APPCONF_ADC_VOLTAGE_END
+#define APPCONF_ADC_VOLTAGE_END				3.0
+#endif
+#ifndef APPCONF_ADC_USE_FILTER
+#define APPCONF_ADC_USE_FILTER				true
+#endif
+#ifndef APPCONF_ADC_SAFE_START
+#define APPCONF_ADC_SAFE_START				true
+#endif
+#ifndef APPCONF_ADC_CC_BUTTON_INVERTED
+#define APPCONF_ADC_CC_BUTTON_INVERTED		false
+#endif
+#ifndef APPCONF_ADC_REV_BUTTON_INVERTED
+#define APPCONF_ADC_REV_BUTTON_INVERTED		false
+#endif
+#ifndef APPCONF_ADC_VOLTAGE_INVERTED
+#define APPCONF_ADC_VOLTAGE_INVERTED		false
+#endif
+#ifndef APPCONF_ADC_RPM_LIM_START
+#define APPCONF_ADC_RPM_LIM_START			150000.0
+#endif
+#ifndef APPCONF_ADC_RPM_LIM_END
+#define APPCONF_ADC_RPM_LIM_END				200000.0
+#endif
+#ifndef APPCONF_ADC_MULTI_ESC
+#define APPCONF_ADC_MULTI_ESC				false
+#endif
+#ifndef APPCONF_ADC_TC
+#define APPCONF_ADC_TC						false
+#endif
+#ifndef APPCONF_ADC_TC_MAX_DIFF
+#define APPCONF_ADC_TC_MAX_DIFF				3000.0
+#endif
+#ifndef APPCONF_ADC_UPDATE_RATE_HZ
+#define APPCONF_ADC_UPDATE_RATE_HZ			500
+#endif
+
+// UART app
+#ifndef APPCONF_UART_BAUDRATE
+#define APPCONF_UART_BAUDRATE				115200
+#endif
+
+// Nunchuk app
+#ifndef APPCONF_CHUK_CTRL_TYPE
+#define APPCONF_CHUK_CTRL_TYPE				CHUK_CTRL_TYPE_CURRENT
+#endif
+#ifndef APPCONF_CHUK_HYST
+#define APPCONF_CHUK_HYST					0.15
+#endif
+#ifndef APPCONF_CHUK_RPM_LIM_START
+#define APPCONF_CHUK_RPM_LIM_START			150000.0
+#endif
+#ifndef APPCONF_CHUK_RPM_LIM_END
+#define APPCONF_CHUK_RPM_LIM_END			200000.0
+#endif
+#ifndef APPCONF_CHUK_RAMP_TIME_POS
+#define APPCONF_CHUK_RAMP_TIME_POS			0.9
+#endif
+#ifndef APPCONF_CHUK_RAMP_TIME_NEG
+#define APPCONF_CHUK_RAMP_TIME_NEG			0.3
+#endif
+#ifndef APPCONF_STICK_ERPM_PER_S_IN_CC
+#define APPCONF_STICK_ERPM_PER_S_IN_CC		3000.0
+#endif
+#ifndef APPCONF_CHUK_MULTI_ESC
+#define APPCONF_CHUK_MULTI_ESC				false
+#endif
+#ifndef APPCONF_CHUK_TC
+#define APPCONF_CHUK_TC						false
+#endif
+#ifndef APPCONF_CHUK_TC_MAX_DIFF
+#define APPCONF_CHUK_TC_MAX_DIFF			3000.0
+#endif
+
+#endif /* APPCONF_DEFAULT_H_ */

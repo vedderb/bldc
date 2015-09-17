@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	12
+#define FW_VERSION_MINOR	13
 
 #include "datatypes.h"
 
@@ -37,7 +37,7 @@
 #define AUTO_PRINT_FAULTS		0
 #define SYSTEM_CORE_CLOCK		168000000
 
-// Component parameters to override
+// Settings and parameters to override
 //#define VIN_R1				33000.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
@@ -49,18 +49,26 @@
 /*
  * Select only one hardware version
  */
+#if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
+	!defined(HW_VERSION_48) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A)
 //#define HW_VERSION_40
 //#define HW_VERSION_45
-#define HW_VERSION_46 // Also for 4.7
+//#define HW_VERSION_46 // Also for 4.7
+#define HW_VERSION_48
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
+#endif
 
 /*
- * Select only one (default) motor configuration
+ * Select default user motor configuration
  */
-//#define MCCONF_OUTRUNNER1
-#define MCCONF_OUTRUNNER2
-//#define MCCONF_STEN
+//#define MCCONF_DEFAULT_USER		"mcconf_outrunner2.h"
+//#define MCCONF_DEFAULT_USER		"mcconf_sten.h"
+
+/*
+ * Select default user app configuration
+ */
+//#define APPCONF_DEFAULT_USER		"appconf_example_ppm.h"
 
 /*
  * Select which custom application to use. To configure the default applications and
@@ -96,7 +104,7 @@
 #define WS2811_ENABLE			0
 #endif
 #define WS2811_CLK_HZ			800000
-#define WS2811_LED_NUM			14
+#define WS2811_LED_NUM			28
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
 
 /*

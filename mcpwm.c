@@ -1320,7 +1320,7 @@ static void run_pid_control_speed(void) {
 	}
 
 	// Too low RPM set. Stop and return.
-	if (fabsf(speed_pid_set_rpm) < conf.s_pid_min_rpm) {
+	if (fabsf(speed_pid_set_rpm) < conf.s_pid_min_erpm) {
 		i_term = dutycycle_now;
 		prev_error = 0;
 		mcpwm_set_duty(0.0);

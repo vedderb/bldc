@@ -63,9 +63,8 @@ void packet_send_packet(unsigned char *data, unsigned int len, int handler_num) 
 		handler_states[handler_num].tx_buffer[b_ind++] = len & 0xFF;
 	}
 
-	for(unsigned int i = 0;i < len;i++) {
-		handler_states[handler_num].tx_buffer[b_ind++] = data[i];
-	}
+	memcpy(handler_states[handler_num].tx_buffer + b_ind, data, len);
+	b_ind += len;
 
 	unsigned short crc = crc16(data, len);
 	handler_states[handler_num].tx_buffer[b_ind++] = (uint8_t)(crc >> 8);
@@ -118,7 +117,8 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 
 	case 2:
 		handler_states[handler_num].payload_length |= (unsigned int)rx_data;
-		if (handler_states[handler_num].payload_length <= PACKET_MAX_PL_LEN) {
+		if (handler_states[handler_num].payload_length > 0 &&
+				handler_states[handler_num].payload_length <= PACKET_MAX_PL_LEN) {
 			handler_states[handler_num].rx_state++;
 			handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		} else {

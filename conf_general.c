@@ -14,125 +14,19 @@
 
 #include <string.h>
 
-// Default configuration file
-#ifdef MCCONF_OUTRUNNER1
-#include "mcconf_outrunner1.h"
-#elif defined MCCONF_OUTRUNNER2
-#include "mcconf_outrunner2.h"
-#elif defined MCCONF_STEN
-#include "mcconf_sten.h"
+// User defined default motor configuration file
+#ifdef MCCONF_DEFAULT_USER
+#include MCCONF_DEFAULT_USER
 #endif
 
-// Parameters that can be overridden
-#ifndef MC_DEFAULT_MOTOR_TYPE
-#define MC_DEFAULT_MOTOR_TYPE			MOTOR_TYPE_BLDC
+// User defined default app configuration file
+#ifdef APPCONF_DEFAULT_USER
+#include APPCONF_DEFAULT_USER
 #endif
-#ifndef MCPWM_PWM_MODE
-#define MCPWM_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
-#endif
-#ifndef MCPWM_MIN_VOLTAGE
-#define MCPWM_MIN_VOLTAGE				8.0		// Minimum input voltage
-#endif
-#ifndef MCPWM_MAX_VOLTAGE
-#define MCPWM_MAX_VOLTAGE				50.0	// Maximum input voltage
-#endif
-#ifndef MCPWM_BATTERY_CUT_START
-#define MCPWM_BATTERY_CUT_START			10.0	// Start limiting the positive current at this voltage
-#endif
-#ifndef MCPWM_BATTERY_CUT_END
-#define MCPWM_BATTERY_CUT_END			8.0		// Limit the positive current completely at this voltage
-#endif
-#ifndef MCPWM_RPM_MAX
-#define MCPWM_RPM_MAX					100000.0	// The motor speed limit (Upper)
-#endif
-#ifndef MCPWM_RPM_MIN
-#define MCPWM_RPM_MIN					-100000.0	// The motor speed limit (Lower)
-#endif
-#ifndef MCPWM_CURRENT_STARTUP_BOOST
-#define MCPWM_CURRENT_STARTUP_BOOST		0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
-#endif
-#ifndef MCPWM_RPM_LIMIT_NEG_TORQUE
-#define MCPWM_RPM_LIMIT_NEG_TORQUE		true		// Use negative torque to limit the RPM
-#endif
-#ifndef MCPWM_CURR_MAX_RPM_FBRAKE
-#define MCPWM_CURR_MAX_RPM_FBRAKE		300	// Maximum electrical RPM to use full brake at
-#endif
-#ifndef MCPWM_CURR_MAX_RPM_FBRAKE_CC
-#define MCPWM_CURR_MAX_RPM_FBRAKE_CC	1500	// Maximum electrical RPM to use full brake at with current control
-#endif
-#ifndef MCPWM_SLOW_ABS_OVERCURRENT
-#define MCPWM_SLOW_ABS_OVERCURRENT		false	// Use the filtered (and hence slower) current for the overcurrent fault detection
-#endif
-#ifndef MCPWM_COMM_MODE
-#define MCPWM_COMM_MODE					COMM_MODE_INTEGRATE	// The commutation mode to use
-#endif
-#ifndef MCPWM_CYCLE_INT_LIMIT_HIGH_FAC
-#define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#endif
-#ifndef MCPWM_CYCLE_INT_START_RPM_BR
-#define MCPWM_CYCLE_INT_START_RPM_BR	80000.0	// RPM border between the START and LOW interval
-#endif
-#ifndef MCPWM_FAULT_STOP_TIME
-#define MCPWM_FAULT_STOP_TIME			3000	// Ignore commands for this duration in msec when faults occur
-#endif
-#ifndef MCPWM_LIM_TEMP_FET_START
-#define MCPWM_LIM_TEMP_FET_START		80.0	// MOSFET temperature where current limiting should begin
-#endif
-#ifndef MCPWM_LIM_TEMP_FET_END
-#define MCPWM_LIM_TEMP_FET_END			100.0	// MOSFET temperature where everything should be shut off
-#endif
-#ifndef MCPWM_LIM_TEMP_MOTOR_START
-#define MCPWM_LIM_TEMP_MOTOR_START		80.0	// MOTOR temperature where current limiting should begin
-#endif
-#ifndef MCPWM_LIM_TEMP_MOTOR_END
-#define MCPWM_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
-#endif
-#ifndef MCPWM_MAX_FB_CURR_DIR_CHANGE
-#define MCPWM_MAX_FB_CURR_DIR_CHANGE	10.0	// Maximum current during full brake during which a direction change is allowed
-#endif
-#ifndef MCPWM_MIN_DUTY
-#define MCPWM_MIN_DUTY					0.005	// Minimum duty cycle
-#endif
-#ifndef MCPWM_MAX_DUTY
-#define MCPWM_MAX_DUTY					0.95	// Maximum duty cycle
-#endif
-#ifndef MCPWM_RAMP_STEP
-#define MCPWM_RAMP_STEP					0.02	// Ramping step (1000 times/sec) at maximum duty cycle
-#endif
-#ifndef MCPWM_RAMP_STEP_RPM_LIMIT
-#define MCPWM_RAMP_STEP_RPM_LIMIT		0.0005	// Ramping step when limiting the RPM
-#endif
-#ifndef MCPWM_CURRENT_LIMIT_GAIN
-#define MCPWM_CURRENT_LIMIT_GAIN		0.5		// The error gain of the current limiting algorithm
-#endif
-#ifndef MCPWM_HALL_ERPM
-#define MCPWM_HALL_ERPM					2000.0	// ERPM above which sensorless commutation is used in hybrid mode
-#endif
-// Default hall sensor table
-#ifndef MCPWM_HALL_TAB_0
-#define MCPWM_HALL_TAB_0				-1
-#endif
-#ifndef MCPWM_HALL_TAB_1
-#define MCPWM_HALL_TAB_1				1
-#endif
-#ifndef MCPWM_HALL_TAB_2
-#define MCPWM_HALL_TAB_2				3
-#endif
-#ifndef MCPWM_HALL_TAB_3
-#define MCPWM_HALL_TAB_3				2
-#endif
-#ifndef MCPWM_HALL_TAB_4
-#define MCPWM_HALL_TAB_4				5
-#endif
-#ifndef MCPWM_HALL_TAB_5
-#define MCPWM_HALL_TAB_5				6
-#endif
-#ifndef MCPWM_HALL_TAB_6
-#define MCPWM_HALL_TAB_6				4
-#endif
-#ifndef MCPWM_HALL_TAB_7
-#define MCPWM_HALL_TAB_7				-1
-#endif
+
+// Default configuration parameters that can be overridden
+#include "mcconf_default.h"
+#include "appconf_default.h"
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -154,9 +48,9 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_APPCONF + i;
 	}
 
+	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-	FLASH_Unlock();
 	EE_Init();
 }
 
@@ -184,56 +78,55 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 	// Set the default configuration
 	if (!is_ok) {
 		memset(conf, 0, sizeof(app_configuration));
-		conf->controller_id = 0;
-		conf->timeout_msec = 1000;
-		conf->timeout_brake_current = 0.0;
-		conf->send_can_status = false;
-		conf->send_can_status_rate_hz = 500;
+		conf->controller_id = APPCONF_CONTROLLER_ID;
+		conf->timeout_msec = APPCONF_TIMEOUT_MSEC;
+		conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
+		conf->send_can_status = APPCONF_SEND_CAN_STATUS;
+		conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
 
-		// The default app is UART in case the UART port is used for
-		// firmware updates.
-		conf->app_to_use = APP_UART;
+		conf->app_to_use = APPCONF_APP_TO_USE;
 
-		conf->app_ppm_conf.ctrl_type = PPM_CTRL_TYPE_NONE;
-		conf->app_ppm_conf.pid_max_erpm = 15000;
-		conf->app_ppm_conf.hyst = 0.15;
-		conf->app_ppm_conf.pulse_start = 1.0;
-		conf->app_ppm_conf.pulse_end = 2.0;
-		conf->app_ppm_conf.median_filter = false;
-		conf->app_ppm_conf.safe_start = true;
-		conf->app_ppm_conf.rpm_lim_start = 150000.0;
-		conf->app_ppm_conf.rpm_lim_end = 200000.0;
-		conf->app_ppm_conf.multi_esc = false;
-		conf->app_ppm_conf.tc = false;
-		conf->app_ppm_conf.tc_max_diff = 3000.0;
+		conf->app_ppm_conf.ctrl_type = APPCONF_PPM_CTRL_TYPE;
+		conf->app_ppm_conf.pid_max_erpm = APPCONF_PPM_PID_MAX_ERPM;
+		conf->app_ppm_conf.hyst = APPCONF_PPM_HYST;
+		conf->app_ppm_conf.pulse_start = APPCONF_PPM_PULSE_START;
+		conf->app_ppm_conf.pulse_end = APPCONF_PPM_PULSE_END;
+		conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
+		conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
+		conf->app_ppm_conf.rpm_lim_start = APPCONF_PPM_RPM_LIM_START;
+		conf->app_ppm_conf.rpm_lim_end = APPCONF_PPM_RPM_LIM_END;
+		conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
+		conf->app_ppm_conf.tc = APPCONF_PPM_TC;
+		conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
 
-		conf->app_adc_conf.ctrl_type = ADC_CTRL_TYPE_NONE;
-		conf->app_adc_conf.hyst = 0.15;
-		conf->app_adc_conf.voltage_start = 0.9;
-		conf->app_adc_conf.voltage_end = 3.0;
-		conf->app_adc_conf.use_filter = true;
-		conf->app_adc_conf.safe_start = true;
-		conf->app_adc_conf.cc_button_inverted = false;
-		conf->app_adc_conf.rev_button_inverted = false;
-		conf->app_adc_conf.voltage_inverted = false;
-		conf->app_adc_conf.rpm_lim_start = 150000;
-		conf->app_adc_conf.rpm_lim_end = 200000;
-		conf->app_adc_conf.multi_esc = false;
-		conf->app_adc_conf.tc = false;
-		conf->app_adc_conf.tc_max_diff = 3000.0;
-		conf->app_adc_conf.update_rate_hz = 500;
+		conf->app_adc_conf.ctrl_type = APPCONF_ADC_CTRL_TYPE;
+		conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
+		conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;
+		conf->app_adc_conf.voltage_end = APPCONF_ADC_VOLTAGE_END;
+		conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
+		conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
+		conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
+		conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
+		conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
+		conf->app_adc_conf.rpm_lim_start = APPCONF_ADC_RPM_LIM_START;
+		conf->app_adc_conf.rpm_lim_end = APPCONF_ADC_RPM_LIM_END;
+		conf->app_adc_conf.multi_esc = APPCONF_ADC_MULTI_ESC;
+		conf->app_adc_conf.tc = APPCONF_ADC_TC;
+		conf->app_adc_conf.tc_max_diff = APPCONF_ADC_TC_MAX_DIFF;
+		conf->app_adc_conf.update_rate_hz = APPCONF_ADC_UPDATE_RATE_HZ;
 
-		conf->app_uart_baudrate = 115200;
+		conf->app_uart_baudrate = APPCONF_UART_BAUDRATE;
 
-		conf->app_chuk_conf.ctrl_type = CHUK_CTRL_TYPE_CURRENT;
-		conf->app_chuk_conf.hyst = 0.15;
-		conf->app_chuk_conf.rpm_lim_start = 150000.0;
-		conf->app_chuk_conf.rpm_lim_end = 250000.0;
-		conf->app_chuk_conf.ramp_time_pos = 0.9;
-		conf->app_chuk_conf.ramp_time_neg = 0.3;
-		conf->app_chuk_conf.multi_esc = true;
-		conf->app_chuk_conf.tc = false;
-		conf->app_chuk_conf.tc_max_diff = 3000.0;
+		conf->app_chuk_conf.ctrl_type = APPCONF_CHUK_CTRL_TYPE;
+		conf->app_chuk_conf.hyst = APPCONF_CHUK_HYST;
+		conf->app_chuk_conf.rpm_lim_start = APPCONF_CHUK_RPM_LIM_START;
+		conf->app_chuk_conf.rpm_lim_end = APPCONF_CHUK_RPM_LIM_END;
+		conf->app_chuk_conf.ramp_time_pos = APPCONF_CHUK_RAMP_TIME_POS;
+		conf->app_chuk_conf.ramp_time_neg = APPCONF_CHUK_RAMP_TIME_NEG;
+		conf->app_chuk_conf.stick_erpm_per_s_in_cc = APPCONF_STICK_ERPM_PER_S_IN_CC;
+		conf->app_chuk_conf.multi_esc = APPCONF_CHUK_MULTI_ESC;
+		conf->app_chuk_conf.tc = APPCONF_CHUK_TC;
+		conf->app_chuk_conf.tc_max_diff = APPCONF_CHUK_TC_MAX_DIFF;
 	}
 }
 
@@ -295,74 +188,74 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 	}
 
 	if (!is_ok) {
-		conf->pwm_mode = MCPWM_PWM_MODE;
-		conf->comm_mode = MCPWM_COMM_MODE;
-		conf->motor_type = MC_DEFAULT_MOTOR_TYPE;
-		conf->sensor_mode = MCPWM_SENSOR_MODE;
+		conf->pwm_mode = MCCONF_PWM_MODE;
+		conf->comm_mode = MCCONF_COMM_MODE;
+		conf->motor_type = MCCONF_DEFAULT_MOTOR_TYPE;
+		conf->sensor_mode = MCCONF_SENSOR_MODE;
 
-		conf->l_current_max = MCPWM_CURRENT_MAX;
-		conf->l_current_min = MCPWM_CURRENT_MIN;
-		conf->l_in_current_max = MCPWM_IN_CURRENT_MAX;
-		conf->l_in_current_min = MCPWM_IN_CURRENT_MIN;
-		conf->l_abs_current_max = MCPWM_MAX_ABS_CURRENT;
-		conf->l_min_erpm = MCPWM_RPM_MIN;
-		conf->l_max_erpm = MCPWM_RPM_MAX;
-		conf->l_max_erpm_fbrake = MCPWM_CURR_MAX_RPM_FBRAKE;
-		conf->l_max_erpm_fbrake_cc = MCPWM_CURR_MAX_RPM_FBRAKE_CC;
-		conf->l_min_vin = MCPWM_MIN_VOLTAGE;
-		conf->l_max_vin = MCPWM_MAX_VOLTAGE;
-		conf->l_battery_cut_start = MCPWM_BATTERY_CUT_START;
-		conf->l_battery_cut_end = MCPWM_BATTERY_CUT_END;
-		conf->l_slow_abs_current = MCPWM_SLOW_ABS_OVERCURRENT;
-		conf->l_rpm_lim_neg_torque = MCPWM_RPM_LIMIT_NEG_TORQUE;
-		conf->l_temp_fet_start = MCPWM_LIM_TEMP_FET_START;
-		conf->l_temp_fet_end = MCPWM_LIM_TEMP_FET_END;
-		conf->l_temp_motor_start = MCPWM_LIM_TEMP_MOTOR_START;
-		conf->l_temp_motor_end = MCPWM_LIM_TEMP_MOTOR_END;
-		conf->l_min_duty = MCPWM_MIN_DUTY;
-		conf->l_max_duty = MCPWM_MAX_DUTY;
+		conf->l_current_max = MCCONF_L_CURRENT_MAX;
+		conf->l_current_min = MCCONF_L_CURRENT_MIN;
+		conf->l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
+		conf->l_in_current_min = MCCONF_L_IN_CURRENT_MIN;
+		conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
+		conf->l_min_erpm = MCCONF_L_RPM_MIN;
+		conf->l_max_erpm = MCCONF_L_RPM_MAX;
+		conf->l_max_erpm_fbrake = MCCONF_L_CURR_MAX_RPM_FBRAKE;
+		conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
+		conf->l_min_vin = MCCONF_L_MIN_VOLTAGE;
+		conf->l_max_vin = MCCONF_L_MAX_VOLTAGE;
+		conf->l_battery_cut_start = MCCONF_L_BATTERY_CUT_START;
+		conf->l_battery_cut_end = MCCONF_L_BATTERY_CUT_END;
+		conf->l_slow_abs_current = MCCONF_L_SLOW_ABS_OVERCURRENT;
+		conf->l_rpm_lim_neg_torque = MCCONF_L_RPM_LIMIT_NEG_TORQUE;
+		conf->l_temp_fet_start = MCCONF_L_LIM_TEMP_FET_START;
+		conf->l_temp_fet_end = MCCONF_L_LIM_TEMP_FET_END;
+		conf->l_temp_motor_start = MCCONF_L_LIM_TEMP_MOTOR_START;
+		conf->l_temp_motor_end = MCCONF_L_LIM_TEMP_MOTOR_END;
+		conf->l_min_duty = MCCONF_L_MIN_DUTY;
+		conf->l_max_duty = MCCONF_L_MAX_DUTY;
 
 		conf->lo_current_max = conf->l_current_max;
 		conf->lo_current_min = conf->l_current_min;
 		conf->lo_in_current_max = conf->l_in_current_max;
 		conf->lo_in_current_min = conf->l_in_current_min;
 
-		conf->sl_min_erpm = MCPWM_MIN_RPM;
-		conf->sl_max_fullbreak_current_dir_change = MCPWM_MAX_FB_CURR_DIR_CHANGE;
-		conf->sl_min_erpm_cycle_int_limit = MCPWM_CYCLE_INT_LIMIT_MIN_RPM;
-		conf->sl_cycle_int_limit = MCPWM_CYCLE_INT_LIMIT;
-		conf->sl_phase_advance_at_br = MCPWM_CYCLE_INT_LIMIT_HIGH_FAC;
-		conf->sl_cycle_int_rpm_br = MCPWM_CYCLE_INT_START_RPM_BR;
-		conf->sl_bemf_coupling_k = MCPWM_BEMF_INPUT_COUPLING_K;
+		conf->sl_min_erpm = MCCONF_SL_MIN_RPM;
+		conf->sl_max_fullbreak_current_dir_change = MCCONF_SL_MAX_FB_CURR_DIR_CHANGE;
+		conf->sl_min_erpm_cycle_int_limit = MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT;
+		conf->sl_cycle_int_limit = MCCONF_SL_CYCLE_INT_LIMIT;
+		conf->sl_phase_advance_at_br = MCCONF_SL_PHASE_ADVANCE_AT_BR;
+		conf->sl_cycle_int_rpm_br = MCCONF_SL_CYCLE_INT_BR;
+		conf->sl_bemf_coupling_k = MCCONF_SL_BEMF_COUPLING_K;
 
-		conf->hall_table[0] = MCPWM_HALL_TAB_0;
-		conf->hall_table[1] = MCPWM_HALL_TAB_1;
-		conf->hall_table[2] = MCPWM_HALL_TAB_2;
-		conf->hall_table[3] = MCPWM_HALL_TAB_3;
-		conf->hall_table[4] = MCPWM_HALL_TAB_4;
-		conf->hall_table[5] = MCPWM_HALL_TAB_5;
-		conf->hall_table[6] = MCPWM_HALL_TAB_6;
-		conf->hall_table[7] = MCPWM_HALL_TAB_7;
-		conf->hall_sl_erpm = MCPWM_HALL_ERPM;
+		conf->hall_table[0] = MCCONF_HALL_TAB_0;
+		conf->hall_table[1] = MCCONF_HALL_TAB_1;
+		conf->hall_table[2] = MCCONF_HALL_TAB_2;
+		conf->hall_table[3] = MCCONF_HALL_TAB_3;
+		conf->hall_table[4] = MCCONF_HALL_TAB_4;
+		conf->hall_table[5] = MCCONF_HALL_TAB_5;
+		conf->hall_table[6] = MCCONF_HALL_TAB_6;
+		conf->hall_table[7] = MCCONF_HALL_TAB_7;
+		conf->hall_sl_erpm = MCCONF_HALL_ERPM;
 
-		conf->s_pid_kp = MCPWM_PID_KP;
-		conf->s_pid_ki = MCPWM_PID_KI;
-		conf->s_pid_kd = MCPWM_PID_KD;
-		conf->s_pid_min_rpm = MCPWM_PID_MIN_RPM;
+		conf->s_pid_kp = MCCONF_S_PID_KP;
+		conf->s_pid_ki = MCCONF_S_PID_KI;
+		conf->s_pid_kd = MCCONF_S_PID_KD;
+		conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
 
-		conf->p_pid_kp = MCPWM_P_PID_KP;
-		conf->p_pid_ki = MCPWM_P_PID_KI;
-		conf->p_pid_kd = MCPWM_P_PID_KD;
+		conf->p_pid_kp = MCCONF_P_PID_KP;
+		conf->p_pid_ki = MCCONF_P_PID_KI;
+		conf->p_pid_kd = MCCONF_P_PID_KD;
 
-		conf->cc_startup_boost_duty = MCPWM_CURRENT_STARTUP_BOOST;
-		conf->cc_min_current = MCPWM_CURRENT_CONTROL_MIN;
-		conf->cc_gain = MCPWM_CURRENT_CONTROL_GAIN;
-		conf->cc_ramp_step_max = 0.04;
+		conf->cc_startup_boost_duty = MCCONF_CC_STARTUP_BOOST_DUTY;
+		conf->cc_min_current = MCCONF_CC_MIN_CURRENT;
+		conf->cc_gain = MCCONF_CC_GAIN;
+		conf->cc_ramp_step_max = MCCONF_CC_RAMP_STEP;
 
-		conf->m_fault_stop_time_ms = MCPWM_FAULT_STOP_TIME;
-		conf->m_duty_ramp_step = MCPWM_RAMP_STEP;
-		conf->m_duty_ramp_step_rpm_lim = MCPWM_RAMP_STEP_RPM_LIMIT;
-		conf->m_current_backoff_gain = MCPWM_CURRENT_LIMIT_GAIN;
+		conf->m_fault_stop_time_ms = MCCONF_M_FAULT_STOP_TIME;
+		conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
+		conf->m_duty_ramp_step_rpm_lim = MCCONF_M_RAMP_STEP_RPM_LIM;
+		conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	}
 }
 
