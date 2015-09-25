@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,15 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-/*
- * hw_40.6
- *
- *  Created on: 22 nov 2014
- *      Author: benjamin
- */
-
-#ifndef HW_46_H_
-#define HW_46_H_
+#ifndef HW_48_H_
+#define HW_48_H_
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOC, 10)
@@ -47,7 +40,7 @@
  * 4:	IN6		CURR1
  * 5:	IN3		NC
  * 6:	Vrefint
- * 7:	IN11	NC
+ * 7:	IN9		ADC_EXT2
  * 8:	IN12	AN_IN
  * 9:	IN4		TEMP_MOSFET
  * 10:	IN15	ADC_EXT
@@ -65,6 +58,7 @@
 #define ADC_IND_CURR2				3
 #define ADC_IND_VIN_SENS			8
 #define ADC_IND_EXT					10
+#define ADC_IND_EXT2				7
 #define ADC_IND_TEMP_MOS1			9
 #define ADC_IND_TEMP_MOS2			9
 #define ADC_IND_TEMP_MOS3			9
@@ -107,7 +101,7 @@
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
-#define CURR1_DOUBLE_SAMPLE	1
+#define CURR1_DOUBLE_SAMPLE	0
 #endif
 #ifndef CURR2_DOUBLE_SAMPLE
 #define CURR2_DOUBLE_SAMPLE	0
@@ -155,8 +149,8 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 
 // NRF pins
-#define NRF_PORT_CSN	HW_ICU_GPIO
-#define NRF_PIN_CSN		HW_ICU_PIN
+#define NRF_PORT_CSN	GPIOB
+#define NRF_PIN_CSN		1
 #define NRF_PORT_SCK	GPIOC
 #define NRF_PIN_SCK		5
 #define NRF_PORT_MOSI	HW_I2C_SDA_PORT

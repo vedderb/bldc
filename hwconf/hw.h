@@ -33,6 +33,8 @@
 #include "hw_45.h"
 #elif defined HW_VERSION_46
 #include "hw_46.h"
+#elif defined HW_VERSION_48
+#include "hw_48.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
 #elif defined HW_VERSION_BW

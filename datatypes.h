@@ -136,7 +136,7 @@ typedef struct {
 	float s_pid_kp;
 	float s_pid_ki;
 	float s_pid_kd;
-	float s_pid_min_rpm;
+	float s_pid_min_erpm;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
@@ -238,6 +238,7 @@ typedef struct {
 	float rpm_lim_end;
 	float ramp_time_pos;
 	float ramp_time_neg;
+	float stick_erpm_per_s_in_cc;
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;

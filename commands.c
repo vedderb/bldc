@@ -276,7 +276,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
-		mcconf.s_pid_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.s_pid_min_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		mcconf.p_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.p_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
@@ -348,7 +348,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kd * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_min_rpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_min_erpm * 1000.0), &ind);
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_ki * 1000000.0), &ind);
@@ -411,14 +411,15 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
 
 		appconf.app_chuk_conf.ctrl_type = data[ind++];
-		appconf.app_chuk_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_conf.ramp_time_pos = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_chuk_conf.ramp_time_neg = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.hyst = buffer_get_float32(data, 1000.0, &ind);
+		appconf.app_chuk_conf.rpm_lim_start = buffer_get_float32(data, 1000.0, &ind);
+		appconf.app_chuk_conf.rpm_lim_end = buffer_get_float32(data, 1000.0, &ind);
+		appconf.app_chuk_conf.ramp_time_pos = buffer_get_float32(data, 1000.0, &ind);
+		appconf.app_chuk_conf.ramp_time_neg = buffer_get_float32(data, 1000.0, &ind);
+		appconf.app_chuk_conf.stick_erpm_per_s_in_cc = buffer_get_float32(data, 1000.0, &ind);
 		appconf.app_chuk_conf.multi_esc = data[ind++];
 		appconf.app_chuk_conf.tc = data[ind++];
-		appconf.app_chuk_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_chuk_conf.tc_max_diff = buffer_get_float32(data, 1000.0, &ind);
 
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
@@ -474,11 +475,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
 
 		send_buffer[ind++] = appconf.app_chuk_conf.ctrl_type;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.hyst * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.rpm_lim_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.rpm_lim_end * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.ramp_time_pos * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.ramp_time_neg * 1000.0), &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.hyst, 1000.0, &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.rpm_lim_start, 1000.0, &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.rpm_lim_end, 1000.0, &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.ramp_time_pos, 1000.0, &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.ramp_time_neg, 1000.0, &ind);
+		buffer_append_float32(send_buffer, appconf.app_chuk_conf.stick_erpm_per_s_in_cc, 1000.0, &ind);
 		send_buffer[ind++] = appconf.app_chuk_conf.multi_esc;
 		send_buffer[ind++] = appconf.app_chuk_conf.tc;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.tc_max_diff * 1000.0), &ind);

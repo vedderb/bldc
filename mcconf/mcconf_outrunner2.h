@@ -30,34 +30,34 @@
 /*
  * Parameters
  */
-#define MCPWM_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
-#define MCPWM_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
-#define MCPWM_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
-#define MCPWM_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
-#define MCPWM_MAX_ABS_CURRENT			130.0	// The maximum absolute current above which a fault is generated
-#define MCPWM_SLOW_ABS_OVERCURRENT		1		// Use the filtered (and hence slower) current for the overcurrent fault detection
+#define MCCONF_L_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_MAX_ABS_CURRENT			130.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_SLOW_ABS_OVERCURRENT		1		// Use the filtered (and hence slower) current for the overcurrent fault detection
 
 // Sensorless settings
-#define MCPWM_SENSOR_MODE				SENSOR_MODE_SENSORLESS // Sensor mode
-#define MCPWM_MIN_RPM					150		// Auto-commutate below this RPM
-#define MCPWM_CYCLE_INT_LIMIT_MIN_RPM	1100.0	// Minimum RPM to calculate the BEMF coupling from
-#define MCPWM_CYCLE_INT_LIMIT			62.0	// Flux integrator limit 0 ERPM
-#define MCPWM_CYCLE_INT_LIMIT_HIGH_FAC	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
-#define MCPWM_BEMF_INPUT_COUPLING_K		600.0	// Input voltage to bemf coupling constant
+#define MCCONF_SENSOR_MODE				SENSOR_MODE_SENSORLESS // Sensor mode
+#define MCCONF_SL_MIN_RPM					150		// Auto-commutate below this RPM
+#define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	1100.0	// Minimum RPM to calculate the BEMF coupling from
+#define MCCONF_SL_CYCLE_INT_LIMIT			62.0	// Flux integrator limit 0 ERPM
+#define MCCONF_SL_PHASE_ADVANCE_AT_BR	0.8		// Flux integrator limit percentage at MCPWM_CYCLE_INT_START_RPM_BR ERPM
+#define MCCONF_SL_BEMF_COUPLING_K		600.0	// Input voltage to bemf coupling constant
 
 // Speed PID parameters
-#define MCPWM_PID_KP					0.0001	// Proportional gain
-#define MCPWM_PID_KI					0.002	// Integral gain
-#define MCPWM_PID_KD					0.0		// Derivative gain
-#define MCPWM_PID_MIN_RPM				900.0	// Minimum allowed RPM
+#define MCCONF_S_PID_KP					0.0001	// Proportional gain
+#define MCCONF_S_PID_KI					0.002	// Integral gain
+#define MCCONF_S_PID_KD					0.0		// Derivative gain
+#define MCCONF_S_PID_MIN_RPM				900.0	// Minimum allowed RPM
 
 // Position PID parameters
-#define MCPWM_P_PID_KP					0.0001	// Proportional gain
-#define MCPWM_P_PID_KI					0.002	// Integral gain
-#define MCPWM_P_PID_KD					0.0		// Derivative gain
+#define MCCONF_P_PID_KP					0.0001	// Proportional gain
+#define MCCONF_P_PID_KI					0.002	// Integral gain
+#define MCCONF_P_PID_KD					0.0		// Derivative gain
 
 // Current control parameters
-#define MCPWM_CURRENT_CONTROL_GAIN		0.0046	// Current controller error gain
-#define MCPWM_CURRENT_CONTROL_MIN		1.0		// Minimum allowed current
+#define MCCONF_CC_GAIN		0.0046	// Current controller error gain
+#define MCCONF_CC_MIN_CURRENT		1.0		// Minimum allowed current
 
 #endif /* MCCONF_OUTRUNNER2_H_ */
