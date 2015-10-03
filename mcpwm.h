@@ -35,6 +35,7 @@ const volatile mc_configuration* mcpwm_get_configuration(void);
 void mcpwm_set_configuration(mc_configuration *configuration);
 void mcpwm_init_hall_table(int8_t *table);
 void mcpwm_set_duty(float dutyCycle);
+void mcpwm_set_duty_noramp(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_pid_pos(float pos);
 void mcpwm_set_current(float current);
@@ -81,6 +82,7 @@ mc_comm_mode mcpwm_get_comm_mode(void);
 float mcpwm_get_last_adc_isr_duration(void);
 float mcpwm_get_last_inj_adc_isr_duration(void);
 mc_rpm_dep_struct mcpwm_get_rpm_dep(void);
+void mcpwm_set_pwm_callback(void (*p_func)(void));
 
 // Interrupt handlers
 void mcpwm_adc_inj_int_handler(void);

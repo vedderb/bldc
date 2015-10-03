@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_48_H_
-#define HW_48_H_
+#ifndef HW_49_H_
+#define HW_49_H_
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOC, 10)
@@ -27,8 +27,8 @@
 
 #define LED_GREEN_ON()				palSetPad(GPIOC, 4)
 #define LED_GREEN_OFF()				palClearPad(GPIOC, 4)
-#define LED_RED_ON()				palSetPad(GPIOA, 7)
-#define LED_RED_OFF()				palClearPad(GPIOA, 7)
+#define LED_RED_ON()				palSetPad(GPIOC, 5)
+#define LED_RED_OFF()				palClearPad(GPIOC, 5)
 
 /*
  * ADC Vector
@@ -149,24 +149,34 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 
 // NRF pins
-#define NRF_PORT_CSN	GPIOB
-#define NRF_PIN_CSN		11
-#define NRF_PORT_SCK	GPIOC
-#define NRF_PIN_SCK		5
-#define NRF_PORT_MOSI	GPIOB
-#define NRF_PIN_MOSI	10
-#define NRF_PORT_MISO	GPIOB
-#define NRF_PIN_MISO	1
+#define NRF_PORT_CSN			GPIOB
+#define NRF_PIN_CSN				11
+#define NRF_PORT_SCK			GPIOA
+#define NRF_PIN_SCK				5
+#define NRF_PORT_MOSI			GPIOA
+#define NRF_PIN_MOSI			7
+#define NRF_PORT_MISO			GPIOA
+#define NRF_PIN_MISO			6
+
+// SPI pins
+#define HW_SPI_PORT_CSN			GPIOB
+#define HW_SPI_PIN_CSN			11
+#define HW_SPI_PORT_SCK			GPIOA
+#define HW_SPI_PIN_SCK			5
+#define HW_SPI_PORT_MOSI		GPIOA
+#define HW_SPI_PIN_MOSI			7
+#define HW_SPI_PORT_MISO		GPIOA
+#define HW_SPI_PIN_MISO			6
 
 // Measurement macros
-#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
+#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
-#define READ_HALL1()				palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
-#define READ_HALL2()				palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
-#define READ_HALL3()				palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
+#define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
+#define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
+#define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-#endif /* HW_48_H_ */
+#endif /* HW_49_H_ */

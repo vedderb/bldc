@@ -103,6 +103,9 @@ static volatile bool lock_override_once;
 static volatile bool sensorless_now;
 static volatile int hall_detect_table[8][7];
 
+// Function pointers
+static void(*pwn_done_func)(void) = 0;
+
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
 #define KV_FIR_LEN				(1 << KV_FIR_TAPS_BITS)
@@ -605,6 +608,32 @@ void mcpwm_set_duty(float dutyCycle) {
 
 	control_mode = CONTROL_MODE_DUTY;
 	set_duty_cycle_hl(dutyCycle);
+}
+
+/**
+ * Use duty cycle control. Absolute values less than MCPWM_MIN_DUTY_CYCLE will
+ * stop the motor.
+ *
+ * WARNING: This function does not use ramping. A too large step with a large motor
+ * can destroy hardware.
+ *
+ * @param dutyCycle
+ * The duty cycle to use.
+ */
+void mcpwm_set_duty_noramp(float dutyCycle) {
+	if (try_input()) {
+		return;
+	}
+
+	control_mode = CONTROL_MODE_DUTY;
+
+	if (state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(dutyCycle);
+	} else {
+		dutycycle_set = dutyCycle;
+		dutycycle_now = dutyCycle;
+		set_duty_cycle_ll(dutyCycle);
+	}
 }
 
 /**
@@ -2226,6 +2255,10 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	main_dma_adc_handler();
 
+	if (pwn_done_func) {
+		pwn_done_func();
+	}
+
 	if (ENCODER_ENABLE) {
 		run_pid_control_pos(1.0 / switching_frequency_now);
 	}
@@ -2362,6 +2395,16 @@ float mcpwm_get_last_inj_adc_isr_duration(void) {
 
 mc_rpm_dep_struct mcpwm_get_rpm_dep(void) {
 	return rpm_dep;
+}
+
+/**
+ * Set a function that should be called after each PWM cycle.
+ *
+ * @param p_func
+ * The function to be called. 0 will not call any function.
+ */
+void mcpwm_set_pwm_callback(void (*p_func)(void)) {
+	pwn_done_func = p_func;
 }
 
 /**

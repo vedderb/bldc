@@ -25,6 +25,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "eeprom.h"
+#include "flash_helper.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -43,6 +44,7 @@ static FLASH_Status EE_Format(void);
 static uint16_t EE_FindValidPage(uint8_t Operation);
 static uint16_t EE_VerifyPageFullWriteVariable(uint16_t VirtAddress, uint16_t Data);
 static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data);
+static uint16_t EE_EraseSectorIfNotEmpty(uint32_t FLASH_Sector, uint8_t VoltageRange);
 
 /**
  * @brief  Restore the pages to a known good state in case of page's status
@@ -71,7 +73,7 @@ uint16_t EE_Init(void)
 		if (PageStatus1 == VALID_PAGE) /* Page0 erased, Page1 valid */
 		{
 			/* Erase Page0 */
-			FlashStatus = FLASH_EraseSector(PAGE0_ID,VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE0_ID,VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -81,7 +83,7 @@ uint16_t EE_Init(void)
 		else if (PageStatus1 == RECEIVE_DATA) /* Page0 erased, Page1 receive */
 		{
 			/* Erase Page0 */
-			FlashStatus = FLASH_EraseSector(PAGE0_ID, VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE0_ID, VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -142,7 +144,7 @@ uint16_t EE_Init(void)
 				return FlashStatus;
 			}
 			/* Erase Page1 */
-			FlashStatus = FLASH_EraseSector(PAGE1_ID, VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -152,7 +154,7 @@ uint16_t EE_Init(void)
 		else if (PageStatus1 == ERASED) /* Page0 receive, Page1 erased */
 		{
 			/* Erase Page1 */
-			FlashStatus = FLASH_EraseSector(PAGE1_ID, VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -192,7 +194,7 @@ uint16_t EE_Init(void)
 		else if (PageStatus1 == ERASED) /* Page0 valid, Page1 erased */
 		{
 			/* Erase Page1 */
-			FlashStatus = FLASH_EraseSector(PAGE1_ID, VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -233,7 +235,7 @@ uint16_t EE_Init(void)
 				return FlashStatus;
 			}
 			/* Erase Page0 */
-			FlashStatus = FLASH_EraseSector(PAGE0_ID, VOLTAGE_RANGE);
+			FlashStatus = EE_EraseSectorIfNotEmpty(PAGE0_ID, VOLTAGE_RANGE);
 			/* If erase operation was failed, a Flash error code is returned */
 			if (FlashStatus != FLASH_COMPLETE)
 			{
@@ -354,7 +356,7 @@ static FLASH_Status EE_Format(void)
 	FLASH_Status FlashStatus = FLASH_COMPLETE;
 
 	/* Erase Page0 */
-	FlashStatus = FLASH_EraseSector(PAGE0_ID, VOLTAGE_RANGE);
+	FlashStatus = EE_EraseSectorIfNotEmpty(PAGE0_ID, VOLTAGE_RANGE);
 
 	/* If erase operation was failed, a Flash error code is returned */
 	if (FlashStatus != FLASH_COMPLETE)
@@ -372,7 +374,7 @@ static FLASH_Status EE_Format(void)
 	}
 
 	/* Erase Page1 */
-	FlashStatus = FLASH_EraseSector(PAGE1_ID, VOLTAGE_RANGE);
+	FlashStatus = EE_EraseSectorIfNotEmpty(PAGE1_ID, VOLTAGE_RANGE);
 
 	/* Return Page1 erase operation status */
 	return FlashStatus;
@@ -590,7 +592,7 @@ static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 	}
 
 	/* Erase the old Page: Set old Page status to ERASED status */
-	FlashStatus = FLASH_EraseSector(OldPageId, VOLTAGE_RANGE);
+	FlashStatus = EE_EraseSectorIfNotEmpty(OldPageId, VOLTAGE_RANGE);
 	/* If erase operation was failed, a Flash error code is returned */
 	if (FlashStatus != FLASH_COMPLETE)
 	{
@@ -607,6 +609,26 @@ static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 
 	/* Return last operation flash status */
 	return FlashStatus;
+}
+
+#include "hw.h"
+#include "ch.h"
+#include "hal.h"
+
+/*
+ * Erase flash page if it is not already erased. This is to save write cycles and
+ * prevent the memory from getting erased in case of unstable voltage at boot.
+ */
+static uint16_t EE_EraseSectorIfNotEmpty(uint32_t FLASH_Sector, uint8_t VoltageRange) {
+	uint8_t *addr = flash_helper_get_sector_address(FLASH_Sector);
+
+	for (unsigned int i = 0;i < PAGE_SIZE;i++) {
+		if (addr[i] != 0xFF) {
+			return FLASH_EraseSector(FLASH_Sector, VoltageRange);
+		}
+	}
+
+	return FLASH_COMPLETE;
 }
 
 /**

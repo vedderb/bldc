@@ -293,8 +293,11 @@ int main(void) {
 
 	chThdSleepMilliseconds(1000);
 
-	conf_general_init();
 	hw_init_gpio();
+	LED_RED_OFF();
+	LED_GREEN_OFF();
+
+	conf_general_init();
 	ledpwm_init();
 
 	mc_configuration mcconf;

@@ -181,3 +181,16 @@ void flash_helper_jump_to_bootloader(void) {
 	// Jump to the bootloader
 	jump_to_bootloader();
 }
+
+uint8_t* flash_helper_get_sector_address(uint32_t fsector) {
+	uint8_t *res = 0;
+
+	for (int i = 0;i < FLASH_SECTORS;i++) {
+		if (flash_sector[i] == fsector) {
+			res = (uint8_t *)flash_addr[i];
+			break;
+		}
+	}
+
+	return res;
+}
