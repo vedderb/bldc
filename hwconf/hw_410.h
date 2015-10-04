@@ -149,8 +149,8 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 
 // NRF pins
-#define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				11
+#define NRF_PORT_CSN			GPIOA
+#define NRF_PIN_CSN				4
 #define NRF_PORT_SCK			GPIOA
 #define NRF_PIN_SCK				5
 #define NRF_PORT_MOSI			GPIOA
@@ -159,8 +159,8 @@
 #define NRF_PIN_MISO			6
 
 // SPI pins
-#define HW_SPI_PORT_CSN			GPIOB
-#define HW_SPI_PIN_CSN			11
+#define HW_SPI_PORT_NSS			GPIOA
+#define HW_SPI_PIN_NSS			4
 #define HW_SPI_PORT_SCK			GPIOA
 #define HW_SPI_PIN_SCK			5
 #define HW_SPI_PORT_MOSI		GPIOA
