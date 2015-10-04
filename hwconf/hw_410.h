@@ -159,6 +159,8 @@
 #define NRF_PIN_MISO			6
 
 // SPI pins
+#define HW_SPI_DEV				SPID1
+#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
 #define HW_SPI_PORT_NSS			GPIOA
 #define HW_SPI_PIN_NSS			4
 #define HW_SPI_PORT_SCK			GPIOA

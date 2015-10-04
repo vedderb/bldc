@@ -159,8 +159,10 @@
 #define NRF_PIN_MISO			6
 
 // SPI pins
-#define HW_SPI_PORT_CSN			GPIOB
-#define HW_SPI_PIN_CSN			11
+#define HW_SPI_DEV				SPID1
+#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
+#define HW_SPI_PORT_NSS			GPIOB
+#define HW_SPI_PIN_NSS			11
 #define HW_SPI_PORT_SCK			GPIOA
 #define HW_SPI_PIN_SCK			5
 #define HW_SPI_PORT_MOSI		GPIOA
