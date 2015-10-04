@@ -50,13 +50,14 @@
  * Select only one hardware version
  */
 #if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
-	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_R2) && \
-	!defined(HW_VERSION_VICTOR_R1A)
+	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
+	!defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A)
 //#define HW_VERSION_40
 //#define HW_VERSION_45
 //#define HW_VERSION_46 // Also for 4.7
 #define HW_VERSION_48
 //#define HW_VERSION_49
+//#define HW_VERSION_410
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 #endif
@@ -84,8 +85,7 @@
  * Use encoder
  */
 #define ENCODER_ENABLE			0
-#define ENCODER_COUNTS			14400
-//#define ENCODER_COUNTS			10000
+#define ENCODER_COUNTS			6400
 
 /*
  * Enable CAN-bus

@@ -37,10 +37,10 @@
 #include "hw_48.h"
 #elif defined HW_VERSION_49
 #include "hw_49.h"
+#elif defined HW_VERSION_410
+#include "hw_410.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
-#elif defined HW_VERSION_BW
-#include "hw_bw.h"
 #elif defined HW_VERSION_VICTOR_R1A
 #include "hw_victor_r1a.h"
 #else
