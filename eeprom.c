@@ -611,10 +611,6 @@ static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
 	return FlashStatus;
 }
 
-#include "hw.h"
-#include "ch.h"
-#include "hal.h"
-
 /*
  * Erase flash page if it is not already erased. This is to save write cycles and
  * prevent the memory from getting erased in case of unstable voltage at boot.
