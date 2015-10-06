@@ -278,5 +278,9 @@ upload: build/$(PROJECT).bin
 	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset"
 	#openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset" # For openocd 0.9
 
+#program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
+upload-olimex: build/$(PROJECT).bin
+	openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
+
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
