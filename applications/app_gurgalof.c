@@ -31,16 +31,17 @@
 #include "servo_dec.h"
 #include "mcpwm.h"
 #include "hw.h"
+#include "timeout.h"
 
 // Threads
-static msg_t gurgalof_thread(void *arg);
-static WORKING_AREA(gurgalof_thread_wa, 1024);
+static THD_FUNCTION(gurgalof_thread, arg);
+static THD_WORKING_AREA(gurgalof_thread_wa, 1024);
 
 void app_gurgalof_init(void) {
 	chThdCreateStatic(gurgalof_thread_wa, sizeof(gurgalof_thread_wa), NORMALPRIO, gurgalof_thread, NULL);
 }
 
-static msg_t gurgalof_thread(void *arg) {
+static THD_FUNCTION(gurgalof_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_GURGALOF");
@@ -59,10 +60,9 @@ static msg_t gurgalof_thread(void *arg) {
 //			mcpwm_set_current(pwr * mcpwm_get_configuration()->l_current_max);
 		}
 
+		timeout_reset();
 		chThdSleepMilliseconds(10);
 	}
-
-	return 0;
 }
 
 #endif

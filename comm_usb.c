@@ -26,7 +26,7 @@
 #include "hal.h"
 #include "comm_usb.h"
 #include "packet.h"
-#include "myUSB.h"
+#include "comm_usb_serial.h"
 #include "commands.h"
 
 // Settings
@@ -37,17 +37,17 @@
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static WORKING_AREA(serial_read_thread_wa, 512);
-static WORKING_AREA(serial_process_thread_wa, 4096);
-static Mutex send_mutex;
-static Thread *process_tp;
+static THD_WORKING_AREA(serial_read_thread_wa, 512);
+static THD_WORKING_AREA(serial_process_thread_wa, 4096);
+static mutex_t send_mutex;
+static thread_t *process_tp;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
 static void send_packet(unsigned char *buffer, unsigned int len);
 static void send_packet_wrapper(unsigned char *data, unsigned int len);
 
-static msg_t serial_read_thread(void *arg) {
+static THD_FUNCTION(serial_read_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("USB-Serial read");
@@ -75,16 +75,14 @@ static msg_t serial_read_thread(void *arg) {
 			had_data = 0;
 		}
 	}
-
-	return 0;
 }
 
-static msg_t serial_process_thread(void *arg) {
+static THD_FUNCTION(serial_process_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("USB-Serial process");
 
-	process_tp = chThdSelf();
+	process_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -97,8 +95,6 @@ static msg_t serial_process_thread(void *arg) {
 			}
 		}
 	}
-
-	return 0;
 }
 
 static void process_packet(unsigned char *data, unsigned int len) {
@@ -109,7 +105,7 @@ static void process_packet(unsigned char *data, unsigned int len) {
 static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 	chMtxLock(&send_mutex);
 	packet_send_packet(data, len, PACKET_HANDLER);
-	chMtxUnlock();
+	chMtxUnlock(&send_mutex);
 }
 
 static void send_packet(unsigned char *buffer, unsigned int len) {
@@ -117,10 +113,10 @@ static void send_packet(unsigned char *buffer, unsigned int len) {
 }
 
 void comm_usb_init(void) {
-	myUSBinit();
+	comm_usb_serial_init();
 	packet_init(send_packet, process_packet, PACKET_HANDLER);
 
-	chMtxInit(&send_mutex);
+	chMtxObjectInit(&send_mutex);
 
 	// Threads
 	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);

@@ -32,8 +32,8 @@
 #include "commands.h"
 
 // Threads
-static msg_t temp_thread(void *arg);
-static WORKING_AREA(temp_thread_wa, 1024);
+THD_FUNCTION(temp_thread, arg);
+static THD_WORKING_AREA(temp_thread_wa, 1024);
 
 // Variables
 static volatile bool i2c_running = false;
@@ -258,14 +258,14 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-static msg_t temp_thread(void *arg) {
+THD_FUNCTION(temp_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("I2C Temp samp");
 
 	uint8_t rxbuf[10];
 	uint8_t txbuf[10];
-	msg_t status = RDY_OK;
+	msg_t status = MSG_OK;
 	systime_t tmo = MS2ST(5);
 	i2caddr_t temp_addr = 0x48;
 
@@ -279,7 +279,7 @@ static msg_t temp_thread(void *arg) {
 			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 1, rxbuf, 2, tmo);
 			i2cReleaseBus(&HW_I2C_DEV);
 
-			if (status == RDY_OK){
+			if (status == MSG_OK){
 				int16_t tempi = rxbuf[0] << 8 | rxbuf[1];
 				float temp = (float)tempi;
 				temp /= 128;
@@ -292,8 +292,6 @@ static msg_t temp_thread(void *arg) {
 
 		chThdSleepMilliseconds(100);
 	}
-
-	return 0;
 }
 
 float hw45_get_temp(void) {

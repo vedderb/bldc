@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -69,12 +69,12 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "mem") == 0) {
 		size_t n, size;
 		n = chHeapStatus(NULL, &size);
-		commands_printf("core free memory : %u bytes", chCoreStatus());
+		commands_printf("core free memory : %u bytes", chCoreGetStatusX());
 		commands_printf("heap fragments   : %u", n);
 		commands_printf("heap free total  : %u bytes\n", size);
 	} else if (strcmp(argv[0], "threads") == 0) {
-		Thread *tp;
-		static const char *states[] = {THD_STATE_NAMES};
+		thread_t *tp;
+		static const char *states[] = {CH_STATE_NAMES};
 		commands_printf("    addr    stack prio refs     state           name time    ");
 		commands_printf("-------------------------------------------------------------");
 		tp = chRegFirstThread();

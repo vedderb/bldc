@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ static volatile bool use_median_filter = false;
 static void(*done_func)(void) = 0;
 
 static void icuwidthcb(ICUDriver *icup) {
-	last_len_received[0] = ((float)icuGetWidth(icup) / ((float)TIMER_FREQ / 1000.0));
+	last_len_received[0] = ((float)icuGetWidthX(icup) / ((float)TIMER_FREQ / 1000.0));
 	float len = last_len_received[0] - pulse_start;
 	const float len_set = (pulse_end - pulse_start);
 
@@ -82,7 +82,7 @@ static void icuwidthcb(ICUDriver *icup) {
 			servo_pos[0] = (len * 2.0 - len_set) / len_set;
 		}
 
-		last_update_time = chTimeNow();
+		last_update_time = chVTGetSystemTime();
 
 		if (done_func) {
 			done_func();
@@ -112,9 +112,10 @@ static ICUConfig icucfg = {
  * decoded. Can be NULL.
  */
 void servodec_init(void (*d_func)(void)) {
-	icuStart(&ICUD3, &icucfg);
+	icuStart(&HW_ICU_DEV, &icucfg);
 	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF));
-	icuEnable(&ICUD3);
+	icuStartCapture(&HW_ICU_DEV);
+	icuEnableNotifications(&HW_ICU_DEV);
 
 	for (int i = 0;i < SERVO_NUM;i++) {
 		servo_pos[i] = 0.0;
@@ -165,7 +166,7 @@ float servodec_get_servo(int servo_num) {
  * The amount of milliseconds that have passed since an update.
  */
 uint32_t servodec_get_time_since_update(void) {
-	return chTimeElapsedSince(last_update_time) / (CH_FREQUENCY / 1000);
+	return chVTTimeElapsedSinceX(last_update_time) / (CH_CFG_ST_FREQUENCY / 1000);
 }
 
 /**

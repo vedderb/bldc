@@ -158,17 +158,17 @@ void flash_helper_jump_to_bootloader(void) {
 	pFunction jump_to_bootloader;
 
 	// Variable that will be loaded with the start address of the application
-	vu32* jump_address;
-	const vu32* bootloader_address = (vu32*)0x080E0000;
+	volatile uint32_t* jump_address;
+	const volatile uint32_t* bootloader_address = (volatile uint32_t*)0x080E0000;
 
 	// Get jump address from application vector table
-	jump_address = (vu32*) bootloader_address[1];
+	jump_address = (volatile uint32_t*) bootloader_address[1];
 
 	// Load this address into function pointer
 	jump_to_bootloader = (pFunction) jump_address;
 
 	// Clear pending interrupts
-	SCB_ICSR = ICSR_PENDSVCLR;
+	SCB->ICSR = SCB_ICSR_PENDSVCLR_Msk;
 
 	// Disable all interrupts
 	for(int i = 0;i < 8;i++) {
@@ -176,7 +176,7 @@ void flash_helper_jump_to_bootloader(void) {
 	}
 
 	// Set stack pointer
-	__set_MSP((u32) (bootloader_address[0]));
+	__set_MSP((uint32_t) (bootloader_address[0]));
 
 	// Jump to the bootloader
 	jump_to_bootloader();

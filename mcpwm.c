@@ -169,10 +169,10 @@ static void update_override_limits(volatile mc_configuration *conf);
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
-static WORKING_AREA(timer_thread_wa, 2048);
-static msg_t timer_thread(void *arg);
-static WORKING_AREA(rpm_thread_wa, 1024);
-static msg_t rpm_thread(void *arg);
+static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_FUNCTION(timer_thread, arg);
+static THD_WORKING_AREA(rpm_thread_wa, 1024);
+static THD_FUNCTION(rpm_thread, arg);
 
 void mcpwm_init(mc_configuration *configuration) {
 	utils_sys_lock_cnt();
@@ -180,7 +180,6 @@ void mcpwm_init(mc_configuration *configuration) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
 
 	conf = *configuration;
 
@@ -372,11 +371,7 @@ void mcpwm_init(mc_configuration *configuration) {
 
 	// Interrupt
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
-	NVIC_InitStructure.NVIC_IRQChannel = ADC_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
+	nvicEnableVector(ADC_IRQn, 6);
 
 	// Enable ADC1
 	ADC_Cmd(ADC1, ENABLE);
@@ -1427,7 +1422,7 @@ static void run_pid_control_pos(float dt) {
 	current_set = output * conf.lo_current_max;
 }
 
-static msg_t rpm_thread(void *arg) {
+static THD_FUNCTION(rpm_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("rpm timer");
@@ -1482,11 +1477,9 @@ static msg_t rpm_thread(void *arg) {
 
 		chThdSleepMilliseconds(1);
 	}
-
-	return 0;
 }
 
-static msg_t timer_thread(void *arg) {
+static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("mcpwm timer");
@@ -1605,8 +1598,6 @@ static msg_t timer_thread(void *arg) {
 
 		chThdSleepMilliseconds(1);
 	}
-
-	return 0;
 }
 
 void mcpwm_adc_inj_int_handler(void) {

@@ -30,7 +30,6 @@
 #include "servo.h"
 #include "servo_simple.h"
 #include "buffer.h"
-#include "myUSB.h"
 #include "terminal.h"
 #include "hw.h"
 #include "mcpwm.h"
@@ -48,9 +47,9 @@
 #include <stdio.h>
 
 // Threads
-static msg_t detect_thread(void *arg);
-static WORKING_AREA(detect_thread_wa, 2048);
-static Thread *detect_tp;
+static THD_FUNCTION(detect_thread, arg);
+static THD_WORKING_AREA(detect_thread_wa, 2048);
+static thread_t *detect_tp;
 
 // Private variables
 static uint8_t send_buffer[PACKET_MAX_PL_LEN];
@@ -607,12 +606,12 @@ void commands_send_experiment_samples(float *samples, int len) {
 	commands_send_packet(buffer, index);
 }
 
-static msg_t detect_thread(void *arg) {
+static THD_FUNCTION(detect_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Detect");
 
-	detect_tp = chThdSelf();
+	detect_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -633,6 +632,4 @@ static msg_t detect_thread(void *arg) {
 		send_buffer[ind++] = detect_hall_res;
 		commands_send_packet(send_buffer, ind);
 	}
-
-	return 0;
 }

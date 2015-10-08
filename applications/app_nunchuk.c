@@ -43,10 +43,10 @@
 #define RPM_FILTER_SAMPLES				8
 
 // Threads
-static msg_t chuk_thread(void *arg);
-static WORKING_AREA(chuk_thread_wa, 1024);
-static msg_t output_thread(void *arg);
-static WORKING_AREA(output_thread_wa, 1024);
+static THD_FUNCTION(chuk_thread, arg);
+static THD_WORKING_AREA(chuk_thread_wa, 1024);
+static THD_FUNCTION(output_thread, arg);
+static THD_WORKING_AREA(output_thread_wa, 1024);
 
 // Private variables
 static volatile bool is_running = false;
@@ -79,7 +79,7 @@ void app_nunchuk_update_output(chuck_data *data) {
 	timeout_reset();
 }
 
-static msg_t chuk_thread(void *arg) {
+static THD_FUNCTION(chuk_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Nunchuk i2c");
@@ -87,7 +87,7 @@ static msg_t chuk_thread(void *arg) {
 
 	uint8_t rxbuf[10];
 	uint8_t txbuf[10];
-	msg_t status = RDY_OK;
+	msg_t status = MSG_OK;
 	systime_t tmo = MS2ST(5);
 	i2caddr_t chuck_addr = 0x52;
 	chuck_data chuck_d_tmp;
@@ -103,7 +103,7 @@ static msg_t chuk_thread(void *arg) {
 		i2cAcquireBus(&HW_I2C_DEV);
 		status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 2, rxbuf, 0, tmo);
 		i2cReleaseBus(&HW_I2C_DEV);
-		is_ok = status == RDY_OK;
+		is_ok = status == MSG_OK;
 
 		if (is_ok) {
 			txbuf[0] = 0xFB;
@@ -111,7 +111,7 @@ static msg_t chuk_thread(void *arg) {
 			i2cAcquireBus(&HW_I2C_DEV);
 			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 2, rxbuf, 0, tmo);
 			i2cReleaseBus(&HW_I2C_DEV);
-			is_ok = status == RDY_OK;
+			is_ok = status == MSG_OK;
 		}
 
 		if (is_ok) {
@@ -119,7 +119,7 @@ static msg_t chuk_thread(void *arg) {
 			i2cAcquireBus(&HW_I2C_DEV);
 			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, chuck_addr, txbuf, 1, rxbuf, 0, tmo);
 			i2cReleaseBus(&HW_I2C_DEV);
-			is_ok = status == RDY_OK;
+			is_ok = status == MSG_OK;
 		}
 
 		if (is_ok) {
@@ -128,7 +128,7 @@ static msg_t chuk_thread(void *arg) {
 			i2cAcquireBus(&HW_I2C_DEV);
 			status = i2cMasterReceiveTimeout(&HW_I2C_DEV, chuck_addr, rxbuf, 6, tmo);
 			i2cReleaseBus(&HW_I2C_DEV);
-			is_ok = status == RDY_OK;
+			is_ok = status == MSG_OK;
 		}
 
 		if (is_ok) {
@@ -167,11 +167,9 @@ static msg_t chuk_thread(void *arg) {
 
 		chThdSleepMilliseconds(10);
 	}
-
-	return 0;
 }
 
-static msg_t output_thread(void *arg) {
+static THD_FUNCTION(output_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Nunchuk output");
@@ -454,6 +452,4 @@ static msg_t output_thread(void *arg) {
 			}
 		}
 	}
-
-	return 0;
 }

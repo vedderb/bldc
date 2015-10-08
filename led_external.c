@@ -34,12 +34,12 @@
 #define HAS_FAULT()		(mcpwm_get_fault() != FAULT_CODE_NONE)
 
 // Private variables
-static WORKING_AREA(led_thread_wa, 1024);
+static THD_WORKING_AREA(led_thread_wa, 1024);
 static volatile LED_EXT_STATE state;
 static volatile bool reverse_leds;
 
 // Private function prototypes
-static msg_t led_thread(void *arg);
+static THD_FUNCTION(led_thread, arg);
 static uint32_t scale_color(uint32_t color, float scale);
 static void wait_for_state_change(void);
 static void set_led_wrapper(int led, uint32_t color);
@@ -58,7 +58,7 @@ void led_external_set_reversed(bool newstate) {
 	reverse_leds = newstate;
 }
 
-static msg_t led_thread(void *arg) {
+static THD_FUNCTION(led_thread, arg) {
 	(void) arg;
 	chRegSetThreadName("LEDs External");
 
@@ -123,7 +123,7 @@ static msg_t led_thread(void *arg) {
 				}
 
 				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
-					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
+					if ((chVTGetSystemTime() / (CH_CFG_ST_FREQUENCY / 2)) % 2) {
 						set_led_wrapper(WS2811_LED_NUM / 2 - 1, COLOR_ORANGE);
 						set_led_wrapper(WS2811_LED_NUM / 2, COLOR_ORANGE);
 					} else {
@@ -146,7 +146,7 @@ static msg_t led_thread(void *arg) {
 				}
 
 				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
-					if ((chTimeNow() / (CH_FREQUENCY / 2)) % 2) {
+					if ((chVTGetSystemTime() / (CH_CFG_ST_FREQUENCY / 2)) % 2) {
 						set_led_wrapper(0, COLOR_ORANGE);
 						set_led_wrapper(WS2811_LED_NUM - 1, COLOR_ORANGE);
 					} else {
@@ -189,8 +189,6 @@ static msg_t led_thread(void *arg) {
 
 		chThdSleepMilliseconds(1);
 	}
-
-	return (msg_t) 0;
 }
 
 static uint32_t scale_color(uint32_t color, float scale) {

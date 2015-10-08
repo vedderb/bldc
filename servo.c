@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,14 +53,14 @@ static volatile unsigned int delays[SERVOS_NUM + 1];
 static volatile unsigned char same_pos[SERVOS_NUM + 1];
 static volatile unsigned char same_bits[SERVOS_NUM + 1];
 static volatile unsigned int masks[SERVOS_NUM];
-static GPIO_TypeDef *ports[SERVOS_NUM];
+static stm32_gpio_t *ports[SERVOS_NUM];
 static volatile unsigned char length;
 static size_t servo_struct_size = sizeof(SERVO);
 static size_t sorted_servos_len = sizeof(sorted_servos) / sizeof(SERVO);
 
-static Thread *servo_tp;
-static WORKING_AREA(servo_thread_wa, 512);
-static msg_t servo_thread(void *arg);
+static thread_t *servo_tp;
+static THD_WORKING_AREA(servo_thread_wa, 512);
+static THD_FUNCTION(servo_thread, arg);
 
 /*
  * Private functions
@@ -175,9 +175,9 @@ void servo_irq(void) {
 	if (int_index == length) {
 		// Start Cooldown
 		SERVO_CNT_TOP = SERVO_COOLDOWN_FACTOR;
-		chSysLockFromIsr();
+		chSysLockFromISR();
 		chEvtSignalI(servo_tp, (eventmask_t) 1);
-		chSysUnlockFromIsr();
+		chSysUnlockFromISR();
 		return;
 	}
 
@@ -213,12 +213,12 @@ static int servo_cmp_by_pos(const void *a, const void *b) {
 	}
 }
 
-static msg_t servo_thread(void *arg) {
+static THD_FUNCTION(servo_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Servo");
 
-	servo_tp = chThdSelf();
+	servo_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -439,8 +439,6 @@ static msg_t servo_thread(void *arg) {
 
 		int_index = -1;
 	}
-
-	return 0;
 }
 
 #if USE_COMMANDS

@@ -42,6 +42,6 @@ void utils_sys_unlock_cnt(void);
 #define SIGN(x)				((x<0)?-1:1)
 
 // Return the age of a timestamp in seconds
-#define UTILS_AGE_S(x)		((float)chTimeElapsedSince(x) / (float)CH_FREQUENCY)
+#define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
 
 #endif /* UTILS_H_ */

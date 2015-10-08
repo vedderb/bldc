@@ -24,7 +24,7 @@
 #include <stdbool.h>
 
 // Variables
-static Mutex rf_mutex;
+static mutex_t rf_mutex;
 static char rx_addr[6][5];
 static char tx_addr[5];
 static bool rx_addr_set[6];
@@ -32,7 +32,7 @@ static int address_length;
 static bool tx_pipe0_addr_eq;
 
 void rfhelp_init(void) {
-	chMtxInit(&rf_mutex);
+	chMtxObjectInit(&rf_mutex);
 
 //	address_length = rf_get_address_width();
 	address_length = 5; // We assume length 5
@@ -65,7 +65,7 @@ void rfhelp_restart(void) {
 		}
 	}
 
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 }
 
 /**
@@ -125,7 +125,7 @@ int rfhelp_send_data(char *data, int len) {
 
 	rf_mode_rx();
 
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 
 	return retval;
 }
@@ -205,7 +205,7 @@ int rfhelp_read_rx_data(char *data, int *len, int *pipe) {
 		}
 	}
 
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 
 	return retval;
 }
@@ -249,7 +249,7 @@ int rfhelp_read_rx_data_crc(char *data, int *len, int *pipe) {
 int rfhelp_rf_status(void) {
 	chMtxLock(&rf_mutex);
 	int s = rf_status();
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 
 	return s;
 }
@@ -262,7 +262,7 @@ void rfhelp_set_tx_addr(const char *addr, int addr_len) {
 	tx_pipe0_addr_eq = memcmp(rx_addr[0], tx_addr, address_length) == 0;
 
 	rf_set_tx_addr(tx_addr, address_length);
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 }
 
 void rfhelp_set_rx_addr(int pipe, const char *addr, int addr_len) {
@@ -274,17 +274,17 @@ void rfhelp_set_rx_addr(int pipe, const char *addr, int addr_len) {
 	rx_addr_set[pipe] = true;
 
 	rf_set_rx_addr(pipe, addr, address_length);
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 }
 
 void rfhelp_power_down(void) {
 	chMtxLock(&rf_mutex);
 	rf_power_down();
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 }
 
 void rfhelp_power_up(void) {
 	chMtxLock(&rf_mutex);
 	rf_power_up();
-	chMtxUnlock();
+	chMtxUnlock(&rf_mutex);
 }

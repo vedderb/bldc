@@ -38,9 +38,9 @@
 #define SERIAL_RX_BUFFER_SIZE		1024
 
 // Threads
-static msg_t packet_process_thread(void *arg);
-static WORKING_AREA(packet_process_thread_wa, 4096);
-static Thread *process_tp;
+static THD_FUNCTION(packet_process_thread, arg);
+static THD_WORKING_AREA(packet_process_thread_wa, 4096);
+static thread_t *process_tp;
 
 // Variables
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
@@ -161,12 +161,12 @@ void app_uartcomm_configure(uint32_t baudrate) {
 	}
 }
 
-static msg_t packet_process_thread(void *arg) {
+static THD_FUNCTION(packet_process_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("uartcomm process");
 
-	process_tp = chThdSelf();
+	process_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -179,6 +179,4 @@ static msg_t packet_process_thread(void *arg) {
 			}
 		}
 	}
-
-	return 0;
 }

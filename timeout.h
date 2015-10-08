@@ -25,7 +25,9 @@
 #ifndef TIMEOUT_H_
 #define TIMEOUT_H_
 
+#include "ch.h"
 #include "chtypes.h"
+#include "chsystypes.h"
 
 // Functions
 void timeout_init(void);

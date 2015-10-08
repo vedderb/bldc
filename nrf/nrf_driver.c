@@ -31,13 +31,13 @@
 #include "commands.h"
 
 // Variables
-static WORKING_AREA(rx_thread_wa, 1024);
-static WORKING_AREA(tx_thread_wa, 512);
+static THD_WORKING_AREA(rx_thread_wa, 1024);
+static THD_WORKING_AREA(tx_thread_wa, 512);
 static mote_state mstate;
 
 // Functions
-static msg_t rx_thread(void *arg);
-static msg_t tx_thread(void *arg);
+static THD_FUNCTION(rx_thread, arg);
+static THD_FUNCTION(tx_thread, arg);
 
 void nrf_driver_init(void) {
 	rf_init();
@@ -52,7 +52,7 @@ void nrf_driver_init(void) {
 	chThdCreateStatic(tx_thread_wa, sizeof(tx_thread_wa), NORMALPRIO - 1, tx_thread, NULL);
 }
 
-static msg_t tx_thread(void *arg) {
+static THD_FUNCTION(tx_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Nrf TX");
@@ -66,10 +66,9 @@ static msg_t tx_thread(void *arg) {
 		chThdSleepMilliseconds(50);
 	}
 
-	return 0;
 }
 
-static msg_t rx_thread(void *arg) {
+static THD_FUNCTION(rx_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("RX");
@@ -137,6 +136,4 @@ static msg_t rx_thread(void *arg) {
 			rfhelp_restart();
 		}
 	}
-
-	return 0;
 }

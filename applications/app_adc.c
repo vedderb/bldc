@@ -41,8 +41,8 @@
 #define RPM_FILTER_SAMPLES				8
 
 // Threads
-static msg_t adc_thread(void *arg);
-static WORKING_AREA(adc_thread_wa, 1024);
+static THD_FUNCTION(adc_thread, arg);
+static THD_WORKING_AREA(adc_thread_wa, 1024);
 
 // Private variables
 static volatile adc_config config;
@@ -69,7 +69,7 @@ float app_adc_get_voltage(void) {
 	return read_voltage;
 }
 
-static msg_t adc_thread(void *arg) {
+static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_ADC");
@@ -84,7 +84,7 @@ static msg_t adc_thread(void *arg) {
 
 	for(;;) {
 		// Sleep for a time according to the specified rate
-		systime_t sleep_time = CH_FREQUENCY / config.update_rate_hz;
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / config.update_rate_hz;
 
 		// At least one tick should be slept to not block the other threads
 		if (sleep_time == 0) {
@@ -205,7 +205,7 @@ static msg_t adc_thread(void *arg) {
 			}
 
 			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 			break;
 
@@ -220,7 +220,7 @@ static msg_t adc_thread(void *arg) {
 			}
 
 			if (pwr < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 			break;
 
@@ -228,7 +228,7 @@ static msg_t adc_thread(void *arg) {
 		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
 		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
 			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_FREQUENCY;
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
@@ -412,6 +412,4 @@ static msg_t adc_thread(void *arg) {
 			}
 		}
 	}
-
-	return 0;
 }

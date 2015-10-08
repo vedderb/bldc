@@ -23,7 +23,6 @@
  */
 
 #include "timeout.h"
-#include "ch.h"
 #include "mcpwm.h"
 
 // Private variables
@@ -33,8 +32,8 @@ static volatile float timeout_brake_current;
 static volatile bool has_timeout;
 
 // Threads
-static WORKING_AREA(timeout_thread_wa, 512);
-static msg_t timeout_thread(void *arg);
+static THD_WORKING_AREA(timeout_thread_wa, 512);
+static THD_FUNCTION(timeout_thread, arg);
 
 void timeout_init(void) {
 	timeout_msec = 1000;
@@ -51,7 +50,7 @@ void timeout_configure(systime_t timeout, float brake_current) {
 }
 
 void timeout_reset(void) {
-	last_update_time = chTimeNow();
+	last_update_time = chVTGetSystemTime();
 }
 
 bool timeout_has_timeout(void) {
@@ -66,13 +65,13 @@ float timeout_get_brake_current(void) {
 	return timeout_brake_current;
 }
 
-static msg_t timeout_thread(void *arg) {
+static THD_FUNCTION(timeout_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Timeout");
 
 	for(;;) {
-		if (timeout_msec != 0 && chTimeElapsedSince(last_update_time) > MS2ST(timeout_msec)) {
+		if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) {
 			mcpwm_unlock();
 			mcpwm_set_brake_current(timeout_brake_current);
 			has_timeout = true;
@@ -82,6 +81,4 @@ static msg_t timeout_thread(void *arg) {
 
 		chThdSleepMilliseconds(10);
 	}
-
-	return 0;
 }

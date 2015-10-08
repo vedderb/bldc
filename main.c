@@ -101,13 +101,13 @@ static volatile int sample_at_start = 0;
 static volatile int start_comm = 0;
 static volatile float main_last_adc_duration = 0.0;
 
-static WORKING_AREA(periodic_thread_wa, 1024);
-static WORKING_AREA(sample_send_thread_wa, 1024);
-static WORKING_AREA(timer_thread_wa, 128);
+static THD_WORKING_AREA(periodic_thread_wa, 1024);
+static THD_WORKING_AREA(sample_send_thread_wa, 1024);
+static THD_WORKING_AREA(timer_thread_wa, 128);
 
-static Thread *sample_send_tp;
+static thread_t *sample_send_tp;
 
-static msg_t periodic_thread(void *arg) {
+static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Main periodic");
@@ -152,16 +152,14 @@ static msg_t periodic_thread(void *arg) {
 
 		chThdSleepMilliseconds(10);
 	}
-
-	return 0;
 }
 
-static msg_t sample_send_thread(void *arg) {
+static THD_FUNCTION(sample_send_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Main sample");
 
-	sample_send_tp = chThdSelf();
+	sample_send_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -191,11 +189,9 @@ static msg_t sample_send_thread(void *arg) {
 			commands_send_samples(buffer, index);
 		}
 	}
-
-	return 0;
 }
 
-static msg_t timer_thread(void *arg) {
+static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("msec_timer");
@@ -204,8 +200,6 @@ static msg_t timer_thread(void *arg) {
 		packet_timerfunc();
 		chThdSleepMilliseconds(1);
 	}
-
-	return 0;
 }
 
 /*
@@ -256,9 +250,9 @@ void main_dma_adc_handler(void) {
 			if (sample_now == sample_len) {
 				sample_ready = 1;
 				sample_now = 0;
-				chSysLockFromIsr();
+				chSysLockFromISR();
 				chEvtSignalI(sample_send_tp, (eventmask_t) 1);
-				chSysUnlockFromIsr();
+				chSysUnlockFromISR();
 			}
 
 			main_last_adc_duration = mcpwm_get_last_adc_isr_duration();

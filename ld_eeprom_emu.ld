@@ -1,15 +1,14 @@
 /*
-    ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
-                 2011,2012,2013 Giovanni Di Sirio.
+    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio.
 
-    This file is part of ChibiOS/RT.
+    This file is part of ChibiOS.
 
-    ChibiOS/RT is free software; you can redistribute it and/or modify
+    ChibiOS is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 3 of the License, or
     (at your option) any later version.
 
-    ChibiOS/RT is distributed in the hope that it will be useful,
+    ChibiOS is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -19,24 +18,63 @@
 */
 
 /*
- * ST32F407xG memory setup.
+ * STM32F407xG memory setup.
+ * Note: Use of ram1 and ram2 is mutually exclusive with use of ram0.
  */
-__main_stack_size__     = 0x0800;
-__process_stack_size__  = 0x0800;
-
 MEMORY
 {
     flash : org = 0x08000000, len = 16k
     flash2 : org = 0x0800C000, len = 480k
-    ram : org = 0x20000000, len = 128k
-    ccmram : org = 0x10000000, len = 64k
+    ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
+    ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
+    ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
+    ram3  : org = 0x00000000, len = 0
+    ram4  : org = 0x10000000, len = 64k     /* CCM SRAM */
+    ram5  : org = 0x40024000, len = 4k      /* BCKP SRAM */
+    ram6  : org = 0x00000000, len = 0
+    ram7  : org = 0x00000000, len = 0
 }
 
-__ram_start__           = ORIGIN(ram);
-__ram_size__            = LENGTH(ram);
-__ram_end__             = __ram_start__ + __ram_size__;
+/* RAM region to be used for Main stack. This stack accommodates the processing
+   of all exceptions and interrupts*/
+REGION_ALIAS("MAIN_STACK_RAM", ram0);
 
-ENTRY(ResetHandler)
+/* RAM region to be used for the process stack. This is the stack used by
+   the main() function.*/
+REGION_ALIAS("PROCESS_STACK_RAM", ram0);
+
+/* RAM region to be used for data segment.*/
+REGION_ALIAS("DATA_RAM", ram0);
+
+/* RAM region to be used for BSS segment.*/
+REGION_ALIAS("BSS_RAM", ram0);
+
+__ram0_start__          = ORIGIN(ram0);
+__ram0_size__           = LENGTH(ram0);
+__ram0_end__            = __ram0_start__ + __ram0_size__;
+__ram1_start__          = ORIGIN(ram1);
+__ram1_size__           = LENGTH(ram1);
+__ram1_end__            = __ram1_start__ + __ram1_size__;
+__ram2_start__          = ORIGIN(ram2);
+__ram2_size__           = LENGTH(ram2);
+__ram2_end__            = __ram2_start__ + __ram2_size__;
+__ram3_start__          = ORIGIN(ram3);
+__ram3_size__           = LENGTH(ram3);
+__ram3_end__            = __ram3_start__ + __ram3_size__;
+__ram4_start__          = ORIGIN(ram4);
+__ram4_size__           = LENGTH(ram4);
+__ram4_end__            = __ram4_start__ + __ram4_size__;
+__ram5_start__          = ORIGIN(ram5);
+__ram5_size__           = LENGTH(ram5);
+__ram5_end__            = __ram5_start__ + __ram5_size__;
+__ram6_start__          = ORIGIN(ram6);
+__ram6_size__           = LENGTH(ram6);
+__ram6_end__            = __ram6_start__ + __ram6_size__;
+__ram7_start__          = ORIGIN(ram7);
+__ram7_size__           = LENGTH(ram7);
+__ram7_end__            = __ram7_start__ + __ram7_size__;
+
+ENTRY(Reset_Handler)
 
 SECTIONS
 {
@@ -45,7 +83,7 @@ SECTIONS
 
     startup : ALIGN(16) SUBALIGN(16)
     {
-        KEEP(*(vectors))
+        KEEP(*(.vectors))
     } > flash
 
     constructors : ALIGN(4) SUBALIGN(4)
@@ -66,7 +104,6 @@ SECTIONS
 
     .text : ALIGN(16) SUBALIGN(16)
     {
-        *(.text.startup.*)
         *(.text)
         *(.text.*)
         *(.rodata)
@@ -102,53 +139,126 @@ SECTIONS
         . = ALIGN(8);
     } > flash2
 
+    . = ALIGN(4);
     _etext = .;
     _textdata = _etext;
 
-    .stacks :
+    .mstack :
     {
         . = ALIGN(8);
         __main_stack_base__ = .;
         . += __main_stack_size__;
         . = ALIGN(8);
         __main_stack_end__ = .;
+    } > MAIN_STACK_RAM
+
+    .pstack :
+    {
         __process_stack_base__ = .;
         __main_thread_stack_base__ = .;
         . += __process_stack_size__;
         . = ALIGN(8);
         __process_stack_end__ = .;
         __main_thread_stack_end__ = .;
-    } > ram
+    } > PROCESS_STACK_RAM
 
-    .data :
+    .data : ALIGN(4)
     {
         . = ALIGN(4);
         PROVIDE(_data = .);
         *(.data)
-        . = ALIGN(4);
         *(.data.*)
-        . = ALIGN(4);
         *(.ramtext)
         . = ALIGN(4);
         PROVIDE(_edata = .);
-    } > ram AT > flash2
+    } > DATA_RAM AT > flash2
 
-    .bss :
+    .bss : ALIGN(4)
     {
         . = ALIGN(4);
         PROVIDE(_bss_start = .);
         *(.bss)
-        . = ALIGN(4);
         *(.bss.*)
-        . = ALIGN(4);
         *(COMMON)
         . = ALIGN(4);
         PROVIDE(_bss_end = .);
-    } > ram    
+        PROVIDE(end = .);
+    } > BSS_RAM    
+
+    .ram0 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram0)
+        *(.ram0.*)
+        . = ALIGN(4);
+        __ram0_free__ = .;
+    } > ram0
+
+    .ram1 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram1)
+        *(.ram1.*)
+        . = ALIGN(4);
+        __ram1_free__ = .;
+    } > ram1
+
+    .ram2 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram2)
+        *(.ram2.*)
+        . = ALIGN(4);
+        __ram2_free__ = .;
+    } > ram2
+
+    .ram3 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram3)
+        *(.ram3.*)
+        . = ALIGN(4);
+        __ram3_free__ = .;
+    } > ram3
+
+    .ram4 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram4)
+        *(.ram4.*)
+        . = ALIGN(4);
+        __ram4_free__ = .;
+    } > ram4
+
+    .ram5 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram5)
+        *(.ram5.*)
+        . = ALIGN(4);
+        __ram5_free__ = .;
+    } > ram5
+
+    .ram6 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram6)
+        *(.ram6.*)
+        . = ALIGN(4);
+        __ram6_free__ = .;
+    } > ram6
+
+    .ram7 (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.ram7)
+        *(.ram7.*)
+        . = ALIGN(4);
+        __ram7_free__ = .;
+    } > ram7
 }
 
-PROVIDE(end = .);
-_end            = .;
-
-__heap_base__   = _end;
-__heap_end__    = __ram_end__;
+/* Heap default boundaries, it is defaulted to be the non-used part
+   of ram0 region.*/
+__heap_base__   = __ram0_free__;
+__heap_end__    = __ram0_end__;

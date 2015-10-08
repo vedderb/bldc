@@ -42,10 +42,10 @@
 #define MIN_PULSES_WITHOUT_POWER		50
 
 // Threads
-static msg_t ppm_thread(void *arg);
-static WORKING_AREA(ppm_thread_wa, 1024);
-static Thread *ppm_tp;
-VirtualTimer vt;
+static THD_FUNCTION(ppm_thread, arg);
+static THD_WORKING_AREA(ppm_thread_wa, 1024);
+static thread_t *ppm_tp;
+virtual_timer_t vt;
 
 // Private functions
 static void servodec_func(void);
@@ -84,24 +84,24 @@ void app_ppm_start(void) {
 
 #if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
-	chSysLockFromIsr();
+	chSysLockFromISR();
 	timeout_reset();
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
+	chSysUnlockFromISR();
 }
 
 static void update(void *p) {
-	chSysLockFromIsr();
+	chSysLockFromISR();
 	chVTSetI(&vt, MS2ST(2), update, p);
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromIsr();
+	chSysUnlockFromISR();
 }
 
-static msg_t ppm_thread(void *arg) {
+static THD_FUNCTION(ppm_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_PPM");
-	ppm_tp = chThdSelf();
+	ppm_tp = chThdGetSelfX();
 
 	servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	servodec_init(servodec_func);
@@ -110,7 +110,8 @@ static msg_t ppm_thread(void *arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec()) {
+		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
+				mcpwm_get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
 			continue;
 		}
@@ -316,7 +317,5 @@ static msg_t ppm_thread(void *arg) {
 		}
 
 	}
-
-	return 0;
 }
 #endif

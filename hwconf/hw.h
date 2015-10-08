@@ -26,6 +26,7 @@
 #define HW_H_
 
 #include "conf_general.h"
+#include "stm32f4xx_conf.h"
 
 #ifdef HW_VERSION_40
 #include "hw_40.h"

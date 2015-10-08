@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 #include "hal.h"
 #include "hw.h"
 #include "conf_general.h"
-#include "stm32f4xx_conf.h"
+#include "stm32f407xx.h"
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
@@ -136,7 +136,7 @@ extern volatile unsigned int interrupt_cnt;
 typedef struct {
 	volatile signed short pos;
 	volatile unsigned char offset;
-	GPIO_TypeDef* gpio;
+	stm32_gpio_t* gpio;
 	volatile unsigned int pin;
 } SERVO;
 

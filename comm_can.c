@@ -26,6 +26,7 @@
 #include "comm_can.h"
 #include "ch.h"
 #include "hal.h"
+#include "stm32f4xx_conf.h"
 #include "datatypes.h"
 #include "buffer.h"
 #include "mcpwm.h"
@@ -41,22 +42,22 @@
 #define RX_BUFFER_SIZE	PACKET_MAX_PL_LEN
 
 // Threads
-static WORKING_AREA(cancom_read_thread_wa, 512);
-static WORKING_AREA(cancom_process_thread_wa, 4096);
-static WORKING_AREA(cancom_status_thread_wa, 1024);
-static msg_t cancom_read_thread(void *arg);
-static msg_t cancom_status_thread(void *arg);
-static msg_t cancom_process_thread(void *arg);
+static THD_WORKING_AREA(cancom_read_thread_wa, 512);
+static THD_WORKING_AREA(cancom_process_thread_wa, 4096);
+static THD_WORKING_AREA(cancom_status_thread_wa, 1024);
+static THD_FUNCTION(cancom_read_thread, arg);
+static THD_FUNCTION(cancom_status_thread, arg);
+static THD_FUNCTION(cancom_process_thread, arg);
 
 // Variables
 static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
-static Mutex can_mtx;
+static mutex_t can_mtx;
 static uint8_t rx_buffer[RX_BUFFER_SIZE];
 static unsigned int rx_buffer_last_id;
 static CANRxFrame rx_frames[RX_FRAMES_SIZE];
 static int rx_frame_read;
 static int rx_frame_write;
-static Thread *process_tp;
+static thread_t *process_tp;
 
 /*
  * 500KBaud, automatic wakeup, automatic recover
@@ -80,7 +81,7 @@ void comm_can_init(void) {
 	rx_frame_read = 0;
 	rx_frame_write = 0;
 
-	chMtxInit(&can_mtx);
+	chMtxObjectInit(&can_mtx);
 
 	palSetPadMode(GPIOB, 8,
 			PAL_MODE_ALTERNATE(GPIO_AF_CAN1) |
@@ -101,23 +102,23 @@ void comm_can_init(void) {
 			cancom_process_thread, NULL);
 }
 
-static msg_t cancom_read_thread(void *arg) {
+static THD_FUNCTION(cancom_read_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("CAN");
 
-	EventListener el;
+	event_listener_t el;
 	CANRxFrame rxmsg;
 
 	chEvtRegister(&CANDx.rxfull_event, &el, 0);
 
-	while(!chThdShouldTerminate()) {
+	while(!chThdShouldTerminateX()) {
 		if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(10)) == 0) {
 			continue;
 		}
 
 		msg_t result = canReceive(&CANDx, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 
-		while (result == RDY_OK) {
+		while (result == MSG_OK) {
 			rx_frames[rx_frame_write++] = rxmsg;
 			if (rx_frame_write == RX_FRAMES_SIZE) {
 				rx_frame_write = 0;
@@ -130,14 +131,13 @@ static msg_t cancom_read_thread(void *arg) {
 	}
 
 	chEvtUnregister(&CANDx.rxfull_event, &el);
-	return 0;
 }
 
-static msg_t cancom_process_thread(void *arg) {
+static THD_FUNCTION(cancom_process_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Cancom process");
-	process_tp = chThdSelf();
+	process_tp = chThdGetSelfX();
 
 	int32_t ind = 0;
 	unsigned int rxbuf_len;
@@ -253,7 +253,7 @@ static msg_t cancom_process_thread(void *arg) {
 						if (stat_tmp->id == id || stat_tmp->id == -1) {
 							ind = 0;
 							stat_tmp->id = id;
-							stat_tmp->rx_time = chTimeNow();
+							stat_tmp->rx_time = chVTGetSystemTime();
 							stat_tmp->rpm = (float)buffer_get_int32(rxmsg.data8, &ind);
 							stat_tmp->current = (float)buffer_get_int16(rxmsg.data8, &ind) / 10.0;
 							stat_tmp->duty = (float)buffer_get_int16(rxmsg.data8, &ind) / 1000.0;
@@ -272,11 +272,9 @@ static msg_t cancom_process_thread(void *arg) {
 			}
 		}
 	}
-
-	return 0;
 }
 
-static msg_t cancom_status_thread(void *arg) {
+static THD_FUNCTION(cancom_status_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("CAN status");
 
@@ -291,15 +289,13 @@ static msg_t cancom_status_thread(void *arg) {
 			comm_can_transmit(app_get_configuration()->controller_id | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 
-		systime_t sleep_time = CH_FREQUENCY / app_get_configuration()->send_can_status_rate_hz;
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / app_get_configuration()->send_can_status_rate_hz;
 		if (sleep_time == 0) {
 			sleep_time = 1;
 		}
 
 		chThdSleep(sleep_time);
 	}
-
-	return 0;
 }
 
 void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
@@ -313,7 +309,7 @@ void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
 
 	chMtxLock(&can_mtx);
 	canTransmit(&CANDx, CAN_ANY_MAILBOX, &txmsg, MS2ST(20));
-	chMtxUnlock();
+	chMtxUnlock(&can_mtx);
 
 #else
 	(void)id;

@@ -11,6 +11,7 @@
 #include "mcpwm.h"
 #include "hw.h"
 #include "utils.h"
+#include "stm32f4xx_conf.h"
 
 #include <string.h>
 

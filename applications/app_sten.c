@@ -44,8 +44,8 @@
 static volatile float out_received = 0.0;
 
 // Threads
-static msg_t uart_thread(void *arg);
-static WORKING_AREA(uart_thread_wa, 1024);
+static THD_FUNCTION(uart_thread, arg);
+static THD_WORKING_AREA(uart_thread_wa, 1024);
 
 // Private functions
 static void set_output(float output);
@@ -120,7 +120,7 @@ void app_sten_init(void) {
 	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
 }
 
-static msg_t uart_thread(void *arg) {
+static THD_FUNCTION(uart_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("UART");
@@ -133,7 +133,7 @@ static msg_t uart_thread(void *arg) {
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 
-	systime_t time = chTimeNow();
+	systime_t time = chVTGetSystemTime();
 
 	for(;;) {
 		time += MS2ST(1);
@@ -144,8 +144,6 @@ static msg_t uart_thread(void *arg) {
 
 		chThdSleepUntil(time);
 	}
-
-	return 0;
 }
 
 static void set_output(float output) {
