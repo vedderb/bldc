@@ -115,6 +115,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	app_configuration appconf;
 	uint16_t flash_res;
 	uint32_t new_app_offset;
+	chuck_data chuck_d_tmp;
 
 	packet_id = data[0];
 	data++;
@@ -545,6 +546,18 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	case COMM_FORWARD_CAN:
 		comm_can_send_buffer(data[0], data + 1, len - 1, false);
+		break;
+
+	case COMM_SET_CHUCK_DATA:
+		ind = 0;
+		chuck_d_tmp.js_x = data[ind++];
+		chuck_d_tmp.js_y = data[ind++];
+		chuck_d_tmp.bt_c = buffer_get_bool(data, &ind);
+		ind++;
+		chuck_d_tmp.bt_z = buffer_get_bool(data, &ind);
+	
+		app_nunchuk_update_output(&chuck_d_tmp);
+		
 		break;
 
 	default:

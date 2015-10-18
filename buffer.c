@@ -95,3 +95,21 @@ float buffer_get_float16(const uint8_t *buffer, float scale, int32_t *index) {
 float buffer_get_float32(const uint8_t *buffer, float scale, int32_t *index) {
     return (float)buffer_get_int32(buffer, index) / scale;
 }
+
+bool buffer_get_bool(const uint8_t *buffer, int32_t *index) {
+	
+		if (buffer[*index] == 1)
+		{
+			//(*index)++;
+			//(*index) += 1;
+			return true;
+		}
+		else
+		{
+			//(*index)++;
+			//(*index) += 1;
+			return false;
+		}
+		
+}
+
