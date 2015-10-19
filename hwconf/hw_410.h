@@ -36,15 +36,15 @@
  * 0:	IN0		SENS3
  * 1:	IN1		SENS2
  * 2:	IN2		SENS1
- * 3:	IN5		CURR2
- * 4:	IN6		CURR1
+ * 3:	IN8		CURR2
+ * 4:	IN9		CURR1
  * 5:	IN3		TEMP_MOSFET
  * 6:	Vrefint
- * 7:	IN9		ADC_EXT2
+ * 7:	IN6		ADC_EXT2
  * 8:	IN12	AN_IN
  * 9:	IN4		TX_SDA_NSS
- * 10:	IN15	ADC_EXT
- * 11:	IN10	TEMP_MOTOR
+ * 10:	IN5     ADC_EXT
+ * 11:	IN3 	TEMP_MOTOR
  */
 
 #define HW_ADC_CHANNELS				12
