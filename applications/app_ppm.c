@@ -28,7 +28,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "servo_dec.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "timeout.h"
 #include "utils.h"
 #include "comm_can.h"
@@ -111,7 +111,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		chEvtWaitAny((eventmask_t) 1);
 
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
-				mcpwm_get_fault() != FAULT_CODE_NONE) {
+				mc_interface_get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
 			continue;
 		}
@@ -135,7 +135,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		float current = 0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
-		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
+		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		bool send_duty = false;
 
 		switch (config.ctrl_type) {
@@ -174,7 +174,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mcpwm_set_duty(servo_val);
+				mc_interface_set_duty(servo_val);
 				send_duty = true;
 			}
 			break;
@@ -186,7 +186,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mcpwm_set_pid_speed(servo_val * config.pid_max_erpm);
+				mc_interface_set_pid_speed(servo_val * config.pid_max_erpm);
 				send_duty = true;
 			}
 			break;
@@ -201,12 +201,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 				pulses_without_power = 0;
 			}
 			pulses_without_power_before = pulses_without_power;
-			mcpwm_set_brake_current(timeout_get_brake_current());
+			mc_interface_set_brake_current(timeout_get_brake_current());
 			continue;
 		}
 
 		// Find lowest RPM
-		float rpm_local = mcpwm_get_rpm();
+		float rpm_local = mc_interface_get_rpm();
 		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -223,7 +223,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if (send_duty && config.multi_esc) {
-			float duty = mcpwm_get_duty_cycle_now();
+			float duty = mc_interface_get_duty_cycle_now();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -236,7 +236,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		if (current_mode) {
 			if (current_mode_brake) {
-				mcpwm_set_brake_current(current);
+				mc_interface_set_brake_current(current);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -309,9 +309,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 				}
 
 				if (is_reverse) {
-					mcpwm_set_current(-current_out);
+					mc_interface_set_current(-current_out);
 				} else {
-					mcpwm_set_current(current_out);
+					mc_interface_set_current(current_out);
 				}
 			}
 		}

@@ -26,8 +26,8 @@
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR	1
-#define FW_VERSION_MINOR	14
+#define FW_VERSION_MAJOR	2
+#define FW_VERSION_MINOR	3
 
 #include "datatypes.h"
 
@@ -55,9 +55,9 @@
 //#define HW_VERSION_40
 //#define HW_VERSION_45
 //#define HW_VERSION_46 // Also for 4.7
-#define HW_VERSION_48
+//#define HW_VERSION_48
 //#define HW_VERSION_49
-//#define HW_VERSION_410
+#define HW_VERSION_410 // Also for 4.11
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 #endif
@@ -67,6 +67,8 @@
  */
 //#define MCCONF_DEFAULT_USER		"mcconf_outrunner2.h"
 //#define MCCONF_DEFAULT_USER		"mcconf_sten.h"
+//#define MCCONF_DEFAULT_USER		"mcconf_foc_erwin.h"
+//#define MCCONF_DEFAULT_USER		"mcconf_foc_scorpion.h"
 
 /*
  * Select default user app configuration
@@ -79,13 +81,13 @@
  * values.
  */
 //#define USE_APP_STEN
-//#define USE_APP_GURGALOF
 
 /*
  * Use encoder
  */
+#ifndef ENCODER_ENABLE
 #define ENCODER_ENABLE			0
-#define ENCODER_COUNTS			6400
+#endif
 
 /*
  * Enable CAN-bus
@@ -129,11 +131,15 @@
 
 // Functions
 void conf_general_init(void);
+void conf_general_get_default_app_configuration(app_configuration *conf);
+void conf_general_get_default_mc_configuration(mc_configuration *conf);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
 bool conf_general_store_mc_configuration(mc_configuration *conf);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
+bool conf_general_measure_flux_linkage(float current, float duty,
+		float min_erpm, float res, float *linkage);
 
 #endif /* CONF_GENERAL_H_ */

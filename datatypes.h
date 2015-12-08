@@ -55,8 +55,14 @@ typedef enum {
 } mc_sensor_mode;
 
 typedef enum {
+	FOC_SENSOR_MODE_SENSORLESS = 0,
+	FOC_SENSOR_MODE_ENCODER
+} mc_foc_sensor_mode;
+
+typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
+	MOTOR_TYPE_FOC
 } mc_motor_type;
 
 typedef enum {
@@ -132,6 +138,28 @@ typedef struct {
 	// Hall sensor
 	int8_t hall_table[8];
 	float hall_sl_erpm;
+	// FOC
+	float foc_current_kp;
+	float foc_current_ki;
+	float foc_f_sw;
+	float foc_dt_us;
+	float foc_encoder_offset;
+	bool foc_encoder_inverted;
+	float foc_encoder_ratio;
+	float foc_motor_l;
+	float foc_motor_r;
+	float foc_motor_flux_linkage;
+	float foc_observer_gain;
+	float foc_pll_kp;
+	float foc_pll_ki;
+	float foc_duty_dowmramp_kp;
+	float foc_duty_dowmramp_ki;
+	float foc_openloop_rpm;
+	float foc_sl_openloop_hyst;
+	float foc_sl_openloop_time;
+	float foc_sl_d_current_duty;
+	float foc_sl_d_current_factor;
+	mc_foc_sensor_mode foc_sensor_mode;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -151,6 +179,7 @@ typedef struct {
 	float m_duty_ramp_step;
 	float m_duty_ramp_step_rpm_lim;
 	float m_current_backoff_gain;
+	uint32_t m_encoder_counts;
 } mc_configuration;
 
 // Applications to use
@@ -284,14 +313,18 @@ typedef enum {
 	COMM_SET_SERVO_POS,
 	COMM_SET_MCCONF,
 	COMM_GET_MCCONF,
+	COMM_GET_MCCONF_DEFAULT,
 	COMM_SET_APPCONF,
 	COMM_GET_APPCONF,
+	COMM_GET_APPCONF_DEFAULT,
 	COMM_SAMPLE_PRINT,
 	COMM_TERMINAL_CMD,
 	COMM_PRINT,
 	COMM_ROTOR_POSITION,
 	COMM_EXPERIMENT_SAMPLE,
 	COMM_DETECT_MOTOR_PARAM,
+	COMM_DETECT_MOTOR_R_L,
+	COMM_DETECT_MOTOR_FLUX_LINKAGE,
 	COMM_REBOOT,
 	COMM_ALIVE,
 	COMM_GET_DECODED_PPM,
@@ -324,7 +357,6 @@ typedef struct {
 	float rpm;
 	int tacho;
 	int cycles_running;
-	int pwm_cycles;
 	int tim_val_samp;
 	int tim_current_samp;
 	int tim_top;

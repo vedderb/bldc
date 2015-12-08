@@ -28,7 +28,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "utils.h"
 #include "hw.h"
 #include "timeout.h"
@@ -157,22 +157,22 @@ static void set_output(float output) {
 		output = 0.0;
 	}
 
-	const float rpm = mcpwm_get_rpm();
+	const float rpm = mc_interface_get_rpm();
 
-	if (output > 0.0 && rpm > -mcpwm_get_configuration()->l_max_erpm_fbrake) {
+	if (output > 0.0 && rpm > -mc_interface_get_configuration()->l_max_erpm_fbrake) {
 		float current;
 
 		if (output > 0.0) {
-			current = output * mcpwm_get_configuration()->l_current_max;
+			current = output * mc_interface_get_configuration()->l_current_max;
 		} else {
-			current = output * fabsf(mcpwm_get_configuration()->l_current_min);
+			current = output * fabsf(mc_interface_get_configuration()->l_current_min);
 		}
 
 		// Soft RPM limit
 		if (rpm > RPM_MAX_2) {
-			current = -mcpwm_get_configuration()->cc_min_current;
+			current = -mc_interface_get_configuration()->cc_min_current;
 		} else if (rpm > RPM_MAX_1) {
-			current = utils_map(rpm, RPM_MAX_1, RPM_MAX_2, current, -mcpwm_get_configuration()->cc_min_current);
+			current = utils_map(rpm, RPM_MAX_1, RPM_MAX_2, current, -mc_interface_get_configuration()->cc_min_current);
 		}
 
 		// Some low-pass filtering
@@ -182,13 +182,13 @@ static void set_output(float output) {
 		current_p2 = current_p1;
 		current_p1 = current;
 
-		if (fabsf(current) < mcpwm_get_configuration()->cc_min_current) {
-			current = -mcpwm_get_configuration()->cc_min_current;
+		if (fabsf(current) < mc_interface_get_configuration()->cc_min_current) {
+			current = -mc_interface_get_configuration()->cc_min_current;
 		}
 
-		mcpwm_set_current(current);
+		mc_interface_set_current(current);
 	} else {
-		mcpwm_set_brake_current(output * mcpwm_get_configuration()->l_current_min);
+		mc_interface_set_brake_current(output * mc_interface_get_configuration()->l_current_min);
 	}
 }
 

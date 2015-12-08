@@ -13,7 +13,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 /*
  * commands.c
@@ -33,6 +33,8 @@
 #include "terminal.h"
 #include "hw.h"
 #include "mcpwm.h"
+#include "mcpwm_foc.h"
+#include "mc_interface.h"
 #include "app.h"
 #include "timeout.h"
 #include "servo_dec.h"
@@ -40,6 +42,7 @@
 #include "flash_helper.h"
 #include "utils.h"
 #include "packet.h"
+#include "encoder.h"
 
 #include <math.h>
 #include <string.h>
@@ -110,7 +113,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	uint16_t sample_len;
 	uint8_t decimation;
 	bool at_start;
-	mc_configuration mcconf;
+	static mc_configuration mcconf, mcconf_old; // Static to save some stack space
 	app_configuration appconf;
 	uint16_t flash_res;
 	uint32_t new_app_offset;
@@ -163,48 +166,48 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS5) * 10.0), &ind);
 		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS6) * 10.0), &ind);
 		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_PCB) * 10.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_read_reset_avg_motor_current() * 100.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_read_reset_avg_input_current() * 100.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)mcpwm_get_rpm(), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_read_reset_avg_motor_current() * 100.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_read_reset_avg_input_current() * 100.0), &ind);
+		buffer_append_int16(send_buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)mc_interface_get_rpm(), &ind);
 		buffer_append_int16(send_buffer, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_amp_hours(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_amp_hours_charged(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_watt_hours(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcpwm_get_watt_hours_charged(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, mcpwm_get_tachometer_value(false), &ind);
-		buffer_append_int32(send_buffer, mcpwm_get_tachometer_abs_value(false), &ind);
-		send_buffer[ind++] = mcpwm_get_fault();
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_amp_hours(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_amp_hours_charged(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_watt_hours(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_watt_hours_charged(false) * 10000.0), &ind);
+		buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
+		buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
+		send_buffer[ind++] = mc_interface_get_fault();
 		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_SET_DUTY:
 		ind = 0;
-		mcpwm_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
+		mc_interface_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT:
 		ind = 0;
-		mcpwm_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		mc_interface_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_CURRENT_BRAKE:
 		ind = 0;
-		mcpwm_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		mc_interface_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
 		break;
 
 	case COMM_SET_RPM:
 		ind = 0;
-		mcpwm_set_pid_speed((float)buffer_get_int32(data, &ind));
+		mc_interface_set_pid_speed((float)buffer_get_int32(data, &ind));
 		timeout_reset();
 		break;
 
 	case COMM_SET_POS:
 		ind = 0;
-		mcpwm_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
+		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
 		timeout_reset();
 		break;
 
@@ -225,7 +228,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_SET_MCCONF:
-		mcconf = *mcpwm_get_configuration();
+		mcconf = *mc_interface_get_configuration();
 
 		ind = 0;
 		mcconf.pwm_mode = data[ind++];
@@ -272,6 +275,28 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind += 8;
 		mcconf.hall_sl_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
+		mcconf.foc_current_kp = buffer_get_float32(data, 1e5, &ind);
+		mcconf.foc_current_ki = buffer_get_float32(data, 1e5, &ind);
+		mcconf.foc_f_sw = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_dt_us = buffer_get_float32(data, 1e6, &ind);
+		mcconf.foc_encoder_inverted = data[ind++];
+		mcconf.foc_encoder_offset = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_encoder_ratio = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_sensor_mode = data[ind++];
+		mcconf.foc_pll_kp = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_pll_ki = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_motor_l = buffer_get_float32(data, 1e8, &ind);
+		mcconf.foc_motor_r = buffer_get_float32(data, 1e5, &ind);
+		mcconf.foc_motor_flux_linkage = buffer_get_float32(data, 1e5, &ind);
+		mcconf.foc_observer_gain = buffer_get_float32(data, 1e0, &ind);
+		mcconf.foc_duty_dowmramp_kp = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_duty_dowmramp_ki = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_openloop_rpm = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_sl_openloop_hyst = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_sl_openloop_time = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_sl_d_current_duty = buffer_get_float32(data, 1e3, &ind);
+		mcconf.foc_sl_d_current_factor = buffer_get_float32(data, 1e3, &ind);
+
 		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
@@ -290,20 +315,30 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_duty_ramp_step = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_duty_ramp_step_rpm_lim = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_current_backoff_gain = (float)buffer_get_float32(data, 1000000.0, &ind);
+		mcconf.m_encoder_counts = buffer_get_uint32(data, &ind);
 
 		conf_general_store_mc_configuration(&mcconf);
-		mcpwm_set_configuration(&mcconf);
+		mc_interface_set_configuration(&mcconf);
+
+#if ENCODER_ENABLE
+		encoder_set_counts(mcconf.m_encoder_counts);
+#endif
 
 		ind = 0;
-		send_buffer[ind++] = COMM_SET_MCCONF;
+		send_buffer[ind++] = packet_id;
 		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_GET_MCCONF:
-		mcconf = *mcpwm_get_configuration();
+	case COMM_GET_MCCONF_DEFAULT:
+		if (packet_id == COMM_GET_MCCONF) {
+			mcconf = *mc_interface_get_configuration();
+		} else {
+			conf_general_get_default_mc_configuration(&mcconf);
+		}
 
 		ind = 0;
-		send_buffer[ind++] = COMM_GET_MCCONF;
+		send_buffer[ind++] = packet_id;
 
 		send_buffer[ind++] = mcconf.pwm_mode;
 		send_buffer[ind++] = mcconf.comm_mode;
@@ -344,6 +379,28 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind += 8;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.hall_sl_erpm * 1000.0), &ind);
 
+		buffer_append_float32(send_buffer, mcconf.foc_current_kp, 1e5, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_current_ki, 1e5, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_f_sw, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_dt_us, 1e6, &ind);
+		send_buffer[ind++] = mcconf.foc_encoder_inverted;
+		buffer_append_float32(send_buffer, mcconf.foc_encoder_offset, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_encoder_ratio, 1e3, &ind);
+		send_buffer[ind++] = mcconf.foc_sensor_mode;
+		buffer_append_float32(send_buffer, mcconf.foc_pll_kp, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_pll_ki, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_motor_l, 1e8, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_motor_r, 1e5, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_motor_flux_linkage, 1e5, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_observer_gain, 1e0, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_duty_dowmramp_kp, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_duty_dowmramp_ki, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_openloop_rpm, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_sl_openloop_hyst, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_sl_openloop_time, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_sl_d_current_duty, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_sl_d_current_factor, 1e3, &ind);
+
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kd * 1000000.0), &ind);
@@ -362,6 +419,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step, 1000000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step_rpm_lim, 1000000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.m_current_backoff_gain, 1000000.0, &ind);
+		buffer_append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);
 
 		commands_send_packet(send_buffer, ind);
 		break;
@@ -425,15 +483,20 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 		ind = 0;
-		send_buffer[ind++] = COMM_SET_APPCONF;
+		send_buffer[ind++] = packet_id;
 		commands_send_packet(send_buffer, ind);
 		break;
 
 	case COMM_GET_APPCONF:
-		appconf = *app_get_configuration();
+	case COMM_GET_APPCONF_DEFAULT:
+		if (packet_id == COMM_GET_APPCONF) {
+			appconf = *app_get_configuration();
+		} else {
+			conf_general_get_default_app_configuration(&appconf);
+		}
 
 		ind = 0;
-		send_buffer[ind++] = COMM_GET_APPCONF;
+		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = appconf.controller_id;
 		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
@@ -502,12 +565,59 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	case COMM_DETECT_MOTOR_PARAM:
 		ind = 0;
-		detect_current = (float)buffer_get_int32(data, &ind) / 1000.0;
-		detect_min_rpm = (float)buffer_get_int32(data, &ind) / 1000.0;
-		detect_low_duty = (float)buffer_get_int32(data, &ind) / 1000.0;
+		detect_current = buffer_get_float32(data, 1e3, &ind);
+		detect_min_rpm = buffer_get_float32(data, 1e3, &ind);
+		detect_low_duty = buffer_get_float32(data, 1e3, &ind);
 
 		chEvtSignal(detect_tp, (eventmask_t) 1);
 		break;
+
+	case COMM_DETECT_MOTOR_R_L: {
+		mcconf = *mc_interface_get_configuration();
+		mcconf_old = mcconf;
+
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
+
+		mcconf.motor_type = MOTOR_TYPE_FOC;
+		mc_interface_set_configuration(&mcconf);
+
+		float r = 0.0;
+		float l = 0.0;
+		bool res = mcpwm_foc_measure_res_ind(&r, &l);
+		mc_interface_set_configuration(&mcconf_old);
+
+		if (!res) {
+			r = 0.0;
+			l = 0.0;
+		}
+
+		buffer_append_float32(send_buffer, r, 1e6, &ind);
+		buffer_append_float32(send_buffer, l, 1e3, &ind);
+		commands_send_packet(send_buffer, ind);
+	}
+	break;
+
+	case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
+		ind = 0;
+		float current = buffer_get_float32(data, 1e3, &ind);
+		float min_rpm = buffer_get_float32(data, 1e3, &ind);
+		float duty = buffer_get_float32(data, 1e3, &ind);
+		float resistance = buffer_get_float32(data, 1e6, &ind);
+
+		float linkage;
+		bool res = conf_general_measure_flux_linkage(current, duty, min_rpm, resistance, &linkage);
+
+		if (!res) {
+			linkage = 0.0;
+		}
+
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE;
+		buffer_append_float32(send_buffer, linkage, 1e7, &ind);
+		commands_send_packet(send_buffer, ind);
+	}
+	break;
 
 	case COMM_REBOOT:
 		// Lock the system and enter an infinite loop. The watchdog will reboot.

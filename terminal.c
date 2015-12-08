@@ -25,14 +25,19 @@
 #include "ch.h"
 #include "hal.h"
 #include "terminal.h"
+#include "mcpwm.h"
+#include "mcpwm_foc.h"
+#include "mc_interface.h"
 #include "commands.h"
 #include "main.h"
 #include "hw.h"
 #include "comm_can.h"
 #include "utils.h"
+#include "timeout.h"
 
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 // Private variables
 #define FAULT_VEC_LEN						25
@@ -55,10 +60,15 @@ void terminal_process_string(char *str) {
 		return;
 	}
 
+	static mc_configuration mcconf; // static to save some stack
+	static mc_configuration mcconf_old; // static to save some stack
+	mcconf = *mc_interface_get_configuration();
+	mcconf_old = mcconf;
+
 	if (strcmp(argv[0], "ping") == 0) {
 		commands_printf("pong\n");
 	} else if (strcmp(argv[0], "stop") == 0) {
-		mcpwm_set_duty(0);
+		mc_interface_set_duty(0);
 		commands_printf("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
@@ -87,14 +97,14 @@ void terminal_process_string(char *str) {
 		} while (tp != NULL);
 		commands_printf("");
 	} else if (strcmp(argv[0], "fault") == 0) {
-		commands_printf("%s\n", mcpwm_fault_to_string(mcpwm_get_fault()));
+		commands_printf("%s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
 	} else if (strcmp(argv[0], "faults") == 0) {
 		if (fault_vec_write == 0) {
 			commands_printf("No faults registered since startup\n");
 		} else {
 			commands_printf("The following faults were registered since start:\n");
 			for (int i = 0;i < fault_vec_write;i++) {
-				commands_printf("Fault            : %s", mcpwm_fault_to_string(fault_vec[i].fault));
+				commands_printf("Fault            : %s", mc_interface_fault_to_string(fault_vec[i].fault));
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
@@ -102,7 +112,6 @@ void terminal_process_string(char *str) {
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);
 				commands_printf("Cycles running   : %d", fault_vec[i].cycles_running);
-				commands_printf("PWM cycles       : %d", fault_vec[i].pwm_cycles);
 				commands_printf("TIM duty         : %d", (int)((float)fault_vec[i].tim_top * fault_vec[i].duty));
 				commands_printf("TIM val samp     : %d", fault_vec[i].tim_val_samp);
 				commands_printf("TIM current samp : %d", fault_vec[i].tim_current_samp);
@@ -112,23 +121,31 @@ void terminal_process_string(char *str) {
 			}
 		}
 	} else if (strcmp(argv[0], "rpm") == 0) {
-		commands_printf("Electrical RPM: %.2f rpm\n", (double)mcpwm_get_rpm());
+		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
-		commands_printf("Tachometer counts: %i\n", mcpwm_get_tachometer_value(0));
+		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
 		volatile int t8_cnt = TIM8->CNT;
+		volatile int dir1 = !!(TIM1->CR1 & (1 << 4));
+		volatile int dir8 = !!(TIM8->CR1 & (1 << 4));
 		chSysUnlock();
-		int duty = TIM1->CCR1;
+		int duty1 = TIM1->CCR1;
+		int duty2 = TIM1->CCR2;
+		int duty3 = TIM1->CCR3;
 		int top = TIM1->ARR;
 		int voltage_samp = TIM8->CCR1;
 		int current1_samp = TIM1->CCR4;
 		int current2_samp = TIM8->CCR2;
 		commands_printf("Tim1 CNT: %i", t1_cnt);
 		commands_printf("Tim8 CNT: %u", t8_cnt);
-		commands_printf("Duty cycle: %u", duty);
+		commands_printf("Duty cycle1: %u", duty1);
+		commands_printf("Duty cycle2: %u", duty2);
+		commands_printf("Duty cycle3: %u", duty3);
 		commands_printf("Top: %u", top);
+		commands_printf("Dir1: %u", dir1);
+		commands_printf("Dir8: %u", dir8);
 		commands_printf("Voltage sample: %u", voltage_samp);
 		commands_printf("Current 1 sample: %u", current1_samp);
 		commands_printf("Current 2 sample: %u\n", current2_samp);
@@ -144,9 +161,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &min_rpm);
 			sscanf(argv[3], "%f", &low_duty);
 
-			const volatile mc_configuration *mcconf = mcpwm_get_configuration();
-
-			if (current > 0.0 && current < mcconf->l_current_max &&
+			if (current > 0.0 && current < mcconf.l_current_max &&
 					min_rpm > 10.0 && min_rpm < 3000.0 &&
 					low_duty > 0.02 && low_duty < 0.8) {
 
@@ -201,6 +216,106 @@ void terminal_process_string(char *str) {
 				commands_printf("Duty               : %.2f\n", (double)msg->duty);
 			}
 		}
+	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
+		if (argc == 2) {
+			float current = -1.0;
+			sscanf(argv[1], "%f", &current);
+
+			if (current > 0.0 && current <= mcconf.l_current_max) {
+				mc_motor_type type_old = mcconf.motor_type;
+				mcconf.motor_type = MOTOR_TYPE_FOC;
+				mc_interface_set_configuration(&mcconf);
+
+				float offset = 0.0;
+				float ratio = 0.0;
+				bool inverted = false;
+				mcpwm_foc_encoder_detect(current, &offset, &ratio, &inverted);
+
+				mcconf.motor_type = type_old;
+				mc_interface_set_configuration(&mcconf);
+
+				commands_printf("Offset   : %.2f", (double)offset);
+				commands_printf("Ratio    : %.2f", (double)ratio);
+				commands_printf("Inverted : %s\n", inverted ? "true" : "false");
+
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "measure_res") == 0) {
+		if (argc == 2) {
+			float current = -1.0;
+			sscanf(argv[1], "%f", &current);
+
+			if (current > 0.0 && current <= mcconf.l_current_max) {
+				mcconf.motor_type = MOTOR_TYPE_FOC;
+				mc_interface_set_configuration(&mcconf);
+
+				commands_printf("Resistance: %.6f ohm\n", (double)mcpwm_foc_measure_resistance(current, 2000));
+
+				mc_interface_set_configuration(&mcconf_old);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "measure_ind") == 0) {
+		if (argc == 2) {
+			float duty = -1.0;
+			sscanf(argv[1], "%f", &duty);
+
+			if (duty > 0.0) {
+				mcconf.motor_type = MOTOR_TYPE_FOC;
+				mcconf.foc_f_sw = 3000.0;
+				mc_interface_set_configuration(&mcconf);
+
+				commands_printf("Inductance: %.2f microhenry\n", (double)(mcpwm_foc_measure_inductance(duty, 200, 0)));
+
+				mc_interface_set_configuration(&mcconf_old);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "measure_linkage") == 0) {
+		if (argc == 5) {
+			float current = -1.0;
+			float duty = -1.0;
+			float min_erpm = -1.0;
+			float res = -1.0;
+			sscanf(argv[1], "%f", &current);
+			sscanf(argv[2], "%f", &duty);
+			sscanf(argv[3], "%f", &min_erpm);
+			sscanf(argv[4], "%f", &res);
+
+			if (current > 0.0 && current <= mcconf.l_current_max && min_erpm > 0.0 && duty > 0.02 && res >= 0.0) {
+				float linkage;
+				conf_general_measure_flux_linkage(current, duty, min_erpm, res, &linkage);
+				commands_printf("Flux linkage: %.7f\n", (double)linkage);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "measure_res_ind") == 0) {
+		mcconf.motor_type = MOTOR_TYPE_FOC;
+		mc_interface_set_configuration(&mcconf);
+
+		float res = 0.0;
+		float ind = 0.0;
+		mcpwm_foc_measure_res_ind(&res, &ind);
+		commands_printf("Resistance: %.6f ohm", (double)res);
+		commands_printf("Inductance: %.2f microhenry\n", (double)ind);
+
+		mc_interface_set_configuration(&mcconf_old);
+	} else if (strcmp(argv[0], "foc_state") == 0) {
+		mcpwm_foc_print_state();
+		commands_printf(" ");
 	}
 
 	// The help command
@@ -254,7 +369,27 @@ void terminal_process_string(char *str) {
 		commands_printf("  Prints some rpm-dep values");
 
 		commands_printf("can_devs");
-		commands_printf("  Prints all CAN devices seen on the bus the past second\n");
+		commands_printf("  Prints all CAN devices seen on the bus the past second");
+
+		commands_printf("foc_encoder_detect [current]");
+		commands_printf("  Run the motor at 1Hz on open loop and compute encoder settings");
+
+		commands_printf("measure_res [current]");
+		commands_printf("  Lock the motor with a current and calculate its resistance");
+
+		commands_printf("measure_ind [duty]");
+		commands_printf("  Send short voltage pulses, measure the current and calculate the motor inductance");
+
+		commands_printf("measure_linkage [current] [duty] [min_rpm] [motor_res]");
+		commands_printf("  Run the motor in BLDC delay mode and measure the flux linkage");
+		commands_printf("  example measure_linkage 5 0.5 700 0.076");
+		commands_printf("  tip: measure the resistance with measure_res first");
+
+		commands_printf("measure_res_ind");
+		commands_printf("  Measure the motor resistance and inductance with an incremental adaptive algorithm.");
+
+		commands_printf("foc_state");
+		commands_printf("  Print some FOC state variables.\n");
 	} else {
 		commands_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);
@@ -267,4 +402,3 @@ void terminal_add_fault_data(fault_data *data) {
 		fault_vec_write = 0;
 	}
 }
-

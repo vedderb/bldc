@@ -72,9 +72,6 @@ void app_init(app_configuration *conf) {
 		hw_stop_i2c();
 		app_sten_init();
 #endif
-#ifdef USE_APP_GURGALOF
-		app_gurgalof_init();
-#endif
 		break;
 
 	default:

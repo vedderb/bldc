@@ -25,8 +25,13 @@
 #ifndef ENCODER_H_
 #define ENCODER_H_
 
+#include "conf_general.h"
+
 // Functions
-void encoder_init(void);
+void encoder_init(uint32_t counts);
 float encoder_read_deg(void);
+void encoder_reset(void);
+void encoder_set_counts(uint32_t counts);
+bool encoder_index_found(void);
 
 #endif /* ENCODER_H_ */

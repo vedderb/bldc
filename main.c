@@ -25,7 +25,9 @@
 #include <stdlib.h>
 
 #include "main.h"
+#include "mc_interface.h"
 #include "mcpwm.h"
+#include "mcpwm_foc.h"
 #include "ledpwm.h"
 #include "comm_usb.h"
 #include "ledpwm.h"
@@ -41,6 +43,7 @@
 #include "encoder.h"
 #include "servo.h"
 #include "servo_simple.h"
+#include "utils.h"
 
 /*
  * Timers used:
@@ -115,17 +118,18 @@ static THD_FUNCTION(periodic_thread, arg) {
 	int fault_print = 0;
 
 	for(;;) {
-		if (mcpwm_get_state() == MC_STATE_RUNNING) {
+		if (mc_interface_get_state() == MC_STATE_RUNNING) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
 		} else {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
 		}
 
-		mc_fault_code fault = mcpwm_get_fault();
+		mc_fault_code fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			if (!fault_print && AUTO_PRINT_FAULTS) {
 				fault_print = 1;
-				commands_printf("%s\n", mcpwm_fault_to_string(mcpwm_get_fault()));
+				commands_printf("%s\n", mc_interface_fault_to_string(
+						mc_interface_get_fault()));
 			}
 
 			for (int i = 0;i < (int)fault;i++) {
@@ -141,11 +145,12 @@ static THD_FUNCTION(periodic_thread, arg) {
 			fault_print = 0;
 		}
 
-		if (mcpwm_get_state() == MC_STATE_DETECTING) {
+		if (mc_interface_get_state() == MC_STATE_DETECTING) {
 			commands_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
 #if ENCODER_ENABLE
+		commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 //		commands_send_rotor_pos(encoder_read_deg());
 //		comm_can_set_pos(0, encoder_read_deg());
 #endif
@@ -209,7 +214,7 @@ static THD_FUNCTION(timer_thread, arg) {
 void main_dma_adc_handler(void) {
 	ledpwm_update_pwm();
 
-	if (sample_at_start && (mcpwm_get_state() == MC_STATE_RUNNING ||
+	if (sample_at_start && (mc_interface_get_state() == MC_STATE_RUNNING ||
 			start_comm != mcpwm_get_comm_step())) {
 		sample_now = 0;
 		sample_ready = 0;
@@ -222,7 +227,7 @@ void main_dma_adc_handler(void) {
 		if (a >= sample_int) {
 			a = 0;
 
-			if (mcpwm_get_state() == MC_STATE_DETECTING) {
+			if (mc_interface_get_state() == MC_STATE_DETECTING) {
 				curr0_samples[sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
 				curr1_samples[sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
 
@@ -240,8 +245,8 @@ void main_dma_adc_handler(void) {
 
 			vzero_samples[sample_now] = mcpwm_vzero;
 
-			curr_fir_samples[sample_now] = (int16_t)(mcpwm_get_tot_current() * 100.0);
-			f_sw_samples[sample_now] = (int16_t)(mcpwm_get_switching_frequency_now() / 10.0);
+			curr_fir_samples[sample_now] = (int16_t)(mc_interface_get_tot_current() * 100.0);
+			f_sw_samples[sample_now] = (int16_t)(mc_interface_get_switching_frequency_now() / 10.0);
 
 			status_samples[sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
@@ -296,7 +301,12 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
-	mcpwm_init(&mcconf);
+
+#if ENCODER_ENABLE
+	encoder_init(mcconf.m_encoder_counts);
+#endif
+
+	mc_interface_init(&mcconf);
 
 	commands_init();
 	comm_usb_init();
@@ -315,10 +325,6 @@ int main(void) {
 #if WS2811_ENABLE
 	ws2811_init();
 	led_external_init();
-#endif
-
-#if ENCODER_ENABLE
-	encoder_init();
 #endif
 
 #if SERVO_OUT_ENABLE

@@ -27,7 +27,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "hw.h"
 #include <string.h>
 
@@ -91,8 +91,8 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	new_app_size += flash_addr[NEW_APP_BASE];
 
-	mcpwm_unlock();
-	mcpwm_release_motor();
+	mc_interface_unlock();
+	mc_interface_release_motor();
 	utils_sys_lock_cnt();
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -117,8 +117,8 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mcpwm_unlock();
-	mcpwm_release_motor();
+	mc_interface_unlock();
+	mc_interface_release_motor();
 	utils_sys_lock_cnt();
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
@@ -141,8 +141,8 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 void flash_helper_jump_to_bootloader(void) {
 	typedef void (*pFunction)(void);
 
-	mcpwm_unlock();
-	mcpwm_release_motor();
+	mc_interface_unlock();
+	mc_interface_release_motor();
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 

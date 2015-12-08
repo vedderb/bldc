@@ -26,7 +26,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "commands.h"
 #include "utils.h"
 #include "timeout.h"
@@ -183,7 +183,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		static bool is_reverse = false;
 		static bool was_z = false;
-		const float current_now = mcpwm_get_tot_current_directional_filtered();
+		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
@@ -229,12 +229,12 @@ static THD_FUNCTION(output_thread, arg) {
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
-		const volatile mc_configuration *mcconf = mcpwm_get_configuration();
+		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
 		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mcpwm_get_rpm();
+		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
 		if (filter_ptr >= RPM_FILTER_SAMPLES) {
 			filter_ptr = 0;
 		}
@@ -277,11 +277,11 @@ static THD_FUNCTION(output_thread, arg) {
 				}
 			}
 
-			mcpwm_set_pid_speed(pid_rpm);
+			mc_interface_set_pid_speed(pid_rpm);
 
 			// Send the same duty cycle to the other controllers
 			if (config.multi_esc) {
-				float duty = mcpwm_get_duty_cycle_now();
+				float duty = mc_interface_get_duty_cycle_now();
 
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -310,7 +310,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// Find lowest RPM and highest current
-		float rpm_local = mcpwm_get_rpm();
+		float rpm_local = mc_interface_get_rpm();
 		if (is_reverse) {
 			rpm_local = -rpm_local;
 		}
@@ -382,7 +382,7 @@ static THD_FUNCTION(output_thread, arg) {
 		prev_current = current;
 
 		if (current < 0.0) {
-			mcpwm_set_brake_current(current);
+			mc_interface_set_brake_current(current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -446,9 +446,9 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 
 			if (is_reverse) {
-				mcpwm_set_current(-current_out);
+				mc_interface_set_current(-current_out);
 			} else {
-				mcpwm_set_current(current_out);
+				mc_interface_set_current(current_out);
 			}
 		}
 	}

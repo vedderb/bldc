@@ -29,7 +29,7 @@
 #include "stm32f4xx_conf.h"
 #include "datatypes.h"
 #include "buffer.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "timeout.h"
 #include "commands.h"
 #include "app.h"
@@ -161,31 +161,31 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					switch (cmd) {
 					case CAN_PACKET_SET_DUTY:
 						ind = 0;
-						mcpwm_set_duty((float)buffer_get_int32(rxmsg.data8, &ind) / 100000.0);
+						mc_interface_set_duty((float)buffer_get_int32(rxmsg.data8, &ind) / 100000.0);
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT:
 						ind = 0;
-						mcpwm_set_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
+						mc_interface_set_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE:
 						ind = 0;
-						mcpwm_set_brake_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
+						mc_interface_set_brake_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_RPM:
 						ind = 0;
-						mcpwm_set_pid_speed((float)buffer_get_int32(rxmsg.data8, &ind));
+						mc_interface_set_pid_speed((float)buffer_get_int32(rxmsg.data8, &ind));
 						timeout_reset();
 						break;
 
 					case CAN_PACKET_SET_POS:
 						ind = 0;
-						mcpwm_set_pid_pos((float)buffer_get_int32(rxmsg.data8, &ind) / 1000000.0);
+						mc_interface_set_pid_pos((float)buffer_get_int32(rxmsg.data8, &ind) / 1000000.0);
 						timeout_reset();
 						break;
 
@@ -283,9 +283,9 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			// Send status message
 			int32_t send_index = 0;
 			uint8_t buffer[8];
-			buffer_append_int32(buffer, (int32_t)mcpwm_get_rpm(), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mcpwm_get_tot_current() * 10.0), &send_index);
-			buffer_append_int16(buffer, (int16_t)(mcpwm_get_duty_cycle_now() * 1000.0), &send_index);
+			buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
+			buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current() * 10.0), &send_index);
+			buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &send_index);
 			comm_can_transmit(app_get_configuration()->controller_id | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 

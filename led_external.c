@@ -26,12 +26,12 @@
 #include "ch.h"
 #include "hal.h"
 #include "ws2811.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 #include "utils.h"
 #include "hw.h"
 
 // Macros
-#define HAS_FAULT()		(mcpwm_get_fault() != FAULT_CODE_NONE)
+#define HAS_FAULT()		(mc_interface_get_fault() != FAULT_CODE_NONE)
 
 // Private variables
 static THD_WORKING_AREA(led_thread_wa, 1024);
@@ -65,7 +65,7 @@ static THD_FUNCTION(led_thread, arg) {
 	float batt_level = 0.0;
 
 	for(;;) {
-		mc_fault_code fault = mcpwm_get_fault();
+		mc_fault_code fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			ws2811_set_all(COLOR_BLACK);
 			for (int i = 0;i < (int)fault;i++) {

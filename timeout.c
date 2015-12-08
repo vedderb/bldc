@@ -23,7 +23,7 @@
  */
 
 #include "timeout.h"
-#include "mcpwm.h"
+#include "mc_interface.h"
 
 // Private variables
 static volatile systime_t timeout_msec;
@@ -72,8 +72,8 @@ static THD_FUNCTION(timeout_thread, arg) {
 
 	for(;;) {
 		if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) {
-			mcpwm_unlock();
-			mcpwm_set_brake_current(timeout_brake_current);
+			mc_interface_unlock();
+			mc_interface_set_brake_current(timeout_brake_current);
 			has_timeout = true;
 		} else {
 			has_timeout = false;
