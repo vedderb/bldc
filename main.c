@@ -150,7 +150,7 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 
 #if ENCODER_ENABLE
-		commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+//		commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 //		commands_send_rotor_pos(encoder_read_deg());
 //		comm_can_set_pos(0, encoder_read_deg());
 #endif

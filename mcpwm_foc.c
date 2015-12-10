@@ -1107,16 +1107,20 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 }
 
 void mcpwm_foc_print_state(void) {
-	commands_printf("Mod d:   %.2f", (double)m_motor_state.mod_d);
-	commands_printf("Mod q:   %.2f", (double)m_motor_state.mod_q);
-	commands_printf("Duty:    %.2f", (double)m_motor_state.duty_now);
-	commands_printf("Vd:      %.2f", (double)m_motor_state.vd);
-	commands_printf("Vq:      %.2f", (double)m_motor_state.vq);
-	commands_printf("Phase:   %.2f", (double)m_motor_state.phase);
-	commands_printf("V_alpha: %.2f", (double)m_motor_state.v_alpha);
-	commands_printf("V_beta:  %.2f", (double)m_motor_state.v_beta);
-	commands_printf("Obs_x1:  %.2f", (double)m_observer_x1);
-	commands_printf("Obs_x2:  %.2f", (double)m_observer_x2);
+	commands_printf("Mod d:     %.2f", (double)m_motor_state.mod_d);
+	commands_printf("Mod q:     %.2f", (double)m_motor_state.mod_q);
+	commands_printf("Duty:      %.2f", (double)m_motor_state.duty_now);
+	commands_printf("Vd:        %.2f", (double)m_motor_state.vd);
+	commands_printf("Vq:        %.2f", (double)m_motor_state.vq);
+	commands_printf("Phase:     %.2f", (double)m_motor_state.phase);
+	commands_printf("V_alpha:   %.2f", (double)m_motor_state.v_alpha);
+	commands_printf("V_beta:    %.2f", (double)m_motor_state.v_beta);
+	commands_printf("id:        %.2f", (double)m_motor_state.id);
+	commands_printf("iq:        %.2f", (double)m_motor_state.iq);
+	commands_printf("id_target: %.2f", (double)m_motor_state.id_target);
+	commands_printf("iq_target: %.2f", (double)m_motor_state.iq_target);
+	commands_printf("Obs_x1:    %.2f", (double)m_observer_x1);
+	commands_printf("Obs_x2:    %.2f", (double)m_observer_x2);
 }
 
 void mcpwm_foc_adc_inj_int_handler(void) {
@@ -1289,9 +1293,9 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		const float mod_q = m_motor_state.mod_q;
 		utils_truncate_number(&iq_set_tmp, m_conf->lo_current_min, m_conf->lo_current_max);
 		utils_saturate_vector_2d(&id_set_tmp, &iq_set_tmp, m_conf->lo_current_max);
-		if (mod_q > 0.0) {
+		if (mod_q > 0.001) {
 			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_min / mod_q, m_conf->lo_in_current_max / mod_q);
-		} else {
+		} else if (mod_q < -0.001) {
 			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_max / mod_q, m_conf->lo_in_current_min / mod_q);
 		}
 
@@ -1524,6 +1528,14 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 	x2_dot = -R * i_beta + v_beta + ((gamma / 2.0) * (*x2 - Lib)) * k1;
 	*x1 += x1_dot * dt;
 	*x2 += x2_dot * dt;
+
+	if (fabsf(*x1) > 1e20 || UTILS_IS_NAN(*x1)) {
+		*x1 = 0.0;
+	}
+
+	if (fabsf(*x2) > 1e20 || UTILS_IS_NAN(*x2)) {
+		*x2 = 0.0;
+	}
 
 	*phase = utils_fast_atan2(*x2 - L * i_beta, *x1 - L * i_alpha);
 }

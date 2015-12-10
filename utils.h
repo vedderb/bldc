@@ -54,4 +54,8 @@ void utils_sys_unlock_cnt(void);
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
 
+// nan and infinity check for floats
+#define UTILS_IS_INF(x)		((x) == (1.0 / 0.0) || (x) == (-1.0 / 0.0))
+#define UTILS_IS_NAN(x)		((x) != (x))
+
 #endif /* UTILS_H_ */
