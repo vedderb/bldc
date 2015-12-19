@@ -222,6 +222,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[1], "%f", &current);
 
 			if (current > 0.0 && current <= mcconf.l_current_max) {
+#if ENCODER_ENABLE
 				mc_motor_type type_old = mcconf.motor_type;
 				mcconf.motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(&mcconf);
@@ -237,7 +238,9 @@ void terminal_process_string(char *str) {
 				commands_printf("Offset   : %.2f", (double)offset);
 				commands_printf("Ratio    : %.2f", (double)ratio);
 				commands_printf("Inverted : %s\n", inverted ? "true" : "false");
-
+#else
+				commands_printf("Encoder not enabled.\n");
+#endif
 			} else {
 				commands_printf("Invalid argument(s).\n");
 			}
@@ -313,6 +316,57 @@ void terminal_process_string(char *str) {
 		commands_printf("Inductance: %.2f microhenry\n", (double)ind);
 
 		mc_interface_set_configuration(&mcconf_old);
+	} else if (strcmp(argv[0], "measure_linkage_foc") == 0) {
+		if (argc == 2) {
+			float duty = -1.0;
+			sscanf(argv[1], "%f", &duty);
+
+			if (duty > 0.0) {
+				mcconf.motor_type = MOTOR_TYPE_FOC;
+				mc_interface_set_configuration(&mcconf);
+				const float res = (3.0 / 2.0) * mcconf.foc_motor_r;
+
+				// Disable timeout
+				systime_t tout = timeout_get_timeout_msec();
+				float tout_c = timeout_get_brake_current();
+				timeout_configure(60000, 0.0);
+
+				for (int i = 0;i < 100;i++) {
+					mc_interface_set_duty(((float)i / 100.0) * duty);
+					chThdSleepMilliseconds(20);
+				}
+
+				float vq_avg = 0.0;
+				float rpm_avg = 0.0;
+				float samples = 0.0;
+				float iq_avg = 0.0;
+				for (int i = 0;i < 1000;i++) {
+					vq_avg += mcpwm_foc_get_vq();
+					rpm_avg += mc_interface_get_rpm();
+					iq_avg += mc_interface_get_tot_current_directional();
+					samples += 1.0;
+					chThdSleepMilliseconds(1);
+				}
+
+				mc_interface_release_motor();
+				mc_interface_set_configuration(&mcconf_old);
+
+				// Enable timeout
+				timeout_configure(tout, tout_c);
+
+				vq_avg /= samples;
+				rpm_avg /= samples;
+				iq_avg /= samples;
+
+				float linkage = (vq_avg - res * iq_avg) / (rpm_avg * ((2.0 * M_PI) / 60.0));
+
+				commands_printf("Flux linkage: %.7f\n", (double)linkage);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
 	} else if (strcmp(argv[0], "foc_state") == 0) {
 		mcpwm_foc_print_state();
 		commands_printf(" ");
@@ -387,6 +441,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("measure_res_ind");
 		commands_printf("  Measure the motor resistance and inductance with an incremental adaptive algorithm.");
+
+		commands_printf("measure_linkage_foc [duty]");
+		commands_printf("  Run the motor with FOC and measure the flux linkage.");
 
 		commands_printf("foc_state");
 		commands_printf("  Print some FOC state variables.\n");

@@ -82,7 +82,6 @@ static volatile bool m_phase_override;
 static volatile float m_phase_now_override;
 static volatile float m_current_in;
 static volatile float m_current_in_filtered;
-static volatile float m_current;
 static volatile float m_current_filtered;
 static volatile float m_current_abs;
 static volatile float m_duty_cycle_set;
@@ -197,7 +196,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_phase_now_override = 0.0;
 	m_current_in = 0.0;
 	m_current_in_filtered = 0.0;
-	m_current = 0.0;
 	m_current_abs = 0.0;
 	m_current_filtered = 0.0;
 	m_duty_cycle_set = 0.0;
@@ -240,7 +238,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	// Channel 1, 2 and 3 Configuration in PWM mode
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
@@ -259,7 +257,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 
 	// Automatic Output enable, Break, dead time and lock configuration
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
-	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSRState_Enable;
+	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
 	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
@@ -506,7 +504,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	m_control_mode = CONTROL_MODE_SPEED;
 	m_speed_pid_set_rpm = rpm;
 
-	if (m_state != MC_STATE_RUNNING) {
+	if (m_state != MC_STATE_RUNNING && fabsf(rpm) > m_conf->s_pid_min_erpm) {
 		m_state = MC_STATE_RUNNING;
 	}
 }
@@ -617,7 +615,7 @@ float mcpwm_foc_get_rpm(void) {
  * The motor current.
  */
 float mcpwm_foc_get_tot_current(void) {
-	return SIGN(m_motor_state.vq) * m_current;
+	return SIGN(m_motor_state.vq) * m_motor_state.iq;
 }
 
 /**
@@ -651,7 +649,7 @@ float mcpwm_foc_get_abs_motor_current(void) {
  * The motor current.
  */
 float mcpwm_foc_get_tot_current_directional(void) {
-	return m_current;
+	return m_motor_state.iq;
 }
 
 /**
@@ -760,6 +758,14 @@ float mcpwm_foc_get_phase_encoder(void) {
 	float angle = m_phase_now_encoder * (180.0 / M_PI);
 	utils_norm_angle(&angle);
 	return angle;
+}
+
+float mcpwm_foc_get_vd(void) {
+	return m_motor_state.vd;
+}
+
+float mcpwm_foc_get_vq(void) {
+	return m_motor_state.vq;
 }
 
 /**
@@ -1246,7 +1252,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			// Duty cycle control
 			static float duty_i_term = 0.0;
 			if (fabsf(duty_set) < (duty_abs - 0.05) ||
-					(SIGN(m_motor_state.vq) * m_current) < m_conf->lo_current_min) {
+					(SIGN(m_motor_state.vq) * m_motor_state.iq) < m_conf->lo_current_min) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
 				// Compensation for supply voltage variations
@@ -1351,16 +1357,14 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		// Run current control
 		control_current(&m_motor_state, dt);
 		m_current_abs = sqrtf(m_motor_state.id * m_motor_state.id + m_motor_state.iq * m_motor_state.iq);
-		m_current = m_motor_state.iq;
 		m_current_in = m_motor_state.i_bus;
 		m_current_in_filtered = m_current_in;
-		m_current_filtered = m_current;
+		m_current_filtered = m_motor_state.iq;
 
 		run_pid_control_pos(dt);
 	} else {
 		m_current_in = 0.0;
 		m_current_in_filtered = 0.0;
-		m_current = 0.0;
 		m_current_filtered = 0.0;
 		m_current_abs = 0.0;
 
@@ -1386,6 +1390,8 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		// The current is 0 when the motor is undriven
 		m_motor_state.i_alpha = 0.0;
 		m_motor_state.i_beta = 0.0;
+		m_motor_state.id = 0.0;
+		m_motor_state.iq = 0.0;
 
 		// Run observer
 		observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
@@ -1819,7 +1825,11 @@ static void run_pid_control_speed(float dt) {
 	if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
 		i_term = 0.0;
 		prev_error = 0;
-		mcpwm_foc_set_duty(0.0);
+		m_iq_set = 0.0;
+		m_state = MC_STATE_OFF;
+		if (m_output_on) {
+			stop_pwm_hw();
+		}
 		return;
 	}
 

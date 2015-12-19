@@ -497,6 +497,8 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	mcconf.sl_min_erpm = min_erpm;
 	mc_interface_set_configuration(&mcconf);
 
+	chThdSleepMilliseconds(1000);
+
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();

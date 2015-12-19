@@ -231,7 +231,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Channel 1, 2 and 3 Configuration in PWM mode
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
@@ -250,7 +250,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Automatic Output enable, Break, dead time and lock configuration
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
-	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSRState_Enable;
+	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
 	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;

@@ -102,7 +102,7 @@
 #define MCCONF_S_PID_KP					0.0001	// Proportional gain
 #endif
 #ifndef MCCONF_S_PID_KI
-#define MCCONF_S_PID_KI					0.002	// Integral gain
+#define MCCONF_S_PID_KI					0.015	// Integral gain
 #endif
 #ifndef MCCONF_S_PID_KD
 #define MCCONF_S_PID_KD					0.0		// Derivative gain
@@ -113,13 +113,13 @@
 
 // Position PID parameters
 #ifndef MCCONF_P_PID_KP
-#define MCCONF_P_PID_KP					0.0001	// Proportional gain
+#define MCCONF_P_PID_KP					0.01	// Proportional gain
 #endif
 #ifndef MCCONF_P_PID_KI
-#define MCCONF_P_PID_KI					0.002	// Integral gain
+#define MCCONF_P_PID_KI					0.0		// Integral gain
 #endif
 #ifndef MCCONF_P_PID_KD
-#define MCCONF_P_PID_KD					0.0		// Derivative gain
+#define MCCONF_P_PID_KD					0.0006	// Derivative gain
 #endif
 
 // Current control parameters
