@@ -436,7 +436,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
 
-	// TIM3 enable counter
 	TIM_Cmd(TIM12, ENABLE);
 
 	// Start threads

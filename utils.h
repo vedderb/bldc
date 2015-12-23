@@ -58,4 +58,18 @@ void utils_sys_unlock_cnt(void);
 #define UTILS_IS_INF(x)		((x) == (1.0 / 0.0) || (x) == (-1.0 / 0.0))
 #define UTILS_IS_NAN(x)		((x) != (x))
 
+/**
+ * A simple low pass filter.
+ *
+ * @param value
+ * The filtered value.
+ *
+ * @param sample
+ * Next sample.
+ *
+ * @param filter_constant
+ * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
+ */
+#define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * (value - (sample)))
+
 #endif /* UTILS_H_ */

@@ -632,7 +632,7 @@ float mc_interface_get_tot_current_in_filtered(void) {
 }
 
 int mc_interface_get_tachometer_value(bool reset) {
-	int ret = 0.0;
+	int ret = 0;
 
 	switch (conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
@@ -652,7 +652,7 @@ int mc_interface_get_tachometer_value(bool reset) {
 }
 
 int mc_interface_get_tachometer_abs_value(bool reset) {
-	int ret = 0.0;
+	int ret = 0;
 
 	switch (conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
@@ -662,6 +662,26 @@ int mc_interface_get_tachometer_abs_value(bool reset) {
 
 	case MOTOR_TYPE_FOC:
 		ret = mcpwm_foc_get_tachometer_abs_value(reset);
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
+float mc_interface_get_last_inj_adc_isr_duration(void) {
+	float ret = 0.0;
+
+	switch (conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		ret = mcpwm_get_last_inj_adc_isr_duration();
+		break;
+
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_get_last_inj_adc_isr_duration();
 		break;
 
 	default:
@@ -801,19 +821,7 @@ void mc_interface_mc_timer_isr(void) {
 	if (conf.motor_type == MOTOR_TYPE_FOC) {
 		// TODO: Make this more general
 		abs_current = mcpwm_foc_get_abs_motor_current();
-
-#define FILTER_SAMPLES 8
-		static float filter_buffer[FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = abs_current;
-		if (filter_ptr >= FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
-		abs_current_filtered = 0.0;
-		for (int i = 0;i < FILTER_SAMPLES;i++) {
-			abs_current_filtered += filter_buffer[i];
-		}
-		abs_current_filtered /= (float)FILTER_SAMPLES;
+		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered();
 	}
 
 	// Current fault code

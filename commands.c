@@ -159,25 +159,26 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_VALUES:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_VALUES;
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS1) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS2) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS3) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS4) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS5) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_MOS6) * 10.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(NTC_TEMP(ADC_IND_TEMP_PCB) * 10.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_read_reset_avg_motor_current() * 100.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_read_reset_avg_input_current() * 100.0), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)mc_interface_get_rpm(), &ind);
-		buffer_append_int16(send_buffer, (int16_t)(GET_INPUT_VOLTAGE() * 10.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_amp_hours(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_amp_hours_charged(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_watt_hours(false) * 10000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mc_interface_get_watt_hours_charged(false) * 10000.0), &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS1), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS2), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS3), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS4), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS5), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS6), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_PCB), 1e1, &ind);
+		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_motor_current(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_input_current(), 1e2, &ind);
+		buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
+		buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
+		buffer_append_float16(send_buffer, GET_INPUT_VOLTAGE(), 1e1, &ind);
+		buffer_append_float32(send_buffer, mc_interface_get_amp_hours(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface_get_amp_hours_charged(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface_get_watt_hours(false), 1e4, &ind);
+		buffer_append_float32(send_buffer, mc_interface_get_watt_hours_charged(false), 1e4, &ind);
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		send_buffer[ind++] = mc_interface_get_fault();
+		// TODO: send FOC values id, iq, abs
 		commands_send_packet(send_buffer, ind);
 		break;
 

@@ -167,7 +167,7 @@
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#define MCCONF_FOC_F_SW					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.15 // Microseconds for dead time compensation
@@ -209,7 +209,7 @@
 #define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
-#define MCCONF_FOC_OPENLOOP_RPM			200.0	// Openloop RPM (sensorless low speed or when finding index pulse)
+#define MCCONF_FOC_OPENLOOP_RPM			350.0	// Openloop RPM (sensorless low speed or when finding index pulse)
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_HYST
 #define MCCONF_FOC_SL_OPENLOOP_HYST		0.5		// Time below min RPM to activate openloop (s)

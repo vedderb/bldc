@@ -48,6 +48,8 @@ typedef struct {
 	float phase;
 	float i_alpha;
 	float i_beta;
+	float i_abs;
+	float i_abs_filter;
 	float i_bus;
 	float v_bus;
 	float v_alpha;
@@ -56,6 +58,8 @@ typedef struct {
 	float mod_q;
 	float id;
 	float iq;
+	float id_filter;
+	float iq_filter;
 	float vd;
 	float vq;
 } motor_state_t;
@@ -80,10 +84,6 @@ static volatile int m_curr0_offset;
 static volatile int m_curr1_offset;
 static volatile bool m_phase_override;
 static volatile float m_phase_now_override;
-static volatile float m_current_in;
-static volatile float m_current_in_filtered;
-static volatile float m_current_filtered;
-static volatile float m_current_abs;
 static volatile float m_duty_cycle_set;
 static volatile float m_id_set;
 static volatile float m_iq_set;
@@ -103,6 +103,7 @@ static volatile float m_pll_speed;
 static volatile mc_sample_t m_samples;
 static volatile int m_tachometer;
 static volatile int m_tachometer_abs;
+static volatile float last_inj_adc_isr_duration;
 
 // Private functions
 static void do_dc_cal(void);
@@ -194,10 +195,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_dccal_done = false;
 	m_phase_override = false;
 	m_phase_now_override = 0.0;
-	m_current_in = 0.0;
-	m_current_in_filtered = 0.0;
-	m_current_abs = 0.0;
-	m_current_filtered = 0.0;
 	m_duty_cycle_set = 0.0;
 	m_id_set = 0.0;
 	m_iq_set = 0.0;
@@ -215,6 +212,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_pll_speed = 0.0;
 	m_tachometer = 0;
 	m_tachometer_abs = 0;
+	last_inj_adc_isr_duration = 0;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
 
@@ -409,6 +407,18 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	DCCAL_OFF();
 	do_dc_cal();
 
+	// Various time measurements
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
+
+	// Time base configuration
+	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
+	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1);
+	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
+
+	TIM_Cmd(TIM12, ENABLE);
+
 	// Start threads
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -431,6 +441,7 @@ void mcpwm_foc_deinit(void) {
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM8);
+	TIM_DeInit(TIM12);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
 	nvicDisableVector(ADC_IRQn);
@@ -456,7 +467,7 @@ bool mcpwm_foc_is_dccal_done(void) {
 }
 
 /**
- * Switch off all FETs.
+ * Switch off all FETs.TIM12->CNT = 0;
  */
 void mcpwm_foc_stop_pwm(void) {
 	mcpwm_foc_set_current(0.0);
@@ -619,7 +630,7 @@ float mcpwm_foc_get_tot_current(void) {
 }
 
 /**
- * Get the FIR-filtered motor current. The sign of this value will
+ * Get the filtered motor current. The sign of this value will
  * represent whether the motor is drawing (positive) or generating
  * (negative) current. This is the q-axis current which produces torque.
  *
@@ -627,7 +638,7 @@ float mcpwm_foc_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_foc_get_tot_current_filtered(void) {
-	return SIGN(m_motor_state.vq) * m_current_filtered;
+	return SIGN(m_motor_state.vq) * m_motor_state.iq_filter;
 }
 
 /**
@@ -638,7 +649,18 @@ float mcpwm_foc_get_tot_current_filtered(void) {
  * The magnitude of the motor current.
  */
 float mcpwm_foc_get_abs_motor_current(void) {
-	return m_current_abs;
+	return m_motor_state.i_abs;
+}
+
+/**
+ * Get the filtered magnitude of the motor current, which includes both the
+ * D and Q axis.
+ *
+ * @return
+ * The magnitude of the motor current.
+ */
+float mcpwm_foc_get_abs_motor_current_filtered(void) {
+	return m_motor_state.i_abs_filter;
 }
 
 /**
@@ -660,7 +682,7 @@ float mcpwm_foc_get_tot_current_directional(void) {
  * The filtered motor current.
  */
 float mcpwm_foc_get_tot_current_directional_filtered(void) {
-	return m_current_filtered;
+	return m_motor_state.iq_filter;
 }
 
 /**
@@ -670,17 +692,17 @@ float mcpwm_foc_get_tot_current_directional_filtered(void) {
  * The input current.
  */
 float mcpwm_foc_get_tot_current_in(void) {
-	return m_current_in;
+	return m_motor_state.i_bus;
 }
 
 /**
- * Get the FIR-filtered input current to the motor controller.
+ * Get the filtered input current to the motor controller.
  *
  * @return
  * The filtered input current.
  */
 float mcpwm_foc_get_tot_current_in_filtered(void) {
-	return m_current_in_filtered;
+	return m_motor_state.i_bus; // TODO: Calculate filtered current?
 }
 
 /**
@@ -860,7 +882,6 @@ void mcpwm_foc_encoder_detect(float current, float *offset, float *ratio, bool *
 
 	m_conf->foc_encoder_inverted = *inverted;
 	m_conf->foc_encoder_ratio = *ratio;
-//	conf->foc_encoder_ratio = ratio_old; // Ignore ratio and use the one from conf
 
 	commands_printf("Inversion and ratio detected");
 
@@ -982,6 +1003,7 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 
 	return (voltage_avg / current_avg) * (2.0 / 3.0);
 }
+
 /**
  * Measure the motor inductance with short voltage pulses.
  *
@@ -1083,7 +1105,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		i_last = 35.0;
 	}
 
-	*res = mcpwm_foc_measure_resistance(i_last, 1000);
+	*res = mcpwm_foc_measure_resistance(i_last, 500);
 
 	m_conf->foc_f_sw = 3000.0;
 	top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
@@ -1100,7 +1122,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		}
 	}
 
-	*ind = mcpwm_foc_measure_inductance(duty_last, 1000, 0);
+	*ind = mcpwm_foc_measure_inductance(duty_last, 500, 0);
 
 	m_conf->foc_f_sw = f_sw_old;
 	m_conf->foc_current_kp = kp_old;
@@ -1113,23 +1135,33 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 }
 
 void mcpwm_foc_print_state(void) {
-	commands_printf("Mod d:     %.2f", (double)m_motor_state.mod_d);
-	commands_printf("Mod q:     %.2f", (double)m_motor_state.mod_q);
-	commands_printf("Duty:      %.2f", (double)m_motor_state.duty_now);
-	commands_printf("Vd:        %.2f", (double)m_motor_state.vd);
-	commands_printf("Vq:        %.2f", (double)m_motor_state.vq);
-	commands_printf("Phase:     %.2f", (double)m_motor_state.phase);
-	commands_printf("V_alpha:   %.2f", (double)m_motor_state.v_alpha);
-	commands_printf("V_beta:    %.2f", (double)m_motor_state.v_beta);
-	commands_printf("id:        %.2f", (double)m_motor_state.id);
-	commands_printf("iq:        %.2f", (double)m_motor_state.iq);
-	commands_printf("id_target: %.2f", (double)m_motor_state.id_target);
-	commands_printf("iq_target: %.2f", (double)m_motor_state.iq_target);
-	commands_printf("Obs_x1:    %.2f", (double)m_observer_x1);
-	commands_printf("Obs_x2:    %.2f", (double)m_observer_x2);
+	commands_printf("Mod d:        %.2f", (double)m_motor_state.mod_d);
+	commands_printf("Mod q:        %.2f", (double)m_motor_state.mod_q);
+	commands_printf("Duty:         %.2f", (double)m_motor_state.duty_now);
+	commands_printf("Vd:           %.2f", (double)m_motor_state.vd);
+	commands_printf("Vq:           %.2f", (double)m_motor_state.vq);
+	commands_printf("Phase:        %.2f", (double)m_motor_state.phase);
+	commands_printf("V_alpha:      %.2f", (double)m_motor_state.v_alpha);
+	commands_printf("V_beta:       %.2f", (double)m_motor_state.v_beta);
+	commands_printf("id:           %.2f", (double)m_motor_state.id);
+	commands_printf("iq:           %.2f", (double)m_motor_state.iq);
+	commands_printf("id_filter:    %.2f", (double)m_motor_state.id_filter);
+	commands_printf("iq_filter:    %.2f", (double)m_motor_state.iq_filter);
+	commands_printf("id_target:    %.2f", (double)m_motor_state.id_target);
+	commands_printf("iq_target:    %.2f", (double)m_motor_state.iq_target);
+	commands_printf("i_abs:        %.2f", (double)m_motor_state.i_abs);
+	commands_printf("i_abs_filter: %.2f", (double)m_motor_state.i_abs_filter);
+	commands_printf("Obs_x1:       %.2f", (double)m_observer_x1);
+	commands_printf("Obs_x2:       %.2f", (double)m_observer_x2);
+}
+
+float mcpwm_foc_get_last_inj_adc_isr_duration(void) {
+	return last_inj_adc_isr_duration;
 }
 
 void mcpwm_foc_adc_inj_int_handler(void) {
+	TIM12->CNT = 0;
+
 	// Reset the watchdog
 	WWDG_SetCounter(100);
 
@@ -1232,7 +1264,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		m_motor_state.max_duty = m_conf->l_max_duty;
 
 		static float duty_filtered = 0.0;
-		duty_filtered -= (0.1 * (duty_filtered - m_motor_state.duty_now));
+		UTILS_LP_FAST(duty_filtered, m_motor_state.duty_now, 0.1);
 		utils_truncate_number(&duty_filtered, -1.0, 1.0);
 
 		float duty_set = m_duty_cycle_set;
@@ -1294,20 +1326,6 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			}
 		}
 
-		// Apply current limits
-		// TODO: Have another look at this
-		const float mod_q = m_motor_state.mod_q;
-		utils_truncate_number(&iq_set_tmp, m_conf->lo_current_min, m_conf->lo_current_max);
-		utils_saturate_vector_2d(&id_set_tmp, &iq_set_tmp, m_conf->lo_current_max);
-		if (mod_q > 0.001) {
-			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_min / mod_q, m_conf->lo_in_current_max / mod_q);
-		} else if (mod_q < -0.001) {
-			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_max / mod_q, m_conf->lo_in_current_min / mod_q);
-		}
-
-		m_motor_state.id_target = id_set_tmp;
-		m_motor_state.iq_target = iq_set_tmp;
-
 		// Run observer
 		if (!m_phase_override) {
 			observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
@@ -1320,32 +1338,32 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			if (encoder_index_found()) {
 				m_motor_state.phase = m_phase_now_encoder;
 			} else {
-				// Make sure that the motor rotates at least if the index isn't found.
+				// Rotate the motor in open loop if the index isn't found.
 				m_motor_state.phase = m_phase_now_encoder_no_index;
 			}
 
 			if (!m_phase_override) {
-				m_motor_state.id_target = 0.0;
+				id_set_tmp = 0.0;
 			}
 			break;
 		case FOC_SENSOR_MODE_SENSORLESS:
 			if (m_phase_observer_override) {
-				m_motor_state.phase = m_phase_now_observer_override; break;
+				m_motor_state.phase = m_phase_now_observer_override;
 			} else {
-				m_motor_state.phase = m_phase_now_observer; break;
+				m_motor_state.phase = m_phase_now_observer;
 			}
 
-			// Inject D axis current at low speed to make the observer track better
+			// Inject D axis current at low speed to make the observer track
+			// better. This does not seem to be necessary with dead time
+			// compensation.
 			// Note: this is done at high rate prevent noise.
 			if (!m_phase_override) {
 				if (duty_abs < m_conf->foc_sl_d_current_duty) {
-					m_motor_state.id_target = utils_map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
+					id_set_tmp = utils_map(duty_abs, 0.0, m_conf->foc_sl_d_current_duty,
 							fabsf(m_motor_state.iq_target) * m_conf->foc_sl_d_current_factor, 0.0);
 				} else {
-					m_motor_state.id_target = 0.0;
+					id_set_tmp = 0.0;
 				}
-			} else if (!m_phase_override) {
-				m_motor_state.id_target = 0.0;
 			}
 			break;
 		}
@@ -1354,20 +1372,22 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			m_motor_state.phase = m_phase_now_override;
 		}
 
-		// Run current control
-		control_current(&m_motor_state, dt);
-		m_current_abs = sqrtf(m_motor_state.id * m_motor_state.id + m_motor_state.iq * m_motor_state.iq);
-		m_current_in = m_motor_state.i_bus;
-		m_current_in_filtered = m_current_in;
-		m_current_filtered = m_motor_state.iq;
+		// Apply current limits
+		const float mod_q = m_motor_state.mod_q;
+		utils_truncate_number(&iq_set_tmp, m_conf->lo_current_min, m_conf->lo_current_max);
+		utils_saturate_vector_2d(&id_set_tmp, &iq_set_tmp, m_conf->lo_current_max);
+		if (mod_q > 0.001) {
+			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_min / mod_q, m_conf->lo_in_current_max / mod_q);
+		} else if (mod_q < -0.001) {
+			utils_truncate_number(&iq_set_tmp, m_conf->lo_in_current_max / mod_q, m_conf->lo_in_current_min / mod_q);
+		}
 
+		m_motor_state.id_target = id_set_tmp;
+		m_motor_state.iq_target = iq_set_tmp;
+
+		control_current(&m_motor_state, dt);
 		run_pid_control_pos(dt);
 	} else {
-		m_current_in = 0.0;
-		m_current_in_filtered = 0.0;
-		m_current_filtered = 0.0;
-		m_current_abs = 0.0;
-
 		// Track back emf
 		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
 		float Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
@@ -1392,6 +1412,11 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		m_motor_state.i_beta = 0.0;
 		m_motor_state.id = 0.0;
 		m_motor_state.iq = 0.0;
+		m_motor_state.id_filter = 0.0;
+		m_motor_state.iq_filter = 0.0;
+		m_motor_state.i_bus = 0.0;
+		m_motor_state.i_abs = 0.0;
+		m_motor_state.i_abs_filter = 0.0;
 
 		// Run observer
 		observer_update(m_motor_state.v_alpha, m_motor_state.v_beta,
@@ -1423,6 +1448,8 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 
 	// MCIF handler
 	mc_interface_mc_timer_isr();
+
+	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
 }
 
 // Private functions
@@ -1572,12 +1599,16 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
  *
  * Parameters that will be updated in this function:
  * i_bus
+ * i_abs
+ * i_abs_filter
  * v_alpha
  * v_beta
  * mod_d
  * mod_q
  * id
  * iq
+ * id_filter
+ * iq_filter
  * vd
  * vq
  *
@@ -1590,6 +1621,8 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
 	state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
 	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
+	UTILS_LP_FAST(state_m->id_filter, state_m->id, MCPWM_FOC_I_FILTER_CONST);
+	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, MCPWM_FOC_I_FILTER_CONST);
 
 	float Ierr_d = state_m->id_target - state_m->id;
 	float Ierr_q = state_m->iq_target - state_m->iq;
@@ -1611,7 +1644,10 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq,
 			(2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus);
 
+	// TODO: Have a look at this?
 	state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
+	state_m->i_abs = sqrtf(state_m->id * state_m->id + state_m->iq * state_m->iq);
+	state_m->i_abs_filter = sqrtf(state_m->id_filter * state_m->id_filter + state_m->iq_filter * state_m->iq_filter);
 
 	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
 	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
