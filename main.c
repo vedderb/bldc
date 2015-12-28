@@ -149,11 +149,35 @@ static THD_FUNCTION(periodic_thread, arg) {
 			commands_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
-#if ENCODER_ENABLE
-//		commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
-//		commands_send_rotor_pos(encoder_read_deg());
-//		comm_can_set_pos(0, encoder_read_deg());
-#endif
+		disp_pos_mode display_mode = commands_get_disp_pos_mode();
+
+		switch (display_mode) {
+			case DISP_POS_MODE_ENCODER:
+				commands_send_rotor_pos(encoder_read_deg());
+				break;
+
+			case DISP_POS_MODE_ENCODER_POS_ERROR:
+				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pos_set(), encoder_read_deg()));
+				break;
+
+			default:
+				break;
+		}
+
+		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
+			switch (display_mode) {
+			case DISP_POS_MODE_OBSERVER:
+				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
+				break;
+
+			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
+				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+				break;
+
+			default:
+				break;
+		}
+		}
 
 		chThdSleepMilliseconds(10);
 	}
@@ -341,6 +365,10 @@ int main(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {
-		chThdSleepMilliseconds(5000);
+		chThdSleepMilliseconds(10);
+
+#if ENCODER_ENABLE
+//		comm_can_set_pos(0, encoder_read_deg());
+#endif
 	}
 }

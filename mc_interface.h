@@ -65,6 +65,7 @@ int mc_interface_get_tachometer_abs_value(bool reset);
 float mc_interface_get_last_inj_adc_isr_duration(void);
 float mc_interface_read_reset_avg_motor_current(void);
 float mc_interface_read_reset_avg_input_current(void);
+float mc_interface_get_pos_set(void);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);

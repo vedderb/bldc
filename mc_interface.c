@@ -53,6 +53,7 @@ static volatile float amp_seconds;
 static volatile float amp_seconds_charged;
 static volatile float watt_seconds;
 static volatile float watt_seconds_charged;
+static volatile float position_set;
 
 // Private functions
 static void update_override_limits(volatile mc_configuration *conf);
@@ -79,6 +80,7 @@ void mc_interface_init(mc_configuration *configuration) {
 	amp_seconds_charged = 0.0;
 	watt_seconds = 0.0;
 	watt_seconds_charged = 0.0;
+	position_set = 0.0;
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -285,6 +287,8 @@ void mc_interface_set_pid_pos(float pos) {
 	if (mc_interface_try_input()) {
 		return;
 	}
+
+	position_set = pos;
 
 	switch (conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
@@ -703,6 +707,10 @@ float mc_interface_read_reset_avg_input_current(void) {
 	input_current_sum = 0;
 	input_current_iterations = 0;
 	return res;
+}
+
+float mc_interface_get_pos_set(void) {
+	return position_set;
 }
 
 // MC implementation functions

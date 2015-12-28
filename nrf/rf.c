@@ -30,7 +30,7 @@ void rf_init(void) {
 	rf_write_reg_byte(NRF_REG_DYNPD, 0);
 
 	rf_set_crc_type(NRF_CRC_1B);
-	rf_set_retr_retries(5);
+	rf_set_retr_retries(2);
 	rf_set_retr_delay(NRF_RETR_DELAY_500US);
 	rf_set_power(NRF_POWER_0DBM);
 	rf_set_speed(NRF_SPEED_250K);

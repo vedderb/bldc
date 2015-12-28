@@ -88,7 +88,9 @@ static void rxchar(UARTDriver *uartp, uint16_t c) {
 		serial_rx_write_pos = 0;
 	}
 
-	chEvtSignal(process_tp, (eventmask_t) 1);
+	chSysLockFromISR();
+	chEvtSignalI(process_tp, (eventmask_t) 1);
+	chSysUnlockFromISR();
 }
 
 /*

@@ -27,5 +27,6 @@
 
 // Functions
 void nrf_driver_init(void);
+void nrf_driver_send_buffer(unsigned char *data, unsigned int len);
 
 #endif /* NRF_NRF_DRIVER_H_ */

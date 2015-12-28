@@ -230,7 +230,7 @@ void terminal_process_string(char *str) {
 				float offset = 0.0;
 				float ratio = 0.0;
 				bool inverted = false;
-				mcpwm_foc_encoder_detect(current, &offset, &ratio, &inverted);
+				mcpwm_foc_encoder_detect(current, true, &offset, &ratio, &inverted);
 
 				mcconf.motor_type = type_old;
 				mc_interface_set_configuration(&mcconf);

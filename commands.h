@@ -36,5 +36,6 @@ void commands_printf(char* format, ...);
 void commands_send_samples(uint8_t *data, int len);
 void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
+disp_pos_mode commands_get_disp_pos_mode(void);
 
 #endif /* COMMANDS_H_ */

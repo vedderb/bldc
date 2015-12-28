@@ -64,6 +64,7 @@ static float detect_low_duty;
 static int8_t detect_hall_table[8];
 static int detect_hall_res;
 static void(*send_func)(unsigned char *data, unsigned int len) = 0;
+static disp_pos_mode display_position_mode;
 
 void commands_init(void) {
 	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
@@ -213,7 +214,19 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_SET_DETECT:
-		mcpwm_set_detect();
+		mcconf = *mc_interface_get_configuration();
+
+		ind = 0;
+		display_position_mode = data[ind++];
+
+		if (mcconf.motor_type == MOTOR_TYPE_BLDC) {
+			if (display_position_mode == DISP_POS_MODE_NONE) {
+				mc_interface_release_motor();
+			} else if (display_position_mode == DISP_POS_MODE_INDUCTANCE) {
+				mcpwm_set_detect();
+			}
+		}
+
 		timeout_reset();
 		break;
 
@@ -577,9 +590,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf = *mc_interface_get_configuration();
 		mcconf_old = mcconf;
 
-		ind = 0;
-		send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
-
 		mcconf.motor_type = MOTOR_TYPE_FOC;
 		mc_interface_set_configuration(&mcconf);
 
@@ -593,6 +603,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			l = 0.0;
 		}
 
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
 		buffer_append_float32(send_buffer, r, 1e6, &ind);
 		buffer_append_float32(send_buffer, l, 1e3, &ind);
 		commands_send_packet(send_buffer, ind);
@@ -617,6 +629,43 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE;
 		buffer_append_float32(send_buffer, linkage, 1e7, &ind);
 		commands_send_packet(send_buffer, ind);
+	}
+	break;
+
+	case COMM_DETECT_ENCODER: {
+#if ENCODER_ENABLE
+		mcconf = *mc_interface_get_configuration();
+		mcconf_old = mcconf;
+
+		ind = 0;
+		float current = buffer_get_float32(data, 1e3, &ind);
+
+		mcconf.motor_type = MOTOR_TYPE_FOC;
+		mcconf.foc_f_sw = 10000.0;
+		mcconf.foc_current_kp = 0.01;
+		mcconf.foc_current_ki = 10.0;
+		mc_interface_set_configuration(&mcconf);
+
+		float offset = 0.0;
+		float ratio = 0.0;
+		bool inverted = false;
+		mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
+		mc_interface_set_configuration(&mcconf_old);
+
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_ENCODER;
+		buffer_append_float32(send_buffer, offset, 1e6, &ind);
+		buffer_append_float32(send_buffer, ratio, 1e6, &ind);
+		send_buffer[ind++] = inverted;
+		commands_send_packet(send_buffer, ind);
+#else
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_ENCODER;
+		buffer_append_float32(send_buffer, 1001.0, 1e6, &ind);
+		buffer_append_float32(send_buffer, 0.0, 1e6, &ind);
+		send_buffer[ind++] = false;
+		commands_send_packet(send_buffer, ind);
+#endif
 	}
 	break;
 
@@ -715,6 +764,10 @@ void commands_send_experiment_samples(float *samples, int len) {
 	}
 
 	commands_send_packet(buffer, index);
+}
+
+disp_pos_mode commands_get_disp_pos_mode(void) {
+	return display_position_mode;
 }
 
 static THD_FUNCTION(detect_thread, arg) {

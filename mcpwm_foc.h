@@ -61,7 +61,7 @@ float mcpwm_foc_get_phase_observer(void);
 float mcpwm_foc_get_phase_encoder(void);
 float mcpwm_foc_get_vd(void);
 float mcpwm_foc_get_vq(void);
-void mcpwm_foc_encoder_detect(float current, float *offset, float *ratio, bool *inverted);
+void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
 float mcpwm_foc_measure_resistance(float current, int samples);
 float mcpwm_foc_measure_inductance(float duty, int samples, float *curr);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind);

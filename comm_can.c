@@ -351,7 +351,7 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		for (unsigned int i = 0;i < len;i += 7) {
 			end_a = i;
 
-			if (i > 256) {
+			if (i > 255) {
 				break;
 			}
 
