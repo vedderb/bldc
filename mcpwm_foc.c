@@ -1848,8 +1848,13 @@ static void run_pid_control_pos(float dt) {
 	}
 
 	// Compute error
-	float angle = m_conf->foc_encoder_inverted ? encoder_read_deg() : 360.0 - encoder_read_deg();
-	float error = utils_angle_difference(angle, m_pos_pid_set_pos);
+	float angle = encoder_read_deg();
+	float error = utils_angle_difference(m_pos_pid_set_pos, angle);
+
+	if (m_conf->foc_encoder_inverted) {
+		error = -error;
+	}
+
 
 	// Compute parameters
 	p_term = error * m_conf->p_pid_kp;
