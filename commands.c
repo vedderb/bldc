@@ -64,6 +64,7 @@ static float detect_low_duty;
 static int8_t detect_hall_table[8];
 static int detect_hall_res;
 static void(*send_func)(unsigned char *data, unsigned int len) = 0;
+static void(*appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 
 void commands_init(void) {
@@ -118,6 +119,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	app_configuration appconf;
 	uint16_t flash_res;
 	uint32_t new_app_offset;
+	chuck_data chuck_d_tmp;
 
 	packet_id = data[0];
 	data++;
@@ -706,6 +708,24 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		comm_can_send_buffer(data[0], data + 1, len - 1, false);
 		break;
 
+	case COMM_SET_CHUCK_DATA:
+		ind = 0;
+		chuck_d_tmp.js_x = data[ind++];
+		chuck_d_tmp.js_y = data[ind++];
+		chuck_d_tmp.bt_c = data[ind++];
+		chuck_d_tmp.bt_z = data[ind++];
+		chuck_d_tmp.acc_x = buffer_get_int16(data, &ind);
+		chuck_d_tmp.acc_y = buffer_get_int16(data, &ind);
+		chuck_d_tmp.acc_z = buffer_get_int16(data, &ind);
+		app_nunchuk_update_output(&chuck_d_tmp);
+		break;
+
+	case COMM_CUSTOM_APP_DATA:
+		if (appdata_func) {
+			appdata_func(data, len);
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -721,7 +741,7 @@ void commands_printf(char* format, ...) {
 	len = vsnprintf(print_buffer+1, 254, format, arg);
 	va_end (arg);
 
-	if(len>0) {
+	if(len > 0) {
 		commands_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
 	}
 }
@@ -768,6 +788,20 @@ void commands_send_experiment_samples(float *samples, int len) {
 
 disp_pos_mode commands_get_disp_pos_mode(void) {
 	return display_position_mode;
+}
+
+void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	appdata_func = func;
+}
+
+void commands_send_app_data(unsigned char *data, unsigned int len) {
+	int32_t index = 0;
+
+	send_buffer[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer, data, len);
+	index += len;
+
+	commands_send_packet(send_buffer, index);
 }
 
 static THD_FUNCTION(detect_thread, arg) {

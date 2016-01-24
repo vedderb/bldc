@@ -349,11 +349,11 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 	} else {
 		unsigned int end_a = 0;
 		for (unsigned int i = 0;i < len;i += 7) {
-			end_a = i;
-
 			if (i > 255) {
 				break;
 			}
+
+			end_a = i + 7;
 
 			uint8_t send_len = 7;
 			send_buffer[0] = i;

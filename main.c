@@ -115,8 +115,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 	chRegSetThreadName("Main periodic");
 
-	int fault_print = 0;
-
 	for(;;) {
 		if (mc_interface_get_state() == MC_STATE_RUNNING) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
@@ -126,12 +124,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 		mc_fault_code fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
-			if (!fault_print && AUTO_PRINT_FAULTS) {
-				fault_print = 1;
-				commands_printf("%s\n", mc_interface_fault_to_string(
-						mc_interface_get_fault()));
-			}
-
 			for (int i = 0;i < (int)fault;i++) {
 				ledpwm_set_intensity(LED_RED, 1.0);
 				chThdSleepMilliseconds(250);
@@ -142,7 +134,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 			chThdSleepMilliseconds(500);
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
-			fault_print = 0;
 		}
 
 		if (mc_interface_get_state() == MC_STATE_DETECTING) {

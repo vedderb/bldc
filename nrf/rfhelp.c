@@ -21,7 +21,6 @@
 #include "hal.h"
 #include "crc.h"
 #include <string.h>
-#include <stdbool.h>
 
 // Variables
 static mutex_t rf_mutex;
@@ -35,7 +34,7 @@ void rfhelp_init(void) {
 	chMtxObjectInit(&rf_mutex);
 
 //	address_length = rf_get_address_width();
-	address_length = 5; // We assume length 5
+	address_length = 3; // We assume length 3
 
 	// This should not happen
 	if (address_length > 5 || address_length < 3) {
@@ -82,7 +81,7 @@ void rfhelp_restart(void) {
  * -1: Max RT.
  * -2: Timeout
  */
-int rfhelp_send_data(char *data, int len) {
+int rfhelp_send_data(char *data, int len, bool ack) {
 	int timeout = 60;
 	int retval = -1;
 
@@ -92,11 +91,15 @@ int rfhelp_send_data(char *data, int len) {
 	rf_clear_irq();
 	rf_flush_all();
 
-	rf_write_tx_payload(data, len);
-
 	// Pipe0-address and tx-address must be equal for ack to work.
-	if (!tx_pipe0_addr_eq) {
+	if (!tx_pipe0_addr_eq && ack) {
 		rf_set_rx_addr(0, tx_addr, address_length);
+	}
+
+	if (ack) {
+		rf_write_tx_payload(data, len);
+	} else {
+		rf_write_tx_payload_no_ack(data, len);
 	}
 
 	for(;;) {
@@ -119,7 +122,7 @@ int rfhelp_send_data(char *data, int len) {
 	}
 
 	// Restore pipe0 address
-	if (!tx_pipe0_addr_eq) {
+	if (!tx_pipe0_addr_eq && ack) {
 		rf_set_rx_addr(0, rx_addr[0], address_length);
 	}
 
@@ -154,7 +157,48 @@ int rfhelp_send_data_crc(char *data, int len) {
 	buffer[len] = (char)(crc >> 8);
 	buffer[len + 1] = (char)(crc & 0xFF);
 
-	return rfhelp_send_data(buffer, len + 2);
+	return rfhelp_send_data(buffer, len + 2, true);
+}
+
+/**
+ * Same as rfhelp_send_data_crc, but without ack. A counter is included for
+ * duplicate packets and a number of resends can be specified.
+ *
+ * @param data
+ * The data to be sent.
+ *
+ * @param len
+ * Length of the data. Should be no more than 29 bytes.
+ *
+ * @param resends
+ * The amount of resends for this packet. Should be at least 1.
+ *
+ * @return
+ * 0: Send OK.
+ * -1: Max RT. (Should not happen)
+ * -2: Timeout
+ */
+int rfhelp_send_data_crc_noack(char *data, int len, int resends) {
+	char buffer[len + 3];
+	static unsigned char counter = 0;
+
+	memcpy(buffer, data, len);
+	buffer[len] = counter++;
+
+	unsigned short crc = crc16((unsigned char*)buffer, len + 1);
+
+	buffer[len + 1] = (char)(crc >> 8);
+	buffer[len + 2] = (char)(crc & 0xFF);
+
+	int res = 0;
+	for (int i = 0;i < resends;i++) {
+		res = rfhelp_send_data(buffer, len + 3, false);
+		if (res != 0) {
+			break;
+		}
+	}
+
+	return res;
 }
 
 /**
@@ -191,7 +235,7 @@ int rfhelp_read_rx_data(char *data, int *len, int *pipe) {
 		if (*len <= 32 && *len >= 0) {
 			rf_read_rx_payload(data, *len);
 			rf_clear_rx_irq();
-			rf_flush_rx();
+//			rf_flush_rx();
 
 			s = rf_status();
 			if (NRF_STATUS_GET_RX_P_NO(s) == 7) {
@@ -242,6 +286,51 @@ int rfhelp_read_rx_data_crc(char *data, int *len, int *pipe) {
 	}
 
 	*len -= 2;
+
+	return res;
+}
+
+/**
+ * Same as rfhelp_read_rx_data_crc, but for use with the corresponding
+ * nocak send function.
+ *
+ * @param data
+ * Pointer to the array in which to store the data.
+ *
+ * @param len
+ * Pointer to variable storing the data length.
+ *
+ * @param pipe
+ * Pointer to the pipe on which the data was received. Can be 0.
+ *
+ * @return
+ * 1: Read OK, more data to read.
+ * 0: Read OK
+ * -1: No RX data
+ * -2: Wrong length read. Something is likely wrong.
+ * -3: Data read, but CRC does not match.
+ * -4: Duplicate packet received.
+ */
+int rfhelp_read_rx_data_crc_noack(char *data, int *len, int *pipe) {
+	int res = rfhelp_read_rx_data(data, len, pipe);
+	static unsigned char counter = 0;
+
+	if (res >= 0 && *len > 3) {
+		unsigned short crc = crc16((unsigned char*)data, *len - 2);
+
+		if (crc	!= ((unsigned short) data[*len - 2] << 8 | (unsigned short) data[*len - 1])) {
+			res = -3;
+		} else {
+			unsigned char cnt = data[*len - 3];
+			if (cnt == counter) {
+				res = -4;
+			}
+
+			counter = cnt;
+		}
+	}
+
+	*len -= 3;
 
 	return res;
 }

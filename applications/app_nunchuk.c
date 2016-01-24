@@ -132,7 +132,7 @@ static THD_FUNCTION(chuk_thread, arg) {
 		}
 
 		if (is_ok) {
-			static uint8_t last_buffer[10];
+			static uint8_t last_buffer[6];
 			int same = 1;
 
 			for (int i = 0;i < 6;i++) {
