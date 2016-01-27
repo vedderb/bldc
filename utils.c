@@ -148,7 +148,7 @@ float utils_angle_difference(float angle1, float angle2) {
 }
 
 /**
- * Get the difference between two angles. Will always be between -180 and +180 degrees.
+ * Get the difference between two angles. Will always be between -pi and +pi radians.
  * @param angle1
  * The first angle in radians
  * @param angle2

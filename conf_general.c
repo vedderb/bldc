@@ -168,6 +168,16 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->sl_cycle_int_rpm_br = MCCONF_SL_CYCLE_INT_BR;
 	conf->sl_bemf_coupling_k = MCCONF_SL_BEMF_COUPLING_K;
 
+	conf->hall_table[0] = MCCONF_HALL_TAB_0;
+	conf->hall_table[1] = MCCONF_HALL_TAB_1;
+	conf->hall_table[2] = MCCONF_HALL_TAB_2;
+	conf->hall_table[3] = MCCONF_HALL_TAB_3;
+	conf->hall_table[4] = MCCONF_HALL_TAB_4;
+	conf->hall_table[5] = MCCONF_HALL_TAB_5;
+	conf->hall_table[6] = MCCONF_HALL_TAB_6;
+	conf->hall_table[7] = MCCONF_HALL_TAB_7;
+	conf->hall_sl_erpm = MCCONF_HALL_ERPM;
+
 	conf->foc_current_kp = MCCONF_FOC_CURRENT_KP;
 	conf->foc_current_ki = MCCONF_FOC_CURRENT_KI;
 	conf->foc_f_sw = MCCONF_FOC_F_SW;
@@ -189,16 +199,15 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_sl_openloop_time = MCCONF_FOC_SL_OPENLOOP_TIME;
 	conf->foc_sl_d_current_duty = MCCONF_FOC_SL_D_CURRENT_DUTY;
 	conf->foc_sl_d_current_factor = MCCONF_FOC_SL_D_CURRENT_FACTOR;
-
-	conf->hall_table[0] = MCCONF_HALL_TAB_0;
-	conf->hall_table[1] = MCCONF_HALL_TAB_1;
-	conf->hall_table[2] = MCCONF_HALL_TAB_2;
-	conf->hall_table[3] = MCCONF_HALL_TAB_3;
-	conf->hall_table[4] = MCCONF_HALL_TAB_4;
-	conf->hall_table[5] = MCCONF_HALL_TAB_5;
-	conf->hall_table[6] = MCCONF_HALL_TAB_6;
-	conf->hall_table[7] = MCCONF_HALL_TAB_7;
-	conf->hall_sl_erpm = MCCONF_HALL_ERPM;
+	conf->foc_hall_table[0] = MCCONF_FOC_HALL_TAB_0;
+	conf->foc_hall_table[1] = MCCONF_FOC_HALL_TAB_1;
+	conf->foc_hall_table[2] = MCCONF_FOC_HALL_TAB_2;
+	conf->foc_hall_table[3] = MCCONF_FOC_HALL_TAB_3;
+	conf->foc_hall_table[4] = MCCONF_FOC_HALL_TAB_4;
+	conf->foc_hall_table[5] = MCCONF_FOC_HALL_TAB_5;
+	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
+	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
+	conf->foc_hall_sl_erpm = MCCONF_FOC_HALL_ERPM;
 
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;

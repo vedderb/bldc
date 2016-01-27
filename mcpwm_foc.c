@@ -118,6 +118,8 @@ static void run_pid_control_pos(float dt);
 static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
 static void start_pwm_hw(void);
+static int read_hall(void);
+static float correct_hall(float angle, float speed, float dt);
 
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -1159,6 +1161,97 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	return true;
 }
 
+/**
+ * Run the motor in open loop and figure out at which angles the hall sensors are.
+ *
+ * @param current
+ * Current to use.
+ *
+ * @param hall_table
+ * Table to store the result to.
+ *
+ * @return
+ * true: Success
+ * false: Something went wrong
+ */
+bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
+	m_phase_override = true;
+	m_id_set = current;
+	m_iq_set = 0.0;
+	m_control_mode = CONTROL_MODE_CURRENT;
+	m_state = MC_STATE_RUNNING;
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_configure(60000, 0.0);
+
+	// Lock the motor
+	m_phase_now_override = 0;
+	chThdSleepMilliseconds(1000);
+
+	float sin_hall[8];
+	float cos_hall[8];
+	int hall_iterations[8];
+	memset(sin_hall, 0, sizeof(sin_hall));
+	memset(cos_hall, 0, sizeof(cos_hall));
+	memset(hall_iterations, 0, sizeof(hall_iterations));
+
+	// Forwards
+	for (int i = 0;i < 3;i++) {
+		for (int i = 0;i < 360;i++) {
+			m_phase_now_override = (float)i * M_PI / 180.0;
+			chThdSleepMilliseconds(5);
+
+			int hall = read_hall();
+			float s, c;
+			sincosf(m_phase_now_override, &s, &c);
+			sin_hall[hall] += s;
+			cos_hall[hall] += c;
+			hall_iterations[hall]++;
+		}
+	}
+
+	// Reverse
+	for (int i = 0;i < 3;i++) {
+		for (int i = 360;i >= 0;i--) {
+			m_phase_now_override = (float)i * M_PI / 180.0;
+			chThdSleepMilliseconds(5);
+
+			int hall = read_hall();
+			float s, c;
+			sincosf(m_phase_now_override, &s, &c);
+			sin_hall[hall] += s;
+			cos_hall[hall] += c;
+			hall_iterations[hall]++;
+		}
+	}
+
+	m_id_set = 0.0;
+	m_iq_set = 0.0;
+	m_phase_override = false;
+	m_control_mode = CONTROL_MODE_NONE;
+	m_state = MC_STATE_OFF;
+	stop_pwm_hw();
+
+	// Enable timeout
+	timeout_configure(tout, tout_c);
+
+	int fails = 0;
+	for(int i = 0;i < 8;i++) {
+		if (hall_iterations[i] > 30) {
+			float ang = atan2f(sin_hall[i], cos_hall[i]) * 180.0 / M_PI;
+			utils_norm_angle(&ang);
+			hall_table[i] = (uint8_t)(ang * 200.0 / 360.0);
+		} else {
+			hall_table[i] = 255;
+			fails++;
+		}
+	}
+
+	return fails == 2;
+}
+
 void mcpwm_foc_print_state(void) {
 	commands_printf("Mod d:        %.2f", (double)m_motor_state.mod_d);
 	commands_printf("Mod q:        %.2f", (double)m_motor_state.mod_q);
@@ -1299,7 +1392,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		// observer has lost tracking. Use duty cycle control with the lowest duty cycle
 		// to get as smooth braking as possible.
 		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-				&& m_conf->foc_sensor_mode == FOC_SENSOR_MODE_SENSORLESS
+				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER)
 				&& fabsf(duty_filtered) < 0.03) {
 			control_duty = true;
 			duty_set = 0.0;
@@ -1370,6 +1463,10 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			if (!m_phase_override) {
 				id_set_tmp = 0.0;
 			}
+			break;
+		case FOC_SENSOR_MODE_HALL:
+			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
+			m_motor_state.phase = m_phase_now_observer;
 			break;
 		case FOC_SENSOR_MODE_SENSORLESS:
 			if (m_phase_observer_override) {
@@ -1449,8 +1546,16 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 				&m_observer_x2, &m_phase_now_observer);
 
 		switch (m_conf->foc_sensor_mode) {
-		case FOC_SENSOR_MODE_ENCODER: m_motor_state.phase = m_phase_now_encoder; break;
-		case FOC_SENSOR_MODE_SENSORLESS: m_motor_state.phase = m_phase_now_observer; break;
+		case FOC_SENSOR_MODE_ENCODER:
+			m_motor_state.phase = m_phase_now_encoder;
+			break;
+		case FOC_SENSOR_MODE_HALL:
+			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
+			m_motor_state.phase = m_phase_now_observer;
+			break;
+		case FOC_SENSOR_MODE_SENSORLESS:
+			m_motor_state.phase = m_phase_now_observer;
+			break;
 		}
 	}
 
@@ -1962,4 +2067,94 @@ static void start_pwm_hw(void) {
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
 	m_output_on = true;
+}
+
+static int read_hall(void) {
+	return READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
+}
+
+static float correct_hall(float angle, float speed, float dt) {
+	static int ang_hall_int_prev = -1;
+	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+	static bool using_hall = true;
+
+	// Hysteresis of 100 rpm
+	if (using_hall) {
+		if (rpm_abs > (m_conf->foc_hall_sl_erpm + 100)) {
+			using_hall = false;
+		}
+	} else {
+		if (rpm_abs < (m_conf->foc_hall_sl_erpm - 100)) {
+			using_hall = true;
+		}
+	}
+
+	if (using_hall) {
+		int ang_hall_int = m_conf->foc_hall_table[read_hall()];
+
+		// Only override the observer if the hall sensor value is valid.
+		if (ang_hall_int < 201) {
+			static float ang_hall = 0.0;
+			float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+
+			if (ang_hall_int_prev < 0) {
+				// Previous angle not valid
+				ang_hall_int_prev = ang_hall_int;
+
+				if (ang_hall_int_prev == -2) {
+					// Before was sensorless, initialize with the provided angle
+					ang_hall = angle;
+				} else {
+					// A boot or error has occurred. Use center of hall sensor angle.
+					ang_hall = ((ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+				}
+			} else if (ang_hall_int != ang_hall_int_prev) {
+				// A transition was just made. The angle is in the middle of the new and old angle.
+				int ang_avg = abs(ang_hall_int - ang_hall_int_prev);
+				if (ang_avg < 100) {
+					ang_avg = (ang_hall_int + ang_hall_int_prev) / 2;
+				} else if (ang_avg != 100) {
+					ang_avg = (ang_hall_int + ang_hall_int_prev) / 2 + 100;
+				}
+				ang_avg %= 200;
+				ang_hall = (((float)ang_avg / 200.0) * 360.0) * M_PI / 180.0;
+			}
+
+			ang_hall_int_prev = ang_hall_int;
+
+			if (rpm_abs < 100) {
+				// Don't interpolate on very low speed, just use the closest hall sensor
+				ang_hall = ang_hall_now;
+			} else {
+				// Interpolate
+				float diff = utils_angle_difference_rad(ang_hall, ang_hall_now);
+				if (fabsf(diff) < ((2.0 * M_PI) / 12.0)) {
+					// Do interpolation
+					ang_hall += speed * dt;
+				} else {
+					// We are too far away with the interpolation
+					ang_hall -= diff / 100.0;
+				}
+			}
+
+			utils_norm_angle_rad(&ang_hall);
+
+			angle = ang_hall;
+		} else {
+			// Invalid hall reading. Don't update angle.
+			ang_hall_int_prev = -1;
+
+			// Also allow open loop in order to behave like normal sensorless
+			// operation. Then the motor works even if the hall sensor cable
+			// gets disconnected (when the sensor spacing is 120 degrees).
+			if (m_phase_observer_override && m_state == MC_STATE_RUNNING) {
+				angle = m_phase_now_observer_override;
+			}
+		}
+	} else {
+		// We are running sensorless.
+		ang_hall_int_prev = -2;
+	}
+
+	return angle;
 }

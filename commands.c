@@ -312,6 +312,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_sl_openloop_time = buffer_get_float32(data, 1e3, &ind);
 		mcconf.foc_sl_d_current_duty = buffer_get_float32(data, 1e3, &ind);
 		mcconf.foc_sl_d_current_factor = buffer_get_float32(data, 1e3, &ind);
+		memcpy(mcconf.foc_hall_table, data + ind, 8);
+		ind += 8;
+		mcconf.foc_hall_sl_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
@@ -416,6 +419,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.foc_sl_openloop_time, 1e3, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_sl_d_current_duty, 1e3, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_sl_d_current_factor, 1e3, &ind);
+		memcpy(send_buffer + ind, mcconf.foc_hall_table, 8);
+		ind += 8;
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.foc_hall_sl_erpm * 1000.0), &ind);
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
@@ -668,6 +674,33 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = false;
 		commands_send_packet(send_buffer, ind);
 #endif
+	}
+	break;
+
+	case COMM_DETECT_HALL_FOC: {
+		mcconf = *mc_interface_get_configuration();
+		mcconf_old = mcconf;
+
+		ind = 0;
+		float current = buffer_get_float32(data, 1e3, &ind);
+
+		mcconf.motor_type = MOTOR_TYPE_FOC;
+		mcconf.foc_f_sw = 10000.0;
+		mcconf.foc_current_kp = 0.01;
+		mcconf.foc_current_ki = 10.0;
+		mc_interface_set_configuration(&mcconf);
+
+		uint8_t hall_tab[8];
+		bool res = mcpwm_foc_hall_detect(current, hall_tab);
+		mc_interface_set_configuration(&mcconf_old);
+
+		ind = 0;
+		send_buffer[ind++] = COMM_DETECT_HALL_FOC;
+		memcpy(send_buffer + ind, hall_tab, 8);
+		ind += 8;
+		send_buffer[ind++] = res ? 0 : 1;
+
+		commands_send_packet(send_buffer, ind);
 	}
 	break;
 

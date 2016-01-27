@@ -56,7 +56,8 @@ typedef enum {
 
 typedef enum {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
-	FOC_SENSOR_MODE_ENCODER
+	FOC_SENSOR_MODE_ENCODER,
+	FOC_SENSOR_MODE_HALL
 } mc_foc_sensor_mode;
 
 typedef enum {
@@ -169,6 +170,8 @@ typedef struct {
 	float foc_sl_d_current_duty;
 	float foc_sl_d_current_factor;
 	mc_foc_sensor_mode foc_sensor_mode;
+	uint8_t foc_hall_table[8];
+	float foc_hall_sl_erpm;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -335,6 +338,7 @@ typedef enum {
 	COMM_DETECT_MOTOR_R_L,
 	COMM_DETECT_MOTOR_FLUX_LINKAGE,
 	COMM_DETECT_ENCODER,
+	COMM_DETECT_HALL_FOC,
 	COMM_REBOOT,
 	COMM_ALIVE,
 	COMM_GET_DECODED_PPM,
