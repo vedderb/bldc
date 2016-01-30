@@ -19,7 +19,6 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "isr_vector_table.h"
-#include "main.h"
 #include "mc_interface.h"
 #include "servo.h"
 #include "hw.h"

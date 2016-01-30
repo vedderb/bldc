@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "main.h"
 #include "mc_interface.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
@@ -68,47 +67,11 @@
  *
  */
 
-/*
- * Notes:
- *
- * Disable USB VBUS sensing:
- * ChibiOS-RT-master/os/hal/platforms/STM32/OTGv1/usb_lld.c
- *
- * change
- * otgp->GCCFG = GCCFG_VBUSASEN | GCCFG_VBUSBSEN | GCCFG_PWRDWN;
- * to
- * otgp->GCCFG = GCCFG_NOVBUSSENS | GCCFG_PWRDWN;
- *
- * This should be handled automatically with the latest version of
- * ChibiOS since I have added an option to the makefile.
- *
- */
-
 // Private variables
-#define ADC_SAMPLE_MAX_LEN		2000
-static volatile int16_t curr0_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t curr1_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t ph1_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t ph2_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t ph3_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t vzero_samples[ADC_SAMPLE_MAX_LEN];
-static volatile uint8_t status_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t curr_fir_samples[ADC_SAMPLE_MAX_LEN];
-static volatile int16_t f_sw_samples[ADC_SAMPLE_MAX_LEN];
 
-static volatile int sample_len = 1000;
-static volatile int sample_int = 1;
-static volatile int sample_ready = 1;
-static volatile int sample_now = 0;
-static volatile int sample_at_start = 0;
-static volatile int start_comm = 0;
-static volatile float main_last_adc_duration = 0.0;
 
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
-static THD_WORKING_AREA(sample_send_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
-
-static thread_t *sample_send_tp;
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -174,43 +137,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 	}
 }
 
-static THD_FUNCTION(sample_send_thread, arg) {
-	(void)arg;
-
-	chRegSetThreadName("Main sample");
-
-	sample_send_tp = chThdGetSelfX();
-
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
-
-		for (int i = 0;i < sample_len;i++) {
-			uint8_t buffer[20];
-			int index = 0;
-
-			buffer[index++] = curr0_samples[i] >> 8;
-			buffer[index++] = curr0_samples[i];
-			buffer[index++] = curr1_samples[i] >> 8;
-			buffer[index++] = curr1_samples[i];
-			buffer[index++] = ph1_samples[i] >> 8;
-			buffer[index++] = ph1_samples[i];
-			buffer[index++] = ph2_samples[i] >> 8;
-			buffer[index++] = ph2_samples[i];
-			buffer[index++] = ph3_samples[i] >> 8;
-			buffer[index++] = ph3_samples[i];
-			buffer[index++] = vzero_samples[i] >> 8;
-			buffer[index++] = vzero_samples[i];
-			buffer[index++] = status_samples[i];
-			buffer[index++] = curr_fir_samples[i] >> 8;
-			buffer[index++] = curr_fir_samples[i];
-			buffer[index++] = f_sw_samples[i] >> 8;
-			buffer[index++] = f_sw_samples[i];
-
-			commands_send_samples(buffer, index);
-		}
-	}
-}
-
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
@@ -219,85 +145,6 @@ static THD_FUNCTION(timer_thread, arg) {
 	for(;;) {
 		packet_timerfunc();
 		chThdSleepMilliseconds(1);
-	}
-}
-
-/*
- * Called every time new ADC values are available. Note that
- * the ADC is initialized from mcpwm.c
- */
-void main_dma_adc_handler(void) {
-	ledpwm_update_pwm();
-
-	if (sample_at_start && (mc_interface_get_state() == MC_STATE_RUNNING ||
-			start_comm != mcpwm_get_comm_step())) {
-		sample_now = 0;
-		sample_ready = 0;
-		sample_at_start = 0;
-	}
-
-	static int a = 0;
-	if (!sample_ready) {
-		a++;
-		if (a >= sample_int) {
-			a = 0;
-
-			if (mc_interface_get_state() == MC_STATE_DETECTING) {
-				curr0_samples[sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
-				curr1_samples[sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
-
-				ph1_samples[sample_now] = (int16_t)mcpwm_detect_voltages[0];
-				ph2_samples[sample_now] = (int16_t)mcpwm_detect_voltages[1];
-				ph3_samples[sample_now] = (int16_t)mcpwm_detect_voltages[2];
-			} else {
-				curr0_samples[sample_now] = ADC_curr_norm_value[0];
-				curr1_samples[sample_now] = ADC_curr_norm_value[1];
-
-				ph1_samples[sample_now] = ADC_V_L1 - mcpwm_vzero;
-				ph2_samples[sample_now] = ADC_V_L2 - mcpwm_vzero;
-				ph3_samples[sample_now] = ADC_V_L3 - mcpwm_vzero;
-			}
-
-			vzero_samples[sample_now] = mcpwm_vzero;
-
-			curr_fir_samples[sample_now] = (int16_t)(mc_interface_get_tot_current() * 100.0);
-			f_sw_samples[sample_now] = (int16_t)(mc_interface_get_switching_frequency_now() / 10.0);
-
-			status_samples[sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
-
-			sample_now++;
-
-			if (sample_now == sample_len) {
-				sample_ready = 1;
-				sample_now = 0;
-				chSysLockFromISR();
-				chEvtSignalI(sample_send_tp, (eventmask_t) 1);
-				chSysUnlockFromISR();
-			}
-
-			main_last_adc_duration = mcpwm_get_last_adc_isr_duration();
-		}
-	}
-}
-
-float main_get_last_adc_isr_duration(void) {
-	return main_last_adc_duration;
-}
-
-void main_sample_print_data(bool at_start, uint16_t len, uint8_t decimation) {
-	if (len > ADC_SAMPLE_MAX_LEN) {
-		len = ADC_SAMPLE_MAX_LEN;
-	}
-
-	sample_len = len;
-	sample_int = decimation;
-
-	if (at_start) {
-		sample_at_start = 1;
-		start_comm = mcpwm_get_comm_step();
-	} else {
-		sample_now = 0;
-		sample_ready = 0;
 	}
 }
 
@@ -352,7 +199,6 @@ int main(void) {
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {

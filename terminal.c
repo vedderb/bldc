@@ -29,7 +29,6 @@
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "commands.h"
-#include "main.h"
 #include "hw.h"
 #include "comm_can.h"
 #include "utils.h"
@@ -73,7 +72,7 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
-		commands_printf("Latest main ADC duration: %.4f ms\n", (double)(main_get_last_adc_isr_duration() * 1000.0));
+		commands_printf("Latest sample ADC duration: %.4f ms\n", (double)(mc_interface_get_last_sample_adc_isr_duration() * 1000.0));
 	} else if (strcmp(argv[0], "kv") == 0) {
 		commands_printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm_get_kv_filtered());
 	} else if (strcmp(argv[0], "mem") == 0) {

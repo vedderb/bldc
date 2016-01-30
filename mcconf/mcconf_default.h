@@ -52,7 +52,7 @@
 #define MCCONF_L_MIN_VOLTAGE			8.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			50.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			57.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_L_BATTERY_CUT_START
 #define MCCONF_L_BATTERY_CUT_START		10.0	// Start limiting the positive current at this voltage
@@ -199,7 +199,7 @@
 #define MCCONF_FOC_F_SW					20000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
-#define MCCONF_FOC_DT_US				0.15 // Microseconds for dead time compensation
+#define MCCONF_FOC_DT_US				0.08 // Microseconds for dead time compensation
 #endif
 #ifndef MCCONF_FOC_ENCODER_INVERTED
 #define MCCONF_FOC_ENCODER_INVERTED		false

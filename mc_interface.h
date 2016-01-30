@@ -66,6 +66,8 @@ float mc_interface_get_last_inj_adc_isr_duration(void);
 float mc_interface_read_reset_avg_motor_current(void);
 float mc_interface_read_reset_avg_input_current(void);
 float mc_interface_get_pos_set(void);
+float mc_interface_get_last_sample_adc_isr_duration(void);
+void mc_interface_sample_print_data(bool at_start, uint16_t len, uint8_t decimation);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);

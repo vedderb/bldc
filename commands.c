@@ -25,7 +25,7 @@
 #include "commands.h"
 #include "ch.h"
 #include "hal.h"
-#include "main.h"
+#include "mc_interface.h"
 #include "stm32f4xx_conf.h"
 #include "servo.h"
 #include "servo_simple.h"
@@ -577,7 +577,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		at_start = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
-		main_sample_print_data(at_start, sample_len, decimation);
+		mc_interface_sample_print_data(at_start, sample_len, decimation);
 		break;
 
 	case COMM_TERMINAL_CMD:

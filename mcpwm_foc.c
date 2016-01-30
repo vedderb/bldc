@@ -1782,13 +1782,6 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
 	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
 
-	state_m->v_alpha = mod_alpha * (2.0 / 3.0) * state_m->v_bus;
-	state_m->v_beta = mod_beta * (2.0 / 3.0) * state_m->v_bus;
-
-	// Set output (HW Dependent)
-	uint32_t duty1, duty2, duty3, top;
-	top = TIM1->ARR;
-
 	// Deadtime compensation
 	const float i_alpha_set = c * state_m->id_target - s * state_m->iq_target;
 	const float i_beta_set = c * state_m->iq_target + s * state_m->id_target;
@@ -1797,10 +1790,20 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	const float ic_set = -0.5 * i_alpha_set - SQRT3_BY_2 * i_beta_set;
 	const float mod_alpha_set_sgn = (2.0 / 3.0) * SIGN(ia_set) - (1.0 / 3.0) * SIGN(ib_set) - (1.0 / 3.0) * SIGN(ic_set);
 	const float mod_beta_set_sgn = ONE_BY_SQRT3 * SIGN(ib_set) - ONE_BY_SQRT3 * SIGN(ic_set);
+	const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
+	const float mod_alpha_comp = mod_alpha_set_sgn * mod_comp_fact;
+	const float mod_beta_comp = mod_beta_set_sgn * mod_comp_fact;
 
-	mod_alpha += mod_alpha_set_sgn * m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
-	mod_beta += mod_beta_set_sgn * m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
+//	mod_alpha += mod_alpha_comp;
+//	mod_beta += mod_beta_comp;
 
+	// Apply compensation here so that 0 duty cyle has no glitches.
+	state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m->v_bus;
+	state_m->v_beta = (mod_beta - mod_beta_comp) * (2.0 / 3.0) * state_m->v_bus;
+
+	// Set output (HW Dependent)
+	uint32_t duty1, duty2, duty3, top;
+	top = TIM1->ARR;
 	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3);
 	TIMER_UPDATE_DUTY(duty1, duty2, duty3);
 
