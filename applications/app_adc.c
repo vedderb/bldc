@@ -144,9 +144,13 @@ static THD_FUNCTION(adc_thread, arg) {
 		decoded_level = pwr;
 
 		// Read the external ADC pin and convert the value to a voltage.
+#ifdef ADC_IND_EXT2
 		float brake = (float)ADC_Value[ADC_IND_EXT2];
 		brake /= 4095;
 		brake *= V_REG;
+#else
+		float brake = 0.0;
+#endif
 
 		read_voltage2 = brake;
 

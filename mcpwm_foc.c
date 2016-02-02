@@ -808,6 +808,8 @@ float mcpwm_foc_get_vq(void) {
  * The detected direction.
  */
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
+	mc_interface_lock();
+
 	m_phase_override = true;
 	m_id_set = current;
 	m_iq_set = 0.0;
@@ -964,6 +966,8 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
+
+	mc_interface_unlock();
 }
 
 /**
@@ -1139,7 +1143,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	TIMER_UPDATE_SAMP_TOP(top - 2, 5, top);
 
 	float duty_last = 0.0;
-	for (float i = 0.02;i < 0.9;i *= 1.5) {
+	for (float i = 0.02;i < 0.5;i *= 1.5) {
 		float i_tmp;
 		mcpwm_foc_measure_inductance(i, 20, &i_tmp);
 
@@ -1175,6 +1179,8 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
  * false: Something went wrong
  */
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
+	mc_interface_lock();
+
 	m_phase_override = true;
 	m_id_set = current;
 	m_iq_set = 0.0;
@@ -1248,6 +1254,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			fails++;
 		}
 	}
+
+	mc_interface_unlock();
 
 	return fails == 2;
 }
