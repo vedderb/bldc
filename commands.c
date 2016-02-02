@@ -727,6 +727,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = COMM_GET_DECODED_ADC;
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level2() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage2() * 1000000.0), &ind);
 		commands_send_packet(send_buffer, ind);
 		break;
 

@@ -39,6 +39,8 @@ void app_adc_start(bool use_rx_tx);
 void app_adc_configure(adc_config *conf);
 float app_adc_get_decoded_level(void);
 float app_adc_get_voltage(void);
+float app_adc_get_decoded_level2(void);
+float app_adc_get_voltage2(void);
 void app_uartcomm_start(void);
 void app_uartcomm_configure(uint32_t baudrate);
 void app_nunchuk_start(void);

@@ -49,6 +49,8 @@ static volatile adc_config config;
 static volatile float ms_without_power = 0;
 static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
+static volatile float decoded_level2 = 0.0;
+static volatile float read_voltage2 = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 
 void app_adc_configure(adc_config *conf) {
@@ -68,6 +70,15 @@ float app_adc_get_decoded_level(void) {
 float app_adc_get_voltage(void) {
 	return read_voltage;
 }
+
+float app_adc_get_decoded_level2(void) {
+	return decoded_level2;
+}
+
+float app_adc_get_voltage2(void) {
+	return read_voltage2;
+}
+
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
@@ -132,6 +143,42 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		decoded_level = pwr;
 
+		// Read the external ADC pin and convert the value to a voltage.
+		float brake = (float)ADC_Value[ADC_IND_EXT2];
+		brake /= 4095;
+		brake *= V_REG;
+
+		read_voltage2 = brake;
+
+		// Optionally apply a mean value filter
+		if (config.use_filter) {
+			static float filter_buffer2[FILTER_SAMPLES];
+			static int filter_ptr2 = 0;
+
+			filter_buffer2[filter_ptr2++] = brake;
+			if (filter_ptr2 >= FILTER_SAMPLES) {
+				filter_ptr2 = 0;
+			}
+
+			brake = 0.0;
+			for (int i = 0;i < FILTER_SAMPLES;i++) {
+				brake += filter_buffer2[i];
+			}
+			brake /= FILTER_SAMPLES;
+		}
+
+		// Map and truncate the read voltage
+		brake = utils_map(brake, config.voltage_start, config.voltage_end, 0.0, 1.0);
+		utils_truncate_number(&brake, 0.0, 1.0);
+
+		// Optionally invert the read voltage
+		if (config.voltage_inverted) {
+			brake = 1.0 - brake;
+		}
+
+		decoded_level2 = brake;
+
+
 		// Read the button pins
 		bool cc_button = false;
 		bool rev_button = false;
@@ -168,6 +215,13 @@ static THD_FUNCTION(adc_thread, arg) {
 			// Scale the voltage and set 0 at the center
 			pwr *= 2.0;
 			pwr -= 1.0;
+			break;
+
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
+			if( brake > 0.01 ) {
+				pwr = -brake;
+			}
+
 			break;
 
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
@@ -211,6 +265,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
+		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
 			current_mode = true;
 			if (pwr >= 0.0) {
 				current = pwr * mcconf->l_current_max;
