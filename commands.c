@@ -500,6 +500,16 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_chuk_conf.tc = data[ind++];
 		appconf.app_chuk_conf.tc_max_diff = buffer_get_float32(data, 1000.0, &ind);
 
+		appconf.app_nrf_conf.speed = data[ind++];
+		appconf.app_nrf_conf.power = data[ind++];
+		appconf.app_nrf_conf.crc_type = data[ind++];
+		appconf.app_nrf_conf.retry_delay = data[ind++];
+		appconf.app_nrf_conf.retries = data[ind++];
+		appconf.app_nrf_conf.channel = data[ind++];
+		memcpy(appconf.app_nrf_conf.address, data + ind, 3);
+		ind += 3;
+		appconf.app_nrf_conf.send_crc_ack = data[ind++];
+
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
 		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
@@ -568,6 +578,16 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = appconf.app_chuk_conf.multi_esc;
 		send_buffer[ind++] = appconf.app_chuk_conf.tc;
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.tc_max_diff * 1000.0), &ind);
+
+		send_buffer[ind++] = appconf.app_nrf_conf.speed;
+		send_buffer[ind++] = appconf.app_nrf_conf.power;
+		send_buffer[ind++] = appconf.app_nrf_conf.crc_type;
+		send_buffer[ind++] = appconf.app_nrf_conf.retry_delay;
+		send_buffer[ind++] = appconf.app_nrf_conf.retries;
+		send_buffer[ind++] = appconf.app_nrf_conf.channel;
+		memcpy(send_buffer + ind, appconf.app_nrf_conf.address, 3);
+		ind += 3;
+		send_buffer[ind++] = appconf.app_nrf_conf.send_crc_ack;
 
 		commands_send_packet(send_buffer, ind);
 		break;

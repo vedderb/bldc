@@ -22,32 +22,6 @@
 
 void rf_init(void) {
 	spi_sw_init();
-
-	rf_power_down();
-
-	// Set default register values (TODO for the rest)
-	rf_write_reg_byte(NRF_REG_EN_RXADDR, 0);
-	rf_write_reg_byte(NRF_REG_DYNPD, 0);
-
-	rf_set_crc_type(NRF_CRC_1B);
-	rf_set_retr_retries(3);
-	rf_set_retr_delay(NRF_RETR_DELAY_250US);
-	rf_set_power(NRF_POWER_0DBM);
-	rf_set_speed(NRF_SPEED_2M);
-	rf_set_address_width(NRF_AW_3);
-	rf_set_frequency(2400 + 76);
-	rf_enable_features(NRF_FEATURE_DPL | NRF_FEATURE_DYN_ACK);
-
-	rf_enable_pipe_autoack(NRF_MASK_PIPE0);
-	rf_enable_pipe_address(NRF_MASK_PIPE0);
-	rf_enable_pipe_dlp(NRF_MASK_PIPE0);
-
-	// Note: The address should be set by the application.
-
-	rf_power_up();
-	rf_mode_rx();
-	rf_flush_all();
-	rf_clear_irq();
 }
 
 void rf_set_speed(NRF_SPEED speed) {

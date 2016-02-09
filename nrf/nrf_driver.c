@@ -37,9 +37,6 @@
 #define MAX_PL_LEN				25
 #define RX_BUFFER_SIZE			PACKET_MAX_PL_LEN
 
-#define NOACK					0
-#define TX_RESENDS				1
-
 #define ALIVE_INTERVAL			50  // Send alive packets at this rate
 #define NRF_RESTART_TIMEOUT		500  // Restart the NRF if nothing has been received or acked for this time
 
@@ -58,28 +55,18 @@ static THD_FUNCTION(tx_thread, arg);
 static int rf_tx_wrapper(char *data, int len);
 
 void nrf_driver_init(void) {
-	rf_init();
 	rfhelp_init();
 
 	nosend_cnt = 0;
 	nrf_restart_rx_time = 0;
 	nrf_restart_tx_time = 0;
 
-	// Set RF address
-	const char addr[3] = {0xC6, 0xC7, app_get_configuration()->controller_id};
-	rfhelp_set_rx_addr(0, addr, 3);
-	rfhelp_set_tx_addr(addr, 3);
-
 	chThdCreateStatic(rx_thread_wa, sizeof(rx_thread_wa), NORMALPRIO - 1, rx_thread, NULL);
 	chThdCreateStatic(tx_thread_wa, sizeof(tx_thread_wa), NORMALPRIO - 1, tx_thread, NULL);
 }
 
 static int rf_tx_wrapper(char *data, int len) {
-#if NOACK
-	int res = rfhelp_send_data_crc_noack(data, len, TX_RESENDS);
-#else
 	int res = rfhelp_send_data_crc(data, len);
-#endif
 
 	if (res == 0) {
 		nrf_restart_tx_time = NRF_RESTART_TIMEOUT;
@@ -120,11 +107,7 @@ static THD_FUNCTION(rx_thread, arg) {
 		int pipe;
 
 		for(;;) {
-#if NOACK
-			int res = rfhelp_read_rx_data_crc_noack((char*)buf, &len, &pipe);
-#else
 			int res = rfhelp_read_rx_data_crc((char*)buf, &len, &pipe);
-#endif
 
 			chuck_data cdata;
 			int32_t ind = 0;

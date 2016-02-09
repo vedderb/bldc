@@ -26,6 +26,7 @@
 #include "hal.h"
 #include "hw.h"
 #include "nrf_driver.h"
+#include "rfhelp.h"
 
 // Private variables
 static app_configuration appconf;
@@ -65,6 +66,7 @@ void app_init(app_configuration *conf) {
 
 	case APP_NRF:
 		nrf_driver_init();
+		rfhelp_restart();
 		break;
 
 	case APP_CUSTOM:
@@ -96,4 +98,5 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_configure(&appconf.app_adc_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
+	rfhelp_update_conf(&appconf.app_nrf_conf);
 }

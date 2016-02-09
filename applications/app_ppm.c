@@ -174,7 +174,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(servo_val);
+				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
 				send_duty = true;
 			}
 			break;
