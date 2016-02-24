@@ -110,8 +110,12 @@ static THD_FUNCTION(periodic_thread, arg) {
 				commands_send_rotor_pos(encoder_read_deg());
 				break;
 
-			case DISP_POS_MODE_ENCODER_POS_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pos_set(), encoder_read_deg()));
+			case DISP_POS_MODE_PID_POS:
+				commands_send_rotor_pos(mc_interface_get_pid_pos_now());
+				break;
+
+			case DISP_POS_MODE_PID_POS_ERROR:
+				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
 				break;
 
 			default:

@@ -121,6 +121,9 @@
 #ifndef MCCONF_P_PID_KD
 #define MCCONF_P_PID_KD					0.0004	// Derivative gain
 #endif
+#ifndef MCCONF_P_PID_ANG_DIV
+#define MCCONF_P_PID_ANG_DIV			1.0		// Divide angle by this value
+#endif
 
 // Current control parameters
 #ifndef MCCONF_CC_GAIN
@@ -217,7 +220,7 @@
 #define MCCONF_FOC_PLL_KP				2000.0
 #endif
 #ifndef MCCONF_FOC_PLL_KI
-#define MCCONF_FOC_PLL_KI				40000.0
+#define MCCONF_FOC_PLL_KI				20000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007

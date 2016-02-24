@@ -133,18 +133,24 @@ void utils_deadband(float *value, float tres, float max) {
  * The difference between the angles
  */
 float utils_angle_difference(float angle1, float angle2) {
-	utils_norm_angle(&angle1);
-	utils_norm_angle(&angle2);
+//	utils_norm_angle(&angle1);
+//	utils_norm_angle(&angle2);
+//
+//	if (fabsf(angle1 - angle2) > 180.0) {
+//		if (angle1 < angle2) {
+//			angle1 += 360.0;
+//		} else {
+//			angle2 += 360.0;
+//		}
+//	}
+//
+//	return angle1 - angle2;
 
-	if (fabsf(angle1 - angle2) > 180.0) {
-		if (angle1 < angle2) {
-			angle1 += 360.0;
-		} else {
-			angle2 += 360.0;
-		}
-	}
-
-	return angle1 - angle2;
+	// Faster in most cases
+	float difference = angle1 - angle2;
+	while (difference < -180.0) difference += 2.0 * 180.0;
+	while (difference > 180.0) difference -= 2.0 * 180.0;
+	return difference;
 }
 
 /**

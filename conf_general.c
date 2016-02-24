@@ -228,6 +228,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
 	conf->p_pid_kd = MCCONF_P_PID_KD;
+	conf->p_pid_ang_div = MCCONF_P_PID_ANG_DIV;
 
 	conf->cc_startup_boost_duty = MCCONF_CC_STARTUP_BOOST_DUTY;
 	conf->cc_min_current = MCCONF_CC_MIN_CURRENT;

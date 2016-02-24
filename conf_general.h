@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	2
-#define FW_VERSION_MINOR	15
+#define FW_VERSION_MINOR	16
 
 #include "datatypes.h"
 
@@ -64,10 +64,7 @@
 /*
  * Select default user motor configuration
  */
-//#define MCCONF_DEFAULT_USER		"mcconf_outrunner2.h"
 //#define MCCONF_DEFAULT_USER		"mcconf_sten.h"
-//#define MCCONF_DEFAULT_USER		"mcconf_foc_erwin.h"
-//#define MCCONF_DEFAULT_USER		"mcconf_foc_scorpion.h"
 
 /*
  * Select default user app configuration

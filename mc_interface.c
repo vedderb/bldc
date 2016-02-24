@@ -33,6 +33,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "commands.h"
+#include "encoder.h"
 #include <math.h>
 
 // Global variables
@@ -741,8 +742,28 @@ float mc_interface_read_reset_avg_input_current(void) {
 	return res;
 }
 
-float mc_interface_get_pos_set(void) {
+float mc_interface_get_pid_pos_set(void) {
 	return m_position_set;
+}
+
+float mc_interface_get_pid_pos_now(void) {
+	float ret = 0.0;
+
+	switch (m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		ret = encoder_read_deg();
+		break;
+
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_get_pid_pos_now();
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
 }
 
 float mc_interface_get_last_sample_adc_isr_duration(void) {

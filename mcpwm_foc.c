@@ -89,7 +89,7 @@ static volatile float m_id_set;
 static volatile float m_iq_set;
 static volatile bool m_dccal_done;
 static volatile bool m_output_on;
-static volatile float m_pos_pid_set_pos;
+static volatile float m_pos_pid_set;
 static volatile float m_speed_pid_set_rpm;
 static volatile float m_phase_now_observer;
 static volatile float m_phase_now_observer_override;
@@ -104,6 +104,7 @@ static volatile mc_sample_t m_samples;
 static volatile int m_tachometer;
 static volatile int m_tachometer_abs;
 static volatile float last_inj_adc_isr_duration;
+static volatile float m_pos_pid_now;
 
 // Private functions
 static void do_dc_cal(void);
@@ -114,7 +115,7 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
 static void control_current(volatile motor_state_t *state_m, float dt);
 static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout);
-static void run_pid_control_pos(float dt);
+static void run_pid_control_pos(float angle_now, float angle_set, float dt);
 static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
 static void start_pwm_hw(void);
@@ -201,7 +202,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_id_set = 0.0;
 	m_iq_set = 0.0;
 	m_output_on = false;
-	m_pos_pid_set_pos = 0.0;
+	m_pos_pid_set = 0.0;
 	m_speed_pid_set_rpm = 0.0;
 	m_phase_now_observer = 0.0;
 	m_phase_now_observer_override = 0.0;
@@ -215,6 +216,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_tachometer = 0;
 	m_tachometer_abs = 0;
 	last_inj_adc_isr_duration = 0;
+	m_pos_pid_now = 0.0;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
 
@@ -517,7 +519,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	m_control_mode = CONTROL_MODE_SPEED;
 	m_speed_pid_set_rpm = rpm;
 
-	if (m_state != MC_STATE_RUNNING && fabsf(rpm) > m_conf->s_pid_min_erpm) {
+	if (m_state != MC_STATE_RUNNING) {
 		m_state = MC_STATE_RUNNING;
 	}
 }
@@ -531,7 +533,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
  */
 void mcpwm_foc_set_pid_pos(float pos) {
 	m_control_mode = CONTROL_MODE_POS;
-	m_pos_pid_set_pos = pos;
+	m_pos_pid_set = pos;
 
 	if (m_state != MC_STATE_RUNNING) {
 		m_state = MC_STATE_RUNNING;
@@ -595,6 +597,14 @@ float mcpwm_foc_get_duty_cycle_set(void) {
 
 float mcpwm_foc_get_duty_cycle_now(void) {
 	return m_motor_state.duty_now;
+}
+
+float mcpwm_foc_get_pid_pos_set(void) {
+	return m_pos_pid_set;
+}
+
+float mcpwm_foc_get_pid_pos_now(void) {
+	return m_pos_pid_now;
 }
 
 /**
@@ -1123,7 +1133,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 
 	float res_tmp = 0.0;
 	float i_last = 0.0;
-	for (float i = 2.0;i < 35.0;i *= 1.5) {
+	for (float i = 2.0;i < (m_conf->l_current_max / 2.0);i *= 1.5) {
 		res_tmp = mcpwm_foc_measure_resistance(i, 20);
 
 		if (i > (0.5 / res_tmp)) {
@@ -1133,7 +1143,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	}
 
 	if (i_last < 0.01) {
-		i_last = 35.0;
+		i_last = (m_conf->l_current_max / 2.0);
 	}
 
 	*res = mcpwm_foc_measure_resistance(i_last, 500);
@@ -1406,6 +1416,13 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 			duty_set = 0.0;
 		}
 
+		// Brake when set ERPM is below min ERPM
+		if (m_control_mode == CONTROL_MODE_SPEED &&
+				fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
+			control_duty = true;
+			duty_set = 0.0;
+		}
+
 		if (control_duty) {
 			// Duty cycle control
 			static float duty_i_term = 0.0;
@@ -1516,7 +1533,6 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		m_motor_state.iq_target = iq_set_tmp;
 
 		control_current(&m_motor_state, dt);
-		run_pid_control_pos(dt);
 	} else {
 		// Track back emf
 		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
@@ -1582,6 +1598,29 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		m_tachometer += diff;
 		m_tachometer_abs += abs(diff);
 		phase_last = m_motor_state.phase;
+	}
+
+	// Track position control angle
+	// TODO: Have another look at this.
+#if ENCODER_ENABLE
+	float angle_now = encoder_read_deg();
+#else
+	float angle_now = m_motor_state.phase * (180.0 / M_PI);
+#endif
+
+	if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
+		m_pos_pid_now = angle_now;
+	} else {
+		static float angle_last = 0.0;
+		float diff_f = utils_angle_difference(angle_now, angle_last);
+		angle_last = angle_now;
+		m_pos_pid_now += diff_f / m_conf->p_pid_ang_div;
+		utils_norm_angle((float*)&m_pos_pid_now);
+	}
+
+	// Run position control
+	if (m_state == MC_STATE_RUNNING) {
+		run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
 	}
 
 	// MCIF handler
@@ -1950,7 +1989,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	*tCout = tC;
 }
 
-static void run_pid_control_pos(float dt) {
+static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	static float i_term = 0;
 	static float prev_error = 0;
 	float p_term;
@@ -1963,19 +2002,30 @@ static void run_pid_control_pos(float dt) {
 		return;
 	}
 
-	// Compute error
-	float angle = encoder_read_deg();
-	float error = utils_angle_difference(m_pos_pid_set_pos, angle);
+	// Compute parameters
+	float error = utils_angle_difference(angle_set, angle_now);
 
+#if ENCODER_ENABLE
 	if (m_conf->foc_encoder_inverted) {
 		error = -error;
 	}
+#endif
 
-
-	// Compute parameters
 	p_term = error * m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
-	d_term = (error - prev_error) * (m_conf->p_pid_kd / dt);
+
+	// Average DT for the D term when the error does not change. This likely
+	// happens at low speed when the position resolution is low and several
+	// control iterations run without position updates.
+	// TODO: Are there problems with this approach?
+	static float dt_int = 0.0;
+	dt_int += dt;
+	if (error == prev_error) {
+		d_term = 0.0;
+	} else {
+		d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
+		dt_int = 0.0;
+	}
 
 	// I-term wind-up protection
 	utils_truncate_number(&i_term, -1.0, 1.0);
@@ -1987,12 +2037,16 @@ static void run_pid_control_pos(float dt) {
 	float output = p_term + i_term + d_term;
 	utils_truncate_number(&output, -1.0, 1.0);
 
+#if ENCODER_ENABLE
 	if (encoder_index_found()) {
 		m_iq_set = output * m_conf->lo_current_max;
 	} else {
 		// Rotate the motor with 40 % power until the encoder index is found.
 		m_iq_set = 0.4 * m_conf->lo_current_max;
 	}
+#else
+	m_iq_set = output * m_conf->lo_current_max;
+#endif
 }
 
 static void run_pid_control_speed(float dt) {
@@ -2008,15 +2062,10 @@ static void run_pid_control_speed(float dt) {
 		return;
 	}
 
-	// Too low RPM set. Stop and return.
+	// Too low RPM set. Reset state and return.
 	if (fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
 		i_term = 0.0;
 		prev_error = 0;
-		m_iq_set = 0.0;
-		m_state = MC_STATE_OFF;
-		if (m_output_on) {
-			stop_pwm_hw();
-		}
 		return;
 	}
 

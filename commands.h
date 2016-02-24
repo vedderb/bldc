@@ -38,5 +38,6 @@ void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
 disp_pos_mode commands_get_disp_pos_mode(void);
 void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));
+void commands_send_app_data(unsigned char *data, unsigned int len);
 
 #endif /* COMMANDS_H_ */

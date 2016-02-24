@@ -324,11 +324,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.p_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.p_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.p_pid_kd = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.p_pid_ang_div = (float)buffer_get_int32(data, &ind) / 100000.0;
 
 		mcconf.cc_startup_boost_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.cc_min_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.cc_gain = (float)buffer_get_int32(data, &ind) / 1000000.0;
-		mcconf.cc_ramp_step_max = (float)buffer_get_int32(data, &ind) / 1000000.0;
+		mcconf.cc_ramp_step_max = buffer_get_float32(data, 1e5, &ind);
 
 		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
 		mcconf.m_duty_ramp_step = (float)buffer_get_float32(data, 1000000.0, &ind);
@@ -431,6 +432,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_ki * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.p_pid_kd * 1000000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.p_pid_ang_div, 1e5, &ind);
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_startup_boost_duty * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.cc_min_current * 1000.0), &ind);
@@ -853,7 +855,7 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
 
 	send_buffer[index++] = COMM_CUSTOM_APP_DATA;
-	memcpy(send_buffer, data, len);
+	memcpy(send_buffer + index, data, len);
 	index += len;
 
 	commands_send_packet(send_buffer, index);
