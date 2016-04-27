@@ -32,6 +32,8 @@
 #include "utils.h"
 #include "hw.h"
 #include "timeout.h"
+#include "comm_can.h"
+
 #include <math.h>
 
 // Settings
@@ -147,15 +149,7 @@ static THD_FUNCTION(uart_thread, arg) {
 }
 
 static void set_output(float output) {
-	output /= (1.0 - HYST);
-
-	if (output > HYST) {
-		output -= HYST;
-	} else if (output < -HYST) {
-		output += HYST;
-	} else {
-		output = 0.0;
-	}
+	utils_deadband(&output, HYST, 1.0);
 
 	const float rpm = mc_interface_get_rpm();
 
@@ -182,13 +176,11 @@ static void set_output(float output) {
 		current_p2 = current_p1;
 		current_p1 = current;
 
-		if (fabsf(current) < mc_interface_get_configuration()->cc_min_current) {
-			current = -mc_interface_get_configuration()->cc_min_current;
-		}
-
 		mc_interface_set_current(current);
+		comm_can_set_current(255, current);
 	} else {
 		mc_interface_set_brake_current(output * mc_interface_get_configuration()->l_current_min);
+		comm_can_set_current_brake(255, output * mc_interface_get_configuration()->l_current_min);
 	}
 }
 

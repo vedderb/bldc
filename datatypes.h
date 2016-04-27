@@ -95,6 +95,12 @@ typedef enum {
 	DISP_POS_MODE_ENCODER_OBSERVER_ERROR
 } disp_pos_mode;
 
+typedef enum {
+	SENSOR_PORT_MODE_HALL = 0,
+	SENSOR_PORT_MODE_ABI,
+	SENSOR_PORT_MODE_AS5047_SPI
+} sensor_port_mode;
+
 typedef struct {
 	float cycle_int_limit;
 	float cycle_int_limit_running;
@@ -172,7 +178,7 @@ typedef struct {
 	float foc_sl_d_current_factor;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
-	float foc_hall_sl_erpm;
+	float foc_sl_erpm;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -194,6 +200,7 @@ typedef struct {
 	float m_duty_ramp_step_rpm_lim;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
+	sensor_port_mode m_sensor_port_mode;
 } mc_configuration;
 
 // Applications to use

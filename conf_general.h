@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	2
-#define FW_VERSION_MINOR	16
+#define FW_VERSION_MINOR	17
 
 #include "datatypes.h"
 
@@ -38,6 +38,7 @@
 
 // Settings and parameters to override
 //#define VIN_R1				33000.0
+//#define VIN_R1				39200.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
 //#define CURRENT_SHUNT_RES	0.0005
@@ -65,11 +66,13 @@
  * Select default user motor configuration
  */
 //#define MCCONF_DEFAULT_USER		"mcconf_sten.h"
+//#define MCCONF_DEFAULT_USER		"mcconf_sp_540kv.h"
 
 /*
  * Select default user app configuration
  */
 //#define APPCONF_DEFAULT_USER		"appconf_example_ppm.h"
+//#define APPCONF_DEFAULT_USER		"appconf_custom.h"
 
 /*
  * Select which custom application to use. To configure the default applications and
@@ -77,13 +80,6 @@
  * values.
  */
 //#define USE_APP_STEN
-
-/*
- * Use encoder
- */
-#ifndef ENCODER_ENABLE
-#define ENCODER_ENABLE			0
-#endif
 
 /*
  * Enable CAN-bus

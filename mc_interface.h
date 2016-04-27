@@ -48,7 +48,7 @@ void mc_interface_brake_now(void);
 void mc_interface_release_motor(void);
 float mc_interface_get_duty_cycle_set(void);
 float mc_interface_get_duty_cycle_now(void);
-float mc_interface_get_switching_frequency_now(void);
+float mc_interface_get_sampling_frequency_now(void);
 float mc_interface_get_rpm(void);
 float mc_interface_get_amp_hours(bool reset);
 float mc_interface_get_amp_hours_charged(bool reset);

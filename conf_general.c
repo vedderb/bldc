@@ -218,7 +218,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_hall_table[5] = MCCONF_FOC_HALL_TAB_5;
 	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
 	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
-	conf->foc_hall_sl_erpm = MCCONF_FOC_HALL_ERPM;
+	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
 
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;
@@ -240,6 +240,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_duty_ramp_step_rpm_lim = MCCONF_M_RAMP_STEP_RPM_LIM;
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
+	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 }
 
 /**

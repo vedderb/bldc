@@ -1916,7 +1916,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	mc_interface_mc_timer_isr();
 
-	if (ENCODER_ENABLE) {
+	if (encoder_is_configured()) {
 		run_pid_control_pos(1.0 / switching_frequency_now);
 	}
 
@@ -2045,7 +2045,7 @@ void mcpwm_reset_hall_detect_table(void) {
 int mcpwm_get_hall_detect_result(int8_t *table) {
 	if (WS2811_ENABLE) {
 		return -2;
-	} else if (ENCODER_ENABLE) {
+	} else if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		return -3;
 	}
 

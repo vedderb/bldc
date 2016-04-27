@@ -33,6 +33,7 @@
 #include "comm_can.h"
 #include "utils.h"
 #include "timeout.h"
+#include "encoder.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -221,25 +222,25 @@ void terminal_process_string(char *str) {
 			sscanf(argv[1], "%f", &current);
 
 			if (current > 0.0 && current <= mcconf.l_current_max) {
-#if ENCODER_ENABLE
-				mc_motor_type type_old = mcconf.motor_type;
-				mcconf.motor_type = MOTOR_TYPE_FOC;
-				mc_interface_set_configuration(&mcconf);
+				if (encoder_is_configured()) {
+					mc_motor_type type_old = mcconf.motor_type;
+					mcconf.motor_type = MOTOR_TYPE_FOC;
+					mc_interface_set_configuration(&mcconf);
 
-				float offset = 0.0;
-				float ratio = 0.0;
-				bool inverted = false;
-				mcpwm_foc_encoder_detect(current, true, &offset, &ratio, &inverted);
+					float offset = 0.0;
+					float ratio = 0.0;
+					bool inverted = false;
+					mcpwm_foc_encoder_detect(current, true, &offset, &ratio, &inverted);
 
-				mcconf.motor_type = type_old;
-				mc_interface_set_configuration(&mcconf);
+					mcconf.motor_type = type_old;
+					mc_interface_set_configuration(&mcconf);
 
-				commands_printf("Offset   : %.2f", (double)offset);
-				commands_printf("Ratio    : %.2f", (double)ratio);
-				commands_printf("Inverted : %s\n", inverted ? "true" : "false");
-#else
-				commands_printf("Encoder not enabled.\n");
-#endif
+					commands_printf("Offset   : %.2f", (double)offset);
+					commands_printf("Ratio    : %.2f", (double)ratio);
+					commands_printf("Inverted : %s\n", inverted ? "true" : "false");
+				} else {
+					commands_printf("Encoder not enabled.\n");
+				}
 			} else {
 				commands_printf("Invalid argument(s).\n");
 			}

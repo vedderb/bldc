@@ -120,6 +120,7 @@ static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
 static void start_pwm_hw(void);
 static int read_hall(void);
+static float correct_encoder(float obs_angle, float enc_angle, float speed);
 static float correct_hall(float angle, float speed, float dt);
 
 // Threads
@@ -829,7 +830,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	timeout_configure(60000, 0.0);
+	timeout_configure(600000, 0.0);
 
 	// Save configuration
 	float offset_old = m_conf->foc_encoder_offset;
@@ -872,34 +873,68 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	// Inverted and ratio
 	chThdSleepMilliseconds(1000);
 
+	const int it_rat = 20;
 	float s_sum = 0.0;
 	float c_sum = 0.0;
-	for (int i = 0; i < 10; i++) {
+	float first = m_phase_now_encoder;
+
+	for (int i = 0; i < it_rat; i++) {
 		float phase_old = m_phase_now_encoder;
 		float phase_ovr_tmp = m_phase_now_override;
-		for (float i = phase_ovr_tmp; i < phase_ovr_tmp + 0.8 * M_PI;
+		for (float i = phase_ovr_tmp; i < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
 				i += (2.0 * M_PI) / 500.0) {
 			m_phase_now_override = i;
-			chThdSleepMilliseconds(2);
+			chThdSleepMilliseconds(1);
 		}
-		chThdSleepMilliseconds(1000);
-		float diff = utils_angle_difference(
-				m_phase_now_encoder * (180.0 / M_PI),
-				phase_old * (180.0 / M_PI));
+		utils_norm_angle_rad((float*)&m_phase_now_override);
+		chThdSleepMilliseconds(300);
+		float diff = utils_angle_difference_rad(m_phase_now_encoder, phase_old);
 
 		float s, c;
-		sincosf(diff * M_PI / 180.0, &s, &c);
+		sincosf(diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)diff);
+			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+		}
+
+		if (i > 3 && fabsf(utils_angle_difference_rad(m_phase_now_encoder, first)) < fabsf(diff / 2.0)) {
+			break;
+		}
+	}
+
+	first = m_phase_now_encoder;
+
+	for (int i = 0; i < it_rat; i++) {
+		float phase_old = m_phase_now_encoder;
+		float phase_ovr_tmp = m_phase_now_override;
+		for (float i = phase_ovr_tmp; i > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
+				i -= (2.0 * M_PI) / 500.0) {
+			m_phase_now_override = i;
+			chThdSleepMilliseconds(1);
+		}
+		utils_norm_angle_rad((float*)&m_phase_now_override);
+		chThdSleepMilliseconds(300);
+		float diff = utils_angle_difference_rad(phase_old, m_phase_now_encoder);
+
+		float s, c;
+		sincosf(diff, &s, &c);
+		s_sum += s;
+		c_sum += c;
+
+		if (print) {
+			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+		}
+
+		if (i > 3 && fabsf(utils_angle_difference_rad(m_phase_now_encoder, first)) < fabsf(diff / 2.0)) {
+			break;
 		}
 	}
 
 	float diff = atan2f(s_sum, c_sum) * 180.0 / M_PI;
 	*inverted = diff < 0.0;
-	*ratio = roundf((0.8 * 180.0) /
+	*ratio = roundf(((2.0 / 3.0) * 180.0) /
 			fabsf(diff));
 
 	m_conf->foc_encoder_inverted = *inverted;
@@ -920,33 +955,37 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		commands_printf("Enc: %.2f", (double)encoder_read_deg());
 	}
 
+	const int it_ofs = m_conf->foc_encoder_ratio * 3.0;
 	s_sum = 0.0;
 	c_sum = 0.0;
-	for (int i = 0;i < 5;i++) {
-		m_phase_now_override = (float)i * M_PI / 5.0;
-		chThdSleepMilliseconds(1000);
 
+	for (int i = 0;i < it_ofs;i++) {
+		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		chThdSleepMilliseconds(500);
+
+		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(m_phase_now_encoder - m_phase_now_override, &s, &c);
+		sincosf(diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)((m_phase_now_encoder - m_phase_now_override) * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
 		}
 	}
 
-	for (int i = 3;i >= -1;i--) {
-		m_phase_now_override = (float)i * M_PI / 5.0;
-		chThdSleepMilliseconds(1000);
+	for (int i = it_ofs;i > 0;i--) {
+		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		chThdSleepMilliseconds(500);
 
+		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(m_phase_now_encoder - m_phase_now_override, &s, &c);
+		sincosf(diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)((m_phase_now_encoder - m_phase_now_override) * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
 		}
 	}
 
@@ -1370,16 +1409,18 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 
 	m_motor_state.v_bus = GET_INPUT_VOLTAGE();
 
-#if ENCODER_ENABLE
-	float phase_tmp = encoder_read_deg();
-	if (m_conf->foc_encoder_inverted) {
-		phase_tmp = 360.0 - phase_tmp;
+	float enc_ang = 0;
+	if (encoder_is_configured()) {
+		enc_ang = encoder_read_deg();
+		float phase_tmp = enc_ang;
+		if (m_conf->foc_encoder_inverted) {
+			phase_tmp = 360.0 - phase_tmp;
+		}
+		phase_tmp *= m_conf->foc_encoder_ratio;
+		phase_tmp -= m_conf->foc_encoder_offset;
+		utils_norm_angle((float*)&phase_tmp);
+		m_phase_now_encoder = phase_tmp * (M_PI / 180.0);
 	}
-	phase_tmp *= m_conf->foc_encoder_ratio;
-	phase_tmp -= m_conf->foc_encoder_offset;
-	utils_norm_angle((float*)&phase_tmp);
-	m_phase_now_encoder = phase_tmp * (M_PI / 180.0);
-#endif
 
 	static float phase_before = 0.0;
 	const float phase_diff = utils_angle_difference_rad(m_motor_state.phase, phase_before);
@@ -1410,7 +1451,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		// observer has lost tracking. Use duty cycle control with the lowest duty cycle
 		// to get as smooth braking as possible.
 		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER)
+//				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoderss
 				&& fabsf(duty_filtered) < 0.03) {
 			control_duty = true;
 			duty_set = 0.0;
@@ -1479,7 +1520,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
 			if (encoder_index_found()) {
-				m_motor_state.phase = m_phase_now_encoder;
+				m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
 			} else {
 				// Rotate the motor in open loop if the index isn't found.
 				m_motor_state.phase = m_phase_now_encoder_no_index;
@@ -1492,6 +1533,10 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		case FOC_SENSOR_MODE_HALL:
 			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
 			m_motor_state.phase = m_phase_now_observer;
+
+			if (!m_phase_override) {
+				id_set_tmp = 0.0;
+			}
 			break;
 		case FOC_SENSOR_MODE_SENSORLESS:
 			if (m_phase_observer_override) {
@@ -1571,7 +1616,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			m_motor_state.phase = m_phase_now_encoder;
+			m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
 			break;
 		case FOC_SENSOR_MODE_HALL:
 			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
@@ -1602,11 +1647,12 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 
 	// Track position control angle
 	// TODO: Have another look at this.
-#if ENCODER_ENABLE
-	float angle_now = encoder_read_deg();
-#else
-	float angle_now = m_motor_state.phase * (180.0 / M_PI);
-#endif
+	float angle_now = 0.0;
+	if (encoder_is_configured()) {
+		angle_now = enc_ang;
+	} else {
+		angle_now = m_motor_state.phase * (180.0 / M_PI);
+	}
 
 	if (m_conf->p_pid_ang_div > 0.98 && m_conf->p_pid_ang_div < 1.02) {
 		m_pos_pid_now = angle_now;
@@ -2005,11 +2051,11 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	// Compute parameters
 	float error = utils_angle_difference(angle_set, angle_now);
 
-#if ENCODER_ENABLE
-	if (m_conf->foc_encoder_inverted) {
-		error = -error;
+	if (encoder_is_configured()) {
+		if (m_conf->foc_encoder_inverted) {
+			error = -error;
+		}
 	}
-#endif
 
 	p_term = error * m_conf->p_pid_kp;
 	i_term += error * (m_conf->p_pid_ki * dt);
@@ -2037,16 +2083,16 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	float output = p_term + i_term + d_term;
 	utils_truncate_number(&output, -1.0, 1.0);
 
-#if ENCODER_ENABLE
-	if (encoder_index_found()) {
-		m_iq_set = output * m_conf->lo_current_max;
+	if (encoder_is_configured()) {
+		if (encoder_index_found()) {
+			m_iq_set = output * m_conf->lo_current_max;
+		} else {
+			// Rotate the motor with 40 % power until the encoder index is found.
+			m_iq_set = 0.4 * m_conf->lo_current_max;
+		}
 	} else {
-		// Rotate the motor with 40 % power until the encoder index is found.
-		m_iq_set = 0.4 * m_conf->lo_current_max;
+		m_iq_set = output * m_conf->lo_current_max;
 	}
-#else
-	m_iq_set = output * m_conf->lo_current_max;
-#endif
 }
 
 static void run_pid_control_speed(float dt) {
@@ -2133,18 +2179,38 @@ static int read_hall(void) {
 	return READ_HALL1() | (READ_HALL2() << 1) | (READ_HALL3() << 2);
 }
 
+static float correct_encoder(float obs_angle, float enc_angle, float speed) {
+	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+	static bool using_encoder = true;
+
+	// Hysteresis 5 % of total speed
+	float hyst = m_conf->foc_sl_erpm * 0.05;
+	if (using_encoder) {
+		if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
+			using_encoder = false;
+		}
+	} else {
+		if (rpm_abs < (m_conf->foc_sl_erpm - hyst)) {
+			using_encoder = true;
+		}
+	}
+
+	return using_encoder ? enc_angle : obs_angle;
+}
+
 static float correct_hall(float angle, float speed, float dt) {
 	static int ang_hall_int_prev = -1;
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
 	static bool using_hall = true;
 
-	// Hysteresis of 100 rpm
+	// Hysteresis 5 % of total speed
+	float hyst = m_conf->foc_sl_erpm * 0.05;
 	if (using_hall) {
-		if (rpm_abs > (m_conf->foc_hall_sl_erpm + 100)) {
+		if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
 			using_hall = false;
 		}
 	} else {
-		if (rpm_abs < (m_conf->foc_hall_sl_erpm - 100)) {
+		if (rpm_abs < (m_conf->foc_sl_erpm - hyst)) {
 			using_hall = true;
 		}
 	}

@@ -279,8 +279,8 @@
 #ifndef MCCONF_FOC_HALL_TAB_7
 #define MCCONF_FOC_HALL_TAB_7			255
 #endif
-#ifndef MCCONF_FOC_HALL_ERPM
-#define MCCONF_FOC_HALL_ERPM			2000.0	// ERPM above which only the observer is used
+#ifndef MCCONF_FOC_SL_ERPM
+#define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
 #endif
 
 // Misc
@@ -298,6 +298,9 @@
 #endif
 #ifndef MCCONF_M_ENCODER_COUNTS
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts
+#endif
+#ifndef MCCONF_M_SENSOR_PORT_MODE
+#define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */

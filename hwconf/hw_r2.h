@@ -156,6 +156,8 @@
 #define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
 #define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
+#define HW_ENC_TIM_ISR_CH		TIM3_IRQn
+#define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
 // NRF pins
 #define NRF_PORT_CSN	HW_ICU_GPIO

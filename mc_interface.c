@@ -118,6 +118,22 @@ void mc_interface_init(mc_configuration *configuration) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
 
+	// Initialize encoder
+#if !WS2811_ENABLE
+	switch (m_conf.m_sensor_port_mode) {
+		case SENSOR_PORT_MODE_ABI:
+			encoder_init_abi(m_conf.m_encoder_counts);
+			break;
+
+		case SENSOR_PORT_MODE_AS5047_SPI:
+			encoder_init_as5047p_spi();
+			break;
+
+		default:
+			break;
+	}
+#endif
+
 	// Initialize selected implementation
 	switch (m_conf.motor_type) {
 		case MOTOR_TYPE_BLDC:
@@ -139,6 +155,28 @@ const volatile mc_configuration* mc_interface_get_configuration(void) {
 }
 
 void mc_interface_set_configuration(mc_configuration *configuration) {
+#if !WS2811_ENABLE
+	if (m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
+		encoder_deinit();
+		switch (configuration->m_sensor_port_mode) {
+		case SENSOR_PORT_MODE_ABI:
+			encoder_init_abi(configuration->m_encoder_counts);
+			break;
+
+		case SENSOR_PORT_MODE_AS5047_SPI:
+			encoder_init_as5047p_spi();
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
+		encoder_set_counts(configuration->m_encoder_counts);
+	}
+#endif
+
 	if (m_conf.motor_type == MOTOR_TYPE_FOC
 			&& configuration->motor_type != MOTOR_TYPE_FOC) {
 		mcpwm_foc_deinit();
@@ -432,7 +470,7 @@ float mc_interface_get_duty_cycle_now(void) {
 	return ret;
 }
 
-float mc_interface_get_switching_frequency_now(void) {
+float mc_interface_get_sampling_frequency_now(void) {
 	float ret = 0.0;
 
 	switch (m_conf.motor_type) {
@@ -442,7 +480,7 @@ float mc_interface_get_switching_frequency_now(void) {
 		break;
 
 	case MOTOR_TYPE_FOC:
-		ret = mcpwm_foc_get_switching_frequency_now();
+		ret = mcpwm_foc_get_switching_frequency_now() / 2.0;
 		break;
 
 	default:
@@ -918,14 +956,14 @@ void mc_interface_mc_timer_isr(void) {
 	}
 
 	// Watt and ah counters
-	const float f_sw = mc_interface_get_switching_frequency_now();
+	const float f_samp = mc_interface_get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
 		// Some extra filtering
 		static float curr_diff_sum = 0.0;
 		static float curr_diff_samples = 0;
 
-		curr_diff_sum += current_in / f_sw;
-		curr_diff_samples += 1.0 / f_sw;
+		curr_diff_sum += current_in / f_samp;
+		curr_diff_samples += 1.0 / f_samp;
 
 		if (curr_diff_samples >= 0.01) {
 			if (curr_diff_sum > 0.0) {
@@ -974,7 +1012,7 @@ void mc_interface_mc_timer_isr(void) {
 			m_vzero_samples[m_sample_now] = mcpwm_vzero;
 
 			m_curr_fir_samples[m_sample_now] = (int16_t)(mc_interface_get_tot_current() * 100.0);
-			m_f_sw_samples[m_sample_now] = (int16_t)(mc_interface_get_switching_frequency_now() / 10.0);
+			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
 
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
@@ -1016,7 +1054,7 @@ void mc_interface_adc_inj_int_handler(void) {
  * The configaration to update.
  */
 static void update_override_limits(volatile mc_configuration *conf) {
-	const float temp = NTC_TEMP(ADC_IND_TEMP_MOS1);
+	const float temp = NTC_TEMP(ADC_IND_TEMP_MOS2);
 	const float v_in = GET_INPUT_VOLTAGE();
 
 	// Temperature

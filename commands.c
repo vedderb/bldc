@@ -314,7 +314,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_sl_d_current_factor = buffer_get_float32(data, 1e3, &ind);
 		memcpy(mcconf.foc_hall_table, data + ind, 8);
 		ind += 8;
-		mcconf.foc_hall_sl_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
+		mcconf.foc_sl_erpm = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		mcconf.s_pid_kp = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.s_pid_ki = (float)buffer_get_int32(data, &ind) / 1000000.0;
@@ -336,13 +336,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_duty_ramp_step_rpm_lim = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_current_backoff_gain = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_encoder_counts = buffer_get_uint32(data, &ind);
+		mcconf.m_sensor_port_mode = data[ind++];
 
 		conf_general_store_mc_configuration(&mcconf);
 		mc_interface_set_configuration(&mcconf);
-
-#if ENCODER_ENABLE
-		encoder_set_counts(mcconf.m_encoder_counts);
-#endif
 
 		ind = 0;
 		send_buffer[ind++] = packet_id;
@@ -422,7 +419,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.foc_sl_d_current_factor, 1e3, &ind);
 		memcpy(send_buffer + ind, mcconf.foc_hall_table, 8);
 		ind += 8;
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.foc_hall_sl_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.foc_sl_erpm * 1000.0), &ind);
 
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_kp * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.s_pid_ki * 1000000.0), &ind);
@@ -444,6 +441,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step_rpm_lim, 1000000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.m_current_backoff_gain, 1000000.0, &ind);
 		buffer_append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);
+		send_buffer[ind++] = mcconf.m_sensor_port_mode;
 
 		commands_send_packet(send_buffer, ind);
 		break;
@@ -663,66 +661,74 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	break;
 
 	case COMM_DETECT_ENCODER: {
-#if ENCODER_ENABLE
-		mcconf = *mc_interface_get_configuration();
-		mcconf_old = mcconf;
+		if (encoder_is_configured()) {
+			mcconf = *mc_interface_get_configuration();
+			mcconf_old = mcconf;
 
-		ind = 0;
-		float current = buffer_get_float32(data, 1e3, &ind);
+			ind = 0;
+			float current = buffer_get_float32(data, 1e3, &ind);
 
-		mcconf.motor_type = MOTOR_TYPE_FOC;
-		mcconf.foc_f_sw = 10000.0;
-		mcconf.foc_current_kp = 0.01;
-		mcconf.foc_current_ki = 10.0;
-		mc_interface_set_configuration(&mcconf);
+			mcconf.motor_type = MOTOR_TYPE_FOC;
+			mcconf.foc_f_sw = 10000.0;
+			mcconf.foc_current_kp = 0.01;
+			mcconf.foc_current_ki = 10.0;
+			mc_interface_set_configuration(&mcconf);
 
-		float offset = 0.0;
-		float ratio = 0.0;
-		bool inverted = false;
-		mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
-		mc_interface_set_configuration(&mcconf_old);
+			float offset = 0.0;
+			float ratio = 0.0;
+			bool inverted = false;
+			mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
+			mc_interface_set_configuration(&mcconf_old);
 
-		ind = 0;
-		send_buffer[ind++] = COMM_DETECT_ENCODER;
-		buffer_append_float32(send_buffer, offset, 1e6, &ind);
-		buffer_append_float32(send_buffer, ratio, 1e6, &ind);
-		send_buffer[ind++] = inverted;
-		commands_send_packet(send_buffer, ind);
-#else
-		ind = 0;
-		send_buffer[ind++] = COMM_DETECT_ENCODER;
-		buffer_append_float32(send_buffer, 1001.0, 1e6, &ind);
-		buffer_append_float32(send_buffer, 0.0, 1e6, &ind);
-		send_buffer[ind++] = false;
-		commands_send_packet(send_buffer, ind);
-#endif
+			ind = 0;
+			send_buffer[ind++] = COMM_DETECT_ENCODER;
+			buffer_append_float32(send_buffer, offset, 1e6, &ind);
+			buffer_append_float32(send_buffer, ratio, 1e6, &ind);
+			send_buffer[ind++] = inverted;
+			commands_send_packet(send_buffer, ind);
+		} else {
+			ind = 0;
+			send_buffer[ind++] = COMM_DETECT_ENCODER;
+			buffer_append_float32(send_buffer, 1001.0, 1e6, &ind);
+			buffer_append_float32(send_buffer, 0.0, 1e6, &ind);
+			send_buffer[ind++] = false;
+			commands_send_packet(send_buffer, ind);
+		}
 	}
 	break;
 
 	case COMM_DETECT_HALL_FOC: {
 		mcconf = *mc_interface_get_configuration();
-		mcconf_old = mcconf;
 
-		ind = 0;
-		float current = buffer_get_float32(data, 1e3, &ind);
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_HALL) {
+			mcconf_old = mcconf;
+			ind = 0;
+			float current = buffer_get_float32(data, 1e3, &ind);
 
-		mcconf.motor_type = MOTOR_TYPE_FOC;
-		mcconf.foc_f_sw = 10000.0;
-		mcconf.foc_current_kp = 0.01;
-		mcconf.foc_current_ki = 10.0;
-		mc_interface_set_configuration(&mcconf);
+			mcconf.motor_type = MOTOR_TYPE_FOC;
+			mcconf.foc_f_sw = 10000.0;
+			mcconf.foc_current_kp = 0.01;
+			mcconf.foc_current_ki = 10.0;
+			mc_interface_set_configuration(&mcconf);
 
-		uint8_t hall_tab[8];
-		bool res = mcpwm_foc_hall_detect(current, hall_tab);
-		mc_interface_set_configuration(&mcconf_old);
+			uint8_t hall_tab[8];
+			bool res = mcpwm_foc_hall_detect(current, hall_tab);
+			mc_interface_set_configuration(&mcconf_old);
 
-		ind = 0;
-		send_buffer[ind++] = COMM_DETECT_HALL_FOC;
-		memcpy(send_buffer + ind, hall_tab, 8);
-		ind += 8;
-		send_buffer[ind++] = res ? 0 : 1;
+			ind = 0;
+			send_buffer[ind++] = COMM_DETECT_HALL_FOC;
+			memcpy(send_buffer + ind, hall_tab, 8);
+			ind += 8;
+			send_buffer[ind++] = res ? 0 : 1;
 
-		commands_send_packet(send_buffer, ind);
+			commands_send_packet(send_buffer, ind);
+		} else {
+			ind = 0;
+			send_buffer[ind++] = COMM_DETECT_HALL_FOC;
+			memset(send_buffer, 255, 8);
+			ind += 8;
+			send_buffer[ind++] = 0;
+		}
 	}
 	break;
 

@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,26 +16,16 @@
     */
 
 /*
- * encoder.h
+ * appconf_example_ppm.h
  *
- *  Created on: 7 mar 2015
+ *  Created on: 9 sep 2015
  *      Author: benjamin
  */
 
-#ifndef ENCODER_H_
-#define ENCODER_H_
+#ifndef APPCONF_APPCONF_EXAMPLE_PPM_H_
+#define APPCONF_APPCONF_EXAMPLE_PPM_H_
 
-#include "conf_general.h"
+// Use custom user application
+#define APPCONF_APP_TO_USE				APP_CUSTOM
 
-// Functions
-void encoder_deinit(void);
-void encoder_init_abi(uint32_t counts);
-void encoder_init_as5047p_spi(void);
-bool encoder_is_configured(void);
-float encoder_read_deg(void);
-void encoder_reset(void);
-void encoder_tim_isr(void);
-void encoder_set_counts(uint32_t counts);
-bool encoder_index_found(void);
-
-#endif /* ENCODER_H_ */
+#endif

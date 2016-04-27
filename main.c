@@ -167,11 +167,6 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
-
-#if ENCODER_ENABLE
-	encoder_init(mcconf.m_encoder_counts);
-#endif
-
 	mc_interface_init(&mcconf);
 
 	commands_init();
@@ -208,8 +203,8 @@ int main(void) {
 	for(;;) {
 		chThdSleepMilliseconds(10);
 
-#if ENCODER_ENABLE
-//		comm_can_set_pos(0, encoder_read_deg());
-#endif
+		if (encoder_is_configured()) {
+			//		comm_can_set_pos(0, encoder_read_deg());
+		}
 	}
 }
