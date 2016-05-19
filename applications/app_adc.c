@@ -308,6 +308,17 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 			pulses_without_power_before = ms_without_power;
 			mc_interface_set_brake_current(timeout_get_brake_current());
+
+			if (config.multi_esc) {
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_current_brake(msg->id, timeout_get_brake_current());
+					}
+				}
+			}
+
 			continue;
 		}
 

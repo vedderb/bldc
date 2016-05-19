@@ -27,7 +27,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR	2
-#define FW_VERSION_MINOR	17
+#define FW_VERSION_MINOR	18
 
 #include "datatypes.h"
 
@@ -67,6 +67,7 @@
  */
 //#define MCCONF_DEFAULT_USER		"mcconf_sten.h"
 //#define MCCONF_DEFAULT_USER		"mcconf_sp_540kv.h"
+//#define MCCONF_DEFAULT_USER		"mcconf_castle_2028.h"
 
 /*
  * Select default user app configuration

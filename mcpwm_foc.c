@@ -1688,8 +1688,12 @@ static THD_FUNCTION(timer_thread, arg) {
 			return;
 		}
 
+		float openloop_rpm = utils_map(fabsf(m_motor_state.iq_target),
+				0.0, m_conf->lo_current_max,
+				0.0, m_conf->foc_openloop_rpm);
+
 		const float dt = 0.001;
-		const float min_rads = (m_conf->foc_openloop_rpm * 2.0 * M_PI) / 60.0;
+		const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
 		static float min_rpm_hyst_timer = 0.0;
 		static float min_rpm_timer = 0.0;
 
@@ -1712,7 +1716,7 @@ static THD_FUNCTION(timer_thread, arg) {
 		}
 
 		// Don't use this in brake mode.
-		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE || fabsf(m_motor_state.duty_now) < 0.001) {
 			min_rpm_hyst_timer = 0.0;
 			m_phase_observer_override = false;
 		}
