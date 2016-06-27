@@ -26,8 +26,8 @@
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR	2
-#define FW_VERSION_MINOR	18
+#define FW_VERSION_MAJOR	3
+#define FW_VERSION_MINOR	0
 
 #include "datatypes.h"
 
@@ -41,10 +41,12 @@
 //#define VIN_R1				39200.0
 //#define VIN_R2				2200.0
 //#define CURRENT_AMP_GAIN	10.0
-//#define CURRENT_SHUNT_RES	0.0005
+//#define CURRENT_SHUNT_RES	0.005
 //#define WS2811_ENABLE			1
+//#define WS2811_TEST				1
 //#define CURR1_DOUBLE_SAMPLE		0
 //#define CURR2_DOUBLE_SAMPLE		0
+//#define AS5047_USE_HW_SPI_PINS		1
 
 /*
  * Select only one hardware version
@@ -57,7 +59,8 @@
 //#define HW_VERSION_46 // Also for 4.7
 //#define HW_VERSION_48
 //#define HW_VERSION_49
-#define HW_VERSION_410 // Also for 4.11 and 4.12
+//#define HW_VERSION_410 // Also for 4.11 and 4.12
+#define HW_VERSION_60
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 #endif
@@ -103,6 +106,9 @@
 #define WS2811_CLK_HZ			800000
 #define WS2811_LED_NUM			28
 #define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
+#ifndef WS2811_TEST
+#define WS2811_TEST				0
+#endif
 
 /*
  * Servo output driver
@@ -118,9 +124,17 @@
 // Correction factor for computations that depend on the old resistor division factor
 #define VDIV_CORR			((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
 
+// Current ADC to amperes factor
+#define FAC_CURRENT			((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG				(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
 #define V_REG				3.3
+
+// Use the pins for the hardware SPI port instead of the hall/encoder pins for the AS5047
+#ifndef AS5047_USE_HW_SPI_PINS
+#define AS5047_USE_HW_SPI_PINS		0
+#endif
 
 // Functions
 void conf_general_init(void);

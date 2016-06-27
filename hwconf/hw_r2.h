@@ -142,22 +142,42 @@
 #define HW_I2C_SDA_PIN		11
 
 // Hall/encoder pins
+//#define HW_HALL_ENC_GPIO1		GPIOC
+//#define HW_HALL_ENC_PIN1		6
+//#define HW_HALL_ENC_GPIO2		GPIOC
+//#define HW_HALL_ENC_PIN2		7
+//#define HW_HALL_ENC_GPIO3		GPIOC
+//#define HW_HALL_ENC_PIN3		8
+//#define HW_ENC_TIM				TIM3
+//#define HW_ENC_TIM_AF			GPIO_AF_TIM3
+//#define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+//#define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
+//#define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
+//#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
+//#define HW_ENC_EXTI_LINE		EXTI_Line8
+//#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
+//#define HW_ENC_TIM_ISR_CH		TIM3_IRQn
+//#define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
+
+// Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOC
 #define HW_HALL_ENC_PIN1		6
 #define HW_HALL_ENC_GPIO2		GPIOC
 #define HW_HALL_ENC_PIN2		7
 #define HW_HALL_ENC_GPIO3		GPIOC
 #define HW_HALL_ENC_PIN3		8
-#define HW_ENC_TIM				TIM3
-#define HW_ENC_TIM_AF			GPIO_AF_TIM3
-#define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+// TODO: This is wrong and only here for the code to compile. Servo and ABI encoder can't work simultaneously
+// on this hardware.
+#define HW_ENC_TIM				TIM4
+#define HW_ENC_TIM_AF			GPIO_AF_TIM4
+#define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
-#define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
-#define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
-#define HW_ENC_TIM_ISR_CH		TIM3_IRQn
-#define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
+#define HW_ENC_EXTI_PINSRC		EXTI_PinSource11
+#define HW_ENC_EXTI_CH			EXTI15_10_IRQn
+#define HW_ENC_EXTI_LINE		EXTI_Line11
+#define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
+#define HW_ENC_TIM_ISR_CH		TIM4_IRQn
+#define HW_ENC_TIM_ISR_VEC		TIM4_IRQHandler
 
 // NRF pins
 #define NRF_PORT_CSN	HW_ICU_GPIO

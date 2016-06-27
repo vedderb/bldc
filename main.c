@@ -138,6 +138,21 @@ static THD_FUNCTION(periodic_thread, arg) {
 		}
 
 		chThdSleepMilliseconds(10);
+
+//		chThdSleepMilliseconds(40);
+//		volatile const mc_configuration *conf = mc_interface_get_configuration();
+//		float vq = mcpwm_foc_get_vq();
+//		float iq = mc_interface_get_tot_current_directional();
+//		float linkage = conf->foc_motor_flux_linkage;
+//		float speed = ((2.0 * M_PI) / 60.0) * mc_interface_get_rpm();
+//
+//		if (iq < -6.0) {
+//			float res = vq / (linkage * speed * iq);
+//			res *= 2.0 / 3.0;
+//			static float res_filtered = 0.0;
+//			UTILS_LP_FAST(res_filtered, res, 0.02);
+//			commands_printf("Res: %.4f", (double)res_filtered);
+//		}
 	}
 }
 
@@ -185,7 +200,7 @@ int main(void) {
 
 #if WS2811_ENABLE
 	ws2811_init();
-	led_external_init();
+//	led_external_init();
 #endif
 
 #if SERVO_OUT_ENABLE
@@ -199,6 +214,66 @@ int main(void) {
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+
+#if WS2811_TEST
+	unsigned int color_ind = 0;
+	const int num = 4;
+	const uint32_t colors[] = {COLOR_RED, COLOR_GOLD, COLOR_GRAY, COLOR_MAGENTA, COLOR_BLUE};
+	const int brightness_set = 100;
+
+	for (;;) {
+		chThdSleepMilliseconds(1000);
+
+		for (int i = 0;i < brightness_set;i++) {
+			ws2811_set_brightness(i);
+			chThdSleepMilliseconds(10);
+		}
+
+		chThdSleepMilliseconds(1000);
+
+		for(int i = -num;i <= WS2811_LED_NUM;i++) {
+			ws2811_set_led_color(i - 1, COLOR_BLACK);
+			ws2811_set_led_color(i + num, colors[color_ind]);
+
+			ws2811_set_led_color(0, COLOR_RED);
+			ws2811_set_led_color(WS2811_LED_NUM - 1, COLOR_GREEN);
+
+			chThdSleepMilliseconds(50);
+		}
+
+		for (int i = 0;i < brightness_set;i++) {
+			ws2811_set_brightness(brightness_set - i);
+			chThdSleepMilliseconds(10);
+		}
+
+		color_ind++;
+		if (color_ind >= sizeof(colors) / sizeof(uint32_t)) {
+			color_ind = 0;
+		}
+
+		static int asd = 0;
+		asd++;
+		if (asd >= 3) {
+			asd = 0;
+
+			for (unsigned int i = 0;i < sizeof(colors) / sizeof(uint32_t);i++) {
+				ws2811_set_all(colors[i]);
+
+				for (int i = 0;i < brightness_set;i++) {
+					ws2811_set_brightness(i);
+					chThdSleepMilliseconds(2);
+				}
+
+				chThdSleepMilliseconds(100);
+
+				for (int i = 0;i < brightness_set;i++) {
+					ws2811_set_brightness(brightness_set - i);
+					chThdSleepMilliseconds(2);
+				}
+			}
+		}
+	}
+#endif
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

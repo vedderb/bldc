@@ -519,7 +519,13 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	mcconf.sl_min_erpm = min_erpm;
 	mc_interface_set_configuration(&mcconf);
 
-	chThdSleepMilliseconds(1000);
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -559,6 +565,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(1.0);
 	}
 
+	timeout_configure(tout, tout_c);
 	mc_interface_set_configuration(&mcconf_old);
 	mc_interface_unlock();
 	mc_interface_set_current(0.0);

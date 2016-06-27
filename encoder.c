@@ -26,12 +26,35 @@
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
 
+#if AS5047_USE_HW_SPI_PINS
+#ifdef HW_SPI_DEV
+#define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
+#define SPI_SW_MISO_PIN				HW_SPI_PIN_MISO
+#define SPI_SW_MOSI_GPIO			HW_SPI_PORT_MOSI
+#define SPI_SW_MOSI_PIN				HW_SPI_PIN_MOSI
+#define SPI_SW_SCK_GPIO				HW_SPI_PORT_SCK
+#define SPI_SW_SCK_PIN				HW_SPI_PIN_SCK
+#define SPI_SW_CS_GPIO				HW_SPI_PORT_NSS
+#define SPI_SW_CS_PIN				HW_SPI_PIN_NSS
+#else
+// Note: These values are hardcoded.
+#define SPI_SW_MISO_GPIO			GPIOB
+#define SPI_SW_MISO_PIN				4
+#define SPI_SW_MOSI_GPIO			GPIOB
+#define SPI_SW_MOSI_PIN				5
+#define SPI_SW_SCK_GPIO				GPIOB
+#define SPI_SW_SCK_PIN				3
+#define SPI_SW_CS_GPIO				GPIOB
+#define SPI_SW_CS_PIN				0
+#endif
+#else
 #define SPI_SW_MISO_GPIO			HW_HALL_ENC_GPIO2
 #define SPI_SW_MISO_PIN				HW_HALL_ENC_PIN2
 #define SPI_SW_SCK_GPIO				HW_HALL_ENC_GPIO1
 #define SPI_SW_SCK_PIN				HW_HALL_ENC_PIN1
 #define SPI_SW_CS_GPIO				HW_HALL_ENC_GPIO3
 #define SPI_SW_CS_PIN				HW_HALL_ENC_PIN3
+#endif
 
 // Private types
 typedef enum {
@@ -47,7 +70,6 @@ static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
 
 // Private functions
-uint16_t spi_exchange(uint16_t x);
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
@@ -125,6 +147,12 @@ void encoder_init_as5047p_spi(void) {
 	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT);
 	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+	// Set MOSI to 1
+#if AS5047_USE_HW_SPI_PINS
+	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN);
+#endif
 
 	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();
@@ -219,12 +247,6 @@ bool encoder_index_found(void) {
 }
 
 // Software SPI
-uint16_t spi_exchange(uint16_t x) {
-	uint16_t rx;
-	spi_transfer(&rx, &x, 1);
-	return rx;
-}
-
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) {
 	for (int i = 0;i < length;i++) {
 		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;

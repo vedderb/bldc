@@ -40,6 +40,7 @@
 static uint16_t bitbuffer[BITBUFFER_LEN];
 static uint32_t RGBdata[LED_BUFFER_LEN];
 static uint8_t gamma_table[256];
+static uint32_t brightness;
 
 // Private function prototypes
 static uint32_t rgb_to_local(uint32_t color);
@@ -48,6 +49,8 @@ void ws2811_init(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
+
+	brightness = 100;
 
 	// Default LED values
 	int i, bit;
@@ -170,7 +173,7 @@ void ws2811_init(void) {
 }
 
 void ws2811_set_led_color(int led, uint32_t color) {
-	if (led < WS2811_LED_NUM) {
+	if (led >= 0 && led < WS2811_LED_NUM) {
 		RGBdata[led] = color;
 
 		color = rgb_to_local(color);
@@ -188,7 +191,7 @@ void ws2811_set_led_color(int led, uint32_t color) {
 }
 
 uint32_t ws2811_get_led_color(int led) {
-	if (led < WS2811_LED_NUM) {
+	if (led >= 0 && led < WS2811_LED_NUM) {
 		return RGBdata[led];
 	}
 
@@ -226,10 +229,26 @@ void ws2811_set_all(uint32_t color) {
 	}
 }
 
+void ws2811_set_brightness(uint32_t br) {
+	brightness = br;
+
+	for (int i = 0;i < WS2811_LED_NUM;i++) {
+		ws2811_set_led_color(i, ws2811_get_led_color(i));
+	}
+}
+
+uint32_t ws2811_get_brightness(void) {
+	return brightness;
+}
+
 static uint32_t rgb_to_local(uint32_t color) {
 	uint32_t r = (color >> 16) & 0xFF;
 	uint32_t g = (color >> 8) & 0xFF;
 	uint32_t b = color & 0xFF;
+
+	r = (r * brightness) / 100;
+	g = (g * brightness) / 100;
+	b = (b * brightness) / 100;
 
 	r = gamma_table[r];
 	g = gamma_table[g];

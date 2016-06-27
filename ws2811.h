@@ -76,5 +76,7 @@ void ws2811_set_led_color(int led, uint32_t color);
 uint32_t ws2811_get_led_color(int led);
 void ws2811_all_off(void);
 void ws2811_set_all(uint32_t color);
+void ws2811_set_brightness(uint32_t br);
+uint32_t ws2811_get_brightness(void);
 
 #endif /* WS2811_H_ */

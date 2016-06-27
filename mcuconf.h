@@ -17,6 +17,8 @@
 #ifndef _MCUCONF_H_
 #define _MCUCONF_H_
 
+#include "conf_general.h"
+
 /*
  * STM32F4xx drivers configuration.
  * The following settings override the default settings present in
@@ -175,8 +177,13 @@
  */
 #define STM32_ICU_USE_TIM1                  FALSE
 #define STM32_ICU_USE_TIM2                  FALSE
+#if defined(HW_VERSION_60)
+#define STM32_ICU_USE_TIM3                  FALSE
+#define STM32_ICU_USE_TIM4                  TRUE
+#else
 #define STM32_ICU_USE_TIM3                  TRUE
 #define STM32_ICU_USE_TIM4                  FALSE
+#endif
 #define STM32_ICU_USE_TIM5                  FALSE
 #define STM32_ICU_USE_TIM8                  FALSE
 #define STM32_ICU_USE_TIM9                  FALSE

@@ -62,6 +62,7 @@ typedef struct {
 	float iq_filter;
 	float vd;
 	float vq;
+	uint32_t svm_sector;
 } motor_state_t;
 
 typedef struct {
@@ -106,6 +107,11 @@ static volatile int m_tachometer_abs;
 static volatile float last_inj_adc_isr_duration;
 static volatile float m_pos_pid_now;
 
+#ifdef HW_HAS_3_SHUNTS
+static volatile int m_curr2_sum;
+static volatile int m_curr2_offset;
+#endif
+
 // Private functions
 static void do_dc_cal(void);
 void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
@@ -114,7 +120,7 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
 		volatile float *speed_var);
 static void control_current(volatile motor_state_t *state_m, float dt);
 static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
-		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout);
+		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
 static void run_pid_control_pos(float angle_now, float angle_set, float dt);
 static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
@@ -134,12 +140,21 @@ static volatile bool timer_thd_stop;
 #define SQRT3_BY_2				(0.86602540378)
 
 // Macros
+#ifdef HW_HAS_3_SHUNTS
+#define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
+		TIM1->CR1 |= TIM_CR1_UDIS; \
+		TIM1->CCR1 = duty1; \
+		TIM1->CCR2 = duty2; \
+		TIM1->CCR3 = duty3; \
+		TIM1->CR1 &= ~TIM_CR1_UDIS;
+#else
 #define TIMER_UPDATE_DUTY(duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
 		TIM1->CCR2 = duty3; \
 		TIM1->CCR3 = duty2; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
+#endif
 
 #define TIMER_UPDATE_SAMP(current_samp, voltage_samp) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
@@ -147,6 +162,7 @@ static volatile bool timer_thd_stop;
 		TIM8->CCR1 = voltage_samp; \
 		TIM1->CCR4 = current_samp; \
 		TIM8->CCR2 = current_samp; \
+		TIM8->CCR3 = current_samp; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 
@@ -158,9 +174,23 @@ static volatile bool timer_thd_stop;
 		TIM8->CCR1 = voltage_samp; \
 		TIM1->CCR4 = current_samp; \
 		TIM8->CCR2 = current_samp; \
+		TIM8->CCR3 = current_samp; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 
+#ifdef HW_HAS_3_SHUNTS
+#define TIMER_UPDATE_DUTY_CURRENTSAMP(duty1, duty2, duty3, current_samp) \
+		TIM1->CR1 |= TIM_CR1_UDIS; \
+		TIM8->CR1 |= TIM_CR1_UDIS; \
+		TIM1->CCR1 = duty1; \
+		TIM1->CCR2 = duty2; \
+		TIM1->CCR3 = duty3; \
+		TIM1->CCR4 = current_samp; \
+		TIM8->CCR2 = current_samp; \
+		TIM8->CCR3 = current_samp; \
+		TIM1->CR1 &= ~TIM_CR1_UDIS; \
+		TIM8->CR1 &= ~TIM_CR1_UDIS;
+#else
 #define TIMER_UPDATE_DUTY_CURRENTSAMP(duty1, duty2, duty3, current_samp) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM8->CR1 |= TIM_CR1_UDIS; \
@@ -169,8 +199,10 @@ static volatile bool timer_thd_stop;
 		TIM1->CCR3 = duty2; \
 		TIM1->CCR4 = current_samp; \
 		TIM8->CCR2 = current_samp; \
+		TIM8->CCR3 = current_samp; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
+#endif
 
 #define TIMER_DISABLE_PRELOAD_DUTY1()	TIM1->CCMR1 &= (uint16_t)(~TIM_CCMR1_OC1PE)
 #define TIMER_DISABLE_PRELOAD_DUTY2()	TIM1->CCMR2 &= (uint16_t)(~TIM_CCMR2_OC3PE)
@@ -220,6 +252,10 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_pos_pid_now = 0.0;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
+
+#ifdef HW_HAS_3_SHUNTS
+	m_curr2_sum = 0;
+#endif
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM8);
@@ -336,10 +372,19 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	// Injected channels for current measurement at end of cycle
 	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
 	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T8_CC3);
+#endif
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
+#endif
 	ADC_InjectedSequencerLengthConfig(ADC1, 2);
 	ADC_InjectedSequencerLengthConfig(ADC2, 2);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_InjectedSequencerLengthConfig(ADC3, 2);
+#endif
 
 	hw_setup_adc_channels();
 
@@ -378,6 +423,8 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
 	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
 	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+	TIM_OC3Init(TIM8, &TIM_OCInitStructure);
+	TIM_OC3PreloadConfig(TIM8, TIM_OCPreload_Enable);
 
 	TIM_ARRPreloadConfig(TIM8, ENABLE);
 	TIM_CCPreloadControl(TIM8, ENABLE);
@@ -403,7 +450,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 
 	// Sample intervals. For now they are fixed with voltage samples in the center of V7
 	// and current samples in the center of V0
-	TIMER_UPDATE_SAMP(TIM1->ARR - 2, 5);
+	TIMER_UPDATE_SAMP(TIM1->ARR + MCPWM_FOC_CURRENT_SAMP_OFFSET, MCPWM_FOC_VOLTAGE_SAMP);
 
 	utils_sys_unlock_cnt();
 
@@ -460,7 +507,7 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 	m_state = MC_STATE_OFF;
 	stop_pwm_hw();
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(top - 2, 5, top);
+	TIMER_UPDATE_SAMP_TOP(top - 2, MCPWM_FOC_VOLTAGE_SAMP, top);
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -663,6 +710,18 @@ float mcpwm_foc_get_tot_current_filtered(void) {
  */
 float mcpwm_foc_get_abs_motor_current(void) {
 	return m_motor_state.i_abs;
+}
+
+/**
+ * Get the magnitude of the motor voltage.
+ *
+ * @return
+ * The magnitude of the motor voltage.
+ */
+float mcpwm_foc_get_abs_motor_voltage(void) {
+	const float vd_tmp = m_motor_state.vd;
+	const float vq_tmp = m_motor_state.vq;
+	return sqrtf(vd_tmp * vd_tmp + vq_tmp * vq_tmp);
 }
 
 /**
@@ -1168,7 +1227,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	m_conf->foc_current_ki = 10.0;
 
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(top - 2, 5, top);
+	TIMER_UPDATE_SAMP_TOP(top + MCPWM_FOC_CURRENT_SAMP_OFFSET, MCPWM_FOC_VOLTAGE_SAMP, top);
 
 	float res_tmp = 0.0;
 	float i_last = 0.0;
@@ -1189,7 +1248,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 
 	m_conf->foc_f_sw = 3000.0;
 	top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(top - 2, 5, top);
+	TIMER_UPDATE_SAMP_TOP(top + MCPWM_FOC_CURRENT_SAMP_OFFSET, MCPWM_FOC_VOLTAGE_SAMP, top);
 
 	float duty_last = 0.0;
 	for (float i = 0.02;i < 0.5;i *= 1.5) {
@@ -1209,7 +1268,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	m_conf->foc_current_ki = ki_old;
 
 	top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(top - 2, 5, top);
+	TIMER_UPDATE_SAMP_TOP(top + MCPWM_FOC_CURRENT_SAMP_OFFSET, MCPWM_FOC_VOLTAGE_SAMP, top);
 
 	return true;
 }
@@ -1341,27 +1400,134 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 	WWDG_SetCounter(100);
 
 	const float dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+#ifdef HW_HAS_3_SHUNTS
+	int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
+#endif
 
 	m_curr0_sum += curr0;
 	m_curr1_sum += curr1;
-	m_curr_samples++;
+#ifdef HW_HAS_3_SHUNTS
+	m_curr2_sum += curr2;
+#endif
 
 	curr0 -= m_curr0_offset;
 	curr1 -= m_curr1_offset;
+#ifdef HW_HAS_3_SHUNTS
+	curr2 -= m_curr2_offset;
+#endif
 
-	// Subtract the current sampled in V7
-//	curr0 -= ADC_Value[ADC_IND_CURR1];
-//	curr1 -= ADC_Value[ADC_IND_CURR2];
+	m_curr_samples++;
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	// Current samples from V7
+	int curr0_hs = ADC_Value[ADC_IND_CURR1] - m_curr0_offset;
+	int curr1_hs = ADC_Value[ADC_IND_CURR2] - m_curr1_offset;
+#ifdef HW_HAS_3_SHUNTS
+	int curr2_hs = ADC_Value[ADC_IND_CURR3] - m_curr2_offset;
+#endif
+#endif
 
 	ADC_curr_norm_value[0] = curr0;
 	ADC_curr_norm_value[1] = curr1;
+#ifdef HW_HAS_3_SHUNTS
+	ADC_curr_norm_value[2] = curr2;
+#else
 	ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
+#endif
 
-	float ia = ADC_curr_norm_value[0] * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
-	float ib = ADC_curr_norm_value[1] * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
-//	float ic = -(ia + ib);
+#ifdef HW_HAS_3_SHUNTS
+	// Use the best current samples depending on the svm state.
+#ifdef HW_HAS_PHASE_SHUNTS
+	if (fabsf(m_motor_state.duty_now) > 0.3) {
+		const unsigned int tim_half = TIM1->ARR / 2;
+		unsigned int min_val = tim_half * 2;
+		unsigned int min_ph = 0;
+
+		if (TIM1->CCR1 > tim_half) {
+			ADC_curr_norm_value[0] = curr0_hs;
+			if (TIM1->CCR1 < min_val) {
+				min_val = TIM1->CCR1;
+				min_ph = 0;
+			}
+		} else {
+			if ((tim_half * 2 - TIM1->CCR1) < min_val) {
+				min_val = (tim_half * 2 - TIM1->CCR1);
+				min_ph = 0;
+			}
+		}
+
+		if (TIM1->CCR2 > tim_half) {
+			ADC_curr_norm_value[1] = curr1_hs;
+			if (TIM1->CCR2 < min_val) {
+				min_val = TIM1->CCR2;
+				min_ph = 1;
+			}
+		} else {
+			if ((tim_half * 2 - TIM1->CCR2) < min_val) {
+				min_val = (tim_half * 2 - TIM1->CCR2);
+				min_ph = 1;
+			}
+		}
+
+		if (TIM1->CCR3 > tim_half) {
+			ADC_curr_norm_value[2] = curr2_hs;
+			if (TIM1->CCR3 < min_val) {
+				min_val = TIM1->CCR3;
+				min_ph = 2;
+			}
+		} else {
+			if ((tim_half * 2 - TIM1->CCR3) < min_val) {
+				min_val = (tim_half * 2 - TIM1->CCR3);
+				min_ph = 2;
+			}
+		}
+
+		switch (min_ph) {
+		case 0:
+			ADC_curr_norm_value[0] = -(ADC_curr_norm_value[1] + ADC_curr_norm_value[2]);
+			break;
+
+		case 1:
+			ADC_curr_norm_value[1] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[2]);
+			break;
+
+		case 2:
+			ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
+			break;
+
+		default:
+			break;
+		}
+	}
+#else
+	switch (m_motor_state.svm_sector) {
+	case 1:
+	case 6:
+		ADC_curr_norm_value[0] = -(ADC_curr_norm_value[1] + ADC_curr_norm_value[2]);
+		break;
+
+	case 2:
+	case 3:
+		ADC_curr_norm_value[1] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[2]);
+		break;
+
+	case 4:
+	case 5:
+		ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
+		break;
+
+	default:
+		break;
+	}
+#endif
+#endif
+
+	float ia = ADC_curr_norm_value[0] * FAC_CURRENT;
+	float ib = ADC_curr_norm_value[1] * FAC_CURRENT;
+	//	float ic = -(ia + ib);
 
 	if (m_samples.measure_inductance_now) {
 		static int inductance_state = 0;
@@ -1374,7 +1540,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		} else if (inductance_state == 2) {
 			TIMER_UPDATE_DUTY(duty_cnt,	0, duty_cnt);
 		} else if (inductance_state == 3) {
-			m_samples.avg_current_tot += -ib;
+			m_samples.avg_current_tot += -(curr1 * FAC_CURRENT);
 			m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
 			m_samples.sample_num++;
 			TIMER_DISABLE_PRELOAD_DUTY1();
@@ -1383,21 +1549,29 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		} else if (inductance_state == 5) {
 			TIMER_UPDATE_DUTY(0, duty_cnt, duty_cnt);
 		} else if (inductance_state == 6) {
-			m_samples.avg_current_tot += -ia;
+			m_samples.avg_current_tot += -(curr0 * FAC_CURRENT);
 			m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
 			m_samples.sample_num++;
 			TIMER_DISABLE_PRELOAD_DUTY2();
 			TIMER_UPDATE_DUTY(0, 0, 0);
 			TIMER_ENABLE_PRELOAD_DUTY2();
 		} else if (inductance_state == 8) {
+#ifdef HW_HAS_3_SHUNTS
+			TIMER_UPDATE_DUTY(duty_cnt, duty_cnt, 0);
+#else
 			TIMER_UPDATE_DUTY(0, 0, duty_cnt);
+#endif
 		} else if (inductance_state == 9) {
-			m_samples.avg_current_tot += -(ia + ib);
+#ifdef HW_HAS_3_SHUNTS
+			m_samples.avg_current_tot += -(curr2 * FAC_CURRENT);
+#else
+			m_samples.avg_current_tot += -(curr0 * FAC_CURRENT + curr1 * FAC_CURRENT);
+#endif
 			m_samples.avg_voltage_tot += GET_INPUT_VOLTAGE();
 			m_samples.sample_num++;
 			stop_pwm_hw();
 
-			TIMER_UPDATE_SAMP(TIM1->ARR - 2, 5);
+			TIMER_UPDATE_SAMP(TIM1->ARR + MCPWM_FOC_CURRENT_SAMP_OFFSET, MCPWM_FOC_VOLTAGE_SAMP);
 			inductance_state = 0;
 			m_samples.measure_inductance_now = false;
 			return;
@@ -1432,8 +1606,8 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 
 		// Full Clarke transform in case there are current offsets
-//		m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-//		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+		//		m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
+		//		m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
 
 		const float duty_abs = fabsf(m_motor_state.duty_now);
 		float id_set_tmp = m_id_set;
@@ -1451,7 +1625,7 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		// observer has lost tracking. Use duty cycle control with the lowest duty cycle
 		// to get as smooth braking as possible.
 		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-//				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoderss
+				//				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoderss
 				&& fabsf(duty_filtered) < 0.03) {
 			control_duty = true;
 			duty_set = 0.0;
@@ -1580,9 +1754,15 @@ void mcpwm_foc_adc_inj_int_handler(void) {
 		control_current(&m_motor_state, dt);
 	} else {
 		// Track back emf
+#ifdef HW_HAS_3_SHUNTS
+		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
+		float Vb = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
+		float Vc = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
+#else
 		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
 		float Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
 		float Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
+#endif
 
 		// Clarke transform
 		m_motor_state.v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
@@ -1760,10 +1940,16 @@ static void do_dc_cal(void) {
 	chThdSleepMilliseconds(1000);
 	m_curr0_sum = 0;
 	m_curr1_sum = 0;
+#ifdef HW_HAS_3_SHUNTS
+	m_curr2_sum = 0;
+#endif
 	m_curr_samples = 0;
 	while(m_curr_samples < 4000) {};
 	m_curr0_offset = m_curr0_sum / m_curr_samples;
 	m_curr1_offset = m_curr1_sum / m_curr_samples;
+#ifdef HW_HAS_3_SHUNTS
+	m_curr2_offset = m_curr2_sum / m_curr_samples;
+#endif
 	DCCAL_OFF();
 	m_dccal_done = true;
 }
@@ -1838,6 +2024,7 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
  * iq_filter
  * vd
  * vq
+ * svm_sector
  *
  * @param dt
  * The time step in seconds.
@@ -1880,19 +2067,19 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
 
 	// Deadtime compensation
-	const float i_alpha_set = c * state_m->id_target - s * state_m->iq_target;
-	const float i_beta_set = c * state_m->iq_target + s * state_m->id_target;
-	const float ia_set = i_alpha_set;
-	const float ib_set = -0.5 * i_alpha_set + SQRT3_BY_2 * i_beta_set;
-	const float ic_set = -0.5 * i_alpha_set - SQRT3_BY_2 * i_beta_set;
-	const float mod_alpha_set_sgn = (2.0 / 3.0) * SIGN(ia_set) - (1.0 / 3.0) * SIGN(ib_set) - (1.0 / 3.0) * SIGN(ic_set);
-	const float mod_beta_set_sgn = ONE_BY_SQRT3 * SIGN(ib_set) - ONE_BY_SQRT3 * SIGN(ic_set);
+	const float i_alpha_filter = c * state_m->id_filter - s * state_m->iq_filter;
+	const float i_beta_filter = c * state_m->iq_filter + s * state_m->id_filter;
+	const float ia_filter = i_alpha_filter;
+	const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
+	const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
+	const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter) - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
+	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
 	const float mod_comp_fact = m_conf->foc_dt_us * 1e-6 * m_conf->foc_f_sw;
-	const float mod_alpha_comp = mod_alpha_set_sgn * mod_comp_fact;
-	const float mod_beta_comp = mod_beta_set_sgn * mod_comp_fact;
+	const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
+	const float mod_beta_comp = mod_beta_filter_sgn * mod_comp_fact;
 
-//	mod_alpha += mod_alpha_comp;
-//	mod_beta += mod_beta_comp;
+	//	mod_alpha += mod_alpha_comp;
+	//	mod_beta += mod_beta_comp;
 
 	// Apply compensation here so that 0 duty cyle has no glitches.
 	state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m->v_bus;
@@ -1901,7 +2088,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	// Set output (HW Dependent)
 	uint32_t duty1, duty2, duty3, top;
 	top = TIM1->ARR;
-	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3);
+	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 	TIMER_UPDATE_DUTY(duty1, duty2, duty3);
 
 	if (!m_output_on) {
@@ -1911,36 +2098,40 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
 // Magnitude must not be larger than sqrt(3)/2, or 0.866
 static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
-		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout) {
+		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 	uint32_t sector;
 
 	if (beta >= 0.0f) {
 		if (alpha >= 0.0f) {
 			//quadrant I
-			if (ONE_BY_SQRT3 * beta > alpha)
+			if (ONE_BY_SQRT3 * beta > alpha) {
 				sector = 2;
-			else
+			} else {
 				sector = 1;
+			}
 		} else {
 			//quadrant II
-			if (-ONE_BY_SQRT3 * beta > alpha)
+			if (-ONE_BY_SQRT3 * beta > alpha) {
 				sector = 3;
-			else
+			} else {
 				sector = 2;
+			}
 		}
 	} else {
 		if (alpha >= 0.0f) {
 			//quadrant IV5
-			if (-ONE_BY_SQRT3 * beta > alpha)
+			if (-ONE_BY_SQRT3 * beta > alpha) {
 				sector = 5;
-			else
+			} else {
 				sector = 6;
+			}
 		} else {
 			//quadrant III
-			if (ONE_BY_SQRT3 * beta > alpha)
+			if (ONE_BY_SQRT3 * beta > alpha) {
 				sector = 4;
-			else
+			} else {
 				sector = 5;
+			}
 		}
 	}
 
@@ -2037,6 +2228,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	*tAout = tA;
 	*tBout = tB;
 	*tCout = tC;
+	*svm_sector = sector;
 }
 
 static void run_pid_control_pos(float angle_now, float angle_set, float dt) {

@@ -34,6 +34,11 @@ static app_configuration appconf;
 void app_init(app_configuration *conf) {
 	app_set_configuration(conf);
 
+#ifdef HW_HAS_PERMANENT_NRF
+	nrf_driver_init();
+	rfhelp_restart();
+#endif
+
 	switch (appconf.app_to_use) {
 	case APP_PPM:
 		app_ppm_start();
@@ -64,10 +69,12 @@ void app_init(app_configuration *conf) {
 		app_nunchuk_start();
 		break;
 
+#ifndef HW_HAS_PERMANENT_NRF
 	case APP_NRF:
 		nrf_driver_init();
 		rfhelp_restart();
 		break;
+#endif
 
 	case APP_CUSTOM:
 #ifdef USE_APP_STEN

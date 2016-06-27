@@ -40,6 +40,8 @@
 #include "hw_49.h"
 #elif defined HW_VERSION_410
 #include "hw_410.h"
+#elif defined HW_VERSION_60
+#include "hw_60.h"
 #elif defined HW_VERSION_R2
 #include "hw_r2.h"
 #elif defined HW_VERSION_VICTOR_R1A
@@ -55,5 +57,10 @@ void hw_setup_servo_outputs(void);
 void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
+
+#ifdef HW_HAS_DRV8301
+int hw_drv8301_read_reg(int reg);
+void hw_drv8301_write_reg(int reg, int data);
+#endif
 
 #endif /* HW_H_ */

@@ -51,6 +51,7 @@ float mcpwm_foc_get_rpm(void);
 float mcpwm_foc_get_tot_current(void);
 float mcpwm_foc_get_tot_current_filtered(void);
 float mcpwm_foc_get_abs_motor_current(void);
+float mcpwm_foc_get_abs_motor_voltage(void);
 float mcpwm_foc_get_abs_motor_current_filtered(void);
 float mcpwm_foc_get_tot_current_directional(void);
 float mcpwm_foc_get_tot_current_directional_filtered(void);
@@ -78,5 +79,7 @@ void mcpwm_foc_adc_inj_int_handler(void);
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET		10 // Offset for the inductance measurement sample time in timer ticks
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP		50 // Current rise time compensation
 #define MCPWM_FOC_I_FILTER_CONST					0.1 // Filter constant for the current filters
+#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(-2) // Offset from timer top for injected ADC samples
+#define MCPWM_FOC_VOLTAGE_SAMP						(1) // Timer cnt for regular ADC channels
 
 #endif /* MCPWM_FOC_H_ */

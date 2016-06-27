@@ -304,7 +304,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_motor_l = buffer_get_float32(data, 1e8, &ind);
 		mcconf.foc_motor_r = buffer_get_float32(data, 1e5, &ind);
 		mcconf.foc_motor_flux_linkage = buffer_get_float32(data, 1e5, &ind);
-		mcconf.foc_observer_gain = buffer_get_float32(data, 1e0, &ind);
+		mcconf.foc_observer_gain = buffer_get_float32(data, 1e-2, &ind);
 		mcconf.foc_duty_dowmramp_kp = buffer_get_float32(data, 1e3, &ind);
 		mcconf.foc_duty_dowmramp_ki = buffer_get_float32(data, 1e3, &ind);
 		mcconf.foc_openloop_rpm = buffer_get_float32(data, 1e3, &ind);
@@ -409,7 +409,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.foc_motor_l, 1e8, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_motor_r, 1e5, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_motor_flux_linkage, 1e5, &ind);
-		buffer_append_float32(send_buffer, mcconf.foc_observer_gain, 1e0, &ind);
+		buffer_append_float32(send_buffer, mcconf.foc_observer_gain, 1e-2, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_duty_dowmramp_kp, 1e3, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_duty_dowmramp_ki, 1e3, &ind);
 		buffer_append_float32(send_buffer, mcconf.foc_openloop_rpm, 1e3, &ind);

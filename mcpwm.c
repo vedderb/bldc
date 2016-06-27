@@ -46,6 +46,9 @@ typedef struct {
 	volatile unsigned int val_sample;
 	volatile unsigned int curr1_sample;
 	volatile unsigned int curr2_sample;
+#ifdef HW_HAS_3_SHUNTS
+	volatile unsigned int curr3_sample;
+#endif
 } mc_timer_struct;
 
 // Private variables
@@ -91,6 +94,11 @@ static volatile float last_pwm_cycles_sums[6];
 static volatile bool dccal_done;
 static volatile bool sensorless_now;
 static volatile int hall_detect_table[8][7];
+
+#ifdef HW_HAS_3_SHUNTS
+static volatile int curr2_sum;
+static volatile int curr2_offset;
+#endif
 
 // KV FIR filter
 #define KV_FIR_TAPS_BITS		7
@@ -197,7 +205,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	last_pwm_cycles_sum = 0.0;
 	memset((float*)last_pwm_cycles_sums, 0, sizeof(last_pwm_cycles_sums));
 	dccal_done = false;
-	memset(hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+	memset((void*)hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
 	update_sensor_mode();
 
 	mcpwm_init_hall_table((int8_t*)conf->hall_table);
@@ -334,10 +342,19 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Injected channels for current measurement at end of cycle
 	ADC_ExternalTrigInjectedConvConfig(ADC1, ADC_ExternalTrigInjecConv_T1_CC4);
 	ADC_ExternalTrigInjectedConvConfig(ADC2, ADC_ExternalTrigInjecConv_T8_CC2);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_ExternalTrigInjectedConvConfig(ADC3, ADC_ExternalTrigInjecConv_T8_CC3);
+#endif
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC1, ADC_ExternalTrigInjecConvEdge_Falling);
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC2, ADC_ExternalTrigInjecConvEdge_Falling);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
+#endif
 	ADC_InjectedSequencerLengthConfig(ADC1, 2);
 	ADC_InjectedSequencerLengthConfig(ADC2, 2);
+#ifdef HW_HAS_3_SHUNTS
+	ADC_InjectedSequencerLengthConfig(ADC3, 2);
+#endif
 
 	hw_setup_adc_channels();
 
@@ -376,6 +393,8 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OC1PreloadConfig(TIM8, TIM_OCPreload_Enable);
 	TIM_OC2Init(TIM8, &TIM_OCInitStructure);
 	TIM_OC2PreloadConfig(TIM8, TIM_OCPreload_Enable);
+	TIM_OC3Init(TIM8, &TIM_OCInitStructure);
+	TIM_OC3PreloadConfig(TIM8, TIM_OCPreload_Enable);
 
 	TIM_ARRPreloadConfig(TIM8, ENABLE);
 	TIM_CCPreloadControl(TIM8, ENABLE);
@@ -515,10 +534,20 @@ static void do_dc_cal(void) {
 	chThdSleepMilliseconds(1000);
 	curr0_sum = 0;
 	curr1_sum = 0;
+
+#ifdef HW_HAS_3_SHUNTS
+	curr2_sum = 0;
+#endif
+
 	curr_start_samples = 0;
 	while(curr_start_samples < 4000) {};
 	curr0_offset = curr0_sum / curr_start_samples;
 	curr1_offset = curr1_sum / curr_start_samples;
+
+#ifdef HW_HAS_3_SHUNTS
+	curr2_offset = curr2_sum / curr_start_samples;
+#endif
+
 	DCCAL_OFF();
 	dccal_done = true;
 }
@@ -1330,33 +1359,49 @@ void mcpwm_adc_inj_int_handler(void) {
 	int curr0_2 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
 	int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
 
+#ifdef HW_HAS_3_SHUNTS
+	int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
+#endif
+
 	float curr0_currsamp = curr0;
 	float curr1_currsamp = curr1;
+#ifdef HW_HAS_3_SHUNTS
+	float curr2_currsamp = curr2;
+#endif
 
-	if (curr_samp_volt == 1) {
+	if (curr_samp_volt & (1 << 0)) {
 		curr0 = ADC_Value[ADC_IND_CURR1];
-	} else if (curr_samp_volt == 2) {
-		curr1 = ADC_Value[ADC_IND_CURR2];
-	} else if (curr_samp_volt == 3) {
-		curr0 = ADC_Value[ADC_IND_CURR1];
+	}
+
+	if (curr_samp_volt & (1 << 1)) {
 		curr1 = ADC_Value[ADC_IND_CURR2];
 	}
 
+#ifdef HW_HAS_3_SHUNTS
+	if (curr_samp_volt & (1 << 2)) {
+		curr2 = ADC_Value[ADC_IND_CURR3];
+	}
+#endif
+
 	// DCCal every other cycle
-//	static bool sample_ofs = true;
-//	if (sample_ofs) {
-//		sample_ofs = false;
-//		curr0_offset = curr0;
-//		curr1_offset = curr1;
-//		DCCAL_OFF();
-//		return;
-//	} else {
-//		sample_ofs = true;
-//		DCCAL_ON();
-//	}
+	//	static bool sample_ofs = true;
+	//	if (sample_ofs) {
+	//		sample_ofs = false;
+	//		curr0_offset = curr0;
+	//		curr1_offset = curr1;
+	//		DCCAL_OFF();
+	//		return;
+	//	} else {
+	//		sample_ofs = true;
+	//		DCCAL_ON();
+	//	}
 
 	curr0_sum += curr0;
 	curr1_sum += curr1;
+#ifdef HW_HAS_3_SHUNTS
+	curr2_sum += curr2;
+#endif
+
 	curr_start_samples++;
 
 	curr0_currsamp -= curr0_offset;
@@ -1365,6 +1410,11 @@ void mcpwm_adc_inj_int_handler(void) {
 	curr1 -= curr1_offset;
 	curr0_2 -= curr0_offset;
 	curr1_2 -= curr1_offset;
+
+#ifdef HW_HAS_3_SHUNTS
+	curr2_currsamp -= curr2_offset;
+	curr2 -= curr2_offset;
+#endif
 
 #if CURR1_DOUBLE_SAMPLE || CURR2_DOUBLE_SAMPLE
 	if (conf->pwm_mode != PWM_MODE_BIPOLAR && conf->motor_type == MOTOR_TYPE_BLDC) {
@@ -1386,12 +1436,21 @@ void mcpwm_adc_inj_int_handler(void) {
 
 	ADC_curr_norm_value[0] = curr0;
 	ADC_curr_norm_value[1] = curr1;
+
+#ifdef HW_HAS_3_SHUNTS
+	ADC_curr_norm_value[2] = curr2;
+#else
 	ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
+#endif
 
 	float curr_tot_sample = 0;
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		if (direction) {
+#ifdef HW_HAS_3_SHUNTS
+			curr_tot_sample = -(float)(ADC_Value[ADC_IND_CURR3] - curr2_offset);
+#else
 			curr_tot_sample = -(float)(ADC_Value[ADC_IND_CURR2] - curr1_offset);
+#endif
 		} else {
 			curr_tot_sample = -(float)(ADC_Value[ADC_IND_CURR1] - curr0_offset);
 		}
@@ -1424,6 +1483,29 @@ void mcpwm_adc_inj_int_handler(void) {
 			float c2 = (float)ADC_curr_norm_value[2];
 			curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
 		} else {
+#ifdef HW_HAS_3_SHUNTS
+			if (direction) {
+				switch (comm_step) {
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				default: break;
+				}
+			} else {
+				switch (comm_step) {
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				default: break;
+				}
+			}
+#else
 			if (direction) {
 				switch (comm_step) {
 				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
@@ -1445,6 +1527,7 @@ void mcpwm_adc_inj_int_handler(void) {
 				default: break;
 				}
 			}
+#endif
 
 			const float tot_sample_tmp = curr_tot_sample;
 			static int comm_step_prev = 1;
@@ -1475,7 +1558,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			}
 
 			const int vzero = ADC_V_ZERO;
-//			const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
+			//			const int vzero = (ADC_V_L1 + ADC_V_L2 + ADC_V_L3) / 3;
 
 			switch (comm_step) {
 			case 1:
@@ -1524,7 +1607,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 	}
 
-	last_current_sample = curr_tot_sample * (V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN);
+	last_current_sample = curr_tot_sample * FAC_CURRENT;
 
 	// Filter out outliers
 	if (fabsf(last_current_sample) > (conf->l_abs_current_max * 1.2)) {
@@ -1675,7 +1758,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 				if (v_diff > 0) {
 					// TODO!
-//					const int min = 100;
+					//					const int min = 100;
 					int min = (int)((1.0 - fabsf(dutycycle_now)) * (float)ADC_Value[ADC_IND_VIN_SENS] * 0.3);
 					if (min > ADC_Value[ADC_IND_VIN_SENS] / 4) {
 						min = ADC_Value[ADC_IND_VIN_SENS] / 4;
@@ -2027,7 +2110,7 @@ bool mcpwm_is_dccal_done(void) {
  * Reset the hall sensor detection table
  */
 void mcpwm_reset_hall_detect_table(void) {
-	memset(hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
+	memset((void*)hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
 }
 
 /**
@@ -2124,6 +2207,10 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	volatile uint32_t curr1_sample = timer_tmp->curr1_sample;
 	volatile uint32_t curr2_sample = timer_tmp->curr2_sample;
 
+#ifdef HW_HAS_3_SHUNTS
+	volatile uint32_t curr3_sample = timer_tmp->curr3_sample;
+#endif
+
 	if (duty > (uint32_t)((float)top * conf->l_max_duty)) {
 		duty = (uint32_t)((float)top * conf->l_max_duty);
 	}
@@ -2133,19 +2220,22 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		curr1_sample = top - 10; // Not used anyway
 		curr2_sample = top - 10;
+#ifdef HW_HAS_3_SHUNTS
+		curr3_sample = top - 10;
+#endif
 
 		if (duty > 1000) {
 			val_sample = duty / 2;
 		} else {
 			val_sample = duty + 800;
-			curr_samp_volt = 1;
+			curr_samp_volt = (1 << 0) || (1 << 1) || (1 << 2);
 		}
 
-//		if (duty < (top / 2)) {
-//			val_sample = (top - duty) / 2 + duty;
-//		} else {
-//			val_sample = duty / 2;
-//		}
+		//		if (duty < (top / 2)) {
+		//			val_sample = (top - duty) / 2 + duty;
+		//		} else {
+		//			val_sample = duty / 2;
+		//		}
 	} else {
 		// Sample the ADC at an appropriate time during the pwm cycle
 		if (IS_DETECTING()) {
@@ -2155,6 +2245,9 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			// Current samples
 			curr1_sample = (top - duty) / 2 + duty;
 			curr2_sample = (top - duty) / 2 + duty;
+#ifdef HW_HAS_3_SHUNTS
+			curr3_sample = (top - duty) / 2 + duty;
+#endif
 		} else {
 			if (conf->pwm_mode == PWM_MODE_BIPOLAR) {
 				uint32_t samp_neg = top - 2;
@@ -2165,12 +2258,17 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				val_sample = top / 4;
 
 				// Current sampling
+				// TODO: Adapt for 3 shunts
+#ifdef HW_HAS_3_SHUNTS
+				curr3_sample = samp_zero;
+#endif
+
 				switch (comm_step) {
 				case 1:
 					if (direction) {
 						curr1_sample = samp_zero;
 						curr2_sample = samp_neg;
-						curr_samp_volt = 2;
+						curr_samp_volt = (1 << 1);
 					} else {
 						curr1_sample = samp_zero;
 						curr2_sample = samp_pos;
@@ -2181,7 +2279,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					if (direction) {
 						curr1_sample = samp_pos;
 						curr2_sample = samp_neg;
-						curr_samp_volt = 2;
+						curr_samp_volt = (1 << 1);
 					} else {
 						curr1_sample = samp_pos;
 						curr2_sample = samp_zero;
@@ -2195,7 +2293,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					} else {
 						curr1_sample = samp_pos;
 						curr2_sample = samp_neg;
-						curr_samp_volt = 2;
+						curr_samp_volt = (1 << 1);
 					}
 					break;
 
@@ -2206,7 +2304,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					} else {
 						curr1_sample = samp_zero;
 						curr2_sample = samp_neg;
-						curr_samp_volt = 2;
+						curr_samp_volt = (1 << 1);
 					}
 					break;
 
@@ -2214,11 +2312,11 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					if (direction) {
 						curr1_sample = samp_neg;
 						curr2_sample = samp_pos;
-						curr_samp_volt = 1;
+						curr_samp_volt = (1 << 0);
 					} else {
 						curr1_sample = samp_neg;
 						curr2_sample = samp_zero;
-						curr_samp_volt = 1;
+						curr_samp_volt = (1 << 0);
 					}
 					break;
 
@@ -2226,11 +2324,11 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					if (direction) {
 						curr1_sample = samp_neg;
 						curr2_sample = samp_zero;
-						curr_samp_volt = 1;
+						curr_samp_volt = (1 << 0);
 					} else {
 						curr1_sample = samp_neg;
 						curr2_sample = samp_pos;
-						curr_samp_volt = 1;
+						curr_samp_volt = (1 << 0);
 					}
 					break;
 				}
@@ -2245,6 +2343,9 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 				}
 
 				curr2_sample = curr1_sample;
+#ifdef HW_HAS_3_SHUNTS
+				curr3_sample = curr1_sample;
+#endif
 
 				// The off sampling time is short, so use the on sampling time
 				// where possible
@@ -2270,27 +2371,51 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 					}
 #endif
 
+#ifdef HW_HAS_3_SHUNTS
 					if (direction) {
 						switch (comm_step) {
-						case 1: curr_samp_volt = 3; break;
-						case 2: curr_samp_volt = 2; break;
-						case 3: curr_samp_volt = 2; break;
-						case 4: curr_samp_volt = 1; break;
-						case 5: curr_samp_volt = 1; break;
-						case 6: curr_samp_volt = 3; break;
+						case 1: curr_samp_volt = (1 << 0) || (1 << 2); break;
+						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0) || (1 << 2); break;
 						default: break;
 						}
 					} else {
 						switch (comm_step) {
-						case 1: curr_samp_volt = 1; break;
-						case 2: curr_samp_volt = 2; break;
-						case 3: curr_samp_volt = 2; break;
-						case 4: curr_samp_volt = 3; break;
-						case 5: curr_samp_volt = 3; break;
-						case 6: curr_samp_volt = 1; break;
+						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) || (1 << 2); break;
+						case 5: curr_samp_volt = (1 << 0) || (1 << 2); break;
+						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
 						default: break;
 						}
 					}
+#else
+					if (direction) {
+						switch (comm_step) {
+						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 2: curr_samp_volt = (1 << 1); break;
+						case 3: curr_samp_volt = (1 << 1); break;
+						case 4: curr_samp_volt = (1 << 0); break;
+						case 5: curr_samp_volt = (1 << 0); break;
+						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						default: break;
+						}
+					} else {
+						switch (comm_step) {
+						case 1: curr_samp_volt = (1 << 0); break;
+						case 2: curr_samp_volt = (1 << 1); break;
+						case 3: curr_samp_volt = (1 << 1); break;
+						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0); break;
+						default: break;
+						}
+					}
+#endif
 				}
 			}
 		}
@@ -2299,6 +2424,9 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 	timer_tmp->val_sample = val_sample;
 	timer_tmp->curr1_sample = curr1_sample;
 	timer_tmp->curr2_sample = curr2_sample;
+#ifdef HW_HAS_3_SHUNTS
+	timer_tmp->curr3_sample = curr3_sample;
+#endif
 }
 
 static void update_rpm_tacho(void) {
@@ -2409,6 +2537,9 @@ static void update_timer_attempt(void) {
 		TIM8->CCR1 = timer_struct.val_sample;
 		TIM1->CCR4 = timer_struct.curr1_sample;
 		TIM8->CCR2 = timer_struct.curr2_sample;
+#ifdef HW_HAS_3_SHUNTS
+		TIM8->CCR3 = timer_struct.curr3_sample;
+#endif
 
 		// Enables preload register updates
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
