@@ -329,7 +329,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.cc_startup_boost_duty = (float)buffer_get_int32(data, &ind) / 1000000.0;
 		mcconf.cc_min_current = (float)buffer_get_int32(data, &ind) / 1000.0;
 		mcconf.cc_gain = (float)buffer_get_int32(data, &ind) / 1000000.0;
-		mcconf.cc_ramp_step_max = buffer_get_float32(data, 1e5, &ind);
+		mcconf.cc_ramp_step_max = buffer_get_float32(data, 1e6, &ind);
 
 		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
 		mcconf.m_duty_ramp_step = (float)buffer_get_float32(data, 1000000.0, &ind);
