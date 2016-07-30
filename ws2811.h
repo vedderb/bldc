@@ -26,7 +26,6 @@
 #define WS2811_H_
 
 #include <stdint.h>
-#include "conf_general.h"
 
 // Hex color definitions
 #define COLOR_BLACK          0x000000
@@ -73,7 +72,6 @@
 // Functions
 void ws2811_init(void);
 void ws2811_set_led_color(int led, uint32_t color);
-uint32_t ws2811_get_led_color(int led);
 void ws2811_all_off(void);
 void ws2811_set_all(uint32_t color);
 
