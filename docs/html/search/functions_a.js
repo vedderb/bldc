@@ -1,7 +1,0 @@
-var searchData=
-[
-  ['packet_5finit',['packet_init',['../de/df3/packet_8c.html#ad881bd33dab40a1797ebc113a66bc301',1,'packet_init(void(*s_func)(unsigned char *data, unsigned int len), void(*p_func)(unsigned char *data, unsigned int len), int handler_num):&#160;packet.c'],['../d3/d76/packet_8h.html#ad881bd33dab40a1797ebc113a66bc301',1,'packet_init(void(*s_func)(unsigned char *data, unsigned int len), void(*p_func)(unsigned char *data, unsigned int len), int handler_num):&#160;packet.c']]],
-  ['packet_5fprocess_5fbyte',['packet_process_byte',['../de/df3/packet_8c.html#ae5d5ab2db55e1e1552db73070f660730',1,'packet_process_byte(uint8_t rx_data, int handler_num):&#160;packet.c'],['../d3/d76/packet_8h.html#ae5d5ab2db55e1e1552db73070f660730',1,'packet_process_byte(uint8_t rx_data, int handler_num):&#160;packet.c']]],
-  ['packet_5fsend_5fpacket',['packet_send_packet',['../de/df3/packet_8c.html#ac5b878f81eb01d6a5b78ea6169aaec3f',1,'packet_send_packet(unsigned char *data, unsigned int len, int handler_num):&#160;packet.c'],['../d3/d76/packet_8h.html#ac5b878f81eb01d6a5b78ea6169aaec3f',1,'packet_send_packet(unsigned char *data, unsigned int len, int handler_num):&#160;packet.c']]],
-  ['packet_5ftimerfunc',['packet_timerfunc',['../de/df3/packet_8c.html#a5c140f4c92ab36d46fd7da88d676783e',1,'packet_timerfunc(void):&#160;packet.c'],['../d3/d76/packet_8h.html#a5c140f4c92ab36d46fd7da88d676783e',1,'packet_timerfunc(void):&#160;packet.c']]]
-];

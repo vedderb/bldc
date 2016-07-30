@@ -1,9 +1,0 @@
-var searchData=
-[
-  ['v_5freg',['V_REG',['../df/df4/conf__general_8h.html#adc5c29a5cd7ad49dd65b3d5543d81264',1,'V_REG():&#160;conf_general.h'],['../d9/da3/hw__40_8h.html#adc5c29a5cd7ad49dd65b3d5543d81264',1,'V_REG():&#160;hw_40.h'],['../d9/d67/hw__45_8h.html#adc5c29a5cd7ad49dd65b3d5543d81264',1,'V_REG():&#160;hw_45.h'],['../d0/d5e/hw__r2_8h.html#adc5c29a5cd7ad49dd65b3d5543d81264',1,'V_REG():&#160;hw_r2.h'],['../d9/d16/hw__victor__r1a_8h.html#adc5c29a5cd7ad49dd65b3d5543d81264',1,'V_REG():&#160;hw_victor_r1a.h']]],
-  ['valid_5fpage',['VALID_PAGE',['../d0/ded/eeprom_8h.html#a7212a28cabb1d59cdad2ce997350911c',1,'eeprom.h']]],
-  ['vdiv_5fcorr',['VDIV_CORR',['../df/df4/conf__general_8h.html#ab34d822f5a15a027a2517b31b4c3d57f',1,'conf_general.h']]],
-  ['vin_5fr1',['VIN_R1',['../d9/da3/hw__40_8h.html#a2ca9c5cf55454537eb2276679d87510f',1,'VIN_R1():&#160;hw_40.h'],['../d9/d67/hw__45_8h.html#a2ca9c5cf55454537eb2276679d87510f',1,'VIN_R1():&#160;hw_45.h'],['../d9/d89/hw__46_8h.html#a2ca9c5cf55454537eb2276679d87510f',1,'VIN_R1():&#160;hw_46.h'],['../d0/d5e/hw__r2_8h.html#a2ca9c5cf55454537eb2276679d87510f',1,'VIN_R1():&#160;hw_r2.h'],['../d9/d16/hw__victor__r1a_8h.html#a2ca9c5cf55454537eb2276679d87510f',1,'VIN_R1():&#160;hw_victor_r1a.h']]],
-  ['vin_5fr2',['VIN_R2',['../d9/da3/hw__40_8h.html#ac84130dd41edf99a5b09aa8068cb2f74',1,'VIN_R2():&#160;hw_40.h'],['../d9/d67/hw__45_8h.html#ac84130dd41edf99a5b09aa8068cb2f74',1,'VIN_R2():&#160;hw_45.h'],['../d9/d89/hw__46_8h.html#ac84130dd41edf99a5b09aa8068cb2f74',1,'VIN_R2():&#160;hw_46.h'],['../d0/d5e/hw__r2_8h.html#ac84130dd41edf99a5b09aa8068cb2f74',1,'VIN_R2():&#160;hw_r2.h'],['../d9/d16/hw__victor__r1a_8h.html#ac84130dd41edf99a5b09aa8068cb2f74',1,'VIN_R2():&#160;hw_victor_r1a.h']]],
-  ['voltage_5frange',['VOLTAGE_RANGE',['../d0/ded/eeprom_8h.html#ae724813bd5ec56ea9778340c3271c256',1,'eeprom.h']]]
-];
