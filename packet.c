@@ -28,7 +28,6 @@
 
 typedef struct {
 	volatile unsigned char rx_state;
-	volatile unsigned char rx_timeout;
 	void(*send_func)(unsigned char *data, unsigned int len);
 	void(*process_func)(unsigned char *data, unsigned int len);
 	unsigned int payload_length;
@@ -76,32 +75,17 @@ void packet_send_packet(unsigned char *data, unsigned int len, int handler_num) 
 	}
 }
 
-/**
- * Call this function every millisecond.
- */
-void packet_timerfunc(void) {
-	for (int i = 0;i < PACKET_HANDLERS;i++) {
-		if (handler_states[i].rx_timeout) {
-			handler_states[i].rx_timeout--;
-		} else {
-			handler_states[i].rx_state = 0;
-		}
-	}
-}
-
 void packet_process_byte(uint8_t rx_data, int handler_num) {
 	switch (handler_states[handler_num].rx_state) {
 	case 0:
 		if (rx_data == 2) {
 			// 1 byte PL len
 			handler_states[handler_num].rx_state += 2;
-			handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 			handler_states[handler_num].rx_data_ptr = 0;
 			handler_states[handler_num].payload_length = 0;
 		} else if (rx_data == 3) {
 			// 2 byte PL len
 			handler_states[handler_num].rx_state++;
-			handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 			handler_states[handler_num].rx_data_ptr = 0;
 			handler_states[handler_num].payload_length = 0;
 		} else {
@@ -112,7 +96,6 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 	case 1:
 		handler_states[handler_num].payload_length = (unsigned int)rx_data << 8;
 		handler_states[handler_num].rx_state++;
-		handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		break;
 
 	case 2:
@@ -120,7 +103,6 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 		if (handler_states[handler_num].payload_length > 0 &&
 				handler_states[handler_num].payload_length <= PACKET_MAX_PL_LEN) {
 			handler_states[handler_num].rx_state++;
-			handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		} else {
 			handler_states[handler_num].rx_state = 0;
 		}
@@ -131,19 +113,16 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 		if (handler_states[handler_num].rx_data_ptr == handler_states[handler_num].payload_length) {
 			handler_states[handler_num].rx_state++;
 		}
-		handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		break;
 
 	case 4:
 		handler_states[handler_num].crc_high = rx_data;
 		handler_states[handler_num].rx_state++;
-		handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		break;
 
 	case 5:
 		handler_states[handler_num].crc_low = rx_data;
 		handler_states[handler_num].rx_state++;
-		handler_states[handler_num].rx_timeout = PACKET_RX_TIMEOUT;
 		break;
 
 	case 6:

@@ -68,10 +68,7 @@
  */
 
 // Private variables
-
-
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
-static THD_WORKING_AREA(timer_thread_wa, 128);
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -141,17 +138,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 	}
 }
 
-static THD_FUNCTION(timer_thread, arg) {
-	(void)arg;
-
-	chRegSetThreadName("msec_timer");
-
-	for(;;) {
-		packet_timerfunc();
-		chThdSleepMilliseconds(1);
-	}
-}
-
 int main(void) {
 	halInit();
 	chSysInit();
@@ -198,7 +184,6 @@ int main(void) {
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	for(;;) {
 		chThdSleepMilliseconds(10);
