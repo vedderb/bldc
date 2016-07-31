@@ -84,9 +84,9 @@ class Nunchuk : public util::NonCopyable {
  public:
   /*
    * Construct a Nunchuk driver given an i2c driver, event handler, sampling
-   * period in milliseconds and a maximum still accel event counter. When
-   * max_still_count consequitive accelerometer values are detected, stillness
-   * is asserted. This can be useful for detecting remote connection loss.
+   * period in milliseconds and a maximum still event counter. When
+   * max_still_count consequitive values are detected, stillness is asserted.
+   * This can be useful for detecting remote connection loss.
    */
   Nunchuk(I2CDriver *i2c_driver, NunchukEventHandler *event_handler,
           int sample_period_ms, int max_stil_count);

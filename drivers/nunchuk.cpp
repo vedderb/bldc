@@ -1,8 +1,5 @@
 #include "drivers/nunchuk.h"
 
-#include "inttypes.h"
-#include "commands.h"
-
 namespace drivers {
 
 // Maximum time allowed for an i2c transaction.
@@ -56,13 +53,6 @@ void Nunchuk::Start() {
       int16_t accel_z = ((response[4] << 2) | ((response[5] >> 6) & 0x03));
       ButtonState button_c = ParseButtonState(response[5], 1);
       ButtonState button_z = ParseButtonState(response[5], 0);
-  
-      commands_printf("x: %" PRId8 ", y: %" PRId8
-                      ", x: %" PRId16 ", y: %" PRId16 " z: %" PRId16
-                      " c: %" PRIu8 ", z: %" PRIu8,
-                          joystick_x, joystick_y,
-                          accel_x, accel_y, accel_z,
-                          button_c, button_z);
   
       // Handle and post events.
       bool event_handled = HandleAccelSample(accel_x, accel_y, accel_z);
