@@ -40,7 +40,7 @@ void Nunchuk::Start() {
       }
   
       // Read the sample into a buffer.
-      uint8_t response[7];
+      uint8_t response[6];
       if (!ReadBuffer(response, sizeof(response))) {
         break;
       }
