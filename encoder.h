@@ -27,6 +27,10 @@
 
 #include "conf_general.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void encoder_deinit(void);
 void encoder_init_abi(uint32_t counts);
@@ -37,5 +41,9 @@ void encoder_reset(void);
 void encoder_tim_isr(void);
 void encoder_set_counts(uint32_t counts);
 bool encoder_index_found(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ENCODER_H_ */

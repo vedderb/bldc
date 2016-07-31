@@ -5,19 +5,27 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99
-  USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
-  USE_OPT += -fsingle-precision-constant -Wdouble-promotion
+  USE_OPT = -O2
+  USE_OPT += -ggdb
+  USE_OPT += -fomit-frame-pointer
+  USE_OPT += -falign-functions=16
+  USE_OPT += -DBOARD_OTG_NOVBUSSENS
+  USE_OPT += -fsingle-precision-constant
+  USE_OPT += -Wdouble-promotion
+  USE_OPT += -Wno-unused-parameter
+  USE_OPT += -I.
 endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT = -std=gnu99
 endif
 
 # C++ specific options here (added to USE_OPT).
 ifeq ($(USE_CPPOPT),)
   USE_CPPOPT = -fno-rtti
+  USE_CPPOPT += -fno-exceptions
+  USE_CPPOPT += -std=c++11
 endif
 
 # Enable this if you want the linker to remove unused code and data
@@ -124,7 +132,6 @@ CSRC = $(STARTUPSRC) \
        $(BOARDSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       main.c \
        comm_usb_serial.c \
        irq_handlers.c \
        buffer.c \
@@ -156,7 +163,7 @@ CSRC = $(STARTUPSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = main.cpp
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler

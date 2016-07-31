@@ -25,11 +25,15 @@
 #ifndef CONF_GENERAL_H_
 #define CONF_GENERAL_H_
 
+#include "datatypes.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Firmware version
 #define FW_VERSION_MAJOR	2
 #define FW_VERSION_MINOR	18
-
-#include "datatypes.h"
 
 /*
  * Settings
@@ -134,5 +138,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CONF_GENERAL_H_ */

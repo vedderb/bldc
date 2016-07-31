@@ -27,6 +27,10 @@
 
 #include "conf_general.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void mcpwm_init(volatile mc_configuration *configuration);
 void mcpwm_deinit(void);
@@ -92,5 +96,9 @@ extern volatile int mcpwm_vzero;
 
 // Speed PID parameters
 #define MCPWM_PID_TIME_K				0.001	// Pid controller sample time in seconds
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MC_PWM_H_ */

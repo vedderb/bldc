@@ -27,6 +27,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);
@@ -71,5 +75,9 @@ void utils_sys_unlock_cnt(void);
  * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
  */
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * (value - (sample)))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UTILS_H_ */

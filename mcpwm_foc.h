@@ -29,6 +29,10 @@
 #include "datatypes.h"
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void mcpwm_foc_init(volatile mc_configuration *configuration);
 void mcpwm_foc_deinit(void);
@@ -78,5 +82,9 @@ void mcpwm_foc_adc_inj_int_handler(void);
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET		10 // Offset for the inductance measurement sample time in timer ticks
 #define MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP		50 // Current rise time compensation
 #define MCPWM_FOC_I_FILTER_CONST					0.1 // Filter constant for the current filters
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MCPWM_FOC_H_ */
