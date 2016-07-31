@@ -68,13 +68,13 @@ class NunchukEventHandler {
    * when an event is published after the maximum number of no-event samples
    * have been taken.
    */
-  virtual void OnNunchukInMotion(Nunchuk *nunchuk) {}
+  virtual void OnNunchukInMotion(Nunchuk *nunchuk) = 0;
 
   /*
    * Invoked when no events have been published for a maximum number of
    * samples. The remote is assumed to be stationary if this happens.
    */
-  virtual void OnNunchukStill(Nunchuk *nunchuk) {}
+  virtual void OnNunchukStill(Nunchuk *nunchuk) = 0;
 };
 
 /*

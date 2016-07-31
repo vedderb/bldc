@@ -1,4 +1,5 @@
 *~
+*.swp
 build
 .dep
 docs
