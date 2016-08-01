@@ -8,6 +8,13 @@ constexpr int kNunchukTImeoutMilliseconds(5);
 // The address of the nunchuk controller.
 constexpr i2caddr_t kNunchukAddress(0x52);
 
+// The maximum value for the joystick axis.
+constexpr int kMaxJoystickValue(127);
+
+float Nunchuk::NormalizeJoystickValue(int8_t value) {
+  return static_cast<float>(value) / kMaxJoystickValue;
+}
+
 Nunchuk::Nunchuk(I2CDriver *i2c_driver, NunchukEventHandler *event_handler,
                  int sample_period_ms, int max_still_count)
     : i2c_driver_(i2c_driver),
@@ -56,9 +63,9 @@ void Nunchuk::Start() {
   
       // Handle and post events.
       bool event_handled = HandleAccelSample(accel_x, accel_y, accel_z);
+      event_handled |= HandleJoystickSample(joystick_x, joystick_y);
       event_handled |= HandleButtonCSample(button_c);
       event_handled |= HandleButtonZSample(button_z);
-      event_handled |= HandleJoystickSample(joystick_x, joystick_y);
       HandleStillState(event_handled);
   
       // Sleep for the sampling interval.

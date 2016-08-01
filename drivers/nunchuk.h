@@ -45,36 +45,36 @@ class NunchukEventHandler {
   /*
    * Invoked when the joystick value has changed.
    */
-  virtual void OnNunchukJoystickChange(Nunchuk *nunchuk, int8_t x, int8_t y) = 0;
+  virtual void OnNunchukJoystickChange(Nunchuk *nunchuk, int8_t x, int8_t y) {}
 
   /*
    * Invoked when a 'C' button state change occurs.
    */
-  virtual void OnNunchukButtonCChange(Nunchuk *nunchuk, ButtonState state) = 0;
+  virtual void OnNunchukButtonCChange(Nunchuk *nunchuk, ButtonState state) {}
 
   /*
    * Invoked when a 'Z' button state change occurs.
    */
-  virtual void OnNunchukButtonZChange(Nunchuk *nunchuk, ButtonState state) = 0;
+  virtual void OnNunchukButtonZChange(Nunchuk *nunchuk, ButtonState state) {}
 
   /*
    * Invoked when the accelerometer value has changed.
    */
   virtual void OnNunchukAccelChange(Nunchuk* nunchuk,
-                                    int16_t x, int16_t y, int16_t z) = 0;
+                                    int16_t x, int16_t y, int16_t z) {}
 
   /*
    * Invoked when the remote transitions from still to in motion. This happens
    * when an event is published after the maximum number of no-event samples
    * have been taken.
    */
-  virtual void OnNunchukInMotion(Nunchuk *nunchuk) = 0;
+  virtual void OnNunchukInMotion(Nunchuk *nunchuk) {}
 
   /*
    * Invoked when no events have been published for a maximum number of
    * samples. The remote is assumed to be stationary if this happens.
    */
-  virtual void OnNunchukStill(Nunchuk *nunchuk) = 0;
+  virtual void OnNunchukStill(Nunchuk *nunchuk) {}
 };
 
 /*
@@ -82,6 +82,11 @@ class NunchukEventHandler {
  */
 class Nunchuk : public util::NonCopyable {
  public:
+  /*
+   * Returns the value provided as a float from [-1.0f,1.0f].
+   */
+  static float NormalizeJoystickValue(int8_t value);
+
   /*
    * Construct a Nunchuk driver given an i2c driver, event handler, sampling
    * period in milliseconds and a maximum still event counter. When
