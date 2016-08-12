@@ -94,6 +94,8 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
 	conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;
 	conf->app_adc_conf.voltage_end = APPCONF_ADC_VOLTAGE_END;
+	conf->app_adc_conf.voltage2_start = APPCONF_ADC_VOLTAGE_START;
+	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
 	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;

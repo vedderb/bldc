@@ -475,6 +475,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_adc_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_adc_conf.voltage_start = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_adc_conf.voltage_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.voltage2_start = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.voltage2_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_adc_conf.use_filter = data[ind++];
 		appconf.app_adc_conf.safe_start = data[ind++];
 		appconf.app_adc_conf.cc_button_inverted = data[ind++];
@@ -554,6 +556,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.hyst * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_end * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage2_start * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage2_end * 1000.0), &ind);
 		send_buffer[ind++] = appconf.app_adc_conf.use_filter;
 		send_buffer[ind++] = appconf.app_adc_conf.safe_start;
 		send_buffer[ind++] = appconf.app_adc_conf.cc_button_inverted;

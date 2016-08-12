@@ -249,6 +249,7 @@ typedef enum {
 	ADC_CTRL_TYPE_CURRENT,
 	ADC_CTRL_TYPE_CURRENT_REV_CENTER,
 	ADC_CTRL_TYPE_CURRENT_REV_BUTTON,
+	ADC_CTRL_TYPE_CURRENT_BRAKE_ADC,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC,
@@ -262,6 +263,8 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage2_start;
+	float voltage2_end;
 	bool use_filter;
 	bool safe_start;
 	bool cc_button_inverted;

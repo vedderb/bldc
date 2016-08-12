@@ -172,7 +172,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Map and truncate the read voltage
-		brake = utils_map(brake, config.voltage_start, config.voltage_end, 0.0, 1.0);
+		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
 		utils_truncate_number(&brake, 0.0, 1.0);
 
 		// Optionally invert the read voltage
@@ -220,14 +220,19 @@ static THD_FUNCTION(adc_thread, arg) {
 			pwr *= 2.0;
 			pwr -= 1.0;
 			break;
-
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
 			if( brake > 0.01 ) {
 				pwr = -brake;
 			}
-
 			break;
-
+		case ADC_CTRL_TYPE_CURRENT_BRAKE_ADC:
+			if( brake > 0.01 ) {
+				pwr = -brake;
+				rev_button = false;
+			} else if (rev_button) {
+				pwr = -pwr;
+			}
+			break;
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
@@ -236,7 +241,6 @@ static THD_FUNCTION(adc_thread, arg) {
 				pwr = -pwr;
 			}
 			break;
-
 		default:
 			break;
 		}
@@ -266,7 +270,23 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 			break;
+		case ADC_CTRL_TYPE_CURRENT_BRAKE_ADC:
+			current_mode = true;
+			if (rev_button) {
+				current = pwr * fabsf(mcconf->l_current_min);
+			} else {
+				if (pwr >= 0.0) {
+					current = pwr * mcconf->l_current_max;
+				} else {
+					current = fabsf(pwr * mcconf->l_current_min);
+					current_mode_brake = true;
+				}
+			}
 
+			if (fabsf(pwr) < 0.001) {
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+			}
+			break;
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
