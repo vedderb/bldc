@@ -42,6 +42,13 @@
 #include "servo_simple.h"
 #include "utils.h"
 
+#include "apps/lighting/led_manager.h"
+#include "util/singleton.h"
+
+using apps::lighting::LedManager;
+using apps::lighting::LedManagerThreadFunction;
+using util::Singleton;
+
 /*
  * Timers used:
  * TIM7: servo
@@ -62,11 +69,7 @@
  * 2, 4			ADC			mcpwm
  * 1, 0			TIM4		WS2811/WS2812 LEDs CH1 (Ch 1)
  * 1, 3			TIM4		WS2811/WS2812 LEDs CH2 (Ch 2)
- *
  */
-
-// Private variables
-
 
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
@@ -154,11 +157,9 @@ static THD_FUNCTION(timer_thread, arg) {
 }
 
 #include "apps/common/speed_controller.h"
-#include "apps/lighting/led_manager.h"
 #include "apps/nunchuk/nunchuk_manager.h"
 
 apps::common::SpeedController speed_controller_;
-apps::lighting::LedManager *led_manager;
 
 static THD_FUNCTION(speed_controller_thread, arg) {
   speed_controller_.Start();
@@ -175,21 +176,15 @@ static THD_FUNCTION(nunchuk_thread, arg) {
 
   chThdSleep(2);
   apps::nunchuk::NunchukManager nunchuk_manager(&HW_I2C_DEV,
-                                                &speed_controller_, led_manager);
+                                                &speed_controller_,
+                                                Singleton<LedManager>::Instance());
   nunchuk_manager.Start();
 }
 
-static THD_FUNCTION(lighting_thread, arg) {
-  apps::lighting::LedManager led_manager_;
-  led_manager = &led_manager_;
-  led_manager_.Start();
-}
-
 int main(void) {
+  // Initialize the HAL and ChibiOS.
 	halInit();
 	chSysInit();
-
-	chThdSleepMilliseconds(1000);
 
 	hw_init_gpio();
 	LED_RED_OFF();
@@ -224,11 +219,15 @@ int main(void) {
 #endif
 #endif
 
+  // Initialize LED manager and thread.
+  Singleton<LedManager>::Init();
+  chThdCreateStatic(lighting_thread_wa, sizeof(lighting_thread_wa),
+                    NORMALPRIO, LedManagerThreadFunction, NULL);
+
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
   chThdCreateStatic(nunchuk_thread_wa, sizeof(nunchuk_thread_wa), NORMALPRIO, nunchuk_thread, NULL);
-  chThdCreateStatic(lighting_thread_wa, sizeof(lighting_thread_wa), NORMALPRIO, lighting_thread, NULL);
 
   chThdSleepMilliseconds(TIME_INFINITE);
 }
