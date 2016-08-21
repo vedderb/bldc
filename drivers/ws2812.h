@@ -28,6 +28,14 @@ namespace ws2812 {
  * A color struct that matches the order that the WS2812 LED expects.
  */
 struct Color {
+  Color() {}
+
+  constexpr Color(uint8_t red, uint8_t green, uint8_t blue)
+      : blue(blue), red(red), green(green) {}
+
+  constexpr Color(const Color& color)
+      : blue(color.blue), red(color.red), green(color.green) {}
+
   uint8_t blue;
   uint8_t red;
   uint8_t green;

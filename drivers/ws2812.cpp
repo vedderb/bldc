@@ -56,8 +56,8 @@ namespace ws2812 {
 #define WS2812_ZERO           (TIMER_PERIOD * 0.35)
 #define WS2812_ONE            (TIMER_PERIOD * 0.90)
 
-const Color black = { .blue =   0, .red =   0, .green =   0, };
-const Color white = { .blue = 255, .red = 255, .green = 255, };
+const Color black(0, 0, 0);
+const Color white(255, 255, 255);
 
 /*
  * Pack a color into a uint32_t so that it can be sent to the LEDs.

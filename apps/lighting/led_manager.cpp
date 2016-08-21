@@ -47,12 +47,13 @@ constexpr uint32_t kSignalAnimationMs(800);
 // Color constants.
 namespace color {
 
-const ws2812::Color kIdleGround = { .blue =  32, .red =  32, .green =   32, };
-const ws2812::Color kGround     = { .blue = 120, .red = 120, .green =  120, };
-const ws2812::Color kIdleBrake  = { .blue =   1, .red =  40, .green =    1, };
-const ws2812::Color kBrake      = { .blue =   4, .red = 255, .green =    8, };
-const ws2812::Color kIdleSignal = { .blue =   0, .red =  25, .green =    7, };
-const ws2812::Color kSignal     = { .blue =   0, .red = 255, .green =   70, };
+const ws2812::Color kHeadlight  (drivers::ws2812::white);
+const ws2812::Color kIdleGround ( 32,  32,  32);
+const ws2812::Color kGround     (120, 120, 120);
+const ws2812::Color kIdleBrake  ( 40,   1,   1);
+const ws2812::Color kBrake      (255,   8,   4);
+const ws2812::Color kIdleSignal ( 25,   7,   0);
+const ws2812::Color kSignal     (255,  70,   0);
 
 }  // namespace color
 
@@ -183,11 +184,11 @@ void LedManager::InitGroundEffectsLight() {
 }
 
 void LedManager::InitFrontLight() {
-  SetRange(kHeadlight.start_index, kHeadlight.length, ws2812::white);
+  SetRange(kHeadlight.start_index, kHeadlight.length, color::kHeadlight);
 }
 
 void LedManager::ClearLeftSignal() {
-   SetRange(kLeftSignal.start_index, kLeftSignal.length, ws2812::white);
+   SetRange(kLeftSignal.start_index, kLeftSignal.length, color::kHeadlight);
  
 }
 
@@ -208,7 +209,7 @@ void LedManager::InitLeftSignal() {
 }
 
 void LedManager::ClearRightSignal() {
-  SetRange(kRightSignal.start_index, kRightSignal.length, ws2812::white);
+  SetRange(kRightSignal.start_index, kRightSignal.length, color::kHeadlight);
 }
 
 void LedManager::InitRightSignal() {
