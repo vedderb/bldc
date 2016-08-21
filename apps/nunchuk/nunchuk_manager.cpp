@@ -16,7 +16,7 @@ using lighting::TurnSignalState;
 constexpr int kSamplingPeriodMs(10);
 constexpr int kMaxStillEventCount(50);
 constexpr float kDeadbandFilterThreshold(0.1f);
-constexpr float kBrakeThreshold(0.2f);
+constexpr float kBrakeThreshold(0.0f);
 constexpr float kSignalThreshold(0.9f);
 
 NunchukManager::NunchukManager(I2CDriver *i2c_driver,
