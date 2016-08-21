@@ -26,6 +26,11 @@ namespace apps {
 namespace lighting {
 
 /*
+ * This function is used to Start an LedManager on a separate thread.
+ */
+THD_FUNCTION(LedManagerThreadFunction, arg);
+
+/*
  * The states possible for the turn signals.
  */
 enum class TurnSignalState {

@@ -17,6 +17,8 @@
 
 #include "apps/lighting/led_manager.h"
 
+#include "util/singleton.h"
+
 namespace apps {
 namespace lighting {
 
@@ -56,6 +58,10 @@ const ws2812::Color kIdleSignal ( 25,   7,   0);
 const ws2812::Color kSignal     (255,  70,   0);
 
 }  // namespace color
+
+THD_FUNCTION(LedManagerThreadFunction, arg) {
+  util::Singleton<LedManager>::Instance()->Start();
+}
 
 LedManager::LedManager() : animation_manager_(20, this),
     frame_dirty_(false) {
