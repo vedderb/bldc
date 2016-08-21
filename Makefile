@@ -102,21 +102,28 @@ PROJECT = BLDC_4_ChibiOS
 
 # Imported source files and paths
 CHIBIOS = ChibiOS_3.0.2
+
 # Startup files.
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
+
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/boards/ST_STM32F4_DISCOVERY/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
+
 # Other files (optional).
 #include $(CHIBIOS)/test/rt/test.mk
-include hwconf/hwconf.mk
 include applications/applications.mk
+include apps/apps.mk
+include drivers/drivers.mk
+include hwconf/hwconf.mk
 include nrf/nrf.mk
+include util/util.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -151,8 +158,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       ws2811.c \
-       led_external.c \
        encoder.c \
        flash_helper.c \
        mc_interface.c \
@@ -163,7 +168,10 @@ CSRC = $(STARTUPSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC = main.cpp
+CPPSRC = main.cpp \
+				 $(APPS_CPPSRC) \
+				 $(DRIVERS_CPPSRC) \
+				 $(UTIL_CPPSRC)
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
