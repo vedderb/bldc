@@ -52,7 +52,7 @@ namespace ws2812 {
                                   + (2 * BIT_BUFFER_PAD_LENGTH))
 
 #define WS2812_CLOCK_HZ       800000
-#define TIMER_PERIOD          ((SYSTEM_CORE_CLOCK / 2 / WS2811_CLK_HZ))
+#define TIMER_PERIOD          ((SYSTEM_CORE_CLOCK / 2 / WS2812_CLOCK_HZ))
 #define WS2812_ZERO           (TIMER_PERIOD * 0.35)
 #define WS2812_ONE            (TIMER_PERIOD * 0.90)
 
