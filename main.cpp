@@ -229,11 +229,6 @@ int main(void) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
   chThdCreateStatic(nunchuk_thread_wa, sizeof(nunchuk_thread_wa), NORMALPRIO, nunchuk_thread, NULL);
   chThdCreateStatic(lighting_thread_wa, sizeof(lighting_thread_wa), NORMALPRIO, lighting_thread, NULL);
-	for(;;) {
-		chThdSleepMilliseconds(10);
 
-		if (encoder_is_configured()) {
-			//		comm_can_set_pos(0, encoder_read_deg());
-		}
-	}
+  chThdSleepMilliseconds(TIME_INFINITE);
 }
