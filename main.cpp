@@ -42,9 +42,12 @@
 #include "servo_simple.h"
 #include "utils.h"
 
+#include "apps/common/speed_controller.h"
 #include "apps/lighting/led_manager.h"
 #include "util/singleton.h"
 
+using apps::common::SpeedController;
+using apps::common::SpeedControllerThreadFunction;
 using apps::lighting::LedManager;
 using apps::lighting::LedManagerThreadFunction;
 using util::Singleton;
@@ -74,8 +77,8 @@ using util::Singleton;
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
 static THD_WORKING_AREA(nunchuk_thread_wa, 2048);
+static THD_WORKING_AREA(led_manager_thread_wa, 2048);
 static THD_WORKING_AREA(speed_controller_thread_wa, 2048);
-static THD_WORKING_AREA(lighting_thread_wa, 2048);
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -159,25 +162,14 @@ static THD_FUNCTION(timer_thread, arg) {
 #include "apps/common/speed_controller.h"
 #include "apps/nunchuk/nunchuk_manager.h"
 
-apps::common::SpeedController speed_controller_;
-
-static THD_FUNCTION(speed_controller_thread, arg) {
-  speed_controller_.Start();
-}
-
 static THD_FUNCTION(nunchuk_thread, arg) {
-  chThdCreateStatic(speed_controller_thread_wa,
-                    sizeof(speed_controller_thread_wa),
-                    NORMALPRIO,
-                    speed_controller_thread, NULL);
-
   hw_start_i2c();
   chThdSleepMilliseconds(10);
 
   chThdSleep(2);
   apps::nunchuk::NunchukManager nunchuk_manager(&HW_I2C_DEV,
-                                                &speed_controller_,
-                                                Singleton<LedManager>::Instance());
+      Singleton<SpeedController>::Instance(),
+      Singleton<LedManager>::Instance());
   nunchuk_manager.Start();
 }
 
@@ -221,8 +213,15 @@ int main(void) {
 
   // Initialize LED manager and thread.
   Singleton<LedManager>::Init();
-  chThdCreateStatic(lighting_thread_wa, sizeof(lighting_thread_wa),
-                    NORMALPRIO, LedManagerThreadFunction, NULL);
+  chThdCreateStatic(
+      led_manager_thread_wa, sizeof(led_manager_thread_wa),
+      NORMALPRIO, LedManagerThreadFunction, NULL);
+
+  // Initialize the Speed controller and thread.
+  Singleton<SpeedController>::Init();
+  chThdCreateStatic(
+      speed_controller_thread_wa, sizeof(speed_controller_thread_wa),
+      NORMALPRIO, SpeedControllerThreadFunction, NULL);
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);

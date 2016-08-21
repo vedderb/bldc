@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "util/singleton.h"
+
 #include "comm_can.h"
 #include "mc_interface.h"
 #include "timeout.h"
@@ -11,6 +13,10 @@
 
 namespace apps {
 namespace common {
+
+THD_FUNCTION(SpeedControllerThreadFunction, arg) {
+  util::Singleton<SpeedController>::Instance()->Start();
+}
 
 // The current applied to the motors when released.
 constexpr float kMotorsReleasedCurrent(0.0f);

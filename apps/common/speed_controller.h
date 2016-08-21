@@ -27,6 +27,8 @@ namespace common {
 
 class SpeedController;
 
+THD_FUNCTION(SpeedControllerThreadFunction, arg);
+
 /*
  * Possible directions of the motor.
  */
