@@ -171,6 +171,9 @@ int main(void) {
 
   hw_init_gpio();
 
+  // Initialize i2c for the Nunchuk Manager.
+  hw_start_i2c();
+
   LED_RED_OFF();
   LED_GREEN_OFF();
 
@@ -216,7 +219,6 @@ int main(void) {
       NORMALPRIO, SpeedControllerThreadFunction, NULL);
 
   // Initialize the Nunchuk and thread.
-  hw_start_i2c();
   Singleton<NunchukManager>::Init(&HW_I2C_DEV,
       Singleton<SpeedController>::Instance(),
       Singleton<LedManager>::Instance());
