@@ -60,10 +60,6 @@ void app_init(app_configuration *conf) {
 		app_uartcomm_start();
 		break;
 
-	case APP_NUNCHUK:
-		app_nunchuk_start();
-		break;
-
 	case APP_NRF:
 		nrf_driver_init();
 		rfhelp_restart();
