@@ -157,8 +157,7 @@ void LedManager::InitGroundEffectsLight() {
   side_fade_in_ = animation_manager_.NewAnimation(0.0f, 1.0f,
       [](float v, LedManager *manager) {
         ws2812::Color color;
-        ws2812::InterpolateColor(&color,
-            color::kIdleGround, color::kGround, v);
+        ws2812::InterpolateColor(&color, color::kIdleGround, color::kGround, v);
         manager->SetRange(kLeftSide.start_index, kLeftSide.length, color);
         manager->SetRange(kRightSide.start_index, kRightSide.length, color);
       },
@@ -172,8 +171,8 @@ void LedManager::InitGroundEffectsLight() {
       [](float v, LedManager *manager) {
         ws2812::Color color;
         ws2812::InterpolateColor(&color, color::kIdleGround, color::kGround, v);
-        manager->SetRange(18, 20, color);
-        manager->SetRange(54, 20, color);
+        manager->SetRange(kLeftSide.start_index, kLeftSide.length, color);
+        manager->SetRange(kRightSide.start_index, kRightSide.length, color);
       },
       [](LedManager *manager) {
         manager->side_fade_in_->Start();
