@@ -1,9 +1,7 @@
 #include "apps/nunchuk/nunchuk_manager.h"
 
 #include "util/math.h"
-
-#include <inttypes.h>
-#include "commands.h"
+#include <util/singleton.h>
 
 namespace apps {
 namespace nunchuk {
@@ -18,6 +16,10 @@ constexpr int kMaxStillEventCount(50);
 constexpr float kDeadbandFilterThreshold(0.1f);
 constexpr float kBrakeThreshold(0.0f);
 constexpr float kSignalThreshold(0.9f);
+
+THD_FUNCTION(NunchukManagerThreadFunction, arg) {
+  util::Singleton<NunchukManager>::Instance()->Start();
+}
 
 NunchukManager::NunchukManager(I2CDriver *i2c_driver,
                                SpeedController *speed_controller,

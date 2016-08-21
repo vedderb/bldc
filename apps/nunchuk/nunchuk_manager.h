@@ -31,6 +31,8 @@ using drivers::Nunchuk;
 using drivers::NunchukEventData;
 using lighting::LedManager;
 
+THD_FUNCTION(NunchukManagerThreadFunction, arg);
+
 /*
  * Manages an instance of the Nunchuk driver by handling events and passing
  * messages to other subsystems.
