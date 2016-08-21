@@ -4,4 +4,5 @@
 
 APPS_CPPSRC = apps/common/speed_controller.cpp \
 							apps/lighting/interpolator.cpp \
-							apps/lighting/led_manager.cpp
+							apps/lighting/led_manager.cpp \
+							apps/nunchuk/nunchuk_manager.cpp
