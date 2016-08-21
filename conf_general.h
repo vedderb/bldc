@@ -102,11 +102,10 @@ extern "C" {
  * at the same time.
  */
 #ifndef WS2811_ENABLE
-#define WS2811_ENABLE			0
+#define WS2811_ENABLE	 1
 #endif
-#define WS2811_CLK_HZ			800000
-#define WS2811_LED_NUM			28
-#define WS2811_USE_CH2			1		// 0: CH1 (PB6) 1: CH2 (PB7)
+#define WS2811_LED_NUM 74
+#define WS2811_USE_CH2 1		// 0: CH1 (PB6) 1: CH2 (PB7)
 
 /*
  * Servo output driver
