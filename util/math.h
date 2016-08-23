@@ -18,6 +18,8 @@
 #ifndef UTIL_MATH_H_
 #define UTIL_MATH_H_
 
+#include <cstddef>
+
 namespace util {
 
 /*
@@ -25,6 +27,16 @@ namespace util {
  * and max_value from 0 to max_value.
  */
 void ApplyDeadband(float *value, float threshold, float max_value);
+
+/*
+ * Compute the summation of the buffer.
+ */
+float Sum(float *buffer, size_t size);
+
+/*
+ * Compute the average of the buffer.
+ */
+float Average(float *buffer, size_t size);
 
 }  // namespace util
 
