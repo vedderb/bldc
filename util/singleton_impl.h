@@ -22,15 +22,16 @@ namespace util {
 template<typename T>
 template<typename... Args>
 void Singleton<T>::Init(Args&&... args) {
-  new (singleton_storage_) T(std::forward<Args>(args)...);
+  new (&instance_) T(std::forward<Args>(args)...);
 }
 
 template<typename T>
 T *Singleton<T>::Instance() {
-  return reinterpret_cast<T *>(singleton_storage_);
+  return reinterpret_cast<T *>(&instance_);
 }
 
 template<typename T>
-uint8_t Singleton<T>::singleton_storage_[sizeof(T)];
+typename std::aligned_storage<sizeof(T), alignof(T)>::type
+    Singleton<T>::instance_;
 
 }  // namespace util

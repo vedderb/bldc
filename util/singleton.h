@@ -19,6 +19,7 @@
 #define UTIL_SINGLETON_H_
 
 #include <cstdint>
+#include <type_traits>
 
 namespace util {
 
@@ -47,12 +48,11 @@ class Singleton {
 
  private:
   /*
-   * Allocate storage for the singleton object.
-   *
-   * sizeof is used in conjunction with uint8_t in order to prevent static
-   * initialization. This is explicit through the Init() function provided.
+   * The static instance of the Singleton. Allocated in aligned_storage to
+   * avoid C++ static initialization and force it to be explicit through the
+   * static Init function above.
    */
-  static uint8_t singleton_storage_[sizeof(T)];
+  static typename std::aligned_storage<sizeof(T), alignof(T)>::type instance_;
 };
 
 } // namespace util
