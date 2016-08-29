@@ -27,6 +27,10 @@
 
 #include "conf_general.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void app_init(app_configuration *conf);
 const app_configuration* app_get_configuration(void);
@@ -50,5 +54,9 @@ void app_nunchuk_update_output(chuck_data *data);
 
 // Custom apps
 void app_sten_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* APP_H_ */

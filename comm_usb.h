@@ -27,7 +27,15 @@
 
 #include "conf_general.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void comm_usb_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMM_USB_H_ */

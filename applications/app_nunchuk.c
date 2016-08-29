@@ -32,7 +32,6 @@
 #include "timeout.h"
 #include <string.h>
 #include <math.h>
-#include "led_external.h"
 #include "datatypes.h"
 #include "comm_can.h"
 
@@ -186,11 +185,6 @@ static THD_FUNCTION(output_thread, arg) {
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
 
-		if (chuck_d.bt_c && chuck_d.bt_z) {
-			led_external_set_state(LED_EXT_BATT);
-			continue;
-		}
-
 		if (chuck_d.bt_z && !was_z && config.ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
 				fabsf(current_now) < MAX_CURR_DIFFERENCE) {
 			if (is_reverse) {
@@ -202,30 +196,8 @@ static THD_FUNCTION(output_thread, arg) {
 
 		was_z = chuck_d.bt_z;
 
-		led_external_set_reversed(is_reverse);
-
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, config.hyst, 1.0);
-
-		// LEDs
-		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;
-		if (out_val < -0.001) {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_BRAKE);
-			}
-		} else {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_NORMAL);
-			}
-		}
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;

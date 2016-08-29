@@ -32,11 +32,19 @@
 #define LED_GREEN			0
 #define LED_RED				1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void ledpwm_init(void);
 void ledpwm_set_intensity(unsigned int led, float intensity);
 void ledpwm_led_on(int led);
 void ledpwm_led_off(int led);
 void ledpwm_update_pwm(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LEDPWM_H_ */

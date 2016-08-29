@@ -27,6 +27,10 @@
 
 #include "conf_general.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Functions
 void mc_interface_init(mc_configuration *configuration);
 const volatile mc_configuration* mc_interface_get_configuration(void);
@@ -85,5 +89,8 @@ extern volatile int ADC_curr_norm_value[];
 // Common fixed parameters
 #define MCPWM_DEAD_TIME_CYCLES			60		// Dead time
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MC_INTERFACE_H_ */
