@@ -123,6 +123,7 @@ include apps/apps.mk
 include drivers/drivers.mk
 include hwconf/hwconf.mk
 include nrf/nrf.mk
+include tests/tests.mk
 include util/util.mk
 
 # Define linker script file here
