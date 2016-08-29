@@ -36,10 +36,6 @@ GTEST_CFLAGS += -I$(GTEST_DIR)
 GTEST_CFLAGS += -std=c++11
 GTEST_CFLAGS += -I.
 
-# gTest Linker Flags ###########################################################
-
-GTEST_LDFLAGS = -lpthread
-
 # gTest Sources ################################################################
 
 GTEST_SRCS = $(GTEST_DIR)/src/gtest-all.cc
