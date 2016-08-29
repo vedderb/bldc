@@ -22,16 +22,39 @@ namespace util {
 template<typename T>
 template<typename... Args>
 void Singleton<T>::Init(Args&&... args) {
-  new (&instance_) T(std::forward<Args>(args)...);
+  if (!is_initialized_) {
+    new (&instance_) T(std::forward<Args>(args)...);
+    is_initialized_ = true;
+  }
+}
+
+template<typename T>
+void Singleton<T>::DeInit() {
+  if (is_initialized_) {
+    Instance()->~T();
+    is_initialized_ = false;
+  }
 }
 
 template<typename T>
 T *Singleton<T>::Instance() {
-  return reinterpret_cast<T *>(&instance_);
+  if (is_initialized_) {
+    return reinterpret_cast<T *>(&instance_);
+  } else {
+    return nullptr;
+  }
+}
+
+template<typename T>
+bool Singleton<T>::IsInitialized() {
+  return is_initialized_;
 }
 
 template<typename T>
 typename std::aligned_storage<sizeof(T), alignof(T)>::type
     Singleton<T>::instance_;
+
+template<typename T>
+bool Singleton<T>::is_initialized_ = false;
 
 }  // namespace util

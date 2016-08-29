@@ -39,12 +39,22 @@ class Singleton {
   static void Init(Args&&... args);
 
   /*
+   * Invokes the Singleton deconstructor and allows the object to be
+   * re-initialized.
+   */
+  static void DeInit();
+
+  /*
    * Obtains a pointer to the underlying object.
    *
-   * Note that it is unsafe to call this before calling Init(). The pointer
-   * returned will reference a malformed object.
+   * If the object is not initialized first, nullptr will be returned.
    */
   static T* Instance();
+
+  /*
+   * Obtains whether or not the underlying object is currently initialized.
+   */
+  static bool IsInitialized();
 
  private:
   /*
@@ -53,6 +63,11 @@ class Singleton {
    * static Init function above.
    */
   static typename std::aligned_storage<sizeof(T), alignof(T)>::type instance_;
+
+  /*
+   * Maintains the state of whether or not the Singleton was initialized.
+   */
+  static bool is_initialized_;
 };
 
 } // namespace util
