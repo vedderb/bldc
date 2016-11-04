@@ -1,0 +1,88 @@
+So you want to contribute to the VESC firmware? That's great! Benjamin (the creator of the VESC) welcomes more people to join the development.
+
+But Benjamin is a busy man, and to reduce the workload of reviewing patches, it's important that your code follows the guidelines below. These are meant to make _you_ work a bit harder, so that Benjamin can work a bit less (and use his time to develop the VESC instead of trying to fix your patches :).
+
+
+=== Process ===
+
+Please discuss your ideas in the forum (http://vedder.se/forums/index.php) so that you don't just dump a large amount of code on Benjamin out of nowhere. Try to reach some kind of consensus with others on the forum about scope and functionality of your contribution.
+
+When Benjamin is prepared for your patch, and you have checked that it follows these guidelines, contribute it through a github pull request.
+
+
+=== Create clean patches ===
+
+When committing code to your git repo, it's easy to forget stuff: maybe you forget to add a new file, maybe you leave some debug code that you remove with a later commit, maybe you find spelling errors, and of course you will probably find bugs in the new code later, that needs to be fixed. This can all lead to a lot of commits in the style of:
+
+	"Fixed code I broke for other hardware"
+
+and
+
+	"Fixed typo in new commutation implementation"
+
+These types of commits just mess up the tree, and makes it hard to see what's actually been done to the code. Fortunately, there is a great tool in git that you can use to clean these up: 'git rebase -i <parent-hash>'! It's quite easy to use: once run, you get a list of all commits after <parent-hash>, and have the option to move commits around and also to squash them (make them as one). So you can group the "main" commit for a logical change together with all its "fix-the-code-I-broke" commits, and then squash them together to one, well functioning commit!
+
+Please do this, so that each commit represents a logical, well-functioning change.
+
+See INTERACTIVE MODE in 'man git-rebase' for detailed info. Here is a good article as well:
+http://www.siliconfidential.com/articles/15-seconds-to-cleaner-git-history/
+
+
+=== Describe the changes ===
+
+In the commit messages, describe the technical detail of the change(s) you make.
+
+Be as specific as possible. The WORST descriptions possible include things like "update bldc code", "bug fix for FOC", or "this patch includes updates for the observer. Please apply."
+
+Your commit message(s) will end up in the commit log for the VESC firmware, and someone reading the log a year later should be able to infer what each commit does.
+
+
+=== Coding Style ===
+
+Make sure your coding style matches the style in the existing code. Among other things, that means:
+
+* Use tabs for indentation (make sure your editor does not replace tabs with spaces). Never use spaces before tabs. Preferably use a tab width of 4.
+
+* Place the opening brace '{' of code blocks on the same line as the preceding text, both after function headers and after control statements:
+
+	int main(void) {
+
+and
+
+	if (send_func) {
+
+* Always use braces, even for single-line blocks:
+
+	if (send_func) {
+		send_func(data, len);
+	}
+
+* Write "else" on the same line as both the preceding and the following brace:
+
+	} else {
+
+* Use C99-style single-line comments ("// ...", not "/* ... */"):
+
+	static mc_configuration mcconf, mcconf_old; // Static to save some stack space
+
+and
+
+	// Lock the system and enter an infinite loop. The watchdog will reboot.
+
+* If you write function comments, write them Doxygen-style.
+
+* There is no limit on line length, so long lines in general should not be wrapped.
+
+=== Make sure that all hardware versions and configuration variations work ===
+
+When making updates it is easy to break things for different configurations. In order to make sure that the firmware at least builds for different hardwares and configurations it is a good idea to run the build_all/rebuild_all script and ensure that is finished without warnings and/or errors.
+
+
+=== Be patient, and don't take criticism personally ===
+
+Be prepared to have to rework your contribution several times before it is considered acceptable. Once code is in, it's difficult to get it reworked for better quality, so it's important that this is done before the code is even accepted. Don't take it personally; instead appreciate that it is this peer review that makes the code great in the end!
+
+
+
+Thanks for reading!
+

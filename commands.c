@@ -1,26 +1,21 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * commands.c
- *
- *  Created on: 19 sep 2014
- *      Author: benjamin
- */
+    */
 
 #include "commands.h"
 #include "ch.h"
@@ -43,6 +38,7 @@
 #include "utils.h"
 #include "packet.h"
 #include "encoder.h"
+#include "nrf_driver.h"
 
 #include <math.h>
 #include <string.h>
@@ -131,6 +127,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
+
+#ifdef HW_NAME
+		strcpy((char*)(send_buffer + ind), HW_NAME);
+		ind += strlen(HW_NAME) + 1;
+#endif
+
 		commands_send_packet(send_buffer, ind);
 		break;
 
@@ -162,15 +164,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_VALUES:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_VALUES;
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS1), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS2), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS3), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS4), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS5), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS6), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_PCB), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS), 1e1, &ind);
+		buffer_append_float16(send_buffer, NTC_TEMP_MOTOR(), 1e1, &ind);
 		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_motor_current(), 1e2, &ind);
 		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_input_current(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_id(), 1e2, &ind);
+		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_iq(), 1e2, &ind);
 		buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
 		buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
 		buffer_append_float16(send_buffer, GET_INPUT_VOLTAGE(), 1e1, &ind);
@@ -181,7 +180,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		send_buffer[ind++] = mc_interface_get_fault();
-		// TODO: send FOC values id, iq, abs
 		commands_send_packet(send_buffer, ind);
 		break;
 
@@ -212,6 +210,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_SET_POS:
 		ind = 0;
 		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
+		timeout_reset();
+		break;
+
+	case COMM_SET_HANDBRAKE:
+		ind = 0;
+		mc_interface_set_handbrake(buffer_get_float32(data, 1e3, &ind));
 		timeout_reset();
 		break;
 
@@ -259,6 +263,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.l_abs_current_max = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_min_erpm = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_max_erpm = buffer_get_float32(data, 1000.0, &ind);
+		mcconf.l_erpm_start = buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.l_max_erpm_fbrake = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_max_erpm_fbrake_cc = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_min_vin = buffer_get_float32(data, 1000.0, &ind);
@@ -266,7 +271,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.l_battery_cut_start = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_battery_cut_end = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_slow_abs_current = data[ind++];
-		mcconf.l_rpm_lim_neg_torque = data[ind++];
 		mcconf.l_temp_fet_start = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_temp_fet_end = buffer_get_float32(data, 1000.0, &ind);
 		mcconf.l_temp_motor_start = buffer_get_float32(data, 1000.0, &ind);
@@ -333,13 +337,13 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
 		mcconf.m_duty_ramp_step = (float)buffer_get_float32(data, 1000000.0, &ind);
-		mcconf.m_duty_ramp_step_rpm_lim = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_current_backoff_gain = (float)buffer_get_float32(data, 1000000.0, &ind);
 		mcconf.m_encoder_counts = buffer_get_uint32(data, &ind);
 		mcconf.m_sensor_port_mode = data[ind++];
 
 		conf_general_store_mc_configuration(&mcconf);
 		mc_interface_set_configuration(&mcconf);
+		chThdSleepMilliseconds(200);
 
 		ind = 0;
 		send_buffer[ind++] = packet_id;
@@ -369,6 +373,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_abs_current_max * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_erpm * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm * 1000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_erpm_start * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_erpm_fbrake_cc * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_vin * 1000.0), &ind);
@@ -376,7 +381,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32(send_buffer, mcconf.l_battery_cut_start, 1000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.l_battery_cut_end, 1000.0, &ind);
 		send_buffer[ind++] = mcconf.l_slow_abs_current;
-		send_buffer[ind++] = mcconf.l_rpm_lim_neg_torque;
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_start * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_end * 1000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_start * 1000.0), &ind);
@@ -438,7 +442,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		buffer_append_int32(send_buffer, mcconf.m_fault_stop_time_ms, &ind);
 		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step, 1000000.0, &ind);
-		buffer_append_float32(send_buffer, mcconf.m_duty_ramp_step_rpm_lim, 1000000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.m_current_backoff_gain, 1000000.0, &ind);
 		buffer_append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);
 		send_buffer[ind++] = mcconf.m_sensor_port_mode;
@@ -465,23 +468,22 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_ppm_conf.pulse_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.median_filter = data[ind++];
 		appconf.app_ppm_conf.safe_start = data[ind++];
-		appconf.app_ppm_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_ppm_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
 		appconf.app_ppm_conf.multi_esc = data[ind++];
 		appconf.app_ppm_conf.tc = data[ind++];
 		appconf.app_ppm_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
 
 		appconf.app_adc_conf.ctrl_type = data[ind++];
-		appconf.app_adc_conf.hyst = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_adc_conf.voltage_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_adc_conf.voltage_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.hyst = buffer_get_float32(data, 1e3, &ind);
+		appconf.app_adc_conf.voltage_start = buffer_get_float32(data, 1e3, &ind);
+		appconf.app_adc_conf.voltage_end = buffer_get_float32(data, 1e3, &ind);
+		appconf.app_adc_conf.voltage2_start = buffer_get_float32(data, 1e3, &ind);
+		appconf.app_adc_conf.voltage2_end = buffer_get_float32(data, 1e3, &ind);
 		appconf.app_adc_conf.use_filter = data[ind++];
 		appconf.app_adc_conf.safe_start = data[ind++];
 		appconf.app_adc_conf.cc_button_inverted = data[ind++];
 		appconf.app_adc_conf.rev_button_inverted = data[ind++];
 		appconf.app_adc_conf.voltage_inverted = data[ind++];
-		appconf.app_adc_conf.rpm_lim_start = (float)buffer_get_int32(data, &ind) / 1000.0;
-		appconf.app_adc_conf.rpm_lim_end = (float)buffer_get_int32(data, &ind) / 1000.0;
+		appconf.app_adc_conf.voltage2_inverted = data[ind++];
 		appconf.app_adc_conf.multi_esc = data[ind++];
 		appconf.app_adc_conf.tc = data[ind++];
 		appconf.app_adc_conf.tc_max_diff = (float)buffer_get_int32(data, &ind) / 1000.0;
@@ -491,8 +493,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		appconf.app_chuk_conf.ctrl_type = data[ind++];
 		appconf.app_chuk_conf.hyst = buffer_get_float32(data, 1000.0, &ind);
-		appconf.app_chuk_conf.rpm_lim_start = buffer_get_float32(data, 1000.0, &ind);
-		appconf.app_chuk_conf.rpm_lim_end = buffer_get_float32(data, 1000.0, &ind);
 		appconf.app_chuk_conf.ramp_time_pos = buffer_get_float32(data, 1000.0, &ind);
 		appconf.app_chuk_conf.ramp_time_neg = buffer_get_float32(data, 1000.0, &ind);
 		appconf.app_chuk_conf.stick_erpm_per_s_in_cc = buffer_get_float32(data, 1000.0, &ind);
@@ -513,6 +513,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
 		timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+		chThdSleepMilliseconds(200);
 
 		ind = 0;
 		send_buffer[ind++] = packet_id;
@@ -527,69 +528,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			conf_general_get_default_app_configuration(&appconf);
 		}
 
-		ind = 0;
-		send_buffer[ind++] = packet_id;
-		send_buffer[ind++] = appconf.controller_id;
-		buffer_append_uint32(send_buffer, appconf.timeout_msec, &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.timeout_brake_current * 1000.0), &ind);
-		send_buffer[ind++] = appconf.send_can_status;
-		buffer_append_uint16(send_buffer, appconf.send_can_status_rate_hz, &ind);
-
-		send_buffer[ind++] = appconf.app_to_use;
-
-		send_buffer[ind++] = appconf.app_ppm_conf.ctrl_type;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pid_max_erpm * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.hyst * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.pulse_end * 1000.0), &ind);
-		send_buffer[ind++] = appconf.app_ppm_conf.median_filter;
-		send_buffer[ind++] = appconf.app_ppm_conf.safe_start;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.rpm_lim_end * 1000.0), &ind);
-		send_buffer[ind++] = appconf.app_ppm_conf.multi_esc;
-		send_buffer[ind++] = appconf.app_ppm_conf.tc;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_ppm_conf.tc_max_diff * 1000.0), &ind);
-
-		send_buffer[ind++] = appconf.app_adc_conf.ctrl_type;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.hyst * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.voltage_end * 1000.0), &ind);
-		send_buffer[ind++] = appconf.app_adc_conf.use_filter;
-		send_buffer[ind++] = appconf.app_adc_conf.safe_start;
-		send_buffer[ind++] = appconf.app_adc_conf.cc_button_inverted;
-		send_buffer[ind++] = appconf.app_adc_conf.rev_button_inverted;
-		send_buffer[ind++] = appconf.app_adc_conf.voltage_inverted;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.rpm_lim_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.rpm_lim_end * 1000.0), &ind);
-		send_buffer[ind++] = appconf.app_adc_conf.multi_esc;
-		send_buffer[ind++] = appconf.app_adc_conf.tc;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_adc_conf.tc_max_diff * 1000.0), &ind);
-		buffer_append_uint16(send_buffer, appconf.app_adc_conf.update_rate_hz, &ind);
-
-		buffer_append_uint32(send_buffer, appconf.app_uart_baudrate, &ind);
-
-		send_buffer[ind++] = appconf.app_chuk_conf.ctrl_type;
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.hyst, 1000.0, &ind);
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.rpm_lim_start, 1000.0, &ind);
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.rpm_lim_end, 1000.0, &ind);
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.ramp_time_pos, 1000.0, &ind);
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.ramp_time_neg, 1000.0, &ind);
-		buffer_append_float32(send_buffer, appconf.app_chuk_conf.stick_erpm_per_s_in_cc, 1000.0, &ind);
-		send_buffer[ind++] = appconf.app_chuk_conf.multi_esc;
-		send_buffer[ind++] = appconf.app_chuk_conf.tc;
-		buffer_append_int32(send_buffer, (int32_t)(appconf.app_chuk_conf.tc_max_diff * 1000.0), &ind);
-
-		send_buffer[ind++] = appconf.app_nrf_conf.speed;
-		send_buffer[ind++] = appconf.app_nrf_conf.power;
-		send_buffer[ind++] = appconf.app_nrf_conf.crc_type;
-		send_buffer[ind++] = appconf.app_nrf_conf.retry_delay;
-		send_buffer[ind++] = appconf.app_nrf_conf.retries;
-		send_buffer[ind++] = appconf.app_nrf_conf.channel;
-		memcpy(send_buffer + ind, appconf.app_nrf_conf.address, 3);
-		ind += 3;
-		send_buffer[ind++] = appconf.app_nrf_conf.send_crc_ack;
-
-		commands_send_packet(send_buffer, ind);
+		commands_send_appconf(packet_id, &appconf);
 		break;
 
 	case COMM_SAMPLE_PRINT:
@@ -789,6 +728,16 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		}
 		break;
 
+	case COMM_NRF_START_PAIRING:
+		ind = 0;
+		nrf_driver_start_pairing(buffer_get_int32(data, &ind));
+
+		ind = 0;
+		send_buffer[ind++] = packet_id;
+		send_buffer[ind++] = NRF_PAIR_STARTED;
+		commands_send_packet(send_buffer, ind);
+		break;
+
 	default:
 		break;
 	}
@@ -865,6 +814,69 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	index += len;
 
 	commands_send_packet(send_buffer, index);
+}
+
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf) {
+	int32_t ind = 0;
+	send_buffer[ind++] = packet_id;
+	send_buffer[ind++] = appconf->controller_id;
+	buffer_append_uint32(send_buffer, appconf->timeout_msec, &ind);
+	buffer_append_int32(send_buffer, (int32_t)(appconf->timeout_brake_current * 1000.0), &ind);
+	send_buffer[ind++] = appconf->send_can_status;
+	buffer_append_uint16(send_buffer, appconf->send_can_status_rate_hz, &ind);
+
+	send_buffer[ind++] = appconf->app_to_use;
+
+	send_buffer[ind++] = appconf->app_ppm_conf.ctrl_type;
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_ppm_conf.pid_max_erpm * 1000.0), &ind);
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_ppm_conf.hyst * 1000.0), &ind);
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_ppm_conf.pulse_start * 1000.0), &ind);
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_ppm_conf.pulse_end * 1000.0), &ind);
+	send_buffer[ind++] = appconf->app_ppm_conf.median_filter;
+	send_buffer[ind++] = appconf->app_ppm_conf.safe_start;
+	send_buffer[ind++] = appconf->app_ppm_conf.multi_esc;
+	send_buffer[ind++] = appconf->app_ppm_conf.tc;
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_ppm_conf.tc_max_diff * 1000.0), &ind);
+
+	send_buffer[ind++] = appconf->app_adc_conf.ctrl_type;
+	buffer_append_float32(send_buffer, appconf->app_adc_conf.hyst, 1e3, &ind);
+	buffer_append_float32(send_buffer, appconf->app_adc_conf.voltage_start, 1e3, &ind);
+	buffer_append_float32(send_buffer, appconf->app_adc_conf.voltage_end, 1e3, &ind);
+	buffer_append_float32(send_buffer, appconf->app_adc_conf.voltage2_start, 1e3, &ind);
+	buffer_append_float32(send_buffer, appconf->app_adc_conf.voltage2_end, 1e3, &ind);
+	send_buffer[ind++] = appconf->app_adc_conf.use_filter;
+	send_buffer[ind++] = appconf->app_adc_conf.safe_start;
+	send_buffer[ind++] = appconf->app_adc_conf.cc_button_inverted;
+	send_buffer[ind++] = appconf->app_adc_conf.rev_button_inverted;
+	send_buffer[ind++] = appconf->app_adc_conf.voltage_inverted;
+	send_buffer[ind++] = appconf->app_adc_conf.voltage2_inverted;
+	send_buffer[ind++] = appconf->app_adc_conf.multi_esc;
+	send_buffer[ind++] = appconf->app_adc_conf.tc;
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_adc_conf.tc_max_diff * 1000.0), &ind);
+	buffer_append_uint16(send_buffer, appconf->app_adc_conf.update_rate_hz, &ind);
+
+	buffer_append_uint32(send_buffer, appconf->app_uart_baudrate, &ind);
+
+	send_buffer[ind++] = appconf->app_chuk_conf.ctrl_type;
+	buffer_append_float32(send_buffer, appconf->app_chuk_conf.hyst, 1000.0, &ind);
+	buffer_append_float32(send_buffer, appconf->app_chuk_conf.ramp_time_pos, 1000.0, &ind);
+	buffer_append_float32(send_buffer, appconf->app_chuk_conf.ramp_time_neg, 1000.0, &ind);
+	buffer_append_float32(send_buffer, appconf->app_chuk_conf.stick_erpm_per_s_in_cc, 1000.0, &ind);
+	send_buffer[ind++] = appconf->app_chuk_conf.multi_esc;
+	send_buffer[ind++] = appconf->app_chuk_conf.tc;
+	buffer_append_int32(send_buffer, (int32_t)(appconf->app_chuk_conf.tc_max_diff * 1000.0), &ind);
+
+	send_buffer[ind++] = appconf->app_nrf_conf.speed;
+	send_buffer[ind++] = appconf->app_nrf_conf.power;
+	send_buffer[ind++] = appconf->app_nrf_conf.crc_type;
+	send_buffer[ind++] = appconf->app_nrf_conf.retry_delay;
+	send_buffer[ind++] = appconf->app_nrf_conf.retries;
+	send_buffer[ind++] = appconf->app_nrf_conf.channel;
+	memcpy(send_buffer + ind, appconf->app_nrf_conf.address, 3);
+	ind += 3;
+	send_buffer[ind++] = appconf->app_nrf_conf.send_crc_ack;
+
+	commands_send_packet(send_buffer, ind);
 }
 
 static THD_FUNCTION(detect_thread, arg) {

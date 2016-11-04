@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * mc_pwm.h
- *
- *  Created on: 13 okt 2012
- *      Author: benjamin
- */
 
 #ifndef MCPWM_H_
 #define MCPWM_H_
@@ -30,6 +25,7 @@
 // Functions
 void mcpwm_init(volatile mc_configuration *configuration);
 void mcpwm_deinit(void);
+bool mcpwm_init_done(void);
 void mcpwm_set_configuration(volatile mc_configuration *configuration);
 void mcpwm_init_hall_table(int8_t *table);
 void mcpwm_set_duty(float dutyCycle);
@@ -85,7 +81,7 @@ extern volatile int mcpwm_vzero;
  */
 #define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
 #define MCPWM_SWITCH_FREQUENCY_MAX		40000	// The highest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	25000	// The DC motor switching frequency
+#define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	35000	// The DC motor switching frequency
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command

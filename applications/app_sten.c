@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * app_sten.c
- *
- *  Created on: 18 apr 2014
- *      Author: benjamin
- */
 
 #include "app.h"
 #ifdef USE_APP_STEN
@@ -44,6 +39,8 @@
 
 // Private variables
 static volatile float out_received = 0.0;
+static volatile bool stop_now = true;
+static volatile bool is_running = false;
 
 // Threads
 static THD_FUNCTION(uart_thread, arg);
@@ -118,8 +115,23 @@ static UARTConfig uart_cfg = {
 		0
 };
 
-void app_sten_init(void) {
+void app_sten_start(void) {
+	stop_now = false;
 	chThdCreateStatic(uart_thread_wa, sizeof(uart_thread_wa), NORMALPRIO - 1, uart_thread, NULL);
+}
+
+void app_sten_stop(void) {
+	stop_now = true;
+
+	if (is_running) {
+		uartStop(&HW_UART_DEV);
+		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+	}
+
+	while (is_running) {
+		chThdSleepMilliseconds(1);
+	}
 }
 
 static THD_FUNCTION(uart_thread, arg) {
@@ -137,8 +149,15 @@ static THD_FUNCTION(uart_thread, arg) {
 
 	systime_t time = chVTGetSystemTime();
 
+	is_running = true;
+
 	for(;;) {
 		time += MS2ST(1);
+
+		if (stop_now) {
+			is_running = false;
+			return;
+		}
 
 		if (!timeout_has_timeout()) {
 			set_output(out_received);

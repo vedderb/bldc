@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * app_uartcomm.c
- *
- *  Created on: 2 jul 2014
- *      Author: benjamin
- */
 
 #include "app.h"
 #include "ch.h"
@@ -45,7 +40,8 @@ static thread_t *process_tp;
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static int is_running = 0;
+static volatile bool stop_now = true;
+static bool is_running = false;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -149,9 +145,23 @@ void app_uartcomm_start(void) {
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 
-	is_running = 1;
-
+	stop_now = false;
 	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
+}
+
+void app_uartcomm_stop(void) {
+	stop_now = true;
+
+	if (is_running) {
+		uartStop(&HW_UART_DEV);
+		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+		chEvtSignal(process_tp, (eventmask_t) 1);
+	}
+
+	while (is_running) {
+		chThdSleepMilliseconds(1);
+	}
 }
 
 void app_uartcomm_configure(uint32_t baudrate) {
@@ -167,10 +177,16 @@ static THD_FUNCTION(packet_process_thread, arg) {
 
 	chRegSetThreadName("uartcomm process");
 
+	is_running = true;
 	process_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
+
+		if (stop_now) {
+			is_running = false;
+			return;
+		}
 
 		while (serial_rx_read_pos != serial_rx_write_pos) {
 			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);

@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -43,6 +45,8 @@
 #include "servo.h"
 #include "servo_simple.h"
 #include "utils.h"
+#include "nrf_driver.h"
+#include "rfhelp.h"
 
 /*
  * Timers used:
@@ -171,6 +175,13 @@ int main(void) {
 	halInit();
 	chSysInit();
 
+	// Initialize the enable pins here and disable them
+	// to avoid excessive current draw at boot because of
+	// floating pins.
+#ifdef HW_HAS_DRV8313
+	INIT_BR();
+#endif
+
 	chThdSleepMilliseconds(1000);
 
 	hw_init_gpio();
@@ -189,7 +200,11 @@ int main(void) {
 
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
-	app_init(&appconf);
+	app_set_configuration(&appconf);
+#ifdef HW_HAS_PERMANENT_NRF
+	nrf_driver_init();
+	rfhelp_restart();
+#endif
 
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
@@ -200,7 +215,9 @@ int main(void) {
 
 #if WS2811_ENABLE
 	ws2811_init();
-//	led_external_init();
+#if !WS2811_TEST
+	led_external_init();
+#endif
 #endif
 
 #if SERVO_OUT_ENABLE

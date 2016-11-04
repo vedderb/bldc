@@ -1,12 +1,14 @@
 /*
-	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -18,6 +20,7 @@
 #include "spi_sw.h"
 #include "ch.h"
 #include "hal.h"
+#include "utils.h"
 #include <stdbool.h>
 
 // Private variables
@@ -39,6 +42,14 @@ void spi_sw_init(void) {
 	}
 }
 
+void spi_sw_stop(void) {
+	palSetPadMode(NRF_PORT_MISO, NRF_PIN_MISO, PAL_MODE_INPUT);
+	palSetPadMode(NRF_PORT_CSN, NRF_PIN_CSN, PAL_MODE_INPUT);
+	palSetPadMode(NRF_PORT_SCK, NRF_PIN_SCK, PAL_MODE_INPUT);
+	palSetPadMode(NRF_PORT_MOSI, NRF_PIN_MOSI, PAL_MODE_INPUT);
+	init_done = false;
+}
+
 void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
 	palClearPad(NRF_PORT_SCK, NRF_PIN_SCK);
 	spi_sw_delay();
@@ -53,9 +64,16 @@ void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
 
 			spi_sw_delay();
 
+			int r1, r2, r3;
+			r1 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+			__NOP();
+			r2 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+			__NOP();
+			r3 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+
 			recieve <<= 1;
-			if (palReadPad(NRF_PORT_MISO, NRF_PIN_MISO)) {
-				recieve |= 0x1;
+			if (utils_middle_of_3_int(r1, r2, r3)) {
+				recieve |= 1;
 			}
 
 			palSetPad(NRF_PORT_SCK, NRF_PIN_SCK);

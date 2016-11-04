@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@
 #include "hw_r2.h"
 #elif defined HW_VERSION_VICTOR_R1A
 #include "hw_victor_r1a.h"
+#elif defined HW_VERSION_DAS_RS
+#include "hw_das_rs.h"
 #else
 #error "No hardware version defined"
 #endif
@@ -57,10 +59,5 @@ void hw_setup_servo_outputs(void);
 void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
-
-#ifdef HW_HAS_DRV8301
-int hw_drv8301_read_reg(int reg);
-void hw_drv8301_write_reg(int reg, int data);
-#endif
 
 #endif /* HW_H_ */

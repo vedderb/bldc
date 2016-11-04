@@ -1,26 +1,21 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * app_adc.c
- *
- *  Created on: 1 may 2015
- *      Author: benjamin
- */
+    */
 
 #include "app.h"
 
@@ -52,6 +47,8 @@ static volatile float read_voltage = 0.0;
 static volatile float decoded_level2 = 0.0;
 static volatile float read_voltage2 = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
+static volatile bool stop_now = true;
+static volatile bool is_running = false;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
@@ -60,7 +57,15 @@ void app_adc_configure(adc_config *conf) {
 
 void app_adc_start(bool use_rx_tx) {
 	use_rx_tx_as_buttons = use_rx_tx;
+	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
+}
+
+void app_adc_stop(void) {
+	stop_now = true;
+	while (is_running) {
+		chThdSleepMilliseconds(1);
+	}
 }
 
 float app_adc_get_decoded_level(void) {
@@ -93,6 +98,8 @@ static THD_FUNCTION(adc_thread, arg) {
 		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
 	}
 
+	is_running = true;
+
 	for(;;) {
 		// Sleep for a time according to the specified rate
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / config.update_rate_hz;
@@ -102,6 +109,11 @@ static THD_FUNCTION(adc_thread, arg) {
 			sleep_time = 1;
 		}
 		chThdSleep(sleep_time);
+
+		if (stop_now) {
+			is_running = false;
+			return;
+		}
 
 		// For safe start when fault codes occur
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
@@ -172,11 +184,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Map and truncate the read voltage
-		brake = utils_map(brake, config.voltage_start, config.voltage_end, 0.0, 1.0);
+		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
 		utils_truncate_number(&brake, 0.0, 1.0);
 
 		// Optionally invert the read voltage
-		if (config.voltage_inverted) {
+		if (config.voltage2_inverted) {
 			brake = 1.0 - brake;
 		}
 
@@ -413,21 +425,6 @@ static THD_FUNCTION(adc_thread, arg) {
 					}
 				}
 			} else {
-				// Apply soft RPM limit
-				if (rpm_lowest > config.rpm_lim_end && current > 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm_lowest > config.rpm_lim_start && current > 0.0) {
-					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
-				} else if (rpm_lowest < -config.rpm_lim_end && current < 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm_lowest < -config.rpm_lim_start && current < 0.0) {
-					rpm_lowest = -rpm_lowest;
-					current = -current;
-					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
-					current = -current;
-					rpm_lowest = -rpm_lowest;
-				}
-
 				float current_out = current;
 				bool is_reverse = false;
 				if (current_out < 0.0) {

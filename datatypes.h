@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * datatypes.h
- *
- *  Created on: 14 sep 2014
- *      Author: benjamin
- */
 
 #ifndef DATATYPES_H_
 #define DATATYPES_H_
@@ -82,6 +77,8 @@ typedef enum {
 	CONTROL_MODE_CURRENT,
 	CONTROL_MODE_CURRENT_BRAKE,
 	CONTROL_MODE_POS,
+	CONTROL_MODE_HANDBRAKE,
+	CONTROL_MODE_OPENLOOP,
 	CONTROL_MODE_NONE
 } mc_control_mode;
 
@@ -125,6 +122,7 @@ typedef struct {
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
+	float l_erpm_start;
 	float l_max_erpm_fbrake;
 	float l_max_erpm_fbrake_cc;
 	float l_min_vin;
@@ -132,7 +130,6 @@ typedef struct {
 	float l_battery_cut_start;
 	float l_battery_cut_end;
 	bool l_slow_abs_current;
-	bool l_rpm_lim_neg_torque;
 	float l_temp_fet_start;
 	float l_temp_fet_end;
 	float l_temp_motor_start;
@@ -197,7 +194,6 @@ typedef struct {
 	// Misc
 	int32_t m_fault_stop_time_ms;
 	float m_duty_ramp_step;
-	float m_duty_ramp_step_rpm_lim;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
 	sensor_port_mode m_sensor_port_mode;
@@ -236,8 +232,6 @@ typedef struct {
 	float pulse_end;
 	bool median_filter;
 	bool safe_start;
-	float rpm_lim_start;
-	float rpm_lim_end;
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
@@ -262,13 +256,14 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage2_start;
+	float voltage2_end;
 	bool use_filter;
 	bool safe_start;
 	bool cc_button_inverted;
 	bool rev_button_inverted;
 	bool voltage_inverted;
-	float rpm_lim_start;
-	float rpm_lim_end;
+	bool voltage2_inverted;
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
@@ -285,8 +280,6 @@ typedef enum {
 typedef struct {
 	chuk_control_type ctrl_type;
 	float hyst;
-	float rpm_lim_start;
-	float rpm_lim_end;
 	float ramp_time_pos;
 	float ramp_time_neg;
 	float stick_erpm_per_s_in_cc;
@@ -390,6 +383,7 @@ typedef enum {
 	COMM_SET_CURRENT_BRAKE,
 	COMM_SET_RPM,
 	COMM_SET_POS,
+	COMM_SET_HANDBRAKE,
 	COMM_SET_DETECT,
 	COMM_SET_SERVO_POS,
 	COMM_SET_MCCONF,
@@ -415,7 +409,8 @@ typedef enum {
 	COMM_GET_DECODED_CHUK,
 	COMM_FORWARD_CAN,
 	COMM_SET_CHUCK_DATA,
-	COMM_CUSTOM_APP_DATA
+	COMM_CUSTOM_APP_DATA,
+	COMM_NRF_START_PAIRING
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -496,6 +491,7 @@ typedef enum {
 	MOTE_PACKET_FILL_RX_BUFFER_LONG,
 	MOTE_PACKET_PROCESS_RX_BUFFER,
 	MOTE_PACKET_PROCESS_SHORT_BUFFER,
+	MOTE_PACKET_PAIRING_INFO
 } MOTE_PACKET;
 
 typedef struct {
@@ -519,5 +515,11 @@ typedef struct {
     int tachometer_abs;
     mc_fault_code fault_code;
 } mc_values;
+
+typedef enum {
+	NRF_PAIR_STARTED = 0,
+	NRF_PAIR_OK,
+	NRF_PAIR_FAIL
+} NRF_PAIR_RES;
 
 #endif /* DATATYPES_H_ */

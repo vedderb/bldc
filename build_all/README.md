@@ -1,0 +1,1 @@
+This is where firmware for most hardware and configuration combinations is built. When making updates to the firmware it is a good idea to make sure that the rebuild_all script runs without errors, because that means that at least the build process is not broken.

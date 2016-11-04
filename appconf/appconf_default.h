@@ -1,12 +1,14 @@
 /*
-	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -63,12 +65,6 @@
 #ifndef APPCONF_PPM_SAFE_START
 #define APPCONF_PPM_SAFE_START				true
 #endif
-#ifndef APPCONF_PPM_RPM_LIM_START
-#define APPCONF_PPM_RPM_LIM_START			150000
-#endif
-#ifndef APPCONF_PPM_RPM_LIM_END
-#define APPCONF_PPM_RPM_LIM_END				200000
-#endif
 #ifndef APPCONF_PPM_MULTI_ESC
 #define APPCONF_PPM_MULTI_ESC				false
 #endif
@@ -92,6 +88,12 @@
 #ifndef APPCONF_ADC_VOLTAGE_END
 #define APPCONF_ADC_VOLTAGE_END				3.0
 #endif
+#ifndef APPCONF_ADC_VOLTAGE2_START
+#define APPCONF_ADC_VOLTAGE2_START			0.9
+#endif
+#ifndef APPCONF_ADC_VOLTAGE2_END
+#define APPCONF_ADC_VOLTAGE2_END				3.0
+#endif
 #ifndef APPCONF_ADC_USE_FILTER
 #define APPCONF_ADC_USE_FILTER				true
 #endif
@@ -107,11 +109,8 @@
 #ifndef APPCONF_ADC_VOLTAGE_INVERTED
 #define APPCONF_ADC_VOLTAGE_INVERTED		false
 #endif
-#ifndef APPCONF_ADC_RPM_LIM_START
-#define APPCONF_ADC_RPM_LIM_START			150000.0
-#endif
-#ifndef APPCONF_ADC_RPM_LIM_END
-#define APPCONF_ADC_RPM_LIM_END				200000.0
+#ifndef APPCONF_ADC_VOLTAGE2_INVERTED
+#define APPCONF_ADC_VOLTAGE2_INVERTED		false
 #endif
 #ifndef APPCONF_ADC_MULTI_ESC
 #define APPCONF_ADC_MULTI_ESC				false
@@ -137,12 +136,6 @@
 #endif
 #ifndef APPCONF_CHUK_HYST
 #define APPCONF_CHUK_HYST					0.15
-#endif
-#ifndef APPCONF_CHUK_RPM_LIM_START
-#define APPCONF_CHUK_RPM_LIM_START			150000.0
-#endif
-#ifndef APPCONF_CHUK_RPM_LIM_END
-#define APPCONF_CHUK_RPM_LIM_END			200000.0
 #endif
 #ifndef APPCONF_CHUK_RAMP_TIME_POS
 #define APPCONF_CHUK_RAMP_TIME_POS			0.9

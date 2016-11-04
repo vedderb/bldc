@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * nrf_driver.c
- *
- *  Created on: 29 mar 2015
- *      Author: benjamin
- */
 
 #include <string.h>
 #include "nrf_driver.h"
@@ -49,20 +44,83 @@ static int nosend_cnt;
 static int nrf_restart_rx_time;
 static int nrf_restart_tx_time;
 
+static systime_t pairing_time_end = 0;
+static bool pairing_active = false;
+
+static volatile bool tx_running = false;
+static volatile bool tx_stop = true;
+static volatile bool rx_running = false;
+static volatile bool rx_stop = true;
+
+// This is a hack to prevent race conditions when updating the appconf
+// from the nrf thread
+static volatile bool from_nrf = false;
+
 // Functions
 static THD_FUNCTION(rx_thread, arg);
 static THD_FUNCTION(tx_thread, arg);
 static int rf_tx_wrapper(char *data, int len);
 
 void nrf_driver_init(void) {
+	if (from_nrf) {
+		return;
+	}
+
 	rfhelp_init();
 
 	nosend_cnt = 0;
 	nrf_restart_rx_time = 0;
 	nrf_restart_tx_time = 0;
 
+	pairing_time_end = 0;
+	pairing_active = false;
+
+	rx_stop = false;
+	tx_stop = false;
 	chThdCreateStatic(rx_thread_wa, sizeof(rx_thread_wa), NORMALPRIO - 1, rx_thread, NULL);
 	chThdCreateStatic(tx_thread_wa, sizeof(tx_thread_wa), NORMALPRIO - 1, tx_thread, NULL);
+}
+
+void nrf_driver_stop(void) {
+	if (from_nrf) {
+		return;
+	}
+
+	tx_stop = true;
+	rx_stop = true;
+
+	if (rx_running || tx_running) {
+		rfhelp_stop();
+	}
+
+	while (rx_running || tx_running) {
+		chThdSleepMilliseconds(1);
+	}
+}
+
+void nrf_driver_start_pairing(int ms) {
+	if (!rx_running) {
+		return;
+	}
+
+	pairing_time_end = chVTGetSystemTimeX() + MS2ST(ms);
+
+	if (!pairing_active) {
+		pairing_active = true;
+
+		nrf_config conf = app_get_configuration()->app_nrf_conf;
+		conf.address[0] = 0xC6;
+		conf.address[1] = 0xC5;
+		conf.address[2] = 0x0;
+		conf.channel = 124;
+		conf.crc_type = NRF_CRC_1B;
+		conf.retries = 3;
+		conf.retry_delay = NRF_RETR_DELAY_1000US;
+		conf.send_crc_ack = true;
+		conf.speed = NRF_SPEED_250K;
+
+		rfhelp_update_conf(&conf);
+	}
 }
 
 static int rf_tx_wrapper(char *data, int len) {
@@ -79,11 +137,17 @@ static THD_FUNCTION(tx_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Nrf TX");
+	tx_running = true;
 
 	for(;;) {
+		if (tx_stop) {
+			tx_running = false;
+			return;
+		}
+
 		nosend_cnt++;
 
-		if (nosend_cnt >= ALIVE_INTERVAL) {
+		if (nosend_cnt >= ALIVE_INTERVAL && !pairing_active) {
 			uint8_t pl[2];
 			int32_t index = 0;
 			pl[index++] = MOTE_PACKET_ALIVE;
@@ -100,8 +164,14 @@ static THD_FUNCTION(rx_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Nrf RX");
+	rx_running = true;
 
 	for(;;) {
+		if (rx_stop) {
+			rx_running = false;
+			return;
+		}
+
 		uint8_t buf[32];
 		int len;
 		int pipe;
@@ -177,7 +247,9 @@ static THD_FUNCTION(rx_thread, arg) {
 						chThdSleepMilliseconds(2);
 
 						commands_set_send_func(nrf_driver_send_buffer);
+						from_nrf = true;
 						commands_process_packet(rx_buffer, rxbuf_len);
+						from_nrf = false;
 					}
 				}
 				break;
@@ -187,8 +259,39 @@ static THD_FUNCTION(rx_thread, arg) {
 					chThdSleepMilliseconds(2);
 
 					commands_set_send_func(nrf_driver_send_buffer);
+					from_nrf = true;
 					commands_process_packet(buf + 1, len - 1);
+					from_nrf = false;
 					break;
+
+				case MOTE_PACKET_PAIRING_INFO: {
+					ind = 1;
+
+					app_configuration appconf = *app_get_configuration();
+					appconf.app_nrf_conf.address[0] = buf[ind++];
+					appconf.app_nrf_conf.address[1] = buf[ind++];
+					appconf.app_nrf_conf.address[2] = buf[ind++];
+					appconf.app_nrf_conf.channel = buf[ind++];
+					appconf.app_nrf_conf.crc_type = NRF_CRC_1B;
+					appconf.app_nrf_conf.retries = 3;
+					appconf.app_nrf_conf.retry_delay = NRF_RETR_DELAY_1000US;
+					appconf.app_nrf_conf.send_crc_ack = true;
+					appconf.app_nrf_conf.speed = NRF_SPEED_250K;
+
+					pairing_active = false;
+
+					from_nrf = true;
+					conf_general_store_app_configuration(&appconf);
+					app_set_configuration(&appconf);
+					commands_send_appconf(COMM_GET_APPCONF, &appconf);
+
+					unsigned char data[2];
+					data[0] = COMM_NRF_START_PAIRING;
+					data[1] = NRF_PAIR_OK;
+					commands_send_packet(data, 2);
+
+					from_nrf = false;
+				} break;
 
 				default:
 					break;
@@ -202,6 +305,17 @@ static THD_FUNCTION(rx_thread, arg) {
 				// Sleep a bit to prevent locking the other threads.
 				chThdSleepMilliseconds(1);
 			}
+		}
+
+		if (chVTGetSystemTimeX() > pairing_time_end && pairing_active) {
+			pairing_active = false;
+			nrf_config conf = app_get_configuration()->app_nrf_conf;
+			rfhelp_update_conf(&conf);
+
+			unsigned char data[2];
+			data[0] = COMM_NRF_START_PAIRING;
+			data[1] = NRF_PAIR_FAIL;
+			commands_send_packet(data, 2);
 		}
 
 		chThdSleepMilliseconds(5);

@@ -1,25 +1,21 @@
 /*
-	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-/*
- * app.c
- *
- *  Created on: 18 apr 2014
- *      Author: benjamin
- */
+    */
 
 #include "app.h"
 #include "ch.h"
@@ -31,12 +27,28 @@
 // Private variables
 static app_configuration appconf;
 
-void app_init(app_configuration *conf) {
-	app_set_configuration(conf);
+const app_configuration* app_get_configuration(void) {
+	return &appconf;
+}
 
-#ifdef HW_HAS_PERMANENT_NRF
-	nrf_driver_init();
-	rfhelp_restart();
+/**
+ * Reconfigure and restart all apps. Some apps don't have any configuration options.
+ *
+ * @param conf
+ * The new configuration to use.
+ */
+void app_set_configuration(app_configuration *conf) {
+	appconf = *conf;
+
+	app_ppm_stop();
+	app_adc_stop();
+	app_uartcomm_stop();
+	app_nunchuk_stop();
+#ifndef HW_HAS_PERMANENT_NRF
+	nrf_driver_stop();
+#endif
+#ifdef USE_APP_STEN
+	app_sten_stop();
 #endif
 
 	switch (appconf.app_to_use) {
@@ -79,28 +91,14 @@ void app_init(app_configuration *conf) {
 	case APP_CUSTOM:
 #ifdef USE_APP_STEN
 		hw_stop_i2c();
-		app_sten_init();
+		app_sten_start();
 #endif
 		break;
 
 	default:
 		break;
 	}
-}
 
-const app_configuration* app_get_configuration(void) {
-	return &appconf;
-}
-
-/**
- * Reconfigure all apps. Note that this will not start apps that are not already running, that
- * should be done at boot. Some apps don't have any configuration options.
- *
- * @param conf
- * The new configuration to use.
- */
-void app_set_configuration(app_configuration *conf) {
-	appconf = *conf;
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate);

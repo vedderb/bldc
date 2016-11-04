@@ -1,10 +1,3 @@
-/*
- * comm_usb_serial.h
- *
- *  Created on: 8 okt 2015
- *      Author: benjamin
- */
-
 #ifndef COMM_USB_SERIAL_H_
 #define COMM_USB_SERIAL_H_
 

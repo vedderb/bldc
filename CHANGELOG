@@ -1,0 +1,50 @@
+=== FW 3.7 ===
+* Delay after app and motor conf write.
+ - Fixes NRF bug.
+ - Fixes glitches if throttle is given while updating the configurations.
+* Lock mc_interface while storing configuration.
+* Nunchuk app local timeout.
+ - Prevents the output thread from blocking other outputs after being used before.
+* Lock MC interface while storing configurations to flash.
+
+=== FW 3.6 ===
+* spi_sw for NRF stop bug fix.
+
+=== FW 3.5 ===
+* App NRF pairing.
+* App nunchuk chuk error restore bug fix.
+
+=== FW 3.4 ===
+* HW version built into firmware.
+ - Allows VESC Tool to only list firmwares compatible with the hardware.
+
+=== FW 3.2 ===
+* hw_60 support.
+* hw_das support.
+* DRV8301 support.
+ - SPI implementation.
+ - Some terminal commands.
+* DRV8313 support.
+* 3 shunt support.
+* Phase shunt support.
+* Global RPM limit for both BLDC and FOC.
+* Hall sensor software filtering.
+* SPI software filtering.
+* The software filters remove the need for hardware filtering on the sensor port, making it work for all different sensors without modification.
+* Handbrake function for FOC (open loop braking).
+* FOC updates and fixes.
+ - Current control signs.
+ - Control loop integrator fixes.
+ - Phase delay compensation and minimization.
+ - More consistent flux linkage detection.
+ - Resistance and inductance measurement bug fix that could cause a reboot.
+ - Timer sampling improvement and cleanup.
+ - Support for sampling in V0 and V7 when using phase shunts.
+* Fix reboot on over temperature fault code.
+* Motor temperature measurement and soft backoff.
+* Terminal command for rotating magnet field generation (ACIM experimentation).
+* Prevent motor start command during initialization.
+* Hardware specific default configuration support.
+* Stop functionality for apps so that reboots are not required anymore when changing app.
+* EEPROM emulation bug fix: https://github.com/vedderb/bldc/issues/27
+

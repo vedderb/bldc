@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * servo_dec.c
- *
- *  Created on: 20 jan 2013
- *      Author: benjamin
- */
 
 #include "servo_dec.h"
 #include "stm32f4xx_conf.h"
@@ -42,6 +37,7 @@ static volatile float pulse_start = 1.0;
 static volatile float pulse_end = 2.0;
 static volatile float last_len_received[SERVO_NUM];
 static volatile bool use_median_filter = false;
+static volatile bool is_running = false;
 
 // Function pointers
 static void(*done_func)(void) = 0;
@@ -124,6 +120,24 @@ void servodec_init(void (*d_func)(void)) {
 
 	// Set our function pointer
 	done_func = d_func;
+
+	is_running = true;
+}
+
+/**
+ * Stop the servo decoding driver
+ */
+void servodec_stop(void) {
+	if (is_running) {
+		icuStop(&HW_ICU_DEV);
+		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
+		pulse_start = 1.0;
+		pulse_end = 2.0;
+		use_median_filter = false;
+		done_func = 0;
+	}
+
+	is_running = false;
 }
 
 /**

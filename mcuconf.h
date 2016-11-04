@@ -177,7 +177,7 @@
  */
 #define STM32_ICU_USE_TIM1                  FALSE
 #define STM32_ICU_USE_TIM2                  FALSE
-#if defined(HW_VERSION_60)
+#if defined(HW_VERSION_60) || defined(HW_VERSION_DAS_RS)
 #define STM32_ICU_USE_TIM3                  FALSE
 #define STM32_ICU_USE_TIM4                  TRUE
 #else

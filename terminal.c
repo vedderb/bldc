@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * terminal.c
- *
- *  Created on: 26 dec 2013
- *      Author: benjamin
- */
 
 #include "ch.h"
 #include "hal.h"
@@ -34,6 +29,7 @@
 #include "utils.h"
 #include "timeout.h"
 #include "encoder.h"
+#include "drv8301.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -270,12 +266,14 @@ void terminal_process_string(char *str) {
 			float duty = -1.0;
 			sscanf(argv[1], "%f", &duty);
 
-			if (duty > 0.0) {
+			if (duty > 0.0 && duty < 0.9) {
 				mcconf.motor_type = MOTOR_TYPE_FOC;
 				mcconf.foc_f_sw = 3000.0;
 				mc_interface_set_configuration(&mcconf);
 
-				commands_printf("Inductance: %.2f microhenry\n", (double)(mcpwm_foc_measure_inductance(duty, 200, 0)));
+				float curr;
+				float ind = mcpwm_foc_measure_inductance(duty, 200, &curr);
+				commands_printf("Inductance: %.2f microhenry (%.2f A)\n", (double)ind, (double)curr);
 
 				mc_interface_set_configuration(&mcconf_old);
 			} else {
@@ -329,6 +327,7 @@ void terminal_process_string(char *str) {
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
 				float tout_c = timeout_get_brake_current();
+				timeout_reset();
 				timeout_configure(60000, 0.0);
 
 				for (int i = 0;i < 100;i++) {
@@ -370,6 +369,97 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "foc_state") == 0) {
 		mcpwm_foc_print_state();
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "drv8301_read_reg") == 0) {
+#ifdef HW_HAS_DRV8301
+		if (argc == 2) {
+			int reg = -1;
+			sscanf(argv[1], "%d", &reg);
+
+			if (reg >= 0) {
+				unsigned int res = drv8301_read_reg(reg);
+				char bl[9];
+				char bh[9];
+
+				utils_byte_to_binary((res >> 8) & 0xFF, bh);
+				utils_byte_to_binary(res & 0xFF, bl);
+
+				commands_printf("Reg 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+#else
+		commands_printf("This hardware does not have a DRV8301.\n");
+#endif
+	} else if (strcmp(argv[0], "drv8301_write_reg") == 0) {
+#ifdef HW_HAS_DRV8301
+		if (argc == 3) {
+			int reg = -1;
+			int val = -1;
+			sscanf(argv[1], "%d", &reg);
+			sscanf(argv[2], "%x", &val);
+
+			if (reg >= 0 && val >= 0) {
+				drv8301_write_reg(reg, val);
+				unsigned int res = drv8301_read_reg(reg);
+				char bl[9];
+				char bh[9];
+
+				utils_byte_to_binary((res >> 8) & 0xFF, bh);
+				utils_byte_to_binary(res & 0xFF, bl);
+
+				commands_printf("New reg value 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires two arguments.\n");
+		}
+#else
+		commands_printf("This hardware does not have a DRV8301.\n");
+#endif
+	} else if (strcmp(argv[0], "drv8301_set_oc_adj") == 0) {
+#ifdef HW_HAS_DRV8301
+		if (argc == 2) {
+			int val = -1;
+			sscanf(argv[1], "%d", &val);
+
+			if (val >= 0 && val < 32) {
+				drv8301_set_oc_adj(val);
+				unsigned int res = drv8301_read_reg(2);
+				char bl[9];
+				char bh[9];
+
+				utils_byte_to_binary((res >> 8) & 0xFF, bh);
+				utils_byte_to_binary(res & 0xFF, bl);
+
+				commands_printf("New reg value 0x%02x: %s %s (0x%04x)\n", 2, bh, bl, res);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+#else
+		commands_printf("This hardware does not have a DRV8301.\n");
+#endif
+	} else if (strcmp(argv[0], "foc_openloop") == 0) {
+		if (argc == 3) {
+			float current = -1.0;
+			float erpm = -1.0;
+			sscanf(argv[1], "%f", &current);
+			sscanf(argv[2], "%f", &erpm);
+
+			if (current >= 0.0 && erpm >= 0.0) {
+				mcpwm_foc_set_openloop(current, erpm);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires two arguments.\n");
+		}
 	}
 
 	// The help command
@@ -446,7 +536,23 @@ void terminal_process_string(char *str) {
 		commands_printf("  Run the motor with FOC and measure the flux linkage.");
 
 		commands_printf("foc_state");
-		commands_printf("  Print some FOC state variables.\n");
+		commands_printf("  Print some FOC state variables.");
+
+#ifdef HW_HAS_DRV8301
+		commands_printf("drv8301_read_reg [reg]");
+		commands_printf("  Read a register from the DRV8301 and print it.");
+
+		commands_printf("drv8301_write_reg [reg] [hexvalue]");
+		commands_printf("  Write to a DRV8301 register.");
+
+		commands_printf("drv8301_set_oc_adj [value]");
+		commands_printf("  Set the DRV8301 OC ADJ register.");
+#endif
+
+		commands_printf("foc_openloop [current] [erpm]");
+		commands_printf("  Create an open loop rotating current vector.");
+
+		commands_printf(" "); // Print new line at end
 	} else {
 		commands_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);

@@ -1,9 +1,31 @@
 /*
- * conf_general.c
- *
- *  Created on: 14 sep 2014
- *      Author: benjamin
- */
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The VESC firmware is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    */
+
+// User defined default motor configuration file
+#ifdef MCCONF_DEFAULT_USER
+#include MCCONF_DEFAULT_USER
+#endif
+
+// User defined default app configuration file
+#ifdef APPCONF_DEFAULT_USER
+#include APPCONF_DEFAULT_USER
+#endif
 
 #include "conf_general.h"
 #include "ch.h"
@@ -17,16 +39,6 @@
 
 #include <string.h>
 #include <math.h>
-
-// User defined default motor configuration file
-#ifdef MCCONF_DEFAULT_USER
-#include MCCONF_DEFAULT_USER
-#endif
-
-// User defined default app configuration file
-#ifdef APPCONF_DEFAULT_USER
-#include APPCONF_DEFAULT_USER
-#endif
 
 // Default configuration parameters that can be overridden
 #include "mcconf_default.h"
@@ -47,7 +59,7 @@ void conf_general_init(void) {
 	memset(VirtAddVarTab, 0, sizeof(VirtAddVarTab));
 
 	int ind = 0;
-	for (unsigned int i = 0;i < (sizeof(app_configuration) / 2);i++) {
+	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_MCCONF + i;
 	}
 
@@ -84,8 +96,6 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_ppm_conf.pulse_end = APPCONF_PPM_PULSE_END;
 	conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
 	conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
-	conf->app_ppm_conf.rpm_lim_start = APPCONF_PPM_RPM_LIM_START;
-	conf->app_ppm_conf.rpm_lim_end = APPCONF_PPM_RPM_LIM_END;
 	conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
 	conf->app_ppm_conf.tc = APPCONF_PPM_TC;
 	conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
@@ -94,13 +104,14 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
 	conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;
 	conf->app_adc_conf.voltage_end = APPCONF_ADC_VOLTAGE_END;
+	conf->app_adc_conf.voltage2_start = APPCONF_ADC_VOLTAGE2_START;
+	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
 	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
 	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
-	conf->app_adc_conf.rpm_lim_start = APPCONF_ADC_RPM_LIM_START;
-	conf->app_adc_conf.rpm_lim_end = APPCONF_ADC_RPM_LIM_END;
+	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
 	conf->app_adc_conf.multi_esc = APPCONF_ADC_MULTI_ESC;
 	conf->app_adc_conf.tc = APPCONF_ADC_TC;
 	conf->app_adc_conf.tc_max_diff = APPCONF_ADC_TC_MAX_DIFF;
@@ -110,8 +121,6 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 
 	conf->app_chuk_conf.ctrl_type = APPCONF_CHUK_CTRL_TYPE;
 	conf->app_chuk_conf.hyst = APPCONF_CHUK_HYST;
-	conf->app_chuk_conf.rpm_lim_start = APPCONF_CHUK_RPM_LIM_START;
-	conf->app_chuk_conf.rpm_lim_end = APPCONF_CHUK_RPM_LIM_END;
 	conf->app_chuk_conf.ramp_time_pos = APPCONF_CHUK_RAMP_TIME_POS;
 	conf->app_chuk_conf.ramp_time_neg = APPCONF_CHUK_RAMP_TIME_NEG;
 	conf->app_chuk_conf.stick_erpm_per_s_in_cc = APPCONF_STICK_ERPM_PER_S_IN_CC;
@@ -151,6 +160,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
 	conf->l_min_erpm = MCCONF_L_RPM_MIN;
 	conf->l_max_erpm = MCCONF_L_RPM_MAX;
+	conf->l_erpm_start = MCCONF_L_RPM_START;
 	conf->l_max_erpm_fbrake = MCCONF_L_CURR_MAX_RPM_FBRAKE;
 	conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
 	conf->l_min_vin = MCCONF_L_MIN_VOLTAGE;
@@ -158,7 +168,6 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->l_battery_cut_start = MCCONF_L_BATTERY_CUT_START;
 	conf->l_battery_cut_end = MCCONF_L_BATTERY_CUT_END;
 	conf->l_slow_abs_current = MCCONF_L_SLOW_ABS_OVERCURRENT;
-	conf->l_rpm_lim_neg_torque = MCCONF_L_RPM_LIMIT_NEG_TORQUE;
 	conf->l_temp_fet_start = MCCONF_L_LIM_TEMP_FET_START;
 	conf->l_temp_fet_end = MCCONF_L_LIM_TEMP_FET_END;
 	conf->l_temp_motor_start = MCCONF_L_LIM_TEMP_MOTOR_START;
@@ -237,7 +246,6 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 
 	conf->m_fault_stop_time_ms = MCCONF_M_FAULT_STOP_TIME;
 	conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
-	conf->m_duty_ramp_step_rpm_lim = MCCONF_M_RAMP_STEP_RPM_LIM;
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
@@ -281,6 +289,8 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_release_motor();
 
 	utils_sys_lock_cnt();
+	mc_interface_lock();
+
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
 	bool is_ok = true;
@@ -301,6 +311,9 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+
+	chThdSleepMilliseconds(100);
+	mc_interface_unlock();
 	utils_sys_unlock_cnt();
 
 	return is_ok;
@@ -343,6 +356,8 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	mc_interface_release_motor();
 
 	utils_sys_lock_cnt();
+	mc_interface_lock();
+
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 
 	bool is_ok = true;
@@ -363,6 +378,9 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+
+	chThdSleepMilliseconds(100);
+	mc_interface_unlock();
 	utils_sys_unlock_cnt();
 
 	return is_ok;
@@ -383,6 +401,24 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mcconf.sl_phase_advance_at_br = 1.0;
 	mcconf.sl_min_erpm = min_rpm;
 	mc_interface_set_configuration(&mcconf);
+
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	// Wait one second for things to get ready after
+	// the fault disapears. (will fry things otherwise...)
+	chThdSleepMilliseconds(1000);
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -480,6 +516,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Restore settings
 	mc_interface_set_configuration(&mcconf_old);
+	timeout_configure(tout, tout_c);
 
 	mc_interface_unlock();
 
@@ -527,9 +564,15 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(10);
 	}
 
+	// Wait one second for things to get ready after
+	// the fault disapears. (will fry things otherwise...)
+	// TODO: Add FAULT_INIT_NOT_DONE
+	chThdSleepMilliseconds(1000);
+
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	timeout_reset();
 	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();

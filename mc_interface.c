@@ -1,26 +1,21 @@
 /*
-	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * mc_interface.c
- *
- *  Created on: 10 okt 2015
- *      Author: benjamin
- */
+    */
 
 #include "mc_interface.h"
 #include "mcpwm.h"
@@ -51,6 +46,10 @@ static volatile float m_motor_current_sum;
 static volatile float m_input_current_sum;
 static volatile float m_motor_current_iterations;
 static volatile float m_input_current_iterations;
+static volatile float m_motor_id_sum;
+static volatile float m_motor_iq_sum;
+static volatile float m_motor_id_iterations;
+static volatile float m_motor_iq_iterations;
 static volatile float m_amp_seconds;
 static volatile float m_amp_seconds_charged;
 static volatile float m_watt_seconds;
@@ -100,6 +99,10 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_input_current_sum = 0.0;
 	m_motor_current_iterations = 0.0;
 	m_input_current_iterations = 0.0;
+	m_motor_id_sum = 0.0;
+	m_motor_iq_sum = 0.0;
+	m_motor_id_iterations = 0.0;
+	m_motor_iq_iterations = 0.0;
 	m_amp_seconds = 0.0;
 	m_amp_seconds_charged = 0.0;
 	m_watt_seconds = 0.0;
@@ -416,6 +419,27 @@ void mc_interface_set_brake_current(float current) {
 	}
 }
 
+void mc_interface_set_handbrake(float current) {
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		// TODO: Not implemented yet, use brake mode for now.
+		mcpwm_set_brake_current(current);
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_handbrake(current);
+		break;
+
+	default:
+		break;
+	}
+}
+
 void mc_interface_brake_now(void) {
 	mc_interface_set_duty(0.0);
 }
@@ -480,7 +504,7 @@ float mc_interface_get_sampling_frequency_now(void) {
 		break;
 
 	case MOTOR_TYPE_FOC:
-		ret = mcpwm_foc_get_switching_frequency_now() / 2.0;
+		ret = mcpwm_foc_get_sampling_frequency_now();
 		break;
 
 	default:
@@ -768,15 +792,41 @@ float mc_interface_get_last_inj_adc_isr_duration(void) {
 
 float mc_interface_read_reset_avg_motor_current(void) {
 	float res = m_motor_current_sum / m_motor_current_iterations;
-	m_motor_current_sum = 0;
-	m_motor_current_iterations = 0;
+	m_motor_current_sum = 0.0;
+	m_motor_current_iterations = 0.0;
 	return res;
 }
 
 float mc_interface_read_reset_avg_input_current(void) {
 	float res = m_input_current_sum / m_input_current_iterations;
-	m_input_current_sum = 0;
-	m_input_current_iterations = 0;
+	m_input_current_sum = 0.0;
+	m_input_current_iterations = 0.0;
+	return res;
+}
+
+/**
+ * Read and reset the average direct axis motor current. (FOC only)
+ *
+ * @return
+ * The average D axis current.
+ */
+float mc_interface_read_reset_avg_id(void) {
+	float res = m_motor_id_sum / m_motor_id_iterations;
+	m_motor_id_sum = 0.0;
+	m_motor_id_iterations = 0.0;
+	return res;
+}
+
+/**
+ * Read and reset the average quadrature axis motor current. (FOC only)
+ *
+ * @return
+ * The average Q axis current.
+ */
+float mc_interface_read_reset_avg_iq(void) {
+	float res = m_motor_iq_sum / m_motor_iq_iterations;
+	m_motor_iq_sum = 0.0;
+	m_motor_iq_iterations = 0.0;
 	return res;
 }
 
@@ -826,6 +876,7 @@ void mc_interface_sample_print_data(bool at_start, uint16_t len, uint8_t decimat
 }
 
 // MC implementation functions
+
 /**
  * A helper function that should be called before sending commands to control
  * the motor. If the state is detecting, the detection will be stopped.
@@ -851,18 +902,41 @@ int mc_interface_try_input(void) {
 		}
 	}
 
+	switch (m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		if (!mcpwm_init_done()) {
+			retval = 1;
+		}
+		break;
+
+	case MOTOR_TYPE_FOC:
+		if (!mcpwm_foc_init_done()) {
+			retval = 1;
+		}
+		break;
+
+	default:
+		break;
+	}
+
 	return retval;
 }
 
 void mc_interface_fault_stop(mc_fault_code fault) {
+	if (m_fault_now == fault) {
+		m_ignore_iterations = m_conf.m_fault_stop_time_ms;
+		return;
+	}
+
 	if (mc_interface_dccal_done() && m_fault_now == FAULT_CODE_NONE) {
 		// Sent to terminal fault logger so that all faults and their conditions
 		// can be printed for debugging.
-		chSysLock();
+		utils_sys_lock_cnt();
 		volatile int val_samp = TIM8->CCR1;
 		volatile int current_samp = TIM1->CCR4;
 		volatile int tim_top = TIM1->ARR;
-		chSysUnlock();
+		utils_sys_unlock_cnt();
 
 		fault_data fdata;
 		fdata.fault = fault;
@@ -877,7 +951,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 		fdata.tim_current_samp = current_samp;
 		fdata.tim_top = tim_top;
 		fdata.comm_step = mcpwm_get_comm_step();
-		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS1);
+		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
 		terminal_add_fault_data(&fdata);
 	}
 
@@ -935,6 +1009,11 @@ void mc_interface_mc_timer_isr(void) {
 	m_input_current_sum += current_in;
 	m_motor_current_iterations++;
 	m_input_current_iterations++;
+
+	m_motor_id_sum += mcpwm_foc_get_id();
+	m_motor_iq_sum += mcpwm_foc_get_iq();
+	m_motor_id_iterations++;
+	m_motor_iq_iterations++;
 
 	float abs_current = mc_interface_get_tot_current();
 	float abs_current_filtered = current;
@@ -1039,7 +1118,6 @@ void mc_interface_adc_inj_int_handler(void) {
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_adc_inj_int_handler();
 		break;
 
 	default:
@@ -1054,16 +1132,20 @@ void mc_interface_adc_inj_int_handler(void) {
  * The configaration to update.
  */
 static void update_override_limits(volatile mc_configuration *conf) {
-	const float temp = NTC_TEMP(ADC_IND_TEMP_MOS2);
+	const float temp_fet = NTC_TEMP(ADC_IND_TEMP_MOS);
+	const float temp_motor = NTC_TEMP_MOTOR();
 	const float v_in = GET_INPUT_VOLTAGE();
+	const float rpm_now = mc_interface_get_rpm();
 
-	// Temperature
-	if (temp < conf->l_temp_fet_start) {
-		conf->lo_current_min = conf->l_current_min;
-		conf->lo_current_max = conf->l_current_max;
-	} else if (temp > conf->l_temp_fet_end) {
-		conf->lo_current_min = 0.0;
-		conf->lo_current_max = 0.0;
+	// Temperature MOSFET
+	float lo_max_mos = 0.0;
+	float lo_min_mos = 0.0;
+	if (temp_fet < conf->l_temp_fet_start) {
+		lo_min_mos = conf->l_current_min;
+		lo_max_mos = conf->l_current_max;
+	} else if (temp_fet > conf->l_temp_fet_end) {
+		lo_min_mos = 0.0;
+		lo_max_mos = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET);
 	} else {
 		float maxc = fabsf(conf->l_current_max);
@@ -1071,16 +1153,84 @@ static void update_override_limits(volatile mc_configuration *conf) {
 			maxc = fabsf(conf->l_current_min);
 		}
 
-		maxc = utils_map(temp, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
+		maxc = utils_map(temp_fet, conf->l_temp_fet_start, conf->l_temp_fet_end, maxc, 0.0);
 
 		if (fabsf(conf->l_current_max) > maxc) {
-			conf->lo_current_max = SIGN(conf->l_current_max) * maxc;
+			lo_max_mos = SIGN(conf->l_current_max) * maxc;
 		}
 
 		if (fabsf(conf->l_current_min) > maxc) {
-			conf->lo_current_min = SIGN(conf->l_current_min) * maxc;
+			lo_min_mos = SIGN(conf->l_current_min) * maxc;
 		}
 	}
+
+	// Temperature MOTOR
+	float lo_max_mot = 0.0;
+	float lo_min_mot = 0.0;
+	if (temp_motor < conf->l_temp_motor_start) {
+		lo_min_mot = conf->l_current_min;
+		lo_max_mot = conf->l_current_max;
+	} else if (temp_motor > conf->l_temp_motor_end) {
+		lo_min_mot = 0.0;
+		lo_max_mot = 0.0;
+		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR);
+	} else {
+		float maxc = fabsf(conf->l_current_max);
+		if (fabsf(conf->l_current_min) > maxc) {
+			maxc = fabsf(conf->l_current_min);
+		}
+
+		maxc = utils_map(temp_motor, conf->l_temp_motor_start, conf->l_temp_motor_end, maxc, 0.0);
+
+		if (fabsf(conf->l_current_max) > maxc) {
+			lo_max_mot = SIGN(conf->l_current_max) * maxc;
+		}
+
+		if (fabsf(conf->l_current_min) > maxc) {
+			lo_min_mot = SIGN(conf->l_current_min) * maxc;
+		}
+	}
+
+	// RPM max
+	float lo_max_rpm = 0.0;
+	const float rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
+	const float rpm_pos_cut_end = conf->l_max_erpm;
+	if (rpm_now < rpm_pos_cut_start) {
+		lo_max_rpm = conf->l_current_max;
+	} else if (rpm_now > rpm_pos_cut_end) {
+		lo_max_rpm = 0.0;
+	} else {
+		lo_max_rpm = utils_map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, conf->l_current_max, 0.0);
+	}
+
+	// RPM min
+	float lo_min_rpm = 0.0;
+	const float rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
+	const float rpm_neg_cut_end = conf->l_min_erpm;
+	if (rpm_now > rpm_neg_cut_start) {
+		lo_min_rpm = conf->l_current_max;
+	} else if (rpm_now < rpm_neg_cut_end) {
+		lo_min_rpm = 0.0;
+	} else {
+		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, conf->l_current_max, 0.0);
+	}
+
+	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
+	float lo_min = utils_min_abs(lo_min_mos, lo_min_mot);
+
+	lo_max = utils_min_abs(lo_max, lo_max_rpm);
+	lo_max = utils_min_abs(lo_max, lo_min_rpm);
+
+	if (lo_max < conf->cc_min_current) {
+		lo_max = conf->cc_min_current;
+	}
+
+	if (lo_min > -conf->cc_min_current) {
+		lo_min = -conf->cc_min_current;
+	}
+
+	conf->lo_current_max = lo_max;
+	conf->lo_current_min = lo_min;
 
 	// Battery cutoff
 	if (v_in > conf->l_battery_cut_start) {

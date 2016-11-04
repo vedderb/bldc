@@ -1,12 +1,14 @@
 /*
-	Copyright 2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -66,6 +68,9 @@
 #ifndef MCCONF_L_RPM_MIN
 #define MCCONF_L_RPM_MIN				-100000.0	// The motor speed limit (Lower)
 #endif
+#ifndef MCCONF_L_RPM_START
+#define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
+#endif
 #ifndef MCCONF_L_SLOW_ABS_OVERCURRENT
 #define MCCONF_L_SLOW_ABS_OVERCURRENT	true	// Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
@@ -74,9 +79,6 @@
 #endif
 #ifndef MCCONF_L_MAX_DUTY
 #define MCCONF_L_MAX_DUTY				0.95	// Maximum duty cycle
-#endif
-#ifndef MCCONF_L_RPM_LIMIT_NEG_TORQUE
-#define MCCONF_L_RPM_LIMIT_NEG_TORQUE	true	// Use negative torque to limit the RPM
 #endif
 #ifndef MCCONF_L_CURR_MAX_RPM_FBRAKE
 #define MCCONF_L_CURR_MAX_RPM_FBRAKE	300		// Maximum electrical RPM to use full brake at
@@ -220,7 +222,7 @@
 #define MCCONF_FOC_PLL_KP				2000.0
 #endif
 #ifndef MCCONF_FOC_PLL_KI
-#define MCCONF_FOC_PLL_KI				20000.0
+#define MCCONF_FOC_PLL_KI				40000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007
@@ -289,9 +291,6 @@
 #endif
 #ifndef MCCONF_M_RAMP_STEP
 #define MCCONF_M_RAMP_STEP				0.02	// Duty cycle ramping step (1000 times/sec) at maximum duty cycle
-#endif
-#ifndef MCCONF_M_RAMP_STEP_RPM_LIM
-#define MCCONF_M_RAMP_STEP_RPM_LIM		0.0005	// Ramping step when limiting the RPM
 #endif
 #ifndef MCCONF_M_CURRENT_BACKOFF_GAIN
 #define MCCONF_M_CURRENT_BACKOFF_GAIN	0.5		// The error gain of the current limiting algorithm

@@ -1,26 +1,21 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * app_ppm.c
- *
- *  Created on: 18 apr 2014
- *      Author: benjamin
- */
+    */
 
 #include "app.h"
 
@@ -52,6 +47,7 @@ static void servodec_func(void);
 
 // Private variables
 static volatile bool is_running = false;
+static volatile bool stop_now = true;
 static volatile ppm_config config;
 static volatile int pulses_without_power = 0;
 
@@ -74,11 +70,27 @@ void app_ppm_configure(ppm_config *conf) {
 
 void app_ppm_start(void) {
 #if !SERVO_OUT_ENABLE
+	stop_now = false;
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
 
 	chSysLock();
 	chVTSetI(&vt, MS2ST(1), update, NULL);
 	chSysUnlock();
+#endif
+}
+
+void app_ppm_stop(void) {
+#if !SERVO_OUT_ENABLE
+	stop_now = true;
+
+	if (is_running) {
+		chEvtSignalI(ppm_tp, (eventmask_t) 1);
+		servodec_stop();
+	}
+
+	while(is_running) {
+		chThdSleepMilliseconds(1);
+	}
 #endif
 }
 
@@ -91,6 +103,10 @@ static void servodec_func(void) {
 }
 
 static void update(void *p) {
+	if (!is_running) {
+		return;
+	}
+
 	chSysLockFromISR();
 	chVTSetI(&vt, MS2ST(2), update, p);
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
@@ -109,6 +125,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
+
+		if (stop_now) {
+			is_running = false;
+			return;
+		}
 
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
 				mc_interface_get_fault() != FAULT_CODE_NONE) {
@@ -247,21 +268,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 					}
 				}
 			} else {
-				// Apply soft RPM limit
-				if (rpm_lowest > config.rpm_lim_end && current > 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm_lowest > config.rpm_lim_start && current > 0.0) {
-					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
-				} else if (rpm_lowest < -config.rpm_lim_end && current < 0.0) {
-					current = mcconf->cc_min_current;
-				} else if (rpm_lowest < -config.rpm_lim_start && current < 0.0) {
-					rpm_lowest = -rpm_lowest;
-					current = -current;
-					current = utils_map(rpm_lowest, config.rpm_lim_start, config.rpm_lim_end, current, mcconf->cc_min_current);
-					current = -current;
-					rpm_lowest = -rpm_lowest;
-				}
-
 				float current_out = current;
 				bool is_reverse = false;
 				if (current_out < 0.0) {

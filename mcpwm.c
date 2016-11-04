@@ -1,26 +1,21 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-/*
- * mcpwm.c
- *
- *  Created on: 13 okt 2012
- *      Author: benjamin
- */
+    */
 
 #include "ch.h"
 #include "hal.h"
@@ -94,6 +89,7 @@ static volatile float last_pwm_cycles_sums[6];
 static volatile bool dccal_done;
 static volatile bool sensorless_now;
 static volatile int hall_detect_table[8][7];
+static volatile bool init_done;
 
 #ifdef HW_HAS_3_SHUNTS
 static volatile int curr2_sum;
@@ -167,6 +163,8 @@ static volatile bool rpm_thd_stop;
 
 void mcpwm_init(volatile mc_configuration *configuration) {
 	utils_sys_lock_cnt();
+
+	init_done= false;
 
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
@@ -350,10 +348,10 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 #ifdef HW_HAS_3_SHUNTS
 	ADC_ExternalTrigInjectedConvEdgeConfig(ADC3, ADC_ExternalTrigInjecConvEdge_Falling);
 #endif
-	ADC_InjectedSequencerLengthConfig(ADC1, 2);
-	ADC_InjectedSequencerLengthConfig(ADC2, 2);
+	ADC_InjectedSequencerLengthConfig(ADC1, HW_ADC_INJ_CHANNELS);
+	ADC_InjectedSequencerLengthConfig(ADC2, HW_ADC_INJ_CHANNELS);
 #ifdef HW_HAS_3_SHUNTS
-	ADC_InjectedSequencerLengthConfig(ADC3, 2);
+	ADC_InjectedSequencerLengthConfig(ADC3, HW_ADC_INJ_CHANNELS);
 #endif
 
 	hw_setup_adc_channels();
@@ -472,9 +470,13 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Reset tachometers again
 	tachometer = 0;
 	tachometer_abs = 0;
+
+	init_done = true;
 }
 
 void mcpwm_deinit(void) {
+	init_done = false;
+
 	WWDG_DeInit();
 
 	timer_thd_stop = true;
@@ -492,6 +494,10 @@ void mcpwm_deinit(void) {
 	DMA_DeInit(DMA2_Stream4);
 	nvicDisableVector(ADC_IRQn);
 	dmaStreamRelease(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)));
+}
+
+bool mcpwm_init_done(void) {
+	return init_done;
 }
 
 void mcpwm_set_configuration(volatile mc_configuration *configuration) {
@@ -629,7 +635,7 @@ void mcpwm_set_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, conf->lo_current_min, conf->lo_current_max);
+	utils_truncate_number(&current, -conf->l_current_max, conf->l_current_max);
 
 	control_mode = CONTROL_MODE_CURRENT;
 	current_set = current;
@@ -653,7 +659,7 @@ void mcpwm_set_brake_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -fabsf(conf->lo_current_min), fabsf(conf->lo_current_min));
+	utils_truncate_number(&current, -fabsf(conf->l_current_min), fabsf(conf->l_current_min));
 
 	control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	current_set = current;
@@ -872,6 +878,10 @@ static void stop_pwm_ll(void) {
 }
 
 static void stop_pwm_hw(void) {
+#ifdef HW_HAS_DRV8313
+	DISABLE_BR();
+#endif
+
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -896,6 +906,10 @@ static void full_brake_ll(void) {
 }
 
 static void full_brake_hw(void) {
+#ifdef HW_HAS_DRV8313
+	ENABLE_BR();
+#endif
+
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
@@ -1843,7 +1857,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
-	const float current = mcpwm_get_tot_current_filtered();
 	const float current_nofilter = mcpwm_get_tot_current();
 	const float current_in_nofilter = current_nofilter * fabsf(dutycycle_now);
 
@@ -1957,18 +1970,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 			utils_step_towards((float*) &dutycycle_now, direction ? conf->l_max_duty : -conf->l_max_duty,
 					ramp_step_no_lim * fabsf(current_in_nofilter - conf->lo_in_current_min) * conf->m_current_backoff_gain);
 			limit_delay = 1;
-		} else if (rpm > conf->l_max_erpm) {
-			if ((conf->l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now <= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, conf->m_duty_ramp_step_rpm_lim);
-				limit_delay = 1;
-				slow_ramping_cycles = 500;
-			}
-		} else if (rpm < conf->l_min_erpm) {
-			if ((conf->l_rpm_lim_neg_torque || current > -1.0) && dutycycle_now >= dutycycle_now_tmp) {
-				utils_step_towards((float*) &dutycycle_now, 0.0, conf->m_duty_ramp_step_rpm_lim);
-				limit_delay = 1;
-				slow_ramping_cycles = 500;
-			}
 		}
 
 		if (limit_delay > 0) {
@@ -2621,6 +2622,11 @@ static void set_next_comm_step(int next_step) {
 
 	if (next_step == 1) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR1();
+			ENABLE_BR2();
+			ENABLE_BR3();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -2636,6 +2642,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR1();
+			ENABLE_BR3();
+			ENABLE_BR2();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -2653,6 +2664,11 @@ static void set_next_comm_step(int next_step) {
 		}
 	} else if (next_step == 2) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR2();
+			ENABLE_BR1();
+			ENABLE_BR3();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
@@ -2668,6 +2684,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_3, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_3, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR3();
+			ENABLE_BR1();
+			ENABLE_BR2();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
@@ -2685,6 +2706,11 @@ static void set_next_comm_step(int next_step) {
 		}
 	} else if (next_step == 3) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR3();
+			ENABLE_BR1();
+			ENABLE_BR2();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
@@ -2700,6 +2726,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR2();
+			ENABLE_BR1();
+			ENABLE_BR3();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
@@ -2717,6 +2748,11 @@ static void set_next_comm_step(int next_step) {
 		}
 	} else if (next_step == 4) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR1();
+			ENABLE_BR3();
+			ENABLE_BR2();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -2732,6 +2768,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_2, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_2, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR1();
+			ENABLE_BR2();
+			ENABLE_BR3();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -2749,6 +2790,11 @@ static void set_next_comm_step(int next_step) {
 		}
 	} else if (next_step == 5) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR2();
+			ENABLE_BR3();
+			ENABLE_BR1();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
@@ -2764,6 +2810,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR3();
+			ENABLE_BR2();
+			ENABLE_BR1();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
@@ -2781,6 +2832,11 @@ static void set_next_comm_step(int next_step) {
 		}
 	} else if (next_step == 6) {
 		if (direction) {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR3();
+			ENABLE_BR2();
+			ENABLE_BR1();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
@@ -2796,6 +2852,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxCmd(TIM1, TIM_Channel_1, negative_highside);
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		} else {
+#ifdef HW_HAS_DRV8313
+			DISABLE_BR2();
+			ENABLE_BR3();
+			ENABLE_BR1();
+#endif
 			// 0
 			TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
 			TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
@@ -2812,6 +2873,11 @@ static void set_next_comm_step(int next_step) {
 			TIM_CCxNCmd(TIM1, TIM_Channel_1, negative_lowside);
 		}
 	} else {
+#ifdef HW_HAS_DRV8313
+		DISABLE_BR1();
+		DISABLE_BR2();
+		DISABLE_BR3();
+#endif
 		// Invalid phase.. stop PWM!
 		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);

@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2015 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -14,13 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-
-/*
- * utils.h
- *
- *  Created on: 16 maj 2013
- *      Author: benjamin
- */
 
 #ifndef UTILS_H_
 #define UTILS_H_
@@ -32,6 +27,8 @@ float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);
 void utils_norm_angle_rad(float *angle);
 int utils_truncate_number(float *number, float min, float max);
+int utils_truncate_number_int(int *number, int min, int max);
+int utils_truncate_number_abs(float *number, float max);
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
 int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max);
 void utils_deadband(float *value, float tres, float max);
@@ -45,6 +42,8 @@ float utils_fast_atan2(float y, float x);
 bool utils_saturate_vector_2d(float *x, float *y, float max);
 void utils_fast_sincos(float angle, float *sin, float *cos);
 void utils_fast_sincos_better(float angle, float *sin, float *cos);
+float utils_min_abs(float va, float vb);
+void utils_byte_to_binary(int x, char *b);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 
