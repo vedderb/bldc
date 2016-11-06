@@ -104,7 +104,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
-				commands_printf("Duty             : %.2f", (double)fault_vec[i].duty);
+				commands_printf("Duty             : %.3f", (double)fault_vec[i].duty);
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);
 				commands_printf("Cycles running   : %d", fault_vec[i].cycles_running);

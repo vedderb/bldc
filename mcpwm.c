@@ -75,7 +75,6 @@ static volatile int ignore_iterations;
 static volatile mc_timer_struct timer_struct;
 static volatile int curr_samp_volt; // Use the voltage-synchronized samples for this current sample
 static int hall_to_phase_table[16];
-static volatile unsigned int cycles_running;
 static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
 static volatile mc_rpm_dep_struct rpm_dep;
@@ -192,7 +191,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
 	ignore_iterations = 0;
 	curr_samp_volt = 0;
-	cycles_running = 0;
 	slow_ramping_cycles = 0;
 	has_commutated = 0;
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
@@ -1077,13 +1075,6 @@ static void set_duty_cycle_hw(float dutyCycle) {
 
 	utils_truncate_number(&dutyCycle, conf->l_min_duty, conf->l_max_duty);
 
-	if (conf->motor_type == MOTOR_TYPE_BLDC && conf->pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
-		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
-				+ ((float) timer_tmp.top / 2.0));
-	} else {
-		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
-	}
-
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_DC_MOTOR;
 	} else {
@@ -1096,6 +1087,14 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	}
 
 	timer_tmp.top = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
+
+	if (conf->motor_type == MOTOR_TYPE_BLDC && conf->pwm_mode == PWM_MODE_BIPOLAR && !IS_DETECTING()) {
+		timer_tmp.duty = (uint16_t) (((float) timer_tmp.top / 2.0) * dutyCycle
+				+ ((float) timer_tmp.top / 2.0));
+	} else {
+		timer_tmp.duty = (uint16_t)((float)timer_tmp.top * dutyCycle);
+	}
+
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 }
@@ -1657,10 +1656,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	int ph1_raw, ph2_raw, ph3_raw;
 
 	static int direction_before = 1;
-	if (state == MC_STATE_RUNNING && direction == direction_before) {
-		cycles_running++;
-	} else {
-		cycles_running = 0;
+	if (!(state == MC_STATE_RUNNING && direction == direction_before)) {
 		has_commutated = 0;
 	}
 	direction_before = direction;

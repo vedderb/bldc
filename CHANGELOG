@@ -1,3 +1,8 @@
+=== FW 3.10 ===
+* BLDC: removed cycles_running parameter
+* BLDC: update ADC sampling in correct order to avoid corrupt samples when the switching frequency changes a lot at once.
+* Terminal: print fault duty cycle state with one extra decimal.
+
 === FW 3.9 ===
 * Configuration option for inverting the motor direction.
 * STM32 96-bit unique ID in firmware version command.
