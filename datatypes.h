@@ -197,6 +197,7 @@ typedef struct {
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
 	sensor_port_mode m_sensor_port_mode;
+	bool m_invert_direction;
 } mc_configuration;
 
 // Applications to use

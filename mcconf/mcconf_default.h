@@ -301,5 +301,8 @@
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
 #endif
+#ifndef MCCONF_M_INVERT_DIRECTION
+#define MCCONF_M_INVERT_DIRECTION		false // Invert the motor direction
+#endif
 
 #endif /* MCCONF_DEFAULT_H_ */

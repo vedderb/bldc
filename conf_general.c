@@ -249,6 +249,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
+	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 }
 
 /**
@@ -411,7 +412,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	}
 
 	// Wait one second for things to get ready after
-	// the fault disapears. (will fry things otherwise...)
+	// the fault disappears. (will fry things otherwise...)
 	chThdSleepMilliseconds(1000);
 
 	// Disable timeout
@@ -446,9 +447,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	// Release the motor and wait a few commutations
 	mc_interface_lock_override_once();
 	mc_interface_set_current(0.0);
-	int tacho = mcpwm_get_tachometer_value(0);
+	int tacho = mc_interface_get_tachometer_value(0);
 	for (int i = 0;i < 2000;i++) {
-		if ((mcpwm_get_tachometer_value(0) - tacho) < 3) {
+		if ((mc_interface_get_tachometer_value(0) - tacho) < 3) {
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -458,9 +459,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Average the cycle integrator for 50 commutations
 	mcpwm_read_reset_avg_cycle_integrator();
-	tacho = mcpwm_get_tachometer_value(0);
+	tacho = mc_interface_get_tachometer_value(false);
 	for (int i = 0;i < 3000;i++) {
-		if ((mcpwm_get_tachometer_value(0) - tacho) < 50) {
+		if ((mc_interface_get_tachometer_value(false) - tacho) < 50) {
 			chThdSleepMilliseconds(1);
 		} else {
 			ok_steps++;
@@ -488,11 +489,11 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Average the cycle integrator for 100 commutations
 	mcpwm_read_reset_avg_cycle_integrator();
-	tacho = mcpwm_get_tachometer_value(0);
+	tacho = mc_interface_get_tachometer_value(0);
 	float rpm_sum = 0.0;
 	float rpm_iterations = 0.0;
 	for (int i = 0;i < 3000;i++) {
-		if ((mcpwm_get_tachometer_value(0) - tacho) < 100) {
+		if ((mc_interface_get_tachometer_value(0) - tacho) < 100) {
 			rpm_sum += mc_interface_get_rpm();
 			rpm_iterations += 1;
 			chThdSleepMilliseconds(1);

@@ -31,6 +31,9 @@
 #include "encoder.h"
 #include <math.h>
 
+// Macros
+#define DIR_MULT		(m_conf.m_invert_direction ? -1.0 : 1.0)
+
 // Global variables
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS];
 volatile int ADC_curr_norm_value[3];
@@ -305,11 +308,11 @@ void mc_interface_set_duty(float dutyCycle) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_duty(dutyCycle);
+		mcpwm_set_duty(DIR_MULT * dutyCycle);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_duty(dutyCycle);
+		mcpwm_foc_set_duty(DIR_MULT * dutyCycle);
 		break;
 
 	default:
@@ -325,11 +328,11 @@ void mc_interface_set_duty_noramp(float dutyCycle) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_duty_noramp(dutyCycle);
+		mcpwm_set_duty_noramp(DIR_MULT * dutyCycle);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_duty_noramp(dutyCycle);
+		mcpwm_foc_set_duty_noramp(DIR_MULT * dutyCycle);
 		break;
 
 	default:
@@ -345,11 +348,11 @@ void mc_interface_set_pid_speed(float rpm) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_speed(rpm);
+		mcpwm_set_pid_speed(DIR_MULT * rpm);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_pid_speed(rpm);
+		mcpwm_foc_set_pid_speed(DIR_MULT * rpm);
 		break;
 
 	default:
@@ -367,11 +370,11 @@ void mc_interface_set_pid_pos(float pos) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_pos(pos);
+		mcpwm_set_pid_pos(DIR_MULT * m_position_set);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_pid_pos(pos);
+		mcpwm_foc_set_pid_pos(DIR_MULT * m_position_set);
 		break;
 
 	default:
@@ -387,11 +390,11 @@ void mc_interface_set_current(float current) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_current(current);
+		mcpwm_set_current(DIR_MULT * current);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_current(current);
+		mcpwm_foc_set_current(DIR_MULT * current);
 		break;
 
 	default:
@@ -407,11 +410,11 @@ void mc_interface_set_brake_current(float current) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_brake_current(current);
+		mcpwm_set_brake_current(DIR_MULT * current);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_brake_current(current);
+		mcpwm_foc_set_brake_current(DIR_MULT * current);
 		break;
 
 	default:
@@ -471,7 +474,7 @@ float mc_interface_get_duty_cycle_set(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 float mc_interface_get_duty_cycle_now(void) {
@@ -491,7 +494,7 @@ float mc_interface_get_duty_cycle_now(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 float mc_interface_get_sampling_frequency_now(void) {
@@ -531,7 +534,7 @@ float mc_interface_get_rpm(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 /**
@@ -667,7 +670,7 @@ float mc_interface_get_tot_current_directional(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 float mc_interface_get_tot_current_directional_filtered(void) {
@@ -687,7 +690,7 @@ float mc_interface_get_tot_current_directional_filtered(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 float mc_interface_get_tot_current_in(void) {
@@ -747,7 +750,7 @@ int mc_interface_get_tachometer_value(bool reset) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 int mc_interface_get_tachometer_abs_value(bool reset) {
@@ -814,7 +817,7 @@ float mc_interface_read_reset_avg_id(void) {
 	float res = m_motor_id_sum / m_motor_id_iterations;
 	m_motor_id_sum = 0.0;
 	m_motor_id_iterations = 0.0;
-	return res;
+	return DIR_MULT * res; // TODO: DIR_MULT?
 }
 
 /**
@@ -827,7 +830,7 @@ float mc_interface_read_reset_avg_iq(void) {
 	float res = m_motor_iq_sum / m_motor_iq_iterations;
 	m_motor_iq_sum = 0.0;
 	m_motor_iq_iterations = 0.0;
-	return res;
+	return DIR_MULT * res;
 }
 
 float mc_interface_get_pid_pos_set(void) {
@@ -851,7 +854,7 @@ float mc_interface_get_pid_pos_now(void) {
 		break;
 	}
 
-	return ret;
+	return DIR_MULT * ret;
 }
 
 float mc_interface_get_last_sample_adc_isr_duration(void) {

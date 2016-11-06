@@ -22,14 +22,9 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		7
+#define FW_VERSION_MINOR		9
 
 #include "datatypes.h"
-
-/*
- * Settings
- */
-#define SYSTEM_CORE_CLOCK			168000000
 
 // Settings and parameters to override
 //#define VIN_R1						33000.0
@@ -135,6 +130,13 @@
 #ifndef AS5047_USE_HW_SPI_PINS
 #define AS5047_USE_HW_SPI_PINS		0
 #endif
+
+/*
+ * Settings / Macros
+ */
+#define SYSTEM_CORE_CLOCK			168000000
+#define STM32_UUID					((uint32_t *)0x1FFF7A10)
+#define STM32_UUID_8				((uint8_t *)0x1FFF7A10)
 
 // Functions
 void conf_general_init(void);

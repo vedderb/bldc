@@ -1,3 +1,10 @@
+=== FW 3.9 ===
+* Configuration option for inverting the motor direction.
+* STM32 96-bit unique ID in firmware version command.
+
+=== FW 3.8 ===
+* Communication protocol update for floating point variables. This breaks almost all compatibility with old firmwares.
+
 === FW 3.7 ===
 * Delay after app and motor conf write.
  - Fixes NRF bug.

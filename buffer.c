@@ -68,7 +68,7 @@ void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *
  *         return 0.0;
  *     }
  *
- *     *e = ceilf(logf(fabsf(f)) / logf(2.0));
+ *     *e = ceilf(log2f(fabsf(f)));
  *     float res = f / powf(2.0, (float)*e);
  *
  *     if (res >= 1.0) {
@@ -88,7 +88,7 @@ void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *
  *     return f * powf(2.0, (float)e);
  * }
  *
- * 8388608.0 is 2^23, which scales the result to fit within 24 bits.
+ * 8388608.0 is 2^23, which scales the result to fit within 23 bits if sig_abs < 1.0.
  *
  * This should be a relatively fast and efficient way to serialize
  * floating point numbers in a fully defined manner.
@@ -99,14 +99,9 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 	float sig_abs = fabsf(sig);
 	uint32_t sig_i = 0;
 
-	// Exponent range -126 to +127. This addition makes the bits look similar
-	// to actual floats on most system, so a direct memcpy can be done if you
-	// are lazy or know what you are doing. Otherwise, this manual encoding and
-	// decoding hopefully is portable and safe.
-	e += 126;
-
 	if (sig_abs >= 0.5) {
 		sig_i = (uint32_t)((sig_abs - 0.5f) * 2.0f * 8388608.0f);
+		e += 126;
 	}
 
 	uint32_t res = ((e & 0xFF) << 23) | (sig_i & 0x7FFFFF);
@@ -163,11 +158,11 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 	int e = (res >> 23) & 0xFF;
 	uint32_t sig_i = res & 0x7FFFFF;
 	bool neg = res & (1 << 31);
-	e -= 126;
 
 	float sig = 0.0;
 	if (e != 0 || sig_i != 0) {
 		sig = (float)sig_i / (8388608.0 * 2.0) + 0.5;
+		e -= 126;
 	}
 
 	if (neg) {
