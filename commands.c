@@ -790,26 +790,28 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_GET_LIMITS:
+        mcconf = *mc_interface_get_configuration();
+
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_LIMITS;
 
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_max * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_current_min * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_in_current_max * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_in_current_min * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_abs_current_max * 1000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.l_current_max, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_current_min, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_in_current_max, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_in_current_min, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_abs_current_max, 1000.0, &ind);
 
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_min_vin * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_vin * 1000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.l_min_vin, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_max_vin, 1000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.l_battery_cut_start, 1000.0, &ind);
 		buffer_append_float32(send_buffer, mcconf.l_battery_cut_end, 1000.0, &ind);
 
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_fet_end * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_start * 1000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_temp_motor_end * 1000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.l_temp_fet_start, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_temp_fet_end, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_temp_motor_start, 1000.0, &ind);
+		buffer_append_float32(send_buffer, mcconf.l_temp_motor_end, 1000.0, &ind);
 
-		buffer_append_int32(send_buffer, (int32_t)(mcconf.l_max_duty * 1000000.0), &ind);
+		buffer_append_float32(send_buffer, mcconf.l_max_duty, 1000000.0, &ind);
 
 		commands_send_packet(send_buffer, ind);
 		break;

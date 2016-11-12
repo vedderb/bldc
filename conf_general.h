@@ -54,10 +54,10 @@
 	!defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A)
 //#define HW_VERSION_40
 //#define HW_VERSION_45
-//#define HW_VERSION_46 // Also for 4.7
+#define HW_VERSION_46 // Also for 4.7
 //#define HW_VERSION_48
 //#define HW_VERSION_49
-#define HW_VERSION_410 // Also for 4.11 and 4.12
+//#define HW_VERSION_410 // Also for 4.11 and 4.12
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 #endif
