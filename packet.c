@@ -23,7 +23,7 @@
 
 typedef struct {
 	volatile unsigned char rx_state;
-	volatile unsigned char rx_timeout;
+	volatile unsigned short rx_timeout;
 	void(*send_func)(unsigned char *data, unsigned int len);
 	void(*process_func)(unsigned char *data, unsigned int len);
 	unsigned int payload_length;
