@@ -74,6 +74,9 @@ void app_init(app_configuration *conf) {
 		hw_stop_i2c();
 		app_sten_init();
 #endif
+#ifdef USE_TERMINAL_DEMO_APP
+		app_test_init();
+#endif
 		break;
 
 	default:
