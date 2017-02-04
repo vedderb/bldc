@@ -35,6 +35,7 @@
 #include "timeout.h"
 #include "encoder.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -43,6 +44,31 @@
 #define FAULT_VEC_LEN						25
 static volatile fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
+
+typedef struct _terminal_callback_struct {
+	const char *command;
+	const char *help;
+	terminal_cb_func cbf;
+} terminal_callback_struct;
+
+terminal_callback_struct *terminal_callbacks = NULL;
+int n_terminal_cb = 0;
+
+
+void terminal_register_command_callback(const char* command, const char *help, terminal_cb_func cbf) {
+	int new_terminal_cb = n_terminal_cb + 1;
+	terminal_callback_struct *newcb = malloc(sizeof(terminal_callback_struct)* new_terminal_cb);
+	if (n_terminal_cb > 0) {
+		memcpy(newcb, terminal_callbacks, sizeof(terminal_callback_struct) * n_terminal_cb);
+		free(terminal_callbacks);
+	}
+	terminal_callbacks = newcb;
+	terminal_callbacks[n_terminal_cb].command = command;
+	terminal_callbacks[n_terminal_cb].help = help;
+	terminal_callbacks[n_terminal_cb].cbf = cbf;
+	n_terminal_cb = new_terminal_cb;
+}
+
 
 void terminal_process_string(char *str) {
 	enum { kMaxArgs = 64 };
@@ -446,8 +472,21 @@ void terminal_process_string(char *str) {
 		commands_printf("  Run the motor with FOC and measure the flux linkage.");
 
 		commands_printf("foc_state");
-		commands_printf("  Print some FOC state variables.\n");
+		commands_printf("  Print some FOC state variables.");
+
+		for (int i = 0; i < n_terminal_cb; i++) {
+			commands_printf(terminal_callbacks[i].command);
+			commands_printf("   %s", terminal_callbacks[i].help);
+
+		}
+		commands_printf("\n");
 	} else {
+		for (int i = 0; i < n_terminal_cb; i++) {
+			if (strcmp(argv[0], terminal_callbacks[i].command) == 0) {
+				terminal_callbacks[i].cbf(argc, (const char**)argv);
+				return;
+			}
+		}
 		commands_printf("Invalid command: %s\n"
 				"type help to list all available commands\n", argv[0]);
 	}

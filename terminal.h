@@ -31,4 +31,7 @@
 void terminal_process_string(char *str);
 void terminal_add_fault_data(fault_data *data);
 
+typedef void(*terminal_cb_func)(int argc, const char **argv);
+void terminal_register_command_callback(const char* command, const char *help, terminal_cb_func cbf);
+
 #endif /* TERMINAL_H_ */
