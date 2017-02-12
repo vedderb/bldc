@@ -2,18 +2,18 @@
 	Copyright 2012-2014 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 /*
  * datatypes.h
@@ -31,10 +31,10 @@
 
 // Data types
 typedef enum {
-   MC_STATE_OFF = 0,
-   MC_STATE_DETECTING,
-   MC_STATE_RUNNING,
-   MC_STATE_FULL_BRAKE,
+	MC_STATE_OFF = 0,
+	MC_STATE_DETECTING,
+	MC_STATE_RUNNING,
+	MC_STATE_FULL_BRAKE,
 } mc_state;
 
 typedef enum {
@@ -504,20 +504,20 @@ typedef struct {
 	float temp_mos2;
 	float temp_mos3;
 	float temp_mos4;
-    float temp_mos5;
-    float temp_mos6;
-    float temp_pcb;
-    float current_motor;
-    float current_in;
-    float rpm;
-    float duty_now;
-    float amp_hours;
-    float amp_hours_charged;
-    float watt_hours;
-    float watt_hours_charged;
-    int tachometer;
-    int tachometer_abs;
-    mc_fault_code fault_code;
+	float temp_mos5;
+	float temp_mos6;
+	float temp_pcb;
+	float current_motor;
+	float current_in;
+	float rpm;
+	float duty_now;
+	float amp_hours;
+	float amp_hours_charged;
+	float watt_hours;
+	float watt_hours_charged;
+	int tachometer;
+	int tachometer_abs;
+	mc_fault_code fault_code;
 } mc_values;
 
 #endif /* DATATYPES_H_ */
