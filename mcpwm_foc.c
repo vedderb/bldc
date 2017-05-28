@@ -22,6 +22,8 @@
  *      Author: benjamin
  */
 
+#define _GNU_SOURCE         /* for sincosf */
+
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "ch.h"
