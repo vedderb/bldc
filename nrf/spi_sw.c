@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016-2017 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -18,40 +18,72 @@
     */
 
 #include "spi_sw.h"
-#include "ch.h"
-#include "hal.h"
 #include "utils.h"
 #include <stdbool.h>
 
 // Private variables
-static bool init_done = false;
+static bool m_init_done = false;
+static stm32_gpio_t *m_port_csn = NRF_PORT_CSN;
+static int m_pin_csn = NRF_PIN_CSN;
+static stm32_gpio_t *m_port_sck = NRF_PORT_SCK;
+static int m_pin_sck = NRF_PIN_SCK;
+static stm32_gpio_t *m_port_mosi = NRF_PORT_MOSI;
+static int m_pin_mosi = NRF_PIN_MOSI;
+static stm32_gpio_t *m_port_miso = NRF_PORT_MISO;
+static int m_pin_miso = NRF_PIN_MISO;
 
 // Private functions
 static void spi_sw_delay(void);
 
 void spi_sw_init(void) {
-	if (!init_done) {
-		palSetPadMode(NRF_PORT_MISO, NRF_PIN_MISO, PAL_MODE_INPUT);
-		palSetPadMode(NRF_PORT_CSN, NRF_PIN_CSN, PAL_MODE_OUTPUT_PUSHPULL);
-		palSetPadMode(NRF_PORT_SCK, NRF_PIN_SCK, PAL_MODE_OUTPUT_PUSHPULL);
-		palSetPadMode(NRF_PORT_MOSI, NRF_PIN_MOSI, PAL_MODE_OUTPUT_PUSHPULL);
+	if (!m_init_done) {
+		palSetPadMode(m_port_miso, m_pin_miso, PAL_MODE_INPUT);
+		palSetPadMode(m_port_csn, m_pin_csn, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPadMode(m_port_sck, m_pin_sck, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPadMode(m_port_mosi, m_pin_mosi, PAL_MODE_OUTPUT_PUSHPULL);
 
-		palSetPad(NRF_PORT_CSN, NRF_PIN_CSN);
-		palClearPad(NRF_PORT_SCK, NRF_PIN_SCK);
-		init_done = true;
+		palSetPad(m_port_csn, m_pin_csn);
+		palClearPad(m_port_sck, m_pin_sck);
+		m_init_done = true;
 	}
 }
 
 void spi_sw_stop(void) {
-	palSetPadMode(NRF_PORT_MISO, NRF_PIN_MISO, PAL_MODE_INPUT);
-	palSetPadMode(NRF_PORT_CSN, NRF_PIN_CSN, PAL_MODE_INPUT);
-	palSetPadMode(NRF_PORT_SCK, NRF_PIN_SCK, PAL_MODE_INPUT);
-	palSetPadMode(NRF_PORT_MOSI, NRF_PIN_MOSI, PAL_MODE_INPUT);
-	init_done = false;
+	palSetPadMode(m_port_miso, m_pin_miso, PAL_MODE_INPUT);
+	palSetPadMode(m_port_csn, m_pin_csn, PAL_MODE_INPUT);
+	palSetPadMode(m_port_sck, m_pin_sck, PAL_MODE_INPUT);
+	palSetPadMode(m_port_mosi, m_pin_mosi, PAL_MODE_INPUT);
+	m_init_done = false;
+}
+
+void spi_sw_change_pins(
+		stm32_gpio_t *port_csn, int pin_csn,
+		stm32_gpio_t *port_sck, int pin_sck,
+		stm32_gpio_t *port_mosi, int pin_mosi,
+		stm32_gpio_t *port_miso, int pin_miso) {
+
+	bool init_was_done = m_init_done;
+
+	if (init_was_done) {
+		spi_sw_stop();
+	}
+
+	m_port_csn = port_csn;
+	m_pin_csn = pin_csn;
+	m_port_sck = port_sck;
+	m_pin_sck = pin_sck;
+	m_port_mosi = port_mosi;
+	m_pin_mosi = pin_mosi;
+	m_port_miso = port_miso;
+	m_pin_miso = pin_miso;
+
+	if (init_was_done) {
+		spi_sw_init();
+	}
 }
 
 void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
-	palClearPad(NRF_PORT_SCK, NRF_PIN_SCK);
+	palClearPad(m_port_sck, m_pin_sck);
 	spi_sw_delay();
 
 	for (int i = 0;i < length;i++) {
@@ -59,26 +91,26 @@ void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
 		unsigned char recieve = 0;
 
 		for (int bit=0;bit < 8;bit++) {
-			palWritePad(NRF_PORT_MOSI, NRF_PIN_MOSI, send >> 7);
+			palWritePad(m_port_mosi, m_pin_mosi, send >> 7);
 			send <<= 1;
 
 			spi_sw_delay();
 
 			int r1, r2, r3;
-			r1 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+			r1 = palReadPad(m_port_miso, m_pin_miso);
 			__NOP();
-			r2 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+			r2 = palReadPad(m_port_miso, m_pin_miso);
 			__NOP();
-			r3 = palReadPad(NRF_PORT_MISO, NRF_PIN_MISO);
+			r3 = palReadPad(m_port_miso, m_pin_miso);
 
 			recieve <<= 1;
 			if (utils_middle_of_3_int(r1, r2, r3)) {
 				recieve |= 1;
 			}
 
-			palSetPad(NRF_PORT_SCK, NRF_PIN_SCK);
+			palSetPad(m_port_sck, m_pin_sck);
 			spi_sw_delay();
-			palClearPad(NRF_PORT_SCK, NRF_PIN_SCK);
+			palClearPad(m_port_sck, m_pin_sck);
 		}
 
 		if (in_buf) {
@@ -88,13 +120,13 @@ void spi_sw_transfer(char *in_buf, const char *out_buf, int length) {
 }
 
 void spi_sw_begin(void) {
-	palClearPad(NRF_PORT_CSN, NRF_PIN_CSN);
+	palClearPad(m_port_csn, m_pin_csn);
 	spi_sw_delay();
 }
 
 void spi_sw_end(void) {
 	spi_sw_delay();
-	palSetPad(NRF_PORT_CSN, NRF_PIN_CSN);
+	palSetPad(m_port_csn, m_pin_csn);
 }
 
 static void spi_sw_delay(void) {

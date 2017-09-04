@@ -308,7 +308,7 @@ float utils_fast_inv_sqrt(float x) {
  * The angle in radians
  */
 float utils_fast_atan2(float y, float x) {
-	float abs_y = fabsf(y) + 1e-10; // kludge to prevent 0/0 condition
+	float abs_y = fabsf(y) + 1e-20; // kludge to prevent 0/0 condition
 	float angle;
 
 	if (x >= 0) {
@@ -501,6 +501,29 @@ float utils_min_abs(float va, float vb) {
 }
 
 /**
+ * Calculate the values with the highest magnitude.
+ *
+ * @param va
+ * The first value.
+ *
+ * @param vb
+ * The second value.
+ *
+ * @return
+ * The value with the highest magnitude.
+ */
+float utils_max_abs(float va, float vb) {
+	float res;
+	if (fabsf(va) > fabsf(vb)) {
+		res = va;
+	} else {
+		res = vb;
+	}
+
+	return res;
+}
+
+/**
  * Create string representation of the binary content of a byte
  *
  * @param x
@@ -516,6 +539,53 @@ void utils_byte_to_binary(int x, char *b) {
 	for (z = 128; z > 0; z >>= 1) {
 		strcat(b, ((x & z) == z) ? "1" : "0");
 	}
+}
+
+float utils_throttle_curve(float val, float curve, int mode) {
+	float ret = 0.0;
+	float val_a = fabsf(val);
+
+	if (val < -1.0) {
+		val = -1.0;
+	}
+
+	if (val > 1.0) {
+		val = 1.0;
+	}
+
+	// See
+	// http://math.stackexchange.com/questions/297768/how-would-i-create-a-exponential-ramp-function-from-0-0-to-1-1-with-a-single-val
+	if (mode == 0) { // Exponential
+		if (curve >= 0.0) {
+			ret = 1.0 - powf(1.0 - val_a, 1.0 + curve);
+		} else {
+			ret = powf(val_a, 1.0 - curve);
+		}
+	} else if (mode == 1) { // Natural
+		if (fabsf(curve) < 1e-10) {
+			ret = val_a;
+		} else {
+			if (curve >= 0.0) {
+				ret = 1.0 - ((expf(curve * (1.0 - val_a)) - 1.0) / (expf(curve) - 1.0));
+			} else {
+				ret = (expf(-curve * val_a) - 1.0) / (expf(-curve) - 1.0);
+			}
+		}
+	} else if (mode == 2) { // Polynomial
+		if (curve >= 0.0) {
+			ret = 1.0 - ((1.0 - val_a) / (1.0 + curve * val_a));
+		} else {
+			ret = val_a / (1.0 - curve * (1.0 - val_a));
+		}
+	} else { // Linear
+		ret = val_a;
+	}
+
+	if (val < 0.0) {
+		ret = -ret;
+	}
+
+	return ret;
 }
 
 /**

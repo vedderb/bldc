@@ -34,7 +34,15 @@ static bool tx_pipe0_addr_eq;
 static nrf_config nrf_conf;
 static bool init_done = false;
 
-void rfhelp_init(void) {
+/**
+ * Initialize the nrf24l01 driver
+ *
+ * @return
+ * true: Writing an address and reading it back worked.
+ * false: Writing an address and reading it failed. This means that something
+ * is wrong with the SPI communication.
+ */
+bool rfhelp_init(void) {
 	chMtxObjectInit(&rf_mutex);
 	rf_init();
 
@@ -46,8 +54,22 @@ void rfhelp_init(void) {
 		address_length = 3;
 	}
 
+	// Try a read and write to see if the SPI communication works
+	char addr_old[3];
+	rf_read_reg(NRF_REG_TX_ADDR, addr_old, 3);
+	char addr_test[3] = {0x12, 0x41, 0xF3};
+	rf_write_reg(NRF_REG_TX_ADDR, addr_test, 3);
+	char addr_test_read[3];
+	rf_read_reg(NRF_REG_TX_ADDR, addr_test_read, 3);
+	rf_write_reg(NRF_REG_TX_ADDR, addr_old, 3);
+
+	if (memcmp(addr_test, addr_test_read, 3) != 0) {
+		rf_stop();
+		return false;
+	}
+
 	for (int i = 0;i < 6;i++) {
-		rf_read_reg(NRF_REG_RX_ADDR_P0, rx_addr[i], address_length);
+		rf_read_reg(NRF_REG_RX_ADDR_P0 + i, rx_addr[i], address_length);
 		rx_addr_set[i] = false;
 	}
 
@@ -58,6 +80,8 @@ void rfhelp_init(void) {
 	// that nrf_conf is already set when rfhelp_restart is called.
 
 	init_done = true;
+
+	return true;
 }
 
 void rfhelp_stop(void) {

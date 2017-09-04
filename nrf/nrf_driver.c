@@ -61,12 +61,16 @@ static THD_FUNCTION(rx_thread, arg);
 static THD_FUNCTION(tx_thread, arg);
 static int rf_tx_wrapper(char *data, int len);
 
-void nrf_driver_init(void) {
+bool nrf_driver_init(void) {
 	if (from_nrf) {
-		return;
+		return true;
 	}
 
-	rfhelp_init();
+	nrf_driver_stop();
+
+	if (!rfhelp_init()) {
+		return false;
+	}
 
 	nosend_cnt = 0;
 	nrf_restart_rx_time = 0;
@@ -79,6 +83,10 @@ void nrf_driver_init(void) {
 	tx_stop = false;
 	chThdCreateStatic(rx_thread_wa, sizeof(rx_thread_wa), NORMALPRIO - 1, rx_thread, NULL);
 	chThdCreateStatic(tx_thread_wa, sizeof(tx_thread_wa), NORMALPRIO - 1, tx_thread, NULL);
+	rx_running = true;
+	tx_running = true;
+
+	return true;
 }
 
 void nrf_driver_stop(void) {

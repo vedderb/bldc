@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #include "commands.h"
 #include "ch.h"
@@ -60,6 +60,7 @@ static float detect_low_duty;
 static int8_t detect_hall_table[8];
 static int detect_hall_res;
 static void(*send_func)(unsigned char *data, unsigned int len) = 0;
+static void(*send_func_last)(unsigned char *data, unsigned int len) = 0;
 static void(*appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 
@@ -108,9 +109,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	COMM_PACKET_ID packet_id;
 	int32_t ind = 0;
-	uint16_t sample_len;
-	uint8_t decimation;
-	bool at_start;
 	static mc_configuration mcconf, mcconf_old; // Static to save some stack space
 	app_configuration appconf;
 	uint16_t flash_res;
@@ -167,8 +165,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_VALUES:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_VALUES;
-		buffer_append_float16(send_buffer, NTC_TEMP(ADC_IND_TEMP_MOS), 1e1, &ind);
-		buffer_append_float16(send_buffer, NTC_TEMP_MOTOR(), 1e1, &ind);
+		buffer_append_float16(send_buffer, mc_interface_temp_fet_filtered(), 1e1, &ind);
+		buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
 		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_motor_current(), 1e2, &ind);
 		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_input_current(), 1e2, &ind);
 		buffer_append_float32(send_buffer, mc_interface_read_reset_avg_id(), 1e2, &ind);
@@ -280,11 +278,15 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.l_temp_motor_end = buffer_get_float32_auto(data, &ind);
 		mcconf.l_min_duty = buffer_get_float32_auto(data, &ind);
 		mcconf.l_max_duty = buffer_get_float32_auto(data, &ind);
+		mcconf.l_watt_max = buffer_get_float32_auto(data, &ind);
+		mcconf.l_watt_min = buffer_get_float32_auto(data, &ind);
 
 		mcconf.lo_current_max = mcconf.l_current_max;
 		mcconf.lo_current_min = mcconf.l_current_min;
 		mcconf.lo_in_current_max = mcconf.l_in_current_max;
 		mcconf.lo_in_current_min = mcconf.l_in_current_min;
+		mcconf.lo_current_motor_max_now = mcconf.l_current_max;
+		mcconf.lo_current_motor_min_now = mcconf.l_current_min;
 
 		mcconf.sl_min_erpm = buffer_get_float32_auto(data, &ind);
 		mcconf.sl_min_erpm_cycle_int_limit = buffer_get_float32_auto(data, &ind);
@@ -312,6 +314,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_motor_r = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_motor_flux_linkage = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_observer_gain = buffer_get_float32_auto(data, &ind);
+		mcconf.foc_observer_gain_slow = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_duty_dowmramp_kp = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_duty_dowmramp_ki = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_openloop_rpm = buffer_get_float32_auto(data, &ind);
@@ -322,11 +325,17 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		memcpy(mcconf.foc_hall_table, data + ind, 8);
 		ind += 8;
 		mcconf.foc_sl_erpm = buffer_get_float32_auto(data, &ind);
+		mcconf.foc_sample_v0_v7 = data[ind++];
+		mcconf.foc_sample_high_current = data[ind++];
+		mcconf.foc_sat_comp = buffer_get_float32_auto(data, &ind);
+		mcconf.foc_temp_comp = data[ind++];
+		mcconf.foc_temp_comp_base_temp = buffer_get_float32_auto(data, &ind);
 
 		mcconf.s_pid_kp = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_ki = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_kd = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_min_erpm = buffer_get_float32_auto(data, &ind);
+		mcconf.s_pid_allow_braking = data[ind++];
 
 		mcconf.p_pid_kp = buffer_get_float32_auto(data, &ind);
 		mcconf.p_pid_ki = buffer_get_float32_auto(data, &ind);
@@ -344,6 +353,44 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_encoder_counts = buffer_get_uint32(data, &ind);
 		mcconf.m_sensor_port_mode = data[ind++];
 		mcconf.m_invert_direction = data[ind++];
+		mcconf.m_drv8301_oc_mode = data[ind++];
+		mcconf.m_drv8301_oc_adj = data[ind++];
+		mcconf.m_bldc_f_sw_min = buffer_get_float32_auto(data, &ind);
+		mcconf.m_bldc_f_sw_max = buffer_get_float32_auto(data, &ind);
+		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
+
+		// Apply limits if they are defined
+#ifndef DISABLE_HW_LIMITS
+#ifdef HW_LIM_CURRENT
+		utils_truncate_number(&mcconf.l_current_max, HW_LIM_CURRENT);
+		utils_truncate_number(&mcconf.l_current_min, HW_LIM_CURRENT);
+#endif
+#ifdef HW_LIM_CURRENT_IN
+		utils_truncate_number(&mcconf.l_in_current_max, HW_LIM_CURRENT_IN);
+		utils_truncate_number(&mcconf.l_in_current_min, HW_LIM_CURRENT);
+#endif
+#ifdef HW_LIM_CURRENT_ABS
+		utils_truncate_number(&mcconf.l_abs_current_max, HW_LIM_CURRENT_ABS);
+#endif
+#ifdef HW_LIM_VIN
+		utils_truncate_number(&mcconf.l_max_vin, HW_LIM_VIN);
+		utils_truncate_number(&mcconf.l_min_vin, HW_LIM_VIN);
+#endif
+#ifdef HW_LIM_ERPM
+		utils_truncate_number(&mcconf.l_max_erpm, HW_LIM_ERPM);
+		utils_truncate_number(&mcconf.l_min_erpm, HW_LIM_ERPM);
+#endif
+#ifdef HW_LIM_DUTY_MIN
+		utils_truncate_number(&mcconf.l_min_duty, HW_LIM_DUTY_MIN);
+#endif
+#ifdef HW_LIM_DUTY_MAX
+		utils_truncate_number(&mcconf.l_max_duty, HW_LIM_DUTY_MAX);
+#endif
+#ifdef HW_LIM_TEMP_FET
+		utils_truncate_number(&mcconf.l_temp_fet_start, HW_LIM_TEMP_FET);
+		utils_truncate_number(&mcconf.l_temp_fet_end, HW_LIM_TEMP_FET);
+#endif
+#endif
 
 		conf_general_store_mc_configuration(&mcconf);
 		mc_interface_set_configuration(&mcconf);
@@ -391,6 +438,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.l_temp_motor_end, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_min_duty, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_max_duty, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.l_watt_max, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.l_watt_min, &ind);
 
 		buffer_append_float32_auto(send_buffer, mcconf.sl_min_erpm, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.sl_min_erpm_cycle_int_limit, &ind);
@@ -418,6 +467,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.foc_motor_r, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.foc_motor_flux_linkage, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.foc_observer_gain, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.foc_observer_gain_slow, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.foc_duty_dowmramp_kp, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.foc_duty_dowmramp_ki, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.foc_openloop_rpm, &ind);
@@ -428,11 +478,17 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		memcpy(send_buffer + ind, mcconf.foc_hall_table, 8);
 		ind += 8;
 		buffer_append_float32_auto(send_buffer, mcconf.foc_sl_erpm, &ind);
+		send_buffer[ind++] = mcconf.foc_sample_v0_v7;
+		send_buffer[ind++] = mcconf.foc_sample_high_current;
+		buffer_append_float32_auto(send_buffer, mcconf.foc_sat_comp, &ind);
+		send_buffer[ind++] = mcconf.foc_temp_comp;
+		buffer_append_float32_auto(send_buffer, mcconf.foc_temp_comp_base_temp, &ind);
 
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_kp, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_ki, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_kd, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_min_erpm, &ind);
+		send_buffer[ind++] = mcconf.s_pid_allow_braking;
 
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_kp, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_ki, &ind);
@@ -450,6 +506,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_uint32(send_buffer, mcconf.m_encoder_counts, &ind);
 		send_buffer[ind++] = mcconf.m_sensor_port_mode;
 		send_buffer[ind++] = mcconf.m_invert_direction;
+		send_buffer[ind++] = mcconf.m_drv8301_oc_mode;
+		send_buffer[ind++] = mcconf.m_drv8301_oc_adj;
+		buffer_append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_min, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_max, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.m_dc_f_sw, &ind);
 
 		commands_send_packet(send_buffer, ind);
 		break;
@@ -471,8 +532,13 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_ppm_conf.hyst = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.pulse_start = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.pulse_end = buffer_get_float32_auto(data, &ind);
+		appconf.app_ppm_conf.pulse_center = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.median_filter = data[ind++];
 		appconf.app_ppm_conf.safe_start = data[ind++];
+		appconf.app_ppm_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_ppm_conf.throttle_exp_mode = data[ind++];
+		appconf.app_ppm_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
+		appconf.app_ppm_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.multi_esc = data[ind++];
 		appconf.app_ppm_conf.tc = data[ind++];
 		appconf.app_ppm_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
@@ -481,6 +547,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_adc_conf.hyst = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.voltage_start = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.voltage_end = buffer_get_float32_auto(data, &ind);
+		appconf.app_adc_conf.voltage_center = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.voltage2_start = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.voltage2_end = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.use_filter = data[ind++];
@@ -489,6 +556,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_adc_conf.rev_button_inverted = data[ind++];
 		appconf.app_adc_conf.voltage_inverted = data[ind++];
 		appconf.app_adc_conf.voltage2_inverted = data[ind++];
+		appconf.app_adc_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_adc_conf.throttle_exp_mode = data[ind++];
+		appconf.app_adc_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
+		appconf.app_adc_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.multi_esc = data[ind++];
 		appconf.app_adc_conf.tc = data[ind++];
 		appconf.app_adc_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
@@ -501,6 +572,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_chuk_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
 		appconf.app_chuk_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
 		appconf.app_chuk_conf.stick_erpm_per_s_in_cc = buffer_get_float32_auto(data, &ind);
+		appconf.app_chuk_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_chuk_conf.throttle_exp_mode = data[ind++];
 		appconf.app_chuk_conf.multi_esc = data[ind++];
 		appconf.app_chuk_conf.tc = data[ind++];
 		appconf.app_chuk_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
@@ -536,13 +609,17 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		commands_send_appconf(packet_id, &appconf);
 		break;
 
-	case COMM_SAMPLE_PRINT:
+	case COMM_SAMPLE_PRINT: {
+		uint16_t sample_len;
+		uint8_t decimation;
+		debug_sampling_mode mode;
+
 		ind = 0;
-		at_start = data[ind++];
+		mode = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
-		mc_interface_sample_print_data(at_start, sample_len, decimation);
-		break;
+		mc_interface_sample_print_data(mode, sample_len, decimation);
+	} break;
 
 	case COMM_TERMINAL_CMD:
 		data[len] = '\0';
@@ -555,12 +632,16 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		detect_min_rpm = buffer_get_float32(data, 1e3, &ind);
 		detect_low_duty = buffer_get_float32(data, 1e3, &ind);
 
+		send_func_last = send_func;
+
 		chEvtSignal(detect_tp, (eventmask_t) 1);
 		break;
 
 	case COMM_DETECT_MOTOR_R_L: {
 		mcconf = *mc_interface_get_configuration();
 		mcconf_old = mcconf;
+
+		send_func_last = send_func;
 
 		mcconf.motor_type = MOTOR_TYPE_FOC;
 		mc_interface_set_configuration(&mcconf);
@@ -579,7 +660,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
 		buffer_append_float32(send_buffer, r, 1e6, &ind);
 		buffer_append_float32(send_buffer, l, 1e3, &ind);
-		commands_send_packet(send_buffer, ind);
+		if (send_func_last) {
+			send_func_last(send_buffer, ind);
+		} else {
+			commands_send_packet(send_buffer, ind);
+		}
 	}
 	break;
 
@@ -589,6 +674,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		float min_rpm = buffer_get_float32(data, 1e3, &ind);
 		float duty = buffer_get_float32(data, 1e3, &ind);
 		float resistance = buffer_get_float32(data, 1e6, &ind);
+
+		send_func_last = send_func;
 
 		float linkage;
 		bool res = conf_general_measure_flux_linkage(current, duty, min_rpm, resistance, &linkage);
@@ -600,7 +687,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE;
 		buffer_append_float32(send_buffer, linkage, 1e7, &ind);
-		commands_send_packet(send_buffer, ind);
+		if (send_func_last) {
+			send_func_last(send_buffer, ind);
+		} else {
+			commands_send_packet(send_buffer, ind);
+		}
 	}
 	break;
 
@@ -608,6 +699,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		if (encoder_is_configured()) {
 			mcconf = *mc_interface_get_configuration();
 			mcconf_old = mcconf;
+
+			send_func_last = send_func;
 
 			ind = 0;
 			float current = buffer_get_float32(data, 1e3, &ind);
@@ -629,7 +722,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			buffer_append_float32(send_buffer, offset, 1e6, &ind);
 			buffer_append_float32(send_buffer, ratio, 1e6, &ind);
 			send_buffer[ind++] = inverted;
-			commands_send_packet(send_buffer, ind);
+			if (send_func_last) {
+				send_func_last(send_buffer, ind);
+			} else {
+				commands_send_packet(send_buffer, ind);
+			}
 		} else {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_ENCODER;
@@ -649,6 +746,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			ind = 0;
 			float current = buffer_get_float32(data, 1e3, &ind);
 
+			send_func_last = send_func;
+
 			mcconf.motor_type = MOTOR_TYPE_FOC;
 			mcconf.foc_f_sw = 10000.0;
 			mcconf.foc_current_kp = 0.01;
@@ -665,7 +764,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			ind += 8;
 			send_buffer[ind++] = res ? 0 : 1;
 
-			commands_send_packet(send_buffer, ind);
+			if (send_func_last) {
+				send_func_last(send_buffer, ind);
+			} else {
+				commands_send_packet(send_buffer, ind);
+			}
 		} else {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_HALL_FOC;
@@ -689,7 +792,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_GET_DECODED_PPM:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
-		buffer_append_int32(send_buffer, (int32_t)(servodec_get_servo(0) * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_ppm_get_decoded_level() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_last_pulse_len(0) * 1000000.0), &ind);
 		commands_send_packet(send_buffer, ind);
 		break;
@@ -748,7 +851,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	}
 }
 
-void commands_printf(char* format, ...) {
+void commands_printf(const char* format, ...) {
 	va_list arg;
 	va_start (arg, format);
 	int len;
@@ -761,19 +864,6 @@ void commands_printf(char* format, ...) {
 	if(len > 0) {
 		commands_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
 	}
-}
-
-void commands_send_samples(uint8_t *data, int len) {
-	uint8_t buffer[len + 1];
-	int index = 0;
-
-	buffer[index++] = COMM_SAMPLE_PRINT;
-
-	for (int i = 0;i < len;i++) {
-		buffer[index++] = data[i];
-	}
-
-	commands_send_packet(buffer, index);
 }
 
 void commands_send_rotor_pos(float rotor_pos) {
@@ -837,8 +927,13 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.hyst, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_start, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_end, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_center, &ind);
 	send_buffer[ind++] = appconf->app_ppm_conf.median_filter;
 	send_buffer[ind++] = appconf->app_ppm_conf.safe_start;
+	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.throttle_exp, &ind);
+	send_buffer[ind++] = appconf->app_ppm_conf.throttle_exp_mode;
+	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_pos, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_neg, &ind);
 	send_buffer[ind++] = appconf->app_ppm_conf.multi_esc;
 	send_buffer[ind++] = appconf->app_ppm_conf.tc;
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.tc_max_diff, &ind);
@@ -847,6 +942,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.hyst, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_start, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_end, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_center, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage2_start, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage2_end, &ind);
 	send_buffer[ind++] = appconf->app_adc_conf.use_filter;
@@ -855,6 +951,10 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	send_buffer[ind++] = appconf->app_adc_conf.rev_button_inverted;
 	send_buffer[ind++] = appconf->app_adc_conf.voltage_inverted;
 	send_buffer[ind++] = appconf->app_adc_conf.voltage2_inverted;
+	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.throttle_exp, &ind);
+	send_buffer[ind++] = appconf->app_adc_conf.throttle_exp_mode;
+	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_pos, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_neg, &ind);
 	send_buffer[ind++] = appconf->app_adc_conf.multi_esc;
 	send_buffer[ind++] = appconf->app_adc_conf.tc;
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.tc_max_diff, &ind);
@@ -867,6 +967,8 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.ramp_time_pos, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.ramp_time_neg, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.stick_erpm_per_s_in_cc, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.throttle_exp, &ind);
+	send_buffer[ind++] = appconf->app_chuk_conf.throttle_exp_mode;
 	send_buffer[ind++] = appconf->app_chuk_conf.multi_esc;
 	send_buffer[ind++] = appconf->app_chuk_conf.tc;
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.tc_max_diff, &ind);
@@ -908,6 +1010,11 @@ static THD_FUNCTION(detect_thread, arg) {
 		memcpy(send_buffer + ind, detect_hall_table, 8);
 		ind += 8;
 		send_buffer[ind++] = detect_hall_res;
-		commands_send_packet(send_buffer, ind);
+
+		if (send_func_last) {
+			send_func_last(send_buffer, ind);
+		} else {
+			commands_send_packet(send_buffer, ind);
+		}
 	}
 }

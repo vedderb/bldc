@@ -34,14 +34,13 @@
 // Threads
 static THD_FUNCTION(packet_process_thread, arg);
 static THD_WORKING_AREA(packet_process_thread_wa, 4096);
-static thread_t *process_tp;
+static thread_t *process_tp = 0;
 
 // Variables
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static volatile bool stop_now = true;
-static bool is_running = false;
+static volatile bool is_running = false;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -136,6 +135,13 @@ static void send_packet(unsigned char *data, unsigned int len) {
 
 void app_uartcomm_start(void) {
 	packet_init(send_packet, process_packet, PACKET_HANDLER);
+	serial_rx_read_pos = 0;
+	serial_rx_write_pos = 0;
+
+	if (!is_running) {
+		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
+				NORMALPRIO, packet_process_thread, NULL);
+	}
 
 	uartStart(&HW_UART_DEV, &uart_cfg);
 	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
@@ -144,24 +150,14 @@ void app_uartcomm_start(void) {
 	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
-
-	stop_now = false;
-	chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
 }
 
 void app_uartcomm_stop(void) {
-	stop_now = true;
+	uartStop(&HW_UART_DEV);
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
 
-	if (is_running) {
-		uartStop(&HW_UART_DEV);
-		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
-		chEvtSignal(process_tp, (eventmask_t) 1);
-	}
-
-	while (is_running) {
-		chThdSleepMilliseconds(1);
-	}
+	// Notice that the processing thread is kept running in case this call is made from it.
 }
 
 void app_uartcomm_configure(uint32_t baudrate) {
@@ -182,11 +178,6 @@ static THD_FUNCTION(packet_process_thread, arg) {
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
-
-		if (stop_now) {
-			is_running = false;
-			return;
-		}
 
 		while (serial_rx_read_pos != serial_rx_write_pos) {
 			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);

@@ -1,11 +1,106 @@
+=== FW 3.27 ===
+* Watt hour reset bug fix
+* Changed the way custom applications are implemented.
+* FOC: high current sampling mode.
+
+=== FW 3.26 ===
+* Current limit bug fix. It is now possible to apply break past the RPM limits.
+* Openloop RPM calculation bug fix.
+
+=== FW 3.25 ===
+* APP multi-VESC PID control: send current instead of duty cycle for better load sharing.
+* Added relative current commands to mc_interface and comm_can.
+* APP ADC: added mode ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC.
+* APP ADC: changed behavior when throttle and brake ADC channels are used simultaneously for smoother combination.
+* APP ADC: ramping support.
+* Flux linkage measurement: Added extra try with high integrator value.
+
+=== FW 3.24 ===
+* Changed back inductance calculation since that seems to work much better in practise. (TODO: Have a closer look at why)
+
+=== FW 3.23 ===
+* Improved inductance measurement (bug fix).
+* Multiple tries with different settings on flux linkage measurement.
+* Observer improvements for high speed operation and better performance across the whole speed range.
+* Compile time option to disable override limits.
+
+=== FW 3.22 ===
+* Added hardware-specific limits to configuration parameters.
+* Permanent NRF bug fix.
+
+=== FW 3.21 ===
+* Fixed regression in PID speed controller.
+
+=== FW 3.20 ===
+* PID speed control: Set prev_error to error when the PID is off to make the start smoother.
+* Improved spinup algorithm for flux linkage and bldc parameter measurement.
+* APP ADC: Configurable center voltage for channel 1.
+* APP_UARTCOMM: Keep the processing thread running when stopping the app in case the configuration is made from the UART port itself.
+* Commands: Return results of long running commands to the port they came from even if commands come in between and change the last port.
+
+=== FW 3.19 ===
+* Added terminal plugin hook implementation. Inspired by https://github.com/vedderb/bldc/pull/28
+* Moved sampling buffers to CCM to free some RAM.
+* Added hardware info terminal command.
+* NRF init SPI check fix.
+* Sampled data is now transmitted in floating point with scaling done at the VESC. This avoids hard-coded scaling in VESC Tool.
+
+=== FW 3.18 ===
+* NRF init SPI check.
+* Permanent NRF: reconfigure NRF pins to SPI pins on init failure in case the permanent NRF is not mounted and behave as if there is no permanent NRF.
+
+=== FW 3.17 ===
+* Temperature filtering.
+* FOC: temperature resistance compensation.
+
+=== FW 3.16 ===
+* FOC: stator saturation compensation parameter.
+* FOC: Another update for the fix for throttle limits to prevent loosing range at high speed when the battery current limit is lower than the motor current limit.
+* DRV8301: over current protection settings added to configuration.
+* DRV8301: Reset command andded to terminal.
+* DRV8301: Log fault code read over SPI.
+* DRV: Check for faults in ADC interrupt to catch the state as fast as possible.
+* Send phase samples as well with the sampling function.
+* New sampling modes for debugging.
+* BLDC and DC: Configurable switching frequency
+* FOC detect: increase minimum switching frequency for motor spinup to make it possible to detect high kv motors at high voltage.
+* FOC: observer gain scaling parameter for low modulation.
+
+=== FW 3.15 ===
+* FOC: added the option for FOC sampling in both V0 and V7 to mcconf, so that it can be changed without recompiling the firmware.
+* FOC: tweaked repetition counter and preload to get cleaner waveforms with low latency.
+* FOC: Input voltage filterting and vd/vq filtering while undriven for more stable performance.
+
+=== FW 3.14 ===
+* Different throttle curve modes
+* Improved FOC sensorless startup.
+
+=== FW 3.13 ===
+* Throttle curve for PPM, ADC and Nunchuk.
+* Updated fix for throttle limits to prevent loosing range at high speed when the battery current limit is lower than the motor current limit.
+* APP PPM ramping.
+* APP ADC and PPM current range bug fix for some control modes.
+
+=== FW 3.12 ===
+* APP PPM throttle center setting.
+
+=== FW 3.11 ===
+* BLDC detect: disable direction inversion before detecting parameters.
+* FOC speed control: remove supply voltage scaling since that does not make any sense in current control mode.
+* BLDC speed control: added current-based speed controller option.
+* BLDC: heavier RPM filtering.
+* Speed control: option to disable braking in speed control mode.
+* Added wattage limits. Useful for following laws for electric vehicles in some regions.
+* Use override current limits to scale throttle inputs in apps. Will prevent the throttle from loosing rage at speed if e.g. the battery current limits are lower than the motor current limits.
+
 === FW 3.10 ===
-* BLDC: removed cycles_running parameter
+* BLDC: removed cycles_running variable.
 * BLDC: update ADC sampling in correct order to avoid corrupt samples when the switching frequency changes a lot at once.
 * Terminal: print fault duty cycle state with one extra decimal.
 
 === FW 3.9 ===
 * Configuration option for inverting the motor direction.
-* STM32 96-bit unique ID in firmware version command.
+* STM32 96-bit unique ID readout.
 
 === FW 3.8 ===
 * Communication protocol update for floating point variables. This breaks almost all compatibility with old firmwares.

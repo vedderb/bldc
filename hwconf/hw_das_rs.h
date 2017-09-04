@@ -23,8 +23,7 @@
 // HW properties
 #define HW_HAS_DRV8313
 #define HW_HAS_3_SHUNTS
-//#define HW_USE_CURRENT_MEDIAN_FILTER // Only with 3 injected samples
-//#define HW_USE_LS_AND_HS_CURRENT_SAMPLES // Requires phase shunts
+#define HW_HAS_PHASE_SHUNTS
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -168,11 +167,11 @@
 
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOC
-#define HW_HALL_ENC_PIN1		6
+#define HW_HALL_ENC_PIN1		7
 #define HW_HALL_ENC_GPIO2		GPIOC
-#define HW_HALL_ENC_PIN2		7
+#define HW_HALL_ENC_PIN2		8
 #define HW_HALL_ENC_GPIO3		GPIOC
-#define HW_HALL_ENC_PIN3		8
+#define HW_HALL_ENC_PIN3		6
 #define HW_ENC_TIM				TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)

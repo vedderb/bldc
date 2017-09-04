@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		10
+#define FW_VERSION_MINOR		27
 
 #include "datatypes.h"
 
@@ -38,6 +38,9 @@
 //#define CURR2_DOUBLE_SAMPLE			0
 //#define AS5047_USE_HW_SPI_PINS		1
 
+// Disable hardware limits on configuration parameters
+//#define DISABLE_HW_LIMITS
+
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
@@ -47,7 +50,7 @@
 #if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
 	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
 	!defined(HW_VERSION_60) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A) && \
-	!defined(HW_VERSION_DAS_RS)
+	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) & !defined(HW_VERSION_RH)
 //#define HW_VERSION_40
 //#define HW_VERSION_45
 //#define HW_VERSION_46 // Also for 4.7
@@ -58,6 +61,8 @@
 //#define HW_VERSION_R2
 //#define HW_VERSION_VICTOR_R1A
 //#define HW_VERSION_DAS_RS
+//#define HW_VERSION_PALTA
+//#define HW_VERSION_RH
 #endif
 
 /*
@@ -66,19 +71,19 @@
 //#define MCCONF_DEFAULT_USER			"mcconf_sten.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_sp_540kv.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_castle_2028.h"
+//#define MCCONF_DEFAULT_USER			"mcconf_ellwee.h"
 
 /*
  * Select default user app configuration
  */
 //#define APPCONF_DEFAULT_USER		"appconf_example_ppm.h"
 //#define APPCONF_DEFAULT_USER		"appconf_custom.h"
+//#define APPCONF_DEFAULT_USER		"appconf_ellwee.h"
 
 /*
- * Select which custom application to use. To configure the default applications and
- * their settings, go to conf_general_read_app_configuration and enter the default init
- * values.
+ * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-//#define USE_APP_STEN
+//#define APP_CUSTOM_TO_USE			"app_ellwee.c"
 
 /*
  * Enable CAN-bus
@@ -132,11 +137,25 @@
 #endif
 
 /*
- * Settings / Macros
+ * MCU
  */
 #define SYSTEM_CORE_CLOCK			168000000
-#define STM32_UUID					((uint32_t *)0x1FFF7A10)
-#define STM32_UUID_8				((uint8_t *)0x1FFF7A10)
+#define STM32_UUID					((uint32_t*)0x1FFF7A10)
+#define STM32_UUID_8				((uint8_t*)0x1FFF7A10)
+
+/*
+ *	Run the BLDC speed controller in current mode instead of duty cycle mode. This will
+ *	make it behave like the FOC speed controller. The duty cycle mode has the advantage
+ *	that it does not require the extra current controller since bldc inherently runs
+ *	with duty cycle control. The current controller also outputs a duty cycle in the
+ *	end, and then the speed controller might as well do the same without the current
+ *	controller dynamics in between. FOC on the other hand is inherently based on current
+ *	control.
+ */
+#define BLDC_SPEED_CONTROL_CURRENT	1
+
+// Global configuration variables
+extern bool conf_general_permanent_nrf_found;
 
 // Functions
 void conf_general_init(void);

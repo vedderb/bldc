@@ -211,7 +211,7 @@ void encoder_reset(void) {
 	__NOP();
 	__NOP();
 	if (palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)) {
-		unsigned int cnt = HW_ENC_TIM->CNT;
+		const unsigned int cnt = HW_ENC_TIM->CNT;
 		static int bad_pulses = 0;
 		const unsigned int lim = enc_counts / 20;
 

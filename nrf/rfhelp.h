@@ -24,7 +24,7 @@
 #include "datatypes.h"
 
 // Functions
-void rfhelp_init(void);
+bool rfhelp_init(void);
 void rfhelp_stop(void);
 void rfhelp_update_conf(nrf_config *conf);
 void rfhelp_restart(void);

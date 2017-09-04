@@ -95,6 +95,13 @@ make -j4 build_args="-DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j4 build_args="-DHW_VERSION_410 -DDISABLE_HW_LIMITS"
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
@@ -127,6 +134,13 @@ touch conf_general.h
 make -j4 build_args="-DHW_VERSION_60"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j4 build_args="-DHW_VERSION_60 -DDISABLE_HW_LIMITS"
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # ws2811
 cd $FWPATH

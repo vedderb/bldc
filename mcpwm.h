@@ -65,6 +65,7 @@ float mcpwm_get_last_adc_isr_duration(void);
 float mcpwm_get_last_inj_adc_isr_duration(void);
 mc_rpm_dep_struct mcpwm_get_rpm_dep(void);
 bool mcpwm_is_dccal_done(void);
+void mcpwm_switch_comm_mode(mc_comm_mode next);
 
 // Interrupt handlers
 void mcpwm_adc_inj_int_handler(void);
@@ -79,9 +80,6 @@ extern volatile int mcpwm_vzero;
 /*
  * Fixed parameters
  */
-#define MCPWM_SWITCH_FREQUENCY_MIN		3000	// The lowest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_MAX		40000	// The highest switching frequency in Hz
-#define MCPWM_SWITCH_FREQUENCY_DC_MOTOR	35000	// The DC motor switching frequency
 #define MCPWM_RPM_TIMER_FREQ			1000000.0	// Frequency of the RPM measurement timer
 #define MCPWM_CMD_STOP_TIME				0		// Ignore commands for this duration in msec after a stop has been sent
 #define MCPWM_DETECT_STOP_TIME			500		// Ignore commands for this duration in msec after a detect command

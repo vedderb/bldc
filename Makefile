@@ -62,13 +62,13 @@ endif
 # Stack size to be allocated to the Cortex-M process stack. This stack is
 # the stack used by the main() thread.
 ifeq ($(USE_PROCESS_STACKSIZE),)
-  USE_PROCESS_STACKSIZE = 0x400
+  USE_PROCESS_STACKSIZE = 0x800
 endif
 
 # Stack size to the allocated to the Cortex-M main/exceptions stack. This
 # stack is used for processing interrupts and exceptions.
 ifeq ($(USE_EXCEPTIONS_STACKSIZE),)
-  USE_EXCEPTIONS_STACKSIZE = 0x400
+  USE_EXCEPTIONS_STACKSIZE = 0x800
 endif
 
 # Enables the use of FPU on Cortex-M4 (no, softfp, hard).
@@ -276,6 +276,12 @@ upload: build/$(PROJECT).bin
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
 upload-olimex: build/$(PROJECT).bin
 	openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
+
+upload-pi: build/$(PROJECT).bin
+	openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+
+upload-pi-remote: build/$(PROJECT).elf
+	./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
 debug-start:
 	openocd -f stm32-bv_openocd.cfg

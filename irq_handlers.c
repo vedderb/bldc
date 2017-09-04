@@ -22,6 +22,7 @@
 #include "stm32f4xx_conf.h"
 #include "isr_vector_table.h"
 #include "mc_interface.h"
+#include "mcpwm_foc.h"
 #include "servo.h"
 #include "hw.h"
 #include "encoder.h"
@@ -57,5 +58,14 @@ CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 
 		// Clear the IT pending bit
 		TIM_ClearITPendingBit(HW_ENC_TIM, TIM_IT_Update);
+	}
+}
+
+CH_IRQ_HANDLER(TIM8_CC_IRQHandler) {
+	if (TIM_GetITStatus(TIM8, TIM_IT_CC1) != RESET) {
+		mcpwm_foc_tim_sample_int_handler();
+
+		// Clear the IT pending bit
+		TIM_ClearITPendingBit(TIM8, TIM_IT_CC1);
 	}
 }

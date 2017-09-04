@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2017 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -48,6 +48,10 @@
 #include "hw_victor_r1a.h"
 #elif defined HW_VERSION_DAS_RS
 #include "hw_das_rs.h"
+#elif defined HW_VERSION_PALTA
+#include "hw_palta.h"
+#elif defined HW_VERSION_RH
+#include "hw_rh.h"
 #else
 #error "No hardware version defined"
 #endif

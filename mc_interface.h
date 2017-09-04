@@ -21,6 +21,7 @@
 #define MC_INTERFACE_H_
 
 #include "conf_general.h"
+#include "hw.h"
 
 // Functions
 void mc_interface_init(mc_configuration *configuration);
@@ -39,6 +40,8 @@ void mc_interface_set_pid_speed(float rpm);
 void mc_interface_set_pid_pos(float pos);
 void mc_interface_set_current(float current);
 void mc_interface_set_brake_current(float current);
+void mc_interface_set_current_rel(float val);
+void mc_interface_set_brake_current_rel(float val);
 void mc_interface_set_handbrake(float current);
 void mc_interface_brake_now(void);
 void mc_interface_release_motor(void);
@@ -66,7 +69,9 @@ float mc_interface_read_reset_avg_iq(void);
 float mc_interface_get_pid_pos_set(void);
 float mc_interface_get_pid_pos_now(void);
 float mc_interface_get_last_sample_adc_isr_duration(void);
-void mc_interface_sample_print_data(bool at_start, uint16_t len, uint8_t decimation);
+void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint8_t decimation);
+float mc_interface_temp_fet_filtered(void);
+float mc_interface_temp_motor_filtered(void);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);
@@ -81,7 +86,8 @@ extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 
 // Common fixed parameters
-#define MCPWM_DEAD_TIME_CYCLES			60		// Dead time
-
+#ifndef HW_DEAD_TIME_VALUE
+#define HW_DEAD_TIME_VALUE				60 // Dead time
+#endif
 
 #endif /* MC_INTERFACE_H_ */

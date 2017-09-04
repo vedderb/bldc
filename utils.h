@@ -43,12 +43,17 @@ bool utils_saturate_vector_2d(float *x, float *y, float max);
 void utils_fast_sincos(float angle, float *sin, float *cos);
 void utils_fast_sincos_better(float angle, float *sin, float *cos);
 float utils_min_abs(float va, float vb);
+float utils_max_abs(float va, float vb);
 void utils_byte_to_binary(int x, char *b);
+float utils_throttle_curve(float val, float curve, int mode);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
-#define SIGN(x)				((x<0)?-1:1)
+#define SIGN(x)				((x < 0) ? -1 : 1)
+
+// Squared
+#define SQ(x)				((x) * (x))
 
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
@@ -70,5 +75,10 @@ void utils_sys_unlock_cnt(void);
  * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
  */
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * (value - (sample)))
+
+// Some constants
+#define ONE_BY_SQRT3			(0.57735026919)
+#define TWO_BY_SQRT3			(2.0f * 0.57735026919)
+#define SQRT3_BY_2				(0.86602540378)
 
 #endif /* UTILS_H_ */

@@ -29,7 +29,6 @@
 #include "digital_filter.h"
 #include "utils.h"
 #include "ledpwm.h"
-#include "hw.h"
 #include "terminal.h"
 #include "encoder.h"
 
@@ -89,6 +88,7 @@ static volatile bool dccal_done;
 static volatile bool sensorless_now;
 static volatile int hall_detect_table[8][7];
 static volatile bool init_done;
+static volatile mc_comm_mode comm_mode_next;
 
 #ifdef HW_HAS_3_SHUNTS
 static volatile int curr2_sum;
@@ -188,7 +188,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	control_mode = CONTROL_MODE_NONE;
 	last_current_sample = 0.0;
 	last_current_sample_filtered = 0.0;
-	switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
+	switching_frequency_now = conf->m_bldc_f_sw_max;
 	ignore_iterations = 0;
 	curr_samp_volt = 0;
 	slow_ramping_cycles = 0;
@@ -203,6 +203,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	dccal_done = false;
 	memset((void*)hall_detect_table, 0, sizeof(hall_detect_table[0][0]) * 8 * 7);
 	update_sensor_mode();
+	comm_mode_next = conf->comm_mode;
 
 	mcpwm_init_hall_table((int8_t*)conf->hall_table);
 
@@ -256,7 +257,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
 	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
-	TIM_BDTRInitStructure.TIM_DeadTime = MCPWM_DEAD_TIME_CYCLES;
+	TIM_BDTRInitStructure.TIM_DeadTime = HW_DEAD_TIME_VALUE;
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
@@ -505,6 +506,7 @@ void mcpwm_set_configuration(volatile mc_configuration *configuration) {
 
 	utils_sys_lock_cnt();
 	conf = configuration;
+	comm_mode_next = conf->comm_mode;
 	mcpwm_init_hall_table((int8_t*)conf->hall_table);
 	update_sensor_mode();
 	utils_sys_unlock_cnt();
@@ -894,7 +896,7 @@ static void stop_pwm_hw(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
+	set_switching_frequency(conf->m_bldc_f_sw_max);
 }
 
 static void full_brake_ll(void) {
@@ -922,7 +924,7 @@ static void full_brake_hw(void) {
 
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
+	set_switching_frequency(conf->m_bldc_f_sw_max);
 }
 
 /**
@@ -996,7 +998,13 @@ static void set_duty_cycle_ll(float dutyCycle) {
 
 	if (dutyCycle < conf->l_min_duty) {
 		float max_erpm_fbrake;
+#if BLDC_SPEED_CONTROL_CURRENT
+		if (control_mode == CONTROL_MODE_CURRENT ||
+				control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+				control_mode == CONTROL_MODE_SPEED) {
+#else
 		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+#endif
 			max_erpm_fbrake = conf->l_max_erpm_fbrake_cc;
 		} else {
 			max_erpm_fbrake = conf->l_max_erpm_fbrake;
@@ -1076,13 +1084,13 @@ static void set_duty_cycle_hw(float dutyCycle) {
 	utils_truncate_number(&dutyCycle, conf->l_min_duty, conf->l_max_duty);
 
 	if (conf->motor_type == MOTOR_TYPE_DC) {
-		switching_frequency_now = MCPWM_SWITCH_FREQUENCY_DC_MOTOR;
+		switching_frequency_now = conf->m_dc_f_sw;
 	} else {
 		if (IS_DETECTING() || conf->pwm_mode == PWM_MODE_BIPOLAR) {
-			switching_frequency_now = MCPWM_SWITCH_FREQUENCY_MAX;
+			switching_frequency_now = conf->m_bldc_f_sw_max;
 		} else {
-			switching_frequency_now = (float)MCPWM_SWITCH_FREQUENCY_MIN * (1.0 - fabsf(dutyCycle)) +
-					(float)MCPWM_SWITCH_FREQUENCY_MAX * fabsf(dutyCycle);
+			switching_frequency_now = (float)conf->m_bldc_f_sw_min * (1.0 - fabsf(dutyCycle)) +
+					conf->m_bldc_f_sw_max * fabsf(dutyCycle);
 		}
 	}
 
@@ -1107,24 +1115,66 @@ static void run_pid_control_speed(void) {
 
 	// PID is off. Return.
 	if (control_mode != CONTROL_MODE_SPEED) {
+#if BLDC_SPEED_CONTROL_CURRENT
+		i_term = 0.0;
+#else
 		i_term = dutycycle_now;
-		prev_error = 0;
+#endif
+		prev_error = 0.0;
 		return;
 	}
+
+	const float rpm = mcpwm_get_rpm();
+	float error = speed_pid_set_rpm - rpm;
 
 	// Too low RPM set. Stop and return.
 	if (fabsf(speed_pid_set_rpm) < conf->s_pid_min_erpm) {
 		i_term = dutycycle_now;
-		prev_error = 0;
+		prev_error = error;
 		mcpwm_set_duty(0.0);
 		return;
 	}
 
+#if BLDC_SPEED_CONTROL_CURRENT
+	// Compute parameters
+	p_term = error * conf->s_pid_kp * (1.0 / 20.0);
+	i_term += error * (conf->s_pid_ki * MCPWM_PID_TIME_K) * (1.0 / 20.0);
+	d_term = (error - prev_error) * (conf->s_pid_kd / MCPWM_PID_TIME_K) * (1.0 / 20.0);
+
+	// I-term wind-up protection
+	utils_truncate_number(&i_term, -1.0, 1.0);
+
+	// Store previous error
+	prev_error = error;
+
+	// Some d_term filtering
+	static float d_filtered = 0.0;
+	UTILS_LP_FAST(d_filtered, d_term, 0.1);
+	d_term = d_filtered;
+
+	// Calculate output
+	float output = p_term + i_term + d_term;
+	utils_truncate_number(&output, -1.0, 1.0);
+
+	// Optionally disable braking
+	if (!conf->s_pid_allow_braking) {
+		if (rpm > 0.0 && output < 0.0) {
+			output = 0.0;
+		}
+
+		if (rpm < 0.0 && output > 0.0) {
+			output = 0.0;
+		}
+	}
+
+	current_set = output * conf->lo_current_max;
+
+	if (state != MC_STATE_RUNNING) {
+		set_duty_cycle_hl(SIGN(output) * conf->l_min_duty);
+	}
+#else
 	// Compensation for supply voltage variations
 	float scale = 1.0 / GET_INPUT_VOLTAGE();
-
-	// Compute error
-	float error = speed_pid_set_rpm - mcpwm_get_rpm();
 
 	// Compute parameters
 	p_term = error * conf->s_pid_kp * scale;
@@ -1155,6 +1205,7 @@ static void run_pid_control_speed(void) {
 	}
 
 	set_duty_cycle_hl(output);
+#endif
 }
 
 static void run_pid_control_pos(float dt) {
@@ -1221,9 +1272,9 @@ static THD_FUNCTION(rpm_thread, arg) {
 		}
 
 		// Some low-pass filtering
-		static float rpm_p1 = 0.0;
-		rpm_now = (rpm_now + rpm_p1) / 2;
-		rpm_p1 = rpm_now;
+		static float rpm_filtered = 0.0;
+		UTILS_LP_FAST(rpm_filtered, rpm_now, 0.1);
+		rpm_now = rpm_filtered;
 		const float rpm_abs = fabsf(rpm_now);
 
 		// Update the cycle integrator limit
@@ -1244,8 +1295,8 @@ static THD_FUNCTION(rpm_thread, arg) {
 			rpm_dep.cycle_int_limit_running = rpm_dep.cycle_int_limit_max;
 		}
 
-		rpm_dep.comm_time_sum = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((rpm_abs / 60.0) * 6.0);
-		rpm_dep.comm_time_sum_min_rpm = ((float) MCPWM_SWITCH_FREQUENCY_MAX) / ((conf->sl_min_erpm / 60.0) * 6.0);
+		rpm_dep.comm_time_sum = conf->m_bldc_f_sw_max / ((rpm_abs / 60.0) * 6.0);
+		rpm_dep.comm_time_sum_min_rpm = conf->m_bldc_f_sw_max / ((conf->sl_min_erpm / 60.0) * 6.0);
 
 		run_pid_control_speed();
 
@@ -1780,6 +1831,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 					}
 				}
 
+				static float cycle_sum = 0.0;
 				if (conf->comm_mode == COMM_MODE_INTEGRATE) {
 					float limit;
 					if (has_commutated) {
@@ -1792,11 +1844,11 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 							cycle_integrator >= limit) {
 						commutate(1);
 						cycle_integrator = 0.0;
+						cycle_sum = 0.0;
 					}
 				} else if (conf->comm_mode == COMM_MODE_DELAY) {
-					static float cycle_sum = 0.0;
 					if (v_diff > 0) {
-						cycle_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
+						cycle_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
 
 						if (cycle_sum >= utils_map(fabsf(rpm_now), 0,
 								conf->sl_cycle_int_rpm_br, rpm_dep.comm_time_sum / 2.0,
@@ -1816,7 +1868,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 				cycle_integrator = 0.0;
 			}
 
-			pwm_cycles_sum += (float)MCPWM_SWITCH_FREQUENCY_MAX / switching_frequency_now;
+			pwm_cycles_sum += conf->m_bldc_f_sw_max / switching_frequency_now;
 			pwm_cycles++;
 		} else {
 			const int hall_phase = mcpwm_read_hall_phase();
@@ -1870,7 +1922,13 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 		float dutycycle_now_tmp = dutycycle_now;
 
+#if BLDC_SPEED_CONTROL_CURRENT
+		if (control_mode == CONTROL_MODE_CURRENT ||
+				control_mode == CONTROL_MODE_POS ||
+				control_mode == CONTROL_MODE_SPEED) {
+#else
 		if (control_mode == CONTROL_MODE_CURRENT || control_mode == CONTROL_MODE_POS) {
+#endif
 			// Compute error
 			const float error = current_set - (direction ? current_nofilter : -current_nofilter);
 			float step = error * conf->cc_gain * voltage_scale;
@@ -2011,7 +2069,7 @@ void mcpwm_set_detect(void) {
 	control_mode = CONTROL_MODE_NONE;
 	stop_pwm_hw();
 
-	set_switching_frequency(MCPWM_SWITCH_FREQUENCY_MAX);
+	set_switching_frequency(conf->m_bldc_f_sw_max);
 
 	for(int i = 0;i < 6;i++) {
 		mcpwm_detect_currents[i] = 0;
@@ -2101,6 +2159,10 @@ mc_rpm_dep_struct mcpwm_get_rpm_dep(void) {
 
 bool mcpwm_is_dccal_done(void) {
 	return dccal_done;
+}
+
+void mcpwm_switch_comm_mode(mc_comm_mode next) {
+	comm_mode_next = next;
 }
 
 /**
@@ -2502,6 +2564,7 @@ static void commutate(int steps) {
 	update_adc_sample_pos(&timer_tmp);
 	set_next_timer_settings(&timer_tmp);
 	update_sensor_mode();
+	conf->comm_mode = comm_mode_next;
 }
 
 static void set_next_timer_settings(mc_timer_struct *settings) {

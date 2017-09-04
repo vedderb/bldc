@@ -5,7 +5,7 @@ But Benjamin is a busy man, and to reduce the workload of reviewing patches, it'
 
 === Process ===
 
-Please discuss your ideas in the forum (http://vedder.se/forums/index.php) so that you don't just dump a large amount of code on Benjamin out of nowhere. Try to reach some kind of consensus with others on the forum about scope and functionality of your contribution.
+Please discuss your ideas in the forum (http://vesc-project.com/forum) so that you don't just dump a large amount of code on Benjamin out of nowhere. Try to reach some kind of consensus with others on the forum about scope and functionality of your contribution.
 
 When Benjamin is prepared for your patch, and you have checked that it follows these guidelines, contribute it through a github pull request.
 

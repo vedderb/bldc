@@ -18,6 +18,7 @@
     */
 
 #include <string.h>
+#include <math.h>
 #include "comm_can.h"
 #include "ch.h"
 #include "hal.h"
@@ -236,6 +237,18 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						}
 						break;
 
+					case CAN_PACKET_SET_CURRENT_REL:
+						ind = 0;
+						mc_interface_set_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						timeout_reset();
+						break;
+
+					case CAN_PACKET_SET_CURRENT_BRAKE_REL:
+						ind = 0;
+						mc_interface_set_brake_current_rel(buffer_get_float32(rxmsg.data8, 1e5, &ind));
+						timeout_reset();
+						break;
+
 					default:
 						break;
 					}
@@ -281,7 +294,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
 			buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current() * 10.0), &send_index);
 			buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1000.0), &send_index);
-			comm_can_transmit(app_get_configuration()->controller_id | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
+			comm_can_transmit_eid(app_get_configuration()->controller_id |
+					((uint32_t)CAN_PACKET_STATUS << 8), buffer, send_index);
 		}
 
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / app_get_configuration()->send_can_status_rate_hz;
@@ -293,7 +307,7 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 	}
 }
 
-void comm_can_transmit(uint32_t id, uint8_t *data, uint8_t len) {
+void comm_can_transmit_eid(uint32_t id, uint8_t *data, uint8_t len) {
 #if CAN_ENABLE
 	CANTxFrame txmsg;
 	txmsg.IDE = CAN_IDE_EXT;
@@ -340,7 +354,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		send_buffer[ind++] = send;
 		memcpy(send_buffer + ind, data, len);
 		ind += len;
-		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
+		comm_can_transmit_eid(controller_id |
+				((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
 	} else {
 		unsigned int end_a = 0;
 		for (unsigned int i = 0;i < len;i += 7) {
@@ -360,7 +375,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 				memcpy(send_buffer + 1, data + i, send_len);
 			}
 
-			comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
+			comm_can_transmit_eid(controller_id |
+					((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
 		}
 
 		for (unsigned int i = end_a;i < len;i += 6) {
@@ -375,7 +391,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 				memcpy(send_buffer + 2, data + i, send_len);
 			}
 
-			comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_FILL_RX_BUFFER_LONG << 8), send_buffer, send_len + 2);
+			comm_can_transmit_eid(controller_id |
+					((uint32_t)CAN_PACKET_FILL_RX_BUFFER_LONG << 8), send_buffer, send_len + 2);
 		}
 
 		uint32_t ind = 0;
@@ -387,7 +404,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		send_buffer[ind++] = (uint8_t)(crc >> 8);
 		send_buffer[ind++] = (uint8_t)(crc & 0xFF);
 
-		comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, ind++);
+		comm_can_transmit_eid(controller_id |
+				((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, ind++);
 	}
 }
 
@@ -395,35 +413,74 @@ void comm_can_set_duty(uint8_t controller_id, float duty) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(duty * 100000.0), &send_index);
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
 }
 
 void comm_can_set_current(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
 }
 
 void comm_can_set_current_brake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
 }
 
 void comm_can_set_rpm(uint8_t controller_id, float rpm) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)rpm, &send_index);
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
 }
 
 void comm_can_set_pos(uint8_t controller_id, float pos) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
-	comm_can_transmit(controller_id | ((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
+}
+
+/**
+ * Set current relative to the minimum and maximum current limits.
+ *
+ * @param controller_id
+ * The ID of the VESC to set the current on.
+ *
+ * @param current_rel
+ * The relative current value, range [-1.0 1.0]
+ */
+void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
+	int32_t send_index = 0;
+	uint8_t buffer[4];
+	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index);
+}
+
+/**
+ * Set brake current relative to the minimum current limit.
+ *
+ * @param controller_id
+ * The ID of the VESC to set the current on.
+ *
+ * @param current_rel
+ * The relative current value, range [0.0 1.0]
+ */
+void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel) {
+	int32_t send_index = 0;
+	uint8_t buffer[4];
+	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE_REL << 8), buffer, send_index);
 }
 
 /**

@@ -25,6 +25,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
+#include <string.h>
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -32,6 +33,9 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+
+// Private variables
+static char m_fault_print_buffer[120];
 
 void drv8301_init(void) {
 	// DRV8301 SPI
@@ -48,11 +52,125 @@ void drv8301_init(void) {
 	drv8301_write_reg(2, 0x0430);
 }
 
+/**
+ * Set the threshold of the over current protection of the DRV8301. It works by measuring
+ * the voltage drop across drain-source of the MOSFETs and activates when it is higher than
+ * a set value. Notice that this current limit is not very accurate.
+ *
+ * @param val
+ * The value to use. Range [0 31]. A lower value corresponds to a lower current limit. See
+ * the drv8301 datasheet for how to convert these values to currents.
+ */
 void drv8301_set_oc_adj(int val) {
 	int reg = drv8301_read_reg(2);
 	reg &= 0x003F;
 	reg |= (val & 0x1F) << 6;
 	drv8301_write_reg(2, reg);
+}
+
+/**
+ * Set the over current protection mode of the DRV8301.
+ *
+ * @param mode
+ * The over current protection mode.
+ */
+void drv8301_set_oc_mode(drv8301_oc_mode mode) {
+	int reg = drv8301_read_reg(2);
+	reg &= 0xFFCF;
+	reg |= (mode & 0x03) << 4;
+	drv8301_write_reg(2, reg);
+}
+
+/**
+ * Read the fault codes of the DRV8301.
+ *
+ * @return
+ * The fault codes, where the bits represent the following:
+ * b0: FETLC_OC
+ * b1: FETHC_OC
+ * b2: FETLB_OC
+ * b3: FETHB_OC
+ * b4: FETLA_OC
+ * b5: FETHA_OC
+ * b6: OTW
+ * b7: OTSD
+ * b8: PVDD_UV
+ * b9: GVDD_UV
+ * b10: FAULT
+ * b11: GVDD_OV
+ *
+ */
+int drv8301_read_faults(void) {
+	int r0 = drv8301_read_reg(0);
+	int r1 = drv8301_read_reg(1);
+	return r0 | (((r1 >> 7) & 0x01) << 4);
+}
+
+/**
+ * Reset all latched faults.
+ */
+void drv8301_reset_faults(void) {
+	int reg = drv8301_read_reg(2);
+	reg |= 1 << 2;
+	drv8301_write_reg(2, reg);
+}
+
+char* drv8301_faults_to_string(int faults) {
+	if (faults == 0) {
+		strcpy(m_fault_print_buffer, "No DRV8301 faults");
+	} else {
+		strcpy(m_fault_print_buffer, "|");
+
+		if (faults & DRV8301_FAULT_FETLC_OC) {
+			strcat(m_fault_print_buffer, " FETLC_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_FETHC_OC) {
+			strcat(m_fault_print_buffer, " FETHC_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_FETLB_OC) {
+			strcat(m_fault_print_buffer, " FETLB_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_FETHB_OC) {
+			strcat(m_fault_print_buffer, " FETHB_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_FETLA_OC) {
+			strcat(m_fault_print_buffer, " FETLA_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_FETHA_OC) {
+			strcat(m_fault_print_buffer, " FETHA_OC |");
+		}
+
+		if (faults & DRV8301_FAULT_OTW) {
+			strcat(m_fault_print_buffer, " OTW |");
+		}
+
+		if (faults & DRV8301_FAULT_OTSD) {
+			strcat(m_fault_print_buffer, " OTSD |");
+		}
+
+		if (faults & DRV8301_FAULT_PVDD_UV) {
+			strcat(m_fault_print_buffer, " PVDD_UV |");
+		}
+
+		if (faults & DRV8301_FAULT_GVDD_UV) {
+			strcat(m_fault_print_buffer, " GVDD_UV |");
+		}
+
+		if (faults & DRV8301_FAULT_FAULT) {
+			strcat(m_fault_print_buffer, " FAULT |");
+		}
+
+		if (faults & DRV8301_FAULT_GVDD_OV) {
+			strcat(m_fault_print_buffer, " GVDD_OV |");
+		}
+	}
+
+	return m_fault_print_buffer;
 }
 
 unsigned int drv8301_read_reg(int reg) {
@@ -61,9 +179,11 @@ unsigned int drv8301_read_reg(int reg) {
 	out |= (reg & 0x0F) << 11;
 	out |= 0x807F;
 
-	spi_begin();
-	spi_exchange(out);
-	spi_end();
+	if (reg != 0) {
+		spi_begin();
+		spi_exchange(out);
+		spi_end();
+	}
 
 	spi_begin();
 	uint16_t res = spi_exchange(0xFFFF);

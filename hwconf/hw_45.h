@@ -177,6 +177,16 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
+// Setting limits
+#define HW_LIM_CURRENT			-100.0, 100.0
+#define HW_LIM_CURRENT_IN		-100.0, 100.0
+#define HW_LIM_CURRENT_ABS		0.0, 150.0
+#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_ERPM				-200e3, 200e3
+#define HW_LIM_DUTY_MIN			0.0, 0.1
+#define HW_LIM_DUTY_MAX			0.0, 0.95
+#define HW_LIM_TEMP_FET			-40.0, 110.0
+
 // HW-specific functions
 float hw45_get_temp(void);
 

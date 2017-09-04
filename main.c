@@ -47,6 +47,7 @@
 #include "utils.h"
 #include "nrf_driver.h"
 #include "rfhelp.h"
+#include "spi_sw.h"
 
 /*
  * Timers used:
@@ -157,6 +158,11 @@ static THD_FUNCTION(periodic_thread, arg) {
 //			UTILS_LP_FAST(res_filtered, res, 0.02);
 //			commands_printf("Res: %.4f", (double)res_filtered);
 //		}
+
+//		chThdSleepMilliseconds(40);
+//		commands_printf("Max: %.2f Min: %.2f",
+//				(double)mc_interface_get_configuration()->lo_current_motor_max_now,
+//				(double)mc_interface_get_configuration()->lo_current_motor_min_now);
 	}
 }
 
@@ -201,9 +207,21 @@ int main(void) {
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
 	app_set_configuration(&appconf);
+
 #ifdef HW_HAS_PERMANENT_NRF
-	nrf_driver_init();
-	rfhelp_restart();
+	conf_general_permanent_nrf_found = nrf_driver_init();
+	if (conf_general_permanent_nrf_found) {
+		rfhelp_restart();
+	} else {
+		nrf_driver_stop();
+		// Set the nrf SPI pins to the general SPI interface so that
+		// an external NRF can be used with the NRF app.
+		spi_sw_change_pins(
+				HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
+	}
 #endif
 
 	timeout_init();

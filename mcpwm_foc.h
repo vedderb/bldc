@@ -74,6 +74,7 @@ void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_inj_adc_isr_duration(void);
 
 // Interrupt handlers
+void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines

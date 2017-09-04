@@ -44,11 +44,13 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_stop();
 	app_uartcomm_stop();
 	app_nunchuk_stop();
-#ifndef HW_HAS_PERMANENT_NRF
-	nrf_driver_stop();
-#endif
-#ifdef USE_APP_STEN
-	app_sten_stop();
+
+	if (!conf_general_permanent_nrf_found) {
+		nrf_driver_stop();
+	}
+
+#ifdef APP_CUSTOM_TO_USE
+	app_custom_stop();
 #endif
 
 	switch (appconf.app_to_use) {
@@ -81,17 +83,17 @@ void app_set_configuration(app_configuration *conf) {
 		app_nunchuk_start();
 		break;
 
-#ifndef HW_HAS_PERMANENT_NRF
 	case APP_NRF:
-		nrf_driver_init();
-		rfhelp_restart();
+		if (!conf_general_permanent_nrf_found) {
+			nrf_driver_init();
+			rfhelp_restart();
+		}
 		break;
-#endif
 
 	case APP_CUSTOM:
-#ifdef USE_APP_STEN
+#ifdef APP_CUSTOM_TO_USE
 		hw_stop_i2c();
-		app_sten_start();
+		app_custom_start();
 #endif
 		break;
 
@@ -103,5 +105,10 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_configure(&appconf.app_adc_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
+
+#ifdef APP_CUSTOM_TO_USE
+	app_custom_configure(&appconf);
+#endif
+
 	rfhelp_update_conf(&appconf.app_nrf_conf);
 }

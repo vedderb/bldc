@@ -15,20 +15,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HWCONF_DRV8301_H_
-#define HWCONF_DRV8301_H_
+#ifndef HWCONF_DRV8305_H_
+#define HWCONF_DRV8305_H_
 
 #include "datatypes.h"
 
 // Functions
-void drv8301_init(void);
-void drv8301_set_oc_adj(int val);
-void drv8301_set_oc_mode(drv8301_oc_mode mode);
-int drv8301_read_faults(void);
-void drv8301_reset_faults(void);
-char* drv8301_faults_to_string(int faults);
-unsigned int drv8301_read_reg(int reg);
-void drv8301_write_reg(int reg, int data);
+void drv8305_init(void);
+int drv8305_read_faults(void);
+void drv8305_reset_faults(void);
+char* drv8305_faults_to_string(int faults);
+unsigned int drv8305_read_reg(int reg);
+void drv8305_write_reg(int reg, int data);
 
 // Defines
 #define DRV8301_FAULT_FETLC_OC		(1 << 0)
@@ -44,4 +42,4 @@ void drv8301_write_reg(int reg, int data);
 #define DRV8301_FAULT_FAULT			(1 << 10)
 #define DRV8301_FAULT_GVDD_OV		(1 << 11)
 
-#endif /* HWCONF_DRV8301_H_ */
+#endif /* HWCONF_DRV8305_H_ */

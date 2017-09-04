@@ -30,10 +30,10 @@
 #include "led_external.h"
 #include "datatypes.h"
 #include "comm_can.h"
+#include "terminal.h"
 
 // Settings
 #define OUTPUT_ITERATION_TIME_MS		1
-#define MAX_CURR_DIFFERENCE				5.0
 #define MAX_CAN_AGE						0.1
 #define RPM_FILTER_SAMPLES				8
 #define LOCAL_TIMEOUT					2000
@@ -53,8 +53,17 @@ static volatile chuk_config config;
 static volatile bool output_running = false;
 static volatile systime_t last_update_time;
 
+// Private functions
+static void terminal_cmd_nunchuk_status(int argc, const char **argv);
+
 void app_nunchuk_configure(chuk_config *conf) {
 	config = *conf;
+
+	terminal_register_command_callback(
+			"nunchuk_status",
+			"Print the status of the nunchuk app",
+			0,
+			terminal_cmd_nunchuk_status);
 }
 
 void app_nunchuk_start(void) {
@@ -207,10 +216,12 @@ static THD_FUNCTION(output_thread, arg) {
 			continue;
 		}
 
+		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		static bool is_reverse = false;
 		static bool was_z = false;
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
+		const float max_current_diff = mcconf->l_current_max * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
@@ -218,7 +229,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		if (chuck_d.bt_z && !was_z && config.ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
-				fabsf(current_now) < MAX_CURR_DIFFERENCE) {
+				fabsf(current_now) < max_current_diff) {
 			if (is_reverse) {
 				is_reverse = false;
 			} else {
@@ -232,6 +243,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, config.hyst, 1.0);
+		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_mode);
 
 		// LEDs
 		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;
@@ -255,7 +267,6 @@ static THD_FUNCTION(output_thread, arg) {
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
-		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];
@@ -313,15 +324,15 @@ static THD_FUNCTION(output_thread, arg) {
 
 			mc_interface_set_pid_speed(pid_rpm);
 
-			// Send the same duty cycle to the other controllers
+			// Send the same current to the other controllers
 			if (config.multi_esc) {
-				float duty = mc_interface_get_duty_cycle_now();
+				float current = mc_interface_get_tot_current_directional_filtered();
 
 				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_duty(msg->id, duty);
+						comm_can_set_current(msg->id, current);
 					}
 				}
 			}
@@ -338,9 +349,9 @@ static THD_FUNCTION(output_thread, arg) {
 		float current = 0;
 
 		if (out_val >= 0.0) {
-			current = out_val * mcconf->l_current_max;
+			current = out_val * mcconf->lo_current_motor_max_now;
 		} else {
-			current = out_val * fabsf(mcconf->l_current_min);
+			current = out_val * fabsf(mcconf->lo_current_motor_min_now);
 		}
 
 		// Find lowest RPM and highest current
@@ -395,11 +406,11 @@ static THD_FUNCTION(output_thread, arg) {
 			// when changing direction
 			float goal_tmp2 = current_goal;
 			if (is_reverse) {
-				if (fabsf(current_goal + current_highest_abs) > MAX_CURR_DIFFERENCE) {
+				if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
 					utils_step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
 				}
 			} else {
-				if (fabsf(current_goal - current_highest_abs) > MAX_CURR_DIFFERENCE) {
+				if (fabsf(current_goal - current_highest_abs) > max_current_diff) {
 					utils_step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
 				}
 			}
@@ -472,4 +483,13 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 		}
 	}
+}
+
+static void terminal_cmd_nunchuk_status(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Nunchuk Status");
+	commands_printf("Output: %s", output_running ? "On" : "Off");
+	commands_printf(" ");
 }

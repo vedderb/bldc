@@ -64,7 +64,7 @@ static const uint32_t flash_addr[FLASH_SECTORS] = {
 		ADDR_FLASH_SECTOR_10,
 		ADDR_FLASH_SECTOR_11
 };
-static const uint16_t flash_sector[12] = {
+static const uint16_t flash_sector[FLASH_SECTORS] = {
 		FLASH_Sector_0,
 		FLASH_Sector_1,
 		FLASH_Sector_2,

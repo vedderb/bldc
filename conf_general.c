@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2017 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,16 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-// User defined default motor configuration file
-#ifdef MCCONF_DEFAULT_USER
-#include MCCONF_DEFAULT_USER
-#endif
-
-// User defined default app configuration file
-#ifdef APPCONF_DEFAULT_USER
-#include APPCONF_DEFAULT_USER
-#endif
-
 #include "conf_general.h"
 #include "ch.h"
 #include "eeprom.h"
@@ -40,6 +30,16 @@
 #include <string.h>
 #include <math.h>
 
+// User defined default motor configuration file
+#ifdef MCCONF_DEFAULT_USER
+#include MCCONF_DEFAULT_USER
+#endif
+
+// User defined default app configuration file
+#ifdef APPCONF_DEFAULT_USER
+#include APPCONF_DEFAULT_USER
+#endif
+
 // Default configuration parameters that can be overridden
 #include "mcconf_default.h"
 #include "appconf_default.h"
@@ -50,6 +50,7 @@
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
+bool conf_general_permanent_nrf_found = false;
 
 // Private variables
 mc_configuration mcconf, mcconf_old;
@@ -94,8 +95,13 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_ppm_conf.hyst = APPCONF_PPM_HYST;
 	conf->app_ppm_conf.pulse_start = APPCONF_PPM_PULSE_START;
 	conf->app_ppm_conf.pulse_end = APPCONF_PPM_PULSE_END;
+	conf->app_ppm_conf.pulse_center = APPCONF_PPM_PULSE_CENTER;
 	conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
 	conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
+	conf->app_ppm_conf.throttle_exp = APPCONF_PPM_THROTTLE_EXP;
+	conf->app_ppm_conf.throttle_exp_mode = APPCONF_PPM_THROTTLE_EXP_MODE;
+	conf->app_ppm_conf.ramp_time_pos = APPCONF_PPM_RAMP_TIME_POS;
+	conf->app_ppm_conf.ramp_time_neg = APPCONF_PPM_RAMP_TIME_NEG;
 	conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
 	conf->app_ppm_conf.tc = APPCONF_PPM_TC;
 	conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
@@ -104,6 +110,7 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
 	conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;
 	conf->app_adc_conf.voltage_end = APPCONF_ADC_VOLTAGE_END;
+	conf->app_adc_conf.voltage_center = APPCONF_ADC_VOLTAGE_CENTER;
 	conf->app_adc_conf.voltage2_start = APPCONF_ADC_VOLTAGE2_START;
 	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
@@ -112,6 +119,10 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
 	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
+	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
+	conf->app_adc_conf.throttle_exp_mode = APPCONF_ADC_THROTTLE_EXP_MODE;
+	conf->app_adc_conf.ramp_time_pos = APPCONF_ADC_RAMP_TIME_POS;
+	conf->app_adc_conf.ramp_time_neg = APPCONF_ADC_RAMP_TIME_NEG;
 	conf->app_adc_conf.multi_esc = APPCONF_ADC_MULTI_ESC;
 	conf->app_adc_conf.tc = APPCONF_ADC_TC;
 	conf->app_adc_conf.tc_max_diff = APPCONF_ADC_TC_MAX_DIFF;
@@ -124,6 +135,8 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_chuk_conf.ramp_time_pos = APPCONF_CHUK_RAMP_TIME_POS;
 	conf->app_chuk_conf.ramp_time_neg = APPCONF_CHUK_RAMP_TIME_NEG;
 	conf->app_chuk_conf.stick_erpm_per_s_in_cc = APPCONF_STICK_ERPM_PER_S_IN_CC;
+	conf->app_chuk_conf.throttle_exp = APPCONF_CHUK_THROTTLE_EXP;
+	conf->app_chuk_conf.throttle_exp_mode = APPCONF_CHUK_THROTTLE_EXP_MODE;
 	conf->app_chuk_conf.multi_esc = APPCONF_CHUK_MULTI_ESC;
 	conf->app_chuk_conf.tc = APPCONF_CHUK_TC;
 	conf->app_chuk_conf.tc_max_diff = APPCONF_CHUK_TC_MAX_DIFF;
@@ -174,11 +187,15 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->l_temp_motor_end = MCCONF_L_LIM_TEMP_MOTOR_END;
 	conf->l_min_duty = MCCONF_L_MIN_DUTY;
 	conf->l_max_duty = MCCONF_L_MAX_DUTY;
+	conf->l_watt_max = MCCONF_L_WATT_MAX;
+	conf->l_watt_min = MCCONF_L_WATT_MIN;
 
 	conf->lo_current_max = conf->l_current_max;
 	conf->lo_current_min = conf->l_current_min;
 	conf->lo_in_current_max = conf->l_in_current_max;
 	conf->lo_in_current_min = conf->l_in_current_min;
+	conf->lo_current_motor_max_now = conf->l_current_max;
+	conf->lo_current_motor_min_now = conf->l_current_min;
 
 	conf->sl_min_erpm = MCCONF_SL_MIN_RPM;
 	conf->sl_max_fullbreak_current_dir_change = MCCONF_SL_MAX_FB_CURR_DIR_CHANGE;
@@ -212,6 +229,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
 	conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
 	conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
+	conf->foc_observer_gain_slow = MCCONF_FOC_OBSERVER_GAIN_SLOW;
 	conf->foc_duty_dowmramp_kp = MCCONF_FOC_DUTY_DOWNRAMP_KP;
 	conf->foc_duty_dowmramp_ki = MCCONF_FOC_DUTY_DOWNRAMP_KI;
 	conf->foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
@@ -228,11 +246,17 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
 	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
 	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
+	conf->foc_sample_v0_v7 = MCCONF_FOC_SAMPLE_V0_V7;
+	conf->foc_sample_high_current = MCCONF_FOC_SAMPLE_HIGH_CURRENT;
+	conf->foc_sat_comp = MCCONF_FOC_SAT_COMP;
+	conf->foc_temp_comp = MCCONF_FOC_TEMP_COMP;
+	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
 
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;
 	conf->s_pid_kd = MCCONF_S_PID_KD;
 	conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
+	conf->s_pid_allow_braking = MCCONF_S_PID_ALLOW_BRAKING;
 
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
@@ -250,6 +274,11 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
+	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
+	conf->m_drv8301_oc_adj = MCCONF_M_DRV8301_OC_ADJ;
+	conf->m_bldc_f_sw_min = MCCONF_M_BLDC_F_SW_MIN;
+	conf->m_bldc_f_sw_max = MCCONF_M_BLDC_F_SW_MAX;
+	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
 }
 
 /**
@@ -391,16 +420,20 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res) {
 
 	int ok_steps = 0;
-	const float spinup_to_duty = 0.6;
+	const float spinup_to_duty = 0.5;
 
 	mcconf = *mc_interface_get_configuration();
 	mcconf_old = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
 	mcconf.sensor_mode = SENSOR_MODE_SENSORLESS;
-	mcconf.comm_mode = COMM_MODE_DELAY;
+	mcconf.comm_mode = COMM_MODE_INTEGRATE;
 	mcconf.sl_phase_advance_at_br = 1.0;
 	mcconf.sl_min_erpm = min_rpm;
+	mcconf.sl_bemf_coupling_k = 300;
+	mcconf.sl_cycle_int_limit = 50;
+	mcconf.sl_min_erpm_cycle_int_limit = 1100;
+	mcconf.m_invert_direction = false;
 	mc_interface_set_configuration(&mcconf);
 
 	// Wait maximum 5s for fault code to disappear
@@ -426,15 +459,69 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mc_interface_lock_override_once();
 	mc_interface_set_current(current);
 
-	// Spin up the motor
-	for (int i = 0;i < 5000;i++) {
-		if (mc_interface_get_duty_cycle_now() < spinup_to_duty) {
+	// Try to spin up the motor. Up to three attempts with different settings are made.
+	bool started = false;
+	for (int i = 0;i < 3;i++) {
+		if (i == 1) {
+			mc_interface_lock_override_once();
+			mc_interface_release_motor();
+			mcconf.sl_min_erpm = 2 * min_rpm;
+			mcconf.sl_cycle_int_limit = 20;
+			mc_interface_lock_override_once();
+			mc_interface_set_configuration(&mcconf);
+			chThdSleepMilliseconds(1000);
+			mc_interface_lock_override_once();
+			mc_interface_set_current(current);
+		} else if (i == 2) {
+			mc_interface_lock_override_once();
+			mc_interface_release_motor();
+			mcconf.sl_min_erpm = 4 * min_rpm;
+			mcconf.comm_mode = COMM_MODE_DELAY;
+			mc_interface_lock_override_once();
+			mc_interface_set_configuration(&mcconf);
+			chThdSleepMilliseconds(1000);
+			mc_interface_lock_override_once();
+			mc_interface_set_current(current);
+		}
+
+		int cnt = 0;
+		bool switch_done = false;
+		started = true;
+
+		while (mc_interface_get_duty_cycle_now() < spinup_to_duty) {
 			chThdSleepMilliseconds(1);
-		} else {
-			ok_steps++;
+			cnt++;
+
+			if (mc_interface_get_duty_cycle_now() >= (spinup_to_duty / 2.0) && !switch_done) {
+				mcpwm_switch_comm_mode(COMM_MODE_DELAY);
+				switch_done = true;
+			}
+
+			if (cnt > 2000 && !switch_done) {
+				started = false;
+				break;
+			}
+
+			if (cnt >= 5000) {
+				started = false;
+				break;
+			}
+		}
+
+		if (switch_done) {
 			break;
 		}
 	}
+
+	if (!started) {
+		mc_interface_set_current(0.0);
+		timeout_configure(tout, tout_c);
+		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_unlock();
+		return false;
+	}
+
+	ok_steps++;
 
 	// Reset hall sensor samples
 	mcpwm_reset_hall_detect_table();
@@ -552,9 +639,13 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
 	mcconf.sensor_mode = SENSOR_MODE_SENSORLESS;
-	mcconf.comm_mode = COMM_MODE_DELAY;
+	mcconf.comm_mode = COMM_MODE_INTEGRATE;
 	mcconf.sl_phase_advance_at_br = 1.0;
 	mcconf.sl_min_erpm = min_erpm;
+	mcconf.m_bldc_f_sw_min = 10000.0;
+	mcconf.sl_bemf_coupling_k = 300;
+	mcconf.sl_cycle_int_limit = 50;
+	mcconf.sl_min_erpm_cycle_int_limit = 1100;
 	mc_interface_set_configuration(&mcconf);
 
 	// Wait maximum 5s for fault code to disappear
@@ -581,17 +672,75 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	mc_interface_lock_override_once();
 	mc_interface_set_current(current);
 
-	int cnt = 0;
-	while (mc_interface_get_duty_cycle_now() < duty) {
-		chThdSleepMilliseconds(1);
-		cnt++;
-		if (cnt >= 5000) {
-			mc_interface_set_current(0.0);
-			timeout_configure(tout, tout_c);
-			mc_interface_set_configuration(&mcconf_old);
-			mc_interface_unlock();
-			return false;
+	// Try to spin up the motor. Up to three attempts with different settings are made.
+	bool started = false;
+	for (int i = 0;i < 4;i++) {
+		if (i == 1) {
+			mc_interface_lock_override_once();
+			mc_interface_release_motor();
+			mcconf.sl_cycle_int_limit = 250;
+			mc_interface_lock_override_once();
+			mc_interface_set_configuration(&mcconf);
+			chThdSleepMilliseconds(1000);
+			mc_interface_lock_override_once();
+			mc_interface_set_current(current);
+		} else if (i == 2) {
+			mc_interface_lock_override_once();
+			mc_interface_release_motor();
+			mcconf.sl_min_erpm = 2 * min_erpm;
+			mcconf.sl_cycle_int_limit = 20;
+			mc_interface_lock_override_once();
+			mc_interface_set_configuration(&mcconf);
+			chThdSleepMilliseconds(1000);
+			mc_interface_lock_override_once();
+			mc_interface_set_current(current);
+		} else if (i == 3) {
+			mc_interface_lock_override_once();
+			mc_interface_release_motor();
+			mcconf.sl_min_erpm = 4 * min_erpm;
+			mcconf.comm_mode = COMM_MODE_DELAY;
+			mc_interface_lock_override_once();
+			mc_interface_set_configuration(&mcconf);
+			chThdSleepMilliseconds(1000);
+			mc_interface_lock_override_once();
+			mc_interface_set_current(current);
 		}
+
+		int cnt = 0;
+		bool switch_done = false;
+		started = true;
+
+		while (mc_interface_get_duty_cycle_now() < duty) {
+			chThdSleepMilliseconds(1);
+			cnt++;
+
+			if (mc_interface_get_duty_cycle_now() >= (duty / 2.0) && !switch_done) {
+				mcpwm_switch_comm_mode(COMM_MODE_DELAY);
+				switch_done = true;
+			}
+
+			if (cnt > 2000 && !switch_done) {
+				started = false;
+				break;
+			}
+
+			if (cnt >= 5000) {
+				started = false;
+				break;
+			}
+		}
+
+		if (switch_done) {
+			break;
+		}
+	}
+
+	if (!started) {
+		mc_interface_set_current(0.0);
+		timeout_configure(tout, tout_c);
+		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_unlock();
+		return false;
 	}
 
 	mc_interface_lock_override_once();

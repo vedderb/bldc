@@ -45,7 +45,7 @@
 #define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-40.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
@@ -98,19 +98,28 @@
 #ifndef MCCONF_L_LIM_TEMP_MOTOR_END
 #define MCCONF_L_LIM_TEMP_MOTOR_END		100.0	// MOTOR temperature where everything should be shut off
 #endif
+#ifndef MCCONF_L_WATT_MAX
+#define MCCONF_L_WATT_MAX				15000.0	// Maximum wattage output
+#endif
+#ifndef MCCONF_L_WATT_MIN
+#define MCCONF_L_WATT_MIN				-15000.0	// Minimum wattage output (braking)
+#endif
 
 // Speed PID parameters
 #ifndef MCCONF_S_PID_KP
-#define MCCONF_S_PID_KP					0.0001	// Proportional gain
+#define MCCONF_S_PID_KP					0.004	// Proportional gain
 #endif
 #ifndef MCCONF_S_PID_KI
-#define MCCONF_S_PID_KI					0.015	// Integral gain
+#define MCCONF_S_PID_KI					0.004	// Integral gain
 #endif
 #ifndef MCCONF_S_PID_KD
-#define MCCONF_S_PID_KD					0.0		// Derivative gain
+#define MCCONF_S_PID_KD					0.0001	// Derivative gain
 #endif
 #ifndef MCCONF_S_PID_MIN_RPM
 #define MCCONF_S_PID_MIN_RPM			900.0	// Minimum allowed RPM
+#endif
+#ifndef MCCONF_S_PID_ALLOW_BRAKING
+#define MCCONF_S_PID_ALLOW_BRAKING		true	// Allow braking in speed control mode
 #endif
 
 // Position PID parameters
@@ -132,7 +141,7 @@
 #define MCCONF_CC_GAIN					0.0046	// Current controller error gain
 #endif
 #ifndef MCCONF_CC_MIN_CURRENT
-#define MCCONF_CC_MIN_CURRENT			1.0		// Minimum allowed current
+#define MCCONF_CC_MIN_CURRENT			0.1		// Minimum allowed current
 #endif
 #ifndef MCCONF_CC_STARTUP_BOOST_DUTY
 #define MCCONF_CC_STARTUP_BOOST_DUTY	0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
@@ -236,6 +245,9 @@
 #ifndef MCCONF_FOC_OBSERVER_GAIN
 #define MCCONF_FOC_OBSERVER_GAIN		9e7		// Can be something like 600 / L
 #endif
+#ifndef MCCONF_FOC_OBSERVER_GAIN_SLOW
+#define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.3		// Observer gain scale at minimum duty cycle
+#endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
 #define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty
 #endif
@@ -243,13 +255,13 @@
 #define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
-#define MCCONF_FOC_OPENLOOP_RPM			1200.0	// Openloop RPM (sensorless low speed or when finding index pulse)
+#define MCCONF_FOC_OPENLOOP_RPM			400.0	// Openloop RPM (sensorless low speed or when finding index pulse)
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_HYST
-#define MCCONF_FOC_SL_OPENLOOP_HYST		0.5		// Time below min RPM to activate openloop (s)
+#define MCCONF_FOC_SL_OPENLOOP_HYST		0.1		// Time below min RPM to activate openloop (s)
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_TIME
-#define MCCONF_FOC_SL_OPENLOOP_TIME		0.5		// Time to remain in openloop (s)
+#define MCCONF_FOC_SL_OPENLOOP_TIME		0.1		// Time to remain in openloop (s)
 #endif
 #ifndef MCCONF_FOC_SL_D_CURRENT_DUTY
 #define MCCONF_FOC_SL_D_CURRENT_DUTY	0.0		// Inject d-axis current below this duty cycle in sensorless more
@@ -284,10 +296,25 @@
 #ifndef MCCONF_FOC_SL_ERPM
 #define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
 #endif
+#ifndef MCCONF_FOC_SAMPLE_V0_V7
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#endif
+#ifndef MCCONF_FOC_SAMPLE_HIGH_CURRENT
+#define MCCONF_FOC_SAMPLE_HIGH_CURRENT	false	// High current sampling mode (requires three shunts)
+#endif
+#ifndef MCCONF_FOC_SAT_COMP
+#define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation
+#endif
+#ifndef MCCONF_FOC_TEMP_COMP
+#define MCCONF_FOC_TEMP_COMP			false	// Motor temperature compensation
+#endif
+#ifndef MCCONF_FOC_TEMP_COMP_BASE_TEMP
+#define MCCONF_FOC_TEMP_COMP_BASE_TEMP	25.0	// Motor temperature compensation base temperature
+#endif
 
 // Misc
 #ifndef MCCONF_M_FAULT_STOP_TIME
-#define MCCONF_M_FAULT_STOP_TIME		3000	// Ignore commands for this duration in msec when faults occur
+#define MCCONF_M_FAULT_STOP_TIME		1000	// Ignore commands for this duration in msec when faults occur
 #endif
 #ifndef MCCONF_M_RAMP_STEP
 #define MCCONF_M_RAMP_STEP				0.02	// Duty cycle ramping step (1000 times/sec) at maximum duty cycle
@@ -303,6 +330,21 @@
 #endif
 #ifndef MCCONF_M_INVERT_DIRECTION
 #define MCCONF_M_INVERT_DIRECTION		false // Invert the motor direction
+#endif
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LIMIT // DRV8301 over current protection mode
+#endif
+#ifndef MCCONF_M_DRV8301_OC_ADJ
+#define MCCONF_M_DRV8301_OC_ADJ			16 // DRV8301 over current protection threshold
+#endif
+#ifndef MCCONF_M_BLDC_F_SW_MIN
+#define MCCONF_M_BLDC_F_SW_MIN			3000 // Minimum switching frequency in bldc mode
+#endif
+#ifndef MCCONF_M_BLDC_F_SW_MAX
+#define MCCONF_M_BLDC_F_SW_MAX			40000 // Maximum switching frequency in bldc mode
+#endif
+#ifndef MCCONF_M_DC_F_SW
+#define MCCONF_M_DC_F_SW				35000 // Switching frequency in dc mode
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */

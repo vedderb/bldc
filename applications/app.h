@@ -29,6 +29,7 @@ void app_set_configuration(app_configuration *conf);
 // Standard apps
 void app_ppm_start(void);
 void app_ppm_stop(void);
+float app_ppm_get_decoded_level(void);
 void app_ppm_configure(ppm_config *conf);
 
 void app_adc_start(bool use_rx_tx);
@@ -50,7 +51,8 @@ float app_nunchuk_get_decoded_chuk(void);
 void app_nunchuk_update_output(chuck_data *data);
 
 // Custom apps
-void app_sten_start(void);
-void app_sten_stop(void);
+void app_custom_start(void);
+void app_custom_stop(void);
+void app_custom_configure(app_configuration *conf);
 
 #endif /* APP_H_ */
