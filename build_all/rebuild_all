@@ -25,7 +25,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_33k.bin
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_46"
+make -j4 build_args="-DCURRENT_SHUNT_RES=0.005 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
@@ -65,7 +65,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_48"
+make -j4 build_args="-DCURRENT_SHUNT_RES=0.005 -DHW_VERSION_48"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
@@ -105,7 +105,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_410"
+make -j4 build_args="-DCURRENT_SHUNT_RES=0.005 -DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
