@@ -45,7 +45,7 @@ void utils_fast_sincos_better(float angle, float *sin, float *cos);
 float utils_min_abs(float va, float vb);
 float utils_max_abs(float va, float vb);
 void utils_byte_to_binary(int x, char *b);
-float utils_throttle_curve(float val, float curve, int mode);
+float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 

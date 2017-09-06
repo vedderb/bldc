@@ -141,6 +141,7 @@ void app_uartcomm_start(void) {
 	if (!is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
 				NORMALPRIO, packet_process_thread, NULL);
+		is_running = true;
 	}
 
 	uartStart(&HW_UART_DEV, &uart_cfg);
@@ -173,7 +174,6 @@ static THD_FUNCTION(packet_process_thread, arg) {
 
 	chRegSetThreadName("uartcomm process");
 
-	is_running = true;
 	process_tp = chThdGetSelfX();
 
 	for(;;) {

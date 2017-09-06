@@ -232,6 +232,7 @@ typedef struct {
 	float m_bldc_f_sw_min;
 	float m_bldc_f_sw_max;
 	float m_dc_f_sw;
+	float m_ntc_motor_beta;
 } mc_configuration;
 
 // Applications to use
@@ -276,6 +277,7 @@ typedef struct {
 	bool median_filter;
 	bool safe_start;
 	float throttle_exp;
+	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
 	float ramp_time_pos;
 	float ramp_time_neg;
@@ -314,6 +316,7 @@ typedef struct {
 	bool voltage_inverted;
 	bool voltage2_inverted;
 	float throttle_exp;
+	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
 	float ramp_time_pos;
 	float ramp_time_neg;
@@ -337,6 +340,7 @@ typedef struct {
 	float ramp_time_neg;
 	float stick_erpm_per_s_in_cc;
 	float throttle_exp;
+	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
 	bool multi_esc;
 	bool tc;

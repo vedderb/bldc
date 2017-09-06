@@ -274,7 +274,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		utils_deadband(&pwr, config.hyst, 1.0);
 
 		// Apply throttle curve
-		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_mode);
+		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// Apply ramping
 		static systime_t last_time = 0;

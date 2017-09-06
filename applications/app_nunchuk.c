@@ -243,7 +243,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, config.hyst, 1.0);
-		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_mode);
+		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// LEDs
 		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;

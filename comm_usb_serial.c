@@ -2,6 +2,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "stm32f4xx_conf.h"
 
 /*
  * Endpoints to be used for USBD2.
@@ -304,6 +305,15 @@ const SerialUSBConfig serusbcfg = {
 };
 
 void comm_usb_serial_init(void) {
+	palSetPadMode(GPIOA, 11,
+			PAL_MODE_ALTERNATE(GPIO_AF_OTG_FS) |
+			PAL_STM32_OTYPE_PUSHPULL |
+			PAL_STM32_OSPEED_MID1);
+	palSetPadMode(GPIOA, 12,
+			PAL_MODE_ALTERNATE(GPIO_AF_OTG_FS) |
+			PAL_STM32_OTYPE_PUSHPULL |
+			PAL_STM32_OSPEED_MID1);
+
 	sduObjectInit(&SDU1);
 	sduStart(&SDU1, &serusbcfg);
 

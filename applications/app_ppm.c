@@ -177,7 +177,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		utils_deadband(&servo_val, config.hyst, 1.0);
 
 		// Apply throttle curve
-		servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_mode);
+		servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
 		// Apply ramping
 		static systime_t last_time = 0;

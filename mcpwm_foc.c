@@ -2042,7 +2042,17 @@ static THD_FUNCTION(timer_thread, arg) {
 
 static void do_dc_cal(void) {
 	DCCAL_ON();
-	while(IS_DRV_FAULT()){};
+
+	// Wait max 5 seconds
+	int cnt = 0;
+	while(IS_DRV_FAULT()){
+		chThdSleepMilliseconds(1);
+		cnt++;
+		if (cnt > 5000) {
+			break;
+		}
+	};
+
 	chThdSleepMilliseconds(1000);
 	m_curr0_sum = 0;
 	m_curr1_sum = 0;

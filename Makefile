@@ -94,18 +94,16 @@ PROJECT = BLDC_4_ChibiOS
 
 # Imported source files and paths
 CHIBIOS = ChibiOS_3.0.2
-# Startup files.
+# Startup files
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-# HAL-OSAL files (optional).
+# HAL-OSAL files
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
-include $(CHIBIOS)/os/hal/boards/ST_STM32F4_DISCOVERY/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
-# RTOS files (optional).
+# RTOS files
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-# Other files (optional).
-#include $(CHIBIOS)/test/rt/test.mk
+# Other files
 include hwconf/hwconf.mk
 include applications/applications.mk
 include nrf/nrf.mk
@@ -121,9 +119,9 @@ CSRC = $(STARTUPSRC) \
        $(OSALSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
-       $(BOARDSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
+       board.c \
        main.c \
        comm_usb_serial.c \
        irq_handlers.c \
@@ -182,7 +180,7 @@ TCPPSRC =
 ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
 INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
+         $(HALINC) $(PLATFORMINC) \
          $(CHIBIOS)/os/various \
          $(CHIBIOS)/os/hal/lib/streams \
          mcconf \

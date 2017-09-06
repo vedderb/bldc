@@ -358,6 +358,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_bldc_f_sw_min = buffer_get_float32_auto(data, &ind);
 		mcconf.m_bldc_f_sw_max = buffer_get_float32_auto(data, &ind);
 		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
+		mcconf.m_ntc_motor_beta = buffer_get_float32_auto(data, &ind);
 
 		// Apply limits if they are defined
 #ifndef DISABLE_HW_LIMITS
@@ -511,6 +512,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_min, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_max, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.m_dc_f_sw, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.m_ntc_motor_beta, &ind);
 
 		commands_send_packet(send_buffer, ind);
 		break;
@@ -536,6 +538,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_ppm_conf.median_filter = data[ind++];
 		appconf.app_ppm_conf.safe_start = data[ind++];
 		appconf.app_ppm_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_ppm_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.throttle_exp_mode = data[ind++];
 		appconf.app_ppm_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
 		appconf.app_ppm_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
@@ -557,6 +560,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_adc_conf.voltage_inverted = data[ind++];
 		appconf.app_adc_conf.voltage2_inverted = data[ind++];
 		appconf.app_adc_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_adc_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.throttle_exp_mode = data[ind++];
 		appconf.app_adc_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
 		appconf.app_adc_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
@@ -573,6 +577,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.app_chuk_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
 		appconf.app_chuk_conf.stick_erpm_per_s_in_cc = buffer_get_float32_auto(data, &ind);
 		appconf.app_chuk_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
+		appconf.app_chuk_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
 		appconf.app_chuk_conf.throttle_exp_mode = data[ind++];
 		appconf.app_chuk_conf.multi_esc = data[ind++];
 		appconf.app_chuk_conf.tc = data[ind++];
@@ -931,6 +936,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	send_buffer[ind++] = appconf->app_ppm_conf.median_filter;
 	send_buffer[ind++] = appconf->app_ppm_conf.safe_start;
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.throttle_exp, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.throttle_exp_brake, &ind);
 	send_buffer[ind++] = appconf->app_ppm_conf.throttle_exp_mode;
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_pos, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_neg, &ind);
@@ -952,6 +958,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	send_buffer[ind++] = appconf->app_adc_conf.voltage_inverted;
 	send_buffer[ind++] = appconf->app_adc_conf.voltage2_inverted;
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.throttle_exp, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.throttle_exp_brake, &ind);
 	send_buffer[ind++] = appconf->app_adc_conf.throttle_exp_mode;
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_pos, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_neg, &ind);
@@ -968,6 +975,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.ramp_time_neg, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.stick_erpm_per_s_in_cc, &ind);
 	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.throttle_exp, &ind);
+	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.throttle_exp_brake, &ind);
 	send_buffer[ind++] = appconf->app_chuk_conf.throttle_exp_mode;
 	send_buffer[ind++] = appconf->app_chuk_conf.multi_esc;
 	send_buffer[ind++] = appconf->app_chuk_conf.tc;

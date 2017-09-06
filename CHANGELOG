@@ -1,3 +1,11 @@
+=== FW 3.28 ===
+* DC_CAL timeout.
+* Added board configuration file to avoid braking at boot.
+* Shorter default fault stop time.
+* Lower default PPM ramping time.
+* Configurable beta value for motor thermistor.
+* Individual throttle curves for acceleration and braking.
+
 === FW 3.27 ===
 * Watt hour reset bug fix
 * Changed the way custom applications are implemented.

@@ -99,6 +99,7 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
 	conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
 	conf->app_ppm_conf.throttle_exp = APPCONF_PPM_THROTTLE_EXP;
+	conf->app_ppm_conf.throttle_exp_brake = APPCONF_PPM_THROTTLE_EXP_BRAKE;
 	conf->app_ppm_conf.throttle_exp_mode = APPCONF_PPM_THROTTLE_EXP_MODE;
 	conf->app_ppm_conf.ramp_time_pos = APPCONF_PPM_RAMP_TIME_POS;
 	conf->app_ppm_conf.ramp_time_neg = APPCONF_PPM_RAMP_TIME_NEG;
@@ -120,6 +121,7 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
 	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
 	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
+	conf->app_adc_conf.throttle_exp_brake = APPCONF_ADC_THROTTLE_EXP_BRAKE;
 	conf->app_adc_conf.throttle_exp_mode = APPCONF_ADC_THROTTLE_EXP_MODE;
 	conf->app_adc_conf.ramp_time_pos = APPCONF_ADC_RAMP_TIME_POS;
 	conf->app_adc_conf.ramp_time_neg = APPCONF_ADC_RAMP_TIME_NEG;
@@ -136,6 +138,7 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->app_chuk_conf.ramp_time_neg = APPCONF_CHUK_RAMP_TIME_NEG;
 	conf->app_chuk_conf.stick_erpm_per_s_in_cc = APPCONF_STICK_ERPM_PER_S_IN_CC;
 	conf->app_chuk_conf.throttle_exp = APPCONF_CHUK_THROTTLE_EXP;
+	conf->app_chuk_conf.throttle_exp_brake = APPCONF_CHUK_THROTTLE_EXP_BRAKE;
 	conf->app_chuk_conf.throttle_exp_mode = APPCONF_CHUK_THROTTLE_EXP_MODE;
 	conf->app_chuk_conf.multi_esc = APPCONF_CHUK_MULTI_ESC;
 	conf->app_chuk_conf.tc = APPCONF_CHUK_TC;
@@ -279,6 +282,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_bldc_f_sw_min = MCCONF_M_BLDC_F_SW_MIN;
 	conf->m_bldc_f_sw_max = MCCONF_M_BLDC_F_SW_MAX;
 	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
+	conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
 }
 
 /**

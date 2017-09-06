@@ -536,7 +536,17 @@ void mcpwm_init_hall_table(int8_t *table) {
 
 static void do_dc_cal(void) {
 	DCCAL_ON();
-	while(IS_DRV_FAULT()){};
+
+	// Wait max 5 seconds
+	int cnt = 0;
+	while(IS_DRV_FAULT()){
+		chThdSleepMilliseconds(1);
+		cnt++;
+		if (cnt > 5000) {
+			break;
+		}
+	};
+
 	chThdSleepMilliseconds(1000);
 	curr0_sum = 0;
 	curr1_sum = 0;
