@@ -1431,11 +1431,11 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	if (duty_abs > 0.001) {
 		conf->lo_current_motor_max_now = utils_min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
-		conf->lo_current_motor_min_now = utils_min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);
 	} else {
 		conf->lo_current_motor_max_now = conf->lo_current_max;
-		conf->lo_current_motor_min_now = conf->lo_current_min;
 	}
+	
+	conf->lo_current_motor_min_now = conf->lo_current_min;
 }
 
 static THD_FUNCTION(timer_thread, arg) {
