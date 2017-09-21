@@ -17,7 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#define _GNU_SOURCE         /* for sincosf */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
