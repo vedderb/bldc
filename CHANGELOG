@@ -1,3 +1,7 @@
+=== FW 3.29 ===
+* Disabled throttle limit scaling for now.
+* Increased packet timeout.
+
 === FW 3.28 ===
 * DC_CAL timeout.
 * Added board configuration file to avoid braking at boot.
