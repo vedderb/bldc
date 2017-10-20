@@ -1,3 +1,8 @@
+=== FW 3.30 ===
+* Activated iterative observer for better operation at high ERPM.
+* Check for NAN and truncate some FOC variables.
+* Speed controller windup protection improvement.
+
 === FW 3.29 ===
 * Disabled throttle limit scaling for now.
 * Increased packet timeout.

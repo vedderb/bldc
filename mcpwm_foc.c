@@ -582,8 +582,6 @@ void mcpwm_foc_set_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
-
 	m_control_mode = CONTROL_MODE_CURRENT;
 	m_iq_set = current;
 
@@ -607,8 +605,6 @@ void mcpwm_foc_set_brake_current(float current) {
 		return;
 	}
 
-	utils_truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
-
 	m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	m_iq_set = current;
 
@@ -631,8 +627,6 @@ void mcpwm_foc_set_handbrake(float current) {
 		stop_pwm_hw();
 		return;
 	}
-
-	utils_truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
 
 	m_control_mode = CONTROL_MODE_HANDBRAKE;
 	m_iq_set = current;
@@ -770,7 +764,7 @@ float mcpwm_foc_get_abs_motor_current(void) {
 float mcpwm_foc_get_abs_motor_voltage(void) {
 	const float vd_tmp = m_motor_state.vd;
 	const float vq_tmp = m_motor_state.vq;
-	return sqrtf(vd_tmp * vd_tmp + vq_tmp * vq_tmp);
+	return sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
 }
 
 /**
@@ -1850,6 +1844,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// Park transform
 		float vd_tmp = c * m_motor_state.v_alpha + s * m_motor_state.v_beta;
 		float vq_tmp = c * m_motor_state.v_beta  - s * m_motor_state.v_alpha;
+
+		UTILS_NAN_ZERO(m_motor_state.vd);
+		UTILS_NAN_ZERO(m_motor_state.vq);
+
 		UTILS_LP_FAST(m_motor_state.vd, vd_tmp, 0.2);
 		UTILS_LP_FAST(m_motor_state.vq, vq_tmp, 0.2);
 
@@ -2029,8 +2027,8 @@ static THD_FUNCTION(timer_thread, arg) {
 			const volatile float id_tmp = m_motor_state.id;
 			const volatile float iq_tmp = m_motor_state.iq;
 
-			m_samples.avg_current_tot += sqrtf(id_tmp * id_tmp + iq_tmp * iq_tmp);
-			m_samples.avg_voltage_tot += sqrtf(vd_tmp * vd_tmp + vq_tmp * vq_tmp);
+			m_samples.avg_current_tot += sqrtf(SQ(id_tmp) + SQ(iq_tmp));
+			m_samples.avg_voltage_tot += sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
 			m_samples.sample_num++;
 		}
 
@@ -2100,27 +2098,27 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 	const float gamma_half = m_gamma_now * 0.5;
 
 	// Original
-	float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
-	float x1_dot = -R_ia + v_alpha + gamma_half * (*x1 - L_ia) * err;
-	float x2_dot = -R_ib + v_beta + gamma_half * (*x2 - L_ib) * err;
-	*x1 += x1_dot * dt;
-	*x2 += x2_dot * dt;
+//	float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
+//	float x1_dot = -R_ia + v_alpha + gamma_half * (*x1 - L_ia) * err;
+//	float x2_dot = -R_ib + v_beta + gamma_half * (*x2 - L_ib) * err;
+//	*x1 += x1_dot * dt;
+//	*x2 += x2_dot * dt;
 
 	// Iterative with some trial and error
-//	const int iterations = 6;
-//	const float dt_iteration = dt / (float)iterations;
-//	for (int i = 0;i < iterations;i++) {
-//		float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
-//		float gamma_tmp = gamma_half;
-//		if (utils_truncate_number_abs(&err, lambda_2 * 0.2)) {
-//			gamma_tmp *= 10.0;
-//		}
-//		float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
-//		float x2_dot = -R_ib + v_beta + gamma_tmp * (*x2 - L_ib) * err;
-//
-//		*x1 += x1_dot * dt_iteration;
-//		*x2 += x2_dot * dt_iteration;
-//	}
+	const int iterations = 6;
+	const float dt_iteration = dt / (float)iterations;
+	for (int i = 0;i < iterations;i++) {
+		float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
+		float gamma_tmp = gamma_half;
+		if (utils_truncate_number_abs(&err, lambda_2 * 0.2)) {
+			gamma_tmp *= 10.0;
+		}
+		float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
+		float x2_dot = -R_ib + v_beta + gamma_tmp * (*x2 - L_ib) * err;
+
+		*x1 += x1_dot * dt_iteration;
+		*x2 += x2_dot * dt_iteration;
+	}
 
 	// Same as above, but without iterations.
 //	float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
@@ -2133,21 +2131,18 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 //	*x1 += x1_dot * dt;
 //	*x2 += x2_dot * dt;
 
-	if (UTILS_IS_NAN(*x1)) {
-		*x1 = 0.0;
-	}
-
-	if (UTILS_IS_NAN(*x2)) {
-		*x2 = 0.0;
-	}
+	UTILS_NAN_ZERO(*x1);
+	UTILS_NAN_ZERO(*x2);
 
 	*phase = utils_fast_atan2(*x2 - L_ib, *x1 - L_ia);
 }
 
 static void pll_run(float phase, float dt, volatile float *phase_var,
 		volatile float *speed_var) {
+	UTILS_NAN_ZERO(*phase_var);
 	float delta_theta = phase - *phase_var;
 	utils_norm_angle_rad(&delta_theta);
+	UTILS_NAN_ZERO(*speed_var);
 	*phase_var += (*speed_var + m_conf->foc_pll_kp * delta_theta) * dt;
 	utils_norm_angle_rad((float*)phase_var);
 	*speed_var += m_conf->foc_pll_ki * delta_theta * dt;
@@ -2431,7 +2426,8 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	}
 
 	// I-term wind-up protection
-	utils_truncate_number(&i_term, -1.0, 1.0);
+	utils_truncate_number_abs(&p_term, 1.0);
+	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
 
 	// Store previous error
 	prev_error = error;

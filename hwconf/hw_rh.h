@@ -102,7 +102,7 @@
 #define NTC_TEMP(adc_ind)		0.0
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR()		0.0
+#define NTC_TEMP_MOTOR(beta)	0.0
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
