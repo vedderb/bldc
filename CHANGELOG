@@ -1,3 +1,7 @@
+=== FW 3.31 ===
+* Option to decrease temperature limits during acceleration to still have braking torque left.
+* Added PID speed control mode to ADC app.
+
 === FW 3.30 ===
 * Activated iterative observer for better operation at high ERPM.
 * Check for NAN and truncate some FOC variables.

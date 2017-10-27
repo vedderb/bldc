@@ -152,6 +152,7 @@ typedef struct {
 	float l_temp_fet_end;
 	float l_temp_motor_start;
 	float l_temp_motor_end;
+	float l_temp_accel_dec;
 	float l_min_duty;
 	float l_max_duty;
 	float l_watt_max;
@@ -298,7 +299,10 @@ typedef enum {
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC,
 	ADC_CTRL_TYPE_DUTY,
 	ADC_CTRL_TYPE_DUTY_REV_CENTER,
-	ADC_CTRL_TYPE_DUTY_REV_BUTTON
+	ADC_CTRL_TYPE_DUTY_REV_BUTTON,
+	ADC_CTRL_TYPE_PID,
+	ADC_CTRL_TYPE_PID_REV_CENTER,
+	ADC_CTRL_TYPE_PID_REV_BUTTON
 } adc_control_type;
 
 typedef struct {

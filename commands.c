@@ -276,6 +276,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.l_temp_fet_end = buffer_get_float32_auto(data, &ind);
 		mcconf.l_temp_motor_start = buffer_get_float32_auto(data, &ind);
 		mcconf.l_temp_motor_end = buffer_get_float32_auto(data, &ind);
+		mcconf.l_temp_accel_dec = buffer_get_float32_auto(data, &ind);
 		mcconf.l_min_duty = buffer_get_float32_auto(data, &ind);
 		mcconf.l_max_duty = buffer_get_float32_auto(data, &ind);
 		mcconf.l_watt_max = buffer_get_float32_auto(data, &ind);
@@ -437,6 +438,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.l_temp_fet_end, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_temp_motor_start, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_temp_motor_end, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.l_temp_accel_dec, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_min_duty, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_max_duty, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.l_watt_max, &ind);

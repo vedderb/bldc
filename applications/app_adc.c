@@ -149,6 +149,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
+		case ADC_CTRL_TYPE_PID_REV_CENTER:
 			// Mapping with respect to center voltage
 			if (pwr < config.voltage_center) {
 				pwr = utils_map(pwr, config.voltage_start,
@@ -247,6 +248,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
+		case ADC_CTRL_TYPE_PID_REV_CENTER:
 			// Scale the voltage and set 0 at the center
 			pwr *= 2.0;
 			pwr -= 1.0;
@@ -260,6 +262,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
+		case ADC_CTRL_TYPE_PID_REV_BUTTON:
 			// Invert the voltage if the button is pressed
 			if (rev_button) {
 				pwr = -pwr;
@@ -343,6 +346,32 @@ static THD_FUNCTION(adc_thread, arg) {
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
 				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
 				send_duty = true;
+			}
+			break;
+
+		case ADC_CTRL_TYPE_PID:
+		case ADC_CTRL_TYPE_PID_REV_CENTER:
+		case ADC_CTRL_TYPE_PID_REV_BUTTON:
+			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
+				current = pwr * mcconf->lo_current_motor_max_now;
+			} else {
+				current = pwr * fabsf(mcconf->lo_current_motor_min_now);
+			}
+
+			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
+				float speed = 0.0;
+				if (pwr >= 0.0) {
+					speed = pwr * mcconf->l_max_erpm;
+				} else {
+					speed = pwr * fabsf(mcconf->l_min_erpm);
+				}
+
+				mc_interface_set_pid_speed(speed);
+				send_duty = true;
+			}
+
+			if (fabsf(pwr) < 0.001) {
+				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 			break;
 

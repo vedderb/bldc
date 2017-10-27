@@ -1359,6 +1359,33 @@ static void update_override_limits(volatile mc_configuration *conf) {
 		}
 	}
 
+	// Decreased temperatures during acceleration
+	// in order to still have braking torque available
+	const float temp_fet_accel_start = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_start, 25.0);
+	const float temp_fet_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_fet_end, 25.0);
+	const float temp_motor_accel_start = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_start, 25.0);
+	const float temp_motor_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
+
+	float lo_fet_temp_accel = 0.0;
+	if (m_temp_fet < temp_fet_accel_start) {
+		lo_fet_temp_accel = conf->l_current_max;
+	} else if (m_temp_fet > temp_fet_accel_end) {
+		lo_fet_temp_accel = 0.0;
+	} else {
+		lo_fet_temp_accel = utils_map(m_temp_fet, temp_fet_accel_start,
+				temp_fet_accel_end, conf->l_current_max, 0.0);
+	}
+
+	float lo_motor_temp_accel = 0.0;
+	if (m_temp_motor < temp_motor_accel_start) {
+		lo_motor_temp_accel = conf->l_current_max;
+	} else if (m_temp_motor > temp_motor_accel_end) {
+		lo_motor_temp_accel = 0.0;
+	} else {
+		lo_motor_temp_accel = utils_map(m_temp_motor, temp_motor_accel_start,
+				temp_motor_accel_end, conf->l_current_max, 0.0);
+	}
+
 	// RPM max
 	float lo_max_rpm = 0.0;
 	const float rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
@@ -1388,6 +1415,8 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	lo_max = utils_min_abs(lo_max, lo_max_rpm);
 	lo_max = utils_min_abs(lo_max, lo_min_rpm);
+	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
+	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
 
 	if (lo_max < conf->cc_min_current) {
 		lo_max = conf->cc_min_current;
@@ -1422,13 +1451,13 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
 
 	// Maximum current right now
-	float duty_abs = fabsf(mc_interface_get_duty_cycle_now());
-
-	// TODO: This is not an elegant solution.
-	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
-		duty_abs *= SQRT3_BY_2;
-	}
-
+//	float duty_abs = fabsf(mc_interface_get_duty_cycle_now());
+//
+//	// TODO: This is not an elegant solution.
+//	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
+//		duty_abs *= SQRT3_BY_2;
+//	}
+//
 //	if (duty_abs > 0.001) {
 //		conf->lo_current_motor_max_now = utils_min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
 //		conf->lo_current_motor_min_now = utils_min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);

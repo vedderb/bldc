@@ -12,42 +12,42 @@ rm $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_46"
+make -j8 build_args="-DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # 33k
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DVIN_R1=33000.0 -DHW_VERSION_46"
+make -j8 build_args="-DVIN_R1=33000.0 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_33k.bin
 
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_46"
+make -j8 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
 # ws2811
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_46"
+make -j8 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
 # ws2811_33k
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DWS2811_ENABLE=1 -DVIN_R1=33000.0 -DHW_VERSION_46"
+make -j8 build_args="-DWS2811_ENABLE=1 -DVIN_R1=33000.0 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811_33k.bin
 
 # servoout
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_46"
+make -j8 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_46"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
@@ -59,28 +59,28 @@ rm $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_48"
+make -j8 build_args="-DHW_VERSION_48"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_48"
+make -j8 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_48"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
 # ws2811
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_48"
+make -j8 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_48"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
 # servoout
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_48"
+make -j8 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_48"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
@@ -92,35 +92,35 @@ rm $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_410"
+make -j8 build_args="-DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_410 -DDISABLE_HW_LIMITS"
+make -j8 build_args="-DHW_VERSION_410 -DDISABLE_HW_LIMITS"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_410"
+make -j8 build_args="-DCURRENT_SHUNT_RES=0.0005 -DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
 # ws2811
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_410"
+make -j8 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
 # servoout
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_410"
+make -j8 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_410"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
@@ -132,28 +132,28 @@ rm $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_60"
+make -j8 build_args="-DHW_VERSION_60"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_60 -DDISABLE_HW_LIMITS"
+make -j8 build_args="-DHW_VERSION_60 -DDISABLE_HW_LIMITS"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # ws2811
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_60"
+make -j8 build_args="-DWS2811_ENABLE=1 -DHW_VERSION_60"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
 # servoout
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_60"
+make -j8 build_args="-DSERVO_OUT_ENABLE=1 -DHW_VERSION_60"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
@@ -170,7 +170,7 @@ rm $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j4 build_args="-DHW_VERSION_DAS_RS"
+make -j8 build_args="-DHW_VERSION_DAS_RS"
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 

@@ -188,6 +188,7 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->l_temp_fet_end = MCCONF_L_LIM_TEMP_FET_END;
 	conf->l_temp_motor_start = MCCONF_L_LIM_TEMP_MOTOR_START;
 	conf->l_temp_motor_end = MCCONF_L_LIM_TEMP_MOTOR_END;
+	conf->l_temp_accel_dec = MCCONF_L_LIM_TEMP_ACCEL_DEC;
 	conf->l_min_duty = MCCONF_L_MIN_DUTY;
 	conf->l_max_duty = MCCONF_L_MAX_DUTY;
 	conf->l_watt_max = MCCONF_L_WATT_MAX;

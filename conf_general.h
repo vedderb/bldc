@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		30
+#define FW_VERSION_MINOR		31
 
 #include "datatypes.h"
 
@@ -50,7 +50,8 @@
 #if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
 	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
 	!defined(HW_VERSION_60) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A) && \
-	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) && !defined(HW_VERSION_RH)
+	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) && !defined(HW_VERSION_RH) && \
+	!defined(HW_VERSION_TP)
 //#define HW_VERSION_40
 //#define HW_VERSION_45
 //#define HW_VERSION_46 // Also for 4.7
@@ -63,6 +64,7 @@
 //#define HW_VERSION_DAS_RS
 //#define HW_VERSION_PALTA
 //#define HW_VERSION_RH
+//#define HW_VERSION_TP
 #endif
 
 /*

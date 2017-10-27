@@ -52,6 +52,8 @@
 #include "hw_palta.h"
 #elif defined HW_VERSION_RH
 #include "hw_rh.h"
+#elif defined HW_VERSION_TP
+#include "hw_tp.h"
 #else
 #error "No hardware version defined"
 #endif
