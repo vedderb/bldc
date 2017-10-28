@@ -69,6 +69,9 @@ static const CANConfig cancfg = {
 // Private functions
 static void send_packet_wrapper(unsigned char *data, unsigned int len);
 
+// Function pointers
+static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
+
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		stat_msgs[i].id = -1;
@@ -273,6 +276,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 				default:
 					break;
 				}
+			} else {
+				if (sid_callback) {
+					sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+				}
 			}
 
 			if (rx_frame_read == RX_FRAMES_SIZE) {
@@ -308,6 +315,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 }
 
 void comm_can_transmit_eid(uint32_t id, uint8_t *data, uint8_t len) {
+	if (len > 8) {
+		len = 8;
+	}
+
 #if CAN_ENABLE
 	CANTxFrame txmsg;
 	txmsg.IDE = CAN_IDE_EXT;
@@ -325,6 +336,40 @@ void comm_can_transmit_eid(uint32_t id, uint8_t *data, uint8_t len) {
 	(void)data;
 	(void)len;
 #endif
+}
+
+void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
+	if (len > 8) {
+		len = 8;
+	}
+
+#if CAN_ENABLE
+	CANTxFrame txmsg;
+	txmsg.IDE = CAN_IDE_STD;
+	txmsg.SID = id;
+	txmsg.RTR = CAN_RTR_DATA;
+	txmsg.DLC = len;
+	memcpy(txmsg.data8, data, len);
+
+	chMtxLock(&can_mtx);
+	canTransmit(&CANDx, CAN_ANY_MAILBOX, &txmsg, MS2ST(20));
+	chMtxUnlock(&can_mtx);
+
+#else
+	(void)id;
+	(void)data;
+	(void)len;
+#endif
+}
+
+/**
+ * Set function to be called when standard CAN frames are received.
+ *
+ * @param p_func
+ * Pointer to the function.
+ */
+void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
+	sid_callback = p_func;
 }
 
 /**
