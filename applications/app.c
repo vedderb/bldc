@@ -23,6 +23,7 @@
 #include "hw.h"
 #include "nrf_driver.h"
 #include "rfhelp.h"
+#include "comm_can.h"
 
 // Private variables
 static app_configuration appconf;
@@ -48,6 +49,10 @@ void app_set_configuration(app_configuration *conf) {
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
 	}
+
+#if CAN_ENABLE
+	comm_can_set_baud(conf->can_baud_rate);
+#endif
 
 #ifdef APP_CUSTOM_TO_USE
 	app_custom_stop();

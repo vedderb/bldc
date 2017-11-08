@@ -28,6 +28,7 @@
 
 // Functions
 void comm_can_init(void);
+void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, uint8_t *data, uint8_t len);
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, bool send);

@@ -36,6 +36,9 @@
 #ifndef APPCONF_SEND_CAN_STATUS_RATE_HZ
 #define APPCONF_SEND_CAN_STATUS_RATE_HZ		500
 #endif
+#ifndef APPCONF_CAN_BAUD_RATE
+#define APPCONF_CAN_BAUD_RATE				CAN_BAUD_500K
+#endif
 
 // The default app is UART in case the UART port is used for
 // firmware updates.

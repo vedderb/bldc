@@ -126,6 +126,13 @@ typedef enum {
 	DEBUG_SAMPLING_SEND_LAST_SAMPLES
 } debug_sampling_mode;
 
+typedef enum {
+	CAN_BAUD_125K = 0,
+	CAN_BAUD_250K,
+	CAN_BAUD_500K,
+	CAN_BAUD_1M
+} CAN_BAUD;
+
 typedef struct {
 	// Switching and drive
 	mc_pwm_mode pwm_mode;
@@ -414,6 +421,7 @@ typedef struct {
 	float timeout_brake_current;
 	bool send_can_status;
 	uint32_t send_can_status_rate_hz;
+	CAN_BAUD can_baud_rate;
 
 	// Application to use
 	app_use app_to_use;

@@ -528,6 +528,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		appconf.timeout_brake_current = buffer_get_float32_auto(data, &ind);
 		appconf.send_can_status = data[ind++];
 		appconf.send_can_status_rate_hz = buffer_get_uint16(data, &ind);
+		appconf.can_baud_rate = data[ind++];
 
 		appconf.app_to_use = data[ind++];
 
@@ -926,6 +927,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	buffer_append_float32_auto(send_buffer, appconf->timeout_brake_current, &ind);
 	send_buffer[ind++] = appconf->send_can_status;
 	buffer_append_uint16(send_buffer, appconf->send_can_status_rate_hz, &ind);
+	send_buffer[ind++] = appconf->can_baud_rate;
 
 	send_buffer[ind++] = appconf->app_to_use;
 

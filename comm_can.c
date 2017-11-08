@@ -62,12 +62,13 @@ static thread_t *process_tp;
  */
 static const CANConfig cancfg = {
 		CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_TXFP,
-		CAN_BTR_SJW(0) | CAN_BTR_TS2(1) |
-		CAN_BTR_TS1(8) | CAN_BTR_BRP(6)
+		CAN_BTR_SJW(3) | CAN_BTR_TS2(2) |
+		CAN_BTR_TS1(9) | CAN_BTR_BRP(5)
 };
 
 // Private functions
 static void send_packet_wrapper(unsigned char *data, unsigned int len);
+static void set_timing(int brp, int ts1, int ts2);
 
 // Function pointers
 static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
@@ -99,6 +100,16 @@ void comm_can_init(void) {
 			cancom_status_thread, NULL);
 	chThdCreateStatic(cancom_process_thread_wa, sizeof(cancom_process_thread_wa), NORMALPRIO,
 			cancom_process_thread, NULL);
+}
+
+void comm_can_set_baud(CAN_BAUD baud) {
+	switch (baud) {
+	case CAN_BAUD_125K:	set_timing(15, 14, 4); break;
+	case CAN_BAUD_250K:	set_timing(7, 14, 4); break;
+	case CAN_BAUD_500K:	set_timing(5, 9, 2); break;
+	case CAN_BAUD_1M:	set_timing(2, 9, 2); break;
+	default: break;
+	}
 }
 
 static THD_FUNCTION(cancom_read_thread, arg) {
@@ -566,4 +577,13 @@ can_status_msg *comm_can_get_status_msg_id(int id) {
 
 static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 	comm_can_send_buffer(rx_buffer_last_id, data, len, true);
+}
+
+static void set_timing(int brp, int ts1, int ts2) {
+	brp &= 0b1111111111;
+	ts1 &= 0b1111;
+	ts2 &= 0b111;
+
+	CANDx.can->BTR = CAN_BTR_SJW(3) | CAN_BTR_TS2(ts2) |
+		CAN_BTR_TS1(ts1) | CAN_BTR_BRP(brp);
 }

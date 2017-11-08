@@ -87,6 +87,7 @@ void conf_general_get_default_app_configuration(app_configuration *conf) {
 	conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
 	conf->send_can_status = APPCONF_SEND_CAN_STATUS;
 	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
+	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
 
 	conf->app_to_use = APPCONF_APP_TO_USE;
 
