@@ -60,7 +60,7 @@ static thread_t *process_tp;
  * from abort mode.
  * See section 22.7.7 on the STM32 reference manual.
  */
-static const CANConfig cancfg = {
+static CANConfig cancfg = {
 		CAN_MCR_ABOM | CAN_MCR_AWUM | CAN_MCR_TXFP,
 		CAN_BTR_SJW(3) | CAN_BTR_TS2(2) |
 		CAN_BTR_TS1(9) | CAN_BTR_BRP(5)
@@ -584,6 +584,9 @@ static void set_timing(int brp, int ts1, int ts2) {
 	ts1 &= 0b1111;
 	ts2 &= 0b111;
 
-	CANDx.can->BTR = CAN_BTR_SJW(3) | CAN_BTR_TS2(ts2) |
+	cancfg.btr = CAN_BTR_SJW(3) | CAN_BTR_TS2(ts2) |
 		CAN_BTR_TS1(ts1) | CAN_BTR_BRP(brp);
+
+	canStop(&CANDx);
+	canStart(&CANDx, &cancfg);
 }
