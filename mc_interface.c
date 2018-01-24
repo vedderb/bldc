@@ -384,14 +384,17 @@ void mc_interface_set_pid_pos(float pos) {
 
 	m_position_set = pos;
 
+	pos *= DIR_MULT;
+	utils_norm_angle(&pos);
+
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_pos(DIR_MULT * m_position_set);
+		mcpwm_set_pid_pos(pos);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_pid_pos(DIR_MULT * m_position_set);
+		mcpwm_foc_set_pid_pos(pos);
 		break;
 
 	default:
@@ -895,7 +898,10 @@ float mc_interface_get_pid_pos_now(void) {
 		break;
 	}
 
-	return DIR_MULT * ret;
+	ret *= DIR_MULT;
+	utils_norm_angle(&ret);
+
+	return ret;
 }
 
 float mc_interface_get_last_sample_adc_isr_duration(void) {

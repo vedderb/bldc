@@ -181,6 +181,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		send_buffer[ind++] = mc_interface_get_fault();
+		buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
 		commands_send_packet(send_buffer, ind);
 		break;
 

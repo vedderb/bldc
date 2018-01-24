@@ -1,3 +1,8 @@
+=== FW 3.34 ===
+* Added motor PID position to COMM_GET_VALUES.
+* Inverted direction angle normalization in mc_interface.
+* Use relative current mode in APP_ADC to support multiple VESCs with different current limits.
+
 === FW 3.33 ===
 * Fixed CAN-bus baud rate update.
 
