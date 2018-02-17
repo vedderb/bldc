@@ -131,10 +131,12 @@ void rfhelp_restart(void) {
 	rf_set_tx_addr(tx_addr, address_length);
 	rf_set_rx_addr(0, rx_addr[0], address_length);
 
-	rf_power_up();
-	rf_mode_rx();
-	rf_flush_all();
-	rf_clear_irq();
+	if (nrf_conf.power != NRF_POWER_OFF) {
+		rf_power_up();
+		rf_mode_rx();
+	}
+		rf_flush_all();
+		rf_clear_irq();
 
 	chMtxUnlock(&rf_mutex);
 }
