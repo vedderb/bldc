@@ -220,7 +220,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 				current_mode_brake = true;
 			}
 
-			if (servo_val < 0.001) {
+			if (fabsf(servo_val) < 0.001) {
 				pulses_without_power++;
 			}
 			break;
