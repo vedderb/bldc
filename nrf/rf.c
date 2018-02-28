@@ -58,6 +58,10 @@ void rf_set_speed(NRF_SPEED speed) {
 }
 
 void rf_set_power(NRF_POWER power) {
+	if (power == NRF_POWER_OFF){
+		return;
+	}
+	
 	char reg_old = rf_read_reg_byte(NRF_REG_RF_SETUP);
 	char reg_new = reg_old;
 
