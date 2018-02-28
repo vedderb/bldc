@@ -42,7 +42,6 @@
 #include "ws2811.h"
 #include "led_external.h"
 #include "encoder.h"
-#include "servo.h"
 #include "servo_simple.h"
 #include "utils.h"
 #include "nrf_driver.h"
@@ -51,7 +50,6 @@
 
 /*
  * Timers used:
- * TIM7: servo
  * TIM1: mcpwm
  * TIM2: mcpwm
  * TIM12: mcpwm
@@ -239,11 +237,7 @@ int main(void) {
 #endif
 
 #if SERVO_OUT_ENABLE
-#if SERVO_OUT_SIMPLE
 	servo_simple_init();
-#else
-	servo_init();
-#endif
 #endif
 
 	// Threads

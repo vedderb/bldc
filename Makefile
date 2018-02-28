@@ -133,7 +133,6 @@ CSRC = $(STARTUPSRC) \
        mcpwm.c \
        servo_dec.c \
        utils.c \
-       servo.c \
        servo_simple.c \
        packet.c \
        terminal.c \

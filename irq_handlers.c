@@ -23,18 +23,8 @@
 #include "isr_vector_table.h"
 #include "mc_interface.h"
 #include "mcpwm_foc.h"
-#include "servo.h"
 #include "hw.h"
 #include "encoder.h"
-
-#if SERVO_OUT_ENABLE && !SERVO_OUT_SIMPLE
-CH_IRQ_HANDLER(TIM7_IRQHandler) {
-	CH_IRQ_PROLOGUE();
-	TIM_ClearITPendingBit(TIM7, TIM_IT_Update);
-	servo_irq();
-	CH_IRQ_EPILOGUE();
-}
-#endif
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();

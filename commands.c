@@ -22,7 +22,6 @@
 #include "hal.h"
 #include "mc_interface.h"
 #include "stm32f4xx_conf.h"
-#include "servo.h"
 #include "servo_simple.h"
 #include "buffer.h"
 #include "terminal.h"
@@ -241,11 +240,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_SET_SERVO_POS:
 #if SERVO_OUT_ENABLE
 		ind = 0;
-#if SERVO_OUT_SIMPLE
 		servo_simple_set_output(buffer_get_float16(data, 1000.0, &ind));
-#else
-		servos[0].pos = (int16_t)(buffer_get_float16(data, 1000.0, &ind) * 255.0);
-#endif
 #endif
 		break;
 

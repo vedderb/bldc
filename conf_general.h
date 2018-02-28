@@ -118,7 +118,6 @@
 #ifndef SERVO_OUT_ENABLE
 #define SERVO_OUT_ENABLE			0		// Enable servo output
 #endif
-#define SERVO_OUT_SIMPLE			1		// Use simple HW-based driver (recommended)
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz

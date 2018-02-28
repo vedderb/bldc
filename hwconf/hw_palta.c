@@ -21,7 +21,6 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "servo.h"
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
@@ -152,22 +151,6 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
-}
-
-void hw_setup_servo_outputs(void) {
-	// Set up GPIO ports
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
-	servos[0].gpio = GPIOB;
-	servos[0].pin = 5;
-	servos[0].offset = 0;
-	servos[0].pos = 128;
-
-	servos[1].gpio = GPIOD;
-	servos[1].pin = 2;
-	servos[1].offset = 0;
-	servos[1].pos = 0;
 }
 
 void hw_start_i2c(void) {
