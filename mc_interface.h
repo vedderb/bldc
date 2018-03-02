@@ -43,6 +43,7 @@ void mc_interface_set_brake_current(float current);
 void mc_interface_set_current_rel(float val);
 void mc_interface_set_brake_current_rel(float val);
 void mc_interface_set_handbrake(float current);
+void mc_interface_set_handbrake_rel(float val);
 void mc_interface_brake_now(void);
 void mc_interface_release_motor(void);
 float mc_interface_get_duty_cycle_set(void);

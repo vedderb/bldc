@@ -1,3 +1,6 @@
+=== FW 3.36 ===
+* Added handbrake current commands to the simple CAN interface.
+
 === FW 3.35 ===
 * Added option to disable nRF transmission (option in Transmit Power parameter).
 * Fixed servo output driver for all hardwares and removed software servo driver.
