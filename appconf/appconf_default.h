@@ -37,13 +37,13 @@
 #define APPCONF_SEND_CAN_STATUS_RATE_HZ		500
 #endif
 #ifndef APPCONF_CAN_BAUD_RATE
-#define APPCONF_CAN_BAUD_RATE				CAN_BAUD_500K
+#define APPCONF_CAN_BAUD_RATE				CAN_BAUD_1M
 #endif
 
 // The default app is UART in case the UART port is used for
 // firmware updates.
 #ifndef APPCONF_APP_TO_USE
-#define APPCONF_APP_TO_USE					APP_UART
+#define APPCONF_APP_TO_USE					APP_NONE
 #endif
 
 // PPM app configureation

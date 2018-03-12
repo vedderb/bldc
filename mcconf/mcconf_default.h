@@ -22,7 +22,7 @@
 
 // Default settings
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_BLDC
+#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_PWM_MODE
 #define MCCONF_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
@@ -228,7 +228,7 @@
 #define MCCONF_FOC_ENCODER_RATIO		7.0
 #endif
 #ifndef MCCONF_FOC_SENSOR_MODE
-#define MCCONF_FOC_SENSOR_MODE			FOC_SENSOR_MODE_SENSORLESS
+#define MCCONF_FOC_SENSOR_MODE			FOC_SENSOR_MODE_ENCODER
 #endif
 #ifndef MCCONF_FOC_PLL_KP
 #define MCCONF_FOC_PLL_KP				2000.0
@@ -329,7 +329,7 @@
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts
 #endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
-#define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
+#define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_AS5047_SPI // The mode of the hall_encoder port
 #endif
 #ifndef MCCONF_M_INVERT_DIRECTION
 #define MCCONF_M_INVERT_DIRECTION		false // Invert the motor direction

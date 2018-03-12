@@ -29,6 +29,7 @@ void commands_send_packet(unsigned char *data, unsigned int len);
 void commands_process_packet(unsigned char *data, unsigned int len);
 void commands_printf(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);
+void commands_send_rotor_pos_counts(int32_t rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
 disp_pos_mode commands_get_disp_pos_mode(void);
 void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));

@@ -70,6 +70,8 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
+static int32_t cumulative_encoder_counts = 0;
+static uint32_t last_encoder_counts = 0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
@@ -200,6 +202,16 @@ float encoder_read_deg(void) {
 	return angle;
 }
 
+int32_t encoder_cumulative_counts(void) {
+
+	if (mode==ENCODER_MODE_AS5047P_SPI)
+	{
+		return cumulative_encoder_counts;
+	}
+
+	return 0;
+}
+
 /**
  * Reset the encoder counter. Should be called from the index interrupt.
  */
@@ -246,6 +258,21 @@ void encoder_tim_isr(void) {
 	spi_end();
 
 	pos &= 0x3FFF;
+
+	// Handle encoder rollover up or down.
+	if(last_encoder_counts < (16384 / 4) && pos > (3 * 16384 / 4))
+	{
+		cumulative_encoder_counts -= 16384;
+	} else
+	if(last_encoder_counts > (3 * 16384 / 4) && pos < (16384 / 4))
+	{
+		cumulative_encoder_counts += 16384;
+	}
+
+  // Now account for actual reading changes
+	cumulative_encoder_counts += (pos - last_encoder_counts);
+	last_encoder_counts = pos;
+
 	last_enc_angle = ((float)pos * 360.0) / 16384.0;
 }
 

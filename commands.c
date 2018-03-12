@@ -196,6 +196,18 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		timeout_reset();
 		break;
 
+	case COMM_SET_CURRENT_GET_POSITION:
+		ind = 0;
+		mc_interface_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
+		timeout_reset();
+		ind = 0;
+		send_buffer[ind++] = COMM_ROTOR_POSITION_CUMULATIVE;
+		buffer_append_int32(send_buffer, encoder_cumulative_counts(), &ind);
+		//buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
+		//send_buffer[ind++] = mc_interface_get_fault();
+		commands_send_packet(send_buffer, ind);
+		break;
+
 	case COMM_SET_CURRENT_BRAKE:
 		ind = 0;
 		mc_interface_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
@@ -880,6 +892,16 @@ void commands_send_rotor_pos(float rotor_pos) {
 
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
+
+	commands_send_packet(buffer, index);
+}
+
+void commands_send_rotor_pos_counts(int32_t rotor_pos) {
+	uint8_t buffer[5];
+	int32_t index = 0;
+
+	buffer[index++] = COMM_ROTOR_POSITION_CUMULATIVE;
+	buffer_append_int32(buffer, (int32_t)(rotor_pos), &index);
 
 	commands_send_packet(buffer, index);
 }

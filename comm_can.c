@@ -31,6 +31,7 @@
 #include "app.h"
 #include "crc.h"
 #include "packet.h"
+#include "encoder.h"
 
 // Settings
 #define CANDx			CAND1
@@ -155,6 +156,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 	uint8_t crc_low;
 	uint8_t crc_high;
 	bool commands_send;
+	uint8_t send_buffer[8];
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
@@ -179,12 +181,26 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						ind = 0;
 						mc_interface_set_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
 						timeout_reset();
+						ind = 0;
+						buffer_append_int32(send_buffer, encoder_cumulative_counts(), &ind);
+						buffer_append_float32_auto(send_buffer, mc_interface_get_rpm(), &ind);
+						//send_buffer[ind++] = mc_interface_get_fault();
+						comm_can_transmit_sid(app_get_configuration()->controller_id |
+								((uint32_t)CAN_PACKET_SEND_ROVER_DETAILS << 8), send_buffer, ind);
+
+
 						break;
 
 					case CAN_PACKET_SET_CURRENT_BRAKE:
 						ind = 0;
 						mc_interface_set_brake_current((float)buffer_get_int32(rxmsg.data8, &ind) / 1000.0);
 						timeout_reset();
+						ind = 0;
+						buffer_append_int32(send_buffer, encoder_cumulative_counts(), &ind);
+						buffer_append_float32_auto(send_buffer, mc_interface_get_rpm(), &ind);
+						//send_buffer[ind++] = mc_interface_get_fault();
+						comm_can_transmit_sid(app_get_configuration()->controller_id |
+								((uint32_t)CAN_PACKET_SEND_ROVER_DETAILS << 8), send_buffer, ind);
 						break;
 
 					case CAN_PACKET_SET_RPM:
@@ -193,10 +209,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						timeout_reset();
 						break;
 
-					case CAN_PACKET_SET_POS:
-						ind = 0;
-						mc_interface_set_pid_pos((float)buffer_get_int32(rxmsg.data8, &ind) / 1000000.0);
-						timeout_reset();
+					case CAN_PACKET_SEND_ROVER_DETAILS:
+						//ind = 0;
+						//mc_interface_set_pid_pos((float)buffer_get_int32(rxmsg.data8, &ind) / 1000000.0);
+						//timeout_reset();
 						break;
 
 					case CAN_PACKET_FILL_RX_BUFFER:
