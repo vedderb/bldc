@@ -1,0 +1,810 @@
+ARM GAS  /tmp/ccHKcOJM.s 			page 1
+
+
+   1              		.syntax unified
+   2              		.cpu cortex-m4
+   3              		.eabi_attribute 27, 3
+   4              		.eabi_attribute 28, 1
+   5              		.fpu fpv4-sp-d16
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 2
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.thumb
+  16              		.file	"crc.c"
+  17              		.text
+  18              	.Ltext0:
+  19              		.cfi_sections	.debug_frame
+  20              		.section	.text.crc16,"ax",%progbits
+  21              		.align	2
+  22              		.p2align 4,,15
+  23              		.global	crc16
+  24              		.thumb
+  25              		.thumb_func
+  26              		.type	crc16, %function
+  27              	crc16:
+  28              	.LFB0:
+  29              		.file 1 "crc.c"
+  30              		.loc 1 53 0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  35              	.LVL0:
+  36 0000 30B4     		push	{r4, r5}
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 4, -8
+  39              		.cfi_offset 5, -4
+  40              		.loc 1 56 0
+  41 0002 89B1     		cbz	r1, .L4
+  42 0004 094D     		ldr	r5, .L7
+  43 0006 0144     		add	r1, r1, r0
+  44              	.LVL1:
+  45              		.loc 1 55 0
+  46 0008 0023     		movs	r3, #0
+  47              	.LVL2:
+  48              	.L3:
+  49              		.loc 1 57 0 discriminator 2
+  50 000a 10F8012B 		ldrb	r2, [r0], #1	@ zero_extendqisi2
+  51              	.LVL3:
+  52 000e C3F30F24 		ubfx	r4, r3, #8, #16
+  53 0012 6240     		eors	r2, r2, r4
+  54              		.loc 1 56 0 discriminator 2
+  55 0014 8842     		cmp	r0, r1
+  56              		.loc 1 57 0 discriminator 2
+  57 0016 35F81220 		ldrh	r2, [r5, r2, lsl #1]
+ARM GAS  /tmp/ccHKcOJM.s 			page 2
+
+
+  58 001a 82EA0323 		eor	r3, r2, r3, lsl #8
+  59              	.LVL4:
+  60 001e 9BB2     		uxth	r3, r3
+  61              	.LVL5:
+  62              		.loc 1 56 0 discriminator 2
+  63 0020 F3D1     		bne	.L3
+  64              	.LVL6:
+  65              	.L2:
+  66              		.loc 1 60 0
+  67 0022 1846     		mov	r0, r3
+  68              	.LVL7:
+  69 0024 30BC     		pop	{r4, r5}
+  70 0026 7047     		bx	lr
+  71              	.LVL8:
+  72              	.L4:
+  73              		.loc 1 55 0
+  74 0028 0B46     		mov	r3, r1
+  75 002a FAE7     		b	.L2
+  76              	.L8:
+  77              		.align	2
+  78              	.L7:
+  79 002c 00000000 		.word	.LANCHOR0
+  80              		.cfi_endproc
+  81              	.LFE0:
+  82              		.size	crc16, .-crc16
+  83              		.global	crc16_tab
+  84              		.section	.rodata.crc16_tab,"a",%progbits
+  85              		.align	2
+  86              		.set	.LANCHOR0,. + 0
+  87              		.type	crc16_tab, %object
+  88              		.size	crc16_tab, 512
+  89              	crc16_tab:
+  90 0000 0000     		.short	0
+  91 0002 2110     		.short	4129
+  92 0004 4220     		.short	8258
+  93 0006 6330     		.short	12387
+  94 0008 8440     		.short	16516
+  95 000a A550     		.short	20645
+  96 000c C660     		.short	24774
+  97 000e E770     		.short	28903
+  98 0010 0881     		.short	-32504
+  99 0012 2991     		.short	-28375
+ 100 0014 4AA1     		.short	-24246
+ 101 0016 6BB1     		.short	-20117
+ 102 0018 8CC1     		.short	-15988
+ 103 001a ADD1     		.short	-11859
+ 104 001c CEE1     		.short	-7730
+ 105 001e EFF1     		.short	-3601
+ 106 0020 3112     		.short	4657
+ 107 0022 1002     		.short	528
+ 108 0024 7332     		.short	12915
+ 109 0026 5222     		.short	8786
+ 110 0028 B552     		.short	21173
+ 111 002a 9442     		.short	17044
+ 112 002c F772     		.short	29431
+ 113 002e D662     		.short	25302
+ 114 0030 3993     		.short	-27847
+ARM GAS  /tmp/ccHKcOJM.s 			page 3
+
+
+ 115 0032 1883     		.short	-31976
+ 116 0034 7BB3     		.short	-19589
+ 117 0036 5AA3     		.short	-23718
+ 118 0038 BDD3     		.short	-11331
+ 119 003a 9CC3     		.short	-15460
+ 120 003c FFF3     		.short	-3073
+ 121 003e DEE3     		.short	-7202
+ 122 0040 6224     		.short	9314
+ 123 0042 4334     		.short	13379
+ 124 0044 2004     		.short	1056
+ 125 0046 0114     		.short	5121
+ 126 0048 E664     		.short	25830
+ 127 004a C774     		.short	29895
+ 128 004c A444     		.short	17572
+ 129 004e 8554     		.short	21637
+ 130 0050 6AA5     		.short	-23190
+ 131 0052 4BB5     		.short	-19125
+ 132 0054 2885     		.short	-31448
+ 133 0056 0995     		.short	-27383
+ 134 0058 EEE5     		.short	-6674
+ 135 005a CFF5     		.short	-2609
+ 136 005c ACC5     		.short	-14932
+ 137 005e 8DD5     		.short	-10867
+ 138 0060 5336     		.short	13907
+ 139 0062 7226     		.short	9842
+ 140 0064 1116     		.short	5649
+ 141 0066 3006     		.short	1584
+ 142 0068 D776     		.short	30423
+ 143 006a F666     		.short	26358
+ 144 006c 9556     		.short	22165
+ 145 006e B446     		.short	18100
+ 146 0070 5BB7     		.short	-18597
+ 147 0072 7AA7     		.short	-22662
+ 148 0074 1997     		.short	-26855
+ 149 0076 3887     		.short	-30920
+ 150 0078 DFF7     		.short	-2081
+ 151 007a FEE7     		.short	-6146
+ 152 007c 9DD7     		.short	-10339
+ 153 007e BCC7     		.short	-14404
+ 154 0080 C448     		.short	18628
+ 155 0082 E558     		.short	22757
+ 156 0084 8668     		.short	26758
+ 157 0086 A778     		.short	30887
+ 158 0088 4008     		.short	2112
+ 159 008a 6118     		.short	6241
+ 160 008c 0228     		.short	10242
+ 161 008e 2338     		.short	14371
+ 162 0090 CCC9     		.short	-13876
+ 163 0092 EDD9     		.short	-9747
+ 164 0094 8EE9     		.short	-5746
+ 165 0096 AFF9     		.short	-1617
+ 166 0098 4889     		.short	-30392
+ 167 009a 6999     		.short	-26263
+ 168 009c 0AA9     		.short	-22262
+ 169 009e 2BB9     		.short	-18133
+ 170 00a0 F55A     		.short	23285
+ 171 00a2 D44A     		.short	19156
+ARM GAS  /tmp/ccHKcOJM.s 			page 4
+
+
+ 172 00a4 B77A     		.short	31415
+ 173 00a6 966A     		.short	27286
+ 174 00a8 711A     		.short	6769
+ 175 00aa 500A     		.short	2640
+ 176 00ac 333A     		.short	14899
+ 177 00ae 122A     		.short	10770
+ 178 00b0 FDDB     		.short	-9219
+ 179 00b2 DCCB     		.short	-13348
+ 180 00b4 BFFB     		.short	-1089
+ 181 00b6 9EEB     		.short	-5218
+ 182 00b8 799B     		.short	-25735
+ 183 00ba 588B     		.short	-29864
+ 184 00bc 3BBB     		.short	-17605
+ 185 00be 1AAB     		.short	-21734
+ 186 00c0 A66C     		.short	27814
+ 187 00c2 877C     		.short	31879
+ 188 00c4 E44C     		.short	19684
+ 189 00c6 C55C     		.short	23749
+ 190 00c8 222C     		.short	11298
+ 191 00ca 033C     		.short	15363
+ 192 00cc 600C     		.short	3168
+ 193 00ce 411C     		.short	7233
+ 194 00d0 AEED     		.short	-4690
+ 195 00d2 8FFD     		.short	-625
+ 196 00d4 ECCD     		.short	-12820
+ 197 00d6 CDDD     		.short	-8755
+ 198 00d8 2AAD     		.short	-21206
+ 199 00da 0BBD     		.short	-17141
+ 200 00dc 688D     		.short	-29336
+ 201 00de 499D     		.short	-25271
+ 202 00e0 977E     		.short	32407
+ 203 00e2 B66E     		.short	28342
+ 204 00e4 D55E     		.short	24277
+ 205 00e6 F44E     		.short	20212
+ 206 00e8 133E     		.short	15891
+ 207 00ea 322E     		.short	11826
+ 208 00ec 511E     		.short	7761
+ 209 00ee 700E     		.short	3696
+ 210 00f0 9FFF     		.short	-97
+ 211 00f2 BEEF     		.short	-4162
+ 212 00f4 DDDF     		.short	-8227
+ 213 00f6 FCCF     		.short	-12292
+ 214 00f8 1BBF     		.short	-16613
+ 215 00fa 3AAF     		.short	-20678
+ 216 00fc 599F     		.short	-24743
+ 217 00fe 788F     		.short	-28808
+ 218 0100 8891     		.short	-28280
+ 219 0102 A981     		.short	-32343
+ 220 0104 CAB1     		.short	-20022
+ 221 0106 EBA1     		.short	-24085
+ 222 0108 0CD1     		.short	-12020
+ 223 010a 2DC1     		.short	-16083
+ 224 010c 4EF1     		.short	-3762
+ 225 010e 6FE1     		.short	-7825
+ 226 0110 8010     		.short	4224
+ 227 0112 A100     		.short	161
+ 228 0114 C230     		.short	12482
+ARM GAS  /tmp/ccHKcOJM.s 			page 5
+
+
+ 229 0116 E320     		.short	8419
+ 230 0118 0450     		.short	20484
+ 231 011a 2540     		.short	16421
+ 232 011c 4670     		.short	28742
+ 233 011e 6760     		.short	24679
+ 234 0120 B983     		.short	-31815
+ 235 0122 9893     		.short	-27752
+ 236 0124 FBA3     		.short	-23557
+ 237 0126 DAB3     		.short	-19494
+ 238 0128 3DC3     		.short	-15555
+ 239 012a 1CD3     		.short	-11492
+ 240 012c 7FE3     		.short	-7297
+ 241 012e 5EF3     		.short	-3234
+ 242 0130 B102     		.short	689
+ 243 0132 9012     		.short	4752
+ 244 0134 F322     		.short	8947
+ 245 0136 D232     		.short	13010
+ 246 0138 3542     		.short	16949
+ 247 013a 1452     		.short	21012
+ 248 013c 7762     		.short	25207
+ 249 013e 5672     		.short	29270
+ 250 0140 EAB5     		.short	-18966
+ 251 0142 CBA5     		.short	-23093
+ 252 0144 A895     		.short	-27224
+ 253 0146 8985     		.short	-31351
+ 254 0148 6EF5     		.short	-2706
+ 255 014a 4FE5     		.short	-6833
+ 256 014c 2CD5     		.short	-10964
+ 257 014e 0DC5     		.short	-15091
+ 258 0150 E234     		.short	13538
+ 259 0152 C324     		.short	9411
+ 260 0154 A014     		.short	5280
+ 261 0156 8104     		.short	1153
+ 262 0158 6674     		.short	29798
+ 263 015a 4764     		.short	25671
+ 264 015c 2454     		.short	21540
+ 265 015e 0544     		.short	17413
+ 266 0160 DBA7     		.short	-22565
+ 267 0162 FAB7     		.short	-18438
+ 268 0164 9987     		.short	-30823
+ 269 0166 B897     		.short	-26696
+ 270 0168 5FE7     		.short	-6305
+ 271 016a 7EF7     		.short	-2178
+ 272 016c 1DC7     		.short	-14563
+ 273 016e 3CD7     		.short	-10436
+ 274 0170 D326     		.short	9939
+ 275 0172 F236     		.short	14066
+ 276 0174 9106     		.short	1681
+ 277 0176 B016     		.short	5808
+ 278 0178 5766     		.short	26199
+ 279 017a 7676     		.short	30326
+ 280 017c 1546     		.short	17941
+ 281 017e 3456     		.short	22068
+ 282 0180 4CD9     		.short	-9908
+ 283 0182 6DC9     		.short	-13971
+ 284 0184 0EF9     		.short	-1778
+ 285 0186 2FE9     		.short	-5841
+ARM GAS  /tmp/ccHKcOJM.s 			page 6
+
+
+ 286 0188 C899     		.short	-26168
+ 287 018a E989     		.short	-30231
+ 288 018c 8AB9     		.short	-18038
+ 289 018e ABA9     		.short	-22101
+ 290 0190 4458     		.short	22596
+ 291 0192 6548     		.short	18533
+ 292 0194 0678     		.short	30726
+ 293 0196 2768     		.short	26663
+ 294 0198 C018     		.short	6336
+ 295 019a E108     		.short	2273
+ 296 019c 8238     		.short	14466
+ 297 019e A328     		.short	10403
+ 298 01a0 7DCB     		.short	-13443
+ 299 01a2 5CDB     		.short	-9380
+ 300 01a4 3FEB     		.short	-5313
+ 301 01a6 1EFB     		.short	-1250
+ 302 01a8 F98B     		.short	-29703
+ 303 01aa D89B     		.short	-25640
+ 304 01ac BBAB     		.short	-21573
+ 305 01ae 9ABB     		.short	-17510
+ 306 01b0 754A     		.short	19061
+ 307 01b2 545A     		.short	23124
+ 308 01b4 376A     		.short	27191
+ 309 01b6 167A     		.short	31254
+ 310 01b8 F10A     		.short	2801
+ 311 01ba D01A     		.short	6864
+ 312 01bc B32A     		.short	10931
+ 313 01be 923A     		.short	14994
+ 314 01c0 2EFD     		.short	-722
+ 315 01c2 0FED     		.short	-4849
+ 316 01c4 6CDD     		.short	-8852
+ 317 01c6 4DCD     		.short	-12979
+ 318 01c8 AABD     		.short	-16982
+ 319 01ca 8BAD     		.short	-21109
+ 320 01cc E89D     		.short	-25112
+ 321 01ce C98D     		.short	-29239
+ 322 01d0 267C     		.short	31782
+ 323 01d2 076C     		.short	27655
+ 324 01d4 645C     		.short	23652
+ 325 01d6 454C     		.short	19525
+ 326 01d8 A23C     		.short	15522
+ 327 01da 832C     		.short	11395
+ 328 01dc E01C     		.short	7392
+ 329 01de C10C     		.short	3265
+ 330 01e0 1FEF     		.short	-4321
+ 331 01e2 3EFF     		.short	-194
+ 332 01e4 5DCF     		.short	-12451
+ 333 01e6 7CDF     		.short	-8324
+ 334 01e8 9BAF     		.short	-20581
+ 335 01ea BABF     		.short	-16454
+ 336 01ec D98F     		.short	-28711
+ 337 01ee F89F     		.short	-24584
+ 338 01f0 176E     		.short	28183
+ 339 01f2 367E     		.short	32310
+ 340 01f4 554E     		.short	20053
+ 341 01f6 745E     		.short	24180
+ 342 01f8 932E     		.short	11923
+ARM GAS  /tmp/ccHKcOJM.s 			page 7
+
+
+ 343 01fa B23E     		.short	16050
+ 344 01fc D10E     		.short	3793
+ 345 01fe F01E     		.short	7920
+ 346              		.text
+ 347              	.Letext0:
+ 348              		.section	.debug_info,"",%progbits
+ 349              	.Ldebug_info0:
+ 350 0000 BE000000 		.4byte	0xbe
+ 351 0004 0400     		.2byte	0x4
+ 352 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 353 000a 04       		.byte	0x4
+ 354 000b 01       		.uleb128 0x1
+ 355 000c 7A000000 		.4byte	.LASF5
+ 356 0010 01       		.byte	0x1
+ 357 0011 47000000 		.4byte	.LASF6
+ 358 0015 20000000 		.4byte	.LASF7
+ 359 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 360 001d 00000000 		.4byte	0
+ 361 0021 00000000 		.4byte	.Ldebug_line0
+ 362 0025 02       		.uleb128 0x2
+ 363 0026 4D000000 		.4byte	.LASF8
+ 364 002a 01       		.byte	0x1
+ 365 002b 35       		.byte	0x35
+ 366 002c 79000000 		.4byte	0x79
+ 367 0030 00000000 		.4byte	.LFB0
+ 368 0034 30000000 		.4byte	.LFE0-.LFB0
+ 369 0038 01       		.uleb128 0x1
+ 370 0039 9C       		.byte	0x9c
+ 371 003a 79000000 		.4byte	0x79
+ 372 003e 03       		.uleb128 0x3
+ 373 003f 62756600 		.ascii	"buf\000"
+ 374 0043 01       		.byte	0x1
+ 375 0044 35       		.byte	0x35
+ 376 0045 80000000 		.4byte	0x80
+ 377 0049 00000000 		.4byte	.LLST0
+ 378 004d 03       		.uleb128 0x3
+ 379 004e 6C656E00 		.ascii	"len\000"
+ 380 0052 01       		.byte	0x1
+ 381 0053 35       		.byte	0x35
+ 382 0054 8D000000 		.4byte	0x8d
+ 383 0058 36000000 		.4byte	.LLST1
+ 384 005c 04       		.uleb128 0x4
+ 385 005d 6900     		.ascii	"i\000"
+ 386 005f 01       		.byte	0x1
+ 387 0060 36       		.byte	0x36
+ 388 0061 8D000000 		.4byte	0x8d
+ 389 0065 62000000 		.4byte	.LLST2
+ 390 0069 05       		.uleb128 0x5
+ 391 006a 74000000 		.4byte	.LASF0
+ 392 006e 01       		.byte	0x1
+ 393 006f 37       		.byte	0x37
+ 394 0070 79000000 		.4byte	0x79
+ 395 0074 82000000 		.4byte	.LLST3
+ 396 0078 00       		.byte	0
+ 397 0079 06       		.uleb128 0x6
+ 398 007a 02       		.byte	0x2
+ 399 007b 07       		.byte	0x7
+ARM GAS  /tmp/ccHKcOJM.s 			page 8
+
+
+ 400 007c 0D000000 		.4byte	.LASF1
+ 401 0080 07       		.uleb128 0x7
+ 402 0081 04       		.byte	0x4
+ 403 0082 86000000 		.4byte	0x86
+ 404 0086 06       		.uleb128 0x6
+ 405 0087 01       		.byte	0x1
+ 406 0088 08       		.byte	0x8
+ 407 0089 53000000 		.4byte	.LASF2
+ 408 008d 06       		.uleb128 0x6
+ 409 008e 04       		.byte	0x4
+ 410 008f 07       		.byte	0x7
+ 411 0090 00000000 		.4byte	.LASF3
+ 412 0094 08       		.uleb128 0x8
+ 413 0095 79000000 		.4byte	0x79
+ 414 0099 A4000000 		.4byte	0xa4
+ 415 009d 09       		.uleb128 0x9
+ 416 009e A4000000 		.4byte	0xa4
+ 417 00a2 FF       		.byte	0xff
+ 418 00a3 00       		.byte	0
+ 419 00a4 06       		.uleb128 0x6
+ 420 00a5 04       		.byte	0x4
+ 421 00a6 07       		.byte	0x7
+ 422 00a7 61000000 		.4byte	.LASF4
+ 423 00ab 0A       		.uleb128 0xa
+ 424 00ac 6A000000 		.4byte	.LASF9
+ 425 00b0 01       		.byte	0x1
+ 426 00b1 17       		.byte	0x17
+ 427 00b2 BC000000 		.4byte	0xbc
+ 428 00b6 05       		.uleb128 0x5
+ 429 00b7 03       		.byte	0x3
+ 430 00b8 00000000 		.4byte	crc16_tab
+ 431 00bc 0B       		.uleb128 0xb
+ 432 00bd 94000000 		.4byte	0x94
+ 433 00c1 00       		.byte	0
+ 434              		.section	.debug_abbrev,"",%progbits
+ 435              	.Ldebug_abbrev0:
+ 436 0000 01       		.uleb128 0x1
+ 437 0001 11       		.uleb128 0x11
+ 438 0002 01       		.byte	0x1
+ 439 0003 25       		.uleb128 0x25
+ 440 0004 0E       		.uleb128 0xe
+ 441 0005 13       		.uleb128 0x13
+ 442 0006 0B       		.uleb128 0xb
+ 443 0007 03       		.uleb128 0x3
+ 444 0008 0E       		.uleb128 0xe
+ 445 0009 1B       		.uleb128 0x1b
+ 446 000a 0E       		.uleb128 0xe
+ 447 000b 55       		.uleb128 0x55
+ 448 000c 17       		.uleb128 0x17
+ 449 000d 11       		.uleb128 0x11
+ 450 000e 01       		.uleb128 0x1
+ 451 000f 10       		.uleb128 0x10
+ 452 0010 17       		.uleb128 0x17
+ 453 0011 00       		.byte	0
+ 454 0012 00       		.byte	0
+ 455 0013 02       		.uleb128 0x2
+ 456 0014 2E       		.uleb128 0x2e
+ARM GAS  /tmp/ccHKcOJM.s 			page 9
+
+
+ 457 0015 01       		.byte	0x1
+ 458 0016 3F       		.uleb128 0x3f
+ 459 0017 19       		.uleb128 0x19
+ 460 0018 03       		.uleb128 0x3
+ 461 0019 0E       		.uleb128 0xe
+ 462 001a 3A       		.uleb128 0x3a
+ 463 001b 0B       		.uleb128 0xb
+ 464 001c 3B       		.uleb128 0x3b
+ 465 001d 0B       		.uleb128 0xb
+ 466 001e 27       		.uleb128 0x27
+ 467 001f 19       		.uleb128 0x19
+ 468 0020 49       		.uleb128 0x49
+ 469 0021 13       		.uleb128 0x13
+ 470 0022 11       		.uleb128 0x11
+ 471 0023 01       		.uleb128 0x1
+ 472 0024 12       		.uleb128 0x12
+ 473 0025 06       		.uleb128 0x6
+ 474 0026 40       		.uleb128 0x40
+ 475 0027 18       		.uleb128 0x18
+ 476 0028 9742     		.uleb128 0x2117
+ 477 002a 19       		.uleb128 0x19
+ 478 002b 01       		.uleb128 0x1
+ 479 002c 13       		.uleb128 0x13
+ 480 002d 00       		.byte	0
+ 481 002e 00       		.byte	0
+ 482 002f 03       		.uleb128 0x3
+ 483 0030 05       		.uleb128 0x5
+ 484 0031 00       		.byte	0
+ 485 0032 03       		.uleb128 0x3
+ 486 0033 08       		.uleb128 0x8
+ 487 0034 3A       		.uleb128 0x3a
+ 488 0035 0B       		.uleb128 0xb
+ 489 0036 3B       		.uleb128 0x3b
+ 490 0037 0B       		.uleb128 0xb
+ 491 0038 49       		.uleb128 0x49
+ 492 0039 13       		.uleb128 0x13
+ 493 003a 02       		.uleb128 0x2
+ 494 003b 17       		.uleb128 0x17
+ 495 003c 00       		.byte	0
+ 496 003d 00       		.byte	0
+ 497 003e 04       		.uleb128 0x4
+ 498 003f 34       		.uleb128 0x34
+ 499 0040 00       		.byte	0
+ 500 0041 03       		.uleb128 0x3
+ 501 0042 08       		.uleb128 0x8
+ 502 0043 3A       		.uleb128 0x3a
+ 503 0044 0B       		.uleb128 0xb
+ 504 0045 3B       		.uleb128 0x3b
+ 505 0046 0B       		.uleb128 0xb
+ 506 0047 49       		.uleb128 0x49
+ 507 0048 13       		.uleb128 0x13
+ 508 0049 02       		.uleb128 0x2
+ 509 004a 17       		.uleb128 0x17
+ 510 004b 00       		.byte	0
+ 511 004c 00       		.byte	0
+ 512 004d 05       		.uleb128 0x5
+ 513 004e 34       		.uleb128 0x34
+ARM GAS  /tmp/ccHKcOJM.s 			page 10
+
+
+ 514 004f 00       		.byte	0
+ 515 0050 03       		.uleb128 0x3
+ 516 0051 0E       		.uleb128 0xe
+ 517 0052 3A       		.uleb128 0x3a
+ 518 0053 0B       		.uleb128 0xb
+ 519 0054 3B       		.uleb128 0x3b
+ 520 0055 0B       		.uleb128 0xb
+ 521 0056 49       		.uleb128 0x49
+ 522 0057 13       		.uleb128 0x13
+ 523 0058 02       		.uleb128 0x2
+ 524 0059 17       		.uleb128 0x17
+ 525 005a 00       		.byte	0
+ 526 005b 00       		.byte	0
+ 527 005c 06       		.uleb128 0x6
+ 528 005d 24       		.uleb128 0x24
+ 529 005e 00       		.byte	0
+ 530 005f 0B       		.uleb128 0xb
+ 531 0060 0B       		.uleb128 0xb
+ 532 0061 3E       		.uleb128 0x3e
+ 533 0062 0B       		.uleb128 0xb
+ 534 0063 03       		.uleb128 0x3
+ 535 0064 0E       		.uleb128 0xe
+ 536 0065 00       		.byte	0
+ 537 0066 00       		.byte	0
+ 538 0067 07       		.uleb128 0x7
+ 539 0068 0F       		.uleb128 0xf
+ 540 0069 00       		.byte	0
+ 541 006a 0B       		.uleb128 0xb
+ 542 006b 0B       		.uleb128 0xb
+ 543 006c 49       		.uleb128 0x49
+ 544 006d 13       		.uleb128 0x13
+ 545 006e 00       		.byte	0
+ 546 006f 00       		.byte	0
+ 547 0070 08       		.uleb128 0x8
+ 548 0071 01       		.uleb128 0x1
+ 549 0072 01       		.byte	0x1
+ 550 0073 49       		.uleb128 0x49
+ 551 0074 13       		.uleb128 0x13
+ 552 0075 01       		.uleb128 0x1
+ 553 0076 13       		.uleb128 0x13
+ 554 0077 00       		.byte	0
+ 555 0078 00       		.byte	0
+ 556 0079 09       		.uleb128 0x9
+ 557 007a 21       		.uleb128 0x21
+ 558 007b 00       		.byte	0
+ 559 007c 49       		.uleb128 0x49
+ 560 007d 13       		.uleb128 0x13
+ 561 007e 2F       		.uleb128 0x2f
+ 562 007f 0B       		.uleb128 0xb
+ 563 0080 00       		.byte	0
+ 564 0081 00       		.byte	0
+ 565 0082 0A       		.uleb128 0xa
+ 566 0083 34       		.uleb128 0x34
+ 567 0084 00       		.byte	0
+ 568 0085 03       		.uleb128 0x3
+ 569 0086 0E       		.uleb128 0xe
+ 570 0087 3A       		.uleb128 0x3a
+ARM GAS  /tmp/ccHKcOJM.s 			page 11
+
+
+ 571 0088 0B       		.uleb128 0xb
+ 572 0089 3B       		.uleb128 0x3b
+ 573 008a 0B       		.uleb128 0xb
+ 574 008b 49       		.uleb128 0x49
+ 575 008c 13       		.uleb128 0x13
+ 576 008d 3F       		.uleb128 0x3f
+ 577 008e 19       		.uleb128 0x19
+ 578 008f 02       		.uleb128 0x2
+ 579 0090 18       		.uleb128 0x18
+ 580 0091 00       		.byte	0
+ 581 0092 00       		.byte	0
+ 582 0093 0B       		.uleb128 0xb
+ 583 0094 26       		.uleb128 0x26
+ 584 0095 00       		.byte	0
+ 585 0096 49       		.uleb128 0x49
+ 586 0097 13       		.uleb128 0x13
+ 587 0098 00       		.byte	0
+ 588 0099 00       		.byte	0
+ 589 009a 00       		.byte	0
+ 590              		.section	.debug_loc,"",%progbits
+ 591              	.Ldebug_loc0:
+ 592              	.LLST0:
+ 593 0000 00000000 		.4byte	.LVL0
+ 594 0004 0E000000 		.4byte	.LVL3
+ 595 0008 0100     		.2byte	0x1
+ 596 000a 50       		.byte	0x50
+ 597 000b 0E000000 		.4byte	.LVL3
+ 598 000f 20000000 		.4byte	.LVL5
+ 599 0013 0300     		.2byte	0x3
+ 600 0015 70       		.byte	0x70
+ 601 0016 7F       		.sleb128 -1
+ 602 0017 9F       		.byte	0x9f
+ 603 0018 20000000 		.4byte	.LVL5
+ 604 001c 24000000 		.4byte	.LVL7
+ 605 0020 0100     		.2byte	0x1
+ 606 0022 50       		.byte	0x50
+ 607 0023 28000000 		.4byte	.LVL8
+ 608 0027 30000000 		.4byte	.LFE0
+ 609 002b 0100     		.2byte	0x1
+ 610 002d 50       		.byte	0x50
+ 611 002e 00000000 		.4byte	0
+ 612 0032 00000000 		.4byte	0
+ 613              	.LLST1:
+ 614 0036 00000000 		.4byte	.LVL0
+ 615 003a 08000000 		.4byte	.LVL1
+ 616 003e 0100     		.2byte	0x1
+ 617 0040 51       		.byte	0x51
+ 618 0041 08000000 		.4byte	.LVL1
+ 619 0045 28000000 		.4byte	.LVL8
+ 620 0049 0400     		.2byte	0x4
+ 621 004b F3       		.byte	0xf3
+ 622 004c 01       		.uleb128 0x1
+ 623 004d 51       		.byte	0x51
+ 624 004e 9F       		.byte	0x9f
+ 625 004f 28000000 		.4byte	.LVL8
+ 626 0053 30000000 		.4byte	.LFE0
+ 627 0057 0100     		.2byte	0x1
+ARM GAS  /tmp/ccHKcOJM.s 			page 12
+
+
+ 628 0059 51       		.byte	0x51
+ 629 005a 00000000 		.4byte	0
+ 630 005e 00000000 		.4byte	0
+ 631              	.LLST2:
+ 632 0062 00000000 		.4byte	.LVL0
+ 633 0066 22000000 		.4byte	.LVL6
+ 634 006a 0200     		.2byte	0x2
+ 635 006c 30       		.byte	0x30
+ 636 006d 9F       		.byte	0x9f
+ 637 006e 28000000 		.4byte	.LVL8
+ 638 0072 30000000 		.4byte	.LFE0
+ 639 0076 0200     		.2byte	0x2
+ 640 0078 30       		.byte	0x30
+ 641 0079 9F       		.byte	0x9f
+ 642 007a 00000000 		.4byte	0
+ 643 007e 00000000 		.4byte	0
+ 644              	.LLST3:
+ 645 0082 00000000 		.4byte	.LVL0
+ 646 0086 0A000000 		.4byte	.LVL2
+ 647 008a 0200     		.2byte	0x2
+ 648 008c 30       		.byte	0x30
+ 649 008d 9F       		.byte	0x9f
+ 650 008e 0A000000 		.4byte	.LVL2
+ 651 0092 1E000000 		.4byte	.LVL4
+ 652 0096 0100     		.2byte	0x1
+ 653 0098 53       		.byte	0x53
+ 654 0099 20000000 		.4byte	.LVL5
+ 655 009d 22000000 		.4byte	.LVL6
+ 656 00a1 0100     		.2byte	0x1
+ 657 00a3 53       		.byte	0x53
+ 658 00a4 28000000 		.4byte	.LVL8
+ 659 00a8 30000000 		.4byte	.LFE0
+ 660 00ac 0200     		.2byte	0x2
+ 661 00ae 30       		.byte	0x30
+ 662 00af 9F       		.byte	0x9f
+ 663 00b0 00000000 		.4byte	0
+ 664 00b4 00000000 		.4byte	0
+ 665              		.section	.debug_aranges,"",%progbits
+ 666 0000 1C000000 		.4byte	0x1c
+ 667 0004 0200     		.2byte	0x2
+ 668 0006 00000000 		.4byte	.Ldebug_info0
+ 669 000a 04       		.byte	0x4
+ 670 000b 00       		.byte	0
+ 671 000c 0000     		.2byte	0
+ 672 000e 0000     		.2byte	0
+ 673 0010 00000000 		.4byte	.LFB0
+ 674 0014 30000000 		.4byte	.LFE0-.LFB0
+ 675 0018 00000000 		.4byte	0
+ 676 001c 00000000 		.4byte	0
+ 677              		.section	.debug_ranges,"",%progbits
+ 678              	.Ldebug_ranges0:
+ 679 0000 00000000 		.4byte	.LFB0
+ 680 0004 30000000 		.4byte	.LFE0
+ 681 0008 00000000 		.4byte	0
+ 682 000c 00000000 		.4byte	0
+ 683              		.section	.debug_line,"",%progbits
+ 684              	.Ldebug_line0:
+ARM GAS  /tmp/ccHKcOJM.s 			page 13
+
+
+ 685 0000 49000000 		.section	.debug_str,"MS",%progbits,1
+ 685      02001C00 
+ 685      00000201 
+ 685      FB0E0D00 
+ 685      01010101 
+ 686              	.LASF3:
+ 687 0000 756E7369 		.ascii	"unsigned int\000"
+ 687      676E6564 
+ 687      20696E74 
+ 687      00
+ 688              	.LASF1:
+ 689 000d 73686F72 		.ascii	"short unsigned int\000"
+ 689      7420756E 
+ 689      7369676E 
+ 689      65642069 
+ 689      6E7400
+ 690              	.LASF7:
+ 691 0020 2F686F6D 		.ascii	"/home/taylor/Programming/VESC/firmware\000"
+ 691      652F7461 
+ 691      796C6F72 
+ 691      2F50726F 
+ 691      6772616D 
+ 692              	.LASF6:
+ 693 0047 6372632E 		.ascii	"crc.c\000"
+ 693      6300
+ 694              	.LASF8:
+ 695 004d 63726331 		.ascii	"crc16\000"
+ 695      3600
+ 696              	.LASF2:
+ 697 0053 756E7369 		.ascii	"unsigned char\000"
+ 697      676E6564 
+ 697      20636861 
+ 697      7200
+ 698              	.LASF4:
+ 699 0061 73697A65 		.ascii	"sizetype\000"
+ 699      74797065 
+ 699      00
+ 700              	.LASF9:
+ 701 006a 63726331 		.ascii	"crc16_tab\000"
+ 701      365F7461 
+ 701      6200
+ 702              	.LASF0:
+ 703 0074 636B7375 		.ascii	"cksum\000"
+ 703      6D00
+ 704              	.LASF5:
+ 705 007a 474E5520 		.ascii	"GNU C 4.8.4 20141219 (release) -mcpu=cortex-m4 -mfl"
+ 705      4320342E 
+ 705      382E3420 
+ 705      32303134 
+ 705      31323139 
+ 706 00ad 6F61742D 		.ascii	"oat-abi=hard -mfpu=fpv4-sp-d16 -mno-thumb-interwork"
+ 706      6162693D 
+ 706      68617264 
+ 706      202D6D66 
+ 706      70753D66 
+ 707 00e0 202D6D74 		.ascii	" -mthumb -ggdb -O2 -std=gnu99 -fomit-frame-pointer "
+ 707      68756D62 
+ARM GAS  /tmp/ccHKcOJM.s 			page 14
+
+
+ 707      202D6767 
+ 707      6462202D 
+ 707      4F32202D 
+ 708 0113 2D66616C 		.ascii	"-falign-functions=16 -ffunction-sections -fdata-sec"
+ 708      69676E2D 
+ 708      66756E63 
+ 708      74696F6E 
+ 708      733D3136 
+ 709 0146 74696F6E 		.ascii	"tions -fno-common -fsingle-precision-constant\000"
+ 709      73202D66 
+ 709      6E6F2D63 
+ 709      6F6D6D6F 
+ 709      6E202D66 
+ 710              		.ident	"GCC: (4.8.4-1+11-1) 4.8.4 20141219 (release)"
+ARM GAS  /tmp/ccHKcOJM.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 crc.c
+     /tmp/ccHKcOJM.s:21     .text.crc16:0000000000000000 $t
+     /tmp/ccHKcOJM.s:27     .text.crc16:0000000000000000 crc16
+     /tmp/ccHKcOJM.s:79     .text.crc16:000000000000002c $d
+     /tmp/ccHKcOJM.s:89     .rodata.crc16_tab:0000000000000000 crc16_tab
+     /tmp/ccHKcOJM.s:85     .rodata.crc16_tab:0000000000000000 $d
+                     .debug_frame:0000000000000010 $d
+
+NO UNDEFINED SYMBOLS
