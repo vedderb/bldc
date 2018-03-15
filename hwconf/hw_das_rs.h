@@ -30,7 +30,7 @@
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			(!palReadPad(GPIOD, 2))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
@@ -111,7 +111,7 @@
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.005
+#define CURRENT_SHUNT_RES		0.01
 #endif
 
 // Input voltage

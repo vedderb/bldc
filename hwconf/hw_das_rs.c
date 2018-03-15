@@ -42,6 +42,9 @@ void hw_init_gpio(void) {
 
 	// LEDs
 
+	palSetPadMode(GPIOB, 0,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(GPIOB, 1,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
@@ -72,7 +75,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
 	// Fault pin
-	palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
 
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
