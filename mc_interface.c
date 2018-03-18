@@ -30,6 +30,7 @@
 #include "commands.h"
 #include "encoder.h"
 #include "drv8301.h"
+#include "drv8320.h"
 #include "buffer.h"
 #include <math.h>
 
@@ -134,6 +135,10 @@ void mc_interface_init(mc_configuration *configuration) {
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
 	drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
+#endif
+#ifdef HW_HAS_DRV8320
+	drv8320_set_oc_mode(configuration->m_drv8301_oc_mode);
+	drv8320_set_oc_adj(configuration->m_drv8301_oc_adj);
 #endif
 
 	// Initialize encoder
