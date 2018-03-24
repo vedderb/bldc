@@ -2193,16 +2193,24 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
 	state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
 	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
-	UTILS_LP_FAST(state_m->id_filter, state_m->id, MCPWM_FOC_I_FILTER_CONST);
-	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, MCPWM_FOC_I_FILTER_CONST);
+	UTILS_LP_FAST(state_m->id_filter, state_m->id, m_conf->foc_current_filter_const);
+	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, m_conf->foc_current_filter_const);
 
 	float Ierr_d = state_m->id_target - state_m->id;
 	float Ierr_q = state_m->iq_target - state_m->iq;
 
 	state_m->vd = state_m->vd_int + Ierr_d * m_conf->foc_current_kp;
 	state_m->vq = state_m->vq_int + Ierr_q * m_conf->foc_current_kp;
-	state_m->vd_int += Ierr_d * (m_conf->foc_current_ki * dt);
-	state_m->vq_int += Ierr_q * (m_conf->foc_current_ki * dt);
+
+	// Temperature compensation
+	const float t = mc_interface_temp_motor_filtered();
+	float ki = m_conf->foc_current_ki;
+	if (m_conf->foc_temp_comp && t > -5.0) {
+		ki += ki * 0.00386 * (t - m_conf->foc_temp_comp_base_temp);
+	}
+
+	state_m->vd_int += Ierr_d * (ki * dt);
+	state_m->vq_int += Ierr_q * (ki * dt);
 
 	// Saturation
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq,
@@ -2425,6 +2433,12 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 		dt_int = 0.0;
 	}
 
+	// Filter D
+	static float d_filter = 0.0;
+	UTILS_LP_FAST(d_filter, d_term, m_conf->p_pid_kd_filter);
+	d_term = d_filter;
+
+
 	// I-term wind-up protection
 	utils_truncate_number_abs(&p_term, 1.0);
 	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
@@ -2475,6 +2489,11 @@ static void run_pid_control_speed(float dt) {
 	p_term = error * m_conf->s_pid_kp * (1.0 / 20.0);
 	i_term += error * (m_conf->s_pid_ki * dt) * (1.0 / 20.0);
 	d_term = (error - prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
+
+	// Filter D
+	static float d_filter = 0.0;
+	UTILS_LP_FAST(d_filter, d_term, m_conf->s_pid_kd_filter);
+	d_term = d_filter;
 
 	// I-term wind-up protection
 	utils_truncate_number(&i_term, -1.0, 1.0);

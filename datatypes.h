@@ -212,16 +212,19 @@ typedef struct {
 	float foc_sat_comp;
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
+	float foc_current_filter_const;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
 	float s_pid_kd;
+	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
+	float p_pid_kd_filter;
 	float p_pid_ang_div;
 	// Current controller
 	float cc_startup_boost_duty;

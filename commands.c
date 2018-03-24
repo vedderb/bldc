@@ -327,16 +327,19 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_sat_comp = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_temp_comp = data[ind++];
 		mcconf.foc_temp_comp_base_temp = buffer_get_float32_auto(data, &ind);
+		mcconf.foc_current_filter_const = buffer_get_float32_auto(data, &ind);
 
 		mcconf.s_pid_kp = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_ki = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_kd = buffer_get_float32_auto(data, &ind);
+		mcconf.s_pid_kd_filter = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_min_erpm = buffer_get_float32_auto(data, &ind);
 		mcconf.s_pid_allow_braking = data[ind++];
 
 		mcconf.p_pid_kp = buffer_get_float32_auto(data, &ind);
 		mcconf.p_pid_ki = buffer_get_float32_auto(data, &ind);
 		mcconf.p_pid_kd = buffer_get_float32_auto(data, &ind);
+		mcconf.p_pid_kd_filter = buffer_get_float32_auto(data, &ind);
 		mcconf.p_pid_ang_div = buffer_get_float32_auto(data, &ind);
 
 		mcconf.cc_startup_boost_duty = buffer_get_float32_auto(data, &ind);
@@ -482,16 +485,19 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.foc_sat_comp, &ind);
 		send_buffer[ind++] = mcconf.foc_temp_comp;
 		buffer_append_float32_auto(send_buffer, mcconf.foc_temp_comp_base_temp, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.foc_current_filter_const, &ind);
 
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_kp, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_ki, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_kd, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.s_pid_kd_filter, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.s_pid_min_erpm, &ind);
 		send_buffer[ind++] = mcconf.s_pid_allow_braking;
 
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_kp, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_ki, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_kd, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf.p_pid_kd_filter, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.p_pid_ang_div, &ind);
 
 		buffer_append_float32_auto(send_buffer, mcconf.cc_startup_boost_duty, &ind);

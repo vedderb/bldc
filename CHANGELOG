@@ -1,5 +1,10 @@
+=== FW 3.37 ===
+* Temperature compensation on KI in addition to the observer resistance.
+* Configurable FOC current filter (useful for slow abs max current setting).
+
 === FW 3.36 ===
 * Added handbrake current commands to the simple CAN interface.
+* Added D-term filter to position and speed controllers.
 
 === FW 3.35 ===
 * Added option to disable nRF transmission (option in Transmit Power parameter).

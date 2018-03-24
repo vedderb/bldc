@@ -209,7 +209,8 @@
  */
 #define STM32_ICU_USE_TIM1                  FALSE
 #define STM32_ICU_USE_TIM2                  FALSE
-#if defined(HW_VERSION_60) || defined(HW_VERSION_DAS_RS) || defined(HW_VERSION_PALTA) || defined(HW_VERSION_RH)
+#if defined(HW_VERSION_60) || defined(HW_VERSION_DAS_RS) || defined(HW_VERSION_PALTA) || \
+	defined(HW_VERSION_RH) || defined(HW_VERSION_75_300)
 #define STM32_ICU_USE_TIM3                  FALSE
 #define STM32_ICU_USE_TIM4                  TRUE
 #else
