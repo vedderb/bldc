@@ -144,7 +144,7 @@ void encoder_init_abi(uint32_t counts) {
 void encoder_init_as5047p_spi(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
-	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT);
+	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT_PULLDOWN);
 	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
@@ -244,9 +244,16 @@ void encoder_tim_isr(void) {
 	spi_begin();
 	spi_transfer(&pos, 0, 1);
 	spi_end();
-
-	pos &= 0x3FFF;
-	last_enc_angle = ((float)pos * 360.0) / 16384.0;
+	if (!calculate_parity(pos)) {
+		//since MOSI is always pulled high, the EF bit should always return a fault/1
+		if ((pos >> 14) & 0x01) {
+			pos &= 0x3FFF;
+			last_enc_angle = ((float)pos * 360.0) / 16384.0;
+		}
+		else {
+			//generate some kind of fault or possibly fallback to sensorless
+		}
+	}
 }
 
 /**
@@ -322,4 +329,14 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 	__NOP();
+}
+
+bool calculate_parity(uint16_t data)
+{
+	bool parity = 0;
+	while(data){
+        parity^=(data &1);
+        data>>=1;
+            }
+	return (parity);
 }
