@@ -58,6 +58,8 @@
 #include "hw_75_300.h"
 #elif defined HW_VERSION_MINI4
 #include "hw_mini4.h"
+#elif defined HW_VERSION_DAS_MINI
+#include "hw_das_mini.h"
 #else
 #error "No hardware version defined"
 #endif
