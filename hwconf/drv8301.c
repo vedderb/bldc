@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #include "hw.h"
 #ifdef HW_HAS_DRV8301
@@ -25,7 +25,10 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
+#include "terminal.h"
+#include "commands.h"
 #include <string.h>
+#include <stdio.h>
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -33,6 +36,11 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+static void terminal_read_reg(int argc, const char **argv);
+static void terminal_write_reg(int argc, const char **argv);
+static void terminal_set_oc_adj(int argc, const char **argv);
+static void terminal_print_faults(int argc, const char **argv);
+static void terminal_reset_faults(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
@@ -50,6 +58,36 @@ void drv8301_init(void) {
 	// Disable OC
 	drv8301_write_reg(2, 0x0430);
 	drv8301_write_reg(2, 0x0430);
+
+	terminal_register_command_callback(
+			"drv8301_read_reg",
+			"Read a register from the DRV8301 and print it.",
+			"[reg]",
+			terminal_read_reg);
+
+	terminal_register_command_callback(
+			"drv8301_write_reg",
+			"Write to a DRV8301 register.",
+			"[reg] [hexvalue]",
+			terminal_write_reg);
+
+	terminal_register_command_callback(
+			"drv8301_set_oc_adj",
+			"Set the DRV8301 OC ADJ register.",
+			"[value]",
+			terminal_set_oc_adj);
+
+	terminal_register_command_callback(
+			"drv8301_print_faults",
+			"Print all current DRV8301 faults.",
+			0,
+			terminal_print_faults);
+
+	terminal_register_command_callback(
+			"drv8301_reset_faults",
+			"Reset all latched DRV8301 faults.",
+			0,
+			terminal_reset_faults);
 }
 
 /**
@@ -256,6 +294,88 @@ static void spi_delay(void) {
 	for (volatile int i = 0;i < 10;i++) {
 		__NOP();
 	}
+}
+
+static void terminal_read_reg(int argc, const char **argv) {
+	if (argc == 2) {
+		int reg = -1;
+		sscanf(argv[1], "%d", &reg);
+
+		if (reg >= 0) {
+			unsigned int res = drv8301_read_reg(reg);
+			char bl[9];
+			char bh[9];
+
+			utils_byte_to_binary((res >> 8) & 0xFF, bh);
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("Reg 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
+}
+
+static void terminal_write_reg(int argc, const char **argv) {
+	if (argc == 3) {
+		int reg = -1;
+		int val = -1;
+		sscanf(argv[1], "%d", &reg);
+		sscanf(argv[2], "%x", &val);
+
+		if (reg >= 0 && val >= 0) {
+			drv8301_write_reg(reg, val);
+			unsigned int res = drv8301_read_reg(reg);
+			char bl[9];
+			char bh[9];
+
+			utils_byte_to_binary((res >> 8) & 0xFF, bh);
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("New reg value 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires two arguments.\n");
+	}
+}
+
+static void terminal_set_oc_adj(int argc, const char **argv) {
+	if (argc == 2) {
+		int val = -1;
+		sscanf(argv[1], "%d", &val);
+
+		if (val >= 0 && val < 32) {
+			drv8301_set_oc_adj(val);
+			unsigned int res = drv8301_read_reg(5);
+			char bl[9];
+			char bh[9];
+
+			utils_byte_to_binary((res >> 8) & 0xFF, bh);
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("New reg value 0x%02x: %s %s (0x%04x)\n", 2, bh, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
+}
+
+static void terminal_print_faults(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	commands_printf(drv8301_faults_to_string(drv8301_read_faults()));
+}
+
+static void terminal_reset_faults(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	drv8301_reset_faults();
 }
 
 #endif

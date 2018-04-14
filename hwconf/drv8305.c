@@ -25,7 +25,10 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
+#include "terminal.h"
+#include "commands.h"
 #include <string.h>
+#include <stdio.h>
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -33,6 +36,8 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+static void terminal_read_reg(int argc, const char **argv);
+static void terminal_write_reg(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
@@ -48,6 +53,18 @@ void drv8305_init(void) {
 	chThdSleepMilliseconds(100);
 
 	drv8305_read_reg(1);
+
+	terminal_register_command_callback(
+			"drv8305_read_reg",
+			"Read a register from the DRV8305 and print it.",
+			"[reg]",
+			terminal_read_reg);
+
+	terminal_register_command_callback(
+			"drv8305_write_reg",
+			"Write to a DRV8305 register.",
+			"[reg] [hexvalue]",
+			terminal_write_reg);
 }
 
 /**
@@ -224,6 +241,53 @@ static void spi_end(void) {
 static void spi_delay(void) {
 	for (volatile int i = 0;i < 10;i++) {
 		__NOP();
+	}
+}
+
+static void terminal_read_reg(int argc, const char **argv) {
+	if (argc == 2) {
+		int reg = -1;
+		sscanf(argv[1], "%d", &reg);
+
+		if (reg >= 0) {
+			unsigned int res = drv8305_read_reg(reg);
+			char bl[9];
+			char bh[9];
+
+			utils_byte_to_binary((res >> 8) & 0xFF, bh);
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("Reg 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
+}
+
+static void terminal_write_reg(int argc, const char **argv) {
+	if (argc == 3) {
+		int reg = -1;
+		int val = -1;
+		sscanf(argv[1], "%d", &reg);
+		sscanf(argv[2], "%x", &val);
+
+		if (reg >= 0 && val >= 0) {
+			drv8305_write_reg(reg, val);
+			unsigned int res = drv8305_read_reg(reg);
+			char bl[9];
+			char bh[9];
+
+			utils_byte_to_binary((res >> 8) & 0xFF, bh);
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("New reg value 0x%02x: %s %s (0x%04x)\n", reg, bh, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires two arguments.\n");
 	}
 }
 

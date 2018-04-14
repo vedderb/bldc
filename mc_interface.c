@@ -135,8 +135,7 @@ void mc_interface_init(mc_configuration *configuration) {
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
 	drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
-#endif
-#ifdef HW_HAS_DRV8320
+#elif defined(HW_HAS_DRV8320)
 	drv8320_set_oc_mode(configuration->m_drv8301_oc_mode);
 	drv8320_set_oc_adj(configuration->m_drv8301_oc_adj);
 #endif
@@ -203,6 +202,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
 	drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
+#elif defined(HW_HAS_DRV8320)
+	drv8320_set_oc_mode(configuration->m_drv8301_oc_mode);
+	drv8320_set_oc_adj(configuration->m_drv8301_oc_adj);
 #endif
 
 	if (m_conf.motor_type == MOTOR_TYPE_FOC
@@ -1047,6 +1049,10 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 #ifdef HW_HAS_DRV8301
 		if (fault == FAULT_CODE_DRV) {
 			fdata.drv8301_faults = drv8301_read_faults();
+		}
+#elif defined(HW_HAS_DRV8320)
+		if (fault == FAULT_CODE_DRV) {
+			fdata.drv8301_faults = drv8320_read_faults();
 		}
 #endif
 		terminal_add_fault_data(&fdata);
