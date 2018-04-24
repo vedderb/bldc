@@ -1,6 +1,7 @@
 *~
 
 build
+build_all/deploy
 .dep
 
 Thumbs.db
