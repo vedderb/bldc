@@ -13,7 +13,7 @@ script:
 
 before_deploy:
 - cd $TRAVIS_BUILD_DIR/build_all
-- ./before_deploy
+- ./before_deploy.sh
 
 cache: ccache
 
@@ -29,4 +29,4 @@ deploy:
   file: $TRAVIS_BUILD_DIR/build_all/deploy/*
   skip_cleanup: true
   on:
-    tags: true
+    repo: chocol4te/bldc
