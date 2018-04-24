@@ -8,6 +8,8 @@ before_install:
 script:
   - make all
 
+cache: ccache
+
 notifications:
   email:
     on_success: never
