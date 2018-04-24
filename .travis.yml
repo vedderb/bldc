@@ -1,16 +1,25 @@
 language: c
 
 before_install:
-  - set -e
-  - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa -y
-  - sudo apt update -qq
-  - sudo apt install gcc-arm-embedded
+- set -e
+- sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa -y
+- sudo apt update -qq
+- sudo apt install gcc-arm-embedded
 
 script:
-  - make
+- make
 
 cache: ccache
 
 notifications:
   email:
     on_success: never
+
+deploy:
+  provider: releases
+  api_key:
+    secure: Us0+GVhcxt5g1V6GeM8Ln9YSEUG6Vss9922UrmKDeMaTPLJ+HxgBeTKbJCSJHTiGCrOdpSmmWMJhUCLleA+2wGUeGcpRfMb8NVzZsH/cenPVLjNTS1jTUftll6ImtXCURSkZQKeafrh3BbY9mim4PixvR/ETVZT7HHegU/uLc4/syvRHigIPPiWtk26bFOuHC5nmPmgxTqMXVjvlXyvRO8vVfd8+aN69t2Hr4ZFgtaLIDCCZ2sEJBQT9ckZYp9b67eLm1vF0MoFVLu7l7aWYtESb01hyT4GeWN+2yx8UON+iCeRKtBbellAgXIc1DSvxvRWIb+vXLVnfKfEAjeL8WjixpimoYVLSZHxGGgReis/BYw5KPdD7fkrpOmgRw8GGDNtPBTG/VQDtSJ7UxlmLWiRFJXfSpgj/pDPWwtwGmepbU7tDJ042hjwiUOHoPtNeqhcP+2oVLaAB8owH62vkPFE1sh8qmFx5NbvZXvWXqM8lf3Eh7jJu6kGdrj2IggnxbhEJ+nO6hdD/8ODHLHcEYULaYmfuORfVlQqXqrha/gvWtdahuWncHG06Wrx7g3WVqNfV8IFkLHH681EXJy16pSAW38Yenmfb1mF4f7Fcoowlb01qJgahgVa9nGxsTqzoXMcIP9NxmkV5T3Ay08ddP1P56sVsHBKfA+zyDH3QVPg=
+  file:
+    - "build/BLDC_4_ChibiOS.bin"
+  on:
+    repo: chocol4te/bldc
