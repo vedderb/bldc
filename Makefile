@@ -264,22 +264,31 @@ endif
 build/$(PROJECT).bin: build/$(PROJECT).elf 
 	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin
 
+.PHONY: rebuild_all
+rebuild_all:
+	./rebuild_all
+
 # Program
+.PHONY: upload
 upload: build/$(PROJECT).bin
 #	qstlink2 --cli --erase --write build/$(PROJECT).bin
 #	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset" # Older openocd
 	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit" # For openocd 0.9
 
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
+.PHONY: upload-olimex
 upload-olimex: build/$(PROJECT).bin
 	openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
 
+.PHONY: upload-pi
 upload-pi: build/$(PROJECT).bin
 	openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
+.PHONY: upload-pi-remote
 upload-pi-remote: build/$(PROJECT).elf
 	./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
+.PHONY: debug-start
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
 
