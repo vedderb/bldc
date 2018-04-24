@@ -2,13 +2,14 @@ language: c
 
 before_install:
 - set -e
+- sudo apt update -qq
 - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa -y
 - sudo apt update -qq
 - sudo apt install gcc-arm-embedded
 
 script:
 - cd $TRAVIS_BUILD_DIR/build_all
-- ./rebuild_all
+- ./rebuild_all > /dev/null # temporary due to Travis logs crashing browser
 
 before_deploy:
 - cd $TRAVIS_BUILD_DIR/build_all
