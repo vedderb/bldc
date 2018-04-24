@@ -2,11 +2,12 @@ language: c
 
 before_install:
   - set -e
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq gcc-arm-none-eabi
+  - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+  - sudo apt update -qq
+  - sudo apt install gcc-arm-embedded
 
 script:
-  - make all
+  - make
 
 cache: ccache
 
