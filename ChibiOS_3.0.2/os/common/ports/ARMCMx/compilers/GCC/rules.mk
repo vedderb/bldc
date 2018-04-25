@@ -293,7 +293,7 @@ $(BUILDDIR)/lib$(PROJECT).a: $(OBJS)
 
 clean:
 	@echo Cleaning
-	-rm -fR .dep $(BUILDDIR)
+	-rm -fR .dep $(BUILDDIR) build_all ci/deploy
 	@echo
 	@echo Done
 
