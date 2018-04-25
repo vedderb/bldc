@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "ch.h"
 
 // Data types
@@ -503,8 +504,11 @@ typedef enum {
 	CAN_PACKET_SET_CURRENT_REL,
 	CAN_PACKET_SET_CURRENT_BRAKE_REL,
 	CAN_PACKET_SET_CURRENT_HANDBRAKE,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL
+    CAN_PACKET_SET_CURRENT_HANDBRAKE_REL,
+    CAN_PACKET_LAST_ID = 0xFFFFFFFF //make sure this enum is 4bytes long
 } CAN_PACKET_ID;
+
+_Static_assert(sizeof(CAN_PACKET_ID) == 4, "CAN message ID is up to 29 bit long, so 4 bytes are needed");
 
 // Logged fault data
 typedef struct {
