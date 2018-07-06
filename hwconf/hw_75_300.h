@@ -25,46 +25,62 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS // TODO: Does not work on this HW
 
 // Macros
-#define ENABLE_GATE()
-#define DISABLE_GATE()
-#define DCCAL_ON()
-#define DCCAL_OFF()
-#define IS_DRV_FAULT()			0
+#ifdef HW75_300_VEDDER_FIRST_PCB
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			0
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				1
+#else
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			5
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				7
+#endif
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
+#define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#define PHASE_FILTER_ON()		palSetPad(GPIOC, 11)
-#define PHASE_FILTER_OFF()		palClearPad(GPIOB, 11)
+#define PHASE_FILTER_GPIO		GPIOC
+#define PHASE_FILTER_PIN		11
+#define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+
+#define AUX_GPIO				GPIOC
+#define AUX_PIN					12
+#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
+#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
- * 6:	IN5		ADC_EXT1
- * 7:	IN6		ADC_EXT2
- * 8:	IN3		TEMP_PCB
- * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
- * 11:	IN13	AN_IN
- * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
+ * 0  (1):	IN0		SENS1
+ * 1  (2):	IN1		SENS2
+ * 2  (3):	IN2		SENS3
+ * 3  (1):	IN10	CURR1
+ * 4  (2):	IN11	CURR2
+ * 5  (3):	IN12	CURR3
+ * 6  (1):	IN5		ADC_EXT1
+ * 7  (2):	IN6		ADC_EXT2
+ * 8  (3):	IN3		TEMP_MOS
+ * 9  (1):	IN14	TEMP_MOTOR
+ * 10 (2):	IN15	ADC_EXT3
+ * 11 (3):	IN13	AN_IN
+ * 12 (1):	Vrefint
+ * 13 (2):	IN0		SENS1
+ * 14 (3):	IN1		SENS2
+ * 15 (1):  IN8		TEMP_MOS_2
+ * 16 (2):  IN9		TEMP_MOS_3
+ * 17 (3):  IN3		SENS3
  */
 
-#define HW_ADC_CHANNELS			15
+#define HW_ADC_CHANNELS			18
 #define HW_ADC_INJ_CHANNELS		3
-#define HW_ADC_NBR_CONV			5
+#define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
 #define ADC_IND_SENS1			0
@@ -76,7 +92,15 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
+#ifdef HW75_300_VEDDER_FIRST_PCB
 #define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOS_2		8
+#define ADC_IND_TEMP_MOS_3		8
+#else
+#define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOS_2		15
+#define ADC_IND_TEMP_MOS_3		16
+#endif
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -104,10 +128,15 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind)		hw75_300_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR(beta)	(-20)//(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+
+#ifdef HW75_300_VEDDER_FIRST_PCB
+#define NTC_TEMP_MOTOR(beta)	(-20)
+#else
+#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#endif
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -229,5 +258,8 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+
+// HW-specific functions
+float hw75_300_get_temp(void);
 
 #endif /* HW_75_300_H_ */

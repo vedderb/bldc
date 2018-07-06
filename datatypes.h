@@ -55,6 +55,14 @@ typedef enum {
 	FOC_SENSOR_MODE_HALL
 } mc_foc_sensor_mode;
 
+// Auxiliary output mode
+typedef enum {
+	OUT_AUX_MODE_OFF = 0,
+	OUT_AUX_MODE_ON_AFTER_2S,
+	OUT_AUX_MODE_ON_AFTER_5S,
+	OUT_AUX_MODE_ON_AFTER_10S
+} out_aux_mode;
+
 typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
@@ -244,6 +252,7 @@ typedef struct {
 	float m_bldc_f_sw_max;
 	float m_dc_f_sw;
 	float m_ntc_motor_beta;
+	out_aux_mode m_out_aux_mode;
 } mc_configuration;
 
 // Applications to use

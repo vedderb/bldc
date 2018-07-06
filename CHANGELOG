@@ -1,3 +1,7 @@
+=== FW 3.39 ===
+* Updated HW75_300.
+* Added AUX output support.
+
 === FW 3.38 ===
 * Fixed temperature limit bug when the acceleration and brake current limits are different in magnitude.
 

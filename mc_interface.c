@@ -1520,6 +1520,34 @@ static THD_FUNCTION(timer_thread, arg) {
 
 		update_override_limits(&m_conf);
 
+		// Update auxiliary output
+		switch (m_conf.m_out_aux_mode) {
+			case OUT_AUX_MODE_OFF:
+				AUX_OFF();
+				break;
+
+			case OUT_AUX_MODE_ON_AFTER_2S:
+				if (chVTGetSystemTimeX() >= MS2ST(2000)) {
+					AUX_ON();
+				}
+				break;
+
+			case OUT_AUX_MODE_ON_AFTER_5S:
+				if (chVTGetSystemTimeX() >= MS2ST(5000)) {
+					AUX_ON();
+				}
+				break;
+
+			case OUT_AUX_MODE_ON_AFTER_10S:
+				if (chVTGetSystemTimeX() >= MS2ST(10000)) {
+					AUX_ON();
+				}
+				break;
+
+			default:
+				break;
+		}
+
 		chThdSleepMilliseconds(1);
 	}
 }

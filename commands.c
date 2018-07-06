@@ -359,6 +359,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_bldc_f_sw_max = buffer_get_float32_auto(data, &ind);
 		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
 		mcconf.m_ntc_motor_beta = buffer_get_float32_auto(data, &ind);
+		mcconf.m_out_aux_mode = data[ind++];
 
 		// Apply limits if they are defined
 #ifndef DISABLE_HW_LIMITS
@@ -517,6 +518,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_float32_auto(send_buffer, mcconf.m_bldc_f_sw_max, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.m_dc_f_sw, &ind);
 		buffer_append_float32_auto(send_buffer, mcconf.m_ntc_motor_beta, &ind);
+		send_buffer[ind++] = mcconf.m_out_aux_mode;
 
 		commands_send_packet(send_buffer, ind);
 		break;
