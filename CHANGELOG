@@ -1,3 +1,6 @@
+=== FW 3.40 ===
+* Added motor controller ID to COMM_GET_VALUES.
+
 === FW 3.39 ===
 * Updated HW75_300.
 * Added AUX output support.
