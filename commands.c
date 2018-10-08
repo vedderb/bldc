@@ -225,6 +225,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
 		timeout_reset();
 		break;
+    
+	case COMM_SET_POS_LARGE:
+		ind = 0;
+		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 100000.0);
+		timeout_reset();
+		break;       
 
 	case COMM_SET_HANDBRAKE:
 		ind = 0;

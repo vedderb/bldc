@@ -192,7 +192,8 @@ float encoder_read_deg(void) {
 		break;
 
 	case ENCODER_MODE_AS5047P_SPI:
-		angle = last_enc_angle;
+		angle = ((float)cumulative_encoder_counts * 360.0) / 16384.0;  // A.G.
+    //angle = last_enc_angle;
 		break;
 
 	default:

@@ -2401,7 +2401,8 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	}
 
 	// Compute parameters
-	float error = utils_angle_difference(angle_set, angle_now);
+	//float error = utils_angle_difference(angle_set, angle_now);
+  float error = angle_set - angle_now; // A.G.
 
 	if (encoder_is_configured()) {
 		if (m_conf->foc_encoder_inverted) {
