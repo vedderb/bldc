@@ -226,7 +226,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		timeout_reset();
 		break;
     
-	case COMM_SET_POS_LARGE:
+	case COMM_SET_POS_CUMULATIVE:
 		ind = 0;
 		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 100000.0);
 		timeout_reset();
