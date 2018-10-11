@@ -84,7 +84,7 @@ static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 
 // Private functions
-static void update_override_limits(volatile mc_configuration *conf);
+//static void update_override_limits(volatile mc_configuration *conf);
 
 // Function pointers
 static void(*pwn_done_func)(void) = 0;
