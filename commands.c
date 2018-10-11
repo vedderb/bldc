@@ -228,9 +228,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
     
 	case COMM_SET_POS_CUMULATIVE:
 		ind = 0;
-    float pos = (float)buffer_get_int32(data, &ind) / 100000.0; // get position		    
+    float pos = ((float)buffer_get_int32(data, &ind)) / 100000.0; // get position		    
     float rpm = buffer_get_float32_auto(data, &ind); // get rpm parameter 
-    if (rpm > 0.001){
+    if (rpm > 0.1){
       mcconf = *mc_interface_get_configuration(); // read current config
       mcconf.l_max_erpm = rpm; // change erpm parameter 
       update_override_limits(&mcconf); // update changed limits
