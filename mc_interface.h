@@ -73,7 +73,7 @@ void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint
 float mc_interface_temp_fet_filtered(void);
 float mc_interface_temp_motor_filtered(void);
 
-static void update_override_limits(volatile mc_configuration *conf);
+void update_override_limits(volatile mc_configuration *conf);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);
