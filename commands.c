@@ -233,8 +233,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
     if (rpm > 0.001){
       mcconf = *mc_interface_get_configuration(); // read current config
       mcconf.l_max_erpm = rpm; // change erpm parameter 
-      update_override_limits(&m_conf); // update changed limits
-      mcpwm_foc_set_configuration(&m_conf); // apply changed config          
+      update_override_limits(&mcconf); // update changed limits
+      mcpwm_foc_set_configuration(&mcconf); // apply changed config          
     }
     mc_interface_set_pid_pos(pos); // set position control set-point    
     
