@@ -228,7 +228,16 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
     
 	case COMM_SET_POS_CUMULATIVE:
 		ind = 0;
-		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 100000.0);
+    float pos = (float)buffer_get_int32(data, &ind) / 100000.0; // get position		    
+    float rpm = mcconf.l_max_erpm = buffer_get_float32_auto(data, &ind); // get rpm parameter 
+    if (rpm > 0.001){
+      mcconf = *mc_interface_get_configuration(); // read current config
+      mcconf.l_max_erpm = rpm; // change erpm parameter 
+      update_override_limits(&m_conf); // update changed limits
+      mcpwm_foc_set_configuration(&m_conf); // apply changed config          
+    }
+    mc_interface_set_pid_pos(pos); // set position control set-point    
+    
 		timeout_reset();
 		break;       
 
@@ -340,7 +349,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.foc_sl_openloop_hyst = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_sl_openloop_time = buffer_get_float32_auto(data, &ind);
 		mcconf.foc_sl_d_current_duty = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sl_d_current_factor = buffer_get_float32_auto(data, &ind);
+ 		mcconf.foc_sl_d_current_factor = buffer_get_float32_auto(data, &ind);
 		memcpy(mcconf.foc_hall_table, data + ind, 8);
 		ind += 8;
 		mcconf.foc_sl_erpm = buffer_get_float32_auto(data, &ind);
