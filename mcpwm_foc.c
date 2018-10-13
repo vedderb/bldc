@@ -2396,6 +2396,9 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	
 	float pos_p_term;
 	float pos_d_term;
+  float vel_p_term;
+	float vel_d_term;
+
 
   // ------------ position controller ----------------
 	// PID is off. Return.
@@ -2427,13 +2430,13 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	if (pos_error == pos_prev_error) {
 		pos_d_term = 0.0;
 	} else {
-		pos_d_term = (pos_error - prev_pos_error) * (m_conf->p_pid_kd / pos_dt_int);
+		pos_d_term = (pos_error - pos_prev_error) * (m_conf->p_pid_kd / pos_dt_int);
 		pos_dt_int = 0.0;
 	}
 
 	// I-term wind-up protection
-	utils_truncate_number_abs(&p_term, 1.0);
-	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
+	utils_truncate_number_abs(&pos_p_term, 1.0);
+	utils_truncate_number_abs(&pos_i_term, 1.0 - fabsf(pos_p_term));
 
 	// Store previous error
 	pos_prev_error = pos_error;
@@ -2447,8 +2450,9 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
   } 
   else {		
 		// ------------ velocity controller ----------------
-    const float rpm = mcpwm_foc_get_rpm();
-    float vel_error = m_speed_pid_set_rpm - rpm;
+    utils_truncate_number(&vel_cmd, 0, m_speed_pid_set_rpm); 
+    const float rpm = mcpwm_foc_get_rpm();    
+    float vel_error = vel_cmd - rpm;    
     
     // Compute parameters
     vel_p_term = vel_error * m_conf->s_pid_kp * (1.0 / 20.0);
