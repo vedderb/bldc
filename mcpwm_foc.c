@@ -2448,7 +2448,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
     // Rotate the motor with 40 % power until the encoder index is found.
 	  m_iq_set = 0.4 * m_conf->lo_current_max;
   } 
-  else if (abs(m_speed_pid_set_rpm) < 0.01)
+  else if (fabsf(m_speed_pid_set_rpm) < 0.01)
   {
     // ------------ without velocity controller ----------------
     utils_truncate_number(&vel_cmd, -1.0, 1.0);
