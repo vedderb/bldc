@@ -557,9 +557,10 @@ void mcpwm_foc_set_pid_speed(float rpm) {
  * @param pos
  * The desired position of the motor in degrees.
  */
-void mcpwm_foc_set_pid_pos(float pos) {
+void mcpwm_foc_set_pid_pos(float pos, float rpm) {
 	m_control_mode = CONTROL_MODE_POS;
 	m_pos_pid_set = pos;
+  m_speed_pid_set_rpm = rpm;
 
 	if (m_state != MC_STATE_RUNNING) {
 		m_state = MC_STATE_RUNNING;
@@ -2388,42 +2389,46 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 }
 
 static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
-	static float i_term = 0;
-	static float prev_error = 0;
-	float p_term;
-	float d_term;
+	static float pos_i_term = 0;
+	static float pos_prev_error = 0;
+  static float vel_i_term = 0.0;
+	static float vel_prev_error = 0.0;
+	
+	float pos_p_term;
+	float pos_d_term;
 
+  // ------------ position controller ----------------
 	// PID is off. Return.
 	if (m_control_mode != CONTROL_MODE_POS) {
-		i_term = 0;
-		prev_error = 0;
+		pos_i_term = 0;
+		pos_prev_error = 0;
 		return;
 	}
 
 	// Compute parameters
 	//float error = utils_angle_difference(angle_set, angle_now);
-  float error = angle_set - angle_now; // A.G.
+  float pos_error = angle_set - angle_now; // A.G.
 
 	if (encoder_is_configured()) {
 		if (m_conf->foc_encoder_inverted) {
-			error = -error;
+			pos_error = -pos_error;
 		}
 	}
 
-	p_term = error * m_conf->p_pid_kp;
-	i_term += error * (m_conf->p_pid_ki * dt);
+	pos_p_term = pos_error * m_conf->p_pid_kp;
+	pos_i_term += pos_error * (m_conf->p_pid_ki * dt);
 
 	// Average DT for the D term when the error does not change. This likely
 	// happens at low speed when the position resolution is low and several
 	// control iterations run without position updates.
 	// TODO: Are there problems with this approach?
-	static float dt_int = 0.0;
-	dt_int += dt;
-	if (error == prev_error) {
-		d_term = 0.0;
+	static float pos_dt_int = 0.0;
+	pos_dt_int += dt;
+	if (pos_error == pos_prev_error) {
+		pos_d_term = 0.0;
 	} else {
-		d_term = (error - prev_error) * (m_conf->p_pid_kd / dt_int);
-		dt_int = 0.0;
+		pos_d_term = (pos_error - prev_pos_error) * (m_conf->p_pid_kd / pos_dt_int);
+		pos_dt_int = 0.0;
 	}
 
 	// I-term wind-up protection
@@ -2431,21 +2436,47 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
 
 	// Store previous error
-	prev_error = error;
+	pos_prev_error = pos_error;
 
 	// Calculate output
-	float output = p_term + i_term + d_term;
-	utils_truncate_number(&output, -1.0, 1.0);
+	float vel_cmd = pos_p_term + pos_i_term + pos_d_term;	
 
-	if (encoder_is_configured()) {
-		if (encoder_index_found()) {
-			m_iq_set = output * m_conf->lo_current_max;
-		} else {
-			// Rotate the motor with 40 % power until the encoder index is found.
-			m_iq_set = 0.4 * m_conf->lo_current_max;
-		}
-	} else {
-		m_iq_set = output * m_conf->lo_current_max;
+	if ( (encoder_is_configured()) && (!(encoder_index_found())) ){
+    // Rotate the motor with 40 % power until the encoder index is found.
+	  m_iq_set = 0.4 * m_conf->lo_current_max;
+  } 
+  else {		
+		// ------------ velocity controller ----------------
+    const float rpm = mcpwm_foc_get_rpm();
+    float vel_error = m_speed_pid_set_rpm - rpm;
+    
+    // Compute parameters
+    vel_p_term = vel_error * m_conf->s_pid_kp * (1.0 / 20.0);
+    vel_i_term += vel_error * (m_conf->s_pid_ki * dt) * (1.0 / 20.0);
+    vel_d_term = (vel_error - vel_prev_error) * (m_conf->s_pid_kd / dt) * (1.0 / 20.0);
+
+    // I-term wind-up protection
+    utils_truncate_number(&vel_i_term, -1.0, 1.0);
+
+    // Store previous error
+    vel_prev_error = vel_error;
+
+    // Calculate output
+    float output = vel_p_term + vel_i_term + vel_d_term;
+    utils_truncate_number(&output, -1.0, 1.0);
+
+    // Optionally disable braking
+    if (!m_conf->s_pid_allow_braking) {
+      if (rpm > 0.0 && output < 0.0) {
+        output = 0.0;
+      }
+
+      if (rpm < 0.0 && output > 0.0) {
+        output = 0.0;
+      }
+    }
+
+    m_iq_set = output * m_conf->lo_current_max;           
 	}
 }
 

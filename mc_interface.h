@@ -37,7 +37,7 @@ mc_state mc_interface_get_state(void);
 void mc_interface_set_duty(float dutyCycle);
 void mc_interface_set_duty_noramp(float dutyCycle);
 void mc_interface_set_pid_speed(float rpm);
-void mc_interface_set_pid_pos(float pos);
+void mc_interface_set_pid_pos(float pos, float rpm);
 void mc_interface_set_current(float current);
 void mc_interface_set_brake_current(float current);
 void mc_interface_set_current_rel(float val);

@@ -621,9 +621,10 @@ void mcpwm_set_pid_speed(float rpm) {
  * @param pos
  * The desired position of the motor in degrees.
  */
-void mcpwm_set_pid_pos(float pos) {
+void mcpwm_set_pid_pos(float pos, float rpm) {
 	control_mode = CONTROL_MODE_POS;
 	pos_pid_set_pos = pos;
+  speed_pid_set_rpm = rpm;
 
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(conf->l_min_duty);

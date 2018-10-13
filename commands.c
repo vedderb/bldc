@@ -222,7 +222,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 	case COMM_SET_POS:
 		ind = 0;
-		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
+		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0, 0);
 		timeout_reset();
 		break;
     
@@ -231,13 +231,13 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
     float pos = ((float)buffer_get_int32(data, &ind) / 100000.0); // get position		    
     float rpm = buffer_get_float32_auto(data, &ind); // get rpm parameter 
     commands_printf("pos=%.0f, rpm=%.0f", pos, rpm);
-    if (rpm > 0.1){
+    /*if (rpm > 0.1){
       mcconf = *mc_interface_get_configuration(); // read current config
       mcconf.l_max_erpm = rpm; // change erpm parameter 
       update_override_limits(&mcconf); // update changed limits
       mcpwm_foc_set_configuration(&mcconf); // apply changed config          
-    }
-    mc_interface_set_pid_pos(pos); // set position control set-point    
+    }*/
+    mc_interface_set_pid_pos(pos, rpm); // set position control set-point    
     
 		timeout_reset();
 		break;       

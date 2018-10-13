@@ -377,7 +377,7 @@ void mc_interface_set_pid_speed(float rpm) {
 	}
 }
 
-void mc_interface_set_pid_pos(float pos) {
+void mc_interface_set_pid_pos(float pos, float rpm) {
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -387,11 +387,11 @@ void mc_interface_set_pid_pos(float pos) {
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_pid_pos(DIR_MULT * m_position_set);
+		mcpwm_set_pid_pos(DIR_MULT * m_position_set, rpm);
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_pid_pos(DIR_MULT * m_position_set);
+		mcpwm_foc_set_pid_pos(DIR_MULT * m_position_set, rpm);
 		break;
 
 	default:
