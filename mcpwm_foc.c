@@ -2457,7 +2457,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
   else
   {	
 		// ------------ velocity controller ----------------
-    utils_truncate_number(&vel_cmd, 0, m_speed_pid_set_rpm); 
+    utils_truncate_number(&vel_cmd, -m_speed_pid_set_rpm, m_speed_pid_set_rpm); 
     const float rpm = mcpwm_foc_get_rpm();    
     float vel_error = vel_cmd - rpm;    
     
