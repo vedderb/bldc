@@ -2457,7 +2457,9 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
   else
   {	
 		// ------------ velocity controller ----------------
-    utils_truncate_number(&vel_cmd, -m_speed_pid_set_rpm, m_speed_pid_set_rpm); 
+    utils_truncate_number(&vel_cmd, -1.0, 1.0); // limit output to -1..+1
+    vel_cmd *= 10000.0; // scale up by 10000
+    utils_truncate_number(&vel_cmd, -m_speed_pid_set_rpm, m_speed_pid_set_rpm);  // limit by min/max rpm
     const float rpm = mcpwm_foc_get_rpm();    
     float vel_error = vel_cmd - rpm;    
     
