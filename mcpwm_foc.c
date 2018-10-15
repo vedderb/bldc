@@ -2388,6 +2388,7 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	*svm_sector = sector;
 }
 
+
 static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 	static float pos_i_term = 0;
 	static float pos_prev_error = 0;
@@ -2399,7 +2400,9 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
   float vel_p_term;
 	float vel_d_term;
 
-
+  // cascaded position and speed motor controller
+  // the idea was previously tested on our simulator ( http://grauonline.de/alexwww/motorsim/motorsim.html )
+ 
   // ------------ position controller ----------------
 	// PID is off. Return.
 	if (m_control_mode != CONTROL_MODE_POS) {
