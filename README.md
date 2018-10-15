@@ -10,7 +10,7 @@ Key functions
 
 future work:
 
-#1 Looking on how to implement a cascaded style position, velocity and current control loop.
+#1 Looking on how to implement a cascaded style position, velocity and current control loop. The idea was previously tested on our simulator for cascaded position and speed control (http://grauonline.de/alexwww/motorsim/motorsim.html)
 
 
 
