@@ -74,12 +74,23 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
+uint16_t spi_val = 0;
+uint32_t spi_error_cnt = 0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+
+
+uint32_t encoder_spi_get_error_cnt(void) {
+    return spi_error_cnt;
+}
+
+uint16_t encoder_spi_get_val(void) {
+    return spi_val;
+}
 
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -293,6 +304,16 @@ void encoder_reset(void) {
 	}
 }
 
+// returns true for even number of ones (no parity error according to AS5047 datasheet
+bool spi_check_parity(uint16_t x)
+{
+    x ^= x >> 8;
+    x ^= x >> 4;
+    x ^= x >> 2;
+    x ^= x >> 1;
+    return (~x) & 1;
+}
+
 /**
  * Timer interrupt
  */
@@ -304,8 +325,13 @@ void encoder_tim_isr(void) {
 		spi_transfer(&pos, 0, 1);
 		spi_end();
 
-		pos &= 0x3FFF;
-		last_enc_angle = ((float)pos * 360.0) / 16384.0;
+		spi_val = pos;
+		if(spi_check_parity(pos)) {
+			pos &= 0x3FFF;
+			last_enc_angle = ((float)pos * 360.0) / 16384.0;
+		} else {
+			++spi_error_cnt;
+		}		
 	}
 
 	if(mode == RESOLVER_MODE_AD2S1205) {

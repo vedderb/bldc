@@ -34,4 +34,7 @@ void encoder_tim_isr(void);
 void encoder_set_counts(uint32_t counts);
 bool encoder_index_found(void);
 
+uint16_t encoder_spi_get_val(void);
+uint32_t encoder_spi_get_error_cnt(void);
+
 #endif /* ENCODER_H_ */
