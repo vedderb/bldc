@@ -40,9 +40,6 @@
 #define LED_RED_ON()			palSetPad(GPIOB, 11)
 #define LED_RED_OFF()			palClearPad(GPIOB, 11)
 
-#define PALTA_OC_CLR_PORT		GPIOB
-#define PALTA_OC_CLR_PIN		5
-
 /*
  * ADC Vector
  *
@@ -75,11 +72,12 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
+#define ADC_IND_VOUT_GATE_DRV	12
 #define ADC_IND_EXT				10
 #define ADC_IND_EXT2			6
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
-#define ADC_IND_VREFINT			12
+//#define ADC_IND_VREFINT			12
 
 // ADC macros and settings
 
@@ -112,6 +110,9 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+
+// Gate driver power supply output voltage
+#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
@@ -205,7 +206,9 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_VALUE		202
+#define HW_DEAD_TIME_VALUE		181
+#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
+#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
 
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE

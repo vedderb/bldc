@@ -63,6 +63,7 @@ static volatile float m_watt_seconds_charged;
 static volatile float m_position_set;
 static volatile float m_temp_fet;
 static volatile float m_temp_motor;
+static volatile float m_gate_driver_voltage;
 
 // Sampling variables
 #define ADC_SAMPLE_MAX_LEN		2000
@@ -120,6 +121,7 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_last_adc_duration_sample = 0.0;
 	m_temp_fet = 0.0;
 	m_temp_motor = 0.0;
+	m_gate_driver_voltage = 0.0;
 
 	m_sample_len = 1000;
 	m_sample_int = 1;
@@ -301,6 +303,8 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ABS_OVER_CURRENT: return "FAULT_CODE_ABS_OVER_CURRENT"; break;
 	case FAULT_CODE_OVER_TEMP_FET: return "FAULT_CODE_OVER_TEMP_FET"; break;
 	case FAULT_CODE_OVER_TEMP_MOTOR: return "FAULT_CODE_OVER_TEMP_MOTOR"; break;
+	case FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE: return "FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE"; break;
+	case FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE: return "FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE"; break;
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -1142,6 +1146,16 @@ void mc_interface_mc_timer_isr(void) {
 		mc_interface_fault_stop(FAULT_CODE_DRV);
 	}
 
+#ifdef HW_VERSION_PALTA
+	if( m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE);
+	}
+
+	if( m_gate_driver_voltage < HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) {
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE);
+	}
+#endif
+
 	// Watt and ah counters
 	const float f_samp = mc_interface_get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
@@ -1337,6 +1351,9 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
 	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+#ifdef HW_VERSION_PALTA
+	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.1);
+#endif
 
 	// Temperature MOSFET
 	float lo_min_mos = conf->l_current_min;
