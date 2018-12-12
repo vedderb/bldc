@@ -88,16 +88,16 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					246730.0
+#define VIN_R1					184.0    //TF since RevC = 185V/V
 #endif
 #ifndef VIN_R2
-#define VIN_R2					2200.0
+#define VIN_R2					1.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		8.0
+#define CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.0004852941
+#define CURRENT_SHUNT_RES		1.000 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
 #endif
 
 // Input voltage
