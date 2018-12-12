@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "stm32f4xx_dac.h"
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
@@ -37,6 +38,7 @@ static const I2CConfig i2cfg = {
 
 // Private functions
 static void terminal_cmd_reset_oc(int argc, const char **argv);
+void hw_palta_setup_dac(void);
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
@@ -108,8 +110,13 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+    
+#ifdef PALTA_USE_DAC
+	hw_palta_setup_dac();
+#else
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);		// Bridge temperature A
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		// Bridge temperature B
+#endif
 
 	// Register terminal callbacks
 	terminal_register_command_callback(
@@ -151,6 +158,45 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+}
+
+void hw_palta_setup_dac(void) {
+	DAC_InitTypeDef  DAC_InitStructure;
+
+	/* DMA1 clock and GPIOA clock enable (to be used with DAC) */
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1 | RCC_AHB1Periph_GPIOA, ENABLE);
+
+	/* DAC Periph clock enable */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+
+	/* DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration */
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+
+	DAC_DeInit();
+
+	/* DAC channel 1 and 2 Configuration */
+	DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
+	DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
+	DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Disable;	// If enabled minimum output voltage is 200mV (!)
+	DAC_Init(DAC_Channel_1, &DAC_InitStructure);
+	DAC_Init(DAC_Channel_2, &DAC_InitStructure);
+
+	/* Enable DAC Channel 1 and 2 */
+	DAC_Cmd(DAC_Channel_1, ENABLE);
+	DAC_Cmd(DAC_Channel_2, ENABLE);
+
+	/* Set DAC channel2 DHR12RD register */
+	hw_palta_DAC1_setdata(0x800);
+	hw_palta_DAC2_setdata(0x800);
+}
+
+void hw_palta_DAC1_setdata(uint16_t data) {
+	DAC_SetChannel1Data(DAC_Align_12b_R, data);
+}
+
+void hw_palta_DAC2_setdata(uint16_t data) {
+	DAC_SetChannel2Data(DAC_Align_12b_R, data);
 }
 
 void hw_start_i2c(void) {

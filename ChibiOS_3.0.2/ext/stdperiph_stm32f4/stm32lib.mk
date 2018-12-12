@@ -1,6 +1,7 @@
 # STM32F4 STDPERIPH files.
 STM32SRC = 	${CHIBIOS}/ext/stdperiph_stm32f4/src/misc.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_adc.c \
+			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_dac.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_dma.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_exti.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_flash.c \

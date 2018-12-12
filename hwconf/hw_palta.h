@@ -22,6 +22,8 @@
 
 #define HW_NAME					"PALTA"
 
+#define PALTA_USE_DAC
+
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
@@ -225,5 +227,7 @@
 
 // HW-specific functions
 void hw_palta_reset_oc(void);
+void hw_palta_DAC1_setdata(uint16_t data);
+void hw_palta_DAC2_setdata(uint16_t data);
 
 #endif /* HW_PALTA_H_ */
