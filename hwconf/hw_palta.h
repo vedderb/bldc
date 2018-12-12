@@ -35,8 +35,8 @@
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 2)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 2)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define LED_RED_ON()			palSetPad(GPIOB, 11)
+#define LED_RED_OFF()			palClearPad(GPIOB, 11)
 
 #define PALTA_OC_CLR_PORT		GPIOB
 #define PALTA_OC_CLR_PIN		5
@@ -131,8 +131,8 @@
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			11
+#define HW_UART_RX_PORT			GPIOD
+#define HW_UART_RX_PIN			9          //Freeing B11 for fault LED. PD9 not available in LQFT64 package
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM4
