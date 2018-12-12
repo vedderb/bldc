@@ -113,19 +113,23 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 
-	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+#ifdef PALTA_USE_DAC
+	hw_palta_setup_dac();
+#else
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);		//Temperature bridge A
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		//Temperature bridge B
+#endif
+	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);		//Temperature bridge C
+
+	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);		//Accel 2
+	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);		//Gate driver supply voltage
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
-    
-#ifdef PALTA_USE_DAC
-	hw_palta_setup_dac();
-#else
-	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);		// Bridge temperature A
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		// Bridge temperature B
-#endif
+	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);		//Motor temp
+	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);		//Accel 1
 
 	// Register terminal callbacks
 	terminal_register_command_callback(
