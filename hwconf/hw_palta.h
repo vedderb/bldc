@@ -226,7 +226,7 @@
 //#define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-void hw_palta_reset_oc(void);
+char hw_palta_configure_FPGA(void);
 void hw_palta_DAC1_setdata(uint16_t data);
 void hw_palta_DAC2_setdata(uint16_t data);
 

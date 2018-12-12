@@ -28,11 +28,26 @@
 #include "commands.h"
 
 // Defines
+#define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
+#define SPI_SW_MISO_PIN				HW_SPI_PIN_MISO
+#define SPI_SW_MOSI_GPIO			HW_SPI_PORT_MOSI
+#define SPI_SW_MOSI_PIN				HW_SPI_PIN_MOSI
+#define SPI_SW_SCK_GPIO				HW_SPI_PORT_SCK
+#define SPI_SW_SCK_PIN				HW_SPI_PIN_SCK
+#define SPI_SW_FPGA_CS_GPIO			GPIOB
+#define SPI_SW_FPGA_CS_PIN			7
+
 #define PALTA_FPGA_CLK_PORT			GPIOC
 #define PALTA_FPGA_CLK_PIN			9
+#define PALTA_FPGA_RESET_PORT		GPIOB
+#define PALTA_FPGA_RESET_PIN		4
+//#define BITSTREAM_SIZE			104090		//ice40up5k
+#define BITSTREAM_SIZE				71338		//ice40LP1K
 
 // Variables
 static volatile bool i2c_running = false;
+extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
+
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -43,6 +58,10 @@ static const I2CConfig i2cfg = {
 
 // Private functions
 static void terminal_cmd_reset_oc(int argc, const char **argv);
+static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
+static void spi_begin(void);
+static void spi_end(void);
+static void spi_delay(void);
 void hw_palta_init_FPGA_CLK(void);
 void hw_palta_setup_dac(void);
 
@@ -68,12 +87,20 @@ void hw_init_gpio(void) {
 
 	ENABLE_GATE();
 
-	// OC latch
-	palSetPadMode(PALTA_OC_CLR_PORT, PALTA_OC_CLR_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+	// FPGA SPI port
+	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT);
+	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_FPGA_CS_GPIO, SPI_SW_FPGA_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
-	hw_palta_reset_oc();
+	// Set FPGA SS to '0' to make it start in slave mode
+	palClearPad(SPI_SW_FPGA_CS_GPIO, SPI_SW_FPGA_CS_PIN);
+
+	// FPGA RESET
+	palSetPadMode(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palClearPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	chThdSleep(1);
+	palSetPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
     
 	//output a 12MHz clock on MCO2
 	hw_palta_init_FPGA_CLK();
@@ -137,6 +164,9 @@ void hw_init_gpio(void) {
 			"Reset latched overcurrent fault.",
 			0,
 			terminal_cmd_reset_oc);
+    
+    // Send bitstream over SPI to configure FPGA
+	hw_palta_configure_FPGA();
 }
 
 void hw_setup_adc_channels(void) {
@@ -316,9 +346,47 @@ static void terminal_cmd_reset_oc(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
-	hw_palta_reset_oc();
+	hw_palta_configure_FPGA();
 	commands_printf("Palta OC latch reset done!");
 	commands_printf(" ");
+}
+
+// Software SPI for FPGA control
+static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length) {
+	for (int i = 0;i < length;i++) {
+		uint8_t send = out_buf ? out_buf[i] : 0xFF;
+		uint8_t recieve = 0;
+
+		for (int bit = 0;bit < 8;bit++) {
+			palWritePad(HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, send >> 7);
+			send <<= 1;
+
+			spi_delay();
+			palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
+			spi_delay();
+
+/*
+			int r1, r2, r3;
+			r1 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			__NOP();
+			r2 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			__NOP();
+			r3 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+
+			recieve <<= 1;
+			if (utils_middle_of_3_int(r1, r2, r3)) {
+				recieve |= 1;
+			}
+*/
+
+			palClearPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
+			spi_delay();
+		}
+
+		if (in_buf) {
+			in_buf[i] = recieve;
+		}
+	}
 }
 
 void hw_palta_init_FPGA_CLK(void) {
@@ -344,4 +412,43 @@ void hw_palta_init_FPGA_CLK(void) {
 	RCC_MCO2Config(RCC_MCO2Source_PLLI2SCLK, RCC_MCO2Div_4);
 }
 
+char hw_palta_configure_FPGA(void) {
+	spi_begin();
+	palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
+	palClearPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	chThdSleep(10);
+	palSetPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	chThdSleep(20);
+
+	spi_transfer(0, FPGA_bitstream, BITSTREAM_SIZE);
+
+	//include 49 extra spi clock cycles, dummy bytes
+	uint8_t dummy = 0;
+	spi_transfer(0, &dummy, 7);
+
+	spi_end();
+
+	// CDONE LED should be set by now
+	return 0;
+}
+
+static void spi_begin(void) {
+	palClearPad(SPI_SW_FPGA_CS_GPIO, SPI_SW_FPGA_CS_PIN);
+}
+
+static void spi_end(void) {
+	palSetPad(SPI_SW_FPGA_CS_GPIO, SPI_SW_FPGA_CS_PIN);
+}
+
+static void spi_delay(void) {
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+}
 #endif
