@@ -22,9 +22,14 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "stm32f4xx_dac.h"
+#include "stm32f4xx_rcc.h"
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
+
+// Defines
+#define PALTA_FPGA_CLK_PORT			GPIOC
+#define PALTA_FPGA_CLK_PIN			9
 
 // Variables
 static volatile bool i2c_running = false;
@@ -38,6 +43,7 @@ static const I2CConfig i2cfg = {
 
 // Private functions
 static void terminal_cmd_reset_oc(int argc, const char **argv);
+void hw_palta_init_FPGA_CLK(void);
 void hw_palta_setup_dac(void);
 
 void hw_init_gpio(void) {
@@ -68,6 +74,9 @@ void hw_init_gpio(void) {
 			PAL_STM32_OSPEED_HIGHEST);
 
 	hw_palta_reset_oc();
+    
+	//output a 12MHz clock on MCO2
+	hw_palta_init_FPGA_CLK();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -306,6 +315,29 @@ static void terminal_cmd_reset_oc(int argc, const char **argv) {
 	hw_palta_reset_oc();
 	commands_printf("Palta OC latch reset done!");
 	commands_printf(" ");
+}
+
+void hw_palta_init_FPGA_CLK(void) {
+	/* Configure PLLI2S prescalers */
+	/* PLLI2S_VCO : VCO_192M */
+	/* SAI_CLK(first level) = PLLI2S_VCO/PLLI2SQ = 192/4 = 48 Mhz */
+	RCC->PLLI2SCFGR = (192 << 6) | (4 << 28);
+	/* Enable PLLI2S Clock */
+	RCC_PLLI2SCmd(ENABLE);
+
+	/* Wait till PLLI2S is ready */
+	while(RCC_GetFlagStatus(RCC_FLAG_PLLI2SRDY) == RESET)
+	{
+	}
+
+	/* Configure MCO2 pin(PC9) in alternate function */
+	palSetPadMode(PALTA_FPGA_CLK_PORT, PALTA_FPGA_CLK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_MCO) |
+				PAL_STM32_OTYPE_PUSHPULL |
+				PAL_STM32_OSPEED_HIGHEST |
+				PAL_STM32_PUDR_PULLUP);
+
+	// HSE clock selected to output on MCO2 pin(PA8) 48MHz/4 = 12MHz
+	RCC_MCO2Config(RCC_MCO2Source_PLLI2SCLK, RCC_MCO2Div_4);
 }
 
 #endif
