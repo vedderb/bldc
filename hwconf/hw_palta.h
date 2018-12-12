@@ -194,10 +194,10 @@
 #define HW_SPI_PIN_MISO			11
 
 // Measurement macros
-#define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1				(ADC_Value[ADC_IND_SENS1]-2048)		//phase voltages are centered in 1.65V
+#define ADC_V_L2				(ADC_Value[ADC_IND_SENS2]-2048)
+#define ADC_V_L3				(ADC_Value[ADC_IND_SENS3]-2048)
+#define ADC_V_ZERO				0	//(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)

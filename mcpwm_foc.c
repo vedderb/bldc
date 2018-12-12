@@ -1840,6 +1840,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
+        
+#ifdef HW_VERSION_PALTA
+		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
+		float x_tmp = m_motor_state.v_alpha;
+		float y_tmp = m_motor_state.v_beta;
+
+		m_motor_state.v_alpha = x_tmp*COS_MINUS_30_DEG - y_tmp*SIN_MINUS_30_DEG;
+		m_motor_state.v_beta = x_tmp*SIN_MINUS_30_DEG + y_tmp*COS_MINUS_30_DEG;
+
+		// compensate voltage amplitude
+		m_motor_state.v_alpha *= ONE_BY_SQRT3;
+		m_motor_state.v_beta *= ONE_BY_SQRT3;
+#endif
 
 		// Park transform
 		float vd_tmp = c * m_motor_state.v_alpha + s * m_motor_state.v_beta;
