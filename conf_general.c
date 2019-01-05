@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "eeprom.h"
 #include "mcpwm.h"
+#include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "hw.h"
 #include "utils.h"
@@ -621,6 +622,129 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	return ok_steps == 5 ? true : false;
 }
 
+#ifdef USE_FOC_FLUX_LINKAGE_DETECTION
+/**
+ * Try to measure the motor flux linkage using open loop FOC control.
+ *
+ * @param current
+ * The Q-axis current so spin up the motor with.
+ *
+ * @param duty
+ * The duty cycle to maintain.
+ *
+ * @param min_erpm
+ * The minimum ERPM to release the motor and measure parameters
+ *
+ * @param res
+ * The motor phase resistance.
+ *
+ * @param linkage
+ * The calculated flux linkage.
+ *
+ * @return
+ * True for success, false otherwise.
+ */
+bool conf_general_measure_flux_linkage(float current, float duty,
+		float min_erpm, float res, float *linkage) {
+	mcconf = *mc_interface_get_configuration();
+	mcconf_old = mcconf;
+
+	mcconf.motor_type = MOTOR_TYPE_FOC;
+
+ 	// watch out: algorithm will measure voltage and rpm, but if the
+	// observer behaves poorly (wrong initial flux linkage for example)
+	// we can't properly track position, and hence rpm.
+	mcconf.sensor_mode = SENSOR_MODE_SENSORLESS;
+
+	mc_interface_set_configuration(&mcconf);
+
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	// Wait one second for things to get ready after
+	// the fault disapears. (will fry things otherwise...)
+	// TODO: Add FAULT_INIT_NOT_DONE
+	chThdSleepMilliseconds(1000);
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+
+	mc_interface_lock();
+
+	// Try to spin up the motor.
+	float erpm_now = 0;
+	float steps = 16000.0;
+	float erpm_step = min_erpm / steps;		//motor will be accelerated for 15 seconds in 1msec steps
+	float current_now = 0;
+	float current_step = current/2000.0;		//ramp up current for 2 seconds
+
+	mc_interface_lock_override_once();
+	mc_interface_release_motor();
+
+	for(int i = 0; i<steps; i++) {
+		mc_interface_lock_override_once();
+		mcpwm_foc_set_openloop(current_now, erpm_now);
+		chThdSleepMilliseconds(1);
+		erpm_now += erpm_step;
+
+		if(current_now < current) {
+			current_now += current_step;
+		}
+	}
+
+	// give some time for rotor and field to sync better, without mechanical resistance
+	// at the rotor it may tend to oscillate
+	chThdSleepMilliseconds(3000);
+
+	// motor should be spinning at min_erpm now
+
+	// check if at this speed the duty cycle reaches the % requested by the user.
+	// if at full voltage the motor spins at 10kerpm, to measure at 50% duty you need
+	// to spin at least at 5kerpm
+	if (mc_interface_get_duty_cycle_now() < duty) {
+		mc_interface_set_current(0.0);
+		timeout_configure(tout, tout_c);
+		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_unlock();
+		return false;
+	}
+
+	float avg_voltage = 0.0;
+	float avg_rpm = 0.0;
+	float avg_current = 0.0;
+	float samples = 0.0;
+	for (int i = 0;i < 2000;i++) {
+		avg_voltage += GET_INPUT_VOLTAGE() * mc_interface_get_duty_cycle_now();
+		avg_rpm += mc_interface_get_rpm();
+		avg_current += mc_interface_get_tot_current();
+		samples += 1.0;
+		chThdSleepMilliseconds(1.0);
+	}
+
+	timeout_configure(tout, tout_c);
+	mc_interface_set_configuration(&mcconf_old);
+	mc_interface_unlock();
+	mc_interface_set_current(0.0);
+
+	avg_voltage /= samples;
+	avg_rpm /= samples;
+	avg_current /= samples;
+	avg_voltage -= avg_current * res * 2.0;
+
+	*linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm);   // linkage=60 / (sqrt(3) * poles * pi * kv)
+
+	return true;
+}
+
+#else
 /**
  * Try to measure the motor flux linkage.
  *
@@ -782,3 +906,4 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	return true;
 }
+#endif
