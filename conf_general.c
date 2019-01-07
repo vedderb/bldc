@@ -627,13 +627,13 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
  * Try to measure the motor flux linkage using open loop FOC control.
  *
  * @param current
- * The Q-axis current so spin up the motor with.
+ * The Q-axis current to spin up the motor.
  *
  * @param duty
- * The duty cycle to maintain.
+ * Duty cycle % to measure at
  *
- * @param min_erpm
- * The minimum ERPM to release the motor and measure parameters
+ * @param erpm
+ * Max ERPM of the measurement to prevent mechanical destruction.
  *
  * @param res
  * The motor phase resistance.
@@ -682,9 +682,9 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	// Try to spin up the motor.
 	float erpm_now = 0;
 	float steps = 16000.0;
-	float erpm_step = min_erpm / steps;		//motor will be accelerated for 15 seconds in 1msec steps
+	float erpm_step = min_erpm / steps;		//motor will reach the requested speed in 16 seconds
 	float current_now = 0;
-	float current_step = current/2000.0;		//ramp up current for 2 seconds
+	float current_step = current/2000.0;	//ramp up current for 2 seconds
 
 	mc_interface_lock_override_once();
 	mc_interface_release_motor();
@@ -698,6 +698,10 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		if(current_now < current) {
 			current_now += current_step;
 		}
+
+		// if duty % has been reached, don't bother increasing rpm and skip to the measurement
+		if (mc_interface_get_duty_cycle_now() > duty * 1.1)
+			break;
 	}
 
 	// give some time for rotor and field to sync better, without mechanical resistance
