@@ -1306,9 +1306,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		}
 	}
 
-	if (i_last < 0.01) {
-		i_last = (m_conf->l_current_max / 2.0);
-	}
+	i_last = (m_conf->l_current_max / 2.0);
 
 	*res = mcpwm_foc_measure_resistance(i_last, 200);
 
