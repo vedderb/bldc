@@ -64,8 +64,18 @@ static void spi_end(void);
 static void spi_delay(void);
 void hw_palta_init_FPGA_CLK(void);
 void hw_palta_setup_dac(void);
+void hw_palta_configure_brownout(uint8_t);
+void hw_palta_configure_VDD_undervoltage(void);
 
 void hw_init_gpio(void) {
+
+	// Set Brown out to keep mcu under reset until VDD reaches 2.7V
+	hw_palta_configure_brownout(OB_BOR_LEVEL3);
+
+	// Configure Programmable voltage detector to interrupt the cpu
+	// when VDD is below 2.9V.
+	hw_palta_configure_VDD_undervoltage();
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -241,6 +251,42 @@ void hw_palta_DAC1_setdata(uint16_t data) {
 
 void hw_palta_DAC2_setdata(uint16_t data) {
 	DAC_SetChannel2Data(DAC_Align_12b_R, data);
+}
+
+void hw_palta_configure_brownout(uint8_t BOR_level) {
+    /* Get BOR Option Bytes */
+    if((FLASH_OB_GetBOR() & 0x0C) != BOR_level)
+    {
+      /* Unlocks the option bytes block access */
+      FLASH_OB_Unlock();
+
+      /* Select the desired V(BOR) Level -------------------------------------*/
+      FLASH_OB_BORConfig(BOR_level);
+
+      /* Launch the option byte loading */
+      FLASH_OB_Launch();
+
+      /* Locks the option bytes block access */
+      FLASH_OB_Lock();
+    }
+}
+
+void hw_palta_configure_VDD_undervoltage(void) {
+
+	// partially configured in mcuconf.h -> STM32_PVD_ENABLE and STM32_PLS
+
+	// Connect EXTI Line to pin
+	EXTI_InitTypeDef   EXTI_InitStructure;
+
+	// Configure EXTI Line
+	EXTI_InitStructure.EXTI_Line = EXTI_Line16;		//Connected to Programmable Voltage Detector
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	// Enable and set EXTI Line Interrupt to the highest priority
+	nvicEnableVector(PVD_IRQn, 0);
 }
 
 void hw_start_i2c(void) {
