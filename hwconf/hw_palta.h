@@ -219,15 +219,15 @@
 #define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
-// Setting limits (TODO: Configure these)
-//#define HW_LIM_CURRENT			-100.0, 100.0
-//#define HW_LIM_CURRENT_IN		-100.0, 100.0
-//#define HW_LIM_CURRENT_ABS		0.0, 150.0
-//#define HW_LIM_VIN				6.0, 57.0
-//#define HW_LIM_ERPM				-200e3, 200e3
-//#define HW_LIM_DUTY_MIN			0.0, 0.1
-//#define HW_LIM_DUTY_MAX			0.0, 1.0
-//#define HW_LIM_TEMP_FET			-40.0, 110.0
+// Setting limits
+#define HW_LIM_CURRENT			-200.0, 200.0
+#define HW_LIM_CURRENT_IN		-100.0, 100.0
+#define HW_LIM_CURRENT_ABS		0.0, 230.0
+#define HW_LIM_VIN				6.0, 85.0
+#define HW_LIM_ERPM				-100e3, 100e3
+#define HW_LIM_DUTY_MIN			0.0, 0.1
+#define HW_LIM_DUTY_MAX			0.0, 1.0
+#define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
 char hw_palta_configure_FPGA(void);
