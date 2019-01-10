@@ -702,11 +702,14 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		// if duty % has been reached, don't bother increasing rpm and skip to the measurement
 		if (mc_interface_get_duty_cycle_now() > duty * 1.1)
 			break;
-	}
 
-	// give some time for rotor and field to sync better, without mechanical resistance
-	// at the rotor it may tend to oscillate
-	chThdSleepMilliseconds(3000);
+		float progress = i / steps;
+
+		if (progress > 0.30)
+			if (mc_interface_get_duty_cycle_now() < duty * 0.15) {
+				break;	//if it doesn't look like motor has started, abort
+			}
+	}
 
 	// motor should be spinning at min_erpm now
 
