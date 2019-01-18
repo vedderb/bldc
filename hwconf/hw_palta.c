@@ -41,8 +41,8 @@
 #define PALTA_FPGA_CLK_PIN			9
 #define PALTA_FPGA_RESET_PORT		GPIOB
 #define PALTA_FPGA_RESET_PIN		4
-//#define BITSTREAM_SIZE			104090		//ice40up5k
-#define BITSTREAM_SIZE				71338		//ice40LP1K
+#define BITSTREAM_SIZE				104090		//ice40up5k
+//#define BITSTREAM_SIZE				71338		//ice40LP1K
 
 // Variables
 static volatile bool i2c_running = false;
