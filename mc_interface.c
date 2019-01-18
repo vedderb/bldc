@@ -1043,6 +1043,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 		fdata.current = mc_interface_get_tot_current();
 		fdata.current_filtered = mc_interface_get_tot_current_filtered();
 		fdata.voltage = GET_INPUT_VOLTAGE();
+		fdata.gate_driver_voltage = m_gate_driver_voltage;
 		fdata.duty = mc_interface_get_duty_cycle_now();
 		fdata.rpm = mc_interface_get_rpm();
 		fdata.tacho = mc_interface_get_tachometer_value(false);
@@ -1354,7 +1355,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
 	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
 #ifdef HW_VERSION_PALTA
-	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.1);
+	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 
 	// Temperature MOSFET

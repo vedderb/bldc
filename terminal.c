@@ -119,6 +119,9 @@ void terminal_process_string(char *str) {
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
+#ifdef HW_VERSION_PALTA
+				commands_printf("Gate drv voltage : %.2f", (double)fault_vec[i].gate_driver_voltage);
+#endif
 				commands_printf("Duty             : %.3f", (double)fault_vec[i].duty);
 				commands_printf("RPM              : %.1f", (double)fault_vec[i].rpm);
 				commands_printf("Tacho            : %d", fault_vec[i].tacho);

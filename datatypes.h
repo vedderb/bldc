@@ -524,6 +524,7 @@ typedef struct {
 	float current;
 	float current_filtered;
 	float voltage;
+	float gate_driver_voltage;
 	float duty;
 	float rpm;
 	int tacho;
