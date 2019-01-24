@@ -333,6 +333,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
@@ -352,6 +353,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();
@@ -400,6 +402,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
@@ -419,6 +422,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();

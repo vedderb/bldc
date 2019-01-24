@@ -19,22 +19,30 @@
 
 #include "timeout.h"
 #include "mc_interface.h"
+#include "stm32f4xx_conf.h"
 
 // Private variables
 static volatile systime_t timeout_msec;
 static volatile systime_t last_update_time;
 static volatile float timeout_brake_current;
 static volatile bool has_timeout;
+static volatile uint32_t feed_counter[MAX_THREADS_MONITOR];
 
 // Threads
 static THD_WORKING_AREA(timeout_thread_wa, 512);
 static THD_FUNCTION(timeout_thread, arg);
+
+void timeout_init_IWDT(void);
 
 void timeout_init(void) {
 	timeout_msec = 1000;
 	last_update_time = 0;
 	timeout_brake_current = 0.0;
 	has_timeout = false;
+
+	timeout_init_IWDT();
+
+	chThdSleepMilliseconds(10);
 
 	chThdCreateStatic(timeout_thread_wa, sizeof(timeout_thread_wa), NORMALPRIO, timeout_thread, NULL);
 }
@@ -60,6 +68,102 @@ float timeout_get_brake_current(void) {
 	return timeout_brake_current;
 }
 
+void timeout_feed_WDT(uint8_t index) {
+	++feed_counter[index];
+}
+
+void timeout_init_IWDT(void) {
+	/* Enable write access to IWDG_PR and IWDG_RLR registers */
+	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+
+	/* IWDG counter clock: LSI/4 */
+	IWDG_SetPrescaler(IWDG_Prescaler_4);
+
+	/* Set counter reload value to obtain 12ms IWDG TimeOut.
+	 *
+	 * LSI timer per datasheet is 32KHz typical, but 17KHz min
+	 * and 47KHz max over the complete range of operating conditions,
+	 * so reload time must ensure watchdog will work correctly under
+	 * all conditions.
+	 *
+	 * Timeout threads runs every 10ms. Take 20% margin so wdt should
+	 * be fed every 12ms. The worst condition occurs when the wdt clock
+	 * runs at the max freq (47KHz) due to oscillator tolerances.
+	 *
+	 * t_IWDG(ms) = t_LSI(ms) * 4 * 2^(IWDG_PR[2:0]) * (IWDG_RLR[11:0] + 1)
+	 * t_LSI(ms) [MAX] = 0.021276ms
+	 * 12ms = 0.0212765 * 4 * 1 * (140 + 1)
+
+	 Counter Reload Value = 140
+
+	 When LSI clock runs the slowest, the IWDG will expire every 33.17ms
+	*/
+	IWDG_SetReload(140);
+
+	IWDG_ReloadCounter();
+
+	/* Enable IWDG (the LSI oscillator will be enabled by hardware) */
+	IWDG_Enable();
+}
+
+void timeout_configure_IWDT_slowest(void) {
+	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
+	 {
+	 // Continue to kick the dog
+	 IWDG_ReloadCounter();
+	 }
+	 // Unlock register
+	 IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+	 // Update configuration
+	 IWDG_SetReload(1400);
+	 IWDG_SetPrescaler(IWDG_Prescaler_256);
+	 // Wait for the new configuration to be taken into account
+	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
+	 {
+	 // Continue to kick the dog
+	 IWDG_ReloadCounter();
+	 }
+}
+
+void timeout_configure_IWDT(void) {
+	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
+	 {
+	 // Continue to kick the dog
+	 IWDG_ReloadCounter();
+	 }
+	 // Unlock register
+	 IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+	 // Update configuration
+	 IWDG_SetReload(140);
+	 IWDG_SetPrescaler(IWDG_Prescaler_4);
+	 // Wait for the new configuration to be taken into account
+	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
+	 {
+	 // Continue to kick the dog
+	 IWDG_ReloadCounter();
+	 }
+}
+
+bool timeout_had_IWDG_reset(void) {
+	// Check if the system has resumed from IWDG reset
+	  if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET) {
+	    /* IWDGRST flag set */
+		/* Clear reset flags */
+	    RCC_ClearFlag();
+		return true;
+	  }
+
+	  // Check if the system has resumed from WWDG reset
+	  if (RCC_GetFlagStatus(RCC_FLAG_WWDGRST) != RESET) {
+		  /* IWDGRST flag set */
+		  /* Clear reset flags */
+		  RCC_ClearFlag();
+		  return true;
+	  }
+
+	  return false;
+}
+
 static THD_FUNCTION(timeout_thread, arg) {
 	(void)arg;
 
@@ -72,6 +176,32 @@ static THD_FUNCTION(timeout_thread, arg) {
 			has_timeout = true;
 		} else {
 			has_timeout = false;
+		}
+
+		bool threads_ok = true;
+
+		// Monitored threads (foc, can, timer) must report at least one iteration,
+		// otherwise the watchdog won't be feed and MCU will reset. All threads should
+		// be monitored
+		if(feed_counter[THREAD_MCPWM] < MIN_THREAD_ITERATIONS)
+			threads_ok = false;
+		if(feed_counter[THREAD_CANBUS] < MIN_THREAD_ITERATIONS)
+			threads_ok = false;
+		if(feed_counter[THREAD_TIMER] < MIN_THREAD_ITERATIONS)
+			threads_ok = false;
+
+		for( int i = 0; i < MAX_THREADS_MONITOR; i++)
+			feed_counter[i] = 0;
+
+		if (threads_ok == true) {
+			// Feed WDT
+			IWDG_ReloadCounter();
+		}
+		else
+		{
+			// not reloading the watchdog will produce a reset.
+			// This can be checked from the GUI logs as
+			// "FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET"
 		}
 
 		chThdSleepMilliseconds(10);

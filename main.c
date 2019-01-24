@@ -171,6 +171,7 @@ static THD_FUNCTION(timer_thread, arg) {
 
 	for(;;) {
 		packet_timerfunc();
+		timeout_feed_WDT(THREAD_TIMER);
 		chThdSleepMilliseconds(1);
 	}
 }
@@ -197,6 +198,7 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
+
 	mc_interface_init(&mcconf);
 
 	commands_init();
@@ -225,9 +227,6 @@ int main(void) {
 				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
 	}
 #endif
-
-	timeout_init();
-	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 #if WS2811_ENABLE
 	ws2811_init();
@@ -303,6 +302,9 @@ int main(void) {
 		}
 	}
 #endif
+
+	timeout_init();
+	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

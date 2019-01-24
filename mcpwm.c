@@ -30,6 +30,7 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "terminal.h"
+#include "timeout.h"
 #include "encoder.h"
 
 // Structs
@@ -459,6 +460,10 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	rpm_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
+
+	// Check if the system has resumed from IWDG reset
+	  if (timeout_had_IWDG_reset())
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 
 	// WWDG configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
@@ -1721,6 +1726,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	// Reset the watchdog
 	WWDG_SetCounter(100);
+	timeout_feed_WDT(THREAD_MCPWM);
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	int ph1, ph2, ph3;

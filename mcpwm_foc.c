@@ -445,6 +445,10 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
+	// Check if the system has resumed from IWDG reset
+	  if (timeout_had_IWDG_reset())
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
+
 	// WWDG configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 	WWDG_SetPrescaler(WWDG_Prescaler_1);
@@ -1487,6 +1491,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Reset the watchdog
 	WWDG_SetCounter(100);
+	timeout_feed_WDT(THREAD_MCPWM);
 
 	int curr0 = ADC_Value[ADC_IND_CURR1];
 	int curr1 = ADC_Value[ADC_IND_CURR2];
@@ -1838,7 +1843,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
-        
+
 #ifdef HW_VERSION_PALTA
 		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
 		float x_tmp = m_motor_state.v_alpha;

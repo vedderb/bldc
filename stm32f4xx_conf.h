@@ -13,6 +13,7 @@
 #include "stm32f4xx_syscfg.h"
 #include "stm32f4xx_tim.h"
 #include "stm32f4xx_wwdg.h"
+#include "stm32f4xx_iwdg.h"
 
 #ifdef  USE_FULL_ASSERT
 #define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
