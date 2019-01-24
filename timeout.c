@@ -40,6 +40,16 @@ void timeout_init(void) {
 	timeout_brake_current = 0.0;
 	has_timeout = false;
 
+	// WWDG configuration
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	// Timeout = t_PCLK1 (ms) * 4096 * 2^(WDGTB [1:0]) * (T[5:0] + 1)
+	// CLK1 = 42MHz
+
+	// Window set between 6.24ms and 12.48ms. Mcu will reset if watchdog is fed outside the window
+	WWDG_SetPrescaler(WWDG_Prescaler_2);
+	WWDG_SetWindowValue(127);
+	WWDG_Enable(127); //0x7F
+
 	timeout_init_IWDT();
 
 	chThdSleepMilliseconds(10);
@@ -194,8 +204,9 @@ static THD_FUNCTION(timeout_thread, arg) {
 			feed_counter[i] = 0;
 
 		if (threads_ok == true) {
-			// Feed WDT
-			IWDG_ReloadCounter();
+			// Feed WDT's
+			WWDG_SetCounter(127);	// must reload in >6.24ms and <12.48ms
+			IWDG_ReloadCounter();	// must reload in <12ms
 		}
 		else
 		{

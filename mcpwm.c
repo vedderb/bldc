@@ -465,12 +465,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	  if (timeout_had_IWDG_reset())
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 
-	// WWDG configuration
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
-
 	// Reset tachometers again
 	tachometer = 0;
 	tachometer_abs = 0;
@@ -1725,7 +1719,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	update_timer_attempt();
 
 	// Reset the watchdog
-	WWDG_SetCounter(100);
 	timeout_feed_WDT(THREAD_MCPWM);
 
 	const float input_voltage = GET_INPUT_VOLTAGE();

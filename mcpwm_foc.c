@@ -449,12 +449,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	  if (timeout_had_IWDG_reset())
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 
-	// WWDG configuration
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
-
 	m_init_done = true;
 }
 
@@ -1490,7 +1484,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	// Reset the watchdog
-	WWDG_SetCounter(100);
 	timeout_feed_WDT(THREAD_MCPWM);
 
 	int curr0 = ADC_Value[ADC_IND_CURR1];
