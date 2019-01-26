@@ -220,14 +220,16 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-200.0, 200.0
-#define HW_LIM_CURRENT_IN		-100.0, 100.0
-#define HW_LIM_CURRENT_ABS		0.0, 230.0
-#define HW_LIM_VIN				6.0, 85.0
-#define HW_LIM_ERPM				-100e3, 100e3
-#define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 1.0
-#define HW_LIM_TEMP_FET			-40.0, 110.0
+#define HW_LIM_CURRENT				-200.0, 200.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
+#define HW_LIM_CURRENT_ABS			0.0, 230.0
+#define HW_LIM_VIN					6.0, 85.0
+#define HW_LIM_ERPM					-100e3, 100e3
+#define HW_LIM_DUTY_MIN				0.0, 0.1
+#define HW_LIM_DUTY_MAX				0.0, 1.0
+#define HW_LIM_TEMP_FET				-40.0, 110.0
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	10000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
+
 
 // HW-specific functions
 char hw_palta_configure_FPGA(void);
