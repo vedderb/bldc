@@ -232,6 +232,7 @@ void hw_palta_setup_dac(void) {
 	/* DAC channel 1 and 2 Configuration */
 	DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
 	DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
+	DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_TriangleAmplitude_1;
 	DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Disable;	// If enabled minimum output voltage is 200mV (!)
 	DAC_Init(DAC_Channel_1, &DAC_InitStructure);
 	DAC_Init(DAC_Channel_2, &DAC_InitStructure);
