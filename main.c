@@ -176,10 +176,12 @@ static THD_FUNCTION(timer_thread, arg) {
 	}
 }
 
+/* When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower */
 void assert_failed(uint8_t* file, uint32_t line) {
 	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
+	mc_interface_release_motor();
 	while(1)
-		;
+		chThdSleepMilliseconds(1);
 }
 
 int main(void) {

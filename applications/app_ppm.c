@@ -281,13 +281,13 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if (send_current && config.multi_esc) {
-			float current = mc_interface_get_tot_current_directional_filtered();
+			float current_filtered = mc_interface_get_tot_current_directional_filtered();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current(msg->id, current);
+					comm_can_set_current(msg->id, current_filtered);
 				}
 			}
 		}

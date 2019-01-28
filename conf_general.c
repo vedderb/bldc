@@ -736,7 +736,7 @@ bool conf_general_measure_flux_linkage(float current, float duty, float erpm_per
 		float vd_avg = 0.0;
 		float iq_avg = 0.0;
 		float id_avg = 0.0;
-		float samples = 0.0;
+		samples = 0.0;
 
 		for (int i = 0;i < 1000;i++) {
 			vq_avg += mcpwm_foc_get_vq();

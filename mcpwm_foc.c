@@ -1002,9 +1002,9 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	for (int i = 0; i < it_rat; i++) {
 		float phase_old = m_phase_now_encoder;
 		float phase_ovr_tmp = m_phase_now_override;
-		for (float i = phase_ovr_tmp; i < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
-				i += (2.0 * M_PI) / 500.0) {
-			m_phase_now_override = i;
+		for (float j = phase_ovr_tmp; j < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
+				j += (2.0 * M_PI) / 500.0) {
+			m_phase_now_override = j;
 			chThdSleepMilliseconds(1);
 		}
 		utils_norm_angle_rad((float*)&m_phase_now_override);
@@ -1030,9 +1030,9 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	for (int i = 0; i < it_rat; i++) {
 		float phase_old = m_phase_now_encoder;
 		float phase_ovr_tmp = m_phase_now_override;
-		for (float i = phase_ovr_tmp; i > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
-				i -= (2.0 * M_PI) / 500.0) {
-			m_phase_now_override = i;
+		for (float j = phase_ovr_tmp; j > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
+				j -= (2.0 * M_PI) / 500.0) {
+			m_phase_now_override = j;
 			chThdSleepMilliseconds(1);
 		}
 		utils_norm_angle_rad((float*)&m_phase_now_override);
@@ -1084,14 +1084,14 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
 		chThdSleepMilliseconds(500);
 
-		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(diff, &s, &c);
+		sincosf(angle_diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -1099,14 +1099,14 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
 		chThdSleepMilliseconds(500);
 
-		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(diff, &s, &c);
+		sincosf(angle_diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -1376,8 +1376,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 
 	// Forwards
 	for (int i = 0;i < 3;i++) {
-		for (int i = 0;i < 360;i++) {
-			m_phase_now_override = (float)i * M_PI / 180.0;
+		for (int j = 0;j < 360;j++) {
+			m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
 			int hall = read_hall();
@@ -1391,8 +1391,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 
 	// Reverse
 	for (int i = 0;i < 3;i++) {
-		for (int i = 360;i >= 0;i--) {
-			m_phase_now_override = (float)i * M_PI / 180.0;
+		for (int j = 360;j >= 0;j--) {
+			m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
 			int hall = read_hall();
