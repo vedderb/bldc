@@ -394,9 +394,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		utils_truncate_number(&mcconf.l_temp_fet_end, HW_LIM_TEMP_FET);
 #endif
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
-		utils_truncate_number(&mcconf.foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
-		if (mcconf.foc_sample_v0_v7 == false)
-			mcconf.foc_f_sw *= 2;		//control loop executes twice per pwm cycle when sampling in v0 and v7
+		if (mcconf.foc_sample_v0_v7 == true)
+			utils_truncate_number(&mcconf.foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ); //control loop executes twice per pwm cycle when sampling in v0 and v7
+		else
+			utils_truncate_number(&mcconf.foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ*2);
 #endif
 
 #endif
