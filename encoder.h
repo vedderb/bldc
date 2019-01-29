@@ -36,5 +36,6 @@ bool encoder_index_found(void);
 
 uint16_t encoder_spi_get_val(void);
 uint32_t encoder_spi_get_error_cnt(void);
+float encoder_spi_get_error_rate(void);
 
 #endif /* ENCODER_H_ */

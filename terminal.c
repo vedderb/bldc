@@ -639,7 +639,9 @@ void terminal_process_string(char *str) {
 			commands_printf("This command requires one argument.\n");
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
-        commands_printf("SPI val:%x, errors:%d", (unsigned int)encoder_spi_get_val(), encoder_spi_get_error_cnt());
+        commands_printf("SPI val:%x, errors:%d, rate:%.5f", (unsigned int)encoder_spi_get_val(),
+                                                            encoder_spi_get_error_cnt(),
+                                                            (double)encoder_spi_get_error_rate());
 	}
 
 	// The help command

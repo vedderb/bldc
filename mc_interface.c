@@ -1321,6 +1321,11 @@ void mc_interface_mc_timer_isr(void) {
 	}
 #endif
 
+    // encoder error rate fault, 1% errors as threshold
+    if(encoder_spi_get_error_rate() > 0.01) {
+        mc_interface_fault_stop(FAULT_CODE_ENCODER);
+    }
+
 	// Watt and ah counters
 	const float f_samp = mc_interface_get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
