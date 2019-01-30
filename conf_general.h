@@ -162,6 +162,16 @@
  */
 #define BLDC_SPEED_CONTROL_CURRENT	1
 
+/*
+ *	Run the FOC loop once every N ADC ISR requests. This way the pwm frequency is
+ *	detached from the FOC calculation, which because it takes ~25usec it can't work
+ *	at >40khz. To set a 100kHz pwm FOC_CONTROL_LOOP_FREQ_DIVIDER can be set at 3
+ *	so it skips 2 ISR calls and execute the control loop in the 3rd call.
+ */
+#ifndef FOC_CONTROL_LOOP_FREQ_DIVIDER
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+#endif
+
 // Global configuration variables
 extern bool conf_general_permanent_nrf_found;
 

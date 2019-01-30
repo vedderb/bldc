@@ -219,6 +219,9 @@
 #define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
+// Execute FOC loop once every "FOC_CONTROL_LOOP_FREQ_DIVIDER" ADC ISR calls
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+
 // Setting limits
 #define HW_LIM_CURRENT				-200.0, 200.0
 #define HW_LIM_CURRENT_IN			-100.0, 100.0

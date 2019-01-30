@@ -1467,6 +1467,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
+	static int skip = 0;
+	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER)
+		skip = 0;
+	else
+		return;
+
 	TIM12->CNT = 0;
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
