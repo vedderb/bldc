@@ -210,7 +210,7 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-#define HW_DEAD_TIME_VALUE		20
+#define HW_DEAD_TIME_NSEC		120.0
 
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
