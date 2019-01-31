@@ -11,4 +11,4 @@ addons:
 env:
 
 script:
-  - make
+  - cd build_all && ./rebuild_all
