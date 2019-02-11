@@ -1676,14 +1676,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// When the filtered duty cycle in sensorless mode becomes low in brake mode, the
 		// observer has lost tracking. Use duty cycle control with the lowest duty cycle
 		// to get as smooth braking as possible.
-		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-				//              && (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
-				&& fabsf(duty_filtered)*GET_INPUT_VOLTAGE() < 0.5
-				&& (fmax( fabsf(m_iq_set) , 0.5/(m_conf->foc_motor_r*2/3) ) >  (double) fabsf(m_motor_state.iq_filter))) {
+		static bool was_full_brake = false;
+		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
+				fabsf(duty_filtered) < m_conf->l_min_duty * 1.5 &&
+				(m_motor_state.i_abs * (was_full_brake ? 1.0 : 1.5)) < fabsf(m_iq_set)) {
 			control_duty = true;
 			duty_set = 0.0;
+			was_full_brake = true;
+		} else {
+			was_full_brake = false;
 		}
-
 		// Brake when set ERPM is below min ERPM
 		if (m_control_mode == CONTROL_MODE_SPEED &&
 				fabsf(m_speed_pid_set_rpm) < m_conf->s_pid_min_erpm) {
