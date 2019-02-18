@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		40
+#define FW_VERSION_MINOR		48
 
 #include "datatypes.h"
 
@@ -48,30 +48,71 @@
 //#define HW75_300_VEDDER_FIRST_PCB
 
 /*
- * Select only one hardware version
+ * Select only one hardware version, if it is not passed
+ * as an argument.
  */
-#if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
-	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
-	!defined(HW_VERSION_60) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A) && \
-	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) && !defined(HW_VERSION_RH) && \
-	!defined(HW_VERSION_TP) && !defined(HW_VERSION_75_300) && !defined(HW_VERSION_MINI4) && \
-	!defined(HW_VERSION_DAS_MINI)
-//#define HW_VERSION_40
-//#define HW_VERSION_45
-//#define HW_VERSION_46 // Also for 4.7
-//#define HW_VERSION_48
-//#define HW_VERSION_49
-//#define HW_VERSION_410 // Also for 4.11 and 4.12
-#define HW_VERSION_60
-//#define HW_VERSION_R2
-//#define HW_VERSION_VICTOR_R1A
-//#define HW_VERSION_DAS_RS
-//#define HW_VERSION_PALTA
-//#define HW_VERSION_RH
-//#define HW_VERSION_TP
-//#define HW_VERSION_75_300
-//#define HW_VERSION_MINI4
-//#define HW_VERSION_DAS_MINI
+#if !defined(HW_SOURCE) && !defined(HW_HEADER)
+//#define HW_SOURCE "hw_40.c"
+//#define HW_HEADER "hw_40.h"
+
+//#define HW_SOURCE "hw_45.c"
+//#define HW_HEADER "hw_45.h"
+
+//#define HW_SOURCE "hw_46.c" // Also for 4.7
+//#define HW_HEADER "hw_46.h" // Also for 4.7
+
+//#define HW_SOURCE "hw_48.c"
+//#define HW_HEADER "hw_48.h"
+
+//#define HW_SOURCE "hw_49.c"
+//#define HW_HEADER "hw_49.h"
+
+//#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
+//#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
+
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
+
+//#define HW_SOURCE "hw_r2.c"
+//#define HW_HEADER "hw_r2.h"
+
+//#define HW_SOURCE "hw_victor_r1a.c"
+//#define HW_HEADER "hw_victor_r1a.h"
+
+//#define HW_SOURCE "hw_das_rs.c"
+//#define HW_HEADER "hw_das_rs.h"
+
+//#define HW_SOURCE "hw_palta.c"
+//#define HW_HEADER "hw_palta.h"
+
+//#define HW_SOURCE "hw_rh.c"
+//#define HW_HEADER "hw_rh.h"
+
+//#define HW_SOURCE "hw_tp.c"
+//#define HW_HEADER "hw_tp.h"
+
+//#define HW_SOURCE "hw_75_300.c"
+//#define HW_HEADER "hw_75_300.h"
+
+//#define HW_SOURCE "hw_mini4.c"
+//#define HW_HEADER "hw_mini4.h"
+
+//#define HW_SOURCE "hw_das_mini.c"
+//#define HW_HEADER "hw_das_mini.h"
+
+//#define HW_SOURCE "hw_uavc_qcube.c"
+//#define HW_HEADER "hw_uavc_qcube.h"
+
+//#define HW_SOURCE "hw_uavc_basic.c"
+//#define HW_HEADER "hw_uavc_basic.h"
+#endif
+
+#ifndef HW_SOURCE
+#error "No hardware source file set"
+#endif
+
+#ifndef HW_HEADER
+#error "No hardware header file set"
 #endif
 
 /*
@@ -177,5 +218,13 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage);
+bool conf_general_measure_flux_linkage_openloop(float current, float duty,
+		float erpm_per_sec, float res, float *linkage);
+int conf_general_autodetect_apply_sensors_foc(float current,
+		bool store_mcconf_on_success, bool send_mcconf_on_success);
+int conf_general_detect_apply_all_foc(float max_power_loss,
+		bool store_mcconf_on_success, bool send_mcconf_on_success);
+int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
+		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
 
 #endif /* CONF_GENERAL_H_ */

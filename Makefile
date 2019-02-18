@@ -107,6 +107,7 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include hwconf/hwconf.mk
 include applications/applications.mk
 include nrf/nrf.mk
+include libcanard/canard.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -147,9 +148,11 @@ CSRC = $(STARTUPSRC) \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \
+       gpdrive.c \
        $(HWSRC) \
        $(APPSRC) \
-       $(NRFSRC)
+       $(NRFSRC) \
+       $(CANARDSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -186,7 +189,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          appconf \
          $(HWINC) \
          $(APPINC) \
-         $(NRFINC)
+         $(NRFINC) \
+         $(CANARDINC)
 
 #
 # Project, sources and paths

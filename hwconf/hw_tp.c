@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_TP
 
 #include "ch.h"
 #include "hal.h"
@@ -247,5 +246,3 @@ float hwtp_get_temp(void) {
 
 	return res;
 }
-
-#endif

@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_75_300
 
 #include "ch.h"
 #include "hal.h"
@@ -76,14 +75,18 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
-	// Fault pin
-	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
-
 	// Phase filters
 	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 	PHASE_FILTER_OFF();
+
+		// Current filter
+	palSetPadMode(GPIOD, 2,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+
+	CURRENT_FILTER_OFF();
 
 	// AUX pin
 	AUX_OFF();
@@ -98,6 +101,9 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+
+	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
@@ -254,5 +260,3 @@ float hw75_300_get_temp(void) {
 
 	return res;
 }
-
-#endif

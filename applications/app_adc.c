@@ -244,6 +244,12 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 		}
 
+		// All pins and buttons are still decoded for debugging, even
+		// when output is disabled.
+		if (app_is_output_disabled()) {
+			continue;
+		}
+
 		switch (config.ctrl_type) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:

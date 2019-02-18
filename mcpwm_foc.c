@@ -89,6 +89,7 @@ static volatile float m_duty_cycle_set;
 static volatile float m_id_set;
 static volatile float m_iq_set;
 static volatile float m_openloop_speed;
+static volatile float m_openloop_phase;
 static volatile bool m_dccal_done;
 static volatile bool m_output_on;
 static volatile float m_pos_pid_set;
@@ -105,9 +106,9 @@ static volatile float m_pll_speed;
 static volatile mc_sample_t m_samples;
 static volatile int m_tachometer;
 static volatile int m_tachometer_abs;
-static volatile float last_inj_adc_isr_duration;
+static volatile float m_last_adc_isr_duration;
 static volatile float m_pos_pid_now;
-static volatile bool m_init_done;
+static volatile bool m_init_done = false;
 static volatile float m_gamma_now;
 
 #ifdef HW_HAS_3_SHUNTS
@@ -212,6 +213,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_id_set = 0.0;
 	m_iq_set = 0.0;
 	m_openloop_speed = 0.0;
+	m_openloop_phase = 0.0;
 	m_output_on = false;
 	m_pos_pid_set = 0.0;
 	m_speed_pid_set_rpm = 0.0;
@@ -226,7 +228,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_pll_speed = 0.0;
 	m_tachometer = 0;
 	m_tachometer_abs = 0;
-	last_inj_adc_isr_duration = 0;
+	m_last_adc_isr_duration = 0;
 	m_pos_pid_now = 0.0;
 	m_gamma_now = 0.0;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
@@ -424,6 +426,8 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 
 	utils_sys_unlock_cnt();
 
+	CURRENT_FILTER_ON();
+
 	// Calibrate current offset
 	ENABLE_GATE();
 	DCCAL_OFF();
@@ -455,6 +459,10 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 }
 
 void mcpwm_foc_deinit(void) {
+	if (!m_init_done) {
+		return;
+	}
+
 	m_init_done = false;
 
 	WWDG_DeInit();
@@ -653,11 +661,43 @@ void mcpwm_foc_set_openloop(float current, float rpm) {
 		return;
 	}
 
-	utils_truncate_number(&current, -m_conf->l_current_max, m_conf->l_current_max);
+	utils_truncate_number(&current, -m_conf->l_current_max * m_conf->l_current_max_scale,
+			m_conf->l_current_max * m_conf->l_current_max_scale);
 
 	m_control_mode = CONTROL_MODE_OPENLOOP;
 	m_iq_set = current;
 	m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+
+	if (m_state != MC_STATE_RUNNING) {
+		m_state = MC_STATE_RUNNING;
+	}
+}
+
+/**
+ * Produce an openloop current at a fixed phase.
+ *
+ * @param current
+ * The current to use.
+ *
+ * @param phase
+ * The phase to use in degrees, range [0.0 360.0]
+ */
+void mcpwm_foc_set_openloop_phase(float current, float phase) {
+	if (fabsf(current) < m_conf->cc_min_current) {
+		m_control_mode = CONTROL_MODE_NONE;
+		m_state = MC_STATE_OFF;
+		stop_pwm_hw();
+		return;
+	}
+
+	utils_truncate_number(&current, -m_conf->l_current_max * m_conf->l_current_max_scale,
+			m_conf->l_current_max * m_conf->l_current_max_scale);
+
+	m_control_mode = CONTROL_MODE_OPENLOOP_PHASE;
+	m_iq_set = current;
+
+	m_openloop_phase = phase * M_PI / 180.0;
+	utils_norm_angle_rad((float*)&m_openloop_phase);
 
 	if (m_state != MC_STATE_RUNNING) {
 		m_state = MC_STATE_RUNNING;
@@ -1083,8 +1123,15 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	c_sum = 0.0;
 
 	for (int i = 0;i < it_ofs;i++) {
-		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
-		chThdSleepMilliseconds(500);
+		float step = (2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		float override = (float)i * step;
+
+		while (m_phase_now_override != override) {
+			utils_step_towards((float*)&m_phase_now_override, override, step / 100.0);
+			chThdSleepMilliseconds(4);
+		}
+
+		chThdSleepMilliseconds(100);
 
 		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
@@ -1098,8 +1145,15 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	}
 
 	for (int i = it_ofs;i > 0;i--) {
-		m_phase_now_override = ((float)i * 2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
-		chThdSleepMilliseconds(500);
+		float step = (2.0 * M_PI * m_conf->foc_encoder_ratio) / ((float)it_ofs);
+		float override = (float)i * step;
+
+		while (m_phase_now_override != override) {
+			utils_step_towards((float*)&m_phase_now_override, override, step / 100.0);
+			chThdSleepMilliseconds(4);
+		}
+
+		chThdSleepMilliseconds(100);
 
 		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
@@ -1187,6 +1241,20 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 		if (cnt > 10000) {
 			break;
 		}
+
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			m_id_set = 0.0;
+			m_iq_set = 0.0;
+			m_phase_override = false;
+			m_control_mode = CONTROL_MODE_NONE;
+			m_state = MC_STATE_OFF;
+			stop_pwm_hw();
+
+			timeout_configure(tout, tout_c);
+			mc_interface_unlock();
+
+			return 0.0;
+		}
 	}
 
 	const float current_avg = m_samples.avg_current_tot / (float)m_samples.sample_num;
@@ -1237,6 +1305,8 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr) {
 
 	mc_interface_lock();
 
+	CURRENT_FILTER_OFF();
+
 	int to_cnt = 0;
 	for (int i = 0;i < samples;i++) {
 		m_samples.measure_inductance_now = true;
@@ -1254,6 +1324,8 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr) {
 		}
 	}
 
+	CURRENT_FILTER_ON();
+
 	// Enable timeout
 	timeout_configure(tout, tout_c);
 
@@ -1269,6 +1341,50 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr) {
 	}
 
 	return ((avg_voltage * t) / avg_current) * 1e6 * (2.0 /  3.0);
+}
+
+/**
+ * Measure the motor inductance with short voltage pulses. The difference from the
+ * other function is that this one will aim for a specific measurement current. It
+ * will also use an appropriate switching frequency.
+ *
+ * @param curr_goal
+ * The measurement current to aim for.
+ *
+ * @param samples
+ * The number of samples to average over.
+ *
+ * @param *curr
+ * The current that was used for this measurement.
+ *
+ * @return
+ * The average d and q axis inductance in microhenry.
+ */
+float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr) {
+	const float f_sw_old = m_conf->foc_f_sw;
+	m_conf->foc_f_sw = 3000.0;
+
+	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+
+	float duty_last = 0.0;
+	for (float i = 0.02;i < 0.5;i *= 1.5) {
+		float i_tmp;
+		mcpwm_foc_measure_inductance(i, 10, &i_tmp);
+
+		duty_last = i;
+		if (i_tmp >= curr_goal) {
+			break;
+		}
+	}
+
+	float ind = mcpwm_foc_measure_inductance(duty_last, samples, curr);
+
+	m_conf->foc_f_sw = f_sw_old;
+	top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
+	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+
+	return ind;
 }
 
 /**
@@ -1289,18 +1405,15 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	const float ki_old = m_conf->foc_current_ki;
 
 	m_conf->foc_f_sw = 10000.0;
-	m_conf->foc_current_kp = 0.01;
-	m_conf->foc_current_ki = 10.0;
+	m_conf->foc_current_kp = 0.001;
+	m_conf->foc_current_ki = 1.0;
 
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
 	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
 
-	float res_tmp = 0.0;
 	float i_last = 0.0;
 	for (float i = 2.0;i < (m_conf->l_current_max / 2.0);i *= 1.5) {
-		res_tmp = mcpwm_foc_measure_resistance(i, 20);
-
-		if (i > (1.0 / res_tmp)) {
+		if (i > (1.0 / mcpwm_foc_measure_resistance(i, 20))) {
 			i_last = i;
 			break;
 		}
@@ -1311,23 +1424,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	}
 
 	*res = mcpwm_foc_measure_resistance(i_last, 200);
-
-	m_conf->foc_f_sw = 3000.0;
-	top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-
-	float duty_last = 0.0;
-	for (float i = 0.02;i < 0.5;i *= 1.5) {
-		float i_tmp;
-		mcpwm_foc_measure_inductance(i, 20, &i_tmp);
-
-		duty_last = i;
-		if (i_tmp >= i_last) {
-			break;
-		}
-	}
-
-	*ind = mcpwm_foc_measure_inductance(duty_last, 200, 0);
+	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0);
 
 	m_conf->foc_f_sw = f_sw_old;
 	m_conf->foc_current_kp = kp_old;
@@ -1456,8 +1553,8 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("Obs_x2:       %.2f", (double)m_observer_x2);
 }
 
-float mcpwm_foc_get_last_inj_adc_isr_duration(void) {
-	return last_inj_adc_isr_duration;
+float mcpwm_foc_get_last_adc_isr_duration(void) {
+	return m_last_adc_isr_duration;
 }
 
 void mcpwm_foc_tim_sample_int_handler(void) {
@@ -1490,11 +1587,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// Reset the watchdog
 	WWDG_SetCounter(100);
 
-	int curr0 = ADC_Value[ADC_IND_CURR1];
-	int curr1 = ADC_Value[ADC_IND_CURR2];
+#ifdef AD2S1205_SAMPLE_GPIO
+	// force a position sample in the AD2S1205 resolver IC (falling edge)
+	palClearPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
+#endif
+
+	int curr0 = GET_CURRENT1();
+	int curr1 = GET_CURRENT2();
 
 #ifdef HW_HAS_3_SHUNTS
-	int curr2 = ADC_Value[ADC_IND_CURR3];
+	int curr2 = GET_CURRENT3();
 #endif
 
 	m_curr0_sum += curr0;
@@ -1673,14 +1775,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float duty_set = m_duty_cycle_set;
 		bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
 
-		// When the filtered duty cycle in sensorless mode becomes low in brake mode, the
-		// observer has lost tracking. Use duty cycle control with the lowest duty cycle
-		// to get as smooth braking as possible.
-		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE
-				//				&& (m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) // Don't use this with encoders
-				&& fabsf(duty_filtered) < 0.03) {
+		// When the modulation is low in brake mode and the set brake current
+		// cannot be reached, short all phases to get more braking without
+		// applying active braking. Use a bit of hysteresis when leaving
+		// the shorted mode.
+		static bool was_full_brake = false;
+		if (m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
+				fabsf(duty_filtered) < m_conf->l_min_duty * 1.5 &&
+				(m_motor_state.i_abs * (was_full_brake ? 1.0 : 1.5)) < fabsf(m_iq_set)) {
 			control_duty = true;
 			duty_set = 0.0;
+			was_full_brake = true;
+		} else {
+			was_full_brake = false;
 		}
 
 		// Brake when set ERPM is below min ERPM
@@ -1786,14 +1893,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			break;
 		}
 
-		// Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
 		if (m_control_mode == CONTROL_MODE_HANDBRAKE) {
+			// Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
 			m_motor_state.phase = 0.0;
 		} else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
 			static float openloop_angle = 0.0;
 			openloop_angle += dt * m_openloop_speed;
 			utils_norm_angle_rad(&openloop_angle);
 			m_motor_state.phase = openloop_angle;
+		} else if (m_control_mode == CONTROL_MODE_OPENLOOP_PHASE) {
+			m_motor_state.phase = m_openloop_phase;
 		}
 
 		if (m_phase_override) {
@@ -1938,10 +2047,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		run_pid_control_pos(m_pos_pid_now, m_pos_pid_set, dt);
 	}
 
+#ifdef AD2S1205_SAMPLE_GPIO
+	// Release sample in the AD2S1205 resolver IC.
+	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
+#endif
+
 	// MCIF handler
 	mc_interface_mc_timer_isr();
 
-	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+	m_last_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
 }
 
 // Private functions
@@ -2039,7 +2153,6 @@ static THD_FUNCTION(timer_thread, arg) {
 		run_pid_control_speed(dt);
 		chThdSleepMilliseconds(1);
 	}
-
 }
 
 static void do_dc_cal(void) {
@@ -2507,11 +2620,11 @@ static void run_pid_control_speed(float dt) {
 
 	// Optionally disable braking
 	if (!m_conf->s_pid_allow_braking) {
-		if (rpm > 0.0 && output < 0.0) {
+		if (rpm > 20.0 && output < 0.0) {
 			output = 0.0;
 		}
 
-		if (rpm < 0.0 && output > 0.0) {
+		if (rpm < -20.0 && output > 0.0) {
 			output = 0.0;
 		}
 	}

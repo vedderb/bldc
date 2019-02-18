@@ -16,13 +16,12 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_DAS_MINI
 
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
-#include "drv8320.h"
+#include "drv8320s.h"
 
 // Variables
 static volatile bool i2c_running = false;
@@ -100,7 +99,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
-	drv8320_init();
+	drv8320s_init();
 }
 
 void hw_setup_adc_channels(void) {
@@ -230,5 +229,3 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
-
-#endif

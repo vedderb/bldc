@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -21,28 +21,21 @@
 #include "ch.h"
 #include "eeprom.h"
 #include "mcpwm.h"
+#include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "hw.h"
 #include "utils.h"
 #include "stm32f4xx_conf.h"
 #include "timeout.h"
+#include "commands.h"
+#include "encoder.h"
+#include "comm_can.h"
+#include "app.h"
 
 #include <string.h>
 #include <math.h>
 
-// User defined default motor configuration file
-#ifdef MCCONF_DEFAULT_USER
-#include MCCONF_DEFAULT_USER
-#endif
-
-// User defined default app configuration file
-#ifdef APPCONF_DEFAULT_USER
-#include APPCONF_DEFAULT_USER
-#endif
-
-// Default configuration parameters that can be overridden
-#include "mcconf_default.h"
-#include "appconf_default.h"
+#include "conf_mc_app_default.h"
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -82,12 +75,16 @@ void conf_general_init(void) {
  */
 void conf_general_get_default_app_configuration(app_configuration *conf) {
 	memset(conf, 0, sizeof(app_configuration));
-	conf->controller_id = APPCONF_CONTROLLER_ID;
+	conf->controller_id = HW_DEFAULT_ID;
 	conf->timeout_msec = APPCONF_TIMEOUT_MSEC;
 	conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
 	conf->send_can_status = APPCONF_SEND_CAN_STATUS;
 	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
 	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
+	conf->pairing_done = APPCONF_PAIRING_DONE;
+
+	conf->uavcan_enable = APPCONF_UAVCAN_ENABLE;
+	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 
 	conf->app_to_use = APPCONF_APP_TO_USE;
 
@@ -194,13 +191,15 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->l_max_duty = MCCONF_L_MAX_DUTY;
 	conf->l_watt_max = MCCONF_L_WATT_MAX;
 	conf->l_watt_min = MCCONF_L_WATT_MIN;
+	conf->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
+	conf->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
 
-	conf->lo_current_max = conf->l_current_max;
-	conf->lo_current_min = conf->l_current_min;
+	conf->lo_current_max = conf->l_current_max * conf->l_current_max_scale;
+	conf->lo_current_min = conf->l_current_min * conf->l_current_min_scale;
 	conf->lo_in_current_max = conf->l_in_current_max;
 	conf->lo_in_current_min = conf->l_in_current_min;
-	conf->lo_current_motor_max_now = conf->l_current_max;
-	conf->lo_current_motor_min_now = conf->l_current_min;
+	conf->lo_current_motor_max_now = conf->lo_current_max;
+	conf->lo_current_motor_min_now = conf->lo_current_min;
 
 	conf->sl_min_erpm = MCCONF_SL_MIN_RPM;
 	conf->sl_max_fullbreak_current_dir_change = MCCONF_SL_MAX_FB_CURR_DIR_CHANGE;
@@ -258,6 +257,12 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
 	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
 
+	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
+	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
+	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;
+	conf->gpd_current_kp = MCCONF_GPD_CURRENT_KP;
+	conf->gpd_current_ki = MCCONF_GPD_CURRENT_KI;
+
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;
 	conf->s_pid_kd = MCCONF_S_PID_KD;
@@ -289,6 +294,13 @@ void conf_general_get_default_mc_configuration(mc_configuration *conf) {
 	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
 	conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
 	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
+
+	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
+	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
+	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;
+	conf->si_battery_type = MCCONF_SI_BATTERY_TYPE;
+	conf->si_battery_cells = MCCONF_SI_BATTERY_CELLS;
+	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
 }
 
 /**
@@ -666,9 +678,13 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(10);
 	}
 
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		mc_interface_set_configuration(&mcconf_old);
+		return false;
+	}
+
 	// Wait one second for things to get ready after
-	// the fault disapears. (will fry things otherwise...)
-	// TODO: Add FAULT_INIT_NOT_DONE
+	// the fault disapears.
 	chThdSleepMilliseconds(1000);
 
 	// Disable timeout
@@ -782,3 +798,563 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	return true;
 }
+
+bool conf_general_measure_flux_linkage_openloop(float current, float duty,
+		float erpm_per_sec, float res, float *linkage) {
+	bool result = false;
+
+	mcconf = *mc_interface_get_configuration();
+	mcconf_old = mcconf;
+
+	mcconf.motor_type = MOTOR_TYPE_FOC;
+	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
+	mcconf.foc_current_kp = 0.0005;
+	mcconf.foc_current_ki = 1.0;
+	mc_interface_set_configuration(&mcconf);
+
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		mc_interface_set_configuration(&mcconf_old);
+		return false;
+	}
+
+	// Wait one second for things to get ready after
+	// the fault disapears.
+	chThdSleepMilliseconds(1000);
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+
+	mc_interface_lock();
+
+	int cnt = 0;
+	float rpm_now = 0;
+
+	// Start by locking the motor
+	mcpwm_foc_set_openloop(current, rpm_now);
+
+	float duty_still = 0;
+	float samples = 0;
+	for (int i = 0;i < 1000;i++) {
+		duty_still += fabsf(mc_interface_get_duty_cycle_now());
+		samples += 1.0;
+		chThdSleepMilliseconds(1);
+	}
+
+	duty_still /= samples;
+	float duty_max = 0.0;
+	const int max_time = 15000;
+
+	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
+		mcpwm_foc_set_openloop(current, mcconf.m_invert_direction ? -rpm_now : rpm_now);
+		rpm_now += erpm_per_sec / 1000.0;
+
+		chThdSleepMilliseconds(1);
+		cnt++;
+
+		float duty_now = fabsf(mc_interface_get_duty_cycle_now());
+
+		if (duty_now > duty_max) {
+			duty_max = duty_now;
+		}
+
+		if (cnt >= max_time) {
+			*linkage = -1.0;
+			break;
+		}
+
+		if (cnt > 4000 && duty_now < (duty_max * 0.7)) {
+			cnt = max_time;
+			*linkage = -2.0;
+			break;
+		}
+
+		if (cnt > 4000 && duty < duty_still * 1.1) {
+			cnt = max_time;
+			*linkage = -3.0;
+			break;
+		}
+
+		if (rpm_now >= 20000) {
+			break;
+		}
+	}
+
+	chThdSleepMilliseconds(1000);
+
+	if (cnt < max_time) {
+		float vq_avg = 0.0;
+		float vd_avg = 0.0;
+		float iq_avg = 0.0;
+		float id_avg = 0.0;
+		float samples = 0.0;
+
+		for (int i = 0;i < 1000;i++) {
+			vq_avg += mcpwm_foc_get_vq();
+			vd_avg += mcpwm_foc_get_vd();
+			iq_avg += mcpwm_foc_get_iq();
+			id_avg += mcpwm_foc_get_id();
+			samples += 1.0;
+			chThdSleepMilliseconds(1);
+		}
+
+		vq_avg /= samples;
+		vd_avg /= samples;
+		iq_avg /= samples;
+		id_avg /= samples;
+
+		*linkage = (sqrtf(SQ(vq_avg) + SQ(vd_avg)) - res *
+				sqrtf(SQ(iq_avg) + SQ(id_avg))) / (rpm_now * ((2.0 * M_PI) / 60.0));
+
+		result = true;
+	}
+
+	timeout_configure(tout, tout_c);
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	mc_interface_set_configuration(&mcconf_old);
+	return result;
+}
+
+/**
+ * Automatically detect sensors and apply settings in FOC mode.
+ *
+ * @param current
+ * Current to use for detection.
+ *
+ * @param store_mcconf_on_success
+ * Store motor configuration in emulated EEPROM if the detection succeeds.
+ *
+ * @param send_mcconf_on_success
+ * Send motor configuration if the detection succeeds.
+ *
+ * @return
+ * 2: AS5147 detected successfully
+ * 1: Hall sensors detected successfully
+ * 0: No sensors detected and sensorless mode applied successfully
+ * -1: Detection failed
+ */
+int conf_general_autodetect_apply_sensors_foc(float current,
+		bool store_mcconf_on_success, bool send_mcconf_on_success) {
+	int result = -1;
+
+	mcconf = *mc_interface_get_configuration();
+	mcconf_old = mcconf;
+
+	mcconf.motor_type = MOTOR_TYPE_FOC;
+	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
+	mcconf.foc_current_kp = 0.0005;
+	mcconf.foc_current_ki = 1.0;
+	mc_interface_set_configuration(&mcconf);
+
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		mc_interface_set_configuration(&mcconf_old);
+		return -1;
+	}
+
+	// Wait one second for things to get ready after
+	// the fault disapears.
+	chThdSleepMilliseconds(1000);
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+
+	mc_interface_lock();
+
+	// Hall sensors
+	mcconf.m_sensor_port_mode = SENSOR_PORT_MODE_HALL;
+	mc_interface_set_configuration(&mcconf);
+
+	uint8_t hall_table[8];
+	bool res = mcpwm_foc_hall_detect(current, hall_table);
+
+	// Disable timeout and lock, as hall detection will undo the lock
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+	mc_interface_lock();
+
+	if (res) {
+		mcconf_old.m_sensor_port_mode = SENSOR_PORT_MODE_HALL;
+		mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_HALL;
+		for (int i = 0;i < 8;i++) {
+			mcconf_old.foc_hall_table[i] = hall_table[i];
+		}
+
+		result = 1;
+	}
+
+	// AS5047 encoder
+	if (!res) {
+		mcconf.m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
+		mc_interface_set_configuration(&mcconf);
+
+		mcpwm_foc_set_openloop_phase(current, 0.0);
+		chThdSleepMilliseconds(1000);
+
+		float phase_start = encoder_read_deg();
+		float phase_mid = 0.0;
+		float phase_end = 0.0;
+
+		for (int i = 0;i < 180.0;i++) {
+			mcpwm_foc_set_openloop_phase(current, i);
+			chThdSleepMilliseconds(5);
+
+			if (i == 90) {
+				phase_mid = encoder_read_deg();
+			}
+		}
+
+		phase_end = encoder_read_deg();
+		float diff = fabsf(utils_angle_difference(phase_start, phase_end));
+		float diff_mid = fabsf(utils_angle_difference(phase_mid, phase_end));
+
+		if (diff > 2.0 && (diff_mid - diff / 2.0) < (diff / 4)) {
+			float offset, ratio;
+			bool inverted;
+			mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
+			mcconf_old.m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
+			mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
+			mcconf_old.foc_encoder_offset = offset;
+			mcconf_old.foc_encoder_ratio = ratio;
+			mcconf_old.foc_encoder_inverted = inverted;
+
+			res = true;
+			result = 2;
+		}
+	}
+
+	// Sensorless
+	if (!res) {
+		mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
+		result = 0;
+		res = true;
+	}
+
+	timeout_configure(tout, tout_c);
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	mc_interface_set_configuration(&mcconf_old);
+
+	// On success store the mc configuration, also send it to VESC Tool.
+	if (res) {
+		if (store_mcconf_on_success) {
+			conf_general_store_mc_configuration(&mcconf_old);
+		}
+
+		if (send_mcconf_on_success) {
+			commands_send_mcconf(COMM_GET_MCCONF, &mcconf_old);
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Detect and apply all parameters, current limits and sensors.
+ *
+ * @param max_power_loss
+ * The maximum power loss to derive current limits, as well as detection currents, from.
+ *
+ * @param store_mcconf_on_success
+ * Store motor configuration in emulated EEPROM if the detection succeeds.
+ *
+ * @param send_mcconf_on_success
+ * Send motor configuration if the detection succeeds.
+ *
+ * @return
+ * >=0: Success, see conf_general_autodetect_apply_sensors_foc codes
+ * -10: Flux linkage detection failed
+ *  -x: see conf_general_autodetect_apply_sensors_foc faults
+ */
+int conf_general_detect_apply_all_foc(float max_power_loss,
+		bool store_mcconf_on_success, bool send_mcconf_on_success) {
+	int result = -1;
+
+	mcconf = *mc_interface_get_configuration();
+	mcconf_old = mcconf;
+
+	mcconf.motor_type = MOTOR_TYPE_FOC;
+	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
+	mcconf.foc_current_kp = 0.0005;
+	mcconf.foc_current_ki = 1.0;
+	mcconf.l_current_max = MCCONF_L_CURRENT_MAX;
+	mcconf.l_current_min = MCCONF_L_CURRENT_MIN;
+	mcconf.l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
+	mcconf.l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
+	mcconf.l_watt_max = MCCONF_L_WATT_MAX;
+	mcconf.l_watt_min = MCCONF_L_WATT_MIN;
+	mcconf.l_max_erpm = MCCONF_L_RPM_MAX;
+	mcconf.l_min_erpm = MCCONF_L_RPM_MIN;
+	mc_interface_set_configuration(&mcconf);
+
+	// Wait maximum 5s for fault code to disappear
+	for (int i = 0;i < 500;i++) {
+		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		mc_interface_set_configuration(&mcconf_old);
+		return -1;
+	}
+
+	// Wait one second for things to get ready after
+	// the fault disappears.
+	chThdSleepMilliseconds(1000);
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+
+	mc_interface_lock();
+
+	float current_start = mcconf.l_current_max / 50;
+	utils_truncate_number_abs(&current_start, mcconf.cc_min_current * 1.1);
+
+	float i_last = 0.0;
+	for (float i = current_start;i < mcconf.l_current_max;i *= 1.5) {
+		float res_tmp = mcpwm_foc_measure_resistance(i, 5);
+		i_last = i;
+
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			timeout_configure(tout, tout_c);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_set_configuration(&mcconf_old);
+			return -11;
+		}
+
+		if ((i * i * res_tmp) >= (max_power_loss / 3.0)) {
+			break;
+		}
+	}
+
+	float r = mcpwm_foc_measure_resistance(i_last, 100);
+	float l = mcpwm_foc_measure_inductance_current(i_last, 100, 0) * 1e-6;
+	float i_max = sqrtf(max_power_loss / r);
+	utils_truncate_number(&i_max, HW_LIM_CURRENT);
+
+	float lambda = 0.0;
+	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, &lambda);
+
+	float old_r = mcconf_old.foc_motor_r;
+	float old_l = mcconf_old.foc_motor_l;
+	float old_flux_linkage = mcconf_old.foc_motor_flux_linkage;
+	float old_kp = mcconf_old.foc_current_kp;
+	float old_ki = mcconf_old.foc_current_ki;
+	float old_observer_gain = mcconf_old.foc_observer_gain;
+	bool old_temp_comp = mcconf_old.foc_temp_comp;
+	float old_temp_comp_base_temp = mcconf_old.foc_temp_comp_base_temp;
+
+	if (res) {
+		mcconf_old.l_current_max = i_max;
+		mcconf_old.l_current_min = -i_max;
+
+		float tc = 1000.0;
+		float bw = 1.0 / (tc * 1e-6);
+		float kp = l * bw;
+		float ki = r * bw;
+		float gain = 0.001 / (lambda * lambda);
+
+		mcconf_old.foc_motor_r = r;
+		mcconf_old.foc_motor_l = l;
+		mcconf_old.foc_motor_flux_linkage = lambda;
+		mcconf_old.foc_current_kp = kp;
+		mcconf_old.foc_current_ki = ki;
+		mcconf_old.foc_observer_gain = gain * 1e6;
+
+		// Temperature compensation
+		if (mc_interface_temp_motor_filtered() > 0.0) {
+			mcconf_old.foc_temp_comp = true;
+			mcconf_old.foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+		} else {
+			mcconf_old.foc_temp_comp = false;
+		}
+	} else {
+		result = -10;
+	}
+
+	timeout_configure(tout, tout_c);
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	mc_interface_set_configuration(&mcconf_old);
+
+	// Restore initial settings on sensor detection failure
+	if (res) {
+		// Wait for motor to stop
+		chThdSleepMilliseconds(100);
+		for (int i = 0;i < 1000;i++) {
+			if (fabsf(mc_interface_get_rpm()) > 100.0) {
+				chThdSleepMilliseconds(10);
+			} else {
+				break;
+			}
+		}
+
+		// This will also store the settings to emulated eeprom and send them to vesc tool
+		result = conf_general_autodetect_apply_sensors_foc(i_max / 3.0,
+				store_mcconf_on_success, send_mcconf_on_success);
+	} else {
+		mcconf_old.foc_motor_r = old_r;
+		mcconf_old.foc_motor_l = old_l;
+		mcconf_old.foc_motor_flux_linkage = old_flux_linkage;
+		mcconf_old.foc_current_kp = old_kp;
+		mcconf_old.foc_current_ki = old_ki;
+		mcconf_old.foc_observer_gain = old_observer_gain;
+		mcconf_old.foc_temp_comp = old_temp_comp;
+		mcconf_old.foc_temp_comp_base_temp = old_temp_comp_base_temp;
+		mc_interface_set_configuration(&mcconf_old);
+	}
+
+	return result;
+}
+
+/**
+ * Same as conf_general_detect_apply_all_foc, but also start detection in VESCs found on the CAN-bus.
+ *
+ * @param detect_can
+ * Run detection on VESCs found on the CAN-bus as well. Setting this to false makes
+ * this function behave like conf_general_detect_apply_all_foc, with the convenience
+ * of also applying the settings.
+ *
+ * @param max_power_loss
+ * The maximum power loss to derive current limits, as well as detection currents, from.
+ *
+ * @param min_current_in
+ * Minimum input current (negative value). 0 means leave it unchanged.
+ *
+ * @param max_current_in
+ * MAximum input current. 0 means leave it unchanged.
+ *
+ * @param openloop_rpm
+ * FOC openloop ERPM in sensorless mode. 0 means leave it unchanged.
+ *
+ * @param sl_erpm
+ * FOC ERPM above which sensorless should be used in sensored modes. 0 means leave it unchanged.
+ *
+ * @return
+ * Same as conf_general_detect_apply_all_foc, and
+ * -50: CAN detection timed out
+ * -51: CAN detection failed
+ */
+int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
+		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm) {
+	app_configuration appconf = *app_get_configuration();
+	uint8_t id_new = appconf.controller_id;
+
+	mcconf = *mc_interface_get_configuration();
+
+	if (fabsf(min_current_in) > 0.001) {
+		mcconf.l_in_current_min = min_current_in;
+	} else {
+		mcconf.l_in_current_min = MCCONF_L_IN_CURRENT_MIN;
+	}
+
+	if (fabsf(max_current_in) > 0.001) {
+		mcconf.l_in_current_max = max_current_in;
+	} else {
+		mcconf.l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
+	}
+
+	if (fabsf(openloop_rpm) > 0.001) {
+		mcconf.foc_openloop_rpm = openloop_rpm;
+	} else {
+		mcconf.foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
+	}
+
+	if (fabsf(sl_erpm) > 0.001) {
+		mcconf.foc_sl_erpm = sl_erpm;
+	} else {
+		mcconf.foc_sl_erpm = MCCONF_FOC_SL_ERPM;
+	}
+
+	mc_interface_set_configuration(&mcconf);
+	int can_devs = 0;
+	comm_can_detect_all_foc_res_clear();
+
+	if (detect_can) {
+		for (int i = 0;i < 255;i++) {
+			if (comm_can_ping(i)) {
+				comm_can_conf_current_limits_in(i, false, mcconf.l_in_current_min, mcconf.l_in_current_max);
+				comm_can_conf_foc_erpms(i, false, mcconf.foc_openloop_rpm, mcconf.foc_sl_erpm);
+				comm_can_detect_apply_all_foc(i, true, max_power_loss);
+				can_devs++;
+
+				if (i == id_new) {
+					id_new++;
+				}
+
+				if (id_new == 255) {
+					id_new = 0;
+				}
+			}
+		}
+	}
+
+	int res = conf_general_detect_apply_all_foc(max_power_loss, false, false);
+
+	// Wait for all VESCs on the CAN-bus to finish detection
+	int timeout = true;
+	for (int i = 0;i < 4000;i++) {
+		if (comm_can_detect_all_foc_res_size() >= can_devs) {
+			timeout = false;
+			break;
+		}
+		chThdSleepMilliseconds(10);
+	}
+
+	if (timeout) {
+		res = -50;
+	} else {
+		for (int i = 0;i < can_devs;i++) {
+			if (comm_can_detect_all_foc_res(i) < 0) {
+				res = -51;
+			}
+		}
+	}
+
+	// Store and send settings
+	if (res >= 0) {
+		if (appconf.controller_id != id_new || appconf.send_can_status != CAN_STATUS_1_2_3_4) {
+			appconf.controller_id = id_new;
+			appconf.send_can_status = CAN_STATUS_1_2_3_4;
+			conf_general_store_app_configuration(&appconf);
+			app_set_configuration(&appconf);
+			commands_send_appconf(COMM_GET_APPCONF, &appconf);
+			chThdSleepMilliseconds(1000);
+		}
+
+		mcconf = *mc_interface_get_configuration();
+		conf_general_store_mc_configuration(&mcconf);
+		commands_send_mcconf(COMM_GET_MCCONF, &mcconf);
+		chThdSleepMilliseconds(1000);
+	}
+
+	return res;
+}
+

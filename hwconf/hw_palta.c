@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_PALTA
 
 #include "ch.h"
 #include "hal.h"
@@ -261,5 +260,3 @@ static void terminal_cmd_reset_oc(int argc, const char **argv) {
 	commands_printf("Palta OC latch reset done!");
 	commands_printf(" ");
 }
-
-#endif

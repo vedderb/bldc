@@ -757,6 +757,7 @@ void _usb_ep0in(USBDriver *usbp, usbep_t ep) {
       usbp->ep0state = USB_EP0_WAITING_TX0;
       return;
     }
+    /* Falls through. */
     /* Falls into, it is intentional.*/
   case USB_EP0_WAITING_TX0:
     /* Transmit phase over, receiving the zero sized status packet.*/
@@ -782,7 +783,8 @@ void _usb_ep0in(USBDriver *usbp, usbep_t ep) {
   case USB_EP0_RX:
     /* All the above are invalid states in the IN phase.*/
     osalDbgAssert(false, "EP0 state machine error");
-    /* Falling through is intentional.*/
+    /* Falls through. */
+    /* Falling into is intentional.*/
   case USB_EP0_ERROR:
     /* Error response, the state machine goes into an error state, the low
        level layer will have to reset it to USB_EP0_WAITING_SETUP after
@@ -842,7 +844,8 @@ void _usb_ep0out(USBDriver *usbp, usbep_t ep) {
   case USB_EP0_SENDING_STS:
     /* All the above are invalid states in the IN phase.*/
     osalDbgAssert(false, "EP0 state machine error");
-    /* Falling through is intentional.*/
+    /* Falls through. */
+    /* Falling into is intentional.*/
   case USB_EP0_ERROR:
     /* Error response, the state machine goes into an error state, the low
        level layer will have to reset it to USB_EP0_WAITING_SETUP after

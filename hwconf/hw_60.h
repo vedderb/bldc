@@ -45,6 +45,19 @@
 #define LED_RED_ON()			palSetPad(GPIOB, 1)
 #define LED_RED_OFF()			palClearPad(GPIOB, 1)
 
+#define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
+#define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
+
+// Switch on current filter if a permanent
+// NRF24 cannot be found, as the later
+// HW60 has changed one of the permanent NRF
+// pins to the current filter activation pin.
+#define HW_PERMANENT_NRF_FAILED_HOOK() \
+			palSetPadMode(GPIOD, 2, \
+			PAL_MODE_OUTPUT_PUSHPULL | \
+			PAL_STM32_OSPEED_HIGHEST); \
+			CURRENT_FILTER_ON()
+
 /*
  * ADC Vector
  *
@@ -131,7 +144,7 @@
 #define HW_SERVO_NUM			2
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -139,6 +152,7 @@
 #define HW_UART_RX_PIN			11
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -224,7 +238,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
 // Setting limits
