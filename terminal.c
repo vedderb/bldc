@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -31,7 +31,9 @@
 #include "encoder.h"
 #include "drv8301.h"
 #include "drv8305.h"
-#include "drv8320.h"
+#include "drv8320s.h"
+#include "drv8323s.h"
+#include "app.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -136,9 +138,13 @@ void terminal_process_string(char *str) {
 				if (fault_vec[i].fault == FAULT_CODE_DRV) {
 					commands_printf("DRV8301_FAULTS   : %s", drv8301_faults_to_string(fault_vec[i].drv8301_faults));
 				}
-#elif defined(HW_HAS_DRV8320)
+#elif defined(HW_HAS_DRV8320S)
+ 				if (fault_vec[i].fault == FAULT_CODE_DRV) {
+					commands_printf("DRV8320S_FAULTS  : %s", drv8320s_faults_to_string(fault_vec[i].drv8301_faults));
+				}
+#elif defined(HW_HAS_DRV8323S)
 				if (fault_vec[i].fault == FAULT_CODE_DRV) {
-					commands_printf("DRV8320_FAULTS   : %s", drv8320_faults_to_string(fault_vec[i].drv8301_faults));
+					commands_printf("DRV8323S_FAULTS  : %s", drv8323s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #endif
 				commands_printf(" ");
@@ -332,7 +338,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Invalid argument(s).\n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires four arguments.\n");
 		}
 	} else if (strcmp(argv[0], "measure_res_ind") == 0) {
 		mcconf.motor_type = MOTOR_TYPE_FOC;
@@ -397,6 +403,27 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument.\n");
 		}
+	} else if (strcmp(argv[0], "measure_linkage_openloop") == 0) {
+		if (argc == 5) {
+			float current = -1.0;
+			float duty = -1.0;
+			float erpm_per_sec = -1.0;
+			float res = -1.0;
+			sscanf(argv[1], "%f", &current);
+			sscanf(argv[2], "%f", &duty);
+			sscanf(argv[3], "%f", &erpm_per_sec);
+			sscanf(argv[4], "%f", &res);
+
+			if (current > 0.0 && current <= mcconf.l_current_max && erpm_per_sec > 0.0 && duty > 0.02 && res >= 0.0) {
+				float linkage;
+				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, &linkage);
+				commands_printf("Flux linkage: %.7f\n", (double)linkage);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires four arguments.\n");
+		}
 	} else if (strcmp(argv[0], "foc_state") == 0) {
 		mcpwm_foc_print_state();
 		commands_printf(" ");
@@ -419,12 +446,197 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &erpm);
 
 			if (current >= 0.0 && erpm >= 0.0) {
+				timeout_reset();
 				mcpwm_foc_set_openloop(current, erpm);
 			} else {
 				commands_printf("Invalid argument(s).\n");
 			}
 		} else {
 			commands_printf("This command requires two arguments.\n");
+		}
+	} else if (strcmp(argv[0], "nrf_ext_set_enabled") == 0) {
+		if (argc == 2) {
+			int enabled = -1;
+			sscanf(argv[1], "%d", &enabled);
+
+			if (enabled >= 0) {
+				uint8_t buffer[2];
+				buffer[0] = COMM_EXT_NRF_SET_ENABLED;
+				buffer[1] = enabled;
+				commands_send_packet_nrf(buffer, 2);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "foc_sensors_detect_apply") == 0) {
+		if (argc == 2) {
+			float current = -1.0;
+			sscanf(argv[1], "%f", &current);
+
+			if (current > 0.0 && current <= mcconf.l_current_max) {
+				int res = conf_general_autodetect_apply_sensors_foc(current, true, true);
+
+				if (res == 0) {
+					commands_printf("No sensors found, using sensorless mode.\n");
+				} else if (res == 1) {
+					commands_printf("Found hall sensors, using them.\n");
+				} else if (res == 2) {
+					commands_printf("Found AS5047 encoder, using it.\n");
+				} else {
+					commands_printf("Detection error: %d\n", res);
+				}
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "rotor_lock_openloop") == 0) {
+		if (argc == 4) {
+			float current = -1.0;
+			float time = -1.0;
+			float angle = -1.0;
+			sscanf(argv[1], "%f", &current);
+			sscanf(argv[2], "%f", &time);
+			sscanf(argv[3], "%f", &angle);
+
+			if (current > 0.0 && current <= mcconf.l_current_max &&
+					angle >= 0.0 && angle <= 360.0) {
+				if (time <= 1e-6) {
+					timeout_reset();
+					mcpwm_foc_set_openloop_phase(current, angle);
+					commands_printf("OK\n");
+				} else {
+					int print_div = 0;
+					for (float t = 0.0;t < time;t += 0.002) {
+						timeout_reset();
+						mcpwm_foc_set_openloop_phase(current, angle);
+						chThdSleepMilliseconds(2);
+
+						print_div++;
+						if (print_div >= 200) {
+							print_div = 0;
+							commands_printf("T left: %.2f s", (double)(time - t));
+						}
+					}
+
+					commands_printf("Done\n");
+				}
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires three arguments.\n");
+		}
+	} else if (strcmp(argv[0], "foc_detect_apply_all") == 0) {
+		if (argc == 2) {
+			float max_power_loss = -1.0;
+			sscanf(argv[1], "%f", &max_power_loss);
+
+			if (max_power_loss > 0.0) {
+				commands_printf("Running detection...");
+				int res = conf_general_detect_apply_all_foc(max_power_loss, true, true);
+
+				commands_printf("Res: %d", res);
+
+				if (res >= 0) {
+					commands_printf("Detection finished and applied. Results:");
+					mcconf = *mc_interface_get_configuration();
+					commands_printf("Motor Current       : %.1f A", (double)(mcconf.l_current_max));
+					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf.foc_motor_r * 1e3));
+					commands_printf("Motor L             : %.2f microH", (double)(mcconf.foc_motor_l * 1e6));
+					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf.foc_motor_flux_linkage * 1e3));
+					commands_printf("Temp Comp           : %s", mcconf.foc_temp_comp ? "true" : "false");
+					if (mcconf.foc_temp_comp) {
+						commands_printf("Temp Comp Base Temp : %.1f degC", (double)mcconf.foc_temp_comp_base_temp);
+					}
+
+					if (res == 0) {
+						commands_printf("No sensors found, using sensorless mode.\n");
+					} else if (res == 1) {
+						commands_printf("Found hall sensors, using them.\n");
+					} else if (res == 2) {
+						commands_printf("Found AS5047 encoder, using it.\n");
+					} else {
+						commands_printf("Detection error: %d\n", res);
+					}
+				} else {
+					if (res == -10) {
+						commands_printf("Could not measure flux linkage.");
+					} else if (res == -11) {
+						commands_printf("Fault code occured during detection.");
+					}
+
+					commands_printf("Detection failed.\n");
+				}
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "can_scan") == 0) {
+		bool found = false;
+		for (int i = 0;i < 254;i++) {
+			if (comm_can_ping(i)) {
+				commands_printf("Found VESC with ID: %d", i);
+				found = true;
+			}
+		}
+
+		if (found) {
+			commands_printf("Done\n");
+		} else {
+			commands_printf("No CAN devices found\n");
+		}
+	} else if (strcmp(argv[0], "foc_detect_apply_all_can") == 0) {
+		if (argc == 2) {
+			float max_power_loss = -1.0;
+			sscanf(argv[1], "%f", &max_power_loss);
+
+			if (max_power_loss > 0.0) {
+				commands_printf("Running detection...");
+				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0);
+
+				commands_printf("Res: %d", res);
+
+				if (res >= 0) {
+					commands_printf("Detection finished and applied. Results:");
+					mcconf = *mc_interface_get_configuration();
+					commands_printf("Motor Current       : %.1f A", (double)(mcconf.l_current_max));
+					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf.foc_motor_r * 1e3));
+					commands_printf("Motor L             : %.2f microH", (double)(mcconf.foc_motor_l * 1e6));
+					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf.foc_motor_flux_linkage * 1e3));
+					commands_printf("Temp Comp           : %s", mcconf.foc_temp_comp ? "true" : "false");
+					if (mcconf.foc_temp_comp) {
+						commands_printf("Temp Comp Base Temp : %.1f degC", (double)mcconf.foc_temp_comp_base_temp);
+					}
+
+					if (res == 0) {
+						commands_printf("No sensors found, using sensorless mode.\n");
+					} else if (res == 1) {
+						commands_printf("Found hall sensors, using them.\n");
+					} else if (res == 2) {
+						commands_printf("Found AS5047 encoder, using it.\n");
+					} else {
+						commands_printf("Detection error: %d\n", res);
+					}
+				} else {
+					if (res == -10) {
+						commands_printf("Could not measure flux linkage.");
+					} else if (res == -11) {
+						commands_printf("Fault code occured during detection.");
+					}
+
+					commands_printf("Detection failed.\n");
+				}
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
 		}
 	}
 
@@ -490,7 +702,7 @@ void terminal_process_string(char *str) {
 		commands_printf("measure_ind [duty]");
 		commands_printf("  Send short voltage pulses, measure the current and calculate the motor inductance");
 
-		commands_printf("measure_linkage [current] [duty] [min_rpm] [motor_res]");
+		commands_printf("measure_linkage [current] [duty] [min_erpm] [motor_res]");
 		commands_printf("  Run the motor in BLDC delay mode and measure the flux linkage");
 		commands_printf("  example measure_linkage 5 0.5 700 0.076");
 		commands_printf("  tip: measure the resistance with measure_res first");
@@ -501,6 +713,11 @@ void terminal_process_string(char *str) {
 		commands_printf("measure_linkage_foc [duty]");
 		commands_printf("  Run the motor with FOC and measure the flux linkage.");
 
+		commands_printf("measure_linkage_openloop [current] [duty] [erpm_per_sec] [motor_res]");
+		commands_printf("  Run the motor in openloop FOC and measure the flux linkage");
+		commands_printf("  example measure_linkage 5 0.5 1000 0.076");
+		commands_printf("  tip: measure the resistance with measure_res first");
+
 		commands_printf("foc_state");
 		commands_printf("  Print some FOC state variables.");
 
@@ -509,6 +726,26 @@ void terminal_process_string(char *str) {
 
 		commands_printf("foc_openloop [current] [erpm]");
 		commands_printf("  Create an open loop rotating current vector.");
+
+		commands_printf("nrf_ext_set_enabled [enabled]");
+		commands_printf("  Enable or disable external NRF51822.");
+
+		commands_printf("foc_sensors_detect_apply [current]");
+		commands_printf("  Automatically detect FOC sensors, and apply settings on success.");
+
+		commands_printf("rotor_lock_openloop [current_A] [time_S] [angle_DEG]");
+		commands_printf("  Lock the motor with a current for a given time. Time 0 means forever, or");
+		commands_printf("  or until the heartbeat packets stop.");
+
+		commands_printf("foc_detect_apply_all [max_power_loss_W]");
+		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses.");
+
+		commands_printf("can_scan");
+		commands_printf("  Scan CAN-bus using ping commands, and print all devices that are found.");
+
+		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
+		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");
+		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].arg_names) {

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -24,8 +24,13 @@
 
 // Functions
 bool nrf_driver_init(void);
+void nrf_driver_init_ext_nrf(void);
 void nrf_driver_stop(void);
 void nrf_driver_start_pairing(int ms);
 void nrf_driver_send_buffer(unsigned char *data, unsigned int len);
+void nrf_driver_process_packet(unsigned char *buf, unsigned char len);
+bool nrf_driver_is_pairing(void);
+bool nrf_driver_ext_nrf_running(void);
+void nrf_driver_pause(int ms);
 
 #endif /* NRF_NRF_DRIVER_H_ */

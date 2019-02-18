@@ -40,6 +40,7 @@ void mcpwm_foc_set_current(float current);
 void mcpwm_foc_set_brake_current(float current);
 void mcpwm_foc_set_handbrake(float current);
 void mcpwm_foc_set_openloop(float current, float rpm);
+void mcpwm_foc_set_openloop_phase(float current, float phase);
 float mcpwm_foc_get_duty_cycle_set(void);
 float mcpwm_foc_get_duty_cycle_now(void);
 float mcpwm_foc_get_pid_pos_set(void);
@@ -68,10 +69,11 @@ float mcpwm_foc_get_vq(void);
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
 float mcpwm_foc_measure_resistance(float current, int samples);
 float mcpwm_foc_measure_inductance(float duty, int samples, float *curr);
+float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);
-float mcpwm_foc_get_last_inj_adc_isr_duration(void);
+float mcpwm_foc_get_last_adc_isr_duration(void);
 
 // Interrupt handlers
 void mcpwm_foc_tim_sample_int_handler(void);

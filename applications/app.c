@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -27,6 +27,12 @@
 
 // Private variables
 static app_configuration appconf;
+static virtual_timer_t output_vt;
+static bool output_vt_init_done = false;
+static volatile bool output_disabled_now = false;
+
+// Private functions
+static void output_vt_cb(void *arg);
 
 const app_configuration* app_get_configuration(void) {
 	return &appconf;
@@ -116,4 +122,39 @@ void app_set_configuration(app_configuration *conf) {
 #endif
 
 	rfhelp_update_conf(&appconf.app_nrf_conf);
+}
+
+/**
+ * Disable output on apps
+ *
+ * @param time_ms
+ * The amount of time to disable output in ms
+ * 0: Enable output now
+ * -1: Disable forever
+ * >0: Amount of milliseconds to disable output
+ */
+void app_disable_output(int time_ms) {
+	if (!output_vt_init_done) {
+		chVTObjectInit(&output_vt);
+		output_vt_init_done = true;
+	}
+
+	if (time_ms == 0) {
+		output_disabled_now = false;
+	} else if (time_ms == -1) {
+		output_disabled_now = true;
+		chVTReset(&output_vt);
+	} else {
+		output_disabled_now = true;
+		chVTSet(&output_vt, MS2ST(time_ms), output_vt_cb, 0);
+	}
+}
+
+bool app_is_output_disabled(void) {
+	return output_disabled_now;
+}
+
+static void output_vt_cb(void *arg) {
+	(void)arg;
+	output_disabled_now = false;
 }

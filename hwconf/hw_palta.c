@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_PALTA
 
 #include "ch.h"
 #include "hal.h"
@@ -26,6 +25,8 @@
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
+
+#include "hw_palta_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
 // Defines
 #define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
@@ -46,7 +47,7 @@
 
 // Variables
 static volatile bool i2c_running = false;
-extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
+//extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
 
 
 // I2C configuration
@@ -493,4 +494,3 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 }
-#endif

@@ -1,3 +1,68 @@
+=== FW 3.48 ===
+* Added pairing flag to appconf.
+* Decreased CAN TX timeout.
+
+=== FW 3.47 ===
+* Current percentage limits.
+* Mcconf_temp based on current scale instead of absolute current.
+* Removed battery current from mcconf_temp.
+* Added current scale parameter.
+* Different braking behavior: prefer cogging over locking the brakes.
+
+=== FW 3.46 ===
+* DC motor RPM measurement and RPM control when using encoder.
+* Support for configurable current low pass filter.
+* Much better recovery when failing to decode packets.
+* Run all detect functions in separate thread.
+* Fixed bug introduced when adding support for dual UARTs.
+* Added support for reverse state on NRF remote.
+* Support to disable app output for a specified time.
+
+=== FW 3.45 ===
+* Default CAN ID from UUID, and hook to define it in hwconf.
+* CAN ping support.
+* Simultaneous firmware update over CAN-bus.
+* Fully automated motor detection, based on maximum motor power losses.
+* Sensor autodetection and configuration support.
+* Softer encoder detection.
+* Better NRF_EXT support.
+* New more reliable flux linkage measurement.
+* Simpler to add hardware versions to build system. 
+* More DAS hardware support.
+* DRV8323s support.
+* Initial UAVCAN support.
+* Moved from uart to serial driver to avoid DMA conflicts.
+* Support for permanent UART.
+
+=== FW 3.44 ===
+* NRF_EXT commands support.
+ - Use NRF51822 with ESB remotes.
+* Different radio channel for NRF pairing.
+
+=== FW 3.43 ===
+* Added battery ah to setup info.
+* Changed tacho values in COMM_GET_VALUES_SETUP to meters.
+* Added battery wh COMM_GET_VALUES_SETUP.
+* Better remaining battery capacity calculation.
+
+=== FW 3.42 ===
+* Added setup info parameters:
+ - Motor Poles
+ - Gear Ratio
+ - Wheel Diameter
+ - Battery Type
+ - Battery Cells
+* Added more CAN status messages.
+* Updated speed PID to start properly when braking is disabled.
+* Added COMM_GET_VALUES_SETUP.
+* Added COMM_SET_MCCONF_TEMP.
+* Added COMM_SET_MCCONF_TEMP_SETUP.
+* Added COMM_GET_VALUES_SELECTIVE.
+* Added COMM_GET_VALUES_SETUP_SELECTIVE.
+
+=== FW 3.41 ===
+* First general purpose DC output implementation.
+
 === FW 3.40 ===
 * Added motor controller ID to COMM_GET_VALUES.
 

@@ -23,7 +23,6 @@
  */
 
 #include "hw.h"
-#ifdef HW_VERSION_R2
 
 #include "ch.h"
 #include "hal.h"
@@ -236,5 +235,3 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
-
-#endif

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -21,6 +21,7 @@
 #define UTILS_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
@@ -48,6 +49,7 @@ void utils_byte_to_binary(int x, char *b);
 float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mode);
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
+uint32_t utils_crc32c(uint8_t *data, uint32_t len);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

@@ -219,6 +219,7 @@ int main(void) {
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
 	app_set_configuration(&appconf);
+	app_uartcomm_start_permanent();
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
@@ -233,6 +234,7 @@ int main(void) {
 				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
+		HW_PERMANENT_NRF_FAILED_HOOK();
 	}
 #endif
 

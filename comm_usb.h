@@ -24,5 +24,6 @@
 
 // Functions
 void comm_usb_init(void);
+void comm_usb_send_packet(unsigned char *data, unsigned int len);
 
 #endif /* COMM_USB_H_ */

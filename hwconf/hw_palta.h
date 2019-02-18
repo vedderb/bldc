@@ -24,6 +24,7 @@
 
 #define PALTA_USE_DAC
 #define USE_FOC_FLUX_LINKAGE_DETECTION
+#define HW_VERSION_PALTA
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -131,7 +132,7 @@
 #define HW_SERVO_NUM			2
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -139,6 +140,7 @@
 #define HW_UART_RX_PIN			9          //Freeing B11 for fault LED. PD9 not available in LQFT64 package
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -172,6 +174,12 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
+
+// Resolver interface pins
+#define AD2S1205_SAMPLE_GPIO	GPIOB
+#define AD2S1205_SAMPLE_PIN		3
+#define AD2S1205_RDVEL_GPIO		GPIOC
+#define AD2S1205_RDVEL_PIN		12
 
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
@@ -210,6 +218,7 @@
 #define HW_DEAD_TIME_NSEC		1400.0
 #define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
 #define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
+
 
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE

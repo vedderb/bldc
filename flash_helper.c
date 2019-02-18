@@ -147,7 +147,7 @@ void flash_helper_jump_to_bootloader(void) {
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 
-	uartStop(&HW_UART_DEV);
+	sdStop(&HW_UART_DEV);
 	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
 
