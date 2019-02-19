@@ -20,7 +20,6 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "stm32f4xx_dac.h"
 #include "stm32f4xx_rcc.h"
 #include "utils.h"
 #include "terminal.h"
@@ -216,43 +215,30 @@ void hw_setup_adc_channels(void) {
 }
 
 void hw_palta_setup_dac(void) {
-	DAC_InitTypeDef  DAC_InitStructure;
+	// GPIOA clock enable
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-	/* DMA1 clock and GPIOA clock enable (to be used with DAC) */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1 | RCC_AHB1Periph_GPIOA, ENABLE);
-
-	/* DAC Periph clock enable */
+	// DAC Periph clock enable
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
 
-	/* DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration */
+	// DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 
-	DAC_DeInit();
+	// Enable both DAC channels with output buffer disabled to achieve rail-to-rail output
+	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_EN2 | DAC_CR_BOFF2;
 
-	/* DAC channel 1 and 2 Configuration */
-	DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
-	DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
-	DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = DAC_TriangleAmplitude_1;
-	DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Disable;	// If enabled minimum output voltage is 200mV (!)
-	DAC_Init(DAC_Channel_1, &DAC_InitStructure);
-	DAC_Init(DAC_Channel_2, &DAC_InitStructure);
-
-	/* Enable DAC Channel 1 and 2 */
-	DAC_Cmd(DAC_Channel_1, ENABLE);
-	DAC_Cmd(DAC_Channel_2, ENABLE);
-
-	/* Set DAC channel2 DHR12RD register */
+	// Set DAC channels at 1.65V
 	hw_palta_DAC1_setdata(0x800);
 	hw_palta_DAC2_setdata(0x800);
 }
 
 void hw_palta_DAC1_setdata(uint16_t data) {
-	DAC_SetChannel1Data(DAC_Align_12b_R, data);
+	DAC->DHR12R1 = data;
 }
 
 void hw_palta_DAC2_setdata(uint16_t data) {
-	DAC_SetChannel2Data(DAC_Align_12b_R, data);
+	DAC->DHR12R2 = data;
 }
 
 void hw_palta_configure_brownout(uint8_t BOR_level) {
