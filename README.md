@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Travis CI Status](https://travis-ci.com/paltatech/bldc.svg?branch=powerdesigns-dev)](https://travis-ci.com/paltatech/bldc)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/92eefb23a0c24b3cbed011b14ca0ffc9)](https://www.codacy.com/app/nitrousnrg/bldc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=paltatech/bldc&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/75e90ffbd46841a3a7be2a9f7a94c242)](https://www.codacy.com/app/vedderb/bldc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vedderb/bldc&amp;utm_campaign=Badge_Grade)
 [![Contributors](https://img.shields.io/github/contributors/vedderb/bldc.svg)](https://github.com/vedderb/bldc/graphs/contributors)
 [![Watchers](https://img.shields.io/github/watchers/vedderb/bldc.svg)](https://github.com/vedderb/bldc/watchers)
 [![Stars](https://img.shields.io/github/stars/vedderb/bldc.svg)](https://github.com/vedderb/bldc/stargazers)
