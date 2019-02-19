@@ -417,13 +417,12 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
-	uint16_t var;
 
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
 	for (unsigned int i = 0;i < (sizeof(mc_configuration) / 2);i++) {
-		var = (conf_addr[2 * i] << 8) & 0xFF00;
+		uint16_t var = (conf_addr[2 * i] << 8) & 0xFF00;
 		var |= conf_addr[2 * i + 1] & 0xFF;
 
 		if (EE_WriteVariable(EEPROM_BASE_MCCONF + i, var) != FLASH_COMPLETE) {

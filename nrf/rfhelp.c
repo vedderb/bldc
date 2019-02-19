@@ -50,9 +50,9 @@ bool rfhelp_init(void) {
 	address_length = 3; // We assume length 3
 
 	// This should not happen
-	if (address_length > 5 || address_length < 3) {
-		address_length = 3;
-	}
+//	if (address_length > 5 || address_length < 3) {
+//		address_length = 3;
+//	}
 
 	// Try a read and write to see if the SPI communication works
 	char addr_old[3];

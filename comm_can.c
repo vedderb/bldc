@@ -746,10 +746,6 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 			if (rxmsg.IDE == CAN_IDE_EXT) {
 				uint8_t id = rxmsg.EID & 0xFF;
 				CAN_PACKET_ID cmd = rxmsg.EID >> 8;
-				can_status_msg *stat_tmp;
-				can_status_msg_2 *stat_tmp_2;
-				can_status_msg_3 *stat_tmp_3;
-				can_status_msg_4 *stat_tmp_4;
 
 				if (id == 255 || id == app_get_configuration()->controller_id) {
 					switch (cmd) {
@@ -982,7 +978,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 				switch (cmd) {
 				case CAN_PACKET_STATUS:
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						stat_tmp = &stat_msgs[i];
+						can_status_msg *stat_tmp = &stat_msgs[i];
 						if (stat_tmp->id == id || stat_tmp->id == -1) {
 							ind = 0;
 							stat_tmp->id = id;
@@ -997,7 +993,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 				case CAN_PACKET_STATUS_2:
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						stat_tmp_2 = &stat_msgs_2[i];
+						can_status_msg_2 *stat_tmp_2 = &stat_msgs_2[i];
 						if (stat_tmp_2->id == id || stat_tmp_2->id == -1) {
 							ind = 0;
 							stat_tmp_2->id = id;
@@ -1011,7 +1007,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 				case CAN_PACKET_STATUS_3:
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						stat_tmp_3 = &stat_msgs_3[i];
+						can_status_msg_3 *stat_tmp_3 = &stat_msgs_3[i];
 						if (stat_tmp_3->id == id || stat_tmp_3->id == -1) {
 							ind = 0;
 							stat_tmp_3->id = id;
@@ -1025,7 +1021,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 				case CAN_PACKET_STATUS_4:
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-						stat_tmp_4 = &stat_msgs_4[i];
+						can_status_msg_4 *stat_tmp_4 = &stat_msgs_4[i];
 						if (stat_tmp_4->id == id || stat_tmp_4->id == -1) {
 							ind = 0;
 							stat_tmp_4->id = id;

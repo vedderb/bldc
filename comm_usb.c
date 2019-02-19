@@ -47,14 +47,12 @@ static THD_FUNCTION(serial_read_thread, arg) {
 	chRegSetThreadName("USB-Serial read");
 
 	uint8_t buffer[128];
-	int i;
-	int len;
 	int had_data = 0;
 
 	for(;;) {
-		len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
+		int len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
 
-		for (i = 0;i < len;i++) {
+		for (int i = 0;i < len;i++) {
 			serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
 
 			if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {

@@ -200,7 +200,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_conf = configuration;
 
 	// Initialize variables
-	m_conf = configuration;
 	m_state = MC_STATE_OFF;
 	m_control_mode = CONTROL_MODE_NONE;
 	m_curr0_sum = 0;

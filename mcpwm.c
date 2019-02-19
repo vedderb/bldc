@@ -1751,7 +1751,6 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	int ph1, ph2, ph3;
-	int ph1_raw, ph2_raw, ph3_raw;
 
 	static int direction_before = 1;
 	if (!(state == MC_STATE_RUNNING && direction == direction_before)) {
@@ -1760,6 +1759,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	direction_before = direction;
 
 	if (conf->motor_type == MOTOR_TYPE_BLDC) {
+		int ph1_raw, ph2_raw, ph3_raw;
 
 		/*
 		 * Calculate the virtual ground, depending on the state.
