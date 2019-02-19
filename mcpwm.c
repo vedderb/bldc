@@ -2338,7 +2338,7 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 			val_sample = duty / 2;
 		} else {
 			val_sample = duty + 800;
-			curr_samp_volt = (1 << 0) || (1 << 1) || (1 << 2);
+			curr_samp_volt = (1 << 0) | (1 << 1) | (1 << 2);
 		}
 
 		//		if (duty < (top / 2)) {
