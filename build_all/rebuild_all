@@ -7,7 +7,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 ################## HW 46 & 47 #######################
 
 COPYDIR=46_o_47
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -54,7 +54,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 #################### HW 48 ########################
 
 COPYDIR=48
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -87,7 +87,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 #################### HW 410 & 411 & 412 ########################
 
 COPYDIR=410_o_411_o_412
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -127,7 +127,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 #################### HW 60 ########################
 
 COPYDIR=60
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -165,7 +165,7 @@ cd $DIR
 #################### HW DAS_RS ########################
 
 COPYDIR=DAS_RS
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -182,7 +182,7 @@ cd $DIR
 #################### HW 75_300 ########################
 
 COPYDIR=75_300
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH
@@ -220,7 +220,7 @@ cd $DIR
 #################### HW PALTA ########################
 
 COPYDIR=PALTA
-rm $COPYDIR/*
+rm -f $COPYDIR/*
 
 # default
 cd $FWPATH

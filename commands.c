@@ -51,7 +51,7 @@ static THD_WORKING_AREA(detect_thread_wa, 2048);
 static thread_t *detect_tp;
 
 // Private variables
-static uint8_t send_buffer[PACKET_MAX_PL_LEN];
+static uint8_t send_buffer_global[PACKET_MAX_PL_LEN];
 static uint8_t detect_thread_cmd_buffer[50];
 static volatile bool is_detecting = false;
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
@@ -129,6 +129,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	int32_t ind = 0;
 	static mc_configuration mcconf; // Static to save some stack space
 	static app_configuration appconf;
+	uint8_t *send_buffer = send_buffer_global;
 
 	packet_id = data[0];
 	data++;
@@ -472,6 +473,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
 		mcconf.m_ntc_motor_beta = buffer_get_float32_auto(data, &ind);
 		mcconf.m_out_aux_mode = data[ind++];
+
 		mcconf.si_motor_poles = data[ind++];
 		mcconf.si_gear_ratio = buffer_get_float32_auto(data, &ind);
 		mcconf.si_wheel_diameter = buffer_get_float32_auto(data, &ind);
@@ -1083,21 +1085,23 @@ void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
 
-	send_buffer[index++] = COMM_CUSTOM_APP_DATA;
-	memcpy(send_buffer + index, data, len);
+	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
 	index += len;
 
-	commands_send_packet(send_buffer, index);
+	commands_send_packet(send_buffer_global, index);
 }
 
 void commands_send_gpd_buffer_notify(void) {
 	int32_t index = 0;
-	send_buffer[index++] = COMM_GPD_BUFFER_NOTIFY;
-	commands_send_packet(send_buffer, index);
+	send_buffer_global[index++] = COMM_GPD_BUFFER_NOTIFY;
+	commands_send_packet(send_buffer_global, index);
 }
 
 void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf) {
 	int32_t ind = 0;
+	uint8_t *send_buffer = send_buffer_global;
+
 	send_buffer[ind++] = packet_id;
 
 	send_buffer[ind++] = mcconf->pwm_mode;
@@ -1226,6 +1230,8 @@ void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf) {
 
 void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf) {
 	int32_t ind = 0;
+	uint8_t *send_buffer = send_buffer_global;
+
 	send_buffer[ind++] = packet_id;
 	send_buffer[ind++] = appconf->controller_id;
 	buffer_append_uint32(send_buffer, appconf->timeout_msec, &ind);
@@ -1388,7 +1394,7 @@ static THD_FUNCTION(detect_thread, arg) {
 				detect_coupling_k = 0.0;
 			}
 
-			int32_t ind = 0;
+			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_PARAM;
 			buffer_append_int32(send_buffer, (int32_t)(detect_cycle_int_limit * 1000.0), &ind);
 			buffer_append_int32(send_buffer, (int32_t)(detect_coupling_k * 1000.0), &ind);

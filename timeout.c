@@ -117,61 +117,61 @@ void timeout_init_IWDT(void) {
 }
 
 void timeout_configure_IWDT_slowest(void) {
-	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
-	 {
-	 // Continue to kick the dog
-	 IWDG_ReloadCounter();
-	 }
-	 // Unlock register
-	 IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
-	 // Update configuration
-	 IWDG_SetReload(1400);
-	 IWDG_SetPrescaler(IWDG_Prescaler_256);
-	 // Wait for the new configuration to be taken into account
-	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
-	 {
-	 // Continue to kick the dog
-	 IWDG_ReloadCounter();
-	 }
+	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
+		// Continue to kick the dog
+		IWDG_ReloadCounter();
+	}
+
+	// Unlock register
+	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+	// Update configuration
+	IWDG_SetReload(1400);
+	IWDG_SetPrescaler(IWDG_Prescaler_256);
+
+	// Wait for the new configuration to be taken into account
+	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
+		// Continue to kick the dog
+		IWDG_ReloadCounter();
+	}
 }
 
 void timeout_configure_IWDT(void) {
-	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
-	 {
-	 // Continue to kick the dog
-	 IWDG_ReloadCounter();
-	 }
-	 // Unlock register
-	 IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
-	 // Update configuration
-	 IWDG_SetReload(140);
-	 IWDG_SetPrescaler(IWDG_Prescaler_4);
-	 // Wait for the new configuration to be taken into account
-	 while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0))
-	 {
-	 // Continue to kick the dog
-	 IWDG_ReloadCounter();
-	 }
+	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
+		// Continue to kick the dog
+		IWDG_ReloadCounter();
+	}
+
+	// Unlock register
+	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+	// Update configuration
+	IWDG_SetReload(140);
+	IWDG_SetPrescaler(IWDG_Prescaler_4);
+
+	// Wait for the new configuration to be taken into account
+	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
+		// Continue to kick the dog
+		IWDG_ReloadCounter();
+	}
 }
 
 bool timeout_had_IWDG_reset(void) {
 	// Check if the system has resumed from IWDG reset
-	  if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET) {
-	    /* IWDGRST flag set */
+	if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET) {
+		/* IWDGRST flag set */
 		/* Clear reset flags */
-	    RCC_ClearFlag();
+		RCC_ClearFlag();
 		return true;
-	  }
+	}
 
-	  // Check if the system has resumed from WWDG reset
-	  if (RCC_GetFlagStatus(RCC_FLAG_WWDGRST) != RESET) {
-		  /* IWDGRST flag set */
-		  /* Clear reset flags */
-		  RCC_ClearFlag();
-		  return true;
-	  }
+	// Check if the system has resumed from WWDG reset
+	if (RCC_GetFlagStatus(RCC_FLAG_WWDGRST) != RESET) {
+		/* IWDGRST flag set */
+		/* Clear reset flags */
+		RCC_ClearFlag();
+		return true;
+	}
 
-	  return false;
+	return false;
 }
 
 static THD_FUNCTION(timeout_thread, arg) {
@@ -193,25 +193,27 @@ static THD_FUNCTION(timeout_thread, arg) {
 		// Monitored threads (foc, can, timer) must report at least one iteration,
 		// otherwise the watchdog won't be feed and MCU will reset. All threads should
 		// be monitored
-		if(feed_counter[THREAD_MCPWM] < MIN_THREAD_ITERATIONS)
+		if(feed_counter[THREAD_MCPWM] < MIN_THREAD_ITERATIONS) {
 			threads_ok = false;
+		}
 #if CAN_ENABLE
-		if(feed_counter[THREAD_CANBUS] < MIN_THREAD_ITERATIONS)
+		if(feed_counter[THREAD_CANBUS] < MIN_THREAD_ITERATIONS) {
 			threads_ok = false;
+		}
 #endif
-		if(feed_counter[THREAD_TIMER] < MIN_THREAD_ITERATIONS)
+		if(feed_counter[THREAD_TIMER] < MIN_THREAD_ITERATIONS) {
 			threads_ok = false;
+		}
 
-		for( int i = 0; i < MAX_THREADS_MONITOR; i++)
+		for( int i = 0; i < MAX_THREADS_MONITOR; i++) {
 			feed_counter[i] = 0;
+		}
 
 		if (threads_ok == true) {
 			// Feed WDT's
 			WWDG_SetCounter(127);	// must reload in >6.24ms and <12.48ms
 			IWDG_ReloadCounter();	// must reload in <12ms
-		}
-		else
-		{
+		} else {
 			// not reloading the watchdog will produce a reset.
 			// This can be checked from the GUI logs as
 			// "FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET"

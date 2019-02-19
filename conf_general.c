@@ -806,34 +806,32 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 /* Calculate DTG register */
 uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq) {
 	uint8_t DTG = 0;
-	float timebase = 1/(core_clock_freq/1000000.0)*1000.0;
+	float timebase = 1.0 / (core_clock_freq / 1000000.0) * 1000.0;
 
-	if (deadtime_ns <= (timebase * 127.0) )
-	    DTG = deadtime_ns / timebase;
-	else {
-	    if (deadtime_ns <= ((63.0 + 64.0)*2.0*timebase) ) {
-	        DTG = deadtime_ns / (2.0*timebase) - 64.0;
-	        DTG |= 0x80;
-	    }
-	    else {
-	        if (deadtime_ns <= ((31.0 + 32.0)*8.0*timebase) ) {
-	            DTG = deadtime_ns / (8.0*timebase) - 32.0;
-	            DTG |= 0xC0;
-	        }
-	        else {
-	            if (deadtime_ns <= ((31.0 + 32)*16*timebase) ) {
-	                DTG = deadtime_ns / (16.0*timebase) - 32.0;
-	                DTG |= 0xE0;
-	            }
-	            else {
-	            	// Deadtime requested is longer than max achievable. Set deadtime at
-	            	// longest possible value
-	            	DTG = 0xFF;
-	            	assert_param(1);	//catch this
-	            }
-	        }
-	    }
+	if (deadtime_ns <= (timebase * 127.0)) {
+		DTG = deadtime_ns / timebase;
+	} else {
+		if (deadtime_ns <= ((63.0 + 64.0) * 2.0 * timebase)) {
+			DTG = deadtime_ns / (2.0 * timebase) - 64.0;
+			DTG |= 0x80;
+		} else {
+			if (deadtime_ns <= ((31.0 + 32.0) * 8.0 * timebase)) {
+				DTG = deadtime_ns / (8.0 * timebase) - 32.0;
+				DTG |= 0xC0;
+			} else {
+				if (deadtime_ns <= ((31.0 + 32) * 16 * timebase)) {
+					DTG = deadtime_ns / (16.0 * timebase) - 32.0;
+					DTG |= 0xE0;
+				} else {
+					// Deadtime requested is longer than max achievable. Set deadtime at
+					// longest possible value
+					DTG = 0xFF;
+					assert_param(1); //catch this
+				}
+			}
+		}
 	}
+
 	return DTG;
 }
 
@@ -956,21 +954,21 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float vd_avg = 0.0;
 		float iq_avg = 0.0;
 		float id_avg = 0.0;
-		float samples = 0.0;
+		float samples2 = 0.0;
 
 		for (int i = 0;i < 1000;i++) {
 			vq_avg += mcpwm_foc_get_vq();
 			vd_avg += mcpwm_foc_get_vd();
 			iq_avg += mcpwm_foc_get_iq();
 			id_avg += mcpwm_foc_get_id();
-			samples += 1.0;
+			samples2 += 1.0;
 			chThdSleepMilliseconds(1);
 		}
 
-		vq_avg /= samples;
-		vd_avg /= samples;
-		iq_avg /= samples;
-		id_avg /= samples;
+		vq_avg /= samples2;
+		vd_avg /= samples2;
+		iq_avg /= samples2;
+		id_avg /= samples2;
 
 		*linkage = (sqrtf(SQ(vq_avg) + SQ(vd_avg)) - res *
 				sqrtf(SQ(iq_avg) + SQ(id_avg))) / (rpm_now * ((2.0 * M_PI) / 60.0));

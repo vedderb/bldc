@@ -71,4 +71,3 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		EXTI_ClearFlag(EXTI_Line16);
 	}
 }
-

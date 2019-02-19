@@ -450,8 +450,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
 	// Check if the system has resumed from IWDG reset
-	  if (timeout_had_IWDG_reset())
+	if (timeout_had_IWDG_reset()) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
+	}
 
 	m_init_done = true;
 }
@@ -1417,7 +1418,9 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		}
 	}
 
-	i_last = (m_conf->l_current_max / 2.0);
+	if (i_last < 0.01) {
+		i_last = (m_conf->l_current_max / 2.0);
+	}
 
 	*res = mcpwm_foc_measure_resistance(i_last, 200);
 	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0);
@@ -1565,10 +1568,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)flags;
 
 	static int skip = 0;
-	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER)
+	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER) {
 		skip = 0;
-	else
+	} else {
 		return;
+	}
 
 	TIM12->CNT = 0;
 
@@ -1734,8 +1738,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		dt = 1.0 / (m_conf->foc_f_sw / 2.0);
 	}
 #else
-	const float dt = 1.0 / (m_conf->foc_f_sw / 2.0);
+	float dt = 1.0 / (m_conf->foc_f_sw / 2.0);
 #endif
+
+	// This has to be done for the skip function to have any chance at working with the
+	// observer and control loops.
+	// TODO: Test this.
+	dt /= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
 
 	UTILS_LP_FAST(m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
@@ -1957,8 +1966,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float x_tmp = m_motor_state.v_alpha;
 		float y_tmp = m_motor_state.v_beta;
 
-		m_motor_state.v_alpha = x_tmp*COS_MINUS_30_DEG - y_tmp*SIN_MINUS_30_DEG;
-		m_motor_state.v_beta = x_tmp*SIN_MINUS_30_DEG + y_tmp*COS_MINUS_30_DEG;
+		m_motor_state.v_alpha = x_tmp * COS_MINUS_30_DEG - y_tmp * SIN_MINUS_30_DEG;
+		m_motor_state.v_beta = x_tmp * SIN_MINUS_30_DEG + y_tmp * COS_MINUS_30_DEG;
 
 		// compensate voltage amplitude
 		m_motor_state.v_alpha *= ONE_BY_SQRT3;
