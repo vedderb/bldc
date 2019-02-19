@@ -23,7 +23,6 @@
 #define HW_NAME					"PALTA"
 
 #define PALTA_USE_DAC
-#define USE_FOC_FLUX_LINKAGE_DETECTION
 #define HW_VERSION_PALTA
 
 // HW properties

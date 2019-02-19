@@ -637,146 +637,6 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	return ok_steps == 5 ? true : false;
 }
 
-#ifdef USE_FOC_FLUX_LINKAGE_DETECTION
-/**
- * Try to measure the motor flux linkage using open loop FOC control.
- *
- * @param current
- * The Q-axis current to spin up the motor.
- *
- * @param duty
- * Duty cycle % to measure at
- *
- * @param erpm
- * Max ERPM of the measurement to prevent mechanical destruction.
- *
- * @param res
- * The motor phase resistance.
- *
- * @param linkage
- * The calculated flux linkage.
- *
- * @return
- * True for success, false otherwise.
- */
-bool conf_general_measure_flux_linkage(float current, float duty, float erpm_per_sec, float res, float *linkage) {
-	bool result = false;
-
-	mcconf = *mc_interface_get_configuration();
-	mcconf_old = mcconf;
-
-	mcconf.motor_type = MOTOR_TYPE_FOC;
-	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf.foc_current_kp = 0.0005;
-	mcconf.foc_current_ki = 1.0;
-	mc_interface_set_configuration(&mcconf);
-
-	// Wait maximum 5s for fault code to disappear
-	for (int i = 0;i < 500;i++) {
-		if (mc_interface_get_fault() == FAULT_CODE_NONE) {
-			break;
-			}
-		chThdSleepMilliseconds(10);
-	}
-
-	// Wait one second for things to get ready after
-	// the fault disapears.
-	chThdSleepMilliseconds(1000);
-
-	// Disable timeout
-	systime_t tout = timeout_get_timeout_msec();
-	float tout_c = timeout_get_brake_current();
-	timeout_reset();
-	timeout_configure(60000, 0.0);
-
-	mc_interface_lock();
-
-	int cnt = 0;
-	float rpm_now = 0;
-
-	// Start by locking the motor
-	mcpwm_foc_set_openloop(current, rpm_now);
-
-	float duty_still = 0;
-	float samples = 0;
-	for (int i = 0;i < 1000;i++) {
-		duty_still += fabsf(mc_interface_get_duty_cycle_now());
-		samples += 1.0;
-		chThdSleepMilliseconds(1);
-	}
-
-	duty_still /= samples;
-	float duty_max = 0.0;
-	const int max_time = 15000;
-
-	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
-		mcpwm_foc_set_openloop(current, mcconf.m_invert_direction ? -rpm_now : rpm_now);
-		rpm_now += erpm_per_sec / 1000.0;
-
-		chThdSleepMilliseconds(1);
-		cnt++;
-
-		float duty_now = fabsf(mc_interface_get_duty_cycle_now());
-
-		if (duty_now > duty_max) {
-			duty_max = duty_now;
-		}
-
-		if (cnt >= max_time) {
-			*linkage = -1.0;
-			break;
-		}
-
-		if (cnt > 4000 && duty_now < (duty_max * 0.7)) {
-			cnt = max_time;
-			*linkage = -2.0;
-			break;
-		}
-
-		if (cnt > 4000 && duty < duty_still * 1.1) {
-			cnt = max_time;
-			*linkage = -3.0;
-			break;
-		}
-	}
-
-	chThdSleepMilliseconds(1000);
-
-	if (cnt < max_time) {
-		float vq_avg = 0.0;
-		float vd_avg = 0.0;
-		float iq_avg = 0.0;
-		float id_avg = 0.0;
-		samples = 0.0;
-
-		for (int i = 0;i < 1000;i++) {
-			vq_avg += mcpwm_foc_get_vq();
-			vd_avg += mcpwm_foc_get_vd();
-			iq_avg += mcpwm_foc_get_iq();
-			id_avg += mcpwm_foc_get_id();
-			samples += 1.0;
-			chThdSleepMilliseconds(1);
-		}
-
-		vq_avg /= samples;
-		vd_avg /= samples;
-		iq_avg /= samples;
-		id_avg /= samples;
-
-		*linkage = (sqrtf(SQ(vq_avg) + SQ(vd_avg)) - res *
-		sqrtf(SQ(iq_avg) + SQ(id_avg))) / (rpm_now * ((2.0 * M_PI) / 60.0));
-
-		result = true;
-	}
-
-	timeout_configure(tout, tout_c);
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	mc_interface_set_configuration(&mcconf_old);
-	return result;
-}
-
-#else
 /**
  * Try to measure the motor flux linkage.
  *
@@ -942,7 +802,6 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	return true;
 }
-#endif
 
 /* Calculate DTG register */
 uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq) {
@@ -978,6 +837,27 @@ uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq
 	return DTG;
 }
 
+/**
+ * Try to measure the motor flux linkage using open loop FOC control.
+ *
+ * @param current
+ * The Q-axis current to spin up the motor.
+ *
+ * @param duty
+ * Duty cycle % to measure at
+ *
+ * @param erpm_per_sec
+ * Acceleration rate
+ *
+ * @param res
+ * The motor phase resistance.
+ *
+ * @param linkage
+ * The calculated flux linkage.
+ *
+ * @return
+ * True for success, false otherwise.
+ */
 bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float erpm_per_sec, float res, float *linkage) {
 	bool result = false;
