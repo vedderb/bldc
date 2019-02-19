@@ -83,5 +83,9 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len);
 #define ONE_BY_SQRT3			(0.57735026919)
 #define TWO_BY_SQRT3			(2.0f * 0.57735026919)
 #define SQRT3_BY_2				(0.86602540378)
+#define COS_30_DEG				(0.86602540378)
+#define SIN_30_DEG				(0.5)
+#define COS_MINUS_30_DEG		(0.86602540378)
+#define SIN_MINUS_30_DEG		(-0.5)
 
 #endif /* UTILS_H_ */

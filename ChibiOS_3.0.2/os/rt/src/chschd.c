@@ -295,6 +295,7 @@ static void wakeup(void *p) {
     /* Falls through. */
   case CH_STATE_WTCOND:
 #endif
+	  /* Falls through. */
   case CH_STATE_QUEUED:
     /* States requiring dequeuing.*/
     (void) queue_dequeue(tp);

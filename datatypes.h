@@ -85,7 +85,11 @@ typedef enum {
 	FAULT_CODE_DRV,
 	FAULT_CODE_ABS_OVER_CURRENT,
 	FAULT_CODE_OVER_TEMP_FET,
-	FAULT_CODE_OVER_TEMP_MOTOR
+	FAULT_CODE_OVER_TEMP_MOTOR,
+	FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE,
+	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
+	FAULT_CODE_MCU_UNDER_VOLTAGE,
+	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET
 } mc_fault_code;
 
 typedef enum {
@@ -606,6 +610,7 @@ typedef struct {
 	float current;
 	float current_filtered;
 	float voltage;
+	float gate_driver_voltage;
 	float duty;
 	float rpm;
 	int tacho;

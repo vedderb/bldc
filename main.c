@@ -171,8 +171,17 @@ static THD_FUNCTION(timer_thread, arg) {
 
 	for(;;) {
 		packet_timerfunc();
+		timeout_feed_WDT(THREAD_TIMER);
 		chThdSleepMilliseconds(1);
 	}
+}
+
+/* When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower */
+void assert_failed(uint8_t* file, uint32_t line) {
+	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
+	mc_interface_release_motor();
+	while(1)
+		chThdSleepMilliseconds(1);
 }
 
 int main(void) {
@@ -197,6 +206,7 @@ int main(void) {
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
+
 	mc_interface_init(&mcconf);
 
 	commands_init();
@@ -227,9 +237,6 @@ int main(void) {
 		HW_PERMANENT_NRF_FAILED_HOOK();
 	}
 #endif
-
-	timeout_init();
-	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 #if WS2811_ENABLE
 	ws2811_init();
@@ -305,6 +312,9 @@ int main(void) {
 		}
 	}
 #endif
+
+	timeout_init();
+	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

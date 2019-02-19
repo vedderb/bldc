@@ -217,3 +217,20 @@ cd $FWPATH
 make clean
 cd $DIR
 
+#################### HW PALTA ########################
+
+COPYDIR=PALTA
+rm $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_palta.c\" -DHW_HEADER=\"hw_palta.h\"'
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+

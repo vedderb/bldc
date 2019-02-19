@@ -30,6 +30,7 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "terminal.h"
+#include "timeout.h"
 #include "encoder.h"
 
 // Structs
@@ -263,7 +264,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
 	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
-	TIM_BDTRInitStructure.TIM_DeadTime = HW_DEAD_TIME_VALUE;
+	TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
@@ -468,11 +469,9 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
-	// WWDG configuration
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
+	// Check if the system has resumed from IWDG reset
+	  if (timeout_had_IWDG_reset())
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 
 	// Reset tachometers again
 	tachometer = 0;
@@ -1748,7 +1747,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	update_timer_attempt();
 
 	// Reset the watchdog
-	WWDG_SetCounter(100);
+	timeout_feed_WDT(THREAD_MCPWM);
 
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	int ph1, ph2, ph3;

@@ -70,8 +70,8 @@
 //#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
 //#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -82,8 +82,8 @@
 //#define HW_SOURCE "hw_das_rs.c"
 //#define HW_HEADER "hw_das_rs.h"
 
-//#define HW_SOURCE "hw_palta.c"
-//#define HW_HEADER "hw_palta.h"
+#define HW_SOURCE "hw_palta.c"
+#define HW_HEADER "hw_palta.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
@@ -203,6 +203,16 @@
  */
 #define BLDC_SPEED_CONTROL_CURRENT	1
 
+/*
+ *	Run the FOC loop once every N ADC ISR requests. This way the pwm frequency is
+ *	detached from the FOC calculation, which because it takes ~25usec it can't work
+ *	at >40khz. To set a 100kHz pwm FOC_CONTROL_LOOP_FREQ_DIVIDER can be set at 3
+ *	so it skips 2 ISR calls and execute the control loop in the 3rd call.
+ */
+#ifndef FOC_CONTROL_LOOP_FREQ_DIVIDER
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+#endif
+
 // Global configuration variables
 extern bool conf_general_permanent_nrf_found;
 
@@ -218,6 +228,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage);
+uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq);
 bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float erpm_per_sec, float res, float *linkage);
 int conf_general_autodetect_apply_sensors_foc(float current,

@@ -472,7 +472,6 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
 		mcconf.m_ntc_motor_beta = buffer_get_float32_auto(data, &ind);
 		mcconf.m_out_aux_mode = data[ind++];
-
 		mcconf.si_motor_poles = data[ind++];
 		mcconf.si_gear_ratio = buffer_get_float32_auto(data, &ind);
 		mcconf.si_wheel_diameter = buffer_get_float32_auto(data, &ind);
@@ -1341,6 +1340,12 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_LIM_TEMP_FET
 	utils_truncate_number(&mcconf->l_temp_fet_start, HW_LIM_TEMP_FET);
 	utils_truncate_number(&mcconf->l_temp_fet_end, HW_LIM_TEMP_FET);
+#endif
+#ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
+    if (mcconf->foc_sample_v0_v7 == true)
+		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ); //control loop executes twice per pwm cycle when sampling in v0 and v7
+	else
+		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ*2);
 #endif
 #endif
 }

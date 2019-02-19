@@ -344,6 +344,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
@@ -363,6 +364,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();
@@ -411,6 +413,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	mc_interface_lock();
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
@@ -430,6 +433,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	}
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
 	mc_interface_unlock();
@@ -799,6 +803,61 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	return true;
 }
 
+/* Calculate DTG register */
+uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq) {
+	uint8_t DTG = 0;
+	float timebase = 1/(core_clock_freq/1000000.0)*1000.0;
+
+	if (deadtime_ns <= (timebase * 127.0) )
+	    DTG = deadtime_ns / timebase;
+	else {
+	    if (deadtime_ns <= ((63.0 + 64.0)*2.0*timebase) ) {
+	        DTG = deadtime_ns / (2.0*timebase) - 64.0;
+	        DTG |= 0x80;
+	    }
+	    else {
+	        if (deadtime_ns <= ((31.0 + 32.0)*8.0*timebase) ) {
+	            DTG = deadtime_ns / (8.0*timebase) - 32.0;
+	            DTG |= 0xC0;
+	        }
+	        else {
+	            if (deadtime_ns <= ((31.0 + 32)*16*timebase) ) {
+	                DTG = deadtime_ns / (16.0*timebase) - 32.0;
+	                DTG |= 0xE0;
+	            }
+	            else {
+	            	// Deadtime requested is longer than max achievable. Set deadtime at
+	            	// longest possible value
+	            	DTG = 0xFF;
+	            	assert_param(1);	//catch this
+	            }
+	        }
+	    }
+	}
+	return DTG;
+}
+
+/**
+ * Try to measure the motor flux linkage using open loop FOC control.
+ *
+ * @param current
+ * The Q-axis current to spin up the motor.
+ *
+ * @param duty
+ * Duty cycle % to measure at
+ *
+ * @param erpm_per_sec
+ * Acceleration rate
+ *
+ * @param res
+ * The motor phase resistance.
+ *
+ * @param linkage
+ * The calculated flux linkage.
+ *
+ * @return
+ * True for success, false otherwise.
+ */
 bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float erpm_per_sec, float res, float *linkage) {
 	bool result = false;
@@ -1357,4 +1416,3 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 
 	return res;
 }
-

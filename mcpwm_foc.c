@@ -279,7 +279,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
 	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
-	TIM_BDTRInitStructure.TIM_DeadTime = HW_DEAD_TIME_VALUE;
+	TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
@@ -449,11 +449,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
-	// WWDG configuration
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
+	// Check if the system has resumed from IWDG reset
+	  if (timeout_had_IWDG_reset())
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 
 	m_init_done = true;
 }
@@ -1044,9 +1042,9 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	for (int i = 0; i < it_rat; i++) {
 		float phase_old = m_phase_now_encoder;
 		float phase_ovr_tmp = m_phase_now_override;
-		for (float i = phase_ovr_tmp; i < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
-				i += (2.0 * M_PI) / 500.0) {
-			m_phase_now_override = i;
+		for (float j = phase_ovr_tmp; j < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
+				j += (2.0 * M_PI) / 500.0) {
+			m_phase_now_override = j;
 			chThdSleepMilliseconds(1);
 		}
 		utils_norm_angle_rad((float*)&m_phase_now_override);
@@ -1072,9 +1070,9 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	for (int i = 0; i < it_rat; i++) {
 		float phase_old = m_phase_now_encoder;
 		float phase_ovr_tmp = m_phase_now_override;
-		for (float i = phase_ovr_tmp; i > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
-				i -= (2.0 * M_PI) / 500.0) {
-			m_phase_now_override = i;
+		for (float j = phase_ovr_tmp; j > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
+				j -= (2.0 * M_PI) / 500.0) {
+			m_phase_now_override = j;
 			chThdSleepMilliseconds(1);
 		}
 		utils_norm_angle_rad((float*)&m_phase_now_override);
@@ -1133,14 +1131,14 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 		chThdSleepMilliseconds(100);
 
-		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(diff, &s, &c);
+		sincosf(angle_diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -1155,14 +1153,14 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 		chThdSleepMilliseconds(100);
 
-		float diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
+		float angle_diff = utils_angle_difference_rad(m_phase_now_encoder, m_phase_now_override);
 		float s, c;
-		sincosf(diff, &s, &c);
+		sincosf(angle_diff, &s, &c);
 		s_sum += s;
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
 		}
 	}
 
@@ -1419,9 +1417,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		}
 	}
 
-	if (i_last < 0.01) {
-		i_last = (m_conf->l_current_max / 2.0);
-	}
+	i_last = (m_conf->l_current_max / 2.0);
 
 	*res = mcpwm_foc_measure_resistance(i_last, 200);
 	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0);
@@ -1477,8 +1473,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 
 	// Forwards
 	for (int i = 0;i < 3;i++) {
-		for (int i = 0;i < 360;i++) {
-			m_phase_now_override = (float)i * M_PI / 180.0;
+		for (int j = 0;j < 360;j++) {
+			m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
 			int hall = read_hall();
@@ -1492,8 +1488,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 
 	// Reverse
 	for (int i = 0;i < 3;i++) {
-		for (int i = 360;i >= 0;i--) {
-			m_phase_now_override = (float)i * M_PI / 180.0;
+		for (int j = 360;j >= 0;j--) {
+			m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
 			int hall = read_hall();
@@ -1568,6 +1564,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
+	static int skip = 0;
+	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER)
+		skip = 0;
+	else
+		return;
+
 	TIM12->CNT = 0;
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
@@ -1585,7 +1587,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	// Reset the watchdog
-	WWDG_SetCounter(100);
+	timeout_feed_WDT(THREAD_MCPWM);
 
 #ifdef AD2S1205_SAMPLE_GPIO
 	// force a position sample in the AD2S1205 resolver IC (falling edge)
@@ -1949,6 +1951,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
+
+#ifdef HW_VERSION_PALTA
+		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
+		float x_tmp = m_motor_state.v_alpha;
+		float y_tmp = m_motor_state.v_beta;
+
+		m_motor_state.v_alpha = x_tmp*COS_MINUS_30_DEG - y_tmp*SIN_MINUS_30_DEG;
+		m_motor_state.v_beta = x_tmp*SIN_MINUS_30_DEG + y_tmp*COS_MINUS_30_DEG;
+
+		// compensate voltage amplitude
+		m_motor_state.v_alpha *= ONE_BY_SQRT3;
+		m_motor_state.v_beta *= ONE_BY_SQRT3;
+#endif
 
 		// Park transform
 		float vd_tmp = c * m_motor_state.v_alpha + s * m_motor_state.v_beta;

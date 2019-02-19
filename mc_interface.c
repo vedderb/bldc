@@ -65,6 +65,7 @@ static volatile float m_watt_seconds_charged;
 static volatile float m_position_set;
 static volatile float m_temp_fet;
 static volatile float m_temp_motor;
+static volatile float m_gate_driver_voltage;
 
 // Sampling variables
 #define ADC_SAMPLE_MAX_LEN		2000
@@ -78,6 +79,7 @@ __attribute__((section(".ram4"))) static volatile uint8_t m_status_samples[ADC_S
 __attribute__((section(".ram4"))) static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
+
 static volatile int m_sample_len;
 static volatile int m_sample_int;
 static volatile debug_sampling_mode m_sample_mode;
@@ -122,6 +124,7 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_last_adc_duration_sample = 0.0;
 	m_temp_fet = 0.0;
 	m_temp_motor = 0.0;
+	m_gate_driver_voltage = 0.0;
 
 	m_sample_len = 1000;
 	m_sample_int = 1;
@@ -343,6 +346,10 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ABS_OVER_CURRENT: return "FAULT_CODE_ABS_OVER_CURRENT"; break;
 	case FAULT_CODE_OVER_TEMP_FET: return "FAULT_CODE_OVER_TEMP_FET"; break;
 	case FAULT_CODE_OVER_TEMP_MOTOR: return "FAULT_CODE_OVER_TEMP_MOTOR"; break;
+	case FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE: return "FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE"; break;
+	case FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE: return "FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE"; break;
+	case FAULT_CODE_MCU_UNDER_VOLTAGE: return "FAULT_CODE_MCU_UNDER_VOLTAGE"; break;
+	case FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET: return "FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET"; break;
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -1190,6 +1197,7 @@ void mc_interface_fault_stop(mc_fault_code fault) {
 		fdata.current = mc_interface_get_tot_current();
 		fdata.current_filtered = mc_interface_get_tot_current_filtered();
 		fdata.voltage = GET_INPUT_VOLTAGE();
+		fdata.gate_driver_voltage = m_gate_driver_voltage;
 		fdata.duty = mc_interface_get_duty_cycle_now();
 		fdata.rpm = mc_interface_get_rpm();
 		fdata.tacho = mc_interface_get_tachometer_value(false);
@@ -1302,6 +1310,16 @@ void mc_interface_mc_timer_isr(void) {
 	if (IS_DRV_FAULT()) {
 		mc_interface_fault_stop(FAULT_CODE_DRV);
 	}
+
+#ifdef HW_VERSION_PALTA
+	if( m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE);
+	}
+
+	if( m_gate_driver_voltage < HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) {
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE);
+	}
+#endif
 
 	// Watt and ah counters
 	const float f_samp = mc_interface_get_sampling_frequency_now();
@@ -1498,6 +1516,9 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
 	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+#ifdef HW_VERSION_PALTA
+	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
+#endif
 
 	const float l_current_min_tmp = conf->l_current_min * conf->l_current_min_scale;
 	const float l_current_max_tmp = conf->l_current_max * conf->l_current_max_scale;

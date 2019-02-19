@@ -110,7 +110,7 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 
-#define HW_DEAD_TIME_VALUE		20
+#define HW_DEAD_TIME_NSEC		120
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
