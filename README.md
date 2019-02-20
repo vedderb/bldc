@@ -21,22 +21,59 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 
 
 ```c
-//#define HW_VERSION_40
-//#define HW_VERSION_45
-//#define HW_VERSION_46 // Also for 4.7
-//#define HW_VERSION_48
-//#define HW_VERSION_49
-//#define HW_VERSION_410 // Also for 4.11 and 4.12
-#define HW_VERSION_60
-//#define HW_VERSION_R2
-//#define HW_VERSION_VICTOR_R1A
-//#define HW_VERSION_DAS_RS
-//#define HW_VERSION_PALTA
-//#define HW_VERSION_RH
-//#define HW_VERSION_TP
-//#define HW_VERSION_75_300
-//#define HW_VERSION_MINI4
-//#define HW_VERSION_DAS_MINI
+//#define HW_SOURCE "hw_40.c"
+//#define HW_HEADER "hw_40.h"
+
+//#define HW_SOURCE "hw_45.c"
+//#define HW_HEADER "hw_45.h"
+
+//#define HW_SOURCE "hw_46.c" // Also for 4.7
+//#define HW_HEADER "hw_46.h" // Also for 4.7
+
+//#define HW_SOURCE "hw_48.c"
+//#define HW_HEADER "hw_48.h"
+
+//#define HW_SOURCE "hw_49.c"
+//#define HW_HEADER "hw_49.h"
+
+//#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
+//#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
+
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
+
+//#define HW_SOURCE "hw_r2.c"
+//#define HW_HEADER "hw_r2.h"
+
+//#define HW_SOURCE "hw_victor_r1a.c"
+//#define HW_HEADER "hw_victor_r1a.h"
+
+//#define HW_SOURCE "hw_das_rs.c"
+//#define HW_HEADER "hw_das_rs.h"
+
+//#define HW_SOURCE "hw_palta.c"
+//#define HW_HEADER "hw_palta.h"
+
+//#define HW_SOURCE "hw_rh.c"
+//#define HW_HEADER "hw_rh.h"
+
+//#define HW_SOURCE "hw_tp.c"
+//#define HW_HEADER "hw_tp.h"
+
+//#define HW_SOURCE "hw_75_300.c"
+//#define HW_HEADER "hw_75_300.h"
+
+//#define HW_SOURCE "hw_mini4.c"
+//#define HW_HEADER "hw_mini4.h"
+
+//#define HW_SOURCE "hw_das_mini.c"
+//#define HW_HEADER "hw_das_mini.h"
+
+//#define HW_SOURCE "hw_uavc_qcube.c"
+//#define HW_HEADER "hw_uavc_qcube.h"
+
+//#define HW_SOURCE "hw_uavc_basic.c"
+//#define HW_HEADER "hw_uavc_basic.h"
 ```
 There are also many other options that can be changed in conf_general.h
 
