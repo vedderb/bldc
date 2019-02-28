@@ -196,6 +196,7 @@ void encoder_init_as5047p_spi(void) {
 
 	mode = ENCODER_MODE_AS5047P_SPI;
 	index_found = true;
+	spi_error_rate = 0.0;
 }
 
 void encoder_init_ad2s1205_spi(void) {
