@@ -1321,11 +1321,6 @@ void mc_interface_mc_timer_isr(void) {
 	}
 #endif
 
-    // encoder error rate fault, 1% errors as threshold
-    if(encoder_spi_get_error_rate() > 0.01) {
-        mc_interface_fault_stop(FAULT_CODE_ENCODER);
-    }
-
 	// Watt and ah counters
 	const float f_samp = mc_interface_get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
@@ -1736,6 +1731,15 @@ static THD_FUNCTION(timer_thread, arg) {
 
 			default:
 				break;
+		}
+
+
+		// Trigger encoder error rate fault, using 1% errors as threshold.
+		// Relevant only in FOC mode with encoder enabled
+		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			encoder_spi_get_error_rate() > 0.01) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER);
 		}
 
 		chThdSleepMilliseconds(1);
