@@ -114,6 +114,7 @@ void encoder_deinit(void) {
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
+    spi_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
