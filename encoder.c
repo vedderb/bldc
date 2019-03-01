@@ -74,12 +74,29 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
+uint16_t spi_val = 0;
+uint32_t spi_error_cnt = 0;
+float spi_error_rate = 0.0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+
+
+uint32_t encoder_spi_get_error_cnt(void) {
+    return spi_error_cnt;
+}
+
+uint16_t encoder_spi_get_val(void) {
+    return spi_val;
+}
+
+float encoder_spi_get_error_rate(void) {
+    return spi_error_rate;
+}
+
 
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -97,6 +114,7 @@ void encoder_deinit(void) {
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
+    spi_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
@@ -179,6 +197,7 @@ void encoder_init_as5047p_spi(void) {
 
 	mode = ENCODER_MODE_AS5047P_SPI;
 	index_found = true;
+	spi_error_rate = 0.0;
 }
 
 void encoder_init_ad2s1205_spi(void) {
@@ -293,6 +312,16 @@ void encoder_reset(void) {
 	}
 }
 
+// returns true for even number of ones (no parity error according to AS5047 datasheet
+bool spi_check_parity(uint16_t x)
+{
+    x ^= x >> 8;
+    x ^= x >> 4;
+    x ^= x >> 2;
+    x ^= x >> 1;
+    return (~x) & 1;
+}
+
 /**
  * Timer interrupt
  */
@@ -304,8 +333,15 @@ void encoder_tim_isr(void) {
 		spi_transfer(&pos, 0, 1);
 		spi_end();
 
-		pos &= 0x3FFF;
-		last_enc_angle = ((float)pos * 360.0) / 16384.0;
+		spi_val = pos;
+		if(spi_check_parity(pos) && pos!=0xffff && pos!=0) {  // all ones = disconnect, all zeros = short to gnd
+			pos &= 0x3FFF;
+			last_enc_angle = ((float)pos * 360.0) / 16384.0;
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AS5047_SAMPLE_RATE_HZ);
+		} else {
+			++spi_error_cnt;
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AS5047_SAMPLE_RATE_HZ);
+		}		
 	}
 
 	if(mode == RESOLVER_MODE_AD2S1205) {

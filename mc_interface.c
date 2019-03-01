@@ -1733,6 +1733,15 @@ static THD_FUNCTION(timer_thread, arg) {
 				break;
 		}
 
+
+		// Trigger encoder error rate fault, using 1% errors as threshold.
+		// Relevant only in FOC mode with encoder enabled
+		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			encoder_spi_get_error_rate() > 0.01) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER);
+		}
+
 		chThdSleepMilliseconds(1);
 	}
 }
