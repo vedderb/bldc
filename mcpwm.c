@@ -470,8 +470,9 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
 	// Check if the system has resumed from IWDG reset
-	  if (timeout_had_IWDG_reset())
+	if (timeout_had_IWDG_reset()) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
+	}
 
 	// Reset tachometers again
 	tachometer = 0;
@@ -486,8 +487,6 @@ void mcpwm_deinit(void) {
 	}
 
 	init_done = false;
-
-	WWDG_DeInit();
 
 	timer_thd_stop = true;
 	rpm_thd_stop = true;

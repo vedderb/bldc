@@ -376,7 +376,7 @@
 #define MCCONF_M_BLDC_F_SW_MIN			3000 // Minimum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MAX
-#define MCCONF_M_BLDC_F_SW_MAX			40000 // Maximum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MAX			35000 // Maximum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_DC_F_SW
 #define MCCONF_M_DC_F_SW				25000 // Switching frequency in dc mode

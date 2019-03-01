@@ -86,15 +86,15 @@ static void spi_delay(void);
 
 
 uint32_t encoder_spi_get_error_cnt(void) {
-    return spi_error_cnt;
+	return spi_error_cnt;
 }
 
 uint16_t encoder_spi_get_val(void) {
-    return spi_val;
+	return spi_val;
 }
 
 float encoder_spi_get_error_rate(void) {
-    return spi_error_rate;
+	return spi_error_rate;
 }
 
 
@@ -114,7 +114,7 @@ void encoder_deinit(void) {
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
-    spi_error_rate = 0.0;
+	spi_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
@@ -313,13 +313,12 @@ void encoder_reset(void) {
 }
 
 // returns true for even number of ones (no parity error according to AS5047 datasheet
-bool spi_check_parity(uint16_t x)
-{
-    x ^= x >> 8;
-    x ^= x >> 4;
-    x ^= x >> 2;
-    x ^= x >> 1;
-    return (~x) & 1;
+bool spi_check_parity(uint16_t x) {
+	x ^= x >> 8;
+	x ^= x >> 4;
+	x ^= x >> 2;
+	x ^= x >> 1;
+	return (~x) & 1;
 }
 
 /**

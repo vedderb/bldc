@@ -21,6 +21,7 @@
 #define CONF_MC_APP_DEFAULT_H_
 
 #include "conf_general.h"
+#include "hw.h"
 
 // User defined default motor configuration file
 #ifdef MCCONF_DEFAULT_USER

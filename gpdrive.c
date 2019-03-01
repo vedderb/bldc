@@ -257,13 +257,12 @@ void gpdrive_init(volatile mc_configuration *configuration) {
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
-	// WWDG
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
-	WWDG_SetPrescaler(WWDG_Prescaler_1);
-	WWDG_SetWindowValue(255);
-	WWDG_Enable(100);
-
 	stop_pwm_hw();
+
+	// Check if the system has resumed from IWDG reset
+	if (timeout_had_IWDG_reset()) {
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
+	}
 
 	m_init_done = true;
 }
@@ -274,8 +273,6 @@ void gpdrive_deinit(void) {
 	}
 
 	m_init_done = false;
-
-	WWDG_DeInit();
 
 	timer_thd_stop = true;
 
@@ -514,7 +511,7 @@ static void adc_int_handler(void *p, uint32_t flags) {
 	TIM12->CNT = 0;
 
 	// Reset the watchdog
-	WWDG_SetCounter(100);
+	timeout_feed_WDT(THREAD_MCPWM);
 
 	int curr0 = GET_CURRENT1();
 	int curr1 = GET_CURRENT2();

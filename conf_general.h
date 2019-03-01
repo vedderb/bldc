@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		49
+#define FW_VERSION_MINOR		50
 
 #include "datatypes.h"
 
@@ -218,8 +218,6 @@ extern bool conf_general_permanent_nrf_found;
 
 // Functions
 void conf_general_init(void);
-void conf_general_get_default_app_configuration(app_configuration *conf);
-void conf_general_get_default_mc_configuration(mc_configuration *conf);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);

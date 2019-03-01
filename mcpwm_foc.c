@@ -463,8 +463,6 @@ void mcpwm_foc_deinit(void) {
 
 	m_init_done = false;
 
-	WWDG_DeInit();
-
 	timer_thd_stop = true;
 
 	while (timer_thd_stop) {

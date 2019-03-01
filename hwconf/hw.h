@@ -166,6 +166,10 @@
 #define HW_LIM_CURRENT_ABS		0.0, 140.0
 #endif
 
+#ifndef HW_LIM_FOC_CTRL_LOOP_FREQ
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	3000.0, 30000.0
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

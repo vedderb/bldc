@@ -149,6 +149,7 @@ CSRC = $(STARTUPSRC) \
        mc_interface.c \
        mcpwm_foc.c \
        gpdrive.c \
+       confgenerator.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \

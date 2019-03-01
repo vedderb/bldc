@@ -23,7 +23,6 @@
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
-#include "hw.h"
 #include "utils.h"
 #include "stm32f4xx_conf.h"
 #include "timeout.h"
@@ -31,6 +30,7 @@
 #include "encoder.h"
 #include "comm_can.h"
 #include "app.h"
+#include "confgenerator.h"
 
 #include <string.h>
 #include <math.h>
@@ -68,242 +68,6 @@ void conf_general_init(void) {
 }
 
 /**
- * Load the compiled default app_configuration.
- *
- * @param conf
- * A pointer to store the default configuration to.
- */
-void conf_general_get_default_app_configuration(app_configuration *conf) {
-	memset(conf, 0, sizeof(app_configuration));
-	conf->controller_id = HW_DEFAULT_ID;
-	conf->timeout_msec = APPCONF_TIMEOUT_MSEC;
-	conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
-	conf->send_can_status = APPCONF_SEND_CAN_STATUS;
-	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
-	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
-	conf->pairing_done = APPCONF_PAIRING_DONE;
-
-	conf->uavcan_enable = APPCONF_UAVCAN_ENABLE;
-	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
-
-	conf->app_to_use = APPCONF_APP_TO_USE;
-
-	conf->app_ppm_conf.ctrl_type = APPCONF_PPM_CTRL_TYPE;
-	conf->app_ppm_conf.pid_max_erpm = APPCONF_PPM_PID_MAX_ERPM;
-	conf->app_ppm_conf.hyst = APPCONF_PPM_HYST;
-	conf->app_ppm_conf.pulse_start = APPCONF_PPM_PULSE_START;
-	conf->app_ppm_conf.pulse_end = APPCONF_PPM_PULSE_END;
-	conf->app_ppm_conf.pulse_center = APPCONF_PPM_PULSE_CENTER;
-	conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
-	conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
-	conf->app_ppm_conf.throttle_exp = APPCONF_PPM_THROTTLE_EXP;
-	conf->app_ppm_conf.throttle_exp_brake = APPCONF_PPM_THROTTLE_EXP_BRAKE;
-	conf->app_ppm_conf.throttle_exp_mode = APPCONF_PPM_THROTTLE_EXP_MODE;
-	conf->app_ppm_conf.ramp_time_pos = APPCONF_PPM_RAMP_TIME_POS;
-	conf->app_ppm_conf.ramp_time_neg = APPCONF_PPM_RAMP_TIME_NEG;
-	conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
-	conf->app_ppm_conf.tc = APPCONF_PPM_TC;
-	conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
-
-	conf->app_adc_conf.ctrl_type = APPCONF_ADC_CTRL_TYPE;
-	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
-	conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;
-	conf->app_adc_conf.voltage_end = APPCONF_ADC_VOLTAGE_END;
-	conf->app_adc_conf.voltage_center = APPCONF_ADC_VOLTAGE_CENTER;
-	conf->app_adc_conf.voltage2_start = APPCONF_ADC_VOLTAGE2_START;
-	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
-	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
-	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
-	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
-	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
-	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
-	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
-	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
-	conf->app_adc_conf.throttle_exp_brake = APPCONF_ADC_THROTTLE_EXP_BRAKE;
-	conf->app_adc_conf.throttle_exp_mode = APPCONF_ADC_THROTTLE_EXP_MODE;
-	conf->app_adc_conf.ramp_time_pos = APPCONF_ADC_RAMP_TIME_POS;
-	conf->app_adc_conf.ramp_time_neg = APPCONF_ADC_RAMP_TIME_NEG;
-	conf->app_adc_conf.multi_esc = APPCONF_ADC_MULTI_ESC;
-	conf->app_adc_conf.tc = APPCONF_ADC_TC;
-	conf->app_adc_conf.tc_max_diff = APPCONF_ADC_TC_MAX_DIFF;
-	conf->app_adc_conf.update_rate_hz = APPCONF_ADC_UPDATE_RATE_HZ;
-
-	conf->app_uart_baudrate = APPCONF_UART_BAUDRATE;
-
-	conf->app_chuk_conf.ctrl_type = APPCONF_CHUK_CTRL_TYPE;
-	conf->app_chuk_conf.hyst = APPCONF_CHUK_HYST;
-	conf->app_chuk_conf.ramp_time_pos = APPCONF_CHUK_RAMP_TIME_POS;
-	conf->app_chuk_conf.ramp_time_neg = APPCONF_CHUK_RAMP_TIME_NEG;
-	conf->app_chuk_conf.stick_erpm_per_s_in_cc = APPCONF_STICK_ERPM_PER_S_IN_CC;
-	conf->app_chuk_conf.throttle_exp = APPCONF_CHUK_THROTTLE_EXP;
-	conf->app_chuk_conf.throttle_exp_brake = APPCONF_CHUK_THROTTLE_EXP_BRAKE;
-	conf->app_chuk_conf.throttle_exp_mode = APPCONF_CHUK_THROTTLE_EXP_MODE;
-	conf->app_chuk_conf.multi_esc = APPCONF_CHUK_MULTI_ESC;
-	conf->app_chuk_conf.tc = APPCONF_CHUK_TC;
-	conf->app_chuk_conf.tc_max_diff = APPCONF_CHUK_TC_MAX_DIFF;
-
-	conf->app_nrf_conf.speed = APPCONF_NRF_SPEED;
-	conf->app_nrf_conf.power = APPCONF_NRF_POWER;
-	conf->app_nrf_conf.crc_type = APPCONF_NRF_CRC;
-	conf->app_nrf_conf.retry_delay = APPCONF_NRF_RETR_DELAY;
-	conf->app_nrf_conf.retries = APPCONF_NRF_RETRIES;
-	conf->app_nrf_conf.channel = APPCONF_NRF_CHANNEL;
-	conf->app_nrf_conf.address[0] = APPCONF_NRF_ADDR_B0;
-	conf->app_nrf_conf.address[1] = APPCONF_NRF_ADDR_B1;
-	conf->app_nrf_conf.address[2] = APPCONF_NRF_ADDR_B2;
-	conf->app_nrf_conf.send_crc_ack = APPCONF_NRF_SEND_CRC_ACK;
-}
-
-/**
- * Load the compiled default mc_configuration.
- *
- * @param conf
- * A pointer to store the default configuration to.
- */
-void conf_general_get_default_mc_configuration(mc_configuration *conf) {
-	memset(conf, 0, sizeof(mc_configuration));
-	conf->pwm_mode = MCCONF_PWM_MODE;
-	conf->comm_mode = MCCONF_COMM_MODE;
-	conf->motor_type = MCCONF_DEFAULT_MOTOR_TYPE;
-	conf->sensor_mode = MCCONF_SENSOR_MODE;
-
-	conf->l_current_max = MCCONF_L_CURRENT_MAX;
-	conf->l_current_min = MCCONF_L_CURRENT_MIN;
-	conf->l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
-	conf->l_in_current_min = MCCONF_L_IN_CURRENT_MIN;
-	conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
-	conf->l_min_erpm = MCCONF_L_RPM_MIN;
-	conf->l_max_erpm = MCCONF_L_RPM_MAX;
-	conf->l_erpm_start = MCCONF_L_RPM_START;
-	conf->l_max_erpm_fbrake = MCCONF_L_CURR_MAX_RPM_FBRAKE;
-	conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
-	conf->l_min_vin = MCCONF_L_MIN_VOLTAGE;
-	conf->l_max_vin = MCCONF_L_MAX_VOLTAGE;
-	conf->l_battery_cut_start = MCCONF_L_BATTERY_CUT_START;
-	conf->l_battery_cut_end = MCCONF_L_BATTERY_CUT_END;
-	conf->l_slow_abs_current = MCCONF_L_SLOW_ABS_OVERCURRENT;
-	conf->l_temp_fet_start = MCCONF_L_LIM_TEMP_FET_START;
-	conf->l_temp_fet_end = MCCONF_L_LIM_TEMP_FET_END;
-	conf->l_temp_motor_start = MCCONF_L_LIM_TEMP_MOTOR_START;
-	conf->l_temp_motor_end = MCCONF_L_LIM_TEMP_MOTOR_END;
-	conf->l_temp_accel_dec = MCCONF_L_LIM_TEMP_ACCEL_DEC;
-	conf->l_min_duty = MCCONF_L_MIN_DUTY;
-	conf->l_max_duty = MCCONF_L_MAX_DUTY;
-	conf->l_watt_max = MCCONF_L_WATT_MAX;
-	conf->l_watt_min = MCCONF_L_WATT_MIN;
-	conf->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
-	conf->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
-
-	conf->lo_current_max = conf->l_current_max * conf->l_current_max_scale;
-	conf->lo_current_min = conf->l_current_min * conf->l_current_min_scale;
-	conf->lo_in_current_max = conf->l_in_current_max;
-	conf->lo_in_current_min = conf->l_in_current_min;
-	conf->lo_current_motor_max_now = conf->lo_current_max;
-	conf->lo_current_motor_min_now = conf->lo_current_min;
-
-	conf->sl_min_erpm = MCCONF_SL_MIN_RPM;
-	conf->sl_max_fullbreak_current_dir_change = MCCONF_SL_MAX_FB_CURR_DIR_CHANGE;
-	conf->sl_min_erpm_cycle_int_limit = MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT;
-	conf->sl_cycle_int_limit = MCCONF_SL_CYCLE_INT_LIMIT;
-	conf->sl_phase_advance_at_br = MCCONF_SL_PHASE_ADVANCE_AT_BR;
-	conf->sl_cycle_int_rpm_br = MCCONF_SL_CYCLE_INT_BR;
-	conf->sl_bemf_coupling_k = MCCONF_SL_BEMF_COUPLING_K;
-
-	conf->hall_table[0] = MCCONF_HALL_TAB_0;
-	conf->hall_table[1] = MCCONF_HALL_TAB_1;
-	conf->hall_table[2] = MCCONF_HALL_TAB_2;
-	conf->hall_table[3] = MCCONF_HALL_TAB_3;
-	conf->hall_table[4] = MCCONF_HALL_TAB_4;
-	conf->hall_table[5] = MCCONF_HALL_TAB_5;
-	conf->hall_table[6] = MCCONF_HALL_TAB_6;
-	conf->hall_table[7] = MCCONF_HALL_TAB_7;
-	conf->hall_sl_erpm = MCCONF_HALL_ERPM;
-
-	conf->foc_current_kp = MCCONF_FOC_CURRENT_KP;
-	conf->foc_current_ki = MCCONF_FOC_CURRENT_KI;
-	conf->foc_f_sw = MCCONF_FOC_F_SW;
-	conf->foc_dt_us = MCCONF_FOC_DT_US;
-	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
-	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;
-	conf->foc_encoder_ratio = MCCONF_FOC_ENCODER_RATIO;
-	conf->foc_sensor_mode = MCCONF_FOC_SENSOR_MODE;
-	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
-	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
-	conf->foc_motor_l = MCCONF_FOC_MOTOR_L;
-	conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
-	conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
-	conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
-	conf->foc_observer_gain_slow = MCCONF_FOC_OBSERVER_GAIN_SLOW;
-	conf->foc_duty_dowmramp_kp = MCCONF_FOC_DUTY_DOWNRAMP_KP;
-	conf->foc_duty_dowmramp_ki = MCCONF_FOC_DUTY_DOWNRAMP_KI;
-	conf->foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
-	conf->foc_sl_openloop_hyst = MCCONF_FOC_SL_OPENLOOP_HYST;
-	conf->foc_sl_openloop_time = MCCONF_FOC_SL_OPENLOOP_TIME;
-	conf->foc_sl_d_current_duty = MCCONF_FOC_SL_D_CURRENT_DUTY;
-	conf->foc_sl_d_current_factor = MCCONF_FOC_SL_D_CURRENT_FACTOR;
-	conf->foc_hall_table[0] = MCCONF_FOC_HALL_TAB_0;
-	conf->foc_hall_table[1] = MCCONF_FOC_HALL_TAB_1;
-	conf->foc_hall_table[2] = MCCONF_FOC_HALL_TAB_2;
-	conf->foc_hall_table[3] = MCCONF_FOC_HALL_TAB_3;
-	conf->foc_hall_table[4] = MCCONF_FOC_HALL_TAB_4;
-	conf->foc_hall_table[5] = MCCONF_FOC_HALL_TAB_5;
-	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
-	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
-	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
-	conf->foc_sample_v0_v7 = MCCONF_FOC_SAMPLE_V0_V7;
-	conf->foc_sample_high_current = MCCONF_FOC_SAMPLE_HIGH_CURRENT;
-	conf->foc_sat_comp = MCCONF_FOC_SAT_COMP;
-	conf->foc_temp_comp = MCCONF_FOC_TEMP_COMP;
-	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
-	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
-
-	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
-	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
-	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;
-	conf->gpd_current_kp = MCCONF_GPD_CURRENT_KP;
-	conf->gpd_current_ki = MCCONF_GPD_CURRENT_KI;
-
-	conf->s_pid_kp = MCCONF_S_PID_KP;
-	conf->s_pid_ki = MCCONF_S_PID_KI;
-	conf->s_pid_kd = MCCONF_S_PID_KD;
-	conf->s_pid_kd_filter = MCCONF_S_PID_KD_FILTER;
-	conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
-	conf->s_pid_allow_braking = MCCONF_S_PID_ALLOW_BRAKING;
-
-	conf->p_pid_kp = MCCONF_P_PID_KP;
-	conf->p_pid_ki = MCCONF_P_PID_KI;
-	conf->p_pid_kd = MCCONF_P_PID_KD;
-	conf->p_pid_kd_filter = MCCONF_P_PID_KD_FILTER;
-	conf->p_pid_ang_div = MCCONF_P_PID_ANG_DIV;
-
-	conf->cc_startup_boost_duty = MCCONF_CC_STARTUP_BOOST_DUTY;
-	conf->cc_min_current = MCCONF_CC_MIN_CURRENT;
-	conf->cc_gain = MCCONF_CC_GAIN;
-	conf->cc_ramp_step_max = MCCONF_CC_RAMP_STEP;
-
-	conf->m_fault_stop_time_ms = MCCONF_M_FAULT_STOP_TIME;
-	conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
-	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
-	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
-	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
-	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
-	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
-	conf->m_drv8301_oc_adj = MCCONF_M_DRV8301_OC_ADJ;
-	conf->m_bldc_f_sw_min = MCCONF_M_BLDC_F_SW_MIN;
-	conf->m_bldc_f_sw_max = MCCONF_M_BLDC_F_SW_MAX;
-	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
-	conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
-	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
-
-	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
-	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
-	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;
-	conf->si_battery_type = MCCONF_SI_BATTERY_TYPE;
-	conf->si_battery_cells = MCCONF_SI_BATTERY_CELLS;
-	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
-}
-
-/**
  * Read app_configuration from EEPROM. If this fails, default values will be used.
  *
  * @param conf
@@ -326,7 +90,7 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 
 	// Set the default configuration
 	if (!is_ok) {
-		conf_general_get_default_app_configuration(conf);
+		confgenerator_set_defaults_appconf(conf);
 	}
 }
 
@@ -343,7 +107,6 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	utils_sys_lock_cnt();
 	mc_interface_lock();
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
@@ -363,7 +126,6 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 		}
 	}
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
@@ -395,7 +157,7 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 	}
 
 	if (!is_ok) {
-		conf_general_get_default_mc_configuration(conf);
+		confgenerator_set_defaults_mcconf(conf);
 	}
 }
 
@@ -412,7 +174,6 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	utils_sys_lock_cnt();
 	mc_interface_lock();
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
 	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
@@ -431,7 +192,6 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 		}
 	}
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
 	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
