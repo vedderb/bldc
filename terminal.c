@@ -750,6 +750,9 @@ void terminal_process_string(char *str) {
 		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
+		
+		commands_printf("encoder");
+		commands_printf("  Prints the status of the AS5047 encoder.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].arg_names) {
