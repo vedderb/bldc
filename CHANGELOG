@@ -1,3 +1,10 @@
+=== FW 3.49 ===
+* New watchdog implementation.
+* HW updates.
+* Fixed DC motor current sampling issue.
+* Deadtime in nanoseconds instead of register value.
+* Use fastest ramping time when throttle is applied.
+
 === FW 3.48 ===
 * Added pairing flag to appconf.
 * Decreased CAN TX timeout.

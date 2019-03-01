@@ -188,7 +188,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float servo_val_ramp = 0.0;
-		const float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+		float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (fabsf(servo_val) > 0.001) {
+			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
