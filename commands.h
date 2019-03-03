@@ -30,7 +30,6 @@ void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len));
 void commands_send_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p);
 void commands_send_packet_nrf(unsigned char *data, unsigned int len);
 void commands_send_packet_global(unsigned char *data, unsigned int len);
-void commands_send_packet_last(unsigned char *data, unsigned int len);
 void commands_process_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p);
 void commands_printf(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);

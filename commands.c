@@ -105,11 +105,6 @@ void commands_send_packet(unsigned char *data, unsigned int len, SendFunc_t send
 	}
 }
 
-void commands_send_packet_last(unsigned char *data, unsigned int len) {
-	if (send_func_last) {
-		send_func_last(data, len);
-	}
-}
 /**
  * Send a packet using the set NRF51 send function. The NRF51 send function
  * is set when the COMM_EXT_NRF_PRESENT and COMM_EXT_NRF_ESB_RX_DATA commands

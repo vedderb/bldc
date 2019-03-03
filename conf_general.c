@@ -879,7 +879,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		}
 
 		if (send_mcconf_on_success) {
-			commands_send_mcconf(COMM_GET_MCCONF, &mcconf_old, commands_send_packet_last);
+			commands_send_mcconf(COMM_GET_MCCONF, &mcconf_old, commands_send_packet_global);
 		}
 	}
 
@@ -1161,13 +1161,13 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 			appconf.send_can_status = CAN_STATUS_1_2_3_4;
 			conf_general_store_app_configuration(&appconf);
 			app_set_configuration(&appconf);
-			commands_send_appconf(COMM_GET_APPCONF, &appconf, commands_send_packet_last);
+			commands_send_appconf(COMM_GET_APPCONF, &appconf, commands_send_packet_global);
 			chThdSleepMilliseconds(1000);
 		}
 
 		mcconf = *mc_interface_get_configuration();
 		conf_general_store_mc_configuration(&mcconf);
-		commands_send_mcconf(COMM_GET_MCCONF, &mcconf, commands_send_packet_last);
+		commands_send_mcconf(COMM_GET_MCCONF, &mcconf, commands_send_packet_global);
 		chThdSleepMilliseconds(1000);
 	}
 

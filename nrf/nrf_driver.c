@@ -488,12 +488,12 @@ void nrf_driver_process_packet(unsigned char *buf, unsigned char len) {
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
 
-		commands_send_appconf(COMM_GET_APPCONF, &appconf, commands_send_packet_last);
+		commands_send_appconf(COMM_GET_APPCONF, &appconf, commands_send_packet_global);
 
 		unsigned char data[2];
 		data[0] = COMM_NRF_START_PAIRING;
 		data[1] = NRF_PAIR_OK;
-		commands_send_packet_last(data, 2);
+		commands_send_packet_global(data, 2);
 
 		from_nrf = false;
 	} break;
