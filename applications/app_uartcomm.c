@@ -64,8 +64,7 @@ static SerialConfig uart_p_cfg = {
 #endif
 
 static void process_packet(unsigned char *data, unsigned int len) {
-	commands_set_send_func(app_uartcomm_send_packet);
-	commands_process_packet(data, len);
+	commands_process_packet(data, len, app_uartcomm_send_packet);
 }
 
 static void send_packet(unsigned char *data, unsigned int len) {

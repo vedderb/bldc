@@ -62,8 +62,13 @@ static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 
+static mutex_t command_mtx;
+
+void commands_process_packet_internal(unsigned char *data, unsigned int len, SendFunc_t send_func_p);
+
 void commands_init(void) {
 	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
+	chMtxObjectInit(&command_mtx);
 }
 
 /**
@@ -73,8 +78,10 @@ void commands_init(void) {
  * A pointer to the packet sending function.
  */
 void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len)) {
+    chMtxLock(&command_mtx);
 	send_func_last = send_func;
 	send_func = func;
+	chMtxUnlock(&command_mtx);
 }
 
 /**
@@ -86,12 +93,23 @@ void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len)) 
  * @param len
  * The data length.
  */
-void commands_send_packet(unsigned char *data, unsigned int len) {
+void commands_send_packet_global(unsigned char *data, unsigned int len) {
 	if (send_func) {
 		send_func(data, len);
 	}
 }
 
+void commands_send_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p) {
+	if (send_func_p) {
+		send_func_p(data, len);
+	}
+}
+
+void commands_send_packet_last(unsigned char *data, unsigned int len) {
+	if (send_func_last) {
+		send_func_last(data, len);
+	}
+}
 /**
  * Send a packet using the set NRF51 send function. The NRF51 send function
  * is set when the COMM_EXT_NRF_PRESENT and COMM_EXT_NRF_ESB_RX_DATA commands
@@ -121,11 +139,18 @@ void commands_send_packet_nrf(unsigned char *data, unsigned int len) {
  * @param len
  * The length of the buffer.
  */
-void commands_process_packet(unsigned char *data, unsigned int len) {
+void commands_process_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p) {
 	if (!len) {
 		return;
 	}
+    chMtxLock(&command_mtx);
+    send_func = send_func_p;
+    commands_process_packet_internal(data, len, send_func_p);
+    chMtxUnlock(&command_mtx);
+ }
 
+
+void commands_process_packet_internal(unsigned char *data, unsigned int len, SendFunc_t send_func_p) {
 	COMM_PACKET_ID packet_id;
 	int32_t ind = 0;
 	static mc_configuration mcconf; // Static to save some stack space
@@ -151,7 +176,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
 
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_JUMP_TO_BOOTLOADER_ALL_CAN:
@@ -185,7 +210,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_ERASE_NEW_APP;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 	} break;
 
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN:
@@ -209,7 +234,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_WRITE_NEW_APP_DATA;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 	} break;
 
 	case COMM_GET_VALUES:
@@ -284,7 +309,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
 		}
 
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 	} break;
 
 	case COMM_SET_DUTY:
@@ -368,7 +393,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 			ind = 0;
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			commands_send_packet(send_buffer, ind, send_func_p);
 		} else {
 			commands_printf("Warning: Could not set mcconf due to wrong signature");
 		}
@@ -382,7 +407,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			confgenerator_set_defaults_mcconf(&mcconf);
 		}
 
-		commands_send_mcconf(packet_id, &mcconf);
+		commands_send_mcconf(packet_id, &mcconf, send_func_p);
 		break;
 
 	case COMM_SET_APPCONF:
@@ -396,7 +421,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 			ind = 0;
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			commands_send_packet(send_buffer, ind, send_func_p);
 		} else {
 			commands_printf("Warning: Could not set appconf due to wrong signature");
 		}
@@ -410,7 +435,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			confgenerator_set_defaults_appconf(&appconf);
 		}
 
-		commands_send_appconf(packet_id, &appconf);
+		commands_send_appconf(packet_id, &appconf, send_func_p);
 		break;
 
 	case COMM_SAMPLE_PRINT: {
@@ -460,7 +485,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
 		buffer_append_int32(send_buffer, (int32_t)(app_ppm_get_decoded_level() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_last_pulse_len(0) * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_GET_DECODED_ADC:
@@ -470,14 +495,14 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level2() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage2() * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_GET_DECODED_CHUK:
 		ind = 0;
 		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
 		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_FORWARD_CAN:
@@ -513,13 +538,15 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		break;
 
 	case COMM_NRF_START_PAIRING:
+	    send_func_last = send_func;
+
 		ind = 0;
 		nrf_driver_start_pairing(buffer_get_int32(data, &ind));
 
 		ind = 0;
 		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = NRF_PAIR_STARTED;
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_GPD_SET_FSW:
@@ -532,7 +559,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		ind = 0;
 		send_buffer[ind++] = COMM_GPD_BUFFER_SIZE_LEFT;
 		buffer_append_int32(send_buffer, gpdrive_buffer_size_left(), &ind);
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 		break;
 
 	case COMM_GPD_FILL_BUFFER:
@@ -692,7 +719,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
 		}
 
-		commands_send_packet(send_buffer, ind);
+		commands_send_packet(send_buffer, ind, send_func_p);
 	} break;
 
 	case COMM_SET_MCCONF_TEMP:
@@ -780,7 +807,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		if (ack) {
 			ind = 0;
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			commands_send_packet(send_buffer, ind, send_func_p);
 		}
 	} break;
 
@@ -821,7 +848,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			}
 		}
 
-		commands_send_packet(buffer, ind);
+		commands_send_packet(buffer, ind, send_func_p);
 		break;
 
 	case COMM_APP_DISABLE_OUTPUT: {
@@ -852,7 +879,7 @@ void commands_printf(const char* format, ...) {
 	va_end (arg);
 
 	if(len > 0) {
-		commands_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
+		commands_send_packet_global((unsigned char*)print_buffer, (len<254)? len+1: 255);
 	}
 }
 
@@ -863,9 +890,10 @@ void commands_send_rotor_pos(float rotor_pos) {
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
 
-	commands_send_packet(buffer, index);
+	commands_send_packet_global(buffer, index);
 }
 
+// unused
 void commands_send_experiment_samples(float *samples, int len) {
 	if ((len * 4 + 1) > 256) {
 		return;
@@ -880,7 +908,7 @@ void commands_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
-	commands_send_packet(buffer, index);
+	commands_send_packet_global(buffer, index);
 }
 
 disp_pos_mode commands_get_disp_pos_mode(void) {
@@ -891,6 +919,7 @@ void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 	appdata_func = func;
 }
 
+// unused
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
 
@@ -898,25 +927,25 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
 
-	commands_send_packet(send_buffer_global, index);
+	commands_send_packet_global(send_buffer_global, index);
 }
 
 void commands_send_gpd_buffer_notify(void) {
 	int32_t index = 0;
 	send_buffer_global[index++] = COMM_GPD_BUFFER_NOTIFY;
-	commands_send_packet(send_buffer_global, index);
+	commands_send_packet_global(send_buffer_global, index);
 }
 
-void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf) {
+void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf, SendFunc_t send_func_p) {
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_mcconf(send_buffer_global + 1, mcconf);
-	commands_send_packet(send_buffer_global, len + 1);
+	commands_send_packet(send_buffer_global, len + 1, send_func_p);
 }
 
-void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf) {
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf, SendFunc_t send_func_p) {
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_appconf(send_buffer_global + 1, appconf);
-	commands_send_packet(send_buffer_global, len + 1);
+	commands_send_packet(send_buffer_global, len + 1, send_func_p);
 }
 
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {

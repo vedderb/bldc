@@ -22,12 +22,16 @@
 
 #include "datatypes.h"
 
+typedef void(*SendFunc_t)(unsigned char *data, unsigned int len);
+
 // Functions
 void commands_init(void);
 void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len));
-void commands_send_packet(unsigned char *data, unsigned int len);
+void commands_send_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p);
 void commands_send_packet_nrf(unsigned char *data, unsigned int len);
-void commands_process_packet(unsigned char *data, unsigned int len);
+void commands_send_packet_global(unsigned char *data, unsigned int len);
+void commands_send_packet_last(unsigned char *data, unsigned int len);
+void commands_process_packet(unsigned char *data, unsigned int len, SendFunc_t send_func_p);
 void commands_printf(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
@@ -35,8 +39,8 @@ disp_pos_mode commands_get_disp_pos_mode(void);
 void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len));
 void commands_send_app_data(unsigned char *data, unsigned int len);
 void commands_send_gpd_buffer_notify(void);
-void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf);
-void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf);
+void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf, SendFunc_t send_func_p);
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf, SendFunc_t send_func_p);
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf);
 
 #endif /* COMMANDS_H_ */
