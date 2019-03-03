@@ -1,0 +1,968 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<EmBitz_project_file>
+	<EmBitzVersion release="1.11" revision="0" />
+	<FileVersion major="1" minor="0" />
+	<Project>
+		<Option title="BLDC_4_ChibiOS" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="armgcc_eb" />
+		<Build>
+			<Target title="upload">
+				<Option output="build\BLDC_4_ChibiOS.elf" />
+				<Option object_output="build\obj\" />
+				<Option type="0" />
+				<Option compiler="armgcc_eb" />
+				<Option projectDeviceOptionsRelation="0" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-g2" />
+					<Add option="-fdata-sections" />
+					<Add option="-ffunction-sections" />
+				</Compiler>
+				<Linker>
+					<Add option="-Wl,--gc-sections" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="appconf\appconf_custom.h" />
+		<Unit filename="appconf\appconf_default.h" />
+		<Unit filename="appconf\appconf_example_ppm.h" />
+		<Unit filename="applications\app.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app.h" />
+		<Unit filename="applications\app_adc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_brake.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_brake.h" />
+		<Unit filename="applications\app_custom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_nunchuk.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_ppm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_sten.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="applications\app_uartcomm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="board.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="board.h" />
+		<Unit filename="buffer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="buffer.h" />
+		<Unit filename="chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\CMSIS-STM32F407-DISCOVERY\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\CMSIS-STM32F407-DISCOVERY\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\CMSIS-STM32F407-DISCOVERY\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\CMSIS-STM32F407-DISCOVERY\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\HAL-STM32F407-DISCOVERY\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\HAL-STM32F407-DISCOVERY\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\HAL-STM32F407-DISCOVERY\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\HAL-STM32F407-DISCOVERY\osalconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-G++\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-G++\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-G++\main.cpp">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-G++\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\usbcfg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY-MEMS\usbcfg.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-DISCOVERY\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\ffconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\lwipopts.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\web\web.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\demos\STM32\RT-STM32F407-OLIMEX_E407-LWIP-FATFS-USB\web\web.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\misc.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4_gpio_af.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_adc.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_dma.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_exti.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_flash.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_rcc.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_syscfg.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_tim.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\inc\stm32f4xx_wwdg.h" />
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\misc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_adc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_dma.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_exti.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_flash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_rcc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_syscfg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_tim.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\ext\stdperiph_stm32f4\src\stm32f4xx_wwdg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\common\ports\ARMCMx\compilers\GCC\crt0_v6m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\common\ports\ARMCMx\compilers\GCC\crt0_v7m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\common\ports\ARMCMx\compilers\GCC\crt1.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\common\ports\ARMCMx\compilers\GCC\vectors.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\common\ports\ARMCMx\devices\STM32F4xx\cmparams.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\arm_common_tables.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\arm_const_structs.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\arm_math.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cm0.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cm0plus.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cm3.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cm4.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cm4_simd.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cmFunc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\include\core_cmInstr.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\ST\stm32f405xx.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\ST\stm32f407xx.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\ST\stm32f4xx.h" />
+		<Unit filename="ChibiOS_3.0.2\os\ext\CMSIS\ST\system_stm32f4xx.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\boards\OLIMEX_STM32_E407\board.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\boards\OLIMEX_STM32_E407\board.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\boards\ST_STM32F4_DISCOVERY\board.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\boards\ST_STM32F4_DISCOVERY\board.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\adc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\can.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\dac.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\ext.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\gpt.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_channels.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_files.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_ioblock.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_mmcsd.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_queues.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\hal_streams.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\i2c.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\i2s.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\icu.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\mac.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\mii.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\mmc_spi.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\pal.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\pwm.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\rtc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\sdc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\serial.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\serial_usb.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\spi.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\st.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\uart.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\include\usb.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\chprintf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\chprintf.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\memstreams.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\memstreams.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\nullstreams.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\lib\streams\nullstreams.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\nil\osal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\nil\osal.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\os-less\ARMCMx\osal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\os-less\ARMCMx\osal.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\rt\osal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\osal\rt\osal.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\common\ARMCMx\nvic.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\common\ARMCMx\nvic.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\can_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\can_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\DACv1\dac_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\DACv1\dac_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\DMAv1\stm32_dma.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\DMAv1\stm32_dma.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\ext_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\ext_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\GPIOv1\pal_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\GPIOv1\pal_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\GPIOv2\pal_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\GPIOv2\pal_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\I2Cv1\i2c_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\I2Cv1\i2c_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\I2Cv2\i2c_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\I2Cv2\i2c_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\mac_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\mac_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\OTGv1\stm32_otg.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\OTGv1\usb_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\OTGv1\usb_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\RTCv1\rtc_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\RTCv1\rtc_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\RTCv2\rtc_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\RTCv2\rtc_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\sdc_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\sdc_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv1\i2s_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv1\i2s_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv1\spi_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv1\spi_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv2\spi_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\SPIv2\spi_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\gpt_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\gpt_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\icu_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\icu_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\pwm_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\pwm_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\st_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\st_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\TIMv1\stm32_tim.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv1\serial_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv1\serial_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv1\uart_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv1\uart_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv2\serial_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv2\serial_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv2\uart_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USARTv2\uart_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USBv1\stm32_usb.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USBv1\usb_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\LLD\USBv1\usb_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\adc_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\adc_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\ext_lld_isr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\ext_lld_isr.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\hal_lld.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\hal_lld.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\stm32_dma.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\stm32_dma.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\stm32_isr.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\stm32_rcc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\ports\STM32\STM32F4xx\stm32_registry.h" />
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\adc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\can.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\dac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\ext.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\gpt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\hal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\hal_mmcsd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\hal_queues.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\i2c.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\i2s.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\icu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\mac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\mmc_spi.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\pal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\pwm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\rtc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\sdc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\serial_usb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\spi.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\uart.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\hal\src\usb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\ch.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chbsem.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chcond.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chdebug.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chdynamic.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chevents.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chheap.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chlicense.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chmboxes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chmemcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chmempools.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chmsg.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chmtx.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chqueues.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chregistry.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chschd.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chsem.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chstats.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chstreams.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chsys.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chsystypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chthreads.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chtm.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\include\chvt.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARM\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARM\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARM\chcore_timer.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARM\compilers\GCC\chcoreasm.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARM\compilers\GCC\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore_timer.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore_v6m.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore_v6m.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore_v7m.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\chcore_v7m.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\cmsis_os\cmsis_os.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\cmsis_os\cmsis_os.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\GCC\chcoreasm_v6m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\GCC\chcoreasm_v7m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\GCC\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\IAR\chcoreasm_v6m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\IAR\chcoreasm_v7m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\IAR\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\RVCT\chcoreasm_v6m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\RVCT\chcoreasm_v7m.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\ARMCMx\compilers\RVCT\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\AVR\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\AVR\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\AVR\compilers\GCC\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\e200\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\e200\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\e200\compilers\GCC\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\e200\compilers\GCC\ivor.s">
+			<Option compilerVar="ASM" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\SIMIA32\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\SIMIA32\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\ports\SIMIA32\compilers\GCC\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chcond.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chdebug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chdynamic.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chevents.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chheap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chmboxes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chmemcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chmempools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chmsg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chmtx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chqueues.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chregistry.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chschd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chsem.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chstats.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chsys.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chthreads.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chtm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\src\chvt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\chcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\chcore.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\chtypes.h" />
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\meta\module.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\rt\templates\meta\module.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\cpp_wrappers\ch.cpp">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\cpp_wrappers\ch.hpp">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\cpp_wrappers\syscalls_cpp.cpp">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\cpp_wrappers\syscalls_cpp.hpp">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\devices_lib\accel\lis302dl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\devices_lib\accel\lis302dl.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\devices_lib\lcd\lcd3310.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\devices_lib\lcd\lcd3310.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\evtimer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\evtimer.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\fatfs_bindings\fatfs_diskio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\fatfs_bindings\fatfs_syscall.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\arch\cc.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\arch\perf.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\arch\sys_arch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\arch\sys_arch.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\lwipthread.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\lwip_bindings\lwipthread.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\shell.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\os\various\shell.h" />
+		<Unit filename="ChibiOS_3.0.2\os\various\syscalls.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\common\irq_storm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\common\irq_storm.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\ADC\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\ADC\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\ADC\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\ADC\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\CAN\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\CAN\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\CAN\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\CAN\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC_DUAL\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC_DUAL\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC_DUAL\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DAC_DUAL\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DMA_STORM\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DMA_STORM\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DMA_STORM\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\DMA_STORM\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\EXT\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\EXT\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\EXT\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\EXT\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\GPT\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\GPT\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\GPT\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\GPT\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2C\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2C\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2C\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2C\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2S\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2S\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2S\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\I2S\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM_FPU\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM_FPU\extfunc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM_FPU\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM_FPU\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\IRQ_STORM_FPU\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\PWM-ICU\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\PWM-ICU\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\PWM-ICU\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\PWM-ICU\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\RTC\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\RTC\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\RTC\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\RTC\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SDC\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SDC\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SDC\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SDC\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SPI\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SPI\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SPI\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\SPI\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\UART\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\UART\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\UART\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\UART\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\chconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\halconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\mcuconf.h" />
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\usbcfg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ChibiOS_3.0.2\testhal\STM32\STM32F4xx\USB_CDC_IAD\usbcfg.h" />
+		<Unit filename="comm_can.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="comm_can.h" />
+		<Unit filename="comm_usb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="comm_usb.h" />
+		<Unit filename="comm_usb_serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="comm_usb_serial.h" />
+		<Unit filename="commands.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="commands.h" />
+		<Unit filename="conf_general.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="conf_general.h" />
+		<Unit filename="crc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="crc.h" />
+		<Unit filename="datatypes.h" />
+		<Unit filename="digital_filter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="digital_filter.h" />
+		<Unit filename="eeprom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eeprom.h" />
+		<Unit filename="encoder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="encoder.h" />
+		<Unit filename="flash_helper.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="flash_helper.h" />
+		<Unit filename="halconf.h" />
+		<Unit filename="hwconf\drv8301.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\drv8301.h" />
+		<Unit filename="hwconf\drv8305.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\drv8305.h" />
+		<Unit filename="hwconf\drv8320.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\drv8320.h" />
+		<Unit filename="hwconf\hw.h" />
+		<Unit filename="hwconf\hw_40.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_40.h" />
+		<Unit filename="hwconf\hw_410.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_410.h" />
+		<Unit filename="hwconf\hw_45.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_45.h" />
+		<Unit filename="hwconf\hw_46.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_46.h" />
+		<Unit filename="hwconf\hw_48.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_48.h" />
+		<Unit filename="hwconf\hw_49.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_49.h" />
+		<Unit filename="hwconf\hw_60.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_60.h" />
+		<Unit filename="hwconf\hw_75_300.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_75_300.h" />
+		<Unit filename="hwconf\hw_das_mini.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_das_mini.h" />
+		<Unit filename="hwconf\hw_das_rs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_das_rs.h" />
+		<Unit filename="hwconf\hw_mini4.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_mini4.h" />
+		<Unit filename="hwconf\hw_palta.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_palta.h" />
+		<Unit filename="hwconf\hw_r2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_r2.h" />
+		<Unit filename="hwconf\hw_rh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_rh.h" />
+		<Unit filename="hwconf\hw_tp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_tp.h" />
+		<Unit filename="hwconf\hw_victor_r1a.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hwconf\hw_victor_r1a.h" />
+		<Unit filename="irq_handlers.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="isr_vector_table.h" />
+		<Unit filename="led_external.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="led_external.h" />
+		<Unit filename="ledpwm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ledpwm.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mc_interface.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mc_interface.h" />
+		<Unit filename="mcconf\mcconf_default.h" />
+		<Unit filename="mcconf\mcconf_sten.h" />
+		<Unit filename="mcpwm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mcpwm.h" />
+		<Unit filename="mcpwm_foc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mcpwm_foc.h" />
+		<Unit filename="mcuconf.h" />
+		<Unit filename="nrf\nrf_driver.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nrf\nrf_driver.h" />
+		<Unit filename="nrf\rf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nrf\rf.h" />
+		<Unit filename="nrf\rfhelp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nrf\rfhelp.h" />
+		<Unit filename="nrf\spi_sw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="nrf\spi_sw.h" />
+		<Unit filename="packet.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="packet.h" />
+		<Unit filename="pid.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="servo_dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="servo_dec.h" />
+		<Unit filename="servo_simple.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="servo_simple.h" />
+		<Unit filename="stm32f4xx_conf.h" />
+		<Unit filename="terminal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="terminal.h" />
+		<Unit filename="timeout.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="timeout.h" />
+		<Unit filename="utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="utils.h" />
+		<Unit filename="ws2811.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ws2811.h" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+			<envvars />
+			<DoxyBlocks>
+				<comment_style block="0" line="0" />
+				<doxyfile_project />
+				<doxyfile_build />
+				<doxyfile_warnings />
+				<doxyfile_output />
+				<doxyfile_dot />
+				<general />
+			</DoxyBlocks>
+		</Extensions>
+	</Project>
+</EmBitz_project_file>
