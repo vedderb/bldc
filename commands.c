@@ -368,12 +368,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		timeout_reset();
 	} break;
 
-	case COMM_SET_SERVO_POS:
+	case COMM_SET_SERVO_POS: {
 #if SERVO_OUT_ENABLE
-		ind = 0;
+		int32_t ind = 0;
 		servo_simple_set_output(buffer_get_float16(data, 1000.0, &ind));
 #endif
-		break;
+	} break;
 
 	case COMM_SET_MCCONF:
 		mcconf = *mc_interface_get_configuration();
