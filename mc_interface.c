@@ -1737,7 +1737,7 @@ static THD_FUNCTION(timer_thread, arg) {
 		// Relevant only in FOC mode with encoder enabled
 		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
 			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			encoder_spi_get_error_rate() > 0.02) {
+			encoder_spi_get_error_rate() > 0.05) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER);
 		}
 
