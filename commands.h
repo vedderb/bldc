@@ -24,10 +24,11 @@
 
 // Functions
 void commands_init(void);
-void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len));
 void commands_send_packet(unsigned char *data, unsigned int len);
 void commands_send_packet_nrf(unsigned char *data, unsigned int len);
-void commands_process_packet(unsigned char *data, unsigned int len);
+void commands_send_packet_last_blocking(unsigned char *data, unsigned int len);
+void commands_process_packet(unsigned char *data, unsigned int len,
+		void(*reply_func)(unsigned char *data, unsigned int len));
 void commands_printf(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);

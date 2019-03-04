@@ -1,3 +1,10 @@
+=== FW 3.51 ===
+* Fixed AS5047 error rate bug at position 0.
+* Increased threshold for AS5047 fault to 2%.
+* Set correct V_REG value for HW 75/300.
+* Better command processing.
+* Proper scaling when setting relative currents and acceleration and braking currents are different.
+
 === FW 3.50 ===
 * AS5047 parity check and fault code on error rates > 1%.
 * Signature on mc and app configuration.

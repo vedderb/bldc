@@ -305,6 +305,8 @@ bool mc_interface_dccal_done(void) {
 /**
  * Set a function that should be called after each PWM cycle.
  *
+ * Note: this function is called from an interrupt.
+ *
  * @param p_func
  * The function to be called. 0 will not call any function.
  */
@@ -511,11 +513,7 @@ void mc_interface_set_brake_current(float current) {
  * The relative current value, range [-1.0 1.0]
  */
 void mc_interface_set_current_rel(float val) {
-	if (val > 0.0) {
-		mc_interface_set_current(val * m_conf.lo_current_motor_max_now);
-	} else {
-		mc_interface_set_current(val * fabsf(m_conf.lo_current_motor_min_now));
-	}
+	mc_interface_set_current(val * m_conf.lo_current_motor_max_now);
 }
 
 /**
@@ -525,7 +523,7 @@ void mc_interface_set_current_rel(float val) {
  * The relative current value, range [0.0 1.0]
  */
 void mc_interface_set_brake_current_rel(float val) {
-	mc_interface_set_brake_current(val * m_conf.lo_current_motor_max_now);
+	mc_interface_set_brake_current(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
 /**
@@ -1739,7 +1737,7 @@ static THD_FUNCTION(timer_thread, arg) {
 		// Relevant only in FOC mode with encoder enabled
 		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
 			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			encoder_spi_get_error_rate() > 0.01) {
+			encoder_spi_get_error_rate() > 0.02) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER);
 		}
 

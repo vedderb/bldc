@@ -810,15 +810,13 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 										| (unsigned short) crc_low)) {
 							switch (commands_send) {
 								case 0:
-									commands_set_send_func(send_packet_wrapper);
-									commands_process_packet(rx_buffer, rxbuf_len);
+									commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
 									break;
 								case 1:
 									commands_send_packet(rx_buffer, rxbuf_len);
 									break;
 								case 2:
-									commands_set_send_func(0);
-									commands_process_packet(rx_buffer, rxbuf_len);
+									commands_process_packet(rx_buffer, rxbuf_len, 0);
 									break;
 								default:
 									break;
@@ -833,15 +831,13 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 						switch (commands_send) {
 						case 0:
-							commands_set_send_func(send_packet_wrapper);
-							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind, send_packet_wrapper);
 							break;
 						case 1:
 							commands_send_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
 							break;
 						case 2:
-							commands_set_send_func(0);
-							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind);
+							commands_process_packet(rxmsg.data8 + ind, rxmsg.DLC - ind, 0);
 							break;
 						default:
 							break;

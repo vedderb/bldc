@@ -47,34 +47,27 @@
 #include <stdio.h>
 
 // Threads
-static THD_FUNCTION(detect_thread, arg);
-static THD_WORKING_AREA(detect_thread_wa, 2048);
-static thread_t *detect_tp;
+static THD_FUNCTION(blocking_thread, arg);
+static THD_WORKING_AREA(blocking_thread_wa, 2048);
+static thread_t *blocking_tp;
 
 // Private variables
 static uint8_t send_buffer_global[PACKET_MAX_PL_LEN];
-static uint8_t detect_thread_cmd_buffer[50];
-static volatile bool is_detecting = false;
+static uint8_t blocking_thread_cmd_buffer[PACKET_MAX_PL_LEN];
+static volatile unsigned int blocking_thread_cmd_len = 0;
+static volatile bool is_blocking = false;
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
-static void(* volatile send_func_detect)(unsigned char *data, unsigned int len) = 0;
-static void(* volatile send_func_last)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
+static mutex_t print_mutex;
+static mutex_t send_buffer_mutex;
 
 void commands_init(void) {
-	chThdCreateStatic(detect_thread_wa, sizeof(detect_thread_wa), NORMALPRIO, detect_thread, NULL);
-}
-
-/**
- * Provide a function to use the next time there are packets to be sent.
- *
- * @param func
- * A pointer to the packet sending function.
- */
-void commands_set_send_func(void(*func)(unsigned char *data, unsigned int len)) {
-	send_func_last = send_func;
-	send_func = func;
+	chMtxObjectInit(&print_mutex);
+	chMtxObjectInit(&send_buffer_mutex);
+	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
 }
 
 /**
@@ -113,6 +106,21 @@ void commands_send_packet_nrf(unsigned char *data, unsigned int len) {
 }
 
 /**
+ * Send data using the function last used by the blocking thread.
+ *
+ * @param data
+ * The packet data.
+ *
+ * @param len
+ * The data length.
+ */
+void commands_send_packet_last_blocking(unsigned char *data, unsigned int len) {
+	if (send_func_blocking) {
+		send_func_blocking(data, len);
+	}
+}
+
+/**
  * Process a received buffer with commands and data.
  *
  * @param data
@@ -121,24 +129,39 @@ void commands_send_packet_nrf(unsigned char *data, unsigned int len) {
  * @param len
  * The length of the buffer.
  */
-void commands_process_packet(unsigned char *data, unsigned int len) {
+void commands_process_packet(unsigned char *data, unsigned int len,
+		void(*reply_func)(unsigned char *data, unsigned int len)) {
+
 	if (!len) {
 		return;
 	}
 
 	COMM_PACKET_ID packet_id;
-	int32_t ind = 0;
 	static mc_configuration mcconf; // Static to save some stack space
 	static app_configuration appconf;
-	uint8_t *send_buffer = send_buffer_global;
 
 	packet_id = data[0];
 	data++;
 	len--;
 
+	// These packets should not make the sender the default one.
+	if (packet_id == COMM_EXT_NRF_PRESENT ||
+			packet_id == COMM_EXT_NRF_ESB_RX_DATA) {
+		send_func_nrf = reply_func;
+	} else {
+		send_func = reply_func;
+	}
+
+	// Avoid calling invalid function pointer if it is null.
+	// commands_send_packet will make the check.
+	if (!reply_func) {
+		reply_func = commands_send_packet;
+	}
+
 	switch (packet_id) {
-	case COMM_FW_VERSION:
-		ind = 0;
+	case COMM_FW_VERSION: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
@@ -151,8 +174,8 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
 
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
 	case COMM_JUMP_TO_BOOTLOADER_ALL_CAN:
 		data[-1] = COMM_JUMP_TO_BOOTLOADER;
@@ -175,7 +198,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		/* Falls through. */
 		/* no break */
 	case COMM_ERASE_NEW_APP: {
-		ind = 0;
+		int32_t ind = 0;
 
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
@@ -183,9 +206,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		uint16_t flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
 
 		ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_ERASE_NEW_APP;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
-		commands_send_packet(send_buffer, ind);
+		reply_func(send_buffer, ind);
 	} break;
 
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN:
@@ -198,7 +222,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		/* Falls through. */
 		/* no break */
 	case COMM_WRITE_NEW_APP_DATA: {
-		ind = 0;
+		int32_t ind = 0;
 		uint32_t new_app_offset = buffer_get_uint32(data, &ind);
 
 		if (nrf_driver_ext_nrf_running()) {
@@ -207,14 +231,17 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		uint16_t flash_res = flash_helper_write_new_app_data(new_app_offset, data + ind, len - ind);
 
 		ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_WRITE_NEW_APP_DATA;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
-		commands_send_packet(send_buffer, ind);
+		reply_func(send_buffer, ind);
 	} break;
 
 	case COMM_GET_VALUES:
 	case COMM_GET_VALUES_SELECTIVE: {
-		ind = 0;
+		int32_t ind = 0;
+		chMtxLock(&send_buffer_mutex);
+		uint8_t *send_buffer = send_buffer_global;
 		send_buffer[ind++] = packet_id;
 
 		uint32_t mask = 0xFFFFFFFF;
@@ -284,49 +311,50 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
 		}
 
-		commands_send_packet(send_buffer, ind);
+		reply_func(send_buffer, ind);
+		chMtxUnlock(&send_buffer_mutex);
 	} break;
 
-	case COMM_SET_DUTY:
-		ind = 0;
+	case COMM_SET_DUTY: {
+		int32_t ind = 0;
 		mc_interface_set_duty((float)buffer_get_int32(data, &ind) / 100000.0);
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_CURRENT:
-		ind = 0;
+	case COMM_SET_CURRENT: {
+		int32_t ind = 0;
 		mc_interface_set_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_CURRENT_BRAKE:
-		ind = 0;
+	case COMM_SET_CURRENT_BRAKE: {
+		int32_t ind = 0;
 		mc_interface_set_brake_current((float)buffer_get_int32(data, &ind) / 1000.0);
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_RPM:
-		ind = 0;
+	case COMM_SET_RPM: {
+		int32_t ind = 0;
 		mc_interface_set_pid_speed((float)buffer_get_int32(data, &ind));
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_POS:
-		ind = 0;
+	case COMM_SET_POS: {
+		int32_t ind = 0;
 		mc_interface_set_pid_pos((float)buffer_get_int32(data, &ind) / 1000000.0);
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_HANDBRAKE:
-		ind = 0;
+	case COMM_SET_HANDBRAKE: {
+		int32_t ind = 0;
 		mc_interface_set_handbrake(buffer_get_float32(data, 1e3, &ind));
 		timeout_reset();
-		break;
+	} break;
 
-	case COMM_SET_DETECT:
+	case COMM_SET_DETECT: {
 		mcconf = *mc_interface_get_configuration();
 
-		ind = 0;
+		int32_t ind = 0;
 		display_position_mode = data[ind++];
 
 		if (mcconf.motor_type == MOTOR_TYPE_BLDC) {
@@ -338,7 +366,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		}
 
 		timeout_reset();
-		break;
+	} break;
 
 	case COMM_SET_SERVO_POS:
 #if SERVO_OUT_ENABLE
@@ -366,9 +394,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			mc_interface_set_configuration(&mcconf);
 			chThdSleepMilliseconds(200);
 
-			ind = 0;
+			int32_t ind = 0;
+			uint8_t send_buffer[50];
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			reply_func(send_buffer, ind);
 		} else {
 			commands_printf("Warning: Could not set mcconf due to wrong signature");
 		}
@@ -394,9 +423,10 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 			chThdSleepMilliseconds(200);
 
-			ind = 0;
+			int32_t ind = 0;
+			uint8_t send_buffer[50];
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			reply_func(send_buffer, ind);
 		} else {
 			commands_printf("Warning: Could not set appconf due to wrong signature");
 		}
@@ -418,32 +448,12 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		uint8_t decimation;
 		debug_sampling_mode mode;
 
-		ind = 0;
+		int32_t ind = 0;
 		mode = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
 		mc_interface_sample_print_data(mode, sample_len, decimation);
 	} break;
-
-	case COMM_TERMINAL_CMD:
-		data[len] = '\0';
-		terminal_process_string((char*)data);
-		break;
-
-	case COMM_DETECT_MOTOR_PARAM:
-	case COMM_DETECT_MOTOR_R_L:
-	case COMM_DETECT_MOTOR_FLUX_LINKAGE:
-	case COMM_DETECT_ENCODER:
-	case COMM_DETECT_HALL_FOC:
-	case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
-	case COMM_DETECT_APPLY_ALL_FOC:
-		if (!is_detecting && len < sizeof(detect_thread_cmd_buffer)) {
-			memcpy(detect_thread_cmd_buffer, data - 1, len + 1);
-			is_detecting = true;
-			send_func_detect = send_func;
-			chEvtSignal(detect_tp, (eventmask_t)1);
-		}
-		break;
 
 	case COMM_REBOOT:
 		// Lock the system and enter an infinite loop. The watchdog will reboot.
@@ -455,30 +465,33 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		timeout_reset();
 		break;
 
-	case COMM_GET_DECODED_PPM:
-		ind = 0;
+	case COMM_GET_DECODED_PPM: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_PPM;
 		buffer_append_int32(send_buffer, (int32_t)(app_ppm_get_decoded_level() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(servodec_get_last_pulse_len(0) * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
-	case COMM_GET_DECODED_ADC:
-		ind = 0;
+	case COMM_GET_DECODED_ADC: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_ADC;
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_decoded_level2() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_adc_get_voltage2() * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
-	case COMM_GET_DECODED_CHUK:
-		ind = 0;
+	case COMM_GET_DECODED_CHUK: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
 		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
 	case COMM_FORWARD_CAN:
 		comm_can_send_buffer(data[0], data + 1, len - 1, 0);
@@ -487,7 +500,7 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	case COMM_SET_CHUCK_DATA: {
 		chuck_data chuck_d_tmp;
 
-		ind = 0;
+		int32_t ind = 0;
 		chuck_d_tmp.js_x = data[ind++];
 		chuck_d_tmp.js_y = data[ind++];
 		chuck_d_tmp.bt_c = data[ind++];
@@ -512,69 +525,71 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		}
 		break;
 
-	case COMM_NRF_START_PAIRING:
-		ind = 0;
+	case COMM_NRF_START_PAIRING: {
+		int32_t ind = 0;
 		nrf_driver_start_pairing(buffer_get_int32(data, &ind));
 
 		ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = NRF_PAIR_STARTED;
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
-	case COMM_GPD_SET_FSW:
+	case COMM_GPD_SET_FSW: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		gpdrive_set_switching_frequency((float)buffer_get_int32(data, &ind));
-		break;
+	} break;
 
-	case COMM_GPD_BUFFER_SIZE_LEFT:
-		ind = 0;
+	case COMM_GPD_BUFFER_SIZE_LEFT: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GPD_BUFFER_SIZE_LEFT;
 		buffer_append_int32(send_buffer, gpdrive_buffer_size_left(), &ind);
-		commands_send_packet(send_buffer, ind);
-		break;
+		reply_func(send_buffer, ind);
+	} break;
 
-	case COMM_GPD_FILL_BUFFER:
+	case COMM_GPD_FILL_BUFFER: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		while (ind < (int)len) {
 			gpdrive_add_buffer_sample(buffer_get_float32_auto(data, &ind));
 		}
-		break;
+	} break;
 
-	case COMM_GPD_OUTPUT_SAMPLE:
+	case COMM_GPD_OUTPUT_SAMPLE: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		gpdrive_add_buffer_sample(buffer_get_float32_auto(data, &ind));
-		break;
+	} break;
 
-	case COMM_GPD_SET_MODE:
+	case COMM_GPD_SET_MODE: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		gpdrive_set_mode(data[ind++]);
-		break;
+	} break;
 
-	case COMM_GPD_FILL_BUFFER_INT8:
+	case COMM_GPD_FILL_BUFFER_INT8: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		while (ind < (int)len) {
 			gpdrive_add_buffer_sample_int((int8_t)data[ind++]);
 		}
-		break;
+	} break;
 
-	case COMM_GPD_FILL_BUFFER_INT16:
+	case COMM_GPD_FILL_BUFFER_INT16: {
 		timeout_reset();
-		ind = 0;
+		int32_t ind = 0;
 		while (ind < (int)len) {
 			gpdrive_add_buffer_sample_int(buffer_get_int16(data, &ind));
 		}
-		break;
+	} break;
 
-	case COMM_GPD_SET_BUFFER_INT_SCALE:
-		ind = 0;
+	case COMM_GPD_SET_BUFFER_INT_SCALE: {
+		int32_t ind = 0;
 		gpdrive_set_buffer_int_scale(buffer_get_float32_auto(data, &ind));
-		break;
+	} break;
 
 	case COMM_GET_VALUES_SETUP:
 	case COMM_GET_VALUES_SETUP_SELECTIVE: {
@@ -621,7 +636,9 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		float wh_batt_left = 0.0;
 		float battery_level = mc_interface_get_battery_level(&wh_batt_left);
 
-		ind = 0;
+		int32_t ind = 0;
+		chMtxLock(&send_buffer_mutex);
+		uint8_t *send_buffer = send_buffer_global;
 		send_buffer[ind++] = packet_id;
 
 		uint32_t mask = 0xFFFFFFFF;
@@ -692,14 +709,15 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
 		}
 
-		commands_send_packet(send_buffer, ind);
+		reply_func(send_buffer, ind);
+		chMtxUnlock(&send_buffer_mutex);
 	} break;
 
 	case COMM_SET_MCCONF_TEMP:
 	case COMM_SET_MCCONF_TEMP_SETUP: {
 		mcconf = *mc_interface_get_configuration();
 
-		ind = 0;
+		int32_t ind = 0;
 		bool store = data[ind++];
 		bool forward_can = data[ind++];
 		bool ack = data[ind++];
@@ -779,19 +797,18 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 
 		if (ack) {
 			ind = 0;
+			uint8_t send_buffer[50];
 			send_buffer[ind++] = packet_id;
-			commands_send_packet(send_buffer, ind);
+			reply_func(send_buffer, ind);
 		}
 	} break;
 
 	case COMM_EXT_NRF_PRESENT: {
-		send_func_nrf = send_func;
-		send_func = send_func_last;
-
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init_ext_nrf();
 			if (!nrf_driver_is_pairing()) {
 				const app_configuration *appconf_ptr = app_get_configuration();
+				uint8_t send_buffer[50];
 				send_buffer[0] = COMM_EXT_NRF_ESB_SET_CH_ADDR;
 				send_buffer[1] = appconf_ptr->app_nrf_conf.channel;
 				send_buffer[2] = appconf_ptr->app_nrf_conf.address[0];
@@ -803,29 +820,11 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 	} break;
 
 	case COMM_EXT_NRF_ESB_RX_DATA: {
-		send_func_nrf = send_func;
-		send_func = send_func_last;
 		nrf_driver_process_packet(data, len);
 	} break;
 
-	case COMM_PING_CAN:
-		ind = 0;
-		// Send buffer cannot be used, as it might be altered while waiting
-		// for pings.
-		uint8_t buffer[256];
-		buffer[ind++] = COMM_PING_CAN;
-
-		for (uint8_t i = 0;i < 255;i++) {
-			if (comm_can_ping(i)) {
-				buffer[ind++] = i;
-			}
-		}
-
-		commands_send_packet(buffer, ind);
-		break;
-
 	case COMM_APP_DISABLE_OUTPUT: {
-		ind = 0;
+		int32_t ind = 0;
 		bool fwd_can = data[ind++];
 		int time = buffer_get_int32(data, &ind);
 		app_disable_output(time);
@@ -836,33 +835,55 @@ void commands_process_packet(unsigned char *data, unsigned int len) {
 		}
 	} break;
 
+	// Blocking operations
+	case COMM_TERMINAL_CMD:
+	case COMM_DETECT_MOTOR_PARAM:
+	case COMM_DETECT_MOTOR_R_L:
+	case COMM_DETECT_MOTOR_FLUX_LINKAGE:
+	case COMM_DETECT_ENCODER:
+	case COMM_DETECT_HALL_FOC:
+	case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
+	case COMM_DETECT_APPLY_ALL_FOC:
+	case COMM_PING_CAN:
+		if (!is_blocking && len < sizeof(blocking_thread_cmd_buffer)) {
+			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
+			blocking_thread_cmd_len = len;
+			is_blocking = true;
+			send_func_blocking = reply_func;
+			chEvtSignal(blocking_tp, (eventmask_t)1);
+		}
+		break;
+
 	default:
 		break;
 	}
 }
 
 void commands_printf(const char* format, ...) {
+	chMtxLock(&print_mutex);
+
 	va_list arg;
 	va_start (arg, format);
 	int len;
 	static char print_buffer[255];
 
 	print_buffer[0] = COMM_PRINT;
-	len = vsnprintf(print_buffer+1, 254, format, arg);
+	len = vsnprintf(print_buffer + 1, 254, format, arg);
 	va_end (arg);
 
 	if(len > 0) {
-		commands_send_packet((unsigned char*)print_buffer, (len<254)? len+1: 255);
+		commands_send_packet_last_blocking((unsigned char*)print_buffer,
+				(len < 254) ? len + 1 : 255);
 	}
+
+	chMtxUnlock(&print_mutex);
 }
 
 void commands_send_rotor_pos(float rotor_pos) {
 	uint8_t buffer[5];
 	int32_t index = 0;
-
 	buffer[index++] = COMM_ROTOR_POSITION;
 	buffer_append_int32(buffer, (int32_t)(rotor_pos * 100000.0), &index);
-
 	commands_send_packet(buffer, index);
 }
 
@@ -893,30 +914,35 @@ void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
-
+	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
-
 	commands_send_packet(send_buffer_global, index);
+	chMtxUnlock(&send_buffer_mutex);
 }
 
 void commands_send_gpd_buffer_notify(void) {
 	int32_t index = 0;
-	send_buffer_global[index++] = COMM_GPD_BUFFER_NOTIFY;
-	commands_send_packet(send_buffer_global, index);
+	uint8_t buffer[1];
+	buffer[index++] = COMM_GPD_BUFFER_NOTIFY;
+	commands_send_packet(buffer, index);
 }
 
 void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf) {
+	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_mcconf(send_buffer_global + 1, mcconf);
 	commands_send_packet(send_buffer_global, len + 1);
+	chMtxUnlock(&send_buffer_mutex);
 }
 
 void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf) {
+	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_appconf(send_buffer_global + 1, appconf);
 	commands_send_packet(send_buffer_global, len + 1);
+	chMtxUnlock(&send_buffer_mutex);
 }
 
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
@@ -967,29 +993,29 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #endif
 }
 
-static THD_FUNCTION(detect_thread, arg) {
+static THD_FUNCTION(blocking_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("Detect");
+	chRegSetThreadName("comm_block");
 
-	detect_tp = chThdGetSelfX();
+	blocking_tp = chThdGetSelfX();
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
 
-		uint8_t *data = detect_thread_cmd_buffer;
+		uint8_t *data = blocking_thread_cmd_buffer;
+		unsigned int len = blocking_thread_cmd_len;
 
 		COMM_PACKET_ID packet_id;
-		int32_t ind = 0;
 		static mc_configuration mcconf, mcconf_old;
-		static uint8_t send_buffer[50];
+		static uint8_t send_buffer[256];
 
 		packet_id = data[0];
 		data++;
 
 		switch (packet_id) {
 		case COMM_DETECT_MOTOR_PARAM: {
-			ind = 0;
+			int32_t ind = 0;
 			float detect_current = buffer_get_float32(data, 1e3, &ind);
 			float detect_min_rpm = buffer_get_float32(data, 1e3, &ind);
 			float detect_low_duty = buffer_get_float32(data, 1e3, &ind);
@@ -1013,8 +1039,8 @@ static THD_FUNCTION(detect_thread, arg) {
 			ind += 8;
 			send_buffer[ind++] = detect_hall_res;
 
-			if (send_func_detect) {
-				send_func_detect(send_buffer, ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 
@@ -1035,17 +1061,17 @@ static THD_FUNCTION(detect_thread, arg) {
 				l = 0.0;
 			}
 
-			ind = 0;
+			int32_t ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
 			buffer_append_float32(send_buffer, r, 1e6, &ind);
 			buffer_append_float32(send_buffer, l, 1e3, &ind);
-			if (send_func_detect) {
-				send_func_detect(send_buffer, ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 
 		case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
-			ind = 0;
+			int32_t ind = 0;
 			float current = buffer_get_float32(data, 1e3, &ind);
 			float min_rpm = buffer_get_float32(data, 1e3, &ind);
 			float duty = buffer_get_float32(data, 1e3, &ind);
@@ -1061,8 +1087,8 @@ static THD_FUNCTION(detect_thread, arg) {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE;
 			buffer_append_float32(send_buffer, linkage, 1e7, &ind);
-			if (send_func_detect) {
-				send_func_detect(send_buffer, ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 
@@ -1071,7 +1097,7 @@ static THD_FUNCTION(detect_thread, arg) {
 				mcconf = *mc_interface_get_configuration();
 				mcconf_old = mcconf;
 
-				ind = 0;
+				int32_t ind = 0;
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf.motor_type = MOTOR_TYPE_FOC;
@@ -1092,18 +1118,18 @@ static THD_FUNCTION(detect_thread, arg) {
 				buffer_append_float32(send_buffer, ratio, 1e6, &ind);
 				send_buffer[ind++] = inverted;
 
-				if (send_func_detect) {
-					send_func_detect(send_buffer, ind);
+				if (send_func_blocking) {
+					send_func_blocking(send_buffer, ind);
 				}
 			} else {
-				ind = 0;
+				int32_t ind = 0;
 				send_buffer[ind++] = COMM_DETECT_ENCODER;
 				buffer_append_float32(send_buffer, 1001.0, 1e6, &ind);
 				buffer_append_float32(send_buffer, 0.0, 1e6, &ind);
 				send_buffer[ind++] = false;
 
-				if (send_func_detect) {
-					send_func_detect(send_buffer, ind);
+				if (send_func_blocking) {
+					send_func_blocking(send_buffer, ind);
 				}
 			}
 		} break;
@@ -1113,7 +1139,7 @@ static THD_FUNCTION(detect_thread, arg) {
 
 			if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_HALL) {
 				mcconf_old = mcconf;
-				ind = 0;
+				int32_t ind = 0;
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf.motor_type = MOTOR_TYPE_FOC;
@@ -1132,23 +1158,23 @@ static THD_FUNCTION(detect_thread, arg) {
 				ind += 8;
 				send_buffer[ind++] = res ? 0 : 1;
 
-				if (send_func_detect) {
-					send_func_detect(send_buffer, ind);
+				if (send_func_blocking) {
+					send_func_blocking(send_buffer, ind);
 				}
 			} else {
-				ind = 0;
+				int32_t ind = 0;
 				send_buffer[ind++] = COMM_DETECT_HALL_FOC;
 				memset(send_buffer, 255, 8);
 				ind += 8;
 				send_buffer[ind++] = 0;
-				if (send_func_detect) {
-					send_func_detect(send_buffer, ind);
+				if (send_func_blocking) {
+					send_func_blocking(send_buffer, ind);
 				}
 			}
 		} break;
 
 		case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP: {
-			ind = 0;
+			int32_t ind = 0;
 			float current = buffer_get_float32(data, 1e3, &ind);
 			float erpm_per_sec = buffer_get_float32(data, 1e3, &ind);
 			float duty = buffer_get_float32(data, 1e3, &ind);
@@ -1164,13 +1190,13 @@ static THD_FUNCTION(detect_thread, arg) {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP;
 			buffer_append_float32(send_buffer, linkage, 1e7, &ind);
-			if (send_func_detect) {
-				send_func_detect(send_buffer, ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 
 		case COMM_DETECT_APPLY_ALL_FOC: {
-			ind = 0;
+			int32_t ind = 0;
 			bool detect_can = data[ind++];
 			float max_power_loss = buffer_get_float32(data, 1e3, &ind);
 			float min_current_in = buffer_get_float32(data, 1e3, &ind);
@@ -1184,8 +1210,30 @@ static THD_FUNCTION(detect_thread, arg) {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_APPLY_ALL_FOC;
 			buffer_append_int16(send_buffer, res, &ind);
-			if (send_func_detect) {
-				send_func_detect(send_buffer, ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_TERMINAL_CMD:
+			data[len] = '\0';
+			terminal_process_string((char*)data);
+			break;
+
+		case COMM_PING_CAN: {
+			int32_t ind = 0;
+			// Send buffer cannot be used, as it might be altered while waiting
+			// for pings.
+			send_buffer[ind++] = COMM_PING_CAN;
+
+			for (uint8_t i = 0;i < 255;i++) {
+				if (comm_can_ping(i)) {
+					send_buffer[ind++] = i;
+				}
+			}
+
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 
@@ -1193,6 +1241,6 @@ static THD_FUNCTION(detect_thread, arg) {
 			break;
 		}
 
-		is_detecting = false;
+		is_blocking = false;
 	}
 }

@@ -111,7 +111,7 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.3
+#define V_REG					3.44
 #endif
 #ifndef VIN_R1
 #define VIN_R1					56000.0

@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		50
+#define FW_VERSION_MINOR		51
 
 #include "datatypes.h"
 
@@ -133,7 +133,8 @@
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-//#define APP_CUSTOM_TO_USE			"app_ellwee.c"
+//#define APP_CUSTOM_TO_USE			"app_rotary_led.c"
+//#define APPCONF_APP_TO_USE			APP_CUSTOM
 
 /*
  * Enable CAN-bus
@@ -178,7 +179,7 @@
 
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
-#define V_REG						3.3
+//#define V_REG						3.3
 
 // Use the pins for the hardware SPI port instead of the hall/encoder pins for the AS5047
 #ifndef AS5047_USE_HW_SPI_PINS

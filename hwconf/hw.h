@@ -68,6 +68,11 @@
 #define CURRENT_FILTER_OFF()
 #endif
 
+// VCC net voltage
+#ifndef V_REG
+#define V_REG				3.3
+#endif
+
 // Individual MOSFET temperature sensors. Override if available.
 #ifndef NTC_TEMP_MOS1
 #define NTC_TEMP_MOS1()		0.0
