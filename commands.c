@@ -58,8 +58,8 @@ static volatile unsigned int blocking_thread_cmd_len = 0;
 static volatile bool is_blocking = false;
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
-static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
@@ -137,14 +137,17 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	}
 
 	COMM_PACKET_ID packet_id;
-	static mc_configuration mcconf; // Static to save some stack space
+
+	// Static to save some stack space
+	static mc_configuration mcconf;
 	static app_configuration appconf;
 
 	packet_id = data[0];
 	data++;
 	len--;
 
-	// These packets should not make the sender the default one.
+	// The NRF51 ESB implementation is treated like it has its own
+	// independent communication interface.
 	if (packet_id == COMM_EXT_NRF_PRESENT ||
 			packet_id == COMM_EXT_NRF_ESB_RX_DATA) {
 		send_func_nrf = reply_func;
@@ -835,7 +838,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
-	// Blocking operations
+	// Blocking commands. Only one of them runs at any given time, in their
+	// own thread. If other blocking commands come before the previous one has
+	// finished, they are discarded.
 	case COMM_TERMINAL_CMD:
 	case COMM_DETECT_MOTOR_PARAM:
 	case COMM_DETECT_MOTOR_R_L:
@@ -845,7 +850,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
 	case COMM_DETECT_APPLY_ALL_FOC:
 	case COMM_PING_CAN:
-		if (!is_blocking && len < sizeof(blocking_thread_cmd_buffer)) {
+		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len;
 			is_blocking = true;
@@ -1222,8 +1227,6 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		case COMM_PING_CAN: {
 			int32_t ind = 0;
-			// Send buffer cannot be used, as it might be altered while waiting
-			// for pings.
 			send_buffer[ind++] = COMM_PING_CAN;
 
 			for (uint8_t i = 0;i < 255;i++) {
