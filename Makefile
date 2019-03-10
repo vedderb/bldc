@@ -108,6 +108,7 @@ include hwconf/hwconf.mk
 include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
+include imu/imu.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -150,10 +151,13 @@ CSRC = $(STARTUPSRC) \
        mcpwm_foc.c \
        gpdrive.c \
        confgenerator.c \
+       timer.c \
+       i2c_bb.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
-       $(CANARDSRC)
+       $(CANARDSRC) \
+       $(IMUSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -191,7 +195,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HWINC) \
          $(APPINC) \
          $(NRFINC) \
-         $(CANARDINC)
+         $(CANARDINC) \
+         $(IMUINC)
 
 #
 # Project, sources and paths

@@ -114,7 +114,7 @@ void app_set_configuration(app_configuration *conf) {
 
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
-	app_uartcomm_configure(appconf.app_uart_baudrate);
+	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.permanent_uart_enabled);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
 #ifdef APP_CUSTOM_TO_USE

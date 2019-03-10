@@ -217,6 +217,44 @@ cd $FWPATH
 make clean
 cd $DIR
 
+#################### HW 75_300_R2 ########################
+
+COPYDIR=75_300_R2
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2'
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2'
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
+# ws2811
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2'
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
+
+# servoout
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2'
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
 #################### HW PALTA ########################
 
 COPYDIR=PALTA

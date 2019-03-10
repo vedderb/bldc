@@ -219,6 +219,13 @@
 #define DRV8301_CS_GPIO			GPIOC
 #define DRV8301_CS_PIN			9
 
+// MPU9250
+#define MPU9X50_SDA_GPIO		GPIOB
+#define MPU9X50_SDA_PIN			2
+#define MPU9X50_SCL_GPIO		GPIOA
+#define MPU9X50_SCL_PIN			15
+#define MPU9x50_FLIP
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]

@@ -147,6 +147,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_uint16(buffer, conf->send_can_status_rate_hz, &ind);
 	buffer[ind++] = conf->can_baud_rate;
 	buffer[ind++] = conf->pairing_done;
+	buffer[ind++] = conf->permanent_uart_enabled;
 	buffer[ind++] = conf->uavcan_enable;
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->app_to_use;
@@ -363,6 +364,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->send_can_status_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->can_baud_rate = buffer[ind++];
 	conf->pairing_done = buffer[ind++];
+	conf->permanent_uart_enabled = buffer[ind++];
 	conf->uavcan_enable = buffer[ind++];
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
@@ -563,6 +565,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
 	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
 	conf->pairing_done = APPCONF_PAIRING_DONE;
+	conf->permanent_uart_enabled = APPCONF_PERMANENT_UART_ENABLED;
 	conf->uavcan_enable = APPCONF_UAVCAN_ENABLE;
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->app_to_use = APPCONF_APP_TO_USE;

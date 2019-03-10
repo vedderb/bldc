@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -33,6 +33,7 @@
 #include "encoder.h"
 #include "commands.h"
 #include "timeout.h"
+#include "timer.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -432,18 +433,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	DCCAL_OFF();
 	do_dc_cal();
 
-	// Various time measurements
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-
-	// Time base configuration
-	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
-
-	TIM_Cmd(TIM12, ENABLE);
-
 	// Start threads
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -471,7 +460,6 @@ void mcpwm_foc_deinit(void) {
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM8);
-	TIM_DeInit(TIM12);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
 	nvicDisableVector(ADC_IRQn);
@@ -501,7 +489,7 @@ bool mcpwm_foc_is_dccal_done(void) {
 }
 
 /**
- * Switch off all FETs.TIM12->CNT = 0;
+ * Switch off all FETs.
  */
 void mcpwm_foc_stop_pwm(void) {
 	mcpwm_foc_set_current(0.0);
@@ -1571,7 +1559,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		return;
 	}
 
-	TIM12->CNT = 0;
+	uint32_t t_start = timer_time_now();
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
 
@@ -2076,7 +2064,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// MCIF handler
 	mc_interface_mc_timer_isr();
 
-	m_last_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }
 
 // Private functions

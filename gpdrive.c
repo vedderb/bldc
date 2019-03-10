@@ -28,6 +28,7 @@
 #include "commands.h"
 #include "timeout.h"
 #include "mc_interface.h"
+#include "timer.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -91,9 +92,7 @@ void gpdrive_init(volatile mc_configuration *configuration) {
 
 	// Restore timers
 	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM8);
 	TIM1->CNT = 0;
-	TIM8->CNT = 0;
 
 	// Disable channel 2 pins
 	palSetPadMode(GPIOA, 9, PAL_MODE_OUTPUT_PUSHPULL);
@@ -244,15 +243,6 @@ void gpdrive_init(volatile mc_configuration *configuration) {
 	DCCAL_OFF();
 	do_dc_cal();
 
-	// Various time measurements
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
-	TIM_Cmd(TIM12, ENABLE);
-
 	// Start threads
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -281,7 +271,6 @@ void gpdrive_deinit(void) {
 	}
 
 	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM8);
 	TIM_DeInit(TIM12);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
@@ -508,7 +497,7 @@ static void adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	TIM12->CNT = 0;
+	uint32_t t_start = timer_time_now();
 
 	// Reset the watchdog
 	timeout_feed_WDT(THREAD_MCPWM);
@@ -621,7 +610,7 @@ static void adc_int_handler(void *p, uint32_t flags) {
 
 	ledpwm_update_pwm();
 
-	m_last_adc_isr_duration = (float)TIM12->CNT / 10000000.0;
+	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }
 
 static THD_FUNCTION(timer_thread, arg) {

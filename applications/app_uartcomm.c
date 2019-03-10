@@ -148,13 +148,29 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len) {
 	chMtxUnlock(&send_mutex);
 }
 
-void app_uartcomm_configure(uint32_t baudrate) {
+void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled) {
 	uart_cfg.speed = baudrate;
 
 	if (thread_is_running) {
 		sdStart(&HW_UART_DEV, &uart_cfg);
 		uart_is_running = true;
 	}
+
+#ifdef HW_UART_P_DEV
+	if (permanent_enabled) {
+		palSetPadMode(HW_UART_P_TX_PORT, HW_UART_P_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_P_GPIO_AF) |
+				PAL_STM32_OSPEED_HIGHEST |
+				PAL_STM32_PUDR_PULLUP);
+		palSetPadMode(HW_UART_P_RX_PORT, HW_UART_P_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_P_GPIO_AF) |
+				PAL_STM32_OSPEED_HIGHEST |
+				PAL_STM32_PUDR_PULLUP);
+	} else {
+		palSetPadMode(HW_UART_P_TX_PORT, HW_UART_P_TX_PIN, PAL_MODE_INPUT);
+		palSetPadMode(HW_UART_P_RX_PORT, HW_UART_P_RX_PIN, PAL_MODE_INPUT);
+	}
+#else
+	(void)permanent_enabled;
+#endif
 }
 
 static THD_FUNCTION(packet_process_thread, arg) {

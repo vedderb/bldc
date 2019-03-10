@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		51
+#define FW_VERSION_MINOR		52
 
 #include "datatypes.h"
 
@@ -40,12 +40,6 @@
 
 // Disable hardware limits on configuration parameters
 //#define DISABLE_HW_LIMITS
-
-// Benjamins first HW60 PCB with PB5 and PB6 swapped
-//#define HW60_VEDDER_FIRST_PCB
-
-// Benjamins first HW75_300 PCB with different LED pins and motor temp error
-//#define HW75_300_VEDDER_FIRST_PCB
 
 /*
  * Select only one hardware version, if it is not passed
@@ -70,6 +64,9 @@
 //#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
 //#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
+// Benjamins first HW60 PCB with PB5 and PB6 swapped
+//#define HW60_VEDDER_FIRST_PCB
+
 #define HW_SOURCE "hw_60.c"
 #define HW_HEADER "hw_60.h"
 
@@ -90,6 +87,12 @@
 
 //#define HW_SOURCE "hw_tp.c"
 //#define HW_HEADER "hw_tp.h"
+
+// Benjamins first HW75_300 PCB with different LED pins and motor temp error
+//#define HW75_300_VEDDER_FIRST_PCB
+
+// Second revision with separate UART for NRF51
+//#define HW75_300_REV_2
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"

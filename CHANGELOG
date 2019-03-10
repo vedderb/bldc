@@ -1,3 +1,14 @@
+=== FW 3.52 ===
+* Added support for second revision of HW75/300 with separate UART for NRF51.
+* Added COMM_TERMINAL_CMD_SYNC, which does not drop commands when busy.
+* Added option to disable permanent UART.
+* Moved TIM5 to own file, and use it from other places.
+* Removed need for TIM2 in mcpwm.
+* Added utilization percentage to threads terminal command.
+* Added IMU interface.
+* Added support for the MPU9150 and MPU9250.
+* Added COMM_GET_IMU_DATA.
+
 === FW 3.51 ===
 * Fixed AS5047 error rate bug at position 0.
 * Increased threshold for AS5047 fault to 5 %.

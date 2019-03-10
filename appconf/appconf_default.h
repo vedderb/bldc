@@ -48,6 +48,9 @@
 #ifndef APPCONF_PAIRING_DONE
 #define APPCONF_PAIRING_DONE				false
 #endif
+#ifndef APPCONF_PERMANENT_UART_ENABLED
+#define APPCONF_PERMANENT_UART_ENABLED		true
+#endif
 
 // The default app is UART in case the UART port is used for
 // firmware updates.

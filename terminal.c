@@ -102,10 +102,11 @@ void terminal_process_string(char *str) {
 		commands_printf("-------------------------------------------------------------");
 		tp = chRegFirstThread();
 		do {
-			commands_printf("%.8lx %.8lx %4lu %4lu %9s %14s %lu",
+			commands_printf("%.8lx %.8lx %4lu %4lu %9s %14s %lu (%.1f %%)",
 					(uint32_t)tp, (uint32_t)tp->p_ctx.r13,
 					(uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-					states[tp->p_state], tp->p_name, (uint32_t)tp->p_time);
+					states[tp->p_state], tp->p_name, (uint32_t)tp->p_time,
+					(double)(100.0 * (float)tp->p_time / (float)chVTGetSystemTimeX()));
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
 		commands_printf("");

@@ -20,7 +20,11 @@
 #ifndef HW_75_300_H_
 #define HW_75_300_H_
 
+#ifdef HW75_300_REV_2
+#define HW_NAME					"75_300_R2"
+#else
 #define HW_NAME					"75_300"
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -45,8 +49,13 @@
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
+#ifdef HW75_300_REV_2
+#define PHASE_FILTER_GPIO		GPIOC
+#define PHASE_FILTER_PIN		9
+#else
 #define PHASE_FILTER_GPIO		GPIOC
 #define PHASE_FILTER_PIN		11
+#endif
 #define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 
@@ -169,6 +178,17 @@
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
+
+#ifdef HW75_300_REV_2
+// Permanent UART Peripheral (for NRF51)
+#define HW_UART_P_BAUD			115200
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+#define HW_UART_P_TX_PORT		GPIOC
+#define HW_UART_P_TX_PIN		10
+#define HW_UART_P_RX_PORT		GPIOC
+#define HW_UART_P_RX_PIN		11
+#endif
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4

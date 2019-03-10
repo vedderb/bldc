@@ -40,6 +40,7 @@
 #include "nrf_driver.h"
 #include "gpdrive.h"
 #include "confgenerator.h"
+#include "imu.h"
 
 #include <math.h>
 #include <string.h>
@@ -63,10 +64,12 @@ static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
+static mutex_t terminal_mutex;
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
+	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
 }
 
@@ -838,6 +841,86 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_TERMINAL_CMD_SYNC:
+		data[len] = '\0';
+		chMtxLock(&terminal_mutex);
+		terminal_process_string((char*)data);
+		chMtxUnlock(&terminal_mutex);
+		break;
+
+	case COMM_GET_IMU_DATA: {
+		int32_t ind = 0;
+		uint8_t send_buffer[70];
+		send_buffer[ind++] = packet_id;
+
+		int32_t ind2 = 0;
+		uint32_t mask = buffer_get_uint16(data, &ind2);
+
+		float rpy[3], acc[3], gyro[3], mag[3], q[4];
+		imu_get_rpy(rpy);
+		imu_get_accel(acc);
+		imu_get_gyro(gyro);
+		imu_get_mag(mag);
+		imu_get_quaternions(q);
+
+		buffer_append_uint16(send_buffer, mask, &ind);
+
+		if (mask & ((uint32_t)1 << 0)) {
+			buffer_append_float32_auto(send_buffer, rpy[0], &ind);
+		}
+		if (mask & ((uint32_t)1 << 1)) {
+			buffer_append_float32_auto(send_buffer, rpy[1], &ind);
+		}
+		if (mask & ((uint32_t)1 << 2)) {
+			buffer_append_float32_auto(send_buffer, rpy[2], &ind);
+		}
+
+		if (mask & ((uint32_t)1 << 3)) {
+			buffer_append_float32_auto(send_buffer, acc[0], &ind);
+		}
+		if (mask & ((uint32_t)1 << 4)) {
+			buffer_append_float32_auto(send_buffer, acc[1], &ind);
+		}
+		if (mask & ((uint32_t)1 << 5)) {
+			buffer_append_float32_auto(send_buffer, acc[2], &ind);
+		}
+
+		if (mask & ((uint32_t)1 << 6)) {
+			buffer_append_float32_auto(send_buffer, gyro[0], &ind);
+		}
+		if (mask & ((uint32_t)1 << 7)) {
+			buffer_append_float32_auto(send_buffer, gyro[1], &ind);
+		}
+		if (mask & ((uint32_t)1 << 8)) {
+			buffer_append_float32_auto(send_buffer, gyro[2], &ind);
+		}
+
+		if (mask & ((uint32_t)1 << 9)) {
+			buffer_append_float32_auto(send_buffer, mag[0], &ind);
+		}
+		if (mask & ((uint32_t)1 << 10)) {
+			buffer_append_float32_auto(send_buffer, mag[1], &ind);
+		}
+		if (mask & ((uint32_t)1 << 11)) {
+			buffer_append_float32_auto(send_buffer, mag[2], &ind);
+		}
+
+		if (mask & ((uint32_t)1 << 12)) {
+			buffer_append_float32_auto(send_buffer, q[0], &ind);
+		}
+		if (mask & ((uint32_t)1 << 13)) {
+			buffer_append_float32_auto(send_buffer, q[1], &ind);
+		}
+		if (mask & ((uint32_t)1 << 14)) {
+			buffer_append_float32_auto(send_buffer, q[2], &ind);
+		}
+		if (mask & ((uint32_t)1 << 15)) {
+			buffer_append_float32_auto(send_buffer, q[3], &ind);
+		}
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1222,7 +1305,9 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		case COMM_TERMINAL_CMD:
 			data[len] = '\0';
+			chMtxLock(&terminal_mutex);
 			terminal_process_string((char*)data);
+			chMtxUnlock(&terminal_mutex);
 			break;
 
 		case COMM_PING_CAN: {

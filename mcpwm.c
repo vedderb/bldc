@@ -32,6 +32,7 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "encoder.h"
+#include "timer.h"
 
 // Structs
 typedef struct {
@@ -92,6 +93,7 @@ static volatile bool init_done = false;
 static volatile mc_comm_mode comm_mode_next;
 static volatile float m_pll_phase;
 static volatile float m_pll_speed;
+static volatile uint32_t rpm_timer_start;
 
 #ifdef HW_HAS_3_SHUNTS
 static volatile int curr2_sum;
@@ -211,6 +213,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	comm_mode_next = conf->comm_mode;
 	m_pll_phase = 0.0;
 	m_pll_speed = 0.0;
+	rpm_timer_start = 0;
 
 	mcpwm_init_hall_table((int8_t*)conf->hall_table);
 
@@ -419,20 +422,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 
-	// 32-bit timer for RPM measurement
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-	uint16_t PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / MCPWM_RPM_TIMER_FREQ) - 1;
-
-	// Time base configuration
-	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
-
-	// TIM2 enable counter
-	TIM_Cmd(TIM2, ENABLE);
-
 	// ADC sampling locations
 	stop_pwm_hw();
 	mc_timer_struct timer_tmp;
@@ -449,19 +438,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	ENABLE_GATE();
 	DCCAL_OFF();
 	do_dc_cal();
-
-	// Various time measurements
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-	PrescalerValue = (uint16_t) ((SYSTEM_CORE_CLOCK / 2) / 10000000) - 1;
-
-	// Time base configuration
-	TIM_TimeBaseStructure.TIM_Period = 0xFFFFFFFF;
-	TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInit(TIM12, &TIM_TimeBaseStructure);
-
-	TIM_Cmd(TIM12, ENABLE);
 
 	// Start threads
 	timer_thd_stop = false;
@@ -496,9 +472,7 @@ void mcpwm_deinit(void) {
 	}
 
 	TIM_DeInit(TIM1);
-	TIM_DeInit(TIM2);
 	TIM_DeInit(TIM8);
-	TIM_DeInit(TIM12);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
 	nvicDisableVector(ADC_IRQn);
@@ -1302,15 +1276,15 @@ static THD_FUNCTION(rpm_thread, arg) {
 		if (rpm_dep.comms != 0) {
 			utils_sys_lock_cnt();
 			const float comms = (float)rpm_dep.comms;
-			const float time_at_comm = (float)rpm_dep.time_at_comm;
+			const float time_at_comm = rpm_dep.time_at_comm;
 			rpm_dep.comms = 0;
-			rpm_dep.time_at_comm = 0;
+			rpm_dep.time_at_comm = 0.0;
 			utils_sys_unlock_cnt();
 
-			rpm_now = (comms * MCPWM_RPM_TIMER_FREQ * 60.0) / (time_at_comm * 6.0);
+			rpm_now = (comms * 60.0) / (time_at_comm * 6.0);
 		} else {
 			// In case we have slowed down
-			float rpm_tmp = (MCPWM_RPM_TIMER_FREQ * 60.0) / ((float) TIM2 ->CNT * 6.0);
+			float rpm_tmp = 60.0 / (timer_seconds_elapsed_since(rpm_timer_start) * 6.0);
 
 			if (fabsf(rpm_tmp) < fabsf(rpm_now)) {
 				rpm_now = rpm_tmp;
@@ -1461,7 +1435,7 @@ static THD_FUNCTION(timer_thread, arg) {
 }
 
 void mcpwm_adc_inj_int_handler(void) {
-	TIM12->CNT = 0;
+	uint32_t t_start = timer_time_now();
 
 	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
 	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
@@ -1730,7 +1704,7 @@ void mcpwm_adc_inj_int_handler(void) {
 			(float*) current_fir_samples, (float*) current_fir_coeffs,
 			CURR_FIR_TAPS_BITS, current_fir_index);
 
-	last_inj_adc_isr_duration = (float) TIM12->CNT / 10000000.0;
+	last_inj_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }
 
 /*
@@ -1740,7 +1714,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	TIM12->CNT = 0;
+	uint32_t t_start = timer_time_now();
 
 	// Set the next timer settings if an update is far enough away
 	update_timer_attempt();
@@ -2108,7 +2082,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		pll_run(-pos * M_PI / 180.0, 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
 	}
 
-	last_adc_isr_duration = (float)TIM12->CNT / 10000000.0;
+	last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }
 
 void mcpwm_set_detect(void) {
@@ -2552,8 +2526,8 @@ static void update_rpm_tacho(void) {
 
 	if (tacho_diff != 0) {
 		rpm_dep.comms += tacho_diff;
-		rpm_dep.time_at_comm += TIM2->CNT;
-		TIM2->CNT = 0;
+		rpm_dep.time_at_comm += timer_seconds_elapsed_since(rpm_timer_start);
+		rpm_timer_start = timer_time_now();
 	}
 
 	// Tachometers

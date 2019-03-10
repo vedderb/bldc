@@ -129,7 +129,7 @@ typedef struct {
 	float comm_time_sum;
 	float comm_time_sum_min_rpm;
 	int32_t comms;
-	uint32_t time_at_comm;
+	float time_at_comm;
 } mc_rpm_dep_struct;
 
 typedef enum {
@@ -482,6 +482,7 @@ typedef struct {
 	uint32_t send_can_status_rate_hz;
 	CAN_BAUD can_baud_rate;
 	bool pairing_done;
+	bool permanent_uart_enabled;
 
 	// UAVCAN
 	bool uavcan_enable;
@@ -571,7 +572,9 @@ typedef enum {
 	COMM_ERASE_NEW_APP_ALL_CAN,
 	COMM_WRITE_NEW_APP_DATA_ALL_CAN,
 	COMM_PING_CAN,
-	COMM_APP_DISABLE_OUTPUT
+	COMM_APP_DISABLE_OUTPUT,
+	COMM_TERMINAL_CMD_SYNC,
+	COMM_GET_IMU_DATA
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -728,5 +731,18 @@ typedef enum {
 	NRF_PAIR_OK,
 	NRF_PAIR_FAIL
 } NRF_PAIR_RES;
+
+// Orientation data
+typedef struct {
+	float q0;
+	float q1;
+	float q2;
+	float q3;
+	float integralFBx;
+	float integralFBy;
+	float integralFBz;
+	float accMagP;
+	int initialUpdateDone;
+} ATTITUDE_INFO;
 
 #endif /* DATATYPES_H_ */

@@ -1483,7 +1483,7 @@ void mc_interface_mc_timer_isr(void) {
 
 			m_sample_now++;
 
-			m_last_adc_duration_sample = mc_interface_get_last_sample_adc_isr_duration();
+			m_last_adc_duration_sample = mc_interface_get_last_inj_adc_isr_duration();
 		}
 	}
 }

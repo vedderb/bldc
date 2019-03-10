@@ -47,12 +47,13 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "spi_sw.h"
+#include "timer.h"
+#include "imu.h"
 
 /*
  * Timers used:
  * TIM1: mcpwm
- * TIM2: mcpwm
- * TIM12: mcpwm
+ * TIM5: timer
  * TIM8: mcpwm
  * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
  * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
@@ -60,10 +61,6 @@
  * DMA/stream	Device		Function
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
  * 1, 7			I2C1		Nunchuk, temp on rev 4.5
- * 1, 1			UART3		HW_R2
- * 1, 3			UART3		HW_R2
- * 2, 2			UART6		Other HW
- * 2, 7			UART6		Other HW
  * 2, 4			ADC			mcpwm
  * 1, 0			TIM4		WS2811/WS2812 LEDs CH1 (Ch 1)
  * 1, 3			TIM4		WS2811/WS2812 LEDs CH2 (Ch 2)
@@ -201,6 +198,7 @@ int main(void) {
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
+	timer_init();
 	conf_general_init();
 	ledpwm_init();
 
@@ -315,6 +313,7 @@ int main(void) {
 
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+	imu_init();
 
 	for(;;) {
 		chThdSleepMilliseconds(10);
