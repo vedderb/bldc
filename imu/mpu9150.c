@@ -318,14 +318,12 @@ static THD_FUNCTION(mpu_thread, arg) {
 }
 
 static int reset_init_mpu(void) {
-	bool res = true;
-
 	i2c_bb_restore_bus(&i2cs);
 
 	// Set clock source to gyro x
 	tx_buf[0] = MPU9150_PWR_MGMT_1;
 	tx_buf[1] = 0x01;
-	res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	bool res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
 
 	// Try the other address
 	if (!res) {

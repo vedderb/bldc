@@ -95,10 +95,6 @@ void ahrs_update_initial_orientation(float *accelXYZ, float *magXYZ, ATTITUDE_IN
 
 void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
-	float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
-	float hx, hy, bx, bz;
-	float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
-	float halfex, halfey, halfez;
 	float qa, qb, qc;
 
 	float gx = gyroXYZ[0];
@@ -112,10 +108,6 @@ void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt
 	float mx = magXYZ[0];
 	float my = magXYZ[1];
 	float mz = magXYZ[2];
-
-	volatile float twoKp = TWO_KP;
-	volatile float twoKi = TWO_KI;
-	float accelConfidence;
 
 	if (!att->initialUpdateDone) {
 		ahrs_update_initial_orientation(accelXYZ, magXYZ, att);
@@ -133,6 +125,15 @@ void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt
 	// Compute feedback only if accelerometer abs(vector)is not too small to avoid a division
 	// by a small number
 	if (accelNorm > 0.01) {
+		float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+		float hx, hy, bx, bz;
+		float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
+		float halfex, halfey, halfez;
+		float accelConfidence;
+
+		volatile float twoKp = TWO_KP;
+		volatile float twoKi = TWO_KI;
+
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
 		twoKp *= accelConfidence;
 		twoKi *= accelConfidence;
@@ -222,8 +223,6 @@ void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt
 
 void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
-	float halfvx, halfvy, halfvz;
-	float halfex, halfey, halfez;
 	float qa, qb, qc;
 
 	float gx = gyroXYZ[0];
@@ -234,15 +233,18 @@ void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_
 	float ay = accelXYZ[1];
 	float az = accelXYZ[2];
 
-	volatile float twoKp = TWO_KP;
-	volatile float twoKi = TWO_KI;
-	float accelConfidence;
-
 	accelNorm = sqrtf(ax * ax + ay * ay + az * az);
 
 	// Compute feedback only if accelerometer abs(vector)is not too small to avoid a division
 	// by a small number
 	if (accelNorm > 0.01) {
+		float halfvx, halfvy, halfvz;
+		float halfex, halfey, halfez;
+		float accelConfidence;
+
+		volatile float twoKp = TWO_KP;
+		volatile float twoKi = TWO_KI;
+
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
 		twoKp *= accelConfidence;
 		twoKi *= accelConfidence;
@@ -305,13 +307,7 @@ void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_
 
 void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
-	float accelConfidence;
-	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
-	float hx, hy;
-	float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1,
-	_2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2,
-	q1q3, q2q2, q2q3, q3q3;
 
 	float q0 = att->q0;
 	float q1 = att->q1;
@@ -347,6 +343,12 @@ void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float 
 	// Compute feedback only if accelerometer abs(vector)is not too small to avoid a division
 	// by a small number
 	if (accelNorm > 0.01) {
+		float s0, s1, s2, s3;
+		float hx, hy;
+		float accelConfidence;
+		float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1,
+		_2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2,
+		q1q3, q2q2, q2q3, q3q3;
 
 		// Normalise accelerometer measurement
 		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
@@ -385,7 +387,7 @@ void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float 
 		// Reference direction of Earth's magnetic field
 		hx = mx * q0q0 - _2q0my * q3 + _2q0mz * q2 + mx * q1q1 + _2q1 * my * q2 + _2q1 * mz * q3 - mx * q2q2 - mx * q3q3;
 		hy = _2q0mx * q3 + my * q0q0 - _2q0mz * q1 + _2q1mx * q2 - my * q1q1 + my * q2q2 + _2q2 * mz * q3 - my * q3q3;
-		_2bx = sqrt(hx * hx + hy * hy);
+		_2bx = sqrtf(hx * hx + hy * hy);
 		_2bz = -_2q0mx * q2 + _2q0my * q1 + mz * q0q0 + _2q1mx * q3 - mz * q1q1 + _2q2 * my * q3 - mz * q2q2 + mz * q3q3;
 		_4bx = 2.0f * _2bx;
 		_4bz = 2.0f * _2bz;
@@ -430,10 +432,7 @@ void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float 
 
 void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
-	float accelConfidence;
-	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
-	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 ,_8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
 
 	float q0 = att->q0;
 	float q1 = att->q1;
@@ -459,6 +458,9 @@ void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUD
 	// Compute feedback only if accelerometer abs(vector)is not too small to avoid a division
 	// by a small number
 	if (accelNorm > 0.01) {
+		float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 ,_8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
+		float s0, s1, s2, s3;
+		float accelConfidence;
 
 		// Normalise accelerometer measurement
 		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
