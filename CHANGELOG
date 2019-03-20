@@ -1,3 +1,9 @@
+=== FW 3.53 ===
+* Limit foc_current_filter_const range to prevent damage due to bad configuration.
+* Set default NRF speed to 1 Mbit/s.
+* Use lower switching frequency when detecting resistance to reduce deat-time distortion.
+* Don't enable temperature compensation in auto detection by default.
+
 === FW 3.52 ===
 * Added support for second revision of HW75/300 with separate UART for NRF51.
 * Added COMM_TERMINAL_CMD_SYNC, which does not drop commands when busy.
