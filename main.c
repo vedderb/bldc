@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -51,8 +51,7 @@
 #include "imu.h"
 
 /*
- * HW resources used:
- *
+ * Timers used:
  * TIM1: mcpwm
  * TIM5: timer
  * TIM8: mcpwm
@@ -69,6 +68,8 @@
  */
 
 // Private variables
+
+
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
 
@@ -105,20 +106,20 @@ static THD_FUNCTION(periodic_thread, arg) {
 		disp_pos_mode display_mode = commands_get_disp_pos_mode();
 
 		switch (display_mode) {
-		case DISP_POS_MODE_ENCODER:
-			commands_send_rotor_pos(encoder_read_deg());
-			break;
+			case DISP_POS_MODE_ENCODER:
+				commands_send_rotor_pos(encoder_read_deg());
+				break;
 
-		case DISP_POS_MODE_PID_POS:
-			commands_send_rotor_pos(mc_interface_get_pid_pos_now());
-			break;
+			case DISP_POS_MODE_PID_POS:
+				commands_send_rotor_pos(mc_interface_get_pid_pos_now());
+				break;
 
-		case DISP_POS_MODE_PID_POS_ERROR:
-			commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
-			break;
+			case DISP_POS_MODE_PID_POS_ERROR:
+				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 
 		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
@@ -133,10 +134,30 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 			default:
 				break;
-			}
+		}
 		}
 
 		chThdSleepMilliseconds(10);
+
+//		chThdSleepMilliseconds(40);
+//		volatile const mc_configuration *conf = mc_interface_get_configuration();
+//		float vq = mcpwm_foc_get_vq();
+//		float iq = mc_interface_get_tot_current_directional();
+//		float linkage = conf->foc_motor_flux_linkage;
+//		float speed = ((2.0 * M_PI) / 60.0) * mc_interface_get_rpm();
+//
+//		if (iq < -6.0) {
+//			float res = vq / (linkage * speed * iq);
+//			res *= 2.0 / 3.0;
+//			static float res_filtered = 0.0;
+//			UTILS_LP_FAST(res_filtered, res, 0.02);
+//			commands_printf("Res: %.4f", (double)res_filtered);
+//		}
+
+//		chThdSleepMilliseconds(40);
+//		commands_printf("Max: %.2f Min: %.2f",
+//				(double)mc_interface_get_configuration()->lo_current_motor_max_now,
+//				(double)mc_interface_get_configuration()->lo_current_motor_min_now);
 	}
 }
 
@@ -152,13 +173,12 @@ static THD_FUNCTION(timer_thread, arg) {
 	}
 }
 
-// When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower
+/* When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower */
 void assert_failed(uint8_t* file, uint32_t line) {
 	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
 	mc_interface_release_motor();
-	while(1) {
+	while(1)
 		chThdSleepMilliseconds(1);
-	}
 }
 
 int main(void) {
@@ -297,5 +317,9 @@ int main(void) {
 
 	for(;;) {
 		chThdSleepMilliseconds(10);
+
+		if (encoder_is_configured()) {
+			//		comm_can_set_pos(0, encoder_read_deg());
+		}
 	}
 }
