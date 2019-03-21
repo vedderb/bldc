@@ -912,7 +912,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 	mcconf.motor_type = MOTOR_TYPE_FOC;
 	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf.foc_f_sw = 10000.0; // Lower f_sw => less dead-time distortion
 	mcconf.foc_current_kp = 0.0005;
 	mcconf.foc_current_ki = 1.0;
 	mcconf.l_current_max = MCCONF_L_CURRENT_MAX;
@@ -976,12 +975,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	float i_max = sqrtf(max_power_loss / r);
 	utils_truncate_number(&i_max, HW_LIM_CURRENT);
 
-	// Increase switching frequency for flux linkage measurement
-	// as dead-time distortion has less effect at higher modulation.
-	// Having a smooth rotation is more important.
-	mcconf.foc_f_sw = 20000.0;
-	mc_interface_set_configuration(&mcconf);
-
 	float lambda = 0.0;
 	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, &lambda);
 
@@ -1012,14 +1005,12 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old.foc_observer_gain = gain * 1e6;
 
 		// Temperature compensation
-		// Skip temperature compensation for now, as it seems to make
-		// things worse on some setups.
-//		if (mc_interface_temp_motor_filtered() > 0.0) {
-//			mcconf_old.foc_temp_comp = true;
-//			mcconf_old.foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
-//		} else {
-//			mcconf_old.foc_temp_comp = false;
-//		}
+		if (mc_interface_temp_motor_filtered() > 0.0) {
+			mcconf_old.foc_temp_comp = true;
+			mcconf_old.foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+		} else {
+			mcconf_old.foc_temp_comp = false;
+		}
 	} else {
 		result = -10;
 	}
