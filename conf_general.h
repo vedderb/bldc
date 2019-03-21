@@ -67,8 +67,11 @@
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
+
+#define HW_SOURCE "hw_gsvesc.c"
+#define HW_HEADER "hw_gsvesc.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -136,7 +139,7 @@
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-//#define APP_CUSTOM_TO_USE			"app_rotary_led.c"
+#define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APPCONF_APP_TO_USE			APP_CUSTOM
 
 /*
