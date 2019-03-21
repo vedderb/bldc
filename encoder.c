@@ -28,6 +28,9 @@
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
 
+#define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
+
+
 #if AS5047_USE_HW_SPI_PINS
 #ifdef HW_SPI_DEV
 #define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
@@ -62,7 +65,8 @@
 typedef enum {
 	ENCODER_MODE_NONE = 0,
 	ENCODER_MODE_ABI,
-	ENCODER_MODE_AS5047P_SPI
+	ENCODER_MODE_AS5047P_SPI,
+	RESOLVER_MODE_AD2S1205
 } encoder_mode;
 
 // Private variables
@@ -70,12 +74,29 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
+uint16_t spi_val = 0;
+uint32_t spi_error_cnt = 0;
+float spi_error_rate = 0.0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+
+
+uint32_t encoder_spi_get_error_cnt(void) {
+	return spi_error_cnt;
+}
+
+uint16_t encoder_spi_get_val(void) {
+	return spi_val;
+}
+
+float encoder_spi_get_error_rate(void) {
+	return spi_error_rate;
+}
+
 
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -93,6 +114,7 @@ void encoder_deinit(void) {
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
+	spi_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
@@ -175,12 +197,66 @@ void encoder_init_as5047p_spi(void) {
 
 	mode = ENCODER_MODE_AS5047P_SPI;
 	index_found = true;
+	spi_error_rate = 0.0;
 }
+
+void encoder_init_ad2s1205_spi(void) {
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT);
+	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+	// Set MOSI to 1
+#if AS5047_USE_HW_SPI_PINS
+	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN);
+#endif
+
+	// TODO: Choose pins on comm port when these are not defined
+#if defined(AD2S1205_SAMPLE_GPIO) && defined(AD2S1205_RDVEL_GPIO)
+	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);	// Prepare for a falling edge SAMPLE assertion
+	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
+#endif
+
+
+	// Enable timer clock
+	HW_ENC_TIM_CLK_EN();
+
+	// Time Base configuration
+	TIM_TimeBaseStructure.TIM_Prescaler = 0;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2 / AD2S1205_SAMPLE_RATE_HZ) - 1);
+	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
+
+	// Enable overflow interrupt
+	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
+
+	// Enable timer
+	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
+
+	mode = RESOLVER_MODE_AD2S1205;
+	index_found = true;
+}
+
 
 bool encoder_is_configured(void) {
 	return mode != ENCODER_MODE_NONE;
 }
 
+/**
+ * Read angle from configured encoder.
+ *
+ * @return
+ * The current encoder angle in degrees.
+ */
 float encoder_read_deg(void) {
 	static float angle = 0.0;
 
@@ -190,6 +266,7 @@ float encoder_read_deg(void) {
 		break;
 
 	case ENCODER_MODE_AS5047P_SPI:
+	case RESOLVER_MODE_AD2S1205:
 		angle = last_enc_angle;
 		break;
 
@@ -235,18 +312,61 @@ void encoder_reset(void) {
 	}
 }
 
+// returns true for even number of ones (no parity error according to AS5047 datasheet
+bool spi_check_parity(uint16_t x) {
+	x ^= x >> 8;
+	x ^= x >> 4;
+	x ^= x >> 2;
+	x ^= x >> 1;
+	return (~x) & 1;
+}
+
 /**
  * Timer interrupt
  */
 void encoder_tim_isr(void) {
 	uint16_t pos;
 
-	spi_begin();
-	spi_transfer(&pos, 0, 1);
-	spi_end();
+	if(mode == ENCODER_MODE_AS5047P_SPI) {
+		spi_begin();
+		spi_transfer(&pos, 0, 1);
+		spi_end();
 
-	pos &= 0x3FFF;
-	last_enc_angle = ((float)pos * 360.0) / 16384.0;
+		spi_val = pos;
+		if(spi_check_parity(pos) && pos != 0xffff) {  // all ones = disconnect
+			pos &= 0x3FFF;
+			last_enc_angle = ((float)pos * 360.0) / 16384.0;
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AS5047_SAMPLE_RATE_HZ);
+		} else {
+			++spi_error_cnt;
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AS5047_SAMPLE_RATE_HZ);
+		}		
+	}
+
+	if(mode == RESOLVER_MODE_AD2S1205) {
+		// SAMPLE signal should have been be asserted in sync with ADC sampling
+#ifdef AD2S1205_RDVEL_GPIO
+		palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
+#endif
+
+		spi_begin(); // CS uses the same mcu pin as AS5047
+
+		spi_transfer(&pos, 0, 1);
+		spi_end();
+
+		uint16_t RDVEL = pos & 0x08; // 1 means a position read
+		uint16_t DOS = pos & 0x04;
+		uint16_t LOT = pos & 0x02;
+	//	uint16_t parity = pos & 0x01; // 16 bit frame should have odd parity
+
+		pos &= 0xFFF0;
+		pos = pos >> 4;
+		pos &= 0x0FFF; // check if needed
+
+		if((RDVEL != 0) && (DOS != 0) && (LOT != 0)) {
+			last_enc_angle = ((float)pos * 360.0) / 4096.0;
+		}
+	}
 }
 
 /**

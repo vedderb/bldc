@@ -107,6 +107,9 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include hwconf/hwconf.mk
 include applications/applications.mk
 include nrf/nrf.mk
+include libcanard/canard.mk
+include imu/imu.mk
+#include blackmagic/blackmagic.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -147,9 +150,16 @@ CSRC = $(STARTUPSRC) \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \
+       gpdrive.c \
+       confgenerator.c \
+       timer.c \
+       i2c_bb.c \
        $(HWSRC) \
        $(APPSRC) \
-       $(NRFSRC)
+       $(NRFSRC) \
+       $(CANARDSRC) \
+       $(IMUSRC) \
+#       $(BLACKMAGICSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -186,7 +196,10 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          appconf \
          $(HWINC) \
          $(APPINC) \
-         $(NRFINC)
+         $(NRFINC) \
+         $(CANARDINC) \
+         $(IMUINC) \
+#         $(BLACKMAGICINC)
 
 #
 # Project, sources and paths
@@ -222,7 +235,7 @@ AOPT =
 TOPT = -mthumb -DTHUMB
 
 # Define C warning options here
-CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes
+CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes -Wshadow
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra -Wundef

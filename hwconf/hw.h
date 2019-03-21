@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012 - 2019 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -15,56 +17,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-/*
- * hw.h
- *
- *  Created on: 12 apr 2014
- *      Author: benjamin
- */
-
 #ifndef HW_H_
 #define HW_H_
 
 #include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
-#ifdef HW_VERSION_40
-#include "hw_40.h"
-#elif defined HW_VERSION_45
-#include "hw_45.h"
-#elif defined HW_VERSION_46
-#include "hw_46.h"
-#elif defined HW_VERSION_48
-#include "hw_48.h"
-#elif defined HW_VERSION_49
-#include "hw_49.h"
-#elif defined HW_VERSION_410
-#include "hw_410.h"
-#elif defined HW_VERSION_60
-#include "hw_60.h"
-#elif defined HW_VERSION_R2
-#include "hw_r2.h"
-#elif defined HW_VERSION_VICTOR_R1A
-#include "hw_victor_r1a.h"
-#elif defined HW_VERSION_DAS_RS
-#include "hw_das_rs.h"
-#elif defined HW_VERSION_PALTA
-#include "hw_palta.h"
-#elif defined HW_VERSION_RH
-#include "hw_rh.h"
-#elif defined HW_VERSION_TP
-#include "hw_tp.h"
-#elif defined HW_VERSION_75_300
-#include "hw_75_300.h"
-#elif defined HW_VERSION_MINI4
-#include "hw_mini4.h"
-#elif defined HW_VERSION_DAS_MINI
-#include "hw_das_mini.h"
-#else
-#error "No hardware version defined"
+#include HW_HEADER
+
+#ifndef HW_NAME
+#error "No hardware name set"
 #endif
 
-// Default empty macros in case there is no hardware support
+// Default macros in case there is no hardware support or no need to change them.
+
 #ifndef ENABLE_GATE
 #define ENABLE_GATE()
 #endif
@@ -80,11 +46,137 @@
 #ifndef IS_DRV_FAULT
 #define IS_DRV_FAULT()			0
 #endif
+
 #ifndef AUX_ON
 #define AUX_ON()
 #endif
 #ifndef AUX_OFF
 #define AUX_OFF()
+#endif
+
+#ifndef PHASE_FILTER_ON
+#define PHASE_FILTER_ON()
+#endif
+#ifndef PHASE_FILTER_OFF
+#define PHASE_FILTER_OFF()
+#endif
+
+#ifndef CURRENT_FILTER_ON
+#define CURRENT_FILTER_ON()
+#endif
+#ifndef CURRENT_FILTER_OFF
+#define CURRENT_FILTER_OFF()
+#endif
+
+// VCC net voltage
+#ifndef V_REG
+#define V_REG				3.3
+#endif
+
+// Individual MOSFET temperature sensors. Override if available.
+#ifndef NTC_TEMP_MOS1
+#define NTC_TEMP_MOS1()		0.0
+#endif
+#ifndef NTC_TEMP_MOS2
+#define NTC_TEMP_MOS2()		0.0
+#endif
+#ifndef NTC_TEMP_MOS3
+#define NTC_TEMP_MOS3()		0.0
+#endif
+
+// Current ADC macros. Override them for custom current measurement functions.
+#ifndef GET_CURRENT1
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT1()		(4095 - ADC_Value[ADC_IND_CURR1])
+#else
+#define GET_CURRENT1()		ADC_Value[ADC_IND_CURR1]
+#endif
+#endif
+#ifndef GET_CURRENT2
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT2()		(4095 - ADC_Value[ADC_IND_CURR2])
+#else
+#define GET_CURRENT2()		ADC_Value[ADC_IND_CURR2]
+#endif
+#endif
+#ifndef GET_CURRENT3
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT3()		(4095 - ADC_Value[ADC_IND_CURR3])
+#else
+#define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
+#endif
+#endif
+
+// NRF SW SPI (default to spi header pins)
+#ifndef NRF_PORT_CSN
+#define NRF_PORT_CSN			HW_SPI_PORT_NSS
+#endif
+#ifndef NRF_PIN_CSN
+#define NRF_PIN_CSN				HW_SPI_PIN_NSS
+#endif
+#ifndef NRF_PORT_SCK
+#define NRF_PORT_SCK			HW_SPI_PORT_SCK
+#endif
+#ifndef NRF_PIN_SCK
+#define NRF_PIN_SCK				HW_SPI_PIN_SCK
+#endif
+#ifndef NRF_PORT_MOSI
+#define NRF_PORT_MOSI			HW_SPI_PORT_MOSI
+#endif
+#ifndef NRF_PIN_MOSI
+#define NRF_PIN_MOSI			HW_SPI_PIN_MOSI
+#endif
+#ifndef NRF_PORT_MISO
+#define NRF_PORT_MISO			HW_SPI_PORT_MISO
+#endif
+#ifndef NRF_PIN_MISO
+#define NRF_PIN_MISO			HW_SPI_PIN_MISO
+#endif
+
+// CAN device and port (default CAN1)
+#ifndef HW_CANH_PORT
+#define HW_CANH_PORT			GPIOB
+#endif
+#ifndef HW_CANH_PIN
+#define HW_CANH_PIN				8
+#endif
+#ifndef HW_CANL_PORT
+#define HW_CANL_PORT			GPIOB
+#endif
+#ifndef HW_CANL_PIN
+#define HW_CANL_PIN				9
+#endif
+#ifndef HW_CAN_GPIO_AF
+#define HW_CAN_GPIO_AF			GPIO_AF_CAN1
+#endif
+#ifndef HW_CAN_DEV
+#define HW_CAN_DEV				CAND1
+#endif
+
+// Hook to call when trying to initialize the permanent NRF failed. Can be
+// used to e.g. reconfigure pins.
+#ifndef HW_PERMANENT_NRF_FAILED_HOOK
+#define HW_PERMANENT_NRF_FAILED_HOOK()
+#endif
+
+// Default ID
+#ifndef HW_DEFAULT_ID
+#define HW_DEFAULT_ID			(APPCONF_CONTROLLER_ID >= 0 ? APPCONF_CONTROLLER_ID : hw_id_from_uuid())
+#endif
+
+#ifndef HW_LIM_CURRENT
+#define HW_LIM_CURRENT			-100.0, 100.0
+#endif
+#ifndef HW_LIM_CURRENT_ABS
+#define HW_LIM_CURRENT_ABS		0.0, 140.0
+#endif
+
+#ifndef HW_LIM_FOC_CTRL_LOOP_FREQ
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	3000.0, 30000.0
+#endif
+
+#ifndef HW_FOC_CURRENT_FILTER_LIM
+#define HW_FOC_CURRENT_FILTER_LIM	0.05, 1.0
 #endif
 
 // Functions
@@ -93,5 +185,6 @@ void hw_setup_adc_channels(void);
 void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
+uint8_t hw_id_from_uuid(void);
 
 #endif /* HW_H_ */

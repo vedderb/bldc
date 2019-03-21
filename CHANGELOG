@@ -1,3 +1,104 @@
+=== FW 3.53 ===
+* Limit foc_current_filter_const range to prevent damage due to bad configuration.
+* Set default NRF speed to 1 Mbit/s.
+* Use lower switching frequency when detecting resistance to reduce deat-time distortion.
+* Don't enable temperature compensation in auto detection by default.
+
+=== FW 3.52 ===
+* Added support for second revision of HW75/300 with separate UART for NRF51.
+* Added COMM_TERMINAL_CMD_SYNC, which does not drop commands when busy.
+* Added option to disable permanent UART.
+* Moved TIM5 to own file, and use it from other places.
+* Removed need for TIM2 in mcpwm.
+* Added utilization percentage to threads terminal command.
+* Added IMU interface.
+* Added support for the MPU9150 and MPU9250.
+* Added COMM_GET_IMU_DATA.
+
+=== FW 3.51 ===
+* Fixed AS5047 error rate bug at position 0.
+* Increased threshold for AS5047 fault to 5 %.
+* Set correct V_REG value for HW 75/300.
+* Better command processing.
+* Proper scaling when setting relative currents and acceleration and braking currents are different.
+
+=== FW 3.50 ===
+* AS5047 parity check and fault code on error rates > 1 %.
+* Signature on mc and app configuration.
+* FOC loop frequency truncation on all hardwares.
+
+=== FW 3.49 ===
+* New watchdog implementation.
+* HW updates.
+* Fixed DC motor current sampling issue.
+* Deadtime in nanoseconds instead of register value.
+* Use fastest ramping time when throttle is applied.
+
+=== FW 3.48 ===
+* Added pairing flag to appconf.
+* Decreased CAN TX timeout.
+
+=== FW 3.47 ===
+* Current percentage limits.
+* Mcconf_temp based on current scale instead of absolute current.
+* Removed battery current from mcconf_temp.
+* Added current scale parameter.
+* Different braking behavior: prefer cogging over locking the brakes.
+
+=== FW 3.46 ===
+* DC motor RPM measurement and RPM control when using encoder.
+* Support for configurable current low pass filter.
+* Much better recovery when failing to decode packets.
+* Run all detect functions in separate thread.
+* Fixed bug introduced when adding support for dual UARTs.
+* Added support for reverse state on NRF remote.
+* Support to disable app output for a specified time.
+
+=== FW 3.45 ===
+* Default CAN ID from UUID, and hook to define it in hwconf.
+* CAN ping support.
+* Simultaneous firmware update over CAN-bus.
+* Fully automated motor detection, based on maximum motor power losses.
+* Sensor autodetection and configuration support.
+* Softer encoder detection.
+* Better NRF_EXT support.
+* New more reliable flux linkage measurement.
+* Simpler to add hardware versions to build system. 
+* More DAS hardware support.
+* DRV8323s support.
+* Initial UAVCAN support.
+* Moved from uart to serial driver to avoid DMA conflicts.
+* Support for permanent UART.
+
+=== FW 3.44 ===
+* NRF_EXT commands support.
+ - Use NRF51822 with ESB remotes.
+* Different radio channel for NRF pairing.
+
+=== FW 3.43 ===
+* Added battery ah to setup info.
+* Changed tacho values in COMM_GET_VALUES_SETUP to meters.
+* Added battery wh COMM_GET_VALUES_SETUP.
+* Better remaining battery capacity calculation.
+
+=== FW 3.42 ===
+* Added setup info parameters:
+ - Motor Poles
+ - Gear Ratio
+ - Wheel Diameter
+ - Battery Type
+ - Battery Cells
+* Added more CAN status messages.
+* Updated speed PID to start properly when braking is disabled.
+* Added COMM_GET_VALUES_SETUP.
+* Added COMM_SET_MCCONF_TEMP.
+* Added COMM_SET_MCCONF_TEMP_SETUP.
+* Added COMM_GET_VALUES_SELECTIVE.
+* Added COMM_GET_VALUES_SETUP_SELECTIVE.
+
+=== FW 3.41 ===
+* First general purpose DC output implementation.
+
 === FW 3.40 ===
 * Added motor controller ID to COMM_GET_VALUES.
 

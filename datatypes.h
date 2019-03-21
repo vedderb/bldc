@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -63,10 +63,19 @@ typedef enum {
 	OUT_AUX_MODE_ON_AFTER_10S
 } out_aux_mode;
 
+// General purpose drive output mode
+typedef enum {
+	GPD_OUTPUT_MODE_NONE = 0,
+	GPD_OUTPUT_MODE_MODULATION,
+	GPD_OUTPUT_MODE_VOLTAGE,
+	GPD_OUTPUT_MODE_CURRENT
+} gpd_output_mode;
+
 typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
-	MOTOR_TYPE_FOC
+	MOTOR_TYPE_FOC,
+	MOTOR_TYPE_GPD
 } mc_motor_type;
 
 typedef enum {
@@ -76,7 +85,12 @@ typedef enum {
 	FAULT_CODE_DRV,
 	FAULT_CODE_ABS_OVER_CURRENT,
 	FAULT_CODE_OVER_TEMP_FET,
-	FAULT_CODE_OVER_TEMP_MOTOR
+	FAULT_CODE_OVER_TEMP_MOTOR,
+	FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE,
+	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
+	FAULT_CODE_MCU_UNDER_VOLTAGE,
+	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
+	FAULT_CODE_ENCODER,
 } mc_fault_code;
 
 typedef enum {
@@ -87,6 +101,7 @@ typedef enum {
 	CONTROL_MODE_POS,
 	CONTROL_MODE_HANDBRAKE,
 	CONTROL_MODE_OPENLOOP,
+	CONTROL_MODE_OPENLOOP_PHASE,
 	CONTROL_MODE_NONE
 } mc_control_mode;
 
@@ -103,7 +118,8 @@ typedef enum {
 typedef enum {
 	SENSOR_PORT_MODE_HALL = 0,
 	SENSOR_PORT_MODE_ABI,
-	SENSOR_PORT_MODE_AS5047_SPI
+	SENSOR_PORT_MODE_AS5047_SPI,
+	SENSOR_PORT_MODE_AD2S1205
 } sensor_port_mode;
 
 typedef struct {
@@ -113,7 +129,7 @@ typedef struct {
 	float comm_time_sum;
 	float comm_time_sum_min_rpm;
 	int32_t comms;
-	uint32_t time_at_comm;
+	float time_at_comm;
 } mc_rpm_dep_struct;
 
 typedef enum {
@@ -140,6 +156,12 @@ typedef enum {
 	CAN_BAUD_500K,
 	CAN_BAUD_1M
 } CAN_BAUD;
+
+typedef enum {
+	BATTERY_TYPE_LIION_3_0__4_2,
+	BATTERY_TYPE_LIIRON_2_6__3_6,
+	BATTERY_TYPE_LEAD_ACID
+} BATTERY_TYPE;
 
 typedef struct {
 	// Switching and drive
@@ -172,6 +194,8 @@ typedef struct {
 	float l_max_duty;
 	float l_watt_max;
 	float l_watt_min;
+	float l_current_max_scale;
+	float l_current_min_scale;
 	// Overridden limits (Computed during runtime)
 	float lo_current_max;
 	float lo_current_min;
@@ -221,6 +245,12 @@ typedef struct {
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
 	float foc_current_filter_const;
+	// GPDrive
+	int gpd_buffer_notify_left;
+	int gpd_buffer_interpol;
+	float gpd_current_filter_const;
+	float gpd_current_kp;
+	float gpd_current_ki;
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -253,6 +283,13 @@ typedef struct {
 	float m_dc_f_sw;
 	float m_ntc_motor_beta;
 	out_aux_mode m_out_aux_mode;
+	// Setup info
+	uint8_t si_motor_poles;
+	float si_gear_ratio;
+	float si_wheel_diameter;
+	BATTERY_TYPE si_battery_type;
+	int si_battery_cells;
+	float si_battery_ah;
 } mc_configuration;
 
 // Applications to use
@@ -427,14 +464,29 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
+// CAN status modes
+typedef enum {
+	CAN_STATUS_DISABLED = 0,
+	CAN_STATUS_1,
+	CAN_STATUS_1_2,
+	CAN_STATUS_1_2_3,
+	CAN_STATUS_1_2_3_4
+} CAN_STATUS_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
 	uint32_t timeout_msec;
 	float timeout_brake_current;
-	bool send_can_status;
+	CAN_STATUS_MODE send_can_status;
 	uint32_t send_can_status_rate_hz;
 	CAN_BAUD can_baud_rate;
+	bool pairing_done;
+	bool permanent_uart_enabled;
+
+	// UAVCAN
+	bool uavcan_enable;
+	uint8_t uavcan_esc_index;
 
 	// Application to use
 	app_use app_to_use;
@@ -494,7 +546,35 @@ typedef enum {
 	COMM_FORWARD_CAN,
 	COMM_SET_CHUCK_DATA,
 	COMM_CUSTOM_APP_DATA,
-	COMM_NRF_START_PAIRING
+	COMM_NRF_START_PAIRING,
+	COMM_GPD_SET_FSW,
+	COMM_GPD_BUFFER_NOTIFY,
+	COMM_GPD_BUFFER_SIZE_LEFT,
+	COMM_GPD_FILL_BUFFER,
+	COMM_GPD_OUTPUT_SAMPLE,
+	COMM_GPD_SET_MODE,
+	COMM_GPD_FILL_BUFFER_INT8,
+	COMM_GPD_FILL_BUFFER_INT16,
+	COMM_GPD_SET_BUFFER_INT_SCALE,
+	COMM_GET_VALUES_SETUP,
+	COMM_SET_MCCONF_TEMP,
+	COMM_SET_MCCONF_TEMP_SETUP,
+	COMM_GET_VALUES_SELECTIVE,
+	COMM_GET_VALUES_SETUP_SELECTIVE,
+	COMM_EXT_NRF_PRESENT,
+	COMM_EXT_NRF_ESB_SET_CH_ADDR,
+	COMM_EXT_NRF_ESB_SEND_DATA,
+	COMM_EXT_NRF_ESB_RX_DATA,
+	COMM_EXT_NRF_SET_ENABLED,
+	COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP,
+	COMM_DETECT_APPLY_ALL_FOC,
+	COMM_JUMP_TO_BOOTLOADER_ALL_CAN,
+	COMM_ERASE_NEW_APP_ALL_CAN,
+	COMM_WRITE_NEW_APP_DATA_ALL_CAN,
+	COMM_PING_CAN,
+	COMM_APP_DISABLE_OUTPUT,
+	COMM_TERMINAL_CMD_SYNC,
+	COMM_GET_IMU_DATA
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -512,7 +592,20 @@ typedef enum {
 	CAN_PACKET_SET_CURRENT_REL,
 	CAN_PACKET_SET_CURRENT_BRAKE_REL,
 	CAN_PACKET_SET_CURRENT_HANDBRAKE,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL
+	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL,
+	CAN_PACKET_STATUS_2,
+	CAN_PACKET_STATUS_3,
+	CAN_PACKET_STATUS_4,
+	CAN_PACKET_PING,
+	CAN_PACKET_PONG,
+	CAN_PACKET_DETECT_APPLY_ALL_FOC,
+	CAN_PACKET_DETECT_APPLY_ALL_FOC_RES,
+	CAN_PACKET_CONF_CURRENT_LIMITS,
+	CAN_PACKET_CONF_STORE_CURRENT_LIMITS,
+	CAN_PACKET_CONF_CURRENT_LIMITS_IN,
+	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN,
+	CAN_PACKET_CONF_FOC_ERPMS,
+	CAN_PACKET_CONF_STORE_FOC_ERPMS
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -521,6 +614,7 @@ typedef struct {
 	float current;
 	float current_filtered;
 	float voltage;
+	float gate_driver_voltage;
 	float duty;
 	float rpm;
 	int tacho;
@@ -553,6 +647,8 @@ typedef struct {
 	int acc_z;
 	bool bt_c;
 	bool bt_z;
+	bool rev_has_state;
+	bool is_rev;
 } chuck_data;
 
 typedef struct {
@@ -564,11 +660,36 @@ typedef struct {
 } can_status_msg;
 
 typedef struct {
+	int id;
+	systime_t rx_time;
+	float amp_hours;
+	float amp_hours_charged;
+} can_status_msg_2;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float watt_hours;
+	float watt_hours_charged;
+} can_status_msg_3;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float temp_fet;
+	float temp_motor;
+	float current_in;
+	float pid_pos_now;
+} can_status_msg_4;
+
+typedef struct {
 	uint8_t js_x;
 	uint8_t js_y;
 	bool bt_c;
 	bool bt_z;
 	bool bt_push;
+	bool rev_has_state;
+	bool is_rev;
 	float vbat;
 } mote_state;
 
@@ -610,5 +731,18 @@ typedef enum {
 	NRF_PAIR_OK,
 	NRF_PAIR_FAIL
 } NRF_PAIR_RES;
+
+// Orientation data
+typedef struct {
+	float q0;
+	float q1;
+	float q2;
+	float q3;
+	float integralFBx;
+	float integralFBy;
+	float integralFBz;
+	float accMagP;
+	int initialUpdateDone;
+} ATTITUDE_INFO;
 
 #endif /* DATATYPES_H_ */

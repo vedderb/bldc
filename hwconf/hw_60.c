@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_60
 
 #include "ch.h"
 #include "hal.h"
@@ -61,6 +60,13 @@ void hw_init_gpio(void) {
 #endif
 
 	ENABLE_GATE();
+
+	// Current filter
+	palSetPadMode(GPIOD, 2,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+
+	CURRENT_FILTER_OFF();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -236,5 +242,3 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
-
-#endif

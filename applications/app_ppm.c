@@ -167,6 +167,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 			break;
 		}
 
+		// All pins and buttons are still decoded for debugging, even
+		// when output is disabled.
+		if (app_is_output_disabled()) {
+			continue;
+		}
+
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
 				mc_interface_get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
@@ -182,7 +188,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float servo_val_ramp = 0.0;
-		const float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+		float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (fabsf(servo_val) > 0.001) {
+			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -281,13 +291,13 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if (send_current && config.multi_esc) {
-			float current = mc_interface_get_tot_current_directional_filtered();
+			float current_filtered = mc_interface_get_tot_current_directional_filtered();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current(msg->id, current);
+					comm_can_set_current(msg->id, current_filtered);
 				}
 			}
 		}

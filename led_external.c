@@ -74,8 +74,8 @@ static THD_FUNCTION(led_thread, arg) {
 			for (int i = 0;i < 50;i++) {
 				scale -= 0.02;
 				uint32_t color = scale_color(COLOR_RED, scale);
-				for (int i = 0;i < (int)fault;i++) {
-					set_led_wrapper(i, color);
+				for (int j = 0;j < (int)fault;j++) {
+					set_led_wrapper(j, color);
 				}
 				chThdSleepMilliseconds(10);
 			}

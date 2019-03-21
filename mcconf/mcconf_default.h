@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -42,10 +42,10 @@
 #define MCCONF_L_CURRENT_MIN			-60.0	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			99.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-40.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-60.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
@@ -102,10 +102,16 @@
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.15	// Decrease temperature limits this much during acceleration
 #endif
 #ifndef MCCONF_L_WATT_MAX
-#define MCCONF_L_WATT_MAX				15000.0	// Maximum wattage output
+#define MCCONF_L_WATT_MAX				1500000.0	// Maximum wattage output
 #endif
 #ifndef MCCONF_L_WATT_MIN
-#define MCCONF_L_WATT_MIN				-15000.0	// Minimum wattage output (braking)
+#define MCCONF_L_WATT_MIN				-1500000.0	// Minimum wattage output (braking)
+#endif
+#ifndef MCCONF_L_CURRENT_MAX_SCALE
+#define MCCONF_L_CURRENT_MAX_SCALE		1.0	// Maximum current scale
+#endif
+#ifndef MCCONF_L_CURRENT_MIN_SCALE
+#define MCCONF_L_CURRENT_MIN_SCALE		1.0	// Minimum current scale
 #endif
 
 // Speed PID parameters
@@ -240,7 +246,7 @@
 #define MCCONF_FOC_PLL_KP				2000.0
 #endif
 #ifndef MCCONF_FOC_PLL_KI
-#define MCCONF_FOC_PLL_KI				40000.0
+#define MCCONF_FOC_PLL_KI				30000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007
@@ -324,6 +330,23 @@
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
 #endif
 
+// GPD
+#ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
+#define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space is left than this
+#endif
+#ifndef MCCONF_GPD_BUFFER_INTERPOL
+#define MCCONF_GPD_BUFFER_INTERPOL		0		// Buffer interpolation
+#endif
+#ifndef MCCONF_GPD_CURRENT_FILTER_CONST
+#define MCCONF_GPD_CURRENT_FILTER_CONST	0.1		// Current filter constant
+#endif
+#ifndef MCCONF_GPD_CURRENT_KP
+#define MCCONF_GPD_CURRENT_KP			0.03
+#endif
+#ifndef MCCONF_GPD_CURRENT_KI
+#define MCCONF_GPD_CURRENT_KI			50.0
+#endif
+
 // Misc
 #ifndef MCCONF_M_FAULT_STOP_TIME
 #define MCCONF_M_FAULT_STOP_TIME		500	// Ignore commands for this duration in msec when faults occur
@@ -353,16 +376,36 @@
 #define MCCONF_M_BLDC_F_SW_MIN			3000 // Minimum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_BLDC_F_SW_MAX
-#define MCCONF_M_BLDC_F_SW_MAX			40000 // Maximum switching frequency in bldc mode
+#define MCCONF_M_BLDC_F_SW_MAX			35000 // Maximum switching frequency in bldc mode
 #endif
 #ifndef MCCONF_M_DC_F_SW
-#define MCCONF_M_DC_F_SW				35000 // Switching frequency in dc mode
+#define MCCONF_M_DC_F_SW				25000 // Switching frequency in dc mode
 #endif
 #ifndef MCCONF_M_NTC_MOTOR_BETA
 #define MCCONF_M_NTC_MOTOR_BETA			3380.0 // Beta value for motor termistor
 #endif
 #ifndef MCCONF_M_OUT_AUX_MODE
 #define MCCONF_M_OUT_AUX_MODE			OUT_AUX_MODE_OFF // Auxiliary output mode
+#endif
+
+// Setup Info
+#ifndef MCCONF_SI_MOTOR_POLES
+#define MCCONF_SI_MOTOR_POLES			14 // Motor pole count
+#endif
+#ifndef MCCONF_SI_GEAR_RATIO
+#define MCCONF_SI_GEAR_RATIO			3 // Gear ratio
+#endif
+#ifndef MCCONF_SI_WHEEL_DIAMETER
+#define MCCONF_SI_WHEEL_DIAMETER		0.083 // Wheel Diameter
+#endif
+#ifndef MCCONF_SI_BATTERY_TYPE
+#define MCCONF_SI_BATTERY_TYPE			BATTERY_TYPE_LIION_3_0__4_2 // Battery Type
+#endif
+#ifndef MCCONF_SI_BATTERY_CELLS
+#define MCCONF_SI_BATTERY_CELLS			3 // Battery Cells
+#endif
+#ifndef MCCONF_SI_BATTERY_AH
+#define MCCONF_SI_BATTERY_AH			6.0 // Battery amp hours
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */

@@ -181,6 +181,8 @@ static THD_FUNCTION(chuk_thread, arg) {
 				chuck_d_tmp.acc_z = (rxbuf[4] << 2) | ((rxbuf[5] >> 6) & 3);
 				chuck_d_tmp.bt_z = !((rxbuf[5] >> 0) & 1);
 				chuck_d_tmp.bt_c = !((rxbuf[5] >> 1) & 1);
+				chuck_d_tmp.rev_has_state = false;
+				chuck_d_tmp.is_rev = false;
 
 				app_nunchuk_update_output(&chuck_d_tmp);
 			}
@@ -216,25 +218,36 @@ static THD_FUNCTION(output_thread, arg) {
 			continue;
 		}
 
+		if (app_is_output_disabled()) {
+			continue;
+		}
+
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		static bool is_reverse = false;
 		static bool was_z = false;
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
-		const float max_current_diff = mcconf->l_current_max * 0.2;
+		const float max_current_diff = mcconf->l_current_max * mcconf->l_current_max_scale * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
 			continue;
 		}
 
-		if (chuck_d.bt_z && !was_z && config.ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
-				fabsf(current_now) < max_current_diff) {
-			if (is_reverse) {
-				is_reverse = false;
-			} else {
-				is_reverse = true;
+		if (fabsf(current_now) < max_current_diff) {
+			if (chuck_d.rev_has_state) {
+				is_reverse = chuck_d.is_rev;
+			} else if (chuck_d.bt_z && !was_z) {
+				if (is_reverse) {
+					is_reverse = false;
+				} else {
+					is_reverse = true;
+				}
 			}
+		}
+
+		if (config.ctrl_type == CHUK_CTRL_TYPE_CURRENT_NOREV) {
+			is_reverse = false;
 		}
 
 		was_z = chuck_d.bt_z;
@@ -391,8 +404,13 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// Apply ramping
-		const float current_range = mcconf->l_current_max + fabsf(mcconf->l_current_min);
-		const float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
+		const float current_range = mcconf->l_current_max * mcconf->l_current_max_scale +
+				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
+		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (fabsf(out_val) > 0.001) {
+			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);

@@ -23,6 +23,7 @@
 #include "stm32f4xx_conf.h"
 #include "utils.h"
 #include "mc_interface.h"
+#include "timeout.h"
 #include "hw.h"
 #include <string.h>
 
@@ -89,7 +90,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	utils_sys_lock_cnt();
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	for (int i = 0;i < NEW_APP_SECTORS;i++) {
 		if (new_app_size > flash_addr[NEW_APP_BASE + i]) {
@@ -102,7 +103,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 		}
 	}
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
@@ -115,7 +116,7 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	utils_sys_lock_cnt();
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	for (uint32_t i = 0;i < len;i++) {
 		uint16_t res = FLASH_ProgramByte(flash_addr[NEW_APP_BASE] + offset + i, data[i]);
@@ -124,7 +125,8 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 		}
 	}
 
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, ENABLE);
+	timeout_configure_IWDT();
+
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
@@ -141,12 +143,12 @@ void flash_helper_jump_to_bootloader(void) {
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 
-	uartStop(&HW_UART_DEV);
+	sdStop(&HW_UART_DEV);
 	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
 
 	// Disable watchdog
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_WWDG, DISABLE);
+	timeout_configure_IWDT_slowest();
 
 	chSysDisable();
 

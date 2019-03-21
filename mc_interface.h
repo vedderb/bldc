@@ -73,6 +73,10 @@ float mc_interface_get_last_sample_adc_isr_duration(void);
 void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint8_t decimation);
 float mc_interface_temp_fet_filtered(void);
 float mc_interface_temp_motor_filtered(void);
+float mc_interface_get_battery_level(float *wh_left);
+float mc_interface_get_speed(void);
+float mc_interface_get_distance(void);
+float mc_interface_get_distance_abs(void);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault);
@@ -87,8 +91,9 @@ extern volatile uint16_t ADC_Value[];
 extern volatile int ADC_curr_norm_value[];
 
 // Common fixed parameters
-#ifndef HW_DEAD_TIME_VALUE
-#define HW_DEAD_TIME_VALUE				60 // Dead time
+#ifndef HW_DEAD_TIME_NSEC
+#define HW_DEAD_TIME_NSEC				360.0	// Dead time
 #endif
+
 
 #endif /* MC_INTERFACE_H_ */

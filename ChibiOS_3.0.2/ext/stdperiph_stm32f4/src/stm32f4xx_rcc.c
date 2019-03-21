@@ -74,10 +74,6 @@
 #define  RCC_BDCR_LSEMOD                     ((uint32_t)0x00000008)
 #endif
 
-#ifndef assert_param
-#define assert_param(expr) ((void)0)
-#endif
-
 /** @addtogroup STM32F4xx_StdPeriph_Driver
   * @{
   */
@@ -261,7 +257,7 @@ void RCC_DeInit(void)
   RCC->PLLI2SCFGR = 0x20003000;
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F411xE || STM32F446xx || STM32F469_479xx */
 
-#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx) 
+#if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
   /* Reset PLLSAICFGR register, only available for STM32F42xxx/43xxx/446xx/469xx/479xx devices */
   RCC->PLLSAICFGR = 0x24003000;
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F446xx || STM32F469_479xx */
@@ -827,7 +823,7 @@ void RCC_PLLSAIConfig(uint32_t PLLSAIM, uint32_t PLLSAIN, uint32_t PLLSAIP, uint
 }
 #endif /* STM32F446xx */
 
-#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F411xE)
+#if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F411xE)
 /**
   * @brief  Configures the PLLSAI clock multiplication and division factors.
   *
@@ -1660,7 +1656,7 @@ void RCC_I2SCLKConfig(uint32_t RCC_I2SCLKSource)
 }
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F411xE || STM32F469_479xx */
 
-#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F469_479xx)
+#if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F469_479xx)
 /**
   * @brief  Configures SAI1BlockA clock source selection.
   * 

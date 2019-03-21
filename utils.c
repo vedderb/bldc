@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -143,7 +143,6 @@ void utils_deadband(float *value, float tres, float max) {
 		} else {
 			*value = -(k * -*value + max * (1.0 - k));
 		}
-
 	}
 }
 
@@ -622,4 +621,20 @@ void utils_sys_unlock_cnt(void) {
 			chSysUnlock();
 		}
 	}
+}
+
+uint32_t utils_crc32c(uint8_t *data, uint32_t len) {
+	uint32_t crc = 0xFFFFFFFF;
+
+	for (uint32_t i = 0; i < len;i++) {
+		uint32_t byte = data[i];
+		crc = crc ^ byte;
+
+		for (int j = 7;j >= 0;j--) {
+			uint32_t mask = -(crc & 1);
+			crc = (crc >> 1) ^ (0x82F63B78 & mask);
+		}
+	}
+
+	return ~crc;
 }

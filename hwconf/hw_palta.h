@@ -22,6 +22,9 @@
 
 #define HW_NAME					"PALTA"
 
+#define PALTA_USE_DAC
+#define HW_VERSION_PALTA
+
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
@@ -35,11 +38,8 @@
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 2)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 2)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
-
-#define PALTA_OC_CLR_PORT		GPIOB
-#define PALTA_OC_CLR_PIN		5
+#define LED_RED_ON()			palSetPad(GPIOB, 11)
+#define LED_RED_OFF()			palClearPad(GPIOB, 11)
 
 /*
  * ADC Vector
@@ -73,11 +73,12 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
+#define ADC_IND_VOUT_GATE_DRV	12
 #define ADC_IND_EXT				10
 #define ADC_IND_EXT2			6
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
-#define ADC_IND_VREFINT			12
+//#define ADC_IND_VREFINT			12
 
 // ADC macros and settings
 
@@ -86,16 +87,16 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					246730.0
+#define VIN_R1					184.0    //TF since RevC = 185V/V
 #endif
 #ifndef VIN_R2
-#define VIN_R2					2200.0
+#define VIN_R2					1.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		8.0
+#define CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.0004852941
+#define CURRENT_SHUNT_RES		1.000 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
 #endif
 
 // Input voltage
@@ -110,6 +111,9 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+
+// Gate driver power supply output voltage
+#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
@@ -127,14 +131,15 @@
 #define HW_SERVO_NUM			2
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			11
+#define HW_UART_RX_PORT			GPIOD
+#define HW_UART_RX_PIN			9          //Freeing B11 for fault LED. PD9 not available in LQFT64 package
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -169,6 +174,12 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
+// Resolver interface pins
+#define AD2S1205_SAMPLE_GPIO	GPIOB
+#define AD2S1205_SAMPLE_PIN		3
+#define AD2S1205_RDVEL_GPIO		GPIOC
+#define AD2S1205_RDVEL_PIN		12
+
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12
@@ -192,10 +203,10 @@
 #define HW_SPI_PIN_MISO			11
 
 // Measurement macros
-#define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1				(ADC_Value[ADC_IND_SENS1]-2048)		//phase voltages are centered in 1.65V
+#define ADC_V_L2				(ADC_Value[ADC_IND_SENS2]-2048)
+#define ADC_V_L3				(ADC_Value[ADC_IND_SENS3]-2048)
+#define ADC_V_ZERO				0	//(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
@@ -203,7 +214,10 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_VALUE		202
+#define HW_DEAD_TIME_NSEC		1400.0
+#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
+#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
+
 
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -213,17 +227,24 @@
 #define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
-// Setting limits (TODO: Configure these)
-//#define HW_LIM_CURRENT			-100.0, 100.0
-//#define HW_LIM_CURRENT_IN		-100.0, 100.0
-//#define HW_LIM_CURRENT_ABS		0.0, 150.0
-//#define HW_LIM_VIN				6.0, 57.0
-//#define HW_LIM_ERPM				-200e3, 200e3
-//#define HW_LIM_DUTY_MIN			0.0, 0.1
-//#define HW_LIM_DUTY_MAX			0.0, 1.0
-//#define HW_LIM_TEMP_FET			-40.0, 110.0
+// Execute FOC loop once every "FOC_CONTROL_LOOP_FREQ_DIVIDER" ADC ISR calls
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+
+// Setting limits
+#define HW_LIM_CURRENT				-200.0, 200.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
+#define HW_LIM_CURRENT_ABS			0.0, 230.0
+#define HW_LIM_VIN					6.0, 85.0
+#define HW_LIM_ERPM					-100e3, 100e3
+#define HW_LIM_DUTY_MIN				0.0, 0.1
+#define HW_LIM_DUTY_MAX				0.0, 1.0
+#define HW_LIM_TEMP_FET				-40.0, 110.0
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	10000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
+
 
 // HW-specific functions
-void hw_palta_reset_oc(void);
+char hw_palta_configure_FPGA(void);
+void hw_palta_DAC1_setdata(uint16_t data);
+void hw_palta_DAC2_setdata(uint16_t data);
 
 #endif /* HW_PALTA_H_ */

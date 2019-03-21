@@ -22,7 +22,7 @@
 
 // Default app configuration
 #ifndef APPCONF_CONTROLLER_ID
-#define APPCONF_CONTROLLER_ID				0
+#define APPCONF_CONTROLLER_ID				-1 // Controller id. -1 means it should be calculated from UUID.
 #endif
 #ifndef APPCONF_TIMEOUT_MSEC
 #define APPCONF_TIMEOUT_MSEC				1000
@@ -31,13 +31,25 @@
 #define APPCONF_TIMEOUT_BRAKE_CURRENT		0.0
 #endif
 #ifndef APPCONF_SEND_CAN_STATUS
-#define APPCONF_SEND_CAN_STATUS				false
+#define APPCONF_SEND_CAN_STATUS				CAN_STATUS_DISABLED
+#endif
+#ifndef APPCONF_UAVCAN_ENABLE
+#define APPCONF_UAVCAN_ENABLE				false
+#endif
+#ifndef APPCONF_UAVCAN_ESC_INDEX
+#define APPCONF_UAVCAN_ESC_INDEX			0
 #endif
 #ifndef APPCONF_SEND_CAN_STATUS_RATE_HZ
-#define APPCONF_SEND_CAN_STATUS_RATE_HZ		100
+#define APPCONF_SEND_CAN_STATUS_RATE_HZ		50
 #endif
 #ifndef APPCONF_CAN_BAUD_RATE
 #define APPCONF_CAN_BAUD_RATE				CAN_BAUD_500K
+#endif
+#ifndef APPCONF_PAIRING_DONE
+#define APPCONF_PAIRING_DONE				false
+#endif
+#ifndef APPCONF_PERMANENT_UART_ENABLED
+#define APPCONF_PERMANENT_UART_ENABLED		true
 #endif
 
 // The default app is UART in case the UART port is used for
@@ -87,7 +99,7 @@
 #define APPCONF_PPM_RAMP_TIME_NEG			0.1
 #endif
 #ifndef APPCONF_PPM_MULTI_ESC
-#define APPCONF_PPM_MULTI_ESC				false
+#define APPCONF_PPM_MULTI_ESC				true
 #endif
 #ifndef APPCONF_PPM_TC
 #define APPCONF_PPM_TC						false
@@ -116,7 +128,7 @@
 #define APPCONF_ADC_VOLTAGE2_START			0.9
 #endif
 #ifndef APPCONF_ADC_VOLTAGE2_END
-#define APPCONF_ADC_VOLTAGE2_END				3.0
+#define APPCONF_ADC_VOLTAGE2_END			3.0
 #endif
 #ifndef APPCONF_ADC_USE_FILTER
 #define APPCONF_ADC_USE_FILTER				true
@@ -152,7 +164,7 @@
 #define APPCONF_ADC_RAMP_TIME_NEG			0.1
 #endif
 #ifndef APPCONF_ADC_MULTI_ESC
-#define APPCONF_ADC_MULTI_ESC				false
+#define APPCONF_ADC_MULTI_ESC				true
 #endif
 #ifndef APPCONF_ADC_TC
 #define APPCONF_ADC_TC						false
@@ -195,7 +207,7 @@
 #define APPCONF_CHUK_THROTTLE_EXP_MODE		THR_EXP_POLY
 #endif
 #ifndef APPCONF_CHUK_MULTI_ESC
-#define APPCONF_CHUK_MULTI_ESC				false
+#define APPCONF_CHUK_MULTI_ESC				true
 #endif
 #ifndef APPCONF_CHUK_TC
 #define APPCONF_CHUK_TC						false
@@ -206,7 +218,7 @@
 
 // NRF app
 #ifndef APPCONF_NRF_SPEED
-#define APPCONF_NRF_SPEED					NRF_SPEED_2M
+#define APPCONF_NRF_SPEED					NRF_SPEED_1M
 #endif
 #ifndef APPCONF_NRF_POWER
 #define APPCONF_NRF_POWER					NRF_POWER_0DBM
