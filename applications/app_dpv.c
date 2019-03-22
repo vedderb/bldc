@@ -78,7 +78,7 @@ void app_custom_start(void) {
         EXTI_Init(&EXTI_InitStructure);
 
         // Enable and set EXTI Line Interrupt to the highest priority
-        nvicEnableVector(HW_HALL_ROTARY_A_EXTI_CH, 0);
+        nvicEnableVector(HW_HALL_ROTARY_A_EXTI_CH,6) ;
 
 	// Start the dv thread
 	chThdCreateStatic(dpv_thread_wa, sizeof(dpv_thread_wa),

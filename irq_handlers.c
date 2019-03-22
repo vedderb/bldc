@@ -71,3 +71,12 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		EXTI_ClearFlag(EXTI_Line16);
 	}
 }
+
+CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
+        if (EXTI_GetITStatus(HW_HALL_ROTARY_A_EXTI_LINE) != RESET) {
+                dpv_rotary_isr();
+                // Clear the EXTI line pending bit
+                EXTI_ClearITPendingBit(HW_HALL_ROTARY_A_EXTI_LINE);
+		EXTI_ClearFlag(HW_HALL_ROTARY_A_EXTI_LINE);
+        }
+}
