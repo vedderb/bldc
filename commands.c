@@ -1078,6 +1078,9 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_temp_fet_start, HW_LIM_TEMP_FET);
 	utils_truncate_number(&mcconf->l_temp_fet_end, HW_LIM_TEMP_FET);
 #endif
+#ifdef HW_FOC_CURRENT_FILTER_LIM
+	utils_truncate_number(&mcconf->foc_current_filter_const, HW_FOC_CURRENT_FILTER_LIM);
+#endif
 #endif
 }
 

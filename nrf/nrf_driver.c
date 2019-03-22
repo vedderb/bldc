@@ -155,7 +155,7 @@ void nrf_driver_start_pairing(int ms) {
 			conf.retries = 3;
 			conf.retry_delay = NRF_RETR_DELAY_1000US;
 			conf.send_crc_ack = true;
-			conf.speed = NRF_SPEED_250K;
+			conf.speed = NRF_SPEED_1M;
 
 			rfhelp_update_conf(&conf);
 		}
@@ -472,7 +472,7 @@ void nrf_driver_process_packet(unsigned char *buf, unsigned char len) {
 		appconf.app_nrf_conf.retries = 3;
 		appconf.app_nrf_conf.retry_delay = NRF_RETR_DELAY_1000US;
 		appconf.app_nrf_conf.send_crc_ack = true;
-		appconf.app_nrf_conf.speed = NRF_SPEED_250K;
+		appconf.app_nrf_conf.speed = NRF_SPEED_1M;
 
 		if (ext_nrf) {
 			unsigned char data[5];

@@ -109,6 +109,7 @@ include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
+#include blackmagic/blackmagic.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -157,7 +158,8 @@ CSRC = $(STARTUPSRC) \
        $(APPSRC) \
        $(NRFSRC) \
        $(CANARDSRC) \
-       $(IMUSRC)
+       $(IMUSRC) \
+#       $(BLACKMAGICSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -196,7 +198,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(APPINC) \
          $(NRFINC) \
          $(CANARDINC) \
-         $(IMUINC)
+         $(IMUINC) \
+#         $(BLACKMAGICINC)
 
 #
 # Project, sources and paths
