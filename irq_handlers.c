@@ -72,6 +72,7 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 	}
 }
 
+/*
 CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
         if (EXTI_GetITStatus(HW_HALL_ROTARY_A_EXTI_LINE) != RESET) {
                 dpv_rotary_isr();
@@ -80,3 +81,4 @@ CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
 		EXTI_ClearFlag(HW_HALL_ROTARY_A_EXTI_LINE);
         }
 }
+*/

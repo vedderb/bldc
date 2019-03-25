@@ -25,17 +25,11 @@
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PERMANENT_NRF
+//#define HW_HAS_PERMANENT_NRF
 #define HW_HAS_PHASE_SHUNTS
 
-// Macros
-#ifdef HW60_VEDDER_FIRST_PCB
-#define ENABLE_GATE()			palSetPad(GPIOB, 6)
-#define DISABLE_GATE()			palClearPad(GPIOB, 6)
-#else
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
-#endif
 #define DCCAL_ON()
 #define DCCAL_OFF()
 #define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
@@ -128,7 +122,7 @@
 #endif
 
 // Number of servo outputs
-#define HW_SERVO_NUM			2
+#define HW_SERVO_NUM			0 //2
 
 // UART Peripheral
 #define HW_UART_DEV			SD3
