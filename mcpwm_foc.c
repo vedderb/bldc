@@ -1946,7 +1946,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
 
-#ifdef HW_VERSION_PALTA
+#ifdef HW_PALTA_USE_LINE_TO_LINE
 		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
 		float x_tmp = m_motor_state.v_alpha;
 		float y_tmp = m_motor_state.v_beta;
