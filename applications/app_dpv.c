@@ -31,7 +31,7 @@ virtual_timer_t dpv_vt;
 //void dpv_rotary_isr(void);
 static void update(void *p);
 
-/*
+
 void dpv_rotary_isr(void) {
 
 //	commands_printf("Interrupt");
@@ -44,7 +44,7 @@ void dpv_rotary_isr(void) {
 	}
 //	commands_printf("TargetSpeed: %d",targetSpeed);
 }
-*/
+
 
 void app_custom_configure(app_configuration *conf)
 {
@@ -67,7 +67,7 @@ void app_custom_stop(void)
 }
 
 void app_custom_start(void) {
-//        EXTI_InitTypeDef   EXTI_InitStructure;
+        EXTI_InitTypeDef   EXTI_InitStructure;
 
 	stop_now = false;
 	// Set the UART TX pin as an input with pulldown
@@ -76,7 +76,6 @@ void app_custom_start(void) {
 	palSetPadMode(HW_HALL_ROTARY_B_GPIO, HW_HALL_ROTARY_B_PIN, PAL_MODE_INPUT_PULLUP);
 
         // Interrupt on HALL ROTARY A Pin
-/*
         // Connect EXTI Line to pin
         SYSCFG_EXTILineConfig(HW_HALL_ROTARY_A_EXTI_PORTSRC, HW_HALL_ROTARY_A_EXTI_PINSRC);
 
@@ -89,7 +88,7 @@ void app_custom_start(void) {
 
         // Enable and set EXTI Line Interrupt to the highest priority
         nvicEnableVector(HW_HALL_ROTARY_A_EXTI_CH,6) ;
-*/
+
 
 	// Start the dv thread
 	chThdCreateStatic(dpv_thread_wa, sizeof(dpv_thread_wa), NORMALPRIO, dpv_thread, NULL);
@@ -146,6 +145,7 @@ static THD_FUNCTION(dpv_thread, arg) {
                 static float motorSpeed_val_ramp = 0.0;
 		float ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 3.0 : 3.0;
 
+		commands_printf("Trigger: %d",palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN));
 		if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
 			motorSpeed=targetSpeed;
 		} else {

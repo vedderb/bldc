@@ -128,6 +128,7 @@
 //#define MCCONF_DEFAULT_USER			"mcconf_sp_540kv.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_castle_2028.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_ellwee.h"
+#define MCCONF_DEFAULT_USER			"mcconf_ap8139.h"
 
 /*
  * Select default user app configuration
