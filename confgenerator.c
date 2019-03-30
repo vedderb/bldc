@@ -540,6 +540,10 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
+	conf->m_encoder_sin_gain = MCCONF_M_ENCODER_SIN_GAIN;
+	conf->m_encoder_sin_offset = MCCONF_M_ENCODER_SIN_OFFSET;
+	conf->m_encoder_cos_gain = MCCONF_M_ENCODER_COS_GAIN;
+	conf->m_encoder_cos_offset = MCCONF_M_ENCODER_COS_OFFSET;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;

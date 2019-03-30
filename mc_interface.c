@@ -163,6 +163,11 @@ void mc_interface_init(mc_configuration *configuration) {
 		encoder_init_ad2s1205_spi();
 		break;
 
+	case SENSOR_PORT_MODE_SINCOS:
+		encoder_init_sincos(m_conf.m_encoder_sin_gain, m_conf.m_encoder_sin_offset,
+							m_conf.m_encoder_cos_gain, m_conf.m_encoder_cos_offset);
+		break;
+
 	default:
 		break;
 	}
@@ -207,6 +212,11 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 
 		case SENSOR_PORT_MODE_AD2S1205:
 			encoder_init_ad2s1205_spi();
+			break;
+
+		case SENSOR_PORT_MODE_SINCOS:
+			encoder_init_sincos(m_conf.m_encoder_sin_gain, m_conf.m_encoder_sin_offset,
+								m_conf.m_encoder_cos_gain, m_conf.m_encoder_cos_offset);
 			break;
 
 		default:

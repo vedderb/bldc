@@ -27,6 +27,8 @@ void encoder_deinit(void);
 void encoder_init_abi(uint32_t counts);
 void encoder_init_as5047p_spi(void);
 void encoder_init_ad2s1205_spi(void);
+void encoder_init_sincos(float sin_gain, float sin_offset,
+						 float cos_gain, float cos_offset);
 bool encoder_is_configured(void);
 float encoder_read_deg(void);
 void encoder_reset(void);

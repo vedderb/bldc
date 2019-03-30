@@ -121,7 +121,8 @@ typedef enum {
 	SENSOR_PORT_MODE_HALL = 0,
 	SENSOR_PORT_MODE_ABI,
 	SENSOR_PORT_MODE_AS5047_SPI,
-	SENSOR_PORT_MODE_AD2S1205
+	SENSOR_PORT_MODE_AD2S1205,
+	SENSOR_PORT_MODE_SINCOS
 } sensor_port_mode;
 
 typedef struct {
@@ -216,6 +217,11 @@ typedef struct {
 	// Hall sensor
 	int8_t hall_table[8];
 	float hall_sl_erpm;
+	// sin/cos encoder
+	float m_encoder_sin_offset;
+	float m_encoder_sin_gain;
+	float m_encoder_cos_offset;
+	float m_encoder_cos_gain;
 	// FOC
 	float foc_current_kp;
 	float foc_current_ki;

@@ -22,13 +22,15 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "hw.h"
+#include "mc_interface.h"
 #include "utils.h"
+#include "math.h"
 
 // Defines
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
-
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
+#define SINCOS_SAMPLE_RATE_HZ		20000
 
 
 #if AS5047_USE_HW_SPI_PINS
@@ -61,12 +63,18 @@
 #define SPI_SW_CS_PIN				HW_HALL_ENC_PIN3
 #endif
 
+#ifdef HW_HAS_SIN_COS_ENCODER
+#define ENCODER_SIN_VOLTS			ADC_VOLTS(ADC_IND_EXT)
+#define ENCODER_COS_VOLTS			ADC_VOLTS(ADC_IND_EXT2)
+#endif
+
 // Private types
 typedef enum {
 	ENCODER_MODE_NONE = 0,
 	ENCODER_MODE_ABI,
 	ENCODER_MODE_AS5047P_SPI,
-	RESOLVER_MODE_AD2S1205
+	RESOLVER_MODE_AD2S1205,
+	ENCODER_MODE_SINCOS
 } encoder_mode;
 
 // Private variables
@@ -77,6 +85,11 @@ static float last_enc_angle = 0.0;
 uint16_t spi_val = 0;
 uint32_t spi_error_cnt = 0;
 float spi_error_rate = 0.0;
+
+float sin_gain = 0.0;
+float sin_offset = 0.0;
+float cos_gain = 0.0;
+float cos_offset = 0.0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
@@ -246,6 +259,22 @@ void encoder_init_ad2s1205_spi(void) {
 	index_found = true;
 }
 
+void encoder_init_sincos(float s_gain, float s_offset, float c_gain, float c_offset) {
+	//ADC inputs are already initialized in hw_init_gpio()
+	sin_gain = s_gain;
+	sin_offset = s_offset;
+	cos_gain = c_gain;
+	cos_offset = c_offset;
+
+	// ADC measurements needs to be in sync with motor PWM
+#ifdef HW_HAS_SIN_COS_ENCODER
+	mode = ENCODER_MODE_SINCOS;
+	index_found = true;
+#else
+	mode = ENCODER_MODE_NONE;
+	index_found = false;
+#endif
+}
 
 bool encoder_is_configured(void) {
 	return mode != ENCODER_MODE_NONE;
@@ -259,6 +288,8 @@ bool encoder_is_configured(void) {
  */
 float encoder_read_deg(void) {
 	static float angle = 0.0;
+	float sin = 0.0;
+	float cos = 0.0;
 
 	switch (mode) {
 	case ENCODER_MODE_ABI:
@@ -269,6 +300,15 @@ float encoder_read_deg(void) {
 	case RESOLVER_MODE_AD2S1205:
 		angle = last_enc_angle;
 		break;
+
+#ifdef HW_HAS_SIN_COS_ENCODER
+	case ENCODER_MODE_SINCOS:
+		sin = ENCODER_SIN_VOLTS * sin_gain - sin_offset;
+		cos = ENCODER_COS_VOLTS * cos_gain - cos_offset;
+
+		angle = utils_fast_atan2(sin, cos) * 180.0 / M_PI;
+		break;
+#endif
 
 	default:
 		break;
