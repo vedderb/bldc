@@ -46,7 +46,7 @@ extern int platform_swclk_pin;
 
 #define gpio_set(port, pin)				palSetPad(port, pin);palSetPad(port, pin);palSetPad(port, pin)
 #define gpio_clear(port, pin)			palClearPad(port, pin);palClearPad(port, pin);palClearPad(port, pin)
-#define gpio_set_val(port, pin, val)	palWritePad(port, pin, val ? PAL_HIGH : PAL_LOW);palWritePad(port, pin, val ? PAL_HIGH : PAL_LOW);palWritePad(port, pin, val ? PAL_HIGH : PAL_LOW)
+#define gpio_set_val(port, pin, val)	palWritePad(port, pin, (val) ? PAL_HIGH : PAL_LOW);palWritePad(port, pin, val ? PAL_HIGH : PAL_LOW);palWritePad(port, pin, val ? PAL_HIGH : PAL_LOW)
 #define gpio_get(port, pin)				palReadPad(port, pin)
 
 #define SWDIO_MODE_FLOAT()				palSetPadMode(SWDIO_PORT, SWDIO_PIN, PAL_MODE_INPUT)

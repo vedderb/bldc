@@ -863,13 +863,14 @@ static bool cortexm_vector_catch(target *t, int argc, char *argv[])
 	struct cortexm_priv *priv = t->priv;
 	const char *vectors[] = {"reset", NULL, NULL, NULL, "mm", "nocp",
 				"chk", "stat", "bus", "int", "hard"};
-	uint32_t tmp = 0;
 	unsigned i;
 
 	if ((argc < 3) || ((argv[1][0] != 'e') && (argv[1][0] != 'd'))) {
 		tc_printf(t, "usage: monitor vector_catch (enable|disable) "
 			     "(hard|int|bus|stat|chk|nocp|mm|reset)\n");
 	} else {
+		uint32_t tmp = 0;
+
 		for (int j = 0; j < argc; j++)
 			for (i = 0; i < sizeof(vectors) / sizeof(char*); i++) {
 				if (vectors[i] && !strcmp(vectors[i], argv[j]))

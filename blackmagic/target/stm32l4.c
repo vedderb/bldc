@@ -503,7 +503,6 @@ static bool stm32l4_option_write(
 
 static bool stm32l4_cmd_option(target *t, int argc, char *argv[])
 {
-	uint32_t val;
 	uint32_t values[9] = { 0xFFEFF8AA, 0xFFFFFFFF, 0, 0x000000ff,
 						   0x000000ff, 0xffffffff, 0, 0xff, 0x000000ff};
 	int len;
@@ -543,7 +542,7 @@ static bool stm32l4_cmd_option(target *t, int argc, char *argv[])
 	}
 	for (int i = 0; i < len; i ++) {
 		uint32_t addr = FPEC_BASE + i2offset[i];
-		val = target_mem_read32(t, FPEC_BASE + i2offset[i]);
+		uint32_t val = target_mem_read32(t, FPEC_BASE + i2offset[i]);
 		tc_printf(t, "0x%08X: 0x%08X\n", addr, val);
 	}
 	return true;

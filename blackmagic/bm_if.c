@@ -189,7 +189,7 @@ static void terminal_attach(int argc, const char **argv) {
 
 static void terminal_flash_erase(int argc, const char **argv) {
 	if (argc == 3) {
-		int addr = -1;
+		unsigned int addr = -1;
 		int len = -1;
 		sscanf(argv[1], "%x", &addr);
 		sscanf(argv[2], "%d", &len);
