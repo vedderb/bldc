@@ -455,6 +455,22 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires two arguments.\n");
 		}
+	} else if (strcmp(argv[0], "foc_openloop_duty") == 0) {
+		if (argc == 3) {
+			float duty = -1.0;
+			float erpm = -1.0;
+			sscanf(argv[1], "%f", &duty);
+			sscanf(argv[2], "%f", &erpm);
+
+			if (duty >= 0.0 && erpm >= 0.0) {
+				timeout_reset();
+				mcpwm_foc_set_openloop_duty(duty, erpm);
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires two arguments.\n");
+		}
 	} else if (strcmp(argv[0], "nrf_ext_set_enabled") == 0) {
 		if (argc == 2) {
 			int enabled = -1;
@@ -732,6 +748,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("foc_openloop [current] [erpm]");
 		commands_printf("  Create an open loop rotating current vector.");
+
+		commands_printf("foc_openloop_duty [duty] [erpm]");
+		commands_printf("  Create an open loop rotating voltage vector.");
 
 		commands_printf("nrf_ext_set_enabled [enabled]");
 		commands_printf("  Enable or disable external NRF51822.");

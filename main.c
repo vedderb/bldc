@@ -49,6 +49,9 @@
 #include "spi_sw.h"
 #include "timer.h"
 #include "imu.h"
+#if HAS_BLACKMAGIC
+#include "bm_if.h"
+#endif
 
 /*
  * HW resources used:
@@ -294,6 +297,10 @@ int main(void) {
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 	imu_init();
+
+#if HAS_BLACKMAGIC
+	bm_init();
+#endif
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

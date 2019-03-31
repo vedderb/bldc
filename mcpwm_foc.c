@@ -688,6 +688,45 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 	}
 }
 
+/**
+ * Produce an openloop rotating voltage.
+ *
+ * @param dutyCycle
+ * The duty cycle to use.
+ *
+ * @param rpm
+ * The RPM to use.
+ */
+void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
+	m_control_mode = CONTROL_MODE_OPENLOOP_DUTY;
+	m_duty_cycle_set = dutyCycle;
+	m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+
+	if (m_state != MC_STATE_RUNNING) {
+		m_state = MC_STATE_RUNNING;
+	}
+}
+
+/**
+ * Produce an openloop voltage at a fixed phase.
+ *
+ * @param dutyCycle
+ * The duty cycle to use.
+ *
+ * @param phase
+ * The phase to use in degrees, range [0.0 360.0]
+ */
+void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
+	m_control_mode = CONTROL_MODE_OPENLOOP_DUTY_PHASE;
+	m_duty_cycle_set = dutyCycle;
+	m_openloop_phase = phase * M_PI / 180.0;
+	utils_norm_angle_rad((float*)&m_openloop_phase);
+
+	if (m_state != MC_STATE_RUNNING) {
+		m_state = MC_STATE_RUNNING;
+	}
+}
+
 float mcpwm_foc_get_duty_cycle_set(void) {
 	return m_duty_cycle_set;
 }
@@ -1769,7 +1808,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		utils_truncate_number(&duty_filtered, -1.0, 1.0);
 
 		float duty_set = m_duty_cycle_set;
-		bool control_duty = m_control_mode == CONTROL_MODE_DUTY;
+		bool control_duty = m_control_mode == CONTROL_MODE_DUTY ||
+				m_control_mode == CONTROL_MODE_OPENLOOP_DUTY ||
+				m_control_mode == CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 
 		// When the modulation is low in brake mode and the set brake current
 		// cannot be reached, short all phases to get more braking without
@@ -1892,12 +1933,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (m_control_mode == CONTROL_MODE_HANDBRAKE) {
 			// Force the phase to 0 in handbrake mode so that the current simply locks the rotor.
 			m_motor_state.phase = 0.0;
-		} else if (m_control_mode == CONTROL_MODE_OPENLOOP) {
+		} else if (m_control_mode == CONTROL_MODE_OPENLOOP ||
+				m_control_mode == CONTROL_MODE_OPENLOOP_DUTY) {
 			static float openloop_angle = 0.0;
 			openloop_angle += dt * m_openloop_speed;
 			utils_norm_angle_rad(&openloop_angle);
 			m_motor_state.phase = openloop_angle;
-		} else if (m_control_mode == CONTROL_MODE_OPENLOOP_PHASE) {
+		} else if (m_control_mode == CONTROL_MODE_OPENLOOP_PHASE ||
+				m_control_mode == CONTROL_MODE_OPENLOOP_DUTY_PHASE) {
 			m_motor_state.phase = m_openloop_phase;
 		}
 
