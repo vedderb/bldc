@@ -1446,6 +1446,10 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		i_last = (m_conf->l_current_max / 2.0);
 	}
 
+#ifdef HW_PALTA_FORCE_HIGH_CURRENT_MEASUREMENTS
+	i_last = (m_conf->l_current_max / 2.0);
+#endif
+
 	*res = mcpwm_foc_measure_resistance(i_last, 200);
 	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0);
 
@@ -1989,7 +1993,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
 
-#ifdef HW_VERSION_PALTA
+#ifdef HW_PALTA_USE_LINE_TO_LINE
 		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
 		float x_tmp = m_motor_state.v_alpha;
 		float y_tmp = m_motor_state.v_beta;
