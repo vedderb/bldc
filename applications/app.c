@@ -105,7 +105,7 @@ void app_set_configuration(app_configuration *conf) {
 #ifdef APP_CUSTOM_TO_USE
 		hw_stop_i2c();
 		app_custom_start();
-//		app_uartcomm_start();
+		app_uartcomm_start();
 
 #endif
 		break;
