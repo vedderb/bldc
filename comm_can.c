@@ -391,6 +391,7 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
  * True for success, false otherwise.
  */
 bool comm_can_ping(uint8_t controller_id) {
+#if CAN_ENABLE
 	ping_tp = chThdGetSelfX();
 	chEvtGetAndClearEvents(ALL_EVENTS);
 
@@ -402,6 +403,10 @@ bool comm_can_ping(uint8_t controller_id) {
 	int ret = chEvtWaitAnyTimeout(1 << 29, MS2ST(10));
 	ping_tp = 0;
 	return ret != 0;
+#else
+	(void)controller_id;
+	return 0;
+#endif
 }
 
 /**
@@ -665,6 +670,7 @@ can_status_msg_4 *comm_can_get_status_msg_4_id(int id) {
 }
 
 CANRxFrame *comm_can_get_rx_frame(void) {
+#if CAN_ENABLE
 	chMtxLock(&can_rx_mtx);
 	if (rx_frame_read != rx_frame_write) {
 		CANRxFrame *res = &rx_frames[rx_frame_read++];
@@ -679,6 +685,9 @@ CANRxFrame *comm_can_get_rx_frame(void) {
 		chMtxUnlock(&can_rx_mtx);
 		return 0;
 	}
+#else
+	return 0;
+#endif
 }
 
 #if CAN_ENABLE

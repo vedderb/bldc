@@ -1,3 +1,9 @@
+=== FW 3.54 ===
+* Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.
+* Added blackmagic probe SWD output to program other MCUs.
+ - Can be used to flash bricked VESCs from a working one.
+ - Can be used to make a custom NRF5x module.
+
 === FW 3.53 ===
 * Limit foc_current_filter_const range to prevent damage due to bad configuration.
 * Set default NRF speed to 1 Mbit/s.

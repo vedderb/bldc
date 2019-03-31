@@ -40,7 +40,13 @@
 #define PALTA_FPGA_CLK_PORT			GPIOC
 #define PALTA_FPGA_CLK_PIN			9
 #define PALTA_FPGA_RESET_PORT		GPIOB
+
+#ifdef HW_PALTA_REV_B
+#define PALTA_FPGA_RESET_PIN		5
+#else
 #define PALTA_FPGA_RESET_PIN		4
+#endif
+
 #define BITSTREAM_SIZE				104090		//ice40up5k
 //#define BITSTREAM_SIZE				71338		//ice40LP1K
 
@@ -83,13 +89,13 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
 	// LEDs
-	palSetPadMode(GPIOB, 2,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOB, 11,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(GPIOB, 2, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
+#ifdef HW_PALTA_REV_B
+	palSetPadMode(GPIOB, 1, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
+#else
+	palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
+#endif
 	// ENABLE_GATE
 	palSetPadMode(GPIOC, 14,
 			PAL_MODE_OUTPUT_PUSHPULL |
@@ -159,7 +165,9 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);		//Temperature bridge C
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);		//Accel 2
+#ifndef HW_PALTA_REV_B
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);		//Gate driver supply voltage
+#endif
 
 	palSetPadMode(GPIOC, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);

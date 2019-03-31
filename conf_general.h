@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		53
+#define FW_VERSION_MINOR		54
 
 #include "datatypes.h"
 
@@ -143,6 +143,13 @@
 #define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APPCONF_APP_TO_USE			APP_CUSTOM
 //#define MCCONF_FOC_F_SW				5000
+
+/*
+ * Enable blackmagic probe output on SWD port
+ */
+#ifndef HAS_BLACKMAGIC
+#define HAS_BLACKMAGIC				1
+#endif
 
 /*
  * Enable CAN-bus

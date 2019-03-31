@@ -41,6 +41,9 @@
 #include "gpdrive.h"
 #include "confgenerator.h"
 #include "imu.h"
+#if HAS_BLACKMAGIC
+#include "bm_if.h"
+#endif
 
 #include <math.h>
 #include <string.h>
@@ -933,6 +936,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
 	case COMM_DETECT_APPLY_ALL_FOC:
 	case COMM_PING_CAN:
+	case COMM_BM_CONNECT:
+	case COMM_BM_ERASE_FLASH_ALL:
+	case COMM_BM_WRITE_FLASH:
+	case COMM_BM_REBOOT:
+	case COMM_BM_DISCONNECT:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len;
@@ -1327,6 +1335,59 @@ static THD_FUNCTION(blocking_thread, arg) {
 				send_func_blocking(send_buffer, ind);
 			}
 		} break;
+
+#if HAS_BLACKMAGIC
+		case COMM_BM_CONNECT: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_connect(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_ERASE_FLASH_ALL: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_erase_flash_all(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_WRITE_FLASH: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+
+			int res = bm_write_flash(addr, data + ind, len - ind);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_REBOOT: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, bm_reboot(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_DISCONNECT: {
+			bm_disconnect();
+
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+#endif
 
 		default:
 			break;
