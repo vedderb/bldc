@@ -222,6 +222,7 @@ typedef struct {
 	float m_encoder_sin_gain;
 	float m_encoder_cos_offset;
 	float m_encoder_cos_gain;
+	float m_encoder_sincos_filter_constant;
 	// FOC
 	float foc_current_kp;
 	float foc_current_ki;
