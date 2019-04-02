@@ -31,6 +31,8 @@
 #define AS5047_SAMPLE_RATE_HZ		20000
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
 #define SINCOS_SAMPLE_RATE_HZ		20000
+#define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE		1.65		// sqrt(sin^2 + cos^2) has to be smaller than this
 
 
 #if AS5047_USE_HW_SPI_PINS
@@ -91,6 +93,10 @@ float sin_offset = 0.0;
 float cos_gain = 0.0;
 float cos_offset = 0.0;
 float sincos_filter_constant = 0.0;
+uint32_t sincos_signal_below_min_error_cnt = 0;
+uint32_t sincos_signal_above_max_error_cnt = 0;
+float sincos_signal_low_error_rate = 0.0;
+float sincos_signal_above_max_error_rate = 0.0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
@@ -111,6 +117,21 @@ float encoder_spi_get_error_rate(void) {
 	return spi_error_rate;
 }
 
+uint32_t encoder_sincos_get_signal_below_min_error_cnt(void) {
+	return sincos_signal_below_min_error_cnt;
+}
+
+uint32_t encoder_sincos_get_signal_above_max_error_cnt(void) {
+	return sincos_signal_above_max_error_cnt;
+}
+
+float encoder_sincos_get_signal_below_min_error_rate(void) {
+	return sincos_signal_low_error_rate;
+}
+
+float encoder_sincos_get_signal_above_max_error_rate(void) {
+	return sincos_signal_above_max_error_rate;
+}
 
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -129,6 +150,8 @@ void encoder_deinit(void) {
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
 	spi_error_rate = 0.0;
+	sincos_signal_low_error_rate = 0.0;
+	sincos_signal_above_max_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
@@ -269,6 +292,11 @@ void encoder_init_sincos(float s_gain, float s_offset,
 	cos_offset = c_offset;
 	sincos_filter_constant = filter_constant;
 
+	sincos_signal_below_min_error_cnt = 0;
+	sincos_signal_above_max_error_cnt = 0;
+	sincos_signal_low_error_rate = 0.0;
+	sincos_signal_above_max_error_rate = 0.0;
+
 	// ADC measurements needs to be in sync with motor PWM
 #ifdef HW_HAS_SIN_COS_ENCODER
 	mode = ENCODER_MODE_SINCOS;
@@ -307,10 +335,31 @@ float encoder_read_deg(void) {
 		float sin = ENCODER_SIN_VOLTS * sin_gain - sin_offset;
 		float cos = ENCODER_COS_VOLTS * cos_gain - cos_offset;
 
-		float angle_tmp = utils_fast_atan2(sin, cos) * 180.0 / M_PI;
-		UTILS_LP_FAST(angle, angle_tmp, sincos_filter_constant);
-		break;
+		float module = SQ(sin) + SQ(cos);
+
+		if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
+			// signals vector outside of the valid area. Increase error count and discard measurement
+			++sincos_signal_above_max_error_cnt;
+			UTILS_LP_FAST(sincos_signal_above_max_error_rate, 1.0, 1./SINCOS_SAMPLE_RATE_HZ);
+			angle = last_enc_angle;
 		}
+		else {
+			if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
+				++sincos_signal_below_min_error_cnt;
+				UTILS_LP_FAST(sincos_signal_low_error_rate, 1.0, 1./SINCOS_SAMPLE_RATE_HZ);
+				angle = last_enc_angle;
+			}
+			else {
+				UTILS_LP_FAST(sincos_signal_above_max_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
+				UTILS_LP_FAST(sincos_signal_low_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
+
+				float angle_tmp = utils_fast_atan2(sin, cos) * 180.0 / M_PI;
+				UTILS_LP_FAST(angle, angle_tmp, sincos_filter_constant);
+				last_enc_angle = angle;
+			}
+		}
+		break;
+	}
 #endif
 
 	default:

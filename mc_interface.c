@@ -364,7 +364,9 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE: return "FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE"; break;
 	case FAULT_CODE_MCU_UNDER_VOLTAGE: return "FAULT_CODE_MCU_UNDER_VOLTAGE"; break;
 	case FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET: return "FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET"; break;
-	case FAULT_CODE_ENCODER: return "FAULT_CODE_ENCODER"; break;
+	case FAULT_CODE_ENCODER_SPI: return "FAULT_CODE_ENCODER_SPI"; break;
+	case FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE"; break;
+	case FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE"; break;
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -1750,7 +1752,17 @@ static THD_FUNCTION(timer_thread, arg) {
 		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
 			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			encoder_spi_get_error_rate() > 0.05) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI);
+		}
+
+		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+
+			if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE);
+			if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
 
 		chThdSleepMilliseconds(1);

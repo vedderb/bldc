@@ -39,5 +39,9 @@ bool encoder_index_found(void);
 uint16_t encoder_spi_get_val(void);
 uint32_t encoder_spi_get_error_cnt(void);
 float encoder_spi_get_error_rate(void);
+uint32_t encoder_sincos_get_signal_below_min_error_cnt(void);
+uint32_t encoder_sincos_get_signal_above_max_error_cnt(void);
+float encoder_sincos_get_signal_below_min_error_rate(void);
+float encoder_sincos_get_signal_above_max_error_rate(void);
 
 #endif /* ENCODER_H_ */
