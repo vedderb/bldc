@@ -188,6 +188,8 @@
 // Current ADC to amperes factor
 #define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
 
+#define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
+
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
 //#define V_REG						3.3

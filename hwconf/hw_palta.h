@@ -140,6 +140,9 @@
 #define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 #endif
 
+#define ANGLE_TO_DAC_VALUE(angle)	( angle * 512.0 + 0x800 )//angle between -pi to pi
+#define CURRENT_TO_DAC_VALUE(current)	( current * 70.0  + 0x800 )//current
+#define VOLTAGE_TO_DAC_VALUE(voltage)	( voltage * 40.0 + 0x800 )//angle between -pi to pi
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
