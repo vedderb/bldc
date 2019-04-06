@@ -42,7 +42,6 @@ typedef struct{
 	float me;		            //Electrical Torque in Nm
 	float w;		            //Electrical Angular Velocity in rad/s
 	float phi;		            //Electrical Rotor Angle in rad
-	float phi_observer;
 	float sin_phi;
 	float cos_phi;
 	bool connected;				//true => connected; false => disconnected;
