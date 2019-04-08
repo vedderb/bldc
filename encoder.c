@@ -65,11 +65,6 @@
 #define SPI_SW_CS_PIN				HW_HALL_ENC_PIN3
 #endif
 
-#ifdef HW_HAS_SIN_COS_ENCODER
-#define ENCODER_SIN_VOLTS			ADC_VOLTS(ADC_IND_EXT)
-#define ENCODER_COS_VOLTS			ADC_VOLTS(ADC_IND_EXT2)
-#endif
-
 // Private types
 typedef enum {
 	ENCODER_MODE_NONE = 0,

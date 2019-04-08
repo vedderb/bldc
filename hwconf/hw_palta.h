@@ -133,6 +133,9 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 
+// Sin/Cos Encoder signals
+#define ENCODER_SIN_VOLTS			ADC_VOLTS(ADC_IND_EXT)
+#define ENCODER_COS_VOLTS			ADC_VOLTS(ADC_IND_EXT2)
 
 #ifdef HW_PALTA_REV_B
 #define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	15.0
