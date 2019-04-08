@@ -136,7 +136,7 @@
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-#define APP_CUSTOM_TO_USE			"current_brake_center_reverse_button.c"
+//#define APP_CUSTOM_TO_USE			"app_rotary_led.c"
 //#define APPCONF_APP_TO_USE			APP_CUSTOM
 //#define MCCONF_FOC_F_SW				5000
 
