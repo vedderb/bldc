@@ -164,9 +164,9 @@ void mc_interface_init(mc_configuration *configuration) {
 		break;
 
 	case SENSOR_PORT_MODE_SINCOS:
-		encoder_init_sincos(m_conf.m_encoder_sin_gain, m_conf.m_encoder_sin_offset,
-							m_conf.m_encoder_cos_gain, m_conf.m_encoder_cos_offset,
-							m_conf.m_encoder_sincos_filter_constant);
+		encoder_init_sincos(m_conf.foc_encoder_sin_gain, m_conf.foc_encoder_sin_offset,
+							m_conf.foc_encoder_cos_gain, m_conf.foc_encoder_cos_offset,
+							m_conf.foc_encoder_sincos_filter_constant);
 		break;
 
 	default:
@@ -216,9 +216,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			break;
 
 		case SENSOR_PORT_MODE_SINCOS:
-			encoder_init_sincos(m_conf.m_encoder_sin_gain, m_conf.m_encoder_sin_offset,
-								m_conf.m_encoder_cos_gain, m_conf.m_encoder_cos_offset,
-								m_conf.m_encoder_sincos_filter_constant);
+			encoder_init_sincos(m_conf.foc_encoder_sin_gain, m_conf.foc_encoder_sin_offset,
+								m_conf.foc_encoder_cos_gain, m_conf.foc_encoder_cos_offset,
+								m_conf.foc_encoder_sincos_filter_constant);
 			break;
 
 		default:

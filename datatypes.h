@@ -219,12 +219,6 @@ typedef struct {
 	// Hall sensor
 	int8_t hall_table[8];
 	float hall_sl_erpm;
-	// sin/cos encoder
-	float m_encoder_sin_offset;
-	float m_encoder_sin_gain;
-	float m_encoder_cos_offset;
-	float m_encoder_cos_gain;
-	float m_encoder_sincos_filter_constant;
 	// FOC
 	float foc_current_kp;
 	float foc_current_ki;
@@ -233,6 +227,11 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
+	float foc_encoder_sin_offset;
+	float foc_encoder_sin_gain;
+	float foc_encoder_cos_offset;
+	float foc_encoder_cos_gain;
+	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
