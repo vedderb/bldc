@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "app.h"
+#include "conf_general.h"
 
 #ifdef APP_CUSTOM_TO_USE
 #include APP_CUSTOM_TO_USE
