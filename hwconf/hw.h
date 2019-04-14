@@ -84,6 +84,14 @@
 #define NTC_TEMP_MOS3()		0.0
 #endif
 
+// Sin/Cos Encoder Signals. Override if available
+#ifndef ENCODER_SIN_VOLTS
+#define ENCODER_SIN_VOLTS()		0.0
+#endif
+#ifndef ENCODER_COS_VOLTS
+#define ENCODER_COS_VOLTS()		0.0
+#endif
+
 // Current ADC macros. Override them for custom current measurement functions.
 #ifndef GET_CURRENT1
 #ifdef INVERTED_SHUNT_POLARITY

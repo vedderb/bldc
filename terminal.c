@@ -656,10 +656,23 @@ void terminal_process_string(char *str) {
 			commands_printf("This command requires one argument.\n");
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
-		commands_printf("SPI val: %x, errors: %d, error rate: %.3f %%",
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			commands_printf("SPI encoder value: %x, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
 				(double)encoder_spi_get_error_rate() * (double)100.0);
+		}
+
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+		commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
+				encoder_sincos_get_signal_below_min_error_cnt(),
+				(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
+
+		commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
+				encoder_sincos_get_signal_above_max_error_cnt(),
+				(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
+		}
 	}
 
 	// The help command
@@ -773,7 +786,7 @@ void terminal_process_string(char *str) {
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
 		
 		commands_printf("encoder");
-		commands_printf("  Prints the status of the AS5047 encoder.");
+		commands_printf("  Prints the status of the AS5047, AD2S1205, or Sin/Cos encoder.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].arg_names) {

@@ -90,7 +90,9 @@ typedef enum {
 	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
 	FAULT_CODE_MCU_UNDER_VOLTAGE,
 	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
-	FAULT_CODE_ENCODER,
+	FAULT_CODE_ENCODER_SPI,
+	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
+	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE
 } mc_fault_code;
 
 typedef enum {
@@ -121,7 +123,8 @@ typedef enum {
 	SENSOR_PORT_MODE_HALL = 0,
 	SENSOR_PORT_MODE_ABI,
 	SENSOR_PORT_MODE_AS5047_SPI,
-	SENSOR_PORT_MODE_AD2S1205
+	SENSOR_PORT_MODE_AD2S1205,
+	SENSOR_PORT_MODE_SINCOS
 } sensor_port_mode;
 
 typedef struct {
@@ -224,6 +227,11 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
+	float foc_encoder_sin_offset;
+	float foc_encoder_sin_gain;
+	float foc_encoder_cos_offset;
+	float foc_encoder_cos_gain;
+	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;

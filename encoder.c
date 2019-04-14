@@ -22,13 +22,17 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "hw.h"
+#include "mc_interface.h"
 #include "utils.h"
+#include "math.h"
 
 // Defines
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
-
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
+#define SINCOS_SAMPLE_RATE_HZ		20000
+#define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE		1.65		// sqrt(sin^2 + cos^2) has to be smaller than this
 
 
 #if AS5047_USE_HW_SPI_PINS
@@ -66,7 +70,8 @@ typedef enum {
 	ENCODER_MODE_NONE = 0,
 	ENCODER_MODE_ABI,
 	ENCODER_MODE_AS5047P_SPI,
-	RESOLVER_MODE_AD2S1205
+	RESOLVER_MODE_AD2S1205,
+	ENCODER_MODE_SINCOS
 } encoder_mode;
 
 // Private variables
@@ -77,6 +82,16 @@ static float last_enc_angle = 0.0;
 uint16_t spi_val = 0;
 uint32_t spi_error_cnt = 0;
 float spi_error_rate = 0.0;
+
+float sin_gain = 0.0;
+float sin_offset = 0.0;
+float cos_gain = 0.0;
+float cos_offset = 0.0;
+float sincos_filter_constant = 0.0;
+uint32_t sincos_signal_below_min_error_cnt = 0;
+uint32_t sincos_signal_above_max_error_cnt = 0;
+float sincos_signal_low_error_rate = 0.0;
+float sincos_signal_above_max_error_rate = 0.0;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
@@ -97,6 +112,21 @@ float encoder_spi_get_error_rate(void) {
 	return spi_error_rate;
 }
 
+uint32_t encoder_sincos_get_signal_below_min_error_cnt(void) {
+	return sincos_signal_below_min_error_cnt;
+}
+
+uint32_t encoder_sincos_get_signal_above_max_error_cnt(void) {
+	return sincos_signal_above_max_error_cnt;
+}
+
+float encoder_sincos_get_signal_below_min_error_rate(void) {
+	return sincos_signal_low_error_rate;
+}
+
+float encoder_sincos_get_signal_above_max_error_rate(void) {
+	return sincos_signal_above_max_error_rate;
+}
 
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -115,6 +145,8 @@ void encoder_deinit(void) {
 	mode = ENCODER_MODE_NONE;
 	last_enc_angle = 0.0;
 	spi_error_rate = 0.0;
+	sincos_signal_low_error_rate = 0.0;
+	sincos_signal_above_max_error_rate = 0.0;
 }
 
 void encoder_init_abi(uint32_t counts) {
@@ -246,6 +278,29 @@ void encoder_init_ad2s1205_spi(void) {
 	index_found = true;
 }
 
+void encoder_init_sincos(float s_gain, float s_offset,
+						 float c_gain, float c_offset, float filter_constant) {
+	//ADC inputs are already initialized in hw_init_gpio()
+	sin_gain = s_gain;
+	sin_offset = s_offset;
+	cos_gain = c_gain;
+	cos_offset = c_offset;
+	sincos_filter_constant = filter_constant;
+
+	sincos_signal_below_min_error_cnt = 0;
+	sincos_signal_above_max_error_cnt = 0;
+	sincos_signal_low_error_rate = 0.0;
+	sincos_signal_above_max_error_rate = 0.0;
+
+	// ADC measurements needs to be in sync with motor PWM
+#ifdef HW_HAS_SIN_COS_ENCODER
+	mode = ENCODER_MODE_SINCOS;
+	index_found = true;
+#else
+	mode = ENCODER_MODE_NONE;
+	index_found = false;
+#endif
+}
 
 bool encoder_is_configured(void) {
 	return mode != ENCODER_MODE_NONE;
@@ -269,6 +324,38 @@ float encoder_read_deg(void) {
 	case RESOLVER_MODE_AD2S1205:
 		angle = last_enc_angle;
 		break;
+
+#ifdef HW_HAS_SIN_COS_ENCODER
+	case ENCODER_MODE_SINCOS: {
+		float sin = ENCODER_SIN_VOLTS * sin_gain - sin_offset;
+		float cos = ENCODER_COS_VOLTS * cos_gain - cos_offset;
+
+		float module = SQ(sin) + SQ(cos);
+
+		if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
+			// signals vector outside of the valid area. Increase error count and discard measurement
+			++sincos_signal_above_max_error_cnt;
+			UTILS_LP_FAST(sincos_signal_above_max_error_rate, 1.0, 1./SINCOS_SAMPLE_RATE_HZ);
+			angle = last_enc_angle;
+		}
+		else {
+			if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
+				++sincos_signal_below_min_error_cnt;
+				UTILS_LP_FAST(sincos_signal_low_error_rate, 1.0, 1./SINCOS_SAMPLE_RATE_HZ);
+				angle = last_enc_angle;
+			}
+			else {
+				UTILS_LP_FAST(sincos_signal_above_max_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
+				UTILS_LP_FAST(sincos_signal_low_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
+
+				float angle_tmp = utils_fast_atan2(sin, cos) * 180.0 / M_PI;
+				UTILS_LP_FAST(angle, angle_tmp, sincos_filter_constant);
+				last_enc_angle = angle;
+			}
+		}
+		break;
+	}
+#endif
 
 	default:
 		break;
