@@ -1,3 +1,8 @@
+=== FW 3.55 === (Ongoing)
+* Initial sin/cos encoder support
+* New ADC control mode
+* Virtual motor support
+
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.
 * Added blackmagic probe SWD output to program other MCUs.
