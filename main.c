@@ -49,6 +49,7 @@
 #include "spi_sw.h"
 #include "timer.h"
 #include "imu.h"
+#include "flash_helper.h"
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
@@ -183,6 +184,17 @@ int main(void) {
 
 	timer_init();
 	conf_general_init();
+
+	if( flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION )	{
+		// Loop here, it is not safe to run any code
+		while (1) {
+			chThdSleepMilliseconds(100);
+			LED_RED_ON();
+			chThdSleepMilliseconds(75);
+			LED_RED_OFF();
+		}
+	}
+
 	ledpwm_init();
 
 	mc_configuration mcconf;

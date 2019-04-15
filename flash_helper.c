@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "stm32f4xx_crc.h"
 #include "utils.h"
 #include "mc_interface.h"
 #include "timeout.h"
@@ -35,6 +36,8 @@
 #define APP_BASE				0
 #define NEW_APP_BASE			8
 #define NEW_APP_SECTORS			3
+#define APP_MAX_SIZE			(3 * (1 << 17))
+#define EEPROM_EMULATION_SIZE	0x8000
 
 // Base address of the Flash sectors
 #define ADDR_FLASH_SECTOR_0     ((uint32_t)0x08000000) // Base @ of Sector 0, 16 Kbytes
@@ -49,6 +52,9 @@
 #define ADDR_FLASH_SECTOR_9     ((uint32_t)0x080A0000) // Base @ of Sector 9, 128 Kbytes
 #define ADDR_FLASH_SECTOR_10    ((uint32_t)0x080C0000) // Base @ of Sector 10, 128 Kbytes
 #define ADDR_FLASH_SECTOR_11    ((uint32_t)0x080E0000) // Base @ of Sector 11, 128 Kbytes
+
+#define	APP_CRC_WAS_CALCULATED_FLAG			((uint32_t)0xAAAAAAAA)
+#define	APP_CRC_WAS_CALCULATED_FLAG_ADDRESS	(uint32_t*)(APP_MAX_SIZE - 8)
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -190,4 +196,56 @@ uint8_t* flash_helper_get_sector_address(uint32_t fsector) {
 	}
 
 	return res;
+}
+
+/**
+  * @brief  Compute the CRC of the application code to verify its integrity
+  * @retval FAULT_CODE_NONE or FAULT_CODE_FLASH_CORRUPTION
+  */
+uint32_t flash_helper_verify_flash_memory(void) {
+	uint32_t crc;
+	// Look for a flag indicating that the CRC was previously computed.
+	// If it is blank (0xFFFFFFFF), calculate and store the CRC.
+	if( (APP_CRC_WAS_CALCULATED_FLAG_ADDRESS)[0] == APP_CRC_WAS_CALCULATED_FLAG )
+    {
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+		CRC_ResetDR();
+
+		// A CRC over the full image should return zero. Exclude the pages used for
+		// storing user configuration data.
+		crc= CRC_CalcBlockCRC((uint32_t*)(	ADDR_FLASH_SECTOR_0 + EEPROM_EMULATION_SIZE),
+							  (APP_MAX_SIZE - EEPROM_EMULATION_SIZE)/4);
+
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, DISABLE);
+
+		return (crc == 0)? FAULT_CODE_NONE : FAULT_CODE_FLASH_CORRUPTION;
+    }
+	else {
+		FLASH_Unlock();
+		FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+        				FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+       	//Write the flag to indicate CRC has been computed.
+   		uint16_t res = FLASH_ProgramWord((uint32_t)APP_CRC_WAS_CALCULATED_FLAG_ADDRESS, APP_CRC_WAS_CALCULATED_FLAG);
+   		if (res != FLASH_COMPLETE) {
+   			return FAULT_CODE_FLASH_CORRUPTION;
+   		}
+
+   		// Compute flash crc including the new flag
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+		CRC_ResetDR();
+		crc= CRC_CalcBlockCRC((uint32_t*)(ADDR_FLASH_SECTOR_0 + EEPROM_EMULATION_SIZE),
+							  (APP_MAX_SIZE - EEPROM_EMULATION_SIZE - 4)/4);
+		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, DISABLE);
+
+		//Store CRC
+		res = FLASH_ProgramWord(APP_MAX_SIZE - 4, crc);
+		if (res != FLASH_COMPLETE) {
+			 return FAULT_CODE_FLASH_CORRUPTION;
+		}
+
+		// reboot
+		NVIC_SystemReset();
+		return FAULT_CODE_NONE;
+	}
 }
