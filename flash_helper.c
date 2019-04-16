@@ -21,11 +21,11 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "stm32f4xx_crc.h"
 #include "utils.h"
 #include "mc_interface.h"
 #include "timeout.h"
 #include "hw.h"
+#include "crc.h"
 #include <string.h>
 
 /*
@@ -55,6 +55,12 @@
 
 #define	APP_CRC_WAS_CALCULATED_FLAG			((uint32_t)0xAAAAAAAA)
 #define	APP_CRC_WAS_CALCULATED_FLAG_ADDRESS	(uint32_t*)(APP_MAX_SIZE - 8)
+
+#define VECTOR_TABLE_ADDRESS	(uint32_t *)ADDR_FLASH_SECTOR_0
+#define VECTOR_TABLE_SIZE		(ADDR_FLASH_SECTOR_1 - ADDR_FLASH_SECTOR_0)
+
+#define APP_START_ADDRESS		(uint32_t *)(ADDR_FLASH_SECTOR_1 + EEPROM_EMULATION_SIZE)
+#define APP_SIZE				(APP_MAX_SIZE - VECTOR_TABLE_SIZE - EEPROM_EMULATION_SIZE)
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -214,15 +220,19 @@ uint32_t flash_helper_verify_flash_memory(void) {
 	if( (APP_CRC_WAS_CALCULATED_FLAG_ADDRESS)[0] == APP_CRC_WAS_CALCULATED_FLAG )
     {
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
-		CRC_ResetDR();
+		crc32_reset();
 
-		// A CRC over the full image should return zero. Exclude the pages used for
-		// storing user configuration data.
-		crc= CRC_CalcBlockCRC((uint32_t*)(	ADDR_FLASH_SECTOR_0 + EEPROM_EMULATION_SIZE),
-							  (APP_MAX_SIZE - EEPROM_EMULATION_SIZE)/4);
+		// compute vector table (sector 0)
+		crc32((VECTOR_TABLE_ADDRESS), (VECTOR_TABLE_SIZE)/4);
+
+		// skip emulated EEPROM (sector 1 and 2)
+
+		// compute application code
+		crc = crc32(APP_START_ADDRESS, (APP_SIZE)/4);
 
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, DISABLE);
 
+		// A CRC over the full image should return zero.
 		return (crc == 0)? FAULT_CODE_NONE : FAULT_CODE_FLASH_CORRUPTION;
     }
 	else {
@@ -239,9 +249,16 @@ uint32_t flash_helper_verify_flash_memory(void) {
 
    		// Compute flash crc including the new flag
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
-		CRC_ResetDR();
-		crc= CRC_CalcBlockCRC((uint32_t*)(ADDR_FLASH_SECTOR_0 + EEPROM_EMULATION_SIZE),
-							  (APP_MAX_SIZE - EEPROM_EMULATION_SIZE - 4)/4);
+		crc32_reset();
+
+		// compute vector table (sector 0)
+		crc32(VECTOR_TABLE_ADDRESS, (VECTOR_TABLE_SIZE)/4);
+
+		// skip emulated EEPROM (sector 1 and 2)
+
+		// compute application code
+		crc = crc32(APP_START_ADDRESS, (APP_SIZE - 4)/4);
+
 		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, DISABLE);
 
 		//Store CRC

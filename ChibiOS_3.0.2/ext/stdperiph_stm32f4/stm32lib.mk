@@ -8,7 +8,6 @@ STM32SRC = 	${CHIBIOS}/ext/stdperiph_stm32f4/src/misc.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_syscfg.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_tim.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_iwdg.c \
-			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_crc.c \
 			${CHIBIOS}/ext/stdperiph_stm32f4/src/stm32f4xx_wwdg.c
 
 STM32INC = ${CHIBIOS}/ext/stdperiph_stm32f4/inc
