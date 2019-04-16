@@ -65,6 +65,7 @@ void conf_general_init(void) {
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
+	FLASH_Lock();
 }
 
 /**
@@ -113,6 +114,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
 
+	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
@@ -125,6 +127,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 			break;
 		}
 	}
+	FLASH_Lock();
 
 	timeout_configure_IWDT();
 
@@ -179,6 +182,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 
+	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
@@ -191,6 +195,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf) {
 			break;
 		}
 	}
+	FLASH_Lock();
 
 	timeout_configure_IWDT();
 

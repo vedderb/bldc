@@ -102,12 +102,14 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 		if (new_app_size > flash_addr[NEW_APP_BASE + i]) {
 			uint16_t res = FLASH_EraseSector(flash_sector[NEW_APP_BASE + i], VoltageRange_3);
 			if (res != FLASH_COMPLETE) {
+				FLASH_Lock();
 				return res;
 			}
 		} else {
 			break;
 		}
 	}
+	FLASH_Lock();
 
 	timeout_configure_IWDT();
 	utils_sys_unlock_cnt();
@@ -116,6 +118,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 }
 
 uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_t len) {
+	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
@@ -127,9 +130,11 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	for (uint32_t i = 0;i < len;i++) {
 		uint16_t res = FLASH_ProgramByte(flash_addr[NEW_APP_BASE] + offset + i, data[i]);
 		if (res != FLASH_COMPLETE) {
+			FLASH_Lock();
 			return res;
 		}
 	}
+	FLASH_Lock();
 
 	timeout_configure_IWDT();
 
@@ -228,6 +233,7 @@ uint32_t flash_helper_verify_flash_memory(void) {
        	//Write the flag to indicate CRC has been computed.
    		uint16_t res = FLASH_ProgramWord((uint32_t)APP_CRC_WAS_CALCULATED_FLAG_ADDRESS, APP_CRC_WAS_CALCULATED_FLAG);
    		if (res != FLASH_COMPLETE) {
+   			FLASH_Lock();
    			return FAULT_CODE_FLASH_CORRUPTION;
    		}
 
@@ -241,8 +247,10 @@ uint32_t flash_helper_verify_flash_memory(void) {
 		//Store CRC
 		res = FLASH_ProgramWord(APP_MAX_SIZE - 4, crc);
 		if (res != FLASH_COMPLETE) {
+			FLASH_Lock();
 			 return FAULT_CODE_FLASH_CORRUPTION;
 		}
+		FLASH_Lock();
 
 		// reboot
 		NVIC_SystemReset();
