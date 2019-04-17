@@ -28,5 +28,6 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 void flash_helper_jump_to_bootloader(void);
 uint8_t* flash_helper_get_sector_address(uint32_t fsector);
 uint32_t flash_helper_verify_flash_memory(void);
+uint32_t flash_helper_verify_flash_memory_chunk(void);
 
 #endif /* FLASH_HELPER_H_ */

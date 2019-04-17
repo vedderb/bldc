@@ -75,6 +75,22 @@
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
+static THD_WORKING_AREA(flash_integrity_check_thread_wa, 1024);
+
+static THD_FUNCTION(flash_integrity_check_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("Flash integrity check");
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+
+	for(;;) {
+		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
+			NVIC_SystemReset();
+		}
+
+		chThdSleepMilliseconds(50);
+	}
+}
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -245,6 +261,7 @@ int main(void) {
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
 #if WS2811_TEST
 	unsigned int color_ind = 0;

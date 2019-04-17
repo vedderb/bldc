@@ -56,11 +56,11 @@
 #define	APP_CRC_WAS_CALCULATED_FLAG			((uint32_t)0xAAAAAAAA)
 #define	APP_CRC_WAS_CALCULATED_FLAG_ADDRESS	(uint32_t*)(APP_MAX_SIZE - 8)
 
-#define VECTOR_TABLE_ADDRESS	(uint32_t *)ADDR_FLASH_SECTOR_0
-#define VECTOR_TABLE_SIZE		(ADDR_FLASH_SECTOR_1 - ADDR_FLASH_SECTOR_0)
+#define VECTOR_TABLE_ADDRESS	((uint32_t *)ADDR_FLASH_SECTOR_0)
+#define VECTOR_TABLE_SIZE		((uint32_t)(ADDR_FLASH_SECTOR_1 - ADDR_FLASH_SECTOR_0))
 
-#define APP_START_ADDRESS		(uint32_t *)(ADDR_FLASH_SECTOR_1 + EEPROM_EMULATION_SIZE)
-#define APP_SIZE				(APP_MAX_SIZE - VECTOR_TABLE_SIZE - EEPROM_EMULATION_SIZE)
+#define APP_START_ADDRESS		((uint32_t *)(ADDR_FLASH_SECTOR_1 + EEPROM_EMULATION_SIZE))
+#define APP_SIZE				((uint32_t)(APP_MAX_SIZE - VECTOR_TABLE_SIZE - EEPROM_EMULATION_SIZE))
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -274,3 +274,32 @@ uint32_t flash_helper_verify_flash_memory(void) {
 		return FAULT_CODE_NONE;
 	}
 }
+
+uint32_t flash_helper_verify_flash_memory_chunk(void) {
+	static uint32_t index = 0;
+	const uint32_t chunk_size = 8192;
+	uint32_t res = FAULT_CODE_NONE;
+	uint32_t crc = 0;
+
+	// Make sure RCC_AHB1Periph_CRC is enabled
+	if (index == 0) {
+		crc32_reset();
+	}
+
+	if (index < VECTOR_TABLE_SIZE) {
+		crc32((VECTOR_TABLE_ADDRESS + index), chunk_size/4);
+	}
+	else {
+		crc = crc32((uint32_t*)((uint32_t)APP_START_ADDRESS + index - VECTOR_TABLE_SIZE), chunk_size/4);
+	}
+
+	index += chunk_size;
+	if (index >= (VECTOR_TABLE_SIZE + APP_SIZE)) {
+		index = 0;
+		if (crc != 0) {
+			res = FAULT_CODE_FLASH_CORRUPTION;
+		}
+	}
+	return res;
+}
+
