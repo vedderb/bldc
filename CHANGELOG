@@ -5,6 +5,8 @@
 * Disable chuk cruise control on dropouts.
 * Fix multiple VESCs over CAN duty cycle mode.
 * Added boot and runtime flash memory CRC integrity check.
+* Updated chuk RPM filter and moved it to the beginning of the output thread.
+* Decreased chuk output thread rate from 1 kHz to 200 Hz.
 
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.
