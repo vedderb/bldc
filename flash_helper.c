@@ -62,6 +62,14 @@
 #define APP_START_ADDRESS		((uint32_t *)(ADDR_FLASH_SECTOR_1 + EEPROM_EMULATION_SIZE))
 #define APP_SIZE				((uint32_t)(APP_MAX_SIZE - VECTOR_TABLE_SIZE - EEPROM_EMULATION_SIZE))
 
+typedef struct {
+	uint32_t crc_flag;
+	uint32_t crc;
+}crc_info_t;
+
+//Make sure the app image has the CRC bits set to '1' to later write the flag and CRC.
+const crc_info_t __attribute__((section (".crcinfo"))) crc_info = {0xFFFFFFFF, 0xFFFFFFFF};
+
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
 		ADDR_FLASH_SECTOR_0,
