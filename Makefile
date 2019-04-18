@@ -276,7 +276,7 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 build/$(PROJECT).bin: build/$(PROJECT).elf 
-	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin
+	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
 
 # Program
 upload: build/$(PROJECT).bin

@@ -4,6 +4,7 @@
 * Virtual motor support.
 * Disable chuk cruise control on dropouts.
 * Fix multiple VESCs over CAN duty cycle mode.
+* Added boot and runtime flash memory CRC integrity check.
 
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.

@@ -68,12 +68,13 @@ unsigned short crc16(unsigned char *buf, unsigned int len) {
   * @retval 32-bit CRC
   */
 uint32_t crc32(uint32_t *pBuffer, uint32_t BufferLength) {
-  uint32_t index = 0;
+	uint32_t index = 0;
 
-  for(index = 0; index < BufferLength; index++) {
-    CRC->DR = pBuffer[index];
-  }
-  return (CRC->DR);
+	for(index = 0; index < BufferLength; index++) {
+		CRC->DR = pBuffer[index];
+	}
+
+	return (CRC->DR);
 }
 
 /**
@@ -82,6 +83,6 @@ uint32_t crc32(uint32_t *pBuffer, uint32_t BufferLength) {
   * @retval None
   */
 void crc32_reset(void) {
-  /* Reset CRC generator */
-  CRC->CR = CRC_CR_RESET;
+	/* Reset CRC generator */
+	CRC->CR |= CRC_CR_RESET;
 }

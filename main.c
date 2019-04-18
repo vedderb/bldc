@@ -75,12 +75,12 @@
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
-static THD_WORKING_AREA(flash_integrity_check_thread_wa, 1024);
+static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("Flash integrity check");
+	chRegSetThreadName("Flash check");
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 
 	for(;;) {
@@ -88,7 +88,7 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 			NVIC_SystemReset();
 		}
 
-		chThdSleepMilliseconds(50);
+		chThdSleepMilliseconds(6);
 	}
 }
 
