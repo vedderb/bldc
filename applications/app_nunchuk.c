@@ -205,20 +205,25 @@ static THD_FUNCTION(output_thread, arg) {
 
 	chRegSetThreadName("Nunchuk output");
 
+	bool was_pid = false;
+
 	for(;;) {
 		chThdSleepMilliseconds(OUTPUT_ITERATION_TIME_MS);
 
 		if (timeout_has_timeout() || chuck_error != 0 || config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
+			was_pid = false;
 			continue;
 		}
 
 		// Local timeout to prevent this thread from causing problems after not
 		// being used for a while.
 		if (chVTTimeElapsedSinceX(last_update_time) > MS2ST(LOCAL_TIMEOUT)) {
+			was_pid = false;
 			continue;
 		}
 
 		if (app_is_output_disabled()) {
+			was_pid = false;
 			continue;
 		}
 
@@ -231,6 +236,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
+			was_pid = false;
 			continue;
 		}
 
@@ -277,9 +283,6 @@ static THD_FUNCTION(output_thread, arg) {
 				led_external_set_state(LED_EXT_NORMAL);
 			}
 		}
-
-		// If c is pressed and no throttle is used, maintain the current speed with PID control
-		static bool was_pid = false;
 
 		// Filter RPM to avoid glitches
 		static float filter_buffer[RPM_FILTER_SAMPLES];

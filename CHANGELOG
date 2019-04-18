@@ -1,7 +1,9 @@
 === FW 3.55 === (Ongoing)
-* Initial sin/cos encoder support
-* New ADC control mode
-* Virtual motor support
+* Initial sin/cos encoder support.
+* New ADC control mode.
+* Virtual motor support.
+* Disable chuk cruise control on dropouts.
+* Fix multiple VESCs over CAN duty cycle mode.
 
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.

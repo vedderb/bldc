@@ -205,6 +205,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		bool current_mode = false;
 		bool current_mode_brake = false;
 		bool send_current = false;
+		bool send_duty = false;
 
 		switch (config.ctrl_type) {
 		case PPM_CTRL_TYPE_CURRENT:
@@ -243,7 +244,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
 				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
-				send_current = true;
+				send_duty = true;
 			}
 			break;
 
@@ -290,14 +291,19 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 		}
 
-		if (send_current && config.multi_esc) {
+		if ((send_current || send_duty) && config.multi_esc) {
 			float current_filtered = mc_interface_get_tot_current_directional_filtered();
+			float duty = mc_interface_get_duty_cycle_now();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current(msg->id, current_filtered);
+					if (send_current) {
+						comm_can_set_current(msg->id, current_filtered);
+					} else if (send_duty) {
+						comm_can_set_duty(msg->id, duty);
+					}
 				}
 			}
 		}
