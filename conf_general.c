@@ -40,6 +40,8 @@
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
 #define EEPROM_BASE_APPCONF		2000
+#define EEPROM_BASE_HW			3000
+#define EEPROM_BASE_CUSTOM		4000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
@@ -47,6 +49,10 @@ bool conf_general_permanent_nrf_found = false;
 
 // Private variables
 mc_configuration mcconf, mcconf_old;
+
+// Private functions
+static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base);
+static bool store_eeprom_var(eeprom_var *v, int address, uint16_t base);
 
 void conf_general_init(void) {
 	// First, make sure that all relevant virtual addresses are assigned for page swapping.
@@ -61,11 +67,128 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_APPCONF + i;
 	}
 
+	for (unsigned int i = 0;i < (EEPROM_VARS_HW * 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_HW + i;
+	}
+
+	for (unsigned int i = 0;i < (EEPROM_VARS_CUSTOM * 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_CUSTOM + i;
+	}
+
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 	FLASH_Lock();
+}
+
+/**
+ * Read hw-specific variable from emulated EEPROM.
+ *
+ * @param v
+ * The variable to read the result from.
+ *
+ * @param address
+ * Mapped address in EEPROM. Range 0 to 63.
+ *
+ * @return
+ * true for success, false if variable was not found.
+ */
+bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address) {
+	return read_eeprom_var(v, address, EEPROM_BASE_HW);
+}
+
+/**
+ * Read custom variable from emulated EEPROM.
+ *
+ * @param v
+ * The variable to read the result from.
+ *
+ * @param address
+ * Mapped address in EEPROM. Range 0 to 63.
+ *
+ * @return
+ * true for success, false if variable was not found.
+ */
+bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address) {
+	return read_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
+}
+
+/**
+ * Store hw-specific variable to emulated EEPROM.
+ *
+ * @param v
+ * The variable to store the result in.
+ *
+ * @param address
+ * Mapped address in EEPROM. Range 0 to 63.
+ *
+ * @return
+ * true for success, false if something went wrong.
+ */
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address) {
+	return store_eeprom_var(v, address, EEPROM_BASE_HW);
+}
+
+/**
+ * Store custom variable to emulated EEPROM.
+ *
+ * @param v
+ * The variable to store the result in.
+ *
+ * @param address
+ * Mapped address in EEPROM. Range 0 to 63.
+ *
+ * @return
+ * true for success, false if something went wrong.
+ */
+bool conf_general_store_eeprom_var_custom(eeprom_var *v, int address) {
+	return store_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
+}
+
+static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base) {
+	bool is_ok = true;
+	uint16_t var0, var1;
+
+	if (EE_ReadVariable(base + 2 * address, &var0) == 0 &&
+			EE_ReadVariable(base + 2 * address + 1, &var1) == 0) {
+		uint32_t res = ((uint32_t)var0) << 16 | var1;
+		v->as_u32 = res;
+	} else {
+		is_ok = false;
+	}
+
+	return is_ok;
+}
+
+static bool store_eeprom_var(eeprom_var *v, int address, uint16_t base) {
+	bool is_ok = true;
+	uint16_t var0, var1;
+
+	var0 = v->as_u32 >> 16;
+	var1 = v->as_u32 & 0xFFFF;
+
+	timeout_configure_IWDT_slowest();
+
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	if (EE_WriteVariable(base + address * 2, var0) != FLASH_COMPLETE) {
+		is_ok = false;
+	}
+
+	if (is_ok) {
+		if (EE_WriteVariable(base + address * 2 + 1, var1) != FLASH_COMPLETE) {
+			is_ok = false;
+		}
+	}
+
+	FLASH_Lock();
+
+	timeout_configure_IWDT();
+
+	return is_ok;
 }
 
 /**

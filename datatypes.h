@@ -762,4 +762,14 @@ typedef struct {
 	int initialUpdateDone;
 } ATTITUDE_INFO;
 
+// Custom EEPROM variables
+typedef union {
+	uint32_t as_u32;
+	int32_t as_i32;
+	float as_float;
+} eeprom_var;
+
+#define EEPROM_VARS_HW			64
+#define EEPROM_VARS_CUSTOM		64
+
 #endif /* DATATYPES_H_ */

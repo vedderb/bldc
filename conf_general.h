@@ -232,6 +232,10 @@ extern bool conf_general_permanent_nrf_found;
 
 // Functions
 void conf_general_init(void);
+bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
