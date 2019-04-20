@@ -114,6 +114,16 @@
 #define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
 #endif
 #endif
+#ifndef HW_MAX_CURRENT_OFFSET
+#define HW_MAX_CURRENT_OFFSET 				4095
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE
+#define MCCONF_MAX_CURRENT_UNBALANCE		200.0
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE_RATE
+#define MCCONF_MAX_CURRENT_UNBALANCE_RATE	1.0
+#endif
+
 
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN

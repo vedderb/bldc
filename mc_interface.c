@@ -35,6 +35,7 @@
 #include "buffer.h"
 #include "gpdrive.h"
 #include <math.h>
+#include <stdlib.h>
 
 // Macros
 #define DIR_MULT		(m_conf.m_invert_direction ? -1.0 : 1.0)
@@ -66,6 +67,8 @@ static volatile float m_position_set;
 static volatile float m_temp_fet;
 static volatile float m_temp_motor;
 static volatile float m_gate_driver_voltage;
+static volatile float m_motor_current_unbalance;
+static volatile float m_motor_current_unbalance_error_rate;
 
 // Sampling variables
 #define ADC_SAMPLE_MAX_LEN		2000
@@ -125,6 +128,8 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_temp_fet = 0.0;
 	m_temp_motor = 0.0;
 	m_gate_driver_voltage = 0.0;
+	m_motor_current_unbalance = 0.0;
+	m_motor_current_unbalance_error_rate = 0.0;
 
 	m_sample_len = 1000;
 	m_sample_int = 1;
@@ -367,6 +372,11 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ENCODER_SPI: return "FAULT_CODE_ENCODER_SPI"; break;
 	case FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE"; break;
 	case FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE"; break;
+    case FAULT_CODE_FLASH_CORRUPTION: return "FAULT_CODE_FLASH_CORRUPTION";
+    case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1";
+    case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
+    case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
+    case FAULT_CODE_UNBALANCED_CURRENTS: return "FAULT_CODE_UNBALANCED_CURRENTS";
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -871,6 +881,26 @@ float mc_interface_get_tot_current_in_filtered(void) {
 	return ret;
 }
 
+float mc_interface_get_abs_motor_current_unbalance(void) {
+	float ret = 0.0;
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	switch (m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_get_abs_motor_current_unbalance();
+		break;
+
+	default:
+		break;
+	}
+#endif
+	return ret;
+}
+
 int mc_interface_get_tachometer_value(bool reset) {
 	int ret = 0;
 
@@ -1277,6 +1307,21 @@ void mc_interface_mc_timer_isr(void) {
 	} else {
 		wrong_voltage_iterations = 0;
 	}
+#ifdef HW_HAS_PHASE_SHUNTS
+	// Monitor currents balance. The sum of the 3 currents should be zero
+	m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
+
+	if ( m_motor_current_unbalance > MCCONF_MAX_CURRENT_UNBALANCE ) {
+		UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 1.0, (1 / 20000.0));
+	}
+	else {
+		UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 0.0, (1 / 20000.0));
+	}
+
+	if (m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
+		mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS);
+	}
+#endif
 
 	if (mc_interface_get_state() == MC_STATE_RUNNING) {
 		m_cycles_running++;
@@ -1764,6 +1809,25 @@ static THD_FUNCTION(timer_thread, arg) {
 			if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
+#ifdef HW_HAS_PHASE_SHUNTS
+		int m_curr0_offset;
+		int m_curr1_offset;
+		int m_curr2_offset;
+
+		mcpwm_foc_get_current_offsets(&m_curr0_offset, &m_curr1_offset, &m_curr2_offset);
+
+		if (abs(m_curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1);
+		}
+		if (abs(m_curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2);
+		}
+#ifdef HW_HAS_3_SHUNTS
+		if (abs(m_curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
+		}
+#endif
+#endif
 
 		chThdSleepMilliseconds(1);
 	}

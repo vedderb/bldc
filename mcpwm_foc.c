@@ -85,6 +85,7 @@ static volatile int m_curr1_sum;
 static volatile int m_curr_samples;
 static volatile int m_curr0_offset;
 static volatile int m_curr1_offset;
+static volatile int m_curr_unbalance;
 static volatile bool m_phase_override;
 static volatile float m_phase_now_override;
 static volatile float m_duty_cycle_set;
@@ -206,6 +207,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_control_mode = CONTROL_MODE_NONE;
 	m_curr0_sum = 0;
 	m_curr1_sum = 0;
+	m_curr_unbalance = 0.0;
 	m_curr_samples = 0;
 	m_dccal_done = false;
 	m_phase_override = false;
@@ -852,6 +854,16 @@ float mcpwm_foc_get_tot_current_filtered(void) {
  */
 float mcpwm_foc_get_abs_motor_current(void) {
 	return m_motor_state.i_abs;
+}
+
+/**
+ * Get the magnitude of the motor current unbalance
+ *
+ * @return
+ * The magnitude of the phase currents unbalance.
+ */
+float mcpwm_foc_get_abs_motor_current_unbalance(void) {
+	return (float)(m_curr_unbalance) * FAC_CURRENT;
 }
 
 /**
@@ -1696,6 +1708,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	curr1 -= m_curr1_offset;
 #ifdef HW_HAS_3_SHUNTS
 	curr2 -= m_curr2_offset;
+	m_curr_unbalance = curr0 + curr1 + curr2;
 #endif
 
 	m_curr_samples++;

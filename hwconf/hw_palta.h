@@ -116,6 +116,10 @@
 #define CURRENT_SHUNT_RES		1.000 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
 #endif
 
+#define HW_MAX_CURRENT_OFFSET					620		// More than this offset (0.5 Vdc) trips the offset fault (likely a sensor disconnected)
+#define MCCONF_MAX_CURRENT_UNBALANCE			130.0	// [Amp] More than this unbalance trips the fault (likely a sensor disconnected)
+#define MCCONF_MAX_CURRENT_UNBALANCE_RATE		0.3		// Fault if more than 30% of the time the motor is unbalanced
+
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
