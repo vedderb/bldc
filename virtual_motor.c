@@ -32,15 +32,18 @@ typedef struct{
 	float Rs;             		//Stator Resistance Phase to Neutral in Ohms
 	float Ld;             		//Inductance in d-Direction in H
 	float Lq;             		//Inductance in q-Direction in H
-	float Psi;					//Rotorflux coupling in Vs/rad
+	float flux_linkage;			//Flux linkage of the permanent magnets in mWb
 	float J;					//Rotor/Load Inertia in Nm*s^2
 	int v_max_adc;				//max voltage that ADC can measure
+	int pole_pairs;				//number of pole pairs ( pole numbers / 2)
+	float km;					//constant = 1.5 * pole pairs
 
 	//non constant variables
-	float id;		            //Current in d-Direction	in A
+	float id;		            //Current in d-Direction in Amps
+	float id_int;		        //Integral part of id in Amps
 	float iq;		            //Current in q-Direction in A
 	float me;		            //Electrical Torque in Nm
-	float w;		            //Electrical Angular Velocity in rad/s
+	float we;		            //Electrical Angular Velocity in rad/s
 	float phi;		            //Electrical Rotor Angle in rad
 	float sin_phi;
 	float cos_phi;
@@ -93,13 +96,16 @@ void virtual_motor_init(void){
 	virtual_motor.ia = 0.0;
 	virtual_motor.ib = 0.0;
 	virtual_motor.ic = 0.0;
-	virtual_motor.w = 0.0;
+	virtual_motor.we = 0.0;
 	virtual_motor.v_alpha = 0.0;
 	virtual_motor.v_beta = 0.0;
 	virtual_motor.i_alpha = 0.0;
 	virtual_motor.i_beta = 0.0;
-	virtual_motor.id = 0.0;
+	virtual_motor.id_int = 0.0;
 	virtual_motor.iq = 0.0;
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	virtual_motor.pole_pairs = conf->si_motor_poles / 2;
+	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
 
 	// Register terminal callbacks used for virtual motor setup
 	terminal_register_command_callback(
@@ -196,10 +202,13 @@ static void connect_virtual_motor(float ml , float J, float Ld, float Lq,
 	virtual_motor.J = J;
 	virtual_motor.Ld = Ld;
 	virtual_motor.Lq = Lq;
-	virtual_motor.Psi = lambda;
+	virtual_motor.flux_linkage = lambda;
 	virtual_motor.Rs = Rs;
 	virtual_motor.ml = ml;
 	virtual_motor.tsj = virtual_motor.Ts / virtual_motor.J;
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	virtual_motor.pole_pairs = conf->si_motor_poles / 2;
+	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
 
 	virtual_motor.connected = true;
 }
@@ -268,15 +277,20 @@ static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
 	virtual_motor.vq =  virtual_motor.cos_phi * v_beta - virtual_motor.sin_phi * v_alpha;
 
 	// d axis current
-	virtual_motor.id += (virtual_motor.vd +
-							virtual_motor.w * virtual_motor.Lq * virtual_motor.iq -
-							virtual_motor.Rs * virtual_motor.id )
-						* virtual_motor.Ts / virtual_motor.Ld;
+	virtual_motor.id_int += ((virtual_motor.vd +
+								virtual_motor.we *
+								virtual_motor.pole_pairs *
+								virtual_motor.Lq * virtual_motor.iq -
+	 							virtual_motor.Rs * virtual_motor.id )
+								* virtual_motor.Ts ) / virtual_motor.Ld;
+	virtual_motor.id = virtual_motor.id_int - virtual_motor.flux_linkage / virtual_motor.Ld;
+
 	// q axis current
 	virtual_motor.iq += (virtual_motor.vq -
-							virtual_motor.w * virtual_motor.Ld * virtual_motor.id -
-							virtual_motor.Rs * virtual_motor.iq -
-							virtual_motor.w * virtual_motor.Psi )
+						virtual_motor.we *
+						virtual_motor.pole_pairs *
+						(virtual_motor.Ld * virtual_motor.id + virtual_motor.flux_linkage) -
+						virtual_motor.Rs * virtual_motor.iq )
 						* virtual_motor.Ts / virtual_motor.Lq;
 }
 
@@ -285,25 +299,20 @@ static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
  * @param ml	externally applied load torque in Nm
  */
 static inline void run_virtual_motor_mechanics(float ml){
-	// precalculated constants
-	const float _3by2 = 3.0 / 2.0;
-
-	// electric torque
-	virtual_motor.me = _3by2 * (virtual_motor.Psi * virtual_motor.iq +
-								(virtual_motor.Lq - virtual_motor.Ld) *
-											virtual_motor.id * virtual_motor.iq);
-
+	virtual_motor.me =  virtual_motor.km * (virtual_motor.flux_linkage +
+											(virtual_motor.Ld - virtual_motor.Lq) *
+											virtual_motor.id ) * virtual_motor.iq;
 	// omega
-	float w_aux = virtual_motor.w  + virtual_motor.tsj * (virtual_motor.me - ml);
+	float w_aux = virtual_motor.we  + virtual_motor.tsj * (virtual_motor.me - ml);
 
 	if( w_aux < 0.0 ){
-		virtual_motor.w = 0;
+		virtual_motor.we = 0;
 	}else{
-		virtual_motor.w = w_aux;
+		virtual_motor.we = w_aux;
 	}
 
 	// phi
-	virtual_motor.phi += virtual_motor.w * virtual_motor.Ts;
+	virtual_motor.phi += virtual_motor.we * virtual_motor.Ts;
 
 	// phi limits
 	while( virtual_motor.phi > M_PI ){
