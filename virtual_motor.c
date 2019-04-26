@@ -211,6 +211,8 @@ static void connect_virtual_motor(float ml , float J, float Ld, float Lq,
 	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
 
 	virtual_motor.connected = true;
+
+	mtpa_setup(true, virtual_motor.Ld , virtual_motor.Lq);
 }
 
 /**
