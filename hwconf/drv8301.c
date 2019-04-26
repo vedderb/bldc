@@ -141,7 +141,7 @@ void drv8301_set_oc_mode(drv8301_oc_mode mode) {
 int drv8301_read_faults(void) {
 	int r0 = drv8301_read_reg(0);
 	int r1 = drv8301_read_reg(1);
-	return r0 | (((r1 >> 7) & 0x01) << 4);
+	return (r0 & 0x3FF) | ((r1 & 0x80) << 4);
 }
 
 /**

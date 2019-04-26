@@ -7,6 +7,8 @@
 * Added boot and runtime flash memory CRC integrity check.
 * Updated chuk RPM filter and moved it to the beginning of the output thread.
 * Decreased chuk output thread rate from 1 kHz to 200 Hz.
+* Added mpu_read_reg terminal command.
+* Fixed DRV8301 fault readout bug.
 
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.

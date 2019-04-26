@@ -20,43 +20,25 @@
 #ifndef HW_60_H_
 #define HW_60_H_
 
-#define HW_NAME					"60"
+#define HW_NAME					"BINAR"
 
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PERMANENT_NRF
 #define HW_HAS_PHASE_SHUNTS
+#define HW_HAS_NO_CAN
 
 // Macros
-#ifdef HW60_VEDDER_FIRST_PCB
-#define ENABLE_GATE()			palSetPad(GPIOB, 6)
-#define DISABLE_GATE()			palClearPad(GPIOB, 6)
-#else
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
-#endif
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 8))
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
 #define LED_RED_ON()			palSetPad(GPIOB, 1)
 #define LED_RED_OFF()			palClearPad(GPIOB, 1)
-
-#define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
-#define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
-
-// Switch on current filter if a permanent
-// NRF24 cannot be found, as the later
-// HW60 has changed one of the permanent NRF
-// pins to the current filter activation pin.
-#define HW_PERMANENT_NRF_FAILED_HOOK() \
-			palSetPadMode(GPIOD, 2, \
-			PAL_MODE_OUTPUT_PUSHPULL | \
-			PAL_STM32_OSPEED_HIGHEST); \
-			CURRENT_FILTER_ON()
 
 /*
  * ADC Vector
@@ -89,7 +71,7 @@
 #define ADC_IND_CURR1			3
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
-#define ADC_IND_VIN_SENS		11
+#define ADC_IND_VIN_SENS		10
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_TEMP_MOS		8
@@ -120,7 +102,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind)		25.0//(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -155,8 +137,8 @@
 #define HW_ICU_DEV				ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO				GPIOB
-#define HW_ICU_PIN				6
+#define HW_ICU_GPIO				GPIOC
+#define HW_ICU_PIN				13
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
@@ -184,16 +166,6 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-// NRF pins
-#define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				12
-#define NRF_PORT_SCK			GPIOB
-#define NRF_PIN_SCK				4
-#define NRF_PORT_MOSI			GPIOB
-#define NRF_PIN_MOSI			3
-#define NRF_PORT_MISO			GPIOD
-#define NRF_PIN_MISO			2
-
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
@@ -218,9 +190,9 @@
 
 // MPU9250
 #define MPU9X50_SDA_GPIO		GPIOB
-#define MPU9X50_SDA_PIN			2
-#define MPU9X50_SCL_GPIO		GPIOA
-#define MPU9X50_SCL_PIN			15
+#define MPU9X50_SDA_PIN			7
+#define MPU9X50_SCL_GPIO		GPIOB
+#define MPU9X50_SCL_PIN			6
 #define MPU9x50_FLIP
 
 // Measurement macros

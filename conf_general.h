@@ -108,6 +108,9 @@
 
 //#define HW_SOURCE "hw_uavc_basic.c"
 //#define HW_HEADER "hw_uavc_basic.h"
+
+//#define HW_SOURCE "hw_binar_v1.c"
+//#define HW_HEADER "hw_binar_v1.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -117,6 +120,8 @@
 #ifndef HW_HEADER
 #error "No hardware header file set"
 #endif
+
+#include "hw.h"
 
 /*
  * Select default user motor configuration
@@ -150,7 +155,14 @@
 /*
  * Enable CAN-bus
  */
+#ifndef CAN_ENABLE
 #define CAN_ENABLE					1
+#endif
+
+#ifdef HW_HAS_NO_CAN
+#undef CAN_ENABLE
+#define CAN_ENABLE 					0
+#endif
 
 /*
  * Settings for the external LEDs (hardcoded for now)
