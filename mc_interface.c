@@ -884,7 +884,7 @@ float mc_interface_get_tot_current_in_filtered(void) {
 float mc_interface_get_abs_motor_current_unbalance(void) {
 	float ret = 0.0;
 
-#ifdef HW_HAS_PHASE_SHUNTS
+#ifdef HW_HAS_3_SHUNTS
 	switch (m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
@@ -1307,19 +1307,21 @@ void mc_interface_mc_timer_isr(void) {
 	} else {
 		wrong_voltage_iterations = 0;
 	}
-#ifdef HW_HAS_PHASE_SHUNTS
+
 	// Monitor currents balance. The sum of the 3 currents should be zero
-	m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
+#ifdef HW_HAS_3_SHUNTS
+	if (!m_conf.foc_sample_high_current) { // This won't work when high current sampling is used
+		m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
-	if ( m_motor_current_unbalance > MCCONF_MAX_CURRENT_UNBALANCE ) {
-		UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 1.0, (1 / 20000.0));
-	}
-	else {
-		UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 0.0, (1 / 20000.0));
-	}
+		if (m_motor_current_unbalance > MCCONF_MAX_CURRENT_UNBALANCE) {
+			UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 1.0, (1 / 20000.0));
+		} else {
+			UTILS_LP_FAST(m_motor_current_unbalance_error_rate, 0.0, (1 / 20000.0));
+		}
 
-	if (m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
-		mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS);
+		if (m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
+			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS);
+		}
 	}
 #endif
 
@@ -1809,7 +1811,7 @@ static THD_FUNCTION(timer_thread, arg) {
 			if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
-#ifdef HW_HAS_PHASE_SHUNTS
+
 		int m_curr0_offset;
 		int m_curr1_offset;
 		int m_curr2_offset;
@@ -1826,7 +1828,6 @@ static THD_FUNCTION(timer_thread, arg) {
 		if (abs(m_curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
 		}
-#endif
 #endif
 
 		chThdSleepMilliseconds(1);

@@ -9,6 +9,8 @@
 * Decreased chuk output thread rate from 1 kHz to 200 Hz.
 * Added mpu_read_reg terminal command.
 * Fixed DRV8301 fault readout bug.
+* Added unbalanced current detection.
+* Added high current offset detection.
 
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.
