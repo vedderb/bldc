@@ -101,6 +101,8 @@
 #define HVDC_TRANSFER_FUNCTION			185.0			//[V/V]
 #define PHASE_VOLTAGE_TRANSFER_FUNCTION	185.0			//[V/V]
 #endif
+#define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
+
 
 // Component parameters (can be overridden)
 #ifndef V_REG
@@ -113,7 +115,8 @@
 #define VIN_R2							1.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN				0.003761	//Transfer Function [V/A] for ISB-425-A
+#define CURRENT_AMP_GAIN				hw_axiom_get_current_sensor_gain()
+//#define CURRENT_AMP_GAIN				0.003761	//Transfer Function [V/A] for ISB-425-A
 //#define CURRENT_AMP_GAIN				0.001249	//Transfer Function [V/A] for HTFS 800-P
 //#define CURRENT_AMP_GAIN				0.0008324	//Transfer Function [V/A] for HASS 600-S
 #endif
@@ -286,5 +289,6 @@
 char hw_axiom_configure_FPGA(void);
 void hw_axiom_DAC1_setdata(uint16_t data);
 void hw_axiom_DAC2_setdata(uint16_t data);
+float hw_axiom_get_current_sensor_gain(void);
 
 #endif /* HW_AXIOM_H_ */

@@ -28,6 +28,7 @@
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
+#include "stdio.h"
 
 #include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
@@ -51,11 +52,14 @@
 #define AXIOM_FPGA_RESET_PIN		4
 #endif
 
+#define EEPROM_ADDR_CURRENT_GAIN	0
+
 #define BITSTREAM_SIZE				104090		//ice40up5k
 //#define BITSTREAM_SIZE				71338		//ice40LP1K
 
 // Variables
 static volatile bool i2c_running = false;
+static volatile float current_sensor_gain = 0.0;
 //extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
 
 
@@ -68,6 +72,8 @@ static const I2CConfig i2cfg = {
 
 // Private functions
 static void terminal_cmd_reset_oc(int argc, const char **argv);
+static void terminal_cmd_store_current_sensor_gain(int argc, const char **argv);
+static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv);
 static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
@@ -76,6 +82,8 @@ void hw_axiom_init_FPGA_CLK(void);
 void hw_axiom_setup_dac(void);
 void hw_axiom_configure_brownout(uint8_t);
 void hw_axiom_configure_VDD_undervoltage(void);
+float hw_axiom_read_current_sensor_gain(void);
+inline float hw_axiom_get_current_sensor_gain(void);
 
 void hw_init_gpio(void) {
 
@@ -186,9 +194,23 @@ void hw_init_gpio(void) {
 			"Reset latched FPGA faults.",
 			0,
 			terminal_cmd_reset_oc);
+
+	terminal_register_command_callback(
+			"axiom_store_current_sensor_gain",
+			"Store new current sensor gain.",
+			0,
+			terminal_cmd_store_current_sensor_gain);
+
+	terminal_register_command_callback(
+			"axiom_read_current_sensor_gain",
+			"Read current sensor gain.",
+			0,
+			terminal_cmd_read_current_sensor_gain);
     
     // Send bitstream over SPI to configure FPGA
 	hw_axiom_configure_FPGA();
+
+	current_sensor_gain = hw_axiom_read_current_sensor_gain();
 }
 
 void hw_setup_adc_channels(void) {
@@ -491,4 +513,60 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 	__NOP();
+}
+
+static void terminal_cmd_store_current_sensor_gain(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	eeprom_var current_gain;
+	if( argc == 2 ) {
+		sscanf(argv[1], "%f", &(current_gain.as_float));
+
+		// Store data in eeprom
+		conf_general_store_eeprom_var_hw(&current_gain, EEPROM_ADDR_CURRENT_GAIN);
+
+		//read back written data
+		current_sensor_gain = hw_axiom_read_current_sensor_gain();
+
+		if(current_sensor_gain == current_gain.as_float) {
+			commands_printf("Axiom current sensor sensor gain set as %.8f", (double)current_sensor_gain);
+		}
+		else {
+			current_sensor_gain = 0.0;
+			commands_printf("Error storing EEPROM data.");
+		}
+	}
+	else {
+		commands_printf("1 argument required. For example: axiom_store_current_sensor_gain 0.003761");
+		commands_printf(" ");
+	}
+	commands_printf(" ");
+	return;
+}
+
+static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	//read back written data
+	current_sensor_gain = hw_axiom_read_current_sensor_gain();
+
+	commands_printf("Axiom current sensor sensor gain is set as %.8f", (double)current_sensor_gain);
+	commands_printf(" ");
+	return;
+}
+
+float hw_axiom_read_current_sensor_gain() {
+	eeprom_var current_gain;
+
+	conf_general_read_eeprom_var_hw(&current_gain, EEPROM_ADDR_CURRENT_GAIN);
+
+	if( (current_gain.as_float <= 0) || (current_gain.as_float >= 1) )
+		current_gain.as_float = DEFAULT_CURRENT_AMP_GAIN;
+	return current_gain.as_float;
+}
+
+inline float hw_axiom_get_current_sensor_gain() {
+	return current_sensor_gain;
 }
