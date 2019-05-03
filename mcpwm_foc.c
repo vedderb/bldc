@@ -76,17 +76,15 @@ typedef struct {
 } mc_sample_t;
 
 typedef struct {
-	bool enable;
 	float k1;// k1 = 8*SQ(Ld-Lq)
 	float k2;// k2 = 1/(4*(Ld-Lq))
 } mtpa_t;
 
 typedef struct {
-	bool enable;	//enable fw mechanism
-	float vs_int;	//integral voltage sum of PI
-	float kp;		//PI proportional gain
-	float ki;		//PI integral gain
-}flux_weakening_t;
+	float mod_int;	//integral sum of PI
+	float is_sq_max;	//max is current
+	float anti_windup_error;	//last iteration windup error
+}field_weakening_t;
 
 // Private variables
 static volatile mc_configuration *m_conf;
@@ -94,7 +92,7 @@ static volatile mc_state m_state;
 static volatile mc_control_mode m_control_mode;
 static volatile motor_state_t m_motor_state;
 static volatile mtpa_t mtpa;
-static volatile flux_weakening_t flux_weakening;
+static volatile field_weakening_t field_weakening;
 static volatile int m_curr0_sum;
 static volatile int m_curr1_sum;
 static volatile int m_curr_samples;
@@ -150,9 +148,10 @@ static void start_pwm_hw(void);
 static int read_hall(void);
 static float correct_encoder(float obs_angle, float enc_angle, float speed);
 static float correct_hall(float angle, float speed, float dt);
-static void mtpa_run( float Is,float *id, float *iq );
-static void flux_weakening_run(float vs_target, float dt, float *id_fw);
-static void flux_weakening_setup(void);
+static void mtpa_setup(void);
+static void mtpa_run(float *id, float *iq);
+static void field_weakening_setup(void);
+static void field_weakening_run(float dt, float *id, float *iq);
 
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -255,8 +254,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
 
-	flux_weakening_setup();
-	virtual_motor_init();
+	mtpa_setup();
+	field_weakening_setup();
+	virtual_motor_init(configuration);
 
 #ifdef HW_HAS_3_SHUNTS
 	m_curr2_sum = 0;
@@ -502,6 +502,11 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 	stop_pwm_hw();
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
 	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+
+	//if any change has been made to the configuration, we will need to update
+	//mtpa and flux weakening constants.
+	mtpa_setup();
+	field_weakening_setup();
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -1895,6 +1900,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		const float duty_abs = fabsf(m_motor_state.duty_now);
 		float id_set_tmp = m_id_set;
 		float iq_set_tmp = m_iq_set;
+
 		m_motor_state.max_duty = m_conf->l_max_duty;
 
 		static float duty_filtered = 0.0;
@@ -2043,29 +2049,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// Apply MTPA
-		float id_mtpa = id_set_tmp;
-		float iq_mtpa = iq_set_tmp;
-		float iq_set_by_speed = iq_set_tmp;
+		mtpa_run(&id_set_tmp, &iq_set_tmp);
 
-		mtpa_run(iq_set_by_speed, &id_mtpa, &iq_mtpa);
-
-		if( flux_weakening.enable ){
-			// Apply Flux Weakening
-			float id_fw;
-			flux_weakening_run( 26.0, dt, &id_fw);
-			id_set_tmp = id_fw + id_mtpa;
-
-			//calculate  iq
-			float Idiff = SQ(iq_set_by_speed) - SQ(id_set_tmp);
-			if( Idiff < 0.0 ){
-				Idiff = 0.0;
-			}
-
-			iq_set_tmp = sqrtf(Idiff);
-		}else{
-			iq_set_tmp = iq_mtpa;
-			id_set_tmp = id_mtpa;
-		}
+		// Apply Flux Weakening
+		field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
@@ -2497,8 +2484,9 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	state_m->vq_int += Ierr_q * (ki * dt);
 
 	//axis decoupling feedforward compensation
-	state_m->vd = state_m->vd - state_m->iq * m_pll_speed * 0.00004;//Lq
-	state_m->vq = state_m->vq + m_pll_speed * (state_m->id * 0.00002 + m_conf->foc_motor_flux_linkage);//Ld
+	state_m->vd = state_m->vd - state_m->iq * m_pll_speed * m_conf->foc_motor_lq;//Lq
+	state_m->vq = state_m->vq + m_pll_speed * (state_m->id * m_conf->foc_motor_ld +
+												m_conf->foc_motor_flux_linkage);//Ld
 
 	// Saturation
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq,
@@ -2978,78 +2966,114 @@ static float correct_hall(float angle, float speed, float dt) {
 /**
 * setup mtpa variables
 *
-* @param enable
-* true or false
-*
-* @param Lsd
-* direct Inductance
-*
-* @param Lsq
-* quadrature Inductance
-*
+* this function should be called at initialization
+* and each time a new configuration is set
+* it calculates 2 constants, k1 and k2, needed to speed up run time
 */
-void mtpa_setup(bool enable,float Lsd, float Lsq){
-	float Ldiff = Lsd - Lsq;
+static void mtpa_setup(void){
+	float Ldiff = m_conf->foc_motor_ld - m_conf->foc_motor_lq;
 	mtpa.k1 = 8.0 * SQ(Ldiff);
 	if( Ldiff != 0.0 ){
 		mtpa.k2 = mtpa.k2 = 1.0 / (4.0 * Ldiff);
 	}else{
 		mtpa.k2 = 1.0;
 	}
-	mtpa.enable = false;
 }
 
 /**
 * Implements MTPA algorithm
+* mtpa_run should be called first in order to properly calculate k1 and k2
+*
+* @param *id
+*	pointer to the current at the d axis that should be regulated
+*
+* @param *iq
+* 	pointer to the current at the q axis that should be regulated
+* 	this is the input parameter of the MTPA block
+* 	as control current from the torque or speed loops is generally
+* 	set through m_iq_set
 */
-static void mtpa_run( float Is ,float *id, float *iq){
-	if(mtpa.enable == false){
-		return;
-	}
-	float Is_sq = SQ(Is);
-	*id = (sqrtf(SQ(m_conf->foc_motor_flux_linkage) + mtpa.k1 * Is_sq)
-			- m_conf->foc_motor_flux_linkage ) * mtpa.k2;
+static void mtpa_run( float *id, float *iq){
+	if(m_conf->foc_mtpa_enable){
+		float Is_sq = SQ(*iq);
 
-	float Idiff = Is_sq - SQ(*id);
-	if( Idiff < 0.0 ){
-		Idiff = 0.0;
-	}
+		*id = (sqrtf(SQ(m_conf->foc_motor_flux_linkage) + mtpa.k1 * Is_sq)
+				- m_conf->foc_motor_flux_linkage ) * mtpa.k2;
 
-	*iq = SIGN(Is) * sqrtf(Idiff);
+		float Idiff = Is_sq - SQ(*id);
+		if( Idiff < 0.0 ){
+			Idiff = 0.0;
+		}
+
+		*iq = SIGN(*iq) * sqrtf(Idiff);
+	}
 }
 
 /**
  * initializes FW variables
  */
-static void flux_weakening_setup(void){
-	flux_weakening.enable = false;
-	flux_weakening.vs_int = 0.0;
-	flux_weakening.ki = 0.02;
-	flux_weakening.kp = 0.02;
+static void field_weakening_setup(void){
+	field_weakening.mod_int = 0.0;
+	field_weakening.is_sq_max = SQ(m_conf->l_abs_current_max);
+	field_weakening.anti_windup_error = 0.0;
 }
 
 /**
-* Apply flux weakening
-*
-* @param vs_target
-*	the voltage at which FW will start inject negative d current
+* Apply field weakening
 *
 * @param dt
 *	The time step in seconds
 *
-* @param *id_fw
-*	id current output
+* @param *id
+*	pointer to the current at the d axis that should be regulated
+*
+* @param *iq
+* 	pointer to the current at the q axis that should be regulated
 */
-static void flux_weakening_run(float vs_target, float dt, float *id_fw){
-	if(flux_weakening.enable){
-		float vs = sqrtf(SQ(m_motor_state.vd) + SQ(m_motor_state.vq));
-		float vs_err = vs_target - vs;
-		float output = flux_weakening.vs_int + vs_err * flux_weakening.kp;
-		utils_truncate_number(&output, -1.0, 0);
-		flux_weakening.vs_int += vs_err * (flux_weakening.ki * dt);
-		*id_fw = output * m_conf->lo_current_max;
-	}else{
-		*id_fw = 0;
-		flux_weakening.vs_int = 0;
+static void field_weakening_run(float dt, float *id, float *iq){
+	if(m_conf->foc_field_weakening_enable){
+//		//PI block
+		float Mod = sqrtf(SQ(m_motor_state.mod_d) + SQ(m_motor_state.mod_q));
+		float Mod_error = Mod - 0.8;
+
+		float int_error = Mod_error - field_weakening.anti_windup_error;
+
+		field_weakening.mod_int += int_error * m_conf->foc_field_weakening_ki * dt;
+
+		float output = field_weakening.mod_int + Mod_error * m_conf->foc_field_weakening_kp;
+
+		float windup_error = output;//first we save output previous to truncate
+		utils_truncate_number((float*)&output, 0.0, 1.0);
+		windup_error -= output;//calculate difference generated after truncate
+		field_weakening.anti_windup_error = windup_error * 0.1; //save error
+
+		//calculate id
+		*id += -1.0 * output * m_conf->lo_current_max;
+
+		//in CONTROL_MODE_CURRENT, we set the maximum current is_max to the current set
+		//in other modes, maximum current is the on
+		float max_is_sq;
+		if(m_control_mode == CONTROL_MODE_CURRENT){
+			float m_iq_set_sq = SQ(m_iq_set);
+			if( field_weakening.is_sq_max > m_iq_set_sq ){
+				max_is_sq = m_iq_set_sq;
+			}else{
+				max_is_sq = field_weakening.is_sq_max;
+			}
+		}else{
+			max_is_sq = field_weakening.is_sq_max;
+		}
+
+		//check if we exceed Is limit
+		float id_sq = SQ(*id);
+		float is_sq = id_sq + SQ(*iq);
+		if( is_sq > max_is_sq ){
+			//if Is is higher than limit, iq will be limited
+			float Idiff = max_is_sq - id_sq;
+			if( Idiff < 0.0 ){
+				Idiff = 0.0;
+			}
+			*iq = SIGN(*iq) * sqrtf(Idiff);
+		}
 	}
 }

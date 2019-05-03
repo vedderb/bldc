@@ -238,6 +238,8 @@ typedef struct {
 	float foc_encoder_cos_gain;
 	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
+	float foc_motor_ld;
+	float foc_motor_lq;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
@@ -260,6 +262,11 @@ typedef struct {
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
 	float foc_current_filter_const;
+	//MTPA and FW config
+	bool foc_mtpa_enable;
+	bool foc_field_weakening_enable;
+	float foc_field_weakening_kp;
+	float foc_field_weakening_ki;
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;

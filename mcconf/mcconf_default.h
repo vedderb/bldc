@@ -251,6 +251,12 @@
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				0.000007
 #endif
+#ifndef MCCONF_FOC_MOTOR_LD
+#define MCCONF_FOC_MOTOR_LD				0.00002
+#endif
+#ifndef MCCONF_FOC_MOTOR_LQ
+#define MCCONF_FOC_MOTOR_LQ				0.00002
+#endif
 #ifndef MCCONF_FOC_MOTOR_R
 #define MCCONF_FOC_MOTOR_R				0.015
 #endif
@@ -328,6 +334,18 @@
 #endif
 #ifndef MCCONF_FOC_CURRENT_FILTER_CONST
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
+#endif
+#ifndef MCCONF_FOC_MTPA_ENABLE
+#define MCCONF_FOC_MTPA_ENABLE				false	// MTPA Enable
+#endif
+#ifndef MCCONF_FOC_FIELD_WEAKENING_ENABLE
+#define MCCONF_FOC_FIELD_WEAKENING_ENABLE	false	// Field Weakening enable
+#endif
+#ifndef MCCONF_FOC_FIELD_WEAKENING_KP
+#define MCCONF_FOC_FIELD_WEAKENING_KP		0.02	// Field Weakening proportional gain
+#endif
+#ifndef MCCONF_FOC_FIELD_WEAKENING_KI
+#define MCCONF_FOC_FIELD_WEAKENING_KI		0.02	// Field Weakening integral gain
 #endif
 
 // GPD
