@@ -829,7 +829,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 			break;
 		}
 
-		if (rpm_now >= 20000) {
+		if (rpm_now >= 12000) {
 			break;
 		}
 	}

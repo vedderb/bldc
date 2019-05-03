@@ -1812,23 +1812,26 @@ static THD_FUNCTION(timer_thread, arg) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
 
-		int m_curr0_offset;
-		int m_curr1_offset;
-		int m_curr2_offset;
+		// TODO: Implement for BLDC and GPDRIVE
+		if(m_conf.motor_type == MOTOR_TYPE_FOC) {
+			int curr0_offset;
+			int curr1_offset;
+			int curr2_offset;
 
-		mcpwm_foc_get_current_offsets(&m_curr0_offset, &m_curr1_offset, &m_curr2_offset);
+			mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset);
 
-		if (abs(m_curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1);
-		}
-		if (abs(m_curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2);
-		}
+			if (abs(curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1);
+			}
+			if (abs(curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2);
+			}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(m_curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
-		}
+			if (abs(curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
+			}
 #endif
+		}
 
 		chThdSleepMilliseconds(1);
 	}

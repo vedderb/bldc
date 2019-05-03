@@ -41,6 +41,7 @@ static bool clock_stretch_timeout(i2c_bb_state *s);
 static void i2c_delay(void);
 
 void i2c_bb_init(i2c_bb_state *s) {
+	chMtxObjectInit(&s->mutex);
 	palSetPadMode(s->sda_gpio, s->sda_pin, PAL_MODE_OUTPUT_OPENDRAIN);
 	palSetPadMode(s->scl_gpio, s->scl_pin, PAL_MODE_OUTPUT_OPENDRAIN);
 	s->has_started = false;
@@ -48,6 +49,8 @@ void i2c_bb_init(i2c_bb_state *s) {
 }
 
 void i2c_bb_restore_bus(i2c_bb_state *s) {
+	chMtxLock(&s->mutex);
+
 	SCL_HIGH();
 	SDA_HIGH();
 
@@ -66,9 +69,13 @@ void i2c_bb_restore_bus(i2c_bb_state *s) {
 	i2c_stop_cond(s);
 
 	s->has_error = false;
+
+	chMtxUnlock(&s->mutex);
 }
 
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes) {
+	chMtxLock(&s->mutex);
+
 	i2c_write_byte(s, true, false, addr << 1);
 
 	for (unsigned int i = 0;i < txbytes;i++) {
@@ -84,6 +91,8 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	}
 
 	i2c_stop_cond(s);
+
+	chMtxUnlock(&s->mutex);
 
 	return !s->has_error;
 }

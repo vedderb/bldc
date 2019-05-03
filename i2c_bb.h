@@ -32,6 +32,7 @@ typedef struct {
 	int scl_pin;
 	bool has_started;
 	bool has_error;
+	mutex_t mutex;
 } i2c_bb_state;
 
 void i2c_bb_init(i2c_bb_state *s);

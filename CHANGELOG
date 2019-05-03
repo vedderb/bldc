@@ -1,3 +1,9 @@
+=== FW 3.56 ===
+* Fixed current offset fault bug in non-FOC mode.
+* Multiple IMU support.
+* Added support for the ICM-20948 IMU.
+* Decreased ERPM cut in open loop flux linkage measurement.
+
 === FW 3.55 ===
 * Initial sin/cos encoder support.
 * New ADC control mode.

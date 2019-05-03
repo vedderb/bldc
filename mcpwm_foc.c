@@ -1041,7 +1041,7 @@ float mcpwm_foc_get_vq(void) {
  * this is used by the virtual motor to save the current offsets,
  * when it is connected
  */
-void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset){
+void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset) {
 	*curr0_offset = m_curr0_offset;
 	*curr1_offset = m_curr1_offset;
 #ifdef HW_HAS_3_SHUNTS
