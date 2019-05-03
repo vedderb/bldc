@@ -2974,7 +2974,7 @@ static void mtpa_setup(void){
 	float Ldiff = m_conf->foc_motor_ld - m_conf->foc_motor_lq;
 	mtpa.k1 = 8.0 * SQ(Ldiff);
 	if( Ldiff != 0.0 ){
-		mtpa.k2 = mtpa.k2 = 1.0 / (4.0 * Ldiff);
+		mtpa.k2 = 1.0 / (4.0 * Ldiff);
 	}else{
 		mtpa.k2 = 1.0;
 	}
