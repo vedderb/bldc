@@ -1,5 +1,10 @@
 /*
 	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 Marcos Chaparro	mchaparro@powerdesigns.ca
+
+	For support, please contact www.powerdesigns.ca
+
+	This file is part of the VESC firmware.
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +21,6 @@
     */
 
 #include "hw.h"
-
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
@@ -24,8 +28,9 @@
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
+#include "stdio.h"
 
-#include "hw_palta_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
+#include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
 // Defines
 #define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
@@ -37,21 +42,24 @@
 #define SPI_SW_FPGA_CS_GPIO			GPIOB
 #define SPI_SW_FPGA_CS_PIN			7
 
-#define PALTA_FPGA_CLK_PORT			GPIOC
-#define PALTA_FPGA_CLK_PIN			9
-#define PALTA_FPGA_RESET_PORT		GPIOB
+#define AXIOM_FPGA_CLK_PORT			GPIOC
+#define AXIOM_FPGA_CLK_PIN			9
+#define AXIOM_FPGA_RESET_PORT		GPIOB
 
 #ifdef HW_PALTA_REV_B
-#define PALTA_FPGA_RESET_PIN		5
+#define AXIOM_FPGA_RESET_PIN		5
 #else
-#define PALTA_FPGA_RESET_PIN		4
+#define AXIOM_FPGA_RESET_PIN		4
 #endif
+
+#define EEPROM_ADDR_CURRENT_GAIN	0
 
 #define BITSTREAM_SIZE				104090		//ice40up5k
 //#define BITSTREAM_SIZE				71338		//ice40LP1K
 
 // Variables
 static volatile bool i2c_running = false;
+static volatile float current_sensor_gain = 0.0;
 //extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
 
 
@@ -64,23 +72,27 @@ static const I2CConfig i2cfg = {
 
 // Private functions
 static void terminal_cmd_reset_oc(int argc, const char **argv);
+static void terminal_cmd_store_current_sensor_gain(int argc, const char **argv);
+static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv);
 static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
-void hw_palta_init_FPGA_CLK(void);
-void hw_palta_setup_dac(void);
-void hw_palta_configure_brownout(uint8_t);
-void hw_palta_configure_VDD_undervoltage(void);
+void hw_axiom_init_FPGA_CLK(void);
+void hw_axiom_setup_dac(void);
+void hw_axiom_configure_brownout(uint8_t);
+void hw_axiom_configure_VDD_undervoltage(void);
+float hw_axiom_read_current_sensor_gain(void);
+inline float hw_axiom_get_current_sensor_gain(void);
 
 void hw_init_gpio(void) {
 
 	// Set Brown out to keep mcu under reset until VDD reaches 2.7V
-	hw_palta_configure_brownout(OB_BOR_LEVEL3);
+	hw_axiom_configure_brownout(OB_BOR_LEVEL3);
 
 	// Configure Programmable voltage detector to interrupt the cpu
 	// when VDD is below 2.9V.
-	hw_palta_configure_VDD_undervoltage();
+	hw_axiom_configure_VDD_undervoltage();
 
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -113,13 +125,13 @@ void hw_init_gpio(void) {
 	palClearPad(SPI_SW_FPGA_CS_GPIO, SPI_SW_FPGA_CS_PIN);
 
 	// FPGA RESET
-	palSetPadMode(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palClearPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	palSetPadMode(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palClearPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
 	chThdSleep(1);
-	palSetPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	palSetPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
     
 	//output a 12MHz clock on MCO2
-	hw_palta_init_FPGA_CLK();
+	hw_axiom_init_FPGA_CLK();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -156,8 +168,8 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 
-#ifdef PALTA_USE_DAC
-	hw_palta_setup_dac();
+#ifdef HW_AXIOM_USE_DAC
+	hw_axiom_setup_dac();
 #else
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);		//Temperature bridge A
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		//Temperature bridge B
@@ -178,13 +190,27 @@ void hw_init_gpio(void) {
 
 	// Register terminal callbacks
 	terminal_register_command_callback(
-			"palta_reset_oc",
-			"Reset latched overcurrent fault.",
+			"axiom_clear_faults",
+			"Reset latched FPGA faults.",
 			0,
 			terminal_cmd_reset_oc);
+
+	terminal_register_command_callback(
+			"axiom_store_current_sensor_gain",
+			"Store new current sensor gain.",
+			0,
+			terminal_cmd_store_current_sensor_gain);
+
+	terminal_register_command_callback(
+			"axiom_read_current_sensor_gain",
+			"Read current sensor gain.",
+			0,
+			terminal_cmd_read_current_sensor_gain);
     
     // Send bitstream over SPI to configure FPGA
-	hw_palta_configure_FPGA();
+	hw_axiom_configure_FPGA();
+
+	current_sensor_gain = hw_axiom_read_current_sensor_gain();
 }
 
 void hw_setup_adc_channels(void) {
@@ -222,7 +248,7 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
 }
 
-void hw_palta_setup_dac(void) {
+void hw_axiom_setup_dac(void) {
 	// GPIOA clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
@@ -237,19 +263,19 @@ void hw_palta_setup_dac(void) {
 	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_EN2 | DAC_CR_BOFF2;
 
 	// Set DAC channels at 1.65V
-	hw_palta_DAC1_setdata(0x800);
-	hw_palta_DAC2_setdata(0x800);
+	hw_axiom_DAC1_setdata(0x800);
+	hw_axiom_DAC2_setdata(0x800);
 }
 
-void hw_palta_DAC1_setdata(uint16_t data) {
+void hw_axiom_DAC1_setdata(uint16_t data) {
 	DAC->DHR12R1 = data;
 }
 
-void hw_palta_DAC2_setdata(uint16_t data) {
+void hw_axiom_DAC2_setdata(uint16_t data) {
 	DAC->DHR12R2 = data;
 }
 
-void hw_palta_configure_brownout(uint8_t BOR_level) {
+void hw_axiom_configure_brownout(uint8_t BOR_level) {
     /* Get BOR Option Bytes */
     if((FLASH_OB_GetBOR() & 0x0C) != BOR_level)
     {
@@ -267,7 +293,7 @@ void hw_palta_configure_brownout(uint8_t BOR_level) {
     }
 }
 
-void hw_palta_configure_VDD_undervoltage(void) {
+void hw_axiom_configure_VDD_undervoltage(void) {
 
 	// partially configured in mcuconf.h -> STM32_PVD_ENABLE and STM32_PLS
 
@@ -383,8 +409,8 @@ static void terminal_cmd_reset_oc(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
-	hw_palta_configure_FPGA();
-	commands_printf("Palta OC latch reset done!");
+	hw_axiom_configure_FPGA();
+	commands_printf("Axiom FPGA fault latch reset done!");
 	commands_printf(" ");
 }
 
@@ -426,7 +452,7 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length) {
 	}
 }
 
-void hw_palta_init_FPGA_CLK(void) {
+void hw_axiom_init_FPGA_CLK(void) {
 	/* Configure PLLI2S prescalers */
 	/* PLLI2S_VCO : VCO_192M */
 	/* SAI_CLK(first level) = PLLI2S_VCO/PLLI2SQ = 192/4 = 48 Mhz */
@@ -440,7 +466,7 @@ void hw_palta_init_FPGA_CLK(void) {
 	}
 
 	/* Configure MCO2 pin(PC9) in alternate function */
-	palSetPadMode(PALTA_FPGA_CLK_PORT, PALTA_FPGA_CLK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_MCO) |
+	palSetPadMode(AXIOM_FPGA_CLK_PORT, AXIOM_FPGA_CLK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_MCO) |
 				PAL_STM32_OTYPE_PUSHPULL |
 				PAL_STM32_OSPEED_HIGHEST |
 				PAL_STM32_PUDR_PULLUP);
@@ -449,12 +475,12 @@ void hw_palta_init_FPGA_CLK(void) {
 	RCC_MCO2Config(RCC_MCO2Source_PLLI2SCLK, RCC_MCO2Div_4);
 }
 
-char hw_palta_configure_FPGA(void) {
+char hw_axiom_configure_FPGA(void) {
 	spi_begin();
 	palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
-	palClearPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	palClearPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
 	chThdSleep(10);
-	palSetPad(PALTA_FPGA_RESET_PORT, PALTA_FPGA_RESET_PIN);
+	palSetPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
 	chThdSleep(20);
 
 	spi_transfer(0, FPGA_bitstream, BITSTREAM_SIZE);
@@ -487,4 +513,60 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 	__NOP();
+}
+
+static void terminal_cmd_store_current_sensor_gain(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	eeprom_var current_gain;
+	if( argc == 2 ) {
+		sscanf(argv[1], "%f", &(current_gain.as_float));
+
+		// Store data in eeprom
+		conf_general_store_eeprom_var_hw(&current_gain, EEPROM_ADDR_CURRENT_GAIN);
+
+		//read back written data
+		current_sensor_gain = hw_axiom_read_current_sensor_gain();
+
+		if(current_sensor_gain == current_gain.as_float) {
+			commands_printf("Axiom current sensor sensor gain set as %.8f", (double)current_sensor_gain);
+		}
+		else {
+			current_sensor_gain = 0.0;
+			commands_printf("Error storing EEPROM data.");
+		}
+	}
+	else {
+		commands_printf("1 argument required. For example: axiom_store_current_sensor_gain 0.003761");
+		commands_printf(" ");
+	}
+	commands_printf(" ");
+	return;
+}
+
+static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	//read back written data
+	current_sensor_gain = hw_axiom_read_current_sensor_gain();
+
+	commands_printf("Axiom current sensor sensor gain is set as %.8f", (double)current_sensor_gain);
+	commands_printf(" ");
+	return;
+}
+
+float hw_axiom_read_current_sensor_gain() {
+	eeprom_var current_gain;
+
+	conf_general_read_eeprom_var_hw(&current_gain, EEPROM_ADDR_CURRENT_GAIN);
+
+	if( (current_gain.as_float <= 0) || (current_gain.as_float >= 1) )
+		current_gain.as_float = DEFAULT_CURRENT_AMP_GAIN;
+	return current_gain.as_float;
+}
+
+inline float hw_axiom_get_current_sensor_gain() {
+	return current_sensor_gain;
 }

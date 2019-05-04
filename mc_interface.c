@@ -1371,7 +1371,7 @@ void mc_interface_mc_timer_isr(void) {
 		mc_interface_fault_stop(FAULT_CODE_DRV);
 	}
 
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 	if( m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
 		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE);
 	}
@@ -1576,7 +1576,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
 	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 

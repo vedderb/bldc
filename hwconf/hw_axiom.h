@@ -1,5 +1,8 @@
 /*
 	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 Marcos Chaparro	mchaparro@powerdesigns.ca
+
+	For support, please contact www.powerdesigns.ca
 
 	This file is part of the VESC firmware.
 
@@ -17,18 +20,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_PALTA_H_
-#define HW_PALTA_H_
+#ifndef HW_AXIOM_H_
+#define HW_AXIOM_H_
 
-#define HW_NAME					"PALTA"
+#define HW_NAME					"AXIOM"
 
-#define PALTA_USE_DAC
-//#define PALTA_USE_MOTOR_TEMP
-#define HW_PALTA_USE_LINE_TO_LINE
-#define	HW_PALTA_FORCE_HIGH_CURRENT_MEASUREMENTS
-#define HW_VERSION_PALTA
-
-//#define HW_PALTA_REV_B
+#define HW_AXIOM_USE_DAC
+//#define HW_AXIOM_USE_MOTOR_TEMP
+#define HW_USE_LINE_TO_LINE
+#define	HW_AXIOM_FORCE_HIGH_CURRENT_MEASUREMENTS
+#define HW_VERSION_AXIOM
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -73,73 +74,80 @@
  * 14:	IN1		SENS2
  */
 
-#define HW_ADC_CHANNELS			15
-#define HW_ADC_INJ_CHANNELS		3
-#define HW_ADC_NBR_CONV			5
+#define HW_ADC_CHANNELS					15
+#define HW_ADC_INJ_CHANNELS				3
+#define HW_ADC_NBR_CONV					5
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
-#define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
-#define ADC_IND_CURR1			3
-#define ADC_IND_CURR2			4
-#define ADC_IND_CURR3			5
-#define ADC_IND_VIN_SENS		11
-#define ADC_IND_VOUT_GATE_DRV	12
-#define ADC_IND_EXT				10
-#define ADC_IND_EXT2			6
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOTOR		9
-//#define ADC_IND_VREFINT			12
+#define ADC_IND_SENS1					0
+#define ADC_IND_SENS2					1
+#define ADC_IND_SENS3					2
+#define ADC_IND_CURR1					3
+#define ADC_IND_CURR2					4
+#define ADC_IND_CURR3					5
+#define ADC_IND_VIN_SENS				11
+#define ADC_IND_VOUT_GATE_DRV			12
+#define ADC_IND_EXT						10
+#define ADC_IND_EXT2					6
+#define ADC_IND_TEMP_MOS				8
+#define ADC_IND_TEMP_MOTOR				9
 
 // ADC macros and settings
 
+#ifdef HW_PALTA_REV_B
+#define HVDC_TRANSFER_FUNCTION			112.15			//[V/V]
+#define PHASE_TRANSFER_FUNCTION			112.15			//[V/V]
+#else
+#define HVDC_TRANSFER_FUNCTION			185.0			//[V/V]
+#define PHASE_VOLTAGE_TRANSFER_FUNCTION	185.0			//[V/V]
+#endif
+#define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
+
+
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.3
+#define V_REG							3.3
 #endif
 #ifndef VIN_R1
-#ifdef HW_PALTA_REV_B
-#define VIN_R1					112.15    //TF since RevC = 113.15V/V
-#else
-#define VIN_R1					184.0    //TF since RevC = 185V/V
-#endif
+#define VIN_R1							(PHASE_VOLTAGE_TRANSFER_FUNCTION - 1.0)
 #endif
 #ifndef VIN_R2
-#define VIN_R2					1.0
+#define VIN_R2							1.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
-//#define CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HTFS 800-P
+#define CURRENT_AMP_GAIN				hw_axiom_get_current_sensor_gain()
+//#define CURRENT_AMP_GAIN				0.003761	//Transfer Function [V/A] for ISB-425-A
+//#define CURRENT_AMP_GAIN				0.001249	//Transfer Function [V/A] for HTFS 800-P
+//#define CURRENT_AMP_GAIN				0.0008324	//Transfer Function [V/A] for HASS 600-S
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		1.000 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
+#define CURRENT_SHUNT_RES				1.0 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
 #endif
 
-#define HW_MAX_CURRENT_OFFSET					620		// More than this offset (0.5 Vdc) trips the offset fault (likely a sensor disconnected)
-#define MCCONF_MAX_CURRENT_UNBALANCE			130.0	// [Amp] More than this unbalance trips the fault (likely a sensor disconnected)
-#define MCCONF_MAX_CURRENT_UNBALANCE_RATE		0.3		// Fault if more than 30% of the time the motor is unbalanced
+#define HW_MAX_CURRENT_OFFSET				620		// More than this offset (0.5 Vdc) trips the offset fault (likely a sensor disconnected)
+#define MCCONF_MAX_CURRENT_UNBALANCE		130.0	// [Amp] More than this unbalance trips the fault (likely a sensor disconnected)
+#define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3		// Fault if more than 30% of the time the motor is unbalanced
 
 // Input voltage
-#define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_INPUT_VOLTAGE()				((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * (HVDC_TRANSFER_FUNCTION))
 
 // NTC Termistors
-#define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES(adc_val)				((4095.0 * 10000.0) / adc_val - 10000.0)
+#define NTC_TEMP(adc_ind)				(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	((4095.0 * 10000.0) / adc_val - 10000.0)
+#define NTC_RES_MOTOR(adc_val)			((4095.0 * 10000.0) / adc_val - 10000.0)
 
-#ifdef PALTA_USE_MOTOR_TEMP
-#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#ifdef HW_AXIOM_USE_MOTOR_TEMP
+#define NTC_TEMP_MOTOR(beta)			(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 #else
-#define NTC_TEMP_MOTOR(beta)	25.0
+#define NTC_TEMP_MOTOR(beta)			25.0
 #endif
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+#define ADC_VOLTS(ch)					((float)ADC_Value[ch] / 4096.0 * V_REG)
 
 // Sin/Cos Encoder signals
-#define ENCODER_SIN_VOLTS			ADC_VOLTS(ADC_IND_EXT)
-#define ENCODER_COS_VOLTS			ADC_VOLTS(ADC_IND_EXT2)
+#define ENCODER_SIN_VOLTS				ADC_VOLTS(ADC_IND_EXT)
+#define ENCODER_COS_VOLTS				ADC_VOLTS(ADC_IND_EXT2)
 
 #ifdef HW_PALTA_REV_B
 #define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	15.0
@@ -148,9 +156,7 @@
 #define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 #endif
 
-#define ANGLE_TO_DAC_VALUE(angle)	( angle * 512.0 + 0x800 )//angle between -pi to pi
-#define CURRENT_TO_DAC_VALUE(current)	( current * 70.0  + 0x800 )//current
-#define VOLTAGE_TO_DAC_VALUE(voltage)	( voltage * 40.0 + 0x800 )//angle between -pi to pi
+#define ANGLE_TO_DAC_VALUE(angle)		( angle * 512.0 + 0x800 )//angle between -pi to pi
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
@@ -240,7 +246,7 @@
 #define ADC_V_L1				(ADC_Value[ADC_IND_SENS1]-2048)		//phase voltages are centered in 1.65V
 #define ADC_V_L2				(ADC_Value[ADC_IND_SENS2]-2048)
 #define ADC_V_L3				(ADC_Value[ADC_IND_SENS3]-2048)
-#define ADC_V_ZERO				0	//(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_ZERO				0
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
@@ -248,7 +254,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		1400.0
+#define HW_DEAD_TIME_NSEC					1400.0
 #define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
 #define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
 
@@ -261,24 +267,28 @@
 #define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			0.0		// For safety the board will be held in fault until mc_conf is configured by the user
+#endif
+
 // Execute FOC loop once every "FOC_CONTROL_LOOP_FREQ_DIVIDER" ADC ISR calls
 #define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
 
 // Setting limits
-#define HW_LIM_CURRENT				-200.0, 200.0
-#define HW_LIM_CURRENT_IN			-100.0, 100.0
-#define HW_LIM_CURRENT_ABS			0.0, 230.0
-#define HW_LIM_VIN					6.0, 400.0
-#define HW_LIM_ERPM					-100e3, 100e3
-#define HW_LIM_DUTY_MIN				0.0, 0.1
-#define HW_LIM_DUTY_MAX				0.0, 1.0
-#define HW_LIM_TEMP_FET				-40.0, 110.0
-#define HW_LIM_FOC_CTRL_LOOP_FREQ	10000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
-
+#define HW_LIM_CURRENT					-425.0, 425.0
+#define HW_LIM_CURRENT_IN				-400.0, 400.0
+#define HW_LIM_CURRENT_ABS				0.0, 400.0
+#define HW_LIM_VIN						0.0, 420.0
+#define HW_LIM_ERPM						-100e3, 100e3
+#define HW_LIM_DUTY_MIN					0.0, 0.1
+#define HW_LIM_DUTY_MAX					0.0, 1.0
+#define HW_LIM_TEMP_FET					-40.0, 110.0
+#define HW_LIM_FOC_CTRL_LOOP_FREQ		5000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
 
 // HW-specific functions
-char hw_palta_configure_FPGA(void);
-void hw_palta_DAC1_setdata(uint16_t data);
-void hw_palta_DAC2_setdata(uint16_t data);
+char hw_axiom_configure_FPGA(void);
+void hw_axiom_DAC1_setdata(uint16_t data);
+void hw_axiom_DAC2_setdata(uint16_t data);
+float hw_axiom_get_current_sensor_gain(void);
 
-#endif /* HW_PALTA_H_ */
+#endif /* HW_AXIOM_H_ */
