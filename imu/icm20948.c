@@ -34,9 +34,6 @@ static void terminal_read_reg(int argc, const char **argv);
 static uint8_t read_single_reg(ICM20948_STATE *s, uint8_t reg);
 static bool write_single_reg(ICM20948_STATE *s, uint8_t reg, uint8_t value);
 
-// Function pointers
-static void(*m_read_callback)(float *accel, float *gyro, float *mag) = 0;
-
 // Private variables
 static ICM20948_STATE *m_terminal_state = 0;
 
@@ -45,6 +42,7 @@ void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
 
 	s->i2cs = i2c_state;
 	s->i2c_address = ad0_val ? 0x69 : 0x68;
+	s->read_callback = 0;
 
 	if (reset_init_icm(s)) {
 		chThdCreateStatic(work_area, work_area_size, NORMALPRIO, icm_thread, s);
@@ -61,8 +59,8 @@ void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
 	}
 }
 
-void icm20948_set_read_callback(void(*func)(float *accel, float *gyro, float *mag)) {
-	m_read_callback = func;
+void icm20948_set_read_callback(ICM20948_STATE *s, void(*func)(float *accel, float *gyro, float *mag)) {
+	s->read_callback = func;
 }
 
 static void terminal_read_reg(int argc, const char **argv) {
@@ -169,8 +167,8 @@ static THD_FUNCTION(icm_thread, arg) {
 			// TODO: Read magnetometer as well
 			memset(mag, 0, sizeof(mag));
 
-			if (m_read_callback) {
-				m_read_callback(accel, gyro, mag);
+			if (s->read_callback) {
+				s->read_callback(accel, gyro, mag);
 			}
 		} else {
 			reset_init_icm(s);

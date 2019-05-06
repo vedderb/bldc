@@ -85,7 +85,7 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 	icm20948_init(&m_icm20948_state,
 			&m_i2c_bb, ad0_val,
 			m_thd_work_area, sizeof(m_thd_work_area));
-	icm20948_set_read_callback(imu_read_callback);
+	icm20948_set_read_callback(&m_icm20948_state, imu_read_callback);
 }
 
 float imu_get_roll(void) {
