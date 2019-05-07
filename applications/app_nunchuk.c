@@ -33,7 +33,7 @@
 #include "terminal.h"
 
 // Settings
-#define OUTPUT_ITERATION_TIME_MS		1
+#define OUTPUT_ITERATION_TIME_MS		5
 #define MAX_CAN_AGE						0.1
 #define RPM_FILTER_SAMPLES				8
 #define LOCAL_TIMEOUT					2000
@@ -205,20 +205,28 @@ static THD_FUNCTION(output_thread, arg) {
 
 	chRegSetThreadName("Nunchuk output");
 
+	bool was_pid = false;
+
 	for(;;) {
 		chThdSleepMilliseconds(OUTPUT_ITERATION_TIME_MS);
 
+		static float rpm_filtered = 0.0;
+		UTILS_LP_FAST(rpm_filtered, mc_interface_get_rpm(), 0.5);
+
 		if (timeout_has_timeout() || chuck_error != 0 || config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
+			was_pid = false;
 			continue;
 		}
 
 		// Local timeout to prevent this thread from causing problems after not
 		// being used for a while.
 		if (chVTTimeElapsedSinceX(last_update_time) > MS2ST(LOCAL_TIMEOUT)) {
+			was_pid = false;
 			continue;
 		}
 
 		if (app_is_output_disabled()) {
+			was_pid = false;
 			continue;
 		}
 
@@ -231,6 +239,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
+			was_pid = false;
 			continue;
 		}
 
@@ -278,23 +287,6 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 		}
 
-		// If c is pressed and no throttle is used, maintain the current speed with PID control
-		static bool was_pid = false;
-
-		// Filter RPM to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
-
-		float rpm_filtered = 0.0;
-		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-			rpm_filtered += filter_buffer[i];
-		}
-		rpm_filtered /= RPM_FILTER_SAMPLES;
-
 		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;
 
@@ -317,7 +309,7 @@ static THD_FUNCTION(output_thread, arg) {
 						pid_rpm = 0.0;
 					}
 
-					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
 					if (pid_rpm < (rpm_filtered - config.stick_erpm_per_s_in_cc)) {
 						pid_rpm = rpm_filtered - config.stick_erpm_per_s_in_cc;
@@ -327,7 +319,7 @@ static THD_FUNCTION(output_thread, arg) {
 						pid_rpm = 0.0;
 					}
 
-					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
 					if (pid_rpm > (rpm_filtered + config.stick_erpm_per_s_in_cc)) {
 						pid_rpm = rpm_filtered + config.stick_erpm_per_s_in_cc;

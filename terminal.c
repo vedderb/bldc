@@ -122,7 +122,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 				commands_printf("Gate drv voltage : %.2f", (double)fault_vec[i].gate_driver_voltage);
 #endif
 				commands_printf("Duty             : %.3f", (double)fault_vec[i].duty);
@@ -182,7 +182,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif
 	} else if (strcmp(argv[0], "param_detect") == 0) {
@@ -438,6 +438,16 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+
+		int curr0_offset;
+		int curr1_offset;
+		int curr2_offset;
+
+		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset);
+
+		commands_printf("FOC Current Offsets: %d %d %d",
+				curr0_offset, curr1_offset, curr2_offset);
+
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "foc_openloop") == 0) {
 		if (argc == 3) {
@@ -656,10 +666,23 @@ void terminal_process_string(char *str) {
 			commands_printf("This command requires one argument.\n");
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
-		commands_printf("SPI val: %x, errors: %d, error rate: %.3f %%",
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			commands_printf("SPI encoder value: %x, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
 				(double)encoder_spi_get_error_rate() * (double)100.0);
+		}
+
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+		commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
+				encoder_sincos_get_signal_below_min_error_cnt(),
+				(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
+
+		commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
+				encoder_sincos_get_signal_above_max_error_cnt(),
+				(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
+		}
 	}
 
 	// The help command
@@ -773,7 +796,7 @@ void terminal_process_string(char *str) {
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
 		
 		commands_printf("encoder");
-		commands_printf("  Prints the status of the AS5047 encoder.");
+		commands_printf("  Prints the status of the AS5047, AD2S1205, or Sin/Cos encoder.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].arg_names) {

@@ -49,6 +49,7 @@
 #include "spi_sw.h"
 #include "timer.h"
 #include "imu.h"
+#include "flash_helper.h"
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
@@ -74,6 +75,22 @@
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
+static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
+
+static THD_FUNCTION(flash_integrity_check_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("Flash check");
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+
+	for(;;) {
+		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
+			NVIC_SystemReset();
+		}
+
+		chThdSleepMilliseconds(6);
+	}
+}
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -183,6 +200,17 @@ int main(void) {
 
 	timer_init();
 	conf_general_init();
+
+	if( flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION )	{
+		// Loop here, it is not safe to run any code
+		while (1) {
+			chThdSleepMilliseconds(100);
+			LED_RED_ON();
+			chThdSleepMilliseconds(75);
+			LED_RED_OFF();
+		}
+	}
+
 	ledpwm_init();
 
 	mc_configuration mcconf;
@@ -233,6 +261,7 @@ int main(void) {
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
 #if WS2811_TEST
 	unsigned int color_ind = 0;

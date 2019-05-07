@@ -194,7 +194,7 @@ static void terminal_flash_erase(int argc, const char **argv) {
 		sscanf(argv[1], "%x", &addr);
 		sscanf(argv[2], "%d", &len);
 
-		if (addr >= 0 && len >= 0) {
+		if (len >= 0) {
 			if (cur_target) {
 				bm_set_enabled(true);
 				target_print_en = true;

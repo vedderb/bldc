@@ -1,3 +1,23 @@
+=== FW 3.56 ===
+* Fixed current offset fault bug in non-FOC mode.
+* Multiple IMU support.
+* Added support for the ICM-20948 IMU.
+* Decreased ERPM cut in open loop flux linkage measurement.
+
+=== FW 3.55 ===
+* Initial sin/cos encoder support.
+* New ADC control mode.
+* Virtual motor support.
+* Disable chuk cruise control on dropouts.
+* Fix multiple VESCs over CAN duty cycle mode.
+* Added boot and runtime flash memory CRC integrity check.
+* Updated chuk RPM filter and moved it to the beginning of the output thread.
+* Decreased chuk output thread rate from 1 kHz to 200 Hz.
+* Added mpu_read_reg terminal command.
+* Fixed DRV8301 fault readout bug.
+* Added unbalanced current detection.
+* Added high current offset detection.
+
 === FW 3.54 ===
 * Added mcpwm_foc_set_openloop_duty and mcpwm_foc_set_openloop_duty_phase.
 * Added blackmagic probe SWD output to program other MCUs.

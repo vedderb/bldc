@@ -27,6 +27,8 @@ void encoder_deinit(void);
 void encoder_init_abi(uint32_t counts);
 void encoder_init_as5047p_spi(void);
 void encoder_init_ad2s1205_spi(void);
+void encoder_init_sincos(float sin_gain, float sin_offset,
+						 float cos_gain, float cos_offset, float sincos_filter_constant);
 bool encoder_is_configured(void);
 float encoder_read_deg(void);
 void encoder_reset(void);
@@ -37,5 +39,9 @@ bool encoder_index_found(void);
 uint16_t encoder_spi_get_val(void);
 uint32_t encoder_spi_get_error_cnt(void);
 float encoder_spi_get_error_rate(void);
+uint32_t encoder_sincos_get_signal_below_min_error_cnt(void);
+uint32_t encoder_sincos_get_signal_above_max_error_cnt(void);
+float encoder_sincos_get_signal_below_min_error_rate(void);
+float encoder_sincos_get_signal_above_max_error_rate(void);
 
 #endif /* ENCODER_H_ */

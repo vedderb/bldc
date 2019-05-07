@@ -31,6 +31,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 // Settings
 #define USE_MAGNETOMETER		1
@@ -46,7 +47,6 @@
 // Private variables
 static unsigned char rx_buf[100];
 static unsigned char tx_buf[100];
-static THD_WORKING_AREA(mpu_thread_wa, 2048);
 static volatile int16_t raw_accel_gyro_mag[9];
 static volatile int16_t raw_accel_gyro_mag_no_offset[9];
 static volatile int failed_reads;
@@ -69,12 +69,16 @@ static int get_raw_mag(int16_t* mag);
 #endif
 static THD_FUNCTION(mpu_thread, arg);
 static void terminal_status(int argc, const char **argv);
+static void terminal_read_reg(int argc, const char **argv);
 static thread_t *mpu_tp = 0;
 
 // Function pointers
-static void(*read_callback)(void) = 0;
+static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
 
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, int scl_pin) {
+void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin,
+		stkalign_t *work_area, size_t work_area_size) {
+
 	failed_reads = 0;
 	failed_mag_reads = 0;
 	read_callback = 0;
@@ -100,11 +104,17 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, i
 			0,
 			terminal_status);
 
+	terminal_register_command_callback(
+			"mpu_read_reg",
+			"Read register of the MPU 9150/9250",
+			"[reg]",
+			terminal_read_reg);
+
 	uint8_t res = read_single_reg(MPU9150_WHO_AM_I);
 	if (res == 0x68 || res == 0x69 || res == 0x71) {
 		mpu_found = true;
 		if (!mpu_tp) {
-			chThdCreateStatic(mpu_thread_wa, sizeof(mpu_thread_wa), NORMALPRIO, mpu_thread, NULL);
+			chThdCreateStatic(work_area, work_area_size, NORMALPRIO, mpu_thread, NULL);
 		}
 	} else {
 		mpu_found = false;
@@ -128,6 +138,26 @@ static void terminal_status(int argc, const char **argv) {
 	}
 }
 
+static void terminal_read_reg(int argc, const char **argv) {
+	if (argc == 2) {
+		int reg = -1;
+		sscanf(argv[1], "%d", &reg);
+
+		if (reg >= 0) {
+			unsigned int res = read_single_reg(reg);
+			char bl[9];
+
+			utils_byte_to_binary(res & 0xFF, bl);
+
+			commands_printf("Reg 0x%02x: %s (0x%02x)\n", reg, bl, res);
+		} else {
+			commands_printf("Invalid argument(s).\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
+}
+
 /**
  * Determine wether this is a MPU9150 or a MPU9250.
  *
@@ -139,7 +169,7 @@ bool mpu9150_is_mpu9250(void) {
 	return is_mpu9250;
 }
 
-void mpu9150_set_read_callback(void(*func)(void)) {
+void mpu9150_set_read_callback(void(*func)(float *accel, float *gyro, float *mag)) {
 	read_callback = func;
 }
 
@@ -275,7 +305,9 @@ static THD_FUNCTION(mpu_thread, arg) {
 				last_update_time = chVTGetSystemTime();
 
 				if (read_callback) {
-					read_callback();
+					float tmp_accel[3], tmp_gyro[3], tmp_mag[3];
+					mpu9150_get_accel_gyro_mag(tmp_accel, tmp_gyro, tmp_mag);
+					read_callback(tmp_accel, tmp_gyro, tmp_mag);
 				}
 
 #if USE_MAGNETOMETER

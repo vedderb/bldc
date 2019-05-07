@@ -62,6 +62,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_encoder_inverted;
 	buffer_append_float32_auto(buffer, conf->foc_encoder_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_ratio, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_encoder_sin_gain, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_encoder_cos_gain, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_encoder_sin_offset, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_encoder_cos_offset, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_encoder_sincos_filter_constant, &ind);
 	buffer[ind++] = conf->foc_sensor_mode;
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
@@ -276,6 +281,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_encoder_inverted = buffer[ind++];
 	conf->foc_encoder_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_ratio = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_sin_gain = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_cos_gain = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_sin_offset = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_cos_offset = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_sincos_filter_constant = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sensor_mode = buffer[ind++];
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
@@ -486,6 +496,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
 	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;
 	conf->foc_encoder_ratio = MCCONF_FOC_ENCODER_RATIO;
+	conf->foc_encoder_sin_gain = MCCONF_FOC_ENCODER_SIN_GAIN;
+	conf->foc_encoder_cos_gain = MCCONF_FOC_ENCODER_COS_GAIN;
+	conf->foc_encoder_sin_offset = MCCONF_FOC_ENCODER_SIN_OFFSET;
+	conf->foc_encoder_cos_offset = MCCONF_FOC_ENCODER_COS_OFFSET;
+	conf->foc_encoder_sincos_filter_constant = MCCONF_FOC_ENCODER_SINCOS_FILTER;
 	conf->foc_sensor_mode = MCCONF_FOC_SENSOR_MODE;
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 Maximiliano Cordoba	mcordoba@powerdesigns.ca
 
 	This file is part of the VESC firmware.
 
@@ -17,17 +17,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef FLASH_HELPER_H_
-#define FLASH_HELPER_H_
 
-#include "conf_general.h"
+#ifndef VIRTUAL_MOTOR_H_
+#define VIRTUAL_MOTOR_H_
 
-// Functions
-uint16_t flash_helper_erase_new_app(uint32_t new_app_size);
-uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_t len);
-void flash_helper_jump_to_bootloader(void);
-uint8_t* flash_helper_get_sector_address(uint32_t fsector);
-uint32_t flash_helper_verify_flash_memory(void);
-uint32_t flash_helper_verify_flash_memory_chunk(void);
+#include "datatypes.h"
 
-#endif /* FLASH_HELPER_H_ */
+void virtual_motor_init(void);
+void virtual_motor_int_handler(float v_alpha, float v_beta);
+bool virtual_motor_is_connected(void);
+float virtual_motor_get_angle_deg(void);
+#endif /* VIRTUAL_MOTOR_H_ */

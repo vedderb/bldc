@@ -37,6 +37,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include "virtual_motor.h"
 
 // Private types
 typedef struct {
@@ -84,6 +85,7 @@ static volatile int m_curr1_sum;
 static volatile int m_curr_samples;
 static volatile int m_curr0_offset;
 static volatile int m_curr1_offset;
+static volatile int m_curr_unbalance;
 static volatile bool m_phase_override;
 static volatile float m_phase_now_override;
 static volatile float m_duty_cycle_set;
@@ -205,6 +207,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_control_mode = CONTROL_MODE_NONE;
 	m_curr0_sum = 0;
 	m_curr1_sum = 0;
+	m_curr_unbalance = 0.0;
 	m_curr_samples = 0;
 	m_dccal_done = false;
 	m_phase_override = false;
@@ -233,6 +236,8 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_gamma_now = 0.0;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
+
+	virtual_motor_init();
 
 #ifdef HW_HAS_3_SHUNTS
 	m_curr2_sum = 0;
@@ -689,6 +694,23 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 }
 
 /**
+ * Set current offsets values,
+ * this is used by the virtual motor to set the previously saved offsets back,
+ * when it is disconnected
+ */
+void mcpwm_foc_set_current_offsets(volatile int curr0_offset,
+									volatile int curr1_offset,
+									volatile int curr2_offset){
+	m_curr0_offset = curr0_offset;
+	m_curr1_offset = curr1_offset;
+#ifdef HW_HAS_3_SHUNTS
+	m_curr2_offset = curr2_offset;
+#else
+	(void)curr2_offset;
+#endif
+}
+
+/**
  * Produce an openloop rotating voltage.
  *
  * @param dutyCycle
@@ -772,6 +794,22 @@ float mcpwm_foc_get_sampling_frequency_now(void) {
 }
 
 /**
+ * Returns Ts used for virtual motor sync
+ */
+float mcpwm_foc_get_ts(void){
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	if (m_conf->foc_sample_v0_v7) {
+		return (1.0 / m_conf->foc_f_sw) ;
+	} else {
+		return (1.0 / (m_conf->foc_f_sw / 2.0));
+	}
+#else
+	return (1.0 / m_conf->foc_f_sw) ;
+#endif
+
+}
+/**
  * Calculate the current RPM of the motor. This is a signed value and the sign
  * depends on the direction the motor is rotating in. Note that this value has
  * to be divided by half the number of motor poles.
@@ -816,6 +854,16 @@ float mcpwm_foc_get_tot_current_filtered(void) {
  */
 float mcpwm_foc_get_abs_motor_current(void) {
 	return m_motor_state.i_abs;
+}
+
+/**
+ * Get the magnitude of the motor current unbalance
+ *
+ * @return
+ * The magnitude of the phase currents unbalance.
+ */
+float mcpwm_foc_get_abs_motor_current_unbalance(void) {
+	return (float)(m_curr_unbalance) * FAC_CURRENT;
 }
 
 /**
@@ -986,6 +1034,21 @@ float mcpwm_foc_get_vd(void) {
 
 float mcpwm_foc_get_vq(void) {
 	return m_motor_state.vq;
+}
+
+/**
+ * Get current offsets,
+ * this is used by the virtual motor to save the current offsets,
+ * when it is connected
+ */
+void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset) {
+	*curr0_offset = m_curr0_offset;
+	*curr1_offset = m_curr1_offset;
+#ifdef HW_HAS_3_SHUNTS
+	*curr2_offset = m_curr2_offset;
+#else
+	*curr2_offset = 0;
+#endif
 }
 
 /**
@@ -1446,7 +1509,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 		i_last = (m_conf->l_current_max / 2.0);
 	}
 
-#ifdef HW_PALTA_FORCE_HIGH_CURRENT_MEASUREMENTS
+#ifdef HW_AXIOM_FORCE_HIGH_CURRENT_MEASUREMENTS
 	i_last = (m_conf->l_current_max / 2.0);
 #endif
 
@@ -1588,6 +1651,8 @@ void mcpwm_foc_tim_sample_int_handler(void) {
 	if (m_init_done) {
 		// Generate COM event here for synchronization
 		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+		virtual_motor_int_handler(m_motor_state.v_alpha, m_motor_state.v_beta);
 	}
 }
 
@@ -1643,6 +1708,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	curr1 -= m_curr1_offset;
 #ifdef HW_HAS_3_SHUNTS
 	curr2 -= m_curr2_offset;
+	m_curr_unbalance = curr0 + curr1 + curr2;
 #endif
 
 	m_curr_samples++;
@@ -1778,7 +1844,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	float enc_ang = 0;
 	if (encoder_is_configured()) {
-		enc_ang = encoder_read_deg();
+		if(virtual_motor_is_connected()){
+			enc_ang = virtual_motor_get_angle_deg();
+		}else{
+			enc_ang = encoder_read_deg();
+		}
+
 		float phase_tmp = enc_ang;
 		if (m_conf->foc_encoder_inverted) {
 			phase_tmp = 360.0 - phase_tmp;
@@ -1993,7 +2064,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
 
-#ifdef HW_PALTA_USE_LINE_TO_LINE
+#ifdef HW_USE_LINE_TO_LINE
 		// rotate alpha-beta 30 degrees to compensate for line-to-line phase voltage sensing
 		float x_tmp = m_motor_state.v_alpha;
 		float y_tmp = m_motor_state.v_beta;
@@ -2424,8 +2495,10 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 	TIMER_UPDATE_DUTY(duty1, duty2, duty3);
 
-	if (!m_output_on) {
-		start_pwm_hw();
+	if(virtual_motor_is_connected() == false){//do not allow to turn on PWM outputs if virtual motor is used
+		if (!m_output_on) {
+			start_pwm_hw();
+		}
 	}
 }
 

@@ -109,9 +109,6 @@
 #define CURR2_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
 #define HW_UART_DEV				SD6
 #define HW_UART_GPIO_AF			GPIO_AF_USART6

@@ -140,9 +140,6 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
 #define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
@@ -224,7 +221,7 @@
 #define MPU9X50_SDA_PIN			2
 #define MPU9X50_SCL_GPIO		GPIOA
 #define MPU9X50_SCL_PIN			15
-#define MPU9x50_FLIP
+#define IMU_FLIP
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]

@@ -24,17 +24,20 @@
 #include "timer.h"
 #include "terminal.h"
 #include "commands.h"
+#include "icm20948.h"
 
 #include <math.h>
 #include <string.h>
 
 // Private variables
 static ATTITUDE_INFO m_att;
-static bool m_attitude_init_done;
 static float m_accel[3], m_gyro[3], m_mag[3];
+static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
+static i2c_bb_state m_i2c_bb;
+static ICM20948_STATE m_icm20948_state;
 
 // Private functions
-static void mpu_read_callback(void);
+static void imu_read_callback(float *accel, float *gyro, float *mag);
 static void terminal_rpy(int argc, const char **argv);
 
 void imu_init(void) {
@@ -45,6 +48,11 @@ void imu_init(void) {
 			MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
 #endif
 
+#ifdef ICM20948_SDA_GPIO
+	imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
+			ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
+#endif
+
 	terminal_register_command_callback(
 			"imu_rpy",
 			"Print 100 roll/pitch/yaw samples at 10 Hz",
@@ -52,10 +60,32 @@ void imu_init(void) {
 			terminal_rpy);
 }
 
-void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, int scl_pin) {
+i2c_bb_state *imu_get_i2c(void) {
+	return &m_i2c_bb;
+}
+
+void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin) {
+
 	mpu9150_init(sda_gpio, sda_pin,
-			scl_gpio, scl_pin);
-	mpu9150_set_read_callback(mpu_read_callback);
+			scl_gpio, scl_pin,
+			m_thd_work_area, sizeof(m_thd_work_area));
+	mpu9150_set_read_callback(imu_read_callback);
+}
+
+void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val) {
+
+	m_i2c_bb.sda_gpio = sda_gpio;
+	m_i2c_bb.sda_pin = sda_pin;
+	m_i2c_bb.scl_gpio = scl_gpio;
+	m_i2c_bb.scl_pin = scl_pin;
+	i2c_bb_init(&m_i2c_bb);
+
+	icm20948_init(&m_icm20948_state,
+			&m_i2c_bb, ad0_val,
+			m_thd_work_area, sizeof(m_thd_work_area));
+	icm20948_set_read_callback(&m_icm20948_state, imu_read_callback);
 }
 
 float imu_get_roll(void) {
@@ -119,38 +149,35 @@ void imu_get_quaternions(float *q) {
 	q[3] = m_att.q3;
 }
 
-static void mpu_read_callback(void) {
+static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
 
-	float tmp_accel[3], tmp_gyro[3], tmp_mag[3];
-	mpu9150_get_accel_gyro_mag(tmp_accel, tmp_gyro, tmp_mag);
+#ifdef IMU_FLIP
+	m_accel[0] = -accel[0];
+	m_accel[1] = accel[1];
+	m_accel[2] = -accel[2];
 
-#ifdef MPU9x50_FLIP
-	m_accel[0] = -tmp_accel[0];
-	m_accel[1] = tmp_accel[1];
-	m_accel[2] = -tmp_accel[2];
+	m_gyro[0] = -gyro[0];
+	m_gyro[1] = gyro[1];
+	m_gyro[2] = -gyro[2];
 
-	m_gyro[0] = -tmp_gyro[0];
-	m_gyro[1] = tmp_gyro[1];
-	m_gyro[2] = -tmp_gyro[2];
-
-	m_mag[0] = -tmp_mag[0];
-	m_mag[1] = tmp_mag[1];
-	m_mag[2] = -tmp_mag[2];
+	m_mag[0] = -mag[0];
+	m_mag[1] = mag[1];
+	m_mag[2] = -mag[2];
 #else
-	m_accel[0] = tmp_accel[0];
-	m_accel[1] = tmp_accel[1];
-	m_accel[2] = tmp_accel[2];
+	m_accel[0] = accel[0];
+	m_accel[1] = accel[1];
+	m_accel[2] = accel[2];
 
-	m_gyro[0] = tmp_gyro[0];
-	m_gyro[1] = tmp_gyro[1];
-	m_gyro[2] = tmp_gyro[2];
+	m_gyro[0] = gyro[0];
+	m_gyro[1] = gyro[1];
+	m_gyro[2] = gyro[2];
 
-	m_mag[0] = tmp_mag[0];
-	m_mag[1] = tmp_mag[1];
-	m_mag[2] = tmp_mag[2];
+	m_mag[0] = mag[0];
+	m_mag[1] = mag[1];
+	m_mag[2] = mag[2];
 #endif
 
 	float gyro_rad[3];
@@ -158,12 +185,7 @@ static void mpu_read_callback(void) {
 	gyro_rad[1] = m_gyro[1] * M_PI / 180.0;
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
 
-	if (!m_attitude_init_done) {
-		ahrs_update_initial_orientation(m_accel, m_mag, (ATTITUDE_INFO*)&m_att);
-		m_attitude_init_done = true;
-	} else {
-		ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
-	}
+	ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
 }
 
 static void terminal_rpy(int argc, const char **argv) {

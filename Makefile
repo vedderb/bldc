@@ -154,6 +154,7 @@ CSRC = $(STARTUPSRC) \
        confgenerator.c \
        timer.c \
        i2c_bb.c \
+       virtual_motor.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
@@ -275,7 +276,7 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 build/$(PROJECT).bin: build/$(PROJECT).elf 
-	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin
+	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
 
 # Program
 upload: build/$(PROJECT).bin

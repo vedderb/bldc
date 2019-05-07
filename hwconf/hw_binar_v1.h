@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,40 +17,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_PALTA_H_
-#define HW_PALTA_H_
+#ifndef HW_60_H_
+#define HW_60_H_
 
-#define HW_NAME					"PALTA"
-
-#define PALTA_USE_DAC
-//#define PALTA_USE_MOTOR_TEMP
-#define HW_PALTA_USE_LINE_TO_LINE
-#define	HW_PALTA_FORCE_HIGH_CURRENT_MEASUREMENTS
-#define HW_VERSION_PALTA
-
-//#define HW_PALTA_REV_B
+#define HW_NAME					"BINAR"
 
 // HW properties
+#define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
+#define HW_HAS_NO_CAN
 
 // Macros
-#define ENABLE_GATE()			palSetPad(GPIOC, 14)
-#define DISABLE_GATE()			palClearPad(GPIOC, 14)
+#define ENABLE_GATE()			palSetPad(GPIOB, 5)
+#define DISABLE_GATE()			palClearPad(GPIOB, 5)
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 12))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 8))
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 2)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 2)
-
-#ifdef HW_PALTA_REV_B
+#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
+#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
 #define LED_RED_ON()			palSetPad(GPIOB, 1)
 #define LED_RED_OFF()			palClearPad(GPIOB, 1)
-#else
-#define LED_RED_ON()			palSetPad(GPIOB, 11)
-#define LED_RED_OFF()			palClearPad(GPIOB, 11)
-#endif
 
 /*
  * ADC Vector
@@ -61,11 +49,11 @@
  * 3:	IN10	CURR1
  * 4:	IN11	CURR2
  * 5:	IN12	CURR3
- * 6:	IN8		ADC_EXT2
- * 7:	IN0		SENS1
+ * 6:	IN5		ADC_EXT1
+ * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB
  * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT1
+ * 10:	IN15	ADC_EXT3
  * 11:	IN13	AN_IN
  * 12:	Vrefint
  * 13:	IN0		SENS1
@@ -83,13 +71,12 @@
 #define ADC_IND_CURR1			3
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
-#define ADC_IND_VIN_SENS		11
-#define ADC_IND_VOUT_GATE_DRV	12
-#define ADC_IND_EXT				10
-#define ADC_IND_EXT2			6
+#define ADC_IND_VIN_SENS		10
+#define ADC_IND_EXT				6
+#define ADC_IND_EXT2			7
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
-//#define ADC_IND_VREFINT			12
+#define ADC_IND_VREFINT			12
 
 // ADC macros and settings
 
@@ -98,21 +85,16 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#ifdef HW_PALTA_REV_B
-#define VIN_R1					112.15    //TF since RevC = 113.15V/V
-#else
-#define VIN_R1					184.0    //TF since RevC = 185V/V
-#endif
+#define VIN_R1					39000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					1.0
+#define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
-//#define CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HTFS 800-P
+#define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		1.000 // Unity gain so we use a single transfer function defined as CURRENT_AMP_GAIN
+#define CURRENT_SHUNT_RES		0.0005
 #endif
 
 // Input voltage
@@ -120,26 +102,13 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind)		25.0//(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	((4095.0 * 10000.0) / adc_val - 10000.0)
-
-#ifdef PALTA_USE_MOTOR_TEMP
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-#else
-#define NTC_TEMP_MOTOR(beta)	25.0
-#endif
+
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
-
-
-#ifdef HW_PALTA_REV_B
-#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	15.0
-#else
-// Gate driver power supply output voltage
-#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
-#endif
-
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
@@ -153,16 +122,13 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
 #define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOD
-#define HW_UART_RX_PIN			9          //Freeing B11 for fault LED. PD9 not available in LQFT64 package
+#define HW_UART_RX_PORT			GPIOB
+#define HW_UART_RX_PIN			11
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
@@ -171,8 +137,8 @@
 #define HW_ICU_DEV				ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO				GPIOB
-#define HW_ICU_PIN				6
+#define HW_ICU_GPIO				GPIOC
+#define HW_ICU_PIN				13
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
@@ -200,77 +166,65 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-// Resolver interface pins
-#define AD2S1205_SAMPLE_GPIO	GPIOB
-#define AD2S1205_SAMPLE_PIN		3
-#define AD2S1205_RDVEL_GPIO		GPIOC
-#define AD2S1205_RDVEL_PIN		12
-
-// NRF pins
-#define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				12
-#define NRF_PORT_SCK			GPIOB
-#define NRF_PIN_SCK				4
-#define NRF_PORT_MOSI			GPIOB
-#define NRF_PIN_MOSI			3
-#define NRF_PORT_MISO			GPIOD
-#define NRF_PIN_MISO			2
-
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
 #define HW_SPI_PORT_NSS			GPIOA
-#define HW_SPI_PIN_NSS			15
-#define HW_SPI_PORT_SCK			GPIOC
-#define HW_SPI_PIN_SCK			10
-#define HW_SPI_PORT_MOSI		GPIOC
-#define HW_SPI_PIN_MOSI			12
-#define HW_SPI_PORT_MISO		GPIOC
-#define HW_SPI_PIN_MISO			11
+#define HW_SPI_PIN_NSS			4
+#define HW_SPI_PORT_SCK			GPIOA
+#define HW_SPI_PIN_SCK			5
+#define HW_SPI_PORT_MOSI		GPIOA
+#define HW_SPI_PIN_MOSI			7
+#define HW_SPI_PORT_MISO		GPIOA
+#define HW_SPI_PIN_MISO			6
+
+// SPI for DRV8301
+#define DRV8301_MOSI_GPIO		GPIOC
+#define DRV8301_MOSI_PIN		12
+#define DRV8301_MISO_GPIO		GPIOC
+#define DRV8301_MISO_PIN		11
+#define DRV8301_SCK_GPIO		GPIOC
+#define DRV8301_SCK_PIN			10
+#define DRV8301_CS_GPIO			GPIOC
+#define DRV8301_CS_PIN			9
+
+// ICM20948
+#define ICM20948_SDA_GPIO		GPIOB
+#define ICM20948_SDA_PIN		7
+#define ICM20948_SCL_GPIO		GPIOB
+#define ICM20948_SCL_PIN		6
+#define ICM20948_AD0_VAL		0
 
 // Measurement macros
-#define ADC_V_L1				(ADC_Value[ADC_IND_SENS1]-2048)		//phase voltages are centered in 1.65V
-#define ADC_V_L2				(ADC_Value[ADC_IND_SENS2]-2048)
-#define ADC_V_L3				(ADC_Value[ADC_IND_SENS3]-2048)
-#define ADC_V_ZERO				0	//(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
+#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		1400.0
-#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
-#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
-
-
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
+#endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
-// Execute FOC loop once every "FOC_CONTROL_LOOP_FREQ_DIVIDER" ADC ISR calls
-#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
-
 // Setting limits
-#define HW_LIM_CURRENT				-200.0, 200.0
-#define HW_LIM_CURRENT_IN			-100.0, 100.0
-#define HW_LIM_CURRENT_ABS			0.0, 230.0
-#define HW_LIM_VIN					6.0, 400.0
-#define HW_LIM_ERPM					-100e3, 100e3
-#define HW_LIM_DUTY_MIN				0.0, 0.1
-#define HW_LIM_DUTY_MAX				0.0, 1.0
-#define HW_LIM_TEMP_FET				-40.0, 110.0
-#define HW_LIM_FOC_CTRL_LOOP_FREQ	10000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
+#define HW_LIM_CURRENT			-120.0, 120.0
+#define HW_LIM_CURRENT_IN		-120.0, 120.0
+#define HW_LIM_CURRENT_ABS		0.0, 160.0
+#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_ERPM				-200e3, 200e3
+#define HW_LIM_DUTY_MIN			0.0, 0.1
+#define HW_LIM_DUTY_MAX			0.0, 0.99
+#define HW_LIM_TEMP_FET			-40.0, 110.0
 
-
-// HW-specific functions
-char hw_palta_configure_FPGA(void);
-void hw_palta_DAC1_setdata(uint16_t data);
-void hw_palta_DAC2_setdata(uint16_t data);
-
-#endif /* HW_PALTA_H_ */
+#endif /* HW_60_H_ */

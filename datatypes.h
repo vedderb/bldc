@@ -90,7 +90,14 @@ typedef enum {
 	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
 	FAULT_CODE_MCU_UNDER_VOLTAGE,
 	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
-	FAULT_CODE_ENCODER,
+	FAULT_CODE_ENCODER_SPI,
+	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
+	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE,
+	FAULT_CODE_FLASH_CORRUPTION,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
+	FAULT_CODE_UNBALANCED_CURRENTS
 } mc_fault_code;
 
 typedef enum {
@@ -121,7 +128,8 @@ typedef enum {
 	SENSOR_PORT_MODE_HALL = 0,
 	SENSOR_PORT_MODE_ABI,
 	SENSOR_PORT_MODE_AS5047_SPI,
-	SENSOR_PORT_MODE_AD2S1205
+	SENSOR_PORT_MODE_AD2S1205,
+	SENSOR_PORT_MODE_SINCOS
 } sensor_port_mode;
 
 typedef struct {
@@ -224,6 +232,11 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
+	float foc_encoder_sin_offset;
+	float foc_encoder_sin_gain;
+	float foc_encoder_cos_offset;
+	float foc_encoder_cos_gain;
+	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
@@ -352,6 +365,7 @@ typedef enum {
 	ADC_CTRL_TYPE_CURRENT_REV_CENTER,
 	ADC_CTRL_TYPE_CURRENT_REV_BUTTON,
 	ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC,
+	ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON,
 	ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC,
@@ -751,5 +765,15 @@ typedef struct {
 	float accMagP;
 	int initialUpdateDone;
 } ATTITUDE_INFO;
+
+// Custom EEPROM variables
+typedef union {
+	uint32_t as_u32;
+	int32_t as_i32;
+	float as_float;
+} eeprom_var;
+
+#define EEPROM_VARS_HW			64
+#define EEPROM_VARS_CUSTOM		64
 
 #endif /* DATATYPES_H_ */

@@ -147,6 +147,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Map the read voltage
 		switch (config.ctrl_type) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
+		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
 		case ADC_CTRL_TYPE_PID_REV_CENTER:
@@ -230,6 +231,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		} else {
 			// When only one button input is available, use it differently depending on the control mode
 			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
+                    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
 					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
 					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON) {
 				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
@@ -252,6 +254,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		switch (config.ctrl_type) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
+		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
 		case ADC_CTRL_TYPE_PID_REV_CENTER:
@@ -325,6 +328,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			}
 			break;
 
+        case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
@@ -341,7 +345,8 @@ static THD_FUNCTION(adc_thread, arg) {
 				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
 
-			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC && rev_button) {
+			if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC ||
+			    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
 				current_rel = -current_rel;
 			}
 			break;

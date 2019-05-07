@@ -17,27 +17,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef IMU_IMU_H_
-#define IMU_IMU_H_
+#ifndef IMU_ICM20948_H_
+#define IMU_ICM20948_H_
 
 #include "ch.h"
 #include "hal.h"
+
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "i2c_bb.h"
 
-void imu_init(void);
-i2c_bb_state *imu_get_i2c(void);
-void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin);
-void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val);
-float imu_get_roll(void);
-float imu_get_pitch(void);
-float imu_get_yaw(void);
-void imu_get_rpy(float *rpy);
-void imu_get_accel(float *accel);
-void imu_get_gyro(float *gyro);
-void imu_get_mag(float *mag);
-void imu_get_accel_derotated(float *accel);
-void imu_get_quaternions(float *q);
+typedef struct {
+	i2c_bb_state *i2cs;
+	uint8_t i2c_address;
+	void(*read_callback)(float *accel, float *gyro, float *mag);
+} ICM20948_STATE;
 
-#endif /* IMU_IMU_H_ */
+void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
+		stkalign_t *work_area, size_t work_area_size);
+void icm20948_set_read_callback(ICM20948_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
+
+// All banks
+#define ICM20948_BANK_SEL						0x7F
+
+// Bank 0 registers
+#define ICM20948_PWR_MGMT_1						0x06
+#define ICM20948_PIN_CFG						0x0F
+#define ICM20948_ACCEL_XOUT_H					0x2D
+
+// Bank 2 registers
+#define ICM20948_ACCEL_CONFIG					0x14
+#define ICM20948_GYRO_CONFIG_1					0x01
+
+#endif /* IMU_ICM20948_H_ */

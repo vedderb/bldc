@@ -29,6 +29,158 @@
 #error "No hardware name set"
 #endif
 
+// Possible HW properties.
+
+/*
+ * #define HW_HAS_DRV8301
+ *
+ * Use the DRV8301 driver
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8301_MOSI_GPIO	GPIOC
+ * #define DRV8301_MOSI_PIN		12
+ * #define DRV8301_MISO_GPIO	GPIOC
+ * #define DRV8301_MISO_PIN		11
+ * #define DRV8301_SCK_GPIO		GPIOC
+ * #define DRV8301_SCK_PIN		10
+ * #define DRV8301_CS_GPIO		GPIOC
+ * #define DRV8301_CS_PIN		9
+ *
+ * Requires running
+ * drv8301_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8313
+ *
+ * Use the DRV8313 driver. Changes how the
+ * output is switched off and runs an early init hook.
+ */
+
+/*
+ * #define HW_HAS_DRV8305
+ *
+ * Use the DRV8305 gate driver. Note that support
+ * for this driver is incomplete.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8305_MOSI_GPIO		GPIOC
+ * #define DRV8305_MOSI_PIN			12
+ * #define DRV8305_MISO_GPIO		GPIOC
+ * #define DRV8305_MISO_PIN			11
+ * #define DRV8305_SCK_GPIO			GPIOC
+ * #define DRV8305_SCK_PIN			10
+ * #define DRV8305_CS_GPIO			GPIOD
+ * #define DRV8305_CS_PIN			8
+ *
+ * Requires running
+ * drv8305_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8320S
+ *
+ * Use the DRV8320S driver.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8320S_MOSI_GPIO		GPIOC
+ * #define DRV8320S_MOSI_PIN		12
+ * #define DRV8320S_MISO_GPIO		GPIOC
+ * #define DRV8320S_MISO_PIN		11
+ * #define DRV8320S_SCK_GPIO		GPIOC
+ * #define DRV8320S_SCK_PIN			10
+ * #define DRV8320S_CS_GPIO			GPIOC
+ * #define DRV8320S_CS_PIN			9
+ *
+ * Requires running
+ * drv8320s_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8323S
+ *
+ * Use the DRV8323S driver.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8323S_MOSI_GPIO		GPIOC
+ * #define DRV8323S_MOSI_PIN		12
+ * #define DRV8323S_MISO_GPIO		GPIOB
+ * #define DRV8323S_MISO_PIN		4
+ * #define DRV8323S_SCK_GPIO		GPIOB
+ * #define DRV8323S_SCK_PIN			3
+ * #define DRV8323S_CS_GPIO			GPIOC
+ * #define DRV8323S_CS_PIN			9
+ *
+ * Requires running
+ * drv8323s_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_USE_INTERNAL_RC
+ *
+ * Use the internal RC clock instead of an external crystal.
+ */
+
+/*
+ * define HW_HAS_3_SHUNTS
+ *
+ * The hardware has 3 current sensors.
+ */
+
+/*
+ * #define HW_HAS_PHASE_SHUNTS
+ *
+ * The current sensors are in line with the motor phases,
+ * which allows sampling in V0 and V7, and some extra filtering.
+ */
+
+/*
+ * #define HW_HAS_NO_CAN
+ *
+ * The hardware is missing CAN-bus.
+ */
+
+/*
+ * Define these to enable MPU9150 or MPU9250 support
+ * on these pins.
+ *
+ * #define MPU9X50_SDA_GPIO		GPIOB
+ * #define MPU9X50_SDA_PIN		7
+ * #define MPU9X50_SCL_GPIO		GPIOB
+ * #define MPU9X50_SCL_PIN		6
+ *
+ * This will flip the axes of the IMU around the horizontal plane
+ * #define MPU9x50_FLIP
+ */
+
+/*
+ * #define HW_HAS_PERMANENT_NRF
+ *
+ * The hardware has a permanently mounted NRF24. Also requires defining its pins:
+ * #define NRF_PORT_CSN			GPIOB
+ * #define NRF_PIN_CSN			12
+ * #define NRF_PORT_SCK			GPIOB
+ * #define NRF_PIN_SCK			4
+ * #define NRF_PORT_MOSI		GPIOB
+ * #define NRF_PIN_MOSI			3
+ * #define NRF_PORT_MISO		GPIOD
+ * #define NRF_PIN_MISO			2
+ *
+ * If the NRF is not detected during initialization, the pins will be remapped
+ * to the COMM port if the NRF app is used. A hook to run if initialization fails
+ * can also be defined:
+ *
+ * #define HW_PERMANENT_NRF_FAILED_HOOK()
+ */
+
 // Default macros in case there is no hardware support or no need to change them.
 
 #ifndef ENABLE_GATE
@@ -84,6 +236,14 @@
 #define NTC_TEMP_MOS3()		0.0
 #endif
 
+// Sin/Cos Encoder Signals. Override if available
+#ifndef ENCODER_SIN_VOLTS
+#define ENCODER_SIN_VOLTS()		0.0
+#endif
+#ifndef ENCODER_COS_VOLTS
+#define ENCODER_COS_VOLTS()		0.0
+#endif
+
 // Current ADC macros. Override them for custom current measurement functions.
 #ifndef GET_CURRENT1
 #ifdef INVERTED_SHUNT_POLARITY
@@ -106,6 +266,16 @@
 #define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
 #endif
 #endif
+#ifndef HW_MAX_CURRENT_OFFSET
+#define HW_MAX_CURRENT_OFFSET 				620
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE
+#define MCCONF_MAX_CURRENT_UNBALANCE		(FAC_CURRENT * 512)
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE_RATE
+#define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3
+#endif
+
 
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN

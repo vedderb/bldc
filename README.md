@@ -51,8 +51,8 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 //#define HW_SOURCE "hw_das_rs.c"
 //#define HW_HEADER "hw_das_rs.h"
 
-//#define HW_SOURCE "hw_palta.c"
-//#define HW_HEADER "hw_palta.h"
+//#define HW_SOURCE "hw_axiom.c"
+//#define HW_HEADER "hw_axiom.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"

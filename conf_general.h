@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		54
+#define FW_VERSION_MINOR		56
 
 #include "datatypes.h"
 
@@ -82,8 +82,8 @@
 //#define HW_SOURCE "hw_das_rs.c"
 //#define HW_HEADER "hw_das_rs.h"
 
-//#define HW_SOURCE "hw_palta.c"
-//#define HW_HEADER "hw_palta.h"
+//#define HW_SOURCE "hw_axiom.c"
+//#define HW_HEADER "hw_axiom.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
@@ -111,6 +111,9 @@
 
 //#define HW_SOURCE "hw_uavc_basic.c"
 //#define HW_HEADER "hw_uavc_basic.h"
+
+//#define HW_SOURCE "hw_binar_v1.c"
+//#define HW_HEADER "hw_binar_v1.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -120,6 +123,8 @@
 #ifndef HW_HEADER
 #error "No hardware header file set"
 #endif
+
+#include "hw.h"
 
 /*
  * Select default user motor configuration
@@ -154,7 +159,14 @@
 /*
  * Enable CAN-bus
  */
+#ifndef CAN_ENABLE
 #define CAN_ENABLE					1
+#endif
+
+#ifdef HW_HAS_NO_CAN
+#undef CAN_ENABLE
+#define CAN_ENABLE 					0
+#endif
 
 /*
  * Settings for the external LEDs (hardcoded for now)
@@ -191,6 +203,8 @@
 
 // Current ADC to amperes factor
 #define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+
+#define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
 
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
@@ -234,6 +248,10 @@ extern bool conf_general_permanent_nrf_found;
 
 // Functions
 void conf_general_init(void);
+bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
