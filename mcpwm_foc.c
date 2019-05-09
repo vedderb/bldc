@@ -153,7 +153,7 @@ static void mtpa_setup(void);
 static void mtpa_run(float *id, float *iq);
 static void field_weakening_setup(void);
 static void field_weakening_run(float dt, float *id, float *iq);
-static void field_weakening_decrementation(void);
+static void field_weakening_ramp_down(void);
 
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -600,7 +600,7 @@ void mcpwm_foc_set_pid_pos(float pos) {
  */
 void mcpwm_foc_set_current(float current) {
 	if (fabsf(current) < m_conf->cc_min_current) {
-		field_weakening_decrementation();
+		field_weakening_ramp_down();
 		return;
 	}
 
@@ -2036,7 +2036,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if( m_control_mode == CONTROL_MODE_RAMP_DOWN_ID ){
 			m_iq_set = 0;
 			if(m_pll_speed < field_weakening.max_speed){
-				//speed is above maximum we should decrease id slowly
+				//speed is below maximum we can decrease id slowly
 				id_set_tmp = m_motor_state.id * 0.999;
 				if( fabsf(m_motor_state.id) < 1.0 ){
 					m_control_mode = CONTROL_MODE_NONE;
@@ -3017,6 +3017,7 @@ static void field_weakening_setup(void){
 	field_weakening.mod_int = 0.0;
 	field_weakening.is_sq_max = SQ(m_conf->lo_current_max);
 	field_weakening.anti_windup_error = 0.0;
+	//first we check we are not dividing by 0
 	if( m_conf->foc_motor_flux_linkage > 0.0 ){
 		field_weakening.max_speed = m_conf->l_max_vin / m_conf->foc_motor_flux_linkage;
 	}else{
@@ -3085,12 +3086,12 @@ static void field_weakening_run(float dt, float *id, float *iq){
 }
 
 /*
- * Field Weakening Controlled Decrementation
+ * Field Weakening Controlled Ramp Down
  *
  * This is a routine that will take care of decrementing current when a current smaller than minimum was set
  * Should be called previous to set the system off
  */
-static void field_weakening_decrementation(void){
+static void field_weakening_ramp_down(void){
 	if(m_conf->foc_field_weakening_enable){
 		m_control_mode = CONTROL_MODE_RAMP_DOWN_ID;
 		m_iq_set = 0.0;
