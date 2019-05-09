@@ -79,8 +79,6 @@ void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_adc_isr_duration(void);
 void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset);
 void mcpwm_foc_set_current_offsets(volatile int curr0_offset, volatile int curr1_offset, volatile int curr2_offset);
-float mcpwm_foc_get_ts(void);
-void mcpwm_foc_reset_vd_vq(void);
 
 // Interrupt handlers
 void mcpwm_foc_tim_sample_int_handler(void);

@@ -84,6 +84,7 @@ typedef struct {
 	float mod_int;	//integral sum of PI
 	float is_sq_max;	//max is current
 	float anti_windup_error;	//last iteration windup error
+	float max_speed; //max speed we should allow
 }field_weakening_t;
 
 // Private variables
@@ -152,6 +153,7 @@ static void mtpa_setup(void);
 static void mtpa_run(float *id, float *iq);
 static void field_weakening_setup(void);
 static void field_weakening_run(float dt, float *id, float *iq);
+static void field_weakening_decrementation(void);
 
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 2048);
@@ -507,6 +509,7 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 	//mtpa and flux weakening constants.
 	mtpa_setup();
 	field_weakening_setup();
+	virtual_motor_set_configuration(configuration);
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -597,9 +600,7 @@ void mcpwm_foc_set_pid_pos(float pos) {
  */
 void mcpwm_foc_set_current(float current) {
 	if (fabsf(current) < m_conf->cc_min_current) {
-		m_control_mode = CONTROL_MODE_NONE;
-		m_state = MC_STATE_OFF;
-		stop_pwm_hw();
+		field_weakening_decrementation();
 		return;
 	}
 
@@ -817,22 +818,6 @@ float mcpwm_foc_get_sampling_frequency_now(void) {
 #endif
 }
 
-/**
- * Returns Ts used for virtual motor sync
- */
-float mcpwm_foc_get_ts(void){
-
-#ifdef HW_HAS_PHASE_SHUNTS
-	if (m_conf->foc_sample_v0_v7) {
-		return (1.0 / m_conf->foc_f_sw) ;
-	} else {
-		return (1.0 / (m_conf->foc_f_sw / 2.0));
-	}
-#else
-	return (1.0 / m_conf->foc_f_sw) ;
-#endif
-
-}
 /**
  * Calculate the current RPM of the motor. This is a signed value and the sign
  * depends on the direction the motor is rotating in. Note that this value has
@@ -2048,11 +2033,27 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			m_motor_state.phase = m_phase_now_override;
 		}
 
-		// Apply MTPA
-		mtpa_run(&id_set_tmp, &iq_set_tmp);
+		if( m_control_mode == CONTROL_MODE_RAMP_DOWN_ID ){
+			m_iq_set = 0;
+			if(m_pll_speed < field_weakening.max_speed){
+				//speed is above maximum we should decrease id slowly
+				id_set_tmp = m_motor_state.id * 0.999;
+				if( fabsf(m_motor_state.id) < 1.0 ){
+					m_control_mode = CONTROL_MODE_NONE;
+					m_state = MC_STATE_OFF;
+					stop_pwm_hw();
+				}
+			}else{
+				//speed is above maximum we should keep our id constant
+				id_set_tmp = m_motor_state.id;
+			}
+		}else{
+			// Apply MTPA
+			mtpa_run(&id_set_tmp, &iq_set_tmp);
 
-		// Apply Flux Weakening
-		field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
+			// Apply Flux Weakening
+			field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
+		}
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
@@ -3014,8 +3015,13 @@ static void mtpa_run( float *id, float *iq){
  */
 static void field_weakening_setup(void){
 	field_weakening.mod_int = 0.0;
-	field_weakening.is_sq_max = SQ(m_conf->l_abs_current_max);
+	field_weakening.is_sq_max = SQ(m_conf->lo_current_max);
 	field_weakening.anti_windup_error = 0.0;
+	if( m_conf->foc_motor_flux_linkage > 0.0 ){
+		field_weakening.max_speed = m_conf->l_max_vin / m_conf->foc_motor_flux_linkage;
+	}else{
+		field_weakening.max_speed = 10000;
+	}
 }
 
 /**
@@ -3033,8 +3039,8 @@ static void field_weakening_setup(void){
 static void field_weakening_run(float dt, float *id, float *iq){
 	if(m_conf->foc_field_weakening_enable){
 //		//PI block
-		float Mod = sqrtf(SQ(m_motor_state.mod_d) + SQ(m_motor_state.mod_q));
-		float Mod_error = Mod - 0.8;
+		float Mod = m_motor_state.mod_q;
+		float Mod_error = Mod - 0.81;
 
 		float int_error = Mod_error - field_weakening.anti_windup_error;
 
@@ -3075,5 +3081,18 @@ static void field_weakening_run(float dt, float *id, float *iq){
 			}
 			*iq = SIGN(*iq) * sqrtf(Idiff);
 		}
+	}
+}
+
+/*
+ * Field Weakening Controlled Decrementation
+ *
+ * This is a routine that will take care of decrementing current when a current smaller than minimum was set
+ * Should be called previous to set the system off
+ */
+static void field_weakening_decrementation(void){
+	if(m_conf->foc_field_weakening_enable){
+		m_control_mode = CONTROL_MODE_RAMP_DOWN_ID;
+		m_iq_set = 0.0;
 	}
 }

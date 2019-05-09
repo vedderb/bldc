@@ -82,7 +82,8 @@ static void terminal_cmd_disconnect_virtual_motor(int argc, const char **argv);
  * Virtual motor initialization
  */
 void virtual_motor_init(volatile mc_configuration *conf){
-	m_conf = conf;
+
+	virtual_motor_set_configuration(conf);
 
 	//virtual motor variables init
 	virtual_motor.connected = false; //disconnected
@@ -102,9 +103,6 @@ void virtual_motor_init(volatile mc_configuration *conf){
 	virtual_motor.id_int = 0.0;
 	virtual_motor.iq = 0.0;
 
-	virtual_motor.pole_pairs = m_conf->si_motor_poles / 2;
-	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
-
 	// Register terminal callbacks used for virtual motor setup
 	terminal_register_command_callback(
 				"connect_virtual_motor",
@@ -117,6 +115,24 @@ void virtual_motor_init(volatile mc_configuration *conf){
 				"disconnect virtual motor",
 				0,
 				terminal_cmd_disconnect_virtual_motor);
+}
+
+void virtual_motor_set_configuration(volatile mc_configuration *conf){
+	m_conf = conf;
+
+	//recalculate constants that depend on m_conf
+	virtual_motor.pole_pairs = m_conf->si_motor_poles / 2;
+	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
+#ifdef HW_HAS_PHASE_SHUNTS
+	if (m_conf->foc_sample_v0_v7) {
+		virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+	} else {
+		virtual_motor.Ts = (1.0 / (m_conf->foc_f_sw / 2.0));
+	}
+#else
+	virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+#endif
+
 }
 
 /**
@@ -184,17 +200,13 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 							// 1692 gives 15.0 as Gate Driver Voltage
 							//( 15.0 = (ADC_Value[] * 11.0 * 3.3) / 4096 )
 #endif
-		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;// 0.0;//m_motor_state.phase;
+		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;
 		utils_fast_sincos_better(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
 														(float*)&virtual_motor.cos_phi);
 	}
 
 	//initialize constants
-	virtual_motor.pole_pairs = m_conf->si_motor_poles / 2;
-	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
-
 	virtual_motor.v_max_adc = Vbus;
-	virtual_motor.Ts = mcpwm_foc_get_ts();
 	virtual_motor.J = J;
 	virtual_motor.tsj = virtual_motor.Ts / virtual_motor.J;
 	virtual_motor.ml = ml;
@@ -259,9 +271,6 @@ static inline void run_virtual_motor(float v_alpha, float v_beta, float ml){
  */
 static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
 
-	utils_fast_sincos_better( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
-													(float*)&virtual_motor.cos_phi );
-
 	virtual_motor.vd =  virtual_motor.cos_phi * v_alpha + virtual_motor.sin_phi * v_beta;
 	virtual_motor.vq =  virtual_motor.cos_phi * v_beta - virtual_motor.sin_phi * v_alpha;
 
@@ -318,6 +327,9 @@ static inline void run_virtual_motor_mechanics(float ml){
  * Take the id and iq calculated values and translate them into ADC_Values
  */
 static inline void run_virtual_motor_park_clark_inverse( void ){
+	utils_fast_sincos_better( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
+													(float*)&virtual_motor.cos_phi );
+
 	//	Park Inverse
 	virtual_motor.i_alpha = virtual_motor.cos_phi * virtual_motor.id -
 							virtual_motor.sin_phi * virtual_motor.iq;
