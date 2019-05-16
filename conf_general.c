@@ -48,7 +48,7 @@ uint16_t VirtAddVarTab[NB_OF_VAR];
 bool conf_general_permanent_nrf_found = false;
 
 // Private variables
-mc_configuration mcconf, mcconf_old;
+static mc_configuration mcconf, mcconf_old, mcconf_old_second;
 
 // Private functions
 static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base);
@@ -548,7 +548,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage) {
 	mcconf = *mc_interface_get_configuration();
-	mcconf_old = mcconf;
+	mcconf_old_second = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_BLDC;
 	mcconf.sensor_mode = SENSOR_MODE_SENSORLESS;
@@ -570,7 +570,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	}
 
 	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_set_configuration(&mcconf_old_second);
 		return false;
 	}
 
@@ -655,7 +655,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	if (!started) {
 		mc_interface_set_current(0.0);
 		timeout_configure(tout, tout_c);
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_set_configuration(&mcconf_old_second);
 		mc_interface_unlock();
 		return false;
 	}
@@ -676,7 +676,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	}
 
 	timeout_configure(tout, tout_c);
-	mc_interface_set_configuration(&mcconf_old);
+	mc_interface_set_configuration(&mcconf_old_second);
 	mc_interface_unlock();
 	mc_interface_set_current(0.0);
 
@@ -748,7 +748,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	bool result = false;
 
 	mcconf = *mc_interface_get_configuration();
-	mcconf_old = mcconf;
+	mcconf_old_second = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_FOC;
 	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
@@ -765,7 +765,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	}
 
 	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_set_configuration(&mcconf_old_second);
 		return false;
 	}
 
@@ -866,7 +866,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_set_configuration(&mcconf_old);
+	mc_interface_set_configuration(&mcconf_old_second);
 	return result;
 }
 
@@ -893,7 +893,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	int result = -1;
 
 	mcconf = *mc_interface_get_configuration();
-	mcconf_old = mcconf;
+	mcconf_old_second = mcconf;
 
 	mcconf.motor_type = MOTOR_TYPE_FOC;
 	mcconf.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
@@ -910,7 +910,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	}
 
 	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
-		mc_interface_set_configuration(&mcconf_old);
+		mc_interface_set_configuration(&mcconf_old_second);
 		return -1;
 	}
 
@@ -939,10 +939,10 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	mc_interface_lock();
 
 	if (res) {
-		mcconf_old.m_sensor_port_mode = SENSOR_PORT_MODE_HALL;
-		mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_HALL;
+		mcconf_old_second.m_sensor_port_mode = SENSOR_PORT_MODE_HALL;
+		mcconf_old_second.foc_sensor_mode = FOC_SENSOR_MODE_HALL;
 		for (int i = 0;i < 8;i++) {
-			mcconf_old.foc_hall_table[i] = hall_table[i];
+			mcconf_old_second.foc_hall_table[i] = hall_table[i];
 		}
 
 		result = 1;
@@ -977,11 +977,11 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			float offset, ratio;
 			bool inverted;
 			mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
-			mcconf_old.m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
-			mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
-			mcconf_old.foc_encoder_offset = offset;
-			mcconf_old.foc_encoder_ratio = ratio;
-			mcconf_old.foc_encoder_inverted = inverted;
+			mcconf_old_second.m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
+			mcconf_old_second.foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
+			mcconf_old_second.foc_encoder_offset = offset;
+			mcconf_old_second.foc_encoder_ratio = ratio;
+			mcconf_old_second.foc_encoder_inverted = inverted;
 
 			res = true;
 			result = 2;
@@ -990,7 +990,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 
 	// Sensorless
 	if (!res) {
-		mcconf_old.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
+		mcconf_old_second.foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
 		result = 0;
 		res = true;
 	}
@@ -998,16 +998,16 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_set_configuration(&mcconf_old);
+	mc_interface_set_configuration(&mcconf_old_second);
 
 	// On success store the mc configuration, also send it to VESC Tool.
 	if (res) {
 		if (store_mcconf_on_success) {
-			conf_general_store_mc_configuration(&mcconf_old);
+			conf_general_store_mc_configuration(&mcconf_old_second);
 		}
 
 		if (send_mcconf_on_success) {
-			commands_send_mcconf(COMM_GET_MCCONF, &mcconf_old);
+			commands_send_mcconf(COMM_GET_MCCONF, &mcconf_old_second);
 		}
 	}
 
@@ -1079,7 +1079,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	mc_interface_lock();
 
 	float current_start = mcconf.l_current_max / 50;
-	utils_truncate_number_abs(&current_start, mcconf.cc_min_current * 1.1);
+	if (current_start < (mcconf.cc_min_current * 1.1)) {
+		current_start = mcconf.cc_min_current * 1.1;
+	}
 
 	float i_last = 0.0;
 	for (float i = current_start;i < mcconf.l_current_max;i *= 1.5) {

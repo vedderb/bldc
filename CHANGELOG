@@ -1,3 +1,8 @@
+=== FW 3.57 ===
+* Added CAN status message 5 with input voltage and tachometer data.
+* Fix github issue #94.
+* Use default F_SW for HW after autodetect FOC.
+
 === FW 3.56 ===
 * Fixed current offset fault bug in non-FOC mode.
 * Multiple IMU support.

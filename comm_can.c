@@ -63,6 +63,7 @@ static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
 static unsigned int detect_all_foc_res_index = 0;
 static int8_t detect_all_foc_res[50];
 
@@ -669,6 +670,42 @@ can_status_msg_4 *comm_can_get_status_msg_4_id(int id) {
 	return 0;
 }
 
+/**
+ * Get status message 5 by index.
+ *
+ * @param index
+ * Index in the array
+ *
+ * @return
+ * The message or 0 for an invalid index.
+ */
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_5[index];
+	} else {
+		return 0;
+	}
+}
+
+/**
+ * Get status message 5 by id.
+ *
+ * @param id
+ * Id of the controller that sent the status message.
+ *
+ * @return
+ * The message or 0 for an invalid id.
+ */
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_5[i].id == id) {
+			return &stat_msgs_5[i];
+		}
+	}
+
+	return 0;
+}
+
 CANRxFrame *comm_can_get_rx_frame(void) {
 #if CAN_ENABLE
 	chMtxLock(&can_rx_mtx);
@@ -1040,6 +1077,20 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					}
 					break;
 
+				case CAN_PACKET_STATUS_5:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_5 *stat_tmp_5 = &stat_msgs_5[i];
+						if (stat_tmp_5->id == id || stat_tmp_5->id == -1) {
+							ind = 0;
+							stat_tmp_5->id = id;
+							stat_tmp_5->rx_time = chVTGetSystemTime();
+							stat_tmp_5->tacho_value = buffer_get_int32(rxmsg.data8, &ind);
+							stat_tmp_5->v_in = (float)buffer_get_int16(rxmsg.data8, &ind) / 1e1;
+							break;
+						}
+					}
+					break;
+
 				default:
 					break;
 				}
@@ -1063,7 +1114,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			if (conf->send_can_status == CAN_STATUS_1 ||
 					conf->send_can_status == CAN_STATUS_1_2 ||
 					conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
@@ -1075,7 +1127,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 
 			if (conf->send_can_status == CAN_STATUS_1_2 ||
 					conf->send_can_status == CAN_STATUS_1_2_3||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours(false) * 1e4), &send_index);
@@ -1085,7 +1138,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			}
 
 			if (conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours(false) * 1e4), &send_index);
@@ -1094,7 +1148,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 						((uint32_t)CAN_PACKET_STATUS_3 << 8), buffer, send_index);
 			}
 
-			if (conf->send_can_status == CAN_STATUS_1_2_3_4) {
+			if (conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int16(buffer, (int16_t)(mc_interface_temp_fet_filtered() * 1e1), &send_index);
@@ -1103,6 +1158,16 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 				buffer_append_int16(buffer, (int16_t)(mc_interface_get_pid_pos_now() * 50.0), &send_index);
 				comm_can_transmit_eid(conf->controller_id |
 						((uint32_t)CAN_PACKET_STATUS_4 << 8), buffer, send_index);
+			}
+
+			if (conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
+				int32_t send_index = 0;
+				uint8_t buffer[8];
+				buffer_append_int32(buffer, mc_interface_get_tachometer_value(false), &send_index);
+				buffer_append_int16(buffer, (int16_t)(GET_INPUT_VOLTAGE() * 1e1), &send_index);
+				buffer_append_int16(buffer, 0, &send_index); // Reserved for now
+				comm_can_transmit_eid(conf->controller_id |
+						((uint32_t)CAN_PACKET_STATUS_5 << 8), buffer, send_index);
 			}
 		}
 

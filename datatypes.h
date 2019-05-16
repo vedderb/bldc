@@ -486,7 +486,8 @@ typedef enum {
 	CAN_STATUS_1,
 	CAN_STATUS_1_2,
 	CAN_STATUS_1_2_3,
-	CAN_STATUS_1_2_3_4
+	CAN_STATUS_1_2_3_4,
+	CAN_STATUS_1_2_3_4_5
 } CAN_STATUS_MODE;
 
 typedef struct {
@@ -626,7 +627,8 @@ typedef enum {
 	CAN_PACKET_CONF_CURRENT_LIMITS_IN,
 	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN,
 	CAN_PACKET_CONF_FOC_ERPMS,
-	CAN_PACKET_CONF_STORE_FOC_ERPMS
+	CAN_PACKET_CONF_STORE_FOC_ERPMS,
+	CAN_PACKET_STATUS_5
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -702,6 +704,13 @@ typedef struct {
 	float current_in;
 	float pid_pos_now;
 } can_status_msg_4;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	int32_t tacho_value;
+} can_status_msg_5;
 
 typedef struct {
 	uint8_t js_x;

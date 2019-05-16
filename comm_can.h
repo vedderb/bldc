@@ -60,6 +60,8 @@ can_status_msg_3 *comm_can_get_status_msg_3_index(int index);
 can_status_msg_3 *comm_can_get_status_msg_3_id(int id);
 can_status_msg_4 *comm_can_get_status_msg_4_index(int index);
 can_status_msg_4 *comm_can_get_status_msg_4_id(int id);
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index);
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
 CANRxFrame *comm_can_get_rx_frame(void);
 
 #endif /* COMM_CAN_H_ */
