@@ -28,7 +28,9 @@
 #include "utils.h"
 #include "terminal.h"
 #include "commands.h"
+#include "mc_interface.h"
 #include "stdio.h"
+#include <math.h>
 
 #include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
@@ -172,9 +174,9 @@ void hw_init_gpio(void) {
 	hw_axiom_setup_dac();
 #else
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);		//Temperature bridge A
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		//Temperature bridge B
+	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);		//Temperature bridge B
 #endif
-	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);		//Temperature bridge C
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);		//Temperature bridge C
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);		//Accel 2
 #ifndef HW_PALTA_REV_B
@@ -215,26 +217,28 @@ void hw_init_gpio(void) {
 
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);
-	//ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0,  1, ADC_SampleTime_15Cycles);	// 0	SENS1
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);	// 3	CURR1
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8,  3, ADC_SampleTime_15Cycles); // 6	Throttle2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles); // 9	TEMP_MOTOR
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_9,  5, ADC_SampleTime_15Cycles);	// 12	V_GATE_DRIVER
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5,  6, ADC_SampleTime_15Cycles);	// 15	IGBT_TEMP3
 
 	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_1,  1, ADC_SampleTime_15Cycles);	// 1	SENS2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);	// 4	CURR2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6,  3, ADC_SampleTime_15Cycles);	// 7	IGBT_TEMP2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);	// 10	Throttle1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_4,  5, ADC_SampleTime_15Cycles);	// 13	IGBT_TEMP1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_Vrefint,  6, ADC_SampleTime_15Cycles);// 16	VREFINT
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_2,  1, ADC_SampleTime_15Cycles);	// 2	SENS3
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);	// 5	CURR3
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3,  3, ADC_SampleTime_15Cycles); // 8	PCB_TEMP
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);	// 11	VBUS
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3,  5, ADC_SampleTime_15Cycles);	// 14	UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_Vrefint,  6, ADC_SampleTime_15Cycles);// 17
 
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
@@ -569,4 +573,21 @@ float hw_axiom_read_current_sensor_gain() {
 
 inline float hw_axiom_get_current_sensor_gain() {
 	return current_sensor_gain;
+}
+
+float hw_axiom_get_highest_IGBT_temp() {
+	float t1 = NTC_TEMP_MOS1();
+	float t2 = NTC_TEMP_MOS2();
+	float t3 = NTC_TEMP_MOS3();
+	float res = 0.0;
+
+	if (t1 > t2 && t1 > t3) {
+		res = t1;
+	} else if (t2 > t1 && t2 > t3) {
+		res = t2;
+	} else {
+		res = t3;
+	}
+
+	return res;
 }
