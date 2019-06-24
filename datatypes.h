@@ -336,7 +336,8 @@ typedef enum {
 	PPM_CTRL_TYPE_DUTY,
 	PPM_CTRL_TYPE_DUTY_NOREV,
 	PPM_CTRL_TYPE_PID,
-	PPM_CTRL_TYPE_PID_NOREV
+	PPM_CTRL_TYPE_PID_NOREV,
+	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
 } ppm_control_type;
 
 typedef struct {
@@ -402,8 +403,6 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	uint32_t update_rate_hz;
-	bool max_erpm_for_dir_active;
-	float max_erpm_for_dir;
 } adc_config;
 
 // Nunchuk control types

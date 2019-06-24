@@ -209,8 +209,75 @@ static THD_FUNCTION(ppm_thread, arg) {
 		bool current_mode_brake = false;
 		bool send_current = false;
 		bool send_duty = false;
+		static bool force_brake = true;
+		static int8_t did_idle_once = 0;
+		float rpm_local = mc_interface_get_rpm();
+		float rpm_lowest = rpm_local;
 
 		switch (config.ctrl_type) {
+		case PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST:
+
+			// Hysteresis 20 % of actual RPM
+			if (force_brake) {
+				if (rpm_local < config.max_erpm_for_dir - direction_hyst) { // for 2500 it's 2000
+					force_brake = false;
+					did_idle_once = 0;
+				}
+			} else {
+				if (rpm_local > config.max_erpm_for_dir + direction_hyst) { // for 2500 it's 3000
+					force_brake = true;
+					did_idle_once = 0;
+				}
+			}
+
+			if (servo_val >= 0.0) {
+				if (servo_val == 0.0) {
+					// if there was a idle in between then allow going backwards
+					if (did_idle_once == 1 && !force_brake) {
+						did_idle_once = 2;
+					}
+				}else{
+					// accelerated forward or fast enough at least
+					if (rpm_local > -config.max_erpm_for_dir){ // for 2500 it's -2500
+						did_idle_once = 0;
+					}
+				}
+
+				current = servo_val * mcconf->lo_current_motor_max_now;
+			} else {
+				// too fast
+				if (force_brake){
+					current_mode_brake = true;
+				}else{
+					// not too fast backwards
+					if (rpm_local > -config.max_erpm_for_dir) { // for 2500 it's -2500
+						// first time that we brake and we are not too fast
+						if (did_idle_once != 2) {
+							did_idle_once = 1;
+							current_mode_brake = true;
+						}
+					// too fast backwards
+					} else {
+						// if brake was active already
+						if (did_idle_once == 1) {
+							current_mode_brake = true;
+						} else {
+							// it's ok to go backwards now braking would be strange now
+							did_idle_once = 2;
+						}
+					}
+				}
+
+				if (current_mode_brake) {
+					// braking
+					current = fabsf(servo_val * mcconf->lo_current_motor_min_now);
+				}else {
+					// reverse acceleration
+					current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
+				}
+			}
+
+			break;
 		case PPM_CTRL_TYPE_CURRENT:
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 			current_mode = true;
@@ -278,8 +345,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		// Find lowest RPM
-		float rpm_local = mc_interface_get_rpm();
-		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -366,72 +431,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
 						if (current_out < mcconf->cc_min_current) {
 							current_out = 0.0;
-						}
-					}
-				}
-
-
-				if (config.max_erpm_for_dir_active) { // advanced backwards
-					static bool force_brake = true;
-					static int8_t did_idle_once = 0;
-
-					// Hysteresis 20 % of actual RPM
-					if (force_brake) {
-						if (rpm_local < config.max_erpm_for_dir - direction_hyst) { // for 2500 it's 2000
-							force_brake = false;
-							did_idle_once = 0;
-						}
-					} else {
-						if (rpm_local > config.max_erpm_for_dir + direction_hyst) { // for 2500 it's 3000
-							force_brake = true;
-							did_idle_once = 0;
-						}
-					}
-
-					if (servo_val >= 0.0) {
-						if (servo_val == 0.0) {
-							// if there was a idle in between then allow going backwards
-							if (did_idle_once == 1 && !force_brake) {
-								did_idle_once = 2;
-							}
-						}else{
-							// accelerated forward or fast enough at least
-							if (rpm_local > -config.max_erpm_for_dir){ // for 2500 it's -2500
-								did_idle_once = 0;
-							}
-						}
-
-						current_out = servo_val * mcconf->lo_current_motor_max_now;
-					} else {
-						// too fast
-						if (force_brake){
-							current_mode_brake = true;
-						}else{
-							// not too fast backwards
-							if (rpm_local > -config.max_erpm_for_dir) { // for 2500 it's -2500
-								// first time that we brake and we are not too fast
-								if (did_idle_once != 2) {
-									did_idle_once = 1;
-									current_mode_brake = true;
-								}
-							// too fast backwards
-							} else {
-								// if brake was active already
-								if (did_idle_once == 1) {
-									current_mode_brake = true;
-								} else {
-									// it's ok to go backwards now braking would be strange now
-									did_idle_once = 2;
-								}
-							}
-						}
-
-						if (current_mode_brake) {
-							// braking
-							current_out = fabsf(servo_val * mcconf->lo_current_motor_min_now);
-						}else {
-							// reverse acceleration
-							current_out = servo_val * fabsf(mcconf->lo_current_motor_min_now);
 						}
 					}
 				}
