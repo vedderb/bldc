@@ -277,6 +277,10 @@ static THD_FUNCTION(ppm_thread, arg) {
 				}
 			}
 
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
+
 			break;
 		case PPM_CTRL_TYPE_CURRENT:
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
