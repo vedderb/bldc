@@ -107,6 +107,9 @@
 #ifndef APPCONF_PPM_TC_MAX_DIFF
 #define APPCONF_PPM_TC_MAX_DIFF				3000.0
 #endif
+#ifndef APPCONF_PPM_MAX_ERPM_FOR_DIR
+#define APPCONF_PPM_MAX_ERPM_FOR_DIR		4000.0
+#endif
 
 // ADC app configureation
 #ifndef APPCONF_ADC_CTRL_TYPE
