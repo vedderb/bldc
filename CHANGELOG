@@ -1,3 +1,8 @@
+=== FW 3.58 ===
+* Set motor to FOC mode after successful FOC detection instead of the default type for the hardware.
+* APP_ADC: Do not send brake command over CAN if config.multi_esc is not set.
+* APP_PPM: Make pulses invalid if they are above 150 % instead of 120 %.
+
 === FW 3.57 ===
 * Added CAN status message 5 with input voltage and tachometer data.
 * Fix github issue #94.
