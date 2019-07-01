@@ -237,7 +237,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 					if (did_idle_once == 1 && !force_brake) {
 						did_idle_once = 2;
 					}
-				}else{
+				} else{
 					// accelerated forward or fast enough at least
 					if (rpm_local > -config.max_erpm_for_dir){ // for 2500 it's -2500
 						did_idle_once = 0;
@@ -249,7 +249,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 				// too fast
 				if (force_brake){
 					current_mode_brake = true;
-				}else{
+				} else{
 					// not too fast backwards
 					if (rpm_local > -config.max_erpm_for_dir) { // for 2500 it's -2500
 						// first time that we brake and we are not too fast
