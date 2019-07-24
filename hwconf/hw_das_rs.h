@@ -139,11 +139,8 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -151,6 +148,7 @@
 #define HW_UART_RX_PIN			11
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -184,16 +182,6 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
-
-// NRF pins
-#define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				12
-#define NRF_PORT_SCK			GPIOB
-#define NRF_PIN_SCK				4
-#define NRF_PORT_MOSI			GPIOB
-#define NRF_PIN_MOSI			3
-#define NRF_PORT_MISO			GPIOD
-#define NRF_PIN_MISO			2
 
 // SPI pins
 #define HW_SPI_DEV				SPID1

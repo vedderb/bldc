@@ -20,11 +20,14 @@
 /*
  * STM32F407xG memory setup.
  * Note: Use of ram1 and ram2 is mutually exclusive with use of ram0.
+ * Note: flash2 length decreased by 8 bytes to use it as hardcoded CRC
+ * flags.
  */
 MEMORY
 {
     flash : org = 0x08000000, len = 16k
-    flash2 : org = 0x0800C000, len = 480k
+    flash2 : org = 0x0800C000, len = 393216 - 16	/* NEW_APP_MAX_SIZE - CRC_INFO */
+	crcinfo : org = 0x0805FFF0, len = 8		/* CRC info */
     ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
     ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
     ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
@@ -142,6 +145,13 @@ SECTIONS
     . = ALIGN(4);
     _etext = .;
     _textdata = _etext;
+    
+    _crcinfo_start_address = 0x0805FFF0;
+    
+    .crcinfo _crcinfo_start_address :
+	{
+		KEEP(*(.crcinfo))
+	}  > crcinfo
 
     .mstack :
     {

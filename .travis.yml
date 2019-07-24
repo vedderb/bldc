@@ -1,0 +1,14 @@
+language: cpp
+compiler: gcc
+cache: apt
+sudo: required
+dist: trusty
+addons:
+  apt:
+    packages:
+      - gcc-arm-none-eabi
+      - libnewlib-arm-none-eabi
+env:
+
+script:
+  - cd build_all && ./rebuild_all

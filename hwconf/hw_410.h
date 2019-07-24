@@ -107,11 +107,8 @@
 #define CURR2_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
-#define HW_UART_DEV				UARTD6
+#define HW_UART_DEV				SD6
 #define HW_UART_GPIO_AF			GPIO_AF_USART6
 #define HW_UART_TX_PORT			GPIOC
 #define HW_UART_TX_PIN			6
@@ -152,16 +149,6 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM4_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM4_IRQHandler
-
-// NRF pins
-#define NRF_PORT_CSN			GPIOA
-#define NRF_PIN_CSN				4
-#define NRF_PORT_SCK			GPIOA
-#define NRF_PIN_SCK				5
-#define NRF_PORT_MOSI			GPIOA
-#define NRF_PIN_MOSI			7
-#define NRF_PORT_MISO			GPIOA
-#define NRF_PIN_MISO			6
 
 // SPI pins
 #define HW_SPI_DEV				SPID1

@@ -16,13 +16,12 @@
     */
 
 #include "hw.h"
-#ifdef HW_VERSION_TP
 
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
-#include "math.h"
+#include <math.h>
 
 // Variables
 static volatile bool i2c_running = false;
@@ -247,5 +246,3 @@ float hwtp_get_temp(void) {
 
 	return res;
 }
-
-#endif

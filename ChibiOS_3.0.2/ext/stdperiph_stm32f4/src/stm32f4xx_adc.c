@@ -106,9 +106,6 @@
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_rcc.h"
 
-#ifndef assert_param
-#define assert_param(expr) ((void)0)
-#endif
 
 /** @addtogroup STM32F4xx_StdPeriph_Driver
   * @{

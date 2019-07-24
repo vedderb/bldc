@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -47,12 +47,18 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "spi_sw.h"
+#include "timer.h"
+#include "imu.h"
+#include "flash_helper.h"
+#if HAS_BLACKMAGIC
+#include "bm_if.h"
+#endif
 
 /*
- * Timers used:
+ * HW resources used:
+ *
  * TIM1: mcpwm
- * TIM2: mcpwm
- * TIM12: mcpwm
+ * TIM5: timer
  * TIM8: mcpwm
  * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
  * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
@@ -60,10 +66,6 @@
  * DMA/stream	Device		Function
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
  * 1, 7			I2C1		Nunchuk, temp on rev 4.5
- * 1, 1			UART3		HW_R2
- * 1, 3			UART3		HW_R2
- * 2, 2			UART6		Other HW
- * 2, 7			UART6		Other HW
  * 2, 4			ADC			mcpwm
  * 1, 0			TIM4		WS2811/WS2812 LEDs CH1 (Ch 1)
  * 1, 3			TIM4		WS2811/WS2812 LEDs CH2 (Ch 2)
@@ -71,10 +73,24 @@
  */
 
 // Private variables
-
-
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
 static THD_WORKING_AREA(timer_thread_wa, 128);
+static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
+
+static THD_FUNCTION(flash_integrity_check_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("Flash check");
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+
+	for(;;) {
+		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
+			NVIC_SystemReset();
+		}
+
+		chThdSleepMilliseconds(6);
+	}
+}
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -109,20 +125,20 @@ static THD_FUNCTION(periodic_thread, arg) {
 		disp_pos_mode display_mode = commands_get_disp_pos_mode();
 
 		switch (display_mode) {
-			case DISP_POS_MODE_ENCODER:
-				commands_send_rotor_pos(encoder_read_deg());
-				break;
+		case DISP_POS_MODE_ENCODER:
+			commands_send_rotor_pos(encoder_read_deg());
+			break;
 
-			case DISP_POS_MODE_PID_POS:
-				commands_send_rotor_pos(mc_interface_get_pid_pos_now());
-				break;
+		case DISP_POS_MODE_PID_POS:
+			commands_send_rotor_pos(mc_interface_get_pid_pos_now());
+			break;
 
-			case DISP_POS_MODE_PID_POS_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
-				break;
+		case DISP_POS_MODE_PID_POS_ERROR:
+			commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+			break;
 
-			default:
-				break;
+		default:
+			break;
 		}
 
 		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
@@ -137,30 +153,10 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 			default:
 				break;
-		}
+			}
 		}
 
 		chThdSleepMilliseconds(10);
-
-//		chThdSleepMilliseconds(40);
-//		volatile const mc_configuration *conf = mc_interface_get_configuration();
-//		float vq = mcpwm_foc_get_vq();
-//		float iq = mc_interface_get_tot_current_directional();
-//		float linkage = conf->foc_motor_flux_linkage;
-//		float speed = ((2.0 * M_PI) / 60.0) * mc_interface_get_rpm();
-//
-//		if (iq < -6.0) {
-//			float res = vq / (linkage * speed * iq);
-//			res *= 2.0 / 3.0;
-//			static float res_filtered = 0.0;
-//			UTILS_LP_FAST(res_filtered, res, 0.02);
-//			commands_printf("Res: %.4f", (double)res_filtered);
-//		}
-
-//		chThdSleepMilliseconds(40);
-//		commands_printf("Max: %.2f Min: %.2f",
-//				(double)mc_interface_get_configuration()->lo_current_motor_max_now,
-//				(double)mc_interface_get_configuration()->lo_current_motor_min_now);
 	}
 }
 
@@ -171,6 +167,16 @@ static THD_FUNCTION(timer_thread, arg) {
 
 	for(;;) {
 		packet_timerfunc();
+		timeout_feed_WDT(THREAD_TIMER);
+		chThdSleepMilliseconds(1);
+	}
+}
+
+// When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower
+void assert_failed(uint8_t* file, uint32_t line) {
+	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
+	mc_interface_release_motor();
+	while(1) {
 		chThdSleepMilliseconds(1);
 	}
 }
@@ -192,11 +198,24 @@ int main(void) {
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
+	timer_init();
 	conf_general_init();
+
+	if( flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION )	{
+		// Loop here, it is not safe to run any code
+		while (1) {
+			chThdSleepMilliseconds(100);
+			LED_RED_ON();
+			chThdSleepMilliseconds(75);
+			LED_RED_OFF();
+		}
+	}
+
 	ledpwm_init();
 
 	mc_configuration mcconf;
 	conf_general_read_mc_configuration(&mcconf);
+
 	mc_interface_init(&mcconf);
 
 	commands_init();
@@ -209,6 +228,7 @@ int main(void) {
 	app_configuration appconf;
 	conf_general_read_app_configuration(&appconf);
 	app_set_configuration(&appconf);
+	app_uartcomm_start_permanent();
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
@@ -223,11 +243,9 @@ int main(void) {
 				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
+		HW_PERMANENT_NRF_FAILED_HOOK();
 	}
 #endif
-
-	timeout_init();
-	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
 
 #if WS2811_ENABLE
 	ws2811_init();
@@ -243,6 +261,7 @@ int main(void) {
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
+	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
 #if WS2811_TEST
 	unsigned int color_ind = 0;
@@ -304,11 +323,15 @@ int main(void) {
 	}
 #endif
 
+	timeout_init();
+	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
+	imu_init();
+
+#if HAS_BLACKMAGIC
+	bm_init();
+#endif
+
 	for(;;) {
 		chThdSleepMilliseconds(10);
-
-		if (encoder_is_configured()) {
-			//		comm_can_set_pos(0, encoder_read_deg());
-		}
 	}
 }

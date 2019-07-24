@@ -23,7 +23,7 @@
 #define HW_NAME					"DAS_MINI"
 
 // HW properties
-#define HW_HAS_DRV8320
+#define HW_HAS_DRV8320S
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 
@@ -110,6 +110,8 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 
+#define HW_DEAD_TIME_NSEC		120
+
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
@@ -122,11 +124,8 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -134,6 +133,7 @@
 #define HW_UART_RX_PIN			11
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_DEV				ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
@@ -166,16 +166,6 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-// NRF pins
-#define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				12
-#define NRF_PORT_SCK			GPIOB
-#define NRF_PIN_SCK				4
-#define NRF_PORT_MOSI			GPIOB
-#define NRF_PIN_MOSI			3
-#define NRF_PORT_MISO			GPIOD
-#define NRF_PIN_MISO			2
-
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
@@ -188,15 +178,15 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-// SPI for DRV8320
-#define DRV8320_MOSI_GPIO		GPIOC
-#define DRV8320_MOSI_PIN		12
-#define DRV8320_MISO_GPIO		GPIOC
-#define DRV8320_MISO_PIN		11
-#define DRV8320_SCK_GPIO		GPIOC
-#define DRV8320_SCK_PIN			10
-#define DRV8320_CS_GPIO			GPIOC
-#define DRV8320_CS_PIN			9
+// SPI for DRV8320S
+#define DRV8320S_MOSI_GPIO		GPIOC
+#define DRV8320S_MOSI_PIN		12
+#define DRV8320S_MISO_GPIO		GPIOC
+#define DRV8320S_MISO_PIN		11
+#define DRV8320S_SCK_GPIO		GPIOC
+#define DRV8320S_SCK_PIN		10
+#define DRV8320S_CS_GPIO		GPIOC
+#define DRV8320S_CS_PIN			9
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]

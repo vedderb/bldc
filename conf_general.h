@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		38
+#define FW_VERSION_MINOR		58
 
 #include "datatypes.h"
 
@@ -41,35 +41,87 @@
 // Disable hardware limits on configuration parameters
 //#define DISABLE_HW_LIMITS
 
+/*
+ * Select only one hardware version, if it is not passed
+ * as an argument.
+ */
+#if !defined(HW_SOURCE) && !defined(HW_HEADER)
+//#define HW_SOURCE "hw_40.c"
+//#define HW_HEADER "hw_40.h"
+
+//#define HW_SOURCE "hw_45.c"
+//#define HW_HEADER "hw_45.h"
+
+//#define HW_SOURCE "hw_46.c" // Also for 4.7
+//#define HW_HEADER "hw_46.h" // Also for 4.7
+
+//#define HW_SOURCE "hw_48.c"
+//#define HW_HEADER "hw_48.h"
+
+//#define HW_SOURCE "hw_49.c"
+//#define HW_HEADER "hw_49.h"
+
+//#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
+//#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
+
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
-/*
- * Select only one hardware version
- */
-#if !defined(HW_VERSION_40) && !defined(HW_VERSION_45) && !defined(HW_VERSION_46) && \
-	!defined(HW_VERSION_48) && !defined(HW_VERSION_49) && !defined(HW_VERSION_410) && \
-	!defined(HW_VERSION_60) && !defined(HW_VERSION_R2) && !defined(HW_VERSION_VICTOR_R1A) && \
-	!defined(HW_VERSION_DAS_RS) && !defined(HW_VERSION_PALTA) && !defined(HW_VERSION_RH) && \
-	!defined(HW_VERSION_TP) && !defined(HW_VERSION_75_300) && !defined(HW_VERSION_MINI4) && \
-	!defined(HW_VERSION_DAS_MINI)
-//#define HW_VERSION_40
-//#define HW_VERSION_45
-//#define HW_VERSION_46 // Also for 4.7
-//#define HW_VERSION_48
-//#define HW_VERSION_49
-//#define HW_VERSION_410 // Also for 4.11 and 4.12
-#define HW_VERSION_60
-//#define HW_VERSION_R2
-//#define HW_VERSION_VICTOR_R1A
-//#define HW_VERSION_DAS_RS
-//#define HW_VERSION_PALTA
-//#define HW_VERSION_RH
-//#define HW_VERSION_TP
-//#define HW_VERSION_75_300
-//#define HW_VERSION_MINI4
-//#define HW_VERSION_DAS_MINI
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
+
+//#define HW_SOURCE "hw_r2.c"
+//#define HW_HEADER "hw_r2.h"
+
+//#define HW_SOURCE "hw_victor_r1a.c"
+//#define HW_HEADER "hw_victor_r1a.h"
+
+//#define HW_SOURCE "hw_das_rs.c"
+//#define HW_HEADER "hw_das_rs.h"
+
+//#define HW_SOURCE "hw_axiom.c"
+//#define HW_HEADER "hw_axiom.h"
+
+//#define HW_SOURCE "hw_rh.c"
+//#define HW_HEADER "hw_rh.h"
+
+//#define HW_SOURCE "hw_tp.c"
+//#define HW_HEADER "hw_tp.h"
+
+// Benjamins first HW75_300 PCB with different LED pins and motor temp error
+//#define HW75_300_VEDDER_FIRST_PCB
+
+// Second revision with separate UART for NRF51
+#define HW75_300_REV_2
+
+//#define HW_SOURCE "hw_75_300.c"
+//#define HW_HEADER "hw_75_300.h"
+
+//#define HW_SOURCE "hw_mini4.c"
+//#define HW_HEADER "hw_mini4.h"
+
+//#define HW_SOURCE "hw_das_mini.c"
+//#define HW_HEADER "hw_das_mini.h"
+
+//#define HW_SOURCE "hw_uavc_qcube.c"
+//#define HW_HEADER "hw_uavc_qcube.h"
+
+//#define HW_SOURCE "hw_uavc_basic.c"
+//#define HW_HEADER "hw_uavc_basic.h"
+
+//#define HW_SOURCE "hw_binar_v1.c"
+//#define HW_HEADER "hw_binar_v1.h"
 #endif
+
+#ifndef HW_SOURCE
+#error "No hardware source file set"
+#endif
+
+#ifndef HW_HEADER
+#error "No hardware header file set"
+#endif
+
+#include "hw.h"
 
 /*
  * Select default user motor configuration
@@ -89,12 +141,28 @@
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-//#define APP_CUSTOM_TO_USE			"app_ellwee.c"
+//#define APP_CUSTOM_TO_USE			"app_rotary_led.c"
+//#define APPCONF_APP_TO_USE			APP_CUSTOM
+//#define MCCONF_FOC_F_SW				5000
+
+/*
+ * Enable blackmagic probe output on SWD port
+ */
+#ifndef HAS_BLACKMAGIC
+#define HAS_BLACKMAGIC				1
+#endif
 
 /*
  * Enable CAN-bus
  */
+#ifndef CAN_ENABLE
 #define CAN_ENABLE					1
+#endif
+
+#ifdef HW_HAS_NO_CAN
+#undef CAN_ENABLE
+#define CAN_ENABLE 					0
+#endif
 
 /*
  * Settings for the external LEDs (hardcoded for now)
@@ -132,9 +200,11 @@
 // Current ADC to amperes factor
 #define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
 
+#define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
+
 // Actual voltage on 3.3V net based on internal reference
 //#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
-#define V_REG						3.3
+//#define V_REG						3.3
 
 // Use the pins for the hardware SPI port instead of the hall/encoder pins for the AS5047
 #ifndef AS5047_USE_HW_SPI_PINS
@@ -159,13 +229,25 @@
  */
 #define BLDC_SPEED_CONTROL_CURRENT	1
 
+/*
+ *	Run the FOC loop once every N ADC ISR requests. This way the pwm frequency is
+ *	detached from the FOC calculation, which because it takes ~25usec it can't work
+ *	at >40khz. To set a 100kHz pwm FOC_CONTROL_LOOP_FREQ_DIVIDER can be set at 3
+ *	so it skips 2 ISR calls and execute the control loop in the 3rd call.
+ */
+#ifndef FOC_CONTROL_LOOP_FREQ_DIVIDER
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+#endif
+
 // Global configuration variables
 extern bool conf_general_permanent_nrf_found;
 
 // Functions
 void conf_general_init(void);
-void conf_general_get_default_app_configuration(app_configuration *conf);
-void conf_general_get_default_mc_configuration(mc_configuration *conf);
+bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);
@@ -174,5 +256,14 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
 		float min_erpm, float res, float *linkage);
+uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq);
+bool conf_general_measure_flux_linkage_openloop(float current, float duty,
+		float erpm_per_sec, float res, float *linkage);
+int conf_general_autodetect_apply_sensors_foc(float current,
+		bool store_mcconf_on_success, bool send_mcconf_on_success);
+int conf_general_detect_apply_all_foc(float max_power_loss,
+		bool store_mcconf_on_success, bool send_mcconf_on_success);
+int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
+		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
 
 #endif /* CONF_GENERAL_H_ */

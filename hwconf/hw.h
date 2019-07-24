@@ -1,12 +1,14 @@
 /*
-	Copyright 2012-2017 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012 - 2019 Benjamin Vedder	benjamin@vedder.se
 
-	This program is free software: you can redistribute it and/or modify
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The VESC firmware is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -15,53 +17,336 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-/*
- * hw.h
- *
- *  Created on: 12 apr 2014
- *      Author: benjamin
- */
-
 #ifndef HW_H_
 #define HW_H_
 
 #include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
-#ifdef HW_VERSION_40
-#include "hw_40.h"
-#elif defined HW_VERSION_45
-#include "hw_45.h"
-#elif defined HW_VERSION_46
-#include "hw_46.h"
-#elif defined HW_VERSION_48
-#include "hw_48.h"
-#elif defined HW_VERSION_49
-#include "hw_49.h"
-#elif defined HW_VERSION_410
-#include "hw_410.h"
-#elif defined HW_VERSION_60
-#include "hw_60.h"
-#elif defined HW_VERSION_R2
-#include "hw_r2.h"
-#elif defined HW_VERSION_VICTOR_R1A
-#include "hw_victor_r1a.h"
-#elif defined HW_VERSION_DAS_RS
-#include "hw_das_rs.h"
-#elif defined HW_VERSION_PALTA
-#include "hw_palta.h"
-#elif defined HW_VERSION_RH
-#include "hw_rh.h"
-#elif defined HW_VERSION_TP
-#include "hw_tp.h"
-#elif defined HW_VERSION_75_300
-#include "hw_75_300.h"
-#elif defined HW_VERSION_MINI4
-#include "hw_mini4.h"
-#elif defined HW_VERSION_DAS_MINI
-#include "hw_das_mini.h"
+#include HW_HEADER
+
+#ifndef HW_NAME
+#error "No hardware name set"
+#endif
+
+// Possible HW properties.
+
+/*
+ * #define HW_HAS_DRV8301
+ *
+ * Use the DRV8301 driver
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8301_MOSI_GPIO	GPIOC
+ * #define DRV8301_MOSI_PIN		12
+ * #define DRV8301_MISO_GPIO	GPIOC
+ * #define DRV8301_MISO_PIN		11
+ * #define DRV8301_SCK_GPIO		GPIOC
+ * #define DRV8301_SCK_PIN		10
+ * #define DRV8301_CS_GPIO		GPIOC
+ * #define DRV8301_CS_PIN		9
+ *
+ * Requires running
+ * drv8301_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8313
+ *
+ * Use the DRV8313 driver. Changes how the
+ * output is switched off and runs an early init hook.
+ */
+
+/*
+ * #define HW_HAS_DRV8305
+ *
+ * Use the DRV8305 gate driver. Note that support
+ * for this driver is incomplete.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8305_MOSI_GPIO		GPIOC
+ * #define DRV8305_MOSI_PIN			12
+ * #define DRV8305_MISO_GPIO		GPIOC
+ * #define DRV8305_MISO_PIN			11
+ * #define DRV8305_SCK_GPIO			GPIOC
+ * #define DRV8305_SCK_PIN			10
+ * #define DRV8305_CS_GPIO			GPIOD
+ * #define DRV8305_CS_PIN			8
+ *
+ * Requires running
+ * drv8305_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8320S
+ *
+ * Use the DRV8320S driver.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8320S_MOSI_GPIO		GPIOC
+ * #define DRV8320S_MOSI_PIN		12
+ * #define DRV8320S_MISO_GPIO		GPIOC
+ * #define DRV8320S_MISO_PIN		11
+ * #define DRV8320S_SCK_GPIO		GPIOC
+ * #define DRV8320S_SCK_PIN			10
+ * #define DRV8320S_CS_GPIO			GPIOC
+ * #define DRV8320S_CS_PIN			9
+ *
+ * Requires running
+ * drv8320s_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_HAS_DRV8323S
+ *
+ * Use the DRV8323S driver.
+ *
+ * Requires defining SPI pins for the driver:
+ *
+ * #define DRV8323S_MOSI_GPIO		GPIOC
+ * #define DRV8323S_MOSI_PIN		12
+ * #define DRV8323S_MISO_GPIO		GPIOB
+ * #define DRV8323S_MISO_PIN		4
+ * #define DRV8323S_SCK_GPIO		GPIOB
+ * #define DRV8323S_SCK_PIN			3
+ * #define DRV8323S_CS_GPIO			GPIOC
+ * #define DRV8323S_CS_PIN			9
+ *
+ * Requires running
+ * drv8323s_init();
+ * at the end of void hw_init_gpio(void)
+ */
+
+/*
+ * #define HW_USE_INTERNAL_RC
+ *
+ * Use the internal RC clock instead of an external crystal.
+ */
+
+/*
+ * define HW_HAS_3_SHUNTS
+ *
+ * The hardware has 3 current sensors.
+ */
+
+/*
+ * #define HW_HAS_PHASE_SHUNTS
+ *
+ * The current sensors are in line with the motor phases,
+ * which allows sampling in V0 and V7, and some extra filtering.
+ */
+
+/*
+ * #define HW_HAS_NO_CAN
+ *
+ * The hardware is missing CAN-bus.
+ */
+
+/*
+ * Define these to enable MPU9150 or MPU9250 support
+ * on these pins.
+ *
+ * #define MPU9X50_SDA_GPIO		GPIOB
+ * #define MPU9X50_SDA_PIN		7
+ * #define MPU9X50_SCL_GPIO		GPIOB
+ * #define MPU9X50_SCL_PIN		6
+ *
+ * This will flip the axes of the IMU around the horizontal plane
+ * #define MPU9x50_FLIP
+ */
+
+/*
+ * #define HW_HAS_PERMANENT_NRF
+ *
+ * The hardware has a permanently mounted NRF24. Also requires defining its pins:
+ * #define NRF_PORT_CSN			GPIOB
+ * #define NRF_PIN_CSN			12
+ * #define NRF_PORT_SCK			GPIOB
+ * #define NRF_PIN_SCK			4
+ * #define NRF_PORT_MOSI		GPIOB
+ * #define NRF_PIN_MOSI			3
+ * #define NRF_PORT_MISO		GPIOD
+ * #define NRF_PIN_MISO			2
+ *
+ * If the NRF is not detected during initialization, the pins will be remapped
+ * to the COMM port if the NRF app is used. A hook to run if initialization fails
+ * can also be defined:
+ *
+ * #define HW_PERMANENT_NRF_FAILED_HOOK()
+ */
+
+// Default macros in case there is no hardware support or no need to change them.
+
+#ifndef ENABLE_GATE
+#define ENABLE_GATE()
+#endif
+#ifndef DISABLE_GATE
+#define DISABLE_GATE()
+#endif
+#ifndef DCCAL_ON
+#define DCCAL_ON()
+#endif
+#ifndef DCCAL_OFF
+#define DCCAL_OFF()
+#endif
+#ifndef IS_DRV_FAULT
+#define IS_DRV_FAULT()			0
+#endif
+
+#ifndef AUX_ON
+#define AUX_ON()
+#endif
+#ifndef AUX_OFF
+#define AUX_OFF()
+#endif
+
+#ifndef PHASE_FILTER_ON
+#define PHASE_FILTER_ON()
+#endif
+#ifndef PHASE_FILTER_OFF
+#define PHASE_FILTER_OFF()
+#endif
+
+#ifndef CURRENT_FILTER_ON
+#define CURRENT_FILTER_ON()
+#endif
+#ifndef CURRENT_FILTER_OFF
+#define CURRENT_FILTER_OFF()
+#endif
+
+// VCC net voltage
+#ifndef V_REG
+#define V_REG				3.3
+#endif
+
+// Individual MOSFET temperature sensors. Override if available.
+#ifndef NTC_TEMP_MOS1
+#define NTC_TEMP_MOS1()		0.0
+#endif
+#ifndef NTC_TEMP_MOS2
+#define NTC_TEMP_MOS2()		0.0
+#endif
+#ifndef NTC_TEMP_MOS3
+#define NTC_TEMP_MOS3()		0.0
+#endif
+
+// Sin/Cos Encoder Signals. Override if available
+#ifndef ENCODER_SIN_VOLTS
+#define ENCODER_SIN_VOLTS()		0.0
+#endif
+#ifndef ENCODER_COS_VOLTS
+#define ENCODER_COS_VOLTS()		0.0
+#endif
+
+// Current ADC macros. Override them for custom current measurement functions.
+#ifndef GET_CURRENT1
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT1()		(4095 - ADC_Value[ADC_IND_CURR1])
 #else
-#error "No hardware version defined"
+#define GET_CURRENT1()		ADC_Value[ADC_IND_CURR1]
+#endif
+#endif
+#ifndef GET_CURRENT2
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT2()		(4095 - ADC_Value[ADC_IND_CURR2])
+#else
+#define GET_CURRENT2()		ADC_Value[ADC_IND_CURR2]
+#endif
+#endif
+#ifndef GET_CURRENT3
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT3()		(4095 - ADC_Value[ADC_IND_CURR3])
+#else
+#define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
+#endif
+#endif
+#ifndef HW_MAX_CURRENT_OFFSET
+#define HW_MAX_CURRENT_OFFSET 				620
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE
+#define MCCONF_MAX_CURRENT_UNBALANCE		(FAC_CURRENT * 512)
+#endif
+#ifndef MCCONF_MAX_CURRENT_UNBALANCE_RATE
+#define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3
+#endif
+
+
+// NRF SW SPI (default to spi header pins)
+#ifndef NRF_PORT_CSN
+#define NRF_PORT_CSN			HW_SPI_PORT_NSS
+#endif
+#ifndef NRF_PIN_CSN
+#define NRF_PIN_CSN				HW_SPI_PIN_NSS
+#endif
+#ifndef NRF_PORT_SCK
+#define NRF_PORT_SCK			HW_SPI_PORT_SCK
+#endif
+#ifndef NRF_PIN_SCK
+#define NRF_PIN_SCK				HW_SPI_PIN_SCK
+#endif
+#ifndef NRF_PORT_MOSI
+#define NRF_PORT_MOSI			HW_SPI_PORT_MOSI
+#endif
+#ifndef NRF_PIN_MOSI
+#define NRF_PIN_MOSI			HW_SPI_PIN_MOSI
+#endif
+#ifndef NRF_PORT_MISO
+#define NRF_PORT_MISO			HW_SPI_PORT_MISO
+#endif
+#ifndef NRF_PIN_MISO
+#define NRF_PIN_MISO			HW_SPI_PIN_MISO
+#endif
+
+// CAN device and port (default CAN1)
+#ifndef HW_CANH_PORT
+#define HW_CANH_PORT			GPIOB
+#endif
+#ifndef HW_CANH_PIN
+#define HW_CANH_PIN				8
+#endif
+#ifndef HW_CANL_PORT
+#define HW_CANL_PORT			GPIOB
+#endif
+#ifndef HW_CANL_PIN
+#define HW_CANL_PIN				9
+#endif
+#ifndef HW_CAN_GPIO_AF
+#define HW_CAN_GPIO_AF			GPIO_AF_CAN1
+#endif
+#ifndef HW_CAN_DEV
+#define HW_CAN_DEV				CAND1
+#endif
+
+// Hook to call when trying to initialize the permanent NRF failed. Can be
+// used to e.g. reconfigure pins.
+#ifndef HW_PERMANENT_NRF_FAILED_HOOK
+#define HW_PERMANENT_NRF_FAILED_HOOK()
+#endif
+
+// Default ID
+#ifndef HW_DEFAULT_ID
+#define HW_DEFAULT_ID			(APPCONF_CONTROLLER_ID >= 0 ? APPCONF_CONTROLLER_ID : hw_id_from_uuid())
+#endif
+
+#ifndef HW_LIM_CURRENT
+#define HW_LIM_CURRENT			-100.0, 100.0
+#endif
+#ifndef HW_LIM_CURRENT_ABS
+#define HW_LIM_CURRENT_ABS		0.0, 140.0
+#endif
+
+#ifndef HW_LIM_FOC_CTRL_LOOP_FREQ
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	3000.0, 30000.0
+#endif
+
+#ifndef HW_FOC_CURRENT_FILTER_LIM
+#define HW_FOC_CURRENT_FILTER_LIM	0.05, 1.0
 #endif
 
 // Functions
@@ -70,5 +355,6 @@ void hw_setup_adc_channels(void);
 void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
+uint8_t hw_id_from_uuid(void);
 
 #endif /* HW_H_ */

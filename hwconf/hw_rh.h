@@ -24,6 +24,7 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_DRV8305
+#define HW_USE_INTERNAL_RC
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOG, 6)
@@ -113,11 +114,8 @@
 #define CURR2_DOUBLE_SAMPLE		0
 #endif
 
-// Number of servo outputs
-#define HW_SERVO_NUM			2
-
 // UART Peripheral
-#define HW_UART_DEV				UARTD6
+#define HW_UART_DEV				SD6
 #define HW_UART_GPIO_AF			GPIO_AF_USART6
 #define HW_UART_TX_PORT			GPIOC
 #define HW_UART_TX_PIN			6
@@ -125,6 +123,7 @@
 #define HW_UART_RX_PIN			7
 
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -158,16 +157,6 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
-
-// NRF pins
-#define NRF_PORT_CSN			GPIOA
-#define NRF_PIN_CSN				4
-#define NRF_PORT_SCK			GPIOA
-#define NRF_PIN_SCK				5
-#define NRF_PORT_MOSI			GPIOA
-#define NRF_PIN_MOSI			7
-#define NRF_PORT_MISO			GPIOA
-#define NRF_PIN_MISO			6
 
 // SPI pins
 #define HW_SPI_DEV				SPID1

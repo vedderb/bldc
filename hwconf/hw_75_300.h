@@ -20,51 +20,79 @@
 #ifndef HW_75_300_H_
 #define HW_75_300_H_
 
+#ifdef HW75_300_REV_2
+#define HW_NAME					"75_300_R2"
+#else
 #define HW_NAME					"75_300"
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 
 // Macros
-#define ENABLE_GATE()
-#define DISABLE_GATE()
-#define DCCAL_ON()
-#define DCCAL_OFF()
-#define IS_DRV_FAULT()			0
+#ifdef HW75_300_VEDDER_FIRST_PCB
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			0
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				1
+#else
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			5
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				7
+#endif
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
+#define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#define PHASE_FILTER_ON()		palSetPad(GPIOC, 11)
-#define PHASE_FILTER_OFF()		palClearPad(GPIOB, 11)
+#ifdef HW75_300_REV_2
+#define PHASE_FILTER_GPIO		GPIOC
+#define PHASE_FILTER_PIN		9
+#else
+#define PHASE_FILTER_GPIO		GPIOC
+#define PHASE_FILTER_PIN		11
+#endif
+#define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+
+#define AUX_GPIO				GPIOC
+#define AUX_PIN					12
+#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
+#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
+
+#define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
+#define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
- * 6:	IN5		ADC_EXT1
- * 7:	IN6		ADC_EXT2
- * 8:	IN3		TEMP_PCB
- * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
- * 11:	IN13	AN_IN
- * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
+ * 0  (1):	IN0		SENS1
+ * 1  (2):	IN1		SENS2
+ * 2  (3):	IN2		SENS3
+ * 3  (1):	IN10	CURR1
+ * 4  (2):	IN11	CURR2
+ * 5  (3):	IN12	CURR3
+ * 6  (1):	IN5		ADC_EXT1
+ * 7  (2):	IN6		ADC_EXT2
+ * 8  (3):	IN3		TEMP_MOS
+ * 9  (1):	IN14	TEMP_MOTOR
+ * 10 (2):	IN15	ADC_EXT3
+ * 11 (3):	IN13	AN_IN
+ * 12 (1):	Vrefint
+ * 13 (2):	IN0		SENS1
+ * 14 (3):	IN1		SENS2
+ * 15 (1):  IN8		TEMP_MOS_2
+ * 16 (2):  IN9		TEMP_MOS_3
+ * 17 (3):  IN3		SENS3
  */
 
-#define HW_ADC_CHANNELS			15
+#define HW_ADC_CHANNELS			18
 #define HW_ADC_INJ_CHANNELS		3
-#define HW_ADC_NBR_CONV			5
+#define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
 #define ADC_IND_SENS1			0
@@ -76,7 +104,15 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
+#ifdef HW75_300_VEDDER_FIRST_PCB
 #define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOS_2		8
+#define ADC_IND_TEMP_MOS_3		8
+#else
+#define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOS_2		15
+#define ADC_IND_TEMP_MOS_3		16
+#endif
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -84,7 +120,7 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.3
+#define V_REG					3.44
 #endif
 #ifndef VIN_R1
 #define VIN_R1					56000.0
@@ -104,10 +140,21 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind)		hw75_300_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR(beta)	(-20)//(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+
+#ifdef HW75_300_VEDDER_FIRST_PCB
+#define NTC_TEMP_MOTOR(beta)	(-20)
+#else
+#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#endif
+
+#ifndef HW75_300_VEDDER_FIRST_PCB
+#define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#endif
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -125,14 +172,26 @@
 #endif
 
 // UART Peripheral
-#define HW_UART_DEV				UARTD3
+#define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
+#ifdef HW75_300_REV_2
+// Permanent UART Peripheral (for NRF51)
+#define HW_UART_P_BAUD			115200
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+#define HW_UART_P_TX_PORT		GPIOC
+#define HW_UART_P_TX_PIN		10
+#define HW_UART_P_RX_PORT		GPIOC
+#define HW_UART_P_RX_PIN		11
+#endif
+
 // ICU Peripheral for servo decoding
+#define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
@@ -167,16 +226,6 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-// NRF pins
-#define NRF_PORT_CSN			GPIOA
-#define NRF_PIN_CSN				4
-#define NRF_PORT_SCK			GPIOA
-#define NRF_PIN_SCK				5
-#define NRF_PORT_MOSI			GPIOA
-#define NRF_PIN_MOSI			7
-#define NRF_PORT_MISO			GPIOA
-#define NRF_PIN_MISO			6
-
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
@@ -201,7 +250,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_VALUE		110
+#define HW_DEAD_TIME_NSEC		660.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MAX_VOLTAGE
@@ -214,20 +263,29 @@
 #define MCCONF_FOC_F_SW					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		420.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7			true	// Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MAX
+#define MCCONF_L_IN_CURRENT_MAX			250.0	// Input current limit in Amperes (Upper)
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MIN
+#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
 #endif
 
 // Setting limits
 #define HW_LIM_CURRENT			-300.0, 300.0
 #define HW_LIM_CURRENT_IN		-300.0, 300.0
-#define HW_LIM_CURRENT_ABS		0.0, 420.0
+#define HW_LIM_CURRENT_ABS		0.0, 450.0
 #define HW_LIM_VIN				6.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+
+// HW-specific functions
+float hw75_300_get_temp(void);
 
 #endif /* HW_75_300_H_ */

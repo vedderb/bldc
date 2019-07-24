@@ -59,7 +59,7 @@
 #ifdef __cplusplus
  extern "C" {
 #endif /* __cplusplus */
-   
+
 /** @addtogroup Library_configuration_section
   * @{
   */
@@ -124,6 +124,29 @@
 	!defined(STM32F401xE) && !defined(STM32F411xE)
 #define STM32F407xx
 #endif
+
+#if defined(STM32F439xx) || defined(STM32F429xx)
+#define STM32F429_439xx
+
+#elif defined(STM32F437xx) || defined(STM32F427xx)
+#define STM32F427_437xx
+
+#elif defined(STM32F405xx) || defined(STM32F415xx) ||                       \
+      defined(STM32F407xx) || defined(STM32F417xx)
+#define STM32F40_41xxx
+
+#elif defined(STM32F401xC) || defined(STM32F401xE)
+#define STM32F401xx
+
+#elif defined(STM32F411xE)
+#define STM32F411xx
+
+#elif defined(STM32F2XX)
+
+#else
+#error "STM32F2xx/F4xx device not specified"
+#endif
+
 
 #if defined(STM32F405xx)
   #include "stm32f405xx.h"
@@ -209,6 +232,32 @@ typedef enum
 #if defined (USE_HAL_DRIVER)
  #include "stm32f4xx_hal.h"
 #endif /* USE_HAL_DRIVER */
+
+
+/* Uncomment the line below to expanse the "assert_param" macro in the
+   Standard Peripheral Library drivers code */
+//#define USE_FULL_ASSERT    1
+
+/* Exported macro ------------------------------------------------------------*/
+#ifdef  USE_FULL_ASSERT
+
+/**
+  * @brief  The assert_param macro is used for function's parameters check.
+  * @param  expr: If expr is false, it calls assert_failed function
+  *   which reports the name of the source file and the source
+  *   line number of the call that failed.
+  *   If expr is true, it returns no value.
+  * @retval None
+  */
+  #define assert_param(expr) ((expr) ? (void)0 : assert_failed((uint8_t *)__FILE__, __LINE__))
+/* Exported functions ------------------------------------------------------- */
+  void assert_failed(uint8_t* file, uint32_t line);
+#else
+  #ifndef assert_param
+    #define assert_param(expr) ((void)0)
+  #endif
+#endif /* USE_FULL_ASSERT */
+
 
 #ifdef __cplusplus
 }

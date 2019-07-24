@@ -23,7 +23,6 @@
  */
 
 #include "hw.h"
-#ifdef HW_VERSION_45
 
 #include "ch.h"
 #include "hal.h"
@@ -32,7 +31,8 @@
 
 // Threads
 THD_FUNCTION(temp_thread, arg);
-static THD_WORKING_AREA(temp_thread_wa, 1024);
+static THD_WORKING_AREA(temp_thread_wa, 512);
+static bool temp_thread_running = false;
 
 // Variables
 static volatile bool i2c_running = false;
@@ -144,7 +144,10 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_6, 2, ADC_SampleTime_15Cycles);
 
 	// Setup i2c temperature sensor here
-	chThdCreateStatic(temp_thread_wa, sizeof(temp_thread_wa), NORMALPRIO, temp_thread, NULL);
+	if (!temp_thread_running) {
+		chThdCreateStatic(temp_thread_wa, sizeof(temp_thread_wa), NORMALPRIO, temp_thread, NULL);
+		temp_thread_running = true;
+	}
 }
 
 void hw_start_i2c(void) {
@@ -280,5 +283,3 @@ THD_FUNCTION(temp_thread, arg) {
 float hw45_get_temp(void) {
 	return temp_now;
 }
-
-#endif

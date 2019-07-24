@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -51,6 +51,7 @@ static volatile bool stop_now = true;
 static volatile ppm_config config;
 static volatile int pulses_without_power = 0;
 static float input_val = 0.0;
+static volatile float direction_hyst = 0;
 
 // Private functions
 static void update(void *p);
@@ -64,6 +65,8 @@ void app_ppm_configure(ppm_config *conf) {
 	if (is_running) {
 		servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	}
+
+	direction_hyst = config.max_erpm_for_dir * 0.20;
 #else
 	(void)conf;
 #endif
@@ -167,6 +170,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 			break;
 		}
 
+		// All pins and buttons are still decoded for debugging, even
+		// when output is disabled.
+		if (app_is_output_disabled()) {
+			continue;
+		}
+
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec() ||
 				mc_interface_get_fault() != FAULT_CODE_NONE) {
 			pulses_without_power = 0;
@@ -182,7 +191,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float servo_val_ramp = 0.0;
-		const float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+		float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (fabsf(servo_val) > 0.001) {
+			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -195,8 +208,81 @@ static THD_FUNCTION(ppm_thread, arg) {
 		bool current_mode = false;
 		bool current_mode_brake = false;
 		bool send_current = false;
+		bool send_duty = false;
+		static bool force_brake = true;
+		static int8_t did_idle_once = 0;
+		float rpm_local = mc_interface_get_rpm();
+		float rpm_lowest = rpm_local;
 
 		switch (config.ctrl_type) {
+		case PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST:
+			current_mode = true;
+
+			// Hysteresis 20 % of actual RPM
+			if (force_brake) {
+				if (rpm_local < config.max_erpm_for_dir - direction_hyst) { // for 2500 it's 2000
+					force_brake = false;
+					did_idle_once = 0;
+				}
+			} else {
+				if (rpm_local > config.max_erpm_for_dir + direction_hyst) { // for 2500 it's 3000
+					force_brake = true;
+					did_idle_once = 0;
+				}
+			}
+
+			if (servo_val >= 0.0) {
+				if (servo_val == 0.0) {
+					// if there was a idle in between then allow going backwards
+					if (did_idle_once == 1 && !force_brake) {
+						did_idle_once = 2;
+					}
+				} else{
+					// accelerated forward or fast enough at least
+					if (rpm_local > -config.max_erpm_for_dir){ // for 2500 it's -2500
+						did_idle_once = 0;
+					}
+				}
+
+				current = servo_val * mcconf->lo_current_motor_max_now;
+			} else {
+				// too fast
+				if (force_brake){
+					current_mode_brake = true;
+				} else{
+					// not too fast backwards
+					if (rpm_local > -config.max_erpm_for_dir) { // for 2500 it's -2500
+						// first time that we brake and we are not too fast
+						if (did_idle_once != 2) {
+							did_idle_once = 1;
+							current_mode_brake = true;
+						}
+					// too fast backwards
+					} else {
+						// if brake was active already
+						if (did_idle_once == 1) {
+							current_mode_brake = true;
+						} else {
+							// it's ok to go backwards now braking would be strange now
+							did_idle_once = 2;
+						}
+					}
+				}
+
+				if (current_mode_brake) {
+					// braking
+					current = fabsf(servo_val * mcconf->lo_current_motor_min_now);
+				} else {
+					// reverse acceleration
+					current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
+				}
+			}
+
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
+
+			break;
 		case PPM_CTRL_TYPE_CURRENT:
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 			current_mode = true;
@@ -233,7 +319,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
 				mc_interface_set_duty(utils_map(servo_val, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
-				send_current = true;
+				send_duty = true;
 			}
 			break;
 
@@ -264,8 +350,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		// Find lowest RPM
-		float rpm_local = mc_interface_get_rpm();
-		float rpm_lowest = rpm_local;
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
@@ -280,14 +364,19 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 		}
 
-		if (send_current && config.multi_esc) {
-			float current = mc_interface_get_tot_current_directional_filtered();
+		if ((send_current || send_duty) && config.multi_esc) {
+			float current_filtered = mc_interface_get_tot_current_directional_filtered();
+			float duty = mc_interface_get_duty_cycle_now();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current(msg->id, current);
+					if (send_current) {
+						comm_can_set_current(msg->id, current_filtered);
+					} else if (send_duty) {
+						comm_can_set_duty(msg->id, duty);
+					}
 				}
 			}
 		}

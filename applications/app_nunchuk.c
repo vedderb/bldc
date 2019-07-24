@@ -33,7 +33,7 @@
 #include "terminal.h"
 
 // Settings
-#define OUTPUT_ITERATION_TIME_MS		1
+#define OUTPUT_ITERATION_TIME_MS		5
 #define MAX_CAN_AGE						0.1
 #define RPM_FILTER_SAMPLES				8
 #define LOCAL_TIMEOUT					2000
@@ -181,6 +181,8 @@ static THD_FUNCTION(chuk_thread, arg) {
 				chuck_d_tmp.acc_z = (rxbuf[4] << 2) | ((rxbuf[5] >> 6) & 3);
 				chuck_d_tmp.bt_z = !((rxbuf[5] >> 0) & 1);
 				chuck_d_tmp.bt_c = !((rxbuf[5] >> 1) & 1);
+				chuck_d_tmp.rev_has_state = false;
+				chuck_d_tmp.is_rev = false;
 
 				app_nunchuk_update_output(&chuck_d_tmp);
 			}
@@ -203,16 +205,28 @@ static THD_FUNCTION(output_thread, arg) {
 
 	chRegSetThreadName("Nunchuk output");
 
+	bool was_pid = false;
+
 	for(;;) {
 		chThdSleepMilliseconds(OUTPUT_ITERATION_TIME_MS);
 
+		static float rpm_filtered = 0.0;
+		UTILS_LP_FAST(rpm_filtered, mc_interface_get_rpm(), 0.5);
+
 		if (timeout_has_timeout() || chuck_error != 0 || config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
+			was_pid = false;
 			continue;
 		}
 
 		// Local timeout to prevent this thread from causing problems after not
 		// being used for a while.
 		if (chVTTimeElapsedSinceX(last_update_time) > MS2ST(LOCAL_TIMEOUT)) {
+			was_pid = false;
+			continue;
+		}
+
+		if (app_is_output_disabled()) {
+			was_pid = false;
 			continue;
 		}
 
@@ -221,20 +235,28 @@ static THD_FUNCTION(output_thread, arg) {
 		static bool was_z = false;
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
 		static float prev_current = 0.0;
-		const float max_current_diff = mcconf->l_current_max * 0.2;
+		const float max_current_diff = mcconf->l_current_max * mcconf->l_current_max_scale * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
 			led_external_set_state(LED_EXT_BATT);
+			was_pid = false;
 			continue;
 		}
 
-		if (chuck_d.bt_z && !was_z && config.ctrl_type == CHUK_CTRL_TYPE_CURRENT &&
-				fabsf(current_now) < max_current_diff) {
-			if (is_reverse) {
-				is_reverse = false;
-			} else {
-				is_reverse = true;
+		if (fabsf(current_now) < max_current_diff) {
+			if (chuck_d.rev_has_state) {
+				is_reverse = chuck_d.is_rev;
+			} else if (chuck_d.bt_z && !was_z) {
+				if (is_reverse) {
+					is_reverse = false;
+				} else {
+					is_reverse = true;
+				}
 			}
+		}
+
+		if (config.ctrl_type == CHUK_CTRL_TYPE_CURRENT_NOREV) {
+			is_reverse = false;
 		}
 
 		was_z = chuck_d.bt_z;
@@ -265,23 +287,6 @@ static THD_FUNCTION(output_thread, arg) {
 			}
 		}
 
-		// If c is pressed and no throttle is used, maintain the current speed with PID control
-		static bool was_pid = false;
-
-		// Filter RPM to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
-
-		float rpm_filtered = 0.0;
-		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-			rpm_filtered += filter_buffer[i];
-		}
-		rpm_filtered /= RPM_FILTER_SAMPLES;
-
 		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;
 
@@ -304,7 +309,7 @@ static THD_FUNCTION(output_thread, arg) {
 						pid_rpm = 0.0;
 					}
 
-					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
 					if (pid_rpm < (rpm_filtered - config.stick_erpm_per_s_in_cc)) {
 						pid_rpm = rpm_filtered - config.stick_erpm_per_s_in_cc;
@@ -314,7 +319,7 @@ static THD_FUNCTION(output_thread, arg) {
 						pid_rpm = 0.0;
 					}
 
-					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) / ((float)OUTPUT_ITERATION_TIME_MS * 1000.0);
+					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
 					if (pid_rpm > (rpm_filtered + config.stick_erpm_per_s_in_cc)) {
 						pid_rpm = rpm_filtered + config.stick_erpm_per_s_in_cc;
@@ -391,8 +396,13 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// Apply ramping
-		const float current_range = mcconf->l_current_max + fabsf(mcconf->l_current_min);
-		const float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
+		const float current_range = mcconf->l_current_max * mcconf->l_current_max_scale +
+				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
+		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (fabsf(out_val) > 0.001) {
+			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);

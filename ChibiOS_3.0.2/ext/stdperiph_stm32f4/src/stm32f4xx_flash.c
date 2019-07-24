@@ -83,12 +83,6 @@
 #define FLASH_OPTCR_BFB2                    ((uint32_t)0x00000010)
 #endif
 
-#ifndef assert_param
-#define assert_param(expr) ((void)0)
-#endif
-
-#define STM32F40_41xxx
-
 /** @addtogroup STM32F4xx_StdPeriph_Driver
   * @{
   */

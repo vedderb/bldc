@@ -71,11 +71,30 @@ and
 
 * If you write function comments, write them Doxygen-style.
 
-* There is no limit on line length, so long lines in general should not be wrapped.
+* Line lengths should be kept below 90 characters if possible, but that is not a strict requirement if braking the line looks ugly.
+
+* Source files should end with a new line.
+
+* Avoid more than one conscutive empty line.
+
 
 === Make sure that all hardware versions and configuration variations work ===
 
 When making updates it is easy to break things for different configurations. In order to make sure that the firmware at least builds for different hardwares and configurations it is a good idea to run the build_all/rebuild_all script and ensure that is finished without warnings and/or errors.
+
+
+=== Other guidelines ===
+
+* Use single precition floating point operations, as the FPU in the STM32F4 is 32 bits only. Double precision operations can take up to 50 times (!) longer.
+ - float instead if double
+ - Use the math library functions ending with f (sinf, cosf, powf, fabsf etc.)
+
+* Make sure that the code compiles without warnings.
+
+* Avoid dynamic memory allocation if possible, so that the RAM usage is known at compile time.
+
+* If the code crashed randomly, use the ChibiOS state checker:
+http://www.chibios.org/dokuwiki/doku.php?id=chibios:articles:state_checker
 
 
 === Be patient, and don't take criticism personally ===
@@ -85,4 +104,3 @@ Be prepared to have to rework your contribution several times before it is consi
 
 
 Thanks for reading!
-

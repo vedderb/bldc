@@ -32,15 +32,14 @@
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static THD_WORKING_AREA(serial_read_thread_wa, 512);
+static THD_WORKING_AREA(serial_read_thread_wa, 256);
 static THD_WORKING_AREA(serial_process_thread_wa, 4096);
 static mutex_t send_mutex;
 static thread_t *process_tp;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
-static void send_packet(unsigned char *buffer, unsigned int len);
-static void send_packet_wrapper(unsigned char *data, unsigned int len);
+static void send_packet_raw(unsigned char *buffer, unsigned int len);
 
 static THD_FUNCTION(serial_read_thread, arg) {
 	(void)arg;
@@ -48,14 +47,12 @@ static THD_FUNCTION(serial_read_thread, arg) {
 	chRegSetThreadName("USB-Serial read");
 
 	uint8_t buffer[128];
-	int i;
-	int len;
 	int had_data = 0;
 
 	for(;;) {
-		len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
+		int len = chSequentialStreamRead(&SDU1, (uint8_t*) buffer, 1);
 
-		for (i = 0;i < len;i++) {
+		for (int i = 0;i < len;i++) {
 			serial_rx_buffer[serial_rx_write_pos++] = buffer[i];
 
 			if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
@@ -93,27 +90,26 @@ static THD_FUNCTION(serial_process_thread, arg) {
 }
 
 static void process_packet(unsigned char *data, unsigned int len) {
-	commands_set_send_func(send_packet_wrapper);
-	commands_process_packet(data, len);
+	commands_process_packet(data, len, comm_usb_send_packet);
 }
 
-static void send_packet_wrapper(unsigned char *data, unsigned int len) {
-	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, PACKET_HANDLER);
-	chMtxUnlock(&send_mutex);
-}
-
-static void send_packet(unsigned char *buffer, unsigned int len) {
+static void send_packet_raw(unsigned char *buffer, unsigned int len) {
 	chSequentialStreamWrite(&SDU1, buffer, len);
 }
 
 void comm_usb_init(void) {
 	comm_usb_serial_init();
-	packet_init(send_packet, process_packet, PACKET_HANDLER);
+	packet_init(send_packet_raw, process_packet, PACKET_HANDLER);
 
 	chMtxObjectInit(&send_mutex);
 
 	// Threads
 	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
+}
+
+void comm_usb_send_packet(unsigned char *data, unsigned int len) {
+	chMtxLock(&send_mutex);
+	packet_send_packet(data, len, PACKET_HANDLER);
+	chMtxUnlock(&send_mutex);
 }
