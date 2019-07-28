@@ -54,9 +54,15 @@ void app_nunchuk_configure(chuk_config *conf);
 float app_nunchuk_get_decoded_chuk(void);
 void app_nunchuk_update_output(chuck_data *data);
 
+void app_balance_start(void);
+void app_balance_stop(void);
+void app_balance_configure(app_configuration *conf);
+void app_balance_terminal_rpy(int argc, const char **argv);
+
 // Custom apps
 void app_custom_start(void);
 void app_custom_stop(void);
 void app_custom_configure(app_configuration *conf);
+void app_custom_terminal_rpy(int argc, const char **argv);
 
 #endif /* APP_H_ */

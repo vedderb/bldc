@@ -317,6 +317,7 @@ typedef enum {
 	APP_ADC_UART,
 	APP_NUNCHUK,
 	APP_NRF,
+  APP_BALANCE,
 	APP_CUSTOM
 } app_use;
 
@@ -480,6 +481,18 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
+// Balance Datatypes
+typedef struct {
+	float kp;
+	float ki;
+	float kd;
+  float pitch_offset;
+  float roll_offset;
+	float pitch_fault;
+	float roll_fault;
+	uint8_t start_delay;
+} balance_config;
+
 // CAN status modes
 typedef enum {
 	CAN_STATUS_DISABLED = 0,
@@ -521,6 +534,9 @@ typedef struct {
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
+
+  // Balance application settings
+  balance_config app_balance_conf;
 } app_configuration;
 
 // Communication commands

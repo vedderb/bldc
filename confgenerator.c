@@ -644,4 +644,12 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_nrf_conf.address[1] = APPCONF_NRF_ADDR_B1;
 	conf->app_nrf_conf.address[2] = APPCONF_NRF_ADDR_B2;
 	conf->app_nrf_conf.send_crc_ack = APPCONF_NRF_SEND_CRC_ACK;
+	conf->app_balance_conf.kp = APPCONF_BALANCE_KP;
+	conf->app_balance_conf.ki = APPCONF_BALANCE_KI;
+	conf->app_balance_conf.kd = APPCONF_BALANCE_KD;
+	conf->app_balance_conf.pitch_offset = APPCONF_BALANCE_PITCH_OFFSET;
+	conf->app_balance_conf.roll_offset = APPCONF_BALANCE_ROLL_OFFSET;
+	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
+	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
+	conf->app_balance_conf.start_delay = APPCONF_BALANCE_START_DELAY;
 }

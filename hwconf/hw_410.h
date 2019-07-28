@@ -132,6 +132,13 @@
 #define HW_I2C_SDA_PORT			GPIOB
 #define HW_I2C_SDA_PIN			11
 
+// MPU9250
+#define MPU9X50_SDA_GPIO		GPIOB
+#define MPU9X50_SDA_PIN			11
+#define MPU9X50_SCL_GPIO		GPIOB
+#define MPU9X50_SCL_PIN			10
+#define IMU_FLIP
+
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOB
 #define HW_HALL_ENC_PIN1		6
