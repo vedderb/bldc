@@ -337,7 +337,8 @@ typedef enum {
 	PPM_CTRL_TYPE_DUTY,
 	PPM_CTRL_TYPE_DUTY_NOREV,
 	PPM_CTRL_TYPE_PID,
-	PPM_CTRL_TYPE_PID_NOREV
+	PPM_CTRL_TYPE_PID_NOREV,
+	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
 } ppm_control_type;
 
 typedef struct {
@@ -357,6 +358,7 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
+	float max_erpm_for_dir;
 } ppm_config;
 
 // ADC control types
@@ -499,7 +501,8 @@ typedef enum {
 	CAN_STATUS_1,
 	CAN_STATUS_1_2,
 	CAN_STATUS_1_2_3,
-	CAN_STATUS_1_2_3_4
+	CAN_STATUS_1_2_3_4,
+	CAN_STATUS_1_2_3_4_5
 } CAN_STATUS_MODE;
 
 typedef struct {
@@ -642,7 +645,8 @@ typedef enum {
 	CAN_PACKET_CONF_CURRENT_LIMITS_IN,
 	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN,
 	CAN_PACKET_CONF_FOC_ERPMS,
-	CAN_PACKET_CONF_STORE_FOC_ERPMS
+	CAN_PACKET_CONF_STORE_FOC_ERPMS,
+	CAN_PACKET_STATUS_5
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -718,6 +722,13 @@ typedef struct {
 	float current_in;
 	float pid_pos_now;
 } can_status_msg_4;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	int32_t tacho_value;
+} can_status_msg_5;
 
 typedef struct {
 	uint8_t js_x;

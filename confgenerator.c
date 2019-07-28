@@ -172,6 +172,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->app_ppm_conf.multi_esc;
 	buffer[ind++] = conf->app_ppm_conf.tc;
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.tc_max_diff, &ind);
+	buffer_append_float32_auto(buffer, conf->app_ppm_conf.max_erpm_for_dir, &ind);
 	buffer[ind++] = conf->app_adc_conf.ctrl_type;
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.hyst, &ind);
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.voltage_start, &ind);
@@ -394,6 +395,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_ppm_conf.multi_esc = buffer[ind++];
 	conf->app_ppm_conf.tc = buffer[ind++];
 	conf->app_ppm_conf.tc_max_diff = buffer_get_float32_auto(buffer, &ind);
+	conf->app_ppm_conf.max_erpm_for_dir = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.ctrl_type = buffer[ind++];
 	conf->app_adc_conf.hyst = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.voltage_start = buffer_get_float32_auto(buffer, &ind);
@@ -600,6 +602,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_ppm_conf.multi_esc = APPCONF_PPM_MULTI_ESC;
 	conf->app_ppm_conf.tc = APPCONF_PPM_TC;
 	conf->app_ppm_conf.tc_max_diff = APPCONF_PPM_TC_MAX_DIFF;
+	conf->app_ppm_conf.max_erpm_for_dir = APPCONF_PPM_MAX_ERPM_FOR_DIR;
 	conf->app_adc_conf.ctrl_type = APPCONF_ADC_CTRL_TYPE;
 	conf->app_adc_conf.hyst = APPCONF_ADC_HYST;
 	conf->app_adc_conf.voltage_start = APPCONF_ADC_VOLTAGE_START;

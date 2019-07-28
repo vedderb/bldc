@@ -25,7 +25,7 @@
 
 #define HW_NAME					"AXIOM"
 
-#define HW_AXIOM_USE_DAC
+//#define HW_AXIOM_USE_DAC
 //#define HW_AXIOM_USE_MOTOR_TEMP
 #define HW_USE_LINE_TO_LINE
 #define	HW_AXIOM_FORCE_HIGH_CURRENT_MEASUREMENTS
@@ -57,26 +57,29 @@
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
- * 6:	IN8		ADC_EXT2
- * 7:	IN0		SENS1
- * 8:	IN3		TEMP_PCB
- * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT1
- * 11:	IN13	AN_IN
- * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
+ * 0  (1):	IN0		SENS1
+ * 1  (2):	IN1		SENS2
+ * 2  (3):	IN2		SENS3
+ * 3  (1):	IN10	CURR1
+ * 4  (2):	IN11	CURR2
+ * 5  (3):	IN12	CURR3
+ * 6  (1):  IN8		ADC_IND_EXT2
+ * 7  (2):	IN6		TEMP_IGBT_2
+ * 8  (3):	IN3		TEMP_PCB
+ * 9  (1):	IN14	TEMP_MOTOR
+ * 10 (2):	IN15	ADC_IND_EXT
+ * 11 (3):	IN13	AN_IN
+ * 12 (1):	IN9		V_GATE_DRIVER
+ * 13 (2):	IN4		TEMP_IGBT_1
+ * 14 (3)	IN3		UNUSED
+ * 15 (1):	IN5		TEMP_IGBT_3
+ * 16 (2):	VREFINT	ADC_IND_VREFINT
+ * 17 (3):	VREFINT	UNUSED
  */
 
-#define HW_ADC_CHANNELS					15
+#define HW_ADC_CHANNELS					18
 #define HW_ADC_INJ_CHANNELS				3
-#define HW_ADC_NBR_CONV					5
+#define HW_ADC_NBR_CONV					6
 
 // ADC Indexes
 #define ADC_IND_SENS1					0
@@ -89,20 +92,27 @@
 #define ADC_IND_VOUT_GATE_DRV			12
 #define ADC_IND_EXT						10
 #define ADC_IND_EXT2					6
-#define ADC_IND_TEMP_MOS				8
+#define ADC_IND_TEMP_PCB				8
 #define ADC_IND_TEMP_MOTOR				9
+#define ADC_IND_TEMP_IGBT_1				13
+#define ADC_IND_TEMP_IGBT_2				7
+#define ADC_IND_TEMP_IGBT_3				15
+#define ADC_IND_VREFINT					16
+
+// When reading switch temperature, return the center IGBT temp
+// because it will be the hotter one.
+#define ADC_IND_TEMP_MOS				ADC_IND_TEMP_IGBT_2
 
 // ADC macros and settings
 
 #ifdef HW_PALTA_REV_B
 #define HVDC_TRANSFER_FUNCTION			112.15			//[V/V]
-#define PHASE_TRANSFER_FUNCTION			112.15			//[V/V]
+#define PHASE_VOLTAGE_TRANSFER_FUNCTION	112.15			//[V/V]
 #else
 #define HVDC_TRANSFER_FUNCTION			185.0			//[V/V]
 #define PHASE_VOLTAGE_TRANSFER_FUNCTION	185.0			//[V/V]
 #endif
 #define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
-
 
 // Component parameters (can be overridden)
 #ifndef V_REG
@@ -133,9 +143,23 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)				((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)				(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES_IGBT(adc_val)			((4095.0 * 5000.0) / adc_val - 5000.0)
+#define NTC_TEMP(adc_ind)				hw_axiom_get_highest_IGBT_temp()
+//#define NTC_TEMP(adc_ind)				(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)			((4095.0 * 10000.0) / adc_val - 10000.0)
+
+// If DAC enabled, only IGBT_TEMP_3 is available
+#ifdef HW_AXIOM_USE_DAC
+#define NTC_TEMP_MOS1()			(25.0)
+#define NTC_TEMP_MOS2()			(25.0)
+#define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#else
+// Individual IGBT Temperature sensing
+#define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_1]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_2]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#endif
 
 #ifdef HW_AXIOM_USE_MOTOR_TEMP
 #define NTC_TEMP_MOTOR(beta)			(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -258,7 +282,6 @@
 #define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	16.0
 #define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	14.0
 
-
 // Default setting overrides
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -290,5 +313,6 @@ char hw_axiom_configure_FPGA(void);
 void hw_axiom_DAC1_setdata(uint16_t data);
 void hw_axiom_DAC2_setdata(uint16_t data);
 float hw_axiom_get_current_sensor_gain(void);
+float hw_axiom_get_highest_IGBT_temp(void);
 
 #endif /* HW_AXIOM_H_ */

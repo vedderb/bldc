@@ -302,7 +302,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (mask & ((uint32_t)1 << 13)) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		}
-		if (mask && ((uint32_t)1 << 14)) {
+		if (mask & ((uint32_t)1 << 14)) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		}
 		if (mask & ((uint32_t)1 << 15)) {

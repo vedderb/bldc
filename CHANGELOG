@@ -1,3 +1,14 @@
+=== FW 3.58 ===
+* Set motor to FOC mode after successful FOC detection instead of the default type for the hardware.
+* APP_ADC: Do not send brake command over CAN if config.multi_esc is not set.
+* APP_PPM: Make pulses invalid if they are above 150 % instead of 120 %.
+* Introduced a new control mode that allows reverse with hysteria (@ackmaniac port)
+
+=== FW 3.57 ===
+* Added CAN status message 5 with input voltage and tachometer data.
+* Fix github issue #94.
+* Use default F_SW for HW after autodetect FOC.
+
 === FW 3.56 ===
 * Fixed current offset fault bug in non-FOC mode.
 * Multiple IMU support.
@@ -89,7 +100,7 @@
 * Softer encoder detection.
 * Better NRF_EXT support.
 * New more reliable flux linkage measurement.
-* Simpler to add hardware versions to build system. 
+* Simpler to add hardware versions to build system.
 * More DAS hardware support.
 * DRV8323s support.
 * Initial UAVCAN support.
