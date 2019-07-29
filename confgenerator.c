@@ -217,6 +217,14 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->app_nrf_conf.address[1];
 	buffer[ind++] = (uint8_t)conf->app_nrf_conf.address[2];
 	buffer[ind++] = conf->app_nrf_conf.send_crc_ack;
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.kp, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_offset, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_offset, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
+	buffer[ind++] = (uint8_t)conf->app_balance_conf.start_delay;
 
 	return ind;
 }
@@ -440,6 +448,14 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_nrf_conf.address[1] = buffer[ind++];
 	conf->app_nrf_conf.address[2] = buffer[ind++];
 	conf->app_nrf_conf.send_crc_ack = buffer[ind++];
+	conf->app_balance_conf.kp = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.ki = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.kd = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.pitch_offset = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.roll_offset = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.start_delay = buffer[ind++];
 
 	return true;
 }

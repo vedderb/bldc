@@ -33,32 +33,40 @@
 static THD_FUNCTION(example_thread, arg);
 static THD_WORKING_AREA(example_thread_wa, 2048); // 2kb stack for this thread
 
-// 1.45 0.78 2.85
+static volatile balance_config config;
 static thread_t *app_thread;
-static double p = 1.45, i = 0.78, d = 2.0;
-static double pitch, roll;
-static double target_pitch = 0.0;
 
 static bool registered_terminal = false;
+
+// Values used in loop
+static double pitch;
+static double error, error_average, error_change;
+static double last_error;
+static double pid_value;
+
+// Values read to pass in app data to GUI
+static double motor_current;
 
 void app_balance_terminal_rpy(int argc, const char **argv) {
   if (argc != 4){
     commands_printf("PID values NOT set!");
     return;
   }
-  float _p = 0, _i = 0, _d = 0;
-  sscanf(argv[1], "%f", &_p);
-  sscanf(argv[2], "%f", &_i);
-  sscanf(argv[2], "%f", &_d);
-
-  p = _p;
-  i = _i;
-  d = _d;
-
-	commands_printf("PID values set :) %.2f %.2f %.2f - %.2f %.2f %.2f", _p, _i, _d, p, i, d);
+  // float _p = 0, _i = 0, _d = 0;
+  // sscanf(argv[1], "%f", &_p);
+  // sscanf(argv[2], "%f", &_i);
+  // sscanf(argv[2], "%f", &_d);
+  //
+  // p = _p;
+  // i = _i;
+  // d = _d;
+  //
+	// commands_printf("PID values set :) %.2f %.2f %.2f - %.2f %.2f %.2f", _p, _i, _d, p, i, d);
 }
 
-void app_balance_configure(ppm_config *conf) {
+void app_balance_configure(balance_config *conf) {
+  config = *conf;
+
   if(!registered_terminal){
     terminal_register_command_callback("euc_pid", "Sets PID values!", 0, app_balance_terminal_rpy);
     registered_terminal = true;
@@ -72,16 +80,38 @@ void app_balance_start(void) {
   hw_stop_i2c();
   hw_start_i2c();
   imu_init();
+
+  // Reset all Values
+  pitch = 0;
+  error = 0;
+  error_average = 0;
+  error_change = 0;
+  last_error = 0;
+  pid_value = 0;
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
 }
 
 void app_balance_stop(void) {
   commands_printf("Custom app stop");
+	chThdTerminate(app_thread);
+  mc_interface_set_current(0);
   hw_stop_i2c();
   hw_start_i2c();
   imu_init();
-	chThdTerminate(app_thread);
+}
+
+float app_balance_get_pid_output(void) {
+  return pid_value;
+}
+float app_balance_get_pitch(void) {
+  return pitch;
+}
+float app_balance_get_roll(void) {
+  return config.ki;
+}
+float app_balance_get_motor_current(void) {
+  return motor_current;
 }
 
 static THD_FUNCTION(example_thread, arg) {
@@ -91,22 +121,20 @@ static THD_FUNCTION(example_thread, arg) {
 
   commands_printf("Custom app thread");
 
-  chThdSleepSeconds(10);
-
-  double error, error_average, error_change;
-  double last_error;
-  double pid_value;
+  chThdSleepSeconds(config.start_delay);
 
 
 	while (!chThdShouldTerminateX()) {
+    // Read values for GUI
+    motor_current = mc_interface_get_tot_current_directional_filtered();
 
     pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
 
-    error = target_pitch - pitch;
-    error_average = (error_average + error) / 2;
+    error = config.pitch_offset - pitch;
+    error_average = error_average + error;
     error_change = error - last_error;
 
-    pid_value = (p*error) + (i*error_average) + (d*error_change);
+    pid_value = (config.kp*error) + (config.ki*error_average) + (config.kd*error_change);
 
     last_error = error;
 
@@ -115,10 +143,8 @@ static THD_FUNCTION(example_thread, arg) {
 		// Run this loop at 1000Hz
     chThdSleepMilliseconds(5);
 
-    // commands_printf("Custom app releasing motor");
-    // mc_interface_release_motor();
-
 		// Reset the timeout
 		timeout_reset();
 	}
+  mc_interface_set_current(0);
 }

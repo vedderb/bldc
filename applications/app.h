@@ -56,7 +56,11 @@ void app_nunchuk_update_output(chuck_data *data);
 
 void app_balance_start(void);
 void app_balance_stop(void);
-void app_balance_configure(app_configuration *conf);
+void app_balance_configure(balance_config *conf);
+float app_balance_get_pid_output(void);
+float app_balance_get_pitch(void);
+float app_balance_get_roll(void);
+float app_balance_get_motor_current(void);
 void app_balance_terminal_rpy(int argc, const char **argv);
 
 // Custom apps
