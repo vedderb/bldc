@@ -39,29 +39,21 @@ static thread_t *app_thread;
 static bool registered_terminal = false;
 
 // Values used in loop
-static double pitch;
-static double error, error_average, error_change;
-static double last_error;
+static double pitch, roll;
+static double proportional, integral, derivative;
+static double last_proportional;
 static double pid_value;
+static systime_t current_time, last_time, diff_time;
 
 // Values read to pass in app data to GUI
 static double motor_current;
+static double motor_position;
 
 void app_balance_terminal_rpy(int argc, const char **argv) {
   if (argc != 4){
     commands_printf("PID values NOT set!");
     return;
   }
-  // float _p = 0, _i = 0, _d = 0;
-  // sscanf(argv[1], "%f", &_p);
-  // sscanf(argv[2], "%f", &_i);
-  // sscanf(argv[2], "%f", &_d);
-  //
-  // p = _p;
-  // i = _i;
-  // d = _d;
-  //
-	// commands_printf("PID values set :) %.2f %.2f %.2f - %.2f %.2f %.2f", _p, _i, _d, p, i, d);
 }
 
 void app_balance_configure(balance_config *conf) {
@@ -83,11 +75,16 @@ void app_balance_start(void) {
 
   // Reset all Values
   pitch = 0;
-  error = 0;
-  error_average = 0;
-  error_change = 0;
-  last_error = 0;
+  roll = 0;
+  proportional = 0;
+  integral = 0;
+  derivative = 0;
+  last_proportional = 0;
   pid_value = 0;
+  current_time = NULL;
+  last_time = NULL;
+  diff_time = NULL;
+
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
 }
@@ -108,10 +105,20 @@ float app_balance_get_pitch(void) {
   return pitch;
 }
 float app_balance_get_roll(void) {
-  return config.ki;
+  return roll;
+}
+uint32_t app_balance_get_diff_time(void) {
+  if(diff_time != NULL){
+    return ST2US(diff_time);
+  }else{
+    return 0;
+  }
 }
 float app_balance_get_motor_current(void) {
   return motor_current;
+}
+float app_balance_get_motor_position(void) {
+  return motor_position;
 }
 
 static THD_FUNCTION(example_thread, arg) {
@@ -125,23 +132,48 @@ static THD_FUNCTION(example_thread, arg) {
 
 
 	while (!chThdShouldTerminateX()) {
+    // Update times
+    current_time = chVTGetSystemTimeX();
+    if(last_time == NULL){
+      last_time = current_time;
+    }
+    diff_time = current_time - last_time;
+    last_time = current_time;
+
     // Read values for GUI
     motor_current = mc_interface_get_tot_current_directional_filtered();
+    motor_position = mc_interface_get_pid_pos_now();
 
+    // Read gyro values
     pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
+    roll = (double)(imu_get_roll() * 180.0 / M_PI);
 
-    error = config.pitch_offset - pitch;
-    error_average = error_average + error;
-    error_change = error - last_error;
+    // Apply offsets
+    pitch = fmod(((pitch + 180.0) + config.pitch_offset), 360.0) - 180.0;
+    roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
 
-    pid_value = (config.kp*error) + (config.ki*error_average) + (config.kd*error_change);
+    // Do PID maths
+    proportional = 0 - pitch;
+    integral = integral + proportional;
+    derivative = proportional - last_proportional;
 
-    last_error = error;
+    pid_value = (config.kp * proportional) + (config.ki * integral) + (config.kd * derivative);
 
-    // commands_printf("euc_pid values  %.4f %.4f - %.2f %.2f %.2f - %.2f %.2f %.2f", pitch, pid_value, p, i, d, error, error_average, error_change);
+    last_proportional = proportional;
+
+    // Try to fix wierdness
+    if(pid_value >= 0 && pid_value < 0.01){
+      pid_value = 0.01;
+    }
+    if(pid_value < 0 && pid_value > -0.01){
+      pid_value = -0.01;
+    }
+
+    // Output to motor
     mc_interface_set_current(pid_value);
-		// Run this loop at 1000Hz
-    chThdSleepMilliseconds(5);
+
+    // Delay between loops
+    chThdSleepMilliseconds(config.loop_delay);
 
 		// Reset the timeout
 		timeout_reset();
