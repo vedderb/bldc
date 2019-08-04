@@ -488,12 +488,16 @@ typedef struct {
 	float kp;
 	float ki;
 	float kd;
-  float pitch_offset;
-  float roll_offset;
+	uint8_t loop_delay;
+	float m_acd;
+	float m_b;
+	uint32_t cal_delay;
+	float cal_m_acd;
+	float cal_m_b;
+	float pitch_offset;
+	float roll_offset;
 	float pitch_fault;
 	float roll_fault;
-	uint8_t start_delay;
-  uint8_t loop_delay;
 } balance_config;
 
 // CAN status modes

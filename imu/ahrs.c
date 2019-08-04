@@ -18,11 +18,11 @@
 #include "utils.h"
 #include <math.h>
 
-// Settings
-#define TWO_KP					(2.0f * 0.3f)	// 2 * proportional gain
-#define TWO_KI					(2.0f * 0.0f)	// 2 * integral gain
-#define ACC_CONFIDENCE_DECAY	(1.0)
-#define BETA					(0.1f)			// 2 * proportional gain??
+//// Settings
+//#define TWO_KP					(2.0f * 0.3f)	// 2 * proportional gain
+//#define TWO_KI					(2.0f * 0.0f)	// 2 * integral gain
+//#define ACC_CONFIDENCE_DECAY	(1.0)
+//#define BETA					(0.1f)			// 2 * proportional gain??
 
 // Private functions
 static float invSqrt(float x);
@@ -37,7 +37,7 @@ static float calculateAccConfidence(float accMag, float *accMagP) {
 	accMag = *accMagP * 0.9f + accMag * 0.1f;
 	*accMagP = accMag;
 
-	confidence = 1.0 - (ACC_CONFIDENCE_DECAY * sqrtf(fabsf(accMag - 1.0f)));
+	confidence = 1.0 - (madgwickAccConfidenceDecay * sqrtf(fabsf(accMag - 1.0f)));
 	utils_truncate_number(&confidence, 0.0, 1.0);
 
 	return confidence;
@@ -131,8 +131,8 @@ void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt
 		float halfex, halfey, halfez;
 		float accelConfidence;
 
-		volatile float twoKp = TWO_KP;
-		volatile float twoKi = TWO_KI;
+		volatile float twoKp = mahonyKp;
+		volatile float twoKi = mahonyKi;
 
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
 		twoKp *= accelConfidence;
@@ -242,8 +242,8 @@ void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_
 		float halfex, halfey, halfez;
 		float accelConfidence;
 
-		volatile float twoKp = TWO_KP;
-		volatile float twoKi = TWO_KI;
+		volatile float twoKp = mahonyKp;
+		volatile float twoKi = mahonyKi;
 
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
 		twoKp *= accelConfidence;
@@ -405,10 +405,10 @@ void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float 
 
 		// Apply feedback step
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
-		qDot1 -= BETA * s0 * accelConfidence;
-		qDot2 -= BETA * s1 * accelConfidence;
-		qDot3 -= BETA * s2 * accelConfidence;
-		qDot4 -= BETA * s3 * accelConfidence;
+		qDot1 -= madgwickBeta * s0 * accelConfidence;
+		qDot2 -= madgwickBeta * s1 * accelConfidence;
+		qDot3 -= madgwickBeta * s2 * accelConfidence;
+		qDot4 -= madgwickBeta * s3 * accelConfidence;
 	}
 
 	// Integrate rate of change of quaternion to yield quaternion
@@ -496,10 +496,10 @@ void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUD
 
 		// Apply feedback step
 		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
-		qDot1 -= BETA * s0 * accelConfidence;
-		qDot2 -= BETA * s1 * accelConfidence;
-		qDot3 -= BETA * s2 * accelConfidence;
-		qDot4 -= BETA * s3 * accelConfidence;
+		qDot1 -= madgwickBeta * s0 * accelConfidence;
+		qDot2 -= madgwickBeta * s1 * accelConfidence;
+		qDot3 -= madgwickBeta * s2 * accelConfidence;
+		qDot4 -= madgwickBeta * s3 * accelConfidence;
 	}
 
 	// Integrate rate of change of quaternion to yield quaternion
@@ -558,6 +558,32 @@ void ahrs_get_roll_pitch_yaw(float *rpy, ATTITUDE_INFO *att) {
 	rpy[0] = -atan2f(q0 * q1 + q2 * q3, 0.5 - (q1 * q1 + q2 * q2));
 	rpy[1] = asinf(-2.0 * (q1 * q3 - q0 * q2));
 	rpy[2] = -atan2f(q0 * q3 + q1 * q2, 0.5 - (q2 * q2 + q3 * q3));
+}
+
+float ahrs_get_mahony_kp(){
+	return mahonyKp;
+}
+float ahrs_get_mahony_ki(){
+	return mahonyKi;
+}
+float ahrs_get_madgwick_acc_confidence_decay(){
+	return madgwickAccConfidenceDecay;
+}
+float ahrs_get_madgwick_beta(){
+	return madgwickBeta;
+}
+
+float ahrs_set_mahony_kp(float kp){
+	mahonyKp = kp;
+}
+float ahrs_set_mahony_ki(float ki){
+	mahonyKi = ki;
+}
+float ahrs_set_madgwick_acc_confidence_decay(float accConfidenceDecay){
+	madgwickAccConfidenceDecay = accConfidenceDecay;
+}
+float ahrs_set_madgwick_beta(float beta){
+	madgwickBeta = beta;
 }
 
 static float invSqrt(float x) {

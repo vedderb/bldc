@@ -26,8 +26,16 @@
 #include "timeout.h" // To reset the timeout
 #include "commands.h"
 #include "imu/imu.h"
+#include "imu/ahrs.h"
 
 #include <math.h>
+
+// Data type
+typedef enum {
+	CALIBRATING = 0,
+	RUNNING,
+	FAULT
+} BalanceState;
 
 // Example thread
 static THD_FUNCTION(example_thread, arg);
@@ -39,11 +47,12 @@ static thread_t *app_thread;
 static bool registered_terminal = false;
 
 // Values used in loop
+static BalanceState state;
 static double pitch, roll;
 static double proportional, integral, derivative;
 static double last_proportional;
 static double pid_value;
-static systime_t current_time, last_time, diff_time;
+static systime_t current_time, last_time, diff_time, cal_start_time, cal_diff_time;
 
 // Values read to pass in app data to GUI
 static double motor_current;
@@ -84,6 +93,9 @@ void app_balance_start(void) {
   current_time = NULL;
   last_time = NULL;
   diff_time = NULL;
+  cal_start_time = NULL;
+  cal_diff_time = NULL;
+  state = CALIBRATING;
 
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
@@ -123,57 +135,78 @@ float app_balance_get_motor_position(void) {
 
 static THD_FUNCTION(example_thread, arg) {
 	(void)arg;
-
 	chRegSetThreadName("APP_EXAMPLE");
-
-  commands_printf("Custom app thread");
-
-  chThdSleepSeconds(config.start_delay);
-
+	commands_printf("Custom app thread");
+//  chThdSleepSeconds(config.start_delay);
 
 	while (!chThdShouldTerminateX()) {
-    // Update times
-    current_time = chVTGetSystemTimeX();
-    if(last_time == NULL){
-      last_time = current_time;
-    }
-    diff_time = current_time - last_time;
-    last_time = current_time;
+		// Update times
+		current_time = chVTGetSystemTimeX();
+		if(last_time == NULL){
+		  last_time = current_time;
+		}
+		diff_time = current_time - last_time;
+		last_time = current_time;
 
-    // Read values for GUI
-    motor_current = mc_interface_get_tot_current_directional_filtered();
-    motor_position = mc_interface_get_pid_pos_now();
+		// Read values for GUI
+		motor_current = mc_interface_get_tot_current_directional_filtered();
+		motor_position = mc_interface_get_pid_pos_now();
 
-    // Read gyro values
-    pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
-    roll = (double)(imu_get_roll() * 180.0 / M_PI);
+		// Read gyro values
+		pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
+//		roll = (double)(imu_get_roll() * 180.0 / M_PI);
+//		roll = madgwick_beta;
+		roll = ahrs_get_madgwick_beta();
 
-    // Apply offsets
-    pitch = fmod(((pitch + 180.0) + config.pitch_offset), 360.0) - 180.0;
-    roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
+		// Apply offsets
+		pitch = fmod(((pitch + 180.0) + config.pitch_offset), 360.0) - 180.0;
+//		roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
 
-    // Do PID maths
-    proportional = 0 - pitch;
-    integral = integral + proportional;
-    derivative = proportional - last_proportional;
+		// State based logic
+		switch(state){
+			case (CALIBRATING):
+				if(cal_start_time == NULL){
+					cal_start_time = current_time;
+					ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
+					ahrs_set_madgwick_beta(config.cal_m_b);
+				}
+				cal_diff_time = current_time - cal_start_time;
+				if(ST2MS(cal_diff_time) > config.cal_delay){
+					state = RUNNING;
+					cal_start_time = NULL;
+					cal_diff_time = NULL;
 
-    pid_value = (config.kp * proportional) + (config.ki * integral) + (config.kd * derivative);
+					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
+					ahrs_set_madgwick_beta(config.m_b);
+				}
+				break;
+			case (RUNNING):
+				// Do PID maths
+				proportional = 0 - pitch;
+				integral = integral + proportional;
+				derivative = proportional - last_proportional;
 
-    last_proportional = proportional;
+				pid_value = (config.kp * proportional) + (config.ki * integral) + (config.kd * derivative);
 
-    // Try to fix wierdness
-    if(pid_value >= 0 && pid_value < 0.01){
-      pid_value = 0.01;
-    }
-    if(pid_value < 0 && pid_value > -0.01){
-      pid_value = -0.01;
-    }
+				last_proportional = proportional;
 
-    // Output to motor
-    mc_interface_set_current(pid_value);
+				// Try to fix wierdness
+				if(pid_value >= 0 && pid_value < 0.01){
+				  pid_value = 0.01;
+				}
+				if(pid_value < 0 && pid_value > -0.01){
+				  pid_value = -0.01;
+				}
 
-    // Delay between loops
-    chThdSleepMilliseconds(config.loop_delay);
+				// Output to motor
+				mc_interface_set_current(pid_value);
+				break;
+			case (FAULT):
+				break;
+		}
+
+		// Delay between loops
+		chThdSleepMilliseconds(config.loop_delay);
 
 		// Reset the timeout
 		timeout_reset();

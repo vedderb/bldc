@@ -220,12 +220,16 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.kp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd, &ind);
+	buffer[ind++] = (uint8_t)conf->app_balance_conf.loop_delay;
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.m_acd, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.m_b, &ind);
+	buffer_append_uint32(buffer, conf->app_balance_conf.cal_delay, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.cal_m_acd, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.cal_m_b, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
-	buffer[ind++] = (uint8_t)conf->app_balance_conf.start_delay;
-	buffer[ind++] = (uint8_t)conf->app_balance_conf.loop_delay;
 
 	return ind;
 }
@@ -452,12 +456,16 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.kp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.ki = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.loop_delay = buffer[ind++];
+	conf->app_balance_conf.m_acd = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.m_b = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.cal_delay = buffer_get_uint32(buffer, &ind);
+	conf->app_balance_conf.cal_m_acd = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.cal_m_b = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.pitch_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.start_delay = buffer[ind++];
-	conf->app_balance_conf.loop_delay = buffer[ind++];
 
 	return true;
 }
@@ -668,10 +676,14 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.kp = APPCONF_BALANCE_KP;
 	conf->app_balance_conf.ki = APPCONF_BALANCE_KI;
 	conf->app_balance_conf.kd = APPCONF_BALANCE_KD;
+	conf->app_balance_conf.loop_delay = APPCONF_BALANCE_LOOP_DELAY;
+	conf->app_balance_conf.m_acd = APPCONF_BALANCE_M_ACD;
+	conf->app_balance_conf.m_b = APPCONF_BALANCE_M_B;
+	conf->app_balance_conf.cal_delay = APPCONF_BALANCE_CAL_DELAY;
+	conf->app_balance_conf.cal_m_acd = APPCONF_BALANCE_CAL_M_ACD;
+	conf->app_balance_conf.cal_m_b = APPCONF_BALANCE_CAL_M_B;
 	conf->app_balance_conf.pitch_offset = APPCONF_BALANCE_PITCH_OFFSET;
 	conf->app_balance_conf.roll_offset = APPCONF_BALANCE_ROLL_OFFSET;
 	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
 	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
-	conf->app_balance_conf.start_delay = APPCONF_BALANCE_START_DELAY;
-	conf->app_balance_conf.loop_delay = APPCONF_BALANCE_LOOP_DELAY;
 }
