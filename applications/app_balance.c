@@ -37,6 +37,11 @@ typedef enum {
 	FAULT
 } BalanceState;
 
+typedef enum {
+	SLOW = 40,
+	FAST = 5
+} SetpointAdjustmentSpeed;
+
 // Example thread
 static THD_FUNCTION(example_thread, arg);
 static THD_WORKING_AREA(example_thread_wa, 2048); // 2kb stack for this thread
@@ -52,7 +57,11 @@ static double pitch, roll;
 static double proportional, integral, derivative;
 static double last_proportional;
 static double pid_value;
-static systime_t current_time, last_time, diff_time, cal_start_time, cal_diff_time;
+static double setpoint, setpoint_target;
+static SetpointAdjustmentSpeed setpointAdjustmentSpeed;
+static systime_t current_time, last_time, diff_time;
+static systime_t cal_start_time, cal_diff_time;
+static systime_t last_setpoint_step_time;
 
 // Values read to pass in app data to GUI
 static double motor_current;
@@ -83,6 +92,7 @@ void app_balance_start(void) {
   imu_init();
 
   // Reset all Values
+  state = CALIBRATING;
   pitch = 0;
   roll = 0;
   proportional = 0;
@@ -90,12 +100,15 @@ void app_balance_start(void) {
   derivative = 0;
   last_proportional = 0;
   pid_value = 0;
+  setpoint = 0;
+  setpoint_target = 0;
+  setpointAdjustmentSpeed = SLOW;
   current_time = NULL;
   last_time = NULL;
   diff_time = NULL;
   cal_start_time = NULL;
   cal_diff_time = NULL;
-  state = CALIBRATING;
+  last_setpoint_step_time = NULL;
 
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
@@ -150,17 +163,16 @@ static THD_FUNCTION(example_thread, arg) {
 
 		// Read values for GUI
 		motor_current = mc_interface_get_tot_current_directional_filtered();
+//		motor_current = mc_interface_get_duty_cycle_now();
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Read gyro values
 		pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
-//		roll = (double)(imu_get_roll() * 180.0 / M_PI);
-//		roll = madgwick_beta;
-		roll = ahrs_get_madgwick_beta();
+		roll = (double)(imu_get_roll() * 180.0 / M_PI);
 
 		// Apply offsets
 		pitch = fmod(((pitch + 180.0) + config.pitch_offset), 360.0) - 180.0;
-//		roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
+		roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
 
 		// State based logic
 		switch(state){
@@ -172,7 +184,7 @@ static THD_FUNCTION(example_thread, arg) {
 				}
 				cal_diff_time = current_time - cal_start_time;
 				if(ST2MS(cal_diff_time) > config.cal_delay){
-					state = RUNNING;
+					state = FAULT;
 					cal_start_time = NULL;
 					cal_diff_time = NULL;
 
@@ -181,8 +193,44 @@ static THD_FUNCTION(example_thread, arg) {
 				}
 				break;
 			case (RUNNING):
+				// Check for fault
+				if(pitch > config.pitch_fault || pitch < -config.pitch_fault || roll > config.roll_fault || roll < -config.roll_fault){
+					state = FAULT;
+				}
+
+				// Over speed tilt back safety
+				if(mc_interface_get_duty_cycle_now() > .75){
+					setpoint_target = 15;
+					setpointAdjustmentSpeed = SLOW;
+				} else if(mc_interface_get_duty_cycle_now() < -.75){
+					setpoint_target = -15;
+					setpointAdjustmentSpeed = SLOW;
+				}else{
+					setpoint_target = 0;
+				}
+
+				// Adjust setpoint
+				if(setpoint != setpoint_target){
+					// If it is time to take a step
+					if(last_setpoint_step_time == NULL || ST2MS(current_time - last_setpoint_step_time) > setpointAdjustmentSpeed){
+						// If we are less than one step size away, go all the way
+						if(fabs(setpoint_target - setpoint) < 0.2){
+							setpoint = setpoint_target;
+						}else if (setpoint_target - setpoint > 0){
+							setpoint += 0.2;
+						}else{
+							setpoint -= 0.2;
+						}
+
+						// Update step time
+						last_setpoint_step_time = current_time;
+
+
+					}
+				}
+
 				// Do PID maths
-				proportional = 0 - pitch;
+				proportional = setpoint - pitch;
 				integral = integral + proportional;
 				derivative = proportional - last_proportional;
 
@@ -190,26 +238,31 @@ static THD_FUNCTION(example_thread, arg) {
 
 				last_proportional = proportional;
 
-				// Try to fix wierdness
-				if(pid_value >= 0 && pid_value < 0.01){
-				  pid_value = 0.01;
-				}
-				if(pid_value < 0 && pid_value > -0.01){
-				  pid_value = -0.01;
-				}
+				// Reset the timeout
+				timeout_reset();
 
 				// Output to motor
 				mc_interface_set_current(pid_value);
 				break;
 			case (FAULT):
+				// Check for running
+				if(pitch < 30.0 && pitch > -30.0 && roll < 5.0 && roll > -5.0){
+					setpoint = pitch;
+					setpoint_target = 0;
+					setpointAdjustmentSpeed = FAST;
+					state = RUNNING;
+					break;
+				}
+
+				// Disable output
+				mc_interface_set_current(0);
 				break;
 		}
 
+
+
 		// Delay between loops
 		chThdSleepMilliseconds(config.loop_delay);
-
-		// Reset the timeout
-		timeout_reset();
 	}
   mc_interface_set_current(0);
 }
