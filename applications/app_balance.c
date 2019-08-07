@@ -27,6 +27,8 @@
 #include "commands.h"
 #include "imu/imu.h"
 #include "imu/ahrs.h"
+#include "utils.h"
+
 
 #include <math.h>
 
@@ -34,13 +36,14 @@
 typedef enum {
 	CALIBRATING = 0,
 	RUNNING,
-	FAULT
+	FAULT,
+	DEAD
 } BalanceState;
 
 typedef enum {
-	SLOW = 40,
-	FAST = 5
-} SetpointAdjustmentSpeed;
+	STARTUP = 0,
+	TILTBACK
+} SetpointAdjustmentType;
 
 // Example thread
 static THD_FUNCTION(example_thread, arg);
@@ -49,8 +52,6 @@ static THD_WORKING_AREA(example_thread_wa, 2048); // 2kb stack for this thread
 static volatile balance_config config;
 static thread_t *app_thread;
 
-static bool registered_terminal = false;
-
 // Values used in loop
 static BalanceState state;
 static double pitch, roll;
@@ -58,99 +59,108 @@ static double proportional, integral, derivative;
 static double last_proportional;
 static double pid_value;
 static double setpoint, setpoint_target;
-static SetpointAdjustmentSpeed setpointAdjustmentSpeed;
+static SetpointAdjustmentType setpointAdjustmentType;
+static double startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
 static systime_t cal_start_time, cal_diff_time;
-static systime_t last_setpoint_step_time;
 
 // Values read to pass in app data to GUI
 static double motor_current;
 static double motor_position;
 
-void app_balance_terminal_rpy(int argc, const char **argv) {
-  if (argc != 4){
-    commands_printf("PID values NOT set!");
-    return;
-  }
-}
-
 void app_balance_configure(balance_config *conf) {
-  config = *conf;
-
-  if(!registered_terminal){
-    terminal_register_command_callback("euc_pid", "Sets PID values!", 0, app_balance_terminal_rpy);
-    registered_terminal = true;
-  }
+	config = *conf;
 }
 
 void app_balance_start(void) {
-	// Set the UART TX pin as an input with pulldown
-	// palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLDOWN);
-  commands_printf("Custom app start");
-  hw_stop_i2c();
-  hw_start_i2c();
-  imu_init();
 
-  // Reset all Values
-  state = CALIBRATING;
-  pitch = 0;
-  roll = 0;
-  proportional = 0;
-  integral = 0;
-  derivative = 0;
-  last_proportional = 0;
-  pid_value = 0;
-  setpoint = 0;
-  setpoint_target = 0;
-  setpointAdjustmentSpeed = SLOW;
-  current_time = NULL;
-  last_time = NULL;
-  diff_time = NULL;
-  cal_start_time = NULL;
-  cal_diff_time = NULL;
-  last_setpoint_step_time = NULL;
+	// Reset IMU
+	hw_stop_i2c();
+	hw_start_i2c();
+	imu_init();
+
+	// Reset all Values
+	state = CALIBRATING;
+	pitch = 0;
+	roll = 0;
+	proportional = 0;
+	integral = 0;
+	derivative = 0;
+	last_proportional = 0;
+	pid_value = 0;
+	setpoint = 0;
+	setpoint_target = 0;
+	setpointAdjustmentType = STARTUP;
+	startup_step_size = (config.startup_speed / 1000) * config.loop_delay;
+	tiltback_step_size = (config.tiltback_speed / 1000) * config.loop_delay;
+	current_time = NULL;
+	last_time = NULL;
+	diff_time = NULL;
+	cal_start_time = NULL;
+	cal_diff_time = NULL;
 
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
 }
 
 void app_balance_stop(void) {
-  commands_printf("Custom app stop");
 	chThdTerminate(app_thread);
-  mc_interface_set_current(0);
-  hw_stop_i2c();
-  hw_start_i2c();
-  imu_init();
+	mc_interface_set_current(0);
+	hw_stop_i2c();
+	hw_start_i2c();
+	imu_init();
 }
 
 float app_balance_get_pid_output(void) {
-  return pid_value;
+	return pid_value;
 }
 float app_balance_get_pitch(void) {
-  return pitch;
+	return pitch;
 }
 float app_balance_get_roll(void) {
-  return roll;
+	return roll;
 }
 uint32_t app_balance_get_diff_time(void) {
-  if(diff_time != NULL){
-    return ST2US(diff_time);
-  }else{
-    return 0;
-  }
+	if(diff_time != NULL){
+		return ST2US(diff_time);
+	}else{
+		return 0;
+	}
 }
 float app_balance_get_motor_current(void) {
-  return motor_current;
+	return motor_current;
 }
 float app_balance_get_motor_position(void) {
-  return motor_position;
+	return motor_position;
+}
+
+double get_setpoint_adjustment_step_size(){
+	switch(setpointAdjustmentType){
+		case (STARTUP):
+			return startup_step_size;
+		case (TILTBACK):
+			return tiltback_step_size;
+	}
+	return 0;
+}
+
+double apply_deadzone(double error){
+	if(config.deadzone == 0){
+		return error;
+	}
+
+	if(error < config.deadzone && error > -config.deadzone){
+		return 0;
+	} else if(error > config.deadzone){
+		return error - config.deadzone;
+	} else {
+		return error + config.deadzone;
+	}
 }
 
 static THD_FUNCTION(example_thread, arg) {
 	(void)arg;
-	chRegSetThreadName("APP_EXAMPLE");
-	commands_printf("Custom app thread");
-//  chThdSleepSeconds(config.start_delay);
+	chRegSetThreadName("APP_BALANCE");
 
 	while (!chThdShouldTerminateX()) {
 		// Update times
@@ -163,7 +173,6 @@ static THD_FUNCTION(example_thread, arg) {
 
 		// Read values for GUI
 		motor_current = mc_interface_get_tot_current_directional_filtered();
-//		motor_current = mc_interface_get_duty_cycle_now();
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Read gyro values
@@ -183,60 +192,72 @@ static THD_FUNCTION(example_thread, arg) {
 					ahrs_set_madgwick_beta(config.cal_m_b);
 				}
 				cal_diff_time = current_time - cal_start_time;
+
+				// Calibration is done
 				if(ST2MS(cal_diff_time) > config.cal_delay){
+
+					// Set gyro config to be running config
+					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
+					ahrs_set_madgwick_beta(config.m_b);
+
+					// Set fault and wait for valid startup condition
 					state = FAULT;
 					cal_start_time = NULL;
 					cal_diff_time = NULL;
-
-					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
-					ahrs_set_madgwick_beta(config.m_b);
 				}
 				break;
 			case (RUNNING):
+				// Check for overspeed
+				if(mc_interface_get_duty_cycle_now() > config.overspeed_duty || mc_interface_get_duty_cycle_now() < -config.overspeed_duty){
+					state = DEAD;
+				}
+
 				// Check for fault
 				if(pitch > config.pitch_fault || pitch < -config.pitch_fault || roll > config.roll_fault || roll < -config.roll_fault){
 					state = FAULT;
 				}
 
 				// Over speed tilt back safety
-				if(mc_interface_get_duty_cycle_now() > .75){
-					setpoint_target = 15;
-					setpointAdjustmentSpeed = SLOW;
-				} else if(mc_interface_get_duty_cycle_now() < -.75){
-					setpoint_target = -15;
-					setpointAdjustmentSpeed = SLOW;
+				if(mc_interface_get_duty_cycle_now() > config.tiltback_duty){
+					setpoint_target = config.tiltback_angle;
+					setpointAdjustmentType = TILTBACK;
+				} else if(mc_interface_get_duty_cycle_now() < -config.tiltback_duty){
+					setpoint_target = -config.tiltback_angle;
+					setpointAdjustmentType = TILTBACK;
 				}else{
 					setpoint_target = 0;
 				}
 
 				// Adjust setpoint
 				if(setpoint != setpoint_target){
-					// If it is time to take a step
-					if(last_setpoint_step_time == NULL || ST2MS(current_time - last_setpoint_step_time) > setpointAdjustmentSpeed){
-						// If we are less than one step size away, go all the way
-						if(fabs(setpoint_target - setpoint) < 0.2){
-							setpoint = setpoint_target;
-						}else if (setpoint_target - setpoint > 0){
-							setpoint += 0.2;
-						}else{
-							setpoint -= 0.2;
-						}
-
-						// Update step time
-						last_setpoint_step_time = current_time;
-
-
+					// If we are less than one step size away, go all the way
+					if(fabs(setpoint_target - setpoint) < get_setpoint_adjustment_step_size){
+						setpoint = setpoint_target;
+					}else if (setpoint_target - setpoint > 0){
+						setpoint += get_setpoint_adjustment_step_size;
+					}else{
+						setpoint -= get_setpoint_adjustment_step_size;
 					}
 				}
 
 				// Do PID maths
 				proportional = setpoint - pitch;
+				// Apply deadzone
+				proportional = apply_deadzone(proportional);
+				// Resume real PID maths
 				integral = integral + proportional;
 				derivative = proportional - last_proportional;
 
 				pid_value = (config.kp * proportional) + (config.ki * integral) + (config.kd * derivative);
 
 				last_proportional = proportional;
+
+				// Apply current boost
+				if(pid_value > 0){
+					pid_value += config.current_boost;
+				}else if(pid_value < 0){
+					pid_value -= config.current_boost;
+				}
 
 				// Reset the timeout
 				timeout_reset();
@@ -245,11 +266,11 @@ static THD_FUNCTION(example_thread, arg) {
 				mc_interface_set_current(pid_value);
 				break;
 			case (FAULT):
-				// Check for running
-				if(pitch < 30.0 && pitch > -30.0 && roll < 5.0 && roll > -5.0){
+				// Check for valid startup position
+				if(pitch < config.startup_pitch && pitch > -config.startup_pitch && roll < config.startup_roll && roll > -config.startup_roll){
 					setpoint = pitch;
 					setpoint_target = 0;
-					setpointAdjustmentSpeed = FAST;
+					setpointAdjustmentType = STARTUP;
 					state = RUNNING;
 					break;
 				}
@@ -257,12 +278,16 @@ static THD_FUNCTION(example_thread, arg) {
 				// Disable output
 				mc_interface_set_current(0);
 				break;
+			case (DEAD):
+				// Disable output
+				mc_interface_set_current(0);
+				break;
 		}
-
-
 
 		// Delay between loops
 		chThdSleepMilliseconds(config.loop_delay);
 	}
-  mc_interface_set_current(0);
+
+	// Disable output
+	mc_interface_set_current(0);
 }

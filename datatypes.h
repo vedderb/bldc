@@ -498,6 +498,15 @@ typedef struct {
 	float roll_offset;
 	float pitch_fault;
 	float roll_fault;
+	float overspeed_duty;
+	float tiltback_duty;
+	float tiltback_angle;
+	float tiltback_speed;
+	float startup_pitch;
+	float startup_roll;
+	float startup_speed;
+	float deadzone;
+	float current_boost;
 } balance_config;
 
 // CAN status modes
