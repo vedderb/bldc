@@ -230,6 +230,15 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.overspeed_duty, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_duty, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_angle, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_speed, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_pitch, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_roll, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_speed, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.deadzone, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.current_boost, &ind);
 
 	return ind;
 }
@@ -466,6 +475,15 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.roll_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.overspeed_duty = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_duty = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_angle = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_speed = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.startup_pitch = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.startup_roll = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.deadzone = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.current_boost = buffer_get_float32_auto(buffer, &ind);
 
 	return true;
 }
@@ -686,4 +704,13 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.roll_offset = APPCONF_BALANCE_ROLL_OFFSET;
 	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
 	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
+	conf->app_balance_conf.overspeed_duty = APPCONF_BALANCE_OVERSPEED_DUTY;
+	conf->app_balance_conf.tiltback_duty = APPCONF_BALANCE_TILTBACK_DUTY;
+	conf->app_balance_conf.tiltback_angle = APPCONF_BALANCE_TILTBACK_ANGLE;
+	conf->app_balance_conf.tiltback_speed = APPCONF_BALANCE_TILTBACK_SPEED;
+	conf->app_balance_conf.startup_pitch = APPCONF_BALANCE_STARTUP_PITCH;
+	conf->app_balance_conf.startup_roll = APPCONF_BALANCE_STARTUP_ROLL;
+	conf->app_balance_conf.startup_speed = APPCONF_BALANCE_STARTUP_SPEED;
+	conf->app_balance_conf.deadzone = APPCONF_BALANCE_DEADZONE;
+	conf->app_balance_conf.current_boost = APPCONF_BALANCE_CURRENT_BOOST;
 }

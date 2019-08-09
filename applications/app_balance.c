@@ -91,8 +91,8 @@ void app_balance_start(void) {
 	setpoint = 0;
 	setpoint_target = 0;
 	setpointAdjustmentType = STARTUP;
-	startup_step_size = (config.startup_speed / 1000) * config.loop_delay;
-	tiltback_step_size = (config.tiltback_speed / 1000) * config.loop_delay;
+	startup_step_size = 0;
+	tiltback_step_size = 0;
 	current_time = NULL;
 	last_time = NULL;
 	diff_time = NULL;
@@ -161,6 +161,13 @@ double apply_deadzone(double error){
 static THD_FUNCTION(example_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("APP_BALANCE");
+
+	// Do one off config
+	startup_step_size = (config.startup_speed / 1000) * config.loop_delay;
+	tiltback_step_size = (config.tiltback_speed / 1000) * config.loop_delay;
+
+	state = CALIBRATING;
+	setpointAdjustmentType = STARTUP;
 
 	while (!chThdShouldTerminateX()) {
 		// Update times
@@ -231,12 +238,12 @@ static THD_FUNCTION(example_thread, arg) {
 				// Adjust setpoint
 				if(setpoint != setpoint_target){
 					// If we are less than one step size away, go all the way
-					if(fabs(setpoint_target - setpoint) < get_setpoint_adjustment_step_size){
+					if(fabs(setpoint_target - setpoint) < get_setpoint_adjustment_step_size()){
 						setpoint = setpoint_target;
 					}else if (setpoint_target - setpoint > 0){
-						setpoint += get_setpoint_adjustment_step_size;
+						setpoint += get_setpoint_adjustment_step_size();
 					}else{
-						setpoint -= get_setpoint_adjustment_step_size;
+						setpoint -= get_setpoint_adjustment_step_size();
 					}
 				}
 
