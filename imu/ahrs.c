@@ -18,11 +18,11 @@
 #include "utils.h"
 #include <math.h>
 
-//// Settings
-//#define TWO_KP					(2.0f * 0.3f)	// 2 * proportional gain
-//#define TWO_KI					(2.0f * 0.0f)	// 2 * integral gain
-//#define ACC_CONFIDENCE_DECAY	(1.0)
-//#define BETA					(0.1f)			// 2 * proportional gain??
+// Settings
+static float mahonyKp = (2.0f * 0.3f);				// 2 * proportional gain
+static float mahonyKi =	(2.0f * 0.0f);			// 2 * integral gain
+static float madgwickAccConfidenceDecay = (1.0);
+static float madgwickBeta = (0.5f);				// 2 * proportional gain??
 
 // Private functions
 static float invSqrt(float x);
@@ -573,16 +573,16 @@ float ahrs_get_madgwick_beta(){
 	return madgwickBeta;
 }
 
-float ahrs_set_mahony_kp(float kp){
+void ahrs_set_mahony_kp(float kp){
 	mahonyKp = kp;
 }
-float ahrs_set_mahony_ki(float ki){
+void ahrs_set_mahony_ki(float ki){
 	mahonyKi = ki;
 }
-float ahrs_set_madgwick_acc_confidence_decay(float accConfidenceDecay){
+void ahrs_set_madgwick_acc_confidence_decay(float accConfidenceDecay){
 	madgwickAccConfidenceDecay = accConfidenceDecay;
 }
-float ahrs_set_madgwick_beta(float beta){
+void ahrs_set_madgwick_beta(float beta){
 	madgwickBeta = beta;
 }
 

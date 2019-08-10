@@ -54,19 +54,19 @@ static thread_t *app_thread;
 
 // Values used in loop
 static BalanceState state;
-static double pitch, roll;
-static double proportional, integral, derivative;
-static double last_proportional;
-static double pid_value;
-static double setpoint, setpoint_target;
+static float pitch, roll;
+static float proportional, integral, derivative;
+static float last_proportional;
+static float pid_value;
+static float setpoint, setpoint_target;
 static SetpointAdjustmentType setpointAdjustmentType;
-static double startup_step_size, tiltback_step_size;
+static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
 static systime_t cal_start_time, cal_diff_time;
 
 // Values read to pass in app data to GUI
-static double motor_current;
-static double motor_position;
+static float motor_current;
+static float motor_position;
 
 void app_balance_configure(balance_config *conf) {
 	config = *conf;
@@ -95,11 +95,11 @@ void app_balance_start(void) {
 	setpointAdjustmentType = STARTUP;
 	startup_step_size = 0;
 	tiltback_step_size = 0;
-	current_time = NULL;
-	last_time = NULL;
-	diff_time = NULL;
-	cal_start_time = NULL;
-	cal_diff_time = NULL;
+	current_time = 0;
+	last_time = 0;
+	diff_time = 0;
+	cal_start_time = 0;
+	cal_diff_time = 0;
 
 	// Start the example thread
 	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
@@ -127,11 +127,7 @@ float app_balance_get_roll(void) {
 	return roll;
 }
 uint32_t app_balance_get_diff_time(void) {
-	if(diff_time != NULL){
-		return ST2US(diff_time);
-	}else{
-		return 0;
-	}
+	return ST2US(diff_time);
 }
 float app_balance_get_motor_current(void) {
 	return motor_current;
@@ -143,7 +139,7 @@ uint16_t app_balance_get_state(void) {
 	return state;
 }
 
-double get_setpoint_adjustment_step_size(){
+float get_setpoint_adjustment_step_size(void){
 	switch(setpointAdjustmentType){
 		case (STARTUP):
 			return startup_step_size;
@@ -153,7 +149,7 @@ double get_setpoint_adjustment_step_size(){
 	return 0;
 }
 
-double apply_deadzone(double error){
+float apply_deadzone(float error){
 	if(config.deadzone == 0){
 		return error;
 	}
@@ -181,7 +177,7 @@ static THD_FUNCTION(example_thread, arg) {
 	while (!chThdShouldTerminateX()) {
 		// Update times
 		current_time = chVTGetSystemTimeX();
-		if(last_time == NULL){
+		if(last_time == 0){
 		  last_time = current_time;
 		}
 		diff_time = current_time - last_time;
@@ -192,17 +188,17 @@ static THD_FUNCTION(example_thread, arg) {
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Read gyro values
-		pitch = (double)(imu_get_pitch() * 180.0 / M_PI);
-		roll = (double)(imu_get_roll() * 180.0 / M_PI);
+		pitch = imu_get_pitch() * 180.0f / M_PI;
+		roll = imu_get_roll() * 180.0f / M_PI;
 
 		// Apply offsets
-		pitch = fmod(((pitch + 180.0) + config.pitch_offset), 360.0) - 180.0;
-		roll = fmod(((roll + 180.0) + config.roll_offset), 360.0) - 180.0;
+		pitch = fmodf(((pitch + 180.0f) + config.pitch_offset), 360.0f) - 180.0f;
+		roll = fmodf(((roll + 180.0f) + config.roll_offset), 360.0f) - 180.0f;
 
 		// State based logic
 		switch(state){
 			case (CALIBRATING):
-				if(cal_start_time == NULL){
+				if(cal_start_time == 0){
 					cal_start_time = current_time;
 					ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
 					ahrs_set_madgwick_beta(config.cal_m_b);
@@ -218,8 +214,8 @@ static THD_FUNCTION(example_thread, arg) {
 
 					// Set fault and wait for valid startup condition
 					state = FAULT;
-					cal_start_time = NULL;
-					cal_diff_time = NULL;
+					cal_start_time = 0;
+					cal_diff_time = 0;
 				}
 				break;
 			case (RUNNING):
@@ -247,7 +243,7 @@ static THD_FUNCTION(example_thread, arg) {
 				// Adjust setpoint
 				if(setpoint != setpoint_target){
 					// If we are less than one step size away, go all the way
-					if(fabs(setpoint_target - setpoint) < get_setpoint_adjustment_step_size()){
+					if(fabsf(setpoint_target - setpoint) < get_setpoint_adjustment_step_size()){
 						setpoint = setpoint_target;
 					}else if (setpoint_target - setpoint > 0){
 						setpoint += get_setpoint_adjustment_step_size();
@@ -279,7 +275,7 @@ static THD_FUNCTION(example_thread, arg) {
 				timeout_reset();
 
 				// Output to motor
-				if(fabs(pid_value) < 1){
+				if(pid_value == 0){
 					mc_interface_release_motor();
 				}else {
 					mc_interface_set_current(pid_value);
