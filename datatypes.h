@@ -496,6 +496,7 @@ typedef struct {
 	float cal_m_b;
 	float pitch_offset;
 	float roll_offset;
+	bool use_peripheral;
 	float pitch_fault;
 	float roll_fault;
 	float overspeed_duty;

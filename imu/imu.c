@@ -40,19 +40,25 @@ static ICM20948_STATE m_icm20948_state;
 static void imu_read_callback(float *accel, float *gyro, float *mag);
 static void terminal_rpy(int argc, const char **argv);
 
-void imu_init(void) {
+void imu_init(bool use_peripheral) {
 	ahrs_init_attitude_info(&m_att);
 
+	if(use_peripheral){
+		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	} else {
+
 #ifdef MPU9X50_SDA_GPIO
-	imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
+		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
 			MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
 #endif
 
 #ifdef ICM20948_SDA_GPIO
-	imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
+		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
 			ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
 #endif
 
+	}
 	terminal_register_command_callback(
 			"imu_rpy",
 			"Print 100 roll/pitch/yaw samples at 10 Hz",

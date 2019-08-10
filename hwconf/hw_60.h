@@ -218,9 +218,9 @@
 
 // MPU9250
 #define MPU9X50_SDA_GPIO		GPIOB
-#define MPU9X50_SDA_PIN			11
-#define MPU9X50_SCL_GPIO		GPIOB
-#define MPU9X50_SCL_PIN			10
+#define MPU9X50_SDA_PIN			2
+#define MPU9X50_SCL_GPIO		GPIOA
+#define MPU9X50_SCL_PIN			15
 #define IMU_FLIP
 
 // Measurement macros

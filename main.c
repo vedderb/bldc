@@ -325,7 +325,7 @@ int main(void) {
 
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
-	imu_init();
+	imu_init(false);
 
 #if HAS_BLACKMAGIC
 	bm_init();

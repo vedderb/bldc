@@ -75,9 +75,11 @@ void app_balance_configure(balance_config *conf) {
 void app_balance_start(void) {
 
 	// Reset IMU
-	hw_stop_i2c();
-	hw_start_i2c();
-	imu_init();
+	if(config.use_peripheral){
+		hw_stop_i2c();
+		hw_start_i2c();
+		imu_init(true);
+	}
 
 	// Reset all Values
 	state = CALIBRATING;
@@ -106,9 +108,13 @@ void app_balance_start(void) {
 void app_balance_stop(void) {
 	chThdTerminate(app_thread);
 	mc_interface_set_current(0);
-	hw_stop_i2c();
-	hw_start_i2c();
-	imu_init();
+
+	// Reset IMU
+	if(config.use_peripheral){
+		imu_init(false);
+		hw_stop_i2c();
+		hw_start_i2c();
+	}
 }
 
 float app_balance_get_pid_output(void) {
@@ -273,7 +279,11 @@ static THD_FUNCTION(example_thread, arg) {
 				timeout_reset();
 
 				// Output to motor
-				mc_interface_set_current(pid_value);
+				if(fabs(pid_value) < 1){
+					mc_interface_release_motor();
+				}else {
+					mc_interface_set_current(pid_value);
+				}
 				break;
 			case (FAULT):
 				// Check for valid startup position

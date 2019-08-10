@@ -228,6 +228,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.cal_m_b, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_offset, &ind);
+	buffer[ind++] = conf->app_balance_conf.use_peripheral;
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.overspeed_duty, &ind);
@@ -473,6 +474,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.cal_m_b = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.pitch_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_offset = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.use_peripheral = buffer[ind++];
 	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.overspeed_duty = buffer_get_float32_auto(buffer, &ind);
@@ -702,6 +704,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.cal_m_b = APPCONF_BALANCE_CAL_M_B;
 	conf->app_balance_conf.pitch_offset = APPCONF_BALANCE_PITCH_OFFSET;
 	conf->app_balance_conf.roll_offset = APPCONF_BALANCE_ROLL_OFFSET;
+	conf->app_balance_conf.use_peripheral = APPCONF_BALANCE_USE_PERIPHERAL;
 	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
 	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
 	conf->app_balance_conf.overspeed_duty = APPCONF_BALANCE_OVERSPEED_DUTY;
