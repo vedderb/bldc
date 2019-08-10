@@ -133,6 +133,9 @@ float app_balance_get_motor_current(void) {
 float app_balance_get_motor_position(void) {
 	return motor_position;
 }
+uint16_t app_balance_get_state(void) {
+	return state;
+}
 
 double get_setpoint_adjustment_step_size(){
 	switch(setpointAdjustmentType){
