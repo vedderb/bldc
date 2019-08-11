@@ -76,8 +76,6 @@ void app_balance_start(void) {
 
 	// Reset IMU
 	if(config.use_peripheral){
-		hw_stop_i2c();
-		hw_start_i2c();
 		imu_init(true);
 	}
 
@@ -106,14 +104,15 @@ void app_balance_start(void) {
 }
 
 void app_balance_stop(void) {
-	chThdTerminate(app_thread);
+	if(app_thread != NULL){
+		chThdTerminate(app_thread);
+		chThdWait(app_thread);
+	}
 	mc_interface_set_current(0);
 
 	// Reset IMU
 	if(config.use_peripheral){
 		imu_init(false);
-		hw_stop_i2c();
-		hw_start_i2c();
 	}
 }
 

@@ -65,6 +65,9 @@ void app_set_configuration(app_configuration *conf) {
 	app_custom_stop();
 #endif
 
+	// Configure balance app before starting it.
+	app_balance_configure(&appconf.app_balance_conf);
+
 	switch (appconf.app_to_use) {
 	case APP_PPM:
 		app_ppm_start();
@@ -121,7 +124,6 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_configure(&appconf.app_adc_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.permanent_uart_enabled);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
-	app_balance_configure(&appconf.app_balance_conf);
 
 #ifdef APP_CUSTOM_TO_USE
 	app_custom_configure(&appconf);
