@@ -45,9 +45,9 @@ typedef enum {
 	TILTBACK
 } SetpointAdjustmentType;
 
-// Example thread
-static THD_FUNCTION(example_thread, arg);
-static THD_WORKING_AREA(example_thread_wa, 2048); // 2kb stack for this thread
+// Balance thread
+static THD_FUNCTION(balance_thread, arg);
+static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
 
 static volatile balance_config config;
 static thread_t *app_thread;
@@ -99,8 +99,8 @@ void app_balance_start(void) {
 	cal_start_time = 0;
 	cal_diff_time = 0;
 
-	// Start the example thread
-	app_thread = chThdCreateStatic(example_thread_wa, sizeof(example_thread_wa), NORMALPRIO, example_thread, NULL);
+	// Start the balance thread
+	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
 
 void app_balance_stop(void) {
@@ -162,7 +162,7 @@ float apply_deadzone(float error){
 	}
 }
 
-static THD_FUNCTION(example_thread, arg) {
+static THD_FUNCTION(balance_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("APP_BALANCE");
 
