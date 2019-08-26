@@ -50,6 +50,7 @@ static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
 
 static volatile balance_config config;
+static volatile imu_config imu_conf;
 static thread_t *app_thread;
 
 // Values used in loop
@@ -68,16 +69,17 @@ static systime_t cal_start_time, cal_diff_time;
 static float motor_current;
 static float motor_position;
 
-void app_balance_configure(balance_config *conf) {
+void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	config = *conf;
+	imu_conf = *conf2;
 }
 
 void app_balance_start(void) {
 
-	// Reset IMU
-	if(config.use_peripheral){
-		imu_init(true);
-	}
+//	// Reset IMU
+//	if(config.use_peripheral){
+//		imu_init(true);
+//	}
 
 	// Reset all Values
 	state = CALIBRATING;
@@ -110,10 +112,10 @@ void app_balance_stop(void) {
 	}
 	mc_interface_set_current(0);
 
-	// Reset IMU
-	if(config.use_peripheral){
-		imu_init(false);
-	}
+//	// Reset IMU
+//	if(config.use_peripheral){
+//		imu_init(false);
+//	}
 }
 
 float app_balance_get_pid_output(void) {
@@ -167,8 +169,8 @@ static THD_FUNCTION(balance_thread, arg) {
 	chRegSetThreadName("APP_BALANCE");
 
 	// Do one off config
-	startup_step_size = (config.startup_speed / 1000) * config.loop_delay;
-	tiltback_step_size = (config.tiltback_speed / 1000) * config.loop_delay;
+	startup_step_size = config.startup_speed / config.hertz;
+	tiltback_step_size = config.tiltback_speed / config.hertz;
 
 	state = CALIBRATING;
 	setpointAdjustmentType = STARTUP;
@@ -197,25 +199,26 @@ static THD_FUNCTION(balance_thread, arg) {
 		// State based logic
 		switch(state){
 			case (CALIBRATING):
-				if(cal_start_time == 0){
-					cal_start_time = current_time;
-					ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
-					ahrs_set_madgwick_beta(config.cal_m_b);
-				}
-				cal_diff_time = current_time - cal_start_time;
-
-				// Calibration is done
-				if(ST2MS(cal_diff_time) > config.cal_delay){
-
-					// Set gyro config to be running config
-					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
-					ahrs_set_madgwick_beta(config.m_b);
-
-					// Set fault and wait for valid startup condition
-					state = FAULT;
-					cal_start_time = 0;
-					cal_diff_time = 0;
-				}
+//				if(cal_start_time == 0){
+//					cal_start_time = current_time;
+//					ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
+//					ahrs_set_madgwick_beta(config.cal_m_b);
+//				}
+//				cal_diff_time = current_time - cal_start_time;
+//
+//				// Calibration is done
+//				if(ST2MS(cal_diff_time) > config.cal_delay){
+//
+//					// Set gyro config to be running config
+//					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
+//					ahrs_set_madgwick_beta(config.m_b);
+//
+//					// Set fault and wait for valid startup condition
+//					state = FAULT;
+//					cal_start_time = 0;
+//					cal_diff_time = 0;
+//				}
+				state = FAULT;
 				break;
 			case (RUNNING):
 				// Check for overspeed
@@ -300,7 +303,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		}
 
 		// Delay between loops
-		chThdSleepMilliseconds(config.loop_delay);
+		chThdSleepMicroseconds((int)((1000.0 / config.hertz) * 1000.0));
 	}
 
 	// Disable output

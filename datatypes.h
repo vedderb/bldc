@@ -483,20 +483,13 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
-// Balance Datatypes
 typedef struct {
 	float kp;
 	float ki;
 	float kd;
-	uint8_t loop_delay;
-	float m_acd;
-	float m_b;
-	uint32_t cal_delay;
-	float cal_m_acd;
-	float cal_m_b;
+	uint16_t hertz;
 	float pitch_offset;
 	float roll_offset;
-	bool use_peripheral;
 	float pitch_fault;
 	float roll_fault;
 	float overspeed_duty;
@@ -509,6 +502,20 @@ typedef struct {
 	float deadzone;
 	float current_boost;
 } balance_config;
+
+typedef struct {
+	bool use_peripheral;
+	uint8_t pitch_axis;
+	uint8_t roll_axis;
+	uint8_t yaw_axis;
+	bool flip;
+	uint16_t hertz;
+	float m_acd;
+	float m_b;
+	uint16_t cal_delay;
+	float cal_m_acd;
+	float cal_m_b;
+} imu_config;
 
 // CAN status modes
 typedef enum {
@@ -553,8 +560,11 @@ typedef struct {
 	// NRF application settings
 	nrf_config app_nrf_conf;
 
-  // Balance application settings
-  balance_config app_balance_conf;
+	// Balance application settings
+	balance_config app_balance_conf;
+
+	// Balance application settings
+	imu_config app_imu_conf;
 } app_configuration;
 
 // Communication commands

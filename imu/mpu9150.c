@@ -37,9 +37,7 @@
 #define USE_MAGNETOMETER		1
 #define MPU_I2C_TIMEOUT			10
 #define MAG_DIV 				10
-#define ITERATION_TIME_US		5000
 #define FAIL_DELAY_US			1000
-#define MIN_ITERATION_DELAY_US	500
 #define MAX_IDENTICAL_READS		5
 #define MPU_ADDR1				0x68
 #define MPU_ADDR2				0x69
@@ -59,6 +57,7 @@ static volatile bool is_mpu9250;
 static i2c_bb_state i2cs;
 static volatile int16_t mpu9150_gyro_offsets[3];
 static volatile bool mpu_found;
+static imu_config config;
 
 // Private functions
 static int reset_init_mpu(void);
@@ -75,9 +74,11 @@ static thread_t *mpu_tp = 0;
 // Function pointers
 static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
 
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
+void mpu9150_init(imu_config *conf, stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stkalign_t *work_area, size_t work_area_size) {
+
+	config = *conf;
 
 	failed_reads = 0;
 	failed_mag_reads = 0;
@@ -111,7 +112,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 			terminal_read_reg);
 
 	uint8_t res = read_single_reg(MPU9150_WHO_AM_I);
-	if (res == 0x68 || res == 0x69 || res == 0x71) {
+	if (res == 0x68 || res == 0x69 || res == 0x71 || res == 0x73) {
 		mpu_found = true;
 		if (!mpu_tp) {
 			chThdCreateStatic(work_area, work_area_size, NORMALPRIO, mpu_thread, NULL);
@@ -338,12 +339,12 @@ static THD_FUNCTION(mpu_thread, arg) {
 			iteration_timer = chVTGetSystemTime();
 		}
 
-		iteration_timer += US2ST(ITERATION_TIME_US);
+		iteration_timer += US2ST((int)((1000.0 / config.hertz) * 1000.0));
 		systime_t time_start = chVTGetSystemTime();
 		if (iteration_timer > time_start) {
 			chThdSleep(iteration_timer - time_start);
 		} else {
-			chThdSleepMicroseconds(MIN_ITERATION_DELAY_US);
+			chThdSleepMicroseconds((int)(((1000.0 / config.hertz) * 1000.0)/2));
 			iteration_timer = chVTGetSystemTime();
 		}
 	}

@@ -35,19 +35,20 @@ static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
 static ICM20948_STATE m_icm20948_state;
+static imu_config config;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
 static void terminal_rpy(int argc, const char **argv);
 
-void imu_init(bool use_peripheral) {
+void imu_init(imu_config *conf) {
+	config = *conf;
 	ahrs_init_attitude_info(&m_att);
 
-	if(use_peripheral){
+	if(config.use_peripheral){
 		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	} else {
-
 #ifdef MPU9X50_SDA_GPIO
 		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
 			MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
@@ -73,7 +74,7 @@ i2c_bb_state *imu_get_i2c(void) {
 void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 
-	mpu9150_init(sda_gpio, sda_pin,
+	mpu9150_init(&config, sda_gpio, sda_pin,
 			scl_gpio, scl_pin,
 			m_thd_work_area, sizeof(m_thd_work_area));
 	mpu9150_set_read_callback(imu_read_callback);
@@ -160,31 +161,31 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
 
-#ifdef IMU_FLIP
-	m_accel[0] = -accel[0];
-	m_accel[1] = accel[1];
-	m_accel[2] = -accel[2];
+		if(config.flip){
+			m_accel[0] = -accel[config.pitch_axis];
+			m_accel[1] = accel[config.roll_axis];
+			m_accel[2] = -accel[config.yaw_axis];
 
-	m_gyro[0] = -gyro[0];
-	m_gyro[1] = gyro[1];
-	m_gyro[2] = -gyro[2];
+			m_gyro[0] = -gyro[config.pitch_axis];
+			m_gyro[1] = gyro[config.roll_axis];
+			m_gyro[2] = -gyro[config.yaw_axis];
 
-	m_mag[0] = -mag[0];
-	m_mag[1] = mag[1];
-	m_mag[2] = -mag[2];
-#else
-	m_accel[0] = accel[0];
-	m_accel[1] = accel[1];
-	m_accel[2] = accel[2];
+			m_mag[0] = -mag[config.pitch_axis];
+			m_mag[1] = mag[config.roll_axis];
+			m_mag[2] = -mag[config.yaw_axis];
+		} else {
+			m_accel[0] = accel[config.pitch_axis];
+			m_accel[1] = accel[config.roll_axis];
+			m_accel[2] = accel[config.yaw_axis];
 
-	m_gyro[0] = gyro[0];
-	m_gyro[1] = gyro[1];
-	m_gyro[2] = gyro[2];
+			m_gyro[0] = gyro[config.pitch_axis];
+			m_gyro[1] = gyro[config.roll_axis];
+			m_gyro[2] = gyro[config.yaw_axis];
 
-	m_mag[0] = mag[0];
-	m_mag[1] = mag[1];
-	m_mag[2] = mag[2];
-#endif
+			m_mag[0] = mag[config.pitch_axis];
+			m_mag[1] = mag[config.roll_axis];
+			m_mag[2] = mag[config.yaw_axis];
+		}
 
 	float gyro_rad[3];
 	gyro_rad[0] = m_gyro[0] * M_PI / 180.0;

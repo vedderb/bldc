@@ -24,7 +24,7 @@
 #include "hal.h"
 
 // Functions
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
+void mpu9150_init(imu_config *conf, stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stkalign_t *work_area, size_t work_area_size);
 bool mpu9150_is_mpu9250(void);
