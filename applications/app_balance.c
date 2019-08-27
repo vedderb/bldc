@@ -49,7 +49,7 @@ typedef enum {
 static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
 
-static volatile balance_config config;
+static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
 static thread_t *app_thread;
 
@@ -70,16 +70,11 @@ static float motor_current;
 static float motor_position;
 
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
-	config = *conf;
+	balance_conf = *conf;
 	imu_conf = *conf2;
 }
 
 void app_balance_start(void) {
-
-//	// Reset IMU
-//	if(config.use_peripheral){
-//		imu_init(true);
-//	}
 
 	// Reset all Values
 	state = CALIBRATING;
@@ -111,11 +106,6 @@ void app_balance_stop(void) {
 		chThdWait(app_thread);
 	}
 	mc_interface_set_current(0);
-
-//	// Reset IMU
-//	if(config.use_peripheral){
-//		imu_init(false);
-//	}
 }
 
 float app_balance_get_pid_output(void) {
@@ -151,16 +141,16 @@ float get_setpoint_adjustment_step_size(void){
 }
 
 float apply_deadzone(float error){
-	if(config.deadzone == 0){
+	if(balance_conf.deadzone == 0){
 		return error;
 	}
 
-	if(error < config.deadzone && error > -config.deadzone){
+	if(error < balance_conf.deadzone && error > -balance_conf.deadzone){
 		return 0;
-	} else if(error > config.deadzone){
-		return error - config.deadzone;
+	} else if(error > balance_conf.deadzone){
+		return error - balance_conf.deadzone;
 	} else {
-		return error + config.deadzone;
+		return error + balance_conf.deadzone;
 	}
 }
 
@@ -169,8 +159,8 @@ static THD_FUNCTION(balance_thread, arg) {
 	chRegSetThreadName("APP_BALANCE");
 
 	// Do one off config
-	startup_step_size = config.startup_speed / config.hertz;
-	tiltback_step_size = config.tiltback_speed / config.hertz;
+	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
+	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 
 	state = CALIBRATING;
 	setpointAdjustmentType = STARTUP;
@@ -193,50 +183,42 @@ static THD_FUNCTION(balance_thread, arg) {
 		roll = imu_get_roll() * 180.0f / M_PI;
 
 		// Apply offsets
-		pitch = fmodf(((pitch + 180.0f) + config.pitch_offset), 360.0f) - 180.0f;
-		roll = fmodf(((roll + 180.0f) + config.roll_offset), 360.0f) - 180.0f;
+		pitch = fmodf(((pitch + 180.0f) + balance_conf.pitch_offset), 360.0f) - 180.0f;
+		roll = fmodf(((roll + 180.0f) + balance_conf.roll_offset), 360.0f) - 180.0f;
 
 		// State based logic
 		switch(state){
 			case (CALIBRATING):
-//				if(cal_start_time == 0){
-//					cal_start_time = current_time;
-//					ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
-//					ahrs_set_madgwick_beta(config.cal_m_b);
-//				}
-//				cal_diff_time = current_time - cal_start_time;
-//
-//				// Calibration is done
-//				if(ST2MS(cal_diff_time) > config.cal_delay){
-//
-//					// Set gyro config to be running config
-//					ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
-//					ahrs_set_madgwick_beta(config.m_b);
-//
-//					// Set fault and wait for valid startup condition
-//					state = FAULT;
-//					cal_start_time = 0;
-//					cal_diff_time = 0;
-//				}
-				state = FAULT;
+				if(cal_start_time == 0){
+					cal_start_time = current_time;
+				}
+				cal_diff_time = current_time - cal_start_time;
+
+				// Calibration is done
+				if(ST2MS(cal_diff_time) > imu_conf.cal_delay){
+					// Set fault and wait for valid startup condition
+					state = FAULT;
+					cal_start_time = 0;
+					cal_diff_time = 0;
+				}
 				break;
 			case (RUNNING):
 				// Check for overspeed
-				if(mc_interface_get_duty_cycle_now() > config.overspeed_duty || mc_interface_get_duty_cycle_now() < -config.overspeed_duty){
+				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.overspeed_duty){
 					state = DEAD;
 				}
 
 				// Check for fault
-				if(pitch > config.pitch_fault || pitch < -config.pitch_fault || roll > config.roll_fault || roll < -config.roll_fault){
+				if(fabsf(pitch) > balance_conf.pitch_fault || fabsf(roll) > balance_conf.roll_fault){
 					state = FAULT;
 				}
 
 				// Over speed tilt back safety
-				if(mc_interface_get_duty_cycle_now() > config.tiltback_duty){
-					setpoint_target = config.tiltback_angle;
+				if(mc_interface_get_duty_cycle_now() > balance_conf.tiltback_duty){
+					setpoint_target = balance_conf.tiltback_angle;
 					setpointAdjustmentType = TILTBACK;
-				} else if(mc_interface_get_duty_cycle_now() < -config.tiltback_duty){
-					setpoint_target = -config.tiltback_angle;
+				} else if(mc_interface_get_duty_cycle_now() < -balance_conf.tiltback_duty){
+					setpoint_target = -balance_conf.tiltback_angle;
 					setpointAdjustmentType = TILTBACK;
 				}else{
 					setpoint_target = 0;
@@ -262,15 +244,15 @@ static THD_FUNCTION(balance_thread, arg) {
 				integral = integral + proportional;
 				derivative = proportional - last_proportional;
 
-				pid_value = (config.kp * proportional) + (config.ki * integral) + (config.kd * derivative);
+				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
 				last_proportional = proportional;
 
 				// Apply current boost
 				if(pid_value > 0){
-					pid_value += config.current_boost;
+					pid_value += balance_conf.current_boost;
 				}else if(pid_value < 0){
-					pid_value -= config.current_boost;
+					pid_value -= balance_conf.current_boost;
 				}
 
 				// Reset the timeout
@@ -285,7 +267,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (FAULT):
 				// Check for valid startup position
-				if(pitch < config.startup_pitch && pitch > -config.startup_pitch && roll < config.startup_roll && roll > -config.startup_roll){
+				if(fabsf(pitch) < balance_conf.startup_pitch && fabsf(roll) < balance_conf.startup_roll){
 					setpoint = pitch;
 					setpoint_target = 0;
 					setpointAdjustmentType = STARTUP;
@@ -303,7 +285,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		}
 
 		// Delay between loops
-		chThdSleepMicroseconds((int)((1000.0 / config.hertz) * 1000.0));
+		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
 	}
 
 	// Disable output

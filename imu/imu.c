@@ -36,6 +36,7 @@ static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_
 static i2c_bb_state m_i2c_bb;
 static ICM20948_STATE m_icm20948_state;
 static imu_config config;
+static systime_t init_time;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
@@ -65,6 +66,10 @@ void imu_init(imu_config *conf) {
 			"Print 100 roll/pitch/yaw samples at 10 Hz",
 			0,
 			terminal_rpy);
+
+	init_time = chVTGetSystemTimeX();
+	ahrs_set_madgwick_acc_confidence_decay(config.cal_m_acd);
+	ahrs_set_madgwick_beta(config.cal_m_b);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -161,36 +166,42 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
 
-		if(config.flip){
-			m_accel[0] = -accel[config.pitch_axis];
-			m_accel[1] = accel[config.roll_axis];
-			m_accel[2] = -accel[config.yaw_axis];
+	if(config.flip){
+		m_accel[0] = -accel[config.pitch_axis];
+		m_accel[1] = accel[config.roll_axis];
+		m_accel[2] = -accel[config.yaw_axis];
 
-			m_gyro[0] = -gyro[config.pitch_axis];
-			m_gyro[1] = gyro[config.roll_axis];
-			m_gyro[2] = -gyro[config.yaw_axis];
+		m_gyro[0] = -gyro[config.pitch_axis];
+		m_gyro[1] = gyro[config.roll_axis];
+		m_gyro[2] = -gyro[config.yaw_axis];
 
-			m_mag[0] = -mag[config.pitch_axis];
-			m_mag[1] = mag[config.roll_axis];
-			m_mag[2] = -mag[config.yaw_axis];
-		} else {
-			m_accel[0] = accel[config.pitch_axis];
-			m_accel[1] = accel[config.roll_axis];
-			m_accel[2] = accel[config.yaw_axis];
+		m_mag[0] = -mag[config.pitch_axis];
+		m_mag[1] = mag[config.roll_axis];
+		m_mag[2] = -mag[config.yaw_axis];
+	} else {
+		m_accel[0] = accel[config.pitch_axis];
+		m_accel[1] = accel[config.roll_axis];
+		m_accel[2] = accel[config.yaw_axis];
 
-			m_gyro[0] = gyro[config.pitch_axis];
-			m_gyro[1] = gyro[config.roll_axis];
-			m_gyro[2] = gyro[config.yaw_axis];
+		m_gyro[0] = gyro[config.pitch_axis] -0;
+		m_gyro[1] = gyro[config.roll_axis] -18.0;
+		m_gyro[2] = gyro[config.yaw_axis] -3.0;
 
-			m_mag[0] = mag[config.pitch_axis];
-			m_mag[1] = mag[config.roll_axis];
-			m_mag[2] = mag[config.yaw_axis];
-		}
+		m_mag[0] = mag[config.pitch_axis];
+		m_mag[1] = mag[config.roll_axis];
+		m_mag[2] = mag[config.yaw_axis];
+	}
 
 	float gyro_rad[3];
 	gyro_rad[0] = m_gyro[0] * M_PI / 180.0;
 	gyro_rad[1] = m_gyro[1] * M_PI / 180.0;
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
+
+	if(init_time != 0 && ST2MS(chVTGetSystemTimeX() - init_time) > config.cal_delay){
+		ahrs_set_madgwick_acc_confidence_decay(config.m_acd);
+		ahrs_set_madgwick_beta(config.m_b);
+		init_time = 0;
+	}
 
 	ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
 }

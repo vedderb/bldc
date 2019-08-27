@@ -723,7 +723,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_imu_conf.use_peripheral = APPCONF_IMU_USE_PERIPHERAL;
 	conf->app_imu_conf.pitch_axis = APPCONF_IMU_PITCH_AXIS;
 	conf->app_imu_conf.roll_axis = APPCONF_IMU_ROLL_AXIS;
-	conf->app_imu_conf.yaw_axis = APPCONF_IMU_ROLL_AXIS;
+	conf->app_imu_conf.yaw_axis = APPCONF_IMU_YAW_AXIS;
 	conf->app_imu_conf.flip = APPCONF_IMU_FLIP;
 	conf->app_imu_conf.hertz = APPCONF_IMU_HERTZ;
 	conf->app_imu_conf.m_acd = APPCONF_IMU_M_ACD;
