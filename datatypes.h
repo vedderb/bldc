@@ -503,6 +503,12 @@ typedef struct {
 	float current_boost;
 } balance_config;
 
+typedef enum {
+	IMU_CAL_NONE = 0,
+	IMU_CAL_STARTUP,
+	IMU_CAL_REALTIME
+} IMU_CAL;
+
 typedef struct {
 	bool use_peripheral;
 	uint8_t pitch_axis;
@@ -512,9 +518,10 @@ typedef struct {
 	uint16_t hertz;
 	float m_acd;
 	float m_b;
-	uint16_t cal_delay;
-	float cal_m_acd;
-	float cal_m_b;
+	uint16_t startup_time;
+	float startup_m_acd;
+	float startup_m_b;
+	IMU_CAL cal_type;
 } imu_config;
 
 // CAN status modes

@@ -329,14 +329,17 @@
 #ifndef APPCONF_IMU_M_B
 #define APPCONF_IMU_M_B	 					0.1
 #endif
-#ifndef APPCONF_IMU_CAL_DELAY
-#define APPCONF_IMU_CAL_DELAY 				1500
+#ifndef APPCONF_IMU_STARTUP_TIME
+#define APPCONF_IMU_STARTUP_TIME 			1500
 #endif
-#ifndef APPCONF_IMU_CAL_M_ACD
-#define APPCONF_IMU_CAL_M_ACD 				1.0
+#ifndef APPCONF_IMU_STARTUP_M_ACD
+#define APPCONF_IMU_STARTUP_M_ACD 			1.0
 #endif
-#ifndef APPCONF_IMU_CAL_M_B
-#define APPCONF_IMU_CAL_M_B 				2.0
+#ifndef APPCONF_IMU_STARTUP_M_B
+#define APPCONF_IMU_STARTUP_M_B 			2.0
+#endif
+#ifndef APPCONF_IMU_CAL_TYPE
+#define APPCONF_IMU_CAL_TYPE 				IMU_CAL_NONE
 #endif
 
 #endif /* APPCONF_DEFAULT_H_ */

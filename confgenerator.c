@@ -242,9 +242,10 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_uint16(buffer, conf->app_imu_conf.hertz, &ind);
 	buffer_append_float32_auto(buffer, conf->app_imu_conf.m_acd, &ind);
 	buffer_append_float32_auto(buffer, conf->app_imu_conf.m_b, &ind);
-	buffer_append_uint32(buffer, conf->app_imu_conf.cal_delay, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.cal_m_acd, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.cal_m_b, &ind);
+	buffer_append_uint32(buffer, conf->app_imu_conf.startup_time, &ind);
+	buffer_append_float32_auto(buffer, conf->app_imu_conf.startup_m_acd, &ind);
+	buffer_append_float32_auto(buffer, conf->app_imu_conf.startup_m_b, &ind);
+	buffer[ind++] = conf->app_imu_conf.cal_type;
 
 	return ind;
 }
@@ -493,9 +494,10 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_imu_conf.hertz = buffer_get_uint16(buffer, &ind);
 	conf->app_imu_conf.m_acd = buffer_get_float32_auto(buffer, &ind);
 	conf->app_imu_conf.m_b = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.cal_delay = buffer_get_uint32(buffer, &ind);
-	conf->app_imu_conf.cal_m_acd = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.cal_m_b = buffer_get_float32_auto(buffer, &ind);
+	conf->app_imu_conf.startup_time = buffer_get_uint32(buffer, &ind);
+	conf->app_imu_conf.startup_m_acd = buffer_get_float32_auto(buffer, &ind);
+	conf->app_imu_conf.startup_m_b = buffer_get_float32_auto(buffer, &ind);
+	conf->app_imu_conf.cal_type = buffer[ind++];
 
 	return true;
 }
@@ -728,7 +730,8 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_imu_conf.hertz = APPCONF_IMU_HERTZ;
 	conf->app_imu_conf.m_acd = APPCONF_IMU_M_ACD;
 	conf->app_imu_conf.m_b = APPCONF_IMU_M_B;
-	conf->app_imu_conf.cal_delay = APPCONF_IMU_CAL_DELAY;
-	conf->app_imu_conf.cal_m_acd = APPCONF_IMU_CAL_M_ACD;
-	conf->app_imu_conf.cal_m_b = APPCONF_IMU_CAL_M_B;
+	conf->app_imu_conf.startup_time = APPCONF_IMU_STARTUP_TIME;
+	conf->app_imu_conf.startup_m_acd = APPCONF_IMU_STARTUP_M_ACD;
+	conf->app_imu_conf.startup_m_b = APPCONF_IMU_STARTUP_M_B;
+	conf->app_imu_conf.cal_type = APPCONF_IMU_CAL_TYPE;
 }

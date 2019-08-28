@@ -34,14 +34,14 @@
 
 // Data type
 typedef enum {
-	CALIBRATING = 0,
+	STARTUP = 0,
 	RUNNING,
 	FAULT,
 	DEAD
 } BalanceState;
 
 typedef enum {
-	STARTUP = 0,
+	CENTERING = 0,
 	TILTBACK
 } SetpointAdjustmentType;
 
@@ -63,7 +63,7 @@ static float setpoint, setpoint_target;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
-static systime_t cal_start_time, cal_diff_time;
+static systime_t startup_start_time, startup_diff_time;
 
 // Values read to pass in app data to GUI
 static float motor_current;
@@ -77,7 +77,7 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 void app_balance_start(void) {
 
 	// Reset all Values
-	state = CALIBRATING;
+	state = STARTUP;
 	pitch = 0;
 	roll = 0;
 	proportional = 0;
@@ -87,14 +87,14 @@ void app_balance_start(void) {
 	pid_value = 0;
 	setpoint = 0;
 	setpoint_target = 0;
-	setpointAdjustmentType = STARTUP;
+	setpointAdjustmentType = CENTERING;
 	startup_step_size = 0;
 	tiltback_step_size = 0;
 	current_time = 0;
 	last_time = 0;
 	diff_time = 0;
-	cal_start_time = 0;
-	cal_diff_time = 0;
+	startup_start_time = 0;
+	startup_diff_time = 0;
 
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
@@ -132,7 +132,7 @@ uint16_t app_balance_get_state(void) {
 
 float get_setpoint_adjustment_step_size(void){
 	switch(setpointAdjustmentType){
-		case (STARTUP):
+		case (CENTERING):
 			return startup_step_size;
 		case (TILTBACK):
 			return tiltback_step_size;
@@ -162,8 +162,8 @@ static THD_FUNCTION(balance_thread, arg) {
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 
-	state = CALIBRATING;
-	setpointAdjustmentType = STARTUP;
+	state = STARTUP;
+	setpointAdjustmentType = CENTERING;
 
 	while (!chThdShouldTerminateX()) {
 		// Update times
@@ -188,18 +188,18 @@ static THD_FUNCTION(balance_thread, arg) {
 
 		// State based logic
 		switch(state){
-			case (CALIBRATING):
-				if(cal_start_time == 0){
-					cal_start_time = current_time;
+			case (STARTUP):
+				if(startup_start_time == 0){
+					startup_start_time = current_time;
 				}
-				cal_diff_time = current_time - cal_start_time;
+				startup_diff_time = current_time - startup_start_time;
 
 				// Calibration is done
-				if(ST2MS(cal_diff_time) > imu_conf.cal_delay){
+				if(ST2MS(startup_diff_time) > imu_conf.startup_time){
 					// Set fault and wait for valid startup condition
 					state = FAULT;
-					cal_start_time = 0;
-					cal_diff_time = 0;
+					startup_start_time = 0;
+					startup_diff_time = 0;
 				}
 				break;
 			case (RUNNING):
@@ -270,7 +270,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				if(fabsf(pitch) < balance_conf.startup_pitch && fabsf(roll) < balance_conf.startup_roll){
 					setpoint = pitch;
 					setpoint_target = 0;
-					setpointAdjustmentType = STARTUP;
+					setpointAdjustmentType = CENTERING;
 					state = RUNNING;
 					break;
 				}
