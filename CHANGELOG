@@ -1,3 +1,22 @@
+=== FW 3.59 ===
+* Added more data to MOTE_PACKET_ALIVE.
+* Added app template.
+* Added function to unregister terminal callbacks.
+* Added BMI160 support.
+* Added support for the VESC HD.
+* Added support for SWD programming permanent NRF.
+* Encoder SW SPI fix.
+* Slightly faster boot.
+* Moved custom HW and APP configurations to conf_general.h.
+* Added support for passing HW and APP default configuration as make arguments.
+* Added SW shutdown support.
+* Added command to erase bootloader.
+* Added function to stop IMU threads, so that IMUs can be switched during runtime.
+* Only generate encoder fault when the ERPM is low enough to use the encoder.
+* Added many IMU and AHRS settings to appconf.
+* Re-initialize IMU when appconf is written.
+* Added imu_gyro_info terminal command.
+
 === FW 3.58 ===
 * Set motor to FOC mode after successful FOC detection instead of the default type for the hardware.
 * APP_ADC: Do not send brake command over CAN if config.multi_esc is not set.

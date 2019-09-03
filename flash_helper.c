@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -118,14 +118,39 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 			uint16_t res = FLASH_EraseSector(flash_sector[NEW_APP_BASE + i], VoltageRange_3);
 			if (res != FLASH_COMPLETE) {
 				FLASH_Lock();
+				timeout_configure_IWDT();
+				utils_sys_unlock_cnt();
 				return res;
 			}
 		} else {
 			break;
 		}
 	}
-	FLASH_Lock();
 
+	FLASH_Lock();
+	timeout_configure_IWDT();
+	utils_sys_unlock_cnt();
+
+	return FLASH_COMPLETE;
+}
+
+uint16_t flash_helper_erase_bootloader(void) {
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	utils_sys_lock_cnt();
+	timeout_configure_IWDT_slowest();
+
+	uint16_t res = FLASH_EraseSector(flash_sector[BOOTLOADER_BASE], VoltageRange_3);
+	if (res != FLASH_COMPLETE) {
+		FLASH_Lock();
+		return res;
+	}
+
+	FLASH_Lock();
 	timeout_configure_IWDT();
 	utils_sys_unlock_cnt();
 

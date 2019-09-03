@@ -513,8 +513,8 @@ void bm_change_swd_pins(stm32_gpio_t *swdio_port, int swdio_pin,
 	bm_set_enabled(false);
 	platform_swdio_port = swdio_port;
 	platform_swdio_pin = swdio_pin;
-	platform_swdio_port = swclk_port;
-	platform_swdio_pin = swclk_pin;
+	platform_swclk_port = swclk_port;
+	platform_swclk_pin = swclk_pin;
 }
 
 /**
@@ -524,6 +524,6 @@ void bm_default_swd_pins(void) {
 	bm_set_enabled(false);
 	platform_swdio_port = SWDIO_PORT_DEFAULT;
 	platform_swdio_pin = SWDIO_PIN_DEFAULT;
-	platform_swdio_port = SWCLK_PORT_DEFAULT;
-	platform_swdio_pin = SWCLK_PIN_DEFAULT;
+	platform_swclk_port = SWCLK_PORT_DEFAULT;
+	platform_swclk_pin = SWCLK_PIN_DEFAULT;
 }

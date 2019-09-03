@@ -55,8 +55,8 @@ void drv8323s_init(void) {
 
 	chThdSleepMilliseconds(100);
 
-	// Disable OC
-	drv8323s_write_reg(5, 0x04C0);
+	// Disable OC           0000TTDDMMOOVVVV
+	drv8323s_write_reg(5, 0b0000000111010000);
 
 	// Set shunt amp gain
 	drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN);

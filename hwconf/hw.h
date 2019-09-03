@@ -329,6 +329,10 @@
 #define HW_PERMANENT_NRF_FAILED_HOOK()
 #endif
 
+#ifndef HW_EARLY_INIT
+#define HW_EARLY_INIT()
+#endif
+
 // Default ID
 #ifndef HW_DEFAULT_ID
 #define HW_DEFAULT_ID			(APPCONF_CONTROLLER_ID >= 0 ? APPCONF_CONTROLLER_ID : hw_id_from_uuid())
