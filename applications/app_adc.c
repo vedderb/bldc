@@ -28,12 +28,18 @@
 #include "comm_can.h"
 #include "hw.h"
 #include <math.h>
+#include "pedelec.h"
+#include "password.h"
+#include "commands.h"
 
 // Settings
 #define MAX_CAN_AGE						0.1
 #define MIN_MS_WITHOUT_POWER			500
 #define FILTER_SAMPLES					5
 #define RPM_FILTER_SAMPLES				8
+#define FILTER_PEDELEC_SAMPLES			25
+#define RPM_FILTER_PEDELEC_SAMPLES		28
+
 
 // Threads
 static THD_FUNCTION(adc_thread, arg);
@@ -49,6 +55,14 @@ static volatile float read_voltage2 = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+
+//pedelec variables
+static volatile float frecuency;
+static volatile float pedal_rpm_now;
+static volatile bool pedelec_mode_working = false;
+static volatile bool motor_released = false;
+static volatile float speed = 0.0;
+static volatile float erpm_hysteresis;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
@@ -100,6 +114,8 @@ static THD_FUNCTION(adc_thread, arg) {
 
 	is_running = true;
 
+	pedelec_init();
+
 	for(;;) {
 		// Sleep for a time according to the specified rate
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / config.update_rate_hz;
@@ -115,13 +131,23 @@ static THD_FUNCTION(adc_thread, arg) {
 			return;
 		}
 
+		pedelec_periodic_task( sleep_time / 10 ); //sleep time to ms
+
 		// For safe start when fault codes occur
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 			ms_without_power = 0;
 		}
 
+		//if the user has not entered the password we lock the motor
+		if( password_get_system_locked_flag() ){
+			mc_interface_set_current(0.0);
+			continue;
+		}
+
 		// Read the external ADC pin and convert the value to a voltage.
-		float pwr = (float)ADC_Value[ADC_IND_EXT];
+		static volatile float pwr;
+
+		pwr = (float)ADC_Value[ADC_IND_EXT];
 		pwr /= 4095;
 		pwr *= V_REG;
 
@@ -144,6 +170,30 @@ static THD_FUNCTION(adc_thread, arg) {
 			pwr /= FILTER_SAMPLES;
 		}
 
+		/*
+		 * READ PEDELEC SIGNAL AND FILTER
+		 */
+		static volatile float pwr_pedelec;
+		static float filter_pedelec_buffer[FILTER_PEDELEC_SAMPLES];
+		static int filter_pedelec_ptr = 0;
+
+		pwr_pedelec = pedelec_get_frecuency();
+
+		filter_pedelec_buffer[filter_pedelec_ptr++] = pwr_pedelec;
+		if (filter_pedelec_ptr >= FILTER_PEDELEC_SAMPLES) {
+			filter_pedelec_ptr = 0;
+		}
+
+		pwr_pedelec = 0.0;
+		for (int i = 0;i < FILTER_PEDELEC_SAMPLES;i++) {
+			pwr_pedelec += filter_pedelec_buffer[i];
+		}
+		pwr_pedelec /= FILTER_PEDELEC_SAMPLES;
+
+		/*
+		 * END READ PEDELEC SIGNAL AND FILTER
+		 */
+
 		// Map the read voltage
 		switch (config.ctrl_type) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
@@ -160,7 +210,6 @@ static THD_FUNCTION(adc_thread, arg) {
 						config.voltage_end, 0.5, 1.0);
 			}
 			break;
-
 		default:
 			// Linear mapping between the start and end voltage
 			pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
@@ -217,34 +266,74 @@ static THD_FUNCTION(adc_thread, arg) {
 		decoded_level2 = brake;
 
 		// Read the button pins
-		bool cc_button = false;
-		bool rev_button = false;
-		if (use_rx_tx_as_buttons) {
-			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
-			if (config.cc_button_inverted) {
-				cc_button = !cc_button;
-			}
-			rev_button = !palReadPad(HW_UART_RX_PORT, HW_UART_RX_PIN);
-			if (config.rev_button_inverted) {
-				rev_button = !rev_button;
-			}
-		} else {
-			// When only one button input is available, use it differently depending on the control mode
-			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
-                    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
-					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
-					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON ||
-					config.ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON) {
-				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.rev_button_inverted) {
-					rev_button = !rev_button;
+
+		static volatile bool cc_button = false;
+		static volatile bool rev_button = false;
+//		if (use_rx_tx_as_buttons) {
+//			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
+//			if (config.cc_button_inverted) {
+//				cc_button = !cc_button;
+//			}
+//			rev_button = !palReadPad(HW_UART_RX_PORT, HW_UART_RX_PIN);
+//			if (config.rev_button_inverted) {
+//				rev_button = !rev_button;
+//			}
+//		} else {
+//			// When only one button input is available, use it differently depending on the control mode
+//			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
+//                    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
+//					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
+//					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON) {
+//				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+//				if (config.rev_button_inverted) {
+//					rev_button = !rev_button;
+//				}
+//			} else {
+//				cc_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+//				if (config.cc_button_inverted) {
+//					cc_button = !cc_button;
+//				}
+//			}
+//		}
+		cc_button = false;
+		if (config.cc_button_inverted) {
+			cc_button = !cc_button;
+		}
+		rev_button = false;
+		if (config.rev_button_inverted) {
+			rev_button = !rev_button;
+		}
+
+		if(config.pedelec_is_on){
+			if(pedelec_mode_working){
+				if(pwr > 0.1){//hysteresis
+					//the throttle is being pressed, so we disable pedelec
+					pedelec_mode_working = false;
 				}
-			} else {
-				cc_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.cc_button_inverted) {
-					cc_button = !cc_button;
+			}else{
+				if(pwr < 0.05){//hysteresis
+					//the throttle is not being pressed, and pedelec configuration was enabled
+					//so pedelec signal will be taken into account
+					pedelec_mode_working = true;
+					motor_released = true;
+					mc_interface_release_motor();
 				}
 			}
+		}else{
+			pedelec_mode_working = false;
+			motor_released = false;
+		}
+
+		if( pedelec_mode_working ){
+			frecuency = pwr_pedelec;
+			pedal_rpm_now = pedelec_get_rpm(frecuency , config.pedelec_magnets);
+
+			pwr_pedelec = utils_map(pedal_rpm_now, config.pedelec_min_rpm, config.pedelec_max_rpm, 0.0 , 1.0);
+
+			// Truncate the read voltage
+			utils_truncate_number(&pwr_pedelec, 0.0, 1.0);
+		}else{
+			pwr_pedelec = 0.0;
 		}
 
 		// All pins and buttons are still decoded for debugging, even
@@ -283,6 +372,10 @@ static THD_FUNCTION(adc_thread, arg) {
 			break;
 		}
 
+		if(pedelec_mode_working){
+			pwr = pwr_pedelec;
+		}
+
 		// Apply deadband
 		utils_deadband(&pwr, config.hyst, 1.0);
 
@@ -313,87 +406,122 @@ static THD_FUNCTION(adc_thread, arg) {
 		const float rpm_now = mc_interface_get_rpm();
 		bool send_duty = false;
 
-		// Use the filtered and mapped voltage for control according to the configuration.
-		switch (config.ctrl_type) {
-		case ADC_CTRL_TYPE_CURRENT:
-		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
-			current_mode = true;
-			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
-			} else {
-				current_rel = pwr;
-			}
+		static volatile uint16_t time_to_print_ms = 0;
 
-			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-			break;
+		time_to_print_ms += sleep_time / 10;
 
-        case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
-		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
-			current_mode = true;
-			if (pwr >= 0.0) {
-				current_rel = pwr;
-			} else {
-				current_rel = fabsf(pwr);
-				current_mode_brake = true;
-			}
-
-			if (pwr < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-
-			if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC ||
-			    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
-				current_rel = -current_rel;
-			}
-			break;
-
-		case ADC_CTRL_TYPE_DUTY:
-		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
-		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
-			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-
+		if( pedelec_mode_working ){
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
-				send_duty = true;
-			}
-			break;
+				speed = pwr_pedelec * mcconf->l_max_erpm;
 
-		case ADC_CTRL_TYPE_PID:
-		case ADC_CTRL_TYPE_PID_REV_CENTER:
-		case ADC_CTRL_TYPE_PID_REV_BUTTON:
-			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
-			} else {
-				current_rel = pwr;
-			}
+				//calculate erpm hysteresis as 30 m/min linear speed taking into consideration the wheel diameter and the motor poles
+				erpm_hysteresis = ( 30.0 / ( (mcconf->si_wheel_diameter ) * M_PI ) )  *  mcconf->si_motor_poles;
 
-			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				float speed = 0.0;
-				if (pwr >= 0.0) {
-					speed = pwr * mcconf->l_max_erpm;
-				} else {
-					speed = pwr * fabsf(mcconf->l_min_erpm);
+				if(motor_released){
+					if( speed > (mcconf->s_pid_min_erpm + erpm_hysteresis) ){
+						mc_interface_set_pid_speed(speed);
+						motor_released = false;
+					}
+				}else{
+					if( speed < (mcconf->s_pid_min_erpm ) ){
+						mc_interface_release_motor();
+						motor_released = true;
+					}else{
+						mc_interface_set_pid_speed(speed);
+						motor_released = false;
+					}
 				}
 
-				mc_interface_set_pid_speed(speed);
-				send_duty = true;
 			}
 
 			if (fabsf(pwr) < 0.001) {
 				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 			}
-			break;
 
-		default:
-			continue;
+		}else{
+
+			// Use the filtered and mapped voltage for control according to the configuration.
+			switch (config.ctrl_type) {
+			case ADC_CTRL_TYPE_CURRENT:
+			case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
+			case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
+				current_mode = true;
+				if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
+					current_rel = pwr;
+				} else {
+					current_rel = pwr;
+				}
+
+				if (fabsf(pwr) < 0.001) {
+					ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+				}
+				break;
+
+			case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
+			case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
+			case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
+			case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
+			case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
+				current_mode = true;
+				if (pwr >= 0.0) {
+					current_rel = pwr;
+				} else {
+					current_rel = fabsf(pwr);
+					current_mode_brake = true;
+				}
+
+				if (pwr < 0.001) {
+					ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+				}
+
+				if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC ||
+					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
+					current_rel = -current_rel;
+				}
+				break;
+
+			case ADC_CTRL_TYPE_DUTY:
+			case ADC_CTRL_TYPE_DUTY_REV_CENTER:
+			case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
+				if (fabsf(pwr) < 0.001) {
+					ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+				}
+
+				if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
+					mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
+					send_duty = true;
+				}
+				break;
+
+			case ADC_CTRL_TYPE_PID:
+			case ADC_CTRL_TYPE_PID_REV_CENTER:
+			case ADC_CTRL_TYPE_PID_REV_BUTTON:
+				if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
+					current_rel = pwr;
+				} else {
+					current_rel = pwr;
+				}
+
+				if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
+					float speed = 0.0;
+					if (pwr >= 0.0) {
+						speed = pwr * mcconf->l_max_erpm;
+					} else {
+						speed = pwr * fabsf(mcconf->l_min_erpm);
+					}
+
+					mc_interface_set_pid_speed(speed);
+					send_duty = true;
+				}
+
+				if (fabsf(pwr) < 0.001) {
+					ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+				}
+				break;
+			default:
+				continue;
+			}
+
 		}
 
 		// If safe start is enabled and the output has not been zero for long enough

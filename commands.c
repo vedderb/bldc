@@ -52,6 +52,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include "password.h"
 
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
@@ -539,6 +540,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_ALIVE:
 		SHUTDOWN_RESET();
+		password_timeout_reset();
 		timeout_reset();
 		break;
 

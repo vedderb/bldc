@@ -21,6 +21,7 @@
 #include "mc_interface.h"
 #include "stm32f4xx_conf.h"
 #include "shutdown.h"
+#include "password.h"
 
 // Private variables
 static volatile bool init_done = false;
@@ -179,6 +180,11 @@ static THD_FUNCTION(timeout_thread, arg) {
 			mc_interface_select_motor_thread(2);
 			mc_interface_set_brake_current(timeout_brake_current);
 			has_timeout = true;
+			if(password_get_system_enable_flag())
+			{
+				password_set_system_locked_flag(true);
+			}
+
 		} else {
 			has_timeout = false;
 		}

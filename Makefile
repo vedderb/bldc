@@ -139,6 +139,8 @@ CSRC = $(STARTUPSRC) \
        utils.c \
        servo_simple.c \
        packet.c \
+       password.c \
+       pedelec.c \
        terminal.c \
        conf_general.c \
        eeprom.c \

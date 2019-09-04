@@ -25,6 +25,7 @@
 #include "mcpwm_foc.h"
 #include "hw.h"
 #include "encoder.h"
+#include "pedelec.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -71,4 +72,13 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		EXTI_ClearITPendingBit(EXTI_Line16);
 		EXTI_ClearFlag(EXTI_Line16);
 	}
+}
+
+CH_IRQ_HANDLER(HW_PEDELEC_TIM_ISR_VEC) {
+	if (TIM_GetITStatus(HW_PEDELEC_TIMER, TIM_IT_CC2) != RESET) {
+		pedelec_tim_isr();
+		// Clear the IT pending bit
+		TIM_ClearITPendingBit(HW_PEDELEC_TIMER, TIM_IT_CC2);
+	}
+
 }
