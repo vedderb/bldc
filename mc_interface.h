@@ -67,6 +67,8 @@ float mc_interface_read_reset_avg_motor_current(void);
 float mc_interface_read_reset_avg_input_current(void);
 float mc_interface_read_reset_avg_id(void);
 float mc_interface_read_reset_avg_iq(void);
+float mc_interface_read_reset_avg_vd(void);
+float mc_interface_read_reset_avg_vq(void);
 float mc_interface_get_pid_pos_set(void);
 float mc_interface_get_pid_pos_now(void);
 float mc_interface_get_last_sample_adc_isr_duration(void);

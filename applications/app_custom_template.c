@@ -86,6 +86,22 @@ static THD_FUNCTION(my_thread, arg) {
 
 	is_running = true;
 
+	// Example of using the experiment plot
+//	chThdSleepMilliseconds(8000);
+//	commands_init_plot("Sample", "Voltage");
+//	commands_plot_add_graph("Temp Fet");
+//	commands_plot_add_graph("Input Voltage");
+//	float samp = 0.0;
+//
+//	for(;;) {
+//		commands_plot_set_graph(0);
+//		commands_send_plot_points(samp, mc_interface_temp_fet_filtered());
+//		commands_plot_set_graph(1);
+//		commands_send_plot_points(samp, GET_INPUT_VOLTAGE());
+//		samp++;
+//		chThdSleepMilliseconds(10);
+//	}
+
 	for(;;) {
 		// Check if it is time to stop.
 		if (stop_now) {

@@ -69,6 +69,11 @@ void icm20948_stop(ICM20948_STATE *s) {
 	while(s->is_running) {
 		chThdSleep(1);
 	}
+
+	if (s == m_terminal_state) {
+		terminal_unregister_callback(terminal_read_reg);
+		m_terminal_state = 0;
+	}
 }
 
 static void terminal_read_reg(int argc, const char **argv) {
