@@ -38,6 +38,7 @@
 #define MPU_I2C_TIMEOUT			10
 #define MAG_DIV 				10
 #define FAIL_DELAY_US			1000
+#define MIN_ITERATION_DELAY_US	500
 #define MAX_IDENTICAL_READS		5
 #define MPU_ADDR1				0x68
 #define MPU_ADDR2				0x69
@@ -76,11 +77,9 @@ static thread_t *mpu_tp = 0;
 // Function pointers
 static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
 
-void mpu9150_init(imu_config *conf, stm32_gpio_t *sda_gpio, int sda_pin,
+void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stkalign_t *work_area, size_t work_area_size) {
-
-	config = *conf;
 
 	failed_reads = 0;
 	failed_mag_reads = 0;
@@ -369,7 +368,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 		if (iteration_timer > time_start) {
 			chThdSleep(iteration_timer - time_start);
 		} else {
-			chThdSleepMicroseconds((int)(((1000.0 / config.hertz) * 1000.0)/2));
+			chThdSleepMicroseconds(MIN_ITERATION_DELAY_US);
 			iteration_timer = chVTGetSystemTime();
 		}
 	}

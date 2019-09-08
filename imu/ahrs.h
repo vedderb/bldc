@@ -31,14 +31,4 @@ float ahrs_get_pitch(ATTITUDE_INFO *att);
 float ahrs_get_yaw(ATTITUDE_INFO *att);
 void ahrs_get_roll_pitch_yaw(float *rpy, ATTITUDE_INFO *att);
 
-float ahrs_get_mahony_kp(void);
-float ahrs_get_mahony_ki(void);
-float ahrs_get_madgwick_acc_confidence_decay(void);
-float ahrs_get_madgwick_beta(void);
-
-void ahrs_set_mahony_kp(float mahony_kp);
-void ahrs_set_mahony_ki(float mahony_ki);
-void ahrs_set_madgwick_acc_confidence_decay(float madgwick_acc_confidence_decay);
-void ahrs_set_madgwick_beta(float madgwick_beta);
-
 #endif
