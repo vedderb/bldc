@@ -155,6 +155,7 @@ CSRC = $(STARTUPSRC) \
        timer.c \
        i2c_bb.c \
        virtual_motor.c \
+       shutdown.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \

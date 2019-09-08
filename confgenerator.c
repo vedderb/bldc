@@ -217,35 +217,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->app_nrf_conf.address[1];
 	buffer[ind++] = (uint8_t)conf->app_nrf_conf.address[2];
 	buffer[ind++] = conf->app_nrf_conf.send_crc_ack;
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kp, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd, &ind);
-	buffer_append_uint16(buffer, conf->app_balance_conf.hertz, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_offset, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_offset, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.overspeed_duty, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_duty, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_angle, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_speed, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_pitch, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_roll, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_speed, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.deadzone, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.current_boost, &ind);
-	buffer[ind++] = conf->app_imu_conf.use_peripheral;
-	buffer[ind++] = (uint8_t)conf->app_imu_conf.pitch_axis;
-	buffer[ind++] = (uint8_t)conf->app_imu_conf.roll_axis;
-	buffer[ind++] = (uint8_t)conf->app_imu_conf.yaw_axis;
-	buffer[ind++] = conf->app_imu_conf.flip;
-	buffer_append_uint16(buffer, conf->app_imu_conf.hertz, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.m_acd, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.m_b, &ind);
-	buffer_append_uint32(buffer, conf->app_imu_conf.startup_time, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.startup_m_acd, &ind);
-	buffer_append_float32_auto(buffer, conf->app_imu_conf.startup_m_b, &ind);
-	buffer[ind++] = conf->app_imu_conf.cal_type;
+==== BASE ====
+==== BASE ====
 
 	return ind;
 }
@@ -469,35 +442,8 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_nrf_conf.address[1] = buffer[ind++];
 	conf->app_nrf_conf.address[2] = buffer[ind++];
 	conf->app_nrf_conf.send_crc_ack = buffer[ind++];
-	conf->app_balance_conf.kp = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.ki = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.kd = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.hertz = buffer_get_uint16(buffer, &ind);
-	conf->app_balance_conf.pitch_offset = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.roll_offset = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.overspeed_duty = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.tiltback_duty = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.tiltback_angle = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.tiltback_speed = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.startup_pitch = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.startup_roll = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.deadzone = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.current_boost = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.use_peripheral = buffer[ind++];
-	conf->app_imu_conf.pitch_axis = buffer[ind++];
-	conf->app_imu_conf.roll_axis = buffer[ind++];
-	conf->app_imu_conf.yaw_axis = buffer[ind++];
-	conf->app_imu_conf.flip = buffer[ind++];
-	conf->app_imu_conf.hertz = buffer_get_uint16(buffer, &ind);
-	conf->app_imu_conf.m_acd = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.m_b = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.startup_time = buffer_get_uint32(buffer, &ind);
-	conf->app_imu_conf.startup_m_acd = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.startup_m_b = buffer_get_float32_auto(buffer, &ind);
-	conf->app_imu_conf.cal_type = buffer[ind++];
+==== BASE ====
+==== BASE ====
 
 	return true;
 }
@@ -705,33 +651,6 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_nrf_conf.address[1] = APPCONF_NRF_ADDR_B1;
 	conf->app_nrf_conf.address[2] = APPCONF_NRF_ADDR_B2;
 	conf->app_nrf_conf.send_crc_ack = APPCONF_NRF_SEND_CRC_ACK;
-	conf->app_balance_conf.kp = APPCONF_BALANCE_KP;
-	conf->app_balance_conf.ki = APPCONF_BALANCE_KI;
-	conf->app_balance_conf.kd = APPCONF_BALANCE_KD;
-	conf->app_balance_conf.hertz = APPCONF_BALANCE_HERTZ;
-	conf->app_balance_conf.pitch_offset = APPCONF_BALANCE_PITCH_OFFSET;
-	conf->app_balance_conf.roll_offset = APPCONF_BALANCE_ROLL_OFFSET;
-	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
-	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
-	conf->app_balance_conf.overspeed_duty = APPCONF_BALANCE_OVERSPEED_DUTY;
-	conf->app_balance_conf.tiltback_duty = APPCONF_BALANCE_TILTBACK_DUTY;
-	conf->app_balance_conf.tiltback_angle = APPCONF_BALANCE_TILTBACK_ANGLE;
-	conf->app_balance_conf.tiltback_speed = APPCONF_BALANCE_TILTBACK_SPEED;
-	conf->app_balance_conf.startup_pitch = APPCONF_BALANCE_STARTUP_PITCH;
-	conf->app_balance_conf.startup_roll = APPCONF_BALANCE_STARTUP_ROLL;
-	conf->app_balance_conf.startup_speed = APPCONF_BALANCE_STARTUP_SPEED;
-	conf->app_balance_conf.deadzone = APPCONF_BALANCE_DEADZONE;
-	conf->app_balance_conf.current_boost = APPCONF_BALANCE_CURRENT_BOOST;
-	conf->app_imu_conf.use_peripheral = APPCONF_IMU_USE_PERIPHERAL;
-	conf->app_imu_conf.pitch_axis = APPCONF_IMU_PITCH_AXIS;
-	conf->app_imu_conf.roll_axis = APPCONF_IMU_ROLL_AXIS;
-	conf->app_imu_conf.yaw_axis = APPCONF_IMU_YAW_AXIS;
-	conf->app_imu_conf.flip = APPCONF_IMU_FLIP;
-	conf->app_imu_conf.hertz = APPCONF_IMU_HERTZ;
-	conf->app_imu_conf.m_acd = APPCONF_IMU_M_ACD;
-	conf->app_imu_conf.m_b = APPCONF_IMU_M_B;
-	conf->app_imu_conf.startup_time = APPCONF_IMU_STARTUP_TIME;
-	conf->app_imu_conf.startup_m_acd = APPCONF_IMU_STARTUP_M_ACD;
-	conf->app_imu_conf.startup_m_b = APPCONF_IMU_STARTUP_M_B;
-	conf->app_imu_conf.cal_type = APPCONF_IMU_CAL_TYPE;
+==== BASE ====
+==== BASE ====
 }

@@ -51,7 +51,7 @@
  * 6:	VREFINT
  * 7:	IN11	NC
  * 8:	IN12	AN_IN
- * 9:	IN13	NC
+ * 9:	IN13	NC (TEMP_MOSFET to make it compile)
  * 10:	IN15	ADC_EXT
  * 11:	IN10	TEMP_MOTOR
  */
@@ -68,6 +68,7 @@
 #define ADC_IND_CURR2			3
 #define ADC_IND_VIN_SENS		8
 #define ADC_IND_EXT				10
+#define ADC_IND_TEMP_MOS		9
 #define ADC_IND_VREFINT			6
 #define ADC_IND_TEMP_MOTOR		11
 

@@ -503,27 +503,6 @@ typedef struct {
 	float current_boost;
 } balance_config;
 
-typedef enum {
-	IMU_CAL_NONE = 0,
-	IMU_CAL_STARTUP,
-	IMU_CAL_REALTIME
-} IMU_CAL;
-
-typedef struct {
-	bool use_peripheral;
-	uint8_t pitch_axis;
-	uint8_t roll_axis;
-	uint8_t yaw_axis;
-	bool flip;
-	uint16_t hertz;
-	float m_acd;
-	float m_b;
-	uint16_t startup_time;
-	float startup_m_acd;
-	float startup_m_b;
-	IMU_CAL cal_type;
-} imu_config;
-
 // CAN status modes
 typedef enum {
 	CAN_STATUS_DISABLED = 0,
@@ -533,6 +512,49 @@ typedef enum {
 	CAN_STATUS_1_2_3_4,
 	CAN_STATUS_1_2_3_4_5
 } CAN_STATUS_MODE;
+
+typedef enum {
+	SHUTDOWN_MODE_ALWAYS_OFF = 0,
+	SHUTDOWN_MODE_ALWAYS_ON,
+	SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY,
+	SHUTDOWN_MODE_OFF_AFTER_10S,
+	SHUTDOWN_MODE_OFF_AFTER_1M,
+	SHUTDOWN_MODE_OFF_AFTER_5M,
+	SHUTDOWN_MODE_OFF_AFTER_10M,
+	SHUTDOWN_MODE_OFF_AFTER_30M,
+	SHUTDOWN_MODE_OFF_AFTER_1H,
+	SHUTDOWN_MODE_OFF_AFTER_5H,
+} SHUTDOWN_MODE;
+
+typedef enum {
+	IMU_TYPE_OFF = 0,
+	IMU_TYPE_INTERNAL,
+	IMU_TYPE_EXTERNAL_MPU9X50,
+	IMU_TYPE_EXTERNAL_ICM20948,
+	IMU_TYPE_EXTERNAL_BMI160
+} IMU_TYPE;
+
+typedef enum {
+	AHRS_MODE_MADGWICK = 0,
+	AHRS_MODE_MAHONY
+} AHRS_MODE;
+
+typedef struct {
+	IMU_TYPE type;
+	AHRS_MODE mode;
+	int sample_rate_hz;
+	float accel_confidence_decay;
+	float mahony_kp;
+	float mahony_ki;
+	float madgwick_beta;
+	float rot_roll;
+	float rot_pitch;
+	float rot_yaw;
+	float accel_offsets[3];
+	float gyro_offsets[3];
+	float gyro_offset_comp_fact[3];
+	float gyro_offset_comp_clamp;
+} imu_config;
 
 typedef struct {
 	// Settings
@@ -544,6 +566,7 @@ typedef struct {
 	CAN_BAUD can_baud_rate;
 	bool pairing_done;
 	bool permanent_uart_enabled;
+	SHUTDOWN_MODE shutdown_mode;
 
 	// UAVCAN
 	bool uavcan_enable;
@@ -570,8 +593,8 @@ typedef struct {
 	// Balance application settings
 	balance_config app_balance_conf;
 
-	// Balance application settings
-	imu_config app_imu_conf;
+	// IMU Settings
+	imu_config imu_conf;
 } app_configuration;
 
 // Communication commands
@@ -647,7 +670,11 @@ typedef enum {
 	COMM_BM_ERASE_FLASH_ALL,
 	COMM_BM_WRITE_FLASH,
 	COMM_BM_REBOOT,
-	COMM_BM_DISCONNECT
+	COMM_BM_DISCONNECT,
+	COMM_BM_MAP_PINS_DEFAULT,
+	COMM_BM_MAP_PINS_NRF5X,
+	COMM_ERASE_BOOTLOADER,
+	COMM_ERASE_BOOTLOADER_ALL_CAN,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -835,5 +862,15 @@ typedef union {
 
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
+
+typedef struct {
+	float ah_tot;
+	float ah_charge_tot;
+	float wh_tot;
+	float wh_charge_tot;
+	float current_tot;
+	float current_in_tot;
+	uint8_t num_vescs;
+} setup_values;
 
 #endif /* DATATYPES_H_ */

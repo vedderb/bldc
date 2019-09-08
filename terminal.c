@@ -109,7 +109,7 @@ void terminal_process_string(char *str) {
 					(double)(100.0 * (float)tp->p_time / (float)chVTGetSystemTimeX()));
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
-		commands_printf("");
+		commands_printf(" ");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		commands_printf("%s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
 	} else if (strcmp(argv[0], "faults") == 0) {
@@ -799,6 +799,10 @@ void terminal_process_string(char *str) {
 		commands_printf("  Prints the status of the AS5047, AD2S1205, or Sin/Cos encoder.");
 
 		for (int i = 0;i < callback_write;i++) {
+			if (callbacks[i].cbf == 0) {
+				continue;
+			}
+
 			if (callbacks[i].arg_names) {
 				commands_printf("%s %s", callbacks[i].command, callbacks[i].arg_names);
 			} else {
@@ -816,7 +820,7 @@ void terminal_process_string(char *str) {
 	} else {
 		bool found = false;
 		for (int i = 0;i < callback_write;i++) {
-			if (strcmp(argv[0], callbacks[i].command) == 0) {
+			if (callbacks[i].cbf != 0 && strcmp(argv[0], callbacks[i].command) == 0) {
 				callbacks[i].cbf(argc, (const char**)argv);
 				found = true;
 				break;
@@ -874,6 +878,12 @@ void terminal_register_command_callback(
 			callback_num = i;
 			break;
 		}
+
+		// Check if the callback is empty (unregistered)
+		if (callbacks[i].cbf == 0) {
+			callback_num = i;
+			break;
+		}
 	}
 
 	callbacks[callback_num].command = command;
@@ -888,3 +898,12 @@ void terminal_register_command_callback(
 		}
 	}
 }
+
+void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
+	for (int i = 0;i < callback_write;i++) {
+		if (callbacks[i].cbf == cbf) {
+			callbacks[i].cbf = 0;
+		}
+	}
+}
+

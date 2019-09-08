@@ -17,12 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UAVC_BASIC_H_
-#define HW_UAVC_BASIC_H_
+#ifndef HW_UAVC_OMEGA_H_
+#define HW_UAVC_OMEGA_H_
 
 #include "drv8323s.h"
 
-#define HW_NAME					"UAVC_BASIC"
+#define HW_NAME					"UAVC_OMEGA"
 
 // HW properties
 #define HW_HAS_DRV8323S
@@ -244,4 +244,4 @@
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-#endif /* HW_UAVC_QCUBE_H_ */
+#endif /* HW_UAVC_OMEGA_H_ */

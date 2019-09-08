@@ -233,7 +233,8 @@ static THD_FUNCTION(adc_thread, arg) {
 			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
                     config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
 					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
-					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON) {
+					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON ||
+					config.ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON) {
 				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
 				if (config.rev_button_inverted) {
 					rev_button = !rev_button;

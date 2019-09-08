@@ -24,6 +24,7 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "comm_can.h"
+#include "imu.h"
 
 // Private variables
 static app_configuration appconf;
@@ -65,8 +66,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_custom_stop();
 #endif
 
-	// Start Gyro
-	imu_init(&appconf.app_imu_conf);
+	imu_init(&conf->imu_conf);
 
 	// Configure balance app before starting it.
 	app_balance_configure(&appconf.app_balance_conf, &appconf.app_imu_conf);
