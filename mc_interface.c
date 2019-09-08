@@ -61,6 +61,10 @@ static volatile float m_motor_id_sum;
 static volatile float m_motor_iq_sum;
 static volatile float m_motor_id_iterations;
 static volatile float m_motor_iq_iterations;
+static volatile float m_motor_vd_sum;
+static volatile float m_motor_vq_sum;
+static volatile float m_motor_vd_iterations;
+static volatile float m_motor_vq_iterations;
 static volatile float m_amp_seconds;
 static volatile float m_amp_seconds_charged;
 static volatile float m_watt_seconds;
@@ -121,6 +125,10 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_motor_iq_sum = 0.0;
 	m_motor_id_iterations = 0.0;
 	m_motor_iq_iterations = 0.0;
+	m_motor_vd_sum = 0.0;
+	m_motor_vq_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	m_motor_vq_iterations = 0.0;
 	m_amp_seconds = 0.0;
 	m_amp_seconds_charged = 0.0;
 	m_watt_seconds = 0.0;
@@ -1055,6 +1063,32 @@ float mc_interface_read_reset_avg_iq(void) {
 	return DIR_MULT * res;
 }
 
+/**
+ * Read and reset the average direct axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average D axis voltage.
+ */
+float mc_interface_read_reset_avg_vd(void) {
+	float res = m_motor_vd_sum / m_motor_vd_iterations;
+	m_motor_vd_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	return DIR_MULT * res; // TODO: DIR_MULT?
+}
+
+/**
+ * Read and reset the average quadrature axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average Q axis voltage.
+ */
+float mc_interface_read_reset_avg_vq(void) {
+	float res = m_motor_vq_sum / m_motor_vq_iterations;
+	m_motor_vq_sum = 0.0;
+	m_motor_vq_iterations = 0.0;
+	return DIR_MULT * res;
+}
+
 float mc_interface_get_pid_pos_set(void) {
 	return m_position_set;
 }
@@ -1427,6 +1461,11 @@ void mc_interface_mc_timer_isr(void) {
 	m_motor_iq_sum += mcpwm_foc_get_iq();
 	m_motor_id_iterations++;
 	m_motor_iq_iterations++;
+
+	m_motor_vd_sum += mcpwm_foc_get_vd();
+	m_motor_vq_sum += mcpwm_foc_get_vq();
+	m_motor_vd_iterations++;
+	m_motor_vq_iterations++;
 
 	float abs_current = mc_interface_get_tot_current();
 	float abs_current_filtered = current;

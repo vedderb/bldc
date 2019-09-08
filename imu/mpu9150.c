@@ -296,6 +296,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 	for(;;) {
 		if (should_stop) {
 			is_running = false;
+			mpu_tp = 0;
 			return;
 		}
 

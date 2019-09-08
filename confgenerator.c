@@ -208,6 +208,9 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->app_chuk_conf.multi_esc;
 	buffer[ind++] = conf->app_chuk_conf.tc;
 	buffer_append_float32_auto(buffer, conf->app_chuk_conf.tc_max_diff, &ind);
+	buffer[ind++] = conf->app_chuk_conf.use_smart_rev;
+	buffer_append_float32_auto(buffer, conf->app_chuk_conf.smart_rev_max_duty, &ind);
+	buffer_append_float32_auto(buffer, conf->app_chuk_conf.smart_rev_ramp_time, &ind);
 	buffer[ind++] = conf->app_nrf_conf.speed;
 	buffer[ind++] = conf->app_nrf_conf.power;
 	buffer[ind++] = conf->app_nrf_conf.crc_type;
@@ -452,6 +455,9 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_chuk_conf.multi_esc = buffer[ind++];
 	conf->app_chuk_conf.tc = buffer[ind++];
 	conf->app_chuk_conf.tc_max_diff = buffer_get_float32_auto(buffer, &ind);
+	conf->app_chuk_conf.use_smart_rev = buffer[ind++];
+	conf->app_chuk_conf.smart_rev_max_duty = buffer_get_float32_auto(buffer, &ind);
+	conf->app_chuk_conf.smart_rev_ramp_time = buffer_get_float32_auto(buffer, &ind);
 	conf->app_nrf_conf.speed = buffer[ind++];
 	conf->app_nrf_conf.power = buffer[ind++];
 	conf->app_nrf_conf.crc_type = buffer[ind++];
@@ -680,6 +686,9 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_chuk_conf.multi_esc = APPCONF_CHUK_MULTI_ESC;
 	conf->app_chuk_conf.tc = APPCONF_CHUK_TC;
 	conf->app_chuk_conf.tc_max_diff = APPCONF_CHUK_TC_MAX_DIFF;
+	conf->app_chuk_conf.use_smart_rev = APPCONF_CHUK_USE_SMART_REV;
+	conf->app_chuk_conf.smart_rev_max_duty = APPCONF_CHUK_SMART_REV_MAX_DUTY;
+	conf->app_chuk_conf.smart_rev_ramp_time = APPCONF_CHUK_SMART_REV_RAMP_TIME;
 	conf->app_nrf_conf.speed = APPCONF_NRF_SPEED;
 	conf->app_nrf_conf.power = APPCONF_NRF_POWER;
 	conf->app_nrf_conf.crc_type = APPCONF_NRF_CRC;
