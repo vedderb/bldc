@@ -54,12 +54,12 @@ static bool reset_init_bmi(BMI_STATE *s) {
 
 	bmi160_init(&(s->sensor));
 
-	s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_100HZ;
+	s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_200HZ;
 	s->sensor.accel_cfg.range = BMI160_ACCEL_RANGE_16G;
 	s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
 	s->sensor.accel_cfg.power = BMI160_ACCEL_NORMAL_MODE;
 
-	s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_100HZ;
+	s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_200HZ;
 	s->sensor.gyro_cfg.range = BMI160_GYRO_RANGE_2000_DPS;
 	s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
 	s->sensor.gyro_cfg.power = BMI160_GYRO_NORMAL_MODE;

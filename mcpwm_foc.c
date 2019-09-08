@@ -1903,16 +1903,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			control_duty = true;
 			duty_set = 0.0;
 			was_full_brake = true;
-
-			// Reverse test
-//			if (!was_full_brake) {
-//				duty_set = 0.0;
-//				was_full_brake = true;
-//			} else {
-//				if (fabsf(duty_set) < 0.1) {
-//					duty_set -= 0.1 * dt * (m_conf->m_invert_direction ? -1.0 : 1.0);
-//				}
-//			}
 		} else {
 			was_full_brake = false;
 		}

@@ -1,3 +1,10 @@
+=== FW 3.60 ===
+* Fixed IMU9x50 bug.
+* Unrigester ICM20948 terminal callbacks when unused.
+* Added experiment plot functions.
+* Added D and Q axis voltage to RT data.
+* Added smart reverse function to nunchuk app.
+
 === FW 3.59 ===
 * Added more data to MOTE_PACKET_ALIVE.
 * Added app template.

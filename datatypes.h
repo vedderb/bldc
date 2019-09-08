@@ -423,6 +423,9 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
+	bool use_smart_rev;
+	float smart_rev_max_duty;
+	float smart_rev_ramp_time;
 } chuk_config;
 
 // NRF Datatypes
@@ -650,6 +653,10 @@ typedef enum {
 	COMM_BM_MAP_PINS_NRF5X,
 	COMM_ERASE_BOOTLOADER,
 	COMM_ERASE_BOOTLOADER_ALL_CAN,
+	COMM_PLOT_INIT,
+	COMM_PLOT_DATA,
+	COMM_PLOT_ADD_GRAPH,
+	COMM_PLOT_SET_GRAPH,
 } COMM_PACKET_ID;
 
 // CAN commands

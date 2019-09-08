@@ -320,6 +320,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS2(), 1e1, &ind);
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
 		}
+		if (mask & ((uint32_t)1 << 19)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vd(), 1e3, &ind);
+		}
+		if (mask & ((uint32_t)1 << 20)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
+		}
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
@@ -1081,6 +1087,48 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->foc_current_filter_const, HW_FOC_CURRENT_FILTER_LIM);
 #endif
 #endif
+}
+
+void commands_init_plot(char *namex, char *namey) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_INIT;
+	memcpy(send_buffer_global + ind, namex, strlen(namex));
+	ind += strlen(namex);
+	send_buffer_global[ind++] = '\0';
+	memcpy(send_buffer_global + ind, namey, strlen(namey));
+	ind += strlen(namey);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_add_graph(char *name) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_ADD_GRAPH;
+	memcpy(send_buffer_global + ind, name, strlen(name));
+	ind += strlen(name);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_set_graph(int graph) {
+	int ind = 0;
+	uint8_t buffer[2];
+	buffer[ind++] = COMM_PLOT_SET_GRAPH;
+	buffer[ind++] = graph;
+	commands_send_packet(buffer, ind);
+}
+
+void commands_send_plot_points(float x, float y) {
+	int32_t ind = 0;
+	uint8_t buffer[10];
+	buffer[ind++] = COMM_PLOT_DATA;
+	buffer_append_float32_auto(buffer, x, &ind);
+	buffer_append_float32_auto(buffer, y, &ind);
+	commands_send_packet(buffer, ind);
 }
 
 static THD_FUNCTION(blocking_thread, arg) {
