@@ -337,7 +337,8 @@ typedef enum {
 	PPM_CTRL_TYPE_DUTY_NOREV,
 	PPM_CTRL_TYPE_PID,
 	PPM_CTRL_TYPE_PID_NOREV,
-	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
+	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST,
+	PPM_CTRL_TYPE_CURRENT_SMART_REV
 } ppm_control_type;
 
 typedef struct {
@@ -358,6 +359,8 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	float max_erpm_for_dir;
+	float smart_rev_max_duty;
+	float smart_rev_ramp_time;
 } ppm_config;
 
 // ADC control types
