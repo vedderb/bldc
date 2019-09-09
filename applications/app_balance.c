@@ -51,6 +51,7 @@ static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
 
 static volatile balance_config balance_conf;
+static volatile imu_config imu_conf;
 static thread_t *app_thread;
 
 // Values used in loop
@@ -69,8 +70,9 @@ static systime_t startup_start_time, startup_diff_time;
 static float motor_current;
 static float motor_position;
 
-void app_balance_configure(balance_config *conf) {
+void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
+	imu_conf = *conf2;
 }
 
 void app_balance_start(void) {
@@ -206,11 +208,15 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (STARTUP):
 				if(startup_start_time == 0){
 					startup_start_time = current_time;
+					// Overwrite AHRS config
+					ahrs_update_all_parameters(1.00, imu_conf.mahony_kp, imu_conf.mahony_ki, 2.00);
 				}
 				startup_diff_time = current_time - startup_start_time;
 
 				// Calibration is done
 				if(ST2MS(startup_diff_time) > 1000){
+					// Restore AHRS config
+					ahrs_update_all_parameters(imu_conf.accel_confidence_decay, imu_conf.mahony_kp, imu_conf.mahony_ki, imu_conf.madgwick_beta);
 					// Set fault and wait for valid startup condition
 					state = FAULT;
 					startup_start_time = 0;

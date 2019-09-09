@@ -69,7 +69,7 @@ void app_set_configuration(app_configuration *conf) {
 	imu_init(&conf->imu_conf);
 
 	// Configure balance app before starting it.
-	app_balance_configure(&appconf.app_balance_conf);
+	app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);
 
 	switch (appconf.app_to_use) {
 	case APP_PPM:

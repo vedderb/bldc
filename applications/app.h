@@ -56,7 +56,7 @@ void app_nunchuk_update_output(chuck_data *data);
 
 void app_balance_start(void);
 void app_balance_stop(void);
-void app_balance_configure(balance_config *conf);
+void app_balance_configure(balance_config *conf, imu_config *conf2);
 float app_balance_get_pid_output(void);
 float app_balance_get_m_angle(void);
 float app_balance_get_c_angle(void);
