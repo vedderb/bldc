@@ -53,6 +53,7 @@
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
+#include "shutdown.h"
 
 /*
  * HW resources used:
@@ -192,7 +193,9 @@ int main(void) {
 	INIT_BR();
 #endif
 
-	chThdSleepMilliseconds(1000);
+	HW_EARLY_INIT();
+
+	chThdSleepMilliseconds(100);
 
 	hw_init_gpio();
 	LED_RED_OFF();
@@ -325,10 +328,14 @@ int main(void) {
 
 	timeout_init();
 	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
-	imu_init();
+	imu_init(&appconf.imu_conf);
 
 #if HAS_BLACKMAGIC
 	bm_init();
+#endif
+
+#ifdef HW_SHUTDOWN_HOLD_ON
+	shutdown_init();
 #endif
 
 	for(;;) {

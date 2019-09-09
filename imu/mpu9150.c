@@ -37,7 +37,6 @@
 #define USE_MAGNETOMETER		1
 #define MPU_I2C_TIMEOUT			10
 #define MAG_DIV 				10
-#define ITERATION_TIME_US		5000
 #define FAIL_DELAY_US			1000
 #define MIN_ITERATION_DELAY_US	500
 #define MAX_IDENTICAL_READS		5
@@ -59,6 +58,9 @@ static volatile bool is_mpu9250;
 static i2c_bb_state i2cs;
 static volatile int16_t mpu9150_gyro_offsets[3];
 static volatile bool mpu_found;
+static volatile bool is_running;
+static volatile bool should_stop;
+static volatile int rate_hz = 200;
 
 // Private functions
 static int reset_init_mpu(void);
@@ -87,6 +89,8 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	mag_updated = 0;
 	mpu_addr = MPU_ADDR1;
 	is_mpu9250 = 0;
+	is_running = false;
+	should_stop = false;
 
 	memset((void*)mpu9150_gyro_offsets, 0, sizeof(mpu9150_gyro_offsets));
 
@@ -114,6 +118,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	if (res == 0x68 || res == 0x69 || res == 0x71) {
 		mpu_found = true;
 		if (!mpu_tp) {
+			should_stop = false;
 			chThdCreateStatic(work_area, work_area_size, NORMALPRIO, mpu_thread, NULL);
 		}
 	} else {
@@ -156,6 +161,16 @@ static void terminal_read_reg(int argc, const char **argv) {
 	} else {
 		commands_printf("This command requires one argument.\n");
 	}
+}
+
+void mpu9150_stop(void) {
+	should_stop = true;
+	while (is_running) {
+		chThdSleep(1);
+	}
+
+	terminal_unregister_callback(terminal_status);
+	terminal_unregister_callback(terminal_read_reg);
 }
 
 /**
@@ -258,10 +273,15 @@ void mpu9150_get_accel_gyro_mag(float *accel, float *gyro, float *mag) {
 	mpu9150_get_mag(mag);
 }
 
+void mpu9150_set_rate_hz(int hz) {
+	rate_hz = hz;
+}
+
 static THD_FUNCTION(mpu_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("MPU Sampling");
 
+	is_running = true;
 	mpu_tp = chThdGetSelfX();
 
 	static int16_t raw_accel_gyro_mag_tmp[9];
@@ -274,6 +294,12 @@ static THD_FUNCTION(mpu_thread, arg) {
 	iteration_timer = chVTGetSystemTime();
 
 	for(;;) {
+		if (should_stop) {
+			is_running = false;
+			mpu_tp = 0;
+			return;
+		}
+
 		if (get_raw_accel_gyro(raw_accel_gyro_mag_tmp)) {
 			int is_identical = 1;
 			for (int i = 0;i < 6;i++) {
@@ -338,7 +364,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 			iteration_timer = chVTGetSystemTime();
 		}
 
-		iteration_timer += US2ST(ITERATION_TIME_US);
+		iteration_timer += US2ST(1000000 / rate_hz);
 		systime_t time_start = chVTGetSystemTime();
 		if (iteration_timer > time_start) {
 			chThdSleep(iteration_timer - time_start);

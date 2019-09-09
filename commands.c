@@ -41,6 +41,7 @@
 #include "gpdrive.h"
 #include "confgenerator.h"
 #include "imu.h"
+#include "shutdown.h"
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
@@ -319,6 +320,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS2(), 1e1, &ind);
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
 		}
+		if (mask & ((uint32_t)1 << 19)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vd(), 1e3, &ind);
+		}
+		if (mask & ((uint32_t)1 << 20)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
+		}
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
@@ -471,6 +478,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_ALIVE:
+		SHUTDOWN_RESET();
 		timeout_reset();
 		break;
 
@@ -602,45 +610,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_GET_VALUES_SETUP:
 	case COMM_GET_VALUES_SETUP_SELECTIVE: {
-		float ah_tot = 0.0;
-		float ah_charge_tot = 0.0;
-		float wh_tot = 0.0;
-		float wh_charge_tot = 0.0;
-		float current_tot = 0.0;
-		float current_in_tot = 0.0;
-		uint8_t num_vescs = 1;
-
-		ah_tot += mc_interface_get_amp_hours(false);
-		ah_charge_tot += mc_interface_get_amp_hours_charged(false);
-		wh_tot += mc_interface_get_watt_hours(false);
-		wh_charge_tot += mc_interface_get_watt_hours_charged(false);
-		current_tot += mc_interface_get_tot_current_filtered();
-		current_in_tot += mc_interface_get_tot_current_in_filtered();
-
-		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-			can_status_msg *msg = comm_can_get_status_msg_index(i);
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-				current_tot += msg->current;
-				num_vescs++;
-			}
-
-			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 0.1) {
-				ah_tot += msg2->amp_hours;
-				ah_charge_tot += msg2->amp_hours_charged;
-			}
-
-			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 0.1) {
-				wh_tot += msg3->watt_hours;
-				wh_charge_tot += msg3->watt_hours_charged;
-			}
-
-			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
-				current_in_tot += msg4->current_in;
-			}
-		}
+		setup_values val = mc_interface_get_setup_values();
 
 		float wh_batt_left = 0.0;
 		float battery_level = mc_interface_get_battery_level(&wh_batt_left);
@@ -664,10 +634,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
 		}
 		if (mask & ((uint32_t)1 << 2)) {
-			buffer_append_float32(send_buffer, current_tot, 1e2, &ind);
+			buffer_append_float32(send_buffer, val.current_tot, 1e2, &ind);
 		}
 		if (mask & ((uint32_t)1 << 3)) {
-			buffer_append_float32(send_buffer, current_in_tot, 1e2, &ind);
+			buffer_append_float32(send_buffer, val.current_in_tot, 1e2, &ind);
 		}
 		if (mask & ((uint32_t)1 << 4)) {
 			buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
@@ -685,16 +655,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, battery_level, 1e3, &ind);
 		}
 		if (mask & ((uint32_t)1 << 9)) {
-			buffer_append_float32(send_buffer, ah_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.ah_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 10)) {
-			buffer_append_float32(send_buffer, ah_charge_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.ah_charge_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 11)) {
-			buffer_append_float32(send_buffer, wh_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.wh_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 12)) {
-			buffer_append_float32(send_buffer, wh_charge_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.wh_charge_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 13)) {
 			buffer_append_float32(send_buffer, mc_interface_get_distance(), 1e3, &ind);
@@ -712,7 +682,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = app_get_configuration()->controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
-			send_buffer[ind++] = num_vescs;
+			send_buffer[ind++] = val.num_vescs;
 		}
 		if (mask & ((uint32_t)1 << 19)) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
@@ -924,6 +894,31 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_ERASE_BOOTLOADER_ALL_CAN:
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+
+		data[-1] = COMM_ERASE_BOOTLOADER;
+		comm_can_send_buffer(255, data - 1, len + 1, 2);
+		chThdSleepMilliseconds(1500);
+		/* Falls through. */
+		/* no break */
+	case COMM_ERASE_BOOTLOADER: {
+		int32_t ind = 0;
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+		uint16_t flash_res = flash_helper_erase_bootloader();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_ERASE_BOOTLOADER;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		reply_func(send_buffer, ind);
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -941,6 +936,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_WRITE_FLASH:
 	case COMM_BM_REBOOT:
 	case COMM_BM_DISCONNECT:
+	case COMM_BM_MAP_PINS_DEFAULT:
+	case COMM_BM_MAP_PINS_NRF5X:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len;
@@ -1090,6 +1087,48 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->foc_current_filter_const, HW_FOC_CURRENT_FILTER_LIM);
 #endif
 #endif
+}
+
+void commands_init_plot(char *namex, char *namey) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_INIT;
+	memcpy(send_buffer_global + ind, namex, strlen(namex));
+	ind += strlen(namex);
+	send_buffer_global[ind++] = '\0';
+	memcpy(send_buffer_global + ind, namey, strlen(namey));
+	ind += strlen(namey);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_add_graph(char *name) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_ADD_GRAPH;
+	memcpy(send_buffer_global + ind, name, strlen(name));
+	ind += strlen(name);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_set_graph(int graph) {
+	int ind = 0;
+	uint8_t buffer[2];
+	buffer[ind++] = COMM_PLOT_SET_GRAPH;
+	buffer[ind++] = graph;
+	commands_send_packet(buffer, ind);
+}
+
+void commands_send_plot_points(float x, float y) {
+	int32_t ind = 0;
+	uint8_t buffer[10];
+	buffer[ind++] = COMM_PLOT_DATA;
+	buffer_append_float32_auto(buffer, x, &ind);
+	buffer_append_float32_auto(buffer, y, &ind);
+	commands_send_packet(buffer, ind);
 }
 
 static THD_FUNCTION(blocking_thread, arg) {
@@ -1383,6 +1422,32 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			int32_t ind = 0;
 			send_buffer[ind++] = packet_id;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_DEFAULT: {
+			bm_default_swd_pins();
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, 1, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_NRF5X: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+
+#ifdef NRF5x_SWDIO_GPIO
+			buffer_append_int16(send_buffer, 1, &ind);
+			bm_change_swd_pins(NRF5x_SWDIO_GPIO, NRF5x_SWDIO_PIN,
+					NRF5x_SWCLK_GPIO, NRF5x_SWCLK_PIN);
+#else
+			buffer_append_int16(send_buffer, 0, &ind);
+#endif
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
 			}

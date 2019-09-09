@@ -32,11 +32,15 @@ typedef struct {
 	i2c_bb_state *i2cs;
 	uint8_t i2c_address;
 	void(*read_callback)(float *accel, float *gyro, float *mag);
+	volatile bool is_running;
+	volatile bool should_stop;
+	int rate_hz;
 } ICM20948_STATE;
 
 void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
 		stkalign_t *work_area, size_t work_area_size);
 void icm20948_set_read_callback(ICM20948_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
+void icm20948_stop(ICM20948_STATE *s);
 
 // All banks
 #define ICM20948_BANK_SEL						0x7F

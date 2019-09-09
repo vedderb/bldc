@@ -24,12 +24,15 @@
 #include "hal.h"
 #include "i2c_bb.h"
 
-void imu_init(void);
+void imu_init(imu_config *set);
 i2c_bb_state *imu_get_i2c(void);
 void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin);
 void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val);
+void imu_init_bmi160(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin);
+void imu_stop(void);
 float imu_get_roll(void);
 float imu_get_pitch(void);
 float imu_get_yaw(void);

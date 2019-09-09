@@ -336,7 +336,8 @@ typedef enum {
 	PPM_CTRL_TYPE_DUTY,
 	PPM_CTRL_TYPE_DUTY_NOREV,
 	PPM_CTRL_TYPE_PID,
-	PPM_CTRL_TYPE_PID_NOREV
+	PPM_CTRL_TYPE_PID_NOREV,
+	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
 } ppm_control_type;
 
 typedef struct {
@@ -356,6 +357,7 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
+	float max_erpm_for_dir;
 } ppm_config;
 
 // ADC control types
@@ -421,6 +423,9 @@ typedef struct {
 	bool multi_esc;
 	bool tc;
 	float tc_max_diff;
+	bool use_smart_rev;
+	float smart_rev_max_duty;
+	float smart_rev_ramp_time;
 } chuk_config;
 
 // NRF Datatypes
@@ -490,6 +495,49 @@ typedef enum {
 	CAN_STATUS_1_2_3_4_5
 } CAN_STATUS_MODE;
 
+typedef enum {
+	SHUTDOWN_MODE_ALWAYS_OFF = 0,
+	SHUTDOWN_MODE_ALWAYS_ON,
+	SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY,
+	SHUTDOWN_MODE_OFF_AFTER_10S,
+	SHUTDOWN_MODE_OFF_AFTER_1M,
+	SHUTDOWN_MODE_OFF_AFTER_5M,
+	SHUTDOWN_MODE_OFF_AFTER_10M,
+	SHUTDOWN_MODE_OFF_AFTER_30M,
+	SHUTDOWN_MODE_OFF_AFTER_1H,
+	SHUTDOWN_MODE_OFF_AFTER_5H,
+} SHUTDOWN_MODE;
+
+typedef enum {
+	IMU_TYPE_OFF = 0,
+	IMU_TYPE_INTERNAL,
+	IMU_TYPE_EXTERNAL_MPU9X50,
+	IMU_TYPE_EXTERNAL_ICM20948,
+	IMU_TYPE_EXTERNAL_BMI160
+} IMU_TYPE;
+
+typedef enum {
+	AHRS_MODE_MADGWICK = 0,
+	AHRS_MODE_MAHONY
+} AHRS_MODE;
+
+typedef struct {
+	IMU_TYPE type;
+	AHRS_MODE mode;
+	int sample_rate_hz;
+	float accel_confidence_decay;
+	float mahony_kp;
+	float mahony_ki;
+	float madgwick_beta;
+	float rot_roll;
+	float rot_pitch;
+	float rot_yaw;
+	float accel_offsets[3];
+	float gyro_offsets[3];
+	float gyro_offset_comp_fact[3];
+	float gyro_offset_comp_clamp;
+} imu_config;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -500,6 +548,7 @@ typedef struct {
 	CAN_BAUD can_baud_rate;
 	bool pairing_done;
 	bool permanent_uart_enabled;
+	SHUTDOWN_MODE shutdown_mode;
 
 	// UAVCAN
 	bool uavcan_enable;
@@ -522,6 +571,9 @@ typedef struct {
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
+
+	// IMU Settings
+	imu_config imu_conf;
 } app_configuration;
 
 // Communication commands
@@ -596,7 +648,15 @@ typedef enum {
 	COMM_BM_ERASE_FLASH_ALL,
 	COMM_BM_WRITE_FLASH,
 	COMM_BM_REBOOT,
-	COMM_BM_DISCONNECT
+	COMM_BM_DISCONNECT,
+	COMM_BM_MAP_PINS_DEFAULT,
+	COMM_BM_MAP_PINS_NRF5X,
+	COMM_ERASE_BOOTLOADER,
+	COMM_ERASE_BOOTLOADER_ALL_CAN,
+	COMM_PLOT_INIT,
+	COMM_PLOT_DATA,
+	COMM_PLOT_ADD_GRAPH,
+	COMM_PLOT_SET_GRAPH,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -784,5 +844,15 @@ typedef union {
 
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
+
+typedef struct {
+	float ah_tot;
+	float ah_charge_tot;
+	float wh_tot;
+	float wh_charge_tot;
+	float current_tot;
+	float current_in_tot;
+	uint8_t num_vescs;
+} setup_values;
 
 #endif /* DATATYPES_H_ */

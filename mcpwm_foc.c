@@ -113,6 +113,7 @@ static volatile float m_last_adc_isr_duration;
 static volatile float m_pos_pid_now;
 static volatile bool m_init_done = false;
 static volatile float m_gamma_now;
+static volatile bool m_using_encoder;
 
 #ifdef HW_HAS_3_SHUNTS
 static volatile int m_curr2_sum;
@@ -234,6 +235,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_last_adc_isr_duration = 0;
 	m_pos_pid_now = 0.0;
 	m_gamma_now = 0.0;
+	m_using_encoder = false;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
 
@@ -797,7 +799,6 @@ float mcpwm_foc_get_sampling_frequency_now(void) {
  * Returns Ts used for virtual motor sync
  */
 float mcpwm_foc_get_ts(void){
-
 #ifdef HW_HAS_PHASE_SHUNTS
 	if (m_conf->foc_sample_v0_v7) {
 		return (1.0 / m_conf->foc_f_sw) ;
@@ -807,8 +808,12 @@ float mcpwm_foc_get_ts(void){
 #else
 	return (1.0 / m_conf->foc_f_sw) ;
 #endif
-
 }
+
+bool mcpwm_foc_is_using_encoder(void) {
+	return m_using_encoder;
+}
+
 /**
  * Calculate the current RPM of the motor. This is a signed value and the sign
  * depends on the direction the motor is rotating in. Note that this value has
@@ -2824,21 +2829,20 @@ static int read_hall(void) {
 
 static float correct_encoder(float obs_angle, float enc_angle, float speed) {
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
-	static bool using_encoder = true;
 
 	// Hysteresis 5 % of total speed
 	float hyst = m_conf->foc_sl_erpm * 0.05;
-	if (using_encoder) {
+	if (m_using_encoder) {
 		if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
-			using_encoder = false;
+			m_using_encoder = false;
 		}
 	} else {
 		if (rpm_abs < (m_conf->foc_sl_erpm - hyst)) {
-			using_encoder = true;
+			m_using_encoder = true;
 		}
 	}
 
-	return using_encoder ? enc_angle : obs_angle;
+	return m_using_encoder ? enc_angle : obs_angle;
 }
 
 static float correct_hall(float angle, float speed, float dt) {

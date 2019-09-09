@@ -35,8 +35,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "conf_mc_app_default.h"
-
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
 #define EEPROM_BASE_APPCONF		2000
@@ -1115,6 +1113,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	float lambda = 0.0;
 	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, &lambda);
 
+	mc_motor_type old_type = mcconf_old.motor_type;
 	float old_r = mcconf_old.foc_motor_r;
 	float old_l = mcconf_old.foc_motor_l;
 	float old_flux_linkage = mcconf_old.foc_motor_flux_linkage;
@@ -1134,6 +1133,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		float ki = r * bw;
 		float gain = 0.001 / (lambda * lambda);
 
+		mcconf_old.motor_type = MOTOR_TYPE_FOC;
 		mcconf_old.foc_motor_r = r;
 		mcconf_old.foc_motor_l = l;
 		mcconf_old.foc_motor_flux_linkage = lambda;
@@ -1175,6 +1175,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		result = conf_general_autodetect_apply_sensors_foc(i_max / 3.0,
 				store_mcconf_on_success, send_mcconf_on_success);
 	} else {
+		mcconf_old.motor_type = old_type;
 		mcconf_old.foc_motor_r = old_r;
 		mcconf_old.foc_motor_l = old_l;
 		mcconf_old.foc_motor_flux_linkage = old_flux_linkage;

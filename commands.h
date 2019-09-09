@@ -39,5 +39,9 @@ void commands_send_gpd_buffer_notify(void);
 void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf);
 void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf);
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf);
+void commands_init_plot(char *namex, char *namey);
+void commands_plot_add_graph(char *name);
+void commands_plot_set_graph(int graph);
+void commands_send_plot_points(float x, float y);
 
 #endif /* COMMANDS_H_ */
