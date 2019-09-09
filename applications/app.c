@@ -24,6 +24,7 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "comm_can.h"
+#include "imu.h"
 
 // Private variables
 static app_configuration appconf;
@@ -64,6 +65,8 @@ void app_set_configuration(app_configuration *conf) {
 #ifdef APP_CUSTOM_TO_USE
 	app_custom_stop();
 #endif
+
+	imu_init(&conf->imu_conf);
 
 	// Configure balance app before starting it.
 	app_balance_configure(&appconf.app_balance_conf);

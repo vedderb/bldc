@@ -490,19 +490,22 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 			//palWritePad(HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, send >> 15);
 			send <<= 1;
 
-			spi_delay();
 			palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
 			spi_delay();
 
-			int r1, r2, r3;
-			r1 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			int samples = 0;
+			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 			__NOP();
-			r2 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 			__NOP();
-			r3 = palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			__NOP();
+			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
+			__NOP();
+			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 
 			recieve <<= 1;
-			if (utils_middle_of_3_int(r1, r2, r3)) {
+			if (samples > 2) {
 				recieve |= 1;
 			}
 

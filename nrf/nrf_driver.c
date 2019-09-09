@@ -201,13 +201,21 @@ static THD_FUNCTION(tx_thread, arg) {
 			static uint8_t seq_cnt = 0;
 			seq_cnt++;
 
+			setup_values val = mc_interface_get_setup_values();
+			float wh_left = 0;
+
 			pl[index++] = MOTE_PACKET_ALIVE;
-			buffer_append_float16(pl, mc_interface_get_battery_level(0), 1e3, &index);
+			buffer_append_float16(pl, mc_interface_get_battery_level(&wh_left), 1e3, &index);
 			buffer_append_float32(pl, mc_interface_get_speed(), 1e3, &index);
 			buffer_append_float32(pl, mc_interface_get_distance_abs(), 1e3, &index);
 			buffer_append_float16(pl, mc_interface_temp_fet_filtered(), 1e1, &index);
 			buffer_append_float16(pl, mc_interface_temp_motor_filtered(), 1e1, &index);
 			pl[index++] = seq_cnt;
+			buffer_append_float32(pl, wh_left, 1e3, &index);
+			buffer_append_float32(pl, val.wh_tot, 1e4, &index);
+			buffer_append_float32(pl, val.wh_charge_tot, 1e4, &index);
+			pl[index++] = (uint8_t)((int8_t)(mc_interface_get_tot_current_directional_filtered() /
+					mc_interface_get_configuration()->lo_current_motor_max_now * 100.0));
 
 			if (driver_paused == 0) {
 				rf_tx_wrapper((char*)pl, index);

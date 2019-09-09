@@ -69,6 +69,5 @@ uint16_t app_balance_get_state(void);
 void app_custom_start(void);
 void app_custom_stop(void);
 void app_custom_configure(app_configuration *conf);
-void app_custom_terminal_rpy(int argc, const char **argv);
 
 #endif /* APP_H_ */

@@ -35,8 +35,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "conf_mc_app_default.h"
-
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
 #define EEPROM_BASE_APPCONF		2000
