@@ -515,8 +515,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_BALANCE;
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pid_output() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pitch() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_roll() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_m_angle() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_c_angle() * 1000000.0), &ind);
 		buffer_append_uint32(send_buffer, app_balance_get_diff_time(), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_position() * 1000000.0), &ind);

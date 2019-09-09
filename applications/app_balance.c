@@ -110,10 +110,10 @@ void app_balance_stop(void) {
 float app_balance_get_pid_output(void) {
 	return pid_value;
 }
-float app_balance_get_pitch(void) {
+float app_balance_get_m_angle(void) {
 	return m_angle;
 }
-float app_balance_get_roll(void) {
+float app_balance_get_c_angle(void) {
 	return c_angle;
 }
 uint32_t app_balance_get_diff_time(void) {
