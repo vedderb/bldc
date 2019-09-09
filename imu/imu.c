@@ -102,7 +102,7 @@ void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 	imu_stop();
 
-	mpu9150_init(&config, sda_gpio, sda_pin,
+	mpu9150_init(sda_gpio, sda_pin,
 			scl_gpio, scl_pin,
 			m_thd_work_area, sizeof(m_thd_work_area));
 	mpu9150_set_read_callback(imu_read_callback);

@@ -28,6 +28,7 @@
 #include "imu/imu.h"
 #include "imu/ahrs.h"
 #include "utils.h"
+#include "datatypes.h"
 
 
 #include <math.h>
@@ -50,12 +51,11 @@ static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
 
 static volatile balance_config balance_conf;
-static volatile imu_config imu_conf;
 static thread_t *app_thread;
 
 // Values used in loop
 static BalanceState state;
-static float pitch, roll;
+static float m_angle, c_angle;
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
@@ -69,17 +69,16 @@ static systime_t startup_start_time, startup_diff_time;
 static float motor_current;
 static float motor_position;
 
-void app_balance_configure(balance_config *conf, imu_config *conf2) {
+void app_balance_configure(balance_config *conf) {
 	balance_conf = *conf;
-	imu_conf = *conf2;
 }
 
 void app_balance_start(void) {
 
 	// Reset all Values
 	state = STARTUP;
-	pitch = 0;
-	roll = 0;
+	m_angle = 0;
+	c_angle = 0;
 	proportional = 0;
 	integral = 0;
 	derivative = 0;
@@ -112,10 +111,10 @@ float app_balance_get_pid_output(void) {
 	return pid_value;
 }
 float app_balance_get_pitch(void) {
-	return pitch;
+	return m_angle;
 }
 float app_balance_get_roll(void) {
-	return roll;
+	return c_angle;
 }
 uint32_t app_balance_get_diff_time(void) {
 	return ST2US(diff_time);
@@ -178,13 +177,29 @@ static THD_FUNCTION(balance_thread, arg) {
 		motor_current = mc_interface_get_tot_current_directional_filtered();
 		motor_position = mc_interface_get_pid_pos_now();
 
-		// Read gyro values
-		pitch = imu_get_pitch() * 180.0f / M_PI;
-		roll = imu_get_roll() * 180.0f / M_PI;
-
-		// Apply offsets
-		pitch = fmodf(((pitch + 180.0f) + balance_conf.pitch_offset), 360.0f) - 180.0f;
-		roll = fmodf(((roll + 180.0f) + balance_conf.roll_offset), 360.0f) - 180.0f;
+		// Get the values we want
+		switch(balance_conf.m_axis){
+			case (PITCH):
+				m_angle = imu_get_pitch() * 180.0f / M_PI;;
+				break;
+			case (ROLL):
+				m_angle = imu_get_roll() * 180.0f / M_PI;
+				break;
+			case (YAW):
+				m_angle = imu_get_yaw() * 180.0f / M_PI;
+				break;
+		}
+		switch(balance_conf.c_axis){
+			case (PITCH):
+				c_angle = imu_get_pitch() * 180.0f / M_PI;;
+				break;
+			case (ROLL):
+				c_angle = imu_get_roll() * 180.0f / M_PI;
+				break;
+			case (YAW):
+				c_angle = imu_get_yaw() * 180.0f / M_PI;
+				break;
+		}
 
 		// State based logic
 		switch(state){
@@ -195,7 +210,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				startup_diff_time = current_time - startup_start_time;
 
 				// Calibration is done
-				if(ST2MS(startup_diff_time) > imu_conf.startup_time){
+				if(ST2MS(startup_diff_time) > 1000){
 					// Set fault and wait for valid startup condition
 					state = FAULT;
 					startup_start_time = 0;
@@ -209,7 +224,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Check for fault
-				if(fabsf(pitch) > balance_conf.pitch_fault || fabsf(roll) > balance_conf.roll_fault){
+				if(fabsf(m_angle) > balance_conf.m_fault || fabsf(c_angle) > balance_conf.c_fault){
 					state = FAULT;
 				}
 
@@ -237,7 +252,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Do PID maths
-				proportional = setpoint - pitch;
+				proportional = setpoint - m_angle;
 				// Apply deadzone
 				proportional = apply_deadzone(proportional);
 				// Resume real PID maths
@@ -267,8 +282,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (FAULT):
 				// Check for valid startup position
-				if(fabsf(pitch) < balance_conf.startup_pitch && fabsf(roll) < balance_conf.startup_roll){
-					setpoint = pitch;
+				if(fabsf(m_angle) < balance_conf.startup_m_tolerance && fabsf(c_angle) < balance_conf.startup_c_tolerance){
+					setpoint = m_angle;
 					setpoint_target = 0;
 					setpointAdjustmentType = CENTERING;
 					state = RUNNING;
