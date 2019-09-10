@@ -230,6 +230,13 @@ static THD_FUNCTION(balance_thread, arg) {
 		switch(state){
 			case (STARTUP):
 				if(startup_start_time == 0){
+					// Loop and wait for gyro to start returning actual values
+					float acc_values[3];
+					imu_get_accel(acc_values);
+					while(acc_values[0] == 0 && acc_values[1] == 0 && acc_values[1] == 0){
+						chThdSleepMilliseconds(20);
+						imu_get_accel(acc_values);
+					}
 					startup_start_time = current_time;
 					// Overwrite AHRS config
 					ahrs_update_all_parameters(1.00, imu_conf.mahony_kp, imu_conf.mahony_ki, 2.00);
