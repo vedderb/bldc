@@ -156,6 +156,6 @@ static void pwm_callback(void) {
 static void terminal_info(int argc, const char **argv) {
       commands_printf(
             "MIN: %.2f V MAX: %.2f V CYCLES: %u CURRENT_REL: %u",
-                min, max, cylces,current_rel_pwr);
+            min_pwr, max_pwr, cycles, current_rel_pwr);
 }
 
