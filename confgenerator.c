@@ -229,6 +229,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->app_balance_conf.c_axis;
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.m_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.c_fault, &ind);
+	buffer[ind++] = conf->app_balance_conf.use_switches;
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.overspeed_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_angle, &ind);
@@ -493,6 +494,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.c_axis = buffer[ind++];
 	conf->app_balance_conf.m_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.c_fault = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.use_switches = buffer[ind++];
 	conf->app_balance_conf.overspeed_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_angle = buffer_get_float32_auto(buffer, &ind);
@@ -741,6 +743,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.c_axis = APPCONF_BALANCE_C_AXIS;
 	conf->app_balance_conf.m_fault = APPCONF_BALANCE_M_FAULT;
 	conf->app_balance_conf.c_fault = APPCONF_BALANCE_C_FAULT;
+	conf->app_balance_conf.use_switches = APPCONF_BALANCE_USE_SWITCHES;
 	conf->app_balance_conf.overspeed_duty = APPCONF_BALANCE_OVERSPEED_DUTY;
 	conf->app_balance_conf.tiltback_duty = APPCONF_BALANCE_TILTBACK_DUTY;
 	conf->app_balance_conf.tiltback_angle = APPCONF_BALANCE_TILTBACK_ANGLE;

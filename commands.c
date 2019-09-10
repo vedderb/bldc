@@ -521,6 +521,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_position() * 1000000.0), &ind);
 		buffer_append_uint16(send_buffer, app_balance_get_state(), &ind);
+		buffer_append_uint16(send_buffer, app_balance_get_switch_value(), &ind);
 		reply_func(send_buffer, ind);
 	} break;
 

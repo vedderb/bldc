@@ -65,6 +65,7 @@ static SetpointAdjustmentType setpointAdjustmentType;
 static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
 static systime_t startup_start_time, startup_diff_time;
+static uint16_t switches_value;
 
 // Values read to pass in app data to GUI
 static float motor_current;
@@ -81,6 +82,7 @@ void app_balance_start(void) {
 	state = STARTUP;
 	m_angle = 0;
 	c_angle = 0;
+	switches_value = 0;
 	proportional = 0;
 	integral = 0;
 	derivative = 0;
@@ -96,6 +98,12 @@ void app_balance_start(void) {
 	diff_time = 0;
 	startup_start_time = 0;
 	startup_diff_time = 0;
+
+	// Configure pins
+	if(balance_conf.use_switches){
+		palSetPadMode(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, PAL_MODE_INPUT_PULLDOWN);
+		palSetPadMode(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO, PAL_MODE_INPUT_PULLDOWN);
+	}
 
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
@@ -129,6 +137,9 @@ float app_balance_get_motor_position(void) {
 }
 uint16_t app_balance_get_state(void) {
 	return state;
+}
+uint16_t app_balance_get_switch_value(void) {
+	return switches_value;
 }
 
 float get_setpoint_adjustment_step_size(void){
@@ -203,6 +214,18 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 		}
 
+		if(!balance_conf.use_switches){
+			switches_value = 2;
+		}else{
+			switches_value = 0;
+			if(palReadPad(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK)){
+				switches_value += 1;
+			}
+			if(palReadPad(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO)){
+				switches_value += 1;
+			}
+		}
+
 		// State based logic
 		switch(state){
 			case (STARTUP):
@@ -230,7 +253,12 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Check for fault
-				if(fabsf(m_angle) > balance_conf.m_fault || fabsf(c_angle) > balance_conf.c_fault){
+				if(
+					fabsf(m_angle) > balance_conf.m_fault || // Balnce axis tip over
+					fabsf(c_angle) > balance_conf.c_fault || // Cross axis tip over
+					app_balance_get_switch_value() == 0 || // Switch fully open
+					(app_balance_get_switch_value() == 1 && fabsf(mc_interface_get_duty_cycle_now()) < 0.003) // Switch partially open and stopped
+						){
 					state = FAULT;
 				}
 
@@ -287,8 +315,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 				break;
 			case (FAULT):
-				// Check for valid startup position
-				if(fabsf(m_angle) < balance_conf.startup_m_tolerance && fabsf(c_angle) < balance_conf.startup_c_tolerance){
+				// Check for valid startup position and switch state
+				if(fabsf(m_angle) < balance_conf.startup_m_tolerance && fabsf(c_angle) < balance_conf.startup_c_tolerance && app_balance_get_switch_value() == 2){
 					setpoint = m_angle;
 					setpoint_target = 0;
 					setpointAdjustmentType = CENTERING;

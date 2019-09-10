@@ -64,6 +64,7 @@ uint32_t app_balance_get_diff_time(void);
 float app_balance_get_motor_current(void);
 float app_balance_get_motor_position(void);
 uint16_t app_balance_get_state(void);
+uint16_t app_balance_get_switch_value(void);
 
 // Custom apps
 void app_custom_start(void);

@@ -502,6 +502,7 @@ typedef struct {
 	AXIS c_axis;
 	float m_fault;
 	float c_fault;
+	bool use_switches;
 	float overspeed_duty;
 	float tiltback_duty;
 	float tiltback_angle;
