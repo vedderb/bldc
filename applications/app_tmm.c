@@ -40,11 +40,15 @@ static THD_WORKING_AREA(my_thread_wa, 2048);
 
 // Private functions
 static void pwm_callback(void);
-static void terminal_test(int argc, const char **argv);
+static void terminal_info(int argc, const char **argv);
 
 // Private variables
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile float min_pwr = 3.3;
+static volatile float max_pwr = 0.0;
+static volatile float current_rel_pwr = 0.0;
+static volatile uint16_t cycles = 0;
 
 // Called when the custom application is started. Start our
 // threads here and set up callbacks.
@@ -57,17 +61,17 @@ void app_custom_start(void) {
 
     // Terminal commands for the VESC Tool terminal can be registered.
     terminal_register_command_callback(
-            "custom_cmd",
-            "Print the number d",
-            "[d]",
-            terminal_test);
+            "app_tmm",
+            "show variables",
+            "",
+            terminal_info);
 }
 
 // Called when the custom application is stopped. Stop our threads
 // and release callbacks.
 void app_custom_stop(void) {
     mc_interface_set_pwm_callback(0);
-    terminal_unregister_callback(terminal_test);
+    terminal_unregister_callback(terminal_info);
 
     stop_now = true;
     while (is_running) {
@@ -81,9 +85,6 @@ void app_custom_configure(app_configuration *conf) {
 
 static THD_FUNCTION(my_thread, arg) {
     (void)arg;
-    float min_pwr = 3.3;
-    float max_pwr = 0.0;
-    float current_rel_pwr = 0.0;
 
     chRegSetThreadName("App Custom");
 
@@ -100,36 +101,50 @@ static THD_FUNCTION(my_thread, arg) {
         float pwr = (float)ADC_VOLTS(ADC_IND_EXT);
         float brake = (float)ADC_VOLTS(ADC_IND_EXT2);
 
-        commands_printf("ADC1: %.2f V ADC2: %.2f V",
-                (double)pwr, (double)brake);
-        commands_printf("MIN: %.2f V MAX: %.2f V",
-                (double)min_pwr, (double)max_pwr);
+        /**
+         * update mc interface every 2 secounds
+         */
+        if(cycles == 1000) {
+           /**
+            * reset cycles counter
+            */
+           cycles = 0;
 
-        // recup 2
-        if (brake < 0.01) {
-          mc_interface_set_brake_current_rel(1.0);
-        } else {
-          // calibrate tmm sensor
-          if(mc_interface_get_tot_current() == 0.0 && pwr < min_pwr) {
-            min_pwr = pwr;
-          } else {
-            if(pwr > max_pwr) {
-              max_pwr = pwr;
+           /**
+            * Recuperation of energy, when brakelever switch is closed
+            */
+            if (brake < 0.01) {
+              mc_interface_set_brake_current_rel(1.0);
+            } else {
+              /**
+               * auto calibrate sensor
+               * min: only when motor is not spinning
+               * max: when motor is spinning or user is applying pressure on the pedal 
+               */
+              if(mc_interface_get_tot_current() == 0.0 && pwr < min_pwr) {
+                min_pwr = pwr;
+              } else {
+                if(pwr > max_pwr) {
+                  max_pwr = pwr;
+                }
+
+                /**
+                 * calculate from voltage range min to max to 
+                 * range of 0.0 to 1.0
+                 */
+                current_rel_pwr = fabs(0.01 *
+                (
+                    (100 / (max_pwr - min_pwr)) *
+                    (pwr - min_pwr)
+                ));
+
+                mc_interface_set_current_rel(current_rel_pwr);
+              }
             }
-
-            // accept only positive numbers,
-            // we dont want to reverse the motor!
-            current_rel_pwr = fabs(0.01 *
-            (
-                (100 / (max_pwr - min_pwr)) *
-                (pwr - min_pwr)
-            ));
-
-            mc_interface_set_current_rel(current_rel_pwr);
-          }
         }
 
-        chThdSleepMilliseconds(1);
+        chThdSleepMilliseconds(2);
+        cycles++;
     }
 }
 
@@ -138,18 +153,9 @@ static void pwm_callback(void) {
 }
 
 // Callback function for the terminal command with arguments.
-static void terminal_test(int argc, const char **argv) {
-    if (argc == 2) {
-        int d = -1;
-        sscanf(argv[1], "%d", &d);
-
-        commands_printf("You have entered %d", d);
-
-        // For example, read the ADC inputs on the COMM header.
-        commands_printf("ADC1: %.2f V ADC2: %.2f V",
-                (double)ADC_VOLTS(ADC_IND_EXT), (double)ADC_VOLTS(ADC_IND_EXT2));
-    } else {
-        commands_printf("This command requires one argument.\n");
-    }
+static void terminal_info(int argc, const char **argv) {
+      commands_printf(
+            "MIN: %.2f V MAX: %.2f V CYCLES: %u CURRENT_REL: %u",
+                min, max, cylces,current_rel_pwr);
 }
 
