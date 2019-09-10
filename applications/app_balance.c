@@ -233,7 +233,7 @@ static THD_FUNCTION(balance_thread, arg) {
 					// Loop and wait for gyro to start returning actual values
 					float acc_values[3];
 					imu_get_accel(acc_values);
-					while(acc_values[0] == 0 && acc_values[1] == 0 && acc_values[1] == 0){
+					while(acc_values[0] == 0 && acc_values[1] == 0 && acc_values[2] == 0){
 						chThdSleepMilliseconds(20);
 						imu_get_accel(acc_values);
 					}
