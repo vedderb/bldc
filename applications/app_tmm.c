@@ -129,16 +129,21 @@ static THD_FUNCTION(my_thread, arg) {
                 }
 
                 /**
+                 * only when difference from min to max is larger then 0.4V
+                 * then adjust speed (Sensor ist attached and working properly)
+                 */
+                if((max_pwr - min_pwr) > 0.4) {
+                /**
                  * calculate from voltage range min to max to 
                  * range of 0.0 to 1.0
                  */
-                current_rel_pwr = fabs(0.01 *
-                (
-                    (100 / (max_pwr - min_pwr)) *
-                    (pwr - min_pwr)
-                ));
-
-                mc_interface_set_current_rel(current_rel_pwr);
+                  current_rel_pwr = fabs(0.01 *
+                    (
+                        (100 / (max_pwr - min_pwr)) *
+                        (pwr - min_pwr)
+                    ));
+                   mc_interface_set_current_rel(current_rel_pwr);
+                }
               }
             }
         }
@@ -155,7 +160,7 @@ static void pwm_callback(void) {
 // Callback function for the terminal command with arguments.
 static void terminal_info(int argc, const char **argv) {
       commands_printf(
-            "MIN: %.2f V MAX: %.2f V CYCLES: %u CURRENT_REL: %u",
+            "MIN: %.2f V MAX: %.2f V CYCLES: %u CURRENT_REL: %.2f",
             min_pwr, max_pwr, cycles, current_rel_pwr);
 }
 
