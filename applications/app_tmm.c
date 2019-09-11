@@ -39,7 +39,6 @@ static THD_FUNCTION(my_thread, arg);
 static THD_WORKING_AREA(my_thread_wa, 2048);
 
 // Private functions
-static void pwm_callback(void);
 static void terminal_info(int argc, const char **argv);
 
 // Private variables
@@ -53,8 +52,6 @@ static volatile uint16_t cycles = 0;
 // Called when the custom application is started. Start our
 // threads here and set up callbacks.
 void app_custom_start(void) {
-    mc_interface_set_pwm_callback(pwm_callback);
-
     stop_now = false;
     chThdCreateStatic(my_thread_wa, sizeof(my_thread_wa),
             NORMALPRIO, my_thread, NULL);
@@ -70,7 +67,6 @@ void app_custom_start(void) {
 // Called when the custom application is stopped. Stop our threads
 // and release callbacks.
 void app_custom_stop(void) {
-    mc_interface_set_pwm_callback(0);
     terminal_unregister_callback(terminal_info);
 
     stop_now = true;
@@ -145,16 +141,14 @@ static THD_FUNCTION(my_thread, arg) {
                    mc_interface_set_current_rel(current_rel_pwr);
                 }
               }
+            } else {
+                mc_interface_release_motor();
             }
         }
 
         chThdSleepMilliseconds(2);
         cycles++;
     }
-}
-
-static void pwm_callback(void) {
-    // Called for every control iteration in interrupt context.
 }
 
 // Callback function for the terminal command with arguments.
