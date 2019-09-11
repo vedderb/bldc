@@ -100,7 +100,7 @@ static THD_FUNCTION(my_thread, arg) {
         /**
          * update mc interface every 2 secounds
          */
-        if(cycles == 1000) {
+        if(cycles == 200) {
            /**
             * reset cycles counter
             */
@@ -139,14 +139,14 @@ static THD_FUNCTION(my_thread, arg) {
                         (pwr - min_pwr)
                     ));
                    mc_interface_set_current_rel(current_rel_pwr);
-                }
-              }
-            } else {
+                } else {
                 mc_interface_release_motor();
+               }
+              }
             }
         }
 
-        chThdSleepMilliseconds(2);
+        chThdSleepMilliseconds(10);
         cycles++;
     }
 }
