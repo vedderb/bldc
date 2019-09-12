@@ -507,7 +507,8 @@ typedef struct {
 	float tiltback_duty;
 	float tiltback_angle;
 	float tiltback_speed;
-	float tiltback_voltage;
+	float tiltback_high_voltage;
+	float tiltback_low_voltage;
 	float startup_m_tolerance;
 	float startup_c_tolerance;
 	float startup_speed;

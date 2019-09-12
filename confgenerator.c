@@ -234,7 +234,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_angle, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_speed, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_voltage, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_high_voltage, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_low_voltage, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_m_tolerance, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_c_tolerance, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_speed, &ind);
@@ -500,7 +501,8 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.tiltback_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_angle = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_speed = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.tiltback_voltage = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_high_voltage = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_low_voltage = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_m_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_c_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
@@ -750,7 +752,8 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.tiltback_duty = APPCONF_BALANCE_TILTBACK_DUTY;
 	conf->app_balance_conf.tiltback_angle = APPCONF_BALANCE_TILTBACK_ANGLE;
 	conf->app_balance_conf.tiltback_speed = APPCONF_BALANCE_TILTBACK_SPEED;
-	conf->app_balance_conf.tiltback_voltage = APPCONF_BALANCE_TILTBACK_VOLTAGE;
+	conf->app_balance_conf.tiltback_high_voltage = APPCONF_BALANCE_TILTBACK_HIGH_V;
+	conf->app_balance_conf.tiltback_low_voltage = APPCONF_BALANCE_TILTBACK_LOW_V;
 	conf->app_balance_conf.startup_m_tolerance = APPCONF_BALANCE_STARTUP_M_TOLERANCE;
 	conf->app_balance_conf.startup_c_tolerance = APPCONF_BALANCE_STARTUP_C_TOLERANCE;
 	conf->app_balance_conf.startup_speed = APPCONF_BALANCE_STARTUP_SPEED;

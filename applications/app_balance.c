@@ -254,7 +254,8 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				// Over speed tilt back safety
 				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.tiltback_duty ||
-						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_voltage)){
+						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
+						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
 					if(mc_interface_get_duty_cycle_now() > 0){
 						setpoint_target = balance_conf.tiltback_angle;
 					} else {
