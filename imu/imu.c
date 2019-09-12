@@ -40,6 +40,8 @@ static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
 static imu_config m_settings;
 static float m_gyro_offset[3] = {0.0};
+static systime_t init_time;
+static bool imu_ready;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
@@ -53,8 +55,10 @@ void imu_init(imu_config *set) {
 
 	imu_stop();
 
-	ahrs_update_all_parameters(set->accel_confidence_decay, set->mahony_kp,
-			set->mahony_ki, set->madgwick_beta);
+	imu_ready = false;
+	init_time = chVTGetSystemTimeX();
+	ahrs_update_all_parameters(1.0, 0.3, 0.0, 2.0);
+
 	ahrs_init_attitude_info(&m_att);
 
 	mpu9150_set_rate_hz(set->sample_rate_hz);
@@ -149,6 +153,10 @@ void imu_stop(void) {
 	bmi160_wrapper_stop(&m_bmi_state);
 }
 
+bool imu_startup_done(void) {
+	return imu_ready;
+}
+
 float imu_get_roll(void) {
 	return ahrs_get_roll(&m_att);
 }
@@ -214,6 +222,15 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
+
+	if(!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000){
+		ahrs_update_all_parameters(
+				m_settings.accel_confidence_decay,
+				m_settings.mahony_kp,
+				m_settings.mahony_ki,
+				m_settings.madgwick_beta);
+		imu_ready = true;
+	}
 
 #ifdef IMU_FLIP
 	accel[0] *= -1.0;

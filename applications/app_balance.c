@@ -229,29 +229,12 @@ static THD_FUNCTION(balance_thread, arg) {
 		// State based logic
 		switch(state){
 			case (STARTUP):
-				if(startup_start_time == 0){
-					// Loop and wait for gyro to start returning actual values
-					float acc_values[3];
-					imu_get_accel(acc_values);
-					while(acc_values[0] == 0 && acc_values[1] == 0 && acc_values[2] == 0){
-						chThdSleepMilliseconds(20);
-						imu_get_accel(acc_values);
-					}
-					startup_start_time = current_time;
-					// Overwrite AHRS config
-					ahrs_update_all_parameters(1.00, imu_conf.mahony_kp, imu_conf.mahony_ki, 2.00);
+				while(!imu_startup_done()){
+					chThdSleepMilliseconds(50);
 				}
-				startup_diff_time = current_time - startup_start_time;
-
-				// Calibration is done
-				if(ST2MS(startup_diff_time) > 1000){
-					// Restore AHRS config
-					ahrs_update_all_parameters(imu_conf.accel_confidence_decay, imu_conf.mahony_kp, imu_conf.mahony_ki, imu_conf.madgwick_beta);
-					// Set fault and wait for valid startup condition
-					state = FAULT;
-					startup_start_time = 0;
-					startup_diff_time = 0;
-				}
+				state = FAULT;
+				startup_start_time = 0;
+				startup_diff_time = 0;
 				break;
 			case (RUNNING):
 				// Check for overspeed
