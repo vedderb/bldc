@@ -97,15 +97,6 @@ static THD_FUNCTION(my_thread, arg) {
         float pwr = (float)ADC_VOLTS(ADC_IND_EXT);
         float brake = (float)ADC_VOLTS(ADC_IND_EXT2);
 
-        /**
-         * update mc interface every 2 secounds
-         */
-        if(cycles == 200) {
-           /**
-            * reset cycles counter
-            */
-           cycles = 0;
-
            /**
             * Recuperation of energy, when brakelever switch is closed
             */
@@ -127,8 +118,9 @@ static THD_FUNCTION(my_thread, arg) {
                 /**
                  * only when difference from min to max is larger then 0.4V
                  * then adjust speed (Sensor ist attached and working properly)
+                 * start spinning when signal gets over 0.1V
                  */
-                if((max_pwr - min_pwr) > 0.4) {
+                if((max_pwr - min_pwr) > 0.4 && (min_pwr - pwr) > 0.1) {
                 /**
                  * calculate from voltage range min to max to 
                  * range of 0.0 to 1.0
@@ -140,14 +132,12 @@ static THD_FUNCTION(my_thread, arg) {
                     ));
                    mc_interface_set_current_rel(current_rel_pwr);
                 } else {
-                mc_interface_release_motor();
-               }
+                    mc_interface_release_motor();
+                }
               }
-            }
-        }
+           }
 
         chThdSleepMilliseconds(10);
-        cycles++;
     }
 }
 
