@@ -101,7 +101,7 @@ static THD_FUNCTION(my_thread, arg) {
             * Recuperation of energy, when brakelever switch is closed
             */
             if (brake < 0.01) {
-              mc_interface_set_brake_current_rel(1.0);
+              mc_interface_set_brake_current_rel(0.5);
             } else {
               /**
                * auto calibrate sensor
@@ -120,7 +120,7 @@ static THD_FUNCTION(my_thread, arg) {
                  * then adjust speed (Sensor ist attached and working properly)
                  * start spinning when signal gets over 0.1V
                  */
-                if((max_pwr - min_pwr) > 0.4 && (min_pwr - pwr) > 0.1) {
+                if((max_pwr - min_pwr) > 0.4 && (pwr - min_pwr) > 0.1) {
                 /**
                  * calculate from voltage range min to max to 
                  * range of 0.0 to 1.0
