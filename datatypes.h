@@ -317,8 +317,8 @@ typedef enum {
 	APP_ADC_UART,
 	APP_NUNCHUK,
 	APP_NRF,
-  APP_BALANCE,
-	APP_CUSTOM
+	APP_CUSTOM,
+	APP_BALANCE
 } app_use;
 
 // Throttle curve mode
