@@ -1,3 +1,6 @@
+=== FW 3.61 ===
+* Added PPM_CTRL_TYPE_CURRENT_SMART_REV mode.
+
 === FW 3.60 ===
 * Fixed IMU9x50 bug.
 * Unrigester ICM20948 terminal callbacks when unused.
