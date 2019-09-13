@@ -99,11 +99,13 @@ void app_balance_start(void) {
 	startup_start_time = 0;
 	startup_diff_time = 0;
 
+#ifdef HW_SPI_PORT_SCK
 	// Configure pins
 	if(balance_conf.use_switches){
 		palSetPadMode(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, PAL_MODE_INPUT_PULLDOWN);
 		palSetPadMode(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO, PAL_MODE_INPUT_PULLDOWN);
 	}
+#endif
 
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
@@ -218,12 +220,14 @@ static THD_FUNCTION(balance_thread, arg) {
 			switches_value = 2;
 		}else{
 			switches_value = 0;
+#ifdef HW_SPI_PORT_SCK
 			if(palReadPad(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK)){
 				switches_value += 1;
 			}
 			if(palReadPad(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO)){
 				switches_value += 1;
 			}
+#endif
 		}
 
 		// State based logic
