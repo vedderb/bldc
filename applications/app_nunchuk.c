@@ -369,7 +369,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		float rpm_lowest = rpm_local;
-		float current_highest_abs = current_now;
+		float current_highest_abs = fabsf(current_now);
 		float duty_highest_abs = fabsf(duty_now);
 
 		if (config.multi_esc) {
@@ -392,8 +392,8 @@ static THD_FUNCTION(output_thread, arg) {
 						msg_current = -msg_current;
 					}
 
-					if (fabsf(msg_current) > fabsf(current_highest_abs)) {
-						current_highest_abs = msg_current;
+					if (fabsf(msg_current) > current_highest_abs) {
+						current_highest_abs = fabsf(msg_current);
 					}
 
 					if (fabsf(msg->duty) > duty_highest_abs) {
@@ -408,7 +408,7 @@ static THD_FUNCTION(output_thread, arg) {
 			static bool was_duty_control = false;
 			static float duty_rev = 0.0;
 
-			if (out_val < -0.95 && duty_highest_abs < (mcconf->l_min_duty * 1.5) &&
+			if (out_val < -0.92 && duty_highest_abs < (mcconf->l_min_duty * 1.5) &&
 					current_highest_abs < (mcconf->l_current_max * mcconf->l_current_max_scale * 0.7)) {
 				duty_control = true;
 			}
