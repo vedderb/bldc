@@ -247,4 +247,6 @@
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
+void dpv_rotary_isr(void);
+
 #endif /* HW_GSVESC_H_ */
