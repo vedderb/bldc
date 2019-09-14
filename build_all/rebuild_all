@@ -327,3 +327,37 @@ cd $FWPATH
 make clean
 cd $DIR
 
+#################### HW A200S 2.1 ########################
+
+COPYDIR=A200S_V21
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" -DHW_A200S_REV_21' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
+#################### HW A200S 2.2 ########################
+
+COPYDIR=A200S_V22
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" ' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
