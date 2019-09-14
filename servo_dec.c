@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -48,7 +48,7 @@ static void icuwidthcb(ICUDriver *icup) {
 	const float len_set = (pulse_end - pulse_start);
 
 	if (len > len_set) {
-		if (len < (len_set * 1.2)) {
+		if (len < (len_set * 1.5)) {
 			len = len_set;
 		} else {
 			// Too long pulse. Most likely something is wrong.

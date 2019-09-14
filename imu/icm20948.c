@@ -45,6 +45,7 @@ void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
 	s->read_callback = 0;
 
 	if (reset_init_icm(s)) {
+		s->should_stop = false;
 		chThdCreateStatic(work_area, work_area_size, NORMALPRIO, icm_thread, s);
 	}
 
@@ -61,6 +62,18 @@ void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
 
 void icm20948_set_read_callback(ICM20948_STATE *s, void(*func)(float *accel, float *gyro, float *mag)) {
 	s->read_callback = func;
+}
+
+void icm20948_stop(ICM20948_STATE *s) {
+	s->should_stop = true;
+	while(s->is_running) {
+		chThdSleep(1);
+	}
+
+	if (s == m_terminal_state) {
+		terminal_unregister_callback(terminal_read_reg);
+		m_terminal_state = 0;
+	}
 }
 
 static void terminal_read_reg(int argc, const char **argv) {
@@ -146,6 +159,8 @@ static THD_FUNCTION(icm_thread, arg) {
 
 	chRegSetThreadName("ICM Sampling");
 
+	s->is_running = true;
+
 	for(;;) {
 		uint8_t txb[1];
 		uint8_t rxb[12];
@@ -175,6 +190,11 @@ static THD_FUNCTION(icm_thread, arg) {
 			chThdSleepMilliseconds(10);
 		}
 
-		chThdSleepMilliseconds(5);
+		if (s->should_stop) {
+			s->is_running = false;
+			return;
+		}
+
+		chThdSleepMicroseconds(1000000 / s->rate_hz);
 	}
 }

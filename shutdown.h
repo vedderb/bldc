@@ -15,26 +15,27 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+    */
 
-#ifndef CONF_MC_APP_DEFAULT_H_
-#define CONF_MC_APP_DEFAULT_H_
+#ifndef SHUTDOWN_H_
+#define SHUTDOWN_H_
 
+#include "ch.h"
+#include "hal.h"
 #include "conf_general.h"
-#include "hw.h"
 
-// User defined default motor configuration file
-#ifdef MCCONF_DEFAULT_USER
-#include MCCONF_DEFAULT_USER
+#ifdef HW_SHUTDOWN_HOLD_ON
+#define SHUTDOWN_RESET()			shutdown_reset_timer()
+#define SHUTDOWN_BUTTON_PRESSED		shutdown_button_pressed()
+#else
+#define SHUTDOWN_RESET()
+#define SHUTDOWN_BUTTON_PRESSED		false
 #endif
 
-// User defined default app configuration file
-#ifdef APPCONF_DEFAULT_USER
-#include APPCONF_DEFAULT_USER
-#endif
+// Fucntions
+void shutdown_init(void);
+void shutdown_reset_timer(void);
+bool shutdown_button_pressed(void);
+float shutdown_get_inactivity_time(void);
 
-// Default configuration parameters that can be overridden
-#include "mcconf_default.h"
-#include "appconf_default.h"
-
-#endif /* CONF_MC_APP_DEFAULT_H_ */
+#endif /* SHUTDOWN_H_ */

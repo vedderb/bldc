@@ -34,6 +34,8 @@
 #include "drv8323s.h"
 #include "buffer.h"
 #include "gpdrive.h"
+#include "comm_can.h"
+#include "shutdown.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -59,6 +61,10 @@ static volatile float m_motor_id_sum;
 static volatile float m_motor_iq_sum;
 static volatile float m_motor_id_iterations;
 static volatile float m_motor_iq_iterations;
+static volatile float m_motor_vd_sum;
+static volatile float m_motor_vq_sum;
+static volatile float m_motor_vd_iterations;
+static volatile float m_motor_vq_iterations;
 static volatile float m_amp_seconds;
 static volatile float m_amp_seconds_charged;
 static volatile float m_watt_seconds;
@@ -119,6 +125,10 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_motor_iq_sum = 0.0;
 	m_motor_id_iterations = 0.0;
 	m_motor_iq_iterations = 0.0;
+	m_motor_vd_sum = 0.0;
+	m_motor_vq_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	m_motor_vq_iterations = 0.0;
 	m_amp_seconds = 0.0;
 	m_amp_seconds_charged = 0.0;
 	m_watt_seconds = 0.0;
@@ -401,6 +411,10 @@ mc_state mc_interface_get_state(void) {
 }
 
 void mc_interface_set_duty(float dutyCycle) {
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -421,6 +435,10 @@ void mc_interface_set_duty(float dutyCycle) {
 }
 
 void mc_interface_set_duty_noramp(float dutyCycle) {
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -441,6 +459,10 @@ void mc_interface_set_duty_noramp(float dutyCycle) {
 }
 
 void mc_interface_set_pid_speed(float rpm) {
+	if (fabsf(rpm) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -461,6 +483,8 @@ void mc_interface_set_pid_speed(float rpm) {
 }
 
 void mc_interface_set_pid_pos(float pos) {
+	SHUTDOWN_RESET();
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -486,6 +510,10 @@ void mc_interface_set_pid_pos(float pos) {
 }
 
 void mc_interface_set_current(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -506,6 +534,10 @@ void mc_interface_set_current(float current) {
 }
 
 void mc_interface_set_brake_current(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -537,6 +569,10 @@ void mc_interface_set_brake_current(float current) {
  * The relative current value, range [-1.0 1.0]
  */
 void mc_interface_set_current_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_current(val * m_conf.lo_current_motor_max_now);
 }
 
@@ -547,6 +583,10 @@ void mc_interface_set_current_rel(float val) {
  * The relative current value, range [0.0 1.0]
  */
 void mc_interface_set_brake_current_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_brake_current(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
@@ -557,6 +597,10 @@ void mc_interface_set_brake_current_rel(float val) {
  * The current value.
  */
 void mc_interface_set_handbrake(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -584,10 +628,16 @@ void mc_interface_set_handbrake(float current) {
  * The relative current value, range [0.0 1.0]
  */
 void mc_interface_set_handbrake_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_handbrake(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
 void mc_interface_brake_now(void) {
+	SHUTDOWN_RESET();
+
 	mc_interface_set_duty(0.0);
 }
 
@@ -1013,6 +1063,32 @@ float mc_interface_read_reset_avg_iq(void) {
 	return DIR_MULT * res;
 }
 
+/**
+ * Read and reset the average direct axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average D axis voltage.
+ */
+float mc_interface_read_reset_avg_vd(void) {
+	float res = m_motor_vd_sum / m_motor_vd_iterations;
+	m_motor_vd_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	return DIR_MULT * res; // TODO: DIR_MULT?
+}
+
+/**
+ * Read and reset the average quadrature axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average Q axis voltage.
+ */
+float mc_interface_read_reset_avg_vq(void) {
+	float res = m_motor_vq_sum / m_motor_vq_iterations;
+	m_motor_vq_sum = 0.0;
+	m_motor_vq_iterations = 0.0;
+	return DIR_MULT * res;
+}
+
 float mc_interface_get_pid_pos_set(void) {
 	return m_position_set;
 }
@@ -1170,6 +1246,45 @@ float mc_interface_get_distance_abs(void) {
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+}
+
+setup_values mc_interface_get_setup_values(void) {
+	setup_values val = {0};
+	val.num_vescs = 1;
+
+	val.ah_tot += mc_interface_get_amp_hours(false);
+	val.ah_charge_tot += mc_interface_get_amp_hours_charged(false);
+	val.wh_tot += mc_interface_get_watt_hours(false);
+	val.wh_charge_tot += mc_interface_get_watt_hours_charged(false);
+	val.current_tot += mc_interface_get_tot_current_filtered();
+	val.current_in_tot += mc_interface_get_tot_current_in_filtered();
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		can_status_msg *msg = comm_can_get_status_msg_index(i);
+		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
+			val.current_tot += msg->current;
+			val.num_vescs++;
+		}
+
+		can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
+		if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 0.1) {
+			val.ah_tot += msg2->amp_hours;
+			val.ah_charge_tot += msg2->amp_hours_charged;
+		}
+
+		can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
+		if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 0.1) {
+			val.wh_tot += msg3->watt_hours;
+			val.wh_charge_tot += msg3->watt_hours_charged;
+		}
+
+		can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
+		if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
+			val.current_in_tot += msg4->current_in;
+		}
+	}
+
+	return val;
 }
 
 // MC implementation functions
@@ -1346,6 +1461,11 @@ void mc_interface_mc_timer_isr(void) {
 	m_motor_iq_sum += mcpwm_foc_get_iq();
 	m_motor_id_iterations++;
 	m_motor_iq_iterations++;
+
+	m_motor_vd_sum += mcpwm_foc_get_vd();
+	m_motor_vq_sum += mcpwm_foc_get_vq();
+	m_motor_vd_iterations++;
+	m_motor_vq_iterations++;
 
 	float abs_current = mc_interface_get_tot_current();
 	float abs_current_filtered = current;
@@ -1798,6 +1918,7 @@ static THD_FUNCTION(timer_thread, arg) {
 		// Relevant only in FOC mode with encoder enabled
 		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
 			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			mcpwm_foc_is_using_encoder() &&
 			encoder_spi_get_error_rate() > 0.05) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI);
 		}
