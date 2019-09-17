@@ -33,6 +33,7 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 void imu_init_bmi160(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin);
 void imu_stop(void);
+bool imu_startup_done(void);
 float imu_get_roll(void);
 float imu_get_pitch(void);
 float imu_get_yaw(void);
