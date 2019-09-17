@@ -29,6 +29,7 @@ void bm_set_enabled(bool enabled);
 int bm_connect(void);
 int bm_erase_flash_all(void);
 int bm_write_flash(uint32_t addr, const void *data, uint32_t len);
+int bm_mem_read(uint32_t addr, void *data, uint32_t len);
 int bm_reboot(void);
 void bm_disconnect(void);
 void bm_change_swd_pins(stm32_gpio_t *swdio_port, int swdio_pin,

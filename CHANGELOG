@@ -1,3 +1,6 @@
+=== FW 3.62 ===
+* Added COMM_BM_MEM_READ.
+
 === FW 3.61 ===
 * Added PPM_CTRL_TYPE_CURRENT_SMART_REV mode.
 
