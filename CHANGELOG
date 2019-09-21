@@ -1,5 +1,7 @@
 === FW 3.62 ===
 * Added COMM_BM_MEM_READ.
+* Merged EUC app (experimental).
+* Fixed nunchuk reverse bug.
 
 === FW 3.61 ===
 * Added PPM_CTRL_TYPE_CURRENT_SMART_REV mode.

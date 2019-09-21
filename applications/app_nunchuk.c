@@ -369,7 +369,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		float rpm_lowest = rpm_local;
-		float current_highest_abs = fabsf(current_now);
+		float current_highest = current_now;
 		float duty_highest_abs = fabsf(duty_now);
 
 		if (config.multi_esc) {
@@ -392,8 +392,8 @@ static THD_FUNCTION(output_thread, arg) {
 						msg_current = -msg_current;
 					}
 
-					if (fabsf(msg_current) > current_highest_abs) {
-						current_highest_abs = fabsf(msg_current);
+					if (fabsf(msg_current) > fabsf(current_highest)) {
+						current_highest = msg_current;
 					}
 
 					if (fabsf(msg->duty) > duty_highest_abs) {
@@ -409,7 +409,7 @@ static THD_FUNCTION(output_thread, arg) {
 			static float duty_rev = 0.0;
 
 			if (out_val < -0.92 && duty_highest_abs < (mcconf->l_min_duty * 1.5) &&
-					current_highest_abs < (mcconf->l_current_max * mcconf->l_current_max_scale * 0.7)) {
+					fabsf(current_highest) < (mcconf->l_current_max * mcconf->l_current_max_scale * 0.7)) {
 				duty_control = true;
 			}
 
@@ -465,12 +465,12 @@ static THD_FUNCTION(output_thread, arg) {
 			// when changing direction
 			float goal_tmp2 = current_goal;
 			if (is_reverse) {
-				if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
+				if (fabsf(current_goal + current_highest) > max_current_diff) {
+					utils_step_towards(&goal_tmp2, -current_highest, 2.0 * ramp_step);
 				}
 			} else {
-				if (fabsf(current_goal - current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
+				if (fabsf(current_goal - current_highest) > max_current_diff) {
+					utils_step_towards(&goal_tmp2, current_highest, 2.0 * ramp_step);
 				}
 			}
 

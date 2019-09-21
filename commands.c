@@ -1162,7 +1162,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		COMM_PACKET_ID packet_id;
 		static mc_configuration mcconf, mcconf_old;
-		static uint8_t send_buffer[256];
+		static uint8_t send_buffer[384];
 
 		packet_id = data[0];
 		data++;
@@ -1485,7 +1485,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			send_buffer[ind++] = packet_id;
 			buffer_append_int16(send_buffer, res, &ind);
 			if (send_func_blocking) {
-				send_func_blocking(send_buffer, ind);
+				send_func_blocking(send_buffer, ind + read_len);
 			}
 		} break;
 

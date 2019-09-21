@@ -481,7 +481,8 @@ int bm_mem_read(uint32_t addr, void *data, uint32_t len) {
 
 	if (cur_target) {
 		target_print_en = false;
-		ret = target_mem_read(cur_target, data, addr, len) ? 1 : -2;
+		target_flash_done(cur_target);
+		ret = target_mem_read(cur_target, data, addr, len) ? -2 : 1;
 	}
 
 	return ret;
