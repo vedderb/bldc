@@ -489,22 +489,13 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
-// External LED state
-typedef enum {
-	PITCH = 0,
-	ROLL,
-	YAW
-} AXIS;
-
 typedef struct {
 	float kp;
 	float ki;
 	float kd;
 	uint16_t hertz;
-	AXIS m_axis;
-	AXIS c_axis;
-	float m_fault;
-	float c_fault;
+	float pitch_fault;
+	float roll_fault;
 	bool use_switches;
 	float overspeed_duty;
 	float tiltback_duty;
@@ -512,8 +503,8 @@ typedef struct {
 	float tiltback_speed;
 	float tiltback_high_voltage;
 	float tiltback_low_voltage;
-	float startup_m_tolerance;
-	float startup_c_tolerance;
+	float startup_pitch_tolerance;
+	float startup_roll_tolerance;
 	float startup_speed;
 	float deadzone;
 	float current_boost;
