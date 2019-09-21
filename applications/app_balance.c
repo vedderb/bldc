@@ -56,7 +56,7 @@ static thread_t *app_thread;
 
 // Values used in loop
 static BalanceState state;
-static float m_angle, c_angle;
+static float pitch_angle, roll_angle;
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
@@ -80,8 +80,8 @@ void app_balance_start(void) {
 
 	// Reset all Values
 	state = STARTUP;
-	m_angle = 0;
-	c_angle = 0;
+	pitch_angle = 0;
+	roll_angle = 0;
 	switches_value = 0;
 	proportional = 0;
 	integral = 0;
@@ -122,11 +122,11 @@ void app_balance_stop(void) {
 float app_balance_get_pid_output(void) {
 	return pid_value;
 }
-float app_balance_get_m_angle(void) {
-	return m_angle;
+float app_balance_get_pitch_angle(void) {
+	return pitch_angle;
 }
-float app_balance_get_c_angle(void) {
-	return c_angle;
+float app_balance_get_roll_angle(void) {
+	return roll_angle;
 }
 uint32_t app_balance_get_diff_time(void) {
 	return ST2US(diff_time);
@@ -193,28 +193,8 @@ static THD_FUNCTION(balance_thread, arg) {
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Get the values we want
-		switch(balance_conf.m_axis){
-			case (PITCH):
-				m_angle = imu_get_pitch() * 180.0f / M_PI;;
-				break;
-			case (ROLL):
-				m_angle = imu_get_roll() * 180.0f / M_PI;
-				break;
-			case (YAW):
-				m_angle = imu_get_yaw() * 180.0f / M_PI;
-				break;
-		}
-		switch(balance_conf.c_axis){
-			case (PITCH):
-				c_angle = imu_get_pitch() * 180.0f / M_PI;;
-				break;
-			case (ROLL):
-				c_angle = imu_get_roll() * 180.0f / M_PI;
-				break;
-			case (YAW):
-				c_angle = imu_get_yaw() * 180.0f / M_PI;
-				break;
-		}
+		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
+		roll_angle = imu_get_roll() * 180.0f / M_PI;
 
 		if(!balance_conf.use_switches){
 			switches_value = 2;
@@ -248,8 +228,8 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				// Check for fault
 				if(
-					fabsf(m_angle) > balance_conf.m_fault || // Balnce axis tip over
-					fabsf(c_angle) > balance_conf.c_fault || // Cross axis tip over
+					fabsf(pitch_angle) > balance_conf.pitch_fault || // Balnce axis tip over
+					fabsf(roll_angle) > balance_conf.roll_fault || // Cross axis tip over
 					app_balance_get_switch_value() == 0 || // Switch fully open
 					(app_balance_get_switch_value() == 1 && fabsf(mc_interface_get_duty_cycle_now()) < 0.003) // Switch partially open and stopped
 						){
@@ -283,7 +263,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Do PID maths
-				proportional = setpoint - m_angle;
+				proportional = setpoint - pitch_angle;
 				// Apply deadzone
 				proportional = apply_deadzone(proportional);
 				// Resume real PID maths
@@ -313,8 +293,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (FAULT):
 				// Check for valid startup position and switch state
-				if(fabsf(m_angle) < balance_conf.startup_m_tolerance && fabsf(c_angle) < balance_conf.startup_c_tolerance && app_balance_get_switch_value() == 2){
-					setpoint = m_angle;
+				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && app_balance_get_switch_value() == 2){
+					setpoint = pitch_angle;
 					setpoint_target = 0;
 					setpointAdjustmentType = CENTERING;
 					state = RUNNING;
