@@ -50,6 +50,7 @@ float mc_interface_get_duty_cycle_set(void);
 float mc_interface_get_duty_cycle_now(void);
 float mc_interface_get_sampling_frequency_now(void);
 float mc_interface_get_rpm(void);
+float mc_interface_get_wheel_rpm(void);
 float mc_interface_get_amp_hours(bool reset);
 float mc_interface_get_amp_hours_charged(bool reset);
 float mc_interface_get_watt_hours(bool reset);

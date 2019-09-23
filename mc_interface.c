@@ -1225,6 +1225,17 @@ float mc_interface_get_speed(void) {
 }
 
 /**
+ * Get the rpm based on wheel diameter, motor pole settings.
+ *
+ * @return
+ * Rpm of wheel
+ */
+float mc_interface_get_wheel_rpm(void) {
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	return mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
+}
+
+/**
  * Get the distance traveled based on wheel diameter, gearing and motor pole settings.
  *
  * @return

@@ -382,6 +382,14 @@ typedef enum {
 	ADC_CTRL_TYPE_PID_REV_BUTTON
 } adc_control_type;
 
+// ADC filter types
+typedef enum {
+	ADC_FILTER_TYPE_NONE = 0,
+	ADC_FILTER_TYPE_AVERAGE,
+	ADC_FILTER_TYPE_EXPONENTIAL
+} adc_filter_type;
+
+
 typedef struct {
 	adc_control_type ctrl_type;
 	float hyst;
@@ -390,7 +398,8 @@ typedef struct {
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
-	bool use_filter;
+	adc_filter_type filter_type;
+	float filter_smoothing_constant;
 	bool safe_start;
 	bool cc_button_inverted;
 	bool rev_button_inverted;

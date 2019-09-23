@@ -49,10 +49,16 @@ static volatile float read_voltage2 = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile float last_pwr = 0;
+static volatile float weight = 0;
+static volatile float adc_filter_buffer[FILTER_SAMPLES];
+static volatile int adc_filter_ptr = 0;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
 	ms_without_power = 0.0;
+	last_pwr = config.voltage_start;
+	weight = config.filter_smoothing_constant;
 }
 
 void app_adc_start(bool use_rx_tx) {
@@ -83,7 +89,6 @@ float app_adc_get_decoded_level2(void) {
 float app_adc_get_voltage2(void) {
 	return read_voltage2;
 }
-
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
@@ -124,24 +129,28 @@ static THD_FUNCTION(adc_thread, arg) {
 		float pwr = (float)ADC_Value[ADC_IND_EXT];
 		pwr /= 4095;
 		pwr *= V_REG;
-
 		read_voltage = pwr;
 
-		// Optionally apply a mean value filter
-		if (config.use_filter) {
-			static float filter_buffer[FILTER_SAMPLES];
-			static int filter_ptr = 0;
+		// Optionally apply a filter
+		switch (config.filter_type) {
+			case ADC_FILTER_TYPE_EXPONENTIAL:
+				 last_pwr = pwr = weight * pwr + (1 -  weight) * last_pwr;
+				 break;
+			case ADC_FILTER_TYPE_AVERAGE:
+				adc_filter_buffer[adc_filter_ptr++] = pwr;
+				if (adc_filter_ptr >= FILTER_SAMPLES) {
+					adc_filter_ptr = 0;
+				}
 
-			filter_buffer[filter_ptr++] = pwr;
-			if (filter_ptr >= FILTER_SAMPLES) {
-				filter_ptr = 0;
-			}
-
-			pwr = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				pwr += filter_buffer[i];
-			}
-			pwr /= FILTER_SAMPLES;
+				pwr = 0.0;
+				for (int i = 0;i < FILTER_SAMPLES;i++) {
+					pwr += adc_filter_buffer[i];
+				}
+				pwr /= FILTER_SAMPLES;
+				break;
+			case ADC_FILTER_TYPE_NONE:
+			default:
+				break;
 		}
 
 		// Map the read voltage
@@ -189,7 +198,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage2 = brake;
 
 		// Optionally apply a mean value filter
-		if (config.use_filter) {
+		/* in common case the break signal is shorted to GND, 
+		   so does not need to be filtered readed value is 0
+
+			if (config.use_filter) {
 			static float filter_buffer2[FILTER_SAMPLES];
 			static int filter_ptr2 = 0;
 
@@ -203,7 +215,7 @@ static THD_FUNCTION(adc_thread, arg) {
 				brake += filter_buffer2[i];
 			}
 			brake /= FILTER_SAMPLES;
-		}
+		}*/
 
 		// Map and truncate the read voltage
 		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);

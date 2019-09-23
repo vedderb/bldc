@@ -155,7 +155,7 @@
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-#define APP_CUSTOM_TO_USE			"app_tmm.c"
+//#define APP_CUSTOM_TO_USE			""
 
 /*
  * Enable blackmagic probe output on SWD port
