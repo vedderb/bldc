@@ -50,9 +50,12 @@ static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
 static volatile float last_pwr = 0;
+static volatile float last_brake = 0;
 static volatile float weight = 0;
 static volatile float adc_filter_buffer[FILTER_SAMPLES];
 static volatile int adc_filter_ptr = 0;
+static volatile float adc2_filter_buffer[FILTER_SAMPLES];
+static volatile int adc2_filter_ptr = 0;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
@@ -198,24 +201,27 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage2 = brake;
 
 		// Optionally apply a mean value filter
-		/* in common case the break signal is shorted to GND, 
-		   so does not need to be filtered readed value is 0
+		switch (config.filter_type) {
+			case ADC_FILTER_TYPE_EXPONENTIAL:
+				 last_brake = brake = weight * brake + (1 -  weight) * last_brake;
+				 break;
+			case ADC_FILTER_TYPE_AVERAGE:
+				adc2_filter_buffer[adc2_filter_ptr++] = brake;
+				if (adc2_filter_ptr >= FILTER_SAMPLES) {
+					adc2_filter_ptr = 0;
+				}
 
-			if (config.use_filter) {
-			static float filter_buffer2[FILTER_SAMPLES];
-			static int filter_ptr2 = 0;
+				brake = 0.0;
+				for (int i = 0;i < FILTER_SAMPLES;i++) {
+					brake += adc2_filter_buffer[i];
+				}
+				brake /= FILTER_SAMPLES;
+				break;
+			case ADC_FILTER_TYPE_NONE:
+			default:
+				break;
+		}
 
-			filter_buffer2[filter_ptr2++] = brake;
-			if (filter_ptr2 >= FILTER_SAMPLES) {
-				filter_ptr2 = 0;
-			}
-
-			brake = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				brake += filter_buffer2[i];
-			}
-			brake /= FILTER_SAMPLES;
-		}*/
 
 		// Map and truncate the read voltage
 		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
