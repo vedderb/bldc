@@ -52,6 +52,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_stop();
 	app_uartcomm_stop();
 	app_nunchuk_stop();
+	app_balance_stop();
 
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
@@ -66,6 +67,9 @@ void app_set_configuration(app_configuration *conf) {
 #endif
 
 	imu_init(&conf->imu_conf);
+
+	// Configure balance app before starting it.
+	app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);
 
 	switch (appconf.app_to_use) {
 	case APP_PPM:
@@ -95,6 +99,14 @@ void app_set_configuration(app_configuration *conf) {
 
 	case APP_NUNCHUK:
 		app_nunchuk_start();
+		break;
+
+	case APP_BALANCE:
+		app_balance_start();
+		if(appconf.imu_conf.type == IMU_TYPE_INTERNAL){
+			hw_stop_i2c();
+			app_uartcomm_start();
+		}
 		break;
 
 	case APP_NRF:
