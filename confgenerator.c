@@ -184,7 +184,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.voltage2_start, &ind);
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.voltage2_end, &ind);
 	buffer[ind++] = conf->app_adc_conf.filter_type;
-	buffer[ind++] = conf->app_adc_conf.filter_smoothing_constant;
+	buffer_append_float32_auto(buffer, conf->app_adc_conf.filter_smoothing_constant, &ind);
 	buffer[ind++] = conf->app_adc_conf.safe_start;
 	buffer[ind++] = conf->app_adc_conf.cc_button_inverted;
 	buffer[ind++] = conf->app_adc_conf.rev_button_inverted;
@@ -452,7 +452,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.voltage2_start = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.voltage2_end = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.filter_type = buffer[ind++];
-	conf->app_adc_conf.filter_smoothing_constant = buffer[ind++];
+	conf->app_adc_conf.filter_smoothing_constant = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.safe_start = buffer[ind++];
 	conf->app_adc_conf.cc_button_inverted = buffer[ind++];
 	conf->app_adc_conf.rev_button_inverted = buffer[ind++];
@@ -703,7 +703,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_adc_conf.voltage_center = APPCONF_ADC_VOLTAGE_CENTER;
 	conf->app_adc_conf.voltage2_start = APPCONF_ADC_VOLTAGE2_START;
 	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
-	conf->app_adc_conf.filter_type = APPCONF_ADC_FILTER_TO_USE;
+	conf->app_adc_conf.filter_type = APPCONF_ADC_FILTER_TYPE;
 	conf->app_adc_conf.filter_smoothing_constant = APPCONF_ADC_FILTER_SMOOTHING_CONSTANT;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
 	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
