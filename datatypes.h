@@ -399,8 +399,10 @@ typedef struct {
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
-	adc_filter_type filter_type;
-	float filter_smoothing_constant;
+	adc_filter_type adc_filter_type;
+	float adc_filter_smoothing_constant;
+	adc_filter_type adc2_filter_type;
+	float adc2_filter_smoothing_constant;
 	bool safe_start;
 	bool cc_button_inverted;
 	bool rev_button_inverted;

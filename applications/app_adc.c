@@ -61,7 +61,8 @@ void app_adc_configure(adc_config *conf) {
 	config = *conf;
 	ms_without_power = 0.0;
 	last_pwr = config.voltage_start;
-	weight = config.filter_smoothing_constant;
+	last_brake = config.voltage2_start;
+	weight = config.adc_filter_smoothing_constant;
 }
 
 void app_adc_start(bool use_rx_tx) {
@@ -135,7 +136,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage = pwr;
 
 		// Optionally apply a filter
-		switch (config.filter_type) {
+		switch (config.adc_filter_type) {
 			case ADC_FILTER_TYPE_EXPONENTIAL:
 				 last_pwr = pwr = weight * pwr + (1 -  weight) * last_pwr;
 				 break;
@@ -201,7 +202,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage2 = brake;
 
 		// Optionally apply a mean value filter
-		switch (config.filter_type) {
+		switch (config.adc2_filter_type) {
 			case ADC_FILTER_TYPE_EXPONENTIAL:
 				 last_brake = brake = weight * brake + (1 -  weight) * last_brake;
 				 break;
