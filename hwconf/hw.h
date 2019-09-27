@@ -353,6 +353,10 @@
 #define HW_FOC_CURRENT_FILTER_LIM	0.05, 1.0
 #endif
 
+#ifndef COMM_USE_USB
+#define COMM_USE_USB				1
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

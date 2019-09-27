@@ -480,11 +480,13 @@ bool mcpwm_foc_init_done(void) {
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 	m_conf = configuration;
 
-	m_control_mode = CONTROL_MODE_NONE;
-	m_state = MC_STATE_OFF;
-	stop_pwm_hw();
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
-	TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+	if (TIM1->ARR != top) {
+		m_control_mode = CONTROL_MODE_NONE;
+		m_state = MC_STATE_OFF;
+		stop_pwm_hw();
+		TIMER_UPDATE_SAMP_TOP(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
+	}
 }
 
 mc_state mcpwm_foc_get_state(void) {

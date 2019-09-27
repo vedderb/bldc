@@ -222,7 +222,10 @@ int main(void) {
 	mc_interface_init(&mcconf);
 
 	commands_init();
+
+#if COMM_USE_USB
 	comm_usb_init();
+#endif
 
 #if CAN_ENABLE
 	comm_can_init();
