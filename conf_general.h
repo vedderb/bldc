@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		61
+#define FW_VERSION_MINOR		62
 
 #include "datatypes.h"
 
@@ -117,6 +117,9 @@
 
 //#define HW_SOURCE "hw_hd.c"
 //#define HW_HEADER "hw_hd.h"
+
+//#define HW_SOURCE "hw_a200s_v2.c"
+//#define HW_HEADER "hw_a200s_v2.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -264,7 +267,7 @@ void conf_general_init(void);
 bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address);
 bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address);
 bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
-bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
+bool conf_general_store_eeprom_var_custom(eeprom_var *v, int address);
 void conf_general_read_app_configuration(app_configuration *conf);
 bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf);

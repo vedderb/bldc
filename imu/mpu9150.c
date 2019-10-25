@@ -115,7 +115,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 			terminal_read_reg);
 
 	uint8_t res = read_single_reg(MPU9150_WHO_AM_I);
-	if (res == 0x68 || res == 0x69 || res == 0x71) {
+	if (res == 0x68 || res == 0x69 || res == 0x71 || res == 0x73) {
 		mpu_found = true;
 		if (!mpu_tp) {
 			should_stop = false;

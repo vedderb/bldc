@@ -317,7 +317,8 @@ typedef enum {
 	APP_ADC_UART,
 	APP_NUNCHUK,
 	APP_NRF,
-	APP_CUSTOM
+	APP_CUSTOM,
+	APP_BALANCE
 } app_use;
 
 // Throttle curve mode
@@ -488,6 +489,27 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
+typedef struct {
+	float kp;
+	float ki;
+	float kd;
+	uint16_t hertz;
+	float pitch_fault;
+	float roll_fault;
+	bool use_switches;
+	float overspeed_duty;
+	float tiltback_duty;
+	float tiltback_angle;
+	float tiltback_speed;
+	float tiltback_high_voltage;
+	float tiltback_low_voltage;
+	float startup_pitch_tolerance;
+	float startup_roll_tolerance;
+	float startup_speed;
+	float deadzone;
+	float current_boost;
+} balance_config;
+
 // CAN status modes
 typedef enum {
 	CAN_STATUS_DISABLED = 0,
@@ -575,6 +597,9 @@ typedef struct {
 	// NRF application settings
 	nrf_config app_nrf_conf;
 
+	// Balance application settings
+	balance_config app_balance_conf;
+
 	// IMU Settings
 	imu_config imu_conf;
 } app_configuration;
@@ -660,6 +685,8 @@ typedef enum {
 	COMM_PLOT_DATA,
 	COMM_PLOT_ADD_GRAPH,
 	COMM_PLOT_SET_GRAPH,
+	COMM_GET_DECODED_BALANCE,
+	COMM_BM_MEM_READ,
 } COMM_PACKET_ID;
 
 // CAN commands

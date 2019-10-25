@@ -510,6 +510,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_GET_DECODED_BALANCE: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_GET_DECODED_BALANCE;
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pid_output() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pitch_angle() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_roll_angle() * 1000000.0), &ind);
+		buffer_append_uint32(send_buffer, app_balance_get_diff_time(), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_position() * 1000000.0), &ind);
+		buffer_append_uint16(send_buffer, app_balance_get_state(), &ind);
+		buffer_append_uint16(send_buffer, app_balance_get_switch_value(), &ind);
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_FORWARD_CAN:
 		comm_can_send_buffer(data[0], data + 1, len - 1, 0);
 		break;
@@ -938,6 +953,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_DISCONNECT:
 	case COMM_BM_MAP_PINS_DEFAULT:
 	case COMM_BM_MAP_PINS_NRF5X:
+	case COMM_BM_MEM_READ:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len;
@@ -1146,7 +1162,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		COMM_PACKET_ID packet_id;
 		static mc_configuration mcconf, mcconf_old;
-		static uint8_t send_buffer[256];
+		static uint8_t send_buffer[384];
 
 		packet_id = data[0];
 		data++;
@@ -1453,6 +1469,25 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 #endif
+
+		case COMM_BM_MEM_READ: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+			uint16_t read_len = buffer_get_uint16(data, &ind);
+
+			if (read_len > sizeof(send_buffer) - 3) {
+				read_len = sizeof(send_buffer) - 3;
+			}
+
+			int res = bm_mem_read(addr, send_buffer + 3, read_len);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind + read_len);
+			}
+		} break;
 
 		default:
 			break;

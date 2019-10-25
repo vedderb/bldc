@@ -460,6 +460,35 @@ int bm_write_flash(uint32_t addr, const void *data, uint32_t len) {
 }
 
 /**
+ * Read target memory
+ *
+ * @param addr
+ * Address to read from
+ *
+ * @param data
+ * Store the data here
+ *
+ * @param len
+ * Length of the data
+ *
+ * @return
+ * -2: Read failed
+ * -1: Not connected
+ *  1: Success
+ */
+int bm_mem_read(uint32_t addr, void *data, uint32_t len) {
+	int ret = -1;
+
+	if (cur_target) {
+		target_print_en = false;
+		target_flash_done(cur_target);
+		ret = target_mem_read(cur_target, data, addr, len) ? -2 : 1;
+	}
+
+	return ret;
+}
+
+/**
  * Reboot target.
  *
  * @return
