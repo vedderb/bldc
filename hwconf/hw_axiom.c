@@ -31,6 +31,7 @@
 #include "mc_interface.h"
 #include "stdio.h"
 #include <math.h>
+#include "minilzo.h"
 
 #include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
@@ -56,6 +57,7 @@
 
 #define EEPROM_ADDR_CURRENT_GAIN	0
 
+#define BITSTREAM_CHUNK_SIZE		2000
 #define BITSTREAM_SIZE				104090		//ice40up5k
 //#define BITSTREAM_SIZE				71338		//ice40LP1K
 
@@ -63,7 +65,6 @@
 static volatile bool i2c_running = false;
 static volatile float current_sensor_gain = 0.0;
 //extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
-
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -480,6 +481,17 @@ void hw_axiom_init_FPGA_CLK(void) {
 }
 
 char hw_axiom_configure_FPGA(void) {
+	// use CCM SRAM for this 2kB decompressor buffer
+	__attribute__((section(".ram4"))) static uint8_t __LZO_MMODEL outputBuffer[BITSTREAM_CHUNK_SIZE] = {0};
+
+    int r;
+    uint32_t index = 0;
+    const int16_t chunks = BITSTREAM_SIZE / BITSTREAM_CHUNK_SIZE + 1;
+    lzo_uint decompressed_len;
+    lzo_uint decompressed_bitstream_size = 0;
+
+	r = lzo_init(); // Initialize decompressor
+
 	spi_begin();
 	palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
 	palClearPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
@@ -487,15 +499,37 @@ char hw_axiom_configure_FPGA(void) {
 	palSetPad(AXIOM_FPGA_RESET_PORT, AXIOM_FPGA_RESET_PIN);
 	chThdSleep(20);
 
-	spi_transfer(0, FPGA_bitstream, BITSTREAM_SIZE);
+    for (int i = 0; i < chunks; i++) {
+        uint16_t compressed_chunk_size = (uint16_t)FPGA_bitstream[index++] << 8;
+    	compressed_chunk_size |= (uint8_t)FPGA_bitstream[index++];
+
+        if( i == (chunks - 1) ) {
+        	decompressed_len = BITSTREAM_SIZE % BITSTREAM_CHUNK_SIZE;
+        }
+        else {
+        	decompressed_len =  BITSTREAM_CHUNK_SIZE;
+        }
+
+		r = lzo1x_decompress_safe(FPGA_bitstream + index,compressed_chunk_size, outputBuffer, &decompressed_len,NULL);
+		decompressed_bitstream_size += decompressed_len;
+		index += compressed_chunk_size;
+
+		if (r != LZO_E_OK) {
+			break;
+		}
+
+		spi_transfer(0, outputBuffer, decompressed_len);
+    }
 
 	//include 49 extra spi clock cycles, dummy bytes
 	uint8_t dummy = 0;
 	spi_transfer(0, &dummy, 7);
-
 	spi_end();
 
 	// CDONE LED should be set by now
+	if( (r != LZO_E_OK) || (decompressed_bitstream_size != BITSTREAM_SIZE) )
+		commands_printf("Error decompressing FPGA image.\n");
+
 	return 0;
 }
 
