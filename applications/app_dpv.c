@@ -12,7 +12,7 @@
 
 #define SPEED_STEP	0.10
 #define SPEED_MAX	1.00
-#define SPEED_MIN	0.2
+#define SPEED_MIN	0.1
 #define SPEED_OFF	0.00
 
 
