@@ -142,29 +142,25 @@ static THD_FUNCTION(dpv_thread, arg) {
 
         static systime_t last_time = 0;
         static float motorSpeed_val_ramp = 0.0;
- 		float ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 3.0 : 3.0;
+ 		float ramp_time; // = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 3.0 : 3.0;
 
 
 		if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
 			motorSpeed=targetSpeed;
-       		if (fabsf(motorSpeed) > 0.01) {
-                ramp_time = fminf(3.0, 3.0);
-            }
-       		if (ramp_time > 0.01) {
-                const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-                utils_step_towards(&motorSpeed_val_ramp, motorSpeed, ramp_step);
-                last_time = chVTGetSystemTimeX();
-       			motorSpeed = motorSpeed_val_ramp;
-           	}
-           	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
 		} else {
 			motorSpeed=SPEED_OFF;
-            mc_interface_set_duty(0);
-            last_time = chVTGetSystemTimeX();
-            motorSpeed_val_ramp = 0.0;
 		}
-
-
+  		ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 3.0 : 0.5;
+    	if (fabsf(motorSpeed) > 0.01) {
+            ramp_time = fminf(3.0, 3.0);
+        }
+   		if (ramp_time > 0.01) {
+            const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+            utils_step_towards(&motorSpeed_val_ramp, motorSpeed, ramp_step);
+            last_time = chVTGetSystemTimeX();
+   			motorSpeed = motorSpeed_val_ramp;
+       	}
+       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
 		// Reset the timeout
 		timeout_reset();
 	}
