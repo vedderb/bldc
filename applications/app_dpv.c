@@ -142,7 +142,7 @@ static THD_FUNCTION(dpv_thread, arg) {
 
         static systime_t last_time = 0;
         static float motorSpeed_val_ramp = 0.0;
- 		float ramp_time; // = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 3.0 : 3.0;
+ 		float ramp_time; 
 
 
 		if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
