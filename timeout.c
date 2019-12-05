@@ -22,6 +22,7 @@
 #include "stm32f4xx_conf.h"
 
 // Private variables
+static volatile bool init_done = false;
 static volatile systime_t timeout_msec;
 static volatile systime_t last_update_time;
 static volatile float timeout_brake_current;
@@ -37,6 +38,7 @@ void timeout_init(void) {
 	last_update_time = 0;
 	timeout_brake_current = 0.0;
 	has_timeout = false;
+	init_done = true;
 
 	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
 
@@ -100,6 +102,10 @@ void timeout_feed_WDT(uint8_t index) {
 }
 
 void timeout_configure_IWDT_slowest(void) {
+	if (!init_done) {
+		return;
+	}
+
 	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
 		// Continue to kick the dog
 		IWDG_ReloadCounter();
@@ -119,6 +125,10 @@ void timeout_configure_IWDT_slowest(void) {
 }
 
 void timeout_configure_IWDT(void) {
+	if (!init_done) {
+		return;
+	}
+
 	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
 		// Continue to kick the dog
 		IWDG_ReloadCounter();

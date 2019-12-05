@@ -667,7 +667,8 @@ void terminal_process_string(char *str) {
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
-			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501) {
 			commands_printf("SPI encoder value: %x, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
@@ -796,7 +797,7 @@ void terminal_process_string(char *str) {
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
 		
 		commands_printf("encoder");
-		commands_printf("  Prints the status of the AS5047, AD2S1205, or Sin/Cos encoder.");
+		commands_printf("  Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		62
+#define FW_VERSION_MINOR		63
 
 #include "datatypes.h"
 
@@ -151,14 +151,15 @@
 //#include			"appconf_custom.h"
 //#include			"appconf_ellwee.h"
 
-#include "hw.h"
-#include "mcconf_default.h"
-#include "appconf_default.h"
-
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
+//#include "app_erockit_conf.h"
+
+#include "hw.h"
+#include "mcconf_default.h"
+#include "appconf_default.h"
 
 /*
  * Enable blackmagic probe output on SWD port

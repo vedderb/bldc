@@ -71,7 +71,8 @@ typedef enum {
 	ENCODER_MODE_ABI,
 	ENCODER_MODE_AS5047P_SPI,
 	RESOLVER_MODE_AD2S1205,
-	ENCODER_MODE_SINCOS
+	ENCODER_MODE_SINCOS,
+	ENCODER_MODE_TS5700N8501
 } encoder_mode;
 
 // Private variables
@@ -79,26 +80,38 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
-uint16_t spi_val = 0;
-uint32_t spi_error_cnt = 0;
-float spi_error_rate = 0.0;
+static uint16_t spi_val = 0;
+static uint32_t spi_error_cnt = 0;
+static float spi_error_rate = 0.0;
 
-float sin_gain = 0.0;
-float sin_offset = 0.0;
-float cos_gain = 0.0;
-float cos_offset = 0.0;
-float sincos_filter_constant = 0.0;
-uint32_t sincos_signal_below_min_error_cnt = 0;
-uint32_t sincos_signal_above_max_error_cnt = 0;
-float sincos_signal_low_error_rate = 0.0;
-float sincos_signal_above_max_error_rate = 0.0;
+static float sin_gain = 0.0;
+static float sin_offset = 0.0;
+static float cos_gain = 0.0;
+static float cos_offset = 0.0;
+static float sincos_filter_constant = 0.0;
+static uint32_t sincos_signal_below_min_error_cnt = 0;
+static uint32_t sincos_signal_above_max_error_cnt = 0;
+static float sincos_signal_low_error_rate = 0.0;
+static float sincos_signal_above_max_error_rate = 0.0;
+
+static SerialConfig TS5700N8501_uart_cfg = {
+		2500000,
+		0,
+		USART_CR2_LINEN,
+		0
+};
+
+static THD_FUNCTION(ts5700n8501_thread, arg);
+static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
+static volatile bool ts5700n8501_stop_now = true;
+static volatile bool ts5700n8501_is_running = false;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
-
+void TS5700N8501_send_byte(uint8_t b);
 
 uint32_t encoder_spi_get_error_cnt(void) {
 	return spi_error_cnt;
@@ -140,6 +153,19 @@ void encoder_deinit(void) {
 
 	palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
+
+	if (mode == ENCODER_MODE_TS5700N8501) {
+		ts5700n8501_stop_now = true;
+		while (ts5700n8501_is_running) {
+			chThdSleepMilliseconds(1);
+		}
+
+		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+#ifdef HW_ADC_EXT_GPIO
+		palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
+#endif
+	}
 
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
@@ -302,6 +328,18 @@ void encoder_init_sincos(float s_gain, float s_offset,
 #endif
 }
 
+void encoder_init_ts5700n8501(void) {
+	mode = ENCODER_MODE_TS5700N8501;
+	index_found = true;
+	spi_error_rate = 0.0;
+	spi_error_cnt = 0;
+	ts5700n8501_is_running = true;
+	ts5700n8501_stop_now = false;
+
+	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
+			NORMALPRIO - 10, ts5700n8501_thread, NULL);
+}
+
 bool encoder_is_configured(void) {
 	return mode != ENCODER_MODE_NONE;
 }
@@ -322,6 +360,7 @@ float encoder_read_deg(void) {
 
 	case ENCODER_MODE_AS5047P_SPI:
 	case RESOLVER_MODE_AD2S1205:
+	case ENCODER_MODE_TS5700N8501:
 		angle = last_enc_angle;
 		break;
 
@@ -533,3 +572,112 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 }
+
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+
+void TS5700N8501_delay_uart(void) {
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP();
+}
+
+/*
+ * It is important to switch to receive mode immediately after sending the readout command,
+ * as the TS5700N8501 starts sending the reply after 3 microseconds. Therefore use software
+ * UART on TX so that the enable signal can be controlled manually. This function runs while
+ * the system is locked, but it should finish fast enough to not cause problems for other
+ * things due to the high baud rate.
+ */
+void TS5700N8501_send_byte(uint8_t b) {
+	utils_sys_lock_cnt();
+#ifdef HW_ADC_EXT_GPIO
+	palSetPad(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN);
+#endif
+	TS5700N8501_delay_uart();
+	palWritePad(HW_UART_TX_PORT, HW_UART_TX_PIN, 0);
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	for (int i = 0;i < 8;i++) {
+		palWritePad(HW_UART_TX_PORT, HW_UART_TX_PIN,
+				(b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
+		TS5700N8501_delay_uart();
+	}
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	palWritePad(HW_UART_TX_PORT, HW_UART_TX_PIN, 1);
+	TS5700N8501_delay_uart();
+#ifdef HW_ADC_EXT_GPIO
+	palClearPad(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN);
+#endif
+	utils_sys_unlock_cnt();
+}
+
+#pragma GCC pop_options
+
+static THD_FUNCTION(ts5700n8501_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("TS5700N8501");
+
+	sdStart(&HW_UART_DEV, &TS5700N8501_uart_cfg);
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST |
+			PAL_STM32_PUDR_PULLUP);
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
+			PAL_STM32_OSPEED_HIGHEST |
+			PAL_STM32_PUDR_PULLUP);
+#ifdef HW_ADC_EXT_GPIO
+	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST |
+			PAL_STM32_PUDR_PULLUP);
+#endif
+
+	for(;;) {
+		// Check if it is time to stop.
+		if (ts5700n8501_stop_now) {
+			ts5700n8501_is_running = false;
+			return;
+		}
+
+		TS5700N8501_send_byte(0b01000000);
+
+		chThdSleep(1);
+
+		uint8_t reply[6];
+		int reply_ind = 0;
+
+		msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+		while (res != MSG_TIMEOUT) {
+			if (reply_ind < (int)sizeof(reply)) {
+				reply[reply_ind++] = res;
+			}
+			res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+		}
+
+		uint8_t crc = 0;
+		for (int i = 0;i < (reply_ind - 1);i++) {
+			crc = (reply[i] ^ crc);
+		}
+
+		if (reply_ind == 6 && crc == reply[reply_ind - 1]) {
+			uint32_t pos = (uint32_t)reply[2] + ((uint32_t)reply[3] << 8) + ((uint32_t)reply[4] << 16);
+			last_enc_angle = (float)pos / 131072.0 * 360.0;
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / AS5047_SAMPLE_RATE_HZ);
+		} else {
+			++spi_error_cnt;
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / AS5047_SAMPLE_RATE_HZ);
+		}
+	}
+}
+

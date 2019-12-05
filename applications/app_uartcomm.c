@@ -129,10 +129,12 @@ void app_uartcomm_start_permanent(void) {
 }
 
 void app_uartcomm_stop(void) {
-	sdStop(&HW_UART_DEV);
-	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
-	uart_is_running = false;
+	if (uart_is_running) {
+		sdStop(&HW_UART_DEV);
+		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+		uart_is_running = false;
+	}
 
 	// Notice that the processing thread is kept running in case this call is made from it.
 }
@@ -151,9 +153,8 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len) {
 void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled) {
 	uart_cfg.speed = baudrate;
 
-	if (thread_is_running) {
+	if (thread_is_running && uart_is_running) {
 		sdStart(&HW_UART_DEV, &uart_cfg);
-		uart_is_running = true;
 	}
 
 #ifdef HW_UART_P_DEV
@@ -193,17 +194,19 @@ static THD_FUNCTION(packet_process_thread, arg) {
 		while (rx) {
 			rx = false;
 
-			msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
-			if (res != MSG_TIMEOUT) {
+			if (uart_is_running) {
+				msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+				if (res != MSG_TIMEOUT) {
 #ifdef HW_UART_P_DEV
-				from_p_uart = false;
+					from_p_uart = false;
 #endif
-				packet_process_byte(res, PACKET_HANDLER);
-				rx = true;
+					packet_process_byte(res, PACKET_HANDLER);
+					rx = true;
+				}
 			}
 
 #ifdef HW_UART_P_DEV
-			res = sdGetTimeout(&HW_UART_P_DEV, TIME_IMMEDIATE);
+			msg_t res = sdGetTimeout(&HW_UART_P_DEV, TIME_IMMEDIATE);
 			if (res != MSG_TIMEOUT) {
 				from_p_uart = true;
 				packet_process_byte(res, PACKET_HANDLER_P);
