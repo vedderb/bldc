@@ -29,6 +29,7 @@
 #include "comm_can.h"
 #include "hw.h"
 #include "commands.h"
+#include "timeout.h"
 
 #include <math.h>
 #include <string.h>
@@ -109,9 +110,11 @@ static THD_FUNCTION(my_thread, arg) {
 			return;
 		}
 
+		timeout_reset(); // Reset timeout if everything is OK.
+
 		// Run your logic here. A lot of functionality is available in mc_interface.h.
 
-		chThdSleepMicroseconds(10);
+		chThdSleepMilliseconds(10);
 	}
 }
 

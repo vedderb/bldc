@@ -45,6 +45,7 @@
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
+#include "minilzo.h"
 
 #include <math.h>
 #include <string.h>
@@ -222,16 +223,39 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO:
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN:
+		if (packet_id == COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO) {
+			chMtxLock(&send_buffer_mutex);
+			memcpy(send_buffer_global, data + 6, len - 6);
+			int32_t ind = 4;
+			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
+			chMtxUnlock(&send_buffer_mutex);
+			len = decompressed_len + 4;
+		}
+
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
 
 		data[-1] = COMM_WRITE_NEW_APP_DATA;
+
 		comm_can_send_buffer(255, data - 1, len + 1, 2);
 		/* Falls through. */
 		/* no break */
+	case COMM_WRITE_NEW_APP_DATA_LZO:
 	case COMM_WRITE_NEW_APP_DATA: {
+		if (packet_id == COMM_WRITE_NEW_APP_DATA_LZO) {
+			chMtxLock(&send_buffer_mutex);
+			memcpy(send_buffer_global, data + 6, len - 6);
+			int32_t ind = 4;
+			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
+			chMtxUnlock(&send_buffer_mutex);
+			len = decompressed_len + 4;
+		}
+
 		int32_t ind = 0;
 		uint32_t new_app_offset = buffer_get_uint32(data, &ind);
 
@@ -948,6 +972,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_PING_CAN:
 	case COMM_BM_CONNECT:
 	case COMM_BM_ERASE_FLASH_ALL:
+	case COMM_BM_WRITE_FLASH_LZO:
 	case COMM_BM_WRITE_FLASH:
 	case COMM_BM_REBOOT:
 	case COMM_BM_DISCONNECT:
@@ -1162,7 +1187,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		COMM_PACKET_ID packet_id;
 		static mc_configuration mcconf, mcconf_old;
-		static uint8_t send_buffer[384];
+		static uint8_t send_buffer[512];
 
 		packet_id = data[0];
 		data++;
@@ -1410,7 +1435,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 
+		case COMM_BM_WRITE_FLASH_LZO:
 		case COMM_BM_WRITE_FLASH: {
+			if (packet_id == COMM_BM_WRITE_FLASH_LZO) {
+				memcpy(send_buffer, data + 6, len - 6);
+				int32_t ind = 4;
+				lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+				lzo1x_decompress_safe(send_buffer, len - 6, data + 4, &decompressed_len, NULL);
+				len = decompressed_len + 4;
+			}
+
 			int32_t ind = 0;
 			uint32_t addr = buffer_get_uint32(data, &ind);
 

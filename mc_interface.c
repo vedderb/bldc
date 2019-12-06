@@ -36,6 +36,8 @@
 #include "gpdrive.h"
 #include "comm_can.h"
 #include "shutdown.h"
+#include "app.h"
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -96,6 +98,10 @@ static volatile debug_sampling_mode m_sample_mode_last;
 static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
+
+#if !WS2811_ENABLE
+static app_configuration m_tmp_appconf;
+#endif
 
 // Private functions
 static void update_override_limits(volatile mc_configuration *conf);
@@ -184,6 +190,18 @@ void mc_interface_init(mc_configuration *configuration) {
 							m_conf.foc_encoder_sincos_filter_constant);
 		break;
 
+	case SENSOR_PORT_MODE_TS5700N8501:
+		conf_general_read_app_configuration(&m_tmp_appconf);
+		if (m_tmp_appconf.app_to_use == APP_ADC ||
+				m_tmp_appconf.app_to_use == APP_UART ||
+				m_tmp_appconf.app_to_use == APP_PPM_UART ||
+				m_tmp_appconf.app_to_use == APP_ADC_UART) {
+			m_tmp_appconf.app_to_use = APP_NONE;
+			conf_general_store_app_configuration(&m_tmp_appconf);
+		}
+		encoder_init_ts5700n8501();
+		break;
+
 	default:
 		break;
 	}
@@ -235,6 +253,19 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 								m_conf.foc_encoder_cos_gain, m_conf.foc_encoder_cos_offset,
 								m_conf.foc_encoder_sincos_filter_constant);
 			break;
+
+		case SENSOR_PORT_MODE_TS5700N8501: {
+			m_tmp_appconf = *app_get_configuration();
+			if (m_tmp_appconf.app_to_use == APP_ADC ||
+					m_tmp_appconf.app_to_use == APP_UART ||
+					m_tmp_appconf.app_to_use == APP_PPM_UART ||
+					m_tmp_appconf.app_to_use == APP_ADC_UART) {
+				m_tmp_appconf.app_to_use = APP_NONE;
+				conf_general_store_app_configuration(&m_tmp_appconf);
+				app_set_configuration(&m_tmp_appconf);
+			}
+			encoder_init_ts5700n8501();
+		} break;
 
 		default:
 			break;

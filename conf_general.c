@@ -798,8 +798,8 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	const int max_time = 15000;
 
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
-		mcpwm_foc_set_openloop(current, mcconf.m_invert_direction ? -rpm_now : rpm_now);
 		rpm_now += erpm_per_sec / 1000.0;
+		mcpwm_foc_set_openloop(current, mcconf.m_invert_direction ? -rpm_now : rpm_now);
 
 		chThdSleepMilliseconds(1);
 		cnt++;
@@ -841,13 +841,13 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float id_avg = 0.0;
 		float samples2 = 0.0;
 
-		for (int i = 0;i < 1000;i++) {
+		for (int i = 0;i < 30000;i++) {
 			vq_avg += mcpwm_foc_get_vq();
 			vd_avg += mcpwm_foc_get_vd();
 			iq_avg += mcpwm_foc_get_iq();
 			id_avg += mcpwm_foc_get_id();
 			samples2 += 1.0;
-			chThdSleepMilliseconds(1);
+			chThdSleep(1);
 		}
 
 		vq_avg /= samples2;
@@ -1131,7 +1131,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		float bw = 1.0 / (tc * 1e-6);
 		float kp = l * bw;
 		float ki = r * bw;
-		float gain = 0.001 / (lambda * lambda);
+		float gain = (0.00001 / r) / (lambda * lambda);
 
 		mcconf_old.motor_type = MOTOR_TYPE_FOC;
 		mcconf_old.foc_motor_r = r;

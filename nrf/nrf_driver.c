@@ -215,7 +215,8 @@ static THD_FUNCTION(tx_thread, arg) {
 			buffer_append_float32(pl, val.wh_tot, 1e4, &index);
 			buffer_append_float32(pl, val.wh_charge_tot, 1e4, &index);
 			pl[index++] = (uint8_t)((int8_t)(mc_interface_get_tot_current_directional_filtered() /
-					mc_interface_get_configuration()->lo_current_motor_max_now * 100.0));
+					(mc_interface_get_configuration()->l_current_max *
+							mc_interface_get_configuration()->l_current_max_scale) * 100.0));
 
 			if (driver_paused == 0) {
 				rf_tx_wrapper((char*)pl, index);

@@ -1,3 +1,11 @@
+=== FW 3.63 ===
+* NRF remote power meter is now unaffected by temperature decrease and speed limits.
+* Added LZO compression support to firmware upload, making firmware updates 30% - 50% faster.
+* Added LZO compression support to SWD upload.
+* Made serial interrupts priority higher than PWM so that higher speed UART is possible.
+* Added support for TS5700N8501 encoder (via COMM port).
+* Better observer gain calculation.
+
 === FW 3.62 ===
 * Added COMM_BM_MEM_READ.
 * Merged EUC app (experimental).

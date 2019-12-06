@@ -122,6 +122,10 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
+// COMM-port ADC GPIOs
+#define HW_ADC_EXT_GPIO			GPIOA
+#define HW_ADC_EXT_PIN			6
+
 // UART Peripheral
 #define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
