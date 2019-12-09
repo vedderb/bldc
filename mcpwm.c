@@ -833,6 +833,26 @@ float mcpwm_get_tot_current_in_filtered(void) {
 }
 
 /**
+ * Set the number of steps the motor has rotated. This number is signed and
+ * becomes a negative when the motor is rotating backwards.
+ *
+ * @param steps
+ * New number of motor steps will be set after this call.
+ *
+ * @return
+ * The previous tachometer value in motor steps. The number of motor revolutions will
+ * be this number divided by (3 * MOTOR_POLE_NUMBER).
+ */
+int mcpwm_set_tachometer_value(int steps)
+{
+	int val = tachometer;
+
+	tachometer = steps;
+
+	return val;
+}
+
+/**
  * Read the number of steps the motor has rotated. This number is signed and
  * will return a negative number when the motor is rotating backwards.
  *
