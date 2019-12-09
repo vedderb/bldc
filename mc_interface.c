@@ -982,6 +982,27 @@ float mc_interface_get_abs_motor_current_unbalance(void) {
 	return ret;
 }
 
+int mc_interface_set_tachometer_value(int steps)
+{
+	int ret = 0;
+	switch (m_conf.motor_type)
+	{
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		ret = mcpwm_set_tachometer_value(DIR_MULT * steps);
+		break;
+
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_set_tachometer_value(DIR_MULT * steps);
+		break;
+
+	default:
+		break;
+	}
+
+	return DIR_MULT * ret;
+}
+
 int mc_interface_get_tachometer_value(bool reset) {
 	int ret = 0;
 
