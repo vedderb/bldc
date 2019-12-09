@@ -20,6 +20,7 @@
 #include "timeout.h"
 #include "mc_interface.h"
 #include "stm32f4xx_conf.h"
+#include "shutdown.h"
 
 // Private variables
 static volatile bool init_done = false;
@@ -106,6 +107,10 @@ void timeout_configure_IWDT_slowest(void) {
 		return;
 	}
 
+	// As we expect to lock the CPU for a couple of ms make sure that shutdown is not sampling the button input,
+	// as that can cause a shutdown.
+	SHUTDOWN_SET_SAMPLING_DISABLED(true);
+
 	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
 		// Continue to kick the dog
 		IWDG_ReloadCounter();
@@ -128,6 +133,8 @@ void timeout_configure_IWDT(void) {
 	if (!init_done) {
 		return;
 	}
+
+	SHUTDOWN_SET_SAMPLING_DISABLED(false);
 
 	while(((IWDG->SR & IWDG_SR_RVU) != 0) || ((IWDG->SR & IWDG_SR_PVU) != 0)) {
 		// Continue to kick the dog

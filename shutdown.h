@@ -25,11 +25,13 @@
 #include "conf_general.h"
 
 #ifdef HW_SHUTDOWN_HOLD_ON
-#define SHUTDOWN_RESET()			shutdown_reset_timer()
-#define SHUTDOWN_BUTTON_PRESSED		shutdown_button_pressed()
+#define SHUTDOWN_RESET()					shutdown_reset_timer()
+#define SHUTDOWN_BUTTON_PRESSED				shutdown_button_pressed()
+#define SHUTDOWN_SET_SAMPLING_DISABLED(d)	shutdown_set_sampling_disabled(d)
 #else
 #define SHUTDOWN_RESET()
-#define SHUTDOWN_BUTTON_PRESSED		false
+#define SHUTDOWN_BUTTON_PRESSED				false
+#define SHUTDOWN_SET_SAMPLING_DISABLED(d)
 #endif
 
 // Fucntions
@@ -37,5 +39,6 @@ void shutdown_init(void);
 void shutdown_reset_timer(void);
 bool shutdown_button_pressed(void);
 float shutdown_get_inactivity_time(void);
+void shutdown_set_sampling_disabled(bool disabled);
 
 #endif /* SHUTDOWN_H_ */

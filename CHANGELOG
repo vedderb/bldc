@@ -1,3 +1,7 @@
+=== FW 3.64 ===
+* Added support for HW60_MK3
+* Disable shutdown sampling when the watchdog runs slowly.
+
 === FW 3.63 ===
 * NRF remote power meter is now unaffected by temperature decrease and speed limits.
 * Added LZO compression support to firmware upload, making firmware updates 30% - 50% faster.

@@ -266,7 +266,7 @@ bool hw_sample_shutdown_button(void) {
 	bt_diff = 0.0;
 
 	for (int i = 0;i < 3;i++) {
-		palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
 		chThdSleep(5);
 		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
 		chThdSleepMilliseconds(1);

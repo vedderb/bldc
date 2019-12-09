@@ -67,6 +67,9 @@
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
+// Mark3 version of HW60 with power switch and separate NRF UART.
+#define HW60_IS_MK3
+
 #define HW_SOURCE "hw_60.c"
 #define HW_HEADER "hw_60.h"
 

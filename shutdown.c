@@ -26,12 +26,17 @@
 bool volatile m_button_pressed = false;
 static volatile float m_inactivity_time = 0.0;
 static THD_WORKING_AREA(shutdown_thread_wa, 128);
+static mutex_t m_sample_mutex;
+static volatile bool m_init_done = false;
+static volatile bool m_sampling_disabled = false;
 
 // Private functions
 static THD_FUNCTION(shutdown_thread, arg);
 
 void shutdown_init(void) {
+	chMtxObjectInit(&m_sample_mutex);
 	chThdCreateStatic(shutdown_thread_wa, sizeof(shutdown_thread_wa), NORMALPRIO, shutdown_thread, NULL);
+	m_init_done = true;
 }
 
 void shutdown_reset_timer(void) {
@@ -44,6 +49,16 @@ bool shutdown_button_pressed(void) {
 
 float shutdown_get_inactivity_time(void) {
 	return m_inactivity_time;
+}
+
+void shutdown_set_sampling_disabled(bool disabled) {
+	if (!m_init_done) {
+		return;
+	}
+
+	chMtxLock(&m_sample_mutex);
+	m_sampling_disabled = disabled;
+	chMtxUnlock(&m_sample_mutex);
 }
 
 static THD_FUNCTION(shutdown_thread, arg) {
@@ -59,11 +74,20 @@ static THD_FUNCTION(shutdown_thread, arg) {
 		float dt = (float)chVTTimeElapsedSinceX(last_iteration_time) / (float)CH_CFG_ST_FREQUENCY;
 		last_iteration_time = chVTGetSystemTimeX();
 
-		const app_configuration *conf = app_get_configuration();
+		chMtxLock(&m_sample_mutex);
+
+		if (m_sampling_disabled) {
+			chMtxUnlock(&m_sample_mutex);
+			chThdSleepMilliseconds(10);
+			continue;
+		}
 
 		bool sample = HW_SAMPLE_SHUTDOWN();
+		chMtxUnlock(&m_sample_mutex);
 		bool clicked = m_button_pressed && !sample;
 		m_button_pressed = sample;
+
+		const app_configuration *conf = app_get_configuration();
 
 		// Note: When the gates are enabled, the push to start function
 		// will prevent the regulator from shutting down. Therefore, the

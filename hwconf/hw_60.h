@@ -20,13 +20,19 @@
 #ifndef HW_60_H_
 #define HW_60_H_
 
+#ifdef HW60_IS_MK3
+#define HW_NAME					"60_MK3"
+#else
 #define HW_NAME					"60"
+#endif
 
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PERMANENT_NRF
 #define HW_HAS_PHASE_SHUNTS
+#ifndef HW60_IS_MK3
+#define HW_HAS_PERMANENT_NRF
+#endif
 
 // Macros
 #ifdef HW60_VEDDER_FIRST_PCB
@@ -48,6 +54,22 @@
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
+#ifdef HW60_IS_MK3
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOC
+#define HW_SHUTDOWN_PIN			5
+#define HW_SHUTDOWN_HOLD_ON()	palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
+
+// Hold shutdown pin early to wake up on short pulses
+#define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								palSetPadMode(GPIOD, 2, \
+								PAL_MODE_OUTPUT_PUSHPULL | \
+								PAL_STM32_OSPEED_HIGHEST); \
+								CURRENT_FILTER_ON()
+#else
 // Switch on current filter if a permanent
 // NRF24 cannot be found, as the later
 // HW60 has changed one of the permanent NRF
@@ -57,6 +79,7 @@
 			PAL_MODE_OUTPUT_PUSHPULL | \
 			PAL_STM32_OSPEED_HIGHEST); \
 			CURRENT_FILTER_ON()
+#endif
 
 /*
  * ADC Vector
@@ -71,7 +94,7 @@
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB
  * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
+ * 10:	IN15	ADC_EXT3, Shutdown on MK3
  * 11:	IN13	AN_IN
  * 12:	Vrefint
  * 13:	IN0		SENS1
@@ -95,6 +118,9 @@
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
+#ifdef HW60_IS_MK3
+#define ADC_IND_SHUTDOWN		10
+#endif
 
 // ADC macros and settings
 
@@ -154,6 +180,18 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
+#ifdef HW60_IS_MK3
+// Permanent UART Peripheral (for NRF51)
+#define HW_UART_P_BAUD			115200
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_DEV_TX		SD5 // UART for TX, due to mistake below
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+#define HW_UART_P_TX_PORT		GPIOC
+#define HW_UART_P_TX_PIN		12 // This is a mistake in the HW. We have to use a hack to use UART5.
+#define HW_UART_P_RX_PORT		GPIOC
+#define HW_UART_P_RX_PIN		11
+#endif
+
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
@@ -190,6 +228,7 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
+#ifndef HW60_IS_MK3
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12
@@ -199,6 +238,7 @@
 #define NRF_PIN_MOSI			3
 #define NRF_PORT_MISO			GPIOD
 #define NRF_PIN_MISO			2
+#endif
 
 // SPI pins
 #define HW_SPI_DEV				SPID1
@@ -213,6 +253,16 @@
 #define HW_SPI_PIN_MISO			6
 
 // SPI for DRV8301
+#ifndef HW60_IS_MK3
+#define DRV8301_MOSI_GPIO		GPIOB
+#define DRV8301_MOSI_PIN		4
+#define DRV8301_MISO_GPIO		GPIOB
+#define DRV8301_MISO_PIN		3
+#define DRV8301_SCK_GPIO		GPIOC
+#define DRV8301_SCK_PIN			10
+#define DRV8301_CS_GPIO			GPIOC
+#define DRV8301_CS_PIN			9
+#else
 #define DRV8301_MOSI_GPIO		GPIOC
 #define DRV8301_MOSI_PIN		12
 #define DRV8301_MISO_GPIO		GPIOC
@@ -221,6 +271,7 @@
 #define DRV8301_SCK_PIN			10
 #define DRV8301_CS_GPIO			GPIOC
 #define DRV8301_CS_PIN			9
+#endif
 
 // MPU9250
 #define MPU9X50_SDA_GPIO		GPIOB
@@ -228,6 +279,14 @@
 #define MPU9X50_SCL_GPIO		GPIOA
 #define MPU9X50_SCL_PIN			15
 #define IMU_FLIP
+
+#ifdef HW60_IS_MK3
+// NRF SWD
+#define NRF5x_SWDIO_GPIO		GPIOB
+#define NRF5x_SWDIO_PIN			12
+#define NRF5x_SWCLK_GPIO		GPIOA
+#define NRF5x_SWCLK_PIN			4
+#endif
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -260,5 +319,10 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+
+// Functions
+#ifdef HW60_IS_MK3
+bool hw_sample_shutdown_button(void);
+#endif
 
 #endif /* HW_60_H_ */

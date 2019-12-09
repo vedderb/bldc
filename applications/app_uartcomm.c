@@ -71,7 +71,11 @@ static void send_packet(unsigned char *data, unsigned int len) {
 #ifdef HW_UART_P_DEV
 	if (from_p_uart) {
 		if (uart_p_is_running) {
+#ifdef HW_UART_P_DEV_TX
+			sdWrite(&HW_UART_P_DEV_TX, data, len);
+#else
 			sdWrite(&HW_UART_P_DEV, data, len);
+#endif
 		}
 	} else {
 		if (uart_is_running) {
@@ -117,6 +121,11 @@ void app_uartcomm_start_permanent(void) {
 	}
 
 	sdStart(&HW_UART_P_DEV, &uart_p_cfg);
+
+#ifdef HW_UART_P_DEV_TX
+	sdStart(&HW_UART_P_DEV_TX, &uart_p_cfg);
+#endif
+
 	palSetPadMode(HW_UART_P_TX_PORT, HW_UART_P_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_P_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
