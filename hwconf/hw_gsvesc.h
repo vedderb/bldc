@@ -112,13 +112,13 @@
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
-#define CURR1_DOUBLE_SAMPLE		0
+#define CURR1_DOUBLE_SAMPLE		1
 #endif
 #ifndef CURR2_DOUBLE_SAMPLE
-#define CURR2_DOUBLE_SAMPLE		0
+#define CURR2_DOUBLE_SAMPLE		1
 #endif
 #ifndef CURR3_DOUBLE_SAMPLE
-#define CURR3_DOUBLE_SAMPLE		0
+#define CURR3_DOUBLE_SAMPLE		1
 #endif
 
 // Number of servo outputs
@@ -131,6 +131,17 @@
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
+
+#ifdef GSVESC_SECOND_UART
+// Permanent UART Peripheral (for NRF51)
+#define HW_UART_P_BAUD          115200
+#define HW_UART_P_DEV           SD6
+#define HW_UART_P_GPIO_AF       GPIO_AF_USART6
+#define HW_UART_P_TX_PORT       GPIOC
+#define HW_UART_P_TX_PIN        6
+#define HW_UART_P_RX_PORT       GPIOC
+#define HW_UART_P_RX_PIN        7
+#endif
 
 
 // ICU Peripheral for servo decoding

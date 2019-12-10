@@ -70,6 +70,7 @@
 //#define HW_SOURCE "hw_60.c"
 //#define HW_HEADER "hw_60.h"
 
+#define GSVESC_SECOND_UART
 #define HW_SOURCE "hw_gsvesc.c"
 #define HW_HEADER "hw_gsvesc.h"
 
