@@ -325,8 +325,8 @@ void bm_set_enabled(bool enabled) {
 		SWDIO_MODE_FLOAT();
 		palSetPadMode(SWCLK_PORT, SWCLK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	} else {
-		palSetPadMode(SWDIO_PORT, SWDIO_PIN, PAL_MODE_ALTERNATE(0));
-		palSetPadMode(SWCLK_PORT, SWCLK_PIN, PAL_MODE_ALTERNATE(0));
+		palSetPadMode(SWDIO_PORT, SWDIO_PIN, PAL_MODE_INPUT);
+		palSetPadMode(SWCLK_PORT, SWCLK_PIN, PAL_MODE_INPUT);
 
 		// The above does not activate SWD again, so do it explicitly for the SWD pins.
 		palSetPadMode(GPIOA, 13, PAL_MODE_ALTERNATE(0));

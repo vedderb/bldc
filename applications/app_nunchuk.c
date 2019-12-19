@@ -449,9 +449,10 @@ static THD_FUNCTION(output_thread, arg) {
 				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
 		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(out_val) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(out_val) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);

@@ -276,6 +276,13 @@
 #define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3
 #endif
 
+// ADC Channels
+#ifndef ADC_IND_EXT3
+#define ADC_IND_EXT3 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT2
+#define ADC_IND_EXT2 			ADC_IND_EXT
+#endif
 
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN

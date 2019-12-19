@@ -197,7 +197,7 @@ static THD_FUNCTION(packet_process_thread, arg) {
 #endif
 
 	for(;;) {
-		chEvtWaitAny(ALL_EVENTS);
+		chEvtWaitAnyTimeout(ALL_EVENTS, ST2MS(10));
 
 		bool rx = true;
 		while (rx) {

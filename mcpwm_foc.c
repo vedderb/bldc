@@ -307,7 +307,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_ADC3, ENABLE);
 
 	dmaStreamAllocate(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)),
-			4,
+			5,
 			(stm32_dmaisr_t)mcpwm_foc_adc_int_handler,
 			(void *)0);
 

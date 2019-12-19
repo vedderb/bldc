@@ -20,11 +20,7 @@
 #ifndef HW_75_300_H_
 #define HW_75_300_H_
 
-#ifdef HW75_300_REV_2
-#define HW_NAME					"75_300_R2"
-#else
-#define HW_NAME					"75_300"
-#endif
+#define HW_NAME					"RD2"
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -32,37 +28,15 @@
 //#define HW_HAS_PHASE_FILTERS
 
 // Macros
-#ifdef HW75_300_VEDDER_FIRST_PCB
-#define LED_GREEN_GPIO			GPIOB
-#define LED_GREEN_PIN			0
-#define LED_RED_GPIO			GPIOB
-#define LED_RED_PIN				1
-#else
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			5
 #define LED_RED_GPIO			GPIOB
 #define LED_RED_PIN				7
-#endif
 
 #define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
-
-#ifdef HW75_300_REV_2
-#define PHASE_FILTER_GPIO		GPIOC
-#define PHASE_FILTER_PIN		9
-#else
-#define PHASE_FILTER_GPIO		GPIOC
-#define PHASE_FILTER_PIN		11
-#endif
-#define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-
-#define AUX_GPIO				GPIOC
-#define AUX_PIN					12
-#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
-#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
@@ -104,16 +78,9 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_EXT3			10
-#ifdef HW75_300_VEDDER_FIRST_PCB
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOS_2		8
-#define ADC_IND_TEMP_MOS_3		8
-#else
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		15
 #define ADC_IND_TEMP_MOS_3		16
-#endif
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -186,17 +153,6 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-#ifdef HW75_300_REV_2
-// Permanent UART Peripheral (for NRF51)
-#define HW_UART_P_BAUD			115200
-#define HW_UART_P_DEV			SD4
-#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
-#define HW_UART_P_TX_PORT		GPIOC
-#define HW_UART_P_TX_PIN		10
-#define HW_UART_P_RX_PORT		GPIOC
-#define HW_UART_P_RX_PIN		11
-#endif
-
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
@@ -245,6 +201,16 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+// NRF SWD
+#define NRF5x_SWDIO_GPIO		GPIOC
+#define NRF5x_SWDIO_PIN			10
+#define NRF5x_SWCLK_GPIO		GPIOC
+#define NRF5x_SWCLK_PIN			12
+
+// Boot/ok signal
+#define BOOT_OK_GPIO			GPIOB
+#define BOOT_OK_PIN				12
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -266,26 +232,77 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		420.0	// The maximum absolute current above which a fault is generated
-#endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
+#ifndef MCCONF_FOC_SAMPLE_HIGH_CURRENT
+#define MCCONF_FOC_SAMPLE_HIGH_CURRENT	true	// High current sampling mode (requires three shunts)
+#endif
+
+#ifndef MCCONF_L_CURRENT_MAX
+#define MCCONF_L_CURRENT_MAX			300.0
+#endif
+#ifndef MCCONF_L_CURRENT_MIN
+#define MCCONF_L_CURRENT_MIN			-60.0
+#endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			250.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			200.0
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-60.0
+#endif
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT		480.0
+#endif
+#ifndef MCCONF_L_RPM_MAX
+#define MCCONF_L_RPM_MAX				32000.0
+#endif
+#ifndef MCCONF_L_RPM_MIN
+#define MCCONF_L_RPM_MIN				-32000.0
+#endif
+#ifndef MCCONF_L_RPM_START
+#define MCCONF_L_RPM_START				0.8
+#endif
+#ifndef MCCONF_FOC_CURRENT_KP
+#define MCCONF_FOC_CURRENT_KP			0.0046
+#endif
+#ifndef MCCONF_FOC_CURRENT_KI
+#define MCCONF_FOC_CURRENT_KI			6.6
+#endif
+#ifndef MCCONF_FOC_F_SW
+#define MCCONF_FOC_F_SW					20000.0
+#endif
+#ifndef MCCONF_FOC_MOTOR_L
+#define MCCONF_FOC_MOTOR_L				2.32e-6
+#endif
+#ifndef MCCONF_FOC_MOTOR_R
+#define MCCONF_FOC_MOTOR_R				0.0033
+#endif
+#ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00849
+#endif
+#ifndef MCCONF_FOC_OBSERVER_GAIN
+#define MCCONF_FOC_OBSERVER_GAIN		8.87e6
+#endif
+
+// Setup Info
+#ifndef MCCONF_SI_MOTOR_POLES
+#define MCCONF_SI_MOTOR_POLES			8 // Motor pole count
+#endif
+#ifndef MCCONF_SI_BATTERY_TYPE
+#define MCCONF_SI_BATTERY_TYPE			BATTERY_TYPE_LIION_3_0__4_2 // Battery Type
+#endif
+#ifndef MCCONF_SI_BATTERY_CELLS
+#define MCCONF_SI_BATTERY_CELLS			14 // Battery Cells
+#endif
+#ifndef MCCONF_SI_BATTERY_AH
+#define MCCONF_SI_BATTERY_AH			69.0 // Battery amp hours
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-300.0, 300.0
-#define HW_LIM_CURRENT_IN		-300.0, 300.0
-#define HW_LIM_CURRENT_ABS		0.0, 450.0
+#define HW_LIM_CURRENT			-350.0, 350.0
+#define HW_LIM_CURRENT_IN		-350.0, 350.0
+#define HW_LIM_CURRENT_ABS		0.0, 510.0
 #define HW_LIM_VIN				6.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

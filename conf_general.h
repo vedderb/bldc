@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		63
+#define FW_VERSION_MINOR		64
 
 #include "datatypes.h"
 
@@ -68,7 +68,7 @@
 //#define HW60_VEDDER_FIRST_PCB
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
-#define HW60_IS_MK3
+//#define HW60_IS_MK3
 
 #define HW_SOURCE "hw_60.c"
 #define HW_HEADER "hw_60.h"
@@ -120,6 +120,9 @@
 
 //#define HW_SOURCE "hw_a200s_v2.c"
 //#define HW_HEADER "hw_a200s_v2.h"
+
+//#define HW_SOURCE "hw_rd2.c"
+//#define HW_HEADER "hw_rd2.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -158,6 +161,7 @@
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
+//#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf.h"
 
 #include "hw.h"
