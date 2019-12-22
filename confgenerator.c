@@ -130,6 +130,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->m_dc_f_sw, &ind);
 	buffer_append_float32_auto(buffer, conf->m_ntc_motor_beta, &ind);
 	buffer[ind++] = conf->m_out_aux_mode;
+	buffer[ind++] = conf->m_motor_temp_sens_type;
+	buffer_append_float32_auto(buffer, conf->m_ptc_motor_coeff, &ind);
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
 	buffer_append_float32_auto(buffer, conf->si_wheel_diameter, &ind);
@@ -394,6 +396,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_dc_f_sw = buffer_get_float32_auto(buffer, &ind);
 	conf->m_ntc_motor_beta = buffer_get_float32_auto(buffer, &ind);
 	conf->m_out_aux_mode = buffer[ind++];
+	conf->m_motor_temp_sens_type = buffer[ind++];
+	conf->m_ptc_motor_coeff = buffer_get_float32_auto(buffer, &ind);
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
 	conf->si_wheel_diameter = buffer_get_float32_auto(buffer, &ind);
@@ -654,6 +658,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_dc_f_sw = MCCONF_M_DC_F_SW;
 	conf->m_ntc_motor_beta = MCCONF_M_NTC_MOTOR_BETA;
 	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
+	conf->m_motor_temp_sens_type = MCCONF_M_MOTOR_TEMP_SENS_TYPE;
+	conf->m_ptc_motor_coeff = MCCONF_M_PTC_MOTOR_COEFF;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
 	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;

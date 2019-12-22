@@ -37,6 +37,7 @@
 #include "comm_can.h"
 #include "shutdown.h"
 #include "app.h"
+#include "utils.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -1747,7 +1748,17 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	const float rpm_now = mc_interface_get_rpm();
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
-	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+	if (conf->m_motor_temp_sens_type == TEMP_SENSOR_NTC_10K_25C) {
+		UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
+	} else if (conf->m_motor_temp_sens_type == TEMP_SENSOR_PTC_1K_100C) {
+		float temp = PTC_TEMP_MOTOR(1000.0, conf->m_ptc_motor_coeff, 100);
+		
+		if (UTILS_IS_NAN(temp) || UTILS_IS_INF(temp) || temp > 600.0) {
+			temp = 180.0;
+		}
+		
+		UTILS_LP_FAST(m_temp_motor, temp, 0.1);
+	}
 #ifdef HW_VERSION_AXIOM
 	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif

@@ -364,6 +364,14 @@
 #define COMM_USE_USB				1
 #endif
 
+#ifndef PTC_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
+#else
+#define PTC_TEMP_MOTOR(res, con, tbase)			0.0
+#endif
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

@@ -64,6 +64,12 @@ typedef enum {
 	OUT_AUX_MODE_UNUSED
 } out_aux_mode;
 
+// Temperature sensor type
+typedef enum {
+	TEMP_SENSOR_NTC_10K_25C = 0,
+	TEMP_SENSOR_PTC_1K_100C
+} temp_sensor_type;
+
 // General purpose drive output mode
 typedef enum {
 	GPD_OUTPUT_MODE_NONE = 0,
@@ -300,6 +306,8 @@ typedef struct {
 	float m_dc_f_sw;
 	float m_ntc_motor_beta;
 	out_aux_mode m_out_aux_mode;
+	temp_sensor_type m_motor_temp_sens_type;
+	float m_ptc_motor_coeff;
 	// Setup info
 	uint8_t si_motor_poles;
 	float si_gear_ratio;

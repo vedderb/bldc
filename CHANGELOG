@@ -1,3 +1,7 @@
+=== FW 3.65 ===
+* Added support for PTC motor temperature sensor (e.g. KTY84)
+* APP_PPM sleep fix. Should solve CAN issues.
+
 === FW 3.64 ===
 * Added support for HW60_MK3
 * Disable shutdown sampling when the watchdog runs slowly.

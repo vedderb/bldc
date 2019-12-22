@@ -120,7 +120,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 	is_running = true;
 
 	for(;;) {
-		chEvtWaitAnyTimeout((eventmask_t)1, ST2MS(2));
+		chEvtWaitAnyTimeout((eventmask_t)1, MS2ST(2));
 
 		if (stop_now) {
 			is_running = false;

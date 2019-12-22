@@ -402,6 +402,12 @@
 #ifndef MCCONF_M_OUT_AUX_MODE
 #define MCCONF_M_OUT_AUX_MODE			OUT_AUX_MODE_OFF // Auxiliary output mode
 #endif
+#ifndef MCCONF_M_MOTOR_TEMP_SENS_TYPE
+#define MCCONF_M_MOTOR_TEMP_SENS_TYPE	TEMP_SENSOR_NTC_10K_25C // Motor temperature sensor type
+#endif
+#ifndef MCCONF_M_PTC_MOTOR_COEFF
+#define MCCONF_M_PTC_MOTOR_COEFF		0.61 // %/K coefficient for motor PTC sensor
+#endif
 
 // Setup Info
 #ifndef MCCONF_SI_MOTOR_POLES
