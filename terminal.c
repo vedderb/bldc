@@ -73,6 +73,13 @@ void terminal_process_string(char *str) {
 		return;
 	}
 
+	for (int i = 0;i < callback_write;i++) {
+		if (callbacks[i].cbf != 0 && strcmp(argv[0], callbacks[i].command) == 0) {
+			callbacks[i].cbf(argc, (const char**)argv);
+			return;
+		}
+	}
+
 	static mc_configuration mcconf; // static to save some stack
 	static mc_configuration mcconf_old; // static to save some stack
 	mcconf = *mc_interface_get_configuration();
@@ -819,19 +826,8 @@ void terminal_process_string(char *str) {
 
 		commands_printf(" ");
 	} else {
-		bool found = false;
-		for (int i = 0;i < callback_write;i++) {
-			if (callbacks[i].cbf != 0 && strcmp(argv[0], callbacks[i].command) == 0) {
-				callbacks[i].cbf(argc, (const char**)argv);
-				found = true;
-				break;
-			}
-		}
-
-		if (!found) {
-			commands_printf("Invalid command: %s\n"
-					"type help to list all available commands\n", argv[0]);
-		}
+		commands_printf("Invalid command: %s\n"
+				"type help to list all available commands\n", argv[0]);
 	}
 }
 
