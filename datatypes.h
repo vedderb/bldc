@@ -67,7 +67,8 @@ typedef enum {
 // Temperature sensor type
 typedef enum {
 	TEMP_SENSOR_NTC_10K_25C = 0,
-	TEMP_SENSOR_PTC_1K_100C
+	TEMP_SENSOR_PTC_1K_100C,
+	TEMP_SENSOR_KTY83_122,
 } temp_sensor_type;
 
 // General purpose drive output mode

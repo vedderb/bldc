@@ -1748,16 +1748,34 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	const float rpm_now = mc_interface_get_rpm();
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
-	if (conf->m_motor_temp_sens_type == TEMP_SENSOR_NTC_10K_25C) {
+	switch(conf->m_motor_temp_sens_type) {
+	case TEMP_SENSOR_NTC_10K_25C:
 		UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
-	} else if (conf->m_motor_temp_sens_type == TEMP_SENSOR_PTC_1K_100C) {
-		float temp = PTC_TEMP_MOTOR(1000.0, conf->m_ptc_motor_coeff, 100);
-		
-		if (UTILS_IS_NAN(temp) || UTILS_IS_INF(temp) || temp > 600.0) {
-			temp = 180.0;
+		break;
+	case TEMP_SENSOR_PTC_1K_100C:
+		{
+			float temp = PTC_TEMP_MOTOR(1010.0, conf->m_ptc_motor_coeff, 25);
+
+                	if (UTILS_IS_NAN(temp) || UTILS_IS_INF(temp) || temp > 600.0) {
+                        	temp = 180.0;
+                	}
+
+                	UTILS_LP_FAST(m_temp_motor, temp, 0.1);
 		}
-		
-		UTILS_LP_FAST(m_temp_motor, temp, 0.1);
+		break;
+	case TEMP_SENSOR_KTY83_122:
+		{
+			// KTY83_122 datasheet used to approximate
+			// polynom constants: https://docs.google.com/spreadsheets/d/1iJA66biczfaXRNClSsrVF9RJuSAKoDG-bnRZFMOcuwU/edit?usp=sharing
+			// Thanks to: https://vasilisks.wordpress.com/2017/12/14/getting-temperature-from-ntc-kty83-kty84-on-mcu/#more-645
+			// Optimized integer calculations without FPU
+			int32_t raw = ADC_Value[ADC_IND_TEMP_MOTOR];
+			int32_t pow2 = raw*raw;
+			int32_t temp = (((int32_t) (((((int64_t) pow2 * raw) >> 16) * 673718099) >> 16) + (int32_t) (((int64_t) pow2 * -22219886) >> 16) + (raw *444597) + -111101966) >> 16);
+
+			UTILS_LP_FAST(m_temp_motor, (float)temp / (float)10, 0.1);
+		}
+		break;
 	}
 #ifdef HW_VERSION_AXIOM
 	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
