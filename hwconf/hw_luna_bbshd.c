@@ -76,8 +76,10 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
-	// Fault pin
-	palSetPadMode(GPIOB, 12, PAL_MODE_INPUT_PULLUP);
+#ifdef HW_USE_BRK
+	// BRK Fault pin
+	palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_TIM1));
+#endif
 
 	// Current filter
 	palSetPadMode(GPIOC, 13,

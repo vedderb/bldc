@@ -26,6 +26,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
+#define HW_USE_BRK
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -45,6 +46,9 @@
 
 #define CURRENT_FILTER_ON()		palSetPad(GPIOC, 13)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOC, 13)
+
+#define BRK_GPIO				GPIOB
+#define BRK_PIN					12
 
 #define HW_ADC_CHANNELS			18
 #define HW_ADC_INJ_CHANNELS		3
@@ -193,7 +197,6 @@
 #define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
-#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 12))
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
