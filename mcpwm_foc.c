@@ -288,8 +288,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
 	TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
 	TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
-	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
-	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 	TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
 
 #ifdef HW_USE_BRK
@@ -298,6 +296,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	// software will catch the BRK flag to report the fault code
 	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Enable;
 	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_Low;
+#else
+	TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
+	TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
 #endif
 
 	TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
