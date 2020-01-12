@@ -77,7 +77,7 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len);
  * @param filter_constant
  * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
  */
-#define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * (value - (sample)))
+#define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
 
 // Some constants
 #define ONE_BY_SQRT3			(0.57735026919)

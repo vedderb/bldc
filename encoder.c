@@ -80,7 +80,7 @@ static bool index_found = false;
 static uint32_t enc_counts = 10000;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
-static uint16_t spi_val = 0;
+static uint32_t spi_val = 0;
 static uint32_t spi_error_cnt = 0;
 static float spi_error_rate = 0.0;
 
@@ -117,7 +117,7 @@ uint32_t encoder_spi_get_error_cnt(void) {
 	return spi_error_cnt;
 }
 
-uint16_t encoder_spi_get_val(void) {
+uint32_t encoder_spi_get_val(void) {
 	return spi_val;
 }
 
@@ -523,7 +523,7 @@ bool encoder_index_found(void) {
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) {
 	for (int i = 0;i < length;i++) {
 		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
-		uint16_t recieve = 0;
+		uint16_t receive = 0;
 
 		for (int bit = 0;bit < 16;bit++) {
 			//palWritePad(HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, send >> 15);
@@ -543,9 +543,9 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 			__NOP();
 			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 
-			recieve <<= 1;
+			receive <<= 1;
 			if (samples > 2) {
-				recieve |= 1;
+				receive |= 1;
 			}
 
 			palClearPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
@@ -553,7 +553,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 		}
 
 		if (in_buf) {
-			in_buf[i] = recieve;
+			in_buf[i] = receive;
 		}
 	}
 }
@@ -672,6 +672,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 
 		if (reply_ind == 6 && crc == reply[reply_ind - 1]) {
 			uint32_t pos = (uint32_t)reply[2] + ((uint32_t)reply[3] << 8) + ((uint32_t)reply[4] << 16);
+			spi_val = pos;
 			last_enc_angle = (float)pos / 131072.0 * 360.0;
 			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / AS5047_SAMPLE_RATE_HZ);
 		} else {

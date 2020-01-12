@@ -1467,6 +1467,17 @@ void mcpwm_adc_inj_int_handler(void) {
 	int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
 #endif
 
+#ifdef INVERTED_SHUNT_POLARITY
+	curr0 = 4095 - curr0;
+	curr1 = 4095 - curr1;
+
+	curr0_2 = 4095 - curr0_2;
+	curr1_2 = 4095 - curr1_2;
+#ifdef HW_HAS_3_SHUNTS
+	curr2 = 4095 - curr2;
+#endif
+#endif
+
 	float curr0_currsamp = curr0;
 	float curr1_currsamp = curr1;
 #ifdef HW_HAS_3_SHUNTS

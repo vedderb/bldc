@@ -133,6 +133,7 @@ static int idcode_to_device(uint32_t idcode) {
 		ret = 7; break;
 	case 0x00EB: /* nRF52840 Preview QIAA AA0 */
 	case 0x0150: /* nRF52840 QIAA C0 */
+	case 0x015B: /* nRF52840 ?? */
 		ret = 8; break;
 	default: ret = -2; break;
 	}
@@ -362,6 +363,9 @@ int bm_connect(void) {
 
 		if (cur_target) {
 			ret = idcode_to_device(target_idcode(cur_target));
+			if (ret < 0) {
+				commands_printf("Unknown idcode: 0x%04X\n", target_idcode(cur_target));
+			}
 		}
 	}
 

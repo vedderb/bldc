@@ -85,6 +85,19 @@ typedef enum {
 	MOTOR_TYPE_GPD
 } mc_motor_type;
 
+// FOC current controller decoupling mode.
+typedef enum {
+	FOC_CC_DECOUPLING_DISABLED = 0,
+	FOC_CC_DECOUPLING_CROSS,
+	FOC_CC_DECOUPLING_BEMF,
+	FOC_CC_DECOUPLING_CROSS_BEMF
+} mc_foc_cc_decoupling_mode;
+
+typedef enum {
+	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
+	FOC_OBSERVER_ORTEGA_ITERATIVE
+} mc_foc_observer_type;
+
 typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_OVER_VOLTAGE,
@@ -268,6 +281,8 @@ typedef struct {
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
 	float foc_current_filter_const;
+	mc_foc_cc_decoupling_mode foc_cc_decoupling;
+	mc_foc_observer_type foc_observer_type;
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;

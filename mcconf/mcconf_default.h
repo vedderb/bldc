@@ -225,10 +225,10 @@
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					20000.0
+#define MCCONF_FOC_F_SW					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
-#define MCCONF_FOC_DT_US				0.08 // Microseconds for dead time compensation
+#define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation
 #endif
 #ifndef MCCONF_FOC_ENCODER_INVERTED
 #define MCCONF_FOC_ENCODER_INVERTED		false
@@ -329,10 +329,16 @@
 #ifndef MCCONF_FOC_CURRENT_FILTER_CONST
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
 #endif
+#ifndef MCCONF_FOC_CC_DECOUPLING
+#define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_BEMF // Current controller decoupling
+#endif
+#ifndef MCCONF_FOC_OBSERVER_TYPE
+#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
-#define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space is left than this
+#define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space left is less than this
 #endif
 #ifndef MCCONF_GPD_BUFFER_INTERPOL
 #define MCCONF_GPD_BUFFER_INTERPOL		0		// Buffer interpolation
