@@ -37,6 +37,7 @@ static THD_WORKING_AREA(serial_process_thread_wa, 4096);
 static mutex_t send_mutex;
 static thread_t *process_tp;
 static volatile unsigned int write_timeout_cnt = 0;
+static volatile bool was_timeout = false;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -95,8 +96,6 @@ static void process_packet(unsigned char *data, unsigned int len) {
 }
 
 static void send_packet_raw(unsigned char *buffer, unsigned int len) {
-	static bool was_timeout = false;
-
 	/*
 	 * Only write to USB if the cable has been connected at least once. If a timeout occurs
 	 * make sure that this call does not stall on the next call, as the timeout probably occured
