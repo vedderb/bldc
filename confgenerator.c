@@ -97,6 +97,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_temp_comp;
 	buffer_append_float32_auto(buffer, conf->foc_temp_comp_base_temp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_current_filter_const, &ind);
+	buffer[ind++] = conf->foc_cc_decoupling;
+	buffer[ind++] = conf->foc_observer_type;
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_filter_const, &ind);
@@ -363,6 +365,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_temp_comp = buffer[ind++];
 	conf->foc_temp_comp_base_temp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_current_filter_const = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_cc_decoupling = buffer[ind++];
+	conf->foc_observer_type = buffer[ind++];
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float32_auto(buffer, &ind);
@@ -625,6 +629,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_temp_comp = MCCONF_FOC_TEMP_COMP;
 	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
 	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
+	conf->foc_cc_decoupling = MCCONF_FOC_CC_DECOUPLING;
+	conf->foc_observer_type = MCCONF_FOC_OBSERVER_TYPE;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;

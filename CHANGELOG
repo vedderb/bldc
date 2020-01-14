@@ -1,3 +1,19 @@
+=== FW 3.66 ===
+* Added support for HW 100/250.
+* Added uptime terminal command.
+* Added some delays to DRV8323s SPI driver.
+* Added SWD support for NRF52840 with idcode 0x015B.
+ - TODO: Have a look at https://github.com/blacksphere/blackmagic/commit/302ff20a6d5b806c09e0ca7e996beab3ef3596f4.
+* Fixed INVERTED_SHUNT_POLARITY for BLDC.
+* Added decoupling to FOC current controller.
+* Better motor tracking at high ERPM and low Fsw.
+* Made uart and permanent uart more independent.
+* Do not write to USB if cable has not been connected.
+* Added timeout to USB write.
+* Better FOC current control integrator windup protection.
+* Added FOC observer type selection options.
+* Print TS5700N8501 position in encoder terminal command.
+
 === FW 3.65 ===
 * Added support for PTC motor temperature sensor (e.g. KTY84)
 * APP_PPM sleep fix. Should solve CAN issues.

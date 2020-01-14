@@ -355,15 +355,19 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 			palClearPad(DRV8323S_SCK_GPIO, DRV8323S_SCK_PIN);
 
-			int r1, r2, r3;
-			r1 = palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
+			int samples = 0;
+			samples += palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
 			__NOP();
-			r2 = palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
+			samples += palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
 			__NOP();
-			r3 = palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
+			samples += palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
+			__NOP();
+			samples += palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
+			__NOP();
+			samples += palReadPad(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN);
 
 			receive <<= 1;
-			if (utils_middle_of_3_int(r1, r2, r3)) {
+			if (samples > 2) {
 				receive |= 1;
 			}
 
@@ -377,11 +381,15 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 }
 
 static void spi_begin(void) {
+	spi_delay();
 	palClearPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+	spi_delay();
 }
 
 static void spi_end(void) {
+	spi_delay();
 	palSetPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+	spi_delay();
 }
 
 static void spi_delay(void) {

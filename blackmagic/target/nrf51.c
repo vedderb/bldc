@@ -176,6 +176,7 @@ bool nrf51_probe(target *t)
 		return true;
 	case 0x00EB: /* nRF52840 Preview QIAA AA0 */
 	case 0x0150: /* nRF52840 QIAA C0 */
+	case 0x015B: /* nRF52840 ?? */
 		t->driver = "Nordic nRF52";
 		target_add_ram(t, 0x20000000, 256*1024);
 		nrf51_add_flash(t, 0x00000000, 1024*1024, NRF52_PAGE_SIZE);

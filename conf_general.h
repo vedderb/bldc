@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		65
+#define FW_VERSION_MINOR		66
 
 #include "datatypes.h"
 
@@ -123,6 +123,9 @@
 
 //#define HW_SOURCE "hw_rd2.c"
 //#define HW_HEADER "hw_rd2.h"
+
+//#define HW_SOURCE "hw_100_250.c"
+//#define HW_HEADER "hw_100_250.h"
 #endif
 
 #ifndef HW_SOURCE

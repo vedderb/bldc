@@ -25,5 +25,6 @@
 // Functions
 void comm_usb_init(void);
 void comm_usb_send_packet(unsigned char *data, unsigned int len);
+unsigned int comm_usb_get_write_timeout_cnt(void);
 
 #endif /* COMM_USB_H_ */
