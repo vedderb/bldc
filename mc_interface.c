@@ -1754,7 +1754,7 @@ static void update_override_limits(volatile mc_configuration *conf) {
 		break;
 	case TEMP_SENSOR_PTC_1K_100C:
 		{
-			float temp = PTC_TEMP_MOTOR(1010.0, conf->m_ptc_motor_coeff, 25);
+			float temp = PTC_TEMP_MOTOR(1000.0, conf->m_ptc_motor_coeff, 100);
 
                 	if (UTILS_IS_NAN(temp) || UTILS_IS_INF(temp) || temp > 600.0) {
                         	temp = 180.0;
