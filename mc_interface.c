@@ -1765,15 +1765,15 @@ static void update_override_limits(volatile mc_configuration *conf) {
 		break;
 	case TEMP_SENSOR_KTY83_122:
 		{
-			// KTY83_122 datasheet used to approximate
-			// polynom constants: https://docs.google.com/spreadsheets/d/1iJA66biczfaXRNClSsrVF9RJuSAKoDG-bnRZFMOcuwU/edit?usp=sharing
+			// KTY83_122 datasheet used to approximate resistance at given temperature to cubic polynom
+			// https://docs.google.com/spreadsheets/d/1iJA66biczfaXRNClSsrVF9RJuSAKoDG-bnRZFMOcuwU/edit?usp=sharing
 			// Thanks to: https://vasilisks.wordpress.com/2017/12/14/getting-temperature-from-ntc-kty83-kty84-on-mcu/#more-645
-			// Optimized integer calculations without FPU
-			int32_t raw = ADC_Value[ADC_IND_TEMP_MOTOR];
-			int32_t pow2 = raw*raw;
-			int32_t temp = (((int32_t) (((((int64_t) pow2 * raw) >> 16) * 673718099) >> 16) + (int32_t) (((int64_t) pow2 * -22219886) >> 16) + (raw *444597) + -111101966) >> 16);
+			// You can change pull up resistor and update NTC_RES_MOTOR for your hardware without changing polynom
+			float res = NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]);
+			float pow2 = res*res;
+			float temp = 0.0000000102114874947423 * pow2 * res - 0.000069967997703501 * pow2 + 0.243402040973194 * res - 160.145048329356;
 
-			UTILS_LP_FAST(m_temp_motor, (float)temp / (float)10, 0.1);
+			UTILS_LP_FAST(m_temp_motor, temp, 0.1);
 		}
 		break;
 	}
