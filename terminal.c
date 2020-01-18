@@ -693,6 +693,18 @@ void terminal_process_string(char *str) {
 				encoder_sincos_get_signal_above_max_error_cnt(),
 				(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
 		}
+
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_loss_of_tracking_error_cnt(),
+				(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
+			commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_degradation_of_signal_error_cnt(),
+				(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
+			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_loss_of_signal_error_cnt(),
+				(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
+		}
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 	}

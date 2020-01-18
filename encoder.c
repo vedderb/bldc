@@ -83,6 +83,12 @@ static float last_enc_angle = 0.0;
 static uint32_t spi_val = 0;
 static uint32_t spi_error_cnt = 0;
 static float spi_error_rate = 0.0;
+static float resolver_loss_of_tracking_error_rate = 0.0;
+static float resolver_degradation_of_signal_error_rate = 0.0;
+static float resolver_loss_of_signal_error_rate = 0.0;
+static uint32_t resolver_loss_of_tracking_error_cnt = 0;
+static uint32_t resolver_degradation_of_signal_error_cnt = 0;
+static uint32_t resolver_loss_of_signal_error_cnt = 0;
 
 static float sin_gain = 0.0;
 static float sin_offset = 0.0;
@@ -123,6 +129,30 @@ uint32_t encoder_spi_get_val(void) {
 
 float encoder_spi_get_error_rate(void) {
 	return spi_error_rate;
+}
+
+float encoder_resolver_loss_of_tracking_error_rate(void) {
+	return resolver_loss_of_tracking_error_rate;
+}
+
+float encoder_resolver_degradation_of_signal_error_rate(void) {
+	return resolver_degradation_of_signal_error_rate;
+}
+
+float encoder_resolver_loss_of_signal_error_rate(void) {
+	return resolver_loss_of_signal_error_rate;
+}
+
+uint32_t encoder_resolver_loss_of_tracking_error_cnt(void) {
+	return resolver_loss_of_tracking_error_cnt;
+}
+
+uint32_t encoder_resolver_degradation_of_signal_error_cnt(void) {
+	return resolver_degradation_of_signal_error_cnt;
+}
+
+uint32_t encoder_resolver_loss_of_signal_error_cnt(void) {
+	return resolver_loss_of_signal_error_cnt;
 }
 
 uint32_t encoder_sincos_get_signal_below_min_error_cnt(void) {
@@ -260,6 +290,12 @@ void encoder_init_as5047p_spi(void) {
 
 void encoder_init_ad2s1205_spi(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+	resolver_loss_of_tracking_error_rate = 0.0;
+	resolver_degradation_of_signal_error_rate = 0.0;
+	resolver_loss_of_signal_error_rate = 0.0;
+	resolver_loss_of_tracking_error_cnt = 0;
+	resolver_loss_of_signal_error_cnt = 0;
 
 	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT);
 	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
@@ -476,21 +512,59 @@ void encoder_tim_isr(void) {
 		palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
 #endif
 
+		palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
+		spi_delay();
 		spi_begin(); // CS uses the same mcu pin as AS5047
+		spi_delay();
 
 		spi_transfer(&pos, 0, 1);
 		spi_end();
 
+		spi_val = pos;
+
 		uint16_t RDVEL = pos & 0x08; // 1 means a position read
-		uint16_t DOS = pos & 0x04;
-		uint16_t LOT = pos & 0x02;
-	//	uint16_t parity = pos & 0x01; // 16 bit frame should have odd parity
+		bool DOS = ((pos & 0x04) == 0);
+		bool LOT = ((pos & 0x02) == 0);
+		bool LOS = DOS && LOT;
+		bool parity_error = spi_check_parity(pos);	//16 bit frame has odd parity
+
+		if(LOS) {
+			LOT = DOS = 0;
+		}
+
+		if(!parity_error) {
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		} else {
+			++spi_error_cnt;
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		}
 
 		pos &= 0xFFF0;
 		pos = pos >> 4;
-		pos &= 0x0FFF; // check if needed
+		pos &= 0x0FFF;
 
-		if((RDVEL != 0) && (DOS != 0) && (LOT != 0)) {
+		if(LOT) {
+			++resolver_loss_of_tracking_error_cnt;
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		} else {
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		}
+
+		if(DOS) {
+			++resolver_degradation_of_signal_error_cnt;
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		} else {
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		}
+
+		if(LOS) {
+			++resolver_loss_of_signal_error_cnt;
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		} else {
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+		}
+
+		if((RDVEL != 0) && (LOS != 0) && (DOS != 0) && (LOT != 0) && (!parity_error)) {
 			last_enc_angle = ((float)pos * 360.0) / 4096.0;
 		}
 	}

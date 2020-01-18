@@ -2007,6 +2007,16 @@ static THD_FUNCTION(timer_thread, arg) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
 
+		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT);
+			if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS);
+			if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS);
+		}
 		// TODO: Implement for BLDC and GPDRIVE
 		if(m_conf.motor_type == MOTOR_TYPE_FOC) {
 			int curr0_offset;
