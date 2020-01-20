@@ -419,6 +419,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
     case FAULT_CODE_UNBALANCED_CURRENTS: return "FAULT_CODE_UNBALANCED_CURRENTS";
+    case FAULT_CODE_BRK: return "FAULT_CODE_BRK";
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -1543,6 +1544,16 @@ void mc_interface_mc_timer_isr(void) {
 	if (IS_DRV_FAULT()) {
 		mc_interface_fault_stop(FAULT_CODE_DRV);
 	}
+
+#ifdef HW_USE_BRK
+	// BRK fault code
+	if (TIM_GetFlagStatus(TIM1, TIM_FLAG_Break) != RESET) {
+		mc_interface_fault_stop(FAULT_CODE_BRK);
+		// latch the BRK/FAULT pin to low until next MCU reset
+		palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palClearPad(BRK_GPIO, BRK_PIN);
+	}
+#endif
 
 #ifdef HW_VERSION_AXIOM
 	if( m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
