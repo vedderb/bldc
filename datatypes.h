@@ -52,7 +52,8 @@ typedef enum {
 typedef enum {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
 	FOC_SENSOR_MODE_ENCODER,
-	FOC_SENSOR_MODE_HALL
+	FOC_SENSOR_MODE_HALL,
+	FOC_SENSOR_MODE_HFI
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -283,6 +284,11 @@ typedef struct {
 	float foc_current_filter_const;
 	mc_foc_cc_decoupling_mode foc_cc_decoupling;
 	mc_foc_observer_type foc_observer_type;
+	float foc_hfi_voltage_start;
+	float foc_hfi_voltage_run;
+	float foc_sl_erpm_hfi;
+	uint16_t foc_hfi_start_samples;
+	float foc_hfi_obs_ovr_sec;
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;

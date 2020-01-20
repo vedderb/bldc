@@ -1,3 +1,7 @@
+=== FW 3.67 ===
+* Added support for HFI to track motor position at 0 speed without sensors.
+* Fixed CAN-bug in VESC Remote.
+
 === FW 3.66 ===
 * Added support for HW 100/250.
 * Added uptime terminal command.

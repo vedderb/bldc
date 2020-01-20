@@ -335,6 +335,21 @@
 #ifndef MCCONF_FOC_OBSERVER_TYPE
 #define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
 #endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_START
+#define MCCONF_FOC_HFI_VOLTAGE_START	25 // HFI voltage at start when resolving ambiguity
+#endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_RUN
+#define MCCONF_FOC_HFI_VOLTAGE_RUN		5 // HFI voltage during tracking
+#endif
+#ifndef MCCONF_FOC_SL_ERPM_HFI
+#define MCCONF_FOC_SL_ERPM_HFI			700.0	// ERPM above which only the observer is used
+#endif
+#ifndef MCCONF_FOC_HFI_START_SAMPLES
+#define MCCONF_FOC_HFI_START_SAMPLES	50 // Sample this often at start to resolve ambiguity
+#endif
+#ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
+#define MCCONF_FOC_HFI_OBS_OVR_SEC		0.05 // Continue using observer for this long when entering HFI speed
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT

@@ -37,7 +37,9 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "virtual_motor.h"
+#include "digital_filter.h"
 
 // Private types
 typedef struct {
@@ -121,6 +123,22 @@ static volatile int m_curr2_sum;
 static volatile int m_curr2_offset;
 #endif
 
+#define INJ_SAMPLES					32
+static volatile float m_hfi_buffer[INJ_SAMPLES];
+static volatile bool m_hfi_ready;
+static volatile int m_hfi_ind;
+static volatile bool m_hfi_is_buffer2;
+static volatile bool m_hfi_is_samp_n;
+static volatile float m_hfi_prev_sample;
+static volatile float m_hfi_angle;
+static volatile bool m_hfi_plot_en;
+static volatile float m_hfi_plot_sample;
+static volatile int m_hfi_est_done_cnt;
+static volatile float m_hfi_observer_zero_time;
+static volatile float m_hfi_voltage_now;
+static volatile int m_duty1_next, m_duty2_next, m_duty3_next;
+static volatile bool m_duty_next_set;
+
 // Private functions
 static void do_dc_cal(void);
 void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
@@ -135,13 +153,18 @@ static void run_pid_control_speed(float dt);
 static void stop_pwm_hw(void);
 static void start_pwm_hw(void);
 static int read_hall(void);
-static float correct_encoder(float obs_angle, float enc_angle, float speed);
+static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm);
 static float correct_hall(float angle, float speed, float dt);
+static void terminal_plot_hfi(int argc, const char **argv);
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_WORKING_AREA(timer_thread_wa, 1024);
 static THD_FUNCTION(timer_thread, arg);
 static volatile bool timer_thd_stop;
+
+static THD_WORKING_AREA(hfi_thread_wa, 1024);
+static THD_FUNCTION(hfi_thread, arg);
+static volatile bool hfi_thd_stop;
 
 // Macros
 #ifdef HW_HAS_3_SHUNTS
@@ -239,6 +262,21 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_using_encoder = false;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
+	m_hfi_ready = false;
+	m_hfi_ind = 0;
+	m_hfi_is_buffer2 = false;
+	m_hfi_is_samp_n = false;
+	m_hfi_prev_sample = 0.0;
+	m_hfi_angle = 0.0;
+	m_hfi_plot_en = false;
+	m_hfi_plot_sample = 0.0;
+	m_hfi_est_done_cnt = 0;
+	m_hfi_observer_zero_time = 0.0;
+	m_hfi_voltage_now = 0.0;
+	m_duty1_next = 0;
+	m_duty2_next = 0;
+	m_duty3_next = 0;
+	m_duty_next_set = false;
 
 	virtual_motor_init();
 
@@ -251,16 +289,13 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM1->CNT = 0;
 	TIM8->CNT = 0;
 
-	// TIM1 clock enable
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
-	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
 	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)m_conf->foc_f_sw;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 
 	// Channel 1, 2 and 3 Configuration in PWM mode
@@ -296,9 +331,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	TIM_CCPreloadControl(TIM1, ENABLE);
 	TIM_ARRPreloadConfig(TIM1, ENABLE);
 
-	/*
-	 * ADC!
-	 */
+	// ADC
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;
@@ -330,10 +363,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 	DMA_Init(DMA2_Stream4, &DMA_InitStructure);
 
-	// DMA2_Stream0 enable
 	DMA_Cmd(DMA2_Stream4, ENABLE);
-
-	// Enable transfer complete interrupt
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
 	// ADC Common Init
@@ -360,25 +390,16 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
 
-	// Enable Vrefint channel
 	ADC_TempSensorVrefintCmd(ENABLE);
-
-	// Enable DMA request after last transfer (Multi-ADC mode)
 	ADC_MultiModeDMARequestAfterLastTransferCmd(ENABLE);
 
 	hw_setup_adc_channels();
 
-	// Enable ADC1
 	ADC_Cmd(ADC1, ENABLE);
-
-	// Enable ADC2
 	ADC_Cmd(ADC2, ENABLE);
-
-	// Enable ADC3
 	ADC_Cmd(ADC3, ENABLE);
 
 	// ------------- Timer8 for ADC sampling ------------- //
-	// Time Base configuration
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -421,7 +442,6 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 
-	// ADC sampling locations
 	stop_pwm_hw();
 
 	// Sample intervals. For now they are fixed with voltage samples in the center of V7
@@ -445,10 +465,19 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 
+	hfi_thd_stop = false;
+	chThdCreateStatic(hfi_thread_wa, sizeof(hfi_thread_wa), NORMALPRIO, hfi_thread, NULL);
+
 	// Check if the system has resumed from IWDG reset
 	if (timeout_had_IWDG_reset()) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
 	}
+
+	terminal_register_command_callback(
+			"foc_plot_hfi_en",
+			"Enable HFI plotting",
+			"[en]",
+			terminal_plot_hfi);
 
 	m_init_done = true;
 }
@@ -461,8 +490,12 @@ void mcpwm_foc_deinit(void) {
 	m_init_done = false;
 
 	timer_thd_stop = true;
-
 	while (timer_thd_stop) {
+		chThdSleepMilliseconds(1);
+	}
+
+	hfi_thd_stop = true;
+	while (hfi_thd_stop) {
 		chThdSleepMilliseconds(1);
 	}
 
@@ -1697,6 +1730,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	uint32_t t_start = timer_time_now();
 
+	if (m_duty_next_set) {
+		m_duty_next_set = false;
+		TIMER_UPDATE_DUTY(m_duty1_next, m_duty2_next, m_duty3_next);
+	}
+
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
 
 	if (!m_samples.measure_inductance_now) {
@@ -1995,7 +2033,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
 			if (encoder_index_found()) {
-				m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+				m_motor_state.phase = correct_encoder(
+						m_phase_now_observer,
+						m_phase_now_encoder,
+						m_pll_speed,
+						m_conf->foc_sl_erpm);
 			} else {
 				// Rotate the motor in open loop if the index isn't found.
 				m_motor_state.phase = m_phase_now_encoder_no_index;
@@ -2031,6 +2073,28 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				} else {
 					id_set_tmp = 0.0;
 				}
+			}
+			break;
+
+		case FOC_SENSOR_MODE_HFI:
+			if (fabsf(m_pll_speed * (60.0 / (2.0 * M_PI))) > m_conf->foc_sl_erpm_hfi) {
+				m_hfi_observer_zero_time = 0;
+			} else {
+				m_hfi_observer_zero_time += dt;
+			}
+
+			if (m_hfi_observer_zero_time < m_conf->foc_hfi_obs_ovr_sec) {
+				m_hfi_angle = m_phase_now_observer;
+			}
+
+			m_motor_state.phase = correct_encoder(
+					m_phase_now_observer,
+					m_hfi_angle,
+					m_pll_speed,
+					m_conf->foc_sl_erpm_hfi);
+
+			if (!m_phase_override) {
+				id_set_tmp = 0.0;
 			}
 			break;
 		}
@@ -2128,7 +2192,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (m_conf->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			m_motor_state.phase = correct_encoder(m_phase_now_observer, m_phase_now_encoder, m_pll_speed);
+			m_motor_state.phase = correct_encoder(
+					m_phase_now_observer,
+					m_phase_now_encoder,
+					m_pll_speed,
+					m_conf->foc_sl_erpm);
 			break;
 		case FOC_SENSOR_MODE_HALL:
 			m_phase_now_observer = correct_hall(m_phase_now_observer, m_pll_speed, dt);
@@ -2137,7 +2205,22 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		case FOC_SENSOR_MODE_SENSORLESS:
 			m_motor_state.phase = m_phase_now_observer;
 			break;
+		case FOC_SENSOR_MODE_HFI: {
+			m_motor_state.phase = m_phase_now_observer;
+			if (fabsf(m_motor_state.speed_rad_s * (60.0 / (2.0 * M_PI))) < m_conf->foc_sl_erpm_hfi) {
+				m_hfi_est_done_cnt = 0;
+				m_hfi_voltage_now = m_conf->foc_hfi_voltage_start;
+			}
+		} break;
 		}
+
+		// HFI Restore
+		CURRENT_FILTER_ON();
+		m_hfi_ind = 0;
+		m_hfi_ready = false;
+		m_hfi_is_samp_n = false;
+		m_hfi_prev_sample = 0.0;
+		m_hfi_angle = m_motor_state.phase;
 
 		float c, s;
 		utils_fast_sincos_better(m_motor_state.phase, &s, &c);
@@ -2223,7 +2306,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
 #endif
 
-	// MCIF handler
 	mc_interface_mc_timer_isr();
 
 	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
@@ -2234,9 +2316,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("mcpwm_foc timer");
+	chRegSetThreadName("foc timer");
 
 	for(;;) {
+		const float dt = 0.001;
+
 		if (timer_thd_stop) {
 			timer_thd_stop = false;
 			return;
@@ -2248,7 +2332,6 @@ static THD_FUNCTION(timer_thread, arg) {
 
 		utils_truncate_number_abs(&openloop_rpm, m_conf->foc_openloop_rpm);
 
-		const float dt = 0.001;
 		const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
 		static float min_rpm_hyst_timer = 0.0;
 		static float min_rpm_timer = 0.0;
@@ -2323,6 +2406,131 @@ static THD_FUNCTION(timer_thread, arg) {
 
 		run_pid_control_speed(dt);
 		chThdSleepMilliseconds(1);
+	}
+}
+
+static THD_FUNCTION(hfi_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("foc hfi");
+
+	for(;;) {
+		if (hfi_thd_stop) {
+			hfi_thd_stop = false;
+			return;
+		}
+
+		float rpm_abs = fabsf(m_motor_state.speed_rad_s * (60.0 / (2.0 * M_PI)));
+
+		if (rpm_abs > (m_conf->foc_sl_erpm_hfi * 1.5)) {
+			m_hfi_angle = m_phase_now_observer;
+		}
+
+		if (m_hfi_ready) {
+			static float f_imag_bin_1 = 0.0, f_real_bin_1 = 0.0;
+			static float f_imag_bin_2 = 0.0, f_real_bin_2 = 0.0;
+			static int flip_cnt = 0;
+
+			if (m_hfi_est_done_cnt == 0) {
+				f_imag_bin_1 = 0.0;
+				f_real_bin_1 = 0.0;
+			}
+
+			// FFT version. This is slower than the version below, as we only
+			// care about bin1 and bin2, and have no imaginary input vector.
+//			static float imag[INJ_SAMPLES];
+//			memset(imag, 0, sizeof(imag));
+//			filter_fft(1, 5, m_hfi_buffer1, imag);
+//			UTILS_LP_FAST(f_imag_bin_1, imag[1], 0.5);
+//			UTILS_LP_FAST(f_real_bin_1, m_hfi_buffer1[1], 0.5);
+//			UTILS_LP_FAST(f_imag_bin_2, imag[2], 0.5);
+//			UTILS_LP_FAST(f_real_bin_2, m_hfi_buffer1[2], 0.5);
+
+			float real_bin1, imag_bin1, real_bin2, imag_bin2;
+			utils_fft32_bin1((float*)m_hfi_buffer, &real_bin1, &imag_bin1);
+			utils_fft32_bin2((float*)m_hfi_buffer, &real_bin2, &imag_bin2);
+			UTILS_LP_FAST(f_imag_bin_1, imag_bin1, 0.1);
+			UTILS_LP_FAST(f_real_bin_1, real_bin1, 0.1);
+			UTILS_LP_FAST(f_imag_bin_2, imag_bin2, 0.4);
+			UTILS_LP_FAST(f_real_bin_2, real_bin2, 0.4);
+
+			float mag_bin_1 = sqrtf(SQ(f_imag_bin_1) + SQ(f_real_bin_1));
+			float angle_bin_1 = -utils_fast_atan2(f_imag_bin_1, f_real_bin_1);
+
+			angle_bin_1 += M_PI / 2.0;
+			utils_norm_angle_rad(&angle_bin_1);
+
+			float mag_bin_2 = sqrtf(SQ(f_imag_bin_2) + SQ(f_real_bin_2));
+			float angle_bin_2 = -utils_fast_atan2(f_imag_bin_2, f_real_bin_2) / 2.0;
+
+			float dt_sw;
+			if (m_conf->foc_sample_v0_v7) {
+				dt_sw = 1.0 / m_conf->foc_f_sw;
+			} else {
+				dt_sw = 1.0 / (m_conf->foc_f_sw / 2.0);
+			}
+			angle_bin_2 += m_motor_state.speed_rad_s * ((float)INJ_SAMPLES / 2.0) * dt_sw;
+
+			if (fabsf(utils_angle_difference_rad(angle_bin_2 + M_PI, m_hfi_angle)) <
+					fabsf(utils_angle_difference_rad(angle_bin_2, m_hfi_angle))) {
+				angle_bin_2 += M_PI;
+			}
+
+			if (m_hfi_est_done_cnt < m_conf->foc_hfi_start_samples) {
+				m_hfi_est_done_cnt++;
+
+				if (fabsf(utils_angle_difference_rad(angle_bin_2, angle_bin_1)) > (M_PI / 2.0)) {
+					flip_cnt++;
+				}
+
+				// Changing voltage adds distortion to the buffer, so start over
+				if (m_hfi_est_done_cnt == m_conf->foc_hfi_start_samples) {
+					m_hfi_voltage_now = m_conf->foc_hfi_voltage_run;
+					m_hfi_ind = 0;
+					m_hfi_ready = false;
+				}
+			} else {
+				if (flip_cnt >= (m_conf->foc_hfi_start_samples / 2)) {
+					angle_bin_2 += M_PI;
+				}
+				flip_cnt = 0;
+			}
+
+			m_hfi_angle = angle_bin_2;
+			utils_norm_angle_rad((float*)&m_hfi_angle);
+
+			if (m_hfi_plot_en) {
+				static float hfi_plot_div = 0;
+				hfi_plot_div++;
+
+				if (hfi_plot_div >= 8) {
+					hfi_plot_div = 0;
+					commands_plot_set_graph(0);
+					commands_send_plot_points(m_hfi_plot_sample, m_hfi_angle);
+
+					commands_plot_set_graph(1);
+					commands_send_plot_points(m_hfi_plot_sample, mag_bin_2 * 5);
+
+					commands_plot_set_graph(2);
+					commands_send_plot_points(m_hfi_plot_sample, angle_bin_1);
+
+					commands_plot_set_graph(3);
+					commands_send_plot_points(m_hfi_plot_sample, mag_bin_1 * 20);
+
+					commands_plot_set_graph(4);
+					commands_send_plot_points(m_hfi_plot_sample, m_phase_now_observer);
+
+					commands_plot_set_graph(5);
+					commands_send_plot_points(m_hfi_plot_sample, m_motor_state.speed_rad_s * (60.0 / (2.0 * M_PI)) * 0.01);
+
+					m_hfi_plot_sample++;
+				}
+			}
+		} else {
+			m_hfi_angle = m_phase_now_observer;
+		}
+
+		chThdSleepMicroseconds(500);
 	}
 }
 
@@ -2482,6 +2690,17 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	float c,s;
 	utils_fast_sincos_better(state_m->phase, &s, &c);
 
+	float abs_rpm = fabsf(state_m->speed_rad_s * 60 / (2 * M_PI));
+	bool do_hfi = m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI &&
+			!m_phase_override &&
+			abs_rpm < (m_conf->foc_sl_erpm_hfi * 5.0);
+
+	// Only allow Q axis current after the HFI ambiguity is resolved. This causes
+	// a short delay when starting.
+	if (do_hfi && m_hfi_est_done_cnt < m_conf->foc_hfi_start_samples) {
+		state_m->iq_target = 0;
+	}
+
 	float max_duty = fabsf(state_m->max_duty);
 	utils_truncate_number(&max_duty, 0.0, m_conf->l_max_duty);
 
@@ -2584,6 +2803,55 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	// Apply compensation here so that 0 duty cycle has no glitches.
 	state_m->v_alpha = (mod_alpha - mod_alpha_comp) * (2.0 / 3.0) * state_m->v_bus;
 	state_m->v_beta = (mod_beta - mod_beta_comp) * (2.0 / 3.0) * state_m->v_bus;
+
+	// HFI
+	if (do_hfi) {
+		CURRENT_FILTER_OFF();
+
+		float mod_alpha_tmp = mod_alpha;
+		float mod_beta_tmp = mod_beta;
+
+		if (m_hfi_is_samp_n) {
+			m_hfi_buffer[m_hfi_ind] = m_hfi_prev_sample - (utils_tab_sin_32_1[m_hfi_ind] * state_m->i_alpha -
+					utils_tab_cos_32_1[m_hfi_ind] * state_m->i_beta);
+
+			m_hfi_ind++;
+			if (m_hfi_ind == INJ_SAMPLES) {
+				m_hfi_ind = 0;
+				m_hfi_ready = true;
+			}
+
+			mod_alpha_tmp += m_hfi_voltage_now * utils_tab_sin_32_1[m_hfi_ind] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_beta_tmp -= m_hfi_voltage_now * utils_tab_cos_32_1[m_hfi_ind] / ((2.0 / 3.0) * state_m->v_bus);
+		} else {
+			mod_alpha_tmp -= m_hfi_voltage_now * utils_tab_sin_32_1[m_hfi_ind] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_beta_tmp += m_hfi_voltage_now * utils_tab_cos_32_1[m_hfi_ind] / ((2.0 / 3.0) * state_m->v_bus);
+			m_hfi_prev_sample = utils_tab_sin_32_1[m_hfi_ind] * state_m->i_alpha -
+					utils_tab_cos_32_1[m_hfi_ind] * state_m->i_beta;
+		}
+
+		utils_saturate_vector_2d(&mod_alpha_tmp, &mod_beta_tmp, SQRT3_BY_2 * 0.95);
+		m_hfi_is_samp_n = !m_hfi_is_samp_n;
+
+		if (m_conf->foc_sample_v0_v7) {
+			mod_alpha = mod_alpha_tmp;
+			mod_beta = mod_beta_tmp;
+		} else {
+			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
+			// itself with the opposite pulse from the previous HFI sample. This makes more sense
+			// when drawing the SVM waveform...
+			svm(-mod_alpha_tmp, -mod_beta_tmp,
+					TIM1->ARR, (uint32_t*)&m_duty1_next, (uint32_t*)&m_duty2_next, (uint32_t*)&m_duty3_next,
+					(uint32_t*)&state_m->svm_sector);
+			m_duty_next_set = true;
+		}
+	} else {
+		CURRENT_FILTER_ON();
+		m_hfi_ind = 0;
+		m_hfi_ready = false;
+		m_hfi_is_samp_n = false;
+		m_hfi_prev_sample = 0.0;
+	}
 
 	// Set output (HW Dependent)
 	uint32_t duty1, duty2, duty3, top;
@@ -2919,17 +3187,17 @@ static int read_hall(void) {
 			(utils_middle_of_3_int(h3_1, h3_2, h3_3) << 2);
 }
 
-static float correct_encoder(float obs_angle, float enc_angle, float speed) {
+static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm) {
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
 
 	// Hysteresis 5 % of total speed
-	float hyst = m_conf->foc_sl_erpm * 0.05;
+	float hyst = sl_erpm * 0.05;
 	if (m_using_encoder) {
-		if (rpm_abs > (m_conf->foc_sl_erpm + hyst)) {
+		if (rpm_abs > (sl_erpm + hyst)) {
 			m_using_encoder = false;
 		}
 	} else {
-		if (rpm_abs < (m_conf->foc_sl_erpm - hyst)) {
+		if (rpm_abs < (sl_erpm- hyst)) {
 			m_using_encoder = true;
 		}
 	}
@@ -3021,4 +3289,33 @@ static float correct_hall(float angle, float speed, float dt) {
 	}
 
 	return angle;
+}
+
+static void terminal_plot_hfi(int argc, const char **argv) {
+	if (argc == 2) {
+		int d = -1;
+		sscanf(argv[1], "%d", &d);
+
+		if (d == 0 || d == 1) {
+			m_hfi_plot_en = d;
+			if (m_hfi_plot_en) {
+				m_hfi_plot_sample = 0.0;
+				commands_init_plot("Sample", "Phase");
+				commands_plot_add_graph("Phase");
+				commands_plot_add_graph("Magnitude * 5");
+				commands_plot_add_graph("Phase bin2");
+				commands_plot_add_graph("Magnitude bin2 * 20");
+				commands_plot_add_graph("Phase Observer");
+				commands_plot_add_graph("RPM / 100");
+			}
+
+			commands_printf(m_hfi_plot_en ?
+						"HFI plot enabled" :
+						"HFI plot disabled");
+		} else {
+			commands_printf("Invalid Argument. en has to be 0 or 1.\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
 }

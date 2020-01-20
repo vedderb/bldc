@@ -50,6 +50,8 @@ float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mo
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 uint32_t utils_crc32c(uint8_t *data, uint32_t len);
+void utils_fft32_bin1(float *real_in, float *real, float *imag);
+void utils_fft32_bin2(float *real_in, float *real, float *imag);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)
@@ -79,7 +81,7 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len);
  */
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
 
-// Some constants
+// Constants
 #define ONE_BY_SQRT3			(0.57735026919)
 #define TWO_BY_SQRT3			(2.0f * 0.57735026919)
 #define SQRT3_BY_2				(0.86602540378)
@@ -87,5 +89,11 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len);
 #define SIN_30_DEG				(0.5)
 #define COS_MINUS_30_DEG		(0.86602540378)
 #define SIN_MINUS_30_DEG		(-0.5)
+
+// Tables
+extern const float utils_tab_sin_32_1[];
+extern const float utils_tab_sin_32_2[];
+extern const float utils_tab_cos_32_1[];
+extern const float utils_tab_cos_32_2[];
 
 #endif /* UTILS_H_ */
