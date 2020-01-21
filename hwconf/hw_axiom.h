@@ -247,8 +247,6 @@
 // Resolver interface pins
 #define AD2S1205_SAMPLE_GPIO	GPIOB
 #define AD2S1205_SAMPLE_PIN		3
-#define AD2S1205_RDVEL_GPIO		GPIOC
-#define AD2S1205_RDVEL_PIN		12
 
 // NRF pins
 #define NRF_PORT_CSN			GPIOB

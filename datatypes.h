@@ -68,7 +68,8 @@ typedef enum {
 // Temperature sensor type
 typedef enum {
 	TEMP_SENSOR_NTC_10K_25C = 0,
-	TEMP_SENSOR_PTC_1K_100C
+	TEMP_SENSOR_PTC_1K_100C,
+	TEMP_SENSOR_KTY83_122,
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -119,7 +120,10 @@ typedef enum {
 	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
 	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
 	FAULT_CODE_UNBALANCED_CURRENTS,
-	FAULT_CODE_BRK
+	FAULT_CODE_BRK,
+	FAULT_CODE_RESOLVER_LOT,
+	FAULT_CODE_RESOLVER_DOS,
+	FAULT_CODE_RESOLVER_LOS
 } mc_fault_code;
 
 typedef enum {
