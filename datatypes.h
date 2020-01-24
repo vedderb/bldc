@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "ch.h"
 
 // Data types
@@ -753,7 +754,11 @@ typedef enum {
 	CAN_PACKET_CONF_FOC_ERPMS,
 	CAN_PACKET_CONF_STORE_FOC_ERPMS,
 	CAN_PACKET_STATUS_5
-} CAN_PACKET_ID;
+};
+
+typedef uint32_t CAN_PACKET_ID;
+
+_Static_assert(sizeof(CAN_PACKET_ID) == 4, "CAN message ID is up to 29 bit long, so 4 bytes are needed");
 
 // Logged fault data
 typedef struct {
