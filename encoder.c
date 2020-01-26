@@ -645,14 +645,6 @@ static void spi_delay(void) {
 	__NOP();
 	__NOP();
 	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
 }
 
 #pragma GCC push_options
