@@ -1,6 +1,13 @@
-=== FW 3.67 ===
-* Added support for HFI to track motor position at 0 speed without sensors.
+=== FW 4.00 ===
+* Added support for HFI to track motor position at 0 speed without sensors. This is the main new feature of FW 4.
 * Fixed CAN-bug in VESC Remote.
+* Reset current integrator when leaving duty cycle control mode. Fixes braking issue #125.
+* More accurate and faster inductance measurement.
+* Ability to measyre ld - lq. Useful for MTPA in future firmwares.
+* Reset shutdown when uploading FW data.
+* Added CAN-bride and COMM_CAN_FWD_FRAME.
+* Added CAN_PACKET_POLL_TS5700N8501_STATUS to poll most relevant data last received from the TS5700N8501 encoder.
+* Added TS57N8501 ABM, SF and ALMC to encoder terminal command.
 
 === FW 3.66 ===
 * Added support for HW 100/250.

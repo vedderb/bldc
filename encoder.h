@@ -50,5 +50,7 @@ uint32_t encoder_sincos_get_signal_below_min_error_cnt(void);
 uint32_t encoder_sincos_get_signal_above_max_error_cnt(void);
 float encoder_sincos_get_signal_below_min_error_rate(void);
 float encoder_sincos_get_signal_above_max_error_rate(void);
+uint8_t* encoder_ts5700n8501_get_raw_status(void);
+uint32_t encoder_ts57n8501_get_abm(void);
 
 #endif /* ENCODER_H_ */

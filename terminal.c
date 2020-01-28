@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -315,12 +315,12 @@ void terminal_process_string(char *str) {
 
 			if (duty > 0.0 && duty < 0.9) {
 				mcconf.motor_type = MOTOR_TYPE_FOC;
-				mcconf.foc_f_sw = 3000.0;
 				mc_interface_set_configuration(&mcconf);
 
-				float curr;
-				float ind = mcpwm_foc_measure_inductance(duty, 200, &curr);
-				commands_printf("Inductance: %.2f microhenry (%.2f A)\n", (double)ind, (double)curr);
+				float curr, ld_lq_diff;
+				float ind = mcpwm_foc_measure_inductance(duty, 400, &curr, &ld_lq_diff);
+				commands_printf("Inductance: %.2f uH, ld_lq_diff: %.2f uH (%.2f A)\n",
+						(double)ind, (double)ld_lq_diff, (double)curr);
 
 				mc_interface_set_configuration(&mcconf_old);
 			} else {
@@ -685,10 +685,18 @@ void terminal_process_string(char *str) {
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
 			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
 			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501) {
-			commands_printf("SPI encoder value: %x, errors: %d, error rate: %.3f %%",
+			commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
 				(double)encoder_spi_get_error_rate() * (double)100.0);
+
+			if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501) {
+				char sf[9];
+				char almc[9];
+				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
+				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
+				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm, sf, almc);
+			}
 		}
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {

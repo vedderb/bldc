@@ -639,6 +639,18 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len) {
 	return ~crc;
 }
 
+// Yes, this is only the average...
+void utils_fft32_bin0(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+
+	for (int i = 0;i < 32;i++) {
+		*real += real_in[i];
+	}
+
+	*real /= 32.0;
+}
+
 void utils_fft32_bin1(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -659,6 +671,72 @@ void utils_fft32_bin2(float *real_in, float *real, float *imag) {
 	}
 	*real /= 32.0;
 	*imag /= 32.0;
+}
+
+void utils_fft16_bin0(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+
+	for (int i = 0;i < 16;i++) {
+		*real += real_in[i];
+	}
+
+	*real /= 16.0;
+}
+
+void utils_fft16_bin1(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+	for (int i = 0;i < 16;i++) {
+		*real += real_in[i] * utils_tab_cos_32_1[2 * i];
+		*imag -= real_in[i] * utils_tab_sin_32_1[2 * i];
+	}
+	*real /= 16.0;
+	*imag /= 16.0;
+}
+
+void utils_fft16_bin2(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+	for (int i = 0;i < 16;i++) {
+		*real += real_in[i] * utils_tab_cos_32_2[2 * i];
+		*imag -= real_in[i] * utils_tab_sin_32_2[2 * i];
+	}
+	*real /= 16.0;
+	*imag /= 16.0;
+}
+
+void utils_fft8_bin0(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+
+	for (int i = 0;i < 8;i++) {
+		*real += real_in[i];
+	}
+
+	*real /= 8.0;
+}
+
+void utils_fft8_bin1(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+	for (int i = 0;i < 8;i++) {
+		*real += real_in[i] * utils_tab_cos_32_1[4 * i];
+		*imag -= real_in[i] * utils_tab_sin_32_1[4 * i];
+	}
+	*real /= 8.0;
+	*imag /= 8.0;
+}
+
+void utils_fft8_bin2(float *real_in, float *real, float *imag) {
+	*real = 0.0;
+	*imag = 0.0;
+	for (int i = 0;i < 8;i++) {
+		*real += real_in[i] * utils_tab_cos_32_2[4 * i];
+		*imag -= real_in[i] * utils_tab_sin_32_2[4 * i];
+	}
+	*real /= 8.0;
+	*imag /= 8.0;
 }
 
 const float utils_tab_sin_32_1[] = {

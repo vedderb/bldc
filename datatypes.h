@@ -200,6 +200,12 @@ typedef enum {
 	BATTERY_TYPE_LEAD_ACID
 } BATTERY_TYPE;
 
+typedef enum {
+	HFI_SAMPLES_8 = 0,
+	HFI_SAMPLES_16,
+	HFI_SAMPLES_32
+} foc_hfi_samples;
+
 typedef struct {
 	// Switching and drive
 	mc_pwm_mode pwm_mode;
@@ -291,9 +297,11 @@ typedef struct {
 	mc_foc_observer_type foc_observer_type;
 	float foc_hfi_voltage_start;
 	float foc_hfi_voltage_run;
+	float foc_hfi_voltage_max;
 	float foc_sl_erpm_hfi;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
+	foc_hfi_samples foc_hfi_samples;
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;
@@ -599,6 +607,12 @@ typedef struct {
 	float gyro_offset_comp_clamp;
 } imu_config;
 
+typedef enum {
+	CAN_MODE_VESC = 0,
+	CAN_MODE_UAVCAN,
+	CAN_MODE_COMM_BRIDGE
+} CAN_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -611,8 +625,8 @@ typedef struct {
 	bool permanent_uart_enabled;
 	SHUTDOWN_MODE shutdown_mode;
 
-	// UAVCAN
-	bool uavcan_enable;
+	// CAN modes
+	CAN_MODE can_mode;
 	uint8_t uavcan_esc_index;
 
 	// Application to use
@@ -726,7 +740,8 @@ typedef enum {
 	COMM_WRITE_NEW_APP_DATA_LZO,
 	COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO,
 	COMM_BM_WRITE_FLASH_LZO,
-	COMM_SET_CURRENT_REL
+	COMM_SET_CURRENT_REL,
+	COMM_CAN_FWD_FRAME
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -758,7 +773,8 @@ typedef enum {
 	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN,
 	CAN_PACKET_CONF_FOC_ERPMS,
 	CAN_PACKET_CONF_STORE_FOC_ERPMS,
-	CAN_PACKET_STATUS_5
+	CAN_PACKET_STATUS_5,
+	CAN_PACKET_POLL_TS5700N8501_STATUS
 } CAN_PACKET_ID;
 
 // Logged fault data

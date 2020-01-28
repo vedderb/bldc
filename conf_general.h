@@ -21,8 +21,8 @@
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR		3
-#define FW_VERSION_MINOR		67
+#define FW_VERSION_MAJOR		4
+#define FW_VERSION_MINOR		00
 
 #include "datatypes.h"
 

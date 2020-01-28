@@ -264,6 +264,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 		uint16_t flash_res = flash_helper_write_new_app_data(new_app_offset, data + ind, len - ind);
 
+		SHUTDOWN_RESET();
+
 		ind = 0;
 		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_WRITE_NEW_APP_DATA;
@@ -964,6 +966,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		timeout_reset();
 	} break;
 
+	case COMM_CAN_FWD_FRAME: {
+		int32_t ind = 0;
+		uint32_t id = buffer_get_uint32(data, &ind);
+		bool is_ext = data[ind++];
+
+		if (is_ext) {
+			comm_can_transmit_eid(id, data + ind, len - ind);
+		} else {
+			comm_can_transmit_sid(id, data + ind, len - ind);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1041,6 +1055,21 @@ void commands_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
+	commands_send_packet(buffer, index);
+}
+
+void commands_fwd_can_frame(int len, unsigned char *data, uint32_t id, bool is_extended) {
+	if (len > 8) {
+		len = 8;
+	}
+
+	uint8_t buffer[len + 6];
+	int32_t index = 0;
+	buffer[index++] = COMM_CAN_FWD_FRAME;
+	buffer_append_uint32(buffer, id, &index);
+	buffer[index++] = is_extended;
+	memcpy(buffer + index, data, len);
+	index += len;
 	commands_send_packet(buffer, index);
 }
 
@@ -1508,7 +1537,6 @@ static THD_FUNCTION(blocking_thread, arg) {
 				send_func_blocking(send_buffer, ind);
 			}
 		} break;
-#endif
 
 		case COMM_BM_MEM_READ: {
 			int32_t ind = 0;
@@ -1528,6 +1556,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				send_func_blocking(send_buffer, ind + read_len);
 			}
 		} break;
+#endif
 
 		default:
 			break;

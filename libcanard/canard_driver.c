@@ -310,7 +310,7 @@ static THD_FUNCTION(canard_thread, arg) {
 	for (;;) {
 		const app_configuration *conf = app_get_configuration();
 
-		if (!conf->uavcan_enable) {
+		if (conf->can_mode != CAN_MODE_UAVCAN) {
 			chThdSleepMilliseconds(100);
 			continue;
 		}

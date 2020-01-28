@@ -111,6 +111,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg);
 static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
 static volatile bool ts5700n8501_stop_now = true;
 static volatile bool ts5700n8501_is_running = false;
+static volatile uint8_t ts5700n8501_raw_status[8] = {0};
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
@@ -169,6 +170,16 @@ float encoder_sincos_get_signal_below_min_error_rate(void) {
 
 float encoder_sincos_get_signal_above_max_error_rate(void) {
 	return sincos_signal_above_max_error_rate;
+}
+
+uint8_t* encoder_ts5700n8501_get_raw_status(void) {
+	return (uint8_t*)ts5700n8501_raw_status;
+}
+
+uint32_t encoder_ts57n8501_get_abm(void) {
+	return (uint32_t)ts5700n8501_raw_status[4] +
+			((uint32_t)ts5700n8501_raw_status[5] << 8) +
+			((uint32_t)ts5700n8501_raw_status[6] << 16);
 }
 
 void encoder_deinit(void) {
@@ -725,11 +736,11 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			return;
 		}
 
-		TS5700N8501_send_byte(0b01000000);
+		TS5700N8501_send_byte(0b01011000);
 
 		chThdSleep(1);
 
-		uint8_t reply[6];
+		uint8_t reply[11];
 		int reply_ind = 0;
 
 		msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
@@ -745,11 +756,20 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			crc = (reply[i] ^ crc);
 		}
 
-		if (reply_ind == 6 && crc == reply[reply_ind - 1]) {
+		if (reply_ind == 11 && crc == reply[reply_ind - 1]) {
 			uint32_t pos = (uint32_t)reply[2] + ((uint32_t)reply[3] << 8) + ((uint32_t)reply[4] << 16);
 			spi_val = pos;
 			last_enc_angle = (float)pos / 131072.0 * 360.0;
 			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / AS5047_SAMPLE_RATE_HZ);
+
+			ts5700n8501_raw_status[0] = reply[1]; // SF
+			ts5700n8501_raw_status[1] = reply[2]; // ABS0
+			ts5700n8501_raw_status[2] = reply[3]; // ABS1
+			ts5700n8501_raw_status[3] = reply[4]; // ABS2
+			ts5700n8501_raw_status[4] = reply[6]; // ABM0
+			ts5700n8501_raw_status[5] = reply[7]; // ABM1
+			ts5700n8501_raw_status[6] = reply[8]; // ABM2
+			ts5700n8501_raw_status[7] = reply[9]; // ALMC
 		} else {
 			++spi_error_cnt;
 			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / AS5047_SAMPLE_RATE_HZ);

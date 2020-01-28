@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -72,8 +72,8 @@ float mcpwm_foc_get_vd(void);
 float mcpwm_foc_get_vq(void);
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
 float mcpwm_foc_measure_resistance(float current, int samples);
-float mcpwm_foc_measure_inductance(float duty, int samples, float *curr);
-float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr);
+float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff);
+float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);
@@ -88,8 +88,6 @@ void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines
-#define MCPWM_FOC_INDUCTANCE_SAMPLE_CNT_OFFSET		10 // Offset for the inductance measurement sample time in timer ticks
-#define MCPWM_FOC_INDUCTANCE_SAMPLE_RISE_COMP		50 // Current rise time compensation
 #define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for injected ADC samples
 
 #endif /* MCPWM_FOC_H_ */

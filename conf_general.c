@@ -1100,7 +1100,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	}
 
 	float r = mcpwm_foc_measure_resistance(i_last, 100);
-	float l = mcpwm_foc_measure_inductance_current(i_last, 100, 0) * 1e-6;
+	float l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, 0) * 1e-6;
 	float i_max = sqrtf(max_power_loss / r);
 	utils_truncate_number(&i_max, HW_LIM_CURRENT);
 
@@ -1127,7 +1127,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old.l_current_max = i_max;
 		mcconf_old.l_current_min = -i_max;
 
-		float tc = 1000.0;
+		float tc = 4000.0;
 		float bw = 1.0 / (tc * 1e-6);
 		float kp = l * bw;
 		float ki = r * bw;

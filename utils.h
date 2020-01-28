@@ -50,8 +50,15 @@ float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mo
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 uint32_t utils_crc32c(uint8_t *data, uint32_t len);
+void utils_fft32_bin0(float *real_in, float *real, float *imag);
 void utils_fft32_bin1(float *real_in, float *real, float *imag);
 void utils_fft32_bin2(float *real_in, float *real, float *imag);
+void utils_fft16_bin0(float *real_in, float *real, float *imag);
+void utils_fft16_bin1(float *real_in, float *real, float *imag);
+void utils_fft16_bin2(float *real_in, float *real, float *imag);
+void utils_fft8_bin0(float *real_in, float *real, float *imag);
+void utils_fft8_bin1(float *real_in, float *real, float *imag);
+void utils_fft8_bin2(float *real_in, float *real, float *imag);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

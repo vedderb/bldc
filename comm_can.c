@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -33,6 +33,7 @@
 #include "packet.h"
 #include "hw.h"
 #include "canard_driver.h"
+#include "encoder.h"
 
 // Settings
 #define RX_FRAMES_SIZE	100
@@ -86,6 +87,7 @@ static void set_timing(int brp, int ts1, int ts2);
 
 // Function pointers
 static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
+static void(*eid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
 
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -188,6 +190,17 @@ void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
  */
 void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
 	sid_callback = p_func;
+}
+
+/**
+ * Set function to be called when extended CAN frames are received. Will only be called when
+ * the CAN mode is CAN_MODE_COMM_BRIDGE.
+ *
+ * @param p_func
+ * Pointer to the function.
+ */
+void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
+	eid_callback = p_func;
 }
 
 /**
@@ -393,6 +406,10 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
  */
 bool comm_can_ping(uint8_t controller_id) {
 #if CAN_ENABLE
+	if (app_get_configuration()->can_mode != CAN_MODE_VESC) {
+		return false;
+	}
+
 	ping_tp = chThdGetSelfX();
 	chEvtGetAndClearEvents(ALL_EVENTS);
 
@@ -748,7 +765,6 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 		msg_t result = canReceive(&HW_CAN_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 
 		while (result == MSG_OK) {
-
 			chMtxLock(&can_rx_mtx);
 			rx_frames[rx_frame_write++] = rxmsg;
 			if (rx_frame_write == RX_FRAMES_SIZE) {
@@ -781,7 +797,26 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t)1);
 
-		if (app_get_configuration()->uavcan_enable) {
+		if (app_get_configuration()->can_mode == CAN_MODE_UAVCAN) {
+			continue;
+		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+			CANRxFrame *rxmsg_tmp;
+			while ((rxmsg_tmp = comm_can_get_rx_frame()) != 0) {
+				CANRxFrame rxmsg = *rxmsg_tmp;
+				commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
+						rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
+						rxmsg.IDE == CAN_IDE_EXT);
+
+				if (rxmsg.IDE == CAN_IDE_STD) {
+					if (sid_callback) {
+						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+					}
+				} else {
+					if (eid_callback) {
+						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+					}
+				}
+			}
 			continue;
 		}
 
@@ -1012,6 +1047,12 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						}
 					} break;
 
+					case CAN_PACKET_POLL_TS5700N8501_STATUS: {
+						comm_can_transmit_eid(app_get_configuration()->controller_id |
+								((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
+								encoder_ts5700n8501_get_raw_status(), 8);
+					} break;
+
 					default:
 						break;
 					}
@@ -1110,7 +1151,7 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 	for(;;) {
 		const app_configuration *conf = app_get_configuration();
 
-		if (!conf->uavcan_enable) {
+		if (conf->can_mode == CAN_MODE_VESC) {
 			if (conf->send_can_status == CAN_STATUS_1 ||
 					conf->send_can_status == CAN_STATUS_1_2 ||
 					conf->send_can_status == CAN_STATUS_1_2_3 ||

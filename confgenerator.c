@@ -101,9 +101,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_observer_type;
 	buffer_append_float32_auto(buffer, conf->foc_hfi_voltage_start, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_voltage_run, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_hfi_voltage_max, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_sl_erpm_hfi, &ind);
 	buffer_append_uint16(buffer, conf->foc_hfi_start_samples, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_obs_ovr_sec, &ind);
+	buffer[ind++] = conf->foc_hfi_samples;
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_filter_const, &ind);
@@ -163,7 +165,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->pairing_done;
 	buffer[ind++] = conf->permanent_uart_enabled;
 	buffer[ind++] = conf->shutdown_mode;
-	buffer[ind++] = conf->uavcan_enable;
+	buffer[ind++] = conf->can_mode;
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->app_to_use;
 	buffer[ind++] = conf->app_ppm_conf.ctrl_type;
@@ -374,9 +376,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_observer_type = buffer[ind++];
 	conf->foc_hfi_voltage_start = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_voltage_run = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_hfi_voltage_max = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sl_erpm_hfi = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_start_samples = buffer_get_uint16(buffer, &ind);
 	conf->foc_hfi_obs_ovr_sec = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_hfi_samples = buffer[ind++];
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float32_auto(buffer, &ind);
@@ -439,7 +443,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->pairing_done = buffer[ind++];
 	conf->permanent_uart_enabled = buffer[ind++];
 	conf->shutdown_mode = buffer[ind++];
-	conf->uavcan_enable = buffer[ind++];
+	conf->can_mode = buffer[ind++];
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
 	conf->app_ppm_conf.ctrl_type = buffer[ind++];
@@ -643,9 +647,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_observer_type = MCCONF_FOC_OBSERVER_TYPE;
 	conf->foc_hfi_voltage_start = MCCONF_FOC_HFI_VOLTAGE_START;
 	conf->foc_hfi_voltage_run = MCCONF_FOC_HFI_VOLTAGE_RUN;
+	conf->foc_hfi_voltage_max = MCCONF_FOC_HFI_VOLTAGE_MAX;
 	conf->foc_sl_erpm_hfi = MCCONF_FOC_SL_ERPM_HFI;
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
+	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;
@@ -699,7 +705,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->pairing_done = APPCONF_PAIRING_DONE;
 	conf->permanent_uart_enabled = APPCONF_PERMANENT_UART_ENABLED;
 	conf->shutdown_mode = APPCONF_SHUTDOWN_MODE;
-	conf->uavcan_enable = APPCONF_UAVCAN_ENABLE;
+	conf->can_mode = APPCONF_CAN_MODE;
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->app_to_use = APPCONF_APP_TO_USE;
 	conf->app_ppm_conf.ctrl_type = APPCONF_PPM_CTRL_TYPE;

@@ -156,7 +156,7 @@
 #define MCCONF_CC_GAIN					0.0046	// Current controller error gain
 #endif
 #ifndef MCCONF_CC_MIN_CURRENT
-#define MCCONF_CC_MIN_CURRENT			0.1		// Minimum allowed current
+#define MCCONF_CC_MIN_CURRENT			0.05	// Minimum allowed current
 #endif
 #ifndef MCCONF_CC_STARTUP_BOOST_DUTY
 #define MCCONF_CC_STARTUP_BOOST_DUTY	0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
@@ -336,19 +336,25 @@
 #define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
 #endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_START
-#define MCCONF_FOC_HFI_VOLTAGE_START	25 // HFI voltage at start when resolving ambiguity
+#define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_RUN
-#define MCCONF_FOC_HFI_VOLTAGE_RUN		5 // HFI voltage during tracking
+#define MCCONF_FOC_HFI_VOLTAGE_RUN		4 // HFI voltage during tracking
+#endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_MAX
+#define MCCONF_FOC_HFI_VOLTAGE_MAX		10 // HFI voltage during tracking at max current
 #endif
 #ifndef MCCONF_FOC_SL_ERPM_HFI
-#define MCCONF_FOC_SL_ERPM_HFI			700.0	// ERPM above which only the observer is used
+#define MCCONF_FOC_SL_ERPM_HFI			2000.0	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_HFI_START_SAMPLES
-#define MCCONF_FOC_HFI_START_SAMPLES	50 // Sample this often at start to resolve ambiguity
+#define MCCONF_FOC_HFI_START_SAMPLES	65 // Sample this often at start to resolve ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
-#define MCCONF_FOC_HFI_OBS_OVR_SEC		0.05 // Continue using observer for this long when entering HFI speed
+#define MCCONF_FOC_HFI_OBS_OVR_SEC		0.001 // Continue using observer for this long when entering HFI speed
+#endif
+#ifndef MCCONF_FOC_HFI_SAMPLES
+#define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
 #endif
 
 // GPD
