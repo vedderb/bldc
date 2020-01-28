@@ -87,7 +87,6 @@ typedef struct {
 	float buffer_current[32];
 	bool ready;
 	int ind;
-	bool is_buffer2;
 	bool is_samp_n;
 	float prev_sample;
 	float angle;
