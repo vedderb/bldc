@@ -32,7 +32,7 @@
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 9))
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
@@ -135,11 +135,11 @@
 #ifdef GSVESC_SECOND_UART
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD          115200
-#define HW_UART_P_DEV           SD6
-#define HW_UART_P_GPIO_AF       GPIO_AF_USART6
-#define HW_UART_P_TX_PORT       GPIOC
+#define HW_UART_P_DEV           SD1
+#define HW_UART_P_GPIO_AF       GPIO_AF_USART1
+#define HW_UART_P_TX_PORT       GPIOB
 #define HW_UART_P_TX_PIN        6
-#define HW_UART_P_RX_PORT       GPIOC
+#define HW_UART_P_RX_PORT       GPIOB
 #define HW_UART_P_RX_PIN        7
 #endif
 
@@ -151,8 +151,8 @@
 #define HW_ICU_DEV                              ICUD4
 #define HW_ICU_CHANNEL                  ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF                  GPIO_AF_TIM4
-#define HW_ICU_GPIO                             GPIOB
-#define HW_ICU_PIN                              6
+#define HW_ICU_GPIO                     GPIOB
+#define HW_ICU_PIN                      8
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
