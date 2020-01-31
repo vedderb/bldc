@@ -684,29 +684,31 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
 			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
-			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501) {
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 			commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
 				(double)encoder_spi_get_error_rate() * (double)100.0);
 
-			if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501) {
+			if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
+					mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 				char sf[9];
 				char almc[9];
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
-				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm, sf, almc);
+				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
 			}
 		}
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
-		commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
-				encoder_sincos_get_signal_below_min_error_cnt(),
-				(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
+			commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
+					encoder_sincos_get_signal_below_min_error_cnt(),
+					(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
 
-		commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
-				encoder_sincos_get_signal_above_max_error_cnt(),
-				(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
+			commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
+					encoder_sincos_get_signal_above_max_error_cnt(),
+					(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
 		}
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
@@ -720,6 +722,12 @@ void terminal_process_string(char *str) {
 				encoder_resolver_loss_of_signal_error_cnt(),
 				(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
+	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
+		encoder_ts57n8501_reset_errors();
+		commands_printf("Done!\n");
+	} else if (strcmp(argv[0], "encoder_clear_multiturn") == 0) {
+		encoder_ts57n8501_reset_multiturn();
+		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 	}
@@ -836,6 +844,12 @@ void terminal_process_string(char *str) {
 		
 		commands_printf("encoder");
 		commands_printf("  Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.");
+
+		commands_printf("encoder_clear_errors");
+		commands_printf("  Clear error of the TS5700N8501 encoder.)");
+
+		commands_printf("encoder_clear_multiturn");
+		commands_printf("  Clear multiturn counter of the TS5700N8501 encoder.)");
 
 		commands_printf("uptime");
 		commands_printf("  Prints how many seconds have passed since boot.");

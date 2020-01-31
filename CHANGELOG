@@ -1,3 +1,10 @@
+=== FW 4.01 ===
+* Leave debug mode on NRF5x after disconnect to avoid excess power consumption before power cycle.
+* Added encoder_clear_errors and encoder_clear_multiturn terminal commands.
+* Initialize current offsets to 2048 to avoid a fault code to be logged at boot.
+* Added 10K, 20K, 50K and 75K CAN baud rates.
+* Added very basic TS5700N8501 multiturn mode.
+
 === FW 4.00 ===
 * Added support for HFI to track motor position at 0 speed without sensors. This is the main new feature of FW 4.
 * Fixed CAN-bug in VESC Remote.

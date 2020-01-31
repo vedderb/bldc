@@ -24,6 +24,8 @@
 #include "commands.h"
 #include "terminal.h"
 #include "exception.h"
+#include "target_internal.h"
+#include "adiv5.h"
 
 // Global variables
 long cortexm_wait_timeout = 2000; /* Timeout to wait for Cortex to react on halt command. */
@@ -141,17 +143,25 @@ static int idcode_to_device(uint32_t idcode) {
 	return ret;
 }
 
+static int swdp_scan_twice(void) {
+	int devs = adiv5_swdp_scan();
+
+	if(devs <= 0) {
+		devs = adiv5_swdp_scan();
+	}
+
+	return devs;
+}
+
 // Terminal commands
 static void terminal_swdp_scan(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
 	target_print_en = true;
-
 	bm_set_enabled(true);
-	target_print_en = true;
 
-	int devs = adiv5_swdp_scan();
+	int devs = swdp_scan_twice();
 
 	if(devs <= 0) {
 		commands_printf("SW-DP scan failed!");
@@ -356,7 +366,7 @@ int bm_connect(void) {
 	bm_set_enabled(true);
 	target_print_en = false;
 
-	int devs = adiv5_swdp_scan();
+	int devs = swdp_scan_twice();
 
 	if (devs > 0) {
 		cur_target = target_attach_n(1, &gdb_controller);
@@ -513,6 +523,26 @@ int bm_reboot(void) {
 }
 
 /**
+ * Leave debug mode of NRF5x device. Will reduce the sleep power consumption
+ * significantly.
+ */
+void bm_leave_nrf_debug_mode(void) {
+	bm_set_enabled(true);
+
+	if (!target_list) {
+		swdp_scan_twice();
+	}
+
+	if (target_list) {
+		if (strncmp(target_list[0].driver, "Nordic", 6) == 0) {
+			adiv5_dp_write(((ADIv5_AP_t**)target_list[0].priv)[0]->dp, ADIV5_DP_CTRLSTAT, 0);
+		}
+	}
+
+	bm_set_enabled(false);
+}
+
+/**
  * Disconnect from target and release SWD bus
  */
 void bm_disconnect(void) {
@@ -522,6 +552,8 @@ void bm_disconnect(void) {
 		target_detach(cur_target);
 		cur_target = 0;
 	}
+
+	bm_leave_nrf_debug_mode();
 
 	bm_set_enabled(false);
 }

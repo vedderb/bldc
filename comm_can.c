@@ -132,6 +132,10 @@ void comm_can_set_baud(CAN_BAUD baud) {
 	case CAN_BAUD_250K:	set_timing(7, 14, 4); break;
 	case CAN_BAUD_500K:	set_timing(5, 9, 2); break;
 	case CAN_BAUD_1M:	set_timing(2, 9, 2); break;
+	case CAN_BAUD_10K:	set_timing(299, 10, 1); break;
+	case CAN_BAUD_20K:	set_timing(149, 10, 1); break;
+	case CAN_BAUD_50K:	set_timing(59, 10, 1); break;
+	case CAN_BAUD_75K:	set_timing(39, 10, 1); break;
 	default: break;
 	}
 }
@@ -1226,6 +1230,24 @@ static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 }
 #endif
 
+/**
+ * Set the CAN timing. The CAN is clocked at 42 MHz, and the baud rate can be
+ * calculated with
+ *
+ * 42000000 / ((brp + 1) * (ts1 + ts2 + 3))
+ *
+ * ts1 should be larger than ts2 in general to take the sample after the
+ * signal had time to stabilize.
+ *
+ * @param brp
+ * Prescaler.
+ *
+ * @param ts1
+ * TS1.
+ *
+ * @param ts2
+ * TS2.
+ */
 static void set_timing(int brp, int ts1, int ts2) {
 	brp &= 0b1111111111;
 	ts1 &= 0b1111;

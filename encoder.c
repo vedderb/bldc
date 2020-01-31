@@ -24,7 +24,7 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
-#include "math.h"
+#include <math.h>
 
 // Defines
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
@@ -33,7 +33,6 @@
 #define SINCOS_SAMPLE_RATE_HZ		20000
 #define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE		1.65		// sqrt(sin^2 + cos^2) has to be smaller than this
-
 
 #if (AS5047_USE_HW_SPI_PINS || AD2S1205_USE_HW_SPI_PINS)
 #ifdef HW_SPI_DEV
@@ -112,13 +111,15 @@ static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
 static volatile bool ts5700n8501_stop_now = true;
 static volatile bool ts5700n8501_is_running = false;
 static volatile uint8_t ts5700n8501_raw_status[8] = {0};
+static volatile bool ts5700n8501_reset_errors = false;
+static volatile bool ts5700n8501_reset_multiturn = false;
 
 // Private functions
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
-void TS5700N8501_send_byte(uint8_t b);
+static void TS5700N8501_send_byte(uint8_t b);
 
 uint32_t encoder_spi_get_error_cnt(void) {
 	return spi_error_cnt;
@@ -176,10 +177,17 @@ uint8_t* encoder_ts5700n8501_get_raw_status(void) {
 	return (uint8_t*)ts5700n8501_raw_status;
 }
 
-uint32_t encoder_ts57n8501_get_abm(void) {
-	return (uint32_t)ts5700n8501_raw_status[4] +
-			((uint32_t)ts5700n8501_raw_status[5] << 8) +
-			((uint32_t)ts5700n8501_raw_status[6] << 16);
+int16_t encoder_ts57n8501_get_abm(void) {
+	return (uint16_t)ts5700n8501_raw_status[4] |
+			((uint16_t)ts5700n8501_raw_status[5] << 8);
+}
+
+void encoder_ts57n8501_reset_errors(void) {
+	ts5700n8501_reset_errors = true;
+}
+
+void encoder_ts57n8501_reset_multiturn(void) {
+	ts5700n8501_reset_multiturn = true;
 }
 
 void encoder_deinit(void) {
@@ -451,6 +459,26 @@ float encoder_read_deg(void) {
 	return angle;
 }
 
+/*
+ * Note: This is not a good solution and needs a proper implementation later...
+ */
+float encoder_read_deg_multiturn(void) {
+	if (mode == ENCODER_MODE_TS5700N8501) {
+		encoder_ts57n8501_get_abm();
+		float ts_mt = (float)encoder_ts57n8501_get_abm();
+		if (fabsf(ts_mt) > 5000.0) {
+			ts_mt = 0;
+			encoder_ts57n8501_reset_multiturn();
+		}
+
+		ts_mt += 5000;
+
+		return encoder_read_deg() / 10000.0 + (360 * ts_mt) / 10000.0;
+	} else {
+		return encoder_read_deg();
+	}
+}
+
 /**
  * Reset the encoder counter. Should be called from the index interrupt.
  */
@@ -678,7 +706,7 @@ void TS5700N8501_delay_uart(void) {
  * the system is locked, but it should finish fast enough to not cause problems for other
  * things due to the high baud rate.
  */
-void TS5700N8501_send_byte(uint8_t b) {
+static void TS5700N8501_send_byte(uint8_t b) {
 	utils_sys_lock_cnt();
 #ifdef HW_ADC_EXT_GPIO
 	palSetPad(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN);
@@ -736,9 +764,27 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			return;
 		}
 
+		if (ts5700n8501_reset_errors) {
+			for (int i = 0;i < 20;i++) {
+				TS5700N8501_send_byte(0b01011101);
+				chThdSleep(2);
+			}
+
+			ts5700n8501_reset_errors = false;
+		}
+
+		if (ts5700n8501_reset_multiturn) {
+			for (int i = 0;i < 20;i++) {
+				TS5700N8501_send_byte(0b01000110);
+				chThdSleep(2);
+			}
+
+			ts5700n8501_reset_multiturn = false;
+		}
+
 		TS5700N8501_send_byte(0b01011000);
 
-		chThdSleep(1);
+		chThdSleep(2);
 
 		uint8_t reply[11];
 		int reply_ind = 0;

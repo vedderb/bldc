@@ -1504,6 +1504,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		case COMM_BM_DISCONNECT: {
 			bm_disconnect();
+			bm_leave_nrf_debug_mode();
 
 			int32_t ind = 0;
 			send_buffer[ind++] = packet_id;

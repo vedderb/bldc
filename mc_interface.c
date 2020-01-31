@@ -192,6 +192,7 @@ void mc_interface_init(mc_configuration *configuration) {
 		break;
 
 	case SENSOR_PORT_MODE_TS5700N8501:
+	case SENSOR_PORT_MODE_TS5700N8501_MULTITURN:
 		conf_general_read_app_configuration(&m_tmp_appconf);
 		if (m_tmp_appconf.app_to_use == APP_ADC ||
 				m_tmp_appconf.app_to_use == APP_UART ||
@@ -255,7 +256,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 								m_conf.foc_encoder_sincos_filter_constant);
 			break;
 
-		case SENSOR_PORT_MODE_TS5700N8501: {
+		case SENSOR_PORT_MODE_TS5700N8501:
+		case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
 			m_tmp_appconf = *app_get_configuration();
 			if (m_tmp_appconf.app_to_use == APP_ADC ||
 					m_tmp_appconf.app_to_use == APP_UART ||

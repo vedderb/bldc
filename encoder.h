@@ -32,6 +32,7 @@ void encoder_init_sincos(float sin_gain, float sin_offset,
 void encoder_init_ts5700n8501(void);
 bool encoder_is_configured(void);
 float encoder_read_deg(void);
+float encoder_read_deg_multiturn(void);
 void encoder_reset(void);
 void encoder_tim_isr(void);
 void encoder_set_counts(uint32_t counts);
@@ -51,6 +52,8 @@ uint32_t encoder_sincos_get_signal_above_max_error_cnt(void);
 float encoder_sincos_get_signal_below_min_error_rate(void);
 float encoder_sincos_get_signal_above_max_error_rate(void);
 uint8_t* encoder_ts5700n8501_get_raw_status(void);
-uint32_t encoder_ts57n8501_get_abm(void);
+int16_t encoder_ts57n8501_get_abm(void);
+void encoder_ts57n8501_reset_errors(void);
+void encoder_ts57n8501_reset_multiturn(void);
 
 #endif /* ENCODER_H_ */

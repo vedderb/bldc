@@ -297,7 +297,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_duty3_next = 0;
 	m_duty_next_set = false;
 	memset((void*)m_curr_sum, 0, sizeof(m_curr_sum));
-	memset((void*)m_curr_ofs, 0, sizeof(m_curr_ofs));
+	m_curr_ofs[0] = 2048;
+	m_curr_ofs[1] = 2048;
+	m_curr_ofs[2] = 2048;
 	m_speed_est_fast = 0.0;
 	m_hfi_plot_en = 0;
 
@@ -2348,7 +2350,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// TODO: Have another look at this.
 	float angle_now = 0.0;
 	if (encoder_is_configured()) {
-		angle_now = enc_ang;
+		if (m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
+			angle_now = encoder_read_deg_multiturn();
+		} else {
+			angle_now = enc_ang;
+		}
 	} else {
 		angle_now = m_motor_state.phase * (180.0 / M_PI);
 	}
