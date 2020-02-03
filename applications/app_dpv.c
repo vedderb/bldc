@@ -10,11 +10,11 @@
 #include "commands.h"
 #include <math.h>
 
-#define SPEED_STEP	0.10
+#define SPEED_STEP	0.05
 #define SPEED_MAX	1.00
 #define SPEED_MIN	0.05
 #define SPEED_OFF	0.00
-
+#define MAX_ERPM    50400
 
 //private variables
 static volatile bool stop_now = true;
@@ -42,7 +42,7 @@ void dpv_rotary_isr(void) {
 		targetSpeed -= SPEED_STEP;
 		if (targetSpeed < SPEED_MIN) targetSpeed = SPEED_MIN;
 	}
-//	commands_printf("TargetSpeed: %d",targetSpeed);
+//	commands_printf("TargetSpeed: %01.2f", targetSpeed);
 }
 
 
@@ -160,7 +160,8 @@ static THD_FUNCTION(dpv_thread, arg) {
             last_time = chVTGetSystemTimeX();
    			motorSpeed = motorSpeed_val_ramp;
        	}
-       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
+//       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
+       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty)*MAX_ERPM);
 		// Reset the timeout
 		timeout_reset();
 	}
