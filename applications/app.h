@@ -47,6 +47,7 @@ void app_uartcomm_start_permanent(void);
 void app_uartcomm_stop(void);
 void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled);
 void app_uartcomm_send_packet(unsigned char *data, unsigned int len);
+void app_uartcomm_send_packet_p(unsigned char *data, unsigned int len);
 
 void app_nunchuk_start(void);
 void app_nunchuk_stop(void);

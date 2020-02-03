@@ -38,9 +38,9 @@
 
 // Threads
 static THD_FUNCTION(ppm_thread, arg);
-static THD_WORKING_AREA(ppm_thread_wa, 1024);
+static THD_WORKING_AREA(ppm_thread_wa, 1536);
 static thread_t *ppm_tp;
-virtual_timer_t vt;
+static volatile bool ppm_rx = false;
 
 // Private functions
 static void servodec_func(void);
@@ -54,7 +54,6 @@ static float input_val = 0.0;
 static volatile float direction_hyst = 0;
 
 // Private functions
-static void update(void *p);
 #endif
 
 void app_ppm_configure(ppm_config *conf) {
@@ -76,10 +75,6 @@ void app_ppm_start(void) {
 #if !SERVO_OUT_ENABLE
 	stop_now = false;
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
-
-	chSysLock();
-	chVTSetI(&vt, MS2ST(1), update, NULL);
-	chSysUnlock();
 #endif
 }
 
@@ -108,19 +103,8 @@ float app_ppm_get_decoded_level(void) {
 
 #if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
+	ppm_rx = true;
 	chSysLockFromISR();
-	timeout_reset();
-	chEvtSignalI(ppm_tp, (eventmask_t) 1);
-	chSysUnlockFromISR();
-}
-
-static void update(void *p) {
-	if (!is_running) {
-		return;
-	}
-
-	chSysLockFromISR();
-	chVTSetI(&vt, MS2ST(2), update, p);
 	chEvtSignalI(ppm_tp, (eventmask_t) 1);
 	chSysUnlockFromISR();
 }
@@ -136,11 +120,16 @@ static THD_FUNCTION(ppm_thread, arg) {
 	is_running = true;
 
 	for(;;) {
-		chEvtWaitAny((eventmask_t) 1);
+		chEvtWaitAnyTimeout((eventmask_t)1, MS2ST(2));
 
 		if (stop_now) {
 			is_running = false;
 			return;
+		}
+
+		if (ppm_rx) {
+			ppm_rx = false;
+			timeout_reset();
 		}
 
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
@@ -193,9 +182,10 @@ static THD_FUNCTION(ppm_thread, arg) {
 		static float servo_val_ramp = 0.0;
 		float ramp_time = fabsf(servo_val) > fabsf(servo_val_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(servo_val) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(servo_val) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		const float dt = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / 1000.0;
 		last_time = chVTGetSystemTimeX();

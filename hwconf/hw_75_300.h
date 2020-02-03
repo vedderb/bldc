@@ -104,6 +104,7 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
+#define ADC_IND_EXT3			10
 #ifdef HW75_300_VEDDER_FIRST_PCB
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		8
@@ -259,6 +260,9 @@
 #define HW_DEAD_TIME_NSEC		660.0
 
 // Default setting overrides
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
+#endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			72.0	// Maximum input voltage
 #endif
@@ -282,10 +286,10 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-300.0, 300.0
-#define HW_LIM_CURRENT_IN		-300.0, 300.0
-#define HW_LIM_CURRENT_ABS		0.0, 450.0
-#define HW_LIM_VIN				6.0, 72.0
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
+#define HW_LIM_CURRENT_ABS		0.0, 480.0
+#define HW_LIM_VIN				11.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

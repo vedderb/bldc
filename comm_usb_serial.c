@@ -250,11 +250,12 @@ static const USBEndpointConfig ep2config = {
 		NULL
 };
 
+static volatile int configured_cnt = 0;
+
 /*
  * Handles the USB driver global events.
  */
 static void usb_event(USBDriver *usbp, usbevent_t event) {
-
 	switch (event) {
 	case USB_EVENT_RESET:
 		return;
@@ -273,6 +274,7 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
 		sduConfigureHookI(&SDU1);
 
 		chSysUnlockFromISR();
+		configured_cnt++;
 		return;
 	case USB_EVENT_SUSPEND:
 		return;
@@ -330,4 +332,10 @@ void comm_usb_serial_init(void) {
 
 int comm_usb_serial_is_active(void) {
 	return SDU1.config->usbp->state == USB_ACTIVE;
+}
+
+// Every time the USB cable is plugged in a configuration is done. Unfortunately
+// I haven't found a way to detect when the USB cable gets unplugged.
+int comm_usb_serial_configured_cnt(void) {
+	return configured_cnt;
 }

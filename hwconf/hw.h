@@ -199,6 +199,18 @@
 #define IS_DRV_FAULT()			0
 #endif
 
+// Double samples in beginning and end for positive current measurement.
+// Useful when the shunt sense traces have noise that causes offset.
+#ifndef CURR1_DOUBLE_SAMPLE
+#define CURR1_DOUBLE_SAMPLE		0
+#endif
+#ifndef CURR2_DOUBLE_SAMPLE
+#define CURR2_DOUBLE_SAMPLE		0
+#endif
+#ifndef CURR3_DOUBLE_SAMPLE
+#define CURR3_DOUBLE_SAMPLE		0
+#endif
+
 #ifndef AUX_ON
 #define AUX_ON()
 #endif
@@ -276,6 +288,13 @@
 #define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3
 #endif
 
+// ADC Channels
+#ifndef ADC_IND_EXT3
+#define ADC_IND_EXT3 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT2
+#define ADC_IND_EXT2 			ADC_IND_EXT
+#endif
 
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN
@@ -355,6 +374,14 @@
 
 #ifndef COMM_USE_USB
 #define COMM_USE_USB				1
+#endif
+
+#ifndef PTC_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
+#else
+#define PTC_TEMP_MOTOR(res, con, tbase)			0.0
+#endif
 #endif
 
 // Functions

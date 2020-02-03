@@ -57,7 +57,7 @@ void imu_init(imu_config *set) {
 
 	imu_ready = false;
 	init_time = chVTGetSystemTimeX();
-	ahrs_update_all_parameters(1.0, 0.3, 0.0, 2.0);
+	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
 
 	ahrs_init_attitude_info(&m_att);
 
@@ -286,7 +286,14 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro_rad[1] = m_gyro[1] * M_PI / 180.0;
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
 
-	ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+	switch (m_settings.mode){
+		case (AHRS_MODE_MADGWICK):
+			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+			break;
+		case (AHRS_MODE_MAHONY):
+			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+			break;
+	}
 }
 
 static void terminal_gyro_info(int argc, const char **argv) {

@@ -294,9 +294,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(pwr) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(pwr) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);

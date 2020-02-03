@@ -156,7 +156,7 @@
 #define MCCONF_CC_GAIN					0.0046	// Current controller error gain
 #endif
 #ifndef MCCONF_CC_MIN_CURRENT
-#define MCCONF_CC_MIN_CURRENT			0.1		// Minimum allowed current
+#define MCCONF_CC_MIN_CURRENT			0.05	// Minimum allowed current
 #endif
 #ifndef MCCONF_CC_STARTUP_BOOST_DUTY
 #define MCCONF_CC_STARTUP_BOOST_DUTY	0.01	// The lowest duty cycle to use in current control mode (has to be > MCPWM_MIN_DUTY_CYCLE)
@@ -225,10 +225,10 @@
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					20000.0
+#define MCCONF_FOC_F_SW					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
-#define MCCONF_FOC_DT_US				0.08 // Microseconds for dead time compensation
+#define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation
 #endif
 #ifndef MCCONF_FOC_ENCODER_INVERTED
 #define MCCONF_FOC_ENCODER_INVERTED		false
@@ -329,10 +329,37 @@
 #ifndef MCCONF_FOC_CURRENT_FILTER_CONST
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
 #endif
+#ifndef MCCONF_FOC_CC_DECOUPLING
+#define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_BEMF // Current controller decoupling
+#endif
+#ifndef MCCONF_FOC_OBSERVER_TYPE
+#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
+#endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_START
+#define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity
+#endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_RUN
+#define MCCONF_FOC_HFI_VOLTAGE_RUN		4 // HFI voltage during tracking
+#endif
+#ifndef MCCONF_FOC_HFI_VOLTAGE_MAX
+#define MCCONF_FOC_HFI_VOLTAGE_MAX		10 // HFI voltage during tracking at max current
+#endif
+#ifndef MCCONF_FOC_SL_ERPM_HFI
+#define MCCONF_FOC_SL_ERPM_HFI			2000.0	// ERPM above which only the observer is used
+#endif
+#ifndef MCCONF_FOC_HFI_START_SAMPLES
+#define MCCONF_FOC_HFI_START_SAMPLES	65 // Sample this often at start to resolve ambiguity
+#endif
+#ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
+#define MCCONF_FOC_HFI_OBS_OVR_SEC		0.001 // Continue using observer for this long when entering HFI speed
+#endif
+#ifndef MCCONF_FOC_HFI_SAMPLES
+#define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
-#define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space is left than this
+#define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space left is less than this
 #endif
 #ifndef MCCONF_GPD_BUFFER_INTERPOL
 #define MCCONF_GPD_BUFFER_INTERPOL		0		// Buffer interpolation
@@ -401,6 +428,12 @@
 #endif
 #ifndef MCCONF_M_OUT_AUX_MODE
 #define MCCONF_M_OUT_AUX_MODE			OUT_AUX_MODE_OFF // Auxiliary output mode
+#endif
+#ifndef MCCONF_M_MOTOR_TEMP_SENS_TYPE
+#define MCCONF_M_MOTOR_TEMP_SENS_TYPE	TEMP_SENSOR_NTC_10K_25C // Motor temperature sensor type
+#endif
+#ifndef MCCONF_M_PTC_MOTOR_COEFF
+#define MCCONF_M_PTC_MOTOR_COEFF		0.61 // %/K coefficient for motor PTC sensor
 #endif
 
 // Setup Info

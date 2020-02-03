@@ -449,9 +449,10 @@ static THD_FUNCTION(output_thread, arg) {
 				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
 		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(out_val) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(out_val) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
@@ -489,11 +490,13 @@ static THD_FUNCTION(output_thread, arg) {
 			mc_interface_set_brake_current(current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus
-			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-				can_status_msg *msg = comm_can_get_status_msg_index(i);
+			if (config.multi_esc) {
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current_brake(msg->id, current);
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_current_brake(msg->id, current);
+					}
 				}
 			}
 		} else {

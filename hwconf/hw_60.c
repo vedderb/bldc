@@ -22,9 +22,16 @@
 #include "stm32f4xx_conf.h"
 #include "utils.h"
 #include "drv8301.h"
+#include "terminal.h"
+#include "commands.h"
+#include "mc_interface.h"
 
 // Variables
 static volatile bool i2c_running = false;
+#ifdef HW60_IS_MK3
+static mutex_t shutdown_mutex;
+static float bt_diff = 0.0;
+#endif
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -33,7 +40,16 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+#ifdef HW60_IS_MK3
+static void terminal_shutdown_now(int argc, const char **argv);
+static void terminal_button_test(int argc, const char **argv);
+#endif
+
 void hw_init_gpio(void) {
+#ifdef HW60_IS_MK3
+	chMtxObjectInit(&shutdown_mutex);
+#endif
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -110,9 +126,25 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
+#ifndef HW60_IS_MK3
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+#endif
 
 	drv8301_init();
+
+#ifdef HW60_IS_MK3
+	terminal_register_command_callback(
+		"shutdown",
+		"Shutdown VESC now.",
+		0,
+		terminal_shutdown_now);
+
+	terminal_register_command_callback(
+		"test_button",
+		"Try sampling the shutdown button",
+		0,
+		terminal_button_test);
+#endif
 }
 
 void hw_setup_adc_channels(void) {
@@ -242,3 +274,44 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
+
+#ifdef HW60_IS_MK3
+bool hw_sample_shutdown_button(void) {
+	chMtxLock(&shutdown_mutex);
+
+	bt_diff = 0.0;
+
+	for (int i = 0;i < 3;i++) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		chThdSleep(5);
+		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		chThdSleepMilliseconds(1);
+		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		chThdSleepMilliseconds(1);
+
+		bt_diff += (val1 - val2);
+	}
+
+	chMtxUnlock(&shutdown_mutex);
+
+	return (bt_diff > 0.12);
+}
+
+static void terminal_shutdown_now(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	DISABLE_GATE();
+	HW_SHUTDOWN_HOLD_OFF();
+}
+
+static void terminal_button_test(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	for (int i = 0;i < 40;i++) {
+		commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
+		chThdSleepMilliseconds(100);
+	}
+}
+#endif

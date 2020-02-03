@@ -41,9 +41,19 @@ static volatile bool uart_is_running = false;
 static mutex_t send_mutex;
 static bool send_mutex_init_done = false;
 
+#ifdef HW_UART_P_DEV
+static mutex_t send_mutex_p;
+static bool send_mutex_p_init_done = false;
+#endif
+
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
 static void send_packet(unsigned char *data, unsigned int len);
+
+#ifdef HW_UART_P_DEV
+static void process_packet_p(unsigned char *data, unsigned int len);
+static void send_packet_p(unsigned char *data, unsigned int len);
+#endif
 
 static SerialConfig uart_cfg = {
 		BAUDRATE,
@@ -67,23 +77,29 @@ static void process_packet(unsigned char *data, unsigned int len) {
 	commands_process_packet(data, len, app_uartcomm_send_packet);
 }
 
-static void send_packet(unsigned char *data, unsigned int len) {
 #ifdef HW_UART_P_DEV
-	if (from_p_uart) {
-		if (uart_p_is_running) {
-			sdWrite(&HW_UART_P_DEV, data, len);
-		}
-	} else {
-		if (uart_is_running) {
-			sdWrite(&HW_UART_DEV, data, len);
-		}
-	}
-#else
+static void process_packet_p(unsigned char *data, unsigned int len) {
+	commands_process_packet(data, len, app_uartcomm_send_packet_p);
+}
+#endif
+
+static void send_packet(unsigned char *data, unsigned int len) {
 	if (uart_is_running) {
 		sdWrite(&HW_UART_DEV, data, len);
 	}
-#endif
 }
+
+#ifdef HW_UART_P_DEV
+static void send_packet_p(unsigned char *data, unsigned int len) {
+	if (uart_p_is_running) {
+#ifdef HW_UART_P_DEV_TX
+		sdWrite(&HW_UART_P_DEV_TX, data, len);
+#else
+		sdWrite(&HW_UART_P_DEV, data, len);
+#endif
+	}
+}
+#endif
 
 void app_uartcomm_start(void) {
 	packet_init(send_packet, process_packet, PACKET_HANDLER);
@@ -107,8 +123,7 @@ void app_uartcomm_start(void) {
 
 void app_uartcomm_start_permanent(void) {
 #ifdef HW_UART_P_DEV
-	packet_init(send_packet, process_packet, PACKET_HANDLER);
-	packet_init(send_packet, process_packet, PACKET_HANDLER_P);
+	packet_init(send_packet_p, process_packet_p, PACKET_HANDLER_P);
 
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
@@ -117,6 +132,11 @@ void app_uartcomm_start_permanent(void) {
 	}
 
 	sdStart(&HW_UART_P_DEV, &uart_p_cfg);
+
+#ifdef HW_UART_P_DEV_TX
+	sdStart(&HW_UART_P_DEV_TX, &uart_p_cfg);
+#endif
+
 	palSetPadMode(HW_UART_P_TX_PORT, HW_UART_P_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_P_GPIO_AF) |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
@@ -148,6 +168,22 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len) {
 	chMtxLock(&send_mutex);
 	packet_send_packet(data, len, PACKET_HANDLER);
 	chMtxUnlock(&send_mutex);
+}
+
+void app_uartcomm_send_packet_p(unsigned char *data, unsigned int len) {
+#ifdef HW_UART_P_DEV
+	if (!send_mutex_p_init_done) {
+		chMtxObjectInit(&send_mutex_p);
+		send_mutex_p_init_done = true;
+	}
+
+	chMtxLock(&send_mutex_p);
+	packet_send_packet(data, len, PACKET_HANDLER_P);
+	chMtxUnlock(&send_mutex_p);
+#else
+	(void)data;
+	(void)len;
+#endif
 }
 
 void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled) {
@@ -188,7 +224,7 @@ static THD_FUNCTION(packet_process_thread, arg) {
 #endif
 
 	for(;;) {
-		chEvtWaitAny(ALL_EVENTS);
+		chEvtWaitAnyTimeout(ALL_EVENTS, ST2MS(10));
 
 		bool rx = true;
 		while (rx) {
