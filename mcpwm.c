@@ -288,7 +288,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_ADC3, ENABLE);
 
 	dmaStreamAllocate(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)),
-			3,
+			5,
 			(stm32_dmaisr_t)mcpwm_adc_int_handler,
 			(void *)0);
 
@@ -830,6 +830,26 @@ float mcpwm_get_tot_current_in(void) {
  */
 float mcpwm_get_tot_current_in_filtered(void) {
 	return mcpwm_get_tot_current_filtered() * fabsf(dutycycle_now);
+}
+
+/**
+ * Set the number of steps the motor has rotated. This number is signed and
+ * becomes a negative when the motor is rotating backwards.
+ *
+ * @param steps
+ * New number of motor steps will be set after this call.
+ *
+ * @return
+ * The previous tachometer value in motor steps. The number of motor revolutions will
+ * be this number divided by (3 * MOTOR_POLE_NUMBER).
+ */
+int mcpwm_set_tachometer_value(int steps)
+{
+	int val = tachometer;
+
+	tachometer = steps;
+
+	return val;
 }
 
 /**
@@ -1445,6 +1465,17 @@ void mcpwm_adc_inj_int_handler(void) {
 
 #ifdef HW_HAS_3_SHUNTS
 	int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
+#endif
+
+#ifdef INVERTED_SHUNT_POLARITY
+	curr0 = 4095 - curr0;
+	curr1 = 4095 - curr1;
+
+	curr0_2 = 4095 - curr0_2;
+	curr1_2 = 4095 - curr1_2;
+#ifdef HW_HAS_3_SHUNTS
+	curr2 = 4095 - curr2;
+#endif
 #endif
 
 	float curr0_currsamp = curr0;

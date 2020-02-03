@@ -1,5 +1,6 @@
 /*
-	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2020 Marcos Chaparro	mchaparro@powerdesigns.ca
+	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,56 +18,41 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UAVC_BASIC_H_
-#define HW_UAVC_BASIC_H_
+#ifndef HW_LUNA_BBSHD_H_
+#define HW_LUNA_BBSHD_H_
 
-#include "drv8323s.h"
-
-#define HW_NAME					"UAVC_BASIC"
+#define HW_NAME					"LUNA_CYCLE_BBSHD"
 
 // HW properties
-#define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_SHUNTS
+#define HW_USE_BRK
 
 // Macros
-#define ENABLE_GATE()			palSetPad(GPIOB, 5)
-#define DISABLE_GATE()			palClearPad(GPIOB, 5)
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			2
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				11
 
-#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
+#define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+#define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
+#define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
-#define LED_RED_ON()			palSetPad(GPIOB, 1)
-#define LED_RED_OFF()			palClearPad(GPIOB, 1)
+#define AUX_GPIO				GPIOC
+#define AUX_PIN					9
+#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
+#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
-#define PHASE_FILTER_GPIO       GPIOC
-#define PHASE_FILTER_PIN        13
-#define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define CURRENT_FILTER_ON()		palSetPad(GPIOC, 13)
+#define CURRENT_FILTER_OFF()	palClearPad(GPIOC, 13)
 
-/*
- * ADC Vector
- *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
- * 6:	IN5		ADC_EXT1
- * 7:	IN6		ADC_EXT2
- * 8:	IN3		TEMP_PCB
- * 9:	IN14	TEMP_MOTOR
- * 10:	IN15	ADC_EXT3
- * 11:	IN13	AN_IN
- * 12:	Vrefint
- * 13:	IN0		SENS1
- * 14:	IN1		SENS2
- */
+#define BRK_GPIO				GPIOB
+#define BRK_PIN					12
 
-#define HW_ADC_CHANNELS			15
+#define HW_ADC_CHANNELS			18
 #define HW_ADC_INJ_CHANNELS		3
-#define HW_ADC_NBR_CONV			5
+#define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
 #define ADC_IND_SENS1			0
@@ -76,11 +62,15 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_EXT				6
-#define ADC_IND_EXT2			7
+#define ADC_IND_GATE_DRV		12
+#define ADC_IND_EXT				10
+#define ADC_IND_EXT2			6
+#define ADC_IND_EXT3			13
 #define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOS_2		15
+#define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
-#define ADC_IND_VREFINT			12
+#define ADC_IND_VREFINT			16
 
 // ADC macros and settings
 
@@ -89,7 +79,7 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					39000.0
+#define VIN_R1					66500.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2200.0
@@ -98,7 +88,7 @@
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.0005
+#define CURRENT_SHUNT_RES		(0.0005 / 3.0)
 #endif
 
 // Input voltage
@@ -109,6 +99,7 @@
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
@@ -126,14 +117,21 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
+// COMM-port ADC GPIOs
+#define HW_ADC_EXT_GPIO			GPIOC
+#define HW_ADC_EXT_PIN			5
+#define HW_ADC_EXT2_GPIO		GPIOB
+#define HW_ADC_EXT2_PIN			0
+
 // UART Peripheral
 #define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
-#define HW_UART_TX_PORT			GPIOB
+#define HW_UART_TX_PORT			GPIOC
 #define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOB
+#define HW_UART_RX_PORT			GPIOC
 #define HW_UART_RX_PIN			11
 
+#ifdef HW75_300_REV_2
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
@@ -142,9 +140,12 @@
 #define HW_UART_P_TX_PIN		10
 #define HW_UART_P_RX_PORT		GPIOC
 #define HW_UART_P_RX_PIN		11
+#endif
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
+#define HW_ICU_TIMER			TIM4
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
@@ -189,16 +190,6 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-// SPI for DRV8323S
-#define DRV8323S_MOSI_GPIO		GPIOC
-#define DRV8323S_MOSI_PIN		12
-#define DRV8323S_MISO_GPIO		GPIOB
-#define DRV8323S_MISO_PIN		4
-#define DRV8323S_SCK_GPIO		GPIOB
-#define DRV8323S_SCK_PIN		3
-#define DRV8323S_CS_GPIO		GPIOC
-#define DRV8323S_CS_PIN			9
-
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -210,38 +201,42 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Default setting overrides
-#ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
-#endif
-#ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX				60.0	// Input current limit in Amperes (Upper)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN				-60.0	// Input current limit in Amperes (Lower)
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT			120.0	// The maximum absolute current above which a fault is generated
-#endif
+// Override dead time.
+#define HW_DEAD_TIME_NSEC		660.0
 
+// Default setting overrides
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			80.0	// Maximum input voltage
+#endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW					30000.0
 #endif
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT		250.0	// The maximum absolute current above which a fault is generated
+#endif
+#ifndef MCCONF_FOC_SAMPLE_V0_V7
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MAX
+#define MCCONF_L_IN_CURRENT_MAX			200.0	// Input current limit in Amperes (Upper)
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MIN
+#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
+#endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-60.0, 60.0
-#define HW_LIM_CURRENT_IN		-60.0, 60.0
-#define HW_LIM_CURRENT_ABS		0.0, 140.0
-#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_CURRENT			-200.0, 200.0
+#define HW_LIM_CURRENT_IN		-200.0, 200.0
+#define HW_LIM_CURRENT_ABS		0.0, 350.0
+#define HW_LIM_VIN				6.0, 80.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-#endif /* HW_UAVC_QCUBE_H_ */
+// HW-specific functions
+
+#endif /* HW_LUNA_BBSHD_H_ */

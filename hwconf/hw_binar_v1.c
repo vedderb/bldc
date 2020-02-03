@@ -53,6 +53,12 @@ void hw_init_gpio(void) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
+	// Switch on second 3.3v net (TODO: Expose this functionality?)
+	palSetPadMode(GPIOB, 2,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(GPIOB, 2);
+
 	ENABLE_GATE();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull

@@ -10,7 +10,7 @@
 
 An open source motor controller firmware.
 
-This is the source code for the VESC DC/BLDC/FOC controller. Read more at  
+This is the source code for the VESC DC/BLDC/FOC controller. Read more at
 [https://vesc-project.com/](https://vesc-project.com/)
 
 ## Supported boards
@@ -51,8 +51,8 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 //#define HW_SOURCE "hw_das_rs.c"
 //#define HW_HEADER "hw_das_rs.h"
 
-//#define HW_SOURCE "hw_palta.c"
-//#define HW_HEADER "hw_palta.h"
+//#define HW_SOURCE "hw_axiom.c"
+//#define HW_HEADER "hw_axiom.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
@@ -80,7 +80,9 @@ There are also many other options that can be changed in conf_general.h
 
 ## Prerequisites
 
-On an Ubuntu machine, install the gcc-arm-embedded toolchain
+### On Ubuntu
+
+Install the gcc-arm-embedded toolchain
 
 
 ```bash
@@ -98,10 +100,28 @@ sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
 sudo udevadm trigger
 ```
 
-Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader)
+### On MacOS
 
+Go to the [GNU ARM embedded toolchain downloads Website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) and select the mac version, download it and extract it to your user directory.
+
+Append the bin directory to your **$PATH**. For example:
+
+
+```bash
+export PATH="$PATH:/Users/your-name/gcc-arm-none-eabi-8-2019-q3-update/bin/"
+```
+
+Install stlink and openocd
+
+
+```bash
+brew install stlink
+brew install openocd
+```
 
 ## Build
+
+Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) first
 
 Clone and build the firmware
 

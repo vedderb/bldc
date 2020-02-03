@@ -33,6 +33,7 @@ void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
 void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
+void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
 void comm_can_set_duty(uint8_t controller_id, float duty);
 void comm_can_set_current(uint8_t controller_id, float current);
@@ -60,6 +61,8 @@ can_status_msg_3 *comm_can_get_status_msg_3_index(int index);
 can_status_msg_3 *comm_can_get_status_msg_3_id(int id);
 can_status_msg_4 *comm_can_get_status_msg_4_index(int index);
 can_status_msg_4 *comm_can_get_status_msg_4_id(int id);
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index);
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
 CANRxFrame *comm_can_get_rx_frame(void);
 
 #endif /* COMM_CAN_H_ */

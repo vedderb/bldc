@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -33,6 +33,7 @@
 #include "packet.h"
 #include "hw.h"
 #include "canard_driver.h"
+#include "encoder.h"
 
 // Settings
 #define RX_FRAMES_SIZE	100
@@ -63,6 +64,7 @@ static can_status_msg stat_msgs[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
 static unsigned int detect_all_foc_res_index = 0;
 static int8_t detect_all_foc_res[50];
 
@@ -85,6 +87,7 @@ static void set_timing(int brp, int ts1, int ts2);
 
 // Function pointers
 static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
+static void(*eid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
 
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -129,6 +132,10 @@ void comm_can_set_baud(CAN_BAUD baud) {
 	case CAN_BAUD_250K:	set_timing(7, 14, 4); break;
 	case CAN_BAUD_500K:	set_timing(5, 9, 2); break;
 	case CAN_BAUD_1M:	set_timing(2, 9, 2); break;
+	case CAN_BAUD_10K:	set_timing(299, 10, 1); break;
+	case CAN_BAUD_20K:	set_timing(149, 10, 1); break;
+	case CAN_BAUD_50K:	set_timing(59, 10, 1); break;
+	case CAN_BAUD_75K:	set_timing(39, 10, 1); break;
 	default: break;
 	}
 }
@@ -187,6 +194,17 @@ void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
  */
 void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
 	sid_callback = p_func;
+}
+
+/**
+ * Set function to be called when extended CAN frames are received. Will only be called when
+ * the CAN mode is CAN_MODE_COMM_BRIDGE.
+ *
+ * @param p_func
+ * Pointer to the function.
+ */
+void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
+	eid_callback = p_func;
 }
 
 /**
@@ -392,6 +410,10 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
  */
 bool comm_can_ping(uint8_t controller_id) {
 #if CAN_ENABLE
+	if (app_get_configuration()->can_mode != CAN_MODE_VESC) {
+		return false;
+	}
+
 	ping_tp = chThdGetSelfX();
 	chEvtGetAndClearEvents(ALL_EVENTS);
 
@@ -669,6 +691,42 @@ can_status_msg_4 *comm_can_get_status_msg_4_id(int id) {
 	return 0;
 }
 
+/**
+ * Get status message 5 by index.
+ *
+ * @param index
+ * Index in the array
+ *
+ * @return
+ * The message or 0 for an invalid index.
+ */
+can_status_msg_5 *comm_can_get_status_msg_5_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_5[index];
+	} else {
+		return 0;
+	}
+}
+
+/**
+ * Get status message 5 by id.
+ *
+ * @param id
+ * Id of the controller that sent the status message.
+ *
+ * @return
+ * The message or 0 for an invalid id.
+ */
+can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_5[i].id == id) {
+			return &stat_msgs_5[i];
+		}
+	}
+
+	return 0;
+}
+
 CANRxFrame *comm_can_get_rx_frame(void) {
 #if CAN_ENABLE
 	chMtxLock(&can_rx_mtx);
@@ -711,7 +769,6 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 		msg_t result = canReceive(&HW_CAN_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 
 		while (result == MSG_OK) {
-
 			chMtxLock(&can_rx_mtx);
 			rx_frames[rx_frame_write++] = rxmsg;
 			if (rx_frame_write == RX_FRAMES_SIZE) {
@@ -744,7 +801,26 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 	for(;;) {
 		chEvtWaitAny((eventmask_t)1);
 
-		if (app_get_configuration()->uavcan_enable) {
+		if (app_get_configuration()->can_mode == CAN_MODE_UAVCAN) {
+			continue;
+		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+			CANRxFrame *rxmsg_tmp;
+			while ((rxmsg_tmp = comm_can_get_rx_frame()) != 0) {
+				CANRxFrame rxmsg = *rxmsg_tmp;
+				commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
+						rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
+						rxmsg.IDE == CAN_IDE_EXT);
+
+				if (rxmsg.IDE == CAN_IDE_STD) {
+					if (sid_callback) {
+						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+					}
+				} else {
+					if (eid_callback) {
+						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+					}
+				}
+			}
 			continue;
 		}
 
@@ -975,6 +1051,12 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						}
 					} break;
 
+					case CAN_PACKET_POLL_TS5700N8501_STATUS: {
+						comm_can_transmit_eid(app_get_configuration()->controller_id |
+								((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
+								encoder_ts5700n8501_get_raw_status(), 8);
+					} break;
+
 					default:
 						break;
 					}
@@ -1040,6 +1122,20 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					}
 					break;
 
+				case CAN_PACKET_STATUS_5:
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg_5 *stat_tmp_5 = &stat_msgs_5[i];
+						if (stat_tmp_5->id == id || stat_tmp_5->id == -1) {
+							ind = 0;
+							stat_tmp_5->id = id;
+							stat_tmp_5->rx_time = chVTGetSystemTime();
+							stat_tmp_5->tacho_value = buffer_get_int32(rxmsg.data8, &ind);
+							stat_tmp_5->v_in = (float)buffer_get_int16(rxmsg.data8, &ind) / 1e1;
+							break;
+						}
+					}
+					break;
+
 				default:
 					break;
 				}
@@ -1059,11 +1155,12 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 	for(;;) {
 		const app_configuration *conf = app_get_configuration();
 
-		if (!conf->uavcan_enable) {
+		if (conf->can_mode == CAN_MODE_VESC) {
 			if (conf->send_can_status == CAN_STATUS_1 ||
 					conf->send_can_status == CAN_STATUS_1_2 ||
 					conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
@@ -1075,7 +1172,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 
 			if (conf->send_can_status == CAN_STATUS_1_2 ||
 					conf->send_can_status == CAN_STATUS_1_2_3||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours(false) * 1e4), &send_index);
@@ -1085,7 +1183,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			}
 
 			if (conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4) {
+					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours(false) * 1e4), &send_index);
@@ -1094,7 +1193,8 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 						((uint32_t)CAN_PACKET_STATUS_3 << 8), buffer, send_index);
 			}
 
-			if (conf->send_can_status == CAN_STATUS_1_2_3_4) {
+			if (conf->send_can_status == CAN_STATUS_1_2_3_4 ||
+					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				int32_t send_index = 0;
 				uint8_t buffer[8];
 				buffer_append_int16(buffer, (int16_t)(mc_interface_temp_fet_filtered() * 1e1), &send_index);
@@ -1103,6 +1203,16 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 				buffer_append_int16(buffer, (int16_t)(mc_interface_get_pid_pos_now() * 50.0), &send_index);
 				comm_can_transmit_eid(conf->controller_id |
 						((uint32_t)CAN_PACKET_STATUS_4 << 8), buffer, send_index);
+			}
+
+			if (conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
+				int32_t send_index = 0;
+				uint8_t buffer[8];
+				buffer_append_int32(buffer, mc_interface_get_tachometer_value(false), &send_index);
+				buffer_append_int16(buffer, (int16_t)(GET_INPUT_VOLTAGE() * 1e1), &send_index);
+				buffer_append_int16(buffer, 0, &send_index); // Reserved for now
+				comm_can_transmit_eid(conf->controller_id |
+						((uint32_t)CAN_PACKET_STATUS_5 << 8), buffer, send_index);
 			}
 		}
 
@@ -1120,6 +1230,24 @@ static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 }
 #endif
 
+/**
+ * Set the CAN timing. The CAN is clocked at 42 MHz, and the baud rate can be
+ * calculated with
+ *
+ * 42000000 / ((brp + 1) * (ts1 + ts2 + 3))
+ *
+ * ts1 should be larger than ts2 in general to take the sample after the
+ * signal had time to stabilize.
+ *
+ * @param brp
+ * Prescaler.
+ *
+ * @param ts1
+ * TS1.
+ *
+ * @param ts2
+ * TS2.
+ */
 static void set_timing(int brp, int ts1, int ts2) {
 	brp &= 0b1111111111;
 	ts1 &= 0b1111;

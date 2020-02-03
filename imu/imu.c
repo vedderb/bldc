@@ -24,38 +24,137 @@
 #include "timer.h"
 #include "terminal.h"
 #include "commands.h"
+#include "icm20948.h"
+#include "bmi160_wrapper.h"
+#include "utils.h"
 
 #include <math.h>
 #include <string.h>
 
 // Private variables
 static ATTITUDE_INFO m_att;
-static bool m_attitude_init_done;
 static float m_accel[3], m_gyro[3], m_mag[3];
+static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
+static i2c_bb_state m_i2c_bb;
+static ICM20948_STATE m_icm20948_state;
+static BMI_STATE m_bmi_state;
+static imu_config m_settings;
+static float m_gyro_offset[3] = {0.0};
+static systime_t init_time;
+static bool imu_ready;
 
 // Private functions
-static void mpu_read_callback(void);
-static void terminal_rpy(int argc, const char **argv);
+static void imu_read_callback(float *accel, float *gyro, float *mag);
+static void terminal_gyro_info(int argc, const char **argv);
+int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
+int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 
-void imu_init(void) {
+void imu_init(imu_config *set) {
+	m_settings = *set;
+	memset(m_gyro_offset, 0, sizeof(m_gyro_offset));
+
+	imu_stop();
+
+	imu_ready = false;
+	init_time = chVTGetSystemTimeX();
+	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
+
 	ahrs_init_attitude_info(&m_att);
 
+	mpu9150_set_rate_hz(set->sample_rate_hz);
+	m_icm20948_state.rate_hz = set->sample_rate_hz;
+	m_bmi_state.rate_hz = set->sample_rate_hz;
+
+	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
-	imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
-			MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
+		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
+				MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
 #endif
 
+#ifdef ICM20948_SDA_GPIO
+		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
+				ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
+#endif
+
+#ifdef BMI160_SDA_GPIO
+		imu_init_bmi160(BMI160_SDA_GPIO, BMI160_SDA_PIN,
+				BMI160_SCL_GPIO, BMI160_SCL_PIN);
+#endif
+	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
+		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	} else if (set->type == IMU_TYPE_EXTERNAL_ICM20948) {
+		imu_init_icm20948(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
+	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
+		imu_init_bmi160(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	}
+
 	terminal_register_command_callback(
-			"imu_rpy",
-			"Print 100 roll/pitch/yaw samples at 10 Hz",
+			"imu_gyro_info",
+			"Print gyro offsets",
 			0,
-			terminal_rpy);
+			terminal_gyro_info);
 }
 
-void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, int scl_pin) {
+i2c_bb_state *imu_get_i2c(void) {
+	return &m_i2c_bb;
+}
+
+void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin) {
+	imu_stop();
+
 	mpu9150_init(sda_gpio, sda_pin,
-			scl_gpio, scl_pin);
-	mpu9150_set_read_callback(mpu_read_callback);
+			scl_gpio, scl_pin,
+			m_thd_work_area, sizeof(m_thd_work_area));
+	mpu9150_set_read_callback(imu_read_callback);
+}
+
+void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val) {
+	imu_stop();
+
+	m_i2c_bb.sda_gpio = sda_gpio;
+	m_i2c_bb.sda_pin = sda_pin;
+	m_i2c_bb.scl_gpio = scl_gpio;
+	m_i2c_bb.scl_pin = scl_pin;
+	i2c_bb_init(&m_i2c_bb);
+
+	icm20948_init(&m_icm20948_state,
+			&m_i2c_bb, ad0_val,
+			m_thd_work_area, sizeof(m_thd_work_area));
+	icm20948_set_read_callback(&m_icm20948_state, imu_read_callback);
+}
+
+void imu_init_bmi160(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin) {
+	imu_stop();
+
+	m_i2c_bb.sda_gpio = sda_gpio;
+	m_i2c_bb.sda_pin = sda_pin;
+	m_i2c_bb.scl_gpio = scl_gpio;
+	m_i2c_bb.scl_pin = scl_pin;
+	i2c_bb_init(&m_i2c_bb);
+
+	m_bmi_state.sensor.id = BMI160_I2C_ADDR;
+	m_bmi_state.sensor.interface = BMI160_I2C_INTF;
+	m_bmi_state.sensor.read = user_i2c_read;
+	m_bmi_state.sensor.write = user_i2c_write;
+
+	bmi160_wrapper_init(&m_bmi_state, m_thd_work_area, sizeof(m_thd_work_area));
+	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
+}
+
+void imu_stop(void) {
+	mpu9150_stop();
+	icm20948_stop(&m_icm20948_state);
+	bmi160_wrapper_stop(&m_bmi_state);
+}
+
+bool imu_startup_done(void) {
+	return imu_ready;
 }
 
 float imu_get_roll(void) {
@@ -119,65 +218,107 @@ void imu_get_quaternions(float *q) {
 	q[3] = m_att.q3;
 }
 
-static void mpu_read_callback(void) {
+static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
 
-	float tmp_accel[3], tmp_gyro[3], tmp_mag[3];
-	mpu9150_get_accel_gyro_mag(tmp_accel, tmp_gyro, tmp_mag);
+	if(!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000){
+		ahrs_update_all_parameters(
+				m_settings.accel_confidence_decay,
+				m_settings.mahony_kp,
+				m_settings.mahony_ki,
+				m_settings.madgwick_beta);
+		imu_ready = true;
+	}
 
-#ifdef MPU9x50_FLIP
-	m_accel[0] = -tmp_accel[0];
-	m_accel[1] = tmp_accel[1];
-	m_accel[2] = -tmp_accel[2];
-
-	m_gyro[0] = -tmp_gyro[0];
-	m_gyro[1] = tmp_gyro[1];
-	m_gyro[2] = -tmp_gyro[2];
-
-	m_mag[0] = -tmp_mag[0];
-	m_mag[1] = tmp_mag[1];
-	m_mag[2] = -tmp_mag[2];
-#else
-	m_accel[0] = tmp_accel[0];
-	m_accel[1] = tmp_accel[1];
-	m_accel[2] = tmp_accel[2];
-
-	m_gyro[0] = tmp_gyro[0];
-	m_gyro[1] = tmp_gyro[1];
-	m_gyro[2] = tmp_gyro[2];
-
-	m_mag[0] = tmp_mag[0];
-	m_mag[1] = tmp_mag[1];
-	m_mag[2] = tmp_mag[2];
+#ifdef IMU_FLIP
+	accel[0] *= -1.0;
+	accel[2] *= -1.0;
+	gyro[0] *= -1.0;
+	gyro[2] *= -1.0;
+	mag[0] *= -1.0;
+	mag[2] *= -1.0;
 #endif
+
+	// Rotate axes (ZYX)
+
+	float s1 = sinf(m_settings.rot_yaw * M_PI / 180.0);
+	float c1 = cosf(m_settings.rot_yaw * M_PI / 180.0);
+	float s2 = sinf(m_settings.rot_pitch * M_PI / 180.0);
+	float c2 = cosf(m_settings.rot_pitch * M_PI / 180.0);
+	float s3 = sinf(m_settings.rot_roll * M_PI / 180.0);
+	float c3 = cosf(m_settings.rot_roll * M_PI / 180.0);
+
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
+
+	m_accel[0] = accel[0] * m11 + accel[1] * m12 + accel[2] * m13;
+	m_accel[1] = accel[0] * m21 + accel[1] * m22 + accel[2] * m23;
+	m_accel[2] = accel[0] * m31 + accel[1] * m32 + accel[2] * m33;
+
+	m_gyro[0] = gyro[0] * m11 + gyro[1] * m12 + gyro[2] * m13;
+	m_gyro[1] = gyro[0] * m21 + gyro[1] * m22 + gyro[2] * m23;
+	m_gyro[2] = gyro[0] * m31 + gyro[1] * m32 + gyro[2] * m33;
+
+	m_mag[0] = mag[0] * m11 + mag[1] * m12 + mag[2] * m13;
+	m_mag[1] = mag[0] * m21 + mag[1] * m22 + mag[2] * m23;
+	m_mag[2] = mag[0] * m31 + mag[1] * m32 + mag[2] * m33;
+
+	// Accelerometer and Gyro offset compensation and estimation
+	for (int i = 0;i < 3;i++) {
+		m_accel[i] -= m_settings.accel_offsets[i];
+		m_gyro[i] -= m_settings.gyro_offsets[i];
+
+		if (m_settings.gyro_offset_comp_fact[i] > 0.0) {
+			utils_step_towards(&m_gyro_offset[i], m_gyro[i], m_settings.gyro_offset_comp_fact[i] * dt);
+			utils_truncate_number_abs(&m_gyro_offset[i], m_settings.gyro_offset_comp_clamp);
+		} else {
+			m_gyro_offset[i] = 0.0;
+		}
+
+		m_gyro[i] -= m_gyro_offset[i];
+	}
 
 	float gyro_rad[3];
 	gyro_rad[0] = m_gyro[0] * M_PI / 180.0;
 	gyro_rad[1] = m_gyro[1] * M_PI / 180.0;
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
 
-	if (!m_attitude_init_done) {
-		ahrs_update_initial_orientation(m_accel, m_mag, (ATTITUDE_INFO*)&m_att);
-		m_attitude_init_done = true;
-	} else {
-		ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+	switch (m_settings.mode){
+		case (AHRS_MODE_MADGWICK):
+			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+			break;
+		case (AHRS_MODE_MAHONY):
+			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO*)&m_att);
+			break;
 	}
 }
 
-static void terminal_rpy(int argc, const char **argv) {
+static void terminal_gyro_info(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
-	for (int i = 0;i < 100;i++) {
-		commands_printf("R: %.2f P: %.2f Y: %.2f",
-				(double)(imu_get_roll() * 180.0 / M_PI),
-				(double)(imu_get_pitch() * 180.0 / M_PI),
-				(double)(imu_get_yaw() * 180.0 / M_PI));
+	commands_printf("Gyro offsets: [%.3f %.3f %.3f]\n",
+			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
+			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
+			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
+}
 
-		chThdSleepMilliseconds(100);
-	}
+int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+	m_i2c_bb.has_error = 0;
 
-	commands_printf(" ");
+	uint8_t txbuf[1];
+	txbuf[0] = reg_addr;
+	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, 1, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
+}
+
+int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+	m_i2c_bb.has_error = 0;
+
+	uint8_t txbuf[len + 1];
+	txbuf[0] = reg_addr;
+	memcpy(txbuf + 1, data, len);
+	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, len + 1, 0, 0) ? BMI160_OK : BMI160_E_COM_FAIL;
 }

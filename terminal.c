@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -34,6 +34,8 @@
 #include "drv8320s.h"
 #include "drv8323s.h"
 #include "app.h"
+#include "comm_usb.h"
+#include "comm_usb_serial.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -73,6 +75,13 @@ void terminal_process_string(char *str) {
 		return;
 	}
 
+	for (int i = 0;i < callback_write;i++) {
+		if (callbacks[i].cbf != 0 && strcmp(argv[0], callbacks[i].command) == 0) {
+			callbacks[i].cbf(argc, (const char**)argv);
+			return;
+		}
+	}
+
 	static mc_configuration mcconf; // static to save some stack
 	static mc_configuration mcconf_old; // static to save some stack
 	mcconf = *mc_interface_get_configuration();
@@ -109,7 +118,7 @@ void terminal_process_string(char *str) {
 					(double)(100.0 * (float)tp->p_time / (float)chVTGetSystemTimeX()));
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
-		commands_printf("");
+		commands_printf(" ");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		commands_printf("%s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
 	} else if (strcmp(argv[0], "faults") == 0) {
@@ -122,7 +131,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 				commands_printf("Gate drv voltage : %.2f", (double)fault_vec[i].gate_driver_voltage);
 #endif
 				commands_printf("Duty             : %.3f", (double)fault_vec[i].duty);
@@ -182,7 +191,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif
 	} else if (strcmp(argv[0], "param_detect") == 0) {
@@ -306,12 +315,12 @@ void terminal_process_string(char *str) {
 
 			if (duty > 0.0 && duty < 0.9) {
 				mcconf.motor_type = MOTOR_TYPE_FOC;
-				mcconf.foc_f_sw = 3000.0;
 				mc_interface_set_configuration(&mcconf);
 
-				float curr;
-				float ind = mcpwm_foc_measure_inductance(duty, 200, &curr);
-				commands_printf("Inductance: %.2f microhenry (%.2f A)\n", (double)ind, (double)curr);
+				float curr, ld_lq_diff;
+				float ind = mcpwm_foc_measure_inductance(duty, 400, &curr, &ld_lq_diff);
+				commands_printf("Inductance: %.2f uH, ld_lq_diff: %.2f uH (%.2f A)\n",
+						(double)ind, (double)ld_lq_diff, (double)curr);
 
 				mc_interface_set_configuration(&mcconf_old);
 			} else {
@@ -438,6 +447,23 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+
+		int curr0_offset;
+		int curr1_offset;
+		int curr2_offset;
+
+		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset);
+
+		commands_printf("FOC Current Offsets: %d %d %d",
+				curr0_offset, curr1_offset, curr2_offset);
+
+#ifdef COMM_USE_USB
+		commands_printf("USB config events: %d", comm_usb_serial_configured_cnt());
+		commands_printf("USB write timeouts: %u", comm_usb_get_write_timeout_cnt());
+#else
+		commands_printf("USB not enabled on hardware.");
+#endif
+
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "foc_openloop") == 0) {
 		if (argc == 3) {
@@ -657,22 +683,53 @@ void terminal_process_string(char *str) {
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
-			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
-			commands_printf("SPI encoder value: %x, errors: %d, error rate: %.3f %%",
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
+			mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
+			commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
 				(unsigned int)encoder_spi_get_val(),
 				encoder_spi_get_error_cnt(),
 				(double)encoder_spi_get_error_rate() * (double)100.0);
+
+			if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
+					mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
+				char sf[9];
+				char almc[9];
+				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
+				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
+				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
+			}
 		}
 
 		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
-		commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
-				encoder_sincos_get_signal_below_min_error_cnt(),
-				(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
+			commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
+					encoder_sincos_get_signal_below_min_error_cnt(),
+					(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
 
-		commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
-				encoder_sincos_get_signal_above_max_error_cnt(),
-				(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
+			commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
+					encoder_sincos_get_signal_above_max_error_cnt(),
+					(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
 		}
+
+		if (mcconf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_loss_of_tracking_error_cnt(),
+				(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
+			commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_degradation_of_signal_error_cnt(),
+				(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
+			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_resolver_loss_of_signal_error_cnt(),
+				(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
+		}
+	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
+		encoder_ts57n8501_reset_errors();
+		commands_printf("Done!\n");
+	} else if (strcmp(argv[0], "encoder_clear_multiturn") == 0) {
+		encoder_ts57n8501_reset_multiturn();
+		commands_printf("Done!\n");
+	} else if (strcmp(argv[0], "uptime") == 0) {
+		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 	}
 
 	// The help command
@@ -786,9 +843,22 @@ void terminal_process_string(char *str) {
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
 		
 		commands_printf("encoder");
-		commands_printf("  Prints the status of the AS5047, AD2S1205, or Sin/Cos encoder.");
+		commands_printf("  Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.");
+
+		commands_printf("encoder_clear_errors");
+		commands_printf("  Clear error of the TS5700N8501 encoder.)");
+
+		commands_printf("encoder_clear_multiturn");
+		commands_printf("  Clear multiturn counter of the TS5700N8501 encoder.)");
+
+		commands_printf("uptime");
+		commands_printf("  Prints how many seconds have passed since boot.");
 
 		for (int i = 0;i < callback_write;i++) {
+			if (callbacks[i].cbf == 0) {
+				continue;
+			}
+
 			if (callbacks[i].arg_names) {
 				commands_printf("%s %s", callbacks[i].command, callbacks[i].arg_names);
 			} else {
@@ -804,19 +874,8 @@ void terminal_process_string(char *str) {
 
 		commands_printf(" ");
 	} else {
-		bool found = false;
-		for (int i = 0;i < callback_write;i++) {
-			if (strcmp(argv[0], callbacks[i].command) == 0) {
-				callbacks[i].cbf(argc, (const char**)argv);
-				found = true;
-				break;
-			}
-		}
-
-		if (!found) {
-			commands_printf("Invalid command: %s\n"
-					"type help to list all available commands\n", argv[0]);
-		}
+		commands_printf("Invalid command: %s\n"
+				"type help to list all available commands\n", argv[0]);
 	}
 }
 
@@ -864,6 +923,12 @@ void terminal_register_command_callback(
 			callback_num = i;
 			break;
 		}
+
+		// Check if the callback is empty (unregistered)
+		if (callbacks[i].cbf == 0) {
+			callback_num = i;
+			break;
+		}
 	}
 
 	callbacks[callback_num].command = command;
@@ -878,3 +943,12 @@ void terminal_register_command_callback(
 		}
 	}
 }
+
+void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
+	for (int i = 0;i < callback_write;i++) {
+		if (callbacks[i].cbf == cbf) {
+			callbacks[i].cbf = 0;
+		}
+	}
+}
+

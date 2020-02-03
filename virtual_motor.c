@@ -195,7 +195,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 		ADC_Value[ ADC_IND_VIN_SENS ] = Vbus * VOLTAGE_TO_ADC_FACTOR;
 		ADC_Value[ ADC_IND_TEMP_MOS ] = 2048;
 		ADC_Value[ ADC_IND_TEMP_MOTOR ] = 2048;
-#ifdef HW_VERSION_PALTA
+#ifdef HW_VERSION_AXIOM
 		ADC_Value[ ADC_IND_VOUT_GATE_DRV ] = 1692;
 							// 1692 gives 15.0 as Gate Driver Voltage
 							//( 15.0 = (ADC_Value[] * 11.0 * 3.3) / 4096 )

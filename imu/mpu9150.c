@@ -37,7 +37,6 @@
 #define USE_MAGNETOMETER		1
 #define MPU_I2C_TIMEOUT			10
 #define MAG_DIV 				10
-#define ITERATION_TIME_US		5000
 #define FAIL_DELAY_US			1000
 #define MIN_ITERATION_DELAY_US	500
 #define MAX_IDENTICAL_READS		5
@@ -47,7 +46,6 @@
 // Private variables
 static unsigned char rx_buf[100];
 static unsigned char tx_buf[100];
-static THD_WORKING_AREA(mpu_thread_wa, 2048);
 static volatile int16_t raw_accel_gyro_mag[9];
 static volatile int16_t raw_accel_gyro_mag_no_offset[9];
 static volatile int failed_reads;
@@ -60,6 +58,9 @@ static volatile bool is_mpu9250;
 static i2c_bb_state i2cs;
 static volatile int16_t mpu9150_gyro_offsets[3];
 static volatile bool mpu_found;
+static volatile bool is_running;
+static volatile bool should_stop;
+static volatile int rate_hz = 200;
 
 // Private functions
 static int reset_init_mpu(void);
@@ -74,9 +75,12 @@ static void terminal_read_reg(int argc, const char **argv);
 static thread_t *mpu_tp = 0;
 
 // Function pointers
-static void(*read_callback)(void) = 0;
+static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
 
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, int scl_pin) {
+void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin,
+		stkalign_t *work_area, size_t work_area_size) {
+
 	failed_reads = 0;
 	failed_mag_reads = 0;
 	read_callback = 0;
@@ -85,6 +89,8 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, i
 	mag_updated = 0;
 	mpu_addr = MPU_ADDR1;
 	is_mpu9250 = 0;
+	is_running = false;
+	should_stop = false;
 
 	memset((void*)mpu9150_gyro_offsets, 0, sizeof(mpu9150_gyro_offsets));
 
@@ -109,10 +115,11 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin, stm32_gpio_t *scl_gpio, i
 			terminal_read_reg);
 
 	uint8_t res = read_single_reg(MPU9150_WHO_AM_I);
-	if (res == 0x68 || res == 0x69 || res == 0x71) {
+	if (res == 0x68 || res == 0x69 || res == 0x71 || res == 0x73) {
 		mpu_found = true;
 		if (!mpu_tp) {
-			chThdCreateStatic(mpu_thread_wa, sizeof(mpu_thread_wa), NORMALPRIO, mpu_thread, NULL);
+			should_stop = false;
+			chThdCreateStatic(work_area, work_area_size, NORMALPRIO, mpu_thread, NULL);
 		}
 	} else {
 		mpu_found = false;
@@ -156,6 +163,16 @@ static void terminal_read_reg(int argc, const char **argv) {
 	}
 }
 
+void mpu9150_stop(void) {
+	should_stop = true;
+	while (is_running) {
+		chThdSleep(1);
+	}
+
+	terminal_unregister_callback(terminal_status);
+	terminal_unregister_callback(terminal_read_reg);
+}
+
 /**
  * Determine wether this is a MPU9150 or a MPU9250.
  *
@@ -167,7 +184,7 @@ bool mpu9150_is_mpu9250(void) {
 	return is_mpu9250;
 }
 
-void mpu9150_set_read_callback(void(*func)(void)) {
+void mpu9150_set_read_callback(void(*func)(float *accel, float *gyro, float *mag)) {
 	read_callback = func;
 }
 
@@ -256,10 +273,15 @@ void mpu9150_get_accel_gyro_mag(float *accel, float *gyro, float *mag) {
 	mpu9150_get_mag(mag);
 }
 
+void mpu9150_set_rate_hz(int hz) {
+	rate_hz = hz;
+}
+
 static THD_FUNCTION(mpu_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("MPU Sampling");
 
+	is_running = true;
 	mpu_tp = chThdGetSelfX();
 
 	static int16_t raw_accel_gyro_mag_tmp[9];
@@ -272,6 +294,12 @@ static THD_FUNCTION(mpu_thread, arg) {
 	iteration_timer = chVTGetSystemTime();
 
 	for(;;) {
+		if (should_stop) {
+			is_running = false;
+			mpu_tp = 0;
+			return;
+		}
+
 		if (get_raw_accel_gyro(raw_accel_gyro_mag_tmp)) {
 			int is_identical = 1;
 			for (int i = 0;i < 6;i++) {
@@ -303,7 +331,9 @@ static THD_FUNCTION(mpu_thread, arg) {
 				last_update_time = chVTGetSystemTime();
 
 				if (read_callback) {
-					read_callback();
+					float tmp_accel[3], tmp_gyro[3], tmp_mag[3];
+					mpu9150_get_accel_gyro_mag(tmp_accel, tmp_gyro, tmp_mag);
+					read_callback(tmp_accel, tmp_gyro, tmp_mag);
 				}
 
 #if USE_MAGNETOMETER
@@ -334,7 +364,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 			iteration_timer = chVTGetSystemTime();
 		}
 
-		iteration_timer += US2ST(ITERATION_TIME_US);
+		iteration_timer += US2ST(1000000 / rate_hz);
 		systime_t time_start = chVTGetSystemTime();
 		if (iteration_timer > time_start) {
 			chThdSleep(iteration_timer - time_start);

@@ -233,7 +233,8 @@ static THD_FUNCTION(adc_thread, arg) {
 			if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON ||
                     config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
 					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
-					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON) {
+					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON ||
+					config.ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON) {
 				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
 				if (config.rev_button_inverted) {
 					rev_button = !rev_button;
@@ -293,9 +294,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(pwr) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(pwr) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -499,11 +501,13 @@ static THD_FUNCTION(adc_thread, arg) {
 				mc_interface_set_brake_current_rel(current_rel);
 
 				// Send brake command to all ESCs seen recently on the CAN bus
-				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
+				if (config.multi_esc) {
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake_rel(msg->id, current_rel);
+						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+							comm_can_set_current_brake_rel(msg->id, current_rel);
+						}
 					}
 				}
 			} else {

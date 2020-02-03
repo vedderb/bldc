@@ -32,10 +32,12 @@
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static THD_WORKING_AREA(serial_read_thread_wa, 256);
+static THD_WORKING_AREA(serial_read_thread_wa, 128);
 static THD_WORKING_AREA(serial_process_thread_wa, 4096);
 static mutex_t send_mutex;
 static thread_t *process_tp;
+static volatile unsigned int write_timeout_cnt = 0;
+static volatile bool was_timeout = false;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -44,9 +46,9 @@ static void send_packet_raw(unsigned char *buffer, unsigned int len);
 static THD_FUNCTION(serial_read_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("USB-Serial read");
+	chRegSetThreadName("USB read");
 
-	uint8_t buffer[128];
+	uint8_t buffer[2];
 	int had_data = 0;
 
 	for(;;) {
@@ -72,7 +74,7 @@ static THD_FUNCTION(serial_read_thread, arg) {
 static THD_FUNCTION(serial_process_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("USB-Serial process");
+	chRegSetThreadName("USB process");
 
 	process_tp = chThdGetSelfX();
 
@@ -94,7 +96,24 @@ static void process_packet(unsigned char *data, unsigned int len) {
 }
 
 static void send_packet_raw(unsigned char *buffer, unsigned int len) {
-	chSequentialStreamWrite(&SDU1, buffer, len);
+	/*
+	 * Only write to USB if the cable has been connected at least once. If a timeout occurs
+	 * make sure that this call does not stall on the next call, as the timeout probably occured
+	 * because noone is listening on the USB.
+	 */
+	if (comm_usb_serial_configured_cnt() > 0) {
+		unsigned int written = 0;
+		if (was_timeout) {
+			written = SDU1.vmt->writet(&SDU1, buffer, len, TIME_IMMEDIATE);
+		} else {
+			written = SDU1.vmt->writet(&SDU1, buffer, len, MS2ST(100));
+		}
+
+		was_timeout = written != len;
+		if (was_timeout) {
+			write_timeout_cnt++;
+		}
+	}
 }
 
 void comm_usb_init(void) {
@@ -112,4 +131,8 @@ void comm_usb_send_packet(unsigned char *data, unsigned int len) {
 	chMtxLock(&send_mutex);
 	packet_send_packet(data, len, PACKET_HANDLER);
 	chMtxUnlock(&send_mutex);
+}
+
+unsigned int comm_usb_get_write_timeout_cnt(void) {
+	return write_timeout_cnt;
 }

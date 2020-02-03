@@ -34,6 +34,11 @@
 #include "drv8323s.h"
 #include "buffer.h"
 #include "gpdrive.h"
+#include "comm_can.h"
+#include "shutdown.h"
+#include "app.h"
+#include "utils.h"
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -59,6 +64,10 @@ static volatile float m_motor_id_sum;
 static volatile float m_motor_iq_sum;
 static volatile float m_motor_id_iterations;
 static volatile float m_motor_iq_iterations;
+static volatile float m_motor_vd_sum;
+static volatile float m_motor_vq_sum;
+static volatile float m_motor_vd_iterations;
+static volatile float m_motor_vq_iterations;
 static volatile float m_amp_seconds;
 static volatile float m_amp_seconds_charged;
 static volatile float m_watt_seconds;
@@ -91,6 +100,10 @@ static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 
+#if !WS2811_ENABLE
+static app_configuration m_tmp_appconf;
+#endif
+
 // Private functions
 static void update_override_limits(volatile mc_configuration *conf);
 
@@ -119,6 +132,10 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_motor_iq_sum = 0.0;
 	m_motor_id_iterations = 0.0;
 	m_motor_iq_iterations = 0.0;
+	m_motor_vd_sum = 0.0;
+	m_motor_vq_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	m_motor_vq_iterations = 0.0;
 	m_amp_seconds = 0.0;
 	m_amp_seconds_charged = 0.0;
 	m_watt_seconds = 0.0;
@@ -174,6 +191,19 @@ void mc_interface_init(mc_configuration *configuration) {
 							m_conf.foc_encoder_sincos_filter_constant);
 		break;
 
+	case SENSOR_PORT_MODE_TS5700N8501:
+	case SENSOR_PORT_MODE_TS5700N8501_MULTITURN:
+		conf_general_read_app_configuration(&m_tmp_appconf);
+		if (m_tmp_appconf.app_to_use == APP_ADC ||
+				m_tmp_appconf.app_to_use == APP_UART ||
+				m_tmp_appconf.app_to_use == APP_PPM_UART ||
+				m_tmp_appconf.app_to_use == APP_ADC_UART) {
+			m_tmp_appconf.app_to_use = APP_NONE;
+			conf_general_store_app_configuration(&m_tmp_appconf);
+		}
+		encoder_init_ts5700n8501();
+		break;
+
 	default:
 		break;
 	}
@@ -225,6 +255,20 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 								m_conf.foc_encoder_cos_gain, m_conf.foc_encoder_cos_offset,
 								m_conf.foc_encoder_sincos_filter_constant);
 			break;
+
+		case SENSOR_PORT_MODE_TS5700N8501:
+		case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
+			m_tmp_appconf = *app_get_configuration();
+			if (m_tmp_appconf.app_to_use == APP_ADC ||
+					m_tmp_appconf.app_to_use == APP_UART ||
+					m_tmp_appconf.app_to_use == APP_PPM_UART ||
+					m_tmp_appconf.app_to_use == APP_ADC_UART) {
+				m_tmp_appconf.app_to_use = APP_NONE;
+				conf_general_store_app_configuration(&m_tmp_appconf);
+				app_set_configuration(&m_tmp_appconf);
+			}
+			encoder_init_ts5700n8501();
+		} break;
 
 		default:
 			break;
@@ -377,6 +421,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
     case FAULT_CODE_UNBALANCED_CURRENTS: return "FAULT_CODE_UNBALANCED_CURRENTS";
+    case FAULT_CODE_BRK: return "FAULT_CODE_BRK";
 	default: return "FAULT_UNKNOWN"; break;
 	}
 }
@@ -401,6 +446,10 @@ mc_state mc_interface_get_state(void) {
 }
 
 void mc_interface_set_duty(float dutyCycle) {
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -421,6 +470,10 @@ void mc_interface_set_duty(float dutyCycle) {
 }
 
 void mc_interface_set_duty_noramp(float dutyCycle) {
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -441,6 +494,10 @@ void mc_interface_set_duty_noramp(float dutyCycle) {
 }
 
 void mc_interface_set_pid_speed(float rpm) {
+	if (fabsf(rpm) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -461,6 +518,8 @@ void mc_interface_set_pid_speed(float rpm) {
 }
 
 void mc_interface_set_pid_pos(float pos) {
+	SHUTDOWN_RESET();
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -486,6 +545,10 @@ void mc_interface_set_pid_pos(float pos) {
 }
 
 void mc_interface_set_current(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -506,6 +569,10 @@ void mc_interface_set_current(float current) {
 }
 
 void mc_interface_set_brake_current(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -537,6 +604,10 @@ void mc_interface_set_brake_current(float current) {
  * The relative current value, range [-1.0 1.0]
  */
 void mc_interface_set_current_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_current(val * m_conf.lo_current_motor_max_now);
 }
 
@@ -547,6 +618,10 @@ void mc_interface_set_current_rel(float val) {
  * The relative current value, range [0.0 1.0]
  */
 void mc_interface_set_brake_current_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_brake_current(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
@@ -557,6 +632,10 @@ void mc_interface_set_brake_current_rel(float val) {
  * The current value.
  */
 void mc_interface_set_handbrake(float current) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	if (mc_interface_try_input()) {
 		return;
 	}
@@ -584,10 +663,16 @@ void mc_interface_set_handbrake(float current) {
  * The relative current value, range [0.0 1.0]
  */
 void mc_interface_set_handbrake_rel(float val) {
+	if (fabsf(val) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
 	mc_interface_set_handbrake(val * fabsf(m_conf.lo_current_motor_min_now));
 }
 
 void mc_interface_brake_now(void) {
+	SHUTDOWN_RESET();
+
 	mc_interface_set_duty(0.0);
 }
 
@@ -901,6 +986,27 @@ float mc_interface_get_abs_motor_current_unbalance(void) {
 	return ret;
 }
 
+int mc_interface_set_tachometer_value(int steps)
+{
+	int ret = 0;
+	switch (m_conf.motor_type)
+	{
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		ret = mcpwm_set_tachometer_value(DIR_MULT * steps);
+		break;
+
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_set_tachometer_value(DIR_MULT * steps);
+		break;
+
+	default:
+		break;
+	}
+
+	return DIR_MULT * ret;
+}
+
 int mc_interface_get_tachometer_value(bool reset) {
 	int ret = 0;
 
@@ -1010,6 +1116,32 @@ float mc_interface_read_reset_avg_iq(void) {
 	float res = m_motor_iq_sum / m_motor_iq_iterations;
 	m_motor_iq_sum = 0.0;
 	m_motor_iq_iterations = 0.0;
+	return DIR_MULT * res;
+}
+
+/**
+ * Read and reset the average direct axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average D axis voltage.
+ */
+float mc_interface_read_reset_avg_vd(void) {
+	float res = m_motor_vd_sum / m_motor_vd_iterations;
+	m_motor_vd_sum = 0.0;
+	m_motor_vd_iterations = 0.0;
+	return DIR_MULT * res; // TODO: DIR_MULT?
+}
+
+/**
+ * Read and reset the average quadrature axis motor voltage. (FOC only)
+ *
+ * @return
+ * The average Q axis voltage.
+ */
+float mc_interface_read_reset_avg_vq(void) {
+	float res = m_motor_vq_sum / m_motor_vq_iterations;
+	m_motor_vq_sum = 0.0;
+	m_motor_vq_iterations = 0.0;
 	return DIR_MULT * res;
 }
 
@@ -1170,6 +1302,45 @@ float mc_interface_get_distance_abs(void) {
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+}
+
+setup_values mc_interface_get_setup_values(void) {
+	setup_values val = {0};
+	val.num_vescs = 1;
+
+	val.ah_tot += mc_interface_get_amp_hours(false);
+	val.ah_charge_tot += mc_interface_get_amp_hours_charged(false);
+	val.wh_tot += mc_interface_get_watt_hours(false);
+	val.wh_charge_tot += mc_interface_get_watt_hours_charged(false);
+	val.current_tot += mc_interface_get_tot_current_filtered();
+	val.current_in_tot += mc_interface_get_tot_current_in_filtered();
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		can_status_msg *msg = comm_can_get_status_msg_index(i);
+		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
+			val.current_tot += msg->current;
+			val.num_vescs++;
+		}
+
+		can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
+		if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 0.1) {
+			val.ah_tot += msg2->amp_hours;
+			val.ah_charge_tot += msg2->amp_hours_charged;
+		}
+
+		can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
+		if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 0.1) {
+			val.wh_tot += msg3->watt_hours;
+			val.wh_charge_tot += msg3->watt_hours_charged;
+		}
+
+		can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
+		if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
+			val.current_in_tot += msg4->current_in;
+		}
+	}
+
+	return val;
 }
 
 // MC implementation functions
@@ -1347,6 +1518,11 @@ void mc_interface_mc_timer_isr(void) {
 	m_motor_id_iterations++;
 	m_motor_iq_iterations++;
 
+	m_motor_vd_sum += mcpwm_foc_get_vd();
+	m_motor_vq_sum += mcpwm_foc_get_vq();
+	m_motor_vd_iterations++;
+	m_motor_vq_iterations++;
+
 	float abs_current = mc_interface_get_tot_current();
 	float abs_current_filtered = current;
 	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
@@ -1371,7 +1547,17 @@ void mc_interface_mc_timer_isr(void) {
 		mc_interface_fault_stop(FAULT_CODE_DRV);
 	}
 
-#ifdef HW_VERSION_PALTA
+#ifdef HW_USE_BRK
+	// BRK fault code
+	if (TIM_GetFlagStatus(TIM1, TIM_FLAG_Break) != RESET) {
+		mc_interface_fault_stop(FAULT_CODE_BRK);
+		// latch the BRK/FAULT pin to low until next MCU reset
+		palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palClearPad(BRK_GPIO, BRK_PIN);
+	}
+#endif
+
+#ifdef HW_VERSION_AXIOM
 	if( m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
 		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE);
 	}
@@ -1575,8 +1761,41 @@ static void update_override_limits(volatile mc_configuration *conf) {
 	const float rpm_now = mc_interface_get_rpm();
 
 	UTILS_LP_FAST(m_temp_fet, NTC_TEMP(ADC_IND_TEMP_MOS), 0.1);
-	UTILS_LP_FAST(m_temp_motor, NTC_TEMP_MOTOR(conf->m_ntc_motor_beta), 0.1);
-#ifdef HW_VERSION_PALTA
+	float temp_motor = 0.0;
+
+	switch(conf->m_motor_temp_sens_type) {
+	case TEMP_SENSOR_NTC_10K_25C:
+		m_temp_motor = NTC_TEMP_MOTOR(conf->m_ntc_motor_beta);
+		break;
+
+	case TEMP_SENSOR_PTC_1K_100C:
+		temp_motor = PTC_TEMP_MOTOR(1000.0, conf->m_ptc_motor_coeff, 100);
+		break;
+
+	case TEMP_SENSOR_KTY83_122: {
+		// KTY83_122 datasheet used to approximate resistance at given temperature to cubic polynom
+		// https://docs.google.com/spreadsheets/d/1iJA66biczfaXRNClSsrVF9RJuSAKoDG-bnRZFMOcuwU/edit?usp=sharing
+		// Thanks to: https://vasilisks.wordpress.com/2017/12/14/getting-temperature-from-ntc-kty83-kty84-on-mcu/#more-645
+		// You can change pull up resistor and update NTC_RES_MOTOR for your hardware without changing polynom
+		float res = NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]);
+		float pow2 = res * res;
+		temp_motor = 0.0000000102114874947423 * pow2 * res - 0.000069967997703501 * pow2 +
+				0.243402040973194 * res - 160.145048329356;
+	}
+	break;
+	}
+
+	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an
+	// invalid value in the filter, as it will never recover. It is probably safest to keep running the
+	// motor even if the temperature reading fails. A config option to reduce power on invalid temperature
+	// readings might be useful.
+	if (UTILS_IS_NAN(temp_motor) || UTILS_IS_INF(temp_motor) || temp_motor > 600.0 || temp_motor < -200.0) {
+		temp_motor = -100.0;
+	}
+
+	UTILS_LP_FAST(m_temp_motor, temp_motor, 0.1);
+
+#ifdef HW_VERSION_AXIOM
 	UTILS_LP_FAST(m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 
@@ -1798,6 +2017,7 @@ static THD_FUNCTION(timer_thread, arg) {
 		// Relevant only in FOC mode with encoder enabled
 		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
 			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			mcpwm_foc_is_using_encoder() &&
 			encoder_spi_get_error_rate() > 0.05) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI);
 		}
@@ -1812,23 +2032,36 @@ static THD_FUNCTION(timer_thread, arg) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
 		}
 
-		int m_curr0_offset;
-		int m_curr1_offset;
-		int m_curr2_offset;
-
-		mcpwm_foc_get_current_offsets(&m_curr0_offset, &m_curr1_offset, &m_curr2_offset);
-
-		if (abs(m_curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1);
+		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+			if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT);
+			if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS);
+			if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS);
 		}
-		if (abs(m_curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2);
-		}
+		// TODO: Implement for BLDC and GPDRIVE
+		if(m_conf.motor_type == MOTOR_TYPE_FOC) {
+			int curr0_offset;
+			int curr1_offset;
+			int curr2_offset;
+
+			mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset);
+
+			if (abs(curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1);
+			}
+			if (abs(curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2);
+			}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(m_curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
-		}
+			if (abs(curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+				mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3);
+			}
 #endif
+		}
 
 		chThdSleepMilliseconds(1);
 	}

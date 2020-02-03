@@ -109,6 +109,7 @@ include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
+include compression/compression.mk
 include blackmagic/blackmagic.mk
 
 # Define linker script file here
@@ -155,11 +156,13 @@ CSRC = $(STARTUPSRC) \
        timer.c \
        i2c_bb.c \
        virtual_motor.c \
+       shutdown.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
+       $(COMPRESSIONSRC) \
        $(BLACKMAGICSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -200,6 +203,7 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
+         $(COMPRESSIONINC) \
          $(BLACKMAGICINC)
 
 #
@@ -283,6 +287,9 @@ upload: build/$(PROJECT).bin
 #	qstlink2 --cli --erase --write build/$(PROJECT).bin
 #	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset" # Older openocd
 	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit" # For openocd 0.9
+
+clear_option_bytes:
+	openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
 
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
 upload-olimex: build/$(PROJECT).bin

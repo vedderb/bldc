@@ -213,6 +213,8 @@ static THD_FUNCTION(output_thread, arg) {
 		static float rpm_filtered = 0.0;
 		UTILS_LP_FAST(rpm_filtered, mc_interface_get_rpm(), 0.5);
 
+		const float dt = (float)OUTPUT_ITERATION_TIME_MS / 1000.0;
+
 		if (timeout_has_timeout() || chuck_error != 0 || config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
 			was_pid = false;
 			continue;
@@ -234,6 +236,7 @@ static THD_FUNCTION(output_thread, arg) {
 		static bool is_reverse = false;
 		static bool was_z = false;
 		const float current_now = mc_interface_get_tot_current_directional_filtered();
+		const float duty_now = mc_interface_get_duty_cycle_now();
 		static float prev_current = 0.0;
 		const float max_current_diff = mcconf->l_current_max * mcconf->l_current_max_scale * 0.2;
 
@@ -366,7 +369,8 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		float rpm_lowest = rpm_local;
-		float current_highest_abs = current_now;
+		float current_highest = current_now;
+		float duty_highest_abs = fabsf(duty_now);
 
 		if (config.multi_esc) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -388,11 +392,56 @@ static THD_FUNCTION(output_thread, arg) {
 						msg_current = -msg_current;
 					}
 
-					if (fabsf(msg_current) > fabsf(current_highest_abs)) {
-						current_highest_abs = msg_current;
+					if (fabsf(msg_current) > fabsf(current_highest)) {
+						current_highest = msg_current;
+					}
+
+					if (fabsf(msg->duty) > duty_highest_abs) {
+						duty_highest_abs = fabsf(msg->duty);
 					}
 				}
 			}
+		}
+
+		if (config.use_smart_rev) {
+			bool duty_control = false;
+			static bool was_duty_control = false;
+			static float duty_rev = 0.0;
+
+			if (out_val < -0.92 && duty_highest_abs < (mcconf->l_min_duty * 1.5) &&
+					fabsf(current_highest) < (mcconf->l_current_max * mcconf->l_current_max_scale * 0.7)) {
+				duty_control = true;
+			}
+
+			if (duty_control || (was_duty_control && out_val < -0.1)) {
+				was_duty_control = true;
+
+				float goal = config.smart_rev_max_duty * -out_val;
+				utils_step_towards(&duty_rev, is_reverse ? goal : -goal,
+						config.smart_rev_max_duty * dt / config.smart_rev_ramp_time);
+
+				mc_interface_set_duty(duty_rev);
+
+				// Send the same duty cycle to the other controllers
+				if (config.multi_esc) {
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+							comm_can_set_duty(msg->id, duty_rev);
+						}
+					}
+				}
+
+				// Set the previous ramping current to not get a spike when releasing
+				// duty control.
+				prev_current = current_now;
+
+				continue;
+			}
+
+			duty_rev = duty_now;
+			was_duty_control = false;
 		}
 
 		// Apply ramping
@@ -400,9 +449,10 @@ static THD_FUNCTION(output_thread, arg) {
 				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
 		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		if (fabsf(out_val) > 0.001) {
-			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-		}
+		// TODO: Remember what this was about?
+//		if (fabsf(out_val) > 0.001) {
+//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
+//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
@@ -416,12 +466,12 @@ static THD_FUNCTION(output_thread, arg) {
 			// when changing direction
 			float goal_tmp2 = current_goal;
 			if (is_reverse) {
-				if (fabsf(current_goal + current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, -current_highest_abs, 2.0 * ramp_step);
+				if (fabsf(current_goal + current_highest) > max_current_diff) {
+					utils_step_towards(&goal_tmp2, -current_highest, 2.0 * ramp_step);
 				}
 			} else {
-				if (fabsf(current_goal - current_highest_abs) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, current_highest_abs, 2.0 * ramp_step);
+				if (fabsf(current_goal - current_highest) > max_current_diff) {
+					utils_step_towards(&goal_tmp2, current_highest, 2.0 * ramp_step);
 				}
 			}
 
@@ -440,11 +490,13 @@ static THD_FUNCTION(output_thread, arg) {
 			mc_interface_set_brake_current(current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus
-			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-				can_status_msg *msg = comm_can_get_status_msg_index(i);
+			if (config.multi_esc) {
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-					comm_can_set_current_brake(msg->id, current);
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_current_brake(msg->id, current);
+					}
 				}
 			}
 		} else {

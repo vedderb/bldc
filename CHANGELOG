@@ -1,3 +1,111 @@
+=== FW 4.01 ===
+* Leave debug mode on NRF5x after disconnect to avoid excess power consumption before power cycle.
+* Added encoder_clear_errors and encoder_clear_multiturn terminal commands.
+* Initialize current offsets to 2048 to avoid a fault code to be logged at boot.
+* Added 10K, 20K, 50K and 75K CAN baud rates.
+* Added very basic TS5700N8501 multiturn mode.
+
+=== FW 4.00 ===
+* Added support for HFI to track motor position at 0 speed without sensors. This is the main new feature of FW 4.
+* Fixed CAN-bug in VESC Remote.
+* Reset current integrator when leaving duty cycle control mode. Fixes braking issue #125.
+* More accurate and faster inductance measurement.
+* Ability to measyre ld - lq. Useful for MTPA in future firmwares.
+* Reset shutdown when uploading FW data.
+* Added CAN-bride and COMM_CAN_FWD_FRAME.
+* Added CAN_PACKET_POLL_TS5700N8501_STATUS to poll most relevant data last received from the TS5700N8501 encoder.
+* Added TS57N8501 ABM, SF and ALMC to encoder terminal command.
+
+=== FW 3.66 ===
+* Added support for HW 100/250.
+* Added uptime terminal command.
+* Added some delays to DRV8323s SPI driver.
+* Added SWD support for NRF52840 with idcode 0x015B.
+ - TODO: Have a look at https://github.com/blacksphere/blackmagic/commit/302ff20a6d5b806c09e0ca7e996beab3ef3596f4.
+* Fixed INVERTED_SHUNT_POLARITY for BLDC.
+* Added decoupling to FOC current controller.
+* Better motor tracking at high ERPM and low Fsw.
+* Made uart and permanent uart more independent.
+* Do not write to USB if cable has not been connected.
+* Added timeout to USB write.
+* Better FOC current control integrator windup protection.
+* Added FOC observer type selection options.
+* Print TS5700N8501 position in encoder terminal command.
+
+=== FW 3.65 ===
+* Added support for PTC motor temperature sensor (e.g. KTY84)
+* APP_PPM sleep fix. Should solve CAN issues.
+
+=== FW 3.64 ===
+* Added support for HW60_MK3
+* Disable shutdown sampling when the watchdog runs slowly.
+* Added COMM_SET_CURRENT_REL.
+* Added support for boot/ok signal.
+* Added unused mode for aux port.
+* Fixed positive ramping time setting.
+* Changed PPM timeout handling.
+* IRQ priority fix: SYSTICK < UART < MCPWM. Possibly related to http://www.chibios.com/forum/viewtopic.php?f=3&t=4665.
+
+=== FW 3.63 ===
+* NRF remote power meter is now unaffected by temperature decrease and speed limits.
+* Added LZO compression support to firmware upload, making firmware updates 30% - 50% faster.
+* Added LZO compression support to SWD upload.
+* Made serial interrupts priority higher than PWM so that higher speed UART is possible.
+* Added support for TS5700N8501 encoder (via COMM port).
+* Better observer gain calculation.
+
+=== FW 3.62 ===
+* Added COMM_BM_MEM_READ.
+* Merged EUC app (experimental).
+* Fixed NRF remote reverse bug.
+* Do not stop FOC on configuration updates if not needed.
+
+=== FW 3.61 ===
+* Added PPM_CTRL_TYPE_CURRENT_SMART_REV mode.
+
+=== FW 3.60 ===
+* Fixed IMU9x50 bug.
+* Unrigester ICM20948 terminal callbacks when unused.
+* Added experiment plot functions.
+* Added D and Q axis voltage to RT data.
+* Added smart reverse function to nunchuk app.
+
+=== FW 3.59 ===
+* Added more data to MOTE_PACKET_ALIVE.
+* Added app template.
+* Added function to unregister terminal callbacks.
+* Added BMI160 support.
+* Added support for the VESC HD.
+* Added support for SWD programming permanent NRF.
+* Encoder SW SPI fix.
+* Slightly faster boot.
+* Moved custom HW and APP configurations to conf_general.h.
+* Added support for passing HW and APP default configuration as make arguments.
+* Added SW shutdown support.
+* Added command to erase bootloader.
+* Added function to stop IMU threads, so that IMUs can be switched during runtime.
+* Only generate encoder fault when the ERPM is low enough to use the encoder.
+* Added many IMU and AHRS settings to appconf.
+* Re-initialize IMU when appconf is written.
+* Added imu_gyro_info terminal command.
+
+=== FW 3.58 ===
+* Set motor to FOC mode after successful FOC detection instead of the default type for the hardware.
+* APP_ADC: Do not send brake command over CAN if config.multi_esc is not set.
+* APP_PPM: Make pulses invalid if they are above 150 % instead of 120 %.
+* Introduced a new control mode that allows reverse with hysteria (@ackmaniac port)
+
+=== FW 3.57 ===
+* Added CAN status message 5 with input voltage and tachometer data.
+* Fix github issue #94.
+* Use default F_SW for HW after autodetect FOC.
+
+=== FW 3.56 ===
+* Fixed current offset fault bug in non-FOC mode.
+* Multiple IMU support.
+* Added support for the ICM-20948 IMU.
+* Decreased ERPM cut in open loop flux linkage measurement.
+
 === FW 3.55 ===
 * Initial sin/cos encoder support.
 * New ADC control mode.
@@ -83,7 +191,7 @@
 * Softer encoder detection.
 * Better NRF_EXT support.
 * New more reliable flux linkage measurement.
-* Simpler to add hardware versions to build system. 
+* Simpler to add hardware versions to build system.
 * More DAS hardware support.
 * DRV8323s support.
 * Initial UAVCAN support.

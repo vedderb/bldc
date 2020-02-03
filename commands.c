@@ -41,9 +41,11 @@
 #include "gpdrive.h"
 #include "confgenerator.h"
 #include "imu.h"
+#include "shutdown.h"
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
+#include "minilzo.h"
 
 #include <math.h>
 #include <string.h>
@@ -221,16 +223,39 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO:
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN:
+		if (packet_id == COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO) {
+			chMtxLock(&send_buffer_mutex);
+			memcpy(send_buffer_global, data + 6, len - 6);
+			int32_t ind = 4;
+			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
+			chMtxUnlock(&send_buffer_mutex);
+			len = decompressed_len + 4;
+		}
+
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
 
 		data[-1] = COMM_WRITE_NEW_APP_DATA;
+
 		comm_can_send_buffer(255, data - 1, len + 1, 2);
 		/* Falls through. */
 		/* no break */
+	case COMM_WRITE_NEW_APP_DATA_LZO:
 	case COMM_WRITE_NEW_APP_DATA: {
+		if (packet_id == COMM_WRITE_NEW_APP_DATA_LZO) {
+			chMtxLock(&send_buffer_mutex);
+			memcpy(send_buffer_global, data + 6, len - 6);
+			int32_t ind = 4;
+			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
+			chMtxUnlock(&send_buffer_mutex);
+			len = decompressed_len + 4;
+		}
+
 		int32_t ind = 0;
 		uint32_t new_app_offset = buffer_get_uint32(data, &ind);
 
@@ -238,6 +263,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			nrf_driver_pause(2000);
 		}
 		uint16_t flash_res = flash_helper_write_new_app_data(new_app_offset, data + ind, len - ind);
+
+		SHUTDOWN_RESET();
 
 		ind = 0;
 		uint8_t send_buffer[50];
@@ -302,7 +329,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (mask & ((uint32_t)1 << 13)) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		}
-		if (mask && ((uint32_t)1 << 14)) {
+		if (mask & ((uint32_t)1 << 14)) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		}
 		if (mask & ((uint32_t)1 << 15)) {
@@ -318,6 +345,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS1(), 1e1, &ind);
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS2(), 1e1, &ind);
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
+		}
+		if (mask & ((uint32_t)1 << 19)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vd(), 1e3, &ind);
+		}
+		if (mask & ((uint32_t)1 << 20)) {
+			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
 		}
 
 		reply_func(send_buffer, ind);
@@ -471,6 +504,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_ALIVE:
+		SHUTDOWN_RESET();
 		timeout_reset();
 		break;
 
@@ -499,6 +533,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
 		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_GET_DECODED_BALANCE: {
+		int32_t ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_GET_DECODED_BALANCE;
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pid_output() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pitch_angle() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_roll_angle() * 1000000.0), &ind);
+		buffer_append_uint32(send_buffer, app_balance_get_diff_time(), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_position() * 1000000.0), &ind);
+		buffer_append_uint16(send_buffer, app_balance_get_state(), &ind);
+		buffer_append_uint16(send_buffer, app_balance_get_switch_value(), &ind);
 		reply_func(send_buffer, ind);
 	} break;
 
@@ -602,45 +651,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_GET_VALUES_SETUP:
 	case COMM_GET_VALUES_SETUP_SELECTIVE: {
-		float ah_tot = 0.0;
-		float ah_charge_tot = 0.0;
-		float wh_tot = 0.0;
-		float wh_charge_tot = 0.0;
-		float current_tot = 0.0;
-		float current_in_tot = 0.0;
-		uint8_t num_vescs = 1;
-
-		ah_tot += mc_interface_get_amp_hours(false);
-		ah_charge_tot += mc_interface_get_amp_hours_charged(false);
-		wh_tot += mc_interface_get_watt_hours(false);
-		wh_charge_tot += mc_interface_get_watt_hours_charged(false);
-		current_tot += mc_interface_get_tot_current_filtered();
-		current_in_tot += mc_interface_get_tot_current_in_filtered();
-
-		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-			can_status_msg *msg = comm_can_get_status_msg_index(i);
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-				current_tot += msg->current;
-				num_vescs++;
-			}
-
-			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 0.1) {
-				ah_tot += msg2->amp_hours;
-				ah_charge_tot += msg2->amp_hours_charged;
-			}
-
-			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 0.1) {
-				wh_tot += msg3->watt_hours;
-				wh_charge_tot += msg3->watt_hours_charged;
-			}
-
-			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
-				current_in_tot += msg4->current_in;
-			}
-		}
+		setup_values val = mc_interface_get_setup_values();
 
 		float wh_batt_left = 0.0;
 		float battery_level = mc_interface_get_battery_level(&wh_batt_left);
@@ -664,10 +675,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
 		}
 		if (mask & ((uint32_t)1 << 2)) {
-			buffer_append_float32(send_buffer, current_tot, 1e2, &ind);
+			buffer_append_float32(send_buffer, val.current_tot, 1e2, &ind);
 		}
 		if (mask & ((uint32_t)1 << 3)) {
-			buffer_append_float32(send_buffer, current_in_tot, 1e2, &ind);
+			buffer_append_float32(send_buffer, val.current_in_tot, 1e2, &ind);
 		}
 		if (mask & ((uint32_t)1 << 4)) {
 			buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
@@ -685,16 +696,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float16(send_buffer, battery_level, 1e3, &ind);
 		}
 		if (mask & ((uint32_t)1 << 9)) {
-			buffer_append_float32(send_buffer, ah_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.ah_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 10)) {
-			buffer_append_float32(send_buffer, ah_charge_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.ah_charge_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 11)) {
-			buffer_append_float32(send_buffer, wh_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.wh_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 12)) {
-			buffer_append_float32(send_buffer, wh_charge_tot, 1e4, &ind);
+			buffer_append_float32(send_buffer, val.wh_charge_tot, 1e4, &ind);
 		}
 		if (mask & ((uint32_t)1 << 13)) {
 			buffer_append_float32(send_buffer, mc_interface_get_distance(), 1e3, &ind);
@@ -712,7 +723,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = app_get_configuration()->controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
-			send_buffer[ind++] = num_vescs;
+			send_buffer[ind++] = val.num_vescs;
 		}
 		if (mask & ((uint32_t)1 << 19)) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
@@ -924,6 +935,49 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_ERASE_BOOTLOADER_ALL_CAN:
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+
+		data[-1] = COMM_ERASE_BOOTLOADER;
+		comm_can_send_buffer(255, data - 1, len + 1, 2);
+		chThdSleepMilliseconds(1500);
+		/* Falls through. */
+		/* no break */
+	case COMM_ERASE_BOOTLOADER: {
+		int32_t ind = 0;
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+		uint16_t flash_res = flash_helper_erase_bootloader();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_ERASE_BOOTLOADER;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_SET_CURRENT_REL: {
+		int32_t ind = 0;
+		mc_interface_set_current_rel(buffer_get_float32(data, 1e5, &ind));
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_FWD_FRAME: {
+		int32_t ind = 0;
+		uint32_t id = buffer_get_uint32(data, &ind);
+		bool is_ext = data[ind++];
+
+		if (is_ext) {
+			comm_can_transmit_eid(id, data + ind, len - ind);
+		} else {
+			comm_can_transmit_sid(id, data + ind, len - ind);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -938,9 +992,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_PING_CAN:
 	case COMM_BM_CONNECT:
 	case COMM_BM_ERASE_FLASH_ALL:
+	case COMM_BM_WRITE_FLASH_LZO:
 	case COMM_BM_WRITE_FLASH:
 	case COMM_BM_REBOOT:
 	case COMM_BM_DISCONNECT:
+	case COMM_BM_MAP_PINS_DEFAULT:
+	case COMM_BM_MAP_PINS_NRF5X:
+	case COMM_BM_MEM_READ:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len;
@@ -997,6 +1055,21 @@ void commands_send_experiment_samples(float *samples, int len) {
 		buffer_append_int32(buffer, (int32_t)(samples[i] * 10000.0), &index);
 	}
 
+	commands_send_packet(buffer, index);
+}
+
+void commands_fwd_can_frame(int len, unsigned char *data, uint32_t id, bool is_extended) {
+	if (len > 8) {
+		len = 8;
+	}
+
+	uint8_t buffer[len + 6];
+	int32_t index = 0;
+	buffer[index++] = COMM_CAN_FWD_FRAME;
+	buffer_append_uint32(buffer, id, &index);
+	buffer[index++] = is_extended;
+	memcpy(buffer + index, data, len);
+	index += len;
 	commands_send_packet(buffer, index);
 }
 
@@ -1092,6 +1165,48 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #endif
 }
 
+void commands_init_plot(char *namex, char *namey) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_INIT;
+	memcpy(send_buffer_global + ind, namex, strlen(namex));
+	ind += strlen(namex);
+	send_buffer_global[ind++] = '\0';
+	memcpy(send_buffer_global + ind, namey, strlen(namey));
+	ind += strlen(namey);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_add_graph(char *name) {
+	int ind = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[ind++] = COMM_PLOT_ADD_GRAPH;
+	memcpy(send_buffer_global + ind, name, strlen(name));
+	ind += strlen(name);
+	send_buffer_global[ind++] = '\0';
+	commands_send_packet(send_buffer_global, ind);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_plot_set_graph(int graph) {
+	int ind = 0;
+	uint8_t buffer[2];
+	buffer[ind++] = COMM_PLOT_SET_GRAPH;
+	buffer[ind++] = graph;
+	commands_send_packet(buffer, ind);
+}
+
+void commands_send_plot_points(float x, float y) {
+	int32_t ind = 0;
+	uint8_t buffer[10];
+	buffer[ind++] = COMM_PLOT_DATA;
+	buffer_append_float32_auto(buffer, x, &ind);
+	buffer_append_float32_auto(buffer, y, &ind);
+	commands_send_packet(buffer, ind);
+}
+
 static THD_FUNCTION(blocking_thread, arg) {
 	(void)arg;
 
@@ -1107,7 +1222,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		COMM_PACKET_ID packet_id;
 		static mc_configuration mcconf, mcconf_old;
-		static uint8_t send_buffer[256];
+		static uint8_t send_buffer[512];
 
 		packet_id = data[0];
 		data++;
@@ -1355,7 +1470,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 
+		case COMM_BM_WRITE_FLASH_LZO:
 		case COMM_BM_WRITE_FLASH: {
+			if (packet_id == COMM_BM_WRITE_FLASH_LZO) {
+				memcpy(send_buffer, data + 6, len - 6);
+				int32_t ind = 4;
+				lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
+				lzo1x_decompress_safe(send_buffer, len - 6, data + 4, &decompressed_len, NULL);
+				len = decompressed_len + 4;
+			}
+
 			int32_t ind = 0;
 			uint32_t addr = buffer_get_uint32(data, &ind);
 
@@ -1380,11 +1504,57 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 		case COMM_BM_DISCONNECT: {
 			bm_disconnect();
+			bm_leave_nrf_debug_mode();
 
 			int32_t ind = 0;
 			send_buffer[ind++] = packet_id;
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_DEFAULT: {
+			bm_default_swd_pins();
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, 1, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MAP_PINS_NRF5X: {
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+
+#ifdef NRF5x_SWDIO_GPIO
+			buffer_append_int16(send_buffer, 1, &ind);
+			bm_change_swd_pins(NRF5x_SWDIO_GPIO, NRF5x_SWDIO_PIN,
+					NRF5x_SWCLK_GPIO, NRF5x_SWCLK_PIN);
+#else
+			buffer_append_int16(send_buffer, 0, &ind);
+#endif
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_MEM_READ: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+			uint16_t read_len = buffer_get_uint16(data, &ind);
+
+			if (read_len > sizeof(send_buffer) - 3) {
+				read_len = sizeof(send_buffer) - 3;
+			}
+
+			int res = bm_mem_read(addr, send_buffer + 3, read_len);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind + read_len);
 			}
 		} break;
 #endif
