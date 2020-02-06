@@ -39,6 +39,12 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 //#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
 //#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
+// Benjamins first HW60 PCB with PB5 and PB6 swapped
+//#define HW60_VEDDER_FIRST_PCB
+
+// Mark3 version of HW60 with power switch and separate NRF UART.
+//#define HW60_IS_MK3
+
 #define HW_SOURCE "hw_60.c"
 #define HW_HEADER "hw_60.h"
 
@@ -54,11 +60,20 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 //#define HW_SOURCE "hw_axiom.c"
 //#define HW_HEADER "hw_axiom.h"
 
+//#define HW_SOURCE "hw_luna_bbshd.c"
+//#define HW_HEADER "hw_luna_bbshd.h"
+
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
 
 //#define HW_SOURCE "hw_tp.c"
 //#define HW_HEADER "hw_tp.h"
+
+// Benjamins first HW75_300 PCB with different LED pins and motor temp error
+//#define HW75_300_VEDDER_FIRST_PCB
+
+// Second revision with separate UART for NRF51
+#define HW75_300_REV_2
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -72,8 +87,24 @@ Make sure you select your board in [conf_general.h](conf_general.h)
 //#define HW_SOURCE "hw_uavc_qcube.c"
 //#define HW_HEADER "hw_uavc_qcube.h"
 
-//#define HW_SOURCE "hw_uavc_basic.c"
-//#define HW_HEADER "hw_uavc_basic.h"
+//#define HW_SOURCE "hw_uavc_omega.c"
+//#define HW_HEADER "hw_uavc_omega.h"
+
+//#define HW_SOURCE "hw_binar_v1.c"
+//#define HW_HEADER "hw_binar_v1.h"
+
+//#define HW_SOURCE "hw_hd.c"
+//#define HW_HEADER "hw_hd.h"
+
+//#define HW_SOURCE "hw_a200s_v2.c"
+//#define HW_HEADER "hw_a200s_v2.h"
+
+//#define HW_SOURCE "hw_rd2.c"
+//#define HW_HEADER "hw_rd2.h"
+
+//#define HW_SOURCE "hw_100_250.c"
+//#define HW_HEADER "hw_100_250.h"
+
 ```
 There are also many other options that can be changed in conf_general.h
 
