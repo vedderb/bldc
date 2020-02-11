@@ -257,6 +257,9 @@
 #ifndef MCCONF_FOC_MOTOR_LQ
 #define MCCONF_FOC_MOTOR_LQ				0.00002
 #endif
+#ifndef MCCONF_FOC_MOTOR_LD_LQ_DIFF
+#define MCCONF_FOC_MOTOR_LD_LQ_DIFF		0.0
+#endif
 #ifndef MCCONF_FOC_MOTOR_R
 #define MCCONF_FOC_MOTOR_R				0.015
 #endif

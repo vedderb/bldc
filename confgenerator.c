@@ -71,8 +71,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_l, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_motor_ld, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_motor_lq, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_motor_ld_lq_diff, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_r, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_flux_linkage, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_observer_gain, &ind);
@@ -99,10 +98,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_temp_comp;
 	buffer_append_float32_auto(buffer, conf->foc_temp_comp_base_temp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_current_filter_const, &ind);
-	buffer[ind++] = conf->foc_mtpa_enable;
-	buffer[ind++] = conf->foc_field_weakening_enable;
-	buffer_append_float32_auto(buffer, conf->foc_field_weakening_kp, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_field_weakening_ki, &ind);
 	buffer[ind++] = conf->foc_cc_decoupling;
 	buffer[ind++] = conf->foc_observer_type;
 	buffer_append_float32_auto(buffer, conf->foc_hfi_voltage_start, &ind);
@@ -112,6 +107,9 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_uint16(buffer, conf->foc_hfi_start_samples, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_obs_ovr_sec, &ind);
 	buffer[ind++] = conf->foc_hfi_samples;
+	buffer[ind++] = conf->foc_field_weakening_enable;
+	buffer_append_float32_auto(buffer, conf->foc_field_weakening_kp, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_field_weakening_ki, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_filter_const, &ind);
@@ -352,8 +350,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_l = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_motor_ld = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_motor_lq = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_motor_ld_lq_diff = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_r = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_flux_linkage = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_observer_gain = buffer_get_float32_auto(buffer, &ind);
@@ -380,10 +377,6 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_temp_comp = buffer[ind++];
 	conf->foc_temp_comp_base_temp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_current_filter_const = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_mtpa_enable = buffer[ind++];
-	conf->foc_field_weakening_enable = buffer[ind++];
-	conf->foc_field_weakening_kp = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_field_weakening_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_cc_decoupling = buffer[ind++];
 	conf->foc_observer_type = buffer[ind++];
 	conf->foc_hfi_voltage_start = buffer_get_float32_auto(buffer, &ind);
@@ -393,6 +386,9 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hfi_start_samples = buffer_get_uint16(buffer, &ind);
 	conf->foc_hfi_obs_ovr_sec = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_samples = buffer[ind++];
+	conf->foc_field_weakening_enable = buffer[ind++];
+	conf->foc_field_weakening_kp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_field_weakening_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float32_auto(buffer, &ind);
@@ -629,8 +625,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
 	conf->foc_motor_l = MCCONF_FOC_MOTOR_L;
-	conf->foc_motor_ld = MCCONF_FOC_MOTOR_LD;
-	conf->foc_motor_lq = MCCONF_FOC_MOTOR_LQ;
+	conf->foc_motor_ld_lq_diff = MCCONF_FOC_MOTOR_LD_LQ_DIFF;
 	conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
 	conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
 	conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
@@ -657,10 +652,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_temp_comp = MCCONF_FOC_TEMP_COMP;
 	conf->foc_temp_comp_base_temp = MCCONF_FOC_TEMP_COMP_BASE_TEMP;
 	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
-	conf->foc_mtpa_enable = MCCONF_FOC_MTPA_ENABLE;
-	conf->foc_field_weakening_enable = MCCONF_FOC_FIELD_WEAKENING_ENABLE;
-	conf->foc_field_weakening_kp = MCCONF_FOC_FIELD_WEAKENING_KP;
-	conf->foc_field_weakening_ki = MCCONF_FOC_FIELD_WEAKENING_KI;
 	conf->foc_cc_decoupling = MCCONF_FOC_CC_DECOUPLING;
 	conf->foc_observer_type = MCCONF_FOC_OBSERVER_TYPE;
 	conf->foc_hfi_voltage_start = MCCONF_FOC_HFI_VOLTAGE_START;
@@ -670,6 +661,9 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
 	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;
+	conf->foc_field_weakening_enable = MCCONF_FOC_FIELD_WEAKENING_ENABLE;
+	conf->foc_field_weakening_kp = MCCONF_FOC_FIELD_WEAKENING_KP;
+	conf->foc_field_weakening_ki = MCCONF_FOC_FIELD_WEAKENING_KI;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;

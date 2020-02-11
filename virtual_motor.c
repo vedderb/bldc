@@ -1,5 +1,6 @@
 /*
 	Copyright 2019 Maximiliano Cordoba	mcordoba@powerdesigns.ca
+	Copyright 2020 Marcos Chaparro	mchaparro@powerdesigns.ca
 
 	This file is part of the VESC firmware.
 
@@ -102,6 +103,9 @@ void virtual_motor_init(volatile mc_configuration *conf){
 	virtual_motor.i_beta = 0.0;
 	virtual_motor.id_int = 0.0;
 	virtual_motor.iq = 0.0;
+
+	conf->foc_motor_ld = conf->foc_motor_l - conf->foc_motor_ld_lq_diff/2;
+	conf->foc_motor_lq = conf->foc_motor_l + conf->foc_motor_ld_lq_diff/2;
 
 	// Register terminal callbacks used for virtual motor setup
 	terminal_register_command_callback(
@@ -251,7 +255,7 @@ static void disconnect_virtual_motor( void ){
 
 /*
  * Run complete Motor Model
- * @param ml	externally applied load torque in Nm (adidionally to the Inertia)
+ * @param ml	externally applied load torque in Nm
  */
 static inline void run_virtual_motor(float v_alpha, float v_beta, float ml){
 	run_virtual_motor_electrical(v_alpha, v_beta);

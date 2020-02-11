@@ -172,7 +172,6 @@ static void mtpa_setup(void);
 static void mtpa_run(float *id, float *iq);
 static void field_weakening_setup(void);
 static void field_weakening_run(float dt, float *id, float *iq);
-static void field_weakening_ramp_down(void);
 static void terminal_plot_hfi(int argc, const char **argv);
 
 // Threads
@@ -678,8 +677,12 @@ void mcpwm_foc_set_pid_pos(float pos) {
  * The current to use.
  */
 void mcpwm_foc_set_current(float current) {
-	if (fabsf(current) < m_conf->cc_min_current) {
-		field_weakening_ramp_down();
+	float base_speed = m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
+
+	if (fabsf(current) < m_conf->cc_min_current && (fabsf(m_pll_speed) < base_speed)) {
+		m_control_mode = CONTROL_MODE_NONE;
+		m_state = MC_STATE_OFF;
+		stop_pwm_hw();
 		return;
 	}
 
@@ -699,7 +702,9 @@ void mcpwm_foc_set_current(float current) {
  * The current to use. Positive and negative values give the same effect.
  */
 void mcpwm_foc_set_brake_current(float current) {
-	if (fabsf(current) < m_conf->cc_min_current) {
+	float base_speed = m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
+
+	if (fabsf(current) < m_conf->cc_min_current && (fabsf(m_pll_speed) < base_speed)) {
 		m_control_mode = CONTROL_MODE_NONE;
 		m_state = MC_STATE_OFF;
 		stop_pwm_hw();
@@ -1812,6 +1817,10 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("Obs_x2:       %.2f", (double)m_observer_x2);
 	commands_printf("vd_int:       %.2f", (double)m_motor_state.vd_int);
 	commands_printf("vq_int:       %.2f", (double)m_motor_state.vq_int);
+	commands_printf("pll_speed:    %.2f", (double)(m_motor_state.speed_rad_s * 60.0 / (2.0 * M_PI)));
+	commands_printf("base_speed:   %.2f", (double)(m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * 60.0 / (2.0 * M_PI) * ONE_BY_SQRT3));
+	commands_printf("max_speed:    %.2f", (double)(field_weakening.max_speed * 60.0 / (2.0 * M_PI)));
+
 }
 
 float mcpwm_foc_get_last_adc_isr_duration(void) {
@@ -2198,27 +2207,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			m_motor_state.phase = m_phase_now_override;
 		}
 
-		if( m_control_mode == CONTROL_MODE_RAMP_DOWN_ID ){
-			m_iq_set = 0;
-			if(m_pll_speed < field_weakening.max_speed){
-				//speed is below maximum we can decrease id slowly
-				id_set_tmp = m_motor_state.id * 0.999;
-				if( fabsf(m_motor_state.id) < 1.0 ){
-					m_control_mode = CONTROL_MODE_NONE;
-					m_state = MC_STATE_OFF;
-					stop_pwm_hw();
-				}
-			}else{
-				//speed is above maximum we should keep our id constant
-				id_set_tmp = m_motor_state.id;
-			}
-		}else{
-			// Apply MTPA
-			mtpa_run(&id_set_tmp, &iq_set_tmp);
+		// Apply MTPA
+		mtpa_run(&id_set_tmp, &iq_set_tmp);
 
-			// Apply Flux Weakening
-			field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
-		}
+		// Apply Flux Weakening
+		field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
@@ -3445,7 +3438,7 @@ static float correct_hall(float angle, float speed, float dt) {
 * it calculates 2 constants, k1 and k2, needed to speed up run time
 */
 static void mtpa_setup(void){
-	float Ldiff = m_conf->foc_motor_ld - m_conf->foc_motor_lq;
+	float Ldiff = m_conf->foc_motor_ld_lq_diff;
 	mtpa.k1 = 8.0 * SQ(Ldiff);
 	if( Ldiff != 0.0 ){
 		mtpa.k2 = 1.0 / (4.0 * Ldiff);
@@ -3468,7 +3461,7 @@ static void mtpa_setup(void){
 * 	set through m_iq_set
 */
 static void mtpa_run( float *id, float *iq){
-	if(m_conf->foc_mtpa_enable){
+	if(m_conf->foc_motor_ld_lq_diff != 0.0){
 		float Is_sq = SQ(*iq);
 
 		*id = (sqrtf(SQ(m_conf->foc_motor_flux_linkage) + mtpa.k1 * Is_sq)
@@ -3484,15 +3477,15 @@ static void mtpa_run( float *id, float *iq){
 }
 
 /**
- * initializes FW variables
+ * initialize FW variables
  */
 static void field_weakening_setup(void){
 	field_weakening.mod_int = 0.0;
 	field_weakening.is_sq_max = SQ(m_conf->lo_current_max);
 	field_weakening.anti_windup_error = 0.0;
-	//first we check we are not dividing by 0
+	// check we are not dividing by 0
 	if( m_conf->foc_motor_flux_linkage > 0.0 ){
-		field_weakening.max_speed = m_conf->l_max_vin / m_conf->foc_motor_flux_linkage;
+		field_weakening.max_speed = m_conf->l_max_vin / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
 	}else{
 		field_weakening.max_speed = 10000;
 	}
@@ -3513,19 +3506,17 @@ static void field_weakening_setup(void){
 static void field_weakening_run(float dt, float *id, float *iq){
 	if(m_conf->foc_field_weakening_enable){
 //		//PI block
-		float Mod = m_motor_state.mod_q;
-		float Mod_error = Mod - 0.81;
-
+		float Mod_error = m_motor_state.mod_q - 0.81;
 		float int_error = Mod_error - field_weakening.anti_windup_error;
 
 		field_weakening.mod_int += int_error * m_conf->foc_field_weakening_ki * dt;
 
 		float output = field_weakening.mod_int + Mod_error * m_conf->foc_field_weakening_kp;
 
-		float windup_error = output;//first we save output previous to truncate
+		float windup_error = output;	// save previous output to truncate
 		utils_truncate_number((float*)&output, 0.0, 1.0);
-		windup_error -= output;//calculate difference generated after truncate
-		field_weakening.anti_windup_error = windup_error * 0.1; //save error
+		windup_error -= output;			//calculate difference generated after truncate
+		field_weakening.anti_windup_error = windup_error * 0.1;	//save error
 
 		//calculate id
 		*id += -1.0 * output * m_conf->lo_current_max;
@@ -3556,19 +3547,6 @@ static void field_weakening_run(float dt, float *id, float *iq){
 			*iq = SIGN(*iq) * sqrtf(Idiff);
 		}
 	}
-}
-
-/*
- * Field Weakening Controlled Ramp Down
- *
- * This is a routine that will take care of decrementing current when a current smaller than minimum was set
- * Should be called previous to set the system off
- */
-static void field_weakening_ramp_down(void){
-	if(m_conf->foc_field_weakening_enable){
-		m_control_mode = CONTROL_MODE_RAMP_DOWN_ID;
-		m_iq_set = 0.0;
-    }
 }
 
 static void terminal_plot_hfi(int argc, const char **argv) {
