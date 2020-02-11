@@ -77,7 +77,19 @@ typedef struct {
 } mc_sample_t;
 
 typedef struct {
-	void(*fft_bin0_func)(float*, float*, float*);
+	float k1;// k1 = 8*SQ(Ld-Lq)
+	float k2;// k2 = 1/(4*(Ld-Lq))
+} mtpa_t;
+
+typedef struct {
+	float mod_int;	//integral sum of PI
+	float is_sq_max;	//max is current
+	float anti_windup_error;	//last iteration windup error
+	float max_speed; //max speed we should allow
+}field_weakening_t;
+
+typedef struct {
+    void(*fft_bin0_func)(float*, float*, float*);
 	void(*fft_bin1_func)(float*, float*, float*);
 	void(*fft_bin2_func)(float*, float*, float*);
 
@@ -99,6 +111,8 @@ static volatile mc_configuration *m_conf;
 static volatile mc_state m_state;
 static volatile mc_control_mode m_control_mode;
 static volatile motor_state_t m_motor_state;
+static volatile mtpa_t mtpa;
+static volatile field_weakening_t field_weakening;
 static volatile int m_curr_unbalance;
 static volatile bool m_phase_override;
 static volatile float m_phase_now_override;
@@ -154,6 +168,10 @@ static void start_pwm_hw(void);
 static int read_hall(void);
 static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm);
 static float correct_hall(float angle, float speed, float dt);
+static void mtpa_setup(void);
+static void mtpa_run(float *id, float *iq);
+static void field_weakening_setup(void);
+static void field_weakening_run(float dt, float *id, float *iq);
 static void terminal_plot_hfi(int argc, const char **argv);
 
 // Threads
@@ -292,6 +310,7 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_using_encoder = false;
 	memset((void*)&m_motor_state, 0, sizeof(motor_state_t));
 	memset((void*)&m_samples, 0, sizeof(mc_sample_t));
+
 	m_duty1_next = 0;
 	m_duty2_next = 0;
 	m_duty3_next = 0;
@@ -304,7 +323,9 @@ void mcpwm_foc_init(volatile mc_configuration *configuration) {
 	m_hfi_plot_en = 0;
 
 	update_hfi_samples(m_conf->foc_hfi_samples);
-	virtual_motor_init();
+	mtpa_setup();
+	field_weakening_setup();
+	virtual_motor_init(configuration);
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM8);
@@ -545,7 +566,13 @@ bool mcpwm_foc_init_done(void) {
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 	m_conf = configuration;
 
-	// Below we check if anything in the configuration changed that requires stopping the motor.
+	//if any change has been made to the configuration, we will need to update
+	//mtpa and flux weakening constants.
+	mtpa_setup();
+	field_weakening_setup();
+	virtual_motor_set_configuration(configuration);
+
+    // Below we check if anything in the configuration changed that requires stopping the motor.
 
 	uint32_t top = SYSTEM_CORE_CLOCK / (int)configuration->foc_f_sw;
 	if (TIM1->ARR != top) {
@@ -650,7 +677,9 @@ void mcpwm_foc_set_pid_pos(float pos) {
  * The current to use.
  */
 void mcpwm_foc_set_current(float current) {
-	if (fabsf(current) < m_conf->cc_min_current) {
+	float base_speed = m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
+
+	if (fabsf(current) < m_conf->cc_min_current && (fabsf(m_pll_speed) < base_speed)) {
 		m_control_mode = CONTROL_MODE_NONE;
 		m_state = MC_STATE_OFF;
 		stop_pwm_hw();
@@ -673,7 +702,9 @@ void mcpwm_foc_set_current(float current) {
  * The current to use. Positive and negative values give the same effect.
  */
 void mcpwm_foc_set_brake_current(float current) {
-	if (fabsf(current) < m_conf->cc_min_current) {
+	float base_speed = m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
+
+	if (fabsf(current) < m_conf->cc_min_current && (fabsf(m_pll_speed) < base_speed)) {
 		m_control_mode = CONTROL_MODE_NONE;
 		m_state = MC_STATE_OFF;
 		stop_pwm_hw();
@@ -1786,6 +1817,10 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("Obs_x2:       %.2f", (double)m_observer_x2);
 	commands_printf("vd_int:       %.2f", (double)m_motor_state.vd_int);
 	commands_printf("vq_int:       %.2f", (double)m_motor_state.vq_int);
+	commands_printf("pll_speed:    %.2f", (double)(m_motor_state.speed_rad_s * 60.0 / (2.0 * M_PI)));
+	commands_printf("base_speed:   %.2f", (double)(m_motor_state.v_bus / m_conf->foc_motor_flux_linkage * 60.0 / (2.0 * M_PI) * ONE_BY_SQRT3));
+	commands_printf("max_speed:    %.2f", (double)(field_weakening.max_speed * 60.0 / (2.0 * M_PI)));
+
 }
 
 float mcpwm_foc_get_last_adc_isr_duration(void) {
@@ -1984,6 +2019,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		const float duty_abs = fabsf(m_motor_state.duty_now);
 		float id_set_tmp = m_id_set;
 		float iq_set_tmp = m_iq_set;
+
 		m_motor_state.max_duty = m_conf->l_max_duty;
 
 		static float duty_filtered = 0.0;
@@ -2170,6 +2206,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (m_phase_override) {
 			m_motor_state.phase = m_phase_now_override;
 		}
+
+		// Apply MTPA
+		mtpa_run(&id_set_tmp, &iq_set_tmp);
+
+		// Apply Flux Weakening
+		field_weakening_run(dt, &id_set_tmp, &iq_set_tmp);
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
@@ -3386,6 +3428,125 @@ static float correct_hall(float angle, float speed, float dt) {
 	}
 
 	return angle;
+}
+
+/**
+* setup mtpa variables
+*
+* this function should be called at initialization
+* and each time a new configuration is set
+* it calculates 2 constants, k1 and k2, needed to speed up run time
+*/
+static void mtpa_setup(void){
+	float Ldiff = m_conf->foc_motor_ld_lq_diff;
+	mtpa.k1 = 8.0 * SQ(Ldiff);
+	if( Ldiff != 0.0 ){
+		mtpa.k2 = 1.0 / (4.0 * Ldiff);
+	}else{
+		mtpa.k2 = 1.0;
+	}
+}
+
+/**
+* Implements MTPA algorithm
+* mtpa_run should be called first in order to properly calculate k1 and k2
+*
+* @param *id
+*	pointer to the current at the d axis that should be regulated
+*
+* @param *iq
+* 	pointer to the current at the q axis that should be regulated
+* 	this is the input parameter of the MTPA block
+* 	as control current from the torque or speed loops is generally
+* 	set through m_iq_set
+*/
+static void mtpa_run( float *id, float *iq){
+	if(m_conf->foc_motor_ld_lq_diff != 0.0){
+		float Is_sq = SQ(*iq);
+
+		*id = (sqrtf(SQ(m_conf->foc_motor_flux_linkage) + mtpa.k1 * Is_sq)
+				- m_conf->foc_motor_flux_linkage ) * mtpa.k2;
+
+		float Idiff = Is_sq - SQ(*id);
+		if( Idiff < 0.0 ){
+			Idiff = 0.0;
+		}
+
+		*iq = SIGN(*iq) * sqrtf(Idiff);
+	}
+}
+
+/**
+ * initialize FW variables
+ */
+static void field_weakening_setup(void){
+	field_weakening.mod_int = 0.0;
+	field_weakening.is_sq_max = SQ(m_conf->lo_current_max);
+	field_weakening.anti_windup_error = 0.0;
+	// check we are not dividing by 0
+	if( m_conf->foc_motor_flux_linkage > 0.0 ){
+		field_weakening.max_speed = m_conf->l_max_vin / m_conf->foc_motor_flux_linkage * ONE_BY_SQRT3;
+	}else{
+		field_weakening.max_speed = 10000;
+	}
+}
+
+/**
+* Apply field weakening
+*
+* @param dt
+*	The time step in seconds
+*
+* @param *id
+*	pointer to the current at the d axis that should be regulated
+*
+* @param *iq
+* 	pointer to the current at the q axis that should be regulated
+*/
+static void field_weakening_run(float dt, float *id, float *iq){
+	if(m_conf->foc_field_weakening_enable){
+//		//PI block
+		float Mod_error = m_motor_state.mod_q - 0.81;
+		float int_error = Mod_error - field_weakening.anti_windup_error;
+
+		field_weakening.mod_int += int_error * m_conf->foc_field_weakening_ki * dt;
+
+		float output = field_weakening.mod_int + Mod_error * m_conf->foc_field_weakening_kp;
+
+		float windup_error = output;	// save previous output to truncate
+		utils_truncate_number((float*)&output, 0.0, 1.0);
+		windup_error -= output;			//calculate difference generated after truncate
+		field_weakening.anti_windup_error = windup_error * 0.1;	//save error
+
+		//calculate id
+		*id += -1.0 * output * m_conf->lo_current_max;
+
+		//in CONTROL_MODE_CURRENT, we set the maximum current is_max to the current set
+		//in other modes, maximum current is the on
+		float max_is_sq;
+		if(m_control_mode == CONTROL_MODE_CURRENT){
+			float m_iq_set_sq = SQ(m_iq_set);
+			if( field_weakening.is_sq_max > m_iq_set_sq ){
+				max_is_sq = m_iq_set_sq;
+			}else{
+				max_is_sq = field_weakening.is_sq_max;
+			}
+		}else{
+			max_is_sq = field_weakening.is_sq_max;
+		}
+
+		//check if we exceed Is limit
+		float id_sq = SQ(*id);
+		float is_sq = id_sq + SQ(*iq);
+		if( is_sq > max_is_sq ){
+			//if Is is higher than limit, iq will be limited
+			float Idiff = max_is_sq - id_sq;
+			if( Idiff < 0.0 ){
+				Idiff = 0.0;
+			}
+			*iq = SIGN(*iq) * sqrtf(Idiff);
+		}
+	}
 }
 
 static void terminal_plot_hfi(int argc, const char **argv) {

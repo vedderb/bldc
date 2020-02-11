@@ -23,7 +23,8 @@
 
 #include "datatypes.h"
 
-void virtual_motor_init(void);
+void virtual_motor_init(volatile mc_configuration *conf);
+void virtual_motor_set_configuration(volatile mc_configuration *conf);
 void virtual_motor_int_handler(float v_alpha, float v_beta);
 bool virtual_motor_is_connected(void);
 float virtual_motor_get_angle_deg(void);
