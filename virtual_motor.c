@@ -173,9 +173,13 @@ float virtual_motor_get_angle_deg(void){
  */
 static void connect_virtual_motor(float ml , float J, float Vbus){
 	if(virtual_motor.connected == false){
-		//first we send 0.0 current command to make system stop PWM outputs
+		// send 0.0 current command to make system stop PWM outputs
 		mcpwm_foc_set_current(0.0);
-		//first we disconnect the ADC triggering from TIM8_CC1
+
+		// ignore encoder spi errors
+		mc_disable_encoder_faults();
+
+		// disconnect the ADC triggering from TIM8_CC1
 		ADC_InitTypeDef ADC_InitStructure;
 
 		ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
@@ -250,6 +254,7 @@ static void disconnect_virtual_motor( void ){
 		ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
 		ADC_Init(ADC1, &ADC_InitStructure);
+		mc_enable_encoder_faults();
 	}
 }
 

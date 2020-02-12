@@ -56,6 +56,7 @@ static int m_ignore_iterations;
 static volatile unsigned int m_cycles_running;
 static volatile bool m_lock_enabled;
 static volatile bool m_lock_override_once;
+static volatile bool m_disable_encoder_faults;
 static volatile float m_motor_current_sum;
 static volatile float m_input_current_sum;
 static volatile float m_motor_current_iterations;
@@ -124,6 +125,7 @@ void mc_interface_init(mc_configuration *configuration) {
 	m_cycles_running = 0;
 	m_lock_enabled = false;
 	m_lock_override_once = false;
+	m_disable_encoder_faults = false;
 	m_motor_current_sum = 0.0;
 	m_input_current_sum = 0.0;
 	m_motor_current_iterations = 0.0;
@@ -398,6 +400,14 @@ void mc_interface_lock_override_once(void) {
 
 mc_fault_code mc_interface_get_fault(void) {
 	return m_fault_now;
+}
+
+void mc_disable_encoder_faults(void) {
+	m_disable_encoder_faults = true;
+}
+
+void mc_enable_encoder_faults(void) {
+	m_disable_encoder_faults = false;
 }
 
 const char* mc_interface_fault_to_string(mc_fault_code fault) {
@@ -2012,35 +2022,36 @@ static THD_FUNCTION(timer_thread, arg) {
 				break;
 		}
 
+		if (m_disable_encoder_faults == false) {
+			// Trigger encoder error rate fault, using 1% errors as threshold.
+			// Relevant only in FOC mode with encoder enabled
+			if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+				m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+				mcpwm_foc_is_using_encoder() &&
+				encoder_spi_get_error_rate() > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI);
+			}
 
-		// Trigger encoder error rate fault, using 1% errors as threshold.
-		// Relevant only in FOC mode with encoder enabled
-		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
-			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			mcpwm_foc_is_using_encoder() &&
-			encoder_spi_get_error_rate() > 0.05) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI);
-		}
+			if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+				m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+				m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 
-		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
-			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+				if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
+					mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE);
+				if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
+					mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
+			}
 
-			if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
-				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE);
-			if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
-				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE);
-		}
-
-		if(m_conf.motor_type == MOTOR_TYPE_FOC &&
-			m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
-			if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
-				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT);
-			if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
-				mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS);
-			if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
-				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS);
+			if(m_conf.motor_type == MOTOR_TYPE_FOC &&
+				m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+				m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+				if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
+					mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT);
+				if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
+					mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS);
+				if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
+					mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS);
+			}
 		}
 		// TODO: Implement for BLDC and GPDRIVE
 		if(m_conf.motor_type == MOTOR_TYPE_FOC) {

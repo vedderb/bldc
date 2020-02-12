@@ -31,6 +31,8 @@ void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);
 void mc_interface_unlock(void);
 void mc_interface_lock_override_once(void);
+void mc_disable_encoder_faults(void);
+void mc_enable_encoder_faults(void);
 mc_fault_code mc_interface_get_fault(void);
 const char* mc_interface_fault_to_string(mc_fault_code fault);
 mc_state mc_interface_get_state(void);
