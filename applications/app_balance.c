@@ -62,6 +62,7 @@ static thread_t *app_thread;
 static BalanceState state;
 static float pitch_angle, roll_angle;
 static float gyro[3];
+static float duty_cycle, abs_duty_cycle;
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
@@ -90,6 +91,11 @@ void app_balance_start(void) {
 	state = STARTUP;
 	pitch_angle = 0;
 	roll_angle = 0;
+	gyro[0] = 0;
+	gyro[1] = 0;
+	gyro[2] = 0;
+	duty_cycle = 0;
+	abs_duty_cycle = 0;
 	switches_value = 0;
 	proportional = 0;
 	integral = 0;
@@ -218,7 +224,6 @@ static THD_FUNCTION(balance_thread, arg) {
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 
 	state = STARTUP;
-	setpointAdjustmentType = CENTERING;
 
 	while (!chThdShouldTerminateX()) {
 		// Update times
@@ -237,6 +242,8 @@ static THD_FUNCTION(balance_thread, arg) {
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
 		imu_get_gyro(gyro);
+		duty_cycle = mc_interface_get_duty_cycle_now();
+		abs_duty_cycle = fabsf(duty_cycle);
 
 		if(!balance_conf.use_switches){
 			switches_value = 2;
@@ -267,7 +274,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (RUNNING):
 				// Check for overspeed
-				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.overspeed_duty){
+				if(abs_duty_cycle > balance_conf.overspeed_duty){
 					if(ST2MS(current_time - dead_start_time) > balance_conf.overspeed_delay){
 						state = DEAD;
 					}
@@ -280,7 +287,7 @@ static THD_FUNCTION(balance_thread, arg) {
 					fabsf(pitch_angle) > balance_conf.pitch_fault || // Balnce axis tip over
 					fabsf(roll_angle) > balance_conf.roll_fault || // Cross axis tip over
 					app_balance_get_switch_value() == 0 || // Switch fully open
-					(app_balance_get_switch_value() == 1 && fabsf(mc_interface_get_duty_cycle_now()) < 0.003) // Switch partially open and stopped
+					(app_balance_get_switch_value() == 1 && abs_duty_cycle < 0.003) // Switch partially open and stopped
 						){
 					if(ST2MS(current_time - fault_start_time) > balance_conf.fault_delay){
 						state = FAULT;
@@ -290,13 +297,21 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Over speed tilt back safety
-				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.tiltback_duty ||
-						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
-						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
-					if(mc_interface_get_duty_cycle_now() > 0){
+				if(abs_duty_cycle > balance_conf.tiltback_duty ||
+						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
+						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
+					if(duty_cycle > 0){
 						setpoint_target = balance_conf.tiltback_angle;
 					} else {
 						setpoint_target = -balance_conf.tiltback_angle;
+					}
+					setpointAdjustmentType = TILTBACK;
+				}else if(abs_duty_cycle > 0.03){
+					// Nose angle adjustment
+					if(duty_cycle > 0){
+						setpoint_target = balance_conf.tiltback_constant;
+					} else {
+						setpoint_target = -balance_conf.tiltback_constant;
 					}
 					setpointAdjustmentType = TILTBACK;
 				}else{
@@ -336,9 +351,9 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				if(balance_conf.multi_esc){
 					// Do PID maths
-					if(fabsf(mc_interface_get_duty_cycle_now()) < .02){
+					if(abs_duty_cycle < .02){
 						yaw_proportional = 0 - gyro[2];
-					} else if(mc_interface_get_duty_cycle_now() < 0){
+					} else if(duty_cycle < 0){
 						yaw_proportional = (balance_conf.roll_steer_kp * roll_angle) - gyro[2];
 					} else{
 						yaw_proportional = (-balance_conf.roll_steer_kp * roll_angle) - gyro[2];

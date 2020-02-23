@@ -260,8 +260,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.brake_current, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.overspeed_delay, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.fault_delay, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.nose_angle, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.nose_angle_speed, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_constant, &ind);
 	buffer[ind++] = conf->imu_conf.type;
 	buffer[ind++] = conf->imu_conf.mode;
 	buffer_append_uint16(buffer, conf->imu_conf.sample_rate_hz, &ind);
@@ -548,8 +547,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.brake_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.overspeed_delay = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.fault_delay = buffer_get_uint16(buffer, &ind);
-	conf->app_balance_conf.nose_angle = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.nose_angle_speed = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_constant = buffer_get_float32_auto(buffer, &ind);
 	conf->imu_conf.type = buffer[ind++];
 	conf->imu_conf.mode = buffer[ind++];
 	conf->imu_conf.sample_rate_hz = buffer_get_uint16(buffer, &ind);
@@ -820,8 +818,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.brake_current = APPCONF_BALANCE_BRAKE_CURRENT;
 	conf->app_balance_conf.overspeed_delay = APPCONF_BALANCE_OVERSPEED_DELAY;
 	conf->app_balance_conf.fault_delay = APPCONF_BALANCE_FAULT_DELAY;
-	conf->app_balance_conf.nose_angle = APPCONF_BALANCE_NOSE_ANGLE;
-	conf->app_balance_conf.nose_angle_speed = APPCONF_BALANCE_NOSE_ANGLE_SPEED;
+	conf->app_balance_conf.tiltback_constant = APPCONF_BALANCE_TILTBACK_CONSTANT;
 	conf->imu_conf.type = APPCONF_IMU_TYPE;
 	conf->imu_conf.mode = APPCONF_IMU_AHRS_MODE;
 	conf->imu_conf.sample_rate_hz = APPCONF_IMU_SAMPLE_RATE_HZ;

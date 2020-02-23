@@ -565,8 +565,7 @@ typedef struct {
 	float brake_current;
 	uint16_t overspeed_delay;
 	uint16_t fault_delay;
-	float nose_angle;
-	float nose_angle_speed;
+	float tiltback_constant;
 } balance_config;
 
 // CAN status modes
