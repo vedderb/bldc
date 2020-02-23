@@ -557,6 +557,16 @@ typedef struct {
 	float startup_speed;
 	float deadzone;
 	float current_boost;
+	bool multi_esc;
+	float yaw_kp;
+	float yaw_ki;
+	float yaw_kd;
+	float roll_steer_kp;
+	float brake_current;
+	uint16_t overspeed_delay;
+	uint16_t fault_delay;
+	float nose_angle;
+	float nose_angle_speed;
 } balance_config;
 
 // CAN status modes

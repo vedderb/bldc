@@ -29,9 +29,13 @@
 #include "imu/ahrs.h"
 #include "utils.h"
 #include "datatypes.h"
+#include "comm_can.h"
 
 
 #include <math.h>
+
+// Can
+#define MAX_CAN_AGE 0.1
 
 // Data type
 typedef enum {
@@ -57,14 +61,18 @@ static thread_t *app_thread;
 // Values used in loop
 static BalanceState state;
 static float pitch_angle, roll_angle;
+static float gyro[3];
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
 static float setpoint, setpoint_target;
+static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
 static systime_t startup_start_time, startup_diff_time;
+static systime_t dead_start_time;
+static systime_t fault_start_time;
 static uint16_t switches_value;
 
 // Values read to pass in app data to GUI
@@ -109,14 +117,6 @@ void app_balance_start(void) {
 
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
-}
-
-void app_balance_stop(void) {
-	if(app_thread != NULL){
-		chThdTerminate(app_thread);
-		chThdWait(app_thread);
-	}
-	mc_interface_set_current(0);
 }
 
 float app_balance_get_pid_output(void) {
@@ -168,6 +168,47 @@ float apply_deadzone(float error){
 	}
 }
 
+void brake(void){
+	// Reset the timeout
+	timeout_reset();
+	// Set current
+	mc_interface_set_brake_current(balance_conf.brake_current);
+	if(balance_conf.multi_esc){
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg *msg = comm_can_get_status_msg_index(i);
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+				comm_can_set_current_brake(msg->id, balance_conf.brake_current);
+			}
+		}
+	}
+}
+
+void set_current(float current, float yaw_current){
+	// Reset the timeout
+	timeout_reset();
+	// Set current
+	if(balance_conf.multi_esc){
+		mc_interface_set_current(current + yaw_current);
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+				comm_can_set_current(msg->id, current - yaw_current);
+			}
+		}
+	} else {
+		mc_interface_set_current(current);
+	}
+}
+
+void app_balance_stop(void) {
+	if(app_thread != NULL){
+		chThdTerminate(app_thread);
+		chThdWait(app_thread);
+	}
+	set_current(0, 0);
+}
+
 static THD_FUNCTION(balance_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("APP_BALANCE");
@@ -195,6 +236,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Get the values we want
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
+		imu_get_gyro(gyro);
 
 		if(!balance_conf.use_switches){
 			switches_value = 2;
@@ -214,6 +256,9 @@ static THD_FUNCTION(balance_thread, arg) {
 		switch(state){
 			case (STARTUP):
 				while(!imu_startup_done()){
+					// Disable output
+					brake();
+					// Wait
 					chThdSleepMilliseconds(50);
 				}
 				state = FAULT;
@@ -223,7 +268,11 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (RUNNING):
 				// Check for overspeed
 				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.overspeed_duty){
-					state = DEAD;
+					if(ST2MS(current_time - dead_start_time) > balance_conf.overspeed_delay){
+						state = DEAD;
+					}
+				} else {
+					dead_start_time = current_time;
 				}
 
 				// Check for fault
@@ -233,7 +282,11 @@ static THD_FUNCTION(balance_thread, arg) {
 					app_balance_get_switch_value() == 0 || // Switch fully open
 					(app_balance_get_switch_value() == 1 && fabsf(mc_interface_get_duty_cycle_now()) < 0.003) // Switch partially open and stopped
 						){
-					state = FAULT;
+					if(ST2MS(current_time - fault_start_time) > balance_conf.fault_delay){
+						state = FAULT;
+					}
+				} else {
+					fault_start_time = current_time;
 				}
 
 				// Over speed tilt back safety
@@ -281,15 +334,25 @@ static THD_FUNCTION(balance_thread, arg) {
 					pid_value -= balance_conf.current_boost;
 				}
 
-				// Reset the timeout
-				timeout_reset();
+				if(balance_conf.multi_esc){
+					// Do PID maths
+					if(fabsf(mc_interface_get_duty_cycle_now()) < .02){
+						yaw_proportional = 0 - gyro[2];
+					} else if(mc_interface_get_duty_cycle_now() < 0){
+						yaw_proportional = (balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+					} else{
+						yaw_proportional = (-balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+					}
+					yaw_integral = yaw_integral + yaw_proportional;
+					yaw_derivative = yaw_proportional - yaw_last_proportional;
+
+					yaw_pid_value = (balance_conf.yaw_kp * yaw_proportional) + (balance_conf.yaw_ki * yaw_integral) + (balance_conf.yaw_kd * yaw_derivative);
+
+					yaw_last_proportional = yaw_proportional;
+				}
 
 				// Output to motor
-				if(pid_value == 0){
-					mc_interface_release_motor();
-				}else {
-					mc_interface_set_current(pid_value);
-				}
+				set_current(pid_value, yaw_pid_value);
 				break;
 			case (FAULT):
 				// Check for valid startup position and switch state
@@ -300,13 +363,12 @@ static THD_FUNCTION(balance_thread, arg) {
 					state = RUNNING;
 					break;
 				}
-
 				// Disable output
-				mc_interface_set_current(0);
+				brake();
 				break;
 			case (DEAD):
 				// Disable output
-				mc_interface_set_current(0);
+				brake();
 				break;
 		}
 
@@ -315,5 +377,5 @@ static THD_FUNCTION(balance_thread, arg) {
 	}
 
 	// Disable output
-	mc_interface_set_current(0);
+	brake();
 }
