@@ -240,7 +240,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_uint16(buffer, conf->app_balance_conf.hertz, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.pitch_fault, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_fault, &ind);
-	buffer[ind++] = conf->app_balance_conf.use_switches;
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.adc1, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.adc2, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.overspeed_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_angle, &ind);
@@ -527,7 +528,8 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.hertz = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.pitch_fault = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.roll_fault = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.use_switches = buffer[ind++];
+	conf->app_balance_conf.adc1 = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.adc2 = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.overspeed_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_angle = buffer_get_float32_auto(buffer, &ind);
@@ -798,7 +800,8 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.hertz = APPCONF_BALANCE_HERTZ;
 	conf->app_balance_conf.pitch_fault = APPCONF_BALANCE_PITCH_FAULT;
 	conf->app_balance_conf.roll_fault = APPCONF_BALANCE_ROLL_FAULT;
-	conf->app_balance_conf.use_switches = APPCONF_BALANCE_USE_SWITCHES;
+	conf->app_balance_conf.adc1 = APPCONF_BALANCE_ADC1;
+	conf->app_balance_conf.adc2 = APPCONF_BALANCE_ADC2;
 	conf->app_balance_conf.overspeed_duty = APPCONF_BALANCE_OVERSPEED_DUTY;
 	conf->app_balance_conf.tiltback_duty = APPCONF_BALANCE_TILTBACK_DUTY;
 	conf->app_balance_conf.tiltback_angle = APPCONF_BALANCE_TILTBACK_ANGLE;

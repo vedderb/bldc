@@ -545,7 +545,8 @@ typedef struct {
 	uint16_t hertz;
 	float pitch_fault;
 	float roll_fault;
-	bool use_switches;
+	float adc1;
+	float adc2;
 	float overspeed_duty;
 	float tiltback_duty;
 	float tiltback_angle;

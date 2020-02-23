@@ -50,6 +50,12 @@ typedef enum {
 	TILTBACK
 } SetpointAdjustmentType;
 
+typedef enum {
+	OFF = 0,
+	HALF,
+	ON
+} SwitchState;
+
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
@@ -74,7 +80,8 @@ static systime_t current_time, last_time, diff_time;
 static systime_t startup_start_time, startup_diff_time;
 static systime_t dead_start_time;
 static systime_t fault_start_time;
-static uint16_t switches_value;
+static float adc1, adc2;
+static SwitchState switch_state;
 
 // Values read to pass in app data to GUI
 static float motor_current;
@@ -96,7 +103,9 @@ void app_balance_start(void) {
 	gyro[2] = 0;
 	duty_cycle = 0;
 	abs_duty_cycle = 0;
-	switches_value = 0;
+	adc1 = 0;
+	adc2 = 0;
+	switch_state = OFF;
 	proportional = 0;
 	integral = 0;
 	derivative = 0;
@@ -112,14 +121,6 @@ void app_balance_start(void) {
 	diff_time = 0;
 	startup_start_time = 0;
 	startup_diff_time = 0;
-
-#ifdef HW_SPI_PORT_SCK
-	// Configure pins
-	if(balance_conf.use_switches){
-		palSetPadMode(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, PAL_MODE_INPUT_PULLDOWN);
-		palSetPadMode(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO, PAL_MODE_INPUT_PULLDOWN);
-	}
-#endif
 
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
@@ -146,8 +147,14 @@ float app_balance_get_motor_position(void) {
 uint16_t app_balance_get_state(void) {
 	return state;
 }
-uint16_t app_balance_get_switch_value(void) {
-	return switches_value;
+uint16_t app_balance_get_switch_state(void) {
+	return switch_state;
+}
+float app_balance_get_adc1(void) {
+	return adc1;
+}
+float app_balance_get_adc2(void) {
+	return adc2;
 }
 
 float get_setpoint_adjustment_step_size(void){
@@ -244,20 +251,38 @@ static THD_FUNCTION(balance_thread, arg) {
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
-
-		if(!balance_conf.use_switches){
-			switches_value = 2;
-		}else{
-			switches_value = 0;
-#ifdef HW_SPI_PORT_SCK
-			if(palReadPad(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK)){
-				switches_value += 1;
-			}
-			if(palReadPad(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO)){
-				switches_value += 1;
-			}
+		adc1 = (((float)ADC_Value[ADC_IND_EXT])/4095) * V_REG;
+#ifdef ADC_IND_EXT2
+		adc2 = (((float)ADC_Value[ADC_IND_EXT2])/4095) * V_REG;
+#else
+		adc2 = 0.0;
 #endif
+
+		// Calculate switch state from ADC values
+		if(balance_conf.adc1 == 0 && balance_conf.adc2 == 0){ // No Switch
+			switch_state = ON;
+		}else if(balance_conf.adc2 == 0){ // Single switch on ADC1
+			if(adc1 > balance_conf.adc1){
+				switch_state = ON;
+			} else {
+				switch_state = OFF;
+			}
+		}else if(balance_conf.adc1 == 0){ // Single switch on ADC2
+			if(adc2 > balance_conf.adc2){
+				switch_state = ON;
+			} else {
+				switch_state = OFF;
+			}
+		}else{ // Double switch
+			if(adc1 > balance_conf.adc1 && adc2 > balance_conf.adc2){
+				switch_state = ON;
+			}else if(adc1 > balance_conf.adc1 || adc2 > balance_conf.adc2){
+				switch_state = HALF;
+			}else{
+				switch_state = OFF;
+			}
 		}
+
 
 		// State based logic
 		switch(state){
@@ -286,8 +311,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				if(
 					fabsf(pitch_angle) > balance_conf.pitch_fault || // Balnce axis tip over
 					fabsf(roll_angle) > balance_conf.roll_fault || // Cross axis tip over
-					app_balance_get_switch_value() == 0 || // Switch fully open
-					(app_balance_get_switch_value() == 1 && abs_duty_cycle < 0.003) // Switch partially open and stopped
+					switch_state == OFF || // Switch fully open
+					(switch_state == HALF && abs_duty_cycle < 0.003) // Switch partially open and stopped
 						){
 					if(ST2MS(current_time - fault_start_time) > balance_conf.fault_delay){
 						state = FAULT;
@@ -371,7 +396,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (FAULT):
 				// Check for valid startup position and switch state
-				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && app_balance_get_switch_value() == 2){
+				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && switch_state == ON){
 					setpoint = pitch_angle;
 					setpoint_target = 0;
 					setpointAdjustmentType = CENTERING;
