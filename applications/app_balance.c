@@ -29,9 +29,13 @@
 #include "imu/ahrs.h"
 #include "utils.h"
 #include "datatypes.h"
+#include "comm_can.h"
 
 
 #include <math.h>
+
+// Can
+#define MAX_CAN_AGE 0.1
 
 // Data type
 typedef enum {
@@ -46,6 +50,12 @@ typedef enum {
 	TILTBACK
 } SetpointAdjustmentType;
 
+typedef enum {
+	OFF = 0,
+	HALF,
+	ON
+} SwitchState;
+
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
@@ -57,15 +67,21 @@ static thread_t *app_thread;
 // Values used in loop
 static BalanceState state;
 static float pitch_angle, roll_angle;
+static float gyro[3];
+static float duty_cycle, abs_duty_cycle;
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
 static float setpoint, setpoint_target;
+static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
 static systime_t startup_start_time, startup_diff_time;
-static uint16_t switches_value;
+static systime_t dead_start_time;
+static systime_t fault_start_time;
+static float adc1, adc2;
+static SwitchState switch_state;
 
 // Values read to pass in app data to GUI
 static float motor_current;
@@ -82,7 +98,14 @@ void app_balance_start(void) {
 	state = STARTUP;
 	pitch_angle = 0;
 	roll_angle = 0;
-	switches_value = 0;
+	gyro[0] = 0;
+	gyro[1] = 0;
+	gyro[2] = 0;
+	duty_cycle = 0;
+	abs_duty_cycle = 0;
+	adc1 = 0;
+	adc2 = 0;
+	switch_state = OFF;
 	proportional = 0;
 	integral = 0;
 	derivative = 0;
@@ -99,24 +122,8 @@ void app_balance_start(void) {
 	startup_start_time = 0;
 	startup_diff_time = 0;
 
-#ifdef HW_SPI_PORT_SCK
-	// Configure pins
-	if(balance_conf.use_switches){
-		palSetPadMode(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, PAL_MODE_INPUT_PULLDOWN);
-		palSetPadMode(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO, PAL_MODE_INPUT_PULLDOWN);
-	}
-#endif
-
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
-}
-
-void app_balance_stop(void) {
-	if(app_thread != NULL){
-		chThdTerminate(app_thread);
-		chThdWait(app_thread);
-	}
-	mc_interface_set_current(0);
 }
 
 float app_balance_get_pid_output(void) {
@@ -140,8 +147,14 @@ float app_balance_get_motor_position(void) {
 uint16_t app_balance_get_state(void) {
 	return state;
 }
-uint16_t app_balance_get_switch_value(void) {
-	return switches_value;
+uint16_t app_balance_get_switch_state(void) {
+	return switch_state;
+}
+float app_balance_get_adc1(void) {
+	return adc1;
+}
+float app_balance_get_adc2(void) {
+	return adc2;
 }
 
 float get_setpoint_adjustment_step_size(void){
@@ -168,6 +181,47 @@ float apply_deadzone(float error){
 	}
 }
 
+void brake(void){
+	// Reset the timeout
+	timeout_reset();
+	// Set current
+	mc_interface_set_brake_current(balance_conf.brake_current);
+	if(balance_conf.multi_esc){
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg *msg = comm_can_get_status_msg_index(i);
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+				comm_can_set_current_brake(msg->id, balance_conf.brake_current);
+			}
+		}
+	}
+}
+
+void set_current(float current, float yaw_current){
+	// Reset the timeout
+	timeout_reset();
+	// Set current
+	if(balance_conf.multi_esc){
+		mc_interface_set_current(current + yaw_current);
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+				comm_can_set_current(msg->id, current - yaw_current);
+			}
+		}
+	} else {
+		mc_interface_set_current(current);
+	}
+}
+
+void app_balance_stop(void) {
+	if(app_thread != NULL){
+		chThdTerminate(app_thread);
+		chThdWait(app_thread);
+	}
+	set_current(0, 0);
+}
+
 static THD_FUNCTION(balance_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("APP_BALANCE");
@@ -177,7 +231,6 @@ static THD_FUNCTION(balance_thread, arg) {
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 
 	state = STARTUP;
-	setpointAdjustmentType = CENTERING;
 
 	while (!chThdShouldTerminateX()) {
 		// Update times
@@ -195,25 +248,49 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Get the values we want
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
-
-		if(!balance_conf.use_switches){
-			switches_value = 2;
-		}else{
-			switches_value = 0;
-#ifdef HW_SPI_PORT_SCK
-			if(palReadPad(HW_SPI_PORT_SCK, HW_SPI_PIN_SCK)){
-				switches_value += 1;
-			}
-			if(palReadPad(HW_SPI_PORT_MISO, HW_SPI_PIN_MISO)){
-				switches_value += 1;
-			}
+		imu_get_gyro(gyro);
+		duty_cycle = mc_interface_get_duty_cycle_now();
+		abs_duty_cycle = fabsf(duty_cycle);
+		adc1 = (((float)ADC_Value[ADC_IND_EXT])/4095) * V_REG;
+#ifdef ADC_IND_EXT2
+		adc2 = (((float)ADC_Value[ADC_IND_EXT2])/4095) * V_REG;
+#else
+		adc2 = 0.0;
 #endif
+
+		// Calculate switch state from ADC values
+		if(balance_conf.adc1 == 0 && balance_conf.adc2 == 0){ // No Switch
+			switch_state = ON;
+		}else if(balance_conf.adc2 == 0){ // Single switch on ADC1
+			if(adc1 > balance_conf.adc1){
+				switch_state = ON;
+			} else {
+				switch_state = OFF;
+			}
+		}else if(balance_conf.adc1 == 0){ // Single switch on ADC2
+			if(adc2 > balance_conf.adc2){
+				switch_state = ON;
+			} else {
+				switch_state = OFF;
+			}
+		}else{ // Double switch
+			if(adc1 > balance_conf.adc1 && adc2 > balance_conf.adc2){
+				switch_state = ON;
+			}else if(adc1 > balance_conf.adc1 || adc2 > balance_conf.adc2){
+				switch_state = HALF;
+			}else{
+				switch_state = OFF;
+			}
 		}
+
 
 		// State based logic
 		switch(state){
 			case (STARTUP):
 				while(!imu_startup_done()){
+					// Disable output
+					brake();
+					// Wait
 					chThdSleepMilliseconds(50);
 				}
 				state = FAULT;
@@ -222,28 +299,44 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (RUNNING):
 				// Check for overspeed
-				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.overspeed_duty){
-					state = DEAD;
+				if(abs_duty_cycle > balance_conf.overspeed_duty){
+					if(ST2MS(current_time - dead_start_time) > balance_conf.overspeed_delay){
+						state = DEAD;
+					}
+				} else {
+					dead_start_time = current_time;
 				}
 
 				// Check for fault
 				if(
 					fabsf(pitch_angle) > balance_conf.pitch_fault || // Balnce axis tip over
 					fabsf(roll_angle) > balance_conf.roll_fault || // Cross axis tip over
-					app_balance_get_switch_value() == 0 || // Switch fully open
-					(app_balance_get_switch_value() == 1 && fabsf(mc_interface_get_duty_cycle_now()) < 0.003) // Switch partially open and stopped
+					switch_state == OFF || // Switch fully open
+					(switch_state == HALF && abs_duty_cycle < 0.003) // Switch partially open and stopped
 						){
-					state = FAULT;
+					if(ST2MS(current_time - fault_start_time) > balance_conf.fault_delay){
+						state = FAULT;
+					}
+				} else {
+					fault_start_time = current_time;
 				}
 
 				// Over speed tilt back safety
-				if(fabsf(mc_interface_get_duty_cycle_now()) > balance_conf.tiltback_duty ||
-						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
-						(fabsf(mc_interface_get_duty_cycle_now()) > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
-					if(mc_interface_get_duty_cycle_now() > 0){
+				if(abs_duty_cycle > balance_conf.tiltback_duty ||
+						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
+						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
+					if(duty_cycle > 0){
 						setpoint_target = balance_conf.tiltback_angle;
 					} else {
 						setpoint_target = -balance_conf.tiltback_angle;
+					}
+					setpointAdjustmentType = TILTBACK;
+				}else if(abs_duty_cycle > 0.03){
+					// Nose angle adjustment
+					if(duty_cycle > 0){
+						setpoint_target = balance_conf.tiltback_constant;
+					} else {
+						setpoint_target = -balance_conf.tiltback_constant;
 					}
 					setpointAdjustmentType = TILTBACK;
 				}else{
@@ -281,32 +374,41 @@ static THD_FUNCTION(balance_thread, arg) {
 					pid_value -= balance_conf.current_boost;
 				}
 
-				// Reset the timeout
-				timeout_reset();
+				if(balance_conf.multi_esc){
+					// Do PID maths
+					if(abs_duty_cycle < .02){
+						yaw_proportional = 0 - gyro[2];
+					} else if(duty_cycle < 0){
+						yaw_proportional = (balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+					} else{
+						yaw_proportional = (-balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+					}
+					yaw_integral = yaw_integral + yaw_proportional;
+					yaw_derivative = yaw_proportional - yaw_last_proportional;
+
+					yaw_pid_value = (balance_conf.yaw_kp * yaw_proportional) + (balance_conf.yaw_ki * yaw_integral) + (balance_conf.yaw_kd * yaw_derivative);
+
+					yaw_last_proportional = yaw_proportional;
+				}
 
 				// Output to motor
-				if(pid_value == 0){
-					mc_interface_release_motor();
-				}else {
-					mc_interface_set_current(pid_value);
-				}
+				set_current(pid_value, yaw_pid_value);
 				break;
 			case (FAULT):
 				// Check for valid startup position and switch state
-				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && app_balance_get_switch_value() == 2){
+				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && switch_state == ON){
 					setpoint = pitch_angle;
 					setpoint_target = 0;
 					setpointAdjustmentType = CENTERING;
 					state = RUNNING;
 					break;
 				}
-
 				// Disable output
-				mc_interface_set_current(0);
+				brake();
 				break;
 			case (DEAD):
 				// Disable output
-				mc_interface_set_current(0);
+				brake();
 				break;
 		}
 
@@ -315,5 +417,5 @@ static THD_FUNCTION(balance_thread, arg) {
 	}
 
 	// Disable output
-	mc_interface_set_current(0);
+	brake();
 }

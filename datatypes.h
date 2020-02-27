@@ -545,7 +545,8 @@ typedef struct {
 	uint16_t hertz;
 	float pitch_fault;
 	float roll_fault;
-	bool use_switches;
+	float adc1;
+	float adc2;
 	float overspeed_duty;
 	float tiltback_duty;
 	float tiltback_angle;
@@ -557,6 +558,15 @@ typedef struct {
 	float startup_speed;
 	float deadzone;
 	float current_boost;
+	bool multi_esc;
+	float yaw_kp;
+	float yaw_ki;
+	float yaw_kd;
+	float roll_steer_kp;
+	float brake_current;
+	uint16_t overspeed_delay;
+	uint16_t fault_delay;
+	float tiltback_constant;
 } balance_config;
 
 // CAN status modes
