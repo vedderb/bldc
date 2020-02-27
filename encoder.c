@@ -535,7 +535,7 @@ void encoder_tim_isr(void) {
 		spi_end();
 
 		spi_val = pos;
-		if(spi_check_parity(pos) && pos != 0xffff) {  // all ones = disconnect
+		if(spi_check_parity(pos)) {
 			pos &= 0x3FFF;
 			last_enc_angle = ((float)pos * 360.0) / 16384.0;
 			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AS5047_SAMPLE_RATE_HZ);

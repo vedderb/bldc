@@ -1,3 +1,9 @@
+=== FW 4.02 ===
+* Position PID fix (most notable on multiturn encoders).
+* App balance updates. See https://github.com/vedderb/bldc/pull/138.
+* Changed FOC time constant back to 1000 us.
+* Do not count AS5047 all ones as fault.
+
 === FW 4.01 ===
 * Leave debug mode on NRF5x after disconnect to avoid excess power consumption before power cycle.
 * Added encoder_clear_errors and encoder_clear_multiturn terminal commands.

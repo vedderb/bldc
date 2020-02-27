@@ -3144,8 +3144,9 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt) {
 
 
 	// I-term wind-up protection
-	utils_truncate_number_abs(&p_term, 1.0);
-	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_term));
+	float p_tmp = p_term;
+	utils_truncate_number_abs(&p_tmp, 1.0);
+	utils_truncate_number_abs(&i_term, 1.0 - fabsf(p_tmp));
 
 	// Store previous error
 	prev_error = error;

@@ -1127,7 +1127,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old.l_current_max = i_max;
 		mcconf_old.l_current_min = -i_max;
 
-		float tc = 4000.0;
+		float tc = 1000.0;
 		float bw = 1.0 / (tc * 1e-6);
 		float kp = l * bw;
 		float ki = r * bw;

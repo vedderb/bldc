@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR		4
-#define FW_VERSION_MINOR		01
+#define FW_VERSION_MINOR		02
 
 #include "datatypes.h"
 
