@@ -3519,7 +3519,7 @@ static void field_weakening_run(float dt, float *id, float *iq){
 		field_weakening.anti_windup_error = windup_error * 0.1;	//save error
 
 		//calculate id
-		*id -= SIGN(*iq) * output * m_conf->lo_current_max * m_conf->foc_field_weakening_d_current_factor;
+		*id -= SIGN(m_motor_state.speed_rad_s) * output * m_conf->lo_current_max * m_conf->foc_field_weakening_d_current_factor;
 
 		//in CONTROL_MODE_CURRENT, we set the maximum current is_max to the current set
 		//in other modes, maximum current is the on
