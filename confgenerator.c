@@ -110,6 +110,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_field_weakening_enable;
 	buffer_append_float32_auto(buffer, conf->foc_field_weakening_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_field_weakening_ki, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_field_weakening_mod_threshold, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_field_weakening_d_current_factor, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_filter_const, &ind);
@@ -389,6 +391,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_field_weakening_enable = buffer[ind++];
 	conf->foc_field_weakening_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_field_weakening_ki = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_field_weakening_mod_threshold = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_field_weakening_d_current_factor = buffer_get_float32_auto(buffer, &ind);
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float32_auto(buffer, &ind);
@@ -664,6 +668,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_field_weakening_enable = MCCONF_FOC_FIELD_WEAKENING_ENABLE;
 	conf->foc_field_weakening_kp = MCCONF_FOC_FIELD_WEAKENING_KP;
 	conf->foc_field_weakening_ki = MCCONF_FOC_FIELD_WEAKENING_KI;
+	conf->foc_field_weakening_mod_threshold = MCCONF_FOC_FIELD_WEAKENING_MOD_THRESHOLD;
+	conf->foc_field_weakening_d_current_factor = MCCONF_FOC_FIELD_WEAKENING_D_CURRENT_FACTOR;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;

@@ -3506,7 +3506,7 @@ static void field_weakening_setup(void){
 static void field_weakening_run(float dt, float *id, float *iq){
 	if(m_conf->foc_field_weakening_enable){
 //		//PI block
-		float p_error = fabsf(m_motor_state.mod_q) - 0.81;	// modulation-based proportional error
+		float p_error = fabsf(m_motor_state.mod_q) - m_conf->foc_field_weakening_mod_threshold;	// modulation-based proportional error
 		float int_error = p_error - field_weakening.anti_windup_error;
 
 		field_weakening.mod_int += int_error * m_conf->foc_field_weakening_ki * dt;
@@ -3519,7 +3519,7 @@ static void field_weakening_run(float dt, float *id, float *iq){
 		field_weakening.anti_windup_error = windup_error * 0.1;	//save error
 
 		//calculate id
-		*id -= SIGN(*iq) * output * m_conf->lo_current_max;
+		*id -= SIGN(*iq) * output * m_conf->lo_current_max * m_conf->foc_field_weakening_d_current_factor;
 
 		//in CONTROL_MODE_CURRENT, we set the maximum current is_max to the current set
 		//in other modes, maximum current is the on

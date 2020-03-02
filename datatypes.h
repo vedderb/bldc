@@ -306,6 +306,8 @@ typedef struct {
 	bool foc_field_weakening_enable;
 	float foc_field_weakening_kp;
 	float foc_field_weakening_ki;
+	float foc_field_weakening_mod_threshold;
+	float foc_field_weakening_d_current_factor;
 	mc_foc_cc_decoupling_mode foc_cc_decoupling;
 	mc_foc_observer_type foc_observer_type;
 	float foc_hfi_voltage_start;

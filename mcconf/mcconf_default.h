@@ -350,6 +350,12 @@
 #ifndef MCCONF_FOC_FIELD_WEAKENING_KI
 #define MCCONF_FOC_FIELD_WEAKENING_KI		0.02	// Field Weakening integral gain
 #endif
+#ifndef MCCONF_FOC_FIELD_WEAKENING_MOD_THRESHOLD
+#define MCCONF_FOC_FIELD_WEAKENING_MOD_THRESHOLD		0.81	// Modulation above which FW will be used
+#endif
+#ifndef MCCONF_FOC_FIELD_WEAKENING_D_CURRENT_FACTOR
+#define MCCONF_FOC_FIELD_WEAKENING_D_CURRENT_FACTOR		0.3		// Max FW D current as a % of max phase current
+#endif
 #ifndef MCCONF_FOC_CC_DECOUPLING
 #define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_BEMF // Current controller decoupling
 #endif
