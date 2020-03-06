@@ -3,6 +3,7 @@
 * App balance updates. See https://github.com/vedderb/bldc/pull/138.
 * Changed FOC time constant back to 1000 us.
 * Do not count AS5047 all ones as fault.
+* Improved axis decoupling and integrator windup protection. Should prevent wobbles.
 
 === FW 4.01 ===
 * Leave debug mode on NRF5x after disconnect to avoid excess power consumption before power cycle.

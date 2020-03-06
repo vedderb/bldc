@@ -2804,6 +2804,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	// Decoupling
 	float dec_vd = 0.0;
 	float dec_vq = 0.0;
+	float dec_bemf = 0.0;
 
 	if (m_control_mode < CONTROL_MODE_HANDBRAKE && m_conf->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
 		switch (m_conf->foc_cc_decoupling) {
@@ -2813,12 +2814,13 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 				break;
 
 			case FOC_CC_DECOUPLING_BEMF:
-				dec_vq = state_m->speed_rad_s * m_conf->foc_motor_flux_linkage;
+				dec_bemf = state_m->speed_rad_s * m_conf->foc_motor_flux_linkage;
 				break;
 
 			case FOC_CC_DECOUPLING_CROSS_BEMF:
 				dec_vd = state_m->iq * state_m->speed_rad_s * m_conf->foc_motor_l;
-				dec_vq = state_m->id * state_m->speed_rad_s * m_conf->foc_motor_l + state_m->speed_rad_s * m_conf->foc_motor_flux_linkage;
+				dec_vq = state_m->id * state_m->speed_rad_s * m_conf->foc_motor_l;
+				dec_bemf = state_m->speed_rad_s * m_conf->foc_motor_flux_linkage;
 				break;
 
 			default:
@@ -2827,7 +2829,7 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 	}
 
 	state_m->vd -= dec_vd;
-	state_m->vq += dec_vq;
+	state_m->vq += dec_vq + dec_bemf;
 
 	float max_v_mag = (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus;
 
@@ -2838,23 +2840,30 @@ static void control_current(volatile motor_state_t *state_m, float dt) {
 
 	// Integrator windup protection
 	// This is important, tricky and probably needs improvement.
-	// Currently we check if the integrator causes over modulation and decrease the components
-	// that contribute to the over modulation.
-	float int_over_mod = sqrtf(SQ(state_m->vd_int - dec_vd) + SQ(state_m->vq_int + dec_vq)) - max_v_mag;
-	float max_int_over_mod = -0.1;
-	if (int_over_mod > max_int_over_mod) {
-		float diff_vd = fabsf((state_m->vd_int - dec_vd)) - fabsf(dec_vd);
-		float diff_vq = fabsf((state_m->vq_int + dec_vq)) - fabsf(dec_vq);
-		int_over_mod -= max_int_over_mod;
-		float dec_gain = 0.03;
+	// Currently we start by truncating the d-axis and then the q-axis with the magnitude that is
+	// left. Axis decoupling is taken into account in the truncation. How to do that best is also
+	// an open question...
 
-		if (diff_vd > 0.0) {
-			state_m->vd_int *= 1.0 - dec_gain * int_over_mod;
-		}
-		if (diff_vq > 0.0) {
-			state_m->vq_int *= 1.0 - dec_gain * int_over_mod;
-		}
-	}
+	// Take both cross and back emf decoupling into consideration. Seems to make the control
+	// noisy at full modulation.
+//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag + dec_vd, max_v_mag + dec_vd);
+//	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int - dec_vd));
+//	utils_truncate_number((float*)&state_m->vq_int, -mag_left - (dec_vq + dec_bemf), mag_left - (dec_vq + dec_bemf));
+
+	// Take only back emf decoupling into consideration. Seems to work best.
+	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
+	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int));
+	utils_truncate_number((float*)&state_m->vq_int, -mag_left - dec_bemf, mag_left - dec_bemf);
+
+	// Ignore decoupling. Works badly when back emf decoupling is used, probably not
+	// the best way to go.
+//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
+//	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int));
+//	utils_truncate_number((float*)&state_m->vq_int, -mag_left, mag_left);
+
+	// This is how anti-windup was done in FW < 4.0. Does not work well when there is too much D axis voltage.
+//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
+//	utils_truncate_number((float*)&state_m->vq_int, -max_v_mag, max_v_mag);
 
 	// TODO: Have a look at this?
 	state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
