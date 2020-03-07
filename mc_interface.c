@@ -1660,7 +1660,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	}
 #endif
 
-#ifdef HW_VERSION_AXIOM
+#ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 	if(motor->m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
 		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE, is_second_motor);
 	}
@@ -1917,7 +1917,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, 0.1);
 
-#ifdef HW_VERSION_AXIOM
+#ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 	UTILS_LP_FAST(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 

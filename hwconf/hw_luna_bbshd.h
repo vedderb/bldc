@@ -26,6 +26,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
+#define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 #define HW_USE_BRK
 
 // Macros
@@ -62,7 +63,7 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_GATE_DRV		12
+#define ADC_IND_VOUT_GATE_DRV	12
 #define ADC_IND_EXT				10
 #define ADC_IND_EXT2			6
 #define ADC_IND_EXT3			13
@@ -93,6 +94,9 @@
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+
+// 12V supply voltage
+#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
@@ -236,6 +240,9 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+
+#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	10.0
+#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	14.0
 
 // HW-specific functions
 

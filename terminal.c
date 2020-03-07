@@ -128,7 +128,7 @@ void terminal_process_string(char *str) {
 				commands_printf("Current          : %.1f", (double)fault_vec[i].current);
 				commands_printf("Current filtered : %.1f", (double)fault_vec[i].current_filtered);
 				commands_printf("Voltage          : %.2f", (double)fault_vec[i].voltage);
-#ifdef HW_VERSION_AXIOM
+#ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 				commands_printf("Gate drv voltage : %.2f", (double)fault_vec[i].gate_driver_voltage);
 #endif
 				commands_printf("Duty             : %.3f", (double)fault_vec[i].duty);
@@ -194,7 +194,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
-#ifdef HW_VERSION_AXIOM
+#ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif
 	} else if (strcmp(argv[0], "param_detect") == 0) {
