@@ -223,11 +223,19 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_app_configuration(app_configuration *conf) {
+	int motor_old = mc_interface_get_motor_thread();
+
+	mc_interface_select_motor_thread(1);
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_lock();
+
+	mc_interface_select_motor_thread(2);
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	mc_interface_lock();
 
 	utils_sys_lock_cnt();
-	mc_interface_lock();
 
 	timeout_configure_IWDT_slowest();
 
@@ -253,8 +261,15 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
+
+	mc_interface_select_motor_thread(1);
 	mc_interface_unlock();
+	mc_interface_select_motor_thread(2);
+	mc_interface_unlock();
+
 	utils_sys_unlock_cnt();
+
+	mc_interface_select_motor_thread(motor_old);
 
 	return is_ok;
 }
@@ -293,11 +308,19 @@ void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2)
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2) {
+	int motor_old = mc_interface_get_motor_thread();
+
+	mc_interface_select_motor_thread(1);
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_lock();
+
+	mc_interface_select_motor_thread(2);
+	mc_interface_unlock();
+	mc_interface_release_motor();
+	mc_interface_lock();
 
 	utils_sys_lock_cnt();
-	mc_interface_lock();
 
 	timeout_configure_IWDT_slowest();
 
@@ -323,8 +346,15 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	timeout_configure_IWDT();
 
 	chThdSleepMilliseconds(100);
+
+	mc_interface_select_motor_thread(1);
 	mc_interface_unlock();
+	mc_interface_select_motor_thread(2);
+	mc_interface_unlock();
+
 	utils_sys_unlock_cnt();
+
+	mc_interface_select_motor_thread(motor_old);
 
 	return is_ok;
 }
