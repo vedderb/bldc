@@ -69,11 +69,12 @@ static BalanceState state;
 static float pitch_angle, roll_angle;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
+static float erpm, abs_erpm, avg_erpm;
 static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
-static float setpoint, setpoint_target;
-static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value;
+static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
+static float setpoint, setpoint_target, setpoint_target_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float startup_step_size, tiltback_step_size;
 static systime_t current_time, last_time, diff_time;
@@ -103,6 +104,9 @@ void app_balance_start(void) {
 	gyro[2] = 0;
 	duty_cycle = 0;
 	abs_duty_cycle = 0;
+	erpm = 0;
+	abs_erpm = 0;
+	avg_erpm = 0;
 	adc1 = 0;
 	adc2 = 0;
 	switch_state = OFF;
@@ -111,8 +115,15 @@ void app_balance_start(void) {
 	derivative = 0;
 	last_proportional = 0;
 	pid_value = 0;
+	yaw_proportional = 0;
+	yaw_integral = 0;
+	yaw_derivative = 0;
+	yaw_last_proportional = 0;
+	yaw_pid_value = 0;
+	yaw_setpoint = 0;
 	setpoint = 0;
 	setpoint_target = 0;
+	setpoint_target_interpolated = 0;
 	setpointAdjustmentType = CENTERING;
 	startup_step_size = 0;
 	tiltback_step_size = 0;
@@ -206,7 +217,7 @@ void set_current(float current, float yaw_current){
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-				comm_can_set_current(msg->id, current - yaw_current);
+				comm_can_set_current(msg->id, current - yaw_current);// Assume 2 motors, i don't know how to steer 3 anyways
 			}
 		}
 	} else {
@@ -251,6 +262,18 @@ static THD_FUNCTION(balance_thread, arg) {
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
+		erpm = mc_interface_get_rpm();
+		abs_erpm = fabsf(erpm);
+		if(balance_conf.multi_esc){
+			avg_erpm = erpm;
+			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+				can_status_msg *msg = comm_can_get_status_msg_index(i);
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+					avg_erpm += msg->rpm;
+				}
+			}
+			avg_erpm = avg_erpm/2;// Assume 2 motors, i don't know how to steer 3 anyways
+		}
 		adc1 = (((float)ADC_Value[ADC_IND_EXT])/4095) * V_REG;
 #ifdef ADC_IND_EXT2
 		adc2 = (((float)ADC_Value[ADC_IND_EXT2])/4095) * V_REG;
@@ -312,7 +335,7 @@ static THD_FUNCTION(balance_thread, arg) {
 					fabsf(pitch_angle) > balance_conf.pitch_fault || // Balnce axis tip over
 					fabsf(roll_angle) > balance_conf.roll_fault || // Cross axis tip over
 					switch_state == OFF || // Switch fully open
-					(switch_state == HALF && abs_duty_cycle < 0.003) // Switch partially open and stopped
+					(switch_state == HALF && abs_erpm < balance_conf.adc_half_fault_erpm) // Switch partially open and stopped
 						){
 					if(ST2MS(current_time - fault_start_time) > balance_conf.fault_delay){
 						state = FAULT;
@@ -322,7 +345,9 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				// Over speed tilt back safety
-				if(abs_duty_cycle > balance_conf.tiltback_duty ||
+				if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
+					// Ignore tiltback during centering sequence
+				}else if(abs_duty_cycle > balance_conf.tiltback_duty ||
 						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
 						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
 					if(duty_cycle > 0){
@@ -340,18 +365,33 @@ static THD_FUNCTION(balance_thread, arg) {
 					}
 					setpointAdjustmentType = TILTBACK;
 				}else{
+					setpointAdjustmentType = TILTBACK;
 					setpoint_target = 0;
 				}
 
 				// Adjust setpoint
-				if(setpoint != setpoint_target){
+				if(setpoint_target_interpolated != setpoint_target){
 					// If we are less than one step size away, go all the way
-					if(fabsf(setpoint_target - setpoint) < get_setpoint_adjustment_step_size()){
-						setpoint = setpoint_target;
-					}else if (setpoint_target - setpoint > 0){
-						setpoint += get_setpoint_adjustment_step_size();
+					if(fabsf(setpoint_target - setpoint_target_interpolated) < get_setpoint_adjustment_step_size()){
+						setpoint_target_interpolated = setpoint_target;
+					}else if (setpoint_target - setpoint_target_interpolated > 0){
+						setpoint_target_interpolated += get_setpoint_adjustment_step_size();
 					}else{
-						setpoint -= get_setpoint_adjustment_step_size();
+						setpoint_target_interpolated -= get_setpoint_adjustment_step_size();
+					}
+				}
+
+				// Apply setpoint filtering
+				if(setpointAdjustmentType == CENTERING){
+					// Ignore filtering during centering
+					setpoint = setpoint_target_interpolated;
+				}else{
+					setpoint = (setpoint * (1-balance_conf.setpoint_pitch_filter)) + (pitch_angle * balance_conf.setpoint_pitch_filter);
+					setpoint = (setpoint * (1-balance_conf.setpoint_target_filter)) + (setpoint_target_interpolated * balance_conf.setpoint_target_filter);
+					if(setpoint > balance_conf.setpoint_clamp){
+						setpoint = balance_conf.setpoint_clamp;
+					}else if (setpoint < -balance_conf.setpoint_clamp){
+						setpoint = -balance_conf.setpoint_clamp;
 					}
 				}
 
@@ -375,18 +415,26 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				if(balance_conf.multi_esc){
-					// Do PID maths
+					// Calculate setpoint
 					if(abs_duty_cycle < .02){
-						yaw_proportional = 0 - gyro[2];
-					} else if(duty_cycle < 0){
-						yaw_proportional = (balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+						yaw_setpoint = 0;
+					} else if(avg_erpm < 0){
+						yaw_setpoint = (-balance_conf.roll_steer_kp * roll_angle) + (balance_conf.roll_steer_erpm_kp * roll_angle * avg_erpm);
 					} else{
-						yaw_proportional = (-balance_conf.roll_steer_kp * roll_angle) - gyro[2];
+						yaw_setpoint = (balance_conf.roll_steer_kp * roll_angle) + (balance_conf.roll_steer_erpm_kp * roll_angle * avg_erpm);
 					}
+					// Do PID maths
+					yaw_proportional = yaw_setpoint - gyro[2];
 					yaw_integral = yaw_integral + yaw_proportional;
 					yaw_derivative = yaw_proportional - yaw_last_proportional;
 
 					yaw_pid_value = (balance_conf.yaw_kp * yaw_proportional) + (balance_conf.yaw_ki * yaw_integral) + (balance_conf.yaw_kd * yaw_derivative);
+
+					if(yaw_pid_value > balance_conf.yaw_current_clamp){
+						yaw_pid_value = balance_conf.yaw_current_clamp;
+					}else if(yaw_pid_value < -balance_conf.yaw_current_clamp){
+						yaw_pid_value = -balance_conf.yaw_current_clamp;
+					}
 
 					yaw_last_proportional = yaw_proportional;
 				}
@@ -397,8 +445,15 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (FAULT):
 				// Check for valid startup position and switch state
 				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && switch_state == ON){
+					// Clear accumulated values.
+					integral = 0;
+					last_proportional = 0;
+					yaw_integral = 0;
+					yaw_last_proportional = 0;
+					// Set values for startup
 					setpoint = pitch_angle;
 					setpoint_target = 0;
+					setpoint_target_interpolated = pitch_angle;
 					setpointAdjustmentType = CENTERING;
 					state = RUNNING;
 					break;

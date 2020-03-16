@@ -567,6 +567,12 @@ typedef struct {
 	uint16_t overspeed_delay;
 	uint16_t fault_delay;
 	float tiltback_constant;
+	float roll_steer_erpm_kp;
+	float yaw_current_clamp;
+	uint16_t adc_half_fault_erpm;
+	float setpoint_pitch_filter;
+	float setpoint_target_filter;
+	float setpoint_clamp;
 } balance_config;
 
 // CAN status modes
