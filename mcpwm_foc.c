@@ -2064,7 +2064,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 #ifdef HW_HAS_3_SHUNTS
 #ifdef HW_HAS_DUAL_MOTORS
-	int curr2 = is_second_motor ? GET_CURRENT3() : GET_CURRENT3_M2();
+	int curr2 = is_second_motor ? GET_CURRENT3_M2() : GET_CURRENT3();
 #else
 	int curr2 = GET_CURRENT3();
 #endif
