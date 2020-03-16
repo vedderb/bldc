@@ -2106,7 +2106,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 #ifdef HW_HAS_3_SHUNTS
 #ifdef HW_HAS_DUAL_MOTORS
-	int curr2 = is_second_motor ? GET_CURRENT3() : GET_CURRENT3_M2();
+	int curr2 = is_second_motor ? GET_CURRENT3_M2() : GET_CURRENT3();
 #else
 	int curr2 = GET_CURRENT3();
 #endif
@@ -2762,9 +2762,9 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	}
 
 	// Update and the observer gain.
-	motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now), 0.0, 1.0,
-			motor->m_conf->foc_observer_gain * motor->m_conf->foc_observer_gain_slow,
-			motor->m_conf->foc_observer_gain);
+	motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now),
+	                               0.0, 30.0 / motor->m_motor_state.v_bus, motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
+	                               motor->m_conf->foc_observer_gain);
 }
 
 static THD_FUNCTION(timer_thread, arg) {

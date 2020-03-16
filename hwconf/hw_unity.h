@@ -72,13 +72,13 @@
 //#define DISABLE_GATE2()							palClearPad(GPIOD, 4)
 
 #define ENABLE_MOS_TEMP1()						palSetPad(GPIOE, 7); palClearPad(GPIOD, 8);\
-												palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
 #define ENABLE_MOS_TEMP2()						palSetPad(GPIOD, 8); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
 #define ENABLE_MOT_TEMP1()						palSetPad(GPIOD, 9); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 8); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 8); palClearPad(GPIOB, 12);
 #define ENABLE_MOT_TEMP2()						palSetPad(GPIOB, 12); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 8); palClearPad(GPIOD, 9);
+		palClearPad(GPIOD, 8); palClearPad(GPIOD, 9);
 
 #define DCCAL_ON()								palSetPad(GPIOB, 8)
 #define DCCAL_OFF()								palClearPad(GPIOB, 8)
@@ -275,6 +275,7 @@
 #define ADC_V_L4				ADC_Value[ADC_IND_SENS4]
 #define ADC_V_L5				ADC_Value[ADC_IND_SENS5]
 #define ADC_V_L6				ADC_Value[ADC_IND_SENS6]
+
 #define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
