@@ -160,11 +160,11 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 
-	drv8301_select_second_motor(false);
+	mc_interface_select_motor_thread(1);
 	drv8301_init();
-	drv8301_select_second_motor(true);
+	mc_interface_select_motor_thread(2);
 	drv8301_init();
-	drv8301_select_second_motor(false);
+	mc_interface_select_motor_thread(1);
 }
 
 void hw_setup_adc_channels(void) {

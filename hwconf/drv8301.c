@@ -29,6 +29,7 @@
 #include "commands.h"
 #include <string.h>
 #include <stdio.h>
+#include "mc_interface.h"
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -44,7 +45,6 @@ static void terminal_reset_faults(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
-static volatile bool m_is_motor2;
 
 void drv8301_init(void) {
 	// DRV8301 SPI
@@ -56,8 +56,6 @@ void drv8301_init(void) {
 #ifdef DRV8301_CS_GPIO2
 	palSetPadMode(DRV8301_CS_GPIO2, DRV8301_CS_PIN2, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 #endif
-
-	m_is_motor2 = false;
 
 	chThdSleepMilliseconds(100);
 
@@ -94,10 +92,6 @@ void drv8301_init(void) {
 			"Reset all latched DRV8301 faults.",
 			0,
 			terminal_reset_faults);
-}
-
-void drv8301_select_second_motor(bool select_second_motor) {
-	m_is_motor2 = select_second_motor;
 }
 
 /**
@@ -294,7 +288,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 static void spi_begin(void) {
 #ifdef DRV8301_CS_GPIO2
-	if (m_is_motor2) {
+	if (mc_interface_motor_now() == 2) {
 		palClearPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
 	} else {
 		palClearPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
@@ -306,7 +300,7 @@ static void spi_begin(void) {
 
 static void spi_end(void) {
 #ifdef DRV8301_CS_GPIO2
-	if (m_is_motor2) {
+	if (mc_interface_motor_now() == 2) {
 		palSetPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
 	} else {
 		palSetPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
