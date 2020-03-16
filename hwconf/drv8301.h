@@ -22,7 +22,6 @@
 
 // Functions
 void drv8301_init(void);
-void drv8301_select_second_motor(bool select_second_motor);
 void drv8301_set_oc_adj(int val);
 void drv8301_set_oc_mode(drv8301_oc_mode mode);
 int drv8301_read_faults(void);

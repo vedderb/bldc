@@ -27,12 +27,11 @@
 // Functions
 void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuration *conf_m2);
 void mcpwm_foc_deinit(void);
-void mcpwm_foc_select_second_motor(bool select_second_motor);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration);
 mc_state mcpwm_foc_get_state(void);
 bool mcpwm_foc_is_dccal_done(void);
-bool mcpwm_foc_is_isr(void);
+int mcpwm_foc_isr_motor(void);
 void mcpwm_foc_stop_pwm(bool is_second_motor);
 void mcpwm_foc_set_duty(float dutyCycle);
 void mcpwm_foc_set_duty_noramp(float dutyCycle);

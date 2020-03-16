@@ -25,9 +25,9 @@
 
 // Functions
 void mc_interface_init(void);
+int mc_interface_motor_now(void);
 void mc_interface_select_motor_thread(int motor);
 int mc_interface_get_motor_thread(void);
-void mc_interface_update_selected_motor(void);
 const volatile mc_configuration* mc_interface_get_configuration(void);
 void mc_interface_set_configuration(mc_configuration *configuration);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
