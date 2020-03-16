@@ -174,6 +174,9 @@ static THD_FUNCTION(timeout_thread, arg) {
 	for(;;) {
 		if (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec)) {
 			mc_interface_unlock();
+			mc_interface_select_motor_thread(1);
+			mc_interface_set_brake_current(timeout_brake_current);
+			mc_interface_select_motor_thread(2);
 			mc_interface_set_brake_current(timeout_brake_current);
 			has_timeout = true;
 		} else {

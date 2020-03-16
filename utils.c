@@ -20,6 +20,8 @@
 #include "utils.h"
 #include "ch.h"
 #include "hal.h"
+#include "app.h"
+#include "conf_general.h"
 #include <math.h>
 #include <string.h>
 
@@ -737,6 +739,24 @@ void utils_fft8_bin2(float *real_in, float *real, float *imag) {
 	}
 	*real /= 8.0;
 	*imag /= 8.0;
+}
+
+/**
+ * Get ID of second motor.
+ *
+ * @return
+ * id for second motor. -1 if this hardware only has one motor.
+ */
+uint8_t utils_second_motor_id(void) {
+#ifdef HW_HAS_DUAL_MOTORS
+	uint8_t id_next = app_get_configuration()->controller_id + 1;
+	if (id_next == 255) {
+		id_next = 0;
+	}
+	return id_next;
+#else
+	return 0;
+#endif
 }
 
 const float utils_tab_sin_32_1[] = {

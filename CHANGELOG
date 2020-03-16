@@ -1,3 +1,11 @@
+=== FW 5.00 ===
+* Dual motor support. VESC-based controllers such as the focbox unity will now work.
+* 
+
+=== FW 4.03 ===
+* Fixed bug in cross BEMF decoupling.
+* Disable CC decoupling during flux linkage measurement.
+
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
 * App balance updates. See https://github.com/vedderb/bldc/pull/138.

@@ -25,13 +25,15 @@
 #include <stdbool.h>
 
 // Functions
-void mcpwm_foc_init(volatile mc_configuration *configuration);
+void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuration *conf_m2);
 void mcpwm_foc_deinit(void);
+void mcpwm_foc_select_second_motor(bool select_second_motor);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration);
 mc_state mcpwm_foc_get_state(void);
 bool mcpwm_foc_is_dccal_done(void);
-void mcpwm_foc_stop_pwm(void);
+bool mcpwm_foc_is_isr(void);
+void mcpwm_foc_stop_pwm(bool is_second_motor);
 void mcpwm_foc_set_duty(float dutyCycle);
 void mcpwm_foc_set_duty_noramp(float dutyCycle);
 void mcpwm_foc_set_pid_speed(float rpm);
@@ -78,8 +80,15 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_adc_isr_duration(void);
-void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset);
-void mcpwm_foc_set_current_offsets(volatile int curr0_offset, volatile int curr1_offset, volatile int curr2_offset);
+void mcpwm_foc_get_current_offsets(
+		volatile int *curr0_offset,
+		volatile int *curr1_offset,
+		volatile int *curr2_offset,
+		bool is_second_motor);
+void mcpwm_foc_set_current_offsets(
+		volatile int curr0_offset,
+		volatile int curr1_offset,
+		volatile int curr2_offset);
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
 

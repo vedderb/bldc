@@ -157,6 +157,8 @@ CSRC = $(STARTUPSRC) \
        i2c_bb.c \
        virtual_motor.c \
        shutdown.c \
+       mempools.c \
+       worker.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \

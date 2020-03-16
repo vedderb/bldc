@@ -794,6 +794,7 @@ typedef enum {
 
 // Logged fault data
 typedef struct {
+	uint8_t motor;
 	mc_fault_code fault;
 	float current;
 	float current_filtered;

@@ -31,6 +31,7 @@
 void comm_can_init(void);
 void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
+void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace);
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
 void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));

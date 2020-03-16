@@ -54,11 +54,13 @@
 #include "bm_if.h"
 #endif
 #include "shutdown.h"
+#include "mempools.h"
 
 /*
  * HW resources used:
  *
  * TIM1: mcpwm
+ * TIM2: mcpwm_foc
  * TIM5: timer
  * TIM8: mcpwm
  * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
@@ -220,11 +222,7 @@ int main(void) {
 	}
 
 	ledpwm_init();
-
-	mc_configuration mcconf;
-	conf_general_read_mc_configuration(&mcconf);
-
-	mc_interface_init(&mcconf);
+	mc_interface_init();
 
 	commands_init();
 
@@ -236,9 +234,9 @@ int main(void) {
 	comm_can_init();
 #endif
 
-	app_configuration appconf;
-	conf_general_read_app_configuration(&appconf);
-	app_set_configuration(&appconf);
+	app_configuration *appconf = mempools_alloc_appconf();
+	conf_general_read_app_configuration(appconf);
+	app_set_configuration(appconf);
 	app_uartcomm_start_permanent();
 
 #ifdef HW_HAS_PERMANENT_NRF
@@ -335,8 +333,10 @@ int main(void) {
 #endif
 
 	timeout_init();
-	timeout_configure(appconf.timeout_msec, appconf.timeout_brake_current);
-	imu_init(&appconf.imu_conf);
+	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current);
+	imu_init(&appconf->imu_conf);
+
+	mempools_free_appconf(appconf);
 
 #if HAS_BLACKMAGIC
 	bm_init();

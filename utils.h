@@ -59,6 +59,7 @@ void utils_fft16_bin2(float *real_in, float *real, float *imag);
 void utils_fft8_bin0(float *real_in, float *real, float *imag);
 void utils_fft8_bin1(float *real_in, float *real, float *imag);
 void utils_fft8_bin2(float *real_in, float *real, float *imag);
+uint8_t utils_second_motor_id(void);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

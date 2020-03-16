@@ -213,7 +213,7 @@ void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled) {
 static THD_FUNCTION(packet_process_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("uartcomm process");
+	chRegSetThreadName("uartcomm proc");
 
 	event_listener_t el;
 	chEvtRegisterMaskWithFlags(&HW_UART_DEV.event, &el, EVENT_MASK(0), CHN_INPUT_AVAILABLE);
