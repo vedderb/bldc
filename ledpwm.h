@@ -30,6 +30,8 @@
 #define HW_LEDPWM_CH		2
 #elif defined(LED_PWM1_ON)
 #define HW_LEDPWM_CH		1
+#else
+#define HW_LEDPWM_CH		0
 #endif
 
 // Settings

@@ -1,8 +1,5 @@
-=== FW 5.00 ===
+=== FW 5.00 <dev> ===
 * Dual motor support. VESC-based controllers such as the focbox unity will now work.
-* 
-
-=== FW 4.03 ===
 * Fixed bug in cross BEMF decoupling.
 * Disable CC decoupling during flux linkage measurement.
 
