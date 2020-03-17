@@ -30,6 +30,8 @@
                                     drv8323s_write_reg(3,0x3AA); \
                                     drv8323s_write_reg(4,0x7AA);
 
+
+
 //#define HW_DEAD_TIME_NSEC               360.0   // Dead time
 
 #define HW_HAS_DUAL_MOTOR
@@ -41,8 +43,8 @@
 #define SWITCH_IN_PIN        15
 #define SWITCH_OUT_GPIO       GPIOB
 #define SWITCH_OUT_PIN        13
-#define SWITCH_PRECHARGE_GPIO       GPIOE
-#define SWITCH_PRECHARGE_PIN        2
+#define SWITCH_PRECHARGED_GPIO       GPIOE
+#define SWITCH_PRECHARGED_PIN        2
 #define SWITCH_LED_3_GPIO       GPIOD
 #define SWITCH_LED_3_PIN        15
 #define SWITCH_LED_2_GPIO       GPIOD
@@ -58,6 +60,12 @@
 #define LED_PWM3_OFF()							palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF			2000
+
+
+
+#define HW_SHUTDOWN_HOLD_ON();
+#define HW_SAMPLE_SHUTDOWN()   1
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN); palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 
 
 #define DCCAL_ON() //drv8323s_dccal_on()

@@ -38,8 +38,8 @@
 #define SWITCH_IN_PIN        15
 #define SWITCH_OUT_GPIO       GPIOB
 #define SWITCH_OUT_PIN        13
-#define SWITCH_PRECHARGE_GPIO       GPIOE
-#define SWITCH_PRECHARGE_PIN        2
+#define SWITCH_PRECHARGED_GPIO       GPIOE
+#define SWITCH_PRECHARGED_PIN        2
 #define SWITCH_LED_3_GPIO       GPIOD
 #define SWITCH_LED_3_PIN        15
 #define SWITCH_LED_2_GPIO       GPIOD

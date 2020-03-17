@@ -362,7 +362,7 @@ void smart_switch_shut_down(void) {
 	switch_state = SWITCH_SHUTTING_DOWN;
 	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 #ifdef HW_HAS_STORMCORE_SWITCH
-	palClearPad(SWITCH_PRECHARGE_GPIO, SWITCH_PRECHARGE_PIN);
+	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 #endif
 	return;
 }
@@ -377,10 +377,52 @@ bool smart_switch_is_pressed(void) {
 static THD_FUNCTION(switch_color_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("switch_color_thread");
+	float switch_red = 0.0;
+	float switch_green = 0.0;
+	float switch_blue = 0.0;
+
+	for(int i = 0; i < 400; i++) {
+		float angle = i*3.14/400.0;
+		float s,c;
+		utils_fast_sincos_better(angle, &s, &c);
+		switch_blue = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW1,switch_bright*switch_blue);
+		utils_fast_sincos_better(angle + 3.14/3.0, &s, &c);
+		switch_green = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW2,switch_bright*switch_green);
+		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
+		switch_red = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
+		chThdSleepMilliseconds(10);
+	}
+	float switch_red_old = switch_red_old;
+	float switch_green_old = switch_green;
+	float switch_blue_old = switch_blue;
+	float wh_left;
+	float left = mc_interface_get_battery_level(&wh_left);
+	if(left < 0.5){
+		float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_blue = intense;
+		switch_red  = 1.0-intense;
+	}else{
+		float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_green = intense;
+		switch_blue  = 1.0-intense;
+	}
+	for(int i = 0; i < 100; i++) {
+		float red_now = utils_map((float) i,0.0, 100.0, switch_red_old, switch_red);
+		float blue_now = utils_map((float) i,0.0, 100.0, switch_blue_old, switch_blue);
+		float green_now = utils_map((float) i,0.0, 100.0, switch_green_old, switch_green);
+		ledpwm_set_intensity(LED_HW1, switch_bright*blue_now);
+		ledpwm_set_intensity(LED_HW2, switch_bright*green_now);
+		ledpwm_set_intensity(LED_HW3, switch_bright*red_now);
+		chThdSleepMilliseconds(10);
+	}
+
 	for (;;) {
-		float switch_red = 0;
-		float switch_green = 0;
-		float switch_blue = 1.0;
+
 
 		mc_fault_code fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
@@ -394,18 +436,19 @@ static THD_FUNCTION(switch_color_thread, arg) {
 			}
 			chThdSleepMilliseconds(500);
 		} else {
-			float wh_left;
-			float left = mc_interface_get_battery_level(&wh_left);
+			left = mc_interface_get_battery_level(&wh_left);
 			if(left < 0.5){
 				float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
 				utils_truncate_number(&intense,0,1);
 				switch_blue = intense;
 				switch_red  = 1.0-intense;
+				switch_green = 0;
 			}else{
 				float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
 				utils_truncate_number(&intense,0,1);
 				switch_green = intense;
 				switch_blue  = 1.0-intense;
+				switch_red = 0;
 			}
 			ledpwm_set_intensity(LED_HW1, switch_bright*switch_blue);
 			ledpwm_set_intensity(LED_HW2, switch_bright*switch_green);
@@ -419,10 +462,6 @@ static THD_FUNCTION(switch_color_thread, arg) {
 static THD_FUNCTION(smart_switch_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("smart_switch");
-
-
-
-
 	unsigned int millis_switch_pressed = 0;
 
 	for (;;) {
@@ -433,7 +472,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			chThdSleepMilliseconds(5000);
-			palSetPad(SWITCH_PRECHARGE_GPIO, SWITCH_PRECHARGE_PIN);
+			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
 			smart_switch_keep_on();
@@ -492,8 +531,8 @@ void smart_switch_pin_init(void) {
 	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(SWITCH_PRECHARGE_GPIO, SWITCH_PRECHARGE_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palClearPad(SWITCH_PRECHARGE_GPIO, SWITCH_PRECHARGE_PIN);
+	palSetPadMode(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 	LED_SWITCH_B_ON();
 	LED_SWITCH_R_OFF();
