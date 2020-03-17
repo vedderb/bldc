@@ -42,7 +42,7 @@ void dpv_rotary_isr(void) {
 		targetSpeed -= SPEED_STEP;
 		if (targetSpeed < SPEED_MIN) targetSpeed = SPEED_MIN;
 	}
-//	commands_printf("TargetSpeed: %01.2f", targetSpeed);
+	commands_printf("TargetSpeed: %01.2f", targetSpeed);
 }
 
 

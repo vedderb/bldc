@@ -90,7 +90,7 @@
 #define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		20.0
+#define CURRENT_AMP_GAIN		100.0
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		0.0005
@@ -125,7 +125,7 @@
 #define HW_SERVO_NUM			0 //2
 
 // UART Peripheral
-#define HW_UART_DEV			SD3
+#define HW_UART_DEV			    SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
