@@ -15,36 +15,36 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #ifndef HW_STORMCORE_100S_H_
 #define HW_STORMCORE_100S_H_
 
 #include "drv8323s.h"
 
-#define HW_NAME                 "STORMCORE_100S"
+#define HW_NAME							"STORMCORE_100S"
 
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
 
-#define DRV8323S_CUSTOM_SETTINGS() drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x388); \
-                                    drv8323s_write_reg(4,0x788);
+#define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+										drv8323s_write_reg(3,0x388); \
+										drv8323s_write_reg(4,0x788);
 
 // Macros
-#define ENABLE_GATE()           palSetPad(GPIOB, 5)
-#define DISABLE_GATE()          palClearPad(GPIOB, 5)
+#define ENABLE_GATE()			palSetPad(GPIOB, 5)
+#define DISABLE_GATE()			palClearPad(GPIOB, 5)
 
-#define DCCAL_ON()            drv8323s_dccal_on()
-#define DCCAL_OFF()            drv8323s_dccal_off()
+#define DCCAL_ON()				drv8323s_dccal_on()
+#define DCCAL_OFF()				drv8323s_dccal_off()
 
-#define IS_DRV_FAULT()          (!palReadPad(GPIOB, 7))
+#define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
 
-#define LED_GREEN_ON()          palSetPad(GPIOB, 0)
-#define LED_GREEN_OFF()         palClearPad(GPIOB, 0)
-#define LED_RED_ON()            palSetPad(GPIOB, 1)
-#define LED_RED_OFF()           palClearPad(GPIOB, 1)
+#define LED_GREEN_ON()			palSetPad(GPIOB, 0)
+#define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
+#define LED_RED_ON()			palSetPad(GPIOB, 1)
+#define LED_RED_OFF()			palClearPad(GPIOB, 1)
 
 //#define PHASE_FILTER_GPIO       GPIOC
 //#define PHASE_FILTER_PIN        13
@@ -71,41 +71,41 @@
  * 14:  IN1     SENS2
  */
 
-#define HW_ADC_CHANNELS         15
-#define HW_ADC_INJ_CHANNELS     3
-#define HW_ADC_NBR_CONV         5
+#define HW_ADC_CHANNELS			15
+#define HW_ADC_INJ_CHANNELS		3
+#define HW_ADC_NBR_CONV			5
 
 // ADC Indexes
-#define ADC_IND_SENS1           0
-#define ADC_IND_SENS2           1
-#define ADC_IND_SENS3           2
-#define ADC_IND_CURR1           3
-#define ADC_IND_CURR2           4
-#define ADC_IND_CURR3           5
-#define ADC_IND_VIN_SENS        11
-#define ADC_IND_EXT             6
-#define ADC_IND_EXT2            7
-#define ADC_IND_TEMP_MOS        8
-#define ADC_IND_TEMP_MOTOR      9
-#define ADC_IND_VREFINT         12
+#define ADC_IND_SENS1			0
+#define ADC_IND_SENS2			1
+#define ADC_IND_SENS3			2
+#define ADC_IND_CURR1			3
+#define ADC_IND_CURR2			4
+#define ADC_IND_CURR3			5
+#define ADC_IND_VIN_SENS		11
+#define ADC_IND_EXT				6
+#define ADC_IND_EXT2			7
+#define ADC_IND_TEMP_MOS		8
+#define ADC_IND_TEMP_MOTOR		9
+#define ADC_IND_VREFINT			12
 
 // ADC macros and settings
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG                   3.3
+#define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1                  68000.0
+#define VIN_R1					68000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2                  2200.0
+#define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN        10.0
+#define CURRENT_AMP_GAIN		10.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES       0.001
+#define CURRENT_SHUNT_RES		0.001
 #endif
 
 // Input voltage

@@ -336,9 +336,6 @@ void smart_switch_keep_on(void) {
 void smart_switch_shut_down(void) {
 	switch_state = SWITCH_SHUTTING_DOWN;
 	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-#ifdef HW_HAS_STORMCORE_SWITCH
-	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
-#endif
 	return;
 }
 
@@ -359,21 +356,13 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		switch (switch_state) {
 		case SWITCH_BOOTED:
 			ledpwm_set_intensity(LED_HW1, 0.6);
-#ifdef HW_HAS_RGB_SWITCH
-			ledpwm_set_intensity(SWITCH_LED_B, 1.0);
-#else
 			ledpwm_set_intensity(LED_HW1, 1.0);
-#endif
 			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
 			break;
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			chThdSleepMilliseconds(500);
 			ledpwm_set_intensity(LED_HW1, 0.6);
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
-#ifdef HW_HAS_STORMCORE_SWITCH
-			chThdSleepMilliseconds(5000);
-			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
-#endif
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
 			smart_switch_keep_on();
@@ -429,23 +418,6 @@ void smart_switch_pin_init(void) {
 
 	palSetPadMode(SWITCH_IN_GPIO, SWITCH_IN_PIN, PAL_MODE_INPUT);
 	palSetPadMode(SWITCH_OUT_GPIO,SWITCH_OUT_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-#ifdef HW_HAS_RGB_SWITCH
-	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-#endif
-#ifdef HW_HAS_STORMCORE_SWITCH
-	palSetPadMode(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
-	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-#endif
-#ifdef HW_HAS_RGB_SWITCH
-	LED_SWITCH_B_ON();
-	LED_SWITCH_R_OFF();
-	LED_SWITCH_G_OFF();
-#else
-	LED_PWM1_ON();
-#endif
-
+	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);	LED_PWM1_ON();
 	return;
 }

@@ -34,6 +34,10 @@
 #define SWITCH_LED_2_GPIO						GPIOD
 #define SWITCH_LED_2_PIN						11
 
+#define HW_SHUTDOWN_HOLD_ON();
+#define HW_SAMPLE_SHUTDOWN()   1
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+
 #define LED_PWM1_ON()							palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM1_OFF()							palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM2_ON()							palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
