@@ -27,9 +27,10 @@
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
-//#define INVERTED_SHUNT_POLARITY
 
-//#define HW_DEAD_TIME_NSEC               400.0   // Dead time
+#define DRV8323S_CUSTOM_SETTINGS() drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+                                    drv8323s_write_reg(3,0x388); \
+                                    drv8323s_write_reg(4,0x788);
 
 // Macros
 #define ENABLE_GATE()           palSetPad(GPIOB, 5)

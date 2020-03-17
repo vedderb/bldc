@@ -31,6 +31,7 @@ static const I2CConfig i2cfg = {
 								100000,
 								STD_DUTY_CYCLE
 };
+static volatile bool i2c_running = false;
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
