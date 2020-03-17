@@ -165,6 +165,7 @@ void mc_interface_init(void) {
 #elif defined(HW_HAS_DRV8323S)
 	drv8323s_set_oc_mode(motor_now()->m_conf.m_drv8301_oc_mode);
 	drv8323s_set_oc_adj(motor_now()->m_conf.m_drv8301_oc_adj);
+	DRV8323S_CUSTOM_SETTINGS();
 #endif
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -178,6 +179,7 @@ void mc_interface_init(void) {
 #elif defined(HW_HAS_DRV8323S)
 	drv8323s_set_oc_mode(motor_now()->m_conf.m_drv8301_oc_mode);
 	drv8323s_set_oc_adj(motor_now()->m_conf.m_drv8301_oc_adj);
+	DRV8323S_CUSTOM_SETTINGS();
 #endif
 #endif
 	mc_interface_select_motor_thread(motor_old);

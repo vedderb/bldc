@@ -444,6 +444,12 @@
 #define ADC_V_L6				ADC_V_L3
 #endif
 
+#ifdef HW_HAS_DRV8323S
+#ifndef DRV8323S_CUSTOM_SETTINGS
+#define DRV8323S_CUSTOM_SETTINGS()
+#endif
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

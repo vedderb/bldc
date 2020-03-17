@@ -34,6 +34,10 @@
 #define SWITCH_LED_2_GPIO						GPIOD
 #define SWITCH_LED_2_PIN						11
 
+#define HW_SHUTDOWN_HOLD_ON();
+#define HW_SAMPLE_SHUTDOWN()   1
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+
 #define LED_PWM1_ON()							palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM1_OFF()							palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM2_ON()							palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
@@ -72,13 +76,13 @@
 //#define DISABLE_GATE2()							palClearPad(GPIOD, 4)
 
 #define ENABLE_MOS_TEMP1()						palSetPad(GPIOE, 7); palClearPad(GPIOD, 8);\
-												palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
 #define ENABLE_MOS_TEMP2()						palSetPad(GPIOD, 8); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 9); palClearPad(GPIOB, 12);
 #define ENABLE_MOT_TEMP1()						palSetPad(GPIOD, 9); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 8); palClearPad(GPIOB, 12);
+		palClearPad(GPIOD, 8); palClearPad(GPIOB, 12);
 #define ENABLE_MOT_TEMP2()						palSetPad(GPIOB, 12); palClearPad(GPIOE, 7);\
-												palClearPad(GPIOD, 8); palClearPad(GPIOD, 9);
+		palClearPad(GPIOD, 8); palClearPad(GPIOD, 9);
 
 #define DCCAL_ON()								palSetPad(GPIOB, 8)
 #define DCCAL_OFF()								palClearPad(GPIOB, 8)
@@ -275,6 +279,7 @@
 #define ADC_V_L4				ADC_Value[ADC_IND_SENS4]
 #define ADC_V_L5				ADC_Value[ADC_IND_SENS5]
 #define ADC_V_L6				ADC_Value[ADC_IND_SENS6]
+
 #define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
