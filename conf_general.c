@@ -1092,7 +1092,8 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = l * bw;
 	float ki = r * bw;
-	float gain = (0.00001 / r) / (lambda * lambda);
+	float gain = 1.0e-3 / (lambda * lambda);
+//	float gain = (0.00001 / r) / (lambda * lambda); // Old method
 
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;

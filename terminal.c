@@ -165,9 +165,12 @@ void terminal_process_string(char *str) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
 		volatile int t8_cnt = TIM8->CNT;
+		volatile int t1_cnt2 = TIM1->CNT;
+		volatile int t2_cnt = TIM2->CNT;
 		volatile int dir1 = !!(TIM1->CR1 & (1 << 4));
 		volatile int dir8 = !!(TIM8->CR1 & (1 << 4));
 		chSysUnlock();
+
 		int duty1 = TIM1->CCR1;
 		int duty2 = TIM1->CCR2;
 		int duty3 = TIM1->CCR3;
@@ -175,8 +178,11 @@ void terminal_process_string(char *str) {
 		int voltage_samp = TIM8->CCR1;
 		int current1_samp = TIM1->CCR4;
 		int current2_samp = TIM8->CCR2;
+
 		commands_printf("Tim1 CNT: %i", t1_cnt);
-		commands_printf("Tim8 CNT: %u", t8_cnt);
+		commands_printf("Tim8 CNT: %i", t8_cnt);
+		commands_printf("Tim2 CNT: %i", t2_cnt);
+		commands_printf("Amount off CNT: %i",top - (2*t8_cnt + t1_cnt + t1_cnt2)/2);
 		commands_printf("Duty cycle1: %u", duty1);
 		commands_printf("Duty cycle2: %u", duty2);
 		commands_printf("Duty cycle3: %u", duty3);
