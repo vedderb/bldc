@@ -23,6 +23,7 @@
 // Firmware version
 #define FW_VERSION_MAJOR		5
 #define FW_VERSION_MINOR		00
+#define FW_IS_TEST_BUILD		1
 
 #include "datatypes.h"
 

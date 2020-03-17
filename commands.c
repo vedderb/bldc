@@ -182,6 +182,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		ind += 12;
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
+		send_buffer[ind++] = FW_IS_TEST_BUILD;
 
 		reply_func(send_buffer, ind);
 	} break;
