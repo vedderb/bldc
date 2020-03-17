@@ -3,6 +3,8 @@
 * Fixed bug in cross BEMF decoupling.
 * Disable CC decoupling during flux linkage measurement.
 * Balance app updates. See: https://github.com/vedderb/bldc/pull/141
+* Observer gain calculation update.
+* Added test build flag, that is transmitted with the FW Version command.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).

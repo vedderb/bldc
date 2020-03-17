@@ -354,7 +354,7 @@ static void timer_reinit(int f_sw) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR/2;
+	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -471,11 +471,10 @@ static void timer_reinit(int f_sw) {
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 	TIM_CtrlPWMOutputs(TIM8, ENABLE);
 
-	// Sample intervals. For now they are fixed with voltage samples in the center of V7
-	// and current samples in the center of V0
+	// Sample intervals
 	TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
 
-	// Enable CC1 interrupt, which will be fired in V0 and V7
+	// Enable CC2 interrupt, which will be fired in V0 and V7
 	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
 	utils_sys_unlock_cnt();
 
@@ -655,6 +654,7 @@ void mcpwm_foc_deinit(void) {
 	}
 
 	TIM_DeInit(TIM1);
+	TIM_DeInit(TIM2);
 	TIM_DeInit(TIM8);
 	ADC_DeInit();
 	DMA_DeInit(DMA2_Stream4);
@@ -2720,9 +2720,17 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	}
 
 	// Update and the observer gain.
+
+	// Old gain scaling, based on duty cycle
+//	motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now), 0.0, 1.0,
+//			motor->m_conf->foc_observer_gain * motor->m_conf->foc_observer_gain_slow,
+//			motor->m_conf->foc_observer_gain);
+
+	// Observer gain scaling, based on bus voltage and duty cycle
 	motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now),
-	                               0.0, 30.0 / motor->m_motor_state.v_bus, motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
-	                               motor->m_conf->foc_observer_gain);
+			0.0, 40.0 / motor->m_motor_state.v_bus,
+			motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
+			motor->m_conf->foc_observer_gain);
 }
 
 static THD_FUNCTION(timer_thread, arg) {
@@ -2948,16 +2956,6 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 	const float R_ib = R * i_beta;
 	const float lambda_2 = SQ(motor->m_conf->foc_motor_flux_linkage);
 	const float gamma_half = motor->m_gamma_now * 0.5;
-
-	// TODO: Try this
-//	float gamma_half = 0.5 * utils_map(fabsf(motor->m_motor_state.speed_rad_s) * 60.0 / M_PI,
-//			0.0, 40e3, motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
-//			motor->m_conf->foc_observer_gain);
-
-	// or this
-//	float gamma_half = 0.5 * utils_map(fabsf(motor->m_motor_state.duty_now),
-//			0.0, 40.0 / motor->m_motor_state.v_bus, motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
-//			motor->m_conf->foc_observer_gain);
 
 	switch (motor->m_conf->foc_observer_type) {
 		case FOC_OBSERVER_ORTEGA_ORIGINAL: {

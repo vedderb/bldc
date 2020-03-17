@@ -1503,7 +1503,7 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor) {
 		utils_sys_unlock_cnt();
 
 		fault_data fdata;
-		fdata.motor = is_second_motor ? 1 : 2;
+		fdata.motor = is_second_motor ? 2 : 1;
 		fdata.fault = fault;
 		fdata.current = mc_interface_get_tot_current();
 		fdata.current_filtered = mc_interface_get_tot_current_filtered();
