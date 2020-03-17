@@ -27,8 +27,8 @@
 #define HW_HAS_3_SHUNTS
 
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x377); \
-                                    drv8323s_write_reg(4,0x777);
+                                    drv8323s_write_reg(3,0x3AA); \
+                                    drv8323s_write_reg(4,0x7AA);
 
 //#define HW_DEAD_TIME_NSEC               360.0   // Dead time
 
@@ -36,6 +36,7 @@
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
 #define HW_HAS_RGB_SWITCH
+
 #define SWITCH_IN_GPIO       GPIOA
 #define SWITCH_IN_PIN        15
 #define SWITCH_OUT_GPIO       GPIOB
@@ -95,46 +96,47 @@
 #define ENABLE_GATE()           palSetPad(GPIOE, 14); palSetPad(GPIOD, 4);
 #define DISABLE_GATE()          palClearPad(GPIOE, 14); palClearPad(GPIOD, 4);
 
-#define ADC_SW_EN_PORT         GPIOB
-#define ADC_SW_EN_PIN          12
-#define ADC_SW_1_PORT         GPIOD
-#define ADC_SW_1_PIN          7
-#define ADC_SW_2_PORT         GPIOB
-#define ADC_SW_2_PIN          3
-#define ADC_SW_3_PORT         GPIOE
-#define ADC_SW_3_PIN          7
+#define ADC_SW_EN_PORT			GPIOB
+#define ADC_SW_EN_PIN			12
+#define ADC_SW_1_PORT			GPIOD
+#define ADC_SW_1_PIN			7
+#define ADC_SW_2_PORT			GPIOB
+#define ADC_SW_2_PIN			3
+#define ADC_SW_3_PORT			GPIOE
+#define ADC_SW_3_PIN			7
 
-#define ENABLE_MOS_TEMP1()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_MOS_TEMP2()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_MOT_TEMP1()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_MOT_TEMP2()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_ADC_EXT_2()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_ADC_EXT_1()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_ADC_EXT_3()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
-#define ENABLE_V_BATT_DIV()           palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN); palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN );\
-    palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN ); palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN );
+#define AD_DIS()                palSetPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN )
+#define AD1_L()					palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN )
+#define AD1_H()					palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN )
+#define AD2_L()					palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN )
+#define AD2_H()					palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN )
+#define AD3_L()					palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN )
+#define AD3_H()					palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN )
+#define AD_EN()                 palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN )
+
+#define ENABLE_MOS_TEMP1()			AD_DIS();	AD3_L();	AD2_L();	AD1_L();	AD_EN();
+#define ENABLE_MOS_TEMP2()			AD_DIS();	AD3_L();	AD2_L();	AD1_H();	AD_EN();
+#define ENABLE_MOT_TEMP1()			AD_DIS();	AD3_L();	AD2_H();	AD1_L();	AD_EN();
+#define ENABLE_MOT_TEMP2()          AD_DIS();	AD3_L();	AD2_H();	AD1_H();	AD_EN();
+#define ENABLE_ADC_EXT_2()          AD_DIS();	AD3_H();	AD2_L();	AD1_L();	AD_EN();
+#define ENABLE_ADC_EXT_1()          AD_DIS();	AD3_H();	AD2_L();	AD1_H();	AD_EN();
+#define ENABLE_ADC_EXT_3()          AD_DIS();	AD3_H();	AD2_H();	AD1_L();	AD_EN();
+#define ENABLE_V_BATT_DIV()         AD_DIS();	AD3_H();	AD2_H();	AD1_H();	AD_EN();
 
 
-#define IS_DRV_FAULT()          (!palReadPad(GPIOE, 3))
-#define IS_DRV_FAULT2()          (!palReadPad(GPIOD, 3))
+#define IS_DRV_FAULT()				(!palReadPad(GPIOE, 3))
+#define IS_DRV_FAULT2()				(!palReadPad(GPIOD, 3))
 
-#define LED_GREEN_ON()          palSetPad(GPIOC, 9);// palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
-#define LED_GREEN_OFF()         palClearPad(GPIOC, 9);// palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
-#define LED_RED_ON()            palSetPad(GPIOA, 8); //palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
-#define LED_RED_OFF()           palClearPad(GPIOA, 8); //palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
-#define LED_SWITCH_R_ON()            palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
-#define LED_SWITCH_R_OFF()           palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
-#define LED_SWITCH_G_ON()            palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_SWITCH_G_OFF()           palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_SWITCH_B_ON()            palClearPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
-#define LED_SWITCH_B_OFF()           palSetPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
+#define LED_GREEN_ON()				palSetPad(GPIOC, 9);// palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
+#define LED_GREEN_OFF()				palClearPad(GPIOC, 9);// palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
+#define LED_RED_ON()				palSetPad(GPIOA, 8); //palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
+#define LED_RED_OFF()				palClearPad(GPIOA, 8); //palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
+#define LED_SWITCH_R_ON()			palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
+#define LED_SWITCH_R_OFF()			palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
+#define LED_SWITCH_G_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_SWITCH_G_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_SWITCH_B_ON()			palClearPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
+#define LED_SWITCH_B_OFF()			palSetPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
 
 
 /*
@@ -159,7 +161,7 @@
  */
 
 #define HW_ADC_CHANNELS         15
-#define HW_ADC_CHANNELS_EXTRA	8
+#define HW_ADC_CHANNELS_EXTRA	15
 #define HW_ADC_INJ_CHANNELS     2
 #define HW_ADC_NBR_CONV         5
 
@@ -191,7 +193,7 @@
 #define ADC_IND_TEMP_MOTOR_2	18
 #define ADC_IND_EXT				19
 #define ADC_IND_EXT2			20
-#define ADC_IND_EXT3				21
+#define ADC_IND_EXT3		    21
 #define ADC_IND_V_BATT			22
 
 // ADC macros and settings
@@ -215,7 +217,7 @@
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()     ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-#define GET_BATT_VOLTAGE()      ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_ADC_MUX] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_BATT_VOLTAGE()      ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VIN_R1 + VIN_R2) / VIN_R2))
 #define GET_VM_SENSE_VOLTAGE()  ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VM_SENSE] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
@@ -226,8 +228,8 @@
 #define NTC_TEMP(adc_ind)       (1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)  (10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_ADC_MUX]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-#define NTC_TEMP_MOTOR2(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_ADC_MUX]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOTOR(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOTOR2(beta)    (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR2]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
