@@ -25,8 +25,8 @@
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
-//#define HW_HAS_PERMANENT_NRF
 #define HW_HAS_PHASE_SHUNTS
+#define INVERTED_SHUNT_POLARITY
 
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
@@ -80,6 +80,7 @@
 // ADC macros and settings
 
 // Component parameters (can be overridden)
+
 #ifndef V_REG
 #define V_REG					3.3
 #endif
@@ -148,7 +149,7 @@
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER                    TIM4
 #define HW_ICU_TIM_CLK_EN()             RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
-#define HW_ICU_DEV                              ICUD4
+#define HW_ICU_DEV                      ICUD4
 #define HW_ICU_CHANNEL                  ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF                  GPIO_AF_TIM4
 #define HW_ICU_GPIO                     GPIOB
