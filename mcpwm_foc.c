@@ -2727,10 +2727,19 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 //			motor->m_conf->foc_observer_gain);
 
 	// Observer gain scaling, based on bus voltage and duty cycle
-	motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now),
-			0.0, 40.0 / motor->m_motor_state.v_bus,
-			motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
-			motor->m_conf->foc_observer_gain);
+	//motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now),
+	//		0.0, 40.0 / motor->m_motor_state.v_bus,
+	//		motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
+	//		motor->m_conf->foc_observer_gain);
+
+	float gamma_tmp = utils_map(fabsf(motor->m_motor_state.duty_now),
+	      0.0, 15.0 / motor->m_motor_state.v_bus,
+	      0,
+	      motor->m_conf->foc_observer_gain);
+	  if (gamma_tmp < (motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain)) {
+	    gamma_tmp = motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain;
+	  }
+	  motor->m_gamma_now = gamma_tmp;
 }
 
 static THD_FUNCTION(timer_thread, arg) {
