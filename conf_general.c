@@ -1118,6 +1118,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 		i_last = i;
 
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			mempools_free_mcconf(mcconf);
 			return false;
 		}
 
@@ -1137,6 +1138,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 
 	mcconf->foc_motor_r = res_old;
 	mc_interface_set_configuration(mcconf);
+	mempools_free_mcconf(mcconf);
 
 	return true;
 }
