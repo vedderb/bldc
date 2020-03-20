@@ -658,7 +658,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_GPD_OUTPUT_SAMPLE: {
 		timeout_reset();
 		int32_t ind = 0;
-		gpdrive_add_buffer_sample(buffer_get_float32_auto(data, &ind));
+		gpdrive_output_sample(buffer_get_float32_auto(data, &ind));
 	} break;
 
 	case COMM_GPD_SET_MODE: {
@@ -1020,6 +1020,41 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_SET_BATTERY_CUT: {
+		int32_t ind = 0;
+		float start = buffer_get_float32(data, 1e3, &ind);
+		float end = buffer_get_float32(data, 1e3, &ind);
+		bool store = data[ind++];
+		bool fwd_can = data[ind++];
+
+		if (fwd_can) {
+			comm_can_conf_battery_cut(255, store, start, end);
+		}
+
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+
+		if (mcconf->l_battery_cut_start != start || mcconf->l_battery_cut_end != end) {
+			mcconf->l_battery_cut_start = start;
+			mcconf->l_battery_cut_end = end;
+
+			if (store) {
+				conf_general_store_mc_configuration(mcconf,
+						mc_interface_get_motor_thread() == 2);
+			}
+
+			mc_interface_set_configuration(mcconf);
+		}
+
+		mempools_free_mcconf(mcconf);
+
+		// Send ack
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = packet_id;
+		reply_func(send_buffer, ind);
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1168,7 +1203,11 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
 		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
     } else {
+#ifdef HW_HAS_DUAL_MOTORS
+    	utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
+#else
 		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+#endif
     }
 #endif
 

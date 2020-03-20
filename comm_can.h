@@ -24,7 +24,6 @@
 #include "hal.h"
 
 // Settings
-#define CAN_STATUS_MSG_INT_MS		1
 #define CAN_STATUS_MSGS_TO_STORE	10
 
 // Functions
@@ -54,6 +53,8 @@ void comm_can_conf_foc_erpms(uint8_t controller_id,
 int comm_can_detect_all_foc_res(unsigned int index);
 int comm_can_detect_all_foc_res_size(void);
 void comm_can_detect_all_foc_res_clear(void);
+void comm_can_conf_battery_cut(uint8_t controller_id,
+		bool store, float start, float end);
 can_status_msg *comm_can_get_status_msg_index(int index);
 can_status_msg *comm_can_get_status_msg_id(int id);
 can_status_msg_2 *comm_can_get_status_msg_2_index(int index);
