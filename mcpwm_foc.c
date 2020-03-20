@@ -1051,6 +1051,65 @@ bool mcpwm_foc_is_using_encoder(void) {
 	return motor_now()->m_using_encoder;
 }
 
+float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
+	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq;
+#else
+	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq;
+#endif
+}
+
+float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
+	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq_filter;
+#else
+	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq_filter;
+#endif
+}
+
+float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_bus;
+#else
+	return m_motor_1.m_motor_state.i_bus;
+#endif
+}
+
+float mcpwm_foc_get_tot_current_in_filtered_motor(bool is_second_motor) {
+	// TODO: Filter current?
+#ifdef HW_HAS_DUAL_MOTORS
+	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_bus;
+#else
+	return m_motor_1.m_motor_state.i_bus;
+#endif
+}
+
+float mcpwm_foc_get_abs_motor_current_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_abs;
+#else
+	return m_motor_1.m_motor_state.i_abs;
+#endif
+}
+
+float mcpwm_foc_get_abs_motor_current_filtered_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_abs_filter;
+#else
+	return m_motor_1.m_motor_state.i_abs_filter;
+#endif
+}
+
+mc_state mcpwm_foc_get_state_motor(bool is_second_motor) {
+#ifdef HW_HAS_DUAL_MOTORS
+	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_state;
+#else
+	return m_motor_1.m_state;
+#endif
+}
+
 /**
  * Calculate the current RPM of the motor. This is a signed value and the sign
  * depends on the direction the motor is rotating in. Note that this value has

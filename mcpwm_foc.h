@@ -91,6 +91,15 @@ void mcpwm_foc_set_current_offsets(
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
 
+// Functions where the motor can be selected
+float mcpwm_foc_get_tot_current_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_in_filtered_motor(bool is_second_motor);
+float mcpwm_foc_get_abs_motor_current_motor(bool is_second_motor);
+float mcpwm_foc_get_abs_motor_current_filtered_motor(bool is_second_motor);
+mc_state mcpwm_foc_get_state_motor(bool is_second_motor);
+
 // Interrupt handlers
 void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);

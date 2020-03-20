@@ -80,6 +80,7 @@ typedef struct {
 	float m_gate_driver_voltage;
 	float m_motor_current_unbalance;
 	float m_motor_current_unbalance_error_rate;
+	float m_f_samp_now;
 } motor_if_state_t;
 
 // Private variables
@@ -1583,24 +1584,22 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		wrong_voltage_iterations = 0;
 	}
 
-	// Monitor currents balance. The sum of the 3 currents should be zero
-#ifdef HW_HAS_3_SHUNTS
-	if (!motor->m_conf.foc_sample_high_current) { // This won't work when high current sampling is used
-		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
-
-		if (motor->m_motor_current_unbalance > MCCONF_MAX_CURRENT_UNBALANCE) {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 20000.0));
-		} else {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 20000.0));
-		}
-
-		if (motor->m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
-			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, is_second_motor);
-		}
+	// Fetch these values here in a config-specific code to avoid some overheat of the general
+	// function. That will make this interrupt run a bit faster.
+	mc_state state;
+	float current;
+	float current_in;
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+		state = mcpwm_foc_get_state_motor(is_second_motor);
+		current = mcpwm_foc_get_tot_current_filtered_motor(is_second_motor);
+		current_in = mcpwm_foc_get_tot_current_in_filtered_motor(is_second_motor);
+	} else {
+		state = mcpwm_get_state();
+		current = mcpwm_get_tot_current_filtered();
+		current_in = mcpwm_get_tot_current_in_filtered();
 	}
-#endif
 
-	if (mc_interface_get_state() == MC_STATE_RUNNING) {
+	if (state == MC_STATE_RUNNING) {
 		motor->m_cycles_running++;
 	} else {
 		motor->m_cycles_running = 0;
@@ -1610,8 +1609,6 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		pwn_done_func();
 	}
 
-	const float current = mc_interface_get_tot_current_filtered();
-	const float current_in = mc_interface_get_tot_current_in_filtered();
 	motor->m_motor_current_sum += current;
 	motor->m_input_current_sum += current_in;
 	motor->m_motor_current_iterations++;
@@ -1631,8 +1628,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	float abs_current_filtered = current;
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// TODO: Make this more general
-		abs_current = mcpwm_foc_get_abs_motor_current();
-		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered();
+		abs_current = mcpwm_foc_get_abs_motor_current_motor(is_second_motor);
+		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered_motor(is_second_motor);
 	}
 
 	// Current fault code
@@ -1671,8 +1668,9 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	}
 #endif
 
+	float f_samp = motor->m_f_samp_now;
+
 	// Watt and ah counters
-	const float f_samp = mc_interface_get_sampling_frequency_now();
 	if (fabsf(current) > 1.0) {
 		// Some extra filtering
 		static float curr_diff_sum = 0.0;
@@ -1714,7 +1712,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		break;
 
 	case DEBUG_SAMPLING_START:
-		if (mc_interface_get_state() == MC_STATE_RUNNING || m_sample_now > 0) {
+		if (state == MC_STATE_RUNNING || m_sample_now > 0) {
 			sample = true;
 		}
 
@@ -1752,7 +1750,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			m_sample_mode = DEBUG_SAMPLING_OFF;
 		}
 
-		if (mc_interface_get_state() == MC_STATE_RUNNING && m_sample_trigger < 0) {
+		if (state == MC_STATE_RUNNING && m_sample_trigger < 0) {
 			m_sample_trigger = m_sample_now;
 		}
 	} break;
@@ -1818,7 +1816,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 				m_phase_samples[m_sample_now] = 0;
 			}
 
-			if (mc_interface_get_state() == MC_STATE_DETECTING) {
+			if (state == MC_STATE_DETECTING) {
 				m_curr0_samples[m_sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
 				m_curr1_samples[m_sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
 
@@ -2100,6 +2098,8 @@ static volatile motor_if_state_t *motor_now(void) {
 static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
 
+	motor->m_f_samp_now = mc_interface_get_sampling_frequency_now();
+
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
 		motor->m_ignore_iterations--;
@@ -2193,6 +2193,23 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		}
 #endif
 	}
+
+	// Monitor currents balance. The sum of the 3 currents should be zero
+#ifdef HW_HAS_3_SHUNTS
+	if (!motor->m_conf.foc_sample_high_current) { // This won't work when high current sampling is used
+		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
+
+		if (motor->m_motor_current_unbalance > MCCONF_MAX_CURRENT_UNBALANCE) {
+			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 1000.0));
+		} else {
+			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 1000.0));
+		}
+
+		if (motor->m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
+			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, !is_motor_1);
+		}
+	}
+#endif
 }
 
 static THD_FUNCTION(timer_thread, arg) {
