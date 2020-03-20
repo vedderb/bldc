@@ -34,7 +34,6 @@
 
 //#define HW_DEAD_TIME_NSEC               360.0   // Dead time
 
-#define HW_HAS_DUAL_MOTOR
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
 #define HW_HAS_RGB_SWITCH
