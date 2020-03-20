@@ -762,7 +762,8 @@ typedef enum {
 	COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO,
 	COMM_BM_WRITE_FLASH_LZO,
 	COMM_SET_CURRENT_REL,
-	COMM_CAN_FWD_FRAME
+	COMM_CAN_FWD_FRAME,
+	COMM_SET_BATTERY_CUT
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -795,7 +796,10 @@ typedef enum {
 	CAN_PACKET_CONF_FOC_ERPMS,
 	CAN_PACKET_CONF_STORE_FOC_ERPMS,
 	CAN_PACKET_STATUS_5,
-	CAN_PACKET_POLL_TS5700N8501_STATUS
+	CAN_PACKET_POLL_TS5700N8501_STATUS,
+	CAN_PACKET_CONF_BATTERY_CUT,
+	CAN_PACKET_CONF_STORE_BATTERY_CUT,
+	CAN_PACKET_SHUTDOWN
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -904,15 +908,15 @@ typedef enum {
 
 typedef struct {
 	float v_in;
-	float temp_mos1;
-	float temp_mos2;
-	float temp_mos3;
-	float temp_mos4;
-    float temp_mos5;
-    float temp_mos6;
-    float temp_pcb;
+	float temp_mos;
+	float temp_mos_1;
+	float temp_mos_2;
+	float temp_mos_3;
+	float temp_motor;
     float current_motor;
     float current_in;
+    float id;
+    float iq;
     float rpm;
     float duty_now;
     float amp_hours;
@@ -921,7 +925,11 @@ typedef struct {
     float watt_hours_charged;
     int tachometer;
     int tachometer_abs;
+    float position;
     mc_fault_code fault_code;
+    int vesc_id;
+    float vd;
+    float vq;
 } mc_values;
 
 typedef enum {

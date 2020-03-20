@@ -1107,6 +1107,11 @@ static bool measure_r_l_imax(float current_min, float current_max,
 		current_start = current_min * 1.1;
 	}
 
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+
+	const float res_old = mcconf->foc_motor_r;
+
 	float i_last = 0.0;
 	for (float i = current_start;i < current_max;i *= 1.5) {
 		float res_tmp = mcpwm_foc_measure_resistance(i, 5);
@@ -1122,9 +1127,16 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	}
 
 	*r = mcpwm_foc_measure_resistance(i_last, 100);
+
+	mcconf->foc_motor_r = *r;
+	mc_interface_set_configuration(mcconf);
+
 	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, 0) * 1e-6;
 	*i_max = sqrtf(max_power_loss / *r);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
+
+	mcconf->foc_motor_r = res_old;
+	mc_interface_set_configuration(mcconf);
 
 	return true;
 }

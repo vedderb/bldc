@@ -703,7 +703,7 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 		motor_now()->m_control_mode = CONTROL_MODE_NONE;
 		motor_now()->m_state = MC_STATE_OFF;
 		stop_pwm_hw(motor_now());
-		update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
+		update_hfi_samples(motor_now()->m_conf->foc_hfi_samples, motor_now());
 	}
 }
 
@@ -1307,7 +1307,7 @@ void mcpwm_foc_get_current_offsets(
 		volatile int *curr2_offset,
 		bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_1 : &m_motor_2;
+	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
 #else
 	(void)is_second_motor;
 	volatile motor_all_state_t *motor = &m_motor_1;
@@ -2727,19 +2727,15 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 //			motor->m_conf->foc_observer_gain);
 
 	// Observer gain scaling, based on bus voltage and duty cycle
-	//motor->m_gamma_now = utils_map(fabsf(motor->m_motor_state.duty_now),
-	//		0.0, 40.0 / motor->m_motor_state.v_bus,
-	//		motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain,
-	//		motor->m_conf->foc_observer_gain);
-
 	float gamma_tmp = utils_map(fabsf(motor->m_motor_state.duty_now),
-	      0.0, 15.0 / motor->m_motor_state.v_bus,
-	      0,
-	      motor->m_conf->foc_observer_gain);
-	  if (gamma_tmp < (motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain)) {
-	    gamma_tmp = motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain;
-	  }
-	  motor->m_gamma_now = gamma_tmp;
+			0.0, 40.0 / motor->m_motor_state.v_bus,
+			0,
+			motor->m_conf->foc_observer_gain);
+	if (gamma_tmp < (motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain)) {
+		gamma_tmp = motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain;
+	}
+	// 3.5 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
+	motor->m_gamma_now = gamma_tmp * 3.5;
 }
 
 static THD_FUNCTION(timer_thread, arg) {

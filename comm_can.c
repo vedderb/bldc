@@ -36,6 +36,7 @@
 #include "encoder.h"
 #include "utils.h"
 #include "mempools.h"
+#include "shutdown.h"
 
 // Settings
 #define RX_FRAMES_SIZE	100
@@ -604,6 +605,17 @@ int comm_can_detect_all_foc_res_size(void) {
 
 void comm_can_detect_all_foc_res_clear(void) {
 	detect_all_foc_res_index = 0;
+}
+
+void comm_can_conf_battery_cut(uint8_t controller_id,
+		bool store, float start, float end) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_float32(buffer, start, 1e3, &send_index);
+	buffer_append_float32(buffer, end, 1e3, &send_index);
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)(store ? CAN_PACKET_CONF_STORE_BATTERY_CUT :
+					CAN_PACKET_CONF_BATTERY_CUT) << 8), buffer, send_index);
 }
 
 /**
@@ -1189,10 +1201,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			case CAN_PACKET_CONF_CURRENT_LIMITS:
 			case CAN_PACKET_CONF_STORE_CURRENT_LIMITS: {
-				if (is_replaced) {
-					break;
-				}
-
 				ind = 0;
 				float min = buffer_get_float32(data8, 1e3, &ind);
 				float max = buffer_get_float32(data8, 1e3, &ind);
@@ -1217,10 +1225,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			case CAN_PACKET_CONF_CURRENT_LIMITS_IN:
 			case CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN: {
-				if (is_replaced) {
-					break;
-				}
-
 				ind = 0;
 				float min = buffer_get_float32(data8, 1e3, &ind);
 				float max = buffer_get_float32(data8, 1e3, &ind);
@@ -1245,10 +1249,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			case CAN_PACKET_CONF_FOC_ERPMS:
 			case CAN_PACKET_CONF_STORE_FOC_ERPMS: {
-				if (is_replaced) {
-					break;
-				}
-
 				ind = 0;
 				float foc_openloop_rpm = buffer_get_float32(data8, 1e3, &ind);
 				float foc_sl_erpm = buffer_get_float32(data8, 1e3, &ind);
@@ -1276,6 +1276,44 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				comm_can_transmit_eid(app_get_configuration()->controller_id |
 						((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
 						encoder_ts5700n8501_get_raw_status(), 8);
+			} break;
+
+			case CAN_PACKET_CONF_BATTERY_CUT:
+			case CAN_PACKET_CONF_STORE_BATTERY_CUT: {
+				ind = 0;
+				float start = buffer_get_float32(data8, 1e3, &ind);
+				float end = buffer_get_float32(data8, 1e3, &ind);
+
+				mc_configuration *mcconf = mempools_alloc_mcconf();
+				*mcconf = *mc_interface_get_configuration();
+
+				if (mcconf->l_battery_cut_start != start || mcconf->l_battery_cut_end != end) {
+					mcconf->l_battery_cut_start = start;
+					mcconf->l_battery_cut_end = end;
+
+					if (cmd == CAN_PACKET_CONF_STORE_BATTERY_CUT) {
+						conf_general_store_mc_configuration(mcconf,
+								mc_interface_get_motor_thread() == 2);
+					}
+
+					mc_interface_set_configuration(mcconf);
+				}
+
+				mempools_free_mcconf(mcconf);
+			} break;
+
+			case CAN_PACKET_SHUTDOWN: {
+#ifdef HW_SHUTDOWN_HOLD_ON
+				SHUTDOWN_SET_SAMPLING_DISABLED(true);
+				mc_interface_lock();
+				DISABLE_GATE();
+				HW_SHUTDOWN_HOLD_OFF();
+				chThdSleepMilliseconds(5000);
+				HW_SHUTDOWN_HOLD_ON();
+				ENABLE_GATE();
+				mc_interface_unlock();
+				SHUTDOWN_SET_SAMPLING_DISABLED(false);
+#endif
 			} break;
 
 			default:

@@ -322,6 +322,7 @@ void gpdrive_output_sample(float sample) {
 
 	case GPD_OUTPUT_MODE_CURRENT:
 		m_current_state.current_set = sample;
+		m_is_running = true;
 		break;
 
 	default:
