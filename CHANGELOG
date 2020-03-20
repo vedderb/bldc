@@ -10,6 +10,7 @@
 * Added COMM_SET_BATTERY_CUT command.
 * Added CAN_PACKET_SHUTDOWN CAN-command.
 * GPDRIVE output sample fix.
+* Some ISR optimization.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).

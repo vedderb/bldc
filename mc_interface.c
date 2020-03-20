@@ -1584,8 +1584,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		wrong_voltage_iterations = 0;
 	}
 
-	// Fetch these values here in a config-specific code to avoid some overheat of the general
-	// function. That will make this interrupt run a bit faster.
+	// Fetch these values in a config-specific way to avoid some overhead of the general
+	// functions. That will make this interrupt run a bit faster.
 	mc_state state;
 	float current;
 	float current_in;
