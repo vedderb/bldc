@@ -1568,16 +1568,17 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	(void)is_second_motor;
 #endif
 
+	volatile mc_configuration *conf_now = &motor->m_conf;
 	const float input_voltage = GET_INPUT_VOLTAGE();
 
 	// Check for faults that should stop the motor
 	static int wrong_voltage_iterations = 0;
-	if (input_voltage < motor->m_conf.l_min_vin ||
-			input_voltage > motor->m_conf.l_max_vin) {
+	if (input_voltage < conf_now->l_min_vin ||
+			input_voltage > conf_now->l_max_vin) {
 		wrong_voltage_iterations++;
 
 		if ((wrong_voltage_iterations >= 8)) {
-			mc_interface_fault_stop(input_voltage < motor->m_conf.l_min_vin ?
+			mc_interface_fault_stop(input_voltage < conf_now->l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE, is_second_motor);
 		}
 	} else {
@@ -1589,14 +1590,20 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	mc_state state;
 	float current;
 	float current_in;
-	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+	float abs_current;
+	float abs_current_filtered;
+	if (conf_now->motor_type == MOTOR_TYPE_FOC) {
 		state = mcpwm_foc_get_state_motor(is_second_motor);
 		current = mcpwm_foc_get_tot_current_filtered_motor(is_second_motor);
 		current_in = mcpwm_foc_get_tot_current_in_filtered_motor(is_second_motor);
+		abs_current = mcpwm_foc_get_abs_motor_current_motor(is_second_motor);
+		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered_motor(is_second_motor);
 	} else {
 		state = mcpwm_get_state();
 		current = mcpwm_get_tot_current_filtered();
 		current_in = mcpwm_get_tot_current_in_filtered();
+		abs_current = mcpwm_get_tot_current();
+		abs_current_filtered = current;
 	}
 
 	if (state == MC_STATE_RUNNING) {
@@ -1624,21 +1631,13 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	motor->m_motor_vd_iterations++;
 	motor->m_motor_vq_iterations++;
 
-	float abs_current = mc_interface_get_tot_current();
-	float abs_current_filtered = current;
-	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
-		// TODO: Make this more general
-		abs_current = mcpwm_foc_get_abs_motor_current_motor(is_second_motor);
-		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered_motor(is_second_motor);
-	}
-
 	// Current fault code
-	if (motor->m_conf.l_slow_abs_current) {
-		if (fabsf(abs_current_filtered) > motor->m_conf.l_abs_current_max) {
+	if (conf_now->l_slow_abs_current) {
+		if (fabsf(abs_current_filtered) > conf_now->l_abs_current_max) {
 			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor);
 		}
 	} else {
-		if (fabsf(abs_current) > motor->m_conf.l_abs_current_max) {
+		if (fabsf(abs_current) > conf_now->l_abs_current_max) {
 			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor);
 		}
 	}
@@ -1801,7 +1800,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			}
 
 			int16_t zero;
-			if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+			if (conf_now->motor_type == MOTOR_TYPE_FOC) {
 				if (is_second_motor) {
 					zero = (ADC_V_L4 + ADC_V_L5 + ADC_V_L6) / 3;
 				} else {
