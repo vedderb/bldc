@@ -500,7 +500,6 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	m_motor_1.m_curr_ofs[0] = 2048;
 	m_motor_1.m_curr_ofs[1] = 2048;
 	m_motor_1.m_curr_ofs[2] = 2048;
-
 	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
 
 #ifdef HW_HAS_DUAL_MOTORS
