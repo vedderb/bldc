@@ -1589,21 +1589,24 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	// functions. That will make this interrupt run a bit faster.
 	mc_state state;
 	float current;
-	float current_in;
+	float current_filtered;
+	float current_in_filtered;
 	float abs_current;
 	float abs_current_filtered;
 	if (conf_now->motor_type == MOTOR_TYPE_FOC) {
 		state = mcpwm_foc_get_state_motor(is_second_motor);
-		current = mcpwm_foc_get_tot_current_filtered_motor(is_second_motor);
-		current_in = mcpwm_foc_get_tot_current_in_filtered_motor(is_second_motor);
+		current = mcpwm_foc_get_tot_current_motor(is_second_motor);
+		current_filtered = mcpwm_foc_get_tot_current_filtered_motor(is_second_motor);
+		current_in_filtered = mcpwm_foc_get_tot_current_in_filtered_motor(is_second_motor);
 		abs_current = mcpwm_foc_get_abs_motor_current_motor(is_second_motor);
 		abs_current_filtered = mcpwm_foc_get_abs_motor_current_filtered_motor(is_second_motor);
 	} else {
 		state = mcpwm_get_state();
-		current = mcpwm_get_tot_current_filtered();
-		current_in = mcpwm_get_tot_current_in_filtered();
+		current = mcpwm_get_tot_current();
+		current_filtered = mcpwm_get_tot_current_filtered();
+		current_in_filtered = mcpwm_get_tot_current_in_filtered();
 		abs_current = mcpwm_get_tot_current();
-		abs_current_filtered = current;
+		abs_current_filtered = current_filtered;
 	}
 
 	if (state == MC_STATE_RUNNING) {
@@ -1616,8 +1619,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		pwn_done_func();
 	}
 
-	motor->m_motor_current_sum += current;
-	motor->m_input_current_sum += current_in;
+	motor->m_motor_current_sum += current_filtered;
+	motor->m_input_current_sum += current_in_filtered;
 	motor->m_motor_current_iterations++;
 	motor->m_input_current_iterations++;
 
@@ -1670,12 +1673,12 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	float f_samp = motor->m_f_samp_now;
 
 	// Watt and ah counters
-	if (fabsf(current) > 1.0) {
+	if (fabsf(current_filtered) > 1.0) {
 		// Some extra filtering
 		static float curr_diff_sum = 0.0;
 		static float curr_diff_samples = 0;
 
-		curr_diff_sum += current_in / f_samp;
+		curr_diff_sum += current_in_filtered / f_samp;
 		curr_diff_samples += 1.0 / f_samp;
 
 		if (curr_diff_samples >= 0.01) {
@@ -1841,7 +1844,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			}
 
 			m_vzero_samples[m_sample_now] = zero;
-			m_curr_fir_samples[m_sample_now] = (int16_t)(mc_interface_get_tot_current() * (8.0 / FAC_CURRENT));
+			m_curr_fir_samples[m_sample_now] = (int16_t)(current * (8.0 / FAC_CURRENT));
 			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
