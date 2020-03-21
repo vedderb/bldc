@@ -1,0 +1,53 @@
+ChibiOS 3.0 is now composed of several independent but inter-operable sub-projects: RT, NIL, HAL.
+
+ChibiOS 3.0 general highlights
+
+- New files tree organization makes the system more modular.
+- A community-contributed code area is now part of the files architecture, it will allow for easier integration of contributed code without much screening.
+- Improved startup files, scatter files and build system.
+- New licensing options.
+- Free ChibiStudio IDE support.
+
+What's new in RT 3.0
+
+- MISRA 2012 compliant.
+- Entirely static for enhanced safety.
+- System data is now encapsulated in a single "ch" global structure for enhanced safety.
+- System integrity check runtime functionality for enhanced safety.
+- Tick-less kernel mode helps implement ultra-low-power devices.
+- High Resolution Virtual Timers module allows to specify very short intervals.
+- High Resolution system time.
+- Clock-cycle accurate Time Measurement module.
+- Clock-cycle accurate polled delays.
+- Statistic module provides high resolution measurement of threads, ISRs and critical zones.
+- New recursive locks in addition to the classical critical zone primitives.
+- New recursive mode for Mutexes.
+- Enhanced suspend/resume mechanism for threads.
+- CMSIS-compliant ARM Cortex-Mx port.
+- CMSIS RTOS API available.
+- Multi-compilers architecture for ports.
+- Codebase now compatible with GCC link time optimizations.
+
+What's new in HAL 3.0
+
+- MISRA 2012 compliant.
+- HAL is now entirely licensed under Apache 2.0 license.
+- HAL has been decoupled from RT. It can now be adapted to any reasonable RTOS or even used with no RTOS at all thanks to a new abstraction layer named OSAL. OSAL implementations are provided for RT, NIL, bare metal ARM Cortex-Mx cores, bare metal Power e200z cores.
+- New driver models for ST, I2S, DAC.
+- Revamped ADC, ICU, PWM, RTC, SDC, USB drivers.
+- Greatly improved STM32 family support, all sub-families have been added.
+- Support for new families expanding (Kinetis, Tiva, SPC5xx, RL78, RX62N).
+- Streams, channels, files and block devices abstract interfaces.
+
+New addition NIL 1.0
+
+- MISRA 2012 compliant.
+- Entirely static for enhanced safety.
+- No linked lists anywhere in the code for enhanced safety.
+- System data is encapsulated in a single "nil" global structure for enhanced safety.
+- Tick-less kernel mode helps implement ultra-low-power devices.
+- Ultra compact kernel, well below 1kB in its maximum configuration.
+- Upward compatible with RT, it implements a subset of the RT API.
+- Reduced RAM usage, 20-28 bytes for task and just 4 bytes for a semaphore on 32 bits architectures, half of that on 8/16 bits architectures.
+- ARM Cortex-Mx port based on CMSIS architecture.
+- Multi-compilers architecture for ports.

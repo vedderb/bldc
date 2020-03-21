@@ -93,7 +93,7 @@ endif
 PROJECT = BLDC_4_ChibiOS
 
 # Imported source files and paths
-CHIBIOS = ChibiOS_3.0.2
+CHIBIOS = ChibiOS_3.0.5
 # Startup files
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files
