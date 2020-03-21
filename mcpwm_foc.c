@@ -2800,8 +2800,13 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	if (gamma_tmp < (motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain)) {
 		gamma_tmp = motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain;
 	}
-	// 3.5 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
-	motor->m_gamma_now = gamma_tmp * 3.5;
+	// 5.0 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
+	motor->m_gamma_now = gamma_tmp * 5.0;
+
+	// Square version
+//	float gamma_tmp = motor->m_conf->foc_observer_gain * SQ(motor->m_motor_state.duty_now * motor->m_motor_state.v_bus / 25.0) +
+//			motor->m_conf->foc_observer_gain * motor->m_conf->foc_observer_gain_slow;
+//	motor->m_gamma_now = gamma_tmp;
 }
 
 static THD_FUNCTION(timer_thread, arg) {
