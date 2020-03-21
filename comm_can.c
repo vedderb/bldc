@@ -618,6 +618,13 @@ void comm_can_conf_battery_cut(uint8_t controller_id,
 					CAN_PACKET_CONF_BATTERY_CUT) << 8), buffer, send_index);
 }
 
+void comm_can_shutdown(uint8_t controller_id) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	comm_can_transmit_eid(controller_id |
+			((uint32_t)(CAN_PACKET_SHUTDOWN) << 8), buffer, send_index);
+}
+
 /**
  * Get status message by index.
  *
