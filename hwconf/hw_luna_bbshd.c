@@ -28,6 +28,8 @@
 // Variables
 static volatile bool i2c_running = false;
 
+void hw_luna_bbshd_setup_dac(void);
+
 // I2C configuration
 static const I2CConfig i2cfg = {
 		OPMODE_I2C,
@@ -99,7 +101,11 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
+#ifdef HW_BBSHD_USE_DAC
+	hw_luna_bbshd_setup_dac();
+#else
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+#endif
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
@@ -242,4 +248,31 @@ void hw_try_restore_i2c(void) {
 
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
+}
+
+void hw_luna_bbshd_setup_dac(void) {
+	// GPIOA clock enable
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	// DAC Periph clock enable
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+
+	// DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+
+	// Enable both DAC channels with output buffer disabled to achieve rail-to-rail output
+	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_EN2 | DAC_CR_BOFF2;
+
+	// Set DAC channels at 1.65V
+	hw_luna_bbshd_DAC1_setdata(0x800);
+	hw_luna_bbshd_DAC2_setdata(0x800);
+}
+
+void hw_luna_bbshd_DAC1_setdata(uint16_t data) {
+	DAC->DHR12R1 = data;
+}
+
+void hw_luna_bbshd_DAC2_setdata(uint16_t data) {
+	DAC->DHR12R2 = data;
 }

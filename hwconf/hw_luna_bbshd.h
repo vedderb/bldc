@@ -28,6 +28,7 @@
 #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 #define HW_USE_BRK
+#define HW_BBSHD_USE_DAC
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -245,5 +246,7 @@
 #define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	14.0
 
 // HW-specific functions
+void hw_luna_bbshd_DAC1_setdata(uint16_t data);
+void hw_luna_bbshd_DAC2_setdata(uint16_t data);
 
 #endif /* HW_LUNA_BBSHD_H_ */
