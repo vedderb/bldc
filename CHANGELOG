@@ -11,6 +11,7 @@
 * Added CAN_PACKET_SHUTDOWN CAN-command.
 * GPDRIVE output sample fix.
 * Some ISR optimization.
+* Updated ChibiOS to version 3.0.5.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
