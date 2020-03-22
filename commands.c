@@ -269,6 +269,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_WRITE_NEW_APP_DATA;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		buffer_append_uint32(send_buffer, new_app_offset, &ind);
 		reply_func(send_buffer, ind);
 	} break;
 
