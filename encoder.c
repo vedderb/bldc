@@ -561,50 +561,60 @@ void encoder_tim_isr(void) {
 
 		spi_val = pos;
 
-		uint16_t RDVEL = pos & 0x08; // 1 means a position read
-		bool DOS = ((pos & 0x04) == 0);
-		bool LOT = ((pos & 0x02) == 0);
-		bool LOS = DOS && LOT;
-		bool parity_error = spi_check_parity(pos);	//16 bit frame has odd parity
+		uint16_t RDVEL = pos & 0x0008; // 1 means a position read
 
-		if(LOS) {
-			LOT = DOS = 0;
-		}
+		if((RDVEL != 0)){
 
-		if(!parity_error) {
-			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		} else {
-			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		}
+			bool DOS = ((pos & 0x04) == 0);
+			bool LOT = ((pos & 0x02) == 0);
+			bool LOS = DOS && LOT;
+			bool parity_error = spi_check_parity(pos);	//16 bit frame has odd parity
+			bool angle_is_correct = true;
 
-		pos &= 0xFFF0;
-		pos = pos >> 4;
-		pos &= 0x0FFF;
+			if(LOS) {
+				LOT = DOS = 0;
+			}
 
-		if(LOT) {
-			++resolver_loss_of_tracking_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		} else {
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		}
+			if(!parity_error) {
+				UTILS_LP_FAST(spi_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			} else {
+				angle_is_correct = false;
+				++spi_error_cnt;
+				UTILS_LP_FAST(spi_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			}
 
-		if(DOS) {
-			++resolver_degradation_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		} else {
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		}
+			pos &= 0xFFF0;
+			pos = pos >> 4;
+			pos &= 0x0FFF;
 
-		if(LOS) {
-			++resolver_loss_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		} else {
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
-		}
+			if(LOT) {
+				angle_is_correct = false;
+				++resolver_loss_of_tracking_error_cnt;
+				UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			} else {
+				UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			}
 
-		if((RDVEL != 0) && (LOS != 0) && (DOS != 0) && (LOT != 0) && (!parity_error)) {
-			last_enc_angle = ((float)pos * 360.0) / 4096.0;
+			if(DOS) {
+				angle_is_correct = false;
+				++resolver_degradation_of_signal_error_cnt;
+				UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			} else {
+				UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			}
+
+			if(LOS) {
+				angle_is_correct = false;
+				++resolver_loss_of_signal_error_cnt;
+				UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			} else {
+				UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1./AD2S1205_SAMPLE_RATE_HZ);
+			}
+
+			if(angle_is_correct)
+			{
+				last_enc_angle = ((float)pos * 360.0) / 4096.0;
+			}
 		}
 	}
 }
