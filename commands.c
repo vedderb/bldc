@@ -206,7 +206,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
+#ifdef RADINN_SUB_FW_VERS
+		send_buffer[ind++] = RADINN_SUB_FW_VERS;
+#else
 		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+#endif
 
 		send_buffer[ind++] = HW_TYPE_VESC;
 

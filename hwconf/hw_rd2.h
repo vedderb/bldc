@@ -17,10 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_75_300_H_
-#define HW_75_300_H_
+#ifndef HW_RD2_H_
+#define HW_RD2_H_
 
 #define HW_NAME					"RD2"
+#define RADINN_SUB_FW_VERS		0
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -310,6 +311,6 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-float hw75_300_get_temp(void);
+float hw_rd2_get_temp(void);
 
-#endif /* HW_75_300_H_ */
+#endif /* HW_RD2_H_ */
