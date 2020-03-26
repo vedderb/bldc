@@ -830,7 +830,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_float32_auto(data, mcconf->l_watt_max, &ind);
 
 		// Battery limits can be set optionally in a backwards-compatible way.
-		if (len >= (ind + 8)) {
+		if ((int32_t)len >= (ind + 8)) {
 			mcconf->l_in_current_min = buffer_get_float32_auto(data, &ind);
 			mcconf->l_in_current_min = buffer_get_float32_auto(data, &ind);
 		}
