@@ -27,8 +27,8 @@
 #define HW_HAS_3_SHUNTS
 
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x388); \
-                                    drv8323s_write_reg(4,0x788);
+                                    drv8323s_write_reg(3,0x3af); \
+                                    drv8323s_write_reg(4,0x7af);
 
 
 

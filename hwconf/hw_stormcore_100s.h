@@ -29,15 +29,15 @@
 #define HW_HAS_3_SHUNTS
 
 #define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-										drv8323s_write_reg(3,0x388); \
-										drv8323s_write_reg(4,0x788);
+										drv8323s_write_reg(3,0x3af); \
+										drv8323s_write_reg(4,0x7af);
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
 
-#define DCCAL_ON()				drv8323s_dccal_on()
-#define DCCAL_OFF()				drv8323s_dccal_off()
+#define DCCAL_ON()				//drv8323s_dccal_on()
+#define DCCAL_OFF()				//drv8323s_dccal_off()
 
 #define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
 

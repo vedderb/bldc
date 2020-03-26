@@ -411,4 +411,3 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 cd $FWPATH
 make clean
 cd $DIR
-
