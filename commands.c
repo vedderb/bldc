@@ -782,6 +782,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mcconf.l_watt_min = buffer_get_float32_auto(data, &ind) / controller_num;
 		mcconf.l_watt_max = buffer_get_float32_auto(data, &ind) / controller_num;
 
+
 		// Write divided data back to the buffer, as the other controllers have no way to tell
 		// how many controllers are on the bus and thus need pre-divided data.
 		// We set divide by controllers to false before forwarding.
@@ -789,10 +790,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_float32_auto(data, mcconf.l_watt_min, &ind);
 		buffer_append_float32_auto(data, mcconf.l_watt_max, &ind);
 
+		// Battery limits can be set optionally in a backwards-compatible way.
+		if (len >= (ind + 8)) {
+			mcconf.l_in_current_min = buffer_get_float32_auto(data, &ind);
+			mcconf.l_in_current_min = buffer_get_float32_auto(data, &ind);
+		}
+
 		mcconf.lo_current_min = mcconf.l_current_min * mcconf.l_current_min_scale;
 		mcconf.lo_current_max = mcconf.l_current_max * mcconf.l_current_max_scale;
 		mcconf.lo_current_motor_min_now = mcconf.lo_current_min;
 		mcconf.lo_current_motor_max_now = mcconf.lo_current_max;
+		mcconf.lo_in_current_min = mcconf.l_in_current_min;
+		mcconf.lo_in_current_max = mcconf.l_in_current_max;
 
 		commands_apply_mcconf_hw_limits(&mcconf);
 
