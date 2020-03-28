@@ -22,7 +22,7 @@
 
 #include "drv8323s.h"
 
-#define HW_NAME							"STORMCORE_100SS"
+#define HW_NAME							"STORMCORE_100S"
 
 // HW properties
 #define HW_HAS_DRV8323S
