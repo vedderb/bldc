@@ -17,9 +17,19 @@
 #ifndef HW_STORMCORE_100D_H_
 #define HW_STORMCORE_100D_H_
 
-#define HW_NAME                 "STORMCORE_100D"
 
-#define HW_HAS_DUAL_MOTORS
+//#define HW_HAS_DUAL_MOTORS
+#ifndef  HW_HAS_DUAL_MOTORS
+#define HW_HAS_DUAL_PARALLEL
+#endif
+#ifdef HW_HAS_DUAL_PARALLEL
+#define HW_NAME                 "STORMCORE_100D_PARALLEL"
+#else
+#define HW_NAME                 "STORMCORE_100D"
+#endif
+//#define HW_HAS_DUAL_MOTORS
+
+
 #include "drv8323s.h"
 
 // HW properties
@@ -375,9 +385,14 @@
 #define MCCONF_M_DRV8301_OC_ADJ		14
 #endif
 // Setting limits
+#ifdef HW_HAS_DUAL_PARALLEL
+#define HW_LIM_CURRENT				-300.0, 300.0
+#define HW_LIM_CURRENT_ABS			0.0, 400.0
+#else
 #define HW_LIM_CURRENT				-150.0, 150.0
-#define HW_LIM_CURRENT_IN			-120.0, 120.0
 #define HW_LIM_CURRENT_ABS			0.0, 200.0
+#endif
+#define HW_LIM_CURRENT_IN			-150.0, 150.0
 #define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1
