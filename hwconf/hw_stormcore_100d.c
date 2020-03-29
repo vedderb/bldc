@@ -497,13 +497,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
-
-			// TODO: Implement this?
-			//			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-			//				can_status_msg *msg = comm_can_get_status_msg_index(i);
-			//				comm_can_set_shutdown(msg->id);
-			//			}
-
+			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
 			smart_switch_keep_on();

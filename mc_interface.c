@@ -169,7 +169,7 @@ void mc_interface_init(void) {
 	DRV8323S_CUSTOM_SETTINGS();
 #endif
 
-#ifdef HW_HAS_DUAL_MOTORS
+#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	mc_interface_select_motor_thread(2);
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(motor_now()->m_conf.m_drv8301_oc_mode);
@@ -251,7 +251,7 @@ void mc_interface_init(void) {
 }
 
 int mc_interface_motor_now(void) {
-#ifdef HW_HAS_DUAL_MOTORS
+#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	int isr_motor = mcpwm_foc_isr_motor();
 	int thd_motor = chThdGetSelfX()->motor_selected;
 
@@ -278,7 +278,7 @@ int mc_interface_motor_now(void) {
  * 2: motor 2 selected.
  */
 void mc_interface_select_motor_thread(int motor) {
-#ifdef HW_HAS_DUAL_MOTORS
+#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	if (motor == 0 || motor == 1 || motor == 2) {
 		chThdGetSelfX()->motor_selected = motor;
 	}
@@ -306,7 +306,7 @@ const volatile mc_configuration* mc_interface_get_configuration(void) {
 void mc_interface_set_configuration(mc_configuration *configuration) {
 	volatile motor_if_state_t *motor = motor_now();
 
-#ifdef HW_HAS_DUAL_MOTORS
+#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	configuration->motor_type = MOTOR_TYPE_FOC;
 #endif
 
@@ -2182,15 +2182,18 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 #else
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset, false);
 #endif
-
-		if (abs(curr0_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+		int middle_adc = 2048;
+#ifdef HW_HAS_DUAL_PARALLEL
+		middle_adc*=2;
+#endif
+		if (abs(curr0_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1);
 		}
-		if (abs(curr1_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+		if (abs(curr1_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1);
 		}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(curr2_offset - 2048) > HW_MAX_CURRENT_OFFSET) {
+		if (abs(curr2_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1);
 		}
 #endif
