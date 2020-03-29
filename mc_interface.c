@@ -369,6 +369,21 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	drv8323s_set_oc_adj(configuration->m_drv8301_oc_adj);
 #endif
 
+#ifdef HW_HAS_DUAL_PARALLEL
+	mc_interface_select_motor_thread(2);
+#ifdef HW_HAS_DRV8301
+	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);
+	drv8301_set_oc_adj(configuration->m_drv8301_oc_adj);
+#elif defined(HW_HAS_DRV8320S)
+	drv8320s_set_oc_mode(configuration->m_drv8301_oc_mode);
+	drv8320s_set_oc_adj(configuration->m_drv8301_oc_adj);
+#elif defined(HW_HAS_DRV8323S)
+	drv8323s_set_oc_mode(configuration->m_drv8301_oc_mode);
+	drv8323s_set_oc_adj(configuration->m_drv8301_oc_adj);
+#endif
+	mc_interface_select_motor_thread(1);
+#endif
+
 	if (motor->m_conf.motor_type != configuration->motor_type) {
 		mcpwm_deinit();
 		mcpwm_foc_deinit();
@@ -2182,18 +2197,21 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 #else
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset, false);
 #endif
-		int middle_adc = 2048;
+
 #ifdef HW_HAS_DUAL_PARALLEL
-		middle_adc*=2;
+#define MIDDLE_ADC 4096
+#else
+#define MIDDLE_ADC 2048
 #endif
-		if (abs(curr0_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
+
+		if (abs(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1);
 		}
-		if (abs(curr1_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
+		if (abs(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1);
 		}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(curr2_offset - middle_adc) > HW_MAX_CURRENT_OFFSET) {
+		if (abs(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1);
 		}
 #endif
