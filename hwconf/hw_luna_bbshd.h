@@ -26,7 +26,9 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
+#define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 #define HW_USE_BRK
+#define HW_BBSHD_USE_DAC
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -62,12 +64,12 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_GATE_DRV		12
+#define ADC_IND_VOUT_GATE_DRV	12
 #define ADC_IND_EXT				10
 #define ADC_IND_EXT2			6
 #define ADC_IND_EXT3			13
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOS_2		15
+#define ADC_IND_TEMP_MOS		15
+#define ADC_IND_TEMP_MOS_2		8
 #define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			16
@@ -88,15 +90,18 @@
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		(0.0005 / 3.0)
+#define CURRENT_SHUNT_RES		(0.0005 / 2.0)
 #endif
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
+// 12V supply voltage
+#define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
+
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3984.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 
@@ -202,7 +207,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time.
-#define HW_DEAD_TIME_NSEC		660.0
+#define HW_DEAD_TIME_NSEC		460.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MAX_VOLTAGE
@@ -237,6 +242,11 @@
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
+#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	10.0
+#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	14.0
+
 // HW-specific functions
+void hw_luna_bbshd_DAC1_setdata(uint16_t data);
+void hw_luna_bbshd_DAC2_setdata(uint16_t data);
 
 #endif /* HW_LUNA_BBSHD_H_ */
