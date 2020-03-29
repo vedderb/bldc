@@ -1661,7 +1661,11 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	}
 
 	// DRV fault code
+#ifdef HW_HAS_DUAL_PARALLEL
+	if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
+#else
 	if (is_second_motor ? IS_DRV_FAULT_2() : IS_DRV_FAULT()) {
+#endif
 		mc_interface_fault_stop(FAULT_CODE_DRV, is_second_motor);
 	}
 
