@@ -17,18 +17,17 @@
 #ifndef HW_STORMCORE_100D_H_
 #define HW_STORMCORE_100D_H_
 
-
-//#define HW_HAS_DUAL_MOTORS
-#ifndef  HW_HAS_DUAL_MOTORS
+#ifdef HW_DUAL_CONFIG_PARALLEL
 #define HW_HAS_DUAL_PARALLEL
+#else
+#define HW_HAS_DUAL_MOTORS
 #endif
+
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
 #else
 #define HW_NAME                 "STORMCORE_100D"
 #endif
-//#define HW_HAS_DUAL_MOTORS
-
 
 #include "drv8323s.h"
 
