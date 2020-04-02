@@ -15,7 +15,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
 #include "ch.h"
 #include "hal.h"
@@ -101,15 +101,31 @@ static THD_FUNCTION(periodic_thread, arg) {
 	chRegSetThreadName("Main periodic");
 
 	for(;;) {
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
+		mc_state state1 = mc_interface_get_state();
+		mc_interface_select_motor_thread(2);
+		mc_state state2 = mc_interface_get_state();
+		mc_interface_select_motor_thread(1);
+		if ((state1 == MC_STATE_RUNNING) || (state2 == MC_STATE_RUNNING)) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
 		} else {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
 		}
 
 		mc_fault_code fault = mc_interface_get_fault();
-		if (fault != FAULT_CODE_NONE) {
+		mc_interface_select_motor_thread(2);
+		mc_fault_code fault2 = mc_interface_get_fault();
+		mc_interface_select_motor_thread(1);
+		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
 			for (int i = 0;i < (int)fault;i++) {
+				ledpwm_set_intensity(LED_RED, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_RED, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
+			chThdSleepMilliseconds(500);
+
+			for (int i = 0;i < (int)fault2;i++) {
 				ledpwm_set_intensity(LED_RED, 1.0);
 				chThdSleepMilliseconds(250);
 				ledpwm_set_intensity(LED_RED, 0.0);
