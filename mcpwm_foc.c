@@ -1648,8 +1648,8 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	motor->m_phase_override = true;
 	motor->m_phase_now_override = 0.0;
 	motor->m_id_set = 0.0;
-	for(int i=0; i<500; i++){
-		motor->m_iq_set = (current*i)/500.0;
+	for(int i = 0;i < 500;i++) {
+		motor->m_iq_set = (current * i) / 500.0;
 		chThdSleepMilliseconds(1);
 	}
 	motor->m_iq_set = current;
@@ -1784,9 +1784,22 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
 			stop_pwm_hw(motor);
+
+			motor->m_conf->foc_sensor_mode = sensor_mode_old;
+			motor->m_conf->foc_f_sw = f_sw_old;
+			motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
+			motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
+			motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
+			motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+			motor->m_conf->foc_hfi_samples = samples_old;
+
+			update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+
 			mc_interface_unlock();
+
 			return 0.0;
 		}
+
 		timeout_reset();
 		mcpwm_foc_set_duty(0.0);
 		chThdSleepMilliseconds(10);

@@ -1299,12 +1299,22 @@ void commands_send_plot_points(float x, float y) {
 	commands_send_packet(buffer, ind);
 }
 
-void commands_plot_set_ble_name(char* name) {
+// TODO: The commands_set_ble_name and commands_set_ble_pin are not
+// tested. Test them, and remove this comment when done!
+
+void commands_set_ble_name(char* name) {
 	int ind = 0;
-	uint8_t buffer[28];
+	int name_len = strlen(name);
+	if (name_len > 27) {
+		name_len = 27;
+	}
+
+	uint8_t buffer[name_len + 2];
 	buffer[ind++] = COMM_SET_BLE_NAME;
-	strcpy((char*)(buffer + ind), name);
-	ind += strlen(name) + 1;
+	memcpy(buffer + ind, name, name_len);
+	ind += name_len;
+	buffer[ind++] = '\0';
+
 #ifdef HW_UART_P_DEV
 	app_uartcomm_send_packet_p(buffer, ind);
 #else
@@ -1312,11 +1322,18 @@ void commands_plot_set_ble_name(char* name) {
 #endif
 }
 
-void commands_plot_set_ble_pin(char* pin) {
+void commands_set_ble_pin(char* pin) {
 	int ind = 0;
-	uint8_t buffer[28];
-	buffer[ind++] = COMM_SET_BLE_PIN;
-	memcpy(buffer + ind, pin, strlen(pin));
+	int pin_len = strlen(pin);
+	if (pin_len > 27) {
+		pin_len = 27;
+	}
+
+	uint8_t buffer[pin_len + 2];
+	buffer[ind++] = COMM_SET_BLE_NAME;
+	memcpy(buffer + ind, pin, pin_len);
+	ind += pin_len;
+	buffer[ind++] = '\0';
 #ifdef HW_UART_P_DEV
 	app_uartcomm_send_packet_p(buffer, ind);
 #else
