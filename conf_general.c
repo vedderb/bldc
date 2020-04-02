@@ -1114,7 +1114,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 
 	float i_last = 0.0;
 	for (float i = current_start;i < current_max;i *= 1.5) {
-		float res_tmp = mcpwm_foc_measure_resistance(i, 5);
+		float res_tmp = mcpwm_foc_measure_resistance(i, 5, false);
 		i_last = i;
 
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
@@ -1127,7 +1127,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 		}
 	}
 
-	*r = mcpwm_foc_measure_resistance(i_last, 100);
+	*r = mcpwm_foc_measure_resistance(i_last, 100, true);
 
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);

@@ -1637,10 +1637,15 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
  * @param samples
  * The number of samples to take.
  *
+ * @param stop_after
+ * Stop motor after finishing the measurement. Otherwise, the current will
+ * still be applied after returning. Setting this to false is useful if you want
+ * to run this function again right away, without stopping the motor in between.
+ *
  * @return
  * The calculated motor resistance.
  */
-float mcpwm_foc_measure_resistance(float current, int samples) {
+float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) {
 	mc_interface_lock();
 
 	volatile motor_all_state_t *motor = motor_now();
@@ -1648,13 +1653,13 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	motor->m_phase_override = true;
 	motor->m_phase_now_override = 0.0;
 	motor->m_id_set = 0.0;
-	for(int i = 0;i < 500;i++) {
-		motor->m_iq_set = (current * i) / 500.0;
-		chThdSleepMilliseconds(1);
-	}
-	motor->m_iq_set = current;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
+
+	while (motor->m_iq_set != current) {
+		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
+		chThdSleepMilliseconds(1);
+	}
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -1698,16 +1703,17 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	const float voltage_avg = motor->m_samples.avg_voltage_tot / (float)motor->m_samples.sample_num;
 
 	// Stop
-	motor->m_id_set = 0.0;
-	motor->m_iq_set = 0.0;
-	motor->m_phase_override = false;
-	motor->m_control_mode = CONTROL_MODE_NONE;
-	motor->m_state = MC_STATE_OFF;
-	stop_pwm_hw(motor);
+	if (stop_after) {
+		motor->m_id_set = 0.0;
+		motor->m_iq_set = 0.0;
+		motor->m_phase_override = false;
+		motor->m_control_mode = CONTROL_MODE_NONE;
+		motor->m_state = MC_STATE_OFF;
+		stop_pwm_hw(motor);
+	}
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
-
 	mc_interface_unlock();
 
 	return (voltage_avg / current_avg) * (2.0 / 3.0);
@@ -1902,7 +1908,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 
 	float i_last = 0.0;
 	for (float i = 2.0;i < (motor->m_conf->l_current_max / 2.0);i *= 1.5) {
-		if (i > (1.0 / mcpwm_foc_measure_resistance(i, 20))) {
+		if (i > (1.0 / mcpwm_foc_measure_resistance(i, 20, false))) {
 			i_last = i;
 			break;
 		}
@@ -1916,7 +1922,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 	i_last = (motor->m_conf->l_current_max / 2.0);
 #endif
 
-	*res = mcpwm_foc_measure_resistance(i_last, 200);
+	*res = mcpwm_foc_measure_resistance(i_last, 200, true);
 	motor->m_conf->foc_motor_r = *res;
 	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0, 0);
 

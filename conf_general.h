@@ -131,8 +131,8 @@
 //#define HW_SOURCE "hw_100_250.c"
 //#define HW_HEADER "hw_100_250.h"
 
-//#define HW_SOURCE "hw_unity.c"
-//#define HW_HEADER "hw_unity.h"
+#define HW_SOURCE "hw_unity.c"
+#define HW_HEADER "hw_unity.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
 //#define HW_SOURCE "hw_stormcore_100d.c"
@@ -140,9 +140,9 @@
 
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
-
-#define HW_SOURCE "hw_stormcore_100s.c"
-#define HW_HEADER "hw_stormcore_100s.h"
+//
+//#define HW_SOURCE "hw_stormcore_100s.c"
+//#define HW_HEADER "hw_stormcore_100s.h"
 #endif
 
 #ifndef HW_SOURCE
