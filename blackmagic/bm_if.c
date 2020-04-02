@@ -275,6 +275,7 @@ static void terminal_detach(int argc, const char **argv) {
 	}
 }
 
+#ifdef NRF5x_SWDIO_GPIO
 static void terminal_map_nrf5_pins(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
@@ -298,6 +299,7 @@ static void terminal_map_nrf5_pins(int argc, const char **argv) {
 		commands_printf("This command requires one argument.\n");
 	}
 }
+#endif
 
 void bm_init(void) {
 	terminal_register_command_callback(
