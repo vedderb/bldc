@@ -422,10 +422,11 @@ static THD_FUNCTION(switch_color_thread, arg) {
 	}
 
 	for (;;) {
-
-
 		mc_fault_code fault = mc_interface_get_fault();
-		if (fault != FAULT_CODE_NONE) {
+		mc_interface_select_motor_thread(2);
+		mc_fault_code fault2 = mc_interface_get_fault();
+		mc_interface_select_motor_thread(1);
+		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
 			ledpwm_set_intensity(LED_HW2, 0);
 			ledpwm_set_intensity(LED_HW1, 0);
 			for (int i = 0;i < (int)fault;i++) {
@@ -434,6 +435,16 @@ static THD_FUNCTION(switch_color_thread, arg) {
 				ledpwm_set_intensity(LED_HW3, 0.0);
 				chThdSleepMilliseconds(250);
 			}
+
+			chThdSleepMilliseconds(500);
+
+			for (int i = 0;i < (int)fault2;i++) {
+				ledpwm_set_intensity(LED_HW3, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_HW3, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
 			chThdSleepMilliseconds(500);
 		} else {
 			left = mc_interface_get_battery_level(&wh_left);

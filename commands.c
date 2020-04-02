@@ -1299,6 +1299,31 @@ void commands_send_plot_points(float x, float y) {
 	commands_send_packet(buffer, ind);
 }
 
+void commands_plot_set_ble_name(char* name) {
+	int ind = 0;
+	uint8_t buffer[28];
+	buffer[ind++] = COMM_SET_BLE_NAME;
+	strcpy((char*)(buffer + ind), name);
+	ind += strlen(name) + 1;
+#ifdef HW_UART_P_DEV
+	app_uartcomm_send_packet_p(buffer, ind);
+#else
+	app_uartcomm_send_packet(buffer, ind);
+#endif
+}
+
+void commands_plot_set_ble_pin(char* pin) {
+	int ind = 0;
+	uint8_t buffer[28];
+	buffer[ind++] = COMM_SET_BLE_PIN;
+	memcpy(buffer + ind, pin, strlen(pin));
+#ifdef HW_UART_P_DEV
+	app_uartcomm_send_packet_p(buffer, ind);
+#else
+	app_uartcomm_send_packet(buffer, ind);
+#endif
+}
+
 static THD_FUNCTION(blocking_thread, arg) {
 	(void)arg;
 

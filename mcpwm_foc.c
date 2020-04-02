@@ -438,7 +438,7 @@ static void timer_reinit(int f_sw) {
 	TIM_CtrlPWMOutputs(TIM2, ENABLE);
 
 	// TIM1 Master and TIM8 slave
-#if defined HW_HAS_DUAL_MOTOR || defined HW_HAS_DUAL_PARALLEL
+#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	// TODO: Explain. See: https://www.cnblogs.com/shangdawei/p/4758988.html
 	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
 	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
@@ -456,7 +456,7 @@ static void timer_reinit(int f_sw) {
 #endif
 
 	// Enable TIM1 and TIM2
-#ifdef HW_HAS_DUAL_MOTOR
+#ifdef HW_HAS_DUAL_MOTORS
 	TIM8->CNT = TIM1->ARR;
 #else
 	TIM8->CNT = 0;
@@ -1648,6 +1648,10 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	motor->m_phase_override = true;
 	motor->m_phase_now_override = 0.0;
 	motor->m_id_set = 0.0;
+	for(int i=0; i<500; i++){
+		motor->m_iq_set = (current*i)/500.0;
+		chThdSleepMilliseconds(1);
+	}
 	motor->m_iq_set = current;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
@@ -1659,7 +1663,7 @@ float mcpwm_foc_measure_resistance(float current, int samples) {
 	timeout_configure(60000, 0.0);
 
 	// Wait for the current to rise and the motor to lock.
-	chThdSleepMilliseconds(500);
+	chThdSleepMilliseconds(100);
 
 	// Sample
 	motor->m_samples.avg_current_tot = 0.0;
@@ -1774,9 +1778,17 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	float iterations = 0.0;
 
 	for (int i = 0;i < (samples / 10);i++) {
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw(motor);
+			mc_interface_unlock();
+			return 0.0;
+		}
 		timeout_reset();
 		mcpwm_foc_set_duty(0.0);
-
 		chThdSleepMilliseconds(10);
 
 		float real_bin0, imag_bin0;
