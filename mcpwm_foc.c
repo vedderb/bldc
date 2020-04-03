@@ -1662,7 +1662,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	timeout_configure(60000, 0.0);
 
 	// Ramp up the current slowly
-	while (fabsf(motor->m_iq_set < current) > 0.001) {
+	while (fabsf(motor->m_iq_set - current) > 0.001) {
 		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
 		chThdSleepMilliseconds(1);
 	}
