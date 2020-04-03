@@ -1655,16 +1655,17 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
 
-	while (motor->m_iq_set != current) {
-		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
-		chThdSleepMilliseconds(1);
-	}
-
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
 	timeout_reset();
 	timeout_configure(60000, 0.0);
+
+	// Ramp up the current slowly
+	while (fabsf(motor->m_iq_set < current) > 0.001) {
+		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
+		chThdSleepMilliseconds(1);
+	}
 
 	// Wait for the current to rise and the motor to lock.
 	chThdSleepMilliseconds(100);
