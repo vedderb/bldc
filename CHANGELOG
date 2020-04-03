@@ -14,6 +14,8 @@
 * Updated ChibiOS to version 3.0.5.
 * Increased USB thread priority to avoid freeze during connect/disconnect on windows.
 * Smooth current ramping during resistance measurement.
+* Moved fault stop to thread, and added SPI mutexes to DRV drivers.
+* Smooth current ramping in flux linkage measurement and sensor detection.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).

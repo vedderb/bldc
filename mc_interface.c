@@ -110,6 +110,8 @@ static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
+static volatile mc_fault_code m_fault_stop_fault;
+static volatile bool m_fault_stop_is_second_motor;
 
 // Private functions
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf);
@@ -122,9 +124,12 @@ static void(*pwn_done_func)(void) = 0;
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 1024);
 static THD_FUNCTION(timer_thread, arg);
-static THD_WORKING_AREA(sample_send_thread_wa, 1024);
+static THD_WORKING_AREA(sample_send_thread_wa, 512);
 static THD_FUNCTION(sample_send_thread, arg);
 static thread_t *sample_send_tp;
+static THD_WORKING_AREA(fault_stop_thread_wa, 512);
+static THD_FUNCTION(fault_stop_thread, arg);
+static thread_t *fault_stop_tp;
 
 void mc_interface_init(void) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
@@ -154,6 +159,7 @@ void mc_interface_init(void) {
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
+	chThdCreateStatic(fault_stop_thread_wa, sizeof(fault_stop_thread_wa), HIGHPRIO - 3, fault_stop_thread, NULL);
 
 	int motor_old = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
@@ -1496,81 +1502,17 @@ int mc_interface_try_input(void) {
 	return retval;
 }
 
-void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_if_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-#else
-	volatile motor_if_state_t *motor = &m_motor_1;
-	(void)is_second_motor;
-#endif
+void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr) {
+	m_fault_stop_fault = fault;
+	m_fault_stop_is_second_motor = is_second_motor;
 
-	if (motor->m_fault_now == fault) {
-		motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
-		return;
+	if (is_isr) {
+		chSysLockFromISR();
+		chEvtSignalI(fault_stop_tp, (eventmask_t) 1);
+		chSysUnlockFromISR();
+	} else {
+		chEvtSignal(fault_stop_tp, (eventmask_t) 1);
 	}
-
-	if (mc_interface_dccal_done() && motor->m_fault_now == FAULT_CODE_NONE) {
-		// Sent to terminal fault logger so that all faults and their conditions
-		// can be printed for debugging.
-		utils_sys_lock_cnt();
-		volatile int val_samp = TIM8->CCR1;
-		volatile int current_samp = TIM1->CCR4;
-		volatile int tim_top = TIM1->ARR;
-		utils_sys_unlock_cnt();
-
-		fault_data fdata;
-		fdata.motor = is_second_motor ? 2 : 1;
-		fdata.fault = fault;
-		fdata.current = mc_interface_get_tot_current();
-		fdata.current_filtered = mc_interface_get_tot_current_filtered();
-		fdata.voltage = GET_INPUT_VOLTAGE();
-		fdata.gate_driver_voltage = motor->m_gate_driver_voltage;
-		fdata.duty = mc_interface_get_duty_cycle_now();
-		fdata.rpm = mc_interface_get_rpm();
-		fdata.tacho = mc_interface_get_tachometer_value(false);
-		fdata.cycles_running = motor->m_cycles_running;
-		fdata.tim_val_samp = val_samp;
-		fdata.tim_current_samp = current_samp;
-		fdata.tim_top = tim_top;
-		fdata.comm_step = mcpwm_get_comm_step();
-		fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
-#ifdef HW_HAS_DRV8301
-		if (fault == FAULT_CODE_DRV) {
-			fdata.drv8301_faults = drv8301_read_faults();
-		}
-#elif defined(HW_HAS_DRV8320S)
- 		if (fault == FAULT_CODE_DRV) {
-			fdata.drv8301_faults = drv8320s_read_faults();
-		}
-#elif defined(HW_HAS_DRV8323S)
-		if (fault == FAULT_CODE_DRV) {
-			fdata.drv8301_faults = drv8323s_read_faults();
- 		}
-#endif
-		terminal_add_fault_data(&fdata);
-	}
-
-	motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
-
-	switch (motor->m_conf.motor_type) {
-	case MOTOR_TYPE_BLDC:
-	case MOTOR_TYPE_DC:
-		mcpwm_stop_pwm();
-		break;
-
-	case MOTOR_TYPE_FOC:
-		mcpwm_foc_stop_pwm(is_second_motor);
-		break;
-
-	case MOTOR_TYPE_GPD:
-		gpdrive_set_mode(GPD_OUTPUT_MODE_NONE);
-		break;
-
-	default:
-		break;
-	}
-
-	motor->m_fault_now = fault;
 }
 
 void mc_interface_mc_timer_isr(bool is_second_motor) {
@@ -1594,7 +1536,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 		if ((wrong_voltage_iterations >= 8)) {
 			mc_interface_fault_stop(input_voltage < conf_now->l_min_vin ?
-					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE, is_second_motor);
+					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE, is_second_motor, true);
 		}
 	} else {
 		wrong_voltage_iterations = 0;
@@ -1652,11 +1594,11 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	// Current fault code
 	if (conf_now->l_slow_abs_current) {
 		if (fabsf(abs_current_filtered) > conf_now->l_abs_current_max) {
-			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor);
+			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor, true);
 		}
 	} else {
 		if (fabsf(abs_current) > conf_now->l_abs_current_max) {
-			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor);
+			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, is_second_motor, true);
 		}
 	}
 
@@ -1666,13 +1608,13 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 #else
 	if (is_second_motor ? IS_DRV_FAULT_2() : IS_DRV_FAULT()) {
 #endif
-		mc_interface_fault_stop(FAULT_CODE_DRV, is_second_motor);
+		mc_interface_fault_stop(FAULT_CODE_DRV, is_second_motor, true);
 	}
 
 #ifdef HW_USE_BRK
 	// BRK fault code
 	if (TIM_GetFlagStatus(TIM1, TIM_FLAG_Break) != RESET) {
-		mc_interface_fault_stop(FAULT_CODE_BRK, is_second_motor);
+		mc_interface_fault_stop(FAULT_CODE_BRK, is_second_motor, true);
 		// latch the BRK/FAULT pin to low until next MCU reset
 		palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 		palClearPad(BRK_GPIO, BRK_PIN);
@@ -1681,11 +1623,11 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 	if(motor->m_gate_driver_voltage > HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE) {
-		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE, is_second_motor);
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE, is_second_motor, true);
 	}
 
 	if(motor->m_gate_driver_voltage < HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) {
-		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE, is_second_motor);
+		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE, is_second_motor, true);
 	}
 #endif
 
@@ -1951,7 +1893,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	} else if (motor->m_temp_fet > conf->l_temp_fet_end) {
 		lo_min_mos = 0.0;
 		lo_max_mos = 0.0;
-		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, !is_motor_1);
+		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, !is_motor_1, false);
 	} else {
 		float maxc = fabsf(l_current_max_tmp);
 		if (fabsf(l_current_min_tmp) > maxc) {
@@ -1977,7 +1919,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	} else if (motor->m_temp_motor > conf->l_temp_motor_end) {
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
-		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1);
+		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1, false);
 	} else {
 		float maxc = fabsf(l_current_max_tmp);
 		if (fabsf(l_current_min_tmp) > maxc) {
@@ -2167,7 +2109,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			mcpwm_foc_is_using_encoder() &&
 			encoder_spi_get_error_rate() > 0.05) {
-		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1);
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
@@ -2175,20 +2117,20 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 
 		if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
 		if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
 		if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, !is_motor_1, false);
 		if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS, !is_motor_1, false);
 		if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS, !is_motor_1, false);
 	}
 	// TODO: Implement for BLDC and GPDRIVE
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
@@ -2209,14 +2151,14 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 #endif
 
 		if (abs(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1, false);
 		}
 		if (abs(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1, false);
 		}
 #ifdef HW_HAS_3_SHUNTS
 		if (abs(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
-			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1, false);
 		}
 #endif
 	}
@@ -2233,7 +2175,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		}
 
 		if (motor->m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
-			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, !is_motor_1);
+			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, !is_motor_1, false);
 		}
 	}
 #endif
@@ -2258,7 +2200,6 @@ static THD_FUNCTION(sample_send_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("SampleSender");
-
 	sample_send_tp = chThdGetSelfX();
 
 	for(;;) {
@@ -2312,5 +2253,89 @@ static THD_FUNCTION(sample_send_thread, arg) {
 
 			commands_send_packet(buffer, index);
 		}
+	}
+}
+
+static THD_FUNCTION(fault_stop_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("Fault Stop");
+	fault_stop_tp = chThdGetSelfX();
+
+	for(;;) {
+		chEvtWaitAny((eventmask_t) 1);
+#ifdef HW_HAS_DUAL_MOTORS
+		volatile motor_if_state_t *motor = m_fault_stop_is_second_motor ? &m_motor_2 : &m_motor_1;
+#else
+		volatile motor_if_state_t *motor = &m_motor_1;
+#endif
+
+		if (motor->m_fault_now == m_fault_stop_fault) {
+			motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
+			continue;
+		}
+
+		if (mc_interface_dccal_done() && motor->m_fault_now == FAULT_CODE_NONE) {
+			// Sent to terminal fault logger so that all faults and their conditions
+			// can be printed for debugging.
+			utils_sys_lock_cnt();
+			volatile int val_samp = TIM8->CCR1;
+			volatile int current_samp = TIM1->CCR4;
+			volatile int tim_top = TIM1->ARR;
+			utils_sys_unlock_cnt();
+
+			fault_data fdata;
+			fdata.motor = m_fault_stop_is_second_motor ? 2 : 1;
+			fdata.fault = m_fault_stop_fault;
+			fdata.current = mc_interface_get_tot_current();
+			fdata.current_filtered = mc_interface_get_tot_current_filtered();
+			fdata.voltage = GET_INPUT_VOLTAGE();
+			fdata.gate_driver_voltage = motor->m_gate_driver_voltage;
+			fdata.duty = mc_interface_get_duty_cycle_now();
+			fdata.rpm = mc_interface_get_rpm();
+			fdata.tacho = mc_interface_get_tachometer_value(false);
+			fdata.cycles_running = motor->m_cycles_running;
+			fdata.tim_val_samp = val_samp;
+			fdata.tim_current_samp = current_samp;
+			fdata.tim_top = tim_top;
+			fdata.comm_step = mcpwm_get_comm_step();
+			fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
+#ifdef HW_HAS_DRV8301
+			if (m_fault_stop_fault == FAULT_CODE_DRV) {
+				fdata.drv8301_faults = drv8301_read_faults();
+			}
+#elif defined(HW_HAS_DRV8320S)
+			if (m_fault_stop_fault == FAULT_CODE_DRV) {
+				fdata.drv8301_faults = drv8320s_read_faults();
+			}
+#elif defined(HW_HAS_DRV8323S)
+			if (m_fault_stop_fault == FAULT_CODE_DRV) {
+				fdata.drv8301_faults = drv8323s_read_faults();
+			}
+#endif
+			terminal_add_fault_data(&fdata);
+		}
+
+		motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
+
+		switch (motor->m_conf.motor_type) {
+		case MOTOR_TYPE_BLDC:
+		case MOTOR_TYPE_DC:
+			mcpwm_stop_pwm();
+			break;
+
+		case MOTOR_TYPE_FOC:
+			mcpwm_foc_stop_pwm(m_fault_stop_is_second_motor);
+			break;
+
+		case MOTOR_TYPE_GPD:
+			gpdrive_set_mode(GPD_OUTPUT_MODE_NONE);
+			break;
+
+		default:
+			break;
+		}
+
+		motor->m_fault_now = m_fault_stop_fault;
 	}
 }

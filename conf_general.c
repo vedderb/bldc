@@ -840,7 +840,10 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	float rpm_now = 0;
 
 	// Start by locking the motor
-	mcpwm_foc_set_openloop(current, rpm_now);
+	for (int i = 0;i < 200;i++) {
+		mcpwm_foc_set_openloop((float)i * current / 200.0, rpm_now);
+		chThdSleepMilliseconds(1);
+	}
 
 	float duty_still = 0;
 	float samples = 0;
@@ -1015,12 +1018,15 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	}
 
 	// AS5047 encoder
+#ifndef HW_HAS_DUAL_MOTORS
 	if (!res) {
 		mcconf->m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
 		mc_interface_set_configuration(mcconf);
 
-		mcpwm_foc_set_openloop_phase(current, 0.0);
-		chThdSleepMilliseconds(1000);
+		for (int i = 0;i < 1000;i++) {
+			mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, 0.0);
+			chThdSleepMilliseconds(1);
+		}
 
 		float phase_start = encoder_read_deg();
 		float phase_mid = 0.0;
@@ -1053,6 +1059,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			result = 2;
 		}
 	}
+#endif
 
 	// Sensorless
 	if (!res) {

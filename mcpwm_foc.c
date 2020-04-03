@@ -633,7 +633,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 
 	// Check if the system has resumed from IWDG reset
 	if (timeout_had_IWDG_reset()) {
-		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false);
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
 	}
 
 	terminal_register_command_callback(
@@ -1953,7 +1953,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	mc_interface_lock();
 
 	motor->m_phase_override = true;
-	motor->m_id_set = current;
+	motor->m_id_set = 0.0;
 	motor->m_iq_set = 0.0;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
@@ -1966,7 +1966,11 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 
 	// Lock the motor
 	motor->m_phase_now_override = 0;
-	chThdSleepMilliseconds(1000);
+
+	for (int i = 0;i < 1000;i++) {
+		motor->m_id_set = (float)i * current / 1000.0;
+		chThdSleepMilliseconds(1);
+	}
 
 	float sin_hall[8];
 	float cos_hall[8];
@@ -3647,6 +3651,9 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 }
 
 static void stop_pwm_hw(volatile motor_all_state_t *motor) {
+	motor->m_id_set = 0.0;
+	motor->m_iq_set = 0.0;
+
 	if (motor == &m_motor_1) {
 		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);

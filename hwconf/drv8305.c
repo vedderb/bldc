@@ -41,8 +41,11 @@ static void terminal_write_reg(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
+static mutex_t m_spi_mutex;
 
 void drv8305_init(void) {
+	chMtxObjectInit(&m_spi_mutex);
+
 	// DRV8305 SPI
 	palSetPadMode(DRV8305_MISO_GPIO, DRV8305_MISO_PIN, PAL_MODE_INPUT);
 	palSetPadMode(DRV8305_SCK_GPIO, DRV8305_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
@@ -165,6 +168,8 @@ unsigned int drv8305_read_reg(int reg) {
 	out |= (reg & 0x0F) << 11;
 	out |= 0x807F;
 
+	chMtxLock(&m_spi_mutex);
+
 	if (reg != 0) {
 		spi_begin();
 		spi_exchange(out);
@@ -175,6 +180,8 @@ unsigned int drv8305_read_reg(int reg) {
 	uint16_t res = spi_exchange(0xFFFF);
 	spi_end();
 
+	chMtxUnlock(&m_spi_mutex);
+
 	return res;
 }
 
@@ -183,9 +190,11 @@ void drv8305_write_reg(int reg, int data) {
 	out |= (reg & 0x0F) << 11;
 	out |= data & 0x7FF;
 
+	chMtxLock(&m_spi_mutex);
 	spi_begin();
 	spi_exchange(out);
 	spi_end();
+	chMtxUnlock(&m_spi_mutex);
 }
 
 // Software SPI
