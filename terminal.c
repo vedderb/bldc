@@ -832,6 +832,7 @@ void terminal_process_string(char *str) {
 					}
 					hall_last = hall;
 
+					// Notice that the plots are offset slightly in Y, to make it easier to see them.
 					commands_plot_set_graph(0);
 					commands_send_plot_points(phase, (float)(hall & 1) * 1.02);
 					commands_plot_set_graph(1);
