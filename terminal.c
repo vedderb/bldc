@@ -880,12 +880,13 @@ void terminal_process_string(char *str) {
 					}
 				}
 
-				if ((max - min) <= 5) {
-					commands_printf("Maximum deviation: %.2f degrees. This is good alignment.\n", (double)(max - min));
+				float deviation = (max - min) / 2.0;
+				if (deviation < 5) {
+					commands_printf("Maximum deviation: %.2f degrees. This is good alignment.\n", (double)deviation);
 				} else if ((max - min) < 10) {
-					commands_printf("Maximum deviation: %.2f degrees. This is OK, but not great alignment.\n", (double)(max - min));
+					commands_printf("Maximum deviation: %.2f degrees. This is OK, but not great alignment.\n", (double)deviation);
 				} else if ((max - min) < 15) {
-					commands_printf("Maximum deviation: %.2f degrees. This is bad, but probably usable alignment.\n", (double)(max - min));
+					commands_printf("Maximum deviation: %.2f degrees. This is bad, but probably usable alignment.\n", (double)deviation);
 				} else {
 					commands_printf("Maximum deviation: %.2f degrees. The hall sensors are significantly misaligned. This has "
 							"to be fixed for proper operation.\n", (double)(max - min));
