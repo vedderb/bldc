@@ -781,6 +781,123 @@ void terminal_process_string(char *str) {
 		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
+	} else if (strcmp(argv[0], "hall_analyze") == 0) {
+		if (argc == 2) {
+			float current = -1.0;
+			sscanf(argv[1], "%f", &current);
+
+			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max) {
+				commands_printf("Starting hall sensor analysis...\n");
+
+				mc_interface_lock();
+				mc_configuration *mcconf = mempools_alloc_mcconf();
+				*mcconf = *mc_interface_get_configuration();
+				mc_motor_type motor_type_old = mcconf->motor_type;
+				mcconf->motor_type = MOTOR_TYPE_FOC;
+				mc_interface_set_configuration(mcconf);
+
+				commands_init_plot("Angle", "Hall Sensor State");
+				commands_plot_add_graph("Hall 1");
+				commands_plot_add_graph("Hall 2");
+				commands_plot_add_graph("Hall 3");
+				commands_plot_add_graph("Combined");
+
+				float phase = 0.0;
+
+				for (int i = 0;i < 1000;i++) {
+					timeout_reset();
+					mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, phase);
+					chThdSleepMilliseconds(1);
+				}
+
+				bool is_second_motor = mc_interface_get_motor_thread() == 2;
+				int hall_last = utils_read_hall(is_second_motor);
+				float transitions[7] = {0.0};
+				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+				int transition_index = 0;
+
+				for (int i = 0;i < 720;i++) {
+					int hall = utils_read_hall(is_second_motor);
+					if (hall_last != hall) {
+						if (transition_index < 7) {
+							transitions[transition_index++] = phase;
+						}
+
+						for (int j = 0;j < 8;j++) {
+							if (states[j] == hall || states[j] == -1) {
+								states[j] = hall;
+								break;
+							}
+						}
+					}
+					hall_last = hall;
+
+					commands_plot_set_graph(0);
+					commands_send_plot_points(phase, (float)(hall & 1) * 1.02);
+					commands_plot_set_graph(1);
+					commands_send_plot_points(phase, (float)((hall >> 1) & 1) * 1.04);
+					commands_plot_set_graph(2);
+					commands_send_plot_points(phase, (float)((hall >> 2) & 1) * 1.06);
+					commands_plot_set_graph(3);
+					commands_send_plot_points(phase, (float)hall);
+
+					phase += 1.0;
+					timeout_reset();
+					mcpwm_foc_set_openloop_phase(current, phase);
+					chThdSleepMilliseconds(20);
+				}
+
+				mc_interface_lock_override_once();
+				mc_interface_release_motor();
+				mcconf->motor_type = motor_type_old;
+				mc_interface_set_configuration(mcconf);
+				mempools_free_mcconf(mcconf);
+				mc_interface_unlock();
+
+				int state_num = 0;
+				for (int i = 0;i < 8;i++) {
+					if (states[i] != -1) {
+						state_num++;
+					}
+				}
+
+				if (state_num == 6) {
+					commands_printf("Found 6 different states. This seems correct.\n");
+				} else {
+					commands_printf("Found %d different states. Something is most likely wrong...\n", state_num);
+				}
+
+				float min = 900.0;
+				float max = 0.0;
+				for (int i = 0;i < 6;i++) {
+					float diff = fabsf(utils_angle_difference(transitions[i], transitions[i + 1]));
+					commands_printf("Hall diff %d: %.1f degrees", i + 1, (double)diff);
+					if (diff < min) {
+						min = diff;
+					}
+					if (diff > max) {
+						max = diff;
+					}
+				}
+
+				if ((max - min) <= 5) {
+					commands_printf("Maximum deviation: %.2f degrees. This is good alignment.\n", (double)(max - min));
+				} else if ((max - min) < 10) {
+					commands_printf("Maximum deviation: %.2f degrees. This is OK, but not great alignment.\n", (double)(max - min));
+				} else if ((max - min) < 15) {
+					commands_printf("Maximum deviation: %.2f degrees. This is bad, but probably usable alignment.\n", (double)(max - min));
+				} else {
+					commands_printf("Maximum deviation: %.2f degrees. The hall sensors are significantly misaligned. This has "
+							"to be fixed for proper operation.\n", (double)(max - min));
+				}
+
+				commands_printf("Done. Go to the Realtime Data > Experiment page to see the plot.\n");
+			} else {
+				commands_printf("Invalid argument(s).\n");
+			}
+		} else {
+			commands_printf("This command requires one argument.\n");
+		}
 	}
 
 	// The help command
@@ -904,6 +1021,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("uptime");
 		commands_printf("  Prints how many seconds have passed since boot.");
+
+		commands_printf("hall_analyze [current]");
+		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

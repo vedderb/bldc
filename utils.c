@@ -759,6 +759,38 @@ uint8_t utils_second_motor_id(void) {
 #endif
 }
 
+int utils_read_hall(bool is_second_motor) {
+	int h1, h2, h3;
+
+	if (is_second_motor) {
+		h1 = READ_HALL1_2();
+		h2 = READ_HALL2_2();
+		h3 = READ_HALL3_2();
+
+		h1 += READ_HALL1_2();
+		h2 += READ_HALL2_2();
+		h3 += READ_HALL3_2();
+
+		h1 += READ_HALL1_2();
+		h2 += READ_HALL2_2();
+		h3 += READ_HALL3_2();
+	} else {
+		h1 = READ_HALL1();
+		h2 = READ_HALL2();
+		h3 = READ_HALL3();
+
+		h1 += READ_HALL1();
+		h2 += READ_HALL2();
+		h3 += READ_HALL3();
+
+		h1 += READ_HALL1();
+		h2 += READ_HALL2();
+		h3 += READ_HALL3();
+	}
+
+	return (h1 > 1) | ((h2 > 1) << 1) | ((h3 > 1) << 2);
+}
+
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
 	1.000000, 0.980785, 0.923880, 0.831470, 0.707107, 0.555570, 0.382683, 0.195090,

@@ -185,7 +185,6 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
 static void stop_pwm_hw(volatile motor_all_state_t *motor);
 static void start_pwm_hw(volatile motor_all_state_t *motor);
-static int read_hall(volatile motor_all_state_t *motor);
 static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, volatile motor_all_state_t *motor);
 static float correct_hall(float angle, float speed, float dt, volatile motor_all_state_t *motor);
 static void terminal_plot_hfi(int argc, const char **argv);
@@ -1985,7 +1984,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = read_hall(motor);
+			int hall = utils_read_hall(motor != &m_motor_1);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -2000,7 +1999,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = read_hall(motor);
+			int hall = utils_read_hall(motor != &m_motor_1);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -3768,24 +3767,6 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 	}
 }
 
-static int read_hall(volatile motor_all_state_t *motor) {
-	bool is_m1 = motor == &m_motor_1;
-
-	int h1 = is_m1 ? READ_HALL1() : READ_HALL1_2();
-	int h2 = is_m1 ? READ_HALL2() : READ_HALL2_2();
-	int h3 = is_m1 ? READ_HALL3() : READ_HALL3_2();
-
-	h1 += is_m1 ? READ_HALL1() : READ_HALL1_2();
-	h2 += is_m1 ? READ_HALL2() : READ_HALL2_2();
-	h3 += is_m1 ? READ_HALL3() : READ_HALL3_2();
-
-	h1 += is_m1 ? READ_HALL1() : READ_HALL1_2();
-	h2 += is_m1 ? READ_HALL2() : READ_HALL2_2();
-	h3 += is_m1 ? READ_HALL3() : READ_HALL3_2();
-
-	return (h1 > 1) | ((h2 > 1) << 1) | ((h3 > 1) << 2);
-}
-
 static float correct_encoder(float obs_angle, float enc_angle, float speed,
 							 float sl_erpm, volatile motor_all_state_t *motor) {
 	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
@@ -3822,7 +3803,7 @@ static float correct_hall(float angle, float speed, float dt, volatile motor_all
 	}
 
 	if (motor->m_using_hall) {
-		int ang_hall_int = conf_now->foc_hall_table[read_hall(motor)];
+		int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1)];
 
 		// Only override the observer if the hall sensor value is valid.
 		if (ang_hall_int < 201) {
