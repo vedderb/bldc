@@ -1065,6 +1065,32 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_SET_CAN_MODE: {
+		int32_t ind = 0;
+		bool store = data[ind++];
+		bool ack = data[ind++];
+		bool mode = data[ind++];
+
+		app_configuration *appconf = mempools_alloc_appconf();
+		*appconf = *app_get_configuration();
+		appconf->can_mode = mode;
+
+		if (store) {
+			conf_general_store_app_configuration(appconf);
+		}
+
+		app_set_configuration(appconf);
+
+		mempools_free_appconf(appconf);
+
+		if (ack) {
+			ind = 0;
+			uint8_t send_buffer[50];
+			send_buffer[ind++] = packet_id;
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.

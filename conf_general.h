@@ -99,7 +99,8 @@
 //#define HW75_300_VEDDER_FIRST_PCB
 
 // Second revision with separate UART for NRF51
-#define HW75_300_REV_2
+//#define HW75_300_REV_2
+#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
