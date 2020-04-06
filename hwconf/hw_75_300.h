@@ -188,7 +188,7 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-#ifdef HW75_300_REV_2
+#if defined(HW75_300_REV_2) || defined(HW75_300_REV_3)
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
