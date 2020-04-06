@@ -2266,6 +2266,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 		chEvtWaitAny((eventmask_t) 1);
 #ifdef HW_HAS_DUAL_MOTORS
 		volatile motor_if_state_t *motor = m_fault_stop_is_second_motor ? &m_motor_2 : &m_motor_1;
+		mc_interface_select_motor_thread(m_fault_stop_is_second_motor + 1);
 #else
 		volatile motor_if_state_t *motor = &m_motor_1;
 #endif
