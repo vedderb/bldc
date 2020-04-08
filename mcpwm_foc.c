@@ -1844,10 +1844,10 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	}
 
 	if (ld_lq_diff) {
-		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6;
+		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * (2.0 / 3.0);
 	}
 
-	return (l_sum / iterations) * 1e6;
+	return (l_sum / iterations) * 1e6 * (2.0 / 3.0);
 }
 
 /**
@@ -2839,8 +2839,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		gamma_tmp = motor->m_conf->foc_observer_gain_slow * motor->m_conf->foc_observer_gain;
 	}
 
-	// 5.0 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
-	motor->m_gamma_now = gamma_tmp * 5.0;
+	// 4.0 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
+	motor->m_gamma_now = gamma_tmp * 4.0;
 }
 
 static THD_FUNCTION(timer_thread, arg) {
