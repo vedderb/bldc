@@ -2270,6 +2270,8 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 		volatile motor_if_state_t *motor = &m_motor_1;
 #endif
 
+		mc_interface_select_motor_thread(m_fault_stop_is_second_motor ? 2 : 1);
+
 		if (motor->m_fault_now == m_fault_stop_fault) {
 			motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
 			continue;
