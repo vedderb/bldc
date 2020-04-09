@@ -23,7 +23,8 @@
 // Firmware version
 #define FW_VERSION_MAJOR		5
 #define FW_VERSION_MINOR		00
-#define FW_IS_TEST_BUILD		1
+// Set to 0 for building a release and iterate during beta test builds
+#define FW_TEST_VERSION_NUMBER		2
 
 #include "datatypes.h"
 
@@ -132,12 +133,12 @@
 //#define HW_SOURCE "hw_100_250.c"
 //#define HW_HEADER "hw_100_250.h"
 
-#define HW_SOURCE "hw_unity.c"
-#define HW_HEADER "hw_unity.h"
+//#define HW_SOURCE "hw_unity.c"
+//#define HW_HEADER "hw_unity.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
-//#define HW_SOURCE "hw_stormcore_100d.c"
-//#define HW_HEADER "hw_stormcore_100d.h"
+#define HW_SOURCE "hw_stormcore_100d.c"
+#define HW_HEADER "hw_stormcore_100d.h"
 
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
