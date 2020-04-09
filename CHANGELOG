@@ -18,6 +18,7 @@
 * Smooth current ramping in flux linkage measurement and sensor detection.
 * Added hall_analyze terminal command.
 * Motor temperature filtering bug fix.
+* Inductance measurement scaling fix.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
