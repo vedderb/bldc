@@ -629,6 +629,8 @@ void terminal_process_string(char *str) {
 			sscanf(argv[1], "%f", &max_power_loss);
 
 			if (max_power_loss > 0.0) {
+				int motor_thread_old = mc_interface_get_motor_thread();
+
 				commands_printf("Running detection...");
 				int res = conf_general_detect_apply_all_foc(max_power_loss, true, true);
 
@@ -687,6 +689,8 @@ void terminal_process_string(char *str) {
 
 					commands_printf("Detection failed.\n");
 				}
+
+				mc_interface_select_motor_thread(motor_thread_old);
 			} else {
 				commands_printf("Invalid argument(s).\n");
 			}
