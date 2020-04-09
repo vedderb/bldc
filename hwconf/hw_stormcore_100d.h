@@ -387,9 +387,15 @@
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_LIM_CURRENT				-300.0, 300.0
 #define HW_LIM_CURRENT_ABS			0.0, 400.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0
 #define HW_LIM_CURRENT_ABS			0.0, 200.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
+#endif
 #endif
 #define HW_LIM_CURRENT_IN			-150.0, 150.0
 #define HW_LIM_VIN					6.0, 94.0
