@@ -291,10 +291,17 @@
 #define READ_HALL2_2()			palReadPad(HW_HALL_ENC_GPIO5, HW_HALL_ENC_PIN5)
 #define READ_HALL3_2()			palReadPad(HW_HALL_ENC_GPIO6, HW_HALL_ENC_PIN6)
 
+// Note: the unity seems to trigger this fault randomly sometimes, which can be
+// dangerous. Therefore it is disabled, and we rely on the DRV to limit the current
+// if needed.
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT		401.0	// The maximum absolute current above which a fault is generated
+#endif
+
 // Setting limits
 #define HW_LIM_CURRENT			-150.0, 150.0
 #define HW_LIM_CURRENT_IN		-120.0, 120.0
-#define HW_LIM_CURRENT_ABS		0.0, 200.0
+#define HW_LIM_CURRENT_ABS		400.0, 402.0
 #define HW_LIM_VIN				6.0, 59.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
