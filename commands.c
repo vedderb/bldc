@@ -1069,7 +1069,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t ind = 0;
 		bool store = data[ind++];
 		bool ack = data[ind++];
-		bool mode = data[ind++];
+		int mode = data[ind++];
 
 		app_configuration *appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
