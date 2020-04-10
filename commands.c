@@ -993,7 +993,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t ind = 0;
 		bool store = data[ind++];
 		bool ack = data[ind++];
-		bool mode = data[ind++];
+		int mode = data[ind++];
 
 		appconf = *app_get_configuration();
 		appconf.can_mode = mode;
