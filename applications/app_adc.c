@@ -84,6 +84,15 @@ float app_adc_get_voltage2(void) {
 	return read_voltage2;
 }
 
+static bool adc_sanity_check(float check, float min, float max) {
+    // If we are outside of the given min max range.
+    if ((check < min) || (check > max)) {
+        //  Use timeout braking current instead of max brake.
+        mc_interface_set_brake_current(timeout_get_brake_current());
+        return false;
+    }
+    return true;
+}
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
@@ -126,6 +135,12 @@ static THD_FUNCTION(adc_thread, arg) {
 		pwr *= V_REG;
 
 		read_voltage = pwr;
+
+		// Sanity check to make sure the voltage is between the min and max
+		if(!adc_sanity_check(read_voltage,
+		    config.voltage_start, config.voltage_end)) {
+		    return;
+		};
 
 		// Optionally apply a mean value filter
 		if (config.use_filter) {
@@ -187,6 +202,12 @@ static THD_FUNCTION(adc_thread, arg) {
 #endif
 
 		read_voltage2 = brake;
+
+  // Sanity check to make sure the voltage is between the min and max
+  if(!adc_sanity_check(read_voltage2,
+                      config.voltage2_start, config.voltage2_end)) {
+      return;
+  };
 
 		// Optionally apply a mean value filter
 		if (config.use_filter) {
