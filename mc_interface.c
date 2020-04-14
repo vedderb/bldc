@@ -1878,7 +1878,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = -100.0;
 	}
 
-	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, 0.1);
+	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
 
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 	UTILS_LP_FAST(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
