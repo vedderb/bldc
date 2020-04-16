@@ -1759,6 +1759,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
 	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
 	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
+	bool sample_high_current_old = motor->m_conf->foc_sample_high_current;
 
 	mc_interface_lock();
 	motor->m_control_mode = CONTROL_MODE_NONE;
@@ -1771,6 +1772,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	motor->m_conf->foc_hfi_voltage_max = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
 	motor->m_conf->foc_sample_v0_v7 = false;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
+	motor->m_conf->foc_sample_high_current = false;
 
 	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
 
@@ -1813,6 +1815,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 			motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
 			motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
 			motor->m_conf->foc_hfi_samples = samples_old;
+			motor->m_conf->foc_sample_high_current = sample_high_current_old;
 
 			update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
 
@@ -1849,6 +1852,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
 	motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
 	motor->m_conf->foc_hfi_samples = samples_old;
+	motor->m_conf->foc_sample_high_current = sample_high_current_old;
 
 	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
 
