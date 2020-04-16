@@ -431,6 +431,9 @@
 #ifndef ADC_IND_TEMP_MOTOR_2
 #define ADC_IND_TEMP_MOTOR_2	ADC_IND_TEMP_MOTOR
 #endif
+#ifndef  MOTOR_TEMP_LPF
+#define MOTOR_TEMP_LPF 			0.1
+#endif
 #ifndef HW_ADC_CHANNELS_EXTRA
 #define HW_ADC_CHANNELS_EXTRA	0
 #endif

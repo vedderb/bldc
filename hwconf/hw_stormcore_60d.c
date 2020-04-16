@@ -314,35 +314,35 @@ static THD_FUNCTION(mux_thread, arg) {
 
 	for (;;) {
 		ENABLE_MOS_TEMP1();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_TEMP_MOS] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_MOS_TEMP2();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_TEMP_MOS_M2] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_MOT_TEMP1();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_MOT_TEMP2();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_TEMP_MOTOR_2] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_ADC_EXT_1();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_EXT] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_ADC_EXT_2();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_EXT2] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_ADC_EXT_3();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_EXT3] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ENABLE_V_BATT_DIV();
-		chThdSleepMilliseconds(1);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_V_BATT] = ADC_Value[ADC_IND_ADC_MUX];
 	}
 }

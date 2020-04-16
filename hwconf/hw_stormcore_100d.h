@@ -247,7 +247,9 @@
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-#define NTC_TEMP_MOTOR2(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR2]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOTOR_2(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define MOTOR_TEMP_LPF			0.01
+
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
 #ifndef CURR1_DOUBLE_SAMPLE
@@ -387,9 +389,15 @@
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_LIM_CURRENT				-300.0, 300.0
 #define HW_LIM_CURRENT_ABS			0.0, 400.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0
 #define HW_LIM_CURRENT_ABS			0.0, 200.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
+#endif
 #endif
 #define HW_LIM_CURRENT_IN			-150.0, 150.0
 #define HW_LIM_VIN					6.0, 94.0
