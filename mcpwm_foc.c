@@ -161,6 +161,8 @@ typedef struct {
 	int m_ang_hall_int_prev;
 	bool m_using_hall;
 	float m_ang_hall;
+	float m_hall_dt_diff_last;
+	float m_hall_dt_diff_now;
 } motor_all_state_t;
 
 // Private variables
@@ -187,7 +189,7 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
 static void stop_pwm_hw(volatile motor_all_state_t *motor);
 static void start_pwm_hw(volatile motor_all_state_t *motor);
 static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, volatile motor_all_state_t *motor);
-static float correct_hall(float angle, float speed, float dt, volatile motor_all_state_t *motor);
+static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(volatile motor_all_state_t *motor, float dt);
 static void hfi_update(volatile motor_all_state_t *motor);
@@ -501,6 +503,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	m_motor_1.m_conf = conf_m1;
 	m_motor_1.m_state = MC_STATE_OFF;
 	m_motor_1.m_control_mode = CONTROL_MODE_NONE;
+	m_motor_1.m_hall_dt_diff_last = 1.0;
 #ifdef HW_HAS_DUAL_PARALLEL
 	m_motor_1.m_curr_ofs[0] = 4096;
 	m_motor_1.m_curr_ofs[1] = 4096;
@@ -517,6 +520,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	m_motor_2.m_conf = conf_m2;
 	m_motor_2.m_state = MC_STATE_OFF;
 	m_motor_2.m_control_mode = CONTROL_MODE_NONE;
+	m_motor_2.m_hall_dt_diff_last = 1.0;
 	m_motor_2.m_curr_ofs[0] = 2048;
 	m_motor_2.m_curr_ofs[1] = 2048;
 	m_motor_2.m_curr_ofs[2] = 2048;
@@ -2455,8 +2459,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			}
 			break;
 		case FOC_SENSOR_MODE_HALL:
-			motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer,
-														   motor_now->m_speed_est_fast, dt, motor_now);
+			motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer, dt, motor_now);
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 
 			if (!motor_now->m_phase_override) {
@@ -2628,13 +2631,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			motor_now->m_motor_state.phase = correct_encoder(
 					motor_now->m_phase_now_observer,
 					motor_now->m_phase_now_encoder,
-					motor_now->m_pll_speed,
+					motor_now->m_speed_est_fast,
 					conf_now->foc_sl_erpm,
 					motor_now);
 			break;
 		case FOC_SENSOR_MODE_HALL:
-			motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer,
-														   motor_now->m_pll_speed, dt, motor_now);
+			motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer, dt, motor_now);
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 			break;
 		case FOC_SENSOR_MODE_SENSORLESS:
@@ -3810,85 +3812,96 @@ static float correct_encoder(float obs_angle, float enc_angle, float speed,
 	return motor->m_using_encoder ? enc_angle : obs_angle;
 }
 
-static float correct_hall(float angle, float speed, float dt, volatile motor_all_state_t *motor) {
+static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor) {
 	volatile mc_configuration *conf_now = motor->m_conf;
-	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+	motor->m_hall_dt_diff_now += dt;
+
+	float rad_per_sec = (M_PI / 3.0) / motor->m_hall_dt_diff_last;
+	float rpm_abs_fast = fabsf(motor->m_speed_est_fast / ((2.0 * M_PI) / 60.0));
+	float rpm_abs_hall = fabsf(rad_per_sec / ((2.0 * M_PI) / 60.0));
 
 	// Hysteresis 5 % of total speed
 	float hyst = conf_now->foc_sl_erpm * 0.1;
 	if (motor->m_using_hall) {
-		if (rpm_abs > (conf_now->foc_sl_erpm + hyst)) {
+		if (fminf(rpm_abs_fast, rpm_abs_hall) > (conf_now->foc_sl_erpm + hyst)) {
 			motor->m_using_hall = false;
 		}
 	} else {
-		if (rpm_abs < (conf_now->foc_sl_erpm - hyst)) {
+		if (rpm_abs_fast < (conf_now->foc_sl_erpm - hyst)) {
 			motor->m_using_hall = true;
 		}
 	}
 
-	if (motor->m_using_hall) {
-		int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1)];
+	int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1)];
 
-		// Only override the observer if the hall sensor value is valid.
-		if (ang_hall_int < 201) {
-			float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+	// Only override the observer if the hall sensor value is valid.
+	if (ang_hall_int < 201) {
+		float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
 
-			if (motor->m_ang_hall_int_prev < 0) {
-				// Previous angle not valid
-				motor->m_ang_hall_int_prev = ang_hall_int;
-
-				if (motor->m_ang_hall_int_prev == -2) {
-					// Before was sensorless, initialize with the provided angle
-					motor->m_ang_hall = angle;
-				} else {
-					// A boot or error has occurred. Use center of hall sensor angle.
-					motor->m_ang_hall = ((ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
-				}
-			} else if (ang_hall_int != motor->m_ang_hall_int_prev) {
-				// A transition was just made. The angle is in the middle of the new and old angle.
-				int ang_avg = abs(ang_hall_int - motor->m_ang_hall_int_prev);
-				if (ang_avg < 100) {
-					ang_avg = (ang_hall_int + motor->m_ang_hall_int_prev) / 2;
-				} else if (ang_avg != 100) {
-					ang_avg = (ang_hall_int + motor->m_ang_hall_int_prev) / 2 + 100;
-				}
-				ang_avg %= 200;
-				motor->m_ang_hall = (((float)ang_avg / 200.0) * 360.0) * M_PI / 180.0;
-			}
-
+		if (motor->m_ang_hall_int_prev < 0) {
+			// Previous angle not valid
 			motor->m_ang_hall_int_prev = ang_hall_int;
-
-			if (rpm_abs < 100) {
-				// Don't interpolate on very low speed, just use the closest hall sensor
-				motor->m_ang_hall = ang_hall_now;
-			} else {
-				// Interpolate
-				float diff = utils_angle_difference_rad(motor->m_ang_hall, ang_hall_now);
-				if (fabsf(diff) < ((2.0 * M_PI) / 12.0)) {
-					// Do interpolation
-					motor->m_ang_hall += speed * dt;
-				} else {
-					// We are too far away with the interpolation
-					motor->m_ang_hall -= diff / 100.0;
-				}
+			motor->m_ang_hall = ang_hall_now;
+		} else if (ang_hall_int != motor->m_ang_hall_int_prev) {
+			int diff = ang_hall_int - motor->m_ang_hall_int_prev;
+			if (diff > 100) {
+				diff -= 200;
+			} else if (diff < -100) {
+				diff += 200;
 			}
 
-			utils_norm_angle_rad((float*)&motor->m_ang_hall);
-			angle = motor->m_ang_hall;
-		} else {
-			// Invalid hall reading. Don't update angle.
-			motor->m_ang_hall_int_prev = -1;
+			// This is only valid if the direction did not just change. If it did, we use the
+			// last speed together with the sign right now.
+			if (SIGN(diff) == SIGN(motor->m_hall_dt_diff_last)) {
+				if (diff > 0) {
+					motor->m_hall_dt_diff_last = motor->m_hall_dt_diff_now;
+				} else {
+					motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_now;
+				}
+			} else {
+				motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_last;
+			}
 
-			// Also allow open loop in order to behave like normal sensorless
-			// operation. Then the motor works even if the hall sensor cable
-			// gets disconnected (when the sensor spacing is 120 degrees).
-			if (motor->m_phase_observer_override && motor->m_state == MC_STATE_RUNNING) {
-				angle = motor->m_phase_now_observer_override;
+			motor->m_hall_dt_diff_now = 0.0;
+
+			// A transition was just made. The angle is in the middle of the new and old angle.
+			int ang_avg = motor->m_ang_hall_int_prev + diff / 2;
+			ang_avg %= 200;
+			motor->m_ang_hall = (((float)ang_avg / 200.0) * 360.0) * M_PI / 180.0;
+		}
+
+		motor->m_ang_hall_int_prev = ang_hall_int;
+
+		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) / motor->m_hall_dt_diff_now)) < 100) {
+			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
+			// get stuck at 60 degrees off if a direction change happens between two steps.
+			motor->m_ang_hall = ang_hall_now;
+		} else {
+			// Interpolate
+			float diff = utils_angle_difference_rad(motor->m_ang_hall, ang_hall_now);
+			if (fabsf(diff) < ((2.0 * M_PI) / 12.0)) {
+				// Do interpolation
+				motor->m_ang_hall += rad_per_sec * dt;
+			} else {
+				// We are too far away with the interpolation
+				motor->m_ang_hall -= diff / 100.0;
 			}
 		}
+
+		utils_norm_angle_rad((float*)&motor->m_ang_hall);
+		if (motor->m_using_hall) {
+			angle = motor->m_ang_hall;
+		}
 	} else {
-		// We are running sensorless.
-		motor->m_ang_hall_int_prev = -2;
+		// Invalid hall reading. Don't update angle.
+		motor->m_ang_hall_int_prev = -1;
+
+		// Also allow open loop in order to behave like normal sensorless
+		// operation. Then the motor works even if the hall sensor cable
+		// gets disconnected (when the sensor spacing is 120 degrees).
+		if (motor->m_phase_observer_override && motor->m_state == MC_STATE_RUNNING) {
+			angle = motor->m_phase_now_observer_override;
+		}
 	}
 
 	return angle;
