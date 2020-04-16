@@ -1346,8 +1346,10 @@ float mc_interface_get_battery_level(float *wh_left) {
 	case BATTERY_TYPE_LIION_3_0__4_2:
 		battery_avg_voltage = ((3.2 + 4.2) / 2.0) * (float)(conf->si_battery_cells);
 		battery_avg_voltage_left = ((3.2 * (float)(conf->si_battery_cells) + v_in) / 2.0);
-		ah_left = utils_map(v_in / (float)(conf->si_battery_cells),
-				3.2, 4.2, 0.0, conf->si_battery_ah);
+		float batt_left = utils_map(v_in / (float)(conf->si_battery_cells),
+									3.2, 4.2, 0.0, 1.0);
+		batt_left = utils_batt_norm_v_to_capacity(batt_left);
+		ah_left = batt_left * conf->si_battery_ah;
 		break;
 
 	case BATTERY_TYPE_LIIRON_2_6__3_6:
@@ -1876,7 +1878,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = -100.0;
 	}
 
-	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, 0.1);
+	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
 
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 	UTILS_LP_FAST(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);

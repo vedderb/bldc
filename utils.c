@@ -791,6 +791,27 @@ int utils_read_hall(bool is_second_motor) {
 	return (h1 > 1) | ((h2 > 1) << 1) | ((h3 > 1) << 2);
 }
 
+// A mapping of a samsung 30q cell for % remaining capacity vs. voltage from
+// 4.2 to 3.2, note that the you lose 15% of the 3Ah rated capacity in this range
+
+
+
+float utils_batt_norm_v_to_capacity(float norm_v) {
+	// constants for polynomial fit of lithium ion battery
+	const float li_p[] = {
+						  -2.979767, 5.487810, -3.501286, 1.675683, 0.317147};
+	utils_truncate_number(&norm_v,0.0,1.0);
+	float v2 = norm_v*norm_v;
+	float v3 = v2*norm_v;
+	float v4 = v3*norm_v;
+	float v5 = v4*norm_v;
+	float capacity = li_p[0] * v5 + li_p[1] * v4 + li_p[2] * v3 +
+			li_p[3] * v2 + li_p[4] * norm_v;
+	return capacity;
+}
+
+
+
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
 	1.000000, 0.980785, 0.923880, 0.831470, 0.707107, 0.555570, 0.382683, 0.195090,

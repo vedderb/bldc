@@ -137,8 +137,8 @@
 //#define HW_HEADER "hw_unity.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
-//#define HW_SOURCE "hw_stormcore_100d.c"
-//#define HW_HEADER "hw_stormcore_100d.h"
+#define HW_SOURCE "hw_stormcore_100d.c"
+#define HW_HEADER "hw_stormcore_100d.h"
 
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
