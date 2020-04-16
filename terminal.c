@@ -469,9 +469,15 @@ void terminal_process_string(char *str) {
 
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
 					erpm_per_sec > 0.0 && duty > 0.02 && res >= 0.0 && ind >= 0.0) {
-				float linkage;
-				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind, &linkage);
-				commands_printf("Flux linkage: %.7f\n", (double)linkage);
+				float linkage, linkage_undriven, undriven_samples;
+				commands_printf("Measuring flux linkage...");
+				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
+						&linkage, &linkage_undriven, &undriven_samples);
+				commands_printf(
+						"Flux linkage            : %.7f\n"
+						"Flux Linkage (undriven) : %.7f\n"
+						"Undriven samples        : %.1f\n",
+						(double)linkage, (double)linkage_undriven, (double)undriven_samples);
 			} else {
 				commands_printf("Invalid argument(s).\n");
 			}

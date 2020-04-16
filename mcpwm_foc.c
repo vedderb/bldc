@@ -127,6 +127,7 @@ typedef struct {
 	float m_gamma_now;
 	bool m_using_encoder;
 	float m_speed_est_fast;
+	float m_speed_est_faster;
 	int m_curr_samples;
 	int m_curr_sum[3];
 	int m_curr_ofs[3];
@@ -1139,6 +1140,20 @@ mc_state mcpwm_foc_get_state_motor(bool is_second_motor) {
 float mcpwm_foc_get_rpm(void) {
 	return motor_now()->m_motor_state.speed_rad_s / ((2.0 * M_PI) / 60.0);
 	//	return motor_now()->m_speed_est_fast / ((2.0 * M_PI) / 60.0);
+}
+
+/**
+ * Same as above, but uses the fast and noisier estimator.
+ */
+float mcpwm_foc_get_rpm_fast(void) {
+	return motor_now()->m_speed_est_fast / ((2.0 * M_PI) / 60.0);
+}
+
+/**
+ * Same as above, but uses the faster and noisier estimator.
+ */
+float mcpwm_foc_get_rpm_faster(void) {
+	return motor_now()->m_speed_est_faster / ((2.0 * M_PI) / 60.0);
 }
 
 /**
@@ -2686,6 +2701,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		UTILS_LP_FAST(motor_now->m_speed_est_fast, diff / dt, 0.01);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_fast);
+
+		UTILS_LP_FAST(motor_now->m_speed_est_faster, diff / dt, 0.2);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_faster);
+
 		motor_now->m_phase_before_speed_est = motor_now->m_motor_state.phase;
 	}
 

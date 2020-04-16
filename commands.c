@@ -1580,9 +1580,14 @@ static THD_FUNCTION(blocking_thread, arg) {
 				inductance = buffer_get_float32(data, 1e8, &ind);
 			}
 
-			float linkage;
+			float linkage, linkage_undriven, undriven_samples;
 			bool res = conf_general_measure_flux_linkage_openloop(current, duty,
-					erpm_per_sec, resistance, inductance, &linkage);
+					erpm_per_sec, resistance, inductance,
+					&linkage, &linkage_undriven, &undriven_samples);
+
+			if (undriven_samples > 60) {
+				linkage = linkage_undriven;
+			}
 
 			if (!res) {
 				linkage = 0.0;

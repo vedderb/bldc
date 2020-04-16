@@ -789,11 +789,18 @@ uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq
  * @param linkage
  * The calculated flux linkage.
  *
+ * @param linkage_undriven
+ * Flux linkage measured while the motor was undriven.
+ *
+ * @param undriven_samples
+ * Number of flux linkage samples while the motor was undriven.
+ *
  * @return
  * True for success, false otherwise.
  */
 bool conf_general_measure_flux_linkage_openloop(float current, float duty,
-		float erpm_per_sec, float res, float ind, float *linkage) {
+		float erpm_per_sec, float res, float ind, float *linkage,
+		float *linkage_undriven, float *undriven_samples) {
 	bool result = false;
 
 	mc_configuration *mcconf = mempools_alloc_mcconf();
@@ -901,7 +908,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float id_avg = 0.0;
 		float samples2 = 0.0;
 
-		for (int i = 0;i < 30000;i++) {
+		for (int i = 0;i < 10000;i++) {
 			vq_avg += mcpwm_foc_get_vq();
 			vd_avg += mcpwm_foc_get_vd();
 			iq_avg += mcpwm_foc_get_iq();
@@ -915,14 +922,40 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		iq_avg /= samples2;
 		id_avg /= samples2;
 
-		(void)ind;
-		*linkage = (sqrtf(SQ(vq_avg) + SQ(vd_avg)) - res *
-				sqrtf(SQ(iq_avg) + SQ(id_avg))) / (rpm_now * ((2.0 * M_PI) / 60.0));
+		float rad_s = rpm_now * ((2.0 * M_PI) / 60.0);
+		float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
+		float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
+		*linkage = (v_mag - (2.0 / 3.0) * res * i_mag) / rad_s - (2.0 / 3.0) * i_mag * ind;
 
-//		float rad_s = rpm_now * ((2.0 * M_PI) / 60.0);
-//        float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
-//        float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
-//        *linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
+		mcconf->foc_motor_r = res;
+		mcconf->foc_motor_l = ind;
+		mcconf->foc_motor_flux_linkage = *linkage;
+		mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
+		mc_interface_set_configuration(mcconf);
+		chThdSleepMilliseconds(500);
+		mcpwm_foc_set_current(0.0);
+		chThdSleepMilliseconds(5);
+
+		float linkage_sum = 0.0;
+		float linkage_samples = 0.0;
+		for (int i = 0;i < 20000;i++) {
+			float rad_s_now = mcpwm_foc_get_rpm_faster() * ((2.0 * M_PI) / 60.0);
+			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.01) {
+				break;
+			}
+
+			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
+			linkage_samples += 1.0;
+			chThdSleep(1);
+		}
+
+		*undriven_samples = linkage_samples;
+
+		if (linkage_samples > 0) {
+			*linkage_undriven = linkage_sum / linkage_samples;
+		} else {
+			*linkage_undriven = 0.0;
+		}
 
 		result = true;
 	}
@@ -1238,13 +1271,23 @@ static void measure_flux_linkage_task(void *arg) {
 	measure_flux_linkage_arg_t *args = (measure_flux_linkage_arg_t*)arg;
 	mc_interface_select_motor_thread(args->motor);
 
+	float linkage, linkage_undriven, undriven_samples;
+
 	args->result = conf_general_measure_flux_linkage_openloop(
 			args->current,
 			args->duty,
 			args->erpm_per_sec,
 			args->res,
 			args->ind,
-			&args->linkage);
+			&linkage,
+			&linkage_undriven,
+			&undriven_samples);
+
+	if (undriven_samples > 60) {
+		args->linkage = linkage_undriven;
+	} else {
+		args->linkage = linkage;
+	}
 }
 
 typedef struct {
@@ -1420,7 +1463,14 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #endif
 
 	float lambda = 0.0;
-	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l, &lambda);
+	float lambda_undriven = 0.0;
+	float lambda_undriven_samples = 0.0;
+	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
+			&lambda, &lambda_undriven, &lambda_undriven_samples);
+
+	if (lambda_undriven_samples > 60) {
+		lambda = lambda_undriven;
+	}
 
 #ifdef HW_HAS_DUAL_MOTORS
 	worker_wait();
