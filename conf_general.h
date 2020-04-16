@@ -121,8 +121,8 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-#define HW_SOURCE "hw_hd.c"
-#define HW_HEADER "hw_hd.h"
+//#define HW_SOURCE "hw_hd.c"
+//#define HW_HEADER "hw_hd.h"
 
 //#define HW_SOURCE "hw_a200s_v2.c"
 //#define HW_HEADER "hw_a200s_v2.h"

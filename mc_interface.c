@@ -1341,6 +1341,7 @@ float mc_interface_get_battery_level(float *wh_left) {
 	float battery_avg_voltage = 0.0;
 	float battery_avg_voltage_left = 0.0;
 	float ah_left = 0;
+	float ah_tot = conf->si_battery_ah;
 
 	switch (conf->si_battery_type) {
 	case BATTERY_TYPE_LIION_3_0__4_2:
@@ -1348,8 +1349,9 @@ float mc_interface_get_battery_level(float *wh_left) {
 		battery_avg_voltage_left = ((3.2 * (float)(conf->si_battery_cells) + v_in) / 2.0);
 		float batt_left = utils_map(v_in / (float)(conf->si_battery_cells),
 									3.2, 4.2, 0.0, 1.0);
-		batt_left = utils_batt_norm_v_to_capacity(batt_left);
-		ah_left = batt_left * conf->si_battery_ah;
+		batt_left = utils_batt_liion_norm_v_to_capacity(batt_left);
+		ah_tot *= 0.85; // 0.85 because the battery is not fully depleted at 3.2V / cell
+		ah_left = batt_left * ah_tot;
 		break;
 
 	case BATTERY_TYPE_LIIRON_2_6__3_6:
@@ -1371,7 +1373,7 @@ float mc_interface_get_battery_level(float *wh_left) {
 		break;
 	}
 
-	const float wh_batt_tot = conf->si_battery_ah * battery_avg_voltage;
+	const float wh_batt_tot = ah_tot * battery_avg_voltage;
 	const float wh_batt_left = ah_left * battery_avg_voltage_left;
 
 	if (wh_left) {

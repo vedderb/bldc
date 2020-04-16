@@ -20,6 +20,7 @@
 * Motor temperature filtering bug fix.
 * Inductance measurement scaling fix.
 * Better flux linkage measurement.
+* Improved battery level and range estimation.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
