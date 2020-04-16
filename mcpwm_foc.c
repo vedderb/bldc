@@ -2442,7 +2442,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_motor_state.phase = correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
-						motor_now->m_pll_speed,
+						motor_now->m_speed_est_fast,
 						conf_now->foc_sl_erpm,
 						motor_now);
 			} else {
@@ -2456,7 +2456,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			break;
 		case FOC_SENSOR_MODE_HALL:
 			motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer,
-														   motor_now->m_pll_speed, dt, motor_now);
+														   motor_now->m_speed_est_fast, dt, motor_now);
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 
 			if (!motor_now->m_phase_override) {

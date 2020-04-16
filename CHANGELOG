@@ -21,6 +21,7 @@
 * Inductance measurement scaling fix.
 * Better flux linkage measurement.
 * Improved battery level and range estimation.
+* Use fast speed estimator for hall sensors and encoder transitions and interpolation.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
