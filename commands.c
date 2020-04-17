@@ -181,6 +181,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		memcpy(send_buffer + ind, STM32_UUID_8, 12);
 		ind += 12;
 
+		// Add 1 to the UUID for the second motor, so that configuration backup and
+		// restore works.
+		if (mc_interface_get_motor_thread() == 2) {
+			send_buffer[ind - 1]++;
+		}
+
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
 		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
 
