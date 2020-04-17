@@ -22,7 +22,8 @@
 #include "comm_can.h"
 #include "mc_interface.h"
 #include "ledpwm.h"
-
+#include <string.h>
+#include <stdlib.h>
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -307,10 +308,20 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+int samp_cmp_func (const void * a, const void * b) {
+	return (*(uint16_t*)a - *(uint16_t*)b);
+}
 
 static THD_FUNCTION(mux_thread, arg) {
 	chRegSetThreadName("adc_mux");
 	(void)arg;
+
+	const unsigned int samp_num = 9;
+	uint16_t mot1_temp_samples[samp_num];
+	uint16_t mot2_temp_samples[samp_num];
+	uint16_t mot_temp_samp_sorted[samp_num];
+	unsigned int mot1_temp_samp_ptr = 0;
+	unsigned int mot2_temp_samp_ptr = 0;
 
 	for (;;) {
 		ENABLE_MOS_TEMP1();
@@ -323,16 +334,23 @@ static THD_FUNCTION(mux_thread, arg) {
 
 		ENABLE_MOT_TEMP1();
 		chThdSleepMicroseconds(400);
-		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
+		mot1_temp_samples[mot1_temp_samp_ptr++] = ADC_Value[ADC_IND_ADC_MUX];
+		mot1_temp_samp_ptr %= samp_num;
+		memcpy(mot_temp_samp_sorted, mot1_temp_samples, sizeof(uint16_t) * samp_num);
+		qsort(mot_temp_samp_sorted, samp_num, sizeof(uint16_t), samp_cmp_func);
+		ADC_Value[ADC_IND_TEMP_MOTOR] = mot_temp_samp_sorted[samp_num / 2];
 
 		ENABLE_MOT_TEMP2();
 		chThdSleepMicroseconds(400);
-		ADC_Value[ADC_IND_TEMP_MOTOR_2] = ADC_Value[ADC_IND_ADC_MUX];
+		mot2_temp_samples[mot1_temp_samp_ptr++] = ADC_Value[ADC_IND_ADC_MUX];
+		mot2_temp_samp_ptr %= samp_num;
+		memcpy(mot_temp_samp_sorted, mot2_temp_samples, sizeof(uint16_t) * samp_num);
+		qsort(mot_temp_samp_sorted, samp_num, sizeof(uint16_t), samp_cmp_func);
+		ADC_Value[ADC_IND_TEMP_MOTOR_2] = mot_temp_samp_sorted[samp_num / 2];
 
 		ENABLE_ADC_EXT_1();
 		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_EXT] = ADC_Value[ADC_IND_ADC_MUX];
-
 
 		ENABLE_ADC_EXT_2();
 		chThdSleepMicroseconds(400);
