@@ -342,7 +342,7 @@ static THD_FUNCTION(mux_thread, arg) {
 
 		ENABLE_MOT_TEMP2();
 		chThdSleepMicroseconds(400);
-		mot2_temp_samples[mot1_temp_samp_ptr++] = ADC_Value[ADC_IND_ADC_MUX];
+		mot2_temp_samples[mot2_temp_samp_ptr++] = ADC_Value[ADC_IND_ADC_MUX];
 		mot2_temp_samp_ptr %= samp_num;
 		memcpy(mot_temp_samp_sorted, mot2_temp_samples, sizeof(uint16_t) * samp_num);
 		qsort(mot_temp_samp_sorted, samp_num, sizeof(uint16_t), samp_cmp_func);
