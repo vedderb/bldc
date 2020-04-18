@@ -46,6 +46,8 @@ static bool imu_ready;
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
 static void terminal_gyro_info(int argc, const char **argv);
+static void terminal_gyro_cal(int argc, const char **argv);
+static void rotate(float *input, float *rotation, float *output);
 int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 
@@ -96,6 +98,12 @@ void imu_init(imu_config *set) {
 			"Print gyro offsets",
 			0,
 			terminal_gyro_info);
+
+	terminal_register_command_callback(
+				"imu_gyro_cal",
+				"Calculate imu calibration",
+				0,
+				terminal_gyro_cal);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -218,6 +226,11 @@ void imu_get_quaternions(float *q) {
 	q[3] = m_att.q3;
 }
 
+void imu_get_calibration(){
+	commands_printf("imu_get_calibration()");
+	terminal_gyro_cal(NULL, NULL);
+}
+
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 	float dt = timer_seconds_elapsed_since(last_time);
@@ -304,6 +317,134 @@ static void terminal_gyro_info(int argc, const char **argv) {
 			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
 			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
 			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
+	commands_printf("Gyro att_info: [q0 = %.3f, q1 = %.3f, q2 = %.3f, q3 = %.3f, integralFBx = %.3f, integralFBy = %.3f, integralFBz = %.3f, accMagP = %.3f]\n",
+				(double)(m_att.q0),
+				(double)(m_att.q1),
+				(double)(m_att.q2),
+				(double)(m_att.q3),
+				(double)(m_att.integralFBx),
+				(double)(m_att.integralFBy),
+				(double)(m_att.integralFBz),
+				(double)(m_att.accMagP));
+}
+
+static void terminal_gyro_cal(int argc, const char **argv){
+	(void)argc;
+	(void)argv;
+
+	// Override settings
+	m_settings.gyro_offsets[0] = 0;
+	m_settings.gyro_offsets[1] = 0;
+	m_settings.gyro_offsets[2] = 0;
+	m_gyro_offset[0] = 0;
+	m_gyro_offset[1] = 0;
+	m_gyro_offset[2] = 0;
+	m_settings.accel_offsets[0] = 0;
+	m_settings.accel_offsets[1] = 0;
+	m_settings.accel_offsets[2] = 0;
+	m_settings.rot_roll = 0;
+	m_settings.rot_pitch = 0;
+	m_settings.rot_yaw = 0;
+	m_settings.sample_rate_hz = 1000;
+
+	// Sample IMU
+	int samples = 1000;
+	int delay = 1;
+	float original_gyro_offsets[3] = {0,0,0};
+
+	for(int i = 0; i < samples; i++){
+		original_gyro_offsets[0] += m_gyro[0];
+		original_gyro_offsets[1] += m_gyro[1];
+		original_gyro_offsets[2] += m_gyro[2];
+		chThdSleepMilliseconds(delay);
+	}
+	original_gyro_offsets[0] /= samples;
+	original_gyro_offsets[1] /= samples;
+	original_gyro_offsets[2] /= samples;
+
+	// Set gyro offsets
+	m_settings.gyro_offsets[0] = original_gyro_offsets[0];
+	m_settings.gyro_offsets[1] = original_gyro_offsets[1];
+	m_settings.gyro_offsets[2] = original_gyro_offsets[2];
+
+	commands_printf("Gyro offsets: [%.3f %.3f %.3f]\n",
+				(double)(m_settings.gyro_offsets[0]),
+				(double)(m_settings.gyro_offsets[1]),
+				(double)(m_settings.gyro_offsets[2]));
+
+
+	// Set AHRS to quick settle values
+	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
+	m_settings.mode = AHRS_MODE_MADGWICK;
+
+	// Wait 1 second
+	chThdSleepMilliseconds(1000);
+
+	// Set roll rotations to level out imu
+//	float rpy[3] = {0, 0, 0};
+//	imu_get_rpy(rpy);
+
+	m_settings.rot_roll = -imu_get_roll() * (180/M_PI);
+//	m_settings.rot_pitch = imu_get_pitch() * (180/M_PI);
+//	m_settings.rot_yaw = imu_get_yaw() * (180/M_PI);
+
+//	m_settings.rot_roll = -(vals[0] * (180/M_PI));
+//	m_settings.rot_pitch = vals[1] * (180/M_PI);
+//	m_settings.rot_yaw = vals[2] * (180/M_PI);
+
+
+	commands_printf("IMU Rotation: [%.3f %.3f %.3f]\n",
+					(double)(m_settings.rot_roll),
+					(double)(m_settings.rot_pitch),
+					(double)(m_settings.rot_yaw));
+
+	// Rotate imu offsets to match
+	float rotation[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
+	rotate(original_gyro_offsets, rotation, m_settings.gyro_offsets);
+
+	commands_printf("Gyro offsets rotated: [%.3f %.3f %.3f]\n",
+					(double)(m_settings.gyro_offsets[0]),
+					(double)(m_settings.gyro_offsets[1]),
+					(double)(m_settings.gyro_offsets[2]));
+
+	// Level out pitch
+	m_settings.rot_pitch = imu_get_pitch() * (180/M_PI);
+
+	commands_printf("IMU Rotation: [%.3f %.3f %.3f]\n",
+					(double)(m_settings.rot_roll),
+					(double)(m_settings.rot_pitch),
+					(double)(m_settings.rot_yaw));
+
+	// Rotate imu offsets to match
+	float rotation2[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
+	rotate(original_gyro_offsets, rotation2, m_settings.gyro_offsets);
+
+	commands_printf("Gyro offsets rotated: [%.3f %.3f %.3f]\n",
+					(double)(m_settings.gyro_offsets[0]),
+					(double)(m_settings.gyro_offsets[1]),
+					(double)(m_settings.gyro_offsets[2]));
+
+
+
+
+}
+
+void rotate(float *input, float *rotation, float *output){
+	// Rotate imu offsets to match
+	float s1 = sinf(rotation[2] * M_PI / 180.0);
+	float c1 = cosf(rotation[2] * M_PI / 180.0);
+	float s2 = sinf(rotation[1] * M_PI / 180.0);
+	float c2 = cosf(rotation[1] * M_PI / 180.0);
+	float s3 = sinf(rotation[0] * M_PI / 180.0);
+	float c3 = cosf(rotation[0] * M_PI / 180.0);
+
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
+
+	output[0] = input[0] * m11 + input[1] * m12 + input[2] * m13;
+	output[1] = input[0] * m21 + input[1] * m22 + input[2] * m23;
+	output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
 }
 
 int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {

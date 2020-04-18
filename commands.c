@@ -993,6 +993,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_GET_IMU_CALIBRATION: {
+		commands_printf("commands_process_packet() COMM_GET_IMU_CALIBRATION %d", packet_id);
+		imu_get_calibration();
+	} break;
+
 	case COMM_ERASE_BOOTLOADER_ALL_CAN:
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
