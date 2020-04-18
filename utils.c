@@ -24,6 +24,7 @@
 #include "conf_general.h"
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Private variables
 static volatile int sys_lock_cnt = 0;
@@ -807,7 +808,19 @@ float utils_batt_liion_norm_v_to_capacity(float norm_v) {
 	return capacity;
 }
 
+static int uint16_cmp_func (const void *a, const void *b) {
+	return (*(uint16_t*)a - *(uint16_t*)b);
+}
 
+uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
+		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample) {
+	buffer[*buffer_index++] = sample;
+	*buffer_index %= filter_len;
+	uint16_t buffer_sorted[filter_len]; // Assume we have enough stack space
+	memcpy(buffer_sorted, buffer, sizeof(uint16_t) * filter_len);
+	qsort(buffer_sorted, filter_len, sizeof(uint16_t), uint16_cmp_func);
+	return buffer_sorted[filter_len / 2];
+}
 
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,

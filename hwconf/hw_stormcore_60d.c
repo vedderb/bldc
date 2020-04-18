@@ -22,7 +22,7 @@
 #include "comm_can.h"
 #include "mc_interface.h"
 #include "ledpwm.h"
-
+#include "utils.h"
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -35,7 +35,7 @@ typedef enum {
 // Variables
 static volatile bool i2c_running = false;
 static THD_WORKING_AREA(smart_switch_thread_wa, 128);
-static THD_WORKING_AREA(mux_thread_wa, 128);
+static THD_WORKING_AREA(mux_thread_wa, 256);
 static THD_WORKING_AREA(switch_color_thread_wa, 128);
 static THD_FUNCTION(mux_thread, arg);
 static THD_FUNCTION(switch_color_thread, arg);
@@ -312,6 +312,12 @@ static THD_FUNCTION(mux_thread, arg) {
 	chRegSetThreadName("adc_mux");
 	(void)arg;
 
+#define TEMP_FILTER_LEN				9
+	uint16_t mot1_temp_samples[TEMP_FILTER_LEN] = {0};
+	uint16_t mot2_temp_samples[TEMP_FILTER_LEN] = {0};
+	unsigned int mot1_temp_samp_ptr = 0;
+	unsigned int mot2_temp_samp_ptr = 0;
+
 	for (;;) {
 		ENABLE_MOS_TEMP1();
 		chThdSleepMicroseconds(400);
@@ -323,11 +329,13 @@ static THD_FUNCTION(mux_thread, arg) {
 
 		ENABLE_MOT_TEMP1();
 		chThdSleepMicroseconds(400);
-		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_TEMP_MOTOR] = utils_median_filter_uint16_run(
+				mot1_temp_samples, &mot1_temp_samp_ptr, TEMP_FILTER_LEN, ADC_Value[ADC_IND_ADC_MUX]);
 
 		ENABLE_MOT_TEMP2();
 		chThdSleepMicroseconds(400);
-		ADC_Value[ADC_IND_TEMP_MOTOR_2] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_TEMP_MOTOR_2] = utils_median_filter_uint16_run(
+				mot2_temp_samples, &mot2_temp_samp_ptr, TEMP_FILTER_LEN, ADC_Value[ADC_IND_ADC_MUX]);
 
 		ENABLE_ADC_EXT_1();
 		chThdSleepMicroseconds(400);
