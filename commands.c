@@ -993,29 +993,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
-	case COMM_GET_IMU_CALIBRATION: {
-		int32_t ind = 0;
-		float yaw = buffer_get_float32(data, 1e3, &ind);
-		float imu_cal[9];
-		imu_get_calibration(yaw, imu_cal);
-
-		ind = 0;
-		uint8_t send_buffer[50];
-		send_buffer[ind++] = COMM_GET_IMU_CALIBRATION;
-
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[0] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[1] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[2] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[3] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[4] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[5] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[6] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[7] * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(imu_cal[8] * 1000000.0), &ind);
-
-		reply_func(send_buffer, ind);
-	} break;
-
 	case COMM_ERASE_BOOTLOADER_ALL_CAN:
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
@@ -1141,6 +1118,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_DEFAULT:
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
+	case COMM_GET_IMU_CALIBRATION:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -1779,6 +1757,28 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 #endif
+		case COMM_GET_IMU_CALIBRATION: {
+			int32_t ind = 0;
+			float yaw = buffer_get_float32(data, 1e3, &ind);
+			float imu_cal[9];
+			imu_get_calibration(yaw, imu_cal);
+
+			ind = 0;
+			send_buffer[ind++] = COMM_GET_IMU_CALIBRATION;
+			buffer_append_float32(send_buffer, imu_cal[0], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[1], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[2], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[3], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[4], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[5], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[6], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[7], 1e6, &ind);
+			buffer_append_float32(send_buffer, imu_cal[8], 1e6, &ind);
+
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
 
 		default:
 			break;
