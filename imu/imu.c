@@ -442,15 +442,6 @@ static void terminal_gyro_info(int argc, const char **argv) {
 			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
 			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
 			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
-	commands_printf("Gyro att_info: [q0 = %.3f, q1 = %.3f, q2 = %.3f, q3 = %.3f, integralFBx = %.3f, integralFBy = %.3f, integralFBz = %.3f, accMagP = %.3f]\n",
-				(double)(m_att.q0),
-				(double)(m_att.q1),
-				(double)(m_att.q2),
-				(double)(m_att.q3),
-				(double)(m_att.integralFBx),
-				(double)(m_att.integralFBy),
-				(double)(m_att.integralFBz),
-				(double)(m_att.accMagP));
 }
 
 void rotate(float *input, float *rotation, float *output){
