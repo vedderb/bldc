@@ -993,6 +993,29 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_GET_IMU_CALIBRATION: {
+		int32_t ind = 0;
+		float yaw = buffer_get_float32(data, 1e3, &ind);
+		float imu_cal[9];
+		imu_get_calibration(yaw, imu_cal);
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_GET_IMU_CALIBRATION;
+
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[0] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[1] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[2] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[3] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[4] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[5] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[6] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[7] * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(imu_cal[8] * 1000000.0), &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_ERASE_BOOTLOADER_ALL_CAN:
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
