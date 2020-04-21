@@ -1846,6 +1846,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	const float v_in = GET_INPUT_VOLTAGE();
 	const float rpm_now = mc_interface_get_rpm();
+	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
 	float temp_motor = 0.0;
@@ -1992,6 +1993,14 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
 	}
 
+	// Duty max
+	float lo_max_duty = 0.0;
+	if (duty_now_abs < conf->l_duty_start) {
+		lo_max_duty = l_current_max_tmp;
+	} else {
+		lo_max_duty = utils_map(duty_now_abs, conf->l_duty_start, conf->l_max_duty, l_current_max_tmp, 0.0);
+	}
+
 	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
 	float lo_min = utils_min_abs(lo_min_mos, lo_min_mot);
 
@@ -1999,6 +2008,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	lo_max = utils_min_abs(lo_max, lo_min_rpm);
 	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
 	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
+	lo_max = utils_min_abs(lo_max, lo_max_duty);
 
 	if (lo_max < conf->cc_min_current) {
 		lo_max = conf->cc_min_current;
@@ -2064,6 +2074,7 @@ static volatile motor_if_state_t *motor_now(void) {
 
 static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
+	mc_interface_select_motor_thread(is_motor_1 ? 1 : 2);
 
 	motor->m_f_samp_now = mc_interface_get_sampling_frequency_now();
 

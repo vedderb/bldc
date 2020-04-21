@@ -113,6 +113,9 @@
 #ifndef MCCONF_L_CURRENT_MIN_SCALE
 #define MCCONF_L_CURRENT_MIN_SCALE		1.0	// Minimum current scale
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
+#endif
 
 // Speed PID parameters
 #ifndef MCCONF_S_PID_KP

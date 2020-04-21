@@ -244,6 +244,7 @@ typedef struct {
 	float l_watt_min;
 	float l_current_max_scale;
 	float l_current_min_scale;
+	float l_duty_start;
 	// Overridden limits (Computed during runtime)
 	float lo_current_max;
 	float lo_current_min;
