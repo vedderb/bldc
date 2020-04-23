@@ -989,6 +989,35 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_SET_BATTERY_CUT: {
+		int32_t ind = 0;
+		float start = buffer_get_float32(data, 1e3, &ind);
+		float end = buffer_get_float32(data, 1e3, &ind);
+		bool store = data[ind++];
+		bool fwd_can = data[ind++];
+
+		(void)fwd_can;
+
+		mcconf = *mc_interface_get_configuration();
+
+		if (mcconf.l_battery_cut_start != start || mcconf.l_battery_cut_end != end) {
+			mcconf.l_battery_cut_start = start;
+			mcconf.l_battery_cut_end = end;
+
+			if (store) {
+				conf_general_store_mc_configuration(&mcconf);
+			}
+
+			mc_interface_set_configuration(&mcconf);
+		}
+
+		// Send ack
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = packet_id;
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_SET_CAN_MODE: {
 		int32_t ind = 0;
 		bool store = data[ind++];
