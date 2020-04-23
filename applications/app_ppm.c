@@ -376,6 +376,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 				duty_control = true;
 			}
 
+			if((!was_duty_control) && (rpm_lowest < -500) && (servo_val < -0.1)){
+				duty_control = true;
+				duty_rev = -duty_highest_abs;
+			}
+
 			if (duty_control || (was_duty_control && servo_val < -0.1)) {
 				was_duty_control = true;
 

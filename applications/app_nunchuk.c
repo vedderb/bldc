@@ -413,10 +413,16 @@ static THD_FUNCTION(output_thread, arg) {
 				duty_control = true;
 			}
 
+			if((!was_duty_control) && (rpm_lowest < -500) && (out_val < -0.1)){
+				duty_control = true;
+				duty_rev = is_reverse ? duty_highest_abs:-duty_highest_abs;
+			}
+
 			if (duty_control || (was_duty_control && out_val < -0.1)) {
 				was_duty_control = true;
 
 				float goal = config.smart_rev_max_duty * -out_val;
+
 				utils_step_towards(&duty_rev, is_reverse ? goal : -goal,
 						config.smart_rev_max_duty * dt / config.smart_rev_ramp_time);
 
