@@ -22,6 +22,8 @@
 
 #ifdef HW60_IS_MK3
 #define HW_NAME					"60_MK3"
+#elif defined(HW60_IS_MK4)
+#define HW_NAME					"60_MK4"
 #else
 #define HW_NAME					"60"
 #endif
@@ -30,7 +32,7 @@
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#ifndef HW60_IS_MK3
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4)
 #define HW_HAS_PERMANENT_NRF
 #endif
 
@@ -54,7 +56,7 @@
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 // Shutdown pin
 #define HW_SHUTDOWN_GPIO		GPIOC
 #define HW_SHUTDOWN_PIN			5
@@ -118,7 +120,7 @@
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 #define ADC_IND_SHUTDOWN		10
 #endif
 
@@ -180,7 +182,7 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
@@ -228,7 +230,7 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-#ifndef HW60_IS_MK3
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4)
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12
@@ -253,7 +255,7 @@
 #define HW_SPI_PIN_MISO			6
 
 // SPI for DRV8301
-#ifndef HW60_IS_MK3
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4)
 #define DRV8301_MOSI_GPIO		GPIOB
 #define DRV8301_MOSI_PIN		4
 #define DRV8301_MISO_GPIO		GPIOB
@@ -274,13 +276,22 @@
 #endif
 
 // MPU9250
+#ifndef HW60_IS_MK4
 #define MPU9X50_SDA_GPIO		GPIOB
 #define MPU9X50_SDA_PIN			2
 #define MPU9X50_SCL_GPIO		GPIOA
 #define MPU9X50_SCL_PIN			15
 #define IMU_FLIP
+#else
+#define BMI160_SDA_GPIO			GPIOB
+#define BMI160_SDA_PIN			2
+#define BMI160_SCL_GPIO			GPIOA
+#define BMI160_SCL_PIN			15
+#define IMU_FLIP
+#define IMU_ROT_180
+#endif
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOB
 #define NRF5x_SWDIO_PIN			12
@@ -321,7 +332,7 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // Functions
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 bool hw_sample_shutdown_button(void);
 #endif
 

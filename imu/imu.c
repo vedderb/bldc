@@ -379,6 +379,15 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	mag[2] *= -1.0;
 #endif
 
+#ifdef IMU_ROT_180
+	accel[0] *= -1.0;
+	accel[1] *= -1.0;
+	gyro[0] *= -1.0;
+	gyro[1] *= -1.0;
+	mag[0] *= -1.0;
+	mag[1] *= -1.0;
+#endif
+
 	// Rotate axes (ZYX)
 
 	float s1 = sinf(m_settings.rot_yaw * M_PI / 180.0);
