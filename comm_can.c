@@ -1095,6 +1095,17 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (crc16(rx_buffer, rxbuf_len)
 					== ((unsigned short) crc_high << 8
 							| (unsigned short) crc_low)) {
+
+				if (is_replaced) {
+					if (rx_buffer[0] == COMM_JUMP_TO_BOOTLOADER ||
+							rx_buffer[0] == COMM_ERASE_NEW_APP ||
+							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA ||
+							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA_LZO ||
+							rx_buffer[0] == COMM_ERASE_BOOTLOADER) {
+						break;
+					}
+				}
+
 				switch (commands_send) {
 				case 0:
 					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
@@ -1115,6 +1126,16 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			ind = 0;
 			rx_buffer_last_id = data8[ind++];
 			commands_send = data8[ind++];
+
+			if (is_replaced) {
+				if (data8[ind] == COMM_JUMP_TO_BOOTLOADER ||
+						data8[ind] == COMM_ERASE_NEW_APP ||
+						data8[ind] == COMM_WRITE_NEW_APP_DATA ||
+						data8[ind] == COMM_WRITE_NEW_APP_DATA_LZO ||
+						data8[ind] == COMM_ERASE_BOOTLOADER) {
+					break;
+				}
+			}
 
 			switch (commands_send) {
 			case 0:
