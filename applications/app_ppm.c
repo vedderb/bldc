@@ -292,7 +292,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE:
 		case PPM_CTRL_TYPE_CURRENT_SMART_REV:
 			current_mode = true;
-			if (servo_val >= 0.0) {
+			if (servo_val >= 0.0 && rpm_now > 0.0) {
 				current = servo_val * mcconf->lo_current_motor_max_now;
 			} else {
 				current = fabsf(servo_val * mcconf->lo_current_motor_min_now);

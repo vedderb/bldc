@@ -356,7 +356,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		float current = 0;
 
-		if (out_val >= 0.0) {
+		if (out_val >= 0.0 && ((is_reverse ? -1.0 : 1.0) * duty_now) > 0.0) {
 			current = out_val * mcconf->lo_current_motor_max_now;
 		} else {
 			current = out_val * fabsf(mcconf->lo_current_motor_min_now);

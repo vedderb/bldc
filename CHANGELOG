@@ -26,6 +26,7 @@
 * More filtering on the motor temperature.
 * Added IMU orientation calibration support: https://github.com/vedderb/bldc/pull/158
 * Added mcconf_l_duty_start so that the current can be limited smoothly when reaching max speed.
+* Allow throttle in opposite direction even after passing speed limit for PPM and VESC Remote apps.
 
 === FW 4.02 ===
 * Position PID fix (most notable on multiturn encoders).
