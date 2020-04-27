@@ -28,7 +28,7 @@
 
 // Variables
 static volatile bool i2c_running = false;
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 static mutex_t shutdown_mutex;
 static float bt_diff = 0.0;
 #endif
@@ -40,13 +40,13 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 static void terminal_shutdown_now(int argc, const char **argv);
 static void terminal_button_test(int argc, const char **argv);
 #endif
 
 void hw_init_gpio(void) {
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 	chMtxObjectInit(&shutdown_mutex);
 #endif
 
@@ -126,13 +126,13 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-#ifndef HW60_IS_MK3
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4)
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 #endif
 
 	drv8301_init();
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 	terminal_register_command_callback(
 		"shutdown",
 		"Shutdown VESC now.",
@@ -275,7 +275,7 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-#ifdef HW60_IS_MK3
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
 bool hw_sample_shutdown_button(void) {
 	chMtxLock(&shutdown_mutex);
 

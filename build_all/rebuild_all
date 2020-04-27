@@ -30,26 +30,6 @@ make -j8 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_46.c\" -DHW_HEA
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# ws2811_33k
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DVIN_R1=33000.0 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811_33k.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
 #################### HW 48 ########################
 
@@ -63,26 +43,6 @@ make -j8 build_args='-DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOS
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
-# 0005ohm
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
-
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
 #################### HW 410 & 411 & 412 ########################
 
@@ -110,20 +70,6 @@ make -j8 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_410.c\" -DHW_HE
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
-
 #################### HW 60 ########################
 
 COPYDIR=60
@@ -142,20 +88,6 @@ touch conf_general.h
 make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
-
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
 
 # Clean
 cd $FWPATH
@@ -181,19 +113,29 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"h
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
-# ws2811
+# Clean
 cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
+make clean
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
-# servoout
+#################### HW 60_MK4 ########################
+
+COPYDIR=60_MK4
+rm -f $COPYDIR/*
+
+# default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
+make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # Clean
 cd $FWPATH
@@ -236,20 +178,6 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
-
 # Clean
 cd $FWPATH
 make clean
@@ -274,19 +202,29 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
-# ws2811
+# Clean
 cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
+make clean
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
 
-# servoout
+#################### HW 75_300_R3 ########################
+
+COPYDIR=75_300_R3
+rm -f $COPYDIR/*
+
+# default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
+make -j8 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # Clean
 cd $FWPATH
@@ -346,20 +284,6 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd.c\" -DHW_HEADER=\"h
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
-# ws2811
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DWS2811_ENABLE=1 -DHW_SOURCE=\"hw_hd.c\" -DHW_HEADER=\"hw_hd.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_ws2811.bin
-
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_hd.c\" -DHW_HEADER=\"hw_hd.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
-
 # Clean
 cd $FWPATH
 make clean
@@ -418,13 +342,6 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADE
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
-# servoout
-cd $FWPATH
-touch conf_general.h
-make -j8 build_args='-DSERVO_OUT_ENABLE=1 -DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADER=\"hw_100_250.h\"' USE_VERBOSE_COMPILE=no
-cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_servoout.bin
-
 # Clean
 cd $FWPATH
 make clean
@@ -441,6 +358,102 @@ touch conf_general.h
 make -j8 build_args='-DHW_SOURCE=\"hw_luna_bbshd.c\" -DHW_HEADER=\"hw_luna_bbshd.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
+#################### UNITY ########################
+
+COPYDIR=UNITY
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
+#################### STORMCORE_60D ########################
+
+COPYDIR=STORMCORE_60D
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
+#################### STORMCORE_100D ########################
+
+COPYDIR=STORMCORE_100D
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
+#################### STORMCORE_100S ########################
+
+COPYDIR=STORMCORE_100S
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # Clean
 cd $FWPATH

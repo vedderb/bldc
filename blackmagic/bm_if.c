@@ -275,6 +275,30 @@ static void terminal_detach(int argc, const char **argv) {
 	}
 }
 
+#ifdef NRF5x_SWDIO_GPIO
+static void terminal_map_nrf5_pins(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	if (argc == 2) {
+		int use_pins = -1;
+		sscanf(argv[1], "%d", &use_pins);
+
+		if (use_pins == 0) {
+			bm_default_swd_pins();
+			commands_printf("Setting default SWD Pins\n");
+		} else if (use_pins == 1) {
+			bm_change_swd_pins(NRF5x_SWDIO_GPIO, NRF5x_SWDIO_PIN, NRF5x_SWCLK_GPIO, NRF5x_SWCLK_PIN);
+			commands_printf("Setting NRF5 Pins\n");
+		} else {
+			commands_printf("Argument should be 1 or 0\n");
+		}
+	} else {
+		commands_printf("This command requires one argument.\n");
+	}
+}
+#endif
+
 void bm_init(void) {
 	terminal_register_command_callback(
 			"bm_swdp_scan",
@@ -311,6 +335,13 @@ void bm_init(void) {
 			"BlackMagic: Detach target",
 			0,
 			terminal_detach);
+#ifdef NRF5x_SWDIO_GPIO
+	terminal_register_command_callback(
+			"bm_map_nrf5_pins",
+			"BlackMagic: Use built-in nrf5 swd pins",
+			"[use_pins 0,1]",
+			terminal_map_nrf5_pins);
+#endif
 }
 
 /**

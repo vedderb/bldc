@@ -32,7 +32,7 @@
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
 static int serial_rx_read_pos = 0;
 static int serial_rx_write_pos = 0;
-static THD_WORKING_AREA(serial_read_thread_wa, 128);
+static THD_WORKING_AREA(serial_read_thread_wa, 256);
 static THD_WORKING_AREA(serial_process_thread_wa, 4096);
 static mutex_t send_mutex;
 static thread_t *process_tp;

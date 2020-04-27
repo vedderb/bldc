@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,6 @@
 #include "hal.h"
 #include <string.h>
 #include <math.h>
-#include "hw.h"
 
 // Private variables
 static volatile int led_values[LEDPWM_LED_NUM];
@@ -85,15 +84,48 @@ void ledpwm_update_pwm(void) {
 		cnt = 0;
 	}
 
-	if (cnt >= led_values[0]) {
+	if (cnt >= led_values[LED_GREEN]) {
 		LED_GREEN_OFF();
 	} else {
 		LED_GREEN_ON();
 	}
 
-	if (cnt >= led_values[1]) {
+	if (cnt >= led_values[LED_RED]) {
 		LED_RED_OFF();
 	} else {
 		LED_RED_ON();
 	}
+
+#ifdef LED_PWM1_ON
+	if (cnt >= led_values[LED_HW1]) {
+		LED_PWM1_OFF();
+	} else {
+		LED_PWM1_ON();
+	}
+#endif
+
+#ifdef LED_PWM2_ON
+	if (cnt >= led_values[LED_HW2]) {
+		LED_PWM2_OFF();
+	} else {
+		LED_PWM2_ON();
+	}
+#endif
+
+#ifdef LED_PWM3_ON
+	if (cnt >= led_values[LED_HW3]) {
+		LED_PWM3_OFF();
+	} else {
+		LED_PWM3_ON();
+	}
+#endif
+
+#ifdef LED_PWM4_ON
+	if (cnt >= led_values[LED_HW4]) {
+		LED_PWM4_OFF();
+	} else {
+		LED_PWM4_ON();
+	}
+#endif
+
 }

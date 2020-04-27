@@ -25,13 +25,14 @@
 #include <stdbool.h>
 
 // Functions
-void mcpwm_foc_init(volatile mc_configuration *configuration);
+void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuration *conf_m2);
 void mcpwm_foc_deinit(void);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(volatile mc_configuration *configuration);
 mc_state mcpwm_foc_get_state(void);
 bool mcpwm_foc_is_dccal_done(void);
-void mcpwm_foc_stop_pwm(void);
+int mcpwm_foc_isr_motor(void);
+void mcpwm_foc_stop_pwm(bool is_second_motor);
 void mcpwm_foc_set_duty(float dutyCycle);
 void mcpwm_foc_set_duty_noramp(float dutyCycle);
 void mcpwm_foc_set_pid_speed(float rpm);
@@ -51,6 +52,8 @@ float mcpwm_foc_get_pid_pos_now(void);
 float mcpwm_foc_get_switching_frequency_now(void);
 float mcpwm_foc_get_sampling_frequency_now(void);
 float mcpwm_foc_get_rpm(void);
+float mcpwm_foc_get_rpm_fast(void);
+float mcpwm_foc_get_rpm_faster(void);
 float mcpwm_foc_get_tot_current(void);
 float mcpwm_foc_get_tot_current_filtered(void);
 float mcpwm_foc_get_abs_motor_current(void);
@@ -71,23 +74,39 @@ float mcpwm_foc_get_phase_encoder(void);
 float mcpwm_foc_get_vd(void);
 float mcpwm_foc_get_vq(void);
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted);
-float mcpwm_foc_measure_resistance(float current, int samples);
+float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after);
 float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff);
 float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_adc_isr_duration(void);
-void mcpwm_foc_get_current_offsets(volatile int *curr0_offset, volatile int *curr1_offset, volatile int *curr2_offset);
-void mcpwm_foc_set_current_offsets(volatile int curr0_offset, volatile int curr1_offset, volatile int curr2_offset);
+void mcpwm_foc_get_current_offsets(
+		volatile int *curr0_offset,
+		volatile int *curr1_offset,
+		volatile int *curr2_offset,
+		bool is_second_motor);
+void mcpwm_foc_set_current_offsets(
+		volatile int curr0_offset,
+		volatile int curr1_offset,
+		volatile int curr2_offset);
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
+
+// Functions where the motor can be selected
+float mcpwm_foc_get_tot_current_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor);
+float mcpwm_foc_get_tot_current_in_filtered_motor(bool is_second_motor);
+float mcpwm_foc_get_abs_motor_current_motor(bool is_second_motor);
+float mcpwm_foc_get_abs_motor_current_filtered_motor(bool is_second_motor);
+mc_state mcpwm_foc_get_state_motor(bool is_second_motor);
 
 // Interrupt handlers
 void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for injected ADC samples
+#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
 
 #endif /* MCPWM_FOC_H_ */

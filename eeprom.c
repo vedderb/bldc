@@ -329,6 +329,13 @@ uint16_t EE_ReadVariable(uint16_t VirtAddress, uint16_t* Data)
  */
 uint16_t EE_WriteVariable(uint16_t VirtAddress, uint16_t Data)
 {
+	uint16_t data_old = 0;
+	if (EE_ReadVariable(VirtAddress, &data_old) == 0) {
+		if (data_old == Data) {
+			return FLASH_COMPLETE;
+		}
+	}
+
 	uint16_t Status = 0;
 
 	/* Return error if MCU VDD is below 2.9V */

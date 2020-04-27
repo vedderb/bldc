@@ -29,6 +29,7 @@
 #include "commands.h"
 #include <string.h>
 #include <stdio.h>
+#include "mc_interface.h"
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -44,14 +45,23 @@ static void terminal_reset_faults(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
+static mutex_t m_spi_mutex;
 
 void drv8323s_init(void) {
+	chMtxObjectInit(&m_spi_mutex);
+
 	// DRV8323S SPI
 	palSetPadMode(DRV8323S_MISO_GPIO, DRV8323S_MISO_PIN, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(DRV8323S_SCK_GPIO, DRV8323S_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(DRV8323S_CS_GPIO, DRV8323S_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(DRV8323S_MOSI_GPIO, DRV8323S_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPad(DRV8323S_MOSI_GPIO, DRV8323S_MOSI_PIN);
+	palSetPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+
+#ifdef DRV8323S_CS_GPIO2
+	palSetPadMode(DRV8323S_CS_GPIO2, DRV8323S_CS_PIN2, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(DRV8323S_CS_GPIO2, DRV8323S_CS_PIN2);
+#endif
 
 	chThdSleepMilliseconds(100);
 
@@ -62,34 +72,34 @@ void drv8323s_init(void) {
 	drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN);
 
 	terminal_register_command_callback(
-		"drv8323s_read_reg",
-		"Read a register from the DRV8323S and print it.",
-		"[reg]",
-		terminal_read_reg);
+			"drv8323s_read_reg",
+			"Read a register from the DRV8323S and print it.",
+			"[reg]",
+			terminal_read_reg);
 
 	terminal_register_command_callback(
-		"drv8323s_write_reg",
-		"Write to a DRV8323S register.",
-		"[reg] [hexvalue]",
-		terminal_write_reg);
+			"drv8323s_write_reg",
+			"Write to a DRV8323S register.",
+			"[reg] [hexvalue]",
+			terminal_write_reg);
 
 	terminal_register_command_callback(
-		"drv8323s_set_oc_adj",
-		"Set the DRV8323S OC ADJ register.",
-		"[value]",
-		terminal_set_oc_adj);
+			"drv8323s_set_oc_adj",
+			"Set the DRV8323S OC ADJ register.",
+			"[value]",
+			terminal_set_oc_adj);
 
 	terminal_register_command_callback(
-		"drv8323s_print_faults",
-		"Print all current DRV8323S faults.",
-		0,
-		terminal_print_faults);
+			"drv8323s_print_faults",
+			"Print all current DRV8323S faults.",
+			0,
+			terminal_print_faults);
 
 	terminal_register_command_callback(
-		"drv8323s_reset_faults",
-		"Reset all latched DRV8323S faults.",
-		0,
-		terminal_reset_faults);
+			"drv8323s_reset_faults",
+			"Reset all latched DRV8323S faults.",
+			0,
+			terminal_reset_faults);
 }
 
 /**
@@ -311,6 +321,8 @@ unsigned int drv8323s_read_reg(int reg) {
 	out |= (reg & 0x0F) << 11;
 	out |= 0x807F;
 
+	chMtxLock(&m_spi_mutex);
+
 	if (reg != 0) {
 		spi_begin();
 		spi_exchange(out);
@@ -321,6 +333,8 @@ unsigned int drv8323s_read_reg(int reg) {
 	uint16_t res = spi_exchange(out);
 	spi_end();
 
+	chMtxUnlock(&m_spi_mutex);
+
 	return res;
 }
 
@@ -329,9 +343,11 @@ void drv8323s_write_reg(int reg, int data) {
 	out |= (reg & 0x0F) << 11;
 	out |= data & 0x7FF;
 
+	chMtxLock(&m_spi_mutex);
 	spi_begin();
 	spi_exchange(out);
 	spi_end();
+	chMtxUnlock(&m_spi_mutex);
 }
 
 // Software SPI
@@ -382,18 +398,35 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 static void spi_begin(void) {
 	spi_delay();
+#ifdef DRV8323S_CS_GPIO2
+	if (mc_interface_motor_now() == 2) {
+		palClearPad(DRV8323S_CS_GPIO2, DRV8323S_CS_PIN2);
+	} else {
+		palClearPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+	}
+#else
 	palClearPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+#endif
 	spi_delay();
 }
 
 static void spi_end(void) {
 	spi_delay();
+
+#ifdef DRV8323S_CS_GPIO2
+	if (mc_interface_motor_now() == 2) {
+		palSetPad(DRV8323S_CS_GPIO2, DRV8323S_CS_PIN2);
+	} else {
+		palSetPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+	}
+#else
 	palSetPad(DRV8323S_CS_GPIO, DRV8323S_CS_PIN);
+#endif
 	spi_delay();
 }
 
 static void spi_delay(void) {
-	for (volatile int i = 0;i < 10;i++) {
+	for (volatile int i = 0;i < 40;i++) {
 		__NOP();
 	}
 }

@@ -29,6 +29,7 @@
 #include "commands.h"
 #include <string.h>
 #include <stdio.h>
+#include "mc_interface.h"
 
 // Private functions
 static uint16_t spi_exchange(uint16_t x);
@@ -44,14 +45,20 @@ static void terminal_reset_faults(int argc, const char **argv);
 
 // Private variables
 static char m_fault_print_buffer[120];
+static mutex_t m_spi_mutex;
 
 void drv8301_init(void) {
+	chMtxObjectInit(&m_spi_mutex);
+
 	// DRV8301 SPI
 	palSetPadMode(DRV8301_MISO_GPIO, DRV8301_MISO_PIN, PAL_MODE_INPUT);
 	palSetPadMode(DRV8301_SCK_GPIO, DRV8301_SCK_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(DRV8301_CS_GPIO, DRV8301_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(DRV8301_MOSI_GPIO, DRV8301_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPad(DRV8301_MOSI_GPIO, DRV8301_MOSI_PIN);
+#ifdef DRV8301_CS_GPIO2
+	palSetPadMode(DRV8301_CS_GPIO2, DRV8301_CS_PIN2, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+#endif
 
 	chThdSleepMilliseconds(100);
 
@@ -232,6 +239,8 @@ unsigned int drv8301_read_reg(int reg) {
 	out |= (reg & 0x0F) << 11;
 	out |= 0x807F;
 
+	chMtxLock(&m_spi_mutex);
+
 	if (reg != 0) {
 		spi_begin();
 		spi_exchange(out);
@@ -242,6 +251,8 @@ unsigned int drv8301_read_reg(int reg) {
 	uint16_t res = spi_exchange(0xFFFF);
 	spi_end();
 
+	chMtxUnlock(&m_spi_mutex);
+
 	return res;
 }
 
@@ -250,9 +261,11 @@ void drv8301_write_reg(int reg, int data) {
 	out |= (reg & 0x0F) << 11;
 	out |= ( data ) & 0x7FF;
 
+	chMtxLock(&m_spi_mutex);
 	spi_begin();
 	spi_exchange(out);
 	spi_end();
+	chMtxUnlock(&m_spi_mutex);
 }
 
 // Software SPI
@@ -298,11 +311,27 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 }
 
 static void spi_begin(void) {
+#ifdef DRV8301_CS_GPIO2
+	if (mc_interface_motor_now() == 2) {
+		palClearPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
+	} else {
+		palClearPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+	}
+#else
 	palClearPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+#endif
 }
 
 static void spi_end(void) {
+#ifdef DRV8301_CS_GPIO2
+	if (mc_interface_motor_now() == 2) {
+		palSetPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
+	} else {
+		palSetPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+	}
+#else
 	palSetPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+#endif
 }
 
 static void spi_delay(void) {

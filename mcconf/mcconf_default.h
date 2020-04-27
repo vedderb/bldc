@@ -113,6 +113,9 @@
 #ifndef MCCONF_L_CURRENT_MIN_SCALE
 #define MCCONF_L_CURRENT_MIN_SCALE		1.0	// Minimum current scale
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
+#endif
 
 // Speed PID parameters
 #ifndef MCCONF_S_PID_KP
@@ -261,7 +264,7 @@
 #define MCCONF_FOC_OBSERVER_GAIN		9e7		// Can be something like 600 / L
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN_SLOW
-#define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.3		// Observer gain scale at minimum duty cycle
+#define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.05	// Observer gain scale at minimum duty cycle
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
 #define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty

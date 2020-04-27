@@ -447,7 +447,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	// Check if the system has resumed from IWDG reset
 	if (timeout_had_IWDG_reset()) {
-		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET);
+		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
 	}
 
 	// Reset tachometers again
@@ -2105,7 +2105,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		set_duty_cycle_ll(dutycycle_now);
 	}
 
-	mc_interface_mc_timer_isr();
+	mc_interface_mc_timer_isr(false);
 
 	if (encoder_is_configured()) {
 		float pos = encoder_read_deg();

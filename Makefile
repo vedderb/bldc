@@ -7,7 +7,7 @@
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99 -D_GNU_SOURCE
   USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
-  USE_OPT += -fsingle-precision-constant -Wdouble-promotion
+  USE_OPT += -fsingle-precision-constant -Wdouble-promotion -specs=nosys.specs
 endif
 
 # C specific options here (added to USE_OPT).
@@ -93,7 +93,7 @@ endif
 PROJECT = BLDC_4_ChibiOS
 
 # Imported source files and paths
-CHIBIOS = ChibiOS_3.0.2
+CHIBIOS = ChibiOS_3.0.5
 # Startup files
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files
@@ -157,6 +157,8 @@ CSRC = $(STARTUPSRC) \
        i2c_bb.c \
        virtual_motor.c \
        shutdown.c \
+       mempools.c \
+       worker.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \

@@ -1,3 +1,43 @@
+=== FW 5.01 ===
+* Fixed PPM bug in previous release.
+
+=== FW 5.00 ===
+* Dual motor support. VESC-based controllers such as the focbox unity will now work.
+* Fixed bug in cross BEMF decoupling.
+* Disable CC decoupling during flux linkage measurement.
+* Balance app updates. See: https://github.com/vedderb/bldc/pull/141
+* Observer gain calculation update.
+* Better observer gain scaling. This has a large impact on some motors.
+* Added test build flag, that is transmitted with the FW Version command.
+* Detect all bug fix.
+* Added COMM_SET_BATTERY_CUT command.
+* Added CAN_PACKET_SHUTDOWN CAN-command.
+* GPDRIVE output sample fix.
+* Some ISR optimization.
+* Updated ChibiOS to version 3.0.5.
+* Increased USB thread priority to avoid freeze during connect/disconnect on windows.
+* Smooth current ramping during resistance measurement.
+* Moved fault stop to thread, and added SPI mutexes to DRV drivers.
+* Smooth current ramping in flux linkage measurement and sensor detection.
+* Added hall_analyze terminal command.
+* Motor temperature filtering bug fix.
+* Inductance measurement scaling fix.
+* Better flux linkage measurement.
+* Improved battery level and range estimation.
+* Use fast speed estimator for encoder sensorless transition.
+* Signigicantly improved hall sensor transitions and interpolation.
+* More filtering on the motor temperature.
+* Added IMU orientation calibration support: https://github.com/vedderb/bldc/pull/158
+* Added mcconf_l_duty_start so that the current can be limited smoothly when reaching max speed.
+* Allow throttle in opposite direction even after passing speed limit for PPM and VESC Remote apps.
+
+=== FW 4.02 ===
+* Position PID fix (most notable on multiturn encoders).
+* App balance updates. See https://github.com/vedderb/bldc/pull/138.
+* Changed FOC time constant back to 1000 us.
+* Do not count AS5047 all ones as fault.
+* Improved axis decoupling and integrator windup protection. Should prevent wobbles.
+
 === FW 4.01 ===
 * Leave debug mode on NRF5x after disconnect to avoid excess power consumption before power cycle.
 * Added encoder_clear_errors and encoder_clear_multiturn terminal commands.
