@@ -1,4 +1,7 @@
-=== FW 5.00 <dev> ===
+=== FW 5.01 ===
+* Fixed PPM bug in previous release.
+
+=== FW 5.00 ===
 * Dual motor support. VESC-based controllers such as the focbox unity will now work.
 * Fixed bug in cross BEMF decoupling.
 * Disable CC decoupling during flux linkage measurement.
