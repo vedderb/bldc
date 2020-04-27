@@ -56,8 +56,8 @@ void drv8301_init(void) {
 	chThdSleepMilliseconds(100);
 
 	// Disable OC
-	drv8301_write_reg(2, 0x0430);
-	drv8301_write_reg(2, 0x0430);
+	drv8301_write_reg(2, 0x0432 | DRV8301_GATE_CUR); //GATE current 0,25A
+	drv8301_write_reg(2, 0x0432 | DRV8301_GATE_CUR);
 
 	terminal_register_command_callback(
 			"drv8301_read_reg",
@@ -118,6 +118,21 @@ void drv8301_set_oc_mode(drv8301_oc_mode mode) {
 	reg |= (mode & 0x03) << 4;
 	drv8301_write_reg(2, reg);
 }
+
+/**
+ * Set the gate current of the DRV8301.
+ *
+ * @param current
+ * The gate curren: 0=0.250A, 1=1A, 2=1,7A
+ */
+void drv8301_set_gate_current(unsigned char current) {
+	int reg = drv8301_read_reg(2);
+	reg &= 0xFFFC;
+	reg |= (current & 0x03);
+	drv8301_write_reg(2, reg);
+}
+
+
 
 /**
  * Read the fault codes of the DRV8301.
@@ -233,7 +248,7 @@ unsigned int drv8301_read_reg(int reg) {
 void drv8301_write_reg(int reg, int data) {
 	uint16_t out = 0;
 	out |= (reg & 0x0F) << 11;
-	out |= data & 0x7FF;
+	out |= ( data ) & 0x7FF;
 
 	spi_begin();
 	spi_exchange(out);
