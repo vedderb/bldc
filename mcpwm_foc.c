@@ -195,6 +195,7 @@ static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(volatile motor_all_state_t *motor, float dt);
 static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor);
+static void apply_mtpa(float *id, float *iq, volatile motor_all_state_t *motor);
 
 // Threads
 static THD_WORKING_AREA(timer_thread_wa, 1024);
@@ -2541,6 +2542,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
 		}
 
+		apply_mtpa(&id_set_tmp, &iq_set_tmp, motor_now);
+
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
 		const float mod_q = motor_now->m_motor_state.mod_q;
@@ -3979,5 +3982,16 @@ static void terminal_plot_hfi(int argc, const char **argv) {
 		}
 	} else {
 		commands_printf("This command requires one argument.\n");
+	}
+}
+
+static void apply_mtpa(float *id, float *iq, volatile motor_all_state_t *motor) {
+	float ld_lq_diff = motor->m_conf->foc_motor_ld_lq_diff;
+
+	if(ld_lq_diff != 0.0){
+		float lambda = motor->m_conf->foc_motor_flux_linkage;
+
+		*id = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(*iq))) / (4.0 * ld_lq_diff);
+		*iq = SIGN(*iq) * sqrtf(SQ(*iq) - SQ(*id));
 	}
 }
