@@ -1,5 +1,6 @@
 === FW 5.02 <dev> ===
 * IMU calibration improvement.
+* Add COMM_GET_MCCONF_TEMP command
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.
@@ -480,4 +481,3 @@
 * Hardware specific default configuration support.
 * Stop functionality for apps so that reboots are not required anymore when changing app.
 * EEPROM emulation bug fix: https://github.com/vedderb/bldc/issues/27
-
