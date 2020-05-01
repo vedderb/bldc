@@ -275,8 +275,9 @@ void imu_get_calibration(float yaw, float *imu_cal){
 	m_settings.gyro_offsets[1] = original_gyro_offsets[1];
 	m_settings.gyro_offsets[2] = original_gyro_offsets[2];
 
-	// Wait 1 second (AHRS to settle now that gyro is calibrated)
-	chThdSleepMilliseconds(1000);
+	// Reset AHRS and wait 1.5 seconds (for AHRS to settle now that gyro is calibrated)
+	ahrs_init_attitude_info(&m_att);
+	chThdSleepMilliseconds(1500);
 
 	// Sample roll
 	float roll_sample = 0;
@@ -293,8 +294,9 @@ void imu_get_calibration(float yaw, float *imu_cal){
 	float rotation1[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
 	rotate(original_gyro_offsets, rotation1, m_settings.gyro_offsets);
 
-	// Wait 1 second (AHRS to settle now that pitch is calibrated)
-	chThdSleepMilliseconds(1000);
+	// Reset AHRS and wait 1.5 seconds (for AHRS to settle now that pitch is calibrated)
+	ahrs_init_attitude_info(&m_att);
+	chThdSleepMilliseconds(1500);
 
 	// Sample pitch
 	float pitch_sample = 0;
@@ -354,6 +356,7 @@ void imu_get_calibration(float yaw, float *imu_cal){
 	m_settings.gyro_offset_comp_fact[0] = backup_gyro_comp_x;
 	m_settings.gyro_offset_comp_fact[1] = backup_gyro_comp_y;
 	m_settings.gyro_offset_comp_fact[2] = backup_gyro_comp_z;
+	ahrs_init_attitude_info(&m_att);
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
