@@ -321,6 +321,8 @@ typedef struct {
 	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
+	bool s_pid_apply_input_ramp;
+	float s_pid_ramp_erpms_ms;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
