@@ -166,7 +166,6 @@ typedef struct {
 	float m_hall_dt_diff_now;
 } motor_all_state_t;
 
-
 // Private variables
 static volatile bool m_dccal_done = false;
 static volatile float m_last_adc_isr_duration;
@@ -813,6 +812,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	}
 
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
+	motor_now()->m_speed_pid_set_rpm = rpm;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
