@@ -881,6 +881,32 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mempools_free_mcconf(mcconf);
 	} break;
 
+	case COMM_GET_MCCONF_TEMP: {
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+		int32_t ind = 0;
+		uint8_t *send_buffer = send_buffer_global;
+
+		send_buffer[ind++] = packet_id;
+		buffer_append_float32_auto(send_buffer, mcconf->l_current_min_scale, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_current_max_scale, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_min_erpm, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_max_erpm, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_min_duty, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_max_duty, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_watt_min, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_watt_max, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_in_current_min, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_in_current_max, &ind);
+		//Setup config needed for speed calculation
+		send_buffer[ind++] = (uint8_t)mcconf->si_motor_poles;
+		buffer_append_float32_auto(send_buffer, mcconf->si_gear_ratio, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->si_wheel_diameter, &ind);
+
+		reply_func(send_buffer, ind);
+		mempools_free_mcconf(mcconf);
+	} break;
+
 	case COMM_EXT_NRF_PRESENT: {
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init_ext_nrf();
