@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,10 +21,21 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
-#include "drv8301.h"
+#include <math.h>
+#include "mc_interface.h"
+#include "commands.h"
+
+
+// Threads
+THD_FUNCTION(temp_thread, arg);
+static THD_WORKING_AREA(temp_thread_wa, 512);
+static bool temp_thread_running = false;
+
 
 // Variables
 static volatile bool i2c_running = false;
+static volatile float temp_now = 30.0;
+
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -41,25 +52,12 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
 	// LEDs
-	palSetPadMode(GPIOB, 0,
+	palSetPadMode(LED_GREEN_GPIO, LED_GREEN_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOB, 1,
+	palSetPadMode(LED_RED_GPIO, LED_RED_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-
-	// ENABLE_GATE
-#ifdef HW60_VEDDER_FIRST_PCB
-	palSetPadMode(GPIOB, 6,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-#else
-	palSetPadMode(GPIOB, 5,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-#endif
-
-	ENABLE_GATE();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -87,8 +85,24 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
-	// Fault pin
-	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
+	// Phase filters
+	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF();
+
+		// Current filter
+	palSetPadMode(GPIOD, 2,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+
+	CURRENT_FILTER_OFF();
+
+	// AUX pin
+	AUX_OFF();
+	palSetPadMode(AUX_GPIO, AUX_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
 
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
@@ -104,11 +118,28 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-
-	drv8301_init();
 }
 
 void hw_setup_adc_channels(void) {
+/*
+ * ADC Vector
+ *
+ * 0  (1):  IN0     SENS1
+ * 1  (2):  IN1     SENS2
+ * 2  (3):  IN2     SENS3
+ * 3  (1):  IN10    CURR1
+ * 4  (2):  IN11    CURR2
+ * 5  (3):  IN12    CURR3
+ * 6  (1):  IN5     ADC_EXT1
+ * 7  (2):  IN6     ADC_EXT2
+ * 8  (3):  IN3     TEMP_MOS
+ * 9  (1):  IN14    TEMP_MOTOR
+ * 10 (2):  IN15
+ * 11 (3):  IN13    AN_IN
+ * 12 (1):  Vrefint
+ */
+
+
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
@@ -121,14 +152,14 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 5, ADC_SampleTime_15Cycles);
 
 	// ADC3 regular channels
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_5, 5, ADC_SampleTime_15Cycles);
 
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
@@ -140,6 +171,14 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+
+    // Setup i2c temperature sensor here
+    if (!temp_thread_running) {
+        chThdCreateStatic(temp_thread_wa, sizeof(temp_thread_wa), NORMALPRIO, temp_thread, NULL);
+        temp_thread_running = true;
+    }
+
+
 }
 
 void hw_start_i2c(void) {
@@ -236,3 +275,43 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+THD_FUNCTION(temp_thread, arg) {
+    (void)arg;
+
+    chRegSetThreadName("I2C Temp samp");
+
+    uint8_t rxbuf[10];
+    uint8_t txbuf[10];
+    msg_t status = MSG_OK;
+    systime_t tmo = MS2ST(5);
+    i2caddr_t temp_addr = 0x49;
+
+    hw_start_i2c();
+    chThdSleepMilliseconds(10);
+
+    for(;;) {
+
+        if (i2c_running) {
+            txbuf[0] = 0x00;
+            i2cAcquireBus(&HW_I2C_DEV);
+            status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 1, rxbuf, 2, tmo);
+            i2cReleaseBus(&HW_I2C_DEV);
+
+            if (status == MSG_OK){
+                int16_t tempi = rxbuf[0] << 8 | rxbuf[1];
+                float temp = (float)tempi;
+                temp /= 256.0;
+                temp_now = temp;
+            } else {
+                hw_try_restore_i2c();
+            }
+        }
+
+        chThdSleepMilliseconds(100);
+    }
+}
+
+
+float gsvesc_get_temp(void) {
+    return temp_now;
+}

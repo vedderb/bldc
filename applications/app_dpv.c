@@ -14,7 +14,6 @@
 #define SPEED_MAX	1.00
 #define SPEED_MIN	0.05
 #define SPEED_OFF	0.00
-#define MAX_ERPM    50400
 
 //private variables
 static volatile bool stop_now = true;
@@ -28,8 +27,18 @@ static thread_t *dpv_tp;
 virtual_timer_t dpv_vt;
 
 //private functions
-//void dpv_rotary_isr(void);
+void dpv_rotary_isr(void);
 static void update(void *p);
+
+
+CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
+        if (EXTI_GetITStatus(HW_HALL_ROTARY_A_EXTI_LINE) != RESET) {
+                dpv_rotary_isr();
+                // Clear the EXTI line pending bit
+                EXTI_ClearITPendingBit(HW_HALL_ROTARY_A_EXTI_LINE);
+        EXTI_ClearFlag(HW_HALL_ROTARY_A_EXTI_LINE);
+        }
+}
 
 
 void dpv_rotary_isr(void) {
@@ -42,7 +51,7 @@ void dpv_rotary_isr(void) {
 		targetSpeed -= SPEED_STEP;
 		if (targetSpeed < SPEED_MIN) targetSpeed = SPEED_MIN;
 	}
-	commands_printf("TargetSpeed: %01.2f", targetSpeed);
+	//commands_printf("Target Speed: %01.2f", targetSpeed);
 }
 
 
@@ -144,7 +153,6 @@ static THD_FUNCTION(dpv_thread, arg) {
         static float motorSpeed_val_ramp = 0.0;
  		float ramp_time; 
 
-
 		if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
 			motorSpeed=targetSpeed;
 		} else {
@@ -161,7 +169,8 @@ static THD_FUNCTION(dpv_thread, arg) {
    			motorSpeed = motorSpeed_val_ramp;
        	}
 //       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
-       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty)*MAX_ERPM);
+//       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, MAX_ERPM);
+           	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
 		// Reset the timeout
 		timeout_reset();
 	}
