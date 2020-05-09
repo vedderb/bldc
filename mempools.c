@@ -31,8 +31,8 @@ typedef struct {
 } appconf_container_t;
 
 // Private variables
-static mcconf_container_t m_mc_confs[MEMPOOLS_MCCONF_NUM] = {0};
-static appconf_container_t m_app_confs[MEMPOOLS_APPCONF_NUM] = {0};
+static mcconf_container_t m_mc_confs[MEMPOOLS_MCCONF_NUM] = {{0}};
+static appconf_container_t m_app_confs[MEMPOOLS_APPCONF_NUM] = {{0}};
 static int m_mcconf_highest = 0;
 static int m_appconf_highest = 0;
 
