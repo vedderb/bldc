@@ -116,7 +116,7 @@ static void sendEscStatus(void) {
 			mc_interface_get_configuration()->l_current_max *
 			mc_interface_get_configuration()->l_current_max_scale) * 100.0;
 	status.rpm = mc_interface_get_rpm();
-	status.temperature = mc_interface_temp_fet_filtered() + 273.15;
+	status.temperature = mc_interface_temp_fet_filtered();
 	status.voltage = GET_INPUT_VOLTAGE();
 
 	uavcan_equipment_esc_Status_encode(&status, buffer);
