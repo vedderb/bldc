@@ -1094,10 +1094,12 @@ float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq_filter;
+	return SIGN(motor->m_motor_state.vq) *
+			sqrtf( SQ(motor->m_motor_state.iq_filter) + SQ(motor->m_motor_state.id_filter) );
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq_filter;
+	return SIGN(m_motor_1.m_motor_state.vq) *
+			sqrtf( SQ(m_motor_1.m_motor_state.iq_filter) + SQ(m_motor_1.m_motor_state.id_filter) );
 #endif
 }
 
