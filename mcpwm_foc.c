@@ -800,7 +800,7 @@ void mcpwm_foc_set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_foc_set_pid_speed(float rpm) {
-	if( motor_now()->m_conf->s_pid_apply_input_ramp ){
+	if( motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ){
 		if( motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
 				motor_now()->m_state != MC_STATE_RUNNING ){
 			motor_now()->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
@@ -3643,8 +3643,8 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 		return;
 	}
 
-	if(conf_now->s_pid_apply_input_ramp){
-		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_ms);
+	if(conf_now->s_pid_ramp_erpms_s > 0.0){
+		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_s * dt);
 	}
 
 	const float rpm = mcpwm_foc_get_rpm();
