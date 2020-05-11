@@ -136,11 +136,8 @@
 #ifndef MCCONF_S_PID_ALLOW_BRAKING
 #define MCCONF_S_PID_ALLOW_BRAKING		true	// Allow braking in speed control mode
 #endif
-#ifndef MCCONF_S_PID_APPLY_INPUT_RAMP
-#define MCCONF_S_PID_APPLY_INPUT_RAMP	false	// Apply Input Ramp in speed control mode
-#endif
-#ifndef MCCONF_S_PID_RAMP_ERPMS_MS
-#define MCCONF_S_PID_RAMP_ERPMS_MS		1.0	// Default Speed Input Ramp
+#ifndef MCCONF_S_PID_RAMP_ERPMS_S
+#define MCCONF_S_PID_RAMP_ERPMS_S		-1.0	// Default Speed Input Ramp
 #endif
 
 // Position PID parameters
