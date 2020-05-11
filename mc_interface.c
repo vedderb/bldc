@@ -1420,7 +1420,7 @@ float mc_interface_get_distance_abs(void) {
 }
 
 setup_values mc_interface_get_setup_values(void) {
-	setup_values val = {0};
+	setup_values val = {0, 0, 0, 0, 0, 0, 0};
 	val.num_vescs = 1;
 
 	val.ah_tot += mc_interface_get_amp_hours(false);
