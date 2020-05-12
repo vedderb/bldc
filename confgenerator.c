@@ -119,7 +119,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->s_pid_kd_filter, &ind);
 	buffer_append_float32_auto(buffer, conf->s_pid_min_erpm, &ind);
 	buffer[ind++] = conf->s_pid_allow_braking;
-	buffer_append_float32_auto(buffer, conf->s_pid_ramp_erpms_s, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kd, &ind);
