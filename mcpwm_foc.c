@@ -111,7 +111,6 @@ typedef struct {
 	bool m_output_on;
 	float m_pos_pid_set;
 	float m_speed_pid_set_rpm;
-	float m_speed_command_rpm;
 	float m_phase_now_observer;
 	float m_phase_now_observer_override;
 	bool m_phase_observer_override;
@@ -165,7 +164,6 @@ typedef struct {
 	float m_hall_dt_diff_last;
 	float m_hall_dt_diff_now;
 } motor_all_state_t;
-
 
 // Private variables
 static volatile bool m_dccal_done = false;
@@ -800,17 +798,8 @@ void mcpwm_foc_set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_foc_set_pid_speed(float rpm) {
-	if( motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ){
-		if( motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
-				motor_now()->m_state != MC_STATE_RUNNING ){
-			motor_now()->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
-		}
-		motor_now()->m_speed_command_rpm = rpm;
-	}else{
-		motor_now()->m_speed_pid_set_rpm = rpm;
-	}
-
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
+	motor_now()->m_speed_pid_set_rpm = rpm;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -3641,10 +3630,6 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 		motor->m_speed_i_term = 0.0;
 		motor->m_speed_prev_error = 0.0;
 		return;
-	}
-
-	if(conf_now->s_pid_ramp_erpms_s > 0.0){
-		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_s * dt);
 	}
 
 	const float rpm = mcpwm_foc_get_rpm();
