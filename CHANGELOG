@@ -3,6 +3,7 @@
 * Added COMM_GET_MCCONF_TEMP command.
 * Added bidirectional current command to VESC remote.
 * Fixed motor temperature reading on hw with ADC mux.
+* Added speed PID input ramping option.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.
