@@ -1465,10 +1465,12 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	float offset_old = motor->m_conf->foc_encoder_offset;
 	float inverted_old = motor->m_conf->foc_encoder_inverted;
 	float ratio_old = motor->m_conf->foc_encoder_ratio;
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
 
 	motor->m_conf->foc_encoder_offset = 0.0;
 	motor->m_conf->foc_encoder_inverted = false;
 	motor->m_conf->foc_encoder_ratio = 1.0;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
 
 	// Find index
 	int cnt = 0;
@@ -1654,6 +1656,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	motor->m_conf->foc_encoder_inverted = inverted_old;
 	motor->m_conf->foc_encoder_offset = offset_old;
 	motor->m_conf->foc_encoder_ratio = ratio_old;
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
