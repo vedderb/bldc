@@ -306,7 +306,6 @@ THD_FUNCTION(temp_thread, arg) {
                 hw_try_restore_i2c();
             }
         }
-
         chThdSleepMilliseconds(100);
     }
 }

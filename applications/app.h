@@ -74,7 +74,4 @@ void app_custom_start(void);
 void app_custom_stop(void);
 void app_custom_configure(app_configuration *conf);
 
-//app_dpv
-void dpv_rotary_isr(void);
-
 #endif /* APP_H_ */

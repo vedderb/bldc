@@ -9,6 +9,8 @@
 #include "utils.h"
 #include "commands.h"
 #include <math.h>
+#include "isr_vector_table.h"
+
 
 #define SPEED_STEP	0.05
 #define SPEED_MAX	1.00

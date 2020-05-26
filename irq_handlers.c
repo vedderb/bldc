@@ -42,6 +42,7 @@ CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
 	}
 }
 
+#ifndef HW_HAS_NO_ENC
 CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 	if (TIM_GetITStatus(HW_ENC_TIM, TIM_IT_Update) != RESET) {
 		encoder_tim_isr();
@@ -50,6 +51,7 @@ CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
 		TIM_ClearITPendingBit(HW_ENC_TIM, TIM_IT_Update);
 	}
 }
+#endif
 
 CH_IRQ_HANDLER(TIM2_IRQHandler) {
 	if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
@@ -71,15 +73,5 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		EXTI_ClearITPendingBit(EXTI_Line16);
 		EXTI_ClearFlag(EXTI_Line16);
 	}
-}
-
-
-CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
-        if (EXTI_GetITStatus(HW_HALL_ROTARY_A_EXTI_LINE) != RESET) {
-                dpv_rotary_isr();
-                // Clear the EXTI line pending bit
-                EXTI_ClearITPendingBit(HW_HALL_ROTARY_A_EXTI_LINE);
-		EXTI_ClearFlag(HW_HALL_ROTARY_A_EXTI_LINE);
-        }
 }
 

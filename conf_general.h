@@ -74,7 +74,6 @@
 
 #define HW_SOURCE "hw_gsvesc.c"
 #define HW_HEADER "hw_gsvesc.h"
-#define HW_HAS_NO_CAN
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
@@ -181,7 +180,7 @@
  * Select default user app configuration
  */
 //#include			"appconf_example_ppm.h"
-//#include			"appconf_custom.h"
+#include			"appconf_custom.h"
 //#include			"appconf_ellwee.h"
 
 /*
