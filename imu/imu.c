@@ -26,6 +26,7 @@
 #include "commands.h"
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
+#include "lsm6ds3.h"
 #include "utils.h"
 
 #include <math.h>
@@ -81,6 +82,11 @@ void imu_init(imu_config *set) {
 		imu_init_bmi160(BMI160_SDA_GPIO, BMI160_SDA_PIN,
 				BMI160_SCL_GPIO, BMI160_SCL_PIN);
 #endif
+
+#ifdef LSM6DS3_SDA_GPIO
+		imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
+				LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
+#endif
 	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
 		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
@@ -89,6 +95,9 @@ void imu_init(imu_config *set) {
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	}else if(set->type == IMU_TYPE_EXTERNAL_LSM6DS3){
+		imu_init_lsm6ds3(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
 
@@ -148,10 +157,21 @@ void imu_init_bmi160(stm32_gpio_t *sda_gpio, int sda_pin,
 	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
 }
 
+void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
+		stm32_gpio_t *scl_gpio, int scl_pin) {
+
+	lsm6ds3_init(sda_gpio, sda_pin,
+				scl_gpio, scl_pin,
+				m_thd_work_area, sizeof(m_thd_work_area));
+	lsm6ds3_set_read_callback(imu_read_callback);
+
+}
+
 void imu_stop(void) {
 	mpu9150_stop();
 	icm20948_stop(&m_icm20948_state);
 	bmi160_wrapper_stop(&m_bmi_state);
+	lsm6ds3_stop();
 }
 
 bool imu_startup_done(void) {
