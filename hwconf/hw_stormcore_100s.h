@@ -207,7 +207,6 @@
 #define LSM6DS3_SCL_GPIO		GPIOB
 #define LSM6DS3_SCL_PIN			4
 
-
 // Measurement macros
 #define ADC_V_L1                ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2                ADC_Value[ADC_IND_SENS2]

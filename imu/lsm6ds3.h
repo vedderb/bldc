@@ -1,16 +1,42 @@
 /*
- * lsm6ds3.c
- *
- *  Created on: May 28, 2020
- *      Author: mitch
- */
+	Copyright 2020 Mitch Lustig
 
-#ifndef MPU9150_H_
-#define MPU9150_H_
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	The VESC firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+	**Note** Most of the constants were copied from...
+
+	Marshall Taylor @ SparkFun Electronics
+	May 20, 2015
+	https://github.com/sparkfun/LSM6DS3_Breakout
+	https://github.com/sparkfun/SparkFun_LSM6DS3_Arduino_Library
+
+	That code is released under the [MIT License](http://opensource.org/licenses/MIT).
+	Please review the LICENSE.md file included with that example. If you have any questions
+	or concerns with licensing, please contact techsupport@sparkfun.com.
+	Distributed as-is; no warranty is given.
+	*/
+
+#ifndef LSM6DS3_H_
+#define LSM6DS3_H_
 
 #include "ch.h"
 #include "hal.h"
 
+void lsm6ds3_set_rate_hz(int hz);
 void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stkalign_t *work_area, size_t work_area_size);
@@ -1916,4 +1942,4 @@ typedef enum {
 } LSM6DS3_ACC_GYRO_INT2_SLEEP_t;
 
 
-#endif /* MP9150_H_ */
+#endif /* LSM6DS3_H_ */

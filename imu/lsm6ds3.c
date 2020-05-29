@@ -1,9 +1,21 @@
 /*
- * lsm6ds3.c
- *
- *  Created on: May 28, 2020
- *      Author: mitch
- */
+	Copyright 2020 Mitch Lustig
+
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	The VESC firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #include "lsm6ds3.h"
 #include "terminal.h"
@@ -17,6 +29,7 @@
 static thread_t *lsm6ds3_thread_ref = NULL;
 static i2c_bb_state m_i2c_bb;
 static volatile uint16_t lsm6ds3_addr;
+static int rate_hz = 1000;
 
 static void terminal_read_reg(int argc, const char **argv);
 static uint8_t read_single_reg(uint8_t reg);
@@ -24,6 +37,11 @@ static THD_FUNCTION(lsm6ds3_thread, arg);
 
 // Function pointers
 static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
+
+
+void lsm6ds3_set_rate_hz(int hz) {
+	rate_hz = hz;
+}
 
 void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
@@ -163,14 +181,14 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 		float ay = (float)((int16_t)((uint16_t)rxb[9] << 8) + rxb[8]) * 0.061 * (16 >> 1) / 1000;
 		float az = (float)((int16_t)((uint16_t)rxb[11] << 8) + rxb[10]) * 0.061 * (16 >> 1) / 1000;
 
-		if (read_callback) {
+		if (res && read_callback) {
 			float tmp_accel[3] = {ax,ay,az}, tmp_gyro[3] = {gx,gy,gz}, tmp_mag[3] = {1,2,3};
 			read_callback(tmp_accel, tmp_gyro, tmp_mag);
 		}
 
 
-//		commands_printf("LSM6DS3 Loop! %.2f %.2f %.2f", ax, ay, az);
-		chThdSleepMilliseconds(1);
+		// Delay between loops
+		chThdSleepMilliseconds((int)((1000.0 / rate_hz)));
 	}
 }
 
