@@ -49,15 +49,14 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	read_callback = 0;
 
-	//#define LSM6DS3_ACC_GYRO_WHO_AM_I_REG  			0X0F
 	m_i2c_bb.sda_gpio = sda_gpio;
 	m_i2c_bb.sda_pin = sda_pin;
 	m_i2c_bb.scl_gpio = scl_gpio;
 	m_i2c_bb.scl_pin = scl_pin;
 	i2c_bb_init(&m_i2c_bb);
 
-	uint8_t rxb[2];
 	uint8_t txb[2];
+	uint8_t rxb[2];
 
 	txb[0] = LSM6DS3_ACC_GYRO_WHO_AM_I_REG;
 	lsm6ds3_addr = LSM6DS3_ACC_GYRO_ADDR_A;
@@ -78,30 +77,27 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	txb[0] = LSM6DS3_ACC_GYRO_CTRL1_XL;
 	txb[1] = LSM6DS3_ACC_GYRO_BW_XL_400Hz | LSM6DS3_ACC_GYRO_FS_XL_16g | LSM6DS3_ACC_GYRO_ODR_XL_6660Hz;
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	if(res){
-		commands_printf("LSM6DS3 Accel Config Set");
-	}else{
+	if(!res){
 		commands_printf("LSM6DS3 Accel Config FAILED");
+		return;
 	}
 
 	// Set all gyro speeds to MAX
 	txb[0] = LSM6DS3_ACC_GYRO_CTRL2_G;
 	txb[1] = LSM6DS3_ACC_GYRO_FS_G_2000dps | LSM6DS3_ACC_GYRO_ODR_G_1660Hz;
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	if(res){
-		commands_printf("LSM6DS3 Gyro Config Set");
-	}else{
+	if(!res){
 		commands_printf("LSM6DS3 Gyro Config FAILED");
+		return;
 	}
 
 	// Set ODR???
 	txb[0] = LSM6DS3_ACC_GYRO_CTRL4_C;
 	txb[1] = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
-	if(res){
-		commands_printf("LSM6DS3 ODR Config Set");
-	}else{
+	if(!res){
 		commands_printf("LSM6DS3 ODR Config FAILED");
+		return;
 	}
 
 	terminal_register_command_callback(
@@ -114,7 +110,6 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void lsm6ds3_stop(void) {
-	commands_printf("LSM6DS3 Terminating");
 	if(lsm6ds3_thread_ref != NULL){
 		chThdTerminate(lsm6ds3_thread_ref);
 		chThdWait(lsm6ds3_thread_ref);
@@ -128,14 +123,13 @@ void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag
 }
 
 static uint8_t read_single_reg(uint8_t reg) {
-	uint8_t rxb[2];
 	uint8_t txb[2];
+	uint8_t rxb[2];
 
 	txb[0] = reg;
 	bool res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 2);
 
 	if (res) {
-		commands_printf("Reg 0x%02x: (0x%02x) (0x%02x)\n", reg, rxb[0], rxb[1]);
 		return rxb[0];
 	} else {
 		return 0;
