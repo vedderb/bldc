@@ -2571,9 +2571,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
 		motor_now->m_motor_state.iq_filter = 0.0;
-	#ifdef HW_HAS_INPUT_CURRENT_SENSOR
-		GET_INPUT_CURRENT_OFFSET();
-	#endif
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
+#endif
 		motor_now->m_motor_state.i_bus = 0.0;
 		motor_now->m_motor_state.i_abs = 0.0;
 		motor_now->m_motor_state.i_abs_filter = 0.0;
@@ -2883,16 +2883,15 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	motor->m_gamma_now = gamma_tmp * 4.0;
 }
 
-static void input_current_offset_measurement( void ){
-
+// TODO: This won't work for dual motors
+static void input_current_offset_measurement(void) {
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 	static uint16_t delay_current_offset_measurement = 0;
 
-	if( delay_current_offset_measurement < 1000){
+	if (delay_current_offset_measurement < 1000) {
 		delay_current_offset_measurement++;
-	}else{
-		if( delay_current_offset_measurement == 1000)
-		{
+	} else {
+		if (delay_current_offset_measurement == 1000) {
 			delay_current_offset_measurement++;
 			MEASURE_INPUT_CURRENT_OFFSET();
 		}
