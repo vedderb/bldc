@@ -120,9 +120,6 @@ brew install openocd
 ```
 
 ## Build
-
-Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) first
-
 Clone and build the firmware
 
 ```bash
@@ -131,11 +128,46 @@ cd vesc_firmware
 make
 ```
 
-Flash it using an STLink SWD debugger
+
+## Upload to VESC
+### Method 1 - Flash it using an STLink SWD debugger
+
+Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) first
 
 ```bash
 make upload
 ```
+### Method 2 - Upload Firmware via VESC tool through USB
+
+1. Clone and build the firmware in **.bin** format
+
+Reminder : Remember to select your board in [**conf_general.h**]
+
+```bash
+git clone https://github.com/vedderb/bldc.git vesc_firmware
+cd vesc_firmware
+#make build/your_firmware_name_here.bin
+make build/VESC_fw.bin 
+```
+In VESC tool
+
+2. Connect to the VESC
+3. Navigate to the Firmware tab on the left side menu 
+4. Click on Custom file tab
+5. Click on the folder icon to select the built firmware in .bin format (e.g. VESC_fw.bin)  
+
+##### [ Reminder : It is normal to see VESC disconnects during the firmware upload process ]  
+#####  **[ Warning : DO NOT DISCONNECT POWER/USB to VESC during the upload process, or you will risk bricking your VESC ]**  
+#####  **[ Warning : ONLY DISCONNECT your VESC 10s after the upload loading bar completed and "FW Upload DONE" ]**
+
+6. Press the upload firmware button (downward arrow) on the bottom right to start upload the selected firmware.
+7. Wait for **10s** after the loading bar completed (Warning: unplug sooner will risk bricking your VESC)
+8. The VESC will disconnect itself after new firmware is uploaded.
+
+## In case you bricked your VESC
+you will need to upload a new working firmware to the VESC.  
+However, to upload a firmware to a bricked VESC, you have to use a SWD Debugger.
+
 
 ## Contribute
 
