@@ -20,7 +20,6 @@
 #ifndef COMM_CAN_H_
 #define COMM_CAN_H_
 
-
 #include "conf_general.h"
 #include "hal.h"
 

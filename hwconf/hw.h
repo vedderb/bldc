@@ -25,7 +25,6 @@
 
 #include HW_HEADER
 
-
 #ifndef HW_NAME
 #error "No hardware name set"
 #endif

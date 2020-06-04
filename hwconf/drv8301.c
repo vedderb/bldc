@@ -259,7 +259,7 @@ unsigned int drv8301_read_reg(int reg) {
 void drv8301_write_reg(int reg, int data) {
 	uint16_t out = 0;
 	out |= (reg & 0x0F) << 11;
-	out |= ( data ) & 0x7FF;
+	out |= data & 0x7FF;
 
 	chMtxLock(&m_spi_mutex);
 	spi_begin();

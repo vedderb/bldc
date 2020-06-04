@@ -21,7 +21,6 @@
 #include "datatypes.h"
 
 // Functions
-
 void drv8301_init(void);
 void drv8301_set_gate_current(unsigned char current);
 void drv8301_set_oc_adj(int val);
