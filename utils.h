@@ -64,6 +64,7 @@ int utils_read_hall(bool is_second_motor);
 float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
+void insertionSort(uint16_t *arr, uint16_t n);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

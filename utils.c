@@ -812,15 +812,44 @@ static int uint16_cmp_func (const void *a, const void *b) {
 	return (*(uint16_t*)a - *(uint16_t*)b);
 }
 
+//possibly replace with a four pole butterworth filter from https://www-users.cs.york.ac.uk/~fisher/mkfilter/trad.html
+//perhaps also choose filter lengths that are powers of 2 to optimize modulo to bitwise AND.
+//this can be forced using enumerations.
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
-		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample) {
-	buffer[*buffer_index++] = sample;
-	*buffer_index %= filter_len;
+		uint16_t *buffer_index, uint16_t filter_len, uint16_t sample) {
 	uint16_t buffer_sorted[filter_len]; // Assume we have enough stack space
+	//perhaps make a filter structure and statically declare all needed filters. This will guarantee there is enough stack space.
+	//Can also assign more user stack space in linker script
+	buffer[*buffer_index++] = sample;
+	*buffer_index %= filter_len; 
 	memcpy(buffer_sorted, buffer, sizeof(uint16_t) * filter_len);
-	qsort(buffer_sorted, filter_len, sizeof(uint16_t), uint16_cmp_func);
-	return buffer_sorted[filter_len / 2];
+	insertionSort(buffer_sorted, filter_len);
+	return buffer_sorted[filter_len >> 1]; //compiler wont always optimize divides by power of 2 into bit shifts, even on O3, go figure.
+	//yes, I checked the disassembly
 }
+
+/* Function to sort an array using insertion sort*/
+void insertionSort(uint16_t *arr, uint16_t n)  
+{  
+    uint16_t i, key, j;  
+    for (i = 1; i < n; i++) 
+    {  
+        key = arr[i];  
+        j = i - 1;  
+  
+        /* Move elements of arr[0..i-1], that are  
+        greater than key, to one position ahead  
+        of their current position */
+        while (j >= 0 && arr[j] > key) 
+        {  
+            arr[j + 1] = arr[j];  
+            j = j - 1;  
+        }  
+        arr[j + 1] = key;  
+    }  
+}  
+  
+
 
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
