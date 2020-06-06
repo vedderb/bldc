@@ -29,14 +29,12 @@
 typedef struct{
 	//constant variables
 	float Ts;					//Sample Time in s
-	float Rs;             		//Stator Resistance Phase to Neutral in Ohms
-	float Ld;             		//Inductance in d-Direction in H
-	float Lq;             		//Inductance in q-Direction in H
-	float flux_linkage;			//Flux linkage of the permanent magnets in mWb
 	float J;					//Rotor/Load Inertia in Nm*s^2
 	int v_max_adc;				//max voltage that ADC can measure
 	int pole_pairs;				//number of pole pairs ( pole numbers / 2)
 	float km;					//constant = 1.5 * pole pairs
+	float ld;					//motor inductance in D axis in uHy
+	float lq;					//motor inductance in Q axis in uHy
 
 	//non constant variables
 	float id;		            //Current in d-Direction in Amps
@@ -68,10 +66,10 @@ static volatile virtual_motor_t virtual_motor;
 static volatile int m_curr0_offset_backup;
 static volatile int m_curr1_offset_backup;
 static volatile int m_curr2_offset_backup;
+static volatile mc_configuration *m_conf;
 
 //private functions
-static void connect_virtual_motor(float ml, float J, float Ld, float Lq,
-									float Rs,float lambda,float Vbus);
+static void connect_virtual_motor(float ml, float J, float Vbus);
 static void disconnect_virtual_motor(void);
 static inline void run_virtual_motor_electrical(float v_alpha, float v_beta);
 static inline void run_virtual_motor_mechanics(float ml);
@@ -85,7 +83,10 @@ static void terminal_cmd_disconnect_virtual_motor(int argc, const char **argv);
 /**
  * Virtual motor initialization
  */
-void virtual_motor_init(void){
+void virtual_motor_init(volatile mc_configuration *conf){
+
+	virtual_motor_set_configuration(conf);
+
 	//virtual motor variables init
 	virtual_motor.connected = false; //disconnected
 
@@ -103,15 +104,12 @@ void virtual_motor_init(void){
 	virtual_motor.i_beta = 0.0;
 	virtual_motor.id_int = 0.0;
 	virtual_motor.iq = 0.0;
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	virtual_motor.pole_pairs = conf->si_motor_poles / 2;
-	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
 
 	// Register terminal callbacks used for virtual motor setup
 	terminal_register_command_callback(
 				"connect_virtual_motor",
 				"connects virtual motor",
-				"[ml][J][Ld][Lq][Rs][lambda][Vbus]",
+				"[ml][J][Vbus]",
 				terminal_cmd_connect_virtual_motor);
 
 	terminal_register_command_callback(
@@ -119,6 +117,31 @@ void virtual_motor_init(void){
 				"disconnect virtual motor",
 				0,
 				terminal_cmd_disconnect_virtual_motor);
+}
+
+void virtual_motor_set_configuration(volatile mc_configuration *conf){
+	m_conf = conf;
+
+	//recalculate constants that depend on m_conf
+	virtual_motor.pole_pairs = m_conf->si_motor_poles / 2;
+	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
+#ifdef HW_HAS_PHASE_SHUNTS
+	if (m_conf->foc_sample_v0_v7) {
+		virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+	} else {
+		virtual_motor.Ts = (1.0 / (m_conf->foc_f_sw / 2.0));
+	}
+#else
+	virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+#endif
+
+	if(m_conf->foc_motor_ld_lq_diff > 0.0){
+		virtual_motor.lq = m_conf->foc_motor_l + m_conf->foc_motor_ld_lq_diff /2;
+		virtual_motor.ld = m_conf->foc_motor_l - m_conf->foc_motor_ld_lq_diff /2;
+	}else{
+		virtual_motor.lq = m_conf->foc_motor_l ;
+		virtual_motor.ld = m_conf->foc_motor_l ;
+	}
 }
 
 /**
@@ -151,14 +174,9 @@ float virtual_motor_get_angle_deg(void){
  *
  * @param ml : torque present at motor axis in Nm
  * @param J: rotor inertia Nm*s^2
- * @param Ld: inductance at d axis in Hy
- * @param Lq: inductance at q axis in Hy
- * @param Rs: resistance in ohms
- * @param lambda: flux linkage in Vs/rad
  * @param Vbus: Bus voltage in Volts
  */
-static void connect_virtual_motor(float ml , float J, float Ld, float Lq,
-									float Rs, float lambda, float Vbus){
+static void connect_virtual_motor(float ml , float J, float Vbus){
 	if(virtual_motor.connected == false){
 		//first we send 0.0 current command to make system stop PWM outputs
 		mcpwm_foc_set_current(0.0);
@@ -184,32 +202,40 @@ static void connect_virtual_motor(float ml , float J, float Ld, float Lq,
 		mcpwm_foc_set_current_offsets(2048, 2048, 2048);
 
 		//sets virtual motor variables
-		ADC_Value[ ADC_IND_VIN_SENS ] = Vbus * VOLTAGE_TO_ADC_FACTOR;
 		ADC_Value[ ADC_IND_TEMP_MOS ] = 2048;
 		ADC_Value[ ADC_IND_TEMP_MOTOR ] = 2048;
-#ifdef HW_VERSION_AXIOM
-		ADC_Value[ ADC_IND_VOUT_GATE_DRV ] = 1692;
-							// 1692 gives 15.0 as Gate Driver Voltage
-							//( 15.0 = (ADC_Value[] * 11.0 * 3.3) / 4096 )
+#ifdef 	HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
+		//we load 1 to get the transfer function indirectly
+		ADC_Value[ ADC_IND_VOUT_GATE_DRV ] = 1;
+
+		float tempVoltage = GET_GATE_DRIVER_SUPPLY_VOLTAGE();
+		if(tempVoltage != 0.0){
+			ADC_Value[ ADC_IND_VOUT_GATE_DRV ] = ( (HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE + HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) / 2.0 ) /
+																							GET_GATE_DRIVER_SUPPLY_VOLTAGE();
+		}
 #endif
-		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;// 0.0;//m_motor_state.phase;
+		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;
 		utils_fast_sincos_better(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
 														(float*)&virtual_motor.cos_phi);
+
+		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
+			encoder_deinit();
+		}
+	}
+
+	//we load 1 to get the transfer function indirectly
+	ADC_Value[ ADC_IND_VIN_SENS ] = 1;
+
+	float tempVoltage = GET_INPUT_VOLTAGE();
+	if(tempVoltage != 0.0){
+		ADC_Value[ ADC_IND_VIN_SENS ] = Vbus / GET_INPUT_VOLTAGE();
 	}
 
 	//initialize constants
-	virtual_motor.Ts = mcpwm_foc_get_ts();
 	virtual_motor.v_max_adc = Vbus;
 	virtual_motor.J = J;
-	virtual_motor.Ld = Ld;
-	virtual_motor.Lq = Lq;
-	virtual_motor.flux_linkage = lambda;
-	virtual_motor.Rs = Rs;
-	virtual_motor.ml = ml;
 	virtual_motor.tsj = virtual_motor.Ts / virtual_motor.J;
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	virtual_motor.pole_pairs = conf->si_motor_poles / 2;
-	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
+	virtual_motor.ml = ml;
 
 	virtual_motor.connected = true;
 }
@@ -246,6 +272,31 @@ static void disconnect_virtual_motor( void ){
 		ADC_InitStructure.ADC_NbrOfConversion = HW_ADC_NBR_CONV;
 
 		ADC_Init(ADC1, &ADC_InitStructure);
+
+		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
+			switch (m_conf->m_sensor_port_mode) {
+			case SENSOR_PORT_MODE_ABI:
+				encoder_init_abi(m_conf->m_encoder_counts);
+				break;
+
+			case SENSOR_PORT_MODE_AS5047_SPI:
+				encoder_init_as5047p_spi();
+				break;
+
+			case SENSOR_PORT_MODE_AD2S1205:
+				encoder_init_ad2s1205_spi();
+				break;
+
+			case SENSOR_PORT_MODE_SINCOS:
+				encoder_init_sincos(m_conf->foc_encoder_sin_gain, m_conf->foc_encoder_sin_offset,
+									m_conf->foc_encoder_cos_gain, m_conf->foc_encoder_cos_offset,
+									m_conf->foc_encoder_sincos_filter_constant);
+				break;
+
+			default:
+				break;
+			}
+		}
 	}
 }
 
@@ -271,9 +322,6 @@ static inline void run_virtual_motor(float v_alpha, float v_beta, float ml){
  */
 static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
 
-	utils_fast_sincos_better( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
-													(float*)&virtual_motor.cos_phi );
-
 	virtual_motor.vd =  virtual_motor.cos_phi * v_alpha + virtual_motor.sin_phi * v_beta;
 	virtual_motor.vq =  virtual_motor.cos_phi * v_beta - virtual_motor.sin_phi * v_alpha;
 
@@ -281,18 +329,22 @@ static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
 	virtual_motor.id_int += ((virtual_motor.vd +
 								virtual_motor.we *
 								virtual_motor.pole_pairs *
-								virtual_motor.Lq * virtual_motor.iq -
-	 							virtual_motor.Rs * virtual_motor.id )
-								* virtual_motor.Ts ) / virtual_motor.Ld;
-	virtual_motor.id = virtual_motor.id_int - virtual_motor.flux_linkage / virtual_motor.Ld;
+								virtual_motor.lq * virtual_motor.iq -
+								m_conf->foc_motor_r * virtual_motor.id )
+								* virtual_motor.Ts ) / virtual_motor.ld;
+	virtual_motor.id = virtual_motor.id_int - m_conf->foc_motor_flux_linkage / virtual_motor.ld;
 
 	// q axis current
 	virtual_motor.iq += (virtual_motor.vq -
 						virtual_motor.we *
 						virtual_motor.pole_pairs *
-						(virtual_motor.Ld * virtual_motor.id + virtual_motor.flux_linkage) -
-						virtual_motor.Rs * virtual_motor.iq )
-						* virtual_motor.Ts / virtual_motor.Lq;
+						(virtual_motor.ld * virtual_motor.id + m_conf->foc_motor_flux_linkage) -
+						m_conf->foc_motor_r * virtual_motor.iq )
+						* virtual_motor.Ts / virtual_motor.lq;
+
+//	// limit current maximum values
+	utils_truncate_number_abs((float *) &(virtual_motor.iq) , (2048 * FAC_CURRENT) );
+	utils_truncate_number_abs((float *) &(virtual_motor.id) , (2048 * FAC_CURRENT) );
 }
 
 /**
@@ -300,17 +352,11 @@ static inline void run_virtual_motor_electrical(float v_alpha, float v_beta){
  * @param ml	externally applied load torque in Nm
  */
 static inline void run_virtual_motor_mechanics(float ml){
-	virtual_motor.me =  virtual_motor.km * (virtual_motor.flux_linkage +
-											(virtual_motor.Ld - virtual_motor.Lq) *
+	virtual_motor.me =  virtual_motor.km * (m_conf->foc_motor_flux_linkage +
+											(virtual_motor.ld - virtual_motor.lq) *
 											virtual_motor.id ) * virtual_motor.iq;
 	// omega
-	float w_aux = virtual_motor.we  + virtual_motor.tsj * (virtual_motor.me - ml);
-
-	if( w_aux < 0.0 ){
-		virtual_motor.we = 0;
-	}else{
-		virtual_motor.we = w_aux;
-	}
+	virtual_motor.we += virtual_motor.tsj * (virtual_motor.me - ml);
 
 	// phi
 	virtual_motor.phi += virtual_motor.we * virtual_motor.Ts;
@@ -323,13 +369,15 @@ static inline void run_virtual_motor_mechanics(float ml){
 	while( virtual_motor.phi < -1.0 * M_PI ){
 		virtual_motor.phi += ( 2 * M_PI);
 	}
-
 }
 
 /**
  * Take the id and iq calculated values and translate them into ADC_Values
  */
 static inline void run_virtual_motor_park_clark_inverse( void ){
+	utils_fast_sincos_better( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
+													(float*)&virtual_motor.cos_phi );
+
 	//	Park Inverse
 	virtual_motor.i_alpha = virtual_motor.cos_phi * virtual_motor.id -
 							virtual_motor.sin_phi * virtual_motor.iq;
@@ -366,28 +414,20 @@ static inline void run_virtual_motor_park_clark_inverse( void ){
  * connect_virtual_motor command
  */
 static void terminal_cmd_connect_virtual_motor(int argc, const char **argv) {
-	if( argc == 8 ){
+	if( argc == 4 ){
 		float ml; //torque load in motor axis
-		float Ld; //inductance in d axis
-		float Lq; //inductance in q axis
 		float J; //rotor inertia
-		float Rs; //resistance of motor inductance
-		float lambda;//rotor flux linkage
 		float Vbus;//Bus voltage
 
 		sscanf(argv[1], "%f", &ml);
 		sscanf(argv[2], "%f", &J);
-		sscanf(argv[3], "%f", &Ld);
-		sscanf(argv[4], "%f", &Lq);
-		sscanf(argv[5], "%f", &Rs);
-		sscanf(argv[6], "%f", &lambda);
-		sscanf(argv[7], "%f", &Vbus);
+		sscanf(argv[3], "%f", &Vbus);
 
-		connect_virtual_motor( ml , J, Ld , Lq , Rs, lambda, Vbus);
+		connect_virtual_motor( ml , J, Vbus);
 		commands_printf("virtual motor connected");
 	}
 	else{
-		commands_printf("arguments should be 7" );
+		commands_printf("arguments should be 3" );
 	}
 }
 
