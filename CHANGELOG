@@ -4,6 +4,7 @@
 * Added bidirectional current command to VESC remote.
 * Fixed motor temperature reading on hw with ADC mux.
 * Added speed PID input ramping option.
+* Added LSM6DS3 IMU support.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

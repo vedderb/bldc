@@ -193,6 +193,7 @@ static float correct_encoder(float obs_angle, float enc_angle, float speed, floa
 static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(volatile motor_all_state_t *motor, float dt);
+static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor);
 
 // Threads
@@ -2570,6 +2571,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
 		motor_now->m_motor_state.iq_filter = 0.0;
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
+#endif
 		motor_now->m_motor_state.i_bus = 0.0;
 		motor_now->m_motor_state.i_abs = 0.0;
 		motor_now->m_motor_state.i_abs_filter = 0.0;
@@ -2795,7 +2799,6 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	utils_truncate_number_abs(&openloop_rpm, motor->m_conf->foc_openloop_rpm);
 
 	const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
-
 	float add_min_speed = 0.0;
 	if (motor->m_motor_state.duty_now > 0.0) {
 		add_min_speed = min_rads * dt;
@@ -2880,6 +2883,23 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	motor->m_gamma_now = gamma_tmp * 4.0;
 }
 
+// TODO: This won't work for dual motors
+static void input_current_offset_measurement(void) {
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+	static uint16_t delay_current_offset_measurement = 0;
+
+	if (delay_current_offset_measurement < 1000) {
+		delay_current_offset_measurement++;
+	} else {
+		if (delay_current_offset_measurement == 1000) {
+			delay_current_offset_measurement++;
+			MEASURE_INPUT_CURRENT_OFFSET();
+		}
+	}
+#endif
+}
+
+
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
@@ -2897,6 +2917,8 @@ static THD_FUNCTION(timer_thread, arg) {
 #ifdef HW_HAS_DUAL_MOTORS
 		timer_update(&m_motor_2, dt);
 #endif
+
+		input_current_offset_measurement();
 
 		run_pid_control_speed(dt, &m_motor_1);
 #ifdef HW_HAS_DUAL_MOTORS
@@ -3313,8 +3335,12 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 //	utils_truncate_number((float*)&state_m->vq_int, -max_v_mag, max_v_mag);
 
 	// TODO: Have a look at this?
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+	state_m->i_bus = GET_INPUT_CURRENT();
+#else
 	state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
-	state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
+#endif
+    state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
 	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
 
 	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;

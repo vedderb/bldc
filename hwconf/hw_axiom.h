@@ -27,6 +27,7 @@
 
 //#define HW_AXIOM_USE_DAC
 //#define HW_AXIOM_USE_MOTOR_TEMP
+//#define HW_HAS_INPUT_CURRENT_SENSOR
 #define HW_USE_LINE_TO_LINE
 #define	HW_AXIOM_FORCE_HIGH_CURRENT_MEASUREMENTS
 #define HW_VERSION_AXIOM
@@ -115,8 +116,11 @@
 #endif
 #define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
 //#define DEFAULT_CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HTFS 800-P
+//#define DEFAULT_CURRENT_AMP_GAIN		0.004994	//Transfer Function [V/A] for HASS 100-S
 //#define DEFAULT_CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HASS 400-S
 //#define DEFAULT_CURRENT_AMP_GAIN		0.0008324	//Transfer Function [V/A] for HASS 600-S
+
+#define DEFAULT_INPUT_CURRENT_AMP_GAIN		0.004	//Transfer Function [V/A] for 4mv/A
 
 // Component parameters (can be overridden)
 #ifndef V_REG
@@ -141,6 +145,11 @@
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()				((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * (HVDC_TRANSFER_FUNCTION))
+
+//Input current
+#define GET_INPUT_CURRENT()				hw_axiom_read_input_current()
+#define GET_INPUT_CURRENT_OFFSET()		hw_axiom_get_input_current_offset()
+#define MEASURE_INPUT_CURRENT_OFFSET()	hw_axiom_start_input_current_sensor_offset_measurement()
 
 // NTC Termistors
 #define NTC_RES(adc_val)				((4095.0 * 10000.0) / adc_val - 10000.0)
@@ -319,5 +328,8 @@ void hw_axiom_DAC1_setdata(uint16_t data);
 void hw_axiom_DAC2_setdata(uint16_t data);
 float hw_axiom_get_current_sensor_gain(void);
 float hw_axiom_get_highest_IGBT_temp(void);
+float hw_axiom_read_input_current(void);
+void hw_axiom_get_input_current_offset(void);
+void hw_axiom_start_input_current_sensor_offset_measurement(void);
 
 #endif /* HW_AXIOM_H_ */
