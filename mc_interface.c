@@ -1609,6 +1609,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	// DRV fault code
 #ifdef HW_HAS_DUAL_PARALLEL
 	if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
+		is_second_motor = IS_DRV_FAULT_2();
 #else
 	if (is_second_motor ? IS_DRV_FAULT_2() : IS_DRV_FAULT()) {
 #endif
@@ -1921,7 +1922,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_max_mot = l_current_max_tmp;
 	if (motor->m_temp_motor < conf->l_temp_motor_start) {
 		// Keep values
-	} else if (motor->m_temp_motor > conf->l_temp_motor_end) {
+	} else if (motor->m_temp_motor > (conf->l_temp_motor_end + 10.0)) { // only fault if 10 degrees over max do give some cushion for noisey sensors
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1, false);
