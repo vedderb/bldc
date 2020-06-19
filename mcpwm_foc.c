@@ -1093,10 +1093,12 @@ float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq_filter;
+	return SIGN(motor->m_motor_state.vq) *
+			sqrtf( SQ(motor->m_motor_state.iq_filter) + SQ(motor->m_motor_state.id_filter) );
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq_filter;
+	return SIGN(m_motor_1.m_motor_state.vq) *
+			sqrtf( SQ(m_motor_1.m_motor_state.iq_filter) + SQ(m_motor_1.m_motor_state.id_filter) );
 #endif
 }
 
@@ -1462,10 +1464,12 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	float offset_old = motor->m_conf->foc_encoder_offset;
 	float inverted_old = motor->m_conf->foc_encoder_inverted;
 	float ratio_old = motor->m_conf->foc_encoder_ratio;
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
 
 	motor->m_conf->foc_encoder_offset = 0.0;
 	motor->m_conf->foc_encoder_inverted = false;
 	motor->m_conf->foc_encoder_ratio = 1.0;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
 
 	// Find index
 	int cnt = 0;
@@ -1651,6 +1655,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	motor->m_conf->foc_encoder_inverted = inverted_old;
 	motor->m_conf->foc_encoder_offset = offset_old;
 	motor->m_conf->foc_encoder_ratio = ratio_old;
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
@@ -2539,6 +2544,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		if (motor_now->m_phase_override) {
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
+		}
+
+		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
+		float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
+		if (ld_lq_diff != 0.0) {
+			float lambda = conf_now->foc_motor_flux_linkage;
+
+			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
+			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
 		// Apply current limits
