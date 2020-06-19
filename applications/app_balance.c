@@ -92,7 +92,7 @@ static float setpoint, setpoint_target, setpoint_target_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
-static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_duty_timer;
+static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_state, d_pt1_k;
 
 
@@ -180,14 +180,24 @@ float get_setpoint_adjustment_step_size(void){
 // Fault checking order does not really matter. From a UX perspective, switch should be before angle.
 bool check_fault(bool ignoreTimers){
 	// Check switch
-	// Switch fully open or Switch partially open and stopped
-	if(switch_state == OFF || (switch_state == HALF && abs_erpm < balance_conf.adc_half_fault_erpm)){
+	// Switch fully open
+	if(switch_state == OFF){
 		if(ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay || ignoreTimers){
 			state = FAULT_SWITCH;
 			return true;
 		}
 	} else {
 		fault_switch_timer = current_time;
+	}
+
+	// Switch partially open and stopped
+	if(switch_state == HALF && abs_erpm < balance_conf.adc_half_fault_erpm){
+		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay || ignoreTimers){
+			state = FAULT_SWITCH;
+			return true;
+		}
+	} else {
+		fault_switch_half_timer = current_time;
 	}
 
 	// Check pitch angle
