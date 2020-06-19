@@ -146,6 +146,12 @@
 //
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
+
+//#define HW_SOURCE "hw_v6c.c"
+//#define HW_HEADER "hw_v6c.h"
+
+//#define HW_SOURCE "hw_v7h.c"
+//#define HW_HEADER "hw_v7h.h"
 #endif
 
 #ifndef HW_SOURCE
