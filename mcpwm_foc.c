@@ -812,7 +812,6 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	}
 
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
-	motor_now()->m_speed_pid_set_rpm = rpm;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
