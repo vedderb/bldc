@@ -277,6 +277,7 @@ typedef struct {
 	float foc_encoder_cos_gain;
 	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
+	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
@@ -321,6 +322,7 @@ typedef struct {
 	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
+	float s_pid_ramp_erpms_s;
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
@@ -462,7 +464,8 @@ typedef struct {
 typedef enum {
 	CHUK_CTRL_TYPE_NONE = 0,
 	CHUK_CTRL_TYPE_CURRENT,
-	CHUK_CTRL_TYPE_CURRENT_NOREV
+	CHUK_CTRL_TYPE_CURRENT_NOREV,
+	CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL
 } chuk_control_type;
 
 typedef struct {
@@ -604,7 +607,8 @@ typedef enum {
 	IMU_TYPE_INTERNAL,
 	IMU_TYPE_EXTERNAL_MPU9X50,
 	IMU_TYPE_EXTERNAL_ICM20948,
-	IMU_TYPE_EXTERNAL_BMI160
+	IMU_TYPE_EXTERNAL_BMI160,
+	IMU_TYPE_EXTERNAL_LSM6DS3
 } IMU_TYPE;
 
 typedef enum {
@@ -769,7 +773,7 @@ typedef enum {
 	COMM_SET_BLE_PIN,
 	COMM_SET_CAN_MODE,
 	COMM_GET_IMU_CALIBRATION,
-  COMM_GET_MCCONF_TEMP
+	COMM_GET_MCCONF_TEMP
 } COMM_PACKET_ID;
 
 // CAN commands

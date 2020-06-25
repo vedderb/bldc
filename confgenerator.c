@@ -72,6 +72,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_l, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_motor_ld_lq_diff, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_r, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_motor_flux_linkage, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_observer_gain, &ind);
@@ -118,6 +119,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->s_pid_kd_filter, &ind);
 	buffer_append_float32_auto(buffer, conf->s_pid_min_erpm, &ind);
 	buffer[ind++] = conf->s_pid_allow_braking;
+	buffer_append_float32_auto(buffer, conf->s_pid_ramp_erpms_s, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kd, &ind);
@@ -364,6 +366,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_l = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_motor_ld_lq_diff = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_r = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_motor_flux_linkage = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_observer_gain = buffer_get_float32_auto(buffer, &ind);
@@ -410,6 +413,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->s_pid_kd_filter = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_min_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_allow_braking = buffer[ind++];
+	conf->s_pid_ramp_erpms_s = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_kd = buffer_get_float32_auto(buffer, &ind);
@@ -652,6 +656,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
 	conf->foc_motor_l = MCCONF_FOC_MOTOR_L;
+	conf->foc_motor_ld_lq_diff = MCCONF_FOC_MOTOR_LD_LQ_DIFF;
 	conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
 	conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
 	conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
@@ -698,6 +703,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->s_pid_kd_filter = MCCONF_S_PID_KD_FILTER;
 	conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
 	conf->s_pid_allow_braking = MCCONF_S_PID_ALLOW_BRAKING;
+	conf->s_pid_ramp_erpms_s = MCCONF_S_PID_RAMP_ERPMS_S;
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
 	conf->p_pid_kd = MCCONF_P_PID_KD;

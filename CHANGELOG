@@ -1,6 +1,11 @@
 === FW 5.02 <dev> ===
 * IMU calibration improvement.
-* Add COMM_GET_MCCONF_TEMP command
+* Added COMM_GET_MCCONF_TEMP command.
+* Added bidirectional current command to VESC remote.
+* Fixed motor temperature reading on hw with ADC mux.
+* Added speed PID input ramping option.
+* Added LSM6DS3 IMU support.
+* Added MTPA support. See See: https://github.com/vedderb/bldc/pull/179
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

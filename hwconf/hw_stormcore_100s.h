@@ -201,6 +201,12 @@
 #define DRV8323S_CS_GPIO        GPIOC
 #define DRV8323S_CS_PIN         9
 
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO		GPIOB
+#define LSM6DS3_SDA_PIN			3
+#define LSM6DS3_SCL_GPIO		GPIOB
+#define LSM6DS3_SCL_PIN			4
+
 // Measurement macros
 #define ADC_V_L1                ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2                ADC_Value[ADC_IND_SENS2]
