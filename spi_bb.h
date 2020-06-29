@@ -17,29 +17,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef IMU_BMI160_WRAPPER_H_
-#define IMU_BMI160_WRAPPER_H_
+#ifndef SPI_BB_H_
+#define SPI_BB_H_
 
 #include "ch.h"
 #include "hal.h"
-
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "i2c_bb.h"
-#include "spi_bb.h"
-#include "bmi160.h"
+#include "stdint.h"
+#include "stdbool.h"
 
 typedef struct {
-	void(*read_callback)(float *accel, float *gyro, float *mag);
-	struct bmi160_dev sensor;
-	volatile bool is_running;
-	volatile bool should_stop;
-	int rate_hz;
-} BMI_STATE;
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+    stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+    stm32_gpio_t *miso_gpio;
+	int miso_pin;
+	bool has_started;
+	bool has_error;
+	mutex_t mutex;
+} spi_bb_state;
 
-void bmi160_wrapper_init(BMI_STATE *s, stkalign_t *work_area, size_t work_area_size);
-void bmi160_wrapper_set_read_callback(BMI_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
-void bmi160_wrapper_stop(BMI_STATE *s);
+void spi_bb_init(spi_bb_state *s);
+uint8_t spi_exchange_8(spi_bb_state *s, uint8_t x);
+void spi_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length);
 
-#endif /* IMU_BMI160_WRAPPER_H_ */
+void spi_begin(spi_bb_state *s);
+void spi_end(spi_bb_state *s);
+void spi_delay(void);
+
+#endif /* SPI_BB_H_ */
