@@ -529,7 +529,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 #endif
 
-	virtual_motor_init();
+	virtual_motor_init(conf_m1);
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM2);
@@ -723,6 +723,8 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 		stop_pwm_hw(motor_now());
 		update_hfi_samples(motor_now()->m_conf->foc_hfi_samples, motor_now());
 	}
+
+	virtual_motor_set_configuration(configuration);
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -2328,14 +2330,22 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-	float enc_ang = 0;
-	if (encoder_is_configured()) {
-		if (virtual_motor_is_connected()){
-			enc_ang = virtual_motor_get_angle_deg();
-		} else {
-			enc_ang = encoder_read_deg();
-		}
+	volatile float enc_ang = 0;
+	volatile bool encoder_is_being_used = false;
 
+	if(virtual_motor_is_connected()){
+		if(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ){
+			enc_ang = virtual_motor_get_angle_deg();
+			encoder_is_being_used = true;
+		}
+	}else{
+		if (encoder_is_configured()) {
+			enc_ang = encoder_read_deg();
+			encoder_is_being_used = true;
+		}
+	}
+
+	if(encoder_is_being_used){
 		float phase_tmp = enc_ang;
 		if (conf_now->foc_encoder_inverted) {
 			phase_tmp = 360.0 - phase_tmp;
@@ -2459,7 +2469,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (conf_now->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			if (encoder_index_found()) {
+			if (encoder_index_found() || virtual_motor_is_connected()) {
 				motor_now->m_motor_state.phase = correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
