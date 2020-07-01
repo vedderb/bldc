@@ -405,7 +405,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		}
 
 		if ((send_current || send_duty) && config.multi_esc) {
-			float current_filtered = mc_interface_get_tot_current_directional_filtered();
+
 			float duty = mc_interface_get_duty_cycle_now();
 
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -413,7 +413,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 					if (send_current) {
-						comm_can_set_current(msg->id, current_filtered);
+						comm_can_set_current(msg->id, current);
 					} else if (send_duty) {
 						comm_can_set_duty(msg->id, duty);
 					}
