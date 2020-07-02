@@ -29,6 +29,7 @@
 // Defines
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
+#define AS5047_FF_PER_FAULT			1000		//Consecutive 0xFF to trigger a fault
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
 #define SINCOS_SAMPLE_RATE_HZ		20000
 #define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
@@ -81,6 +82,7 @@ static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
 static uint32_t spi_val = 0;
 static uint32_t spi_error_cnt = 0;
+static uint32_t as5047_ff_counter = 0;
 static float spi_error_rate = 0.0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
 static float resolver_degradation_of_signal_error_rate = 0.0;
@@ -535,6 +537,17 @@ void encoder_tim_isr(void) {
 		spi_end();
 
 		spi_val = pos;
+
+		if(pos == 0xFF) {
+			as5047_ff_counter++;
+			if (as5047_ff_counter >= AS5047_FF_PER_FAULT)
+			{
+				spi_error_rate = 1.0;
+			}
+		} else {
+			as5047_ff_counter = 0;
+		}
+
 		if(spi_check_parity(pos)) {
 			pos &= 0x3FFF;
 			last_enc_angle = ((float)pos * 360.0) / 16384.0;
