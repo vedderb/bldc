@@ -37,22 +37,18 @@ void spi_bb_init(spi_bb_state *s) {
 }
 
 
-uint8_t spi_exchange_8(spi_bb_state *s, uint8_t x)
-{
+uint8_t spi_exchange_8(spi_bb_state *s, uint8_t x) {
 	uint8_t rx;
 	spi_transfer_8(s ,&rx, &x, 1);
 	return rx;
 }
 
-void spi_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length)
-{
-	for (int i = 0; i < length; i++)
-	{
+void spi_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length) {
+	for (int i = 0; i < length; i++) {
 		uint8_t send = out_buf ? out_buf[i] : 0xFF;
 		uint8_t receive = 0;
 
-		for (int bit = 0; bit < 8; bit++)
-		{
+		for (int bit = 0; bit < 8; bit++) {
 				palWritePad(s->mosi_gpio, s->mosi_pin, send >> 7);
 			send <<= 1;
 
@@ -74,39 +70,33 @@ void spi_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, in
 
 			// does 5 samples of each pad read, to minimize noise
 			receive <<= 1;
-			if (samples > 2)
-			{
+			if (samples > 2) {
 				receive |= 1;
 			}
 
 			spi_delay();
 		}
 
-		if (in_buf)
-		{
+		if (in_buf)	{
 			in_buf[i] = receive;
 		}
 	}
 }
 
-void spi_begin(spi_bb_state *s)
-{
+void spi_begin(spi_bb_state *s) {
 	spi_delay();
 	palClearPad(s->nss_gpio, s->nss_pin);
 	spi_delay();
 }
 
-void spi_end(spi_bb_state *s)
-{
+void spi_end(spi_bb_state *s) {
 	spi_delay();
 	palSetPad(s->nss_gpio, s->nss_pin);
 	spi_delay();
 }
 
-void spi_delay(void)
-{
-	for (volatile int i = 0; i < 40; i++)
-	{
+void spi_delay(void) {
+	for (volatile int i = 0; i < 40; i++) {
 		__NOP();
 	}
 }

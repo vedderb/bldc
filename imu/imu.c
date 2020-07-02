@@ -74,17 +74,17 @@ void imu_init(imu_config *set) {
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
 		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
-						 MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
+				MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
 #endif
 
 #ifdef ICM20948_SDA_GPIO
 		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
-						  ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
+				ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
 #endif
 
 #ifdef BMI160_SDA_GPIO
 		imu_init_bmi160_i2c(BMI160_SDA_GPIO, BMI160_SDA_PIN,
-							BMI160_SCL_GPIO, BMI160_SCL_PIN);
+				BMI160_SCL_GPIO, BMI160_SCL_PIN);
 #endif
 
 #ifdef LSM6DS3_SDA_GPIO
@@ -94,30 +94,26 @@ void imu_init(imu_config *set) {
 
 #ifdef BMI160_SPI_PORT_NSS
 		imu_init_bmi160_spi(
-			BMI160_SPI_PORT_NSS, BMI160_SPI_PIN_NSS,
-			BMI160_SPI_PORT_SCK, BMI160_SPI_PIN_SCK,
-			BMI160_SPI_PORT_MOSI, BMI160_SPI_PIN_MOSI,
-			BMI160_SPI_PORT_MISO, BMI160_SPI_PIN_MISO);
+				BMI160_SPI_PORT_NSS, BMI160_SPI_PIN_NSS,
+				BMI160_SPI_PORT_SCK, BMI160_SPI_PIN_SCK,
+				BMI160_SPI_PORT_MOSI, BMI160_SPI_PIN_MOSI,
+				BMI160_SPI_PORT_MISO, BMI160_SPI_PIN_MISO);
 #endif
-	}
-	else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
+	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
 		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-						 HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	}
-	else if (set->type == IMU_TYPE_EXTERNAL_ICM20948) {
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	} else if (set->type == IMU_TYPE_EXTERNAL_ICM20948) {
 		imu_init_icm20948(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	}else if(set->type == IMU_TYPE_EXTERNAL_LSM6DS3){
+	} else if(set->type == IMU_TYPE_EXTERNAL_LSM6DS3) {
 		imu_init_lsm6ds3(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	}
-	else if (set->type == IMU_TYPE_EXTERNAL_BMI160)
-	{
+	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-							HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
 
 	terminal_register_command_callback(
@@ -132,7 +128,7 @@ i2c_bb_state *imu_get_i2c(void) {
 }
 
 void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
-					  stm32_gpio_t *scl_gpio, int scl_pin) {
+		stm32_gpio_t *scl_gpio, int scl_pin) {
 	imu_stop();
 
 	mpu9150_init(sda_gpio, sda_pin,
@@ -142,8 +138,7 @@ void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
-					   stm32_gpio_t *scl_gpio, int scl_pin,
-					   int ad0_val) {
+		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val) {
 	imu_stop();
 
 	m_i2c_bb.sda_gpio = sda_gpio;
@@ -159,7 +154,7 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
-						 stm32_gpio_t *scl_gpio, int scl_pin)
+		stm32_gpio_t *scl_gpio, int scl_pin)
 {
 	imu_stop();
 
@@ -179,11 +174,10 @@ void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void imu_init_bmi160_spi(
-	stm32_gpio_t *nss_gpio, int nss_pin,
-	stm32_gpio_t *sck_gpio, int sck_pin,
-	stm32_gpio_t *mosi_gpio, int mosi_pin,
-	stm32_gpio_t *miso_gpio, int miso_pin)
-{
+		stm32_gpio_t *nss_gpio, int nss_pin,
+		stm32_gpio_t *sck_gpio, int sck_pin,
+		stm32_gpio_t *mosi_gpio, int mosi_pin,
+		stm32_gpio_t *miso_gpio, int miso_pin) {
 	imu_stop();
 
 	m_spi_bb.nss_gpio = nss_gpio;
@@ -410,10 +404,10 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.sample_rate_hz = backup_sample_rate;
 	m_settings.mode = backup_ahrs_mode;
 	ahrs_update_all_parameters(
-		m_settings.accel_confidence_decay,
-		m_settings.mahony_kp,
-		m_settings.mahony_ki,
-		m_settings.madgwick_beta);
+					m_settings.accel_confidence_decay,
+					m_settings.mahony_kp,
+					m_settings.mahony_ki,
+					m_settings.madgwick_beta);
 	m_settings.rot_roll = backup_roll;
 	m_settings.rot_pitch = backup_pitch;
 	m_settings.rot_yaw = backup_yaw;
@@ -471,15 +465,9 @@ static void imu_read_callback(float *accel, float *gyro, float *mag)
 	float s3 = sinf(m_settings.rot_roll * M_PI / 180.0);
 	float c3 = cosf(m_settings.rot_roll * M_PI / 180.0);
 
-	float m11 = c1 * c2;
-	float m12 = c1 * s2 * s3 - c3 * s1;
-	float m13 = s1 * s3 + c1 * c3 * s2;
-	float m21 = c2 * s1;
-	float m22 = c1 * c3 + s1 * s2 * s3;
-	float m23 = c3 * s1 * s2 - c1 * s3;
-	float m31 = -s2;
-	float m32 = c2 * s3;
-	float m33 = c2 * c3;
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2;		float m32 = c2 * s3;				float m33 = c2 * c3;
 
 	m_accel[0] = accel[0] * m11 + accel[1] * m12 + accel[2] * m13;
 	m_accel[1] = accel[0] * m21 + accel[1] * m22 + accel[2] * m23;
