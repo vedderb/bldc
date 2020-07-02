@@ -100,8 +100,8 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
-	float f_cut = 75.0;
-	float dT = 0.001;
+	float f_cut = balance_conf.kd_pt1_hertz;
+	float dT = 1.0 / balance_conf.hertz;
 	float RC = 1 / ( 2 * M_PI * f_cut);
 	d_pt1_k =  dT / (RC + dT);
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
@@ -109,15 +109,13 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 }
 
 void app_balance_start(void) {
-	// Reset vars (yes i just repeated the function name, it looked funny without a comment)
-	reset_vars();
 	// First start only, override state to startup
 	state = STARTUP;
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
 
-void reset_vars(){
+void reset_vars(void){
 	// Clear accumulated values.
 	integral = 0;
 	last_proportional = 0;
@@ -126,8 +124,8 @@ void reset_vars(){
 	d_pt1_state = 0;
 	// Set values for startup
 	setpoint = pitch_angle;
-	setpoint_target = 0;
 	setpoint_target_interpolated = pitch_angle;
+	setpoint_target = 0;
 	setpointAdjustmentType = CENTERING;
 	yaw_setpoint = 0;
 	state = RUNNING;
@@ -178,11 +176,11 @@ float get_setpoint_adjustment_step_size(void){
 }
 
 // Fault checking order does not really matter. From a UX perspective, switch should be before angle.
-bool check_fault(bool ignoreTimers){
+bool check_faults(bool ignoreTimers){
 	// Check switch
 	// Switch fully open
 	if(switch_state == OFF){
-		if(ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay || ignoreTimers){
+		if(ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay_switch_full || ignoreTimers){
 			state = FAULT_SWITCH;
 			return true;
 		}
@@ -192,7 +190,7 @@ bool check_fault(bool ignoreTimers){
 
 	// Switch partially open and stopped
 	if(switch_state == HALF && abs_erpm < balance_conf.adc_half_fault_erpm){
-		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay || ignoreTimers){
+		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
 			state = FAULT_SWITCH;
 			return true;
 		}
@@ -201,8 +199,8 @@ bool check_fault(bool ignoreTimers){
 	}
 
 	// Check pitch angle
-	if(fabsf(pitch_angle) > balance_conf.pitch_fault){
-		if(ST2MS(current_time - fault_angle_pitch_timer) > balance_conf.fault_delay || ignoreTimers){
+	if(fabsf(pitch_angle) > balance_conf.fault_pitch){
+		if(ST2MS(current_time - fault_angle_pitch_timer) > balance_conf.fault_delay_pitch || ignoreTimers){
 			state = FAULT_ANGLE_PITCH;
 			return true;
 		}
@@ -211,8 +209,8 @@ bool check_fault(bool ignoreTimers){
 	}
 
 	// Check roll angle
-	if(fabsf(roll_angle) > balance_conf.roll_fault){
-		if(ST2MS(current_time - fault_angle_roll_timer) > balance_conf.fault_delay || ignoreTimers){
+	if(fabsf(roll_angle) > balance_conf.fault_roll){
+		if(ST2MS(current_time - fault_angle_roll_timer) > balance_conf.fault_delay_roll || ignoreTimers){
 			state = FAULT_ANGLE_PITCH;
 			return true;
 		}
@@ -221,8 +219,8 @@ bool check_fault(bool ignoreTimers){
 	}
 
 	// Check for duty
-	if(abs_duty_cycle > balance_conf.overspeed_duty){
-		if(ST2MS(current_time - fault_duty_timer) > balance_conf.overspeed_delay || ignoreTimers){
+	if(abs_duty_cycle > balance_conf.fault_duty){
+		if(ST2MS(current_time - fault_duty_timer) > balance_conf.fault_delay_duty || ignoreTimers){
 			state = FAULT_DUTY;
 			return true;
 		}
@@ -233,8 +231,43 @@ bool check_fault(bool ignoreTimers){
 	return false;
 }
 
-void apply_tiltbacks(){
+void calculate_setpoint_target(void){
+	if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
+		// Ignore tiltback during centering sequence
+	}else if(abs_duty_cycle > balance_conf.tiltback_duty ||
+			(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
+			(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
+		if(erpm > 0){
+			setpoint_target = balance_conf.tiltback_angle;
+		} else {
+			setpoint_target = -balance_conf.tiltback_angle;
+		}
+		setpointAdjustmentType = TILTBACK;
+	}else if(abs_erpm > balance_conf.tiltback_constant_erpm){
+		// Nose angle adjustment
+		if(erpm > 0){
+			setpoint_target = balance_conf.tiltback_constant;
+		} else {
+			setpoint_target = -balance_conf.tiltback_constant;
+		}
+		setpointAdjustmentType = TILTBACK;
+	}else{
+		setpointAdjustmentType = TILTBACK;
+		setpoint_target = 0;
+	}
+}
 
+void calculate_setpoint_interpolated(void){
+	if(setpoint_target_interpolated != setpoint_target){
+		// If we are less than one step size away, go all the way
+		if(fabsf(setpoint_target - setpoint_target_interpolated) < get_setpoint_adjustment_step_size()){
+			setpoint_target_interpolated = setpoint_target;
+		}else if (setpoint_target - setpoint_target_interpolated > 0){
+			setpoint_target_interpolated += get_setpoint_adjustment_step_size();
+		}else{
+			setpoint_target_interpolated -= get_setpoint_adjustment_step_size();
+		}
+	}
 }
 
 float apply_deadzone(float error){
@@ -369,8 +402,8 @@ static THD_FUNCTION(balance_thread, arg) {
 					// Wait
 					chThdSleepMilliseconds(50);
 				}
-				state = RUNNING;
-				/* no break */
+				reset_vars();
+				break;
 			case (RUNNING):
 			case (RUNNING_TILTBACK_DUTY):
 			case (RUNNING_TILTBACK_HIGH_VOLTAGE):
@@ -378,46 +411,13 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (RUNNING_TILTBACK_CONSTANT):
 
 				// Check for faults
-				if(checkFaults(false)){
+				if(check_faults(false)){
 					break;
 				}
 
-				// Over speed tilt back safety
-				if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
-					// Ignore tiltback during centering sequence
-				}else if(abs_duty_cycle > balance_conf.tiltback_duty ||
-						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
-						(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
-					if(duty_cycle > 0){
-						setpoint_target = balance_conf.tiltback_angle;
-					} else {
-						setpoint_target = -balance_conf.tiltback_angle;
-					}
-					setpointAdjustmentType = TILTBACK;
-				}else if(abs_duty_cycle > 0.03){
-					// Nose angle adjustment
-					if(duty_cycle > 0){
-						setpoint_target = balance_conf.tiltback_constant;
-					} else {
-						setpoint_target = -balance_conf.tiltback_constant;
-					}
-					setpointAdjustmentType = TILTBACK;
-				}else{
-					setpointAdjustmentType = TILTBACK;
-					setpoint_target = 0;
-				}
-
-				// Adjust setpoint
-				if(setpoint_target_interpolated != setpoint_target){
-					// If we are less than one step size away, go all the way
-					if(fabsf(setpoint_target - setpoint_target_interpolated) < get_setpoint_adjustment_step_size()){
-						setpoint_target_interpolated = setpoint_target;
-					}else if (setpoint_target - setpoint_target_interpolated > 0){
-						setpoint_target_interpolated += get_setpoint_adjustment_step_size();
-					}else{
-						setpoint_target_interpolated -= get_setpoint_adjustment_step_size();
-					}
-				}
+				// Calculate setpoint and interpolation
+				calculate_setpoint_target();
+				calculate_setpoint_interpolated();
 
 				// Apply setpoint filtering
 				if(setpointAdjustmentType == CENTERING){
@@ -426,10 +426,14 @@ static THD_FUNCTION(balance_thread, arg) {
 				}else{
 					setpoint = (setpoint * (1-balance_conf.setpoint_pitch_filter)) + (pitch_angle * balance_conf.setpoint_pitch_filter);
 					setpoint = (setpoint * (1-balance_conf.setpoint_target_filter)) + (setpoint_target_interpolated * balance_conf.setpoint_target_filter);
-					if(setpoint > balance_conf.setpoint_clamp){
-						setpoint = balance_conf.setpoint_clamp;
-					}else if (setpoint < -balance_conf.setpoint_clamp){
-						setpoint = -balance_conf.setpoint_clamp;
+				}
+
+				// Clamp setpoint
+				if(setpointAdjustmentType != CENTERING){
+					if(setpoint - setpoint_target_interpolated > balance_conf.setpoint_clamp){
+						setpoint = setpoint_target_interpolated + balance_conf.setpoint_clamp;
+					}else if (setpoint - setpoint_target_interpolated < -balance_conf.setpoint_clamp){
+						setpoint = setpoint_target_interpolated - balance_conf.setpoint_clamp;
 					}
 				}
 
@@ -500,7 +504,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				// We need another fault to clear duty fault.
 				// Otherwise duty fault will clear itself as soon as motor pauses, then motor will spool up again.
 				// Rendering this fault useless.
-				checkFaults(true);
+				check_faults(true);
 				// Disable output
 				brake();
 				break;
