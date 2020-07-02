@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		4
+#define FW_TEST_VERSION_NUMBER		5
 
 #include "datatypes.h"
 
@@ -125,6 +125,9 @@
 //#define HW_SOURCE "hw_hd.c"
 //#define HW_HEADER "hw_hd.h"
 
+//#define HW_SOURCE "hw_hd75.c"
+//#define HW_HEADER "hw_hd75.h"
+
 //#define HW_SOURCE "hw_a200s_v2.c"
 //#define HW_HEADER "hw_a200s_v2.h"
 
@@ -185,7 +188,7 @@
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-//#include "app_erockit_conf.h"
+#include "app_erockit_conf_v2.h"
 
 #include "hw.h"
 #include "mcconf_default.h"

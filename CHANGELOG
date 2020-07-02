@@ -6,6 +6,8 @@
 * Added speed PID input ramping option.
 * Added LSM6DS3 IMU support.
 * Added MTPA support. See See: https://github.com/vedderb/bldc/pull/179
+* Added HW_HD75 support.
+* NRF52 UICR write fix.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.
