@@ -188,7 +188,7 @@
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-#include "app_erockit_conf_v2.h"
+//#include "app_erockit_conf_v2.h"
 
 #include "hw.h"
 #include "mcconf_default.h"
