@@ -117,10 +117,10 @@ void imu_init(imu_config *set) {
 	}
 
 	terminal_register_command_callback(
-					"imu_gyro_info",
-					"Print gyro offsets",
-					0,
-					terminal_gyro_info);
+			"imu_gyro_info",
+			"Print gyro offsets",
+			0,
+			terminal_gyro_info);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -132,8 +132,8 @@ void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 	imu_stop();
 
 	mpu9150_init(sda_gpio, sda_pin,
-				 	scl_gpio, scl_pin,
-				 	m_thd_work_area, sizeof(m_thd_work_area));
+			scl_gpio, scl_pin,
+			m_thd_work_area, sizeof(m_thd_work_area));
 	mpu9150_set_read_callback(imu_read_callback);
 }
 
@@ -148,8 +148,8 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 	i2c_bb_init(&m_i2c_bb);
 
 	icm20948_init(&m_icm20948_state,
-					&m_i2c_bb, ad0_val,
-					m_thd_work_area, sizeof(m_thd_work_area));
+			&m_i2c_bb, ad0_val,
+			m_thd_work_area, sizeof(m_thd_work_area));
 	icm20948_set_read_callback(&m_icm20948_state, imu_read_callback);
 }
 
@@ -427,10 +427,10 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 
 	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
 		ahrs_update_all_parameters(
-						m_settings.accel_confidence_decay,
-						m_settings.mahony_kp,
-						m_settings.mahony_ki,
-						m_settings.madgwick_beta);
+				m_settings.accel_confidence_decay,
+				m_settings.mahony_kp,
+				m_settings.mahony_ki,
+				m_settings.madgwick_beta);
 		imu_ready = true;
 	}
 
@@ -498,12 +498,12 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
 
 	switch (m_settings.mode) {
-			case (AHRS_MODE_MADGWICK):
-					ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
-					break;
-			case (AHRS_MODE_MAHONY):
-					ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
-					break;
+		case (AHRS_MODE_MADGWICK):
+			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
+			break;
+		case (AHRS_MODE_MAHONY):
+			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
+			break;
 	}
 }
 
@@ -512,9 +512,9 @@ static void terminal_gyro_info(int argc, const char **argv) {
 	(void)argv;
 
 	commands_printf("Gyro offsets: [%.3f %.3f %.3f]\n",
-					(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
-					(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
-					(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
+			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
+			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
+			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
 }
 
 void rotate(float *input, float *rotation, float *output) {
@@ -526,9 +526,9 @@ void rotate(float *input, float *rotation, float *output) {
 	float s3 = sinf(rotation[0] * M_PI / 180.0);
 	float c3 = cosf(rotation[0] * M_PI / 180.0);
 
-	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;		float m13 = s1 * s3 + c1 * c3 * s2;
-	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;		float m23 = c3 * s1 * s2 - c1 * s3;
-	float m31 = -s2;		float m32 = c2 * s3;					float m33 = c2 * c3;
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
 
 	output[0] = input[0] * m11 + input[1] * m12 + input[2] * m13;
 	output[1] = input[0] * m21 + input[1] * m22 + input[2] * m23;
