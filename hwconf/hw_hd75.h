@@ -22,11 +22,15 @@
 
 #include "drv8323s.h"
 
-#define HW_NAME					"HD"
+#define HW_NAME					"HD75"
 
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+
+#define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+										drv8323s_write_reg(3,0x3af); \
+										drv8323s_write_reg(4,0x7af);
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -101,7 +105,7 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					39000.0
+#define VIN_R1					56000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2200.0
@@ -244,6 +248,12 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Default setting overrides
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
+#endif
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			74.0	// Maximum input voltage
+#endif
 #ifndef MCCONF_L_CURRENT_MAX
 #define MCCONF_L_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
 #endif
@@ -260,7 +270,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT			120.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_M_DRV8301_OC_ADJ
-#define MCCONF_M_DRV8301_OC_ADJ				10 // DRV8301 over current protection threshold
+#define MCCONF_M_DRV8301_OC_ADJ				18 // DRV8301 over current protection threshold
 #endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -271,10 +281,10 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-100.0, 100.0
-#define HW_LIM_CURRENT_IN		-100.0, 100.0
+#define HW_LIM_CURRENT			-80.0, 80.0
+#define HW_LIM_CURRENT_IN		-80.0, 80.0
 #define HW_LIM_CURRENT_ABS		0.0, 150.0
-#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_VIN				6.0, 74.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
