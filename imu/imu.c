@@ -106,7 +106,7 @@ void imu_init(imu_config *set) {
 		imu_init_icm20948(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
-		imu_init_bmi160(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	} else if(set->type == IMU_TYPE_EXTERNAL_LSM6DS3) {
 		imu_init_lsm6ds3(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
