@@ -47,8 +47,10 @@ typedef enum {
 	RUNNING_TILTBACK_CONSTANT,
 	FAULT_ANGLE_PITCH,
 	FAULT_ANGLE_ROLL,
-	FAULT_SWITCH,
-	FAULT_DUTY
+	FAULT_SWITCH_HALF,
+	FAULT_SWITCH_FULL,
+	FAULT_DUTY,
+	FAULT_STARTUP
 } BalanceState;
 
 typedef enum {
@@ -182,7 +184,7 @@ bool check_faults(bool ignoreTimers){
 	// Switch fully open
 	if(switch_state == OFF){
 		if(ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay_switch_full || ignoreTimers){
-			state = FAULT_SWITCH;
+			state = FAULT_SWITCH_FULL;
 			return true;
 		}
 	} else {
@@ -192,7 +194,7 @@ bool check_faults(bool ignoreTimers){
 	// Switch partially open and stopped
 	if(switch_state == HALF && abs_erpm < balance_conf.fault_adc_half_erpm){
 		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
-			state = FAULT_SWITCH;
+			state = FAULT_SWITCH_HALF;
 			return true;
 		}
 	} else {
@@ -212,7 +214,7 @@ bool check_faults(bool ignoreTimers){
 	// Check roll angle
 	if(fabsf(roll_angle) > balance_conf.fault_roll){
 		if(ST2MS(current_time - fault_angle_roll_timer) > balance_conf.fault_delay_roll || ignoreTimers){
-			state = FAULT_ANGLE_PITCH;
+			state = FAULT_ANGLE_ROLL;
 			return true;
 		}
 	}else{
@@ -260,7 +262,7 @@ void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK;
 		state = RUNNING_TILTBACK_LOW_VOLTAGE;
-	}else if(abs_erpm > balance_conf.tiltback_constant_erpm){
+	}else if(balance_conf.tiltback_constant != 0 && abs_erpm > balance_conf.tiltback_constant_erpm){
 		// Nose angle adjustment
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_constant;
@@ -422,6 +424,7 @@ static THD_FUNCTION(balance_thread, arg) {
 					chThdSleepMilliseconds(50);
 				}
 				reset_vars();
+				state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
 				break;
 			case (RUNNING):
 			case (RUNNING_TILTBACK_DUTY):
@@ -512,7 +515,9 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 			case (FAULT_ANGLE_PITCH):
 			case (FAULT_ANGLE_ROLL):
-			case (FAULT_SWITCH):
+			case (FAULT_SWITCH_HALF):
+			case (FAULT_SWITCH_FULL):
+			case (FAULT_STARTUP):
 				// Check for valid startup position and switch state
 				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && switch_state == ON){
 					reset_vars();
