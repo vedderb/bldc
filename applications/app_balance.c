@@ -235,15 +235,31 @@ bool check_faults(bool ignoreTimers){
 void calculate_setpoint_target(void){
 	if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
 		// Ignore tiltback during centering sequence
-	}else if(abs_duty_cycle > balance_conf.tiltback_duty ||
-			(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage) ||
-			(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage)){
+		state = RUNNING;
+	}else if(abs_duty_cycle > balance_conf.tiltback_duty){
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_angle;
 		} else {
 			setpoint_target = -balance_conf.tiltback_angle;
 		}
 		setpointAdjustmentType = TILTBACK;
+		state = RUNNING_TILTBACK_DUTY;
+	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage){
+		if(erpm > 0){
+			setpoint_target = balance_conf.tiltback_angle;
+		} else {
+			setpoint_target = -balance_conf.tiltback_angle;
+		}
+		setpointAdjustmentType = TILTBACK;
+		state = RUNNING_TILTBACK_HIGH_VOLTAGE;
+	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage){
+		if(erpm > 0){
+			setpoint_target = balance_conf.tiltback_angle;
+		} else {
+			setpoint_target = -balance_conf.tiltback_angle;
+		}
+		setpointAdjustmentType = TILTBACK;
+		state = RUNNING_TILTBACK_LOW_VOLTAGE;
 	}else if(abs_erpm > balance_conf.tiltback_constant_erpm){
 		// Nose angle adjustment
 		if(erpm > 0){
@@ -252,9 +268,11 @@ void calculate_setpoint_target(void){
 			setpoint_target = -balance_conf.tiltback_constant;
 		}
 		setpointAdjustmentType = TILTBACK;
+		state = RUNNING_TILTBACK_CONSTANT;
 	}else{
 		setpointAdjustmentType = TILTBACK;
 		setpoint_target = 0;
+		state = RUNNING;
 	}
 }
 
