@@ -550,17 +550,17 @@ typedef struct {
 	float fault_pitch;
 	float fault_roll;
 	float fault_duty;
-	uint16_t fault_delay_duty;
-	uint16_t fault_delay_switch_full;
-	uint16_t fault_delay_switch_half;
+	float fault_adc1;
+	float fault_adc2;
 	uint16_t fault_delay_pitch;
 	uint16_t fault_delay_roll;
-	float adc1;
-	float adc2;
-	uint16_t adc_half_fault_erpm;
-	float tiltback_duty;
+	uint16_t fault_delay_duty;
+	uint16_t fault_delay_switch_half;
+	uint16_t fault_delay_switch_full;
+	uint16_t fault_adc_half_erpm;
 	float tiltback_angle;
 	float tiltback_speed;
+	float tiltback_duty;
 	float tiltback_high_voltage;
 	float tiltback_low_voltage;
 	float tiltback_constant;
@@ -575,13 +575,13 @@ typedef struct {
 	float yaw_ki;
 	float yaw_kd;
 	float roll_steer_kp;
-	float brake_current;
 	float roll_steer_erpm_kp;
+	float brake_current;
 	float yaw_current_clamp;
 	float setpoint_pitch_filter;
 	float setpoint_target_filter;
-	float setpoint_clamp;
-	float kd_pt1_hertz;
+	float setpoint_filter_clamp;
+	uint16_t kd_pt1_frequency;
 } balance_config;
 
 // CAN status modes

@@ -100,10 +100,11 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
-	float f_cut = balance_conf.kd_pt1_hertz;
-	float dT = 1.0 / balance_conf.hertz;
-	float RC = 1 / ( 2 * M_PI * f_cut);
-	d_pt1_k =  dT / (RC + dT);
+	if(balance_conf.kd_pt1_frequency > 0){
+		float dT = 1.0 / balance_conf.hertz;
+		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_frequency);
+		d_pt1_k =  dT / (RC + dT);
+	}
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 }
@@ -189,7 +190,7 @@ bool check_faults(bool ignoreTimers){
 	}
 
 	// Switch partially open and stopped
-	if(switch_state == HALF && abs_erpm < balance_conf.adc_half_fault_erpm){
+	if(switch_state == HALF && abs_erpm < balance_conf.fault_adc_half_erpm){
 		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
 			state = FAULT_SWITCH;
 			return true;
@@ -368,24 +369,24 @@ static THD_FUNCTION(balance_thread, arg) {
 #endif
 
 		// Calculate switch state from ADC values
-		if(balance_conf.adc1 == 0 && balance_conf.adc2 == 0){ // No Switch
+		if(balance_conf.fault_adc1 == 0 && balance_conf.fault_adc2 == 0){ // No Switch
 			switch_state = ON;
-		}else if(balance_conf.adc2 == 0){ // Single switch on ADC1
-			if(adc1 > balance_conf.adc1){
+		}else if(balance_conf.fault_adc2 == 0){ // Single switch on ADC1
+			if(adc1 > balance_conf.fault_adc1){
 				switch_state = ON;
 			} else {
 				switch_state = OFF;
 			}
-		}else if(balance_conf.adc1 == 0){ // Single switch on ADC2
-			if(adc2 > balance_conf.adc2){
+		}else if(balance_conf.fault_adc1 == 0){ // Single switch on ADC2
+			if(adc2 > balance_conf.fault_adc2){
 				switch_state = ON;
 			} else {
 				switch_state = OFF;
 			}
 		}else{ // Double switch
-			if(adc1 > balance_conf.adc1 && adc2 > balance_conf.adc2){
+			if(adc1 > balance_conf.fault_adc1 && adc2 > balance_conf.fault_adc2){
 				switch_state = ON;
-			}else if(adc1 > balance_conf.adc1 || adc2 > balance_conf.adc2){
+			}else if(adc1 > balance_conf.fault_adc1 || adc2 > balance_conf.fault_adc2){
 				switch_state = HALF;
 			}else{
 				switch_state = OFF;
@@ -430,10 +431,10 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				// Clamp setpoint
 				if(setpointAdjustmentType != CENTERING){
-					if(setpoint - setpoint_target_interpolated > balance_conf.setpoint_clamp){
-						setpoint = setpoint_target_interpolated + balance_conf.setpoint_clamp;
-					}else if (setpoint - setpoint_target_interpolated < -balance_conf.setpoint_clamp){
-						setpoint = setpoint_target_interpolated - balance_conf.setpoint_clamp;
+					if(setpoint - setpoint_target_interpolated > balance_conf.setpoint_filter_clamp){
+						setpoint = setpoint_target_interpolated + balance_conf.setpoint_filter_clamp;
+					}else if (setpoint - setpoint_target_interpolated < -balance_conf.setpoint_filter_clamp){
+						setpoint = setpoint_target_interpolated - balance_conf.setpoint_filter_clamp;
 					}
 				}
 
@@ -446,8 +447,10 @@ static THD_FUNCTION(balance_thread, arg) {
 				derivative = proportional - last_proportional;
 
 				// Apply D term only filter
-				d_pt1_state = d_pt1_state + d_pt1_k * (derivative - d_pt1_state);
-				derivative = d_pt1_state;
+				if(balance_conf.kd_pt1_frequency > 0){
+					d_pt1_state = d_pt1_state + d_pt1_k * (derivative - d_pt1_state);
+					derivative = d_pt1_state;
+				}
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
