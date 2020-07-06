@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		5
+#define FW_TEST_VERSION_NUMBER		6
 
 #include "datatypes.h"
 
@@ -73,8 +73,8 @@
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -122,8 +122,8 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-//#define HW_SOURCE "hw_hd.c"
-//#define HW_HEADER "hw_hd.h"
+#define HW_SOURCE "hw_hd.c"
+#define HW_HEADER "hw_hd.h"
 
 //#define HW_SOURCE "hw_hd75.c"
 //#define HW_HEADER "hw_hd75.h"

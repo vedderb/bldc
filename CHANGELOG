@@ -8,6 +8,9 @@
 * Added MTPA support. See See: https://github.com/vedderb/bldc/pull/179
 * Added HW_HD75 support.
 * NRF52 UICR write fix.
+* App PPM rework. See https://github.com/vedderb/bldc/pull/192
+* Added bm_reset terminal command.
+* Added bm support for STM32F30x and STM32L47x.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

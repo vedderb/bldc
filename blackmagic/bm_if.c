@@ -83,7 +83,7 @@ static int idcode_to_device(uint32_t idcode) {
 	int ret = -1;
 
 	switch (idcode) {
-	case 0x413: ret = 1; break;
+	case 0x413: ret = 1; break; // STM32F40x
 
 	case 0x001D: /* nRF51822 (rev 1) QFAA CA/C0 */
 	case 0x001E: /* nRF51422 (rev 1) QFAA CA */
@@ -137,6 +137,11 @@ static int idcode_to_device(uint32_t idcode) {
 	case 0x0150: /* nRF52840 QIAA C0 */
 	case 0x015B: /* nRF52840 ?? */
 		ret = 8; break;
+
+	case 0x422: ret = 9; break; // STM32F30x
+
+	case 0x415: ret = 10; break; // STM32L47x
+
 	default: ret = -2; break;
 	}
 
@@ -261,6 +266,18 @@ static void terminal_target_cmd(int argc, const char **argv) {
 	}
 }
 
+static void terminal_reset(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	if (cur_target) {
+		target_reset(cur_target);
+		commands_printf("Done.\n");
+	} else {
+		commands_printf("No target attached\n");
+	}
+}
+
 static void terminal_detach(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
@@ -329,6 +346,12 @@ void bm_init(void) {
 			"BlackMagic: Run command on target",
 			"[...]",
 			terminal_target_cmd);
+
+	terminal_register_command_callback(
+			"bm_reset",
+			"BlackMagic: Reset target",
+			0,
+			terminal_reset);
 
 	terminal_register_command_callback(
 			"bm_detach",
