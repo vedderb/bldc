@@ -553,50 +553,44 @@ int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_
 }
 
 int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
-	//commands_printf("user spi reading");
+	(void)dev_id;
 	
 	int8_t rslt = BMI160_OK; // Return 0 for Success, non-zero for failure 
 
-	//reg_addr = BMI160_CHIP_ID_ADDR; 
-	//len = 1;
 	reg_addr = (reg_addr | BMI160_SPI_RD_MASK);
 
 	chThdSleepMicroseconds(200); // #FIXME Wont work without this- Why?
 
-
 	chMtxLock(&m_spi_bb.mutex);
-	spi_begin(&m_spi_bb);
-	//spi_exchange_8(reg_addr);
-	spi_exchange_8(&m_spi_bb, reg_addr);
-	spi_delay();
-	for (int i = 0; i < len; i++)
-	{
-		//data[i] = spi_exchange_8(0);
-		data[i] = spi_exchange_8(&m_spi_bb, 0);;
+	spi_bb_begin(&m_spi_bb);
+	spi_bb_exchange_8(&m_spi_bb, reg_addr);
+	spi_bb_delay();
+
+	for (int i = 0; i < len; i++) {
+		data[i] = spi_bb_exchange_8(&m_spi_bb, 0);
 	}
 
-	spi_end(&m_spi_bb);
+	spi_bb_end(&m_spi_bb);
 	chMtxUnlock(&m_spi_bb.mutex);
 	return rslt;
 }
 
 int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+	(void)dev_id;
 
 	int8_t rslt = BMI160_OK; /* Return 0 for Success, non-zero for failure */
 	chMtxLock(&m_spi_bb.mutex);
-	spi_begin(&m_spi_bb);
+	spi_bb_begin(&m_spi_bb);
 	reg_addr = (reg_addr & BMI160_SPI_WR_MASK);
-	//spi_exchange_8(reg_addr);
-	spi_exchange_8(&m_spi_bb, reg_addr);
-	spi_delay();
-	for (int i = 0; i < len; i++)
-	{
+	spi_bb_exchange_8(&m_spi_bb, reg_addr);
+	spi_bb_delay();
 
-		//spi_exchange_8(*data);
-		spi_exchange_8(&m_spi_bb, *data);
+	for (int i = 0; i < len; i++) {
+		spi_bb_exchange_8(&m_spi_bb, *data);
 		data++;
 	}
-	spi_end(&m_spi_bb);
+
+	spi_bb_end(&m_spi_bb);
 	chMtxUnlock(&m_spi_bb.mutex);
 
 	return rslt;

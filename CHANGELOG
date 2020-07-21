@@ -11,6 +11,7 @@
 * App PPM rework. See https://github.com/vedderb/bldc/pull/192
 * Added bm_reset terminal command.
 * Added bm support for STM32F30x and STM32L47x.
+* App Balance updates. See https://github.com/vedderb/bldc/pull/193
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

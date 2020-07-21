@@ -40,11 +40,10 @@ typedef struct {
 } spi_bb_state;
 
 void spi_bb_init(spi_bb_state *s);
-uint8_t spi_exchange_8(spi_bb_state *s, uint8_t x);
-void spi_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length);
-
-void spi_begin(spi_bb_state *s);
-void spi_end(spi_bb_state *s);
-void spi_delay(void);
+uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x);
+void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length);
+void spi_bb_begin(spi_bb_state *s);
+void spi_bb_end(spi_bb_state *s);
+void spi_bb_delay(void);
 
 #endif /* SPI_BB_H_ */
