@@ -505,10 +505,10 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURNED_ON:
 			if (smart_switch_is_pressed()) {
 				millis_switch_pressed++;
-				switch_bright = 1.0;
+				switch_bright = 0.5;
 			} else {
 				millis_switch_pressed = 0;
-				switch_bright = 0.5;
+				switch_bright = 1.0;
 			}
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {

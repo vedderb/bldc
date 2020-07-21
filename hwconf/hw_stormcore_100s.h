@@ -235,20 +235,20 @@
 #define MCCONF_L_IN_CURRENT_MIN             -60.0   // Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT            160.0   // The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT            200.0   // The maximum absolute current above which a fault is generated
 #endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW                 20000.0
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START				0.9 // Start limiting current at this duty cycle
 #endif
 
 // Setting limits
 #define HW_LIM_CURRENT          -120.0, 120.0
 #define HW_LIM_CURRENT_IN       -100.0, 100.0
-#define HW_LIM_CURRENT_ABS      0.0, 160.0
+#define HW_LIM_CURRENT_ABS      0.0, 200.0
 #define HW_LIM_VIN              6.0, 92.0
 #define HW_LIM_ERPM             -200e3, 200e3
 #define HW_LIM_DUTY_MIN         0.0, 0.1

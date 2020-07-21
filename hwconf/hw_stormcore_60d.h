@@ -45,11 +45,11 @@
 #define SWITCH_PRECHARGED_GPIO			GPIOE
 #define SWITCH_PRECHARGED_PIN			2
 #define SWITCH_LED_3_GPIO				GPIOD
-#define SWITCH_LED_3_PIN				15
+#define SWITCH_LED_3_PIN				11
 #define SWITCH_LED_2_GPIO				GPIOD
 #define SWITCH_LED_2_PIN				10
 #define SWITCH_LED_1_GPIO				GPIOD
-#define SWITCH_LED_1_PIN				11
+#define SWITCH_LED_1_PIN				15
 
 #define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
@@ -381,6 +381,11 @@
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START				0.9 // Start limiting current at this duty cycle
+#endif
+
+
 // Setting limits
 #define HW_LIM_CURRENT				-150.0, 150.0
 #define HW_LIM_CURRENT_IN			-120.0, 120.0
