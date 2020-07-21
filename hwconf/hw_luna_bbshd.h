@@ -28,7 +28,7 @@
 #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 #define HW_USE_BRK
-#define HW_BBSHD_USE_DAC
+//#define HW_BBSHD_USE_DAC
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -84,7 +84,7 @@
 #define VIN_R1					66500.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					2200.0
+#define VIN_R2					2000.0
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
@@ -100,8 +100,8 @@
 #define GET_GATE_DRIVER_SUPPLY_VOLTAGE()	((float)ADC_VOLTS(ADC_IND_VOUT_GATE_DRV) * 11.0)
 
 // NTC Termistors
-#define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3984.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES(adc_val)		(10000.0 * adc_val / ( 4095.0 - adc_val))//((4095.0 * 10000.0) / adc_val - 10000.0)
+#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 
@@ -211,7 +211,7 @@
 
 // Default setting overrides
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			80.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			85.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -236,7 +236,7 @@
 #define HW_LIM_CURRENT			-200.0, 200.0
 #define HW_LIM_CURRENT_IN		-200.0, 200.0
 #define HW_LIM_CURRENT_ABS		0.0, 350.0
-#define HW_LIM_VIN				6.0, 80.0
+#define HW_LIM_VIN				6.0, 90.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
