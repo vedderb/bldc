@@ -1,14 +1,12 @@
 /*
 	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
 
-	This file is part of the VESC firmware.
-
-	The VESC firmware is free software: you can redistribute it and/or modify
+	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    The VESC firmware is distributed in the hope that it will be useful,
+    This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -24,14 +22,9 @@
 #include "stm32f4xx_conf.h"
 #include "utils.h"
 #include "drv8323s.h"
-#include "terminal.h"
-#include "commands.h"
-#include "mc_interface.h"
 
 // Variables
 static volatile bool i2c_running = false;
-static mutex_t shutdown_mutex;
-static float bt_diff = 0.0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -40,13 +33,7 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-// Private functions
-static void terminal_shutdown_now(int argc, const char **argv);
-static void terminal_button_test(int argc, const char **argv);
-
 void hw_init_gpio(void) {
-	chMtxObjectInit(&shutdown_mutex);
-
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -65,6 +52,12 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOB, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
+
+	// Disable BMI160
+	palSetPadMode(GPIOA, 15,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(GPIOA, 15);
 
 	// Disable DCCAL
 	palSetPadMode(GPIOD, 2,
@@ -100,12 +93,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
-	// Phase filters
-	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-	PHASE_FILTER_OFF();
-
 	// Fault pin
 	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
 
@@ -122,21 +109,12 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
 	drv8323s_init();
-
-	terminal_register_command_callback(
-		"shutdown",
-		"Shutdown VESC now.",
-		0,
-		terminal_shutdown_now);
-
-	terminal_register_command_callback(
-		"test_button",
-		"Try sampling the shutdown button",
-		0,
-		terminal_button_test);
 }
+
+
 
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
@@ -263,44 +241,5 @@ void hw_try_restore_i2c(void) {
 		i2cStart(&HW_I2C_DEV, &i2cfg);
 
 		i2cReleaseBus(&HW_I2C_DEV);
-	}
-}
-
-bool hw_sample_shutdown_button(void) {
-	chMtxLock(&shutdown_mutex);
-
-	bt_diff = 0.0;
-
-	for (int i = 0;i < 3;i++) {
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
-		chThdSleep(5);
-		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-		chThdSleepMilliseconds(1);
-		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-		chThdSleepMilliseconds(1);
-
-		bt_diff += (val1 - val2);
-	}
-
-	chMtxUnlock(&shutdown_mutex);
-
-	return (bt_diff > 0.12);
-}
-
-static void terminal_shutdown_now(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-	DISABLE_GATE();
-	HW_SHUTDOWN_HOLD_OFF();
-}
-
-static void terminal_button_test(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	for (int i = 0;i < 40;i++) {
-		commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
-		chThdSleepMilliseconds(100);
 	}
 }

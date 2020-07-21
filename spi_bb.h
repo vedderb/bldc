@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -16,23 +16,34 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-#ifndef SPI_SW_H_
-#define SPI_SW_H_
 
-#include "conf_general.h"
+#ifndef SPI_BB_H_
+#define SPI_BB_H_
+
 #include "ch.h"
 #include "hal.h"
+#include "stdint.h"
+#include "stdbool.h"
 
-// Functions
-void spi_sw_init(void);
-void spi_sw_stop(void);
-void spi_sw_change_pins(
-		stm32_gpio_t *port_csn, int pin_csn,
-		stm32_gpio_t *port_sck, int pin_sck,
-		stm32_gpio_t *port_mosi, int pin_mosi,
-		stm32_gpio_t *port_miso, int pin_miso);
-void spi_sw_transfer(char *in_buf, const char *out_buf, int length);
-void spi_sw_begin(void);
-void spi_sw_end(void);
+typedef struct {
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+    stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+    stm32_gpio_t *miso_gpio;
+	int miso_pin;
+	bool has_started;
+	bool has_error;
+	mutex_t mutex;
+} spi_bb_state;
 
-#endif /* SPI_SW_H_ */
+void spi_bb_init(spi_bb_state *s);
+uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x);
+void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length);
+void spi_bb_begin(spi_bb_state *s);
+void spi_bb_end(spi_bb_state *s);
+void spi_bb_delay(void);
+
+#endif /* SPI_BB_H_ */

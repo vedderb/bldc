@@ -529,7 +529,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 #endif
 
-	virtual_motor_init();
+	virtual_motor_init(conf_m1);
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM2);
@@ -723,6 +723,8 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 		stop_pwm_hw(motor_now());
 		update_hfi_samples(motor_now()->m_conf->foc_hfi_samples, motor_now());
 	}
+
+	virtual_motor_set_configuration(configuration);
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -812,7 +814,6 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	}
 
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
-	motor_now()->m_speed_pid_set_rpm = rpm;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -1083,20 +1084,20 @@ bool mcpwm_foc_is_using_encoder(void) {
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq;
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq;
+	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq) * m_motor_1.m_motor_state.i_abs;
 #endif
 }
 
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq_filter;
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq_filter;
+	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq_filter) * m_motor_1.m_motor_state.i_abs_filter;
 #endif
 }
 
@@ -1182,7 +1183,8 @@ float mcpwm_foc_get_rpm_faster(void) {
  * The motor current.
  */
 float mcpwm_foc_get_tot_current(void) {
-	return SIGN(motor_now()->m_motor_state.vq) * motor_now()->m_motor_state.iq;
+	volatile motor_all_state_t *motor = motor_now();
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
 }
 
 /**
@@ -1194,7 +1196,8 @@ float mcpwm_foc_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_foc_get_tot_current_filtered(void) {
-	return SIGN(motor_now()->m_motor_state.vq) * motor_now()->m_motor_state.iq_filter;
+	volatile motor_all_state_t *motor = motor_now();
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
 }
 
 /**
@@ -1462,10 +1465,12 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	float offset_old = motor->m_conf->foc_encoder_offset;
 	float inverted_old = motor->m_conf->foc_encoder_inverted;
 	float ratio_old = motor->m_conf->foc_encoder_ratio;
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
 
 	motor->m_conf->foc_encoder_offset = 0.0;
 	motor->m_conf->foc_encoder_inverted = false;
 	motor->m_conf->foc_encoder_ratio = 1.0;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
 
 	// Find index
 	int cnt = 0;
@@ -1651,6 +1656,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	motor->m_conf->foc_encoder_inverted = inverted_old;
 	motor->m_conf->foc_encoder_offset = offset_old;
 	motor->m_conf->foc_encoder_ratio = ratio_old;
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
@@ -2324,14 +2330,22 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-	float enc_ang = 0;
-	if (encoder_is_configured()) {
-		if (virtual_motor_is_connected()){
-			enc_ang = virtual_motor_get_angle_deg();
-		} else {
-			enc_ang = encoder_read_deg();
-		}
+	volatile float enc_ang = 0;
+	volatile bool encoder_is_being_used = false;
 
+	if(virtual_motor_is_connected()){
+		if(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ){
+			enc_ang = virtual_motor_get_angle_deg();
+			encoder_is_being_used = true;
+		}
+	}else{
+		if (encoder_is_configured()) {
+			enc_ang = encoder_read_deg();
+			encoder_is_being_used = true;
+		}
+	}
+
+	if(encoder_is_being_used){
 		float phase_tmp = enc_ang;
 		if (conf_now->foc_encoder_inverted) {
 			phase_tmp = 360.0 - phase_tmp;
@@ -2455,7 +2469,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (conf_now->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			if (encoder_index_found()) {
+			if (encoder_index_found() || virtual_motor_is_connected()) {
 				motor_now->m_motor_state.phase = correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
@@ -2539,6 +2553,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		if (motor_now->m_phase_override) {
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
+		}
+
+		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
+		float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
+		if (ld_lq_diff != 0.0) {
+			float lambda = conf_now->foc_motor_flux_linkage;
+
+			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
+			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
 		// Apply current limits

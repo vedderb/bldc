@@ -277,6 +277,7 @@ typedef struct {
 	float foc_encoder_cos_gain;
 	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
+	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
@@ -546,16 +547,24 @@ typedef struct {
 	float ki;
 	float kd;
 	uint16_t hertz;
-	float pitch_fault;
-	float roll_fault;
-	float adc1;
-	float adc2;
-	float overspeed_duty;
-	float tiltback_duty;
+	float fault_pitch;
+	float fault_roll;
+	float fault_duty;
+	float fault_adc1;
+	float fault_adc2;
+	uint16_t fault_delay_pitch;
+	uint16_t fault_delay_roll;
+	uint16_t fault_delay_duty;
+	uint16_t fault_delay_switch_half;
+	uint16_t fault_delay_switch_full;
+	uint16_t fault_adc_half_erpm;
 	float tiltback_angle;
 	float tiltback_speed;
+	float tiltback_duty;
 	float tiltback_high_voltage;
 	float tiltback_low_voltage;
+	float tiltback_constant;
+	uint16_t tiltback_constant_erpm;
 	float startup_pitch_tolerance;
 	float startup_roll_tolerance;
 	float startup_speed;
@@ -566,16 +575,13 @@ typedef struct {
 	float yaw_ki;
 	float yaw_kd;
 	float roll_steer_kp;
-	float brake_current;
-	uint16_t overspeed_delay;
-	uint16_t fault_delay;
-	float tiltback_constant;
 	float roll_steer_erpm_kp;
+	float brake_current;
 	float yaw_current_clamp;
-	uint16_t adc_half_fault_erpm;
 	float setpoint_pitch_filter;
 	float setpoint_target_filter;
-	float setpoint_clamp;
+	float setpoint_filter_clamp;
+	uint16_t kd_pt1_frequency;
 } balance_config;
 
 // CAN status modes

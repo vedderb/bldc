@@ -1211,7 +1211,7 @@ float mc_interface_read_reset_avg_id(void) {
 	float res = motor_now()->m_motor_id_sum / motor_now()->m_motor_id_iterations;
 	motor_now()->m_motor_id_sum = 0.0;
 	motor_now()->m_motor_id_iterations = 0.0;
-	return DIR_MULT * res; // TODO: DIR_MULT?
+	return res;
 }
 
 /**
@@ -1237,7 +1237,7 @@ float mc_interface_read_reset_avg_vd(void) {
 	float res = motor_now()->m_motor_vd_sum / motor_now()->m_motor_vd_iterations;
 	motor_now()->m_motor_vd_sum = 0.0;
 	motor_now()->m_motor_vd_iterations = 0.0;
-	return DIR_MULT * res;
+	return res;
 }
 
 /**

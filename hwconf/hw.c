@@ -19,8 +19,62 @@
 
 #include "conf_general.h"
 #include "utils.h"
+#include <math.h>
 #include HW_SOURCE
 
 uint8_t hw_id_from_uuid(void) {
 	return utils_crc32c(STM32_UUID_8, 12) & 0x7F;
 }
+
+#if defined(HW_ID_PIN_GPIOS) && defined(HW_ID_PIN_PINS)
+uint8_t hw_id_from_pins(void) {
+    stm32_gpio_t *hw_id_ports[]={HW_ID_PIN_GPIOS};
+    const uint16_t hw_id_pins[] = {HW_ID_PIN_PINS};
+    const uint16_t hw_id_pins_size = sizeof(hw_id_pins)/sizeof(uint16_t);
+
+  const uint16_t DELAY_MS = 5;
+  uint8_t trits[hw_id_pins_size];
+  uint8_t id = 1u; //Start at 1
+  for (uint8_t i=0; i<hw_id_pins_size; i++)
+  {
+    //Initialize pulldown
+    palSetPadMode(hw_id_ports[i], hw_id_pins[i], PAL_MODE_INPUT_PULLDOWN);
+    
+    //Delay a little for the resistor to take affect
+    chThdSleepMilliseconds(DELAY_MS);
+    bool pin_set_pulldown = (palReadPad(hw_id_ports[i], hw_id_pins[i]));
+    //Initialize pullup
+    palSetPadMode(hw_id_ports[i], hw_id_pins[i], PAL_MODE_INPUT_PULLUP);
+    //Delay a little for the resistor to take affect
+    chThdSleepMilliseconds(DELAY_MS);
+    bool pin_set_pullup = (palReadPad(hw_id_ports[i], hw_id_pins[i]));
+    //Now determine the trit state
+    if (!pin_set_pulldown && !pin_set_pullup)
+    {
+      //Tied to GND
+      trits[i] = 1u;
+      
+    }
+    else if (pin_set_pulldown && pin_set_pullup)
+    {
+      //Tied to VCC
+      trits[i] = 2u;
+    }
+    else if (!pin_set_pulldown && pin_set_pullup)
+    {
+      //Floating
+      trits[i] = 0u;
+    }
+    else
+    {
+      return hw_id_from_uuid();
+      //To satisfy compiler warning
+      trits[i] = 3u;
+    }
+    id += trits[i] * pow(3, i); 
+    palSetPadMode(hw_id_ports[i], hw_id_pins[i], PAL_MODE_INPUT);
+  }
+
+    return id;
+}
+#endif //defined(HW_ID_PIN_GPIOS) && defined(HW_ID_PIN_PINS)
