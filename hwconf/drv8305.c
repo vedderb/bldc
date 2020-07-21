@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "hw.h"
+#include "conf_general.h"
 #ifdef HW_HAS_DRV8305
 
 #include "drv8305.h"
