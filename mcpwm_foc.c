@@ -2562,9 +2562,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
-		float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
+		const float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
 		if (ld_lq_diff != 0.0) {
-			float lambda = conf_now->foc_motor_flux_linkage;
+			const float lambda = conf_now->foc_motor_flux_linkage;
 
 			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
