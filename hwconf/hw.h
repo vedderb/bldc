@@ -20,7 +20,6 @@
 #ifndef HW_H_
 #define HW_H_
 
-#include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
 #include HW_HEADER
@@ -460,5 +459,6 @@ void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
 uint8_t hw_id_from_uuid(void);
+uint8_t hw_id_from_pins(void);
 
 #endif /* HW_H_ */

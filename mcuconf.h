@@ -17,6 +17,7 @@
 #ifndef _MCUCONF_H_
 #define _MCUCONF_H_
 
+#include "conf_general.h"
 #include "hw.h"
 
 /*
