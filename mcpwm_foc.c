@@ -2000,6 +2000,10 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
 
+	// MTPA overrides id target
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
+
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
@@ -2057,6 +2061,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_control_mode = CONTROL_MODE_NONE;
 	motor->m_state = MC_STATE_OFF;
 	stop_pwm_hw(motor);
+
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
