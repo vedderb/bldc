@@ -129,14 +129,13 @@
 #define HW_ADC_EXT2_PIN			0
 
 // UART Peripheral
-#define HW_UART_DEV				SD3
-#define HW_UART_GPIO_AF			GPIO_AF_USART3
-#define HW_UART_TX_PORT			GPIOC
-#define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOC
-#define HW_UART_RX_PIN			11
+#define HW_UART_DEV				SD1
+#define HW_UART_GPIO_AF			GPIO_AF_USART1
+#define HW_UART_TX_PORT			GPIOB
+#define HW_UART_TX_PIN			6
+#define HW_UART_RX_PORT			GPIOB
+#define HW_UART_RX_PIN			7
 
-#ifdef HW75_300_REV_2
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
@@ -145,7 +144,12 @@
 #define HW_UART_P_TX_PIN		10
 #define HW_UART_P_RX_PORT		GPIOC
 #define HW_UART_P_RX_PIN		11
-#endif
+
+// NRF SWD
+#define NRF5x_SWDIO_GPIO		GPIOA
+#define NRF5x_SWDIO_PIN			13
+#define NRF5x_SWCLK_GPIO		GPIOA
+#define NRF5x_SWCLK_PIN			14
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
