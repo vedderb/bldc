@@ -1922,7 +1922,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_max_mot = l_current_max_tmp;
 	if (motor->m_temp_motor < conf->l_temp_motor_start) {
 		// Keep values
-	} else if (motor->m_temp_motor > conf->l_temp_motor_end) { // only fault if 10 degrees over max do give some cushion for noisey sensors
+	} else if (motor->m_temp_motor > conf->l_temp_motor_end) {
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1, false);
