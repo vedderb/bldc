@@ -54,11 +54,11 @@
 #define SWITCH_PRECHARGED_GPIO			GPIOE
 #define SWITCH_PRECHARGED_PIN			2
 #define SWITCH_LED_3_GPIO				GPIOD
-#define SWITCH_LED_3_PIN				15
+#define SWITCH_LED_3_PIN				11
 #define SWITCH_LED_2_GPIO				GPIOD
 #define SWITCH_LED_2_PIN				10
 #define SWITCH_LED_1_GPIO				GPIOD
-#define SWITCH_LED_1_PIN				11
+#define SWITCH_LED_1_PIN				15
 
 #define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
@@ -390,6 +390,9 @@
 #ifndef MCCONF_M_DRV8301_OC_ADJ
 #define MCCONF_M_DRV8301_OC_ADJ		14
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START			0.9 // Start limiting current at this duty cycle
+#endif
 // Setting limits
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_LIM_CURRENT				-300.0, 300.0
@@ -404,7 +407,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
 #endif
 #endif
-#define HW_LIM_CURRENT_IN			-150.0, 150.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
 #define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1
