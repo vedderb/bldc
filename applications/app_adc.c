@@ -267,8 +267,8 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read the button pins
 
-		static volatile bool cc_button = false;
-		static volatile bool rev_button = false;
+//		static volatile bool cc_button = false;
+//		static volatile bool rev_button = false;
 //		if (use_rx_tx_as_buttons) {
 //			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
 //			if (config.cc_button_inverted) {
@@ -295,14 +295,14 @@ static THD_FUNCTION(adc_thread, arg) {
 //				}
 //			}
 //		}
-		cc_button = false;
-		if (config.cc_button_inverted) {
-			cc_button = !cc_button;
-		}
-		rev_button = false;
-		if (config.rev_button_inverted) {
-			rev_button = !rev_button;
-		}
+//		cc_button = false;
+//		if (config.cc_button_inverted) {
+//			cc_button = !cc_button;
+//		}
+//		rev_button = false;
+//		if (config.rev_button_inverted) {
+//			rev_button = !rev_button;
+//		}
 
 		if(config.pedelec_is_on){
 			if(pedelec_mode_working){
@@ -363,9 +363,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
 		case ADC_CTRL_TYPE_PID_REV_BUTTON:
 			// Invert the voltage if the button is pressed
-			if (rev_button) {
-				pwr = -pwr;
-			}
+//			if (rev_button) {
+//				pwr = -pwr;
+//			}
 			break;
 
 		default:
@@ -405,10 +405,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		bool send_duty = false;
-
-		static volatile uint16_t time_to_print_ms = 0;
-
-		time_to_print_ms += sleep_time / 10;
 
 		if( pedelec_mode_working ){
 			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
@@ -474,8 +470,8 @@ static THD_FUNCTION(adc_thread, arg) {
 					ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 				}
 
-				if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC ||
-					config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
+				if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC)){// ||
+				//	config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
 					current_rel = -current_rel;
 				}
 				break;
@@ -549,50 +545,50 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Reset timeout
 		timeout_reset();
 
-		// If c is pressed and no throttle is used, maintain the current speed with PID control
-		static bool was_pid = false;
-
-		// Filter RPM to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
-
-		float rpm_filtered = 0.0;
-		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-			rpm_filtered += filter_buffer[i];
-		}
-		rpm_filtered /= RPM_FILTER_SAMPLES;
-
-		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
-			static float pid_rpm = 0.0;
-
-			if (!was_pid) {
-				was_pid = true;
-				pid_rpm = rpm_filtered;
-			}
-
-			mc_interface_set_pid_speed(pid_rpm);
-
-			// Send the same duty cycle to the other controllers
-			if (config.multi_esc) {
-				float current = mc_interface_get_tot_current_directional_filtered();
-
-				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
-
-					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current(msg->id, current);
-					}
-				}
-			}
-
-			continue;
-		}
-
-		was_pid = false;
+//		// If c is pressed and no throttle is used, maintain the current speed with PID control
+//		static bool was_pid = false;
+//
+//		// Filter RPM to avoid glitches
+//		static float filter_buffer[RPM_FILTER_SAMPLES];
+//		static int filter_ptr = 0;
+//		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
+//		if (filter_ptr >= RPM_FILTER_SAMPLES) {
+//			filter_ptr = 0;
+//		}
+//
+//		float rpm_filtered = 0.0;
+//		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
+//			rpm_filtered += filter_buffer[i];
+//		}
+//		rpm_filtered /= RPM_FILTER_SAMPLES;
+//
+//		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
+//			static float pid_rpm = 0.0;
+//
+//			if (!was_pid) {
+//				was_pid = true;
+//				pid_rpm = rpm_filtered;
+//			}
+//
+//			mc_interface_set_pid_speed(pid_rpm);
+//
+//			// Send the same duty cycle to the other controllers
+//			if (config.multi_esc) {
+//				float current = mc_interface_get_tot_current_directional_filtered();
+//
+//				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+//					can_status_msg *msg = comm_can_get_status_msg_index(i);
+//
+//					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+//						comm_can_set_current(msg->id, current);
+//					}
+//				}
+//			}
+//
+//			continue;
+//		}
+//
+//		was_pid = false;
 
 		// Find lowest RPM (for traction control)
 		float rpm_local = mc_interface_get_rpm();

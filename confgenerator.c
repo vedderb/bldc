@@ -212,7 +212,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_uint16(buffer, conf->app_adc_conf.update_rate_hz, &ind);
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.pedelec_max_rpm, &ind);
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.pedelec_min_rpm, &ind);
-	buffer_append_float32_auto(buffer, conf->app_adc_conf.pedelec_magnets, &ind);
+	buffer_append_uint16(buffer, conf->app_adc_conf.pedelec_magnets, &ind);
 	buffer[ind++] = conf->app_adc_conf.pedelec_is_on;
 	buffer_append_uint32(buffer, conf->app_uart_baudrate, &ind);
 	buffer[ind++] = conf->app_chuk_conf.ctrl_type;
@@ -511,7 +511,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.update_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->app_adc_conf.pedelec_max_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.pedelec_min_rpm = buffer_get_float32_auto(buffer, &ind);
-	conf->app_adc_conf.pedelec_magnets = buffer_get_float32_auto(buffer, &ind);
+	conf->app_adc_conf.pedelec_magnets = buffer_get_uint16(buffer, &ind);
 	conf->app_adc_conf.pedelec_is_on = buffer[ind++];
 	conf->app_uart_baudrate = buffer_get_uint32(buffer, &ind);
 	conf->app_chuk_conf.ctrl_type = buffer[ind++];

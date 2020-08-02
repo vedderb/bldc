@@ -149,13 +149,6 @@ void pedelec_periodic_task( uint32_t delta_ms ){
 		}
 	}
 
-//	static volatile uint16_t time_to_print_ms = 0;
-//	time_to_print_ms += delta_ms;
-//	if( time_to_print_ms > 500 ){
-//		time_to_print_ms = 0;
-//		commands_printf("frecuency: %.2f",(double)pedelec_get_frecuency());
-//	}
-
 }
 
 void pedelec_init(void){
