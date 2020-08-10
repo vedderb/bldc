@@ -45,11 +45,11 @@
 #define SWITCH_PRECHARGED_GPIO			GPIOE
 #define SWITCH_PRECHARGED_PIN			2
 #define SWITCH_LED_3_GPIO				GPIOD
-#define SWITCH_LED_3_PIN				15
+#define SWITCH_LED_3_PIN				11
 #define SWITCH_LED_2_GPIO				GPIOD
 #define SWITCH_LED_2_PIN				10
 #define SWITCH_LED_1_GPIO				GPIOD
-#define SWITCH_LED_1_PIN				11
+#define SWITCH_LED_1_PIN				15
 
 #define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
 #define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
@@ -212,7 +212,7 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					68000.0
+#define VIN_R1					39000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2200.0
