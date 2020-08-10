@@ -71,10 +71,10 @@
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
-//#define HW60_IS_MK4
+#define HW60_IS_MK4
 
-//#define HW_SOURCE "hw_60.c"
-//#define HW_HEADER "hw_60.h"
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -138,8 +138,8 @@
 //#define HW_HEADER "hw_unity.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
-#define HW_SOURCE "hw_stormcore_100d.c"
-#define HW_HEADER "hw_stormcore_100d.h"
+//#define HW_SOURCE "hw_stormcore_100d.c"
+//#define HW_HEADER "hw_stormcore_100d.h"
 
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
