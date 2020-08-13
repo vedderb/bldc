@@ -814,7 +814,7 @@ static int uint16_cmp_func (const void *a, const void *b) {
 
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample) {
-	buffer[*buffer_index++] = sample;
+	buffer[(*buffer_index)++] = sample;
 	*buffer_index %= filter_len;
 	uint16_t buffer_sorted[filter_len]; // Assume we have enough stack space
 	memcpy(buffer_sorted, buffer, sizeof(uint16_t) * filter_len);

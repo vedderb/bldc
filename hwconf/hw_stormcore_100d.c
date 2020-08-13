@@ -380,7 +380,7 @@ void smart_switch_shut_down(void) {
 }
 
 bool smart_switch_is_pressed(void) {
-	if(palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1)
+	if(palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1  && (mc_interface_temp_fet_filtered() < 68.0))
 		return true;
 	else
 		return false;
