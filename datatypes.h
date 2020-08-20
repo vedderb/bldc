@@ -308,6 +308,7 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+	float foc_hfi_disable_stopped_erpm;
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;

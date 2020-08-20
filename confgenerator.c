@@ -107,6 +107,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_uint16(buffer, conf->foc_hfi_start_samples, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_obs_ovr_sec, &ind);
 	buffer[ind++] = conf->foc_hfi_samples;
+	buffer_append_float32_auto(buffer, conf->foc_hfi_disable_stopped_erpm, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_filter_const, &ind);
@@ -399,6 +400,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hfi_start_samples = buffer_get_uint16(buffer, &ind);
 	conf->foc_hfi_obs_ovr_sec = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_samples = buffer[ind++];
+	conf->foc_hfi_disable_stopped_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float32_auto(buffer, &ind);
@@ -687,6 +689,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
 	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;
+	conf->foc_hfi_disable_stopped_erpm = MCCONF_FOC_HFI_DISABLE_STOPPED_ERPM;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;

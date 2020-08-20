@@ -3204,6 +3204,14 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	bool do_hfi = conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI &&
 			!motor->m_phase_override &&
 			abs_rpm < (conf_now->foc_sl_erpm_hfi * (motor->m_cc_was_hfi ? 1.8 : 1.5));
+
+	if (do_hfi && abs_rpm < conf_now->foc_hfi_disable_stopped_erpm &&
+			((motor->m_control_mode == CONTROL_MODE_DUTY && motor->m_duty_cycle_set == 0) ||
+			(motor->m_control_mode == CONTROL_MODE_SPEED && motor->m_speed_pid_set_rpm == 0))){
+			do_hfi = false;
+			motor->m_hfi.est_done_cnt = 0;
+	}
+
 	motor->m_cc_was_hfi = do_hfi;
 
 	// Only allow Q axis current after the HFI ambiguity is resolved. This causes
