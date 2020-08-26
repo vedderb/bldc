@@ -162,12 +162,19 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 
 	while (!chThdShouldTerminateX()) {
 
-
-		uint8_t txb[1];
+		uint8_t txb[2];
 		uint8_t rxb[12];
 
+		// Disable IMU writing to output registers
+		txb[0] = LSM6DS3_ACC_GYRO_CTRL3_C;
+		txb[1] = LSM6DS3_ACC_GYRO_BDU_BLOCK_UPDATE | LSM6DS3_ACC_GYRO_IF_INC_ENABLED;
+		i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
+
+		// Read IMU output registers
 		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G;
 		bool res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 12);
+
+		// Parse 6 axis values
 		float gx = (float)((int16_t)((uint16_t)rxb[1] << 8) + rxb[0]) * 4.375 * (2000 / 125) / 1000;
 		float gy = (float)((int16_t)((uint16_t)rxb[3] << 8) + rxb[2]) * 4.375 * (2000 / 125) / 1000;
 		float gz = (float)((int16_t)((uint16_t)rxb[5] << 8) + rxb[4]) * 4.375 * (2000 / 125) / 1000;
@@ -179,7 +186,6 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 			float tmp_accel[3] = {ax,ay,az}, tmp_gyro[3] = {gx,gy,gz}, tmp_mag[3] = {1,2,3};
 			read_callback(tmp_accel, tmp_gyro, tmp_mag);
 		}
-
 
 		// Delay between loops
 		chThdSleepMilliseconds((int)((1000.0 / rate_hz)));
