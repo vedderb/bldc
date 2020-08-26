@@ -54,15 +54,36 @@ static bool reset_init_bmi(BMI_STATE *s) {
 
 	bmi160_init(&(s->sensor));
 
-	s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_200HZ;
 	s->sensor.accel_cfg.range = BMI160_ACCEL_RANGE_16G;
 	s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
 	s->sensor.accel_cfg.power = BMI160_ACCEL_NORMAL_MODE;
 
-	s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_200HZ;
 	s->sensor.gyro_cfg.range = BMI160_GYRO_RANGE_2000_DPS;
 	s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
 	s->sensor.gyro_cfg.power = BMI160_GYRO_NORMAL_MODE;
+
+	if(s->rate_hz <= 25){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_25HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_25HZ;
+	}else if(s->rate_hz <= 50){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_50HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_50HZ;
+	}else if(s->rate_hz <= 100){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_100HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_100HZ;
+	}else if(s->rate_hz <= 200){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_200HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_200HZ;
+	}else if(s->rate_hz <= 400){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_400HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_400HZ;
+	}else if(s->rate_hz <= 800){
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_800HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_800HZ;
+	}else{
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_1600HZ;
+	}
 
 	int8_t res = bmi160_set_sens_conf(&(s->sensor));
 
