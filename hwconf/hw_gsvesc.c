@@ -27,14 +27,14 @@
 
 
 // Threads
-THD_FUNCTION(temp_thread, arg);
-static THD_WORKING_AREA(temp_thread_wa, 512);
-static bool temp_thread_running = false;
+THD_FUNCTION(mag_thread, arg);
+static THD_WORKING_AREA(mag_thread_wa, 512);
+static bool mag_thread_running = false;
 
 
 // Variables
 static volatile bool i2c_running = false;
-static volatile float temp_now = 30.0;
+static volatile int angle = 0;
 
 
 // I2C configuration
@@ -172,10 +172,10 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
 
-    // Setup i2c temperature sensor here
-    if (!temp_thread_running) {
-        chThdCreateStatic(temp_thread_wa, sizeof(temp_thread_wa), NORMALPRIO, temp_thread, NULL);
-        temp_thread_running = true;
+    // Setup i2c mag sensor here
+    if (!mag_thread_running) {
+        chThdCreateStatic(mag_thread_wa, sizeof(mag_thread_wa), NORMALPRIO, mag_thread, NULL);
+        mag_thread_running = true;
     }
 
 
@@ -275,16 +275,17 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-THD_FUNCTION(temp_thread, arg) {
+
+THD_FUNCTION(mag_thread, arg) {
     (void)arg;
 
-    chRegSetThreadName("I2C Temp samp");
+    chRegSetThreadName("I2C MagAngle");
 
     uint8_t rxbuf[10];
     uint8_t txbuf[10];
     msg_t status = MSG_OK;
     systime_t tmo = MS2ST(5);
-    i2caddr_t temp_addr = 0x49;
+    i2caddr_t temp_addr = 0x36;
 
     hw_start_i2c();
     chThdSleepMilliseconds(10);
@@ -292,16 +293,14 @@ THD_FUNCTION(temp_thread, arg) {
     for(;;) {
 
         if (i2c_running) {
-            txbuf[0] = 0x00;
+            txbuf[0] = 0x0c;
+            txbuf[1] = 0x0d;
             i2cAcquireBus(&HW_I2C_DEV);
-            status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 1, rxbuf, 2, tmo);
+            status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 2, rxbuf, 2, tmo);
             i2cReleaseBus(&HW_I2C_DEV);
 
             if (status == MSG_OK){
-                int16_t tempi = rxbuf[0] << 8 | rxbuf[1];
-                float temp = (float)tempi;
-                temp /= 256.0;
-                temp_now = temp;
+                    angle = rxbuf[0] | rxbuf[1]<<8;
             } else {
                 hw_try_restore_i2c();
             }
@@ -310,7 +309,8 @@ THD_FUNCTION(temp_thread, arg) {
     }
 }
 
-
-float gsvesc_get_temp(void) {
-    return temp_now;
+int gsvesc_get_angle() {
+    return angle;
 }
+
+

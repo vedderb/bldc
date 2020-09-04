@@ -29,10 +29,10 @@ static thread_t *dpv_tp;
 virtual_timer_t dpv_vt;
 
 //private functions
-void dpv_rotary_isr(void);
+//void dpv_rotary_isr(void);
 static void update(void *p);
 
-
+/*
 CH_IRQ_HANDLER(HW_HALL_ROTARY_A_EXTI_ISR_VEC) {
         if (EXTI_GetITStatus(HW_HALL_ROTARY_A_EXTI_LINE) != RESET) {
                 dpv_rotary_isr();
@@ -56,7 +56,7 @@ void dpv_rotary_isr(void) {
 	//commands_printf("Target Speed: %01.2f", targetSpeed);
 }
 
-
+*/
 void app_custom_configure(app_configuration *conf)
 {
 	(void)conf;
@@ -78,15 +78,15 @@ void app_custom_stop(void)
 }
 
 void app_custom_start(void) {
-        EXTI_InitTypeDef   EXTI_InitStructure;
+  //  EXTI_InitTypeDef   EXTI_InitStructure;
 
 	stop_now = false;
 	// Set the UART TX pin as an input with pulldown
 	palSetPadMode(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(HW_HALL_ROTARY_A_GPIO, HW_HALL_ROTARY_A_PIN, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(HW_HALL_ROTARY_B_GPIO, HW_HALL_ROTARY_B_PIN, PAL_MODE_INPUT_PULLUP);
+//	palSetPadMode(HW_HALL_ROTARY_A_GPIO, HW_HALL_ROTARY_A_PIN, PAL_MODE_INPUT_PULLUP);
+//	palSetPadMode(HW_HALL_ROTARY_B_GPIO, HW_HALL_ROTARY_B_PIN, PAL_MODE_INPUT_PULLUP);
 
-        // Interrupt on HALL ROTARY A Pin
+    /*    // Interrupt on HALL ROTARY A Pin
         // Connect EXTI Line to pin
         SYSCFG_EXTILineConfig(HW_HALL_ROTARY_A_EXTI_PORTSRC, HW_HALL_ROTARY_A_EXTI_PINSRC);
 
@@ -99,14 +99,15 @@ void app_custom_start(void) {
 
         // Enable and set EXTI Line Interrupt to the highest priority
         nvicEnableVector(HW_HALL_ROTARY_A_EXTI_CH,6) ;
+*/
 
 
 	// Start the dv thread
 	chThdCreateStatic(dpv_thread_wa, sizeof(dpv_thread_wa), NORMALPRIO, dpv_thread, NULL);
 
-        chSysLock();
-        chVTSetI(&dpv_vt, MS2ST(1), update, NULL);
-        chSysUnlock();
+    chSysLock();
+    chVTSetI(&dpv_vt, MS2ST(1), update, NULL);
+    chSysUnlock();
 }
 
 static void update(void *p) {
@@ -119,8 +120,6 @@ static void update(void *p) {
         chEvtSignalI(dpv_tp, (eventmask_t) 1);
         chSysUnlockFromISR();
 }
-
-
 
 static THD_FUNCTION(dpv_thread, arg) {
 	(void)arg;
@@ -170,10 +169,12 @@ static THD_FUNCTION(dpv_thread, arg) {
             last_time = chVTGetSystemTimeX();
    			motorSpeed = motorSpeed_val_ramp;
        	}
-//       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
+       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
 //       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, MAX_ERPM);
-           	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
+//           	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
 		// Reset the timeout
+        commands_printf("Grad: %d\n",gsvesc_get_angle());
+        chThdSleepMilliseconds(10);
 		timeout_reset();
 	}
 }

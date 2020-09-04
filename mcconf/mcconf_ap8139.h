@@ -19,13 +19,13 @@
 #define MCCONF_L_CURRENT_MAX 60
 
 // Motor Current Max Brake
-#define MCCONF_L_CURRENT_MIN -60
+#define MCCONF_L_CURRENT_MIN -2
 
 // Battery Current Max
 #define MCCONF_L_IN_CURRENT_MAX 60
 
 // Battery Current Max Regen
-#define MCCONF_L_IN_CURRENT_MIN -40
+#define MCCONF_L_IN_CURRENT_MIN -2
 
 // Absolute Maximum Current
 #define MCCONF_L_MAX_ABS_CURRENT 150
@@ -145,10 +145,10 @@
 #define MCCONF_HALL_ERPM 2000
 
 // Current KP
-#define MCCONF_FOC_CURRENT_KP 0.035
+#define MCCONF_FOC_CURRENT_KP 0.0292
 
 // Current KI
-#define MCCONF_FOC_CURRENT_KI 49.28
+#define MCCONF_FOC_CURRENT_KI 71.39
 
 // Switching Frequency
 #define MCCONF_FOC_F_SW 20000
@@ -190,16 +190,16 @@
 #define MCCONF_FOC_PLL_KI 30000
 
 // Motor Inductance (L)
-#define MCCONF_FOC_MOTOR_L 3.25695e-5
+#define MCCONF_FOC_MOTOR_L 2.919e-5
 
 // Motor Resistance (R)
-#define MCCONF_FOC_MOTOR_R 0.0612932
+#define MCCONF_FOC_MOTOR_R 0.0714
 
 // Motor Flux Linkage (λ)
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.00511426
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.004791
 
 // Observer Gain (x1M)
-#define MCCONF_FOC_OBSERVER_GAIN 6.23766e+6
+#define MCCONF_FOC_OBSERVER_GAIN 4.357e+7
 
 // Observer Gain At Minimum Duty
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW 0.3

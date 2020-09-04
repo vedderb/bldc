@@ -99,7 +99,7 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					56000.0
+#define VIN_R1					56200.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2700.0
@@ -116,7 +116,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		gsvesc_get_temp()
+#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_VALUE_MOTOR         10000.0
 #define NTC_RES_MOTOR(adc_val)	(NTC_VALUE_MOTOR / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / NTC_VALUE_MOTOR) / beta) + (1.0 / 298.15)) - 273.15)
@@ -271,6 +271,6 @@
 
 // HW-specific functions
 void dpv_rotary_isr(void);
-float gsvesc_get_temp(void);
+int gsvesc_get_angle(void);
 
 #endif /* HW_GSVESC_H_ */
