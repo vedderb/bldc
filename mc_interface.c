@@ -39,6 +39,7 @@
 #include "app.h"
 #include "utils.h"
 #include "mempools.h"
+#include "crc.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -527,6 +528,8 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE"; break;
 	case FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE"; break;
     case FAULT_CODE_FLASH_CORRUPTION: return "FAULT_CODE_FLASH_CORRUPTION";
+    case FAULT_CODE_FLASH_CORRUPTION_APP_CFG: return "FAULT_CODE_FLASH_CORRUPTION_APP_CFG";
+    case FAULT_CODE_FLASH_CORRUPTION_MC_CFG: return "FAULT_CODE_FLASH_CORRUPTION_MC_CFG";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
@@ -2355,4 +2358,12 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 
 		motor->m_fault_now = m_fault_stop_fault;
 	}
+}
+
+unsigned mc_interface_calc_crc(void) {
+	unsigned crc_old = m_motor_1.m_conf.crc;
+	m_motor_1.m_conf.crc = 0;
+	unsigned crc_new = crc16((uint8_t*)&(m_motor_1.m_conf), sizeof(mc_configuration));
+	m_motor_1.m_conf.crc = crc_old;
+	return crc_new;
 }

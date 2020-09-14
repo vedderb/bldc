@@ -25,6 +25,7 @@
 #include "rfhelp.h"
 #include "comm_can.h"
 #include "imu.h"
+#include "crc.h"
 
 // Private variables
 static app_configuration appconf;
@@ -172,4 +173,12 @@ bool app_is_output_disabled(void) {
 static void output_vt_cb(void *arg) {
 	(void)arg;
 	output_disabled_now = false;
+}
+
+unsigned app_calc_crc(void) {
+	unsigned crc_old = appconf.crc;
+	appconf.crc = 0;
+	unsigned crc_new = crc16((uint8_t*)&(appconf), sizeof(app_configuration));
+	appconf.crc = crc_old;
+	return crc_new;
 }

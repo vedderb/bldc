@@ -116,6 +116,8 @@ typedef enum {
 	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
 	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE,
 	FAULT_CODE_FLASH_CORRUPTION,
+	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
 	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1,
 	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
 	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
@@ -355,6 +357,8 @@ typedef struct {
 	BATTERY_TYPE si_battery_type;
 	int si_battery_cells;
 	float si_battery_ah;
+	// Protect from flash corruption.
+	uint16_t crc;
 } mc_configuration;
 
 // Applications to use
@@ -674,6 +678,9 @@ typedef struct {
 
 	// IMU Settings
 	imu_config imu_conf;
+
+	// Protect from flash corruption
+	uint16_t crc;
 } app_configuration;
 
 // Communication commands
