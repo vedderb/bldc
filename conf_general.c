@@ -33,9 +33,14 @@
 #include "confgenerator.h"
 #include "mempools.h"
 #include "worker.h"
+#include "crc.h"
+#include "terminal.h"
 
 #include <string.h>
 #include <math.h>
+
+//#define TEST_BAD_MC_CRC
+//#define TEST_BAD_APP_CRC
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -210,6 +215,18 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		}
 	}
 
+	// check CRC
+#ifdef TEST_BAD_APP_CRC
+	conf->crc++;
+#endif
+	if(conf->crc != app_calc_crc(conf)) {
+		is_ok = false;
+//		mc_interface_fault_stop(FAULT_CODE_FLASH_CORRUPTION_APP_CFG, false, false);
+		fault_data f;
+		f.fault = FAULT_CODE_FLASH_CORRUPTION_APP_CFG;
+		terminal_add_fault_data(&f);
+	}
+
 	// Set the default configuration
 	if (!is_ok) {
 		confgenerator_set_defaults_appconf(conf);
@@ -242,6 +259,8 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
+
+	conf->crc = app_calc_crc(conf);
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
@@ -296,6 +315,18 @@ void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2)
 		}
 	}
 
+	// check CRC
+#ifdef TEST_BAD_MC_CRC
+	conf->crc++;
+#endif
+	if(conf->crc != mc_interface_calc_crc(conf, is_motor_2)) {
+		is_ok = false;
+//		mc_interface_fault_stop(FAULT_CODE_FLASH_CORRUPTION_MC_CFG, is_motor_2, false);
+		fault_data f;
+		f.fault = FAULT_CODE_FLASH_CORRUPTION_MC_CFG;
+		terminal_add_fault_data(&f);
+	}
+
 	if (!is_ok) {
 		confgenerator_set_defaults_mcconf(conf);
 	}
@@ -327,6 +358,8 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	unsigned int base = is_motor_2 ? EEPROM_BASE_MCCONF_2 : EEPROM_BASE_MCCONF;
+
+	conf->crc = mc_interface_calc_crc(conf, is_motor_2);
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
