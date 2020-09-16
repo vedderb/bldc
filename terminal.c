@@ -162,6 +162,10 @@ void terminal_process_string(char *str) {
 		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
+	} else if (strcmp(argv[0], "dist") == 0) {
+		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
+		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
+		commands_printf("Odometer        : %u   m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
