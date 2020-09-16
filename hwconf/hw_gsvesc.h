@@ -151,8 +151,8 @@
 #define HW_UART_RX_PIN			11
 
 #define HW_UART_P_BAUD			115200
-#define HW_UART_P_DEV			SD1
-#define HW_UART_P_GPIO_AF		GPIO_AF_USART3
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
 #define HW_UART_P_TX_PORT		GPIOC
 #define HW_UART_P_TX_PIN		10
 #define HW_UART_P_RX_PORT		GPIOC
@@ -232,6 +232,9 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
+
+// Override dead time. See the stm32f4 reference manual for calculating this value.
+#define HW_DEAD_TIME_NSEC       750.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
