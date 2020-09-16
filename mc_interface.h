@@ -84,6 +84,12 @@ float mc_interface_get_battery_level(float *wh_left);
 float mc_interface_get_speed(void);
 float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
+
+// odometer
+uint32_t mc_interface_get_odometer(void);
+void mc_interface_set_odometer(uint32_t new_odometer_meters);
+bool mc_interface_save_odometer(void);
+
 setup_values mc_interface_get_setup_values(void);
 
 // MC implementation functions

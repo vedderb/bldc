@@ -775,7 +775,8 @@ typedef enum {
 	COMM_SET_BLE_NAME,
 	COMM_SET_BLE_PIN,
 	COMM_SET_CAN_MODE,
-	COMM_GET_IMU_CALIBRATION
+    	COMM_GET_IMU_CALIBRATION,
+	COMM_SET_ODOMETER
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -972,6 +973,8 @@ typedef union {
 
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
+
+#define EEPROM_ADDR_ODOMETER    1
 
 typedef struct {
 	float ah_tot;
