@@ -266,6 +266,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO		GPIOC
+#define LSM6DS3_SDA_PIN			9
+#define LSM6DS3_SCL_GPIO		GPIOA
+#define LSM6DS3_SCL_PIN			8
+
 // CAN-bus
 #define HW_CANRX_PORT			GPIOD
 #define HW_CANRX_PIN			0

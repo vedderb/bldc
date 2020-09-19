@@ -136,6 +136,9 @@
 #ifndef MCCONF_S_PID_ALLOW_BRAKING
 #define MCCONF_S_PID_ALLOW_BRAKING		true	// Allow braking in speed control mode
 #endif
+#ifndef MCCONF_S_PID_RAMP_ERPMS_S
+#define MCCONF_S_PID_RAMP_ERPMS_S		-1.0	// Default Speed Input Ramp
+#endif
 
 // Position PID parameters
 #ifndef MCCONF_P_PID_KP
@@ -259,6 +262,9 @@
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
 #define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00245
+#endif
+#ifndef MCCONF_FOC_MOTOR_LD_LQ_DIFF
+#define MCCONF_FOC_MOTOR_LD_LQ_DIFF		0.0
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
 #define MCCONF_FOC_OBSERVER_GAIN		9e7		// Can be something like 600 / L

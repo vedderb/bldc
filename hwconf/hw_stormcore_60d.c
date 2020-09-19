@@ -376,7 +376,7 @@ void smart_switch_shut_down(void) {
 }
 
 bool smart_switch_is_pressed(void) {
-	if(palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1)
+	if(palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1  && (mc_interface_temp_fet_filtered() < 68.0))
 		return true;
 	else
 		return false;
@@ -505,10 +505,10 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURNED_ON:
 			if (smart_switch_is_pressed()) {
 				millis_switch_pressed++;
-				switch_bright = 1.0;
+				switch_bright = 0.5;
 			} else {
 				millis_switch_pressed = 0;
-				switch_bright = 0.5;
+				switch_bright = 1.0;
 			}
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {

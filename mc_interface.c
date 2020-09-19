@@ -1211,7 +1211,7 @@ float mc_interface_read_reset_avg_id(void) {
 	float res = motor_now()->m_motor_id_sum / motor_now()->m_motor_id_iterations;
 	motor_now()->m_motor_id_sum = 0.0;
 	motor_now()->m_motor_id_iterations = 0.0;
-	return DIR_MULT * res; // TODO: DIR_MULT?
+	return res;
 }
 
 /**
@@ -1237,7 +1237,7 @@ float mc_interface_read_reset_avg_vd(void) {
 	float res = motor_now()->m_motor_vd_sum / motor_now()->m_motor_vd_iterations;
 	motor_now()->m_motor_vd_sum = 0.0;
 	motor_now()->m_motor_vd_iterations = 0.0;
-	return DIR_MULT * res;
+	return res;
 }
 
 /**
@@ -1420,7 +1420,7 @@ float mc_interface_get_distance_abs(void) {
 }
 
 setup_values mc_interface_get_setup_values(void) {
-	setup_values val = {0};
+	setup_values val = {0, 0, 0, 0, 0, 0, 0};
 	val.num_vescs = 1;
 
 	val.ah_tot += mc_interface_get_amp_hours(false);
@@ -1609,6 +1609,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	// DRV fault code
 #ifdef HW_HAS_DUAL_PARALLEL
 	if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
+		is_second_motor = IS_DRV_FAULT_2();
 #else
 	if (is_second_motor ? IS_DRV_FAULT_2() : IS_DRV_FAULT()) {
 #endif

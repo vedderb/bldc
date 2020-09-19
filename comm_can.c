@@ -109,6 +109,7 @@ void comm_can_init(void) {
 		stat_msgs_2[i].id = -1;
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
+		stat_msgs_5[i].id = -1;
 	}
 
 #if CAN_ENABLE
@@ -912,8 +913,8 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef HW_HAS_DUAL_MOTORS
 /*
- * This thread sends all status messages and uses the internal decoer. That
- * way the second motor always show up on the CAN-bus.
+ * This thread sends all status messages and uses the internal decoder. That
+ * way the second motor always shows up on the CAN-bus.
  */
 static THD_FUNCTION(cancom_status_internal_thread, arg) {
 	(void)arg;

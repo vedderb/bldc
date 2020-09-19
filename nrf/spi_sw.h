@@ -19,7 +19,7 @@
 #ifndef SPI_SW_H_
 #define SPI_SW_H_
 
-#include "hw.h"
+#include "conf_general.h"
 #include "ch.h"
 #include "hal.h"
 

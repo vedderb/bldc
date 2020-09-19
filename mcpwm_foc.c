@@ -111,6 +111,7 @@ typedef struct {
 	bool m_output_on;
 	float m_pos_pid_set;
 	float m_speed_pid_set_rpm;
+	float m_speed_command_rpm;
 	float m_phase_now_observer;
 	float m_phase_now_observer_override;
 	bool m_phase_observer_override;
@@ -192,6 +193,7 @@ static float correct_encoder(float obs_angle, float enc_angle, float speed, floa
 static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(volatile motor_all_state_t *motor, float dt);
+static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor);
 
 // Threads
@@ -527,7 +529,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 #endif
 
-	virtual_motor_init();
+	virtual_motor_init(conf_m1);
 
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM2);
@@ -721,6 +723,8 @@ void mcpwm_foc_set_configuration(volatile mc_configuration *configuration) {
 		stop_pwm_hw(motor_now());
 		update_hfi_samples(motor_now()->m_conf->foc_hfi_samples, motor_now());
 	}
+
+	virtual_motor_set_configuration(configuration);
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -798,8 +802,18 @@ void mcpwm_foc_set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_foc_set_pid_speed(float rpm) {
+	if (motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
+		if (motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
+				motor_now()->m_state != MC_STATE_RUNNING) {
+			motor_now()->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
+		}
+
+		motor_now()->m_speed_command_rpm = rpm;
+	} else {
+		motor_now()->m_speed_pid_set_rpm = rpm;
+	}
+
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
-	motor_now()->m_speed_pid_set_rpm = rpm;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -1070,20 +1084,20 @@ bool mcpwm_foc_is_using_encoder(void) {
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq;
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq;
+	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq) * m_motor_1.m_motor_state.i_abs;
 #endif
 }
 
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 #ifdef HW_HAS_DUAL_MOTORS
 	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-	return SIGN(motor->m_motor_state.vq) * motor->m_motor_state.iq_filter;
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
 #else
 	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq) * m_motor_1.m_motor_state.iq_filter;
+	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq_filter) * m_motor_1.m_motor_state.i_abs_filter;
 #endif
 }
 
@@ -1169,7 +1183,8 @@ float mcpwm_foc_get_rpm_faster(void) {
  * The motor current.
  */
 float mcpwm_foc_get_tot_current(void) {
-	return SIGN(motor_now()->m_motor_state.vq) * motor_now()->m_motor_state.iq;
+	volatile motor_all_state_t *motor = motor_now();
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
 }
 
 /**
@@ -1181,7 +1196,8 @@ float mcpwm_foc_get_tot_current(void) {
  * The filtered motor current.
  */
 float mcpwm_foc_get_tot_current_filtered(void) {
-	return SIGN(motor_now()->m_motor_state.vq) * motor_now()->m_motor_state.iq_filter;
+	volatile motor_all_state_t *motor = motor_now();
+	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
 }
 
 /**
@@ -1449,10 +1465,12 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	float offset_old = motor->m_conf->foc_encoder_offset;
 	float inverted_old = motor->m_conf->foc_encoder_inverted;
 	float ratio_old = motor->m_conf->foc_encoder_ratio;
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
 
 	motor->m_conf->foc_encoder_offset = 0.0;
 	motor->m_conf->foc_encoder_inverted = false;
 	motor->m_conf->foc_encoder_ratio = 1.0;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
 
 	// Find index
 	int cnt = 0;
@@ -1638,6 +1656,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	motor->m_conf->foc_encoder_inverted = inverted_old;
 	motor->m_conf->foc_encoder_offset = offset_old;
 	motor->m_conf->foc_encoder_ratio = ratio_old;
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
@@ -1981,6 +2000,10 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
 
+	// MTPA overrides id target
+	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
+	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
+
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
@@ -2038,6 +2061,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_control_mode = CONTROL_MODE_NONE;
 	motor->m_state = MC_STATE_OFF;
 	stop_pwm_hw(motor);
+
+	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
@@ -2311,14 +2336,22 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-	float enc_ang = 0;
-	if (encoder_is_configured()) {
-		if (virtual_motor_is_connected()){
-			enc_ang = virtual_motor_get_angle_deg();
-		} else {
-			enc_ang = encoder_read_deg();
-		}
+	volatile float enc_ang = 0;
+	volatile bool encoder_is_being_used = false;
 
+	if(virtual_motor_is_connected()){
+		if(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ){
+			enc_ang = virtual_motor_get_angle_deg();
+			encoder_is_being_used = true;
+		}
+	}else{
+		if (encoder_is_configured()) {
+			enc_ang = encoder_read_deg();
+			encoder_is_being_used = true;
+		}
+	}
+
+	if(encoder_is_being_used){
 		float phase_tmp = enc_ang;
 		if (conf_now->foc_encoder_inverted) {
 			phase_tmp = 360.0 - phase_tmp;
@@ -2442,7 +2475,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		switch (conf_now->foc_sensor_mode) {
 		case FOC_SENSOR_MODE_ENCODER:
-			if (encoder_index_found()) {
+			if (encoder_index_found() || virtual_motor_is_connected()) {
 				motor_now->m_motor_state.phase = correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
@@ -2528,6 +2561,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
 		}
 
+		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
+		const float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
+		if (ld_lq_diff != 0.0) {
+			const float lambda = conf_now->foc_motor_flux_linkage;
+
+			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
+			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
+		}
+
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
 		const float mod_q = motor_now->m_motor_state.mod_q;
@@ -2558,6 +2600,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
 		motor_now->m_motor_state.iq_filter = 0.0;
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
+#endif
 		motor_now->m_motor_state.i_bus = 0.0;
 		motor_now->m_motor_state.i_abs = 0.0;
 		motor_now->m_motor_state.i_abs_filter = 0.0;
@@ -2783,7 +2828,6 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	utils_truncate_number_abs(&openloop_rpm, motor->m_conf->foc_openloop_rpm);
 
 	const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
-
 	float add_min_speed = 0.0;
 	if (motor->m_motor_state.duty_now > 0.0) {
 		add_min_speed = min_rads * dt;
@@ -2868,6 +2912,23 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	motor->m_gamma_now = gamma_tmp * 4.0;
 }
 
+// TODO: This won't work for dual motors
+static void input_current_offset_measurement(void) {
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+	static uint16_t delay_current_offset_measurement = 0;
+
+	if (delay_current_offset_measurement < 1000) {
+		delay_current_offset_measurement++;
+	} else {
+		if (delay_current_offset_measurement == 1000) {
+			delay_current_offset_measurement++;
+			MEASURE_INPUT_CURRENT_OFFSET();
+		}
+	}
+#endif
+}
+
+
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
@@ -2885,6 +2946,8 @@ static THD_FUNCTION(timer_thread, arg) {
 #ifdef HW_HAS_DUAL_MOTORS
 		timer_update(&m_motor_2, dt);
 #endif
+
+		input_current_offset_measurement();
 
 		run_pid_control_speed(dt, &m_motor_1);
 #ifdef HW_HAS_DUAL_MOTORS
@@ -3301,8 +3364,12 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 //	utils_truncate_number((float*)&state_m->vq_int, -max_v_mag, max_v_mag);
 
 	// TODO: Have a look at this?
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+	state_m->i_bus = GET_INPUT_CURRENT();
+#else
 	state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
-	state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
+#endif
+    state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
 	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
 
 	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
@@ -3630,6 +3697,10 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 		motor->m_speed_i_term = 0.0;
 		motor->m_speed_prev_error = 0.0;
 		return;
+	}
+
+	if (conf_now->s_pid_ramp_erpms_s > 0.0) {
+		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_s * dt);
 	}
 
 	const float rpm = mcpwm_foc_get_rpm();

@@ -27,6 +27,7 @@
 #include <stdbool.h>
 
 #include "i2c_bb.h"
+#include "spi_bb.h"
 #include "bmi160.h"
 
 typedef struct {
