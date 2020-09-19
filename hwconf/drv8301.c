@@ -66,6 +66,8 @@ void drv8301_init(void) {
 	drv8301_write_reg(2, 0x0430);
 	drv8301_write_reg(2, 0x0430);
 
+	drv8301_set_current_amp_gain(CURRENT_AMP_GAIN);
+
 	terminal_register_command_callback(
 			"drv8301_read_reg",
 			"Read a register from the DRV8301 and print it.",
@@ -126,6 +128,30 @@ void drv8301_set_oc_mode(drv8301_oc_mode mode) {
 	drv8301_write_reg(2, reg);
 }
 
+void drv8301_set_current_amp_gain(int gain) {
+    int reg = drv8301_read_reg(3);
+    reg &= ~(0x03 << 4);
+
+    switch(gain) {
+    case 10:
+        reg |= (0 & 0x03) << 2;
+        break;
+    case 20:
+        reg |= (1 & 0x03) << 2;
+        break;
+    case 40:
+        reg |= (2 & 0x03) << 2;
+        break;
+    case 80:
+        reg |= (3 & 0x03) << 2;
+        break;
+    default:
+        //gain not supported
+        break;
+    }
+
+    drv8301_write_reg(3, reg);
+}
 /**
  * Read the fault codes of the DRV8301.
  *
@@ -158,6 +184,7 @@ void drv8301_reset_faults(void) {
 	int reg = drv8301_read_reg(2);
 	reg |= 1 << 2;
 	drv8301_write_reg(2, reg);
+	drv8301_set_current_amp_gain(CURRENT_AMP_GAIN);
 }
 
 char* drv8301_faults_to_string(int faults) {
