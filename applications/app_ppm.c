@@ -333,7 +333,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 				pulses_without_power++;
 			}
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_pid_pos((servo_val+1.0) * 180.0);
+				mc_interface_set_pid_pos(servo_val * 180.0);
 			}
 			break;
 		default:
