@@ -140,7 +140,7 @@ static THD_FUNCTION(dpv_thread, arg) {
        	}
        	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
 //       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, MAX_ERPM);
-//           	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
+//       	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
         chThdSleepMilliseconds(10);
 		// Reset the timeout
 		timeout_reset();
