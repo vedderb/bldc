@@ -127,12 +127,15 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
+#ifndef HW_HAS_DUAL_MOTORS
     //register terminal callbacks
+    //double pulse not possible with dual motor setup
     terminal_register_command_callback(
         "double_pulse",
         "Start a double pulse test",
         0,
         terminal_cmd_doublepulse);
+#endif
 
 }
 
@@ -335,6 +338,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     (void)argv;
 
     int preface,pulse1,breaktime,pulse2;
+    int utick;
 
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
     TIM_OCInitTypeDef  TIM_OCInitStructure;
@@ -356,6 +360,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     timeout_configure_IWDT_slowest();
     commands_printf("double_test_function");
 
+    utick = (int)( SYSTEM_CORE_CLOCK / 1000000 );
     mcpwm_deinit();
     mcpwm_foc_deinit();
     gpdrive_deinit();
@@ -381,7 +386,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     // Time Base configuration
     TIM_TimeBaseStructure.TIM_Prescaler = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseStructure.TIM_Period = (preface+pulse1)*168; 
+    TIM_TimeBaseStructure.TIM_Period = (preface+pulse1)*utick; 
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
     TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
@@ -390,7 +395,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2;
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
     TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-    TIM_OCInitStructure.TIM_Pulse = preface*168;
+    TIM_OCInitStructure.TIM_Pulse = preface*utick;
     TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
     TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
     TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -442,8 +447,8 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     //Timer 4 triggert Timer 1
     TIM_Cmd(TIM4, ENABLE);
     TIM_Cmd(TIM4, DISABLE);
-    TIM1->ARR = (breaktime+pulse2)*168;
-    TIM1->CCR1 = breaktime*168;
+    TIM1->ARR = (breaktime+pulse2)*utick;
+    TIM1->CCR1 = breaktime*utick;
     while ( TIM1->CNT != 0 );
     TIM_Cmd(TIM4, ENABLE);
 
