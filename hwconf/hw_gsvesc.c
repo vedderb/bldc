@@ -16,7 +16,6 @@
     */
 
 #include "hw.h"
-
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
@@ -24,8 +23,14 @@
 #include <math.h>
 #include "mc_interface.h"
 #include "commands.h"
-
-
+#include "terminal.h"
+#include "mcpwm.h"
+#include "mcpwm_foc.h"
+#include "gpdrive.h"
+#include "app.h"
+#include "mempools.h"
+#include "timeout.h"
+#include "stdio.h"
 // Threads
 THD_FUNCTION(mag_thread, arg);
 static THD_WORKING_AREA(mag_thread_wa, 512);
@@ -35,6 +40,9 @@ static bool mag_thread_running = false;
 // Variables
 static volatile bool i2c_running = false;
 static volatile int angle = 0;
+
+//private functions
+static void terminal_cmd_doublepulse(int argc, const char **argv);
 
 
 // I2C configuration
@@ -118,6 +126,17 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+
+#ifndef HW_HAS_DUAL_MOTORS
+    //register terminal callbacks
+    //double pulse not possible with dual motor setup
+    terminal_register_command_callback(
+        "double_pulse",
+        "Start a double pulse test",
+        0,
+        terminal_cmd_doublepulse);
+#endif
+
 }
 
 void hw_setup_adc_channels(void) {
@@ -313,4 +332,149 @@ int gsvesc_get_angle() {
     return angle;
 }
 
+static void terminal_cmd_doublepulse(int argc, const char **argv) 
+{
+    (void)argc;
+    (void)argv;
+
+    int preface,pulse1,breaktime,pulse2;
+    int utick;
+
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    TIM_OCInitTypeDef  TIM_OCInitStructure;
+    TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
+
+    if (argc != 5) {
+        commands_printf("Usage: double_pulse <preface> <pulse1> <break> <pulse2");
+        commands_printf("   preface: idle time in  µs");
+        commands_printf("    pulse1: high time of pulse 1 in µs");
+        commands_printf("     break: break between pulses in µs\n");
+        commands_printf("    pulse2: high time of pulse 2 in µs");
+        return;
+    }
+    sscanf(argv[1], "%d", &preface);
+    sscanf(argv[2], "%d", &pulse1);
+    sscanf(argv[3], "%d", &breaktime);
+    sscanf(argv[4], "%d", &pulse2);
+    commands_printf("%d, %d, %d, %d",preface,pulse1,breaktime,pulse2);
+    timeout_configure_IWDT_slowest();
+    commands_printf("double_test_function");
+
+    utick = (int)( SYSTEM_CORE_CLOCK / 1000000 );
+    mcpwm_deinit();
+    mcpwm_foc_deinit();
+    gpdrive_deinit();
+
+    TIM_Cmd(TIM1, DISABLE);
+    TIM_Cmd(TIM4, DISABLE);
+    //TIM4 als Trigger Timer
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+    TIM_TimeBaseStructure.TIM_Period = (SYSTEM_CORE_CLOCK / 20000);
+    TIM_TimeBaseStructure.TIM_Prescaler = 0;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
+    TIM_SelectMasterSlaveMode(TIM4, TIM_MasterSlaveMode_Enable);
+    TIM_SelectOutputTrigger(TIM4, TIM_TRGOSource_Enable);
+    TIM4->CNT = 0;
+
+    // TIM1
+    // TIM1 clock enable
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
+
+    // Time Base configuration
+    TIM_TimeBaseStructure.TIM_Prescaler = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseStructure.TIM_Period = (preface+pulse1)*utick; 
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+    TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+
+    // Channel 1, 2 and 3 Configuration in PWM mode
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+    TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
+    TIM_OCInitStructure.TIM_Pulse = preface*utick;
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+    TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+    TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+    TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
+
+    TIM_OC1Init(TIM1, &TIM_OCInitStructure);
+    TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
+    TIM_OC2Init(TIM1, &TIM_OCInitStructure);
+    TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
+    TIM_OC3Init(TIM1, &TIM_OCInitStructure);
+    TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
+
+    TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM2);
+    TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
+    TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+
+    TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_Inactive);
+    TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
+    TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+
+    TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_Inactive);
+    TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
+    TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+    TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+
+    // Automatic Output enable, Break, dead time and lock configuration
+    TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
+    TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
+    TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
+    TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
+    TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
+    TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
+    TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
+    TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
+
+    TIM_CCPreloadControl(TIM1, ENABLE);
+    TIM_ARRPreloadConfig(TIM1, ENABLE);
+
+    TIM1->CNT = 0;
+    TIM1->EGR = TIM_EGR_UG;
+
+    TIM_SelectSlaveMode(TIM1, TIM_SlaveMode_Trigger);
+    TIM_SelectInputTrigger(TIM1, TIM_TS_ITR3);
+    TIM_SelectOnePulseMode(TIM1, TIM_OPMode_Single);
+    TIM_CtrlPWMOutputs(TIM1, ENABLE);
+
+    TIM_Cmd(TIM1, ENABLE);
+    //Timer 4 triggert Timer 1
+    TIM_Cmd(TIM4, ENABLE);
+    TIM_Cmd(TIM4, DISABLE);
+    TIM1->ARR = (breaktime+pulse2)*utick;
+    TIM1->CCR1 = breaktime*utick;
+    while ( TIM1->CNT != 0 );
+    TIM_Cmd(TIM4, ENABLE);
+
+    chThdSleepMilliseconds(1);
+    TIM_CtrlPWMOutputs(TIM1, DISABLE);
+    mc_configuration *mcconf = mempools_alloc_mcconf();
+    *mcconf = *mc_interface_get_configuration();
+
+    switch (mcconf->motor_type) {
+        case MOTOR_TYPE_BLDC:
+        case MOTOR_TYPE_DC:
+            mcpwm_init(mcconf);
+            break;
+
+        case MOTOR_TYPE_FOC:
+            mcpwm_foc_init(mcconf,mcconf);
+            break;
+
+        case MOTOR_TYPE_GPD:
+            gpdrive_init(mcconf);
+            break;
+
+        default:
+            break;
+    }
+    commands_printf("Done");
+    return;
+}
 
