@@ -339,26 +339,29 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 
     int preface,pulse1,breaktime,pulse2;
     int utick;
+    int deadtime = -1;
 
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
     TIM_OCInitTypeDef  TIM_OCInitStructure;
     TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 
-    if (argc != 5) {
-        commands_printf("Usage: double_pulse <preface> <pulse1> <break> <pulse2");
+    if (argc < 5) {
+        commands_printf("Usage: double_pulse <preface> <pulse1> <break> <pulse2> [deadtime]");
         commands_printf("   preface: idle time in  µs");
         commands_printf("    pulse1: high time of pulse 1 in µs");
         commands_printf("     break: break between pulses in µs\n");
         commands_printf("    pulse2: high time of pulse 2 in µs");
+        commands_printf("  deadtime: overwrite deadtime, in ns");
         return;
     }
     sscanf(argv[1], "%d", &preface);
     sscanf(argv[2], "%d", &pulse1);
     sscanf(argv[3], "%d", &breaktime);
     sscanf(argv[4], "%d", &pulse2);
-    commands_printf("%d, %d, %d, %d",preface,pulse1,breaktime,pulse2);
+    if (argc == 6) {
+        sscanf(argv[5], "%d", &deadtime);
+    }
     timeout_configure_IWDT_slowest();
-    commands_printf("double_test_function");
 
     utick = (int)( SYSTEM_CORE_CLOCK / 1000000 );
     mcpwm_deinit();
@@ -426,7 +429,11 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
     TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
     TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
     TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_OFF;
-    TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
+    if (deadtime < 0) {
+        TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(HW_DEAD_TIME_NSEC, SYSTEM_CORE_CLOCK);
+    } else {
+        TIM_BDTRInitStructure.TIM_DeadTime = conf_general_calculate_deadtime(deadtime, SYSTEM_CORE_CLOCK);
+    }
     TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
     TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
     TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;

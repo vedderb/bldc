@@ -234,7 +234,7 @@
 
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC       750.0
+#define HW_DEAD_TIME_NSEC       120.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
