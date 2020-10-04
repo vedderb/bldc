@@ -273,7 +273,6 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-void dpv_rotary_isr(void);
 int gsvesc_get_angle(void);
 
 #endif /* HW_GSVESC_H_ */
