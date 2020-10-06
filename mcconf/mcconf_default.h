@@ -385,7 +385,7 @@
 
 // Misc
 #ifndef MCCONF_M_FAULT_STOP_TIME
-#define MCCONF_M_FAULT_STOP_TIME		500	// Ignore commands for this duration in msec when faults occur
+#define MCCONF_M_FAULT_STOP_TIME		85	// Ignore commands for this duration in msec when faults occur
 #endif
 #ifndef MCCONF_M_RAMP_STEP
 #define MCCONF_M_RAMP_STEP				0.02	// Duty cycle ramping step (1000 times/sec) at maximum duty cycle
