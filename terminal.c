@@ -1038,11 +1038,11 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "crc") == 0) {
 		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
 		unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
-		commands_printf(" MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
-		commands_printf(" Discrepancy is expected due to run-time recalculation of config params.\n");
 		unsigned app_crc0 = app_get_configuration()->crc;
 		unsigned app_crc1 = app_calc_crc(NULL);
-		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)\n", app_crc0, app_crc1);
+		commands_printf("MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
+		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)", app_crc0, app_crc1);
+		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
 	}
 
 	// The help command
@@ -1080,6 +1080,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("tacho");
 		commands_printf("  Prints tachometer value");
+
+		commands_printf("dist");
+		commands_printf("  Prints odometer value");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");
