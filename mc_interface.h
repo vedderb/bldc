@@ -30,6 +30,7 @@ void mc_interface_select_motor_thread(int motor);
 int mc_interface_get_motor_thread(void);
 const volatile mc_configuration* mc_interface_get_configuration(void);
 void mc_interface_set_configuration(mc_configuration *configuration);
+unsigned mc_interface_calc_crc(mc_configuration* conf, bool is_motor_2);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);
 void mc_interface_unlock(void);
@@ -83,6 +84,12 @@ float mc_interface_get_battery_level(float *wh_left);
 float mc_interface_get_speed(void);
 float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
+
+// odometer
+uint32_t mc_interface_get_odometer(void);
+void mc_interface_set_odometer(uint32_t new_odometer_meters);
+bool mc_interface_save_odometer(void);
+
 setup_values mc_interface_get_setup_values(void);
 
 // MC implementation functions

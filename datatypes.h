@@ -129,7 +129,9 @@ typedef enum {
 	FAULT_CODE_BRK,
 	FAULT_CODE_RESOLVER_LOT,
 	FAULT_CODE_RESOLVER_DOS,
-	FAULT_CODE_RESOLVER_LOS
+	FAULT_CODE_RESOLVER_LOS,
+	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG
 } mc_fault_code;
 
 typedef enum {
@@ -365,6 +367,8 @@ typedef struct {
 	BATTERY_TYPE si_battery_type;
 	int si_battery_cells;
 	float si_battery_ah;
+	// Protect from flash corruption.
+	uint16_t crc;
 } mc_configuration;
 
 // Applications to use
@@ -691,6 +695,9 @@ typedef struct {
 
 	// IMU Settings
 	imu_config imu_conf;
+
+	// Protect from flash corruption
+	uint16_t crc;
 } app_configuration;
 
 // Communication commands
@@ -786,7 +793,8 @@ typedef enum {
 	COMM_SET_BLE_PIN,
 	COMM_SET_CAN_MODE,
 	COMM_GET_IMU_CALIBRATION,
-	COMM_GET_MCCONF_TEMP
+	COMM_GET_MCCONF_TEMP,
+	COMM_SET_ODOMETER
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1009,6 +1017,8 @@ typedef union {
 
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
+
+#define EEPROM_ADDR_ODOMETER    1
 
 typedef struct {
 	float ah_tot;
