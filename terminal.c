@@ -261,6 +261,41 @@ void terminal_process_string(char *str) {
 				commands_printf("Current            : %.2f", (double)msg->current);
 				commands_printf("Duty               : %.2f\n", (double)msg->duty);
 			}
+
+			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+				commands_printf("IO Board ADC 1_4");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_adc = comm_can_get_io_board_adc_5_8_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+				commands_printf("IO Board ADC 5_8");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
+			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 1.0) {
+				commands_printf("IO Board Inputs");
+				commands_printf("ID                 : %i", io_in->id);
+				commands_printf("RX Time            : %i", io_in->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_in->rx_time) * 1000.0));
+				commands_printf("IN                 : %llu %llu %llu %llu %llu %llu %llu %llu\n",
+						(io_in->inputs >> 0) & 1, (io_in->inputs >> 1) & 1,
+						(io_in->inputs >> 2) & 1, (io_in->inputs >> 3) & 1,
+						(io_in->inputs >> 4) & 1, (io_in->inputs >> 5) & 1,
+						(io_in->inputs >> 6) & 1, (io_in->inputs >> 7) & 1);
+			}
 		}
 	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
 		if (argc == 2) {
@@ -706,8 +741,9 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "can_scan") == 0) {
 		bool found = false;
 		for (int i = 0;i < 254;i++) {
-			if (comm_can_ping(i)) {
-				commands_printf("Found VESC with ID: %d", i);
+			HW_TYPE hw_type;
+			if (comm_can_ping(i, &hw_type)) {
+				commands_printf("Found %s with ID: %d", utils_hw_type_to_string(hw_type), i);
 				found = true;
 			}
 		}
@@ -869,13 +905,13 @@ void terminal_process_string(char *str) {
 				}
 
 				bool is_second_motor = mc_interface_get_motor_thread() == 2;
-				int hall_last = utils_read_hall(is_second_motor);
+				int hall_last = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 				float transitions[7] = {0.0};
 				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 				int transition_index = 0;
 
 				for (int i = 0;i < 720;i++) {
-					int hall = utils_read_hall(is_second_motor);
+					int hall = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 					if (hall_last != hall) {
 						if (transition_index < 7) {
 							transitions[transition_index++] = phase;
@@ -957,6 +993,40 @@ void terminal_process_string(char *str) {
 			}
 		} else {
 			commands_printf("This command requires one argument.\n");
+		}
+	} else if (strcmp(argv[0], "io_board_set_output") == 0) {
+		if (argc == 4) {
+			int id = -1;
+			int channel = -1;
+			int state = -1;
+
+			sscanf(argv[1], "%d", &id);
+			sscanf(argv[2], "%d", &channel);
+			sscanf(argv[3], "%d", &state);
+
+			if (id >= 0 && channel >= 0 && state >= 0) {
+				comm_can_io_board_set_output_digital(id, channel, state);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
+	} else if (strcmp(argv[0], "io_board_set_output_pwm") == 0) {
+		if (argc == 4) {
+			int id = -1;
+			int channel = -1;
+			float duty = -1.0;
+
+			sscanf(argv[1], "%d", &id);
+			sscanf(argv[2], "%d", &channel);
+			sscanf(argv[3], "%f", &duty);
+
+			if (id >= 0 && channel >= 0 && duty >= 0.0 && duty <= 1.0) {
+				comm_can_io_board_set_output_pwm(id, channel, duty);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
 		}
 	}
 
@@ -1084,6 +1154,12 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hall_analyze [current]");
 		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
+
+		commands_printf("io_board_set_output [id] [ch] [state]");
+		commands_printf("  Set digital output of IO board.");
+
+		commands_printf("io_board_set_output_pwm [id] [ch] [duty]");
+		commands_printf("  Set pwm output of IO board.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

@@ -72,6 +72,7 @@ static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
 static mutex_t terminal_mutex;
+static volatile int fw_version_sent_cnt = 0;
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
@@ -189,6 +190,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
 		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+
+		send_buffer[ind++] = HW_TYPE_VESC;
+
+		send_buffer[ind++] = 0; // No custom config
+
+		fw_version_sent_cnt++;
 
 		reply_func(send_buffer, ind);
 	} break;
@@ -1260,9 +1267,13 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	chMtxUnlock(&send_buffer_mutex);
 }
 
+inline static float hw_lim_upper(float l, float h) {(void)l; return h;}
+
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
+
+	float ctrl_loop_freq = 0.0;
 
 	// This limit should always be active, as starving the threads never
 	// makes sense.
@@ -1270,14 +1281,25 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     if (mcconf->foc_sample_v0_v7 == true) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
 		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
+		ctrl_loop_freq = mcconf->foc_f_sw;
     } else {
 #ifdef HW_HAS_DUAL_MOTORS
     	utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
+    	ctrl_loop_freq = mcconf->foc_f_sw;
 #else
 		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+		ctrl_loop_freq = mcconf->foc_f_sw / 2.0;
 #endif
     }
 #endif
+
+    if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.9)) {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 2);
+    } else if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.7)) {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 4);
+    } else {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 10);
+    }
 
 #ifndef DISABLE_HW_LIMITS
 #ifdef HW_LIM_CURRENT
@@ -1355,6 +1377,10 @@ void commands_send_plot_points(float x, float y) {
 	buffer_append_float32_auto(buffer, x, &ind);
 	buffer_append_float32_auto(buffer, y, &ind);
 	commands_send_packet(buffer, ind);
+}
+
+int commands_get_fw_version_sent_cnt(void) {
+	return fw_version_sent_cnt;
 }
 
 // TODO: The commands_set_ble_name and commands_set_ble_pin are not
@@ -1665,7 +1691,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 			send_buffer[ind++] = COMM_PING_CAN;
 
 			for (uint8_t i = 0;i < 255;i++) {
-				if (comm_can_ping(i)) {
+				HW_TYPE hw_type;
+				if (comm_can_ping(i, &hw_type)) {
 					send_buffer[ind++] = i;
 				}
 			}

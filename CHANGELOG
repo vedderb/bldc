@@ -13,6 +13,12 @@
 * Added bm support for STM32F30x and STM32L47x.
 * App Balance updates. See https://github.com/vedderb/bldc/pull/193
 * Motor current now based on magnitude of both axes.
+* Initial VESC BMS support.
+* Hall sensor interpolation improvement.
+* Made hall sensor filter configurable.
+* Added locking time and ramp up time parameters to sensorless startup.
+* Removed D axis current injection.
+* Initial VESC IO-board support
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

@@ -279,19 +279,22 @@
 #define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
-#define MCCONF_FOC_OPENLOOP_RPM			400.0	// Openloop RPM (sensorless low speed or when finding index pulse)
+#define MCCONF_FOC_OPENLOOP_RPM			1500.0	// Openloop RPM (sensorless low speed or when finding index pulse)
+#endif
+#ifndef MCCONF_FOC_OPENLOOP_RPM_LOW
+#define MCCONF_FOC_OPENLOOP_RPM_LOW		0.0		// Fraction of OPENLOOP_RPM at minimum motor current
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_HYST
 #define MCCONF_FOC_SL_OPENLOOP_HYST		0.1		// Time below min RPM to activate openloop (s)
 #endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_TIME
-#define MCCONF_FOC_SL_OPENLOOP_TIME		0.1		// Time to remain in openloop (s)
+#define MCCONF_FOC_SL_OPENLOOP_TIME		0.05	// Time to remain in openloop after ramping (s)
 #endif
-#ifndef MCCONF_FOC_SL_D_CURRENT_DUTY
-#define MCCONF_FOC_SL_D_CURRENT_DUTY	0.0		// Inject d-axis current below this duty cycle in sensorless more
+#ifndef MCCONF_FOC_SL_OPENLOOP_T_LOCK
+#define MCCONF_FOC_SL_OPENLOOP_T_LOCK	0.0		// Time to lock motor in beginning of open loop sequence
 #endif
-#ifndef MCCONF_FOC_SL_D_CURRENT_FACTOR
-#define MCCONF_FOC_SL_D_CURRENT_FACTOR	0.0		// Maximum q-axis current factor
+#ifndef MCCONF_FOC_SL_OPENLOOP_T_RAMP
+#define MCCONF_FOC_SL_OPENLOOP_T_RAMP	0.1		// Time to ramp up motor to openloop speed
 #endif
 #ifndef MCCONF_FOC_HALL_TAB_0
 #define MCCONF_FOC_HALL_TAB_0			255
@@ -443,6 +446,9 @@
 #endif
 #ifndef MCCONF_M_PTC_MOTOR_COEFF
 #define MCCONF_M_PTC_MOTOR_COEFF		0.61 // %/K coefficient for motor PTC sensor
+#endif
+#ifndef MCCONF_M_HALL_EXTRA_SAMPLES
+#define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
 #endif
 
 // Setup Info

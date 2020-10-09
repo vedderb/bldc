@@ -46,5 +46,6 @@ void commands_plot_set_graph(int graph);
 void commands_set_ble_name(char* name);
 void commands_set_ble_pin(char* pin);
 void commands_send_plot_points(float x, float y);
+int commands_get_fw_version_sent_cnt(void);
 
 #endif /* COMMANDS_H_ */

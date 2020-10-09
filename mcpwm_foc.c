@@ -2031,7 +2031,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = utils_read_hall(motor != &m_motor_1);
+			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -2046,7 +2046,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = utils_read_hall(motor != &m_motor_1);
+			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -2506,17 +2506,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 			}
 
-			// Inject D axis current at low speed to make the observer track
-			// better. This does not seem to be necessary with dead time
-			// compensation.
-			// Note: this is done at high rate prevent noise.
 			if (!motor_now->m_phase_override) {
-				if (duty_abs < conf_now->foc_sl_d_current_duty) {
-					id_set_tmp = utils_map(duty_abs, 0.0, conf_now->foc_sl_d_current_duty,
-										   fabsf(motor_now->m_motor_state.iq_target) * conf_now->foc_sl_d_current_factor, 0.0);
-				} else {
-					id_set_tmp = 0.0;
-				}
+				id_set_tmp = 0.0;
 			}
 			break;
 
@@ -2612,35 +2603,35 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #ifdef HW_HAS_3_SHUNTS
 		float Va, Vb, Vc;
 		if (is_second_motor) {
-			Va = ADC_VOLTS(ADC_IND_SENS4) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vb = ADC_VOLTS(ADC_IND_SENS5) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vc = ADC_VOLTS(ADC_IND_SENS6) * ((VIN_R1 + VIN_R2) / VIN_R2);
+			Va = ADC_VOLTS(ADC_IND_SENS4) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vb = ADC_VOLTS(ADC_IND_SENS5) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vc = ADC_VOLTS(ADC_IND_SENS6) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 		} else {
-			Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vb = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vc = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
+			Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vb = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vc = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 		}
 #else
 		float Va, Vb, Vc;
 		if (is_second_motor) {
-			Va = ADC_VOLTS(ADC_IND_SENS4) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vb = ADC_VOLTS(ADC_IND_SENS6) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vc = ADC_VOLTS(ADC_IND_SENS5) * ((VIN_R1 + VIN_R2) / VIN_R2);
+			Va = ADC_VOLTS(ADC_IND_SENS4) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vb = ADC_VOLTS(ADC_IND_SENS6) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vc = ADC_VOLTS(ADC_IND_SENS5) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 		} else {
-			Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
-			Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
+			Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+			Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 		}
 #endif
 #else
 #ifdef HW_HAS_3_SHUNTS
-		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
-		float Vb = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
-		float Vc = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
+		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		float Vb = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		float Vc = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 #else
-		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2);
-		float Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2);
-		float Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2);
+		float Va = ADC_VOLTS(ADC_IND_SENS1) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		float Vb = ADC_VOLTS(ADC_IND_SENS3) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		float Vc = ADC_VOLTS(ADC_IND_SENS2) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 #endif
 #endif
 
@@ -2821,41 +2812,97 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 // Private functions
 
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
-	float openloop_rpm = utils_map(fabsf(motor->m_motor_state.iq_target),
-								   0.0, motor->m_conf->l_current_max,
-								   0.0, motor->m_conf->foc_openloop_rpm);
+	float t_lock = motor->m_conf->foc_sl_openloop_time_lock;
+	float t_ramp = motor->m_conf->foc_sl_openloop_time_ramp;
+	float t_const = motor->m_conf->foc_sl_openloop_time;
 
-	utils_truncate_number_abs(&openloop_rpm, motor->m_conf->foc_openloop_rpm);
+	// Use this to study the openloop timers under experiment plot
+#if 0
+	{
+		static bool plot_started = false;
+		static int plot_div = 0;
+		static float plot_int = 0.0;
+		static int get_fw_version_cnt = 0;
 
-	const float min_rads = (openloop_rpm * 2.0 * M_PI) / 60.0;
+		if (commands_get_fw_version_sent_cnt() != get_fw_version_cnt) {
+			get_fw_version_cnt = commands_get_fw_version_sent_cnt();
+			plot_started = false;
+		}
+
+		plot_div++;
+		if (plot_div >= 10) {
+			plot_div = 0;
+			if (!plot_started) {
+				plot_started = true;
+				commands_init_plot("Time", "Val");
+				commands_plot_add_graph("m_min_rpm_timer");
+				commands_plot_add_graph("m_min_rpm_hyst_timer");
+			}
+
+			commands_plot_set_graph(0);
+			commands_send_plot_points(plot_int, motor->m_min_rpm_timer);
+			commands_plot_set_graph(1);
+			commands_send_plot_points(plot_int, motor->m_min_rpm_hyst_timer);
+			plot_int++;
+		}
+	}
+#endif
+
+	float openloop_rpm_max = utils_map(fabsf(motor->m_motor_state.iq_filter),
+			0.0, motor->m_conf->l_current_max,
+			motor->m_conf->foc_openloop_rpm_low * motor->m_conf->foc_openloop_rpm,
+			motor->m_conf->foc_openloop_rpm);
+
+	utils_truncate_number_abs(&openloop_rpm_max, motor->m_conf->foc_openloop_rpm);
+
+	float openloop_rpm = openloop_rpm_max;
+	if (motor->m_conf->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) {
+		float time_fwd = t_lock + t_ramp + t_const - motor->m_min_rpm_timer;
+		if (time_fwd < t_lock) {
+			openloop_rpm = 0.0;
+		} else if (time_fwd < (t_lock + t_ramp)) {
+			openloop_rpm = utils_map(time_fwd, t_lock,
+					t_lock + t_ramp, 0.0, openloop_rpm);
+		}
+	}
+
+	utils_truncate_number_abs(&openloop_rpm, openloop_rpm_max);
+
 	float add_min_speed = 0.0;
 	if (motor->m_motor_state.duty_now > 0.0) {
-		add_min_speed = min_rads * dt;
+		add_min_speed = ((openloop_rpm * 2.0 * M_PI) / 60.0) * dt;
 	} else {
-		add_min_speed = -min_rads * dt;
+		add_min_speed = -((openloop_rpm * 2.0 * M_PI) / 60.0) * dt;
 	}
 
 	// Open loop encoder angle for when the index is not found
 	motor->m_phase_now_encoder_no_index += add_min_speed;
 	utils_norm_angle_rad((float*)&motor->m_phase_now_encoder_no_index);
 
-	// Output a minimum speed from the observer
-	if (fabsf(motor->m_pll_speed) < min_rads) {
+	if (fabsf(motor->m_pll_speed) < ((openloop_rpm_max * 2.0 * M_PI) / 60.0) &&
+			motor->m_min_rpm_hyst_timer < motor->m_conf->foc_sl_openloop_hyst) {
 		motor->m_min_rpm_hyst_timer += dt;
 	} else if (motor->m_min_rpm_hyst_timer > 0.0) {
 		motor->m_min_rpm_hyst_timer -= dt;
 	}
 
 	// Don't use this in brake mode.
-	if (motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE || fabsf(motor->m_motor_state.duty_now) < 0.001) {
+	if (motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+			(motor->m_state == MC_STATE_RUNNING && fabsf(motor->m_motor_state.duty_now) < 0.001)) {
 		motor->m_min_rpm_hyst_timer = 0.0;
+		motor->m_min_rpm_timer = 0.0;
 		motor->m_phase_observer_override = false;
 	}
 
 	bool started_now = false;
-	if (motor->m_min_rpm_hyst_timer > motor->m_conf->foc_sl_openloop_hyst && motor->m_min_rpm_timer <= 0.0001) {
-		motor->m_min_rpm_timer = motor->m_conf->foc_sl_openloop_time;
+	if (motor->m_min_rpm_hyst_timer >= motor->m_conf->foc_sl_openloop_hyst &&
+			motor->m_min_rpm_timer <= 0.0001) {
+		motor->m_min_rpm_timer = t_lock + t_ramp + t_const;
 		started_now = true;
+	}
+
+	if (motor->m_state != MC_STATE_RUNNING) {
+		motor->m_min_rpm_timer = 0.0;
 	}
 
 	if (motor->m_min_rpm_timer > 0.0) {
@@ -2927,7 +2974,6 @@ static void input_current_offset_measurement(void) {
 	}
 #endif
 }
-
 
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
@@ -3903,7 +3949,8 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 		}
 	}
 
-	int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1)];
+	int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(
+			motor != &m_motor_1, conf_now->m_hall_extra_samples)];
 
 	// Only override the observer if the hall sensor value is valid.
 	if (ang_hall_int < 201) {
@@ -3943,7 +3990,8 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
-		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) / motor->m_hall_dt_diff_now)) < 100) {
+		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) /
+				fmaxf(fabsf(motor->m_hall_dt_diff_now), fabsf(motor->m_hall_dt_diff_last)))) < 100) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;

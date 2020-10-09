@@ -26,6 +26,12 @@
 
 // Data types
 typedef enum {
+	HW_TYPE_VESC = 0,
+	HW_TYPE_VESC_BMS,
+	HW_TYPE_CUSTOM_MODULE
+} HW_TYPE;
+
+typedef enum {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
    MC_STATE_RUNNING,
@@ -287,10 +293,11 @@ typedef struct {
 	float foc_duty_dowmramp_kp;
 	float foc_duty_dowmramp_ki;
 	float foc_openloop_rpm;
+	float foc_openloop_rpm_low;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
-	float foc_sl_d_current_duty;
-	float foc_sl_d_current_factor;
+	float foc_sl_openloop_time_lock;
+	float foc_sl_openloop_time_ramp;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_sl_erpm;
@@ -350,6 +357,7 @@ typedef struct {
 	out_aux_mode m_out_aux_mode;
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
+	int m_hall_extra_samples;
 	// Setup info
 	uint8_t si_motor_poles;
 	float si_gear_ratio;
@@ -814,7 +822,21 @@ typedef enum {
 	CAN_PACKET_POLL_TS5700N8501_STATUS,
 	CAN_PACKET_CONF_BATTERY_CUT,
 	CAN_PACKET_CONF_STORE_BATTERY_CUT,
-	CAN_PACKET_SHUTDOWN
+	CAN_PACKET_SHUTDOWN,
+	CAN_PACKET_IO_BOARD_ADC_1_TO_4,
+	CAN_PACKET_IO_BOARD_ADC_5_TO_8,
+	CAN_PACKET_IO_BOARD_ADC_9_TO_12,
+	CAN_PACKET_IO_BOARD_DIGITAL_IN,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM,
+	CAN_PACKET_BMS_V_TOT,
+	CAN_PACKET_BMS_I,
+	CAN_PACKET_BMS_AH_WH,
+	CAN_PACKET_BMS_V_CELL,
+	CAN_PACKET_BMS_BAL,
+	CAN_PACKET_BMS_TEMPS,
+	CAN_PACKET_BMS_HUM,
+	CAN_PACKET_BMS_SOC_SOH_TEMP
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -898,6 +920,18 @@ typedef struct {
 	float v_in;
 	int32_t tacho_value;
 } can_status_msg_5;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float adc_voltages[4];
+} io_board_adc_values;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	uint64_t inputs;
+} io_board_digial_inputs;
 
 typedef struct {
 	uint8_t js_x;

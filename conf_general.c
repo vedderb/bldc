@@ -1642,13 +1642,18 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 				continue;
 			}
 #endif
+			HW_TYPE hw_type;
+			if (comm_can_ping(i, &hw_type)) {
+				if (hw_type != HW_TYPE_VESC) {
+					continue;
+				}
 
-			if (comm_can_ping(i)) {
 				comm_can_conf_current_limits_in(i, false, mcconf->l_in_current_min, mcconf->l_in_current_max);
 				comm_can_conf_foc_erpms(i, false, mcconf->foc_openloop_rpm, mcconf->foc_sl_erpm);
 				comm_can_detect_apply_all_foc(i, true, max_power_loss);
 				can_devs++;
 
+				// If some other controller has the same ID, change the local one.
 				if (i == id_new) {
 					// Add 2 in case this was a dual controller
 					id_new++;

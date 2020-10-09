@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		8
+#define FW_TEST_VERSION_NUMBER		10
 
 #include "datatypes.h"
 
@@ -72,9 +72,10 @@
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
+//#define HW60_IS_MK5
 
-//#define HW_SOURCE "hw_60.c"
-//#define HW_HEADER "hw_60.h"
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -101,8 +102,8 @@
 //#define HW75_300_VEDDER_FIRST_PCB
 
 // Second revision with separate UART for NRF51
-//#define HW75_300_REV_2
-//#define HW75_300_REV_3
+#define HW75_300_REV_2
+#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -153,8 +154,11 @@
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
 
-#define HW_SOURCE "hw_140_300.c"
-#define HW_HEADER "hw_140_300.h"
+//#define HW_SOURCE "hw_140_300.c"
+//#define HW_HEADER "hw_140_300.h"
+
+//#define HW_SOURCE "hw_es19.c"
+//#define HW_HEADER "hw_es19.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -195,6 +199,11 @@
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf_v2.h"
+
+// CAN-plotter
+//#define APP_CUSTOM_TO_USE			"app_plot_can.c"
+//#define APPCONF_APP_TO_USE			APP_CUSTOM
+//#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
 #include "mcconf_default.h"

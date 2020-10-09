@@ -65,6 +65,7 @@ static int rx_frame_read;
 static int rx_frame_write;
 static thread_t *process_tp = 0;
 static thread_t *ping_tp = 0;
+static volatile HW_TYPE ping_hw_last = HW_TYPE_VESC;
 #endif
 
 // Variables
@@ -73,6 +74,9 @@ static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
+static io_board_adc_values io_board_adc_1_4[CAN_STATUS_MSGS_TO_STORE];
+static io_board_adc_values io_board_adc_5_8[CAN_STATUS_MSGS_TO_STORE];
+static io_board_digial_inputs io_board_digital_in[CAN_STATUS_MSGS_TO_STORE];
 static unsigned int detect_all_foc_res_index = 0;
 static int8_t detect_all_foc_res[50];
 
@@ -110,6 +114,10 @@ void comm_can_init(void) {
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
 		stat_msgs_5[i].id = -1;
+
+		io_board_adc_1_4[i].id = -1;
+		io_board_adc_5_8[i].id = -1;
+		io_board_digital_in[i].id = -1;
 	}
 
 #if CAN_ENABLE
@@ -460,10 +468,13 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
  * @param controller_id
  * The ID of the VESC.
  *
+ * @param hw_type
+ * The hardware type of the CAN device.
+ *
  * @return
  * True for success, false otherwise.
  */
-bool comm_can_ping(uint8_t controller_id) {
+bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type) {
 #if CAN_ENABLE
 	if (app_get_configuration()->can_mode != CAN_MODE_VESC) {
 		return false;
@@ -485,6 +496,13 @@ bool comm_can_ping(uint8_t controller_id) {
 
 	int ret = chEvtWaitAnyTimeout(1 << 29, MS2ST(10));
 	ping_tp = 0;
+
+	if (ret != 0) {
+		if (hw_type) {
+			*hw_type = ping_hw_last;
+		}
+	}
+
 	return ret != 0;
 #else
 	(void)controller_id;
@@ -804,6 +822,83 @@ can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
 	}
 
 	return 0;
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_adc_1_4[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_1_4[i].id == id) {
+			return &io_board_adc_1_4[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_adc_5_8[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_5_8[i].id == id) {
+			return &io_board_adc_1_4[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_digital_in[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_digital_in[i].id == id) {
+			return &io_board_digital_in[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_io_board_set_output_digital(int id, int channel, bool on) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer[send_index++] = 1;
+	buffer[send_index++] = on ? 1 : 0;
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL << 8),
+			buffer, send_index);
+}
+
+void comm_can_io_board_set_output_pwm(int id, int channel, float duty) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer_append_float16(buffer, duty, 1e3, &send_index);
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM << 8),
+			buffer, send_index);
 }
 
 CANRxFrame *comm_can_get_rx_frame(void) {
@@ -1178,15 +1273,21 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				break;
 
 			case CAN_PACKET_PING: {
-				uint8_t buffer[1];
+				uint8_t buffer[2];
 				buffer[0] = app_get_configuration()->controller_id;
+				buffer[1] = HW_TYPE_VESC;
 				comm_can_transmit_eid(data8[0] |
-						((uint32_t)CAN_PACKET_PONG << 8), buffer, 1);
+						((uint32_t)CAN_PACKET_PONG << 8), buffer, 2);
 			} break;
 
 			case CAN_PACKET_PONG:
 				// data8[0]; // Sender ID
 				if (ping_tp) {
+					if (len >= 2) {
+						ping_hw_last = data8[1];
+					} else {
+						ping_hw_last = HW_TYPE_VESC;
+					}
 					chEvtSignal(ping_tp, 1 << 29);
 				}
 				break;
@@ -1424,6 +1525,59 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		}
 		break;
 
+	case CAN_PACKET_IO_BOARD_ADC_1_TO_4:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_1_4[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_ADC_5_TO_8:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_5_8[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_DIGITAL_IN:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_digial_inputs *msg = &io_board_digital_in[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				msg->inputs = 0;
+				ind = 0;
+				while (ind < len) {
+					msg->inputs |= (uint64_t)data8[ind] << (ind * 8);
+					ind++;
+				}
+				break;
+			}
+		}
+		break;
+		break;
+
 	default:
 		break;
 	}
@@ -1481,6 +1635,7 @@ static void send_status5(uint8_t id, bool replace) {
 	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_5 << 8),
 			buffer, send_index, replace);
 }
+
 #endif
 
 /**
