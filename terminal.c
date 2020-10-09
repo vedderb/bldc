@@ -37,6 +37,7 @@
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
 #include "mempools.h"
+#include "crc.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -161,6 +162,10 @@ void terminal_process_string(char *str) {
 		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
+	} else if (strcmp(argv[0], "dist") == 0) {
+		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
+		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
+		commands_printf("Odometer        : %u   m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -959,7 +964,17 @@ void terminal_process_string(char *str) {
 			commands_printf("This command requires one argument.\n");
 		}
 	}
-
+	else if (strcmp(argv[0], "build_date") == 0) {
+		    commands_printf("Build date and time: %s at %s\n", __DATE__, __TIME__);
+	} else if (strcmp(argv[0], "crc") == 0) {
+            unsigned mc_crc0 = mc_interface_get_configuration()->crc;
+			unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
+			commands_printf(" MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
+			commands_printf(" Discrepancy is expected due to run-time recalculation of config params.\n");
+			unsigned app_crc0 = app_get_configuration()->crc;
+			unsigned app_crc1 = app_calc_crc(NULL);
+			commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)\n", app_crc0, app_crc1);
+        }
 	// The help command
 	else if (strcmp(argv[0], "help") == 0) {
 		commands_printf("Valid commands are:");
@@ -1084,6 +1099,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hall_analyze [current]");
 		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
+
+		commands_printf("crc");
+		commands_printf("  Print CRC values.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

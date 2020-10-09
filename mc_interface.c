@@ -39,6 +39,7 @@
 #include "app.h"
 #include "utils.h"
 #include "mempools.h"
+#include "crc.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -113,6 +114,8 @@ static volatile bool m_sample_is_second_motor;
 static volatile mc_fault_code m_fault_stop_fault;
 static volatile bool m_fault_stop_is_second_motor;
 
+static volatile uint32_t m_odometer_meters;
+
 // Private functions
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf);
 static void run_timer_tasks(volatile motor_if_state_t *motor);
@@ -155,6 +158,12 @@ void mc_interface_init(void) {
 	m_sample_mode = DEBUG_SAMPLING_OFF;
 	m_sample_mode_last = DEBUG_SAMPLING_OFF;
 	m_sample_is_second_motor = false;
+	//initialize odometer to EEPROM value
+	m_odometer_meters = 0;
+	eeprom_var v;
+	if(conf_general_read_eeprom_var_custom(&v, EEPROM_ADDR_ODOMETER)) {
+		m_odometer_meters = v.as_u32;
+	}
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -527,6 +536,8 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE"; break;
 	case FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE"; break;
     case FAULT_CODE_FLASH_CORRUPTION: return "FAULT_CODE_FLASH_CORRUPTION";
+    case FAULT_CODE_FLASH_CORRUPTION_APP_CFG: return "FAULT_CODE_FLASH_CORRUPTION_APP_CFG";
+    case FAULT_CODE_FLASH_CORRUPTION_MC_CFG: return "FAULT_CODE_FLASH_CORRUPTION_MC_CFG";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
@@ -2356,4 +2367,70 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 
 		motor->m_fault_now = m_fault_stop_fault;
 	}
+}
+
+/**
+ * Get mc_configuration CRC (motor 1 or 2)
+ *
+ * @param conf
+ * Pointer to mc_configuration or NULL for current config
+ *
+ * @param is_motor_2
+ * true if motor2, false if motor1
+ * 
+ * @return
+ * CRC16 (with crc field in struct temporarily set to zero).
+ */
+unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
+	volatile mc_configuration* conf = conf_in;
+
+	if(conf == NULL) {
+		if(is_motor_2) {
+#ifdef HW_HAS_DUAL_MOTORS
+			conf = &(m_motor_2.m_conf);
+#else
+			return 0; //shouldn't be here
+#endif
+		} else {
+			conf = &(m_motor_1.m_conf);
+		}
+	}
+
+	unsigned crc_old = conf->crc;
+	conf->crc = 0;
+	unsigned crc_new = crc16((uint8_t*)conf, sizeof(mc_configuration));
+	conf->crc = crc_old;
+	return crc_new;
+}
+
+/**
+ * Set odometer value in meters.
+ *
+ * @param new_odometer_meters
+ * new odometer value in meters
+ */
+void mc_interface_set_odometer(uint32_t new_odometer_meters) {
+	m_odometer_meters = new_odometer_meters - roundf(mc_interface_get_distance_abs());
+}
+
+/**
+ * Return current odometer value in meters.
+ *
+ * @return
+ * Odometer value in meters, including current trip
+ */
+uint32_t mc_interface_get_odometer(void) {
+	return m_odometer_meters + roundf(mc_interface_get_distance_abs());
+}
+
+/**
+ * Save current odometer value to persistent memory
+ *
+ * @return
+ * success
+ */
+bool mc_interface_save_odometer(void) {
+	eeprom_var v;
+	v.as_u32 = mc_interface_get_odometer();
+	return conf_general_store_eeprom_var_custom(&v, EEPROM_ADDR_ODOMETER);
 }
