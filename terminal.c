@@ -874,13 +874,13 @@ void terminal_process_string(char *str) {
 				}
 
 				bool is_second_motor = mc_interface_get_motor_thread() == 2;
-				int hall_last = utils_read_hall(is_second_motor);
+				int hall_last = utils_read_hall(is_second_motor, mcconf->foc_hall_samples);
 				float transitions[7] = {0.0};
 				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 				int transition_index = 0;
 
 				for (int i = 0;i < 720;i++) {
-					int hall = utils_read_hall(is_second_motor);
+					int hall = utils_read_hall(is_second_motor, mcconf->foc_hall_samples);
 					if (hall_last != hall) {
 						if (transition_index < 7) {
 							transitions[transition_index++] = phase;

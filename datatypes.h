@@ -296,6 +296,8 @@ typedef struct {
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_sl_erpm;
+	uint8_t foc_hall_samples;
+	uint32_t foc_hall_interp_erpm;
 	bool foc_sample_v0_v7;
 	bool foc_sample_high_current;
 	float foc_sat_comp;

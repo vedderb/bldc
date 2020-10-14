@@ -760,36 +760,24 @@ uint8_t utils_second_motor_id(void) {
 #endif
 }
 
-int utils_read_hall(bool is_second_motor) {
-	int h1, h2, h3;
+int utils_read_hall(bool is_second_motor, uint8_t read_count) {
+	int h1 = 0, h2 = 0, h3 = 0;
 
 	if (is_second_motor) {
-		h1 = READ_HALL1_2();
-		h2 = READ_HALL2_2();
-		h3 = READ_HALL3_2();
-
-		h1 += READ_HALL1_2();
-		h2 += READ_HALL2_2();
-		h3 += READ_HALL3_2();
-
-		h1 += READ_HALL1_2();
-		h2 += READ_HALL2_2();
-		h3 += READ_HALL3_2();
+		for(int i = 0; i < read_count; i++){
+			h1 += READ_HALL1_2();
+			h2 += READ_HALL2_2();
+			h3 += READ_HALL3_2();
+		}
 	} else {
-		h1 = READ_HALL1();
-		h2 = READ_HALL2();
-		h3 = READ_HALL3();
-
-		h1 += READ_HALL1();
-		h2 += READ_HALL2();
-		h3 += READ_HALL3();
-
-		h1 += READ_HALL1();
-		h2 += READ_HALL2();
-		h3 += READ_HALL3();
+		for(int i = 0; i < read_count; i++){
+			h1 += READ_HALL1();
+			h2 += READ_HALL2();
+			h3 += READ_HALL3();
+		}
 	}
 
-	return (h1 > 1) | ((h2 > 1) << 1) | ((h3 > 1) << 2);
+	return (h1 > read_count/2) | ((h2 > read_count/2) << 1) | ((h3 > read_count/2) << 2);
 }
 
 // A mapping of a samsung 30q cell for % remaining capacity vs. voltage from

@@ -320,6 +320,12 @@
 #ifndef MCCONF_FOC_SL_ERPM
 #define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
 #endif
+#ifndef MCCONF_FOC_HALL_SAMPLES
+#define MCCONF_FOC_HALL_SAMPLES			3
+#endif
+#ifndef MCCONF_FOC_HALL_INTERP_ERPM
+#define MCCONF_FOC_HALL_INTERP_ERPM		100
+#endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif

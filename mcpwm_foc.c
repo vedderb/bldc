@@ -2031,7 +2031,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = utils_read_hall(motor != &m_motor_1);
+			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->foc_hall_samples);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -2046,7 +2046,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 			motor->m_phase_now_override = (float)j * M_PI / 180.0;
 			chThdSleepMilliseconds(5);
 
-			int hall = utils_read_hall(motor != &m_motor_1);
+			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->foc_hall_samples);
 			float s, c;
 			sincosf(motor->m_phase_now_override, &s, &c);
 			sin_hall[hall] += s;
@@ -3903,7 +3903,7 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 		}
 	}
 
-	int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1)];
+	int ang_hall_int = conf_now->foc_hall_table[utils_read_hall(motor != &m_motor_1, motor->m_conf->foc_hall_samples)];
 
 	// Only override the observer if the hall sensor value is valid.
 	if (ang_hall_int < 201) {
@@ -3943,7 +3943,7 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
-		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) / motor->m_hall_dt_diff_now)) < 100) {
+		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) / fmaxf(fabsf(motor->m_hall_dt_diff_last), motor->m_hall_dt_diff_now))) < conf_now->foc_hall_interp_erpm) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;
