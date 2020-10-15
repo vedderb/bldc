@@ -372,6 +372,9 @@
 #ifndef MCCONF_M_DRV8301_OC_ADJ
 #define MCCONF_M_DRV8301_OC_ADJ		14
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START			0.9 // Start limiting current at this duty cycle
+#endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
 #endif
