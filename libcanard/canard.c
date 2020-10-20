@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 UAVCAN Team
+ * Copyright (c) 2016-2019 UAVCAN Team
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -248,7 +248,7 @@ void canardPopTxQueue(CanardInstance* ins)
     freeBlock(&ins->allocator, item);
 }
 
-void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint64_t timestamp_usec)
+int16_t canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint64_t timestamp_usec)
 {
     const CanardTransferType transfer_type = extractTransferType(frame->id);
     const uint8_t destination_node_id = (transfer_type == CanardTransferTypeBroadcast) ?
@@ -262,13 +262,13 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         (frame->id & CANARD_CAN_FRAME_ERR) != 0 ||
         (frame->data_len < 1))
     {
-        return;     // Unsupported frame, not UAVCAN - ignore
+        return -CANARD_ERROR_RX_INCOMPATIBLE_PACKET;
     }
 
     if (transfer_type != CanardTransferTypeBroadcast &&
         destination_node_id != canardGetLocalNodeID(ins))
     {
-        return;     // Address mismatch
+        return -CANARD_ERROR_RX_WRONG_ADDRESS;
     }
 
     const uint8_t priority = PRIORITY_FROM_ID(frame->id);
@@ -291,14 +291,14 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
 
             if(rx_state == NULL)
             {
-                return; // No allocator room for this frame
+                return -CANARD_ERROR_OUT_OF_MEMORY;
             }
 
             rx_state->calculated_crc = crcAddSignature(0xFFFFU, data_type_signature);
         }
         else
         {
-            return;     // The application doesn't want this transfer
+            return -CANARD_ERROR_RX_NOT_WANTED;
         }
     }
     else
@@ -307,7 +307,7 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
 
         if (rx_state == NULL)
         {
-            return;
+            return -CANARD_ERROR_RX_MISSED_START;
         }
     }
 
@@ -330,10 +330,10 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         rx_state->transfer_id = TRANSFER_ID_FROM_TAIL_BYTE(tail_byte);
         rx_state->next_toggle = 0;
         releaseStatePayload(ins, rx_state);
-        if (!IS_START_OF_TRANSFER(tail_byte)) // missed the first frame
+        if (!IS_START_OF_TRANSFER(tail_byte))
         {
             rx_state->transfer_id++;
-            return;
+            return -CANARD_ERROR_RX_MISSED_START;
         }
     }
 
@@ -345,7 +345,7 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
             .payload_head = frame->data,
             .payload_len = (uint8_t)(frame->data_len - 1U),
             .data_type_id = data_type_id,
-            .transfer_type = transfer_type,
+            .transfer_type = (uint8_t)transfer_type,
             .transfer_id = TRANSFER_ID_FROM_TAIL_BYTE(tail_byte),
             .priority = priority,
             .source_node_id = source_node_id
@@ -354,24 +354,24 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         ins->on_reception(ins, &rx_transfer);
 
         prepareForNextTransfer(rx_state);
-        return;
+        return CANARD_OK;
     }
 
     if (TOGGLE_BIT(tail_byte) != rx_state->next_toggle)
     {
-        return; // wrong toggle
+        return -CANARD_ERROR_RX_WRONG_TOGGLE;
     }
 
     if (TRANSFER_ID_FROM_TAIL_BYTE(tail_byte) != rx_state->transfer_id)
     {
-        return; // unexpected tid
+        return -CANARD_ERROR_RX_UNEXPECTED_TID;
     }
 
     if (IS_START_OF_TRANSFER(tail_byte) && !IS_END_OF_TRANSFER(tail_byte))      // Beginning of multi frame transfer
     {
         if (frame->data_len <= 3)
         {
-            return;     // Not enough data
+            return -CANARD_ERROR_RX_SHORT_FRAME;
         }
 
         // take off the crc and store the payload
@@ -382,7 +382,7 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         {
             releaseStatePayload(ins, rx_state);
             prepareForNextTransfer(rx_state);
-            return;
+            return CANARD_ERROR_OUT_OF_MEMORY;
         }
         rx_state->payload_crc = (uint16_t)(((uint16_t) frame->data[0]) | (uint16_t)((uint16_t) frame->data[1] << 8U));
         rx_state->calculated_crc = crcAdd((uint16_t)rx_state->calculated_crc,
@@ -396,7 +396,7 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         {
             releaseStatePayload(ins, rx_state);
             prepareForNextTransfer(rx_state);
-            return;
+            return CANARD_ERROR_OUT_OF_MEMORY;
         }
         rx_state->calculated_crc = crcAdd((uint16_t)rx_state->calculated_crc,
                                           frame->data, (uint8_t)(frame->data_len - 1));
@@ -450,7 +450,7 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
             .payload_tail = (tail_offset >= frame_payload_size) ? NULL : (&frame->data[tail_offset]),
             .payload_len = (uint16_t)(rx_state->payload_len + frame_payload_size),
             .data_type_id = data_type_id,
-            .transfer_type = transfer_type,
+            .transfer_type = (uint8_t)transfer_type,
             .transfer_id = TRANSFER_ID_FROM_TAIL_BYTE(tail_byte),
             .priority = priority,
             .source_node_id = source_node_id
@@ -468,10 +468,19 @@ void canardHandleRxFrame(CanardInstance* ins, const CanardCANFrame* frame, uint6
         // Making sure the payload is released even if the application didn't bother with it
         canardReleaseRxTransferPayload(ins, &rx_transfer);
         prepareForNextTransfer(rx_state);
-        return;
+
+        if (rx_state->calculated_crc == rx_state->payload_crc)
+        {
+            return CANARD_OK;
+        }
+        else
+        {
+            return CANARD_ERROR_RX_BAD_CRC;
+        }
     }
 
     rx_state->next_toggle = rx_state->next_toggle ? 0 : 1;
+    return CANARD_OK;
 }
 
 void canardCleanupStaleTransfers(CanardInstance* ins, uint64_t current_time_usec)
@@ -1012,46 +1021,46 @@ CANARD_INTERNAL CanardTxQueueItem* createTxItem(CanardPoolAllocator* allocator)
 }
 
 /**
- * Returns true if priority of rhs is higher than id
+ * Returns true if priority of self is higher than other.
  */
-CANARD_INTERNAL bool isPriorityHigher(uint32_t rhs, uint32_t id)
+CANARD_INTERNAL bool isPriorityHigher(uint32_t self, uint32_t other)
 {
-    const uint32_t clean_id = id & CANARD_CAN_EXT_ID_MASK;
-    const uint32_t rhs_clean_id = rhs & CANARD_CAN_EXT_ID_MASK;
+    const uint32_t self_clean_id = self & CANARD_CAN_EXT_ID_MASK;
+    const uint32_t other_clean_id = other & CANARD_CAN_EXT_ID_MASK;
 
     /*
      * STD vs EXT - if 11 most significant bits are the same, EXT loses.
      */
-    const bool ext = (id & CANARD_CAN_FRAME_EFF) != 0;
-    const bool rhs_ext = (rhs & CANARD_CAN_FRAME_EFF) != 0;
-    if (ext != rhs_ext)
+    const bool self_ext = (self & CANARD_CAN_FRAME_EFF) != 0;
+    const bool other_ext = (other & CANARD_CAN_FRAME_EFF) != 0;
+    if (self_ext != other_ext)
     {
-        uint32_t arb11 = ext ? (clean_id >> 18U) : clean_id;
-        uint32_t rhs_arb11 = rhs_ext ? (rhs_clean_id >> 18U) : rhs_clean_id;
-        if (arb11 != rhs_arb11)
+        const uint32_t self_arb11 = self_ext ? (self_clean_id >> 18U) : self_clean_id;
+        const uint32_t other_arb11 = other_ext ? (other_clean_id >> 18U) : other_clean_id;
+        if (self_arb11 != other_arb11)
         {
-            return arb11 < rhs_arb11;
+            return self_arb11 < other_arb11;
         }
         else
         {
-            return rhs_ext;
+            return other_ext;
         }
     }
 
     /*
      * RTR vs Data frame - if frame identifiers and frame types are the same, RTR loses.
      */
-    const bool rtr = (id & CANARD_CAN_FRAME_RTR) != 0;
-    const bool rhs_rtr = (rhs & CANARD_CAN_FRAME_RTR) != 0;
-    if (clean_id == rhs_clean_id && rtr != rhs_rtr)
+    const bool self_rtr = (self & CANARD_CAN_FRAME_RTR) != 0;
+    const bool other_rtr = (other & CANARD_CAN_FRAME_RTR) != 0;
+    if (self_clean_id == other_clean_id && self_rtr != other_rtr)
     {
-        return rhs_rtr;
+        return other_rtr;
     }
 
     /*
      * Plain ID arbitration - greater value loses.
      */
-    return clean_id < rhs_clean_id;
+    return self_clean_id < other_clean_id;
 }
 
 /**
@@ -1120,7 +1129,7 @@ CANARD_INTERNAL CanardRxState* traverseRxStates(CanardInstance* ins, uint32_t tr
     if (states == NULL) // initialize CanardRxStates
     {
         states = createRxState(&ins->allocator, transfer_descriptor);
-        
+
         if(states == NULL)
         {
             return NULL;
