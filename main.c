@@ -246,14 +246,16 @@ int main(void) {
 	comm_usb_init();
 #endif
 
-#if CAN_ENABLE
-	comm_can_init();
-#endif
-
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
 	app_set_configuration(appconf);
 	app_uartcomm_start_permanent();
+
+//Can in uavcan mode needs app config to be valid before init to retrieve
+//the nodeId
+#if CAN_ENABLE
+	comm_can_init();
+#endif
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
