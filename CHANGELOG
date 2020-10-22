@@ -19,6 +19,7 @@
 * Added locking time and ramp up time parameters to sensorless startup.
 * Removed D axis current injection.
 * Initial VESC IO-board support
+* Added hall sensor interpolation ERPM config option.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

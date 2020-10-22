@@ -767,7 +767,8 @@ uint8_t utils_second_motor_id(void) {
  * Use hall sensor port for second motor on dual motor hardware.
  *
  * @param samples
- * The number of samples to read and filter over.
+ * The number of extra samples to read and filter over. If this
+ * is 0, only one sample will be used.
  *
  * @return
  * The state of the three hall sensors.

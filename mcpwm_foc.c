@@ -3991,7 +3991,8 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
 		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) /
-				fmaxf(fabsf(motor->m_hall_dt_diff_now), fabsf(motor->m_hall_dt_diff_last)))) < 100) {
+				fmaxf(fabsf(motor->m_hall_dt_diff_now),
+						fabsf(motor->m_hall_dt_diff_last)))) < conf_now->foc_hall_interp_erpm) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;
