@@ -182,11 +182,14 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.can_id = id;
 					m_values.update_time = chVTGetSystemTimeX();
 
+					int cell_num = data8[0];
 					uint64_t bal_state_0 = buffer_get_uint32(data8, &ind);
+					bal_state_0 &= 0x00FFFFFF;
 					uint64_t bal_state_1 = buffer_get_uint32(data8, &ind);
 					uint64_t bal_state = bal_state_0 << 32 | bal_state_1;
 					ind = 0;
-					while (ind < (int)(sizeof(m_values.bal_state) / sizeof(bool)) && ind < 64) {
+
+					while (ind < (int)(sizeof(m_values.bal_state) / sizeof(bool)) && ind < cell_num) {
 						m_values.bal_state[ind] = (bal_state >> ind) & 1;
 						ind++;
 					}
