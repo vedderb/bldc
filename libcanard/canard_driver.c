@@ -306,8 +306,7 @@ static THD_FUNCTION(canard_thread, arg) {
 
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
-	bool idSet = false;
-
+	
 	for (;;) {
 		const app_configuration *conf = app_get_configuration();
 
@@ -316,12 +315,9 @@ static THD_FUNCTION(canard_thread, arg) {
 			continue;
 		}
 		
-		if (!idSet) {
-			// Setting id is only allowed to happen once 
-			// else assert is called
-			canardSetLocalNodeID(&canard, conf->controller_id);
-			idSet = true;
-		}
+		// Usually setting id is only allowed once but libcanard 
+		// was modified for it to work 
+		canardSetLocalNodeID(&canard, conf->controller_id);
 
 		CANRxFrame *rxmsg;
 		while ((rxmsg = comm_can_get_rx_frame()) != 0) {

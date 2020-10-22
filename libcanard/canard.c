@@ -114,7 +114,8 @@ void canardSetLocalNodeID(CanardInstance* ins, uint8_t self_node_id)
 {
     CANARD_ASSERT(ins != NULL);
 
-    if ((ins->node_id == CANARD_BROADCAST_NODE_ID) &&
+    // Applying settings like nodeId should not require a restart 
+    if (/*(ins->node_id == CANARD_BROADCAST_NODE_ID) &&*/
         (self_node_id >= CANARD_MIN_NODE_ID) &&
         (self_node_id <= CANARD_MAX_NODE_ID))
     {
