@@ -37,6 +37,7 @@
 #include "utils.h"
 #include "mempools.h"
 #include "shutdown.h"
+#include "bms.h"
 
 // Settings
 #define RX_FRAMES_SIZE	100
@@ -996,10 +997,14 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 			CANRxFrame rxmsg = *rxmsg_tmp;
 
 			if (rxmsg.IDE == CAN_IDE_EXT) {
-				decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+				if (!bms_process_can_frame(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true)) {
+					decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+				}
 			} else {
-				if (sid_callback) {
-					sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+				if (!bms_process_can_frame(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false)) {
+					if (sid_callback) {
+						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+					}
 				}
 			}
 		}

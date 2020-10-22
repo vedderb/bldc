@@ -93,12 +93,13 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[5];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[6];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[7];
+	buffer_append_float32_auto(buffer, conf->foc_hall_interp_erpm, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_sl_erpm, &ind);
 	buffer[ind++] = conf->foc_sample_v0_v7;
 	buffer[ind++] = conf->foc_sample_high_current;
-	buffer_append_float32_auto(buffer, conf->foc_sat_comp, &ind);
+	buffer_append_float16(buffer, conf->foc_sat_comp, 1000, &ind);
 	buffer[ind++] = conf->foc_temp_comp;
-	buffer_append_float32_auto(buffer, conf->foc_temp_comp_base_temp, &ind);
+	buffer_append_float16(buffer, conf->foc_temp_comp_base_temp, 100, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_current_filter_const, &ind);
 	buffer[ind++] = conf->foc_cc_decoupling;
 	buffer[ind++] = conf->foc_observer_type;
@@ -152,6 +153,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->si_battery_type;
 	buffer[ind++] = (uint8_t)conf->si_battery_cells;
 	buffer_append_float32_auto(buffer, conf->si_battery_ah, &ind);
+	buffer[ind++] = conf->bms.type;
+	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
+	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
+	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.soc_limit_end, 1000, &ind);
 
 	return ind;
 }
@@ -394,12 +400,13 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hall_table[5] = buffer[ind++];
 	conf->foc_hall_table[6] = buffer[ind++];
 	conf->foc_hall_table[7] = buffer[ind++];
+	conf->foc_hall_interp_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sl_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sample_v0_v7 = buffer[ind++];
 	conf->foc_sample_high_current = buffer[ind++];
-	conf->foc_sat_comp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_sat_comp = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_temp_comp = buffer[ind++];
-	conf->foc_temp_comp_base_temp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_temp_comp_base_temp = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_current_filter_const = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_cc_decoupling = buffer[ind++];
 	conf->foc_observer_type = buffer[ind++];
@@ -453,6 +460,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->si_battery_type = buffer[ind++];
 	conf->si_battery_cells = buffer[ind++];
 	conf->si_battery_ah = buffer_get_float32_auto(buffer, &ind);
+	conf->bms.type = buffer[ind++];
+	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
+	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
+	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.soc_limit_end = buffer_get_float16(buffer, 1000, &ind);
 
 	return true;
 }
@@ -691,6 +703,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hall_table[5] = MCCONF_FOC_HALL_TAB_5;
 	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
 	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
+	conf->foc_hall_interp_erpm = MCCONF_FOC_HALL_INTERP_ERPM;
 	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
 	conf->foc_sample_v0_v7 = MCCONF_FOC_SAMPLE_V0_V7;
 	conf->foc_sample_high_current = MCCONF_FOC_SAMPLE_HIGH_CURRENT;
@@ -750,6 +763,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->si_battery_type = MCCONF_SI_BATTERY_TYPE;
 	conf->si_battery_cells = MCCONF_SI_BATTERY_CELLS;
 	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
+	conf->bms.type = MCCONF_BMS_TYPE;
+	conf->bms.t_limit_start = MCCONF_BMS_T_LIMIT_START;
+	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
+	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
+	conf->bms.soc_limit_end = MCCONF_BMS_SOC_LIMIT_END;
 }
 
 void confgenerator_set_defaults_appconf(app_configuration *conf) {

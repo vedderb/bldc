@@ -47,6 +47,7 @@
 #endif
 #include "minilzo.h"
 #include "mempools.h"
+#include "bms.h"
 
 #include <math.h>
 #include <string.h>
@@ -1137,6 +1138,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			reply_func(send_buffer, ind);
 		}
 	} break;
+
+	case COMM_BMS_GET_VALUES:
+	case COMM_BMS_SET_CHARGE_ALLOWED:
+	case COMM_BMS_SET_BALANCE_OVERRIDE:
+	case COMM_BMS_RESET_COUNTERS:
+	case COMM_BMS_FORCE_BALANCE:
+	case COMM_BMS_ZERO_CURRENT_OFFSET: {
+		bms_process_cmd(data - 1, len + 1, reply_func);
+		break;
+	}
 
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has

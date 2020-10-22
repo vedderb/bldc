@@ -40,6 +40,7 @@
 #include "utils.h"
 #include "mempools.h"
 #include "crc.h"
+#include "bms.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -263,6 +264,8 @@ void mc_interface_init(void) {
 	default:
 		break;
 	}
+
+	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
 
 int mc_interface_motor_now(void) {
@@ -457,6 +460,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	default:
 		break;
 	}
+
+	bms_init(&configuration->bms);
 }
 
 bool mc_interface_dccal_done(void) {
@@ -2048,8 +2053,11 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float lo_in_max_watt = conf->l_watt_max / v_in;
 	const float lo_in_min_watt = conf->l_watt_min / v_in;
 
-	const float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
-	const float lo_in_min = lo_in_min_watt;
+	float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
+	float lo_in_min = lo_in_min_watt;
+
+	// BMS limits
+	bms_update_limits(&lo_in_min,  &lo_in_max, conf->l_in_current_min, conf->l_in_current_max);
 
 	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
 	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);

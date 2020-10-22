@@ -320,6 +320,9 @@
 #ifndef MCCONF_FOC_HALL_TAB_7
 #define MCCONF_FOC_HALL_TAB_7			255
 #endif
+#ifndef MCCONF_FOC_HALL_INTERP_ERPM
+#define MCCONF_FOC_HALL_INTERP_ERPM		500		// Do not interpolate hall sensors below this ERPM
+#endif
 #ifndef MCCONF_FOC_SL_ERPM
 #define MCCONF_FOC_SL_ERPM				2500.0	// ERPM above which only the observer is used
 #endif
@@ -469,6 +472,23 @@
 #endif
 #ifndef MCCONF_SI_BATTERY_AH
 #define MCCONF_SI_BATTERY_AH			6.0 // Battery amp hours
+#endif
+
+// BMS
+#ifndef MCCONF_BMS_TYPE
+#define MCCONF_BMS_TYPE					BMS_TYPE_VESC
+#endif
+#ifndef MCCONF_BMS_T_LIMIT_START
+#define MCCONF_BMS_T_LIMIT_START		45
+#endif
+#ifndef MCCONF_BMS_T_LIMIT_END
+#define MCCONF_BMS_T_LIMIT_END			65
+#endif
+#ifndef MCCONF_BMS_SOC_LIMIT_START
+#define MCCONF_BMS_SOC_LIMIT_START		0.05
+#endif
+#ifndef MCCONF_BMS_SOC_LIMIT_END
+#define MCCONF_BMS_SOC_LIMIT_END		0
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */
