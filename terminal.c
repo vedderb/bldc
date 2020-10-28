@@ -1033,8 +1033,6 @@ void terminal_process_string(char *str) {
 				commands_printf("Invalid arguments\n");
 			}
 		}
-	} else if (strcmp(argv[0], "build_date") == 0) {
-		commands_printf("Build date and time: %s at %s\n", __DATE__, __TIME__);
 	} else if (strcmp(argv[0], "crc") == 0) {
 		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
 		unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
@@ -1178,9 +1176,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("io_board_set_output_pwm [id] [ch] [duty]");
 		commands_printf("  Set pwm output of IO board.");
-
-		commands_printf("build_date");
-		commands_printf("  Print build date and time.");
 
 		commands_printf("crc");
 		commands_printf("  Print CRC values.");

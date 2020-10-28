@@ -293,6 +293,14 @@ static volatile bool hfi_thd_stop;
 		TIM2->CR1 &= ~TIM_CR1_UDIS;
 #endif
 
+// #define M_MOTOR: For single motor compilation, expands to &m_motor_1.
+// For dual motors, expands to &m_motor_1 or _2, depending on is_second_motor.
+#ifdef HW_HAS_DUAL_MOTORS
+#define M_MOTOR(is_second_motor) (is_second_motor ? &m_motor_2 : &m_motor_1)
+#else
+#define M_MOTOR(is_second_motor)  (((void)is_second_motor), &m_motor_1)
+#endif
+
 static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state_t *motor) {
 	utils_sys_lock_cnt();
 
@@ -751,12 +759,7 @@ int mcpwm_foc_isr_motor(void) {
  * Switch off all FETs.
  */
 void mcpwm_foc_stop_pwm(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-#else
-	(void)is_second_motor;
-	volatile motor_all_state_t *motor = &m_motor_1;
-#endif
+	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
 
 	motor->m_control_mode = CONTROL_MODE_NONE;
 	motor->m_state = MC_STATE_OFF;
@@ -1082,69 +1085,34 @@ bool mcpwm_foc_is_using_encoder(void) {
 }
 
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
+	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
 	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
-#else
-	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq) * m_motor_1.m_motor_state.i_abs;
-#endif
 }
 
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
+	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
 	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
-#else
-	(void)is_second_motor;
-	return SIGN(m_motor_1.m_motor_state.vq * m_motor_1.m_motor_state.iq_filter) * m_motor_1.m_motor_state.i_abs_filter;
-#endif
 }
 
 float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_bus;
-#else
-	(void)is_second_motor;
-	return m_motor_1.m_motor_state.i_bus;
-#endif
+	return M_MOTOR(is_second_motor)->m_motor_state.i_bus;
 }
 
 float mcpwm_foc_get_tot_current_in_filtered_motor(bool is_second_motor) {
 	// TODO: Filter current?
-#ifdef HW_HAS_DUAL_MOTORS
-	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_bus;
-#else
-	(void)is_second_motor;
-	return m_motor_1.m_motor_state.i_bus;
-#endif
+	return M_MOTOR(is_second_motor)->m_motor_state.i_bus;
 }
 
 float mcpwm_foc_get_abs_motor_current_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_abs;
-#else
-	(void)is_second_motor;
-	return m_motor_1.m_motor_state.i_abs;
-#endif
+	return M_MOTOR(is_second_motor)->m_motor_state.i_abs;
 }
 
 float mcpwm_foc_get_abs_motor_current_filtered_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_motor_state.i_abs_filter;
-#else
-	(void)is_second_motor;
-	return m_motor_1.m_motor_state.i_abs_filter;
-#endif
+	return M_MOTOR(is_second_motor)->m_motor_state.i_abs_filter;
 }
 
 mc_state mcpwm_foc_get_state_motor(bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	return (is_second_motor ? &m_motor_2 : &m_motor_1)->m_state;
-#else
-	(void)is_second_motor;
-	return m_motor_1.m_state;
-#endif
+	return M_MOTOR(is_second_motor)->m_state;
 }
 
 /**
@@ -1418,12 +1386,7 @@ void mcpwm_foc_get_current_offsets(
 		volatile int *curr1_offset,
 		volatile int *curr2_offset,
 		bool is_second_motor) {
-#ifdef HW_HAS_DUAL_MOTORS
-	volatile motor_all_state_t *motor = is_second_motor ? &m_motor_2 : &m_motor_1;
-#else
-	(void)is_second_motor;
-	volatile motor_all_state_t *motor = &m_motor_1;
-#endif
+	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor); 
 	*curr0_offset = motor->m_curr_ofs[0];
 	*curr1_offset = motor->m_curr_ofs[1];
 	*curr2_offset = motor->m_curr_ofs[2];
