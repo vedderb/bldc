@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "datatypes.h"
 
 void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
@@ -60,10 +61,11 @@ void utils_fft8_bin0(float *real_in, float *real, float *imag);
 void utils_fft8_bin1(float *real_in, float *real, float *imag);
 void utils_fft8_bin2(float *real_in, float *real, float *imag);
 uint8_t utils_second_motor_id(void);
-int utils_read_hall(bool is_second_motor);
+int utils_read_hall(bool is_second_motor, int samples);
 float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
+const char* utils_hw_type_to_string(HW_TYPE hw);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

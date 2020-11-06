@@ -160,6 +160,7 @@ CSRC = $(STARTUPSRC) \
        shutdown.c \
        mempools.c \
        worker.c \
+       bms.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
@@ -287,9 +288,10 @@ build/$(PROJECT).bin: build/$(PROJECT).elf
 
 # Program
 upload: build/$(PROJECT).bin
-#	qstlink2 --cli --erase --write build/$(PROJECT).bin
-#	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset" # Older openocd
-	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit" # For openocd 0.9
+	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+
+upload_only:
+	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
 clear_option_bytes:
 	openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"

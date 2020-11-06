@@ -80,10 +80,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_duty_dowmramp_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_duty_dowmramp_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_openloop_rpm, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_sl_openloop_hyst, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_sl_openloop_time, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_sl_d_current_duty, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_sl_d_current_factor, &ind);
+	buffer_append_float16(buffer, conf->foc_openloop_rpm_low, 1000, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_hyst, 100, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_time_lock, 100, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_time_ramp, 100, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_time, 100, &ind);
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[0];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[1];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[2];
@@ -92,12 +93,13 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[5];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[6];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[7];
+	buffer_append_float32_auto(buffer, conf->foc_hall_interp_erpm, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_sl_erpm, &ind);
 	buffer[ind++] = conf->foc_sample_v0_v7;
 	buffer[ind++] = conf->foc_sample_high_current;
-	buffer_append_float32_auto(buffer, conf->foc_sat_comp, &ind);
+	buffer_append_float16(buffer, conf->foc_sat_comp, 1000, &ind);
 	buffer[ind++] = conf->foc_temp_comp;
-	buffer_append_float32_auto(buffer, conf->foc_temp_comp_base_temp, &ind);
+	buffer_append_float16(buffer, conf->foc_temp_comp_base_temp, 100, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_current_filter_const, &ind);
 	buffer[ind++] = conf->foc_cc_decoupling;
 	buffer[ind++] = conf->foc_observer_type;
@@ -144,12 +146,18 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->m_out_aux_mode;
 	buffer[ind++] = conf->m_motor_temp_sens_type;
 	buffer_append_float32_auto(buffer, conf->m_ptc_motor_coeff, &ind);
+	buffer[ind++] = (uint8_t)conf->m_hall_extra_samples;
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
 	buffer_append_float32_auto(buffer, conf->si_wheel_diameter, &ind);
 	buffer[ind++] = conf->si_battery_type;
 	buffer[ind++] = (uint8_t)conf->si_battery_cells;
 	buffer_append_float32_auto(buffer, conf->si_battery_ah, &ind);
+	buffer[ind++] = conf->bms.type;
+	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
+	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
+	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.soc_limit_end, 1000, &ind);
 
 	return ind;
 }
@@ -379,10 +387,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_duty_dowmramp_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_duty_dowmramp_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_sl_openloop_hyst = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_sl_openloop_time = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_sl_d_current_duty = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_sl_d_current_factor = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_openloop_rpm_low = buffer_get_float16(buffer, 1000, &ind);
+	conf->foc_sl_openloop_hyst = buffer_get_float16(buffer, 100, &ind);
+	conf->foc_sl_openloop_time_lock = buffer_get_float16(buffer, 100, &ind);
+	conf->foc_sl_openloop_time_ramp = buffer_get_float16(buffer, 100, &ind);
+	conf->foc_sl_openloop_time = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_hall_table[0] = buffer[ind++];
 	conf->foc_hall_table[1] = buffer[ind++];
 	conf->foc_hall_table[2] = buffer[ind++];
@@ -391,12 +400,13 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hall_table[5] = buffer[ind++];
 	conf->foc_hall_table[6] = buffer[ind++];
 	conf->foc_hall_table[7] = buffer[ind++];
+	conf->foc_hall_interp_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sl_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sample_v0_v7 = buffer[ind++];
 	conf->foc_sample_high_current = buffer[ind++];
-	conf->foc_sat_comp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_sat_comp = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_temp_comp = buffer[ind++];
-	conf->foc_temp_comp_base_temp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_temp_comp_base_temp = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_current_filter_const = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_cc_decoupling = buffer[ind++];
 	conf->foc_observer_type = buffer[ind++];
@@ -443,12 +453,18 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_out_aux_mode = buffer[ind++];
 	conf->m_motor_temp_sens_type = buffer[ind++];
 	conf->m_ptc_motor_coeff = buffer_get_float32_auto(buffer, &ind);
+	conf->m_hall_extra_samples = buffer[ind++];
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
 	conf->si_wheel_diameter = buffer_get_float32_auto(buffer, &ind);
 	conf->si_battery_type = buffer[ind++];
 	conf->si_battery_cells = buffer[ind++];
 	conf->si_battery_ah = buffer_get_float32_auto(buffer, &ind);
+	conf->bms.type = buffer[ind++];
+	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
+	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
+	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.soc_limit_end = buffer_get_float16(buffer, 1000, &ind);
 
 	return true;
 }
@@ -674,10 +690,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_duty_dowmramp_kp = MCCONF_FOC_DUTY_DOWNRAMP_KP;
 	conf->foc_duty_dowmramp_ki = MCCONF_FOC_DUTY_DOWNRAMP_KI;
 	conf->foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
+	conf->foc_openloop_rpm_low = MCCONF_FOC_OPENLOOP_RPM_LOW;
 	conf->foc_sl_openloop_hyst = MCCONF_FOC_SL_OPENLOOP_HYST;
+	conf->foc_sl_openloop_time_lock = MCCONF_FOC_SL_OPENLOOP_T_LOCK;
+	conf->foc_sl_openloop_time_ramp = MCCONF_FOC_SL_OPENLOOP_T_RAMP;
 	conf->foc_sl_openloop_time = MCCONF_FOC_SL_OPENLOOP_TIME;
-	conf->foc_sl_d_current_duty = MCCONF_FOC_SL_D_CURRENT_DUTY;
-	conf->foc_sl_d_current_factor = MCCONF_FOC_SL_D_CURRENT_FACTOR;
 	conf->foc_hall_table[0] = MCCONF_FOC_HALL_TAB_0;
 	conf->foc_hall_table[1] = MCCONF_FOC_HALL_TAB_1;
 	conf->foc_hall_table[2] = MCCONF_FOC_HALL_TAB_2;
@@ -686,6 +703,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hall_table[5] = MCCONF_FOC_HALL_TAB_5;
 	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
 	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
+	conf->foc_hall_interp_erpm = MCCONF_FOC_HALL_INTERP_ERPM;
 	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
 	conf->foc_sample_v0_v7 = MCCONF_FOC_SAMPLE_V0_V7;
 	conf->foc_sample_high_current = MCCONF_FOC_SAMPLE_HIGH_CURRENT;
@@ -738,12 +756,18 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
 	conf->m_motor_temp_sens_type = MCCONF_M_MOTOR_TEMP_SENS_TYPE;
 	conf->m_ptc_motor_coeff = MCCONF_M_PTC_MOTOR_COEFF;
+	conf->m_hall_extra_samples = MCCONF_M_HALL_EXTRA_SAMPLES;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
 	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;
 	conf->si_battery_type = MCCONF_SI_BATTERY_TYPE;
 	conf->si_battery_cells = MCCONF_SI_BATTERY_CELLS;
 	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
+	conf->bms.type = MCCONF_BMS_TYPE;
+	conf->bms.t_limit_start = MCCONF_BMS_T_LIMIT_START;
+	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
+	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
+	conf->bms.soc_limit_end = MCCONF_BMS_SOC_LIMIT_END;
 }
 
 void confgenerator_set_defaults_appconf(app_configuration *conf) {

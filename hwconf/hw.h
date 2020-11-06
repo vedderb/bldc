@@ -321,6 +321,14 @@
 #define ADC_IND_EXT2 			ADC_IND_EXT
 #endif
 
+// Adc voltage scaling on phases and input
+#ifndef ADC_VOLTS_PH_FACTOR
+#define ADC_VOLTS_PH_FACTOR		1.0
+#endif
+#ifndef ADC_VOLTS_INPUT_FACTOR
+#define ADC_VOLTS_INPUT_FACTOR	1.0
+#endif
+
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN
 #define NRF_PORT_CSN			HW_SPI_PORT_NSS
