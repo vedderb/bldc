@@ -1,3 +1,5 @@
+
+#include "drv8323s.h"
 /*
 	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
 
@@ -19,6 +21,8 @@
 
 #ifndef HW_UXV_SR_H_
 #define HW_UXV_SR_H_
+
+#include "drv8323s.h"
 
 #define HW_NAME					"UXV_SR"
 
@@ -137,8 +141,6 @@
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
-#define HW_ICU_TIMER            TIM4
-#define HW_ICU_TIM_CLK_EN()     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV              ICUD4
 #define HW_ICU_CHANNEL          ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF          GPIO_AF_TIM4
