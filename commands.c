@@ -780,7 +780,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = mc_interface_get_fault();
 		}
 		if (mask & ((uint32_t)1 << 17)) {
-			send_buffer[ind++] = app_get_configuration()->controller_id;
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
 			send_buffer[ind++] = val.num_vescs;
