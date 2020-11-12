@@ -67,6 +67,7 @@ static int rx_frame_write;
 static thread_t *process_tp = 0;
 static thread_t *ping_tp = 0;
 static volatile HW_TYPE ping_hw_last = HW_TYPE_VESC;
+static volatile int ping_hw_last_id = -1;
 #endif
 
 // Variables
@@ -489,6 +490,8 @@ bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type) {
 
 	ping_tp = chThdGetSelfX();
 	chEvtGetAndClearEvents(ALL_EVENTS);
+
+	ping_hw_last_id = controller_id;
 
 	uint8_t buffer[1];
 	buffer[0] = app_get_configuration()->controller_id;
@@ -1286,8 +1289,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			} break;
 
 			case CAN_PACKET_PONG:
-				// data8[0]; // Sender ID
-				if (ping_tp) {
+				if (ping_tp && ping_hw_last_id == data8[0]) {
 					if (len >= 2) {
 						ping_hw_last = data8[1];
 					} else {
