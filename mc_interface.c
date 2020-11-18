@@ -1862,7 +1862,15 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	bool is_motor_1 = motor == &m_motor_1;
 
 	const float v_in = GET_INPUT_VOLTAGE();
-	const float rpm_now = mc_interface_get_rpm();
+	float rpm_now = 0.0;
+
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+		// Low latency is important for avoiding oscillations
+		rpm_now = mcpwm_foc_get_rpm_fast();
+	} else {
+		rpm_now = mc_interface_get_rpm();
+	}
+
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
