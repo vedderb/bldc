@@ -5,3 +5,8 @@ build
 .project
 .cproject
 .settings/language.settings.xml
+bldc.config
+bldc.creator
+bldc.creator.user
+bldc.files
+bldc.includes
