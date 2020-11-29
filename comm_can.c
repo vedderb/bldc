@@ -1230,7 +1230,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
 					break;
 				case 1:
-					commands_send_packet(rx_buffer, rxbuf_len);
+					commands_send_packet_can_last(rx_buffer, rxbuf_len);
 					break;
 				case 2:
 					commands_process_packet(rx_buffer, rxbuf_len, 0);
@@ -1261,7 +1261,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				commands_process_packet(data8 + ind, len - ind, send_packet_wrapper);
 				break;
 			case 1:
-				commands_send_packet(data8 + ind, len - ind);
+				commands_send_packet_can_last(data8 + ind, len - ind);
 				break;
 			case 2:
 				commands_process_packet(data8 + ind, len - ind, 0);
