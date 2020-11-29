@@ -198,6 +198,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+#define BMI160_SDA_GPIO			GPIOB
+#define BMI160_SDA_PIN			4
+#define BMI160_SCL_GPIO			GPIOB
+#define BMI160_SCL_PIN			12
+#define IMU_FLIP
+
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOA
 #define NRF5x_SWDIO_PIN			15
