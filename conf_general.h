@@ -278,6 +278,9 @@
 #ifndef AD2S1205_USE_HW_SPI_PINS
 #define AD2S1205_USE_HW_SPI_PINS	0
 #endif
+#ifndef MT6816_USE_HW_SPI_PINS
+#define MT6816_USE_HW_SPI_PINS		0
+#endif
 
 /*
  * MCU

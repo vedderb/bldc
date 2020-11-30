@@ -26,6 +26,7 @@
 void encoder_deinit(void);
 void encoder_init_abi(uint32_t counts);
 void encoder_init_as5047p_spi(void);
+void encoder_init_mt6816_spi(void);
 void encoder_init_ad2s1205_spi(void);
 void encoder_init_sincos(float sin_gain, float sin_offset,
 						 float cos_gain, float cos_offset, float sincos_filter_constant);
@@ -41,6 +42,8 @@ bool encoder_index_found(void);
 uint32_t encoder_spi_get_val(void);
 uint32_t encoder_spi_get_error_cnt(void);
 float encoder_spi_get_error_rate(void);
+uint32_t encoder_get_no_magnet_error_cnt(void);
+float encoder_get_no_magnet_error_rate(void);
 uint32_t encoder_resolver_loss_of_tracking_error_cnt(void);
 uint32_t encoder_resolver_degradation_of_signal_error_cnt(void);
 uint32_t encoder_resolver_loss_of_signal_error_cnt(void);

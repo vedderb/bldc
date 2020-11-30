@@ -833,6 +833,7 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
@@ -848,6 +849,12 @@ void terminal_process_string(char *str) {
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
 				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
+			}
+
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
+				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
+						encoder_get_no_magnet_error_cnt(),
+						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
 		}
 
