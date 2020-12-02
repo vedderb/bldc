@@ -1102,7 +1102,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bool is_ext = data[ind++];
 
 		if (is_ext) {
-			comm_can_transmit_eid(id, data + ind, len - ind);
+			comm_can_transmit_eid_replace(id, data + ind, len - ind, true);
 		} else {
 			comm_can_transmit_sid(id, data + ind, len - ind);
 		}
