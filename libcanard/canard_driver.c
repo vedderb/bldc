@@ -205,7 +205,27 @@ static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer) 
 
 		if (uavcan_equipment_esc_RawCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0, true) >= 0) {
 			if (cmd.cmd.len > app_get_configuration()->uavcan_esc_index) {
-				mc_interface_set_duty(((float)cmd.cmd.data[app_get_configuration()->uavcan_esc_index]) / 8192.0);
+				float raw_val = ((float)cmd.cmd.data[app_get_configuration()->uavcan_esc_index]) / 8192.0;
+
+				switch (app_get_configuration()->uavcan_raw_mode) {
+				case UAVCAN_RAW_MODE_CURRENT:
+					mc_interface_set_current_rel(raw_val);
+					break;
+
+				case UAVCAN_RAW_MODE_CURRENT_NO_REV_BRAKE:
+					if (raw_val >= 0.0) {
+						mc_interface_set_current_rel(raw_val);
+					} else {
+						mc_interface_set_brake_current_rel(-raw_val);
+					}
+					break;
+
+				case UAVCAN_RAW_MODE_DUTY:
+					mc_interface_set_duty(raw_val);
+					break;
+				default:
+					break;
+				}
 				timeout_reset();
 			}
 		}
