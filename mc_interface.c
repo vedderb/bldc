@@ -212,6 +212,10 @@ void mc_interface_init(void) {
 		encoder_init_as5047p_spi();
 		break;
 
+	case SENSOR_PORT_MODE_MT6816_SPI:
+		encoder_init_mt6816_spi();
+		break;
+
 	case SENSOR_PORT_MODE_AD2S1205:
 		encoder_init_ad2s1205_spi();
 		break;
@@ -1862,7 +1866,15 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	bool is_motor_1 = motor == &m_motor_1;
 
 	const float v_in = GET_INPUT_VOLTAGE();
-	const float rpm_now = mc_interface_get_rpm();
+	float rpm_now = 0.0;
+
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+		// Low latency is important for avoiding oscillations
+		rpm_now = mcpwm_foc_get_rpm_fast();
+	} else {
+		rpm_now = mc_interface_get_rpm();
+	}
+
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
@@ -2138,13 +2150,20 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	}
 
 
-	// Trigger encoder error rate fault, using 1% errors as threshold.
+	// Trigger encoder error rate fault, using 5% errors as threshold.
 	// Relevant only in FOC mode with encoder enabled
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			mcpwm_foc_is_using_encoder() &&
 			encoder_spi_get_error_rate() > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+	}
+
+	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
+			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			mcpwm_foc_is_using_encoder() &&
+			encoder_get_no_magnet_error_rate() > 0.05) {
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&

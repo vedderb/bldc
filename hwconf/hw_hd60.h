@@ -17,12 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_HD_H_
-#define HW_HD_H_
+#ifndef HW_HD60_H_
+#define HW_HD60_H_
 
 #include "drv8323s.h"
 
-#define HW_NAME					"HD"
+#define HW_NAME					"HD60"
 
 // HW properties
 #define HW_HAS_DRV8323S
@@ -283,4 +283,4 @@
 // Functions
 bool hw_sample_shutdown_button(void);
 
-#endif /* HW_UAVC_QCUBE_H_ */
+#endif /* HW_HD60_H_ */

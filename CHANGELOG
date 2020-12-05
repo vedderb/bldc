@@ -18,8 +18,12 @@
 * Made hall sensor filter configurable.
 * Added locking time and ramp up time parameters to sensorless startup.
 * Removed D axis current injection.
-* Initial VESC IO-board support
+* Initial VESC IO-board support.
 * Added hall sensor interpolation ERPM config option.
+* Use fast speed estimator for RPM limit.
+* Avoid accumulated rounding error when using PID position angle division.
+* Added UAVCAN raw throttle drive mode (current or duty cycle control).
+* Added MT6816 encoder support. See https://github.com/vedderb/bldc/pull/238
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

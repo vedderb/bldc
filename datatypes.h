@@ -131,7 +131,8 @@ typedef enum {
 	FAULT_CODE_RESOLVER_DOS,
 	FAULT_CODE_RESOLVER_LOS,
 	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
-	FAULT_CODE_FLASH_CORRUPTION_MC_CFG
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
+	FAULT_CODE_ENCODER_NO_MAGNET
 } mc_fault_code;
 
 typedef enum {
@@ -165,7 +166,8 @@ typedef enum {
 	SENSOR_PORT_MODE_AD2S1205,
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
-	SENSOR_PORT_MODE_TS5700N8501_MULTITURN
+	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
+	SENSOR_PORT_MODE_MT6816_SPI
 } sensor_port_mode;
 
 typedef struct {
@@ -717,6 +719,12 @@ typedef enum {
 	CAN_MODE_COMM_BRIDGE
 } CAN_MODE;
 
+typedef enum {
+	UAVCAN_RAW_MODE_CURRENT = 0,
+	UAVCAN_RAW_MODE_CURRENT_NO_REV_BRAKE,
+	UAVCAN_RAW_MODE_DUTY
+} UAVCAN_RAW_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -732,6 +740,7 @@ typedef struct {
 	// CAN modes
 	CAN_MODE can_mode;
 	uint8_t uavcan_esc_index;
+	UAVCAN_RAW_MODE uavcan_raw_mode;
 
 	// Application to use
 	app_use app_to_use;

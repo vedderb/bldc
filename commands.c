@@ -68,6 +68,7 @@ static volatile int blocking_thread_motor = 1;
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile send_func_can_fwd)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
@@ -94,6 +95,21 @@ void commands_init(void) {
 void commands_send_packet(unsigned char *data, unsigned int len) {
 	if (send_func) {
 		send_func(data, len);
+	}
+}
+
+/**
+ * Send a packet using the last can fwd function.
+ *
+ * @param data
+ * The packet data.
+ *
+ * @param len
+ * The data length.
+ */
+void commands_send_packet_can_last(unsigned char *data, unsigned int len) {
+	if (send_func_can_fwd) {
+		send_func_can_fwd(data, len);
 	}
 }
 
@@ -353,7 +369,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
 		}
 		if (mask & ((uint32_t)1 << 17)) {
-			send_buffer[ind++] = app_get_configuration()->controller_id;
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS1(), 1e1, &ind);
@@ -596,6 +618,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_FORWARD_CAN: {
+		send_func_can_fwd = reply_func;
+
 #ifdef HW_HAS_DUAL_MOTORS
 		if (data[0] == utils_second_motor_id()) {
 			mc_interface_select_motor_thread(2);
@@ -774,7 +798,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = mc_interface_get_fault();
 		}
 		if (mask & ((uint32_t)1 << 17)) {
-			send_buffer[ind++] = app_get_configuration()->controller_id;
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
 			send_buffer[ind++] = val.num_vescs;

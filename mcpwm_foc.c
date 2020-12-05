@@ -149,6 +149,7 @@ typedef struct {
 	float m_phase_before_speed_est;
 	int m_tacho_step_last;
 	float m_pid_div_angle_last;
+	float m_pid_div_angle_accumulator;
 	float m_min_rpm_hyst_timer;
 	float m_min_rpm_timer;
 	bool m_cc_was_hfi;
@@ -2295,7 +2296,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// This has to be done for the skip function to have any chance at working with the
 	// observer and control loops.
 	// TODO: Test this.
-	dt /= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
+	dt *= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
@@ -2731,7 +2732,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	motor_now->m_tachometer_abs += abs(diff);
 
 	// Track position control angle
-	// TODO: Have another look at this.
 	float angle_now = 0.0;
 	if (encoder_is_configured()) {
 		if (conf_now->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
@@ -2743,12 +2743,22 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		angle_now = motor_now->m_motor_state.phase * (180.0 / M_PI);
 	}
 
+	utils_norm_angle(&angle_now);
+
 	if (conf_now->p_pid_ang_div > 0.98 && conf_now->p_pid_ang_div < 1.02) {
 		motor_now->m_pos_pid_now = angle_now;
 	} else {
-		float diff_f = utils_angle_difference(angle_now, motor_now->m_pid_div_angle_last);
+		if (angle_now < 90.0 && motor_now->m_pid_div_angle_last > 270.0) {
+			motor_now->m_pid_div_angle_accumulator += 360.0 / conf_now->p_pid_ang_div;
+			utils_norm_angle((float*)&motor_now->m_pid_div_angle_accumulator);
+		} else if (angle_now > 270.0 && motor_now->m_pid_div_angle_last < 90.0) {
+			motor_now->m_pid_div_angle_accumulator -= 360.0 / conf_now->p_pid_ang_div;
+			utils_norm_angle((float*)&motor_now->m_pid_div_angle_accumulator);
+		}
+
 		motor_now->m_pid_div_angle_last = angle_now;
-		motor_now->m_pos_pid_now += diff_f / conf_now->p_pid_ang_div;
+
+		motor_now->m_pos_pid_now = motor_now->m_pid_div_angle_accumulator + angle_now / conf_now->p_pid_ang_div;
 		utils_norm_angle((float*)&motor_now->m_pos_pid_now);
 	}
 
