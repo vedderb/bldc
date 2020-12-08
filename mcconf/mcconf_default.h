@@ -284,6 +284,12 @@
 #ifndef MCCONF_FOC_OPENLOOP_RPM_LOW
 #define MCCONF_FOC_OPENLOOP_RPM_LOW		0.0		// Fraction of OPENLOOP_RPM at minimum motor current
 #endif
+#ifndef MCCONF_FOC_D_GAIN_SCALE_START
+#define MCCONF_FOC_D_GAIN_SCALE_START	0.9		// Start reducing D axis current controller gain at this modulation
+#endif
+#ifndef MCCONF_FOC_D_GAIN_SCALE_MAX_MOD
+#define MCCONF_FOC_D_GAIN_SCALE_MAX_MOD	0.2		// D axis currnet controller gain at maximum modulation
+#endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_HYST
 #define MCCONF_FOC_SL_OPENLOOP_HYST		0.1		// Time below min RPM to activate openloop (s)
 #endif

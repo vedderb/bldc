@@ -233,9 +233,11 @@
 #define CURRENT_SHUNT_RES		0.001
 #endif
 
+#define VBATT_R1					360000.0
+#define VBATT_R2					10000.0
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VBATT_R1 + VBATT_R2) / VBATT_R2))
 #define GET_VM_SENSE_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VM_SENSE] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
