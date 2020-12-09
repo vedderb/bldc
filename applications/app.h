@@ -70,6 +70,12 @@ uint16_t app_balance_get_switch_state(void);
 float app_balance_get_adc1(void);
 float app_balance_get_adc2(void);
 
+void app_pas_start(bool is_primary_output);
+void app_pas_stop(void);
+bool app_pas_is_running(void);
+void app_pas_configure(pas_config *conf);
+float app_pas_get_current_target_rel(void);
+
 // Custom apps
 void app_custom_start(void);
 void app_custom_stop(void);

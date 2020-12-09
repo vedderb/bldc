@@ -54,6 +54,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_uartcomm_stop();
 	app_nunchuk_stop();
 	app_balance_stop();
+	app_pas_stop();
 
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
@@ -110,6 +111,15 @@ void app_set_configuration(app_configuration *conf) {
 		}
 		break;
 
+	case APP_PAS:
+		app_pas_start(true);
+		break;
+
+	case APP_ADC_PAS:
+		app_adc_start(true);
+		app_pas_start(false);
+		break;
+
 	case APP_NRF:
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init();
@@ -130,6 +140,7 @@ void app_set_configuration(app_configuration *conf) {
 
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
+	app_pas_configure(&appconf.app_pas_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.permanent_uart_enabled);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
