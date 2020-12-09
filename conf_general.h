@@ -200,6 +200,7 @@
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
+//#include "vccu/app_vccu_conf.h"
 
 // CAN-plotter
 //#define APP_CUSTOM_TO_USE			"app_plot_can.c"
