@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		15
+#define FW_TEST_VERSION_NUMBER		16
 
 #include "datatypes.h"
 
@@ -102,7 +102,7 @@
 //#define HW75_300_VEDDER_FIRST_PCB
 
 // Second revision with separate UART for NRF51
-#define HW75_300_REV_2
+//#define HW75_300_REV_2
 #define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
