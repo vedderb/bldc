@@ -24,6 +24,9 @@
 * Avoid accumulated rounding error when using PID position angle division.
 * Added UAVCAN raw throttle drive mode (current or duty cycle control).
 * Added MT6816 encoder support. See https://github.com/vedderb/bldc/pull/238
+* Added modulation-based D axis current controller gain scaling. Addresses https://github.com/vedderb/bldc/pull/220
+* Added PAS app. See: https://github.com/vedderb/bldc/pull/243
+* Added 100k CAN-baudrate.
 
 === FW 5.01 ===
 * Fixed PPM bug in previous release.

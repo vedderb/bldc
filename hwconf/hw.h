@@ -460,6 +460,13 @@
 #endif
 #endif
 
+#ifndef HW_PAS1_PORT
+#define HW_PAS1_PORT			HW_UART_RX_PORT
+#define HW_PAS1_PIN				HW_UART_RX_PIN
+#define HW_PAS2_PORT			HW_UART_TX_PORT
+#define HW_PAS2_PIN				HW_UART_TX_PIN
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
