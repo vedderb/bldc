@@ -28,8 +28,6 @@
 
 // Variables
 static volatile bool i2c_running = false;
-//static mutex_t shutdown_mutex;
-//static float bt_diff = 0.0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -38,13 +36,8 @@ static const I2CConfig i2cfg = {
         STD_DUTY_CYCLE
 };
 
-// Private functions
-//static void terminal_shutdown_now(int argc, const char **argv);
-//static void terminal_button_test(int argc, const char **argv);
 
 void hw_init_gpio(void) {
-   // chMtxObjectInit(&shutdown_mutex);
-
     // GPIO clock enable
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -116,18 +109,6 @@ void hw_init_gpio(void) {
     palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 
     drv8323s_init();
-
-//    terminal_register_command_callback(
-//        "shutdown",
-//        "Shutdown VESC now.",
-//        0,
-//        terminal_shutdown_now);
-//
-//    terminal_register_command_callback(
-//        "test_button",
-//        "Try sampling the shutdown button",
-//        0,
-//        terminal_button_test);
 }
 
 void hw_setup_adc_channels(void) {
@@ -257,43 +238,3 @@ void hw_try_restore_i2c(void) {
         i2cReleaseBus(&HW_I2C_DEV);
     }
 }
-
-
-//bool hw_sample_shutdown_button(void) {
-  //  chMtxLock(&shutdown_mutex);
-//
-  //  bt_diff = 0.0;
-//
-  //  for (int i = 0;i < 3;i++) {
-    //    palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-      //  chThdSleep(5);
-        //float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-       // chThdSleepMilliseconds(1);
-     //   float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-     //   palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-     //   chThdSleepMilliseconds(1);
-
-    //    bt_diff += (val1 - val2);
-   // }
-
-  //  chMtxUnlock(&shutdown_mutex);
-
-  //  return (bt_diff > 0.12);
-//}
-
-//static void terminal_shutdown_now(int argc, const char **argv) {
-    //(void)argc;
-    /////(void)argv;
-   // DISABLE_GATE();
-    //HW_SHUTDOWN_HOLD_OFF();
-//}
-
-//static void terminal_button_test(int argc, const char **argv) {
-  //  (void)argc;
-    //(void)argv;
-
-    //for (int i = 0;i < 40;i++) {
-      //  commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
-        //chThdSleepMilliseconds(100);
-    //}
-//}

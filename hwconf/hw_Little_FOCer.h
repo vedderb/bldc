@@ -48,17 +48,6 @@
 #define LED_RED_ON()            palSetPad(GPIOB, 1)
 #define LED_RED_OFF()           palClearPad(GPIOB, 1)
 
-// Shutdown pin
-//#define HW_SHUTDOWN_GPIO        GPIOC
-//#define HW_SHUTDOWN_PIN         5
-//#define HW_SHUTDOWN_HOLD_ON()   palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-//#define HW_SHUTDOWN_HOLD_OFF()  palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-//#define HW_SAMPLE_SHUTDOWN()    hw_sample_shutdown_button()
-
-// Hold shutdown pin early to wake up on short pulses
-//#define HW_EARLY_INIT()         palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-//HW_SHUTDOWN_HOLD_ON();
-
 /*
  * ADC Vector
  *
@@ -259,8 +248,6 @@
 #define READ_HALL2()            palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()            palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-//#define HW_DEAD_TIME_NSEC       1000.0
-
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE            18.0        // Minimum input voltage
@@ -309,7 +296,4 @@
 #define HW_LIM_DUTY_MAX         0.0, 0.99
 #define HW_LIM_TEMP_FET         -40.0, 110.0
 
-// Functions
-//bool hw_sample_shutdown_button(void);
-
-#endif /* HW_UAVC_QCUBE_H_ */
+#endif /* HW_Little_FOCer_H_ */
