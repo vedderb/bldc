@@ -166,6 +166,7 @@ void comm_can_set_baud(CAN_BAUD baud) {
 	case CAN_BAUD_20K:	set_timing(149, 10, 1); break;
 	case CAN_BAUD_50K:	set_timing(59, 10, 1); break;
 	case CAN_BAUD_75K:	set_timing(39, 10, 1); break;
+	case CAN_BAUD_100K:	set_timing(29, 10, 1); break;
 	default: break;
 	}
 }

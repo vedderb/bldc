@@ -337,6 +337,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
 			current_mode = true;
 			if (pwr >= 0.0) {
+				// if pedal assist (PAS) thread is running, use the highest current command
+				if (app_pas_is_running()) {
+					pwr = utils_max_abs(pwr, app_pas_get_current_target_rel());
+				}
 				current_rel = pwr;
 			} else {
 				current_rel = fabsf(pwr);
