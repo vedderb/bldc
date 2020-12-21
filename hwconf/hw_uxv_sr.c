@@ -158,7 +158,7 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
 
 
-	if (!dac_thread_running && conf->controller_id == 7) {
+	if (!dac_thread_running) {
 		chThdCreateStatic(dac_thread_wa, sizeof(dac_thread_wa), NORMALPRIO, dac_thread, NULL);
 		dac_thread_running = true;
 	}
