@@ -24,10 +24,11 @@
 #include "drv8323s.h"
 #include "comm_can.h"
 #include "mc_interface.h"
+#include "commands.h"
 
 // Threads
 THD_FUNCTION(dac_thread, arg);
-static THD_WORKING_AREA(dac_thread_wa, 512);
+static THD_WORKING_AREA(dac_thread_wa, 1024);
 static bool dac_thread_running = false;
 
 // Variables
@@ -261,20 +262,18 @@ THD_FUNCTION(dac_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("DAC");
-
+	chThdSleepMilliseconds(3000);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
 	DAC->CR |= DAC_CR_EN2;
+	//DAC->CR |= DAC_CR_BOFF2;
+	
 
-
-
-
-	const float current_scaling_factor = MAX_CURRENT_SUM / 4096;
-
+	const float current_scaling_factor = MAX_CURRENT_SUM / 4095.0;
 	float current_sum = 0;
 
 	for(;;) {
 		current_sum = mc_interface_get_tot_current_in_filtered();
-
+		current_sum += ADC_Value[ADC_IND_CURR_AUX]*FAC_CURRENT_AUX;
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
 			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
@@ -282,10 +281,8 @@ THD_FUNCTION(dac_thread, arg) {
 			}
 		}
 		int scaled_current = (int)(round(current_sum/current_scaling_factor));
-
+		//commands_printf("scaled current: %u, raw value: %f", scaled_current,ADC_Value[ADC_IND_CURR_AUX]*FAC_CURRENT_AUX);
 		DAC->DHR12R2 = scaled_current;
-
-
 		chThdSleepMilliseconds(100);
 	}
 }

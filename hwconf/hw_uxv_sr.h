@@ -78,6 +78,7 @@
 #define ADC_IND_EXT2			7
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
+#define ADC_IND_CURR_AUX        10
 #define ADC_IND_VREFINT			12
 
 // ADC macros and settings
@@ -93,7 +94,7 @@
 #define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		20.0
+#define CURRENT_AMP_GAIN		50.0
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		0.0002
@@ -200,15 +201,20 @@
 //States are: NC/Floating = 0 GND = 1, VCC = 2,  in order P_LSB, ..., P_MSB
 #define HW_DEFAULT_ID           (APPCONF_CONTROLLER_ID >= 0 ? APPCONF_CONTROLLER_ID : hw_id_from_pins())
 #define HW_ID_PIN_GPIOS         GPIOC, GPIOC
-#define HW_ID_PIN_PINS          14, 15
+#define HW_ID_PIN_PINS          14,15
+#define CURRENT_AMP_GAIN_AUX    50.0
+#define CURRENT_SHUNT_RES_AUX   0.01
+#define FAC_CURRENT_AUX         ((V_REG / 4095.0) / (CURRENT_SHUNT_RES_AUX * CURRENT_AMP_GAIN_AUX))
 
 //APP settings
 #define APPCONF_UAVCAN_ESC_INDEX            (HW_DEFAULT_ID - 1)
 #define APPCONF_APP_TO_USE                  APP_PPM
+#define APPCONF_PPM_CTRL_TYPE               PPM_CTRL_TYPE_DUTY_NOREV
+#define APPCONF_PPM_MULTI_ESC               false
 #define APPCONF_SEND_CAN_STATUS_RATE_HZ     20
 #define APPCONF_CAN_BAUD_RATE               CAN_BAUD_1M
 #define APPCONF_SEND_CAN_STATUS             CAN_STATUS_1_2_3_4
-#define MAX_CURRENT_SUM                     1000
+#define MAX_CURRENT_SUM                     700
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -221,15 +227,18 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
+// Override dead time. See the stm32f4 reference manual for calculating this value.
+#define HW_DEAD_TIME_NSEC       660.0
+
 // Default setting overrides
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX				120.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX				85.0	// Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
 #define MCCONF_L_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX				120.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX				85.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
 #define MCCONF_L_IN_CURRENT_MIN				-60.0	// Input current limit in Amperes (Lower)
@@ -244,6 +253,40 @@
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW					30000.0
 #endif
+#ifndef MCCONF_FOC_OPENLOOP_RPM
+#define MCCONF_FOC_OPENLOOP_RPM         1500.0  // Openloop RPM (sensorless low speed or when finding index pulse)
+#endif
+#ifndef MCCONF_FOC_OPENLOOP_RPM_LOW
+#define MCCONF_FOC_OPENLOOP_RPM_LOW     0.1     // Fraction of OPENLOOP_RPM at minimum motor current
+#endif
+#ifndef MCCONF_FOC_SL_OPENLOOP_TIME
+#define MCCONF_FOC_SL_OPENLOOP_TIME     0.1 // Time to remain in openloop after ramping (s)
+#endif
+#ifndef MCCONF_FOC_SL_OPENLOOP_T_LOCK
+#define MCCONF_FOC_SL_OPENLOOP_T_LOCK   0.1     // Time to lock motor in beginning of open loop sequence
+#endif
+
+
+// FOC
+#ifndef MCCONF_FOC_CURRENT_KP
+#define MCCONF_FOC_CURRENT_KP           0.0107
+#endif
+#ifndef MCCONF_FOC_CURRENT_KI
+#define MCCONF_FOC_CURRENT_KI           26.51
+#endif
+#ifndef MCCONF_FOC_MOTOR_L
+#define MCCONF_FOC_MOTOR_L              0.00001072
+#endif
+#ifndef MCCONF_FOC_MOTOR_R
+#define MCCONF_FOC_MOTOR_R              0.0265
+#endif
+#ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE   0.003848
+#endif
+#ifndef MCCONF_FOC_OBSERVER_GAIN
+#define MCCONF_FOC_OBSERVER_GAIN        67540000     // Can be something like 600 / L
+#endif
+
 
 // Setting limits
 #define HW_LIM_CURRENT			-60.0, 120.0
