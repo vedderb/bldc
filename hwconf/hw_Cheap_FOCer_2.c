@@ -51,15 +51,9 @@ void hw_init_gpio(void) {
 			PAL_STM32_OSPEED_HIGHEST);
 
 	// ENABLE_GATE
-#ifdef HW60_VEDDER_FIRST_PCB
-	palSetPadMode(GPIOB, 6,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-#else
 	palSetPadMode(GPIOB, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-#endif
 
 	ENABLE_GATE();
 
