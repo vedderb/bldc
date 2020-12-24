@@ -419,6 +419,14 @@
 #endif
 #endif
 
+#ifndef NTC100K_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define NTC100K_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#else
+#define NTC100K_TEMP_MOTOR(beta)			0.0
+#endif
+#endif
+
 // Default second motor defines
 #ifndef READ_HALL1_2
 #define READ_HALL1_2()			READ_HALL1()
@@ -434,6 +442,9 @@
 #endif
 #ifndef NTC_TEMP_MOTOR_2
 #define NTC_TEMP_MOTOR_2(beta)	NTC_TEMP_MOTOR(beta)
+#endif
+#ifndef NTC100K_TEMP_MOTOR_2
+#define NTC100K_TEMP_MOTOR_2(beta)	NTC100K_TEMP_MOTOR(beta)
 #endif
 #ifndef ADC_IND_TEMP_MOTOR_2
 #define ADC_IND_TEMP_MOTOR_2	ADC_IND_TEMP_MOTOR
