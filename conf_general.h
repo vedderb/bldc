@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		16
+#define FW_TEST_VERSION_NUMBER		17
 
 #include "datatypes.h"
 
@@ -141,8 +141,8 @@
 //#define HW_SOURCE "hw_unity.c"
 //#define HW_HEADER "hw_unity.h"
 
-#define HW_SOURCE "hw_uxv_sr.c"
-#define HW_HEADER "hw_uxv_sr.h"
+//#define HW_SOURCE "hw_uxv_sr.c"
+//#define HW_HEADER "hw_uxv_sr.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
 //#define HW_SOURCE "hw_stormcore_100d.c"
