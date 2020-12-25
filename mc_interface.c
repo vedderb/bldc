@@ -1885,6 +1885,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = is_motor_1 ? NTC_TEMP_MOTOR(conf->m_ntc_motor_beta) : NTC_TEMP_MOTOR_2(conf->m_ntc_motor_beta);
 		break;
 
+	case TEMP_SENSOR_NTC_100K_25C:
+		temp_motor = is_motor_1 ? NTC100K_TEMP_MOTOR(conf->m_ntc_motor_beta) : NTC100K_TEMP_MOTOR_2(conf->m_ntc_motor_beta);
+		break;
+
 	case TEMP_SENSOR_PTC_1K_100C:
 		temp_motor = is_motor_1 ? PTC_TEMP_MOTOR(1000.0, conf->m_ptc_motor_coeff, 100) : PTC_TEMP_MOTOR_2(1000.0, conf->m_ptc_motor_coeff, 100);
 		break;
