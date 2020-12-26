@@ -421,6 +421,25 @@ make -j8 build_args='-DHW_SOURCE=\"hw_Cheap_FOCer_2.c\" -DHW_HEADER=\"hw_Cheap_F
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
+#################### Little_FOCer ########################
+
+COPYDIR=Little_FOCer
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
 # Clean
 cd $FWPATH
 make clean
