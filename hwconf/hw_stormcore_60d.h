@@ -17,7 +17,11 @@
 #ifndef HW_STORMCORE_60D_H_
 #define HW_STORMCORE_60D_H_
 
+#ifdef HW_VER_IS_60D_PLUS
+#define HW_NAME                 "STORMCORE_60D+"
+#else
 #define HW_NAME                 "STORMCORE_60D"
+#endif
 
 #define HW_HAS_DUAL_MOTORS
 #include "drv8323s.h"
@@ -59,6 +63,14 @@
 #define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
+
+#ifdef HW_VER_IS_60D_PLUS
+// Depending on current motor selected for the thread select different phase filter
+#define PHASE_FILTER_GPIO       (mc_interface_motor_now() == 1 ? GPIOE : GPIOE)
+#define PHASE_FILTER_PIN        (mc_interface_motor_now() == 1 ? 4 : 1)
+#define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#endif
 
 
 
@@ -217,12 +229,23 @@
 #ifndef VIN_R2
 #define VIN_R2					2200.0
 #endif
+
+#ifdef HW_VER_IS_60D_PLUS
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		10.0
+#define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.001
+#define CURRENT_SHUNT_RES       0.0005
 #endif
+#else
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN        10.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES       0.001
+#endif
+#endif
+
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
@@ -259,6 +282,14 @@
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
+
+// UART Peripheral
+#define HW_UART_DEV_2             SD2
+#define HW_UART_GPIO_AF_2         GPIO_AF_USART2
+#define HW_UART_TX_PORT_2         GPIOD
+#define HW_UART_TX_PIN_2          6
+#define HW_UART_RX_PORT_2         GPIOD
+#define HW_UART_RX_PIN_2          5
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
@@ -323,10 +354,20 @@
 #define NRF_PIN_MISO            10
 
 // NRF SWD
-#define NRF5x_SWDIO_GPIO		GPIOD
-#define NRF5x_SWDIO_PIN			6
-#define NRF5x_SWCLK_GPIO		GPIOD
-#define NRF5x_SWCLK_PIN			5
+
+#ifdef HW_VER_IS_60D_PLUS
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         9
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         8
+#else
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         6
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         5
+#endif
+
+
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
