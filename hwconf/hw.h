@@ -412,10 +412,20 @@
 #ifndef PTC_TEMP_MOTOR
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
 #define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
 #else
 #define PTC_TEMP_MOTOR(res, con, tbase)			0.0
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			0.0
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		0.0
+#endif
+#endif
+
+#ifndef NTC100K_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define NTC100K_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC100K_TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#else
+#define NTC100K_TEMP_MOTOR(beta)		0.0
+#define NTC100K_TEMP_MOTOR2(beta)		0.0
 #endif
 #endif
 
@@ -458,6 +468,13 @@
 #ifndef DRV8323S_CUSTOM_SETTINGS
 #define DRV8323S_CUSTOM_SETTINGS()
 #endif
+#endif
+
+#ifndef HW_PAS1_PORT
+#define HW_PAS1_PORT			HW_UART_RX_PORT
+#define HW_PAS1_PIN				HW_UART_RX_PIN
+#define HW_PAS2_PORT			HW_UART_TX_PORT
+#define HW_PAS2_PIN				HW_UART_TX_PIN
 #endif
 
 // Functions

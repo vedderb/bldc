@@ -1,7 +1,5 @@
-
-#include "drv8323s.h"
 /*
-	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -19,28 +17,40 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UXV_SR_H_
-#define HW_UXV_SR_H_
+#ifndef HW_Cheap_FOCer_2
+#define HW_Cheap_FOCer_2
 
-#include "drv8323s.h"
-
-#define HW_NAME					"UXV_SR"
+#define HW_NAME					"Cheap FOCer 2"
 
 // HW properties
-#define HW_HAS_DRV8323S
+#define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PHASE_SHUNTS
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
 #define DISABLE_GATE()			palClearPad(GPIOB, 5)
 
+#define DCCAL_ON()
+#define DCCAL_OFF()
 #define IS_DRV_FAULT()			(!palReadPad(GPIOB, 7))
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
 #define LED_RED_ON()			palSetPad(GPIOB, 1)
 #define LED_RED_OFF()			palClearPad(GPIOB, 1)
+
+#define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
+#define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
+
+// Switch on current filter if a permanent
+// NRF24 cannot be found, as the later
+// HW60 has changed one of the permanent NRF
+// pins to the current filter activation pin.
+#define HW_PERMANENT_NRF_FAILED_HOOK() \
+			palSetPadMode(GPIOD, 2, \
+			PAL_MODE_OUTPUT_PUSHPULL | \
+			PAL_STM32_OSPEED_HIGHEST); \
+			CURRENT_FILTER_ON()
 
 /*
  * ADC Vector
@@ -78,7 +88,6 @@
 #define ADC_IND_EXT2			7
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOTOR		9
-#define ADC_IND_CURR_AUX        10
 #define ADC_IND_VREFINT			12
 
 // ADC macros and settings
@@ -94,10 +103,10 @@
 #define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		50.0
+#define CURRENT_AMP_GAIN		10
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.0002
+#define CURRENT_SHUNT_RES		0.0005
 #endif
 
 // Input voltage
@@ -108,8 +117,7 @@
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-//#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-#define NTC_TEMP_MOTOR(beta)    (10000.0 / ((4095.0 / (float)0.5) - 1.0))
+#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -126,11 +134,28 @@
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
 
-// COMM-port ADC GPIOs
-#define HW_ADC_EXT_GPIO			GPIOA
-#define HW_ADC_EXT_PIN			5
-#define HW_ADC_EXT2_GPIO		GPIOA
-#define HW_ADC_EXT2_PIN			6
+// Current ADC macros. Override them for custom current measurement functions.
+#ifndef GET_CURRENT1
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT1()      (4095 - ADC_Value[ADC_IND_CURR1])
+#else
+#define GET_CURRENT1()        ADC_Value[ADC_IND_CURR1]
+#endif
+#endif
+#ifndef GET_CURRENT2
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT2()      (4095 - ADC_Value[ADC_IND_CURR2])
+#else
+#define GET_CURRENT2()        ADC_Value[ADC_IND_CURR2]
+#endif
+#endif
+#ifndef GET_CURRENT3
+#ifdef INVERTED_SHUNT_POLARITY
+#define GET_CURRENT3()      (4095 - ADC_Value[ADC_IND_CURR3])
+#else
+#define GET_CURRENT3()      ADC_Value[ADC_IND_CURR3]
+#endif
+#endif
 
 // UART Peripheral
 #define HW_UART_DEV				SD3
@@ -142,11 +167,13 @@
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
-#define HW_ICU_DEV              ICUD4
-#define HW_ICU_CHANNEL          ICU_CHANNEL_1
-#define HW_ICU_GPIO_AF          GPIO_AF_TIM4
-#define HW_ICU_GPIO             GPIOB
-#define HW_ICU_PIN              6
+#define HW_ICU_TIMER			TIM4
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
+#define HW_ICU_DEV				ICUD4
+#define HW_ICU_CHANNEL			ICU_CHANNEL_1
+#define HW_ICU_GPIO_AF			GPIO_AF_TIM4
+#define HW_ICU_GPIO				GPIOB
+#define HW_ICU_PIN				6
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
@@ -174,6 +201,16 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
+// NRF pins
+#define NRF_PORT_CSN			GPIOB
+#define NRF_PIN_CSN				12
+#define NRF_PORT_SCK			GPIOB
+#define NRF_PIN_SCK				4
+#define NRF_PORT_MOSI			GPIOB
+#define NRF_PIN_MOSI			3
+#define NRF_PORT_MISO			GPIOD
+#define NRF_PIN_MISO			2
+
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
@@ -186,35 +223,21 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-// SPI for DRV8323S
-#define DRV8323S_MOSI_GPIO		GPIOC
-#define DRV8323S_MOSI_PIN		12
-#define DRV8323S_MISO_GPIO		GPIOC
-#define DRV8323S_MISO_PIN		11
-#define DRV8323S_SCK_GPIO		GPIOC
-#define DRV8323S_SCK_PIN		10
-#define DRV8323S_CS_GPIO		GPIOC
-#define DRV8323S_CS_PIN			9
+// SPI for DRV8301
+#define DRV8301_MOSI_GPIO		GPIOC
+#define DRV8301_MOSI_PIN		12
+#define DRV8301_MISO_GPIO		GPIOC
+#define DRV8301_MISO_PIN		11
+#define DRV8301_SCK_GPIO		GPIOC
+#define DRV8301_SCK_PIN			10
+#define DRV8301_CS_GPIO			GPIOC
+#define DRV8301_CS_PIN			9
 
-// Pins for ID detection
-//List of three state (trinary digit) pins used for hardware identification
-//States are: NC/Floating = 0 GND = 1, VCC = 2,  in order P_LSB, ..., P_MSB
-#define HW_DEFAULT_ID           (APPCONF_CONTROLLER_ID >= 0 ? APPCONF_CONTROLLER_ID : hw_id_from_pins())
-#define HW_ID_PIN_GPIOS         GPIOC, GPIOC
-#define HW_ID_PIN_PINS          14,15
-#define CURRENT_AMP_GAIN_AUX    50.0
-#define CURRENT_SHUNT_RES_AUX   0.01
-#define FAC_CURRENT_AUX         ((V_REG / 4095.0) / (CURRENT_SHUNT_RES_AUX * CURRENT_AMP_GAIN_AUX))
-
-//APP settings
-#define APPCONF_UAVCAN_ESC_INDEX            (HW_DEFAULT_ID - 1)
-#define APPCONF_APP_TO_USE                  APP_PPM
-#define APPCONF_PPM_CTRL_TYPE               PPM_CTRL_TYPE_DUTY_NOREV
-#define APPCONF_PPM_MULTI_ESC               false
-#define APPCONF_SEND_CAN_STATUS_RATE_HZ     20
-#define APPCONF_CAN_BAUD_RATE               CAN_BAUD_1M
-#define APPCONF_SEND_CAN_STATUS             CAN_STATUS_1_2_3_4
-#define MAX_CURRENT_SUM                     700
+// BMI160
+#define BMI160_SDA_GPIO         GPIOB
+#define BMI160_SDA_PIN          2
+#define BMI160_SCL_GPIO         GPIOA
+#define BMI160_SCL_PIN          15
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -227,75 +250,53 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC       660.0
-
 // Default setting overrides
-#ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX				85.0	// Current limit in Amperes (Upper)
-#endif
-#ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX				85.0	// Input current limit in Amperes (Upper)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN				-60.0	// Input current limit in Amperes (Lower)
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT			180.0	// The maximum absolute current above which a fault is generated
-#endif
-
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
+
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
-#endif
-#ifndef MCCONF_FOC_OPENLOOP_RPM
-#define MCCONF_FOC_OPENLOOP_RPM         1500.0  // Openloop RPM (sensorless low speed or when finding index pulse)
-#endif
-#ifndef MCCONF_FOC_OPENLOOP_RPM_LOW
-#define MCCONF_FOC_OPENLOOP_RPM_LOW     0.1     // Fraction of OPENLOOP_RPM at minimum motor current
-#endif
-#ifndef MCCONF_FOC_SL_OPENLOOP_TIME
-#define MCCONF_FOC_SL_OPENLOOP_TIME     0.1 // Time to remain in openloop after ramping (s)
-#endif
-#ifndef MCCONF_FOC_SL_OPENLOOP_T_LOCK
-#define MCCONF_FOC_SL_OPENLOOP_T_LOCK   0.1     // Time to lock motor in beginning of open loop sequence
+#define MCCONF_FOC_F_SW                 20000.0
 #endif
 
-
-// FOC
-#ifndef MCCONF_FOC_CURRENT_KP
-#define MCCONF_FOC_CURRENT_KP           0.0107
-#endif
-#ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI           26.51
-#endif
-#ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L              0.00001072
-#endif
-#ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R              0.0265
-#endif
-#ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE   0.003848
-#endif
-#ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN        67540000     // Can be something like 600 / L
+#ifndef MCCONF_L_CURRENT_MAX
+#define MCCONF_L_CURRENT_MAX             60.0   // Current limit in Amperes (Upper)
 #endif
 
+#ifndef MCCONF_L_CURRENT_MIN
+#define MCCONF_L_CURRENT_MIN            -60.0   // Current limit in Amperes (Lower)
+#endif
+
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT		100.0	// The maximum absolute current above which a fault is generated
+#endif
+
+#ifndef MCCONF_FOC_SAMPLE_V0_V7
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#endif
+
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE        DRV8301_OC_DISABLED // DRV8301 over current protection mode
+#endif
+#ifndef MCCONF_M_DRV8301_OC_ADJ
+#define MCCONF_M_DRV8301_OC_ADJ          25     // DRV8301 over current protection threshold
+#endif
+#ifndef MCCONF_L_LIM_TEMP_FET_START
+#define MCCONF_L_LIM_TEMP_FET_START      60.0   // MOSFET temperature where current limiting should begin
+#endif
+#ifndef MCCONF_L_LIM_TEMP_FET_END
+#define MCCONF_L_LIM_TEMP_FET_END        70.0   // MOSFET temperature where everything should be shut off
+#endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-60.0, 120.0
-#define HW_LIM_CURRENT_IN		-60.0, 120.0
-#define HW_LIM_CURRENT_ABS		0.0, 180.0
+#define HW_LIM_CURRENT			-120.0, 120.0
+#define HW_LIM_CURRENT_IN		-120.0, 120.0
+#define HW_LIM_CURRENT_ABS		0.0, 160.0
 #define HW_LIM_VIN				6.0, 57.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-#endif /* HW_UXV_SR_H_ */
+
+#endif /* HW_Cheap_FOCer_2 */

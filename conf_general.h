@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		15
+#define FW_TEST_VERSION_NUMBER		17
 
 #include "datatypes.h"
 
@@ -102,7 +102,7 @@
 //#define HW75_300_VEDDER_FIRST_PCB
 
 // Second revision with separate UART for NRF51
-#define HW75_300_REV_2
+//#define HW75_300_REV_2
 #define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
@@ -155,11 +155,17 @@
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
 
+//#define HW_SOURCE "hw_Cheap_FOCer_2.c"
+//#define HW_HEADER "hw_Cheap_FOCer_2.h"
+
 //#define HW_SOURCE "hw_140_300.c"
 //#define HW_HEADER "hw_140_300.h"
 
 //#define HW_SOURCE "hw_es19.c"
 //#define HW_HEADER "hw_es19.h"
+
+//#define HW_SOURCE "hw_Little_FOCer.c"
+//#define HW_HEADER "hw_Little_FOCer.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -201,6 +207,7 @@
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
+//#include "vccu/app_vccu_conf.h"
 
 // CAN-plotter
 //#define APP_CUSTOM_TO_USE			"app_plot_can.c"
