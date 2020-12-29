@@ -60,6 +60,8 @@ void hw_init_gpio(void) {
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
+
+#ifdef HW_VER_IS_60D_PLUS
   mc_interface_select_motor_thread(2);
   palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
                 PAL_MODE_OUTPUT_PUSHPULL |
@@ -70,6 +72,7 @@ void hw_init_gpio(void) {
                 PAL_MODE_OUTPUT_PUSHPULL |
                 PAL_STM32_OSPEED_HIGHEST);
   PHASE_FILTER_OFF();
+#endif
 
 
   // LEDs
