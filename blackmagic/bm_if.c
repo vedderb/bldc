@@ -132,6 +132,7 @@ static int idcode_to_device(uint32_t idcode) {
 	case 0x00E3: /* nRF52832 (rev 1) CIAA B?? */
 	case 0x0139: /* nRF52832 (rev 2) ??AA B?0 */
 	case 0x014F: /* nRF52832 (rev 2) CIAA E1  */
+	case 0x0141: /* nRF52832 ?? */
 		ret = 7; break;
 	case 0x00EB: /* nRF52840 Preview QIAA AA0 */
 	case 0x0150: /* nRF52840 QIAA C0 */

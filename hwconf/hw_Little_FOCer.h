@@ -28,14 +28,10 @@
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
 
-
-
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
                                     drv8323s_write_reg(3,0x333); \
                                     drv8323s_write_reg(4,0x733); \
-                                    //drv8323s_write_reg(3,0x323); \
-                                    drv8323s_write_reg(4,0x723); \
-                                    //drv8323s_write_reg(5,0x25d);
+                                    drv8323s_write_reg(4,0x723);
 
 // Macros
 #define ENABLE_GATE()           palSetPad(GPIOB, 5)

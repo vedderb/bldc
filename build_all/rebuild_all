@@ -412,6 +412,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### Cheap_FOCer_2 ########################
 
 COPYDIR=Cheap_FOCer_2
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -424,6 +425,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### Little_FOCer ########################
 
 COPYDIR=Little_FOCer
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
