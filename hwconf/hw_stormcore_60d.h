@@ -91,7 +91,9 @@
 //Pins for BLE UART
 
 #define HW_UART_P_BAUD				115200
+
 #define HW_UART_P_DEV				SD1
+#define HW_UART_P_GPIO_AF			    GPIO_AF_USART1
 #define HW_UART_P_TX_PORT			GPIOA
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
@@ -101,6 +103,7 @@
 //Pins for Third UART
 #define HW_UART_3_BAUD				115200
 #define HW_UART_3_DEV				SD2
+#define HW_UART_3_GPIO_AF			    GPIO_AF_USART2
 #define HW_UART_3_TX_PORT			GPIOD
 #define HW_UART_3_TX_PIN			6
 #define HW_UART_3_RX_PORT			GPIOD

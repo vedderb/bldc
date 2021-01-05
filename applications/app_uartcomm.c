@@ -50,11 +50,11 @@ static volatile bool uart_is_running[UART_NUMBER] = {false};
 static mutex_t send_mutex[UART_NUMBER];
 static bool send_mutex_init_done[UART_NUMBER] = {false};
 static SerialConfig uart_cfg[UART_NUMBER] = {{
-												BAUDRATE,
-												0,
-												USART_CR2_LINEN,
-												0
-										}};
+											  BAUDRATE,
+											  0,
+											  USART_CR2_LINEN,
+											  0
+}};
 
 // Different for Rx and Tx because it is possible for hardware to use different UART driver
 // for Rx and Tx, feature not a bug XD
@@ -62,7 +62,7 @@ static SerialDriver *serialPortDriverTx[UART_NUMBER];
 static SerialDriver *serialPortDriverRx[UART_NUMBER];
 static stm32_gpio_t * TxGpioPort[UART_NUMBER];
 static stm32_gpio_t * RxGpioPort[UART_NUMBER];
-static uint32_t TxGpioPin[UART_NUMBER], RxGpioPin[UART_NUMBER];
+static uint8_t TxGpioPin[UART_NUMBER], RxGpioPin[UART_NUMBER], gpioAF[UART_NUMBER];
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len, unsigned int port_number);
@@ -107,6 +107,7 @@ void app_uartcomm_initialize(void) {
 	uart_cfg[0].speed =  BAUDRATE;
 	RxGpioPort[0] = HW_UART_RX_PORT; RxGpioPin[0]  = HW_UART_RX_PIN;
 	TxGpioPort[0] = HW_UART_TX_PORT; TxGpioPin[0]  = HW_UART_TX_PIN;
+	gpioAF[0] = HW_UART_GPIO_AF;
 #ifdef HW_UART_P_DEV
 #ifdef HW_UART_P_DEV_TX
 	serialPortDriverTx[1] = &HW_UART_P_DEV_TX;
@@ -117,6 +118,7 @@ void app_uartcomm_initialize(void) {
 	uart_cfg[1].speed = HW_UART_P_BAUD;
 	RxGpioPort[1] = HW_UART_P_RX_PORT; RxGpioPin[1] = HW_UART_P_RX_PIN;
 	TxGpioPort[1] = HW_UART_P_TX_PORT; TxGpioPin[1] = HW_UART_P_TX_PIN;
+	gpioAF[1] = HW_UART_P_GPIO_AF;
 #endif
 #ifdef HW_UART_3_DEV
 	serialPortDriverTx[2] =  &HW_UART_3_DEV;
@@ -124,6 +126,7 @@ void app_uartcomm_initialize(void) {
 	uart_cfg[2].speed = HW_UART_3_BAUD;
 	RxGpioPort[2] = HW_UART_3_RX_PORT; RxGpioPin[2] = HW_UART_3_RX_PIN;
 	TxGpioPort[2] = HW_UART_3_TX_PORT;TxGpioPin[2] = HW_UART_3_TX_PIN;
+	gpioAF[2] = HW_UART_3_GPIO_AF;
 #endif
 }
 
@@ -139,12 +142,12 @@ void app_uartcomm_start(unsigned int port_number) {
 		thread_is_running = true;
 	}
 	sdStart(serialPortDriverRx[port_number], &uart_cfg[port_number]);
-	//sdStart(&serialPortDriverTx[port_number], &uart_cfg[port_number]);
+	sdStart(serialPortDriverTx[port_number], &uart_cfg[port_number]);
 	uart_is_running[port_number] = true;
-	palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
+	palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
 				  PAL_STM32_OSPEED_HIGHEST |
 				  PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(RxGpioPort[port_number], RxGpioPin[port_number], PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
+	palSetPadMode(RxGpioPort[port_number], RxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
 				  PAL_STM32_OSPEED_HIGHEST |
 				  PAL_STM32_PUDR_PULLUP);
 }
@@ -178,7 +181,7 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len, unsigned in
 
 void app_uartcomm_configure(uint32_t baudrate, bool enabled, unsigned int port_number) {
 	if(port_number >= UART_NUMBER){
-			return;
+		return;
 	}
 	if(baudrate>0){
 		uart_cfg[port_number].speed = baudrate;
@@ -187,10 +190,10 @@ void app_uartcomm_configure(uint32_t baudrate, bool enabled, unsigned int port_n
 		sdStart(serialPortDriverRx[port_number], &uart_cfg[port_number]);
 	}
 	if (enabled) {
-		palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
+		palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
 					  PAL_STM32_OSPEED_HIGHEST |
 					  PAL_STM32_PUDR_PULLUP);
-		palSetPadMode(RxGpioPort[port_number], RxGpioPin[port_number], PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
+		palSetPadMode(RxGpioPort[port_number], RxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
 					  PAL_STM32_OSPEED_HIGHEST |
 					  PAL_STM32_PUDR_PULLUP);
 	} else {
