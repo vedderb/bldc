@@ -51,7 +51,7 @@ void app_set_configuration(app_configuration *conf) {
 
 	app_ppm_stop();
 	app_adc_stop();
-	app_uartcomm_stop();
+	app_uartcomm_stop(0);
 	app_nunchuk_stop();
 	app_balance_stop();
 	app_pas_stop();
@@ -84,19 +84,19 @@ void app_set_configuration(app_configuration *conf) {
 
 	case APP_UART:
 		hw_stop_i2c();
-		app_uartcomm_start();
+		app_uartcomm_start(0);
 		break;
 
 	case APP_PPM_UART:
 		hw_stop_i2c();
 		app_ppm_start();
-		app_uartcomm_start();
+		app_uartcomm_start(0);
 		break;
 
 	case APP_ADC_UART:
 		hw_stop_i2c();
 		app_adc_start(false);
-		app_uartcomm_start();
+		app_uartcomm_start(0);
 		break;
 
 	case APP_NUNCHUK:
@@ -107,7 +107,7 @@ void app_set_configuration(app_configuration *conf) {
 		app_balance_start();
 		if(appconf.imu_conf.type == IMU_TYPE_INTERNAL){
 			hw_stop_i2c();
-			app_uartcomm_start();
+			app_uartcomm_start(0);
 		}
 		break;
 
@@ -141,7 +141,8 @@ void app_set_configuration(app_configuration *conf) {
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
 	app_pas_configure(&appconf.app_pas_conf);
-	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.permanent_uart_enabled);
+	app_uartcomm_configure(appconf.app_uart_baudrate, true, 0);
+	app_uartcomm_configure(0, appconf.permanent_uart_enabled, 1);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
 #ifdef APP_CUSTOM_TO_USE

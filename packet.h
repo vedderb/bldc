@@ -29,7 +29,7 @@
 #endif
 
 #ifndef PACKET_HANDLERS
-#define PACKET_HANDLERS			3
+#define PACKET_HANDLERS			4
 #endif
 
 #ifndef PACKET_MAX_PL_LEN

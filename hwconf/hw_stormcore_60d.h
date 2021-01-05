@@ -89,15 +89,24 @@
 
 
 //Pins for BLE UART
-//#define USE_ALT_UART_PORT
 
 #define HW_UART_P_BAUD				115200
 #define HW_UART_P_DEV				SD1
-#define HW_UART_P_GPIO_AF			GPIO_AF_USART1
 #define HW_UART_P_TX_PORT			GPIOA
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
+
+#ifdef HW_VER_IS_60D_PLUS
+//Pins for Third UART
+#define HW_UART_3_BAUD				115200
+#define HW_UART_3_DEV				SD2
+#define HW_UART_3_TX_PORT			GPIOD
+#define HW_UART_3_TX_PIN			6
+#define HW_UART_3_RX_PORT			GPIOD
+#define HW_UART_3_RX_PIN			5
+#endif
+
 
 // SPI for DRV8301
 #define DRV8323S_MOSI_GPIO			GPIOC
@@ -282,14 +291,6 @@
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
-
-// UART Peripheral
-#define HW_UART_DEV_2             SD2
-#define HW_UART_GPIO_AF_2         GPIO_AF_USART2
-#define HW_UART_TX_PORT_2         GPIOD
-#define HW_UART_TX_PIN_2          6
-#define HW_UART_RX_PORT_2         GPIOD
-#define HW_UART_RX_PIN_2          5
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9

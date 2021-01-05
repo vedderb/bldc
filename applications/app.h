@@ -43,11 +43,11 @@ float app_adc_get_voltage(void);
 float app_adc_get_decoded_level2(void);
 float app_adc_get_voltage2(void);
 
-void app_uartcomm_start(void);
-void app_uartcomm_start_permanent(void);
-void app_uartcomm_stop(void);
-void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled);
-void app_uartcomm_send_packet(unsigned char *data, unsigned int len);
+void app_uartcomm_initialize(void);
+void app_uartcomm_start(unsigned int port_number);
+void app_uartcomm_stop(unsigned int port_number);
+void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled, unsigned int port_number);
+void app_uartcomm_send_packet(unsigned char *data, unsigned int len,  unsigned int port_number);
 void app_uartcomm_send_packet_p(unsigned char *data, unsigned int len);
 
 void app_nunchuk_start(void);
