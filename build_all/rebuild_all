@@ -373,7 +373,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 #################### STORMCORE_60D+ ########################
 
-COPYDIR=STORMCORE_60D+
+COPYDIR='STORMCORE_60D+'
 rm -f $COPYDIR/*
 
 # default

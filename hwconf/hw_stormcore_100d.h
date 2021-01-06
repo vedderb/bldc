@@ -36,8 +36,8 @@
 #define HW_HAS_3_SHUNTS
 
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x3af); \
-                                    drv8323s_write_reg(4,0x7af);
+		drv8323s_write_reg(3,0x3af); \
+		drv8323s_write_reg(4,0x7af);
 
 
 
@@ -74,14 +74,14 @@
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
 #define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN); \
-									palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
+		palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 
 
 #define DCCAL_ON() //drv8323s_dccal_on()
 #define DCCAL_OFF() //drv8323s_dccal_off()
 
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
-									smart_switch_thread_start();
+		smart_switch_thread_start();
 
 
 
