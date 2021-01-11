@@ -1,4 +1,4 @@
-=== FW 5.02 <dev> ===
+=== FW 5.02 ===
 * IMU calibration improvement.
 * Added COMM_GET_MCCONF_TEMP command.
 * Added bidirectional current command to VESC remote.

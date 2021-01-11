@@ -256,22 +256,22 @@
 #define MCCONF_L_MAX_VOLTAGE			74.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX				60.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX			60.0	// Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN				-60.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_CURRENT_MIN			-60.0	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX				60.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN				-60.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-60.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT			120.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		120.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_M_DRV8301_OC_ADJ
-#define MCCONF_M_DRV8301_OC_ADJ				18 // DRV8301 over current protection threshold
+#define MCCONF_M_DRV8301_OC_ADJ			18 // DRV8301 over current protection threshold
 #endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -279,6 +279,10 @@
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW					30000.0
+#endif
+
+#ifndef APPCONF_SHUTDOWN_MODE
+#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
 #endif
 
 // Setting limits
