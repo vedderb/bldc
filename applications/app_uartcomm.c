@@ -28,8 +28,6 @@
 
 // Settings
 #define BAUDRATE					115200
-#define PACKET_HANDLER				1
-#define PACKET_HANDLER_P			2
 
 // Threads
 static THD_FUNCTION(packet_process_thread, arg);
@@ -40,6 +38,7 @@ static volatile bool thread_is_running = false;
 static volatile bool uart_is_running = false;
 static mutex_t send_mutex;
 static bool send_mutex_init_done = false;
+static PACKET_STATE_t packet_state_external;
 
 #ifdef HW_UART_P_DEV
 static mutex_t send_mutex_p;
@@ -53,6 +52,7 @@ static void send_packet(unsigned char *data, unsigned int len);
 #ifdef HW_UART_P_DEV
 static void process_packet_p(unsigned char *data, unsigned int len);
 static void send_packet_p(unsigned char *data, unsigned int len);
+static PACKET_STATE_t packet_state_permanent;
 #endif
 
 static SerialConfig uart_cfg = {
@@ -102,7 +102,7 @@ static void send_packet_p(unsigned char *data, unsigned int len) {
 #endif
 
 void app_uartcomm_start(void) {
-	packet_init(send_packet, process_packet, PACKET_HANDLER);
+	packet_init(send_packet, process_packet, &packet_state_external);
 
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
@@ -123,7 +123,7 @@ void app_uartcomm_start(void) {
 
 void app_uartcomm_start_permanent(void) {
 #ifdef HW_UART_P_DEV
-	packet_init(send_packet_p, process_packet_p, PACKET_HANDLER_P);
+	packet_init(send_packet_p, process_packet_p, &packet_state_permanent);
 
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
@@ -166,7 +166,7 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len) {
 	}
 
 	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, PACKET_HANDLER);
+	packet_send_packet(data, len, &packet_state_external);
 	chMtxUnlock(&send_mutex);
 }
 
@@ -178,7 +178,7 @@ void app_uartcomm_send_packet_p(unsigned char *data, unsigned int len) {
 	}
 
 	chMtxLock(&send_mutex_p);
-	packet_send_packet(data, len, PACKET_HANDLER_P);
+	packet_send_packet(data, len, &packet_state_permanent);
 	chMtxUnlock(&send_mutex_p);
 #else
 	(void)data;
@@ -236,7 +236,7 @@ static THD_FUNCTION(packet_process_thread, arg) {
 #ifdef HW_UART_P_DEV
 					from_p_uart = false;
 #endif
-					packet_process_byte(res, PACKET_HANDLER);
+					packet_process_byte(res, &packet_state_external);
 					rx = true;
 				}
 			}
@@ -245,7 +245,7 @@ static THD_FUNCTION(packet_process_thread, arg) {
 			msg_t res = sdGetTimeout(&HW_UART_P_DEV, TIME_IMMEDIATE);
 			if (res != MSG_TIMEOUT) {
 				from_p_uart = true;
-				packet_process_byte(res, PACKET_HANDLER_P);
+				packet_process_byte(res, &packet_state_permanent);
 				rx = true;
 			}
 #endif
