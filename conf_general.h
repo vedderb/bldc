@@ -181,7 +181,7 @@
  * Select default user app configuration
  */
 //#include			"appconf_example_ppm.h"
-#include			"appconf_custom.h"
+//#include			"appconf_custom.h"
 //#include			"appconf_ellwee.h"
 
 /*
