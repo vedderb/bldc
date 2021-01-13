@@ -63,6 +63,7 @@ static SerialDriver *serialPortDriverRx[UART_NUMBER];
 static stm32_gpio_t * TxGpioPort[UART_NUMBER];
 static stm32_gpio_t * RxGpioPort[UART_NUMBER];
 static uint8_t TxGpioPin[UART_NUMBER], RxGpioPin[UART_NUMBER], gpioAF[UART_NUMBER];
+static PACKET_STATE_t packet_state[UART_NUMBER];
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len, unsigned int port_number);
@@ -135,7 +136,7 @@ void app_uartcomm_start(unsigned int port_number) {
 		return;
 	}
 
-	packet_init(write_functions[port_number], process_functions[port_number], port_number + 1);
+	packet_init(write_functions[port_number], process_functions[port_number], &packet_state[port_number]);
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
 						  NORMALPRIO, packet_process_thread, NULL);
@@ -175,7 +176,7 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len, unsigned in
 		send_mutex_init_done[port_number] = true;
 	}
 	chMtxLock(&send_mutex[port_number]);
-	packet_send_packet(data, len, port_number + 1);
+	packet_send_packet(data, len, &packet_state[port_number]);
 	chMtxUnlock(&send_mutex[port_number]);
 }
 
@@ -206,19 +207,19 @@ static THD_FUNCTION(packet_process_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("uartcomm proc");
 	event_listener_t el[UART_NUMBER];
-	for(int port_num = 0; port_num < UART_NUMBER; port_num++) {
-		chEvtRegisterMaskWithFlags(&(*serialPortDriverRx[port_num]).event, &el[port_num], EVENT_MASK(0), CHN_INPUT_AVAILABLE);
+	for(int port_number = 0; port_number < UART_NUMBER; port_number++) {
+		chEvtRegisterMaskWithFlags(&(*serialPortDriverRx[port_number]).event, &el[port_number], EVENT_MASK(0), CHN_INPUT_AVAILABLE);
 	}
 	for(;;) {
 		chEvtWaitAnyTimeout(ALL_EVENTS, ST2MS(10));
 		bool rx = true;
 		while (rx) {
 			rx = false;
-			for(int port_num = 0; port_num < UART_NUMBER; port_num++) {
-				if (uart_is_running[port_num]) {
-					msg_t res = sdGetTimeout(serialPortDriverRx[port_num], TIME_IMMEDIATE);
+			for(int port_number = 0; port_number < UART_NUMBER; port_number++) {
+				if (uart_is_running[port_number]) {
+					msg_t res = sdGetTimeout(serialPortDriverRx[port_number], TIME_IMMEDIATE);
 					if (res != MSG_TIMEOUT) {
-						packet_process_byte(res, port_num + 1);
+						packet_process_byte(res, &packet_state[port_number]);
 						rx = true;
 					}
 				}
