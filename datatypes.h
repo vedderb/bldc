@@ -26,6 +26,12 @@
 
 // Data types
 typedef enum {
+	HW_TYPE_VESC = 0,
+	HW_TYPE_VESC_BMS,
+	HW_TYPE_CUSTOM_MODULE
+} HW_TYPE;
+
+typedef enum {
    MC_STATE_OFF = 0,
    MC_STATE_DETECTING,
    MC_STATE_RUNNING,
@@ -70,6 +76,7 @@ typedef enum {
 	TEMP_SENSOR_NTC_10K_25C = 0,
 	TEMP_SENSOR_PTC_1K_100C,
 	TEMP_SENSOR_KTY83_122,
+	TEMP_SENSOR_NTC_100K_25C,
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -123,7 +130,10 @@ typedef enum {
 	FAULT_CODE_BRK,
 	FAULT_CODE_RESOLVER_LOT,
 	FAULT_CODE_RESOLVER_DOS,
-	FAULT_CODE_RESOLVER_LOS
+	FAULT_CODE_RESOLVER_LOS,
+	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
+	FAULT_CODE_ENCODER_NO_MAGNET
 } mc_fault_code;
 
 typedef enum {
@@ -157,7 +167,8 @@ typedef enum {
 	SENSOR_PORT_MODE_AD2S1205,
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
-	SENSOR_PORT_MODE_TS5700N8501_MULTITURN
+	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
+	SENSOR_PORT_MODE_MT6816_SPI
 } sensor_port_mode;
 
 typedef struct {
@@ -196,7 +207,8 @@ typedef enum {
 	CAN_BAUD_10K,
 	CAN_BAUD_20K,
 	CAN_BAUD_50K,
-	CAN_BAUD_75K
+	CAN_BAUD_75K,
+	CAN_BAUD_100K
 } CAN_BAUD;
 
 typedef enum {
@@ -211,12 +223,55 @@ typedef enum {
 	HFI_SAMPLES_32
 } foc_hfi_samples;
 
+typedef enum {
+	BMS_TYPE_NONE = 0,
+	BMS_TYPE_VESC
+} BMS_TYPE;
+
 typedef struct {
-	// Switching and drive
-	mc_pwm_mode pwm_mode;
-	mc_comm_mode comm_mode;
-	mc_motor_type motor_type;
-	mc_sensor_mode sensor_mode;
+	BMS_TYPE type;
+	float t_limit_start;
+	float t_limit_end;
+	float soc_limit_start;
+	float soc_limit_end;
+} bms_config;
+
+typedef struct {
+	float v_tot;
+	float v_charge;
+	float i_in;
+	float i_in_ic;
+	float ah_cnt;
+	float wh_cnt;
+	int cell_num;
+	float v_cell[32];
+	bool bal_state[32];
+	int temp_adc_num;
+	float temps_adc[10];
+	float temp_ic;
+	float temp_hum;
+	float hum;
+	float temp_max_cell;
+	float soc;
+	float soh;
+	int can_id;
+	systime_t update_time;
+} bms_values;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_cell_min;
+	float v_cell_max;
+	float t_cell_max;
+	float soc;
+	float soh;
+	bool is_charging;
+	bool is_balancing;
+	bool is_charge_allowed;
+} bms_soc_soh_temp_stat;
+
+typedef struct {
 	// Limits
 	float l_current_max;
 	float l_current_min;
@@ -252,6 +307,13 @@ typedef struct {
 	float lo_in_current_min;
 	float lo_current_motor_max_now;
 	float lo_current_motor_min_now;
+
+	// BLDC switching and drive
+	mc_pwm_mode pwm_mode;
+	mc_comm_mode comm_mode;
+	mc_motor_type motor_type;
+	mc_sensor_mode sensor_mode;
+
 	// Sensorless (bldc)
 	float sl_min_erpm;
 	float sl_min_erpm_cycle_int_limit;
@@ -263,6 +325,7 @@ typedef struct {
 	// Hall sensor
 	int8_t hall_table[8];
 	float hall_sl_erpm;
+
 	// FOC
 	float foc_current_kp;
 	float foc_current_ki;
@@ -277,6 +340,7 @@ typedef struct {
 	float foc_encoder_cos_gain;
 	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
+	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
@@ -286,12 +350,16 @@ typedef struct {
 	float foc_duty_dowmramp_kp;
 	float foc_duty_dowmramp_ki;
 	float foc_openloop_rpm;
+	float foc_openloop_rpm_low;
+	float foc_d_gain_scale_start;
+	float foc_d_gain_scale_max_mod;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
-	float foc_sl_d_current_duty;
-	float foc_sl_d_current_factor;
+	float foc_sl_openloop_time_lock;
+	float foc_sl_openloop_time_ramp;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
+	float foc_hall_interp_erpm;
 	float foc_sl_erpm;
 	bool foc_sample_v0_v7;
 	bool foc_sample_high_current;
@@ -308,12 +376,14 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+
 	// GPDrive
 	int gpd_buffer_notify_left;
 	int gpd_buffer_interpol;
 	float gpd_current_filter_const;
 	float gpd_current_kp;
 	float gpd_current_ki;
+
 	// Speed PID
 	float s_pid_kp;
 	float s_pid_ki;
@@ -321,17 +391,21 @@ typedef struct {
 	float s_pid_kd_filter;
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
+	float s_pid_ramp_erpms_s;
+
 	// Pos PID
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
 	float p_pid_kd_filter;
 	float p_pid_ang_div;
+
 	// Current controller
 	float cc_startup_boost_duty;
 	float cc_min_current;
 	float cc_gain;
 	float cc_ramp_step_max;
+
 	// Misc
 	int32_t m_fault_stop_time_ms;
 	float m_duty_ramp_step;
@@ -348,6 +422,7 @@ typedef struct {
 	out_aux_mode m_out_aux_mode;
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
+	int m_hall_extra_samples;
 	// Setup info
 	uint8_t si_motor_poles;
 	float si_gear_ratio;
@@ -355,6 +430,12 @@ typedef struct {
 	BATTERY_TYPE si_battery_type;
 	int si_battery_cells;
 	float si_battery_ah;
+
+	// BMS Configuration
+	bms_config bms;
+
+	// Protect from flash corruption.
+	uint16_t crc;
 } mc_configuration;
 
 // Applications to use
@@ -368,7 +449,9 @@ typedef enum {
 	APP_NUNCHUK,
 	APP_NRF,
 	APP_CUSTOM,
-	APP_BALANCE
+	APP_BALANCE,
+	APP_PAS,
+	APP_ADC_PAS
 } app_use;
 
 // Throttle curve mode
@@ -433,6 +516,17 @@ typedef enum {
 	ADC_CTRL_TYPE_PID_REV_BUTTON
 } adc_control_type;
 
+// PAS control types
+typedef enum {
+	PAS_CTRL_TYPE_NONE = 0,
+	PAS_CTRL_TYPE_CADENCE
+} pas_control_type;
+
+// PAS sensor types
+typedef enum {
+	PAS_SENSOR_TYPE_QUADRATURE = 0
+} pas_sensor_type;
+
 typedef struct {
 	adc_control_type ctrl_type;
 	float hyst;
@@ -462,7 +556,8 @@ typedef struct {
 typedef enum {
 	CHUK_CTRL_TYPE_NONE = 0,
 	CHUK_CTRL_TYPE_CURRENT,
-	CHUK_CTRL_TYPE_CURRENT_NOREV
+	CHUK_CTRL_TYPE_CURRENT_NOREV,
+	CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL
 } chuk_control_type;
 
 typedef struct {
@@ -481,6 +576,20 @@ typedef struct {
 	float smart_rev_max_duty;
 	float smart_rev_ramp_time;
 } chuk_config;
+
+typedef struct {
+	pas_control_type ctrl_type;
+	pas_sensor_type sensor_type;
+	float current_scaling;
+	float pedal_rpm_start;
+	float pedal_rpm_end;
+	bool invert_pedal_direction;
+	uint8_t magnets;
+	bool use_filter;
+	float ramp_time_pos;
+	float ramp_time_neg;
+	uint32_t update_rate_hz;
+} pas_config;
 
 // NRF Datatypes
 typedef enum {
@@ -544,16 +653,24 @@ typedef struct {
 	float ki;
 	float kd;
 	uint16_t hertz;
-	float pitch_fault;
-	float roll_fault;
-	float adc1;
-	float adc2;
-	float overspeed_duty;
-	float tiltback_duty;
+	float fault_pitch;
+	float fault_roll;
+	float fault_duty;
+	float fault_adc1;
+	float fault_adc2;
+	uint16_t fault_delay_pitch;
+	uint16_t fault_delay_roll;
+	uint16_t fault_delay_duty;
+	uint16_t fault_delay_switch_half;
+	uint16_t fault_delay_switch_full;
+	uint16_t fault_adc_half_erpm;
 	float tiltback_angle;
 	float tiltback_speed;
+	float tiltback_duty;
 	float tiltback_high_voltage;
 	float tiltback_low_voltage;
+	float tiltback_constant;
+	uint16_t tiltback_constant_erpm;
 	float startup_pitch_tolerance;
 	float startup_roll_tolerance;
 	float startup_speed;
@@ -564,16 +681,13 @@ typedef struct {
 	float yaw_ki;
 	float yaw_kd;
 	float roll_steer_kp;
-	float brake_current;
-	uint16_t overspeed_delay;
-	uint16_t fault_delay;
-	float tiltback_constant;
 	float roll_steer_erpm_kp;
+	float brake_current;
 	float yaw_current_clamp;
-	uint16_t adc_half_fault_erpm;
 	float setpoint_pitch_filter;
 	float setpoint_target_filter;
-	float setpoint_clamp;
+	float setpoint_filter_clamp;
+	uint16_t kd_pt1_frequency;
 } balance_config;
 
 // CAN status modes
@@ -604,7 +718,8 @@ typedef enum {
 	IMU_TYPE_INTERNAL,
 	IMU_TYPE_EXTERNAL_MPU9X50,
 	IMU_TYPE_EXTERNAL_ICM20948,
-	IMU_TYPE_EXTERNAL_BMI160
+	IMU_TYPE_EXTERNAL_BMI160,
+	IMU_TYPE_EXTERNAL_LSM6DS3
 } IMU_TYPE;
 
 typedef enum {
@@ -635,6 +750,12 @@ typedef enum {
 	CAN_MODE_COMM_BRIDGE
 } CAN_MODE;
 
+typedef enum {
+	UAVCAN_RAW_MODE_CURRENT = 0,
+	UAVCAN_RAW_MODE_CURRENT_NO_REV_BRAKE,
+	UAVCAN_RAW_MODE_DUTY
+} UAVCAN_RAW_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -650,6 +771,7 @@ typedef struct {
 	// CAN modes
 	CAN_MODE can_mode;
 	uint8_t uavcan_esc_index;
+	UAVCAN_RAW_MODE uavcan_raw_mode;
 
 	// Application to use
 	app_use app_to_use;
@@ -672,8 +794,14 @@ typedef struct {
 	// Balance application settings
 	balance_config app_balance_conf;
 
+	// Pedal Assist application settings
+	pas_config app_pas_conf;
+
 	// IMU Settings
 	imu_config imu_conf;
+
+	// Protect from flash corruption
+	uint16_t crc;
 } app_configuration;
 
 // Communication commands
@@ -768,7 +896,34 @@ typedef enum {
 	COMM_SET_BLE_NAME,
 	COMM_SET_BLE_PIN,
 	COMM_SET_CAN_MODE,
-	COMM_GET_IMU_CALIBRATION
+	COMM_GET_IMU_CALIBRATION,
+	COMM_GET_MCCONF_TEMP,
+
+	// Custom configuration for hardware
+	COMM_GET_CUSTOM_CONFIG_XML,
+	COMM_GET_CUSTOM_CONFIG,
+	COMM_GET_CUSTOM_CONFIG_DEFAULT,
+	COMM_SET_CUSTOM_CONFIG,
+
+	// BMS commands
+	COMM_BMS_GET_VALUES,
+	COMM_BMS_SET_CHARGE_ALLOWED,
+	COMM_BMS_SET_BALANCE_OVERRIDE,
+	COMM_BMS_RESET_COUNTERS,
+	COMM_BMS_FORCE_BALANCE,
+	COMM_BMS_ZERO_CURRENT_OFFSET,
+
+	// FW updates commands for different HW types
+	COMM_JUMP_TO_BOOTLOADER_HW,
+	COMM_ERASE_NEW_APP_HW,
+	COMM_WRITE_NEW_APP_DATA_HW,
+	COMM_ERASE_BOOTLOADER_HW,
+	COMM_JUMP_TO_BOOTLOADER_ALL_CAN_HW,
+	COMM_ERASE_NEW_APP_ALL_CAN_HW,
+	COMM_WRITE_NEW_APP_DATA_ALL_CAN_HW,
+	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
+
+	COMM_SET_ODOMETER,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -804,7 +959,21 @@ typedef enum {
 	CAN_PACKET_POLL_TS5700N8501_STATUS,
 	CAN_PACKET_CONF_BATTERY_CUT,
 	CAN_PACKET_CONF_STORE_BATTERY_CUT,
-	CAN_PACKET_SHUTDOWN
+	CAN_PACKET_SHUTDOWN,
+	CAN_PACKET_IO_BOARD_ADC_1_TO_4,
+	CAN_PACKET_IO_BOARD_ADC_5_TO_8,
+	CAN_PACKET_IO_BOARD_ADC_9_TO_12,
+	CAN_PACKET_IO_BOARD_DIGITAL_IN,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM,
+	CAN_PACKET_BMS_V_TOT,
+	CAN_PACKET_BMS_I,
+	CAN_PACKET_BMS_AH_WH,
+	CAN_PACKET_BMS_V_CELL,
+	CAN_PACKET_BMS_BAL,
+	CAN_PACKET_BMS_TEMPS,
+	CAN_PACKET_BMS_HUM,
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -890,6 +1059,18 @@ typedef struct {
 } can_status_msg_5;
 
 typedef struct {
+	int id;
+	systime_t rx_time;
+	float adc_voltages[4];
+} io_board_adc_values;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	uint64_t inputs;
+} io_board_digial_inputs;
+
+typedef struct {
 	uint8_t js_x;
 	uint8_t js_y;
 	bool bt_c;
@@ -965,6 +1146,8 @@ typedef union {
 
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
+
+#define EEPROM_ADDR_ODOMETER    1
 
 typedef struct {
 	float ah_tot;

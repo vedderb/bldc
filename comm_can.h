@@ -32,8 +32,8 @@ void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace);
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
-void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
-void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
+void comm_can_set_sid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
+void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
 void comm_can_set_duty(uint8_t controller_id, float duty);
 void comm_can_set_current(uint8_t controller_id, float current);
@@ -42,7 +42,7 @@ void comm_can_set_rpm(uint8_t controller_id, float rpm);
 void comm_can_set_pos(uint8_t controller_id, float pos);
 void comm_can_set_current_rel(uint8_t controller_id, float current_rel);
 void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel);
-bool comm_can_ping(uint8_t controller_id);
+bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type);
 void comm_can_detect_apply_all_foc(uint8_t controller_id, bool activate_status_msgs, float max_power_loss);
 void comm_can_conf_current_limits(uint8_t controller_id,
 		bool store, float min, float max);
@@ -66,6 +66,16 @@ can_status_msg_4 *comm_can_get_status_msg_4_index(int index);
 can_status_msg_4 *comm_can_get_status_msg_4_id(int id);
 can_status_msg_5 *comm_can_get_status_msg_5_index(int index);
 can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index);
+io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id);
+io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index);
+io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id);
+io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index);
+io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id);
+void comm_can_io_board_set_output_digital(int id, int channel, bool on);
+void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
+
 CANRxFrame *comm_can_get_rx_frame(void);
 
 #endif /* COMM_CAN_H_ */

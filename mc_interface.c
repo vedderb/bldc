@@ -39,6 +39,8 @@
 #include "app.h"
 #include "utils.h"
 #include "mempools.h"
+#include "crc.h"
+#include "bms.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -113,6 +115,8 @@ static volatile bool m_sample_is_second_motor;
 static volatile mc_fault_code m_fault_stop_fault;
 static volatile bool m_fault_stop_is_second_motor;
 
+static volatile uint32_t m_odometer_meters;
+
 // Private functions
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf);
 static void run_timer_tasks(volatile motor_if_state_t *motor);
@@ -155,6 +159,12 @@ void mc_interface_init(void) {
 	m_sample_mode = DEBUG_SAMPLING_OFF;
 	m_sample_mode_last = DEBUG_SAMPLING_OFF;
 	m_sample_is_second_motor = false;
+	//initialize odometer to EEPROM value
+	m_odometer_meters = 0;
+	eeprom_var v;
+	if(conf_general_read_eeprom_var_custom(&v, EEPROM_ADDR_ODOMETER)) {
+		m_odometer_meters = v.as_u32;
+	}
 
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
@@ -200,6 +210,10 @@ void mc_interface_init(void) {
 
 	case SENSOR_PORT_MODE_AS5047_SPI:
 		encoder_init_as5047p_spi();
+		break;
+
+	case SENSOR_PORT_MODE_MT6816_SPI:
+		encoder_init_mt6816_spi();
 		break;
 
 	case SENSOR_PORT_MODE_AD2S1205:
@@ -254,6 +268,8 @@ void mc_interface_init(void) {
 	default:
 		break;
 	}
+
+	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
 
 int mc_interface_motor_now(void) {
@@ -448,6 +464,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	default:
 		break;
 	}
+
+	bms_init(&configuration->bms);
 }
 
 bool mc_interface_dccal_done(void) {
@@ -527,6 +545,8 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE"; break;
 	case FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE: return "FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE"; break;
     case FAULT_CODE_FLASH_CORRUPTION: return "FAULT_CODE_FLASH_CORRUPTION";
+    case FAULT_CODE_FLASH_CORRUPTION_APP_CFG: return "FAULT_CODE_FLASH_CORRUPTION_APP_CFG";
+    case FAULT_CODE_FLASH_CORRUPTION_MC_CFG: return "FAULT_CODE_FLASH_CORRUPTION_MC_CFG";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2";
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
@@ -1211,7 +1231,7 @@ float mc_interface_read_reset_avg_id(void) {
 	float res = motor_now()->m_motor_id_sum / motor_now()->m_motor_id_iterations;
 	motor_now()->m_motor_id_sum = 0.0;
 	motor_now()->m_motor_id_iterations = 0.0;
-	return DIR_MULT * res; // TODO: DIR_MULT?
+	return res;
 }
 
 /**
@@ -1237,7 +1257,7 @@ float mc_interface_read_reset_avg_vd(void) {
 	float res = motor_now()->m_motor_vd_sum / motor_now()->m_motor_vd_iterations;
 	motor_now()->m_motor_vd_sum = 0.0;
 	motor_now()->m_motor_vd_iterations = 0.0;
-	return DIR_MULT * res;
+	return res;
 }
 
 /**
@@ -1420,7 +1440,7 @@ float mc_interface_get_distance_abs(void) {
 }
 
 setup_values mc_interface_get_setup_values(void) {
-	setup_values val = {0};
+	setup_values val = {0, 0, 0, 0, 0, 0, 0};
 	val.num_vescs = 1;
 
 	val.ah_tot += mc_interface_get_amp_hours(false);
@@ -1609,6 +1629,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	// DRV fault code
 #ifdef HW_HAS_DUAL_PARALLEL
 	if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
+		is_second_motor = IS_DRV_FAULT_2();
 #else
 	if (is_second_motor ? IS_DRV_FAULT_2() : IS_DRV_FAULT()) {
 #endif
@@ -1845,7 +1866,15 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	bool is_motor_1 = motor == &m_motor_1;
 
 	const float v_in = GET_INPUT_VOLTAGE();
-	const float rpm_now = mc_interface_get_rpm();
+	float rpm_now = 0.0;
+
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+		// Low latency is important for avoiding oscillations
+		rpm_now = mcpwm_foc_get_rpm_fast();
+	} else {
+		rpm_now = mc_interface_get_rpm();
+	}
+
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
@@ -1854,6 +1883,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	switch(conf->m_motor_temp_sens_type) {
 	case TEMP_SENSOR_NTC_10K_25C:
 		temp_motor = is_motor_1 ? NTC_TEMP_MOTOR(conf->m_ntc_motor_beta) : NTC_TEMP_MOTOR_2(conf->m_ntc_motor_beta);
+		break;
+
+	case TEMP_SENSOR_NTC_100K_25C:
+		temp_motor = is_motor_1 ? NTC100K_TEMP_MOTOR(conf->m_ntc_motor_beta) : NTC100K_TEMP_MOTOR_2(conf->m_ntc_motor_beta);
 		break;
 
 	case TEMP_SENSOR_PTC_1K_100C:
@@ -2036,8 +2069,11 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float lo_in_max_watt = conf->l_watt_max / v_in;
 	const float lo_in_min_watt = conf->l_watt_min / v_in;
 
-	const float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
-	const float lo_in_min = lo_in_min_watt;
+	float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
+	float lo_in_min = lo_in_min_watt;
+
+	// BMS limits
+	bms_update_limits(&lo_in_min,  &lo_in_max, conf->l_in_current_min, conf->l_in_current_max);
 
 	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
 	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
@@ -2118,13 +2154,20 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	}
 
 
-	// Trigger encoder error rate fault, using 1% errors as threshold.
+	// Trigger encoder error rate fault, using 5% errors as threshold.
 	// Relevant only in FOC mode with encoder enabled
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			mcpwm_foc_is_using_encoder() &&
 			encoder_spi_get_error_rate() > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+	}
+
+	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
+			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			mcpwm_foc_is_using_encoder() &&
+			encoder_get_no_magnet_error_rate() > 0.05) {
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
@@ -2257,10 +2300,10 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			buffer[index++] = COMM_SAMPLE_PRINT;
 			buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
-			buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
-			buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
-			buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
-			buffer_append_float32_auto(buffer, ((float)m_vzero_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2), &index);
+			buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
+			buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
+			buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
+			buffer_append_float32_auto(buffer, ((float)m_vzero_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_INPUT_FACTOR, &index);
 			buffer_append_float32_auto(buffer, (float)m_curr_fir_samples[ind_samp] / (8.0 / FAC_CURRENT), &index);
 			buffer_append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
 			buffer[index++] = m_status_samples[ind_samp];
@@ -2355,4 +2398,70 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 
 		motor->m_fault_now = m_fault_stop_fault;
 	}
+}
+
+/**
+ * Get mc_configuration CRC (motor 1 or 2)
+ *
+ * @param conf
+ * Pointer to mc_configuration or NULL for current config
+ *
+ * @param is_motor_2
+ * true if motor2, false if motor1
+ * 
+ * @return
+ * CRC16 (with crc field in struct temporarily set to zero).
+ */
+unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
+	volatile mc_configuration* conf = conf_in;
+
+	if(conf == NULL) {
+		if(is_motor_2) {
+#ifdef HW_HAS_DUAL_MOTORS
+			conf = &(m_motor_2.m_conf);
+#else
+			return 0; //shouldn't be here
+#endif
+		} else {
+			conf = &(m_motor_1.m_conf);
+		}
+	}
+
+	unsigned crc_old = conf->crc;
+	conf->crc = 0;
+	unsigned crc_new = crc16((uint8_t*)conf, sizeof(mc_configuration));
+	conf->crc = crc_old;
+	return crc_new;
+}
+
+/**
+ * Set odometer value in meters.
+ *
+ * @param new_odometer_meters
+ * new odometer value in meters
+ */
+void mc_interface_set_odometer(uint32_t new_odometer_meters) {
+	m_odometer_meters = new_odometer_meters - roundf(mc_interface_get_distance_abs());
+}
+
+/**
+ * Return current odometer value in meters.
+ *
+ * @return
+ * Odometer value in meters, including current trip
+ */
+uint32_t mc_interface_get_odometer(void) {
+	return m_odometer_meters + roundf(mc_interface_get_distance_abs());
+}
+
+/**
+ * Save current odometer value to persistent memory
+ *
+ * @return
+ * success
+ */
+bool mc_interface_save_odometer(void) {
+	eeprom_var v;
+	v.as_u32 = mc_interface_get_odometer();
+	return conf_general_store_eeprom_var_custom(&v, EEPROM_ADDR_ODOMETER);
 }

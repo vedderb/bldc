@@ -25,6 +25,7 @@
 #include "rfhelp.h"
 #include "comm_can.h"
 #include "imu.h"
+#include "crc.h"
 
 // Private variables
 static app_configuration appconf;
@@ -53,6 +54,7 @@ void app_set_configuration(app_configuration *conf) {
 	app_uartcomm_stop();
 	app_nunchuk_stop();
 	app_balance_stop();
+	app_pas_stop();
 
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
@@ -109,6 +111,15 @@ void app_set_configuration(app_configuration *conf) {
 		}
 		break;
 
+	case APP_PAS:
+		app_pas_start(true);
+		break;
+
+	case APP_ADC_PAS:
+		app_adc_start(true);
+		app_pas_start(false);
+		break;
+
 	case APP_NRF:
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init();
@@ -130,6 +141,7 @@ void app_set_configuration(app_configuration *conf) {
 
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
+	app_pas_configure(&appconf.app_pas_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate, appconf.permanent_uart_enabled);
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
@@ -173,4 +185,24 @@ bool app_is_output_disabled(void) {
 static void output_vt_cb(void *arg) {
 	(void)arg;
 	output_disabled_now = false;
+}
+
+/**
+ * Get app_configuration CRC
+ *
+ * @param conf
+ * Pointer to app_configuration or NULL for current appconf
+ *
+ * @return
+ * CRC16 (with crc field in struct temporarily set to zero).
+ */
+unsigned app_calc_crc(app_configuration* conf) {
+	if(NULL == conf)
+		conf = &appconf;
+
+	unsigned crc_old = conf->crc;
+	conf->crc = 0;
+	unsigned crc_new = crc16((uint8_t*)conf, sizeof(app_configuration));
+	conf->crc = crc_old;
+	return crc_new;
 }

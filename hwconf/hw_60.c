@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2020 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 
 // Variables
 static volatile bool i2c_running = false;
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
 static mutex_t shutdown_mutex;
 static float bt_diff = 0.0;
 #endif
@@ -40,13 +40,13 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
 static void terminal_shutdown_now(int argc, const char **argv);
 static void terminal_button_test(int argc, const char **argv);
 #endif
 
 void hw_init_gpio(void) {
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
 	chMtxObjectInit(&shutdown_mutex);
 #endif
 
@@ -110,6 +110,14 @@ void hw_init_gpio(void) {
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
+	// Phase filters
+#ifdef HW60_IS_MK5
+	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF();
+#endif
+
 	// Fault pin
 	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
 
@@ -126,13 +134,13 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 #endif
 
 	drv8301_init();
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
 	terminal_register_command_callback(
 		"shutdown",
 		"Shutdown VESC now.",
@@ -275,7 +283,7 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
 bool hw_sample_shutdown_button(void) {
 	chMtxLock(&shutdown_mutex);
 

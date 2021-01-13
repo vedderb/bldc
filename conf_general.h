@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR			5
-#define FW_VERSION_MINOR			01
+#define FW_VERSION_MINOR			02
 // Set to 0 for building a release and iterate during beta test builds
 #define FW_TEST_VERSION_NUMBER		0
 
@@ -78,6 +78,10 @@
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
+//#define HW60_IS_MK5
+
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -125,8 +129,11 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-//#define HW_SOURCE "hw_hd.c"
-//#define HW_HEADER "hw_hd.h"
+//#define HW_SOURCE "hw_hd60.c"
+//#define HW_HEADER "hw_hd60.h"
+
+//#define HW_SOURCE "hw_hd75.c"
+//#define HW_HEADER "hw_hd75.h"
 
 //#define HW_SOURCE "hw_a200s_v2.c"
 //#define HW_HEADER "hw_a200s_v2.h"
@@ -140,15 +147,31 @@
 //#define HW_SOURCE "hw_unity.c"
 //#define HW_HEADER "hw_unity.h"
 
+//#define HW_SOURCE "hw_uxv_sr.c"
+//#define HW_HEADER "hw_uxv_sr.h"
+
 //#define HW_DUAL_CONFIG_PARALLEL
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
+//#define HW_VER_IS_60D_PLUS
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
-//
+
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
+
+//#define HW_SOURCE "hw_Cheap_FOCer_2.c"
+//#define HW_HEADER "hw_Cheap_FOCer_2.h"
+
+//#define HW_SOURCE "hw_140_300.c"
+//#define HW_HEADER "hw_140_300.h"
+
+//#define HW_SOURCE "hw_es19.c"
+//#define HW_HEADER "hw_es19.h"
+
+//#define HW_SOURCE "hw_Little_FOCer.c"
+//#define HW_HEADER "hw_Little_FOCer.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -190,7 +213,14 @@
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 #define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-//#include "app_erockit_conf.h"
+//#include "app_erockit_conf_v2.h"
+//#include "finn/app_finn_az_conf.h"
+//#include "vccu/app_vccu_conf.h"
+
+// CAN-plotter
+//#define APP_CUSTOM_TO_USE			"app_plot_can.c"
+//#define APPCONF_APP_TO_USE			APP_CUSTOM
+//#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
 #include "mcconf_default.h"
@@ -263,6 +293,9 @@
 #endif
 #ifndef AD2S1205_USE_HW_SPI_PINS
 #define AD2S1205_USE_HW_SPI_PINS	0
+#endif
+#ifndef MT6816_USE_HW_SPI_PINS
+#define MT6816_USE_HW_SPI_PINS		0
 #endif
 
 /*

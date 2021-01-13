@@ -233,9 +233,11 @@
 #define CURRENT_SHUNT_RES		0.001
 #endif
 
+#define VBATT_R1					360000.0
+#define VBATT_R2					10000.0
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VBATT_R1 + VBATT_R2) / VBATT_R2))
 #define GET_VM_SENSE_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VM_SENSE] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
@@ -353,6 +355,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO		GPIOB
+#define LSM6DS3_SDA_PIN			9
+#define LSM6DS3_SCL_GPIO		GPIOB
+#define LSM6DS3_SCL_PIN			8
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -384,6 +392,9 @@
 #ifndef MCCONF_M_DRV8301_OC_ADJ
 #define MCCONF_M_DRV8301_OC_ADJ		14
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START			0.9 // Start limiting current at this duty cycle
+#endif
 // Setting limits
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_LIM_CURRENT				-300.0, 300.0
@@ -398,7 +409,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
 #endif
 #endif
-#define HW_LIM_CURRENT_IN			-150.0, 150.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
 #define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1

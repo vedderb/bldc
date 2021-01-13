@@ -17,9 +17,18 @@
 #ifndef HW_UNITY_H_
 #define HW_UNITY_H_
 
-#define HW_NAME									"UNITY"
-
+#ifdef HW_DUAL_CONFIG_PARALLEL
+#define HW_HAS_DUAL_PARALLEL
+#else
 #define HW_HAS_DUAL_MOTORS
+#endif
+
+#ifdef HW_HAS_DUAL_PARALLEL
+#define HW_NAME                 "UNITY_PARALLEL"
+#else
+#define HW_NAME                 "UNITY"
+#endif
+
 #define HW_HAS_DRV8301
 //#define HW_HAS_3_SHUNTS
 //#define HW_HAS_PHASE_SHUNTS
@@ -266,6 +275,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO		GPIOC
+#define LSM6DS3_SDA_PIN			9
+#define LSM6DS3_SCL_GPIO		GPIOA
+#define LSM6DS3_SCL_PIN			8
+
 // CAN-bus
 #define HW_CANRX_PORT			GPIOD
 #define HW_CANRX_PIN			0
@@ -299,9 +314,22 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-150.0, 150.0
-#define HW_LIM_CURRENT_IN		-120.0, 120.0
+#ifdef HW_HAS_DUAL_PARALLEL
+#define HW_LIM_CURRENT				-300.0, 300.0
+#define HW_LIM_CURRENT_ABS			800.0, 804.0
+#define HW_LIM_CURRENT_IN		-200.0, 200.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#endif
+#else
+#define HW_LIM_CURRENT				-150.0, 150.0
 #define HW_LIM_CURRENT_ABS		400.0, 402.0
+#define HW_LIM_CURRENT_IN		-100.0, 100.0
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
+#endif
+#endif
+
 #define HW_LIM_VIN				6.0, 59.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

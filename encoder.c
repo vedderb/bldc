@@ -30,11 +30,13 @@
 #define AS5047P_READ_ANGLECOM		(0x3FFF | 0x4000 | 0x8000) // This is just ones
 #define AS5047_SAMPLE_RATE_HZ		20000
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
+#define MT6816_SAMPLE_RATE_HZ		20000
+#define MT6816_NO_MAGNET_ERROR_MASK	0x0002
 #define SINCOS_SAMPLE_RATE_HZ		20000
 #define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE		1.65		// sqrt(sin^2 + cos^2) has to be smaller than this
 
-#if (AS5047_USE_HW_SPI_PINS || AD2S1205_USE_HW_SPI_PINS)
+#if (AS5047_USE_HW_SPI_PINS) || (MT6816_USE_HW_SPI_PINS) || (AD2S1205_USE_HW_SPI_PINS)
 #ifdef HW_SPI_DEV
 #define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
 #define SPI_SW_MISO_PIN				HW_SPI_PIN_MISO
@@ -71,7 +73,8 @@ typedef enum {
 	ENCODER_MODE_AS5047P_SPI,
 	RESOLVER_MODE_AD2S1205,
 	ENCODER_MODE_SINCOS,
-	ENCODER_MODE_TS5700N8501
+	ENCODER_MODE_TS5700N8501,
+	ENCODER_MODE_MT6816_SPI
 } encoder_mode;
 
 // Private variables
@@ -81,7 +84,9 @@ static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
 static uint32_t spi_val = 0;
 static uint32_t spi_error_cnt = 0;
+static uint32_t encoder_no_magnet_error_cnt = 0;
 static float spi_error_rate = 0.0;
+static float encoder_no_magnet_error_rate = 0.0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
 static float resolver_degradation_of_signal_error_rate = 0.0;
 static float resolver_loss_of_signal_error_rate = 0.0;
@@ -105,6 +110,26 @@ static SerialConfig TS5700N8501_uart_cfg = {
 		USART_CR2_LINEN,
 		0
 };
+
+//                                                             SPI1        SPI2/3
+#define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
+#define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
+#define SPI_BaudRatePrescaler_8         ((uint16_t)0x0010) //  10.5 MHz    5.25 MHz
+#define SPI_BaudRatePrescaler_16        ((uint16_t)0x0018) //  5.25 MHz    2.626 MHz
+#define SPI_BaudRatePrescaler_32        ((uint16_t)0x0020) //  2.626 MHz   1.3125 MHz
+#define SPI_BaudRatePrescaler_64        ((uint16_t)0x0028) //  1.3125 MHz  656.25 KHz
+#define SPI_BaudRatePrescaler_128       ((uint16_t)0x0030) //  656.25 KHz  328.125 KHz
+#define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
+#define SPI_DATASIZE_16BIT				SPI_CR1_DFF
+
+#ifdef HW_SPI_DEV
+//MT6816 max clk freq: 15.625MHz
+static const SPIConfig mt6816_spi_cfg = {
+		NULL,
+		SPI_SW_CS_GPIO,
+		SPI_SW_CS_PIN,
+		SPI_BaudRatePrescaler_4 | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_DATASIZE_16BIT};
+#endif
 
 static THD_FUNCTION(ts5700n8501_thread, arg);
 static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
@@ -131,6 +156,14 @@ uint32_t encoder_spi_get_val(void) {
 
 float encoder_spi_get_error_rate(void) {
 	return spi_error_rate;
+}
+
+uint32_t encoder_get_no_magnet_error_cnt(void) {
+	return encoder_no_magnet_error_cnt;
+}
+
+float encoder_get_no_magnet_error_rate(void) {
+	return encoder_no_magnet_error_rate;
 }
 
 float encoder_resolver_loss_of_tracking_error_rate(void) {
@@ -199,6 +232,10 @@ void encoder_deinit(void) {
 	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_INPUT_PULLUP);
+
+#ifdef HW_SPI_DEV
+	spiStop(&HW_SPI_DEV);
+#endif
 
 	palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
@@ -305,6 +342,48 @@ void encoder_init_as5047p_spi(void) {
 	mode = ENCODER_MODE_AS5047P_SPI;
 	index_found = true;
 	spi_error_rate = 0.0;
+
+}
+
+void encoder_init_mt6816_spi(void) {
+#ifdef HW_SPI_DEV
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+#if (MT6816_USE_HW_SPI_PINS)
+	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+#endif
+
+	//Start driver with MT6816 SPI settings
+	spiStart(&HW_SPI_DEV, &mt6816_spi_cfg);
+
+	// Enable timer clock
+	HW_ENC_TIM_CLK_EN();
+
+	// Time Base configuration
+	TIM_TimeBaseStructure.TIM_Prescaler = 0;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2 / MT6816_SAMPLE_RATE_HZ) - 1);
+	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
+
+	// Enable overflow interrupt
+	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
+
+	// Enable timer
+	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
+
+	mode = ENCODER_MODE_MT6816_SPI;
+	index_found = true;
+	spi_error_rate = 0.0;
+	encoder_no_magnet_error_rate = 0.0;
+#endif
 }
 
 void encoder_init_ad2s1205_spi(void) {
@@ -415,6 +494,7 @@ float encoder_read_deg(void) {
 		break;
 
 	case ENCODER_MODE_AS5047P_SPI:
+	case ENCODER_MODE_MT6816_SPI:
 	case RESOLVER_MODE_AD2S1205:
 	case ENCODER_MODE_TS5700N8501:
 		angle = last_enc_angle;
@@ -544,6 +624,42 @@ void encoder_tim_isr(void) {
 			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AS5047_SAMPLE_RATE_HZ);
 		}		
 	}
+
+#ifdef HW_SPI_DEV
+	if(mode == ENCODER_MODE_MT6816_SPI) {
+		uint16_t reg_data_03;
+		uint16_t reg_data_04;
+		uint16_t reg_addr_03 = 0x8300;
+		uint16_t reg_addr_04 = 0x8400;
+
+		spi_begin();
+		reg_data_03 = spiPolledExchange(&HW_SPI_DEV, reg_addr_03);
+		spi_end();
+		spi_delay();
+		spi_begin();
+		reg_data_04 = spiPolledExchange(&HW_SPI_DEV, reg_addr_04);
+		spi_end();
+
+		pos = (reg_data_03 << 8) | reg_data_04;
+		spi_val = pos;
+
+		if( spi_check_parity(pos) ) {
+			if (pos & MT6816_NO_MAGNET_ERROR_MASK) {
+				++encoder_no_magnet_error_cnt;
+				UTILS_LP_FAST(encoder_no_magnet_error_rate, 1.0, 1./MT6816_SAMPLE_RATE_HZ);
+			}
+			else {
+				pos = pos >> 2;
+				last_enc_angle = ((float)pos * 360.0) / 16384.0;
+				UTILS_LP_FAST(spi_error_rate, 0.0, 1./MT6816_SAMPLE_RATE_HZ);
+				UTILS_LP_FAST(encoder_no_magnet_error_rate, 0.0, 1./MT6816_SAMPLE_RATE_HZ);
+			}
+		} else {
+			++spi_error_cnt;
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1./MT6816_SAMPLE_RATE_HZ);
+		}
+	}
+#endif
 
 	if(mode == RESOLVER_MODE_AD2S1205) {
 		// SAMPLE signal should have been be asserted in sync with ADC sampling

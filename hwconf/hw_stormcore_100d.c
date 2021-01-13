@@ -354,7 +354,7 @@ static THD_FUNCTION(mux_thread, arg) {
 
 
 		ENABLE_V_BATT_DIV();
-		chThdSleepMicroseconds(300);
+		chThdSleepMicroseconds(400);
 		ADC_Value[ADC_IND_V_BATT] = ADC_Value[ADC_IND_ADC_MUX];
 	}
 }
@@ -371,11 +371,15 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
+	mc_interface_select_motor_thread(2);
+	mc_interface_set_current(0);
+	mc_interface_lock();
+	mc_interface_select_motor_thread(1);
+	mc_interface_set_current(0);
+	mc_interface_lock();
 	switch_state = SWITCH_SHUTTING_DOWN;
 	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-#ifdef HW_HAS_STORMCORE_SWITCH
 	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
-#endif
 	return;
 }
 
@@ -405,7 +409,7 @@ static THD_FUNCTION(switch_color_thread, arg) {
 		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
 		switch_red = 0.75* c*c;
 		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
-		chThdSleepMilliseconds(10);
+		chThdSleepMilliseconds(4);
 	}
 	float switch_red_old = switch_red_old;
 	float switch_green_old = switch_green;
@@ -430,7 +434,7 @@ static THD_FUNCTION(switch_color_thread, arg) {
 		ledpwm_set_intensity(LED_HW1, switch_bright*blue_now);
 		ledpwm_set_intensity(LED_HW2, switch_bright*green_now);
 		ledpwm_set_intensity(LED_HW3, switch_bright*red_now);
-		chThdSleepMilliseconds(10);
+		chThdSleepMilliseconds(2);
 	}
 
 	for (;;) {
@@ -494,8 +498,28 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
-			chThdSleepMilliseconds(5000);
+			mc_interface_select_motor_thread(2);
+			mc_interface_set_current(0);
+			mc_interface_lock();
+			mc_interface_select_motor_thread(1);
+			mc_interface_set_current(0);
+			mc_interface_lock();
+			int cts = 0;
+			while((ADC_Value[ADC_IND_V_BATT] < 1 || ADC_Value[ADC_IND_VIN_SENS] < 1) && (cts < 50)){
+				chThdSleepMilliseconds(100);
+				cts++;
+			}
+			cts = 0;
+			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
+				chThdSleepMilliseconds(100);
+				cts++;
+			}
+
 			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
+			mc_interface_select_motor_thread(2);
+			mc_interface_unlock();
+			mc_interface_select_motor_thread(1);
+			mc_interface_unlock();
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
 			smart_switch_keep_on();
@@ -508,10 +532,10 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURNED_ON:
 			if (smart_switch_is_pressed()) {
 				millis_switch_pressed++;
-				switch_bright = 1.0;
+				switch_bright = 0.5;
 			} else {
 				millis_switch_pressed = 0;
-				switch_bright = 0.5;
+				switch_bright = 1.0;
 			}
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {

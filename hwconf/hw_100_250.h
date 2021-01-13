@@ -198,6 +198,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+#define BMI160_SDA_GPIO			GPIOB
+#define BMI160_SDA_PIN			4
+#define BMI160_SCL_GPIO			GPIOB
+#define BMI160_SCL_PIN			12
+#define IMU_FLIP
+
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOA
 #define NRF5x_SWDIO_PIN			15
@@ -229,7 +235,7 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#define MCCONF_FOC_F_SW					40000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		400.0	// The maximum absolute current above which a fault is generated

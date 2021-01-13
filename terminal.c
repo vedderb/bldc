@@ -37,6 +37,7 @@
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
 #include "mempools.h"
+#include "crc.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -146,7 +147,7 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8301_FAULTS   : %s", drv8301_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #elif defined(HW_HAS_DRV8320S)
- 				if (fault_vec[i].fault == FAULT_CODE_DRV) {
+				if (fault_vec[i].fault == FAULT_CODE_DRV) {
 					commands_printf("DRV8320S_FAULTS  : %s", drv8320s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #elif defined(HW_HAS_DRV8323S)
@@ -161,6 +162,10 @@ void terminal_process_string(char *str) {
 		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
 	} else if (strcmp(argv[0], "tacho") == 0) {
 		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
+	} else if (strcmp(argv[0], "dist") == 0) {
+		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
+		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
+		commands_printf("Odometer        : %u   m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -260,6 +265,41 @@ void terminal_process_string(char *str) {
 				commands_printf("RPM                : %.2f", (double)msg->rpm);
 				commands_printf("Current            : %.2f", (double)msg->current);
 				commands_printf("Duty               : %.2f\n", (double)msg->duty);
+			}
+
+			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+				commands_printf("IO Board ADC 1_4");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_adc = comm_can_get_io_board_adc_5_8_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+				commands_printf("IO Board ADC 5_8");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
+			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 1.0) {
+				commands_printf("IO Board Inputs");
+				commands_printf("ID                 : %i", io_in->id);
+				commands_printf("RX Time            : %i", io_in->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_in->rx_time) * 1000.0));
+				commands_printf("IN                 : %llu %llu %llu %llu %llu %llu %llu %llu\n",
+						(io_in->inputs >> 0) & 1, (io_in->inputs >> 1) & 1,
+						(io_in->inputs >> 2) & 1, (io_in->inputs >> 3) & 1,
+						(io_in->inputs >> 4) & 1, (io_in->inputs >> 5) & 1,
+						(io_in->inputs >> 6) & 1, (io_in->inputs >> 7) & 1);
 			}
 		}
 	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
@@ -706,8 +746,9 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "can_scan") == 0) {
 		bool found = false;
 		for (int i = 0;i < 254;i++) {
-			if (comm_can_ping(i)) {
-				commands_printf("Found VESC with ID: %d", i);
+			HW_TYPE hw_type;
+			if (comm_can_ping(i, &hw_type)) {
+				commands_printf("Found %s with ID: %d", utils_hw_type_to_string(hw_type), i);
 				found = true;
 			}
 		}
@@ -792,13 +833,14 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI ||
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 			commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
-				(unsigned int)encoder_spi_get_val(),
-				encoder_spi_get_error_cnt(),
-				(double)encoder_spi_get_error_rate() * (double)100.0);
+					(unsigned int)encoder_spi_get_val(),
+					encoder_spi_get_error_cnt(),
+					(double)encoder_spi_get_error_rate() * (double)100.0);
 
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
 					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
@@ -807,6 +849,12 @@ void terminal_process_string(char *str) {
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
 				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
 				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
+			}
+
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
+				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
+						encoder_get_no_magnet_error_cnt(),
+						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
 		}
 
@@ -822,14 +870,14 @@ void terminal_process_string(char *str) {
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
 			commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_loss_of_tracking_error_cnt(),
-				(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
+					encoder_resolver_loss_of_tracking_error_cnt(),
+					(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
 			commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_degradation_of_signal_error_cnt(),
-				(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
+					encoder_resolver_degradation_of_signal_error_cnt(),
+					(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
 			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_loss_of_signal_error_cnt(),
-				(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
+					encoder_resolver_loss_of_signal_error_cnt(),
+					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_ts57n8501_reset_errors();
@@ -869,13 +917,13 @@ void terminal_process_string(char *str) {
 				}
 
 				bool is_second_motor = mc_interface_get_motor_thread() == 2;
-				int hall_last = utils_read_hall(is_second_motor);
+				int hall_last = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 				float transitions[7] = {0.0};
 				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 				int transition_index = 0;
 
 				for (int i = 0;i < 720;i++) {
-					int hall = utils_read_hall(is_second_motor);
+					int hall = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 					if (hall_last != hall) {
 						if (transition_index < 7) {
 							transitions[transition_index++] = phase;
@@ -958,6 +1006,48 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument.\n");
 		}
+	} else if (strcmp(argv[0], "io_board_set_output") == 0) {
+		if (argc == 4) {
+			int id = -1;
+			int channel = -1;
+			int state = -1;
+
+			sscanf(argv[1], "%d", &id);
+			sscanf(argv[2], "%d", &channel);
+			sscanf(argv[3], "%d", &state);
+
+			if (id >= 0 && channel >= 0 && state >= 0) {
+				comm_can_io_board_set_output_digital(id, channel, state);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
+	} else if (strcmp(argv[0], "io_board_set_output_pwm") == 0) {
+		if (argc == 4) {
+			int id = -1;
+			int channel = -1;
+			float duty = -1.0;
+
+			sscanf(argv[1], "%d", &id);
+			sscanf(argv[2], "%d", &channel);
+			sscanf(argv[3], "%f", &duty);
+
+			if (id >= 0 && channel >= 0 && duty >= 0.0 && duty <= 1.0) {
+				comm_can_io_board_set_output_pwm(id, channel, duty);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
+	} else if (strcmp(argv[0], "crc") == 0) {
+		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
+		unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
+		unsigned app_crc0 = app_get_configuration()->crc;
+		unsigned app_crc1 = app_calc_crc(NULL);
+		commands_printf("MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
+		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)", app_crc0, app_crc1);
+		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
 	}
 
 	// The help command
@@ -995,6 +1085,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("tacho");
 		commands_printf("  Prints tachometer value");
+
+		commands_printf("dist");
+		commands_printf("  Prints odometer value");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");
@@ -1069,7 +1162,7 @@ void terminal_process_string(char *str) {
 		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
-		
+
 		commands_printf("encoder");
 		commands_printf("  Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.");
 
@@ -1084,6 +1177,15 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hall_analyze [current]");
 		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
+
+		commands_printf("io_board_set_output [id] [ch] [state]");
+		commands_printf("  Set digital output of IO board.");
+
+		commands_printf("io_board_set_output_pwm [id] [ch] [duty]");
+		commands_printf("  Set pwm output of IO board.");
+
+		commands_printf("crc");
+		commands_printf("  Print CRC values.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

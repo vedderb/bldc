@@ -20,7 +20,6 @@
 #ifndef HW_H_
 #define HW_H_
 
-#include "conf_general.h"
 #include "stm32f4xx_conf.h"
 
 #include HW_HEADER
@@ -322,6 +321,14 @@
 #define ADC_IND_EXT2 			ADC_IND_EXT
 #endif
 
+// Adc voltage scaling on phases and input
+#ifndef ADC_VOLTS_PH_FACTOR
+#define ADC_VOLTS_PH_FACTOR		1.0
+#endif
+#ifndef ADC_VOLTS_INPUT_FACTOR
+#define ADC_VOLTS_INPUT_FACTOR	1.0
+#endif
+
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN
 #define NRF_PORT_CSN			HW_SPI_PORT_NSS
@@ -405,10 +412,20 @@
 #ifndef PTC_TEMP_MOTOR
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
 #define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
 #else
 #define PTC_TEMP_MOTOR(res, con, tbase)			0.0
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			0.0
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		0.0
+#endif
+#endif
+
+#ifndef NTC100K_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define NTC100K_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC100K_TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#else
+#define NTC100K_TEMP_MOTOR(beta)		0.0
+#define NTC100K_TEMP_MOTOR2(beta)		0.0
 #endif
 #endif
 
@@ -453,6 +470,13 @@
 #endif
 #endif
 
+#ifndef HW_PAS1_PORT
+#define HW_PAS1_PORT			HW_UART_RX_PORT
+#define HW_PAS1_PIN				HW_UART_RX_PIN
+#define HW_PAS2_PORT			HW_UART_TX_PORT
+#define HW_PAS2_PIN				HW_UART_TX_PIN
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
@@ -460,5 +484,6 @@ void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
 uint8_t hw_id_from_uuid(void);
+uint8_t hw_id_from_pins(void);
 
 #endif /* HW_H_ */
