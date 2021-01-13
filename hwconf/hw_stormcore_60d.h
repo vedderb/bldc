@@ -93,7 +93,7 @@
 #define HW_UART_P_BAUD				115200
 
 #define HW_UART_P_DEV				SD1
-#define HW_UART_P_GPIO_AF			GPIO_AF_USART1
+#define HW_UART_P_GPIO_AF			    GPIO_AF_USART1
 #define HW_UART_P_TX_PORT			GPIOA
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA

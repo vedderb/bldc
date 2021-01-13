@@ -237,10 +237,12 @@ int main(void) {
 	comm_can_init();
 #endif
 
+	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
 	app_set_configuration(appconf);
-	app_uartcomm_start_permanent();
+	app_uartcomm_start(1);
+	app_uartcomm_start(2);
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
