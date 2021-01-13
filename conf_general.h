@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		1
+#define FW_TEST_VERSION_NUMBER		2
 
 #include "datatypes.h"
 
@@ -72,10 +72,10 @@
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
-//#define HW60_IS_MK5
+#define HW60_IS_MK5
 
-//#define HW_SOURCE "hw_60.c"
-//#define HW_HEADER "hw_60.h"
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -148,10 +148,9 @@
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
-#define HW_VER_IS_60D_PLUS
-#define HW_SOURCE "hw_stormcore_60d.c"
-#define HW_HEADER "hw_stormcore_60d.h"
-
+//#define HW_VER_IS_60D_PLUS
+//#define HW_SOURCE "hw_stormcore_60d.c"
+//#define HW_HEADER "hw_stormcore_60d.h"
 
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
@@ -188,10 +187,6 @@
 /*
  * Select default user motor configuration
  */
-//#include			"mcconf_sten.h"
-//#include			"mcconf_sp_540kv.h"
-//#include			"mcconf_castle_2028.h"
-//#include			"mcconf_ellwee.h"
 //#include			"conf_test.h"
 
 /*
@@ -199,7 +194,6 @@
  */
 //#include			"appconf_example_ppm.h"
 //#include			"appconf_custom.h"
-//#include			"appconf_ellwee.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.

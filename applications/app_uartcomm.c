@@ -50,10 +50,10 @@ static volatile bool uart_is_running[UART_NUMBER] = {false};
 static mutex_t send_mutex[UART_NUMBER];
 static bool send_mutex_init_done[UART_NUMBER] = {false};
 static SerialConfig uart_cfg[UART_NUMBER] = {{
-											  BAUDRATE,
-											  0,
-											  USART_CR2_LINEN,
-											  0
+		BAUDRATE,
+		0,
+		USART_CR2_LINEN,
+		0
 }};
 
 // Different for Rx and Tx because it is possible for hardware to use different UART driver
@@ -67,19 +67,19 @@ static PACKET_STATE_t packet_state[UART_NUMBER];
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len, unsigned int port_number);
-static void write_packet(unsigned char *data, unsigned int , unsigned int port_number);
+static void write_packet(unsigned char *data, unsigned int len, unsigned int port_number);
 
 static void process_packet_1(unsigned char *data, unsigned int len) {process_packet(data,len,0);}
 static void write_packet_1(unsigned char *data, unsigned int len) {write_packet(data,len,0);}
-static void send_packet_1(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,0);}
+static void send_packet_1(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_COMM_HEADER);}
 
 static void process_packet_2(unsigned char *data, unsigned int len) {process_packet(data,len,1);}
 static void write_packet_2(unsigned char *data, unsigned int len) {write_packet(data,len,1);}
-static void send_packet_2(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,1);}
+static void send_packet_2(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_BUILTIN);}
 
 static void process_packet_3(unsigned char *data, unsigned int len) {process_packet(data,len,2);}
 static void write_packet_3(unsigned char *data, unsigned int len) {write_packet(data,len,2);}
-static void send_packet_3(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,2);}
+static void send_packet_3(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_EXTRA_HEADER);}
 
 typedef void (*data_func) (unsigned char *data, unsigned int len);
 static data_func write_functions[3] = {write_packet_1, write_packet_2, write_packet_3};
@@ -87,20 +87,22 @@ static data_func process_functions[3] = {process_packet_1, process_packet_2, pro
 static data_func send_functions[3] = {send_packet_1, send_packet_2, send_packet_3};
 
 static void write_packet(unsigned char *data, unsigned int len, unsigned int port_number) {
-	if(port_number >= UART_NUMBER){
+	if (port_number >= UART_NUMBER) {
 		return;
 	}
+
 	if (uart_is_running[port_number]) {
 		sdWrite(serialPortDriverTx[port_number], data, len);
 	}
 }
+
 static void process_packet(unsigned char *data, unsigned int len, unsigned int port_number) {
-	if(port_number >= UART_NUMBER){
+	if (port_number >= UART_NUMBER) {
 		return;
 	}
+
 	commands_process_packet(data, len, send_functions[port_number]);
 }
-
 
 void app_uartcomm_initialize(void) {
 	serialPortDriverTx[0] = &HW_UART_DEV;
@@ -109,6 +111,7 @@ void app_uartcomm_initialize(void) {
 	RxGpioPort[0] = HW_UART_RX_PORT; RxGpioPin[0]  = HW_UART_RX_PIN;
 	TxGpioPort[0] = HW_UART_TX_PORT; TxGpioPin[0]  = HW_UART_TX_PIN;
 	gpioAF[0] = HW_UART_GPIO_AF;
+
 #ifdef HW_UART_P_DEV
 #ifdef HW_UART_P_DEV_TX
 	serialPortDriverTx[1] = &HW_UART_P_DEV_TX;
@@ -121,6 +124,7 @@ void app_uartcomm_initialize(void) {
 	TxGpioPort[1] = HW_UART_P_TX_PORT; TxGpioPin[1] = HW_UART_P_TX_PIN;
 	gpioAF[1] = HW_UART_P_GPIO_AF;
 #endif
+
 #ifdef HW_UART_3_DEV
 	serialPortDriverTx[2] =  &HW_UART_3_DEV;
 	serialPortDriverRx[2] = &HW_UART_3_DEV;
@@ -131,32 +135,34 @@ void app_uartcomm_initialize(void) {
 #endif
 }
 
-void app_uartcomm_start(unsigned int port_number) {
+void app_uartcomm_start(UART_PORT port_number) {
 	if(port_number >= UART_NUMBER){
 		return;
 	}
 
 	packet_init(write_functions[port_number], process_functions[port_number], &packet_state[port_number]);
+
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa),
-						  NORMALPRIO, packet_process_thread, NULL);
+				NORMALPRIO, packet_process_thread, NULL);
 		thread_is_running = true;
 	}
+
 	sdStart(serialPortDriverRx[port_number], &uart_cfg[port_number]);
 	sdStart(serialPortDriverTx[port_number], &uart_cfg[port_number]);
 	uart_is_running[port_number] = true;
+
 	palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
-				  PAL_STM32_OSPEED_HIGHEST |
-				  PAL_STM32_PUDR_PULLUP);
+			PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 	palSetPadMode(RxGpioPort[port_number], RxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
-				  PAL_STM32_OSPEED_HIGHEST |
-				  PAL_STM32_PUDR_PULLUP);
+			PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 }
 
-void app_uartcomm_stop(unsigned int port_number) {
-	if(port_number >= UART_NUMBER){
+void app_uartcomm_stop(UART_PORT port_number) {
+	if(port_number >= UART_NUMBER) {
 		return;
 	}
+
 	if (uart_is_running[port_number]) {
 		sdStop(serialPortDriverRx[port_number]);
 		sdStop(serialPortDriverTx[port_number]);
@@ -167,29 +173,34 @@ void app_uartcomm_stop(unsigned int port_number) {
 	// Notice that the processing thread is kept running in case this call is made from it.
 }
 
-void app_uartcomm_send_packet(unsigned char *data, unsigned int len, unsigned int port_number) {
-	if(port_number >= UART_NUMBER){
+void app_uartcomm_send_packet(unsigned char *data, unsigned int len, UART_PORT port_number) {
+	if (port_number >= UART_NUMBER) {
 		return;
 	}
+
 	if (!send_mutex_init_done[port_number]) {
 		chMtxObjectInit(&send_mutex[port_number]);
 		send_mutex_init_done[port_number] = true;
 	}
+
 	chMtxLock(&send_mutex[port_number]);
 	packet_send_packet(data, len, &packet_state[port_number]);
 	chMtxUnlock(&send_mutex[port_number]);
 }
 
-void app_uartcomm_configure(uint32_t baudrate, bool enabled, unsigned int port_number) {
-	if(port_number >= UART_NUMBER){
+void app_uartcomm_configure(uint32_t baudrate, bool enabled, UART_PORT port_number) {
+	if (port_number >= UART_NUMBER) {
 		return;
 	}
-	if(baudrate>0){
+
+	if (baudrate > 0) {
 		uart_cfg[port_number].speed = baudrate;
 	}
+
 	if (thread_is_running && uart_is_running[port_number]) {
 		sdStart(serialPortDriverRx[port_number], &uart_cfg[port_number]);
 	}
+
 	if (enabled) {
 		palSetPadMode(TxGpioPort[port_number], TxGpioPin[port_number], PAL_MODE_ALTERNATE(gpioAF[port_number]) |
 					  PAL_STM32_OSPEED_HIGHEST |
@@ -205,13 +216,17 @@ void app_uartcomm_configure(uint32_t baudrate, bool enabled, unsigned int port_n
 
 static THD_FUNCTION(packet_process_thread, arg) {
 	(void)arg;
+
 	chRegSetThreadName("uartcomm proc");
+
 	event_listener_t el[UART_NUMBER];
 	for(int port_number = 0; port_number < UART_NUMBER; port_number++) {
 		chEvtRegisterMaskWithFlags(&(*serialPortDriverRx[port_number]).event, &el[port_number], EVENT_MASK(0), CHN_INPUT_AVAILABLE);
 	}
+
 	for(;;) {
 		chEvtWaitAnyTimeout(ALL_EVENTS, ST2MS(10));
+
 		bool rx = true;
 		while (rx) {
 			rx = false;

@@ -241,8 +241,8 @@ int main(void) {
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
 	app_set_configuration(appconf);
-	app_uartcomm_start(1);
-	app_uartcomm_start(2);
+	app_uartcomm_start(UART_PORT_BUILTIN);
+	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();

@@ -1450,9 +1450,9 @@ void commands_set_ble_name(char* name) {
 	buffer[ind++] = '\0';
 
 #ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet(buffer, ind, 1);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
 #else
-	app_uartcomm_send_packet(buffer, ind, 0);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
 #endif
 }
 
@@ -1469,9 +1469,9 @@ void commands_set_ble_pin(char* pin) {
 	ind += pin_len;
 	buffer[ind++] = '\0';
 #ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet(buffer, ind, 1);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
 #else
-	app_uartcomm_send_packet(buffer, ind, 0);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
 #endif
 }
 
