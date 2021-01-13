@@ -191,14 +191,12 @@ static THD_FUNCTION(timeout_thread, arg) {
 		if(feed_counter[THREAD_MCPWM] < MIN_THREAD_ITERATIONS) {
 			threads_ok = false;
 		}
+
 #if CAN_ENABLE
 		if(feed_counter[THREAD_CANBUS] < MIN_THREAD_ITERATIONS) {
 			threads_ok = false;
 		}
 #endif
-		if(feed_counter[THREAD_TIMER] < MIN_THREAD_ITERATIONS) {
-			threads_ok = false;
-		}
 
 		for( int i = 0; i < MAX_THREADS_MONITOR; i++) {
 			feed_counter[i] = 0;
