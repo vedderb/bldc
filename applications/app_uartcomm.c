@@ -69,16 +69,16 @@ static PACKET_STATE_t packet_state[UART_NUMBER];
 static void process_packet(unsigned char *data, unsigned int len, unsigned int port_number);
 static void write_packet(unsigned char *data, unsigned int len, unsigned int port_number);
 
-static void process_packet_1(unsigned char *data, unsigned int len) {process_packet(data,len,0);}
-static void write_packet_1(unsigned char *data, unsigned int len) {write_packet(data,len,0);}
+static void process_packet_1(unsigned char *data, unsigned int len) {process_packet(data,len,UART_PORT_COMM_HEADER);}
+static void write_packet_1(unsigned char *data, unsigned int len) {write_packet(data,len,UART_PORT_COMM_HEADER);}
 static void send_packet_1(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_COMM_HEADER);}
 
-static void process_packet_2(unsigned char *data, unsigned int len) {process_packet(data,len,1);}
-static void write_packet_2(unsigned char *data, unsigned int len) {write_packet(data,len,1);}
+static void process_packet_2(unsigned char *data, unsigned int len) {process_packet(data,len,UART_PORT_BUILTIN);}
+static void write_packet_2(unsigned char *data, unsigned int len) {write_packet(data,len,UART_PORT_BUILTIN);}
 static void send_packet_2(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_BUILTIN);}
 
-static void process_packet_3(unsigned char *data, unsigned int len) {process_packet(data,len,2);}
-static void write_packet_3(unsigned char *data, unsigned int len) {write_packet(data,len,2);}
+static void process_packet_3(unsigned char *data, unsigned int len) {process_packet(data,len,UART_PORT_EXTRA_HEADER);}
+static void write_packet_3(unsigned char *data, unsigned int len) {write_packet(data,len,UART_PORT_EXTRA_HEADER);}
 static void send_packet_3(unsigned char *data, unsigned int len) {app_uartcomm_send_packet(data,len,UART_PORT_EXTRA_HEADER);}
 
 typedef void (*data_func) (unsigned char *data, unsigned int len);
