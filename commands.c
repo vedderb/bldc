@@ -48,6 +48,7 @@
 #include "minilzo.h"
 #include "mempools.h"
 #include "bms.h"
+#include "vpt.h"
 
 #include <math.h>
 #include <string.h>
@@ -1210,6 +1211,15 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			chEvtSignal(blocking_tp, (eventmask_t)1);
 		}
 		break;
+
+    case COMM_VPT_PING:
+    case COMM_VPT_SET_DUTY_GET_TELEMETRY:
+    case COMM_VPT_SET_DUTY:
+    case COMM_VPT_SET_SPEED_GET_TELEMETRY:
+    case COMM_VPT_SET_SPEED:
+    case COMM_VPT_GET_TELEMETRY:
+        vpt_process_cmd(data - 1, len + 1, reply_func);
+        break;
 
 	default:
 		break;

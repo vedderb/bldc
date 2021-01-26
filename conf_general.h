@@ -215,8 +215,8 @@
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
-#include "mcconf_default.h"
-#include "appconf_default.h"
+#include "mcconf_VPT.h"
+#include "appconf_VPT.h"
 
 /*
  * Enable blackmagic probe output on SWD port
@@ -240,8 +240,8 @@
 /*
  * Settings for the external LEDs (hardcoded for now)
  */
-#define LED_EXT_BATT_LOW			28.0
-#define LED_EXT_BATT_HIGH			33.0
+#define LED_EXT_BATT_LOW			20.0
+#define LED_EXT_BATT_HIGH			22.0
 
 /*
  * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
