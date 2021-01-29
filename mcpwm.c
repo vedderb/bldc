@@ -1205,11 +1205,17 @@ static void run_pid_control_speed(void) {
 #else
 	// Compensation for supply voltage variations
 	float scale = 1.0 / GET_INPUT_VOLTAGE();
+	
+	//Define terms for feedforward part of control
+	float Vff = 0.0; //add feedforward term to PID control
+	float kv = 0.12*(6.28/(60.0))*(1.0/21.0); //based on experimentation converted to V/(ERPM)
+	
 
 	// Compute parameters
 	p_term = error * conf->s_pid_kp * scale;
 	i_term += error * (conf->s_pid_ki * MCPWM_PID_TIME_K) * scale;
 	d_term = (error - prev_error) * (conf->s_pid_kd / MCPWM_PID_TIME_K) * scale;
+	Vff = ((kv*speed_pid_set_rpm))*scale; //calculate feedforward voltage then scale by voltage to get duty
 
 	// Filter D
 	static float d_filter = 0.0;
@@ -1223,7 +1229,7 @@ static void run_pid_control_speed(void) {
 	prev_error = error;
 
 	// Calculate output
-	float output = p_term + i_term + d_term;
+	float output = p_term + i_term + d_term + Vff; //modified to include feedforward
 
 	// Make sure that at least minimum output is used
 	if (fabsf(output) < conf->l_min_duty) {
