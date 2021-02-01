@@ -302,7 +302,7 @@ static volatile bool hfi_thd_stop;
 #define M_MOTOR(is_second_motor)  (((void)is_second_motor), &m_motor_1)
 #endif
 
-static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state_t *motor) {
+static void update_hfi_samples(foc_hfi_samples_t samples, volatile motor_all_state_t *motor) {
 	utils_sys_lock_cnt();
 
 	memset((void*)&motor->m_hfi, 0, sizeof(motor->m_hfi));
@@ -1745,7 +1745,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
 	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
 	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
-	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
+	foc_hfi_samples_t samples_old = motor->m_conf->foc_hfi_samples;
 	bool sample_high_current_old = motor->m_conf->foc_sample_high_current;
 
 	mc_interface_lock();
