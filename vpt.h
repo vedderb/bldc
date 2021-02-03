@@ -28,6 +28,9 @@ typedef struct {
     unsigned int len;
 } TxBuffer;
 
+#define DELAY_PIN_ENABLED_US 50
+#define DELAY_TX_LINE_BUSY_US 250
+
 void vpt_process_cmd(uint8_t* rx_data, unsigned int rx_len,
                      void(*reply_func)(uint8_t* tx_data, unsigned int tx_len));
 

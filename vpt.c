@@ -62,6 +62,7 @@ void vpt_process_cmd(uint8_t* rx_data, unsigned int rx_len,
     COMM_PACKET_ID packet_id = rx_data[0];
     uint8_t controller_id = app_get_configuration()->controller_id;
     if (rx_data[1] != controller_id) {
+        app_uartcomm_tx_pin_enable(false);
         return;
     }
     rx_data += 2;
@@ -94,6 +95,16 @@ void vpt_process_cmd(uint8_t* rx_data, unsigned int rx_len,
         break;
     }
 
+    if (!app_uartcomm_tx_pin_enabled()) {
+        if (controller_id > 0) {
+            // Wait for smaller controller_id VESCs to reply before enabling tx line
+            chThdSleepMicroseconds(DELAY_TX_LINE_BUSY_US * controller_id);
+        }
+        app_uartcomm_tx_pin_enable(true);
+        chThdSleepMicroseconds(DELAY_PIN_ENABLED_US);
+    }
     reply_func(buffer.data, buffer.len);
+    // Delay thread so that it does not disable tx pin too early
+    chThdSleepMicroseconds(DELAY_TX_LINE_BUSY_US);
     timeout_reset();
 }

@@ -111,13 +111,8 @@ void app_uartcomm_start(void) {
 	}
 
 	sdStart(&HW_UART_DEV, &uart_cfg);
-	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_PULLUP);
-
+    app_uartcomm_rx_pin_enable(true);
+    app_uartcomm_tx_pin_enable(false); // To be enabled by vpt.c
 	uart_is_running = true;
 }
 
@@ -151,12 +146,51 @@ void app_uartcomm_start_permanent(void) {
 void app_uartcomm_stop(void) {
 	if (uart_is_running) {
 		sdStop(&HW_UART_DEV);
-		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+        app_uartcomm_rx_pin_enable(false);
+        app_uartcomm_tx_pin_enable(false);
 		uart_is_running = false;
 	}
 
 	// Notice that the processing thread is kept running in case this call is made from it.
+}
+
+static bool rx_pin_enabled = false;
+static bool tx_pin_enabled = false;
+
+bool app_uartcomm_rx_pin_enabled(void)
+{
+    return rx_pin_enabled;
+}
+
+bool app_uartcomm_tx_pin_enabled(void)
+{
+    return tx_pin_enabled;
+}
+
+void app_uartcomm_rx_pin_enable(bool enable)
+{
+    if (enable) {
+        palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN,
+                      PAL_MODE_ALTERNATE(HW_UART_GPIO_AF)
+                      | PAL_STM32_OSPEED_HIGHEST
+                      | PAL_STM32_PUDR_PULLUP);
+    } else {
+        palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+    }
+    rx_pin_enabled = enable;
+}
+
+void app_uartcomm_tx_pin_enable(bool enable)
+{
+    if (enable) {
+        palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN,
+                      PAL_MODE_ALTERNATE(HW_UART_GPIO_AF)
+                      | PAL_STM32_OSPEED_HIGHEST
+                      | PAL_STM32_PUDR_PULLUP);
+    } else {
+        palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+    }
+    tx_pin_enabled = enable;
 }
 
 void app_uartcomm_send_packet(unsigned char *data, unsigned int len) {
