@@ -72,8 +72,8 @@
 //#define HW_SOURCE "hw_60.c"
 //#define HW_HEADER "hw_60.h"
 
-#define HW_SOURCE "hw_gsvesc.c"
-#define HW_HEADER "hw_gsvesc.h"
+#define HW_SOURCE "hw_gesc.c"
+#define HW_HEADER "hw_gesc.h"
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
