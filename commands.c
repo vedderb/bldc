@@ -452,6 +452,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_MCCONF: {
+#ifndef	HW_MCCONF_READ_ONLY 
 		mc_configuration *mcconf = mempools_alloc_mcconf();
 		*mcconf = *mc_interface_get_configuration();
 
@@ -484,6 +485,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		mempools_free_mcconf(mcconf);
+#endif
 	} break;
 
 	case COMM_GET_MCCONF:
@@ -501,6 +503,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_APPCONF: {
+#ifndef	HW_APPCONF_READ_ONLY 
 		app_configuration *appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
 
@@ -526,6 +529,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		mempools_free_appconf(appconf);
+#endif
 	} break;
 
 	case COMM_GET_APPCONF:
