@@ -55,7 +55,7 @@ void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *s
 	} else {
 		state->tx_buffer[b_ind++] = 4;
 		state->tx_buffer[b_ind++] = len >> 16;
-		state->tx_buffer[b_ind++] = (len >> 8) & 0x0F;
+		state->tx_buffer[b_ind++] = (len >> 8) & 0xFF;
 		state->tx_buffer[b_ind++] = len & 0xFF;
 	}
 
