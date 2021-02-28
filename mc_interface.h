@@ -102,7 +102,7 @@ void mc_interface_adc_inj_int_handler(void);
 
 // External variables
 extern volatile uint16_t ADC_Value[];
-extern volatile int ADC_curr_norm_value[];
+extern volatile float ADC_curr_norm_value[];
 
 // Common fixed parameters
 #ifndef HW_DEAD_TIME_NSEC

@@ -27,6 +27,7 @@
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_FILTERS
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)

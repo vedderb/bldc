@@ -51,7 +51,7 @@
 
 // Global variables
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
-volatile int ADC_curr_norm_value[6];
+volatile float ADC_curr_norm_value[6];
 
 typedef struct {
 	volatile mc_configuration m_conf;
@@ -2192,9 +2192,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	}
 	// TODO: Implement for BLDC and GPDRIVE
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
-		int curr0_offset;
-		int curr1_offset;
-		int curr2_offset;
+		float curr0_offset;
+		float curr1_offset;
+		float curr2_offset;
 
 #ifdef HW_HAS_DUAL_MOTORS
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset, motor == &m_motor_2);
@@ -2208,14 +2208,14 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 #define MIDDLE_ADC 2048
 #endif
 
-		if (abs(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1, false);
 		}
-		if (abs(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1, false);
 		}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1, false);
 		}
 #endif
