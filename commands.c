@@ -212,6 +212,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		send_buffer[ind++] = 0; // No custom config
 
+#ifdef HW_HAS_PHASE_FILTERS
+		send_buffer[ind++] = 1;
+#else
+		send_buffer[ind++] = 0;
+#endif
+
 		fw_version_sent_cnt++;
 
 		reply_func(send_buffer, ind);
@@ -1178,6 +1184,56 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bms_process_cmd(data - 1, len + 1, reply_func);
 		break;
 	}
+
+	// Power switch
+	case COMM_PSW_GET_STATUS: {
+		int32_t ind = 0;
+		bool by_id = data[ind++];
+		int id_ind = buffer_get_int16(data, &ind);
+
+		int psws_num = 0;
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			psw_status *stat = comm_can_get_psw_status_index(i);
+			if (stat->id >= 0) {
+				psws_num++;
+			} else {
+				break;
+			}
+		}
+
+		psw_status *stat = 0;
+		if (by_id) {
+			stat = comm_can_get_psw_status_id(id_ind);
+		} else if (id_ind < psws_num) {
+			stat = comm_can_get_psw_status_index(id_ind);
+		}
+
+		if (stat) {
+			ind = 0;
+			uint8_t send_buffer[70];
+
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, stat->id, &ind);
+			buffer_append_int16(send_buffer, psws_num, &ind);
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(stat->rx_time), &ind);
+			buffer_append_float32_auto(send_buffer, stat->v_in, &ind);
+			buffer_append_float32_auto(send_buffer, stat->v_out, &ind);
+			buffer_append_float32_auto(send_buffer, stat->temp, &ind);
+			send_buffer[ind++] = stat->is_out_on;
+			send_buffer[ind++] = stat->is_pch_on;
+			send_buffer[ind++] = stat->is_dsc_on;
+
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
+	case COMM_PSW_SWITCH: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		bool is_on = data[ind++];
+		bool plot = data[ind++];
+		comm_can_psw_switch(id, is_on, plot);
+	} break;
 
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has

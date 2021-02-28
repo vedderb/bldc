@@ -376,6 +376,12 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+	bool foc_offsets_measured;
+	float foc_offsets_current[3];
+	float foc_offsets_voltage[3];
+	float foc_offsets_voltage_undriven[3];
+	bool foc_phase_filter_enable;
+	float foc_phase_filter_max_erpm;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
@@ -924,6 +930,10 @@ typedef enum {
 	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
 
 	COMM_SET_ODOMETER,
+
+	// Power switch commands
+	COMM_PSW_GET_STATUS,
+	COMM_PSW_SWITCH,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -973,7 +983,9 @@ typedef enum {
 	CAN_PACKET_BMS_BAL,
 	CAN_PACKET_BMS_TEMPS,
 	CAN_PACKET_BMS_HUM,
-	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
+	CAN_PACKET_PSW_STAT,
+	CAN_PACKET_PSW_SWITCH
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -1069,6 +1081,17 @@ typedef struct {
 	systime_t rx_time;
 	uint64_t inputs;
 } io_board_digial_inputs;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	float v_out;
+	float temp;
+	bool is_out_on;
+	bool is_pch_on;
+	bool is_dsc_on;
+} psw_status;
 
 typedef struct {
 	uint8_t js_x;

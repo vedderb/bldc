@@ -79,6 +79,7 @@ static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
 static io_board_adc_values io_board_adc_1_4[CAN_STATUS_MSGS_TO_STORE];
 static io_board_adc_values io_board_adc_5_8[CAN_STATUS_MSGS_TO_STORE];
 static io_board_digial_inputs io_board_digital_in[CAN_STATUS_MSGS_TO_STORE];
+static psw_status psw_stat[CAN_STATUS_MSGS_TO_STORE];
 static unsigned int detect_all_foc_res_index = 0;
 static int8_t detect_all_foc_res[50];
 
@@ -120,6 +121,8 @@ void comm_can_init(void) {
 		io_board_adc_1_4[i].id = -1;
 		io_board_adc_5_8[i].id = -1;
 		io_board_digital_in[i].id = -1;
+
+		psw_stat[i].id = -1;
 	}
 
 #if CAN_ENABLE
@@ -911,6 +914,35 @@ void comm_can_io_board_set_output_pwm(int id, int channel, float duty) {
 			buffer, send_index, true);
 }
 
+psw_status *comm_can_get_psw_status_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &psw_stat[index];
+	} else {
+		return 0;
+	}
+}
+
+psw_status *comm_can_get_psw_status_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (psw_stat[i].id == id) {
+			return &psw_stat[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_psw_switch(int id, bool is_on, bool plot) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = is_on ? 1 : 0;
+	buffer[send_index++] = plot ? 1 : 0;
+
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_PSW_SWITCH << 8),
+			buffer, send_index, true);
+}
+
 CANRxFrame *comm_can_get_rx_frame(void) {
 #if CAN_ENABLE
 	chMtxLock(&can_rx_mtx);
@@ -1599,7 +1631,26 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			}
 		}
 		break;
-		break;
+
+	case CAN_PACKET_PSW_STAT: {
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			psw_status *msg = &psw_stat[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+
+				msg->v_in = buffer_get_float16(data8, 10.0, &ind);
+				msg->v_out = buffer_get_float16(data8, 10.0, &ind);
+				msg->temp = buffer_get_float16(data8, 10.0, &ind);
+				msg->is_out_on = (data8[ind] >> 0) & 1;
+				msg->is_pch_on = (data8[ind] >> 1) & 1;
+				msg->is_dsc_on = (data8[ind] >> 2) & 1;
+				ind++;
+				break;
+			}
+		}
+	} break;
 
 	default:
 		break;
