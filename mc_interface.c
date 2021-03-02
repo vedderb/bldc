@@ -1410,9 +1410,13 @@ float mc_interface_get_battery_level(float *wh_left) {
  * Speed, in m/s
  */
 float mc_interface_get_speed(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_speed();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
 	return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
+#endif
 }
 
 /**
@@ -2236,6 +2240,10 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, !is_motor_1, false);
 		}
 	}
+#endif
+
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	hw_update_speed_sensor();
 #endif
 }
 
