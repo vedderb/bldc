@@ -1870,7 +1870,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// Low latency is important for avoiding oscillations
-		rpm_now = mcpwm_foc_get_rpm_fast();
+		rpm_now = DIR_MULT * mcpwm_foc_get_rpm_fast();
 	} else {
 		rpm_now = mc_interface_get_rpm();
 	}
