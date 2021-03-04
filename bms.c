@@ -349,6 +349,9 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		buffer_append_float16(send_buffer, m_values.soc, 1e3, &ind);
 		buffer_append_float16(send_buffer, m_values.soh, 1e3, &ind);
 
+		// CAN ID
+		send_buffer[ind++] = m_values.can_id;
+
 		reply_func(send_buffer, ind);
 	} break;
 
