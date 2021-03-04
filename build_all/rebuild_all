@@ -461,6 +461,19 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
+#################### HW UAVC_OMEGA ########################
+
+COPYDIR=UXV_SR
+mkdir -p $COPYDIR
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_uxv_sr.c\" -DHW_HEADER=\"hw_uxv_sr.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
 # Clean
 cd $FWPATH
 make clean
