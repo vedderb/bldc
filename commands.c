@@ -1143,6 +1143,20 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_GET_BATTERY_CUT: {
+		int32_t ind = 0;
+		uint8_t send_buffer[60];
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+
+		send_buffer[ind++] = packet_id;
+		buffer_append_float32(send_buffer, mcconf->l_battery_cut_start, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf->l_battery_cut_end, 1e3, &ind);
+
+		mempools_free_mcconf(mcconf);
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_SET_CAN_MODE: {
 		int32_t ind = 0;
 		bool store = data[ind++];
