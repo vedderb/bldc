@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -502,6 +502,19 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			*mcconf = *mc_interface_get_configuration();
 		} else {
 			confgenerator_set_defaults_mcconf(mcconf);
+			volatile const mc_configuration *mcconf_now = mc_interface_get_configuration();
+
+			// Keep the old offsets
+			mcconf->foc_offsets_current[0] = mcconf_now->foc_offsets_current[0];
+			mcconf->foc_offsets_current[1] = mcconf_now->foc_offsets_current[1];
+			mcconf->foc_offsets_current[2] = mcconf_now->foc_offsets_current[2];
+			mcconf->foc_offsets_voltage[0] = mcconf_now->foc_offsets_voltage[0];
+			mcconf->foc_offsets_voltage[1] = mcconf_now->foc_offsets_voltage[1];
+			mcconf->foc_offsets_voltage[2] = mcconf_now->foc_offsets_voltage[2];
+			mcconf->foc_offsets_voltage_undriven[0] = mcconf_now->foc_offsets_voltage_undriven[0];
+			mcconf->foc_offsets_voltage_undriven[1] = mcconf_now->foc_offsets_voltage_undriven[1];
+			mcconf->foc_offsets_voltage_undriven[2] = mcconf_now->foc_offsets_voltage_undriven[2];
+			mcconf->foc_offsets_measured = mcconf_now->foc_offsets_measured;
 		}
 
 		commands_send_mcconf(packet_id, mcconf);
