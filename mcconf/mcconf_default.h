@@ -369,7 +369,7 @@
 #define MCCONF_FOC_SL_ERPM_HFI			2000.0	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_HFI_START_SAMPLES
-#define MCCONF_FOC_HFI_START_SAMPLES	65 // Sample this often at start to resolve ambiguity
+#define MCCONF_FOC_HFI_START_SAMPLES	15 // Sample this often at start to resolve ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
 #define MCCONF_FOC_HFI_OBS_OVR_SEC		0.001 // Continue using observer for this long when entering HFI speed
@@ -531,6 +531,9 @@
 #endif
 #ifndef MCCONF_BMS_SOC_LIMIT_END
 #define MCCONF_BMS_SOC_LIMIT_END		0
+#endif
+#ifndef MCCONF_BMS_FWD_CAN_MODE
+#define MCCONF_BMS_FWD_CAN_MODE			BMS_FWD_CAN_MODE_DISABLED
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */

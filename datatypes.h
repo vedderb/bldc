@@ -59,7 +59,8 @@ typedef enum {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
-	FOC_SENSOR_MODE_HFI
+	FOC_SENSOR_MODE_HFI,
+	FOC_SENSOR_MODE_HFI_START
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -228,12 +229,19 @@ typedef enum {
 	BMS_TYPE_VESC
 } BMS_TYPE;
 
+typedef enum {
+	BMS_FWD_CAN_MODE_DISABLED = 0,
+	BMS_FWD_CAN_MODE_USB_ONLY,
+	BMS_FWD_CAN_MODE_ANY
+} BMS_FWD_CAN_MODE;
+
 typedef struct {
 	BMS_TYPE type;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
 	float soc_limit_end;
+	BMS_FWD_CAN_MODE fwd_can_mode;
 } bms_config;
 
 typedef struct {
@@ -934,6 +942,8 @@ typedef enum {
 	// Power switch commands
 	COMM_PSW_GET_STATUS,
 	COMM_PSW_SWITCH,
+
+	COMM_BMS_FWD_CAN_RX,
 } COMM_PACKET_ID;
 
 // CAN commands
