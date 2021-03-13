@@ -27,6 +27,7 @@
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_FILTERS
 
 // TODO: Figure out what the correct settings are
 #define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
@@ -271,7 +272,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT		120.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_M_DRV8301_OC_ADJ
-#define MCCONF_M_DRV8301_OC_ADJ			18 // DRV8301 over current protection threshold
+#define MCCONF_M_DRV8301_OC_ADJ			15 // DRV8353 over current protection threshold
 #endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
