@@ -663,7 +663,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &time);
 			sscanf(argv[3], "%f", &angle);
 
-			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
+			if (fabsf(current) <= mc_interface_get_configuration()->l_current_max &&
 					angle >= 0.0 && angle <= 360.0) {
 				if (time <= 1e-6) {
 					timeout_reset();
@@ -682,6 +682,8 @@ void terminal_process_string(char *str) {
 							commands_printf("T left: %.2f s", (double)(time - t));
 						}
 					}
+
+					mc_interface_set_current(0.0);
 
 					commands_printf("Done\n");
 				}
