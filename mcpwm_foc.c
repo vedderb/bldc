@@ -123,6 +123,8 @@ typedef struct {
 	float m_speed_command_rpm;
 	float m_phase_now_observer;
 	float m_phase_now_observer_override;
+	float m_observer_x1_override;
+	float m_observer_x2_override;
 	bool m_phase_observer_override;
 	float m_phase_now_encoder;
 	float m_phase_now_encoder_no_index;
@@ -419,7 +421,7 @@ static void timer_reinit(int f_sw) {
 
 	// TIM1 Master and TIM8 slave
 #if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
-	// TODO: Explain. See: https://www.cnblogs.com/shangdawei/p/4758988.html
+	// See: https://www.cnblogs.com/shangdawei/p/4758988.html
 	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
 	TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
 	TIM_SelectInputTrigger(TIM8, TIM_TS_ITR0);
@@ -2627,11 +2629,29 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				}
 				break;
 			case FOC_SENSOR_MODE_SENSORLESS:
-			case FOC_SENSOR_MODE_HFI_START:
 				if (motor_now->m_phase_observer_override) {
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_observer_override;
+					motor_now->m_observer_x1 = motor_now->m_observer_x1_override;
+					motor_now->m_observer_x2 = motor_now->m_observer_x2_override;
 				} else {
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				}
+
+				if (!motor_now->m_phase_override) {
+					id_set_tmp = 0.0;
+				}
+				break;
+
+			case FOC_SENSOR_MODE_HFI_START:
+				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+
+				if (motor_now->m_phase_observer_override) {
+					motor_now->m_hfi.est_done_cnt = 0;
+					motor_now->m_hfi.flip_cnt = 0;
+
+					motor_now->m_min_rpm_hyst_timer = 0.0;
+					motor_now->m_min_rpm_timer = 0.0;
+					motor_now->m_phase_observer_override = false;
 				}
 
 				if (!motor_now->m_phase_override) {
@@ -2769,6 +2789,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				if (fabsf(motor_now->m_pll_speed * (60.0 / (2.0 * M_PI))) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
 					motor_now->m_hfi.est_done_cnt = 0;
+					motor_now->m_hfi.flip_cnt = 0;
 				}
 			} break;
 			}
@@ -3061,8 +3082,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		// Set observer state to help it start tracking when leaving open loop.
 		float s, c;
 		utils_fast_sincos_better(motor->m_phase_now_observer_override + SIGN(motor->m_motor_state.duty_now) * M_PI / 4.0, &s, &c);
-		motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
-		motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
+		motor->m_observer_x1_override = c * motor->m_conf->foc_motor_flux_linkage;
+		motor->m_observer_x2_override = s * motor->m_conf->foc_motor_flux_linkage;
 	} else {
 		motor->m_phase_now_observer_override = motor->m_phase_now_observer;
 		motor->m_phase_observer_override = false;
