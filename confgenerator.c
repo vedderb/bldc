@@ -172,6 +172,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_end, 1000, &ind);
+	buffer[ind++] = conf->bms.fwd_can_mode;
 
 	return ind;
 }
@@ -505,6 +506,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
 	conf->bms.soc_limit_end = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.fwd_can_mode = buffer[ind++];
 
 	return true;
 }
@@ -834,6 +836,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
 	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
 	conf->bms.soc_limit_end = MCCONF_BMS_SOC_LIMIT_END;
+	conf->bms.fwd_can_mode = MCCONF_BMS_FWD_CAN_MODE;
 }
 
 void confgenerator_set_defaults_appconf(app_configuration *conf) {

@@ -1110,6 +1110,12 @@ bool mcpwm_foc_is_using_encoder(void) {
 	return motor_now()->m_using_encoder;
 }
 
+void mcpwm_foc_get_observer_state(float *x1, float *x2) {
+	volatile motor_all_state_t *motor = motor_now();
+	*x1 = motor->m_observer_x1;
+	*x2 = motor->m_observer_x2;
+}
+
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
 	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq) * motor->m_motor_state.i_abs;
@@ -1638,7 +1644,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 }
 
 /**
- * Lock the motor with a current and sample the voiltage and current to
+ * Lock the motor with a current and sample the voltage and current to
  * calculate the motor resistance.
  *
  * @param current
@@ -2098,7 +2104,7 @@ void mcpwm_foc_dc_cal(void) {
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 #ifdef HW_HAS_DUAL_MOTORS
 	TIMER_UPDATE_DUTY_M2(TIM8->ARR / 2, TIM8->ARR / 2, TIM8->ARR / 2);
-	start_pwm_hw(&m_motor_1);
+	start_pwm_hw(&m_motor_2);
 	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
 #endif
 
@@ -2621,6 +2627,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				}
 				break;
 			case FOC_SENSOR_MODE_SENSORLESS:
+			case FOC_SENSOR_MODE_HFI_START:
 				if (motor_now->m_phase_observer_override) {
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_observer_override;
 				} else {
@@ -2757,7 +2764,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_SENSORLESS:
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				break;
-			case FOC_SENSOR_MODE_HFI: {
+			case FOC_SENSOR_MODE_HFI:
+			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				if (fabsf(motor_now->m_pll_speed * (60.0 / (2.0 * M_PI))) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
 					motor_now->m_hfi.est_done_cnt = 0;
@@ -2968,7 +2976,7 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 
 			commands_plot_set_graph(0);
 			commands_send_plot_points(m_motor_1.m_observer_x1, m_motor_1.m_observer_x2);
-			float mag = sqrt(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
+			float mag = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
 			commands_plot_set_graph(1);
 			commands_send_plot_points(0.0, mag);
 		}
@@ -3036,12 +3044,12 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		motor->m_phase_now_observer_override += add_min_speed;
 
 		// When the motor gets stuck it tends to be 90 degrees off, so start the open loop
-		// sequence by correcting with 45 degrees.
+		// sequence by correcting with 60 degrees.
 		if (started_now) {
 			if (motor->m_motor_state.duty_now > 0.0) {
-				motor->m_phase_now_observer_override += M_PI / 4.0;
+				motor->m_phase_now_observer_override += M_PI / 3.0;
 			} else {
-				motor->m_phase_now_observer_override -= M_PI / 4.0;
+				motor->m_phase_now_observer_override -= M_PI / 3.0;
 			}
 		}
 
@@ -3171,11 +3179,21 @@ static void hfi_update(volatile motor_all_state_t *motor) {
 			if (fabsf(utils_angle_difference_rad(angle_bin_2, angle_bin_1)) > (M_PI / 2.0)) {
 				motor->m_hfi.flip_cnt++;
 			}
-		} else {
+		}
+
+		if (motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
 			if (motor->m_hfi.flip_cnt >= (motor->m_conf->foc_hfi_start_samples / 2)) {
 				angle_bin_2 += M_PI;
 			}
 			motor->m_hfi.flip_cnt = 0;
+
+			if (motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) {
+				float s, c;
+				utils_norm_angle_rad(&angle_bin_2);
+				utils_fast_sincos_better(angle_bin_2, &s, &c);
+				motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
+				motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
+			}
 		}
 
 		motor->m_hfi.angle = angle_bin_2;
@@ -3403,16 +3421,20 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 	float abs_rpm = fabsf(motor->m_speed_est_fast * 60 / (2 * M_PI));
 
-	bool do_hfi = conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI &&
+	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
+			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) &&
 			!motor->m_phase_override &&
 			abs_rpm < (conf_now->foc_sl_erpm_hfi * (motor->m_cc_was_hfi ? 1.8 : 1.5));
-	motor->m_cc_was_hfi = do_hfi;
 
 	// Only allow Q axis current after the HFI ambiguity is resolved. This causes
 	// a short delay when starting.
 	if (do_hfi && motor->m_hfi.est_done_cnt < conf_now->foc_hfi_start_samples) {
 		state_m->iq_target = 0;
+	} else if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) {
+		do_hfi = false;
 	}
+
+	motor->m_cc_was_hfi = do_hfi;
 
 	float max_duty = fabsf(state_m->max_duty);
 	utils_truncate_number(&max_duty, 0.0, conf_now->l_max_duty);
@@ -3962,13 +3984,13 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 
 	if (encoder_is_configured()) {
 		if (encoder_index_found()) {
-			motor->m_iq_set = output * conf_now->lo_current_max;
+			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
 		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.
-			motor->m_iq_set = 0.4 * conf_now->lo_current_max;
+			motor->m_iq_set = 0.4 * conf_now->l_current_max * conf_now->l_current_max_scale;;
 		}
 	} else {
-		motor->m_iq_set = output * conf_now->lo_current_max;
+		motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
 	}
 }
 
@@ -4028,7 +4050,7 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 		}
 	}
 
-	motor->m_iq_set = output * conf_now->lo_current_max;
+	motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
 }
 
 static void stop_pwm_hw(volatile motor_all_state_t *motor) {
@@ -4282,12 +4304,25 @@ static void terminal_tmp(int argc, const char **argv) {
 	if (conf_now->foc_temp_comp && t > -25.0) {
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
-	float linkage = conf_now->foc_motor_flux_linkage;
 
-	float rpm_est = (motor_state->vq - (3.0 / 2.0) * R * motor_state->iq) / linkage;
-	float res_est = -(motor_state->speed_rad_s * linkage - motor_state->vq) / (motor_state->iq * (3.0 / 2.0));
+	float rpm_est = 0.0;
+	float res_est = 0.0;
+	float samples = 0.0;
 
-	commands_printf("R: %.2f", (double)(R * 1000.0));
+	for (int i = 0;i < 10000;i++) {
+//		float linkage = conf_now->foc_motor_flux_linkage;
+		float linkage = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
+
+		rpm_est += (motor_state->vq - (3.0 / 2.0) * R * motor_state->iq) / linkage;
+		res_est += -(motor_state->speed_rad_s * linkage - motor_state->vq) / (motor_state->iq * (3.0 / 2.0));
+		samples += 1.0;
+
+		chThdSleep(1);
+	}
+
+	rpm_est /= samples;
+	res_est /= samples;
+
 	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(rpm_est / ((2.0 * M_PI) / 60.0)));
 	commands_printf("R: %.2f, EST: %.2f", (double)(R * 1000.0), (double)(res_est * 1000.0));
 }

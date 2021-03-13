@@ -8,6 +8,7 @@
 * Synchronize observer state when running in open loop.
 * Force oberver state magnitude above 50% of flux linkage. This prevents the motor from getting stuck and 'screaming'.
 * Observer global convergence update. Helps tracking the motor through 0 speed.
+* Added HFI start sensor mode.
 
 === FW 5.02 ===
 * IMU calibration improvement.

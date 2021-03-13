@@ -2153,7 +2153,6 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		break;
 	}
 
-
 	// Trigger encoder error rate fault, using 5% errors as threshold.
 	// Relevant only in FOC mode with encoder enabled
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
