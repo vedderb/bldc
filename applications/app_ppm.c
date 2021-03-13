@@ -251,7 +251,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 					}
 				}
 
-				current = servo_val * mcconf->lo_current_motor_max_now;
+				if (rpm_now >= 0.0) { //Accelerate
+					current = servo_val * mcconf->lo_current_motor_max_now;
+				} else { //Brake
+					current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
+				}
+
 			} else {
 				// too fast
 				if (force_brake){
@@ -295,7 +300,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 			current_mode = true;
 			if ((servo_val >= 0.0 && rpm_now >= 0.0) || (servo_val < 0.0 && rpm_now <= 0.0)) { //Accelerate
 				current = servo_val * mcconf->lo_current_motor_max_now;
-
 			} else { //Brake
 				current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
 			}
