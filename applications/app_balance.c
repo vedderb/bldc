@@ -91,6 +91,8 @@ static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
+static uint16_t wheel_radius, wheel_circumference;
+static float turn_radius, turn_circumference, turn_angle, abs_roll_angle, roll_compensation, roll_step_size;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
@@ -109,6 +111,8 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	}
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+    wheel_circumference = M_PI * (mc_interface_get_configuration()->si_wheel_diameter * 1000);
+    wheel_radius = (mc_interface_get_configuration()->si_wheel_diameter * 1000) / 2;
 }
 
 void app_balance_start(void) {
@@ -131,6 +135,11 @@ void reset_vars(void){
 	setpoint_target = 0;
 	setpointAdjustmentType = CENTERING;
 	yaw_setpoint = 0;
+    roll_step_size = 0;
+    roll_compensation = 0;
+    turn_radius = 0;
+    turn_circumference = 0;
+    turn_angle = 0;
 	state = RUNNING;
 	current_time = 0;
 	last_time = 0;
@@ -173,7 +182,7 @@ float get_setpoint_adjustment_step_size(void){
 		case (CENTERING):
 			return startup_step_size;
 		case (TILTBACK):
-			return tiltback_step_size;
+			return tiltback_step_size + roll_step_size;
 	}
 	return 0;
 }
@@ -278,6 +287,32 @@ void calculate_setpoint_target(void){
 	}
 }
 
+void calculate_roll_compensation(void){
+    if(setpointAdjustmentType != CENTERING && (state == RUNNING || state == RUNNING_TILTBACK_CONSTANT) && abs_roll_angle > balance_conf.yaw_ki && abs_erpm > balance_conf.roll_steer_erpm_kp){
+        turn_radius = sqrt(pow(wheel_radius / sinf(abs_roll_angle * M_PI / 180.0f), 2) - pow(wheel_radius, 2));
+        turn_circumference = (2 * M_PI) * turn_radius;
+        turn_angle = (((((abs_erpm / 60) * wheel_circumference) / balance_conf.hertz) / turn_circumference) * 360.0f) / 2.0f;
+
+        if(erpm > 0){
+            roll_compensation = (balance_conf.roll_steer_kp * turn_angle);
+        } else{
+            roll_compensation = (-balance_conf.roll_steer_kp * turn_angle);
+        }
+
+        if(roll_compensation > balance_conf.yaw_current_clamp){
+            roll_compensation = balance_conf.yaw_current_clamp;
+        } else if(roll_compensation < -balance_conf.yaw_current_clamp){
+            roll_compensation = -balance_conf.yaw_current_clamp;
+        }
+
+        roll_step_size = (fabsf(roll_compensation) * balance_conf.yaw_kp) / balance_conf.hertz;
+
+        setpoint_target += roll_compensation;
+    } else{
+        roll_step_size = 0;
+    }
+}
+
 void calculate_setpoint_interpolated(void){
 	if(setpoint_target_interpolated != setpoint_target){
 		// If we are less than one step size away, go all the way
@@ -366,6 +401,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Get the values we want
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
+        abs_roll_angle = fabsf(roll_angle);
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
@@ -439,6 +475,7 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				// Calculate setpoint and interpolation
 				calculate_setpoint_target();
+                calculate_roll_compensation();
 				calculate_setpoint_interpolated();
 
 				// Apply setpoint filtering
