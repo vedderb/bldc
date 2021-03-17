@@ -1902,8 +1902,13 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		float pow2 = res * res;
 		temp_motor = 0.0000000102114874947423 * pow2 * res - 0.000069967997703501 * pow2 +
 				0.243402040973194 * res - 160.145048329356;
-	}
-	break;
+	} break;
+
+	case TEMP_SENSOR_KTY84_130: {
+		float res = NTC_RES_MOTOR(ADC_Value[is_motor_1 ? ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]);
+		temp_motor = -7.82531699e-12 * res * res * res * res + 6.34445902e-8 * res * res * res -
+				0.00020119157  * res * res + 0.407683016 * res - 161.357536;
+	} break;
 	}
 
 	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an
