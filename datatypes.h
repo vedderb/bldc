@@ -59,7 +59,8 @@ typedef enum {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
-	FOC_SENSOR_MODE_HFI
+	FOC_SENSOR_MODE_HFI,
+	FOC_SENSOR_MODE_HFI_START
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -77,6 +78,7 @@ typedef enum {
 	TEMP_SENSOR_PTC_1K_100C,
 	TEMP_SENSOR_KTY83_122,
 	TEMP_SENSOR_NTC_100K_25C,
+	TEMP_SENSOR_KTY84_130
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -228,12 +230,19 @@ typedef enum {
 	BMS_TYPE_VESC
 } BMS_TYPE;
 
+typedef enum {
+	BMS_FWD_CAN_MODE_DISABLED = 0,
+	BMS_FWD_CAN_MODE_USB_ONLY,
+	BMS_FWD_CAN_MODE_ANY
+} BMS_FWD_CAN_MODE;
+
 typedef struct {
 	BMS_TYPE type;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
 	float soc_limit_end;
+	BMS_FWD_CAN_MODE fwd_can_mode;
 } bms_config;
 
 typedef struct {
@@ -376,6 +385,12 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+	bool foc_offsets_measured;
+	float foc_offsets_current[3];
+	float foc_offsets_voltage[3];
+	float foc_offsets_voltage_undriven[3];
+	bool foc_phase_filter_enable;
+	float foc_phase_filter_max_erpm;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
@@ -924,6 +939,12 @@ typedef enum {
 	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
 
 	COMM_SET_ODOMETER,
+
+	// Power switch commands
+	COMM_PSW_GET_STATUS,
+	COMM_PSW_SWITCH,
+
+	COMM_BMS_FWD_CAN_RX,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -973,7 +994,9 @@ typedef enum {
 	CAN_PACKET_BMS_BAL,
 	CAN_PACKET_BMS_TEMPS,
 	CAN_PACKET_BMS_HUM,
-	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
+	CAN_PACKET_PSW_STAT,
+	CAN_PACKET_PSW_SWITCH
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -1069,6 +1092,17 @@ typedef struct {
 	systime_t rx_time;
 	uint64_t inputs;
 } io_board_digial_inputs;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	float v_out;
+	float temp;
+	bool is_out_on;
+	bool is_pch_on;
+	bool is_dsc_on;
+} psw_status;
 
 typedef struct {
 	uint8_t js_x;

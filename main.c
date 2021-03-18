@@ -77,7 +77,6 @@
 
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
-static THD_WORKING_AREA(timer_thread_wa, 128);
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
@@ -179,18 +178,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 	}
 }
 
-static THD_FUNCTION(timer_thread, arg) {
-	(void)arg;
-
-	chRegSetThreadName("msec_timer");
-
-	for(;;) {
-		packet_timerfunc();
-		timeout_feed_WDT(THREAD_TIMER);
-		chThdSleepMilliseconds(1);
-	}
-}
-
 // When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower
 void assert_failed(uint8_t* file, uint32_t line) {
 	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
@@ -250,10 +237,12 @@ int main(void) {
     comm_can_init();
 #endif
 
+	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
 	app_set_configuration(appconf);
-	app_uartcomm_start_permanent();
+	app_uartcomm_start(UART_PORT_BUILTIN);
+	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
@@ -285,7 +274,6 @@ int main(void) {
 
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
 #if WS2811_TEST

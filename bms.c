@@ -29,6 +29,8 @@
 #include "utils.h"
 #include "datatypes.h"
 #include "comm_can.h"
+#include "commands.h"
+#include "comm_usb.h"
 #include <string.h>
 #include <math.h>
 
@@ -62,6 +64,42 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 		if (is_ext) {
 			uint8_t id = can_id & 0xFF;
 			CAN_PACKET_ID cmd = can_id >> 8;
+
+			switch (cmd) {
+			case CAN_PACKET_BMS_SOC_SOH_TEMP_STAT:
+			case CAN_PACKET_BMS_V_TOT:
+			case CAN_PACKET_BMS_I:
+			case CAN_PACKET_BMS_AH_WH:
+			case CAN_PACKET_BMS_V_CELL:
+			case CAN_PACKET_BMS_BAL:
+			case CAN_PACKET_BMS_TEMPS:
+			case CAN_PACKET_BMS_HUM:
+			{
+				unsigned char fwd_data[11];
+				unsigned int fwd_len = 0;
+				fwd_data[fwd_len++] = COMM_BMS_FWD_CAN_RX;
+				fwd_data[fwd_len++] = id;
+				fwd_data[fwd_len++] = cmd;
+				memcpy(fwd_data + fwd_len, data8, len);
+				fwd_len += len;
+
+				switch (m_conf.fwd_can_mode) {
+				case BMS_FWD_CAN_MODE_DISABLED:
+					break;
+
+				case BMS_FWD_CAN_MODE_USB_ONLY:
+					comm_usb_send_packet(fwd_data, fwd_len);
+					break;
+
+				case BMS_FWD_CAN_MODE_ANY:
+					commands_send_packet(fwd_data, fwd_len);
+					break;
+				}
+
+				default:
+					break;
+			}
+			}
 
 			switch (cmd) {
 			case CAN_PACKET_BMS_SOC_SOH_TEMP_STAT: {
@@ -348,6 +386,9 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		// State of charge and state of health
 		buffer_append_float16(send_buffer, m_values.soc, 1e3, &ind);
 		buffer_append_float16(send_buffer, m_values.soh, 1e3, &ind);
+
+		// CAN ID
+		send_buffer[ind++] = m_values.can_id;
 
 		reply_func(send_buffer, ind);
 	} break;

@@ -1,3 +1,16 @@
+=== FW 5.03 <dev> ===
+* Fixed inductance measurement bug.
+* Speed tracker windup protection.
+* Phase filter support.
+* Phase voltage offset calibration.
+* Better current offset calibration.
+* Added power switch commands.
+* Synchronize observer state when running in open loop.
+* Force oberver state magnitude above 50% of flux linkage. This prevents the motor from getting stuck and 'screaming'.
+* Observer global convergence update. Helps tracking the motor through 0 speed.
+* Added HFI start sensor mode.
+* Added TEMP_SENSOR_KTY84_130.
+
 === FW 5.02 ===
 * IMU calibration improvement.
 * Added COMM_GET_MCCONF_TEMP command.
