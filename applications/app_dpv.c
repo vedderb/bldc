@@ -14,7 +14,7 @@
 
 #define SPEED_STEP	0.05
 #define SPEED_MAX	1.00
-#define SPEED_MIN	0.05
+#define SPEED_MIN	0.20
 #define SPEED_OFF	0.00
 
 //private variables
@@ -139,8 +139,7 @@ static THD_FUNCTION(dpv_thread, arg) {
    			motorSpeed = motorSpeed_val_ramp;
        	}
        	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
-//       	mc_interface_set_pid_speed(utils_map(motorSpeed, 0, 1.0, 0, MAX_ERPM);
-//        	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
+//       	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
         chThdSleepMilliseconds(10);
 		// Reset the timeout
 		timeout_reset();

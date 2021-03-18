@@ -31,6 +31,8 @@
 #include "mempools.h"
 #include "timeout.h"
 #include "stdio.h"
+#include "rfm95w.h"
+
 // Threads
 THD_FUNCTION(mag_thread, arg);
 static THD_WORKING_AREA(mag_thread_wa, 512);
@@ -136,7 +138,7 @@ void hw_init_gpio(void) {
         0,
         terminal_cmd_doublepulse);
 #endif
-
+//    rfm95w_init();
 }
 
 void hw_setup_adc_channels(void) {

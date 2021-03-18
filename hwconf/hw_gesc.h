@@ -20,7 +20,7 @@
 #ifndef HW_GSVESC_H_
 #define HW_GSVESC_H_
 
-#define HW_NAME					"GSVESC"
+#define HW_NAME					"GESC"
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -28,6 +28,7 @@
 //#define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_NO_CAN
+//#define HW_HAS_RFM95W
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -99,7 +100,7 @@
 #define V_REG					3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1					56200.0
+#define VIN_R1					56000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2700.0
@@ -221,6 +222,23 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+#ifdef HW_HAS_RFM95W
+#define HW_RFM95W_SPI_DEV				SPID1
+#define HW_RFM95W_SPI_GPIO_AF			GPIO_AF_SPI1
+#define HW_RFM95W_SPI_PORT_NSS			GPIOA
+#define HW_RFM95W_SPI_PIN_NSS			4
+#define HW_RFM95W_SPI_PORT_SCK			GPIOA
+#define HW_RFM95W_SPI_PIN_SCK			5
+#define HW_RFM95W_SPI_PORT_MOSI		    GPIOA
+#define HW_RFM95W_SPI_PIN_MOSI			7
+#define HW_RFM95W_SPI_PORT_MISO		    GPIOA
+#define HW_RFM95W_SPI_PIN_MISO			6
+#define HW_RFM95W_SPI_PORT_DIO0         GPIOC
+#define HW_RFM95W_SPI_PIN_DIO0          5
+#define HW_RFM95W_SPI_PORT_RESET        GPIOB
+#define HW_RFM95W_SPI_PIN_RESET         2
+#endif
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -234,7 +252,7 @@
 
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC       360.0
+#define HW_DEAD_TIME_NSEC       660.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
