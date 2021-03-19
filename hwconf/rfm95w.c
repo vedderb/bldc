@@ -35,39 +35,49 @@
 #include "SX1278.h"
 #include "stdio.h"
 
-// Settings
-#define HW_SPI_FREQUENCY    8E6
-#define PACKET_HANDLER      3
-
 // Threads
 static THD_FUNCTION(packet_process_thread, arg);
 static THD_WORKING_AREA(packet_process_thread_wa, 4096);
 
 // Variables
 static volatile bool thread_is_running = false;
-static volatile bool spi_is_running = false;
 static mutex_t send_mutex;
 static bool send_mutex_init_done = false;
+PACKET_STATE_t  packet_state;
 SX1278_t SX1278;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
 static void send_packet(unsigned char *data, unsigned int len);
 
+//packet verschicken
+void rfm95w_send_packet(unsigned char *data, unsigned int len) {
+	if (!send_mutex_init_done) {
+		chMtxObjectInit(&send_mutex);
+		send_mutex_init_done = true;
+	}
+	chMtxLock(&send_mutex);
+	packet_send_packet(data, len, &packet_state);
+	chMtxUnlock(&send_mutex);
 
-static void process_packet(unsigned char *data, unsigned int len) {
-//	commands_process_packet(data, len, rfm95w_send_packet);
 }
 
+
+//empfagsfunktion
+static void process_packet(unsigned char *data, unsigned int len) {
+	commands_process_packet(data, len, rfm95w_send_packet);
+}
+
+//send function, bekommt fertigen buffer von packet_send_packet
 static void send_packet(unsigned char *data, unsigned int len) {
-	if (spi_is_running) {
+      commands_printf("Send...");
       SX1278_LoRaEntryTx(&SX1278, len, 200);
       SX1278_LoRaTxPacket(&SX1278, (uint8_t*) data, len, 200);
-	}
 }
 
+
 void rfm95w_init(void) {
-//    packet_init(send_packet, process_packet, PACKET_HANDLER);
+    packet_init(send_packet, process_packet, &packet_state);
 
     palSetPadMode(HW_RFM95W_SPI_PORT_SCK, HW_RFM95W_SPI_PIN_SCK, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
     palSetPadMode(HW_RFM95W_SPI_PORT_MISO, HW_RFM95W_SPI_PIN_MISO,PAL_MODE_INPUT);
@@ -75,7 +85,6 @@ void rfm95w_init(void) {
     palSetPadMode(HW_RFM95W_SPI_PORT_MOSI, HW_RFM95W_SPI_PIN_MOSI, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
     palSetPadMode(HW_RFM95W_SPI_PORT_DIO0, HW_RFM95W_SPI_PIN_DIO0, PAL_MODE_INPUT);
     palSetPadMode(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-
     SX1278_init(&SX1278, 866000000, SX1278_POWER_17DBM, SX1278_LORA_SF_10, SX1278_LORA_BW_125KHZ, SX1278_LORA_CR_4_5, SX1278_LORA_CRC_DIS, 1);
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
@@ -83,22 +92,7 @@ void rfm95w_init(void) {
 	}
 }
 
-void rfm95_stop(void) {
-	if (spi_is_running) {
-        spiStop(&HW_RFM95W_SPI_DEV);
-		spi_is_running = false;
-	}
-}
-
-void rfm95w_send_packet(unsigned char *data, unsigned int len) {
-	if (!send_mutex_init_done) {
-		chMtxObjectInit(&send_mutex);
-		send_mutex_init_done = true;
-	}
-
-	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, PACKET_HANDLER);
-	chMtxUnlock(&send_mutex);
+void rfm95w_stop(void) {
 }
 
 static THD_FUNCTION(packet_process_thread, arg) {
@@ -108,8 +102,16 @@ static THD_FUNCTION(packet_process_thread, arg) {
 	chRegSetThreadName("rfm95w proc");
 
     buffer[0]=COMM_GET_VALUES;
+
+    while(!commands_is_initialized());
 	for(;;) {
-//    	commands_process_packet(buffer, 1, rfm95w_send_packet);
+        //simuliere empfangenes commando, ruft dann rfm95_send_packet auf
+    	commands_process_packet(buffer, 1, rfm95w_send_packet);
+
+        SX1278_LoRaEntryRx(&SX1278,100,100);
+        if ( SX1278_LoRaRxPacket(&SX1278) ) {
+           process_packet(SX1278.rxBuffer, SX1278.readBytes); 
+        }
         chThdSleepMilliseconds(500);
 	}
 }

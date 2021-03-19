@@ -22,7 +22,7 @@
 
 // Default settings
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_BLDC
+#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_PWM_MODE
 #define MCCONF_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
@@ -377,8 +377,8 @@
 #ifndef MCCONF_FOC_HFI_SAMPLES
 #define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
 #endif
-#ifndef MCCONF_FOC_OFFSETS_MEASURED
-#define MCCONF_FOC_OFFSETS_MEASURED		false // Offsets have been measured
+#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
+#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	true // Measure offsets every boot
 #endif
 #ifndef MCCONF_FOC_OFFSETS_CURRENT_0
 #define MCCONF_FOC_OFFSETS_CURRENT_0	2048.0 // Current 0 offset

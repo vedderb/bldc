@@ -62,16 +62,14 @@ void hw_init_gpio(void) {
 
 
 #ifdef HW_VER_IS_60D_PLUS
-	mc_interface_select_motor_thread(2);
 	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
 	PHASE_FILTER_OFF();
-	mc_interface_select_motor_thread(1);
-	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+	palSetPadMode(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
-	PHASE_FILTER_OFF();
+	PHASE_FILTER_OFF_M2();
 #endif
 
 

@@ -28,7 +28,7 @@
 //#define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_NO_CAN
-//#define HW_HAS_RFM95W
+#define HW_HAS_RFM95W
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB

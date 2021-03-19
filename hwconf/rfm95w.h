@@ -5,7 +5,8 @@
 #define HWCONF_RFM95W_H_
 
 #include "datatypes.h"
-
+#include "SX1278.h"
+#include "SX1278_hw.h"
 
 // Functions
 void rfm95w_init(void);

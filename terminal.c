@@ -529,10 +529,14 @@ void terminal_process_string(char *str) {
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "foc_dc_cal") == 0) {
 		commands_printf("Performing DC offset calibration...");
-		mcpwm_foc_dc_cal();
-		conf_general_store_mc_configuration((mc_configuration*)mc_interface_get_configuration(),
-				mc_interface_get_motor_thread() == 2);
-		commands_printf("Done!\n");
+		int res = mcpwm_foc_dc_cal(true);
+		if (res >= 0) {
+			conf_general_store_mc_configuration((mc_configuration*)mc_interface_get_configuration(),
+					mc_interface_get_motor_thread() == 2);
+			commands_printf("Done!\n");
+		} else {
+			commands_printf("DC Cal Failed: %d\n", res);
+		}
 	} else if (strcmp(argv[0], "hw_status") == 0) {
 		commands_printf("Firmware: %d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR);
 #ifdef HW_NAME

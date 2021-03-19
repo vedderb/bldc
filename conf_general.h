@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		12
+#define FW_TEST_VERSION_NUMBER		14
 
 #include "datatypes.h"
 
@@ -196,7 +196,7 @@
 /*
  * Select default user motor configuration
  */
-//#include			"conf_test.h"
+#include			"mcconf_default.h"
 //#include 			"mcconf_china_60kv.h"
 
 /*
