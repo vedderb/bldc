@@ -196,7 +196,7 @@
 /*
  * Select default user motor configuration
  */
-//#include			"conf_test.h"
+#include			"mcconf_default.h"
 //#include 			"mcconf_china_60kv.h"
 
 /*
