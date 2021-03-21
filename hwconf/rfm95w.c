@@ -37,7 +37,6 @@
 
 // Settings
 #define HW_SPI_FREQUENCY    8E6
-#define PACKET_HANDLER      3
 
 // Threads
 static THD_FUNCTION(packet_process_thread, arg);
@@ -48,6 +47,7 @@ static volatile bool thread_is_running = false;
 static volatile bool spi_is_running = false;
 static mutex_t send_mutex;
 static bool send_mutex_init_done = false;
+PACKET_STATE_t  packet_state;
 SX1278_t SX1278;
 
 // Private functions
@@ -55,10 +55,12 @@ static void process_packet(unsigned char *data, unsigned int len);
 static void send_packet(unsigned char *data, unsigned int len);
 
 
+//empfagsfunktion
 static void process_packet(unsigned char *data, unsigned int len) {
 //	commands_process_packet(data, len, rfm95w_send_packet);
 }
 
+//send function, bekommt fertigen buffer von packet_send_packet
 static void send_packet(unsigned char *data, unsigned int len) {
 	if (spi_is_running) {
       SX1278_LoRaEntryTx(&SX1278, len, 200);
@@ -66,8 +68,9 @@ static void send_packet(unsigned char *data, unsigned int len) {
 	}
 }
 
+
 void rfm95w_init(void) {
-//    packet_init(send_packet, process_packet, PACKET_HANDLER);
+    packet_init(send_packet, process_packet, &packet_state);
 
     palSetPadMode(HW_RFM95W_SPI_PORT_SCK, HW_RFM95W_SPI_PIN_SCK, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
     palSetPadMode(HW_RFM95W_SPI_PORT_MISO, HW_RFM95W_SPI_PIN_MISO,PAL_MODE_INPUT);
@@ -83,13 +86,14 @@ void rfm95w_init(void) {
 	}
 }
 
-void rfm95_stop(void) {
+void rfm95w_stop(void) {
 	if (spi_is_running) {
         spiStop(&HW_RFM95W_SPI_DEV);
 		spi_is_running = false;
 	}
 }
 
+//packet verschicken
 void rfm95w_send_packet(unsigned char *data, unsigned int len) {
 	if (!send_mutex_init_done) {
 		chMtxObjectInit(&send_mutex);
@@ -97,8 +101,9 @@ void rfm95w_send_packet(unsigned char *data, unsigned int len) {
 	}
 
 	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, PACKET_HANDLER);
+	packet_send_packet(data, len, &packet_state);
 	chMtxUnlock(&send_mutex);
+
 }
 
 static THD_FUNCTION(packet_process_thread, arg) {
@@ -108,8 +113,10 @@ static THD_FUNCTION(packet_process_thread, arg) {
 	chRegSetThreadName("rfm95w proc");
 
     buffer[0]=COMM_GET_VALUES;
+
 	for(;;) {
-//    	commands_process_packet(buffer, 1, rfm95w_send_packet);
+        //simuliere empfangenes commando, ruft dann rfm95_send_packet auf
+    	commands_process_packet(buffer, 1, rfm95w_send_packet);
         chThdSleepMilliseconds(500);
 	}
 }

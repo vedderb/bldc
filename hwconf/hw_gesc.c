@@ -31,13 +31,15 @@
 #include "mempools.h"
 #include "timeout.h"
 #include "stdio.h"
+
+#ifdef HW_HAS_RFM95W
 #include "rfm95w.h"
+#endif
 
 // Threads
 THD_FUNCTION(mag_thread, arg);
 static THD_WORKING_AREA(mag_thread_wa, 512);
 static bool mag_thread_running = false;
-
 
 // Variables
 static volatile bool i2c_running = false;
@@ -53,6 +55,7 @@ static const I2CConfig i2cfg = {
 		100000,
 		STD_DUTY_CYCLE
 };
+
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
@@ -129,6 +132,8 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
+
+    rfm95w_init();
 #ifndef HW_HAS_DUAL_MOTORS
     //register terminal callbacks
     //double pulse not possible with dual motor setup
@@ -138,7 +143,6 @@ void hw_init_gpio(void) {
         0,
         terminal_cmd_doublepulse);
 #endif
-//    rfm95w_init();
 }
 
 void hw_setup_adc_channels(void) {
@@ -198,8 +202,7 @@ void hw_setup_adc_channels(void) {
         chThdCreateStatic(mag_thread_wa, sizeof(mag_thread_wa), NORMALPRIO, mag_thread, NULL);
         mag_thread_running = true;
     }
-
-
+    
 }
 
 void hw_start_i2c(void) {
@@ -312,7 +315,6 @@ THD_FUNCTION(mag_thread, arg) {
     chThdSleepMilliseconds(10);
 
     for(;;) {
-
         if (i2c_running) {
             txbuf[0] = 0x0c;
             txbuf[1] = 0x0d;
@@ -326,7 +328,7 @@ THD_FUNCTION(mag_thread, arg) {
                 hw_try_restore_i2c();
             }
         }
-        chThdSleepMilliseconds(100);
+       chThdSleepMilliseconds(100);
     }
 }
 
