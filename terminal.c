@@ -537,7 +537,6 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("DC Cal Failed: %d\n", res);
 		}
-
 	} else if (strcmp(argv[0], "hw_status") == 0) {
 		commands_printf("Firmware: %d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR);
 #ifdef HW_NAME

@@ -109,7 +109,8 @@ typedef struct {
 	mc_state m_state;
 	mc_control_mode m_control_mode;
 	motor_state_t m_motor_state;
-	int m_curr_unbalance;
+	float m_curr_unbalance;
+	float m_currents_adc[3];
 	bool m_phase_override;
 	float m_phase_now_override;
 	float m_duty_cycle_set;
@@ -594,21 +595,19 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	DCCAL_OFF();
 
 	if (m_motor_1.m_conf->foc_offsets_cal_on_boot) {
-		m_motor_1.m_conf->foc_offsets_current[0] = 2048;
-		m_motor_1.m_conf->foc_offsets_current[1] = 2048;
-		m_motor_1.m_conf->foc_offsets_current[2] = 2048;
+		for (int i = 0;i < 3;i++) {
+			m_motor_1.m_conf->foc_offsets_voltage[i] = 0.0;
+			m_motor_1.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+			m_motor_1.m_conf->foc_offsets_current[i] = 2048;
+
 #ifdef HW_HAS_DUAL_MOTORS
-		m_motor_2.m_conf->foc_offsets_current[0] = 2048;
-		m_motor_2.m_conf->foc_offsets_current[1] = 2048;
-		m_motor_2.m_conf->foc_offsets_current[2] = 2048;
+			m_motor_2.m_conf->foc_offsets_voltage[i] = 0.0;
+			m_motor_2.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+			m_motor_2.m_conf->foc_offsets_current[i] = 2048;
 #endif
+		}
 
 		mcpwm_foc_dc_cal(false);
-
-		conf_general_store_mc_configuration((mc_configuration*)m_motor_1.m_conf, false);
-#ifdef HW_HAS_DUAL_MOTORS
-		conf_general_store_mc_configuration((mc_configuration*)m_motor_2.m_conf, true);
-#endif
 	} else {
 		m_dccal_done = true;
 	}
@@ -1211,7 +1210,7 @@ float mcpwm_foc_get_abs_motor_current(void) {
  * The magnitude of the phase currents unbalance.
  */
 float mcpwm_foc_get_abs_motor_current_unbalance(void) {
-	return (float)(motor_now()->m_curr_unbalance) * FAC_CURRENT;
+	return motor_now()->m_curr_unbalance * FAC_CURRENT;
 }
 
 /**
@@ -2096,7 +2095,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	// Measure driven offsets
 
-	const float samples = 500.0;
+	const float samples = 1000.0;
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
@@ -2126,10 +2125,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	chThdSleepMilliseconds(10);
 
 	for (float i = 0;i < samples;i++) {
-		current_sum[0] += GET_CURRENT1();
+		current_sum[0] += m_motor_1.m_currents_adc[0];
 		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1);
 #ifdef HW_HAS_DUAL_MOTORS
-		current_sum_m2[0] += GET_CURRENT1_M2();
+		current_sum_m2[0] += m_motor_2.m_currents_adc[0];
 		voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4);
 #endif
 		chThdSleep(1);
@@ -2155,10 +2154,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	chThdSleep(1);
 
 	for (float i = 0;i < samples;i++) {
-		current_sum[1] += GET_CURRENT2();
+		current_sum[1] += m_motor_1.m_currents_adc[1];
 		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2);
 #ifdef HW_HAS_DUAL_MOTORS
-		current_sum_m2[1] += GET_CURRENT2_M2();
+		current_sum_m2[1] += m_motor_2.m_currents_adc[1];
 		voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5);
 #endif
 		chThdSleep(1);
@@ -2184,10 +2183,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	chThdSleep(1);
 
 	for (float i = 0;i < samples;i++) {
-		current_sum[2] += GET_CURRENT3();
+		current_sum[2] += m_motor_1.m_currents_adc[2];
 		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3);
 #ifdef HW_HAS_DUAL_MOTORS
-		current_sum_m2[2] += GET_CURRENT3_M2();
+		current_sum_m2[2] += m_motor_2.m_currents_adc[2];
 		voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6);
 #endif
 		chThdSleep(1);
@@ -2394,8 +2393,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #endif
 
 #ifdef HW_HAS_DUAL_MOTORS
-	int curr0 = 0;
-	int curr1 = 0;
+	float curr0 = 0;
+	float curr1 = 0;
 
 	if (is_second_motor) {
 		curr0 = GET_CURRENT1_M2();
@@ -2422,6 +2421,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	curr2 += GET_CURRENT3_M2();
 #endif
 #endif
+#endif
+
+	motor_now->m_currents_adc[0] = curr0;
+	motor_now->m_currents_adc[1] = curr1;
+#ifdef HW_HAS_3_SHUNTS
+	motor_now->m_currents_adc[2] = curr2;
+#else
+	motor_now->m_currents_adc[2] = 0.0;
 #endif
 
 	curr0 -= conf_now->foc_offsets_current[0];
