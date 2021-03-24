@@ -521,7 +521,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf->foc_offsets_voltage_undriven[0] = mcconf_now->foc_offsets_voltage_undriven[0];
 			mcconf->foc_offsets_voltage_undriven[1] = mcconf_now->foc_offsets_voltage_undriven[1];
 			mcconf->foc_offsets_voltage_undriven[2] = mcconf_now->foc_offsets_voltage_undriven[2];
-			mcconf->foc_offsets_measured = mcconf_now->foc_offsets_measured;
 		}
 
 		commands_send_mcconf(packet_id, mcconf);

@@ -226,6 +226,12 @@
 #ifndef PHASE_FILTER_OFF
 #define PHASE_FILTER_OFF()
 #endif
+#ifndef PHASE_FILTER_ON_M2
+#define PHASE_FILTER_ON_M2()
+#endif
+#ifndef PHASE_FILTER_OFF_M2
+#define PHASE_FILTER_OFF_M2()
+#endif
 
 #ifndef CURRENT_FILTER_ON
 #define CURRENT_FILTER_ON()
@@ -277,7 +283,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3()		(4095 - ADC_Value[ADC_IND_CURR3])
 #else
+#ifdef ADC_IND_CURR3
 #define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
+#else
+#define GET_CURRENT3()		0
+#endif
 #endif
 #endif
 
@@ -299,7 +309,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3_M2()	(4095 - ADC_Value[ADC_IND_CURR6])
 #else
+#ifdef ADC_IND_CURR6
 #define GET_CURRENT3_M2()	ADC_Value[ADC_IND_CURR6]
+#else
+#define GET_CURRENT3_M2()			0
+#endif
 #endif
 #endif
 

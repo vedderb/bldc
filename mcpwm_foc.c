@@ -109,7 +109,8 @@ typedef struct {
 	mc_state m_state;
 	mc_control_mode m_control_mode;
 	motor_state_t m_motor_state;
-	int m_curr_unbalance;
+	float m_curr_unbalance;
+	float m_currents_adc[3];
 	bool m_phase_override;
 	float m_phase_now_override;
 	float m_duty_cycle_set;
@@ -593,31 +594,20 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	ENABLE_GATE();
 	DCCAL_OFF();
 
-	/*
-	 * Run and store calibration if it hasn't been done before. We don't want to run the calibration on
-	 * every boot as it requires that the motor is standing still or not connected. That is a valid
-	 * assumption after firmware updates, but not on every boot.
-	 *
-	 * The old calibration did not require the motor to stand still, which is why it was run every boot.
-	 * This has changed as we now switch on 0 modulation during calibration to get voltage and current
-	 * offsets then as well.
-	 */
-	if (!m_motor_1.m_conf->foc_offsets_measured) {
-		m_motor_1.m_conf->foc_offsets_current[0] = 2048;
-		m_motor_1.m_conf->foc_offsets_current[1] = 2048;
-		m_motor_1.m_conf->foc_offsets_current[2] = 2048;
-#ifdef HW_HAS_DUAL_MOTORS
-		m_motor_2.m_conf->foc_offsets_current[0] = 2048;
-		m_motor_2.m_conf->foc_offsets_current[1] = 2048;
-		m_motor_2.m_conf->foc_offsets_current[2] = 2048;
-#endif
+	if (m_motor_1.m_conf->foc_offsets_cal_on_boot) {
+		for (int i = 0;i < 3;i++) {
+			m_motor_1.m_conf->foc_offsets_voltage[i] = 0.0;
+			m_motor_1.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+			m_motor_1.m_conf->foc_offsets_current[i] = 2048;
 
-		mcpwm_foc_dc_cal();
-
-		conf_general_store_mc_configuration((mc_configuration*)m_motor_1.m_conf, false);
 #ifdef HW_HAS_DUAL_MOTORS
-		conf_general_store_mc_configuration((mc_configuration*)m_motor_2.m_conf, true);
+			m_motor_2.m_conf->foc_offsets_voltage[i] = 0.0;
+			m_motor_2.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+			m_motor_2.m_conf->foc_offsets_current[i] = 2048;
 #endif
+		}
+
+		mcpwm_foc_dc_cal(false);
 	} else {
 		m_dccal_done = true;
 	}
@@ -1220,7 +1210,7 @@ float mcpwm_foc_get_abs_motor_current(void) {
  * The magnitude of the phase currents unbalance.
  */
 float mcpwm_foc_get_abs_motor_current_unbalance(void) {
-	return (float)(motor_now()->m_curr_unbalance) * FAC_CURRENT;
+	return motor_now()->m_curr_unbalance * FAC_CURRENT;
 }
 
 /**
@@ -2076,22 +2066,26 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
  * motor is driven at 50% modulation on all phases when measuring the driven offset, which
  * corresponds to space-vector modulation with 0 amplitude.
  *
- * The reason that the undriven voltage offsets are measured too is that we track the motor
- * when it is undriven. The undriven current offsets are not needed, as the motor currents
- * are assumed to be 0 when the motor is undriven.
+ * cal_undriven:
+ * Calibrate undriven voltages too. This requires the motor to stand still.
+ *
+ * return:
+ * -1: Timed out while waiting for fault code to go away.
+ * 1: Success
+ *
  */
-void mcpwm_foc_dc_cal(void) {
+int mcpwm_foc_dc_cal(bool cal_undriven) {
 	// Wait max 5 seconds for DRV-fault to go away
 	int cnt = 0;
 	while(IS_DRV_FAULT()){
 		chThdSleepMilliseconds(1);
 		cnt++;
 		if (cnt > 5000) {
-			break;
+			return -1;
 		}
 	};
 
-	chThdSleepMilliseconds(2000);
+	chThdSleepMilliseconds(1000);
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -2101,115 +2095,180 @@ void mcpwm_foc_dc_cal(void) {
 
 	// Measure driven offsets
 
-	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
-	start_pwm_hw(&m_motor_1);
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-#ifdef HW_HAS_DUAL_MOTORS
-	TIMER_UPDATE_DUTY_M2(TIM8->ARR / 2, TIM8->ARR / 2, TIM8->ARR / 2);
-	start_pwm_hw(&m_motor_2);
-	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
-#endif
-
-	chThdSleepMilliseconds(500);
-
-	const float samples = 1500;
+	const float samples = 1000.0;
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
+
+	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
+
+	// Start PWM on phase 1
+	stop_pwm_hw(&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
 #ifdef HW_HAS_DUAL_MOTORS
 	float current_sum_m2[3] = {0.0, 0.0, 0.0};
 	float voltage_sum_m2[3] = {0.0, 0.0, 0.0};
+	TIMER_UPDATE_DUTY_M2(TIM8->ARR / 2, TIM8->ARR / 2, TIM8->ARR / 2);
+
+	stop_pwm_hw(&m_motor_2);
+	PHASE_FILTER_ON_M2();
+	TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
 #endif
+
+	chThdSleepMilliseconds(10);
 
 	for (float i = 0;i < samples;i++) {
-		current_sum[0] += GET_CURRENT1();
-		current_sum[1] += GET_CURRENT2();
-#ifdef HW_HAS_3_SHUNTS
-		current_sum[2] += GET_CURRENT3();
-#endif
-#ifdef HW_HAS_PHASE_FILTERS
-		float v_avg = (ADC_VOLTS(ADC_IND_SENS1) + ADC_VOLTS(ADC_IND_SENS2) + ADC_VOLTS(ADC_IND_SENS3)) / 3.0;
-		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1) - v_avg;
-		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2) - v_avg;
-		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3) - v_avg;
-#endif
+		current_sum[0] += m_motor_1.m_currents_adc[0];
+		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1);
 #ifdef HW_HAS_DUAL_MOTORS
-		current_sum_m2[0] += GET_CURRENT1_M2();
-		current_sum_m2[1] += GET_CURRENT2_M2();
-#ifdef HW_HAS_3_SHUNTS
-		current_sum_m2[2] += GET_CURRENT3_M2();
+		current_sum_m2[0] += m_motor_2.m_currents_adc[0];
+		voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4);
 #endif
-#ifdef HW_HAS_PHASE_FILTERS
-		v_avg = (ADC_VOLTS(ADC_IND_SENS4) + ADC_VOLTS(ADC_IND_SENS5) + ADC_VOLTS(ADC_IND_SENS6)) / 3.0;
-		voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4) - v_avg;
-		voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5) - v_avg;
-		voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6) - v_avg;
-#endif
+		chThdSleep(1);
+	}
+
+	// Start PWM on phase 2
+	stop_pwm_hw(&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+#ifdef HW_HAS_DUAL_MOTORS
+	stop_pwm_hw(&m_motor_2);
+	PHASE_FILTER_ON_M2();
+	TIM_SelectOCxM(TIM8, TIM_Channel_2, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM8, TIM_Channel_2, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM8, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
 #endif
 
+	chThdSleep(1);
+
+	for (float i = 0;i < samples;i++) {
+		current_sum[1] += m_motor_1.m_currents_adc[1];
+		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2);
+#ifdef HW_HAS_DUAL_MOTORS
+		current_sum_m2[1] += m_motor_2.m_currents_adc[1];
+		voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5);
+#endif
+		chThdSleep(1);
+	}
+
+	// Start PWM on phase 3
+	stop_pwm_hw(&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+#ifdef HW_HAS_DUAL_MOTORS
+	stop_pwm_hw(&m_motor_2);
+	PHASE_FILTER_ON_M2();
+	TIM_SelectOCxM(TIM8, TIM_Channel_3, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM8, TIM_Channel_3, TIM_CCx_Enable);
+	TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
+#endif
+
+	chThdSleep(1);
+
+	for (float i = 0;i < samples;i++) {
+		current_sum[2] += m_motor_1.m_currents_adc[2];
+		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3);
+#ifdef HW_HAS_DUAL_MOTORS
+		current_sum_m2[2] += m_motor_2.m_currents_adc[2];
+		voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6);
+#endif
 		chThdSleep(1);
 	}
 
 	stop_pwm_hw(&m_motor_1);
-#ifdef HW_HAS_DUAL_MOTORS
-	stop_pwm_hw(&m_motor_2);
-#endif
 
 	m_motor_1.m_conf->foc_offsets_current[0] = current_sum[0] / samples;
 	m_motor_1.m_conf->foc_offsets_current[1] = current_sum[1] / samples;
-#ifdef HW_HAS_3_SHUNTS
 	m_motor_1.m_conf->foc_offsets_current[2] = current_sum[2] / samples;
-#endif
 
-	m_motor_1.m_conf->foc_offsets_voltage[0] = voltage_sum[0] / samples;
-	m_motor_1.m_conf->foc_offsets_voltage[1] = voltage_sum[1] / samples;
-	m_motor_1.m_conf->foc_offsets_voltage[2] = voltage_sum[2] / samples;
+	voltage_sum[0] /= samples;
+	voltage_sum[1] /= samples;
+	voltage_sum[2] /= samples;
+	float v_avg = (voltage_sum[0] + voltage_sum[1] + voltage_sum[2]) / 3.0;
+
+	m_motor_1.m_conf->foc_offsets_voltage[0] = voltage_sum[0] - v_avg;
+	m_motor_1.m_conf->foc_offsets_voltage[1] = voltage_sum[1] - v_avg;
+	m_motor_1.m_conf->foc_offsets_voltage[2] = voltage_sum[2] - v_avg;
 
 #ifdef HW_HAS_DUAL_MOTORS
+	stop_pwm_hw(&m_motor_2);
+
 	m_motor_2.m_conf->foc_offsets_current[0] = current_sum_m2[0] / samples;
 	m_motor_2.m_conf->foc_offsets_current[1] = current_sum_m2[1] / samples;
-#ifdef HW_HAS_3_SHUNTS
 	m_motor_2.m_conf->foc_offsets_current[2] = current_sum_m2[2] / samples;
-#endif
 
-	m_motor_2.m_conf->foc_offsets_voltage[0] = voltage_sum_m2[0] / samples;
-	m_motor_2.m_conf->foc_offsets_voltage[1] = voltage_sum_m2[1] / samples;
-	m_motor_2.m_conf->foc_offsets_voltage[2] = voltage_sum_m2[2] / samples;
+	voltage_sum_m2[0] /= samples;
+	voltage_sum_m2[1] /= samples;
+	voltage_sum_m2[2] /= samples;
+	v_avg = (voltage_sum_m2[0] + voltage_sum_m2[1] + voltage_sum_m2[2]) / 3.0;
+
+	m_motor_2.m_conf->foc_offsets_voltage[0] = voltage_sum_m2[0] - v_avg;
+	m_motor_2.m_conf->foc_offsets_voltage[1] = voltage_sum_m2[1] - v_avg;
+	m_motor_2.m_conf->foc_offsets_voltage[2] = voltage_sum_m2[2] - v_avg;
 #endif
 
 	// Measure undriven offsets
 
-	chThdSleepMilliseconds(500);
+	if (cal_undriven) {
+		chThdSleepMilliseconds(10);
 
-	voltage_sum[0] = 0.0; voltage_sum[1] = 0.0; voltage_sum[2] = 0.0;
+		voltage_sum[0] = 0.0; voltage_sum[1] = 0.0; voltage_sum[2] = 0.0;
 #ifdef HW_HAS_DUAL_MOTORS
-	voltage_sum_m2[0] = 0.0; voltage_sum_m2[1] = 0.0; voltage_sum_m2[2] = 0.0;
-#endif
-	for (float i = 0;i < samples;i++) {
-		float v_avg = (ADC_VOLTS(ADC_IND_SENS1) + ADC_VOLTS(ADC_IND_SENS2) + ADC_VOLTS(ADC_IND_SENS3)) / 3.0;
-		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1) - v_avg;
-		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2) - v_avg;
-		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3) - v_avg;
-
-#ifdef HW_HAS_DUAL_MOTORS
-		v_avg = (ADC_VOLTS(ADC_IND_SENS4) + ADC_VOLTS(ADC_IND_SENS5) + ADC_VOLTS(ADC_IND_SENS6)) / 3.0;
-		voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4) - v_avg;
-		voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5) - v_avg;
-		voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6) - v_avg;
+		voltage_sum_m2[0] = 0.0; voltage_sum_m2[1] = 0.0; voltage_sum_m2[2] = 0.0;
 #endif
 
-		chThdSleep(1);
+		for (float i = 0;i < samples;i++) {
+			v_avg = (ADC_VOLTS(ADC_IND_SENS1) + ADC_VOLTS(ADC_IND_SENS2) + ADC_VOLTS(ADC_IND_SENS3)) / 3.0;
+			voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1) - v_avg;
+			voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2) - v_avg;
+			voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3) - v_avg;
+#ifdef HW_HAS_DUAL_MOTORS
+			v_avg = (ADC_VOLTS(ADC_IND_SENS4) + ADC_VOLTS(ADC_IND_SENS5) + ADC_VOLTS(ADC_IND_SENS6)) / 3.0;
+			voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4) - v_avg;
+			voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5) - v_avg;
+			voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6) - v_avg;
+#endif
+			chThdSleep(1);
+		}
+
+		stop_pwm_hw(&m_motor_1);
+
+		voltage_sum[0] /= samples;
+		voltage_sum[1] /= samples;
+		voltage_sum[2] /= samples;
+
+		m_motor_1.m_conf->foc_offsets_voltage_undriven[0] = voltage_sum[0];
+		m_motor_1.m_conf->foc_offsets_voltage_undriven[1] = voltage_sum[1];
+		m_motor_1.m_conf->foc_offsets_voltage_undriven[2] = voltage_sum[2];
+#ifdef HW_HAS_DUAL_MOTORS
+		stop_pwm_hw(&m_motor_2);
+
+		voltage_sum_m2[0] /= samples;
+		voltage_sum_m2[1] /= samples;
+		voltage_sum_m2[2] /= samples;
+
+		m_motor_2.m_conf->foc_offsets_voltage_undriven[0] = voltage_sum_m2[0];
+		m_motor_2.m_conf->foc_offsets_voltage_undriven[1] = voltage_sum_m2[1];
+		m_motor_2.m_conf->foc_offsets_voltage_undriven[2] = voltage_sum_m2[2];
+#endif
 	}
-
-	m_motor_1.m_conf->foc_offsets_voltage_undriven[0] = voltage_sum[0] / samples;
-	m_motor_1.m_conf->foc_offsets_voltage_undriven[1] = voltage_sum[1] / samples;
-	m_motor_1.m_conf->foc_offsets_voltage_undriven[2] = voltage_sum[2] / samples;
-	m_motor_1.m_conf->foc_offsets_measured = true;
-#ifdef HW_HAS_DUAL_MOTORS
-	m_motor_2.m_conf->foc_offsets_voltage_undriven[0] = voltage_sum_m2[0] / samples;
-	m_motor_2.m_conf->foc_offsets_voltage_undriven[1] = voltage_sum_m2[1] / samples;
-	m_motor_2.m_conf->foc_offsets_voltage_undriven[2] = voltage_sum_m2[2] / samples;
-	m_motor_2.m_conf->foc_offsets_measured = true;
-#endif
 
 	// TODO: Make sure that offsets are no more than e.g. 5%, as larger values indicate hardware problems.
 
@@ -2218,6 +2277,8 @@ void mcpwm_foc_dc_cal(void) {
 	mc_interface_unlock();
 
 	m_dccal_done = true;
+
+	return 1;
 }
 
 void mcpwm_foc_print_state(void) {
@@ -2332,8 +2393,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #endif
 
 #ifdef HW_HAS_DUAL_MOTORS
-	int curr0 = 0;
-	int curr1 = 0;
+	float curr0 = 0;
+	float curr1 = 0;
 
 	if (is_second_motor) {
 		curr0 = GET_CURRENT1_M2();
@@ -2360,6 +2421,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	curr2 += GET_CURRENT3_M2();
 #endif
 #endif
+#endif
+
+	motor_now->m_currents_adc[0] = curr0;
+	motor_now->m_currents_adc[1] = curr1;
+#ifdef HW_HAS_3_SHUNTS
+	motor_now->m_currents_adc[2] = curr2;
+#else
+	motor_now->m_currents_adc[2] = 0.0;
 #endif
 
 	curr0 -= conf_now->foc_offsets_current[0];
@@ -4114,6 +4183,7 @@ static void stop_pwm_hw(volatile motor_all_state_t *motor) {
 #endif
 
 		motor->m_output_on = false;
+		PHASE_FILTER_OFF();
 	} else {
 		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_ForcedAction_InActive);
 		TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
@@ -4134,9 +4204,8 @@ static void stop_pwm_hw(volatile motor_all_state_t *motor) {
 #endif
 
 		motor->m_output_on = false;
+		PHASE_FILTER_OFF_M2();
 	}
-
-	PHASE_FILTER_OFF();
 }
 
 static void start_pwm_hw(volatile motor_all_state_t *motor) {
@@ -4165,6 +4234,8 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 		TIM_SelectOCxM(TIM8, TIM_Channel_3, TIM_OCMode_PWM1);
 		TIM_CCxCmd(TIM8, TIM_Channel_3, TIM_CCx_Enable);
 		TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Enable);
+
+		PHASE_FILTER_ON_M2();
 #endif
 
 		// Generate COM event in ADC interrupt to get better synchronization
@@ -4174,6 +4245,7 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 		ENABLE_BR();
 #endif
 		motor->m_output_on = true;
+		PHASE_FILTER_ON();
 	} else {
 		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
 		TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
@@ -4191,9 +4263,8 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 		ENABLE_BR_2();
 #endif
 		motor->m_output_on = true;
+		PHASE_FILTER_ON_M2();
 	}
-
-	PHASE_FILTER_ON();
 }
 
 static float correct_encoder(float obs_angle, float enc_angle, float speed,
