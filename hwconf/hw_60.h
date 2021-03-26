@@ -30,6 +30,9 @@
 #define HW_NAME					"60"
 #endif
 
+#define HW_MAJOR				6
+#define HW_MINOR				0
+
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
