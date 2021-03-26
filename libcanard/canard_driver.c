@@ -252,8 +252,7 @@ static void write_app_config(void) {
  * not overwritten before it is actually writen to the emulated EEPROM.
  */
 static void refresh_parameters(void){
-	app_configuration *appconf = mempools_alloc_appconf();
-	*appconf = *app_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
 
 	updateParamByName((uint8_t *)"uavcan_mode", 	appconf->can_mode );
 	updateParamByName((uint8_t *)"can_baud_rate", 	appconf->can_baud_rate );
@@ -261,8 +260,6 @@ static void refresh_parameters(void){
 	updateParamByName((uint8_t *)"can_send_status", appconf->send_can_status );
 	updateParamByName((uint8_t *)"can_esc_index",   appconf->uavcan_esc_index );
 	updateParamByName((uint8_t *)"controller_id",   appconf->controller_id );
-
-	mempools_free_appconf(appconf);
 }
 
 /*
