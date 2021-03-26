@@ -213,12 +213,16 @@ static void updateParamByName(uint8_t * name, float value)
 	param_t* p = NULL;
 	p = getParamByName((char *)name);
 	if (p != NULL) {
-		if(p->val != value) {
-			commands_printf("%s, %s p->val %0.02f, value %0.02f", p->name, name, (double)p->val, (double)value);	
+		if (p->val != value) {
+			if (debug_level > 0) {
+				commands_printf("%s, %s p->val %0.02f, value %0.02f", p->name, name, (double)p->val, (double)value);
+			}
 			p->val = value;
 		}
 	} else {
-		commands_printf("UAVCAN updateParamByName(): Parameter name not found");
+		if (debug_level > 0) {
+			commands_printf("UAVCAN updateParamByName(): Parameter name not found");
+		}
 	}
 }
 
@@ -342,7 +346,9 @@ static void calculateTotalCurrent(void) {
 		if (msgw->id != -1) {
 			systime_t elapsedTime = chVTGetSystemTimeX() - msgw->rx_time;
 			if(ST2MS(elapsedTime) > ESC_STATUS_TIMEOUT) {
-				commands_printf("ESC timeout for NodeID: %d",msgw->id);
+				if (debug_level > 0) {
+					commands_printf("ESC timeout for NodeID: %d",msgw->id);
+				}
 				msgw->id = -1;
 			} else {
 				totalCurrent += msgw->msg.current;
@@ -996,7 +1002,9 @@ static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer) 
 			break;
 
 		case UAVCAN_PROTOCOL_RESTARTNODE_ID:
-			commands_printf("RestartNode\n");
+			if (debug_level > 0) {
+				commands_printf("RestartNode\n");
+			}
 			handle_restart_node();
 			break;
 
@@ -1162,11 +1170,9 @@ static THD_FUNCTION(canard_thread, arg) {
 		if (ST2MS(chVTTimeElapsedSinceX(last_tot_current_calc_time)) >= 1000 / CURRENT_CALC_FREQ_HZ) {
 			last_tot_current_calc_time = chVTGetSystemTimeX();
 			calculateTotalCurrent();
-			if(debug_level == 3) {
-				mc_configuration *mcconf = mempools_alloc_mcconf();
-				*mcconf = *mc_interface_get_configuration();
-				commands_printf("Max Current: %0.02f",(double)mcconf->lo_current_motor_max_now);
-				mempools_free_mcconf(mcconf);
+			if (debug_level == 3) {
+				const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+				commands_printf("Max Current: %0.02f", (double)mcconf->lo_current_motor_max_now);
 			}
 		}
 
