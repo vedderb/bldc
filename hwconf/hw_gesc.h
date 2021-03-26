@@ -25,7 +25,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_NO_CAN
 #define HW_HAS_RFM95W
