@@ -496,6 +496,8 @@ static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer
  * Handle ESC Raw command
  */
 static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transfer) {
+	(void)ins;
+
 	uavcan_equipment_esc_RawCommand cmd;
 	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_MAX_SIZE];
 	memset(buffer, 0, sizeof(buffer));
@@ -534,6 +536,8 @@ static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transf
  * Handle ESC RPM command
  */
 static void handle_esc_rpm_command(CanardInstance* ins, CanardRxTransfer* transfer) {
+	(void)ins;
+
 	uavcan_equipment_esc_RPMCommand cmd;
 	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_MAX_SIZE];
 	memset(buffer, 0, sizeof(buffer));
@@ -553,6 +557,8 @@ static void handle_esc_rpm_command(CanardInstance* ins, CanardRxTransfer* transf
  * this data can be used to respond to total system current consumption.
  */
 static void handle_esc_status(CanardInstance* ins, CanardRxTransfer* transfer) {
+	(void)ins;
+
 	uavcan_equipment_esc_Status msg;
 	if (uavcan_equipment_esc_Status_decode_internal(transfer, transfer->payload_len, &msg, 0, 0) >= 0) {
 		for (int i = 0;i < STATUS_MSGS_TO_STORE;i++) {
@@ -788,8 +794,9 @@ static void send_fw_read(void)
  * send_fw_read() above. the packet contains a 16 bit value at the begining called 
  * error that needs to be removed before reading the file chunk
  */
-static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* transfer)
-{
+static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* transfer) {
+	(void)ins;
+
 	if ((transfer->transfer_id+1)%256 != fw_update.transfer_id ||
 		transfer->source_node_id != fw_update.node_id) {
 		return;
@@ -818,6 +825,9 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
 	uint16_t flash_res = flash_helper_write_new_app_data(fw_update.ofs+6, buf, len);
 	fw_update.ofs += len;
 	
+	// TODO: Check result and abort on failure.
+	(void)flash_res;
+
 	// If the packet is incomplete that means that was the last packet (might be an issue if the last packet is exactly full)
 	// however Ardupilot seems to be handling this same way, and no issues have been reported so far.
 	if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
@@ -1018,8 +1028,8 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 								 uint64_t* out_data_type_signature,
 								 uint16_t data_type_id,
 								 CanardTransferType transfer_type,
-								 uint8_t source_node_id)
-{
+								 uint8_t source_node_id) {
+	(void)ins;
 	(void)source_node_id;
 
 	if (debug_level == 4) {

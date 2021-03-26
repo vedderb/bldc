@@ -10,6 +10,7 @@
 * Observer global convergence update. Helps tracking the motor through 0 speed.
 * Added HFI start sensor mode.
 * Added TEMP_SENSOR_KTY84_130.
+* Major UAVCAN update. See: https://github.com/vedderb/bldc/pull/269
 
 === FW 5.02 ===
 * IMU calibration improvement.
