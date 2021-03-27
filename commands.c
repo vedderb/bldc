@@ -1424,6 +1424,18 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     }
 
 #ifndef DISABLE_HW_LIMITS
+
+    // TODO: Maybe truncate values that get close to numerical instabilities when set
+    // close to each other, such as
+    //
+    // conf->l_temp_motor_start, conf->l_temp_motor_end
+    // and
+    // conf->l_temp_fet_start, conf->l_temp_fet_end
+    //
+    // A division by 0 is avoided in the code, but getting close can still make things
+    // oscillate. At the moment we leave the responsibility of setting sane values
+    // to the user.
+
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);

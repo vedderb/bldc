@@ -495,7 +495,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 							//Traction Control - Applied to slaves except if a fault has occured on the local VESC (undriven wheel may generate fake RPM)
-							if (config.tc && !autoTCdisengaged) {
+							if (config.tc && config.tc_max_diff > 1.0 && !autoTCdisengaged) {
 								float rpm_tmp = msg->rpm;
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;
@@ -513,7 +513,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 						}
 					}
 					//Traction Control - Applying locally
-					if (config.tc) {
+					if (config.tc && config.tc_max_diff > 1.0) {
 						float diff = rpm_local - rpm_lowest;
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
 						if (current_out < mcconf->cc_min_current) {

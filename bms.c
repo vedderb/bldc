@@ -286,9 +286,9 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	if (UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
 		float temp = m_stat_temp_max.t_cell_max;
 
-		if (temp < m_conf.t_limit_start) {
+		if (temp < (m_conf.t_limit_start + 0.1)) {
 			// OK
-		} else if (temp > m_conf.t_limit_end) {
+		} else if (temp > (m_conf.t_limit_end - 0.1)) {
 			i_in_min_bms = 0.0;
 			i_in_max_bms = 0.0;
 			// Maybe add fault code?
@@ -317,9 +317,9 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	if (UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
 		float soc = m_stat_soc_min.soc;
 
-		if (soc > m_conf.soc_limit_start) {
+		if (soc > (m_conf.soc_limit_start - 0.001)) {
 			// OK
-		} else if (soc < m_conf.soc_limit_end) {
+		} else if (soc < (m_conf.soc_limit_end + 0.001)) {
 			i_in_max_bms = 0.0;
 		} else {
 			i_in_max_bms = utils_map(soc, m_conf.soc_limit_start,

@@ -3535,15 +3535,17 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
 	float d_gain_scale = 1.0;
-	float max_mod_norm = fabsf(state_m->duty_now / max_duty);
-	if (max_duty < 0.01) {
-		max_mod_norm = 1.0;
-	}
-	if (max_mod_norm > conf_now->foc_d_gain_scale_start) {
-		d_gain_scale = utils_map(max_mod_norm, conf_now->foc_d_gain_scale_start, 1.0,
-				1.0, conf_now->foc_d_gain_scale_max_mod);
-		if (d_gain_scale < conf_now->foc_d_gain_scale_max_mod) {
-			d_gain_scale = conf_now->foc_d_gain_scale_max_mod;
+	if (conf_now->foc_d_gain_scale_start < 0.99) {
+		float max_mod_norm = fabsf(state_m->duty_now / max_duty);
+		if (max_duty < 0.01) {
+			max_mod_norm = 1.0;
+		}
+		if (max_mod_norm > conf_now->foc_d_gain_scale_start) {
+			d_gain_scale = utils_map(max_mod_norm, conf_now->foc_d_gain_scale_start, 1.0,
+					1.0, conf_now->foc_d_gain_scale_max_mod);
+			if (d_gain_scale < conf_now->foc_d_gain_scale_max_mod) {
+				d_gain_scale = conf_now->foc_d_gain_scale_max_mod;
+			}
 		}
 	}
 
@@ -3655,7 +3657,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 		if (motor->m_hfi.est_done_cnt < conf_now->foc_hfi_start_samples) {
 			hfi_voltage = conf_now->foc_hfi_voltage_start;
 		} else {
-			hfi_voltage = utils_map(fabsf(state_m->iq), 0.0, conf_now->l_current_max,
+			hfi_voltage = utils_map(fabsf(state_m->iq), -0.01, conf_now->l_current_max,
 									conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
 		}
 

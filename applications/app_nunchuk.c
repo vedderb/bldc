@@ -504,7 +504,7 @@ static THD_FUNCTION(output_thread, arg) {
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 						bool is_braking = (current > 0.0 && msg->duty < 0.0) || (current < 0.0 && msg->duty > 0.0);
 
-						if (config.tc && !is_braking) {
+						if (config.tc && config.tc_max_diff > 1.0 && !is_braking) {
 							float rpm_tmp = fabsf(msg->rpm);
 
 							float diff = rpm_tmp - rpm_lowest;
@@ -520,7 +520,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 				bool is_braking = (current > 0.0 && duty_now < 0.0) || (current < 0.0 && duty_now > 0.0);
 
-				if (config.tc && !is_braking) {
+				if (config.tc && config.tc_max_diff > 1.0 && !is_braking) {
 					float diff = rpm_local - rpm_lowest;
 					current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
 					if (fabsf(current_out) < mcconf->cc_min_current) {

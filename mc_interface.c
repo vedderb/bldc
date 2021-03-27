@@ -1935,9 +1935,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	// Temperature MOSFET
 	float lo_min_mos = l_current_min_tmp;
 	float lo_max_mos = l_current_max_tmp;
-	if (motor->m_temp_fet < conf->l_temp_fet_start) {
+	if (motor->m_temp_fet < (conf->l_temp_fet_start + 0.1)) {
 		// Keep values
-	} else if (motor->m_temp_fet > conf->l_temp_fet_end) {
+	} else if (motor->m_temp_fet > (conf->l_temp_fet_end - 0.1)) {
 		lo_min_mos = 0.0;
 		lo_max_mos = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, !is_motor_1, false);
@@ -1961,9 +1961,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	// Temperature MOTOR
 	float lo_min_mot = l_current_min_tmp;
 	float lo_max_mot = l_current_max_tmp;
-	if (motor->m_temp_motor < conf->l_temp_motor_start) {
+	if (motor->m_temp_motor < (conf->l_temp_motor_start + 0.1)) {
 		// Keep values
-	} else if (motor->m_temp_motor > conf->l_temp_motor_end) {
+	} else if (motor->m_temp_motor > (conf->l_temp_motor_end - 0.1)) {
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1, false);
@@ -1992,9 +1992,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float temp_motor_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
 
 	float lo_fet_temp_accel = 0.0;
-	if (motor->m_temp_fet < temp_fet_accel_start) {
+	if (motor->m_temp_fet < (temp_fet_accel_start + 0.1)) {
 		lo_fet_temp_accel = l_current_max_tmp;
-	} else if (motor->m_temp_fet > temp_fet_accel_end) {
+	} else if (motor->m_temp_fet > (temp_fet_accel_end - 0.1)) {
 		lo_fet_temp_accel = 0.0;
 	} else {
 		lo_fet_temp_accel = utils_map(motor->m_temp_fet, temp_fet_accel_start,
@@ -2002,9 +2002,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	}
 
 	float lo_motor_temp_accel = 0.0;
-	if (motor->m_temp_motor < temp_motor_accel_start) {
+	if (motor->m_temp_motor < (temp_motor_accel_start + 0.1)) {
 		lo_motor_temp_accel = l_current_max_tmp;
-	} else if (motor->m_temp_motor > temp_motor_accel_end) {
+	} else if (motor->m_temp_motor > (temp_motor_accel_end - 0.1)) {
 		lo_motor_temp_accel = 0.0;
 	} else {
 		lo_motor_temp_accel = utils_map(motor->m_temp_motor, temp_motor_accel_start,
@@ -2015,9 +2015,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_max_rpm = 0.0;
 	const float rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
 	const float rpm_pos_cut_end = conf->l_max_erpm;
-	if (rpm_now < rpm_pos_cut_start) {
+	if (rpm_now < (rpm_pos_cut_start + 0.1)) {
 		lo_max_rpm = l_current_max_tmp;
-	} else if (rpm_now > rpm_pos_cut_end) {
+	} else if (rpm_now > (rpm_pos_cut_end - 0.1)) {
 		lo_max_rpm = 0.0;
 	} else {
 		lo_max_rpm = utils_map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, l_current_max_tmp, 0.0);
@@ -2027,9 +2027,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_min_rpm = 0.0;
 	const float rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
 	const float rpm_neg_cut_end = conf->l_min_erpm;
-	if (rpm_now > rpm_neg_cut_start) {
+	if (rpm_now > (rpm_neg_cut_start - 0.1)) {
 		lo_min_rpm = l_current_max_tmp;
-	} else if (rpm_now < rpm_neg_cut_end) {
+	} else if (rpm_now < (rpm_neg_cut_end + 0.1)) {
 		lo_min_rpm = 0.0;
 	} else {
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
@@ -2037,10 +2037,11 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Duty max
 	float lo_max_duty = 0.0;
-	if (duty_now_abs < conf->l_duty_start) {
+	if (duty_now_abs < (conf->l_duty_start * conf->l_max_duty) || conf->l_duty_start > 0.99) {
 		lo_max_duty = l_current_max_tmp;
 	} else {
-		lo_max_duty = utils_map(duty_now_abs, conf->l_duty_start, conf->l_max_duty, l_current_max_tmp, 0.0);
+		lo_max_duty = utils_map(duty_now_abs, (conf->l_duty_start * conf->l_max_duty),
+				conf->l_max_duty, l_current_max_tmp, 0.0);
 	}
 
 	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
@@ -2065,9 +2066,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Battery cutoff
 	float lo_in_max_batt = 0.0;
-	if (v_in > conf->l_battery_cut_start) {
+	if (v_in > (conf->l_battery_cut_start - 0.1)) {
 		lo_in_max_batt = conf->l_in_current_max;
-	} else if (v_in < conf->l_battery_cut_end) {
+	} else if (v_in < (conf->l_battery_cut_end + 0.1)) {
 		lo_in_max_batt = 0.0;
 	} else {
 		lo_in_max_batt = utils_map(v_in, conf->l_battery_cut_start,
