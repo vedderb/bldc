@@ -135,7 +135,6 @@ void hw_init_gpio(void) {
 #ifdef HW_HAS_RFM95W
     rfm95w_init();
 #endif
-
 #ifndef HW_HAS_DUAL_MOTORS
     //register terminal callbacks
     //double pulse not possible with dual motor setup
