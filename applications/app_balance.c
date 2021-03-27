@@ -440,24 +440,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				// Calculate setpoint and interpolation
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
-
-				// Apply setpoint filtering
-				if(setpointAdjustmentType == CENTERING){
-					// Ignore filtering during centering
-					setpoint = setpoint_target_interpolated;
-				}else{
-					setpoint = (setpoint * (1-balance_conf.setpoint_pitch_filter)) + (pitch_angle * balance_conf.setpoint_pitch_filter);
-					setpoint = (setpoint * (1-balance_conf.setpoint_target_filter)) + (setpoint_target_interpolated * balance_conf.setpoint_target_filter);
-				}
-
-				// Clamp setpoint
-				if(setpointAdjustmentType != CENTERING){
-					if(setpoint - setpoint_target_interpolated > balance_conf.setpoint_filter_clamp){
-						setpoint = setpoint_target_interpolated + balance_conf.setpoint_filter_clamp;
-					}else if (setpoint - setpoint_target_interpolated < -balance_conf.setpoint_filter_clamp){
-						setpoint = setpoint_target_interpolated - balance_conf.setpoint_filter_clamp;
-					}
-				}
+				setpoint = setpoint_target_interpolated;
 
 				// Do PID maths
 				proportional = setpoint - pitch_angle;
@@ -476,13 +459,6 @@ static THD_FUNCTION(balance_thread, arg) {
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
 				last_proportional = proportional;
-
-				// Apply current boost
-				if(pid_value > 0){
-					pid_value += balance_conf.current_boost;
-				}else if(pid_value < 0){
-					pid_value -= balance_conf.current_boost;
-				}
 
 
 				if(balance_conf.multi_esc){

@@ -287,7 +287,6 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_roll_tolerance, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_speed, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.deadzone, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.current_boost, &ind);
 	buffer[ind++] = conf->app_balance_conf.multi_esc;
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_ki, &ind);
@@ -296,9 +295,6 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.roll_steer_erpm_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.brake_current, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_current_clamp, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.setpoint_pitch_filter, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.setpoint_target_filter, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.setpoint_filter_clamp, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_frequency, &ind);
 	buffer[ind++] = conf->app_pas_conf.ctrl_type;
 	buffer[ind++] = conf->app_pas_conf.sensor_type;
@@ -624,7 +620,6 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.startup_roll_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.deadzone = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.current_boost = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.multi_esc = buffer[ind++];
 	conf->app_balance_conf.yaw_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.yaw_ki = buffer_get_float32_auto(buffer, &ind);
@@ -633,9 +628,6 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.roll_steer_erpm_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.brake_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.yaw_current_clamp = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.setpoint_pitch_filter = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.setpoint_target_filter = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.setpoint_filter_clamp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_frequency = buffer_get_uint16(buffer, &ind);
 	conf->app_pas_conf.ctrl_type = buffer[ind++];
 	conf->app_pas_conf.sensor_type = buffer[ind++];
@@ -945,7 +937,6 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.startup_roll_tolerance = APPCONF_BALANCE_STARTUP_ROLL_TOLERANCE;
 	conf->app_balance_conf.startup_speed = APPCONF_BALANCE_STARTUP_SPEED;
 	conf->app_balance_conf.deadzone = APPCONF_BALANCE_DEADZONE;
-	conf->app_balance_conf.current_boost = APPCONF_BALANCE_CURRENT_BOOST;
 	conf->app_balance_conf.multi_esc = APPCONF_BALANCE_MULTI_ESC;
 	conf->app_balance_conf.yaw_kp = APPCONF_BALANCE_YAW_KP;
 	conf->app_balance_conf.yaw_ki = APPCONF_BALANCE_YAW_KI;
@@ -954,9 +945,6 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.roll_steer_erpm_kp = APPCONF_BALANCE_ROLL_STEER_ERPM_KP;
 	conf->app_balance_conf.brake_current = APPCONF_BALANCE_BRAKE_CURRENT;
 	conf->app_balance_conf.yaw_current_clamp = APPCONF_BALANCE_YAW_CURRENT_CLAMP;
-	conf->app_balance_conf.setpoint_pitch_filter = APPCONF_BALANCE_SETPOINT_PITCH_FILTER;
-	conf->app_balance_conf.setpoint_target_filter = APPCONF_BALANCE_SETPOINT_TARGET_FILTER;
-	conf->app_balance_conf.setpoint_filter_clamp = APPCONF_BALANCE_SETPOINT_FILTER_CLAMP;
 	conf->app_balance_conf.kd_pt1_frequency = APPCONF_BALANCE_KD_PT1_FREQUENCY;
 	conf->app_pas_conf.ctrl_type = APPCONF_PAS_CTRL_TYPE;
 	conf->app_pas_conf.sensor_type = APPCONF_PAS_SENSOR_TYPE;
