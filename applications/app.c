@@ -88,13 +88,13 @@ void app_set_configuration(app_configuration *conf) {
 		break;
 
 	case APP_PPM_UART:
-		hw_stop_i2c();
+        hw_stop_i2c();
 		app_ppm_start();
 		app_uartcomm_start(UART_PORT_COMM_HEADER);
 		break;
 
 	case APP_ADC_UART:
-		hw_stop_i2c();
+        hw_stop_i2c();
 		app_adc_start(false);
 		app_uartcomm_start(UART_PORT_COMM_HEADER);
 		break;
@@ -129,8 +129,9 @@ void app_set_configuration(app_configuration *conf) {
 
 	case APP_CUSTOM:
 #ifdef APP_CUSTOM_TO_USE
-		hw_stop_i2c();
 		app_custom_start();
+		app_uartcomm_start(UART_PORT_COMM_HEADER);
+
 #endif
 		break;
 

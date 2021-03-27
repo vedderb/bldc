@@ -75,12 +75,19 @@ static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
 static mutex_t terminal_mutex;
 static volatile int fw_version_sent_cnt = 0;
+static bool is_initialized=false;
+
+bool commands_is_initialized(void) {
+    return is_initialized;
+}
+
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
+    is_initialized = true;
 }
 
 /**
@@ -1424,18 +1431,6 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     }
 
 #ifndef DISABLE_HW_LIMITS
-
-    // TODO: Maybe truncate values that get close to numerical instabilities when set
-    // close to each other, such as
-    //
-    // conf->l_temp_motor_start, conf->l_temp_motor_end
-    // and
-    // conf->l_temp_fet_start, conf->l_temp_fet_end
-    //
-    // A division by 0 is avoided in the code, but getting close can still make things
-    // oscillate. At the moment we leave the responsibility of setting sane values
-    // to the user.
-
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);

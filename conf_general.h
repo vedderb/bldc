@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		16
+#define FW_TEST_VERSION_NUMBER		14
 
 #include "datatypes.h"
 
@@ -69,10 +69,16 @@
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
+
+#define HW_SOURCE "hw_gesc.c"
+#define HW_HEADER "hw_gesc.h"
+
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
-#define HW60_IS_MK5
+//#define HW60_IS_MK5
 
 //#define HW_SOURCE "hw_60.c"
 //#define HW_HEADER "hw_60.h"
@@ -103,7 +109,7 @@
 
 // Second revision with separate UART for NRF51
 //#define HW75_300_REV_2
-#define HW75_300_REV_3
+//#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -123,8 +129,8 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-#define HW_SOURCE "hw_hd60.c"
-#define HW_HEADER "hw_hd60.h"
+//#define HW_SOURCE "hw_hd60.c"
+//#define HW_HEADER "hw_hd60.h"
 
 //#define HW_SOURCE "hw_hd75.c"
 //#define HW_HEADER "hw_hd75.h"
@@ -190,7 +196,8 @@
 /*
  * Select default user motor configuration
  */
-//#include			"conf_test.h"
+#include			"mcconf_default.h"
+//#include 			"mcconf_china_60kv.h"
 
 /*
  * Select default user app configuration
@@ -202,6 +209,7 @@
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
+#define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
@@ -209,7 +217,7 @@
 
 // CAN-plotter
 //#define APP_CUSTOM_TO_USE			"app_plot_can.c"
-//#define APPCONF_APP_TO_USE			APP_CUSTOM
+#define APPCONF_APP_TO_USE			APP_NONE
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
