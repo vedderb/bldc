@@ -26,10 +26,10 @@ void SX1278_hw_SetNSS(int value) {
 
 void SX1278_hw_Reset() {
     SX1278_hw_SetNSS(1);
-	palClearPad(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET);
-	SX1278_hw_DelayMs(1);
-	palSetPad(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET);
-	SX1278_hw_DelayMs(100);
+    palClearPad(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET);
+    SX1278_hw_DelayMs(1);
+    palSetPad(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET);
+    SX1278_hw_DelayMs(100);
 }
 
 void SX1278_hw_SPICommand(uint8_t cmd) {
@@ -39,12 +39,11 @@ void SX1278_hw_SPICommand(uint8_t cmd) {
 }
 
 uint8_t SX1278_hw_SPIReadByte() {
-	uint8_t txByte = 0x00;
-	uint8_t rxByte = 0x00;
+    uint8_t rxByte = 0x00;
 
     SX1278_hw_SetNSS(0);
     spi_transfer(&rxByte, NULL, 1);
-	return rxByte;
+    return rxByte;
 }
 
 void SX1278_hw_DelayMs(uint32_t msec) {

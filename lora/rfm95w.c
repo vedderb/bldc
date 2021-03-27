@@ -50,31 +50,25 @@ SX1278_t SX1278;
 static void process_packet(unsigned char *data, unsigned int len);
 static void send_packet(unsigned char *data, unsigned int len);
 
-//packet verschicken
 void rfm95w_send_packet(unsigned char *data, unsigned int len) {
-	if (!send_mutex_init_done) {
-		chMtxObjectInit(&send_mutex);
-		send_mutex_init_done = true;
-	}
-	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, &packet_state);
-	chMtxUnlock(&send_mutex);
-
+    if (!send_mutex_init_done) {
+	    chMtxObjectInit(&send_mutex);
+	    send_mutex_init_done = true;
+    }
+    chMtxLock(&send_mutex);
+    packet_send_packet(data, len, &packet_state);
+    chMtxUnlock(&send_mutex);
 }
 
-
-//empfagsfunktion
 static void process_packet(unsigned char *data, unsigned int len) {
-	commands_process_packet(data, len, rfm95w_send_packet);
+    commands_process_packet(data, len, rfm95w_send_packet);
 }
 
-//send function, bekommt fertigen buffer von packet_send_packet
 static void send_packet(unsigned char *data, unsigned int len) {
-      commands_printf("Send...");
-      SX1278_LoRaEntryTx(&SX1278, len, 200);
-      SX1278_LoRaTxPacket(&SX1278, (uint8_t*) data, len, 200);
+    commands_printf("Send...");
+    SX1278_LoRaEntryTx(&SX1278, len, 200);
+    SX1278_LoRaTxPacket(&SX1278, (uint8_t*) data, len, 200);
 }
-
 
 void rfm95w_init(void) {
     packet_init(send_packet, process_packet, &packet_state);
@@ -86,37 +80,38 @@ void rfm95w_init(void) {
     palSetPadMode(HW_RFM95W_SPI_PORT_DIO0, HW_RFM95W_SPI_PIN_DIO0, PAL_MODE_INPUT);
     palSetPadMode(HW_RFM95W_SPI_PORT_RESET, HW_RFM95W_SPI_PIN_RESET, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
     SX1278_init(&SX1278, 866000000, SX1278_POWER_17DBM, SX1278_LORA_SF_10, SX1278_LORA_BW_125KHZ, SX1278_LORA_CR_4_5, SX1278_LORA_CRC_DIS, 1);
-	if (!thread_is_running) {
-		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
-		thread_is_running = true;
-	}
+    if (!thread_is_running) {
+        chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
+        thread_is_running = true;
+    }
 }
 
 void rfm95w_stop(void) {
 }
 
 static THD_FUNCTION(packet_process_thread, arg) {
-	(void)arg;
+    (void)arg;
 
     unsigned char buffer[128];
-	chRegSetThreadName("rfm95w proc");
+    chRegSetThreadName("rfm95w proc");
 
     buffer[0]=COMM_GET_VALUES;
 
-    while(!commands_is_initialized() )
-       ;
+    while(!commands_is_initialized() ) {
+        chThdSleepMilliseconds(10);
+    }
 
-	for(;;) {
-        //simuliere empfangenes commando, ruft dann rfm95_send_packet auf
-    	commands_process_packet(buffer, 1, rfm95w_send_packet);
-
+    for(;;) {
+        //simulate a received packet to trigger send_packet
+        commands_process_packet(buffer, 1, rfm95w_send_packet);
         SX1278_LoRaEntryRx(&SX1278,100,100);
         if ( SX1278_LoRaRxPacket(&SX1278) ) {
-           process_packet(SX1278.rxBuffer, SX1278.readBytes); 
+            process_packet(SX1278.rxBuffer, SX1278.readBytes); 
         }
         chThdSleepMilliseconds(500);
-	}
+    }
 }
+
 #endif
 
 

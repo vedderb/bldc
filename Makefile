@@ -109,6 +109,7 @@ include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
+include lora/lora.mk
 include compression/compression.mk
 include blackmagic/blackmagic.mk
 
@@ -166,6 +167,7 @@ CSRC = $(STARTUPSRC) \
        $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
+       $(LORASRC) \
        $(COMPRESSIONSRC) \
        $(BLACKMAGICSRC)
 
@@ -207,6 +209,7 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
+         $(LORAINC) \
          $(COMPRESSIONINC) \
          $(BLACKMAGICINC)
 

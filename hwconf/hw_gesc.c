@@ -33,7 +33,7 @@
 #include "stdio.h"
 
 #ifdef HW_HAS_RFM95W
-#include "rfm95w.h"
+#include "lora/rfm95w.h"
 #endif
 
 // Threads
@@ -144,6 +144,8 @@ void hw_init_gpio(void) {
         0,
         terminal_cmd_doublepulse);
 #endif
+    //start uart for log
+	app_uartcomm_start(UART_PORT_COMM_HEADER);
 }
 
 void hw_setup_adc_channels(void) {
