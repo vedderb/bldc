@@ -88,7 +88,7 @@ static SwitchState switch_state;
 // Rumtime state values
 static BalanceState state;
 static float proportional, integral, derivative;
-static float last_proportional;
+static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
@@ -459,6 +459,16 @@ static THD_FUNCTION(balance_thread, arg) {
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
 				last_proportional = proportional;
+
+				// Apply Booster
+				abs_proportional = fabsf(proportional);
+				if(abs_proportional > balance_conf.booster_angle){
+					if(abs_proportional - balance_conf.booster_angle < balance_conf.booster_ramp){
+						pid_value += (balance_conf.booster_current * SIGN(proportional)) * (abs_proportional - balance_conf.booster_angle);
+					}else{
+						pid_value += balance_conf.booster_current * SIGN(proportional);
+					}
+				}
 
 
 				if(balance_conf.multi_esc){

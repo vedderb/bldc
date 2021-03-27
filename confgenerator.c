@@ -296,6 +296,9 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.brake_current, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_current_clamp, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_frequency, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_angle, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_ramp, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_current, &ind);
 	buffer[ind++] = conf->app_pas_conf.ctrl_type;
 	buffer[ind++] = conf->app_pas_conf.sensor_type;
 	buffer_append_float16(buffer, conf->app_pas_conf.current_scaling, 1000, &ind);
@@ -629,6 +632,9 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.brake_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.yaw_current_clamp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_frequency = buffer_get_uint16(buffer, &ind);
+	conf->app_balance_conf.booster_angle = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.booster_ramp = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.booster_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_pas_conf.ctrl_type = buffer[ind++];
 	conf->app_pas_conf.sensor_type = buffer[ind++];
 	conf->app_pas_conf.current_scaling = buffer_get_float16(buffer, 1000, &ind);
@@ -946,6 +952,9 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.brake_current = APPCONF_BALANCE_BRAKE_CURRENT;
 	conf->app_balance_conf.yaw_current_clamp = APPCONF_BALANCE_YAW_CURRENT_CLAMP;
 	conf->app_balance_conf.kd_pt1_frequency = APPCONF_BALANCE_KD_PT1_FREQUENCY;
+	conf->app_balance_conf.booster_angle = APPCONF_BALANCE_BOOSTER_ANGLE;
+	conf->app_balance_conf.booster_ramp = APPCONF_BALANCE_BOOSTER_RAMP;
+	conf->app_balance_conf.booster_current = APPCONF_BALANCE_BOOSTER_CURRENT;
 	conf->app_pas_conf.ctrl_type = APPCONF_PAS_CTRL_TYPE;
 	conf->app_pas_conf.sensor_type = APPCONF_PAS_SENSOR_TYPE;
 	conf->app_pas_conf.current_scaling = APPCONF_PAS_CURRENT_SCALING;

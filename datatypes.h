@@ -699,6 +699,9 @@ typedef struct {
 	float brake_current;
 	float yaw_current_clamp;
 	uint16_t kd_pt1_frequency;
+	float booster_angle;
+	float booster_ramp;
+	float booster_current;
 } balance_config;
 
 // CAN status modes
