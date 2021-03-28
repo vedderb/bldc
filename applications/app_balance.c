@@ -73,7 +73,7 @@ static thread_t *app_thread;
 // Config values
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
-static float startup_step_size, tiltback_step_size;
+static float startup_step_size, tiltback_step_size, torquetilt_step_size;
 
 // Runtime values read from elsewhere
 static float pitch_angle, roll_angle;
@@ -90,7 +90,7 @@ static BalanceState state;
 static float proportional, integral, derivative;
 static float last_proportional, abs_proportional;
 static float pid_value;
-static float setpoint, setpoint_target, setpoint_target_interpolated;
+static float setpoint, setpoint_target, setpoint_target_interpolated, torquetilt_target, torquetilt_interpolated, torquetilt_filtered_current;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
@@ -109,6 +109,7 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	}
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	torquetilt_step_size = balance_conf.torquetilt_speed / balance_conf.hertz;
 }
 
 void app_balance_start(void) {
@@ -129,6 +130,9 @@ void reset_vars(void){
 	setpoint = pitch_angle;
 	setpoint_target_interpolated = pitch_angle;
 	setpoint_target = 0;
+	torquetilt_target = 0;
+	torquetilt_interpolated = 0;
+	torquetilt_filtered_current = 0;
 	setpointAdjustmentType = CENTERING;
 	yaw_setpoint = 0;
 	state = RUNNING;
@@ -291,6 +295,25 @@ void calculate_setpoint_interpolated(void){
 	}
 }
 
+void apply_torque_tilt(void){
+	// Filter current (Basic LPF)
+	torquetilt_filtered_current = ((1-balance_conf.torquetilt_filter) * motor_current) + (balance_conf.torquetilt_filter * torquetilt_filtered_current);
+	// Wat is this line O_o
+	// Take abs motor current, subtract start offset, and take the max of that with 0 to get the current above our start threshold (absolute).
+	// Then multiply it by "power" to get our desired angle, and min with the limit to respect boundaries.
+	// Finally multiply it by sign motor current to get directionality back
+	torquetilt_target = fmin(fmax((fabsf(torquetilt_filtered_current) - balance_conf.torquetilt_start_current), 0) * balance_conf.torquetilt_power, balance_conf.torquetilt_angle_limit) * SIGN(torquetilt_filtered_current);
+
+	if(fabsf(torquetilt_target - torquetilt_interpolated) < torquetilt_step_size){
+		torquetilt_interpolated = torquetilt_target;
+	}else if (torquetilt_target - torquetilt_interpolated > 0){
+		torquetilt_interpolated += torquetilt_step_size;
+	}else{
+		torquetilt_interpolated -= torquetilt_step_size;
+	}
+	setpoint += torquetilt_interpolated;
+}
+
 float apply_deadzone(float error){
 	if(balance_conf.deadzone == 0){
 		return error;
@@ -441,6 +464,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
 				setpoint = setpoint_target_interpolated;
+				apply_torque_tilt();
 
 				// Do PID maths
 				proportional = setpoint - pitch_angle;

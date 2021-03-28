@@ -702,6 +702,11 @@ typedef struct {
 	float booster_angle;
 	float booster_ramp;
 	float booster_current;
+	float torquetilt_start_current;
+	float torquetilt_angle_limit;
+	float torquetilt_speed;
+	float torquetilt_power;
+	float torquetilt_filter;
 } balance_config;
 
 // CAN status modes
