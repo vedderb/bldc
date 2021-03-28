@@ -55,6 +55,9 @@ void app_set_configuration(app_configuration *conf) {
 	app_nunchuk_stop();
 	app_balance_stop();
 	app_pas_stop();
+#ifdef APP_CUSTOM_TO_USE
+	app_custom_stop();
+#endif
 
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
@@ -64,90 +67,88 @@ void app_set_configuration(app_configuration *conf) {
 	comm_can_set_baud(conf->can_baud_rate);
 #endif
 
-#ifdef APP_CUSTOM_TO_USE
-	app_custom_stop();
-#endif
-
 	imu_init(&conf->imu_conf);
 
-	// Configure balance app before starting it.
-	app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);
-
 	switch (appconf.app_to_use) {
-	case APP_PPM:
-		app_ppm_start();
-		break;
+		case APP_PPM:
+			app_ppm_start();
+			app_ppm_configure(&appconf.app_ppm_conf);
+			break;
 
-	case APP_ADC:
-		app_adc_start(true);
-		break;
+		case APP_ADC:
+			app_adc_start(true);
+			app_adc_configure(&appconf.app_adc_conf);
+			break;
 
-	case APP_UART:
-		hw_stop_i2c();
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_PPM_UART:
-		hw_stop_i2c();
-		app_ppm_start();
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_ADC_UART:
-		hw_stop_i2c();
-		app_adc_start(false);
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_NUNCHUK:
-		app_nunchuk_start();
-		break;
-
-	case APP_BALANCE:
-		app_balance_start();
-		if(appconf.imu_conf.type == IMU_TYPE_INTERNAL){
+		case APP_UART:
 			hw_stop_i2c();
 			app_uartcomm_start(UART_PORT_COMM_HEADER);
-		}
-		break;
+			break;
 
-	case APP_PAS:
-		app_pas_start(true);
-		break;
+		case APP_PPM_UART:
+			hw_stop_i2c();
+			app_ppm_start();
+			app_ppm_configure(&appconf.app_ppm_conf);
+			app_uartcomm_start(UART_PORT_COMM_HEADER);
+			app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
+			break;
 
-	case APP_ADC_PAS:
-		app_adc_start(true);
-		app_pas_start(false);
-		break;
+		case APP_ADC_UART:
+			hw_stop_i2c();
+			app_adc_start(false);
+			app_adc_configure(&appconf.app_adc_conf);
+			app_uartcomm_start(UART_PORT_COMM_HEADER);
+			app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
+			break;
 
-	case APP_NRF:
-		if (!conf_general_permanent_nrf_found) {
-			nrf_driver_init();
-			rfhelp_restart();
-		}
-		break;
+		case APP_NUNCHUK:
+			app_nunchuk_start();
+			break;
 
-	case APP_CUSTOM:
+		case APP_BALANCE:
+			// Configure balance app before starting it.
+			app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);
+			app_balance_start();
+			if(appconf.imu_conf.type == IMU_TYPE_INTERNAL){
+				hw_stop_i2c();
+				app_uartcomm_start(UART_PORT_COMM_HEADER);
+				app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
+			}
+			break;
+
+		case APP_PAS:
+			app_pas_start(true);
+			app_pas_configure(&appconf.app_pas_conf);
+			break;
+
+		case APP_ADC_PAS:
+			app_adc_start(true);
+			app_adc_configure(&appconf.app_adc_conf);
+			app_pas_start(false);
+			app_pas_configure(&appconf.app_pas_conf);
+			break;
+
+		case APP_NRF:
+			if (!conf_general_permanent_nrf_found) {
+				nrf_driver_init();
+				rfhelp_restart();
+			}
+			app_nunchuk_configure(&appconf.app_chuk_conf);
+			break;
+
+		case APP_CUSTOM:
 #ifdef APP_CUSTOM_TO_USE
-		hw_stop_i2c();
-		app_custom_start();
+			hw_stop_i2c();
+			app_custom_start();
+			app_custom_configure(&appconf);
 #endif
-		break;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 
-	app_ppm_configure(&appconf.app_ppm_conf);
-	app_adc_configure(&appconf.app_adc_conf);
-	app_pas_configure(&appconf.app_pas_conf);
-	app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
 	app_uartcomm_configure(0, appconf.permanent_uart_enabled, UART_PORT_BUILTIN);
-	app_nunchuk_configure(&appconf.app_chuk_conf);
-
-#ifdef APP_CUSTOM_TO_USE
-	app_custom_configure(&appconf);
-#endif
 
 	rfhelp_update_conf(&appconf.app_nrf_conf);
 }
