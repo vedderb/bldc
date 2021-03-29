@@ -91,7 +91,7 @@ static float proportional, integral, derivative;
 static float last_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
-static uint16_t wheel_radius, wheel_circumference;
+static uint16_t wheel_diameter;
 static float turn_radius, turn_circumference, turn_angle, abs_roll_angle, roll_compensation, roll_step_size;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
@@ -111,8 +111,7 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	}
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
-    wheel_circumference = M_PI * (mc_interface_get_configuration()->si_wheel_diameter * 1000);
-    wheel_radius = (mc_interface_get_configuration()->si_wheel_diameter * 1000) / 2;
+    wheel_diameter = mc_interface_get_configuration()->si_wheel_diameter;
 }
 
 void app_balance_start(void) {
@@ -289,9 +288,9 @@ void calculate_setpoint_target(void){
 
 void calculate_roll_compensation(void){
     if(setpointAdjustmentType != CENTERING && (state == RUNNING || state == RUNNING_TILTBACK_CONSTANT) && abs_roll_angle > balance_conf.yaw_ki && abs_erpm > balance_conf.roll_steer_erpm_kp){
-        turn_radius = sqrt(pow(wheel_radius / sinf(abs_roll_angle * M_PI / 180.0f), 2) - pow(wheel_radius, 2));
+        turn_radius = cosf(abs_roll_angle * M_PI / 180.0f) * wheel_diameter;
         turn_circumference = (2 * M_PI) * turn_radius;
-        turn_angle = (((((abs_erpm / 60) * wheel_circumference) / balance_conf.hertz) / turn_circumference) * 360.0f) / 2.0f;
+        turn_angle = ((((mc_interface_get_speed() * 1000) / balance_conf.hertz) / turn_circumference) * 360.0f) / 2.0f;
 
         if(erpm > 0){
             roll_compensation = (balance_conf.roll_steer_kp * turn_angle);
@@ -574,7 +573,8 @@ static THD_FUNCTION(balance_thread, arg) {
 		}
 
 		// Delay between loops
-		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
+        chThdSleepUntilWindowed(current_time, current_time + US2ST((int)((1000.0 / balance_conf.hertz) * 1000.0)));
+//		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
 	}
 
 	// Disable output
