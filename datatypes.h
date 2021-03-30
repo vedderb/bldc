@@ -690,7 +690,6 @@ typedef struct {
 	float startup_roll_tolerance;
 	float startup_speed;
 	float deadzone;
-	float current_boost;
 	bool multi_esc;
 	float yaw_kp;
 	float yaw_ki;
@@ -699,10 +698,15 @@ typedef struct {
 	float roll_steer_erpm_kp;
 	float brake_current;
 	float yaw_current_clamp;
-	float setpoint_pitch_filter;
-	float setpoint_target_filter;
-	float setpoint_filter_clamp;
 	uint16_t kd_pt1_frequency;
+	float booster_angle;
+	float booster_ramp;
+	float booster_current;
+	float torquetilt_start_current;
+	float torquetilt_angle_limit;
+	float torquetilt_speed;
+	float torquetilt_power;
+	float torquetilt_filter;
 } balance_config;
 
 // CAN status modes
