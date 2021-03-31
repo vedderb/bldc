@@ -12,6 +12,8 @@
 * Added TEMP_SENSOR_KTY84_130.
 * Major UAVCAN update. See: https://github.com/vedderb/bldc/pull/269
 * Avoid numerical instability when mapping is done over a narrow range. See: https://github.com/vedderb/bldc/issues/262
+* App Balance updates.
+* Added servo_out_enable appconf option, so that the PPM port can be used to control servos with the default firmware.
 
 === FW 5.02 ===
 * IMU calibration improvement.

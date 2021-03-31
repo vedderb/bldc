@@ -451,10 +451,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_SERVO_POS: {
-#if SERVO_OUT_ENABLE
 		int32_t ind = 0;
 		servo_simple_set_output(buffer_get_float16(data, 1000.0, &ind));
-#endif
 	} break;
 
 	case COMM_SET_MCCONF: {

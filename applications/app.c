@@ -26,6 +26,7 @@
 #include "comm_can.h"
 #include "imu.h"
 #include "crc.h"
+#include "servo_simple.h"
 
 // Private variables
 static app_configuration appconf;
@@ -69,6 +70,14 @@ void app_set_configuration(app_configuration *conf) {
 #endif
 
 	imu_init(&conf->imu_conf);
+
+	if (appconf.app_to_use != APP_PPM &&
+			appconf.app_to_use != APP_PPM_UART &&
+			appconf.servo_out_enable) {
+		servo_simple_init();
+	} else {
+		servo_simple_stop();
+	}
 
 	// Configure balance app before starting it.
 	app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);

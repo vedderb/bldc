@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		16
+#define FW_TEST_VERSION_NUMBER		17
 
 #include "datatypes.h"
 
@@ -74,8 +74,8 @@
 //#define HW60_IS_MK4
 #define HW60_IS_MK5
 
-//#define HW_SOURCE "hw_60.c"
-//#define HW_HEADER "hw_60.h"
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -123,8 +123,8 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-#define HW_SOURCE "hw_hd60.c"
-#define HW_HEADER "hw_hd60.h"
+//#define HW_SOURCE "hw_hd60.c"
+//#define HW_HEADER "hw_hd60.h"
 
 //#define HW_SOURCE "hw_hd75.c"
 //#define HW_HEADER "hw_hd75.h"
@@ -258,9 +258,6 @@
 /*
  * Servo output driver
  */
-#ifndef SERVO_OUT_ENABLE
-#define SERVO_OUT_ENABLE			0		// Enable servo output
-#endif
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz

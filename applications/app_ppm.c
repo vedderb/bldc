@@ -29,9 +29,6 @@
 #include "comm_can.h"
 #include <math.h>
 
-// Only available if servo output is not active
-#if !SERVO_OUT_ENABLE
-
 // Settings
 #define MAX_CAN_AGE						0.1
 #define MIN_PULSES_WITHOUT_POWER		50
@@ -54,10 +51,8 @@ static float input_val = 0.0;
 static volatile float direction_hyst = 0;
 
 // Private functions
-#endif
 
 void app_ppm_configure(ppm_config *conf) {
-#if !SERVO_OUT_ENABLE
 	config = *conf;
 	pulses_without_power = 0;
 
@@ -66,20 +61,14 @@ void app_ppm_configure(ppm_config *conf) {
 	}
 
 	direction_hyst = config.max_erpm_for_dir * 0.20;
-#else
-	(void)conf;
-#endif
 }
 
 void app_ppm_start(void) {
-#if !SERVO_OUT_ENABLE
 	stop_now = false;
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
-#endif
 }
 
 void app_ppm_stop(void) {
-#if !SERVO_OUT_ENABLE
 	stop_now = true;
 
 	if (is_running) {
@@ -90,18 +79,12 @@ void app_ppm_stop(void) {
 	while(is_running) {
 		chThdSleepMilliseconds(1);
 	}
-#endif
 }
 
 float app_ppm_get_decoded_level(void) {
-#if !SERVO_OUT_ENABLE
 	return input_val;
-#else
-	return 0.0;
-#endif
 }
 
-#if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
 	ppm_rx = true;
 	chSysLockFromISR();
@@ -532,4 +515,3 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 	}
 }
-#endif

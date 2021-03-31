@@ -268,10 +268,6 @@ int main(void) {
 #endif
 #endif
 
-#if SERVO_OUT_ENABLE
-	servo_simple_init();
-#endif
-
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
