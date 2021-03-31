@@ -1,3 +1,5 @@
+
+
 /**
  * Author Wojciech Domski <Wojciech.Domski@gmail.com>
  * www: www.Domski.pl
@@ -28,7 +30,7 @@ void SX1278_SPIWrite(uint8_t addr, uint8_t cmd) {
 }
 
 void SX1278_SPIBurstRead(uint8_t addr, uint8_t *rxBuf,
-		uint8_t length) {
+	uint8_t length) {
 	uint8_t i;
 	if (length <= 1) {
 		return;
@@ -70,9 +72,6 @@ void SX1278_config(SX1278_t *module) {
 	freq_reg[1] = (uint8_t) (freq >> 8);
 	freq_reg[2] = (uint8_t) (freq >> 0);
 	SX1278_SPIBurstWrite(LR_RegFrMsb, (uint8_t*) freq_reg, 3); //setting  frequency parameter
-    // Freq OK
-
-    //	SX1278_SPIWrite(RegSyncWord, 0x34);
 
 	//setting base parameter
 	SX1278_SPIWrite(LR_RegPaConfig, SX1278_Power[module->power]); //Setting output power parameter
@@ -133,14 +132,14 @@ void SX1278_clearLoRaIrq() {
 
 void SX1278_enableInvertIQ()
 {
-  SX1278_SPIWrite(LR_InvertIQ,  0x66);
-  SX1278_SPIWrite(LR_InvertIQ2, 0x19);
+	SX1278_SPIWrite(LR_InvertIQ,  0x66);
+	SX1278_SPIWrite(LR_InvertIQ2, 0x19);
 }
 
 void SX1278_disableInvertIQ()
 {
-  SX1278_SPIWrite(LR_InvertIQ,  0x27);
-  SX1278_SPIWrite(LR_InvertIQ2, 0x1d);
+	SX1278_SPIWrite(LR_InvertIQ,  0x27);
+	SX1278_SPIWrite(LR_InvertIQ2, 0x1d);
 }
 
 
@@ -162,7 +161,7 @@ int SX1278_LoRaEntryRx(SX1278_t *module, uint8_t length, uint32_t timeout) {
 	//SX1278_SPIWrite(module, LR_RegOpMode,0x05);	//Continuous Rx Mode //High Frequency Mode
 	module->readBytes = 0;
 
-    SX1278_disableInvertIQ();
+	SX1278_disableInvertIQ();
 
 	while (1) {
 		if ((SX1278_SPIRead(LR_RegModemStat) & 0x04) == 0x04) {	//Rx-on going RegModemStat
@@ -217,7 +216,7 @@ int SX1278_LoRaEntryTx(SX1278_t *module, uint8_t length, uint32_t timeout) {
 	addr = SX1278_SPIRead(LR_RegFifoTxBaseAddr); //RegFiFoTxBaseAddr
 	SX1278_SPIWrite(LR_RegFifoAddrPtr, addr); //RegFifoAddrPtr
 
-    SX1278_enableInvertIQ();
+	SX1278_enableInvertIQ();
 
 	while (1) {
 		temp = SX1278_SPIRead(LR_RegPayloadLength);

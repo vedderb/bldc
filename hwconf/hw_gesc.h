@@ -151,13 +151,13 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-#define HW_UART_P_BAUD			115200
-#define HW_UART_P_DEV			SD4
-#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
-#define HW_UART_P_TX_PORT		GPIOC
-#define HW_UART_P_TX_PIN		10
-#define HW_UART_P_RX_PORT		GPIOC
-#define HW_UART_P_RX_PIN		11
+//#define HW_UART_P_BAUD			115200
+//#define HW_UART_P_DEV			SD4
+//#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+//#define HW_UART_P_TX_PORT		GPIOC
+//#define HW_UART_P_TX_PIN		10
+//#define HW_UART_P_RX_PORT		GPIOC
+//#define HW_UART_P_RX_PIN		11
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
