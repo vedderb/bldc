@@ -85,7 +85,7 @@ void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
-	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
+    chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
     isInitialized = true;
 }
 

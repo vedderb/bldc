@@ -196,7 +196,7 @@
 /*
  * Select default user motor configuration
  */
-#include			"mcconf_default.h"
+//#include			"mcconf_default.h"
 //#include 			"mcconf_china_60kv.h"
 
 /*
@@ -216,7 +216,7 @@
 
 // CAN-plotter
 //#define APP_CUSTOM_TO_USE			"app_plot_can.c"
-#define APPCONF_APP_TO_USE			APP_NONE
+//#define APPCONF_APP_TO_USE			APP_NONE
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
