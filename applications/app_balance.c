@@ -283,6 +283,13 @@ void calculate_setpoint_target(void){
 }
 
 void calculate_roll_compensation(void){
+    // Temporary value mapping
+    // yaw_ki = roll angle start - roll angle where compensation will start to apply
+    // yaw_kd = erpm start - erpm where compensation will start to apply
+    // yaw_current_clamp = max tiltback angle - maximum tiltback angle that will be used for compensation
+    // roll_steer_erpm_kp = erpm kp - erpm adjustment proportion
+    // roll_steer_kp = compensation scale - amount to scale the compensation by, default 1.0
+    // yaw_kp = step size scale - amount to scale the added step size by, default 1.0
     if(setpointAdjustmentType != CENTERING && (state == RUNNING || state == RUNNING_TILTBACK_CONSTANT) && abs_roll_angle > balance_conf.yaw_ki && abs_erpm > balance_conf.yaw_kd){
         roll_angle_sin = sinf(abs_roll_angle * M_PI / 180.0f);
         roll_compensation = (roll_angle_sin * balance_conf.yaw_current_clamp) + ((abs_erpm * balance_conf.roll_steer_erpm_kp) / 60);
