@@ -568,8 +568,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		}
 
 		// Delay between loops
-        chThdSleepUntilWindowed(current_time, current_time + US2ST((int)((1000.0 / balance_conf.hertz) * 1000.0)));
-//		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
+		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
 	}
 
 	// Disable output
