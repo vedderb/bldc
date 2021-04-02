@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -1165,8 +1165,8 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = l * bw;
 	float ki = r * bw;
-	float gain = 1.0e-3 / (lambda * lambda);
-//	float gain = (0.00001 / r) / (lambda * lambda); // Old method
+	float gain = 1.0e-3 / SQ(lambda);
+//	float gain = (0.00001 / r) / SQ(lambda); // Old method
 
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;
@@ -1519,6 +1519,14 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
 		mcconf_old->foc_motor_flux_linkage = lambda;
+
+		if (mc_interface_temp_motor_filtered() > -10) {
+			mcconf_old->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+#ifdef HW_HAS_PHASE_FILTERS
+			mcconf_old->foc_temp_comp = true;
+#endif
+		}
+
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old, 1000);
 		mc_interface_set_configuration(mcconf_old);
 
@@ -1531,11 +1539,17 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old_second->foc_motor_flux_linkage = linkage_args.linkage;
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old_second, 1000);
 		mc_interface_select_motor_thread(2);
+
+		if (mc_interface_temp_motor_filtered() > -10) {
+			mcconf_old_second->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+#ifdef HW_HAS_PHASE_FILTERS
+			mcconf_old_second->foc_temp_comp = true;
+#endif
+		}
+
 		mc_interface_set_configuration(mcconf_old_second);
 		mc_interface_select_motor_thread(1);
 #endif
-
-		// TODO: optionally apply temperature compensation here.
 
 		wait_motor_stop(10000);
 

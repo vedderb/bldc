@@ -29,9 +29,6 @@
 #include "comm_can.h"
 #include <math.h>
 
-// Only available if servo output is not active
-#if !SERVO_OUT_ENABLE
-
 // Settings
 #define MAX_CAN_AGE						0.1
 #define MIN_PULSES_WITHOUT_POWER		50
@@ -54,10 +51,8 @@ static float input_val = 0.0;
 static volatile float direction_hyst = 0;
 
 // Private functions
-#endif
 
 void app_ppm_configure(ppm_config *conf) {
-#if !SERVO_OUT_ENABLE
 	config = *conf;
 	pulses_without_power = 0;
 
@@ -66,20 +61,14 @@ void app_ppm_configure(ppm_config *conf) {
 	}
 
 	direction_hyst = config.max_erpm_for_dir * 0.20;
-#else
-	(void)conf;
-#endif
 }
 
 void app_ppm_start(void) {
-#if !SERVO_OUT_ENABLE
 	stop_now = false;
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
-#endif
 }
 
 void app_ppm_stop(void) {
-#if !SERVO_OUT_ENABLE
 	stop_now = true;
 
 	if (is_running) {
@@ -90,18 +79,12 @@ void app_ppm_stop(void) {
 	while(is_running) {
 		chThdSleepMilliseconds(1);
 	}
-#endif
 }
 
 float app_ppm_get_decoded_level(void) {
-#if !SERVO_OUT_ENABLE
 	return input_val;
-#else
-	return 0.0;
-#endif
 }
 
-#if !SERVO_OUT_ENABLE
 static void servodec_func(void) {
 	ppm_rx = true;
 	chSysLockFromISR();
@@ -251,7 +234,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 					}
 				}
 
-				current = servo_val * mcconf->lo_current_motor_max_now;
+				if (rpm_now >= 0.0) { //Accelerate
+					current = servo_val * mcconf->lo_current_motor_max_now;
+				} else { //Brake
+					current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
+				}
+
 			} else {
 				// too fast
 				if (force_brake){
@@ -295,7 +283,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 			current_mode = true;
 			if ((servo_val >= 0.0 && rpm_now >= 0.0) || (servo_val < 0.0 && rpm_now <= 0.0)) { //Accelerate
 				current = servo_val * mcconf->lo_current_motor_max_now;
-
 			} else { //Brake
 				current = servo_val * fabsf(mcconf->lo_current_motor_min_now);
 			}
@@ -491,7 +478,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 							//Traction Control - Applied to slaves except if a fault has occured on the local VESC (undriven wheel may generate fake RPM)
-							if (config.tc && !autoTCdisengaged) {
+							if (config.tc && config.tc_max_diff > 1.0 && !autoTCdisengaged) {
 								float rpm_tmp = msg->rpm;
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;
@@ -509,7 +496,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 						}
 					}
 					//Traction Control - Applying locally
-					if (config.tc) {
+					if (config.tc && config.tc_max_diff > 1.0) {
 						float diff = rpm_local - rpm_lowest;
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
 						if (current_out < mcconf->cc_min_current) {
@@ -528,4 +515,3 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 	}
 }
-#endif

@@ -30,6 +30,9 @@
 #define HW_NAME					"60"
 #endif
 
+#define HW_MAJOR				6
+#define HW_MINOR				0
+
 // HW properties
 #define HW_HAS_DRV8301
 #define HW_HAS_3_SHUNTS
@@ -59,6 +62,7 @@
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
 #ifdef HW60_IS_MK5
+#define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO		GPIOC
 #define PHASE_FILTER_PIN		13
 #define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)

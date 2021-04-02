@@ -22,7 +22,7 @@
 
 #include "drv8323s.h"
 
-#define HW_NAME                 "Little FOCer"
+#define HW_NAME                 "Little_FOCer"
 
 // HW properties
 #define HW_HAS_DRV8323S
@@ -30,8 +30,7 @@
 
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
                                     drv8323s_write_reg(3,0x333); \
-                                    drv8323s_write_reg(4,0x733); \
-                                    drv8323s_write_reg(4,0x723);
+                                    drv8323s_write_reg(4,0x733);
 
 // Macros
 #define ENABLE_GATE()           palSetPad(GPIOB, 5)

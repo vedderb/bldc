@@ -76,6 +76,10 @@ io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id);
 void comm_can_io_board_set_output_digital(int id, int channel, bool on);
 void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
 
+psw_status *comm_can_get_psw_status_index(int index);
+psw_status *comm_can_get_psw_status_id(int id);
+void comm_can_psw_switch(int id, bool is_on, bool plot);
+
 CANRxFrame *comm_can_get_rx_frame(void);
 
 #endif /* COMM_CAN_H_ */

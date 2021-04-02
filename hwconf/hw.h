@@ -226,6 +226,12 @@
 #ifndef PHASE_FILTER_OFF
 #define PHASE_FILTER_OFF()
 #endif
+#ifndef PHASE_FILTER_ON_M2
+#define PHASE_FILTER_ON_M2()
+#endif
+#ifndef PHASE_FILTER_OFF_M2
+#define PHASE_FILTER_OFF_M2()
+#endif
 
 #ifndef CURRENT_FILTER_ON
 #define CURRENT_FILTER_ON()
@@ -277,7 +283,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3()		(4095 - ADC_Value[ADC_IND_CURR3])
 #else
+#ifdef ADC_IND_CURR3
 #define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
+#else
+#define GET_CURRENT3()		0
+#endif
 #endif
 #endif
 
@@ -299,7 +309,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3_M2()	(4095 - ADC_Value[ADC_IND_CURR6])
 #else
+#ifdef ADC_IND_CURR6
 #define GET_CURRENT3_M2()	ADC_Value[ADC_IND_CURR6]
+#else
+#define GET_CURRENT3_M2()			0
+#endif
 #endif
 #endif
 
@@ -475,6 +489,16 @@
 #define HW_PAS1_PIN				HW_UART_RX_PIN
 #define HW_PAS2_PORT			HW_UART_TX_PORT
 #define HW_PAS2_PIN				HW_UART_TX_PIN
+#endif
+
+#ifndef HW_ICU_TIMER
+#ifdef HW_USE_SERVO_TIM4
+#define HW_ICU_TIMER			TIM4
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
+#else
+#define HW_ICU_TIMER			TIM3
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+#endif
 #endif
 
 // Functions

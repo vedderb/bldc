@@ -199,6 +199,7 @@
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
+#define HW_ICU_TIM_CLK_EN()		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE)
 #define HW_ICU_DEV				ICUD9
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM9

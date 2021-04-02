@@ -22,9 +22,9 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR			5
-#define FW_VERSION_MINOR			02
+#define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		0
+#define FW_TEST_VERSION_NUMBER		17
 
 #include "datatypes.h"
 
@@ -166,6 +166,9 @@
 
 //#define HW_SOURCE "hw_Little_FOCer.c"
 //#define HW_HEADER "hw_Little_FOCer.h"
+
+//#define HW_SOURCE "hw_100_500.c"
+//#define HW_HEADER "hw_100_500.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -187,10 +190,6 @@
 /*
  * Select default user motor configuration
  */
-//#include			"mcconf_sten.h"
-//#include			"mcconf_sp_540kv.h"
-//#include			"mcconf_castle_2028.h"
-//#include			"mcconf_ellwee.h"
 //#include			"conf_test.h"
 
 /*
@@ -198,7 +197,6 @@
  */
 //#include			"appconf_example_ppm.h"
 //#include			"appconf_custom.h"
-//#include			"appconf_ellwee.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
@@ -260,9 +258,6 @@
 /*
  * Servo output driver
  */
-#ifndef SERVO_OUT_ENABLE
-#define SERVO_OUT_ENABLE			0		// Enable servo output
-#endif
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz

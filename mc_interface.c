@@ -51,7 +51,7 @@
 
 // Global variables
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
-volatile int ADC_curr_norm_value[6];
+volatile float ADC_curr_norm_value[6];
 
 typedef struct {
 	volatile mc_configuration m_conf;
@@ -1410,9 +1410,13 @@ float mc_interface_get_battery_level(float *wh_left) {
  * Speed, in m/s
  */
 float mc_interface_get_speed(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_speed();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
 	return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
+#endif
 }
 
 /**
@@ -1870,7 +1874,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// Low latency is important for avoiding oscillations
-		rpm_now = mcpwm_foc_get_rpm_fast();
+		rpm_now = DIR_MULT * mcpwm_foc_get_rpm_fast();
 	} else {
 		rpm_now = mc_interface_get_rpm();
 	}
@@ -1902,8 +1906,13 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		float pow2 = res * res;
 		temp_motor = 0.0000000102114874947423 * pow2 * res - 0.000069967997703501 * pow2 +
 				0.243402040973194 * res - 160.145048329356;
-	}
-	break;
+	} break;
+
+	case TEMP_SENSOR_KTY84_130: {
+		float res = NTC_RES_MOTOR(ADC_Value[is_motor_1 ? ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]);
+		temp_motor = -7.82531699e-12 * res * res * res * res + 6.34445902e-8 * res * res * res -
+				0.00020119157  * res * res + 0.407683016 * res - 161.357536;
+	} break;
 	}
 
 	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an
@@ -1926,9 +1935,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	// Temperature MOSFET
 	float lo_min_mos = l_current_min_tmp;
 	float lo_max_mos = l_current_max_tmp;
-	if (motor->m_temp_fet < conf->l_temp_fet_start) {
+	if (motor->m_temp_fet < (conf->l_temp_fet_start + 0.1)) {
 		// Keep values
-	} else if (motor->m_temp_fet > conf->l_temp_fet_end) {
+	} else if (motor->m_temp_fet > (conf->l_temp_fet_end - 0.1)) {
 		lo_min_mos = 0.0;
 		lo_max_mos = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, !is_motor_1, false);
@@ -1952,9 +1961,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	// Temperature MOTOR
 	float lo_min_mot = l_current_min_tmp;
 	float lo_max_mot = l_current_max_tmp;
-	if (motor->m_temp_motor < conf->l_temp_motor_start) {
+	if (motor->m_temp_motor < (conf->l_temp_motor_start + 0.1)) {
 		// Keep values
-	} else if (motor->m_temp_motor > conf->l_temp_motor_end) {
+	} else if (motor->m_temp_motor > (conf->l_temp_motor_end - 0.1)) {
 		lo_min_mot = 0.0;
 		lo_max_mot = 0.0;
 		mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_MOTOR, !is_motor_1, false);
@@ -1983,9 +1992,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float temp_motor_accel_end = utils_map(conf->l_temp_accel_dec, 0.0, 1.0, conf->l_temp_motor_end, 25.0);
 
 	float lo_fet_temp_accel = 0.0;
-	if (motor->m_temp_fet < temp_fet_accel_start) {
+	if (motor->m_temp_fet < (temp_fet_accel_start + 0.1)) {
 		lo_fet_temp_accel = l_current_max_tmp;
-	} else if (motor->m_temp_fet > temp_fet_accel_end) {
+	} else if (motor->m_temp_fet > (temp_fet_accel_end - 0.1)) {
 		lo_fet_temp_accel = 0.0;
 	} else {
 		lo_fet_temp_accel = utils_map(motor->m_temp_fet, temp_fet_accel_start,
@@ -1993,9 +2002,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	}
 
 	float lo_motor_temp_accel = 0.0;
-	if (motor->m_temp_motor < temp_motor_accel_start) {
+	if (motor->m_temp_motor < (temp_motor_accel_start + 0.1)) {
 		lo_motor_temp_accel = l_current_max_tmp;
-	} else if (motor->m_temp_motor > temp_motor_accel_end) {
+	} else if (motor->m_temp_motor > (temp_motor_accel_end - 0.1)) {
 		lo_motor_temp_accel = 0.0;
 	} else {
 		lo_motor_temp_accel = utils_map(motor->m_temp_motor, temp_motor_accel_start,
@@ -2006,9 +2015,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_max_rpm = 0.0;
 	const float rpm_pos_cut_start = conf->l_max_erpm * conf->l_erpm_start;
 	const float rpm_pos_cut_end = conf->l_max_erpm;
-	if (rpm_now < rpm_pos_cut_start) {
+	if (rpm_now < (rpm_pos_cut_start + 0.1)) {
 		lo_max_rpm = l_current_max_tmp;
-	} else if (rpm_now > rpm_pos_cut_end) {
+	} else if (rpm_now > (rpm_pos_cut_end - 0.1)) {
 		lo_max_rpm = 0.0;
 	} else {
 		lo_max_rpm = utils_map(rpm_now, rpm_pos_cut_start, rpm_pos_cut_end, l_current_max_tmp, 0.0);
@@ -2018,9 +2027,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_min_rpm = 0.0;
 	const float rpm_neg_cut_start = conf->l_min_erpm * conf->l_erpm_start;
 	const float rpm_neg_cut_end = conf->l_min_erpm;
-	if (rpm_now > rpm_neg_cut_start) {
+	if (rpm_now > (rpm_neg_cut_start - 0.1)) {
 		lo_min_rpm = l_current_max_tmp;
-	} else if (rpm_now < rpm_neg_cut_end) {
+	} else if (rpm_now < (rpm_neg_cut_end + 0.1)) {
 		lo_min_rpm = 0.0;
 	} else {
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
@@ -2028,10 +2037,11 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Duty max
 	float lo_max_duty = 0.0;
-	if (duty_now_abs < conf->l_duty_start) {
+	if (duty_now_abs < (conf->l_duty_start * conf->l_max_duty) || conf->l_duty_start > 0.99) {
 		lo_max_duty = l_current_max_tmp;
 	} else {
-		lo_max_duty = utils_map(duty_now_abs, conf->l_duty_start, conf->l_max_duty, l_current_max_tmp, 0.0);
+		lo_max_duty = utils_map(duty_now_abs, (conf->l_duty_start * conf->l_max_duty),
+				conf->l_max_duty, l_current_max_tmp, 0.0);
 	}
 
 	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
@@ -2056,9 +2066,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Battery cutoff
 	float lo_in_max_batt = 0.0;
-	if (v_in > conf->l_battery_cut_start) {
+	if (v_in > (conf->l_battery_cut_start - 0.1)) {
 		lo_in_max_batt = conf->l_in_current_max;
-	} else if (v_in < conf->l_battery_cut_end) {
+	} else if (v_in < (conf->l_battery_cut_end + 0.1)) {
 		lo_in_max_batt = 0.0;
 	} else {
 		lo_in_max_batt = utils_map(v_in, conf->l_battery_cut_start,
@@ -2153,7 +2163,6 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		break;
 	}
 
-
 	// Trigger encoder error rate fault, using 5% errors as threshold.
 	// Relevant only in FOC mode with encoder enabled
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
@@ -2192,9 +2201,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	}
 	// TODO: Implement for BLDC and GPDRIVE
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
-		int curr0_offset;
-		int curr1_offset;
-		int curr2_offset;
+		float curr0_offset;
+		float curr1_offset;
+		float curr2_offset;
 
 #ifdef HW_HAS_DUAL_MOTORS
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset, motor == &m_motor_2);
@@ -2208,14 +2217,14 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 #define MIDDLE_ADC 2048
 #endif
 
-		if (abs(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr0_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1, !is_motor_1, false);
 		}
-		if (abs(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr1_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2, !is_motor_1, false);
 		}
 #ifdef HW_HAS_3_SHUNTS
-		if (abs(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
+		if (fabsf(curr2_offset - MIDDLE_ADC) > HW_MAX_CURRENT_OFFSET) {
 			mc_interface_fault_stop(FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3, !is_motor_1, false);
 		}
 #endif
@@ -2236,6 +2245,10 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			mc_interface_fault_stop(FAULT_CODE_UNBALANCED_CURRENTS, !is_motor_1, false);
 		}
 	}
+#endif
+
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	hw_update_speed_sensor();
 #endif
 }
 

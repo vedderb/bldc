@@ -194,8 +194,18 @@ static THD_FUNCTION(pas_thread, arg) {
 				output = 0.0;
 				break;
 			case PAS_CTRL_TYPE_CADENCE:
-				output = utils_map(pedal_rpm, config.pedal_rpm_start, config.pedal_rpm_end, 0.0, config.current_scaling);
-				utils_truncate_number(&output, 0.0, config.current_scaling);
+				// NOTE: If the limits are the same a numerical instability is approached, so in that case
+				// just use on/off control (which is what setting the limits to the same value essentially means).
+				if (config.pedal_rpm_end > (config.pedal_rpm_start + 1.0)) {
+					output = utils_map(pedal_rpm, config.pedal_rpm_start, config.pedal_rpm_end, 0.0, config.current_scaling);
+					utils_truncate_number(&output, 0.0, config.current_scaling);
+				} else {
+					if (pedal_rpm > config.pedal_rpm_end) {
+						output = config.current_scaling;
+					} else {
+						output = 0.0;
+					}
+				}
 				break;
 			default:
 				break;

@@ -88,15 +88,9 @@
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_EXT3			10
-#ifdef HW75_300_VEDDER_FIRST_PCB
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOS_2		8
-#define ADC_IND_TEMP_MOS_3		8
-#else
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		15
 #define ADC_IND_TEMP_MOS_3		16
-#endif
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -269,8 +263,8 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-600.0, 600.0
-#define HW_LIM_CURRENT_IN		-600.0, 600.0
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
 #define HW_LIM_CURRENT_ABS		0.0, 480.0
 #define HW_LIM_VIN				0.0, 620.0
 #define HW_LIM_ERPM				-200e3, 200e3

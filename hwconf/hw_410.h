@@ -19,6 +19,8 @@
 #define HW_410_H_
 
 #define HW_NAME					"410"
+#define HW_MAJOR                4
+#define HW_MINOR                10
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOC, 10)
