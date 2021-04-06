@@ -305,6 +305,12 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.torquetilt_speed, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.torquetilt_power, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.torquetilt_filter, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.turntilt_power, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.turntilt_angle_limit, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.turntilt_angle_cut, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.turntilt_speed, &ind);
+	buffer_append_uint16(buffer, conf->app_balance_conf.turntilt_erpm_boost, &ind);
+	buffer_append_uint16(buffer, conf->app_balance_conf.turntilt_erpm_boost_end, &ind);
 	buffer[ind++] = conf->app_pas_conf.ctrl_type;
 	buffer[ind++] = conf->app_pas_conf.sensor_type;
 	buffer_append_float16(buffer, conf->app_pas_conf.current_scaling, 1000, &ind);
@@ -647,6 +653,12 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.torquetilt_speed = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.torquetilt_power = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.torquetilt_filter = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.turntilt_power = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.turntilt_angle_limit = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.turntilt_angle_cut = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.turntilt_speed = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.turntilt_erpm_boost = buffer_get_uint16(buffer, &ind);
+	conf->app_balance_conf.turntilt_erpm_boost_end = buffer_get_uint16(buffer, &ind);
 	conf->app_pas_conf.ctrl_type = buffer[ind++];
 	conf->app_pas_conf.sensor_type = buffer[ind++];
 	conf->app_pas_conf.current_scaling = buffer_get_float16(buffer, 1000, &ind);
@@ -973,6 +985,12 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.torquetilt_speed = APPCONF_BALANCE_TORQUETILT_SPEED;
 	conf->app_balance_conf.torquetilt_power = APPCONF_BALANCE_TORQUETILT_POWER;
 	conf->app_balance_conf.torquetilt_filter = APPCONF_BALANCE_TORQUETILT_FILTER;
+	conf->app_balance_conf.turntilt_power = APPCONF_BALANCE_TURNTILT_POWER;
+	conf->app_balance_conf.turntilt_angle_limit = APPCONF_BALANCE_TURNTILT_ANGLE_LIMIT;
+	conf->app_balance_conf.turntilt_angle_cut = APPCONF_BALANCE_TURNTILT_ANGLE_CUT;
+	conf->app_balance_conf.turntilt_speed = APPCONF_BALANCE_TURNTILT_SPEED;
+	conf->app_balance_conf.turntilt_erpm_boost = APPCONF_BALANCE_TURNTILT_ERPM_BOOST;
+	conf->app_balance_conf.turntilt_erpm_boost_end = APPCONF_BALANCE_TURNTILT_ERPM_BOOST_END;
 	conf->app_pas_conf.ctrl_type = APPCONF_PAS_CTRL_TYPE;
 	conf->app_pas_conf.sensor_type = APPCONF_PAS_SENSOR_TYPE;
 	conf->app_pas_conf.current_scaling = APPCONF_PAS_CURRENT_SCALING;
