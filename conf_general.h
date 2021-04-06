@@ -74,8 +74,8 @@
 //#define HW60_IS_MK4
 #define HW60_IS_MK5
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -123,8 +123,8 @@
 //#define HW_SOURCE "hw_binar_v1.c"
 //#define HW_HEADER "hw_binar_v1.h"
 
-//#define HW_SOURCE "hw_hd60.c"
-//#define HW_HEADER "hw_hd60.h"
+#define HW_SOURCE "hw_hd60.c"
+#define HW_HEADER "hw_hd60.h"
 
 //#define HW_SOURCE "hw_hd75.c"
 //#define HW_HEADER "hw_hd75.h"
@@ -203,7 +203,7 @@
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-//#include "app_erockit_conf_v2.h"
+//#include "er/app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
 //#include "vccu/app_vccu_conf.h"
 
