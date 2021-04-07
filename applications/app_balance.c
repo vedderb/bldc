@@ -320,13 +320,6 @@ void apply_torquetilt(void){
 }
 
 void apply_turntilt(void){
-    // Temporary value mapping
-    // yaw_ki = roll angle start - roll angle where compensation will start to apply
-    // yaw_kd = erpm start - erpm where compensation will start to apply
-    // roll_steer_erpm_kp = erpm kp - erpm adjustment proportion
-    // roll_steer_kp = compensation scale - amount to scale the compensation by, default 1.0
-    // yaw_kp = speed cap - fastest speed the wheel will tilt at
-
 	// Calculate desired angle
 	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_power;
 
@@ -351,10 +344,10 @@ void apply_turntilt(void){
 		}
 	}
 
-	// Limit max angle
+	// Limit angle to max angle
 	turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
 
-	// Move limited max speed
+	// Move towards target limited by max speed
 	if(fabsf(turntilt_target - turntilt_interpolated) < turntilt_step_size){
 		turntilt_interpolated = turntilt_target;
 	}else if (turntilt_target - turntilt_interpolated > 0){
