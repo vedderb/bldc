@@ -268,6 +268,30 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				}
 			} break;
 
+			case CAN_PACKET_BMS_AH_WH_CHG_TOTAL: {
+				used_data = true;
+
+				if (id == m_values.can_id || UTILS_AGE_S(m_values.update_time) > MAX_CAN_AGE_SEC) {
+					int32_t ind = 0;
+					m_values.can_id = id;
+					m_values.update_time = chVTGetSystemTimeX();
+					m_values.ah_cnt_chg_total = buffer_get_float32_auto(data8, &ind);
+					m_values.wh_cnt_chg_total = buffer_get_float32_auto(data8, &ind);
+				}
+			} break;
+
+			case CAN_PACKET_BMS_AH_WH_DIS_TOTAL: {
+				used_data = true;
+
+				if (id == m_values.can_id || UTILS_AGE_S(m_values.update_time) > MAX_CAN_AGE_SEC) {
+					int32_t ind = 0;
+					m_values.can_id = id;
+					m_values.update_time = chVTGetSystemTimeX();
+					m_values.ah_cnt_dis_total = buffer_get_float32_auto(data8, &ind);
+					m_values.wh_cnt_dis_total = buffer_get_float32_auto(data8, &ind);
+				}
+			} break;
+
 			default:
 				break;
 			}
@@ -389,6 +413,12 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 
 		// CAN ID
 		send_buffer[ind++] = m_values.can_id;
+
+		// Total charge and discharge counters
+		buffer_append_float32_auto(send_buffer, m_values.ah_cnt_chg_total, &ind);
+		buffer_append_float32_auto(send_buffer, m_values.wh_cnt_chg_total, &ind);
+		buffer_append_float32_auto(send_buffer, m_values.ah_cnt_dis_total, &ind);
+		buffer_append_float32_auto(send_buffer, m_values.wh_cnt_dis_total, &ind);
 
 		reply_func(send_buffer, ind);
 	} break;
