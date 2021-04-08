@@ -150,10 +150,10 @@ float app_balance_get_pid_output(void) {
 	return pid_value;
 }
 float app_balance_get_pitch_angle(void) {
-	return turntilt_target;
+	return pitch_angle;
 }
 float app_balance_get_roll_angle(void) {
-	return turntilt_interpolated;
+	return roll_angle;
 }
 uint32_t app_balance_get_diff_time(void) {
 	return ST2US(diff_time);
@@ -434,8 +434,8 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Get the values we want
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
-        abs_roll_angle = fabsf(roll_angle);
-        abs_roll_angle_sin = sinf(abs_roll_angle * M_PI / 180.0f);
+		abs_roll_angle = fabsf(roll_angle);
+		abs_roll_angle_sin = sinf(abs_roll_angle * M_PI / 180.0f);
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
