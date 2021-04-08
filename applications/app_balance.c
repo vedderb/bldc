@@ -73,10 +73,10 @@ static thread_t *app_thread;
 // Config values
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
-static float startup_step_size, tiltback_step_size, torquetilt_step_size;
+static float startup_step_size, tiltback_step_size, torquetilt_step_size, turntilt_step_size;
 
 // Runtime values read from elsewhere
-static float pitch_angle, roll_angle;
+static float pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
 static float erpm, abs_erpm, avg_erpm;
@@ -90,7 +90,9 @@ static BalanceState state;
 static float proportional, integral, derivative;
 static float last_proportional, abs_proportional;
 static float pid_value;
-static float setpoint, setpoint_target, setpoint_target_interpolated, torquetilt_target, torquetilt_interpolated, torquetilt_filtered_current;
+static float setpoint, setpoint_target, setpoint_target_interpolated;
+static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
+static float turntilt_target, turntilt_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
@@ -110,6 +112,7 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 	torquetilt_step_size = balance_conf.torquetilt_speed / balance_conf.hertz;
+	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
 }
 
 void app_balance_start(void) {
@@ -133,6 +136,8 @@ void reset_vars(void){
 	torquetilt_target = 0;
 	torquetilt_interpolated = 0;
 	torquetilt_filtered_current = 0;
+	turntilt_target = 0;
+	turntilt_interpolated = 0;
 	setpointAdjustmentType = CENTERING;
 	yaw_setpoint = 0;
 	state = RUNNING;
@@ -295,7 +300,7 @@ void calculate_setpoint_interpolated(void){
 	}
 }
 
-void apply_torque_tilt(void){
+void apply_torquetilt(void){
 	// Filter current (Basic LPF)
 	torquetilt_filtered_current = ((1-balance_conf.torquetilt_filter) * motor_current) + (balance_conf.torquetilt_filter * torquetilt_filtered_current);
 	// Wat is this line O_o
@@ -312,6 +317,46 @@ void apply_torque_tilt(void){
 		torquetilt_interpolated -= torquetilt_step_size;
 	}
 	setpoint += torquetilt_interpolated;
+}
+
+void apply_turntilt(void){
+	// Calculate desired angle
+	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_power;
+
+	// Apply cutzone
+	if(abs_roll_angle < balance_conf.turntilt_angle_cut){
+		turntilt_target = 0;
+	}
+
+	// Disable at 0 speed otherwise add directionality
+	if(abs_erpm < 100){
+		turntilt_target = 0;
+	}else {
+		turntilt_target *= SIGN(erpm);
+	}
+
+	// Apply speed scaling
+	if(balance_conf.turntilt_erpm_boost_end > 0){
+		if(abs_erpm < balance_conf.turntilt_erpm_boost_end){
+			turntilt_target *= 1 + ((balance_conf.turntilt_erpm_boost/100.0f) * (abs_erpm / balance_conf.turntilt_erpm_boost_end));
+		}else{
+			turntilt_target *= 1 + (balance_conf.turntilt_erpm_boost/100.0f);
+		}
+	}
+
+	// Limit angle to max angle
+	turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+
+	// Move towards target limited by max speed
+	if(fabsf(turntilt_target - turntilt_interpolated) < turntilt_step_size){
+		turntilt_interpolated = turntilt_target;
+	}else if (turntilt_target - turntilt_interpolated > 0){
+		turntilt_interpolated += turntilt_step_size;
+	}else{
+		turntilt_interpolated -= turntilt_step_size;
+	}
+	setpoint += turntilt_interpolated;
+
 }
 
 float apply_deadzone(float error){
@@ -389,6 +434,8 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Get the values we want
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
+		abs_roll_angle = fabsf(roll_angle);
+		abs_roll_angle_sin = sinf(abs_roll_angle * M_PI / 180.0f);
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
@@ -464,7 +511,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
 				setpoint = setpoint_target_interpolated;
-				apply_torque_tilt();
+				apply_torquetilt();
+				apply_turntilt();
 
 				// Do PID maths
 				proportional = setpoint - pitch_angle;
