@@ -3633,12 +3633,12 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// weakening and the efficiency.
 	float vd_presat = state_m->vd;
 	utils_truncate_number((float*)&state_m->vd, -max_v_mag, max_v_mag);
-	state_m->vd_int -= SIGN(state_m->vd_int) * fabsf(state_m->vd - vd_presat);
+	state_m->vd_int += (state_m->vd - vd_presat);
 
 	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
 	float vq_presat = state_m->vq;
 	utils_truncate_number((float*)&state_m->vq, -max_vq, max_vq);
-	state_m->vq_int -= SIGN(state_m->vq_int) * fabsf(state_m->vq - vq_presat);
+	state_m->vq_int += (state_m->vq - vq_presat);
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
