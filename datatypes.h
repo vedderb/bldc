@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -395,6 +395,10 @@ typedef struct {
 	float foc_offsets_voltage_undriven[3];
 	bool foc_phase_filter_enable;
 	float foc_phase_filter_max_erpm;
+	// Field Weakening
+	float foc_fw_current_max;
+	float foc_fw_duty_start;
+	float foc_fw_ramp_time;
 
 	// GPDrive
 	int gpd_buffer_notify_left;

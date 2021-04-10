@@ -413,6 +413,15 @@
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
 #define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	10000.0 // Use phase filter up to this ERPM
 #endif
+#ifndef MCCONF_FOC_FW_CURRENT_MAX
+#define MCCONF_FOC_FW_CURRENT_MAX		0.0 // Maximum field weakening current
+#endif
+#ifndef MCCONF_FOC_FW_DUTY_START
+#define MCCONF_FOC_FW_DUTY_START		0.9 // Start field weakening at this fraction of max duty cycle
+#endif
+#ifndef MCCONF_FOC_FW_RAMP_TIME
+#define MCCONF_FOC_FW_RAMP_TIME			0.2 // Ramp time for field weakening current
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT

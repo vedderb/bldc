@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -116,6 +116,7 @@ typedef struct {
 	float m_duty_cycle_set;
 	float m_id_set;
 	float m_iq_set;
+	float m_i_fw_set;
 	float m_openloop_speed;
 	float m_openloop_phase;
 	bool m_output_on;
@@ -828,15 +829,12 @@ void mcpwm_foc_set_pid_pos(float pos) {
  * The current to use.
  */
 void mcpwm_foc_set_current(float current) {
-	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
-		motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw(motor_now());
-		return;
-	}
-
 	motor_now()->m_control_mode = CONTROL_MODE_CURRENT;
 	motor_now()->m_iq_set = current;
+
+	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
+		return;
+	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -851,15 +849,12 @@ void mcpwm_foc_set_current(float current) {
  * The current to use. Positive and negative values give the same effect.
  */
 void mcpwm_foc_set_brake_current(float current) {
-	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
-		motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw(motor_now());
-		return;
-	}
-
 	motor_now()->m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	motor_now()->m_iq_set = current;
+
+	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
+		return;
+	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -874,15 +869,12 @@ void mcpwm_foc_set_brake_current(float current) {
  * The brake current to use.
  */
 void mcpwm_foc_set_handbrake(float current) {
-	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
-		motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw(motor_now());
-		return;
-	}
-
 	motor_now()->m_control_mode = CONTROL_MODE_HANDBRAKE;
 	motor_now()->m_iq_set = current;
+
+	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
+		return;
+	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -899,19 +891,16 @@ void mcpwm_foc_set_handbrake(float current) {
  * The RPM to use.
  */
 void mcpwm_foc_set_openloop(float current, float rpm) {
-	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
-		motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw(motor_now());
-		return;
-	}
-
 	utils_truncate_number(&current, -motor_now()->m_conf->l_current_max * motor_now()->m_conf->l_current_max_scale,
 						  motor_now()->m_conf->l_current_max * motor_now()->m_conf->l_current_max_scale);
 
 	motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP;
 	motor_now()->m_iq_set = current;
 	motor_now()->m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+
+	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
+		return;
+	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -928,13 +917,6 @@ void mcpwm_foc_set_openloop(float current, float rpm) {
  * The phase to use in degrees, range [0.0 360.0]
  */
 void mcpwm_foc_set_openloop_phase(float current, float phase) {
-	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
-		motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw(motor_now());
-		return;
-	}
-
 	utils_truncate_number(&current, -motor_now()->m_conf->l_current_max * motor_now()->m_conf->l_current_max_scale,
 						  motor_now()->m_conf->l_current_max * motor_now()->m_conf->l_current_max_scale);
 
@@ -943,6 +925,10 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 
 	motor_now()->m_openloop_phase = phase * M_PI / 180.0;
 	utils_norm_angle_rad((float*)&motor_now()->m_openloop_phase);
+
+	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
+		return;
+	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -2783,6 +2769,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
+		id_set_tmp -= motor_now->m_i_fw_set;
+
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
 		const float mod_q = motor_now->m_motor_state.mod_q;
@@ -3006,9 +2994,49 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 // Private functions
 
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
-	float t_lock = motor->m_conf->foc_sl_openloop_time_lock;
-	float t_ramp = motor->m_conf->foc_sl_openloop_time_ramp;
-	float t_const = motor->m_conf->foc_sl_openloop_time;
+	// Field Weakening
+	// FW is used in the current and speed control modes. If a different mode is used
+	// this code also runs if field weakening was active before. This allows
+	// changing control mode even while in field weakening.
+	if (!motor->m_phase_override && motor->m_state == MC_STATE_RUNNING &&
+			(motor->m_control_mode == CONTROL_MODE_CURRENT ||
+					motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+					motor->m_control_mode == CONTROL_MODE_SPEED ||
+					motor->m_i_fw_set > motor->m_conf->cc_min_current)) {
+		float fw_current_now = 0.0;
+		float duty_abs = fabsf(motor->m_duty_filtered);
+
+		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
+				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
+			fw_current_now = utils_map(duty_abs,
+					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
+					motor->m_conf->l_max_duty,
+					0.0, motor->m_conf->foc_fw_current_max);
+		}
+
+		if (motor->m_conf->foc_fw_ramp_time < dt) {
+			motor->m_i_fw_set = fw_current_now;
+		} else {
+			utils_step_towards((float*)&motor->m_i_fw_set, fw_current_now,
+					(dt / motor->m_conf->foc_fw_ramp_time) * motor->m_conf->foc_fw_current_max);
+		}
+	}
+
+	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
+	// field weakening current.
+	if (!motor->m_phase_override && motor->m_state == MC_STATE_RUNNING &&
+			(motor->m_control_mode == CONTROL_MODE_CURRENT ||
+					motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
+					motor->m_control_mode == CONTROL_MODE_HANDBRAKE ||
+					motor->m_control_mode == CONTROL_MODE_OPENLOOP ||
+					motor->m_control_mode == CONTROL_MODE_OPENLOOP_PHASE)) {
+		if (fabsf(motor->m_iq_set) < motor->m_conf->cc_min_current &&
+				motor->m_i_fw_set < motor->m_conf->cc_min_current) {
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw(motor);
+		}
+	}
 
 	// Use this to study the openloop timers under experiment plot
 #if 0
@@ -3072,6 +3100,10 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		}
 	}
 #endif
+
+	float t_lock = motor->m_conf->foc_sl_openloop_time_lock;
+	float t_ramp = motor->m_conf->foc_sl_openloop_time_ramp;
+	float t_const = motor->m_conf->foc_sl_openloop_time;
 
 	float openloop_rpm_max = utils_map(fabsf(motor->m_motor_state.iq_filter),
 			0.0, motor->m_conf->l_current_max,
@@ -3597,37 +3629,21 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 	float max_v_mag = (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus;
 
-	// Saturation
+	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
+	// weakening and the efficiency.
+	float vd_presat = state_m->vd;
+	utils_truncate_number((float*)&state_m->vd, -max_v_mag, max_v_mag);
+	state_m->vd_int -= SIGN(state_m->vd_int) * fabsf(state_m->vd - vd_presat);
+
+	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
+	float vq_presat = state_m->vq;
+	utils_truncate_number((float*)&state_m->vq, -max_vq, max_vq);
+	state_m->vq_int -= SIGN(state_m->vq_int) * fabsf(state_m->vq - vq_presat);
+
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
+
 	state_m->mod_d = state_m->vd / ((2.0 / 3.0) * state_m->v_bus);
 	state_m->mod_q = state_m->vq / ((2.0 / 3.0) * state_m->v_bus);
-
-	// Integrator windup protection
-	// This is important, tricky and probably needs improvement.
-	// Currently we start by truncating the d-axis and then the q-axis with the magnitude that is
-	// left. Axis decoupling is taken into account in the truncation. How to do that best is also
-	// an open question...
-
-	// Take both cross and back emf decoupling into consideration. Seems to make the control
-	// noisy at full modulation.
-//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag + dec_vd, max_v_mag + dec_vd);
-//	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int - dec_vd));
-//	utils_truncate_number((float*)&state_m->vq_int, -mag_left - (dec_vq + dec_bemf), mag_left - (dec_vq + dec_bemf));
-
-	// Take only back emf decoupling into consideration. Seems to work best.
-	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
-	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int));
-	utils_truncate_number((float*)&state_m->vq_int, -mag_left - dec_bemf, mag_left - dec_bemf);
-
-	// Ignore decoupling. Works badly when back emf decoupling is used, probably not
-	// the best way to go.
-//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
-//	float mag_left = sqrtf(SQ(max_v_mag) - SQ(state_m->vd_int));
-//	utils_truncate_number((float*)&state_m->vq_int, -mag_left, mag_left);
-
-	// This is how anti-windup was done in FW < 4.0. Does not work well when there is too much D axis voltage.
-//	utils_truncate_number((float*)&state_m->vd_int, -max_v_mag, max_v_mag);
-//	utils_truncate_number((float*)&state_m->vq_int, -max_v_mag, max_v_mag);
 
 	// TODO: Have a look at this?
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
