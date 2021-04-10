@@ -3605,8 +3605,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
-			dec_vd = state_m->iq * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
-			dec_vq = state_m->id * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			dec_vd = state_m->iq_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			dec_vq = state_m->id_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
 			break;
 
 		case FOC_CC_DECOUPLING_BEMF:
@@ -3614,8 +3614,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			break;
 
 		case FOC_CC_DECOUPLING_CROSS_BEMF:
-			dec_vd = state_m->iq * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
-			dec_vq = state_m->id * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			dec_vd = state_m->iq_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			dec_vq = state_m->id_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
 			dec_bemf = state_m->speed_rad_s * conf_now->foc_motor_flux_linkage;
 			break;
 
