@@ -14,6 +14,8 @@
 * Avoid numerical instability when mapping is done over a narrow range. See: https://github.com/vedderb/bldc/issues/262
 * App Balance updates.
 * Added servo_out_enable appconf option, so that the PPM port can be used to control servos with the default firmware.
+* Better current controller windup protection.
+* Field weakening support (experimental, be careful and use at your own risk).
 
 === FW 5.02 ===
 * IMU calibration improvement.
