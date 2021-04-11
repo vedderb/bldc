@@ -3637,8 +3637,15 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			break;
 
 		case FOC_CC_DECOUPLING_CROSS_BEMF:
-			dec_vd = state_m->iq_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
-			dec_vq = state_m->id_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			if(conf_now->foc_motor_ld_lq_diff > 0.0){
+				float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff /2;
+				float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff /2;
+				dec_vd = state_m->iq_filter * state_m->speed_rad_s * lq * (3.0 / 2.0);
+				dec_vq = state_m->id_filter * state_m->speed_rad_s * ld * (3.0 / 2.0);
+			}else{
+				dec_vd = state_m->iq_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+				dec_vq = state_m->id_filter * state_m->speed_rad_s * conf_now->foc_motor_l * (3.0 / 2.0);
+			}
 			dec_bemf = state_m->speed_rad_s * conf_now->foc_motor_flux_linkage;
 			break;
 
