@@ -6,6 +6,21 @@
  *
  * work based on DORJI.COM sample code and
  * https://github.com/realspinner/SX1278_LoRa
+ *
+ * Modified for vesc firmware by schardt@team-ctech.de
+
+  This code uses InvertIQ function to create a simple Gateway/Node logic.
+  VESC = Gateway
+  Gateway - Sends messages with enableInvertIQ()
+          - Receives messages with disableInvertIQ()
+
+  Node    - Sends messages with disableInvertIQ()
+          - Receives messages with enableInvertIQ()
+
+  With this arrangement a Gateway never receive messages from another Gateway
+  and a Node never receive message from another Node.
+  Only Gateway to Node and vice versa.
+ *
  */
 
 #include "conf_general.h"

@@ -2,18 +2,18 @@
 	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #include "hw.h"
 #include "ch.h"
@@ -36,7 +36,7 @@
 #include "lora/rfm95w.h"
 #endif
 
-// Threads
+	// Threads
 THD_FUNCTION(mag_thread, arg);
 static THD_WORKING_AREA(mag_thread_wa, 512);
 static bool mag_thread_running = false;
@@ -46,7 +46,7 @@ static volatile bool i2c_running = false;
 static volatile int angle = 0;
 
 //private functions
-static void terminal_cmd_doublepulse(int argc, const char **argv);
+static void terminal_cmd_doublepulse(int argc, const char** argv);
 
 
 // I2C configuration
@@ -66,32 +66,32 @@ void hw_init_gpio(void) {
 
 	// LEDs
 	palSetPadMode(LED_GREEN_GPIO, LED_GREEN_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+		PAL_MODE_OUTPUT_PUSHPULL |
+		PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(LED_RED_GPIO, LED_RED_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+		PAL_MODE_OUTPUT_PUSHPULL |
+		PAL_STM32_OSPEED_HIGHEST);
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 	palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 	palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 
 	palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 	palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 	palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_FLOATING);
+		PAL_STM32_OSPEED_HIGHEST |
+		PAL_STM32_PUDR_FLOATING);
 
 	// Hall sensors
 	palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
@@ -100,22 +100,22 @@ void hw_init_gpio(void) {
 
 	// Phase filters
 	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+		PAL_MODE_OUTPUT_PUSHPULL |
+		PAL_STM32_OSPEED_HIGHEST);
 	PHASE_FILTER_OFF();
 
-		// Current filter
+	// Current filter
 	palSetPadMode(GPIOD, 2,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+		PAL_MODE_OUTPUT_PUSHPULL |
+		PAL_STM32_OSPEED_HIGHEST);
 
 	CURRENT_FILTER_OFF();
 
 	// AUX pin
 	AUX_OFF();
 	palSetPadMode(AUX_GPIO, AUX_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
+		PAL_MODE_OUTPUT_PUSHPULL |
+		PAL_STM32_OSPEED_HIGHEST);
 
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
@@ -149,26 +149,26 @@ void hw_init_gpio(void) {
 }
 
 void hw_setup_adc_channels(void) {
-/*
- * ADC Vector
- *
- * 0  (1):  IN0     SENS1
- * 1  (2):  IN1     SENS2
- * 2  (3):  IN2     SENS3
- * 3  (1):  IN10    CURR1
- * 4  (2):  IN11    CURR2
- * 5  (3):  IN12    CURR3
- * 6  (1):  IN5     ADC_EXT1
- * 7  (2):  IN6     ADC_EXT2
- * 8  (3):  IN3     TEMP_MOS
- * 9  (1):  IN14    TEMP_MOTOR
- * 10 (2):  IN15
- * 11 (3):  IN13    AN_IN
- * 12 (1):  Vrefint
- */
+	/*
+	 * ADC Vector
+	 *
+	 * 0  (1):  IN0     SENS1
+	 * 1  (2):  IN1     SENS2
+	 * 2  (3):  IN2     SENS3
+	 * 3  (1):  IN10    CURR1
+	 * 4  (2):  IN11    CURR2
+	 * 5  (3):  IN12    CURR3
+	 * 6  (1):  IN5     ADC_EXT1
+	 * 7  (2):  IN6     ADC_EXT2
+	 * 8  (3):  IN3     TEMP_MOS
+	 * 9  (1):  IN14    TEMP_MOTOR
+	 * 10 (2):  IN15
+	 * 11 (3):  IN13    AN_IN
+	 * 12 (1):  Vrefint
+	 */
 
 
-	// ADC1 regular channels
+	 // ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);
@@ -212,15 +212,15 @@ void hw_start_i2c(void) {
 
 	if (!i2c_running) {
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 
 		i2cStart(&HW_I2C_DEV, &i2cfg);
 		i2c_running = true;
@@ -252,21 +252,21 @@ void hw_try_restore_i2c(void) {
 		i2cAcquireBus(&HW_I2C_DEV);
 
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 
 		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
 
 		chThdSleep(1);
 
-		for(int i = 0;i < 16;i++) {
+		for (int i = 0;i < 16;i++) {
 			palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 			chThdSleep(1);
 			palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
@@ -283,16 +283,16 @@ void hw_try_restore_i2c(void) {
 		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
 
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
+			PAL_STM32_OTYPE_OPENDRAIN |
+			PAL_STM32_OSPEED_MID1 |
+			PAL_STM32_PUDR_PULLUP);
 
 		HW_I2C_DEV.state = I2C_STOP;
 		i2cStart(&HW_I2C_DEV, &i2cfg);
@@ -316,7 +316,7 @@ THD_FUNCTION(mag_thread, arg) {
 	hw_start_i2c();
 	chThdSleepMilliseconds(10);
 
-	for(;;) {
+	for (;;) {
 		if (i2c_running) {
 			txbuf[0] = 0x0c;
 			txbuf[1] = 0x0d;
@@ -324,8 +324,8 @@ THD_FUNCTION(mag_thread, arg) {
 			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, temp_addr, txbuf, 2, rxbuf, 2, tmo);
 			i2cReleaseBus(&HW_I2C_DEV);
 
-			if (status == MSG_OK){
-				angle = rxbuf[0] | rxbuf[1]<<8;
+			if (status == MSG_OK) {
+				angle = rxbuf[0] | rxbuf[1] << 8;
 			} else {
 				hw_try_restore_i2c();
 			}
@@ -338,12 +338,12 @@ int gsvesc_get_angle() {
 	return angle;
 }
 
-static void terminal_cmd_doublepulse(int argc, const char **argv) 
+static void terminal_cmd_doublepulse(int argc, const char** argv)
 {
 	(void)argc;
 	(void)argv;
 
-	int preface,pulse1,breaktime,pulse2;
+	int preface, pulse1, breaktime, pulse2;
 	int utick;
 	int deadtime = -1;
 
@@ -369,7 +369,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 	}
 	timeout_configure_IWDT_slowest();
 
-	utick = (int)( SYSTEM_CORE_CLOCK / 1000000 );
+	utick = (int)(SYSTEM_CORE_CLOCK / 1000000);
 	mcpwm_deinit();
 	mcpwm_foc_deinit();
 	gpdrive_deinit();
@@ -395,7 +395,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = (preface+pulse1)*utick; 
+	TIM_TimeBaseStructure.TIM_Period = (preface + pulse1) * utick;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
@@ -404,7 +404,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = preface*utick;
+	TIM_OCInitStructure.TIM_Pulse = preface * utick;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -460,14 +460,14 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 	//Timer 4 triggert Timer 1
 	TIM_Cmd(TIM4, ENABLE);
 	TIM_Cmd(TIM4, DISABLE);
-	TIM1->ARR = (breaktime+pulse2)*utick;
-	TIM1->CCR1 = breaktime*utick;
-	while ( TIM1->CNT != 0 );
+	TIM1->ARR = (breaktime + pulse2) * utick;
+	TIM1->CCR1 = breaktime * utick;
+	while (TIM1->CNT != 0);
 	TIM_Cmd(TIM4, ENABLE);
 
 	chThdSleepMilliseconds(1);
 	TIM_CtrlPWMOutputs(TIM1, DISABLE);
-	mc_configuration *mcconf = mempools_alloc_mcconf();
+	mc_configuration* mcconf = mempools_alloc_mcconf();
 	*mcconf = *mc_interface_get_configuration();
 
 	switch (mcconf->motor_type) {
@@ -477,7 +477,7 @@ static void terminal_cmd_doublepulse(int argc, const char **argv)
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_init(mcconf,mcconf);
+		mcpwm_foc_init(mcconf, mcconf);
 		break;
 
 	case MOTOR_TYPE_GPD:
