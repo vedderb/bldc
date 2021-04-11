@@ -51,7 +51,6 @@ static void process_packet(unsigned char* data, unsigned int len);
 static void send_packet(unsigned char* data, unsigned int len);
 
 void lora_send_packet(unsigned char* data, unsigned int len) {
-
 	if (!send_mutex_init_done) {
 		chMtxObjectInit(&send_mutex);
 		send_mutex_init_done = true;
@@ -66,11 +65,8 @@ static void process_packet(unsigned char* data, unsigned int len) {
 }
 
 static void send_packet(unsigned char* data, unsigned int len) {
-
-	int erg;
-
-	erg = SX1278_LoRaEntryTx(&SX1278, len, 100);
-	erg = SX1278_LoRaTxPacket(&SX1278, (uint8_t*)data, len, 100);
+	SX1278_LoRaEntryTx(&SX1278, len, 100);
+	SX1278_LoRaTxPacket(&SX1278, (uint8_t*)data, len, 100);
 }
 
 void lora_init(void) {
@@ -82,7 +78,7 @@ void lora_init(void) {
 	palSetPadMode(HW_LORA_SPI_PORT_MOSI, HW_LORA_SPI_PIN_MOSI, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(HW_LORA_SPI_PORT_DIO0, HW_LORA_SPI_PIN_DIO0, PAL_MODE_INPUT);
 	palSetPadMode(HW_LORA_SPI_PORT_RESET, HW_LORA_SPI_PIN_RESET, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	SX1278_init(&SX1278, 868000000, SX1278_POWER_17DBM, SX1278_LORA_SF_7, SX1278_LORA_BW_250KHZ, SX1278_LORA_CR_4_5, SX1278_LORA_CRC_DIS, 100);
+	SX1278_init(&SX1278, 868000000, SX1278_POWER_17DBM, SX1278_LORA_SF_7, SX1278_LORA_BW_250KHZ, SX1278_LORA_CR_4_5, SX1278_LORA_CRC_DIS, 10);
 	if (!thread_is_running) {
 		chThdCreateStatic(packet_process_thread_wa, sizeof(packet_process_thread_wa), NORMALPRIO, packet_process_thread, NULL);
 		thread_is_running = true;
@@ -95,7 +91,8 @@ void lora_stop(void) {
 static THD_FUNCTION(packet_process_thread, arg) {
 	(void)arg;
 
-	unsigned char buffer[128];
+	uint8_t erg;
+	uint8_t buffer[255];
 	chRegSetThreadName("LoRa proc");
 
 	buffer[0] = COMM_GET_VALUES;
@@ -103,14 +100,15 @@ static THD_FUNCTION(packet_process_thread, arg) {
 	while (!commands_is_initialized()) {
 		chThdSleepMilliseconds(10);
 	}
-
+	erg=SX1278_LoRaEntryRx(&SX1278, 255, 200);
 	for (;;) {
-		//simulate a received packet to trigger send_packet
-		commands_process_packet(buffer, 1, lora_send_packet);
-		SX1278_LoRaEntryRx(&SX1278, 100, 100);
-		if (SX1278_LoRaRxPacket(&SX1278)) {
-			process_packet(SX1278.rxBuffer, SX1278.readBytes);
+		erg = SX1278_LoRaRxPacket(&SX1278);
+		if (erg > 0) {
+			for (int i=0; i<SX1278.readBytes; i++)
+				packet_process_byte(SX1278.rxBuffer[i],&packet_state);
+			erg=SX1278_LoRaEntryRx(&SX1278, 255, 200);
 		}
+		chThdSleepMilliseconds(10);
 	}
 }
 

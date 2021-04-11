@@ -164,6 +164,7 @@ int SX1278_LoRaEntryRx(SX1278_t *module, uint8_t length, uint32_t timeout) {
 	module->packetLength = length;
 
 	SX1278_config(module);		//Setting base parameter
+	SX1278_disableInvertIQ();
 	SX1278_SPIWrite(REG_LR_PADAC, 0x84);	//Normal and RX
 	SX1278_SPIWrite(LR_RegHopPeriod, 0xFF);	//No FHSS
 	SX1278_SPIWrite(REG_LR_DIOMAPPING1, 0x01);//DIO=00,DIO1=00,DIO2=00, DIO3=01
@@ -173,10 +174,8 @@ int SX1278_LoRaEntryRx(SX1278_t *module, uint8_t length, uint32_t timeout) {
 	addr = SX1278_SPIRead(LR_RegFifoRxBaseAddr); //Read RxBaseAddr
 	SX1278_SPIWrite(LR_RegFifoAddrPtr, addr); //RxBaseAddr->FiFoAddrPtr
 	SX1278_SPIWrite(LR_RegOpMode, 0x8d);	//Mode//Low Frequency Mode
-	//SX1278_SPIWrite(module, LR_RegOpMode,0x05);	//Continuous Rx Mode //High Frequency Mode
 	module->readBytes = 0;
 
-	SX1278_disableInvertIQ();
 
 	while (1) {
 		if ((SX1278_SPIRead(LR_RegModemStat) & 0x04) == 0x04) {	//Rx-on going RegModemStat

@@ -9,7 +9,7 @@
 #include "SX1278_hw.h"
 
 // Functions
-void rfm95w_init(void);
-void rfm95w_stop(void);
+void lora_init(void);
+void lora_stop(void);
 
 #endif /* HWCONF_DRV8301_H_ */
