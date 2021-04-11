@@ -1221,4 +1221,14 @@ typedef struct {
 	uint8_t num_vescs;
 } setup_values;
 
+#define BACKUP_VAR_INIT_CODE				92891934
+
+typedef struct __attribute__((packed)) {
+	uint32_t odometer_init_flag;
+	uint64_t odometer; // Meters
+
+	uint32_t runtime_init_flag;
+	uint64_t runtime; // Seconds
+} backup_data;
+
 #endif /* DATATYPES_H_ */

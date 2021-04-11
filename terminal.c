@@ -165,7 +165,7 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "dist") == 0) {
 		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
 		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
-		commands_printf("Odometer        : %u   m\n", mc_interface_get_odometer());
+		commands_printf("Odometer        : %llu m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -547,6 +547,9 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+
+		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
+		commands_printf("Runtime  : %llu s", g_backup.runtime);
 
 		float curr0_offset;
 		float curr1_offset;

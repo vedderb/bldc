@@ -86,9 +86,8 @@ float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
 
 // odometer
-uint32_t mc_interface_get_odometer(void);
-void mc_interface_set_odometer(uint32_t new_odometer_meters);
-bool mc_interface_save_odometer(void);
+uint64_t mc_interface_get_odometer(void);
+void mc_interface_set_odometer(uint64_t new_odometer_meters);
 
 setup_values mc_interface_get_setup_values(void);
 

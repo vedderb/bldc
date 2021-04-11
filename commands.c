@@ -582,6 +582,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_REBOOT:
+		conf_general_store_backup_data();
 		// Lock the system and enter an infinite loop. The watchdog will reboot.
 		__disable_irq();
 		for(;;){};

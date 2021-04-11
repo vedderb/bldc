@@ -48,10 +48,12 @@
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
 #define EEPROM_BASE_MCCONF_2	5000
+#define EEPROM_BASE_BACKUP		6000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 bool conf_general_permanent_nrf_found = false;
+__attribute__((section(".ram4"))) volatile backup_data g_backup;
 
 // Private functions
 static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base);
@@ -78,11 +80,86 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_CUSTOM + i;
 	}
 
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_BACKUP + i;
+	}
+
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 	FLASH_Lock();
+
+	// Read backup data
+	bool is_ok = true;
+	backup_data backup_tmp;
+	uint8_t *data_addr = (uint8_t*)&backup_tmp;
+	uint16_t var;
+
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		if (EE_ReadVariable(EEPROM_BASE_BACKUP + i, &var) == 0) {
+			data_addr[2 * i] = (var >> 8) & 0xFF;
+			data_addr[2 * i + 1] = var & 0xFF;
+		} else {
+			is_ok = false;
+			break;
+		}
+	}
+
+	if (!is_ok) {
+		memset(data_addr, 0, sizeof(backup_data));
+
+		// If the missing data is a result of programming it might still be in RAM4. Check
+		// and recover the valid values one by one.
+
+		if (g_backup.odometer_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.odometer = g_backup.odometer;
+		}
+
+		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.runtime = g_backup.runtime;
+		}
+	}
+
+	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
+
+	g_backup = backup_tmp;
+	conf_general_store_backup_data();
+}
+
+/*
+ * Store backup data to emulated eeprom. Currently this is only done from the shutdown function, which
+ * only works if the hardware has a power switch. It would be possible to do this when the input voltage
+ * drops (e.g. on FAULT_CODE_UNDER_VOLTAGE) to not rely on a power switch. The risk with that is that
+ * a page swap might longer than the capacitors have voltage left, which could make cause the motor and
+ * app config to get lost.
+ */
+bool conf_general_store_backup_data(void) {
+	timeout_configure_IWDT_slowest();
+
+	bool is_ok = true;
+	uint8_t *data_addr = (uint8_t*)&g_backup;
+	uint16_t var;
+
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		var = (data_addr[2 * i] << 8) & 0xFF00;
+		var |= data_addr[2 * i + 1] & 0xFF;
+
+		if (EE_WriteVariable(EEPROM_BASE_BACKUP + i, var) != FLASH_COMPLETE) {
+			is_ok = false;
+			break;
+		}
+	}
+	FLASH_Lock();
+
+	timeout_configure_IWDT();
+
+	return is_ok;
 }
 
 /**

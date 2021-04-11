@@ -17,6 +17,8 @@
 * Better current controller windup protection.
 * Field weakening support (experimental, be careful and use at your own risk).
 * Use filtered current for axis decoupling.
+* Odometer is now persistent after firmware updates.
+* Added hw runtime counter (see hw_status in terminal)
 
 === FW 5.02 ===
 * IMU calibration improvement.
