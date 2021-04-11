@@ -32,8 +32,8 @@
 #include "timeout.h"
 #include "stdio.h"
 
-#ifdef HW_HAS_RFM95W
-#include "lora/rfm95w.h"
+#ifdef HW_HAS_LORA
+#include "lora/lora.h"
 #endif
 
 	// Threads
@@ -132,8 +132,8 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
-#ifdef HW_HAS_RFM95W
-	rfm95w_init();
+#ifdef HW_HAS_LORA
+	lora_init();
 #endif
 #ifndef HW_HAS_DUAL_MOTORS
 	//register terminal callbacks

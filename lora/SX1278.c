@@ -24,7 +24,7 @@
  */
 
 #include "conf_general.h"
-#ifdef HW_HAS_RFM95W
+#ifdef HW_HAS_LORA
 
 #include "SX1278.h"
 #include <string.h>

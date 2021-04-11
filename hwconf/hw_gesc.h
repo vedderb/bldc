@@ -28,7 +28,7 @@
 //#define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_NO_CAN
-#define HW_HAS_RFM95W
+#define HW_HAS_LORA
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -222,21 +222,21 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-#ifdef HW_HAS_RFM95W
-#define HW_RFM95W_SPI_DEV				SPID1
-#define HW_RFM95W_SPI_GPIO_AF			GPIO_AF_SPI1
-#define HW_RFM95W_SPI_PORT_NSS			GPIOA
-#define HW_RFM95W_SPI_PIN_NSS			4
-#define HW_RFM95W_SPI_PORT_SCK			GPIOA
-#define HW_RFM95W_SPI_PIN_SCK			5
-#define HW_RFM95W_SPI_PORT_MOSI		    GPIOA
-#define HW_RFM95W_SPI_PIN_MOSI			7
-#define HW_RFM95W_SPI_PORT_MISO		    GPIOA
-#define HW_RFM95W_SPI_PIN_MISO			6
-#define HW_RFM95W_SPI_PORT_DIO0         GPIOC
-#define HW_RFM95W_SPI_PIN_DIO0          5
-#define HW_RFM95W_SPI_PORT_RESET        GPIOB
-#define HW_RFM95W_SPI_PIN_RESET         2
+#ifdef HW_HAS_LORA
+#define HW_LORA_SPI_DEV				SPID1
+#define HW_LORA_SPI_GPIO_AF			GPIO_AF_SPI1
+#define HW_LORA_SPI_PORT_NSS			GPIOA
+#define HW_LORA_SPI_PIN_NSS			4
+#define HW_LORA_SPI_PORT_SCK			GPIOA
+#define HW_LORA_SPI_PIN_SCK			5
+#define HW_LORA_SPI_PORT_MOSI		    GPIOA
+#define HW_LORA_SPI_PIN_MOSI			7
+#define HW_LORA_SPI_PORT_MISO		    GPIOA
+#define HW_LORA_SPI_PIN_MISO			6
+#define HW_LORA_SPI_PORT_DIO0         GPIOC
+#define HW_LORA_SPI_PIN_DIO0          5
+#define HW_LORA_SPI_PORT_RESET        GPIOB
+#define HW_LORA_SPI_PIN_RESET         2
 #endif
 
 // Measurement macros

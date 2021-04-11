@@ -22,7 +22,7 @@
 */
 
 #include "conf_general.h"
-#ifdef HW_HAS_RFM95W
+#ifdef HW_HAS_LORA
 
 #include "app.h"
 #include "ch.h"
@@ -30,7 +30,7 @@
 #include "hw.h"
 #include "packet.h"
 #include "commands.h"
-#include "rfm95w.h"
+#include "lora.h"
 #include <string.h>
 #include "SX1278.h"
 #include "stdio.h"
