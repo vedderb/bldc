@@ -1209,8 +1209,6 @@ typedef union {
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
 
-#define EEPROM_ADDR_ODOMETER    1
-
 typedef struct {
 	float ah_tot;
 	float ah_charge_tot;
