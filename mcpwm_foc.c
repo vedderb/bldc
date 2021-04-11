@@ -117,6 +117,7 @@ typedef struct {
 	float m_id_set;
 	float m_iq_set;
 	float m_i_fw_set;
+	float m_fw_mod_delay;
 	float m_openloop_speed;
 	float m_openloop_phase;
 	bool m_output_on;
@@ -204,6 +205,7 @@ static float correct_encoder(float obs_angle, float enc_angle, float speed, floa
 static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor);
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
+static void run_fw(volatile motor_all_state_t *motor, float dt);
 static void timer_update(volatile motor_all_state_t *motor, float dt);
 static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor);
@@ -2769,6 +2771,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
+		// Running FW from the 1 khz timer seems fast enough.
+//		run_fw(motor_now, dt);
 		id_set_tmp -= motor_now->m_i_fw_set;
 
 		// Apply current limits
@@ -2993,12 +2997,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 // Private functions
 
-static void timer_update(volatile motor_all_state_t *motor, float dt) {
+static void run_fw(volatile motor_all_state_t *motor, float dt) {
+	if (motor->m_conf->foc_fw_current_max < motor->m_conf->cc_min_current) {
+		return;
+	}
+
 	// Field Weakening
 	// FW is used in the current and speed control modes. If a different mode is used
 	// this code also runs if field weakening was active before. This allows
 	// changing control mode even while in field weakening.
-	if (!motor->m_phase_override && motor->m_state == MC_STATE_RUNNING &&
+	if (motor->m_state == MC_STATE_RUNNING &&
 			(motor->m_control_mode == CONTROL_MODE_CURRENT ||
 					motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
 					motor->m_control_mode == CONTROL_MODE_SPEED ||
@@ -3012,6 +3020,14 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
 					motor->m_conf->l_max_duty,
 					0.0, motor->m_conf->foc_fw_current_max);
+
+			// m_fw_mod_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
+			// is not working properly an oscillation can occur on the modulation when changing the current
+			// fast, which can make the estimated duty cycle drop below the FW threshold long enough to stop
+			// modulation. When that happens the body diodes in the MOSFETs can see a lot of current and unexpected
+			// braking happens. Therefore the modulation is left on for some time after leaving FW to give the
+			// oscillation a chance to decay while the MOSFETs are still driven.
+			motor->m_fw_mod_delay = 1.0;
 		}
 
 		if (motor->m_conf->foc_fw_ramp_time < dt) {
@@ -3021,6 +3037,12 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 					(dt / motor->m_conf->foc_fw_ramp_time) * motor->m_conf->foc_fw_current_max);
 		}
 	}
+}
+
+static void timer_update(volatile motor_all_state_t *motor, float dt) {
+	run_fw(motor, dt);
+
+	utils_step_towards((float*)&motor->m_fw_mod_delay, 0.0, dt);
 
 	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
 	// field weakening current.
@@ -3031,7 +3053,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 					motor->m_control_mode == CONTROL_MODE_OPENLOOP ||
 					motor->m_control_mode == CONTROL_MODE_OPENLOOP_PHASE)) {
 		if (fabsf(motor->m_iq_set) < motor->m_conf->cc_min_current &&
-				motor->m_i_fw_set < motor->m_conf->cc_min_current) {
+				motor->m_i_fw_set < motor->m_conf->cc_min_current &&
+				motor->m_fw_mod_delay < dt) {
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
 			stop_pwm_hw(motor);
