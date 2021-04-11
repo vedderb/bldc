@@ -4153,22 +4153,24 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 
 	// Compute parameters
 	p_term = error * conf_now->s_pid_kp * (1.0 / 20.0);
-	motor->m_speed_i_term += error * (conf_now->s_pid_ki * dt) * (1.0 / 20.0);
 	d_term = (error - motor->m_speed_prev_error) * (conf_now->s_pid_kd / dt) * (1.0 / 20.0);
 
 	// Filter D
 	UTILS_LP_FAST(motor->m_speed_d_filter, d_term, conf_now->s_pid_kd_filter);
 	d_term = motor->m_speed_d_filter;
 
-	// I-term wind-up protection
-	utils_truncate_number((float*)&motor->m_speed_i_term, -1.0, 1.0);
-
 	// Store previous error
 	motor->m_speed_prev_error = error;
 
 	// Calculate output
 	float output = p_term + motor->m_speed_i_term + d_term;
+	float pre_output = output;
+
 	utils_truncate_number(&output, -1.0, 1.0);
+
+	float output_saturation = output - pre_output;
+
+	motor->m_speed_i_term += error * (conf_now->s_pid_ki * dt) * (1.0 / 20.0) + output_saturation;
 
 	// Optionally disable braking
 	if (!conf_now->s_pid_allow_braking) {
