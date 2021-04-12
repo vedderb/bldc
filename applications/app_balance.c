@@ -197,8 +197,9 @@ bool check_faults(bool ignoreTimers){
 			state = FAULT_SWITCH_FULL;
 			return true;
 		}
-		// at low speed (below half-fault threshold speed), also check half_fault delay:
+		// at low speed (below half-fault threshold speed), also check half_fault delay (if non-zero):
 		else if ((abs_erpm < balance_conf.fault_adc_half_erpm)
+				 && (balance_conf.fault_delay_switch_half > 0)
 				 && (ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay_switch_half)){
 			state = FAULT_SWITCH_FULL;
 			return true;
