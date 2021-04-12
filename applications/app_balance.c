@@ -192,7 +192,14 @@ bool check_faults(bool ignoreTimers){
 	// Check switch
 	// Switch fully open
 	if(switch_state == OFF){
+		// at any speed, always check full_fault delay:
 		if(ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay_switch_full || ignoreTimers){
+			state = FAULT_SWITCH_FULL;
+			return true;
+		}
+		// at low speed (below half-fault threshold speed), also check half_fault delay:
+		else if ((abs_erpm < balance_conf.fault_adc_half_erpm)
+				 && (ST2MS(current_time - fault_switch_timer) > balance_conf.fault_delay_switch_half)){
 			state = FAULT_SWITCH_FULL;
 			return true;
 		}
