@@ -519,6 +519,7 @@ bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type) {
 	return ret != 0;
 #else
 	(void)controller_id;
+	(void)hw_type;
 	return 0;
 #endif
 }

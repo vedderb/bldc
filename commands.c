@@ -77,16 +77,16 @@ static mutex_t terminal_mutex;
 static volatile int fw_version_sent_cnt = 0;
 static bool isInitialized = false;
 
-bool commands_is_initialized(void) {
-    return isInitialized; 
-}
-
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
 	isInitialized = true;
+}
+
+bool commands_is_initialized(void) {
+	return isInitialized;
 }
 
 /**

@@ -24,6 +24,7 @@
 
 // Functions
 void commands_init(void);
+bool commands_is_initialized(void);
 void commands_send_packet(unsigned char *data, unsigned int len);
 void commands_send_packet_can_last(unsigned char *data, unsigned int len);
 void commands_send_packet_nrf(unsigned char *data, unsigned int len);
@@ -48,5 +49,5 @@ void commands_set_ble_name(char* name);
 void commands_set_ble_pin(char* pin);
 void commands_send_plot_points(float x, float y);
 int commands_get_fw_version_sent_cnt(void);
-bool commands_is_initialized(void);
+
 #endif /* COMMANDS_H_ */
