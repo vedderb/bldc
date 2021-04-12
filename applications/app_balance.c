@@ -49,6 +49,7 @@ typedef enum {
 	FAULT_ANGLE_ROLL,
 	FAULT_SWITCH_HALF,
 	FAULT_SWITCH_FULL,
+	FAULT_REVERSE,
 	FAULT_DUTY,
 	FAULT_STARTUP
 } BalanceState;
@@ -98,7 +99,7 @@ static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportion
 static systime_t current_time, last_time, diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_state, d_pt1_k;
-
+static bool reverse_stop_armed;
 
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
@@ -144,6 +145,7 @@ void reset_vars(void){
 	current_time = 0;
 	last_time = 0;
 	diff_time = 0;
+	reverse_stop_armed = false;
 }
 
 float app_balance_get_pid_output(void) {
@@ -238,6 +240,12 @@ bool check_faults(bool ignoreTimers){
 		}
 	} else {
 		fault_duty_timer = current_time;
+	}
+
+	// Reverse Stop - gives novice riders an easy way to stop
+	if(reverse_stop_armed && (erpm < 0)){
+		state = FAULT_REVERSE;
+		return true;
 	}
 
 	return false;
@@ -507,6 +515,10 @@ static THD_FUNCTION(balance_thread, arg) {
 					break;
 				}
 
+				// Reverse stop only gets "armed" once a certain forward speed has been exceeded
+				if(balance_conf.reverse_stop && (erpm > balance_conf.reverse_stop_erpm))
+					reverse_stop_armed = true;
+
 				// Calculate setpoint and interpolation
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
@@ -584,6 +596,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				// Disable output
 				brake();
 				break;
+			case (FAULT_REVERSE):
 			case (FAULT_DUTY):
 				// We need another fault to clear duty fault.
 				// Otherwise duty fault will clear itself as soon as motor pauses, then motor will spool up again.

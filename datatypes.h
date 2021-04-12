@@ -721,6 +721,8 @@ typedef struct {
 	float turntilt_speed;
 	uint16_t turntilt_erpm_boost;
 	uint16_t turntilt_erpm_boost_end;
+	bool reverse_stop;
+	uint16_t reverse_stop_erpm;
 } balance_config;
 
 // CAN status modes
