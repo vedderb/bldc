@@ -510,7 +510,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 				cts++;
 			}
 			cts = 0;
-			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
+			while(((GET_BATT_VOLTAGE() - mc_interface_get_adjusted_input_voltage()) > 8.0) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}

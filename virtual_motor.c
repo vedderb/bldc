@@ -226,9 +226,9 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 	//we load 1 to get the transfer function indirectly
 	ADC_Value[ ADC_IND_VIN_SENS ] = 1;
 
-	float tempVoltage = GET_INPUT_VOLTAGE();
+	float tempVoltage = mc_interface_get_adjusted_input_voltage();
 	if(tempVoltage != 0.0){
-		ADC_Value[ ADC_IND_VIN_SENS ] = Vbus / GET_INPUT_VOLTAGE();
+		ADC_Value[ ADC_IND_VIN_SENS ] = Vbus / mc_interface_get_adjusted_input_voltage();
 	}
 
 	//initialize constants

@@ -154,7 +154,8 @@ static THD_FUNCTION(led_thread, arg) {
 
 			case LED_EXT_BATT:
 				while (state == state_last && rev_last == reverse_leds && !HAS_FAULT()) {
-					batt_level = utils_map(GET_INPUT_VOLTAGE(), LED_EXT_BATT_LOW, LED_EXT_BATT_HIGH, 0.0, 1.0);
+					batt_level = utils_map(mc_interface_get_adjusted_input_voltage(),
+										   LED_EXT_BATT_LOW, LED_EXT_BATT_HIGH, 0.0, 1.0);
 					for (int i = 0;i < WS2811_LED_NUM / 2;i++) {
 						if (i < (WS2811_LED_NUM / 2) * batt_level) {
 							if (i < (WS2811_LED_NUM / 2) / 3) {

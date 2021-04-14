@@ -25,6 +25,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->l_max_erpm_fbrake_cc, &ind);
 	buffer_append_float32_auto(buffer, conf->l_min_vin, &ind);
 	buffer_append_float32_auto(buffer, conf->l_max_vin, &ind);
+	buffer_append_float16(buffer, conf->l_vin_correction, 10000, &ind);
 	buffer_append_float32_auto(buffer, conf->l_battery_cut_start, &ind);
 	buffer_append_float32_auto(buffer, conf->l_battery_cut_end, &ind);
 	buffer[ind++] = conf->l_slow_abs_current;
@@ -373,6 +374,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->l_max_erpm_fbrake_cc = buffer_get_float32_auto(buffer, &ind);
 	conf->l_min_vin = buffer_get_float32_auto(buffer, &ind);
 	conf->l_max_vin = buffer_get_float32_auto(buffer, &ind);
+	conf->l_vin_correction = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_battery_cut_start = buffer_get_float32_auto(buffer, &ind);
 	conf->l_battery_cut_end = buffer_get_float32_auto(buffer, &ind);
 	conf->l_slow_abs_current = buffer[ind++];
@@ -717,6 +719,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
 	conf->l_min_vin = MCCONF_L_MIN_VOLTAGE;
 	conf->l_max_vin = MCCONF_L_MAX_VOLTAGE;
+	conf->l_vin_correction = MCCONF_L_VIN_CORRECTION;
 	conf->l_battery_cut_start = MCCONF_L_BATTERY_CUT_START;
 	conf->l_battery_cut_end = MCCONF_L_BATTERY_CUT_END;
 	conf->l_slow_abs_current = MCCONF_L_SLOW_ABS_OVERCURRENT;

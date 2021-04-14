@@ -198,7 +198,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 1 sample: %u", current1_samp);
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
-		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+		commands_printf("Input voltage: %.2f\n", (double)mc_interface_get_adjusted_input_voltage());
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif

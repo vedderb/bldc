@@ -824,7 +824,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	float avg_current = 0.0;
 	float samples = 0.0;
 	for (int i = 0;i < 2000;i++) {
-		avg_voltage += GET_INPUT_VOLTAGE() * mc_interface_get_duty_cycle_now();
+		avg_voltage += mc_interface_get_adjusted_input_voltage() * mc_interface_get_duty_cycle_now();
 		avg_rpm += mc_interface_get_rpm();
 		avg_current += mc_interface_get_tot_current();
 		samples += 1.0;

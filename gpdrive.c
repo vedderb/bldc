@@ -317,7 +317,7 @@ void gpdrive_output_sample(float sample) {
 		break;
 
 	case GPD_OUTPUT_MODE_VOLTAGE:
-		set_modulation(sample / GET_INPUT_VOLTAGE());
+		set_modulation(sample / mc_interface_get_adjusted_input_voltage());
 		break;
 
 	case GPD_OUTPUT_MODE_CURRENT:
@@ -538,7 +538,7 @@ static void adc_int_handler(void *p, uint32_t flags) {
 	// Check for most critical faults here, as doing it in mc_interface can be too slow
 	// for high switching frequencies.
 
-	const float input_voltage = GET_INPUT_VOLTAGE();
+	const float input_voltage = mc_interface_get_adjusted_input_voltage();
 
 	static int wrong_voltage_iterations = 0;
 	if (input_voltage < m_conf->l_min_vin ||
@@ -600,7 +600,7 @@ static void adc_int_handler(void *p, uint32_t flags) {
 		gpdrive_output_sample(m_output_now);
 
 		if (m_output_mode == GPD_OUTPUT_MODE_CURRENT) {
-			float v_in = GET_INPUT_VOLTAGE();
+			float v_in = mc_interface_get_adjusted_input_voltage();
 			float err = m_current_state.current_set - m_current_now_filtered;
 			m_current_state.voltage_now = m_current_state.voltage_int + err * m_conf->gpd_current_kp;
 			m_current_state.voltage_int += err * m_conf->gpd_current_ki * (1.0 / m_fsw_now);
