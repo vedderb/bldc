@@ -255,7 +255,7 @@ void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK;
 		state = RUNNING_TILTBACK_DUTY;
-	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage){
+	}else if(abs_duty_cycle > 0.05 && mc_interface_get_adjusted_input_voltage() > balance_conf.tiltback_high_voltage){
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_angle;
 		} else {
@@ -263,7 +263,7 @@ void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK;
 		state = RUNNING_TILTBACK_HIGH_VOLTAGE;
-	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage){
+	}else if(abs_duty_cycle > 0.05 && mc_interface_get_adjusted_input_voltage() < balance_conf.tiltback_low_voltage){
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_angle;
 		} else {

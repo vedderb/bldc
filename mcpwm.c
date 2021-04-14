@@ -746,7 +746,7 @@ mc_state mcpwm_get_state(void) {
  * The KV value.
  */
 float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+	return rpm_now / (mc_interface_get_adjusted_input_voltage() * fabsf(dutycycle_now));
 }
 
 /**
@@ -1204,7 +1204,7 @@ static void run_pid_control_speed(void) {
 	}
 #else
 	// Compensation for supply voltage variations
-	float scale = 1.0 / GET_INPUT_VOLTAGE();
+	float scale = 1.0 / mc_interface_get_adjusted_input_voltage();
 
 	// Compute parameters
 	p_term = error * conf->s_pid_kp * scale;
@@ -1753,7 +1753,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	// Reset the watchdog
 	timeout_feed_WDT(THREAD_MCPWM);
 
-	const float input_voltage = GET_INPUT_VOLTAGE();
+	const float input_voltage = mc_interface_get_adjusted_input_voltage();
 	int ph1, ph2, ph3;
 
 	static int direction_before = 1;

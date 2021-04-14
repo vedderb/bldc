@@ -897,6 +897,14 @@ float mc_interface_get_rpm(void) {
 }
 
 /**
+ * Get the input voltage adjusted by a user-configurable correction factor
+ */
+float mc_interface_get_adjusted_input_voltage(void) {
+    float ret = GET_INPUT_VOLTAGE() * (1 + (motor_now()->m_conf.l_vin_correction));
+    return ret;
+}
+
+/**
  * Get the amount of amp hours drawn from the input source.
  *
  * @param reset
@@ -1353,7 +1361,7 @@ float mc_interface_temp_motor_filtered(void) {
  */
 float mc_interface_get_battery_level(float *wh_left) {
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	const float v_in = GET_INPUT_VOLTAGE();
+	const float v_in = mc_interface_get_adjusted_input_voltage();
 	float battery_avg_voltage = 0.0;
 	float battery_avg_voltage_left = 0.0;
 	float ah_left = 0;
@@ -1550,7 +1558,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 #endif
 
 	volatile mc_configuration *conf_now = &motor->m_conf;
-	const float input_voltage = GET_INPUT_VOLTAGE();
+	const float input_voltage = mc_interface_get_adjusted_input_voltage();
 
 	// Check for faults that should stop the motor
 	static int wrong_voltage_iterations = 0;
@@ -1865,7 +1873,7 @@ void mc_interface_adc_inj_int_handler(void) {
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf) {
 	bool is_motor_1 = motor == &m_motor_1;
 
-	const float v_in = GET_INPUT_VOLTAGE();
+	const float v_in = mc_interface_get_adjusted_input_voltage();
 	float rpm_now = 0.0;
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
@@ -2375,7 +2383,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			fdata.fault = m_fault_stop_fault;
 			fdata.current = mc_interface_get_tot_current();
 			fdata.current_filtered = mc_interface_get_tot_current_filtered();
-			fdata.voltage = GET_INPUT_VOLTAGE();
+			fdata.voltage = mc_interface_get_adjusted_input_voltage();
 			fdata.gate_driver_voltage = motor->m_gate_driver_voltage;
 			fdata.duty = mc_interface_get_duty_cycle_now();
 			fdata.rpm = mc_interface_get_rpm();

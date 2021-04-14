@@ -1750,9 +1750,9 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	stop_pwm_hw(motor);
 
 	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
-	motor->m_conf->foc_hfi_voltage_start = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
-	motor->m_conf->foc_hfi_voltage_run = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
-	motor->m_conf->foc_hfi_voltage_max = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_adjusted_input_voltage() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_adjusted_input_voltage() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_adjusted_input_voltage() * (2.0 / 3.0);
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
 	motor->m_conf->foc_sample_v0_v7 = false;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
@@ -2519,7 +2519,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// TODO: Test this.
 	dt *= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
 
-	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
+	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, mc_interface_get_adjusted_input_voltage(), 0.1);
 
 	volatile float enc_ang = 0;
 	volatile bool encoder_is_being_used = false;
@@ -2611,7 +2611,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
 				// Compensation for supply voltage variations
-				float scale = 1.0 / GET_INPUT_VOLTAGE();
+				float scale = 1.0 / mc_interface_get_adjusted_input_voltage();
 
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;

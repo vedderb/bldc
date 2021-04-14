@@ -298,6 +298,7 @@ typedef struct {
 	float l_max_erpm_fbrake_cc;
 	float l_min_vin;
 	float l_max_vin;
+	float l_vin_correction;
 	float l_battery_cut_start;
 	float l_battery_cut_end;
 	bool l_slow_abs_current;

@@ -56,6 +56,9 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			57.0	// Maximum input voltage
 #endif
+#ifndef MCCONF_L_VIN_CORRECTION
+#define MCCONF_L_VIN_CORRECTION			0.0		// Correction factor for input voltage
+#endif
 #ifndef MCCONF_L_BATTERY_CUT_START
 #define MCCONF_L_BATTERY_CUT_START		10.0	// Start limiting the positive current at this voltage
 #endif
