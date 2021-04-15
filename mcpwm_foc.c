@@ -178,6 +178,16 @@ typedef struct {
 	float m_hall_dt_diff_now;
 } motor_all_state_t;
 
+typedef struct {
+	float mod_error;
+	float mod_input;
+	float mod_ref;
+	float mod_int;
+	float mod_output;
+	float id;
+	float speed_rad_s;
+}field_weakening_t;
+
 // Private variables
 static volatile bool m_dccal_done = false;
 static volatile float m_last_adc_isr_duration;
@@ -187,6 +197,8 @@ static volatile motor_all_state_t m_motor_1;
 static volatile motor_all_state_t m_motor_2;
 #endif
 static volatile int m_isr_motor = 0;
+static volatile field_weakening_t field_weakening;
+
 
 // Private functions
 void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
@@ -3049,6 +3061,41 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 		}
 	}
 }
+
+static void run_fw(volatile motor_all_state_t *motor, float dt) {
+
+		field_weakening.mod_ref = motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty;
+		float duty_abs = fabsf(motor->m_duty_filtered);
+
+		UTILS_LP_FAST(field_weakening.mod_input , duty_abs, 0.01);
+
+			field_weakening.mod_error = field_weakening.mod_ref - field_weakening.mod_input;
+
+			field_weakening.mod_output = field_weakening.mod_int + field_weakening.mod_error * motor->m_conf->foc_field_weakening_kp;
+
+			float pre_output = field_weakening.mod_output;
+
+			utils_truncate_number((float*)&field_weakening.mod_output, -1.0 * motor->m_conf->foc_field_weakening_max_id, 0.0);
+
+			field_weakening.mod_int += 	field_weakening.mod_error * motor->m_conf->foc_field_weakening_ki * dt +
+											field_weakening.mod_output - pre_output;
+
+			field_weakening.id = field_weakening.mod_output * motor->m_conf->lo_current_max;
+
+			*id += field_weakening.id;
+
+			float is = sqrtf( SQ(*id) + SQ(*iq) );
+
+			if(is > motor->m_conf->lo_current_max){
+				*iq = SIGN(*iq) * sqrtf(SQ(is) - SQ(*id));
+			}
+//		}else{
+//			field_weakening.mod_int = 0.0;
+//			field_weakening.id = 0.0;
+//		}
+
+}
+
 
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	run_fw(motor, dt);
