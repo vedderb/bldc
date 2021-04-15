@@ -2781,13 +2781,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
+		const float mod_q = motor_now->m_motor_state.mod_q;
+
 		// Running FW from the 1 khz timer seems fast enough.
 //		run_fw(motor_now, dt);
 		id_set_tmp -= motor_now->m_i_fw_set;
+		iq_set_tmp -= SIGN(mod_q) * motor_now->m_i_fw_set * conf_now->foc_fw_q_current_factor;
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
-		const float mod_q = motor_now->m_motor_state.mod_q;
 		if (mod_q > 0.001) {
 			utils_truncate_number(&iq_set_tmp, conf_now->lo_in_current_min / mod_q, conf_now->lo_in_current_max / mod_q);
 		} else if (mod_q < -0.001) {

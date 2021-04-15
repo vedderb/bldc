@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		23
+#define FW_TEST_VERSION_NUMBER		24
 
 #include "datatypes.h"
 

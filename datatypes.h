@@ -399,6 +399,7 @@ typedef struct {
 	float foc_fw_current_max;
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
+	float foc_fw_q_current_factor;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
