@@ -32,6 +32,7 @@
 #include "stdio.h"
 #include <math.h>
 #include "minilzo.h"
+#include "mcpwm_foc.h"
 
 #include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
@@ -91,6 +92,8 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+static void hw_axiom_plot_init(void);
+
 void hw_axiom_init_FPGA_CLK(void);
 void hw_axiom_setup_dac(void);
 void hw_axiom_configure_brownout(uint8_t);
@@ -752,7 +755,25 @@ void hw_axiom_start_input_current_sensor_offset_measurement(void){
 	input_current_sensor_offset_sum = 0;
 }
 
-void hw_axiom_plot_init(void){
+void hw_axiom_plot_update( void )
+{
+	if(axiom_plot_initialized){
+		commands_plot_set_graph(0);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_input() * 100.0);
+		commands_plot_set_graph(1);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_error() * 100.0);
+		commands_plot_set_graph(2);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_int() * 100.0);
+		commands_plot_set_graph(3);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_output() * 100.0);
+		commands_plot_set_graph(4);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_ref() * 100.0);
+
+		axiom_plot_sample++;
+	}
+}
+
+static void hw_axiom_plot_init(void){
 
 	axiom_plot_initialized = false;
 
@@ -765,22 +786,3 @@ void hw_axiom_plot_init(void){
 	commands_plot_add_graph("FwRef");
 	axiom_plot_initialized = true;
 }
-
-void hw_axiom_plot_update( void )
-{
-	if(axiom_plot_initialized){
-		commands_plot_set_graph(0);
-		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_input() * 100.0);
-		commands_plot_set_graph(1);
-		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_error() * 100.0);
-		commands_plot_set_graph(2);
-		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_int() * 100.0);
-		commands_plot_set_graph(3);
-		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_output() * 100.0);
-		commands_plot_set_graph(4);
-		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_ref() * 100.0);
-
-		axiom_plot_sample++;
-	}
-}
-

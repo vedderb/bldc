@@ -422,6 +422,9 @@
 #ifndef MCCONF_FOC_FW_RAMP_TIME
 #define MCCONF_FOC_FW_RAMP_TIME			0.2 // Ramp time for field weakening current
 #endif
+#ifndef MCCONF_FOC_FW_Q_CURRENT_FACTOR
+#define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.02 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
