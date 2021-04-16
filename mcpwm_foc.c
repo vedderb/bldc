@@ -197,7 +197,7 @@ static volatile motor_all_state_t m_motor_1;
 static volatile motor_all_state_t m_motor_2;
 #endif
 static volatile int m_isr_motor = 0;
-static volatile field_weakening_t field_weakening;
+static volatile field_weakening_t fw;
 
 
 // Private functions
@@ -1408,6 +1408,30 @@ float mcpwm_foc_get_vd(void) {
 
 float mcpwm_foc_get_vq(void) {
 	return motor_now()->m_motor_state.vq;
+}
+
+float mcpwm_foc_get_fw_mod_error(void) {
+	return fw.mod_error;
+}
+
+float mcpwm_foc_get_fw_mod_output(void) {
+	return fw.mod_output;
+}
+
+float mcpwm_foc_get_fw_mod_int(void) {
+	return fw.mod_int;
+}
+
+float mcpwm_foc_get_fw_id(void) {
+	return fw.id;
+}
+
+float mcpwm_foc_get_fw_mod_input(void) {
+	return fw.mod_input;
+}
+
+float mcpwm_foc_get_fw_mod_ref(void) {
+	return fw.mod_ref;
 }
 
 /**
@@ -3039,11 +3063,32 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 
 		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
 				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
+
+#if 0
 			fw_current_now = utils_map(duty_abs,
 					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
 					motor->m_conf->l_max_duty,
 					0.0, motor->m_conf->foc_fw_current_max);
+#else
+			fw.mod_ref = motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty;
 
+			UTILS_LP_FAST(fw.mod_input , duty_abs, 0.01);
+
+			fw.mod_error = fw.mod_input - fw.mod_ref;
+
+			fw.mod_output = fw.mod_int + fw.mod_error * motor->m_conf->foc_fw_kp;
+
+			float pre_output = fw.mod_output;
+
+			utils_truncate_number((float*)&fw.mod_output, 0.0, motor->m_conf->foc_fw_current_max);
+
+			fw.mod_int += 	fw.mod_error * motor->m_conf->foc_fw_ki * dt +
+							fw.mod_output - pre_output;
+
+			fw.id = fw.mod_output * motor->m_conf->lo_current_max;
+
+			fw_current_now = fw.id;
+#endif
 			// m_current_off_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
 			// is not working properly an oscillation can occur on the modulation when changing the current
 			// fast, which can make the estimated duty cycle drop below the FW threshold long enough to stop
@@ -3051,6 +3096,9 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 			// braking happens. Therefore the modulation is left on for some time after leaving FW to give the
 			// oscillation a chance to decay while the MOSFETs are still driven.
 			motor->m_current_off_delay = 1.0;
+		}else{
+			fw.mod_int = 0.0;
+			fw.id = 0.0;
 		}
 
 		if (motor->m_conf->foc_fw_ramp_time < dt) {
@@ -3061,41 +3109,6 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 		}
 	}
 }
-
-static void run_fw(volatile motor_all_state_t *motor, float dt) {
-
-		field_weakening.mod_ref = motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty;
-		float duty_abs = fabsf(motor->m_duty_filtered);
-
-		UTILS_LP_FAST(field_weakening.mod_input , duty_abs, 0.01);
-
-			field_weakening.mod_error = field_weakening.mod_ref - field_weakening.mod_input;
-
-			field_weakening.mod_output = field_weakening.mod_int + field_weakening.mod_error * motor->m_conf->foc_field_weakening_kp;
-
-			float pre_output = field_weakening.mod_output;
-
-			utils_truncate_number((float*)&field_weakening.mod_output, -1.0 * motor->m_conf->foc_field_weakening_max_id, 0.0);
-
-			field_weakening.mod_int += 	field_weakening.mod_error * motor->m_conf->foc_field_weakening_ki * dt +
-											field_weakening.mod_output - pre_output;
-
-			field_weakening.id = field_weakening.mod_output * motor->m_conf->lo_current_max;
-
-			*id += field_weakening.id;
-
-			float is = sqrtf( SQ(*id) + SQ(*iq) );
-
-			if(is > motor->m_conf->lo_current_max){
-				*iq = SIGN(*iq) * sqrtf(SQ(is) - SQ(*id));
-			}
-//		}else{
-//			field_weakening.mod_int = 0.0;
-//			field_weakening.id = 0.0;
-//		}
-
-}
-
 
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	run_fw(motor, dt);
