@@ -331,5 +331,6 @@ float hw_axiom_get_highest_IGBT_temp(void);
 float hw_axiom_read_input_current(void);
 void hw_axiom_get_input_current_offset(void);
 void hw_axiom_start_input_current_sensor_offset_measurement(void);
+void hw_axiom_plot_update( void );
 
 #endif /* HW_AXIOM_H_ */
