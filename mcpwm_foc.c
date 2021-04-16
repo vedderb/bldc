@@ -183,7 +183,7 @@ typedef struct {
 	float mod_input;
 	float mod_ref;
 	float mod_int;
-	float mod_output;
+	float output;
 	float id;
 	float speed_rad_s;
 }field_weakening_t;
@@ -1414,8 +1414,8 @@ float mcpwm_foc_get_fw_mod_error(void) {
 	return fw.mod_error;
 }
 
-float mcpwm_foc_get_fw_mod_output(void) {
-	return fw.mod_output;
+float mcpwm_foc_get_fw_output(void) {
+	return fw.output;
 }
 
 float mcpwm_foc_get_fw_mod_int(void) {
@@ -3076,16 +3076,16 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 
 			fw.mod_error = fw.mod_input - fw.mod_ref;
 
-			fw.mod_output = fw.mod_int + fw.mod_error * motor->m_conf->foc_fw_kp;
+			fw.output = fw.mod_int + fw.mod_error * motor->m_conf->foc_fw_kp;
 
-			float pre_output = fw.mod_output;
+			float pre_output = fw.output;
 
-			utils_truncate_number((float*)&fw.mod_output, 0.0, motor->m_conf->foc_fw_current_max);
+			utils_truncate_number((float*)&fw.output, 0.0, motor->m_conf->foc_fw_current_max);
 
 			fw.mod_int += 	fw.mod_error * motor->m_conf->foc_fw_ki * dt +
-							fw.mod_output - pre_output;
+							fw.output - pre_output;
 
-			fw.id = fw.mod_output * motor->m_conf->lo_current_max;
+			fw.id = fw.output * motor->m_conf->lo_current_max;
 
 			fw_current_now = fw.id;
 #endif

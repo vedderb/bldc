@@ -74,7 +74,7 @@ float mcpwm_foc_get_phase_encoder(void);
 float mcpwm_foc_get_vd(void);
 float mcpwm_foc_get_vq(void);
 float mcpwm_foc_get_fw_mod_error(void);
-float mcpwm_foc_get_fw_mod_output(void);
+float mcpwm_foc_get_fw_output(void);
 float mcpwm_foc_get_fw_mod_int(void);
 float mcpwm_foc_get_fw_id(void);
 float mcpwm_foc_get_fw_mod_input(void);
