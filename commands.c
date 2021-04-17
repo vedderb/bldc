@@ -403,8 +403,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
-
-		hw_axiom_plot_update( );
 	} break;
 
 	case COMM_SET_DUTY: {
