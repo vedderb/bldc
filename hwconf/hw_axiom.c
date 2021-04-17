@@ -32,6 +32,7 @@
 #include "stdio.h"
 #include <math.h>
 #include "minilzo.h"
+#include "mcpwm_foc.h"
 
 #include "hw_axiom_fpga_bitstream.c"    //this file ONLY contains the fpga binary blob
 
@@ -71,6 +72,8 @@ static volatile uint16_t input_current_sensor_offset_samples = 0;
 static volatile uint32_t input_current_sensor_offset_sum = 0;
 static volatile bool current_input_sensor_offset_start_measurement = false;
 //extern unsigned char FPGA_bitstream[BITSTREAM_SIZE];
+static volatile bool axiom_plot_initialized = false;
+static volatile float axiom_plot_sample = 0.0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -84,10 +87,13 @@ static void terminal_cmd_reset_oc(int argc, const char **argv);
 static void terminal_cmd_store_current_sensor_gain(int argc, const char **argv);
 static void terminal_cmd_store_input_current_sensor_gain(int argc, const char **argv);
 static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv);
+static void terminal_cmd_axiom_init_plot(int argc, const char **argv);
 static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+static void hw_axiom_plot_init(void);
+
 void hw_axiom_init_FPGA_CLK(void);
 void hw_axiom_setup_dac(void);
 void hw_axiom_configure_brownout(uint8_t);
@@ -223,7 +229,13 @@ void hw_init_gpio(void) {
 			"Read current sensor gain.",
 			0,
 			terminal_cmd_read_current_sensor_gain);
-    
+
+	terminal_register_command_callback(
+				"axiom_init_plot",
+				"initiliazes plot to experiment tab in rt",
+				0,
+				terminal_cmd_axiom_init_plot);
+
     // Send bitstream over SPI to configure FPGA
 	hw_axiom_configure_FPGA();
 
@@ -659,6 +671,16 @@ static void terminal_cmd_read_current_sensor_gain(int argc, const char **argv) {
 	return;
 }
 
+static void terminal_cmd_axiom_init_plot(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	hw_axiom_plot_init();
+	commands_printf("Axiom Plot Initiliazed");
+
+	return;
+}
+
 float hw_axiom_read_current_sensor_gain() {
 	eeprom_var current_gain;
 
@@ -731,4 +753,36 @@ void hw_axiom_start_input_current_sensor_offset_measurement(void){
 	current_input_sensor_offset_start_measurement = true;
 	input_current_sensor_offset_samples = 0;
 	input_current_sensor_offset_sum = 0;
+}
+
+void hw_axiom_plot_update( void )
+{
+	if(axiom_plot_initialized){
+		commands_plot_set_graph(0);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_input() * 100.0);
+		commands_plot_set_graph(1);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_error() * 100.0);
+		commands_plot_set_graph(2);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_int() * 100.0);
+		commands_plot_set_graph(3);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_output() * 100.0);
+		commands_plot_set_graph(4);
+		commands_send_plot_points(axiom_plot_sample, mcpwm_foc_get_fw_mod_ref() * 100.0);
+
+		axiom_plot_sample++;
+	}
+}
+
+static void hw_axiom_plot_init(void){
+
+	axiom_plot_initialized = false;
+
+	commands_init_plot("Sample", "Percentage");
+
+	commands_plot_add_graph("FwInput");
+	commands_plot_add_graph("FwError");
+	commands_plot_add_graph("FwInt");
+	commands_plot_add_graph("FwOutput");
+	commands_plot_add_graph("FwRef");
+	axiom_plot_initialized = true;
 }

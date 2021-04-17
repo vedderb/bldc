@@ -425,7 +425,12 @@
 #ifndef MCCONF_FOC_FW_Q_CURRENT_FACTOR
 #define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.02 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
 #endif
-
+#ifndef MCCONF_FOC_FW_KP
+#define MCCONF_FOC_FW_KP	0.00 // FW Proportional Gain
+#endif
+#ifndef MCCONF_FOC_FW_KI
+#define MCCONF_FOC_FW_KI	0.00 // FW Integral Gain
+#endif
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
 #define MCCONF_GPD_BUFFER_NOTIFY_LEFT	200		// Notify when the buffer space left is less than this

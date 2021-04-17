@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Constants
-#define MCCONF_SIGNATURE		857427939
+#define MCCONF_SIGNATURE		2272549041
 #define APPCONF_SIGNATURE		3423413835
 
 // Functions
