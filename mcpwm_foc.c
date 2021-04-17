@@ -185,7 +185,6 @@ typedef struct {
 	float mod_int;
 	float output;
 	float id;
-	float speed_rad_s;
 }field_weakening_t;
 
 // Private variables
@@ -3066,31 +3065,33 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
 				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
 
-#if 0
-			fw_current_now = utils_map(duty_abs,
-					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
-					motor->m_conf->l_max_duty,
-					0.0, motor->m_conf->foc_fw_current_max);
-#else
-			fw.mod_ref = motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty;
+			//pick FW algorithm, if ether kp or ki are not zero, we use PI control
+			if( (motor->m_conf->foc_fw_kp  > 0.0) || (motor->m_conf->foc_fw_ki  > 0.0)) {
+				fw.mod_ref = motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty;
 
-			UTILS_LP_FAST(fw.mod_input , duty_abs, 0.01);
+				//UTILS_LP_FAST(fw.mod_input , duty_abs, 0.01);
+				fw.mod_input = duty_abs;
+				fw.mod_error = fw.mod_input - fw.mod_ref;
 
-			fw.mod_error = fw.mod_input - fw.mod_ref;
+				fw.output = fw.mod_int + fw.mod_error * motor->m_conf->foc_fw_kp;
 
-			fw.output = fw.mod_int + fw.mod_error * motor->m_conf->foc_fw_kp;
+				float pre_output = fw.output;
 
-			float pre_output = fw.output;
+				utils_truncate_number((float*)&fw.output, 0.0, 1.0);
 
-			utils_truncate_number((float*)&fw.output, 0.0, motor->m_conf->foc_fw_current_max);
+				fw.mod_int += 	fw.mod_error * motor->m_conf->foc_fw_ki * dt +
+								fw.output - pre_output;
 
-			fw.mod_int += 	fw.mod_error * motor->m_conf->foc_fw_ki * dt +
-							fw.output - pre_output;
+				fw.id = fw.output * motor->m_conf->foc_fw_current_max;
 
-			fw.id = fw.output * motor->m_conf->lo_current_max;
+				fw_current_now = fw.id;
+			}else{
+				fw_current_now = utils_map(duty_abs,
+						motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
+						motor->m_conf->l_max_duty,
+						0.0, motor->m_conf->foc_fw_current_max);
+			}
 
-			fw_current_now = fw.id;
-#endif
 			// m_current_off_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
 			// is not working properly an oscillation can occur on the modulation when changing the current
 			// fast, which can make the estimated duty cycle drop below the FW threshold long enough to stop
@@ -3098,9 +3099,6 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 			// braking happens. Therefore the modulation is left on for some time after leaving FW to give the
 			// oscillation a chance to decay while the MOSFETs are still driven.
 			motor->m_current_off_delay = 1.0;
-		}else{
-			fw.mod_int = 0.0;
-			fw.id = 0.0;
 		}
 
 		if (motor->m_conf->foc_fw_ramp_time < dt) {
@@ -3131,6 +3129,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
 			stop_pwm_hw(motor);
+			fw.mod_int = 0.0;
+			fw.id = 0.0;
 		}
 	}
 

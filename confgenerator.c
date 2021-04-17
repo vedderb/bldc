@@ -128,6 +128,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_fw_duty_start, 10000, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_ramp_time, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_q_current_factor, 10000, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_fw_kp, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_fw_ki, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_notify_left, &ind);
 	buffer_append_int16(buffer, conf->gpd_buffer_interpol, &ind);
 	buffer_append_float16(buffer, conf->gpd_current_filter_const, 10000, &ind);
@@ -477,6 +479,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_fw_duty_start = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_fw_ramp_time = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_fw_q_current_factor = buffer_get_float16(buffer, 10000, &ind);
+	conf->foc_fw_kp = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_fw_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->gpd_buffer_notify_left = buffer_get_int16(buffer, &ind);
 	conf->gpd_buffer_interpol = buffer_get_int16(buffer, &ind);
 	conf->gpd_current_filter_const = buffer_get_float16(buffer, 10000, &ind);
@@ -822,6 +826,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_fw_duty_start = MCCONF_FOC_FW_DUTY_START;
 	conf->foc_fw_ramp_time = MCCONF_FOC_FW_RAMP_TIME;
 	conf->foc_fw_q_current_factor = MCCONF_FOC_FW_Q_CURRENT_FACTOR;
+	conf->foc_fw_kp = MCCONF_FOC_FW_KP;
+	conf->foc_fw_ki = MCCONF_FOC_FW_KI;
 	conf->gpd_buffer_notify_left = MCCONF_GPD_BUFFER_NOTIFY_LEFT;
 	conf->gpd_buffer_interpol = MCCONF_GPD_BUFFER_INTERPOL;
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;
