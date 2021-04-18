@@ -117,7 +117,7 @@ typedef struct {
 	float m_id_set;
 	float m_iq_set;
 	float m_i_fw_set;
-	float m_fw_mod_delay;
+	float m_current_off_delay;
 	float m_openloop_speed;
 	float m_openloop_phase;
 	bool m_output_on;
@@ -1094,6 +1094,16 @@ void mcpwm_foc_get_observer_state(float *x1, float *x2) {
 	volatile motor_all_state_t *motor = motor_now();
 	*x1 = motor->m_observer_x1;
 	*x2 = motor->m_observer_x2;
+}
+
+/**
+ * Set current off delay. Prevent the current controller from switching off modulation
+ * for target currents < cc_min_current for this amount of time.
+ */
+void mcpwm_foc_set_current_off_delay(float delay_sec) {
+	if (motor_now()->m_current_off_delay < delay_sec) {
+		motor_now()->m_current_off_delay = delay_sec;
+	}
 }
 
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
@@ -2771,13 +2781,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
+		const float mod_q = motor_now->m_motor_state.mod_q;
+
 		// Running FW from the 1 khz timer seems fast enough.
 //		run_fw(motor_now, dt);
 		id_set_tmp -= motor_now->m_i_fw_set;
+		iq_set_tmp -= SIGN(mod_q) * motor_now->m_i_fw_set * conf_now->foc_fw_q_current_factor;
 
 		// Apply current limits
 		// TODO: Consider D axis current for the input current as well.
-		const float mod_q = motor_now->m_motor_state.mod_q;
 		if (mod_q > 0.001) {
 			utils_truncate_number(&iq_set_tmp, conf_now->lo_in_current_min / mod_q, conf_now->lo_in_current_max / mod_q);
 		} else if (mod_q < -0.001) {
@@ -2790,8 +2802,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			utils_truncate_number(&iq_set_tmp, -conf_now->lo_current_max, -conf_now->lo_current_min);
 		}
 
-		utils_saturate_vector_2d(&id_set_tmp, &iq_set_tmp,
-								 utils_max_abs(conf_now->lo_current_max, conf_now->lo_current_min));
+		float current_max_abs = fabsf(utils_max_abs(conf_now->lo_current_max, conf_now->lo_current_min));
+		utils_truncate_number_abs(&id_set_tmp, current_max_abs);
+		utils_truncate_number_abs(&iq_set_tmp, sqrtf(SQ(current_max_abs) - SQ(id_set_tmp)));
 
 		motor_now->m_motor_state.id_target = id_set_tmp;
 		motor_now->m_motor_state.iq_target = iq_set_tmp;
@@ -3021,13 +3034,13 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 					motor->m_conf->l_max_duty,
 					0.0, motor->m_conf->foc_fw_current_max);
 
-			// m_fw_mod_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
+			// m_current_off_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
 			// is not working properly an oscillation can occur on the modulation when changing the current
 			// fast, which can make the estimated duty cycle drop below the FW threshold long enough to stop
 			// modulation. When that happens the body diodes in the MOSFETs can see a lot of current and unexpected
 			// braking happens. Therefore the modulation is left on for some time after leaving FW to give the
 			// oscillation a chance to decay while the MOSFETs are still driven.
-			motor->m_fw_mod_delay = 1.0;
+			motor->m_current_off_delay = 1.0;
 		}
 
 		if (motor->m_conf->foc_fw_ramp_time < dt) {
@@ -3042,7 +3055,7 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	run_fw(motor, dt);
 
-	utils_step_towards((float*)&motor->m_fw_mod_delay, 0.0, dt);
+	utils_step_towards((float*)&motor->m_current_off_delay, 0.0, dt);
 
 	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
 	// field weakening current.
@@ -3054,7 +3067,7 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 					motor->m_control_mode == CONTROL_MODE_OPENLOOP_PHASE)) {
 		if (fabsf(motor->m_iq_set) < motor->m_conf->cc_min_current &&
 				motor->m_i_fw_set < motor->m_conf->cc_min_current &&
-				motor->m_fw_mod_delay < dt) {
+				motor->m_current_off_delay < dt) {
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
 			stop_pwm_hw(motor);

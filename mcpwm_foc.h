@@ -104,6 +104,7 @@ void mcpwm_foc_get_voltage_offsets_undriven(
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
 void mcpwm_foc_get_observer_state(float *x1, float *x2);
+void mcpwm_foc_set_current_off_delay(float delay_sec);
 
 // Functions where the motor can be selected
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor);
