@@ -186,6 +186,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		float brake = 0.0;
 #endif
 
+#ifdef HW_HAS_BRAKE_OVERRIDE
+		hw_brake_override(&brake);
+#endif
 		read_voltage2 = brake;
 
 		// Optionally apply a mean value filter
