@@ -201,7 +201,7 @@ bool check_faults(bool ignoreTimers){
 	}
 
 	// Switch partially open and stopped
-	if(switch_state == HALF && abs_erpm < balance_conf.fault_adc_half_erpm){
+	if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
 		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
 			state = FAULT_SWITCH_HALF;
 			return true;
@@ -307,7 +307,7 @@ void apply_torquetilt(void){
 	// Take abs motor current, subtract start offset, and take the max of that with 0 to get the current above our start threshold (absolute).
 	// Then multiply it by "power" to get our desired angle, and min with the limit to respect boundaries.
 	// Finally multiply it by sign motor current to get directionality back
-	torquetilt_target = fminf(fmaxf((fabsf(torquetilt_filtered_current) - balance_conf.torquetilt_start_current), 0) * balance_conf.torquetilt_power, balance_conf.torquetilt_angle_limit) * SIGN(torquetilt_filtered_current);
+	torquetilt_target = fminf(fmaxf((fabsf(torquetilt_filtered_current) - balance_conf.torquetilt_start_current), 0) * balance_conf.torquetilt_strength, balance_conf.torquetilt_angle_limit) * SIGN(torquetilt_filtered_current);
 
 	if(fabsf(torquetilt_target - torquetilt_interpolated) < torquetilt_step_size){
 		torquetilt_interpolated = torquetilt_target;
@@ -321,27 +321,25 @@ void apply_torquetilt(void){
 
 void apply_turntilt(void){
 	// Calculate desired angle
-	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_power;
+	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_strength;
 
 	// Apply cutzone
-	if(abs_roll_angle < balance_conf.turntilt_angle_cut){
+	if(abs_roll_angle < balance_conf.turntilt_start_angle){
 		turntilt_target = 0;
 	}
 
-	// Disable at 0 speed otherwise add directionality
-	if(abs_erpm < 100){
+	// Disable below erpm threshold otherwise add directionality
+	if(abs_erpm < balance_conf.turntilt_start_erpm){
 		turntilt_target = 0;
 	}else {
 		turntilt_target *= SIGN(erpm);
 	}
 
 	// Apply speed scaling
-	if(balance_conf.turntilt_erpm_boost_end > 0){
-		if(abs_erpm < balance_conf.turntilt_erpm_boost_end){
-			turntilt_target *= 1 + ((balance_conf.turntilt_erpm_boost/100.0f) * (abs_erpm / balance_conf.turntilt_erpm_boost_end));
-		}else{
-			turntilt_target *= 1 + (balance_conf.turntilt_erpm_boost/100.0f);
-		}
+	if(abs_erpm < balance_conf.turntilt_erpm_boost_end){
+		turntilt_target *= 1 + ((balance_conf.turntilt_erpm_boost/100.0f) * (abs_erpm / balance_conf.turntilt_erpm_boost_end));
+	}else{
+		turntilt_target *= 1 + (balance_conf.turntilt_erpm_boost/100.0f);
 	}
 
 	// Limit angle to max angle
@@ -536,7 +534,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				abs_proportional = fabsf(proportional);
 				if(abs_proportional > balance_conf.booster_angle){
 					if(abs_proportional - balance_conf.booster_angle < balance_conf.booster_ramp){
-						pid_value += (balance_conf.booster_current * SIGN(proportional)) * (abs_proportional - balance_conf.booster_angle);
+						pid_value += (balance_conf.booster_current * SIGN(proportional)) * ((abs_proportional - balance_conf.booster_angle) / balance_conf.booster_ramp);
 					}else{
 						pid_value += balance_conf.booster_current * SIGN(proportional);
 					}

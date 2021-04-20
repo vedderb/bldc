@@ -714,11 +714,12 @@ typedef struct {
 	float torquetilt_start_current;
 	float torquetilt_angle_limit;
 	float torquetilt_speed;
-	float torquetilt_power;
+	float torquetilt_strength;
 	float torquetilt_filter;
-	float turntilt_power;
+	float turntilt_strength;
 	float turntilt_angle_limit;
-	float turntilt_angle_cut;
+	float turntilt_start_angle;
+	uint16_t turntilt_start_erpm;
 	float turntilt_speed;
 	uint16_t turntilt_erpm_boost;
 	uint16_t turntilt_erpm_boost_end;
