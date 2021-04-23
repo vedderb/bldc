@@ -403,10 +403,10 @@ void nrf51_mdm_probe(ADIv5_AP_t *ap)
 	t->regs_size = 4;
 	t->regs_read = (void*)nop_function;
 	t->regs_write = (void*)nop_function;
-	t->reset = (void*)nop_function;
-	t->halt_request = (void*)nop_function;
+	t->reset = cortexm_reset;
+	t->halt_request = cortexm_halt_request;
 	//t->halt_poll = mdm_halt_poll;
-	t->halt_resume = (void*)nop_function;
+	t->halt_resume = cortexm_halt_resume;
 
 	target_add_commands(t, nrf51_mdm_cmd_list, t->driver);
 }
