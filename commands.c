@@ -462,7 +462,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_MCCONF: {
-#ifndef	HW_MCCONF_READ_ONLY 
+#ifndef	HW_MCCONF_READ_ONLY
 		mc_configuration *mcconf = mempools_alloc_mcconf();
 		*mcconf = *mc_interface_get_configuration();
 
@@ -525,7 +525,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_APPCONF: {
-#ifndef	HW_APPCONF_READ_ONLY 
+#ifndef	HW_APPCONF_READ_ONLY
 		app_configuration *appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
 
@@ -1899,6 +1899,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 			int32_t ind = 0;
 			send_buffer[ind++] = packet_id;
 			buffer_append_int16(send_buffer, bm_reboot(), &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
+		case COMM_BM_HALT_REQ: {
+			bm_halt_req();
+
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
 			}
