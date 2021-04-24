@@ -169,7 +169,8 @@ CSRC = $(STARTUPSRC) \
        $(IMUSRC) \
        $(LORASRC) \
        $(COMPRESSIONSRC) \
-       $(BLACKMAGICSRC)
+       $(BLACKMAGICSRC) \
+       qmlui/qmlui.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -211,7 +212,10 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(IMUINC) \
          $(LORAINC) \
          $(COMPRESSIONINC) \
-         $(BLACKMAGICINC)
+         $(BLACKMAGICINC) \
+         qmlui \
+         qmlui/hw \
+         qmlui/app
 
 #
 # Project, sources and paths

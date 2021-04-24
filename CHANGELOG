@@ -19,6 +19,7 @@
 * Use filtered current for axis decoupling.
 * Odometer is now persistent after firmware updates.
 * Added hw runtime counter (see hw_status in terminal)
+* Added custom UI support.
 
 === FW 5.02 ===
 * IMU calibration improvement.

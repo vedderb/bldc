@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		24
+#define FW_TEST_VERSION_NUMBER		25
 
 #include "datatypes.h"
 
@@ -186,6 +186,24 @@
 #ifdef USER_APP_CONF
 #include USER_APP_CONF
 #endif
+
+// This is how to provide a custom UI in VESC Tool. The UI can be created and tested in the
+// scripting page, then the source files can be exported. The defines below use the exported
+// files to provide the custom UI when VESC Tool connects.
+//
+// The intention if the HW gui is to be part of the HW-file and the app gui is for custom apps.
+// Both can be used at the same time.
+//
+// Defining QMLUI_HW_FULLSCREEN and/or QMLUI_APP_FULLSCREEN will disable the other pages in the
+// mobile version of VESC Tool.
+//
+//#define QMLUI_SOURCE_HW		"qmlui/hw/qmlui_example_hw.c"
+//#define QMLUI_HEADER_HW		"qmlui/hw/qmlui_example_hw.h"
+//#define QMLUI_HW_FULLSCREEN
+//
+//#define QMLUI_SOURCE_APP	"qmlui/app/qmlui_example_app.c"
+//#define QMLUI_HEADER_APP	"qmlui/app/qmlui_example_app.h"
+//#define QMLUI_APP_FULLSCREEN
 
 /*
  * Select default user motor configuration

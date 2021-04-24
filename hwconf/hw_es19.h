@@ -27,7 +27,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-//#define HW_HAS_PHASE_FILTERS
+#define HW_HAS_PHASE_FILTERS
 #define HW_HAS_SI8900
 
 // Macros

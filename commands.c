@@ -48,6 +48,7 @@
 #include "minilzo.h"
 #include "mempools.h"
 #include "bms.h"
+#include "qmlui.h"
 
 #include <math.h>
 #include <string.h>
@@ -70,6 +71,7 @@ static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_can_fwd)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile hwdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
@@ -220,6 +222,26 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 #ifdef HW_HAS_PHASE_FILTERS
 		send_buffer[ind++] = 1;
+#else
+		send_buffer[ind++] = 0;
+#endif
+
+#ifdef QMLUI_SOURCE_HW
+#ifdef QMLUI_HW_FULLSCREEN
+		send_buffer[ind++] = 2;
+#else
+		send_buffer[ind++] = 1;
+#endif
+#else
+		send_buffer[ind++] = 0;
+#endif
+
+#ifdef QMLUI_SOURCE_APP
+#ifdef QMLUI_APP_FULLSCREEN
+		send_buffer[ind++] = 2;
+#else
+		send_buffer[ind++] = 1;
+#endif
 #else
 		send_buffer[ind++] = 0;
 #endif
@@ -685,6 +707,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_CUSTOM_APP_DATA:
 		if (appdata_func) {
 			appdata_func(data, len);
+		}
+		break;
+
+	case COMM_CUSTOM_HW_DATA:
+		if (hwdata_func) {
+			hwdata_func(data, len);
 		}
 		break;
 
@@ -1268,6 +1296,54 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		comm_can_psw_switch(id, is_on, plot);
 	} break;
 
+	case COMM_GET_QML_UI_HW: {
+#ifdef QMLUI_SOURCE_HW
+		int32_t ind = 0;
+
+		int32_t len_qml = buffer_get_int32(data, &ind);
+		int32_t ofs_qml = buffer_get_int32(data, &ind);
+
+		if ((len_qml + ofs_qml) > DATA_QML_HW_SIZE || len_qml > (PACKET_MAX_PL_LEN - 10)) {
+			break;
+		}
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		send_buffer_global[ind++] = packet_id;
+		buffer_append_int32(send_buffer_global, DATA_QML_HW_SIZE, &ind);
+		buffer_append_int32(send_buffer_global, ofs_qml, &ind);
+		memcpy(send_buffer_global + ind, data_qml_hw + ofs_qml, len_qml);
+		ind += len_qml;
+		reply_func(send_buffer_global, ind);
+
+		chMtxUnlock(&send_buffer_mutex);
+#endif
+	} break;
+
+	case COMM_GET_QML_UI_APP: {
+#ifdef QMLUI_SOURCE_APP
+		int32_t ind = 0;
+
+		int32_t len_qml = buffer_get_int32(data, &ind);
+		int32_t ofs_qml = buffer_get_int32(data, &ind);
+
+		if ((len_qml + ofs_qml) > DATA_QML_APP_SIZE || len_qml > (PACKET_MAX_PL_LEN - 10)) {
+			break;
+		}
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		send_buffer_global[ind++] = packet_id;
+		buffer_append_int32(send_buffer_global, DATA_QML_APP_SIZE, &ind);
+		buffer_append_int32(send_buffer_global, ofs_qml, &ind);
+		memcpy(send_buffer_global + ind, data_qml_app + ofs_qml, len_qml);
+		ind += len_qml;
+		reply_func(send_buffer_global, ind);
+
+		chMtxUnlock(&send_buffer_mutex);
+#endif
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1373,10 +1449,24 @@ void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 	appdata_func = func;
 }
 
+void commands_set_hw_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	hwdata_func = func;
+}
+
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
 	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
+	index += len;
+	commands_send_packet(send_buffer_global, index);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_send_hw_data(unsigned char *data, unsigned int len) {
+	int32_t index = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[index++] = COMM_CUSTOM_HW_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
 	commands_send_packet(send_buffer_global, index);
