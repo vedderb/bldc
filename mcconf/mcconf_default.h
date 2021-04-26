@@ -156,6 +156,9 @@
 #ifndef MCCONF_P_PID_ANG_DIV
 #define MCCONF_P_PID_ANG_DIV			1.0		// Divide angle by this value
 #endif
+#ifndef MCCONF_P_PID_GAIN_DEC_ANGLE
+#define MCCONF_P_PID_GAIN_DEC_ANGLE		0.0		// Decrease PID-gains when the error is below this value
+#endif
 
 // Current control parameters
 #ifndef MCCONF_CC_GAIN

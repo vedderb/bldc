@@ -44,6 +44,7 @@
 #define MCCONF_P_PID_KD					(0.01 * 4.0)
 #define MCCONF_P_PID_ANG_DIV			(75.0 * 7.0 * 4.0) // 1:75 gearing and 7 pole pairs. 4.0 to avoid wrap around.
 #define MCCONF_P_PID_KD_FILTER			0.2
+#define MCCONF_P_PID_GAIN_DEC_ANGLE		300.0
 
 // FOC
 #define MCCONF_FOC_CURRENT_KP			0.027
@@ -63,6 +64,7 @@
 #define MCCONF_FOC_HALL_TAB_6			42
 #define MCCONF_FOC_HALL_TAB_7			255
 #define MCCONF_FOC_SL_ERPM				2000.0
+#define MCCONF_M_HALL_EXTRA_SAMPLES		3
 
 // Other
 #define MCCONF_FOC_PLL_KP				500.0

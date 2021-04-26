@@ -3486,24 +3486,6 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 		*x2 += x2_dot * dt;
 	} break;
 
-	case FOC_OBSERVER_ORTEGA_ITERATIVE: {
-		// Iterative with some trial and error
-		const int iterations = 6;
-		const float dt_iteration = dt / (float)iterations;
-		for (int i = 0;i < iterations;i++) {
-			float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
-			float gamma_tmp = gamma_half;
-			if (utils_truncate_number_abs(&err, lambda_2 * 0.2)) {
-				gamma_tmp *= 10.0;
-			}
-			float x1_dot = -R_ia + v_alpha + gamma_tmp * (*x1 - L_ia) * err;
-			float x2_dot = -R_ib + v_beta + gamma_tmp * (*x2 - L_ib) * err;
-
-			*x1 += x1_dot * dt_iteration;
-			*x2 += x2_dot * dt_iteration;
-		}
-	} break;
-
 	default:
 		break;
 	}
@@ -4098,8 +4080,24 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 		}
 	}
 
-	p_term = error * conf_now->p_pid_kp;
-	motor->m_pos_i_term += error * (conf_now->p_pid_ki * dt);
+	float kp = conf_now->p_pid_kp;
+	float ki = conf_now->p_pid_ki;
+	float kd = conf_now->p_pid_kd;
+
+	if (conf_now->p_pid_gain_dec_angle > 0.1) {
+		float min_error = conf_now->p_pid_gain_dec_angle / conf_now->p_pid_ang_div;
+		float error_abs = fabs(error);
+
+		if (error_abs < min_error) {
+			float scale = error_abs / min_error;
+			kp *= scale;
+			ki *= scale;
+			kd *= scale;
+		}
+	}
+
+	p_term = error * kp;
+	motor->m_pos_i_term += error * (ki * dt);
 
 	// Average DT for the D term when the error does not change. This likely
 	// happens at low speed when the position resolution is low and several
@@ -4109,7 +4107,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 	if (error == motor->m_pos_prev_error) {
 		d_term = 0.0;
 	} else {
-		d_term = (error - motor->m_pos_prev_error) * (conf_now->p_pid_kd / motor->m_pos_dt_int);
+		d_term = (error - motor->m_pos_prev_error) * (kd / motor->m_pos_dt_int);
 		motor->m_pos_dt_int = 0.0;
 	}
 

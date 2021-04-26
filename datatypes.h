@@ -106,7 +106,6 @@ typedef enum {
 
 typedef enum {
 	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
-	FOC_OBSERVER_ORTEGA_ITERATIVE
 } mc_foc_observer_type;
 
 typedef enum {
@@ -423,6 +422,7 @@ typedef struct {
 	float p_pid_kd;
 	float p_pid_kd_filter;
 	float p_pid_ang_div;
+	float p_pid_gain_dec_angle;
 
 	// Current controller
 	float cc_startup_boost_duty;
