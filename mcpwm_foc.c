@@ -174,6 +174,7 @@ typedef struct {
 	int m_ang_hall_int_prev;
 	bool m_using_hall;
 	float m_ang_hall;
+	float m_ang_hall_rate_limited;
 	float m_hall_dt_diff_last;
 	float m_hall_dt_diff_now;
 } motor_all_state_t;
@@ -4424,9 +4425,21 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 			}
 		}
 
+		// Limit hall sensor rate of change. This will reduce current spikes in the current controllers when the angle estimation
+		// changes fast.
+		float angle_step = (fmaxf(rpm_abs_hall, conf_now->foc_hall_interp_erpm) / 60.0) * 2.0 * M_PI * dt * 1.5;
+		float angle_diff = utils_angle_difference_rad(motor->m_ang_hall, motor->m_ang_hall_rate_limited);
+		if (fabsf(angle_diff) < angle_step) {
+			motor->m_ang_hall_rate_limited = motor->m_ang_hall;
+		} else {
+			motor->m_ang_hall_rate_limited += angle_step * SIGN(angle_diff);
+		}
+
+		utils_norm_angle_rad((float*)&motor->m_ang_hall_rate_limited);
 		utils_norm_angle_rad((float*)&motor->m_ang_hall);
+
 		if (motor->m_using_hall) {
-			angle = motor->m_ang_hall;
+			angle = motor->m_ang_hall_rate_limited;
 		}
 	} else {
 		// Invalid hall reading. Don't update angle.
