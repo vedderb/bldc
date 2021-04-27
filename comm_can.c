@@ -1331,7 +1331,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			case CAN_PACKET_PING: {
 				uint8_t buffer[2];
-				buffer[0] = is_replaced ? utils_second_motor_id() : app_get_configuration()->controller_id;
+				buffer[0] = is_replaced ? utils_second_motor_id() : id;
 				buffer[1] = HW_TYPE_VESC;
 				comm_can_transmit_eid_replace(data8[0] |
 						((uint32_t)CAN_PACKET_PONG << 8), buffer, 2, true);
