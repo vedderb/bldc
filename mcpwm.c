@@ -746,7 +746,7 @@ mc_state mcpwm_get_state(void) {
  * The KV value.
  */
 float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+	return rpm_now / (mc_interface_get_input_voltage_filtered() * fabsf(dutycycle_now));
 }
 
 /**
@@ -1204,7 +1204,7 @@ static void run_pid_control_speed(void) {
 	}
 #else
 	// Compensation for supply voltage variations
-	float scale = 1.0 / GET_INPUT_VOLTAGE();
+	float scale = 1.0 / mc_interface_get_input_voltage_filtered();
 
 	// Compute parameters
 	p_term = error * conf->s_pid_kp * scale;

@@ -83,6 +83,8 @@ typedef struct {
 	float m_motor_current_unbalance;
 	float m_motor_current_unbalance_error_rate;
 	float m_f_samp_now;
+	float m_input_voltage_filtered;
+	float m_input_voltage_filtered_slower;
 
 	// Backup data counters
 	uint64_t m_odometer_last;
@@ -1092,6 +1094,10 @@ float mc_interface_get_tot_current_in_filtered(void) {
 	return ret;
 }
 
+float mc_interface_get_input_voltage_filtered(void) {
+	return motor_now()->m_input_voltage_filtered;
+}
+
 float mc_interface_get_abs_motor_current_unbalance(void) {
 	float ret = 0.0;
 
@@ -1353,7 +1359,7 @@ float mc_interface_temp_motor_filtered(void) {
  */
 float mc_interface_get_battery_level(float *wh_left) {
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	const float v_in = GET_INPUT_VOLTAGE();
+	const float v_in = motor_now()->m_input_voltage_filtered_slower;
 	float battery_avg_voltage = 0.0;
 	float battery_avg_voltage_left = 0.0;
 	float ah_left = 0;
@@ -1551,6 +1557,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 	volatile mc_configuration *conf_now = &motor->m_conf;
 	const float input_voltage = GET_INPUT_VOLTAGE();
+	UTILS_LP_FAST(motor->m_input_voltage_filtered, input_voltage, 0.02);
 
 	// Check for faults that should stop the motor
 	static int wrong_voltage_iterations = 0;
@@ -1865,7 +1872,7 @@ void mc_interface_adc_inj_int_handler(void) {
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf) {
 	bool is_motor_1 = motor == &m_motor_1;
 
-	const float v_in = GET_INPUT_VOLTAGE();
+	const float v_in = motor->m_input_voltage_filtered;
 	float rpm_now = 0.0;
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
@@ -2117,6 +2124,8 @@ static volatile motor_if_state_t *motor_now(void) {
 static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
 	mc_interface_select_motor_thread(is_motor_1 ? 1 : 2);
+
+	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, 0.01);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {

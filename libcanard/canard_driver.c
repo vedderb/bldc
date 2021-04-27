@@ -336,7 +336,7 @@ void canard_driver_init(void) {
 static void calculateTotalCurrent(void) {
 	// Calculate total current being consumed by the ESCs on the system
 	float totalCurrent = mc_interface_get_tot_current();
-	float avgVoltage = GET_INPUT_VOLTAGE();
+	float avgVoltage = mc_interface_get_input_voltage_filtered();
 	float totalSysCurrent = 0;
 
 	uint8_t escTotal = 1;
@@ -409,7 +409,7 @@ static void sendEscStatus(void) {
 			mc_interface_get_configuration()->l_current_max_scale) * 100.0;
 	status.rpm = mc_interface_get_rpm();
 	status.temperature = mc_interface_temp_fet_filtered() + 273.15;
-	status.voltage = GET_INPUT_VOLTAGE();
+	status.voltage = mc_interface_get_input_voltage_filtered();
 
 	uavcan_equipment_esc_Status_encode(&status, buffer);
 

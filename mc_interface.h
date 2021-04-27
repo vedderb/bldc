@@ -65,6 +65,7 @@ float mc_interface_get_tot_current_directional(void);
 float mc_interface_get_tot_current_directional_filtered(void);
 float mc_interface_get_tot_current_in(void);
 float mc_interface_get_tot_current_in_filtered(void);
+float mc_interface_get_input_voltage_filtered(void);
 int mc_interface_get_tachometer_value(bool reset);
 int mc_interface_get_tachometer_abs_value(bool reset);
 float mc_interface_get_last_inj_adc_isr_duration(void);
