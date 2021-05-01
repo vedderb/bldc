@@ -196,7 +196,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
 		int32_t ind = 0;
-		uint8_t send_buffer[50];
+		uint8_t send_buffer[60];
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
@@ -243,7 +243,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = 1;
 #endif
 #else
-		send_buffer[ind++] = 0;
+		if (flash_helper_qmlui_data()) {
+			send_buffer[ind++] = flash_helper_qmlui_flags();
+		} else {
+			send_buffer[ind++] = 0;
+		}
 #endif
 
 		fw_version_sent_cnt++;
@@ -1321,27 +1325,71 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_GET_QML_UI_APP: {
-#ifdef QMLUI_SOURCE_APP
 		int32_t ind = 0;
 
 		int32_t len_qml = buffer_get_int32(data, &ind);
 		int32_t ofs_qml = buffer_get_int32(data, &ind);
 
-		if ((len_qml + ofs_qml) > DATA_QML_APP_SIZE || len_qml > (PACKET_MAX_PL_LEN - 10)) {
+		uint8_t *qmlui_data = flash_helper_qmlui_data();
+		int32_t qmlui_len = flash_helper_qmlui_size();
+
+#ifdef QMLUI_SOURCE_APP
+		qmlui_data = data_qml_app;
+		qmlui_len = DATA_QML_APP_SIZE;
+#endif
+
+		if (!qmlui_data) {
+			break;
+		}
+
+		if ((len_qml + ofs_qml) > qmlui_len || len_qml > (PACKET_MAX_PL_LEN - 10)) {
 			break;
 		}
 
 		chMtxLock(&send_buffer_mutex);
 		ind = 0;
 		send_buffer_global[ind++] = packet_id;
-		buffer_append_int32(send_buffer_global, DATA_QML_APP_SIZE, &ind);
+		buffer_append_int32(send_buffer_global, qmlui_len, &ind);
 		buffer_append_int32(send_buffer_global, ofs_qml, &ind);
-		memcpy(send_buffer_global + ind, data_qml_app + ofs_qml, len_qml);
+		memcpy(send_buffer_global + ind, qmlui_data + ofs_qml, len_qml);
 		ind += len_qml;
 		reply_func(send_buffer_global, ind);
 
 		chMtxUnlock(&send_buffer_mutex);
-#endif
+	} break;
+
+	case COMM_QMLUI_ERASE: {
+		int32_t ind = 0;
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+		uint16_t flash_res = flash_helper_erase_qmlui();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_QMLUI_ERASE;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_QMLUI_WRITE: {
+		int32_t ind = 0;
+		uint32_t qmlui_offset = buffer_get_uint32(data, &ind);
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(2000);
+		}
+		uint16_t flash_res = flash_helper_write_qmlui(qmlui_offset, data + ind, len - ind);
+
+		SHUTDOWN_RESET();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_QMLUI_WRITE;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		buffer_append_uint32(send_buffer, qmlui_offset, &ind);
+		reply_func(send_buffer, ind);
 	} break;
 
 	// Blocking commands. Only one of them runs at any given time, in their

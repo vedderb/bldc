@@ -23,6 +23,8 @@
 * Limit hall sensor angle rate of change based on ERPM.
 * Added p_pid_gain_dec_angle parameter.
 * Low pass filter input voltage.
+* Dual hardware CAN-scan fix.
+* Dynamic QML-script write support.
 
 === FW 5.02 ===
 * IMU calibration improvement.
