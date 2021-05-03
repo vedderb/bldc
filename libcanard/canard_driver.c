@@ -1162,7 +1162,9 @@ static THD_FUNCTION(canard_thread, arg) {
 			sendNodeStatus();
 		}
 
-		if (ST2MS(chVTTimeElapsedSinceX(last_esc_status_time)) >= 1000 / conf->send_can_status_rate_hz && conf->send_can_status != CAN_STATUS_DISABLED) {
+		if (conf->send_can_status_rate_hz > 0 &&
+				ST2MS(chVTTimeElapsedSinceX(last_esc_status_time)) >= (1000 / conf->send_can_status_rate_hz) &&
+				conf->send_can_status != CAN_STATUS_DISABLED) {
 			last_esc_status_time = chVTGetSystemTimeX();
 			sendEscStatus();
 		}

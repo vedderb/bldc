@@ -1149,6 +1149,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 			}
 		}
 
+		while (conf->send_can_status_rate_hz == 0) {
+			chThdSleepMilliseconds(10);
+		}
+
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / conf->send_can_status_rate_hz;
 		if (sleep_time == 0) {
 			sleep_time = 1;
