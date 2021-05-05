@@ -19,6 +19,7 @@
 
 #include "conf_general.h"
 
+#include "app.h"
 #include "ch.h" // ChibiOS
 #include "hal.h" // ChibiOS HAL
 #include "mc_interface.h" // Motor control functions
@@ -98,6 +99,7 @@ static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportion
 static systime_t current_time, last_time, diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_state, d_pt1_k;
+static float autosuspend_timer, autosuspend_timeout;
 
 
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
@@ -113,6 +115,18 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
 	torquetilt_step_size = balance_conf.torquetilt_speed / balance_conf.hertz;
 	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
+
+	switch (app_get_configuration()->shutdown_mode) {
+	case SHUTDOWN_MODE_OFF_AFTER_10S: autosuspend_timeout = 10; break;
+	case SHUTDOWN_MODE_OFF_AFTER_1M: autosuspend_timeout = 60; break;
+	case SHUTDOWN_MODE_OFF_AFTER_5M: autosuspend_timeout = 60 * 5; break;
+	case SHUTDOWN_MODE_OFF_AFTER_10M: autosuspend_timeout = 60 * 10; break;
+	case SHUTDOWN_MODE_OFF_AFTER_30M: autosuspend_timeout = 60 * 30; break;
+	case SHUTDOWN_MODE_OFF_AFTER_1H: autosuspend_timeout = 60 * 60; break;
+	case SHUTDOWN_MODE_OFF_AFTER_5H: autosuspend_timeout = 60 * 60 * 5; break;
+	default:
+		autosuspend_timeout = 0;
+	}
 }
 
 void app_balance_start(void) {
@@ -493,12 +507,15 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 				reset_vars();
 				state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
+				autosuspend_timer = -1;
+
 				break;
 			case (RUNNING):
 			case (RUNNING_TILTBACK_DUTY):
 			case (RUNNING_TILTBACK_HIGH_VOLTAGE):
 			case (RUNNING_TILTBACK_LOW_VOLTAGE):
 			case (RUNNING_TILTBACK_CONSTANT):
+				autosuspend_timer = -1;
 
 				// Check for faults
 				if(check_faults(false)){
@@ -574,6 +591,17 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (FAULT_SWITCH_HALF):
 			case (FAULT_SWITCH_FULL):
 			case (FAULT_STARTUP):
+				if (autosuspend_timer == -1)
+					autosuspend_timer = current_time;
+
+				if (autosuspend_timeout &&
+					(ST2S(current_time - autosuspend_timer) > autosuspend_timeout)){
+					// Timeout: no way to return from here (requires power cycling)
+					// stop balance app
+					app_balance_stop();
+					break;
+				}
+
 				// Check for valid startup position and switch state
 				if(fabsf(pitch_angle) < balance_conf.startup_pitch_tolerance && fabsf(roll_angle) < balance_conf.startup_roll_tolerance && switch_state == ON){
 					reset_vars();
