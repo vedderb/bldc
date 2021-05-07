@@ -3627,18 +3627,18 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
-			dec_vd = state_m->iq_filter * state_m->speed_rad_s * lq * (3.0 / 2.0);
-			dec_vq = state_m->id_filter * state_m->speed_rad_s * ld * (3.0 / 2.0);
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq * (3.0 / 2.0);
+			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld * (3.0 / 2.0);
 			break;
 
 		case FOC_CC_DECOUPLING_BEMF:
-			dec_bemf = state_m->speed_rad_s * conf_now->foc_motor_flux_linkage;
+			dec_bemf = motor->m_speed_est_fast * conf_now->foc_motor_flux_linkage;
 			break;
 
 		case FOC_CC_DECOUPLING_CROSS_BEMF:
-			dec_vd = state_m->iq_filter * state_m->speed_rad_s * lq * (3.0 / 2.0);
-			dec_vq = state_m->id_filter * state_m->speed_rad_s * ld * (3.0 / 2.0);
-			dec_bemf = state_m->speed_rad_s * conf_now->foc_motor_flux_linkage;
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq * (3.0 / 2.0);
+			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld * (3.0 / 2.0);
+			dec_bemf = motor->m_speed_est_fast * conf_now->foc_motor_flux_linkage;
 			break;
 
 		default:
