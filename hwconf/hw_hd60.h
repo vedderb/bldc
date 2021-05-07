@@ -271,6 +271,10 @@
 #define MCCONF_FOC_F_SW					30000.0
 #endif
 
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LATCH_SHUTDOWN // DRV8301 over current protection mode
+#endif
+
 // Setting limits
 #define HW_LIM_CURRENT			-100.0, 100.0
 #define HW_LIM_CURRENT_IN		-100.0, 100.0

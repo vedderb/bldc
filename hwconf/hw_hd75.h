@@ -287,6 +287,10 @@
 #define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
 #endif
 
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LATCH_SHUTDOWN // DRV8301 over current protection mode
+#endif
+
 // Setting limits
 #define HW_LIM_CURRENT			-80.0, 80.0
 #define HW_LIM_CURRENT_IN		-80.0, 80.0
