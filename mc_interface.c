@@ -200,7 +200,6 @@ void mc_interface_init(void) {
 	mc_interface_select_motor_thread(motor_old);
 
 	// Initialize encoder
-#if !WS2811_ENABLE
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
 		encoder_init_abi(motor_now()->m_conf.m_encoder_counts);
@@ -242,7 +241,6 @@ void mc_interface_init(void) {
 	default:
 		break;
 	}
-#endif
 
 	// Initialize selected implementation
 	switch (motor_now()->m_conf.motor_type) {
@@ -330,7 +328,6 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	configuration->motor_type = MOTOR_TYPE_FOC;
 #endif
 
-#if !WS2811_ENABLE
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
 		switch (configuration->m_sensor_port_mode) {
@@ -376,7 +373,6 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
 		encoder_set_counts(configuration->m_encoder_counts);
 	}
-#endif
 
 #ifdef HW_HAS_DRV8301
 	drv8301_set_oc_mode(configuration->m_drv8301_oc_mode);

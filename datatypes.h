@@ -974,6 +974,11 @@ typedef enum {
 	COMM_CUSTOM_HW_DATA,
 	COMM_QMLUI_ERASE,
 	COMM_QMLUI_WRITE,
+
+	// IO Board
+	COMM_IO_BOARD_GET_ALL,
+	COMM_IO_BOARD_SET_PWM,
+	COMM_IO_BOARD_SET_DIGITAL,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1054,18 +1059,6 @@ typedef struct {
 	float temperature;
 	int drv8301_faults;
 } fault_data;
-
-// External LED state
-typedef enum {
-	LED_EXT_OFF = 0,
-	LED_EXT_NORMAL,
-	LED_EXT_BRAKE,
-	LED_EXT_TURN_LEFT,
-	LED_EXT_TURN_RIGHT,
-	LED_EXT_BRAKE_TURN_LEFT,
-	LED_EXT_BRAKE_TURN_RIGHT,
-	LED_EXT_BATT
-} LED_EXT_STATE;
 
 typedef struct {
 	int js_x;

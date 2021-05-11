@@ -27,7 +27,6 @@
 #include "timeout.h"
 #include <string.h>
 #include <math.h>
-#include "led_external.h"
 #include "datatypes.h"
 #include "comm_can.h"
 #include "terminal.h"
@@ -241,7 +240,6 @@ static THD_FUNCTION(output_thread, arg) {
 		const float max_current_diff = mcconf->l_current_max * mcconf->l_current_max_scale * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
-			led_external_set_state(LED_EXT_BATT);
 			was_pid = false;
 			continue;
 		}
@@ -265,31 +263,9 @@ static THD_FUNCTION(output_thread, arg) {
 
 		was_z = chuck_d.bt_z;
 
-		led_external_set_reversed(is_reverse);
-
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, config.hyst, 1.0);
 		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
-
-		// LEDs
-		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;
-		if (out_val < -0.001) {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_BRAKE);
-			}
-		} else {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_NORMAL);
-			}
-		}
 
 		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;

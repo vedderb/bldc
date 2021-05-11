@@ -2236,13 +2236,10 @@ void mcpwm_reset_hall_detect_table(void) {
  * @return
  * 0: OK
  * -1: Invalid hall sensor output
- * -2: WS2811 enabled
  * -3: Encoder enabled
  */
 int mcpwm_get_hall_detect_result(int8_t *table) {
-	if (WS2811_ENABLE) {
-		return -2;
-	} else if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
+	if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		return -3;
 	}
 

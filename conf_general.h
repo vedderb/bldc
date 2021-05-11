@@ -262,20 +262,6 @@
 #define LED_EXT_BATT_HIGH			33.0
 
 /*
- * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
- * at the same time.
- */
-#ifndef WS2811_ENABLE
-#define WS2811_ENABLE				0
-#endif
-#define WS2811_CLK_HZ				800000
-#define WS2811_LED_NUM				28
-#define WS2811_USE_CH2				1		// 0: CH1 (PB6) 1: CH2 (PB7)
-#ifndef WS2811_TEST
-#define WS2811_TEST					0		// Show a test pattern
-#endif
-
-/*
  * Servo output driver
  */
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds

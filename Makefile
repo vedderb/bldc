@@ -146,8 +146,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       ws2811.c \
-       led_external.c \
        encoder.c \
        flash_helper.c \
        mc_interface.c \
