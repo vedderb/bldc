@@ -131,6 +131,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 			if (res != FLASH_COMPLETE) {
 				FLASH_Lock();
 				timeout_configure_IWDT();
+				mc_interface_ignore_input_both(5000);
 				utils_sys_unlock_cnt();
 				return res;
 			}
@@ -141,6 +142,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	FLASH_Lock();
 	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(5000);
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
@@ -370,11 +372,16 @@ static uint16_t erase_sector(uint32_t sector) {
 	uint16_t res = FLASH_EraseSector(sector, VoltageRange_3);
 	if (res != FLASH_COMPLETE) {
 		FLASH_Lock();
+		timeout_configure_IWDT();
+		mc_interface_ignore_input_both(5000);
+		utils_sys_unlock_cnt();
+
 		return res;
 	}
 
 	FLASH_Lock();
 	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(5000);
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
@@ -394,13 +401,17 @@ static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
 		uint16_t res = FLASH_ProgramByte(base + i, data[i]);
 		if (res != FLASH_COMPLETE) {
 			FLASH_Lock();
+			timeout_configure_IWDT();
+			mc_interface_ignore_input_both(5000);
+			utils_sys_unlock_cnt();
+
 			return res;
 		}
 	}
+
 	FLASH_Lock();
-
 	timeout_configure_IWDT();
-
+	mc_interface_ignore_input_both(5000);
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;

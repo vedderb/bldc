@@ -86,11 +86,14 @@ float mc_interface_get_speed(void);
 float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
 
+setup_values mc_interface_get_setup_values(void);
+
 // odometer
 uint64_t mc_interface_get_odometer(void);
 void mc_interface_set_odometer(uint64_t new_odometer_meters);
 
-setup_values mc_interface_get_setup_values(void);
+void mc_interface_ignore_input(int time_ms);
+void mc_interface_ignore_input_both(int time_ms);
 
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr);

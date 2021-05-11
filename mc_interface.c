@@ -1480,6 +1480,52 @@ setup_values mc_interface_get_setup_values(void) {
 	return val;
 }
 
+/**
+ * Set odometer value in meters.
+ *
+ * @param new_odometer_meters
+ * new odometer value in meters
+ */
+void mc_interface_set_odometer(uint64_t new_odometer_meters) {
+	g_backup.odometer = new_odometer_meters;
+}
+
+/**
+ * Return current odometer value in meters.
+ *
+ * @return
+ * Odometer value in meters, including current trip
+ */
+uint64_t mc_interface_get_odometer(void) {
+	return g_backup.odometer;
+}
+
+/**
+ * Ignore motor control commands for this amount of time.
+ */
+void mc_interface_ignore_input(int time_ms) {
+	volatile motor_if_state_t *motor = motor_now();
+
+	if (time_ms > motor->m_ignore_iterations) {
+		motor->m_ignore_iterations = time_ms;
+	}
+}
+
+/**
+ * Ignore motor control commands for this amount of time on both motors.
+ */
+void mc_interface_ignore_input_both(int time_ms) {
+	if (time_ms > m_motor_1.m_ignore_iterations) {
+		m_motor_1.m_ignore_iterations = time_ms;
+	}
+
+#ifdef HW_HAS_DUAL_MOTORS
+	if (time_ms > m_motor_2.m_ignore_iterations) {
+		m_motor_2.m_ignore_iterations = time_ms;
+	}
+#endif
+}
+
 // MC implementation functions
 
 /**
@@ -2463,24 +2509,4 @@ unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
 	unsigned crc_new = crc16((uint8_t*)conf, sizeof(mc_configuration));
 	conf->crc = crc_old;
 	return crc_new;
-}
-
-/**
- * Set odometer value in meters.
- *
- * @param new_odometer_meters
- * new odometer value in meters
- */
-void mc_interface_set_odometer(uint64_t new_odometer_meters) {
-	g_backup.odometer = new_odometer_meters;
-}
-
-/**
- * Return current odometer value in meters.
- *
- * @return
- * Odometer value in meters, including current trip
- */
-uint64_t mc_interface_get_odometer(void) {
-	return g_backup.odometer;
 }
