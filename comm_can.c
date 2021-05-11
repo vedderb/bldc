@@ -847,6 +847,10 @@ io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
+	if (id == 255 && io_board_adc_1_4[0].id >= 0) {
+		return &io_board_adc_1_4[0];
+	}
+
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		if (io_board_adc_1_4[i].id == id) {
 			return &io_board_adc_1_4[i];
@@ -865,9 +869,13 @@ io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id) {
+	if (id == 255 && io_board_adc_5_8[0].id >= 0) {
+		return &io_board_adc_5_8[0];
+	}
+
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		if (io_board_adc_5_8[i].id == id) {
-			return &io_board_adc_1_4[i];
+			return &io_board_adc_5_8[i];
 		}
 	}
 
@@ -883,6 +891,10 @@ io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index) {
 }
 
 io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id) {
+	if (id == 255 && io_board_digital_in[0].id >= 0) {
+		return &io_board_digital_in[0];
+	}
+
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		if (io_board_digital_in[i].id == id) {
 			return &io_board_digital_in[i];

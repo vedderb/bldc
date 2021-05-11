@@ -1392,6 +1392,67 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_IO_BOARD_GET_ALL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+
+		io_board_adc_values *adc_1_4 = comm_can_get_io_board_adc_1_4_id(id);
+		io_board_adc_values *adc_5_8 = comm_can_get_io_board_adc_5_8_id(id);
+		io_board_digial_inputs *digital_in = comm_can_get_io_board_digital_in_id(id);
+
+		if (!adc_1_4 && !adc_5_8 && !digital_in) {
+			break;
+		}
+
+		uint8_t send_buffer[70];
+		ind = 0;
+		send_buffer[ind++] = packet_id;
+		buffer_append_int16(send_buffer, id, &ind);
+
+		if (adc_1_4) {
+			send_buffer[ind++] = 1;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (adc_5_8) {
+			send_buffer[ind++] = 2;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (digital_in) {
+			send_buffer[ind++] = 3;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 32) & 0xFFFFFFFF, &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 0) & 0xFFFFFFFF, &ind);
+		}
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_IO_BOARD_SET_PWM: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		float duty = buffer_get_float32_auto(data, &ind);
+		comm_can_io_board_set_output_pwm(id, channel, duty);
+	} break;
+
+	case COMM_IO_BOARD_SET_DIGITAL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		bool on = data[ind++];
+		comm_can_io_board_set_output_digital(id, channel, on);
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
