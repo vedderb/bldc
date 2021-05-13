@@ -122,6 +122,12 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3000)) {
+		return 100;
+	}
+
 	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
@@ -366,6 +372,12 @@ static uint16_t erase_sector(uint32_t sector) {
 
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3000)) {
+		return 100;
+	}
+
 	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
@@ -394,6 +406,12 @@ static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
 
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3000)) {
+		return 100;
+	}
+
 	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 

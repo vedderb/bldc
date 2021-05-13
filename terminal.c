@@ -473,6 +473,7 @@ void terminal_process_string(char *str) {
 				}
 
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1000);
 				mc_interface_set_configuration(mcconf_old);
 
 				mempools_free_mcconf(mcconf);
@@ -987,6 +988,7 @@ void terminal_process_string(char *str) {
 
 				mc_interface_lock_override_once();
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1000);
 				mcconf->motor_type = motor_type_old;
 				mc_interface_set_configuration(mcconf);
 				mempools_free_mcconf(mcconf);

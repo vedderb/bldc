@@ -807,6 +807,41 @@ void mc_interface_release_motor(void) {
 	mc_interface_set_current(0.0);
 }
 
+bool mc_interface_wait_for_motor_release(float timeout) {
+	systime_t time_start = chVTGetSystemTimeX();
+	bool res = false;
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		while (UTILS_AGE_S(time_start) < timeout) {
+			if (mcpwm_get_state() == MC_STATE_OFF) {
+				res = true;
+				break;
+			}
+
+			chThdSleepMilliseconds(1);
+		}
+		break;
+
+	case MOTOR_TYPE_FOC:
+		while (UTILS_AGE_S(time_start) < timeout) {
+			if (mcpwm_foc_get_state() == MC_STATE_OFF) {
+				res = true;
+				break;
+			}
+
+			chThdSleepMilliseconds(1);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return res;
+}
+
 /**
  * Stop the motor and use braking.
  */
