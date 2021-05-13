@@ -599,19 +599,53 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	DCCAL_OFF();
 
 	if (m_motor_1.m_conf->foc_offsets_cal_on_boot) {
-		for (int i = 0;i < 3;i++) {
-			m_motor_1.m_conf->foc_offsets_voltage[i] = 0.0;
-			m_motor_1.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
-			m_motor_1.m_conf->foc_offsets_current[i] = 2048;
+		systime_t cal_start_time = chVTGetSystemTimeX();
+		float cal_start_timeout = 10.0;
 
-#ifdef HW_HAS_DUAL_MOTORS
-			m_motor_2.m_conf->foc_offsets_voltage[i] = 0.0;
-			m_motor_2.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
-			m_motor_2.m_conf->foc_offsets_current[i] = 2048;
-#endif
+		// Wait for input voltage to rise above minimum voltage
+		while (mc_interface_get_input_voltage_filtered() < m_motor_1.m_conf->l_min_vin) {
+			chThdSleepMilliseconds(1);
+			if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
+				m_dccal_done = true;
+				break;
+			}
 		}
 
-		mcpwm_foc_dc_cal(false);
+		// Wait for input voltage to settle
+		if (!m_dccal_done) {
+			float v_in_last = mc_interface_get_input_voltage_filtered();
+			systime_t v_in_stable_time = chVTGetSystemTimeX();
+			while (UTILS_AGE_S(v_in_stable_time) < 2.0) {
+				chThdSleepMilliseconds(1);
+
+				float v_in_now = mc_interface_get_input_voltage_filtered();
+				if (fabsf(v_in_now - v_in_last) > 1.5) {
+					v_in_last = v_in_now;
+					v_in_stable_time = chVTGetSystemTimeX();
+				}
+
+				if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
+					m_dccal_done = true;
+					break;
+				}
+			}
+		}
+
+		if (!m_dccal_done) {
+			for (int i = 0;i < 3;i++) {
+				m_motor_1.m_conf->foc_offsets_voltage[i] = 0.0;
+				m_motor_1.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+				m_motor_1.m_conf->foc_offsets_current[i] = 2048;
+
+#ifdef HW_HAS_DUAL_MOTORS
+				m_motor_2.m_conf->foc_offsets_voltage[i] = 0.0;
+				m_motor_2.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
+				m_motor_2.m_conf->foc_offsets_current[i] = 2048;
+#endif
+			}
+
+			mcpwm_foc_dc_cal(false);
+		}
 	} else {
 		m_dccal_done = true;
 	}
