@@ -324,7 +324,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2000)) {
+	if (!mc_interface_wait_for_motor_release(2.0)) {
 		mc_interface_unlock();
 		mc_interface_select_motor_thread(motor_old);
 		return false;
@@ -335,7 +335,7 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2000)) {
+	if (!mc_interface_wait_for_motor_release(2.0)) {
 		mc_interface_unlock();
 		mc_interface_select_motor_thread(motor_old);
 		return false;
@@ -435,7 +435,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2000)) {
+	if (!mc_interface_wait_for_motor_release(2.0)) {
 		mc_interface_unlock();
 		mc_interface_select_motor_thread(motor_old);
 		return false;
@@ -446,7 +446,7 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2000)) {
+	if (!mc_interface_wait_for_motor_release(2.0)) {
 		mc_interface_unlock();
 		mc_interface_select_motor_thread(motor_old);
 		return false;
@@ -545,7 +545,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1000);
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_rpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -556,7 +556,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1000);
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_rpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -679,7 +679,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	mc_interface_lock_override_once();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1000);
+	mc_interface_wait_for_motor_release(1.0);
 
 	// Try to figure out the coupling factor
 	avg_cycle_integrator_running -= *int_limit;
@@ -776,7 +776,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1000);
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_cycle_int_limit = 250;
 			mc_interface_lock_override_once();
 			mc_interface_set_configuration(mcconf);
@@ -786,7 +786,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1000);
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_erpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -797,7 +797,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 3) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1000);
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_erpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -1103,7 +1103,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1000);
+	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
@@ -1245,7 +1245,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1000);
+	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 
 	// On success store the mc configuration, also send it to VESC Tool.
@@ -1568,7 +1568,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		timeout_configure(tout, tout_c);
 		mc_interface_unlock();
 		mc_interface_release_motor();
-		mc_interface_wait_for_motor_release(1000);
+		mc_interface_wait_for_motor_release(1.0);
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
 		mempools_free_mcconf(mcconf_old);
@@ -1693,7 +1693,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	timeout_configure(tout, tout_c);
 	mc_interface_lock_override_once();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1000);
+	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_unlock();
 
 	if (result < 0) {
