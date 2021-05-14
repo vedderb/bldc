@@ -29,10 +29,6 @@
 #include "utils.h"
 #include "timeout.h"
 #include "encoder.h"
-#include "drv8301.h"
-#include "drv8305.h"
-#include "drv8320s.h"
-#include "drv8323s.h"
 #include "app.h"
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
@@ -1081,6 +1077,8 @@ void terminal_process_string(char *str) {
 		commands_printf("MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
 		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)", app_crc0, app_crc1);
 		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
+	} else if (strcmp(argv[0], "drv_reset_faults") == 0) {
+		HW_RESET_DRV_FAULTS();
 	}
 
 	// The help command
@@ -1222,6 +1220,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("crc");
 		commands_printf("  Print CRC values.");
+
+		commands_printf("drv_reset_faults");
+		commands_printf("  Reset gate driver faults (if possible).");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

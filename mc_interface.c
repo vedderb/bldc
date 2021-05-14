@@ -29,9 +29,6 @@
 #include "hal.h"
 #include "commands.h"
 #include "encoder.h"
-#include "drv8301.h"
-#include "drv8320s.h"
-#include "drv8323s.h"
 #include "buffer.h"
 #include "gpdrive.h"
 #include "comm_can.h"
@@ -2226,9 +2223,17 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
 		motor->m_ignore_iterations--;
+
+		if (motor->m_ignore_iterations == 0) {
+			if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
+				HW_RESET_DRV_FAULTS();
+			}
+		}
 	} else {
 		if (!(is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2())) {
 			motor->m_fault_now = FAULT_CODE_NONE;
+		} else {
+			motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
 		}
 	}
 
