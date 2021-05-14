@@ -54,6 +54,7 @@ typedef struct {
 	volatile mc_configuration m_conf;
 	mc_fault_code m_fault_now;
 	int m_ignore_iterations;
+	int m_drv_fault_iterations;
 	unsigned int m_cycles_running;
 	bool m_lock_enabled;
 	bool m_lock_override_once;
@@ -2223,18 +2224,20 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
 		motor->m_ignore_iterations--;
-
-		if (motor->m_ignore_iterations == 0) {
-			if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
-				HW_RESET_DRV_FAULTS();
-			}
-		}
 	} else {
 		if (!(is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2())) {
 			motor->m_fault_now = FAULT_CODE_NONE;
-		} else {
-			motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
 		}
+	}
+
+	if (is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2()) {
+		motor->m_drv_fault_iterations++;
+		if (motor->m_drv_fault_iterations >= motor->m_conf.m_fault_stop_time_ms) {
+			HW_RESET_DRV_FAULTS();
+			motor->m_drv_fault_iterations = 0;
+		}
+	} else {
+		motor->m_drv_fault_iterations = 0;
 	}
 
 	update_override_limits(motor, &motor->m_conf);
