@@ -96,6 +96,8 @@ void mc_interface_set_odometer(uint64_t new_odometer_meters);
 void mc_interface_ignore_input(int time_ms);
 void mc_interface_ignore_input_both(int time_ms);
 
+void mc_interface_set_current_off_delay(float delay_sec);
+
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr);
 int mc_interface_try_input(void);

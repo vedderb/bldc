@@ -1559,6 +1559,26 @@ void mc_interface_ignore_input_both(int time_ms) {
 #endif
 }
 
+void mc_interface_set_current_off_delay(float delay_sec) {
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_current_off_delay(delay_sec);
+		break;
+
+	default:
+		break;
+	}
+}
+
 // MC implementation functions
 
 /**

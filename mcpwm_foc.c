@@ -3090,10 +3090,10 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 static void timer_update(volatile motor_all_state_t *motor, float dt) {
 	run_fw(motor, dt);
 
-	utils_step_towards((float*)&motor->m_current_off_delay, 0.0, dt);
-
 	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
 	// field weakening current.
+	utils_sys_lock_cnt();
+	utils_step_towards((float*)&motor->m_current_off_delay, 0.0, dt);
 	if (!motor->m_phase_override && motor->m_state == MC_STATE_RUNNING &&
 			(motor->m_control_mode == CONTROL_MODE_CURRENT ||
 					motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
@@ -3108,6 +3108,7 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 			stop_pwm_hw(motor);
 		}
 	}
+	utils_sys_unlock_cnt();
 
 	// Use this to study the openloop timers under experiment plot
 #if 0
