@@ -381,6 +381,15 @@ void comm_can_set_current(uint8_t controller_id, float current) {
 			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index, true);
 }
 
+void comm_can_set_current_off_delay(uint8_t controller_id, float current, float off_delay) {
+	int32_t send_index = 0;
+	uint8_t buffer[6];
+	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index, true);
+}
+
 void comm_can_set_current_brake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
@@ -418,6 +427,18 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index, true);
+}
+
+/**
+ * Same as above, but also sets the off delay
+ */
+void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
+	int32_t send_index = 0;
+	uint8_t buffer[4];
+	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
 	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index, true);
 }
@@ -1215,6 +1236,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		case CAN_PACKET_SET_CURRENT:
 			ind = 0;
 			mc_interface_set_current(buffer_get_float32(data8, 1e3, &ind));
+
+			if (len >= 6) {
+				mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+			}
+
 			timeout_reset();
 			break;
 
@@ -1325,6 +1351,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			case CAN_PACKET_SET_CURRENT_REL:
 				ind = 0;
 				mc_interface_set_current_rel(buffer_get_float32(data8, 1e5, &ind));
+
+				if (len >= 6) {
+					mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+				}
+
 				timeout_reset();
 				break;
 
