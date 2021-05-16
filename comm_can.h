@@ -37,10 +37,12 @@ void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uin
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
 void comm_can_set_duty(uint8_t controller_id, float duty);
 void comm_can_set_current(uint8_t controller_id, float current);
+void comm_can_set_current_off_delay(uint8_t controller_id, float current, float off_delay);
 void comm_can_set_current_brake(uint8_t controller_id, float current);
 void comm_can_set_rpm(uint8_t controller_id, float rpm);
 void comm_can_set_pos(uint8_t controller_id, float pos);
 void comm_can_set_current_rel(uint8_t controller_id, float current_rel);
+void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay);
 void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel);
 bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type);
 void comm_can_detect_apply_all_foc(uint8_t controller_id, bool activate_status_msgs, float max_power_loss);
