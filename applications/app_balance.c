@@ -37,20 +37,19 @@
 // Can
 #define MAX_CAN_AGE 0.1
 
-// Data type
+// Data type (Value 5 was removed, and can be reused at a later date, but i wanted to preserve the current value's numbers for UIs)
 typedef enum {
 	STARTUP = 0,
-	RUNNING,
-	RUNNING_TILTBACK_DUTY,
-	RUNNING_TILTBACK_HIGH_VOLTAGE,
-	RUNNING_TILTBACK_LOW_VOLTAGE,
-	RUNNING_TILTBACK_CONSTANT,
-	FAULT_ANGLE_PITCH,
-	FAULT_ANGLE_ROLL,
-	FAULT_SWITCH_HALF,
-	FAULT_SWITCH_FULL,
-	FAULT_DUTY,
-	FAULT_STARTUP
+	RUNNING = 1,
+	RUNNING_TILTBACK_DUTY = 2,
+	RUNNING_TILTBACK_HIGH_VOLTAGE = 3,
+	RUNNING_TILTBACK_LOW_VOLTAGE = 4,
+	FAULT_ANGLE_PITCH = 6,
+	FAULT_ANGLE_ROLL = 7,
+	FAULT_SWITCH_HALF = 8,
+	FAULT_SWITCH_FULL = 9,
+	FAULT_DUTY = 10,
+	FAULT_STARTUP = 11
 } BalanceState;
 
 typedef enum {
@@ -91,23 +90,29 @@ static float proportional, integral, derivative;
 static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
+static float constanttilt_target, constanttilt_interpolated;
 static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
 static float turntilt_target, turntilt_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
-static float d_pt1_state, d_pt1_k;
+static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
 
 
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
-	if(balance_conf.kd_pt1_frequency > 0){
+	if(balance_conf.kd_pt1_lowpass_frequency > 0){
 		float dT = 1.0 / balance_conf.hertz;
-		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_frequency);
-		d_pt1_k =  dT / (RC + dT);
+		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_lowpass_frequency);
+		d_pt1_lowpass_k =  dT / (RC + dT);
+	}
+	if(balance_conf.kd_pt1_highpass_frequency > 0){
+		float dT = 1.0 / balance_conf.hertz;
+		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_highpass_frequency);
+		d_pt1_highpass_k =  dT / (RC + dT);
 	}
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
@@ -128,11 +133,14 @@ void reset_vars(void){
 	last_proportional = 0;
 	yaw_integral = 0;
 	yaw_last_proportional = 0;
-	d_pt1_state = 0;
+	d_pt1_lowpass_state = 0;
+	d_pt1_highpass_state = 0;
 	// Set values for startup
 	setpoint = pitch_angle;
 	setpoint_target_interpolated = pitch_angle;
 	setpoint_target = 0;
+	constanttilt_target = 0;
+	constanttilt_interpolated = 0;
 	torquetilt_target = 0;
 	torquetilt_interpolated = 0;
 	torquetilt_filtered_current = 0;
@@ -271,15 +279,6 @@ void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK;
 		state = RUNNING_TILTBACK_LOW_VOLTAGE;
-	}else if(balance_conf.tiltback_constant != 0 && abs_erpm > balance_conf.tiltback_constant_erpm){
-		// Nose angle adjustment
-		if(erpm > 0){
-			setpoint_target = balance_conf.tiltback_constant;
-		} else {
-			setpoint_target = -balance_conf.tiltback_constant;
-		}
-		setpointAdjustmentType = TILTBACK;
-		state = RUNNING_TILTBACK_CONSTANT;
 	}else{
 		setpointAdjustmentType = TILTBACK;
 		setpoint_target = 0;
@@ -298,6 +297,26 @@ void calculate_setpoint_interpolated(void){
 			setpoint_target_interpolated -= get_setpoint_adjustment_step_size();
 		}
 	}
+}
+
+void apply_constanttilt(void){
+	// Nose angle adjustment
+	if(erpm > balance_conf.tiltback_constant_erpm){
+		constanttilt_target = balance_conf.tiltback_constant;
+	} else if(erpm < -balance_conf.tiltback_constant_erpm){
+		constanttilt_target = -balance_conf.tiltback_constant;
+	}else{
+		constanttilt_target = 0;
+	}
+
+	if(fabsf(constanttilt_target - constanttilt_interpolated) < tiltback_step_size){
+		constanttilt_interpolated = constanttilt_target;
+	}else if (constanttilt_target - constanttilt_interpolated > 0){
+		constanttilt_interpolated += tiltback_step_size;
+	}else{
+		constanttilt_interpolated -= tiltback_step_size;
+	}
+	setpoint += constanttilt_interpolated;
 }
 
 void apply_torquetilt(void){
@@ -391,15 +410,22 @@ void set_current(float current, float yaw_current){
 	timeout_reset();
 	// Set current
 	if(balance_conf.multi_esc){
+		// Set the current delay
+		mc_interface_set_current_off_delay((1000.0 / balance_conf.hertz)/1000.0);
+		// Set Current
 		mc_interface_set_current(current + yaw_current);
+		// Can bus
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-				comm_can_set_current(msg->id, current - yaw_current);// Assume 2 motors, i don't know how to steer 3 anyways
+				comm_can_set_current_off_delay(msg->id, current - yaw_current, (1000.0 / balance_conf.hertz)/1000.0);// Assume 2 motors, i don't know how to steer 3 anyways
 			}
 		}
 	} else {
+		// Set the current delay
+		mc_interface_set_current_off_delay((1000.0 / balance_conf.hertz)/1000.0);
+		// Set Current
 		mc_interface_set_current(current);
 	}
 }
@@ -498,7 +524,6 @@ static THD_FUNCTION(balance_thread, arg) {
 			case (RUNNING_TILTBACK_DUTY):
 			case (RUNNING_TILTBACK_HIGH_VOLTAGE):
 			case (RUNNING_TILTBACK_LOW_VOLTAGE):
-			case (RUNNING_TILTBACK_CONSTANT):
 
 				// Check for faults
 				if(check_faults(false)){
@@ -509,6 +534,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
 				setpoint = setpoint_target_interpolated;
+				apply_constanttilt();
 				apply_torquetilt();
 				apply_turntilt();
 
@@ -521,9 +547,13 @@ static THD_FUNCTION(balance_thread, arg) {
 				derivative = proportional - last_proportional;
 
 				// Apply D term only filter
-				if(balance_conf.kd_pt1_frequency > 0){
-					d_pt1_state = d_pt1_state + d_pt1_k * (derivative - d_pt1_state);
-					derivative = d_pt1_state;
+				if(balance_conf.kd_pt1_lowpass_frequency > 0){
+					d_pt1_lowpass_state = d_pt1_lowpass_state + d_pt1_lowpass_k * (derivative - d_pt1_lowpass_state);
+					derivative = d_pt1_lowpass_state;
+				}
+				if(balance_conf.kd_pt1_highpass_frequency > 0){
+					d_pt1_highpass_state = d_pt1_highpass_state + d_pt1_highpass_k * (derivative - d_pt1_highpass_state);
+					derivative = derivative - d_pt1_highpass_state;
 				}
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
