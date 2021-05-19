@@ -2335,6 +2335,7 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("Obs_x2:       %.2f", (double)motor_now()->m_observer_x2);
 	commands_printf("vd_int:       %.2f", (double)motor_now()->m_motor_state.vd_int);
 	commands_printf("vq_int:       %.2f", (double)motor_now()->m_motor_state.vq_int);
+	commands_printf("off_delay:    %.2f", (double)motor_now()->m_current_off_delay);
 }
 
 float mcpwm_foc_get_last_adc_isr_duration(void) {

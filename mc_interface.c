@@ -1564,6 +1564,11 @@ void mc_interface_set_current_off_delay(float delay_sec) {
 		return;
 	}
 
+	UTILS_NAN_ZERO(delay_sec);
+	if (delay_sec > 5.0) {
+		delay_sec = 5.0;
+	}
+
 	switch (motor_now()->m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
