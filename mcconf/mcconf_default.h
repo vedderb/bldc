@@ -414,7 +414,7 @@
 #define MCCONF_FOC_PHASE_FILTER_ENABLE	true // Use phase voltage filters when available
 #endif
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
-#define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	2500.0 // Use phase filter up to this ERPM
+#define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	4000.0 // Use phase filter up to this ERPM
 #endif
 #ifndef MCCONF_FOC_FW_CURRENT_MAX
 #define MCCONF_FOC_FW_CURRENT_MAX		0.0 // Maximum field weakening current
