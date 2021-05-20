@@ -2624,7 +2624,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// the shorted mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
 				fabsf(motor_now->m_duty_filtered) < conf_now->l_min_duty * 1.5 &&
-				(motor_now->m_motor_state.i_abs * (motor_now->m_was_full_brake ? 1.0 : 1.5)) < fabsf(motor_now->m_iq_set)) {
+				(motor_now->m_motor_state.i_abs * (motor_now->m_was_full_brake ? 1.0 : 1.5)) <
+				fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
 			control_duty = true;
 			duty_set = 0.0;
 			motor_now->m_was_full_brake = true;
