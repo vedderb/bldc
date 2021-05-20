@@ -324,7 +324,8 @@ static THD_FUNCTION(my_thread, arg) {
 
 	const float stop_timer_max = 50.0;
 	const float S_min = 200.0;
-	const float S_ramp_step = 0.5;
+	const float S_ramp_step_up = 10.0;
+	const float S_ramp_step_down = 0.1;
 	const float output_filter = 0.3;
 
 	const float poles = 8;
@@ -371,10 +372,19 @@ static THD_FUNCTION(my_thread, arg) {
 			kmh_now = ((rpm / 60.0) * wheel_d * M_PI / gearing) * 3.6;
 		}
 
+		// Ramp up target current on low pedal speeds
+		float erpm_ramp_in = 1500.0;
+		float erpm_motor = fabsf(mc_interface_get_rpm());
+		float pedal_current_target = m_set_now->p_pedal_current;
+		if (erpm_motor < erpm_ramp_in) {
+			pedal_current_target = utils_map(erpm_motor, 0.0, erpm_ramp_in, 0.0, pedal_current_target);
+		}
+
 		if (running) {
 			mc_interface_set_pid_speed(erpm_now);
 
-			erpm_now += (-m_set_now->p_pedal_current - I) * S_ramp_step;
+			float error = (-pedal_current_target - I);
+			erpm_now += error * (error > 0.0 ? S_ramp_step_up : S_ramp_step_down);
 			utils_truncate_number(&erpm_now, S_min, 4000.0);
 
 			if (I < -1.0) {
@@ -402,7 +412,7 @@ static THD_FUNCTION(my_thread, arg) {
 				}
 			}
 
-			utils_step_towards(&erpm_now, S_min, S_ramp_step);
+			utils_step_towards(&erpm_now, S_min, S_ramp_step_down);
 		}
 
 		static float plot_pwr = 0.0;
@@ -511,7 +521,7 @@ static THD_FUNCTION(my_thread, arg) {
 				}
 			}
 
-			if (!m_kill_sw || (pwr_out < 0.0001 && brake > 0.0001)) {
+			if (!m_kill_sw || brake > 0.0001) {
 				comm_can_set_current_brake_rel(255, brake);
 			} else {
 				comm_can_set_current_rel(255, pwr_out * m_set_now->p_output_power);
