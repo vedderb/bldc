@@ -54,5 +54,8 @@
 #define MCCONF_S_PID_KD_FILTER				0.05
 #define MCCONF_S_PID_MIN_RPM				100.0
 
+#define QMLUI_SOURCE_APP					"er/er_qml.c"
+#define QMLUI_HEADER_APP					"er/er_qml.h"
+
 #endif /* APP_EROCKIT_CONF_H_ */
 
