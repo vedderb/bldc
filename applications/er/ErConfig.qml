@@ -180,7 +180,7 @@ Item {
         var title_new = ""
         if (er_io.led_eco_on) {
             title_new = "Eco Settings"
-        } else if (er_io.led_sport) {
+        } else if (er_io.led_sport_on) {
             title_new = "Sport Settings"
         } else {
             title_new = "Normal Settings"
@@ -593,7 +593,7 @@ Item {
         width: parent.width - 20
         x: 10
         y: parent.height / 2 - height / 2
-        parent: ApplicationWindow.overlay
+        parent: container
 
         ProgressBar {
             anchors.fill: parent

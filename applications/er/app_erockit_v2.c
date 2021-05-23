@@ -107,7 +107,7 @@ static volatile SETTINGS_T m_set_eco;
 static volatile SETTINGS_T m_set_sport;
 static volatile SETTINGS_T *m_set_now = &m_set_normal;
 static volatile int m_set_now_offset = 0;
-static volatile bool m_motors_enabled = false;
+static volatile bool m_motors_enabled = true;
 
 // Private functions
 static void process_custom_app_data(unsigned char *data, unsigned int len);
