@@ -21,7 +21,7 @@ Item {
     property var er_set: []
     property var er_io: []
     
-    Component.onCompleted: {
+    Component.onCompleted: {        
         er_msg.ER_MSG_SET_MODE_PARAMS = 0
         er_msg.ER_MSG_GET_MODE_PARAMS = 1
         er_msg.ER_MSG_GET_IO = 2
@@ -157,14 +157,14 @@ Item {
     }
     
     function updateSliders() {
-        slPedalCurrent.value = er_set.p_pedal_current
-        slStartGain.value = er_set.p_start_gain
-        slStartGainEndSpeed.value = er_set.p_start_gain_end_speed
-        slPower.value = er_set.p_output_power
-        slTopSpeedErpm.value = er_set.p_top_speed_erpm
-        slBrakeFront.value = er_set.p_brake_current_front
-        slBrakeRear.value = er_set.p_brake_current_rear
-        slBrakeBoth.value = er_set.p_brake_current_both
+        repSliders.itemAt(0).value = er_set.p_pedal_current
+        repSliders.itemAt(1).value = er_set.p_start_gain
+        repSliders.itemAt(2).value = er_set.p_start_gain_end_speed
+        repSliders.itemAt(3).value = er_set.p_output_power
+        repSliders.itemAt(4).value = er_set.p_top_speed_erpm
+        repSliders.itemAt(5).value = er_set.p_brake_current_front
+        repSliders.itemAt(6).value = er_set.p_brake_current_rear
+        repSliders.itemAt(7).value = er_set.p_brake_current_both
     }
     
     function updateIoStatus() {
@@ -297,7 +297,7 @@ Item {
                         Layout.preferredWidth: 500
                         Layout.preferredHeight: 80
                         
-                        buttonText: "Restore\nSettings"
+                        buttonText: "Restore\nPedal\nSettings"
                         imageSrc: "qrc:/res/icons/Restart-96.png"
                         
                         onClicked: {
@@ -344,223 +344,65 @@ Item {
                 Layout.fillWidth: true
                 
                 GridLayout {
+                    id: sliderGrid
+                    
                     anchors.fill: parent
                     columns: 3
+                    rows: repSliders.count
+                    flow: GridLayout.TopToBottom
                     
-                    // Pedal Current
+                    // Name, min, max, val, unitFactor, decimals, unit, propertyName
+                    property var repModel: [
+                    ["Pedal\nCurrent", 1.5, 50, 15, 1, 1, " A", "p_pedal_current"],
+                    ["Start Gain", 1, 10, 4, 1, 1, "", "p_start_gain"],
+                    ["Start Gain\nEnd Speed", 1, 100, 15, 1, 1, "\nkm/h", "p_start_gain_end_speed"],
+                    ["Power", 0, 1, 0.8, 100, 0, " %", "p_output_power"],
+                    ["Max Power\nERPM", 210, 5000, 2000, 1, 0, "", "p_top_speed_erpm"],
+                    ["Front\nBrake", 0, 1, 0.5, 100, 0, " %", "p_brake_current_front"],
+                    ["Rear\nBrake", 0, 1, 0.5, 100, 0, " %", "p_brake_current_rear"],
+                    ["Both\nBrakes", 0, 1, 1, 100, 0, " %", "p_brake_current_both"],
+                    ]
                     
-                    Text { color: "white"; text: "Pedal\nCurrent" }
-                    
-                    Slider {
-                        id: slPedalCurrent
-                        Layout.fillWidth: true
-                        from: 1.5; to: 50.0; value: 15
+                    Repeater {
+                        model: sliderGrid.repModel
                         
-                        onValueChanged: {
-                            slPedalCurrentVal.text = parseFloat(value).toFixed(1) + " A"
+                        Text {
+                            color: "white"
+                            text: modelData[0]
                         }
+                    }
+                    
+                    Repeater {
+                        id: repSliders
                         
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_pedal_current = value
-                                writeSettings()
+                        model: sliderGrid.repModel
+                        
+                        Slider {
+                            Layout.fillWidth: true
+                            from: modelData[1]; to: modelData[2]; value: modelData[3]
+                            
+                            onValueChanged: {
+                                repUnit.itemAt(index).text = parseFloat(value * modelData[4]).toFixed(modelData[5]) + modelData[6]
+                            }
+                            
+                            onPressedChanged: {
+                                if (!pressed) {
+                                    er_set[modelData[7]] = value
+                                    writeSettings()
+                                }
                             }
                         }
                     }
                     
-                    Text {
-                        id: slPedalCurrentVal
-                        color: "white"
-                        text: parseFloat(slPedalCurrent.value).toFixed(1) + " A"
-                    }
-                    
-                    // Start Gain
-                    
-                    Text { color: "white"; text: "Start Gain" }
-                    
-                    Slider {
-                        id: slStartGain
-                        Layout.fillWidth: true
-                        from: 1.0; to: 10.0; value: 4.0
+                    Repeater {
+                        id: repUnit
                         
-                        onValueChanged: {
-                            slStartGainVal.text = parseFloat(value).toFixed(1)
-                        }
+                        model: sliderGrid.repModel
                         
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_start_gain = value
-                                writeSettings()
-                            }
+                        Text {
+                            color: "white"
+                            text: parseFloat(repSliders.itemAt(index).value * modelData[4]).toFixed(modelData[5]) + modelData[6]
                         }
-                    }
-                    
-                    Text {
-                        id: slStartGainVal
-                        color: "white"
-                        text: parseFloat(slStartGain.value).toFixed(1)
-                    }
-                    
-                    // Start Gain End Soeed
-                    
-                    Text { color: "white"; text: "Start Gain\nEnd Speed" }
-                    
-                    Slider {
-                        id: slStartGainEndSpeed
-                        Layout.fillWidth: true
-                        from: 1.0; to: 100.0; value: 15.0
-                        
-                        onValueChanged: {
-                            slStartGainEndSpeedVal.text = parseFloat(value).toFixed(1) + "\nkm/h"
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_start_gain_end_speed = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slStartGainEndSpeedVal
-                        color: "white"
-                        text: parseFloat(slStartGainEndSpeed.value).toFixed(1) + "\nkm/h"
-                    }
-                    
-                    // Power
-                    
-                    Text { color: "white"; text: "Power" }
-                    
-                    Slider {
-                        id: slPower
-                        Layout.fillWidth: true
-                        from: 0.0; to: 1.0; value: 0.8
-                        
-                        onValueChanged: {
-                            slPowerVal.text = parseFloat(value * 100).toFixed(0) + " %"
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_output_power = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slPowerVal
-                        color: "white"
-                        text: parseFloat(slPower.value * 100).toFixed(0) + " %"
-                    }
-                    
-                    // Top Speed ERPM
-                    
-                    Text { color: "white"; text: "Max Power\nERPM" }
-                    
-                    Slider {
-                        id: slTopSpeedErpm
-                        Layout.fillWidth: true
-                        from: 210.0; to: 5000.0; value: 2000
-                        
-                        onValueChanged: {
-                            slTopSpeedErpmVal.text = parseFloat(value).toFixed(0)
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_top_speed_erpm = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slTopSpeedErpmVal
-                        color: "white"
-                        text: parseFloat(slTopSpeedErpm.value).toFixed(0)
-                    }
-                    
-                    // Front Brake
-                    
-                    Text { color: "white"; text: "Front\nBrake" }
-                    
-                    Slider {
-                        id: slBrakeFront
-                        Layout.fillWidth: true
-                        from: 0.0; to: 1.0; value: 0.5
-                        
-                        onValueChanged: {
-                            slBrakeFrontVal.text = parseFloat(value * 100).toFixed(0) + " %"
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_brake_current_front = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slBrakeFrontVal
-                        color: "white"
-                        text: parseFloat(slBrakeFront.value * 100).toFixed(0) + " %"
-                    }
-                    
-                    // Rear Brake
-                    
-                    Text { color: "white"; text: "Rear\nBrake" }
-                    
-                    Slider {
-                        id: slBrakeRear
-                        Layout.fillWidth: true
-                        from: 0.0; to: 1.0; value: 0.5
-                        
-                        onValueChanged: {
-                            slBrakeRearVal.text = parseFloat(value * 100).toFixed(0) + " %"
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_brake_current_rear = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slBrakeRearVal
-                        color: "white"
-                        text: parseFloat(slBrakeRear.value * 100).toFixed(0) + " %"
-                    }
-                    
-                    // Both Brakes
-                    
-                    Text { color: "white"; text: "Both\nBrakes" }
-                    
-                    Slider {
-                        id: slBrakeBoth
-                        Layout.fillWidth: true
-                        from: 0.0; to: 1.0; value: 0.5
-                        
-                        onValueChanged: {
-                            slBrakeBothVal.text = parseFloat(value * 100).toFixed(0) + " %"
-                        }
-                        
-                        onPressedChanged: {
-                            if (!pressed) {
-                                er_set.p_brake_current_both = value
-                                writeSettings()
-                            }
-                        }
-                    }
-                    
-                    Text {
-                        id: slBrakeBothVal
-                        color: "white"
-                        text: parseFloat(slBrakeBoth.value * 100).toFixed(0) + " %"
                     }
                 }
             }
