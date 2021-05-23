@@ -31,6 +31,7 @@
 #include "commands.h"
 #include "timeout.h"
 #include "comm_can.h"
+#include "buffer.h"
 
 #include <math.h>
 #include <string.h>
@@ -39,14 +40,14 @@
 // Macros
 #define IS_SPORT_MODE()				(m_set_now == &m_set_sport)
 #define IS_ECO_MODE()				(m_set_now == &m_set_eco)
-#define LED_ECO_ON()				comm_can_io_board_set_output_digital(255, 1, 1)
-#define LED_ECO_OFF()				comm_can_io_board_set_output_digital(255, 1, 0)
-#define LED_SPORT_ON()				comm_can_io_board_set_output_digital(255, 2, 1)
-#define LED_SPORT_OFF()				comm_can_io_board_set_output_digital(255, 2, 0)
-#define LED_LOW_BATT_ON()			comm_can_io_board_set_output_digital(255, 3, 1)
-#define LED_LOW_BATT_OFF()			comm_can_io_board_set_output_digital(255, 3, 0)
-#define LED_FAULT_ON()				comm_can_io_board_set_output_digital(255, 4, 1)
-#define LED_FAULT_OFF()				comm_can_io_board_set_output_digital(255, 4, 0)
+#define LED_ECO_ON()				comm_can_io_board_set_output_digital(255, 1, 1); m_led_eco_on = true
+#define LED_ECO_OFF()				comm_can_io_board_set_output_digital(255, 1, 0); m_led_eco_on = false
+#define LED_SPORT_ON()				comm_can_io_board_set_output_digital(255, 2, 1); m_led_sport_on = true
+#define LED_SPORT_OFF()				comm_can_io_board_set_output_digital(255, 2, 0); m_led_sport_on = false
+#define LED_LOW_BATT_ON()			comm_can_io_board_set_output_digital(255, 3, 1); m_led_low_batt_on = true
+#define LED_LOW_BATT_OFF()			comm_can_io_board_set_output_digital(255, 3, 0); m_led_low_batt_on = false
+#define LED_FAULT_ON()				comm_can_io_board_set_output_digital(255, 4, 1); m_led_fault_on = true
+#define LED_FAULT_OFF()				comm_can_io_board_set_output_digital(255, 4, 0); m_led_fault_on = false
 
 // Threads
 static THD_FUNCTION(my_thread, arg);
@@ -57,10 +58,16 @@ static volatile bool stop_now = true;
 static volatile bool is_running = false;
 static volatile bool plot_state = false;
 static volatile float plot_sample = 0.0;
+
 static volatile bool m_brake_rear = false;
 static volatile bool m_brake_front = false;
 static volatile bool m_mode_btn_down = false;
 static volatile bool m_kill_sw = false;
+
+static volatile bool m_led_eco_on = false;
+static volatile bool m_led_sport_on = false;
+static volatile bool m_led_low_batt_on = false;
+static volatile bool m_led_fault_on = false;
 
 // Parameters
 #define P_OFFSET_ECO								10
@@ -74,6 +81,14 @@ static volatile bool m_kill_sw = false;
 #define P_BRAKE_CURRENT_FRONT_ADDR					6
 #define P_BRAKE_CURRENT_REAR_ADDR					7
 #define P_BRAKE_CURRENT_BOTH_ADDR					8
+
+typedef enum {
+	ER_MSG_SET_MODE_PARAMS = 0,
+	ER_MSG_GET_MODE_PARAMS,
+	ER_MSG_GET_IO,
+	ER_MSG_RESTORE_SETTINGS,
+	ER_MSG_SET_MOTORS_ENABLED
+} ER_MSG;
 
 typedef struct {
 	volatile float p_throttle_hyst;
@@ -92,8 +107,10 @@ static volatile SETTINGS_T m_set_eco;
 static volatile SETTINGS_T m_set_sport;
 static volatile SETTINGS_T *m_set_now = &m_set_normal;
 static volatile int m_set_now_offset = 0;
+static volatile bool m_motors_enabled = false;
 
 // Private functions
+static void process_custom_app_data(unsigned char *data, unsigned int len);
 static void terminal_plot(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
 static void terminal_mon(int argc, const char **argv);
@@ -274,6 +291,8 @@ void app_custom_start(void) {
 			"Set brake power.",
 			"[front, rear, both] [0.0 - 1.0]",
 			terminal_set_brake_power);
+
+	commands_set_app_data_handler(process_custom_app_data);
 }
 
 void app_custom_stop(void) {
@@ -287,6 +306,8 @@ void app_custom_stop(void) {
 	terminal_unregister_callback(terminal_set_start_gain_end_speed);
 	terminal_unregister_callback(terminal_set_output_power);
 	terminal_unregister_callback(terminal_set_top_speed_erpm);
+
+	commands_set_app_data_handler(0);
 
 	stop_now = true;
 	while (is_running) {
@@ -352,6 +373,11 @@ static THD_FUNCTION(my_thread, arg) {
 			m_brake_front = false;
 			m_kill_sw = false;
 			m_mode_btn_down = false;
+		}
+
+		if (!m_motors_enabled) {
+			chThdSleepMilliseconds(100);
+			continue;
 		}
 
 		timeout_reset();
@@ -550,6 +576,97 @@ static THD_FUNCTION(my_thread, arg) {
 	}
 }
 
+static void process_custom_app_data(unsigned char *data, unsigned int len) {
+	(void)len;
+
+	int32_t ind = 0;
+	ER_MSG msg = data[ind++];
+
+	switch (msg) {
+	case ER_MSG_SET_MODE_PARAMS: {
+		m_set_now->p_throttle_hyst = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_pedal_current = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_start_gain = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_start_gain_end_speed = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_output_power = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_top_speed_erpm = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_brake_current_front = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_brake_current_rear = buffer_get_float32_auto(data, &ind);
+		m_set_now->p_brake_current_both = buffer_get_float32_auto(data, &ind);
+
+		store_settings(m_set_now, m_set_now_offset);
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_GET_MODE_PARAMS: {
+		uint8_t dataTx[50];
+		ind = 0;
+
+		dataTx[ind++] = msg;
+		buffer_append_float32_auto(dataTx, m_set_now->p_throttle_hyst, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_pedal_current, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_start_gain, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_start_gain_end_speed, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_output_power, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_top_speed_erpm, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_brake_current_front, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_brake_current_rear, &ind);
+		buffer_append_float32_auto(dataTx, m_set_now->p_brake_current_both, &ind);
+
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_GET_IO: {
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		dataTx[ind++] = m_mode_btn_down;
+		dataTx[ind++] = m_brake_front;
+		dataTx[ind++] = m_brake_rear;
+		dataTx[ind++] = m_kill_sw;
+
+		dataTx[ind++] = m_led_eco_on;
+		dataTx[ind++] = m_led_sport_on;
+		dataTx[ind++] = m_led_low_batt_on;
+		dataTx[ind++] = m_led_fault_on;
+
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_RESTORE_SETTINGS: {
+		restore_settings();
+		store_settings(&m_set_normal, 0);
+		store_settings(&m_set_eco, P_OFFSET_ECO);
+		store_settings(&m_set_sport, P_OFFSET_SPORT);
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_SET_MOTORS_ENABLED: {
+		m_motors_enabled = data[ind++];
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		dataTx[ind++] = m_motors_enabled;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	default:
+		break;
+	}
+}
+
 static void terminal_plot(int argc, const char **argv) {
 	if (argc == 2) {
 		int d = -1;
@@ -659,7 +776,8 @@ static void terminal_restore_settings(int argc, const char **argv) {
 	(void)argv;
 
 	restore_settings();
-	store_settings(&m_set_eco, 0);
+	store_settings(&m_set_normal, 0);
+	store_settings(&m_set_eco, P_OFFSET_ECO);
 	store_settings(&m_set_sport, P_OFFSET_SPORT);
 
 	commands_printf("Settings have been restored to their default values.");

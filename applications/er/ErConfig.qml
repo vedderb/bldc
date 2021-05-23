@@ -16,6 +16,183 @@ Item {
     property ConfigParams mAppConf: VescIf.appConfig()
     property var canDevs: []
     
+    property bool readSettingsDone: false
+    property var er_msg: []
+    property var er_set: []
+    property var er_io: []
+    
+    Component.onCompleted: {
+        er_msg.ER_MSG_SET_MODE_PARAMS = 0
+        er_msg.ER_MSG_GET_MODE_PARAMS = 1
+        er_msg.ER_MSG_GET_IO = 2
+        er_msg.ER_MSG_RESTORE_SETTINGS = 3
+        er_msg.ER_MSG_SET_MOTORS_ENABLED = 4
+        
+        er_set.p_throttle_hyst = 0.04
+        er_set.p_pedal_current = 20.0
+        er_set.p_start_gain = 4.0
+        er_set.p_start_gain_end_speed = 15.0
+        er_set.p_output_power = 1.0
+        er_set.p_top_speed_erpm = 2000
+        er_set.p_brake_current_front = 0.5
+        er_set.p_brake_current_rear = 0.5
+        er_set.p_brake_current_both = 1.0
+        
+        er_io.mode_btn = false
+        er_io.brake_front = false
+        er_io.brake_rear = false
+        er_io.kill_sw = false
+        er_io.led_eco_on = false
+        er_io.led_sport_on = false
+        er_io.led_low_batt_on = false
+        er_io.led_fault_on = false
+    }
+    
+    Timer {
+        repeat: true
+        interval: 200
+        running: true
+        
+        onTriggered: {
+            readIo()
+        }
+    }
+    
+    Connections {
+        target: mCommands
+        
+        onCustomAppDataReceived: {
+            var dv = new DataView(data, 0)
+            var ind = 0
+            var cmd = dv.getUint8(ind++)
+            
+            if (cmd == er_msg.ER_MSG_SET_MODE_PARAMS) {
+                VescIf.emitStatusMessage("ER Params Set OK", true)
+            } else if (cmd == er_msg.ER_MSG_GET_MODE_PARAMS) {
+                er_set.p_throttle_hyst = dv.getFloat32(ind); ind += 4
+                er_set.p_pedal_current = dv.getFloat32(ind); ind += 4
+                er_set.p_start_gain = dv.getFloat32(ind); ind += 4
+                er_set.p_start_gain_end_speed = dv.getFloat32(ind); ind += 4
+                er_set.p_output_power = dv.getFloat32(ind); ind += 4
+                er_set.p_top_speed_erpm = dv.getFloat32(ind); ind += 4
+                er_set.p_brake_current_front = dv.getFloat32(ind); ind += 4
+                er_set.p_brake_current_rear = dv.getFloat32(ind); ind += 4
+                er_set.p_brake_current_both = dv.getFloat32(ind); ind += 4
+                readSettingsDone = true
+                updateSliders()
+            } else if (cmd == er_msg.ER_MSG_GET_IO) {
+                er_io.mode_btn = dv.getUint8(ind); ind += 1
+                er_io.brake_front = dv.getUint8(ind); ind += 1
+                er_io.brake_rear = dv.getUint8(ind); ind += 1
+                er_io.kill_sw = dv.getUint8(ind); ind += 1
+                
+                er_io.led_eco_on = dv.getUint8(ind); ind += 1
+                er_io.led_sport_on = dv.getUint8(ind); ind += 1
+                er_io.led_low_batt_on = dv.getUint8(ind); ind += 1
+                er_io.led_fault_on = dv.getUint8(ind); ind += 1
+                
+                updateIoStatus()
+            } else if (cmd == er_msg.ER_MSG_SET_MOTORS_ENABLED) {
+                if (dv.getUint8(ind++)) {
+                    VescIf.emitStatusMessage("ER Motors Enabled", true)
+                } else {
+                    VescIf.emitStatusMessage("ER Motors Disabled", true)
+                }
+            }
+        }
+    }
+    
+    function readSettings() {
+        var buffer = new ArrayBuffer(1)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_GET_MODE_PARAMS)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function writeSettings() {
+        if (!readSettingsDone) {
+            return
+        }
+        
+        var buffer = new ArrayBuffer(37)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind, er_msg.ER_MSG_SET_MODE_PARAMS); ind += 1
+        dv.setFloat32(ind, er_set.p_throttle_hyst); ind += 4
+        dv.setFloat32(ind, er_set.p_pedal_current); ind += 4
+        dv.setFloat32(ind, er_set.p_start_gain); ind += 4
+        dv.setFloat32(ind, er_set.p_start_gain_end_speed); ind += 4
+        dv.setFloat32(ind, er_set.p_output_power); ind += 4
+        dv.setFloat32(ind, er_set.p_top_speed_erpm); ind += 4
+        dv.setFloat32(ind, er_set.p_brake_current_front); ind += 4
+        dv.setFloat32(ind, er_set.p_brake_current_rear); ind += 4
+        dv.setFloat32(ind, er_set.p_brake_current_both); ind += 4
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function restoreSettings() {
+        var buffer = new ArrayBuffer(1)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_RESTORE_SETTINGS)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function readIo() {
+        var buffer = new ArrayBuffer(1)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_GET_IO)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function setMotorsEnabled(enabled) {
+        var buffer = new ArrayBuffer(2)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_SET_MOTORS_ENABLED)
+        dv.setUint8(ind++, enabled)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function updateSliders() {
+        slPedalCurrent.value = er_set.p_pedal_current
+        slStartGain.value = er_set.p_start_gain
+        slStartGainEndSpeed.value = er_set.p_start_gain_end_speed
+        slPower.value = er_set.p_output_power
+        slTopSpeedErpm.value = er_set.p_top_speed_erpm
+        slBrakeFront.value = er_set.p_brake_current_front
+        slBrakeRear.value = er_set.p_brake_current_rear
+        slBrakeBoth.value = er_set.p_brake_current_both
+    }
+    
+    function updateIoStatus() {
+        ioRepeater.itemAt(0).color = (er_io.mode_btn ? "green": "darkGray")
+        ioRepeater.itemAt(1).color = (er_io.brake_front ? "green" : "darkGray")
+        ioRepeater.itemAt(2).color = (er_io.brake_rear ? "green" : "darkGray")
+        ioRepeater.itemAt(3).color = (er_io.kill_sw ? "green" : "darkGray")
+        ioRepeater.itemAt(4).color = (er_io.led_eco_on ? "green" : "darkGray")
+        ioRepeater.itemAt(5).color = (er_io.led_sport_on ? "green" : "darkGray")
+        ioRepeater.itemAt(6).color = (er_io.led_low_batt_on ? "green" : "darkGray")
+        ioRepeater.itemAt(7).color = (er_io.led_fault_on ? "green" : "darkGray")
+        
+        var title_new = ""
+        if (er_io.led_eco_on) {
+            title_new = "Eco Settings"
+        } else if (er_io.led_sport) {
+            title_new = "Sport Settings"
+        } else {
+            title_new = "Normal Settings"
+        }
+        
+        if (settingsBox.title != title_new) {
+            readSettings()
+        }
+        
+        settingsBox.title = title_new
+    }
+    
     function getCanIds() {
         if (canDevs.length == 0) {
             disableDialog()
@@ -58,73 +235,352 @@ Item {
         }
     }
     
-    ColumnLayout {
-        id: mainColumn
-        
+    ScrollView {
         anchors.fill: parent
+        clip: true
+        contentWidth: availableWidth
         
-        Text {
-            Layout.fillWidth: true
-            color: "White"
-            horizontalAlignment: Text.AlignHCenter
-            font.pointSize: 20
-            text: "Erockit Console"
-        }
-        
-        GroupBox {
-            id: wizardBox
-            title: qsTr("Quick Setup")
-            Layout.fillWidth: true
+        ColumnLayout {
+            id: mainColumn
             
-            GridLayout {
-                anchors.topMargin: -5
-                anchors.bottomMargin: -5
-                anchors.fill: parent
-                columns: 2
-                columnSpacing: 5
-                rowSpacing: 0
+            anchors.fill: parent
+            
+            Text {
+                Layout.fillWidth: true
+                color: "White"
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 20
+                text: "Erockit Console"
+            }
+            
+            GroupBox {
+                id: wizardBox
+                title: qsTr("Quick Setup")
+                Layout.fillWidth: true
                 
-                ImageButton {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 500
-                    Layout.preferredHeight: 80
+                GridLayout {
+                    anchors.topMargin: -5
+                    anchors.bottomMargin: -5
+                    anchors.fill: parent
+                    columns: 2
+                    columnSpacing: 5
+                    rowSpacing: 0
                     
-                    buttonText: "Setup\nRear Motor"
-                    imageSrc: "qrc:/res/icons/motor.png"
-                    
-                    onClicked: {
-                        setupRearDialog.open()
+                    ImageButton {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 500
+                        Layout.preferredHeight: 80
+                        
+                        buttonText: "Setup\nRear Motor"
+                        imageSrc: "qrc:/res/icons/motor.png"
+                        
+                        onClicked: {
+                            setupRearDialog.open()
+                        }
                     }
-                }
-                
-                ImageButton {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 500
-                    Layout.preferredHeight: 80
                     
-                    buttonText: "Setup\nFront Motor"
-                    imageSrc: "qrc:/res/icons/motor.png"
+                    ImageButton {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 500
+                        Layout.preferredHeight: 80
+                        
+                        buttonText: "Setup\nFront Motor"
+                        imageSrc: "qrc:/res/icons/motor.png"
+                        
+                        onClicked: {
+                            setupFrontDialog.open()
+                        }
+                    }
                     
-                    onClicked: {
-                        setupFrontDialog.open()
+                    ImageButton {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 500
+                        Layout.preferredHeight: 80
+                        
+                        buttonText: "Restore\nSettings"
+                        imageSrc: "qrc:/res/icons/Restart-96.png"
+                        
+                        onClicked: {
+                            restoreSettings()
+                            readSettings()
+                        }
                     }
                 }
             }
-        }
-        
-        Item {
-            Layout.fillHeight: true
+            
+            GroupBox {
+                title: qsTr("IO Status")
+                Layout.fillWidth: true
+                
+                GridLayout {
+                    anchors.fill: parent
+                    columns: 2
+                    
+                    Repeater {
+                        id: ioRepeater
+                        
+                        model: ["mode_btn", "brake_front", "brake_rear", "kill_sw",
+                            "led_eco_on", "led_sport_on", "led_low_batt_on", "led_fault_on"]
+                            
+                        Rectangle {                            
+                            Layout.fillWidth: true
+                            radius: 5
+                            height: 30
+                            color: "darkGray"
+                            
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData
+                                color: "white"
+                            }
+                        }
+                    }
+                }
+            }
+            
+            GroupBox {
+                id: settingsBox
+                title: qsTr("Settings for selected mode")
+                Layout.fillWidth: true
+                
+                GridLayout {
+                    anchors.fill: parent
+                    columns: 3
+                    
+                    // Pedal Current
+                    
+                    Text { color: "white"; text: "Pedal\nCurrent" }
+                    
+                    Slider {
+                        id: slPedalCurrent
+                        Layout.fillWidth: true
+                        from: 1.5; to: 50.0; value: 15
+                        
+                        onValueChanged: {
+                            slPedalCurrentVal.text = parseFloat(value).toFixed(1) + " A"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_pedal_current = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slPedalCurrentVal
+                        color: "white"
+                        text: parseFloat(slPedalCurrent.value).toFixed(1) + " A"
+                    }
+                    
+                    // Start Gain
+                    
+                    Text { color: "white"; text: "Start Gain" }
+                    
+                    Slider {
+                        id: slStartGain
+                        Layout.fillWidth: true
+                        from: 1.0; to: 10.0; value: 4.0
+                        
+                        onValueChanged: {
+                            slStartGainVal.text = parseFloat(value).toFixed(1)
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_start_gain = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slStartGainVal
+                        color: "white"
+                        text: parseFloat(slStartGain.value).toFixed(1)
+                    }
+                    
+                    // Start Gain End Soeed
+                    
+                    Text { color: "white"; text: "Start Gain\nEnd Speed" }
+                    
+                    Slider {
+                        id: slStartGainEndSpeed
+                        Layout.fillWidth: true
+                        from: 1.0; to: 100.0; value: 15.0
+                        
+                        onValueChanged: {
+                            slStartGainEndSpeedVal.text = parseFloat(value).toFixed(1) + "\nkm/h"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_start_gain_end_speed = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slStartGainEndSpeedVal
+                        color: "white"
+                        text: parseFloat(slStartGainEndSpeed.value).toFixed(1) + "\nkm/h"
+                    }
+                    
+                    // Power
+                    
+                    Text { color: "white"; text: "Power" }
+                    
+                    Slider {
+                        id: slPower
+                        Layout.fillWidth: true
+                        from: 0.0; to: 1.0; value: 0.8
+                        
+                        onValueChanged: {
+                            slPowerVal.text = parseFloat(value * 100).toFixed(0) + " %"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_output_power = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slPowerVal
+                        color: "white"
+                        text: parseFloat(slPower.value * 100).toFixed(0) + " %"
+                    }
+                    
+                    // Top Speed ERPM
+                    
+                    Text { color: "white"; text: "Max Power\nERPM" }
+                    
+                    Slider {
+                        id: slTopSpeedErpm
+                        Layout.fillWidth: true
+                        from: 210.0; to: 5000.0; value: 2000
+                        
+                        onValueChanged: {
+                            slTopSpeedErpmVal.text = parseFloat(value).toFixed(0)
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_top_speed_erpm = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slTopSpeedErpmVal
+                        color: "white"
+                        text: parseFloat(slTopSpeedErpm.value).toFixed(0)
+                    }
+                    
+                    // Front Brake
+                    
+                    Text { color: "white"; text: "Front\nBrake" }
+                    
+                    Slider {
+                        id: slBrakeFront
+                        Layout.fillWidth: true
+                        from: 0.0; to: 1.0; value: 0.5
+                        
+                        onValueChanged: {
+                            slBrakeFrontVal.text = parseFloat(value * 100).toFixed(0) + " %"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_brake_current_front = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slBrakeFrontVal
+                        color: "white"
+                        text: parseFloat(slBrakeFront.value * 100).toFixed(0) + " %"
+                    }
+                    
+                    // Rear Brake
+                    
+                    Text { color: "white"; text: "Rear\nBrake" }
+                    
+                    Slider {
+                        id: slBrakeRear
+                        Layout.fillWidth: true
+                        from: 0.0; to: 1.0; value: 0.5
+                        
+                        onValueChanged: {
+                            slBrakeRearVal.text = parseFloat(value * 100).toFixed(0) + " %"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_brake_current_rear = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slBrakeRearVal
+                        color: "white"
+                        text: parseFloat(slBrakeRear.value * 100).toFixed(0) + " %"
+                    }
+                    
+                    // Both Brakes
+                    
+                    Text { color: "white"; text: "Both\nBrakes" }
+                    
+                    Slider {
+                        id: slBrakeBoth
+                        Layout.fillWidth: true
+                        from: 0.0; to: 1.0; value: 0.5
+                        
+                        onValueChanged: {
+                            slBrakeBothVal.text = parseFloat(value * 100).toFixed(0) + " %"
+                        }
+                        
+                        onPressedChanged: {
+                            if (!pressed) {
+                                er_set.p_brake_current_both = value
+                                writeSettings()
+                            }
+                        }
+                    }
+                    
+                    Text {
+                        id: slBrakeBothVal
+                        color: "white"
+                        text: parseFloat(slBrakeBoth.value * 100).toFixed(0) + " %"
+                    }
+                }
+            }
+            
+            Item {
+                Layout.fillHeight: true
+            }
         }
     }
     
     function disableDialog() {
         commDialog.open()
         mainColumn.enabled = false
+        setMotorsEnabled(false)
     }
 
     function enableDialog() {
         commDialog.close()
         mainColumn.enabled = true
+        setMotorsEnabled(true)
     }
 
     Dialog {
