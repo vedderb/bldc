@@ -98,12 +98,17 @@ static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportion
 static systime_t current_time, last_time, diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
+static float motor_timeout;
 
+// Function Prototypes
+static void set_current(float current, float yaw_current);
 
+// Exposed Functions
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
+	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
 	if(balance_conf.kd_pt1_lowpass_frequency > 0){
 		float dT = 1.0 / balance_conf.hertz;
 		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_lowpass_frequency);
@@ -127,31 +132,12 @@ void app_balance_start(void) {
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
 
-void reset_vars(void){
-	// Clear accumulated values.
-	integral = 0;
-	last_proportional = 0;
-	yaw_integral = 0;
-	yaw_last_proportional = 0;
-	d_pt1_lowpass_state = 0;
-	d_pt1_highpass_state = 0;
-	// Set values for startup
-	setpoint = pitch_angle;
-	setpoint_target_interpolated = pitch_angle;
-	setpoint_target = 0;
-	constanttilt_target = 0;
-	constanttilt_interpolated = 0;
-	torquetilt_target = 0;
-	torquetilt_interpolated = 0;
-	torquetilt_filtered_current = 0;
-	turntilt_target = 0;
-	turntilt_interpolated = 0;
-	setpointAdjustmentType = CENTERING;
-	yaw_setpoint = 0;
-	state = RUNNING;
-	current_time = 0;
-	last_time = 0;
-	diff_time = 0;
+void app_balance_stop(void) {
+	if(app_thread != NULL){
+		chThdTerminate(app_thread);
+		chThdWait(app_thread);
+	}
+	set_current(0, 0);
 }
 
 float app_balance_get_pid_output(void) {
@@ -185,7 +171,35 @@ float app_balance_get_adc2(void) {
 	return adc2;
 }
 
-float get_setpoint_adjustment_step_size(void){
+// Internal Functions
+static void reset_vars(void){
+	// Clear accumulated values.
+	integral = 0;
+	last_proportional = 0;
+	yaw_integral = 0;
+	yaw_last_proportional = 0;
+	d_pt1_lowpass_state = 0;
+	d_pt1_highpass_state = 0;
+	// Set values for startup
+	setpoint = pitch_angle;
+	setpoint_target_interpolated = pitch_angle;
+	setpoint_target = 0;
+	constanttilt_target = 0;
+	constanttilt_interpolated = 0;
+	torquetilt_target = 0;
+	torquetilt_interpolated = 0;
+	torquetilt_filtered_current = 0;
+	turntilt_target = 0;
+	turntilt_interpolated = 0;
+	setpointAdjustmentType = CENTERING;
+	yaw_setpoint = 0;
+	state = RUNNING;
+	current_time = 0;
+	last_time = 0;
+	diff_time = 0;
+}
+
+static float get_setpoint_adjustment_step_size(void){
 	switch(setpointAdjustmentType){
 		case (CENTERING):
 			return startup_step_size;
@@ -196,7 +210,7 @@ float get_setpoint_adjustment_step_size(void){
 }
 
 // Fault checking order does not really matter. From a UX perspective, switch should be before angle.
-bool check_faults(bool ignoreTimers){
+static bool check_faults(bool ignoreTimers){
 	// Check switch
 	// Switch fully open
 	if(switch_state == OFF){
@@ -251,7 +265,7 @@ bool check_faults(bool ignoreTimers){
 	return false;
 }
 
-void calculate_setpoint_target(void){
+static void calculate_setpoint_target(void){
 	if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
 		// Ignore tiltback during centering sequence
 		state = RUNNING;
@@ -286,7 +300,7 @@ void calculate_setpoint_target(void){
 	}
 }
 
-void calculate_setpoint_interpolated(void){
+static void calculate_setpoint_interpolated(void){
 	if(setpoint_target_interpolated != setpoint_target){
 		// If we are less than one step size away, go all the way
 		if(fabsf(setpoint_target - setpoint_target_interpolated) < get_setpoint_adjustment_step_size()){
@@ -299,7 +313,7 @@ void calculate_setpoint_interpolated(void){
 	}
 }
 
-void apply_constanttilt(void){
+static void apply_constanttilt(void){
 	// Nose angle adjustment
 	if(erpm > balance_conf.tiltback_constant_erpm){
 		constanttilt_target = balance_conf.tiltback_constant;
@@ -319,7 +333,7 @@ void apply_constanttilt(void){
 	setpoint += constanttilt_interpolated;
 }
 
-void apply_torquetilt(void){
+static void apply_torquetilt(void){
 	// Filter current (Basic LPF)
 	torquetilt_filtered_current = ((1-balance_conf.torquetilt_filter) * motor_current) + (balance_conf.torquetilt_filter * torquetilt_filtered_current);
 	// Wat is this line O_o
@@ -338,7 +352,7 @@ void apply_torquetilt(void){
 	setpoint += torquetilt_interpolated;
 }
 
-void apply_turntilt(void){
+static void apply_turntilt(void){
 	// Calculate desired angle
 	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_strength;
 
@@ -376,7 +390,7 @@ void apply_turntilt(void){
 
 }
 
-float apply_deadzone(float error){
+static float apply_deadzone(float error){
 	if(balance_conf.deadzone == 0){
 		return error;
 	}
@@ -390,7 +404,7 @@ float apply_deadzone(float error){
 	}
 }
 
-void brake(void){
+static void brake(void){
 	// Reset the timeout
 	timeout_reset();
 	// Set current
@@ -405,13 +419,13 @@ void brake(void){
 	}
 }
 
-void set_current(float current, float yaw_current){
+static void set_current(float current, float yaw_current){
 	// Reset the timeout
 	timeout_reset();
 	// Set current
 	if(balance_conf.multi_esc){
 		// Set the current delay
-		mc_interface_set_current_off_delay((1000.0 / balance_conf.hertz)/1000.0);
+		mc_interface_set_current_off_delay(motor_timeout);
 		// Set Current
 		mc_interface_set_current(current + yaw_current);
 		// Can bus
@@ -419,23 +433,15 @@ void set_current(float current, float yaw_current){
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-				comm_can_set_current_off_delay(msg->id, current - yaw_current, (1000.0 / balance_conf.hertz)/1000.0);// Assume 2 motors, i don't know how to steer 3 anyways
+				comm_can_set_current_off_delay(msg->id, current - yaw_current, motor_timeout);// Assume 2 motors, i don't know how to steer 3 anyways
 			}
 		}
 	} else {
 		// Set the current delay
-		mc_interface_set_current_off_delay((1000.0 / balance_conf.hertz)/1000.0);
+		mc_interface_set_current_off_delay(motor_timeout);
 		// Set Current
 		mc_interface_set_current(current);
 	}
-}
-
-void app_balance_stop(void) {
-	if(app_thread != NULL){
-		chThdTerminate(app_thread);
-		chThdWait(app_thread);
-	}
-	set_current(0, 0);
 }
 
 static THD_FUNCTION(balance_thread, arg) {
