@@ -85,8 +85,8 @@ When making updates it is easy to break things for different configurations. In 
 
 === Other guidelines ===
 
-* Use single precition floating point operations, as the FPU in the STM32F4 is 32 bits only. Double precision operations can take up to 50 times (!) longer.
- - float instead if double
+* Use single precision floating point operations, as the FPU in the STM32F4 is 32 bits only. Double precision operations can take up to 50 times (!) longer.
+ - float instead of double
  - Use the math library functions ending with f (sinf, cosf, powf, fabsf etc.)
 
 * Make sure that the code compiles without warnings.
@@ -94,7 +94,7 @@ When making updates it is easy to break things for different configurations. In 
 * Avoid dynamic memory allocation if possible, so that the RAM usage is known at compile time.
 
 * If the code crashed randomly, use the ChibiOS state checker:
-http://www.chibios.org/dokuwiki/doku.php?id=chibios:articles:state_checker
+https://www.chibios.org/dokuwiki/doku.php?id=chibios:documentation:books:rt:kernel_debug#system_state_checks
 
 
 === Be patient, and don't take criticism personally ===

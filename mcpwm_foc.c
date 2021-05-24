@@ -1439,6 +1439,10 @@ float mcpwm_foc_get_vq(void) {
  * @param current
  * The locking open loop current for the motor.
  *
+ * @param print
+ * Controls logging during the detection procedure. Set to true to enable
+ * logging.
+ *
  * @param offset
  * The detected offset.
  *
@@ -1447,6 +1451,10 @@ float mcpwm_foc_get_vq(void) {
  *
  * @param direction
  * The detected direction.
+ *
+ * @param inverted
+ * Is set to true if the encoder reports an increase in angle in the opposite
+ * direction of the motor.
  */
 void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
 	mc_interface_lock();
