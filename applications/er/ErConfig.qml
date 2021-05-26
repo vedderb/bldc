@@ -271,7 +271,7 @@ Item {
                         Layout.preferredWidth: 500
                         Layout.preferredHeight: 80
                         
-                        buttonText: "Setup\nRear Motor"
+                        buttonText: "Setup\nRear\nMotor"
                         imageSrc: "qrc:/res/icons/motor.png"
                         
                         onClicked: {
@@ -284,7 +284,7 @@ Item {
                         Layout.preferredWidth: 500
                         Layout.preferredHeight: 80
                         
-                        buttonText: "Setup\nFront Motor"
+                        buttonText: "Setup\nFront\nMotor"
                         imageSrc: "qrc:/res/icons/motor.png"
                         
                         onClicked: {
@@ -584,14 +584,14 @@ Item {
                 return
             }
             
-            mMcConf.updateParamInt("hall_table__0", hall[1], null)
-            mMcConf.updateParamInt("hall_table__1", hall[2], null)
-            mMcConf.updateParamInt("hall_table__2", hall[3], null)
-            mMcConf.updateParamInt("hall_table__3", hall[4], null)
-            mMcConf.updateParamInt("hall_table__4", hall[5], null)
-            mMcConf.updateParamInt("hall_table__5", hall[6], null)
-            mMcConf.updateParamInt("hall_table__6", hall[7], null)
-            mMcConf.updateParamInt("hall_table__7", hall[8], null)
+            mMcConf.updateParamInt("foc_hall_table__0", hall[1], null)
+            mMcConf.updateParamInt("foc_hall_table__1", hall[2], null)
+            mMcConf.updateParamInt("foc_hall_table__2", hall[3], null)
+            mMcConf.updateParamInt("foc_hall_table__3", hall[4], null)
+            mMcConf.updateParamInt("foc_hall_table__4", hall[5], null)
+            mMcConf.updateParamInt("foc_hall_table__5", hall[6], null)
+            mMcConf.updateParamInt("foc_hall_table__6", hall[7], null)
+            mMcConf.updateParamInt("foc_hall_table__7", hall[8], null)
             
             mCommands.setMcconf(false)
             if (!Utility.waitSignal(mCommands, "2ackReceived(QString)", 4000)) {
