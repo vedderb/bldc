@@ -145,6 +145,7 @@
 //#define HW_HEADER "hw_uxv_sr.h"
 
 //#define HW_DUAL_CONFIG_PARALLEL
+//#define HW_VER_IS_100D_V2
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
