@@ -491,6 +491,10 @@ Item {
             mMcConf.updateParamInt("si_motor_poles", 8, null)
             mMcConf.updateParamDouble("si_wheel_diameter", 0.58, null)
             
+            mMcConf.updateParamEnum("si_battery_type", 0, null)
+            mMcConf.updateParamInt("si_battery_cells", 14, null)
+            mMcConf.updateParamDouble("si_battery_ah", 120, null)
+            
             mMcConf.updateParamDouble("l_current_max", 380, null)
             mMcConf.updateParamDouble("l_current_min", -120, null)
             mMcConf.updateParamDouble("l_in_current_max", 300, null)

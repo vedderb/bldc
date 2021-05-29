@@ -29,6 +29,7 @@
 #include "hw.h"
 #include "commands.h"
 #include "timeout.h"
+#include "buffer.h"
 
 #include "app_finn_types.h"
 
@@ -74,6 +75,12 @@
 
 #define P_ADDR_OFFSET			0
 
+typedef enum {
+	FINN_MSG_GET_STATE = 0,
+	FINN_MSG_HOME,
+	FINN_MSG_SET_MOTORS_ENABLED,
+} FINN_MSG;
+
 // Threads
 static THD_FUNCTION(control_thread, arg);
 static THD_WORKING_AREA(control_thread_wa, 1024);
@@ -87,8 +94,11 @@ static volatile bool stop_now = true;
 static volatile bool control_is_running = false;
 static volatile bool status_is_running = false;
 static volatile POD_STATE m_pod_state;
+static volatile bool m_motors_enabled = true;
+static volatile bool m_start_wait_done = false;
 
 // Private functions
+static void process_custom_app_data(unsigned char *data, unsigned int len);
 static bool can_eid_callback(uint32_t id, uint8_t *data, uint8_t len);
 static void terminal_mon(int argc, const char **argv);
 static void terminal_home(int argc, const char **argv);
@@ -97,6 +107,7 @@ void app_custom_start(void) {
 	memset((void*)&m_pod_state, 0, sizeof(m_pod_state));
 	m_pod_state.homing_angle_now = HOMING_ANGLE_BACK;
 
+	commands_set_app_data_handler(process_custom_app_data);
 	comm_can_set_eid_rx_callback(can_eid_callback);
 
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_PULLDOWN);
@@ -128,6 +139,7 @@ void app_custom_start(void) {
 }
 
 void app_custom_stop(void) {
+	commands_set_app_data_handler(0);
 	comm_can_set_eid_rx_callback(0);
 	terminal_unregister_callback(terminal_mon);
 
@@ -142,6 +154,68 @@ void app_custom_stop(void) {
 
 void app_custom_configure(app_configuration *conf) {
 	m_pod_state.pod_id = conf->controller_id;
+}
+
+static void process_custom_app_data(unsigned char *data, unsigned int len) {
+	(void)len;
+
+	int32_t ind = 0;
+	FINN_MSG msg = data[ind++];
+
+	switch (msg) {
+	case FINN_MSG_GET_STATE: {
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		buffer_append_float32_auto(dataTx, m_pod_state.req_angle, &ind);
+		buffer_append_float32_auto(dataTx, m_pod_state.actual_angle, &ind);
+		buffer_append_float32_auto(dataTx, m_pod_state.angle_offset, &ind);
+		buffer_append_float32_auto(dataTx, m_pod_state.angle_home, &ind);
+		buffer_append_float32_auto(dataTx, m_pod_state.homing_angle_now, &ind);
+		buffer_append_float32_auto(dataTx, m_pod_state.homing_back_time, &ind);
+
+		buffer_append_float32_auto(dataTx, UTILS_AGE_S(m_pod_state.last_update), &ind);
+
+		dataTx[ind++] = m_pod_state.btn_left_pressed;
+		dataTx[ind++] = m_pod_state.btn_right_pressed;
+		dataTx[ind++] = m_pod_state.btn_limit_pressed;
+
+		dataTx[ind++] = m_pod_state.homing_done;
+		dataTx[ind++] = m_pod_state.homing_error;
+
+		dataTx[ind++] = m_pod_state.wait_start;
+		dataTx[ind++] = m_pod_state.wait_data;
+
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case FINN_MSG_HOME: {
+		m_pod_state.homing_angle_now = HOMING_ANGLE_BACK + m_pod_state.req_angle + m_pod_state.angle_home + m_pod_state.angle_offset;
+		m_pod_state.homing_back_time = 0.0;
+		m_pod_state.homing_done = false;
+		m_pod_state.homing_error = false;
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case FINN_MSG_SET_MOTORS_ENABLED: {
+		m_motors_enabled = data[ind++];
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		dataTx[ind++] = m_motors_enabled;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	default:
+		break;
+	}
 }
 
 /*
@@ -261,11 +335,15 @@ static THD_FUNCTION(control_thread, arg) {
 			return;
 		}
 
-		if (ST2MS(chVTGetSystemTimeX()) < (START_DELAY * 1000)) {
+		if (UTILS_AGE_S(0) < START_DELAY && !m_start_wait_done) {
 			chThdSleepMilliseconds(10);
 			time_last = chVTGetSystemTimeX();
+			m_pod_state.wait_start = true;
 			continue;
 		}
+
+		m_pod_state.wait_start = false;
+		m_start_wait_done = true;
 
 		{
 			static int samp_cnt = 0;
@@ -295,6 +373,12 @@ static THD_FUNCTION(control_thread, arg) {
 
 		float angle_target_no_filter = m_pod_state.req_angle + m_pod_state.angle_home + m_pod_state.angle_offset;
 
+		float angle_now = mc_interface_get_pid_pos_now();
+		if (angle_now > 180.0) {
+			angle_now -= 360.0;
+		}
+		angle_now *= APP_FINN_WRAP_FACTOR;
+
 		if (!m_pod_state.homing_done) {
 			m_pod_state.homing_back_time += dt;
 
@@ -306,7 +390,7 @@ static THD_FUNCTION(control_thread, arg) {
 
 			if (m_pod_state.btn_limit_pressed) {
 				m_pod_state.homing_done = true;
-				m_pod_state.angle_home = mc_interface_get_pid_pos_now() * 4.0;
+				m_pod_state.angle_home = angle_now;
 			}
 
 			if (m_pod_state.homing_angle_now > HOMING_ANGLE_MAX) {
@@ -348,12 +432,15 @@ static THD_FUNCTION(control_thread, arg) {
 
 		UTILS_LP_FAST(angle_target, angle_target_no_filter, FILTER_CONST);
 
-		if (UTILS_AGE_S(m_pod_state.last_update) < 2.0) {
+		m_pod_state.actual_angle = angle_now - m_pod_state.angle_home - m_pod_state.angle_offset;
+
+		if (UTILS_AGE_S(m_pod_state.last_update) < 2.0 && m_motors_enabled) {
 			timeout_reset();
-			mc_interface_set_pid_pos(angle_target / 4.0);
-			m_pod_state.actual_angle = mc_interface_get_pid_pos_now() * 4.0 - m_pod_state.angle_home - m_pod_state.angle_offset;
+			mc_interface_set_pid_pos(angle_target / APP_FINN_WRAP_FACTOR);
+			m_pod_state.wait_data = false;
 		} else {
-//			m_pod_state.req_angle = mc_interface_get_pid_pos_now() * 4.0 - m_pod_state.angle_home - m_pod_state.angle_offset;
+//			m_pod_state.req_angle = angle_now - m_pod_state.angle_home - m_pod_state.angle_offset;
+			m_pod_state.wait_data = true;
 		}
 
 		chThdSleepMilliseconds(5);

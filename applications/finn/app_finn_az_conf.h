@@ -39,10 +39,11 @@
 #define MCCONF_L_IN_CURRENT_MIN			-10.0
 
 // Position PID controller
-#define MCCONF_P_PID_KP					(0.2 * 4.0)
-#define MCCONF_P_PID_KI					(0.2 * 4.0)
-#define MCCONF_P_PID_KD					(0.01 * 4.0)
-#define MCCONF_P_PID_ANG_DIV			(75.0 * 7.0 * 4.0) // 1:75 gearing and 7 pole pairs. 4.0 to avoid wrap around.
+#define APP_FINN_WRAP_FACTOR			4.0 // Avoid wrap-around within the control region by only using a fraction of it
+#define MCCONF_P_PID_KP					(0.2 * APP_FINN_WRAP_FACTOR)
+#define MCCONF_P_PID_KI					(0.2 * APP_FINN_WRAP_FACTOR)
+#define MCCONF_P_PID_KD					(0.01 * APP_FINN_WRAP_FACTOR)
+#define MCCONF_P_PID_ANG_DIV			(75.0 * 7.0 * APP_FINN_WRAP_FACTOR) // 1:75 gearing and 7 pole pairs
 #define MCCONF_P_PID_KD_FILTER			0.2
 #define MCCONF_P_PID_GAIN_DEC_ANGLE		300.0
 
@@ -66,9 +67,8 @@
 #define MCCONF_FOC_SL_ERPM				2000.0
 #define MCCONF_M_HALL_EXTRA_SAMPLES		3
 
-// Other
-#define MCCONF_FOC_PLL_KP				500.0
-#define MCCONF_FOC_PLL_KI				5000.0
+#define QMLUI_SOURCE_APP				"finn/finn_qml.c"
+#define QMLUI_HEADER_APP				"finn/finn_qml.h"
 
 #endif /* APP_FINN_AZ_CONF_H_ */
 

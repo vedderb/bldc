@@ -140,14 +140,17 @@ typedef union {
 typedef struct {
 	int pod_id;
 
-	int16_t req_angle;
-	int16_t actual_angle;
+	float req_angle;
+	float actual_angle;
 
 	float angle_offset;
 	float angle_home;
 
 	bool homing_done;
 	bool homing_error;
+
+	bool wait_start;
+	bool wait_data;
 
 	float homing_angle_now;
 	float homing_back_time;
