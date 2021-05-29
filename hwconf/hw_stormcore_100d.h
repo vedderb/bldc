@@ -25,6 +25,8 @@
 
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
+#elif defined(HW_VER_IS_100D_V2)
+#define HW_NAME                 "STORMCORE_100D_V2"
 #else
 #define HW_NAME                 "STORMCORE_100D"
 #endif
@@ -69,6 +71,18 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
+#ifdef HW_VER_IS_100D_V2
+#define HW_HAS_PHASE_FILTERS
+#define PHASE_FILTER_GPIO               GPIOE
+#define PHASE_FILTER_PIN                1
+#define PHASE_FILTER_GPIO_M2            GPIOE
+#define PHASE_FILTER_PIN_M2             4
+#define PHASE_FILTER_ON()               palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()              palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_ON_M2()            palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#define PHASE_FILTER_OFF_M2()           palClearPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#endif
+
 
 
 #define HW_SHUTDOWN_HOLD_ON();
@@ -95,6 +109,17 @@
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
+
+#ifdef HW_VER_IS_100D_V2
+//Pins for Third UART
+#define HW_UART_3_BAUD              115200
+#define HW_UART_3_DEV               SD2
+#define HW_UART_3_GPIO_AF           GPIO_AF_USART2
+#define HW_UART_3_TX_PORT           GPIOD
+#define HW_UART_3_TX_PIN            6
+#define HW_UART_3_RX_PORT           GPIOD
+#define HW_UART_3_RX_PIN            5
+#endif
 
 // SPI for DRV8301
 #define DRV8323S_MOSI_GPIO			GPIOC
@@ -226,11 +251,22 @@
 #ifndef VIN_R2
 #define VIN_R2					2200.0
 #endif
+
+
+#ifdef HW_VER_IS_100D_V2
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		10.0
+#define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.001
+#define CURRENT_SHUNT_RES       0.0005
+#endif
+#else
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN        10.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES       0.001
+#endif
 #endif
 
 #define VBATT_R1					360000.0
@@ -334,10 +370,17 @@
 #define NRF_PIN_MISO            10
 
 // NRF SWD
-#define NRF5x_SWDIO_GPIO		GPIOD
-#define NRF5x_SWDIO_PIN			6
-#define NRF5x_SWCLK_GPIO		GPIOD
-#define NRF5x_SWCLK_PIN			5
+#ifdef HW_VER_IS_100D_V2
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         9
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         8
+#else
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         6
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         5
+#endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
