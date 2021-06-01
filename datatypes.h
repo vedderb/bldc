@@ -709,12 +709,15 @@ typedef struct {
 	float yaw_current_clamp;
 	uint16_t kd_pt1_lowpass_frequency;
 	uint16_t kd_pt1_highpass_frequency;
+	float kd_biquad_lowpass;
+	float kd_biquad_highpass;
 	float booster_angle;
 	float booster_ramp;
 	float booster_current;
 	float torquetilt_start_current;
 	float torquetilt_angle_limit;
-	float torquetilt_speed;
+	float torquetilt_on_speed;
+	float torquetilt_off_speed;
 	float torquetilt_strength;
 	float torquetilt_filter;
 	float turntilt_strength;

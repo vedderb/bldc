@@ -30,9 +30,11 @@
 #include "utils.h"
 #include "datatypes.h"
 #include "comm_can.h"
+#include "terminal.h"
 
 
 #include <math.h>
+#include <stdio.h>
 
 // Can
 #define MAX_CAN_AGE 0.1
@@ -63,6 +65,11 @@ typedef enum {
 	ON
 } SwitchState;
 
+typedef struct{
+	float a0, a1, a2, b1, b2;
+	float z1, z2;
+} Biquad;
+
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
@@ -72,10 +79,10 @@ static thread_t *app_thread;
 // Config values
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
-static float startup_step_size, tiltback_step_size, torquetilt_step_size, turntilt_step_size;
+static float startup_step_size, tiltback_step_size, torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
 
 // Runtime values read from elsewhere
-static float pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
+static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
 static float erpm, abs_erpm, avg_erpm;
@@ -92,16 +99,34 @@ static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
 static float constanttilt_target, constanttilt_interpolated;
 static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
+static Biquad torquetilt_current_biquad;
 static float turntilt_target, turntilt_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
 static systime_t current_time, last_time, diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
+static Biquad d_biquad_lowpass, d_biquad_highpass;
 static float motor_timeout;
+
+// Debug values
+static int debug_render_1, debug_render_2;
+static int debug_sample_field, debug_sample_count, debug_sample_index;
 
 // Function Prototypes
 static void set_current(float current, float yaw_current);
+static void terminal_render(int argc, const char **argv);
+static void terminal_sample(int argc, const char **argv);
+static float app_balance_get_debug(int index);
+static void app_balance_sample_debug(void);
+
+// Utility Functions
+float biquad_process(float in, Biquad *biquad) {
+    float out = in * biquad->a0 + biquad->z1;
+    biquad->z1 = in * biquad->a1 + biquad->z2 - biquad->b1 * out;
+    biquad->z2 = in * biquad->a2 - biquad->b2 * out;
+    return out;
+}
 
 // Exposed Functions
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
@@ -109,6 +134,14 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	imu_conf = *conf2;
 	// Set calculated values from config
 	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
+
+	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
+	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	torquetilt_on_step_size = balance_conf.torquetilt_on_speed / balance_conf.hertz;
+	torquetilt_off_step_size = balance_conf.torquetilt_off_speed / balance_conf.hertz;
+	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
+
+	// Init Filters
 	if(balance_conf.kd_pt1_lowpass_frequency > 0){
 		float dT = 1.0 / balance_conf.hertz;
 		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_lowpass_frequency);
@@ -119,15 +152,55 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_highpass_frequency);
 		d_pt1_highpass_k =  dT / (RC + dT);
 	}
-	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
-	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
-	torquetilt_step_size = balance_conf.torquetilt_speed / balance_conf.hertz;
-	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
+	if(balance_conf.kd_biquad_lowpass > 0){
+		float Fc = balance_conf.kd_biquad_lowpass / balance_conf.hertz;
+		float Q = 0.707; // Flat response
+		float K = tan(M_PI * Fc);
+		float norm = 1 / (1 + K / Q + K * K);
+		d_biquad_lowpass.a0 = K * K * norm;
+		d_biquad_lowpass.a1 = 2 * d_biquad_lowpass.a0;
+		d_biquad_lowpass.a2 = d_biquad_lowpass.a0;
+		d_biquad_lowpass.b1 = 2 * (K * K - 1) * norm;
+		d_biquad_lowpass.b2 = (1 - K / Q + K * K) * norm;
+	}
+	if(balance_conf.kd_biquad_highpass > 0){
+		float Fc = balance_conf.kd_biquad_highpass / balance_conf.hertz;
+		float Q = 0.707; // Flat response
+		float K = tan(M_PI * Fc);
+		float norm = 1 / (1 + K / Q + K * K);
+		d_biquad_highpass.a0 = 1 * norm;
+		d_biquad_highpass.a1 = -2 * d_biquad_highpass.a0;
+		d_biquad_highpass.a2 = d_biquad_highpass.a0;
+		d_biquad_highpass.b1 = 2 * (K * K - 1) * norm;
+		d_biquad_highpass.b2 = (1 - K / Q + K * K) * norm;
+	}
+	if(balance_conf.torquetilt_filter > 0){ // Torquetilt Current Biquad
+		float Fc = balance_conf.torquetilt_filter / balance_conf.hertz;
+		float Q = 0.707; // Flat response
+		float K = tan(M_PI * Fc);
+		float norm = 1 / (1 + K / Q + K * K);
+		torquetilt_current_biquad.a0 = K * K * norm;
+		torquetilt_current_biquad.a1 = 2 * torquetilt_current_biquad.a0;
+		torquetilt_current_biquad.a2 = torquetilt_current_biquad.a0;
+		torquetilt_current_biquad.b1 = 2 * (K * K - 1) * norm;
+		torquetilt_current_biquad.b2 = (1 - K / Q + K * K) * norm;
+	}
 }
 
 void app_balance_start(void) {
 	// First start only, override state to startup
 	state = STARTUP;
+	// Register terminal commands
+	terminal_register_command_callback(
+		"app_balance_render",
+		"Render debug values on the balance real time data graph",
+		"[Field Number] [Plot (Optional 1 or 2)]",
+		terminal_render);
+	terminal_register_command_callback(
+			"app_balance_sample",
+			"Sample real time values and log them to the terminal",
+			"[Field Number] [Sample Count]",
+			terminal_sample);
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
@@ -138,6 +211,8 @@ void app_balance_stop(void) {
 		chThdWait(app_thread);
 	}
 	set_current(0, 0);
+	terminal_unregister_callback(terminal_render);
+	terminal_unregister_callback(terminal_sample);
 }
 
 float app_balance_get_pid_output(void) {
@@ -155,9 +230,6 @@ uint32_t app_balance_get_diff_time(void) {
 float app_balance_get_motor_current(void) {
 	return motor_current;
 }
-float app_balance_get_motor_position(void) {
-	return motor_position;
-}
 uint16_t app_balance_get_state(void) {
 	return state;
 }
@@ -170,6 +242,12 @@ float app_balance_get_adc1(void) {
 float app_balance_get_adc2(void) {
 	return adc2;
 }
+float app_balance_get_debug1(void) {
+	return app_balance_get_debug(debug_render_1);
+}
+float app_balance_get_debug2(void) {
+	return app_balance_get_debug(debug_render_2);
+}
 
 // Internal Functions
 static void reset_vars(void){
@@ -180,6 +258,10 @@ static void reset_vars(void){
 	yaw_last_proportional = 0;
 	d_pt1_lowpass_state = 0;
 	d_pt1_highpass_state = 0;
+	d_biquad_lowpass.z1 = 0;
+	d_biquad_lowpass.z2 = 0;
+	d_biquad_highpass.z1 = 0;
+	d_biquad_highpass.z2 = 0;
 	// Set values for startup
 	setpoint = pitch_angle;
 	setpoint_target_interpolated = pitch_angle;
@@ -189,6 +271,8 @@ static void reset_vars(void){
 	torquetilt_target = 0;
 	torquetilt_interpolated = 0;
 	torquetilt_filtered_current = 0;
+	torquetilt_current_biquad.z1 = 0;
+	torquetilt_current_biquad.z2 = 0;
 	turntilt_target = 0;
 	turntilt_interpolated = 0;
 	setpointAdjustmentType = CENTERING;
@@ -334,20 +418,33 @@ static void apply_constanttilt(void){
 }
 
 static void apply_torquetilt(void){
-	// Filter current (Basic LPF)
-	torquetilt_filtered_current = ((1-balance_conf.torquetilt_filter) * motor_current) + (balance_conf.torquetilt_filter * torquetilt_filtered_current);
+	// Filter current (Biquad)
+	if(balance_conf.torquetilt_filter > 0){
+		torquetilt_filtered_current = biquad_process(motor_current, &torquetilt_current_biquad);
+	}else{
+		torquetilt_filtered_current  = motor_current;
+	}
+
+
 	// Wat is this line O_o
 	// Take abs motor current, subtract start offset, and take the max of that with 0 to get the current above our start threshold (absolute).
 	// Then multiply it by "power" to get our desired angle, and min with the limit to respect boundaries.
 	// Finally multiply it by sign motor current to get directionality back
 	torquetilt_target = fminf(fmaxf((fabsf(torquetilt_filtered_current) - balance_conf.torquetilt_start_current), 0) * balance_conf.torquetilt_strength, balance_conf.torquetilt_angle_limit) * SIGN(torquetilt_filtered_current);
 
-	if(fabsf(torquetilt_target - torquetilt_interpolated) < torquetilt_step_size){
+	float step_size;
+	if((torquetilt_interpolated - torquetilt_target > 0 && torquetilt_target > 0) || (torquetilt_interpolated - torquetilt_target < 0 && torquetilt_target < 0)){
+		step_size = torquetilt_off_step_size;
+	}else{
+		step_size = torquetilt_on_step_size;
+	}
+
+	if(fabsf(torquetilt_target - torquetilt_interpolated) < step_size){
 		torquetilt_interpolated = torquetilt_target;
 	}else if (torquetilt_target - torquetilt_interpolated > 0){
-		torquetilt_interpolated += torquetilt_step_size;
+		torquetilt_interpolated += step_size;
 	}else{
-		torquetilt_interpolated -= torquetilt_step_size;
+		torquetilt_interpolated -= step_size;
 	}
 	setpoint += torquetilt_interpolated;
 }
@@ -462,6 +559,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Get the values we want
+		last_pitch_angle = pitch_angle;
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
 		abs_roll_angle = fabsf(roll_angle);
@@ -550,9 +648,9 @@ static THD_FUNCTION(balance_thread, arg) {
 				proportional = apply_deadzone(proportional);
 				// Resume real PID maths
 				integral = integral + proportional;
-				derivative = proportional - last_proportional;
+				derivative = last_pitch_angle - pitch_angle;
 
-				// Apply D term only filter
+				// Apply D term filters
 				if(balance_conf.kd_pt1_lowpass_frequency > 0){
 					d_pt1_lowpass_state = d_pt1_lowpass_state + d_pt1_lowpass_k * (derivative - d_pt1_lowpass_state);
 					derivative = d_pt1_lowpass_state;
@@ -560,6 +658,12 @@ static THD_FUNCTION(balance_thread, arg) {
 				if(balance_conf.kd_pt1_highpass_frequency > 0){
 					d_pt1_highpass_state = d_pt1_highpass_state + d_pt1_highpass_k * (derivative - d_pt1_highpass_state);
 					derivative = derivative - d_pt1_highpass_state;
+				}
+				if(balance_conf.kd_biquad_lowpass > 0){
+					derivative = biquad_process(derivative, &d_biquad_lowpass);
+				}
+				if(balance_conf.kd_biquad_highpass > 0){
+					derivative = biquad_process(derivative, &d_biquad_highpass);
 				}
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
@@ -628,10 +732,73 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 		}
 
+		// Debug sampling
+		app_balance_sample_debug();
+
 		// Delay between loops
 		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
 	}
 
 	// Disable output
 	brake();
+}
+
+// Terminal commands
+static void terminal_render(int argc, const char **argv) {
+	if (argc == 2 || argc == 3) {
+		int field = 0;
+		int graph = 1;
+		sscanf(argv[1], "%d", &field);
+		if(argc == 3){
+			sscanf(argv[2], "%d", &graph);
+			if(graph < 1 || graph > 2){
+				graph = 1;
+			}
+		}
+		if(graph == 1){
+			debug_render_1 = field;
+		}else{
+			debug_render_2 = field;
+		}
+	} else {
+		commands_printf("This command requires one or two argument(s).\n");
+	}
+}
+
+static void terminal_sample(int argc, const char **argv) {
+	if (argc == 3) {
+		debug_sample_field = 0;
+		debug_sample_count = 0;
+		sscanf(argv[1], "%d", &debug_sample_field);
+		sscanf(argv[2], "%d", &debug_sample_count);
+		debug_sample_index = 0;
+	} else {
+		commands_printf("This command requires two arguments.\n");
+	}
+}
+
+// Debug functions
+static float app_balance_get_debug(int index){
+	switch(index){
+		case(1):
+			return motor_position;
+		case(2):
+			return setpoint;
+		case(3):
+			return torquetilt_filtered_current;
+		case(4):
+			return derivative;
+		case(5):
+			return last_pitch_angle - pitch_angle;
+		case(6):
+			return motor_current;
+		default:
+			return 0;
+	}
+}
+static void app_balance_sample_debug(){
+	if(debug_sample_index < debug_sample_count){
+		commands_printf("%f", (double)app_balance_get_debug(debug_sample_field));
+		debug_sample_index += 1;
+	}
 }
