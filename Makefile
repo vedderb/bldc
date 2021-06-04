@@ -322,3 +322,6 @@ upload-pi-remote: build/$(PROJECT).elf
 
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
+
+size: build/$(PROJECT).elf
+	@$(SZ) $<
