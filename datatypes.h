@@ -706,6 +706,7 @@ typedef struct {
 	float roll_steer_kp;
 	float roll_steer_erpm_kp;
 	float brake_current;
+	uint16_t brake_timeout;
 	float yaw_current_clamp;
 	uint16_t kd_pt1_lowpass_frequency;
 	uint16_t kd_pt1_highpass_frequency;

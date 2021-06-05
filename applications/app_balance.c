@@ -108,6 +108,7 @@ static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_t
 static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
 static Biquad d_biquad_lowpass, d_biquad_highpass;
 static float motor_timeout;
+static systime_t brake_timeout;
 
 // Debug values
 static int debug_render_1, debug_render_2;
@@ -281,6 +282,7 @@ static void reset_vars(void){
 	current_time = 0;
 	last_time = 0;
 	diff_time = 0;
+	brake_timeout = 0;
 }
 
 static float get_setpoint_adjustment_step_size(void){
@@ -502,6 +504,14 @@ static float apply_deadzone(float error){
 }
 
 static void brake(void){
+	// Brake timeout logic
+	if(balance_conf.brake_timeout > 0 && (abs_erpm > 1 || brake_timeout == 0)){
+		brake_timeout = current_time + S2ST(balance_conf.brake_timeout);
+	}
+	if(brake_timeout != 0 && current_time > brake_timeout){
+		return;
+	}
+
 	// Reset the timeout
 	timeout_reset();
 	// Set current
@@ -792,6 +802,8 @@ static float app_balance_get_debug(int index){
 			return last_pitch_angle - pitch_angle;
 		case(6):
 			return motor_current;
+		case(7):
+			return abs_erpm;
 		default:
 			return 0;
 	}
