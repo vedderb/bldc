@@ -215,6 +215,10 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          qmlui/hw \
          qmlui/app
 
+ifdef app_custom_mkfile
+include $(app_custom_mkfile)
+endif
+
 #
 # Project, sources and paths
 ##############################################################################

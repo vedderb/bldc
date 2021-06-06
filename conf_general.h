@@ -120,9 +120,6 @@
 //#define HW_SOURCE "hw_uavc_omega.c"
 //#define HW_HEADER "hw_uavc_omega.h"
 
-//#define HW_SOURCE "hw_binar_v1.c"
-//#define HW_HEADER "hw_binar_v1.h"
-
 //#define HW_SOURCE "hw_hd60.c"
 //#define HW_HEADER "hw_hd60.h"
 
