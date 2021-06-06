@@ -113,13 +113,16 @@ static systime_t brake_timeout;
 // Debug values
 static int debug_render_1, debug_render_2;
 static int debug_sample_field, debug_sample_count, debug_sample_index;
+static int debug_experiment_1, debug_experiment_2, debug_experiment_3, debug_experiment_4, debug_experiment_5, debug_experiment_6;
 
 // Function Prototypes
 static void set_current(float current, float yaw_current);
 static void terminal_render(int argc, const char **argv);
 static void terminal_sample(int argc, const char **argv);
+static void terminal_experiment(int argc, const char **argv);
 static float app_balance_get_debug(int index);
 static void app_balance_sample_debug(void);
+static void app_balance_experiment(void);
 
 // Utility Functions
 float biquad_process(float in, Biquad *biquad) {
@@ -198,10 +201,15 @@ void app_balance_start(void) {
 		"[Field Number] [Plot (Optional 1 or 2)]",
 		terminal_render);
 	terminal_register_command_callback(
-			"app_balance_sample",
-			"Sample real time values and log them to the terminal",
-			"[Field Number] [Sample Count]",
-			terminal_sample);
+		"app_balance_sample",
+		"Output real time values to the terminal",
+		"[Field Number] [Sample Count]",
+		terminal_sample);
+	terminal_register_command_callback(
+		"app_balance_experiment",
+		"Output real time values to the experiments graph",
+		"[Field Number] [Plot 1-6]",
+		terminal_experiment);
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
@@ -742,8 +750,9 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 		}
 
-		// Debug sampling
+		// Debug outputs
 		app_balance_sample_debug();
+		app_balance_experiment();
 
 		// Delay between loops
 		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
@@ -787,6 +796,44 @@ static void terminal_sample(int argc, const char **argv) {
 	}
 }
 
+static void terminal_experiment(int argc, const char **argv) {
+	if (argc == 3) {
+		int field = 0;
+		int graph = 1;
+		sscanf(argv[1], "%d", &field);
+		sscanf(argv[2], "%d", &graph);
+		switch(graph){
+			case (1):
+				debug_experiment_1 = field;
+				break;
+			case (2):
+				debug_experiment_2 = field;
+				break;
+			case (3):
+				debug_experiment_3 = field;
+				break;
+			case (4):
+				debug_experiment_4 = field;
+				break;
+			case (5):
+				debug_experiment_5 = field;
+				break;
+			case (6):
+				debug_experiment_6 = field;
+				break;
+		}
+		commands_init_plot("Microseconds", "Balance App Debug Data");
+		commands_plot_add_graph("1");
+		commands_plot_add_graph("2");
+		commands_plot_add_graph("3");
+		commands_plot_add_graph("4");
+		commands_plot_add_graph("5");
+		commands_plot_add_graph("6");
+	} else {
+		commands_printf("This command requires two arguments.\n");
+	}
+}
+
 // Debug functions
 static float app_balance_get_debug(int index){
 	switch(index){
@@ -812,5 +859,31 @@ static void app_balance_sample_debug(){
 	if(debug_sample_index < debug_sample_count){
 		commands_printf("%f", (double)app_balance_get_debug(debug_sample_field));
 		debug_sample_index += 1;
+	}
+}
+static void app_balance_experiment(){
+	if(debug_experiment_1 != 0){
+		commands_plot_set_graph(0);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_1));
+	}
+	if(debug_experiment_2 != 0){
+		commands_plot_set_graph(1);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_2));
+	}
+	if(debug_experiment_3 != 0){
+		commands_plot_set_graph(2);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_3));
+	}
+	if(debug_experiment_4 != 0){
+		commands_plot_set_graph(3);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_4));
+	}
+	if(debug_experiment_5 != 0){
+		commands_plot_set_graph(4);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_5));
+	}
+	if(debug_experiment_6 != 0){
+		commands_plot_set_graph(5);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_6));
 	}
 }
