@@ -271,6 +271,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.hertz, &ind);
+	buffer_append_uint16(buffer, conf->app_balance_conf.loop_time_filter, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.fault_pitch, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.fault_roll, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.fault_duty, &ind);
@@ -630,6 +631,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.ki = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.hertz = buffer_get_uint16(buffer, &ind);
+	conf->app_balance_conf.loop_time_filter = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.fault_pitch = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.fault_roll = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.fault_duty = buffer_get_float32_auto(buffer, &ind);
@@ -973,6 +975,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.ki = APPCONF_BALANCE_KI;
 	conf->app_balance_conf.kd = APPCONF_BALANCE_KD;
 	conf->app_balance_conf.hertz = APPCONF_BALANCE_HERTZ;
+	conf->app_balance_conf.loop_time_filter = APPCONF_BALANCE_LOOP_TIME_FILTER;
 	conf->app_balance_conf.fault_pitch = APPCONF_BALANCE_FAULT_PITCH;
 	conf->app_balance_conf.fault_roll = APPCONF_BALANCE_FAULT_ROLL;
 	conf->app_balance_conf.fault_duty = APPCONF_BALANCE_FAULT_DUTY;

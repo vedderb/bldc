@@ -79,6 +79,7 @@ static thread_t *app_thread;
 // Config values
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
+static systime_t loop_time;
 static float startup_step_size, tiltback_step_size, torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
 
 // Runtime values read from elsewhere
@@ -103,7 +104,8 @@ static Biquad torquetilt_current_biquad;
 static float turntilt_target, turntilt_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
-static systime_t current_time, last_time, diff_time;
+static systime_t current_time, last_time, diff_time, loop_overshoot;
+static float filtered_loop_overshoot, loop_overshoot_alpha, filtered_diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
 static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
 static Biquad d_biquad_lowpass, d_biquad_highpass;
@@ -137,6 +139,8 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
+	loop_time = US2ST((int)((1000.0 / balance_conf.hertz) * 1000.0));
+
 	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
 
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
@@ -146,6 +150,9 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
 
 	// Init Filters
+	if(balance_conf.loop_time_filter > 0){
+		loop_overshoot_alpha = 2*M_PI*((float)1/balance_conf.hertz)*balance_conf.loop_time_filter/(2*M_PI*((float)1/balance_conf.hertz)*balance_conf.loop_time_filter+1);
+	}
 	if(balance_conf.kd_pt1_lowpass_frequency > 0){
 		float dT = 1.0 / balance_conf.hertz;
 		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_lowpass_frequency);
@@ -189,6 +196,10 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 		torquetilt_current_biquad.b1 = 2 * (K * K - 1) * norm;
 		torquetilt_current_biquad.b2 = (1 - K / Q + K * K) * norm;
 	}
+
+	// Reset loop time variables
+	last_time = 0;
+	filtered_loop_overshoot = 0;
 }
 
 void app_balance_start(void) {
@@ -570,7 +581,12 @@ static THD_FUNCTION(balance_thread, arg) {
 		  last_time = current_time;
 		}
 		diff_time = current_time - last_time;
+		filtered_diff_time = 0.03 * diff_time + 0.97 * filtered_diff_time; // Purely a metric
 		last_time = current_time;
+		if(balance_conf.loop_time_filter > 0){
+			loop_overshoot = diff_time - (loop_time - roundf(filtered_loop_overshoot));
+			filtered_loop_overshoot = loop_overshoot_alpha * loop_overshoot + (1-loop_overshoot_alpha)*filtered_loop_overshoot;
+		}
 
 		// Read values for GUI
 		motor_current = mc_interface_get_tot_current_directional_filtered();
@@ -753,7 +769,7 @@ static THD_FUNCTION(balance_thread, arg) {
 		app_balance_experiment();
 
 		// Delay between loops
-		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
+		chThdSleep(loop_time - roundf(filtered_loop_overshoot));
 	}
 
 	// Disable output
@@ -848,7 +864,19 @@ static float app_balance_get_debug(int index){
 		case(6):
 			return motor_current;
 		case(7):
+			return erpm;
+		case(8):
 			return abs_erpm;
+		case(9):
+			return loop_time;
+		case(10):
+			return diff_time;
+		case(11):
+			return loop_overshoot;
+		case(12):
+			return filtered_loop_overshoot;
+		case(13):
+			return filtered_diff_time;
 		default:
 			return 0;
 	}

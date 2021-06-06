@@ -677,6 +677,7 @@ typedef struct {
 	float ki;
 	float kd;
 	uint16_t hertz;
+	uint16_t loop_time_filter;
 	float fault_pitch;
 	float fault_roll;
 	float fault_duty;
