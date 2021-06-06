@@ -633,14 +633,12 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Control Loop State Logic
 		switch(state){
 			case (STARTUP):
-				while(!imu_startup_done()){
-					// Disable output
-					brake();
-					// Wait
-					chThdSleepMilliseconds(50);
+				// Disable output
+				brake();
+				if(imu_startup_done()){
+					reset_vars();
+					state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
 				}
-				reset_vars();
-				state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
 				break;
 			case (RUNNING):
 			case (RUNNING_TILTBACK_DUTY):
