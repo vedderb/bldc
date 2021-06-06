@@ -31,6 +31,7 @@ int mc_interface_get_motor_thread(void);
 const volatile mc_configuration* mc_interface_get_configuration(void);
 void mc_interface_set_configuration(mc_configuration *configuration);
 unsigned mc_interface_calc_crc(mc_configuration* conf, bool is_motor_2);
+bool mc_interface_dccal_done(void);
 void mc_interface_set_pwm_callback(void (*p_func)(void));
 void mc_interface_lock(void);
 void mc_interface_unlock(void);
