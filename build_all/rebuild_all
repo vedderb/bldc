@@ -7,6 +7,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 ################## HW 46 & 47 #######################
 
 COPYDIR=46_o_47
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -34,6 +35,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 #################### HW 48 ########################
 
 COPYDIR=48
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -47,6 +49,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW 410 & 411 & 412 ########################
 
 COPYDIR=410_o_411_o_412
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -73,6 +76,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 #################### HW 60 ########################
 
 COPYDIR=60
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -92,6 +96,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW 60_MK3 ########################
 
 COPYDIR=60_MK3
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -111,6 +116,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW 60_MK4 ########################
 
 COPYDIR=60_MK4
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -130,6 +136,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW 60_MK5 ########################
 
 COPYDIR=60_MK5
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -149,6 +156,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW DAS_RS ########################
 
 COPYDIR=DAS_RS
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -161,6 +169,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW 75_300 ########################
 
 COPYDIR=75_300
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -180,6 +189,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW 75_300_R2 ########################
 
 COPYDIR=75_300_R2
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -199,6 +209,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW 75_300_R3 ########################
 
 COPYDIR=75_300_R3
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -218,6 +229,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW AXIOM ########################
 
 COPYDIR=AXIOM
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -230,6 +242,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW UAVC_OMEGA ########################
 
 COPYDIR=UAVC_OMEGA
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -242,6 +255,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW HD60 ########################
 
 COPYDIR=HD60
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -261,6 +275,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW HD75 ########################
 
 COPYDIR=HD75
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -280,6 +295,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW A200S 2.1 ########################
 
 COPYDIR=A200S_V21
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -292,6 +308,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW A200S 2.2 ########################
 
 COPYDIR=A200S_V22
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -304,6 +321,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW 100_250 ########################
 
 COPYDIR=100_250
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -323,6 +341,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### LUNA_BBSHD ########################
 
 COPYDIR=LUNA_BBSHD
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -336,6 +355,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### UNITY ########################
 
 COPYDIR=UNITY
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -355,6 +375,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### STORMCORE_60D ########################
 
 COPYDIR=STORMCORE_60D
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -374,6 +395,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### STORMCORE_60D+ ########################
 
 COPYDIR='STORMCORE_60D+'
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -393,6 +415,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### STORMCORE_100D ########################
 
 COPYDIR=STORMCORE_100D
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -412,6 +435,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### STORMCORE_100D_V2 ########################
 
 COPYDIR=STORMCORE_100D_V2
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -431,6 +455,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### STORMCORE_100S ########################
 
 COPYDIR=STORMCORE_100S
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
