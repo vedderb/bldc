@@ -69,11 +69,12 @@ float app_balance_get_pitch_angle(void);
 float app_balance_get_roll_angle(void);
 uint32_t app_balance_get_diff_time(void);
 float app_balance_get_motor_current(void);
-float app_balance_get_motor_position(void);
 uint16_t app_balance_get_state(void);
 uint16_t app_balance_get_switch_state(void);
 float app_balance_get_adc1(void);
 float app_balance_get_adc2(void);
+float app_balance_get_debug1(void);
+float app_balance_get_debug2(void);
 
 void app_pas_start(bool is_primary_output);
 void app_pas_stop(void);
