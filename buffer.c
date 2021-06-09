@@ -94,6 +94,12 @@ void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *
  * floating point numbers in a fully defined manner.
  */
 void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
+	// Set subnormal numbers to 0 as they are not handled properly
+	// using this method.
+	if (fabsf(number) < 1.5e-38) {
+		number = 0.0;
+	}
+
 	int e = 0;
 	float sig = frexpf(number, &e);
 	float sig_abs = fabsf(sig);
