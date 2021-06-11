@@ -326,7 +326,7 @@ static THD_FUNCTION(canard_thread, arg) {
 
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
-
+	
 	for (;;) {
 		const app_configuration *conf = app_get_configuration();
 
@@ -334,7 +334,9 @@ static THD_FUNCTION(canard_thread, arg) {
 			chThdSleepMilliseconds(100);
 			continue;
 		}
-
+		
+		// Usually setting id is only allowed once but libcanard 
+		// was modified for it to work 
 		canardSetLocalNodeID(&canard, conf->controller_id);
 
 		CANRxFrame *rxmsg;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 UAVCAN Team
+ * Copyright (c) 2016-2019 UAVCAN Team
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-//#include <assert.h>
+#include <assert.h>
 
 /// Build configuration header. Use it to provide your overrides.
 #if defined(CANARD_ENABLE_CUSTOM_BUILD_CONFIG) && CANARD_ENABLE_CUSTOM_BUILD_CONFIG
@@ -47,8 +47,7 @@ extern "C" {
 
 /// By default this macro resolves to the standard assert(). The user can redefine this if necessary.
 #ifndef CANARD_ASSERT
-//# define CANARD_ASSERT(x)   assert(x)
-#define CANARD_ASSERT(x)
+# define CANARD_ASSERT(x)   assert(x)
 #endif
 
 #define CANARD_GLUE(a, b)           CANARD_GLUE_IMPL_(a, b)
@@ -66,12 +65,20 @@ extern "C" {
 #endif
 
 /// Error code definitions; inverse of these values may be returned from API calls.
-#define CANARD_OK                                   0
+#define CANARD_OK                                      0
 // Value 1 is omitted intentionally, since -1 is often used in 3rd party code
-#define CANARD_ERROR_INVALID_ARGUMENT               2
-#define CANARD_ERROR_OUT_OF_MEMORY                  3
-#define CANARD_ERROR_NODE_ID_NOT_SET                4
-#define CANARD_ERROR_INTERNAL                       9
+#define CANARD_ERROR_INVALID_ARGUMENT                  2
+#define CANARD_ERROR_OUT_OF_MEMORY                     3
+#define CANARD_ERROR_NODE_ID_NOT_SET                   4
+#define CANARD_ERROR_INTERNAL                          9
+#define CANARD_ERROR_RX_INCOMPATIBLE_PACKET            10
+#define CANARD_ERROR_RX_WRONG_ADDRESS                  11
+#define CANARD_ERROR_RX_NOT_WANTED                     12
+#define CANARD_ERROR_RX_MISSED_START                   13
+#define CANARD_ERROR_RX_WRONG_TOGGLE                   14
+#define CANARD_ERROR_RX_UNEXPECTED_TID                 15
+#define CANARD_ERROR_RX_SHORT_FRAME                    16
+#define CANARD_ERROR_RX_BAD_CRC                        17
 
 /// The size of a memory block in bytes.
 #define CANARD_MEM_BLOCK_SIZE                       32U
@@ -418,10 +425,12 @@ void canardPopTxQueue(CanardInstance* ins);
 /**
  * Processes a received CAN frame with a timestamp.
  * The application will call this function when it receives a new frame from the CAN bus.
+ *
+ * Return value will report any errors in decoding packets.
  */
-void canardHandleRxFrame(CanardInstance* ins,
-                         const CanardCANFrame* frame,
-                         uint64_t timestamp_usec);
+int16_t canardHandleRxFrame(CanardInstance* ins,
+                            const CanardCANFrame* frame,
+                            uint64_t timestamp_usec);
 
 /**
  * Traverses the list of transfers and removes those that were last updated more than timeout_usec microseconds ago.

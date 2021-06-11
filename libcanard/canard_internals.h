@@ -70,8 +70,8 @@ CANARD_INTERNAL uint16_t extractDataType(uint32_t id);
 CANARD_INTERNAL void pushTxQueue(CanardInstance* ins,
                                  CanardTxQueueItem* item);
 
-CANARD_INTERNAL bool isPriorityHigher(uint32_t id,
-                                      uint32_t rhs);
+CANARD_INTERNAL bool isPriorityHigher(uint32_t self,
+                                      uint32_t other);
 
 CANARD_INTERNAL CanardTxQueueItem* createTxItem(CanardPoolAllocator* allocator);
 
