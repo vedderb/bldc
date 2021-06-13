@@ -805,6 +805,22 @@ void mc_interface_release_motor(void) {
 	mc_interface_set_current(0.0);
 }
 
+void mc_interface_release_motor_override(void) {
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		mcpwm_set_current(0.0);
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_current(0.0);
+		break;
+
+	default:
+		break;
+	}
+}
+
 bool mc_interface_wait_for_motor_release(float timeout) {
 	systime_t time_start = chVTGetSystemTimeX();
 	bool res = false;

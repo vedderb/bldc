@@ -120,8 +120,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	new_app_size += flash_addr[NEW_APP_BASE];
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
 
 	if (!mc_interface_wait_for_motor_release(3.0)) {
@@ -214,8 +213,7 @@ uint16_t flash_helper_qmlui_flags(void) {
 void flash_helper_jump_to_bootloader(void) {
 	typedef void (*pFunction)(void);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 
@@ -370,8 +368,7 @@ static uint16_t erase_sector(uint32_t sector) {
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
 
 	if (!mc_interface_wait_for_motor_release(3.0)) {
@@ -404,8 +401,7 @@ static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
 
 	if (!mc_interface_wait_for_motor_release(3.0)) {

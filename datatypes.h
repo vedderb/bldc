@@ -797,6 +797,14 @@ typedef enum {
 	UAVCAN_RAW_MODE_DUTY
 } UAVCAN_RAW_MODE;
 
+typedef enum {
+	KILL_SW_MODE_DISABLED = 0,
+	KILL_SW_MODE_PPM_LOW,
+	KILL_SW_MODE_PPM_HIGH,
+	KILL_SW_MODE_ADC2_LOW,
+	KILL_SW_MODE_ADC2_HIGH
+} KILL_SW_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -809,6 +817,7 @@ typedef struct {
 	bool permanent_uart_enabled;
 	SHUTDOWN_MODE shutdown_mode;
 	bool servo_out_enable;
+	KILL_SW_MODE kill_sw_mode;
 
 	// CAN modes
 	CAN_MODE can_mode;

@@ -200,6 +200,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->uavcan_raw_mode;
 	buffer[ind++] = conf->servo_out_enable;
+	buffer[ind++] = conf->kill_sw_mode;
 	buffer[ind++] = conf->app_to_use;
 	buffer[ind++] = conf->app_ppm_conf.ctrl_type;
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.pid_max_erpm, &ind);
@@ -560,6 +561,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->uavcan_raw_mode = buffer[ind++];
 	conf->servo_out_enable = buffer[ind++];
+	conf->kill_sw_mode = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
 	conf->app_ppm_conf.ctrl_type = buffer[ind++];
 	conf->app_ppm_conf.pid_max_erpm = buffer_get_float32_auto(buffer, &ind);
@@ -904,6 +906,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->uavcan_raw_mode = APPCONF_UAVCAN_RAW_MODE;
 	conf->servo_out_enable = APPCONF_SERVO_OUT_ENABLE;
+	conf->kill_sw_mode = APPCONF_KILL_SW_MODE;
 	conf->app_to_use = APPCONF_APP_TO_USE;
 	conf->app_ppm_conf.ctrl_type = APPCONF_PPM_CTRL_TYPE;
 	conf->app_ppm_conf.pid_max_erpm = APPCONF_PPM_PID_MAX_ERPM;

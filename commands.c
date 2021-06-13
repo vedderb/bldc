@@ -426,6 +426,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (mask & ((uint32_t)1 << 20)) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
 		}
+		if (mask & ((uint32_t)1 << 21)) {
+			uint8_t status = 0;
+			status |= timeout_has_timeout();
+			status |= timeout_kill_sw_active() << 1;
+			send_buffer[ind++] = status;
+		}
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
@@ -565,7 +571,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
-			timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current);
+			timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 			chThdSleepMilliseconds(200);
 
 			int32_t ind = 0;
@@ -1120,6 +1126,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 		if (mask & ((uint32_t)1 << 15)) {
 			buffer_append_float32_auto(send_buffer, q[3], &ind);
+		}
+
+		if (mask & ((uint32_t)1 << 16)) {
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 
 		reply_func(send_buffer, ind);

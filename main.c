@@ -264,7 +264,7 @@ int main(void) {
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
 	timeout_init();
-	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current);
+	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 
 	mempools_free_appconf(appconf);
 

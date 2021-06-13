@@ -27,6 +27,7 @@
 * Dynamic QML-script write support.
 * Use fast speed tracker for current controller.
 * Disable motor for 5 seconds after flash operations.
+* Added kill switch support.
 
 === FW 5.02 ===
 * IMU calibration improvement.

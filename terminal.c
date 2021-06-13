@@ -448,8 +448,9 @@ void terminal_process_string(char *str) {
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
 				float tout_c = timeout_get_brake_current();
+				KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 				timeout_reset();
-				timeout_configure(60000, 0.0);
+				timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 				for (int i = 0;i < 100;i++) {
 					mc_interface_set_duty(((float)i / 100.0) * duty);
@@ -476,7 +477,7 @@ void terminal_process_string(char *str) {
 				mempools_free_mcconf(mcconf_old);
 
 				// Enable timeout
-				timeout_configure(tout, tout_c);
+				timeout_configure(tout, tout_c, tout_ksw);
 
 				vq_avg /= samples;
 				rpm_avg /= samples;
