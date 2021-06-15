@@ -53,6 +53,7 @@
 #endif
 #include "shutdown.h"
 #include "mempools.h"
+#include "events.h"
 
 /*
  * HW resources used:
@@ -205,6 +206,7 @@ int main(void) {
 
 	chThdSleepMilliseconds(100);
 
+	events_init();
 	hw_init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();

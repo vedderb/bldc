@@ -209,13 +209,14 @@ static THD_FUNCTION(timeout_thread, arg) {
 		}
 
 		if (kill_sw || (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec))) {
-			mc_interface_release_motor_override();
+			if (!has_timeout && !kill_sw_active) {
+				mc_interface_release_motor_override();
+			}
 			mc_interface_unlock();
 			mc_interface_select_motor_thread(1);
 			mc_interface_set_brake_current(timeout_brake_current);
 			mc_interface_select_motor_thread(2);
 			mc_interface_set_brake_current(timeout_brake_current);
-			mc_interface_ignore_input(20);
 
 			if (!kill_sw) {
 				has_timeout = true;
