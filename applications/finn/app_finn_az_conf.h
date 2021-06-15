@@ -43,7 +43,7 @@
 #define MCCONF_P_PID_KP					(0.2 * APP_FINN_WRAP_FACTOR)
 #define MCCONF_P_PID_KI					(0.2 * APP_FINN_WRAP_FACTOR)
 #define MCCONF_P_PID_KD					(0.01 * APP_FINN_WRAP_FACTOR)
-#define MCCONF_P_PID_ANG_DIV			(75.0 * 7.0 * APP_FINN_WRAP_FACTOR) // 1:75 gearing and 7 pole pairs
+#define MCCONF_P_PID_ANG_DIV			(150.0 * 7.0 * APP_FINN_WRAP_FACTOR) // 1:75 gearing and 7 pole pairs
 #define MCCONF_P_PID_KD_FILTER			0.2
 #define MCCONF_P_PID_GAIN_DEC_ANGLE		300.0
 
