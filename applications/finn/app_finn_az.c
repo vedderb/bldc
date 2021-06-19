@@ -153,7 +153,11 @@ void app_custom_stop(void) {
 }
 
 void app_custom_configure(app_configuration *conf) {
-	m_pod_state.pod_id = conf->controller_id;
+	int pod_id = conf->controller_id;
+	while (pod_id >= 100) {
+		pod_id -= 100;
+	}
+	m_pod_state.pod_id = pod_id;
 }
 
 static void process_custom_app_data(unsigned char *data, unsigned int len) {
