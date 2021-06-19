@@ -1,4 +1,5 @@
 *~
+./log/*.csv
 
 build
 .dep

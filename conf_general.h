@@ -69,13 +69,19 @@
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
+
+#define HW_SOURCE "hw_gesc.c"
+#define HW_HEADER "hw_gesc.h"
+
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
-#define HW60_IS_MK5
+//#define HW60_IS_MK5
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -103,7 +109,7 @@
 
 // Second revision with separate UART for NRF51
 //#define HW75_300_REV_2
-#define HW75_300_REV_3
+//#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -193,6 +199,7 @@
 //#include			"mcconf_castle_2028.h"
 //#include			"mcconf_ellwee.h"
 //#include			"conf_test.h"
+//#include 			"mcconf_ap8139.h"
 
 /*
  * Select default user app configuration
@@ -205,6 +212,7 @@
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
+//#define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"

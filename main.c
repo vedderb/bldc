@@ -247,7 +247,7 @@ int main(void) {
 #endif
 
 #if CAN_ENABLE
-	comm_can_init();
+    comm_can_init();
 #endif
 
 	app_configuration *appconf = mempools_alloc_appconf();

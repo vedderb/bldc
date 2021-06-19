@@ -63,8 +63,8 @@ void drv8301_init(void) {
 	chThdSleepMilliseconds(100);
 
 	// Disable OC
-	drv8301_write_reg(2, 0x0430);
-	drv8301_write_reg(2, 0x0430);
+	drv8301_write_reg(2, 0x0432 | DRV8301_GATE_CUR); //GATE current 0,25A
+	drv8301_write_reg(2, 0x0432 | DRV8301_GATE_CUR);
 
 	drv8301_set_current_amp_gain(CURRENT_AMP_GAIN);
 
@@ -152,6 +152,21 @@ void drv8301_set_current_amp_gain(int gain) {
 
     drv8301_write_reg(3, reg);
 }
+/**
+ * Set the gate current of the DRV8301.
+ *
+ * @param current
+ * The gate curren: 0=0.250A, 1=1A, 2=1,7A
+ */
+void drv8301_set_gate_current(unsigned char current) {
+	int reg = drv8301_read_reg(2);
+	reg &= 0xFFFC;
+	reg |= (current & 0x03);
+	drv8301_write_reg(2, reg);
+}
+
+
+
 /**
  * Read the fault codes of the DRV8301.
  *

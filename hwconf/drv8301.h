@@ -22,6 +22,7 @@
 
 // Functions
 void drv8301_init(void);
+void drv8301_set_gate_current(unsigned char current);
 void drv8301_set_oc_adj(int val);
 void drv8301_set_oc_mode(drv8301_oc_mode mode);
 int drv8301_read_faults(void);
@@ -44,5 +45,10 @@ void drv8301_set_current_amp_gain(int gain);
 #define DRV8301_FAULT_GVDD_UV		(1 << 9)
 #define DRV8301_FAULT_FAULT			(1 << 10)
 #define DRV8301_FAULT_GVDD_OV		(1 << 11)
-
+#define DRV8301_GATE_CUR_LOW        0x02
+#define DRV8301_GATE_CUR_MID        0x01
+#define DRV8301_GATE_CUR_HIGH       0x00
+#ifndef DRV8301_GATE_CUR
+#define DRV8301_GATE_CUR            DRV8301_GATE_CUR_LOW
+#endif
 #endif /* HWCONF_DRV8301_H_ */
