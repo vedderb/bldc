@@ -2324,6 +2324,22 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		}
 		break;
 
+	case OUT_AUX_MODE_ON_WHEN_RUNNING:
+		if (mc_interface_get_state() == MC_STATE_RUNNING) {
+			AUX_ON();
+		} else {
+			AUX_OFF();
+		}
+		break;
+
+	case OUT_AUX_MODE_ON_WHEN_NOT_RUNNING:
+		if (mc_interface_get_state() == MC_STATE_RUNNING) {
+			AUX_OFF();
+		} else {
+			AUX_ON();
+		}
+		break;
+
 	default:
 		break;
 	}

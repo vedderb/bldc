@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Constants
-#define DATA_QML_APP_SIZE		3084
+#define DATA_QML_APP_SIZE		3103
 
 // Variables
 extern uint8_t data_qml_app[];
