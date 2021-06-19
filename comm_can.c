@@ -1209,7 +1209,9 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 	uint8_t commands_send;
 
 	uint8_t id = eid & 0xFF;
-	CAN_PACKET_ID cmd = eid >> 8;
+	uint32_t cmd_int = eid >> 8;
+	cmd_int &= 0xFFFFFFFF >> ((4 - sizeof(CAN_PACKET_ID)) * 8);
+	CAN_PACKET_ID cmd = cmd_int;
 
 	int id1 = app_get_configuration()->controller_id;
 
