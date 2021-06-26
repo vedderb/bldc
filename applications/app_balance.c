@@ -81,6 +81,7 @@ static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
 static systime_t loop_time;
 static float startup_step_size, tiltback_step_size, torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
+static float tiltback_variable, tiltback_variable_max_erpm;
 
 // Runtime values read from elsewhere
 static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
@@ -98,7 +99,7 @@ static float proportional, integral, derivative;
 static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
-static float constanttilt_target, constanttilt_interpolated;
+static float constanttilt_interpolated;
 static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
 static Biquad torquetilt_current_biquad;
 static float turntilt_target, turntilt_interpolated;
@@ -197,6 +198,15 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 		torquetilt_current_biquad.b2 = (1 - K / Q + K * K) * norm;
 	}
 
+	// Variable nose angle adjustment / tiltback
+	tiltback_variable = balance_conf.tiltback_variable / 1000;
+	// Signs of both settings must match, if not we disable this feature
+	if (SIGN(tiltback_variable) == SIGN(balance_conf.tiltback_variable_max)) {
+		tiltback_variable_max_erpm = balance_conf.tiltback_variable_max / tiltback_variable;
+	} else {
+		tiltback_variable_max_erpm = 0;
+	}
+
 	// Reset loop time variables
 	last_time = 0;
 	filtered_loop_overshoot = 0;
@@ -286,7 +296,6 @@ static void reset_vars(void){
 	setpoint = pitch_angle;
 	setpoint_target_interpolated = pitch_angle;
 	setpoint_target = 0;
-	constanttilt_target = 0;
 	constanttilt_interpolated = 0;
 	torquetilt_target = 0;
 	torquetilt_interpolated = 0;
@@ -419,13 +428,18 @@ static void calculate_setpoint_interpolated(void){
 }
 
 static void apply_constanttilt(void){
-	// Nose angle adjustment
+	// Nose angle adjustment, add variable then constant tiltback
+	float constanttilt_target = 0;
+	if (fabsf(erpm) > tiltback_variable_max_erpm) {
+		constanttilt_target = tiltback_variable * tiltback_variable_max_erpm * SIGN(erpm);
+	} else {
+		constanttilt_target = tiltback_variable * erpm;
+	}
+
 	if(erpm > balance_conf.tiltback_constant_erpm){
-		constanttilt_target = balance_conf.tiltback_constant;
+		constanttilt_target += balance_conf.tiltback_constant;
 	} else if(erpm < -balance_conf.tiltback_constant_erpm){
-		constanttilt_target = -balance_conf.tiltback_constant;
-	}else{
-		constanttilt_target = 0;
+		constanttilt_target += -balance_conf.tiltback_constant;
 	}
 
 	if(fabsf(constanttilt_target - constanttilt_interpolated) < tiltback_step_size){

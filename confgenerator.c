@@ -291,6 +291,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_low_voltage, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_constant, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.tiltback_constant_erpm, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_variable, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.tiltback_variable_max, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_pitch_tolerance, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_roll_tolerance, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.startup_speed, &ind);
@@ -652,6 +654,8 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.tiltback_low_voltage = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_constant = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_constant_erpm = buffer_get_uint16(buffer, &ind);
+	conf->app_balance_conf.tiltback_variable = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.tiltback_variable_max = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_pitch_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_roll_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
@@ -997,6 +1001,8 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.tiltback_low_voltage = APPCONF_BALANCE_TILTBACK_LOW_V;
 	conf->app_balance_conf.tiltback_constant = APPCONF_BALANCE_TILTBACK_CONSTANT;
 	conf->app_balance_conf.tiltback_constant_erpm = APPCONF_BALANCE_TILTBACK_CONSTANT_ERPM;
+	conf->app_balance_conf.tiltback_variable = APPCONF_BALANCE_TILTBACK_VARIABLE;
+	conf->app_balance_conf.tiltback_variable_max = APPCONF_BALANCE_TILTBACK_VARIABLE_MAX;
 	conf->app_balance_conf.startup_pitch_tolerance = APPCONF_BALANCE_STARTUP_PITCH_TOLERANCE;
 	conf->app_balance_conf.startup_roll_tolerance = APPCONF_BALANCE_STARTUP_ROLL_TOLERANCE;
 	conf->app_balance_conf.startup_speed = APPCONF_BALANCE_STARTUP_SPEED;
