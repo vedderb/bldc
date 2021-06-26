@@ -85,7 +85,9 @@ static bool reset_init_bmi(BMI_STATE *s) {
 		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_1600HZ;
 	}
 
+	chThdSleepMilliseconds(50);
 	int8_t res = bmi160_set_sens_conf(&(s->sensor));
+	chThdSleepMilliseconds(50);
 
 	return res == BMI160_OK;
 }

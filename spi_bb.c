@@ -96,7 +96,7 @@ void spi_bb_end(spi_bb_state *s) {
 }
 
 void spi_bb_delay(void) {
-	for (volatile int i = 0; i < 40; i++) {
+	for (volatile int i = 0; i < 6; i++) {
 		__NOP();
 	}
 }

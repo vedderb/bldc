@@ -559,8 +559,6 @@ int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t l
 
 	reg_addr = (reg_addr | BMI160_SPI_RD_MASK);
 
-	chThdSleepMicroseconds(200); // #FIXME Wont work without this- Why?
-
 	chMtxLock(&m_spi_bb.mutex);
 	spi_bb_begin(&m_spi_bb);
 	spi_bb_exchange_8(&m_spi_bb, reg_addr);
