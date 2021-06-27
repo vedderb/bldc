@@ -49,6 +49,7 @@
 #include "mempools.h"
 #include "bms.h"
 #include "qmlui.h"
+#include "crc.h"
 
 #include <math.h>
 #include <string.h>
@@ -1036,7 +1037,14 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_EXT_NRF_ESB_RX_DATA: {
-		nrf_driver_process_packet(data, len);
+		if (len > 2) {
+			unsigned short crc = crc16((unsigned char*)data, len - 2);
+
+			if (crc	== ((unsigned short) data[len - 2] << 8 |
+					(unsigned short) data[len - 1])) {
+				nrf_driver_process_packet(data, len);
+			}
+		}
 	} break;
 
 	case COMM_APP_DISABLE_OUTPUT: {
