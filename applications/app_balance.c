@@ -198,14 +198,9 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 		torquetilt_current_biquad.b2 = (1 - K / Q + K * K) * norm;
 	}
 
-	// Variable nose angle adjustment / tiltback
+	// Variable nose angle adjustment / tiltback (setting is per 1000erpm, convert to per erpm)
 	tiltback_variable = balance_conf.tiltback_variable / 1000;
-	// Signs of both settings must match, if not we disable this feature
-	if (SIGN(tiltback_variable) == SIGN(balance_conf.tiltback_variable_max)) {
-		tiltback_variable_max_erpm = balance_conf.tiltback_variable_max / tiltback_variable;
-	} else {
-		tiltback_variable_max_erpm = 0;
-	}
+	tiltback_variable_max_erpm = fabsf(balance_conf.tiltback_variable_max / tiltback_variable);
 
 	// Reset loop time variables
 	last_time = 0;
