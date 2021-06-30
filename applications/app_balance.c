@@ -99,7 +99,7 @@ static float proportional, integral, derivative;
 static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
-static float constanttilt_interpolated;
+static float noseangling_interpolated;
 static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
 static Biquad torquetilt_current_biquad;
 static float turntilt_target, turntilt_interpolated;
@@ -291,7 +291,7 @@ static void reset_vars(void){
 	setpoint = pitch_angle;
 	setpoint_target_interpolated = pitch_angle;
 	setpoint_target = 0;
-	constanttilt_interpolated = 0;
+	noseangling_interpolated = 0;
 	torquetilt_target = 0;
 	torquetilt_interpolated = 0;
 	torquetilt_filtered_current = 0;
@@ -422,29 +422,29 @@ static void calculate_setpoint_interpolated(void){
 	}
 }
 
-static void apply_constanttilt(void){
+static void apply_noseangling(void){
 	// Nose angle adjustment, add variable then constant tiltback
-	float constanttilt_target = 0;
+	float noseangling_target = 0;
 	if (fabsf(erpm) > tiltback_variable_max_erpm) {
-		constanttilt_target = tiltback_variable * tiltback_variable_max_erpm * SIGN(erpm);
+		noseangling_target = fabsf(balance_conf.tiltback_variable_max) * SIGN(erpm);
 	} else {
-		constanttilt_target = tiltback_variable * erpm;
+		noseangling_target = tiltback_variable * erpm;
 	}
 
 	if(erpm > balance_conf.tiltback_constant_erpm){
-		constanttilt_target += balance_conf.tiltback_constant;
+		noseangling_target += balance_conf.tiltback_constant;
 	} else if(erpm < -balance_conf.tiltback_constant_erpm){
-		constanttilt_target += -balance_conf.tiltback_constant;
+		noseangling_target += -balance_conf.tiltback_constant;
 	}
 
-	if(fabsf(constanttilt_target - constanttilt_interpolated) < tiltback_step_size){
-		constanttilt_interpolated = constanttilt_target;
-	}else if (constanttilt_target - constanttilt_interpolated > 0){
-		constanttilt_interpolated += tiltback_step_size;
+	if(fabsf(noseangling_target - noseangling_interpolated) < tiltback_step_size){
+		noseangling_interpolated = noseangling_target;
+	}else if (noseangling_target - noseangling_interpolated > 0){
+		noseangling_interpolated += tiltback_step_size;
 	}else{
-		constanttilt_interpolated -= tiltback_step_size;
+		noseangling_interpolated -= tiltback_step_size;
 	}
-	setpoint += constanttilt_interpolated;
+	setpoint += noseangling_interpolated;
 }
 
 static void apply_torquetilt(void){
@@ -679,7 +679,7 @@ static THD_FUNCTION(balance_thread, arg) {
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
 				setpoint = setpoint_target_interpolated;
-				apply_constanttilt();
+				apply_noseangling();
 				apply_torquetilt();
 				apply_turntilt();
 
