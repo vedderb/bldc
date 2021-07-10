@@ -344,6 +344,10 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			encoder_init_as5047p_spi();
 			break;
 
+		case SENSOR_PORT_MODE_MT6816_SPI:
+			encoder_init_mt6816_spi();
+			break;
+
 		case SENSOR_PORT_MODE_AD2S1205:
 			encoder_init_ad2s1205_spi();
 			break;
