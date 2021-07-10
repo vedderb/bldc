@@ -771,6 +771,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 			palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
 			spi_delay();
+			palClearPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
 
 			int samples = 0;
 			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
@@ -778,18 +779,12 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 			__NOP();
 			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
-			__NOP();
-			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
-			__NOP();
-			samples += palReadPad(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN);
 
 			receive <<= 1;
-			if (samples > 2) {
+			if (samples > 1) {
 				receive |= 1;
 			}
 
-			palClearPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
-			spi_delay();
 		}
 
 		if (in_buf) {
@@ -807,6 +802,10 @@ static void spi_end(void) {
 }
 
 static void spi_delay(void) {
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
 	__NOP();
 	__NOP();
 	__NOP();
