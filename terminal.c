@@ -1080,6 +1080,21 @@ void terminal_process_string(char *str) {
 		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
 	} else if (strcmp(argv[0], "drv_reset_faults") == 0) {
 		HW_RESET_DRV_FAULTS();
+	} else if (strcmp(argv[0], "update_pid_pos_offset") == 0) {
+		if (argc == 3) {
+			float angle_now = -500.0;
+			int store = false;
+
+			sscanf(argv[1], "%f", &angle_now);
+			sscanf(argv[2], "%d", &store);
+
+			if (angle_now > -360.0 && angle_now < 360.0) {
+				mc_interface_update_pid_pos_offset(angle_now, store);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
 	}
 
 	// The help command
@@ -1224,6 +1239,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("drv_reset_faults");
 		commands_printf("  Reset gate driver faults (if possible).");
+
+		commands_printf("update_pid_pos_offset [angle_now] [store]");
+		commands_printf("  Update position PID offset.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

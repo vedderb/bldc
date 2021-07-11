@@ -81,7 +81,14 @@ void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
 psw_status *comm_can_get_psw_status_index(int index);
 psw_status *comm_can_get_psw_status_id(int id);
 void comm_can_psw_switch(int id, bool is_on, bool plot);
+void comm_can_update_pid_pos_offset(int id, float angle_now, bool store);
 
 CANRxFrame *comm_can_get_rx_frame(void);
+
+void comm_can_send_status1(uint8_t id, bool replace);
+void comm_can_send_status2(uint8_t id, bool replace);
+void comm_can_send_status3(uint8_t id, bool replace);
+void comm_can_send_status4(uint8_t id, bool replace);
+void comm_can_send_status5(uint8_t id, bool replace);
 
 #endif /* COMM_CAN_H_ */

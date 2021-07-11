@@ -655,6 +655,7 @@ void mc_interface_set_pid_pos(float pos) {
 
 	motor_now()->m_position_set = pos;
 
+	pos += motor_now()->m_conf.p_pid_offset;
 	pos *= DIR_MULT;
 	utils_norm_angle(&pos);
 
@@ -1359,9 +1360,29 @@ float mc_interface_get_pid_pos_now(void) {
 	}
 
 	ret *= DIR_MULT;
+	ret -= motor_now()->m_conf.p_pid_offset;
 	utils_norm_angle(&ret);
 
 	return ret;
+}
+
+/**
+ * Update the offset such that the current angle becomes angle_now
+ */
+void mc_interface_update_pid_pos_offset(float angle_now, bool store) {
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+
+	mcconf->p_pid_offset += mc_interface_get_pid_pos_now() - angle_now;
+	utils_norm_angle(&mcconf->p_pid_offset);
+
+	if (store) {
+		conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
+	}
+
+	mc_interface_set_configuration(mcconf);
+
+	mempools_free_mcconf(mcconf);
 }
 
 float mc_interface_get_last_sample_adc_isr_duration(void) {

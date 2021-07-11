@@ -143,9 +143,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->p_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kd, &ind);
+	buffer_append_float32_auto(buffer, conf->p_pid_kd_proc, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kd_filter, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_ang_div, &ind);
 	buffer_append_float16(buffer, conf->p_pid_gain_dec_angle, 10, &ind);
+	buffer_append_float32_auto(buffer, conf->p_pid_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->cc_startup_boost_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->cc_min_current, &ind);
 	buffer_append_float32_auto(buffer, conf->cc_gain, &ind);
@@ -503,9 +505,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->p_pid_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_kd = buffer_get_float32_auto(buffer, &ind);
+	conf->p_pid_kd_proc = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_kd_filter = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_ang_div = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_gain_dec_angle = buffer_get_float16(buffer, 10, &ind);
+	conf->p_pid_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->cc_startup_boost_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->cc_min_current = buffer_get_float32_auto(buffer, &ind);
 	conf->cc_gain = buffer_get_float32_auto(buffer, &ind);
@@ -859,9 +863,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
 	conf->p_pid_kd = MCCONF_P_PID_KD;
+	conf->p_pid_kd_proc = MCCONF_P_PID_KD_PROC;
 	conf->p_pid_kd_filter = MCCONF_P_PID_KD_FILTER;
 	conf->p_pid_ang_div = MCCONF_P_PID_ANG_DIV;
 	conf->p_pid_gain_dec_angle = MCCONF_P_PID_GAIN_DEC_ANGLE;
+	conf->p_pid_offset = MCCONF_P_PID_OFFSET;
 	conf->cc_startup_boost_duty = MCCONF_CC_STARTUP_BOOST_DUTY;
 	conf->cc_min_current = MCCONF_CC_MIN_CURRENT;
 	conf->cc_gain = MCCONF_CC_GAIN;

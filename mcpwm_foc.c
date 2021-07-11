@@ -167,7 +167,10 @@ typedef struct {
 	float m_pos_i_term;
 	float m_pos_prev_error;
 	float m_pos_dt_int;
+	float m_pos_prev_proc;
+	float m_pos_dt_int_proc;
 	float m_pos_d_filter;
+	float m_pos_d_filter_proc;
 	float m_speed_i_term;
 	float m_speed_prev_error;
 	float m_speed_d_filter;
@@ -4112,6 +4115,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 	volatile mc_configuration *conf_now = motor->m_conf;
 	float p_term;
 	float d_term;
+	float d_term_proc;
 
 	// PID is off. Return.
 	if (motor->m_control_mode != CONTROL_MODE_POS) {
@@ -4122,16 +4126,20 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 
 	// Compute parameters
 	float error = utils_angle_difference(angle_set, angle_now);
+	float error_sign = 1.0;
 
 	if (encoder_is_configured()) {
 		if (conf_now->foc_encoder_inverted) {
-			error = -error;
+			error_sign = -1.0;
 		}
 	}
+
+	error *= error_sign;
 
 	float kp = conf_now->p_pid_kp;
 	float ki = conf_now->p_pid_ki;
 	float kd = conf_now->p_pid_kd;
+	float kd_proc = conf_now->p_pid_kd_proc;
 
 	if (conf_now->p_pid_gain_dec_angle > 0.1) {
 		float min_error = conf_now->p_pid_gain_dec_angle / conf_now->p_pid_ang_div;
@@ -4142,6 +4150,7 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 			kp *= scale;
 			ki *= scale;
 			kd *= scale;
+			kd_proc *= scale;
 		}
 	}
 
@@ -4164,6 +4173,18 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 	UTILS_LP_FAST(motor->m_pos_d_filter, d_term, conf_now->p_pid_kd_filter);
 	d_term = motor->m_pos_d_filter;
 
+	// Process D term
+	motor->m_pos_dt_int_proc += dt;
+	if (angle_now == motor->m_pos_prev_proc) {
+		d_term_proc = 0.0;
+	} else {
+		d_term_proc = -utils_angle_difference(angle_now, motor->m_pos_prev_proc) * error_sign * (kd_proc / motor->m_pos_dt_int_proc);
+		motor->m_pos_dt_int_proc = 0.0;
+	}
+
+	// Filter D process
+	UTILS_LP_FAST(motor->m_pos_d_filter_proc, d_term_proc, conf_now->p_pid_kd_filter);
+	d_term_proc = motor->m_pos_d_filter_proc;
 
 	// I-term wind-up protection
 	float p_tmp = p_term;
@@ -4172,9 +4193,10 @@ static void run_pid_control_pos(float angle_now, float angle_set, float dt, vola
 
 	// Store previous error
 	motor->m_pos_prev_error = error;
+	motor->m_pos_prev_proc = angle_now;
 
 	// Calculate output
-	float output = p_term + motor->m_pos_i_term + d_term;
+	float output = p_term + motor->m_pos_i_term + d_term + d_term_proc;
 	utils_truncate_number(&output, -1.0, 1.0);
 
 	if (encoder_is_configured()) {

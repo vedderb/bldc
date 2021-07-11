@@ -28,6 +28,8 @@
 * Use fast speed tracker for current controller.
 * Disable motor for 5 seconds after flash operations.
 * Added kill switch support.
+* Added process derivative term to position controller.
+* Added position PID-controller angle offset.
 
 === FW 5.02 ===
 * IMU calibration improvement.

@@ -422,9 +422,11 @@ typedef struct {
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
+	float p_pid_kd_proc;
 	float p_pid_kd_filter;
 	float p_pid_ang_div;
 	float p_pid_gain_dec_angle;
+	float p_pid_offset;
 
 	// Current controller
 	float cc_startup_boost_duty;
@@ -1057,6 +1059,7 @@ typedef enum {
 	CAN_PACKET_BMS_HW_DATA_5,
 	CAN_PACKET_BMS_AH_WH_CHG_TOTAL,
 	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
+	CAN_PACKET_UPDATE_PID_POS_OFFSET,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF
 } CAN_PACKET_ID;
 

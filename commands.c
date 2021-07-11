@@ -194,6 +194,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func = commands_send_packet;
 	}
 
+	if (!send_func_can_fwd) {
+		send_func_can_fwd = reply_func;
+	}
+
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
 		int32_t ind = 0;

@@ -142,13 +142,16 @@
 
 // Position PID parameters
 #ifndef MCCONF_P_PID_KP
-#define MCCONF_P_PID_KP					0.03	// Proportional gain
+#define MCCONF_P_PID_KP					0.025	// Proportional gain
 #endif
 #ifndef MCCONF_P_PID_KI
 #define MCCONF_P_PID_KI					0.0		// Integral gain
 #endif
 #ifndef MCCONF_P_PID_KD
-#define MCCONF_P_PID_KD					0.0004	// Derivative gain
+#define MCCONF_P_PID_KD					0.00000	// Derivative gain
+#endif
+#ifndef MCCONF_P_PID_KD_PROC
+#define MCCONF_P_PID_KD_PROC			0.00035	// Derivative gain process
 #endif
 #ifndef MCCONF_P_PID_KD_FILTER
 #define MCCONF_P_PID_KD_FILTER			0.2		// Derivative filter
@@ -158,6 +161,9 @@
 #endif
 #ifndef MCCONF_P_PID_GAIN_DEC_ANGLE
 #define MCCONF_P_PID_GAIN_DEC_ANGLE		0.0		// Decrease PID-gains when the error is below this value
+#endif
+#ifndef MCCONF_P_PID_OFFSET
+#define MCCONF_P_PID_OFFSET				0.0		// Angle offset
 #endif
 
 // Current control parameters
