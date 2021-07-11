@@ -3040,11 +3040,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		utils_norm_angle((float*)&motor_now->m_pos_pid_now);
 	}
 
-	// Run position control
-	if (motor_now->m_state == MC_STATE_RUNNING) {
-		run_pid_control_pos(motor_now->m_pos_pid_now, motor_now->m_pos_pid_set, dt, motor_now);
-	}
-
 #ifdef AD2S1205_SAMPLE_GPIO
 	// Release sample in the AD2S1205 resolver IC.
 	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
@@ -3340,8 +3335,10 @@ static THD_FUNCTION(timer_thread, arg) {
 		input_current_offset_measurement();
 
 		run_pid_control_speed(dt, &m_motor_1);
+		run_pid_control_pos(m_motor_1.m_pos_pid_now, m_motor_1.m_pos_pid_set, dt, &m_motor_1);
 #ifdef HW_HAS_DUAL_MOTORS
 		run_pid_control_speed(dt, &m_motor_2);
+		run_pid_control_pos(m_motor_2.m_pos_pid_now, m_motor_2.m_pos_pid_set, dt, &m_motor_2);
 #endif
 
 		chThdSleepMilliseconds(1);
