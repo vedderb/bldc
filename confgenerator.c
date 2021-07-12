@@ -133,6 +133,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->gpd_current_filter_const, 10000, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->gpd_current_ki, &ind);
+	buffer[ind++] = conf->sp_pid_loop_rate;
 	buffer_append_float32_auto(buffer, conf->s_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->s_pid_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->s_pid_kd, &ind);
@@ -495,6 +496,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->gpd_current_filter_const = buffer_get_float16(buffer, 10000, &ind);
 	conf->gpd_current_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->gpd_current_ki = buffer_get_float32_auto(buffer, &ind);
+	conf->sp_pid_loop_rate = buffer[ind++];
 	conf->s_pid_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_kd = buffer_get_float32_auto(buffer, &ind);
@@ -853,6 +855,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->gpd_current_filter_const = MCCONF_GPD_CURRENT_FILTER_CONST;
 	conf->gpd_current_kp = MCCONF_GPD_CURRENT_KP;
 	conf->gpd_current_ki = MCCONF_GPD_CURRENT_KI;
+	conf->sp_pid_loop_rate = MCCONF_SP_PID_LOOP_RATE;
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;
 	conf->s_pid_kd = MCCONF_S_PID_KD;

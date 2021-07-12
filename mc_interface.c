@@ -2323,6 +2323,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Update auxiliary output
 	switch (motor->m_conf.m_out_aux_mode) {
+	case OUT_AUX_MODE_UNUSED:
+		break;
+
 	case OUT_AUX_MODE_OFF:
 		AUX_OFF();
 		break;
@@ -2361,7 +2364,30 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		}
 		break;
 
-	default:
+	case OUT_AUX_MODE_MOTOR_50:
+		if (mc_interface_temp_motor_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+		break;
+
+	case OUT_AUX_MODE_MOSFET_50:
+		if (mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+		break;
+
+	case OUT_AUX_MODE_MOTOR_70:
+		if (mc_interface_temp_motor_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+		break;
+
+	case OUT_AUX_MODE_MOSFET_70:
+		if (mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+		break;
+
+	case OUT_AUX_MODE_MOTOR_MOSFET_50:
+		if (mc_interface_temp_motor_filtered() > 50.0 ||
+				mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+		break;
+
+	case OUT_AUX_MODE_MOTOR_MOSFET_70:
+		if (mc_interface_temp_motor_filtered() > 70.0 ||
+				mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
 		break;
 	}
 

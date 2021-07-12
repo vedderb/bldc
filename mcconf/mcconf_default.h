@@ -117,6 +117,11 @@
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
 #endif
 
+// Common PID-parameters
+#ifndef MCCONF_SP_PID_LOOP_RATE
+#define MCCONF_SP_PID_LOOP_RATE			PID_RATE_1000_HZ // PID loop rate
+#endif
+
 // Speed PID parameters
 #ifndef MCCONF_S_PID_KP
 #define MCCONF_S_PID_KP					0.004	// Proportional gain

@@ -201,7 +201,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt);
 static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alpha, float mod_beta);
 static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
-static void run_pid_control_pos(float angle_now, float angle_set, float dt, volatile motor_all_state_t *motor);
+static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor);
 static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
 static void stop_pwm_hw(volatile motor_all_state_t *motor);
 static void start_pwm_hw(volatile motor_all_state_t *motor);
@@ -222,6 +222,10 @@ static volatile bool timer_thd_stop;
 static THD_WORKING_AREA(hfi_thread_wa, 1024);
 static THD_FUNCTION(hfi_thread, arg);
 static volatile bool hfi_thd_stop;
+
+static THD_WORKING_AREA(pid_thread_wa, 512);
+static THD_FUNCTION(pid_thread, arg);
+static volatile bool pid_thd_stop;
 
 // Macros
 #ifdef HW_HAS_3_SHUNTS
@@ -660,6 +664,9 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	hfi_thd_stop = false;
 	chThdCreateStatic(hfi_thread_wa, sizeof(hfi_thread_wa), NORMALPRIO, hfi_thread, NULL);
 
+	pid_thd_stop = false;
+	chThdCreateStatic(pid_thread_wa, sizeof(pid_thread_wa), NORMALPRIO, pid_thread, NULL);
+
 	// Check if the system has resumed from IWDG reset
 	if (timeout_had_IWDG_reset()) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
@@ -694,6 +701,11 @@ void mcpwm_foc_deinit(void) {
 
 	hfi_thd_stop = true;
 	while (hfi_thd_stop) {
+		chThdSleepMilliseconds(1);
+	}
+
+	pid_thd_stop = true;
+	while (pid_thd_stop) {
 		chThdSleepMilliseconds(1);
 	}
 
@@ -3334,13 +3346,6 @@ static THD_FUNCTION(timer_thread, arg) {
 
 		input_current_offset_measurement();
 
-		run_pid_control_speed(dt, &m_motor_1);
-		run_pid_control_pos(m_motor_1.m_pos_pid_now, m_motor_1.m_pos_pid_set, dt, &m_motor_1);
-#ifdef HW_HAS_DUAL_MOTORS
-		run_pid_control_speed(dt, &m_motor_2);
-		run_pid_control_pos(m_motor_2.m_pos_pid_now, m_motor_2.m_pos_pid_set, dt, &m_motor_2);
-#endif
-
 		chThdSleepMilliseconds(1);
 	}
 }
@@ -3486,6 +3491,43 @@ static THD_FUNCTION(hfi_thread, arg) {
 #endif
 
 		chThdSleepMicroseconds(500);
+	}
+}
+
+static THD_FUNCTION(pid_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("foc pid");
+
+	uint32_t last_time = timer_time_now();
+
+	for(;;) {
+		if (pid_thd_stop) {
+			pid_thd_stop = false;
+			return;
+		}
+
+		switch (m_motor_1.m_conf->sp_pid_loop_rate) {
+		case PID_RATE_25_HZ: chThdSleepMicroseconds(1000000 / 25); break;
+		case PID_RATE_50_HZ: chThdSleepMicroseconds(1000000 / 50); break;
+		case PID_RATE_100_HZ: chThdSleepMicroseconds(1000000 / 100); break;
+		case PID_RATE_250_HZ: chThdSleepMicroseconds(1000000 / 250); break;
+		case PID_RATE_500_HZ: chThdSleepMicroseconds(1000000 / 500); break;
+		case PID_RATE_1000_HZ: chThdSleepMicroseconds(1000000 / 1000); break;
+		case PID_RATE_2500_HZ: chThdSleepMicroseconds(1000000 / 2500); break;
+		case PID_RATE_5000_HZ: chThdSleepMicroseconds(1000000 / 5000); break;
+		case PID_RATE_10000_HZ: chThdSleepMicroseconds(1000000 / 10000); break;
+		}
+
+		float dt = timer_seconds_elapsed_since(last_time);
+		last_time = timer_time_now();
+
+		run_pid_control_pos(dt, &m_motor_1);
+		run_pid_control_speed(dt, &m_motor_1);
+#ifdef HW_HAS_DUAL_MOTORS
+		run_pid_control_pos(dt, &m_motor_2);
+		run_pid_control_speed(dt, &m_motor_2);
+#endif
 	}
 }
 
@@ -4108,8 +4150,12 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	*svm_sector = sector;
 }
 
-static void run_pid_control_pos(float angle_now, float angle_set, float dt, volatile motor_all_state_t *motor) {
+static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor) {
 	volatile mc_configuration *conf_now = motor->m_conf;
+
+	float angle_now = motor->m_pos_pid_now;
+	float angle_set = motor->m_pos_pid_set;
+
 	float p_term;
 	float d_term;
 	float d_term_proc;
