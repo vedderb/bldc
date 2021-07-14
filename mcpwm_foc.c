@@ -3745,12 +3745,12 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
 	float vd_presat = state_m->vd;
-	utils_truncate_number((float*)&state_m->vd, -max_v_mag, max_v_mag);
+	utils_truncate_number_abs((float*)&state_m->vd, max_v_mag);
 	state_m->vd_int += (state_m->vd - vd_presat);
 
 	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
 	float vq_presat = state_m->vq;
-	utils_truncate_number((float*)&state_m->vq, -max_vq, max_vq);
+	utils_truncate_number_abs((float*)&state_m->vq, max_vq);
 	state_m->vq_int += (state_m->vq - vq_presat);
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
@@ -4292,14 +4292,18 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 	motor->m_speed_prev_error = error;
 
 	// Calculate output
+	utils_truncate_number_abs(&p_term, 1.0);
+	utils_truncate_number_abs(&d_term, 1.0);
 	float output = p_term + motor->m_speed_i_term + d_term;
 	float pre_output = output;
-
-	utils_truncate_number(&output, -1.0, 1.0);
+	utils_truncate_number_abs(&output, 1.0);
 
 	float output_saturation = output - pre_output;
 
 	motor->m_speed_i_term += error * (conf_now->s_pid_ki * dt) * (1.0 / 20.0) + output_saturation;
+	if (conf_now->s_pid_ki < 1e-9) {
+		motor->m_speed_i_term = 0.0;
+	}
 
 	// Optionally disable braking
 	if (!conf_now->s_pid_allow_braking) {
