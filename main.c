@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -39,8 +39,6 @@
 #include "commands.h"
 #include "timeout.h"
 #include "comm_can.h"
-#include "ws2811.h"
-#include "led_external.h"
 #include "encoder.h"
 #include "servo_simple.h"
 #include "utils.h"
@@ -55,6 +53,7 @@
 #endif
 #include "shutdown.h"
 #include "mempools.h"
+#include "events.h"
 
 /*
  * HW resources used:
@@ -77,7 +76,6 @@
 
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 1024);
-static THD_WORKING_AREA(timer_thread_wa, 128);
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
@@ -179,18 +177,6 @@ static THD_FUNCTION(periodic_thread, arg) {
 	}
 }
 
-static THD_FUNCTION(timer_thread, arg) {
-	(void)arg;
-
-	chRegSetThreadName("msec_timer");
-
-	for(;;) {
-		packet_timerfunc();
-		timeout_feed_WDT(THREAD_TIMER);
-		chThdSleepMilliseconds(1);
-	}
-}
-
 // When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower
 void assert_failed(uint8_t* file, uint32_t line) {
 	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
@@ -220,6 +206,7 @@ int main(void) {
 
 	chThdSleepMilliseconds(100);
 
+	events_init();
 	hw_init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();
@@ -250,10 +237,12 @@ int main(void) {
 	comm_can_init();
 #endif
 
+	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
 	app_set_configuration(appconf);
-	app_uartcomm_start_permanent();
+	app_uartcomm_start(UART_PORT_BUILTIN);
+	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
 
 #ifdef HW_HAS_PERMANENT_NRF
 	conf_general_permanent_nrf_found = nrf_driver_init();
@@ -272,84 +261,12 @@ int main(void) {
 	}
 #endif
 
-#if WS2811_ENABLE
-	ws2811_init();
-#if !WS2811_TEST
-	led_external_init();
-#endif
-#endif
-
-#if SERVO_OUT_ENABLE
-	servo_simple_init();
-#endif
-
 	// Threads
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
-#if WS2811_TEST
-	unsigned int color_ind = 0;
-	const int num = 4;
-	const uint32_t colors[] = {COLOR_RED, COLOR_GOLD, COLOR_GRAY, COLOR_MAGENTA, COLOR_BLUE};
-	const int brightness_set = 100;
-
-	for (;;) {
-		chThdSleepMilliseconds(1000);
-
-		for (int i = 0;i < brightness_set;i++) {
-			ws2811_set_brightness(i);
-			chThdSleepMilliseconds(10);
-		}
-
-		chThdSleepMilliseconds(1000);
-
-		for(int i = -num;i <= WS2811_LED_NUM;i++) {
-			ws2811_set_led_color(i - 1, COLOR_BLACK);
-			ws2811_set_led_color(i + num, colors[color_ind]);
-
-			ws2811_set_led_color(0, COLOR_RED);
-			ws2811_set_led_color(WS2811_LED_NUM - 1, COLOR_GREEN);
-
-			chThdSleepMilliseconds(50);
-		}
-
-		for (int i = 0;i < brightness_set;i++) {
-			ws2811_set_brightness(brightness_set - i);
-			chThdSleepMilliseconds(10);
-		}
-
-		color_ind++;
-		if (color_ind >= sizeof(colors) / sizeof(uint32_t)) {
-			color_ind = 0;
-		}
-
-		static int asd = 0;
-		asd++;
-		if (asd >= 3) {
-			asd = 0;
-
-			for (unsigned int i = 0;i < sizeof(colors) / sizeof(uint32_t);i++) {
-				ws2811_set_all(colors[i]);
-
-				for (int i = 0;i < brightness_set;i++) {
-					ws2811_set_brightness(i);
-					chThdSleepMilliseconds(2);
-				}
-
-				chThdSleepMilliseconds(100);
-
-				for (int i = 0;i < brightness_set;i++) {
-					ws2811_set_brightness(brightness_set - i);
-					chThdSleepMilliseconds(2);
-				}
-			}
-		}
-	}
-#endif
-
 	timeout_init();
-	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current);
+	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 
 	mempools_free_appconf(appconf);
 

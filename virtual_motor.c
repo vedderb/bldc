@@ -63,9 +63,9 @@ typedef struct{
 }virtual_motor_t;
 
 static volatile virtual_motor_t virtual_motor;
-static volatile int m_curr0_offset_backup;
-static volatile int m_curr1_offset_backup;
-static volatile int m_curr2_offset_backup;
+static volatile float m_curr0_offset_backup;
+static volatile float m_curr1_offset_backup;
+static volatile float m_curr2_offset_backup;
 static volatile mc_configuration *m_conf;
 
 //private functions

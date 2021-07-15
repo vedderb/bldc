@@ -19,7 +19,7 @@
 
 #include "shutdown.h"
 #include "app.h"
-#include "mc_interface.h"
+#include "conf_general.h"
 
 #ifdef HW_SHUTDOWN_HOLD_ON
 
@@ -63,7 +63,7 @@ void shutdown_set_sampling_disabled(bool disabled) {
 }
 
 bool do_shutdown(void) {
-	mc_interface_save_odometer();
+	conf_general_store_backup_data();
 	DISABLE_GATE();
 	HW_SHUTDOWN_HOLD_OFF();
 	return true;

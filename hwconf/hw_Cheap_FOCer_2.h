@@ -20,7 +20,7 @@
 #ifndef HW_Cheap_FOCer_2
 #define HW_Cheap_FOCer_2
 
-#define HW_NAME					"Cheap FOCer 2"
+#define HW_NAME					"Cheap_FOCer_2"
 
 // HW properties
 #define HW_HAS_DRV8301

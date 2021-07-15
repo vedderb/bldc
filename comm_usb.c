@@ -24,9 +24,6 @@
 #include "comm_usb_serial.h"
 #include "commands.h"
 
-// Settings
-#define PACKET_HANDLER				0
-
 // Private variables
 #define SERIAL_RX_BUFFER_SIZE		2048
 static uint8_t serial_rx_buffer[SERIAL_RX_BUFFER_SIZE];
@@ -38,6 +35,7 @@ static mutex_t send_mutex;
 static thread_t *process_tp;
 static volatile unsigned int write_timeout_cnt = 0;
 static volatile bool was_timeout = false;
+static PACKET_STATE_t packet_state;
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -82,7 +80,7 @@ static THD_FUNCTION(serial_process_thread, arg) {
 		chEvtWaitAny((eventmask_t) 1);
 
 		while (serial_rx_read_pos != serial_rx_write_pos) {
-			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], PACKET_HANDLER);
+			packet_process_byte(serial_rx_buffer[serial_rx_read_pos++], &packet_state);
 
 			if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
 				serial_rx_read_pos = 0;
@@ -118,7 +116,7 @@ static void send_packet_raw(unsigned char *buffer, unsigned int len) {
 
 void comm_usb_init(void) {
 	comm_usb_serial_init();
-	packet_init(send_packet_raw, process_packet, PACKET_HANDLER);
+	packet_init(send_packet_raw, process_packet, &packet_state);
 
 	chMtxObjectInit(&send_mutex);
 
@@ -129,7 +127,7 @@ void comm_usb_init(void) {
 
 void comm_usb_send_packet(unsigned char *data, unsigned int len) {
 	chMtxLock(&send_mutex);
-	packet_send_packet(data, len, PACKET_HANDLER);
+	packet_send_packet(data, len, &packet_state);
 	chMtxUnlock(&send_mutex);
 }
 

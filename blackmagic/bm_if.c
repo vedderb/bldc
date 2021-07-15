@@ -578,6 +578,16 @@ int bm_reboot(void) {
 }
 
 /**
+ * Halt target execution.
+ */
+void bm_halt_req(void) {
+	if (cur_target) {
+		target_print_en = false;
+		target_halt_request(cur_target);
+	}
+}
+
+/**
  * Leave debug mode of NRF5x device. Will reduce the sleep power consumption
  * significantly.
  */

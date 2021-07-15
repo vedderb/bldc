@@ -79,19 +79,32 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
+int mcpwm_foc_dc_cal(bool cal_undriven);
 void mcpwm_foc_print_state(void);
 float mcpwm_foc_get_last_adc_isr_duration(void);
 void mcpwm_foc_get_current_offsets(
-		volatile int *curr0_offset,
-		volatile int *curr1_offset,
-		volatile int *curr2_offset,
+		volatile float *curr0_offset,
+		volatile float *curr1_offset,
+		volatile float *curr2_offset,
 		bool is_second_motor);
 void mcpwm_foc_set_current_offsets(
-		volatile int curr0_offset,
-		volatile int curr1_offset,
-		volatile int curr2_offset);
+		volatile float curr0_offset,
+		volatile float curr1_offset,
+		volatile float curr2_offset);
+void mcpwm_foc_get_voltage_offsets(
+		float *v0_offset,
+		float *v1_offset,
+		float *v2_offset,
+		bool is_second_motor);
+void mcpwm_foc_get_voltage_offsets_undriven(
+		float *v0_offset,
+		float *v1_offset,
+		float *v2_offset,
+		bool is_second_motor);
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
+void mcpwm_foc_get_observer_state(float *x1, float *x2);
+void mcpwm_foc_set_current_off_delay(float delay_sec);
 
 // Functions where the motor can be selected
 float mcpwm_foc_get_tot_current_motor(bool is_second_motor);

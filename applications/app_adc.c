@@ -186,6 +186,9 @@ static THD_FUNCTION(adc_thread, arg) {
 		float brake = 0.0;
 #endif
 
+#ifdef HW_HAS_BRAKE_OVERRIDE
+		hw_brake_override(&brake);
+#endif
 		read_voltage2 = brake;
 
 		// Optionally apply a mean value filter
@@ -531,7 +534,7 @@ static THD_FUNCTION(adc_thread, arg) {
 						can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-							if (config.tc) {
+							if (config.tc && config.tc_max_diff > 1.0) {
 								float rpm_tmp = msg->rpm;
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;

@@ -27,6 +27,7 @@
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_FILTERS
 
 // TODO: Figure out what the correct settings are
 #define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
@@ -125,7 +126,8 @@
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+// TODO: Update equation for next HW revision when voltage divider is fixed.
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / (((4095.0 * (5.0 / 3.3)) / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
@@ -271,7 +273,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT		120.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_M_DRV8301_OC_ADJ
-#define MCCONF_M_DRV8301_OC_ADJ			18 // DRV8301 over current protection threshold
+#define MCCONF_M_DRV8301_OC_ADJ			15 // DRV8353 over current protection threshold
 #endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -283,6 +285,10 @@
 
 #ifndef APPCONF_SHUTDOWN_MODE
 #define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
+#endif
+
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LATCH_SHUTDOWN // DRV8301 over current protection mode
 #endif
 
 // Setting limits

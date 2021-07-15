@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,14 +17,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef LED_EXTERNAL_H_
-#define LED_EXTERNAL_H_
+#ifndef QMLUI_QMLUI_H_
+#define QMLUI_QMLUI_H_
 
-#include "datatypes.h"
+#ifdef QMLUI_HEADER_HW
+#include QMLUI_HEADER_HW
+#endif
 
-// Functions
-void led_external_init(void);
-void led_external_set_state(LED_EXT_STATE new_state);
-void led_external_set_reversed(bool newstate);
+#ifdef QMLUI_HEADER_APP
+#include QMLUI_HEADER_APP
+#endif
 
-#endif /* LED_EXTERNAL_H_ */
+#endif /* QMLUI_QMLUI_H_ */

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -29,10 +29,6 @@
 #include "utils.h"
 #include "timeout.h"
 #include "encoder.h"
-#include "drv8301.h"
-#include "drv8305.h"
-#include "drv8320s.h"
-#include "drv8323s.h"
 #include "app.h"
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
@@ -165,7 +161,7 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "dist") == 0) {
 		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
 		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
-		commands_printf("Odometer        : %u   m\n", mc_interface_get_odometer());
+		commands_printf("Odometer        : %llu m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -198,7 +194,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 1 sample: %u", current1_samp);
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
-		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+		commands_printf("Input voltage: %.2f\n", (double)mc_interface_get_input_voltage_filtered());
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif
@@ -452,8 +448,9 @@ void terminal_process_string(char *str) {
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
 				float tout_c = timeout_get_brake_current();
+				KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 				timeout_reset();
-				timeout_configure(60000, 0.0);
+				timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 				for (int i = 0;i < 100;i++) {
 					mc_interface_set_duty(((float)i / 100.0) * duty);
@@ -473,13 +470,14 @@ void terminal_process_string(char *str) {
 				}
 
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
 				mc_interface_set_configuration(mcconf_old);
 
 				mempools_free_mcconf(mcconf);
 				mempools_free_mcconf(mcconf_old);
 
 				// Enable timeout
-				timeout_configure(tout, tout_c);
+				timeout_configure(tout, tout_c, tout_ksw);
 
 				vq_avg /= samples;
 				rpm_avg /= samples;
@@ -527,6 +525,16 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "foc_state") == 0) {
 		mcpwm_foc_print_state();
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "foc_dc_cal") == 0) {
+		commands_printf("Performing DC offset calibration...");
+		int res = mcpwm_foc_dc_cal(true);
+		if (res >= 0) {
+			conf_general_store_mc_configuration((mc_configuration*)mc_interface_get_configuration(),
+					mc_interface_get_motor_thread() == 2);
+			commands_printf("Done!\n");
+		} else {
+			commands_printf("DC Cal Failed: %d\n", res);
+		}
 	} else if (strcmp(argv[0], "hw_status") == 0) {
 		commands_printf("Firmware: %d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR);
 #ifdef HW_NAME
@@ -538,15 +546,34 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
 
-		int curr0_offset;
-		int curr1_offset;
-		int curr2_offset;
+		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
+		commands_printf("Runtime  : %llu s", g_backup.runtime);
+
+		float curr0_offset;
+		float curr1_offset;
+		float curr2_offset;
 
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset,
 				mc_interface_get_motor_thread() == 2);
 
-		commands_printf("FOC Current Offsets: %d %d %d",
-				curr0_offset, curr1_offset, curr2_offset);
+		commands_printf("FOC Current Offsets: %.2f %.2f %.2f",
+				(double)curr0_offset, (double)curr1_offset, (double)curr2_offset);
+
+		float v0_offset;
+		float v1_offset;
+		float v2_offset;
+
+		mcpwm_foc_get_voltage_offsets(&v0_offset, &v1_offset, &v2_offset,
+				mc_interface_get_motor_thread() == 2);
+
+		commands_printf("FOC Voltage Offsets: %.4f %.4f %.4f",
+				(double)v0_offset, (double)v1_offset, (double)v2_offset);
+
+		mcpwm_foc_get_voltage_offsets_undriven(&v0_offset, &v1_offset, &v2_offset,
+				mc_interface_get_motor_thread() == 2);
+
+		commands_printf("FOC Voltage Offsets Undriven: %.4f %.4f %.4f",
+				(double)v0_offset, (double)v1_offset, (double)v2_offset);
 
 #ifdef COMM_USE_USB
 		commands_printf("USB config events: %d", comm_usb_serial_configured_cnt());
@@ -641,7 +668,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &time);
 			sscanf(argv[3], "%f", &angle);
 
-			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
+			if (fabsf(current) <= mc_interface_get_configuration()->l_current_max &&
 					angle >= 0.0 && angle <= 360.0) {
 				if (time <= 1e-6) {
 					timeout_reset();
@@ -660,6 +687,8 @@ void terminal_process_string(char *str) {
 							commands_printf("T left: %.2f s", (double)(time - t));
 						}
 					}
+
+					mc_interface_set_current(0.0);
 
 					commands_printf("Done\n");
 				}
@@ -956,6 +985,7 @@ void terminal_process_string(char *str) {
 
 				mc_interface_lock_override_once();
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
 				mcconf->motor_type = motor_type_old;
 				mc_interface_set_configuration(mcconf);
 				mempools_free_mcconf(mcconf);
@@ -1048,6 +1078,23 @@ void terminal_process_string(char *str) {
 		commands_printf("MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
 		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)", app_crc0, app_crc1);
 		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
+	} else if (strcmp(argv[0], "drv_reset_faults") == 0) {
+		HW_RESET_DRV_FAULTS();
+	} else if (strcmp(argv[0], "update_pid_pos_offset") == 0) {
+		if (argc == 3) {
+			float angle_now = -500.0;
+			int store = false;
+
+			sscanf(argv[1], "%f", &angle_now);
+			sscanf(argv[2], "%d", &store);
+
+			if (angle_now > -360.0 && angle_now < 360.0) {
+				mc_interface_update_pid_pos_offset(angle_now, store);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
 	}
 
 	// The help command
@@ -1134,6 +1181,9 @@ void terminal_process_string(char *str) {
 		commands_printf("foc_state");
 		commands_printf("  Print some FOC state variables.");
 
+		commands_printf("foc_dc_cal");
+		commands_printf("  Calibrate current and voltage DC offsets.");
+
 		commands_printf("hw_status");
 		commands_printf("  Print some hardware status information.");
 
@@ -1186,6 +1236,12 @@ void terminal_process_string(char *str) {
 
 		commands_printf("crc");
 		commands_printf("  Print CRC values.");
+
+		commands_printf("drv_reset_faults");
+		commands_printf("  Reset gate driver faults (if possible).");
+
+		commands_printf("update_pid_pos_offset [angle_now] [store]");
+		commands_printf("  Update position PID offset.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

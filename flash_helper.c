@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -26,6 +26,7 @@
 #include "timeout.h"
 #include "hw.h"
 #include "crc.h"
+#include "buffer.h"
 #include <string.h>
 
 /*
@@ -36,7 +37,9 @@
 #define APP_BASE								0
 #define NEW_APP_BASE							8
 #define NEW_APP_SECTORS							3
-#define APP_MAX_SIZE							(393216 - 8) // Note that the bootloader needs 8 extra bytes
+#define APP_MAX_SIZE							(1024 * 128 * 3 - 8) // Note that the bootloader needs 8 extra bytes
+#define QMLUI_BASE								7
+#define QMLUI_MAX_SIZE							(1024 * 128 - 8)
 
 // Base address of the Flash sectors
 #define ADDR_FLASH_SECTOR_0    					((uint32_t)0x08000000) // Base @ of Sector 0, 16 Kbytes
@@ -66,10 +69,19 @@
 typedef struct {
 	uint32_t crc_flag;
 	uint32_t crc;
-}crc_info_t;
+} crc_info_t;
 
-//Make sure the app image has the CRC bits set to '1' to later write the flag and CRC.
+// Make sure the app image has the CRC bits set to '1' to later write the flag and CRC.
 const crc_info_t __attribute__((section (".crcinfo"))) crc_info = {0xFFFFFFFF, 0xFFFFFFFF};
+
+// Private functions
+static uint16_t erase_sector(uint32_t sector);
+static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len);
+static void qmlui_check(void);
+
+// Private variables
+static bool qmlui_check_done = false;
+static bool qmlui_ok = false;
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -108,8 +120,13 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	new_app_size += flash_addr[NEW_APP_BASE];
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3.0)) {
+		return 100;
+	}
+
 	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
@@ -119,6 +136,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 			if (res != FLASH_COMPLETE) {
 				FLASH_Lock();
 				timeout_configure_IWDT();
+				mc_interface_ignore_input_both(5000);
 				utils_sys_unlock_cnt();
 				return res;
 			}
@@ -129,58 +147,64 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	FLASH_Lock();
 	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(5000);
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
 }
 
 uint16_t flash_helper_erase_bootloader(void) {
-	FLASH_Unlock();
-	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	utils_sys_lock_cnt();
-	timeout_configure_IWDT_slowest();
-
-	uint16_t res = FLASH_EraseSector(flash_sector[BOOTLOADER_BASE], VoltageRange_3);
-	if (res != FLASH_COMPLETE) {
-		FLASH_Lock();
-		return res;
-	}
-
-	FLASH_Lock();
-	timeout_configure_IWDT();
-	utils_sys_unlock_cnt();
-
-	return FLASH_COMPLETE;
+	return erase_sector(flash_sector[BOOTLOADER_BASE]);
 }
 
 uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_t len) {
-	FLASH_Unlock();
-	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	return write_data(flash_addr[NEW_APP_BASE] + offset, data, len);
+}
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	utils_sys_lock_cnt();
-	timeout_configure_IWDT_slowest();
+uint16_t flash_helper_erase_qmlui(void) {
+	qmlui_check_done = false;
+	qmlui_ok = false;
+	return erase_sector(flash_sector[QMLUI_BASE]);
+}
 
-	for (uint32_t i = 0;i < len;i++) {
-		uint16_t res = FLASH_ProgramByte(flash_addr[NEW_APP_BASE] + offset + i, data[i]);
-		if (res != FLASH_COMPLETE) {
-			FLASH_Lock();
-			return res;
-		}
+uint16_t flash_helper_write_qmlui(uint32_t offset, uint8_t *data, uint32_t len) {
+	qmlui_check_done = false;
+	qmlui_ok = false;
+	return write_data(flash_addr[QMLUI_BASE] + offset, data, len);
+}
+
+uint8_t *flash_helper_qmlui_data(void) {
+	qmlui_check();
+
+	if (qmlui_check_done && qmlui_ok) {
+		return (uint8_t*)(flash_addr[QMLUI_BASE]) + 8;
+	} else {
+		return 0;
 	}
-	FLASH_Lock();
+}
 
-	timeout_configure_IWDT();
+uint32_t flash_helper_qmlui_size(void) {
+	qmlui_check();
 
-	utils_sys_unlock_cnt();
+	if (qmlui_check_done && qmlui_ok) {
+		uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
+		int32_t ind = 0;
+		return buffer_get_uint32(qmlui_base, &ind);
+	} else {
+		return 0;
+	}
+}
 
-	return FLASH_COMPLETE;
+uint16_t flash_helper_qmlui_flags(void) {
+	qmlui_check();
+
+	if (qmlui_check_done && qmlui_ok) {
+		uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
+		int32_t ind = 6;
+		return buffer_get_uint16(qmlui_base, &ind);
+	} else {
+		return 0;
+	}
 }
 
 /**
@@ -189,8 +213,7 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 void flash_helper_jump_to_bootloader(void) {
 	typedef void (*pFunction)(void);
 
-	mc_interface_unlock();
-	mc_interface_release_motor();
+	mc_interface_release_motor_override();
 	usbDisconnectBus(&USBD1);
 	usbStop(&USBD1);
 
@@ -338,4 +361,92 @@ uint32_t flash_helper_verify_flash_memory_chunk(void) {
 	}
 
 	return res;
+}
+
+static uint16_t erase_sector(uint32_t sector) {
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	mc_interface_release_motor_override();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3.0)) {
+		return 100;
+	}
+
+	utils_sys_lock_cnt();
+	timeout_configure_IWDT_slowest();
+
+	uint16_t res = FLASH_EraseSector(sector, VoltageRange_3);
+	if (res != FLASH_COMPLETE) {
+		FLASH_Lock();
+		timeout_configure_IWDT();
+		mc_interface_ignore_input_both(5000);
+		utils_sys_unlock_cnt();
+
+		return res;
+	}
+
+	FLASH_Lock();
+	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(5000);
+	utils_sys_unlock_cnt();
+
+	return FLASH_COMPLETE;
+}
+
+static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	mc_interface_release_motor_override();
+	mc_interface_ignore_input_both(5000);
+
+	if (!mc_interface_wait_for_motor_release(3.0)) {
+		return 100;
+	}
+
+	utils_sys_lock_cnt();
+	timeout_configure_IWDT_slowest();
+
+	for (uint32_t i = 0;i < len;i++) {
+		uint16_t res = FLASH_ProgramByte(base + i, data[i]);
+		if (res != FLASH_COMPLETE) {
+			FLASH_Lock();
+			timeout_configure_IWDT();
+			mc_interface_ignore_input_both(5000);
+			utils_sys_unlock_cnt();
+
+			return res;
+		}
+	}
+
+	FLASH_Lock();
+	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(5000);
+	utils_sys_unlock_cnt();
+
+	return FLASH_COMPLETE;
+}
+
+static void qmlui_check(void) {
+	if (qmlui_check_done) {
+		return;
+	}
+
+	uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
+	int32_t ind = 0;
+	uint32_t qmlui_len = buffer_get_uint32(qmlui_base, &ind);
+	uint16_t qmlui_crc = buffer_get_uint16(qmlui_base, &ind);
+
+	if (qmlui_len <= QMLUI_MAX_SIZE) {
+		uint16_t crc_calc = crc16(qmlui_base + ind, qmlui_len + 2); // CRC includes the 2 byte flags
+		qmlui_ok = crc_calc == qmlui_crc;
+	} else {
+		qmlui_ok = false;
+	}
+
+	qmlui_check_done = true;
 }

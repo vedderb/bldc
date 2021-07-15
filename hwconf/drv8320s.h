@@ -30,6 +30,8 @@ char* drv8320s_faults_to_string(unsigned long faults);
 unsigned int drv8320s_read_reg(int reg);
 void drv8320s_write_reg(int reg, int data);
 
+#define HW_RESET_DRV_FAULTS()			drv8320s_reset_faults()
+
 // Defines
 #define DRV8320S_FAULT_FET_LC_OC		(1 << 0)
 #define DRV8320S_FAULT_FET_HC_OC		(1 << 1)

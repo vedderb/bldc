@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -48,10 +48,12 @@
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
 #define EEPROM_BASE_MCCONF_2	5000
+#define EEPROM_BASE_BACKUP		6000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 bool conf_general_permanent_nrf_found = false;
+__attribute__((section(".ram4"))) volatile backup_data g_backup;
 
 // Private functions
 static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base);
@@ -78,11 +80,86 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_CUSTOM + i;
 	}
 
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		VirtAddVarTab[ind++] = EEPROM_BASE_BACKUP + i;
+	}
+
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 	FLASH_Lock();
+
+	// Read backup data
+	bool is_ok = true;
+	backup_data backup_tmp;
+	uint8_t *data_addr = (uint8_t*)&backup_tmp;
+	uint16_t var;
+
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		if (EE_ReadVariable(EEPROM_BASE_BACKUP + i, &var) == 0) {
+			data_addr[2 * i] = (var >> 8) & 0xFF;
+			data_addr[2 * i + 1] = var & 0xFF;
+		} else {
+			is_ok = false;
+			break;
+		}
+	}
+
+	if (!is_ok) {
+		memset(data_addr, 0, sizeof(backup_data));
+
+		// If the missing data is a result of programming it might still be in RAM4. Check
+		// and recover the valid values one by one.
+
+		if (g_backup.odometer_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.odometer = g_backup.odometer;
+		}
+
+		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.runtime = g_backup.runtime;
+		}
+	}
+
+	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
+
+	g_backup = backup_tmp;
+	conf_general_store_backup_data();
+}
+
+/*
+ * Store backup data to emulated eeprom. Currently this is only done from the shutdown function, which
+ * only works if the hardware has a power switch. It would be possible to do this when the input voltage
+ * drops (e.g. on FAULT_CODE_UNDER_VOLTAGE) to not rely on a power switch. The risk with that is that
+ * a page swap might longer than the capacitors have voltage left, which could make cause the motor and
+ * app config to get lost.
+ */
+bool conf_general_store_backup_data(void) {
+	timeout_configure_IWDT_slowest();
+
+	bool is_ok = true;
+	uint8_t *data_addr = (uint8_t*)&g_backup;
+	uint16_t var;
+
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
+		var = (data_addr[2 * i] << 8) & 0xFF00;
+		var |= data_addr[2 * i + 1] & 0xFF;
+
+		if (EE_WriteVariable(EEPROM_BASE_BACKUP + i, var) != FLASH_COMPLETE) {
+			is_ok = false;
+			break;
+		}
+	}
+	FLASH_Lock();
+
+	timeout_configure_IWDT();
+
+	return is_ok;
 }
 
 /**
@@ -247,10 +324,22 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_release_motor();
 	mc_interface_lock();
 
+	if (!mc_interface_wait_for_motor_release(2.0)) {
+		mc_interface_unlock();
+		mc_interface_select_motor_thread(motor_old);
+		return false;
+	}
+
 	mc_interface_select_motor_thread(2);
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	mc_interface_lock();
+
+	if (!mc_interface_wait_for_motor_release(2.0)) {
+		mc_interface_unlock();
+		mc_interface_select_motor_thread(motor_old);
+		return false;
+	}
 
 	utils_sys_lock_cnt();
 
@@ -346,10 +435,22 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	mc_interface_release_motor();
 	mc_interface_lock();
 
+	if (!mc_interface_wait_for_motor_release(2.0)) {
+		mc_interface_unlock();
+		mc_interface_select_motor_thread(motor_old);
+		return false;
+	}
+
 	mc_interface_select_motor_thread(2);
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	mc_interface_lock();
+
+	if (!mc_interface_wait_for_motor_release(2.0)) {
+		mc_interface_unlock();
+		mc_interface_select_motor_thread(motor_old);
+		return false;
+	}
 
 	utils_sys_lock_cnt();
 
@@ -430,8 +531,9 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0);
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 	mc_interface_lock();
 
@@ -444,6 +546,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_rpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -454,6 +557,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_rpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -494,7 +598,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	if (!started) {
 		mc_interface_set_current(0.0);
-		timeout_configure(tout, tout_c);
+		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_set_configuration(mcconf_old);
 		mc_interface_unlock();
 		mempools_free_mcconf(mcconf);
@@ -576,6 +680,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	mc_interface_lock_override_once();
 	mc_interface_release_motor();
+	mc_interface_wait_for_motor_release(1.0);
 
 	// Try to figure out the coupling factor
 	avg_cycle_integrator_running -= *int_limit;
@@ -585,7 +690,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Restore settings
 	mc_interface_set_configuration(mcconf_old);
-	timeout_configure(tout, tout_c);
+	timeout_configure(tout, tout_c, tout_ksw);
 
 	mc_interface_unlock();
 
@@ -658,8 +763,9 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0);
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 	mc_interface_lock();
 
@@ -672,6 +778,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_cycle_int_limit = 250;
 			mc_interface_lock_override_once();
 			mc_interface_set_configuration(mcconf);
@@ -681,6 +788,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_erpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -691,6 +799,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 3) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_erpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -731,7 +840,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	if (!started) {
 		mc_interface_set_current(0.0);
-		timeout_configure(tout, tout_c);
+		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_set_configuration(mcconf);
 		mc_interface_unlock();
 		mempools_free_mcconf(mcconf);
@@ -754,7 +863,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(1.0);
 	}
 
-	timeout_configure(tout, tout_c);
+	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_set_configuration(mcconf_old);
 	mc_interface_unlock();
 	mc_interface_set_current(0.0);
@@ -871,8 +980,9 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0);
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 	mc_interface_lock();
 
@@ -993,9 +1103,10 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		result = true;
 	}
 
-	timeout_configure(tout, tout_c);
+	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
@@ -1058,8 +1169,9 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0);
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 	mc_interface_lock();
 
@@ -1134,9 +1246,10 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		res = true;
 	}
 
-	timeout_configure(tout, tout_c);
+	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
 	mc_interface_release_motor();
+	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 
 	// On success store the mc configuration, also send it to VESC Tool.
@@ -1165,8 +1278,8 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = l * bw;
 	float ki = r * bw;
-	float gain = 1.0e-3 / (lambda * lambda);
-//	float gain = (0.00001 / r) / (lambda * lambda); // Old method
+	float gain = 1.0e-3 / SQ(lambda);
+//	float gain = (0.00001 / r) / SQ(lambda); // Old method
 
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;
@@ -1422,8 +1535,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0);
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 	mc_interface_lock();
 
@@ -1456,9 +1570,10 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #endif
 
 	if (!res_r_l_imax_m1 || !res_r_l_imax_m2) {
-		timeout_configure(tout, tout_c);
+		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_unlock();
 		mc_interface_release_motor();
+		mc_interface_wait_for_motor_release(1.0);
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
 		mempools_free_mcconf(mcconf_old);
@@ -1519,6 +1634,14 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
 		mcconf_old->foc_motor_flux_linkage = lambda;
+
+		if (mc_interface_temp_motor_filtered() > -10) {
+			mcconf_old->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+#ifdef HW_HAS_PHASE_FILTERS
+			mcconf_old->foc_temp_comp = true;
+#endif
+		}
+
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old, 1000);
 		mc_interface_set_configuration(mcconf_old);
 
@@ -1531,11 +1654,17 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old_second->foc_motor_flux_linkage = linkage_args.linkage;
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old_second, 1000);
 		mc_interface_select_motor_thread(2);
+
+		if (mc_interface_temp_motor_filtered() > -10) {
+			mcconf_old_second->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
+#ifdef HW_HAS_PHASE_FILTERS
+			mcconf_old_second->foc_temp_comp = true;
+#endif
+		}
+
 		mc_interface_set_configuration(mcconf_old_second);
 		mc_interface_select_motor_thread(1);
 #endif
-
-		// TODO: optionally apply temperature compensation here.
 
 		wait_motor_stop(10000);
 
@@ -1566,9 +1695,11 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		result = -10;
 	}
 
-	timeout_configure(tout, tout_c);
-	mc_interface_unlock();
+	timeout_configure(tout, tout_c, tout_ksw);
+	mc_interface_lock_override_once();
 	mc_interface_release_motor();
+	mc_interface_wait_for_motor_release(1.0);
+	mc_interface_unlock();
 
 	if (result < 0) {
 		mc_interface_set_configuration(mcconf_old);

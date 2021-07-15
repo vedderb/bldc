@@ -71,7 +71,7 @@
 
 /* Variables' number */
 #define NB_OF_VAR             ((uint16_t)((2 * sizeof(mc_configuration) + sizeof(app_configuration) + 1) / 2) + \
-                              EEPROM_VARS_HW * 2 + EEPROM_VARS_CUSTOM * 2)
+                              EEPROM_VARS_HW * 2 + EEPROM_VARS_CUSTOM * 2 + sizeof(backup_data) * 2)
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -59,7 +59,8 @@ typedef enum {
 	FOC_SENSOR_MODE_SENSORLESS = 0,
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
-	FOC_SENSOR_MODE_HFI
+	FOC_SENSOR_MODE_HFI,
+	FOC_SENSOR_MODE_HFI_START
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -68,7 +69,15 @@ typedef enum {
 	OUT_AUX_MODE_ON_AFTER_2S,
 	OUT_AUX_MODE_ON_AFTER_5S,
 	OUT_AUX_MODE_ON_AFTER_10S,
-	OUT_AUX_MODE_UNUSED
+	OUT_AUX_MODE_UNUSED,
+	OUT_AUX_MODE_ON_WHEN_RUNNING,
+	OUT_AUX_MODE_ON_WHEN_NOT_RUNNING,
+	OUT_AUX_MODE_MOTOR_50,
+	OUT_AUX_MODE_MOSFET_50,
+	OUT_AUX_MODE_MOTOR_70,
+	OUT_AUX_MODE_MOSFET_70,
+	OUT_AUX_MODE_MOTOR_MOSFET_50,
+	OUT_AUX_MODE_MOTOR_MOSFET_70,
 } out_aux_mode;
 
 // Temperature sensor type
@@ -77,6 +86,7 @@ typedef enum {
 	TEMP_SENSOR_PTC_1K_100C,
 	TEMP_SENSOR_KTY83_122,
 	TEMP_SENSOR_NTC_100K_25C,
+	TEMP_SENSOR_KTY84_130
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -104,7 +114,6 @@ typedef enum {
 
 typedef enum {
 	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
-	FOC_OBSERVER_ORTEGA_ITERATIVE
 } mc_foc_observer_type;
 
 typedef enum {
@@ -228,12 +237,19 @@ typedef enum {
 	BMS_TYPE_VESC
 } BMS_TYPE;
 
+typedef enum {
+	BMS_FWD_CAN_MODE_DISABLED = 0,
+	BMS_FWD_CAN_MODE_USB_ONLY,
+	BMS_FWD_CAN_MODE_ANY
+} BMS_FWD_CAN_MODE;
+
 typedef struct {
 	BMS_TYPE type;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
 	float soc_limit_end;
+	BMS_FWD_CAN_MODE fwd_can_mode;
 } bms_config;
 
 typedef struct {
@@ -255,6 +271,10 @@ typedef struct {
 	float soc;
 	float soh;
 	int can_id;
+	float ah_cnt_chg_total;
+	float wh_cnt_chg_total;
+	float ah_cnt_dis_total;
+	float wh_cnt_dis_total;
 	systime_t update_time;
 } bms_values;
 
@@ -270,6 +290,18 @@ typedef struct {
 	bool is_balancing;
 	bool is_charge_allowed;
 } bms_soc_soh_temp_stat;
+
+typedef enum {
+	PID_RATE_25_HZ = 0,
+	PID_RATE_50_HZ,
+	PID_RATE_100_HZ,
+	PID_RATE_250_HZ,
+	PID_RATE_500_HZ,
+	PID_RATE_1000_HZ,
+	PID_RATE_2500_HZ,
+	PID_RATE_5000_HZ,
+	PID_RATE_10000_HZ,
+} PID_RATE;
 
 typedef struct {
 	// Limits
@@ -376,6 +408,17 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+	bool foc_offsets_cal_on_boot;
+	float foc_offsets_current[3];
+	float foc_offsets_voltage[3];
+	float foc_offsets_voltage_undriven[3];
+	bool foc_phase_filter_enable;
+	float foc_phase_filter_max_erpm;
+	// Field Weakening
+	float foc_fw_current_max;
+	float foc_fw_duty_start;
+	float foc_fw_ramp_time;
+	float foc_fw_q_current_factor;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
@@ -383,6 +426,8 @@ typedef struct {
 	float gpd_current_filter_const;
 	float gpd_current_kp;
 	float gpd_current_ki;
+
+	PID_RATE sp_pid_loop_rate;
 
 	// Speed PID
 	float s_pid_kp;
@@ -397,8 +442,11 @@ typedef struct {
 	float p_pid_kp;
 	float p_pid_ki;
 	float p_pid_kd;
+	float p_pid_kd_proc;
 	float p_pid_kd_filter;
 	float p_pid_ang_div;
+	float p_pid_gain_dec_angle;
+	float p_pid_offset;
 
 	// Current controller
 	float cc_startup_boost_duty;
@@ -653,6 +701,7 @@ typedef struct {
 	float ki;
 	float kd;
 	uint16_t hertz;
+	uint16_t loop_time_filter;
 	float fault_pitch;
 	float fault_roll;
 	float fault_duty;
@@ -671,11 +720,12 @@ typedef struct {
 	float tiltback_low_voltage;
 	float tiltback_constant;
 	uint16_t tiltback_constant_erpm;
+	float tiltback_variable;
+	float tiltback_variable_max;
 	float startup_pitch_tolerance;
 	float startup_roll_tolerance;
 	float startup_speed;
 	float deadzone;
-	float current_boost;
 	bool multi_esc;
 	float yaw_kp;
 	float yaw_ki;
@@ -683,11 +733,28 @@ typedef struct {
 	float roll_steer_kp;
 	float roll_steer_erpm_kp;
 	float brake_current;
+	uint16_t brake_timeout;
 	float yaw_current_clamp;
-	float setpoint_pitch_filter;
-	float setpoint_target_filter;
-	float setpoint_filter_clamp;
-	uint16_t kd_pt1_frequency;
+	uint16_t kd_pt1_lowpass_frequency;
+	uint16_t kd_pt1_highpass_frequency;
+	float kd_biquad_lowpass;
+	float kd_biquad_highpass;
+	float booster_angle;
+	float booster_ramp;
+	float booster_current;
+	float torquetilt_start_current;
+	float torquetilt_angle_limit;
+	float torquetilt_on_speed;
+	float torquetilt_off_speed;
+	float torquetilt_strength;
+	float torquetilt_filter;
+	float turntilt_strength;
+	float turntilt_angle_limit;
+	float turntilt_start_angle;
+	uint16_t turntilt_start_erpm;
+	float turntilt_speed;
+	uint16_t turntilt_erpm_boost;
+	uint16_t turntilt_erpm_boost_end;
 } balance_config;
 
 // CAN status modes
@@ -756,6 +823,14 @@ typedef enum {
 	UAVCAN_RAW_MODE_DUTY
 } UAVCAN_RAW_MODE;
 
+typedef enum {
+	KILL_SW_MODE_DISABLED = 0,
+	KILL_SW_MODE_PPM_LOW,
+	KILL_SW_MODE_PPM_HIGH,
+	KILL_SW_MODE_ADC2_LOW,
+	KILL_SW_MODE_ADC2_HIGH
+} KILL_SW_MODE;
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -767,6 +842,8 @@ typedef struct {
 	bool pairing_done;
 	bool permanent_uart_enabled;
 	SHUTDOWN_MODE shutdown_mode;
+	bool servo_out_enable;
+	KILL_SW_MODE kill_sw_mode;
 
 	// CAN modes
 	CAN_MODE can_mode;
@@ -924,6 +1001,25 @@ typedef enum {
 	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
 
 	COMM_SET_ODOMETER,
+
+	// Power switch commands
+	COMM_PSW_GET_STATUS,
+	COMM_PSW_SWITCH,
+
+	COMM_BMS_FWD_CAN_RX,
+	COMM_BMS_HW_DATA,
+	COMM_GET_BATTERY_CUT,
+	COMM_BM_HALT_REQ,
+	COMM_GET_QML_UI_HW,
+	COMM_GET_QML_UI_APP,
+	COMM_CUSTOM_HW_DATA,
+	COMM_QMLUI_ERASE,
+	COMM_QMLUI_WRITE,
+
+	// IO Board
+	COMM_IO_BOARD_GET_ALL,
+	COMM_IO_BOARD_SET_PWM,
+	COMM_IO_BOARD_SET_DIGITAL,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -973,7 +1069,18 @@ typedef enum {
 	CAN_PACKET_BMS_BAL,
 	CAN_PACKET_BMS_TEMPS,
 	CAN_PACKET_BMS_HUM,
-	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
+	CAN_PACKET_PSW_STAT,
+	CAN_PACKET_PSW_SWITCH,
+	CAN_PACKET_BMS_HW_DATA_1,
+	CAN_PACKET_BMS_HW_DATA_2,
+	CAN_PACKET_BMS_HW_DATA_3,
+	CAN_PACKET_BMS_HW_DATA_4,
+	CAN_PACKET_BMS_HW_DATA_5,
+	CAN_PACKET_BMS_AH_WH_CHG_TOTAL,
+	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
+	CAN_PACKET_UPDATE_PID_POS_OFFSET,
+	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF
 } CAN_PACKET_ID;
 
 // Logged fault data
@@ -995,18 +1102,6 @@ typedef struct {
 	float temperature;
 	int drv8301_faults;
 } fault_data;
-
-// External LED state
-typedef enum {
-	LED_EXT_OFF = 0,
-	LED_EXT_NORMAL,
-	LED_EXT_BRAKE,
-	LED_EXT_TURN_LEFT,
-	LED_EXT_TURN_RIGHT,
-	LED_EXT_BRAKE_TURN_LEFT,
-	LED_EXT_BRAKE_TURN_RIGHT,
-	LED_EXT_BATT
-} LED_EXT_STATE;
 
 typedef struct {
 	int js_x;
@@ -1069,6 +1164,17 @@ typedef struct {
 	systime_t rx_time;
 	uint64_t inputs;
 } io_board_digial_inputs;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	float v_out;
+	float temp;
+	bool is_out_on;
+	bool is_pch_on;
+	bool is_dsc_on;
+} psw_status;
 
 typedef struct {
 	uint8_t js_x;
@@ -1147,8 +1253,6 @@ typedef union {
 #define EEPROM_VARS_HW			64
 #define EEPROM_VARS_CUSTOM		64
 
-#define EEPROM_ADDR_ODOMETER    1
-
 typedef struct {
 	float ah_tot;
 	float ah_charge_tot;
@@ -1158,5 +1262,15 @@ typedef struct {
 	float current_in_tot;
 	uint8_t num_vescs;
 } setup_values;
+
+#define BACKUP_VAR_INIT_CODE				92891934
+
+typedef struct __attribute__((packed)) {
+	uint32_t odometer_init_flag;
+	uint64_t odometer; // Meters
+
+	uint32_t runtime_init_flag;
+	uint64_t runtime; // Seconds
+} backup_data;
 
 #endif /* DATATYPES_H_ */

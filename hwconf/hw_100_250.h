@@ -25,6 +25,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define INVERTED_SHUNT_POLARITY
+#define HW_HAS_PHASE_FILTERS
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB

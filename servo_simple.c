@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -24,10 +24,15 @@
 #include "stm32f4xx_conf.h"
 #include "utils.h"
 
+/**
+ * TODO: Use the chibios driver instead of the ST-driver.
+ */
+
 // Settings
 #define TIM_CLOCK			1000000 // Hz
 
-#if SERVO_OUT_ENABLE
+// Private variables
+static volatile bool m_is_running = false;
 
 void servo_simple_init(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
@@ -63,9 +68,28 @@ void servo_simple_init(void) {
 	servo_simple_set_output(0.5);
 
 	TIM_Cmd(HW_ICU_TIMER, ENABLE);
+
+	m_is_running = true;
+}
+
+void servo_simple_stop(void) {
+	if (m_is_running) {
+		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
+		TIM_Cmd(HW_ICU_TIMER, DISABLE);
+		TIM_DeInit(HW_ICU_TIMER);
+		m_is_running = false;
+	}
+}
+
+bool servo_simple_is_running(void) {
+	return m_is_running;
 }
 
 void servo_simple_set_output(float out) {
+	if (!m_is_running) {
+		return;
+	}
+
 	utils_truncate_number(&out, 0.0, 1.0);
 
 	float us = (float)SERVO_OUT_PULSE_MIN_US + out *
@@ -78,5 +102,3 @@ void servo_simple_set_output(float out) {
 		HW_ICU_TIMER->CCR2 = (uint32_t)us;
 	}
 }
-
-#endif

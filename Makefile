@@ -109,6 +109,7 @@ include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
+include lora/lora.mk
 include compression/compression.mk
 include blackmagic/blackmagic.mk
 
@@ -145,8 +146,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       ws2811.c \
-       led_external.c \
        encoder.c \
        flash_helper.c \
        mc_interface.c \
@@ -161,13 +160,16 @@ CSRC = $(STARTUPSRC) \
        mempools.c \
        worker.c \
        bms.c \
+       events.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
+       $(LORASRC) \
        $(COMPRESSIONSRC) \
-       $(BLACKMAGICSRC)
+       $(BLACKMAGICSRC) \
+       qmlui/qmlui.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -207,8 +209,16 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
+         $(LORAINC) \
          $(COMPRESSIONINC) \
-         $(BLACKMAGICINC)
+         $(BLACKMAGICINC) \
+         qmlui \
+         qmlui/hw \
+         qmlui/app
+
+ifdef app_custom_mkfile
+include $(app_custom_mkfile)
+endif
 
 #
 # Project, sources and paths

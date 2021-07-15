@@ -18,7 +18,9 @@
     */
 
 #include "crc.h"
+#ifndef NO_STM32
 #include "stm32f4xx.h"
+#endif
 
 // CRC Table
 const unsigned short crc16_tab[] = { 0x0000, 0x1021, 0x2042, 0x3063, 0x4084,
@@ -60,6 +62,7 @@ unsigned short crc16(unsigned char *buf, unsigned int len) {
 	return cksum;
 }
 
+#ifndef NO_STM32
 /**
   * @brief  Computes the 32-bit CRC of a given buffer of data word(32-bit) using
   * Hardware Acceleration.
@@ -86,3 +89,4 @@ void crc32_reset(void) {
 	/* Reset CRC generator */
 	CRC->CR |= CRC_CR_RESET;
 }
+#endif

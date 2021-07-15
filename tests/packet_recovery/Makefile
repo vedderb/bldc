@@ -1,7 +1,7 @@
 TARGET = test
 LIBS = -lm
 CC = gcc
-CFLAGS = -O2 -g -Wall -Wextra -Wundef -std=gnu99 -I../../
+CFLAGS = -O2 -g -Wall -Wextra -Wundef -std=gnu99 -I../../ -DNO_STM32
 SOURCES = main.c ../../packet.c ../../crc.c
 HEADERS = ../../packet.h ../../crc.h
 OBJECTS = $(notdir $(SOURCES:.c=.o))

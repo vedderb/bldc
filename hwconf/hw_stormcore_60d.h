@@ -65,11 +65,15 @@
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
 #ifdef HW_VER_IS_60D_PLUS
-// Depending on current motor selected for the thread select different phase filter
-#define PHASE_FILTER_GPIO       (mc_interface_motor_now() == 1 ? GPIOE : GPIOE)
-#define PHASE_FILTER_PIN        (mc_interface_motor_now() == 1 ? 4 : 1)
-#define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define HW_HAS_PHASE_FILTERS
+#define PHASE_FILTER_GPIO				GPIOE
+#define PHASE_FILTER_PIN				1
+#define PHASE_FILTER_GPIO_M2			GPIOE
+#define PHASE_FILTER_PIN_M2				4
+#define PHASE_FILTER_ON()				palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()				palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_ON_M2()			palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#define PHASE_FILTER_OFF_M2()			palClearPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
 #endif
 
 
@@ -93,7 +97,7 @@
 #define HW_UART_P_BAUD				115200
 
 #define HW_UART_P_DEV				SD1
-#define HW_UART_P_GPIO_AF			GPIO_AF_USART1
+#define HW_UART_P_GPIO_AF			    GPIO_AF_USART1
 #define HW_UART_P_TX_PORT			GPIOA
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
@@ -297,6 +301,7 @@
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
+#define HW_ICU_TIM_CLK_EN()		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE)
 #define HW_ICU_DEV				ICUD9
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM9

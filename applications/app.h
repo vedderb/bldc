@@ -43,12 +43,17 @@ float app_adc_get_voltage(void);
 float app_adc_get_decoded_level2(void);
 float app_adc_get_voltage2(void);
 
-void app_uartcomm_start(void);
-void app_uartcomm_start_permanent(void);
-void app_uartcomm_stop(void);
-void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled);
-void app_uartcomm_send_packet(unsigned char *data, unsigned int len);
-void app_uartcomm_send_packet_p(unsigned char *data, unsigned int len);
+typedef enum {
+	UART_PORT_COMM_HEADER = 0,
+	UART_PORT_BUILTIN,
+	UART_PORT_EXTRA_HEADER
+} UART_PORT;
+
+void app_uartcomm_initialize(void);
+void app_uartcomm_start(UART_PORT port_number);
+void app_uartcomm_stop(UART_PORT port_number);
+void app_uartcomm_configure(uint32_t baudrate, bool permanent_enabled, UART_PORT port_number);
+void app_uartcomm_send_packet(unsigned char *data, unsigned int len,  UART_PORT port_number);
 
 void app_nunchuk_start(void);
 void app_nunchuk_stop(void);
@@ -64,11 +69,12 @@ float app_balance_get_pitch_angle(void);
 float app_balance_get_roll_angle(void);
 uint32_t app_balance_get_diff_time(void);
 float app_balance_get_motor_current(void);
-float app_balance_get_motor_position(void);
 uint16_t app_balance_get_state(void);
 uint16_t app_balance_get_switch_state(void);
 float app_balance_get_adc1(void);
 float app_balance_get_adc2(void);
+float app_balance_get_debug1(void);
+float app_balance_get_debug2(void);
 
 void app_pas_start(bool is_primary_output);
 void app_pas_stop(void);

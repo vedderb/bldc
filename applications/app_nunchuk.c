@@ -27,7 +27,6 @@
 #include "timeout.h"
 #include <string.h>
 #include <math.h>
-#include "led_external.h"
 #include "datatypes.h"
 #include "comm_can.h"
 #include "terminal.h"
@@ -241,7 +240,6 @@ static THD_FUNCTION(output_thread, arg) {
 		const float max_current_diff = mcconf->l_current_max * mcconf->l_current_max_scale * 0.2;
 
 		if (chuck_d.bt_c && chuck_d.bt_z) {
-			led_external_set_state(LED_EXT_BATT);
 			was_pid = false;
 			continue;
 		}
@@ -265,31 +263,9 @@ static THD_FUNCTION(output_thread, arg) {
 
 		was_z = chuck_d.bt_z;
 
-		led_external_set_reversed(is_reverse);
-
 		float out_val = app_nunchuk_get_decoded_chuk();
 		utils_deadband(&out_val, config.hyst, 1.0);
 		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
-
-		// LEDs
-		float x_axis = ((float)chuck_d.js_x - 128.0) / 128.0;
-		if (out_val < -0.001) {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_BRAKE_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_BRAKE);
-			}
-		} else {
-			if (x_axis < -0.4) {
-				led_external_set_state(LED_EXT_TURN_LEFT);
-			} else if (x_axis > 0.4) {
-				led_external_set_state(LED_EXT_TURN_RIGHT);
-			} else {
-				led_external_set_state(LED_EXT_NORMAL);
-			}
-		}
 
 		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;
@@ -504,7 +480,7 @@ static THD_FUNCTION(output_thread, arg) {
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
 						bool is_braking = (current > 0.0 && msg->duty < 0.0) || (current < 0.0 && msg->duty > 0.0);
 
-						if (config.tc && !is_braking) {
+						if (config.tc && config.tc_max_diff > 1.0 && !is_braking) {
 							float rpm_tmp = fabsf(msg->rpm);
 
 							float diff = rpm_tmp - rpm_lowest;
@@ -520,7 +496,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 				bool is_braking = (current > 0.0 && duty_now < 0.0) || (current < 0.0 && duty_now > 0.0);
 
-				if (config.tc && !is_braking) {
+				if (config.tc && config.tc_max_diff > 1.0 && !is_braking) {
 					float diff = rpm_local - rpm_lowest;
 					current_out = utils_map(diff, 0.0, config.tc_max_diff, current, 0.0);
 					if (fabsf(current_out) < mcconf->cc_min_current) {

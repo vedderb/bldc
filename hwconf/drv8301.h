@@ -31,6 +31,8 @@ unsigned int drv8301_read_reg(int reg);
 void drv8301_write_reg(int reg, int data);
 void drv8301_set_current_amp_gain(int gain);
 
+#define HW_RESET_DRV_FAULTS()		drv8301_reset_faults()
+
 // Defines
 #define DRV8301_FAULT_FETLC_OC		(1 << 0)
 #define DRV8301_FAULT_FETHC_OC		(1 << 1)

@@ -5,9 +5,10 @@
 
 #include "packet.h"
 
-const unsigned int rand_prepend = 50;
+static const unsigned int rand_prepend = 50;
 static uint8_t buffer[250000];
 static unsigned int write = 0;
+static PACKET_STATE_t state;
 
 void send_packet(unsigned char *data, unsigned int len) {
 	memcpy(buffer + write, data, len);
@@ -24,7 +25,7 @@ void process_packet_perf(unsigned char *data, unsigned int len) {
 }
 
 int main(void) {
-	packet_init(send_packet, process_packet, 0);
+	packet_init(send_packet, process_packet, &state);
 	
 	srand(104);
 	
@@ -36,7 +37,7 @@ int main(void) {
 		}
 		
 		sprintf(asd + rand_prepend, "Offset: %d Test %d", write, i);
-		packet_send_packet((unsigned char*)asd, strlen(asd + rand_prepend) + rand_prepend + 1, 0);
+		packet_send_packet((unsigned char*)asd, strlen(asd + rand_prepend) + rand_prepend + 1, &state);
 	}
 	
 	// Ability to recover
@@ -46,7 +47,7 @@ int main(void) {
 		
 		//packet_reset(0);
 		for(unsigned int i = offsets[ofs];i < write;i++) {
-			packet_process_byte(buffer[i], 0);
+			packet_process_byte(buffer[i], &state);
 		}
 		
 		printf("\r\n");
@@ -63,12 +64,12 @@ int main(void) {
 	buffer[1200]++;
 	buffer[1342]++;
 	for(unsigned int i = 0;i < write;i++) {
-		packet_process_byte(buffer[i], 0);
+		packet_process_byte(buffer[i], &state);
 	}
 	
 	// Performance
 	printf("\r\nPerformance Test\r\n");
-	packet_init(send_packet, process_packet_perf, 0);
+	packet_init(send_packet, process_packet_perf, &state);
 	
 	srand(104);
 	write = 0;
@@ -82,9 +83,9 @@ int main(void) {
 	
 	start = clock();
 	for (int i = 0;i < 1e6;i++) {
-		packet_send_packet(asd, sizeof(asd), 0);
+		packet_send_packet(asd, sizeof(asd), &state);
 		for (unsigned int j = 0;j < write;j++) {
-			packet_process_byte(buffer[j], 0);
+			packet_process_byte(buffer[j], &state);
 		}
 		write = 0;
 	}

@@ -30,27 +30,28 @@
 #include "utils.h"
 #include "datatypes.h"
 #include "comm_can.h"
+#include "terminal.h"
 
 
 #include <math.h>
+#include <stdio.h>
 
 // Can
 #define MAX_CAN_AGE 0.1
 
-// Data type
+// Data type (Value 5 was removed, and can be reused at a later date, but i wanted to preserve the current value's numbers for UIs)
 typedef enum {
 	STARTUP = 0,
-	RUNNING,
-	RUNNING_TILTBACK_DUTY,
-	RUNNING_TILTBACK_HIGH_VOLTAGE,
-	RUNNING_TILTBACK_LOW_VOLTAGE,
-	RUNNING_TILTBACK_CONSTANT,
-	FAULT_ANGLE_PITCH,
-	FAULT_ANGLE_ROLL,
-	FAULT_SWITCH_HALF,
-	FAULT_SWITCH_FULL,
-	FAULT_DUTY,
-	FAULT_STARTUP
+	RUNNING = 1,
+	RUNNING_TILTBACK_DUTY = 2,
+	RUNNING_TILTBACK_HIGH_VOLTAGE = 3,
+	RUNNING_TILTBACK_LOW_VOLTAGE = 4,
+	FAULT_ANGLE_PITCH = 6,
+	FAULT_ANGLE_ROLL = 7,
+	FAULT_SWITCH_HALF = 8,
+	FAULT_SWITCH_FULL = 9,
+	FAULT_DUTY = 10,
+	FAULT_STARTUP = 11
 } BalanceState;
 
 typedef enum {
@@ -64,6 +65,16 @@ typedef enum {
 	ON
 } SwitchState;
 
+typedef struct{
+	float a0, a1, a2, b1, b2;
+	float z1, z2;
+} Biquad;
+
+typedef enum {
+	BQ_LOWPASS,
+	BQ_HIGHPASS
+} BiquadType;
+
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
 static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
@@ -73,10 +84,12 @@ static thread_t *app_thread;
 // Config values
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
-static float startup_step_size, tiltback_step_size;
+static systime_t loop_time;
+static float startup_step_size, tiltback_step_size, torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
+static float tiltback_variable, tiltback_variable_max_erpm;
 
 // Runtime values read from elsewhere
-static float pitch_angle, roll_angle;
+static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
 static float erpm, abs_erpm, avg_erpm;
@@ -88,53 +101,148 @@ static SwitchState switch_state;
 // Rumtime state values
 static BalanceState state;
 static float proportional, integral, derivative;
-static float last_proportional;
+static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
+static float noseangling_interpolated;
+static float torquetilt_filtered_current, torquetilt_target, torquetilt_interpolated;
+static Biquad torquetilt_current_biquad;
+static float turntilt_target, turntilt_interpolated;
 static SetpointAdjustmentType setpointAdjustmentType;
 static float yaw_proportional, yaw_integral, yaw_derivative, yaw_last_proportional, yaw_pid_value, yaw_setpoint;
-static systime_t current_time, last_time, diff_time;
+static systime_t current_time, last_time, diff_time, loop_overshoot;
+static float filtered_loop_overshoot, loop_overshoot_alpha, filtered_diff_time;
 static systime_t fault_angle_pitch_timer, fault_angle_roll_timer, fault_switch_timer, fault_switch_half_timer, fault_duty_timer;
-static float d_pt1_state, d_pt1_k;
+static float d_pt1_lowpass_state, d_pt1_lowpass_k, d_pt1_highpass_state, d_pt1_highpass_k;
+static Biquad d_biquad_lowpass, d_biquad_highpass;
+static float motor_timeout;
+static systime_t brake_timeout;
 
+// Debug values
+static int debug_render_1, debug_render_2;
+static int debug_sample_field, debug_sample_count, debug_sample_index;
+static int debug_experiment_1, debug_experiment_2, debug_experiment_3, debug_experiment_4, debug_experiment_5, debug_experiment_6;
 
+// Function Prototypes
+static void set_current(float current, float yaw_current);
+static void terminal_render(int argc, const char **argv);
+static void terminal_sample(int argc, const char **argv);
+static void terminal_experiment(int argc, const char **argv);
+static float app_balance_get_debug(int index);
+static void app_balance_sample_debug(void);
+static void app_balance_experiment(void);
+
+// Utility Functions
+float biquad_process(Biquad *biquad, float in) {
+    float out = in * biquad->a0 + biquad->z1;
+    biquad->z1 = in * biquad->a1 + biquad->z2 - biquad->b1 * out;
+    biquad->z2 = in * biquad->a2 - biquad->b2 * out;
+    return out;
+}
+void biquad_config(Biquad *biquad, BiquadType type, float Fc) {
+	float K = tanf(M_PI * Fc);	// -0.0159;
+	float Q = 0.707; // maximum sharpness (0.5 = maximum smoothness)
+	float norm = 1 / (1 + K / Q + K * K);
+	if (type == BQ_LOWPASS) {
+		biquad->a0 = K * K * norm;
+		biquad->a1 = 2 * biquad->a0;
+		biquad->a2 = biquad->a0;
+	}
+	else if (type == BQ_HIGHPASS) {
+		biquad->a0 = 1 * norm;
+		biquad->a1 = -2 * biquad->a0;
+		biquad->a2 = biquad->a0;
+	}
+	biquad->b1 = 2 * (K * K - 1) * norm;
+	biquad->b2 = (1 - K / Q + K * K) * norm;
+}
+void biquad_reset(Biquad *biquad) {
+	biquad->z1 = 0;
+	biquad->z2 = 0;
+}
+
+// Exposed Functions
 void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	balance_conf = *conf;
 	imu_conf = *conf2;
 	// Set calculated values from config
-	if(balance_conf.kd_pt1_frequency > 0){
-		float dT = 1.0 / balance_conf.hertz;
-		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_frequency);
-		d_pt1_k =  dT / (RC + dT);
-	}
+	loop_time = US2ST((int)((1000.0 / balance_conf.hertz) * 1000.0));
+
+	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
+
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
 	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	torquetilt_on_step_size = balance_conf.torquetilt_on_speed / balance_conf.hertz;
+	torquetilt_off_step_size = balance_conf.torquetilt_off_speed / balance_conf.hertz;
+	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
+
+	// Init Filters
+	if(balance_conf.loop_time_filter > 0){
+		loop_overshoot_alpha = 2*M_PI*((float)1/balance_conf.hertz)*balance_conf.loop_time_filter/(2*M_PI*((float)1/balance_conf.hertz)*balance_conf.loop_time_filter+1);
+	}
+	if(balance_conf.kd_pt1_lowpass_frequency > 0){
+		float dT = 1.0 / balance_conf.hertz;
+		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_lowpass_frequency);
+		d_pt1_lowpass_k =  dT / (RC + dT);
+	}
+	if(balance_conf.kd_pt1_highpass_frequency > 0){
+		float dT = 1.0 / balance_conf.hertz;
+		float RC = 1.0 / ( 2.0 * M_PI * balance_conf.kd_pt1_highpass_frequency);
+		d_pt1_highpass_k =  dT / (RC + dT);
+	}
+	if(balance_conf.kd_biquad_lowpass > 0){
+		float Fc = balance_conf.kd_biquad_lowpass / balance_conf.hertz;
+		biquad_config(&d_biquad_lowpass, BQ_LOWPASS, Fc);
+	}
+	if(balance_conf.kd_biquad_highpass > 0){
+		float Fc = balance_conf.kd_biquad_highpass / balance_conf.hertz;
+		biquad_config(&d_biquad_highpass, BQ_HIGHPASS, Fc);
+	}
+	if(balance_conf.torquetilt_filter > 0){ // Torquetilt Current Biquad
+		float Fc = balance_conf.torquetilt_filter / balance_conf.hertz;
+		biquad_config(&torquetilt_current_biquad, BQ_LOWPASS, Fc);
+	}
+
+	// Variable nose angle adjustment / tiltback (setting is per 1000erpm, convert to per erpm)
+	tiltback_variable = balance_conf.tiltback_variable / 1000;
+	tiltback_variable_max_erpm = fabsf(balance_conf.tiltback_variable_max / tiltback_variable);
+
+	// Reset loop time variables
+	last_time = 0;
+	filtered_loop_overshoot = 0;
 }
 
 void app_balance_start(void) {
 	// First start only, override state to startup
 	state = STARTUP;
+	// Register terminal commands
+	terminal_register_command_callback(
+		"app_balance_render",
+		"Render debug values on the balance real time data graph",
+		"[Field Number] [Plot (Optional 1 or 2)]",
+		terminal_render);
+	terminal_register_command_callback(
+		"app_balance_sample",
+		"Output real time values to the terminal",
+		"[Field Number] [Sample Count]",
+		terminal_sample);
+	terminal_register_command_callback(
+		"app_balance_experiment",
+		"Output real time values to the experiments graph",
+		"[Field Number] [Plot 1-6]",
+		terminal_experiment);
 	// Start the balance thread
 	app_thread = chThdCreateStatic(balance_thread_wa, sizeof(balance_thread_wa), NORMALPRIO, balance_thread, NULL);
 }
 
-void reset_vars(void){
-	// Clear accumulated values.
-	integral = 0;
-	last_proportional = 0;
-	yaw_integral = 0;
-	yaw_last_proportional = 0;
-	d_pt1_state = 0;
-	// Set values for startup
-	setpoint = pitch_angle;
-	setpoint_target_interpolated = pitch_angle;
-	setpoint_target = 0;
-	setpointAdjustmentType = CENTERING;
-	yaw_setpoint = 0;
-	state = RUNNING;
-	current_time = 0;
-	last_time = 0;
-	diff_time = 0;
+void app_balance_stop(void) {
+	if(app_thread != NULL){
+		chThdTerminate(app_thread);
+		chThdWait(app_thread);
+	}
+	set_current(0, 0);
+	terminal_unregister_callback(terminal_render);
+	terminal_unregister_callback(terminal_sample);
 }
 
 float app_balance_get_pid_output(void) {
@@ -152,9 +260,6 @@ uint32_t app_balance_get_diff_time(void) {
 float app_balance_get_motor_current(void) {
 	return motor_current;
 }
-float app_balance_get_motor_position(void) {
-	return motor_position;
-}
 uint16_t app_balance_get_state(void) {
 	return state;
 }
@@ -167,8 +272,45 @@ float app_balance_get_adc1(void) {
 float app_balance_get_adc2(void) {
 	return adc2;
 }
+float app_balance_get_debug1(void) {
+	return app_balance_get_debug(debug_render_1);
+}
+float app_balance_get_debug2(void) {
+	return app_balance_get_debug(debug_render_2);
+}
 
-float get_setpoint_adjustment_step_size(void){
+// Internal Functions
+static void reset_vars(void){
+	// Clear accumulated values.
+	integral = 0;
+	last_proportional = 0;
+	yaw_integral = 0;
+	yaw_last_proportional = 0;
+	d_pt1_lowpass_state = 0;
+	d_pt1_highpass_state = 0;
+	biquad_reset(&d_biquad_lowpass);
+	biquad_reset(&d_biquad_highpass);
+	// Set values for startup
+	setpoint = pitch_angle;
+	setpoint_target_interpolated = pitch_angle;
+	setpoint_target = 0;
+	noseangling_interpolated = 0;
+	torquetilt_target = 0;
+	torquetilt_interpolated = 0;
+	torquetilt_filtered_current = 0;
+	biquad_reset(&torquetilt_current_biquad);
+	turntilt_target = 0;
+	turntilt_interpolated = 0;
+	setpointAdjustmentType = CENTERING;
+	yaw_setpoint = 0;
+	state = RUNNING;
+	current_time = 0;
+	last_time = 0;
+	diff_time = 0;
+	brake_timeout = 0;
+}
+
+static float get_setpoint_adjustment_step_size(void){
 	switch(setpointAdjustmentType){
 		case (CENTERING):
 			return startup_step_size;
@@ -179,7 +321,7 @@ float get_setpoint_adjustment_step_size(void){
 }
 
 // Fault checking order does not really matter. From a UX perspective, switch should be before angle.
-bool check_faults(bool ignoreTimers){
+static bool check_faults(bool ignoreTimers){
 	// Check switch
 	// Switch fully open
 	if(switch_state == OFF){
@@ -192,7 +334,7 @@ bool check_faults(bool ignoreTimers){
 	}
 
 	// Switch partially open and stopped
-	if(switch_state == HALF && abs_erpm < balance_conf.fault_adc_half_erpm){
+	if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
 		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
 			state = FAULT_SWITCH_HALF;
 			return true;
@@ -234,7 +376,7 @@ bool check_faults(bool ignoreTimers){
 	return false;
 }
 
-void calculate_setpoint_target(void){
+static void calculate_setpoint_target(void){
 	if(setpointAdjustmentType == CENTERING && setpoint_target_interpolated != setpoint_target){
 		// Ignore tiltback during centering sequence
 		state = RUNNING;
@@ -262,15 +404,6 @@ void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK;
 		state = RUNNING_TILTBACK_LOW_VOLTAGE;
-	}else if(balance_conf.tiltback_constant != 0 && abs_erpm > balance_conf.tiltback_constant_erpm){
-		// Nose angle adjustment
-		if(erpm > 0){
-			setpoint_target = balance_conf.tiltback_constant;
-		} else {
-			setpoint_target = -balance_conf.tiltback_constant;
-		}
-		setpointAdjustmentType = TILTBACK;
-		state = RUNNING_TILTBACK_CONSTANT;
 	}else{
 		setpointAdjustmentType = TILTBACK;
 		setpoint_target = 0;
@@ -278,7 +411,7 @@ void calculate_setpoint_target(void){
 	}
 }
 
-void calculate_setpoint_interpolated(void){
+static void calculate_setpoint_interpolated(void){
 	if(setpoint_target_interpolated != setpoint_target){
 		// If we are less than one step size away, go all the way
 		if(fabsf(setpoint_target - setpoint_target_interpolated) < get_setpoint_adjustment_step_size()){
@@ -291,7 +424,102 @@ void calculate_setpoint_interpolated(void){
 	}
 }
 
-float apply_deadzone(float error){
+static void apply_noseangling(void){
+	// Nose angle adjustment, add variable then constant tiltback
+	float noseangling_target = 0;
+	if (fabsf(erpm) > tiltback_variable_max_erpm) {
+		noseangling_target = fabsf(balance_conf.tiltback_variable_max) * SIGN(erpm);
+	} else {
+		noseangling_target = tiltback_variable * erpm;
+	}
+
+	if(erpm > balance_conf.tiltback_constant_erpm){
+		noseangling_target += balance_conf.tiltback_constant;
+	} else if(erpm < -balance_conf.tiltback_constant_erpm){
+		noseangling_target += -balance_conf.tiltback_constant;
+	}
+
+	if(fabsf(noseangling_target - noseangling_interpolated) < tiltback_step_size){
+		noseangling_interpolated = noseangling_target;
+	}else if (noseangling_target - noseangling_interpolated > 0){
+		noseangling_interpolated += tiltback_step_size;
+	}else{
+		noseangling_interpolated -= tiltback_step_size;
+	}
+	setpoint += noseangling_interpolated;
+}
+
+static void apply_torquetilt(void){
+	// Filter current (Biquad)
+	if(balance_conf.torquetilt_filter > 0){
+		torquetilt_filtered_current = biquad_process(&torquetilt_current_biquad, motor_current);
+	}else{
+		torquetilt_filtered_current  = motor_current;
+	}
+
+
+	// Wat is this line O_o
+	// Take abs motor current, subtract start offset, and take the max of that with 0 to get the current above our start threshold (absolute).
+	// Then multiply it by "power" to get our desired angle, and min with the limit to respect boundaries.
+	// Finally multiply it by sign motor current to get directionality back
+	torquetilt_target = fminf(fmaxf((fabsf(torquetilt_filtered_current) - balance_conf.torquetilt_start_current), 0) * balance_conf.torquetilt_strength, balance_conf.torquetilt_angle_limit) * SIGN(torquetilt_filtered_current);
+
+	float step_size;
+	if((torquetilt_interpolated - torquetilt_target > 0 && torquetilt_target > 0) || (torquetilt_interpolated - torquetilt_target < 0 && torquetilt_target < 0)){
+		step_size = torquetilt_off_step_size;
+	}else{
+		step_size = torquetilt_on_step_size;
+	}
+
+	if(fabsf(torquetilt_target - torquetilt_interpolated) < step_size){
+		torquetilt_interpolated = torquetilt_target;
+	}else if (torquetilt_target - torquetilt_interpolated > 0){
+		torquetilt_interpolated += step_size;
+	}else{
+		torquetilt_interpolated -= step_size;
+	}
+	setpoint += torquetilt_interpolated;
+}
+
+static void apply_turntilt(void){
+	// Calculate desired angle
+	turntilt_target = abs_roll_angle_sin * balance_conf.turntilt_strength;
+
+	// Apply cutzone
+	if(abs_roll_angle < balance_conf.turntilt_start_angle){
+		turntilt_target = 0;
+	}
+
+	// Disable below erpm threshold otherwise add directionality
+	if(abs_erpm < balance_conf.turntilt_start_erpm){
+		turntilt_target = 0;
+	}else {
+		turntilt_target *= SIGN(erpm);
+	}
+
+	// Apply speed scaling
+	if(abs_erpm < balance_conf.turntilt_erpm_boost_end){
+		turntilt_target *= 1 + ((balance_conf.turntilt_erpm_boost/100.0f) * (abs_erpm / balance_conf.turntilt_erpm_boost_end));
+	}else{
+		turntilt_target *= 1 + (balance_conf.turntilt_erpm_boost/100.0f);
+	}
+
+	// Limit angle to max angle
+	turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+
+	// Move towards target limited by max speed
+	if(fabsf(turntilt_target - turntilt_interpolated) < turntilt_step_size){
+		turntilt_interpolated = turntilt_target;
+	}else if (turntilt_target - turntilt_interpolated > 0){
+		turntilt_interpolated += turntilt_step_size;
+	}else{
+		turntilt_interpolated -= turntilt_step_size;
+	}
+	setpoint += turntilt_interpolated;
+
+}
+
+static float apply_deadzone(float error){
 	if(balance_conf.deadzone == 0){
 		return error;
 	}
@@ -305,7 +533,15 @@ float apply_deadzone(float error){
 	}
 }
 
-void brake(void){
+static void brake(void){
+	// Brake timeout logic
+	if(balance_conf.brake_timeout > 0 && (abs_erpm > 1 || brake_timeout == 0)){
+		brake_timeout = current_time + S2ST(balance_conf.brake_timeout);
+	}
+	if(brake_timeout != 0 && current_time > brake_timeout){
+		return;
+	}
+
 	// Reset the timeout
 	timeout_reset();
 	// Set current
@@ -320,30 +556,29 @@ void brake(void){
 	}
 }
 
-void set_current(float current, float yaw_current){
+static void set_current(float current, float yaw_current){
 	// Reset the timeout
 	timeout_reset();
 	// Set current
 	if(balance_conf.multi_esc){
+		// Set the current delay
+		mc_interface_set_current_off_delay(motor_timeout);
+		// Set Current
 		mc_interface_set_current(current + yaw_current);
+		// Can bus
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-				comm_can_set_current(msg->id, current - yaw_current);// Assume 2 motors, i don't know how to steer 3 anyways
+				comm_can_set_current_off_delay(msg->id, current - yaw_current, motor_timeout);// Assume 2 motors, i don't know how to steer 3 anyways
 			}
 		}
 	} else {
+		// Set the current delay
+		mc_interface_set_current_off_delay(motor_timeout);
+		// Set Current
 		mc_interface_set_current(current);
 	}
-}
-
-void app_balance_stop(void) {
-	if(app_thread != NULL){
-		chThdTerminate(app_thread);
-		chThdWait(app_thread);
-	}
-	set_current(0, 0);
 }
 
 static THD_FUNCTION(balance_thread, arg) {
@@ -357,15 +592,23 @@ static THD_FUNCTION(balance_thread, arg) {
 		  last_time = current_time;
 		}
 		diff_time = current_time - last_time;
+		filtered_diff_time = 0.03 * diff_time + 0.97 * filtered_diff_time; // Purely a metric
 		last_time = current_time;
+		if(balance_conf.loop_time_filter > 0){
+			loop_overshoot = diff_time - (loop_time - roundf(filtered_loop_overshoot));
+			filtered_loop_overshoot = loop_overshoot_alpha * loop_overshoot + (1-loop_overshoot_alpha)*filtered_loop_overshoot;
+		}
 
 		// Read values for GUI
 		motor_current = mc_interface_get_tot_current_directional_filtered();
 		motor_position = mc_interface_get_pid_pos_now();
 
 		// Get the values we want
+		last_pitch_angle = pitch_angle;
 		pitch_angle = imu_get_pitch() * 180.0f / M_PI;
 		roll_angle = imu_get_roll() * 180.0f / M_PI;
+		abs_roll_angle = fabsf(roll_angle);
+		abs_roll_angle_sin = sinf(abs_roll_angle * M_PI / 180.0f);
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);
@@ -417,20 +660,17 @@ static THD_FUNCTION(balance_thread, arg) {
 		// Control Loop State Logic
 		switch(state){
 			case (STARTUP):
-				while(!imu_startup_done()){
-					// Disable output
-					brake();
-					// Wait
-					chThdSleepMilliseconds(50);
+				// Disable output
+				brake();
+				if(imu_startup_done()){
+					reset_vars();
+					state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
 				}
-				reset_vars();
-				state = FAULT_STARTUP; // Trigger a fault so we need to meet start conditions to start
 				break;
 			case (RUNNING):
 			case (RUNNING_TILTBACK_DUTY):
 			case (RUNNING_TILTBACK_HIGH_VOLTAGE):
 			case (RUNNING_TILTBACK_LOW_VOLTAGE):
-			case (RUNNING_TILTBACK_CONSTANT):
 
 				// Check for faults
 				if(check_faults(false)){
@@ -440,24 +680,10 @@ static THD_FUNCTION(balance_thread, arg) {
 				// Calculate setpoint and interpolation
 				calculate_setpoint_target();
 				calculate_setpoint_interpolated();
-
-				// Apply setpoint filtering
-				if(setpointAdjustmentType == CENTERING){
-					// Ignore filtering during centering
-					setpoint = setpoint_target_interpolated;
-				}else{
-					setpoint = (setpoint * (1-balance_conf.setpoint_pitch_filter)) + (pitch_angle * balance_conf.setpoint_pitch_filter);
-					setpoint = (setpoint * (1-balance_conf.setpoint_target_filter)) + (setpoint_target_interpolated * balance_conf.setpoint_target_filter);
-				}
-
-				// Clamp setpoint
-				if(setpointAdjustmentType != CENTERING){
-					if(setpoint - setpoint_target_interpolated > balance_conf.setpoint_filter_clamp){
-						setpoint = setpoint_target_interpolated + balance_conf.setpoint_filter_clamp;
-					}else if (setpoint - setpoint_target_interpolated < -balance_conf.setpoint_filter_clamp){
-						setpoint = setpoint_target_interpolated - balance_conf.setpoint_filter_clamp;
-					}
-				}
+				setpoint = setpoint_target_interpolated;
+				apply_noseangling();
+				apply_torquetilt();
+				apply_turntilt();
 
 				// Do PID maths
 				proportional = setpoint - pitch_angle;
@@ -465,23 +691,36 @@ static THD_FUNCTION(balance_thread, arg) {
 				proportional = apply_deadzone(proportional);
 				// Resume real PID maths
 				integral = integral + proportional;
-				derivative = proportional - last_proportional;
+				derivative = last_pitch_angle - pitch_angle;
 
-				// Apply D term only filter
-				if(balance_conf.kd_pt1_frequency > 0){
-					d_pt1_state = d_pt1_state + d_pt1_k * (derivative - d_pt1_state);
-					derivative = d_pt1_state;
+				// Apply D term filters
+				if(balance_conf.kd_pt1_lowpass_frequency > 0){
+					d_pt1_lowpass_state = d_pt1_lowpass_state + d_pt1_lowpass_k * (derivative - d_pt1_lowpass_state);
+					derivative = d_pt1_lowpass_state;
+				}
+				if(balance_conf.kd_pt1_highpass_frequency > 0){
+					d_pt1_highpass_state = d_pt1_highpass_state + d_pt1_highpass_k * (derivative - d_pt1_highpass_state);
+					derivative = derivative - d_pt1_highpass_state;
+				}
+				if(balance_conf.kd_biquad_lowpass > 0){
+					derivative = biquad_process(&d_biquad_lowpass, derivative);
+				}
+				if(balance_conf.kd_biquad_highpass > 0){
+					derivative = biquad_process(&d_biquad_highpass, derivative);
 				}
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
 				last_proportional = proportional;
 
-				// Apply current boost
-				if(pid_value > 0){
-					pid_value += balance_conf.current_boost;
-				}else if(pid_value < 0){
-					pid_value -= balance_conf.current_boost;
+				// Apply Booster
+				abs_proportional = fabsf(proportional);
+				if(abs_proportional > balance_conf.booster_angle){
+					if(abs_proportional - balance_conf.booster_angle < balance_conf.booster_ramp){
+						pid_value += (balance_conf.booster_current * SIGN(proportional)) * ((abs_proportional - balance_conf.booster_angle) / balance_conf.booster_ramp);
+					}else{
+						pid_value += balance_conf.booster_current * SIGN(proportional);
+					}
 				}
 
 
@@ -536,10 +775,152 @@ static THD_FUNCTION(balance_thread, arg) {
 				break;
 		}
 
+		// Debug outputs
+		app_balance_sample_debug();
+		app_balance_experiment();
+
 		// Delay between loops
-		chThdSleepMicroseconds((int)((1000.0 / balance_conf.hertz) * 1000.0));
+		chThdSleep(loop_time - roundf(filtered_loop_overshoot));
 	}
 
 	// Disable output
 	brake();
+}
+
+// Terminal commands
+static void terminal_render(int argc, const char **argv) {
+	if (argc == 2 || argc == 3) {
+		int field = 0;
+		int graph = 1;
+		sscanf(argv[1], "%d", &field);
+		if(argc == 3){
+			sscanf(argv[2], "%d", &graph);
+			if(graph < 1 || graph > 2){
+				graph = 1;
+			}
+		}
+		if(graph == 1){
+			debug_render_1 = field;
+		}else{
+			debug_render_2 = field;
+		}
+	} else {
+		commands_printf("This command requires one or two argument(s).\n");
+	}
+}
+
+static void terminal_sample(int argc, const char **argv) {
+	if (argc == 3) {
+		debug_sample_field = 0;
+		debug_sample_count = 0;
+		sscanf(argv[1], "%d", &debug_sample_field);
+		sscanf(argv[2], "%d", &debug_sample_count);
+		debug_sample_index = 0;
+	} else {
+		commands_printf("This command requires two arguments.\n");
+	}
+}
+
+static void terminal_experiment(int argc, const char **argv) {
+	if (argc == 3) {
+		int field = 0;
+		int graph = 1;
+		sscanf(argv[1], "%d", &field);
+		sscanf(argv[2], "%d", &graph);
+		switch(graph){
+			case (1):
+				debug_experiment_1 = field;
+				break;
+			case (2):
+				debug_experiment_2 = field;
+				break;
+			case (3):
+				debug_experiment_3 = field;
+				break;
+			case (4):
+				debug_experiment_4 = field;
+				break;
+			case (5):
+				debug_experiment_5 = field;
+				break;
+			case (6):
+				debug_experiment_6 = field;
+				break;
+		}
+		commands_init_plot("Microseconds", "Balance App Debug Data");
+		commands_plot_add_graph("1");
+		commands_plot_add_graph("2");
+		commands_plot_add_graph("3");
+		commands_plot_add_graph("4");
+		commands_plot_add_graph("5");
+		commands_plot_add_graph("6");
+	} else {
+		commands_printf("This command requires two arguments.\n");
+	}
+}
+
+// Debug functions
+static float app_balance_get_debug(int index){
+	switch(index){
+		case(1):
+			return motor_position;
+		case(2):
+			return setpoint;
+		case(3):
+			return torquetilt_filtered_current;
+		case(4):
+			return derivative;
+		case(5):
+			return last_pitch_angle - pitch_angle;
+		case(6):
+			return motor_current;
+		case(7):
+			return erpm;
+		case(8):
+			return abs_erpm;
+		case(9):
+			return loop_time;
+		case(10):
+			return diff_time;
+		case(11):
+			return loop_overshoot;
+		case(12):
+			return filtered_loop_overshoot;
+		case(13):
+			return filtered_diff_time;
+		default:
+			return 0;
+	}
+}
+static void app_balance_sample_debug(){
+	if(debug_sample_index < debug_sample_count){
+		commands_printf("%f", (double)app_balance_get_debug(debug_sample_field));
+		debug_sample_index += 1;
+	}
+}
+static void app_balance_experiment(){
+	if(debug_experiment_1 != 0){
+		commands_plot_set_graph(0);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_1));
+	}
+	if(debug_experiment_2 != 0){
+		commands_plot_set_graph(1);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_2));
+	}
+	if(debug_experiment_3 != 0){
+		commands_plot_set_graph(2);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_3));
+	}
+	if(debug_experiment_4 != 0){
+		commands_plot_set_graph(3);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_4));
+	}
+	if(debug_experiment_5 != 0){
+		commands_plot_set_graph(4);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_5));
+	}
+	if(debug_experiment_6 != 0){
+		commands_plot_set_graph(5);
+		commands_send_plot_points(ST2MS(current_time), app_balance_get_debug(debug_experiment_6));
+	}
 }
