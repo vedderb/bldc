@@ -1,5 +1,6 @@
 /*
 	Copyright 2017 Benjamin Vedder	benjamin@vedder.se
+        Copyright 2021 Sam Shum         cshum@andrew.cmu.edu
 
 	This file is part of the VESC firmware.
 
@@ -17,8 +18,78 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "conf_general.h"
+#include "ch.h" // ChibiOS
+#include "hal.h" // ChibiOS HAL
+#include "mc_interface.h" // Motor control functions
+#include "hw.h" // Pin mapping on this hardware
+#include "timeout.h" // To reset the timeout
 
-#ifdef APP_CUSTOM_TO_USE
-#include APP_CUSTOM_TO_USE
-#endif
+
+static volatile bool stop_now = true;
+static volatile bool is_running = false;
+// custom script thread
+static THD_FUNCTION(custom_script_thread, arg);
+static THD_WORKING_AREA(custom_script_thread_wa, 2048); // 2kb stack for this thread
+
+
+void app_custom_start(void) {
+        if (!is_running)
+        {
+                stop_now = false;
+                is_running = true;
+		chThdCreateStatic(custom_script_thread_wa, sizeof(custom_script_thread_wa), NORMALPRIO, custom_script_thread, NULL);
+        }
+}
+
+void app_custom_stop(void) {
+
+     stop_now = true;
+     is_running = false;
+     mc_interface_release_motor(); 
+	
+}
+
+void app_custom_configure(app_configuration *conf) {
+	(void)conf;
+}
+ 
+static THD_FUNCTION(custom_script_thread, arg) 
+{
+		is_running = true;
+		(void)arg;
+	 
+		chRegSetThreadName("APP_CUSTOM_SCRIPT");
+
+                //rotate at one directions
+                mc_interface_set_pid_speed(1000.0);
+                chThdSleepMilliseconds(3000);
+                timeout_reset();
+
+                //stop
+                mc_interface_set_pid_speed(0.0);
+                chThdSleepMilliseconds(2000);
+                timeout_reset();
+
+                //rotate at another direction
+                mc_interface_set_pid_speed(-1000.0);
+                chThdSleepMilliseconds(3000);
+                timeout_reset();
+
+                //stop
+                mc_interface_set_pid_speed(0.0);
+                chThdSleepMilliseconds(2000);
+                timeout_reset();
+
+                //rotate again
+                mc_interface_set_pid_speed(3000.0);
+                // this time, stop immediately when it is near the specified speed
+                while (fabs(mc_interface_get_rpm() ) < 2900) {} 
+                mc_interface_set_pid_speed(0.0);
+                chThdSleepMilliseconds(500);
+                timeout_reset();
+
+                is_running = false;
+                chThdExit(0);   // terminate the thread, all scripted behavior completed
+		
+}
+
