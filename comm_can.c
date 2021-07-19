@@ -1763,6 +1763,15 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		}
 	} break;
 
+
+        case CAN_PACKET_TRIGGER_CUSTOM_APP: {
+                ind = 0;
+                app_custom_start();
+                timeout_reset();
+                break;
+                }
+
+
 	default:
 		break;
 	}
