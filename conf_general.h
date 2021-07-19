@@ -220,6 +220,7 @@
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
+#define APP_CUSTOM_TO_USE			"app_custom.c"
 //#include "er/app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
 //#include "vccu/app_vccu_conf.h"
