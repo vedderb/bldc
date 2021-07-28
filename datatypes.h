@@ -63,6 +63,12 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI_START
 } mc_foc_sensor_mode;
 
+
+typedef enum {
+	LAST_PACKET_NOT_OK = 0,
+	LAST_PACKET_OK
+}AS504x_last_packet_status;
+
 // Auxiliary output mode
 typedef enum {
 	OUT_AUX_MODE_OFF = 0,
@@ -810,6 +816,19 @@ typedef struct {
 	float gyro_offset_comp_fact[3];
 	float gyro_offset_comp_clamp;
 } imu_config;
+
+typedef struct {
+	uint8_t is_connected;
+	uint8_t AGC_value;
+	uint16_t magnitude;
+	uint8_t is_OCF;
+	uint8_t is_COF;
+	uint8_t is_Comp_low;
+	uint8_t is_Comp_high;
+	uint16_t serial_diag_flgs;
+	uint16_t serial_magnitude;
+	uint16_t serial_error_flags;
+}AS504x_diag;
 
 typedef enum {
 	CAN_MODE_VESC = 0,

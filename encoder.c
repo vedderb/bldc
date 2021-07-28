@@ -60,6 +60,10 @@
 #else
 #define SPI_SW_MISO_GPIO			HW_HALL_ENC_GPIO2
 #define SPI_SW_MISO_PIN				HW_HALL_ENC_PIN2
+#if AS504x_USE_SW_MOSI_PIN
+#define SPI_SW_MOSI_GPIO 			HW_SPI_SW_MOSI_GPIO
+#define SPI_SW_MOSI_PIN 			HW_SPI_SW_MOSI_PIN
+#endif
 #define SPI_SW_SCK_GPIO				HW_HALL_ENC_GPIO1
 #define SPI_SW_SCK_PIN				HW_HALL_ENC_PIN1
 #define SPI_SW_CS_GPIO				HW_HALL_ENC_GPIO3
@@ -80,9 +84,11 @@ typedef enum {
 // Private variables
 static bool index_found = false;
 static uint32_t enc_counts = 10000;
+static uint16_t AS504x_diag_fetch_now_count = 0;
 static encoder_mode mode = ENCODER_MODE_NONE;
 static float last_enc_angle = 0.0;
 static uint32_t spi_val = 0;
+static uint8_t spi_data_err_raised = 0;
 static uint32_t spi_error_cnt = 0;
 static uint32_t encoder_no_magnet_error_cnt = 0;
 static float spi_error_rate = 0.0;
@@ -93,6 +99,8 @@ static float resolver_loss_of_signal_error_rate = 0.0;
 static uint32_t resolver_loss_of_tracking_error_cnt = 0;
 static uint32_t resolver_degradation_of_signal_error_cnt = 0;
 static uint32_t resolver_loss_of_signal_error_cnt = 0;
+static uint32_t AS504x_data_last_invalid_counter = 0;
+static uint32_t AS504x_spi_communication_error_count = 0;
 
 static float sin_gain = 0.0;
 static float sin_offset = 0.0;
@@ -144,7 +152,17 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
+static void spi_AS5047_cs_delay(void);
 static void TS5700N8501_send_byte(uint8_t b);
+
+static uint8_t spi_transfer_err_check(uint16_t *in_buf, const uint16_t *out_buf, int length);
+static void encoder_AS504x_update_connected_diag(uint8_t is_connected);
+static uint8_t encoder_AS504x_fetch_diag(void);
+static void encoder_AS504x_fetch_clear_err_diag(void);
+static uint8_t encoder_AS504x_verify_serial(void);
+static void encoder_AS504x_deserialize_diag(void);
+static void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_valid);
+static void encoder_AS504x_verify_magnet(void);
 
 uint32_t encoder_spi_get_error_cnt(void) {
 	return spi_error_cnt;
@@ -315,7 +333,7 @@ void encoder_init_as5047p_spi(void) {
 	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
 	// Set MOSI to 1
-#if (AS5047_USE_HW_SPI_PINS || AD2S1205_USE_HW_SPI_PINS)
+#if (AS5047_USE_HW_SPI_PINS || AD2S1205_USE_HW_SPI_PINS || AS504x_USE_SW_MOSI_PIN )
 	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPad(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN);
 #endif
@@ -606,16 +624,232 @@ bool spi_check_parity(uint16_t x) {
 /**
  * Timer interrupt
  */
+
+
+void encoder_AS504x_update_connected_diag(uint8_t is_connected)
+{
+	AS504x_sensor_diag.is_connected = is_connected;
+}
+
+uint8_t encoder_AS504x_fetch_diag(void)
+{
+	uint16_t recf[2], senf[2] = {AS504x_SPI_READ_DIAG_MSG, AS504x_SPI_READ_MAGN_MSG};
+	uint8_t ret = 0;
+
+
+	spi_begin();
+	spi_transfer(0, senf, 1);
+	spi_end();
+
+	spi_AS5047_cs_delay();
+
+	spi_begin();
+	ret |= spi_transfer_err_check(recf, senf + 1, 1);
+	spi_end();
+
+	spi_AS5047_cs_delay();
+
+	spi_begin();
+	ret |= spi_transfer_err_check(recf + 1, 0, 1);
+	spi_end();
+
+	spi_AS5047_cs_delay();
+
+	if(!ret)
+	{
+		if (spi_check_parity(recf[0]) && spi_check_parity(recf[1]))
+		{
+			AS504x_sensor_diag.serial_diag_flgs = recf[0];
+			AS504x_sensor_diag.serial_magnitude = recf[1];
+		}
+	}
+
+	return ret;
+}
+
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+/*
+ * This function fetches error flag from AS504x and afterwards clean error flag
+ */
+void encoder_AS504x_fetch_clear_err_diag()
+{
+	uint16_t recf, senf = AS504x_SPI_READ_CLEAR_ERROR_MSG;
+
+	spi_begin();
+	spi_transfer(0, &senf, 1);
+	spi_end();
+
+	spi_AS5047_cs_delay();
+	spi_begin();
+	spi_transfer(&recf, 0, 1);
+	spi_end();
+
+	spi_AS5047_cs_delay();
+
+	AS504x_sensor_diag.serial_error_flags = recf;
+}
+#endif
+
+/*
+ * Try verify if the diagnostics are not corrupt
+ * This function can prevent deserialazing corrupted data if the MISO bus is HIGH or LOW
+ */
+uint8_t encoder_AS504x_verify_serial()
+{
+	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
+	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
+
+	serial_magnitude = encoder_AS504x_get_diag().serial_magnitude;
+	serial_diag_flgs = encoder_AS504x_get_diag().serial_diag_flgs;
+
+	test_magnitude = serial_magnitude & AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK;
+	test_AGC_value = serial_diag_flgs;
+	test_is_Comp_low = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_LOW_BIT_POS) & 1;
+	test_is_Comp_high = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_HIGH_BIT_POS) & 1;
+
+	if (test_is_Comp_high && test_is_Comp_low)
+	{
+		return 1;
+	}
+	if((uint32_t)test_magnitude + (uint32_t)test_AGC_value == 0)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+void encoder_AS504x_verify_magnet()
+{
+	if(encoder_AS504x_get_diag().is_Comp_high)
+	{
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP HIGH
+	}
+	else if(encoder_AS504x_get_diag().is_Comp_low)
+	{
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP low
+	}
+	else if(FAULT_CODE_ENCODER_NO_MAGNET == mc_interface_get_fault())
+	{
+		mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
+	}
+
+}
+
+void encoder_AS504x_deserialize_diag()
+{
+	AS504x_sensor_diag.AGC_value = AS504x_sensor_diag.serial_diag_flgs;
+	AS504x_sensor_diag.is_OCF = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_OCF_BIT_POS) & 1;
+	AS504x_sensor_diag.is_COF = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_COF_BIT_POS) & 1;
+	AS504x_sensor_diag.is_Comp_low = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_COMP_LOW_BIT_POS) & 1;
+	AS504x_sensor_diag.is_Comp_high = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_COMP_HIGH_BIT_POS) & 1;
+	AS504x_sensor_diag.magnitude = AS504x_sensor_diag.serial_magnitude & AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK;
+}
+
+/*
+ * Determinate if is connected depending on last retieved data.
+ */
+void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_valid)
+{
+	if(!was_last_valid)
+	{
+		AS504x_spi_communication_error_count+=AS504x_CONNECTION_DETERMINATOR_ERROR_WEIGHT;
+
+		if(AS504x_spi_communication_error_count >= AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD)
+		{
+
+			AS504x_spi_communication_error_count = AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD;
+			encoder_AS504x_update_connected_diag(0);
+		}
+	}
+	else
+	{
+		if(AS504x_spi_communication_error_count)
+		{
+			AS504x_spi_communication_error_count--;
+		}
+		else
+		{
+			encoder_AS504x_update_connected_diag(1);
+		}
+	}
+}
+
+AS504x_diag encoder_AS504x_get_diag(void)
+{
+	return AS504x_sensor_diag;
+}
+
 void encoder_tim_isr(void) {
 	uint16_t pos;
-
 	if(mode == ENCODER_MODE_AS5047P_SPI) {
+
+		spi_begin();
+		spi_transfer(0, 0, 1);
+		spi_end();
+
+		spi_AS5047_cs_delay();
+
+// if MOSI is defined, use diagnostics
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+		spi_begin();
+		spi_data_err_raised = spi_transfer_err_check(&pos, 0, 1);
+		spi_end();
+		spi_val = pos;
+
+		// get diagnostic every AS504x_REFRESH_DIAG_AFTER_NSAMPLES
+		AS504x_diag_fetch_now_count++;
+		if(AS504x_diag_fetch_now_count >= AS504x_REFRESH_DIAG_AFTER_NSAMPLES || spi_data_err_raised)
+		{
+			// clear error flags before getting new diagnostics data
+			encoder_AS504x_fetch_clear_err_diag();
+
+			if(!encoder_AS504x_fetch_diag())
+			{
+				if(!encoder_AS504x_verify_serial())
+				{
+					//encoder_AS504x_verify_magnet();
+					encoder_AS504x_deserialize_diag();
+					encoder_AS504x_determinate_if_connected(LAST_PACKET_OK);
+				}
+				else
+				{
+					encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
+				}
+			}
+			else
+			{
+				encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
+			}
+			AS504x_diag_fetch_now_count = 0;
+		}
+#else
 		spi_begin();
 		spi_transfer(&pos, 0, 1);
 		spi_end();
-
 		spi_val = pos;
-		if(spi_check_parity(pos)) {
+
+		spi_AS5047_cs_delay();
+
+		if(0x0000 == pos || 0xFFFF == pos)
+		{
+			AS504x_data_last_invalid_counter++;
+		}
+		else
+		{
+			AS504x_data_last_invalid_counter = 0;
+			encoder_AS504x_determinate_if_connected(LAST_PACKET_OK);
+		}
+
+		if(AS504x_data_last_invalid_counter >= AS504x_DATA_INVALID_THRESHOLD)
+		{
+			encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
+			AS504x_data_last_invalid_counter = AS504x_DATA_INVALID_THRESHOLD;
+		}
+#endif
+
+
+		if(spi_check_parity(pos) && !spi_data_err_raised) {
 			pos &= 0x3FFF;
 			last_enc_angle = ((float)pos * 360.0) / 16384.0;
 			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AS5047_SAMPLE_RATE_HZ);
@@ -766,8 +1000,9 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 		uint16_t receive = 0;
 
 		for (int bit = 0;bit < 16;bit++) {
-			//palWritePad(HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, send >> 15);
-			send <<= 1;
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+			palWritePad(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, send >> (15 - bit));
+#endif
 
 			palSetPad(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN);
 			spi_delay();
@@ -798,18 +1033,48 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 	}
 }
 
+static uint8_t spi_transfer_err_check(uint16_t *in_buf, const uint16_t *out_buf, int length) {
+	spi_transfer(in_buf, out_buf, length);
+
+	for(unsigned int len_count = 0; len_count < length; len_count++)
+		if(((in_buf[len_count]) >> 14) & 0b01)
+			{
+				return 1;
+			}
+	return 0;
+}
+
 static void spi_begin(void) {
 	palClearPad(SPI_SW_CS_GPIO, SPI_SW_CS_PIN);
+	spi_AS5047_cs_delay();
 }
 
 static void spi_end(void) {
 	palSetPad(SPI_SW_CS_GPIO, SPI_SW_CS_PIN);
+	spi_AS5047_cs_delay();
 }
 
 static void spi_delay(void) {
 	__NOP();
 	__NOP();
 	__NOP();
+	__NOP();
+}
+
+static void spi_AS5047_cs_delay(void) {
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
+	__NOP();__NOP();__NOP();
 	__NOP();
 }
 

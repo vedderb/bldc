@@ -289,6 +289,10 @@
 #define MT6816_USE_HW_SPI_PINS		0
 #endif
 
+#ifndef AS504x_USE_SW_MOSI_PIN
+#define AS504x_USE_SW_MOSI_PIN 		0
+#endif
+
 /*
  * MCU
  */
