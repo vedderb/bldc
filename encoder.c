@@ -784,14 +784,14 @@ void encoder_tim_isr(void) {
 	uint16_t pos;
 	if(mode == ENCODER_MODE_AS5047P_SPI) {
 
+// if MOSI is defined, use diagnostics
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 		spi_begin();
 		spi_transfer(0, 0, 1);
 		spi_end();
 
 		spi_AS5047_cs_delay();
 
-// if MOSI is defined, use diagnostics
-#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 		spi_begin();
 		spi_data_err_raised = spi_transfer_err_check(&pos, 0, 1);
 		spi_end();
