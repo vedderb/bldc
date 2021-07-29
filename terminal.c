@@ -896,7 +896,7 @@ void terminal_process_string(char *str) {
 						encoder_get_no_magnet_error_cnt(),
 						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
-#if AS504x_USE_SW_MOSI_PIN
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI)
 			{
 				if(argc == 1)
