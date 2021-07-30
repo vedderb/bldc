@@ -631,8 +631,7 @@ void encoder_AS504x_update_connected_diag(uint8_t is_connected)
 	AS504x_sensor_diag.is_connected = is_connected;
 }
 
-uint8_t encoder_AS504x_fetch_diag(void)
-{
+uint8_t encoder_AS504x_fetch_diag(void) {
 	uint16_t recf[2], senf[2] = {AS504x_SPI_READ_DIAG_MSG, AS504x_SPI_READ_MAGN_MSG};
 	uint8_t ret = 0;
 
@@ -655,10 +654,8 @@ uint8_t encoder_AS504x_fetch_diag(void)
 
 	spi_AS5047_cs_delay();
 
-	if(!ret)
-	{
-		if (spi_check_parity(recf[0]) && spi_check_parity(recf[1]))
-		{
+	if(!ret) {
+		if (spi_check_parity(recf[0]) && spi_check_parity(recf[1])) {
 			AS504x_sensor_diag.serial_diag_flgs = recf[0];
 			AS504x_sensor_diag.serial_magnitude = recf[1];
 		}
@@ -671,8 +668,7 @@ uint8_t encoder_AS504x_fetch_diag(void)
 /*
  * This function fetches error flag from AS504x and afterwards clean error flag
  */
-void encoder_AS504x_fetch_clear_err_diag()
-{
+void encoder_AS504x_fetch_clear_err_diag() {
 	uint16_t recf, senf = AS504x_SPI_READ_CLEAR_ERROR_MSG;
 
 	spi_begin();
@@ -694,8 +690,7 @@ void encoder_AS504x_fetch_clear_err_diag()
  * Try verify if the diagnostics are not corrupt
  * This function can prevent deserialazing corrupted data if the MISO bus is HIGH or LOW
  */
-uint8_t encoder_AS504x_verify_serial()
-{
+uint8_t encoder_AS504x_verify_serial() {
 	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
 	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
 
@@ -707,39 +702,32 @@ uint8_t encoder_AS504x_verify_serial()
 	test_is_Comp_low = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_LOW_BIT_POS) & 1;
 	test_is_Comp_high = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_HIGH_BIT_POS) & 1;
 
-	if (test_is_Comp_high && test_is_Comp_low)
-	{
+	if (test_is_Comp_high && test_is_Comp_low) {
 		return 1;
 	}
-	if((uint32_t)test_magnitude + (uint32_t)test_AGC_value == 0)
-	{
+	if((uint32_t)test_magnitude + (uint32_t)test_AGC_value == 0) {
 		return 1;
 	}
 
 	return 0;
 }
 
-void encoder_AS504x_verify_magnet()
-{
+void encoder_AS504x_verify_magnet() {
 	mc_fault_code current_fault = mc_interface_get_fault();
 
-	if(encoder_AS504x_get_diag().is_Comp_high)
-	{
+	if(encoder_AS504x_get_diag().is_Comp_high) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP HIGH
 	}
-	else if(encoder_AS504x_get_diag().is_Comp_low)
-	{
+	else if(encoder_AS504x_get_diag().is_Comp_low) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, 0, 1); // COMP low
 	}
-	else if(FAULT_CODE_ENCODER_NO_MAGNET == current_fault || FAULT_CODE_ENCODER_MAGNET_TOO_STRONG == current_fault)
-	{
+	else if(FAULT_CODE_ENCODER_NO_MAGNET == current_fault || FAULT_CODE_ENCODER_MAGNET_TOO_STRONG == current_fault) {
 		mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
 	}
 
 }
 
-void encoder_AS504x_deserialize_diag()
-{
+void encoder_AS504x_deserialize_diag() {
 	AS504x_sensor_diag.AGC_value = AS504x_sensor_diag.serial_diag_flgs;
 	AS504x_sensor_diag.is_OCF = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_OCF_BIT_POS) & 1;
 	AS504x_sensor_diag.is_COF = (AS504x_sensor_diag.serial_diag_flgs >> AS504x_SPI_DIAG_COF_BIT_POS) & 1;
@@ -751,31 +739,24 @@ void encoder_AS504x_deserialize_diag()
 /*
  * Determinate if is connected depending on last retieved data.
  */
-void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_valid)
-{
-	if(!was_last_valid)
-	{
+void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_valid) {
+	if(!was_last_valid) {
 		AS504x_spi_communication_error_count+=AS504x_CONNECTION_DETERMINATOR_ERROR_WEIGHT;
 
-		if(AS504x_spi_communication_error_count >= AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD)
-		{
+		if(AS504x_spi_communication_error_count >= AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD) {
 
 			AS504x_spi_communication_error_count = AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD;
 			encoder_AS504x_update_connected_diag(0);
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, 0, 1);
 		}
 	}
-	else
-	{
-		if(AS504x_spi_communication_error_count)
-		{
+	else {
+		if(AS504x_spi_communication_error_count) {
 			AS504x_spi_communication_error_count--;
 		}
-		else
-		{
+		else {
 			encoder_AS504x_update_connected_diag(1);
-			if(FAULT_CODE_ENCODER_SPI == mc_interface_get_fault())
-			{
+			if(FAULT_CODE_ENCODER_SPI == mc_interface_get_fault()) {
 				mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
 
 			}
@@ -783,8 +764,7 @@ void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_
 	}
 }
 
-AS504x_diag encoder_AS504x_get_diag(void)
-{
+AS504x_diag encoder_AS504x_get_diag(void) {
 	return AS504x_sensor_diag;
 }
 
@@ -807,26 +787,21 @@ void encoder_tim_isr(void) {
 
 		// get diagnostic every AS504x_REFRESH_DIAG_AFTER_NSAMPLES
 		AS504x_diag_fetch_now_count++;
-		if(AS504x_diag_fetch_now_count >= AS504x_REFRESH_DIAG_AFTER_NSAMPLES || spi_data_err_raised)
-		{
+		if(AS504x_diag_fetch_now_count >= AS504x_REFRESH_DIAG_AFTER_NSAMPLES || spi_data_err_raised) {
 			// clear error flags before getting new diagnostics data
 			encoder_AS504x_fetch_clear_err_diag();
 
-			if(!encoder_AS504x_fetch_diag())
-			{
-				if(!encoder_AS504x_verify_serial())
-				{
+			if(!encoder_AS504x_fetch_diag()) {
+				if(!encoder_AS504x_verify_serial()) {
 					//encoder_AS504x_verify_magnet();
 					encoder_AS504x_deserialize_diag();
 					encoder_AS504x_determinate_if_connected(LAST_PACKET_OK);
 				}
-				else
-				{
+				else {
 					encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
 				}
 			}
-			else
-			{
+			else {
 				encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
 			}
 			AS504x_diag_fetch_now_count = 0;
@@ -839,18 +814,15 @@ void encoder_tim_isr(void) {
 
 		spi_AS5047_cs_delay();
 
-		if(0x0000 == pos || 0xFFFF == pos)
-		{
+		if(0x0000 == pos || 0xFFFF == pos) {
 			AS504x_data_last_invalid_counter++;
 		}
-		else
-		{
+		else {
 			AS504x_data_last_invalid_counter = 0;
 			encoder_AS504x_determinate_if_connected(LAST_PACKET_OK);
 		}
 
-		if(AS504x_data_last_invalid_counter >= AS504x_DATA_INVALID_THRESHOLD)
-		{
+		if(AS504x_data_last_invalid_counter >= AS504x_DATA_INVALID_THRESHOLD) {
 			encoder_AS504x_determinate_if_connected(LAST_PACKET_NOT_OK);
 			AS504x_data_last_invalid_counter = AS504x_DATA_INVALID_THRESHOLD;
 		}
