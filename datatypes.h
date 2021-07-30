@@ -716,12 +716,18 @@ typedef struct {
 	float tiltback_angle;
 	float tiltback_speed;
 	float tiltback_duty;
+	float tiltback_hv_angle;
+	float tiltback_hv_speed;
 	float tiltback_high_voltage;
+	float tiltback_lv_angle;
+	float tiltback_lv_speed;
 	float tiltback_low_voltage;
+	float tiltback_return_speed;
 	float tiltback_constant;
 	uint16_t tiltback_constant_erpm;
 	float tiltback_variable;
 	float tiltback_variable_max;
+	float noseangling_speed;
 	float startup_pitch_tolerance;
 	float startup_roll_tolerance;
 	float startup_speed;

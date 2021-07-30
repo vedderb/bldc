@@ -56,7 +56,10 @@ typedef enum {
 
 typedef enum {
 	CENTERING = 0,
-	TILTBACK
+	TILTBACK_DUTY,
+	TILTBACK_HV,
+	TILTBACK_LV,
+	TILTBACK_NONE
 } SetpointAdjustmentType;
 
 typedef enum {
@@ -85,8 +88,10 @@ static thread_t *app_thread;
 static volatile balance_config balance_conf;
 static volatile imu_config imu_conf;
 static systime_t loop_time;
-static float startup_step_size, tiltback_step_size, torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
-static float tiltback_variable, tiltback_variable_max_erpm;
+static float startup_step_size;
+static float tiltback_duty_step_size, tiltback_hv_step_size, tiltback_lv_step_size, tiltback_return_step_size;
+static float torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_size;
+static float tiltback_variable, tiltback_variable_max_erpm, noseangling_step_size;
 
 // Runtime values read from elsewhere
 static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
@@ -171,10 +176,14 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
 
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
-	tiltback_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	tiltback_duty_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	tiltback_hv_step_size = balance_conf.tiltback_hv_speed / balance_conf.hertz;
+	tiltback_lv_step_size = balance_conf.tiltback_lv_speed / balance_conf.hertz;
+	tiltback_return_step_size = balance_conf.tiltback_return_speed / balance_conf.hertz;
 	torquetilt_on_step_size = balance_conf.torquetilt_on_speed / balance_conf.hertz;
 	torquetilt_off_step_size = balance_conf.torquetilt_off_speed / balance_conf.hertz;
 	turntilt_step_size = balance_conf.turntilt_speed / balance_conf.hertz;
+	noseangling_step_size = balance_conf.noseangling_speed / balance_conf.hertz;
 
 	// Init Filters
 	if(balance_conf.loop_time_filter > 0){
@@ -314,8 +323,16 @@ static float get_setpoint_adjustment_step_size(void){
 	switch(setpointAdjustmentType){
 		case (CENTERING):
 			return startup_step_size;
-		case (TILTBACK):
-			return tiltback_step_size;
+		case (TILTBACK_DUTY):
+			return tiltback_duty_step_size;
+		case (TILTBACK_HV):
+			return tiltback_hv_step_size;
+		case (TILTBACK_LV):
+			return tiltback_lv_step_size;
+		case (TILTBACK_NONE):
+			return tiltback_return_step_size;
+		default:
+			;
 	}
 	return 0;
 }
@@ -386,26 +403,26 @@ static void calculate_setpoint_target(void){
 		} else {
 			setpoint_target = -balance_conf.tiltback_angle;
 		}
-		setpointAdjustmentType = TILTBACK;
+		setpointAdjustmentType = TILTBACK_DUTY;
 		state = RUNNING_TILTBACK_DUTY;
 	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage){
 		if(erpm > 0){
-			setpoint_target = balance_conf.tiltback_angle;
+			setpoint_target = balance_conf.tiltback_hv_angle;
 		} else {
-			setpoint_target = -balance_conf.tiltback_angle;
+			setpoint_target = -balance_conf.tiltback_hv_angle;
 		}
-		setpointAdjustmentType = TILTBACK;
+		setpointAdjustmentType = TILTBACK_HV;
 		state = RUNNING_TILTBACK_HIGH_VOLTAGE;
 	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage){
 		if(erpm > 0){
-			setpoint_target = balance_conf.tiltback_angle;
+			setpoint_target = balance_conf.tiltback_lv_angle;
 		} else {
-			setpoint_target = -balance_conf.tiltback_angle;
+			setpoint_target = -balance_conf.tiltback_lv_angle;
 		}
-		setpointAdjustmentType = TILTBACK;
+		setpointAdjustmentType = TILTBACK_LV;
 		state = RUNNING_TILTBACK_LOW_VOLTAGE;
 	}else{
-		setpointAdjustmentType = TILTBACK;
+		setpointAdjustmentType = TILTBACK_NONE;
 		setpoint_target = 0;
 		state = RUNNING;
 	}
@@ -439,12 +456,12 @@ static void apply_noseangling(void){
 		noseangling_target += -balance_conf.tiltback_constant;
 	}
 
-	if(fabsf(noseangling_target - noseangling_interpolated) < tiltback_step_size){
+	if(fabsf(noseangling_target - noseangling_interpolated) < noseangling_step_size){
 		noseangling_interpolated = noseangling_target;
 	}else if (noseangling_target - noseangling_interpolated > 0){
-		noseangling_interpolated += tiltback_step_size;
+		noseangling_interpolated += noseangling_step_size;
 	}else{
-		noseangling_interpolated -= tiltback_step_size;
+		noseangling_interpolated -= noseangling_step_size;
 	}
 	setpoint += noseangling_interpolated;
 }
