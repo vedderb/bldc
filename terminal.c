@@ -912,30 +912,22 @@ void terminal_process_string(char *str) {
 				{
 					if(!strcmp(argv[1], "OCF"))
 					{
-						commands_printf("OCF (Offset Compensation Finished), logic high indicates\r\n"
-										"the finished Offset Compensation Algorithm. After power\r\n"
-										"up the flag remains always to logic high.\n\n\rCurrent OCF value: %u\n\n\r",
+						commands_printf("OCF (Offset Compensation Finished)\r\n",
 										 encoder_AS504x_get_diag().is_OCF);
 					}
 					else if(!strcmp(argv[1], "COF"))
 					{
-						commands_printf("COF (CORDIC Overflow), logic high indicates an out of\n"
-										"range error in the CORDIC part. When this bit is set, the\n"
-										"angle and magnitude data is invalid. The absolute output\n"
-										"maintains the last valid angular value.\n\n\rCurrent COF value: %u\n\n\r",
-										 encoder_AS504x_get_diag().is_COF);
+						commands_printf("COF (CORDIC Overflow)\r\n",
+										encoder_AS504x_get_diag().is_COF);
 					}
 					else if(!strcmp(argv[1], "COMP_low"))
 					{
-						commands_printf("COMP low, indicates a high magnetic field. It is\n"
-										"recommended to monitor in addition the magnitude\n"
-										"value.\n\n\rCurrent COMP low value: %u\n\n\r",
+						commands_printf("COMP low, indicates a high magnetic field.\r\n",
 										 encoder_AS504x_get_diag().is_Comp_low);
 					}
 					else if(!strcmp(argv[1], "COMP_high"))
 					{
-						commands_printf("COMP high, indicated a weak magnetic field. It is\n"
-										"recommended to monitor the magnitude value.\n\n\rCurrent COMP low value: %u\n\n\r",
+						commands_printf("COMP high, indicated a weak magnetic field.\r\n",
 										encoder_AS504x_get_diag().is_Comp_high);
 					}
 				}
