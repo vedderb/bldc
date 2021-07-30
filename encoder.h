@@ -60,9 +60,6 @@ void encoder_ts57n8501_reset_errors(void);
 void encoder_ts57n8501_reset_multiturn(void);
 AS504x_diag encoder_AS504x_get_diag(void);
 
-static AS504x_diag AS504x_sensor_diag;
-
-
 #define AS504x_SPI_READ_BIT 								0x4000
 #define AS504x_SPI_WRITE_BIT 								0x0000
 
@@ -86,10 +83,7 @@ static AS504x_diag AS504x_sensor_diag;
 #define AS504x_CONNECTION_DETERMINATOR_ERROR_WEIGHT			4
 #define AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD		(2 * AS504x_CONNECTION_DETERMINATOR_ERROR_WEIGHT)
 
-#if !(AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)
-#define AS504x_DATA_INVALID_THRESHOLD						20
-#endif
-
+#define AS504x_DATA_INVALID_THRESHOLD						10000
 #define AS504x_REFRESH_DIAG_AFTER_NSAMPLES					100
 
 #endif /* ENCODER_H_ */

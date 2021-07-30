@@ -63,12 +63,6 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI_START
 } mc_foc_sensor_mode;
 
-
-typedef enum {
-	LAST_PACKET_NOT_OK = 0,
-	LAST_PACKET_OK
-}AS504x_last_packet_status;
-
 // Auxiliary output mode
 typedef enum {
 	OUT_AUX_MODE_OFF = 0,

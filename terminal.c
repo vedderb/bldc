@@ -861,20 +861,19 @@ void terminal_process_string(char *str) {
 		}
 	} else if (strcmp(argv[0], "encoder") == 0) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
-			if(mcconf->m_sensor_port_mode != SENSOR_PORT_MODE_AS5047_SPI)
-			{
+
+			if (mcconf->m_sensor_port_mode != SENSOR_PORT_MODE_AS5047_SPI) {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
 						(unsigned int)encoder_spi_get_val(),
 						encoder_spi_get_error_cnt(),
 						(double)encoder_spi_get_error_rate() * (double)100.0);
-			}
-			else if(argc == 1)
-			{
+			} else if (argc == 1) {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%, Connected: %u",
 						(unsigned int)encoder_spi_get_val(),
 						encoder_spi_get_error_cnt(),
@@ -896,41 +895,20 @@ void terminal_process_string(char *str) {
 						encoder_get_no_magnet_error_cnt(),
 						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
+
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
-			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI)
-			{
-				if(argc == 1)
-				{
-					commands_printf("\nAS5047 DIAGNOSTICS:\nAutomatic Gain Control value: %u\nMagnitude: %u\nCOF: %u\n"
-							"OCF: %u\nCOMP_low: %u\nCOMP_high: %u\n\ntype \"encoder [name of a parameter]\" for help\n\r"
-							,encoder_AS504x_get_diag().AGC_value, encoder_AS504x_get_diag().magnitude,
-							encoder_AS504x_get_diag().is_COF, encoder_AS504x_get_diag().is_OCF,
-							encoder_AS504x_get_diag().is_Comp_low,
-							encoder_AS504x_get_diag().is_Comp_high);
-				}
-				else if(argc == 2)
-				{
-					if(!strcmp(argv[1], "OCF"))
-					{
-						commands_printf("OCF (Offset Compensation Finished)\r\n",
-										 encoder_AS504x_get_diag().is_OCF);
-					}
-					else if(!strcmp(argv[1], "COF"))
-					{
-						commands_printf("COF (CORDIC Overflow)\r\n",
-										encoder_AS504x_get_diag().is_COF);
-					}
-					else if(!strcmp(argv[1], "COMP_low"))
-					{
-						commands_printf("COMP low, indicates a high magnetic field.\r\n",
-										 encoder_AS504x_get_diag().is_Comp_low);
-					}
-					else if(!strcmp(argv[1], "COMP_high"))
-					{
-						commands_printf("COMP high, indicated a weak magnetic field.\r\n",
-										encoder_AS504x_get_diag().is_Comp_high);
-					}
-				}
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
+				commands_printf("\nAS5047 DIAGNOSTICS:\n"
+						"AGC       : %u\n"
+						"Magnitude : %u\n"
+						"COF       : %u\n"
+						"OCF       : %u\n"
+						"COMP_low  : %u\n"
+						"COMP_high : %u\n",
+						encoder_AS504x_get_diag().AGC_value, encoder_AS504x_get_diag().magnitude,
+						encoder_AS504x_get_diag().is_COF, encoder_AS504x_get_diag().is_OCF,
+						encoder_AS504x_get_diag().is_Comp_low,
+						encoder_AS504x_get_diag().is_Comp_high);
 			}
 #endif
 		}
