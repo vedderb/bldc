@@ -721,15 +721,17 @@ uint8_t encoder_AS504x_verify_serial()
 
 void encoder_AS504x_verify_magnet()
 {
+	mc_fault_code current_fault = mc_interface_get_fault();
+
 	if(encoder_AS504x_get_diag().is_Comp_high)
 	{
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP HIGH
 	}
 	else if(encoder_AS504x_get_diag().is_Comp_low)
 	{
-		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP low
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, 0, 1); // COMP low
 	}
-	else if(FAULT_CODE_ENCODER_NO_MAGNET == mc_interface_get_fault())
+	else if(FAULT_CODE_ENCODER_NO_MAGNET == current_fault || FAULT_CODE_ENCODER_MAGNET_TOO_STRONG == current_fault)
 	{
 		mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
 	}
@@ -760,6 +762,7 @@ void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_
 
 			AS504x_spi_communication_error_count = AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD;
 			encoder_AS504x_update_connected_diag(0);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, 0, 1);
 		}
 	}
 	else
@@ -771,6 +774,11 @@ void encoder_AS504x_determinate_if_connected(AS504x_last_packet_status was_last_
 		else
 		{
 			encoder_AS504x_update_connected_diag(1);
+			if(FAULT_CODE_ENCODER_SPI == mc_interface_get_fault())
+			{
+				mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
+
+			}
 		}
 	}
 }
