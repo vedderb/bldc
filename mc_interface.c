@@ -2427,11 +2427,17 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
 	}
 
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
 		if (!encoder_AS504x_get_diag().is_connected) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+		}
+
+		if (encoder_AS504x_get_diag().is_Comp_high) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, 1);
+		} else if(encoder_AS504x_get_diag().is_Comp_low) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, 1);
 		}
 	}
 

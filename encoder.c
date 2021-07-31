@@ -104,7 +104,7 @@ static uint32_t resolver_loss_of_tracking_error_cnt = 0;
 static uint32_t resolver_degradation_of_signal_error_cnt = 0;
 static uint32_t resolver_loss_of_signal_error_cnt = 0;
 static uint32_t AS504x_spi_communication_error_count = 0;
-static AS504x_diag AS504x_sensor_diag;
+static AS504x_diag AS504x_sensor_diag = {0};
 
 static float sin_gain = 0.0;
 static float sin_offset = 0.0;
@@ -776,13 +776,6 @@ void encoder_tim_isr(void) {
 
 			if(!AS504x_fetch_diag()) {
 				if(!AS504x_verify_serial()) {
-
-//					if (encoder_AS504x_get_diag().is_Comp_high) {
-//						mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, 0, 1); // COMP HIGH
-//					} else if(encoder_AS504x_get_diag().is_Comp_low) {
-//						mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, 0, 1); // COMP low
-//					}
-
 					AS504x_deserialize_diag();
 					AS504x_determinate_if_connected(true);
 				} else {
