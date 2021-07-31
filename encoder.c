@@ -159,7 +159,6 @@ static void spi_delay(void);
 static void spi_AS5047_cs_delay(void);
 static void TS5700N8501_send_byte(uint8_t b);
 
-static void encoder_AS504x_update_connected_diag(uint8_t is_connected);
 static void encoder_AS504x_determinate_if_connected(bool was_last_valid);
 
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
@@ -629,10 +628,6 @@ bool spi_check_parity(uint16_t x) {
 	return (~x) & 1;
 }
 
-void encoder_AS504x_update_connected_diag(uint8_t is_connected) {
-	AS504x_sensor_diag.is_connected = is_connected;
-}
-
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 static uint8_t encoder_AS504x_fetch_diag(void) {
 	uint16_t recf[2], senf[2] = {AS504x_SPI_READ_DIAG_MSG, AS504x_SPI_READ_MAGN_MSG};
@@ -735,24 +730,20 @@ static uint8_t spi_transfer_err_check(uint16_t *in_buf, const uint16_t *out_buf,
 /*
  * Determinate if is connected depending on last retieved data.
  */
-void encoder_AS504x_determinate_if_connected(bool was_last_valid) {
+static void encoder_AS504x_determinate_if_connected(bool was_last_valid) {
 	if(!was_last_valid) {
-		AS504x_spi_communication_error_count+=AS504x_CONNECTION_DETERMINATOR_ERROR_WEIGHT;
+		AS504x_spi_communication_error_count++;
 
 		if(AS504x_spi_communication_error_count >= AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD) {
 			AS504x_spi_communication_error_count = AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD;
-			encoder_AS504x_update_connected_diag(0);
+			AS504x_sensor_diag.is_connected = 0;
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, 0, 1);
 		}
 	} else {
 		if(AS504x_spi_communication_error_count) {
 			AS504x_spi_communication_error_count--;
 		} else {
-			encoder_AS504x_update_connected_diag(1);
-			if(FAULT_CODE_ENCODER_SPI == mc_interface_get_fault()) {
-				mc_interface_fault_stop(FAULT_CODE_NONE, 0, 1);
-
-			}
+			AS504x_sensor_diag.is_connected = 1;
 		}
 	}
 }
