@@ -2435,9 +2435,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		}
 
 		if (encoder_AS504x_get_diag().is_Comp_high) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, 1);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
 		} else if(encoder_AS504x_get_diag().is_Comp_low) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, 1);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, false);
 		}
 	}
 
