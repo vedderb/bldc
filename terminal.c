@@ -873,7 +873,7 @@ void terminal_process_string(char *str) {
 						(unsigned int)encoder_spi_get_val(),
 						encoder_spi_get_error_cnt(),
 						(double)encoder_spi_get_error_rate() * (double)100.0);
-			} else if (argc == 1) {
+			} else {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%, Connected: %u",
 						(unsigned int)encoder_spi_get_val(),
 						encoder_spi_get_error_cnt(),

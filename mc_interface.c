@@ -2428,6 +2428,14 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
+				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
+		if (!encoder_AS504x_get_diag().is_connected) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+		}
+	}
+
+	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
 		if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
