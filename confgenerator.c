@@ -213,7 +213,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.pulse_center, &ind);
 	buffer[ind++] = conf->app_ppm_conf.median_filter;
 	buffer[ind++] = conf->app_ppm_conf.safe_start;
-	buffer[ind++] = conf->app_ppm_conf.safe_start_ignore_motor_faults;
+	buffer[ind++] = conf->app_ppm_conf.safe_start_on_motor_fault;
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.throttle_exp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.throttle_exp_brake, &ind);
 	buffer[ind++] = conf->app_ppm_conf.throttle_exp_mode;
@@ -580,7 +580,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_ppm_conf.pulse_center = buffer_get_float32_auto(buffer, &ind);
 	conf->app_ppm_conf.median_filter = buffer[ind++];
 	conf->app_ppm_conf.safe_start = buffer[ind++];
-	conf->app_ppm_conf.safe_start_ignore_motor_faults = buffer[ind++];
+	conf->app_ppm_conf.safe_start_on_motor_fault = buffer[ind++];
 	conf->app_ppm_conf.throttle_exp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_ppm_conf.throttle_exp_brake = buffer_get_float32_auto(buffer, &ind);
 	conf->app_ppm_conf.throttle_exp_mode = buffer[ind++];
@@ -931,7 +931,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_ppm_conf.pulse_center = APPCONF_PPM_PULSE_CENTER;
 	conf->app_ppm_conf.median_filter = APPCONF_PPM_MEDIAN_FILTER;
 	conf->app_ppm_conf.safe_start = APPCONF_PPM_SAFE_START;
-	conf->app_ppm_conf.safe_start_ignore_motor_faults = APPCONF_PPM_SAFE_START_IGNORE_MOTOR_FAULTS;
+	conf->app_ppm_conf.safe_start_on_motor_fault = APPCONF_PPM_SAFE_START_ON_MOTOR_FAULT;
 	conf->app_ppm_conf.throttle_exp = APPCONF_PPM_THROTTLE_EXP;
 	conf->app_ppm_conf.throttle_exp_brake = APPCONF_PPM_THROTTLE_EXP_BRAKE;
 	conf->app_ppm_conf.throttle_exp_mode = APPCONF_PPM_THROTTLE_EXP_MODE;

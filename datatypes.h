@@ -532,7 +532,7 @@ typedef struct {
 	float pulse_center;
 	bool median_filter;
 	bool safe_start;
-	bool safe_start_ignore_motor_faults;
+	bool safe_start_on_motor_fault;
 	float throttle_exp;
 	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
