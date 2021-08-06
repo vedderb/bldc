@@ -60,7 +60,7 @@ static THD_FUNCTION(custom_script_thread, arg)
 		is_running = true;
 		(void)arg;
 	 
-		chRegSetThreadName("APP_CUSTOM_SCRIPT");
+		chRegSetThreadName("APP_PLAY_TUNES");
  
                 //save original switching frequency
                 float original_sw = mc_interface_get_configuration()->foc_f_sw;
