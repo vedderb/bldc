@@ -68,7 +68,7 @@ static THD_FUNCTION(custom_script_thread, arg)
                 //play the startup tune
                 for( int a = 3000; a < 5000; a = a + 500 ) {
                      change_sw(a);
-                     mc_interface_set_pid_speed(300.0);
+                     mc_interface_set_pid_speed(10.0);
                      chThdSleepMilliseconds(300);
                      timeout_reset();
                 }
@@ -82,7 +82,7 @@ static THD_FUNCTION(custom_script_thread, arg)
                 for( int i = 0; i < 3; i++ ) {
                      change_sw(5000);
                      chThdSleepMilliseconds(300);
-                     mc_interface_set_pid_speed(300.0);
+                     mc_interface_set_pid_speed(10.0);
                      chThdSleepMilliseconds(500);
                      timeout_reset();
                 }
