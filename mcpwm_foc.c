@@ -687,6 +687,10 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	m_init_done = true;
 }
 
+void change_sw(int f_sw) {
+        timer_reinit(f_sw);
+        }
+
 void mcpwm_foc_deinit(void) {
 	if (!m_init_done) {
 		return;
