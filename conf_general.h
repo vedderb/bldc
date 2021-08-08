@@ -254,6 +254,11 @@
 #endif
 
 /*
+ * Enable startup tune 
+ */
+#define STATUP_TUNE_ENABLE				1    //comment to disable
+
+/*
  * Settings for the external LEDs (hardcoded for now)
  */
 #define LED_EXT_BATT_LOW			28.0

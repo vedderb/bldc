@@ -226,7 +226,26 @@ int main(void) {
 
 	ledpwm_init();
 	mc_interface_init();
+#ifdef STATUP_TUNE_ENABLE
+        if (mc_interface_get_configuration()->motor_type==MOTOR_TYPE_FOC) {
+        float original_min_erpm = mc_interface_get_configuration()->s_pid_min_erpm;
+        float original_sw = mc_interface_get_configuration()->foc_f_sw;
 
+        mc_interface_set_min_erpm(1.0);
+
+        for( int a = 3000; a < 5000; a = a + 500 ) {
+              change_sw(a);
+              mc_interface_set_pid_speed(10.0);
+              chThdSleepMilliseconds(300);
+        }
+                    
+
+        change_sw((int)original_sw);
+        mc_interface_set_min_erpm(original_min_erpm);
+        mc_interface_release_motor();
+        chThdSleepMilliseconds(50);
+        }
+#endif
 	commands_init();
 
 #if COMM_USE_USB
