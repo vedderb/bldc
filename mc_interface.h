@@ -91,6 +91,7 @@ float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
 
 setup_values mc_interface_get_setup_values(void);
+void mc_interface_set_min_erpm(float min_erpm);
 
 // odometer
 uint64_t mc_interface_get_odometer(void);

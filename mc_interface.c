@@ -2698,3 +2698,7 @@ unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
 	conf->crc = crc_old;
 	return crc_new;
 }
+
+void mc_interface_set_min_erpm(float min_erpm) {
+        motor_now()->m_conf.s_pid_min_erpm = min_erpm;
+}
