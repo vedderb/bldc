@@ -35,20 +35,18 @@ static THD_WORKING_AREA(custom_script_thread_wa, 2048); // 2kb stack for this th
 
 
 void app_custom_start(void) {
-        if (!is_running)
+	if (!is_running)
         {
-                stop_now = false;
+		stop_now = false;
                 is_running = true;
 		chThdCreateStatic(custom_script_thread_wa, sizeof(custom_script_thread_wa), NORMALPRIO, custom_script_thread, NULL);
         }
 }
 
 void app_custom_stop(void) {
-
-     stop_now = true;
-     is_running = false;
-     mc_interface_release_motor(); 
-	
+	stop_now = true;
+	is_running = false;
+	mc_interface_release_motor();	
 }
 
 void app_custom_configure(app_configuration *conf) {
@@ -57,45 +55,43 @@ void app_custom_configure(app_configuration *conf) {
  
 static THD_FUNCTION(custom_script_thread, arg) 
 {
-		is_running = true;
-		(void)arg;
+	is_running = true;
+	(void)arg;
 	 
-		chRegSetThreadName("APP_PLAY_TUNES");
+	chRegSetThreadName("APP_PLAY_TUNES");
  
-                //save original switching frequency
-                float original_sw = mc_interface_get_configuration()->foc_f_sw;
+	//save original switching frequency
+	float original_sw = mc_interface_get_configuration()->foc_f_sw;
 
-                //play the startup tune
-                for( int a = 3000; a < 5000; a = a + 500 ) {
-                     change_sw(a);
-                     mc_interface_set_pid_speed(10.0);
-                     chThdSleepMilliseconds(300);
-                     timeout_reset();
-                }
+	//play the startup tune
+	for( int a = 3000; a < 5000; a = a + 500 ) {
+		mcpwm_foc_change_sw(a);
+		mc_interface_set_pid_speed(10.0);
+		chThdSleepMilliseconds(300);
+		timeout_reset();
+	}
                     
-                //stop playing
-                mc_interface_set_pid_speed(0.0);
-                chThdSleepMilliseconds(2000);
-                timeout_reset();
+	//stop playing
+	mc_interface_set_pid_speed(0.0);
+ 	chThdSleepMilliseconds(2000);
+	timeout_reset();
 
-                //play the error/fault tune
-                for( int i = 0; i < 3; i++ ) {
-                     change_sw(5000);
-                     chThdSleepMilliseconds(300);
-                     mc_interface_set_pid_speed(10.0);
-                     chThdSleepMilliseconds(500);
-                     timeout_reset();
-                }
+	//play the error/fault tune
+	for( int i = 0; i < 3; i++ ) {
+		mcpwm_foc_change_sw(5000);
+		chThdSleepMilliseconds(300);
+		mc_interface_set_pid_speed(10.0);
+		chThdSleepMilliseconds(500);
+		timeout_reset();
+	}
 
-                //stop playing
-                change_sw((int)original_sw);
-                mc_interface_set_pid_speed(0.0);
-                chThdSleepMilliseconds(500);
-                timeout_reset();
+	//stop playing
+	mcpwm_foc_change_sw((int)original_sw);
+	mc_interface_set_pid_speed(0.0);
+	chThdSleepMilliseconds(500);
+	timeout_reset();
 
-         
-                is_running = false;
-                chThdExit(0);   // terminate the thread, all scripted behavior completed
-		
+	is_running = false;
+	chThdExit(0);   // terminate the thread, all scripted behavior completed	
 }
 
