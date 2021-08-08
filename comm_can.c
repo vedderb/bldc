@@ -1769,7 +1769,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
                 app_custom_start();
                 timeout_reset();
                 break;
-                }
+        }
 
 
 	default:
