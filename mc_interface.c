@@ -549,8 +549,14 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3: return "FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3";
     case FAULT_CODE_UNBALANCED_CURRENTS: return "FAULT_CODE_UNBALANCED_CURRENTS";
     case FAULT_CODE_BRK: return "FAULT_CODE_BRK";
-	default: return "FAULT_UNKNOWN"; break;
+    case FAULT_CODE_RESOLVER_LOT: return "FAULT_CODE_RESOLVER_LOT";
+    case FAULT_CODE_RESOLVER_DOS: return "FAULT_CODE_RESOLVER_DOS";
+    case FAULT_CODE_RESOLVER_LOS: return "FAULT_CODE_RESOLVER_LOS";
+    case FAULT_CODE_ENCODER_NO_MAGNET: return "FAULT_CODE_ENCODER_NO_MAGNET";
+    case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
 	}
+
+	return "Unknown fault";
 }
 
 mc_state mc_interface_get_state(void) {
@@ -2419,6 +2425,20 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
 		if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
+	}
+
+	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
+				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
+		if (!encoder_AS504x_get_diag().is_connected) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+		}
+
+		if (encoder_AS504x_get_diag().is_Comp_high) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
+		} else if(encoder_AS504x_get_diag().is_Comp_low) {
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, false);
+		}
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&

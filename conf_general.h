@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		45
+#define FW_TEST_VERSION_NUMBER		46
 
 #include "datatypes.h"
 
@@ -287,6 +287,9 @@
 #endif
 #ifndef MT6816_USE_HW_SPI_PINS
 #define MT6816_USE_HW_SPI_PINS		0
+#endif
+#ifndef AS504x_USE_SW_MOSI_PIN
+#define AS504x_USE_SW_MOSI_PIN 		0
 #endif
 
 /*
