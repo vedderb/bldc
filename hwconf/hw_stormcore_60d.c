@@ -61,7 +61,7 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -367,7 +367,6 @@ static THD_FUNCTION(mux_thread, arg) {
 
 void smart_switch_keep_on(void) {
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-
 }
 
 void smart_switch_shut_down(void) {
@@ -523,7 +522,6 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			mc_interface_unlock();
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
-			smart_switch_keep_on();
 			if(smart_switch_is_pressed()){
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
@@ -541,11 +539,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
 				switch_state = SWITCH_SHUTTING_DOWN;
+				comm_can_shutdown(255);
 			}
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
-			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
 			smart_switch_keep_on();

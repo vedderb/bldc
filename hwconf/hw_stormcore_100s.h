@@ -28,6 +28,48 @@
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
 
+#if defined(HW_VER_IS_100S_V2)
+#define SWITCH_LED_3_GPIO				GPIOC
+#define SWITCH_LED_3_PIN				15
+#define SWITCH_LED_2_GPIO				GPIOC
+#define SWITCH_LED_2_PIN				14
+#define SWITCH_LED_1_GPIO				GPIOC
+#define SWITCH_LED_1_PIN				13
+
+#define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
+#define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
+#define LED_PWM2_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_PWM2_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_PWM3_ON()			palClearPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
+#define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
+
+
+//#define HW_HAS_PHASE_FILTERS
+#define PHASE_FILTER_GPIO		GPIOA
+#define PHASE_FILTER_PIN		15
+#define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOB
+#define HW_SHUTDOWN_PIN			2
+#define HW_SWITCH_SENSE_GPIO		GPIOB
+#define HW_SWITCH_SENSE_PIN			12
+#define HW_SHUTDOWN_HOLD_ON()	palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN()	palReadPad(HW_SWITCH_SENSE_GPIO, HW_SWITCH_SENSE_PIN)
+
+// Hold shutdown pin early to wake up on short pulses
+#define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								palSetPadMode(HW_SWITCH_SENSE_GPIO, HW_SWITCH_SENSE_PIN, \
+								PAL_MODE_INPUT_PULLDOWN); \
+								palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN, \
+								PAL_MODE_OUTPUT_PUSHPULL | \
+								PAL_STM32_OSPEED_HIGHEST); \
+								PHASE_FILTER_OFF()
+#endif
+
 #define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
 		drv8323s_write_reg(3,0x3af); \
 		drv8323s_write_reg(4,0x7af);
@@ -101,11 +143,21 @@
 #ifndef VIN_R2
 #define VIN_R2					2200.0
 #endif
+
+#if defined(HW_VER_IS_100S_V2)
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN		20.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES		0.0005
+#endif
+#else
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		10.0
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		0.001
+#endif
 #endif
 
 // Input voltage
