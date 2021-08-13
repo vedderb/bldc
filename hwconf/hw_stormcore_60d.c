@@ -505,21 +505,24 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			mc_interface_set_current(0);
 			mc_interface_lock();
 			int cts = 0;
+			//check if ADCS are active and working
 			while((ADC_Value[ADC_IND_V_BATT] < 1 || ADC_Value[ADC_IND_VIN_SENS] < 1) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
 			cts = 0;
+			//Wait for precharge resistors to precharge bulk caps
 			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
-
 			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 			mc_interface_select_motor_thread(2);
 			mc_interface_unlock();
 			mc_interface_select_motor_thread(1);
 			mc_interface_unlock();
+			//Wait for other systems to boot up before proceeding
+			chThdSleepMilliseconds(2000);
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
 			if(smart_switch_is_pressed()){

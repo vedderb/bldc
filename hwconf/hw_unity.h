@@ -54,7 +54,7 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF			2000
 
-#define HW_EARLY_INIT()							smart_switch_pin_init(); smart_switch_thread_start();
+#define HW_EARLY_INIT()							smart_switch_pin_init(); LED_PWM1_ON(); smart_switch_thread_start();
 
 // Pins for BLE UART
 #define HW_UART_P_BAUD							250000
