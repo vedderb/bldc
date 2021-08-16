@@ -164,7 +164,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 				}
 			}
 			continue;
-		} else if (mc_interface_get_fault() != FAULT_CODE_NONE){
+		} else if (mc_interface_get_fault() != FAULT_CODE_NONE && config.safe_start != SAFE_START_NO_FAULT){
 			pulses_without_power = 0;
 		}
 
