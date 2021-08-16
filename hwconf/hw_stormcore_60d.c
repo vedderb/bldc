@@ -61,7 +61,7 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -367,7 +367,6 @@ static THD_FUNCTION(mux_thread, arg) {
 
 void smart_switch_keep_on(void) {
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-
 }
 
 void smart_switch_shut_down(void) {
@@ -506,24 +505,26 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			mc_interface_set_current(0);
 			mc_interface_lock();
 			int cts = 0;
+			//check if ADCS are active and working
 			while((ADC_Value[ADC_IND_V_BATT] < 1 || ADC_Value[ADC_IND_VIN_SENS] < 1) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
 			cts = 0;
+			//Wait for precharge resistors to precharge bulk caps
 			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
-
 			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 			mc_interface_select_motor_thread(2);
 			mc_interface_unlock();
 			mc_interface_select_motor_thread(1);
 			mc_interface_unlock();
+			//Wait for other systems to boot up before proceeding
+			chThdSleepMilliseconds(2000);
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
-			smart_switch_keep_on();
 			if(smart_switch_is_pressed()){
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
@@ -541,11 +542,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
 				switch_state = SWITCH_SHUTTING_DOWN;
+				comm_can_shutdown(255);
 			}
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
-			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
 			smart_switch_keep_on();

@@ -19,6 +19,8 @@
 
 #ifdef HW_VER_IS_60D_PLUS
 #define HW_NAME                 "STORMCORE_60D+"
+#elif defined (HW_VER_IS_60D_XS)
+#define HW_NAME                 "STORMCORE_60Dxs"
 #else
 #define HW_NAME                 "STORMCORE_60D"
 #endif
@@ -30,9 +32,15 @@
 #define HW_HAS_DRV8323S // for idrive do 0x073b for reg 4 (LS) and 0x034b for reg 3 (HS)
 #define HW_HAS_3_SHUNTS
 
+#if  defined (HW_VER_IS_60D_XS)
+#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+		drv8323s_write_reg(3,0x3aa); \
+		drv8323s_write_reg(4,0x7aa);
+#else
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
 		drv8323s_write_reg(3,0x3af); \
 		drv8323s_write_reg(4,0x7af);
+#endif
 
 
 
@@ -64,8 +72,8 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
-#ifdef HW_VER_IS_60D_PLUS
-#define HW_HAS_PHASE_FILTERS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
+//#define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO				GPIOE
 #define PHASE_FILTER_PIN				1
 #define PHASE_FILTER_GPIO_M2			GPIOE
@@ -103,7 +111,7 @@
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 //Pins for Third UART
 #define HW_UART_3_BAUD				115200
 #define HW_UART_3_DEV				SD2
@@ -116,10 +124,17 @@
 
 
 // SPI for DRV8301
+#ifdef HW_VER_IS_60D_XS
+#define DRV8323S_MOSI_GPIO			GPIOC
+#define DRV8323S_MOSI_PIN			11
+#define DRV8323S_MISO_GPIO			GPIOC
+#define DRV8323S_MISO_PIN			12
+#else
 #define DRV8323S_MOSI_GPIO			GPIOC
 #define DRV8323S_MOSI_PIN			12
 #define DRV8323S_MISO_GPIO			GPIOC
 #define DRV8323S_MISO_PIN			11
+#endif
 #define DRV8323S_SCK_GPIO			GPIOC
 #define DRV8323S_SCK_PIN			10
 #define DRV8323S_CS_GPIO			GPIOC
@@ -246,7 +261,7 @@
 #define VIN_R2					2200.0
 #endif
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN        20.0
 #endif
@@ -364,7 +379,7 @@
 
 // NRF SWD
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 #define NRF5x_SWDIO_GPIO        GPIOD
 #define NRF5x_SWDIO_PIN         9
 #define NRF5x_SWCLK_GPIO        GPIOD

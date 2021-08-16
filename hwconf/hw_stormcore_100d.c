@@ -61,20 +61,20 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
 #ifdef HW_VER_IS_100D_V2
-    palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
-                  PAL_MODE_OUTPUT_PUSHPULL |
-                  PAL_STM32_OSPEED_HIGHEST);
-    PHASE_FILTER_OFF();
-    palSetPadMode(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2,
-            PAL_MODE_OUTPUT_PUSHPULL |
-            PAL_STM32_OSPEED_HIGHEST);
-    PHASE_FILTER_OFF_M2();
+	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+				  PAL_MODE_OUTPUT_PUSHPULL |
+				  PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF();
+	palSetPadMode(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2,
+				  PAL_MODE_OUTPUT_PUSHPULL |
+				  PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF_M2();
 #endif
 
 
 
 
-	// LEDs
+// LEDs
 	palSetPadMode(GPIOA, 8,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -516,24 +516,26 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			mc_interface_set_current(0);
 			mc_interface_lock();
 			int cts = 0;
+			//check if ADCS are active and working
 			while((ADC_Value[ADC_IND_V_BATT] < 1 || ADC_Value[ADC_IND_VIN_SENS] < 1) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
 			cts = 0;
+			//Wait for precharge resistors to precharge bulk caps
 			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
 				chThdSleepMilliseconds(100);
 				cts++;
 			}
-
 			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 			mc_interface_select_motor_thread(2);
 			mc_interface_unlock();
 			mc_interface_select_motor_thread(1);
 			mc_interface_unlock();
+			//Wait for other systems to boot up before proceeding
+			chThdSleepMilliseconds(2000);
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
-			smart_switch_keep_on();
 			if(smart_switch_is_pressed()){
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
