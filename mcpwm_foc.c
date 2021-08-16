@@ -150,7 +150,7 @@ typedef struct {
 	float m_hfi_plot_sample;
 
 	float m_phase_before;
-	float m_duty_filtered;
+	float m_duty_abs_filtered;
 	bool m_was_full_brake;
 	bool m_was_control_duty;
 	float m_duty_i_term;
@@ -2637,8 +2637,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float iq_set_tmp = motor_now->m_iq_set;
 		motor_now->m_motor_state.max_duty = conf_now->l_max_duty;
 
-		UTILS_LP_FAST(motor_now->m_duty_filtered, motor_now->m_motor_state.duty_now, 0.1);
-		utils_truncate_number((float*)&motor_now->m_duty_filtered, -1.0, 1.0);
+		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(motor_now->m_motor_state.duty_now), 0.1);
+		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
 		float duty_set = motor_now->m_duty_cycle_set;
 		bool control_duty = motor_now->m_control_mode == CONTROL_MODE_DUTY ||
@@ -2650,7 +2650,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// applying active braking. Use a bit of hysteresis when leaving
 		// the shorted mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
-				fabsf(motor_now->m_duty_filtered) < conf_now->l_min_duty * 1.5 &&
+				motor_now->m_duty_abs_filtered < conf_now->l_min_duty * 1.5 &&
 				(motor_now->m_motor_state.i_abs * (motor_now->m_was_full_brake ? 1.0 : 1.5)) <
 				fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
 			control_duty = true;
@@ -3084,7 +3084,7 @@ static void run_fw(volatile motor_all_state_t *motor, float dt) {
 					motor->m_control_mode == CONTROL_MODE_SPEED ||
 					motor->m_i_fw_set > motor->m_conf->cc_min_current)) {
 		float fw_current_now = 0.0;
-		float duty_abs = fabsf(motor->m_duty_filtered);
+		float duty_abs = motor->m_duty_abs_filtered;
 
 		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
 				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
