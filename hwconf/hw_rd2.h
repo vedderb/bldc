@@ -223,7 +223,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		660.0
+#define HW_DEAD_TIME_NSEC		1000.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MAX_VOLTAGE
@@ -240,7 +240,7 @@
 #endif
 
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX			300.0
+#define MCCONF_L_CURRENT_MAX			350.0
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
 #define MCCONF_L_CURRENT_MIN			-60.0
@@ -267,22 +267,22 @@
 #define MCCONF_FOC_CURRENT_KP			0.0046
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI			6.6
+#define MCCONF_FOC_CURRENT_KI			8.0
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					20000.0
+#define MCCONF_FOC_F_SW					30000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L				2.32e-6
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R				0.0033
+#define MCCONF_FOC_MOTOR_R				0.004
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00849
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00805
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN		8.87e6
+#define MCCONF_FOC_OBSERVER_GAIN		15.0e6
 #endif
 
 // Setup Info
