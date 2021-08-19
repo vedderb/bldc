@@ -804,7 +804,8 @@ typedef enum {
 
 typedef enum {
 	AHRS_MODE_MADGWICK = 0,
-	AHRS_MODE_MAHONY
+	AHRS_MODE_MAHONY,
+	AHRS_MODE_MADGWICK_FUSION
 } AHRS_MODE;
 
 typedef struct {
