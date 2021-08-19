@@ -32,6 +32,8 @@
 * Added position PID-controller angle offset.
 * Configurable PID controller rate.
 * Added several AUX port modes.
+* Added configurable safe start modes.
+* Added fusion IMU filter.
 
 === FW 5.02 ===
 * IMU calibration improvement.

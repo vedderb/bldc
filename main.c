@@ -278,6 +278,8 @@ int main(void) {
 	shutdown_init();
 #endif
 
+	imu_reset_orientation();
+
 #ifdef BOOT_OK_GPIO
 	chThdSleepMilliseconds(500);
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);

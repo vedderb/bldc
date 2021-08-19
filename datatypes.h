@@ -510,6 +510,12 @@ typedef enum {
 	THR_EXP_POLY
 } thr_exp_mode;
 
+typedef enum {
+	SAFE_START_DISABLED = 0,
+	SAFE_START_REGULAR,
+	SAFE_START_NO_FAULT
+} SAFE_START_MODE;
+
 // PPM control types
 typedef enum {
 	PPM_CTRL_TYPE_NONE = 0,
@@ -532,7 +538,7 @@ typedef struct {
 	float pulse_end;
 	float pulse_center;
 	bool median_filter;
-	bool safe_start;
+	SAFE_START_MODE safe_start;
 	float throttle_exp;
 	float throttle_exp_brake;
 	thr_exp_mode throttle_exp_mode;
@@ -585,7 +591,7 @@ typedef struct {
 	float voltage2_start;
 	float voltage2_end;
 	bool use_filter;
-	bool safe_start;
+	SAFE_START_MODE safe_start;
 	bool cc_button_inverted;
 	bool rev_button_inverted;
 	bool voltage_inverted;
@@ -798,7 +804,8 @@ typedef enum {
 
 typedef enum {
 	AHRS_MODE_MADGWICK = 0,
-	AHRS_MODE_MAHONY
+	AHRS_MODE_MAHONY,
+	AHRS_MODE_MADGWICK_FUSION
 } AHRS_MODE;
 
 typedef struct {

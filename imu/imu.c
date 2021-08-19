@@ -28,12 +28,14 @@
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
 #include "utils.h"
+#include "Fusion.h"
 
 #include <math.h>
 #include <string.h>
 
 // Private variables
 static ATTITUDE_INFO m_att;
+static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
@@ -59,12 +61,7 @@ void imu_init(imu_config *set) {
 	memset(m_gyro_offset, 0, sizeof(m_gyro_offset));
 
 	imu_stop();
-
-	imu_ready = false;
-	init_time = chVTGetSystemTimeX();
-	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
-
-	ahrs_init_attitude_info(&m_att);
+	imu_reset_orientation();
 
 	mpu9150_set_rate_hz(set->sample_rate_hz);
 	m_icm20948_state.rate_hz = set->sample_rate_hz;
@@ -121,6 +118,14 @@ void imu_init(imu_config *set) {
 			"Print gyro offsets",
 			0,
 			terminal_gyro_info);
+}
+
+void imu_reset_orientation(void) {
+	imu_ready = false;
+	init_time = chVTGetSystemTimeX();
+	ahrs_init_attitude_info(&m_att);
+	FusionAhrsInitialise(&m_fusionAhrs, 2.0, 20.0);
+	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -417,7 +422,9 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.gyro_offset_comp_fact[0] = backup_gyro_comp_x;
 	m_settings.gyro_offset_comp_fact[1] = backup_gyro_comp_y;
 	m_settings.gyro_offset_comp_fact[2] = backup_gyro_comp_z;
+
 	ahrs_init_attitude_info(&m_att);
+	FusionAhrsReinitialise(&m_fusionAhrs);
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
@@ -431,6 +438,10 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 				m_settings.mahony_kp,
 				m_settings.mahony_ki,
 				m_settings.madgwick_beta);
+
+		FusionAhrsSetGain(&m_fusionAhrs, m_settings.madgwick_beta);
+		FusionAhrsSetInitialGain(&m_fusionAhrs, m_settings.madgwick_beta * 10.0);
+
 		imu_ready = true;
 	}
 
@@ -498,12 +509,29 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
 
 	switch (m_settings.mode) {
-		case (AHRS_MODE_MADGWICK):
+		case AHRS_MODE_MADGWICK:
 			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
 			break;
-		case (AHRS_MODE_MAHONY):
+		case AHRS_MODE_MAHONY:
 			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
 			break;
+		case AHRS_MODE_MADGWICK_FUSION: {
+			FusionVector3 calibratedGyroscope = {
+					.axis.x = m_gyro[0],
+					.axis.y = m_gyro[1],
+					.axis.z = m_gyro[2],
+			};
+			FusionVector3 calibratedAccelerometer = {
+					.axis.x = m_accel[0],
+					.axis.y = m_accel[1],
+					.axis.z = m_accel[2],
+			};
+			FusionAhrsUpdateWithoutMagnetometer(&m_fusionAhrs, calibratedGyroscope, calibratedAccelerometer, dt);
+			m_att.q0 = m_fusionAhrs.quaternion.element.w;
+			m_att.q1 = m_fusionAhrs.quaternion.element.x;
+			m_att.q2 = m_fusionAhrs.quaternion.element.y;
+			m_att.q3 = m_fusionAhrs.quaternion.element.z;
+		} break;
 	}
 }
 

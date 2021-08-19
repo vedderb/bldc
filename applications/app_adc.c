@@ -116,7 +116,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// For safe start when fault codes occur
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		if (mc_interface_get_fault() != FAULT_CODE_NONE && config.safe_start != SAFE_START_NO_FAULT) {
 			ms_without_power = 0;
 		}
 

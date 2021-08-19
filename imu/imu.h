@@ -26,6 +26,7 @@
 #include "spi_bb.h"
 
 void imu_init(imu_config *set);
+void imu_reset_orientation(void);
 i2c_bb_state *imu_get_i2c(void);
 void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin);

@@ -673,7 +673,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.tiltback_constant_erpm = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.tiltback_variable = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.tiltback_variable_max = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.noseangling_speed = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.noseangling_speed = buffer_get_float16(buffer, 100, &ind);
 	conf->app_balance_conf.startup_pitch_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_roll_tolerance = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.startup_speed = buffer_get_float32_auto(buffer, &ind);
