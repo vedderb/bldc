@@ -170,6 +170,9 @@
 
 //#define HW_SOURCE "hw_warrior6.c"
 //#define HW_HEADER "hw_warrior6.h"
+
+//#define HW_SOURCE "hw_raiden7.c"
+//#define HW_HEADER "hw_raiden7.h"
 #endif
 
 #ifndef HW_SOURCE
