@@ -35,6 +35,10 @@ void drv8323s_write_reg(int reg, int data);
 
 #define HW_RESET_DRV_FAULTS()			drv8323s_reset_faults()
 
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LATCH_SHUTDOWN // DRV8301 over current protection mode
+#endif
+
 // Defines
 #define DRV8323S_FAULT_FET_LC_OC		(1 << 0)
 #define DRV8323S_FAULT_FET_HC_OC		(1 << 1)
