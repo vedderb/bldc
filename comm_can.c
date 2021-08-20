@@ -189,15 +189,15 @@ void comm_can_set_baud(CAN_BAUD baud) {
  * on single motor hardware.
  */
 void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace) {
-	if (!init_done) {
-		return;
-	}
-
 	if (len > 8) {
 		len = 8;
 	}
 
 #if CAN_ENABLE
+	if (!init_done) {
+		return;
+	}
+
 #ifdef HW_HAS_DUAL_MOTORS
 	if (app_get_configuration()->can_mode == CAN_MODE_VESC) {
 		if (replace && ((id & 0xFF) == utils_second_motor_id() ||
@@ -235,15 +235,15 @@ void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
 }
 
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
-	if (!init_done) {
-		return;
-	}
-
 	if (len > 8) {
 		len = 8;
 	}
 
 #if CAN_ENABLE
+	if (!init_done) {
+		return;
+	}
+
 	CANTxFrame txmsg;
 	txmsg.IDE = CAN_IDE_STD;
 	txmsg.SID = id;
