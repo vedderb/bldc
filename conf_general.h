@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		47
+#define FW_TEST_VERSION_NUMBER		48
 
 #include "datatypes.h"
 
@@ -350,5 +350,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		bool store_mcconf_on_success, bool send_mcconf_on_success);
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
+
 
 #endif /* CONF_GENERAL_H_ */

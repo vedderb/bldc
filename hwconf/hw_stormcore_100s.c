@@ -24,7 +24,6 @@
 #include "ledpwm.h"
 #include "drv8323s.h"
 
-
 #if defined (HW_VER_IS_100S_V2)
 static THD_WORKING_AREA(switch_color_thread_wa, 128);
 static THD_FUNCTION(switch_color_thread, arg);

@@ -23,6 +23,7 @@
 #include "mc_interface.h"
 #include "ledpwm.h"
 #include "utils.h"
+#include "main.h"
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -373,7 +374,9 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			smart_switch_keep_on();
 			ledpwm_set_intensity(LED_HW1, 1.0);
 			//Wait for other systems to boot up before proceeding
-			chThdSleepMilliseconds(3000);
+			while (!main_init_done()) {
+				chThdSleepMilliseconds(200);
+			}
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
 			if(smart_switch_is_pressed()){

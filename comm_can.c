@@ -68,6 +68,7 @@ static thread_t *process_tp = 0;
 static thread_t *ping_tp = 0;
 static volatile HW_TYPE ping_hw_last = HW_TYPE_VESC;
 static volatile int ping_hw_last_id = -1;
+static volatile bool init_done = false;
 #endif
 
 // Variables
@@ -151,6 +152,8 @@ void comm_can_init(void) {
 			NORMALPRIO, cancom_status_internal_thread, NULL);
 #endif
 
+	init_done = true;
+
 #endif
 }
 
@@ -186,6 +189,10 @@ void comm_can_set_baud(CAN_BAUD baud) {
  * on single motor hardware.
  */
 void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace) {
+	if (!init_done) {
+		return;
+	}
+
 	if (len > 8) {
 		len = 8;
 	}
@@ -228,6 +235,10 @@ void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
 }
 
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
+	if (!init_done) {
+		return;
+	}
+
 	if (len > 8) {
 		len = 8;
 	}
