@@ -176,7 +176,7 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 	motor_timeout = ((1000.0 / balance_conf.hertz)/1000.0) * 20; // Times 20 for a nice long grace period
 
 	startup_step_size = balance_conf.startup_speed / balance_conf.hertz;
-	tiltback_duty_step_size = balance_conf.tiltback_speed / balance_conf.hertz;
+	tiltback_duty_step_size = balance_conf.tiltback_duty_speed / balance_conf.hertz;
 	tiltback_hv_step_size = balance_conf.tiltback_hv_speed / balance_conf.hertz;
 	tiltback_lv_step_size = balance_conf.tiltback_lv_speed / balance_conf.hertz;
 	tiltback_return_step_size = balance_conf.tiltback_return_speed / balance_conf.hertz;
@@ -399,13 +399,13 @@ static void calculate_setpoint_target(void){
 		state = RUNNING;
 	}else if(abs_duty_cycle > balance_conf.tiltback_duty){
 		if(erpm > 0){
-			setpoint_target = balance_conf.tiltback_angle;
+			setpoint_target = balance_conf.tiltback_duty_angle;
 		} else {
-			setpoint_target = -balance_conf.tiltback_angle;
+			setpoint_target = -balance_conf.tiltback_duty_angle;
 		}
 		setpointAdjustmentType = TILTBACK_DUTY;
 		state = RUNNING_TILTBACK_DUTY;
-	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_high_voltage){
+	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() > balance_conf.tiltback_hv){
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_hv_angle;
 		} else {
@@ -413,7 +413,7 @@ static void calculate_setpoint_target(void){
 		}
 		setpointAdjustmentType = TILTBACK_HV;
 		state = RUNNING_TILTBACK_HIGH_VOLTAGE;
-	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_low_voltage){
+	}else if(abs_duty_cycle > 0.05 && GET_INPUT_VOLTAGE() < balance_conf.tiltback_lv){
 		if(erpm > 0){
 			setpoint_target = balance_conf.tiltback_lv_angle;
 		} else {
