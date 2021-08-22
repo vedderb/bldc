@@ -49,10 +49,10 @@ static bool imu_ready;
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
 static void rotate(float *input, float *rotation, float *output);
-int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
 
 void imu_init(imu_config *set) {
 	m_settings = *set;
@@ -524,7 +524,7 @@ void rotate(float *input, float *rotation, float *output) {
 	output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
 }
 
-int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	m_i2c_bb.has_error = 0;
 
 	uint8_t txbuf[1];
@@ -532,7 +532,7 @@ int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t
 	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, 1, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
 }
 
-int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	m_i2c_bb.has_error = 0;
 
 	uint8_t txbuf[len + 1];
@@ -541,7 +541,7 @@ int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_
 	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, len + 1, 0, 0) ? BMI160_OK : BMI160_E_COM_FAIL;
 }
 
-int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	(void)dev_id;
 	
 	int8_t rslt = BMI160_OK; // Return 0 for Success, non-zero for failure 
@@ -562,7 +562,7 @@ int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t l
 	return rslt;
 }
 
-int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	(void)dev_id;
 
 	int8_t rslt = BMI160_OK; /* Return 0 for Success, non-zero for failure */
