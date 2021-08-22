@@ -362,10 +362,6 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offsets[0], &ind);
 	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offsets[1], &ind);
 	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offsets[2], &ind);
-	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offset_comp_fact[0], &ind);
-	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offset_comp_fact[1], &ind);
-	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offset_comp_fact[2], &ind);
-	buffer_append_float32_auto(buffer, conf->imu_conf.gyro_offset_comp_clamp, &ind);
 
 	return ind;
 }
@@ -734,10 +730,6 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->imu_conf.gyro_offsets[0] = buffer_get_float32_auto(buffer, &ind);
 	conf->imu_conf.gyro_offsets[1] = buffer_get_float32_auto(buffer, &ind);
 	conf->imu_conf.gyro_offsets[2] = buffer_get_float32_auto(buffer, &ind);
-	conf->imu_conf.gyro_offset_comp_fact[0] = buffer_get_float32_auto(buffer, &ind);
-	conf->imu_conf.gyro_offset_comp_fact[1] = buffer_get_float32_auto(buffer, &ind);
-	conf->imu_conf.gyro_offset_comp_fact[2] = buffer_get_float32_auto(buffer, &ind);
-	conf->imu_conf.gyro_offset_comp_clamp = buffer_get_float32_auto(buffer, &ind);
 
 	return true;
 }
@@ -1090,8 +1082,4 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->imu_conf.gyro_offsets[0] = APPCONF_IMU_G_OFFSET_0;
 	conf->imu_conf.gyro_offsets[1] = APPCONF_IMU_G_OFFSET_1;
 	conf->imu_conf.gyro_offsets[2] = APPCONF_IMU_G_OFFSET_2;
-	conf->imu_conf.gyro_offset_comp_fact[0] = APPCONF_IMU_G_OFFSET_COMP_FACT_0;
-	conf->imu_conf.gyro_offset_comp_fact[1] = APPCONF_IMU_G_OFFSET_COMP_FACT_1;
-	conf->imu_conf.gyro_offset_comp_fact[2] = APPCONF_IMU_G_OFFSET_COMP_FACT_2;
-	conf->imu_conf.gyro_offset_comp_clamp = APPCONF_IMU_G_OFFSET_COMP_CLAMP;
 }

@@ -143,7 +143,7 @@ static inline __attribute__((always_inline)) float FusionRadiansToDegrees(const 
  */
 static inline __attribute__((always_inline)) float FusionFastInverseSqrt(const float x) {
 	if (x == 0.0) {
-		return 0.0;
+		return 1.0;
 	}
     return 1.0 / sqrtf(x);
 }

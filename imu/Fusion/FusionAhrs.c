@@ -41,6 +41,7 @@
 #include "FusionAhrs.h"
 #include <float.h> // FLT_MAX
 #include <math.h> // atan2f, cosf, sinf
+#include "utils.h"
 
 //------------------------------------------------------------------------------
 // Definitions
@@ -53,20 +54,35 @@
 //------------------------------------------------------------------------------
 // Functions
 
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP);
+
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP) {
+	// G.K. Egan (C) computes confidence in accelerometers when
+	// aircraft is being accelerated over and above that due to gravity
+
+	float confidence;
+
+	accMag = *accMagP * 0.9f + accMag * 0.1f;
+	*accMagP = accMag;
+
+	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+	utils_truncate_number(&confidence, 0.0, 1.0);
+
+	return confidence;
+}
+
 /**
  * @brief Initialises the AHRS algorithm structure.
  * @param fusionAhrs AHRS algorithm structure.
  * @param gain AHRS algorithm gain.
  */
-void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const float initialGain) {
+void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const float acc_conf_decay) {
     fusionAhrs->gain = gain;
-    fusionAhrs->initialGain = initialGain;
+    fusionAhrs->acc_conf_decay = acc_conf_decay;
     fusionAhrs->minimumMagneticFieldSquared = 0.0f;
     fusionAhrs->maximumMagneticFieldSquared = FLT_MAX;
     fusionAhrs->quaternion = FUSION_QUATERNION_IDENTITY;
     fusionAhrs->linearAcceleration = FUSION_VECTOR3_ZERO;
-    fusionAhrs->rampedGain = fusionAhrs->initialGain;
-    fusionAhrs->zeroYawPending = false;
 }
 
 /**
@@ -78,8 +94,8 @@ void FusionAhrsSetGain(FusionAhrs * const fusionAhrs, const float gain) {
     fusionAhrs->gain = gain;
 }
 
-void FusionAhrsSetInitialGain(FusionAhrs * const fusionAhrs, const float initialGain) {
-	fusionAhrs->initialGain = initialGain;
+void FusionAhrsSetAccConfDecay(FusionAhrs * const fusionAhrs, const float acc_conf_decay) {
+	fusionAhrs->acc_conf_decay = acc_conf_decay;
 }
 
 /**
@@ -142,15 +158,11 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
 
     } while (false);
 
-    // Ramp down gain until initialisation complete
-    if (fusionAhrs->gain == 0) {
-        fusionAhrs->rampedGain = 0; // skip initialisation if gain is zero
-    }
+
     float feedbackGain = fusionAhrs->gain;
-    if (fusionAhrs->rampedGain > fusionAhrs->gain) {
-        fusionAhrs->rampedGain -= (fusionAhrs->initialGain - fusionAhrs->gain) * samplePeriod / INITIALISATION_PERIOD;
-        feedbackGain = fusionAhrs->rampedGain;
-    }
+    float accMag = sqrtf(SQ(accelerometer.axis.x) + SQ(accelerometer.axis.y) + SQ(accelerometer.axis.z));
+    float accelConfidence = calculateAccConfidence(fusionAhrs->acc_conf_decay, accMag, &fusionAhrs->accMagP);
+    feedbackGain *= accelConfidence;
 
     // Convert gyroscope to radians per second scaled by 0.5
     FusionVector3 halfGyroscope = FusionVectorMultiplyScalar(gyroscope, 0.5f * FusionDegreesToRadians(1.0f));
@@ -185,19 +197,7 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
  * between the current and previous gyroscope measurements.
  */
 void FusionAhrsUpdateWithoutMagnetometer(FusionAhrs * const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer, const float samplePeriod) {
-
-    // Update AHRS algorithm
     FusionAhrsUpdate(fusionAhrs, gyroscope, accelerometer, FUSION_VECTOR3_ZERO, samplePeriod);
-
-    // Zero yaw once initialisation complete
-    if (FusionAhrsIsInitialising(fusionAhrs) == true) {
-        fusionAhrs->zeroYawPending = true;
-    } else {
-        if (fusionAhrs->zeroYawPending == true) {
-            FusionAhrsSetYaw(fusionAhrs, 0.0f);
-            fusionAhrs->zeroYawPending = false;
-        }
-    }
 }
 
 /**
@@ -252,16 +252,6 @@ FusionVector3 FusionAhrsGetEarthAcceleration(const FusionAhrs * const fusionAhrs
 void FusionAhrsReinitialise(FusionAhrs * const fusionAhrs) {
     fusionAhrs->quaternion = FUSION_QUATERNION_IDENTITY;
     fusionAhrs->linearAcceleration = FUSION_VECTOR3_ZERO;
-    fusionAhrs->rampedGain = fusionAhrs->initialGain;
-}
-
-/**
- * @brief Returns true while the AHRS algorithm is initialising.
- * @param fusionAhrs AHRS algorithm structure.
- * @return True while the AHRS algorithm is initialising.
- */
-bool FusionAhrsIsInitialising(const FusionAhrs * const fusionAhrs) {
-    return fusionAhrs->rampedGain > fusionAhrs->gain;
 }
 
 /**

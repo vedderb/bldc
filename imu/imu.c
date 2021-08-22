@@ -43,13 +43,11 @@ static spi_bb_state m_spi_bb;
 static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
 static imu_config m_settings;
-static float m_gyro_offset[3] = {0.0};
 static systime_t init_time;
 static bool imu_ready;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
-static void terminal_gyro_info(int argc, const char **argv);
 static void rotate(float *input, float *rotation, float *output);
 int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
@@ -58,7 +56,6 @@ int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t 
 
 void imu_init(imu_config *set) {
 	m_settings = *set;
-	memset(m_gyro_offset, 0, sizeof(m_gyro_offset));
 
 	imu_stop();
 	imu_reset_orientation();
@@ -112,19 +109,13 @@ void imu_init(imu_config *set) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
-
-	terminal_register_command_callback(
-			"imu_gyro_info",
-			"Print gyro offsets",
-			0,
-			terminal_gyro_info);
 }
 
 void imu_reset_orientation(void) {
 	imu_ready = false;
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
-	FusionAhrsInitialise(&m_fusionAhrs, 2.0, 20.0);
+	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
 	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
 }
 
@@ -298,9 +289,6 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	float backup_gyro_offset_x = m_settings.gyro_offsets[0];
 	float backup_gyro_offset_y = m_settings.gyro_offsets[1];
 	float backup_gyro_offset_z = m_settings.gyro_offsets[2];
-	float backup_gyro_comp_x = m_settings.gyro_offset_comp_fact[0];
-	float backup_gyro_comp_y = m_settings.gyro_offset_comp_fact[1];
-	float backup_gyro_comp_z = m_settings.gyro_offset_comp_fact[2];
 
 	// Override settings
 	m_settings.sample_rate_hz = 1000;
@@ -315,14 +303,6 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.gyro_offsets[0] = 0;
 	m_settings.gyro_offsets[1] = 0;
 	m_settings.gyro_offsets[2] = 0;
-	m_settings.gyro_offset_comp_fact[0] = 0;
-	m_settings.gyro_offset_comp_fact[1] = 0;
-	m_settings.gyro_offset_comp_fact[2] = 0;
-
-	// Clear computed offsets
-	m_gyro_offset[0] = 0;
-	m_gyro_offset[1] = 0;
-	m_gyro_offset[2] = 0;
 
 	// Sample gyro for offsets
 	float original_gyro_offsets[3] = {0, 0, 0};
@@ -419,9 +399,6 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.gyro_offsets[0] = backup_gyro_offset_x;
 	m_settings.gyro_offsets[1] = backup_gyro_offset_y;
 	m_settings.gyro_offsets[2] = backup_gyro_offset_z;
-	m_settings.gyro_offset_comp_fact[0] = backup_gyro_comp_x;
-	m_settings.gyro_offset_comp_fact[1] = backup_gyro_comp_y;
-	m_settings.gyro_offset_comp_fact[2] = backup_gyro_comp_z;
 
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsReinitialise(&m_fusionAhrs);
@@ -429,8 +406,11 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
+
+	chSysLock();
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
+	chSysUnlock();
 
 	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
 		ahrs_update_all_parameters(
@@ -440,7 +420,7 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 				m_settings.madgwick_beta);
 
 		FusionAhrsSetGain(&m_fusionAhrs, m_settings.madgwick_beta);
-		FusionAhrsSetInitialGain(&m_fusionAhrs, m_settings.madgwick_beta * 10.0);
+		FusionAhrsSetAccConfDecay(&m_fusionAhrs, m_settings.accel_confidence_decay);
 
 		imu_ready = true;
 	}
@@ -492,15 +472,6 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	for (int i = 0; i < 3; i++) {
 		m_accel[i] -= m_settings.accel_offsets[i];
 		m_gyro[i] -= m_settings.gyro_offsets[i];
-
-		if (m_settings.gyro_offset_comp_fact[i] > 0.0) {
-			utils_step_towards(&m_gyro_offset[i], m_gyro[i], m_settings.gyro_offset_comp_fact[i] * dt);
-			utils_truncate_number_abs(&m_gyro_offset[i], m_settings.gyro_offset_comp_clamp);
-		} else {
-			m_gyro_offset[i] = 0.0;
-		}
-
-		m_gyro[i] -= m_gyro_offset[i];
 	}
 
 	float gyro_rad[3];
@@ -533,16 +504,6 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 			m_att.q3 = m_fusionAhrs.quaternion.element.z;
 		} break;
 	}
-}
-
-static void terminal_gyro_info(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	commands_printf("Gyro offsets: [%.3f %.3f %.3f]\n",
-			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
-			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
-			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
 }
 
 void rotate(float *input, float *rotation, float *output) {

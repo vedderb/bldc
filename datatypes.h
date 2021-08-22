@@ -821,8 +821,6 @@ typedef struct {
 	float rot_yaw;
 	float accel_offsets[3];
 	float gyro_offsets[3];
-	float gyro_offset_comp_fact[3];
-	float gyro_offset_comp_clamp;
 } imu_config;
 
 typedef struct {

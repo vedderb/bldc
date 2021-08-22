@@ -53,21 +53,20 @@
  */
 typedef struct {
     float gain;
-    float initialGain;
+    float acc_conf_decay;
     float minimumMagneticFieldSquared;
     float maximumMagneticFieldSquared;
     FusionQuaternion quaternion; // describes the Earth relative to the sensor
     FusionVector3 linearAcceleration;
-    float rampedGain;
-    bool zeroYawPending;
+    float accMagP;
 } FusionAhrs;
 
 //------------------------------------------------------------------------------
 // Function prototypes
 
-void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const float initialGain);
+void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const float acc_conf_decay);
 void FusionAhrsSetGain(FusionAhrs * const fusionAhrs, const float gain);
-void FusionAhrsSetInitialGain(FusionAhrs * const fusionAhrs, const float initialGain);
+void FusionAhrsSetAccConfDecay(FusionAhrs * const fusionAhrs, const float acc_conf_decay);
 void FusionAhrsSetMagneticField(FusionAhrs * const fusionAhrs, const float minimumMagneticField, const float maximumMagneticField);
 void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer, const FusionVector3 magnetometer, const float samplePeriod);
 void FusionAhrsUpdateWithoutMagnetometer(FusionAhrs * const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer, const float samplePeriod);
