@@ -1291,6 +1291,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 	int id2 = id1;
 #endif
 
+	// The packets here are addressed to this VESC or to all VESCs (id=255)
+
 	if (id == 255 || id == id1 || id == id2) {
 		switch (cmd) {
 		case CAN_PACKET_SET_DUTY:
@@ -1635,6 +1637,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				break;
 		}
 	}
+
+	// The packets below are addressed to all devices, mainly containing status information.
 
 	switch (cmd) {
 	case CAN_PACKET_STATUS:
