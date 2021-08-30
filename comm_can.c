@@ -1779,8 +1779,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		int32_t index = 0;
 		buffer_append_int32(buffer, (int32_t)(encoder_read_deg() * 100000.0), &index);
 		comm_can_transmit_eid_replace(data8[0] |
-			((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true);
-	}
+				((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true);
+	} break;
 
 	default:
 		break;
