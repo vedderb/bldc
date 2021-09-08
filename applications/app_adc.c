@@ -34,6 +34,7 @@
 #define MIN_MS_WITHOUT_POWER			500
 #define FILTER_SAMPLES					5
 #define RPM_FILTER_SAMPLES				8
+#define TC_DIFF_MAX_PASS				60  // TODO: move to app_conf
 
 // Threads
 static THD_FUNCTION(adc_thread, arg);
@@ -541,6 +542,8 @@ static THD_FUNCTION(adc_thread, arg) {
 								}
 
 								float diff = rpm_tmp - rpm_lowest;
+                                if (diff < TC_DIFF_MAX_PASS) diff = 0;
+                                if (diff > config.tc_max_diff) diff = config.tc_max_diff;
 								current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 							}
 
@@ -554,6 +557,8 @@ static THD_FUNCTION(adc_thread, arg) {
 
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
+                        if (diff < TC_DIFF_MAX_PASS) diff = 0;
+                        if (diff > config.tc_max_diff) diff = config.tc_max_diff;
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 					}
 				}
