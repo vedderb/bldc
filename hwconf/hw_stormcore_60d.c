@@ -545,11 +545,13 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
 				switch_state = SWITCH_SHUTTING_DOWN;
-				comm_can_shutdown(255);
 			}
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
+			while (smart_switch_is_pressed()) {
+				chThdSleepMilliseconds(10);
+			}
 			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
