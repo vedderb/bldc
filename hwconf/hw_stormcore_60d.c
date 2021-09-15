@@ -550,6 +550,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
+			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
 			smart_switch_keep_on();
