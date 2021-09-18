@@ -554,6 +554,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_RESOLVER_LOS: return "FAULT_CODE_RESOLVER_LOS";
     case FAULT_CODE_ENCODER_NO_MAGNET: return "FAULT_CODE_ENCODER_NO_MAGNET";
     case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
+    case FAULT_CODE_OVER_DUTY: return "FAULT_CODE_OVER_DUTY";
 	}
 
 	return "Unknown fault";
