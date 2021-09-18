@@ -787,6 +787,8 @@ static THD_FUNCTION(balance_thread, arg) {
 				// Otherwise duty fault will clear itself as soon as motor pauses, then motor will spool up again.
 				// Rendering this fault useless.
 				check_faults(true);
+				mc_interface_fault_stop(FAULT_CODE_OVER_DUTY, false, false);
+
 				// Disable output
 				brake();
 				break;
