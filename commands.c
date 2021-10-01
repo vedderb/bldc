@@ -1504,6 +1504,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
 	case COMM_GET_IMU_CALIBRATION:
+	case COMM_BM_MEM_WRITE:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -2195,6 +2196,20 @@ static THD_FUNCTION(blocking_thread, arg) {
 			buffer_append_int16(send_buffer, res, &ind);
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind + read_len);
+			}
+		} break;
+
+		case COMM_BM_MEM_WRITE: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+
+			int res = bm_mem_write(addr, data + ind, len - ind);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 #endif
