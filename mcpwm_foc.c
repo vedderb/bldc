@@ -1660,7 +1660,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	volatile motor_all_state_t *motor = motor_now();
 
 	motor->m_phase_override = true;
-	motor->m_phase_now_override = 0.0;
+	motor->m_phase_now_override = (float)90.0 * M_PI / 180.0;
 	motor->m_id_set = 0.0;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
 	motor->m_state = MC_STATE_RUNNING;
@@ -1725,8 +1725,10 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	// Enable timeout
 	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
-
-	return (voltage_avg / current_avg) * (2.0 / 3.0);
+	
+	
+	commands_printf("voltage_avg: %.6f volts \t\t current_avg: %.6f amps \t\t resistance: %.6f Ohms", (double)voltage_avg, (double)current_avg, (double)((voltage_avg / current_avg) / 2.0));
+	return (voltage_avg / current_avg) / 2.0;
 }
 
 /**
