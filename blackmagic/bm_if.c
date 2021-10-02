@@ -530,6 +530,34 @@ int bm_write_flash(uint32_t addr, const void *data, uint32_t len) {
 }
 
 /**
+ * Write target memory.
+ *
+ * @param addr
+ * Address to write to
+ *
+ * @param data
+ * The data to write
+ *
+ * @param len
+ * Length of the data
+ *
+ * @return
+ * -2: Write failed
+ * -1: Not connected
+ *  1: Success
+ */
+int bm_mem_write(uint32_t addr, const void *data, uint32_t len) {
+	int ret = -1;
+
+	if (cur_target) {
+		target_print_en = false;
+		ret = target_mem_write(cur_target, addr, data, len) ? -2 : 1;
+	}
+
+	return ret;
+}
+
+/**
  * Read target memory
  *
  * @param addr
