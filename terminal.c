@@ -460,15 +460,15 @@ void terminal_process_string(char *str) {
 					chThdSleepMilliseconds(20);
 				}
 
-				float vq_avg = 0.0;
-				float rpm_avg = 0.0;
-				float samples = 0.0;
-				float iq_avg = 0.0;
+				double vq_avg = 0.0;
+				double rpm_avg = 0.0;
+				double iq_avg = 0.0;
+				uint16_t samples = 0;
 				for (int i = 0;i < 1000;i++) {
-					vq_avg += mcpwm_foc_get_vq();
-					rpm_avg += mc_interface_get_rpm();
-					iq_avg += mc_interface_get_tot_current_directional();
-					samples += 1.0;
+					vq_avg += (double)mcpwm_foc_get_vq();
+					rpm_avg += (double)mc_interface_get_rpm();
+					iq_avg += (double)mc_interface_get_tot_current_directional();
+					samples++;
 					chThdSleepMilliseconds(1);
 				}
 
@@ -485,7 +485,7 @@ void terminal_process_string(char *str) {
 				rpm_avg /= samples;
 				iq_avg /= samples;
 
-				float linkage = (vq_avg - res * iq_avg) / (rpm_avg * ((2.0 * M_PI) / 60.0));
+				float linkage = ((float)vq_avg - res * (float)iq_avg) / ((float)rpm_avg * ((2.0 * M_PI) / 60.0));
 
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {
@@ -509,7 +509,10 @@ void terminal_process_string(char *str) {
 
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
 					erpm_per_sec > 0.0 && duty > 0.02 && res >= 0.0 && ind >= 0.0) {
-				float linkage, linkage_undriven, undriven_samples;
+				float linkage;
+				float linkage_undriven;
+				uint16_t undriven_samples;
+
 				commands_printf("Measuring flux linkage...");
 				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
 						&linkage, &linkage_undriven, &undriven_samples);

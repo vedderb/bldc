@@ -80,7 +80,7 @@ static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
 static volatile mc_rpm_dep_struct rpm_dep;
 static volatile float cycle_integrator_sum;
-static volatile float cycle_integrator_iterations;
+static volatile uint16_t cycle_integrator_iterations;
 static volatile mc_configuration *conf;
 static volatile float pwm_cycles_sum;
 static volatile int pwm_cycles;
@@ -202,7 +202,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	has_commutated = 0;
 	memset((void*)&rpm_dep, 0, sizeof(rpm_dep));
 	cycle_integrator_sum = 0.0;
-	cycle_integrator_iterations = 0.0;
+	cycle_integrator_iterations = 0;
 	pwm_cycles_sum = 0.0;
 	pwm_cycles = 0;
 	last_pwm_cycles_sum = 0.0;
@@ -1906,7 +1906,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 								(rpm_dep.comm_time_sum / 2.0) * conf->sl_phase_advance_at_br)) {
 							commutate(1);
 							cycle_integrator_sum += cycle_integrator * (1.0 / (0.0005 * VDIV_CORR));
-							cycle_integrator_iterations += 1.0;
+							cycle_integrator_iterations++;
 							cycle_integrator = 0.0;
 							cycle_sum = 0.0;
 						}

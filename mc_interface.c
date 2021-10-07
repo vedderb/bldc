@@ -62,16 +62,16 @@ typedef struct {
 	bool m_lock_override_once;
 	float m_motor_current_sum;
 	float m_input_current_sum;
-	float m_motor_current_iterations;
-	float m_input_current_iterations;
+	uint16_t m_motor_current_iterations;
+	uint16_t m_input_current_iterations;
 	float m_motor_id_sum;
 	float m_motor_iq_sum;
-	float m_motor_id_iterations;
-	float m_motor_iq_iterations;
+	uint16_t m_motor_id_iterations;
+	uint16_t m_motor_iq_iterations;
 	float m_motor_vd_sum;
 	float m_motor_vq_sum;
-	float m_motor_vd_iterations;
-	float m_motor_vq_iterations;
+	uint16_t m_motor_vd_iterations;
+	uint16_t m_motor_vq_iterations;
 	float m_amp_seconds;
 	float m_amp_seconds_charged;
 	float m_watt_seconds;
@@ -1206,7 +1206,7 @@ float mc_interface_read_reset_avg_motor_current(void) {
 
 	float res = motor_now()->m_motor_current_sum / motor_now()->m_motor_current_iterations;
 	motor_now()->m_motor_current_sum = 0.0;
-	motor_now()->m_motor_current_iterations = 0.0;
+	motor_now()->m_motor_current_iterations = 0;
 	return res;
 }
 
@@ -1217,7 +1217,7 @@ float mc_interface_read_reset_avg_input_current(void) {
 
 	float res = motor_now()->m_input_current_sum / motor_now()->m_input_current_iterations;
 	motor_now()->m_input_current_sum = 0.0;
-	motor_now()->m_input_current_iterations = 0.0;
+	motor_now()->m_input_current_iterations = 0;
 	return res;
 }
 
@@ -1230,7 +1230,7 @@ float mc_interface_read_reset_avg_input_current(void) {
 float mc_interface_read_reset_avg_id(void) {
 	float res = motor_now()->m_motor_id_sum / motor_now()->m_motor_id_iterations;
 	motor_now()->m_motor_id_sum = 0.0;
-	motor_now()->m_motor_id_iterations = 0.0;
+	motor_now()->m_motor_id_iterations = 0;
 	return res;
 }
 
@@ -1243,7 +1243,7 @@ float mc_interface_read_reset_avg_id(void) {
 float mc_interface_read_reset_avg_iq(void) {
 	float res = motor_now()->m_motor_iq_sum / motor_now()->m_motor_iq_iterations;
 	motor_now()->m_motor_iq_sum = 0.0;
-	motor_now()->m_motor_iq_iterations = 0.0;
+	motor_now()->m_motor_iq_iterations = 0;
 	return DIR_MULT * res;
 }
 
@@ -1256,7 +1256,7 @@ float mc_interface_read_reset_avg_iq(void) {
 float mc_interface_read_reset_avg_vd(void) {
 	float res = motor_now()->m_motor_vd_sum / motor_now()->m_motor_vd_iterations;
 	motor_now()->m_motor_vd_sum = 0.0;
-	motor_now()->m_motor_vd_iterations = 0.0;
+	motor_now()->m_motor_vd_iterations = 0;
 	return res;
 }
 
@@ -1269,7 +1269,7 @@ float mc_interface_read_reset_avg_vd(void) {
 float mc_interface_read_reset_avg_vq(void) {
 	float res = motor_now()->m_motor_vq_sum / motor_now()->m_motor_vq_iterations;
 	motor_now()->m_motor_vq_sum = 0.0;
-	motor_now()->m_motor_vq_iterations = 0.0;
+	motor_now()->m_motor_vq_iterations = 0;
 	return DIR_MULT * res;
 }
 

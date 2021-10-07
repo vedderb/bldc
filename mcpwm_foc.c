@@ -72,8 +72,8 @@ typedef struct {
 
 typedef struct {
 	int sample_num;
-	float avg_current_tot;
-	float avg_voltage_tot;
+	double avg_current_tot;
+	double avg_voltage_tot;
 } mc_sample_t;
 
 typedef struct {
@@ -1709,8 +1709,8 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 		}
 	}
 
-	const float current_avg = motor->m_samples.avg_current_tot / (float)motor->m_samples.sample_num;
-	const float voltage_avg = motor->m_samples.avg_voltage_tot / (float)motor->m_samples.sample_num;
+	const float current_avg = motor->m_samples.avg_current_tot / motor->m_samples.sample_num;
+	const float voltage_avg = motor->m_samples.avg_voltage_tot / motor->m_samples.sample_num;
 
 	// Stop
 	if (stop_after) {
@@ -1793,7 +1793,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	float l_sum = 0.0;
 	float ld_lq_diff_sum = 0.0;
 	float i_sum = 0.0;
-	float iterations = 0.0;
+	uint16_t iterations = 0;
 
 	for (int i = 0;i < (samples / 10);i++) {
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
@@ -2915,8 +2915,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		const volatile float id_tmp = motor->m_motor_state.id;
 		const volatile float iq_tmp = motor->m_motor_state.iq;
 
-		motor->m_samples.avg_current_tot += sqrtf(SQ(id_tmp) + SQ(iq_tmp));
-		motor->m_samples.avg_voltage_tot += sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
+		motor->m_samples.avg_current_tot += (double)sqrtf(SQ(id_tmp) + SQ(iq_tmp));
+		motor->m_samples.avg_voltage_tot += (double)sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
 		motor->m_samples.sample_num++;
 	}
 

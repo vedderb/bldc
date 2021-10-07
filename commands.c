@@ -837,13 +837,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bool ack = data[ind++];
 		bool divide_by_controllers = data[ind++];
 
-		float controller_num = 1.0;
+		uint16_t controller_num = 1;
 
 		if (divide_by_controllers) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-					controller_num += 1.0;
+					controller_num++;
 				}
 			}
 		}
@@ -1688,7 +1688,9 @@ static THD_FUNCTION(blocking_thread, arg) {
 				inductance = buffer_get_float32(data, 1e8, &ind);
 			}
 
-			float linkage, linkage_undriven, undriven_samples;
+			float linkage;
+			float linkage_undriven;
+			uint16_t undriven_samples;
 			bool res = conf_general_measure_flux_linkage_openloop(current, duty,
 					erpm_per_sec, resistance, inductance,
 					&linkage, &linkage_undriven, &undriven_samples);
