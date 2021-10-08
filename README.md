@@ -136,7 +136,7 @@ Clone and build the firmware
 ```bash
 git clone https://github.com/vedderb/bldc.git vesc_firmware
 cd vesc_firmware
-make
+make fw
 ```
 
 
@@ -157,8 +157,8 @@ Reminder : Remember to select your board in [**conf_general.h**]
 ```bash
 git clone https://github.com/vedderb/bldc.git vesc_firmware
 cd vesc_firmware
-#make build/your_firmware_name_here.bin
-make build/VESC_fw.bin 
+#PROJECT=your_firmware_name_here make fw
+PROJECT=VESC_fw make fw
 ```
 In VESC tool
 
