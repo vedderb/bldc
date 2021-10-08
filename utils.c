@@ -18,10 +18,7 @@
     */
 
 #include "utils.h"
-#include "ch.h"
 #include "hal.h"
-#include "app.h"
-#include "conf_general.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
