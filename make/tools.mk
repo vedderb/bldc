@@ -46,6 +46,34 @@ arm_sdk_clean:
 	$(V1) [ ! -d "$(ARM_SDK_DIR)" ] || $(RM) -r $(ARM_SDK_DIR)
 
 
+###############
+# Google Test #
+###############
+
+# Set up Google Test (gtest) tools
+GTEST_DIR       := $(TOOLS_DIR)/gtest-1.11.0
+
+.PHONY: gtest_install
+gtest_install: | $(DL_DIR) $(TOOLS_DIR)
+gtest_install: GTEST_URL  := https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip
+gtest_install: GTEST_FILE := $(notdir $(GTEST_URL))
+gtest_install: gtest_clean
+	# download the file unconditionally since google code gives back 404
+	# for HTTP HEAD requests which are used when using the wget -N option
+	$(V1) [ ! -f "$(DL_DIR)/$(GTEST_FILE)" ] || $(RM) -f "$(DL_DIR)/$(GTEST_FILE)"
+	$(V1) wget -P "$(DL_DIR)" "$(GTEST_URL)"
+
+	# extract the source
+	$(V1) [ ! -d "$(GTEST_DIR)" ] || $(RM) -rf "$(GTEST_DIR)"
+	$(V1) mkdir -p "$(GTEST_DIR)"
+	$(V1) unzip -q -d "$(TOOLS_DIR)" "$(DL_DIR)/$(GTEST_FILE)"
+
+.PHONY: gtest_clean
+gtest_clean:
+	$(V0) @echo " CLEAN        $(GTEST_DIR)"
+	$(V1) [ ! -d "$(GTEST_DIR)" ] || $(RM) -rf "$(GTEST_DIR)"
+
+
 ##############################
 #
 # Set up paths to tools
