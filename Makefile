@@ -67,6 +67,10 @@ help:
 	@echo "   [Tool Installers]"
 	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
 	@echo
+	@echo "   [Unit Tests]"
+	@echo "     all_ut               - Build all unit tests"
+	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
+	@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
 	@echo
 	@echo "   [Firmware]"
 	@echo "     fw   - Build firmware for default target"
@@ -121,3 +125,78 @@ debug-start:
 clean: 
 	$(V0) @echo " CLEAN      $$@"
 	$(V1) [ ! -d "$(BUILD_DIR)" ] || $(RM) -r "$(BUILD_DIR)"
+
+
+##############################
+#
+# Unit Tests
+#
+##############################
+
+ALL_UNITTESTS := utils
+
+UT_OUT_DIR := $(BUILD_DIR)/unit_tests
+
+$(UT_OUT_DIR):
+	$(V1) mkdir -p $@
+
+.PHONY: all_ut
+all_ut: $(addsuffix _elf, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
+
+.PHONY: all_ut_xml
+all_ut_xml: $(addsuffix _xml, $(addprefix ut_, $(ALL_UNITTESTS)))
+
+.PHONY: all_ut_run
+all_ut_run: $(addsuffix _run, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
+
+.PHONY: all_ut_gcov
+all_ut_gcov: | $(addsuffix _gcov, $(addprefix ut_, $(ALL_UNITTESTS)))
+
+.PHONY: all_ut_clean
+all_ut_clean:
+	$(V0) @echo " CLEAN      $@"
+	$(V1) [ ! -d "$(UT_OUT_DIR)" ] || $(RM) -r "$(UT_OUT_DIR)"
+
+# $(1) = Unit test name
+define UT_TEMPLATE
+.PHONY: ut_$(1)
+ut_$(1): ut_$(1)_run
+ut_$(1)_gcov: | ut_$(1)_xml
+
+ut_$(1)_%: TARGET=$(1)
+ut_$(1)_%: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
+ut_$(1)_%: UT_ROOT_DIR=$(ROOT_DIR)/tests/$(1)
+ut_$(1)_%: $$(UT_OUT_DIR)
+	$(V1) mkdir -p $(UT_OUT_DIR)/$(1)
+	$(V1) cd $$(UT_ROOT_DIR) && \
+		$$(MAKE) -r --no-print-directory \
+		BUILD_TYPE=ut \
+		TCHAIN_PREFIX="" \
+		REMOVE_CMD="$(RM)" \
+		\
+		MAKE_INC_DIR=$(MAKE_INC_DIR) \
+		ROOT_DIR=$(ROOT_DIR) \
+		TARGET=$$(TARGET) \
+		OUTDIR=$$(OUTDIR) \
+		\
+		GTEST_DIR=$(GTEST_DIR) \
+		\
+		$$*
+
+.PHONY: ut_$(1)_clean
+ut_$(1)_clean: TARGET=$(1)
+ut_$(1)_clean: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
+ut_$(1)_clean:
+	$(V0) @echo " CLEAN      $(1)"
+	$(V1) [ ! -d "$$(OUTDIR)" ] || $(RM) -r "$$(OUTDIR)"
+endef
+
+# Expand the unittest rules
+$(foreach ut, $(ALL_UNITTESTS), $(eval $(call UT_TEMPLATE,$(ut))))
+
+# Disable parallel make when the all_ut_run target is requested otherwise the TAP/XML
+# output is interleaved with the rest of the make output.
+ifneq ($(strip $(filter all_ut_run,$(MAKECMDGOALS))),)
+.NOTPARALLEL:
+$(info *NOTE*     Parallel make disabled by all_ut_run target so we have sane console output)
+endif
