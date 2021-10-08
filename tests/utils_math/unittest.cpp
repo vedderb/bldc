@@ -30,7 +30,10 @@ protected:
   }
 };
 
+
+//----------------------------------------
 // Test fixture for utils_norm_angle()
+//----------------------------------------
 class NormAngle_deg : public MiscMath {
 protected:
   virtual void SetUp() {
@@ -93,7 +96,10 @@ TEST_F(NormAngle_deg, ValAboveRange) {
    EXPECT_EQ(359, inputVal);
 }
 
+
+//----------------------------------------
 // Test fixture for utils_norm_angle_rad()
+//----------------------------------------
 class NormAngle_rad : public MiscMath {
 protected:
   virtual void SetUp() {
@@ -157,9 +163,9 @@ TEST_F(NormAngle_rad, ValBelowRange) {
    utils_norm_angle_rad(&inputVal);
    EXPECT_NEAR(-1, inputVal, eps);
 
-   inputVal = -3*M_PI+1;
+   inputVal = -3*M_PI-1;
    utils_norm_angle_rad(&inputVal);
-   EXPECT_NEAR(-M_PI+1, inputVal, eps);
+   EXPECT_NEAR(M_PI-1, inputVal, eps);
 }
 
 
