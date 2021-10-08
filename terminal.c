@@ -463,7 +463,7 @@ void terminal_process_string(char *str) {
 				double vq_avg = 0.0;
 				double rpm_avg = 0.0;
 				double iq_avg = 0.0;
-				uint16_t samples = 0;
+				int32_t samples = 0;
 				for (int i = 0;i < 1000;i++) {
 					vq_avg += (double)mcpwm_foc_get_vq();
 					rpm_avg += (double)mc_interface_get_rpm();
@@ -511,7 +511,7 @@ void terminal_process_string(char *str) {
 					erpm_per_sec > 0.0 && duty > 0.02 && res >= 0.0 && ind >= 0.0) {
 				float linkage;
 				float linkage_undriven;
-				uint16_t undriven_samples;
+				int32_t undriven_samples;
 
 				commands_printf("Measuring flux linkage...");
 				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,

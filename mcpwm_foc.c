@@ -1793,7 +1793,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	float l_sum = 0.0;
 	float ld_lq_diff_sum = 0.0;
 	float i_sum = 0.0;
-	uint16_t iterations = 0;
+	int32_t iterations = 0;
 
 	for (int i = 0;i < (samples / 10);i++) {
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {

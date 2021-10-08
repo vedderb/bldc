@@ -837,7 +837,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		bool ack = data[ind++];
 		bool divide_by_controllers = data[ind++];
 
-		uint16_t controller_num = 1;
+		int32_t controller_num = 1;
 
 		if (divide_by_controllers) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -1690,7 +1690,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			float linkage;
 			float linkage_undriven;
-			uint16_t undriven_samples;
+			int32_t undriven_samples;
 			bool res = conf_general_measure_flux_linkage_openloop(current, duty,
 					erpm_per_sec, resistance, inductance,
 					&linkage, &linkage_undriven, &undriven_samples);

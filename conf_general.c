@@ -559,7 +559,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	mcpwm_read_reset_avg_cycle_integrator();
 	tacho = mc_interface_get_tachometer_value(0);
 	double rpm_sum = 0.0;
-	uint16_t rpm_iterations = 0;
+	uint32_t rpm_iterations = 0;
 	for (int i = 0;i < 3000;i++) {
 		if ((mc_interface_get_tachometer_value(0) - tacho) < 100) {
 			rpm_sum += (double)mc_interface_get_rpm();
@@ -745,7 +745,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	double avg_voltage = 0.0;
 	double avg_rpm = 0.0;
 	double avg_current = 0.0;
-	uint16_t samples = 0.0;
+	int32_t samples = 0;
 	for (int i = 0;i < 2000;i++) {
 		avg_voltage += (double)(GET_INPUT_VOLTAGE() * mc_interface_get_duty_cycle_now());
 		avg_rpm += (double)mc_interface_get_rpm();
@@ -833,7 +833,7 @@ uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq
  */
 bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float erpm_per_sec, float res, float ind, float *linkage,
-		float *linkage_undriven, uint16_t *undriven_samples) {
+		float *linkage_undriven, int32_t *undriven_samples) {
 	bool result = false;
 
 	mc_configuration *mcconf = mempools_alloc_mcconf();
@@ -886,7 +886,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	}
 
 	double duty_still = 0;
-	uint16_t samples = 0;
+	int32_t samples = 0;
 	for (int i = 0;i < 1000;i++) {
 		duty_still += fabs(mc_interface_get_duty_cycle_now());
 		samples++;
@@ -939,7 +939,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		double vd_avg = 0.0;
 		double iq_avg = 0.0;
 		double id_avg = 0.0;
-		uint16_t samples2 = 0;
+		int32_t samples2 = 0;
 
 		for (int i = 0;i < 10000;i++) {
 			vq_avg += (double)mcpwm_foc_get_vq();
@@ -970,7 +970,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		chThdSleepMilliseconds(5);
 
 		double linkage_sum = 0.0;
-		uint16_t linkage_samples = 0;
+		int32_t linkage_samples = 0;
 		for (int i = 0;i < 20000;i++) {
 			float rad_s_now = mcpwm_foc_get_rpm_faster() * ((2.0 * M_PI) / 60.0);
 			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.01) {
@@ -1306,7 +1306,7 @@ static void measure_flux_linkage_task(void *arg) {
 
 	float linkage;
 	float linkage_undriven;
-	uint16_t undriven_samples;
+	int32_t undriven_samples;
 
 	args->result = conf_general_measure_flux_linkage_openloop(
 			args->current,
@@ -1499,7 +1499,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 	float lambda = 0.0;
 	float lambda_undriven = 0.0;
-	uint16_t lambda_undriven_samples = 0;
+	int32_t lambda_undriven_samples = 0;
 	int res = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
 			&lambda, &lambda_undriven, &lambda_undriven_samples);
 

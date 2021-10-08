@@ -80,7 +80,7 @@ static volatile unsigned int slow_ramping_cycles;
 static volatile int has_commutated;
 static volatile mc_rpm_dep_struct rpm_dep;
 static volatile float cycle_integrator_sum;
-static volatile uint16_t cycle_integrator_iterations;
+static volatile int32_t cycle_integrator_iterations;
 static volatile mc_configuration *conf;
 static volatile float pwm_cycles_sum;
 static volatile int pwm_cycles;
