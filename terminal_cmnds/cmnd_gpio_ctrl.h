@@ -17,27 +17,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef TERMINAL_H_
-#define TERMINAL_H_
+#ifndef CMND_GPIO_CTRL_H_
+#define CMND_GPIO_CTRL_H_
 
-#include "datatypes.h"
+#include "terminal.h"
+#include "commands.h"
+#include "mc_interface.h"
+#include "mcpwm.h"
 
 // Functions
-void terminal_process_string(char *str);
-void terminal_add_fault_data(fault_data *data);
-void terminal_register_command_callback(
-		const char* command,
-		const char *help,
-		const char *arg_names,
-		void(*cbf)(int argc, const char **argv));
-void terminal_unregister_callback(void(*cbf)(int argc, const char **argv));
+static void cmnd_processs_io_board_set_output_pwm(int id, int channel, float duty)
+{
+   if (id >= 0 && channel >= 0 && duty >= 0.0 && duty <= 1.0) {
+      comm_can_io_board_set_output_pwm(id, channel, duty);
+      commands_printf("OK\n");
+   } else {
+      commands_printf("Invalid arguments\n");
+   }
+}
 
-// Private types
-typedef struct _terminal_callback_struct {
-	const char *command;
-	const char *help;
-	const char *arg_names;
-	void(*cbf)(int argc, const char **argv);
-} terminal_callback_struct;
 
-#endif /* TERMINAL_H_ */
+static void cmnd_processs_io_board_set_output(int id, int channel, int state)
+{
+   if (id >= 0 && channel >= 0 && state >= 0) {
+      comm_can_io_board_set_output_digital(id, channel, state);
+      commands_printf("OK\n");
+   } else {
+      commands_printf("Invalid arguments\n");
+   }
+}
+
+
+#endif  // CMND_GPIO_CTRL_H_
