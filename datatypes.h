@@ -574,7 +574,8 @@ typedef enum {
 // PAS control types
 typedef enum {
 	PAS_CTRL_TYPE_NONE = 0,
-	PAS_CTRL_TYPE_CADENCE
+	PAS_CTRL_TYPE_CADENCE,
+	PAS_CTRL_TYPE_CONSTANT_TORQUE
 } pas_control_type;
 
 // PAS sensor types

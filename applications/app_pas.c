@@ -207,6 +207,9 @@ static THD_FUNCTION(pas_thread, arg) {
 					}
 				}
 				break;
+			case PAS_CTRL_TYPE_CONSTANT_TORQUE:
+				output = pedal_rpm > config.pedal_rpm_start ? config.current_scaling : 0;
+				break;
 			default:
 				break;
 		}
