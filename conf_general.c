@@ -873,7 +873,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	avg_current /= samples;
 	avg_voltage -= avg_current * res * 2.0;
 
-	*linkage = avg_voltage / (sqrtf(3.0) * (avg_rpm * RPM2RADPS_f));
+	*linkage = avg_voltage / (sqrtf(3.0) * RPM2RADPS_f(avg_rpm));
 
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
@@ -1065,7 +1065,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		iq_avg /= samples2;
 		id_avg /= samples2;
 
-		float rad_s = rpm_now * RPM2RADPS_f;
+		float rad_s = RPM2RADPS_f(rpm_now);
 		float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
 		float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
 		*linkage = (v_mag - (2.0 / 3.0) * res * i_mag) / rad_s - (2.0 / 3.0) * i_mag * ind;
@@ -1082,7 +1082,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float linkage_sum = 0.0;
 		float linkage_samples = 0.0;
 		for (int i = 0;i < 20000;i++) {
-			float rad_s_now = mcpwm_foc_get_rpm_faster() * RPM2RADPS_f;
+			float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
 			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.01) {
 				break;
 			}

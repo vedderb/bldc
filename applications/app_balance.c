@@ -622,10 +622,10 @@ static THD_FUNCTION(balance_thread, arg) {
 
 		// Get the values we want
 		last_pitch_angle = pitch_angle;
-		pitch_angle = imu_get_pitch() * RAD2DEG_f;
-		roll_angle = imu_get_roll() * RAD2DEG_f;
+		pitch_angle = RAD2DEG_f(imu_get_pitch());
+		roll_angle = RAD2DEG_f(imu_get_roll());
 		abs_roll_angle = fabsf(roll_angle);
-		abs_roll_angle_sin = sinf(abs_roll_angle * DEG2RAD_f);
+		abs_roll_angle_sin = sinf(DEG2RAD_f(abs_roll_angle));
 		imu_get_gyro(gyro);
 		duty_cycle = mc_interface_get_duty_cycle_now();
 		abs_duty_cycle = fabsf(duty_cycle);

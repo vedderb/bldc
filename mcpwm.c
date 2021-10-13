@@ -727,7 +727,7 @@ float mcpwm_get_switching_frequency_now(void) {
  */
 float mcpwm_get_rpm(void) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
-		return m_pll_speed * RADPS2RPM_f;
+		return RADPS2RPM_f(m_pll_speed);
 	} else {
 		return direction ? rpm_now : -rpm_now;
 	}
@@ -2110,7 +2110,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	if (encoder_is_configured()) {
 		float pos = encoder_read_deg();
 		run_pid_control_pos(1.0 / switching_frequency_now, pos);
-		pll_run(-pos * DEG2RAD_f, 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
+		pll_run(-DEG2RAD_f(pos), 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
 	}
 
 	last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
@@ -2164,7 +2164,7 @@ float mcpwm_get_detect_pos(void) {
 	v2 /= amp;
 
 	float ph[1];
-	ph[0] = asinf(v0) * RAD2DEG_f;
+	ph[0] = RAD2DEG_f(asinf(v0));
 
 	float res = ph[0];
 	if (v1 < v2) {

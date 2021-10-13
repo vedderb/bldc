@@ -334,7 +334,7 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	roll_sample = roll_sample / 250;
 
 	// Set roll rotations to level out roll axis
-	m_settings.rot_roll = -roll_sample * RAD2DEG_f;
+	m_settings.rot_roll = -RAD2DEG_f(roll_sample);
 
 	// Rotate gyro offsets to match new IMU orientation
 	float rotation1[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
@@ -353,7 +353,7 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	pitch_sample = pitch_sample / 250;
 
 	// Set pitch rotation to level out pitch axis
-	m_settings.rot_pitch = pitch_sample * RAD2DEG_f;
+	m_settings.rot_pitch = RAD2DEG_f(pitch_sample);
 
 	// Rotate imu offsets to match
 	float rotation2[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
@@ -445,12 +445,12 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 
 	// Rotate axes (ZYX)
 
-	float s1 = sinf(m_settings.rot_yaw * DEG2RAD_f);
-	float c1 = cosf(m_settings.rot_yaw * DEG2RAD_f);
-	float s2 = sinf(m_settings.rot_pitch * DEG2RAD_f);
-	float c2 = cosf(m_settings.rot_pitch * DEG2RAD_f);
-	float s3 = sinf(m_settings.rot_roll * DEG2RAD_f);
-	float c3 = cosf(m_settings.rot_roll * DEG2RAD_f);
+	float s1 = sinf(DEG2RAD_f(m_settings.rot_yaw));
+	float c1 = cosf(DEG2RAD_f(m_settings.rot_yaw));
+	float s2 = sinf(DEG2RAD_f(m_settings.rot_pitch));
+	float c2 = cosf(DEG2RAD_f(m_settings.rot_pitch));
+	float s3 = sinf(DEG2RAD_f(m_settings.rot_roll));
+	float c3 = cosf(DEG2RAD_f(m_settings.rot_roll));
 
 	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
 	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
@@ -475,9 +475,9 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	}
 
 	float gyro_rad[3];
-	gyro_rad[0] = m_gyro[0] * DEG2RAD_f;
-	gyro_rad[1] = m_gyro[1] * DEG2RAD_f;
-	gyro_rad[2] = m_gyro[2] * DEG2RAD_f;
+	gyro_rad[0] = DEG2RAD_f(m_gyro[0]);
+	gyro_rad[1] = DEG2RAD_f(m_gyro[1]);
+	gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
 
 	switch (m_settings.mode) {
 		case AHRS_MODE_MADGWICK:
@@ -508,12 +508,12 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 
 void rotate(float *input, float *rotation, float *output) {
 	// Rotate imu offsets to match
-	float s1 = sinf(rotation[2] * DEG2RAD_f);
-	float c1 = cosf(rotation[2] * DEG2RAD_f);
-	float s2 = sinf(rotation[1] * DEG2RAD_f);
-	float c2 = cosf(rotation[1] * DEG2RAD_f);
-	float s3 = sinf(rotation[0] * DEG2RAD_f);
-	float c3 = cosf(rotation[0] * DEG2RAD_f);
+	float s1 = sinf(DEG2RAD_f(rotation[2]));
+	float c1 = cosf(DEG2RAD_f(rotation[2]));
+	float s2 = sinf(DEG2RAD_f(rotation[1]));
+	float c2 = cosf(DEG2RAD_f(rotation[1]));
+	float s3 = sinf(DEG2RAD_f(rotation[0]));
+	float c3 = cosf(DEG2RAD_f(rotation[0]));
 
 	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
 	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;

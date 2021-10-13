@@ -483,7 +483,7 @@ void terminal_process_string(char *str) {
 				rpm_avg /= samples;
 				iq_avg /= samples;
 
-				float linkage = (vq_avg - res * iq_avg) / (rpm_avg * RPM2RADPS_f);
+				float linkage = (vq_avg - res * iq_avg) / RPM2RADPS_f(rpm_avg);
 
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {

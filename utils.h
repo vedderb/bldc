@@ -82,10 +82,12 @@ const char* utils_hw_type_to_string(HW_TYPE hw);
 #define UTILS_NAN_ZERO(x)	(x = UTILS_IS_NAN(x) ? 0.0 : x)
 
 // Handy conversions for radians/degrees and RPM/radians-per-second
-#define DEG2RAD_f ((float)(M_PI / 180.0))
-#define RAD2DEG_f ((float)(180.0 / M_PI))
-#define RPM2RADPS_f ((float)((2.0 * M_PI) / 60.0))
-#define RADPS2RPM_f ((float)(60.0 / (2.0 * M_PI)))
+#define DEG2RAD_f(deg) ((deg) * (float)(M_PI / 180.0))
+#define RAD2DEG_f(rad) ((rad) * (float)(180.0 / M_PI))
+#define RPM2RADPS_f(rpm) ((rpm) * (float)((2.0 * M_PI) / 60.0))
+#define RADPS2RPM_f(rad_per_sec) ((rad_per_sec) * (float)(60.0 / (2.0 * M_PI)))
+
+
 
 
 /**
