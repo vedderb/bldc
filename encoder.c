@@ -548,7 +548,7 @@ float encoder_read_deg(void) {
 				UTILS_LP_FAST(sincos_signal_above_max_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
 				UTILS_LP_FAST(sincos_signal_low_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
 
-				float angle_tmp = utils_fast_atan2(sin, cos) * 180.0 / M_PI;
+				float angle_tmp = utils_fast_atan2(sin, cos) * RAD2DEG_f;
 				UTILS_LP_FAST(angle, angle_tmp, sincos_filter_constant);
 				last_enc_angle = angle;
 			}

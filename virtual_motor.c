@@ -159,7 +159,7 @@ bool virtual_motor_is_connected(void){
 }
 
 float virtual_motor_get_angle_deg(void){
-	return (virtual_motor.phi * 180.0 / M_PI);
+	return (virtual_motor.phi * RAD2DEG_f);
 }
 
 //Private Functions
@@ -214,7 +214,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 																							GET_GATE_DRIVER_SUPPLY_VOLTAGE();
 		}
 #endif
-		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;
+		virtual_motor.phi = mcpwm_foc_get_phase() * DEG2RAD_f;
 		utils_fast_sincos_better(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
 														(float*)&virtual_motor.cos_phi);
 
