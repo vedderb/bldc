@@ -132,6 +132,7 @@ bool nrf51_probe(target *t)
 	case 0x008F: /* nRF51822 (rev 3) QFAA H1 See https://devzone.nordicsemi.com/question/97769/can-someone-conform-the-config-id-code-for-the-nrf51822qfaah1/ */
 	case 0x00D1: /* nRF51822 (rev 3) QFAA H2 */
 	case 0x0114: /* nRF51802 (rev ?) QFAA A1 */
+	case 0x0138: /* nRF51822 (rev 3) QFAA H3 */
 		t->driver = "Nordic nRF51";
 		target_add_ram(t, 0x20000000, 0x4000);
 		nrf51_add_flash(t, 0x00000000, 0x40000, NRF51_PAGE_SIZE);
@@ -169,8 +170,9 @@ bool nrf51_probe(target *t)
 	case 0x00C7: /* nRF52832 (rev 1) QFAA B00 */
 	case 0x00E3: /* nRF52832 (rev 1) CIAA B?? */
 	case 0x0139: /* nRF52832 (rev 2) ??AA B?0 */
-	case 0x014F: /* nRF52832 (rev 2) CIAA E1  */
 	case 0x0141: /* nRF52832 ?? */
+	case 0x0147: /* nRF52832 (rev 2) QFAA E1  */
+	case 0x014F: /* nRF52832 (rev 2) CIAA E1  */
 		t->driver = "Nordic nRF52";
 		target_add_ram(t, 0x20000000, 64*1024);
 		nrf51_add_flash(t, 0x00000000, 512*1024, NRF52_PAGE_SIZE);
