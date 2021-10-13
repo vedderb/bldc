@@ -1,6 +1,9 @@
 *~
 
 build
+tools
+downloads
+
 .dep
 .project
 .cproject
