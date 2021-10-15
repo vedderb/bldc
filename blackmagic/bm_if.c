@@ -109,6 +109,7 @@ static int idcode_to_device(uint32_t idcode) {
 	case 0x008F: /* nRF51822 (rev 3) QFAA H1 See https://devzone.nordicsemi.com/question/97769/can-someone-conform-the-config-id-code-for-the-nrf51822qfaah1/ */
 	case 0x00D1: /* nRF51822 (rev 3) QFAA H2 */
 	case 0x0114: /* nRF51802 (rev ?) QFAA A1 */
+	case 0x0138: /* nRF51822 (rev 3) QFAA H3 */
 		ret = 3; break;
 	case 0x0026: /* nRF51822 (rev 1) QFAB AA */
 	case 0x0027: /* nRF51822 (rev 1) QFAB A0 */
@@ -131,8 +132,9 @@ static int idcode_to_device(uint32_t idcode) {
 	case 0x00C7: /* nRF52832 (rev 1) QFAA B00 */
 	case 0x00E3: /* nRF52832 (rev 1) CIAA B?? */
 	case 0x0139: /* nRF52832 (rev 2) ??AA B?0 */
-	case 0x014F: /* nRF52832 (rev 2) CIAA E1  */
 	case 0x0141: /* nRF52832 ?? */
+	case 0x0147: /* nRF52832 (rev 2) QFAA E1  */
+	case 0x014F: /* nRF52832 (rev 2) CIAA E1  */
 		ret = 7; break;
 	case 0x00EB: /* nRF52840 Preview QIAA AA0 */
 	case 0x0150: /* nRF52840 QIAA C0 */
