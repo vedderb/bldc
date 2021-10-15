@@ -137,6 +137,35 @@
 #define ADC_IND_SHUTDOWN		10
 #endif
 
+// -------- Current sensor test
+#if 0
+
+#undef ADC_IND_CURR1
+#undef ADC_IND_CURR2
+#undef ADC_IND_CURR3
+#undef CURRENT_FILTER_ON
+#undef CURRENT_FILTER_OFF
+
+#define CURRENT_FILTER_OFF()	palClearPad(HW_UART_RX_PORT, HW_UART_RX_PIN)
+#define CURRENT_FILTER_ON()		palClearPad(HW_UART_RX_PORT, HW_UART_RX_PIN)
+
+#define ADC_IND_CURR1			6
+#define ADC_IND_CURR2			7
+#define ADC_IND_CURR3			10
+
+#define HW_EARLY_INIT()			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								palSetPad(HW_UART_TX_PORT, HW_UART_TX_PIN)
+
+#define CURRENT_SHUNT_RES		1
+#define CURRENT_AMP_GAIN		(2.22e-3 * (4.7 / (4.7 + 2.2)))
+
+#define APPCONF_APP_TO_USE		APP_NONE
+
+#endif
+
+// ----------------------------
+
 // ADC macros and settings
 
 // Component parameters (can be overridden)

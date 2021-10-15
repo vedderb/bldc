@@ -1068,7 +1068,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float rad_s = rpm_now * ((2.0 * M_PI) / 60.0);
 		float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
 		float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
-		*linkage = (v_mag - (2.0 / 3.0) * res * i_mag) / rad_s - (2.0 / 3.0) * i_mag * ind;
+		*linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
 
 		mcconf->foc_motor_r = res;
 		mcconf->foc_motor_l = ind;
@@ -1308,7 +1308,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 			return false;
 		}
 
-		if ((i * i * res_tmp) >= (max_power_loss / 3.0)) {
+		if ((i * i * res_tmp * 2.0) >= (max_power_loss / 5.0)) {
 			break;
 		}
 	}
@@ -1319,7 +1319,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	mc_interface_set_configuration(mcconf);
 
 	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, 0) * 1e-6;
-	*i_max = sqrtf(max_power_loss / *r);
+	*i_max = sqrtf(max_power_loss / *r / 2.0);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
 
 	mcconf->foc_motor_r = res_old;

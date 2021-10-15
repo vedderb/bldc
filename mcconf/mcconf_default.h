@@ -72,7 +72,7 @@
 #define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
 #endif
 #ifndef MCCONF_L_SLOW_ABS_OVERCURRENT
-#define MCCONF_L_SLOW_ABS_OVERCURRENT	true	// Use the filtered (and hence slower) current for the overcurrent fault detection
+#define MCCONF_L_SLOW_ABS_OVERCURRENT	false	// Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
 #ifndef MCCONF_L_MIN_DUTY
 #define MCCONF_L_MIN_DUTY				0.005	// Minimum duty cycle

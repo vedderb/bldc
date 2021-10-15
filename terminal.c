@@ -1201,7 +1201,7 @@ void terminal_process_string(char *str) {
 
 		commands_printf("measure_linkage_openloop [current] [duty] [erpm_per_sec] [motor_res] [motor_ind]");
 		commands_printf("  Run the motor in openloop FOC and measure the flux linkage");
-		commands_printf("  example measure_linkage 5 0.5 1000 0.076 0.000015");
+		commands_printf("  example measure_linkage_openloop 5 0.5 1000 0.076 0.000015");
 		commands_printf("  tip: measure the resistance with measure_res first");
 
 		commands_printf("foc_state");

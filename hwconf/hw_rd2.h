@@ -255,34 +255,34 @@
 #define MCCONF_L_MAX_ABS_CURRENT		480.0
 #endif
 #ifndef MCCONF_L_RPM_MAX
-#define MCCONF_L_RPM_MAX				32000.0
+#define MCCONF_L_RPM_MAX				30000.0
 #endif
 #ifndef MCCONF_L_RPM_MIN
-#define MCCONF_L_RPM_MIN				-32000.0
+#define MCCONF_L_RPM_MIN				-30000.0
 #endif
 #ifndef MCCONF_L_RPM_START
-#define MCCONF_L_RPM_START				0.8
+#define MCCONF_L_RPM_START				0.9
 #endif
 #ifndef MCCONF_FOC_CURRENT_KP
-#define MCCONF_FOC_CURRENT_KP			0.0046
+#define MCCONF_FOC_CURRENT_KP			0.01
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI			8.0
+#define MCCONF_FOC_CURRENT_KI			6.0
 #endif
 #ifndef MCCONF_FOC_F_SW
 #define MCCONF_FOC_F_SW					30000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L				2.32e-6
+#define MCCONF_FOC_MOTOR_L				5.0e-6
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R				0.004
+#define MCCONF_FOC_MOTOR_R				0.0024
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00805
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00796
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN		15.0e6
+#define MCCONF_FOC_OBSERVER_GAIN		6.0e6
 #endif
 
 // Setup Info

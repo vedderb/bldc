@@ -1784,7 +1784,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
 
-	return (voltage_avg / current_avg) * (2.0 / 3.0);
+	return voltage_avg / current_avg;
 }
 
 /**
@@ -1821,15 +1821,19 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	stop_pwm_hw(motor);
 
 	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
-	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0);
-	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0);
-	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered();
+	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered();
+	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered();
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
 	motor->m_conf->foc_sample_v0_v7 = false;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
 	motor->m_conf->foc_sample_high_current = false;
 
-	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+	if (motor->m_conf->foc_f_sw > 30.0e3) {
+		motor->m_conf->foc_f_sw = 30.0e3;
+	}
+
+	mcpwm_foc_set_configuration(motor->m_conf);
 
 	chThdSleepMilliseconds(1);
 
@@ -1873,7 +1877,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 			motor->m_conf->foc_hfi_samples = samples_old;
 			motor->m_conf->foc_sample_high_current = sample_high_current_old;
 
-			update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+			mcpwm_foc_set_configuration(motor->m_conf);
 
 			mc_interface_unlock();
 
@@ -1893,7 +1897,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer_current, &real_bin0_i, &imag_bin0_i);
 
 		l_sum += real_bin0;
-		ld_lq_diff_sum += 2.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
+		ld_lq_diff_sum += 4.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
 		i_sum += real_bin0_i;
 
 		iterations++;
@@ -1911,7 +1915,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	motor->m_conf->foc_hfi_samples = samples_old;
 	motor->m_conf->foc_sample_high_current = sample_high_current_old;
 
-	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+	mcpwm_foc_set_configuration(motor->m_conf);
 
 	mc_interface_unlock();
 
@@ -1920,10 +1924,10 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	}
 
 	if (ld_lq_diff) {
-		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * (2.0 / 3.0);
+		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6;
 	}
 
-	return (l_sum / iterations) * 1e6 * (2.0 / 3.0);
+	return (l_sum / iterations) * 1e6;
 }
 
 /**
@@ -3541,8 +3545,8 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 
 	volatile mc_configuration *conf_now = motor->m_conf;
 
-	const float L = (3.0 / 2.0) * conf_now->foc_motor_l;
-	float R = (3.0 / 2.0) * conf_now->foc_motor_r;
+	const float L = conf_now->foc_motor_l;
+	float R = conf_now->foc_motor_r;
 
 	// Saturation compensation
 	const float sign = (motor->m_motor_state.iq * motor->m_motor_state.vq) >= 0.0 ? 1.0 : -1.0;
@@ -3722,8 +3726,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
-			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq * (3.0 / 2.0);
-			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld * (3.0 / 2.0);
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq;
+			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld;
 			break;
 
 		case FOC_CC_DECOUPLING_BEMF:
@@ -3731,8 +3735,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			break;
 
 		case FOC_CC_DECOUPLING_CROSS_BEMF:
-			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq * (3.0 / 2.0);
-			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld * (3.0 / 2.0);
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq;
+			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld;
 			dec_bemf = motor->m_speed_est_fast * conf_now->foc_motor_flux_linkage;
 			break;
 
@@ -3794,18 +3798,17 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 									conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
 		}
 
-		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * (2.0 / 3.0) * 0.9);
+		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * 0.9);
 
 		if (motor->m_hfi.is_samp_n) {
 			float sample_now = (utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
 					utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta);
-			float current_sample = sample_now - motor->m_hfi.prev_sample;
+			float di = (sample_now - motor->m_hfi.prev_sample);
 
-			motor->m_hfi.buffer_current[motor->m_hfi.ind] = current_sample;
+			motor->m_hfi.buffer_current[motor->m_hfi.ind] = di;
 
-			if (current_sample > 0.01) {
-				motor->m_hfi.buffer[motor->m_hfi.ind] = ((hfi_voltage / 2.0 - conf_now->foc_motor_r *
-						current_sample) / (conf_now->foc_f_sw * current_sample));
+			if (di > 0.01) {
+				motor->m_hfi.buffer[motor->m_hfi.ind] = ((hfi_voltage / 2.0 - conf_now->foc_motor_r * di) / (conf_now->foc_f_sw * di));
 			}
 
 			motor->m_hfi.ind++;
@@ -3814,14 +3817,14 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 				motor->m_hfi.ready = true;
 			}
 
-			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
-			mod_beta_tmp -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
+			mod_beta_tmp -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
 		} else {
 			motor->m_hfi.prev_sample = utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
 					utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
 
-			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
-			mod_beta_tmp += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
+			mod_beta_tmp += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
 		}
 
 		utils_saturate_vector_2d(&mod_alpha_tmp, &mod_beta_tmp, SQRT3_BY_2 * 0.95);
@@ -4597,8 +4600,8 @@ static void terminal_tmp(int argc, const char **argv) {
 //		float linkage = conf_now->foc_motor_flux_linkage;
 		float linkage = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
 
-		rpm_est += (motor_state->vq - (3.0 / 2.0) * R * motor_state->iq) / linkage;
-		res_est += -(motor_state->speed_rad_s * linkage - motor_state->vq) / (motor_state->iq * (3.0 / 2.0));
+		rpm_est += (motor_state->vq - R * motor_state->iq) / linkage;
+		res_est += -(motor_state->speed_rad_s * linkage - motor_state->vq) / motor_state->iq;
 		samples += 1.0;
 
 		chThdSleep(1);

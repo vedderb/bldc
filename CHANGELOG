@@ -34,6 +34,11 @@
 * Added several AUX port modes.
 * Added configurable safe start modes.
 * Added fusion IMU filter.
+* Added constant torque PAS mode.
+* Correct scaling for resistance and inductance.
+* Fixed inductance measurement bug with f_sw > 30k.
+* Corrected inductance measurement algorithm.
+* Fixed max power loss calculation.
 
 === FW 5.02 ===
 * IMU calibration improvement.

@@ -27,7 +27,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 #define HW_HAS_SI8900
 
 // Macros
@@ -93,6 +93,28 @@
 #define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
+
+// -------- Current sensor test
+#if 1
+
+#undef ADC_IND_CURR1
+#undef ADC_IND_CURR2
+#undef ADC_IND_CURR3
+#undef CURRENT_FILTER_ON
+#undef CURRENT_FILTER_OFF
+
+#define ADC_IND_CURR1			6
+#define ADC_IND_CURR2			7
+#define ADC_IND_CURR3			10
+
+#define CURRENT_SHUNT_RES		1
+#define CURRENT_AMP_GAIN		(2.22e-3 * (4.7 / (4.7 + 2.2)))
+
+#define APPCONF_APP_TO_USE		APP_NONE
+
+#endif
+
+// ----------------------------
 
 // ADC macros and settings
 
