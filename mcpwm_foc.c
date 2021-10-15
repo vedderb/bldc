@@ -949,7 +949,7 @@ void mcpwm_foc_set_openloop(float current, float rpm) {
 
 	motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP;
 	motor_now()->m_iq_set = current;
-	motor_now()->m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+	motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
 
 	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
 		return;
@@ -976,7 +976,7 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 	motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_PHASE;
 	motor_now()->m_iq_set = current;
 
-	motor_now()->m_openloop_phase = phase * M_PI / 180.0;
+	motor_now()->m_openloop_phase = DEG2RAD_f(phase);
 	utils_norm_angle_rad((float*)&motor_now()->m_openloop_phase);
 
 	if (fabsf(current) < motor_now()->m_conf->cc_min_current) {
@@ -1051,7 +1051,7 @@ void mcpwm_foc_get_voltage_offsets_undriven(
 void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
 	motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY;
 	motor_now()->m_duty_cycle_set = dutyCycle;
-	motor_now()->m_openloop_speed = rpm * ((2.0 * M_PI) / 60.0);
+	motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
 		motor_now()->m_state = MC_STATE_RUNNING;
@@ -1070,7 +1070,7 @@ void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
 void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
 	motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 	motor_now()->m_duty_cycle_set = dutyCycle;
-	motor_now()->m_openloop_phase = phase * M_PI / 180.0;
+	motor_now()->m_openloop_phase = DEG2RAD_f(phase);
 	utils_norm_angle_rad((float*)&motor_now()->m_openloop_phase);
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
@@ -1197,22 +1197,22 @@ mc_state mcpwm_foc_get_state_motor(bool is_second_motor) {
  * The RPM value.
  */
 float mcpwm_foc_get_rpm(void) {
-	return motor_now()->m_motor_state.speed_rad_s / ((2.0 * M_PI) / 60.0);
-	//	return motor_now()->m_speed_est_fast / ((2.0 * M_PI) / 60.0);
+	return RADPS2RPM_f(motor_now()->m_motor_state.speed_rad_s);
+	//	return motor_now()->m_speed_est_fast * RADPS2RPM_f;
 }
 
 /**
  * Same as above, but uses the fast and noisier estimator.
  */
 float mcpwm_foc_get_rpm_fast(void) {
-	return motor_now()->m_speed_est_fast / ((2.0 * M_PI) / 60.0);
+	return RADPS2RPM_f(motor_now()->m_speed_est_fast);
 }
 
 /**
  * Same as above, but uses the faster and noisier estimator.
  */
 float mcpwm_foc_get_rpm_faster(void) {
-	return motor_now()->m_speed_est_faster / ((2.0 * M_PI) / 60.0);
+	return RADPS2RPM_f(motor_now()->m_speed_est_faster);
 }
 
 /**
@@ -1412,7 +1412,7 @@ int mcpwm_foc_get_tachometer_abs_value(bool reset) {
  * The phase angle in degrees.
  */
 float mcpwm_foc_get_phase(void) {
-	float angle = motor_now()->m_motor_state.phase * (180.0 / M_PI);
+	float angle = RAD2DEG_f(motor_now()->m_motor_state.phase);
 	utils_norm_angle(&angle);
 	return angle;
 }
@@ -1424,7 +1424,7 @@ float mcpwm_foc_get_phase(void) {
  * The phase angle in degrees.
  */
 float mcpwm_foc_get_phase_observer(void) {
-	float angle = motor_now()->m_phase_now_observer * (180.0 / M_PI);
+	float angle = RAD2DEG_f(motor_now()->m_phase_now_observer);
 	utils_norm_angle(&angle);
 	return angle;
 }
@@ -1436,7 +1436,7 @@ float mcpwm_foc_get_phase_observer(void) {
  * The phase angle in degrees.
  */
 float mcpwm_foc_get_phase_encoder(void) {
-	float angle = motor_now()->m_phase_now_encoder * (180.0 / M_PI);
+	float angle = RAD2DEG_f(motor_now()->m_phase_now_encoder);
 	utils_norm_angle(&angle);
 	return angle;
 }
@@ -1556,7 +1556,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)RAD2DEG_f(diff));
 		}
 
 		if (i > 3 && fabsf(utils_angle_difference_rad(motor->m_phase_now_encoder, first)) < fabsf(diff / 2.0)) {
@@ -1584,7 +1584,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)RAD2DEG_f(diff));
 		}
 
 		if (i > 3 && fabsf(utils_angle_difference_rad(motor->m_phase_now_encoder, first)) < fabsf(diff / 2.0)) {
@@ -1592,7 +1592,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		}
 	}
 
-	float diff = atan2f(s_sum, c_sum) * 180.0 / M_PI;
+	float diff = RAD2DEG_f(atan2f(s_sum, c_sum));
 	*inverted = diff < 0.0;
 	*ratio = roundf(((2.0 / 3.0) * 180.0) / fabsf(diff));
 
@@ -1636,7 +1636,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)RAD2DEG_f(angle_diff));
 		}
 	}
 
@@ -1658,11 +1658,11 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 		c_sum += c;
 
 		if (print) {
-			commands_printf("%.2f", (double)(angle_diff * 180.0 / M_PI));
+			commands_printf("%.2f", (double)RAD2DEG_f(angle_diff));
 		}
 	}
 
-	*offset = atan2f(s_sum, c_sum) * 180.0 / M_PI;
+	*offset = RAD2DEG_f(atan2f(s_sum, c_sum));
 
 	if (print) {
 		commands_printf("Avg: %.2f", (double)*offset);
@@ -2067,7 +2067,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	// Forwards
 	for (int i = 0;i < 3;i++) {
 		for (int j = 0;j < 360;j++) {
-			motor->m_phase_now_override = (float)j * M_PI / 180.0;
+			motor->m_phase_now_override = DEG2RAD_f(j);
 			chThdSleepMilliseconds(5);
 
 			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
@@ -2082,7 +2082,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	// Reverse
 	for (int i = 0;i < 3;i++) {
 		for (int j = 360;j >= 0;j--) {
-			motor->m_phase_now_override = (float)j * M_PI / 180.0;
+			motor->m_phase_now_override = DEG2RAD_f(j);
 			chThdSleepMilliseconds(5);
 
 			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
@@ -2109,7 +2109,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	int fails = 0;
 	for(int i = 0;i < 8;i++) {
 		if (hall_iterations[i] > 30) {
-			float ang = atan2f(sin_hall[i], cos_hall[i]) * 180.0 / M_PI;
+			float ang = RAD2DEG_f(atan2f(sin_hall[i], cos_hall[i]));
 			utils_norm_angle(&ang);
 			hall_table[i] = (uint8_t)(ang * 200.0 / 360.0);
 		} else {
@@ -2622,7 +2622,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		phase_tmp *= conf_now->foc_encoder_ratio;
 		phase_tmp -= conf_now->foc_encoder_offset;
 		utils_norm_angle((float*)&phase_tmp);
-		motor_now->m_phase_now_encoder = phase_tmp * (M_PI / 180.0);
+		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}
 
 	const float phase_diff = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before);
@@ -2933,11 +2933,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
-				if (fabsf(motor_now->m_pll_speed * (60.0 / (2.0 * M_PI))) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
+				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
 					motor_now->m_hfi.est_done_cnt = 0;
 					motor_now->m_hfi.flip_cnt = 0;
 				}
 			} break;
+
 			}
 
 			utils_fast_sincos_better(motor_now->m_motor_state.phase,
@@ -3038,7 +3039,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			angle_now = enc_ang;
 		}
 	} else {
-		angle_now = motor_now->m_motor_state.phase * (180.0 / M_PI);
+		angle_now = RAD2DEG_f(motor_now->m_motor_state.phase);
 	}
 
 	utils_norm_angle(&angle_now);
@@ -3231,16 +3232,16 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 
 	float add_min_speed = 0.0;
 	if (motor->m_motor_state.duty_now > 0.0) {
-		add_min_speed = ((openloop_rpm * 2.0 * M_PI) / 60.0) * dt;
+		add_min_speed = RPM2RADPS_f(openloop_rpm) * dt;
 	} else {
-		add_min_speed = -((openloop_rpm * 2.0 * M_PI) / 60.0) * dt;
+		add_min_speed = -RPM2RADPS_f(openloop_rpm) * dt;
 	}
 
 	// Open loop encoder angle for when the index is not found
 	motor->m_phase_now_encoder_no_index += add_min_speed;
 	utils_norm_angle_rad((float*)&motor->m_phase_now_encoder_no_index);
 
-	if (fabsf(motor->m_pll_speed) < ((openloop_rpm_max * 2.0 * M_PI) / 60.0) &&
+	if (fabsf(motor->m_pll_speed) < RPM2RADPS_f(openloop_rpm_max) &&
 			motor->m_min_rpm_hyst_timer < motor->m_conf->foc_sl_openloop_hyst) {
 		motor->m_min_rpm_hyst_timer += dt;
 	} else if (motor->m_min_rpm_hyst_timer > 0.0) {
@@ -3359,7 +3360,7 @@ static THD_FUNCTION(timer_thread, arg) {
 }
 
 static void hfi_update(volatile motor_all_state_t *motor) {
-	float rpm_abs = fabsf(motor->m_speed_est_fast * (60.0 / (2.0 * M_PI)));
+	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
 	if (rpm_abs > motor->m_conf->foc_sl_erpm_hfi) {
 		motor->m_hfi.angle = motor->m_phase_now_observer;
@@ -3659,7 +3660,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float s = state_m->phase_sin;
 	float c = state_m->phase_cos;
 
-	float abs_rpm = fabsf(motor->m_speed_est_fast * 60 / (2 * M_PI));
+	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
 	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) &&
@@ -4452,7 +4453,7 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 
 static float correct_encoder(float obs_angle, float enc_angle, float speed,
 							 float sl_erpm, volatile motor_all_state_t *motor) {
-	float rpm_abs = fabsf(speed / ((2.0 * M_PI) / 60.0));
+	float rpm_abs = fabsf(RADPS2RPM_f(speed));
 
 	// Hysteresis 5 % of total speed
 	float hyst = sl_erpm * 0.05;
@@ -4474,8 +4475,8 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 	motor->m_hall_dt_diff_now += dt;
 
 	float rad_per_sec = (M_PI / 3.0) / motor->m_hall_dt_diff_last;
-	float rpm_abs_fast = fabsf(motor->m_speed_est_fast / ((2.0 * M_PI) / 60.0));
-	float rpm_abs_hall = fabsf(rad_per_sec / ((2.0 * M_PI) / 60.0));
+	float rpm_abs_fast = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
+	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec));
 
 	// Hysteresis 5 % of total speed
 	float hyst = conf_now->foc_sl_erpm * 0.1;
@@ -4494,7 +4495,8 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 
 	// Only override the observer if the hall sensor value is valid.
 	if (ang_hall_int < 201) {
-		float ang_hall_now = (((float)ang_hall_int / 200.0) * 360.0) * M_PI / 180.0;
+		// Scale to the circle and convert to radians
+		float ang_hall_now = ((float)ang_hall_int / 200.0) * 2 * M_PI;
 
 		if (motor->m_ang_hall_int_prev < 0) {
 			// Previous angle not valid
@@ -4525,14 +4527,16 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 			// A transition was just made. The angle is in the middle of the new and old angle.
 			int ang_avg = motor->m_ang_hall_int_prev + diff / 2;
 			ang_avg %= 200;
-			motor->m_ang_hall = (((float)ang_avg / 200.0) * 360.0) * M_PI / 180.0;
+
+			// Scale to the circle and convert to radians
+			motor->m_ang_hall = ((float)ang_avg / 200.0) * 2 * M_PI;
 		}
 
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
-		if (((60.0 / (2.0 * M_PI)) * ((M_PI / 3.0) /
+		if (RADPS2RPM_f((M_PI / 3.0) /
 				fmaxf(fabsf(motor->m_hall_dt_diff_now),
-						fabsf(motor->m_hall_dt_diff_last)))) < conf_now->foc_hall_interp_erpm) {
+						fabsf(motor->m_hall_dt_diff_last))) < conf_now->foc_hall_interp_erpm) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;
