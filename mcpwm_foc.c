@@ -49,6 +49,8 @@ typedef struct {
 	float v_mag_filter;
 	float mod_alpha_filter;
 	float mod_beta_filter;
+	float mod_alpha_measured;
+	float mod_beta_measured;
 	float id_target;
 	float iq_target;
 	float max_duty;
@@ -1821,9 +1823,9 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	stop_pwm_hw(motor);
 
 	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
-	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered();
-	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered();
-	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered();
+	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
+	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
+	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
 	motor->m_conf->foc_sample_v0_v7 = false;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
@@ -3771,7 +3773,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 	state_m->i_bus = GET_INPUT_CURRENT();
 #else
-	state_m->i_bus = state_m->mod_d * state_m->id + state_m->mod_q * state_m->iq;
+	state_m->i_bus = state_m->mod_alpha_measured * state_m->i_alpha + state_m->mod_beta_measured * state_m->i_beta;
+	// TODO: Also calculate motor power based on v_alpha, v_beta, i_alpha and i_beta. This is much more accurate
+	// with phase filters than using the modulation and bus current.
 #endif
     state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
 	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
@@ -3799,7 +3803,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 									conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
 		}
 
-		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * 0.9);
+		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * SQRT3_BY_2 * 0.95 * 0.8);
 
 		if (motor->m_hfi.is_samp_n) {
 			float sample_now = (utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
@@ -3921,34 +3925,28 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 #endif
 #endif
 
-#ifdef HW_HAS_PHASE_FILTERS
-	// Skip dead-time compensation with phase filters enabled.
-	// TODO: Maybe just leave it enabled?
-	if (!conf_now->foc_phase_filter_enable) {
-#endif
-		// Deadtime compensation
-		float s = state_m->phase_sin;
-		float c = state_m->phase_cos;
-		const float i_alpha_filter = c * state_m->id_target - s * state_m->iq_target;
-		const float i_beta_filter = c * state_m->iq_target + s * state_m->id_target;
-		const float ia_filter = i_alpha_filter;
-		const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
-		const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
-		const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter) - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
-		const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
-		const float mod_comp_fact = conf_now->foc_dt_us * 1e-6 * conf_now->foc_f_sw;
-		const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
-		const float mod_beta_comp = mod_beta_filter_sgn * mod_comp_fact;
+	// Deadtime compensation
+	float s = state_m->phase_sin;
+	float c = state_m->phase_cos;
+	const float i_alpha_filter = c * state_m->id_filter - s * state_m->iq_filter;
+	const float i_beta_filter = c * state_m->iq_filter + s * state_m->id_filter;
+	const float ia_filter = i_alpha_filter;
+	const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
+	const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
+	const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter) - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
+	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
+	const float mod_comp_fact = conf_now->foc_dt_us * 1e-6 * conf_now->foc_f_sw;
+	const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
+	const float mod_beta_comp = mod_beta_filter_sgn * mod_comp_fact;
 
-		mod_alpha -= mod_alpha_comp;
-		mod_beta -= mod_beta_comp;
-#ifdef HW_HAS_PHASE_FILTERS
-	}
-#endif
+	mod_alpha -= mod_alpha_comp;
+	mod_beta -= mod_beta_comp;
 
 	state_m->va = Va;
 	state_m->vb = Vb;
 	state_m->vc = Vc;
+	state_m->mod_alpha_measured = mod_alpha;
+	state_m->mod_beta_measured = mod_beta;
 
 	float v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
 	float v_beta = ONE_BY_SQRT3 * Vb - ONE_BY_SQRT3 * Vc;
