@@ -621,7 +621,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mode = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
-		mc_interface_sample_print_data(mode, sample_len, decimation);
+
+		bool raw = false;
+		if (len > (uint32_t)ind) {
+			raw = data[ind++];
+		}
+
+		mc_interface_sample_print_data(mode, sample_len, decimation, raw);
 	} break;
 
 	case COMM_REBOOT:
