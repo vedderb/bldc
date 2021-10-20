@@ -292,6 +292,30 @@ make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd75.c\" -DHW_HEADER=\
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
+#################### HW A50S 6S ########################
+
+COPYDIR=A50S_6S
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_6S' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+#################### HW A50S 12S ########################
+
+COPYDIR=A50S_12S
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_12S' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
 #################### HW A200S 2.1 ########################
 
 COPYDIR=A200S_V21
