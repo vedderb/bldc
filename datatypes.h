@@ -304,6 +304,12 @@ typedef enum {
 	PID_RATE_10000_HZ,
 } PID_RATE;
 
+typedef enum {
+	MTPA_MODE_OFF = 0,
+	MTPA_MODE_IQ_TARGET,
+	MTPA_MODE_IQ_MEASURED
+} MTPA_MODE;
+
 typedef struct {
 	// Limits
 	float l_current_max;
@@ -415,7 +421,7 @@ typedef struct {
 	float foc_offsets_voltage_undriven[3];
 	bool foc_phase_filter_enable;
 	float foc_phase_filter_max_erpm;
-	bool foc_use_mtpa;
+	MTPA_MODE foc_mtpa_mode;
 	// Field Weakening
 	float foc_fw_current_max;
 	float foc_fw_duty_start;

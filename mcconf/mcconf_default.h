@@ -427,8 +427,8 @@
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
 #define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	4000.0 // Use phase filter up to this ERPM
 #endif
-#ifndef MCCONF_FOC_USE_MTPA
-#define MCCONF_FOC_USE_MTPA				false // Use maximum torque per amp (MTPA) algorithm
+#ifndef MCCONF_FOC_MTPA_MODE
+#define MCCONF_FOC_MTPA_MODE				MTPA_MODE_OFF // Maximum torque per amp (MTPA) algorithm mode
 #endif
 #ifndef MCCONF_FOC_FW_CURRENT_MAX
 #define MCCONF_FOC_FW_CURRENT_MAX		0.0 // Maximum field weakening current

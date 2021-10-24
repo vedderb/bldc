@@ -2041,8 +2041,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_state = MC_STATE_RUNNING;
 
 	// MTPA overrides id target
-	bool mtpa_old = motor->m_conf->foc_use_mtpa;
-	motor->m_conf->foc_use_mtpa = false;
+	MTPA_MODE mtpa_old = motor->m_conf->foc_mtpa_mode;
+	motor->m_conf->foc_mtpa_mode = MTPA_MODE_OFF;
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -2103,7 +2103,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_state = MC_STATE_OFF;
 	stop_pwm_hw(motor);
 
-	motor->m_conf->foc_use_mtpa = mtpa_old;
+	motor->m_conf->foc_mtpa_mode = mtpa_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c, tout_ksw);
@@ -2848,10 +2848,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
 		const float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
-		if (conf_now->foc_use_mtpa && ld_lq_diff != 0.0) {
+		if (conf_now->foc_mtpa_mode != MTPA_MODE_OFF && ld_lq_diff != 0.0) {
 			const float lambda = conf_now->foc_motor_flux_linkage;
 
-			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
+			float iq_ref = iq_set_tmp;
+			if (conf_now->foc_mtpa_mode == MTPA_MODE_IQ_MEASURED) {
+				iq_ref = motor_now->m_motor_state.iq_filter;
+			}
+
+			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_ref))) / (4.0 * ld_lq_diff);
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
