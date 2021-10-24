@@ -415,6 +415,7 @@ typedef struct {
 	float foc_offsets_voltage_undriven[3];
 	bool foc_phase_filter_enable;
 	float foc_phase_filter_max_erpm;
+	bool foc_use_mtpa;
 	// Field Weakening
 	float foc_fw_current_max;
 	float foc_fw_duty_start;

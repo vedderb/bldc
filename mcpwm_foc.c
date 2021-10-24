@@ -1823,9 +1823,9 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 	stop_pwm_hw(motor);
 
 	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
-	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
-	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
-	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered() * SQRT3_BY_2;
+	motor->m_conf->foc_hfi_voltage_start = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0) * SQRT3_BY_2;
+	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0) * SQRT3_BY_2;
+	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0) *SQRT3_BY_2;
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
 	motor->m_conf->foc_sample_v0_v7 = false;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
@@ -2041,8 +2041,8 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_state = MC_STATE_RUNNING;
 
 	// MTPA overrides id target
-	float ldiff_old = motor->m_conf->foc_motor_ld_lq_diff;
-	motor->m_conf->foc_motor_ld_lq_diff = 0.0;
+	bool mtpa_old = motor->m_conf->foc_use_mtpa;
+	motor->m_conf->foc_use_mtpa = false;
 
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
@@ -2103,7 +2103,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_state = MC_STATE_OFF;
 	stop_pwm_hw(motor);
 
-	motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+	motor->m_conf->foc_use_mtpa = mtpa_old;
 
 	// Enable timeout
 	timeout_configure(tout, tout_c, tout_ksw);
@@ -2848,7 +2848,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
 		const float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
-		if (ld_lq_diff != 0.0) {
+		if (conf_now->foc_use_mtpa && ld_lq_diff != 0.0) {
 			const float lambda = conf_now->foc_motor_flux_linkage;
 
 			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_set_tmp))) / (4.0 * ld_lq_diff);
@@ -3548,12 +3548,14 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 
 	volatile mc_configuration *conf_now = motor->m_conf;
 
-	const float L = conf_now->foc_motor_l;
 	float R = conf_now->foc_motor_r;
+	float L = conf_now->foc_motor_l;
+	float lambda = conf_now->foc_motor_flux_linkage;
 
 	// Saturation compensation
-	const float sign = (motor->m_motor_state.iq * motor->m_motor_state.vq) >= 0.0 ? 1.0 : -1.0;
-	R -= R * sign * conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
+	const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
+	L -= L * comp_fact;
+	lambda -= lambda * comp_fact;
 
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
@@ -3561,11 +3563,20 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
+	float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
+	float id = motor->m_motor_state.id;
+	float iq = motor->m_motor_state.iq;
+
+	// Adjust inductance for saliency.
+	if (fabsf(id) > 0.1 || fabsf(iq) > 0.1) {
+		L = L - ld_lq_diff / 2.0 + ld_lq_diff * SQ(iq) / (SQ(id) + SQ(iq));
+	}
+
 	const float L_ia = L * i_alpha;
 	const float L_ib = L * i_beta;
 	const float R_ia = R * i_alpha;
 	const float R_ib = R * i_beta;
-	const float lambda_2 = SQ(conf_now->foc_motor_flux_linkage);
+	const float lambda_2 = SQ(lambda);
 	const float gamma_half = motor->m_gamma_now * 0.5;
 
 	switch (conf_now->foc_observer_type) {
@@ -3803,7 +3814,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 									conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
 		}
 
-		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * SQRT3_BY_2 * 0.95 * 0.8);
+		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * (1.0 - fabsf(state_m->duty_now)) * SQRT3_BY_2 * (2.0 / 3.0) * 0.95);
 
 		if (motor->m_hfi.is_samp_n) {
 			float sample_now = (utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
@@ -3813,7 +3824,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			motor->m_hfi.buffer_current[motor->m_hfi.ind] = di;
 
 			if (di > 0.01) {
-				motor->m_hfi.buffer[motor->m_hfi.ind] = ((hfi_voltage / 2.0 - conf_now->foc_motor_r * di) / (conf_now->foc_f_sw * di));
+				motor->m_hfi.buffer[motor->m_hfi.ind] = hfi_voltage / (conf_now->foc_f_sw * di);
 			}
 
 			motor->m_hfi.ind++;
@@ -3822,14 +3833,14 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 				motor->m_hfi.ready = true;
 			}
 
-			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
-			mod_beta_tmp -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
+			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_beta_tmp -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
 		} else {
 			motor->m_hfi.prev_sample = utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
 					utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
 
-			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
-			mod_beta_tmp += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / state_m->v_bus;
+			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
+			mod_beta_tmp += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] / ((2.0 / 3.0) * state_m->v_bus);
 		}
 
 		utils_saturate_vector_2d(&mod_alpha_tmp, &mod_beta_tmp, SQRT3_BY_2 * 0.95);
