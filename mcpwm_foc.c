@@ -1899,8 +1899,10 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer_current, &real_bin0_i, &imag_bin0_i);
 
 		l_sum += real_bin0;
-		ld_lq_diff_sum += 4.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
 		i_sum += real_bin0_i;
+
+		// See https://vesc-project.com/comment/8338#comment-8338
+		ld_lq_diff_sum += 4.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
 
 		iterations++;
 	}
