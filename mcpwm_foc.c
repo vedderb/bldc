@@ -2843,7 +2843,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
 			}
 
-			utils_fast_sincos_better(motor_now->m_motor_state.phase,
+			_SinCos66_FP(motor_now->m_motor_state.phase,
 					(float*)&motor_now->m_motor_state.phase_sin,
 					(float*)&motor_now->m_motor_state.phase_cos);
 		}
@@ -2950,7 +2950,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			}
 
-			utils_fast_sincos_better(motor_now->m_motor_state.phase,
+			_SinCos66_FP(motor_now->m_motor_state.phase,
 					(float*)&motor_now->m_motor_state.phase_sin,
 					(float*)&motor_now->m_motor_state.phase_cos);
 		}
@@ -3296,7 +3296,7 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 
 		// Set observer state to help it start tracking when leaving open loop.
 		float s, c;
-		utils_fast_sincos_better(motor->m_phase_now_observer_override + SIGN(motor->m_motor_state.duty_now) * M_PI / 4.0, &s, &c);
+		_SinCos66_FP(motor->m_phase_now_observer_override + SIGN(motor->m_motor_state.duty_now) * M_PI / 4.0, &s, &c);
 		motor->m_observer_x1_override = c * motor->m_conf->foc_motor_flux_linkage;
 		motor->m_observer_x2_override = s * motor->m_conf->foc_motor_flux_linkage;
 	} else {
@@ -3421,7 +3421,7 @@ static void hfi_update(volatile motor_all_state_t *motor) {
 			if (motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) {
 				float s, c;
 				utils_norm_angle_rad(&angle_bin_2);
-				utils_fast_sincos_better(angle_bin_2, &s, &c);
+				_SinCos66_FP(angle_bin_2, &s, &c);
 				motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
 				motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
 			}

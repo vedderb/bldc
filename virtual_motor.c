@@ -215,7 +215,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 		}
 #endif
 		virtual_motor.phi = DEG2RAD_f(mcpwm_foc_get_phase());
-		utils_fast_sincos_better(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
+		_SinCos66_FP(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
 														(float*)&virtual_motor.cos_phi);
 
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
@@ -375,7 +375,7 @@ static inline void run_virtual_motor_mechanics(float ml){
  * Take the id and iq calculated values and translate them into ADC_Values
  */
 static inline void run_virtual_motor_park_clark_inverse( void ){
-	utils_fast_sincos_better( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
+	_SinCos66_FP( virtual_motor.phi , (float*)&virtual_motor.sin_phi,
 													(float*)&virtual_motor.cos_phi );
 
 	//	Park Inverse

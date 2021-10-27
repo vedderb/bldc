@@ -409,16 +409,17 @@ static THD_FUNCTION(switch_color_thread, arg) {
 	float switch_green = 0.0;
 	float switch_blue = 0.0;
 
-	for(int i = 0; i < 400; i++) {
-		float angle = i*3.14/400.0;
+   const int count = 400;
+	for(int i = 0; i < count; i++) {
+		float angle = i*M_PI/count;
 		float s,c;
-		utils_fast_sincos_better(angle, &s, &c);
+		_SinCos66_FP(angle, &s, &c);
 		switch_blue = 0.75* c*c;
 		ledpwm_set_intensity(LED_HW1,switch_bright*switch_blue);
-		utils_fast_sincos_better(angle + 3.14/3.0, &s, &c);
+		_SinCos66_FP(angle + M_PI/3.0, &s, &c);
 		switch_green = 0.75* c*c;
 		ledpwm_set_intensity(LED_HW2,switch_bright*switch_green);
-		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
+		_SinCos66_FP(angle + M_PI*2/3.0, &s, &c);
 		switch_red = 0.75* c*c;
 		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
 		chThdSleepMilliseconds(4);
