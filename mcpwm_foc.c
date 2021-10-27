@@ -2803,7 +2803,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				break;
 
 			case FOC_SENSOR_MODE_HFI:
-				if (fabsf(motor_now->m_speed_est_fast * (60.0 / (2.0 * M_PI))) > conf_now->foc_sl_erpm_hfi) {
+				if (fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) > conf_now->foc_sl_erpm_hfi) {
 					motor_now->m_hfi.observer_zero_time = 0;
 				} else {
 					motor_now->m_hfi.observer_zero_time += dt;
@@ -3976,7 +3976,7 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 		mod_beta = v_beta / ((2.0 / 3.0) * state_m->v_bus);
 	}
 
-	float abs_rpm = fabsf(motor->m_pll_speed * 60 / (2 * M_PI));
+	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_pll_speed));
 
 	float filter_const = 1.0;
 	if (abs_rpm < 10000.0) {
@@ -4630,7 +4630,7 @@ static void terminal_tmp(int argc, const char **argv) {
 	rpm_est /= samples;
 	res_est /= samples;
 
-	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(rpm_est / ((2.0 * M_PI) / 60.0)));
+	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(RADPS2RPM_f(rpm_est));
 	commands_printf("R: %.2f, EST: %.2f", (double)(R * 1000.0), (double)(res_est * 1000.0));
 }
 
