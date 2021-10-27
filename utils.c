@@ -835,6 +835,55 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 	}
 }
 
+
+/**
+ * @brief utils_moving_average_filter_f This is the classic CPU-efficicient implementation of a moving average filter. Rather than
+ * recompute the entire sum for i=k..k+N, it exploites the fact that the sum from i=k-1..k+N-1 is
+ * known from the previous iteration. Thus, all that remains is to do is remove val[k-1] and add
+ * val[k+N].
+ * @param val The fresh value
+ * @param filter_accum The summing accumulator (which will be divided by the number of samples in order to calculate the average)
+ * @param filter_buffer The ring buffer of filter samples
+ * @param filter_new_idx The index for the new sample
+ * @param isBufferFull Whether the buffer has reached capacity yet
+ * @param nominal_num_samples the nominal number of samples/taps in the filter
+ * @return the moving average
+ */
+float utils_moving_average_filter_f(float val, float *filter_accum, float *filter_buffer, uint32_t *filter_new_idx, bool *isBufferFull, uint32_t nominal_num_samples) {
+   uint32_t filter_old_idx = *filter_new_idx + 1;
+
+   // Wrap the index around the circular buffer
+   if (filter_old_idx >= nominal_num_samples) {
+      filter_old_idx = 0;
+
+      if (*isBufferFull == true) {
+         *isBufferFull = false;
+      }
+   }
+
+   // Store sample in buffer
+   filter_buffer[*filter_new_idx] = val;
+
+   // Add the newest value to the moving accumulator
+   *filter_accum += filter_buffer[*filter_new_idx];
+
+   // Remove the oldest value from the moving accumulator. Note that we are depending on the oldest values being 0 when this is first starting out
+   *filter_accum -= filter_buffer[filter_old_idx];
+
+   *filter_new_idx = filter_old_idx;
+
+   if (*isBufferFull == true) {
+      // This looks weird, and like we might even be able to accidentally divide by 0, but
+      //   that's ultimately not the case since `filter_old_idx` can only equal 0 at the same time
+      //   as isFirstLoop = false.
+      // This `if()` an important nuance because it keeps the filter from intializing incorrectly
+      //   from sum(i=1..1)/NUM_SAMPLES
+      return *filter_accum/filter_old_idx;
+   } else {
+      return *filter_accum/nominal_num_samples;
+   }
+}
+
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
 	1.000000, 0.980785, 0.923880, 0.831470, 0.707107, 0.555570, 0.382683, 0.195090,

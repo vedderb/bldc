@@ -66,6 +66,7 @@ float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
 const char* utils_hw_type_to_string(HW_TYPE hw);
+float utils_moving_average_filter_f(float val, float *filter_accum, float *filter_buffer, uint32_t *filter_new_idx, bool *isBufferFull, uint32_t max_filter_samples);
 
 // Return the sign of the argument. -1 if negative, 1 if zero or positive.
 #define SIGN(x)				((x < 0) ? -1 : 1)

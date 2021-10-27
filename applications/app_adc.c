@@ -128,21 +128,14 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		read_voltage = pwr;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a moving mean value filter
 		if (config.use_filter) {
-			static float filter_buffer[FILTER_SAMPLES];
-			static int filter_ptr = 0;
+			static float filter_buffer[FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
+			static uint32_t filter_current_idx = 0;
+			static float filtered_pwr_accum = 0;
+			static bool isBufferFull = true;
 
-			filter_buffer[filter_ptr++] = pwr;
-			if (filter_ptr >= FILTER_SAMPLES) {
-				filter_ptr = 0;
-			}
-
-			pwr = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				pwr += filter_buffer[i];
-			}
-			pwr /= FILTER_SAMPLES;
+			pwr = utils_moving_average_filter_f(pwr, &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
 		}
 
 		// Map the read voltage
@@ -432,19 +425,14 @@ static THD_FUNCTION(adc_thread, arg) {
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
 
-		// Filter RPM to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
+		// Apply a moving mean filter to RPM in order to avoid glitches
+		static float filter_buffer[RPM_FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
+		static uint32_t filter_current_idx = 0;
+		static float filtered_pwr_accum = 0;
+		static bool isBufferFull = true;
 
-		float rpm_filtered = 0.0;
-		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-			rpm_filtered += filter_buffer[i];
-		}
-		rpm_filtered /= RPM_FILTER_SAMPLES;
+		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
+
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
 			static float pid_rpm = 0.0;
