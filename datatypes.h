@@ -1309,4 +1309,15 @@ typedef struct __attribute__((packed)) {
 	uint64_t runtime; // Seconds
 } backup_data;
 
+typedef struct {
+   float *filter_buffer;  // Initialize to all 0s. This is important inside the filter.
+   uint32_t nominal_num_samples;  // the nominal number of samples/taps in the filter
+   float inv_nominal_num_samples;  // The inverse of the above, used to avoid a division operation
+   uint32_t current_idx;  // The index for the new sample
+   float accumulator;  // The summing accumulator (which will be divided by the number of samples in order to calculate the average)
+   bool isBufferFull;  // Whether the buffer has reached capacity yet
+} MovingMeanFilterObject;
+
+
+
 #endif /* DATATYPES_H_ */

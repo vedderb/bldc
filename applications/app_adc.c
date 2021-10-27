@@ -130,12 +130,18 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally apply a moving mean value filter
 		if (config.use_filter) {
-			static float filter_buffer[FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
-			static uint32_t filter_current_idx = 0;
-			static float filtered_pwr_accum = 0;
-			static bool isBufferFull = false;
+			static float pwrFilter_buffer[FILTER_SAMPLES] = { 0.0 };  // Initialize to all 0s. This is important insider the filter.
 
-			pwr = utils_moving_average_filter_f(pwr, &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
+			static MovingMeanFilterObject pwrFilterObj = {
+			   .filter_buffer = pwrFilter_buffer,
+			   .nominal_num_samples = FILTER_SAMPLES,
+			   .inv_nominal_num_samples = 1.0f/FILTER_SAMPLES,
+			   .current_idx = 0,
+			   .accumulator = 0,
+			   .isBufferFull = false
+			};
+
+			pwr = utils_moving_average_filter_f(pwr, &pwrFilterObj);
 		}
 
 		// Map the read voltage
@@ -185,21 +191,20 @@ static THD_FUNCTION(adc_thread, arg) {
 #endif
 		read_voltage2 = brake;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a moving mean value filter
 		if (config.use_filter) {
-			static float filter_buffer2[FILTER_SAMPLES];
-			static int filter_ptr2 = 0;
+			static float brakeFilter_buffer[FILTER_SAMPLES] = { 0.0 };  // Initialize to all 0s. This is important insider the filter.
 
-			filter_buffer2[filter_ptr2++] = brake;
-			if (filter_ptr2 >= FILTER_SAMPLES) {
-				filter_ptr2 = 0;
-			}
+			static MovingMeanFilterObject brakeFilterObj = {
+			   .filter_buffer = brakeFilter_buffer,
+			   .nominal_num_samples = FILTER_SAMPLES,
+			   .inv_nominal_num_samples = 1.0f/FILTER_SAMPLES,
+			   .current_idx = 0,
+			   .accumulator = 0,
+			   .isBufferFull = false
+			};
 
-			brake = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				brake += filter_buffer2[i];
-			}
-			brake /= FILTER_SAMPLES;
+			brake = utils_moving_average_filter_f(brake, &brakeFilterObj);
 		}
 
 		// Map and truncate the read voltage
@@ -426,12 +431,18 @@ static THD_FUNCTION(adc_thread, arg) {
 		static bool was_pid = false;
 
 		// Apply a moving mean filter to RPM in order to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
-		static uint32_t filter_current_idx = 0;
-		static float filtered_pwr_accum = 0;
-		static bool isBufferFull = false;
+		static float rpmFilter_buffer[RPM_FILTER_SAMPLES] = { 0.0 };  // Initialize to all 0s. This is important insider the filter.
 
-		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
+		static MovingMeanFilterObject rpmFilterObj = {
+		   .filter_buffer = rpmFilter_buffer,
+		   .nominal_num_samples = RPM_FILTER_SAMPLES,
+		   .inv_nominal_num_samples = 1.0f/RPM_FILTER_SAMPLES,
+		   .current_idx = 0,
+		   .accumulator = 0,
+		   .isBufferFull = false
+		};
+
+		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &rpmFilterObj);
 
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
