@@ -4612,7 +4612,7 @@ static void terminal_tmp(int argc, const char **argv) {
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
-	float omega_est = 0.0;
+	float omega_est = 0.0;  // Radians per second
 	float res_est = 0.0;
 	float samples = 0.0;
 
