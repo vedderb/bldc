@@ -837,7 +837,7 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 
 
 /**
- * @brief utils_moving_average_filter_f This is the classic CPU-efficicient implementation of a moving average filter. Rather than
+ * @brief utils_moving_average_filter_f This is the classic CPU-efficient implementation of a moving average filter. Rather than
  * recompute the entire sum for i=k..k+N, it exploites the fact that the sum from i=k-1..k+N-1 is
  * known from the previous iteration. Thus, all that remains is to do is remove val[k-1] and add
  * val[k+N].
@@ -856,8 +856,8 @@ float utils_moving_average_filter_f(float val, float *filter_accum, float *filte
    if (filter_old_idx >= nominal_num_samples) {
       filter_old_idx = 0;
 
-      if (*isBufferFull == true) {
-         *isBufferFull = false;
+      if (*isBufferFull == false) {
+         *isBufferFull = true;
       }
    }
 
@@ -872,7 +872,7 @@ float utils_moving_average_filter_f(float val, float *filter_accum, float *filte
 
    *filter_new_idx = filter_old_idx;
 
-   if (*isBufferFull == true) {
+   if (*isBufferFull == false) {
       // This looks weird, and like we might even be able to accidentally divide by 0, but
       //   that's ultimately not the case since `filter_old_idx` can only equal 0 at the same time
       //   as isFirstLoop = false.

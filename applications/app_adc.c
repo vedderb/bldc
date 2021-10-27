@@ -133,7 +133,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			static float filter_buffer[FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
 			static uint32_t filter_current_idx = 0;
 			static float filtered_pwr_accum = 0;
-			static bool isBufferFull = true;
+			static bool isBufferFull = false;
 
 			pwr = utils_moving_average_filter_f(pwr, &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
 		}
@@ -429,7 +429,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		static float filter_buffer[RPM_FILTER_SAMPLES];  // ANSI-C guarantees this will initialize to all 0s. This is important insider the filter.
 		static uint32_t filter_current_idx = 0;
 		static float filtered_pwr_accum = 0;
-		static bool isBufferFull = true;
+		static bool isBufferFull = false;
 
 		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &filtered_pwr_accum, filter_buffer, &filter_current_idx, &isBufferFull, FILTER_SAMPLES);
 
