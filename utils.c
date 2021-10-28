@@ -847,7 +847,7 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
  */
 float utils_moving_average_filter_f(const float val, MovingMeanFilterObject *filterObj, const bool isFilterOn) {
    // Set a magic value which represents that the filter is dirty and can't be used until the accumulator is reset
-   static const uint32_t MAGIC_DIRTY = 0xFFFFFFFF;
+   static const typeof(filterObj->accumulator.bytes) MAGIC_DIRTY = (typeof(filterObj->accumulator.bytes))UINT64_MAX;
 
    // Increment the index
    filterObj->current_idx++;
