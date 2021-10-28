@@ -837,47 +837,56 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 
 
 /**
- * @brief utils_moving_average_filter_f This is the classic CPU-efficient implementation of a moving average filter. Rather than
- * recompute the entire sum for i=k..k+N, it exploites the fact that the sum from i=k-1..k+N-1 is
- * known from the previous iteration. Thus, all that remains is to do is remove val[k-1] and add
- * val[k+N].
+ * @brief utils_moving_average_filter_f This is the classic CPU-efficient implementation of a moving
+ * average filter. Rather than recompute the entire sum for i=k..k+N, it exploites the fact that the
+ * sum from i=k-1..k+N-1 is known from the previous iteration. Thus, all that remains is to do is
+ * remove val[k-1] and add val[k+N].
  * @param val The fresh value to be added to the filter
  * @param filterObj A structure of the parameters needed for the filter. See the `struct`'s defintition for a description of the fields
- * @return the moving average
+ * @return If the filter is on AND the buffer is full it returns the moving average. Otherwise, returns the input value.
  */
-float utils_moving_average_filter_f(float val, MovingMeanFilterObject *filterObj) {
-   uint32_t filter_old_idx = filterObj->current_idx + 1;
+float utils_moving_average_filter_f(const float val, MovingMeanFilterObject *filterObj, const bool isFilterOn) {
+   // Set a magic value which represents that the filter is dirty and can't be used until the accumulator is reset
+   static const uint32_t MAGIC_DIRTY = 0xFFFFFFFF;
+
+   // Increment the index
+   filterObj->current_idx++;
 
    // Wrap the index around the circular buffer
-   if (filter_old_idx >= filterObj->nominal_num_samples) {
-      filter_old_idx = 0;
+   if (filterObj->current_idx >= filterObj->nominal_num_samples) {
+      filterObj->current_idx = 0;
+   }
 
-      if (filterObj->isBufferFull == false) {
-         filterObj->isBufferFull = true;
+   // Check if the filter is off.
+   if (isFilterOn == false) {
+      // See if we need to mark the accumulator as dirty
+      if (filterObj->accumulator.bytes != MAGIC_DIRTY) {
+         filterObj->accumulator.bytes = MAGIC_DIRTY;
+      }
+
+      // Store sample in buffer. This primes the buffer so that it turns it can turn on with minimal lag.
+      filterObj->filter_buffer[filterObj->current_idx] = val;
+
+      // Return the unmodified value
+      return val;
+   } else if (filterObj->accumulator.bytes == MAGIC_DIRTY) { // Check if the filter output is uninitialized
+      // Clobber the accumulator and recalculate it.
+      filterObj->accumulator.val = 0;
+      for (uint16_t i=0; i<filterObj->nominal_num_samples; i++) {
+         filterObj->accumulator.val += filterObj->filter_buffer[i];
       }
    }
+
+   // Remove the oldest value from the moving accumulator. Note that we are depending on the oldest values being 0 when this is first starting out
+   filterObj->accumulator.val -= filterObj->filter_buffer[filterObj->current_idx];
+
+   // Add the newest value to the moving accumulator
+   filterObj->accumulator.val += val;
 
    // Store sample in buffer
    filterObj->filter_buffer[filterObj->current_idx] = val;
 
-   // Add the newest value to the moving accumulator
-   filterObj->accumulator += filterObj->filter_buffer[filterObj->current_idx];
-
-   // Remove the oldest value from the moving accumulator. Note that we are depending on the oldest values being 0 when this is first starting out
-   filterObj->accumulator -= filterObj->filter_buffer[filter_old_idx];
-
-   filterObj->current_idx = filter_old_idx;
-
-   if (filterObj->isBufferFull == false) {
-      // This looks weird, and like we might even be able to accidentally divide by 0, but
-      //   that's ultimately not the case since `filter_old_idx` can only equal 0 at the same time
-      //   as isFirstLoop = false.
-      // This `if()` an important nuance because it keeps the filter from intializing incorrectly
-      //   from sum(i=1..1)/NUM_SAMPLES
-      return filterObj->accumulator/filter_old_idx;
-   } else {
-      return filterObj->accumulator * filterObj->inv_nominal_num_samples;
-   }
+   return filterObj->accumulator.val * filterObj->inv_nominal_num_samples;
 }
 
 const float utils_tab_sin_32_1[] = {

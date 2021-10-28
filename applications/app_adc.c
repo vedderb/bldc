@@ -129,19 +129,18 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage = pwr;
 
 		// Optionally apply a moving mean value filter
-		if (config.use_filter) {
+		{
 			static float pwrFilter_buffer[FILTER_SAMPLES] = { 0.0 };  // Initialize to all 0s. This is important insider the filter.
 
 			static MovingMeanFilterObject pwrFilterObj = {
-			   .filter_buffer = pwrFilter_buffer,
-			   .nominal_num_samples = FILTER_SAMPLES,
-			   .inv_nominal_num_samples = 1.0f/FILTER_SAMPLES,
-			   .current_idx = 0,
-			   .accumulator = 0,
-			   .isBufferFull = false
+				.filter_buffer = pwrFilter_buffer,
+				.nominal_num_samples = FILTER_SAMPLES,
+				.inv_nominal_num_samples = 1.0f/FILTER_SAMPLES,
+				.current_idx = 0,
+				.accumulator.val = 0,
 			};
 
-			pwr = utils_moving_average_filter_f(pwr, &pwrFilterObj);
+			pwr = utils_moving_average_filter_f(pwr, &pwrFilterObj, config.use_filter);
 		}
 
 		// Map the read voltage
@@ -192,7 +191,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		read_voltage2 = brake;
 
 		// Optionally apply a moving mean value filter
-		if (config.use_filter) {
+		{
 			static float brakeFilter_buffer[FILTER_SAMPLES] = { 0.0 };  // Initialize to all 0s. This is important insider the filter.
 
 			static MovingMeanFilterObject brakeFilterObj = {
@@ -200,11 +199,10 @@ static THD_FUNCTION(adc_thread, arg) {
 			   .nominal_num_samples = FILTER_SAMPLES,
 			   .inv_nominal_num_samples = 1.0f/FILTER_SAMPLES,
 			   .current_idx = 0,
-			   .accumulator = 0,
-			   .isBufferFull = false
+			   .accumulator.val = 0,
 			};
 
-			brake = utils_moving_average_filter_f(brake, &brakeFilterObj);
+			brake = utils_moving_average_filter_f(brake, &brakeFilterObj, config.use_filter);
 		}
 
 		// Map and truncate the read voltage
@@ -438,11 +436,10 @@ static THD_FUNCTION(adc_thread, arg) {
 		   .nominal_num_samples = RPM_FILTER_SAMPLES,
 		   .inv_nominal_num_samples = 1.0f/RPM_FILTER_SAMPLES,
 		   .current_idx = 0,
-		   .accumulator = 0,
-		   .isBufferFull = false
+		   .accumulator.val = 0,
 		};
 
-		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &rpmFilterObj);
+		float rpm_filtered = utils_moving_average_filter_f(mc_interface_get_rpm(), &rpmFilterObj, true);
 
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
