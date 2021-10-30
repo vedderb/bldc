@@ -2803,7 +2803,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				break;
 
 			case FOC_SENSOR_MODE_HFI:
-				if (fabsf(motor_now->m_speed_est_fast * (60.0 / (2.0 * M_PI))) > conf_now->foc_sl_erpm_hfi) {
+				if (fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) > conf_now->foc_sl_erpm_hfi) {
 					motor_now->m_hfi.observer_zero_time = 0;
 				} else {
 					motor_now->m_hfi.observer_zero_time += dt;
@@ -3976,7 +3976,7 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 		mod_beta = v_beta / ((2.0 / 3.0) * state_m->v_bus);
 	}
 
-	float abs_rpm = fabsf(motor->m_pll_speed * 60 / (2 * M_PI));
+	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_pll_speed));
 
 	float filter_const = 1.0;
 	if (abs_rpm < 10000.0) {
@@ -4612,7 +4612,7 @@ static void terminal_tmp(int argc, const char **argv) {
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
-	float rpm_est = 0.0;
+	float omega_est = 0.0;  // Radians per second
 	float res_est = 0.0;
 	float samples = 0.0;
 
@@ -4620,17 +4620,17 @@ static void terminal_tmp(int argc, const char **argv) {
 //		float linkage = conf_now->foc_motor_flux_linkage;
 		float linkage = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
 
-		rpm_est += (motor_state->vq - R * motor_state->iq) / linkage;
+		omega_est += (motor_state->vq - R * motor_state->iq) / linkage;
 		res_est += -(motor_state->speed_rad_s * linkage - motor_state->vq) / motor_state->iq;
 		samples += 1.0;
 
 		chThdSleep(1);
 	}
 
-	rpm_est /= samples;
+	omega_est /= samples;
 	res_est /= samples;
 
-	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(rpm_est / ((2.0 * M_PI) / 60.0)));
+	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(RADPS2RPM_f(omega_est));
 	commands_printf("R: %.2f, EST: %.2f", (double)(R * 1000.0), (double)(res_est * 1000.0));
 }
 
