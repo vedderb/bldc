@@ -121,28 +121,16 @@ static THD_FUNCTION(adc_thread, arg) {
 			ms_without_power = 0;
 		}
 
-		// Read the external ADC pin and convert the value to a voltage.
-		float pwr = (float)ADC_Value[ADC_IND_EXT];
-		pwr /= 4095;
-		pwr *= V_REG;
-
+		// Read the external ADC pin voltage
+		float pwr = ADC_VOLTS(ADC_IND_EXT);
 		read_voltage = pwr;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a filter
+		static float filter_val = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(filter_val, pwr, FILTER_SAMPLES);
+
 		if (config.use_filter) {
-			static float filter_buffer[FILTER_SAMPLES];
-			static int filter_ptr = 0;
-
-			filter_buffer[filter_ptr++] = pwr;
-			if (filter_ptr >= FILTER_SAMPLES) {
-				filter_ptr = 0;
-			}
-
-			pwr = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				pwr += filter_buffer[i];
-			}
-			pwr /= FILTER_SAMPLES;
+			pwr = filter_val;
 		}
 
 		// Map the read voltage
@@ -180,9 +168,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read the external ADC pin and convert the value to a voltage.
 #ifdef ADC_IND_EXT2
-		float brake = (float)ADC_Value[ADC_IND_EXT2];
-		brake /= 4095;
-		brake *= V_REG;
+		float brake = ADC_VOLTS(ADC_IND_EXT2);
 #else
 		float brake = 0.0;
 #endif
@@ -192,21 +178,12 @@ static THD_FUNCTION(adc_thread, arg) {
 #endif
 		read_voltage2 = brake;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a filter
+		static float filter_val_2 = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(filter_val_2, brake, FILTER_SAMPLES);
+
 		if (config.use_filter) {
-			static float filter_buffer2[FILTER_SAMPLES];
-			static int filter_ptr2 = 0;
-
-			filter_buffer2[filter_ptr2++] = brake;
-			if (filter_ptr2 >= FILTER_SAMPLES) {
-				filter_ptr2 = 0;
-			}
-
-			brake = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				brake += filter_buffer2[i];
-			}
-			brake /= FILTER_SAMPLES;
+			brake = filter_val_2;
 		}
 
 		// Map and truncate the read voltage
@@ -433,18 +410,8 @@ static THD_FUNCTION(adc_thread, arg) {
 		static bool was_pid = false;
 
 		// Filter RPM to avoid glitches
-		static float filter_buffer[RPM_FILTER_SAMPLES];
-		static int filter_ptr = 0;
-		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-			filter_ptr = 0;
-		}
-
-		float rpm_filtered = 0.0;
-		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-			rpm_filtered += filter_buffer[i];
-		}
-		rpm_filtered /= RPM_FILTER_SAMPLES;
+		static float rpm_filtered = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), RPM_FILTER_SAMPLES);
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
 			static float pid_rpm = 0.0;

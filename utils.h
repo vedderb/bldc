@@ -104,6 +104,16 @@ const char* utils_hw_type_to_string(HW_TYPE hw);
  */
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
 
+/**
+ * A fast approximation of a moving average filter with N samples. See
+ * https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
+ * https://en.wikipedia.org/wiki/Exponential_smoothing
+ *
+ * It is not entirely the same as it behaves like an IIR filter rather than a FIR filter, but takes
+ * much less memory and is much faster to run.
+ */
+#define UTILS_LP_MOVING_AVG_APPROX(value, sample, N)	UTILS_LP_FAST(value, sample, 2.0 / ((N) + 1.0))
+
 // Constants
 #define ONE_BY_SQRT3			(0.57735026919)
 #define TWO_BY_SQRT3			(2.0f * 0.57735026919)
