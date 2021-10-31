@@ -295,6 +295,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 #################### HW A50S 6S ########################
 
 COPYDIR=A50S_6S
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
@@ -307,6 +308,7 @@ cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 #################### HW A50S 12S ########################
 
 COPYDIR=A50S_12S
+mkdir -p $COPYDIR
 rm -f $COPYDIR/*
 
 # default
