@@ -154,7 +154,6 @@ typedef struct {
 	float m_phase_before;
 	float m_duty_abs_filtered;
 	float m_duty_filtered;
-	bool m_was_full_brake;
 	bool m_was_control_duty;
 	float m_duty_i_term;
 	float m_openloop_angle;
@@ -2670,13 +2669,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// the shorted mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
 				fabsf(motor_now->m_duty_filtered) < conf_now->l_min_duty * 1.5 &&
-				(motor_now->m_motor_state.i_abs * (motor_now->m_was_full_brake ? 1.0 : 1.5)) <
-				fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
+				motor_now->m_motor_state.i_abs < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
 			control_duty = true;
 			duty_set = 0.0;
-			motor_now->m_was_full_brake = true;
-		} else {
-			motor_now->m_was_full_brake = false;
 		}
 
 		// Brake when set ERPM is below min ERPM
