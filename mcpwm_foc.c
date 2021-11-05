@@ -3702,9 +3702,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float max_duty = fabsf(state_m->max_duty);
 	utils_truncate_number(&max_duty, 0.0, conf_now->l_max_duty);
 
+    // Park transform: transforms the currents from stator to the rotor reference frame  
 	state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
 	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
-	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
+	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const); //Low passed currents are used for less time critical parts, not for the feedback
 	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
 	float d_gain_scale = 1.0;
@@ -3725,7 +3726,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float Ierr_d = state_m->id_target - state_m->id;
 	float Ierr_q = state_m->iq_target - state_m->iq;
 
-	state_m->vd = state_m->vd_int + Ierr_d * conf_now->foc_current_kp * d_gain_scale;
+	state_m->vd = state_m->vd_int + Ierr_d * conf_now->foc_current_kp * d_gain_scale; //Feedback (PI controller). No D action needed because the plant is a first order system (tf = 1/(Ls+R))
 	state_m->vq = state_m->vq_int + Ierr_q * conf_now->foc_current_kp;
 
 	// Temperature compensation
@@ -3738,7 +3739,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	state_m->vd_int += Ierr_d * (ki * d_gain_scale * dt);
 	state_m->vq_int += Ierr_q * (ki * dt);
 
-	// Decoupling
+	// Decoupling. Using feedforward this compensates for the fact that the equations of a PMSM are not really decoupled (the d axis current has impact on q axis voltage and visa-versa):
+    //     Resistance  Inductance   Cross terms   Back-EMF   (see www.mathworks.com/help/physmod/sps/ref/pmsm.html)
+    //vd = Rs*id   +   Ld*did/dt −  ωe*iq*Lq
+    //vq = Rs*iq   +   Lq*diq/dt +  ωe*id*Ld     + ωe*ψm
 	float dec_vd = 0.0;
 	float dec_vq = 0.0;
 	float dec_bemf = 0.0;
@@ -3749,7 +3753,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
-			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq;
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq; //m_speed_est_fast is ωe in [rad/s] 
 			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld;
 			break;
 
@@ -3768,10 +3772,11 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 		}
 	}
 
-	state_m->vd -= dec_vd;
+	state_m->vd -= dec_vd; //Negative sign as in the PMSM equations
 	state_m->vq += dec_vq + dec_bemf;
 
-	float max_v_mag = (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus;
+    //Calculate the max length of the voltage space vector without overmodulation. Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty. 
+	float max_v_mag = (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus; 
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
@@ -3786,7 +3791,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
-	state_m->mod_d = state_m->vd / ((2.0 / 3.0) * state_m->v_bus);
+    // mod_d and mod_q are normalized such that 1 corresponds to the max possible voltage. This includes overmodulation and therefore cannot be made in any direction.
+    // Note that this scaling is different than max_v_mag, which is without over modulation.
+	state_m->mod_d = state_m->vd / ((2.0 / 3.0) * state_m->v_bus); 
 	state_m->mod_q = state_m->vq / ((2.0 / 3.0) * state_m->v_bus);
 
 	// TODO: Have a look at this?
@@ -3800,11 +3807,13 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
     state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
 	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
 
+    // Inverse Park transform: transforms the (normalized) voltages from the rotor reference frame to the stator frame 
 	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
 	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
 
 	update_valpha_vbeta(motor, mod_alpha, mod_beta);
-
+    
+    // Dead time compensated values for vd and vq. Note that these are not used to control the switching times. 
 	state_m->vd = c * motor->m_motor_state.v_alpha + s * motor->m_motor_state.v_beta;
 	state_m->vq = c * motor->m_motor_state.v_beta  - s * motor->m_motor_state.v_alpha;
 
@@ -3880,6 +3889,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// Set output (HW Dependent)
 	uint32_t duty1, duty2, duty3, top;
 	top = TIM1->ARR;
+    
+    // Calculate the duty cycles for all the phases. This also injects a zero modulation signal to be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start.
 	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
