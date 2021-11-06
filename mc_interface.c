@@ -109,6 +109,7 @@ __attribute__((section(".ram4"))) static volatile uint8_t m_status_samples[ADC_S
 __attribute__((section(".ram4"))) static volatile int16_t m_curr_fir_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_f_sw_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int8_t m_phase_samples[ADC_SAMPLE_MAX_LEN];
+__attribute__((section(".ram4"))) static volatile int16_t m_frf_samples_mV[ADC_SAMPLE_MAX_LEN];
 
 static volatile int m_sample_len;
 static volatile int m_sample_int;
@@ -2052,7 +2053,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			m_vzero_samples[m_sample_now] = zero;
 			m_curr_fir_samples[m_sample_now] = (int16_t)(current * (8.0 / FAC_CURRENT));
 			m_f_sw_samples[m_sample_now] = (int16_t)(f_samp / 10.0);
-			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
+			m_frf_samples_mV[m_sample_now] = (int16_t)(mcpwm_foc_get_vd() * 1000 + 0.5);
+			m_status_samples[m_sample_now] = (mcpwm_foc_get_prbs() << 7) | (((mcpwm_read_hall_phase() << 3) | mcpwm_get_comm_step()) & 0x7F);
 
 			m_sample_now++;
 
@@ -2714,7 +2716,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 		}
 
 		for (int i = 0;i < len;i++) {
-			uint8_t buffer[40];
+			uint8_t buffer[39];  // 1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1
 			int32_t index = 0;
 			int ind_samp = i + offset;
 
@@ -2747,6 +2749,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			}
 
 			buffer_append_float32_auto(buffer, (float)m_f_sw_samples[ind_samp] * 10.0, &index);
+			buffer_append_float32_auto(buffer, (float)m_frf_samples_mV[ind_samp], &index);
 			buffer[index++] = m_status_samples[ind_samp];
 			buffer[index++] = m_phase_samples[ind_samp];
 

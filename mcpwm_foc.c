@@ -294,6 +294,38 @@ static volatile bool pid_thd_stop;
 #define M_MOTOR(is_second_motor)  (((void)is_second_motor), &m_motor_1)
 #endif
 
+// This is the noise bit for the PRBS generator
+static bool prbsNoiseBit;
+
+bool mcpwm_foc_get_prbs(void) {
+   return prbsNoiseBit;
+}
+
+/**
+ * @brief prbsGenerator Generates a -1/+1 noise signal from a pseudo-random
+ *        binary sequence with an 11-bit period. Every time this function is
+ *        called, the binary sequences advances one tick.
+ *        C.f. https://blog.kurttomlinson.com/posts/prbs-pseudo-random-binary-sequence
+ *        C.f. https://en.wikipedia.org/wiki/Pseudorandom_binary_sequence
+ *        C.f. https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Example_polynomials_for_maximal_LFSRs
+ * @return -1 or 1
+ */
+int32_t prbsGenerator11_increment(void) {
+	static uint32_t lfsr = 0x01;  /* Any nonzero start state less than 2^bits will work. */
+
+	const uint32_t taps =  (1<< (11-1)) | (1<<(9-1)); // https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Example_polynomials_for_maximal_LFSRs
+
+	prbsNoiseBit = lfsr & 0x01;  // Get least-significant bit (i.e., the output bit).
+	lfsr >>= 1;  // Shift register
+
+	// Only apply toggle mask if output bit is 1.
+	if (prbsNoiseBit == true) {
+		lfsr ^= taps;  // Apply toggle mask, value has 1 at bits corresponding to taps, 0 elsewhere.
+	}
+
+	return (prbsNoiseBit == true) ? 1 : -1;
+}
+
 static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state_t *motor) {
 	utils_sys_lock_cnt();
 
@@ -3829,8 +3861,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float Ierr_d = state_m->id_target - state_m->id;
 	float Ierr_q = state_m->iq_target - state_m->iq;
 
-	state_m->vd = state_m->vd_int + Ierr_d * conf_now->foc_current_kp * d_gain_scale; //Feedback (PI controller). No D action needed because the plant is a first order system (tf = 1/(Ls+R))
-	state_m->vq = state_m->vq_int + Ierr_q * conf_now->foc_current_kp;
+	//Feedback (PI controller). No D action needed because the plant is a first order system (tf = 1/(Ls+R))
+	float pi_d = state_m->vd_int + Ierr_d * conf_now->foc_current_kp * d_gain_scale;
+	float pi_q = state_m->vq_int + Ierr_q * conf_now->foc_current_kp;
 
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
@@ -3876,8 +3909,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 		}
 	}
 
-	state_m->vd -= dec_vd; //Negative sign as in the PMSM equations
-	state_m->vq += dec_vq + dec_bemf;
+	// Add in the feed-forward term.
+	// Negative sign as in the PMSM equations
+	float vd_tmp = pi_d - dec_vd;
+	float vq_tmp = pi_q + dec_vq + dec_bemf;
 
 	// Calculate the max length of the voltage space vector without overmodulation.
 	// Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty.
@@ -3885,14 +3920,22 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
-	float vd_presat = state_m->vd;
-	utils_truncate_number_abs((float*)&state_m->vd, max_v_mag);
-	state_m->vd_int += (state_m->vd - vd_presat);
+	float vd_presat = vd_tmp;
+	utils_truncate_number_abs((float*)&vd_tmp, max_v_mag);
+	state_m->vd_int += (vd_tmp - vd_presat);
 
-	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
-	float vq_presat = state_m->vq;
-	utils_truncate_number_abs((float*)&state_m->vq, max_vq);
-	state_m->vq_int += (state_m->vq - vq_presat);
+	// max_vq^2 + vd_tmp^2 = max_v_mag^2, where v_d and max_v_mag come from prior in the code
+	float max_vq = sqrtf(SQ(max_v_mag) - SQ(vd_tmp));
+	float vq_presat = vq_tmp;
+	utils_truncate_number_abs((float*)&vq_tmp, max_vq);
+	state_m->vq_int += (vq_tmp - vq_presat);
+
+	float noiseScale = conf_now->foc_hfi_voltage_max;
+
+	// Generate PRBS noise
+	int noise = prbsGenerator11_increment();
+	state_m->vd = vd_tmp + noise * noiseScale;
+	state_m->vq = vq_tmp;
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
@@ -3922,10 +3965,6 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
 
 	update_valpha_vbeta(motor, mod_alpha, mod_beta);
-    
-    // Dead time compensated values for vd and vq. Note that these are not used to control the switching times. 
-	state_m->vd = c * motor->m_motor_state.v_alpha + s * motor->m_motor_state.v_beta;
-	state_m->vq = c * motor->m_motor_state.v_beta  - s * motor->m_motor_state.v_alpha;
 
 	// HFI
 	if (do_hfi) {
