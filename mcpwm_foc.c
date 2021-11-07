@@ -4072,7 +4072,17 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 	}
 }
 
-// Magnitude must not be larger than sqrt(3)/2, or 0.866
+/**
+ * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866.
+ *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
+ * @param alpha Park transformed and normalized voltage
+ * @param beta Park transformed and normalized voltage
+ * @param PWMHalfPeriod Center-aligned up-and-downcounting timer that counts to PWMHalfPeriod and back
+ * @param tAout Output PWM timer compare setting, channel A
+ * @param tBout Output PWM timer compare setting, channel B
+ * @param tCout Output PWM timer compare setting, channel C
+ * @param svm_sector Currently unused, and reportedly calculated incorrectly due to the negative signs.
+ */
 static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 	uint32_t sector;
