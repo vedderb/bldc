@@ -2990,11 +2990,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// Update corresponding modulation
-		/* voltageNormalize = 1/(2/3*V_bus) */
-		const float voltageNormalize = 1.5 / motor_now->m_motor_state.v_bus;
+		/* voltage_normalize = 1/(2/3*V_bus) */
+		const float voltage_normalize = 1.5 / motor_now->m_motor_state.v_bus;
 
-		motor_now->m_motor_state.mod_d = motor_now->m_motor_state.vd * voltageNormalize;
-		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltageNormalize;
+		motor_now->m_motor_state.mod_d = motor_now->m_motor_state.vd * voltage_normalize;
+		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltage_normalize;
 	}
 
 	// Calculate duty cycle
@@ -3778,8 +3778,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	state_m->vd -= dec_vd; //Negative sign as in the PMSM equations
 	state_m->vq += dec_vq + dec_bemf;
 
-    //Calculate the max length of the voltage space vector without overmodulation. Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty. 
-	float max_v_mag = (2.0 / 3.0) * max_duty * SQRT3_BY_2 * state_m->v_bus; 
+	//Calculate the max length of the voltage space vector without overmodulation. Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty.
+	float max_v_mag = ONE_BY_SQRT3 * max_duty * state_m->v_bus;
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
@@ -3795,12 +3795,12 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
 	// mod_d and mod_q are normalized such that 1 corresponds to the max possible voltage:
-	//    voltageNormalize = 1/(2/3*V_bus)
+	//    voltage_normalize = 1/(2/3*V_bus)
 	// This includes overmodulation and therefore cannot be made in any direction.
 	// Note that this scaling is different from max_v_mag, which is without over modulation.
-	const float voltageNormalize = 1.5 / state_m->v_bus;
-	state_m->mod_d = state_m->vd * voltageNormalize;
-	state_m->mod_q = state_m->vq * voltageNormalize;
+	const float voltage_normalize = 1.5 / state_m->v_bus;
+	state_m->mod_d = state_m->vd * voltage_normalize;
+	state_m->mod_q = state_m->vq * voltage_normalize;
 
 	// TODO: Have a look at this?
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
@@ -3857,14 +3857,14 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 				motor->m_hfi.ready = true;
 			}
 
-			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltageNormalize;
-			mod_beta_tmp -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltageNormalize;
+			mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+			mod_beta_tmp  -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 		} else {
 			motor->m_hfi.prev_sample = utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
 					utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
 
-			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltageNormalize;
-			mod_beta_tmp += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltageNormalize;
+			mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+			mod_beta_tmp  += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 		}
 
 		utils_saturate_vector_2d(&mod_alpha_tmp, &mod_beta_tmp, SQRT3_BY_2 * 0.95);
@@ -3970,8 +3970,12 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 	const float ia_filter = i_alpha_filter;
 	const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
 	const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
-	const float mod_alpha_filter_sgn = (2.0 / 3.0) * SIGN(ia_filter) - (1.0 / 3.0) * SIGN(ib_filter) - (1.0 / 3.0) * SIGN(ic_filter);
-	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * SIGN(ib_filter) - ONE_BY_SQRT3 * SIGN(ic_filter);
+
+	/* mod_alpha_sign = 2/3*sign(ia) - 1/3*sign(ib) - 1/3*sign(ic) */
+	/* mod_beta_sign  = 1/sqrt(3)*sign(ib) - 1/sqrt(3)*sign(ic) */
+	const float mod_alpha_filter_sgn = (1.0 / 3.0) * (2.0 * SIGN(ia_filter) - SIGN(ib_filter) - SIGN(ic_filter));
+	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * (SIGN(ib_filter) - SIGN(ic_filter));
+
 	const float mod_comp_fact = conf_now->foc_dt_us * 1e-6 * conf_now->foc_f_sw;
 	const float mod_alpha_comp = mod_alpha_filter_sgn * mod_comp_fact;
 	const float mod_beta_comp = mod_beta_filter_sgn * mod_comp_fact;
@@ -3985,17 +3989,19 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 	state_m->mod_alpha_measured = mod_alpha;
 	state_m->mod_beta_measured = mod_beta;
 
-	float v_alpha = (2.0 / 3.0) * Va - (1.0 / 3.0) * Vb - (1.0 / 3.0) * Vc;
-	float v_beta = ONE_BY_SQRT3 * Vb - ONE_BY_SQRT3 * Vc;
+	/* v_alpha = 2/3*Va - 1/3*Vb - 1/3*Vc */
+	/* v_beta  = 1/sqrt(3)*Vb - 1/sqrt(3)*Vc */
+	float v_alpha = (1.0 / 3.0) * (2.0 * Va - Vb - Vc);
+	float v_beta = ONE_BY_SQRT3 * (Vb - Vc);
 
 	// Keep the modulation updated so that the filter stays updated
 	// even when the motor is undriven.
 	if (motor->m_state != MC_STATE_RUNNING) {
-		/* voltageNormalize = 1/(2/3*V_bus) */
-		const float voltageNormalize = 1.5 / state_m->v_bus;
+		/* voltage_normalize = 1/(2/3*V_bus) */
+		const float voltage_normalize = 1.5 / state_m->v_bus;
 
-		mod_alpha = v_alpha * voltageNormalize;
-		mod_beta = v_beta * voltageNormalize;
+		mod_alpha = v_alpha * voltage_normalize;
+		mod_beta = v_beta * voltage_normalize;
 	}
 
 	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_pll_speed));
