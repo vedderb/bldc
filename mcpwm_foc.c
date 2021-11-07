@@ -68,6 +68,7 @@ typedef struct {
 	float v_beta;
 	float mod_d;
 	float mod_q;
+	float mod_q_filter;
 	float id;
 	float iq;
 	float id_filter;
@@ -2864,7 +2865,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
-		const float mod_q = motor_now->m_motor_state.mod_q;
+		const float mod_q = motor_now->m_motor_state.mod_q_filter;
 
 		// Running FW from the 1 khz timer seems fast enough.
 //		run_fw(motor_now, dt);
@@ -2995,6 +2996,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		motor_now->m_motor_state.mod_d = motor_now->m_motor_state.vd * voltage_normalize;
 		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltage_normalize;
+		UTILS_NAN_ZERO(motor_now->m_motor_state.mod_q_filter);
+		UTILS_LP_FAST(motor_now->m_motor_state.mod_q_filter, motor_now->m_motor_state.mod_q, 0.2);
 	}
 
 	// Calculate duty cycle
@@ -3801,6 +3804,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	const float voltage_normalize = 1.5 / state_m->v_bus;
 	state_m->mod_d = state_m->vd * voltage_normalize;
 	state_m->mod_q = state_m->vq * voltage_normalize;
+	UTILS_NAN_ZERO(state_m->mod_q_filter);
+	UTILS_LP_FAST(state_m->mod_q_filter, state_m->mod_q, 0.2);
 
 	// TODO: Have a look at this?
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
