@@ -3691,7 +3691,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
 	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
-			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) &&
+			(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START &&
+					motor->m_control_mode != CONTROL_MODE_CURRENT_BRAKE &&
+					fabsf(state_m->iq_target) > conf_now->cc_min_current)) &&
 			!motor->m_phase_override &&
 			abs_rpm < (conf_now->foc_sl_erpm_hfi * (motor->m_cc_was_hfi ? 1.8 : 1.5));
 
