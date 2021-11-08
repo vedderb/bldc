@@ -47,6 +47,10 @@
  * @param ic_filter The filtered i_c
  */
 inline __attribute__((always_inline)) void calculate_mod_alpha_beta_filter_sign(float *mod_alpha_filter_sgn, float *mod_beta_filter_sgn, float ia_filter, float ib_filter, float ic_filter) {
+#ifdef FLOAT_BITWISE_OPTIMIZATIONS_TURNED_OFF
+	*mod_alpha_filter_sgn = (1.0 / 3.0) * (2 * SIGN(ia_filter) - SIGN(ib_filter) - SIGN(ic_filter));
+	*mod_beta_filter_sgn = ONE_BY_SQRT3 * (SIGN(ib_filter) - SIGN(ic_filter));
+#else
 	// This calculates the below code, which is effectively a truth table with floats as outputs:
 	//    mod_alpha_filter_sgn = (1.0 / 3.0) * (2 * SIGN(ia_filter) - SIGN(ib_filter) - SIGN(ic_filter));
 	//    mod_beta_filter_sgn = ONE_BY_SQRT3 * (SIGN(ib_filter) - SIGN(ic_filter));
@@ -90,6 +94,7 @@ inline __attribute__((always_inline)) void calculate_mod_alpha_beta_filter_sign(
 		}
 	}
 #pragma GCC diagnostic pop  // This restores the GCC directives
+#endif
 }
 
 #endif  // OPTIMIZED_HELPER_FUNCTIONS_H_
