@@ -1727,17 +1727,33 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	UTILS_LP_FAST(motor->m_input_voltage_filtered, input_voltage, 0.02);
 
 	// Check for faults that should stop the motor
-	static int wrong_voltage_iterations = 0;
-	if (input_voltage < conf_now->l_min_vin ||
-			input_voltage > conf_now->l_max_vin) {
-		wrong_voltage_iterations++;
 
-		if ((wrong_voltage_iterations >= 8)) {
+	static float wrong_voltage_integrator = 0.0;
+	float voltage_diff_now = 0.0;
+
+	if (input_voltage < conf_now->l_min_vin) {
+		voltage_diff_now = conf_now->l_min_vin - input_voltage;
+	} else if (input_voltage > conf_now->l_max_vin) {
+		voltage_diff_now = input_voltage - conf_now->l_max_vin;
+	}
+
+	if (voltage_diff_now > 1.0e-3) {
+		wrong_voltage_integrator += voltage_diff_now;
+
+		const float max_voltage = (conf_now->l_max_vin * 0.05);
+		if (wrong_voltage_integrator > max_voltage) {
 			mc_interface_fault_stop(input_voltage < conf_now->l_min_vin ?
 					FAULT_CODE_UNDER_VOLTAGE : FAULT_CODE_OVER_VOLTAGE, is_second_motor, true);
+
+			// Windup protection
+			wrong_voltage_integrator = max_voltage * 2.0;
 		}
 	} else {
-		wrong_voltage_iterations = 0;
+		if (wrong_voltage_integrator > 1.0) {
+			wrong_voltage_integrator -= 1.0;
+		} else {
+			wrong_voltage_integrator = 0.0;
+		}
 	}
 
 	// Fetch these values in a config-specific way to avoid some overhead of the general
