@@ -892,6 +892,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (mask & ((uint32_t)1 << 20)) {
 			buffer_append_uint32(send_buffer, mc_interface_get_odometer(), &ind);
 		}
+		if (mask & ((uint32_t)1 << 21)) {
+			buffer_append_uint32(send_buffer, chVTGetSystemTimeX() / (CH_CFG_ST_FREQUENCY / 1000), &ind);
+		}
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
