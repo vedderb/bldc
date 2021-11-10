@@ -606,6 +606,26 @@ make -j8 build_args='-DHW_SOURCE=\"hw_ubox_single.c\" -DHW_HEADER=\"hw_ubox_sing
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
+#################### HW 100_500 ########################
+
+COPYDIR=100_500
+mkdir -p $COPYDIR
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
 # Clean
 cd $FWPATH
 make clean
