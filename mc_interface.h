@@ -101,6 +101,20 @@ void mc_interface_ignore_input_both(int time_ms);
 
 void mc_interface_set_current_off_delay(float delay_sec);
 
+// Statistics
+float mc_interface_stat_speed_avg(void);
+float mc_interface_stat_speed_max(void);
+float mc_interface_stat_power_avg(void);
+float mc_interface_stat_power_max(void);
+float mc_interface_stat_current_avg(void);
+float mc_interface_stat_current_max(void);
+float mc_interface_stat_temp_mosfet_avg(void);
+float mc_interface_stat_temp_mosfet_max(void);
+float mc_interface_stat_temp_motor_avg(void);
+float mc_interface_stat_temp_motor_max(void);
+float mc_interface_stat_count_time(void);
+void mc_interface_stat_reset(void);
+
 // MC implementation functions
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr);
 int mc_interface_try_input(void);

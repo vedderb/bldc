@@ -1057,6 +1057,8 @@ typedef enum {
 	COMM_BM_MEM_WRITE,
 	COMM_BMS_BLNC_SELFTEST,
 	COMM_GET_EXT_HUM_TMP,
+	COMM_GET_STATS,
+	COMM_RESET_STATS,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1301,6 +1303,21 @@ typedef struct {
 	float current_in_tot;
 	uint8_t num_vescs;
 } setup_values;
+
+typedef struct {
+	systime_t time_start;
+	double samples;
+	double speed_sum;
+	float max_speed;
+	double power_sum;
+	float max_power;
+	double temp_motor_sum;
+	float max_temp_motor;
+	double temp_mos_sum;
+	float max_temp_mos;
+	double current_sum;
+	float max_current;
+} setup_stats;
 
 #define BACKUP_VAR_INIT_CODE				92891934
 

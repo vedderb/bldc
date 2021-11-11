@@ -54,6 +54,7 @@ volatile float ADC_curr_norm_value[6];
 typedef struct {
 	volatile mc_configuration m_conf;
 	mc_fault_code m_fault_now;
+	setup_stats m_stats;
 	int m_ignore_iterations;
 	int m_drv_fault_iterations;
 	unsigned int m_cycles_running;
@@ -124,6 +125,7 @@ static volatile bool m_fault_stop_is_second_motor;
 // Private functions
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf);
 static void run_timer_tasks(volatile motor_if_state_t *motor);
+static void update_stats(volatile motor_if_state_t *motor);
 static volatile motor_if_state_t *motor_now(void);
 
 // Function pointers
@@ -138,6 +140,8 @@ static thread_t *sample_send_tp;
 static THD_WORKING_AREA(fault_stop_thread_wa, 512);
 static THD_FUNCTION(fault_stop_thread, arg);
 static thread_t *fault_stop_tp;
+static THD_WORKING_AREA(stat_thread_wa, 512);
+static THD_FUNCTION(stat_thread, arg);
 
 void mc_interface_init(void) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
@@ -165,10 +169,13 @@ void mc_interface_init(void) {
 	m_sample_mode_last = DEBUG_SAMPLING_OFF;
 	m_sample_is_second_motor = false;
 
+	mc_interface_stat_reset();
+
 	// Start threads
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 	chThdCreateStatic(sample_send_thread_wa, sizeof(sample_send_thread_wa), NORMALPRIO - 1, sample_send_thread, NULL);
 	chThdCreateStatic(fault_stop_thread_wa, sizeof(fault_stop_thread_wa), HIGHPRIO - 3, fault_stop_thread, NULL);
+	chThdCreateStatic(stat_thread_wa, sizeof(stat_thread_wa), NORMALPRIO, stat_thread, NULL);
 
 	int motor_old = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
@@ -2535,6 +2542,121 @@ static THD_FUNCTION(timer_thread, arg) {
 #endif
 
 		chThdSleepMilliseconds(1);
+	}
+}
+
+static void update_stats(volatile motor_if_state_t *motor) {
+	mc_interface_select_motor_thread(motor == (&m_motor_1) ? 1 : 2);
+
+	setup_values val = mc_interface_get_setup_values();
+
+	const double power = mc_interface_get_input_voltage_filtered() * fabsf(val.current_in_tot);
+	const double speed = mc_interface_get_speed();
+	const double temp_mos = mc_interface_temp_fet_filtered();
+	const double temp_mot = mc_interface_temp_motor_filtered();
+
+	motor->m_stats.power_sum += power;
+	motor->m_stats.speed_sum += fabs(speed);
+	motor->m_stats.temp_mos_sum += temp_mos;
+	motor->m_stats.temp_motor_sum += temp_mot;
+	motor->m_stats.current_sum += fabs((double)(val.current_tot));
+	motor->m_stats.samples += (double)1.0;
+
+	if (power > (double)motor->m_stats.max_power) {
+		motor->m_stats.max_power = power;
+	}
+
+	if (fabs(speed) > (double)motor->m_stats.max_speed) {
+		motor->m_stats.max_speed = fabsf(speed);
+	}
+
+	if (temp_mos > (double)motor->m_stats.max_temp_mos) {
+		motor->m_stats.max_temp_mos = temp_mos;
+	}
+
+	if (temp_mot > (double)motor->m_stats.max_temp_motor) {
+		motor->m_stats.max_temp_motor = temp_mot;
+	}
+
+	if (fabsf(val.current_tot) > motor->m_stats.max_current) {
+		motor->m_stats.max_current = fabsf(val.current_tot);
+	}
+}
+
+float mc_interface_stat_speed_avg(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	double res = s->speed_sum / s->samples;
+	return res;
+}
+
+float mc_interface_stat_speed_max(void) {
+	return motor_now()->m_stats.max_speed;
+}
+
+float mc_interface_stat_power_avg(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	double res = s->power_sum / s->samples;
+	return res;
+}
+
+float mc_interface_stat_power_max(void) {
+	return motor_now()->m_stats.max_power;
+}
+
+float mc_interface_stat_current_avg(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	double res = s->current_sum / s->samples;
+	return res;
+}
+
+float mc_interface_stat_current_max(void) {
+	return motor_now()->m_stats.max_current;
+}
+
+float mc_interface_stat_temp_mosfet_avg(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	double res = s->temp_mos_sum / s->samples;
+	return res;
+}
+
+float mc_interface_stat_temp_mosfet_max(void) {
+	return motor_now()->m_stats.max_temp_mos;
+}
+
+float mc_interface_stat_temp_motor_avg(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	double res = s->temp_motor_sum / s->samples;
+	return res;
+}
+
+float mc_interface_stat_temp_motor_max(void) {
+	return motor_now()->m_stats.max_temp_motor;
+}
+
+float mc_interface_stat_count_time(void) {
+	return UTILS_AGE_S(motor_now()->m_stats.time_start);
+}
+
+void mc_interface_stat_reset(void) {
+	volatile setup_stats *s = &motor_now()->m_stats;
+	memset((void*)s, 0, sizeof(setup_stats));
+	s->time_start = chVTGetSystemTimeX();
+	s->max_temp_mos = -300.0;
+	s->max_temp_motor = -300.0;
+}
+
+static THD_FUNCTION(stat_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("StatCounter");
+
+	for(;;) {
+		update_stats(&m_motor_1);
+#ifdef HW_HAS_DUAL_MOTORS
+		update_stats(&m_motor_2);
+#endif
+
+		chThdSleepMilliseconds(10);
 	}
 }
 

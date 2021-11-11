@@ -1491,6 +1491,45 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		comm_can_io_board_set_output_digital(id, channel, on);
 	} break;
 
+	case COMM_GET_STATS: {
+		int32_t ind = 0;
+		uint32_t mask = buffer_get_uint16(data, &ind);
+
+		ind = 0;
+		uint8_t send_buffer[60];
+		send_buffer[ind++] = packet_id;
+		buffer_append_uint32(send_buffer, mask, &ind);
+
+		if (mask & ((uint32_t)1 << 0)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_speed_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 1)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_speed_max(), &ind); }
+		if (mask & ((uint32_t)1 << 2)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_power_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 3)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_power_max(), &ind); }
+		if (mask & ((uint32_t)1 << 4)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_current_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 5)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_current_max(), &ind); }
+		if (mask & ((uint32_t)1 << 6)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_mosfet_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 7)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_mosfet_max(), &ind); }
+		if (mask & ((uint32_t)1 << 8)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_motor_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 9)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_motor_max(), &ind); }
+		if (mask & ((uint32_t)1 << 10)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_count_time(), &ind); }
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_RESET_STATS: {
+		bool ack = false;
+
+		if (len > 0) {
+			ack = data[0];
+		}
+
+		if (ack) {
+			int32_t ind = 0;
+			uint8_t send_buffer[50];
+			send_buffer[ind++] = packet_id;
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
