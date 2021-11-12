@@ -313,7 +313,11 @@ static THD_FUNCTION(output_thread, arg) {
 					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current(msg->id, current);
+						if (fabsf(pid_rpm) > mcconf->s_pid_min_erpm) {
+							comm_can_set_current(msg->id, current);
+						} else {
+							comm_can_set_duty(msg->id, 0.0);
+						}
 					}
 				}
 			}
