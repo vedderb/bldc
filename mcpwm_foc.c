@@ -202,7 +202,7 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
 					volatile float *speed_var, volatile mc_configuration *conf);
 static void control_current(volatile motor_all_state_t *motor, float dt);
 static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alpha, float mod_beta);
-static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
+static void svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
 static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor);
 static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
@@ -3884,7 +3884,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
-			svm(-mod_alpha_tmp, -mod_beta_tmp, TIM1->ARR,
+			svm(mod_alpha_tmp, mod_beta_tmp, TIM1->ARR,
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,
@@ -3904,7 +3904,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	top = TIM1->ARR;
     
     // Calculate the duty cycles for all the phases. This also injects a zero modulation signal to be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start.
-	svm(-mod_alpha, -mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+	svm(mod_alpha, mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
 		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
@@ -4075,17 +4075,16 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 }
 
 /**
- * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866.
+ * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
- * @param alpha Park transformed and normalized voltage
+ * @param alpha voltage
  * @param beta Park transformed and normalized voltage
- * @param PWMHalfPeriod Center-aligned up-and-downcounting timer that counts to PWMHalfPeriod and back
- * @param tAout Output PWM timer compare setting, channel A
- * @param tBout Output PWM timer compare setting, channel B
- * @param tCout Output PWM timer compare setting, channel C
- * @param svm_sector Currently unused, and reportedly calculated incorrectly due to the negative signs.
+ * @param PWMFullDutyCycle is the peak value of the PWM counter.
+ * @param tAout PWM duty cycle phase A (0 = off all of the time, PWMFullDutyCycle = on all of the time)
+ * @param tBout PWM duty cycle phase B 
+ * @param tCout PWM duty cycle phase C 
  */
-static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
+static void svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 	uint32_t sector;
 
@@ -4131,13 +4130,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 1-2
 	case 1: {
 		// Vector on-times
-		uint32_t t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t2 = (TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t2 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tA = (PWMHalfPeriod - t1 - t2) / 2;
-		tB = tA + t1;
-		tC = tB + t2;
+		tA = (PWMFullDutyCycle + t1 + t2) / 2;
+		tB = tA - t1;
+		tC = tB - t2;
 
 		break;
 	}
@@ -4145,13 +4144,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 2-3
 	case 2: {
 		// Vector on-times
-		uint32_t t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tB = (PWMHalfPeriod - t2 - t3) / 2;
-		tA = tB + t3;
-		tC = tA + t2;
+		tB = (PWMFullDutyCycle + t2 + t3) / 2;
+		tA = tB - t3;
+		tC = tA - t2;
 
 		break;
 	}
@@ -4159,13 +4158,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 3-4
 	case 3: {
 		// Vector on-times
-		uint32_t t3 = (TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t3 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tB = (PWMHalfPeriod - t3 - t4) / 2;
-		tC = tB + t3;
-		tA = tC + t4;
+		tB = (PWMFullDutyCycle + t3 + t4) / 2;
+		tC = tB - t3;
+		tA = tC - t4;
 
 		break;
 	}
@@ -4173,13 +4172,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 4-5
 	case 4: {
 		// Vector on-times
-		uint32_t t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t5 = (-TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t5 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tC = (PWMHalfPeriod - t4 - t5) / 2;
-		tB = tC + t5;
-		tA = tB + t4;
+		tC = (PWMFullDutyCycle + t4 + t5) / 2;
+		tB = tC - t5;
+		tA = tB - t4;
 
 		break;
 	}
@@ -4187,13 +4186,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 5-6
 	case 5: {
 		// Vector on-times
-		uint32_t t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tC = (PWMHalfPeriod - t5 - t6) / 2;
-		tA = tC + t5;
-		tB = tA + t6;
+		tC = (PWMFullDutyCycle + t5 + t6) / 2;
+		tA = tC - t5;
+		tB = tA - t6;
 
 		break;
 	}
@@ -4201,13 +4200,13 @@ static void svm(float alpha, float beta, uint32_t PWMHalfPeriod,
 	// sector 6-1
 	case 6: {
 		// Vector on-times
-		uint32_t t6 = (-TWO_BY_SQRT3 * beta) * PWMHalfPeriod;
-		uint32_t t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMHalfPeriod;
+		uint32_t t6 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		uint32_t t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
-		tA = (PWMHalfPeriod - t6 - t1) / 2;
-		tC = tA + t1;
-		tB = tC + t6;
+		tA = (PWMFullDutyCycle + t6 + t1) / 2;
+		tC = tA - t1;
+		tB = tC - t6;
 
 		break;
 	}
