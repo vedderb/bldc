@@ -122,6 +122,9 @@ upload-pi-remote: fw
 debug-start:
 	$(V1) openocd -f stm32-bv_openocd.cfg
 
+size: build/$(PROJECT).elf
+	@$(SZ) $<
+
 clean: 
 	$(V0) @echo " CLEAN      $$@"
 	$(V1) [ ! -d "$(BUILD_DIR)" ] || $(RM) -r "$(BUILD_DIR)"
