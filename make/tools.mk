@@ -37,13 +37,18 @@ ifneq ($(OSFAMILY), windows)
 	# binary only release so just extract it
 	$(V1) tar -C $(TOOLS_DIR) -xjf "$(DL_DIR)/$(ARM_SDK_FILE)"
 else
-	$(V1) curl -L -k -o "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
-	$(V1) unzip -q -d $(ARM_SDK_DIR) "$(DL_DIR)/$(ARM_SDK_FILE)"
+	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
+	$(V1) pwsh -noprofile -command Expand-Archive -DestinationPath $(ARM_SDK_DIR) -LiteralPath "$(DL_DIR)/$(ARM_SDK_FILE)"
+
 endif
 
 .PHONY: arm_sdk_clean
 arm_sdk_clean:
+ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(ARM_SDK_DIR)" ] || $(RM) -r $(ARM_SDK_DIR)
+else
+	$(V1) pwsh -noprofile -command if (Test-Path $(ARM_SDK_DIR)) {Remove-Item -Recurse $(ARM_SDK_DIR)}
+endif
 
 
 ###############
@@ -80,7 +85,7 @@ gtest_clean:
 #
 ##############################
 
-ifeq ($(shell [ -d "$(ARM_SDK_DIR)" ] && echo "exists"), exists)
+ifneq ("$(wildcard $(ARM_SDK_DIR))","")
   ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
 else
   ifneq ($(MAKECMDGOALS),arm_sdk_install)
