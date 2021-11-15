@@ -307,5 +307,5 @@ endif
 RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk
 
-build/$(PROJECT).bin: build/$(PROJECT).elf
-	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
+build/$(PROJECT)/$(PROJECT).bin: build/$(PROJECT)/$(PROJECT).elf
+	$(BIN) build/$(PROJECT)/$(PROJECT).elf build/$(PROJECT)/$(PROJECT).bin --gap-fill 0xFF

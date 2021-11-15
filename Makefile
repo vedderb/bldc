@@ -1,9 +1,6 @@
 # Makefile for Rootloader project
 .DEFAULT_GOAL := help
 
-# Define build target, if it is not already defined on the command line
-export PROJECT ?= BLDC_4_ChibiOS
-
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 ROOT_DIR := $(realpath $(WHEREAMI)/ )
 
@@ -17,6 +14,7 @@ include $(ROOT_DIR)/make/system-id.mk
 
 # configure some directories that are relative to wherever ROOT_DIR is located
 TOOLS_DIR := $(ROOT_DIR)/tools
+MAKE_DIR := $(ROOT_DIR)/make
 BUILD_DIR := $(ROOT_DIR)/build
 DL_DIR    := $(ROOT_DIR)/downloads
 
@@ -55,6 +53,10 @@ export V0    := $(AT)
 export V1    := $(AT)
 else ifeq ($(V), 1)
 endif
+
+# Get the git commit hash
+GIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
 
 
 ##############################
@@ -114,9 +116,11 @@ fw_$(1): fw_$(1)_vescfw
 
 fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
-	$(V1) make -f make/fw.mk \
+	$(V1) mkdir -p $(BUILD_DIR)/$(1)
+	$(V1) make -f $(MAKE_DIR)/fw.mk \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
-		PROJECT="$(PROJECT)" \
+		BUILDDIR="$(BUILD_DIR)/$(1)" \
+		PROJECT="$(1)-$(GIT_HASH)$(GIT_DIRTY_LABEL)" \
 		build_args='-DHW_SOURCE=\"hw_$(1).c\" -DHW_HEADER=\"hw_$(1).h\"' USE_VERBOSE_COMPILE=no
 
 
@@ -126,7 +130,7 @@ fw_$(1)_clean: TARGET=fw_$(1)
 fw_$(1)_clean: OUTDIR=$(BUILD_DIR)/$$(TARGET)
 fw_$(1)_clean:
 	$(V0) @echo " CLEAN      $$@"
-	$(V1) [ ! -d "$(BUILD_DIR)" ] || $(RM) -r "$(BUILD_DIR)"
+	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
 endef
 
 upload: fw upload_only
