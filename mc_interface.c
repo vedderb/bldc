@@ -672,13 +672,22 @@ void mc_interface_set_pid_pos(float pos) {
 		return;
 	}
 
+	volatile mc_configuration *conf = &motor_now()->m_conf;
+
 	motor_now()->m_position_set = pos;
 
 	pos += motor_now()->m_conf.p_pid_offset;
 	pos *= DIR_MULT;
+
+	if (encoder_is_configured()) {
+		if (conf->foc_encoder_inverted) {
+			pos *= -1.0;
+		}
+	}
+
 	utils_norm_angle(&pos);
 
-	switch (motor_now()->m_conf.motor_type) {
+	switch (conf->motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
 		mcpwm_set_pid_pos(pos);
@@ -1364,7 +1373,9 @@ float mc_interface_get_pid_pos_set(void) {
 float mc_interface_get_pid_pos_now(void) {
 	float ret = 0.0;
 
-	switch (motor_now()->m_conf.motor_type) {
+	volatile mc_configuration *conf = &motor_now()->m_conf;
+
+	switch (conf->motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
 		ret = encoder_read_deg();
@@ -1376,6 +1387,12 @@ float mc_interface_get_pid_pos_now(void) {
 
 	default:
 		break;
+	}
+
+	if (encoder_is_configured()) {
+		if (conf->foc_encoder_inverted) {
+			ret *= -1.0;
+		}
 	}
 
 	ret *= DIR_MULT;
