@@ -72,6 +72,9 @@ help:
 	@echo "   [Tool Installers]"
 	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
 	@echo
+	@echo "   [Big Hammer]"
+	@echo "     all_fw               - Build firmware for all boards"
+	@echo
 	@echo "   [Unit Tests]"
 	@echo "     all_ut               - Build all unit tests"
 	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
@@ -149,6 +152,13 @@ debug-start:
 
 size: build/$(PROJECT).elf
 	@$(SZ) $<
+
+# Generate the targets for whatever boards are in each list
+FW_TARGETS := $(addprefix fw_, $(TARGET_NAMES))
+
+.PHONY: all_fw all_fw_clean
+all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
+all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 
 # Expand the firmware rules
 $(foreach board, $(TARGET_NAMES), $(eval $(call FW_TEMPLATE,$(board))))
