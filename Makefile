@@ -88,6 +88,7 @@ help:
 	@echo "     fw_<board>   - Build firmware for target <board>"
 	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
 	@echo "     fw_<board>_clean     - Remove firmware for <board>"
+	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
 	@echo
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
 	@echo
@@ -109,6 +110,8 @@ $(TOOLS_DIR):
 ##############################
 
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
+# $(2) = firmware build directory
+# $(3) = firmware name
 define FW_TEMPLATE
 .PHONY: $(1) fw_$(1)
 $(1): fw_$(1)_vescfw
@@ -119,10 +122,17 @@ fw_$(1)_vescfw:
 	$(V1) mkdir -p $(BUILD_DIR)/$(1)
 	$(V1) make -f $(MAKE_DIR)/fw.mk \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
-		BUILDDIR="$(BUILD_DIR)/$(1)" \
-		PROJECT="$(1)-$(GIT_HASH)$(GIT_DIRTY_LABEL)" \
+		BUILDDIR="$(2)" \
+		PROJECT="$(3)" \
 		build_args='-DHW_SOURCE=\"hw_$(1).c\" -DHW_HEADER=\"hw_$(1).h\"' USE_VERBOSE_COMPILE=no
 
+$(1)_flash: fw_$(1)_flash
+fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
+
+$(1)_flash_only: fw_$(1)_flash_only
+fw_$(1)_flash_only:
+	@echo "********* PROGRAM: $(1) **********"
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program $(2)/$(3).elf verify reset exit"
 
 .PHONY: $(1)_clean
 $(1)_clean: fw_$(1)_clean
@@ -132,11 +142,6 @@ fw_$(1)_clean:
 	$(V0) @echo " CLEAN      $$@"
 	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
 endef
-
-upload: fw upload_only
-
-upload_only:
-	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
 clear_option_bytes:
 	$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
@@ -165,7 +170,7 @@ all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
 all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 
 # Expand the firmware rules
-$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board))))
+$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
 
 
 ##############################
