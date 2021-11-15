@@ -20,6 +20,8 @@
 #ifndef HW_60_H_
 #define HW_60_H_
 
+#define HW60_IS_MK5
+
 #ifdef HW60_IS_MK3
 #define HW_NAME					"60_MK3"
 #elif defined(HW60_IS_MK4)
