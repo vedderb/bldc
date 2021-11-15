@@ -2358,27 +2358,28 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 }
 
 void mcpwm_foc_print_state(void) {
-	commands_printf("Mod d:        %.2f", (double)motor_now()->m_motor_state.mod_d);
-	commands_printf("Mod q:        %.2f", (double)motor_now()->m_motor_state.mod_q);
-	commands_printf("Duty:         %.2f", (double)motor_now()->m_motor_state.duty_now);
-	commands_printf("Vd:           %.2f", (double)motor_now()->m_motor_state.vd);
-	commands_printf("Vq:           %.2f", (double)motor_now()->m_motor_state.vq);
-	commands_printf("Phase:        %.2f", (double)motor_now()->m_motor_state.phase);
-	commands_printf("V_alpha:      %.2f", (double)motor_now()->m_motor_state.v_alpha);
-	commands_printf("V_beta:       %.2f", (double)motor_now()->m_motor_state.v_beta);
-	commands_printf("id:           %.2f", (double)motor_now()->m_motor_state.id);
-	commands_printf("iq:           %.2f", (double)motor_now()->m_motor_state.iq);
-	commands_printf("id_filter:    %.2f", (double)motor_now()->m_motor_state.id_filter);
-	commands_printf("iq_filter:    %.2f", (double)motor_now()->m_motor_state.iq_filter);
-	commands_printf("id_target:    %.2f", (double)motor_now()->m_motor_state.id_target);
-	commands_printf("iq_target:    %.2f", (double)motor_now()->m_motor_state.iq_target);
-	commands_printf("i_abs:        %.2f", (double)motor_now()->m_motor_state.i_abs);
-	commands_printf("i_abs_filter: %.2f", (double)motor_now()->m_motor_state.i_abs_filter);
-	commands_printf("Obs_x1:       %.2f", (double)motor_now()->m_observer_x1);
-	commands_printf("Obs_x2:       %.2f", (double)motor_now()->m_observer_x2);
-	commands_printf("vd_int:       %.2f", (double)motor_now()->m_motor_state.vd_int);
-	commands_printf("vq_int:       %.2f", (double)motor_now()->m_motor_state.vq_int);
-	commands_printf("off_delay:    %.2f", (double)motor_now()->m_current_off_delay);
+	commands_printf("Mod d:     %.2f", (double)motor_now()->m_motor_state.mod_d);
+	commands_printf("Mod q:     %.2f", (double)motor_now()->m_motor_state.mod_q);
+	commands_printf("Mod q flt: %.2f", (double)motor_now()->m_motor_state.mod_q_filter);
+	commands_printf("Duty:      %.2f", (double)motor_now()->m_motor_state.duty_now);
+	commands_printf("Vd:        %.2f", (double)motor_now()->m_motor_state.vd);
+	commands_printf("Vq:        %.2f", (double)motor_now()->m_motor_state.vq);
+	commands_printf("Phase:     %.2f", (double)motor_now()->m_motor_state.phase);
+	commands_printf("V_alpha:   %.2f", (double)motor_now()->m_motor_state.v_alpha);
+	commands_printf("V_beta:    %.2f", (double)motor_now()->m_motor_state.v_beta);
+	commands_printf("id:        %.2f", (double)motor_now()->m_motor_state.id);
+	commands_printf("iq:        %.2f", (double)motor_now()->m_motor_state.iq);
+	commands_printf("id_filter: %.2f", (double)motor_now()->m_motor_state.id_filter);
+	commands_printf("iq_filter: %.2f", (double)motor_now()->m_motor_state.iq_filter);
+	commands_printf("id_target: %.2f", (double)motor_now()->m_motor_state.id_target);
+	commands_printf("iq_target: %.2f", (double)motor_now()->m_motor_state.iq_target);
+	commands_printf("i_abs:     %.2f", (double)motor_now()->m_motor_state.i_abs);
+	commands_printf("i_abs_flt: %.2f", (double)motor_now()->m_motor_state.i_abs_filter);
+	commands_printf("Obs_x1:    %.2f", (double)motor_now()->m_observer_x1);
+	commands_printf("Obs_x2:    %.2f", (double)motor_now()->m_observer_x2);
+	commands_printf("vd_int:    %.2f", (double)motor_now()->m_motor_state.vd_int);
+	commands_printf("vq_int:    %.2f", (double)motor_now()->m_motor_state.vq_int);
+	commands_printf("off_delay: %.2f", (double)motor_now()->m_current_off_delay);
 }
 
 float mcpwm_foc_get_last_adc_isr_duration(void) {
@@ -2998,6 +2999,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltage_normalize;
 		UTILS_NAN_ZERO(motor_now->m_motor_state.mod_q_filter);
 		UTILS_LP_FAST(motor_now->m_motor_state.mod_q_filter, motor_now->m_motor_state.mod_q, 0.2);
+		utils_truncate_number_abs((float*)&motor_now->m_motor_state.mod_q_filter, 1.0);
 	}
 
 	// Calculate duty cycle
@@ -4232,6 +4234,9 @@ static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor) {
 	if (motor->m_control_mode != CONTROL_MODE_POS) {
 		motor->m_pos_i_term = 0;
 		motor->m_pos_prev_error = 0;
+		motor->m_pos_prev_proc = angle_now;
+		motor->m_pos_d_filter = 0.0;
+		motor->m_pos_d_filter_proc = 0.0;
 		return;
 	}
 
@@ -4331,6 +4336,7 @@ static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 	if (motor->m_control_mode != CONTROL_MODE_SPEED) {
 		motor->m_speed_i_term = 0.0;
 		motor->m_speed_prev_error = 0.0;
+		motor->m_speed_d_filter = 0.0;
 		return;
 	}
 
