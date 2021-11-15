@@ -7,6 +7,11 @@ export PROJECT ?= BLDC_4_ChibiOS
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 ROOT_DIR := $(realpath $(WHEREAMI)/ )
 
+TARGET_PATHS := $(wildcard $(ROOT_DIR)/hwconf/hw_*.h)
+
+# Strip the paths down to just the names. Do this by first removing the prefix (PATH/hw_), and then the suffic (.h)
+TARGET_NAMES := $(subst .h,,$(subst $(ROOT_DIR)/hwconf/hw_,,$(TARGET_PATHS)))
+
 # import macros common to all supported build systems
 include $(ROOT_DIR)/make/system-id.mk
 
@@ -74,7 +79,10 @@ help:
 	@echo
 	@echo "   [Firmware]"
 	@echo "     fw   - Build firmware for default target"
+	@echo "                            supported boards are: $(TARGET_NAMES)"
+	@echo "     fw_<board>   - Build firmware for target <board>"
 	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
+	@echo "     fw_<board>_clean     - Remove firmware for <board>"
 	@echo
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
 	@echo
@@ -94,12 +102,29 @@ $(TOOLS_DIR):
 # Build and Upload
 #
 ##############################
-.PHONY: fw
-fw:
+
+# $(1) = Canonical board name all in lower case (e.g. 100_250)
+define FW_TEMPLATE
+.PHONY: $(1) fw_$(1)
+$(1): fw_$(1)_vescfw
+fw_$(1): fw_$(1)_vescfw
+
+fw_$(1)_vescfw:
 	@echo "*********BUILD**********"
 	$(V1) make -f make/fw.mk \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		PROJECT="$(PROJECT)" \
+		build_args='-DHW_SOURCE=\"hw_$(1).c\" -DHW_HEADER=\"hw_$(1).h\"' USE_VERBOSE_COMPILE=no
+
+
+.PHONY: $(1)_clean
+$(1)_clean: fw_$(1)_clean
+fw_$(1)_clean: TARGET=fw_$(1)
+fw_$(1)_clean: OUTDIR=$(BUILD_DIR)/$$(TARGET)
+fw_$(1)_clean:
+	$(V0) @echo " CLEAN      $$@"
+	$(V1) [ ! -d "$(BUILD_DIR)" ] || $(RM) -r "$(BUILD_DIR)"
+endef
 
 upload: fw upload_only
 
@@ -125,9 +150,8 @@ debug-start:
 size: build/$(PROJECT).elf
 	@$(SZ) $<
 
-clean: 
-	$(V0) @echo " CLEAN      $$@"
-	$(V1) [ ! -d "$(BUILD_DIR)" ] || $(RM) -r "$(BUILD_DIR)"
+# Expand the firmware rules
+$(foreach board, $(TARGET_NAMES), $(eval $(call FW_TEMPLATE,$(board))))
 
 
 ##############################
