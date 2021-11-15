@@ -113,7 +113,7 @@ $(1): fw_$(1)_vescfw
 fw_$(1): fw_$(1)_vescfw
 
 fw_$(1)_vescfw:
-	@echo "*********BUILD**********"
+	@echo "********* BUILD: $(1) **********"
 	$(V1) make -f make/fw.mk \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		PROJECT="$(PROJECT)" \
