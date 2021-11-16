@@ -188,7 +188,7 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 		}
 
 		// Delay between loops
-		chThdSleepMilliseconds((int)((1000.0 / rate_hz)));
+		chThdSleepMicroseconds(1000000 / rate_hz);
 	}
 }
 

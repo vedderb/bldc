@@ -80,9 +80,12 @@ static bool reset_init_bmi(BMI_STATE *s) {
 	}else if(s->rate_hz <= 800){
 		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_800HZ;
 		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_800HZ;
-	}else{
+	}else if(s->rate_hz <= 1600){
 		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;
 		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_1600HZ;
+	}else{
+		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;
+		s->sensor.gyro_cfg.odr = BMI160_GYRO_ODR_3200HZ;
 	}
 
 	chThdSleepMilliseconds(50);
