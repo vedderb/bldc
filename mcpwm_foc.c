@@ -3930,12 +3930,26 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	utils_truncate_number_abs((float*)&vq_tmp, max_vq);
 	state_m->vq_int += (vq_tmp - vq_presat);
 
-	float noiseScale = conf_now->foc_hfi_voltage_max;
 
 	// Generate PRBS noise
+	float noiseScale = conf_now->foc_prbs_voltage;
 	int noise = prbsGenerator11_increment();
-	state_m->vd = vd_tmp + noise * noiseScale;
-	state_m->vq = vq_tmp;
+
+	// Check that the mode is turned on and if the D channel is active
+	if (conf_now->foc_prbs_mode == PRBS_MODE_VOLTAGE &&
+	    (conf_now->foc_prbs_channel == PRBS_CHANNEL_D || conf_now->foc_prbs_channel == PRBS_CHANNEL_DQ)) {
+		state_m->vd = vd_tmp + noise * noiseScale;
+	} else {
+		state_m->vd = vd_tmp;
+	}
+
+	// Check that the mode is turned on and if the Q channel is active
+	if (conf_now->foc_prbs_mode == PRBS_MODE_VOLTAGE &&
+	    (conf_now->foc_prbs_channel == PRBS_CHANNEL_Q || conf_now->foc_prbs_channel == PRBS_CHANNEL_DQ)) {
+		state_m->vq = vq_tmp + noise * noiseScale;
+	} else {
+		state_m->vq = vq_tmp;
+	}
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
