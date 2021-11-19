@@ -21,14 +21,21 @@
 #ifndef HW_LUNA_BBSHD_H_
 #define HW_LUNA_BBSHD_H_
 
-#define HW_NAME					"LUNA_CYCLE_BBSHD"
+#define HW_NAME				"LUNA_BBSHD"
+#include "mcconf_luna_bbshd_52v.h"
+#include "appconf_luna_bbshd.h"
+
+#define QMLUI_SOURCE_APP	"qmlui/app/qmlui_luna_v1.c"
+#define QMLUI_HEADER_APP	"qmlui/app/qmlui_luna_v1.h"
+#define QMLUI_APP_FULLSCREEN
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
+#define HW_HAS_WHEEL_SPEED_SENSOR
+#define HW_HAS_LUNA_SERIAL_DISPLAY
 #define HW_USE_BRK
-//#define HW_BBSHD_USE_DAC
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -42,7 +49,7 @@
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
 #define AUX_GPIO				GPIOC
-#define AUX_PIN					9
+#define AUX_PIN					14
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
@@ -103,9 +110,12 @@
 #define NTC_RES(adc_val)		(10000.0 * adc_val / ( 4095.0 - adc_val))//((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_TEMP_MOTOR(beta)	(hw_read_motor_temp(beta))
+//#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR])) * 100 / con - 10)
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		0.0
 
-#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -129,37 +139,38 @@
 #define HW_ADC_EXT2_PIN			0
 
 // UART Peripheral
-#define HW_UART_DEV				SD1
-#define HW_UART_GPIO_AF			GPIO_AF_USART1
-#define HW_UART_TX_PORT			GPIOB
-#define HW_UART_TX_PIN			6
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			7
+#define HW_UART_DEV				SD4
+#define HW_UART_GPIO_AF			GPIO_AF_UART4
+#define HW_UART_TX_PORT			GPIOC
+#define HW_UART_TX_PIN			10
+#define HW_UART_RX_PORT			GPIOC
+#define HW_UART_RX_PIN			11
 
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
-#define HW_UART_P_DEV			SD4
-#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
-#define HW_UART_P_TX_PORT		GPIOC
-#define HW_UART_P_TX_PIN		10
-#define HW_UART_P_RX_PORT		GPIOC
-#define HW_UART_P_RX_PIN		11
+#define HW_UART_P_DEV			SD1
+#define HW_UART_P_GPIO_AF		GPIO_AF_USART1
+#define HW_UART_P_TX_PORT		GPIOB
+#define HW_UART_P_TX_PIN		6
+#define HW_UART_P_RX_PORT		GPIOB
+#define HW_UART_P_RX_PIN		7
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO		GPIOA
-#define NRF5x_SWDIO_PIN			13
-#define NRF5x_SWCLK_GPIO		GPIOA
-#define NRF5x_SWCLK_PIN			14
+#define NRF5x_SWDIO_PIN			15
+#define NRF5x_SWCLK_GPIO		GPIOB
+#define NRF5x_SWCLK_PIN			3
 
-// ICU Peripheral for servo decoding
+// ICU Peripheral for servo decoding. Not used, routed to a pin not present in 64 pin
+// package to free USART1 TX pad
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ICU_DEV				ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO				GPIOB
-#define HW_ICU_PIN				6
+#define HW_ICU_GPIO				GPIOD
+#define HW_ICU_PIN				12
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
@@ -188,16 +199,30 @@
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
 // SPI pins
-#define HW_SPI_DEV				SPID1
-#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
+#define HW_SPI_DEV				SPID3
+#define HW_SPI_GPIO_AF			GPIO_AF_SPI3
 #define HW_SPI_PORT_NSS			GPIOA
 #define HW_SPI_PIN_NSS			4
-#define HW_SPI_PORT_SCK			GPIOA
-#define HW_SPI_PIN_SCK			5
-#define HW_SPI_PORT_MOSI		GPIOA
-#define HW_SPI_PIN_MOSI			7
-#define HW_SPI_PORT_MISO		GPIOA
-#define HW_SPI_PIN_MISO			6
+#define HW_SPI_PORT_SCK			GPIOC
+#define HW_SPI_PIN_SCK			10
+#define HW_SPI_PORT_MOSI		GPIOC
+#define HW_SPI_PIN_MOSI			12
+#define HW_SPI_PORT_MISO		GPIOC
+#define HW_SPI_PIN_MISO			11
+
+// Pedal Assist pins
+#define HW_PAS1_PORT			GPIOB
+#define HW_PAS1_PIN				5
+#define HW_PAS2_PORT			GPIOB
+#define HW_PAS2_PIN				4
+
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+#define HW_SPEED_SENSOR_PORT	GPIOC
+#define HW_SPEED_SENSOR_PIN		9
+#endif
+
+#define HW_GEAR_SENSOR_PORT		GPIOA
+#define HW_GEAR_SENSOR_PIN		7
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -213,44 +238,25 @@
 // Override dead time.
 #define HW_DEAD_TIME_NSEC		460.0
 
-// Default setting overrides
-#ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			85.0	// Maximum input voltage
-#endif
-#ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
-#endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		250.0	// The maximum absolute current above which a fault is generated
-#endif
-#ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			200.0	// Input current limit in Amperes (Upper)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
-#endif
-
 // Setting limits
 #define HW_LIM_CURRENT			-200.0, 200.0
-#define HW_LIM_CURRENT_IN		-200.0, 200.0
-#define HW_LIM_CURRENT_ABS		0.0, 350.0
-#define HW_LIM_VIN				6.0, 90.0
-#define HW_LIM_ERPM				-200e3, 200e3
+#define HW_LIM_CURRENT_IN		-150.0, 150.0
+#define HW_LIM_CURRENT_ABS		0.0, 230.0
+#define HW_LIM_VIN				30.0, 86.0
+#define HW_LIM_ERPM				-26e3, 26e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
-#define HW_LIM_TEMP_FET			-40.0, 110.0
+#define HW_LIM_DUTY_MAX			0.0, 0.95
+#define HW_LIM_TEMP_FET			-40.0, 90.0
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	49999.0, 50001.0
 
-#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	10.0
-#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	14.0
+#define HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE	11.0
+#define HW_GATE_DRIVER_SUPPLY_MAX_VOLTAGE	13.0
 
 // HW-specific functions
-void hw_luna_bbshd_DAC1_setdata(uint16_t data);
-void hw_luna_bbshd_DAC2_setdata(uint16_t data);
+void hw_update_speed_sensor(void);
+float hw_get_speed(void);
+void hw_brake_override(float *brake);
+float hw_read_motor_temp(float beta);
+bool hw_bbshd_has_fixed_throttle_level(void);
 
 #endif /* HW_LUNA_BBSHD_H_ */
