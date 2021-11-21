@@ -1983,10 +1983,13 @@ float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *
  * @param ind
  * The measured inductance in microhenry.
  *
+ * @param ld_lq_diff
+ * The measured difference in D axis and Q axis inductance.
+ *
  * @return
  * True if the measurement succeeded, false otherwise.
  */
-bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
+bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	volatile motor_all_state_t *motor = motor_now();
 
 	const float f_sw_old = motor->m_conf->foc_f_sw;
@@ -2015,7 +2018,7 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind) {
 
 	*res = mcpwm_foc_measure_resistance(i_last, 200, true);
 	motor->m_conf->foc_motor_r = *res;
-	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0, 0);
+	*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff);
 
 	motor->m_conf->foc_f_sw = f_sw_old;
 	motor->m_conf->foc_current_kp = kp_old;
@@ -2859,7 +2862,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			float iq_ref = iq_set_tmp;
 			if (conf_now->foc_mtpa_mode == MTPA_MODE_IQ_MEASURED) {
-				iq_ref = motor_now->m_motor_state.iq_filter;
+				iq_ref = utils_min_abs(iq_set_tmp, motor_now->m_motor_state.iq_filter);
 			}
 
 			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_ref))) / (4.0 * ld_lq_diff);
@@ -3715,7 +3718,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
     // Park transform: transforms the currents from stator to the rotor reference frame  
 	state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
 	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
-	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const); //Low passed currents are used for less time critical parts, not for the feedback
+
+	// Low passed currents are used for less time critical parts, not for the feedback
+	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
 	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
 	float d_gain_scale = 1.0;
@@ -3749,10 +3754,11 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	state_m->vd_int += Ierr_d * (ki * d_gain_scale * dt);
 	state_m->vq_int += Ierr_q * (ki * dt);
 
-	// Decoupling. Using feedforward this compensates for the fact that the equations of a PMSM are not really decoupled (the d axis current has impact on q axis voltage and visa-versa):
-    //     Resistance  Inductance   Cross terms   Back-EMF   (see www.mathworks.com/help/physmod/sps/ref/pmsm.html)
-    //vd = Rs*id   +   Ld*did/dt −  ωe*iq*Lq
-    //vq = Rs*iq   +   Lq*diq/dt +  ωe*id*Ld     + ωe*ψm
+	// Decoupling. Using feedforward this compensates for the fact that the equations of a PMSM
+	// are not really decoupled (the d axis current has impact on q axis voltage and visa-versa):
+    //      Resistance  Inductance   Cross terms   Back-EMF   (see www.mathworks.com/help/physmod/sps/ref/pmsm.html)
+    // vd = Rs*id   +   Ld*did/dt −  ωe*iq*Lq
+    // vq = Rs*iq   +   Lq*diq/dt +  ωe*id*Ld     + ωe*ψm
 	float dec_vd = 0.0;
 	float dec_vq = 0.0;
 	float dec_bemf = 0.0;
@@ -3763,7 +3769,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
-			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq; //m_speed_est_fast is ωe in [rad/s] 
+			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq; // m_speed_est_fast is ωe in [rad/s]
 			dec_vq = state_m->id_filter * motor->m_speed_est_fast * ld;
 			break;
 
@@ -3785,7 +3791,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	state_m->vd -= dec_vd; //Negative sign as in the PMSM equations
 	state_m->vq += dec_vq + dec_bemf;
 
-	//Calculate the max length of the voltage space vector without overmodulation. Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty.
+	// Calculate the max length of the voltage space vector without overmodulation.
+	// Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty.
 	float max_v_mag = ONE_BY_SQRT3 * max_duty * state_m->v_bus;
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
@@ -3905,7 +3912,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	uint32_t duty1, duty2, duty3, top;
 	top = TIM1->ARR;
     
-    // Calculate the duty cycles for all the phases. This also injects a zero modulation signal to be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start.
+    // Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
+	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
 	svm(mod_alpha, mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
@@ -3980,8 +3988,8 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 	const float ib_filter = -0.5 * i_alpha_filter + SQRT3_BY_2 * i_beta_filter;
 	const float ic_filter = -0.5 * i_alpha_filter - SQRT3_BY_2 * i_beta_filter;
 
-	/* mod_alpha_sign = 2/3*sign(ia) - 1/3*sign(ib) - 1/3*sign(ic) */
-	/* mod_beta_sign  = 1/sqrt(3)*sign(ib) - 1/sqrt(3)*sign(ic) */
+	// mod_alpha_sign = 2/3*sign(ia) - 1/3*sign(ib) - 1/3*sign(ic)
+	// mod_beta_sign  = 1/sqrt(3)*sign(ib) - 1/sqrt(3)*sign(ic)
 	const float mod_alpha_filter_sgn = (1.0 / 3.0) * (2.0 * SIGN(ia_filter) - SIGN(ib_filter) - SIGN(ic_filter));
 	const float mod_beta_filter_sgn = ONE_BY_SQRT3 * (SIGN(ib_filter) - SIGN(ic_filter));
 
@@ -3998,8 +4006,8 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 	state_m->mod_alpha_measured = mod_alpha;
 	state_m->mod_beta_measured = mod_beta;
 
-	/* v_alpha = 2/3*Va - 1/3*Vb - 1/3*Vc */
-	/* v_beta  = 1/sqrt(3)*Vb - 1/sqrt(3)*Vc */
+	// v_alpha = 2/3*Va - 1/3*Vb - 1/3*Vc
+	// v_beta  = 1/sqrt(3)*Vb - 1/sqrt(3)*Vc
 	float v_alpha = (1.0 / 3.0) * (2.0 * Va - Vb - Vc);
 	float v_beta = ONE_BY_SQRT3 * (Vb - Vc);
 

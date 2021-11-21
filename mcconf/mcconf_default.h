@@ -544,6 +544,9 @@
 #ifndef MCCONF_SI_BATTERY_AH
 #define MCCONF_SI_BATTERY_AH			6.0 // Battery amp hours
 #endif
+#ifndef MCCONF_SI_MOTOR_NL_CURRENT
+#define MCCONF_SI_MOTOR_NL_CURRENT		1.0 // Motor no load current
+#endif
 
 // BMS
 #ifndef MCCONF_BMS_TYPE

@@ -1919,7 +1919,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			float r = 0.0;
 			float l = 0.0;
-			bool res = mcpwm_foc_measure_res_ind(&r, &l);
+			float ld_lq_diff = 0.0;
+			bool res = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
 			mc_interface_set_configuration(mcconf_old);
 
 			if (!res) {
@@ -1931,6 +1932,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
 			buffer_append_float32(send_buffer, r, 1e6, &ind);
 			buffer_append_float32(send_buffer, l, 1e3, &ind);
+			buffer_append_float32(send_buffer, ld_lq_diff, 1e3, &ind);
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
 			}

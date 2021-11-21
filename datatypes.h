@@ -486,6 +486,7 @@ typedef struct {
 	BATTERY_TYPE si_battery_type;
 	int si_battery_cells;
 	float si_battery_ah;
+	float si_motor_nl_current;
 
 	// BMS Configuration
 	bms_config bms;
