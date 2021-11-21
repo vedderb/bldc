@@ -1296,7 +1296,7 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 }
 
 static bool measure_r_l_imax(float current_min, float current_max,
-		float max_power_loss, float *r, float *l, float *i_max) {
+		float max_power_loss, float *r, float *l, float *ld_lq_diff, float *i_max) {
 	float current_start = current_max / 50;
 	if (current_start < (current_min * 1.1)) {
 		current_start = current_min * 1.1;
@@ -1327,7 +1327,8 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);
 
-	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, 0) * 1e-6;
+	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff) * 1e-6;
+	*ld_lq_diff *= 1e-6;
 	*i_max = sqrtf(max_power_loss / *r / 1.5);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
 
@@ -1396,6 +1397,7 @@ typedef struct {
 	float max_power_loss;
 	float r;
 	float l;
+	float ld_lq_diff;
 	float i_max;
 	bool res;
 	int motor;
@@ -1408,7 +1410,7 @@ static void measure_r_l_imax_task(void *arg) {
 			args->current_min,
 			args->current_max,
 			args->max_power_loss,
-			&args->r, &args->l, &args->i_max);
+			&args->r, &args->l, &args->ld_lq_diff, &args->i_max);
 }
 
 typedef struct {
@@ -1567,9 +1569,10 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 	float r = 0.0;
 	float l = 0.0;
+	float ld_lq_diff;
 	float i_max = 0.0;
 	bool res_r_l_imax_m1 = measure_r_l_imax(mcconf->cc_min_current,
-			mcconf->l_current_max, max_power_loss, &r, &l, &i_max);
+			mcconf->l_current_max, max_power_loss, &r, &l, &ld_lq_diff, &i_max);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	worker_wait();
@@ -1642,6 +1645,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
+		mcconf_old->foc_motor_ld_lq_diff = ld_lq_diff;
 		mcconf_old->foc_motor_flux_linkage = lambda;
 
 		if (mc_interface_temp_motor_filtered() > -10) {
@@ -1660,6 +1664,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old_second->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old_second->foc_motor_r = r_l_imax_args.r;
 		mcconf_old_second->foc_motor_l = r_l_imax_args.l;
+		mcconf_old_second->foc_motor_ld_lq_diff = r_l_imax_args.ld_lq_diff;
 		mcconf_old_second->foc_motor_flux_linkage = linkage_args.linkage;
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old_second, 1000);
 		mc_interface_select_motor_thread(2);
