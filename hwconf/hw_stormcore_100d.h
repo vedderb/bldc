@@ -74,9 +74,9 @@
 #ifdef HW_VER_IS_100D_V2
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO               GPIOE
-#define PHASE_FILTER_PIN                1
+#define PHASE_FILTER_PIN                4
 #define PHASE_FILTER_GPIO_M2            GPIOE
-#define PHASE_FILTER_PIN_M2             4
+#define PHASE_FILTER_PIN_M2             1
 #define PHASE_FILTER_ON()               palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()              palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_ON_M2()            palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
