@@ -3579,7 +3579,7 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
-	if (conf_now->foc_temp_comp && t > -25.0) {
+	if (conf_now->foc_temp_comp && t > -30.0) {
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
@@ -3747,7 +3747,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
 	float ki = conf_now->foc_current_ki;
-	if (conf_now->foc_temp_comp && t > -5.0) {
+	if (conf_now->foc_temp_comp && t > -30.0) {
 		ki += ki * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
