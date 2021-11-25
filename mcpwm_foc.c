@@ -152,7 +152,11 @@ typedef struct {
 	int m_hfi_plot_en;
 	float m_hfi_plot_sample;
 
+	// For braking
 	float m_phase_before;
+	float m_phase_diff_before;
+	float m_vq_before;
+
 	float m_duty_abs_filtered;
 	float m_duty_filtered;
 	bool m_was_control_duty;
@@ -2648,19 +2652,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.i_alpha = ia;
 		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 
-		// Full Clarke transform in case there are current offsets
-//		motor_now->m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-//		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+		const float duty_now = motor_now->m_motor_state.duty_now;
+		const float duty_abs = fabsf(duty_now);
+		const float vq_now = motor_now->m_motor_state.vq;
 
-		const float duty_abs = fabsf(motor_now->m_motor_state.duty_now);
 		float id_set_tmp = motor_now->m_id_set;
 		float iq_set_tmp = motor_now->m_iq_set;
 		motor_now->m_motor_state.max_duty = conf_now->l_max_duty;
 
-		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(motor_now->m_motor_state.duty_now), 0.01);
+		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(duty_now), 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
-		UTILS_LP_FAST(motor_now->m_duty_filtered, motor_now->m_motor_state.duty_now, 0.01);
+		UTILS_LP_FAST(motor_now->m_duty_filtered, duty_now, 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_filtered, 1.0);
 
 		float duty_set = motor_now->m_duty_cycle_set;
@@ -2668,16 +2671,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY ||
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 
-		// When the modulation is low in brake mode and the set brake current
-		// cannot be reached, short all phases to get more braking without
-		// applying active braking. Use a bit of hysteresis when leaving
-		// the shorted mode.
+		// Short all phases (duty=0) the moment the direction or modulation changes sign. That will avoid
+		// active braking or changing direction. Keep all phases shorted (duty == 0) until the
+		// braking current reaches the set or maximum value, then go back to current control
+		// mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
-				fabsf(motor_now->m_duty_filtered) < conf_now->l_min_duty * 1.5 &&
-				motor_now->m_motor_state.i_abs < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
+				(SIGN(phase_diff) != SIGN(motor_now->m_phase_diff_before) || SIGN(vq_now) != SIGN(motor_now->m_vq_before) || fabsf(duty_now) < 0.001) &&
+				motor_now->m_motor_state.i_abs_filter < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
 			control_duty = true;
 			duty_set = 0.0;
 		}
+		motor_now->m_phase_diff_before = phase_diff;
+		motor_now->m_vq_before = vq_now;
 
 		// Brake when set ERPM is below min ERPM
 		if (motor_now->m_control_mode == CONTROL_MODE_SPEED &&
