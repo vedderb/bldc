@@ -275,11 +275,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-		// TODO: Remember what this was about?
-//		if (fabsf(pwr) > 0.001) {
-//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-//		}
-
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
 			utils_step_towards(&pwr_ramp, pwr, ramp_step);
@@ -300,11 +295,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
 			current_mode = true;
-			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
-			} else {
-				current_rel = pwr;
-			}
+			current_rel = pwr;
 
 			if (fabsf(pwr) < 0.001) {
 				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
