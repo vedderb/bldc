@@ -13,21 +13,21 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # 33k
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DVIN_R1=33000.0 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DVIN_R1=33000.0 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_33k.bin
 
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_46.c\" -DHW_HEADER=\"hw_46.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
@@ -41,7 +41,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_48.c\" -DHW_HEADER=\"hw_48.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -55,21 +55,21 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
 # 0005ohm
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DCURRENT_SHUNT_RES=0.0005 -DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_0005ohm.bin
 
@@ -82,14 +82,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -102,14 +102,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK3' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -122,14 +122,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK4' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -142,14 +142,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK5' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK5' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK5' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\" -DHW60_IS_MK5' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -162,7 +162,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_das_rs.c\" -DHW_HEADER=\"hw_das_rs.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_das_rs.c\" -DHW_HEADER=\"hw_das_rs.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -175,14 +175,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -195,14 +195,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_2' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -215,14 +215,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_75_300.c\" -DHW_HEADER=\"hw_75_300.h\" -DHW75_300_REV_3' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -235,7 +235,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DAD2S1205_USE_HW_SPI_PINS=1 -DHW_SOURCE=\"hw_axiom.c\" -DHW_HEADER=\"hw_axiom.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DAD2S1205_USE_HW_SPI_PINS=1 -DHW_SOURCE=\"hw_axiom.c\" -DHW_HEADER=\"hw_axiom.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -248,7 +248,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_uavc_omega.c\" -DHW_HEADER=\"hw_uavc_omega.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_uavc_omega.c\" -DHW_HEADER=\"hw_uavc_omega.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -261,14 +261,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_hd60.c\" -DHW_HEADER=\"hw_hd60.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_hd60.c\" -DHW_HEADER=\"hw_hd60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd60.c\" -DHW_HEADER=\"hw_hd60.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd60.c\" -DHW_HEADER=\"hw_hd60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -281,14 +281,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_hd75.c\" -DHW_HEADER=\"hw_hd75.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_hd75.c\" -DHW_HEADER=\"hw_hd75.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd75.c\" -DHW_HEADER=\"hw_hd75.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_hd75.c\" -DHW_HEADER=\"hw_hd75.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -301,7 +301,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_6S' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_6S' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -314,7 +314,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_12S' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_a50s.c\" -DHW_HEADER=\"hw_a50s.h\" -DHW_A50S_12S' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -327,7 +327,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" -DHW_A200S_REV_21' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" -DHW_A200S_REV_21' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -340,7 +340,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" ' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_a200s_v2.c\" -DHW_HEADER=\"hw_a200s_v2.h\" ' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -353,14 +353,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADER=\"hw_100_250.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADER=\"hw_100_250.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADER=\"hw_100_250.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_250.c\" -DHW_HEADER=\"hw_100_250.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -373,7 +373,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_luna_bbshd.c\" -DHW_HEADER=\"hw_luna_bbshd.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_luna_bbshd.c\" -DHW_HEADER=\"hw_luna_bbshd.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -387,14 +387,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_unity.c\" -DHW_HEADER=\"hw_unity.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -407,14 +407,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -427,14 +427,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\" -DHW_VER_IS_60D_PLUS' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\" -DHW_VER_IS_60D_PLUS' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\" -DHW_VER_IS_60D_PLUS' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_60d.c\" -DHW_HEADER=\"hw_stormcore_60d.h\" -DHW_VER_IS_60D_PLUS' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -447,14 +447,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -467,14 +467,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\" -DHW_VER_IS_100D_V2' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\" -DHW_VER_IS_100D_V2' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\" -DHW_VER_IS_100D_V2' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100d.c\" -DHW_HEADER=\"hw_stormcore_100d.h\" -DHW_VER_IS_100D_V2' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -487,14 +487,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_stormcore_100s.c\" -DHW_HEADER=\"hw_stormcore_100s.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -507,7 +507,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_Cheap_FOCer_2.c\" -DHW_HEADER=\"hw_Cheap_FOCer_2.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_Cheap_FOCer_2.c\" -DHW_HEADER=\"hw_Cheap_FOCer_2.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -520,14 +520,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_Little_FOCer.c\" -DHW_HEADER=\"hw_Little_FOCer.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
@@ -540,7 +540,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_uxv_sr.c\" -DHW_HEADER=\"hw_uxv_sr.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_uxv_sr.c\" -DHW_HEADER=\"hw_uxv_sr.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -558,7 +558,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_gesc.c\" -DHW_HEADER=\"hw_gesc.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_gesc.c\" -DHW_HEADER=\"hw_gesc.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -576,7 +576,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_warrior6.c\" -DHW_HEADER=\"hw_warrior6.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_warrior6.c\" -DHW_HEADER=\"hw_warrior6.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -589,7 +589,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_raiden7.c\" -DHW_HEADER=\"hw_raiden7.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_raiden7.c\" -DHW_HEADER=\"hw_raiden7.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -602,7 +602,7 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_ubox_single.c\" -DHW_HEADER=\"hw_ubox_single.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_ubox_single.c\" -DHW_HEADER=\"hw_ubox_single.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
@@ -615,14 +615,14 @@ rm -f $COPYDIR/*
 # default
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
-make -j8 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
