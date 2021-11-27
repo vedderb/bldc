@@ -2662,7 +2662,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			utils_truncate_number_abs(&iq_set_tmp, -conf_now->lo_current_min);
 		}
 
-		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(duty_now), 0.01);
+		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, duty_abs, 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
 		UTILS_LP_FAST(motor_now->m_duty_filtered, duty_now, 0.01);
@@ -2716,6 +2716,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 		motor_now->m_was_control_duty = control_duty;
 
+		if (!control_duty) {
+			motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
+		}
+
 		if (control_duty) {
 			// Duty cycle control
 			if (fabsf(duty_set) < (duty_abs - 0.05) ||
@@ -2742,7 +2746,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			} else {
 				// If the duty cycle is less than or equal to the set duty cycle just limit
 				// the modulation and use the maximum allowed current.
-				motor_now->m_duty_i_term = 0.0;
+				motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
 				motor_now->m_motor_state.max_duty = duty_set;
 				if (duty_set > 0.0) {
 					iq_set_tmp = conf_now->lo_current_max;
