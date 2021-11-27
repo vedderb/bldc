@@ -2657,6 +2657,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float iq_set_tmp = motor_now->m_iq_set;
 		motor_now->m_motor_state.max_duty = conf_now->l_max_duty;
 
+		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			utils_truncate_number_abs(&iq_set_tmp, -conf_now->lo_current_min);
+		}
+
 		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(duty_now), 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
@@ -2674,7 +2678,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
 				(SIGN(speed_fast_now) != SIGN(motor_now->m_speed_before) || SIGN(vq_now) != SIGN(motor_now->m_vq_before) || fabsf(motor_now->m_duty_filtered) < 0.001) &&
-				motor_now->m_motor_state.i_abs_filter < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
+				motor_now->m_motor_state.i_abs_filter < fminf(fabsf(iq_set_tmp), -conf_now->lo_current_min)) {
 			control_duty = true;
 			duty_set = 0.0;
 		}
