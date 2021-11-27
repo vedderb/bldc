@@ -153,8 +153,7 @@ typedef struct {
 	float m_hfi_plot_sample;
 
 	// For braking
-	float m_phase_before;
-	float m_phase_diff_before;
+	float m_speed_before;
 	float m_vq_before;
 
 	float m_duty_abs_filtered;
@@ -2644,9 +2643,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}
 
-	const float phase_diff = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before);
-	motor_now->m_phase_before = motor_now->m_motor_state.phase;
-
 	if (motor_now->m_state == MC_STATE_RUNNING) {
 		// Clarke transform assuming balanced currents
 		motor_now->m_motor_state.i_alpha = ia;
@@ -2655,6 +2651,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		const float duty_now = motor_now->m_motor_state.duty_now;
 		const float duty_abs = fabsf(duty_now);
 		const float vq_now = motor_now->m_motor_state.vq;
+		const float speed_fast_now = motor_now->m_pll_speed;
 
 		float id_set_tmp = motor_now->m_id_set;
 		float iq_set_tmp = motor_now->m_iq_set;
@@ -2676,12 +2673,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// braking current reaches the set or maximum value, then go back to current control
 		// mode.
 		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
-				(SIGN(phase_diff) != SIGN(motor_now->m_phase_diff_before) || SIGN(vq_now) != SIGN(motor_now->m_vq_before) || fabsf(duty_now) < 0.001) &&
+				(SIGN(speed_fast_now) != SIGN(motor_now->m_speed_before) || SIGN(vq_now) != SIGN(motor_now->m_vq_before) || fabsf(motor_now->m_duty_filtered) < 0.001) &&
 				motor_now->m_motor_state.i_abs_filter < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
 			control_duty = true;
 			duty_set = 0.0;
 		}
-		motor_now->m_phase_diff_before = phase_diff;
+		motor_now->m_speed_before = speed_fast_now;
 		motor_now->m_vq_before = vq_now;
 
 		// Brake when set ERPM is below min ERPM
@@ -2738,13 +2735,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			}
 		} else if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Braking
-			iq_set_tmp = fabsf(iq_set_tmp);
-
-			if (phase_diff > 0.0) {
-				iq_set_tmp = -iq_set_tmp;
-			} else if (phase_diff == 0.0) {
-				iq_set_tmp = 0.0;
-			}
+			iq_set_tmp = -SIGN(speed_fast_now) * fabsf(iq_set_tmp);
 		}
 
 		// Set motor phase
