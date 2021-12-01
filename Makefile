@@ -177,7 +177,7 @@ CSRC = $(STARTUPSRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
        qmlui/qmlui.c
-       
+
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)
 endif
@@ -316,27 +316,43 @@ build/$(PROJECT).bin: build/$(PROJECT).elf
 	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
 
 # Program
-upload: build/$(PROJECT).bin
-	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+upload: build/$(PROJECT).elf
+	@openocd -f board/stm32f4discovery.cfg \
+		-c "reset_config trst_only combined" \
+		-c "program build/$(PROJECT).elf verify reset exit"
 
 upload_only:
-	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+	@openocd -f board/stm32f4discovery.cfg \
+		-c "reset_config trst_only combined" \
+		-c "program build/$(PROJECT).elf verify reset exit"
 
 clear_option_bytes:
-	openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
+	@openocd -f board/stm32f4discovery.cfg \
+		-c "init" \
+		-c "stm32f2x unlock 0" \
+		-c "mww 0x40023C08 0x08192A3B" \
+		-c "mww 0x40023C08 0x4C5D6E7F" \
+		-c "mww 0x40023C14 0x0fffaaed" \
+		-c "exit"
 
-#program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
+#program with olimex arm-usb-tiny-h and jtag-swd adapter board.
 upload-olimex: build/$(PROJECT).bin
-	openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
+	@openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg \
+		-f interface/ftdi/olimex-arm-jtag-swd.cfg \
+		-c "set WORKAREASIZE 0x2000" \
+		-f target/stm32f4x.cfg \
+		-c "program build/$(PROJECT).elf verify reset"
 
 upload-pi: build/$(PROJECT).bin
-	openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+	@openocd -f pi_stm32.cfg \
+		-c "reset_config trst_only combined" \
+		-c "program build/$(PROJECT).elf verify reset exit"
 
 upload-pi-remote: build/$(PROJECT).elf
 	./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
 debug-start:
-	openocd -f stm32-bv_openocd.cfg
+	@openocd -f stm32-bv_openocd.cfg
 
 size: build/$(PROJECT).elf
 	@$(SZ) $<
