@@ -51,6 +51,34 @@ else
 endif
 
 
+##############
+# Qt Creator #
+##############
+QT_CREATOR_DIR := $(TOOLS_DIR)/Qt
+
+.PHONY: qt_creator_install
+ifdef LINUX
+  qt_creator_install: QT_CREATOR_HOST  := linux
+endif
+
+ifdef MACOS
+  qt_creator_install: QT_CREATOR_HOST  := mac
+endif
+
+ifdef WINDOWS
+  qt_creator_install: QT_CREATOR_HOST  := windows
+endif
+
+qt_creator_install:
+	# binary only release so just download and extract it
+	$(V1) aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
+
+.PHONY: qt_creator_configure
+qt_creator_configure:
+	# Create a shared Qt project file with all the targets
+	$(V1) $(PYTHON) Project/scripts/qt_creator_firmware_configuration.py --targets $(ALL_BOARD_NAMES) sim_posix
+
+
 ###############
 # Google Test #
 ###############
