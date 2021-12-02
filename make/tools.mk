@@ -79,6 +79,44 @@ qt_creator_configure:
 	$(V1) $(PYTHON) Project/scripts/qt_creator_firmware_configuration.py --targets $(ALL_BOARD_NAMES) sim_posix
 
 
+##########
+# Qt SDK #
+##########
+QT_SDK_DIR := $(TOOLS_DIR)/Qt
+QT_SDK_VER := 5.15.2
+
+.PHONY: qt_sdk_install
+ifdef LINUX
+  qt_sdk_install: QT_SDK_HOST  := linux
+  qt_sdk_install: QT_SDK_ARCH  := gcc_64
+endif
+
+ifdef MACOS
+  qt_sdk_install: QT_SDK_HOST  := mac
+  qt_sdk_install: QT_SDK_ARCH  := clang_64
+endif
+
+ifdef WINDOWS
+  qt_sdk_install: QT_SDK_HOST  := windows
+  qt_sdk_install: QT_SDK_ARCH  := win64_msvc2019_64
+endif
+
+qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
+# order-only prereq on directory existance:
+qt_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
+qt_sdk_install: qt_sdk_clean
+	# binary only release so just download and extract it
+	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_SDK_DIR)
+
+.PHONY: qt_sdk_clean
+qt_sdk_clean:
+ifneq ($(OSFAMILY), windows)
+	$(V1) [ ! -d "$(QT_SDK_DIR)" ] || $(RM) -r $(QT_SDK_DIR)
+else
+	$(V1) pwsh -noprofile -command if (Test-Path $(QT_SDK_DIR)) {Remove-Item -Recurse $(QT_SDK_DIR)}
+endif
+
+
 ###############
 # Google Test #
 ###############
