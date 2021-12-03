@@ -31,13 +31,14 @@
 #include <math.h>
 
 // Settings
-#define PEDAL_INPUT_TIMEOUT				0.2
-#define MIN_MS_WITHOUT_POWER			500
-#define FILTER_SAMPLES					5
-#define RPM_FILTER_SAMPLES				8
+#define PEDAL_INPUT_TIMEOUT                0.2
+#define MIN_MS_WITHOUT_POWER            500
+#define FILTER_SAMPLES                    5
+#define RPM_FILTER_SAMPLES                8
 
 // Threads
 static THD_FUNCTION(pas_thread, arg);
+
 static THD_WORKING_AREA(pas_thread_wa, 1024);
 
 // Private variables
@@ -55,20 +56,20 @@ static volatile bool is_running = false;
 static uint8_t change_count = 0;
 
 void app_pas_configure(pas_config *conf) {
-    config = *conf;
-    ms_without_power = 0.0;
-    output_current_rel = 0.0;
+	config = *conf;
+	ms_without_power = 0.0;
+	output_current_rel = 0.0;
 
-    // a period longer than this should immediately reduce power to zero
-    max_pulse_period = 1.0 / ((config.pedal_rpm_start / 60.0) * config.magnets) * 1.2;
+	// a period longer than this should immediately reduce power to zero
+	max_pulse_period = 1.0 / ((config.pedal_rpm_start / 60.0) * config.magnets) * 1.2;
 
-    // if pedal spins at x3 the end rpm, assume its beyond limits
-    min_pedal_period = 1.0 / ((config.pedal_rpm_end * 3.0 / 60.0));
+	// if pedal spins at x3 the end rpm, assume its beyond limits
+	min_pedal_period = 1.0 / ((config.pedal_rpm_end * 3.0 / 60.0));
 
-    if (config.invert_pedal_direction == true )
-        direction_conf= -1.0;
-    else
-        direction_conf = 1.0;
+	if (config.invert_pedal_direction == true)
+		direction_conf = -1.0;
+	else
+		direction_conf = 1.0;
 }
 
 /**
@@ -79,194 +80,193 @@ void app_pas_configure(pas_config *conf) {
  * false when PAS app shares control with the ADC app for current command
  */
 void app_pas_start(bool is_primary_output) {
-    stop_now = false;
-    chThdCreateStatic(pas_thread_wa, sizeof(pas_thread_wa), NORMALPRIO, pas_thread, NULL);
+	stop_now = false;
+	chThdCreateStatic(pas_thread_wa, sizeof(pas_thread_wa), NORMALPRIO, pas_thread, NULL);
 
-    primary_output = is_primary_output;
+	primary_output = is_primary_output;
 }
 
 bool app_pas_is_running(void) {
-    return is_running;
+	return is_running;
 }
 
 void app_pas_stop(void) {
-    stop_now = true;
-    while (is_running) {
-        chThdSleepMilliseconds(1);
-    }
+	stop_now = true;
+	while (is_running) {
+		chThdSleepMilliseconds(1);
+	}
 
-    if (primary_output == true) {
-        mc_interface_set_current_rel(0.0);
-    }
-    else {
-        output_current_rel = 0.0;
-    }
+	if (primary_output == true) {
+		mc_interface_set_current_rel(0.0);
+	} else {
+		output_current_rel = 0.0;
+	}
 }
 
 float app_pas_get_current_target_rel(void) {
-    return output_current_rel;
+	return output_current_rel;
 }
 
 void pas_event_handler(void) {
 #ifdef HW_PAS1_PORT
-    const int8_t QEM[] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0}; // Quadrature Encoder Matrix
-    const int8_t KNOBDIR [] = {
-            0, -1, 1, 0,
-            1, 0, 0, -1,
-            -1, 0, 0, 1,
-            0, 1, -1, 0};
-    float direction_qem;
-    uint8_t new_state;
-    static uint8_t old_state = 0;
-    static float old_timestamp = 0;
-    static float inactivity_time = 0;
-    static float period_filtered = 0;
+	const int8_t QEM[] = {0, -1, 1, 2, 1, 0, 2, -1, -1, 2, 0, 1, 2, 1, -1, 0}; // Quadrature Encoder Matrix
+	const int8_t KNOBDIR[] = {
+			0, -1, 1, 0,
+			1, 0, 0, -1,
+			-1, 0, 0, 1,
+			0, 1, -1, 0};
+	float direction_qem;
+	uint8_t new_state;
+	static uint8_t old_state = 0;
+	static float old_timestamp = 0;
+	static float inactivity_time = 0;
+	static float period_filtered = 0;
 
-    uint8_t PAS1_level = palReadPad(HW_PAS1_PORT, HW_PAS1_PIN);
-    uint8_t PAS2_level = palReadPad(HW_PAS2_PORT, HW_PAS2_PIN);
+	uint8_t PAS1_level = palReadPad(HW_PAS1_PORT, HW_PAS1_PIN);
+	uint8_t PAS2_level = palReadPad(HW_PAS2_PORT, HW_PAS2_PIN);
 
-    inactivity_time += 1.0 / (float)config.update_rate_hz;
-    if(inactivity_time > max_pulse_period) {
-        pedal_rpm = 0.0;
-    }
+	inactivity_time += 1.0 / (float) config.update_rate_hz;
+	if (inactivity_time > max_pulse_period) {
+		pedal_rpm = 0.0;
+	}
 
-    new_state = PAS2_level * 2 + PAS1_level;
-    if(old_state==new_state)
-        return;
+	new_state = PAS2_level * 2 + PAS1_level;
+	if (old_state == new_state)
+		return;
 
-    direction_qem = (float) QEM[old_state * 4 + new_state];
-    uint8_t my_direction = direction_conf * KNOBDIR[old_state * 4 + new_state];
+	direction_qem = (float) QEM[old_state * 4 + new_state];
+	uint8_t my_direction = direction_conf * KNOBDIR[old_state * 4 + new_state];
 
-    old_state = new_state;
-    if(my_direction>0)
-        change_count++;
-    else
-        change_count=0;
+	old_state = new_state;
+	if (my_direction > 0)
+		change_count++;
+	else
+		change_count = 0;
 
-    const float timestamp = (float)chVTGetSystemTimeX() / (float)CH_CFG_ST_FREQUENCY;
+	const float timestamp = (float) chVTGetSystemTimeX() / (float) CH_CFG_ST_FREQUENCY;
 
-    // sensors are poorly placed, so use only one rising edge as reference
-    if(change_count >= 4 ) {
-        change_count=0;
-        float period = (timestamp - old_timestamp) * (float)config.magnets;
-        old_timestamp = timestamp;
+	// sensors are poorly placed, so use only one rising edge as reference
+	if (change_count >= 4) {
+		change_count = 0;
+		float period = (timestamp - old_timestamp) * (float) config.magnets;
+		old_timestamp = timestamp;
 
-        UTILS_LP_FAST(period_filtered, period, 1.0);
+		UTILS_LP_FAST(period_filtered, period, 1.0);
 
-        if(period_filtered < min_pedal_period) { //can't be that short, abort
-            return;
-        }
-        pedal_rpm = 60.0 / period_filtered;
-        pedal_rpm *= (direction_conf * direction_qem);
-        inactivity_time = 0.0;
-    }
+		if (period_filtered < min_pedal_period) { //can't be that short, abort
+			return;
+		}
+		pedal_rpm = 60.0 / period_filtered;
+		pedal_rpm *= (direction_conf * direction_qem);
+		inactivity_time = 0.0;
+	}
 
 
 #endif
 }
 
 static THD_FUNCTION(pas_thread, arg) {
-    (void)arg;
+	(void) arg;
 
-    float output = 0;
-    chRegSetThreadName("APP_PAS");
+	float output = 0;
+	chRegSetThreadName("APP_PAS");
 
 #ifdef HW_PAS1_PORT
-    palSetPadMode(HW_PAS1_PORT, HW_PAS1_PIN, PAL_MODE_INPUT_PULLUP);
-    palSetPadMode(HW_PAS2_PORT, HW_PAS2_PIN, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(HW_PAS1_PORT, HW_PAS1_PIN, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(HW_PAS2_PORT, HW_PAS2_PIN, PAL_MODE_INPUT_PULLUP);
 #endif
 
-    is_running = true;
+	is_running = true;
 
-    for(;;) {
-        // Sleep for a time according to the specified rate
-        systime_t sleep_time = CH_CFG_ST_FREQUENCY / config.update_rate_hz;
+	for (;;) {
+		// Sleep for a time according to the specified rate
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / config.update_rate_hz;
 
-        // At least one tick should be slept to not block the other threads
-        if (sleep_time == 0) {
-            sleep_time = 1;
-        }
-        chThdSleep(sleep_time);
+		// At least one tick should be slept to not block the other threads
+		if (sleep_time == 0) {
+			sleep_time = 1;
+		}
+		chThdSleep(sleep_time);
 
-        if (stop_now) {
-            is_running = false;
-            return;
-        }
+		if (stop_now) {
+			is_running = false;
+			return;
+		}
 
-        pas_event_handler();	// this should happen inside an ISR instead of being polled
+		pas_event_handler();    // this should happen inside an ISR instead of being polled
 
-        // For safe start when fault codes occur
-        if (mc_interface_get_fault() != FAULT_CODE_NONE) {
-            ms_without_power = 0;
-        }
+		// For safe start when fault codes occur
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			ms_without_power = 0;
+		}
 
-        if (app_is_output_disabled()) {
-            continue;
-        }
+		if (app_is_output_disabled()) {
+			continue;
+		}
 
-        // Map the rpm to assist level
-        switch (config.ctrl_type) {
-            case PAS_CTRL_TYPE_NONE:
-                output = 0.0;
-                break;
-            case PAS_CTRL_TYPE_CADENCE:
-                // NOTE: If the limits are the same a numerical instability is approached, so in that case
-                // just use on/off control (which is what setting the limits to the same value essentially means).
-                if (config.pedal_rpm_end > (config.pedal_rpm_start + 1.0)) {
-                    output = utils_map(pedal_rpm, config.pedal_rpm_start, config.pedal_rpm_end, 0.0, config.current_scaling);
-                    utils_truncate_number(&output, 0.0, config.current_scaling);
-                } else {
-                    if (pedal_rpm > config.pedal_rpm_end) {
-                        output = config.current_scaling;
-                    } else {
-                        output = 0.0;
-                    }
-                }
-                break;
-            case PAS_CTRL_TYPE_CONSTANT_TORQUE:
-                output = pedal_rpm > config.pedal_rpm_start ? config.current_scaling : 0;
-                break;
-            default:
-                break;
-        }
+		// Map the rpm to assist level
+		switch (config.ctrl_type) {
+			case PAS_CTRL_TYPE_NONE:
+				output = 0.0;
+				break;
+			case PAS_CTRL_TYPE_CADENCE:
+				// NOTE: If the limits are the same a numerical instability is approached, so in that case
+				// just use on/off control (which is what setting the limits to the same value essentially means).
+				if (config.pedal_rpm_end > (config.pedal_rpm_start + 1.0)) {
+					output = utils_map(pedal_rpm, config.pedal_rpm_start, config.pedal_rpm_end, 0.0,
+									   config.current_scaling);
+					utils_truncate_number(&output, 0.0, config.current_scaling);
+				} else {
+					if (pedal_rpm > config.pedal_rpm_end) {
+						output = config.current_scaling;
+					} else {
+						output = 0.0;
+					}
+				}
+				break;
+			case PAS_CTRL_TYPE_CONSTANT_TORQUE:
+				output = pedal_rpm > config.pedal_rpm_start ? config.current_scaling : 0;
+				break;
+			default:
+				break;
+		}
 
-        // Apply ramping
-        static systime_t last_time = 0;
-        static float output_ramp = 0.0;
-        float ramp_time = fabsf(output) > fabsf(output_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+		// Apply ramping
+		static systime_t last_time = 0;
+		static float output_ramp = 0.0;
+		float ramp_time = fabsf(output) > fabsf(output_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
 
-        if (ramp_time > 0.01) {
-            const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-            utils_step_towards(&output_ramp, output, ramp_step);
-            utils_truncate_number(&output_ramp, 0.0, config.current_scaling);
+		if (ramp_time > 0.01) {
+			const float ramp_step = (float) ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+			utils_step_towards(&output_ramp, output, ramp_step);
+			utils_truncate_number(&output_ramp, 0.0, config.current_scaling);
 
-            last_time = chVTGetSystemTimeX();
-            output = output_ramp;
-        }
+			last_time = chVTGetSystemTimeX();
+			output = output_ramp;
+		}
 
-        if (output < 0.001) {
-            ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-        }
+		if (output < 0.001) {
+			ms_without_power += (1000.0 * (float) sleep_time) / (float) CH_CFG_ST_FREQUENCY;
+		}
 
-        // Safe start is enabled if the output has not been zero for long enough
-        if (ms_without_power < MIN_MS_WITHOUT_POWER) {
-            static int pulses_without_power_before = 0;
-            if (ms_without_power == pulses_without_power_before) {
-                ms_without_power = 0;
-            }
-            pulses_without_power_before = ms_without_power;
-            output_current_rel = 0.0;
-            continue;
-        }
+		// Safe start is enabled if the output has not been zero for long enough
+		if (ms_without_power < MIN_MS_WITHOUT_POWER) {
+			static int pulses_without_power_before = 0;
+			if (ms_without_power == pulses_without_power_before) {
+				ms_without_power = 0;
+			}
+			pulses_without_power_before = ms_without_power;
+			output_current_rel = 0.0;
+			continue;
+		}
 
-        // Reset timeout
-        timeout_reset();
+		// Reset timeout
+		timeout_reset();
 
-        if (primary_output == true) {
-            mc_interface_set_current_rel(output);
-        }
-        else {
-            output_current_rel = output;
-        }
-    }
+		if (primary_output == true) {
+			mc_interface_set_current_rel(output);
+		} else {
+			output_current_rel = output;
+		}
+	}
 }
