@@ -24,6 +24,7 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
+#include "timer.h"
 #include <math.h>
 
 // Defines
@@ -32,11 +33,12 @@
 #define AD2S1205_SAMPLE_RATE_HZ		20000		//25MHz max spi clk
 #define MT6816_SAMPLE_RATE_HZ		20000
 #define MT6816_NO_MAGNET_ERROR_MASK	0x0002
+#define BISSC_SAMPLE_RATE_HZ		10000
 #define SINCOS_SAMPLE_RATE_HZ		20000
 #define SINCOS_MIN_AMPLITUDE		1.0			// sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE		1.65		// sqrt(sin^2 + cos^2) has to be smaller than this
 
-#if (AS5047_USE_HW_SPI_PINS) || (MT6816_USE_HW_SPI_PINS) || (AD2S1205_USE_HW_SPI_PINS)
+#if (AS5047_USE_HW_SPI_PINS) || (MT6816_USE_HW_SPI_PINS) || (AD2S1205_USE_HW_SPI_PINS) || (BISSC_USE_HW_SPI_PINS)
 #ifdef HW_SPI_DEV
 #define SPI_SW_MISO_GPIO			HW_SPI_PORT_MISO
 #define SPI_SW_MISO_PIN				HW_SPI_PIN_MISO
@@ -75,6 +77,9 @@
 #define SPI_SW_CS_PIN				HW_HALL_ENC_PIN3
 #endif
 
+// Add this to move from Thread to NVIC process to schedule encoder
+#define BISSC_ISR_IMPL
+
 // Private types
 typedef enum {
 	ENCODER_MODE_NONE = 0,
@@ -83,7 +88,8 @@ typedef enum {
 	RESOLVER_MODE_AD2S1205,
 	ENCODER_MODE_SINCOS,
 	ENCODER_MODE_TS5700N8501,
-	ENCODER_MODE_MT6816_SPI
+	ENCODER_MODE_MT6816_SPI,
+	ENCODER_MODE_BISSC_SPI
 } encoder_mode;
 
 // Private variables
@@ -116,6 +122,20 @@ static uint32_t sincos_signal_above_max_error_cnt = 0;
 static float sincos_signal_low_error_rate = 0.0;
 static float sincos_signal_above_max_error_rate = 0.0;
 
+#ifndef BISSC_ISR_IMPL
+static THD_FUNCTION(bissc_thread, arg);
+static THD_WORKING_AREA(bissc_thread_wa, 512);
+static thread_t *bissc_tp;
+static volatile bool bissc_stop_now = true;
+static volatile bool bissc_thread_is_running = false;
+#endif
+static uint8_t tableCRC6n[64] = {0};
+static const uint8_t POLY = 0x43;
+static volatile uint8_t decod_buf[8] = {0};
+static volatile float delay_between_2biss_c;
+void computeBisscData(SPIDriver *spip);
+
+
 static SerialConfig TS5700N8501_uart_cfg = {
 		2500000,
 		0,
@@ -141,6 +161,13 @@ static const SPIConfig mt6816_spi_cfg = {
 		SPI_SW_CS_GPIO,
 		SPI_SW_CS_PIN,
 		SPI_BaudRatePrescaler_4 | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_DATASIZE_16BIT};
+
+static const SPIConfig bissc_spi_cfg = {
+		&computeBisscData,
+		SPI_SW_CS_GPIO,
+		SPI_SW_CS_PIN,
+		SPI_BaudRatePrescaler_32 | SPI_CR1_CPOL | SPI_CR1_CPHA};
+
 #endif
 
 static THD_FUNCTION(ts5700n8501_thread, arg);
@@ -250,6 +277,10 @@ void encoder_ts57n8501_reset_multiturn(void) {
 	ts5700n8501_reset_multiturn = true;
 }
 
+float encode_bissc_get_time_between_reads(void) {
+	return delay_between_2biss_c;
+}
+
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
@@ -279,6 +310,16 @@ void encoder_deinit(void) {
 		palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
 	}
+
+#ifndef BISSC_ISR_IMPL
+	if (mode == ENCODER_MODE_BISSC_SPI) {
+		chEvtSignalI(bissc_tp, (eventmask_t) 1);
+		bissc_stop_now = true;
+		while (bissc_thread_is_running) {
+			chThdSleepMilliseconds(1);
+		}
+	}
+#endif
 
 	index_found = false;
 	mode = ENCODER_MODE_NONE;
@@ -413,6 +454,71 @@ void encoder_init_mt6816_spi(void) {
 #endif
 }
 
+void encoder_init_bissc_spi(uint32_t counts) {
+#ifdef HW_SPI_DEV
+
+	mode = ENCODER_MODE_BISSC_SPI;
+	index_found = true;
+	spi_error_rate = 0.0;
+	enc_counts = counts;
+
+	palSetPadMode(SPI_SW_SCK_GPIO, SPI_SW_SCK_PIN, PAL_MODE_ALTERNATE(5) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_MISO_GPIO, SPI_SW_MISO_PIN, PAL_MODE_ALTERNATE(5) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_MOSI_GPIO, SPI_SW_MOSI_PIN, PAL_MODE_ALTERNATE(5) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SPI_SW_CS_GPIO, SPI_SW_CS_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+	//Start driver with BissC SPI settings
+	spiInit();
+	spiStart(&HW_SPI_DEV, &bissc_spi_cfg);
+
+	//Init CRC table
+	for(int i = 0; i < 64; i++){
+		int crc = i;
+
+		for (int j = 0; j < 6; j++){
+			if (crc & 0x20){
+				crc <<= 1;
+				crc ^= POLY;
+			} else {
+				crc <<= 1;
+			}
+		}
+		tableCRC6n[i] = crc;
+	}
+
+ #ifdef BISSC_ISR_IMPL
+
+	// Enable timer clock
+	HW_ENC_TIM_CLK_EN();
+
+	// Time Base configuration
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	TIM_TimeBaseStructure.TIM_Prescaler = 0;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2 / BISSC_SAMPLE_RATE_HZ) - 1);
+	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
+
+	// Enable overflow interrupt
+	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
+
+	// Enable timer
+	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
+ #else
+	bissc_thread_is_running = true;
+	bissc_stop_now = false;
+
+	chThdCreateStatic(bissc_thread_wa, sizeof(bissc_thread_wa),
+			NORMALPRIO - 10, bissc_thread, NULL);
+ #endif
+
+
+#endif
+}
+
 void encoder_init_ad2s1205_spi(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
@@ -524,6 +630,7 @@ float encoder_read_deg(void) {
 	case ENCODER_MODE_MT6816_SPI:
 	case RESOLVER_MODE_AD2S1205:
 	case ENCODER_MODE_TS5700N8501:
+	case ENCODER_MODE_BISSC_SPI:
 		angle = last_enc_angle;
 		break;
 
@@ -848,6 +955,15 @@ void encoder_tim_isr(void) {
 			UTILS_LP_FAST(spi_error_rate, 1.0, 1./MT6816_SAMPLE_RATE_HZ);
 		}
 	}
+#ifdef BISSC_ISR_IMPL
+	if(mode == ENCODER_MODE_BISSC_SPI) {
+		if (HW_SPI_DEV.state == SPI_READY) {
+			spiSelectI(&HW_SPI_DEV);
+			spiStartReceiveI(&HW_SPI_DEV, 8, (void *)decod_buf);
+		}
+	}
+#endif
+
 #endif
 
 	if (mode == RESOLVER_MODE_AD2S1205) {
@@ -1164,3 +1280,97 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 	}
 }
 
+
+void computeBisscData(SPIDriver *spip) {
+
+	spiUnselectI(spip);
+
+	int lenghtDataBit = enc_counts;
+
+	uint64_t rxData64;
+	rxData64 = (uint64_t)decod_buf[0] << 56;
+	rxData64 |= (uint64_t)decod_buf[1] << 48;
+	rxData64 |= (uint64_t)decod_buf[2] << 40;
+	rxData64 |= (uint64_t)decod_buf[3] << 32;
+	rxData64 |= (uint64_t)decod_buf[4] << 24;
+	rxData64 |= (uint64_t)decod_buf[5] << 16;
+	rxData64 |= (uint64_t)decod_buf[6] << 8;
+	rxData64 |= (uint64_t)decod_buf[7];
+
+	// sample of rxData64
+	// like this 1100000000000000100001100111010000000101110111100000000000000000
+	rxData64 <<= __builtin_clzll(rxData64);		// slice rxData to have a value starting with 1
+	rxData64 &= 0x3FFFFFFFFFFFFFFF; 			// remove the 2 first bit
+
+	// remove the first 1, count how many digit stay in buffer after removing the 0, if there is more than 32 digits,
+	// keep only 32st (on the left)
+	// 32 because the format is : (1+1+lenghtDataBit+1+1+6) - Align bitstream to left (Startbit, CDS, 22-bit Position, Error, Warning, CRC)
+	int nbBit = log2(rxData64)+1;
+	if ( nbBit >= ( lenghtDataBit + 10 ) ) {
+		rxData64 >>= nbBit-( lenghtDataBit + 10 );
+	}
+
+	uint8_t crcRx = rxData64 & 0x3F; 									 //extract last 6-bit digits to get CRC
+	uint32_t dataRx = (rxData64 >> 6) & ((1<<(lenghtDataBit + 2)) - 1);  //Shift out CRC, AND with 24-bit mask to get raw data (position, error, warning)
+	spi_val = (dataRx >> 2) & ((1<<lenghtDataBit) - 1); 			     //Shift out error and warning, AND with 22-bit mask to get position
+
+	uint8_t crc = 0;  //CRC seed is 0b000000
+	crc = ((dataRx >> 30) & 0x03);
+	crc = tableCRC6n[((dataRx >> 24) & 0x3F) ^ crc];
+	crc = tableCRC6n[((dataRx >> 18) & 0x3F) ^ crc];
+	crc = tableCRC6n[((dataRx >> 12) & 0x3F) ^ crc];
+	crc = tableCRC6n[((dataRx >> 6) & 0x3F) ^ crc];
+	crc = tableCRC6n[((dataRx >> 0) & 0x3F) ^ crc];
+	crc = 0x3F & ~crc; //CRC is output inverted
+
+	if(crc != crcRx)
+	{
+		++spi_error_cnt;
+		UTILS_LP_FAST(spi_error_rate, 1.0, 1./BISSC_SAMPLE_RATE_HZ);
+	} else {
+		last_enc_angle = ((float)spi_val * 360.0) / ((1<<lenghtDataBit) - 1);
+		UTILS_LP_FAST(spi_error_rate, 0.0, 1./BISSC_SAMPLE_RATE_HZ);
+	}
+
+#ifndef BISSC_ISR_IMPL
+	chEvtSignalI(bissc_tp, (eventmask_t) 1);
+#endif
+
+}
+
+#ifndef BISSC_ISR_IMPL
+
+static THD_FUNCTION(bissc_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("BISSC Read");
+
+	bissc_tp = chThdGetSelfX();
+	int end_bissc_time = timer_time_now();
+
+
+
+	for(;;) {
+		// Check if it is time to stop.
+		if (bissc_stop_now) {
+			bissc_thread_is_running = false;
+			return;
+		}
+
+		delay_between_2biss_c = timer_seconds_elapsed_since(end_bissc_time);
+
+		// Call the spi incoming message in DMA, on return, the result is decoded
+		// by the computeBisscData callBack
+		spiSelectI(&HW_SPI_DEV);
+		spiStartReceiveI(&HW_SPI_DEV, 8, (void *)decod_buf);
+		
+		chEvtWaitAny((eventmask_t) 1);
+		end_bissc_time = timer_time_now();
+
+		chThdSleepMicroseconds(10);
+
+	}
+
+}
+
+#endif

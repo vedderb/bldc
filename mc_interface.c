@@ -188,6 +188,21 @@ static void init_sensor_port(volatile mc_configuration *conf) {
 		encoder_init_ts5700n8501();
 	} break;
 
+	case SENSOR_PORT_MODE_BISSC_SPI:{
+		// disable APP if it use the main extension port
+		app_configuration *appconf = mempools_alloc_appconf();
+		conf_general_read_app_configuration(appconf);
+		if (appconf->app_to_use == APP_ADC ||
+				appconf->app_to_use == APP_UART ||
+				appconf->app_to_use == APP_PPM_UART ||
+				appconf->app_to_use == APP_ADC_UART) {
+			appconf->app_to_use = APP_NONE;
+			conf_general_store_app_configuration(appconf);
+		}
+		mempools_free_appconf(appconf);
+		encoder_init_bissc_spi(motor_now()->m_conf.m_encoder_counts);
+	} break;
+
 	default:
 		SENSOR_PORT_5V();
 		break;

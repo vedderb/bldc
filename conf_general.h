@@ -314,6 +314,9 @@
 #ifndef AS504x_USE_SW_MOSI_PIN
 #define AS504x_USE_SW_MOSI_PIN 		0
 #endif
+#ifndef BISSC_USE_HW_SPI_PINS
+#define BISSC_USE_HW_SPI_PINS		1
+#endif
 
 /*
  * MCU

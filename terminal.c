@@ -867,7 +867,8 @@ void terminal_process_string(char *str) {
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
-				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN ||
+				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_BISSC_SPI) {
 
 			if (mcconf->m_sensor_port_mode != SENSOR_PORT_MODE_AS5047_SPI) {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
@@ -895,6 +896,11 @@ void terminal_process_string(char *str) {
 				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 						encoder_get_no_magnet_error_cnt(),
 						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
+			}
+
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_BISSC_SPI) {
+				commands_printf("Delay between 2 bissC request: %.6f",
+						(double)(encode_bissc_get_time_between_reads() * 1000.0));
 			}
 
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
