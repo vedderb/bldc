@@ -27,6 +27,7 @@ void encoder_deinit(void);
 void encoder_init_abi(uint32_t counts);
 void encoder_init_as5047p_spi(void);
 void encoder_init_mt6816_spi(void);
+void encoder_init_bissc_spi(uint32_t counts);
 void encoder_init_ad2s1205_spi(void);
 void encoder_init_sincos(float sin_gain, float sin_offset,
 						 float cos_gain, float cos_offset, float sincos_filter_constant);
@@ -59,6 +60,7 @@ int16_t encoder_ts57n8501_get_abm(void);
 void encoder_ts57n8501_reset_errors(void);
 void encoder_ts57n8501_reset_multiturn(void);
 AS504x_diag encoder_AS504x_get_diag(void);
+float encode_bissc_get_time_between_reads(void);
 
 #define AS504x_SPI_READ_BIT 								0x4000
 #define AS504x_SPI_WRITE_BIT 								0x0000
