@@ -506,8 +506,8 @@ Item {
             mMcConf.updateParamDouble("l_battery_cut_start", 47.6, null)
             mMcConf.updateParamDouble("l_battery_cut_end", 42, null)
             
-            mMcConf.updateParamDouble("l_temp_motor_start", 90, null)
-            mMcConf.updateParamDouble("l_temp_motor_end", 105, null)
+            mMcConf.updateParamDouble("l_temp_motor_start", 125, null)
+            mMcConf.updateParamDouble("l_temp_motor_end", 135, null)
             mMcConf.updateParamDouble("l_temp_accel_dec", 0, null)
             
             mMcConf.updateParamDouble("foc_f_sw", 30000, null)
@@ -516,6 +516,9 @@ Item {
             mMcConf.updateParamDouble("foc_sl_erpm", 6000, null)
             mMcConf.updateParamBool("foc_sample_high_current", 1, null)
             mMcConf.updateParamDouble("foc_phase_filter_max_erpm", 1600, null)
+            
+            // Field Weakening
+            mMcConf.updateParamDouble("foc_fw_current_max", 40, null)
             
             mMcConf.updateParamEnum("m_motor_temp_sens_type", 4, null)
             mMcConf.updateParamInt("m_hall_extra_samples", 4, null)
@@ -545,7 +548,7 @@ Item {
             rl[1] = rl[1] * 1e-6
             
             mMcConf.updateParamDouble("foc_motor_r", rl[0], null)
-            mMcConf.updateParamDouble("foc_motor_l", rl[1], null)
+            mMcConf.updateParamDouble("foc_motor_l", rl[1] * 0.9, null)
                         
             // Flux linkage
             

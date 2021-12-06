@@ -124,25 +124,25 @@ static void terminal_set_top_speed_erpm(int argc, const char **argv);
 static void terminal_set_brake_power(int argc, const char **argv);
 
 static void restore_settings(void) {
-	m_set_normal.p_throttle_hyst = 0.04;
-	m_set_normal.p_pedal_current = 20.0;
-	m_set_normal.p_start_gain = 4.0;
-	m_set_normal.p_start_gain_end_speed = 15.0;
-	m_set_normal.p_output_power = 1.0;
-	m_set_normal.p_top_speed_erpm = 2000;
-	m_set_normal.p_brake_current_front = 0.5;
-	m_set_normal.p_brake_current_rear = 0.5;
-	m_set_normal.p_brake_current_both = 1.0;
-
 	m_set_eco.p_throttle_hyst = 0.04;
 	m_set_eco.p_pedal_current = 25.0;
-	m_set_eco.p_start_gain = 4.0;
-	m_set_eco.p_start_gain_end_speed = 15.0;
+	m_set_eco.p_start_gain = 2.9;
+	m_set_eco.p_start_gain_end_speed = 7.8;
 	m_set_eco.p_output_power = 0.7;
 	m_set_eco.p_top_speed_erpm = 2000;
 	m_set_eco.p_brake_current_front = 0.5;
 	m_set_eco.p_brake_current_rear = 0.5;
 	m_set_eco.p_brake_current_both = 1.0;
+
+	m_set_normal.p_throttle_hyst = 0.04;
+	m_set_normal.p_pedal_current = 20.0;
+	m_set_normal.p_start_gain = 3.4;
+	m_set_normal.p_start_gain_end_speed = 9.0;
+	m_set_normal.p_output_power = 0.85;
+	m_set_normal.p_top_speed_erpm = 2000;
+	m_set_normal.p_brake_current_front = 0.5;
+	m_set_normal.p_brake_current_rear = 0.5;
+	m_set_normal.p_brake_current_both = 1.0;
 
 	m_set_sport.p_throttle_hyst = 0.04;
 	m_set_sport.p_pedal_current = 15.0;
@@ -350,7 +350,7 @@ static THD_FUNCTION(my_thread, arg) {
 	const float output_filter = 0.3;
 
 	const float poles = 8;
-	const float gearing = 5.6;
+	const float gearing = 112.0 / 18.0;
 	const float wheel_d = 0.585;
 
 	float erpm_now = 0.0;
