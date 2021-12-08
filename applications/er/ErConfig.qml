@@ -658,6 +658,8 @@ Item {
                 return
             }
             
+            mMcConf.updateParamBool("m_invert_direction", 1, null)
+            
             // Resistance and inductance
             
             var rl = Utility.measureRLBlocking(VescIf)
