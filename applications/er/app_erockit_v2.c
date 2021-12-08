@@ -87,7 +87,8 @@ typedef enum {
 	ER_MSG_GET_MODE_PARAMS,
 	ER_MSG_GET_IO,
 	ER_MSG_RESTORE_SETTINGS,
-	ER_MSG_SET_MOTORS_ENABLED
+	ER_MSG_SET_MOTORS_ENABLED,
+	ER_MSG_SET_PEDAL_TEST_MODE
 } ER_MSG;
 
 typedef struct {
@@ -108,6 +109,7 @@ static volatile SETTINGS_T m_set_sport;
 static volatile SETTINGS_T *m_set_now = &m_set_normal;
 static volatile int m_set_now_offset = 0;
 static volatile bool m_motors_enabled = true;
+static volatile bool m_pedal_test_mode = false;
 
 // Private functions
 static void process_custom_app_data(unsigned char *data, unsigned int len);
@@ -406,6 +408,10 @@ static THD_FUNCTION(my_thread, arg) {
 			pedal_current_target = utils_map(erpm_motor, 0.0, erpm_ramp_in, 0.0, pedal_current_target);
 		}
 
+		if ((!m_kill_sw || m_brake_front || m_brake_rear) && !m_pedal_test_mode) {
+			running = false;
+		}
+
 		if (running) {
 			mc_interface_set_pid_speed(erpm_now);
 
@@ -547,7 +553,9 @@ static THD_FUNCTION(my_thread, arg) {
 				}
 			}
 
-			if (!m_kill_sw || brake > 0.0001) {
+			if (!m_kill_sw || m_pedal_test_mode) {
+				comm_can_set_current_brake_rel(255, 0.0);
+			} else if (brake > 0.0001) {
 				comm_can_set_current_brake_rel(255, brake);
 			} else {
 				comm_can_set_current_rel(255, pwr_out * m_set_now->p_output_power);
@@ -659,6 +667,17 @@ static void process_custom_app_data(unsigned char *data, unsigned int len) {
 		ind = 0;
 		dataTx[ind++] = msg;
 		dataTx[ind++] = m_motors_enabled;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_SET_PEDAL_TEST_MODE: {
+		m_pedal_test_mode = data[ind++];
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		dataTx[ind++] = m_pedal_test_mode;
 		commands_send_app_data(dataTx, ind);
 	} break;
 

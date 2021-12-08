@@ -27,6 +27,7 @@ Item {
         er_msg.ER_MSG_GET_IO = 2
         er_msg.ER_MSG_RESTORE_SETTINGS = 3
         er_msg.ER_MSG_SET_MOTORS_ENABLED = 4
+        er_msg.ER_MSG_SET_PEDAL_TEST_MODE = 5
         
         er_set.p_throttle_hyst = 0.04
         er_set.p_pedal_current = 20.0
@@ -98,6 +99,12 @@ Item {
                 } else {
                     VescIf.emitStatusMessage("ER Motors Disabled", true)
                 }
+            } else if (cmd == er_msg.ER_MSG_SET_PEDAL_TEST_MODE) {
+                if (dv.getUint8(ind++)) {
+                    VescIf.emitStatusMessage("Pedal Test Enabled", true)
+                } else {
+                    VescIf.emitStatusMessage("Pedal Test Disabled", true)
+                }
             }
         }
     }
@@ -152,6 +159,15 @@ Item {
         var dv = new DataView(buffer)
         var ind = 0
         dv.setUint8(ind++, er_msg.ER_MSG_SET_MOTORS_ENABLED)
+        dv.setUint8(ind++, enabled)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function setPedalTestMode(enabled) {
+        var buffer = new ArrayBuffer(2)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_SET_PEDAL_TEST_MODE)
         dv.setUint8(ind++, enabled)
         mCommands.sendCustomAppData(buffer)
     }
@@ -303,6 +319,17 @@ Item {
                         onClicked: {
                             restoreSettings()
                             readSettings()
+                        }
+                    }
+                    
+                    CheckBox {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 500
+                        Layout.preferredHeight: 80
+                        text: "Pedal Test"
+                        
+                        onToggled: {
+                            setPedalTestMode(checked)
                         }
                     }
                 }
@@ -487,7 +514,7 @@ Item {
                 return
             }
             
-            mMcConf.updateParamDouble("si_gear_ratio", 5.6, null)
+            mMcConf.updateParamDouble("si_gear_ratio", 112 / 18, null)
             mMcConf.updateParamInt("si_motor_poles", 8, null)
             mMcConf.updateParamDouble("si_wheel_diameter", 0.58, null)
             
