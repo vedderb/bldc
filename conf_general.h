@@ -74,8 +74,8 @@
 //#define HW60_IS_MK4
 #define HW60_IS_MK5
 
-//#define HW_SOURCE "hw_60.c"
-//#define HW_HEADER "hw_60.h"
+#define HW_SOURCE "hw_60.c"
+#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -117,8 +117,8 @@
 //#define HW_SOURCE "hw_uavc_qcube.c"
 //#define HW_HEADER "hw_uavc_qcube.h"
 
-#define HW_SOURCE "hw_uavc_omega.c"
-#define HW_HEADER "hw_uavc_omega.h"
+//#define HW_SOURCE "hw_uavc_omega.c"
+//#define HW_HEADER "hw_uavc_omega.h"
 
 //#define HW_SOURCE "hw_hd60.c"
 //#define HW_HEADER "hw_hd60.h"
@@ -304,7 +304,7 @@
 #define MT6816_USE_HW_SPI_PINS		0
 #endif
 #ifndef AS504x_USE_SW_MOSI_PIN
-#define AS504x_USE_SW_MOSI_PIN 		1
+#define AS504x_USE_SW_MOSI_PIN 		0
 #endif
 
 /*
