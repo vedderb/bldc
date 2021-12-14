@@ -85,10 +85,10 @@
  <data>
   <variable>ProjectExplorer.Project.Target.0</variable>
   <valuemap type="QVariantMap">
-   <value type="QString" key="DeviceType">BareMetalOsType</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Bare metal (ARM)</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Bare metal (ARM)</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">{073cb80e-9d7f-474e-9d12-fe67a8764261}</value>
+   <value type="QString" key="DeviceType">Desktop</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">VESC Firmware</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">VESC Firmware</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.vesc</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="qlonglong" key="ProjectExplorer.Target.ActiveRunConfiguration">0</value>
