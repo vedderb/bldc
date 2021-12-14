@@ -59,29 +59,29 @@ QT_SDK_VER := 5.15.2
 
 ifdef LINUX
   QT_SDK_ARCH  := gcc_64
+  QT_SDK_HOST  := linux
+  QT_BIN       := $(QT_SDK_DIR)/$(QT_SDK_ARCH)/bin
+  QT_SDKTOOL   := $(QT_ROOT)/Tools/QtCreator/libexec/qtcreator/sdktool
+  QMAKE        := qmake
 endif
 
 ifdef MACOS
   QT_SDK_ARCH  := clang_64
+  QT_SDK_HOST  := mac
+  QT_BIN       := $(QT_SDK_DIR)/$(QT_SDK_ARCH)/bin
+  QT_SDKTOOL  := $(TOOLS_DIR)/Qt/Qt\ Creator.app/Contents/Resources/libexec/sdktool
+  QMAKE       := qmake
 endif
 
 ifdef WINDOWS
   QT_SDK_ARCH  := win64_msvc2019_64
+  QT_SDK_HOST  := windows
+  QT_BIN       := $(QT_SDK_DIR)/msvc2019_64/bin
+  QT_SDKTOOL  := $(QT_ROOT)\Tools\QtCreator\bin\sdktool.exe
+  QMAKE       := qmake.exe
 endif
-
 
 .PHONY: qt_sdk_install
-ifdef LINUX
-  qt_sdk_install: QT_SDK_HOST  := linux
-endif
-
-ifdef MACOS
-  qt_sdk_install: QT_SDK_HOST  := mac
-endif
-
-ifdef WINDOWS
-  qt_sdk_install: QT_SDK_HOST  := windows
-endif
 
 qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
 # order-only prereq on directory existance:
@@ -125,6 +125,29 @@ qt_creator_install:
 qt_creator_configure:
 # Create a shared Qt project file with all the targets
 	$(V1) $(PYTHON) Project/scripts/qt_creator_firmware_configuration.py --targets $(ALL_BOARD_NAMES) sim_posix
+	$(V1) $(QT_SDKTOOL) addQt \
+	  --id qt.vesc \
+	  --name "VESC Firmware" \
+	  --qmake $(QT_BIN)/$(QMAKE) \
+	  --type Qt4ProjectManager.QtVersion.Desktop
+	$(V1) $(QT_SDKTOOL) addKit \
+	    --id qt.vesc \
+	    --name "VESC Firmware" \
+	    --devicetype Desktop \
+	    --qt qt.vesc
+
+.PHONY: qt_creator_uninstall
+qt_creator_uninstall:
+	$(V1) $(QT_SDKTOOL) rmQt --id qt.vesc
+	$(V1) $(QT_SDKTOOL) rmKit --id qt.vesc
+
+.PHONY: qt_creator_clean
+qt_creator_clean: qt_creator_uninstall
+ifneq ($(OSFAMILY), windows)
+	$(V1) [ ! -d "$(QT_CREATOR_DIR)" ] || $(RM) -r $(QT_CREATOR_DIR)
+else
+	$(V1) pwsh -noprofile -command if (Test-Path $(QT_CREATOR_DIR)) {Remove-Item -Recurse $(QT_CREATOR_DIR)}
+endif
 
 
 ###############
