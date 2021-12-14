@@ -54,8 +54,9 @@ endif
 ##########
 # Qt SDK #
 ##########
-QT_SDK_DIR := $(TOOLS_DIR)/Qt
+QT_ROOT := $(TOOLS_DIR)/Qt
 QT_SDK_VER := 5.15.2
+QT_SDK_DIR := $(QT_ROOT)/$(QT_SDK_VER)
 
 ifdef LINUX
   QT_SDK_ARCH  := gcc_64
@@ -88,7 +89,7 @@ qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
 qt_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
 qt_sdk_install: qt_sdk_clean
 # binary only release so just download and extract it
-	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_SDK_DIR)
+	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_ROOT)
 
 .PHONY: qt_sdk_clean
 qt_sdk_clean:
