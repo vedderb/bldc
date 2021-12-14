@@ -9,13 +9,13 @@
 #include "encoder/AD2S1205.h"
 #include "encoder/encoder_hwconf.h"
 #include "hal.h"
-// GENERIC PRIVATE
+// GENERIC GLOBAL
 void encoders_deinit(void);
 encoders_ret_t encoders_init(encoders_config_t *encoder_config);
 float encoders_read_deg(void);
 encoders_type_t encoders_is_configured(void);
 
-// SPECIFIC PRIVATE
+// SPECIFIC GLOBAL
 bool encoders_index_found(void);
 float encoders_spi_get_error_rate(void);
 uint32_t encoders_spi_get_error_cnt(void);
