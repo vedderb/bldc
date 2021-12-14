@@ -34,6 +34,7 @@
 #include "hw.h"
 #include "canard_driver.h"
 #include "encoder.h"
+#include "encoder/encoders.h"
 #include "utils.h"
 #include "mempools.h"
 #include "shutdown.h"
@@ -1628,7 +1629,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			case CAN_PACKET_POLL_ROTOR_POS: {
 				uint8_t buffer[4];
 				int32_t index = 0;
-				buffer_append_int32(buffer, (int32_t)(encoder_read_deg() * 100000.0), &index);
+				buffer_append_int32(buffer, (int32_t)(encoders_read_deg() * 100000.0), &index);
 				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
 						((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true);
 			} break;

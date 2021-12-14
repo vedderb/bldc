@@ -25,6 +25,7 @@
 #include "stdio.h"
 #include "commands.h"
 #include "encoder.h"
+#include "encoder/encoders.h"
 
 typedef struct{
 	//constant variables
@@ -219,7 +220,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 														(float*)&virtual_motor.cos_phi);
 
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
-			encoder_deinit();
+			encoders_deinit();
 		}
 	}
 
@@ -280,11 +281,11 @@ static void disconnect_virtual_motor( void ){
 				break;
 
 			case SENSOR_PORT_MODE_AS5047_SPI:
-				encoder_init_as5047p_spi();
+				encoders_init(&conf_AS5047);
 				break;
 
 			case SENSOR_PORT_MODE_AD2S1205:
-				encoder_init_ad2s1205_spi();
+			  encoders_init(&conf_AD2S1205);
 				break;
 
 			case SENSOR_PORT_MODE_SINCOS:

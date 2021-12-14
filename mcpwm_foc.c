@@ -31,6 +31,7 @@
 #include "ledpwm.h"
 #include "terminal.h"
 #include "encoder.h"
+#include "encoder/encoders.h"
 #include "commands.h"
 #include "timeout.h"
 #include "timer.h"
@@ -1509,7 +1510,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 	// Find index
 	int cnt = 0;
-	while(!encoder_index_found()) {
+	while(!encoders_index_found()) {
 		for (float i = 0.0;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
 			motor->m_phase_now_override = i;
 			chThdSleepMilliseconds(1);
@@ -1617,7 +1618,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 
 	if (print) {
 		commands_printf("Rotated for sync");
-		commands_printf("Enc: %.2f", (double)encoder_read_deg());
+		commands_printf("Enc: %.2f", (double)encoders_read_deg());
 	}
 
 	const int it_ofs = motor->m_conf->foc_encoder_ratio * 3.0;
@@ -2627,8 +2628,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			encoder_is_being_used = true;
 		}
 	} else {
-		if (encoder_is_configured()) {
-			enc_ang = encoder_read_deg();
+		if (encoders_is_configured()) {
+			enc_ang = encoders_read_deg();
 			encoder_is_being_used = true;
 		}
 	}
@@ -2771,7 +2772,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			switch (conf_now->foc_sensor_mode) {
 			case FOC_SENSOR_MODE_ENCODER:
-				if (encoder_index_found() || virtual_motor_is_connected()) {
+				if (encoders_index_found() || virtual_motor_is_connected()) {
 					motor_now->m_motor_state.phase = correct_encoder(
 							motor_now->m_phase_now_observer,
 							motor_now->m_phase_now_encoder,
@@ -3071,7 +3072,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Track position control angle
 	float angle_now = 0.0;
-	if (encoder_is_configured()) {
+	if (encoders_is_configured()) {
 		if (conf_now->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 			angle_now = encoder_read_deg_multiturn();
 		} else {
@@ -4269,7 +4270,7 @@ static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor) {
 	float error = utils_angle_difference(angle_set, angle_now);
 	float error_sign = 1.0;
 
-	if (encoder_is_configured()) {
+	if (encoders_is_configured()) {
 		if (conf_now->foc_encoder_inverted) {
 			error_sign = -1.0;
 		}
@@ -4340,8 +4341,8 @@ static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor) {
 	float output = p_term + motor->m_pos_i_term + d_term + d_term_proc;
 	utils_truncate_number(&output, -1.0, 1.0);
 
-	if (encoder_is_configured()) {
-		if (encoder_index_found()) {
+	if (encoders_is_configured()) {
+		if (encoders_index_found()) {
 			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
 		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.

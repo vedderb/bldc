@@ -32,6 +32,7 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "encoder.h"
+#include "encoder/encoders.h"
 #include "timer.h"
 
 // Structs
@@ -2107,8 +2108,8 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 
 	mc_interface_mc_timer_isr(false);
 
-	if (encoder_is_configured()) {
-		float pos = encoder_read_deg();
+	if (encoders_is_configured()) {
+		float pos = encoders_read_deg();
 		run_pid_control_pos(1.0 / switching_frequency_now, pos);
 		pll_run(-DEG2RAD_f(pos), 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
 	}

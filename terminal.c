@@ -29,6 +29,7 @@
 #include "utils.h"
 #include "timeout.h"
 #include "encoder.h"
+#include "encoder/encoders.h"
 #include "app.h"
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
@@ -307,7 +308,7 @@ void terminal_process_string(char *str) {
 			*mcconf = *mc_interface_get_configuration();
 
 			if (current > 0.0 && current <= mcconf->l_current_max) {
-				if (encoder_is_configured()) {
+				if (encoders_is_configured()) {
 					mc_motor_type type_old = mcconf->motor_type;
 					mcconf->motor_type = MOTOR_TYPE_FOC;
 					mc_interface_set_configuration(mcconf);
@@ -871,15 +872,15 @@ void terminal_process_string(char *str) {
 
 			if (mcconf->m_sensor_port_mode != SENSOR_PORT_MODE_AS5047_SPI) {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
-						(unsigned int)encoder_spi_get_val(),
-						encoder_spi_get_error_cnt(),
-						(double)encoder_spi_get_error_rate() * (double)100.0);
+						(unsigned int)encoders_spi_get_val(),
+						encoders_spi_get_error_cnt(),
+						(double)encoders_spi_get_error_rate() * (double)100.0);
 			} else {
 				commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%, Connected: %u",
-						(unsigned int)encoder_spi_get_val(),
-						encoder_spi_get_error_cnt(),
-						(double)encoder_spi_get_error_rate() * (double)100.0,
-						encoder_AS504x_get_diag().is_connected);
+						(unsigned int)encoders_spi_get_val(),
+						encoders_spi_get_error_cnt(),
+						(double)encoders_spi_get_error_rate() * (double)100.0,
+						AS504x_get_diag().is_connected);
 			}
 
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
@@ -893,7 +894,7 @@ void terminal_process_string(char *str) {
 
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
 				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
-						encoder_get_no_magnet_error_cnt(),
+						encoders_get_no_magnet_error_cnt(),
 						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
 
@@ -906,10 +907,10 @@ void terminal_process_string(char *str) {
 						"OCF       : %u\n"
 						"COMP_low  : %u\n"
 						"COMP_high : %u\n",
-						encoder_AS504x_get_diag().AGC_value, encoder_AS504x_get_diag().magnitude,
-						encoder_AS504x_get_diag().is_COF, encoder_AS504x_get_diag().is_OCF,
-						encoder_AS504x_get_diag().is_Comp_low,
-						encoder_AS504x_get_diag().is_Comp_high);
+						AS504x_get_diag().AGC_value, AS504x_get_diag().magnitude,
+						AS504x_get_diag().is_COF, AS504x_get_diag().is_OCF,
+						AS504x_get_diag().is_Comp_low,
+						AS504x_get_diag().is_Comp_high);
 			}
 #endif
 		}
@@ -926,14 +927,14 @@ void terminal_process_string(char *str) {
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
 			commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
-					encoder_resolver_loss_of_tracking_error_cnt(),
-					(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
+					encoders_resolver_loss_of_tracking_error_cnt(),
+					(double)encoders_resolver_loss_of_tracking_error_rate() * (double)100.0);
 			commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
-					encoder_resolver_degradation_of_signal_error_cnt(),
-					(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
+					encoders_resolver_degradation_of_signal_error_cnt(),
+					(double)encoders_resolver_degradation_of_signal_error_rate() * (double)100.0);
 			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
-					encoder_resolver_loss_of_signal_error_cnt(),
-					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
+					encoders_resolver_loss_of_signal_error_cnt(),
+					(double)encoders_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_ts57n8501_reset_errors();
