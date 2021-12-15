@@ -212,7 +212,8 @@ void mc_interface_init(void) {
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
 	    //TODO: integrate with encoder/encoders
-		encoder_init_abi(motor_now()->m_conf.m_encoder_counts);
+		conf_ABI.counts = motor_now()->m_conf.m_encoder_counts;
+		encoders_init(&conf_ABI);
 		break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI:

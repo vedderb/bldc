@@ -277,7 +277,8 @@ static void disconnect_virtual_motor( void ){
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
 			switch (m_conf->m_sensor_port_mode) {
 			case SENSOR_PORT_MODE_ABI:
-				encoder_init_abi(m_conf->m_encoder_counts);
+				conf_ABI.counts = m_conf->m_encoder_counts;
+				encoders_init(&conf_ABI);
 				break;
 
 			case SENSOR_PORT_MODE_AS5047_SPI:
