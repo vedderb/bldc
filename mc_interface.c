@@ -229,10 +229,12 @@ void mc_interface_init(void) {
 		break;
 
 	case SENSOR_PORT_MODE_SINCOS:
-	    //TODO: integrate with encoder/encoders
-		encoder_init_sincos(motor_now()->m_conf.foc_encoder_sin_gain, motor_now()->m_conf.foc_encoder_sin_offset,
-							motor_now()->m_conf.foc_encoder_cos_gain, motor_now()->m_conf.foc_encoder_cos_offset,
-							motor_now()->m_conf.foc_encoder_sincos_filter_constant);
+		conf_SINCOS.s_gain = motor_now()->m_conf.foc_encoder_sin_gain;
+		conf_SINCOS.s_offset = motor_now()->m_conf.foc_encoder_sin_offset;
+		conf_SINCOS.c_gain = motor_now()->m_conf.foc_encoder_cos_gain;
+		conf_SINCOS.c_offset = motor_now()->m_conf.foc_encoder_cos_offset;
+		conf_SINCOS.filter_constant = motor_now()->m_conf.foc_encoder_sincos_filter_constant;
+		encoders_init(&conf_SINCOS);
 		break;
 
 	case SENSOR_PORT_MODE_TS5700N8501:

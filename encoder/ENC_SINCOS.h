@@ -1,9 +1,3 @@
-/*
- * ENC_SINCOS.h
- *
- *  Created on: Dec 15, 2021
- *      Author: jtuxv
- */
 
 #ifndef ENCODER_ENC_SINCOS_H_
 #define ENCODER_ENC_SINCOS_H_

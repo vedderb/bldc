@@ -1,9 +1,4 @@
-/*
- * ENC_SINCOS.c
- *
- *  Created on: Dec 15, 2021
- *      Author: jtuxv
- */
+
 #include "encoder/ENC_SINCOS.h"
 
 #include "ch.h"
