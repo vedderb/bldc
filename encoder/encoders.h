@@ -1,5 +1,4 @@
 
-
 #ifndef ENCODER_ENCODERS_H_
 #define ENCODER_ENCODERS_H_
 
@@ -31,9 +30,7 @@ uint32_t encoders_resolver_loss_of_signal_error_cnt(void);
 float encoders_get_no_magnet_error_rate(void);
 uint32_t encoders_spi_get_val(void);
 
-
 void encoders_tim_isr(void);
 void encoders_reset(void);
-
 
 #endif /* ENCODER_ENCODERS_H_ */

@@ -1,5 +1,4 @@
 
-
 #ifndef ENCODER_AS504X_H_
 #define ENCODER_AS504X_H_
 
@@ -9,7 +8,7 @@
 void AS504x_routine(void);
 float AS504x_read_deg(void);
 void AS504x_deinit(void);
-encoders_ret_t AS504x_init(AS504x_config_t* AS504x_config);
+encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config);
 AS504x_diag AS504x_get_diag(void);
 bool AS504x_index_found(void);
 float AS504x_spi_get_error_rate(void);
@@ -26,9 +25,7 @@ uint32_t AS504x_spi_get_error_cnt(void);
 
 #define AS5047_SAMPLE_RATE_HZ		20000
 
-
 #define AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK			0x3FFF
-
 
 #define AS504x_SPI_DIAG_ADR									0x3FFD
 #define AS504x_SPI_MAGN_ADR									0x3FFE

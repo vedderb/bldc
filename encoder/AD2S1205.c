@@ -1,6 +1,4 @@
 
-
-
 #include "encoder/AD2S1205.h"
 
 #include "ch.h"
@@ -11,7 +9,7 @@
 #include "utils.h"
 #include <math.h>
 
-static AD2S1205_config_t AD2S1205_config_now = {0};
+static AD2S1205_config_t AD2S1205_config_now = { 0 };
 
 static uint16_t spi_val = 0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
@@ -31,23 +29,25 @@ static void spi_delay(void);
 static void spi_AS5047_cs_delay(void);
 static bool spi_check_parity(uint16_t x);
 
-void AD2S1205_deinit(void)
-{
-		nvicDisableVector(HW_ENC_EXTI_CH);
-		nvicDisableVector(HW_ENC_TIM_ISR_CH);
+void AD2S1205_deinit(void) {
+	nvicDisableVector(HW_ENC_EXTI_CH);
+	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 
-		TIM_DeInit(HW_ENC_TIM);
+	TIM_DeInit(HW_ENC_TIM);
 
-		palSetPadMode(AD2S1205_config_now.spi_config.gpio_miso.port, AD2S1205_config_now.spi_config.gpio_miso.pin, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(AD2S1205_config_now.spi_config.gpio_sck.port, AD2S1205_config_now.spi_config.gpio_sck.pin, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(AD2S1205_config_now.spi_config.gpio_nss.port, AD2S1205_config_now.spi_config.gpio_nss.pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(AD2S1205_config_now.spi_config.gpio_miso.port,
+			AD2S1205_config_now.spi_config.gpio_miso.pin,
+			PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(AD2S1205_config_now.spi_config.gpio_sck.port,
+			AD2S1205_config_now.spi_config.gpio_sck.pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(AD2S1205_config_now.spi_config.gpio_nss.port,
+			AD2S1205_config_now.spi_config.gpio_nss.pin, PAL_MODE_INPUT_PULLUP);
 
-	#ifdef HW_SPI_DEV
-		spiStop(&HW_SPI_DEV);
-	#endif
+#ifdef HW_SPI_DEV
+	spiStop(&HW_SPI_DEV);
+#endif
 
-
-		// TODO: (TO BE TESTED!!) DEINITIALIZE ALSO SAMPLE AND RDVEL
+	// TODO: (TO BE TESTED!!) DEINITIALIZE ALSO SAMPLE AND RDVEL
 #if defined(AD2S1205_SAMPLE_GPIO)
 	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_INPUT_PULLUP);	// Prepare for a falling edge SAMPLE assertion
 #endif
@@ -57,10 +57,9 @@ void AD2S1205_deinit(void)
 
 }
 
-encoders_ret_t AD2S1205_init(AD2S1205_config_t* AD2S1205_config)
-{
+encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	encoders_spi_config_t AD2S1205_spi_config = AD2S1205_config->spi_config;
 
 	resolver_loss_of_tracking_error_rate = 0.0;
@@ -69,9 +68,14 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t* AD2S1205_config)
 	resolver_loss_of_tracking_error_cnt = 0;
 	resolver_loss_of_signal_error_cnt = 0;
 
-	palSetPadMode(AD2S1205_spi_config.gpio_miso.port, AD2S1205_spi_config.gpio_miso.pin, PAL_MODE_INPUT);
-	palSetPadMode(AD2S1205_spi_config.gpio_sck.port, AD2S1205_spi_config.gpio_sck.pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(AD2S1205_spi_config.gpio_nss.port, AD2S1205_spi_config.gpio_nss.pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(AD2S1205_spi_config.gpio_miso.port,
+			AD2S1205_spi_config.gpio_miso.pin, PAL_MODE_INPUT);
+	palSetPadMode(AD2S1205_spi_config.gpio_sck.port,
+			AD2S1205_spi_config.gpio_sck.pin,
+			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(AD2S1205_spi_config.gpio_nss.port,
+			AD2S1205_spi_config.gpio_nss.pin,
+			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
 	// Set MOSI to 1
 #if AD2S1205_USE_HW_SPI_PINS
@@ -97,7 +101,8 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t* AD2S1205_config)
 	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2 / AD2S1205_config->refresh_rate_hz) - 1);
+	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2
+			/ AD2S1205_config->refresh_rate_hz) - 1);
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
@@ -116,15 +121,15 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t* AD2S1205_config)
 	return ENCODERS_OK;
 }
 
-void AD2S1205_routine(void)
-{
+void AD2S1205_routine(void) {
 	uint16_t pos;
 	// SAMPLE signal should have been be asserted in sync with ADC sampling
 #ifdef AD2S1205_RDVEL_GPIO
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
 #endif
 
-	palSetPad(AD2S1205_config_now.spi_config.gpio_sck.port, AD2S1205_config_now.spi_config.gpio_sck.pin);
+	palSetPad(AD2S1205_config_now.spi_config.gpio_sck.port,
+			AD2S1205_config_now.spi_config.gpio_sck.pin);
 	spi_delay();
 	spi_begin(); // CS uses the same mcu pin as AS5047
 	spi_delay();
@@ -136,60 +141,66 @@ void AD2S1205_routine(void)
 
 	uint16_t RDVEL = pos & 0x0008; // 1 means a position read
 
-	if((RDVEL != 0)){
+	if ((RDVEL != 0)) {
 
 		bool DOS = ((pos & 0x04) == 0);
 		bool LOT = ((pos & 0x02) == 0);
 		bool LOS = DOS && LOT;
-		bool parity_error = spi_check_parity(pos);	//16 bit frame has odd parity
+		bool parity_error = spi_check_parity(pos);//16 bit frame has odd parity
 		bool angle_is_correct = true;
 
-		if(LOS) {
+		if (LOS) {
 			LOT = DOS = 0;
 		}
 
-		if(!parity_error) {
-			UTILS_LP_FAST(spi_error_rate, 0.0, 1./AD2S1205_config_now.refresh_rate_hz);
+		if (!parity_error) {
+			UTILS_LP_FAST(spi_error_rate, 0.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		} else {
 			angle_is_correct = false;
 			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(spi_error_rate, 1.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		}
 
 		pos &= 0xFFF0;
 		pos = pos >> 4;
 		pos &= 0x0FFF;
 
-		if(LOT) {
+		if (LOT) {
 			angle_is_correct = false;
 			++resolver_loss_of_tracking_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		}
 
-		if(DOS) {
+		if (DOS) {
 			angle_is_correct = false;
 			++resolver_degradation_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		} else {
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		}
 
-		if(LOS) {
+		if (LOS) {
 			angle_is_correct = false;
 			++resolver_loss_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1./AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0,
+					1. / AD2S1205_config_now.refresh_rate_hz);
 		}
 
-		if(angle_is_correct)
-		{
-			last_enc_angle = ((float)pos * 360.0) / 4096.0;
+		if (angle_is_correct) {
+			last_enc_angle = ((float) pos * 360.0) / 4096.0;
 		}
 	}
-
 
 }
 
@@ -217,13 +228,11 @@ uint32_t AD2S1205_resolver_loss_of_signal_error_cnt(void) {
 	return resolver_loss_of_signal_error_cnt;
 }
 
-uint32_t AD2S1205_spi_get_error_cnt(void)
-{
+uint32_t AD2S1205_spi_get_error_cnt(void) {
 	return spi_error_cnt;
 }
 
-float AD2S1205_read_deg(void)
-{
+float AD2S1205_read_deg(void) {
 	return last_enc_angle;
 }
 
@@ -233,7 +242,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 	const encoders_gpio_t gpio_mosi = AD2S1205_config_now.spi_config.gpio_mosi;
 #endif
 	const encoders_gpio_t gpio_sck = AD2S1205_config_now.spi_config.gpio_sck;
-	for (int i = 0;i < length;i++) {
+	for (int i = 0; i < length; i++) {
 
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
@@ -243,7 +252,7 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 		uint16_t receive = 0;
 
-		for (int bit = 0;bit < 16;bit++) {
+		for (int bit = 0; bit < 16; bit++) {
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 			palWritePad(gpio_mosi.port, gpio_mosi.pin, send >> (15 - bit));
 #endif
@@ -278,12 +287,14 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 }
 
 static void spi_begin(void) {
-	palClearPad(AD2S1205_config_now.spi_config.gpio_nss.port, AD2S1205_config_now.spi_config.gpio_nss.pin);
+	palClearPad(AD2S1205_config_now.spi_config.gpio_nss.port,
+			AD2S1205_config_now.spi_config.gpio_nss.pin);
 	spi_AS5047_cs_delay();
 }
 
 static void spi_end(void) {
-	palSetPad(AD2S1205_config_now.spi_config.gpio_nss.port, AD2S1205_config_now.spi_config.gpio_nss.pin);
+	palSetPad(AD2S1205_config_now.spi_config.gpio_nss.port,
+			AD2S1205_config_now.spi_config.gpio_nss.pin);
 	spi_AS5047_cs_delay();
 }
 
@@ -295,19 +306,45 @@ static void spi_delay(void) {
 }
 
 static void spi_AS5047_cs_delay(void) {
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
-	__NOP();__NOP();__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
+	__NOP();
 	__NOP();
 }
 

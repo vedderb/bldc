@@ -1,5 +1,4 @@
 
-
 #ifndef ENCODER_ENCODER_HWCONF_H_
 #define ENCODER_ENCODER_HWCONF_H_
 
