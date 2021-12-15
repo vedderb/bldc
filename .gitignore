@@ -1,7 +1,9 @@
 *~
-
+.idea
 build
 .dep
 .project
 .cproject
 .settings/language.settings.xml
+.DS_Store
+workspace.code-workspace
