@@ -175,6 +175,7 @@ CSRC = $(STARTUPSRC) \
        encoder/MT6816.c \
        encoder/AD2S1205.c \
        encoder/ABI.c \
+       encoder/ENC_SINCOS.c \
        encoder/encoder_hwconf.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

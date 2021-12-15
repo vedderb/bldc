@@ -3,6 +3,7 @@
 #define ENCODER_ENCODER_HWCONF_H_
 
 #include "encoder/encoder_datatype.h"
+#include "hw.h"
 
 #define AS5047_SAMPLE_RATE_HZ       20000
 #define AD2S1205_SAMPLE_RATE_HZ     20000       //25MHz max spi clk

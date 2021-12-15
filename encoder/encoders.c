@@ -16,6 +16,7 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		AS504x_config_t as504x_config;
 		encoders_ret_t encoder_ret;
 
+		as504x_config.is_init = 0;
 		as504x_config.spi_config = encoder_config->spi_config;
 		as504x_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
 		encoder_ret = AS504x_init(&as504x_config);
@@ -32,6 +33,7 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		MT6816_config_t mt6816_config;
 		encoders_ret_t encoder_ret;
 
+		mt6816_config.is_init = 0;
 		mt6816_config.spi_config = encoder_config->spi_config;
 		mt6816_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
 
@@ -49,6 +51,7 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		AD2S1205_config_t AD2S1205_config;
 		encoders_ret_t encoder_ret;
 
+		AD2S1205_config.is_init = 0;
 		AD2S1205_config.spi_config = encoder_config->spi_config;
 		AD2S1205_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
 
@@ -66,6 +69,7 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		ABI_config_t abi_config;
 		encoders_ret_t encoder_ret;
 
+		abi_config.is_init = 0;
 		abi_config.incremental_config = encoder_config->incremental_config;
 		abi_config.counts = encoder_config->counts;
 
@@ -77,6 +81,28 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 			return ENCODERS_ERROR;
 		}
 		encoder_type_now = ENCODERS_TYPE_ABI;
+		index_found = true;
+		return ENCODERS_OK;
+	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
+		ENC_SINCOS_config_t enc_sincos_config;
+		encoders_ret_t encoder_ret;
+
+		enc_sincos_config.is_init = 0;
+		enc_sincos_config.s_gain = encoder_config->s_gain;
+		enc_sincos_config.s_offset = encoder_config->s_offset;
+		enc_sincos_config.c_gain = encoder_config->c_gain;
+		enc_sincos_config.s_offset = encoder_config->s_offset;
+		enc_sincos_config.filter_constant = encoder_config->filter_constant;
+		enc_sincos_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
+
+		encoder_ret = ENC_SINCOS_init(&enc_sincos_config);
+
+		if (ENCODERS_OK != encoder_ret || !enc_sincos_config.is_init) {
+			encoder_type_now = ENCODERS_TYPE_SINCOS;
+			index_found = false;
+			return ENCODERS_ERROR;
+		}
+		encoder_type_now = ENCODERS_TYPE_SINCOS;
 		index_found = true;
 		return ENCODERS_OK;
 	} else {
@@ -95,6 +121,8 @@ float encoders_read_deg(void) {
 		return AD2S1205_read_deg();
 	} else if (encoder_type_now == ENCODERS_TYPE_ABI) {
 		return ABI_read_deg();
+	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
+		return ENC_SINCOS_read_deg();
 	}
 	return 0.0;
 }
@@ -116,7 +144,11 @@ void encoders_deinit(void) {
 		AD2S1205_deinit();
 	} else if (encoder_type_now == ENCODERS_TYPE_ABI) {
 		ABI_deinit();
+	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
+		ENC_SINCOS_deinit();
 	}
+
+	encoder_type_now = ENCODERS_TYPE_NONE;
 }
 
 float encoders_spi_get_error_rate(void) {
@@ -217,9 +249,9 @@ void encoders_tim_isr(void) {
 	if (encoder_type_now == ENCODERS_TYPE_AS504x) {
 		AS504x_routine();
 	} else if (encoder_type_now == ENCODERS_TYPE_MT6816) {
-		return MT6816_routine();
+		MT6816_routine();
 	} else if (encoder_type_now == ENCODERS_TYPE_AD2S1205_SPI) {
-		return AD2S1205_routine();
+		AD2S1205_routine();
 	}
 }
 

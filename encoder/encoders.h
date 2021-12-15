@@ -1,4 +1,3 @@
-
 #ifndef ENCODER_ENCODERS_H_
 #define ENCODER_ENCODERS_H_
 
@@ -8,6 +7,7 @@
 #include "encoder/AD2S1205.h"
 #include "encoder/encoder_hwconf.h"
 #include "encoder/ABI.h"
+#include "encoder/ENC_SINCOS.h"
 #include "hal.h"
 // GENERIC GLOBAL
 void encoders_deinit(void);

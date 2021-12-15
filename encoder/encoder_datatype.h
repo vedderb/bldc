@@ -65,11 +65,26 @@ typedef struct {
 } ABI_config_t;
 
 typedef struct {
+	bool is_init;
+	encoders_refresh_rate_hz_t refresh_rate_hz;
+	float s_gain;
+	float s_offset;
+	float c_gain;
+	float c_offset;
+	float filter_constant;
+} ENC_SINCOS_config_t;
+
+typedef struct {
 	encoders_type_t encoder_type;
 	encoders_refresh_rate_hz_t refresh_rate_hz;
 	encoders_spi_config_t spi_config;
 	uint32_t counts; // FOR INCREMENTAL INTERFACE
 	encoders_incremental_config_t incremental_config; // FOR INCREMENTAL INTERFACE
+	float s_gain;
+	float s_offset;
+	float c_gain;
+	float c_offset;
+	float filter_constant;
 } encoders_config_t;
 
 #endif /* ENCODER_ENCODER_DATATYPE_H_ */
