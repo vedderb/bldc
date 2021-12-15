@@ -169,7 +169,13 @@ CSRC = $(STARTUPSRC) \
        $(LORASRC) \
        $(COMPRESSIONSRC) \
        $(BLACKMAGICSRC) \
-       qmlui/qmlui.c
+       qmlui/qmlui.c \
+       encoder/encoders.c \
+       encoder/AS504x.c \
+       encoder/MT6816.c \
+       encoder/AD2S1205.c \
+       encoder/ABI.c \
+       encoder/encoder_hwconf.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
