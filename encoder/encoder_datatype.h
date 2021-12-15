@@ -23,7 +23,8 @@ typedef enum{
 	ENCODERS_TYPE_MT6816,
 	ENCODERS_TYPE_AD2S1205_SPI,
 	ENCODERS_TYPE_SINCOS,
-	ENCODERS_TYPE_TS5700N8501
+	ENCODERS_TYPE_TS5700N8501,
+	ENCODERS_TYPE_ABI
 }encoders_type_t;
 
 typedef struct{
@@ -37,6 +38,11 @@ typedef struct{
 	encoders_gpio_t gpio_mosi;
 	encoders_gpio_t gpio_sck;
 }encoders_spi_config_t;
+
+typedef struct{
+	encoders_gpio_t gpio_A;
+	encoders_gpio_t gpio_B;
+}encoders_incremental_config_t;
 
 typedef struct {
 	bool is_init;
@@ -56,10 +62,18 @@ typedef struct {
 	encoders_spi_config_t spi_config;
 }AD2S1205_config_t;
 
+typedef struct {
+	bool is_init;
+	uint32_t counts;
+	encoders_incremental_config_t incremental_config;
+}ABI_config_t;
+
 typedef struct{
 	encoders_type_t encoder_type;
 	encoders_refresh_rate_hz_t refresh_rate_hz;
 	encoders_spi_config_t spi_config;
+	uint32_t counts; // FOR INCREMENTAL INTERFACE
+	encoders_incremental_config_t incremental_config; // FOR INCREMENTAL INTERFACE
 }encoders_config_t;
 
 

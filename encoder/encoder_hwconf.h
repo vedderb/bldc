@@ -16,5 +16,6 @@
 extern encoders_config_t conf_AS5047;
 extern encoders_config_t conf_MT6816;
 extern encoders_config_t conf_AD2S1205;
+extern encoders_config_t conf_ABI;
 
 #endif /* ENCODER_ENCODER_HWCONF_H_ */

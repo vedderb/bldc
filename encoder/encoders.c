@@ -74,6 +74,26 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config)
 		index_found = true;
 		return ENCODERS_OK;
 	}
+	else if(encoder_config->encoder_type == ENCODERS_TYPE_ABI)
+	{
+		ABI_config_t abi_config;
+		encoders_ret_t encoder_ret;
+
+		abi_config.incremental_config = encoder_config->incremental_config;
+		abi_config.counts = encoder_config->counts;
+
+		encoder_ret = ABI_init(&abi_config);
+
+		if(ENCODERS_OK != encoder_ret || !abi_config.is_init)
+		{
+			encoder_type_now = ENCODERS_TYPE_NONE;
+			index_found = false;
+			return ENCODERS_ERROR;
+		}
+		encoder_type_now = ENCODERS_TYPE_ABI;
+		index_found = true;
+		return ENCODERS_OK;
+	}
 	else
 	{
 		encoder_type_now = ENCODERS_TYPE_NONE;
@@ -96,6 +116,10 @@ float encoders_read_deg(void)
 	else if(encoder_type_now == ENCODERS_TYPE_AD2S1205_SPI)
 	{
 		return AD2S1205_read_deg();
+	}
+	else if(encoder_type_now == ENCODERS_TYPE_ABI)
+	{
+		return ABI_read_deg();
 	}
 	return 0.0;
 }
@@ -123,6 +147,10 @@ void encoders_deinit(void)
 	else if(encoder_type_now == ENCODERS_TYPE_AD2S1205_SPI)
 	{
 		AD2S1205_deinit();
+	}
+	else if(encoder_type_now == ENCODERS_TYPE_ABI)
+	{
+		ABI_deinit();
 	}
 }
 

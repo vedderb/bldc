@@ -8,6 +8,7 @@
 #include "encoder/MT6816.h"
 #include "encoder/AD2S1205.h"
 #include "encoder/encoder_hwconf.h"
+#include "encoder/ABI.h"
 #include "hal.h"
 // GENERIC GLOBAL
 void encoders_deinit(void);
