@@ -98,11 +98,27 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_ret = ENC_SINCOS_init(&enc_sincos_config);
 
 		if (ENCODERS_OK != encoder_ret || !enc_sincos_config.is_init) {
-			encoder_type_now = ENCODERS_TYPE_SINCOS;
+			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
 		}
 		encoder_type_now = ENCODERS_TYPE_SINCOS;
+		index_found = true;
+		return ENCODERS_OK;
+	} else if (encoder_type_now == ENCODERS_TYPE_TS5700N8501) {
+		TS5700N8501_config_t ts5700N8501_config;
+		encoders_ret_t encoder_ret;
+
+		ts5700N8501_config = encoder_config->ts5700n8501;
+
+		encoder_ret = TS5700N8501_init(&ts5700N8501_config);
+
+		if (ENCODERS_OK != encoder_ret || !ts5700N8501_config.is_init) {
+			encoder_type_now = ENCODERS_TYPE_NONE;
+			index_found = false;
+			return ENCODERS_ERROR;
+		}
+		encoder_type_now = ENCODERS_TYPE_TS5700N8501;
 		index_found = true;
 		return ENCODERS_OK;
 	} else {
@@ -123,6 +139,8 @@ float encoders_read_deg(void) {
 		return ABI_read_deg();
 	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
 		return ENC_SINCOS_read_deg();
+	} else if (encoder_type_now == ENCODERS_TYPE_TS5700N8501) {
+		return TS5700N8501_read_deg();
 	}
 	return 0.0;
 }
@@ -146,6 +164,8 @@ void encoders_deinit(void) {
 		ABI_deinit();
 	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
 		ENC_SINCOS_deinit();
+	} else if (encoder_type_now == ENCODERS_TYPE_TS5700N8501) {
+		TS5700N8501_deinit();
 	}
 
 	encoder_type_now = ENCODERS_TYPE_NONE;

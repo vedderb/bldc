@@ -41,6 +41,12 @@ typedef struct {
 } encoders_incremental_config_t;
 
 typedef struct {
+	encoders_gpio_t gpio_TX;
+	encoders_gpio_t gpio_RX;
+	encoders_gpio_t gpio_EXT;
+} encoders_UART_config_t;
+
+typedef struct {
 	bool is_init;
 	encoders_refresh_rate_hz_t refresh_rate_hz; //TODO: REWRITE TO POINTER OF AS504x_config_t
 	encoders_spi_config_t spi_config; //TODO: REWRITE TO POINTER OF AS504x_config_t
@@ -75,6 +81,12 @@ typedef struct {
 } ENC_SINCOS_config_t;
 
 typedef struct {
+	bool is_init;
+	encoders_UART_config_t uart_config;
+	SerialConfig uart_param;
+} TS5700N8501_config_t;
+
+typedef struct {
 	encoders_type_t encoder_type;
 	encoders_refresh_rate_hz_t refresh_rate_hz;
 	encoders_spi_config_t spi_config;
@@ -85,6 +97,7 @@ typedef struct {
 	float c_gain;
 	float c_offset;
 	float filter_constant;
+	TS5700N8501_config_t ts5700n8501;
 } encoders_config_t;
 
 #endif /* ENCODER_ENCODER_DATATYPE_H_ */

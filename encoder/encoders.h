@@ -8,6 +8,7 @@
 #include "encoder/encoder_hwconf.h"
 #include "encoder/ABI.h"
 #include "encoder/ENC_SINCOS.h"
+#include "encoder/TS5700N8501.h"
 #include "hal.h"
 // GENERIC GLOBAL
 void encoders_deinit(void);
