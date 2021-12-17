@@ -84,7 +84,7 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
-		ENC_SINCOS_config_t enc_sincos_config;
+		ENCSINCOS_config_t enc_sincos_config;
 		encoders_ret_t encoder_ret;
 
 		enc_sincos_config.is_init = 0;

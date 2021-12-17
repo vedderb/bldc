@@ -6,7 +6,7 @@
 #include "encoder/encoder_datatype.h"
 
 void ENC_SINCOS_deinit(void);
-encoders_ret_t ENC_SINCOS_init(ENC_SINCOS_config_t *enc_sincos_config);
+encoders_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config);
 
 float ENC_SINCOS_read_deg(void);
 

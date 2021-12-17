@@ -78,7 +78,7 @@ typedef struct {
 	float c_gain;
 	float c_offset;
 	float filter_constant;
-} ENC_SINCOS_config_t;
+} ENCSINCOS_config_t;
 
 typedef struct {
 	bool is_init;

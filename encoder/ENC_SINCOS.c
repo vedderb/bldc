@@ -8,7 +8,7 @@
 #include "utils.h"
 #include <math.h>
 
-ENC_SINCOS_config_t enc_sincos_config_now = { 0 };
+ENCSINCOS_config_t enc_sincos_config_now = { 0 };
 
 static float sin_gain = 0.0;
 static float sin_offset = 0.0;
@@ -30,7 +30,7 @@ void ENC_SINCOS_deinit(void) {
 	enc_sincos_config_now.is_init = 0;
 }
 
-encoders_ret_t ENC_SINCOS_init(ENC_SINCOS_config_t *enc_sincos_config) {
+encoders_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	//ADC inputs are already initialized in hw_init_gpio()
 	sin_gain = enc_sincos_config->s_gain;
 	sin_offset = enc_sincos_config->s_offset;
