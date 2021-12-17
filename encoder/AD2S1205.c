@@ -55,6 +55,7 @@ void AD2S1205_deinit(void) {
 	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_INPUT_PULLUP);	// Will always read position
 #endif
 
+	AD2S1205_config_now.is_init = 0;
 }
 
 encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {

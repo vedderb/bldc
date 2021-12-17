@@ -25,6 +25,8 @@ void ABI_deinit(void) {
 			PAL_MODE_INPUT_PULLUP);
 
 	last_enc_angle = 0.0;
+
+	abi_config_now.is_init = 0;
 }
 
 encoders_ret_t ABI_init(ABI_config_t *abi_config) {

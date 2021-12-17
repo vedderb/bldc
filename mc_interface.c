@@ -250,7 +250,7 @@ void mc_interface_init(void) {
 			conf_general_store_app_configuration(appconf);
 		}
 		mempools_free_appconf(appconf);
-		encoder_init_ts5700n8501();
+		encoders_init(&conf_TS5700N8501);
 	} break;
 
 	default:
@@ -383,7 +383,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 				app_set_configuration(appconf);
 			}
 			mempools_free_appconf(appconf);
-			encoder_init_ts5700n8501();
+			encoders_init(&conf_TS5700N8501);
 		} break;
 
 		default:
