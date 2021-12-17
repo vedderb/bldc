@@ -37,12 +37,17 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length);
 static void spi_begin(void);
 static void spi_end(void);
 static void spi_delay(void);
-
+static void terminal_read_reg(int argc, const char **argv);
+static void terminal_write_reg(int argc, const char **argv);
+static void terminal_tmc_6200_found(int argc, const char **argv);
 
 // Private variables
 static mutex_t m_spi_mutex;
 static bool tmc6200_found = false;
 
+bool tmc6200_ok(void) {
+    return tmc6200_found;
+}
 
 void tmc6200_init(void) {
 	chMtxObjectInit(&m_spi_mutex);
@@ -56,21 +61,115 @@ void tmc6200_init(void) {
 
 	chThdSleepMilliseconds(100);
 
+
+
+    terminal_register_command_callback(
+            "tmc6200_read_reg",
+            "Read a register from the TMC6200 and print it.",
+            "[reg]",
+            terminal_read_reg);
+
+    terminal_register_command_callback(
+            "tmc6200_write_reg",
+            "Write to a TMC6200 register.",
+            "[reg] [hexvalue]",
+            terminal_write_reg);
+    terminal_register_command_callback(
+            "tmc6200_found",
+            "Check if TMC was found on startup",
+            "",
+            terminal_tmc_6200_found);
+
 	// Disable OC
-    // TODO
 
 	//tmc6200_set_current_amp_gain(CURRENT_AMP_GAIN);
 
     // Get version number and enable driver if it matches
     int ic_version = (tmc6200_readInt(0, TMC6200_IOIN_OUTPUT) & TMC6200_VERSION_MASK) >> TMC6200_VERSION_SHIFT;
     tmc6200_found = ic_version == 0x10;
+    
+    if(tmc6200_found) {
+        // Driver comms OK, configure TMC6200
+        tmc6200_writeInt(0, TMC6200_GCONF,
+                         (0UL << TMC6200_DISABLE_SHIFT) |
+                         (0UL << TMC6200_SINGLELINE_SHIFT) |
+                         (1UL << TMC6200_FAULTDIRECT_SHIFT));
+        tmc6200_writeInt(0, TMC6200_GSTAT, 0xFFFF);
+        tmc6200_writeInt(0, TMC6200_SHORT_CONF, (1UL << TMC6200_DISABLE_S2G_SHIFT) | (1UL << TMC6200_DISABLE_S2VS_SHIFT));
+
+    }
+}
+
+
+static void terminal_tmc_6200_found(int argc, const char **argv) {
+    if(tmc6200_found) {
+        commands_printf("TMC6200 found");
+    } else {
+        commands_printf("TMC6200 not found");
+    }
+}
+
+static void terminal_read_reg(int argc, const char **argv) {
+    if (argc == 2) {
+        int reg = -1;
+        sscanf(argv[1], "%d", &reg);
+
+        if (reg >= 0) {
+            uint32_t res = tmc6200_readInt(0,reg);
+            char b1[9];
+            char b2[9];
+            char b3[9];
+            char b4[9];
+
+            utils_byte_to_binary((res >> 24) & 0xFF, b1);
+            utils_byte_to_binary((res >> 16) & 0xFF, b2);
+            utils_byte_to_binary((res >> 8) & 0xFF, b3);
+            utils_byte_to_binary((res) & 0xFF, b4);
+
+            commands_printf("Reg 0x%02x: %s %s %s %s (0x%04x)\n", reg, b1, b2, b3, b4, res);
+        } else {
+            commands_printf("Invalid argument(s).\n");
+        }
+    } else {
+        commands_printf("This command requires one argument.\n");
+    }
+}
+
+static void terminal_write_reg(int argc, const char **argv) {
+    if (argc == 3) {
+        int reg = -1;
+        int val = -1;
+        sscanf(argv[1], "%d", &reg);
+        sscanf(argv[2], "%x", &val);
+
+        if (reg >= 0 && val >= 0) {
+            tmc6200_writeInt(0, reg, val);
+            uint32_t res = tmc6200_readInt(0,reg);
+
+            char b1[9];
+            char b2[9];
+            char b3[9];
+            char b4[9];
+
+            utils_byte_to_binary((res >> 24) & 0xFF, b1);
+            utils_byte_to_binary((res >> 16) & 0xFF, b2);
+            utils_byte_to_binary((res >> 8) & 0xFF, b3);
+            utils_byte_to_binary((res) & 0xFF, b4);
+
+            commands_printf("Reg 0x%02x: %s %s %s %s (0x%04x)\n", reg, b1, b2, b3, b4, res);
+        } else {
+            commands_printf("Invalid argument(s).\n");
+        }
+    } else {
+        commands_printf("This command requires two arguments.\n");
+    }
 }
 
 
 uint8_t tmc6200_readwriteByte(uint8_t motor, uint8_t data, uint8_t lastTransfer)
 {
     spi_begin();
-	uint8_t rx;
+	uint8_t rx = 0;
 	spi_transfer(&rx, &data, 1);
     if (lastTransfer)
     {
@@ -90,10 +189,10 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length) {
 			palWritePad(TMC6200_MOSI_GPIO, TMC6200_MOSI_PIN, send >> 7);
 			send <<= 1;
 
-			palSetPad(TMC6200_SCK_GPIO, TMC6200_SCK_PIN);
+			palClearPad(TMC6200_SCK_GPIO, TMC6200_SCK_PIN);
 			spi_delay();
 
-			palClearPad(TMC6200_SCK_GPIO, TMC6200_SCK_PIN);
+			palSetPad(TMC6200_SCK_GPIO, TMC6200_SCK_PIN);
 
 			int r1, r2, r3;
 			r1 = palReadPad(TMC6200_MISO_GPIO, TMC6200_MISO_PIN);
@@ -117,11 +216,14 @@ static void spi_transfer(uint8_t *in_buf, const uint8_t *out_buf, int length) {
 }
 
 static void spi_begin(void) {
+    palSetPad(TMC6200_SCK_GPIO, TMC6200_SCK_PIN);
 	palClearPad(TMC6200_CS_GPIO, TMC6200_CS_PIN);
+    spi_delay();
 }
 
 static void spi_end(void) {
-	palSetPad(TMC6200_CS_GPIO, TMC6200_CS_PIN);
+    spi_delay();
+    palSetPad(TMC6200_CS_GPIO, TMC6200_CS_PIN);
 }
 
 static void spi_delay(void) {

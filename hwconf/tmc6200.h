@@ -21,6 +21,7 @@
 #include "datatypes.h"
 
 // Functions
+bool tmc6200_ok(void);
 void tmc6200_init(void);
 int tmc6200_read_faults(void);
 void tmc6200_reset_faults(void);

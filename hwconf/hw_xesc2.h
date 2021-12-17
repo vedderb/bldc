@@ -20,6 +20,9 @@
 #ifndef HW_XESC2_H_
 #define HW_XESC2_H_
 
+
+bool tmc_error(void);
+
 #define HW_NAME					"xESC2"
 
 #define HW_MAJOR				2
@@ -29,6 +32,7 @@
 #define HW_HAS_TMC6200
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
+#define INVERTED_SHUNT_POLARITY
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -36,7 +40,8 @@
 
 #define DCCAL_ON()
 #define DCCAL_OFF()
-#define IS_DRV_FAULT()			palReadPad(GPIOB, 7)
+#define IS_DRV_FAULT()			(tmc_error())
+
 
 #define LED_GREEN_ON()			palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()			palClearPad(GPIOB, 0)
@@ -101,7 +106,7 @@
 #define VIN_R2					1500.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		20.0
+#define CURRENT_AMP_GAIN		(5.0 * 0.595)
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		0.033
@@ -240,6 +245,7 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+#define HW_MAX_CURRENT_OFFSET 4000
 
 
 #endif /* HW_XESC2_H_ */

@@ -37,6 +37,9 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+bool tmc_error() {
+    return !tmc6200_ok() || palReadPad(GPIOB, 7);
+}
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
