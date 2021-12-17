@@ -1,4 +1,3 @@
-
 #include "encoder/MT6816.h"
 
 #include "ch.h"
@@ -9,16 +8,6 @@
 #include "utils.h"
 #include <math.h>
 
-#define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
-#define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
-#define SPI_BaudRatePrescaler_8         ((uint16_t)0x0010) //  10.5 MHz    5.25 MHz
-#define SPI_BaudRatePrescaler_16        ((uint16_t)0x0018) //  5.25 MHz    2.626 MHz
-#define SPI_BaudRatePrescaler_32        ((uint16_t)0x0020) //  2.626 MHz   1.3125 MHz
-#define SPI_BaudRatePrescaler_64        ((uint16_t)0x0028) //  1.3125 MHz  656.25 KHz
-#define SPI_BaudRatePrescaler_128       ((uint16_t)0x0030) //  656.25 KHz  328.125 KHz
-#define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
-#define SPI_DATASIZE_16BIT				SPI_CR1_DFF
-
 #define MT6816_NO_MAGNET_ERROR_MASK		0x0002
 
 static void spi_begin(void);
@@ -26,10 +15,6 @@ static void spi_end(void);
 static void spi_delay(void);
 static void spi_AS5047_cs_delay(void);
 static bool spi_check_parity(uint16_t x);
-
-#ifdef HW_SPI_DEV
-static SPIConfig mt6816_spi_cfg = { 0 };
-#endif
 
 static MT6816_config_t mt6816_config_now = { 0 };
 
@@ -96,14 +81,9 @@ encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 
 	mt6816_config_now = *mt6816_config;
 
-	mt6816_spi_cfg.end_cb = NULL;
-	mt6816_spi_cfg.ssport = mt6816_spi_config.gpio_nss.port;
-	mt6816_spi_cfg.sspad = mt6816_spi_config.gpio_nss.pin;
-	mt6816_spi_cfg.cr1 = SPI_BaudRatePrescaler_4 | SPI_CR1_CPOL | SPI_CR1_CPHA
-			| SPI_DATASIZE_16BIT;
-
 	//Start driver with MT6816 SPI settings
-	spiStart(&HW_SPI_DEV, &mt6816_spi_cfg);
+
+	spiStart(&HW_SPI_DEV, &(mt6816_config_now.hw_spi_cfg));
 
 	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();

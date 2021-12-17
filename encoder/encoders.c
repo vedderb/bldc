@@ -13,15 +13,15 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 	}
 
 	if (encoder_config->encoder_type == ENCODERS_TYPE_AS504x) {
-		AS504x_config_t as504x_config;
+		AS504x_config_t *as504x_config;
 		encoders_ret_t encoder_ret;
 
-		as504x_config.is_init = 0;
-		as504x_config.spi_config = encoder_config->spi_config;
-		as504x_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
-		encoder_ret = AS504x_init(&as504x_config);
+		as504x_config = &(encoder_config->encspi);
+		as504x_config->is_init = 0;
 
-		if (ENCODERS_OK != encoder_ret || !as504x_config.is_init) {
+		encoder_ret = AS504x_init(as504x_config);
+
+		if (ENCODERS_OK != encoder_ret || !as504x_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE; // TODO: maybe should be deleted
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -30,16 +30,15 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_config->encoder_type == ENCODERS_TYPE_MT6816) {
-		MT6816_config_t mt6816_config;
+		MT6816_config_t *mt6816_config;
 		encoders_ret_t encoder_ret;
 
-		mt6816_config.is_init = 0;
-		mt6816_config.spi_config = encoder_config->spi_config;
-		mt6816_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
+		mt6816_config = &(encoder_config->encspi);
+		mt6816_config->is_init = 0;
 
-		encoder_ret = MT6816_init(&mt6816_config);
+		encoder_ret = MT6816_init(mt6816_config);
 
-		if (ENCODERS_OK != encoder_ret || !mt6816_config.is_init) {
+		if (ENCODERS_OK != encoder_ret || !mt6816_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -48,16 +47,15 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_config->encoder_type == ENCODERS_TYPE_AD2S1205_SPI) {
-		AD2S1205_config_t AD2S1205_config;
+		AD2S1205_config_t *ad2s1205_config;
 		encoders_ret_t encoder_ret;
 
-		AD2S1205_config.is_init = 0;
-		AD2S1205_config.spi_config = encoder_config->spi_config;
-		AD2S1205_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
+		ad2s1205_config = &(encoder_config->encspi);
+		ad2s1205_config->is_init = 0;
 
-		encoder_ret = AD2S1205_init(&AD2S1205_config);
+		encoder_ret = AD2S1205_init(ad2s1205_config);
 
-		if (ENCODERS_OK != encoder_ret || !AD2S1205_config.is_init) {
+		if (ENCODERS_OK != encoder_ret || !ad2s1205_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -66,16 +64,15 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_config->encoder_type == ENCODERS_TYPE_ABI) {
-		ABI_config_t abi_config;
+		ABI_config_t *abi_config;
 		encoders_ret_t encoder_ret;
 
-		abi_config.is_init = 0;
-		abi_config.incremental_config = encoder_config->incremental_config;
-		abi_config.counts = encoder_config->counts;
+		abi_config = &(encoder_config->abi);
+		abi_config->is_init = 0;
 
-		encoder_ret = ABI_init(&abi_config);
+		encoder_ret = ABI_init(abi_config);
 
-		if (ENCODERS_OK != encoder_ret || !abi_config.is_init) {
+		if (ENCODERS_OK != encoder_ret || !abi_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -84,20 +81,15 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
-		ENCSINCOS_config_t enc_sincos_config;
+		ENCSINCOS_config_t *enc_sincos_config;
 		encoders_ret_t encoder_ret;
 
-		enc_sincos_config.is_init = 0;
-		enc_sincos_config.s_gain = encoder_config->s_gain;
-		enc_sincos_config.s_offset = encoder_config->s_offset;
-		enc_sincos_config.c_gain = encoder_config->c_gain;
-		enc_sincos_config.s_offset = encoder_config->s_offset;
-		enc_sincos_config.filter_constant = encoder_config->filter_constant;
-		enc_sincos_config.refresh_rate_hz = encoder_config->refresh_rate_hz;
+		enc_sincos_config = &(encoder_config->encsincos);
+		enc_sincos_config->is_init = 0;
 
-		encoder_ret = ENC_SINCOS_init(&enc_sincos_config);
+		encoder_ret = ENC_SINCOS_init(enc_sincos_config);
 
-		if (ENCODERS_OK != encoder_ret || !enc_sincos_config.is_init) {
+		if (ENCODERS_OK != encoder_ret || !enc_sincos_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -106,14 +98,14 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		index_found = true;
 		return ENCODERS_OK;
 	} else if (encoder_type_now == ENCODERS_TYPE_TS5700N8501) {
-		TS5700N8501_config_t ts5700N8501_config;
+		TS5700N8501_config_t *ts5700N8501_config;
 		encoders_ret_t encoder_ret;
 
-		ts5700N8501_config = encoder_config->ts5700n8501;
+		ts5700N8501_config = &(encoder_config->ts5700n8501);
 
-		encoder_ret = TS5700N8501_init(&ts5700N8501_config);
+		encoder_ret = TS5700N8501_init(ts5700N8501_config);
 
-		if (ENCODERS_OK != encoder_ret || !ts5700N8501_config.is_init) {
+		if (ENCODERS_OK != encoder_ret || !ts5700N8501_config->is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;

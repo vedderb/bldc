@@ -48,21 +48,16 @@ typedef struct {
 
 typedef struct {
 	bool is_init;
-	encoders_refresh_rate_hz_t refresh_rate_hz; //TODO: REWRITE TO POINTER OF AS504x_config_t
-	encoders_spi_config_t spi_config; //TODO: REWRITE TO POINTER OF AS504x_config_t
-} AS504x_config_t;
-
-typedef struct {
-	bool is_init;
-	encoders_refresh_rate_hz_t refresh_rate_hz; //TODO: REWRITE TO POINTER OF AS504x_config_t
-	encoders_spi_config_t spi_config; //TODO: REWRITE TO POINTER OF AS504x_config_t
-} MT6816_config_t;
-
-typedef struct {
-	bool is_init;
 	encoders_refresh_rate_hz_t refresh_rate_hz;
 	encoders_spi_config_t spi_config;
-} AD2S1205_config_t;
+#ifdef HW_SPI_DEV
+	SPIConfig hw_spi_cfg;
+#endif
+} ENCSPI_config_t;
+
+typedef ENCSPI_config_t MT6816_config_t;
+typedef ENCSPI_config_t AD2S1205_config_t;
+typedef ENCSPI_config_t AS504x_config_t;
 
 typedef struct {
 	bool is_init;
@@ -88,15 +83,9 @@ typedef struct {
 
 typedef struct {
 	encoders_type_t encoder_type;
-	encoders_refresh_rate_hz_t refresh_rate_hz;
-	encoders_spi_config_t spi_config;
-	uint32_t counts; // FOR INCREMENTAL INTERFACE
-	encoders_incremental_config_t incremental_config; // FOR INCREMENTAL INTERFACE
-	float s_gain;
-	float s_offset;
-	float c_gain;
-	float c_offset;
-	float filter_constant;
+	ENCSPI_config_t encspi;
+	ABI_config_t abi;
+	ENCSINCOS_config_t encsincos;
 	TS5700N8501_config_t ts5700n8501;
 } encoders_config_t;
 

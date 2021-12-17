@@ -212,7 +212,7 @@ void mc_interface_init(void) {
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
 	    //TODO: integrate with encoder/encoders
-		conf_ABI.counts = motor_now()->m_conf.m_encoder_counts;
+		conf_ABI.abi.counts = motor_now()->m_conf.m_encoder_counts;
 		encoders_init(&conf_ABI);
 		break;
 
@@ -229,11 +229,11 @@ void mc_interface_init(void) {
 		break;
 
 	case SENSOR_PORT_MODE_SINCOS:
-		conf_SINCOS.s_gain = motor_now()->m_conf.foc_encoder_sin_gain;
-		conf_SINCOS.s_offset = motor_now()->m_conf.foc_encoder_sin_offset;
-		conf_SINCOS.c_gain = motor_now()->m_conf.foc_encoder_cos_gain;
-		conf_SINCOS.c_offset = motor_now()->m_conf.foc_encoder_cos_offset;
-		conf_SINCOS.filter_constant = motor_now()->m_conf.foc_encoder_sincos_filter_constant;
+		conf_SINCOS.encsincos.s_gain = motor_now()->m_conf.foc_encoder_sin_gain;
+		conf_SINCOS.encsincos.s_offset = motor_now()->m_conf.foc_encoder_sin_offset;
+		conf_SINCOS.encsincos.c_gain = motor_now()->m_conf.foc_encoder_cos_gain;
+		conf_SINCOS.encsincos.c_offset = motor_now()->m_conf.foc_encoder_cos_offset;
+		conf_SINCOS.encsincos.filter_constant = motor_now()->m_conf.foc_encoder_sincos_filter_constant;
 		encoders_init(&conf_SINCOS);
 		break;
 
