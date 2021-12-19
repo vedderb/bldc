@@ -2765,6 +2765,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta, dt,
 						&motor_now->m_observer_x1, &motor_now->m_observer_x2, &motor_now->m_phase_now_observer, motor_now);
+
+				// Compensate from the phase lag caused by the switching frequency. This is important for motors
+				// that run on high ERPM compared to the switching frequency.
 				motor_now->m_phase_now_observer += motor_now->m_pll_speed * dt * 0.5;
 				utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
 			}
@@ -3781,8 +3784,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float dec_bemf = 0.0;
 
 	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
-		float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff / 2.0;
-		float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff / 2.0;
+		float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
+		float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
