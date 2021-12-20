@@ -28,7 +28,6 @@
 #include "comm_can.h"
 #include "utils.h"
 #include "timeout.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "app.h"
 #include "comm_usb.h"
@@ -880,22 +879,22 @@ void terminal_process_string(char *str) {
 						(unsigned int)encoders_spi_get_val(),
 						encoders_spi_get_error_cnt(),
 						(double)encoders_spi_get_error_rate() * (double)100.0,
-						AS504x_get_diag().is_connected);
+						encoders_get_diag().is_connected);
 			}
 
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
 					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 				char sf[9];
 				char almc[9];
-				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
-				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
-				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
+				utils_byte_to_binary(encoders_get_raw_status()[0], sf);
+				utils_byte_to_binary(encoders_get_raw_status()[7], almc);
+				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoders_get_abm(), sf, almc);
 			}
 
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
 				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 						encoders_get_no_magnet_error_cnt(),
-						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
+						(double)encoders_get_no_magnet_error_rate() * (double)100.0);
 			}
 
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
@@ -907,22 +906,22 @@ void terminal_process_string(char *str) {
 						"OCF       : %u\n"
 						"COMP_low  : %u\n"
 						"COMP_high : %u\n",
-						AS504x_get_diag().AGC_value, AS504x_get_diag().magnitude,
-						AS504x_get_diag().is_COF, AS504x_get_diag().is_OCF,
-						AS504x_get_diag().is_Comp_low,
-						AS504x_get_diag().is_Comp_high);
+						encoders_get_diag().AGC_value, encoders_get_diag().magnitude,
+						encoders_get_diag().is_COF, encoders_get_diag().is_OCF,
+						encoders_get_diag().is_Comp_low,
+						encoders_get_diag().is_Comp_high);
 			}
 #endif
 		}
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 			commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
-					encoder_sincos_get_signal_below_min_error_cnt(),
-					(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
+					encoders_get_signal_below_min_error_cnt(),
+					(double)encoders_get_signal_below_min_error_rate() * (double)100.0);
 
 			commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
-					encoder_sincos_get_signal_above_max_error_cnt(),
-					(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
+					encoders_get_signal_above_max_error_cnt(),
+					(double)encoders_get_signal_above_max_error_rate() * (double)100.0);
 		}
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
@@ -937,10 +936,10 @@ void terminal_process_string(char *str) {
 					(double)encoders_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
-		encoder_ts57n8501_reset_errors();
+		encoders_reset_errors();
 		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "encoder_clear_multiturn") == 0) {
-		encoder_ts57n8501_reset_multiturn();
+		encoders_reset_multiturn();
 		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);

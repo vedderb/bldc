@@ -23,7 +23,7 @@
 
 #include "mc_interface.h"
 #include "utils.h"
-#include "encoder.h"
+#include "encoder/encoders.h"
 #include "terminal.h"
 #include "comm_can.h"
 #include "hw.h"

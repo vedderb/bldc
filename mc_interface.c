@@ -28,7 +28,6 @@
 #include "ch.h"
 #include "hal.h"
 #include "commands.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "buffer.h"
 #include "gpdrive.h"
@@ -348,7 +347,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		switch (configuration->m_sensor_port_mode) {
 		case SENSOR_PORT_MODE_ABI:
 		  // TODO: integrate with encoder/encoders
-			encoder_init_abi(configuration->m_encoder_counts);
+			conf_ABI.abi.counts = configuration->m_encoder_counts;
+			encoders_init(&conf_ABI);
 			break;
 
 		case SENSOR_PORT_MODE_AS5047_SPI:
@@ -364,12 +364,14 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			break;
 
 		case SENSOR_PORT_MODE_SINCOS:
-		   // TODO: integrate with encoder/encoders
-			encoder_init_sincos(motor->m_conf.foc_encoder_sin_gain, motor->m_conf.foc_encoder_sin_offset,
-								motor->m_conf.foc_encoder_cos_gain, motor->m_conf.foc_encoder_cos_offset,
-								motor->m_conf.foc_encoder_sincos_filter_constant);
+			conf_SINCOS.encsincos.s_gain = motor->m_conf.foc_encoder_sin_gain;
+			conf_SINCOS.encsincos.s_offset = motor->m_conf.foc_encoder_sin_offset;
+			conf_SINCOS.encsincos.c_gain = motor->m_conf.foc_encoder_cos_gain;
+			conf_SINCOS.encsincos.c_offset = motor->m_conf.foc_encoder_cos_offset;
+			conf_SINCOS.encsincos.filter_constant = motor->m_conf.foc_encoder_sincos_filter_constant;
+
+			encoders_init(&conf_SINCOS);
 			break;
-			// TODO: integrate with encoder/encoders
 		case SENSOR_PORT_MODE_TS5700N8501:
 		case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
 			app_configuration *appconf = mempools_alloc_appconf();
@@ -392,7 +394,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	}
 
 	if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
-		encoder_set_counts(configuration->m_encoder_counts);
+		encoders_set_counts(configuration->m_encoder_counts);
 	}
 
 #ifdef HW_HAS_DRV8301
@@ -2473,22 +2475,22 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 
-		if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
+		if (encoders_get_signal_below_min_error_rate() > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
-		if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
+		if (encoders_get_signal_above_max_error_rate() > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
 	}
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
-		if (!AS504x_get_diag().is_connected) {
+		if (!encoders_get_diag().is_connected) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
 		}
 
-		if (AS504x_get_diag().is_Comp_high) {
+		if (encoders_get_diag().is_Comp_high) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
-		} else if(AS504x_get_diag().is_Comp_low) {
+		} else if(encoders_get_diag().is_Comp_low) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, false);
 		}
 	}

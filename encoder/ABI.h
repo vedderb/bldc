@@ -10,4 +10,6 @@ encoders_ret_t ABI_init(ABI_config_t *abi_config);
 
 float ABI_read_deg(void);
 
+void ABI_set_counts(uint32_t counts);
+
 #endif /* ENCODER_ABI_H_ */

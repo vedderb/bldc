@@ -30,7 +30,6 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "terminal.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "commands.h"
 #include "timeout.h"
@@ -3074,7 +3073,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	float angle_now = 0.0;
 	if (encoders_is_configured()) {
 		if (conf_now->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
-			angle_now = encoder_read_deg_multiturn();
+			angle_now = encoders_read_deg_multiturn();
 		} else {
 			angle_now = enc_ang;
 		}

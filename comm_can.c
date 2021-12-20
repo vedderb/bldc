@@ -33,7 +33,6 @@
 #include "packet.h"
 #include "hw.h"
 #include "canard_driver.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "utils.h"
 #include "mempools.h"
@@ -1578,7 +1577,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			case CAN_PACKET_POLL_TS5700N8501_STATUS: {
 				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
 						((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
-						encoder_ts5700n8501_get_raw_status(), 8, true);
+						encoders_get_raw_status(), 8, true);
 			} break;
 
 			case CAN_PACKET_CONF_BATTERY_CUT:

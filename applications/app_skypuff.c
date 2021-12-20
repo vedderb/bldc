@@ -24,7 +24,7 @@
 // Some useful includes
 #include "comm_can.h"
 #include "commands.h"
-#include "encoder.h"
+#include "encoder/encoders.h"
 #include "hw.h"
 #include "mc_interface.h"
 #include "terminal.h"

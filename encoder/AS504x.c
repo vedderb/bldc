@@ -9,6 +9,31 @@
 #include "utils.h"
 #include <math.h>
 
+#define AS504x_SPI_READ_BIT 								0x4000
+#define AS504x_SPI_WRITE_BIT 								0x0000
+
+#define AS504x_SPI_DIAG_OCF_BIT_POS							8
+#define AS504x_SPI_DIAG_COF_BIT_POS							9
+#define AS504x_SPI_DIAG_COMP_LOW_BIT_POS					10
+#define AS504x_SPI_DIAG_COMP_HIGH_BIT_POS					11
+
+#define AS5047_SAMPLE_RATE_HZ		20000
+
+#define AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK			0x3FFF
+
+#define AS504x_SPI_DIAG_ADR									0x3FFD
+#define AS504x_SPI_MAGN_ADR									0x3FFE
+#define AS504x_SPI_CLEAR_ERROR_ADR							0x0001
+
+#define AS504x_SPI_READ_DIAG_MSG							(AS504x_SPI_DIAG_ADR | AS504x_SPI_READ_BIT)
+#define AS504x_SPI_READ_MAGN_MSG							(AS504x_SPI_MAGN_ADR | AS504x_SPI_READ_BIT)
+#define AS504x_SPI_READ_CLEAR_ERROR_MSG						(AS504x_SPI_CLEAR_ERROR_ADR | AS504x_SPI_READ_BIT)
+
+#define AS504x_CONNECTION_DETERMINATOR_ERROR_THRESHOLD		5
+
+#define AS504x_DATA_INVALID_THRESHOLD						20000
+#define AS504x_REFRESH_DIAG_AFTER_NSAMPLES					100
+
 //Private variables
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
 static uint16_t AS504x_diag_fetch_now_count = 0;
@@ -181,8 +206,6 @@ encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 			AS504x_spi_config.gpio_mosi.pin);
 #endif
 
-	AS504x_config_now = *AS504x_config;
-
 	HW_ENC_TIM_CLK_EN();
 
 	// Time Base configuration
@@ -198,12 +221,13 @@ encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
 	// Enable timer
 	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	AS504x_config->is_init = 1;
+	AS504x_config_now = *AS504x_config;
+
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 
 	spi_error_rate = 0.0;
-
-	AS504x_config_now.is_init = 1;
-	AS504x_config->is_init = 1;
 	return ENCODERS_OK;
 }
 #if (AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)

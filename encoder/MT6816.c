@@ -47,9 +47,6 @@ void MT6816_deinit(void) {
 	spiStop(&HW_SPI_DEV);
 #endif
 
-	//palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP); //TODO: is this necessary
-	//palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP); //TODO: is this necessary
-
 	palSetPadMode(mt6816_config_now.spi_config.gpio_miso.port,
 			mt6816_config_now.spi_config.gpio_miso.pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(mt6816_config_now.spi_config.gpio_sck.port,
@@ -112,6 +109,11 @@ encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 #endif
 	return ENCODERS_OK;
 }
+
+float MT6816_read_deg(void) {
+	return last_enc_angle;
+}
+
 void MT6816_routine(void) {
 	uint16_t pos;
 	uint16_t reg_data_03;
@@ -165,10 +167,6 @@ uint32_t MT6816_get_no_magnet_error_cnt(void) {
 
 uint32_t MT6816_get_no_magnet_error_rate(void) {
 	return encoder_no_magnet_error_rate;
-}
-
-float MT6816_read_deg(void) {
-	return last_enc_angle;
 }
 
 static void spi_begin(void) {

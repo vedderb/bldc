@@ -146,7 +146,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       encoder.c \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \

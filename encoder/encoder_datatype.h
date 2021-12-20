@@ -6,6 +6,15 @@
 #include "ch.h"
 #include "hal.h"
 
+#define AS5047_SAMPLE_RATE_HZ       20000
+#define AD2S1205_SAMPLE_RATE_HZ     20000       //25MHz max spi clk
+#define TS5700N8501_SAMPLE_RATE_HZ	20000
+#define MT6816_SAMPLE_RATE_HZ       20000
+#define MT6816_NO_MAGNET_ERROR_MASK 0x0002
+#define SINCOS_SAMPLE_RATE_HZ       20000
+#define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
+
 typedef uint8_t encoders_pin_t;
 typedef uint32_t encoders_refresh_rate_hz_t;
 
@@ -88,5 +97,18 @@ typedef struct {
 	ENCSINCOS_config_t encsincos;
 	TS5700N8501_config_t ts5700n8501;
 } encoders_config_t;
-
+/*
+typedef struct {
+	uint8_t is_connected;
+	uint8_t AGC_value;
+	uint16_t magnitude;
+	uint8_t is_OCF;
+	uint8_t is_COF;
+	uint8_t is_Comp_low;
+	uint8_t is_Comp_high;
+	uint16_t serial_diag_flgs;
+	uint16_t serial_magnitude;
+	uint16_t serial_error_flags;
+}AS504x_diag;
+*/
 #endif /* ENCODER_ENCODER_DATATYPE_H_ */

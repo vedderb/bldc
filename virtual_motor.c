@@ -24,7 +24,6 @@
 #include "math.h"
 #include "stdio.h"
 #include "commands.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 
 typedef struct{
@@ -290,9 +289,13 @@ static void disconnect_virtual_motor( void ){
 				break;
 
 			case SENSOR_PORT_MODE_SINCOS:
-				encoder_init_sincos(m_conf->foc_encoder_sin_gain, m_conf->foc_encoder_sin_offset,
-									m_conf->foc_encoder_cos_gain, m_conf->foc_encoder_cos_offset,
-									m_conf->foc_encoder_sincos_filter_constant);
+
+				conf_SINCOS.encsincos.s_gain = m_conf->foc_encoder_sin_gain;
+				conf_SINCOS.encsincos.s_offset = m_conf->foc_encoder_sin_offset;
+				conf_SINCOS.encsincos.c_gain = m_conf->foc_encoder_cos_gain;
+				conf_SINCOS.encsincos.c_offset = m_conf->foc_encoder_cos_offset;
+				conf_SINCOS.encsincos.filter_constant = m_conf->foc_encoder_sincos_filter_constant;
+				encoders_init(&conf_SINCOS);
 				break;
 
 			default:

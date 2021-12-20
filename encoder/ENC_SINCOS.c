@@ -7,6 +7,7 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include <math.h>
+#include "encoder/encoder_hwconf.h"
 
 ENCSINCOS_config_t enc_sincos_config_now = { 0 };
 
@@ -47,6 +48,7 @@ encoders_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	// ADC measurements needs to be in sync with motor PWM
 #ifdef HW_HAS_SIN_COS_ENCODER
 	enc_sincos_config->is_init = 1;
+	enc_sincos_config_now = *enc_sincos_config;
 	return ENCODERS_OK;
 #else
 	enc_sincos_config->is_init = 0;
@@ -83,4 +85,20 @@ float ENC_SINCOS_read_deg(void) {
 	}
 #endif
 	return last_enc_angle;
+}
+
+uint32_t ENC_SINCOS_get_signal_below_min_error_cnt(void) {
+	return sincos_signal_below_min_error_cnt;
+}
+
+uint32_t ENC_SINCOS_get_signal_above_max_error_cnt(void) {
+	return sincos_signal_above_max_error_cnt;
+}
+
+float ENC_SINCOS_get_signal_below_min_error_rate(void) {
+	return sincos_signal_low_error_rate;
+}
+
+float ENC_SINCOS_get_signal_above_max_error_rate(void) {
+	return sincos_signal_above_max_error_rate;
 }

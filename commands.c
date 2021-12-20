@@ -36,7 +36,6 @@
 #include "flash_helper.h"
 #include "utils.h"
 #include "packet.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "nrf_driver.h"
 #include "gpdrive.h"

@@ -7,9 +7,9 @@
 
 void MT6816_deinit(void);
 encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config);
-void MT6816_routine(void);
 
 float MT6816_read_deg(void);
+void MT6816_routine(void);
 
 uint32_t MT6816_spi_get_val(void);
 uint32_t MT6816_spi_get_error_cnt(void);

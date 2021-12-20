@@ -39,7 +39,6 @@
 #include "commands.h"
 #include "timeout.h"
 #include "comm_can.h"
-#include "encoder.h"
 #include "encoder/encoders.h"
 #include "servo_simple.h"
 #include "utils.h"

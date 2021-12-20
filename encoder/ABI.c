@@ -73,16 +73,24 @@ encoders_ret_t ABI_init(ABI_config_t *abi_config) {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
+	abi_config->is_init = 1;
+	abi_config_now = *abi_config;
+
 	// Enable and set EXTI Line Interrupt to the highest priority
 	nvicEnableVector(HW_ENC_EXTI_CH, 0);
-	abi_config->is_init = 1;
 
-	abi_config_now = *abi_config;
 	return ENCODERS_OK;
 }
 
 float ABI_read_deg(void) {
 	last_enc_angle = ((float) HW_ENC_TIM->CNT * 360.0) / (float) enc_counts;
 	return last_enc_angle;
+}
+
+void ABI_set_counts(uint32_t counts) {
+	if (counts != enc_counts) {
+		enc_counts = counts;
+		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
+	}
 }
 

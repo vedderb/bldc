@@ -94,8 +94,6 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
 #endif
 
-	AD2S1205_config_now = *AD2S1205_config;
-
 	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();
 
@@ -110,16 +108,19 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 
 	// Enable overflow interrupt
 	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
-
 	// Enable timer
 	TIM_Cmd(HW_ENC_TIM, ENABLE);
 
+	AD2S1205_config->is_init = 1;
+	AD2S1205_config_now = *AD2S1205_config;
+
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 
-	AD2S1205_config_now.is_init = 1;
-	AD2S1205_config->is_init = 1;
-
 	return ENCODERS_OK;
+}
+
+float AD2S1205_read_deg(void) {
+	return last_enc_angle;
 }
 
 void AD2S1205_routine(void) {
@@ -231,10 +232,6 @@ uint32_t AD2S1205_resolver_loss_of_signal_error_cnt(void) {
 
 uint32_t AD2S1205_spi_get_error_cnt(void) {
 	return spi_error_cnt;
-}
-
-float AD2S1205_read_deg(void) {
-	return last_enc_angle;
 }
 
 static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) {
