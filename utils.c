@@ -323,6 +323,8 @@ float utils_fast_atan2(float y, float x) {
 		angle = ((0.1963 * rsq) - 0.9817) * r + (3.0 * M_PI / 4.0);
 	}
 
+	UTILS_NAN_ZERO(angle);
+
 	if (y < 0) {
 		return(-angle);
 	} else {

@@ -204,6 +204,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->can_mode;
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->uavcan_raw_mode;
+	buffer_append_float32_auto(buffer, conf->uavcan_raw_rpm_max, &ind);
 	buffer[ind++] = conf->servo_out_enable;
 	buffer[ind++] = conf->kill_sw_mode;
 	buffer[ind++] = conf->app_to_use;
@@ -223,7 +224,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->app_ppm_conf.multi_esc;
 	buffer[ind++] = conf->app_ppm_conf.tc;
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.tc_max_diff, &ind);
-	buffer_append_float32_auto(buffer, conf->app_ppm_conf.max_erpm_for_dir, &ind);
+	buffer_append_float16(buffer, conf->app_ppm_conf.max_erpm_for_dir, 1, &ind);
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.smart_rev_max_duty, &ind);
 	buffer_append_float32_auto(buffer, conf->app_ppm_conf.smart_rev_ramp_time, &ind);
 	buffer[ind++] = conf->app_adc_conf.ctrl_type;
@@ -574,6 +575,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->can_mode = buffer[ind++];
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->uavcan_raw_mode = buffer[ind++];
+	conf->uavcan_raw_rpm_max = buffer_get_float32_auto(buffer, &ind);
 	conf->servo_out_enable = buffer[ind++];
 	conf->kill_sw_mode = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
@@ -593,7 +595,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_ppm_conf.multi_esc = buffer[ind++];
 	conf->app_ppm_conf.tc = buffer[ind++];
 	conf->app_ppm_conf.tc_max_diff = buffer_get_float32_auto(buffer, &ind);
-	conf->app_ppm_conf.max_erpm_for_dir = buffer_get_float32_auto(buffer, &ind);
+	conf->app_ppm_conf.max_erpm_for_dir = buffer_get_float16(buffer, 1, &ind);
 	conf->app_ppm_conf.smart_rev_max_duty = buffer_get_float32_auto(buffer, &ind);
 	conf->app_ppm_conf.smart_rev_ramp_time = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.ctrl_type = buffer[ind++];
@@ -928,6 +930,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->can_mode = APPCONF_CAN_MODE;
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->uavcan_raw_mode = APPCONF_UAVCAN_RAW_MODE;
+	conf->uavcan_raw_rpm_max = APPCONF_UAVCAN_RAW_RPM_MAX;
 	conf->servo_out_enable = APPCONF_SERVO_OUT_ENABLE;
 	conf->kill_sw_mode = APPCONF_KILL_SW_MODE;
 	conf->app_to_use = APPCONF_APP_TO_USE;

@@ -1522,6 +1522,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			ack = data[0];
 		}
 
+		mc_interface_stat_reset();
+
 		if (ack) {
 			int32_t ind = 0;
 			uint8_t send_buffer[50];

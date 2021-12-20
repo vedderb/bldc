@@ -152,7 +152,11 @@ typedef struct {
 	int m_hfi_plot_en;
 	float m_hfi_plot_sample;
 
-	float m_phase_before;
+	// For braking
+	float m_br_speed_before;
+	float m_br_vq_before;
+	int m_br_no_duty_samples;
+
 	float m_duty_abs_filtered;
 	float m_duty_filtered;
 	bool m_was_control_duty;
@@ -2640,27 +2644,28 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}
 
-	const float phase_diff = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before);
-	motor_now->m_phase_before = motor_now->m_motor_state.phase;
-
 	if (motor_now->m_state == MC_STATE_RUNNING) {
 		// Clarke transform assuming balanced currents
 		motor_now->m_motor_state.i_alpha = ia;
 		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 
-		// Full Clarke transform in case there are current offsets
-//		motor_now->m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-//		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+		const float duty_now = motor_now->m_motor_state.duty_now;
+		const float duty_abs = fabsf(duty_now);
+		const float vq_now = motor_now->m_motor_state.vq;
+		const float speed_fast_now = motor_now->m_pll_speed;
 
-		const float duty_abs = fabsf(motor_now->m_motor_state.duty_now);
 		float id_set_tmp = motor_now->m_id_set;
 		float iq_set_tmp = motor_now->m_iq_set;
 		motor_now->m_motor_state.max_duty = conf_now->l_max_duty;
 
-		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, fabsf(motor_now->m_motor_state.duty_now), 0.01);
+		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			utils_truncate_number_abs(&iq_set_tmp, -conf_now->lo_current_min);
+		}
+
+		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, duty_abs, 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
-		UTILS_LP_FAST(motor_now->m_duty_filtered, motor_now->m_motor_state.duty_now, 0.01);
+		UTILS_LP_FAST(motor_now->m_duty_filtered, duty_now, 0.01);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_filtered, 1.0);
 
 		float duty_set = motor_now->m_duty_cycle_set;
@@ -2668,16 +2673,30 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY ||
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 
-		// When the modulation is low in brake mode and the set brake current
-		// cannot be reached, short all phases to get more braking without
-		// applying active braking. Use a bit of hysteresis when leaving
-		// the shorted mode.
-		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE &&
-				fabsf(motor_now->m_duty_filtered) < conf_now->l_min_duty * 1.5 &&
-				motor_now->m_motor_state.i_abs < fminf(fabsf(iq_set_tmp), fabsf(conf_now->l_current_min))) {
-			control_duty = true;
-			duty_set = 0.0;
+		// Short all phases (duty=0) the moment the direction or modulation changes sign. That will avoid
+		// active braking or changing direction. Keep all phases shorted (duty == 0) until the
+		// braking current reaches the set or maximum value, then go back to current control
+		// mode. Stay in duty=0 for at least 10 cycles to avoid jumping in and out of that mode rapidly
+		// around the threshold.
+		if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
+			if ((SIGN(speed_fast_now) != SIGN(motor_now->m_br_speed_before) ||
+					SIGN(vq_now) != SIGN(motor_now->m_br_vq_before) ||
+					fabsf(motor_now->m_duty_filtered) < 0.001 || motor_now->m_br_no_duty_samples < 10) &&
+					motor_now->m_motor_state.i_abs_filter < fabsf(iq_set_tmp)) {
+				control_duty = true;
+				duty_set = 0.0;
+				motor_now->m_br_no_duty_samples = 0;
+			} else if (motor_now->m_br_no_duty_samples < 10) {
+				control_duty = true;
+				duty_set = 0.0;
+				motor_now->m_br_no_duty_samples++;
+			}
+		} else {
+			motor_now->m_br_no_duty_samples = 0;
 		}
+
+		motor_now->m_br_speed_before = speed_fast_now;
+		motor_now->m_br_vq_before = vq_now;
 
 		// Brake when set ERPM is below min ERPM
 		if (motor_now->m_control_mode == CONTROL_MODE_SPEED &&
@@ -2696,6 +2715,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			}
 		}
 		motor_now->m_was_control_duty = control_duty;
+
+		if (!control_duty) {
+			motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
+		}
 
 		if (control_duty) {
 			// Duty cycle control
@@ -2723,7 +2746,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			} else {
 				// If the duty cycle is less than or equal to the set duty cycle just limit
 				// the modulation and use the maximum allowed current.
-				motor_now->m_duty_i_term = 0.0;
+				motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
 				motor_now->m_motor_state.max_duty = duty_set;
 				if (duty_set > 0.0) {
 					iq_set_tmp = conf_now->lo_current_max;
@@ -2733,13 +2756,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			}
 		} else if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Braking
-			iq_set_tmp = fabsf(iq_set_tmp);
-
-			if (phase_diff > 0.0) {
-				iq_set_tmp = -iq_set_tmp;
-			} else if (phase_diff == 0.0) {
-				iq_set_tmp = 0.0;
-			}
+			iq_set_tmp = -SIGN(speed_fast_now) * fabsf(iq_set_tmp);
 		}
 
 		// Set motor phase
@@ -2748,6 +2765,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta, dt,
 						&motor_now->m_observer_x1, &motor_now->m_observer_x2, &motor_now->m_phase_now_observer, motor_now);
+
+				// Compensate from the phase lag caused by the switching frequency. This is important for motors
+				// that run on high ERPM compared to the switching frequency.
 				motor_now->m_phase_now_observer += motor_now->m_pll_speed * dt * 0.5;
 				utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
 			}
@@ -3579,7 +3599,7 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
-	if (conf_now->foc_temp_comp && t > -25.0) {
+	if (conf_now->foc_temp_comp && t > -30.0) {
 		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
@@ -3747,7 +3767,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// Temperature compensation
 	const float t = mc_interface_temp_motor_filtered();
 	float ki = conf_now->foc_current_ki;
-	if (conf_now->foc_temp_comp && t > -5.0) {
+	if (conf_now->foc_temp_comp && t > -30.0) {
 		ki += ki * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
 	}
 
@@ -3764,8 +3784,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float dec_bemf = 0.0;
 
 	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
-		float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff / 2.0;
-		float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff / 2.0;
+		float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
+		float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
 
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
