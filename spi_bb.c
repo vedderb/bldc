@@ -22,15 +22,33 @@
 
 // Software SPI
 
+void spi_bb_deinit(spi_bb_state *s) {
+	chMtxObjectInit(&s->mutex);
+
+	palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
+
+	if(s->mosi_gpio) {
+		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
+	}
+
+	s->has_started = false;
+	s->has_error = false;
+}
+
 void spi_bb_init(spi_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
 
 	palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPad(s->mosi_gpio, s->mosi_pin);
-	palSetPad(s->nss_gpio, s->nss_pin);
+
+	if(s->mosi_gpio) {
+		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+		palSetPad(s->mosi_gpio, s->mosi_pin);
+		palSetPad(s->nss_gpio, s->nss_pin);
+	}
 
 	s->has_started = false;
 	s->has_error = false;
@@ -83,6 +101,51 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 	}
 }
 
+void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length) {
+	for (int i = 0; i < length; i++) {
+
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
+#else
+		(void)out_buf;
+#endif
+
+		uint16_t receive = 0;
+
+		for (int bit = 0; bit < 16; bit++) {
+#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+			palWritePad(s->mosi_gpio, s->mosi_pin, send >> (15 - bit));
+#endif
+
+			palSetPad(s->sck_gpio, s->sck_pin);
+			spi_bb_delay();
+
+			int samples = 0;
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+			__NOP();
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+			__NOP();
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+			__NOP();
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+			__NOP();
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+
+			receive <<= 1;
+			if (samples > 2) {
+				receive |= 1;
+			}
+
+			palClearPad(s->sck_gpio, s->sck_pin);
+			spi_bb_delay();
+		}
+
+		if (in_buf) {
+			in_buf[i] = receive;
+		}
+	}
+}
+
 void spi_bb_begin(spi_bb_state *s) {
 	spi_bb_delay();
 	palClearPad(s->nss_gpio, s->nss_pin);
@@ -99,4 +162,18 @@ void spi_bb_delay(void) {
 	for (volatile int i = 0; i < 6; i++) {
 		__NOP();
 	}
+}
+
+void spi_bb_long_delay(void) {
+	for (volatile int i = 0; i < 40; i++) {
+		__NOP();
+	}
+}
+
+bool spi_bb_check_parity(uint16_t x) {
+	x ^= x >> 8;
+	x ^= x >> 4;
+	x ^= x >> 2;
+	x ^= x >> 1;
+	return (~x) & 1;
 }
