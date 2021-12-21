@@ -1811,7 +1811,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff) {
 	volatile motor_all_state_t *motor = motor_now();
 
-	mc_sensor_mode sensor_mode_old = motor->m_conf->sensor_mode;
+	mc_for_sensor_mode sensor_mode_old = motor->m_conf->forc_sensor_mode;
 	float f_sw_old = motor->m_conf->foc_f_sw;
 	float hfi_voltage_start_old = motor->m_conf->foc_hfi_voltage_start;
 	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
