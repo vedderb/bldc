@@ -70,12 +70,12 @@ ifdef WINDOWS
 endif
 
 qt_creator_install:
-	# binary only release so just download and extract it
+# binary only release so just download and extract it
 	$(V1) aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
 
 .PHONY: qt_creator_configure
 qt_creator_configure:
-	# Create a shared Qt project file with all the targets
+# Create a shared Qt project file with all the targets
 	$(V1) $(PYTHON) Project/scripts/qt_creator_firmware_configuration.py --targets $(ALL_BOARD_NAMES) sim_posix
 
 
@@ -105,7 +105,7 @@ qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
 # order-only prereq on directory existance:
 qt_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
 qt_sdk_install: qt_sdk_clean
-	# binary only release so just download and extract it
+# binary only release so just download and extract it
 	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_SDK_DIR)
 
 .PHONY: qt_sdk_clean
