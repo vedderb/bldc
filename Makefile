@@ -76,7 +76,7 @@ help:
 	@echo
 	@echo "   [Tool Installers]"
 	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
-	@echo "     qt_sdk_install       - Install the Qt SDK"
+	@echo "     qt_install           - Install the all tools for Qt"
 	@echo
 	@echo "   [Big Hammer]"
 	@echo "     all_fw               - Build firmware for all boards"

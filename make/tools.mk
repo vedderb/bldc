@@ -172,6 +172,13 @@ else
 endif
 
 
+##########
+# All Qt #
+##########
+
+
+.PHONY: qt_install
+qt_install: qt_sdk_install qt_creator_install qt_creator_configure qt_linuxdeployqt_install
 
 ###############
 # Google Test #
