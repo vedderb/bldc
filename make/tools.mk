@@ -100,6 +100,27 @@ else
 endif
 
 
+#################
+# linuxdeployqt #
+#################
+
+.PHONY: qt_linuxdeployqt_install
+ifdef LINUX
+qt_linuxdeployqt_install: LINUXDEPLOYQT_URL  := https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+qt_linuxdeployqt_install: LINUXDEPLOYQT_FILE := linuxdeployqt-continuous-x86_64.AppImage
+qt_linuxdeployqt_install:
+	# download the source only if it's newer than what we already have
+	$(V1) wget --no-check-certificate -N -P "$(DL_DIR)" "$(LINUXDEPLOYQT_URL)"
+
+	# Set the file to executable
+	$(V1) chmod +x "$(DL_DIR)/$(LINUXDEPLOYQT_FILE)"
+
+	# Move the file
+	$(V1) mv "$(DL_DIR)/$(LINUXDEPLOYQT_FILE)" "$(TOOLS_DIR)/Qt"
+endif
+
+
+
 ##############
 # Qt Creator #
 ##############
@@ -149,6 +170,7 @@ ifneq ($(OSFAMILY), windows)
 else
 	$(V1) pwsh -noprofile -command if (Test-Path $(QT_CREATOR_DIR)) {Remove-Item -Recurse $(QT_CREATOR_DIR)}
 endif
+
 
 
 ###############
