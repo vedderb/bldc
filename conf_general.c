@@ -1076,6 +1076,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
 		mc_interface_set_configuration(mcconf);
 		chThdSleepMilliseconds(500);
+		mcpwm_foc_stop_pwm(0);
 		mcpwm_foc_set_current(0.0);
 		chThdSleepMilliseconds(5);
 
