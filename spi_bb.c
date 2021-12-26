@@ -29,7 +29,7 @@ void spi_bb_deinit(spi_bb_state *s) {
 	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
 
-	if(s->mosi_gpio) {
+	if (s->mosi_gpio) { // TODO: assure that the gpio is 0x0 when unused
 		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
 	}
 
@@ -40,12 +40,17 @@ void spi_bb_deinit(spi_bb_state *s) {
 void spi_bb_init(spi_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
 
-	palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	if (s->miso_gpio && s->nss_gpio && s->sck_gpio) { // TODO: test
+		palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(s->sck_gpio, s->sck_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+		palSetPadMode(s->nss_gpio, s->nss_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	}
 
-	if(s->mosi_gpio) {
-		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	if (s->mosi_gpio) {
+		palSetPadMode(s->mosi_gpio, s->mosi_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 		palSetPad(s->mosi_gpio, s->mosi_pin);
 		palSetPad(s->nss_gpio, s->nss_pin);
 	}
@@ -54,14 +59,23 @@ void spi_bb_init(spi_bb_state *s) {
 	s->has_error = false;
 }
 
+void spi_bb_nss_init(spi_bb_state *s) {
+	chMtxObjectInit(&s->mutex);
+
+	if (s->nss_gpio) {
+		palSetPadMode(s->nss_gpio, s->nss_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	}
+}
 
 uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x) {
 	uint8_t rx;
-	spi_bb_transfer_8(s ,&rx, &x, 1);
+	spi_bb_transfer_8(s, &rx, &x, 1);
 	return rx;
 }
 
-void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length) {
+void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
+		int length) {
 	for (int i = 0; i < length; i++) {
 		uint8_t send = out_buf ? out_buf[i] : 0xFF;
 		uint8_t receive = 0;
@@ -78,12 +92,12 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 			__NOP();
 			samples += palReadPad(s->miso_gpio, s->miso_pin);
 			__NOP();
-			samples += palReadPad(s->miso_gpio, s->miso_pin);	
-			__NOP();
 			samples += palReadPad(s->miso_gpio, s->miso_pin);
 			__NOP();
 			samples += palReadPad(s->miso_gpio, s->miso_pin);
-			
+			__NOP();
+			samples += palReadPad(s->miso_gpio, s->miso_pin);
+
 			palClearPad(s->sck_gpio, s->sck_pin);
 
 			// does 5 samples of each pad read, to minimize noise
@@ -95,13 +109,14 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 			spi_bb_delay();
 		}
 
-		if (in_buf)	{
+		if (in_buf) {
 			in_buf[i] = receive;
 		}
 	}
 }
 
-void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length) {
+void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf,
+		const uint16_t *out_buf, int length) {
 	for (int i = 0; i < length; i++) {
 
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS

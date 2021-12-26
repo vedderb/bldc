@@ -6,17 +6,13 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
+#include "spi_bb.h"
 #include <math.h>
 
 #define MT6816_NO_MAGNET_ERROR_MASK		0x0002
 
-static void spi_begin(void);
-static void spi_end(void);
-static void spi_delay(void);
-static void spi_AS5047_cs_delay(void);
-static bool spi_check_parity(uint16_t x);
-
 static MT6816_config_t mt6816_config_now = { 0 };
+static spi_bb_state spi_bb_state_now = { 0 };
 
 static float spi_error_rate = 0.0;
 static float encoder_no_magnet_error_rate = 0.0;
@@ -62,15 +58,17 @@ encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	encoders_spi_config_t mt6816_spi_config = mt6816_config->spi_config;
 
+	spi_bb_state_now.nss_gpio = mt6816_config->spi_config.gpio_nss.port;
+	spi_bb_state_now.nss_pin = mt6816_config->spi_config.gpio_nss.pin;
+
 	palSetPadMode(mt6816_spi_config.gpio_sck.port,
 			mt6816_spi_config.gpio_sck.pin,
 			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(mt6816_spi_config.gpio_miso.port,
 			mt6816_spi_config.gpio_miso.pin,
 			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(mt6816_spi_config.gpio_nss.port,
-			mt6816_spi_config.gpio_nss.pin,
-			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
+	spi_bb_nss_init(&spi_bb_state_now);
 
 #if (MT6816_USE_HW_SPI_PINS)
 	palSetPadMode(mt6816_spi_config.gpio_mosi.port, mt6816_spi_config.gpio_mosi.pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
@@ -121,18 +119,18 @@ void MT6816_routine(void) {
 	uint16_t reg_addr_03 = 0x8300;
 	uint16_t reg_addr_04 = 0x8400;
 
-	spi_begin();
+	spi_bb_begin(&spi_bb_state_now);
 	reg_data_03 = spiPolledExchange(&HW_SPI_DEV, reg_addr_03);
-	spi_end();
-	spi_delay();
-	spi_begin();
+	spi_bb_end(&spi_bb_state_now);
+	spi_bb_delay();
+	spi_bb_begin(&spi_bb_state_now);
 	reg_data_04 = spiPolledExchange(&HW_SPI_DEV, reg_addr_04);
-	spi_end();
+	spi_bb_end(&spi_bb_state_now);
 
 	pos = (reg_data_03 << 8) | reg_data_04;
 	spi_val = pos;
 
-	if (spi_check_parity(pos)) {
+	if (spi_bb_check_parity(pos)) {
 		if (pos & MT6816_NO_MAGNET_ERROR_MASK) {
 			++encoder_no_magnet_error_cnt;
 			UTILS_LP_FAST(encoder_no_magnet_error_rate, 1.0,
@@ -167,74 +165,4 @@ uint32_t MT6816_get_no_magnet_error_cnt(void) {
 
 uint32_t MT6816_get_no_magnet_error_rate(void) {
 	return encoder_no_magnet_error_rate;
-}
-
-static void spi_begin(void) {
-	palClearPad(mt6816_config_now.spi_config.gpio_nss.port,
-			mt6816_config_now.spi_config.gpio_nss.pin);
-	spi_AS5047_cs_delay();
-}
-
-static void spi_end(void) {
-	palSetPad(mt6816_config_now.spi_config.gpio_nss.port,
-			mt6816_config_now.spi_config.gpio_nss.pin);
-	spi_AS5047_cs_delay();
-}
-
-static void spi_delay(void) {
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-}
-
-static void spi_AS5047_cs_delay(void) {
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-}
-
-static bool spi_check_parity(uint16_t x) {
-	x ^= x >> 8;
-	x ^= x >> 4;
-	x ^= x >> 2;
-	x ^= x >> 1;
-	return (~x) & 1;
 }

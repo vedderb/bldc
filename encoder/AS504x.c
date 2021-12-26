@@ -128,8 +128,8 @@ void AS504x_routine(void) {
 	}
 #else
         spi_bb_begin(&software_spi_now);
-        spi_bb_transfer(&software_spi_now, &pos, 0, 1);
-        spi_end(&software_spi_now);
+        spi_bb_transfer_16(&software_spi_now, &pos, 0, 1);
+        spi_bb_end(&software_spi_now);
         spi_val = pos;
 
         if(0x0000 == pos || 0xFFFF == pos) {
