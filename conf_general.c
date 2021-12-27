@@ -1075,9 +1075,17 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		mcconf->foc_motor_flux_linkage = *linkage;
 		mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
 		mc_interface_set_configuration(mcconf);
+
+		// Give the observer time to settle
 		chThdSleepMilliseconds(500);
-		mcpwm_foc_stop_pwm(0);
+
+		// Turn off the FETs
+		mcpwm_foc_stop_pwm(false);
+
+		// Clear any lingering current set points
 		mcpwm_foc_set_current(0.0);
+
+		// Let the H-bridges settle
 		chThdSleepMilliseconds(5);
 
 		float linkage_sum = 0.0;
