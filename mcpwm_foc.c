@@ -187,6 +187,10 @@ typedef struct {
 	float m_ang_hall_rate_limited;
 	float m_hall_dt_diff_last;
 	float m_hall_dt_diff_now;
+
+	// Resistance observer
+	float m_r_est;
+	float m_r_est_state;
 } motor_all_state_t;
 
 // Private variables
@@ -3029,8 +3033,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Calculate duty cycle
 	motor_now->m_motor_state.duty_now = SIGN(motor_now->m_motor_state.vq) *
-			sqrtf(SQ(motor_now->m_motor_state.mod_d) + SQ(motor_now->m_motor_state.mod_q))
-			/ SQRT3_BY_2;
+			sqrtf(SQ(motor_now->m_motor_state.mod_d) + SQ(motor_now->m_motor_state.mod_q)) / SQRT3_BY_2;
 
 	// Run PLL for speed estimation
 	pll_run(motor_now->m_motor_state.phase, dt, &motor_now->m_pll_phase, &motor_now->m_pll_speed, conf_now);
@@ -3038,10 +3041,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Low latency speed estimation, for e.g. HFI.
 	{
-		// Based on back emf and motor parameters. This could be useful for a resistance observer in the future.
-//		UTILS_LP_FAST(m_speed_est_fast, (m_motor_state.vq - (3.0 / 2.0) * m_conf->foc_motor_r * m_motor_state.iq) / m_conf->foc_motor_flux_linkage, 0.05);
-
-		// Based on angle difference
 		float diff = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before_speed_est);
 		utils_truncate_number(&diff, -M_PI / 3.0, M_PI / 3.0);
 
@@ -3363,6 +3362,65 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 
 	// 4.0 scaling is kind of arbitrary, but it should make configs from old VESC Tools more likely to work.
 	motor->m_gamma_now = gamma_tmp * 4.0;
+
+	// Run resistance observer
+	// See "An adaptive flux observer for the permanent magnet synchronous motor"
+	// https://doi.org/10.1002/acs.2587
+	{
+		float res_est_gain = 0.00002;
+		float i_abs_sq = SQ(motor->m_motor_state.i_abs);
+		motor->m_r_est = motor->m_r_est_state - 0.5 * res_est_gain * motor->m_conf->foc_motor_l * i_abs_sq;
+		float res_dot = -res_est_gain * (motor->m_r_est * i_abs_sq + motor->m_speed_est_fast *
+				(motor->m_motor_state.i_beta * motor->m_observer_x1 - motor->m_motor_state.i_alpha * motor->m_observer_x2) -
+				(motor->m_motor_state.i_alpha * motor->m_motor_state.v_alpha + motor->m_motor_state.i_beta * motor->m_motor_state.v_beta));
+		motor->m_r_est_state += res_dot * dt;
+
+		utils_truncate_number((float*)&motor->m_r_est_state, motor->m_conf->foc_motor_r * 0.25, motor->m_conf->foc_motor_r * 3.0);
+	}
+}
+
+static void terminal_tmp(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	int top = 1;
+	if (argc == 2) {
+		float seconds = -1.0;
+		sscanf(argv[1], "%f", &seconds);
+
+		if (seconds > 0.0) {
+			top = seconds * 2;
+		}
+	}
+
+	if (top > 1) {
+		commands_init_plot("Time", "Temperature");
+		commands_plot_add_graph("Temp Measured");
+		commands_plot_add_graph("Temp Estimated");
+	}
+
+	for (int i = 0;i < top;i++) {
+		float res_est = m_motor_1.m_r_est;
+		float t_base = m_motor_1.m_conf->foc_temp_comp_base_temp;
+		float res_base = m_motor_1.m_conf->foc_motor_r;
+		float t_est = (res_est / res_base - 1) / 0.00386 + t_base;
+		float t_meas = mc_interface_temp_motor_filtered();
+
+		if (top > 1) {
+			commands_plot_set_graph(0);
+			commands_send_plot_points((float)i / 2.0, t_meas);
+			commands_plot_set_graph(1);
+			commands_send_plot_points((float)i / 2.0, t_est);
+			commands_printf("Sample %d of %d", i, top);
+		}
+
+		commands_printf("R: %.2f, EST: %.2f",
+				(double)(res_base * 1000.0), (double)(res_est * 1000.0));
+		commands_printf("T: %.2f, T_EST: %.2f\n",
+				(double)t_meas, (double)t_est);
+
+		chThdSleepMilliseconds(500);
+	}
 }
 
 // TODO: This won't work for dual motors
@@ -4679,41 +4737,6 @@ static float correct_hall(float angle, float dt, volatile motor_all_state_t *mot
 	}
 
 	return angle;
-}
-
-static void terminal_tmp(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	volatile const motor_state_t *motor_state = &m_motor_1.m_motor_state;
-	volatile const mc_configuration *conf_now = mc_interface_get_configuration();
-	float R = conf_now->foc_motor_r;
-
-	const float t = mc_interface_temp_motor_filtered();
-	if (conf_now->foc_temp_comp && t > -25.0) {
-		R += R * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
-	}
-
-	float omega_est = 0.0;  // Radians per second
-	float res_est = 0.0;
-	float samples = 0.0;
-
-	for (int i = 0;i < 10000;i++) {
-//		float linkage = conf_now->foc_motor_flux_linkage;
-		float linkage = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
-
-		omega_est += (motor_state->vq - R * motor_state->iq) / linkage;
-		res_est += -(motor_state->speed_rad_s * linkage - motor_state->vq) / motor_state->iq;
-		samples += 1.0;
-
-		chThdSleep(1);
-	}
-
-	omega_est /= samples;
-	res_est /= samples;
-
-	commands_printf("RPM: %.2f, EST: %.2f", (double)mcpwm_foc_get_rpm(), (double)(RADPS2RPM_f(omega_est)));
-	commands_printf("R: %.2f, EST: %.2f", (double)(R * 1000.0), (double)(res_est * 1000.0));
 }
 
 static void terminal_plot_hfi(int argc, const char **argv) {
