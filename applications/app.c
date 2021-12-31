@@ -125,7 +125,7 @@ void app_set_configuration(app_configuration *conf) {
 		break;
 
 	case APP_ADC_PAS:
-		app_adc_start(true);
+		app_adc_start(false);
 		app_pas_start(false);
 		break;
 
