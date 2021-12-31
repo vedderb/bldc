@@ -23,11 +23,11 @@
 
 #define HW_NAME				"LUNA_BBSHD"
 #include "mcconf_luna_bbshd_52v.h"
-#include "appconf_luna_bbshd.h"
+//#include "appconf_luna_bbshd.h" // Missing from pull request?
 
-#define QMLUI_SOURCE_APP	"qmlui/app/qmlui_luna_v1.c"
-#define QMLUI_HEADER_APP	"qmlui/app/qmlui_luna_v1.h"
-#define QMLUI_APP_FULLSCREEN
+#define QMLUI_SOURCE_HW		"hwconf/luna/qmlui_luna_v1.c"
+#define QMLUI_HEADER_HW		"hwconf/luna/qmlui_luna_v1.h"
+#define QMLUI_HW_FULLSCREEN
 
 // HW properties
 #define HW_HAS_3_SHUNTS

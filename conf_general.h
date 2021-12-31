@@ -89,8 +89,8 @@
 //#define HW_SOURCE "hw_axiom.c"
 //#define HW_HEADER "hw_axiom.h"
 
-//#define HW_SOURCE "hw_luna_bbshd.c"
-//#define HW_HEADER "hw_luna_bbshd.h"
+//#define HW_SOURCE "luna/hw_luna_bbshd.c"
+//#define HW_HEADER "luna/hw_luna_bbshd.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"

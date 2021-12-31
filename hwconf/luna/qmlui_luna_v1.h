@@ -8,10 +8,10 @@
 #include <stdbool.h>
 
 // Constants
-#define DATA_QML_APP_SIZE		7270
+#define DATA_QML_HW_SIZE		7270
 
 // Variables
-extern uint8_t data_qml_app[];
+extern uint8_t data_qml_hw[];
 
 // QMLUI_LUNA_V1_H_
 #endif
