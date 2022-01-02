@@ -256,7 +256,7 @@
 #endif
 
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW                 20000.0
+#define MCCONF_FOC_F_SW                 10000.0
 #endif
 
 #ifndef MCCONF_L_CURRENT_MAX

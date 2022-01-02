@@ -1516,7 +1516,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 	mcconf->motor_type = MOTOR_TYPE_FOC;
 	mcconf->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf->foc_f_sw = 10000.0; // Lower f_sw => less dead-time distortion
+	mcconf->foc_f_sw = 5000.0; // Lower f_sw => less dead-time distortion
 	mcconf->foc_current_kp = 0.0005;
 	mcconf->foc_current_ki = 1.0;
 	mcconf->l_current_max = MCCONF_L_CURRENT_MAX;
@@ -1532,7 +1532,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #ifdef HW_HAS_DUAL_MOTORS
 	mcconf_second->motor_type = MOTOR_TYPE_FOC;
 	mcconf_second->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf_second->foc_f_sw = 10000.0; // Lower f_sw => less dead-time distortion
+	mcconf_second->foc_f_sw = 5000.0; // Lower f_sw => less dead-time distortion
 	mcconf_second->foc_current_kp = 0.0005;
 	mcconf_second->foc_current_ki = 1.0;
 	mcconf_second->l_current_max = MCCONF_L_CURRENT_MAX;
@@ -1629,12 +1629,12 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	// Increase switching frequency for flux linkage measurement
 	// as dead-time distortion has less effect at higher modulation.
 	// Having a smooth rotation is more important.
-	mcconf->foc_f_sw = 20000.0;
+	mcconf->foc_f_sw = 10000.0;
 	mc_interface_set_configuration(mcconf);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_select_motor_thread(2);
-	mcconf_second->foc_f_sw = 20000.0;
+	mcconf_second->foc_f_sw = 10000.0;
 	mc_interface_set_configuration(mcconf_second);
 	mc_interface_select_motor_thread(1);
 #endif

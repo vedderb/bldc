@@ -229,7 +229,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT		40.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#define MCCONF_FOC_F_SW					15000.0
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)

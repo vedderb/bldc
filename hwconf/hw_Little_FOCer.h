@@ -278,7 +278,7 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW                 20000.0
+#define MCCONF_FOC_F_SW                 10000.0
 #endif
 
 // Setting limits

@@ -151,7 +151,7 @@
 #define MCCONF_FOC_CURRENT_KI 32.6
 
 // Switching Frequency
-#define MCCONF_FOC_F_SW 50000
+#define MCCONF_FOC_F_SW 25000
 
 // Dead Time Compensation
 #define MCCONF_FOC_DT_US 0.12
