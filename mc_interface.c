@@ -208,32 +208,36 @@ void mc_interface_init(void) {
 	mc_interface_select_motor_thread(motor_old);
 
 	// Initialize encoder
+	ENCSINCOS_config_t sincos_config;
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
 	    //TODO: integrate with encoder/encoders
-		conf_ABI.abi.counts = motor_now()->m_conf.m_encoder_counts;
-		encoders_init(&conf_ABI);
+		encoders_set_counts(motor_now()->m_conf.m_encoder_counts);
+		encoders_init(ENCODERS_TYPE_ABI);
 		break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI:
-		encoders_init(&conf_AS5047);
+		encoders_init(ENCODERS_TYPE_AS504x);
 		break;
 
 	case SENSOR_PORT_MODE_MT6816_SPI:
-	    encoders_init(&conf_MT6816);
+	    encoders_init(ENCODERS_TYPE_MT6816);
 		break;
 
 	case SENSOR_PORT_MODE_AD2S1205:
-		encoders_init(&conf_AD2S1205);
+		encoders_init(ENCODERS_TYPE_AD2S1205_SPI);
 		break;
 
 	case SENSOR_PORT_MODE_SINCOS:
-		conf_SINCOS.encsincos.s_gain = motor_now()->m_conf.foc_encoder_sin_gain;
-		conf_SINCOS.encsincos.s_offset = motor_now()->m_conf.foc_encoder_sin_offset;
-		conf_SINCOS.encsincos.c_gain = motor_now()->m_conf.foc_encoder_cos_gain;
-		conf_SINCOS.encsincos.c_offset = motor_now()->m_conf.foc_encoder_cos_offset;
-		conf_SINCOS.encsincos.filter_constant = motor_now()->m_conf.foc_encoder_sincos_filter_constant;
-		encoders_init(&conf_SINCOS);
+
+		sincos_config.s_gain = motor_now()->m_conf.foc_encoder_sin_gain;
+		sincos_config.s_offset = motor_now()->m_conf.foc_encoder_sin_offset;
+		sincos_config.c_gain = motor_now()->m_conf.foc_encoder_cos_gain;
+		sincos_config.c_offset = motor_now()->m_conf.foc_encoder_cos_offset;
+		sincos_config.filter_constant = motor_now()->m_conf.foc_encoder_sincos_filter_constant;
+
+		encoders_sincos_conf_set(&sincos_config);
+		encoders_init(ENCODERS_TYPE_SINCOS);
 		break;
 
 	case SENSOR_PORT_MODE_TS5700N8501:
@@ -249,7 +253,7 @@ void mc_interface_init(void) {
 			conf_general_store_app_configuration(appconf);
 		}
 		mempools_free_appconf(appconf);
-		encoders_init(&conf_TS5700N8501);
+		encoders_init(ENCODERS_TYPE_TS5700N8501);
 	} break;
 
 	default:
@@ -343,34 +347,38 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 #endif
 
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
+		ENCSINCOS_config_t sincos_config;
+
 		encoders_deinit();
 		switch (configuration->m_sensor_port_mode) {
 		case SENSOR_PORT_MODE_ABI:
 		  // TODO: integrate with encoder/encoders
-			conf_ABI.abi.counts = configuration->m_encoder_counts;
-			encoders_init(&conf_ABI);
+			encoders_set_counts(configuration->m_encoder_counts);
+			encoders_init(ENCODERS_TYPE_ABI);
 			break;
 
 		case SENSOR_PORT_MODE_AS5047_SPI:
-			encoders_init(&conf_AS5047);
+			encoders_init(ENCODERS_TYPE_AS504x);
 			break;
 
 		case SENSOR_PORT_MODE_MT6816_SPI:
-		    encoders_init(&conf_MT6816);
+		    encoders_init(ENCODERS_TYPE_MT6816);
 			break;
 
 		case SENSOR_PORT_MODE_AD2S1205:
-		    encoders_init(&conf_AD2S1205);
+		    encoders_init(ENCODERS_TYPE_AD2S1205_SPI);
 			break;
 
 		case SENSOR_PORT_MODE_SINCOS:
-			conf_SINCOS.encsincos.s_gain = motor->m_conf.foc_encoder_sin_gain;
-			conf_SINCOS.encsincos.s_offset = motor->m_conf.foc_encoder_sin_offset;
-			conf_SINCOS.encsincos.c_gain = motor->m_conf.foc_encoder_cos_gain;
-			conf_SINCOS.encsincos.c_offset = motor->m_conf.foc_encoder_cos_offset;
-			conf_SINCOS.encsincos.filter_constant = motor->m_conf.foc_encoder_sincos_filter_constant;
 
-			encoders_init(&conf_SINCOS);
+			sincos_config.s_gain = motor->m_conf.foc_encoder_sin_gain;
+			sincos_config.s_offset = motor->m_conf.foc_encoder_sin_offset;
+			sincos_config.c_gain = motor->m_conf.foc_encoder_cos_gain;
+			sincos_config.c_offset = motor->m_conf.foc_encoder_cos_offset;
+			sincos_config.filter_constant = motor->m_conf.foc_encoder_sincos_filter_constant;
+
+			encoders_sincos_conf_set(&sincos_config);
+			encoders_init(ENCODERS_TYPE_SINCOS);
 			break;
 		case SENSOR_PORT_MODE_TS5700N8501:
 		case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
@@ -385,7 +393,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 				app_set_configuration(appconf);
 			}
 			mempools_free_appconf(appconf);
-			encoders_init(&conf_TS5700N8501);
+			encoders_init(ENCODERS_TYPE_TS5700N8501);
 		} break;
 
 		default:

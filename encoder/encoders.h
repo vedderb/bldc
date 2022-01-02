@@ -7,7 +7,7 @@
 
 // GENERIC GLOBAL
 void encoders_deinit(void);
-encoders_ret_t encoders_init(encoders_config_t *encoder_config);
+encoders_ret_t encoders_init(encoders_type_t encoder_config);
 
 float encoders_read_deg(void);
 float encoders_read_deg_multiturn(void);
@@ -39,6 +39,7 @@ uint32_t encoders_get_signal_below_min_error_cnt(void);
 uint32_t encoders_get_signal_above_max_error_cnt(void);
 float encoders_get_signal_below_min_error_rate(void);
 float encoders_get_signal_above_max_error_rate(void);
+void encoders_sincos_conf_set(ENCSINCOS_config_t *sincos_config);
 
 //TS5700N8501
 uint8_t* encoders_get_raw_status(void);

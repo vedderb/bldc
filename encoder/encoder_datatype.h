@@ -89,14 +89,6 @@ typedef struct {
 	encoders_UART_config_t uart_config;
 	SerialConfig uart_param;
 } TS5700N8501_config_t;
-
-typedef struct {
-	encoders_type_t encoder_type;
-	ENCSPI_config_t encspi;
-	ABI_config_t abi;
-	ENCSINCOS_config_t encsincos;
-	TS5700N8501_config_t ts5700n8501;
-} encoders_config_t;
 /*
 typedef struct {
 	uint8_t is_connected;

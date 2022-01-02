@@ -10,9 +10,9 @@
 
 #include "math.h"
 
-static bool encoders_is_uart_defined(encoders_config_t *encoder_config);
-static bool encoders_is_spi_defined(encoders_config_t *encoder_config);
-static bool encoders_is_incremental_defined(encoders_config_t *encoder_config);
+static bool encoders_is_uart_defined(void);
+static bool encoders_is_spi_defined(void);
+static bool encoders_is_incremental_defined(void);
 
 static encoders_type_t encoder_type_now = ENCODERS_TYPE_NONE;
 static uint32_t enc_counts = 10000;
@@ -36,27 +36,25 @@ void encoders_deinit(void) {
 	encoder_type_now = ENCODERS_TYPE_NONE;
 }
 
-encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
+encoders_ret_t encoders_init(encoders_type_t encoder_type) {
 
 	if (encoder_type_now != ENCODERS_TYPE_NONE) {
 		return ENCODERS_ERROR;
 	}
 
-	if (encoder_config->encoder_type == ENCODERS_TYPE_AS504x) {
-		AS504x_config_t *as504x_config;
+	if (encoder_type == ENCODERS_TYPE_AS504x) {
 		encoders_ret_t encoder_ret;
 
-		if(!encoders_is_spi_defined(encoder_config))
+		if(!encoders_is_spi_defined())
 		{
 			return ENCODERS_ERROR;
 		}
 
-		as504x_config = &(encoder_config->encspi);
-		as504x_config->is_init = 0;
+		encoders_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = AS504x_init(as504x_config);
+		encoder_ret = AS504x_init(&encoders_conf_ENCSPI);
 
-		if (ENCODERS_OK != encoder_ret || !as504x_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE; // TODO: maybe should be deleted
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -64,21 +62,19 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_type_now = ENCODERS_TYPE_AS504x;
 		index_found = true;
 		return ENCODERS_OK;
-	} else if (encoder_config->encoder_type == ENCODERS_TYPE_MT6816) {
-		MT6816_config_t *mt6816_config;
+	} else if (encoder_type == ENCODERS_TYPE_MT6816) {
 		encoders_ret_t encoder_ret;
 
-		if(!encoders_is_spi_defined(encoder_config))
+		if(!encoders_is_spi_defined())
 		{
 			return ENCODERS_ERROR;
 		}
 
-		mt6816_config = &(encoder_config->encspi);
-		mt6816_config->is_init = 0;
+		encoders_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = MT6816_init(mt6816_config);
+		encoder_ret = MT6816_init(&encoders_conf_ENCSPI);
 
-		if (ENCODERS_OK != encoder_ret || !mt6816_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -86,21 +82,19 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_type_now = ENCODERS_TYPE_MT6816;
 		index_found = true;
 		return ENCODERS_OK;
-	} else if (encoder_config->encoder_type == ENCODERS_TYPE_AD2S1205_SPI) {
-		AD2S1205_config_t *ad2s1205_config;
+	} else if (encoder_type == ENCODERS_TYPE_AD2S1205_SPI) {
 		encoders_ret_t encoder_ret;
 
-		if(!encoders_is_spi_defined(encoder_config))
+		if(!encoders_is_spi_defined())
 		{
 			return ENCODERS_ERROR;
 		}
 
-		ad2s1205_config = &(encoder_config->encspi);
-		ad2s1205_config->is_init = 0;
+		encoders_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = AD2S1205_init(ad2s1205_config);
+		encoder_ret = AD2S1205_init(&encoders_conf_ENCSPI);
 
-		if (ENCODERS_OK != encoder_ret || !ad2s1205_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -108,21 +102,19 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_type_now = ENCODERS_TYPE_AD2S1205_SPI;
 		index_found = true;
 		return ENCODERS_OK;
-	} else if (encoder_config->encoder_type == ENCODERS_TYPE_ABI) {
-		ABI_config_t *abi_config;
+	} else if (encoder_type == ENCODERS_TYPE_ABI) {
 		encoders_ret_t encoder_ret;
 
-		if(!encoders_is_incremental_defined(encoder_config))
+		if(!encoders_is_incremental_defined())
 		{
 			return ENCODERS_ERROR;
 		}
 
-		abi_config = &(encoder_config->abi);
-		abi_config->is_init = 0;
+		encoders_conf_ABI.is_init = 0;
 
-		encoder_ret = ABI_init(abi_config);
+		encoder_ret = ABI_init(&encoders_conf_ABI);
 
-		if (ENCODERS_OK != encoder_ret || !abi_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_ABI.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -130,16 +122,14 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_type_now = ENCODERS_TYPE_ABI;
 		index_found = true;
 		return ENCODERS_OK;
-	} else if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
-		ENCSINCOS_config_t *enc_sincos_config;
+	} else if (encoder_type == ENCODERS_TYPE_SINCOS) {
 		encoders_ret_t encoder_ret;
 
-		enc_sincos_config = &(encoder_config->encsincos);
-		enc_sincos_config->is_init = 0;
+		encoders_conf_ENCSINCOS.is_init = 0;
 
-		encoder_ret = ENC_SINCOS_init(enc_sincos_config);
+		encoder_ret = ENC_SINCOS_init(&encoders_conf_ENCSINCOS);
 
-		if (ENCODERS_OK != encoder_ret || !enc_sincos_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_ENCSINCOS.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -147,20 +137,19 @@ encoders_ret_t encoders_init(encoders_config_t *encoder_config) {
 		encoder_type_now = ENCODERS_TYPE_SINCOS;
 		index_found = true;
 		return ENCODERS_OK;
-	} else if (encoder_type_now == ENCODERS_TYPE_TS5700N8501) {
-		TS5700N8501_config_t *ts5700N8501_config;
+	} else if (encoder_type == ENCODERS_TYPE_TS5700N8501) {
 		encoders_ret_t encoder_ret;
 
-		if(!encoders_is_uart_defined(encoder_config))
+		if(!encoders_is_uart_defined())
 		{
 			return ENCODERS_ERROR;
 		}
 
-		ts5700N8501_config = &(encoder_config->ts5700n8501);
+		encoders_conf_TS5700N8501.is_init = 0;
 
-		encoder_ret = TS5700N8501_init(ts5700N8501_config);
+		encoder_ret = TS5700N8501_init(&encoders_conf_TS5700N8501);
 
-		if (ENCODERS_OK != encoder_ret || !ts5700N8501_config->is_init) {
+		if (ENCODERS_OK != encoder_ret || !encoders_conf_TS5700N8501.is_init) {
 			encoder_type_now = ENCODERS_TYPE_NONE;
 			index_found = false;
 			return ENCODERS_ERROR;
@@ -270,6 +259,7 @@ uint32_t encoders_resolver_loss_of_signal_error_cnt(void) {
 	return AD2S1205_resolver_loss_of_signal_error_cnt();
 }
 
+// ABI
 void encoders_set_counts(uint32_t counts) {
 	if (encoder_type_now == ENCODERS_TYPE_ABI)
 	{
@@ -353,6 +343,7 @@ void encoders_reset_multiturn(void) {
 	}
 }
 
+// SINCOS TODO labels
 uint32_t encoders_get_signal_below_min_error_cnt(void) {
 	if (encoder_type_now == ENCODERS_TYPE_SINCOS) {
 		return ENC_SINCOS_get_signal_below_min_error_cnt();
@@ -378,6 +369,15 @@ float encoders_get_signal_above_max_error_rate(void) {
 	return 0.0;
 }
 
+void encoders_sincos_conf_set(ENCSINCOS_config_t *sincos_config)
+{
+	encoders_conf_ENCSINCOS.s_gain = sincos_config->s_gain;
+	encoders_conf_ENCSINCOS.s_offset = sincos_config->s_offset;
+	encoders_conf_ENCSINCOS.c_gain = sincos_config->c_gain;
+	encoders_conf_ENCSINCOS.c_offset = sincos_config->c_offset;
+	encoders_conf_ENCSINCOS.filter_constant = sincos_config->filter_constant;
+}
+
 void encoders_tim_isr(void) {
 	if (encoder_type_now == ENCODERS_TYPE_AS504x) {
 		AS504x_routine();
@@ -388,31 +388,31 @@ void encoders_tim_isr(void) {
 	}
 }
 
-static bool encoders_is_uart_defined(encoders_config_t *encoder_config)
+static bool encoders_is_uart_defined(void)
 {
-	if (!encoder_config->ts5700n8501.uart_config.gpio_RX.port
-			|| !encoder_config->ts5700n8501.uart_config.gpio_TX.port)
+	if (!encoders_conf_TS5700N8501.uart_config.gpio_RX.port
+			|| !encoders_conf_TS5700N8501.uart_config.gpio_TX.port)
 	{
 		return false;
 	}
 	return true;
 }
 
-static bool encoders_is_spi_defined(encoders_config_t *encoder_config)
+static bool encoders_is_spi_defined(void)
 {
-	if (!encoder_config->encspi.spi_config.gpio_miso.port
-			|| !encoder_config->encspi.spi_config.gpio_nss.port
-			|| !encoder_config->encspi.spi_config.gpio_sck.port)
+	if (!encoders_conf_ENCSPI.spi_config.gpio_miso.port
+			|| !encoders_conf_ENCSPI.spi_config.gpio_nss.port
+			|| !encoders_conf_ENCSPI.spi_config.gpio_sck.port)
 	{
 		return false;
 	}
 	return true;
 }
 
-static bool encoders_is_incremental_defined(encoders_config_t *encoder_config)
+static bool encoders_is_incremental_defined(void)
 {
-	if (!encoder_config->abi.incremental_config.gpio_A.port
-			|| !encoder_config->abi.incremental_config.gpio_B.port)
+	if (!encoders_conf_ABI.incremental_config.gpio_A.port
+			|| !encoders_conf_ABI.incremental_config.gpio_B.port)
 	{
 		return false;
 	}

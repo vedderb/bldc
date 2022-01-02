@@ -274,28 +274,32 @@ static void disconnect_virtual_motor( void ){
 		ADC_Init(ADC1, &ADC_InitStructure);
 
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
+			ENCSINCOS_config_t sincos_config;
+
 			switch (m_conf->m_sensor_port_mode) {
 			case SENSOR_PORT_MODE_ABI:
-				conf_ABI.abi.counts = m_conf->m_encoder_counts;
-				encoders_init(&conf_ABI);
+				encoders_set_counts(m_conf->m_encoder_counts);
+				encoders_init(ENCODERS_TYPE_ABI);
 				break;
 
 			case SENSOR_PORT_MODE_AS5047_SPI:
-				encoders_init(&conf_AS5047);
+				encoders_init(ENCODERS_TYPE_AS504x);
 				break;
 
 			case SENSOR_PORT_MODE_AD2S1205:
-			  encoders_init(&conf_AD2S1205);
+			  encoders_init(ENCODERS_TYPE_AD2S1205_SPI);
 				break;
 
 			case SENSOR_PORT_MODE_SINCOS:
 
-				conf_SINCOS.encsincos.s_gain = m_conf->foc_encoder_sin_gain;
-				conf_SINCOS.encsincos.s_offset = m_conf->foc_encoder_sin_offset;
-				conf_SINCOS.encsincos.c_gain = m_conf->foc_encoder_cos_gain;
-				conf_SINCOS.encsincos.c_offset = m_conf->foc_encoder_cos_offset;
-				conf_SINCOS.encsincos.filter_constant = m_conf->foc_encoder_sincos_filter_constant;
-				encoders_init(&conf_SINCOS);
+				sincos_config.s_gain = m_conf->foc_encoder_sin_gain;
+				sincos_config.s_offset = m_conf->foc_encoder_sin_offset;
+				sincos_config.c_gain = m_conf->foc_encoder_cos_gain;
+				sincos_config.c_offset = m_conf->foc_encoder_cos_offset;
+				sincos_config.filter_constant = m_conf->foc_encoder_sincos_filter_constant;
+
+				encoders_sincos_conf_set(&sincos_config);
+				encoders_init(ENCODERS_TYPE_SINCOS);
 				break;
 
 			default:
