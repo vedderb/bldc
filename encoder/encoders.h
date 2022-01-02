@@ -2,7 +2,6 @@
 #define ENCODER_ENCODERS_H_
 
 #include "encoder_datatype.h"
-#include "encoder/encoder_hwconf.h"
 #include "hal.h"
 
 // GENERIC GLOBAL

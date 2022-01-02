@@ -7,7 +7,11 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include <math.h>
-#include "encoder/encoder_hwconf.h"
+
+//TODO move defines to encoder_hwconf.h
+#define SINCOS_SAMPLE_RATE_HZ       20000
+#define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
 
 ENCSINCOS_config_t enc_sincos_config_now = { 0 };
 

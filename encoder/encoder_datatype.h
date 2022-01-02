@@ -6,15 +6,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#define AS5047_SAMPLE_RATE_HZ       20000
-#define AD2S1205_SAMPLE_RATE_HZ     20000       //25MHz max spi clk
-#define TS5700N8501_SAMPLE_RATE_HZ	20000
-#define MT6816_SAMPLE_RATE_HZ       20000
-#define MT6816_NO_MAGNET_ERROR_MASK 0x0002
-#define SINCOS_SAMPLE_RATE_HZ       20000
-#define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
-#define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
-
 typedef uint8_t encoders_pin_t;
 typedef uint32_t encoders_refresh_rate_hz_t;
 

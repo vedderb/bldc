@@ -7,6 +7,9 @@
 #include "utils.h"
 #include <math.h>
 
+//TODO move defines to encoder_hwconf.h
+#define TS5700N8501_SAMPLE_RATE_HZ	20000
+
 static THD_FUNCTION(ts5700n8501_thread, arg);
 static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
 
