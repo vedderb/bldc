@@ -517,6 +517,13 @@
 #define HW_RESET_DRV_FAULTS()
 #endif
 
+// For backwards-compatibility with configs that use the old name
+#ifdef MCCONF_FOC_F_SW
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV			MCCONF_FOC_F_SW
+#endif
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
