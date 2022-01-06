@@ -455,9 +455,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	case MOTOR_TYPE_FOC:
 #ifdef HW_HAS_DUAL_MOTORS
 		if (motor == &m_motor_1) {
-			m_motor_2.m_conf.foc_f_sw = motor->m_conf.foc_f_sw;
+			m_motor_2.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
 		} else {
-			m_motor_1.m_conf.foc_f_sw = motor->m_conf.foc_f_sw;
+			m_motor_1.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
 		}
 #endif
 		mcpwm_foc_set_configuration(&motor->m_conf);
