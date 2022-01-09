@@ -5,7 +5,7 @@
 #include "encoder/encoder_datatype.h"
 
 void TS5700N8501_deinit(void);
-encoders_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config);
+encoder_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config);
 
 float TS5700N8501_read_deg(void);
 

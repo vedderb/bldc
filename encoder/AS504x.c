@@ -172,9 +172,9 @@ void AS504x_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
+encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	encoders_spi_config_t AS504x_spi_config = AS504x_config->spi_config;
+	encoder_spi_config_t AS504x_spi_config = AS504x_config->spi_config;
 
 	software_spi_now.miso_gpio = AS504x_spi_config.gpio_miso.port;
 	software_spi_now.miso_pin = AS504x_spi_config.gpio_miso.pin;
@@ -209,7 +209,7 @@ encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 
 	spi_error_rate = 0.0;
-	return ENCODERS_OK;
+	return ENCODER_OK;
 }
 
 #if (AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)

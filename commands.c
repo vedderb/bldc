@@ -36,7 +36,7 @@
 #include "flash_helper.h"
 #include "utils.h"
 #include "packet.h"
-#include "encoder/encoders.h"
+#include "encoder/encoder.h"
 #include "nrf_driver.h"
 #include "gpdrive.h"
 #include "confgenerator.h"
@@ -1966,7 +1966,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 		} break;
 
 		case COMM_DETECT_ENCODER: {
-			if (encoders_is_configured()) {
+			if (encoder_is_configured()) {
 				mc_configuration *mcconf = mempools_alloc_mcconf();
 				*mcconf = *mc_interface_get_configuration();
 				mc_configuration *mcconf_old = mempools_alloc_mcconf();

@@ -6,7 +6,7 @@
 #include "encoder/encoder_datatype.h"
 
 void ABI_deinit(void);
-encoders_ret_t ABI_init(ABI_config_t *abi_config);
+encoder_ret_t ABI_init(ABI_config_t *abi_config);
 
 float ABI_read_deg(void);
 

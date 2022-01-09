@@ -47,10 +47,10 @@ void AD2S1205_deinit(void) {
 	AD2S1205_config_now.is_init = 0;
 }
 
-encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
+encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	encoders_spi_config_t AD2S1205_spi_config = AD2S1205_config->spi_config;
+	encoder_spi_config_t AD2S1205_spi_config = AD2S1205_config->spi_config;
 
 	software_spi_now.miso_gpio = AD2S1205_spi_config.gpio_miso.port;
 	software_spi_now.miso_pin = AD2S1205_spi_config.gpio_miso.pin;
@@ -103,7 +103,7 @@ encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 
-	return ENCODERS_OK;
+	return ENCODER_OK;
 }
 
 float AD2S1205_read_deg(void) {

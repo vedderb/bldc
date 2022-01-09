@@ -24,7 +24,7 @@
 #include "math.h"
 #include "stdio.h"
 #include "commands.h"
-#include "encoder/encoders.h"
+#include "encoder/encoder.h"
 
 typedef struct{
 	//constant variables
@@ -219,7 +219,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 														(float*)&virtual_motor.cos_phi);
 
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
-			encoders_deinit();
+			encoder_deinit();
 		}
 	}
 
@@ -278,16 +278,16 @@ static void disconnect_virtual_motor( void ){
 
 			switch (m_conf->m_sensor_port_mode) {
 			case SENSOR_PORT_MODE_ABI:
-				encoders_set_counts(m_conf->m_encoder_counts);
-				encoders_init(ENCODERS_TYPE_ABI);
+				encoder_set_counts(m_conf->m_encoder_counts);
+				encoder_init(ENCODER_TYPE_ABI);
 				break;
 
 			case SENSOR_PORT_MODE_AS5047_SPI:
-				encoders_init(ENCODERS_TYPE_AS504x);
+				encoder_init(ENCODER_TYPE_AS504x);
 				break;
 
 			case SENSOR_PORT_MODE_AD2S1205:
-			  encoders_init(ENCODERS_TYPE_AD2S1205_SPI);
+			  encoder_init(ENCODER_TYPE_AD2S1205_SPI);
 				break;
 
 			case SENSOR_PORT_MODE_SINCOS:
@@ -298,8 +298,8 @@ static void disconnect_virtual_motor( void ){
 				sincos_config.c_offset = m_conf->foc_encoder_cos_offset;
 				sincos_config.filter_constant = m_conf->foc_encoder_sincos_filter_constant;
 
-				encoders_sincos_conf_set(&sincos_config);
-				encoders_init(ENCODERS_TYPE_SINCOS);
+				encoder_sincos_conf_set(&sincos_config);
+				encoder_init(ENCODER_TYPE_SINCOS);
 				break;
 
 			default:

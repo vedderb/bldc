@@ -6,7 +6,7 @@
 #include "encoder/encoder_datatype.h"
 
 void MT6816_deinit(void);
-encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config);
+encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config);
 
 float MT6816_read_deg(void);
 void MT6816_routine(void);

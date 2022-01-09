@@ -53,10 +53,10 @@ void MT6816_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
+encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 #ifdef HW_SPI_DEV
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	encoders_spi_config_t mt6816_spi_config = mt6816_config->spi_config;
+	encoder_spi_config_t mt6816_spi_config = mt6816_config->spi_config;
 
 	spi_bb_state_now.nss_gpio = mt6816_config->spi_config.gpio_nss.port;
 	spi_bb_state_now.nss_pin = mt6816_config->spi_config.gpio_nss.pin;
@@ -105,7 +105,7 @@ encoders_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 	mt6816_config_now.is_init = 1;
 	mt6816_config->is_init = 1;
 #endif
-	return ENCODERS_OK;
+	return ENCODER_OK;
 }
 
 float MT6816_read_deg(void) {

@@ -6,7 +6,7 @@
 #include "encoder/encoder_datatype.h"
 
 void AS504x_deinit(void);
-encoders_ret_t AS504x_init(AS504x_config_t *AS504x_config);
+encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config);
 
 float AS504x_read_deg(void);
 void AS504x_routine(void);

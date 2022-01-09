@@ -50,7 +50,7 @@ void TS5700N8501_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoders_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config) {
+encoder_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config) {
 #ifdef HW_UART_DEV
 	spi_error_rate = 0.0;
 	spi_error_cnt = 0;
@@ -64,10 +64,10 @@ encoders_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config) {
 
 	ts5700n8501_config_now.is_init = 1;
 	ts5700n8501_config->is_init = 1;
-	return ENCODERS_OK;
+	return ENCODER_OK;
 #else
 	ts5700n8501_config->is_init = 0;
-	return ENCODERS_ERROR;
+	return ENCODER_ERROR;
 #endif
 }
 

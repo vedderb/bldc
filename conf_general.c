@@ -27,7 +27,7 @@
 #include "stm32f4xx_conf.h"
 #include "timeout.h"
 #include "commands.h"
-#include "encoder/encoders.h"
+#include "encoder/encoder.h"
 #include "comm_can.h"
 #include "app.h"
 #include "confgenerator.h"
@@ -1215,7 +1215,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			chThdSleepMilliseconds(1);
 		}
 
-		float phase_start = encoders_read_deg();
+		float phase_start = encoder_read_deg();
 		float phase_mid = 0.0;
 		float phase_end = 0.0;
 
@@ -1224,11 +1224,11 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			chThdSleepMilliseconds(5);
 
 			if (i == 90) {
-				phase_mid = encoders_read_deg();
+				phase_mid = encoder_read_deg();
 			}
 		}
 
-		phase_end = encoders_read_deg();
+		phase_end = encoder_read_deg();
 		float diff = fabsf(utils_angle_difference(phase_start, phase_end));
 		float diff_mid = fabsf(utils_angle_difference(phase_mid, phase_end));
 

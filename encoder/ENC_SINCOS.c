@@ -35,7 +35,7 @@ void ENC_SINCOS_deinit(void) {
 	enc_sincos_config_now.is_init = 0;
 }
 
-encoders_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
+encoder_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	//ADC inputs are already initialized in hw_init_gpio()
 	sin_gain = enc_sincos_config->s_gain;
 	sin_offset = enc_sincos_config->s_offset;
@@ -56,7 +56,7 @@ encoders_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	return ENCODERS_OK;
 #else
 	enc_sincos_config->is_init = 0;
-	return ENCODERS_ERROR;
+	return ENCODER_ERROR;
 #endif
 }
 

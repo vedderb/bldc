@@ -29,7 +29,7 @@ void ABI_deinit(void) {
 	abi_config_now.is_init = 0;
 }
 
-encoders_ret_t ABI_init(ABI_config_t *abi_config) {
+encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 
@@ -79,7 +79,7 @@ encoders_ret_t ABI_init(ABI_config_t *abi_config) {
 	// Enable and set EXTI Line Interrupt to the highest priority
 	nvicEnableVector(HW_ENC_EXTI_CH, 0);
 
-	return ENCODERS_OK;
+	return ENCODER_OK;
 }
 
 float ABI_read_deg(void) {

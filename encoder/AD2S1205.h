@@ -6,7 +6,7 @@
 #include "encoder/encoder_datatype.h"
 
 void AD2S1205_deinit(void);
-encoders_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config);
+encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config);
 
 float AD2S1205_read_deg(void);
 void AD2S1205_routine(void);
