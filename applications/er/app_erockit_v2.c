@@ -87,7 +87,8 @@ typedef enum {
 	ER_MSG_GET_MODE_PARAMS,
 	ER_MSG_GET_IO,
 	ER_MSG_RESTORE_SETTINGS,
-	ER_MSG_SET_MOTORS_ENABLED
+	ER_MSG_SET_MOTORS_ENABLED,
+	ER_MSG_SET_PEDAL_TEST_MODE
 } ER_MSG;
 
 typedef struct {
@@ -108,6 +109,7 @@ static volatile SETTINGS_T m_set_sport;
 static volatile SETTINGS_T *m_set_now = &m_set_normal;
 static volatile int m_set_now_offset = 0;
 static volatile bool m_motors_enabled = true;
+static volatile bool m_pedal_test_mode = false;
 
 // Private functions
 static void process_custom_app_data(unsigned char *data, unsigned int len);
@@ -124,25 +126,25 @@ static void terminal_set_top_speed_erpm(int argc, const char **argv);
 static void terminal_set_brake_power(int argc, const char **argv);
 
 static void restore_settings(void) {
-	m_set_normal.p_throttle_hyst = 0.04;
-	m_set_normal.p_pedal_current = 20.0;
-	m_set_normal.p_start_gain = 4.0;
-	m_set_normal.p_start_gain_end_speed = 15.0;
-	m_set_normal.p_output_power = 1.0;
-	m_set_normal.p_top_speed_erpm = 2000;
-	m_set_normal.p_brake_current_front = 0.5;
-	m_set_normal.p_brake_current_rear = 0.5;
-	m_set_normal.p_brake_current_both = 1.0;
-
 	m_set_eco.p_throttle_hyst = 0.04;
 	m_set_eco.p_pedal_current = 25.0;
-	m_set_eco.p_start_gain = 4.0;
-	m_set_eco.p_start_gain_end_speed = 15.0;
+	m_set_eco.p_start_gain = 2.9;
+	m_set_eco.p_start_gain_end_speed = 7.8;
 	m_set_eco.p_output_power = 0.7;
 	m_set_eco.p_top_speed_erpm = 2000;
 	m_set_eco.p_brake_current_front = 0.5;
 	m_set_eco.p_brake_current_rear = 0.5;
 	m_set_eco.p_brake_current_both = 1.0;
+
+	m_set_normal.p_throttle_hyst = 0.04;
+	m_set_normal.p_pedal_current = 20.0;
+	m_set_normal.p_start_gain = 3.4;
+	m_set_normal.p_start_gain_end_speed = 9.0;
+	m_set_normal.p_output_power = 0.85;
+	m_set_normal.p_top_speed_erpm = 2000;
+	m_set_normal.p_brake_current_front = 0.5;
+	m_set_normal.p_brake_current_rear = 0.5;
+	m_set_normal.p_brake_current_both = 1.0;
 
 	m_set_sport.p_throttle_hyst = 0.04;
 	m_set_sport.p_pedal_current = 15.0;
@@ -350,7 +352,7 @@ static THD_FUNCTION(my_thread, arg) {
 	const float output_filter = 0.3;
 
 	const float poles = 8;
-	const float gearing = 5.6;
+	const float gearing = 112.0 / 18.0;
 	const float wheel_d = 0.585;
 
 	float erpm_now = 0.0;
@@ -404,6 +406,10 @@ static THD_FUNCTION(my_thread, arg) {
 		float pedal_current_target = m_set_now->p_pedal_current;
 		if (erpm_motor < erpm_ramp_in) {
 			pedal_current_target = utils_map(erpm_motor, 0.0, erpm_ramp_in, 0.0, pedal_current_target);
+		}
+
+		if ((!m_kill_sw || m_brake_front || m_brake_rear) && !m_pedal_test_mode) {
+			running = false;
 		}
 
 		if (running) {
@@ -547,7 +553,9 @@ static THD_FUNCTION(my_thread, arg) {
 				}
 			}
 
-			if (!m_kill_sw || brake > 0.0001) {
+			if (!m_kill_sw || m_pedal_test_mode) {
+				comm_can_set_current_brake_rel(255, 0.0);
+			} else if (brake > 0.0001) {
 				comm_can_set_current_brake_rel(255, brake);
 			} else {
 				comm_can_set_current_rel(255, pwr_out * m_set_now->p_output_power);
@@ -659,6 +667,17 @@ static void process_custom_app_data(unsigned char *data, unsigned int len) {
 		ind = 0;
 		dataTx[ind++] = msg;
 		dataTx[ind++] = m_motors_enabled;
+		commands_send_app_data(dataTx, ind);
+	} break;
+
+	case ER_MSG_SET_PEDAL_TEST_MODE: {
+		m_pedal_test_mode = data[ind++];
+
+		// Send ack
+		uint8_t dataTx[50];
+		ind = 0;
+		dataTx[ind++] = msg;
+		dataTx[ind++] = m_pedal_test_mode;
 		commands_send_app_data(dataTx, ind);
 	} break;
 

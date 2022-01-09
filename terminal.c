@@ -721,7 +721,7 @@ void terminal_process_string(char *str) {
 #endif
 					commands_printf("Motor Current       : %.1f A", (double)(mcconf->l_current_max));
 					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf->foc_motor_r * 1e3));
-					commands_printf("Motor L             : %.2f microH", (double)(mcconf->foc_motor_l * 1e6));
+					commands_printf("Motor L             : %.2f uH", (double)(mcconf->foc_motor_l * 1e6));
 					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf->foc_motor_flux_linkage * 1e3));
 					commands_printf("Temp Comp           : %s", mcconf->foc_temp_comp ? "true" : "false");
 					if (mcconf->foc_temp_comp) {
@@ -743,7 +743,7 @@ void terminal_process_string(char *str) {
 					commands_printf("\nMOTOR 2\n");
 					commands_printf("Motor Current       : %.1f A", (double)(mcconf->l_current_max));
 					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf->foc_motor_r * 1e3));
-					commands_printf("Motor L             : %.2f microH", (double)(mcconf->foc_motor_l * 1e6));
+					commands_printf("Motor L             : %.2f uH", (double)(mcconf->foc_motor_l * 1e6));
 					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf->foc_motor_flux_linkage * 1e3));
 					commands_printf("Temp Comp           : %s", mcconf->foc_temp_comp ? "true" : "false");
 					if (mcconf->foc_sensor_mode == FOC_SENSOR_MODE_SENSORLESS) {
@@ -1122,21 +1122,6 @@ void terminal_process_string(char *str) {
 				commands_printf("Invalid arguments\n");
 			}
 		}
-	} else if (strcmp(argv[0], "stats") == 0) {
-		commands_printf("Speed Avg  : %.1f km/h", (double)(mc_interface_stat_speed_avg() * 3.6));
-		commands_printf("Speed Max  : %.1f km/h", (double)(mc_interface_stat_speed_max() * 3.6));
-		commands_printf("Power Avg  : %.1f W", (double)mc_interface_stat_power_avg());
-		commands_printf("Power Max  : %.1f W", (double)mc_interface_stat_power_max());
-		commands_printf("Current Avg: %.1f A", (double)mc_interface_stat_current_avg());
-		commands_printf("Current Max: %.1f A", (double)mc_interface_stat_current_max());
-		commands_printf("T FET Avg  : %.1f degC", (double)mc_interface_stat_temp_mosfet_avg());
-		commands_printf("T FET Max  : %.1f degC", (double)mc_interface_stat_temp_mosfet_max());
-		commands_printf("T MOTOR Avg: %.1f degC", (double)mc_interface_stat_temp_motor_avg());
-		commands_printf("T MOTOR Max: %.1f degC", (double)mc_interface_stat_temp_motor_max());
-		commands_printf("Count Time : %.1f s\n", (double)mc_interface_stat_count_time());
-	} else if (strcmp(argv[0], "stats_reset") == 0) {
-		mc_interface_stat_reset();
-		commands_printf("OK\n");
 	}
 
 	// The help command
@@ -1284,12 +1269,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("update_pid_pos_offset [angle_now] [store]");
 		commands_printf("  Update position PID offset.");
-
-		commands_printf("stats");
-		commands_printf("  Print setup statistics.");
-
-		commands_printf("stats_reset");
-		commands_printf("  Reset setup statistics.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

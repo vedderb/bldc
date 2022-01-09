@@ -1522,6 +1522,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			ack = data[0];
 		}
 
+		mc_interface_stat_reset();
+
 		if (ack) {
 			int32_t ind = 0;
 			uint8_t send_buffer[50];
@@ -1696,15 +1698,15 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
     if (mcconf->foc_sample_v0_v7 == true) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
-		ctrl_loop_freq = mcconf->foc_f_sw;
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+		ctrl_loop_freq = mcconf->foc_f_zv;
     } else {
 #ifdef HW_HAS_DUAL_MOTORS
-    	utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
-    	ctrl_loop_freq = mcconf->foc_f_sw;
+    	utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+    	ctrl_loop_freq = mcconf->foc_f_zv;
 #else
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
-		ctrl_loop_freq = mcconf->foc_f_sw / 2.0;
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+		ctrl_loop_freq = mcconf->foc_f_zv / 2.0;
 #endif
     }
 #endif
@@ -1974,7 +1976,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
@@ -2022,7 +2024,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);

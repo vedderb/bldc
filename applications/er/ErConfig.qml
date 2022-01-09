@@ -27,6 +27,7 @@ Item {
         er_msg.ER_MSG_GET_IO = 2
         er_msg.ER_MSG_RESTORE_SETTINGS = 3
         er_msg.ER_MSG_SET_MOTORS_ENABLED = 4
+        er_msg.ER_MSG_SET_PEDAL_TEST_MODE = 5
         
         er_set.p_throttle_hyst = 0.04
         er_set.p_pedal_current = 20.0
@@ -98,6 +99,12 @@ Item {
                 } else {
                     VescIf.emitStatusMessage("ER Motors Disabled", true)
                 }
+            } else if (cmd == er_msg.ER_MSG_SET_PEDAL_TEST_MODE) {
+                if (dv.getUint8(ind++)) {
+                    VescIf.emitStatusMessage("Pedal Test Enabled", true)
+                } else {
+                    VescIf.emitStatusMessage("Pedal Test Disabled", true)
+                }
             }
         }
     }
@@ -152,6 +159,15 @@ Item {
         var dv = new DataView(buffer)
         var ind = 0
         dv.setUint8(ind++, er_msg.ER_MSG_SET_MOTORS_ENABLED)
+        dv.setUint8(ind++, enabled)
+        mCommands.sendCustomAppData(buffer)
+    }
+    
+    function setPedalTestMode(enabled) {
+        var buffer = new ArrayBuffer(2)
+        var dv = new DataView(buffer)
+        var ind = 0
+        dv.setUint8(ind++, er_msg.ER_MSG_SET_PEDAL_TEST_MODE)
         dv.setUint8(ind++, enabled)
         mCommands.sendCustomAppData(buffer)
     }
@@ -303,6 +319,17 @@ Item {
                         onClicked: {
                             restoreSettings()
                             readSettings()
+                        }
+                    }
+                    
+                    CheckBox {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 500
+                        Layout.preferredHeight: 80
+                        text: "Pedal Test"
+                        
+                        onToggled: {
+                            setPedalTestMode(checked)
                         }
                     }
                 }
@@ -487,7 +514,7 @@ Item {
                 return
             }
             
-            mMcConf.updateParamDouble("si_gear_ratio", 5.6, null)
+            mMcConf.updateParamDouble("si_gear_ratio", 112 / 18, null)
             mMcConf.updateParamInt("si_motor_poles", 8, null)
             mMcConf.updateParamDouble("si_wheel_diameter", 0.58, null)
             
@@ -506,16 +533,19 @@ Item {
             mMcConf.updateParamDouble("l_battery_cut_start", 47.6, null)
             mMcConf.updateParamDouble("l_battery_cut_end", 42, null)
             
-            mMcConf.updateParamDouble("l_temp_motor_start", 90, null)
-            mMcConf.updateParamDouble("l_temp_motor_end", 105, null)
+            mMcConf.updateParamDouble("l_temp_motor_start", 125, null)
+            mMcConf.updateParamDouble("l_temp_motor_end", 135, null)
             mMcConf.updateParamDouble("l_temp_accel_dec", 0, null)
             
-            mMcConf.updateParamDouble("foc_f_sw", 30000, null)
+            mMcConf.updateParamDouble("foc_f_zv", 30000, null)
             mMcConf.updateParamEnum("foc_sensor_mode", 2, null)
             mMcConf.updateParamDouble("foc_openloop_rpm", 350, null)
             mMcConf.updateParamDouble("foc_sl_erpm", 6000, null)
             mMcConf.updateParamBool("foc_sample_high_current", 1, null)
             mMcConf.updateParamDouble("foc_phase_filter_max_erpm", 1600, null)
+            
+            // Field Weakening
+            mMcConf.updateParamDouble("foc_fw_current_max", 40, null)
             
             mMcConf.updateParamEnum("m_motor_temp_sens_type", 4, null)
             mMcConf.updateParamInt("m_hall_extra_samples", 4, null)
@@ -545,7 +575,7 @@ Item {
             rl[1] = rl[1] * 1e-6
             
             mMcConf.updateParamDouble("foc_motor_r", rl[0], null)
-            mMcConf.updateParamDouble("foc_motor_l", rl[1], null)
+            mMcConf.updateParamDouble("foc_motor_l", rl[1] * 0.9, null)
                         
             // Flux linkage
             
@@ -654,6 +684,8 @@ Item {
                 enableDialog()
                 return
             }
+            
+            mMcConf.updateParamBool("m_invert_direction", 1, null)
             
             // Resistance and inductance
             
