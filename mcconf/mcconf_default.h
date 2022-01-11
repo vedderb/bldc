@@ -244,8 +244,8 @@
 #ifndef MCCONF_FOC_CURRENT_KI
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					25000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation

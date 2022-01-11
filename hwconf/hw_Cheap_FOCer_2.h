@@ -255,8 +255,8 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW                 20000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV                 20000.0
 #endif
 
 #ifndef MCCONF_L_CURRENT_MAX

@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			5
 #define FW_VERSION_MINOR			03
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		75
+#define FW_TEST_VERSION_NUMBER		77
 
 #include "datatypes.h"
 
@@ -89,8 +89,8 @@
 //#define HW_SOURCE "hw_axiom.c"
 //#define HW_HEADER "hw_axiom.h"
 
-//#define HW_SOURCE "hw_luna_bbshd.c"
-//#define HW_HEADER "hw_luna_bbshd.h"
+//#define HW_SOURCE "luna/hw_luna_bbshd.c"
+//#define HW_HEADER "luna/hw_luna_bbshd.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"

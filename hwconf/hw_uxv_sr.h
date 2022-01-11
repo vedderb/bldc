@@ -250,8 +250,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
 #define MCCONF_FOC_OPENLOOP_RPM         1500.0  // Openloop RPM (sensorless low speed or when finding index pulse)

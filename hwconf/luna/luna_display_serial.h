@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2021 Marcos Chaparro	mchaparro@powerdesigns.ca
 
 	This file is part of the VESC firmware.
 
@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef APPCONF_APPCONF_EXAMPLE_PPM_H_
-#define APPCONF_APPCONF_EXAMPLE_PPM_H_
+#ifndef APP_LUNA_DISPLAY_SERIAL_H_
+#define APP_LUNA_DISPLAY_SERIAL_H_
 
-// Override app configuration parameters such that the PPM app becomes default
-#define APPCONF_APP_TO_USE				APP_PPM
-#define APPCONF_PPM_CTRL_TYPE			PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE
+#include "stdint.h"
 
-#endif /* APPCONF_APPCONF_EXAMPLE_PPM_H_ */
+void luna_display_serial_start(int8_t initial_level);
+
+#endif /* APP_LUNA_DISPLAY_SERIAL_H_ */
