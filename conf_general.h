@@ -148,10 +148,12 @@
 
 //#define HW_DUAL_CONFIG_PARALLEL
 //#define HW_VER_IS_100D_V2
+//#define HW_VER_IS_100DX
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
 //#define HW_VER_IS_60D_PLUS
+//#define HW_VER_IS_60D_XS
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
 
