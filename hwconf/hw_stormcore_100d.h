@@ -27,23 +27,27 @@
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
 #elif defined(HW_VER_IS_100D_V2)
 #define HW_NAME                 "STORMCORE_100D_V2"
+#elif defined(HW_VER_IS_100DX)
+#define HW_NAME                 "STORMCORE_100DX"
+#define INVERTED_SHUNT_POLARITY
+#define HW_DEAD_TIME_NSEC               600.0   // Dead time
 #else
 #define HW_NAME                 "STORMCORE_100D"
 #endif
 
+#ifndef HW_VER_IS_100DX
 #include "drv8323s.h"
-
 // HW properties
 #define HW_HAS_DRV8323S // for idrive do 0x073b for reg 4 (LS) and 0x034b for reg 3 (HS)
-#define HW_HAS_3_SHUNTS
-
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
 		drv8323s_write_reg(3,0x3af); \
 		drv8323s_write_reg(4,0x7af);
+#endif
+#define HW_HAS_3_SHUNTS
 
 
 
-//#define HW_DEAD_TIME_NSEC               360.0   // Dead time
+
 
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
@@ -71,7 +75,7 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
-#ifdef HW_VER_IS_100D_V2
+#if  defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO               GPIOE
 #define PHASE_FILTER_PIN                4
@@ -253,7 +257,7 @@
 #endif
 
 
-#ifdef HW_VER_IS_100D_V2
+#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN        20.0
 #endif
@@ -371,7 +375,7 @@
 #define NRF_PIN_MISO            10
 
 // NRF SWD
-#ifdef HW_VER_IS_100D_V2
+#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #define NRF5x_SWDIO_GPIO        GPIOD
 #define NRF5x_SWDIO_PIN         9
 #define NRF5x_SWCLK_GPIO        GPIOD
