@@ -2955,7 +2955,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// compared to when running. Otherwise going from undriven to driven causes a current
 		// spike.
 		motor_now->m_phase_now_observer += motor_now->m_pll_speed * dt * conf_now->foc_observer_offset;
-						utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
+		utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
 
 		motor_now->m_x1_prev = motor_now->m_observer_x1;
 		motor_now->m_x2_prev = motor_now->m_observer_x2;
