@@ -110,8 +110,9 @@ include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
 include lora/lora.mk
-include compression/compression.mk
+include lzo/lzo.mk
 include blackmagic/blackmagic.mk
+#include lispBM/lispbm.mk
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -167,9 +168,10 @@ CSRC = $(STARTUPSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
        $(LORASRC) \
-       $(COMPRESSIONSRC) \
+       $(LZOSRC) \
        $(BLACKMAGICSRC) \
-       qmlui/qmlui.c
+       qmlui/qmlui.c \
+       $(LISPBMSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -210,11 +212,12 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(CANARDINC) \
          $(IMUINC) \
          $(LORAINC) \
-         $(COMPRESSIONINC) \
+         $(LZOINC) \
          $(BLACKMAGICINC) \
          qmlui \
          qmlui/hw \
-         qmlui/app
+         qmlui/app \
+         $(LISPBMINC)
 
 ifdef app_custom_mkfile
 include $(app_custom_mkfile)

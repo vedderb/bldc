@@ -55,6 +55,7 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
+//#include "lispif.h"
 
 /*
  * HW resources used:
@@ -302,6 +303,8 @@ int main(void) {
 	chThdSleepMilliseconds(500);
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
+
+//	lispif_init();
 
 	m_init_done = true;
 

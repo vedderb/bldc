@@ -384,6 +384,7 @@ typedef struct {
 	float foc_motor_flux_linkage;
 	float foc_observer_gain;
 	float foc_observer_gain_slow;
+	float foc_observer_offset;
 	float foc_pll_kp;
 	float foc_pll_ki;
 	float foc_duty_dowmramp_kp;
