@@ -34,9 +34,8 @@
 #define END_LIST       5
 #define PRINT_DOT      6
 
-static VALUE stack_storage[PRINT_STACK_SIZE];
-
 int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t) {
+  VALUE stack_storage[PRINT_STACK_SIZE];
 
   stack s;
   stack_create(&s, stack_storage, PRINT_STACK_SIZE);

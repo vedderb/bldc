@@ -45,7 +45,7 @@ Item {
                 text: "Read Log"
                 
                 onClicked: {
-                    mLogReader.openLogFile("example_duty.lisp")
+                    mLogReader.openLogFile("example_ppm_read.lisp")
                     
                     mCommands.qmlUiErase()
                     if (Utility.waitSignal(mCommands, "2eraseQmluiResReceived(bool)", 4000)) {

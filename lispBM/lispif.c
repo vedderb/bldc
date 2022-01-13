@@ -24,6 +24,7 @@
 #include "flash_helper.h"
 #include "mc_interface.h"
 #include "timeout.h"
+#include "servo_dec.h"
 
 #include "heap.h"
 #include "symrepr.h"
@@ -45,7 +46,7 @@ __attribute__((section(".ram4"))) static uint32_t memory_array[LISP_MEM_SIZE];
 __attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
 
 static thread_t *eval_tp = 0;
-static THD_WORKING_AREA(eval_thread_wa, 1024);
+static THD_WORKING_AREA(eval_thread_wa, 2048);
 static bool lisp_thd_running = false;
 
 static uint32_t timestamp_callback(void) {
@@ -117,6 +118,12 @@ static VALUE ext_reset_timeout(VALUE *args, UINT argn) {
 	return enc_sym(SYM_TRUE);
 }
 
+static VALUE ext_get_ppm(VALUE *args, UINT argn) {
+	(void)args;
+	(void)argn;
+	return enc_F(servodec_get_servo(0));
+}
+
 static THD_FUNCTION(eval_thread, arg) {
 	(void)arg;
 	eval_tp = chThdGetSelfX();
@@ -156,6 +163,7 @@ static void terminal_start(int argc, const char **argv) {
 	extensions_add("print", ext_print);
 	extensions_add("set-duty", ext_set_duty);
 	extensions_add("reset-timeout", ext_reset_timeout);
+	extensions_add("ppm-val", ext_get_ppm);
 
 	VALUE t = tokpar_parse(code);
 

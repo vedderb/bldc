@@ -60,7 +60,7 @@
 
 #define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 256
 
-char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
+static char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
 
 static void clear_sym_str(void) {
   memset(sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
@@ -362,7 +362,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
 
   unsigned int n = 0;
   unsigned int m = 0;
-  static char fbuf[256];
+  char fbuf[128];
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
@@ -372,7 +372,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
   if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
-  if (n > 255) m = 255;
+  if (n > 127) m = 127;
   else m = n;
 
   unsigned int i;
