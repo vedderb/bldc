@@ -204,64 +204,83 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
-		int32_t ind = 0;
-		uint8_t send_buffer[60];
-		send_buffer[ind++] = COMM_FW_VERSION;
-		send_buffer[ind++] = FW_VERSION_MAJOR;
-		send_buffer[ind++] = FW_VERSION_MINOR;
+		enum QmlUI {
+			QML_UI_0,
+			QML_UI_1,
+			QML_UI_2,
+		};
+#define MAX_HW_NAME_STRING_LENGTH 40
+#define HW_NAME_STRING_LENGTH (((sizeof(HW_NAME) < MAX_HW_NAME_STRING_LENGTH) ? sizeof(HW_NAME) : MAX_HW_NAME_STRING_LENGTH))
+      _Static_assert(sizeof(HW_NAME) <= MAX_HW_NAME_STRING_LENGTH, "**********[ERROR] The character length of the hardware name, " HW_NAME ", is longer than MAX_HW_NAME_STRING_LENGTH" "**********");
 
-		strcpy((char*)(send_buffer + ind), HW_NAME);
-		ind += strlen(HW_NAME) + 1;
+		struct __attribute__((packed)) SendVersionBuffer {
+			uint8_t comPacketID;
+			uint8_t versionMajor;
+			uint8_t versionMinor;
+			char hwName[sizeof(HW_NAME)];
+			char stm32UUID[12];
+			uint8_t pairing;
+			uint8_t testVersionNumber;
+			uint8_t hwType;
+			uint8_t null1;
+			uint8_t hasPhaseFilters;
+			enum QmlUI fullscreen;
+			uint8_t qmlUiFlags;
+		};
 
-		memcpy(send_buffer + ind, STM32_UUID_8, 12);
-		ind += 12;
-
-		// Add 1 to the UUID for the second motor, so that configuration backup and
-		// restore works.
-		if (mc_interface_get_motor_thread() == 2) {
-			send_buffer[ind - 1]++;
-		}
-
-		send_buffer[ind++] = app_get_configuration()->pairing_done;
-		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
-
-		send_buffer[ind++] = HW_TYPE_VESC;
-
-		send_buffer[ind++] = 0; // No custom config
-
+		struct SendVersionBuffer svb = {
+				.comPacketID = COMM_FW_VERSION,
+				.versionMajor = FW_VERSION_MAJOR,
+				.versionMinor = FW_VERSION_MINOR,
+				.pairing = app_get_configuration()->pairing_done,
+				.testVersionNumber = FW_TEST_VERSION_NUMBER,
+				.hwType = HW_TYPE_VESC,
+				.null1 = 0,
 #ifdef HW_HAS_PHASE_FILTERS
-		send_buffer[ind++] = 1;
+				.hasPhaseFilters = 1,
 #else
-		send_buffer[ind++] = 0;
+				.hasPhaseFilters = 0,
 #endif
-
 #ifdef QMLUI_SOURCE_HW
 #ifdef QMLUI_HW_FULLSCREEN
-		send_buffer[ind++] = 2;
+				.fullscreen = QML_UI_2,
 #else
-		send_buffer[ind++] = 1;
+				.fullscreen = QML_UI_1,
 #endif
 #else
-		send_buffer[ind++] = 0;
+				.fullscreen = QML_UI_0,
 #endif
+		};
+
+		// Copy the board's name to the buffer. (`snprintf()` guarantees a terminating null character.)
+		snprintf(svb.hwName, sizeof(svb.hwName), "%s", HW_NAME);
+
+		// Copy the board's UUID to the buffer
+		memcpy(svb.stm32UUID, STM32_UUID_8, sizeof(svb.stm32UUID));
+
+		// Add 1 to the UUID for the second motor, so that configuration backup and restore works.
+		if (mc_interface_get_motor_thread() == 2) {
+			svb.stm32UUID[11] += 1;
+		}
 
 #ifdef QMLUI_SOURCE_APP
 #ifdef QMLUI_APP_FULLSCREEN
-		send_buffer[ind++] = 2;
+		svb.qmlUiFlags = 2;
 #else
-		send_buffer[ind++] = 1;
+		svb.qmlUiFlags = 1;
 #endif
 #else
 		if (flash_helper_qmlui_data()) {
-			send_buffer[ind++] = flash_helper_qmlui_flags();
+			svb.qmlUiFlags = flash_helper_qmlui_flags();
 		} else {
-			send_buffer[ind++] = 0;
+			svb.qmlUiFlags = 0;
 		}
 #endif
 
 		fw_version_sent_cnt++;
 
-		reply_func(send_buffer, ind);
+		// Write the output buffer
+		reply_func((unsigned char *)&svb, sizeof(svb));
 	} break;
 
 	case COMM_JUMP_TO_BOOTLOADER_ALL_CAN:
