@@ -3,6 +3,8 @@
 # NOTE: Can be overridden externally.
 #
 
+USE_LISPBM=0
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99 -D_GNU_SOURCE
@@ -112,7 +114,11 @@ include imu/imu.mk
 include lora/lora.mk
 include lzo/lzo.mk
 include blackmagic/blackmagic.mk
-#include lispBM/lispbm.mk
+
+ifeq ($(USE_LISPBM),1)
+  include lispBM/lispbm.mk
+  USE_OPT += -DUSE_LISPBM
+endif
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -170,8 +176,11 @@ CSRC = $(STARTUPSRC) \
        $(LORASRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
-       qmlui/qmlui.c \
-       $(LISPBMSRC)
+       qmlui/qmlui.c
+       
+ifeq ($(USE_LISPBM),1)
+  CSRC += $(LISPBMSRC)
+endif
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -216,8 +225,11 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(BLACKMAGICINC) \
          qmlui \
          qmlui/hw \
-         qmlui/app \
-         $(LISPBMINC)
+         qmlui/app
+
+ifeq ($(USE_LISPBM),1)
+  INCDIR += $(LISPBMINC)
+endif
 
 ifdef app_custom_mkfile
 include $(app_custom_mkfile)

@@ -55,7 +55,10 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
-//#include "lispif.h"
+
+#ifdef USE_LISPBM
+#include "lispif.h"
+#endif
 
 /*
  * HW resources used:
@@ -304,7 +307,9 @@ int main(void) {
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
-//	lispif_init();
+#ifdef USE_LISPBM
+	lispif_init();
+#endif
 
 	m_init_done = true;
 
