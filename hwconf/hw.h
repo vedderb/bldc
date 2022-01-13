@@ -252,6 +252,13 @@
 #define CURRENT_FILTER_OFF()
 #endif
 
+#ifndef SENSOR_PORT_5V
+#define SENSOR_PORT_5V()
+#endif
+#ifndef SENSOR_PORT_3V3
+#define SENSOR_PORT_3V3()
+#endif
+
 // VCC net voltage
 #ifndef V_REG
 #define V_REG				3.3

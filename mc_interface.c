@@ -210,10 +210,12 @@ void mc_interface_init(void) {
 	// Initialize encoder
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
+		SENSOR_PORT_3V3();
 		encoder_init_abi(motor_now()->m_conf.m_encoder_counts);
 		break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI:
+		SENSOR_PORT_3V3();
 		encoder_init_as5047p_spi();
 		break;
 
@@ -247,6 +249,7 @@ void mc_interface_init(void) {
 	} break;
 
 	default:
+		SENSOR_PORT_5V();
 		break;
 	}
 
@@ -340,10 +343,12 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		encoder_deinit();
 		switch (configuration->m_sensor_port_mode) {
 		case SENSOR_PORT_MODE_ABI:
+			SENSOR_PORT_3V3();
 			encoder_init_abi(configuration->m_encoder_counts);
 			break;
 
 		case SENSOR_PORT_MODE_AS5047_SPI:
+			SENSOR_PORT_3V3();
 			encoder_init_as5047p_spi();
 			break;
 
@@ -378,6 +383,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		} break;
 
 		default:
+			SENSOR_PORT_5V();
 			break;
 		}
 	}
