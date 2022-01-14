@@ -1087,6 +1087,10 @@ static inline void cont_application(eval_context_t *ctx) {
         UINT ts = dec_u(fun_args[1]);
         stack_drop(&ctx->K, dec_u(count)+1);
         yield_ctx(ts);
+      } else if (type_of(fun_args[1]) == PTR_TYPE_BOXED_F) {
+        FLOAT ts = dec_f(fun_args[1]);
+        stack_drop(&ctx->K, dec_u(count)+1);
+        yield_ctx(ts);
       } else {
         ERROR
           error_ctx(enc_sym(SYM_EERROR));

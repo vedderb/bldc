@@ -67,14 +67,3 @@ bool extensions_add(char *sym_str, extension_fptr ext) {
   extensions = m;
   return true;
 }
-
-void extensions_del(void) {
-  uint32_t *curr = extensions;
-  uint32_t *t;
-  while (curr) {
-    t = curr;
-    curr = (uint32_t*)curr[NEXT];
-    free(t);
-  }
-  extensions = NULL;
-}

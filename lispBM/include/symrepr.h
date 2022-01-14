@@ -124,6 +124,7 @@
 #define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
 extern int symrepr_addsym(char *, UINT*);
+int symrepr_addsym_const(char *name, UINT* id);
 extern bool symrepr_init(void);
 extern int symrepr_lookup(char *, UINT*);
 extern const char* symrepr_lookup_name(UINT);

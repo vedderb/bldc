@@ -206,9 +206,9 @@ int symrepr_addsym(char *name, UINT* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)memory_allocate(n);
+    symbol_name_storage = (char *)memory_allocate(n / 4);
   } else {
-    symbol_name_storage = (char *)memory_allocate(n);
+    symbol_name_storage = (char *)memory_allocate(n / 4 + 1);
   }
 
   if (symbol_name_storage == NULL) {
