@@ -12,10 +12,10 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/compression.c \
             $(LISPBM)/src/extensions.c \
             $(LISPBM)/src/lispbm.c \
-            $(LISPBM)/src/ec_eval.c \
             $(LISPBM)/src/eval_cps.c \
             $(LISPBM)/platform/chibios/src/platform_mutex.c \
-			$(LISPBM)/lispif.c
+			$(LISPBM)/lispif.c \
+			$(LISPBM)/lispif_vesc_extensions.c
 
 LISPBMINC = lispBM \
             lispBM/include \

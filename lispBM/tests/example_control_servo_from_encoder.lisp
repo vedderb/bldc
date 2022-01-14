@@ -1,7 +1,7 @@
 (define f (lambda ()
    (progn
-     (define encval (enc-get)) ; So that lisp_stats shows the value
-     (servo-set (/ encval 360.0))
+     (define encval (get-encoder)) ; So that lisp_stats shows the value
+     (set-servo (/ (- 360.0 encval) 360.0))
      (yield 20000)
      (f)
 )))

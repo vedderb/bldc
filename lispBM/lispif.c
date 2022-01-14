@@ -22,19 +22,12 @@
 #include "commands.h"
 #include "terminal.h"
 #include "flash_helper.h"
-#include "mc_interface.h"
-#include "timeout.h"
-#include "servo_dec.h"
-#include "servo_simple.h"
-#include "encoder.h"
 
 #include "heap.h"
 #include "symrepr.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
-#include "prelude.h"
-#include "extensions.h"
 #include "lispbm_memory.h"
 #include "env.h"
 #include "lispbm.h"
@@ -63,78 +56,6 @@ static uint32_t timestamp_callback(void) {
 
 static void sleep_callback(uint32_t us) {
 	chThdSleepMicroseconds(us);
-}
-
-static VALUE ext_print(VALUE *args, UINT argn) {
-	static char output[256];
-
-	for (UINT i = 0; i < argn; i ++) {
-		VALUE t = args[i];
-
-		if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-			array_header_t *array = (array_header_t *)car(t);
-			switch (array->elt_type){
-			case VAL_TYPE_CHAR:
-				commands_printf("%s", (char*)array + 8);
-				break;
-			default:
-				return enc_sym(SYM_NIL);
-				break;
-			}
-		} else if (val_type(t) == VAL_TYPE_CHAR) {
-			if (dec_char(t) =='\n') {
-				commands_printf(" ");
-			} else {
-				commands_printf("%c", dec_char(t));
-			}
-		}  else {
-			print_value(output, 256, t);
-			commands_printf("%s", output);
-		}
-	}
-
-	return enc_sym(SYM_TRUE);
-}
-
-static VALUE ext_set_duty(VALUE *args, UINT argn) {
-	VALUE t = args[0];
-
-	if (argn != 1 || type_of(t) != PTR_TYPE_BOXED_F) {
-		return enc_sym(SYM_EERROR);
-	}
-
-	mc_interface_set_duty(dec_f(t));
-	return enc_sym(SYM_TRUE);
-}
-
-static VALUE ext_set_servo(VALUE *args, UINT argn) {
-	VALUE t = args[0];
-
-	if (argn != 1 || type_of(t) != PTR_TYPE_BOXED_F) {
-		return enc_sym(SYM_EERROR);
-	}
-
-	servo_simple_set_output(dec_f(t));
-	return enc_sym(SYM_TRUE);
-}
-
-static VALUE ext_reset_timeout(VALUE *args, UINT argn) {
-	(void)args;
-	(void)argn;
-	timeout_reset();
-	return enc_sym(SYM_TRUE);
-}
-
-static VALUE ext_get_ppm(VALUE *args, UINT argn) {
-	(void)args;
-	(void)argn;
-	return enc_F(servodec_get_servo(0));
-}
-
-static VALUE ext_get_encoder(VALUE *args, UINT argn) {
-	(void)args;
-	(void)argn;
-	return enc_F(encoder_read_deg());
 }
 
 static THD_FUNCTION(eval_thread, arg) {
@@ -173,12 +94,7 @@ static void terminal_start(int argc, const char **argv) {
 		}
 	}
 
-	extensions_add("print", ext_print);
-	extensions_add("set-duty", ext_set_duty);
-	extensions_add("servo-set", ext_set_servo);
-	extensions_add("reset-timeout", ext_reset_timeout);
-	extensions_add("ppm-val", ext_get_ppm);
-	extensions_add("enc-get", ext_get_encoder);
+	lispif_load_vesc_extensions();
 
 	VALUE t = tokpar_parse(code);
 
@@ -275,4 +191,3 @@ void lispif_init(void) {
 			0,
 			terminal_stats);
 }
-

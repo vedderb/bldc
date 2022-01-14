@@ -10,7 +10,7 @@
 (let ((f (lambda (x)
    (progn
      (set-duty x)
-     (reset-timeout)
+     (timeout-reset)
      
      (yield (/ 1000000 rate))
      

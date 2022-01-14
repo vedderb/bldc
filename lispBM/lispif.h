@@ -23,5 +23,6 @@
 
 // Functions
 void lispif_init(void);
+void lispif_load_vesc_extensions(void);
 
 #endif /* LISPBM_LISPIF_H_ */
