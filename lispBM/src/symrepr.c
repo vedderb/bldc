@@ -232,6 +232,30 @@ int symrepr_addsym(char *name, UINT* id) {
   return 1;
 }
 
+// Same as above, but assume that the name pointer stays valid
+int symrepr_addsym_const(char *name, UINT* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+
+  uint32_t *m = memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  m[NAME] = (uint32_t)name;
+
+  if (symlist == NULL) {
+    m[NEXT] = (uint32_t) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (uint32_t) symlist;
+    symlist = m;
+  }
+  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
 unsigned int symrepr_size(void) {
 
   unsigned int n = 0;

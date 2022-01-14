@@ -53,7 +53,7 @@ extension_fptr extensions_lookup(UINT sym) {
 
 bool extensions_add(char *sym_str, extension_fptr ext) {
   VALUE symbol;
-  int res = symrepr_addsym(sym_str, &symbol);
+  int res = symrepr_addsym_const(sym_str, &symbol);
 
   if (!res) return false;
 
