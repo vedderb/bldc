@@ -42,10 +42,12 @@ Item {
             
             Button {
                 Layout.fillWidth: true
-                text: "Read Log"
+                text: "Read and upload"
                 
                 onClicked: {
-                    mLogReader.openLogFile("example_ppm_read.lisp")
+                    mLogReader.openLogFile("example_duty.lisp")
+//                    mLogReader.openLogFile("example_ppm_read.lisp")
+//                    mLogReader.openLogFile("example_control_servo_from_encoder.lisp")
                     
                     mCommands.qmlUiErase()
                     if (Utility.waitSignal(mCommands, "2eraseQmluiResReceived(bool)", 4000)) {

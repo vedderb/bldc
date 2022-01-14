@@ -412,6 +412,7 @@ static void advance_ctx(void) {
   if (type_of(ctx_running->program) == PTR_TYPE_CONS) {
     push_u32(&ctx_running->K, enc_u(DONE));
     ctx_running->curr_exp = car(ctx_running->program);
+    ctx_running->curr_env = enc_sym(SYM_NIL);
     ctx_running->program = cdr(ctx_running->program);
     ctx_running->r = NIL;
     ctx_running->app_cont = false;

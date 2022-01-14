@@ -25,6 +25,8 @@
 #include "mc_interface.h"
 #include "timeout.h"
 #include "servo_dec.h"
+#include "servo_simple.h"
+#include "encoder.h"
 
 #include "heap.h"
 #include "symrepr.h"
@@ -36,6 +38,11 @@
 #include "lispbm_memory.h"
 #include "env.h"
 #include "lispbm.h"
+
+/*
+ * Observed issues:
+ * * Dividing an integer by a float causes eval_error
+ */
 
 #define HEAP_SIZE				1024
 #define LISP_MEM_SIZE			MEMORY_SIZE_4K
@@ -96,18 +103,24 @@ static VALUE ext_print(VALUE *args, UINT argn) {
 }
 
 static VALUE ext_set_duty(VALUE *args, UINT argn) {
-	if (argn != 1) {
-		return enc_sym(SYM_EERROR);
-	}
-
 	VALUE t = args[0];
 
-	if (type_of(t) == PTR_TYPE_BOXED_F) {
-		mc_interface_set_duty(dec_f(t));
-	} else {
+	if (argn != 1 || type_of(t) != PTR_TYPE_BOXED_F) {
 		return enc_sym(SYM_EERROR);
 	}
 
+	mc_interface_set_duty(dec_f(t));
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_set_servo(VALUE *args, UINT argn) {
+	VALUE t = args[0];
+
+	if (argn != 1 || type_of(t) != PTR_TYPE_BOXED_F) {
+		return enc_sym(SYM_EERROR);
+	}
+
+	servo_simple_set_output(dec_f(t));
 	return enc_sym(SYM_TRUE);
 }
 
@@ -122,6 +135,12 @@ static VALUE ext_get_ppm(VALUE *args, UINT argn) {
 	(void)args;
 	(void)argn;
 	return enc_F(servodec_get_servo(0));
+}
+
+static VALUE ext_get_encoder(VALUE *args, UINT argn) {
+	(void)args;
+	(void)argn;
+	return enc_F(encoder_read_deg());
 }
 
 static THD_FUNCTION(eval_thread, arg) {
@@ -162,8 +181,10 @@ static void terminal_start(int argc, const char **argv) {
 
 	extensions_add("print", ext_print);
 	extensions_add("set-duty", ext_set_duty);
+	extensions_add("servo-set", ext_set_servo);
 	extensions_add("reset-timeout", ext_reset_timeout);
 	extensions_add("ppm-val", ext_get_ppm);
+	extensions_add("enc-get", ext_get_encoder);
 
 	VALUE t = tokpar_parse(code);
 

@@ -1,14 +1,22 @@
-(define upcnt 1)
+;;; This program will ramp the duty cycle up and down according
+;;; to the parameters below.
+
+(define rate 50) ; Update rate in hz
+(define ramptime 3.0) ; Motor ramp time
+
+(define rampstep (/ 1.0 (* rate ramptime)))
+(define upcnt rampstep)
 
 (let ((f (lambda (x)
    (progn
-     (set-duty (* 0.001 x))
+     (set-duty x)
      (reset-timeout)
-     (yield 10000)
      
-     (if (> x 1000) (define upcnt (- 1)) nil)
-     (if (< x (- 1000)) (define upcnt 1) nil)
+     (yield (/ 1000000 rate))
      
-     (f (+ x upcnt))))))
-(f 0))
+     (if (> x 1.0) (define upcnt (- rampstep) nil))
+     (if (< x (- 1.0)) (define upcnt rampstep) nil)
+     
+     (f (+ x upcnt))
+)))) (f 0))
 
