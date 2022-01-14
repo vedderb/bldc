@@ -21,6 +21,6 @@
 #include <stdint.h>
 #include "lispbm_types.h"
 
-extern int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t);
+extern int print_value(char *buf,unsigned int len, VALUE t);
 
 #endif

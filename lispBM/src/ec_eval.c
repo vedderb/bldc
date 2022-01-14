@@ -74,8 +74,7 @@ typedef struct {
 
 register_machine_t rm_state;
 
-char str[1024];
-char err[1024];
+static char str[1024];
 
 static int gc(VALUE env,
        register_machine_t *rm) {
@@ -116,7 +115,7 @@ static inline void eval_variable(eval_state *es) {
   }
   if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
       dec_sym(rm_state.val) == SYM_NOT_FOUND) {
-    print_value(str, 1024, err, 1024, rm_state.exp);
+    print_value(str, 1024, rm_state.exp);
     rm_state.cont = enc_u(CONT_ERROR);
   }
   *es = EVAL_CONTINUATION;
@@ -376,7 +375,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
   else {
     rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(SYM_EERROR);
-    print_value(str,1024,err,1024, rm_state.fun);
+    print_value(str,1024, rm_state.fun);
     *es = EVAL_CONTINUATION;
   }
 }

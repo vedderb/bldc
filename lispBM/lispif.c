@@ -41,7 +41,7 @@
 
 /*
  * Observed issues:
- * * Dividing an integer by a float causes eval_error
+ * * [Fixed] Dividing an integer by a float causes eval_error
  */
 
 #define HEAP_SIZE				1024
@@ -67,7 +67,6 @@ static void sleep_callback(uint32_t us) {
 
 static VALUE ext_print(VALUE *args, UINT argn) {
 	static char output[256];
-	static char error[256];
 
 	for (UINT i = 0; i < argn; i ++) {
 		VALUE t = args[i];
@@ -89,13 +88,8 @@ static VALUE ext_print(VALUE *args, UINT argn) {
 				commands_printf("%c", dec_char(t));
 			}
 		}  else {
-			int print_ret = print_value(output, 256, error, 256, t);
-
-			if (print_ret >= 0) {
-				commands_printf("%s", output);
-			} else {
-				commands_printf("%s", error);
-			}
+			print_value(output, 256, t);
+			commands_printf("%s", output);
 		}
 	}
 
@@ -205,13 +199,10 @@ static void terminal_stop(int argc, const char **argv) {
 }
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
-  (void)arg2;
-
-  char outbuf[256];
-  char error[256];
-
-  int print_ret = print_value(outbuf, 256, error, 256, ctx->r);
-  commands_printf("%s %x %u %u %s", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );
+	(void)arg2;
+	char outbuf[256];
+	print_value(outbuf, 256, ctx->r);
+	commands_printf("%s %x %u %u %s", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf );
 }
 
 
@@ -220,7 +211,6 @@ static void terminal_stats(int argc, const char **argv) {
 	(void)argv;
 
 	char outbuf[256];
-	char error[256];
 
 	heap_state_t heap_state;
 
@@ -249,16 +239,11 @@ static void terminal_stats(int argc, const char **argv) {
 
 	VALUE curr = *env_get_global_ptr();
 	commands_printf("Environment:");
-	int res = 0;
-	while (type_of(curr) == PTR_TYPE_CONS) {
-		res = print_value(outbuf, 256, error, 256, car(curr));
-	    curr = cdr(curr);
 
-	    if (res >= 0) {
-	    	commands_printf("  %s", outbuf);
-	    } else {
-	    	commands_printf("  %s",error);
-	    }
+	while (type_of(curr) == PTR_TYPE_CONS) {
+		print_value(outbuf, 256, car(curr));
+	    curr = cdr(curr);
+	    commands_printf("  %s", outbuf);
     }
 
 	commands_printf("Runnable:");
