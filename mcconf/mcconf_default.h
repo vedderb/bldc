@@ -394,6 +394,18 @@
 #ifndef MCCONF_FOC_HFI_SAMPLES
 #define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
 #endif
+#ifndef MCCONF_FOC_PRBS_VOLTAGE
+#define MCCONF_FOC_PRBS_VOLTAGE  		3  //
+#endif
+#ifndef MCCONF_FOC_PRBS_CURRENT
+#define MCCONF_FOC_PRBS_CURRENT  		1  //
+#endif
+#ifndef MCCONF_FOC_PRBS_CHANNEL
+#define MCCONF_FOC_PRBS_CHANNEL			PRBS_CHANNEL_D  //
+#endif
+#ifndef MCCONF_FOC_PRBS_MODE
+#define MCCONF_FOC_PRBS_MODE				PRBS_MODE_OFF  //
+#endif
 #ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
 #define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	true // Measure offsets every boot
 #endif

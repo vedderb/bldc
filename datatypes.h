@@ -234,6 +234,18 @@ typedef enum {
 } foc_hfi_samples;
 
 typedef enum {
+   PRBS_CHANNEL_D = 0,
+   PRBS_CHANNEL_Q,
+   PRBS_CHANNEL_DQ,
+} foc_prbs_channel_enum;
+
+typedef enum {
+   PRBS_MODE_OFF = 0,
+   PRBS_MODE_CURRRENT,
+   PRBS_MODE_VOLTAGE,
+} foc_prbs_mode_enum;
+
+typedef enum {
 	BMS_TYPE_NONE = 0,
 	BMS_TYPE_VESC
 } BMS_TYPE;
@@ -416,6 +428,12 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
+
+	float foc_prbs_voltage;
+	float foc_prbs_current;
+	foc_prbs_channel_enum foc_prbs_channel;
+	foc_prbs_mode_enum foc_prbs_mode;
+
 	bool foc_offsets_cal_on_boot;
 	float foc_offsets_current[3];
 	float foc_offsets_voltage[3];
