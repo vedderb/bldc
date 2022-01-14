@@ -218,7 +218,7 @@ static UINT div2(UINT a, UINT b) {
   } else if (is_number_type(a) && is_number_type(b)) {
     FLOAT f0 = dec_any_as_f(a);
     FLOAT f1 = dec_any_as_f(b);
-    if (f0 == 0.0 || f0 == -0.0) {
+    if (f0 == 0.0) {
       retval = enc_sym(SYM_DIVZERO);
     } else {
       retval = enc_F(f0 / f1);
