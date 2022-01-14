@@ -190,8 +190,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_MASK               0xFC000000u
 
 #define PTR_TYPE_CONS               0x10000000u
-#define PTR_TYPE_BOXED_I            0x20000000u
-#define PTR_TYPE_BOXED_U            0x30000000u
+#define PTR_TYPE_BOXED_U            0x20000000u
+#define PTR_TYPE_BOXED_I            0x30000000u
 #define PTR_TYPE_BOXED_F            0x40000000u
 #define PTR_TYPE_SYMBOL_INDIRECTION 0x50000000u
 
@@ -208,8 +208,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
                                                 //    gc ptr
 #define VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
 #define VAL_TYPE_CHAR               0x00000004u // 01  0   0
-#define VAL_TYPE_I                  0x00000008u // 10  0   0
-#define VAL_TYPE_U                  0x0000000Cu // 11  0   0
+#define VAL_TYPE_U                  0x00000008u // 10  0   0
+#define VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
 #define MAX_CONSTANTS               256
 
@@ -246,8 +246,6 @@ extern unsigned int heap_num_allocated(void);
 extern unsigned int heap_size(void);
 extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
-
-extern FLOAT dec_any_as_f(VALUE x);
 
 extern VALUE cons(VALUE car, VALUE cdr);
 extern VALUE car(VALUE cons);

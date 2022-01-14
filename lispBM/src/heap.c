@@ -189,20 +189,6 @@ unsigned int heap_size_bytes(void) {
   return heap_state.heap_bytes;
 }
 
-FLOAT dec_any_as_f(VALUE x) {
-  FLOAT res = 0.0;
-
-  switch (type_of(x)) {
-  case VAL_TYPE_I: res = dec_i(x); break;
-  case VAL_TYPE_U: res = dec_u(x); break;
-  case PTR_TYPE_BOXED_U: res = dec_U(x); break;
-  case PTR_TYPE_BOXED_I: res = dec_I(x); break;
-  case PTR_TYPE_BOXED_F: res = dec_f(x); break;
-  }
-
-  return res;
-}
-
 void heap_get_state(heap_state_t *res) {
   res->heap                = heap_state.heap;
   res->malloced            = heap_state.malloced;
