@@ -31,6 +31,7 @@
 #include "comm_can.h"
 #include "bms.h"
 #include "utils.h"
+#include "hw.h"
 
 #include <math.h>
 
@@ -39,27 +40,9 @@
 static bool to_float(VALUE t, float *f) {
 	bool res = false;
 
-	switch (type_of(t)) {
-	case VAL_TYPE_I:
-		*f = dec_i(t);
+	if (is_number(t)) {
+		*f = dec_as_f(t);
 		res = true;
-		break;
-	case VAL_TYPE_U:
-		*f = dec_u(t);
-		res = true;
-		break;
-	case PTR_TYPE_BOXED_U:
-		*f = dec_U(t);
-		res = true;
-		break;
-	case PTR_TYPE_BOXED_I:
-		*f = dec_I(t);
-		res = true;
-		break;
-	case PTR_TYPE_BOXED_F:
-		*f = dec_F(t);
-		res = true;
-		break;
 	}
 
 	return res;
@@ -147,21 +130,6 @@ static VALUE ext_select_motor(VALUE *args, UINT argn) {
 static VALUE ext_get_selected_motor(VALUE *args, UINT argn) {
 	(void)args; (void)argn;
 	return enc_i(mc_interface_motor_now());
-}
-
-static VALUE ext_get_bms_all(VALUE *args, UINT argn) {
-	(void)args; (void)argn;
-
-	bms_values *val = bms_get_values();
-
-	VALUE res = enc_sym(SYM_NIL);
-	res = cons(enc_F(val->v_tot), res);
-	res = cons(enc_F(val->v_charge), res);
-	res = cons(enc_F(val->i_in_ic), res);
-
-	// TODO: This is incomplete
-
-	return res;
 }
 
 static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
@@ -258,6 +226,27 @@ static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
 	}
 
 	return res;
+}
+
+static VALUE ext_get_adc(VALUE *args, UINT argn) {
+	if (argn == 0) {
+		return enc_F(ADC_VOLTS(ADC_IND_EXT));
+	} else if (argn == 1) {
+		if (is_number(args[0])) {
+			INT channel = dec_as_i(args[0]);
+			if (channel == 0) {
+				return enc_F(ADC_VOLTS(ADC_IND_EXT));
+			} else if (channel == 1) {
+				return enc_F(ADC_VOLTS(ADC_IND_EXT2));
+			} else {
+				return enc_sym(SYM_EERROR);
+			}
+		} else {
+			return enc_sym(SYM_EERROR);
+		}
+	} else {
+		return enc_sym(SYM_EERROR);
+	}
 }
 
 // Motor set commands
@@ -383,8 +372,8 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("get-vin", ext_get_vin);
 	extensions_add("select-motor", ext_select_motor);
 	extensions_add("get-selected-motor", ext_get_selected_motor);
-	extensions_add("get-bms-all", ext_get_bms_all);
 	extensions_add("get-bms-val", ext_get_bms_val);
+	extensions_add("get-adc", ext_get_adc);
 
 	// Motor set commands
 	extensions_add("set-current", ext_set_current);
