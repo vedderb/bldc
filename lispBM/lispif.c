@@ -70,7 +70,6 @@ static void terminal_start(int argc, const char **argv) {
 	(void)argv;
 
 	char *code = (char*)(0x08060000);
-	commands_printf(code);
 
 	if (!lisp_thd_running) {
 		lispbm_init(heap, HEAP_SIZE, memory_array, LISP_MEM_SIZE, bitmap_array, LISP_MEM_BITMAP_SIZE);
@@ -101,7 +100,7 @@ static void terminal_start(int argc, const char **argv) {
 	eval_cps_program(t);
 	eval_cps_continue_eval();
 
-	commands_printf("done");
+	commands_printf("Lisp started");
 }
 
 static void terminal_stop(int argc, const char **argv) {

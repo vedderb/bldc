@@ -28,50 +28,62 @@
 #include "servo_dec.h"
 #include "servo_simple.h"
 #include "encoder.h"
+#include "comm_can.h"
+#include "bms.h"
+#include "utils.h"
 
 #include <math.h>
 
 // Helpers
 
-static bool get_arg_float(VALUE *args, UINT argn, float *f) {
-	VALUE t = args[0];
+static bool to_float(VALUE t, float *f) {
 	bool res = false;
-
-	if (argn != 1) {
-		return false;
-	}
 
 	switch (type_of(t)) {
 	case VAL_TYPE_I:
 		*f = dec_i(t);
 		res = true;
 		break;
-
 	case VAL_TYPE_U:
 		*f = dec_u(t);
 		res = true;
 		break;
-
 	case PTR_TYPE_BOXED_U:
 		*f = dec_U(t);
 		res = true;
 		break;
-
 	case PTR_TYPE_BOXED_I:
 		*f = dec_I(t);
 		res = true;
 		break;
-
 	case PTR_TYPE_BOXED_F:
 		*f = dec_f(t);
 		res = true;
 		break;
-
-	default:
-		break;
 	}
 
 	return res;
+}
+
+char *dec_str(VALUE val) {
+	char *res = 0;
+
+	if (type_of(val) == PTR_TYPE_ARRAY) {
+		array_header_t *array = (array_header_t *)car(val);
+
+		if (array->elt_type == VAL_TYPE_CHAR) {
+			res = (char *)array + 8;
+		}
+	}
+
+	return res;
+}
+
+static bool get_arg_float(VALUE *args, UINT argn, float *f) {
+	if (argn != 1) {
+		return false;
+	}
+	return to_float(args[0], f);
 }
 
 #define DEC_FLOAT()	float f; if (!get_arg_float(args, argn, &f)) {return enc_sym(SYM_EERROR);};
@@ -144,6 +156,122 @@ static VALUE ext_select_motor(VALUE *args, UINT argn) {
 	}
 	mc_interface_select_motor_thread(i);
 	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_get_selected_motor(VALUE *args, UINT argn) {
+	(void)args; (void)argn;
+	return enc_i(mc_interface_motor_now());
+}
+
+static VALUE ext_get_bms_all(VALUE *args, UINT argn) {
+	(void)args; (void)argn;
+
+	bms_values *val = bms_get_values();
+
+	VALUE res = enc_sym(SYM_NIL);
+	res = cons(enc_F(val->v_tot), res);
+	res = cons(enc_F(val->v_charge), res);
+	res = cons(enc_F(val->i_in_ic), res);
+
+	// TODO: This is incomplete
+
+	return res;
+}
+
+static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
+	VALUE res = enc_sym(SYM_EERROR);
+
+	if (argn != 1 && argn != 2) {
+		return enc_sym(SYM_EERROR);
+	}
+
+	char *name = dec_str(args[0]);
+
+	if (!name) {
+		return enc_sym(SYM_EERROR);
+	}
+
+	bms_values *val = bms_get_values();
+
+	if (strcmp(name, "v_tot") == 0) {
+		res = enc_F(val->v_tot);
+	} else if (strcmp(name, "v_charge") == 0) {
+		res = enc_F(val->v_charge);
+	} else if (strcmp(name, "i_in") == 0) {
+		res = enc_F(val->i_in);
+	} else if (strcmp(name, "i_in_ic") == 0) {
+		res = enc_F(val->i_in_ic);
+	} else if (strcmp(name, "ah_cnt") == 0) {
+		res = enc_F(val->ah_cnt);
+	} else if (strcmp(name, "wh_cnt") == 0) {
+		res = enc_F(val->wh_cnt);
+	} else if (strcmp(name, "cell_num") == 0) {
+		res = enc_i(val->cell_num);
+	} else if (strcmp(name, "v_cell") == 0) {
+		float f;
+		if (argn != 2 || !to_float(args[1], &f)) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		int c = roundf(f);
+		if (c < 0 || c >= val->cell_num) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		res = enc_F(val->v_cell[c]);
+	} else if (strcmp(name, "bal_state") == 0) {
+		float f;
+		if (argn != 2 || !to_float(args[1], &f)) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		int c = roundf(f);
+		if (c < 0 || c >= val->cell_num) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		res = enc_i(val->bal_state[c]);
+	} else if (strcmp(name, "temp_adc_num") == 0) {
+		res = enc_i(val->temp_adc_num);
+	} else if (strcmp(name, "temps_adc") == 0) {
+		float f;
+		if (argn != 2 || !to_float(args[1], &f)) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		int c = roundf(f);
+		if (c < 0 || c >= val->temp_adc_num) {
+			return enc_sym(SYM_EERROR);
+		}
+
+		res = enc_F(val->temps_adc[c]);
+	} else if (strcmp(name, "temp_ic") == 0) {
+		res = enc_F(val->temp_ic);
+	} else if (strcmp(name, "temp_hum") == 0) {
+		res = enc_F(val->temp_hum);
+	} else if (strcmp(name, "hum") == 0) {
+		res = enc_F(val->hum);
+	} else if (strcmp(name, "temp_max_cell") == 0) {
+		res = enc_F(val->temp_max_cell);
+	} else if (strcmp(name, "soc") == 0) {
+		res = enc_F(val->soc);
+	} else if (strcmp(name, "soh") == 0) {
+		res = enc_F(val->soh);
+	} else if (strcmp(name, "can_id") == 0) {
+		res = enc_i(val->can_id);
+	} else if (strcmp(name, "ah_cnt_chg_total") == 0) {
+		res = enc_F(val->ah_cnt_chg_total);
+	} else if (strcmp(name, "wh_cnt_chg_total") == 0) {
+		res = enc_F(val->wh_cnt_chg_total);
+	} else if (strcmp(name, "ah_cnt_dis_total") == 0) {
+		res = enc_F(val->ah_cnt_dis_total);
+	} else if (strcmp(name, "wh_cnt_dis_total") == 0) {
+		res = enc_F(val->wh_cnt_dis_total);
+	} else if (strcmp(name, "msg_age") == 0) {
+		res = enc_F(UTILS_AGE_S(val->update_time));
+	}
+
+	return res;
 }
 
 // Motor set commands
@@ -229,12 +357,12 @@ static VALUE ext_get_rpm(VALUE *args, UINT argn) {
 	return enc_F(mc_interface_get_rpm());
 }
 
-static VALUE ext_get_tfet(VALUE *args, UINT argn) {
+static VALUE ext_get_temp_fet(VALUE *args, UINT argn) {
 	(void)args; (void)argn;
 	return enc_F(mc_interface_temp_fet_filtered());
 }
 
-static VALUE ext_get_tmot(VALUE *args, UINT argn) {
+static VALUE ext_get_temp_mot(VALUE *args, UINT argn) {
 	(void)args; (void)argn;
 	return enc_F(mc_interface_temp_motor_filtered());
 }
@@ -259,6 +387,29 @@ static VALUE ext_get_fault(VALUE *args, UINT argn) {
 	return enc_i(mc_interface_get_fault());
 }
 
+// Helper functions in lisp
+
+static VALUE ext_range(VALUE *args, UINT argn) {
+	if (argn != 2 || type_of(args[0]) != VAL_TYPE_I || type_of(args[1]) != VAL_TYPE_I) {
+		return enc_sym(SYM_EERROR);
+	}
+
+	INT start = dec_i(args[0]);
+	INT end = dec_i(args[1]);
+
+	if (start > end || (end - start) > 100) {
+		return enc_sym(SYM_EERROR);
+	}
+
+	VALUE res = enc_sym(SYM_NIL);
+
+	for (INT i = end;i >= start;i--) {
+		res = cons(enc_i(i), res);
+	}
+
+	return res;
+}
+
 void lispif_load_vesc_extensions(void) {
 	// Various commands
 	extensions_add("print", ext_print);
@@ -268,6 +419,9 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("set-servo", ext_set_servo);
 	extensions_add("get-vin", ext_get_vin);
 	extensions_add("select-motor", ext_select_motor);
+	extensions_add("get-selected-motor", ext_get_selected_motor);
+	extensions_add("get-bms-all", ext_get_bms_all);
+	extensions_add("get-bms-val", ext_get_bms_val);
 
 	// Motor set commands
 	extensions_add("set-current", ext_set_current);
@@ -286,10 +440,13 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("get-current-in", ext_get_current_in);
 	extensions_add("get-duty", ext_get_duty);
 	extensions_add("get-rpm", ext_get_rpm);
-	extensions_add("get-tfet", ext_get_tfet);
-	extensions_add("get-tmot", ext_get_tmot);
+	extensions_add("get-temp-fet", ext_get_temp_fet);
+	extensions_add("get-temp-mot", ext_get_temp_mot);
 	extensions_add("get-speed", ext_get_speed);
 	extensions_add("get-dist", ext_get_dist);
 	extensions_add("get-batt", ext_get_batt);
 	extensions_add("get-fault", ext_get_fault);
+
+	// Helper functions in lisp
+	extensions_add("range", ext_range);
 }
