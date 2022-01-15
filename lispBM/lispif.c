@@ -35,6 +35,7 @@
 /*
  * Observed issues:
  * * [Fixed] Dividing an integer by a float causes eval_error
+ * * extern keyword should be removed for functions as is makes no difference
  */
 
 #define HEAP_SIZE				1024

@@ -4,6 +4,17 @@
     (if (= xs nil)
 	nil
   (cons (f (car xs)) (map f (cdr xs))))))
+  
+(define iota (lambda (n)
+  (let ((iacc (lambda (acc i)
+          (if (< i 0)
+          acc
+            (iacc (cons i acc) (- i 1))))))
+  (iacc nil n))))
+
+(define range (lambda (start end)
+   (map (lambda (x) (+ x start)) (iota (- end start))
+)))
 
 (let ((f (lambda ()
    (progn

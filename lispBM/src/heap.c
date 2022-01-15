@@ -1,5 +1,6 @@
 /*
-    Copyright 2018, 2020 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022 Joel Svensson  svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,6 +33,83 @@ static heap_state_t heap_state;
 
 static VALUE        NIL;
 static VALUE        RECOVERED;
+
+char *dec_str(VALUE val) {
+  char *res = 0;
+
+  if (type_of(val) == PTR_TYPE_ARRAY) {
+    array_header_t *array = (array_header_t *)car(val);
+
+    if (array->elt_type == VAL_TYPE_CHAR) {
+      res = (char *)array + 8;
+    }
+  }
+  return res;
+}
+
+
+UINT dec_as_u(VALUE a) {
+  UINT tmp;
+  FLOAT f_tmp;
+
+  switch (type_of(a)) {
+  case VAL_TYPE_I:
+    return (UINT) dec_i(a);
+  case VAL_TYPE_U:
+    return dec_u(a);
+  case PTR_TYPE_BOXED_I: /* fall through */
+  case PTR_TYPE_BOXED_U:
+    return (UINT)car(a);
+  case PTR_TYPE_BOXED_F:
+    tmp = car(a);
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    return (UINT)f_tmp;
+  }
+  return 0;
+}
+
+INT dec_as_i(VALUE a) {
+
+  UINT tmp;
+  FLOAT f_tmp;
+
+  switch (type_of(a)) {
+  case VAL_TYPE_I:
+    return dec_i(a);
+  case VAL_TYPE_U:
+    return (INT) dec_u(a);
+  case PTR_TYPE_BOXED_I:
+  case PTR_TYPE_BOXED_U:
+    return (INT)car(a);
+  case PTR_TYPE_BOXED_F:
+    tmp = car(a);
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    return (INT)f_tmp;
+  }
+  return 0;
+}
+
+FLOAT dec_as_f(VALUE a) {
+
+  UINT tmp;
+  FLOAT f_tmp;
+
+  switch (type_of(a)) {
+  case VAL_TYPE_I:
+    return (FLOAT) dec_i(a);
+  case VAL_TYPE_U:
+    return (FLOAT)dec_u(a);
+  case PTR_TYPE_BOXED_I:
+  case PTR_TYPE_BOXED_U:
+    return (FLOAT)car(a);
+  case PTR_TYPE_BOXED_F:
+    tmp = car(a);
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    return f_tmp;
+  }
+  return 0;
+}
+
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set

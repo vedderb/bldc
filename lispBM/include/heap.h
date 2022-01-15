@@ -208,8 +208,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
                                                 //    gc ptr
 #define VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
 #define VAL_TYPE_CHAR               0x00000004u // 01  0   0
-#define VAL_TYPE_U                  0x00000008u // 10  0   0
-#define VAL_TYPE_I                  0x0000000Cu // 11  0   0
+#define VAL_TYPE_U                  0x00000008u // 11  0   0
+#define VAL_TYPE_I                  0x0000000Cu // 10  0   0
 
 #define MAX_CONSTANTS               256
 
@@ -246,6 +246,11 @@ extern unsigned int heap_num_allocated(void);
 extern unsigned int heap_size(void);
 extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
+
+extern char *dec_str(VALUE);
+extern UINT dec_as_u(VALUE);
+extern INT dec_as_i(VALUE);
+extern FLOAT dec_as_f(VALUE);
 
 extern VALUE cons(VALUE car, VALUE cdr);
 extern VALUE car(VALUE cons);
@@ -360,7 +365,7 @@ static inline UINT dec_sym(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
-static inline FLOAT dec_f(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
+static inline FLOAT dec_F(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
   FLOAT f_tmp;
   UINT tmp = car(x);
   memcpy(&f_tmp, &tmp, sizeof(FLOAT));
@@ -442,5 +447,4 @@ static inline bool is_symbol_eval(VALUE exp) {
 static inline bool is_symbol_merror(VALUE exp) {
   return (is_symbol(exp) && dec_sym(exp) == SYM_MERROR);
 }
-
 #endif

@@ -57,23 +57,9 @@ static bool to_float(VALUE t, float *f) {
 		res = true;
 		break;
 	case PTR_TYPE_BOXED_F:
-		*f = dec_f(t);
+		*f = dec_F(t);
 		res = true;
 		break;
-	}
-
-	return res;
-}
-
-char *dec_str(VALUE val) {
-	char *res = 0;
-
-	if (type_of(val) == PTR_TYPE_ARRAY) {
-		array_header_t *array = (array_header_t *)car(val);
-
-		if (array->elt_type == VAL_TYPE_CHAR) {
-			res = (char *)array + 8;
-		}
 	}
 
 	return res;
@@ -387,29 +373,6 @@ static VALUE ext_get_fault(VALUE *args, UINT argn) {
 	return enc_i(mc_interface_get_fault());
 }
 
-// Helper functions in lisp
-
-static VALUE ext_range(VALUE *args, UINT argn) {
-	if (argn != 2 || type_of(args[0]) != VAL_TYPE_I || type_of(args[1]) != VAL_TYPE_I) {
-		return enc_sym(SYM_EERROR);
-	}
-
-	INT start = dec_i(args[0]);
-	INT end = dec_i(args[1]);
-
-	if (start > end || (end - start) > 100) {
-		return enc_sym(SYM_EERROR);
-	}
-
-	VALUE res = enc_sym(SYM_NIL);
-
-	for (INT i = end;i >= start;i--) {
-		res = cons(enc_i(i), res);
-	}
-
-	return res;
-}
-
 void lispif_load_vesc_extensions(void) {
 	// Various commands
 	extensions_add("print", ext_print);
@@ -446,7 +409,4 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("get-dist", ext_get_dist);
 	extensions_add("get-batt", ext_get_batt);
 	extensions_add("get-fault", ext_get_fault);
-
-	// Helper functions in lisp
-	extensions_add("range", ext_range);
 }
