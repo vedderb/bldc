@@ -119,6 +119,7 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 	char outbuf[256];
 	print_value(outbuf, 256, ctx->r);
 	commands_printf("%s %x %u %u %s", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf );
+	commands_printf("Stack SP max: %u (Limit: 256)\n", ctx->K.max_sp);
 }
 
 

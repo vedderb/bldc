@@ -27,6 +27,7 @@ typedef struct {
   UINT* data;
   unsigned int sp;
   unsigned int size;
+  unsigned int max_sp;
   bool growable;
 } stack;
 
