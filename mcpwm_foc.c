@@ -226,15 +226,15 @@ static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor);
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 1024);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
 static volatile bool timer_thd_stop;
 
-static THD_WORKING_AREA(hfi_thread_wa, 1024);
+static THD_WORKING_AREA(hfi_thread_wa, 512);
 static THD_FUNCTION(hfi_thread, arg);
 static volatile bool hfi_thd_stop;
 
-static THD_WORKING_AREA(pid_thread_wa, 512);
+static THD_WORKING_AREA(pid_thread_wa, 256);
 static THD_FUNCTION(pid_thread, arg);
 static volatile bool pid_thd_stop;
 

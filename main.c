@@ -80,7 +80,7 @@
  */
 
 // Private variables
-static THD_WORKING_AREA(periodic_thread_wa, 512);
+static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 static bool m_init_done = false;

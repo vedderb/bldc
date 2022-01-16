@@ -39,7 +39,7 @@
 
 // Variables
 static THD_WORKING_AREA(rx_thread_wa, 2048);
-static THD_WORKING_AREA(tx_thread_wa, 512);
+static THD_WORKING_AREA(tx_thread_wa, 256);
 static mote_state mstate;
 static uint8_t rx_buffer[RX_BUFFER_SIZE];
 static int nosend_cnt;

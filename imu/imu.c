@@ -37,7 +37,7 @@
 static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
-static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
+static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
 static spi_bb_state m_spi_bb;
 static ICM20948_STATE m_icm20948_state;

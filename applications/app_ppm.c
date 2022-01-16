@@ -35,7 +35,7 @@
 
 // Threads
 static THD_FUNCTION(ppm_thread, arg);
-static THD_WORKING_AREA(ppm_thread_wa, 1536);
+static THD_WORKING_AREA(ppm_thread_wa, 512);
 static thread_t *ppm_tp;
 static volatile bool ppm_rx = false;
 

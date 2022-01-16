@@ -132,7 +132,7 @@ static volatile motor_if_state_t *motor_now(void);
 static void(*pwn_done_func)(void) = 0;
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 1024);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
 static THD_WORKING_AREA(sample_send_thread_wa, 512);
 static THD_FUNCTION(sample_send_thread, arg);

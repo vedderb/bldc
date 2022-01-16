@@ -80,7 +80,7 @@ typedef enum {
 
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
-static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
+static THD_WORKING_AREA(balance_thread_wa, 1024); // 2kb stack for this thread
 
 static thread_t *app_thread;
 

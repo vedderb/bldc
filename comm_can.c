@@ -45,8 +45,8 @@
 
 #if CAN_ENABLE
 // Threads
-static THD_WORKING_AREA(cancom_read_thread_wa, 512);
-static THD_WORKING_AREA(cancom_process_thread_wa, 4096);
+static THD_WORKING_AREA(cancom_read_thread_wa, 256);
+static THD_WORKING_AREA(cancom_process_thread_wa, 2048);
 static THD_WORKING_AREA(cancom_status_thread_wa, 512);
 static THD_FUNCTION(cancom_read_thread, arg);
 static THD_FUNCTION(cancom_status_thread, arg);
