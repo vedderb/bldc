@@ -37,25 +37,18 @@
 
 // Helpers
 
-static bool to_float(VALUE t, float *f) {
-	bool res = false;
-
-	if (is_number(t)) {
-		*f = dec_as_f(t);
-		res = true;
+static bool is_number_all(VALUE *args, UINT argn) {
+	for (UINT i = 0;i < argn;i++) {
+		if (!is_number(args[i])) {
+			return false;
+		}
 	}
-
-	return res;
+	return true;
 }
 
-static bool get_arg_float(VALUE *args, UINT argn, float *f) {
-	if (argn != 1) {
-		return false;
-	}
-	return to_float(args[0], f);
-}
-
-#define DEC_FLOAT()	float f; if (!get_arg_float(args, argn, &f)) {return enc_sym(SYM_EERROR);};
+#define CHECK_NUMBER_ALL()			if (!is_number_all(args, argn)) {return enc_sym(SYM_EERROR);}
+#define CHECK_ARGN(n)				if (argn != n) {return enc_sym(SYM_EERROR);}
+#define CHECK_ARGN_NUMBER(n)		if (argn != n || !is_number_all(args, argn)) {return enc_sym(SYM_EERROR);}
 
 // Various commands
 
@@ -91,8 +84,8 @@ static VALUE ext_print(VALUE *args, UINT argn) {
 }
 
 static VALUE ext_set_servo(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	servo_simple_set_output(f);
+	CHECK_ARGN_NUMBER(1);
+	servo_simple_set_output(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
@@ -118,8 +111,8 @@ static VALUE ext_get_vin(VALUE *args, UINT argn) {
 }
 
 static VALUE ext_select_motor(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	int i = roundf(f);
+	CHECK_ARGN_NUMBER(1);
+	int i = dec_as_i(args[0]);
 	if (i != 0 && i != 1 && i != 2) {
 		return enc_sym(SYM_EERROR);
 	}
@@ -162,24 +155,22 @@ static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
 	} else if (strcmp(name, "cell_num") == 0) {
 		res = enc_i(val->cell_num);
 	} else if (strcmp(name, "v_cell") == 0) {
-		float f;
-		if (argn != 2 || !to_float(args[1], &f)) {
+		if (argn != 2 || !is_number(args[1])) {
 			return enc_sym(SYM_EERROR);
 		}
 
-		int c = roundf(f);
+		int c = dec_as_i(args[1]);
 		if (c < 0 || c >= val->cell_num) {
 			return enc_sym(SYM_EERROR);
 		}
 
 		res = enc_F(val->v_cell[c]);
 	} else if (strcmp(name, "bal_state") == 0) {
-		float f;
-		if (argn != 2 || !to_float(args[1], &f)) {
+		if (argn != 2 || !is_number(args[1])) {
 			return enc_sym(SYM_EERROR);
 		}
 
-		int c = roundf(f);
+		int c = dec_as_i(args[1]);
 		if (c < 0 || c >= val->cell_num) {
 			return enc_sym(SYM_EERROR);
 		}
@@ -188,12 +179,11 @@ static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
 	} else if (strcmp(name, "temp_adc_num") == 0) {
 		res = enc_i(val->temp_adc_num);
 	} else if (strcmp(name, "temps_adc") == 0) {
-		float f;
-		if (argn != 2 || !to_float(args[1], &f)) {
+		if (argn != 2 || !is_number(args[1])) {
 			return enc_sym(SYM_EERROR);
 		}
 
-		int c = roundf(f);
+		int c = dec_as_i(args[1]);
 		if (c < 0 || c >= val->temp_adc_num) {
 			return enc_sym(SYM_EERROR);
 		}
@@ -229,18 +219,16 @@ static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
 }
 
 static VALUE ext_get_adc(VALUE *args, UINT argn) {
+	CHECK_NUMBER_ALL();
+
 	if (argn == 0) {
 		return enc_F(ADC_VOLTS(ADC_IND_EXT));
 	} else if (argn == 1) {
-		if (is_number(args[0])) {
-			INT channel = dec_as_i(args[0]);
-			if (channel == 0) {
-				return enc_F(ADC_VOLTS(ADC_IND_EXT));
-			} else if (channel == 1) {
-				return enc_F(ADC_VOLTS(ADC_IND_EXT2));
-			} else {
-				return enc_sym(SYM_EERROR);
-			}
+		INT channel = dec_as_i(args[0]);
+		if (channel == 0) {
+			return enc_F(ADC_VOLTS(ADC_IND_EXT));
+		} else if (channel == 1) {
+			return enc_F(ADC_VOLTS(ADC_IND_EXT2));
 		} else {
 			return enc_sym(SYM_EERROR);
 		}
@@ -252,56 +240,56 @@ static VALUE ext_get_adc(VALUE *args, UINT argn) {
 // Motor set commands
 
 static VALUE ext_set_current(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_current(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_current(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_current_rel(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_current_rel(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_current_rel(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_duty(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_duty(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_duty(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_brake(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_brake_current(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_brake_current(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_brake_rel(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_brake_current_rel(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_brake_current_rel(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_handbrake(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_handbrake(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_handbrake(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_handbrake_rel(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_handbrake_rel(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_handbrake_rel(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
-static VALUE ext_set_speed(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_pid_speed(f);
+static VALUE ext_set_rpm(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_pid_speed(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
 static VALUE ext_set_pos(VALUE *args, UINT argn) {
-	DEC_FLOAT()
-	mc_interface_set_pid_pos(f);
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_set_pid_pos(dec_as_f(args[0]));
 	return enc_sym(SYM_TRUE);
 }
 
@@ -362,6 +350,88 @@ static VALUE ext_get_fault(VALUE *args, UINT argn) {
 	return enc_i(mc_interface_get_fault());
 }
 
+// CAN-commands
+
+static VALUE ext_can_current(VALUE *args, UINT argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn == 2) {
+		comm_can_set_current(dec_as_i(args[0]), dec_as_f(args[1]));
+	} else if (argn == 3) {
+		comm_can_set_current_off_delay(dec_as_i(args[0]), dec_as_f(args[1]), dec_as_f(args[2]));
+	} else {
+		return enc_sym(SYM_EERROR);
+	}
+
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_current_rel(VALUE *args, UINT argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn == 2) {
+		comm_can_set_current_rel(dec_as_i(args[0]), dec_as_f(args[1]));
+	} else if (argn == 3) {
+		comm_can_set_current_rel_off_delay(dec_as_i(args[0]), dec_as_f(args[1]), dec_as_f(args[2]));
+	} else {
+		return enc_sym(SYM_EERROR);
+	}
+
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_duty(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2);
+	comm_can_set_duty(dec_as_i(args[0]), dec_as_f(args[1]));
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_brake(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2);
+	comm_can_set_current_brake(dec_as_i(args[0]), dec_as_f(args[1]));
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_brake_rel(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2);
+	comm_can_set_current_brake_rel(dec_as_i(args[0]), dec_as_f(args[1]));
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_rpm(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2);
+	comm_can_set_rpm(dec_as_i(args[0]), dec_as_f(args[1]));
+	return enc_sym(SYM_TRUE);
+}
+
+static VALUE ext_can_pos(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2);
+	comm_can_set_pos(dec_as_i(args[0]), dec_as_f(args[1]));
+	return enc_sym(SYM_TRUE);
+}
+
+// Math
+
+static VALUE ext_sin(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(1)
+	return enc_F(sinf(dec_as_f(args[0])));
+}
+
+static VALUE ext_cos(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(1)
+	return enc_F(cosf(dec_as_f(args[0])));
+}
+
+static VALUE ext_atan(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(1)
+	return enc_F(atanf(dec_as_f(args[0])));
+}
+
+static VALUE ext_pow(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(2)
+	return enc_F(powf(dec_as_f(args[0]), dec_as_f(args[1])));
+}
+
 void lispif_load_vesc_extensions(void) {
 	// Various commands
 	extensions_add("print", ext_print);
@@ -383,7 +453,7 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("set-brake-rel", ext_set_brake_rel);
 	extensions_add("set-handbrake", ext_set_handbrake);
 	extensions_add("set-handbrake-rel", ext_set_handbrake_rel);
-	extensions_add("set-speed", ext_set_speed);
+	extensions_add("set-rpm", ext_set_rpm);
 	extensions_add("set-pos", ext_set_pos);
 
 	// Motor get commands
@@ -398,4 +468,19 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("get-dist", ext_get_dist);
 	extensions_add("get-batt", ext_get_batt);
 	extensions_add("get-fault", ext_get_fault);
+
+	// CAN-comands
+	extensions_add("canset-current", ext_can_current);
+	extensions_add("canset-current-rel", ext_can_current_rel);
+	extensions_add("canset-duty", ext_can_duty);
+	extensions_add("canset-brake", ext_can_brake);
+	extensions_add("canset-brake-rel", ext_can_brake_rel);
+	extensions_add("canset-rpm", ext_can_rpm);
+	extensions_add("canset-pos", ext_can_pos);
+
+	// Math
+	extensions_add("sin", ext_sin);
+	extensions_add("cos", ext_cos);
+	extensions_add("atan", ext_atan);
+	extensions_add("pow", ext_pow);
 }

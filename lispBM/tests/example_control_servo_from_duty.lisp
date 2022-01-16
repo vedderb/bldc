@@ -10,8 +10,11 @@
     (set-servo servo-out)
 )))
 
+(define itcnt 0)
+
 (define f (lambda ()
    (progn
+     (define itcnt (+ itcnt 1))
      (if (> (abs (get-duty)) 0.005) (update-servo) nil)
      (yield 10000)
      (f)

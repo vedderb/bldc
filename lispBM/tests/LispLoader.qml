@@ -48,8 +48,9 @@ Item {
 //                    mLogReader.openLogFile("example_duty.lisp")
 //                    mLogReader.openLogFile("example_ppm_read.lisp")
 //                    mLogReader.openLogFile("example_control_servo_from_encoder.lisp")
-                    mLogReader.openLogFile("example_control_servo_from_duty.lisp")
+//                    mLogReader.openLogFile("example_control_servo_from_duty.lisp")
 //                    mLogReader.openLogFile("example_print_bms_data.lisp")
+                    mLogReader.openLogFile("example_can_pos_follow.lisp")
 
 //                    mLogReader.openLogFile("test_math.lisp")
                     
