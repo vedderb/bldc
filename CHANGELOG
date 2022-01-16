@@ -1,4 +1,4 @@
-=== FW 5.03 <dev> ===
+=== FW 5.03 ===
 * Fixed inductance measurement bug.
 * Speed tracker windup protection.
 * Phase filter support.
