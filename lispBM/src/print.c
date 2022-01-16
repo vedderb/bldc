@@ -1,5 +1,6 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
+                                2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,8 +35,11 @@
 #define END_LIST       5
 #define PRINT_DOT      6
 
+static VALUE stack_storage[PRINT_STACK_SIZE];
+
+const char *failed_str = "Error: print failed\n";
+
 int print_value(char *buf,unsigned int len, VALUE t) {
-  VALUE stack_storage[PRINT_STACK_SIZE];
 
   stack s;
   stack_create(&s, stack_storage, PRINT_STACK_SIZE);
@@ -45,8 +49,6 @@ int print_value(char *buf,unsigned int len, VALUE t) {
   unsigned int offset = 0;
   const char *str_ptr;
   int res;
-
-  const char *failed_str = "Error: print failed\n";
 
   push_u32_2(&s, t, PRINT);
 
@@ -66,7 +68,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       if ( r >= 0 ) {
         n = (unsigned int) r;
       } else {
-        snprintf(buf, len, failed_str);
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
 
@@ -113,7 +115,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(buf, len, failed_str);
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset += n;
@@ -143,7 +145,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(buf, len, failed_str);
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset += n;
@@ -154,7 +156,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(buf, len, failed_str);
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
 
@@ -165,7 +167,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       if (r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(buf, len, "Error: PRINT_DOT failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset +=n;
@@ -193,7 +195,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -207,7 +209,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -220,7 +222,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -233,7 +235,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -248,7 +250,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
           if ( r > 0) {
             n = (unsigned int) r;
           } else {
-            snprintf(buf, len, failed_str);
+            snprintf(buf, len, "%s", failed_str);
             return -1;
           }
           offset += n;
@@ -266,7 +268,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -284,7 +286,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -295,7 +297,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -306,7 +308,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -317,7 +319,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(buf, len, failed_str);
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;

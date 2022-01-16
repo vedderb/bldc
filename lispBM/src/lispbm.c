@@ -24,22 +24,22 @@ int lispbm_init(cons_t *heap_storage, uint32_t heap_size,
 
   if (memory_init(memory, memory_size,
                   memory_bitmap, bitmap_size) == 0)
-    return -1;
+    return 0;
 
   if (symrepr_init() == 0)
-    return -2;
+    return 0;
 
   if (heap_init(heap_storage, heap_size) == 0)
-    return -3;
+    return 0;
 
   if (env_init() == 0)
-    return -4;
+    return 0;
 
   if (eval_cps_init() == 0)
-    return -5;
+    return 0;
 
   if (extensions_init() == 0)
-    return -6;
+    return 0;
 
   return 1;
 }

@@ -1,5 +1,6 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -67,3 +68,4 @@ bool extensions_add(char *sym_str, extension_fptr ext) {
   extensions = m;
   return true;
 }
+

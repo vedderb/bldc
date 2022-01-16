@@ -28,14 +28,12 @@ typedef struct {
   unsigned int sp;
   unsigned int size;
   unsigned int max_sp;
-  bool growable;
 } stack;
 
-extern int stack_allocate(stack *s, unsigned int stack_size, bool growable);
+extern int stack_allocate(stack *s, unsigned int stack_size);
 extern int stack_create(stack *s, UINT* data, unsigned int size);
 extern void stack_free(stack *s);
 extern int stack_clear(stack *s);
-extern int stack_copy(stack *dest, stack *src);
 extern UINT *stack_ptr(stack *s, unsigned int n);
 extern int stack_drop(stack *s, unsigned int n);
 extern int push_u32(stack *s, UINT val);

@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 79
+#define NUM_SPECIAL_SYMBOLS 80
 
 #define NAME   0
 #define ID     1
@@ -45,7 +45,6 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"let"        , SYM_LET},
   {"define"     , SYM_DEFINE},
   {"progn"      , SYM_PROGN},
-  //{"bquote"     , SYM_BACKQUOTE},
   {"comma"      , SYM_COMMA},
   {"splice"     , SYM_COMMAAT},
   {"match"      , SYM_MATCH},
@@ -65,6 +64,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"eval_error"         , SYM_EERROR},
   {"out_of_memory"      , SYM_MERROR},
   {"fatal_error"        , SYM_FATAL_ERROR},
+  {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"sym_array"          , SYM_ARRAY_TYPE},
   {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
@@ -206,9 +206,9 @@ int symrepr_addsym(char *name, UINT* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)memory_allocate(n / 4);
+    symbol_name_storage = (char *)memory_allocate(n/4);
   } else {
-    symbol_name_storage = (char *)memory_allocate(n / 4 + 1);
+    symbol_name_storage = (char *)memory_allocate((n/4) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -232,7 +232,6 @@ int symrepr_addsym(char *name, UINT* id) {
   return 1;
 }
 
-// Same as above, but assume that the name pointer stays valid
 int symrepr_addsym_const(char *name, UINT* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 

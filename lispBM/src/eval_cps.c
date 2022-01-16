@@ -47,10 +47,11 @@
 #define MATCH             12
 #define MATCH_MANY        13
 
-#define FOF(done, x)                            \
+#define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
-    (done)=true;                                \
-    ctx->r = enc_sym(SYM_FATAL_ERROR);          \
+    ctx->done=true;                             \
+    ctx->r = enc_sym(SYM_STACK_ERROR);          \
+    finish_ctx();                               \
     return;                                     \
   }
 
@@ -389,7 +390,7 @@ static void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
+static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
 
@@ -415,7 +416,7 @@ static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_s
   }
 
   ctx->id = (uint16_t)next_ctx_id++;
-  if (!stack_allocate(&ctx->K, stack_size, grow_stack)) {
+  if (!stack_allocate(&ctx->K, stack_size)) {
     memory_free((uint32_t*)ctx);
     return 0;
   }
@@ -446,8 +447,6 @@ static void advance_ctx(void) {
     finish_ctx();
   }
 }
-
-
 
 static VALUE find_receiver_and_send(CID cid, VALUE msg) {
   eval_context_t *found = NULL;
@@ -662,7 +661,6 @@ static int gc(VALUE remember1, VALUE remember2) {
     curr = curr->next;
   }
 
-
   curr = blocked.first;
   while (curr) {
     gc_mark_phase(curr->curr_env);
@@ -688,7 +686,6 @@ static int gc(VALUE remember1, VALUE remember2) {
 #endif
 
   return gc_sweep_phase();
-
 }
 
 
@@ -738,7 +735,7 @@ static inline void eval_define(eval_context_t *ctx) {
     return;
   }
 
-  FOF(ctx->done, push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
+  CHECK_STACK(push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
   ctx->curr_exp = val_exp;
 }
 
@@ -758,7 +755,7 @@ static inline void eval_progn(eval_context_t *ctx) {
       error_ctx(exps);
     return;
   }
-  FOF(ctx->done, push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
+  CHECK_STACK(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
   ctx->curr_exp = car(exps);
   ctx->curr_env = env;
 }
@@ -774,7 +771,7 @@ static inline void eval_spawn(eval_context_t *ctx) {
   }
 
   VALUE cid_list = NIL;
-  FOF(ctx->done, push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
+  CHECK_STACK(push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
   ctx->r = cid_list;
   ctx->app_cont = true;
 }
@@ -811,10 +808,10 @@ static inline void eval_lambda(eval_context_t *ctx) {
 
 static inline void eval_if(eval_context_t *ctx) {
 
-  FOF(ctx->done, push_u32_3(&ctx->K,
-                 car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
-                 car(cdr(cdr(ctx->curr_exp))),      // Then branch
-                 enc_u(IF)));
+  CHECK_STACK(push_u32_3(&ctx->K,
+                         car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
+                         car(cdr(cdr(ctx->curr_exp))),      // Then branch
+                         enc_u(IF)));
   ctx->curr_exp = car(cdr(ctx->curr_exp));
 }
 
@@ -846,8 +843,8 @@ static inline void eval_let(eval_context_t *ctx) {
   VALUE key0 = car(car(binds));
   VALUE val0_exp = car(cdr(car(binds)));
 
-  FOF(ctx->done, push_u32_5(&ctx->K, exp, cdr(binds), new_env,
-                 key0, enc_u(BIND_TO_KEY_REST)));
+  CHECK_STACK(push_u32_5(&ctx->K, exp, cdr(binds), new_env,
+                         key0, enc_u(BIND_TO_KEY_REST)));
   ctx->curr_exp = val0_exp;
   ctx->curr_env = new_env;
   return;
@@ -860,7 +857,7 @@ static inline void eval_and(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = enc_sym(SYM_TRUE);
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
+    CHECK_STACK(push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
     ctx->curr_exp = car(rest);
   }
 }
@@ -873,7 +870,7 @@ static inline void eval_or(eval_context_t *ctx) {
     ctx->r = enc_sym(SYM_NIL);
     return;
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
+    CHECK_STACK(push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
     ctx->curr_exp = car(rest);
   }
 }
@@ -893,7 +890,7 @@ static inline void eval_match(eval_context_t *ctx) {
     ctx->r = enc_sym(SYM_NIL); /* make up new specific symbol? */
     return;
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(MATCH)));
+    CHECK_STACK(push_u32_2(&ctx->K, cdr(rest), enc_u(MATCH)));
     ctx->curr_exp = car(rest); /* Evaluate e next*/
   }
 }
@@ -999,7 +996,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
     return;
   }
   // Else create a continuation
-  FOF(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(PROGN_REST)));
+  CHECK_STACK(push_u32_3(&ctx->K, env, cdr(rest), enc_u(PROGN_REST)));
   ctx->curr_exp = car(rest);
   ctx->curr_env = env;
 }
@@ -1019,12 +1016,11 @@ static inline void cont_spawn_all(eval_context_t *ctx) {
 
   CID cid = create_ctx(car(rest),
                        env,
-                       EVAL_CPS_DEFAULT_STACK_SIZE,
-                       EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
+                       EVAL_CPS_DEFAULT_STACK_SIZE);
   if (!cid) {
     set_car(cid_list, enc_sym(SYM_NIL));
   }
-  FOF(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(SPAWN_ALL)));
+  CHECK_STACK(push_u32_3(&ctx->K, env, cdr(rest), enc_u(SPAWN_ALL)));
   ctx->r = cid_list;
   ctx->app_cont = true;
 }
@@ -1041,7 +1037,7 @@ static inline void cont_wait(eval_context_t *ctx) {
     ctx->r = r;
     ctx->app_cont = true;
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
+    CHECK_STACK(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
     ctx->r = enc_sym(SYM_TRUE);
     ctx->app_cont = true;
     yield_ctx(50000);
@@ -1094,7 +1090,6 @@ static inline void cont_application(eval_context_t *ctx) {
 
        I am very unsure about the correctness here.
        ************************************************************ */
-
     stack_drop(&ctx->K, dec_u(count)+1);
     ctx->curr_exp = exp;
     ctx->curr_env = local_env;
@@ -1118,7 +1113,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (type_of(fun_args[1]) == VAL_TYPE_I) {
         CID cid = (CID)dec_u(fun_args[1]);
         stack_drop(&ctx->K, dec_u(count)+1);
-        FOF(ctx->done, push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
+        CHECK_STACK(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
         ctx->r = enc_sym(SYM_TRUE);
         ctx->app_cont = true;
         yield_ctx(50000);
@@ -1165,12 +1160,7 @@ static inline void cont_application(eval_context_t *ctx) {
     }
   }
 
-  // It may be an extension. Run GC first so that the extension has to worry less
-  // about running out of memory.
-  if (heap_size() - heap_num_allocated() < PRELIMINARY_GC_MEASURE) {
-    gc(NIL, NIL);
-  }
-
+  // It may be an extension
   extension_fptr f = extensions_lookup(dec_sym(fun));
   if (f == NULL) {
     ERROR
@@ -1195,15 +1185,15 @@ static inline void cont_application_args(eval_context_t *ctx) {
   VALUE arg = ctx->r;
   pop_u32_3(&ctx->K, &rest, &count, &env);
 
-  FOF(ctx->done, push_u32(&ctx->K, arg));
+  CHECK_STACK(push_u32(&ctx->K, arg));
   /* Deal with general fundamentals */
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
       rest == NIL) {
     // no arguments
-    FOF(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
+    CHECK_STACK(push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
     ctx->app_cont = true;
   } else if (type_of(rest) == PTR_TYPE_CONS) {
-    FOF(ctx->done, push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
+    CHECK_STACK(push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = car(rest);
     ctx->curr_env = env;
   } else {
@@ -1226,7 +1216,7 @@ static inline void cont_and(eval_context_t *ctx) {
              rest == NIL) {
     ctx->app_cont = true;
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
+    CHECK_STACK(push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
     ctx->curr_exp = car(rest);
   }
 }
@@ -1243,7 +1233,7 @@ static inline void cont_or(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = enc_sym(SYM_NIL);
   } else {
-    FOF(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
+    CHECK_STACK(push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
     ctx->curr_exp = car(rest);
   }
 }
@@ -1261,7 +1251,7 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
     VALUE keyn = car(car(rest));
     VALUE valn_exp = car(cdr(car(rest)));
 
-    FOF(ctx->done, push_u32_4(&ctx->K, cdr(rest), env, keyn, enc_u(BIND_TO_KEY_REST)));
+    CHECK_STACK(push_u32_4(&ctx->K, cdr(rest), env, keyn, enc_u(BIND_TO_KEY_REST)));
 
     ctx->curr_exp = valn_exp;
     ctx->curr_env = env;
@@ -1308,8 +1298,8 @@ static inline void cont_match_many(eval_context_t *ctx) {
 
     } else {
       /* try match the next one */
-      FOF(ctx->done, push_u32_4(&ctx->K, exp, pats, cdr(rest_msgs), enc_u(MATCH_MANY)));
-      FOF(ctx->done, push_u32_2(&ctx->K, car(pats), enc_u(MATCH)));
+      CHECK_STACK(push_u32_4(&ctx->K, exp, pats, cdr(rest_msgs), enc_u(MATCH_MANY)));
+      CHECK_STACK(push_u32_2(&ctx->K, car(pats), enc_u(MATCH)));
       ctx->r = car(rest_msgs);
       ctx->app_cont = true;
     }
@@ -1352,7 +1342,7 @@ static inline void cont_match(eval_context_t *ctx) {
       ctx->curr_exp = body;
     } else {
       /* set up for checking of next pattern */
-      FOF(ctx->done, push_u32_2(&ctx->K, cdr(patterns), enc_u(MATCH)));
+      CHECK_STACK(push_u32_2(&ctx->K, cdr(patterns), enc_u(MATCH)));
       /* leave r unaltered */
       ctx->app_cont = true;
     }
@@ -1439,11 +1429,11 @@ static void evaluation_step(void){
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol
-    FOF(ctx->done, push_u32_4(&ctx->K,
-                   ctx->curr_env,
-                   enc_u(0),
-                   cdr(ctx->curr_exp),
-                   enc_u(APPLICATION_ARGS)));
+    CHECK_STACK(push_u32_4(&ctx->K,
+                           ctx->curr_env,
+                           enc_u(0),
+                           cdr(ctx->curr_exp),
+                           enc_u(APPLICATION_ARGS)));
 
     ctx->curr_exp = head; // evaluate the function
     return;
@@ -1507,6 +1497,8 @@ void eval_cps_run_eval(void){
     if (heap_size() - heap_num_allocated() < PRELIMINARY_GC_MEASURE) {
       gc(NIL, NIL);
     }
+    /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
+       should go here */
 
     if (!ctx_running) {
       uint32_t us;
@@ -1518,6 +1510,7 @@ void eval_cps_run_eval(void){
         continue;
       }
     }
+
     evaluation_step();
   }
 }
@@ -1541,11 +1534,11 @@ VALUE evaluate_non_concurrent(void) {
 }
 
 CID eval_cps_program(VALUE lisp) {
-  return create_ctx(lisp, NIL, 256, false);
+  return create_ctx(lisp, NIL, 256);
 }
 
-CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack) {
-  return create_ctx(lisp, NIL, stack_size, grow_stack);
+CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size) {
+  return create_ctx(lisp, NIL, stack_size);
 }
 
 VALUE eval_cps_program_nc(VALUE lisp) {
@@ -1571,7 +1564,7 @@ VALUE eval_cps_program_nc(VALUE lisp) {
   return evaluate_non_concurrent();
 }
 
-int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
+int eval_cps_init_nc(unsigned int stack_size) {
 
   NIL = enc_sym(SYM_NIL);
   NONSENSE = enc_sym(SYM_NONSENSE);
@@ -1585,7 +1578,7 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
       type_of(*env_get_global_ptr()) == VAL_TYPE_SYMBOL)
     return 0;
 
-  if (!stack_allocate(&ctx_non_concurrent.K, stack_size, grow_stack))
+  if (!stack_allocate(&ctx_non_concurrent.K, stack_size))
     return 0;
 
   return 1;

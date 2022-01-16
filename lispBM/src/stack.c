@@ -22,11 +22,10 @@
 #include "print.h"
 #include "lispbm_memory.h"
 
-int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
+int stack_allocate(stack *s, unsigned int stack_size) {
   s->data = memory_allocate(stack_size);
   s->sp = 0;
   s->size = stack_size;
-  s->growable = growable;
   s->max_sp = 0;
 
   if (s->data) return 1;
@@ -37,7 +36,6 @@ int stack_create(stack *s, UINT* data, unsigned int size) {
   s->data = data;
   s->sp = 0;
   s->size = size;
-  s->growable = false;
   s->max_sp = 0;
   return 1;
 }
@@ -50,37 +48,6 @@ void stack_free(stack *s) {
 
 int stack_clear(stack *s) {
   s->sp = 0;
-  return 1;
-}
-
-
-int stack_grow(stack *s) {
-
-  if (!s->growable) return 0;
-
-  unsigned int new_size = s->size * 2;
-  UINT *data    = memory_allocate(new_size);
-
-  if (data == NULL) return 0;
-
-  memcpy(data, s->data, s->size*sizeof(UINT));
-  memory_free(s->data);
-  s->data = data;
-  s->size = new_size;
-  return 1;
-}
-
-int stack_copy(stack *dest, stack *src) {
-
-  if (dest->growable) {
-    while (dest->size < src->sp) {
-      if (!stack_grow(dest)) return 0;
-    }
-  }
-  if (dest->size < src->size) return 0;
-  dest->sp = src->sp;
-  memcpy(dest->data, src->data, src->sp * sizeof(UINT));
-
   return 1;
 }
 
@@ -101,7 +68,7 @@ int stack_drop(stack *s, unsigned int n) {
 int push_u32(stack *s, UINT val) {
   int res = 1;
   if (s->sp == s->size) {
-    res = stack_grow(s);
+    return 0;
   }
 
   if (!res) return res;
@@ -116,11 +83,14 @@ int push_u32(stack *s, UINT val) {
 
 int push_k(stack *s, VALUE (*k)(VALUE)) {
   int res = 1;
+  if ( s->sp == s->size) {
+    return 0;
+  }
+
+  if (!res) return res;
+
   s->data[s->sp] = (UINT)k;
   s->sp++;
-  if ( s->sp >= s->size) {
-    res = stack_grow(s);
-  }
 
   if (s->sp > s->max_sp) s->max_sp = s->sp;
 

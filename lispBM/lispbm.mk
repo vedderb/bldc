@@ -9,7 +9,6 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/stack.c \
             $(LISPBM)/src/symrepr.c \
             $(LISPBM)/src/tokpar.c \
-            $(LISPBM)/src/compression.c \
             $(LISPBM)/src/extensions.c \
             $(LISPBM)/src/lispbm.c \
             $(LISPBM)/src/eval_cps.c \

@@ -1,5 +1,6 @@
 /*
-    Copyright 2018 2021 Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022 Joel Svensson   svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,9 +38,9 @@
 #define SYM_MERROR        0xA
 #define SYM_DIVZERO       0xB
 #define SYM_FATAL_ERROR   0xC  /* Runtime system is corrupt */
-#define SYM_DEFINE        0xD
-#define SYM_PROGN         0xE
-//#define SYM_BACKQUOTE     0xF
+#define SYM_STACK_ERROR   0xD
+#define SYM_DEFINE        0xE
+#define SYM_PROGN         0xF
 #define SYM_COMMA         0x10
 #define SYM_COMMAAT       0x11
 #define SYM_DONTCARE      0x12
@@ -124,11 +125,10 @@
 #define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
 extern int symrepr_addsym(char *, UINT*);
-int symrepr_addsym_const(char *name, UINT* id);
+extern int symrepr_addsym_const(char *, UINT*);
 extern bool symrepr_init(void);
 extern int symrepr_lookup(char *, UINT*);
 extern const char* symrepr_lookup_name(UINT);
-extern void symrepr_del(void);
 
 extern unsigned int symrepr_size(void);
 

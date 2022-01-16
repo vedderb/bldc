@@ -55,7 +55,7 @@ extern int eval_cps_init(void);
 extern bool eval_cps_remove_done_ctx(CID cid, VALUE *v);
 extern VALUE eval_cps_wait_ctx(CID cid);
 extern CID eval_cps_program(VALUE lisp);
-extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
+extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size);
 extern void eval_cps_run_eval(void);
 
 extern void eval_cps_pause_eval(void);
@@ -79,7 +79,7 @@ extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
 /* Non concurrent interface: */
-extern int eval_cps_init_nc(unsigned int stack_size, bool grow_stack);
+extern int eval_cps_init_nc(unsigned int stack_size);
 extern void eval_cps_del_nc(void);
 extern VALUE eval_cps_program_nc(VALUE lisp);
 #endif
