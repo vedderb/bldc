@@ -20,6 +20,10 @@
 
 #include "lispbm_types.h"
 
+// TODO: Include the following two lines in some platform header, which then is included here
+#include "utils.h"
+#define TOKPAR_CHECK_STACK()	(utils_stack_left_now() > 300)
+
 extern VALUE tokpar_parse(char *str);
 extern VALUE tokpar_parse_program(tokenizer_char_stream str);
 

@@ -92,10 +92,14 @@ static void terminal_start(int argc, const char **argv) {
 
 	VALUE t = tokpar_parse(code);
 
-	eval_cps_program(t);
-	eval_cps_continue_eval();
+	if (dec_sym(t) == SYM_STACK_ERROR) {
+		commands_printf("Lisp parser ran out of stack");
+	} else {
+		eval_cps_program(t);
+		eval_cps_continue_eval();
+		commands_printf("Lisp started");
+	}
 
-	commands_printf("Lisp started");
 }
 
 static void terminal_stop(int argc, const char **argv) {
