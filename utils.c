@@ -837,6 +837,31 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 	}
 }
 
+/**
+ * Check the minimum stack tp had left by counting the remaining fill characters.
+ */
+int utils_check_min_stack_left(thread_t *tp) {
+	uint32_t *p = (uint32_t *)tp->p_stklimit;
+
+	int free = 0;
+	while (free < 8192) {
+		if (*p++ != 0x55555555) {
+			break;
+		}
+		free += sizeof(uint32_t);
+	}
+
+	return free;
+}
+
+/*
+ * Check how much stack the current thread has left now.
+ */
+int utils_stack_left_now(void) {
+	struct port_intctx *r13 = (struct port_intctx *)__get_PSP();
+	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
+}
+
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
 	1.000000, 0.980785, 0.923880, 0.831470, 0.707107, 0.555570, 0.382683, 0.195090,
