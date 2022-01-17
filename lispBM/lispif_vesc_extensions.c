@@ -237,6 +237,16 @@ static VALUE ext_get_adc(VALUE *args, UINT argn) {
 	}
 }
 
+static VALUE ext_systime(VALUE *args, UINT argn) {
+	(void)args; (void)argn;
+	return enc_I(chVTGetSystemTimeX());
+}
+
+static VALUE ext_secs_since(VALUE *args, UINT argn) {
+	CHECK_ARGN_NUMBER(1);
+	return enc_F(UTILS_AGE_S(dec_as_u(args[0])));
+}
+
 // Motor set commands
 
 static VALUE ext_set_current(VALUE *args, UINT argn) {
@@ -444,6 +454,8 @@ void lispif_load_vesc_extensions(void) {
 	extensions_add("get-selected-motor", ext_get_selected_motor);
 	extensions_add("get-bms-val", ext_get_bms_val);
 	extensions_add("get-adc", ext_get_adc);
+	extensions_add("systime", ext_systime);
+	extensions_add("secs-since", ext_secs_since);
 
 	// Motor set commands
 	extensions_add("set-current", ext_set_current);

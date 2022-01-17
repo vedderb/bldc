@@ -37,12 +37,11 @@
 
 static VALUE stack_storage[PRINT_STACK_SIZE];
 
-const char *failed_str = "Error: print failed\n";
-
 int print_value(char *buf,unsigned int len, VALUE t) {
 
   stack s;
   stack_create(&s, stack_storage, PRINT_STACK_SIZE);
+  const char *failed_str = "Error: print failed\n";
 
   int r = 0;
   unsigned int n = 0;

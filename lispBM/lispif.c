@@ -32,12 +32,6 @@
 #include "env.h"
 #include "lispbm.h"
 
-/*
- * Observed issues:
- * * [Fixed] Dividing an integer by a float causes eval_error
- * * extern keyword should be removed for functions as is makes no difference
- */
-
 #define HEAP_SIZE				1024
 #define LISP_MEM_SIZE			MEMORY_SIZE_4K
 #define LISP_MEM_BITMAP_SIZE	MEMORY_BITMAP_SIZE_4K
