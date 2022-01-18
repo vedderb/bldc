@@ -252,8 +252,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = 1;
 #endif
 #else
-		if (flash_helper_qmlui_data()) {
-			send_buffer[ind++] = flash_helper_qmlui_flags();
+		if (flash_helper_code_data(CODE_IND_QML)) {
+			send_buffer[ind++] = flash_helper_code_flags(CODE_IND_QML);
 		} else {
 			send_buffer[ind++] = 0;
 		}
@@ -1372,8 +1372,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t len_qml = buffer_get_int32(data, &ind);
 		int32_t ofs_qml = buffer_get_int32(data, &ind);
 
-		uint8_t *qmlui_data = flash_helper_qmlui_data();
-		int32_t qmlui_len = flash_helper_qmlui_size();
+		uint8_t *qmlui_data = flash_helper_code_data(CODE_IND_QML);
+		int32_t qmlui_len = flash_helper_code_size(CODE_IND_QML);
 
 #ifdef QMLUI_SOURCE_APP
 		qmlui_data = data_qml_app;
@@ -1406,7 +1406,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
-		uint16_t flash_res = flash_helper_erase_qmlui();
+		uint16_t flash_res = flash_helper_erase_code(CODE_IND_QML);
 
 		ind = 0;
 		uint8_t send_buffer[50];
@@ -1422,7 +1422,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
-		uint16_t flash_res = flash_helper_write_qmlui(qmlui_offset, data + ind, len - ind);
+		uint16_t flash_res = flash_helper_write_code(CODE_IND_QML, qmlui_offset, data + ind, len - ind);
 
 		SHUTDOWN_RESET();
 

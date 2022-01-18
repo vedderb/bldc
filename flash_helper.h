@@ -22,16 +22,19 @@
 
 #include "conf_general.h"
 
+#define CODE_IND_QML	0
+#define CODE_IND_LISP	1
+
 // Functions
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size);
 uint16_t flash_helper_erase_bootloader(void);
 uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_t len);
 
-uint16_t flash_helper_erase_qmlui(void);
-uint16_t flash_helper_write_qmlui(uint32_t offset, uint8_t *data, uint32_t len);
-uint8_t *flash_helper_qmlui_data(void);
-uint32_t flash_helper_qmlui_size(void);
-uint16_t flash_helper_qmlui_flags(void);
+uint16_t flash_helper_erase_code(int ind);
+uint16_t flash_helper_write_code(int ind, uint32_t offset, uint8_t *data, uint32_t len);
+uint8_t* flash_helper_code_data(int ind);
+uint32_t flash_helper_code_size(int ind);
+uint16_t flash_helper_code_flags(int ind);
 
 void flash_helper_jump_to_bootloader(void);
 uint8_t* flash_helper_get_sector_address(uint32_t fsector);

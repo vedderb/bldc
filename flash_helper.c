@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -37,9 +37,11 @@
 #define APP_BASE								0
 #define NEW_APP_BASE							8
 #define NEW_APP_SECTORS							3
-#define APP_MAX_SIZE							(1024 * 128 * 3 - 8) // Note that the bootloader needs 8 extra bytes
-#define QMLUI_BASE								7
+#define APP_MAX_SIZE							(1024 * 128 * 4 - 8) // Note that the bootloader needs 8 extra bytes
+#define QMLUI_BASE								9
+#define LISP_BASE								10
 #define QMLUI_MAX_SIZE							(1024 * 128 - 8)
+#define LISP_MAX_SIZE							(1024 * 128 - 8)
 
 // Base address of the Flash sectors
 #define ADDR_FLASH_SECTOR_0    					((uint32_t)0x08000000) // Base @ of Sector 0, 16 Kbytes
@@ -77,11 +79,16 @@ const crc_info_t __attribute__((section (".crcinfo"))) crc_info = {0xFFFFFFFF, 0
 // Private functions
 static uint16_t erase_sector(uint32_t sector);
 static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len);
-static void qmlui_check(void);
+static void qmlui_check(int ind);
 
 // Private variables
-static bool qmlui_check_done = false;
-static bool qmlui_ok = false;
+typedef struct {
+	bool check_done;
+	bool ok;
+} _code_checks;
+
+static _code_checks code_checks[2] = {0};
+static int code_sectors[2] = {QMLUI_BASE, LISP_BASE};
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -161,47 +168,47 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 	return write_data(flash_addr[NEW_APP_BASE] + offset, data, len);
 }
 
-uint16_t flash_helper_erase_qmlui(void) {
-	qmlui_check_done = false;
-	qmlui_ok = false;
-	return erase_sector(flash_sector[QMLUI_BASE]);
+uint16_t flash_helper_erase_code(int ind) {
+	code_checks[ind].check_done = false;
+	code_checks[ind].ok = false;
+	return erase_sector(flash_sector[code_sectors[ind]]);
 }
 
-uint16_t flash_helper_write_qmlui(uint32_t offset, uint8_t *data, uint32_t len) {
-	qmlui_check_done = false;
-	qmlui_ok = false;
-	return write_data(flash_addr[QMLUI_BASE] + offset, data, len);
+uint16_t flash_helper_write_code(int ind, uint32_t offset, uint8_t *data, uint32_t len) {
+	code_checks[ind].check_done = false;
+	code_checks[ind].ok = false;
+	return write_data(flash_addr[code_sectors[ind]] + offset, data, len);
 }
 
-uint8_t *flash_helper_qmlui_data(void) {
-	qmlui_check();
+uint8_t* flash_helper_code_data(int ind) {
+	qmlui_check(ind);
 
-	if (qmlui_check_done && qmlui_ok) {
-		return (uint8_t*)(flash_addr[QMLUI_BASE]) + 8;
+	if (code_checks[ind].check_done && code_checks[ind].ok) {
+		return (uint8_t*)(flash_addr[code_sectors[ind]]) + 8;
 	} else {
 		return 0;
 	}
 }
 
-uint32_t flash_helper_qmlui_size(void) {
-	qmlui_check();
+uint32_t flash_helper_code_size(int ind) {
+	qmlui_check(ind);
 
-	if (qmlui_check_done && qmlui_ok) {
-		uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
-		int32_t ind = 0;
-		return buffer_get_uint32(qmlui_base, &ind);
+	if (code_checks[ind].check_done && code_checks[ind].ok) {
+		uint8_t *base = (uint8_t*)(flash_addr[code_sectors[ind]]);
+		int32_t index = 0;
+		return buffer_get_uint32(base, &index);
 	} else {
 		return 0;
 	}
 }
 
-uint16_t flash_helper_qmlui_flags(void) {
-	qmlui_check();
+uint16_t flash_helper_code_flags(int ind) {
+	qmlui_check(ind);
 
-	if (qmlui_check_done && qmlui_ok) {
-		uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
-		int32_t ind = 6;
-		return buffer_get_uint16(qmlui_base, &ind);
+	if (code_checks[ind].check_done && code_checks[ind].ok) {
+		uint8_t *base = (uint8_t*)(flash_addr[code_sectors[ind]]);
+		int32_t index = 6;
+		return buffer_get_uint16(base, &index);
 	} else {
 		return 0;
 	}
@@ -431,22 +438,22 @@ static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
 	return FLASH_COMPLETE;
 }
 
-static void qmlui_check(void) {
-	if (qmlui_check_done) {
+static void qmlui_check(int ind) {
+	if (code_checks[ind].check_done) {
 		return;
 	}
 
-	uint8_t *qmlui_base = (uint8_t*)(flash_addr[QMLUI_BASE]);
-	int32_t ind = 0;
-	uint32_t qmlui_len = buffer_get_uint32(qmlui_base, &ind);
-	uint16_t qmlui_crc = buffer_get_uint16(qmlui_base, &ind);
+	uint8_t *base = (uint8_t*)(flash_addr[code_sectors[ind]]);
+	int32_t index = 0;
+	uint32_t qmlui_len = buffer_get_uint32(base, &index);
+	uint16_t qmlui_crc = buffer_get_uint16(base, &index);
 
 	if (qmlui_len <= QMLUI_MAX_SIZE) {
-		uint16_t crc_calc = crc16(qmlui_base + ind, qmlui_len + 2); // CRC includes the 2 byte flags
-		qmlui_ok = crc_calc == qmlui_crc;
+		uint16_t crc_calc = crc16(base + index, qmlui_len + 2); // CRC includes the 2 byte flags
+		code_checks[ind].ok = crc_calc == qmlui_crc;
 	} else {
-		qmlui_ok = false;
+		code_checks[ind].ok = false;
 	}
 
-	qmlui_check_done = true;
+	code_checks[ind].check_done = true;
 }
