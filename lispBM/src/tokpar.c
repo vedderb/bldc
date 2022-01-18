@@ -70,16 +70,18 @@ static bool stack_ok = true;
 
 #ifdef TOKPAR_CHECK_STACK
 #define CHECK_STACK() if (!TOKPAR_CHECK_STACK()) {stack_ok = false;} if (!stack_ok) {return enc_sym(SYM_STACK_ERROR);}
-#define CHECK_STACK0() if (!TOKPAR_CHECK_STACK()) {stack_ok = false;} if (!stack_ok) {return 0;}
 #else
 #define CHECK_STACK()
-#define CHECK_STACK0()
 #endif
 
 typedef struct {
+  const char *str;
+  uint32_t  token;
+  uint32_t len;
+} matcher;
 
+typedef struct {
   unsigned int type;
-
   unsigned int text_len;
   union {
     char  c;
@@ -87,20 +89,14 @@ typedef struct {
     INT   i;
     UINT  u;
     FLOAT f;
-  }data;
+  } data;
 } token;
 
-
 typedef struct {
+  token tok;
   char *str;
   unsigned int pos;
-} tokenizer_state;
-
-typedef struct {
-  const char *str;
-  uint32_t  token;
-  uint32_t len;
-} matcher;
+} parser_state;
 
 #define NUM_FIXED_SIZE_TOKENS 13
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
@@ -119,28 +115,26 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1}
 };
 
-bool more(tokenizer_char_stream str) {
-  CHECK_STACK0();
-  return str.more(str);
+static parser_state ts;
+
+// TODO: Connect these with compression
+bool more(void) {
+  return ts.str[ts.pos] != 0;
 }
 
-char get(tokenizer_char_stream str) {
-  CHECK_STACK0();
-  return str.get(str);
+char get(void) {
+  return ts.str[ts.pos++];
 }
 
-char peek(tokenizer_char_stream str, unsigned int n) {
-  CHECK_STACK0();
-  return str.peek(str,n);
+char peek(unsigned int n) {
+  return ts.str[ts.pos + n];
 }
 
-void drop(tokenizer_char_stream str, unsigned int n) {
-  str.drop(str,n);
+void drop(unsigned int n) {
+  ts.pos = ts.pos + n;
 }
 
-
-uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream str) {
-  CHECK_STACK0();
+static uint32_t tok_match_fixed_size_tokens(void) {
   for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
     uint32_t tok_len = match_table[i].len;
     const char *match_str = match_table[i].str;
@@ -148,18 +142,17 @@ uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream str) {
 
     uint32_t char_pos;
     for (char_pos = 0; char_pos < tok_len; char_pos ++) {
-      if (peek(str,char_pos) != match_str[char_pos]) break;
+      if (peek(char_pos) != match_str[char_pos]) break;
     }
     if (char_pos == tok_len) { //match
-      drop(str,tok_len);
+      drop(tok_len);
       return tok;
     }
   }
   return NOTOKEN;
 }
 
-bool symchar0(char c) {
-  CHECK_STACK0();
+static bool symchar0(char c) {
   const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>";
 
   int i = 0;
@@ -169,8 +162,7 @@ bool symchar0(char c) {
   return false;
 }
 
-bool symchar(char c) {
-  CHECK_STACK0();
+static bool symchar(char c) {
   const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>";
 
   int i = 0;
@@ -180,16 +172,14 @@ bool symchar(char c) {
   return false;
 }
 
-int tok_symbol(tokenizer_char_stream str) {
-  CHECK_STACK0();
-
-  if (!symchar0(peek(str,0)))  return 0;
+static int tok_symbol(void) {
+  if (!symchar0(peek(0)))  return 0;
 
   unsigned int i = 0;
   unsigned int len = 1;
   int n = 0;
 
-  while (symchar((peek(str,len)))) {
+  while (symchar((peek(len)))) {
     len++;
   }
 
@@ -201,7 +191,7 @@ int tok_symbol(tokenizer_char_stream str) {
   int c = 0;
 
   for (i = 0; i < len; i ++) {
-    c = tolower(get(str));
+    c = tolower(get());
     if (c >= 0 && c <= 255) {
       sym_str[i] = (char)c;
       n++;
@@ -212,20 +202,18 @@ int tok_symbol(tokenizer_char_stream str) {
   return (int)n;
 }
 
-int tok_string(tokenizer_char_stream str) {
-  CHECK_STACK0();
-
+static int tok_string(void) {
   unsigned int i = 0;
   int n = 0;
   unsigned int len = 0;
-  if (!(peek(str,0) == '\"')) return 0;
+  if (!(peek(0) == '\"')) return 0;
 
-  get(str); // remove the " char
+  get(); // remove the " char
   n++;
 
   // compute length of string
-  while (peek(str,len) != 0 &&
-         peek(str,len) != '\"') {
+  while (peek(len) != 0 &&
+         peek(len) != '\"') {
     len++;
   }
 
@@ -233,177 +221,165 @@ int tok_string(tokenizer_char_stream str) {
     return -1; /* TODO: specific error code that can be presented to user */
 
   // str ends before tokenized string is closed.
-  if ((peek(str,len)) != '\"') {
+  if ((peek(len)) != '\"') {
     return 0;
   }
 
   clear_sym_str();
 
   for (i = 0; i < len; i ++) {
-    sym_str[i] = get(str);
+    sym_str[i] = get();
     n++;
   }
 
-  get(str);  // throw away the "
+  get();  // throw away the "
   return (int)(n+1);
 }
 
-int tok_char(tokenizer_char_stream str, char *res) {
-  CHECK_STACK0();
-
+static int tok_char(char *res) {
   int count = 0;
-  if (peek(str,0) == '\\' &&
-      peek(str,1) == '#' &&
-      peek(str,2) == 'n' &&
-      peek(str,3) == 'e' &&
-      peek(str,4) == 'w' &&
-      peek(str,5) == 'l' &&
-      peek(str,6) == 'i' &&
-      peek(str,7) == 'n' &&
-      peek(str,8) == 'e') {
+  if (peek(0) == '\\' &&
+      peek(1) == '#' &&
+      peek(2) == 'n' &&
+      peek(3) == 'e' &&
+      peek(4) == 'w' &&
+      peek(5) == 'l' &&
+      peek(6) == 'i' &&
+      peek(7) == 'n' &&
+      peek(8) == 'e') {
     *res = '\n';
-    drop(str,9);
+    drop(9);
     count = 9;
-  } else if (peek(str,0) == '\\' &&
-             peek(str,1) == '#' &&
-             isgraph(peek(str,2))) {
-    *res = peek(str,2);
-    drop(str,3);
+  } else if (peek(0) == '\\' &&
+             peek(1) == '#' &&
+             isgraph(peek(2))) {
+    *res = peek(2);
+    drop(3);
     count = 3;
   }
   return count;
 }
 
-int tok_i(tokenizer_char_stream str, INT *res) {
-  CHECK_STACK0();
-
+static int tok_i(INT *res) {
   INT acc = 0;
   unsigned int n = 0;
 
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
+  while ( peek(n) >= '0' && peek(n) <= '9' ) {
+    acc = (acc*10) + (peek(n) - '0');
     n++;
   }
 
   // Not needed if strict adherence to ordering of calls to tokenizers.
-  if (peek(str,n) == 'U' ||
-      peek(str,n) == 'u' ||
-      peek(str,n) == '.' ||
-      peek(str,n) == 'I') return 0;
+  if (peek(n) == 'U' ||
+      peek(n) == 'u' ||
+      peek(n) == '.' ||
+      peek(n) == 'I') return 0;
 
-  drop(str,n);
+  drop(n);
   *res = acc;
   return (int)n; /*check that isnt so high that it becomes a negative number when casted */
 }
 
-int tok_I(tokenizer_char_stream str, INT *res) {
-  CHECK_STACK0();
-
+static int tok_I(INT *res) {
   INT acc = 0;
   unsigned int n = 0;
 
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
+  while ( peek(n) >= '0' && peek(n) <= '9' ) {
+    acc = (acc*10) + (peek(n) - '0');
     n++;
   }
 
-  if (peek(str,n) == 'i' &&
-      peek(str,n+1) == '3' &&
-      peek(str,n+2) == '2') {
+  if (peek(n) == 'i' &&
+      peek(n+1) == '3' &&
+      peek(n+2) == '2') {
     *res = acc;
-    drop(str,n+3);
+    drop(n+3);
     return (int)(n+3);
   }
   return 0;
 }
 
-int tok_u(tokenizer_char_stream str, UINT *res) {
-  CHECK_STACK0();
-
+static int tok_u(UINT *res) {
   UINT acc = 0;
   unsigned int n = 0;
 
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (UINT)(peek(str,n) - '0');
+  while ( peek(n) >= '0' && peek(n) <= '9' ){
+    acc = (acc*10) + (UINT)(peek(n) - '0');
     n++;
   }
 
-  if (peek(str,n) == 'u' &&
-      peek(str,n+1) == '2' &&
-      peek(str,n+2) == '8' ) {
+  if (peek(n) == 'u' &&
+      peek(n+1) == '2' &&
+      peek(n+2) == '8' ) {
     *res = acc;
-    drop(str,n+3);
+    drop(n+3);
     return (int)(n+3);
   }
   return 0;
 }
 
-int tok_U(tokenizer_char_stream str, UINT *res) {
-  CHECK_STACK0();
-
+static int tok_U(UINT *res) {
   UINT acc = 0;
   unsigned int n = 0;
 
   // Check if hex notation is used
-  if (peek(str,0) == '0' &&
-      (peek(str,1) == 'x' || peek(str,1) == 'X')) {
+  if (peek(0) == '0' &&
+      (peek(1) == 'x' || peek(1) == 'X')) {
     n+= 2;
-    while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
-            (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
-            (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
+    while ( (peek(n) >= '0' && peek(n) <= '9') ||
+            (peek(n) >= 'a' && peek(n) <= 'f') ||
+            (peek(n) >= 'A' && peek(n) <= 'F')){
       UINT val;
-      if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
-        val = 10 + (UINT)(peek(str,n) - 'a');
-      } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
-        val = 10 + (UINT)(peek(str,n) - 'A');
+      if (peek(n) >= 'a' && peek(n) <= 'f') {
+        val = 10 + (UINT)(peek(n) - 'a');
+      } else if (peek(n) >= 'A' && peek(n) <= 'F') {
+        val = 10 + (UINT)(peek(n) - 'A');
       } else {
-        val = (UINT)peek(str,n) - '0';
+        val = (UINT)peek(n) - '0';
       }
       acc = (acc * 0x10) + val;
       n++;
     }
     *res = acc;
-    drop(str,n);
+    drop(n);
     return (int)n;
   }
 
   // check if nonhex
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (UINT)(peek(str,n) - '0');
+  while ( peek(n) >= '0' && peek(n) <= '9' ){
+    acc = (acc*10) + (UINT)(peek(n) - '0');
     n++;
   }
 
-  if (peek(str,n) == 'u' &&
-      peek(str,n+1) == '3' &&
-      peek(str,n+2) == '2') {
+  if (peek(n) == 'u' &&
+      peek(n+1) == '3' &&
+      peek(n+2) == '2') {
     *res = acc;
-    drop(str,n+3);
+    drop(n+3);
     return (int)(n+3);
   }
   return 0;
 }
 
-int tok_F(tokenizer_char_stream str, FLOAT *res) {
-  CHECK_STACK0();
-
+static int tok_F(FLOAT *res) {
   unsigned int n = 0;
   unsigned int m = 0;
-  char fbuf[128];
 
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
+  while ( peek(n) >= '0' && peek(n) <= '9') n++;
 
-  if ( peek(str,n) == '.') n++;
+  if ( peek(n) == '.') n++;
   else return 0;
 
-  if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
+  if ( !(peek(n) >= '0' && peek(n) <= '9')) return 0;
+  while ( peek(n) >= '0' && peek(n) <= '9') n++;
 
   if (n > 127) m = 127;
   else m = n;
 
   unsigned int i;
+  char fbuf[m + 1];
   for (i = 0; i < m; i ++) {
-    fbuf[i] = get(str);
+    fbuf[i] = get();
   }
 
   fbuf[i] = 0;
@@ -412,16 +388,10 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
 }
 
 
-token next_token(tokenizer_char_stream str) {
+static token next_token(void) {
   token t;
 
-  INT i_val;
-  UINT u_val;
-  char c_val;
-  FLOAT f_val;
-  int n = 0;
-
-  if (!more(str)) {
+  if (!more()) {
     t.type = TOKENIZER_END;
     return t;
   }
@@ -429,31 +399,31 @@ token next_token(tokenizer_char_stream str) {
   // Eat whitespace and comments.
   bool clean_whitespace = true;
   while ( clean_whitespace ){
-    if ( peek(str,0) == ';' ) {
-      while ( more(str) && peek(str, 0) != '\n') {
-        drop(str,1);
+    if ( peek(0) == ';' ) {
+      while ( more() && peek( 0) != '\n') {
+        drop(1);
       }
-    } else if ( isspace(peek(str,0))) {
-      drop(str,1);
+    } else if ( isspace(peek(0))) {
+      drop(1);
     } else {
       clean_whitespace = false;
     }
   }
 
   // Check for end of string again
-  if (!more(str)) {
+  if (!more()) {
     t.type = TOKENIZER_END;
     return t;
   }
 
   uint32_t match;;
-  match = tok_match_fixed_size_tokens(str);
+  match = tok_match_fixed_size_tokens();
   if (match > 0) {
     t.type = match;
     return t;
   }
 
-  n = tok_symbol(str);
+  int n = tok_symbol();
   if (n > 0) {
     t.text_len = (unsigned int)n;
     t.type = TOKSYMBOL;
@@ -463,13 +433,14 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if (tok_char(str, &c_val)) {
+  char c_val;
+  if (tok_char(&c_val)) {
     t.data.c = c_val;
     t.type = TOKCHAR;
     return t;
   }
 
-  n = tok_string(str);
+  n = tok_string();
   if (n >= 2) {
     t.text_len = (unsigned int)n - 2;
     t.type = TOKSTRING;
@@ -479,32 +450,35 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if (tok_F(str, &f_val)) {
+  FLOAT f_val;
+  if (tok_F(&f_val)) {
     t.data.f = f_val;
     t.type = TOKBOXEDFLOAT;
     return t;
   }
 
-  if (tok_U(str, &u_val)) {
+  UINT u_val;
+  if (tok_U(&u_val)) {
     t.data.u = u_val;
     t.type = TOKBOXEDUINT;
     return t;
   }
 
-  if (tok_u(str, &u_val)) {
+  if (tok_u(&u_val)) {
     t.data.u = u_val;
     t.type = TOKUINT;
     return t;
   }
 
-  if (tok_I(str, &i_val)) {
+  INT i_val;
+  if (tok_I(&i_val)) {
     t.data.i = i_val;
     t.type = TOKBOXEDINT;
     return t;
   }
 
   // Shortest form of integer match. Move to last in chain of numerical tokens.
-  if (tok_i(str, &i_val)) {
+  if (tok_i(&i_val)) {
     t.data.i = i_val;
     t.type = TOKINT;
     return t;
@@ -514,50 +488,38 @@ token next_token(tokenizer_char_stream str) {
   return t;
 }
 
-VALUE parse_sexp(token tok, tokenizer_char_stream str);
-VALUE parse_sexp_list(token tok, tokenizer_char_stream str);
+static VALUE tokpar_parse_program(void);
+static VALUE parse_sexp(void);
+static VALUE parse_sexp_list(void);
 
-VALUE tokpar_parse_program(tokenizer_char_stream str) {
+static VALUE tokpar_parse_program(void) {
   CHECK_STACK();
 
-  token tok = next_token(str);
-  CHECK_STACK();
-  VALUE head;
-  VALUE tail;
+  ts.tok = next_token();
 
-  CHECK_STACK();
-
-  if (tok.type == TOKENIZER_ERROR) {
+  if (ts.tok.type == TOKENIZER_ERROR) {
     return enc_sym(SYM_RERROR);
   }
 
-  if (tok.type == TOKENIZER_END) {
+  if (ts.tok.type == TOKENIZER_END) {
     return enc_sym(SYM_NIL);
   }
 
-  head = parse_sexp(tok, str);
-  tail = tokpar_parse_program(str);
-
-  CHECK_STACK();
-
-  return cons(head, tail);
+  return cons(parse_sexp(), tokpar_parse_program());
 }
 
-VALUE parse_sexp(token tok, tokenizer_char_stream str) {
+static VALUE parse_sexp(void) {
   CHECK_STACK();
 
-  VALUE v;
-  token t;
-
-  switch (tok.type) {
+  switch (ts.tok.type) {
   case TOKENIZER_END:
     return enc_sym(SYM_RERROR);
   case TOKENIZER_ERROR:
     return enc_sym(SYM_RERROR);
-  case TOKOPENPAR:
-    t = next_token(str);
-    CHECK_STACK();
-    return parse_sexp_list(t,str);
+  case TOKOPENPAR: {
+    ts.tok = next_token();
+    return parse_sexp_list();
+  }
   case TOKDONTCARE:
     return enc_sym(SYM_DONTCARE);
   case TOKMATCHANY:
@@ -572,7 +534,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     return enc_sym(SYM_MATCH_CONS);
   case TOKSYMBOL: {
     UINT symbol_id;
-
+    VALUE v;
     if (symrepr_lookup(sym_str, &symbol_id)) {
       v = enc_sym(symbol_id);
     }
@@ -581,41 +543,39 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     } else {
       v = enc_sym(SYM_RERROR);
     }
-    CHECK_STACK();
     return v;
   }
   case TOKSTRING: {
-    heap_allocate_array(&v, tok.text_len+1, VAL_TYPE_CHAR);
+    VALUE v;
+    heap_allocate_array(&v, ts.tok.text_len+1, VAL_TYPE_CHAR);
     array_header_t *arr = (array_header_t*)car(v);
     char *data = (char *)arr + 8;
-    memset(data, 0, (tok.text_len+1) * sizeof(char));
-    memcpy(data, sym_str, tok.text_len * sizeof(char));
+    memset(data, 0, (ts.tok.text_len+1) * sizeof(char));
+    memcpy(data, sym_str, ts.tok.text_len * sizeof(char));
     return v;
   }
   case TOKINT:
-    return enc_i(tok.data.i);
+    return enc_i(ts.tok.data.i);
   case TOKUINT:
-    return enc_u(tok.data.u);
+    return enc_u(ts.tok.data.u);
   case TOKCHAR:
-    return enc_char(tok.data.c);
+    return enc_char(ts.tok.data.c);
   case TOKBOXEDINT:
-    return set_ptr_type(cons((VALUE)tok.data.i, enc_sym(SYM_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
+    return set_ptr_type(cons((VALUE)ts.tok.data.i, enc_sym(SYM_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
   case TOKBOXEDUINT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(SYM_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
+    return set_ptr_type(cons(ts.tok.data.u, enc_sym(SYM_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
   case TOKBOXEDFLOAT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(SYM_BOXED_F_TYPE)), PTR_TYPE_BOXED_F);
+    return set_ptr_type(cons(ts.tok.data.u, enc_sym(SYM_BOXED_F_TYPE)), PTR_TYPE_BOXED_F);
   case TOKQUOTE: {
-    t = next_token(str);
-    CHECK_STACK();
-    VALUE quoted = parse_sexp(t, str);
+    ts.tok = next_token();
+    VALUE quoted = parse_sexp();
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
         dec_sym(quoted) == SYM_RERROR) return quoted;
     return cons(enc_sym(SYM_QUOTE), cons (quoted, enc_sym(SYM_NIL)));
   }
   case TOKBACKQUOTE: {
-    t = next_token(str);
-    CHECK_STACK();
-    VALUE quoted = parse_sexp(t, str);
+    ts.tok = next_token();
+    VALUE quoted = parse_sexp();
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
         dec_sym(quoted) == SYM_RERROR) return quoted;
     VALUE expanded = qq_expand(quoted);
@@ -624,17 +584,15 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     return expanded;
   }
   case TOKCOMMAAT: {
-    t = next_token(str);
-    CHECK_STACK();
-    VALUE splice = parse_sexp(t, str);
+    ts.tok = next_token();
+    VALUE splice = parse_sexp();
     if (type_of(splice) == VAL_TYPE_SYMBOL &&
         dec_sym(splice) == SYM_RERROR) return splice;
     return cons(enc_sym(SYM_COMMAAT), cons (splice, enc_sym(SYM_NIL)));
   }
   case TOKCOMMA: {
-    t = next_token(str);
-    CHECK_STACK();
-    VALUE unquoted = parse_sexp(t, str);
+    ts.tok = next_token();
+    VALUE unquoted = parse_sexp();
     if (type_of(unquoted) == VAL_TYPE_SYMBOL &&
         dec_sym(unquoted) == SYM_RERROR) return unquoted;
     return cons(enc_sym(SYM_COMMA), cons (unquoted, enc_sym(SYM_NIL)));
@@ -643,89 +601,51 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   return enc_sym(SYM_RERROR);
 }
 
-VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
+static VALUE parse_sexp_list(void) {
   CHECK_STACK();
 
-  token t;
-  VALUE head;
-  VALUE tail;
-
-  switch (tok.type) {
+  switch (ts.tok.type) {
   case TOKENIZER_END:
     return enc_sym(SYM_RERROR);
   case TOKENIZER_ERROR:
     return enc_sym(SYM_RERROR);
   case TOKCLOSEPAR:
     return enc_sym(SYM_NIL);
-  default:
-    head = parse_sexp(tok, str);
-    t = next_token(str);
-    CHECK_STACK();
+  default: {
+    VALUE head = parse_sexp();
+    ts.tok = next_token();
 
-    if (t.type == TOKDOT) {
-      t = next_token(str);
-      CHECK_STACK();
-      tail = parse_sexp(t, str);
-      t = next_token(str);
-      CHECK_STACK();
-      if (t.type != TOKCLOSEPAR) {
+    VALUE tail;
+    if (ts.tok.type == TOKDOT) {
+      ts.tok = next_token();
+      tail = parse_sexp();
+      ts.tok = next_token();
+      if (ts.tok.type != TOKCLOSEPAR) {
         return enc_sym(SYM_RERROR);
       }
 
     } else {
-      tail = parse_sexp_list(t, str);
+      tail = parse_sexp_list();
     }
+
     if ((type_of(head) == VAL_TYPE_SYMBOL &&
          dec_sym(head) == SYM_RERROR ) ||
         (type_of(tail) == VAL_TYPE_SYMBOL &&
          dec_sym(tail) == SYM_RERROR )) return enc_sym(SYM_RERROR);
     return cons(head, tail);
   }
+  }
   return enc_sym(SYM_RERROR);
-}
-
-bool more_string(tokenizer_char_stream str) {
-  CHECK_STACK0();
-  tokenizer_state *s = (tokenizer_state*)str.state;
-  return s->str[s->pos] != 0;
-}
-
-char get_string(tokenizer_char_stream str) {
-  CHECK_STACK0();
-  tokenizer_state *s = (tokenizer_state*)str.state;
-  char c = s->str[s->pos];
-  s->pos = s->pos + 1;
-  return c;
-}
-
-char peek_string(tokenizer_char_stream str, unsigned int n) {
-  CHECK_STACK0();
-  tokenizer_state *s = (tokenizer_state*)str.state;
-  // TODO error checking ?? how ?
-  char c = s->str[s->pos + n];
-  return c;
-}
-
-void drop_string(tokenizer_char_stream str, unsigned int n) {
-  tokenizer_state *s = (tokenizer_state*)str.state;
-  s->pos = s->pos + n;
 }
 
 VALUE tokpar_parse(char *string) {
   stack_ok = true;
-  CHECK_STACK();
 
-  tokenizer_state ts;
   ts.str = string;
   ts.pos = 0;
 
-  tokenizer_char_stream str;
-  str.state = &ts;
-  str.more = more_string;
-  str.peek = peek_string;
-  str.drop = drop_string;
-  str.get  = get_string;
+  VALUE v = tokpar_parse_program();
+  CHECK_STACK();
 
-  return tokpar_parse_program(str);
+  return v;
 }
-

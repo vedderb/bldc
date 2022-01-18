@@ -38,16 +38,4 @@ typedef float    FLOAT;
 typedef uint16_t CID;
 #define CID_MAX   65535
 
-/* tokenizer */
-
-typedef struct tcs{
-  void *state;
-  bool (*more)(struct tcs);
-  char (*get)(struct tcs);
-  char (*peek)(struct tcs, unsigned int);
-  void (*drop)(struct tcs, unsigned int);
-} tokenizer_char_stream;
-
-
-
 #endif
