@@ -96,6 +96,10 @@ typedef struct {
   token tok;
   char *str;
   unsigned int pos;
+  bool (*more)(void);
+  char (*get)(void);
+  char (*peek)(unsigned int n);
+  void (*drop)(unsigned int n);
 } parser_state;
 
 #define NUM_FIXED_SIZE_TOKENS 13
@@ -117,22 +121,26 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
 
 static parser_state ts;
 
-// TODO: Connect these with compression
-bool more(void) {
+bool more_local(void) {
   return ts.str[ts.pos] != 0;
 }
 
-char get(void) {
+char get_local(void) {
   return ts.str[ts.pos++];
 }
 
-char peek(unsigned int n) {
+char peek_local(unsigned int n) {
   return ts.str[ts.pos + n];
 }
 
-void drop(unsigned int n) {
+void drop_local(unsigned int n) {
   ts.pos = ts.pos + n;
 }
+
+#define more() ts.more()
+#define get() ts.get()
+#define peek(n) ts.peek(n)
+#define drop(n) ts.drop(n)
 
 static uint32_t tok_match_fixed_size_tokens(void) {
   for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
@@ -643,6 +651,31 @@ VALUE tokpar_parse(char *string) {
 
   ts.str = string;
   ts.pos = 0;
+  ts.more = more_local;
+  ts.get = get_local;
+  ts.peek = peek_local;
+  ts.drop = drop_local;
+
+  VALUE v = tokpar_parse_program();
+  CHECK_STACK();
+
+  return v;
+}
+
+VALUE tokpar_parse_stream(
+    bool (*more)(void),
+    char (*get)(void),
+    char (*peek)(unsigned int n),
+    void (*drop)(unsigned int n)) {
+
+  stack_ok = true;
+
+  ts.str = 0;
+  ts.pos = 0;
+  ts.more = more;
+  ts.get = get;
+  ts.peek = peek;
+  ts.drop = drop;
 
   VALUE v = tokpar_parse_program();
   CHECK_STACK();

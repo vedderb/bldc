@@ -24,6 +24,11 @@
 #include "utils.h"
 #define TOKPAR_CHECK_STACK()	(utils_stack_left_now() > 350)
 
-extern VALUE tokpar_parse(char *str);
+VALUE tokpar_parse(char *str);
+VALUE tokpar_parse_stream(
+    bool (*more)(void),
+    char (*get)(void),
+    char (*peek)(unsigned int n),
+    void (*drop)(unsigned int n));
 
 #endif
