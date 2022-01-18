@@ -90,10 +90,14 @@ static void terminal_start(int argc, const char **argv) {
 
 	lispif_load_vesc_extensions();
 
+	commands_printf("Parsing %d characters", strlen(code));
+
 	VALUE t = tokpar_parse(code);
 
 	if (dec_sym(t) == SYM_STACK_ERROR) {
 		commands_printf("Lisp parser ran out of stack");
+	} else if (dec_sym(t) == SYM_RERROR) {
+		commands_printf("Lisp parser error");
 	} else {
 		eval_cps_program(t);
 		eval_cps_continue_eval();
