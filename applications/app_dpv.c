@@ -130,7 +130,7 @@ static THD_FUNCTION(dpv_thread, arg) {
 	} else {
 		motorSpeed=SPEED_OFF;
 	}
-  	ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 5.0 : 0.5;
+  	ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 5.0 : 1.5;
     	if (fabsf(motorSpeed) > 0.01) {
         	ramp_time = fminf(3.0, 3.0);
         }
