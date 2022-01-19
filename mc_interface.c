@@ -361,9 +361,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			break;
 
 		case SENSOR_PORT_MODE_SINCOS:
-			encoder_init_sincos(motor->m_conf.foc_encoder_sin_gain, motor->m_conf.foc_encoder_sin_offset,
-								motor->m_conf.foc_encoder_cos_gain, motor->m_conf.foc_encoder_cos_offset,
-								motor->m_conf.foc_encoder_sincos_filter_constant);
+			encoder_init_sincos(configuration->foc_encoder_sin_gain, configuration->foc_encoder_sin_offset,
+					configuration->foc_encoder_cos_gain, configuration->foc_encoder_cos_offset,
+					configuration->foc_encoder_sincos_filter_constant);
 			break;
 
 		case SENSOR_PORT_MODE_TS5700N8501:
@@ -852,18 +852,35 @@ void mc_interface_brake_now(void) {
  * Disconnect the motor and let it turn freely.
  */
 void mc_interface_release_motor(void) {
-	mc_interface_set_current(0.0);
-}
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		mcpwm_release_motor();
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_release_motor();
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("release_motor", 0.0);}
 
 void mc_interface_release_motor_override(void) {
 	switch (motor_now()->m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_current(0.0);
+		mcpwm_release_motor();
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_current(0.0);
+		mcpwm_foc_release_motor();
 		break;
 
 	default:

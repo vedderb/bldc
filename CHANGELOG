@@ -1,5 +1,6 @@
 === FW 6.00 <dev> ===
 * Added stack checks.
+* Release motor fix when cc_min_current is 0.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

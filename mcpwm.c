@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -649,6 +649,12 @@ void mcpwm_set_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(SIGN(current) * conf->l_min_duty);
 	}
+}
+
+void mcpwm_release_motor(void) {
+	current_set = 0.0;
+	control_mode = CONTROL_MODE_NONE;
+	stop_pwm_ll();
 }
 
 /**

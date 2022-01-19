@@ -187,6 +187,7 @@ typedef struct {
 	float m_ang_hall_rate_limited;
 	float m_hall_dt_diff_last;
 	float m_hall_dt_diff_now;
+	bool m_motor_released;
 
 	// Resistance observer
 	float m_r_est;
@@ -822,6 +823,7 @@ void mcpwm_foc_set_duty(float dutyCycle) {
 	motor_now()->m_duty_cycle_set = dutyCycle;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -863,6 +865,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	motor_now()->m_control_mode = CONTROL_MODE_SPEED;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -879,6 +882,7 @@ void mcpwm_foc_set_pid_pos(float pos) {
 	motor_now()->m_pos_pid_set = pos;
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -901,8 +905,16 @@ void mcpwm_foc_set_current(float current) {
 	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
+}
+
+void mcpwm_foc_release_motor(void) {
+	motor_now()->m_control_mode = CONTROL_MODE_CURRENT;
+	motor_now()->m_iq_set = 0.0;
+	motor_now()->m_id_set = 0.0;
+	motor_now()->m_motor_released = true;
 }
 
 /**
@@ -921,6 +933,7 @@ void mcpwm_foc_set_brake_current(float current) {
 	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -941,6 +954,7 @@ void mcpwm_foc_set_handbrake(float current) {
 	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -967,6 +981,7 @@ void mcpwm_foc_set_openloop(float current, float rpm) {
 	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -996,6 +1011,7 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 	}
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -1066,6 +1082,7 @@ void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
 	motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -1086,6 +1103,7 @@ void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
 	utils_norm_angle_rad((float*)&motor_now()->m_openloop_phase);
 
 	if (motor_now()->m_state != MC_STATE_RUNNING) {
+		motor_now()->m_motor_released = false;
 		motor_now()->m_state = MC_STATE_RUNNING;
 	}
 }
@@ -1493,6 +1511,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 	motor->m_id_set = current;
 	motor->m_iq_set = 0.0;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
+	motor->m_motor_released = false;
 	motor->m_state = MC_STATE_RUNNING;
 
 	// Disable timeout
@@ -1732,6 +1751,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	motor->m_phase_now_override = 0.0;
 	motor->m_id_set = 0.0;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
+	motor->m_motor_released = false;
 	motor->m_state = MC_STATE_RUNNING;
 
 	// Disable timeout
@@ -2060,6 +2080,7 @@ bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table) {
 	motor->m_id_set = 0.0;
 	motor->m_iq_set = 0.0;
 	motor->m_control_mode = CONTROL_MODE_CURRENT;
+	motor->m_motor_released = false;
 	motor->m_state = MC_STATE_RUNNING;
 
 	// MTPA overrides id target
@@ -3128,7 +3149,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 // Private functions
 
 static void run_fw(volatile motor_all_state_t *motor, float dt) {
-	if (motor->m_conf->foc_fw_current_max < motor->m_conf->cc_min_current) {
+	if (motor->m_conf->foc_fw_current_max < fmaxf(motor->m_conf->cc_min_current, 0.001)) {
 		return;
 	}
 
@@ -3182,10 +3203,16 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 					motor->m_control_mode == CONTROL_MODE_HANDBRAKE ||
 					motor->m_control_mode == CONTROL_MODE_OPENLOOP ||
 					motor->m_control_mode == CONTROL_MODE_OPENLOOP_PHASE)) {
-		// For various control modes, check whether the controller needs to be disabled. Disable when current request is below threshold and field weakening has stopped.
-		if (fabsf(motor->m_iq_set) < motor->m_conf->cc_min_current &&
-				fabsf(motor->m_id_set) < motor->m_conf->cc_min_current &&
-				motor->m_i_fw_set < motor->m_conf->cc_min_current &&
+
+		// This is required to allow releasing the motor when cc_min_current is 0
+		float min_current = motor->m_conf->cc_min_current;
+		if (min_current < 0.001 && motor_now()->m_motor_released) {
+			min_current = 0.001;
+		}
+
+		if (fabsf(motor->m_iq_set) < min_current &&
+				fabsf(motor->m_id_set) < min_current &&
+				motor->m_i_fw_set < min_current &&
 				motor->m_current_off_delay < dt) {
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
