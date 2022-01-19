@@ -36,7 +36,6 @@
 #include "lora/lora.h"
 #endif
 
-	// Threads
 THD_FUNCTION(mag_thread, arg);
 static THD_WORKING_AREA(mag_thread_wa, 512);
 static bool mag_thread_running = false;
@@ -55,7 +54,6 @@ static const I2CConfig i2cfg = {
 		100000,
 		STD_DUTY_CYCLE
 };
-
 
 void hw_init_gpio(void) {
 	// GPIO clock enable
@@ -144,8 +142,6 @@ void hw_init_gpio(void) {
 		0,
 		terminal_cmd_doublepulse);
 #endif
-	//start uart for log
-	//app_uartcomm_start(UART_PORT_COMM_HEADER);
 }
 
 void hw_setup_adc_channels(void) {
@@ -221,7 +217,6 @@ void hw_start_i2c(void) {
 			PAL_STM32_OTYPE_OPENDRAIN |
 			PAL_STM32_OSPEED_MID1 |
 			PAL_STM32_PUDR_PULLUP);
-
 		i2cStart(&HW_I2C_DEV, &i2cfg);
 		i2c_running = true;
 	}
@@ -260,7 +255,6 @@ void hw_try_restore_i2c(void) {
 			PAL_STM32_OTYPE_OPENDRAIN |
 			PAL_STM32_OSPEED_MID1 |
 			PAL_STM32_PUDR_PULLUP);
-
 		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
 

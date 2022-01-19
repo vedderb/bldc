@@ -66,16 +66,19 @@
 //#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
 //#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
-//#define HW_SOURCE "hw_gesc.c"
-//#define HW_HEADER "hw_gesc.h"
+// Benjamins first HW60 PCB with PB5 and PB6 swapped
+//#define HW60_VEDDER_FIRST_PCB
+
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
+
+#define HW_SOURCE "hw_gesc.c"
+#define HW_HEADER "hw_gesc.h"
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 //#define HW60_IS_MK4
-#define HW60_IS_MK5
-
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW60_IS_MK5
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -103,7 +106,7 @@
 
 // Second revision with separate UART for NRF51
 //#define HW75_300_REV_2
-#define HW75_300_REV_3
+//#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -226,19 +229,21 @@
  * Select default user motor configuration
  */
 //#include			"mcconf_default.h"
-//#include 			"mcconf_china_60kv.h"
+#include 			"mcconf_60kv.h"
 
 /*
  * Select default user app configuration
  */
 //#include			"appconf_example_ppm.h"
-//#include			"appconf_custom.h"
+//#include			"appconf_dpv.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
+#define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
+#define APP_CUSTOM_TO_USE			"app_dpv.c"
 //#include "er/app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
 //#include "vccu/app_vccu_conf.h"
@@ -246,7 +251,7 @@
 
 // CAN-plotter
 //#define APP_CUSTOM_TO_USE			"app_plot_can.c"
-//#define APPCONF_APP_TO_USE			APP_CUSTOM
+#define APPCONF_APP_TO_USE			APP_CUSTOM
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
