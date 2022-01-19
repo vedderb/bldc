@@ -14,7 +14,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT =
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -29,7 +29,7 @@ endif
 
 # Linker extra options here.
 ifeq ($(USE_LDOPT),)
-  USE_LDOPT = 
+  USE_LDOPT =
 endif
 
 # Enable this if you want link time optimizations (LTO)
@@ -312,7 +312,7 @@ endif
 RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk
 
-build/$(PROJECT).bin: build/$(PROJECT).elf 
+build/$(PROJECT).bin: build/$(PROJECT).elf
 	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
 
 # Program
@@ -340,3 +340,11 @@ debug-start:
 
 size: build/$(PROJECT).elf
 	@$(SZ) $<
+
+mass_erase:
+	@openocd -f board/stm32f4discovery.cfg \
+		-c "init" \
+		-c "reset halt" \
+		-c "stm32f2x mass_erase 0" \
+		-c "sleep 200" \
+		-c "shutdown"
