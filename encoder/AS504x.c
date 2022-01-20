@@ -34,7 +34,6 @@
 #define AS504x_REFRESH_DIAG_AFTER_NSAMPLES					100
 
 static AS504x_config_t AS504x_config_now = { 0 };
-static spi_bb_state software_spi_now = { 0 };
 
 //Private variables
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
@@ -64,45 +63,20 @@ static uint8_t AS504x_spi_transfer_err_check(uint16_t *in_buf,
 #endif
 static void AS504x_determinate_if_connected(bool was_last_valid);
 
-static uint8_t AS504x_verify_serial() {
-	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
-	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
-
-	serial_magnitude = AS504x_get_diag().serial_magnitude;
-	serial_diag_flgs = AS504x_get_diag().serial_diag_flgs;
-
-	test_magnitude = serial_magnitude
-			& AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK;
-	test_AGC_value = serial_diag_flgs;
-	test_is_Comp_low = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_LOW_BIT_POS)
-			& 1;
-	test_is_Comp_high = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_HIGH_BIT_POS)
-			& 1;
-
-	if (test_is_Comp_high && test_is_Comp_low) {
-		return 1;
-	}
-	if ((uint32_t) test_magnitude + (uint32_t) test_AGC_value == 0) {
-		return 1;
-	}
-
-	return 0;
-}
-
 void AS504x_routine(void) {
 
 	uint16_t pos;
 // if MOSI is defined, use diagnostics
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
-	spi_bb_begin(&software_spi_now);
-	spi_bb_transfer_16(&software_spi_now, 0, 0, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
+	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, 0, 1);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	spi_bb_long_delay();
 
-	spi_bb_begin(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	spi_data_err_raised = AS504x_spi_transfer_err_check(&pos, 0, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 	spi_val = pos;
 
 	// get diagnostic every AS504x_REFRESH_DIAG_AFTER_NSAMPLES
@@ -125,9 +99,9 @@ void AS504x_routine(void) {
 		AS504x_diag_fetch_now_count = 0;
 	}
 #else
-        spi_bb_begin(&software_spi_now);
-        spi_bb_transfer_16(&software_spi_now, &pos, 0, 1);
-        spi_bb_end(&software_spi_now);
+        spi_bb_begin(&(AS504x_config_now.sw_spi));
+        spi_bb_transfer_16(&(AS504x_config_now.sw_spi), &pos, 0, 1);
+        spi_bb_end(&(AS504x_config_now.sw_spi));
         spi_val = pos;
 
         if(0x0000 == pos || 0xFFFF == pos) {
@@ -161,7 +135,7 @@ void AS504x_deinit(void) {
 
 	TIM_DeInit(HW_ENC_TIM);
 
-	spi_bb_deinit(&software_spi_now);
+	spi_bb_deinit(&(AS504x_config_now.sw_spi));
 
 #ifdef HW_SPI_DEV
 	spiStop(&HW_SPI_DEV);
@@ -174,18 +148,8 @@ void AS504x_deinit(void) {
 
 encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	encoder_spi_config_t AS504x_spi_config = AS504x_config->spi_config;
-
-	software_spi_now.miso_gpio = AS504x_spi_config.gpio_miso.port;
-	software_spi_now.miso_pin = AS504x_spi_config.gpio_miso.pin;
-	software_spi_now.nss_gpio = AS504x_spi_config.gpio_nss.port;
-	software_spi_now.nss_pin = AS504x_spi_config.gpio_nss.pin;
-	software_spi_now.sck_gpio = AS504x_spi_config.gpio_sck.port;
-	software_spi_now.sck_pin = AS504x_spi_config.gpio_sck.pin;
-	software_spi_now.mosi_gpio = AS504x_spi_config.gpio_mosi.port;
-	software_spi_now.mosi_pin = AS504x_spi_config.gpio_mosi.pin;
-
-	spi_bb_init(&software_spi_now);
+	AS504x_config_now = *AS504x_config;
+	spi_bb_init(&(AS504x_config_now.sw_spi));
 
 	HW_ENC_TIM_CLK_EN();
 
@@ -213,26 +177,51 @@ encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 }
 
 #if (AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)
+static uint8_t AS504x_verify_serial() {
+	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
+	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
+
+	serial_magnitude = AS504x_get_diag().serial_magnitude;
+	serial_diag_flgs = AS504x_get_diag().serial_diag_flgs;
+
+	test_magnitude = serial_magnitude
+			& AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK;
+	test_AGC_value = serial_diag_flgs;
+	test_is_Comp_low = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_LOW_BIT_POS)
+			& 1;
+	test_is_Comp_high = (serial_diag_flgs >> AS504x_SPI_DIAG_COMP_HIGH_BIT_POS)
+			& 1;
+
+	if (test_is_Comp_high && test_is_Comp_low) {
+		return 1;
+	}
+	if ((uint32_t) test_magnitude + (uint32_t) test_AGC_value == 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
 static uint8_t AS504x_fetch_diag(void) {
 	uint16_t recf[2], senf[2] = { AS504x_SPI_READ_DIAG_MSG,
 			AS504x_SPI_READ_MAGN_MSG };
 	uint8_t ret = 0;
 
-	spi_bb_begin(&software_spi_now);
-	spi_bb_transfer_16(&software_spi_now, 0, senf, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
+	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, senf, 1);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	spi_bb_long_delay();
 
-	spi_bb_begin(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	ret |= AS504x_spi_transfer_err_check(recf, senf + 1, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	spi_bb_long_delay();
 
-	spi_bb_begin(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	ret |= AS504x_spi_transfer_err_check(recf + 1, 0, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	if (!ret) {
 		if (spi_bb_check_parity(recf[0]) && spi_bb_check_parity(recf[1])) {
@@ -261,22 +250,22 @@ static void AS504x_deserialize_diag() {
 static void AS504x_fetch_clear_err_diag() {
 	uint16_t recf, senf = AS504x_SPI_READ_CLEAR_ERROR_MSG;
 
-	spi_bb_begin(&software_spi_now);
-	spi_bb_transfer_16(&software_spi_now, 0, &senf, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
+	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, &senf, 1);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	spi_bb_long_delay();
 
-	spi_bb_begin(&software_spi_now);
-	spi_bb_transfer_16(&software_spi_now, &recf, 0, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_begin(&(AS504x_config_now.sw_spi));
+	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), &recf, 0, 1);
+	spi_bb_end(&(AS504x_config_now.sw_spi));
 
 	AS504x_sensor_diag.serial_error_flags = recf;
 }
 
 static uint8_t AS504x_spi_transfer_err_check(uint16_t *in_buf,
 		const uint16_t *out_buf, int length) {
-	spi_bb_transfer_16(&software_spi_now ,in_buf, out_buf, length);
+	spi_bb_transfer_16(&(AS504x_config_now.sw_spi) ,in_buf, out_buf, length);
 
 	for (int len_count = 0; len_count < length; len_count++) {
 		if (((in_buf[len_count]) >> 14) & 0b01) {

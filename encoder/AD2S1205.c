@@ -11,7 +11,6 @@
 #include "spi_bb.h"
 
 static AD2S1205_config_t AD2S1205_config_now = { 0 };
-static spi_bb_state software_spi_now = { 0 };
 
 static uint16_t spi_val = 0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
@@ -30,7 +29,7 @@ void AD2S1205_deinit(void) {
 
 	TIM_DeInit(HW_ENC_TIM);
 
-	spi_bb_deinit(&software_spi_now);
+	spi_bb_deinit(&(AD2S1205_config_now.sw_spi));
 
 #ifdef HW_SPI_DEV
 	spiStop(&HW_SPI_DEV);
@@ -50,18 +49,10 @@ void AD2S1205_deinit(void) {
 encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	encoder_spi_config_t AD2S1205_spi_config = AD2S1205_config->spi_config;
 
-	software_spi_now.miso_gpio = AD2S1205_spi_config.gpio_miso.port;
-	software_spi_now.miso_pin = AD2S1205_spi_config.gpio_miso.pin;
-	software_spi_now.nss_gpio = AD2S1205_spi_config.gpio_nss.port;
-	software_spi_now.nss_pin = AD2S1205_spi_config.gpio_nss.pin;
-	software_spi_now.sck_gpio = AD2S1205_spi_config.gpio_sck.port;
-	software_spi_now.sck_pin = AD2S1205_spi_config.gpio_sck.pin;
-	software_spi_now.mosi_gpio = AD2S1205_spi_config.gpio_mosi.port;
-	software_spi_now.mosi_pin = AD2S1205_spi_config.gpio_mosi.pin;
+	AD2S1205_config_now = *AD2S1205_config;
 
-	spi_bb_init(&software_spi_now);
+	spi_bb_init(&(AD2S1205_config_now.sw_spi));
 
 	resolver_loss_of_tracking_error_rate = 0.0;
 	resolver_degradation_of_signal_error_rate = 0.0;
@@ -117,14 +108,14 @@ void AD2S1205_routine(void) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
 #endif
 
-	palSetPad(AD2S1205_config_now.spi_config.gpio_sck.port,
-			AD2S1205_config_now.spi_config.gpio_sck.pin);
+	palSetPad(AD2S1205_config_now.sw_spi.sck_gpio,
+			AD2S1205_config_now.sw_spi.sck_pin);
 	spi_bb_delay();
-	spi_bb_begin(&software_spi_now); // CS uses the same mcu pin as AS5047
+	spi_bb_begin(&(AD2S1205_config_now.sw_spi)); // CS uses the same mcu pin as AS5047
 	spi_bb_delay();
 
-	spi_bb_transfer_16(&software_spi_now, &pos, 0, 1);
-	spi_bb_end(&software_spi_now);
+	spi_bb_transfer_16(&(AD2S1205_config_now.sw_spi), &pos, 0, 1);
+	spi_bb_end(&(AD2S1205_config_now.sw_spi));
 
 	spi_val = pos;
 

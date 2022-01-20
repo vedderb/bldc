@@ -7,6 +7,7 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include <math.h>
+#include "hw.h"
 
 //TODO move defines to encoder_hwconf.h
 #define SINCOS_SAMPLE_RATE_HZ       20000
@@ -15,11 +16,6 @@
 
 ENCSINCOS_config_t enc_sincos_config_now = { 0 };
 
-static float sin_gain = 0.0;
-static float sin_offset = 0.0;
-static float cos_gain = 0.0;
-static float cos_offset = 0.0;
-static float sincos_filter_constant = 0.0;
 static uint32_t sincos_signal_below_min_error_cnt = 0;
 static uint32_t sincos_signal_above_max_error_cnt = 0;
 static float sincos_signal_low_error_rate = 0.0;
@@ -37,11 +33,8 @@ void ENC_SINCOS_deinit(void) {
 
 encoder_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	//ADC inputs are already initialized in hw_init_gpio()
-	sin_gain = enc_sincos_config->s_gain;
-	sin_offset = enc_sincos_config->s_offset;
-	cos_gain = enc_sincos_config->c_gain;
-	cos_offset = enc_sincos_config->c_offset;
-	sincos_filter_constant = enc_sincos_config->filter_constant;
+
+	enc_sincos_config_now = *enc_sincos_config;
 
 	sincos_signal_below_min_error_cnt = 0;
 	sincos_signal_above_max_error_cnt = 0;
@@ -53,18 +46,17 @@ encoder_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 #ifdef HW_HAS_SIN_COS_ENCODER
 	enc_sincos_config->is_init = 1;
 	enc_sincos_config_now = *enc_sincos_config;
-	return ENCODERS_OK;
+	return ENCODER_OK;
 #else
 	enc_sincos_config->is_init = 0;
 	return ENCODER_ERROR;
 #endif
 }
-
 float ENC_SINCOS_read_deg(void) {
 #ifdef HW_HAS_SIN_COS_ENCODER
-	float angle;
-	float sin = ENCODER_SIN_VOLTS * sin_gain - sin_offset;
-	float cos = ENCODER_COS_VOLTS * cos_gain - cos_offset;
+	float angle = 0.0;
+	float sin = ENCODER_SIN_VOLTS() * enc_sincos_config_now.s_gain - enc_sincos_config_now.s_offset; // ENCODER_SIN_VOLTS changed to ENCODER_SIN_VOLTS() otherwise the macro cannot be found
+	float cos = ENCODER_COS_VOLTS() * enc_sincos_config_now.c_gain - enc_sincos_config_now.c_offset;// ENCODER_COS_VOLTS changed to ENCODER_COS_VOLTS() otherwise the macro cannot be found
 
 	float module = SQ(sin) + SQ(cos);
 
@@ -83,7 +75,7 @@ float ENC_SINCOS_read_deg(void) {
 			UTILS_LP_FAST(sincos_signal_low_error_rate, 0.0, 1./SINCOS_SAMPLE_RATE_HZ);
 
 			float angle_tmp = RAD2DEG_f(utils_fast_atan2(sin, cos));
-			UTILS_LP_FAST(angle, angle_tmp, sincos_filter_constant);
+			UTILS_LP_FAST(angle, angle_tmp, enc_sincos_config_now.filter_constant);
 			last_enc_angle = angle;
 		}
 	}

@@ -1,3 +1,4 @@
+
 #include "encoder/ABI.h"
 
 #include "ch.h"
@@ -9,7 +10,7 @@
 #include <math.h>
 
 static float last_enc_angle = 0.0;
-static ABI_config_t abi_config_now = { 0 };
+static ABI_config_t ABI_config_now = { 0 };
 static uint32_t enc_counts = 10000;
 
 void ABI_deinit(void) {
@@ -17,16 +18,16 @@ void ABI_deinit(void) {
 
 	TIM_DeInit(HW_ENC_TIM);
 
-	palSetPadMode(abi_config_now.incremental_config.gpio_A.port,
-			abi_config_now.incremental_config.gpio_A.pin,
+	palSetPadMode(ABI_config_now.port_A,
+			ABI_config_now.pin_A,
 			PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(abi_config_now.incremental_config.gpio_B.port,
-			abi_config_now.incremental_config.gpio_B.pin,
+	palSetPadMode(ABI_config_now.port_B,
+			ABI_config_now.pin_B,
 			PAL_MODE_INPUT_PULLUP);
 
 	last_enc_angle = 0.0;
 
-	abi_config_now.is_init = 0;
+	ABI_config_now.is_init = 0;
 }
 
 encoder_ret_t ABI_init(ABI_config_t *abi_config) {
@@ -36,11 +37,13 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	// Initialize variables
 	enc_counts = abi_config->counts;
 
-	palSetPadMode(abi_config->incremental_config.gpio_A.port,
-			abi_config->incremental_config.gpio_A.pin,
+	ABI_config_now = *abi_config;
+
+	palSetPadMode(ABI_config_now.port_A,
+			ABI_config_now.pin_A,
 			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
-	palSetPadMode(abi_config->incremental_config.gpio_B.port,
-			abi_config->incremental_config.gpio_B.pin,
+	palSetPadMode(ABI_config_now.port_B,
+			ABI_config_now.pin_B,
 			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 //	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 
@@ -74,7 +77,7 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	EXTI_Init(&EXTI_InitStructure);
 
 	abi_config->is_init = 1;
-	abi_config_now = *abi_config;
+	ABI_config_now = *abi_config;
 
 	// Enable and set EXTI Line Interrupt to the highest priority
 	nvicEnableVector(HW_ENC_EXTI_CH, 0);
