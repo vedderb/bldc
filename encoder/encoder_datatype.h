@@ -1,3 +1,4 @@
+
 #ifndef ENCODER_ENCODER_DATATYPE_H_
 #define ENCODER_ENCODER_DATATYPE_H_
 
@@ -5,9 +6,7 @@
 #include <stdbool.h>
 #include "ch.h"
 #include "hal.h"
-
-typedef uint8_t encoder_pin_t;
-typedef uint32_t encoder_refresh_rate_hz_t;
+#include "spi_bb.h"
 
 typedef enum {
 	ENCODER_OK = 0, ENCODER_NONE, ENCODER_ERROR
@@ -24,32 +23,9 @@ typedef enum {
 } encoder_type_t;
 
 typedef struct {
-	stm32_gpio_t *port;
-	encoder_pin_t pin;
-} encoder_gpio_t;
-
-typedef struct {
-	encoder_gpio_t gpio_nss;
-	encoder_gpio_t gpio_miso;
-	encoder_gpio_t gpio_mosi;
-	encoder_gpio_t gpio_sck;
-} encoder_spi_config_t;
-
-typedef struct {
-	encoder_gpio_t gpio_A;
-	encoder_gpio_t gpio_B;
-} encoder_incremental_config_t;
-
-typedef struct {
-	encoder_gpio_t gpio_TX;
-	encoder_gpio_t gpio_RX;
-	encoder_gpio_t gpio_EXT;
-} encoder_UART_config_t;
-
-typedef struct {
 	bool is_init;
-	encoder_refresh_rate_hz_t refresh_rate_hz;
-	encoder_spi_config_t spi_config;
+	uint32_t refresh_rate_hz;
+	spi_bb_state sw_spi;
 #ifdef HW_SPI_DEV
 	SPIConfig hw_spi_cfg;
 #endif
@@ -62,12 +38,15 @@ typedef ENCSPI_config_t AS504x_config_t;
 typedef struct {
 	bool is_init;
 	uint32_t counts;
-	encoder_incremental_config_t incremental_config;
+	stm32_gpio_t *port_A;
+	uint8_t pin_A;
+	stm32_gpio_t *port_B;
+	uint8_t pin_B;
 } ABI_config_t;
 
 typedef struct {
 	bool is_init;
-	encoder_refresh_rate_hz_t refresh_rate_hz;
+	uint32_t refresh_rate_hz;
 	float s_gain;
 	float s_offset;
 	float c_gain;
@@ -77,7 +56,12 @@ typedef struct {
 
 typedef struct {
 	bool is_init;
-	encoder_UART_config_t uart_config;
+	stm32_gpio_t *port_TX;
+	uint8_t pin_TX;
+	stm32_gpio_t *port_RX;
+	uint8_t pin_RX;
+	stm32_gpio_t *port_EXT;
+	uint8_t pin_EXT;
 	SerialConfig uart_param;
 } TS5700N8501_config_t;
 #endif /* ENCODER_ENCODER_DATATYPE_H_ */

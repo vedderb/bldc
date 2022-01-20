@@ -34,14 +34,14 @@ void TS5700N8501_deinit(void) {
 		chThdSleepMilliseconds(1);
 	}
 
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_TX.port,
-			ts5700n8501_config_now.uart_config.gpio_TX.pin,
+	palSetPadMode(ts5700n8501_config_now.port_TX,
+			ts5700n8501_config_now.pin_TX,
 			PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_RX.port,
-			ts5700n8501_config_now.uart_config.gpio_RX.pin,
+	palSetPadMode(ts5700n8501_config_now.port_RX,
+			ts5700n8501_config_now.pin_RX,
 			PAL_MODE_INPUT_PULLUP);
 #ifdef HW_ADC_EXT_GPIO
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_EXT.port, ts5700n8501_config_now.uart_config.gpio_EXT.pin, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(ts5700n8501_config_now.port_EXT, ts5700n8501_config_now.pin_EXT, PAL_MODE_INPUT_ANALOG);
 #endif
 
 	ts5700n8501_config_now.is_init = 0;
@@ -125,8 +125,8 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	palSetPad(ts5700n8501_config_now.uart_config.gpio_EXT.port, ts5700n8501_config_now.uart_config.gpio_EXT.pin);
 #endif
 	TS5700N8501_delay_uart();
-	palWritePad(ts5700n8501_config_now.uart_config.gpio_TX.port,
-			ts5700n8501_config_now.uart_config.gpio_TX.pin, 0);
+	palWritePad(ts5700n8501_config_now.port_TX,
+			ts5700n8501_config_now.pin_TX, 0);
 	__NOP();
 	__NOP();
 	__NOP();
@@ -143,8 +143,8 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	__NOP();
 	__NOP();
 	for (int i = 0; i < 8; i++) {
-		palWritePad(ts5700n8501_config_now.uart_config.gpio_TX.port,
-				ts5700n8501_config_now.uart_config.gpio_TX.pin,
+		palWritePad(ts5700n8501_config_now.port_TX,
+				ts5700n8501_config_now.pin_TX,
 				(b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
 		TS5700N8501_delay_uart();
 	}
@@ -166,11 +166,11 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	__NOP();
 	__NOP();
 	__NOP();
-	palWritePad(ts5700n8501_config_now.uart_config.gpio_TX.port,
-			ts5700n8501_config_now.uart_config.gpio_TX.pin, 1);
+	palWritePad(ts5700n8501_config_now.port_TX,
+			ts5700n8501_config_now.pin_TX, 1);
 	TS5700N8501_delay_uart();
 #ifdef HW_ADC_EXT_GPIO
-	palClearPad(ts5700n8501_config_now.uart_config.gpio_EXT.port, ts5700n8501_config_now.uart_config.gpio_EXT.pin);
+	palClearPad(ts5700n8501_config_now.port_EXT, ts5700n8501_config_now.pin_EXT);
 #endif
 	utils_sys_unlock_cnt();
 }
@@ -183,14 +183,14 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 	SerialConfig sd_init = ts5700n8501_config_now.uart_param;
 
 	sdStart(&HW_UART_DEV, &sd_init);
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_TX.port,
-			ts5700n8501_config_now.uart_config.gpio_TX.pin,
+	palSetPadMode(ts5700n8501_config_now.port_TX,
+			ts5700n8501_config_now.pin_TX,
 			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_RX.port,
-			ts5700n8501_config_now.uart_config.gpio_RX.pin,
+	palSetPadMode(ts5700n8501_config_now.port_RX,
+			ts5700n8501_config_now.pin_RX,
 			PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 #ifdef HW_ADC_EXT_GPIO
-	palSetPadMode(ts5700n8501_config_now.uart_config.gpio_EXT.port, ts5700n8501_config_now.uart_config.gpio_EXT.pin, PAL_MODE_OUTPUT_PUSHPULL |
+	palSetPadMode(ts5700n8501_config_now.port_EXT, ts5700n8501_config_now.pin_EXT, PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 #endif
