@@ -15,7 +15,7 @@
      (yield (/ 1000000 rate))
      
      (if (> x 1.0) (define upcnt (- rampstep) nil))
-     (if (< x (- 1.0)) (define upcnt rampstep) nil)
+     (if (< x -1.0) (define upcnt rampstep) nil)
      
      (f (+ x upcnt))
 )))) (f 0))

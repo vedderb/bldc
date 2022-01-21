@@ -18,7 +18,7 @@
 #ifndef _FUNDAMENTAL_H_
 #define _FUNDAMENTAL_H_
 
-extern VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op);
+extern lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op);
 #endif
 
 

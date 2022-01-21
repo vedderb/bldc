@@ -58,11 +58,7 @@
 
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
-#ifdef USE_LISPBM
-static THD_WORKING_AREA(blocking_thread_wa, 6000);
-#else
-static THD_WORKING_AREA(blocking_thread_wa, 2048);
-#endif
+static THD_WORKING_AREA(blocking_thread_wa, 3000);
 static thread_t *blocking_tp;
 
 // Private variables

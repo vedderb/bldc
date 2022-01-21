@@ -40,7 +40,7 @@ static uint32_t memory_size;  // in 4 byte words
 static uint32_t bitmap_size;  // in 4 byte words
 static unsigned int memory_base_address = 0;
 
-int memory_init(uint32_t *data, uint32_t data_size,
+int lbm_memory_init(uint32_t *data, uint32_t data_size,
                 uint32_t *bits, uint32_t bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
@@ -95,11 +95,11 @@ static inline void set_status(unsigned int i, uint32_t status) {
   bitmap[word_ix] |= mask;
 }
 
-uint32_t memory_num_words(void) {
+uint32_t lbm_memory_num_words(void) {
   return memory_size;
 }
 
-uint32_t memory_num_free(void) {
+uint32_t lbm_memory_num_free(void) {
   if (memory == NULL || bitmap == NULL) {
     return 0;
   }
@@ -141,7 +141,7 @@ uint32_t memory_num_free(void) {
   return sum_length;
 }
 
-uint32_t *memory_allocate(uint32_t num_words) {
+uint32_t *lbm_memory_allocate(uint32_t num_words) {
 
   if (memory == NULL || bitmap == NULL) {
     return NULL;
@@ -208,7 +208,7 @@ uint32_t *memory_allocate(uint32_t num_words) {
   return NULL;
 }
 
-int memory_free(uint32_t *ptr) {
+int lbm_memory_free(uint32_t *ptr) {
   unsigned int ix = address_to_bitmap_ix(ptr);
   switch(status(ix)) {
   case START:

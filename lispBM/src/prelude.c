@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,6 +25,10 @@ char prelude[] = {
 };
 
 
-VALUE prelude_load(void) {
-  return tokpar_parse(prelude);
+void prelude_load(lbm_tokenizer_string_state_t *state,
+                  lbm_tokenizer_char_stream_t *stream) {
+  
+  lbm_create_char_stream_from_string(state,
+                                        stream,
+                                        prelude);
 }

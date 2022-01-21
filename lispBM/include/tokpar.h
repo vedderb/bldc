@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,15 +20,14 @@
 
 #include "lispbm_types.h"
 
-// TODO: Include the following two lines in some platform header, which then is included here
-#include "utils.h"
-#define TOKPAR_CHECK_STACK()	(utils_stack_left_now() > 350)
+typedef struct {
+  char *str;
+  unsigned int pos;
+} lbm_tokenizer_string_state_t;
 
-VALUE tokpar_parse(char *str);
-VALUE tokpar_parse_stream(
-    bool (*more)(void),
-    char (*get)(void),
-    char (*peek)(unsigned int n),
-    void (*drop)(unsigned int n));
+extern void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *,
+                                                  lbm_tokenizer_char_stream_t *,
+                                                  char *);
+extern lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
 
 #endif

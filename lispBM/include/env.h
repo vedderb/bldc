@@ -20,14 +20,17 @@
 
 #include "lispbm_types.h"
 
-extern int env_init(void);
-extern VALUE *env_get_global_ptr(void);
-extern VALUE env_copy_shallow(VALUE env);
-extern VALUE env_lookup(VALUE sym, VALUE env);
-extern VALUE env_set(VALUE env, VALUE key, VALUE val);
-extern VALUE env_modify_binding(VALUE env, VALUE key, VALUE val);
-extern VALUE env_build_params_args(VALUE params,
-                                   VALUE args,
-                                   VALUE env0);
+//environment interface
+extern int lbm_init_env(void);
+extern lbm_value *lbm_get_env_ptr(void);
+extern lbm_value lbm_env_copy_shallow(lbm_value env);
+extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
+extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
+extern lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
+
+// Internal use
+extern lbm_value lbm_env_build_params_args(lbm_value params,
+                                       lbm_value args,
+                                       lbm_value env0);
 
 #endif

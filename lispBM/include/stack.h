@@ -24,99 +24,97 @@
 #include "lispbm_types.h"
 
 typedef struct {
-  UINT* data;
+  lbm_uint* data;
   unsigned int sp;
   unsigned int size;
   unsigned int max_sp;
-} stack;
+} lbm_stack_t;
 
-extern int stack_allocate(stack *s, unsigned int stack_size);
-extern int stack_create(stack *s, UINT* data, unsigned int size);
-extern void stack_free(stack *s);
-extern int stack_clear(stack *s);
-extern UINT *stack_ptr(stack *s, unsigned int n);
-extern int stack_drop(stack *s, unsigned int n);
-extern int push_u32(stack *s, UINT val);
-extern int push_k(stack *s, VALUE (*k)(VALUE));
-extern int pop_u32(stack *s, UINT *val);
-extern int pop_k(stack *s, VALUE (**k)(VALUE));
+extern int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size);
+extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, unsigned int size);
+extern void lbm_stack_free(lbm_stack_t *s);
+extern int lbm_stack_clear(lbm_stack_t *s);
+extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, unsigned int n);
+extern int lbm_stack_drop(lbm_stack_t *s, unsigned int n);
+extern int lbm_push_u32(lbm_stack_t *s, lbm_uint val);
+extern int lbm_pop_u32(lbm_stack_t *s, lbm_uint *val);
 
-static inline int stack_is_empty(stack *s) {
+static inline int lbm_stack_is_empty(lbm_stack_t *s) {
   if (s->sp == 0) return 1;
   return 0;
 }
 
-static inline int stack_arg_ix(stack *s, unsigned int ix, UINT *res) {
-  if (ix > s->sp-1) return 0;
-  *res = s->data[s->sp-(ix+1)];
-  return 1;
-}
+//static inline int stack_arg_ix(lbm_stack_t *s, unsigned int ix, lbm_uint *res) {
+//  if (ix > s->sp-1) return 0;
+//  *res = s->data[s->sp-(ix+1)];
+//  return 1;
+//}
 
-static inline int push_u32_2(stack *s, UINT val0, UINT val1) {
+static inline int lbm_push_u32_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1) {
   int res = 1;
-  res &= push_u32(s,val0);
-  res &= push_u32(s,val1);
+  res &= lbm_push_u32(s,val0);
+  res &= lbm_push_u32(s,val1);
   return res;
 }
 
-static inline int push_u32_3(stack *s, UINT val0, UINT val1, UINT val2) {
+static inline int lbm_push_u32_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2) {
   int res = 1;
-  res &= push_u32(s,val0);
-  res &= push_u32(s,val1);
-  res &= push_u32(s,val2);
+  res &= lbm_push_u32(s,val0);
+  res &= lbm_push_u32(s,val1);
+  res &= lbm_push_u32(s,val2);
   return res;
 }
 
-static inline int push_u32_4(stack *s, UINT val0, UINT val1, UINT val2, UINT val3) {
+static inline int lbm_push_u32_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3) {
   int res = 1;
-  res &= push_u32(s,val0);
-  res &= push_u32(s,val1);
-  res &= push_u32(s,val2);
-  res &= push_u32(s,val3);
+  res &= lbm_push_u32(s,val0);
+  res &= lbm_push_u32(s,val1);
+  res &= lbm_push_u32(s,val2);
+  res &= lbm_push_u32(s,val3);
   return res;
 }
 
-static inline int push_u32_5(stack *s, UINT val0, UINT val1, UINT val2, UINT val3, UINT val4) {
+static inline int lbm_push_u32_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3, lbm_uint val4) {
   int res = 1;
-  res &= push_u32(s,val0);
-  res &= push_u32(s,val1);
-  res &= push_u32(s,val2);
-  res &= push_u32(s,val3);
-  res &= push_u32(s,val4);
+  res &= lbm_push_u32(s,val0);
+  res &= lbm_push_u32(s,val1);
+  res &= lbm_push_u32(s,val2);
+  res &= lbm_push_u32(s,val3);
+  res &= lbm_push_u32(s,val4);
   return res;
 }
 
-static inline int pop_u32_2(stack *s, UINT *r0, UINT *r1) {
+static inline int lbm_pop_u32_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1) {
   int res = 1;
-  res &= pop_u32(s, r0);
-  res &= pop_u32(s, r1);
+  res &= lbm_pop_u32(s, r0);
+  res &= lbm_pop_u32(s, r1);
   return res;
 }
 
-static inline int pop_u32_3(stack *s, UINT *r0, UINT *r1, UINT *r2) {
+static inline int lbm_pop_u32_3(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2) {
   int res = 1;
-  res &= pop_u32(s, r0);
-  res &= pop_u32(s, r1);
-  res &= pop_u32(s, r2);
+  res &= lbm_pop_u32(s, r0);
+  res &= lbm_pop_u32(s, r1);
+  res &= lbm_pop_u32(s, r2);
   return res;
 }
 
-static inline int pop_u32_4(stack *s, UINT *r0, UINT *r1, UINT *r2, UINT *r3) {
+static inline int lbm_pop_u32_4(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3) {
   int res = 1;
-  res &= pop_u32(s, r0);
-  res &= pop_u32(s, r1);
-  res &= pop_u32(s, r2);
-  res &= pop_u32(s, r3);
+  res &= lbm_pop_u32(s, r0);
+  res &= lbm_pop_u32(s, r1);
+  res &= lbm_pop_u32(s, r2);
+  res &= lbm_pop_u32(s, r3);
   return res;
 }
 
-static inline int pop_u32_5(stack *s, UINT *r0, UINT *r1, UINT *r2, UINT *r3, UINT *r4) {
+static inline int lbm_pop_u32_5(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3, lbm_uint *r4) {
   int res = 1;
-  res &= pop_u32(s, r0);
-  res &= pop_u32(s, r1);
-  res &= pop_u32(s, r2);
-  res &= pop_u32(s, r3);
-  res &= pop_u32(s, r4);
+  res &= lbm_pop_u32(s, r0);
+  res &= lbm_pop_u32(s, r1);
+  res &= lbm_pop_u32(s, r2);
+  res &= lbm_pop_u32(s, r3);
+  res &= lbm_pop_u32(s, r4);
   return res;
 }
 

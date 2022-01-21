@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -28,18 +28,18 @@
 
 
 typedef struct eval_context_s{
-  VALUE program;
-  VALUE curr_exp;
-  VALUE curr_env;
-  VALUE mailbox;  /*massage passing mailbox */
-  VALUE r;
+  lbm_value program;
+  lbm_value curr_exp;
+  lbm_value curr_env;
+  lbm_value mailbox;  /*massage passing mailbox */
+  lbm_value r;
   bool  done;
   bool  app_cont;
-  stack K;
+  lbm_stack_t K;
   /* Process control */
   uint32_t timestamp;
   uint32_t sleep_us;
-  CID id;
+  lbm_cid id;
   /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;
@@ -48,38 +48,40 @@ typedef struct eval_context_s{
 typedef void (*ctx_fun)(eval_context_t *, void*, void*);
 
 /* Common interface */
-extern VALUE eval_cps_get_env(void);
+extern lbm_value eval_cps_get_env(void);
 
 /* Concurrent interface */
-extern int eval_cps_init(void);
-extern bool eval_cps_remove_done_ctx(CID cid, VALUE *v);
-extern VALUE eval_cps_wait_ctx(CID cid);
-extern CID eval_cps_program(VALUE lisp);
-extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size);
-extern void eval_cps_run_eval(void);
+extern int lbm_eval_init(void);
+extern bool lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
+extern lbm_value lbm_wait_ctx(lbm_cid cid);
+extern lbm_cid lbm_eval_program(lbm_value lisp);
+extern lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size);
+extern void lbm_run_eval(void);
 
-extern void eval_cps_pause_eval(void);
-extern void eval_cps_step_eval(void);
-extern void eval_cps_continue_eval(void); 
-extern void eval_cps_kill_eval(void);
-extern uint32_t eval_cps_current_state(void);
+extern void lbm_pause_eval(void);
+extern void lbm_step_eval(void);
+extern void lbm_continue_eval(void);
+extern void lbm_kill_eval(void);
+extern uint32_t lbm_get_eval_state(void);
 
 /* statistics interface */
-extern void eval_cps_running_iterator(ctx_fun f, void*, void*);
-extern void eval_cps_blocked_iterator(ctx_fun f, void*, void*);
-extern void eval_cps_done_iterator(ctx_fun f, void*, void*);
+extern void lbm_running_iterator(ctx_fun f, void*, void*);
+extern void lbm_blocked_iterator(ctx_fun f, void*, void*);
+extern void lbm_done_iterator(ctx_fun f, void*, void*);
 
 /*
   Callback routines for sleeping and timestamp generation.
   Depending on target platform these will be implemented in different ways.
   Todo: It may become necessary to also add a mutex callback.
 */
-extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
-extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
-extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
+extern void lbm_set_usleep_callback(void (*fptr)(uint32_t));
+extern void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void));
+extern void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-/* Non concurrent interface: */
-extern int eval_cps_init_nc(unsigned int stack_size);
-extern void eval_cps_del_nc(void);
-extern VALUE eval_cps_program_nc(VALUE lisp);
+/* loading of programs interface */
+extern lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer);
+extern lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokenizer);
+extern lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
+extern lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
+
 #endif

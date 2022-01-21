@@ -36,12 +36,12 @@
 
 uint32_t* extensions = NULL;
 
-int extensions_init(void) {
+int lbm_extensions_init(void) {
   extensions = NULL;
   return 1;
 }
 
-extension_fptr extensions_lookup(UINT sym) {
+extension_fptr lbm_get_extension(lbm_uint sym) {
   uint32_t *t = extensions;
   while (t != NULL) {
     if (t[SYM] == sym) {
@@ -52,13 +52,13 @@ extension_fptr extensions_lookup(UINT sym) {
   return NULL;
 }
 
-bool extensions_add(char *sym_str, extension_fptr ext) {
-  VALUE symbol;
-  int res = symrepr_addsym_const(sym_str, &symbol);
+bool lbm_add_extension(char *sym_str, extension_fptr ext) {
+  lbm_value symbol;
+  int res = lbm_add_symbol_const(sym_str, &symbol);
 
   if (!res) return false;
 
-  uint32_t *m = memory_allocate(3); /* 3 words */
+  uint32_t *m = lbm_memory_allocate(3); /* 3 words */
 
   if (!m) return false;
 

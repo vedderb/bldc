@@ -23,14 +23,14 @@
 #include "heap.h"
 #include "lispbm_types.h"
 
-typedef VALUE (*extension_fptr)(VALUE*,UINT);
+typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 
-extern int extensions_init(void);
-extern extension_fptr extensions_lookup(UINT sym);
-extern bool extensions_add(char *sym_str, extension_fptr ext);
+extern int lbm_extensions_init(void);
+extern extension_fptr lbm_get_extension(lbm_uint sym);
+extern bool lbm_add_extension(char *sym_str, extension_fptr ext);
 
-static inline bool is_extension(VALUE exp) {
-  return ((type_of(exp) == VAL_TYPE_SYMBOL) &&
-          (extensions_lookup(dec_sym(exp)) != NULL));
+static inline bool lbm_is_extension(lbm_value exp) {
+  return ((lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL) &&
+          (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
 }
 #endif

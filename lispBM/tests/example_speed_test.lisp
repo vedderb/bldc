@@ -18,11 +18,31 @@
   (if (> x 0) (dec-cnt3 (- (- (- (- (- (- (- x 1) 1) 1) 1) 1) 1) 1)) 0)
 ))
 
+(define tak (lambda (x y z)
+  (if (not (< y x))
+      z
+    (tak
+     (tak (- x 1) y z)
+     (tak (- y 1) z x)
+     (tak (- z 1) x y)))))
+
+(define fib (lambda (n)
+  (if (< n 3) 1
+    (+ (fib (- n 1)) (fib (- n 2))))))
+    
+(define q2 (lambda (x y)
+  (if (or (< x 1) (< y 1)) 1
+    (+ (q2 (- x (q2 (- x 1) y)) y)
+       (q2 x (- y (q2 x (- y 1))))))))
+
 (define f (lambda ()
    (progn
      
      (define start (systime))
-     (dec-cnt2 100000)
+     ;(dec-cnt3 100000)
+     (define takres (tak 18 12 6))
+     ;(define fibres (fib 23))
+     ;(define q2res (q2 7 8))
      (print (list "Seconds elapsed: " (secs-since start)))
      
      (yield 2000000)

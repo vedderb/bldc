@@ -31,17 +31,17 @@
 #include "qq_expand.h"
 
 
-VALUE gen_cons(VALUE a, VALUE b) {
-  return cons(enc_sym(SYM_CONS),
-                   cons(a,
-                        cons(b, enc_sym(SYM_NIL))));
+lbm_value gen_cons(lbm_value a, lbm_value b) {
+  return lbm_cons(lbm_enc_sym(SYM_CONS),
+                   lbm_cons(a,
+                        lbm_cons(b, lbm_enc_sym(SYM_NIL))));
 }
 
 
-VALUE append(VALUE front, VALUE back) {
-  return cons (enc_sym(SYM_APPEND),
-               cons(front,
-                    cons(back, enc_sym(SYM_NIL))));
+lbm_value append(lbm_value front, lbm_value back) {
+  return lbm_cons (lbm_enc_sym(SYM_APPEND),
+               lbm_cons(front,
+                    lbm_cons(back, lbm_enc_sym(SYM_NIL))));
 }
 
 /* Bawden's qq-expand-list implementation
@@ -61,33 +61,33 @@ VALUE append(VALUE front, VALUE back) {
         (else `'(,x))))
 */
 
-VALUE qq_expand_list(VALUE l) {
-  VALUE res = enc_sym(SYM_NIL);
-  VALUE car_val;
-  VALUE cdr_val;
+lbm_value qq_expand_list(lbm_value l) {
+  lbm_value res = lbm_enc_sym(SYM_NIL);
+  lbm_value car_val;
+  lbm_value cdr_val;
 
-  switch (type_of(l)) {
-  case PTR_TYPE_CONS:
-    car_val = car(l);
-    cdr_val = cdr(l);
-    if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-        dec_sym(car_val) == SYM_COMMA) {
-      res = cons(enc_sym(SYM_LIST),
-                 cons(car(cdr_val), res));
-    } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-               dec_sym(car_val) == SYM_COMMAAT) {
-      res = car(cdr_val);
+  switch (lbm_type_of(l)) {
+  case LBM_PTR_TYPE_CONS:
+    car_val = lbm_car(l);
+    cdr_val = lbm_cdr(l);
+    if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(car_val) == SYM_COMMA) {
+      res = lbm_cons(lbm_enc_sym(SYM_LIST),
+                 lbm_cons(lbm_car(cdr_val), res));
+    } else if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+      res = lbm_car(cdr_val);
     } else {
-      VALUE expand_car = qq_expand_list(car_val);
-      VALUE expand_cdr = qq_expand(cdr_val);
-      res = cons(enc_sym(SYM_LIST),
-                 cons(append(expand_car, expand_cdr), enc_sym(SYM_NIL)));
+      lbm_value expand_car = qq_expand_list(car_val);
+      lbm_value expand_cdr = lbm_qq_expand(cdr_val);
+      res = lbm_cons(lbm_enc_sym(SYM_LIST),
+                 lbm_cons(append(expand_car, expand_cdr), lbm_enc_sym(SYM_NIL)));
     }
     break;
   default: {
-    VALUE a_list = cons(l, enc_sym(SYM_NIL));
+    lbm_value a_list = lbm_cons(l, lbm_enc_sym(SYM_NIL));
     res =
-      cons(enc_sym(SYM_QUOTE), cons (a_list, enc_sym(SYM_NIL)));
+      lbm_cons(lbm_enc_sym(SYM_QUOTE), lbm_cons (a_list, lbm_enc_sym(SYM_NIL)));
   }
   }
   return res;
@@ -109,30 +109,30 @@ VALUE qq_expand_list(VALUE l) {
         (else `',x)))
  */
 
-VALUE qq_expand(VALUE qquoted) {
+lbm_value lbm_qq_expand(lbm_value qquoted) {
 
-  VALUE res;
-  VALUE car_val;
-  VALUE cdr_val;
+  lbm_value res;
+  lbm_value car_val;
+  lbm_value cdr_val;
 
-  switch (type_of(qquoted)) {
-  case PTR_TYPE_CONS:
-    car_val = car(qquoted);
-    cdr_val = cdr(qquoted);
-    if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-        dec_sym(car_val) == SYM_COMMA) {
-      res = car(cdr_val);
-    } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-               dec_sym(car_val) == SYM_COMMAAT) {
-      res = enc_sym(SYM_RERROR); // should have a more specific error here. 
+  switch (lbm_type_of(qquoted)) {
+  case LBM_PTR_TYPE_CONS:
+    car_val = lbm_car(qquoted);
+    cdr_val = lbm_cdr(qquoted);
+    if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(car_val) == SYM_COMMA) {
+      res = lbm_car(cdr_val);
+    } else if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+      res = lbm_enc_sym(SYM_RERROR); // should have a more specific error here. 
     } else {
-      VALUE expand_car = qq_expand_list(car_val);
-      VALUE expand_cdr = qq_expand(cdr_val);
+      lbm_value expand_car = qq_expand_list(car_val);
+      lbm_value expand_cdr = lbm_qq_expand(cdr_val);
       res = append(expand_car, expand_cdr);
     }
     break;
   default:
-    res = cons(enc_sym(SYM_QUOTE), cons(qquoted, enc_sym(SYM_NIL)));
+    res = lbm_cons(lbm_enc_sym(SYM_QUOTE), lbm_cons(qquoted, lbm_enc_sym(SYM_NIL)));
     break;
   }
   return res;

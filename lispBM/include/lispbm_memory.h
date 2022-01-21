@@ -23,6 +23,7 @@
    doing within the guts of lispBM as I want it to be possible on
    running on the bare metal.
 
+   ** This is already done!
    Later perhaps things such as the symbol table with symbol mappings
    should also be located on this managed memory area.  Symbols,
    however, are never freed after being created in lispBM. Currently I
@@ -76,33 +77,33 @@
 
 //#define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
 //#define MEMORY_BITMAP_SIZE(X) (4*(X))
-#define MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
-#define MEMORY_BITMAP_SIZE(X) (X)
+#define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
+#define LBM_MEMORY_BITMAP_SIZE(X) (X)
 
 
-#define MEMORY_SIZE_512 MEMORY_SIZE_64BYTES_TIMES_X(8)
-#define MEMORY_SIZE_1K MEMORY_SIZE_64BYTES_TIMES_X(16)
-#define MEMORY_SIZE_2K MEMORY_SIZE_64BYTES_TIMES_X(32)
-#define MEMORY_SIZE_4K MEMORY_SIZE_64BYTES_TIMES_X(64)
-#define MEMORY_SIZE_8K MEMORY_SIZE_64BYTES_TIMES_X(128)
-#define MEMORY_SIZE_16K MEMORY_SIZE_64BYTES_TIMES_X(256)
-#define MEMORY_SIZE_32K MEMORY_SIZE_64BYTES_TIMES_X(512)
-#define MEMORY_SIZE_1M MEMORY_SIZE_64BYTES_TIMES_X(16384)
+#define LBM_MEMORY_SIZE_512 LBM_MEMORY_SIZE_64BYTES_TIMES_X(8)
+#define LBM_MEMORY_SIZE_1K LBM_MEMORY_SIZE_64BYTES_TIMES_X(16)
+#define LBM_MEMORY_SIZE_2K LBM_MEMORY_SIZE_64BYTES_TIMES_X(32)
+#define LBM_MEMORY_SIZE_4K LBM_MEMORY_SIZE_64BYTES_TIMES_X(64)
+#define LBM_MEMORY_SIZE_8K LBM_MEMORY_SIZE_64BYTES_TIMES_X(128)
+#define LBM_MEMORY_SIZE_16K LBM_MEMORY_SIZE_64BYTES_TIMES_X(256)
+#define LBM_MEMORY_SIZE_32K LBM_MEMORY_SIZE_64BYTES_TIMES_X(512)
+#define LBM_MEMORY_SIZE_1M LBM_MEMORY_SIZE_64BYTES_TIMES_X(16384)
 
-#define MEMORY_BITMAP_SIZE_512 MEMORY_BITMAP_SIZE(8)
-#define MEMORY_BITMAP_SIZE_1K  MEMORY_BITMAP_SIZE(16)
-#define MEMORY_BITMAP_SIZE_2K  MEMORY_BITMAP_SIZE(32)
-#define MEMORY_BITMAP_SIZE_4K  MEMORY_BITMAP_SIZE(64)
-#define MEMORY_BITMAP_SIZE_8K  MEMORY_BITMAP_SIZE(128)
-#define MEMORY_BITMAP_SIZE_16K MEMORY_BITMAP_SIZE(256)
-#define MEMORY_BITMAP_SIZE_32K MEMORY_BITMAP_SIZE(512)
-#define MEMORY_BITMAP_SIZE_1M  MEMORY_BITMAP_SIZE(16384)
+#define LBM_MEMORY_BITMAP_SIZE_512 LBM_MEMORY_BITMAP_SIZE(8)
+#define LBM_MEMORY_BITMAP_SIZE_1K  LBM_MEMORY_BITMAP_SIZE(16)
+#define LBM_MEMORY_BITMAP_SIZE_2K  LBM_MEMORY_BITMAP_SIZE(32)
+#define LBM_MEMORY_BITMAP_SIZE_4K  LBM_MEMORY_BITMAP_SIZE(64)
+#define LBM_MEMORY_BITMAP_SIZE_8K  LBM_MEMORY_BITMAP_SIZE(128)
+#define LBM_MEMORY_BITMAP_SIZE_16K LBM_MEMORY_BITMAP_SIZE(256)
+#define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
+#define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
 
-extern int memory_init(uint32_t *data, uint32_t data_size,
+extern int lbm_memory_init(uint32_t *data, uint32_t data_size,
                        uint32_t *bitmap, uint32_t bitmap_size);
-extern uint32_t memory_num_words(void);
-extern uint32_t memory_num_free(void);
-extern uint32_t *memory_allocate(uint32_t num_words);
-extern int memory_free(uint32_t *ptr);
+extern uint32_t lbm_memory_num_words(void);
+extern uint32_t lbm_memory_num_free(void);
+extern uint32_t *lbm_memory_allocate(uint32_t num_words);
+extern int lbm_memory_free(uint32_t *ptr);
 
 #endif

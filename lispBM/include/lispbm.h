@@ -30,8 +30,8 @@
 #include "lispbm_memory.h"
 #include "env.h"
 
-extern int lispbm_init(cons_t *heap_storage, uint32_t heap_size,
-                       uint32_t *memory, uint32_t memory_size,
-                       uint32_t *memory_bitmap, uint32_t bitmap_size);
+extern int lbm_init(lbm_cons_t *heap_storage, uint32_t heap_size,
+                    uint32_t *memory, uint32_t memory_size,
+                    uint32_t *memory_bitmap, uint32_t bitmap_size);
 
 #endif

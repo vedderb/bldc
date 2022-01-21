@@ -18,6 +18,6 @@
 #ifndef _QQ_EXPAND_H
 #define _QQ_EXPAND_H
 
-extern VALUE qq_expand(VALUE);
+extern lbm_value lbm_qq_expand(lbm_value);
 
 #endif

@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 80
+#define NUM_SPECIAL_SYMBOLS 89
 
 #define NAME   0
 #define ID     1
@@ -32,7 +32,7 @@
 
 typedef struct {
   const char *name;
-  const UINT id;
+  const lbm_uint id;
 } special_sym;
 
 special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
@@ -45,8 +45,10 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"let"        , SYM_LET},
   {"define"     , SYM_DEFINE},
   {"progn"      , SYM_PROGN},
-  {"comma"      , SYM_COMMA},
-  {"splice"     , SYM_COMMAAT},
+  {"read"       , SYM_READ},
+  {"read-program" , SYM_READ_PROGRAM},
+  //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
+  //{"splice"     , SYM_COMMAAT},
   {"match"      , SYM_MATCH},
   {"_"          , SYM_DONTCARE},
   {"send"       , SYM_SEND},
@@ -57,7 +59,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
 
-  // Special symbols with unparseable names
+  // Special symbols with unparsable names
   {"no_match"           , SYM_NO_MATCH},
   {"read_error"         , SYM_RERROR},
   {"type_error"         , SYM_TERROR},
@@ -76,6 +78,15 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
+  // tokenizer symbols with unparsable names
+  {"sym_openpar"        , SYM_OPENPAR},
+  {"sym_closepar"       , SYM_CLOSEPAR},
+  {"sym_backquote"      , SYM_BACKQUOTE},
+  {"sym_comma"          , SYM_COMMA},
+  {"sym_commaat"        , SYM_COMMAAT},
+  {"sym_dot"            , SYM_DOT},
+  {"sym_tok_done"       , SYM_TOKENIZER_DONE},
+
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
   {"type-i28"         , SYM_TYPE_I28},
@@ -87,7 +98,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-ref"         , SYM_TYPE_REF},
-
+  {"type-stream"      , SYM_TYPE_STREAM},
   // Fundamental operations
   {"+"              , SYM_ADD},
   {"-"              , SYM_SUB},
@@ -98,6 +109,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"<"              , SYM_LT},
   {">"              , SYM_GT},
   {"eval"           , SYM_EVAL},
+  {"eval-program"   , SYM_EVAL_PROGRAM},
   {"and"            , SYM_AND},
   {"or"             , SYM_OR},
   {"not"            , SYM_NOT},
@@ -126,9 +138,9 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
 
 static uint32_t *symlist = NULL;
-static UINT next_symbol_id = 0;
+static lbm_uint next_symbol_id = 0;
 
-bool symrepr_init(void) {
+bool lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = 0;
   return true;
@@ -140,12 +152,12 @@ void symrepr_del(void) {
   while (curr) {
     uint32_t *tmp = curr;
     curr = (uint32_t*)curr[NEXT];
-    memory_free((uint32_t*)tmp[NAME]);
-    memory_free(tmp);
+    lbm_memory_free((uint32_t*)tmp[NAME]);
+    lbm_memory_free(tmp);
   }
 }
 
-const char *lookup_symrepr_name_memory(UINT id) {
+const char *lookup_symrepr_name_memory(lbm_uint id) {
 
   uint32_t *curr = symlist;
   while (curr) {
@@ -158,7 +170,7 @@ const char *lookup_symrepr_name_memory(UINT id) {
 }
 
 // Lookup symbol name given a symbol id
-const char *symrepr_lookup_name(UINT id) {
+const char *lbm_get_name_by_symbol(lbm_uint id) {
   if (id < MAX_SPECIAL_SYMBOLS) {
     for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
@@ -170,7 +182,7 @@ const char *symrepr_lookup_name(UINT id) {
 }
 
 // Lookup symbol id given symbol name
-int symrepr_lookup(char *name, UINT* id) {
+int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through special symbols
   for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
@@ -192,13 +204,13 @@ int symrepr_lookup(char *name, UINT* id) {
   return 0;
 }
 
-int symrepr_addsym(char *name, UINT* id) {
+int lbm_add_symbol(char *name, lbm_uint* id) {
   size_t  n = 0;
 
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = memory_allocate(3);
+  uint32_t *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -206,13 +218,13 @@ int symrepr_addsym(char *name, UINT* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)memory_allocate(n/4);
+    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
   } else {
-    symbol_name_storage = (char *)memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
   }
 
   if (symbol_name_storage == NULL) {
-    memory_free(m);
+    lbm_memory_free(m);
     return 0;
   }
 
@@ -232,10 +244,10 @@ int symrepr_addsym(char *name, UINT* id) {
   return 1;
 }
 
-int symrepr_addsym_const(char *name, UINT* id) {
+int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
-  uint32_t *m = memory_allocate(3);
+  uint32_t *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -255,7 +267,7 @@ int symrepr_addsym_const(char *name, UINT* id) {
   return 1;
 }
 
-unsigned int symrepr_size(void) {
+unsigned int lbm_get_symbol_table_size(void) {
 
   unsigned int n = 0;
   uint32_t *curr = symlist;

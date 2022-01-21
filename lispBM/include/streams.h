@@ -20,22 +20,22 @@
 
 #include "lispbm_types.h"
 
-typedef struct stream_s{
+typedef struct lbm_stream_s{
   void  *state;   /* stream implementation dependent state */
-  VALUE (*more)(struct stream_s*);
-  VALUE (*get)(struct stream_s*);
-  VALUE (*peek)(struct stream_s*, VALUE);
-  VALUE (*drop)(struct stream_s*, VALUE);
-  VALUE (*put)(struct stream_s*, VALUE);
-} stream_t;
+  lbm_value (*more)(struct lbm_stream_s*);
+  lbm_value (*get)(struct lbm_stream_s*);
+  lbm_value (*peek)(struct lbm_stream_s*, lbm_value);
+  lbm_value (*drop)(struct lbm_stream_s*, lbm_value);
+  lbm_value (*put)(struct lbm_stream_s*, lbm_value);
+} lbm_stream_t;
 
 
-extern VALUE stream_get(stream_t *str);
-extern VALUE stream_more(stream_t *str);
-extern VALUE stream_peek(stream_t *str, VALUE n);
-extern VALUE stream_drop(stream_t *str, VALUE n);
-extern VALUE stream_put(stream_t *str, VALUE v);
+extern lbm_value lbm_stream_get(lbm_stream_t *str);
+extern lbm_value lbm_stream_more(lbm_stream_t *str);
+extern lbm_value lbm_stream_peek(lbm_stream_t *str, lbm_value n);
+extern lbm_value lbm_stream_drop(lbm_stream_t *str, lbm_value n);
+extern lbm_value lbm_stream_put(lbm_stream_t *str, lbm_value v);
 
-extern VALUE stream_create(stream_t *str);
+extern lbm_value lbm_stream_create(lbm_stream_t *str);
 
 #endif

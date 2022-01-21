@@ -35,13 +35,14 @@
 #define END_LIST       5
 #define PRINT_DOT      6
 
-static VALUE stack_storage[PRINT_STACK_SIZE];
+static lbm_value stack_storage[PRINT_STACK_SIZE];
 
-int print_value(char *buf,unsigned int len, VALUE t) {
+const char *failed_str = "Error: print failed\n";
 
-  stack s;
-  stack_create(&s, stack_storage, PRINT_STACK_SIZE);
-  const char *failed_str = "Error: print failed\n";
+int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
+
+  lbm_stack_t s;
+  lbm_stack_create(&s, stack_storage, PRINT_STACK_SIZE);
 
   int r = 0;
   unsigned int n = 0;
@@ -49,19 +50,19 @@ int print_value(char *buf,unsigned int len, VALUE t) {
   const char *str_ptr;
   int res;
 
-  push_u32_2(&s, t, PRINT);
+  lbm_push_u32_2(&s, t, PRINT);
 
-  while (!stack_is_empty(&s) && offset <= len - 5) {
+  while (!lbm_stack_is_empty(&s) && offset <= len - 5) {
 
-    VALUE curr;
-    UINT  instr;
-    pop_u32(&s, &instr);
+    lbm_value curr;
+    lbm_uint  instr;
+    lbm_pop_u32(&s, &instr);
 
     switch(instr) {
 
     case START_LIST: {
       res = 1;
-      pop_u32(&s, &curr);
+      lbm_pop_u32(&s, &curr);
 
       r = snprintf(buf + offset, len - offset, "(");
       if ( r >= 0 ) {
@@ -72,23 +73,23 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       }
 
       offset += n;
-      VALUE car_val = car(curr);
-      VALUE cdr_val = cdr(curr);
+      lbm_value car_val = lbm_car(curr);
+      lbm_value cdr_val = lbm_cdr(curr);
 
-      if (type_of(cdr_val) == PTR_TYPE_CONS) {
-        res &= push_u32(&s, cdr_val);
-        res &= push_u32(&s, CONTINUE_LIST);
-      } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
-                 dec_sym(cdr_val) == SYM_NIL) {
-        res &= push_u32(&s, END_LIST);
+      if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
+        res &= lbm_push_u32(&s, cdr_val);
+        res &= lbm_push_u32(&s, CONTINUE_LIST);
+      } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
+                 lbm_dec_sym(cdr_val) == SYM_NIL) {
+        res &= lbm_push_u32(&s, END_LIST);
       } else {
-        res &= push_u32(&s, END_LIST);
-        res &= push_u32(&s, cdr_val);
-        res &= push_u32(&s, PRINT);
-        res &= push_u32(&s, PRINT_DOT);
+        res &= lbm_push_u32(&s, END_LIST);
+        res &= lbm_push_u32(&s, cdr_val);
+        res &= lbm_push_u32(&s, PRINT);
+        res &= lbm_push_u32(&s, PRINT_DOT);
       }
-      res &= push_u32(&s, car_val);
-      res &= push_u32(&s, PRINT);
+      res &= lbm_push_u32(&s, car_val);
+      res &= lbm_push_u32(&s, PRINT);
 
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
@@ -100,15 +101,15 @@ int print_value(char *buf,unsigned int len, VALUE t) {
     case CONTINUE_LIST: {
 
       res = 1;
-      pop_u32(&s, &curr);
+      lbm_pop_u32(&s, &curr);
 
-      if (type_of(curr) == VAL_TYPE_SYMBOL &&
-          dec_sym(curr) == SYM_NIL) {
+      if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL &&
+          lbm_dec_sym(curr) == SYM_NIL) {
         break;
       }
 
-      VALUE car_val = car(curr);
-      VALUE cdr_val = cdr(curr);
+      lbm_value car_val = lbm_car(curr);
+      lbm_value cdr_val = lbm_cdr(curr);
 
       r = snprintf(buf + offset, len - offset, " ");
       if ( r > 0) {
@@ -119,20 +120,20 @@ int print_value(char *buf,unsigned int len, VALUE t) {
       }
       offset += n;
 
-      if (type_of(cdr_val) == PTR_TYPE_CONS) {
-        res &= push_u32(&s, cdr_val);
-        res &= push_u32(&s, CONTINUE_LIST);
-      } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
-                  dec_sym(cdr_val) == SYM_NIL) {
-        res &= push_u32(&s, END_LIST);
+      if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
+        res &= lbm_push_u32(&s, cdr_val);
+        res &= lbm_push_u32(&s, CONTINUE_LIST);
+      } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
+                  lbm_dec_sym(cdr_val) == SYM_NIL) {
+        res &= lbm_push_u32(&s, END_LIST);
       } else {
-        res &= push_u32(&s, END_LIST);
-        res &= push_u32(&s, cdr_val);
-        res &= push_u32(&s, PRINT);
-        res &= push_u32(&s, PRINT_DOT);
+        res &= lbm_push_u32(&s, END_LIST);
+        res &= lbm_push_u32(&s, cdr_val);
+        res &= lbm_push_u32(&s, PRINT);
+        res &= lbm_push_u32(&s, PRINT_DOT);
       }
-      res &= push_u32(&s, car_val);
-      res &= push_u32(&s, PRINT);
+      res &= lbm_push_u32(&s, car_val);
+      res &= lbm_push_u32(&s, PRINT);
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
         return -1;
@@ -174,14 +175,14 @@ int print_value(char *buf,unsigned int len, VALUE t) {
 
     case PRINT:
 
-      pop_u32(&s, &curr);
+      lbm_pop_u32(&s, &curr);
 
-      switch(type_of(curr)) {
+      switch(lbm_type_of(curr)) {
 
-      case PTR_TYPE_CONS:{
+      case LBM_PTR_TYPE_CONS:{
         res = 1;
-        res &= push_u32(&s, curr);
-        res &= push_u32(&s, START_LIST);
+        res &= lbm_push_u32(&s, curr);
+        res &= lbm_push_u32(&s, START_LIST);
         if (!res) {
           snprintf(buf, len, "Error: Out of print stack\n");
           return -1;
@@ -189,7 +190,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         break;
       }
 
-      case PTR_TYPE_REF:
+      case LBM_PTR_TYPE_REF:
         r = snprintf(buf + offset, len - offset, "_ref_");
         if ( r > 0) {
           n = (unsigned int) r;
@@ -200,8 +201,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         offset += n;
         break;
 
-      case PTR_TYPE_BOXED_F: {
-        VALUE uv = car(curr);
+      case LBM_PTR_TYPE_BOXED_F: {
+        lbm_value uv = lbm_car(curr);
         float v;
         memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
         r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
@@ -215,8 +216,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         break;
       }
 
-      case PTR_TYPE_BOXED_U: {
-        VALUE v = car(curr);
+      case LBM_PTR_TYPE_BOXED_U: {
+        lbm_value v = lbm_car(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRI_UINT"}", v);
         if ( r > 0) {
           n = (unsigned int) r;
@@ -228,8 +229,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         break;
       }
 
-      case PTR_TYPE_BOXED_I: {
-        int32_t v = (int32_t)car(curr);
+      case LBM_PTR_TYPE_BOXED_I: {
+        int32_t v = (int32_t)lbm_car(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
         if ( r > 0) {
           n = (unsigned int) r;
@@ -241,10 +242,10 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         break;
       }
 
-      case PTR_TYPE_ARRAY: {
-        array_header_t *array = (array_header_t *)car(curr);
+      case LBM_PTR_TYPE_ARRAY: {
+        lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
-        case VAL_TYPE_CHAR:
+        case LBM_VAL_TYPE_CHAR:
           r = snprintf(buf + offset, len - offset, "\"%s\"", (char *)(array)+8);
           if ( r > 0) {
             n = (unsigned int) r;
@@ -261,9 +262,9 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         }
         break;
       }
-      case PTR_TYPE_SYMBOL_INDIRECTION: {
-        UINT v = dec_symbol_indirection(curr);
-        r = snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
+      case LBM_PTR_TYPE_STREAM: {
+
+        r = snprintf(buf + offset, len - offset, "~STREAM~");
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -273,12 +274,11 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         offset += n;
         break;
       }
-
-      case VAL_TYPE_SYMBOL:
-        str_ptr = symrepr_lookup_name(dec_sym(curr));
+      case LBM_VAL_TYPE_SYMBOL:
+        str_ptr = lbm_get_name_by_symbol(lbm_dec_sym(curr));
         if (str_ptr == NULL) {
 
-          snprintf(buf, len, "Error: Symbol not in table %"PRI_UINT"", dec_sym(curr));
+          snprintf(buf, len, "Error: Symbol not in table %"PRI_UINT"", lbm_dec_sym(curr));
           return -1;
         }
         r = snprintf(buf + offset, len - offset, "%s", str_ptr);
@@ -291,8 +291,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         offset += n;
         break; //Break VAL_TYPE_SYMBOL
 
-      case VAL_TYPE_I:
-        r = snprintf(buf + offset, len - offset, "%"PRI_INT"", dec_i(curr));
+      case LBM_VAL_TYPE_I:
+        r = snprintf(buf + offset, len - offset, "%"PRI_INT"", lbm_dec_i(curr));
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -302,8 +302,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         offset += n;
         break;
 
-      case VAL_TYPE_U:
-        r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", dec_u(curr));
+      case LBM_VAL_TYPE_U:
+        r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", lbm_dec_u(curr));
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -313,8 +313,8 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         offset += n;
         break;
 
-      case VAL_TYPE_CHAR:
-        r = snprintf(buf + offset, len - offset, "\\#%c", dec_char(curr));
+      case LBM_VAL_TYPE_CHAR:
+        r = snprintf(buf + offset, len - offset, "\\#%c", lbm_dec_char(curr));
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -338,7 +338,7 @@ int print_value(char *buf,unsigned int len, VALUE t) {
   }//While not empty stack
 
 
-  if (!stack_is_empty(&s)) {
+  if (!lbm_stack_is_empty(&s)) {
     snprintf(buf + (len - 5), 4, "...");
     buf[len-1] = 0;
     return (int)len;

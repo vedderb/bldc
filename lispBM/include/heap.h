@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018 , 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <string.h>
 #include "lispbm_types.h"
 #include "symrepr.h"
+#include "streams.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -180,48 +181,44 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
 
-#define CONS_CELL_SIZE              8
-#define ADDRESS_SHIFT               3
-#define VAL_SHIFT                   4
+#define LBM_CONS_CELL_SIZE              8
+#define LBM_ADDRESS_SHIFT               3
+#define LBM_VAL_SHIFT                   4
 
-#define PTR_MASK                    0x00000001u
-#define PTR_BIT                     0x00000001u
-#define PTR_VAL_MASK                0x03FFFFF8u
-#define PTR_TYPE_MASK               0xFC000000u
+#define LBM_PTR_MASK                    0x00000001u
+#define LBM_PTR_BIT                     0x00000001u
+#define LBM_PTR_VAL_MASK                0x03FFFFF8u
+#define LBM_PTR_TYPE_MASK               0xFC000000u
 
-#define PTR_TYPE_CONS               0x10000000u
-#define PTR_TYPE_BOXED_U            0x20000000u
-#define PTR_TYPE_BOXED_I            0x30000000u
-#define PTR_TYPE_BOXED_F            0x40000000u
-#define PTR_TYPE_SYMBOL_INDIRECTION 0x50000000u
+#define LBM_PTR_TYPE_CONS               0x10000000u
+#define LBM_PTR_TYPE_BOXED_U            0x20000000u
+#define LBM_PTR_TYPE_BOXED_I            0x30000000u
+#define LBM_PTR_TYPE_BOXED_F            0x40000000u
 
-#define PTR_TYPE_BYTECODE           0xC0000000u
-#define PTR_TYPE_ARRAY              0xD0000000u
-#define PTR_TYPE_REF                0xE0000000u
-#define PTR_TYPE_STREAM             0xF0000000u
+#define LBM_PTR_TYPE_ARRAY              0xD0000000u
+#define LBM_PTR_TYPE_REF                0xE0000000u
+#define LBM_PTR_TYPE_STREAM             0xF0000000u
 
-#define GC_MASK                     0x00000002u
-#define GC_MARKED                   0x00000002u
+#define LBM_GC_MASK                     0x00000002u
+#define LBM_GC_MARKED                   0x00000002u
 
-#define VAL_MASK                    0xFFFFFFF0u
-#define VAL_TYPE_MASK               0x0000000Cu
+#define LBM_VAL_MASK                    0xFFFFFFF0u
+#define LBM_VAL_TYPE_MASK               0x0000000Cu
                                                 //    gc ptr
-#define VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
-#define VAL_TYPE_CHAR               0x00000004u // 01  0   0
-#define VAL_TYPE_U                  0x00000008u // 11  0   0
-#define VAL_TYPE_I                  0x0000000Cu // 10  0   0
-
-#define MAX_CONSTANTS               256
+#define LBM_VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
+#define LBM_VAL_TYPE_CHAR               0x00000004u // 01  0   0
+#define LBM_VAL_TYPE_U                  0x00000008u // 11  0   0
+#define LBM_VAL_TYPE_I                  0x0000000Cu // 10  0   0
 
 typedef struct {
-  VALUE car;
-  VALUE cdr;
-} cons_t;
+  lbm_value car;
+  lbm_value cdr;
+} lbm_cons_t;
 
 typedef struct {
-  cons_t  *heap;
+  lbm_cons_t  *heap;
   bool  malloced;           // allocated by heap_init
-  VALUE freelist;           // list of free cons cells.
+  lbm_value freelist;           // list of free cons cells.
 
   unsigned int heap_size;          // In number of cells.
   unsigned int heap_bytes;         // In bytes.
@@ -233,218 +230,203 @@ typedef struct {
   unsigned int gc_marked;          // Number of cells marked by mark phase.
   unsigned int gc_recovered;       // Number of cells recovered by sweep phase.
   unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
-} heap_state_t;
+} lbm_heap_state_t;
 
 typedef struct {
-  TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
+  lbm_type elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
   uint32_t size;            // Number of elements
-} array_header_t;
+} lbm_array_header_t;
 
-extern int heap_init(cons_t *addr, unsigned int num_cells);
-extern unsigned int heap_num_free(void);
-extern unsigned int heap_num_allocated(void);
-extern unsigned int heap_size(void);
-extern VALUE heap_allocate_cell(TYPE type);
-extern unsigned int heap_size_bytes(void);
+extern int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells);
+extern unsigned int lbm_heap_num_free(void);
+extern unsigned int lbm_heap_num_allocated(void);
+extern unsigned int lbm_heap_size(void);
+extern lbm_value lbm_heap_allocate_cell(lbm_type type);
+extern unsigned int lbm_heap_size_bytes(void);
 
-extern char *dec_str(VALUE);
-extern UINT dec_as_u(VALUE);
-extern INT dec_as_i(VALUE);
-extern FLOAT dec_as_f(VALUE);
+extern char *lbm_dec_str(lbm_value);
+extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+extern lbm_uint lbm_dec_as_u(lbm_value);
+extern lbm_int lbm_dec_as_i(lbm_value);
+extern lbm_float lbm_dec_as_f(lbm_value);
 
-extern VALUE cons(VALUE car, VALUE cdr);
-extern VALUE car(VALUE cons);
-extern VALUE cdr(VALUE cons);
-extern bool set_car(VALUE c, VALUE v);
-extern bool set_cdr(VALUE c, VALUE v);
-extern unsigned int length(VALUE c);
-extern VALUE reverse(VALUE list);
-extern VALUE copy(VALUE list);
+extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
+extern lbm_value lbm_car(lbm_value cons);
+extern lbm_value lbm_cdr(lbm_value cons);
+extern bool lbm_set_car(lbm_value c, lbm_value v);
+extern bool lbm_set_cdr(lbm_value c, lbm_value v);
+
+// List functions
+extern unsigned int lbm_list_length(lbm_value c);
+extern lbm_value lbm_list_reverse(lbm_value list);
+extern lbm_value lbm_list_copy(lbm_value list);
+extern lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
+
 
 // State and statistics
-extern void heap_get_state(heap_state_t *);
+extern void lbm_get_heap_state(lbm_heap_state_t *);
 
 // Garbage collection
-extern int heap_perform_gc(VALUE env);
-extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE exp3, UINT *aux_data, unsigned int aux_size);
-extern void gc_state_inc(void);
-extern int gc_mark_freelist(void);
-extern int gc_mark_phase(VALUE v);
-extern int gc_mark_aux(UINT *data, unsigned int n);
-extern int gc_sweep_phase(void);
+extern int lbm_perform_gc(lbm_value env);
+extern int lbm_perform_gc_aux(lbm_value env, lbm_value env2, lbm_value exp, lbm_value exp2, lbm_value exp3, lbm_uint *aux_data, unsigned int aux_size);
+extern void lbm_gc_state_inc(void);
+extern int lbm_gc_mark_freelist(void);
+extern int lbm_gc_mark_phase(lbm_value v);
+extern int lbm_gc_mark_aux(lbm_uint *data, unsigned int n);
+extern int lbm_gc_sweep_phase(void);
 
 
 // Array functionality
-extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);
+extern int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type);
 
-static inline TYPE val_type(VALUE x) {
-  return (x & VAL_TYPE_MASK);
+static inline lbm_type lbm_type_of(lbm_value x) {
+  return (x & LBM_PTR_MASK) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }
 
-static inline TYPE ptr_type(VALUE p) {
-  return (p & PTR_TYPE_MASK);
+static inline bool lbm_is_ptr(lbm_value x) {
+  return (x & LBM_PTR_MASK);
 }
 
-static inline TYPE type_of(VALUE x) {
-  return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
+static inline lbm_value lbm_enc_cons_ptr(lbm_uint x) {
+  return ((x << LBM_ADDRESS_SHIFT) | LBM_PTR_TYPE_CONS | LBM_PTR_BIT);
 }
 
-static inline bool is_ptr(VALUE x) {
-  return (x & PTR_MASK);
+static inline lbm_uint lbm_dec_ptr(lbm_value p) {
+  return ((LBM_PTR_VAL_MASK & p) >> LBM_ADDRESS_SHIFT);
 }
 
-static inline VALUE enc_cons_ptr(UINT x) {
-  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR_BIT);
+static inline lbm_value lbm_set_ptr_type(lbm_value p, lbm_type t) {
+  return (LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT;
 }
 
-static inline VALUE enc_symbol_indirection(UINT x) {
-  return ((x << ADDRESS_SHIFT) | PTR_TYPE_SYMBOL_INDIRECTION | PTR_BIT);
+static inline lbm_value lbm_enc_sym(uint32_t s) {
+  return (s << LBM_VAL_SHIFT) | LBM_VAL_TYPE_SYMBOL;
 }
 
-static inline UINT dec_symbol_indirection(VALUE p) {
-  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
+static inline lbm_value lbm_enc_i(lbm_int x) {
+  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_I;
 }
 
-static inline UINT dec_ptr(VALUE p) {
-  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
+static inline lbm_value lbm_enc_u(lbm_uint x) {
+  return (x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_U;
 }
 
-static inline VALUE set_ptr_type(VALUE p, TYPE t) {
-  return (PTR_VAL_MASK & p) | t | PTR_BIT;
+static inline lbm_value lbm_enc_I(lbm_int x) {
+  lbm_value i = lbm_cons((lbm_uint)x, lbm_enc_sym(SYM_BOXED_I_TYPE));
+  if (lbm_type_of(i) == LBM_VAL_TYPE_SYMBOL) return i;
+  return lbm_set_ptr_type(i, LBM_PTR_TYPE_BOXED_I);
 }
 
-static inline VALUE enc_sym(uint32_t s) {
-  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
+static inline lbm_value lbm_enc_U(lbm_uint x) {
+  lbm_value u = lbm_cons(x, lbm_enc_sym(SYM_BOXED_U_TYPE));
+  if (lbm_type_of(u) == LBM_VAL_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_PTR_TYPE_BOXED_U);
 }
 
-static inline VALUE enc_i(INT x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I;
-}
-
-static inline VALUE enc_u(UINT x) {
-  return (x << VAL_SHIFT) | VAL_TYPE_U;
-}
-
-static inline VALUE enc_I(INT x) {
-  VALUE i = cons((UINT)x, enc_sym(SYM_BOXED_I_TYPE));
-  if (type_of(i) == VAL_TYPE_SYMBOL) return i;
-  return set_ptr_type(i, PTR_TYPE_BOXED_I);
-}
-
-static inline VALUE enc_U(UINT x) {
-  VALUE u = cons(x, enc_sym(SYM_BOXED_U_TYPE));
-  if (type_of(u) == VAL_TYPE_SYMBOL) return u;
-  return set_ptr_type(u, PTR_TYPE_BOXED_U);
-}
-
-static inline VALUE enc_F(FLOAT x) {
-  UINT t;
+static inline lbm_value lbm_enc_F(lbm_float x) {
+  lbm_uint t;
   memcpy(&t, &x, sizeof(float));
-  VALUE f = cons(t, enc_sym(SYM_BOXED_F_TYPE));
-  if (type_of(f) == VAL_TYPE_SYMBOL) return f;
-  return set_ptr_type(f, PTR_TYPE_BOXED_F);
+  lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_BOXED_F_TYPE));
+  if (lbm_type_of(f) == LBM_VAL_TYPE_SYMBOL) return f;
+  return lbm_set_ptr_type(f, LBM_PTR_TYPE_BOXED_F);
 }
 
-static inline VALUE enc_char(char x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
+static inline lbm_value lbm_enc_char(char x) {
+  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_CHAR;
 }
 
-static inline INT dec_i(VALUE x) {
-  return (INT)x >> VAL_SHIFT;
+static inline lbm_int lbm_dec_i(lbm_value x) {
+  return (lbm_int)x >> LBM_VAL_SHIFT;
 }
 
-static inline UINT dec_u(VALUE x) {
-  return x >> VAL_SHIFT;
+static inline lbm_uint lbm_dec_u(lbm_value x) {
+  return x >> LBM_VAL_SHIFT;
 }
 
-static inline char dec_char(VALUE x) {
-  return (char)(x >> VAL_SHIFT);
+static inline char lbm_dec_char(lbm_value x) {
+  return (char)(x >> LBM_VAL_SHIFT);
 }
 
-static inline UINT dec_sym(VALUE x) {
-  return x >> VAL_SHIFT;
+static inline lbm_uint lbm_dec_sym(lbm_value x) {
+  return x >> LBM_VAL_SHIFT;
 }
 
-static inline FLOAT dec_F(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
-  FLOAT f_tmp;
-  UINT tmp = car(x);
-  memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+static inline lbm_float lbm_dec_F(lbm_value x) { // Use only when knowing that x is a VAL_TYPE_F
+  lbm_float f_tmp;
+  lbm_uint tmp = lbm_car(x);
+  memcpy(&f_tmp, &tmp, sizeof(lbm_float));
   return f_tmp;
 }
 
-static inline UINT dec_U(VALUE x) {
-  return car(x);
+static inline lbm_uint lbm_dec_U(lbm_value x) {
+  return lbm_car(x);
 }
 
-static inline INT dec_I(VALUE x) {
-  return (INT)car(x);
+static inline lbm_int lbm_dec_I(lbm_value x) {
+  return (lbm_int)lbm_car(x);
 }
 
-static inline VALUE val_set_gc_mark(VALUE x) {
-  return x | GC_MARKED;
+static inline lbm_value lbm_set_gc_mark(lbm_value x) {
+  return x | LBM_GC_MARKED;
 }
 
-static inline VALUE val_clr_gc_mark(VALUE x) {
-  return x & ~GC_MASK;
+static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
+  return x & ~LBM_GC_MASK;
 }
 
-static inline bool val_get_gc_mark(VALUE x) {
-  return x & GC_MASK;
+static inline bool lbm_get_gc_mark(lbm_value x) {
+  return x & LBM_GC_MASK;
 }
 
-static inline bool is_number(VALUE x) {
-  UINT t = type_of(x);
-  return ((t == VAL_TYPE_I) ||
-          (t == VAL_TYPE_U) ||
-          (t == PTR_TYPE_BOXED_I) ||
-          (t == PTR_TYPE_BOXED_U) ||
-          (t == PTR_TYPE_BOXED_F));
+static inline bool lbm_is_number(lbm_value x) {
+  lbm_uint t = lbm_type_of(x);
+  return ((t == LBM_VAL_TYPE_I) ||
+          (t == LBM_VAL_TYPE_U) ||
+          (t == LBM_PTR_TYPE_BOXED_I) ||
+          (t == LBM_PTR_TYPE_BOXED_U) ||
+          (t == LBM_PTR_TYPE_BOXED_F));
 }
 
-static inline bool is_special(VALUE symrep) {
-  return ((type_of(symrep) == VAL_TYPE_SYMBOL) &&
-          (dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
+static inline bool lbm_is_special(lbm_value symrep) {
+  return ((lbm_type_of(symrep) == LBM_VAL_TYPE_SYMBOL) &&
+          (lbm_dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
 }
 
-static inline bool is_fundamental(VALUE symrep) {
-  return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
-          (dec_sym(symrep) >= FUNDAMENTALS_START) &&
-          (dec_sym(symrep) <= FUNDAMENTALS_END));
+static inline bool lbm_is_fundamental(lbm_value symrep) {
+  return ((lbm_type_of(symrep) == LBM_VAL_TYPE_SYMBOL)  &&
+          (lbm_dec_sym(symrep) >= FUNDAMENTALS_START) &&
+          (lbm_dec_sym(symrep) <= FUNDAMENTALS_END));
 }
 
-static inline bool is_closure(VALUE exp) {
-  return ((type_of(exp) == PTR_TYPE_CONS) &&
-          (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-          (dec_sym(car(exp)) == SYM_CLOSURE));
+static inline bool lbm_is_closure(lbm_value exp) {
+  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+          (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
 }
 
-static inline bool is_match_binder(VALUE exp) {
-  return ((type_of(exp) == PTR_TYPE_CONS) &&
-          (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-          ((dec_sym(car(exp)) == SYM_MATCH_ANY) ||
-           (dec_sym(car(exp)) == SYM_MATCH_I28) ||
-           (dec_sym(car(exp)) == SYM_MATCH_U28) ||
-           (dec_sym(car(exp)) == SYM_MATCH_FLOAT) ||
-           (dec_sym(car(exp)) == SYM_MATCH_CONS)));
+static inline bool lbm_is_match_binder(lbm_value exp) {
+  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I28) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U28) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
 }
 
-static inline bool is_symbol(VALUE exp) {
-  return (type_of(exp) == VAL_TYPE_SYMBOL);
+static inline bool lbm_is_symbol(lbm_value exp) {
+  return (lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL);
 }
 
-static inline bool is_symbol_indirection(VALUE exp) {
-  return (type_of(exp) == PTR_TYPE_SYMBOL_INDIRECTION);
+static inline bool lbm_is_symbol_nil(lbm_value exp) {
+  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_NIL);
 }
 
-static inline bool is_symbol_nil(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == SYM_NIL);
+static inline bool lbm_is_symbol_eval(lbm_value exp) {
+  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_EVAL);
 }
 
-static inline bool is_symbol_eval(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == SYM_EVAL);
-}
-
-static inline bool is_symbol_merror(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == SYM_MERROR);
+static inline bool lbm_is_symbol_merror(lbm_value exp) {
+  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_MERROR);
 }
 #endif

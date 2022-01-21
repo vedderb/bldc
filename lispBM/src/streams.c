@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2021, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,30 +18,30 @@
 #include "streams.h"
 #include "heap.h"
 
-VALUE stream_get(stream_t *str) {
+lbm_value lbm_stream_get(lbm_stream_t *str) {
   return str->get(str);
 }
 
-VALUE stream_more(stream_t *str) {
+lbm_value lbm_stream_more(lbm_stream_t *str) {
   return str->more(str);
 }
 
-VALUE stream_peek(stream_t *str, VALUE n) {
+lbm_value lbm_stream_peek(lbm_stream_t *str, lbm_value n) {
   return str->peek(str,n);
 }
 
-VALUE stream_drop(stream_t *str, VALUE n) {
+lbm_value lbm_stream_drop(lbm_stream_t *str, lbm_value n) {
   return str->drop(str,n);
 }
 
-VALUE stream_put(stream_t *str, VALUE v) {
+lbm_value lbm_stream_put(lbm_stream_t *str, lbm_value v) {
   return str->put(str,v);
 }
 
-VALUE stream_create(stream_t *str) {
-  VALUE s = cons((VALUE)str, enc_sym(SYM_STREAM_TYPE));
-  if (type_of(s) == PTR_TYPE_CONS) {
-    set_ptr_type(s, SYM_TYPE_STREAM);
+lbm_value lbm_stream_create(lbm_stream_t *str) {
+  lbm_value s = lbm_cons((lbm_value)str, lbm_enc_sym(SYM_TYPE_STREAM));
+  if (lbm_type_of(s) == LBM_PTR_TYPE_CONS) {
+    s = s | LBM_PTR_TYPE_STREAM;
   }
   return s;
 }

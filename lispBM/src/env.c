@@ -22,77 +22,77 @@
 #include "print.h"
 #include "lispbm_types.h"
 
-VALUE env_global;
+lbm_value env_global;
 
-int env_init(void) {
-  env_global = enc_sym(SYM_NIL);
+int lbm_init_env(void) {
+  env_global = lbm_enc_sym(SYM_NIL);
   return 1;
 }
 
-VALUE *env_get_global_ptr(void) {
+lbm_value *lbm_get_env_ptr(void) {
   return &env_global;
 }
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
-VALUE env_copy_shallow(VALUE env) {
+lbm_value lbm_env_copy_shallow(lbm_value env) {
 
-  VALUE res = enc_sym(SYM_NIL);
-  VALUE curr = env;
+  lbm_value res = lbm_enc_sym(SYM_NIL);
+  lbm_value curr = env;
 
-  while (type_of(curr) == PTR_TYPE_CONS) {
-    VALUE key = car(car(curr));
-    if (dec_sym(key) != SYM_NIL) {
-      res = cons(car(curr), res);
+  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    lbm_value key = lbm_car(lbm_car(curr));
+    if (lbm_dec_sym(key) != SYM_NIL) {
+      res = lbm_cons(lbm_car(curr), res);
 
       // Check for "out of memory"
-      if (type_of(res) == VAL_TYPE_SYMBOL &&
-          dec_sym(res) == SYM_MERROR) {
+      if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
+          lbm_dec_sym(res) == SYM_MERROR) {
         return res;
       }
     }
-    curr = cdr(curr);
+    curr = lbm_cdr(curr);
   }
   return  res;
 }
 
-VALUE env_lookup(VALUE sym, VALUE env) {
-  VALUE curr = env;
+lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
+  lbm_value curr = env;
 
-  if(dec_sym(sym) == SYM_NIL) {
+  if(lbm_dec_sym(sym) == SYM_NIL) {
     return sym;
   }
 
-  while (type_of(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == sym) {
-      return cdr(car(curr));
+  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == sym) {
+      return lbm_cdr(lbm_car(curr));
     }
-    curr = cdr(curr);
+    curr = lbm_cdr(curr);
   }
-  return enc_sym(SYM_NOT_FOUND);
+  return lbm_enc_sym(SYM_NOT_FOUND);
 }
 
-VALUE env_set(VALUE env, VALUE key, VALUE val) {
+lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
 
-  VALUE curr = env;
-  VALUE new_env;
-  VALUE keyval;
+  lbm_value curr = env;
+  lbm_value new_env;
+  lbm_value keyval;
 
-  while(type_of(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == key) {
-      set_cdr(car(curr),val);
+  while(lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == key) {
+      lbm_set_cdr(lbm_car(curr),val);
       return env;
     }
-    curr = cdr(curr);
+    curr = lbm_cdr(curr);
   }
 
-  keyval = cons(key,val);
-  if (type_of(keyval) == VAL_TYPE_SYMBOL) {
+  keyval = lbm_cons(key,val);
+  if (lbm_type_of(keyval) == LBM_VAL_TYPE_SYMBOL) {
     return keyval;
   }
 
-  new_env = cons(keyval, env);
-  if (type_of(new_env) == VAL_TYPE_SYMBOL) {
+  new_env = lbm_cons(keyval, env);
+  if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL) {
     return keyval;
   }
 
@@ -100,50 +100,50 @@ VALUE env_set(VALUE env, VALUE key, VALUE val) {
 }
 
 
-VALUE env_modify_binding(VALUE env, VALUE key, VALUE val) {
+lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 
-  VALUE curr = env;
+  lbm_value curr = env;
 
-  while (type_of(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == key) {
-      set_cdr(car(curr), val);
+  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == key) {
+      lbm_set_cdr(lbm_car(curr), val);
       return env;
     }
-    curr = cdr(curr);
+    curr = lbm_cdr(curr);
 
   }
-  return enc_sym(SYM_NOT_FOUND);
+  return lbm_enc_sym(SYM_NOT_FOUND);
 }
 
 
-VALUE env_build_params_args(VALUE params,
-                            VALUE args,
-                            VALUE env0) {
-  VALUE curr_param = params;
-  VALUE curr_arg = args;
+lbm_value lbm_env_build_params_args(lbm_value params,
+                            lbm_value args,
+                            lbm_value env0) {
+  lbm_value curr_param = params;
+  lbm_value curr_arg = args;
 
   // TODO: This should be checked outside of this function.
   //
-  if (length(params) != length(args)) { // programmer error
-    return enc_sym(SYM_FATAL_ERROR);
+  if (lbm_list_length(params) != lbm_list_length(args)) { // programmer error
+    return lbm_enc_sym(SYM_FATAL_ERROR);
   }
 
-  VALUE env = env0;
-  while (type_of(curr_param) == PTR_TYPE_CONS) {
+  lbm_value env = env0;
+  while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS) {
 
-    VALUE entry = cons(car(curr_param), car(curr_arg));
-    if (type_of(entry) == VAL_TYPE_SYMBOL &&
-        dec_sym(entry) == SYM_MERROR)
-      return enc_sym(SYM_MERROR);
+    lbm_value entry = lbm_cons(lbm_car(curr_param), lbm_car(curr_arg));
+    if (lbm_type_of(entry) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(entry) == SYM_MERROR)
+      return lbm_enc_sym(SYM_MERROR);
 
-    env = cons(entry,env);
+    env = lbm_cons(entry,env);
 
-    if (type_of(env) == VAL_TYPE_SYMBOL &&
-        dec_sym(env) == SYM_MERROR)
-      return enc_sym(SYM_MERROR);
+    if (lbm_type_of(env) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(env) == SYM_MERROR)
+      return lbm_enc_sym(SYM_MERROR);
 
-    curr_param = cdr(curr_param);
-    curr_arg   = cdr(curr_arg);
+    curr_param = lbm_cdr(curr_param);
+    curr_arg   = lbm_cdr(curr_arg);
   }
   return env;
 }

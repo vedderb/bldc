@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 
 #include "lispbm_types.h"
 
-extern VALUE prelude_load(void);
-
+extern void prelude_load(lbm_tokenizer_string_state_t *,
+                         lbm_tokenizer_char_stream_t *);
 
 
 #endif

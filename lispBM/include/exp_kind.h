@@ -35,27 +35,27 @@ typedef enum {
   EXP_LET,
   EXP_AND,
   EXP_OR
-} exp_kind;
+} lbm_exp_kind;
 
-static inline exp_kind exp_kind_of(VALUE exp) {
+static inline lbm_exp_kind lbm_exp_kind_of(lbm_value exp) {
 
-  switch (type_of(exp)) {
-  case VAL_TYPE_SYMBOL:
-    if (!is_special(exp))
+  switch (lbm_type_of(exp)) {
+  case LBM_VAL_TYPE_SYMBOL:
+    if (!lbm_is_special(exp))
       return EXP_VARIABLE;
     // fall through
-  case PTR_TYPE_BOXED_F:
-  case PTR_TYPE_BOXED_U:
-  case PTR_TYPE_BOXED_I:
-  case VAL_TYPE_I:
-  case VAL_TYPE_U:
-  case VAL_TYPE_CHAR:
-  case PTR_TYPE_ARRAY:
+  case LBM_PTR_TYPE_BOXED_F:
+  case LBM_PTR_TYPE_BOXED_U:
+  case LBM_PTR_TYPE_BOXED_I:
+  case LBM_VAL_TYPE_I:
+  case LBM_VAL_TYPE_U:
+  case LBM_VAL_TYPE_CHAR:
+  case LBM_PTR_TYPE_ARRAY:
     return EXP_SELF_EVALUATING;
-  case PTR_TYPE_CONS: {
-    VALUE head = car(exp);
-    if (type_of(head) == VAL_TYPE_SYMBOL) {
-      UINT sym_id = dec_sym(head);
+  case LBM_PTR_TYPE_CONS: {
+    lbm_value head = lbm_car(exp);
+    if (lbm_type_of(head) == LBM_VAL_TYPE_SYMBOL) {
+      lbm_uint sym_id = lbm_dec_sym(head);
       switch(sym_id){
       case SYM_AND:    return EXP_AND;
       case SYM_OR:     return EXP_OR;
@@ -69,8 +69,8 @@ static inline exp_kind exp_kind_of(VALUE exp) {
       }
     } // end if symbol
 
-    if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-        dec_sym(cdr(exp)) == SYM_NIL) {
+    if (lbm_type_of(lbm_cdr(exp)) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(lbm_cdr(exp)) == SYM_NIL) {
       return EXP_NO_ARGS;
     } else {
       return EXP_APPLICATION;

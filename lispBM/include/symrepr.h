@@ -41,8 +41,8 @@
 #define SYM_STACK_ERROR   0xD
 #define SYM_DEFINE        0xE
 #define SYM_PROGN         0xF
-#define SYM_COMMA         0x10
-#define SYM_COMMAAT       0x11
+#define SYM_READ          0x10
+#define SYM_READ_PROGRAM  0x11
 #define SYM_DONTCARE      0x12
 #define SYM_MATCH         0x13
 #define SYM_SEND          0x14
@@ -53,7 +53,6 @@
 #define SYM_BOXED_U_TYPE   0x22
 #define SYM_BOXED_F_TYPE   0x23
 #define SYM_REF_TYPE       0x24
-#define SYM_STREAM_TYPE    0x25
 #define SYM_RECOVERED      0x26
 #define SYM_BYTECODE_TYPE  0x27
 #define SYM_NONSENSE       0x28
@@ -78,6 +77,15 @@
 #define SYM_TYPE_REF       0x59
 #define SYM_TYPE_STREAM    0x5A
 
+//Relevant for the tokenizer
+#define SYM_OPENPAR        0x70
+#define SYM_CLOSEPAR       0x71
+#define SYM_BACKQUOTE      0x72
+#define SYM_COMMA          0x73
+#define SYM_COMMAAT        0x74
+#define SYM_TOKENIZER_DONE 0x75
+#define SYM_DOT            0x76
+
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
 #define SYM_ADD                 0x100
@@ -90,6 +98,7 @@
 #define SYM_LT                  0x107
 #define SYM_GT                  0x108
 #define SYM_EVAL                0x109
+#define SYM_EVAL_PROGRAM        0x10A
 
 #define SYM_AND                 0x110
 #define SYM_OR                  0x111
@@ -124,15 +133,15 @@
 
 #define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
-extern int symrepr_addsym(char *, UINT*);
-extern int symrepr_addsym_const(char *, UINT*);
-extern bool symrepr_init(void);
-extern int symrepr_lookup(char *, UINT*);
-extern const char* symrepr_lookup_name(UINT);
+extern int lbm_add_symbol(char *, lbm_uint*);
+extern int lbm_add_symbol_const(char *, lbm_uint*);
+extern bool lbm_symrepr_init(void);
+extern int lbm_get_symbol_by_name(char *, lbm_uint*);
+extern const char* lbm_get_name_by_symbol(lbm_uint);
 
-extern unsigned int symrepr_size(void);
+extern unsigned int lbm_get_symbol_table_size(void);
 
-static inline bool symrepr_is_error(UINT symrep){
+static inline bool lbm_is_error(lbm_uint symrep){
   return (symrep == SYM_RERROR ||
           symrep == SYM_TERROR ||
           symrep == SYM_RERROR ||

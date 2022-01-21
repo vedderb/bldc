@@ -34,8 +34,8 @@ int heap_vis_init(void) {
 
 void heap_vis_gen_image(void) {
 
-  heap_state_t hs;
-  heap_get_state(&hs);
+  lbm_heap_state_t hs;
+  lbm_get_heap_state(&hs);
   
   uint32_t num_pix = hs.heap_size;
   uint32_t i;
@@ -58,7 +58,7 @@ void heap_vis_gen_image(void) {
 
     
     
-    if ((cdr & GC_MASK) == GC_MARKED) {
+    if ((cdr & LBM_GC_MASK) == LBM_GC_MARKED) {
       col = marked_color; 
     }
 
@@ -67,10 +67,10 @@ void heap_vis_gen_image(void) {
 
   uint32_t fl = hs.freelist; 
 
-  while (type_of(fl) == PTR_TYPE_CONS) {
-    uint32_t index = dec_ptr(fl);
+  while (lbm_type_of(fl) == LBM_PTR_TYPE_CONS) {
+    uint32_t index = lbm_dec_ptr(fl);
     pix_data[index] = free_color; 
-    fl = cdr(fl);
+    fl = lbm_cdr(fl);
   }
   
   char fn[256];
