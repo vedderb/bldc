@@ -16,10 +16,10 @@ static bool encoder_is_incremental_defined(void);
 
 #define ENCSPI_SAMPLE_RATE_HZ		20000
 
-#define ENCODERS_CONFIG_UNUSED {0}
-#define ENCODERS_VAR_UNINITIALIZED 0
-#define ENCODERS_STRUCT_UNDEFINED {0}
-#define ENCODERS_ABI_COUNTER_DEFAULT_VALUE 10000ul
+#define ENCODER_CONFIG_UNUSED {0}
+#define ENCODER_VAR_UNINITIALIZED 0
+#define ENCODER_STRUCT_UNDEFINED {0}
+#define ENCODER_ABI_COUNTER_DEFAULT_VALUE 10000ul
 
 #define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
 #define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
@@ -31,17 +31,17 @@ static bool encoder_is_incremental_defined(void);
 #define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
 #define SPI_DATASIZE_16BIT				SPI_CR1_DFF
 
-ENCSPI_config_t encoders_conf_ENCSPI =
+ENCSPI_config_t encoder_conf_ENCSPI =
 {
-  ENCODERS_VAR_UNINITIALIZED,
+  ENCODER_VAR_UNINITIALIZED,
   ENCSPI_SAMPLE_RATE_HZ,
   {/*BB_SPI*/
     /*NSS*/HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3 ,
 	/*MISO*/HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2 ,
 	/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI ,
 	/*SCK*/HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1 ,
-	ENCODERS_VAR_UNINITIALIZED,
-	ENCODERS_VAR_UNINITIALIZED,
+	ENCODER_VAR_UNINITIALIZED,
+	ENCODER_VAR_UNINITIALIZED,
 	NULL
   },
 #ifdef HW_SPI_DEV
@@ -50,31 +50,31 @@ ENCSPI_config_t encoders_conf_ENCSPI =
 					| SPI_DATASIZE_16BIT
   }
 #else
-	ENCODERS_CONFIG_UNUSED
+	ENCODER_CONFIG_UNUSED
 #endif
 };
 
-ABI_config_t encoders_conf_ABI =
+ABI_config_t encoder_conf_ABI =
 {
-  ENCODERS_VAR_UNINITIALIZED,
-  ENCODERS_ABI_COUNTER_DEFAULT_VALUE,
+  ENCODER_VAR_UNINITIALIZED,
+  ENCODER_ABI_COUNTER_DEFAULT_VALUE,
   /*INCREMENTAL PROTOCOL PINOUT*/
     /*A*/HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1 ,
     /*B*/HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2
 };
 
-ENCSINCOS_config_t encoders_conf_ENCSINCOS = ENCODERS_STRUCT_UNDEFINED;
+ENCSINCOS_config_t encoder_conf_ENCSINCOS = ENCODER_STRUCT_UNDEFINED;
 
-TS5700N8501_config_t encoders_conf_TS5700N8501 =
+TS5700N8501_config_t encoder_conf_TS5700N8501 =
 {
-  ENCODERS_VAR_UNINITIALIZED,
+  ENCODER_VAR_UNINITIALIZED,
   /*UART PINOUT*/
     HW_UART_TX_PORT, HW_UART_TX_PIN,
 	HW_UART_RX_PORT, HW_UART_RX_PIN,
 #ifdef HW_ADC_EXT_GPIO
 	HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN
 #else
-	ENCODERS_VAR_UNINITIALIZED, ENCODERS_VAR_UNINITIALIZED
+	ENCODER_VAR_UNINITIALIZED, ENCODER_VAR_UNINITIALIZED
 #endif
   ,
   {/*UART CONFIG*/
@@ -120,11 +120,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 			return ENCODER_ERROR;
 		}
 
-		encoders_conf_ENCSPI.is_init = 0;
+		encoder_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = AS504x_init(&encoders_conf_ENCSPI);
+		encoder_ret = AS504x_init(&encoder_conf_ENCSPI);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
 			index_found = false;
 			return ENCODER_ERROR;
 		}
@@ -138,11 +138,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 			return ENCODER_ERROR;
 		}
 
-		encoders_conf_ENCSPI.is_init = 0;
+		encoder_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = MT6816_init(&encoders_conf_ENCSPI);
+		encoder_ret = MT6816_init(&encoder_conf_ENCSPI);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -157,11 +157,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 			return ENCODER_ERROR;
 		}
 
-		encoders_conf_ENCSPI.is_init = 0;
+		encoder_conf_ENCSPI.is_init = 0;
 
-		encoder_ret = AD2S1205_init(&encoders_conf_ENCSPI);
+		encoder_ret = AD2S1205_init(&encoder_conf_ENCSPI);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -176,11 +176,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 			return ENCODER_ERROR;
 		}
 
-		encoders_conf_ABI.is_init = 0;
+		encoder_conf_ABI.is_init = 0;
 
-		encoder_ret = ABI_init(&encoders_conf_ABI);
+		encoder_ret = ABI_init(&encoder_conf_ABI);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_ABI.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_ABI.is_init) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -191,11 +191,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 	} else if (encoder_type == ENCODER_TYPE_SINCOS) {
 		encoder_ret_t encoder_ret;
 
-		encoders_conf_ENCSINCOS.is_init = 0;
+		encoder_conf_ENCSINCOS.is_init = 0;
 
-		encoder_ret = ENC_SINCOS_init(&encoders_conf_ENCSINCOS);
+		encoder_ret = ENC_SINCOS_init(&encoder_conf_ENCSINCOS);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_ENCSINCOS.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSINCOS.is_init) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -210,11 +210,11 @@ encoder_ret_t encoder_init(encoder_type_t encoder_type) {
 			return ENCODER_ERROR;
 		}
 
-		encoders_conf_TS5700N8501.is_init = 0;
+		encoder_conf_TS5700N8501.is_init = 0;
 
-		encoder_ret = TS5700N8501_init(&encoders_conf_TS5700N8501);
+		encoder_ret = TS5700N8501_init(&encoder_conf_TS5700N8501);
 
-		if (ENCODER_OK != encoder_ret || !encoders_conf_TS5700N8501.is_init) {
+		if (ENCODER_OK != encoder_ret || !encoder_conf_TS5700N8501.is_init) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -327,7 +327,7 @@ uint32_t encoder_resolver_loss_of_signal_error_cnt(void) {
 // ABI
 void encoder_set_counts(uint32_t counts) {
 	if (encoder_type_now == ENCODER_TYPE_ABI) {
-		encoders_conf_ABI.counts = counts;
+		encoder_conf_ABI.counts = counts;
 		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
 		index_found = false;
 	}
@@ -435,11 +435,11 @@ float encoder_get_signal_above_max_error_rate(void) {
 }
 
 void encoder_sincos_conf_set(ENCSINCOS_config_t *sincos_config) {
-	encoders_conf_ENCSINCOS.s_gain = sincos_config->s_gain;
-	encoders_conf_ENCSINCOS.s_offset = sincos_config->s_offset;
-	encoders_conf_ENCSINCOS.c_gain = sincos_config->c_gain;
-	encoders_conf_ENCSINCOS.c_offset = sincos_config->c_offset;
-	encoders_conf_ENCSINCOS.filter_constant = sincos_config->filter_constant;
+	encoder_conf_ENCSINCOS.s_gain = sincos_config->s_gain;
+	encoder_conf_ENCSINCOS.s_offset = sincos_config->s_offset;
+	encoder_conf_ENCSINCOS.c_gain = sincos_config->c_gain;
+	encoder_conf_ENCSINCOS.c_offset = sincos_config->c_offset;
+	encoder_conf_ENCSINCOS.filter_constant = sincos_config->filter_constant;
 }
 
 void encoder_tim_isr(void) {
@@ -453,25 +453,25 @@ void encoder_tim_isr(void) {
 }
 
 static bool encoder_is_uart_defined(void) {
-	if (!encoders_conf_TS5700N8501.port_RX
-			|| !encoders_conf_TS5700N8501.port_TX) {
+	if (!encoder_conf_TS5700N8501.port_RX
+			|| !encoder_conf_TS5700N8501.port_TX) {
 		return false;
 	}
 	return true;
 }
 
 static bool encoder_is_spi_defined(void) {
-	if (!encoders_conf_ENCSPI.sw_spi.miso_gpio
-			|| !encoders_conf_ENCSPI.sw_spi.nss_gpio
-			|| !encoders_conf_ENCSPI.sw_spi.sck_gpio) {
+	if (!encoder_conf_ENCSPI.sw_spi.miso_gpio
+			|| !encoder_conf_ENCSPI.sw_spi.nss_gpio
+			|| !encoder_conf_ENCSPI.sw_spi.sck_gpio) {
 		return false;
 	}
 	return true;
 }
 
 static bool encoder_is_incremental_defined(void) {
-	if (!encoders_conf_ABI.port_A
-			|| !encoders_conf_ABI.port_B) {
+	if (!encoder_conf_ABI.port_A
+			|| !encoder_conf_ABI.port_B) {
 		return false;
 	}
 	return true;
