@@ -38,7 +38,7 @@
 
 	// Threads
 THD_FUNCTION(mag_thread, arg);
-static THD_WORKING_AREA(mag_thread_wa, 512);
+static THD_WORKING_AREA(mag_thread_wa, 256);
 static bool mag_thread_running = false;
 
 // Variables

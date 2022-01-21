@@ -81,7 +81,7 @@ static void set_modulation(float mod);
 static void do_dc_cal(void);
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
 static volatile bool timer_thd_stop;
 

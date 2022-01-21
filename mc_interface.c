@@ -132,7 +132,7 @@ static volatile motor_if_state_t *motor_now(void);
 static void(*pwn_done_func)(void) = 0;
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 1024);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
 static THD_WORKING_AREA(sample_send_thread_wa, 512);
 static THD_FUNCTION(sample_send_thread, arg);
@@ -211,11 +211,13 @@ void mc_interface_init(void) {
 	ENCSINCOS_config_t sincos_config;
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
+		SENSOR_PORT_3V3();
 		encoder_set_counts(motor_now()->m_conf.m_encoder_counts);
 		encoder_init(ENCODER_TYPE_ABI);
 		break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI:
+		SENSOR_PORT_3V3();
 		encoder_init(ENCODER_TYPE_AS504x);
 		break;
 
@@ -256,6 +258,7 @@ void mc_interface_init(void) {
 	} break;
 
 	default:
+		SENSOR_PORT_5V();
 		break;
 	}
 
@@ -351,12 +354,13 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		encoder_deinit();
 		switch (configuration->m_sensor_port_mode) {
 		case SENSOR_PORT_MODE_ABI:
-		  // TODO: integrate with encoder/encoders
+			SENSOR_PORT_3V3();
 			encoder_set_counts(configuration->m_encoder_counts);
 			encoder_init(ENCODER_TYPE_ABI);
 			break;
 
 		case SENSOR_PORT_MODE_AS5047_SPI:
+			SENSOR_PORT_3V3();
 			encoder_init(ENCODER_TYPE_AS504x);
 			break;
 
@@ -396,6 +400,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		} break;
 
 		default:
+			SENSOR_PORT_5V();
 			break;
 		}
 	}
@@ -473,9 +478,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	case MOTOR_TYPE_FOC:
 #ifdef HW_HAS_DUAL_MOTORS
 		if (motor == &m_motor_1) {
-			m_motor_2.m_conf.foc_f_sw = motor->m_conf.foc_f_sw;
+			m_motor_2.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
 		} else {
-			m_motor_1.m_conf.foc_f_sw = motor->m_conf.foc_f_sw;
+			m_motor_1.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
 		}
 #endif
 		mcpwm_foc_set_configuration(&motor->m_conf);
@@ -864,18 +869,35 @@ void mc_interface_brake_now(void) {
  * Disconnect the motor and let it turn freely.
  */
 void mc_interface_release_motor(void) {
-	mc_interface_set_current(0.0);
-}
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		mcpwm_release_motor();
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_release_motor();
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("release_motor", 0.0);}
 
 void mc_interface_release_motor_override(void) {
 	switch (motor_now()->m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
-		mcpwm_set_current(0.0);
+		mcpwm_release_motor();
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_current(0.0);
+		mcpwm_foc_release_motor();
 		break;
 
 	default:

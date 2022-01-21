@@ -33,7 +33,7 @@ static volatile bool kill_sw_active;
 static volatile uint32_t feed_counter[MAX_THREADS_MONITOR];
 
 // Threads
-static THD_WORKING_AREA(timeout_thread_wa, 512);
+static THD_WORKING_AREA(timeout_thread_wa, 256);
 static THD_FUNCTION(timeout_thread, arg);
 
 void timeout_init(void) {

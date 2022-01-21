@@ -66,6 +66,8 @@ float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
 const char* utils_hw_type_to_string(HW_TYPE hw);
+int utils_check_min_stack_left(thread_t *th);
+int utils_stack_left_now(void);
 
 // Return the sign of the argument. -1.0 if negative, 1.0 if zero or positive.
 #define SIGN(x)				(((x) < 0.0) ? -1.0 : 1.0)

@@ -323,6 +323,8 @@ float utils_fast_atan2(float y, float x) {
 		angle = ((0.1963 * rsq) - 0.9817) * r + (3.0 * M_PI / 4.0);
 	}
 
+	UTILS_NAN_ZERO(angle);
+
 	if (y < 0) {
 		return(-angle);
 	} else {
@@ -833,6 +835,31 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 	case HW_TYPE_CUSTOM_MODULE: return "HW_TYPE_CUSTOM_MODULE"; break;
 	default: return "FAULT_HARDWARE"; break;
 	}
+}
+
+/**
+ * Check the minimum stack tp had left by counting the remaining fill characters.
+ */
+int utils_check_min_stack_left(thread_t *tp) {
+	uint32_t *p = (uint32_t *)tp->p_stklimit;
+
+	int free = 0;
+	while (free < 8192) {
+		if (*p++ != 0x55555555) {
+			break;
+		}
+		free += sizeof(uint32_t);
+	}
+
+	return free;
+}
+
+/*
+ * Check how much stack the current thread has left now.
+ */
+int utils_stack_left_now(void) {
+	struct port_intctx *r13 = (struct port_intctx *)__get_PSP();
+	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
 }
 
 const float utils_tab_sin_32_1[] = {

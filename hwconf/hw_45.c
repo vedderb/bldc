@@ -31,7 +31,7 @@
 
 // Threads
 THD_FUNCTION(temp_thread, arg);
-static THD_WORKING_AREA(temp_thread_wa, 512);
+static THD_WORKING_AREA(temp_thread_wa, 256);
 static bool temp_thread_running = false;
 
 // Variables

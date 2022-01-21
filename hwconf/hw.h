@@ -252,6 +252,13 @@
 #define CURRENT_FILTER_OFF()
 #endif
 
+#ifndef SENSOR_PORT_5V
+#define SENSOR_PORT_5V()
+#endif
+#ifndef SENSOR_PORT_3V3
+#define SENSOR_PORT_3V3()
+#endif
+
 // VCC net voltage
 #ifndef V_REG
 #define V_REG				3.3
@@ -515,6 +522,14 @@
 
 #ifndef HW_RESET_DRV_FAULTS
 #define HW_RESET_DRV_FAULTS()
+#endif
+
+// For backwards-compatibility with configs that use the old name
+#ifdef MCCONF_FOC_F_SW
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV			MCCONF_FOC_F_SW
+#warning Please replace `MCCONF_FOC_F_SW` by `MCCONF_FOC_F_ZV`. `MCCONF_FOC_F_SW` is deprecated.
+#endif
 #endif
 
 // Functions

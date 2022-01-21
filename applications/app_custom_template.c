@@ -37,7 +37,7 @@
 
 // Threads
 static THD_FUNCTION(my_thread, arg);
-static THD_WORKING_AREA(my_thread_wa, 2048);
+static THD_WORKING_AREA(my_thread_wa, 1024);
 
 // Private functions
 static void pwm_callback(void);

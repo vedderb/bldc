@@ -80,7 +80,7 @@ typedef enum {
 
 // Balance thread
 static THD_FUNCTION(balance_thread, arg);
-static THD_WORKING_AREA(balance_thread_wa, 2048); // 2kb stack for this thread
+static THD_WORKING_AREA(balance_thread_wa, 1024); // 2kb stack for this thread
 
 static thread_t *app_thread;
 
@@ -214,7 +214,11 @@ void app_balance_configure(balance_config *conf, imu_config *conf2) {
 
 	// Variable nose angle adjustment / tiltback (setting is per 1000erpm, convert to per erpm)
 	tiltback_variable = balance_conf.tiltback_variable / 1000;
-	tiltback_variable_max_erpm = fabsf(balance_conf.tiltback_variable_max / tiltback_variable);
+	if (tiltback_variable > 0) {
+		tiltback_variable_max_erpm = fabsf(balance_conf.tiltback_variable_max / tiltback_variable);
+	} else {
+		tiltback_variable_max_erpm = 100000;
+	}
 
 	// Reset loop time variables
 	last_time = 0;

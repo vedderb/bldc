@@ -216,8 +216,7 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		660.0
+#define HW_DEAD_TIME_NSEC		1000.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
@@ -229,8 +228,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		650.0	// The maximum absolute current above which a fault is generated

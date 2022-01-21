@@ -537,7 +537,7 @@ Item {
             mMcConf.updateParamDouble("l_temp_motor_end", 135, null)
             mMcConf.updateParamDouble("l_temp_accel_dec", 0, null)
             
-            mMcConf.updateParamDouble("foc_f_sw", 30000, null)
+            mMcConf.updateParamDouble("foc_f_zv", 30000, null)
             mMcConf.updateParamEnum("foc_sensor_mode", 2, null)
             mMcConf.updateParamDouble("foc_openloop_rpm", 350, null)
             mMcConf.updateParamDouble("foc_sl_erpm", 6000, null)

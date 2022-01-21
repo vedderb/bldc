@@ -244,8 +244,8 @@
 #ifndef MCCONF_FOC_CURRENT_KI
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					25000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation
@@ -285,6 +285,9 @@
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN_SLOW
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.05	// Observer gain scale at minimum duty cycle
+#endif
+#ifndef MCCONF_FOC_OBSERVER_OFFSET
+#define MCCONF_FOC_OBSERVER_OFFSET		-1.0	// Observer offset in timer update cycles
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
 #define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty
