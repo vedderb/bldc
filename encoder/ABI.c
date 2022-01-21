@@ -11,7 +11,6 @@
 
 static float last_enc_angle = 0.0;
 static ABI_config_t ABI_config_now = { 0 };
-static uint32_t enc_counts = 10000;
 
 void ABI_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
@@ -35,8 +34,6 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	EXTI_InitTypeDef EXTI_InitStructure;
 
 	// Initialize variables
-	enc_counts = abi_config->counts;
-
 	ABI_config_now = *abi_config;
 
 	palSetPadMode(ABI_config_now.port_A,
@@ -56,7 +53,7 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	TIM_EncoderInterfaceConfig(HW_ENC_TIM, TIM_EncoderMode_TI12,
 	TIM_ICPolarity_Rising,
 	TIM_ICPolarity_Rising);
-	TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
+	TIM_SetAutoreload(HW_ENC_TIM, ABI_config_now.counts - 1);
 
 	// Filter
 	HW_ENC_TIM->CCMR1 |= 6 << 12 | 6 << 4;
@@ -86,14 +83,7 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 }
 
 float ABI_read_deg(void) {
-	last_enc_angle = ((float) HW_ENC_TIM->CNT * 360.0) / (float) enc_counts;
+	last_enc_angle = ((float) HW_ENC_TIM->CNT * 360.0) / (float) ABI_config_now.counts;
 	return last_enc_angle;
-}
-
-void ABI_set_counts(uint32_t counts) {
-	if (counts != enc_counts) {
-		enc_counts = counts;
-		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
-	}
 }
 

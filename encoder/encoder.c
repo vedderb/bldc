@@ -327,7 +327,8 @@ uint32_t encoder_resolver_loss_of_signal_error_cnt(void) {
 // ABI
 void encoder_set_counts(uint32_t counts) {
 	if (encoder_type_now == ENCODER_TYPE_ABI) {
-		ABI_set_counts(counts);
+		encoders_conf_ABI.counts = counts;
+		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
 		index_found = false;
 	}
 }

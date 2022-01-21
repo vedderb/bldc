@@ -211,7 +211,6 @@ void mc_interface_init(void) {
 	ENCSINCOS_config_t sincos_config;
 	switch (motor_now()->m_conf.m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
-	    //TODO: integrate with encoder/encoders
 		encoder_set_counts(motor_now()->m_conf.m_encoder_counts);
 		encoder_init(ENCODER_TYPE_ABI);
 		break;

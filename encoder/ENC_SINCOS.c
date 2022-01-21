@@ -14,6 +14,8 @@
 #define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
 
+#define HW_HAS_SIN_COS_ENCODER //todo delete later
+
 ENCSINCOS_config_t enc_sincos_config_now = { 0 };
 
 static uint32_t sincos_signal_below_min_error_cnt = 0;
