@@ -58,7 +58,7 @@
 
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
-static THD_WORKING_AREA(blocking_thread_wa, 2048);
+static THD_WORKING_AREA(blocking_thread_wa, 3000);
 static thread_t *blocking_tp;
 
 // Private variables
@@ -248,8 +248,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = 1;
 #endif
 #else
-		if (flash_helper_qmlui_data()) {
-			send_buffer[ind++] = flash_helper_qmlui_flags();
+		if (flash_helper_code_data(CODE_IND_QML)) {
+			send_buffer[ind++] = flash_helper_code_flags(CODE_IND_QML);
 		} else {
 			send_buffer[ind++] = 0;
 		}
@@ -1368,8 +1368,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t len_qml = buffer_get_int32(data, &ind);
 		int32_t ofs_qml = buffer_get_int32(data, &ind);
 
-		uint8_t *qmlui_data = flash_helper_qmlui_data();
-		int32_t qmlui_len = flash_helper_qmlui_size();
+		uint8_t *qmlui_data = flash_helper_code_data(CODE_IND_QML);
+		int32_t qmlui_len = flash_helper_code_size(CODE_IND_QML);
 
 #ifdef QMLUI_SOURCE_APP
 		qmlui_data = data_qml_app;
@@ -1402,7 +1402,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
-		uint16_t flash_res = flash_helper_erase_qmlui();
+		uint16_t flash_res = flash_helper_erase_code(CODE_IND_QML);
 
 		ind = 0;
 		uint8_t send_buffer[50];
@@ -1418,7 +1418,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
-		uint16_t flash_res = flash_helper_write_qmlui(qmlui_offset, data + ind, len - ind);
+		uint16_t flash_res = flash_helper_write_code(CODE_IND_QML, qmlui_offset, data + ind, len - ind);
 
 		SHUTDOWN_RESET();
 
@@ -1698,15 +1698,15 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
     if (mcconf->foc_sample_v0_v7 == true) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
-		ctrl_loop_freq = mcconf->foc_f_sw;
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+		ctrl_loop_freq = mcconf->foc_f_zv;
     } else {
 #ifdef HW_HAS_DUAL_MOTORS
-    	utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
-    	ctrl_loop_freq = mcconf->foc_f_sw;
+    	utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+    	ctrl_loop_freq = mcconf->foc_f_zv;
 #else
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
-		ctrl_loop_freq = mcconf->foc_f_sw / 2.0;
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+		ctrl_loop_freq = mcconf->foc_f_zv / 2.0;
 #endif
     }
 #endif
@@ -1976,7 +1976,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
@@ -2024,7 +2024,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);

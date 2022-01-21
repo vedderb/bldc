@@ -28,7 +28,7 @@
 
 // Threads
 THD_FUNCTION(dac_thread, arg);
-static THD_WORKING_AREA(dac_thread_wa, 1024);
+static THD_WORKING_AREA(dac_thread_wa, 256);
 static bool dac_thread_running = false;
 
 // Variables

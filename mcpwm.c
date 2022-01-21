@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -160,9 +160,9 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
-static THD_WORKING_AREA(rpm_thread_wa, 1024);
+static THD_WORKING_AREA(rpm_thread_wa, 512);
 static THD_FUNCTION(rpm_thread, arg);
 static volatile bool timer_thd_stop;
 static volatile bool rpm_thd_stop;
@@ -649,6 +649,12 @@ void mcpwm_set_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(SIGN(current) * conf->l_min_duty);
 	}
+}
+
+void mcpwm_release_motor(void) {
+	current_set = 0.0;
+	control_mode = CONTROL_MODE_NONE;
+	stop_pwm_ll();
 }
 
 /**

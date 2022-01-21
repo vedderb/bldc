@@ -21,10 +21,10 @@
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR			5
-#define FW_VERSION_MINOR			03
+#define FW_VERSION_MAJOR			6
+#define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		75
+#define FW_TEST_VERSION_NUMBER		2
 
 #include "datatypes.h"
 
@@ -89,8 +89,8 @@
 //#define HW_SOURCE "hw_axiom.c"
 //#define HW_HEADER "hw_axiom.h"
 
-//#define HW_SOURCE "hw_luna_bbshd.c"
-//#define HW_HEADER "hw_luna_bbshd.h"
+//#define HW_SOURCE "luna/hw_luna_bbshd.c"
+//#define HW_HEADER "luna/hw_luna_bbshd.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
@@ -148,10 +148,12 @@
 
 //#define HW_DUAL_CONFIG_PARALLEL
 //#define HW_VER_IS_100D_V2
+//#define HW_VER_IS_100DX
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
 //#define HW_VER_IS_60D_PLUS
+//#define HW_VER_IS_60D_XS
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
 
@@ -182,6 +184,8 @@
 //#define HW_SOURCE "hw_ubox_single.c"
 //#define HW_HEADER "hw_ubox_single.h"
 
+//#define HW_SOURCE "hw_60v2_alva.c"
+//#define HW_HEADER "hw_60v2_alva.h"
 #endif
 
 #ifndef HW_SOURCE

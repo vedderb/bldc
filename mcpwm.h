@@ -33,6 +33,7 @@ void mcpwm_set_duty_noramp(float dutyCycle);
 void mcpwm_set_pid_speed(float rpm);
 void mcpwm_set_pid_pos(float pos);
 void mcpwm_set_current(float current);
+void mcpwm_release_motor(void);
 void mcpwm_set_brake_current(float current);
 int mcpwm_set_tachometer_value(int steps);
 void mcpwm_brake_now(void);

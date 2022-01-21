@@ -36,7 +36,7 @@ typedef enum {
 // Variables
 static volatile bool i2c_running = false;
 static THD_WORKING_AREA(smart_switch_thread_wa, 128);
-static THD_WORKING_AREA(mux_thread_wa, 256);
+static THD_WORKING_AREA(mux_thread_wa, 128);
 static THD_WORKING_AREA(switch_color_thread_wa, 128);
 static THD_FUNCTION(mux_thread, arg);
 static THD_FUNCTION(switch_color_thread, arg);
@@ -574,8 +574,10 @@ void smart_switch_pin_init(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-
 	palSetPadMode(SWITCH_IN_GPIO, SWITCH_IN_PIN, PAL_MODE_INPUT_PULLDOWN);
+#if defined (HW_VER_IS_60D_XS)
+	palSetPadMode(SWITCH_IN_GPIO, SWITCH_IN_PIN, PAL_MODE_INPUT);
+#endif
 	palSetPadMode(SWITCH_OUT_GPIO,SWITCH_OUT_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);

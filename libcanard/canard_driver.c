@@ -84,7 +84,7 @@ static uint8_t my_node_id = 0;
 static bool refresh_parameters_enabled = true;
 
 // Threads
-static THD_WORKING_AREA(canard_thread_wa, 2048);
+static THD_WORKING_AREA(canard_thread_wa, 1024);
 static THD_FUNCTION(canard_thread, arg);
 
 // Private functions
