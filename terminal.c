@@ -445,7 +445,6 @@ void terminal_process_string(char *str) {
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
-				const float res = (3.0 / 2.0) * mcconf->foc_motor_r;
 
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
@@ -485,7 +484,7 @@ void terminal_process_string(char *str) {
 				rpm_avg /= samples;
 				iq_avg /= samples;
 
-				float linkage = (vq_avg - res * iq_avg) / RPM2RADPS_f(rpm_avg);
+				float linkage = (vq_avg - mcconf->foc_motor_r * iq_avg) / RPM2RADPS_f(rpm_avg);
 
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {
