@@ -2146,6 +2146,16 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = -7.82531699e-12 * res * res * res * res + 6.34445902e-8 * res * res * res -
 				0.00020119157  * res * res + 0.407683016 * res - 161.357536;
 	} break;
+
+	case TEMP_SENSOR_NTCX:
+		temp_motor = is_motor_1 ? NTCX_TEMP_MOTOR(conf->m_ntcx_ptcx_res, conf->m_ntc_motor_beta, conf->m_ntcx_ptcx_temp_base) :
+				NTCX_TEMP_MOTOR_2(conf->m_ntcx_ptcx_res, conf->m_ntc_motor_beta, conf->m_ntcx_ptcx_temp_base);
+		break;
+
+	case TEMP_SENSOR_PTCX:
+		temp_motor = is_motor_1 ? PTC_TEMP_MOTOR(conf->m_ntcx_ptcx_res, conf->m_ptc_motor_coeff, conf->m_ntcx_ptcx_temp_base) :
+				PTC_TEMP_MOTOR_2(conf->m_ntcx_ptcx_res, conf->m_ptc_motor_coeff, conf->m_ntcx_ptcx_temp_base);
+		break;
 	}
 
 	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an

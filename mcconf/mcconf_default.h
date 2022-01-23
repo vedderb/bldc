@@ -524,6 +524,12 @@
 #ifndef MCCONF_M_PTC_MOTOR_COEFF
 #define MCCONF_M_PTC_MOTOR_COEFF		0.61 // %/K coefficient for motor PTC sensor
 #endif
+#ifndef MCCONF_M_NTCX_PTCX_RES
+#define MCCONF_M_NTCX_PTCX_RES			10000.0 // Custom NTC/PTC resistance
+#endif
+#ifndef MCCONF_M_NTCX_PTCX_BASE_TEMP
+#define MCCONF_M_NTCX_PTCX_BASE_TEMP	25.0 // Custom NTC/PTC base temperature
+#endif
 #ifndef MCCONF_M_HALL_EXTRA_SAMPLES
 #define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
 #endif

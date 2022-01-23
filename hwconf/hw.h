@@ -444,8 +444,8 @@
 
 #ifndef PTC_TEMP_MOTOR
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
-#define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
-#define PTC_TEMP_MOTOR_2(res, con, tbase)		(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
+#define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - (res)) / (res)) * 100 / (con) + (tbase))
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - (res)) / (res)) * 100 / (con) + (tbase))
 #else
 #define PTC_TEMP_MOTOR(res, con, tbase)			0.0
 #define PTC_TEMP_MOTOR_2(res, con, tbase)		0.0
@@ -454,11 +454,21 @@
 
 #ifndef NTC100K_TEMP_MOTOR
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
-#define NTC100K_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
-#define NTC100K_TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC100K_TEMP_MOTOR(beta)				(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC100K_TEMP_MOTOR_2(beta)				(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
 #else
-#define NTC100K_TEMP_MOTOR(beta)		0.0
-#define NTC100K_TEMP_MOTOR2(beta)		0.0
+#define NTC100K_TEMP_MOTOR(beta)				0.0
+#define NTC100K_TEMP_MOTOR_2(beta)				0.0
+#endif
+#endif
+
+#ifndef NTCX_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define NTCX_TEMP_MOTOR(res, beta, tbase)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / (res)) / (beta)) + (1.0 / (273.15 + (tbase)))) - 273.15)
+#define NTCX_TEMP_MOTOR_2(res, beta, tbase)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / (res)) / (beta)) + (1.0 / (273.15 + (tbase)))) - 273.15)
+#else
+#define NTCX_TEMP_MOTOR(res, beta, tbase)		0.0
+#define NTCX_TEMP_MOTOR_2(res, beta, tbase)		0.0
 #endif
 #endif
 
