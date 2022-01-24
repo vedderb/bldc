@@ -14,7 +14,7 @@
 
 #define SPEED_STEP	0.05
 #define SPEED_MAX	1.00
-#define SPEED_MIN	0.20
+#define SPEED_MIN	0.10
 #define SPEED_OFF	0.00
 
 //private variables
@@ -60,6 +60,9 @@ void app_custom_start(void) {
 	// Start the dv thread
 	chThdCreateStatic(dpv_thread_wa, sizeof(dpv_thread_wa), NORMALPRIO, dpv_thread, NULL);
 
+    hw_start_i2c();
+    app_uartcomm_start(UART_PORT_COMM_HEADER);
+    app_uartcomm_start(UART_PORT_BUILTIN);
     chSysLock();
     chVTSetI(&dpv_vt, MS2ST(1), update, NULL);
     chSysUnlock();
@@ -121,27 +124,26 @@ static THD_FUNCTION(dpv_thread, arg) {
 
         static systime_t last_time = 0;
         static float motorSpeed_val_ramp = 0.0;
- 		float ramp_time; 
-
-		if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
-			motorSpeed=targetSpeed;
-		} else {
-			motorSpeed=SPEED_OFF;
-		}
-  		ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 5.0 : 0.5;
+	float ramp_time; 
+	if ( ! palReadPad(HW_HALL_TRIGGER_GPIO, HW_HALL_TRIGGER_PIN)) {
+		motorSpeed=targetSpeed;
+	} else {
+		motorSpeed=SPEED_OFF;
+	}
+  	ramp_time = fabsf(motorSpeed) > fabsf(motorSpeed_val_ramp) ? 5.0 : 0.5;
     	if (fabsf(motorSpeed) > 0.01) {
-            ramp_time = fminf(3.0, 3.0);
+        	ramp_time = fminf(3.0, 3.0);
         }
-   		if (ramp_time > 0.01) {
-            const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-            utils_step_towards(&motorSpeed_val_ramp, motorSpeed, ramp_step);
-            last_time = chVTGetSystemTimeX();
-   			motorSpeed = motorSpeed_val_ramp;
+   	if (ramp_time > 0.01) {
+		const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+        	utils_step_towards(&motorSpeed_val_ramp, motorSpeed, ramp_step);
+        	last_time = chVTGetSystemTimeX();
+		motorSpeed = motorSpeed_val_ramp;
        	}
-       	mc_interface_set_duty(utils_map(motorSpeed, 0, 1.0, 0, mcconf->l_max_duty));
-//       	mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
-        chThdSleepMilliseconds(10);
-		// Reset the timeout
-		timeout_reset();
+       	//mc_interface_set_pid_speed(motorSpeed*mcconf->l_max_erpm);
+        mc_interface_set_duty(motorSpeed*mcconf->l_max_duty);
+	chThdSleepMilliseconds(5);
+	// Reset the timeout
+	timeout_reset();
 	}
 }
