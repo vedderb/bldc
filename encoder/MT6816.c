@@ -68,7 +68,7 @@ encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 	spi_bb_nss_init(&(MT6816_config_now.sw_spi));
 
 #if (MT6816_USE_HW_SPI_PINS)
-	palSetPadMode(mt6816_spi_config.gpio_mosi.port, mt6816_spi_config.gpio_mosi.pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(MT6816_config_now.sw_spi.mosi_gpio, MT6816_config_now.sw_spi.mosi_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
 #endif
 
 	//Start driver with MT6816 SPI settings

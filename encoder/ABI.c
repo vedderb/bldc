@@ -17,11 +17,11 @@ void ABI_deinit(void) {
 
 	TIM_DeInit(HW_ENC_TIM);
 
-	palSetPadMode(ABI_config_now.port_A,
-			ABI_config_now.pin_A,
+	palSetPadMode(ABI_config_now.A_gpio,
+			ABI_config_now.A_pin,
 			PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(ABI_config_now.port_B,
-			ABI_config_now.pin_B,
+	palSetPadMode(ABI_config_now.B_gpio,
+			ABI_config_now.B_pin,
 			PAL_MODE_INPUT_PULLUP);
 
 	last_enc_angle = 0.0;
@@ -36,11 +36,11 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	// Initialize variables
 	ABI_config_now = *abi_config;
 
-	palSetPadMode(ABI_config_now.port_A,
-			ABI_config_now.pin_A,
+	palSetPadMode(ABI_config_now.A_gpio,
+			ABI_config_now.A_pin,
 			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
-	palSetPadMode(ABI_config_now.port_B,
-			ABI_config_now.pin_B,
+	palSetPadMode(ABI_config_now.B_gpio,
+			ABI_config_now.B_pin,
 			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 //	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
 

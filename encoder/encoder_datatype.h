@@ -38,10 +38,10 @@ typedef ENCSPI_config_t AS504x_config_t;
 typedef struct {
 	bool is_init;
 	uint32_t counts;
-	stm32_gpio_t *port_A;
-	uint8_t pin_A;
-	stm32_gpio_t *port_B;
-	uint8_t pin_B;
+	stm32_gpio_t *A_gpio;
+	uint8_t A_pin;
+	stm32_gpio_t *B_gpio;
+	uint8_t B_pin;
 } ABI_config_t;
 
 typedef struct {
@@ -56,12 +56,12 @@ typedef struct {
 
 typedef struct {
 	bool is_init;
-	stm32_gpio_t *port_TX;
-	uint8_t pin_TX;
-	stm32_gpio_t *port_RX;
-	uint8_t pin_RX;
-	stm32_gpio_t *port_EXT;
-	uint8_t pin_EXT;
+	stm32_gpio_t *TX_gpio;
+	uint8_t TX_pin;
+	stm32_gpio_t *RX_gpio;
+	uint8_t RX_pin;
+	stm32_gpio_t *EXT_gpio;
+	uint8_t EXT_pin;
 	SerialConfig uart_param;
 } TS5700N8501_config_t;
 #endif /* ENCODER_ENCODER_DATATYPE_H_ */

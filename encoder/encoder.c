@@ -453,8 +453,8 @@ void encoder_tim_isr(void) {
 }
 
 static bool encoder_is_uart_defined(void) {
-	if (!encoder_conf_TS5700N8501.port_RX
-			|| !encoder_conf_TS5700N8501.port_TX) {
+	if (!encoder_conf_TS5700N8501.RX_gpio
+			|| !encoder_conf_TS5700N8501.TX_gpio) {
 		return false;
 	}
 	return true;
@@ -470,8 +470,8 @@ static bool encoder_is_spi_defined(void) {
 }
 
 static bool encoder_is_incremental_defined(void) {
-	if (!encoder_conf_ABI.port_A
-			|| !encoder_conf_ABI.port_B) {
+	if (!encoder_conf_ABI.A_gpio
+			|| !encoder_conf_ABI.B_gpio) {
 		return false;
 	}
 	return true;
