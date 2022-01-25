@@ -247,6 +247,30 @@ static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_F(UTILS_AGE_S(lbm_dec_as_u(args[0])));
 }
 
+static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	int port = lbm_dec_as_u(args[0]);
+	bool on = lbm_dec_as_u(args[1]);
+	if (port == 1) {
+		if (on) {
+			AUX_ON();
+		} else {
+			AUX_OFF();
+		}
+		return lbm_enc_sym(SYM_TRUE);
+	} else if (port == 2) {
+		if (on) {
+			AUX2_ON();
+		} else {
+			AUX2_OFF();
+		}
+		return lbm_enc_sym(SYM_TRUE);
+	}
+
+	return lbm_enc_sym(SYM_EERROR);
+}
+
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
@@ -476,6 +500,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-adc", ext_get_adc);
 	lbm_add_extension("systime", ext_systime);
 	lbm_add_extension("secs-since", ext_secs_since);
+	lbm_add_extension("set-aux", ext_set_aux);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);

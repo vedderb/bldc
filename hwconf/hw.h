@@ -231,6 +231,12 @@
 #ifndef AUX_OFF
 #define AUX_OFF()
 #endif
+#ifndef AUX2_ON
+#define AUX2_ON()
+#endif
+#ifndef AUX2_OFF
+#define AUX2_OFF()
+#endif
 
 #ifndef PHASE_FILTER_ON
 #define PHASE_FILTER_ON()

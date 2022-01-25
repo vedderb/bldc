@@ -88,9 +88,13 @@ void hw_init_gpio(void) {
 
 	CURRENT_FILTER_OFF();
 
-	// AUX pin
+	// AUX pins
 	AUX_OFF();
 	palSetPadMode(AUX_GPIO, AUX_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	AUX2_OFF();
+	palSetPadMode(AUX2_GPIO, AUX2_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
