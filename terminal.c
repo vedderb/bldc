@@ -935,6 +935,10 @@ void terminal_process_string(char *str) {
 					encoder_resolver_loss_of_signal_error_cnt(),
 					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
+
+		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
+			commands_printf("Index found: %d\n", encoder_index_found());
+		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_ts57n8501_reset_errors();
 		commands_printf("Done!\n");

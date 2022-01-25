@@ -143,6 +143,57 @@ static thread_t *fault_stop_tp;
 static THD_WORKING_AREA(stat_thread_wa, 512);
 static THD_FUNCTION(stat_thread, arg);
 
+static void init_sensor_port(volatile mc_configuration *conf) {
+	switch (conf->m_sensor_port_mode) {
+	case SENSOR_PORT_MODE_ABI:
+		SENSOR_PORT_5V();
+		encoder_init_abi(conf->m_encoder_counts);
+		break;
+
+	case SENSOR_PORT_MODE_AS5047_SPI:
+		SENSOR_PORT_3V3();
+		encoder_init_as5047p_spi();
+		break;
+
+	case SENSOR_PORT_MODE_MT6816_SPI:
+		SENSOR_PORT_5V();
+		encoder_init_mt6816_spi();
+		break;
+
+	case SENSOR_PORT_MODE_AD2S1205:
+		SENSOR_PORT_5V();
+		encoder_init_ad2s1205_spi();
+		break;
+
+	case SENSOR_PORT_MODE_SINCOS:
+		SENSOR_PORT_5V();
+		encoder_init_sincos(conf->foc_encoder_sin_gain, conf->foc_encoder_sin_offset,
+				conf->foc_encoder_cos_gain, conf->foc_encoder_cos_offset,
+				conf->foc_encoder_sincos_filter_constant);
+		break;
+
+	case SENSOR_PORT_MODE_TS5700N8501:
+	case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
+		SENSOR_PORT_5V();
+		app_configuration *appconf = mempools_alloc_appconf();
+		conf_general_read_app_configuration(appconf);
+		if (appconf->app_to_use == APP_ADC ||
+				appconf->app_to_use == APP_UART ||
+				appconf->app_to_use == APP_PPM_UART ||
+				appconf->app_to_use == APP_ADC_UART) {
+			appconf->app_to_use = APP_NONE;
+			conf_general_store_app_configuration(appconf);
+		}
+		mempools_free_appconf(appconf);
+		encoder_init_ts5700n8501();
+	} break;
+
+	default:
+		SENSOR_PORT_5V();
+		break;
+	}
+}
+
 void mc_interface_init(void) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
 #ifdef HW_HAS_DUAL_MOTORS
@@ -207,51 +258,7 @@ void mc_interface_init(void) {
 #endif
 	mc_interface_select_motor_thread(motor_old);
 
-	// Initialize encoder
-	switch (motor_now()->m_conf.m_sensor_port_mode) {
-	case SENSOR_PORT_MODE_ABI:
-		SENSOR_PORT_3V3();
-		encoder_init_abi(motor_now()->m_conf.m_encoder_counts);
-		break;
-
-	case SENSOR_PORT_MODE_AS5047_SPI:
-		SENSOR_PORT_3V3();
-		encoder_init_as5047p_spi();
-		break;
-
-	case SENSOR_PORT_MODE_MT6816_SPI:
-		encoder_init_mt6816_spi();
-		break;
-
-	case SENSOR_PORT_MODE_AD2S1205:
-		encoder_init_ad2s1205_spi();
-		break;
-
-	case SENSOR_PORT_MODE_SINCOS:
-		encoder_init_sincos(motor_now()->m_conf.foc_encoder_sin_gain, motor_now()->m_conf.foc_encoder_sin_offset,
-							motor_now()->m_conf.foc_encoder_cos_gain, motor_now()->m_conf.foc_encoder_cos_offset,
-							motor_now()->m_conf.foc_encoder_sincos_filter_constant);
-		break;
-
-	case SENSOR_PORT_MODE_TS5700N8501:
-	case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
-		app_configuration *appconf = mempools_alloc_appconf();
-		conf_general_read_app_configuration(appconf);
-		if (appconf->app_to_use == APP_ADC ||
-				appconf->app_to_use == APP_UART ||
-				appconf->app_to_use == APP_PPM_UART ||
-				appconf->app_to_use == APP_ADC_UART) {
-			appconf->app_to_use = APP_NONE;
-			conf_general_store_app_configuration(appconf);
-		}
-		mempools_free_appconf(appconf);
-		encoder_init_ts5700n8501();
-	} break;
-
-	default:
-		SENSOR_PORT_5V();
-		break;
-	}
+	init_sensor_port(&motor_now()->m_conf);
 
 	// Initialize selected implementation
 	switch (motor_now()->m_conf.motor_type) {
@@ -341,51 +348,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
-		switch (configuration->m_sensor_port_mode) {
-		case SENSOR_PORT_MODE_ABI:
-			SENSOR_PORT_3V3();
-			encoder_init_abi(configuration->m_encoder_counts);
-			break;
-
-		case SENSOR_PORT_MODE_AS5047_SPI:
-			SENSOR_PORT_3V3();
-			encoder_init_as5047p_spi();
-			break;
-
-		case SENSOR_PORT_MODE_MT6816_SPI:
-			encoder_init_mt6816_spi();
-			break;
-
-		case SENSOR_PORT_MODE_AD2S1205:
-			encoder_init_ad2s1205_spi();
-			break;
-
-		case SENSOR_PORT_MODE_SINCOS:
-			encoder_init_sincos(configuration->foc_encoder_sin_gain, configuration->foc_encoder_sin_offset,
-					configuration->foc_encoder_cos_gain, configuration->foc_encoder_cos_offset,
-					configuration->foc_encoder_sincos_filter_constant);
-			break;
-
-		case SENSOR_PORT_MODE_TS5700N8501:
-		case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
-			app_configuration *appconf = mempools_alloc_appconf();
-			*appconf = *app_get_configuration();
-			if (appconf->app_to_use == APP_ADC ||
-					appconf->app_to_use == APP_UART ||
-					appconf->app_to_use == APP_PPM_UART ||
-					appconf->app_to_use == APP_ADC_UART) {
-				appconf->app_to_use = APP_NONE;
-				conf_general_store_app_configuration(appconf);
-				app_set_configuration(appconf);
-			}
-			mempools_free_appconf(appconf);
-			encoder_init_ts5700n8501();
-		} break;
-
-		default:
-			SENSOR_PORT_5V();
-			break;
-		}
+		init_sensor_port(configuration);
 	}
 
 	if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
