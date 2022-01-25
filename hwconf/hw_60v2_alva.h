@@ -20,7 +20,7 @@
 #ifndef HW_60V2_ALVA_H_
 #define HW_60V2_ALVA_H_
 
-#define HW_NAME					"ALVA60"
+#define HW_NAME					"60v2_alva"
 
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
