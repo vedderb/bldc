@@ -86,7 +86,6 @@ TS5700N8501_config_t encoder_conf_TS5700N8501 =
 };
 
 static encoder_type_t encoder_type_now = ENCODER_TYPE_NONE;
-static uint32_t enc_counts = 10000;
 static bool index_found = false;
 
 void encoder_deinit(void) {
@@ -328,7 +327,7 @@ uint32_t encoder_resolver_loss_of_signal_error_cnt(void) {
 void encoder_set_counts(uint32_t counts) {
 	if (encoder_type_now == ENCODER_TYPE_ABI || encoder_type_now == ENCODER_TYPE_NONE) {
 		encoder_conf_ABI.counts = counts;
-		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
+		TIM_SetAutoreload(HW_ENC_TIM, encoder_conf_ABI.counts - 1);
 		index_found = false;
 	}
 }
@@ -352,11 +351,11 @@ void encoder_reset(void) {
 	if (palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)) {
 		const unsigned int cnt = HW_ENC_TIM->CNT;
 		static int bad_pulses = 0;
-		const unsigned int lim = enc_counts / 20;
+		const unsigned int lim = encoder_conf_ABI.counts / 20;
 
 		if (encoder_index_found()) {
 			// Some plausibility filtering.
-			if (cnt > (enc_counts - lim) || cnt < lim) {
+			if (cnt > (encoder_conf_ABI.counts - lim) || cnt < lim) {
 				HW_ENC_TIM->CNT = 0;
 				bad_pulses = 0;
 			} else {
