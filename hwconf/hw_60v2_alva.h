@@ -20,7 +20,7 @@
 #ifndef HW_60V2_ALVA_H_
 #define HW_60V2_ALVA_H_
 
-#define HW_NAME					"ALVA60"
+#define HW_NAME					"60v2_alva"
 
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
@@ -55,6 +55,10 @@
 #define AUX_PIN					12
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
+#define AUX2_GPIO				GPIOC
+#define AUX2_PIN				13
+#define AUX2_ON()				palSetPad(AUX2_GPIO, AUX2_PIN)
+#define AUX2_OFF()				palClearPad(AUX2_GPIO, AUX2_PIN)
 
 #define CURRENT_FILTER_GPIO		GPIOD
 #define CURRENT_FILTER_PIN		2

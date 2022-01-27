@@ -445,7 +445,6 @@ void terminal_process_string(char *str) {
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
-				const float res = (3.0 / 2.0) * mcconf->foc_motor_r;
 
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
@@ -485,7 +484,7 @@ void terminal_process_string(char *str) {
 				rpm_avg /= samples;
 				iq_avg /= samples;
 
-				float linkage = (vq_avg - res * iq_avg) / RPM2RADPS_f(rpm_avg);
+				float linkage = (vq_avg - mcconf->foc_motor_r * iq_avg) / RPM2RADPS_f(rpm_avg);
 
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {
@@ -935,6 +934,10 @@ void terminal_process_string(char *str) {
 			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
 					encoder_resolver_loss_of_signal_error_cnt(),
 					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
+		}
+
+		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
+			commands_printf("Index found: %d\n", encoder_index_found());
 		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_reset_errors();
