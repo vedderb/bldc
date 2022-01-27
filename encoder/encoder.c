@@ -326,7 +326,7 @@ uint32_t encoder_resolver_loss_of_signal_error_cnt(void) {
 
 // ABI
 void encoder_set_counts(uint32_t counts) {
-	if (encoder_type_now == ENCODER_TYPE_ABI) {
+	if (encoder_type_now == ENCODER_TYPE_ABI || encoder_type_now == ENCODER_TYPE_NONE) {
 		encoder_conf_ABI.counts = counts;
 		TIM_SetAutoreload(HW_ENC_TIM, enc_counts - 1);
 		index_found = false;
@@ -434,12 +434,13 @@ float encoder_get_signal_above_max_error_rate(void) {
 	return 0.0;
 }
 
-void encoder_sincos_conf_set(ENCSINCOS_config_t *sincos_config) {
-	encoder_conf_ENCSINCOS.s_gain = sincos_config->s_gain;
-	encoder_conf_ENCSINCOS.s_offset = sincos_config->s_offset;
-	encoder_conf_ENCSINCOS.c_gain = sincos_config->c_gain;
-	encoder_conf_ENCSINCOS.c_offset = sincos_config->c_offset;
-	encoder_conf_ENCSINCOS.filter_constant = sincos_config->filter_constant;
+void encoder_sincos_conf_set(float sin_gain, float sin_offset,
+		float cos_gain, float cos_offset, float sincos_filter_constant) {
+	encoder_conf_ENCSINCOS.s_gain = sin_gain;
+	encoder_conf_ENCSINCOS.s_offset = sin_offset;
+	encoder_conf_ENCSINCOS.c_gain = cos_gain;
+	encoder_conf_ENCSINCOS.c_offset = cos_offset;
+	encoder_conf_ENCSINCOS.filter_constant = sincos_filter_constant;
 }
 
 void encoder_tim_isr(void) {

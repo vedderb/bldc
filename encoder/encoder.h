@@ -38,7 +38,8 @@ uint32_t encoder_get_signal_below_min_error_cnt(void);
 uint32_t encoder_get_signal_above_max_error_cnt(void);
 float encoder_get_signal_below_min_error_rate(void);
 float encoder_get_signal_above_max_error_rate(void);
-void encoder_sincos_conf_set(ENCSINCOS_config_t *sincos_config);
+void encoder_sincos_conf_set(float sin_gain, float sin_offset,
+		float cos_gain, float cos_offset, float sincos_filter_constant);
 
 //TS5700N8501
 uint8_t* encoder_get_raw_status(void);

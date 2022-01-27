@@ -274,8 +274,6 @@ static void disconnect_virtual_motor( void ){
 		ADC_Init(ADC1, &ADC_InitStructure);
 
 		if(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER){
-			ENCSINCOS_config_t sincos_config;
-
 			switch (m_conf->m_sensor_port_mode) {
 			case SENSOR_PORT_MODE_ABI:
 				encoder_set_counts(m_conf->m_encoder_counts);
@@ -291,14 +289,9 @@ static void disconnect_virtual_motor( void ){
 				break;
 
 			case SENSOR_PORT_MODE_SINCOS:
-
-				sincos_config.s_gain = m_conf->foc_encoder_sin_gain;
-				sincos_config.s_offset = m_conf->foc_encoder_sin_offset;
-				sincos_config.c_gain = m_conf->foc_encoder_cos_gain;
-				sincos_config.c_offset = m_conf->foc_encoder_cos_offset;
-				sincos_config.filter_constant = m_conf->foc_encoder_sincos_filter_constant;
-
-				encoder_sincos_conf_set(&sincos_config);
+				encoder_sincos_conf_set(m_conf->foc_encoder_sin_gain, m_conf->foc_encoder_sin_offset,
+						m_conf->foc_encoder_cos_gain, m_conf->foc_encoder_cos_offset,
+						m_conf->foc_encoder_sincos_filter_constant);
 				encoder_init(ENCODER_TYPE_SINCOS);
 				break;
 
