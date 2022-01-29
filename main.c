@@ -83,7 +83,7 @@
 static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
-static bool m_init_done = false;
+static volatile bool m_init_done = false;
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
 	(void)arg;
@@ -305,10 +305,6 @@ int main(void) {
 #ifdef BOOT_OK_GPIO
 	chThdSleepMilliseconds(500);
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
-#endif
-
-#ifdef USE_LISPBM
-	lispif_init();
 #endif
 
 	m_init_done = true;

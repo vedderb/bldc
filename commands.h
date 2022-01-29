@@ -22,6 +22,10 @@
 
 #include "datatypes.h"
 
+// Global variables
+extern uint8_t send_buffer_global[];
+extern mutex_t send_buffer_mutex;
+
 // Functions
 void commands_init(void);
 bool commands_is_initialized(void);
@@ -32,6 +36,7 @@ void commands_send_packet_last_blocking(unsigned char *data, unsigned int len);
 void commands_process_packet(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 void commands_printf(const char* format, ...);
+void commands_printf_lisp(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
 void commands_fwd_can_frame(int len, unsigned char *data, uint32_t id, bool is_extended);

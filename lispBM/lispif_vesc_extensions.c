@@ -62,7 +62,7 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 			lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
 			switch (array->elt_type){
 			case LBM_VAL_TYPE_CHAR:
-				commands_printf("%s", (char*)array + 8);
+				commands_printf_lisp("%s", (char*)array + 8);
 				break;
 			default:
 				return lbm_enc_sym(SYM_NIL);
@@ -70,13 +70,13 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 			}
 		} else if (lbm_type_of(t) == LBM_VAL_TYPE_CHAR) {
 			if (lbm_dec_char(t) =='\n') {
-				commands_printf(" ");
+				commands_printf_lisp(" ");
 			} else {
-				commands_printf("%c", lbm_dec_char(t));
+				commands_printf_lisp("%c", lbm_dec_char(t));
 			}
 		}  else {
 			lbm_print_value(output, 256, t);
-			commands_printf("%s", output);
+			commands_printf_lisp("%s", output);
 		}
 	}
 

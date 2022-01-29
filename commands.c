@@ -50,19 +50,30 @@
 #include "bms.h"
 #include "qmlui.h"
 #include "crc.h"
+#ifdef USE_LISPBM
+#include "lispif.h"
+#endif
+#include "main.h"
 
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 
+// Settings
+#define PRINT_BUFFER_SIZE	255
+
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
 static THD_WORKING_AREA(blocking_thread_wa, 3000);
 static thread_t *blocking_tp;
 
+// Global variables (for conserving RAM)
+uint8_t send_buffer_global[PACKET_MAX_PL_LEN];
+mutex_t send_buffer_mutex;
+
 // Private variables
-static uint8_t send_buffer_global[PACKET_MAX_PL_LEN];
+static char print_buffer[PRINT_BUFFER_SIZE];
 static uint8_t blocking_thread_cmd_buffer[PACKET_MAX_PL_LEN];
 static volatile unsigned int blocking_thread_cmd_len = 0;
 static volatile bool is_blocking = false;
@@ -75,7 +86,6 @@ static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile hwdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
-static mutex_t send_buffer_mutex;
 static mutex_t terminal_mutex;
 static volatile int fw_version_sent_cnt = 0;
 static bool isInitialized = false;
@@ -1362,7 +1372,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 #endif
 	} break;
 
-	case COMM_GET_QML_UI_APP: {
+	case COMM_GET_QML_UI_APP:
+	case COMM_LISP_READ_CODE: {
 		int32_t ind = 0;
 
 		int32_t len_qml = buffer_get_int32(data, &ind);
@@ -1376,7 +1387,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		qmlui_len = DATA_QML_APP_SIZE;
 #endif
 
+		if (packet_id == COMM_LISP_READ_CODE) {
+			qmlui_data = flash_helper_code_data(CODE_IND_LISP);
+			qmlui_len = flash_helper_code_size(CODE_IND_LISP);
+		}
+
 		if (!qmlui_data) {
+			ind = 0;
+			uint8_t send_buffer[50];
+			send_buffer[ind++] = packet_id;
+			buffer_append_int32(send_buffer, 0, &ind);
+			buffer_append_int32(send_buffer, 0, &ind);
+			reply_func(send_buffer, ind);
 			break;
 		}
 
@@ -1396,35 +1418,37 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		chMtxUnlock(&send_buffer_mutex);
 	} break;
 
-	case COMM_QMLUI_ERASE: {
-		int32_t ind = 0;
-
+	case COMM_QMLUI_ERASE:
+	case COMM_LISP_ERASE_CODE: {
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
-		uint16_t flash_res = flash_helper_erase_code(CODE_IND_QML);
 
-		ind = 0;
+		uint16_t flash_res = flash_helper_erase_code(packet_id == COMM_QMLUI_ERASE ? CODE_IND_QML : CODE_IND_LISP);
+
+		int32_t ind = 0;
 		uint8_t send_buffer[50];
-		send_buffer[ind++] = COMM_QMLUI_ERASE;
+		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
 		reply_func(send_buffer, ind);
 	} break;
 
-	case COMM_QMLUI_WRITE: {
+	case COMM_QMLUI_WRITE:
+	case COMM_LISP_WRITE_CODE: {
 		int32_t ind = 0;
 		uint32_t qmlui_offset = buffer_get_uint32(data, &ind);
 
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
-		uint16_t flash_res = flash_helper_write_code(CODE_IND_QML, qmlui_offset, data + ind, len - ind);
+		uint16_t flash_res = flash_helper_write_code(packet_id == COMM_QMLUI_WRITE ? CODE_IND_QML : CODE_IND_LISP,
+				qmlui_offset, data + ind, len - ind);
 
 		SHUTDOWN_RESET();
 
 		ind = 0;
 		uint8_t send_buffer[50];
-		send_buffer[ind++] = COMM_QMLUI_WRITE;
+		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
 		buffer_append_uint32(send_buffer, qmlui_offset, &ind);
 		reply_func(send_buffer, ind);
@@ -1532,6 +1556,14 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_LISP_SET_RUNNING:
+	case COMM_LISP_GET_STATS: {
+#ifdef USE_LISPBM
+		lispif_process_cmd(data - 1, len + 1, reply_func);
+#endif
+		break;
+	}
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1576,15 +1608,33 @@ void commands_printf(const char* format, ...) {
 	va_list arg;
 	va_start (arg, format);
 	int len;
-	static char print_buffer[255];
 
 	print_buffer[0] = COMM_PRINT;
-	len = vsnprintf(print_buffer + 1, 254, format, arg);
+	len = vsnprintf(print_buffer + 1, (PRINT_BUFFER_SIZE - 1), format, arg);
 	va_end (arg);
 
 	if(len > 0) {
 		commands_send_packet_last_blocking((unsigned char*)print_buffer,
-				(len < 254) ? len + 1 : 255);
+				(len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE);
+	}
+
+	chMtxUnlock(&print_mutex);
+}
+
+void commands_printf_lisp(const char* format, ...) {
+	chMtxLock(&print_mutex);
+
+	va_list arg;
+	va_start (arg, format);
+	int len;
+
+	print_buffer[0] = COMM_LISP_PRINT;
+	len = vsnprintf(print_buffer + 1, (PRINT_BUFFER_SIZE - 1), format, arg);
+	va_end (arg);
+
+	if(len > 0) {
+		commands_send_packet_last_blocking((unsigned char*)print_buffer,
+				(len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE);
 	}
 
 	chMtxUnlock(&print_mutex);
@@ -1861,6 +1911,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 	chRegSetThreadName("comm_block");
 
 	blocking_tp = chThdGetSelfX();
+
+	// Wait for main to finish
+	while(!main_init_done()) {
+		chThdSleepMilliseconds(10);
+	}
+
+	// Start lisp from here because main does not have enough stack space.
+#ifdef USE_LISPBM
+	lispif_init();
+#endif
 
 	for(;;) {
 		is_blocking = false;
