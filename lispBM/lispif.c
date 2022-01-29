@@ -34,7 +34,7 @@
 #include "env.h"
 #include "lispbm.h"
 
-#define HEAP_SIZE				1024
+#define HEAP_SIZE				1536
 #define LISP_MEM_SIZE			LBM_MEMORY_SIZE_8K
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_8K
 
@@ -50,41 +50,28 @@ static THD_WORKING_AREA(eval_thread_wa, 2048);
 static bool lisp_thd_running = false;
 
 // Private functions
-static bool start_lisp(void);
+static bool start_lisp(bool print);
 static uint32_t timestamp_callback(void);
 static void sleep_callback(uint32_t us);
-
-/*
- * TODO
- *
- * VESC Tool
- *  - [OK] Implement commands.cpp
- *  - [OK] Upload code
- *  - [OK] Read code
- *  - [OK] Stats
- *  - [OK] Examples
- *  - [OK] Console print
- *  - Plot vars
- *
- * Firmware
- *  - [OK] Stats
- *  - Option, e.g. ;LOAD_ON_BOOT
- *  - [OK] Run/stop
- */
 
 void lispif_init(void) {
 	// Do not attempt to start lisp after a watchdog reset, in case lisp
 	// was the cause of it.
 	// TODO: Anything else to check?
 	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
-		start_lisp();
+		start_lisp(false);
 	}
 }
 
 void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
-	(void)arg2;
-	float *res = (float*)arg1;
-	*res = 100.0 * (float)ctx->K.max_sp / 256.0;
+	if (arg2 != NULL) {
+		lbm_print_value((char*)arg2, 40, ctx->r);
+	}
+
+	if (arg1 != NULL) {
+		float *res = (float*)arg1;
+		*res = 100.0 * (float)ctx->K.max_sp / 256.0;
+	}
 }
 
 void lispif_process_cmd(unsigned char *data, unsigned int len,
@@ -109,7 +96,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 			ok = timeout_cnt > 0;
 		} else {
-			ok = start_lisp();
+			ok = start_lisp(true);
 		}
 
 		int32_t ind = 0;
@@ -154,6 +141,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		buffer_append_float16(send_buffer_global, mem_use, 1e2, &ind);
 		buffer_append_float16(send_buffer_global, stack_use, 1e2, &ind);
 
+		char r_buf[40];
+		r_buf[0] = '\0'; lbm_done_iterator(ctx_cb, NULL, r_buf); r_buf[39] = '\0';
+		strcpy((char*)(send_buffer_global + ind), r_buf); ind += strlen(r_buf) + 1;
+
 		lbm_value curr = *lbm_get_env_ptr();
 		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
 			lbm_value key_val = lbm_car(curr);
@@ -180,7 +171,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	}
 }
 
-static bool start_lisp(void) {
+static bool start_lisp(bool print) {
 	bool res = false;
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
@@ -211,7 +202,9 @@ static bool start_lisp(void) {
 
 		lispif_load_vesc_extensions();
 
-		commands_printf_lisp("Parsing %d characters", strlen(code_data));
+		if (print) {
+			commands_printf_lisp("Parsing %d characters", strlen(code_data));
+		}
 
 		lbm_create_char_stream_from_string(&string_tok_state, &string_tok, code_data);
 		lbm_load_and_eval_program(&string_tok);
