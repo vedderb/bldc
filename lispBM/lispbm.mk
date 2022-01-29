@@ -1,4 +1,4 @@
-LISPBM = lispBM
+LISPBM = lispBM/lispBM
 
 LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/fundamental.c \
@@ -13,10 +13,11 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/lispbm.c \
             $(LISPBM)/src/eval_cps.c \
             $(LISPBM)/platform/chibios/src/platform_mutex.c \
-			$(LISPBM)/lispif.c \
-			$(LISPBM)/streams.c \
-			$(LISPBM)/lispif_vesc_extensions.c
+            $(LISPBM)/streams.c \
+			lispBM/lispif.c \
+			lispBM/lispif_vesc_extensions.c
 
 LISPBMINC = lispBM \
-            lispBM/include \
-            lispBM/platform/chibios/include
+			$(LISPBM) \
+            $(LISPBM)/include \
+            $(LISPBM)/platform/chibios/include

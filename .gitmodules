@@ -1,0 +1,3 @@
+[submodule "lispBM/lispBM"]
+	path = lispBM/lispBM
+	url = git@github.com:svenssonjoel/lispBM.git
