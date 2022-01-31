@@ -171,6 +171,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	}
 }
 
+void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	(void)can_id; (void)data8; (void)len; (void)is_ext;
+
+}
+
 static bool start_lisp(bool print) {
 	bool res = false;
 

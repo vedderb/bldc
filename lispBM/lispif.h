@@ -21,10 +21,14 @@
 #ifndef LISPBM_LISPIF_H_
 #define LISPBM_LISPIF_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 // Functions
 void lispif_init(void);
 void lispif_load_vesc_extensions(void);
 void lispif_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
+void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
 
 #endif /* LISPBM_LISPIF_H_ */
