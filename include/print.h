@@ -21,7 +21,8 @@
 #define PRINT_H_
 
 #include <stdint.h>
-#include "lispbm_types.h"
+
+#include "lbm_types.h"
 
 /** Print an lbm_value into a buffer provided by the user.
  *  If printing fails, the buffer may contain an error message.

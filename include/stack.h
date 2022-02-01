@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 typedef struct {
   lbm_uint* data;

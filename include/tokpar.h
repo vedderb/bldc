@@ -19,7 +19,7 @@
 #ifndef TOKPAR_H_
 #define TOKPAR_H_
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 /**
  * State struct for the string tokenizer.

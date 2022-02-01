@@ -15,12 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_types.h>
 #include <stdio.h>
 
 #include "symrepr.h"
 #include "heap.h"
 #include "print.h"
-#include "lispbm_types.h"
 
 lbm_value env_global;
 

@@ -18,8 +18,8 @@
 #ifndef EVAL_CPS_H_
 #define EVAL_CPS_H_
 
+#include "lbm_types.h"
 #include "stack.h"
-#include "lispbm_types.h"
 
 #define EVAL_CPS_STATE_INIT    0
 #define EVAL_CPS_STATE_PAUSED  1
@@ -111,6 +111,11 @@ extern void lbm_run_eval(void);
  * return value EVAL_CPS_STATE_PAUSED.
  */
 extern void lbm_pause_eval(void);
+/** Pause the evaluator and perform GC if needed.
+ *
+ * \param num_free Perform GC if there are less than this many elements free on the heap.
+ */
+extern void lbm_pause_eval_with_gc(uint32_t num_free);
 /** Perform a single step of evaluation.
  * The evaluator should be in EVAL_CPS_STATE_PAUSED before running this function.
  * After taking one step of evaluation, the evaluator will return to being in the
@@ -130,6 +135,15 @@ extern void lbm_kill_eval(void);
  * \return Current state of the evaluator.
  */
 extern uint32_t lbm_get_eval_state(void);
+
+/** Create a context and enqueue it as runnable.
+ *
+ * \param program The program to evaluate in the context.
+ * \param env An initial environment.
+ * \param stack_size Stack size for the context.
+ * \return
+ */
+extern lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size);
 
 /* statistics interface */
 /**  Iterate over all ready contexts and apply function on each context.
@@ -176,54 +190,19 @@ extern void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void));
  */
 extern void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-/* loading of programs interface */
-/** Load and schedule a program for execution.
+/** Create a token stream for parsing for code
  *
- * \param tokenizer The tokenizer to read the program from.
- * \return A context id on success or 0 on failure.
+ * \param str character stream to convert into a token stream.
+ * \return token stream.
  */
-extern lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer);
-/** Load and schedule an expression for execution.
- *
- * \param tokenizer The tokenizer to read the expression from.
- * \return A context id on success or 0 on failure.
- */
-extern lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokenizer);
-/** Load a program and bind it to a symbol in the environment.
- *
- * \param tokenizer The tokenizer to read the program from.
- * \param symbol A string with the name you want the binding to have in the environment.
- * \return A context id on success or 0 on failure.
- */
-extern lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
-/** Load an expression and bind it to a symbol in the environment.
- *
- * \param tokenizer The tokenizer to read the expression from.
- * \param symbol A string with the name you want the binding to have in the environment.
- * \return A context id on success or 0 on failure.
- */
-extern lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
+extern lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str);
 
-/* Evaluating a definition in a new context */
-/** Create a context for a bound expression and schedule it for execution
+/** deliver a message
  *
- * \param symbol The name of the binding to schedule for execution.
- * \return A context if on success or 0 on failure.
+ * \param cid Process to deliver to.
+ * \param msg Message to deliver
+ * \return lbm_enc_sym(SYM_NIL) on failure and lbm_enc_sym(SYM_TRUE) on success.
  */
-extern lbm_cid lbm_eval_defined_expression(char *symbol);
-/** Create a context for a bound program and schedule it for execution
- *
- * \param symbol The name of the binding to schedule for execution.
- * \return A context if on success or 0 on failure.
- */
-extern lbm_cid lbm_eval_defined_program(char *symbol);
+lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
 
-/* send message from c to LBM process */
-/** Send a message to a process running in the evaluator.
- *
- * \param cid Context id of the process to send a message to.
- * \param msg lbm_value that will be sent to the process.
- * \return 1 on success or 0 on failure.
- */
-extern int lbm_send_message(lbm_cid cid, lbm_value msg);
 #endif

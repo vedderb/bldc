@@ -25,16 +25,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "compression.h"
-#include "lispbm_memory.h"
-#include "env.h"
-#include "extensions.h"
+#include "lispbm.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 

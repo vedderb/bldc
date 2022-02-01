@@ -24,8 +24,8 @@
 */
 
 
+#include <lbm_types.h>
 #include "heap.h"
-#include "lispbm_types.h"
 #include "symrepr.h"
 #include "stack.h"
 #include "qq_expand.h"

@@ -21,7 +21,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "lispbm_types.h"
+
+#include "lbm_types.h"
 
 typedef struct {
   uint32_t compressed_bits;

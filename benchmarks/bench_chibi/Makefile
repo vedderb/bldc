@@ -128,7 +128,7 @@ LBMSRC = ../../src/compression.c \
          ../../src/extensions.c \
          ../../src/fundamental.c \
          ../../src/heap.c \
-         ../../src/lispbm_memory.c \
+         ../../src/lbm_memory.c \
          ../../src/prelude.c \
          ../../src/print.c \
          ../../src/qq_expand.c \

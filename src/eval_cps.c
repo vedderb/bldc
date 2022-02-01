@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_memory.h>
+#include <lbm_types.h>
 #include "symrepr.h"
 #include "heap.h"
 #include "env.h"
@@ -22,10 +24,8 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "lispbm_types.h"
 #include "exp_kind.h"
 #include "streams.h"
-#include "lispbm_memory.h"
 #include "tokpar.h"
 #include "qq_expand.h"
 
@@ -113,6 +113,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
 
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
 volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
+volatile uint32_t eval_cps_next_state_arg = 0;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -195,7 +196,7 @@ static lbm_value token_stream_put(lbm_stream_t *str, lbm_value v){
   return lbm_enc_sym(SYM_NIL);
 }
 
-lbm_value eval_cps_create_token_stream(lbm_tokenizer_char_stream_t *str) {
+lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str) {
 
   lbm_stream_t *stream;
 
@@ -244,8 +245,8 @@ lbm_value token_stream_from_string_value(lbm_value s) {
   }
 
   lbm_create_char_stream_from_string(tok_stream_state,
-                                        tok_stream,
-                                        str);
+                                     tok_stream,
+                                     str);
 
   stream->state = (void*)tok_stream;
   stream->more = token_stream_more;
@@ -488,7 +489,7 @@ static void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-static lbm_cid create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
 
@@ -546,7 +547,7 @@ static void advance_ctx(void) {
   }
 }
 
-static lbm_value find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   eval_context_t *found = NULL;
 
   found = lookup_ctx(&blocked, cid);
@@ -818,7 +819,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
   if (lbm_is_special(ctx->curr_exp) ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
-    // Special symbols and extension symbols evaluate to themself
+    // Special symbols and extension symbols evaluate to themselves
     value = ctx->curr_exp;
   } else {
     // If not special, check if there is a binding in the environments
@@ -1008,7 +1009,7 @@ static inline void eval_match(eval_context_t *ctx) {
       rest == NIL) {
     /* Someone wrote the program (match) */
     ctx->app_cont = true;
-    ctx->r = lbm_enc_sym(SYM_NIL); /* make up new specific symbol? */
+    ctx->r = lbm_enc_sym(SYM_NIL);
     return;
   } else {
     CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(MATCH)));
@@ -1064,12 +1065,6 @@ static inline void eval_receive(eval_context_t *ctx) {
         ctx_running = NULL;
         ctx->r = lbm_enc_sym(SYM_NO_MATCH);
       }
-
-      /* Match messages on mailbox against the patterns */
-      /* FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY))); */
-      /* FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH))); */
-      /* ctx->r = car(msgs); */
-      /* ctx->app_cont = true; */
     }
   }
   return;
@@ -1135,7 +1130,7 @@ static inline void cont_spawn_all(eval_context_t *ctx) {
   lbm_value cid_list;
   WITH_GC(cid_list, lbm_cons(cid_val, ctx->r), rest, env);
 
-  lbm_cid cid = create_ctx(lbm_car(rest),
+  lbm_cid cid = lbm_create_ctx(lbm_car(rest),
                        env,
                        EVAL_CPS_DEFAULT_STACK_SIZE);
   if (!cid) {
@@ -1299,7 +1294,7 @@ static inline void cont_application(eval_context_t *ctx) {
           lbm_cid cid = (lbm_cid)lbm_dec_u(fun_args[1]);
           lbm_value msg = fun_args[2];
 
-          WITH_GC(status, find_receiver_and_send(cid, msg), NIL, NIL);
+          WITH_GC(status, lbm_find_receiver_and_send(cid, msg), NIL, NIL);
         }
       }
       /* return the status */
@@ -1889,9 +1884,16 @@ static void evaluation_step(void){
   return;
 }
 
-void lbm_pause_eval(void) {
+void lbm_pause_eval(void ) {
+  eval_cps_next_state_arg = 0;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
 }
+
+void lbm_pause_eval_with_gc(uint32_t num_free) {
+  eval_cps_next_state_arg = num_free;
+  eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
+}
+
 
 void lbm_step_eval(void) {
   eval_cps_next_state = EVAL_CPS_STATE_STEP;
@@ -1917,6 +1919,7 @@ void lbm_run_eval(void){
 
   while (eval_running) {
 
+    uint32_t prev_state = eval_cps_run_state;
     eval_cps_run_state = eval_cps_next_state;
 
     switch (eval_cps_run_state) {
@@ -1927,6 +1930,12 @@ void lbm_run_eval(void){
       eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       break;
     case EVAL_CPS_STATE_PAUSED:
+      if (prev_state != EVAL_CPS_STATE_PAUSED) {
+        if (lbm_heap_num_free() < eval_cps_next_state_arg) {
+          gc(NIL, NIL);
+        }
+        eval_cps_next_state_arg = 0;
+      }
       eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       usleep_callback(EVAL_CPS_MIN_SLEEP);
       continue; /* jump back to start of eval_running loop */
@@ -1977,11 +1986,11 @@ lbm_value evaluate_non_concurrent(void) {
 }
 
 lbm_cid lbm_eval_program(lbm_value lisp) {
-  return create_ctx(lisp, NIL, 256);
+  return lbm_create_ctx(lisp, NIL, 256);
 }
 
 lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
-  return create_ctx(lisp, NIL, stack_size);
+  return lbm_create_ctx(lisp, NIL, stack_size);
 }
 
 int lbm_eval_init() {
@@ -2014,172 +2023,3 @@ int lbm_eval_init() {
   return res;
 }
 
-/****************************************************/
-/* Interface for loading and running programs and   */
-/* expressions                                      */
-
-static lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool program) {
-
-  lbm_stream_t *stream = NULL;
-
-  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / 4);
-  if (stream == NULL) {
-    return 0; // No valid CID is 0
-  }
-
-  stream->state = (void*)tokenizer;
-  stream->more = token_stream_more;
-  stream->get  = token_stream_get;
-  stream->peek = token_stream_peek;
-  stream->drop = token_stream_drop;
-  stream->put  = token_stream_put;
-
-  lbm_value lisp_stream = lbm_stream_create(stream);
-
-  if (lbm_type_of(lisp_stream) == LBM_VAL_TYPE_SYMBOL) {
-    lbm_memory_free((uint32_t*)stream);
-    return 0;
-  }
-
-  /* LISP ZONE */
-
-  lbm_value launcher = lbm_cons(lisp_stream, NIL);
-  launcher = lbm_cons(lbm_enc_sym(program ? SYM_READ_PROGRAM : SYM_READ), launcher);
-  lbm_value evaluator = lbm_cons(launcher, NIL);
-  evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
-  lbm_value start_prg = lbm_cons(evaluator, NIL);
-
-  /* LISP ZONE ENDS */
-
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
-    lbm_memory_free((uint32_t*)stream);
-    return 0;
-  }
-  return create_ctx(start_prg, NIL, 256);
-}
-
-lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, false);
-}
-
-static lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *symbol, bool program) {
-
-  lbm_stream_t *stream = NULL;
-
-  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / 4);
-  if (stream == NULL) {
-    return 0; // No valid CID is 0
-  }
-
-  stream->state = (void*)tokenizer;
-  stream->more = token_stream_more;
-  stream->get  = token_stream_get;
-  stream->peek = token_stream_peek;
-  stream->drop = token_stream_drop;
-  stream->put  = token_stream_put;
-
-  lbm_value lisp_stream = lbm_stream_create(stream);
-
-  if (lbm_type_of(lisp_stream) == LBM_VAL_TYPE_SYMBOL) {
-    lbm_memory_free((uint32_t*)stream);
-    return 0;
-  }
-
-  lbm_uint sym_id;
-
-  if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-    if (!lbm_add_symbol(symbol, &sym_id)) {
-      lbm_memory_free((uint32_t*)stream);
-      return 0;
-    }
-  }
-
-  /* LISP ZONE */
-
-  lbm_value launcher = lbm_cons(lisp_stream, NIL);
-  launcher = lbm_cons(lbm_enc_sym(program ? SYM_READ_PROGRAM : SYM_READ), launcher);
-  lbm_value binding = lbm_cons(launcher, NIL);
-  binding = lbm_cons(lbm_enc_sym(sym_id), binding);
-  lbm_value definer = lbm_cons(lbm_enc_sym(SYM_DEFINE), binding);
-  definer  = lbm_cons(definer, NIL);
-  /* LISP ZONE ENDS */
-
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(binding) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(definer) != LBM_PTR_TYPE_CONS ) {
-    lbm_memory_free((uint32_t*)stream);
-    return 0;
-  }
-  return create_ctx(definer, NIL, 256);
-}
-
-
-lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol) {
-  return eval_cps_load_and_define(tokenizer, symbol, true);
-}
-
-lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol) {
-  return eval_cps_load_and_define(tokenizer, symbol, false);
-}
-
-lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, true);
-}
-
-static lbm_cid lbm_eval_defined(char *symbol, bool program) {
-
-  lbm_uint sym_id;
-
-  if(!lbm_get_symbol_by_name(symbol, &sym_id)) {
-    // The symbol does not exist, so it cannot be defined
-    return 0;
-  }
-
-  lbm_value binding = lbm_env_lookup(lbm_enc_sym(sym_id), *lbm_get_env_ptr());
-
-  if (lbm_type_of(binding) == LBM_VAL_TYPE_SYMBOL &&
-      lbm_dec_sym(binding) == SYM_NOT_FOUND) {
-    return 0;
-  }
-
-  /* LISP ZONE */
-
-  lbm_value launcher = lbm_cons(lbm_enc_sym(sym_id), NIL);
-  lbm_value evaluator = launcher;
-  evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
-  lbm_value start_prg = lbm_cons(evaluator, NIL);
-
-  /* LISP ZONE ENDS */
-
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
-    return 0;
-  }
-  return create_ctx(start_prg, NIL, 256);
-}
-
-lbm_cid lbm_eval_defined_expression(char *symbol) {
-  return lbm_eval_defined(symbol, false);
-}
-
-lbm_cid lbm_eval_defined_program(char *symbol) {
-  return lbm_eval_defined(symbol, true);
-}
-
-int lbm_send_message(lbm_cid cid, lbm_value msg) {
-  int res = 0;
-
-  if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-
-    lbm_value v = find_receiver_and_send(cid, msg);
-
-    if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
-        lbm_dec_sym(v) == SYM_TRUE) {
-      res = 1;
-    }
-  }
-  return res;
-}

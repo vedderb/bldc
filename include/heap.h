@@ -20,7 +20,8 @@
 #define HEAP_H_
 
 #include <string.h>
-#include "lispbm_types.h"
+
+#include "lbm_types.h"
 #include "symrepr.h"
 #include "streams.h"
 
@@ -205,11 +206,12 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define LBM_VAL_MASK                    0xFFFFFFF0u
 #define LBM_VAL_TYPE_MASK               0x0000000Cu
-                                                //    gc ptr
+                                                    //    gc ptr
 #define LBM_VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
+/// Character or byte.
 #define LBM_VAL_TYPE_CHAR               0x00000004u // 01  0   0
-#define LBM_VAL_TYPE_U                  0x00000008u // 11  0   0
-#define LBM_VAL_TYPE_I                  0x0000000Cu // 10  0   0
+#define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
+#define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
 /** Struct representing a heap cons-cell.
  *
@@ -247,8 +249,9 @@ typedef struct {
  *  The header portion of an array stored in array and symbol memory.
  */
 typedef struct {
-  lbm_type elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
-  uint32_t size;            // Number of elements
+  lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
+  uint32_t size;            /// Number of elements
+  uint32_t *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
 /** Initialize heap storage.
@@ -557,9 +560,15 @@ static inline bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
   return ((t == LBM_VAL_TYPE_I) ||
           (t == LBM_VAL_TYPE_U) ||
+          (t == LBM_VAL_TYPE_CHAR) ||
           (t == LBM_PTR_TYPE_BOXED_I) ||
           (t == LBM_PTR_TYPE_BOXED_U) ||
           (t == LBM_PTR_TYPE_BOXED_F));
+}
+
+static inline bool lbm_is_char(lbm_value x) {
+  lbm_uint t = lbm_type_of(x);
+  return (t == LBM_VAL_TYPE_CHAR);
 }
 
 static inline bool lbm_is_special(lbm_value symrep) {

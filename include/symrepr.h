@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 // Default and fixed symbol ids
 #define SYM_NIL           0x0
@@ -125,7 +125,7 @@
 
 #define SYM_ARRAY_READ          0x130
 #define SYM_ARRAY_WRITE         0x131
-#define SYM_ARRAY_CREATE        0x132
+//#define SYM_ARRAY_CREATE        0x132
 
 #define SYM_SYMBOL_TO_STRING    0x140
 #define SYM_STRING_TO_SYMBOL    0x141
@@ -135,6 +135,18 @@
 #define SYM_SET_CDR             0x146
 
 #define SYM_IS_FUNDAMENTAL      0x150
+
+#define SYM_IX                  0x151
+#define SYM_ENCODE_I32          0x152
+#define SYM_ENCODE_U32          0x153
+#define SYM_ENCODE_FLOAT        0x154
+#define SYM_DECODE              0x155
+
+//#define SYM_STREAM_GET          0x160
+//#define SYM_STREAM_MORE         0x161
+//#define SYM_STREAM_PEEK         0x162
+//#define SYM_STREAM_DROP         0x163
+//#define SYM_STREAM_PUT          0x164
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200

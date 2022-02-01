@@ -22,7 +22,7 @@
 
 #include "symrepr.h"
 #include "heap.h"
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 /** Type representing an extension function.
  * \param Pointer to array of lbm_values.
