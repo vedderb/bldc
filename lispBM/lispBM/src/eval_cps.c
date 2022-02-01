@@ -1927,7 +1927,7 @@ void lbm_run_eval(void){
       eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
       break;
     case EVAL_CPS_STATE_STEP:
-      eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
+      eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       break;
     case EVAL_CPS_STATE_PAUSED:
       if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
@@ -1943,6 +1943,7 @@ void lbm_run_eval(void){
       eval_running = false;
       continue;
     default:
+      eval_cps_run_state = eval_cps_next_state;
       break;
     }
 
