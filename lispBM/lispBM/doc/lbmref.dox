@@ -399,9 +399,54 @@ has been extended with the binding <code>(apa 1)</code>.
 
 ---
 
+\section sec_lists Lists
+
+<a name="car"> <h3>car</h3> </a>
+
+---
+
+<a name="cdr"> <h3>cdr</h3> </a>
+
+---
+
+<a name="cons"> <h3>cons</h3> </a>
+
+---
+
+<a name="list"> <h3>list</h3> </a>
+
+---
+
+<a name="append"> <h3>append</h3> </a>
+
+---
+
+<a name="ix"> <h3>ix</h3> </a>
+
+---
+
+<a name="set-car"> <h3>set-car</h3> </a>
+
+---
+
+<a name="set-cdr"> <h3>set-cdr</h3> </a>
+
+
+
+\section sec_arrays Arrays
+
+
+<a name="array-read"> <h3>array-read</h3> </a>
+
+---
+
+<a name="array-write"> <h3>array-write</h3> </a>
+
+---
+
 \section sec_pattern Pattern-matching
 
-<a name="match"> <h3>match</h3> </a>
+ <a name="match"> <h3>match</h3> </a>
 
 Pattern-matching is expressed using match. The form of a match expression is
 <code>(match expr (pat1 expr1) ... (patN exprN))</code>. Pattern-matching compares
@@ -451,7 +496,7 @@ An example that evaluates to 19.
 (match '(orange 17)
        ((green (? n)) (+ n 1))
        ((orange (? n)) (+ n 2))
-       ((blue (?n)) (+ n 3)))
+       ((blue (? n)) (+ n 3)))
 \endcode
 
 ---
@@ -543,40 +588,6 @@ An example that evaluates to 19.
 
 ---
 
-<a name="car"> <h3>car</h3> </a>
-
----
-
-<a name="cdr"> <h3>cdr</h3> </a>
-
----
-
-<a name="cons"> <h3>cons</h3> </a>
-
----
-
-<a name="list"> <h3>list</h3> </a>
-
----
-
-<a name="append"> <h3>append</h3> </a>
-
-
----
-
-<a name="array-read"> <h3>array-read</h3> </a>
-
-
----
-
-<a name="array-write"> <h3>array-write</h3> </a>
-
----
-
-<a name="array-create"> <h3>array-create</h3> </a>
-
----
-
 <a name="type-of"> <h3>type-of</h3> </a>
 
 ---
@@ -594,14 +605,6 @@ An example that evaluates to 19.
 ---
 
 <a name="u-to-sym"> <h3>u-to-sym</h3> </a>
-
----
-
-<a name="set-car"> <h3>set-car</h3> </a>
-
----
-
-<a name="set-cdr"> <h3>set-cdr</h3> </a>
 
 ---
 
@@ -711,4 +714,55 @@ An example that evaluates to 19.
 <a name="sym_nonsense"> <h3>sym_nonsense</h3> </a>
 
 ---
+
+\section sec_low_level Low level operations
+
+<a name="encode-i32"> <h3>encode-i32</h3> </a>
+
+---
+
+<a name="encode-u32"> <h3>encode-u32</h3> </a>
+
+---
+
+<a name="encode-float"> <h3>encode-float</h3> </a>
+
+---
+
+<a name="decode"> <h3>decode</h3> </a>
+
+---
+
+
 */
+
+
+
+
+
+<a name="array-create"> <h3>array-create</h3> </a>
+
+---
+
+
+\section sec_streams Streams
+
+ <a name="stream-get"> <h3>stream-get</h3> </a>
+
+---
+
+ <a name="stream-more"> <h3>stream-more</h3> </a>
+
+---
+
+ <a name="stream-peek"> <h3>stream-peek</h3> </a>
+
+---
+
+ <a name="stream-drop"> <h3>stream-drop</h3> </a>
+
+--- 
+
+ <a name="stream-put"> <h3>stream-put</h3> </a>
+
+---

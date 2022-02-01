@@ -15,11 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_memory.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "lispbm_memory.h"
 
 /* Status bit patterns */
 #define FREE_OR_USED  0  //00b
@@ -226,4 +226,13 @@ int lbm_memory_free(uint32_t *ptr) {
   }
 
   return 0;
+}
+
+int lbm_memory_ptr_inside(uint32_t *ptr) {
+  int r = 0;
+
+  if ((uint32_t)ptr >= (uint32_t)memory &&
+      (uint32_t)ptr < (uint32_t)memory + (memory_size * 4))
+    r = 1;
+  return r;
 }

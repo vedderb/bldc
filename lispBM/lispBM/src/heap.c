@@ -20,11 +20,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <lbm_memory.h>
 
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
-#include "lispbm_memory.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -41,7 +41,7 @@ char *lbm_dec_str(lbm_value val) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
 
     if (array->elt_type == LBM_VAL_TYPE_CHAR) {
-      res = (char *)array + 8;
+      res = (char *)array->data;
     }
   }
   return res;
@@ -62,6 +62,8 @@ lbm_uint lbm_dec_as_u(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+    return (lbm_uint) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return (lbm_uint) lbm_dec_i(a);
   case LBM_VAL_TYPE_U:
@@ -83,6 +85,8 @@ lbm_int lbm_dec_as_i(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+      return (lbm_int) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return lbm_dec_i(a);
   case LBM_VAL_TYPE_U:
@@ -104,6 +108,8 @@ lbm_float lbm_dec_as_f(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+      return (lbm_float) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return (lbm_float) lbm_dec_i(a);
   case LBM_VAL_TYPE_U:
@@ -429,8 +435,10 @@ int lbm_gc_sweep_phase(void) {
       if (lbm_type_of(heap[i].cdr) == LBM_VAL_TYPE_SYMBOL &&
           lbm_dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
         lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-        lbm_memory_free((uint32_t *)arr);
-        heap_state.gc_recovered_arrays++;
+        if (lbm_memory_ptr_inside((uint32_t*)arr)) {
+          lbm_memory_free((uint32_t *)arr);
+          heap_state.gc_recovered_arrays++;
+        }
       }
 
       // create pointer to use as new freelist
@@ -609,9 +617,11 @@ int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type){
     allocate_size = size;
   }
 
-  array = (lbm_array_header_t*)lbm_memory_allocate(2 + allocate_size);
+  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
 
   if (array == NULL) return 0;
+
+  array->data = (uint32_t*)lbm_memory_allocate(allocate_size);
 
   array->elt_type = type;
   array->size = size;

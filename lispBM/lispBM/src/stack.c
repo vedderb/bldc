@@ -15,12 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_memory.h>
+#include <lbm_types.h>
 #include <string.h>
 
 #include "stack.h"
-#include "lispbm_types.h"
 #include "print.h"
-#include "lispbm_memory.h"
 
 int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size) {
   s->data = lbm_memory_allocate(stack_size);

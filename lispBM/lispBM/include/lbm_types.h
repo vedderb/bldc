@@ -1,4 +1,4 @@
-/** \file lispbm_types.h */
+/** \file lbm_types.h */
 /*
     Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 

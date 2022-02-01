@@ -27,10 +27,11 @@
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
-#include "lispbm_types.h"
-#include "lispbm_memory.h"
 #include "env.h"
 #include "compression.h"
+#include "lbm_memory.h"
+#include "lbm_types.h"
+#include "lbm_c_interop.h"
 
 /** Initialize lispBM. This function initials all subsystems by calling:
  *  - \ref lbm_memory_init

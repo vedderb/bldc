@@ -20,11 +20,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <lbm_memory.h>
 
 #include "symrepr.h"
-#include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 88
+#define NUM_SPECIAL_SYMBOLS 92
 
 #define NAME   0
 #define ID     1
@@ -124,7 +124,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"append"         , SYM_APPEND},
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
-  {"array-create"   , SYM_ARRAY_CREATE},
+//  {"array-create"   , SYM_ARRAY_CREATE},
   {"type-of"        , SYM_TYPE_OF},
   {"sym-to-str"     , SYM_SYMBOL_TO_STRING},
   {"str-to-sym"     , SYM_STRING_TO_SYMBOL},
@@ -132,6 +132,23 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"u-to-sym"       , SYM_UINT_TO_SYMBOL},
   {"set-car"        , SYM_SET_CAR},
   {"set-cdr"        , SYM_SET_CDR},
+
+  // Streams
+//  {"stream-get"     , SYM_STREAM_GET},
+//  {"stream-more"    , SYM_STREAM_MORE},
+//  {"stream-peek"    , SYM_STREAM_PEEK},
+//  {"stream-drop"    , SYM_STREAM_DROP},
+//  {"stream-put"     , SYM_STREAM_PUT},
+
+  // fast access in list
+  {"ix"             , SYM_IX},
+
+  // Low-level
+  {"encode-i32"     , SYM_ENCODE_I32},
+  {"encode-u32"     , SYM_ENCODE_U32},
+  {"encode-float"   , SYM_ENCODE_FLOAT},
+  {"decode"         , SYM_DECODE},
+
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 

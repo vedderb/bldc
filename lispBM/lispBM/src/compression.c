@@ -17,12 +17,12 @@
 
 #include <stdlib.h>
 #include <ctype.h>
+#include <lbm_types.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "compression.h"
-#include "lispbm_types.h"
 #include "tokpar.h"
 
 #define  KEY  0

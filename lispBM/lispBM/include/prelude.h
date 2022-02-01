@@ -19,7 +19,7 @@
 #ifndef _PRELUDE_H_
 #define _PRELUDE_H_
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 /** Creates the tokenizer state needed to load the prelude library into the heap.
  *

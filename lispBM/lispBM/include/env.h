@@ -19,7 +19,7 @@
 #ifndef ENV_H_
 #define ENV_H_
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 //environment interface
 /** Initialize the global environment. This sets the global environment to NIL

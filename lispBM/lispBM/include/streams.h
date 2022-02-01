@@ -24,7 +24,7 @@
 #ifndef STREAMS_H_
 #define STREAMS_H_
 
-#include "lispbm_types.h"
+#include "lbm_types.h"
 
 typedef struct lbm_stream_s{
   void  *state;   /* stream implementation dependent state */
