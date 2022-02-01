@@ -1919,24 +1919,24 @@ void lbm_run_eval(void){
 
   while (eval_running) {
 
-    uint32_t prev_state = eval_cps_run_state;
-    eval_cps_run_state = eval_cps_next_state;
+    //uint32_t prev_state = eval_cps_run_state;
+    //eval_cps_run_state = eval_cps_next_state;
 
-    switch (eval_cps_run_state) {
+    switch (eval_cps_next_state) {
     case EVAL_CPS_STATE_INIT:
-      eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
+      eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
       break;
     case EVAL_CPS_STATE_STEP:
-      eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
+      eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
       break;
     case EVAL_CPS_STATE_PAUSED:
-      if (prev_state != EVAL_CPS_STATE_PAUSED) {
+      if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
         if (lbm_heap_num_free() < eval_cps_next_state_arg) {
           gc(NIL, NIL);
         }
         eval_cps_next_state_arg = 0;
       }
-      eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
+      eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
       usleep_callback(EVAL_CPS_MIN_SLEEP);
       continue; /* jump back to start of eval_running loop */
     case EVAL_CPS_STATE_KILL:
