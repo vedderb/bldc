@@ -168,7 +168,7 @@ int lbm_define(char *symbol, lbm_value value) {
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
 
     if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-      if (!lbm_add_symbol(symbol, &sym_id)) {
+      if (!lbm_add_symbol_const(symbol, &sym_id)) {
         return 0;
       }
     }

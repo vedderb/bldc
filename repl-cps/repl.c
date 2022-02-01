@@ -169,7 +169,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
       case LBM_VAL_TYPE_CHAR: {
-        char *data = (char*)array + 8;
+        char *data = (char*)array->data;
         printf("%s", data);
         break;
       }
