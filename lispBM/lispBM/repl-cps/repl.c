@@ -491,7 +491,10 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
     } else if (strncmp(str, ":step", 5) == 0) {
-      lbm_step_eval();
+
+      int num = atoi(str + 5);
+      
+      lbm_step_n_eval((uint32_t)num);
     } else {
       /* Get exclusive access to the heap */
       lbm_pause_eval();

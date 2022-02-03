@@ -122,6 +122,10 @@ extern void lbm_pause_eval_with_gc(uint32_t num_free);
  * EVAL_CPS_STATE_PUASED state.
  */
 extern void lbm_step_eval(void);
+/** Perform multiple steps of evaluation.
+ * \param n Number of eval steps to perform.
+ */
+extern void lbm_step_n_eval(uint32_t n);
 /** Resume from being in EVAL_CPS_STATE_PAUSED.
  *
  */

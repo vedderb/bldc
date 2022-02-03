@@ -52,8 +52,10 @@
 #define TOKMATCHANY     17u
 #define TOKMATCHI28     18u
 #define TOKMATCHU28     19u
-#define TOKMATCHFLOAT   20u
-#define TOKMATCHCONS    21u
+#define TOKMATCHU32     20u
+#define TOKMATCHI32     21u
+#define TOKMATCHFLOAT   22u
+#define TOKMATCHCONS    23u
 
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
@@ -86,7 +88,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 13
+#define NUM_FIXED_SIZE_TOKENS 15
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -98,6 +100,8 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {",", TOKCOMMA, 1},
   {"?i28", TOKMATCHI28, 4},
   {"?u28", TOKMATCHU28, 4},
+  {"?u32", TOKMATCHU32, 4},
+  {"?i32", TOKMATCHI32, 4},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
   {"?", TOKMATCHANY, 1}
@@ -510,6 +514,12 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       break;
     case TOKMATCHU28:
       res = lbm_enc_sym(SYM_MATCH_U28);
+      break;
+    case TOKMATCHI32:
+      res = lbm_enc_sym(SYM_MATCH_I32);
+      break;
+    case TOKMATCHU32:
+      res = lbm_enc_sym(SYM_MATCH_U32);
       break;
     case TOKMATCHFLOAT:
       res = lbm_enc_sym(SYM_MATCH_FLOAT);
