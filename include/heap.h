@@ -594,6 +594,8 @@ static inline bool lbm_is_match_binder(lbm_value exp) {
           ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I28) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U28) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I32) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U32) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
 }

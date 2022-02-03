@@ -70,8 +70,10 @@
 #define SYM_MATCH_ANY      0x2B
 #define SYM_MATCH_I28      0x2C
 #define SYM_MATCH_U28      0x2D
-#define SYM_MATCH_FLOAT    0x2E
-#define SYM_MATCH_CONS     0x2F
+#define SYM_MATCH_U32      0x2E
+#define SYM_MATCH_I32      0x2F
+#define SYM_MATCH_FLOAT    0x30
+#define SYM_MATCH_CONS     0x31
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50
