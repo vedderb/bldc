@@ -302,12 +302,12 @@ int main(void) {
 
 	imu_reset_orientation();
 
-#ifdef BOOT_OK_GPIO
 	chThdSleepMilliseconds(500);
+	m_init_done = true;
+
+#ifdef BOOT_OK_GPIO
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
-
-	m_init_done = true;
 
 	for(;;) {
 		chThdSleepMilliseconds(10);
