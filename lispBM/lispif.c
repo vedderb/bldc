@@ -30,7 +30,7 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
-#include "lispbm_memory.h"
+#include "lbm_memory.h"
 #include "env.h"
 #include "lispbm.h"
 
@@ -86,6 +86,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	case COMM_LISP_SET_RUNNING: {
 		bool ok = false;
 		bool running = data[0];
+		lispif_disable_all_events();
 
 		if (!running) {
 			int timeout_cnt = 20;
@@ -169,11 +170,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	default:
 		break;
 	}
-}
-
-void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
-	(void)can_id; (void)data8; (void)len; (void)is_ext;
-
 }
 
 static bool start_lisp(bool print) {

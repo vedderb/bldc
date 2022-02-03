@@ -19,8 +19,14 @@
  */
 
 #include "lispif.h"
-#include "extensions.h"
+#include "heap.h"
+#include "symrepr.h"
+#include "eval_cps.h"
 #include "print.h"
+#include "tokpar.h"
+#include "lbm_memory.h"
+#include "env.h"
+#include "lispbm.h"
 
 #include "commands.h"
 #include "mc_interface.h"
@@ -464,6 +470,49 @@ static lbm_value ext_can_get_current_dir(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
+	if (argn != 2 ||
+			!lbm_is_number(args[0])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value curr = args[1];
+	uint8_t to_send[8];
+	int ind = 0;
+
+	while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+		lbm_value  arg = lbm_car(curr);
+
+		if (lbm_is_number(arg)) {
+			to_send[ind++] = lbm_dec_as_u(arg);
+		} else {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		if (ind == 8) {
+			break;
+		}
+
+		curr = lbm_cdr(curr);
+	}
+
+	if (is_eid) {
+		comm_can_transmit_eid(lbm_dec_as_u(args[0]), to_send, ind);
+	} else {
+		comm_can_transmit_sid(lbm_dec_as_u(args[0]), to_send, ind);
+	}
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_can_send_sid(lbm_value *args, lbm_uint argn) {
+	return ext_can_send(args, argn, false);
+}
+
+static lbm_value ext_can_send_eid(lbm_value *args, lbm_uint argn) {
+	return ext_can_send(args, argn, true);
+}
+
 // Math
 
 static lbm_value ext_sin(lbm_value *args, lbm_uint argn) {
@@ -486,7 +535,158 @@ static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_F(powf(lbm_dec_as_f(args[0]), lbm_dec_as_f(args[1])));
 }
 
+// Bit operations
+
+/*
+ * args[0]: Initial value
+ * args[1]: Offset in initial value to modify
+ * args[2]: Value to modify with
+ * args[3]: Size in bits of value to modify with
+ */
+static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(4)
+	uint32_t initial = lbm_dec_as_i(args[0]);
+	uint32_t offset = lbm_dec_as_i(args[1]);
+	uint32_t number = lbm_dec_as_i(args[2]);
+	uint32_t bits = lbm_dec_as_i(args[3]);
+	initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
+	initial |= (number << (32 - bits)) >> (32 - bits - offset);
+
+	if (initial > ((1 << 27) - 1)) {
+		return lbm_enc_I(initial);
+	} else {
+		return lbm_enc_i(initial);
+	}
+}
+
+/*
+ * args[0]: Value
+ * args[1]: Offset in initial value to get
+ * args[2]: Size in bits of value to get
+ */
+static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(3)
+	uint32_t val = lbm_dec_as_i(args[0]);
+	uint32_t offset = lbm_dec_as_i(args[1]);
+	uint32_t bits = lbm_dec_as_i(args[2]);
+	val >>= offset;
+	val &= 0xFFFFFFFF >> (32 - bits);
+
+	if (val > ((1 << 27) - 1)) {
+		return lbm_enc_I(val);
+	} else {
+		return lbm_enc_i(val);
+	}
+}
+
+// Events that will be sent to lisp if a handler is registered
+
+static volatile bool event_handler_registered = false;
+static volatile bool event_can_sid_en = false;
+static volatile bool event_can_eid_en = false;
+static lbm_uint event_handler_pid;
+static lbm_uint sym_signal_can_sid;
+static lbm_uint sym_signal_can_eid;
+
+static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	if (argn == 2 && !lbm_is_number(args[1])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	bool en = true;
+	if (argn == 2 && !lbm_dec_as_i(args[1])) {
+		en = false;
+	}
+
+	char *name = lbm_dec_str(args[0]);
+
+	if (!name) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	if (strcmp(name, "event-can-sid") == 0) {
+		event_can_sid_en = en;
+	} else if (strcmp(name, "event-can-eid") == 0) {
+		event_can_eid_en = en;
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_register_event_handler(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 ||
+			lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value  arg = lbm_car(args[0]);
+	if (lbm_is_number(arg)) {
+		event_handler_registered = true;
+		event_handler_pid = lbm_dec_i(arg);
+		return lbm_enc_sym(SYM_TRUE);
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+}
+
+void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	if (event_handler_registered) {
+		if (!event_can_sid_en && !is_ext) {
+			return;
+		}
+
+		if (!event_can_eid_en && is_ext) {
+			return;
+		}
+
+		bool ok = true;
+
+		int timeout_cnt = 1000;
+		lbm_pause_eval_with_gc(100);
+		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+			chThdSleep(1);
+			timeout_cnt--;
+		}
+		ok = timeout_cnt > 0;
+
+		if (ok) {
+			lbm_value data = lbm_enc_sym(SYM_NIL);
+			for (int i = len - 1;i >= 0;i--) {
+				data = lbm_cons(lbm_enc_i(data8[i]), data);
+			}
+
+			lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
+			lbm_value msg;
+
+			if (is_ext) {
+				msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
+			} else {
+				msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
+			}
+
+			lbm_send_message(event_handler_pid, msg);
+		}
+
+		lbm_continue_eval();
+	}
+}
+
+void lispif_disable_all_events(void) {
+	event_handler_registered = false;
+	event_can_sid_en = false;
+	event_can_eid_en = false;
+}
+
 void lispif_load_vesc_extensions(void) {
+	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
+	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
+
 	// Various commands
 	lbm_add_extension("print", ext_print);
 	lbm_add_extension("timeout-reset", ext_reset_timeout);
@@ -501,6 +701,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("systime", ext_systime);
 	lbm_add_extension("secs-since", ext_secs_since);
 	lbm_add_extension("set-aux", ext_set_aux);
+	lbm_add_extension("event-register-handler", ext_register_event_handler);
+	lbm_add_extension("event-enable", ext_enable_event);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);
@@ -538,9 +740,16 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("canget-current", ext_can_get_current);
 	lbm_add_extension("canget-current-dir", ext_can_get_current_dir);
 
+	lbm_add_extension("can-send-sid", ext_can_send_sid);
+	lbm_add_extension("can-send-eid", ext_can_send_eid);
+
 	// Math
 	lbm_add_extension("sin", ext_sin);
 	lbm_add_extension("cos", ext_cos);
 	lbm_add_extension("atan", ext_atan);
 	lbm_add_extension("pow", ext_pow);
+
+	// Bit operations
+	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
+	lbm_add_extension("bits-dec-int", ext_bits_dec_int);
 }

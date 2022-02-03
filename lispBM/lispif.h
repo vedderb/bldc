@@ -26,6 +26,7 @@
 
 // Functions
 void lispif_init(void);
+void lispif_disable_all_events(void);
 void lispif_load_vesc_extensions(void);
 void lispif_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));

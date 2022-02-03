@@ -3,7 +3,7 @@ LISPBM = lispBM/lispBM
 LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/fundamental.c \
 	        $(LISPBM)/src/heap.c \
-            $(LISPBM)/src/lispbm_memory.c \
+            $(LISPBM)/src/lbm_memory.c \
             $(LISPBM)/src/print.c \
             $(LISPBM)/src/qq_expand.c \
             $(LISPBM)/src/stack.c \
@@ -14,6 +14,7 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/eval_cps.c \
             $(LISPBM)/platform/chibios/src/platform_mutex.c \
             $(LISPBM)/streams.c \
+            $(LISPBM)/lbm_c_interop.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c
 

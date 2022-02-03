@@ -305,11 +305,11 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     uint32_t* data = array->data;
 
-    printf("ix: %d, ix_end: %d\n", ix, ix_end);
+//    printf("ix: %d, ix_end: %d\n", ix, ix_end);
     for (lbm_int i = (lbm_int)ix_end; i >= (lbm_int)ix; i--) {
-      printf("%d\n", i);
+//      printf("%d\n", i);
       if ((lbm_uint)i >= array->size){
-        printf("hmm %d %d\n", i, array->size);
+//        printf("hmm %d %d\n", i, array->size);
         *result = lbm_enc_sym(SYM_NIL);
         return;
       }
@@ -844,7 +844,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     }
     break;
   default:
-    printf("fundamental unknown\n");
+//    printf("fundamental unknown\n");
     result = lbm_enc_sym(SYM_EERROR);
     break;
   }
