@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		5
+#define FW_TEST_VERSION_NUMBER		7
 
 #include "datatypes.h"
 

@@ -1,7 +1,5 @@
 # LispBM
 
-
-
 This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM) written by Joel Svensson. It allows the VESC to run lisp-programs in a sandboxed environment.
 
 ### Feature Overview
@@ -10,7 +8,6 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 * Sandboxed environment, meaning that the Lisp code (hopefully) cannot freeze or crash the rest of the VESC code when it gets stuck or runs out of heap or stack memory.
 * The application runs on the VESC itself without the need for having VESC Tool connected and is stored in flash memory.
 * When a lisp-application is written to the VESC it is automatically started on each boot.
-
 
 ## Documentation
 

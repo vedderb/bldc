@@ -88,18 +88,19 @@ static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t terminal_mutex;
 static volatile int fw_version_sent_cnt = 0;
-static bool isInitialized = false;
+static bool is_initialized = false;
+static int nrf_flags = 0;
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
-	isInitialized = true;
+	is_initialized = true;
 }
 
 bool commands_is_initialized(void) {
-	return isInitialized;
+	return is_initialized;
 }
 
 /**
@@ -211,7 +212,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
 		int32_t ind = 0;
-		uint8_t send_buffer[60];
+		uint8_t send_buffer[65];
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
@@ -264,6 +265,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = 0;
 		}
 #endif
+		send_buffer[ind++] = nrf_flags;
 
 		fw_version_sent_cnt++;
 
@@ -1045,6 +1047,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_EXT_NRF_PRESENT: {
 		if (!conf_general_permanent_nrf_found) {
+			if (len >= 1) {
+				nrf_flags = data[0];
+			}
+
 			nrf_driver_init_ext_nrf();
 			if (!nrf_driver_is_pairing()) {
 				const app_configuration *appconf = app_get_configuration();
@@ -1068,6 +1074,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 				nrf_driver_process_packet(data, len);
 			}
 		}
+	} break;
+
+	case COMM_SET_BLE_PIN:
+	case COMM_SET_BLE_NAME: {
+		commands_send_packet_nrf(data - 1, len + 1);
 	} break;
 
 	case COMM_APP_DISABLE_OUTPUT: {
@@ -1861,48 +1872,6 @@ void commands_send_plot_points(float x, float y) {
 
 int commands_get_fw_version_sent_cnt(void) {
 	return fw_version_sent_cnt;
-}
-
-// TODO: The commands_set_ble_name and commands_set_ble_pin are not
-// tested. Test them, and remove this comment when done!
-
-void commands_set_ble_name(char* name) {
-	int ind = 0;
-	int name_len = strlen(name);
-	if (name_len > 27) {
-		name_len = 27;
-	}
-
-	uint8_t buffer[name_len + 2];
-	buffer[ind++] = COMM_SET_BLE_NAME;
-	memcpy(buffer + ind, name, name_len);
-	ind += name_len;
-	buffer[ind++] = '\0';
-
-#ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
-#else
-	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
-#endif
-}
-
-void commands_set_ble_pin(char* pin) {
-	int ind = 0;
-	int pin_len = strlen(pin);
-	if (pin_len > 27) {
-		pin_len = 27;
-	}
-
-	uint8_t buffer[pin_len + 2];
-	buffer[ind++] = COMM_SET_BLE_NAME;
-	memcpy(buffer + ind, pin, pin_len);
-	ind += pin_len;
-	buffer[ind++] = '\0';
-#ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
-#else
-	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
-#endif
 }
 
 static THD_FUNCTION(blocking_thread, arg) {
