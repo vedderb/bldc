@@ -68,7 +68,7 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 			lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
 			switch (array->elt_type){
 			case LBM_VAL_TYPE_CHAR:
-				commands_printf_lisp("%s", (char*)array + 8);
+				commands_printf_lisp("%s", (char*)array->data);
 				break;
 			default:
 				return lbm_enc_sym(SYM_NIL);
