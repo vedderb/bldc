@@ -671,6 +671,31 @@ cd $FWPATH
 make clean
 cd $DIR
 
+#################### HW 75_600 ########################
+
+COPYDIR=75_600
+mkdir -p $COPYDIR
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j12 build_args='-DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\" -DHW_100_500_VER_75_600' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_100_500.c\" -DHW_HEADER=\"hw_100_500.h\" -DHW_100_500_VER_75_600' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+
+# Clean
+cd $FWPATH
+make clean
+cd $DIR
+
 #################### HW 60v2_alva ########################
 
 COPYDIR=60v2_alva
@@ -689,4 +714,23 @@ cd $FWPATH
 make clean
 cd $DIR
 
+#################### HW 60_75 ########################
+
+COPYDIR=60_75
+mkdir -p $COPYDIR
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j12 build_args='-DHW_SOURCE=\"hw_60_75.c\" -DHW_HEADER=\"hw_60_75.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j12 build_args='-DDISABLE_HW_LIMITS -DHW_SOURCE=\"hw_60_75.c\" -DHW_HEADER=\"hw_60_75.h\"' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 
