@@ -530,6 +530,11 @@ static lbm_value ext_atan(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_F(atanf(lbm_dec_as_f(args[0])));
 }
 
+static lbm_value ext_atan2(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2)
+	return lbm_enc_F(atan2f(lbm_dec_as_f(args[0]), lbm_dec_as_f(args[1])));
+}
+
 static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(2)
 	return lbm_enc_F(powf(lbm_dec_as_f(args[0]), lbm_dec_as_f(args[1])));
@@ -747,6 +752,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("sin", ext_sin);
 	lbm_add_extension("cos", ext_cos);
 	lbm_add_extension("atan", ext_atan);
+	lbm_add_extension("atan2", ext_atan2);
 	lbm_add_extension("pow", ext_pow);
 
 	// Bit operations
