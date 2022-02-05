@@ -13,7 +13,7 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 Basics about LispBM are documented [here](http://svenssonjoel.github.io/lbmdoc/html/lbmref.html). The VESC-specific extensions are documented in this section. Note that VESC Tool includes a collection of examples that can be used as a starting point for lisp usage on the VESC.
 
-### Various commands
+### Various Commands
 
 #### print
 
@@ -49,7 +49,117 @@ Read the decoded value on the PPM input and returns 0 to 1. Note that the PPM ap
 (print (list "PPM Value: " (get-ppm)))
 ```
 
-### Motor set commands
+#### get-encoder
+
+```clj
+(get-encoder)
+```
+
+Get angle from selected encoder in degrees.
+
+#### set-servo
+
+```clj
+(set-servo value)
+```
+
+Set servo output to value. Range 0 to 1. Not that the servo output has to be enabled in App Settings -> General for this to work.
+
+#### get-vin
+
+```clj
+(get-vin)
+```
+
+Get input voltage.
+
+#### select-motor
+
+```clj
+(select-motor motor)
+```
+
+Select which motor to control on dual-motor hardware. Options are 1 for motor 1 and 2 for motor 2.
+
+#### get-selected-motor
+
+```clj
+(get-selected-motor)
+```
+
+Get currently selected motor on dual motor hardware.
+
+#### get-bms-val
+
+```clj
+(get-bms-val val optValArg)
+```
+
+Get value from BMS. Examples:
+
+```clj
+(get-bms-val "v_tot") ; Total voltage
+(get-bms-val "v_charge") ; Charge input voltage
+(get-bms-val "i_in_ic") ; Measured current (negative means charging)
+(get-bms-val "ah_cnt") ; Amp hour counter
+(get-bms-val "wh_cnt") ; Watt hour counter
+(get-bms-val "cell_num") ; Number of cells in series
+(get-bms-val "v_cell" 2) ; Cell 3 voltage (index starts from 0)
+(get-bms-val "bal_state 2") ; Cell 3 balancing state. 0: not balancing, 1: balancing
+(get-bms-val "temp_adc_num") ; Temperature sensor count
+(get-bms-val "temps_adc" 2) ; Get sensor 3 temperature (index starts from 0)
+(get-bms-val "temp_ic") ; Balance IC temperature
+(get-bms-val "temp_hum") ; Humidity sensor temperature
+(get-bms-val "hum") ; Humidity
+(get-bms-val "temp_cell_max") ; Maximum cell temperature
+(get-bms-val "soc") ; State of charge (0.0 to 1.0)
+(get-bms-val "can_id") ; CAN ID of BMS
+(get-bms-val "ah_cnt_chg_total") ; Total ah charged
+(get-bms-val "wh_cnt_chg_total") ; Total wh charged
+(get-bms-val "ah_cnt_dis_total") ; Total ah discharged
+(get-bms-val "wh_cnt_dis_total") ; Total wh discharged
+(get-bms-val "msg_age") ; Age of last message from BMS in seconds
+```
+
+#### get-adc
+
+```clj
+(get-adc ch)
+```
+
+Get ADC voltage on channel ch (0, 1 or 2).
+
+#### systime
+
+```clj
+(systime)
+```
+
+Get system time in ticks since boot. Every tick is 0.1 ms.
+
+#### secs-since
+
+```clj
+(secs-since timestamp)
+```
+
+Get seconds elapsed since systime timestamp.
+
+#### set-aux
+
+```clj
+(set-aux ch state)
+```
+
+Set AUX output ch (1 or 2) to state. Example:
+
+```clj
+(set-aux 1 1) ; Set AUX1 to ON.
+```
+
+Note: The AUX output mode must be set to Unused in Motor Settings->General->Advanced. Otherwise the firmware will change the AUX state directly after it is set using this function.
+
+### Motor Set Commands
 
 #### set-current
 
@@ -72,7 +182,311 @@ Set motor current relative to the maximum current. Range -1 to 1. For example, i
 (set-duty dutycycle)
 ```
 
-Set duty cycle.
+Set duty cycle. Range -1.0 to 1.0.
+
+#### set-brake
+```clj
+(set-brake current)
+```
+
+Set braking current.
+
+#### set-brake-rel
+```clj
+(set-brake-rel current)
+```
+
+Set braking current relative to the maximum current, range 0.0 to 1.0.
+
+#### set-handbrake
+```clj
+(set-handbrake current)
+```
+
+Set handbrake current. This is setting an openloop current that allows to hold the motor still even at 0 speed at the cost of efficient.
+
+#### set-handbrake-rel
+```clj
+(set-handbrake-rel current)
+```
+
+Same as set-handbrake, but wit a current relative to the maximum current in the range 0.0 to 1.0.
+
+#### set-rpm
+```clj
+(set-rpm rpm)
+```
+
+Set RPM speed control.
+
+#### set-pos
+```clj
+(set-pos pos)
+```
+
+Set motor position in degrees, range 0.0 to 360.0.
+
+### Motor Set Commands
+
+#### get-current
+```clj
+(get-current)
+```
+
+Get motor current. Positive means that current is glowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
+
+#### get-current-dir
+```clj
+(get-current-dir)
+```
+
+Get directional current. Positive for torque in the forward direction and negative for torque in the reverse direction.
+
+#### get-current-in
+```clj
+(get-current-in)
+```
+
+Get input current. Will always be lower than the motor current. The closer the motor spins to full speed the closer the input current is to the motor current.
+
+#### get-duty
+```clj
+(get-duty)
+```
+
+Get duty cycle. Range 0.0 to 1.0.
+
+#### get-rpm
+```clj
+(get-rpm)
+```
+
+Get motor RPM. Negative values mean that the motor spins in the reverse direction.
+
+#### get-temp-fet
+```clj
+(get-temp-fet)
+```
+
+Get MOSFET temperature.
+
+#### get-temp-motor
+```clj
+(get-temp-motor)
+```
+
+Get motor temperature.
+
+#### get-speed
+```clj
+(get-speed)
+```
+
+Get speed in meters per second. Requires that the number of wheel diameter, gear ratio and number of motor poles are set up correctly.
+
+#### get-dist
+```clj
+(get-dist)
+```
+
+Get the distance traveled since start in meters. As with (get-speed) this requires that the number of wheel diameter, gear ratio and number of motor poles are set up correctly.
+
+#### get-batt
+```clj
+(get-batt)
+```
+
+Get the battery level, range 0.0 to 1.0. Requires that the battery type and number of cells is set up correctly.
+
+#### get-fault
+```clj
+(get-fault)
+```
+
+Get current fault code.
+
+### CAN-Commands
+
+#### canset-current
+```clj
+(canset-current id current)
+```
+
+Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with id 115:
+
+```clj
+(canset-current 115 25)
+```
+
+#### canset-current-rel
+```clj
+(canset-current-rel id current)
+```
+
+Same as above, but relative current in the range -1.0 to 1.0. See (set-current
+) for details on what relative current means.
+
+#### canset-duty
+```clj
+(canset-duty id duty)
+```
+
+Set duty cycle over CAN-bus on VESC with id. Range -1.0 to 1.0.
+
+#### canset-brake
+```clj
+(canset-brake id current)
+```
+
+Set braking current over CAN-bus.
+
+#### canset-brake-rel
+```clj
+(canset-brake-rel id current)
+```
+
+Set relative braking current over CAN-bus. Range 0.0 to 1.0.
+
+#### canset-rpm
+```clj
+(canset-rpm id rpm)
+```
+
+Set rpm over CAN-bus.
+
+#### canset-pos
+```clj
+(canset-pos id pos)
+```
+
+Set position control in degrees over CAN-bus. Range 0.0 to 1.0.
+
+#### canget-current
+```clj
+(canget-current id)
+```
+
+Get current over CAN-bus on VESC with id.
+
+#### canget-current-dir
+```clj
+(canget-current-dir id)
+```
+
+Get directional current over CAN-bus on VESC with id. See (get-current-dir) for what directional means.
+
+#### can-send-sid
+```clj
+(can-send-sid id data)
+```
+
+Send standard ID CAN-frame with id and data. Data is a list with bytes, and the length of the list (max 8) decides how many data bytes are sent. Example:
+
+```clj
+(can-send-sid 0x11FF11 (list 0xAA 0x11 0x15))
+```
+
+#### can-send-eid
+```clj
+(can-send-eid id data)
+```
+
+Same as (can-send-sid), but sends extended ID frame.
+
+### Math Functions
+
+#### sin
+```clj
+(sin angle)
+```
+
+Get the sine of angle. Unit: Radians.
+
+#### cos
+```clj
+(cos angle)
+```
+
+Get the cosine of angle. Unit: Radians.
+
+#### atan
+```clj
+(atan x)
+```
+
+Get the arctangent of x. Unit: Radians.
+
+#### atan2
+```clj
+(atan2 y x)
+```
+
+Get the arctangent of val. Unit: Radians. This is the version that uses two arguments.
+
+#### pow
+```clj
+(pow base power)
+```
+
+Get base raised to power.
+
+### Bit Operations
+
+#### bits-enc-int
+```clj
+(bits-enc-int initial number offset bits)
+```
+
+Put bits of number in initial value at offset and return the result. For example, if the bits initial are aaaaaaaa, number is bbb, offset is 2 and bits is 3 the result is aaabbbaa. For reference, the corresponding operation in C is:
+
+```c
+initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
+initial |= (number << (32 - bits)) >> (32 - bits - offset);
+```
+
+#### bits-dec-int
+```clj
+(bits-dec-int value offset size)
+```
+
+Return size bits of value at offset. For example if the bits of value are abcdefgh, offset is 3 and size it 3 a number with the bits cde is returned. The corresponding operation in C is:
+
+```c
+val >>= offset;
+val &= 0xFFFFFFFF >> (32 - bits);
+```
+
+## Events
+
+Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread meanwhile.
+
+The following example shows how to spawn a thread that handles SID (standard-id) CAN-frames:
+
+```clj
+(define proc-sid (lambda (id data)
+    (print (list id data)) ; Print the ID and data
+))
+
+(define event-handler (lambda ()
+    (progn
+        (recv ((signal-can-sid (? id) . (? data)) (proc-sid id data))
+              (_ nil)) ; Ignore other events
+        (event-handler) ; Call self again to make this a loop
+)))
+
+; Spawn the event handler thread and pass the ID it returns to C
+(event-register-handler (spawn '(event-handler)))
+
+; Enable the CAN event for standard ID (SID) frames
+(event-enable "event-can-sid")
+```
+
+Possible events to register are
+
+```clj
+(event-enable "event-can-sid") ; Sends (signal-can-sid id data), where id is U32 and data is a list of i28
+(event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a list of i28
+```
 
 ## How to update
 
