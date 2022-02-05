@@ -263,7 +263,7 @@ void hw_try_restore_i2c(void) {
 #if defined (HW_VER_IS_100S_V2)
 static THD_FUNCTION(switch_color_thread, arg) {
 	(void)arg;
-	chRegSetThreadName("switch_color_thread");
+	chRegSetThreadName("switch_color");
 	float switch_red = 0.0;
 	float switch_green = 0.0;
 	float switch_blue = 0.0;
