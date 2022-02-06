@@ -11,7 +11,7 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 ## Documentation
 
-Basics about LispBM are documented [here](http://svenssonjoel.github.io/lbmdoc/html/lbmref.html). The VESC-specific extensions are documented in this section. Note that VESC Tool includes a collection of examples that can be used as a starting point for lisp usage on the VESC.
+Basics about LispBM are documented [here](http://svenssonjoel.github.io/lbmdoc/html/lbmref.html). The VESC-specific extensions are documented in this section. Note that VESC Tool includes a collection of examples that can be used as a starting point for using lisp on the VESC.
 
 ### Various Commands
 
@@ -21,13 +21,13 @@ Basics about LispBM are documented [here](http://svenssonjoel.github.io/lbmdoc/h
 (print arg1 ... argN)
 ```
 
-Print things in the VESC Tool Lisp console. Example:
+Print to the VESC Tool Lisp console. Example:
 
 ```clj
 (print "Hello World")
 ```
 
-Should work for all lisp types.
+Should work for all types.
 
 #### timeout-reset
 
@@ -35,7 +35,7 @@ Should work for all lisp types.
 (timeout-reset)
 ```
 
-Reset the timeout that stops the motor. This has to be run on a regular basis to keep the motor running.
+Reset the timeout that stops the motor. This has to be run on at least every second to keep the motor running. The timeout time can be configured in App Settings->General.
 
 #### get-ppm
 
@@ -43,11 +43,13 @@ Reset the timeout that stops the motor. This has to be run on a regular basis to
 (get-ppm)
 ```
 
-Read the decoded value on the PPM input and returns 0 to 1. Note that the PPM app has to be configured and running. Example:
+Read the decoded value on the PPM input and returns 0.0 to 1.0. Note that the PPM app has to be configured and running. Example:
 
 ```clj
 (print (list "PPM Value: " (get-ppm)))
 ```
+
+Note that control type can be set to Off in the PPM app to get the input without running the motor automatically, which is useful when running the motor from lisp.
 
 #### get-encoder
 
@@ -63,7 +65,7 @@ Get angle from selected encoder in degrees.
 (set-servo value)
 ```
 
-Set servo output to value. Range 0 to 1. Not that the servo output has to be enabled in App Settings -> General for this to work.
+Set servo output to value. Range 0 to 1. Note that the servo output has to be enabled in App Settings -> General.
 
 #### get-vin
 
@@ -203,14 +205,14 @@ Set braking current relative to the maximum current, range 0.0 to 1.0.
 (set-handbrake current)
 ```
 
-Set handbrake current. This is setting an openloop current that allows to hold the motor still even at 0 speed at the cost of efficient.
+Set handbrake current. This sets an open loop current that allows to hold the motor still even at 0 speed at the cost of efficient.
 
 #### set-handbrake-rel
 ```clj
 (set-handbrake-rel current)
 ```
 
-Same as set-handbrake, but wit a current relative to the maximum current in the range 0.0 to 1.0.
+Same as set-handbrake, but with a current relative to the maximum current in the range 0.0 to 1.0.
 
 #### set-rpm
 ```clj
@@ -224,16 +226,16 @@ Set RPM speed control.
 (set-pos pos)
 ```
 
-Set motor position in degrees, range 0.0 to 360.0.
+Position control. Set motor position in degrees, range 0.0 to 360.0.
 
-### Motor Set Commands
+### Motor Get Commands
 
 #### get-current
 ```clj
 (get-current)
 ```
 
-Get motor current. Positive means that current is glowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
+Get motor current. Positive means that current is flowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
 
 #### get-current-dir
 ```clj
@@ -254,7 +256,7 @@ Get input current. Will always be lower than the motor current. The closer the m
 (get-duty)
 ```
 
-Get duty cycle. Range 0.0 to 1.0.
+Get duty cycle. Range -1.0 to 1.0.
 
 #### get-rpm
 ```clj
@@ -282,14 +284,14 @@ Get motor temperature.
 (get-speed)
 ```
 
-Get speed in meters per second. Requires that the number of wheel diameter, gear ratio and number of motor poles are set up correctly.
+Get speed in meters per second. Requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
 
 #### get-dist
 ```clj
 (get-dist)
 ```
 
-Get the distance traveled since start in meters. As with (get-speed) this requires that the number of wheel diameter, gear ratio and number of motor poles are set up correctly.
+Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
 
 #### get-batt
 ```clj
@@ -303,7 +305,7 @@ Get the battery level, range 0.0 to 1.0. Requires that the battery type and numb
 (get-fault)
 ```
 
-Get current fault code.
+Get fault code.
 
 ### CAN-Commands
 
@@ -323,8 +325,7 @@ Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with i
 (canset-current-rel id current)
 ```
 
-Same as above, but relative current in the range -1.0 to 1.0. See (set-current
-) for details on what relative current means.
+Same as above, but relative current in the range -1.0 to 1.0. See (set-current) for details on what relative current means.
 
 #### canset-duty
 ```clj
@@ -421,7 +422,7 @@ Get the arctangent of x. Unit: Radians.
 (atan2 y x)
 ```
 
-Get the arctangent of val. Unit: Radians. This is the version that uses two arguments.
+Get the arctangent of y / x. Unit: Radians. This is the version that uses two arguments.
 
 #### pow
 ```clj
@@ -437,7 +438,7 @@ Get base raised to power.
 (bits-enc-int initial number offset bits)
 ```
 
-Put bits of number in initial value at offset and return the result. For example, if the bits initial are aaaaaaaa, number is bbb, offset is 2 and bits is 3 the result is aaabbbaa. For reference, the corresponding operation in C is:
+Put bits of number in initial at offset and return the result. For example, if the bits initial are aaaaaaaa, number is bbb, offset is 2 and bits is 3 the result is aaabbbaa. For reference, the corresponding operation in C is:
 
 ```c
 initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
@@ -458,7 +459,7 @@ val &= 0xFFFFFFFF >> (32 - bits);
 
 ## Events
 
-Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread meanwhile.
+Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
 
 The following example shows how to spawn a thread that handles SID (standard-id) CAN-frames:
 
