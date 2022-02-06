@@ -161,6 +161,53 @@ Set AUX output ch (1 or 2) to state. Example:
 
 Note: The AUX output mode must be set to Unused in Motor Settings->General->Advanced. Otherwise the firmware will change the AUX state directly after it is set using this function.
 
+#### get-imu-rpy
+```clj
+(get-imu-rpy)
+```
+Get roll, pitch and yaw from the IMU in radians.
+
+The function (ix ind list) can be used to get an element from the list. Example:
+```clj
+(ix 0 (get-imu-rpy)) ; Get roll (index 0)
+```
+
+#### get-imu-quat
+```clj
+(get-imu-quat)
+```
+Get a list of quaternions from the IMU (q0, q1, q2 and q3).
+
+#### get-imu-acc
+```clj
+(get-imu-acc)
+```
+Get a list of the x, y and z acceleration from the IMU in G.
+
+#### get-imu-gyro
+```clj
+(get-imu-gyro)
+```
+Get a list of the x, y and z angular rate from the IMU in degrees/s.
+
+#### get-imu-mag
+```clj
+(get-imu-mag)
+```
+Get a list of the x, y and z magnetic field strength from the IMU in uT. Note that most IMUs do not have a magnetometer.
+
+#### send-data
+```clj
+(send-data dataList)
+```
+Send a list of custom app data to VESC Tool. This can be read from a Qml script for example.
+
+Example of sending the numbers 1, 2, 3 and 4:
+
+```clj
+(send-data (list 1 2 3 4))
+```
+
 ### Motor Set Commands
 
 #### set-current
@@ -502,7 +549,29 @@ Get alpha modulation. Range -1.0 to 1.0 (almost).
 
 Get beta modulation. Range -1.0 to 1.0 (almost).
 
-Same as (raw-adc-current), but measures phase voltages instead.
+#### raw-mod-alpha-measured
+```clj
+(raw-mod-alpha-measured)
+```
+
+Same as (raw-mod-alpha), but derives the modulation from the phase voltage reading and/or dead-time compensation.
+
+#### raw-mod-beta-measured
+```clj
+(raw-mod-beta-measured)
+```
+Same as (raw-mod-beta), but derives the modulation from the phase voltage reading and/or dead-time compensation.
+
+#### raw-hall
+```clj
+(raw-hall motor optSamples)
+```
+Read hall sensors for motor (1 or 2) and return their states in a list. The optional argument optSamples (max 20) can be used to set how many times the hall sensors are sampled; if it is not supplied the number of samples from the motor configuration will be used.
+
+The function (ix ind list) can be used to get an element from the list. Example:
+```clj
+(ix 0 (raw-hall 1)) ; Get hall sensor 1 state (index 0)
+```
 
 ## Events
 
@@ -545,6 +614,8 @@ Possible events to register are
 (event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a list of i28
 (event-enable "event-data-rx") ; Sends (signal-data-rx data), where data is a list of i28
 ```
+
+The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
 
 ## How to update
 
