@@ -431,6 +431,13 @@ Get the arctangent of y / x. Unit: Radians. This is the version that uses two ar
 
 Get base raised to power.
 
+#### sqrt
+```clj
+(sqrt x)
+```
+
+Get the square root of x.
+
 ### Bit Operations
 
 #### bits-enc-int
@@ -457,20 +464,66 @@ val >>= offset;
 val &= 0xFFFFFFFF >> (32 - bits);
 ```
 
+### Raw Commands
+
+Raw data commands useful for debugging hardware issues.
+
+#### raw-adc-current
+```clj
+(raw-adc-current motor phase useRaw)
+```
+
+Get raw current measurements. Motor is the motor index (1 or 2), phase is the phase (1, 2 or 3) and useRaw is whether to convert the measurements to currents or to use raw ADC values.
+
+Example for reading phase B on motor 1 as raw ADC values:
+
+```clj
+(raw-adc-current 1 2 1)
+```
+
+#### raw-adc-voltage
+```clj
+(raw-adc-voltage motor phase useRaw)
+```
+
+Same as (raw-adc-current), but measures phase voltages instead.
+
+#### raw-mod-alpha
+```clj
+(raw-mod-alpha)
+```
+
+Get alpha modulation. Range -1.0 to 1.0 (almost).
+
+#### raw-mod-beta
+```clj
+(raw-mod-beta)
+```
+
+Get beta modulation. Range -1.0 to 1.0 (almost).
+
+Same as (raw-adc-current), but measures phase voltages instead.
+
 ## Events
 
 Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
 
-The following example shows how to spawn a thread that handles SID (standard-id) CAN-frames:
+The following example shows how to spawn a thread that handles SID (standard-id) CAN-frames and custom app data:
 
 ```clj
 (define proc-sid (lambda (id data)
     (print (list id data)) ; Print the ID and data
 ))
 
+(define proc-data (lambda (data)
+    (progn
+        (print data)
+)))
+
 (define event-handler (lambda ()
     (progn
         (recv ((signal-can-sid (? id) . (? data)) (proc-sid id data))
+        (recv ((signal-data-rx ? data) (proc-data data))
               (_ nil)) ; Ignore other events
         (event-handler) ; Call self again to make this a loop
 )))
@@ -480,6 +533,9 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 
 ; Enable the CAN event for standard ID (SID) frames
 (event-enable "event-can-sid")
+
+; Enable the custom app data event
+(event-enable "event-data-rx")
 ```
 
 Possible events to register are
@@ -487,6 +543,7 @@ Possible events to register are
 ```clj
 (event-enable "event-can-sid") ; Sends (signal-can-sid id data), where id is U32 and data is a list of i28
 (event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a list of i28
+(event-enable "event-data-rx") ; Sends (signal-data-rx data), where data is a list of i28
 ```
 
 ## How to update

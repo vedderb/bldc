@@ -51,6 +51,8 @@ typedef struct {
 	float mod_beta_filter;
 	float mod_alpha_measured;
 	float mod_beta_measured;
+	float mod_alpha_raw;
+	float mod_beta_raw;
 	float id_target;
 	float iq_target;
 	float max_duty;
@@ -1477,6 +1479,22 @@ float mcpwm_foc_get_vd(void) {
 
 float mcpwm_foc_get_vq(void) {
 	return motor_now()->m_motor_state.vq;
+}
+
+float mcpwm_foc_get_mod_alpha_raw(void) {
+	return motor_now()->m_motor_state.mod_alpha_raw;
+}
+
+float mcpwm_foc_get_mod_beta_raw(void) {
+	return motor_now()->m_motor_state.mod_beta_raw;
+}
+
+float mcpwm_foc_get_mod_alpha_measured(void) {
+	return motor_now()->m_motor_state.mod_alpha_measured;
+}
+
+float mcpwm_foc_get_mod_beta_measured(void) {
+	return motor_now()->m_motor_state.mod_beta_measured;
 }
 
 /**
@@ -3950,10 +3968,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
 
     // Inverse Park transform: transforms the (normalized) voltages from the rotor reference frame to the stator frame 
-	float mod_alpha = c * state_m->mod_d - s * state_m->mod_q;
-	float mod_beta  = c * state_m->mod_q + s * state_m->mod_d;
+	state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
+	state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
 
-	update_valpha_vbeta(motor, mod_alpha, mod_beta);
+	update_valpha_vbeta(motor, state_m->mod_alpha_raw, state_m->mod_beta_raw);
     
     // Dead time compensated values for vd and vq. Note that these are not used to control the switching times. 
 	state_m->vd = c * motor->m_motor_state.v_alpha + s * motor->m_motor_state.v_beta;
@@ -3963,8 +3981,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	if (do_hfi) {
 		CURRENT_FILTER_OFF();
 
-		float mod_alpha_tmp = mod_alpha;
-		float mod_beta_tmp = mod_beta;
+		float mod_alpha_tmp = state_m->mod_alpha_raw;
+		float mod_beta_tmp = state_m->mod_beta_raw;
 
 		float hfi_voltage;
 		if (motor->m_hfi.est_done_cnt < conf_now->foc_hfi_start_samples) {
@@ -4007,8 +4025,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 		motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
 
 		if (conf_now->foc_sample_v0_v7) {
-			mod_alpha = mod_alpha_tmp;
-			mod_beta = mod_beta_tmp;
+			state_m->mod_alpha_raw = mod_alpha_tmp;
+			state_m->mod_beta_raw = mod_beta_tmp;
 		} else {
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
@@ -4034,7 +4052,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
     
     // Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
-	svm(mod_alpha, mod_beta, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+	svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
 		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);

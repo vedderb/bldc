@@ -742,6 +742,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (appdata_func) {
 			appdata_func(data, len);
 		}
+#ifdef USE_LISPBM
+		lispif_process_custom_app_data(data, len);
+#endif
 		break;
 
 	case COMM_CUSTOM_HW_DATA:

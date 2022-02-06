@@ -38,6 +38,8 @@
 #include "bms.h"
 #include "utils.h"
 #include "hw.h"
+#include "mcpwm_foc.h"
+#include "imu.h"
 
 #include <math.h>
 
@@ -277,6 +279,108 @@ static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(SYM_EERROR);
 }
 
+static lbm_value ext_get_imu_rpy(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float rpy[3];
+	imu_get_rpy(rpy);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(rpy[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(rpy[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(rpy[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_get_imu_quat(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float q[4];
+	imu_get_quaternions(q);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(q[3]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(q[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(q[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(q[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_get_imu_acc(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float acc[3];
+	imu_get_accel(acc);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(acc[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(acc[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(acc[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_get_imu_gyro(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float gyro[3];
+	imu_get_gyro(gyro);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(gyro[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(gyro[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(gyro[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_get_imu_mag(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float mag[3];
+	imu_get_mag(mag);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(mag[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(mag[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(mag[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 || lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value curr = args[0];
+	const int max_len = 20;
+	uint8_t to_send[max_len];
+	int ind = 0;
+
+	while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+		lbm_value  arg = lbm_car(curr);
+
+		if (lbm_is_number(arg)) {
+			to_send[ind++] = lbm_dec_as_u(arg);
+		} else {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		if (ind == max_len) {
+			break;
+		}
+
+		curr = lbm_cdr(curr);
+	}
+
+	commands_send_app_data(to_send, ind);
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
@@ -377,7 +481,7 @@ static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_dist(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	return lbm_enc_F(mc_interface_get_distance_abs());
+	return lbm_enc_F(mc_interface_get_distance());
 }
 
 static lbm_value ext_get_batt(lbm_value *args, lbm_uint argn) {
@@ -540,6 +644,11 @@ static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_F(powf(lbm_dec_as_f(args[0]), lbm_dec_as_f(args[1])));
 }
 
+static lbm_value ext_sqrt(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(sqrtf(lbm_dec_as_f(args[0])));
+}
+
 // Bit operations
 
 /*
@@ -589,9 +698,11 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 static volatile bool event_handler_registered = false;
 static volatile bool event_can_sid_en = false;
 static volatile bool event_can_eid_en = false;
+static volatile bool event_data_rx_en = false;
 static lbm_uint event_handler_pid;
 static lbm_uint sym_signal_can_sid;
 static lbm_uint sym_signal_can_eid;
+static lbm_uint sym_signal_data_rx;
 
 static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
@@ -617,6 +728,8 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 		event_can_sid_en = en;
 	} else if (strcmp(name, "event-can-eid") == 0) {
 		event_can_eid_en = en;
+	} else if (strcmp(name, "event-data-rx") == 0) {
+		event_data_rx_en = en;
 	} else {
 		return lbm_enc_sym(SYM_EERROR);
 	}
@@ -640,46 +753,225 @@ static lbm_value ext_register_event_handler(lbm_value *args, lbm_uint argn) {
 	}
 }
 
-void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
-	if (event_handler_registered) {
-		if (!event_can_sid_en && !is_ext) {
-			return;
-		}
+/*
+ * args[0]: Motor, 1 or 2
+ * args[1]: Phase, 1, 2 or 3
+ * args[2]: Use raw ADC values. Optional argument.
+ */
+static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
 
-		if (!event_can_eid_en && is_ext) {
-			return;
-		}
-
-		bool ok = true;
-
-		int timeout_cnt = 1000;
-		lbm_pause_eval_with_gc(100);
-		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-			chThdSleep(1);
-			timeout_cnt--;
-		}
-		ok = timeout_cnt > 0;
-
-		if (ok) {
-			lbm_value data = lbm_enc_sym(SYM_NIL);
-			for (int i = len - 1;i >= 0;i--) {
-				data = lbm_cons(lbm_enc_i(data8[i]), data);
-			}
-
-			lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
-			lbm_value msg;
-
-			if (is_ext) {
-				msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
-			} else {
-				msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
-			}
-
-			lbm_send_message(event_handler_pid, msg);
-		}
-
-		lbm_continue_eval();
+	if (argn != 2 && argn != 3) {
+		return lbm_enc_sym(SYM_EERROR);
 	}
+
+	uint32_t motor = lbm_dec_as_i(args[0]);
+	uint32_t phase = lbm_dec_as_i(args[1]);
+
+	volatile float ofs1, ofs2, ofs3;
+	mcpwm_foc_get_current_offsets(&ofs1, &ofs2, &ofs3, motor == 2);
+	float scale = FAC_CURRENT;
+
+	if (argn == 3 && lbm_dec_as_i(args[2]) != 0) {
+		scale = 1.0;
+		ofs1 = 0.0; ofs2 = 0.0; ofs3 = 0.0;
+	}
+
+	if (motor == 1) {
+		switch(phase) {
+		case 1: return lbm_enc_F(((float)GET_CURRENT1() - ofs1) * scale);
+		case 2: return lbm_enc_F(((float)GET_CURRENT2() - ofs2) * scale);
+		case 3: return lbm_enc_F(((float)GET_CURRENT3() - ofs3) * scale);
+		default: return lbm_enc_sym(SYM_EERROR);
+		}
+	} else if (motor == 2) {
+#ifdef HW_HAS_DUAL_MOTORS
+		switch(phase) {
+		case 1: return lbm_enc_F(((float)GET_CURRENT1_M2() - ofs1) * scale);
+		case 2: return lbm_enc_F(((float)GET_CURRENT2_M2() - ofs2) * scale);
+		case 3: return lbm_enc_F(((float)GET_CURRENT3_M2() - ofs3) * scale);
+		default: return lbm_enc_sym(SYM_EERROR);
+		}
+#else
+		return lbm_enc_sym(SYM_EERROR);
+#endif
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+}
+
+/*
+ * args[0]: Motor, 1 or 2
+ * args[1]: Phase, 1, 2 or 3
+ * args[2]: Use raw ADC values. Optional argument.
+ */
+static lbm_value ext_raw_adc_voltage(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn != 2 && argn != 3) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	uint32_t motor = lbm_dec_as_i(args[0]);
+	uint32_t phase = lbm_dec_as_i(args[1]);
+
+	float ofs1, ofs2, ofs3;
+	mcpwm_foc_get_voltage_offsets(&ofs1, &ofs2, &ofs3, motor == 2);
+	float scale = ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+
+	if (argn == 3 && lbm_dec_as_i(args[2]) != 0) {
+		scale = 4095.0 / V_REG;
+		ofs1 = 0.0; ofs2 = 0.0; ofs3 = 0.0;
+	}
+
+	float Va = 0.0, Vb = 0.0, Vc = 0.0;
+	if (motor == 2) {
+#ifdef HW_HAS_DUAL_MOTORS
+		Va = (ADC_VOLTS(ADC_IND_SENS4) - ofs1) * scale;
+		Vb = (ADC_VOLTS(ADC_IND_SENS5) - ofs2) * scale;
+		Vc = (ADC_VOLTS(ADC_IND_SENS6) - ofs3) * scale;
+#else
+		return lbm_enc_sym(SYM_EERROR);
+#endif
+	} else if (motor == 1) {
+		Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs1) * scale;
+		Vb = (ADC_VOLTS(ADC_IND_SENS2) - ofs2) * scale;
+		Vc = (ADC_VOLTS(ADC_IND_SENS3) - ofs3) * scale;
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	switch(phase) {
+	case 1: return lbm_enc_F(Va);
+	case 2: return lbm_enc_F(Vb);
+	case 3: return lbm_enc_F(Vc);
+	default: return lbm_enc_sym(SYM_EERROR);
+	}
+}
+
+static lbm_value ext_raw_mod_alpha(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_F(mcpwm_foc_get_mod_alpha_raw());
+}
+
+static lbm_value ext_raw_mod_beta(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_F(mcpwm_foc_get_mod_beta_raw());
+}
+
+static lbm_value ext_raw_mod_alpha_measured(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_F(mcpwm_foc_get_mod_alpha_measured());
+}
+
+static lbm_value ext_raw_mod_beta_measured(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_F(mcpwm_foc_get_mod_beta_measured());
+}
+
+static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn != 1 && argn != 2) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	int motor = lbm_dec_i(args[0]);
+	int samples = mc_interface_get_configuration()->m_hall_extra_samples;
+
+	if (argn == 2) {
+		lbm_dec_i(args[1]);
+	}
+
+	if ((motor != 1 && motor != 2) || samples < 0 || samples > 20) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	int hall = utils_read_hall(motor == 2, samples);
+
+	lbm_value hall_list = lbm_enc_sym(SYM_NIL);
+	hall_list = lbm_cons(lbm_enc_i((hall >> 2) & 1), hall_list);
+	hall_list = lbm_cons(lbm_enc_i((hall >> 1) & 1), hall_list);
+	hall_list = lbm_cons(lbm_enc_i((hall >> 0) & 1), hall_list);
+
+	return hall_list;
+}
+
+void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!event_can_sid_en && !is_ext) {
+		return;
+	}
+
+	if (!event_can_eid_en && is_ext) {
+		return;
+	}
+
+	bool ok = true;
+
+	int timeout_cnt = 1000;
+	lbm_pause_eval_with_gc(100);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	ok = timeout_cnt > 0;
+
+	if (ok) {
+		lbm_value data = lbm_enc_sym(SYM_NIL);
+		for (int i = len - 1;i >= 0;i--) {
+			data = lbm_cons(lbm_enc_i(data8[i]), data);
+		}
+
+		lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
+		lbm_value msg;
+
+		if (is_ext) {
+			msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
+		} else {
+			msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
+		}
+
+		lbm_send_message(event_handler_pid, msg);
+	}
+
+	lbm_continue_eval();
+}
+
+void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!event_data_rx_en) {
+		return;
+	}
+
+	bool ok = true;
+
+	int timeout_cnt = 1000;
+	lbm_pause_eval_with_gc(100);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	ok = timeout_cnt > 0;
+
+	if (ok) {
+		lbm_value bytes = lbm_enc_sym(SYM_NIL);
+		for (int i = len - 1;i >= 0;i--) {
+			bytes = lbm_cons(lbm_enc_i(data[i]), bytes);
+		}
+
+		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
+
+		lbm_send_message(event_handler_pid, msg);
+	}
+
+	lbm_continue_eval();
 }
 
 void lispif_disable_all_events(void) {
@@ -691,6 +983,7 @@ void lispif_disable_all_events(void) {
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
 	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
+	lbm_add_symbol_const("signal-data-rx", &sym_signal_data_rx);
 
 	// Various commands
 	lbm_add_extension("print", ext_print);
@@ -708,6 +1001,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-aux", ext_set_aux);
 	lbm_add_extension("event-register-handler", ext_register_event_handler);
 	lbm_add_extension("event-enable", ext_enable_event);
+	lbm_add_extension("get-imu-rpy", ext_get_imu_rpy);
+	lbm_add_extension("get-imu-quat", ext_get_imu_quat);
+	lbm_add_extension("get-imu-acc", ext_get_imu_acc);
+	lbm_add_extension("get-imu-gyro", ext_get_imu_gyro);
+	lbm_add_extension("get-imu-mag", ext_get_imu_mag);
+	lbm_add_extension("send-data", ext_send_data);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);
@@ -754,8 +1053,18 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("atan", ext_atan);
 	lbm_add_extension("atan2", ext_atan2);
 	lbm_add_extension("pow", ext_pow);
+	lbm_add_extension("sqrt", ext_sqrt);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
 	lbm_add_extension("bits-dec-int", ext_bits_dec_int);
+
+	// Raw readings
+	lbm_add_extension("raw-adc-current", ext_raw_adc_current);
+	lbm_add_extension("raw-adc-voltage", ext_raw_adc_voltage);
+	lbm_add_extension("raw-mod-alpha", ext_raw_mod_alpha);
+	lbm_add_extension("raw-mod-beta", ext_raw_mod_beta);
+	lbm_add_extension("raw-mod-alpha-measured", ext_raw_mod_alpha_measured);
+	lbm_add_extension("raw-mod-beta-measured", ext_raw_mod_beta_measured);
+	lbm_add_extension("raw-hall", ext_raw_hall);
 }
