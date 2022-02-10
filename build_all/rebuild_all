@@ -551,6 +551,19 @@ make -j12 build_args='-DHW_SOURCE=\"hw_Cheap_FOCer_2.c\" -DHW_HEADER=\"hw_Cheap_
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 
+#################### Cheap_FOCer_2 v0.9 ########################
+
+COPYDIR=Cheap_FOCer_2_v09
+mkdir -p $COPYDIR
+rm -f $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j12 build_args='-DHW_SOURCE=\"hw_Cheap_FOCer_2.c\" -DHW_HEADER=\"hw_Cheap_FOCer_2.h\" -DCFOC_IS_V09' USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
 #################### Little_FOCer ########################
 
 COPYDIR=Little_FOCer

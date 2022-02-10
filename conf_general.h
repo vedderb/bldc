@@ -160,6 +160,7 @@
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
 
+//#define CFOC_IS_V09
 //#define HW_SOURCE "hw_Cheap_FOCer_2.c"
 //#define HW_HEADER "hw_Cheap_FOCer_2.h"
 
