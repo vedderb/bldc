@@ -17,19 +17,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_RD2_H_
-#define HW_RD2_H_
+#ifndef HW_RESC_H_
+#define HW_RESC_H_
 
-#define HW_NAME					"RD2"
+#define HW_NAME					"RESC"
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 
 // CAN Bus
+#define CAN_ENABLE				1
 #define APPCONF_CONTROLLER_ID	0x6A
 #define APPCONF_CAN_BAUD_RATE	CAN_BAUD_125K
-
+#define HAS_BLACKMAGIC			0
 #define APPCONF_CHUK_CTRL_TYPE	CHUK_CTRL_TYPE_CURRENT
 
 // General Macros
@@ -64,9 +65,9 @@
  * 12 (1):	Vrefint
  * 13 (2):	IN0		SENS1
  * 14 (3):	IN1		SENS2
- * 15 (1):  IN8		TEMP_MOS_2
- * 16 (2):  IN9		TEMP_MOS_3
- * 17 (3):  IN3		SENS3
+ * 15 (1):	IN8		TEMP_MOS_2
+ * 16 (2):	IN9		TEMP_MOS_3
+ * 17 (3):	IN3		SENS3
  */
 
 #define HW_ADC_CHANNELS			18
@@ -88,8 +89,6 @@
 #define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
-
-// ADC macros and settings
 
 // Component parameters (can be overridden)
 #ifndef V_REG
@@ -113,7 +112,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		hw_rd2_get_temp()
+#define NTC_TEMP(adc_ind)		hw_resc_get_temp()
 // Motor temp sensor on low side
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -142,32 +141,6 @@
 #define HW_ADC_EXT2_GPIO		GPIOA
 #define HW_ADC_EXT2_PIN			6
 
-// UART Peripheral
-#define HW_UART_DEV				SD3
-#define HW_UART_GPIO_AF			GPIO_AF_USART3
-#define HW_UART_TX_PORT			GPIOB
-#define HW_UART_TX_PIN			10
-#define HW_UART_RX_PORT			GPIOB
-#define HW_UART_RX_PIN			11
-
-// ICU Peripheral for servo decoding
-#define HW_USE_SERVO_TIM4
-#define HW_ICU_TIMER			TIM4
-#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
-#define HW_ICU_DEV				ICUD4
-#define HW_ICU_CHANNEL			ICU_CHANNEL_1
-#define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO				GPIOB
-#define HW_ICU_PIN				6
-
-// I2C Peripheral
-#define HW_I2C_DEV				I2CD2
-#define HW_I2C_GPIO_AF			GPIO_AF_I2C2
-#define HW_I2C_SCL_PORT			GPIOB
-#define HW_I2C_SCL_PIN			10
-#define HW_I2C_SDA_PORT			GPIOB
-#define HW_I2C_SDA_PIN			11
-
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOC
 #define HW_HALL_ENC_PIN1		6
@@ -185,28 +158,9 @@
 #define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
-
-// SPI pins
-#define HW_SPI_DEV				SPID1
-#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
-#define HW_SPI_PORT_NSS			GPIOA
-#define HW_SPI_PIN_NSS			4
-#define HW_SPI_PORT_SCK			GPIOA
-#define HW_SPI_PIN_SCK			5
-#define HW_SPI_PORT_MOSI		GPIOA
-#define HW_SPI_PIN_MOSI			7
-#define HW_SPI_PORT_MISO		GPIOA
-#define HW_SPI_PIN_MISO			6
-
-// NRF SWD
-#define NRF5x_SWDIO_GPIO		GPIOC
-#define NRF5x_SWDIO_PIN			10
-#define NRF5x_SWCLK_GPIO		GPIOC
-#define NRF5x_SWCLK_PIN			12
-
-// Boot/ok signal
-#define BOOT_OK_GPIO			GPIOB
-#define BOOT_OK_PIN				12
+#define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
+#define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
+#define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -214,14 +168,8 @@
 #define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
 #define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
-#define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
-#define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
-#define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
-
 // Override dead time. See the stm32f4 reference manual for calculating this value.
 #define HW_DEAD_TIME_NSEC				1000.0
-
-// Default Motor-configuration overrides
 
 // Maximum input voltage
 #define MCCONF_L_MAX_VOLTAGE			72.0
@@ -235,29 +183,25 @@
 #define MCCONF_L_IN_CURRENT_MAX			200.0
 #define MCCONF_L_IN_CURRENT_MIN			-60.0
 #define MCCONF_L_MAX_ABS_CURRENT		480.0
-#define MCCONF_L_RPM_MAX				30750.0
-#define MCCONF_L_RPM_MIN				-30750.0
-#define MCCONF_L_RPM_START				0.8
+#define MCCONF_L_RPM_MAX				51250.0
+#define MCCONF_L_RPM_MIN				-51250.0
+#define MCCONF_L_RPM_START				0.9
 #define MCCONF_L_WATT_MAX				11000.0
 #define MCCONF_L_WATT_MIN				-11000.0
-#define MCCONF_FOC_CURRENT_KP			0.01
-#define MCCONF_FOC_CURRENT_KI			6.0
+#define MCCONF_FOC_CURRENT_KP			0.0079
+#define MCCONF_FOC_CURRENT_KI			18.46
 #define MCCONF_FOC_F_ZV					30000.0
-#define MCCONF_FOC_MOTOR_L				6.0e-6
-#define MCCONF_FOC_MOTOR_LD_LQ_DIFF		2.5e-6
-#define MCCONF_FOC_MOTOR_R				0.0024
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00796
-#define MCCONF_FOC_OBSERVER_GAIN		6.0e6
+#define MCCONF_FOC_MOTOR_L				3.93e-06
+#define MCCONF_FOC_MOTOR_LD_LQ_DIFF		1.03e-06
+#define MCCONF_FOC_MOTOR_R				0.004
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00506
+#define MCCONF_FOC_OBSERVER_GAIN		3.906e+07
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC		0.0
 #define MCCONF_L_BATTERY_CUT_START		49.0
 #define MCCONF_L_BATTERY_CUT_END		44.0
 #define MCCONF_L_LIM_TEMP_MOTOR_START	115.0
 #define MCCONF_L_LIM_TEMP_MOTOR_END		120.0
-// Motor Setup Info
-#define MCCONF_SI_MOTOR_POLES			8
-#define MCCONF_SI_BATTERY_TYPE			BATTERY_TYPE_LIION_3_0__4_2
-#define MCCONF_SI_BATTERY_CELLS			14
-#define MCCONF_SI_BATTERY_AH			69.0
+#define MCCONF_FOC_TEMP_COMP			true
 
 // Motor-configuration limits
 #define HW_LIM_CURRENT					-350.0, 350.0
@@ -269,7 +213,41 @@
 #define HW_LIM_DUTY_MAX					0.0, 0.99
 #define HW_LIM_TEMP_FET					-40.0, 110.0
 
-// HW-specific functions
-float hw_rd2_get_temp(void);
+// TODO: Enable build support to remove unused peripheral defines.
+// All defines below are not used but the build does not allow them
+// to be removed
+#define HW_UART_DEV				SD3
+#define HW_UART_GPIO_AF			GPIO_AF_USART3
+#define HW_UART_TX_PORT			GPIOB
+#define HW_UART_TX_PIN			10
+#define HW_UART_RX_PORT			GPIOB
+#define HW_UART_RX_PIN			11
+#define HW_USE_SERVO_TIM4
+#define HW_ICU_TIMER			TIM4
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
+#define HW_ICU_DEV				ICUD4
+#define HW_ICU_CHANNEL			ICU_CHANNEL_1
+#define HW_ICU_GPIO_AF			GPIO_AF_TIM4
+#define HW_ICU_GPIO				GPIOB
+#define HW_ICU_PIN				6
+#define HW_I2C_DEV				I2CD2
+#define HW_I2C_GPIO_AF			GPIO_AF_I2C2
+#define HW_I2C_SCL_PORT			GPIOB
+#define HW_I2C_SCL_PIN			10
+#define HW_I2C_SDA_PORT			GPIOB
+#define HW_I2C_SDA_PIN			11
+#define HW_SPI_DEV				SPID1
+#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
+#define HW_SPI_PORT_NSS			GPIOA
+#define HW_SPI_PIN_NSS			4
+#define HW_SPI_PORT_SCK			GPIOA
+#define HW_SPI_PIN_SCK			5
+#define HW_SPI_PORT_MOSI		GPIOA
+#define HW_SPI_PIN_MOSI			7
+#define HW_SPI_PORT_MISO		GPIOA
+#define HW_SPI_PIN_MISO			6
 
-#endif /* HW_RD2_H_ */
+// HW-specific functions
+float hw_resc_get_temp(void);
+
+#endif /* HW_RESC_H_ */

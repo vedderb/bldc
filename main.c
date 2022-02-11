@@ -55,6 +55,11 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
+#ifdef CAN_ENABLE
+#include "comm_can.h"
+
+#define CAN_FRAME_MAX_PL_SIZE	8
+#endif
 
 #ifdef USE_LISPBM
 #include "lispif.h"
@@ -302,12 +307,20 @@ int main(void) {
 
 	imu_reset_orientation();
 
-#ifdef BOOT_OK_GPIO
 	chThdSleepMilliseconds(500);
+	m_init_done = true;
+
+#ifdef BOOT_OK_GPIO
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
-	m_init_done = true;
+#ifdef CAN_ENABLE
+	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
+	comm_can_transmit_eid(
+		app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
+		(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
+		strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
+#endif
 
 	for(;;) {
 		chThdSleepMilliseconds(10);
