@@ -503,7 +503,7 @@ void encoder_init_ts5700n8501(void) {
 }
 
 bool encoder_is_configured(void) {
-	return mode != ENCODER_MODE_NONE;
+	return mode;
 }
 
 /**
