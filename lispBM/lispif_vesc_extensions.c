@@ -738,19 +738,14 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_register_event_handler(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 ||
-			lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS) {
+	if (argn != 1 || !lbm_is_number(args[0])) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
-	lbm_value  arg = lbm_car(args[0]);
-	if (lbm_is_number(arg)) {
-		event_handler_registered = true;
-		event_handler_pid = lbm_dec_i(arg);
-		return lbm_enc_sym(SYM_TRUE);
-	} else {
-		return lbm_enc_sym(SYM_EERROR);
-	}
+	event_handler_pid = lbm_dec_i(args[0]);
+	event_handler_registered = true;
+
+	return lbm_enc_sym(SYM_TRUE);
 }
 
 /*
