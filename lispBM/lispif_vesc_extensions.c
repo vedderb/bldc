@@ -574,6 +574,132 @@ static lbm_value ext_can_get_current_dir(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_can_get_current_in(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i(args[0]));
+	if (stat4) {
+		return lbm_enc_F((float)stat4->current_in);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_duty(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i(args[0]));
+	if (stat0) {
+		return lbm_enc_F(stat0->duty);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_rpm(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i(args[0]));
+	if (stat0) {
+		return lbm_enc_F(stat0->rpm);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_temp_fet(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i(args[0]));
+	if (stat4) {
+		return lbm_enc_F((float)stat4->temp_fet);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_temp_motor(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i(args[0]));
+	if (stat4) {
+		return lbm_enc_F((float)stat4->temp_motor);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_speed(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i(args[0]));
+	if (stat0) {
+		const volatile mc_configuration *conf = mc_interface_get_configuration();
+		const float rpm = stat0->rpm / (conf->si_motor_poles / 2.0);
+		return lbm_enc_F((rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_dist(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg_5 *stat5 = comm_can_get_status_msg_5_id(lbm_dec_as_i(args[0]));
+	if (stat5) {
+		const volatile mc_configuration *conf = mc_interface_get_configuration();
+		const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
+		return lbm_enc_F((float)stat5->tacho_value * tacho_scale);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static int cmp_int (const void * a, const void * b) {
+	return ( *(int*)a - *(int*)b );
+}
+
+static lbm_value ext_can_list_devs(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	int dev_num = 0;
+	while (comm_can_get_status_msg_index(dev_num)) {
+		dev_num++;
+	}
+
+	int devs[dev_num];
+
+	for (int i = 0;i < dev_num;i++) {
+		can_status_msg *msg = comm_can_get_status_msg_index(i);
+		if (msg) {
+			devs[i] = msg->id;
+		} else {
+			devs[i] = -1;
+		}
+	}
+
+	qsort(devs, dev_num, sizeof(int), cmp_int);
+	lbm_value dev_list = lbm_enc_sym(SYM_NIL);
+
+	for (int i = (dev_num - 1); i >= 0;i++) {
+		if (devs[i] >= 0) {
+			dev_list = lbm_cons(lbm_enc_i(devs[i]), dev_list);
+		} else {
+			break;
+		}
+	}
+
+	return dev_list;
+}
+
+static lbm_value ext_can_scan(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	lbm_value dev_list = lbm_enc_sym(SYM_NIL);
+
+	for (int i = 253; i >= 0;i++) {
+		if (comm_can_ping(i, 0)) {
+			dev_list = lbm_cons(lbm_enc_i(i), dev_list);
+		} else {
+			break;
+		}
+	}
+
+	return dev_list;
+}
+
 static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 	if (argn != 2 ||
 			!lbm_is_number(args[0])) {
@@ -1038,7 +1164,16 @@ void lispif_load_vesc_extensions(void) {
 
 	lbm_add_extension("canget-current", ext_can_get_current);
 	lbm_add_extension("canget-current-dir", ext_can_get_current_dir);
+	lbm_add_extension("canget-current-in", ext_can_get_current_in);
+	lbm_add_extension("canget-duty", ext_can_get_duty);
+	lbm_add_extension("canget-rpm", ext_can_get_rpm);
+	lbm_add_extension("canget-temp-fet", ext_can_get_temp_fet);
+	lbm_add_extension("canget-temp-motor", ext_can_get_temp_motor);
+	lbm_add_extension("canget-speed", ext_can_get_speed);
+	lbm_add_extension("canget-dist", ext_can_get_dist);
 
+	lbm_add_extension("can-list-devs", ext_can_list_devs);
+	lbm_add_extension("can-scan", ext_can_scan);
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
 

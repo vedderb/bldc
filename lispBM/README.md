@@ -423,6 +423,69 @@ Get current over CAN-bus on VESC with id.
 
 Get directional current over CAN-bus on VESC with id. See (get-current-dir) for what directional means.
 
+#### canget-current-in
+```clj
+(canget-current-in id)
+```
+
+Get input current over CAN-bus on VESC with id.
+
+#### canget-duty
+```clj
+(canget-duty id)
+```
+
+Get duty cycle over CAN-bus on VESC with id.
+
+#### canget-rpm
+```clj
+(canget-rpm id)
+```
+
+Get RPM over CAN-bus on VESC with id.
+
+#### canget-temp-fet
+```clj
+(canget-temp-fet id)
+```
+
+Get MOSFET temperature over CAN-bus on VESC with id.
+
+#### canget-temp-motor
+```clj
+(canget-temp-motor id)
+```
+
+Get motor temperature over CAN-bus on VESC with id.
+
+#### canget-speed
+```clj
+(canget-speed id)
+```
+
+Get speed in meters per second over CAN-bus on VESC with id. The gearing, wheel diameter and number of motor poles from the local configuration will be used for converting the RPM to meters per second.
+
+#### canget-dist
+```clj
+(canget-dist id)
+```
+
+Get distance traveled in meters over CAN-bus on VESC with id. As with (canget-speed id), the local configuration will be used to convert the tachometer value to meters.
+
+#### can-list-devs
+```clj
+(can-list-devs)
+```
+
+List CAN-devices that have been heard on the CAN-bus since boot. This function is fast as it does not actively scan the CAN-bus, but it relies on the devices sending status message 1.
+
+#### can-scan
+```clj
+(can-scan)
+```
+
+Actively scan the CAN-bus and return a list with devices that responded. This function takes several seconds to run, but also finds devices that do not actively send messages and only respond to a ping message.
+
 #### can-send-sid
 ```clj
 (can-send-sid id data)
