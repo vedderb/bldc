@@ -598,7 +598,7 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 )))
 
 ; Spawn the event handler thread and pass the ID it returns to C
-(event-register-handler (spawn '(event-handler)))
+(event-register-handler (spawn event-handler))
 
 ; Enable the CAN event for standard ID (SID) frames
 (event-enable "event-can-sid")

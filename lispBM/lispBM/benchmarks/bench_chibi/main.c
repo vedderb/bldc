@@ -35,8 +35,12 @@
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
-
+#define GC_STACK_SIZE 256
+#define PRINT_STACK_SIZE 256
 #define HEAP_SIZE 2048
+
+uint32_t gc_stack_storage[GC_STACK_SIZE];
+uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
@@ -196,8 +200,10 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                   memory_array, LBM_MEMORY_SIZE_8K,
-                   bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K)) {
+                gc_stack_storage, GC_STACK_SIZE,
+                memory_array, LBM_MEMORY_SIZE_8K,
+                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+                print_stack_storage, PRINT_STACK_SIZE)) {
     chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
   }
@@ -306,8 +312,10 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-                  memory_array, LBM_MEMORY_SIZE_8K,
-                  bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K);
+               gc_stack_storage, GC_STACK_SIZE,
+               memory_array, LBM_MEMORY_SIZE_8K,
+               bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+               print_stack_storage, PRINT_STACK_SIZE);
 
       lbm_add_extension("print", ext_print);
 

@@ -67,9 +67,8 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 17. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
 18. (DONE) It should be possible to reset the runtime system.
 19. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
-20. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
-21. Spawn closures specifically instead of expressions in general.
-22. Implement some looping structure for speed or just ease of use.
+20. Spawn closures specifically instead of expressions in general.
+21. Implement some looping structure for speed or just ease of use.
 
 ## Vague or continuosly ongoing todos 
 1. Doxygen?
@@ -77,9 +76,8 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 3. Be much more stringent on checking of error conditions etc.
 4. More built in arithmetic.
 5. More built in comparisons.
+6. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
 
-## Very platform dependent TODOs 
-1. Save images (heap + symbol memory) to flash or sd-card.
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`

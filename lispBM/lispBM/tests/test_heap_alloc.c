@@ -5,6 +5,9 @@
 #include "heap.h"
 #include "symrepr.h"
 
+#define GC_STACK_SIZE 256
+
+uint32_t gc_stack_storage[GC_STACK_SIZE];
 
 int main(int argc, char **argv) {
 
@@ -27,7 +30,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  res = lbm_heap_init(heap_storage,heap_size);
+  res = lbm_heap_init(heap_storage,heap_size, gc_stack_storage, GC_STACK_SIZE);
   if (!res) {
     printf("Error initializing heap\n"); 
     return 0;

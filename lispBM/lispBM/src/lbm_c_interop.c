@@ -172,7 +172,33 @@ int lbm_define(char *symbol, lbm_value value) {
         return 0;
       }
     }
-    lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
+    *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
   }
   return res;
+}
+
+int lbm_create_array(lbm_value *value, char *data, lbm_type type, uint32_t num_elt) {
+
+  lbm_array_header_t *array = NULL;
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
+
+  if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL) { // Out of heap memory
+    *value = cell;
+    return 0;
+  }
+
+  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+
+  if (array == NULL) return 0;
+
+  array->data = (uint32_t*)data;
+  array->elt_type = type;
+  array->size = num_elt;
+
+  lbm_set_car(cell, (lbm_uint)array);
+  lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
+
+  cell = cell | LBM_PTR_TYPE_ARRAY;
+  *value = cell;
+  return 1;
 }

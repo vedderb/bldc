@@ -1636,6 +1636,33 @@ void mc_interface_ignore_input_both(int time_ms) {
 #endif
 }
 
+void mc_interface_release_motor_override_both(void) {
+	int motor_last = mc_interface_get_motor_thread();
+	mc_interface_select_motor_thread(1);
+	mc_interface_release_motor_override();
+	mc_interface_select_motor_thread(2);
+	mc_interface_release_motor_override();
+	mc_interface_select_motor_thread(motor_last);
+}
+
+bool mc_interface_wait_for_motor_release_both(float timeout) {
+	int motor_last = mc_interface_get_motor_thread();
+
+	mc_interface_select_motor_thread(1);
+	if (!mc_interface_wait_for_motor_release(timeout)) {
+		mc_interface_select_motor_thread(motor_last);
+		return false;
+	}
+
+	mc_interface_select_motor_thread(2);
+	if (!mc_interface_wait_for_motor_release(timeout)) {
+		mc_interface_select_motor_thread(motor_last);
+		return false;
+	}
+
+	return true;
+}
+
 void mc_interface_set_current_off_delay(float delay_sec) {
 	if (mc_interface_try_input()) {
 		return;

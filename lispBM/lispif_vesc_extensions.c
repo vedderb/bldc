@@ -560,7 +560,7 @@ static lbm_value ext_can_get_current(lbm_value *args, lbm_uint argn) {
 	if (stat0) {
 		return lbm_enc_F(stat0->current);
 	} else {
-		return lbm_enc_sym(SYM_EERROR);
+		return lbm_enc_F(0.0);
 	}
 }
 
@@ -570,7 +570,7 @@ static lbm_value ext_can_get_current_dir(lbm_value *args, lbm_uint argn) {
 	if (stat0) {
 		return lbm_enc_F(stat0->current * SIGN(stat0->duty));
 	} else {
-		return lbm_enc_sym(SYM_EERROR);
+		return lbm_enc_F(0.0);
 	}
 }
 

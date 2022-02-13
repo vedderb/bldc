@@ -137,6 +137,7 @@ LBMSRC = ../../src/compression.c \
          ../../src/symrepr.c \
          ../../src/tokpar.c \
          ../../src/lispbm.c \
+         ../../src/lbm_c_interop.c \
          ../../platform/chibios/src/platform_mutex.c
 
 CSRC = $(ALLCSRC) \

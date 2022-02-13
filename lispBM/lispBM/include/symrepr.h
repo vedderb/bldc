@@ -96,6 +96,7 @@
 #define SYM_COMMAAT        0x74
 #define SYM_TOKENIZER_DONE 0x75
 #define SYM_DOT            0x76
+#define SYM_QUOTE_IT       0x77
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
@@ -149,6 +150,15 @@
 //#define SYM_STREAM_PEEK         0x162
 //#define SYM_STREAM_DROP         0x163
 //#define SYM_STREAM_PUT          0x164
+
+#define SYM_SHL                 0x170
+#define SYM_SHR                 0x171
+#define SYM_BITWISE_AND         0x172
+#define SYM_BITWISE_OR          0x173
+#define SYM_BITWISE_XOR         0x174
+#define SYM_BITWISE_NOT         0x175
+
+
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200

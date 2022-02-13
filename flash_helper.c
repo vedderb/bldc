@@ -127,10 +127,10 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	new_app_size += flash_addr[NEW_APP_BASE];
 
-	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
 
-	if (!mc_interface_wait_for_motor_release(3.0)) {
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
 		return 100;
 	}
 
@@ -375,10 +375,10 @@ static uint16_t erase_sector(uint32_t sector) {
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
 
-	if (!mc_interface_wait_for_motor_release(3.0)) {
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
 		return 100;
 	}
 
@@ -397,7 +397,7 @@ static uint16_t erase_sector(uint32_t sector) {
 
 	FLASH_Lock();
 	timeout_configure_IWDT();
-	mc_interface_ignore_input_both(5000);
+	mc_interface_ignore_input_both(1000);
 	utils_sys_unlock_cnt();
 
 	return FLASH_COMPLETE;
@@ -408,10 +408,10 @@ static uint16_t write_data(uint32_t base, uint8_t *data, uint32_t len) {
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 
-	mc_interface_release_motor_override();
 	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
 
-	if (!mc_interface_wait_for_motor_release(3.0)) {
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
 		return 100;
 	}
 

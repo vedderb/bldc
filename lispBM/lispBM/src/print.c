@@ -26,8 +26,6 @@
 #include "symrepr.h"
 #include "stack.h"
 
-#define PRINT_STACK_SIZE 128 /* 1 KB */
-
 #define PRINT          1
 #define PRINT_SPACE    2
 #define START_LIST     3
@@ -35,14 +33,24 @@
 #define END_LIST       5
 #define PRINT_DOT      6
 
-static lbm_value stack_storage[PRINT_STACK_SIZE];
+static lbm_stack_t print_stack = { NULL, 0, 0, 0};
+static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
-int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
+int lbm_print_init(uint32_t *print_stack_storage, uint32_t print_stack_size) {
 
-  lbm_stack_t s;
-  lbm_stack_create(&s, stack_storage, PRINT_STACK_SIZE);
+  if (!print_stack_storage || print_stack_size == 0)
+    return 0;
+
+  if (lbm_stack_create(&print_stack, print_stack_storage, print_stack_size)) {
+    print_has_stack = true;
+    return 1;
+  }
+  return 0;
+}
+
+int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
   int r = 0;
   unsigned int n = 0;
@@ -50,19 +58,20 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
   const char *str_ptr;
   int res;
 
-  lbm_push_u32_2(&s, t, PRINT);
+  lbm_stack_clear(&print_stack);
+  lbm_push_u32_2(&print_stack, t, PRINT);
 
-  while (!lbm_stack_is_empty(&s) && offset <= len - 5) {
+  while (!lbm_stack_is_empty(&print_stack) && offset <= len - 5) {
 
     lbm_value curr;
     lbm_uint  instr;
-    lbm_pop_u32(&s, &instr);
+    lbm_pop_u32(&print_stack, &instr);
 
     switch(instr) {
 
     case START_LIST: {
       res = 1;
-      lbm_pop_u32(&s, &curr);
+      lbm_pop_u32(&print_stack, &curr);
 
       r = snprintf(buf + offset, len - offset, "(");
       if ( r >= 0 ) {
@@ -77,19 +86,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       lbm_value cdr_val = lbm_cdr(curr);
 
       if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
-        res &= lbm_push_u32(&s, cdr_val);
-        res &= lbm_push_u32(&s, CONTINUE_LIST);
+        res &= lbm_push_u32(&print_stack, cdr_val);
+        res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
                  lbm_dec_sym(cdr_val) == SYM_NIL) {
-        res &= lbm_push_u32(&s, END_LIST);
+        res &= lbm_push_u32(&print_stack, END_LIST);
       } else {
-        res &= lbm_push_u32(&s, END_LIST);
-        res &= lbm_push_u32(&s, cdr_val);
-        res &= lbm_push_u32(&s, PRINT);
-        res &= lbm_push_u32(&s, PRINT_DOT);
+        res &= lbm_push_u32(&print_stack, END_LIST);
+        res &= lbm_push_u32(&print_stack, cdr_val);
+        res &= lbm_push_u32(&print_stack, PRINT);
+        res &= lbm_push_u32(&print_stack, PRINT_DOT);
       }
-      res &= lbm_push_u32(&s, car_val);
-      res &= lbm_push_u32(&s, PRINT);
+      res &= lbm_push_u32(&print_stack, car_val);
+      res &= lbm_push_u32(&print_stack, PRINT);
 
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
@@ -101,7 +110,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
     case CONTINUE_LIST: {
 
       res = 1;
-      lbm_pop_u32(&s, &curr);
+      lbm_pop_u32(&print_stack, &curr);
 
       if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL &&
           lbm_dec_sym(curr) == SYM_NIL) {
@@ -121,19 +130,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       offset += n;
 
       if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
-        res &= lbm_push_u32(&s, cdr_val);
-        res &= lbm_push_u32(&s, CONTINUE_LIST);
+        res &= lbm_push_u32(&print_stack, cdr_val);
+        res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
                   lbm_dec_sym(cdr_val) == SYM_NIL) {
-        res &= lbm_push_u32(&s, END_LIST);
+        res &= lbm_push_u32(&print_stack, END_LIST);
       } else {
-        res &= lbm_push_u32(&s, END_LIST);
-        res &= lbm_push_u32(&s, cdr_val);
-        res &= lbm_push_u32(&s, PRINT);
-        res &= lbm_push_u32(&s, PRINT_DOT);
+        res &= lbm_push_u32(&print_stack, END_LIST);
+        res &= lbm_push_u32(&print_stack, cdr_val);
+        res &= lbm_push_u32(&print_stack, PRINT);
+        res &= lbm_push_u32(&print_stack, PRINT_DOT);
       }
-      res &= lbm_push_u32(&s, car_val);
-      res &= lbm_push_u32(&s, PRINT);
+      res &= lbm_push_u32(&print_stack, car_val);
+      res &= lbm_push_u32(&print_stack, PRINT);
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
         return -1;
@@ -175,14 +184,14 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
     case PRINT:
 
-      lbm_pop_u32(&s, &curr);
+      lbm_pop_u32(&print_stack, &curr);
 
       switch(lbm_type_of(curr)) {
 
       case LBM_PTR_TYPE_CONS:{
         res = 1;
-        res &= lbm_push_u32(&s, curr);
-        res &= lbm_push_u32(&s, START_LIST);
+        res &= lbm_push_u32(&print_stack, curr);
+        res &= lbm_push_u32(&print_stack, START_LIST);
         if (!res) {
           snprintf(buf, len, "Error: Out of print stack\n");
           return -1;
@@ -246,7 +255,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
         case LBM_VAL_TYPE_CHAR:
-          r = snprintf(buf + offset, len - offset, "\"%s\"", (char *)array->data);
+          r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
           if ( r > 0) {
             n = (unsigned int) r;
           } else {
@@ -255,10 +264,38 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
           }
           offset += n;
           break;
-          break;
         default:
-          snprintf(buf, len, "Error: Array type not supported\n");
-          return -1;
+          r = snprintf(buf + offset, len - offset, "{");
+          if (r == 1) {
+            offset += 1;
+          } else {
+            snprintf(buf, len, "%s", failed_str);
+            return -1;
+          }
+          for (unsigned int i = 0; i < array->size; i ++) {
+            switch(array->elt_type) {
+            case LBM_PTR_TYPE_BOXED_I:
+              r = snprintf(buf+offset, len - offset, "%lu%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              break;
+            case LBM_PTR_TYPE_BOXED_U:
+              r = snprintf(buf+offset, len - offset, "%lu%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              break;
+            case LBM_PTR_TYPE_BOXED_F:
+              r = snprintf(buf+offset, len - offset, "%f%s", (double)((float)array->data[i]), i == array->size - 1 ? "" : ", ");
+              break;
+            default:
+              break;
+            }
+            if (r > 0) {
+              offset += (unsigned int)r;
+            } else {
+              snprintf(buf, len, "%s", failed_str);
+              return -1;
+            }
+          }
+          snprintf(buf + offset, len - offset, "}");
+          offset ++;
+          break;
         }
         break;
       }
@@ -337,14 +374,11 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
     }// Switch instruction
   }//While not empty stack
 
-
-  if (!lbm_stack_is_empty(&s)) {
+  if (!lbm_stack_is_empty(&print_stack)) {
     snprintf(buf + (len - 5), 4, "...");
     buf[len-1] = 0;
     return (int)len;
   }
-
-
   return (int)n;
 }
 

@@ -25,6 +25,109 @@
 #include <stdio.h>
 #include <math.h>
 
+static lbm_uint shl(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) << lbm_dec_as_u(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) << lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) << lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) << lbm_dec_as_u(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint shr(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) >> lbm_dec_as_u(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) >> lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) >> lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) >> lbm_dec_as_u(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint bitwise_and(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) & lbm_dec_as_i(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) & lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) & lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) & lbm_dec_as_i(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint bitwise_or(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) | lbm_dec_as_i(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) | lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) | lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) | lbm_dec_as_i(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint bitwise_xor(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) ^ lbm_dec_as_i(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) ^ lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) ^ lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) ^ lbm_dec_as_i(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint bitwise_not(lbm_uint a) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(~lbm_dec_i(a)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(~lbm_dec_u(a)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(~lbm_dec_U(a)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(~lbm_dec_I(a)); break;
+  }
+  return retval;
+}
+
+
 static lbm_uint add2(lbm_uint a, lbm_uint b) {
 
   lbm_uint retval = lbm_enc_sym(SYM_TERROR);
@@ -305,11 +408,8 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     uint32_t* data = array->data;
 
-//    printf("ix: %d, ix_end: %d\n", ix, ix_end);
     for (lbm_int i = (lbm_int)ix_end; i >= (lbm_int)ix; i--) {
-//      printf("%d\n", i);
       if ((lbm_uint)i >= array->size){
-//        printf("hmm %d %d\n", i, array->size);
         *result = lbm_enc_sym(SYM_NIL);
         return;
       }
@@ -576,9 +676,8 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     if (lbm_heap_allocate_array(&v, len+1, LBM_VAL_TYPE_CHAR)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(v);
       if (!arr) return lbm_enc_sym(SYM_MERROR);
-      char *data = (char *)arr+8;
-      memset(data,0,len+1);
-      memcpy(data,sym_str,len);
+      memset(arr->data,0,len+1);
+      memcpy(arr->data,sym_str,len);
     } else {
       return lbm_enc_sym(SYM_MERROR);
     }
@@ -593,7 +692,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
     if (arr->elt_type != LBM_VAL_TYPE_CHAR)
       break;
-    char *str = (char *)arr+8;
+    char *str = (char *)arr->data;
     lbm_uint sym;
     if (lbm_get_symbol_by_name(str, &sym)) {
       result = lbm_enc_sym(sym);
@@ -843,10 +942,39 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       return lbm_enc_sym(SYM_TERROR);
     }
     break;
-  default:
-//    printf("fundamental unknown\n");
-    result = lbm_enc_sym(SYM_EERROR);
-    break;
+    case SYM_SHL:
+      if (nargs == 2) {
+        result = shl(args[0],args[1]);
+      }
+      break;
+    case SYM_SHR:
+      if (nargs == 2) {
+        result = shr(args[0],args[1]);
+      }
+      break;
+    case SYM_BITWISE_AND:
+      if (nargs == 2) {
+        result = bitwise_and(args[0], args[1]);
+      }
+      break;
+    case SYM_BITWISE_OR:
+      if (nargs == 2) {
+        result = bitwise_or(args[0], args[1]);
+      }
+      break;
+    case SYM_BITWISE_XOR:
+      if (nargs == 2) {
+        result = bitwise_xor(args[0], args[1]);
+      }
+      break;
+    case SYM_BITWISE_NOT:
+      if (nargs == 1) {
+        result = bitwise_not(args[0]);
+      }
+      break;
+    default:
+      result = lbm_enc_sym(SYM_EERROR);
+      break;
   }
 
   return result;

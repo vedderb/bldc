@@ -37,10 +37,15 @@
 #define HEAP_SIZE				1536
 #define LISP_MEM_SIZE			LBM_MEMORY_SIZE_8K
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_8K
+#define GC_STACK_SIZE			160
+#define PRINT_STACK_SIZE		128
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
 static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
+static uint32_t gc_stack_storage[GC_STACK_SIZE];
+static uint32_t print_stack_storage[PRINT_STACK_SIZE];
+
 static lbm_tokenizer_string_state_t string_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
 
@@ -180,7 +185,11 @@ static bool start_lisp(bool print) {
 
 	if (code_data != 0 && code_len > 0) {
 		if (!lisp_thd_running) {
-			lbm_init(heap, HEAP_SIZE, memory_array, LISP_MEM_SIZE, bitmap_array, LISP_MEM_BITMAP_SIZE);
+			lbm_init(heap, HEAP_SIZE,
+					gc_stack_storage, GC_STACK_SIZE,
+					memory_array, LBM_MEMORY_SIZE_8K,
+					bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+					print_stack_storage, PRINT_STACK_SIZE);
 
 			lbm_set_timestamp_us_callback(timestamp_callback);
 			lbm_set_usleep_callback(sleep_callback);
@@ -193,7 +202,11 @@ static bool start_lisp(bool print) {
 				chThdSleepMilliseconds(100);
 			}
 
-			lbm_init(heap, HEAP_SIZE, memory_array, LISP_MEM_SIZE, bitmap_array, LISP_MEM_BITMAP_SIZE);
+			lbm_init(heap, HEAP_SIZE,
+					gc_stack_storage, GC_STACK_SIZE,
+					memory_array, LBM_MEMORY_SIZE_8K,
+					bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+					print_stack_storage, PRINT_STACK_SIZE);
 
 			lbm_pause_eval();
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {

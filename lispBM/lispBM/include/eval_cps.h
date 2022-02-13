@@ -139,7 +139,6 @@ extern void lbm_kill_eval(void);
  * \return Current state of the evaluator.
  */
 extern uint32_t lbm_get_eval_state(void);
-
 /** Create a context and enqueue it as runnable.
  *
  * \param program The program to evaluate in the context.
@@ -148,8 +147,6 @@ extern uint32_t lbm_get_eval_state(void);
  * \return
  */
 extern lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size);
-
-/* statistics interface */
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
@@ -171,12 +168,6 @@ extern void lbm_blocked_iterator(ctx_fun f, void*, void*);
  * \param arg2 Same as above
  */
 extern void lbm_done_iterator(ctx_fun f, void*, void*);
-
-/*
-  Callback routines for sleeping and timestamp generation.
-  Depending on target platform these will be implemented in different ways.
-  Todo: It may become necessary to also add a mutex callback.
-*/
 /** Set a usleep callback for use by the evaluator thread.
  *
  * \param fptr Pointer to a sleep function.

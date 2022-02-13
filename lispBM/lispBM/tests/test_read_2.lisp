@@ -1,4 +1,8 @@
 
-(define prg "(define a 10) (+ a 10)")
+;; eval-program takes over the current context completely.
 
-(= (eval-program (read-program prg)) 20)
+(define prg "(define a 10) (define r (+ a 10))")
+
+(eval-program (read-program prg))
+
+(= r 20)
