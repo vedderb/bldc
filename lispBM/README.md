@@ -356,6 +356,8 @@ Get fault code.
 
 ### CAN-Commands
 
+Notice that all canget-commands rely on the status messages being active on the VESCs on the CAN-bus. That can be done from App Settings->General->Can status message mode.
+
 #### canset-current
 ```clj
 (canset-current id current)
