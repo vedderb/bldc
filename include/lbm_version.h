@@ -31,7 +31,7 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 1
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 
 

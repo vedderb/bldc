@@ -843,7 +843,7 @@ static int gc(lbm_value remember1, lbm_value remember2) {
 
 static inline void eval_symbol(eval_context_t *ctx) {
   lbm_value value;
-
+  
   if (lbm_is_special(ctx->curr_exp) ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
     // Special symbols and extension symbols evaluate to themselves
@@ -879,7 +879,7 @@ static inline void eval_define(eval_context_t *ctx) {
 
   if (lbm_type_of(key) != LBM_VAL_TYPE_SYMBOL ||
       key == NIL) {
-      error_ctx(lbm_enc_sym(SYM_EERROR));
+    error_ctx(lbm_enc_sym(SYM_EERROR));
     return;
   }
 
@@ -891,12 +891,12 @@ static inline void eval_define(eval_context_t *ctx) {
 static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
-
+  
   if (lbm_type_of(exps) == LBM_VAL_TYPE_SYMBOL && exps == NIL) {
     ctx->r = NIL;
     ctx->app_cont = true;
     return;
-  }
+  }  
 
   if (lbm_is_error(exps)) {
       error_ctx(exps);
@@ -908,7 +908,7 @@ static inline void eval_progn(eval_context_t *ctx) {
 }
 
 static inline void eval_lambda(eval_context_t *ctx) {
-
+  
   lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
 
   if (lbm_is_symbol_merror(env_cpy)) {
@@ -1116,6 +1116,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   if (lbm_type_of(lbm_cdr(rest)) == LBM_VAL_TYPE_SYMBOL &&
       lbm_cdr(rest) == NIL) {
     ctx->curr_exp = lbm_car(rest);
+    ctx->curr_env = env;
     return;
   }
   // Else create a continuation
@@ -1322,7 +1323,7 @@ static inline void cont_application(eval_context_t *ctx) {
         }
         break;
       } else {
-        // It may be an extension
+        // It may be an extension  
         extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
         if (f == NULL) {
           error_ctx(lbm_enc_sym(SYM_EERROR));
