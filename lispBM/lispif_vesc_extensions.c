@@ -656,14 +656,17 @@ static lbm_value ext_can_list_devs(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 
 	int dev_num = 0;
-	while (comm_can_get_status_msg_index(dev_num)) {
+	can_status_msg *msg = comm_can_get_status_msg_index(dev_num);
+
+	while (msg && msg->id >= 0) {
 		dev_num++;
+		msg = comm_can_get_status_msg_index(dev_num);
 	}
 
 	int devs[dev_num];
 
 	for (int i = 0;i < dev_num;i++) {
-		can_status_msg *msg = comm_can_get_status_msg_index(i);
+		msg = comm_can_get_status_msg_index(i);
 		if (msg) {
 			devs[i] = msg->id;
 		} else {
@@ -674,7 +677,7 @@ static lbm_value ext_can_list_devs(lbm_value *args, lbm_uint argn) {
 	qsort(devs, dev_num, sizeof(int), cmp_int);
 	lbm_value dev_list = lbm_enc_sym(SYM_NIL);
 
-	for (int i = (dev_num - 1); i >= 0;i++) {
+	for (int i = (dev_num - 1);i >= 0;i--) {
 		if (devs[i] >= 0) {
 			dev_list = lbm_cons(lbm_enc_i(devs[i]), dev_list);
 		} else {
@@ -689,11 +692,9 @@ static lbm_value ext_can_scan(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	lbm_value dev_list = lbm_enc_sym(SYM_NIL);
 
-	for (int i = 253; i >= 0;i++) {
+	for (int i = 253;i >= 0;i--) {
 		if (comm_can_ping(i, 0)) {
 			dev_list = lbm_cons(lbm_enc_i(i), dev_list);
-		} else {
-			break;
 		}
 	}
 
