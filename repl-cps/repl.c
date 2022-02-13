@@ -28,6 +28,11 @@
 #include "lispbm.h"
 
 #define EVAL_CPS_STACK_SIZE 256
+#define GC_STACK_SIZE 256
+#define PRINT_STACK_SIZE 256
+
+uint32_t gc_stack_storage[GC_STACK_SIZE];
+uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 static volatile bool allow_print = true;
 
@@ -137,6 +142,9 @@ void done_callback(eval_context_t *ctx) {
   //   printf("Error: done context (%d)  not in list\n", cid);
   //}
   fflush(stdout);
+
+  // remove the state associated with the context.
+  lbm_wait_ctx(cid);
 
 }
 
@@ -300,6 +308,10 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
 static uint32_t memory[LBM_MEMORY_SIZE_8K];
 static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
+char char_array[1024];
+uint32_t word_array[1024];
+
+
 int main(int argc, char **argv) {
   char str[1024];
   unsigned int len = 1024;
@@ -311,6 +323,11 @@ int main(int argc, char **argv) {
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
 
+  for (int i = 0; i < 1024; i ++) {
+    char_array[i] = (char)i;
+    word_array[i] = (uint32_t)i;
+  }
+  
   //setup_terminal();
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
@@ -319,8 +336,10 @@ int main(int argc, char **argv) {
   }
 
   lbm_init(heap_storage, heap_size,
-              memory, LBM_MEMORY_SIZE_8K,
-              bitmap, LBM_MEMORY_BITMAP_SIZE_8K);
+           gc_stack_storage, GC_STACK_SIZE,
+           memory, LBM_MEMORY_SIZE_8K,
+           bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+           print_stack_storage, PRINT_STACK_SIZE);
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
@@ -439,8 +458,10 @@ int main(int argc, char **argv) {
       }
 
       lbm_init(heap_storage, heap_size,
-                  memory, LBM_MEMORY_SIZE_8K,
-                  bitmap, LBM_MEMORY_BITMAP_SIZE_8K);
+               gc_stack_storage, GC_STACK_SIZE,
+               memory, LBM_MEMORY_SIZE_8K,
+               bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+               print_stack_storage, PRINT_STACK_SIZE);
 
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {
@@ -454,7 +475,7 @@ int main(int argc, char **argv) {
                    &string_tok);
 
 
-      lbm_load_and_define_program(&string_tok, "prelude");
+      lbm_load_and_eval_program(&string_tok);
 
       lbm_continue_eval();
       /* Something better is needed.
@@ -495,6 +516,22 @@ int main(int argc, char **argv) {
       int num = atoi(str + 5);
       
       lbm_step_n_eval((uint32_t)num);
+    } else if (strncmp(str, ":array", 6) == 0) {
+      lbm_pause_eval_with_gc(30);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      printf("Evaluator paused\n");
+
+      lbm_value arr_val;
+      lbm_create_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
+      lbm_define("c-arr", arr_val);
+
+      lbm_create_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
+      lbm_define("i-arr", arr_val);
+
+      lbm_continue_eval();
+    
     } else {
       /* Get exclusive access to the heap */
       lbm_pause_eval();

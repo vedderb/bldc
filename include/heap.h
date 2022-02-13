@@ -24,6 +24,7 @@
 #include "lbm_types.h"
 #include "symrepr.h"
 #include "streams.h"
+#include "stack.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -210,6 +211,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
 /// Character or byte.
 #define LBM_VAL_TYPE_CHAR               0x00000004u // 01  0   0
+#define LBM_VAL_TYPE_BYTE               0x00000004u
 #define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
@@ -222,23 +224,24 @@ typedef struct {
 } lbm_cons_t;
 
 /**
- *  Heap statistics struct.
+ *  Heap state
  */
 typedef struct {
   lbm_cons_t  *heap;
-  lbm_value freelist;           // list of free cons cells.
+  lbm_value freelist;              // list of free cons cells.
+  lbm_stack_t gc_stack;
 
-  unsigned int heap_size;          // In number of cells.
-  unsigned int heap_bytes;         // In bytes.
+  uint32_t heap_size;          // In number of cells.
+  uint32_t heap_bytes;         // In bytes.
 
-  unsigned int num_alloc;          // Number of cells allocated.
-  unsigned int num_alloc_arrays;   // Number of arrays allocated.
+  uint32_t num_alloc;          // Number of cells allocated.
+  uint32_t num_alloc_arrays;   // Number of arrays allocated.
 
-  unsigned int gc_num;             // Number of times gc has been performed.
-  unsigned int gc_marked;          // Number of cells marked by mark phase.
-  unsigned int gc_recovered;       // Number of cells recovered by sweep phase.
-  unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
-  unsigned int gc_least_free;      // The smallest length of the freelist.
+  uint32_t gc_num;             // Number of times gc has been performed.
+  uint32_t gc_marked;          // Number of cells marked by mark phase.
+  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
+  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
+  uint32_t gc_least_free;      // The smallest length of the freelist.
 
   uint64_t     gc_time_acc;
   uint32_t     gc_min_duration;
@@ -255,12 +258,14 @@ typedef struct {
 } lbm_array_header_t;
 
 /** Initialize heap storage.
- *
  * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
  * \param num_cells Number of lbm_cons_t elements in the array.
+ * \param gc_stack_storage uint32_t pointer to space to use as "recursion" stack for GC
+ * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells);
+extern int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
+                         uint32_t *gc_stack_storage, uint32_t gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *
@@ -428,6 +433,8 @@ extern int lbm_gc_mark_freelist(void);
  * \return 1 on success and 0 if the stack used internally is full.
  */
 extern int lbm_gc_mark_phase(lbm_value v);
+extern int lbm_gc_mark_phase2(lbm_value env);
+
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.

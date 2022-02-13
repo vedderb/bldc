@@ -498,7 +498,7 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       res = lbm_enc_sym(SYM_DONTCARE);
       break;
     case TOKQUOTE:
-      res = lbm_enc_sym(SYM_QUOTE);
+      res = lbm_enc_sym(SYM_QUOTE_IT);
       break;
     case TOKBACKQUOTE:
       res = lbm_enc_sym(SYM_BACKQUOTE);

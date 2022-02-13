@@ -24,6 +24,14 @@
 
 #include "lbm_types.h"
 
+/** Initialize the print_value subsystem.
+ *  print value depends on a stack and that stack is initialized here using a storage array provided by the user.
+ * \param print_stack_storage Array to use as storage for stack data.
+ * \param print_stack_size The number of uint32_t elements in the array.
+ * \return 1 for success and 0 for failure.
+ */
+extern int lbm_print_init(uint32_t *print_stack_storage, uint32_t print_stack_size);
+
 /** Print an lbm_value into a buffer provided by the user.
  *  If printing fails, the buffer may contain an error message.
  *

@@ -24,8 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 94
-
+#define NUM_SPECIAL_SYMBOLS 101
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -88,6 +87,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_commaat"        , SYM_COMMAAT},
   {"sym_dot"            , SYM_DOT},
   {"sym_tok_done"       , SYM_TOKENIZER_DONE},
+  {"sym_quote_it"       , SYM_QUOTE_IT},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -134,6 +134,13 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"u-to-sym"       , SYM_UINT_TO_SYMBOL},
   {"set-car"        , SYM_SET_CAR},
   {"set-cdr"        , SYM_SET_CDR},
+
+  {"shl"            , SYM_SHL},
+  {"shr"            , SYM_SHR},
+  {"bitwise-and"    , SYM_BITWISE_AND},
+  {"bitwise-or"     , SYM_BITWISE_OR},
+  {"bitwise-xor"    , SYM_BITWISE_XOR},
+  {"bitwise-not"    , SYM_BITWISE_NOT},
 
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},
