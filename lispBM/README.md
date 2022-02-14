@@ -522,19 +522,40 @@ Get the sine of angle. Unit: Radians.
 
 Get the cosine of angle. Unit: Radians.
 
+#### tan
+```clj
+(tan angle)
+```
+
+Get the tangent of angle. Unit: Radians.
+
+#### asin
+```clj
+(asin x)
+```
+
+Get the arc sine of x. Unit: Radians.
+
+#### acos
+```clj
+(acos x)
+```
+
+Get the arc cosine of x. Unit: Radians.
+
 #### atan
 ```clj
 (atan x)
 ```
 
-Get the arctangent of x. Unit: Radians.
+Get the arc tangent of x. Unit: Radians.
 
 #### atan2
 ```clj
 (atan2 y x)
 ```
 
-Get the arctangent of y / x. Unit: Radians. This is the version that uses two arguments.
+Get the arc tangent of y / x. Unit: Radians. This version uses the signs of y and x to determine the quadrant.
 
 #### pow
 ```clj
@@ -549,6 +570,20 @@ Get base raised to power.
 ```
 
 Get the square root of x.
+
+#### log
+```clj
+(log x)
+```
+
+Get the base-e logarithm of x.
+
+#### log10
+```clj
+(log10 x)
+```
+
+Get the base-10 logarithm of x.
 
 ### Bit Operations
 

@@ -756,6 +756,21 @@ static lbm_value ext_cos(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_F(cosf(lbm_dec_as_f(args[0])));
 }
 
+static lbm_value ext_tan(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(tanf(lbm_dec_as_f(args[0])));
+}
+
+static lbm_value ext_asin(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(asinf(lbm_dec_as_f(args[0])));
+}
+
+static lbm_value ext_acos(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(acosf(lbm_dec_as_f(args[0])));
+}
+
 static lbm_value ext_atan(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1)
 	return lbm_enc_F(atanf(lbm_dec_as_f(args[0])));
@@ -774,6 +789,16 @@ static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_sqrt(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1)
 	return lbm_enc_F(sqrtf(lbm_dec_as_f(args[0])));
+}
+
+static lbm_value ext_log(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(logf(lbm_dec_as_f(args[0])));
+}
+
+static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_F(log10f(lbm_dec_as_f(args[0])));
 }
 
 // Bit operations
@@ -1181,10 +1206,15 @@ void lispif_load_vesc_extensions(void) {
 	// Math
 	lbm_add_extension("sin", ext_sin);
 	lbm_add_extension("cos", ext_cos);
+	lbm_add_extension("tan", ext_tan);
+	lbm_add_extension("asin", ext_asin);
+	lbm_add_extension("acos", ext_acos);
 	lbm_add_extension("atan", ext_atan);
 	lbm_add_extension("atan2", ext_atan2);
 	lbm_add_extension("pow", ext_pow);
 	lbm_add_extension("sqrt", ext_sqrt);
+	lbm_add_extension("log", ext_log);
+	lbm_add_extension("log10", ext_log10);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
