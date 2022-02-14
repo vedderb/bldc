@@ -893,6 +893,64 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     }
     break;
   }
+  case SYM_LEQ: {
+    lbm_uint a = args[0];
+    lbm_uint b;
+    bool r = true;
+    bool ok = true;
+
+    if (!lbm_is_number(a)) {
+      result = lbm_enc_sym(SYM_TERROR);
+      break;
+    }
+    for (lbm_uint i = 1; i < nargs; i ++) {
+      b = args[i];
+      if (!lbm_is_number(b)) {
+        ok = false;
+        break;
+      }
+      r = r && (compare(a, b) <= 0);
+    }
+    if (ok) {
+      if (r) {
+        result = lbm_enc_sym(SYM_TRUE);
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    } else {
+      result = lbm_enc_sym(SYM_TERROR);
+    }
+    break;
+  }
+  case SYM_GEQ: {
+    lbm_uint a = args[0];
+    lbm_uint b;
+    bool r = true;
+    bool ok = true;
+
+    if (!lbm_is_number(a)) {
+      result = lbm_enc_sym(SYM_TERROR);
+      break;
+    }
+    for (lbm_uint i = 1; i < nargs; i ++) {
+      b = args[i];
+      if (!lbm_is_number(b)) {
+        ok = false;
+        break;
+      }
+      r = r && (compare(a, b) >= 0);
+    }
+    if (ok) {
+      if (r) {
+        result = lbm_enc_sym(SYM_TRUE);
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    } else {
+      result = lbm_enc_sym(SYM_TERROR);
+    }
+    break;
+  }
   case SYM_NOT: {
     if (nargs == 0) {
       return lbm_enc_sym(SYM_NIL);

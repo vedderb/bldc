@@ -29,13 +29,19 @@
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 1
+#define LBM_MINOR_VERSION 2
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 0
 
 
 
 /* Change log */
+
+/* Feb 14 2022: version 0.2.0
+   Added GEQ >= and LEQ <= comparisons.
+
+/* Feb 13 2022: version 0.1.1 
+   Bug fix in handling of environments in progn. */
 
 /* Feb 11 2022: First state to be given a numbered version (0.1.0)  */
 
