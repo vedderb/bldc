@@ -24,20 +24,17 @@
 
 #include "extensions.h"
 
-static int ext_offset = MAX_SPECIAL_SYMBOLS;
+static int ext_offset = EXTENSION_SYMBOLS_START;
 static int ext_max    = -1;
 static extension_fptr *extension_table = NULL;
-
-#define SYM 0
-#define FPTR 1
-#define NEXT 2
 
 uint32_t* extensions = NULL;
 
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
-  if (extension_storage == NULL) return 0;
+  if (extension_storage == NULL || extension_storage_size <= 0) return 0;
 
   extension_table = extension_storage;
+  memset(extension_table, 0, sizeof(extension_fptr) * (unsigned int)extension_storage_size);
 
   ext_max = extension_storage_size;
 

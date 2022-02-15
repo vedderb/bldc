@@ -580,7 +580,7 @@ static inline bool lbm_is_char(lbm_value x) {
 
 static inline bool lbm_is_special(lbm_value symrep) {
   return ((lbm_type_of(symrep) == LBM_VAL_TYPE_SYMBOL) &&
-          (lbm_dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
+          (lbm_dec_sym(symrep) < SPECIAL_SYMBOLS_END));
 }
 
 static inline bool lbm_is_fundamental(lbm_value symrep) {
