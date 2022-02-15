@@ -32,9 +32,12 @@
 typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 
 /** Initialize the extensions subsystem.
- * \return 1
+ *
+ * \param extension_storage Pointer to array of extension_fptr.
+ * \param extension_storage_size Size of function pointer array.
+ * \return 1 on success and 0 for failure
  */
-extern int lbm_extensions_init(void);
+extern int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size);
 /** Look up an extension associated with a key symbol.
  *
  * \param sym Symbol bound to the extension to look for.

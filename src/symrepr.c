@@ -163,13 +163,15 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 
+#define RUNTIME_SYMBOLS_START  (MAX_SPECIAL_SYMBOLS + MAX_EXTENSION_SYMBOLS)
 
 static uint32_t *symlist = NULL;
-static lbm_uint next_symbol_id = 0;
+static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
+static lbm_uint next_extension_symbol_id = MAX_SPECIAL_SYMBOLS;
 
 int lbm_symrepr_init(void) {
   symlist = NULL;
-  next_symbol_id = 0;
+  next_symbol_id = RUNTIME_SYMBOLS_START;
   return 1;
 }
 
@@ -255,7 +257,7 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
     m[NEXT] = (uint32_t) symlist;
     symlist = m;
   }
-  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++;
+  m[ID] = next_symbol_id++;
   *id = m[ID];
   return 1;
 }
@@ -278,10 +280,35 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
     m[NEXT] = (uint32_t) symlist;
     symlist = m;
   }
-  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++;
+  m[ID] = next_symbol_id++;
   *id = m[ID];
   return 1;
 }
+
+int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_extension_symbol_id >= RUNTIME_SYMBOLS_START) return 0;
+
+  uint32_t *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  m[NAME] = (uint32_t)name;
+
+  if (symlist == NULL) {
+    m[NEXT] = (uint32_t) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (uint32_t) symlist;
+    symlist = m;
+  }
+  m[ID] = next_extension_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
 
 unsigned int lbm_get_symbol_table_size(void) {
 

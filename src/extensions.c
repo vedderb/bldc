@@ -24,48 +24,50 @@
 
 #include "extensions.h"
 
+static int ext_offset = MAX_SPECIAL_SYMBOLS;
+static int ext_max    = -1;
+static extension_fptr *extension_table = NULL;
+
 #define SYM 0
 #define FPTR 1
 #define NEXT 2
 
-/* typedef struct s_extension_function{ */
-/*   VALUE sym; */
-/*   extension_fptr ext_fun; */
-/*   struct s_extension_function* next; */
-/* } extension_function_t; */
-
 uint32_t* extensions = NULL;
 
-int lbm_extensions_init(void) {
-  extensions = NULL;
+int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
+  if (extension_storage == NULL) return 0;
+
+  extension_table = extension_storage;
+
+  ext_max = extension_storage_size;
+
   return 1;
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
-  uint32_t *t = extensions;
-  while (t != NULL) {
-    if (t[SYM] == sym) {
-      return (extension_fptr)t[FPTR];
-    }
-    t = (uint32_t*)t[NEXT];
+  int ext_next = (int)sym - ext_offset;
+
+  if (ext_next < 0 || ext_next > ext_max) {
+    return NULL;
   }
-  return NULL;
+
+  return extension_table[ext_next];
 }
 
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
-  int res = lbm_add_symbol_const(sym_str, &symbol);
+  int res = lbm_add_extension_symbol_const(sym_str, &symbol);
 
   if (!res) return false;
 
-  uint32_t *m = lbm_memory_allocate(3); /* 3 words */
+  int ext_next = (int)symbol - ext_offset;
 
-  if (!m) return false;
+  if (ext_next < 0 || ext_next > ext_max) {
+    return false;
+  }
 
-  m[SYM] = symbol;
-  m[FPTR] = (uint32_t) ext;
-  m[NEXT] = (uint32_t) extensions;
-  extensions = m;
+  extension_table[ext_next] = ext;
+
   return true;
 }
 
