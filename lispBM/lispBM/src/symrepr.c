@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 103
+#define NUM_SPECIAL_SYMBOLS 104
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -144,6 +144,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
 
+  {"set-var"        , SYM_SETVAR},
+
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},
 //  {"stream-more"    , SYM_STREAM_MORE},
@@ -163,15 +165,16 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 
-#define RUNTIME_SYMBOLS_START  (MAX_SPECIAL_SYMBOLS + MAX_EXTENSION_SYMBOLS)
-
 static uint32_t *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
-static lbm_uint next_extension_symbol_id = MAX_SPECIAL_SYMBOLS;
+static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
+static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
+  next_extension_symbol_id = EXTENSION_SYMBOLS_START;
+  next_variable_symbol_id = VARIABLE_SYMBOLS_START;
   return 1;
 }
 
@@ -189,7 +192,7 @@ const char *lookup_symrepr_name_memory(lbm_uint id) {
 
 // Lookup symbol name given a symbol id
 const char *lbm_get_name_by_symbol(lbm_uint id) {
-  if (id < MAX_SPECIAL_SYMBOLS) {
+  if (id < NUM_SPECIAL_SYMBOLS) {
     for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);
@@ -262,6 +265,49 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_add_variable_symbol(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
+  size_t  n = 0;
+
+  n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  uint32_t *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  char *symbol_name_storage = NULL;;
+  if (n % 4 == 0) {
+    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+  } else {
+    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+  }
+
+  if (symbol_name_storage == NULL) {
+    lbm_memory_free(m);
+    return 0;
+  }
+
+  strcpy(symbol_name_storage, name);
+
+  m[NAME] = (uint32_t)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (uint32_t) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (uint32_t) symlist;
+    symlist = m;
+  }
+  m[ID] = next_variable_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
@@ -287,7 +333,7 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
 
 int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
-  if (next_extension_symbol_id >= RUNTIME_SYMBOLS_START) return 0;
+  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
 
   uint32_t *m = lbm_memory_allocate(3);
 
@@ -324,4 +370,9 @@ unsigned int lbm_get_symbol_table_size(void) {
     curr = (uint32_t *)curr[NEXT];
   }
   return n;
+}
+
+
+int lbm_get_num_variables(void) {
+  return (int)next_variable_symbol_id - VARIABLE_SYMBOLS_START;
 }

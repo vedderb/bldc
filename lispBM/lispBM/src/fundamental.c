@@ -22,6 +22,7 @@
 #include "heap.h"
 #include "eval_cps.h"
 #include "print.h"
+#include "lbm_variables.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -551,11 +552,18 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   int cmp_res = -1;
 
   switch (lbm_dec_sym(op)) {
+  case SYM_SETVAR:
+    if (nargs == 2 && lbm_is_symbol(args[0])) {
+      lbm_uint s = lbm_dec_sym(args[0]);
+      if (s >= VARIABLE_SYMBOLS_START &&
+          s <  VARIABLE_SYMBOLS_END) {
+        result = lbm_set_var(s, args[1]);
+      }
+    } break;
   case SYM_IX:
     if (nargs == 2 && lbm_is_number(args[0])) {
       result = index_list(args[1], lbm_dec_as_u(args[0]));
-    }
-  break;
+    } break;
   case SYM_DECODE:
     if (nargs == 1 && (lbm_is_number(args[0]) ||
                        lbm_is_char(args[0]))) {
