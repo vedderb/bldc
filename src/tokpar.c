@@ -585,7 +585,6 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       int r = 0;
       if (sym_str[0] == '#') {
         r = lbm_add_variable_symbol(sym_str, &symbol_id);
-        printf("added variable: %s as %d\n", sym_str, symbol_id - VARIABLE_SYMBOLS_START);
       } else {
         r = lbm_add_symbol(sym_str, &symbol_id);
       }

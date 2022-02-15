@@ -889,26 +889,27 @@ static inline void eval_define(eval_context_t *ctx) {
   lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
   lbm_value val_exp = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
 
-  if (lbm_type_of(key) != LBM_VAL_TYPE_SYMBOL ||
-      key == NIL) {
-    error_ctx(lbm_enc_sym(SYM_EERROR));
-    return;
-  }
+  if ((lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL) &&
+      (lbm_dec_sym(key) >= RUNTIME_SYMBOLS_START)) {
 
-  CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
-  ctx->curr_exp = val_exp;
+    CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
+    ctx->curr_exp = val_exp;
+  } else {
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+  }
+  return;
 }
 
 
 static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
-  
+
   if (lbm_type_of(exps) == LBM_VAL_TYPE_SYMBOL && exps == NIL) {
     ctx->r = NIL;
     ctx->app_cont = true;
     return;
-  }  
+  }
 
   if (lbm_is_error(exps)) {
       error_ctx(exps);
@@ -920,7 +921,7 @@ static inline void eval_progn(eval_context_t *ctx) {
 }
 
 static inline void eval_lambda(eval_context_t *ctx) {
-  
+
   lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
 
   if (lbm_is_symbol_merror(env_cpy)) {
