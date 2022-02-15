@@ -440,7 +440,7 @@ int tok_F(lbm_tokenizer_char_stream_t *str, lbm_float *res) {
     for (i = 0; i < m; i ++) {
       fbuf[i] = get(str);
     }
-    
+
     fbuf[i] = 0;
     *res = (float)strtod(fbuf, NULL);
     return (int)n;

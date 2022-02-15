@@ -30,9 +30,11 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
+#define EXTENSION_STORAGE_SIZE 256
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
+extension_fptr *extension_storage[EXTENSION_STORAGE_SIZE];
 
 /* Tokenizer state for strings */
 static lbm_tokenizer_string_state_t string_tok_state;
@@ -213,6 +215,14 @@ int main(int argc, char **argv) {
     printf("Environment initialized.\n");
   else {
     printf("Error initializing environment.\n");
+    return 0;
+  }
+
+  res = lbm_extensions_init(extension_storage, EXTENSION_STORAGE_SIZE);
+  if (res)
+    printf("Extensions initialized.\n");
+  else {
+    printf("Error initializing extensions.\n");
     return 0;
   }
 

@@ -1323,7 +1323,7 @@ static inline void cont_application(eval_context_t *ctx) {
         }
         break;
       } else {
-        // It may be an extension  
+        // It may be an extension
         extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
         if (f == NULL) {
           error_ctx(lbm_enc_sym(SYM_EERROR));
