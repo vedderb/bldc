@@ -23,7 +23,7 @@
 #include "stm32f4xx_conf.h"
 
 // Settings
-#define TIMER_HZ					1e7
+#define TIMER_HZ					1.4e7
 
 void timer_init(void) {
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);

@@ -493,6 +493,8 @@ void nrf_driver_process_packet(unsigned char *buf, unsigned char len) {
 			commands_send_packet_nrf(data, 5);
 		}
 
+		appconf.app_chuk_conf.ctrl_type = CHUK_CTRL_TYPE_CURRENT;
+
 		from_nrf = true;
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);

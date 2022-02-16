@@ -727,7 +727,7 @@ float mcpwm_get_switching_frequency_now(void) {
  */
 float mcpwm_get_rpm(void) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
-		return m_pll_speed / ((2.0 * M_PI) / 60.0);
+		return RADPS2RPM_f(m_pll_speed);
 	} else {
 		return direction ? rpm_now : -rpm_now;
 	}
@@ -746,7 +746,7 @@ mc_state mcpwm_get_state(void) {
  * The KV value.
  */
 float mcpwm_get_kv(void) {
-	return rpm_now / (GET_INPUT_VOLTAGE() * fabsf(dutycycle_now));
+	return rpm_now / (mc_interface_get_input_voltage_filtered() * fabsf(dutycycle_now));
 }
 
 /**
@@ -1204,7 +1204,7 @@ static void run_pid_control_speed(void) {
 	}
 #else
 	// Compensation for supply voltage variations
-	float scale = 1.0 / GET_INPUT_VOLTAGE();
+	float scale = 1.0 / mc_interface_get_input_voltage_filtered();
 
 	// Compute parameters
 	p_term = error * conf->s_pid_kp * scale;
@@ -2110,7 +2110,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 	if (encoder_is_configured()) {
 		float pos = encoder_read_deg();
 		run_pid_control_pos(1.0 / switching_frequency_now, pos);
-		pll_run(-pos * M_PI / 180.0, 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
+		pll_run(-DEG2RAD_f(pos), 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
 	}
 
 	last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
@@ -2164,7 +2164,7 @@ float mcpwm_get_detect_pos(void) {
 	v2 /= amp;
 
 	float ph[1];
-	ph[0] = asinf(v0) * 180.0 / M_PI;
+	ph[0] = RAD2DEG_f(asinf(v0));
 
 	float res = ph[0];
 	if (v1 < v2) {
@@ -2236,13 +2236,10 @@ void mcpwm_reset_hall_detect_table(void) {
  * @return
  * 0: OK
  * -1: Invalid hall sensor output
- * -2: WS2811 enabled
  * -3: Encoder enabled
  */
 int mcpwm_get_hall_detect_result(int8_t *table) {
-	if (WS2811_ENABLE) {
-		return -2;
-	} else if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
+	if (conf->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		return -3;
 	}
 

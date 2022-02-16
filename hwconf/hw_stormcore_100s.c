@@ -21,9 +21,14 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "utils.h"
+#include "ledpwm.h"
 #include "drv8323s.h"
 
-
+#if defined (HW_VER_IS_100S_V2)
+static THD_WORKING_AREA(switch_color_thread_wa, 128);
+static THD_FUNCTION(switch_color_thread, arg);
+static volatile float switch_bright = 1.0;
+#endif
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -39,6 +44,17 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+
+#if defined (HW_VER_IS_100S_V2)
+	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+				  PAL_MODE_OUTPUT_PUSHPULL |
+				  PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF();
+	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	chThdCreateStatic(switch_color_thread_wa, sizeof(switch_color_thread_wa), LOWPRIO, switch_color_thread, NULL);
+#endif
 
 	// LEDs
 	palSetPadMode(GPIOB, 0,
@@ -244,4 +260,108 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+#if defined (HW_VER_IS_100S_V2)
+static THD_FUNCTION(switch_color_thread, arg) {
+	(void)arg;
+	chRegSetThreadName("switch_color_thread");
+	float switch_red = 0.0;
+	float switch_green = 0.0;
+	float switch_blue = 0.0;
+
+	for(int i = 0; i < 400; i++) {
+		float angle = i*3.14/400.0;
+		float s,c;
+		utils_fast_sincos_better(angle, &s, &c);
+		switch_blue = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW1,switch_bright*switch_blue);
+		utils_fast_sincos_better(angle + 3.14/3.0, &s, &c);
+		switch_green = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW2,switch_bright*switch_green);
+		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
+		switch_red = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
+		chThdSleepMilliseconds(4);
+	}
+	float switch_red_old = switch_red_old;
+	float switch_green_old = switch_green;
+	float switch_blue_old = switch_blue;
+	float wh_left;
+	float left = mc_interface_get_battery_level(&wh_left);
+	if(left < 0.5){
+		float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_blue = intense;
+		switch_red  = 1.0-intense;
+	}else{
+		float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_green = intense;
+		switch_blue  = 1.0-intense;
+	}
+	for(int i = 0; i < 100; i++) {
+		float red_now = utils_map((float) i,0.0, 100.0, switch_red_old, switch_red);
+		float blue_now = utils_map((float) i,0.0, 100.0, switch_blue_old, switch_blue);
+		float green_now = utils_map((float) i,0.0, 100.0, switch_green_old, switch_green);
+		ledpwm_set_intensity(LED_HW1, switch_bright*blue_now);
+		ledpwm_set_intensity(LED_HW2, switch_bright*green_now);
+		ledpwm_set_intensity(LED_HW3, switch_bright*red_now);
+		chThdSleepMilliseconds(2);
+	}
+
+	for (;;) {
+		mc_fault_code fault = mc_interface_get_fault();
+		mc_interface_select_motor_thread(2);
+		mc_fault_code fault2 = mc_interface_get_fault();
+		mc_interface_select_motor_thread(1);
+		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
+			ledpwm_set_intensity(LED_HW2, 0);
+			ledpwm_set_intensity(LED_HW1, 0);
+			for (int i = 0;i < (int)fault;i++) {
+
+				ledpwm_set_intensity(LED_HW3, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_HW3, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
+			chThdSleepMilliseconds(500);
+
+			for (int i = 0;i < (int)fault2;i++) {
+				ledpwm_set_intensity(LED_HW3, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_HW3, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
+			chThdSleepMilliseconds(500);
+		} else {
+			left = mc_interface_get_battery_level(&wh_left);
+			if(HW_SAMPLE_SHUTDOWN()){
+				switch_bright = 0.5;
+			}else{
+				switch_bright = 1.0;
+			}
+
+			if(left < 0.5){
+				float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
+				utils_truncate_number(&intense,0,1);
+				switch_blue = intense;
+				switch_red  = 1.0-intense;
+				switch_green = 0;
+			}else{
+				float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
+				utils_truncate_number(&intense,0,1);
+				switch_green = intense;
+				switch_blue  = 1.0-intense;
+				switch_red = 0;
+			}
+			ledpwm_set_intensity(LED_HW1, switch_bright*switch_blue);
+			ledpwm_set_intensity(LED_HW2, switch_bright*switch_green);
+			ledpwm_set_intensity(LED_HW3, switch_bright*switch_red);
+		}
+
+		chThdSleepMilliseconds(20);
+	}
+}
+#endif
 

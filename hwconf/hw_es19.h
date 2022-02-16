@@ -27,7 +27,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-//#define HW_HAS_PHASE_FILTERS
+#define HW_HAS_PHASE_FILTERS
 #define HW_HAS_SI8900
 
 // Macros
@@ -88,17 +88,33 @@
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_EXT3			10
-#ifdef HW75_300_VEDDER_FIRST_PCB
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOS_2		8
-#define ADC_IND_TEMP_MOS_3		8
-#else
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		15
 #define ADC_IND_TEMP_MOS_3		16
-#endif
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
+
+// -------- Current sensor test
+#if 1
+
+#undef ADC_IND_CURR1
+#undef ADC_IND_CURR2
+#undef ADC_IND_CURR3
+#undef CURRENT_FILTER_ON
+#undef CURRENT_FILTER_OFF
+
+#define ADC_IND_CURR1			6
+#define ADC_IND_CURR2			7
+#define ADC_IND_CURR3			10
+
+#define CURRENT_SHUNT_RES		1
+#define CURRENT_AMP_GAIN		(2.22e-3 * (4.7 / (4.7 + 2.2)))
+
+#define APPCONF_APP_TO_USE		APP_NONE
+
+#endif
+
+// ----------------------------
 
 // ADC macros and settings
 
@@ -240,7 +256,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		400.0
+#define HW_DEAD_TIME_NSEC		1000.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
@@ -252,8 +268,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		700.0	// The maximum absolute current above which a fault is generated
@@ -269,8 +285,8 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-600.0, 600.0
-#define HW_LIM_CURRENT_IN		-600.0, 600.0
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
 #define HW_LIM_CURRENT_ABS		0.0, 480.0
 #define HW_LIM_VIN				0.0, 620.0
 #define HW_LIM_ERPM				-200e3, 200e3

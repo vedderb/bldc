@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -20,8 +20,12 @@
 #ifndef SERVO_SIMPLE_H_
 #define SERVO_SIMPLE_H_
 
+#include <stdbool.h>
+
 // Functions
 void servo_simple_init(void);
+void servo_simple_stop(void);
+bool servo_simple_is_running(void);
 void servo_simple_set_output(float out);
 
 #endif /* SERVO_SIMPLE_H_ */

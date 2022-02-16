@@ -19,6 +19,8 @@
 
 #ifdef HW_VER_IS_60D_PLUS
 #define HW_NAME                 "STORMCORE_60D+"
+#elif defined (HW_VER_IS_60D_XS)
+#define HW_NAME                 "STORMCORE_60Dxs"
 #else
 #define HW_NAME                 "STORMCORE_60D"
 #endif
@@ -30,9 +32,15 @@
 #define HW_HAS_DRV8323S // for idrive do 0x073b for reg 4 (LS) and 0x034b for reg 3 (HS)
 #define HW_HAS_3_SHUNTS
 
+#if  defined (HW_VER_IS_60D_XS)
+#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+		drv8323s_write_reg(3,0x3aa); \
+		drv8323s_write_reg(4,0x7aa);
+#else
 #define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
 		drv8323s_write_reg(3,0x3af); \
 		drv8323s_write_reg(4,0x7af);
+#endif
 
 
 
@@ -64,12 +72,16 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
-#ifdef HW_VER_IS_60D_PLUS
-// Depending on current motor selected for the thread select different phase filter
-#define PHASE_FILTER_GPIO       (mc_interface_motor_now() == 1 ? GPIOE : GPIOE)
-#define PHASE_FILTER_PIN        (mc_interface_motor_now() == 1 ? 4 : 1)
-#define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
+#define HW_HAS_PHASE_FILTERS
+#define PHASE_FILTER_GPIO               GPIOE
+#define PHASE_FILTER_PIN                4
+#define PHASE_FILTER_GPIO_M2            GPIOE
+#define PHASE_FILTER_PIN_M2             1
+#define PHASE_FILTER_ON()               palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()              palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_ON_M2()            palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#define PHASE_FILTER_OFF_M2()           palClearPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
 #endif
 
 
@@ -93,13 +105,13 @@
 #define HW_UART_P_BAUD				115200
 
 #define HW_UART_P_DEV				SD1
-#define HW_UART_P_GPIO_AF			GPIO_AF_USART1
+#define HW_UART_P_GPIO_AF			    GPIO_AF_USART1
 #define HW_UART_P_TX_PORT			GPIOA
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 //Pins for Third UART
 #define HW_UART_3_BAUD				115200
 #define HW_UART_3_DEV				SD2
@@ -116,6 +128,7 @@
 #define DRV8323S_MOSI_PIN			12
 #define DRV8323S_MISO_GPIO			GPIOC
 #define DRV8323S_MISO_PIN			11
+
 #define DRV8323S_SCK_GPIO			GPIOC
 #define DRV8323S_SCK_PIN			10
 #define DRV8323S_CS_GPIO			GPIOC
@@ -242,7 +255,7 @@
 #define VIN_R2					2200.0
 #endif
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN        20.0
 #endif
@@ -297,6 +310,7 @@
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
+#define HW_ICU_TIM_CLK_EN()		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE)
 #define HW_ICU_DEV				ICUD9
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM9
@@ -359,7 +373,7 @@
 
 // NRF SWD
 
-#ifdef HW_VER_IS_60D_PLUS
+#if defined (HW_VER_IS_60D_PLUS) || defined (HW_VER_IS_60D_XS)
 #define NRF5x_SWDIO_GPIO        GPIOD
 #define NRF5x_SWDIO_PIN         9
 #define NRF5x_SWCLK_GPIO        GPIOD

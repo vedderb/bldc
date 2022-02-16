@@ -28,12 +28,14 @@
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
 #include "utils.h"
+#include "Fusion.h"
 
 #include <math.h>
 #include <string.h>
 
 // Private variables
 static ATTITUDE_INFO m_att;
+static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
@@ -41,30 +43,22 @@ static spi_bb_state m_spi_bb;
 static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
 static imu_config m_settings;
-static float m_gyro_offset[3] = {0.0};
 static systime_t init_time;
 static bool imu_ready;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
-static void terminal_gyro_info(int argc, const char **argv);
 static void rotate(float *input, float *rotation, float *output);
-int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
 
 void imu_init(imu_config *set) {
 	m_settings = *set;
-	memset(m_gyro_offset, 0, sizeof(m_gyro_offset));
 
 	imu_stop();
-
-	imu_ready = false;
-	init_time = chVTGetSystemTimeX();
-	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
-
-	ahrs_init_attitude_info(&m_att);
+	imu_reset_orientation();
 
 	mpu9150_set_rate_hz(set->sample_rate_hz);
 	m_icm20948_state.rate_hz = set->sample_rate_hz;
@@ -115,12 +109,14 @@ void imu_init(imu_config *set) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
+}
 
-	terminal_register_command_callback(
-			"imu_gyro_info",
-			"Print gyro offsets",
-			0,
-			terminal_gyro_info);
+void imu_reset_orientation(void) {
+	imu_ready = false;
+	init_time = chVTGetSystemTimeX();
+	ahrs_init_attitude_info(&m_att);
+	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
+	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -293,9 +289,6 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	float backup_gyro_offset_x = m_settings.gyro_offsets[0];
 	float backup_gyro_offset_y = m_settings.gyro_offsets[1];
 	float backup_gyro_offset_z = m_settings.gyro_offsets[2];
-	float backup_gyro_comp_x = m_settings.gyro_offset_comp_fact[0];
-	float backup_gyro_comp_y = m_settings.gyro_offset_comp_fact[1];
-	float backup_gyro_comp_z = m_settings.gyro_offset_comp_fact[2];
 
 	// Override settings
 	m_settings.sample_rate_hz = 1000;
@@ -310,14 +303,6 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.gyro_offsets[0] = 0;
 	m_settings.gyro_offsets[1] = 0;
 	m_settings.gyro_offsets[2] = 0;
-	m_settings.gyro_offset_comp_fact[0] = 0;
-	m_settings.gyro_offset_comp_fact[1] = 0;
-	m_settings.gyro_offset_comp_fact[2] = 0;
-
-	// Clear computed offsets
-	m_gyro_offset[0] = 0;
-	m_gyro_offset[1] = 0;
-	m_gyro_offset[2] = 0;
 
 	// Sample gyro for offsets
 	float original_gyro_offsets[3] = {0, 0, 0};
@@ -349,7 +334,7 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	roll_sample = roll_sample / 250;
 
 	// Set roll rotations to level out roll axis
-	m_settings.rot_roll = -roll_sample * (180 / M_PI);
+	m_settings.rot_roll = -RAD2DEG_f(roll_sample);
 
 	// Rotate gyro offsets to match new IMU orientation
 	float rotation1[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
@@ -368,7 +353,7 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	pitch_sample = pitch_sample / 250;
 
 	// Set pitch rotation to level out pitch axis
-	m_settings.rot_pitch = pitch_sample * (180 / M_PI);
+	m_settings.rot_pitch = RAD2DEG_f(pitch_sample);
 
 	// Rotate imu offsets to match
 	float rotation2[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
@@ -414,16 +399,18 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.gyro_offsets[0] = backup_gyro_offset_x;
 	m_settings.gyro_offsets[1] = backup_gyro_offset_y;
 	m_settings.gyro_offsets[2] = backup_gyro_offset_z;
-	m_settings.gyro_offset_comp_fact[0] = backup_gyro_comp_x;
-	m_settings.gyro_offset_comp_fact[1] = backup_gyro_comp_y;
-	m_settings.gyro_offset_comp_fact[2] = backup_gyro_comp_z;
+
 	ahrs_init_attitude_info(&m_att);
+	FusionAhrsReinitialise(&m_fusionAhrs);
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
+
+	chSysLock();
 	float dt = timer_seconds_elapsed_since(last_time);
 	last_time = timer_time_now();
+	chSysUnlock();
 
 	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
 		ahrs_update_all_parameters(
@@ -431,6 +418,10 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 				m_settings.mahony_kp,
 				m_settings.mahony_ki,
 				m_settings.madgwick_beta);
+
+		FusionAhrsSetGain(&m_fusionAhrs, m_settings.madgwick_beta);
+		FusionAhrsSetAccConfDecay(&m_fusionAhrs, m_settings.accel_confidence_decay);
+
 		imu_ready = true;
 	}
 
@@ -454,12 +445,12 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 
 	// Rotate axes (ZYX)
 
-	float s1 = sinf(m_settings.rot_yaw * M_PI / 180.0);
-	float c1 = cosf(m_settings.rot_yaw * M_PI / 180.0);
-	float s2 = sinf(m_settings.rot_pitch * M_PI / 180.0);
-	float c2 = cosf(m_settings.rot_pitch * M_PI / 180.0);
-	float s3 = sinf(m_settings.rot_roll * M_PI / 180.0);
-	float c3 = cosf(m_settings.rot_roll * M_PI / 180.0);
+	float s1 = sinf(DEG2RAD_f(m_settings.rot_yaw));
+	float c1 = cosf(DEG2RAD_f(m_settings.rot_yaw));
+	float s2 = sinf(DEG2RAD_f(m_settings.rot_pitch));
+	float c2 = cosf(DEG2RAD_f(m_settings.rot_pitch));
+	float s3 = sinf(DEG2RAD_f(m_settings.rot_roll));
+	float c3 = cosf(DEG2RAD_f(m_settings.rot_roll));
 
 	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
 	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
@@ -481,50 +472,48 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	for (int i = 0; i < 3; i++) {
 		m_accel[i] -= m_settings.accel_offsets[i];
 		m_gyro[i] -= m_settings.gyro_offsets[i];
-
-		if (m_settings.gyro_offset_comp_fact[i] > 0.0) {
-			utils_step_towards(&m_gyro_offset[i], m_gyro[i], m_settings.gyro_offset_comp_fact[i] * dt);
-			utils_truncate_number_abs(&m_gyro_offset[i], m_settings.gyro_offset_comp_clamp);
-		} else {
-			m_gyro_offset[i] = 0.0;
-		}
-
-		m_gyro[i] -= m_gyro_offset[i];
 	}
 
 	float gyro_rad[3];
-	gyro_rad[0] = m_gyro[0] * M_PI / 180.0;
-	gyro_rad[1] = m_gyro[1] * M_PI / 180.0;
-	gyro_rad[2] = m_gyro[2] * M_PI / 180.0;
+	gyro_rad[0] = DEG2RAD_f(m_gyro[0]);
+	gyro_rad[1] = DEG2RAD_f(m_gyro[1]);
+	gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
 
 	switch (m_settings.mode) {
-		case (AHRS_MODE_MADGWICK):
+		case AHRS_MODE_MADGWICK:
 			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
 			break;
-		case (AHRS_MODE_MAHONY):
+		case AHRS_MODE_MAHONY:
 			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
 			break;
+		case AHRS_MODE_MADGWICK_FUSION: {
+			FusionVector3 calibratedGyroscope = {
+					.axis.x = m_gyro[0],
+					.axis.y = m_gyro[1],
+					.axis.z = m_gyro[2],
+			};
+			FusionVector3 calibratedAccelerometer = {
+					.axis.x = m_accel[0],
+					.axis.y = m_accel[1],
+					.axis.z = m_accel[2],
+			};
+			FusionAhrsUpdateWithoutMagnetometer(&m_fusionAhrs, calibratedGyroscope, calibratedAccelerometer, dt);
+			m_att.q0 = m_fusionAhrs.quaternion.element.w;
+			m_att.q1 = m_fusionAhrs.quaternion.element.x;
+			m_att.q2 = m_fusionAhrs.quaternion.element.y;
+			m_att.q3 = m_fusionAhrs.quaternion.element.z;
+		} break;
 	}
-}
-
-static void terminal_gyro_info(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	commands_printf("Gyro offsets: [%.3f %.3f %.3f]\n",
-			(double)(m_settings.gyro_offsets[0] + m_gyro_offset[0]),
-			(double)(m_settings.gyro_offsets[1] + m_gyro_offset[1]),
-			(double)(m_settings.gyro_offsets[2] + m_gyro_offset[2]));
 }
 
 void rotate(float *input, float *rotation, float *output) {
 	// Rotate imu offsets to match
-	float s1 = sinf(rotation[2] * M_PI / 180.0);
-	float c1 = cosf(rotation[2] * M_PI / 180.0);
-	float s2 = sinf(rotation[1] * M_PI / 180.0);
-	float c2 = cosf(rotation[1] * M_PI / 180.0);
-	float s3 = sinf(rotation[0] * M_PI / 180.0);
-	float c3 = cosf(rotation[0] * M_PI / 180.0);
+	float s1 = sinf(DEG2RAD_f(rotation[2]));
+	float c1 = cosf(DEG2RAD_f(rotation[2]));
+	float s2 = sinf(DEG2RAD_f(rotation[1]));
+	float c2 = cosf(DEG2RAD_f(rotation[1]));
+	float s3 = sinf(DEG2RAD_f(rotation[0]));
+	float c3 = cosf(DEG2RAD_f(rotation[0]));
 
 	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
 	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
@@ -535,7 +524,7 @@ void rotate(float *input, float *rotation, float *output) {
 	output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
 }
 
-int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	m_i2c_bb.has_error = 0;
 
 	uint8_t txbuf[1];
@@ -543,7 +532,7 @@ int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t
 	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, 1, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
 }
 
-int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	m_i2c_bb.has_error = 0;
 
 	uint8_t txbuf[len + 1];
@@ -552,14 +541,12 @@ int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_
 	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, len + 1, 0, 0) ? BMI160_OK : BMI160_E_COM_FAIL;
 }
 
-int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	(void)dev_id;
 	
 	int8_t rslt = BMI160_OK; // Return 0 for Success, non-zero for failure 
 
 	reg_addr = (reg_addr | BMI160_SPI_RD_MASK);
-
-	chThdSleepMicroseconds(200); // #FIXME Wont work without this- Why?
 
 	chMtxLock(&m_spi_bb.mutex);
 	spi_bb_begin(&m_spi_bb);
@@ -575,7 +562,7 @@ int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t l
 	return rslt;
 }
 
-int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
 	(void)dev_id;
 
 	int8_t rslt = BMI160_OK; /* Return 0 for Success, non-zero for failure */

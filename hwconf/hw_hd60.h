@@ -27,6 +27,7 @@
 // HW properties
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
+#define HW_HAS_PHASE_FILTERS
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -266,8 +267,12 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					30000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					30000.0
+#endif
+
+#ifndef MCCONF_M_DRV8301_OC_MODE
+#define MCCONF_M_DRV8301_OC_MODE		DRV8301_OC_LATCH_SHUTDOWN // DRV8301 over current protection mode
 #endif
 
 // Setting limits

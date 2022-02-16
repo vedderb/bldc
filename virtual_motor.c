@@ -63,9 +63,9 @@ typedef struct{
 }virtual_motor_t;
 
 static volatile virtual_motor_t virtual_motor;
-static volatile int m_curr0_offset_backup;
-static volatile int m_curr1_offset_backup;
-static volatile int m_curr2_offset_backup;
+static volatile float m_curr0_offset_backup;
+static volatile float m_curr1_offset_backup;
+static volatile float m_curr2_offset_backup;
 static volatile mc_configuration *m_conf;
 
 //private functions
@@ -127,12 +127,12 @@ void virtual_motor_set_configuration(volatile mc_configuration *conf){
 	virtual_motor.km = 1.5 * virtual_motor.pole_pairs;
 #ifdef HW_HAS_PHASE_SHUNTS
 	if (m_conf->foc_sample_v0_v7) {
-		virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+		virtual_motor.Ts = (1.0 / m_conf->foc_f_zv) ;
 	} else {
-		virtual_motor.Ts = (1.0 / (m_conf->foc_f_sw / 2.0));
+		virtual_motor.Ts = (1.0 / (m_conf->foc_f_zv / 2.0));
 	}
 #else
-	virtual_motor.Ts = (1.0 / m_conf->foc_f_sw) ;
+	virtual_motor.Ts = (1.0 / m_conf->foc_f_zv) ;
 #endif
 
 	if(m_conf->foc_motor_ld_lq_diff > 0.0){
@@ -159,7 +159,7 @@ bool virtual_motor_is_connected(void){
 }
 
 float virtual_motor_get_angle_deg(void){
-	return (virtual_motor.phi * 180.0 / M_PI);
+	return RAD2DEG_f(virtual_motor.phi);
 }
 
 //Private Functions
@@ -214,7 +214,7 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 																							GET_GATE_DRIVER_SUPPLY_VOLTAGE();
 		}
 #endif
-		virtual_motor.phi = mcpwm_foc_get_phase() * M_PI / 180.0;
+		virtual_motor.phi = DEG2RAD_f(mcpwm_foc_get_phase());
 		utils_fast_sincos_better(virtual_motor.phi, (float*)&virtual_motor.sin_phi,
 														(float*)&virtual_motor.cos_phi);
 

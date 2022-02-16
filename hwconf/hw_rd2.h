@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_75_300_H_
-#define HW_75_300_H_
+#ifndef HW_RD2_H_
+#define HW_RD2_H_
 
 #define HW_NAME					"RD2"
 
@@ -108,7 +108,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		hw75_300_get_temp()
+#define NTC_TEMP(adc_ind)		hw_rd2_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 
@@ -223,7 +223,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		660.0
+#define HW_DEAD_TIME_NSEC		1000.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MAX_VOLTAGE
@@ -240,7 +240,7 @@
 #endif
 
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX			300.0
+#define MCCONF_L_CURRENT_MAX			350.0
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
 #define MCCONF_L_CURRENT_MIN			-60.0
@@ -255,48 +255,57 @@
 #define MCCONF_L_MAX_ABS_CURRENT		480.0
 #endif
 #ifndef MCCONF_L_RPM_MAX
-#define MCCONF_L_RPM_MAX				32000.0
+#define MCCONF_L_RPM_MAX				30750.0
 #endif
 #ifndef MCCONF_L_RPM_MIN
-#define MCCONF_L_RPM_MIN				-32000.0
+#define MCCONF_L_RPM_MIN				-30750.0
 #endif
 #ifndef MCCONF_L_RPM_START
 #define MCCONF_L_RPM_START				0.8
 #endif
+#ifndef MCCONF_L_WATT_MAX
+#define MCCONF_L_WATT_MAX				11000.0
+#endif
+#ifndef MCCONF_L_WATT_MIN
+#define MCCONF_L_WATT_MIN				-11000.0
+#endif
 #ifndef MCCONF_FOC_CURRENT_KP
-#define MCCONF_FOC_CURRENT_KP			0.0046
+#define MCCONF_FOC_CURRENT_KP			0.01
 #endif
 #ifndef MCCONF_FOC_CURRENT_KI
-#define MCCONF_FOC_CURRENT_KI			6.6
+#define MCCONF_FOC_CURRENT_KI			6.0
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					20000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
-#define MCCONF_FOC_MOTOR_L				2.32e-6
+#define MCCONF_FOC_MOTOR_L				6.0e-6
+#endif
+#ifndef MCCONF_FOC_MOTOR_LD_LQ_DIFF
+#define MCCONF_FOC_MOTOR_LD_LQ_DIFF		2.5e-6
 #endif
 #ifndef MCCONF_FOC_MOTOR_R
-#define MCCONF_FOC_MOTOR_R				0.0033
+#define MCCONF_FOC_MOTOR_R				0.0024
 #endif
 #ifndef MCCONF_FOC_MOTOR_FLUX_LINKAGE
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00849
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE	0.00796
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN
-#define MCCONF_FOC_OBSERVER_GAIN		8.87e6
+#define MCCONF_FOC_OBSERVER_GAIN		6.0e6
 #endif
 
 // Setup Info
 #ifndef MCCONF_SI_MOTOR_POLES
-#define MCCONF_SI_MOTOR_POLES			8 // Motor pole count
+#define MCCONF_SI_MOTOR_POLES			8
 #endif
 #ifndef MCCONF_SI_BATTERY_TYPE
-#define MCCONF_SI_BATTERY_TYPE			BATTERY_TYPE_LIION_3_0__4_2 // Battery Type
+#define MCCONF_SI_BATTERY_TYPE			BATTERY_TYPE_LIION_3_0__4_2
 #endif
 #ifndef MCCONF_SI_BATTERY_CELLS
-#define MCCONF_SI_BATTERY_CELLS			14 // Battery Cells
+#define MCCONF_SI_BATTERY_CELLS			14
 #endif
 #ifndef MCCONF_SI_BATTERY_AH
-#define MCCONF_SI_BATTERY_AH			69.0 // Battery amp hours
+#define MCCONF_SI_BATTERY_AH			69.0
 #endif
 
 // Setting limits
@@ -310,6 +319,6 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-float hw75_300_get_temp(void);
+float hw_rd2_get_temp(void);
 
-#endif /* HW_75_300_H_ */
+#endif /* HW_RD2_H_ */

@@ -22,7 +22,7 @@
 
 // Default settings
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_BLDC
+#define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_PWM_MODE
 #define MCCONF_PWM_MODE					PWM_MODE_SYNCHRONOUS // Default PWM mode
@@ -72,7 +72,7 @@
 #define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
 #endif
 #ifndef MCCONF_L_SLOW_ABS_OVERCURRENT
-#define MCCONF_L_SLOW_ABS_OVERCURRENT	true	// Use the filtered (and hence slower) current for the overcurrent fault detection
+#define MCCONF_L_SLOW_ABS_OVERCURRENT	false	// Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
 #ifndef MCCONF_L_MIN_DUTY
 #define MCCONF_L_MIN_DUTY				0.005	// Minimum duty cycle
@@ -117,6 +117,11 @@
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
 #endif
 
+// Common PID-parameters
+#ifndef MCCONF_SP_PID_LOOP_RATE
+#define MCCONF_SP_PID_LOOP_RATE			PID_RATE_1000_HZ // PID loop rate
+#endif
+
 // Speed PID parameters
 #ifndef MCCONF_S_PID_KP
 #define MCCONF_S_PID_KP					0.004	// Proportional gain
@@ -137,24 +142,33 @@
 #define MCCONF_S_PID_ALLOW_BRAKING		true	// Allow braking in speed control mode
 #endif
 #ifndef MCCONF_S_PID_RAMP_ERPMS_S
-#define MCCONF_S_PID_RAMP_ERPMS_S		-1.0	// Default Speed Input Ramp
+#define MCCONF_S_PID_RAMP_ERPMS_S		25000.0	// Speed input ramping, in ERPM/s
 #endif
 
 // Position PID parameters
 #ifndef MCCONF_P_PID_KP
-#define MCCONF_P_PID_KP					0.03	// Proportional gain
+#define MCCONF_P_PID_KP					0.025	// Proportional gain
 #endif
 #ifndef MCCONF_P_PID_KI
 #define MCCONF_P_PID_KI					0.0		// Integral gain
 #endif
 #ifndef MCCONF_P_PID_KD
-#define MCCONF_P_PID_KD					0.0004	// Derivative gain
+#define MCCONF_P_PID_KD					0.00000	// Derivative gain
+#endif
+#ifndef MCCONF_P_PID_KD_PROC
+#define MCCONF_P_PID_KD_PROC			0.00035	// Derivative gain process
 #endif
 #ifndef MCCONF_P_PID_KD_FILTER
 #define MCCONF_P_PID_KD_FILTER			0.2		// Derivative filter
 #endif
 #ifndef MCCONF_P_PID_ANG_DIV
 #define MCCONF_P_PID_ANG_DIV			1.0		// Divide angle by this value
+#endif
+#ifndef MCCONF_P_PID_GAIN_DEC_ANGLE
+#define MCCONF_P_PID_GAIN_DEC_ANGLE		0.0		// Decrease PID-gains when the error is below this value
+#endif
+#ifndef MCCONF_P_PID_OFFSET
+#define MCCONF_P_PID_OFFSET				0.0		// Angle offset
 #endif
 
 // Current control parameters
@@ -230,8 +244,8 @@
 #ifndef MCCONF_FOC_CURRENT_KI
 #define MCCONF_FOC_CURRENT_KI			50.0
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW					25000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV					25000.0
 #endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation
@@ -271,6 +285,9 @@
 #endif
 #ifndef MCCONF_FOC_OBSERVER_GAIN_SLOW
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW	0.05	// Observer gain scale at minimum duty cycle
+#endif
+#ifndef MCCONF_FOC_OBSERVER_OFFSET
+#define MCCONF_FOC_OBSERVER_OFFSET		-1.0	// Observer offset in timer update cycles
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
 #define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty
@@ -351,7 +368,7 @@
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.1		// Filter constant for the filtered currents
 #endif
 #ifndef MCCONF_FOC_CC_DECOUPLING
-#define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_BEMF // Current controller decoupling
+#define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_DISABLED // Current controller decoupling
 #endif
 #ifndef MCCONF_FOC_OBSERVER_TYPE
 #define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
@@ -369,13 +386,64 @@
 #define MCCONF_FOC_SL_ERPM_HFI			2000.0	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_HFI_START_SAMPLES
-#define MCCONF_FOC_HFI_START_SAMPLES	65 // Sample this often at start to resolve ambiguity
+#define MCCONF_FOC_HFI_START_SAMPLES	15 // Sample this often at start to resolve ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
 #define MCCONF_FOC_HFI_OBS_OVR_SEC		0.001 // Continue using observer for this long when entering HFI speed
 #endif
 #ifndef MCCONF_FOC_HFI_SAMPLES
 #define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
+#endif
+#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
+#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	true // Measure offsets every boot
+#endif
+#ifndef MCCONF_FOC_OFFSETS_CURRENT_0
+#define MCCONF_FOC_OFFSETS_CURRENT_0	2048.0 // Current 0 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_CURRENT_1
+#define MCCONF_FOC_OFFSETS_CURRENT_1	2048.0 // Current 1 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_CURRENT_2
+#define MCCONF_FOC_OFFSETS_CURRENT_2	2048.0 // Current 2 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_0
+#define MCCONF_FOC_OFFSETS_VOLTAGE_0	0.0 // Voltage 0 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_1
+#define MCCONF_FOC_OFFSETS_VOLTAGE_1	0.0 // Voltage 1 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_2
+#define MCCONF_FOC_OFFSETS_VOLTAGE_2	0.0 // Voltage 2 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_0
+#define MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_0	0.0 // Voltage undriven 0 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1
+#define MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1	0.0 // Voltage undriven 1 offset
+#endif
+#ifndef MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2
+#define MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2	0.0 // Voltage undriven 2 offset
+#endif
+#ifndef MCCONF_FOC_PHASE_FILTER_ENABLE
+#define MCCONF_FOC_PHASE_FILTER_ENABLE	true // Use phase voltage filters when available
+#endif
+#ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
+#define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	4000.0 // Use phase filter up to this ERPM
+#endif
+#ifndef MCCONF_FOC_MTPA_MODE
+#define MCCONF_FOC_MTPA_MODE				MTPA_MODE_OFF // Maximum torque per amp (MTPA) algorithm mode
+#endif
+#ifndef MCCONF_FOC_FW_CURRENT_MAX
+#define MCCONF_FOC_FW_CURRENT_MAX		0.0 // Maximum field weakening current
+#endif
+#ifndef MCCONF_FOC_FW_DUTY_START
+#define MCCONF_FOC_FW_DUTY_START		0.9 // Start field weakening at this fraction of max duty cycle
+#endif
+#ifndef MCCONF_FOC_FW_RAMP_TIME
+#define MCCONF_FOC_FW_RAMP_TIME			0.2 // Ramp time for field weakening current
+#endif
+#ifndef MCCONF_FOC_FW_Q_CURRENT_FACTOR
+#define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.02 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
 #endif
 
 // GPD
@@ -479,6 +547,9 @@
 #ifndef MCCONF_SI_BATTERY_AH
 #define MCCONF_SI_BATTERY_AH			6.0 // Battery amp hours
 #endif
+#ifndef MCCONF_SI_MOTOR_NL_CURRENT
+#define MCCONF_SI_MOTOR_NL_CURRENT		1.0 // Motor no load current
+#endif
 
 // BMS
 #ifndef MCCONF_BMS_TYPE
@@ -495,6 +566,9 @@
 #endif
 #ifndef MCCONF_BMS_SOC_LIMIT_END
 #define MCCONF_BMS_SOC_LIMIT_END		0
+#endif
+#ifndef MCCONF_BMS_FWD_CAN_MODE
+#define MCCONF_BMS_FWD_CAN_MODE			BMS_FWD_CAN_MODE_DISABLED
 #endif
 
 #endif /* MCCONF_DEFAULT_H_ */

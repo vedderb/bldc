@@ -37,10 +37,12 @@ void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uin
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
 void comm_can_set_duty(uint8_t controller_id, float duty);
 void comm_can_set_current(uint8_t controller_id, float current);
+void comm_can_set_current_off_delay(uint8_t controller_id, float current, float off_delay);
 void comm_can_set_current_brake(uint8_t controller_id, float current);
 void comm_can_set_rpm(uint8_t controller_id, float rpm);
 void comm_can_set_pos(uint8_t controller_id, float pos);
 void comm_can_set_current_rel(uint8_t controller_id, float current_rel);
+void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay);
 void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel);
 bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type);
 void comm_can_detect_apply_all_foc(uint8_t controller_id, bool activate_status_msgs, float max_power_loss);
@@ -76,6 +78,17 @@ io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id);
 void comm_can_io_board_set_output_digital(int id, int channel, bool on);
 void comm_can_io_board_set_output_pwm(int id, int channel, float duty);
 
+psw_status *comm_can_get_psw_status_index(int index);
+psw_status *comm_can_get_psw_status_id(int id);
+void comm_can_psw_switch(int id, bool is_on, bool plot);
+void comm_can_update_pid_pos_offset(int id, float angle_now, bool store);
+
 CANRxFrame *comm_can_get_rx_frame(void);
+
+void comm_can_send_status1(uint8_t id, bool replace);
+void comm_can_send_status2(uint8_t id, bool replace);
+void comm_can_send_status3(uint8_t id, bool replace);
+void comm_can_send_status4(uint8_t id, bool replace);
+void comm_can_send_status5(uint8_t id, bool replace);
 
 #endif /* COMM_CAN_H_ */

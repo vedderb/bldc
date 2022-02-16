@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -21,135 +21,93 @@
 #include "packet.h"
 #include "crc.h"
 
-/**
- * The latest update aims at achieving optimal re-synchronization in the
- * case if lost data, at the cost of some performance.
- */
-
-// Defines
-#define BUFFER_LEN				(PACKET_MAX_PL_LEN + 8)
-
-// Private types
-typedef struct {
-	volatile unsigned short rx_timeout;
-	void(*send_func)(unsigned char *data, unsigned int len);
-	void(*process_func)(unsigned char *data, unsigned int len);
-	unsigned int rx_read_ptr;
-	unsigned int rx_write_ptr;
-	int bytes_left;
-	unsigned char rx_buffer[BUFFER_LEN];
-	unsigned char tx_buffer[BUFFER_LEN];
-} PACKET_STATE_t;
-
-// Private variables
-static PACKET_STATE_t m_handler_states[PACKET_HANDLERS];
-
 // Private functions
 static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 		void(*process_func)(unsigned char *data, unsigned int len), int *bytes_left);
 
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
-		void (*p_func)(unsigned char *data, unsigned int len), int handler_num) {
-	memset(&m_handler_states[handler_num], 0, sizeof(PACKET_STATE_t));
-	m_handler_states[handler_num].send_func = s_func;
-	m_handler_states[handler_num].process_func = p_func;
+		void (*p_func)(unsigned char *data, unsigned int len), PACKET_STATE_t *state) {
+	memset(state, 0, sizeof(PACKET_STATE_t));
+	state->send_func = s_func;
+	state->process_func = p_func;
 }
 
-void packet_reset(int handler_num) {
-	m_handler_states[handler_num].rx_read_ptr = 0;
-	m_handler_states[handler_num].rx_write_ptr = 0;
-	m_handler_states[handler_num].bytes_left = 0;
+void packet_reset(PACKET_STATE_t *state) {
+	state->rx_read_ptr = 0;
+	state->rx_write_ptr = 0;
+	state->bytes_left = 0;
 }
 
-void packet_send_packet(unsigned char *data, unsigned int len, int handler_num) {
+void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state) {
 	if (len == 0 || len > PACKET_MAX_PL_LEN) {
 		return;
 	}
 
 	int b_ind = 0;
-	PACKET_STATE_t *handler = &m_handler_states[handler_num];
 
 	if (len <= 255) {
-		handler->tx_buffer[b_ind++] = 2;
-		handler->tx_buffer[b_ind++] = len;
+		state->tx_buffer[b_ind++] = 2;
+		state->tx_buffer[b_ind++] = len;
 	} else if (len <= 65535) {
-		handler->tx_buffer[b_ind++] = 3;
-		handler->tx_buffer[b_ind++] = len >> 8;
-		handler->tx_buffer[b_ind++] = len & 0xFF;
+		state->tx_buffer[b_ind++] = 3;
+		state->tx_buffer[b_ind++] = len >> 8;
+		state->tx_buffer[b_ind++] = len & 0xFF;
 	} else {
-		handler->tx_buffer[b_ind++] = 4;
-		handler->tx_buffer[b_ind++] = len >> 16;
-		handler->tx_buffer[b_ind++] = (len >> 8) & 0x0F;
-		handler->tx_buffer[b_ind++] = len & 0xFF;
+		state->tx_buffer[b_ind++] = 4;
+		state->tx_buffer[b_ind++] = len >> 16;
+		state->tx_buffer[b_ind++] = (len >> 8) & 0xFF;
+		state->tx_buffer[b_ind++] = len & 0xFF;
 	}
 
-	memcpy(handler->tx_buffer + b_ind, data, len);
+	memcpy(state->tx_buffer + b_ind, data, len);
 	b_ind += len;
 
 	unsigned short crc = crc16(data, len);
-	handler->tx_buffer[b_ind++] = (uint8_t)(crc >> 8);
-	handler->tx_buffer[b_ind++] = (uint8_t)(crc & 0xFF);
-	handler->tx_buffer[b_ind++] = 3;
+	state->tx_buffer[b_ind++] = (uint8_t)(crc >> 8);
+	state->tx_buffer[b_ind++] = (uint8_t)(crc & 0xFF);
+	state->tx_buffer[b_ind++] = 3;
 
-	if (handler->send_func) {
-		handler->send_func(handler->tx_buffer, b_ind);
+	if (state->send_func) {
+		state->send_func(state->tx_buffer, b_ind);
 	}
 }
 
-/**
- * Call this function every millisecond. This is not strictly necessary
- * if the timeout is unimportant.
- */
-void packet_timerfunc(void) {
-	for (int i = 0;i < PACKET_HANDLERS;i++) {
-		if (m_handler_states[i].rx_timeout) {
-			m_handler_states[i].rx_timeout--;
-		} else {
-			packet_reset(i);
-		}
-	}
-}
-
-void packet_process_byte(uint8_t rx_data, int handler_num) {
-	PACKET_STATE_t *handler = &m_handler_states[handler_num];
-
-	handler->rx_timeout = PACKET_RX_TIMEOUT;
-
-	unsigned int data_len = handler->rx_write_ptr - handler->rx_read_ptr;
+void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state) {
+	unsigned int data_len = state->rx_write_ptr - state->rx_read_ptr;
 
 	// Out of space (should not happen)
-	if (data_len >= BUFFER_LEN) {
-		handler->rx_write_ptr = 0;
-		handler->rx_read_ptr = 0;
-		handler->bytes_left = 0;
-		handler->rx_buffer[handler->rx_write_ptr++] = rx_data;
+	if (data_len >= PACKET_BUFFER_LEN) {
+		state->rx_write_ptr = 0;
+		state->rx_read_ptr = 0;
+		state->bytes_left = 0;
+		state->rx_buffer[state->rx_write_ptr++] = rx_data;
 		return;
 	}
 
 	// Everything has to be aligned, so shift buffer if we are out of space.
 	// (as opposed to using a circular buffer)
-	if (handler->rx_write_ptr >= BUFFER_LEN) {
-		memmove(handler->rx_buffer,
-				handler->rx_buffer + handler->rx_read_ptr,
+	if (state->rx_write_ptr >= PACKET_BUFFER_LEN) {
+		memmove(state->rx_buffer,
+				state->rx_buffer + state->rx_read_ptr,
 				data_len);
 
-		handler->rx_read_ptr = 0;
-		handler->rx_write_ptr = data_len;
+		state->rx_read_ptr = 0;
+		state->rx_write_ptr = data_len;
 	}
 
-	handler->rx_buffer[handler->rx_write_ptr++] = rx_data;
+	state->rx_buffer[state->rx_write_ptr++] = rx_data;
 	data_len++;
 
-	if (handler->bytes_left > 1) {
-		handler->bytes_left--;
+	if (state->bytes_left > 1) {
+		state->bytes_left--;
 		return;
 	}
 
 	// Try decoding the packet at various offsets until it succeeds, or
 	// until we run out of data.
 	for (;;) {
-		int res = try_decode_packet(handler->rx_buffer + handler->rx_read_ptr,
-				data_len, handler->process_func, &handler->bytes_left);
+		int res = try_decode_packet(state->rx_buffer + state->rx_read_ptr,
+				data_len, state->process_func, &state->bytes_left);
 
 		// More data is needed
 		if (res == -2) {
@@ -158,18 +116,18 @@ void packet_process_byte(uint8_t rx_data, int handler_num) {
 
 		if (res > 0) {
 			data_len -= res;
-			handler->rx_read_ptr += res;
+			state->rx_read_ptr += res;
 		} else if (res == -1) {
 			// Something went wrong. Move pointer forward and try again.
-			handler->rx_read_ptr++;
+			state->rx_read_ptr++;
 			data_len--;
 		}
 	}
 
 	// Nothing left, move pointers to avoid memmove
 	if (data_len == 0) {
-		handler->rx_read_ptr = 0;
-		handler->rx_write_ptr = 0;
+		state->rx_read_ptr = 0;
+		state->rx_write_ptr = 0;
 	}
 }
 

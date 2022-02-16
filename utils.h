@@ -67,8 +67,8 @@ uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
 const char* utils_hw_type_to_string(HW_TYPE hw);
 
-// Return the sign of the argument. -1 if negative, 1 if zero or positive.
-#define SIGN(x)				((x < 0) ? -1 : 1)
+// Return the sign of the argument. -1.0 if negative, 1.0 if zero or positive.
+#define SIGN(x)				(((x) < 0.0) ? -1.0 : 1.0)
 
 // Squared
 #define SQ(x)				((x) * (x))
@@ -80,6 +80,15 @@ const char* utils_hw_type_to_string(HW_TYPE hw);
 #define UTILS_IS_INF(x)		((x) == (1.0 / 0.0) || (x) == (-1.0 / 0.0))
 #define UTILS_IS_NAN(x)		((x) != (x))
 #define UTILS_NAN_ZERO(x)	(x = UTILS_IS_NAN(x) ? 0.0 : x)
+
+// Handy conversions for radians/degrees and RPM/radians-per-second
+#define DEG2RAD_f(deg) ((deg) * (float)(M_PI / 180.0))
+#define RAD2DEG_f(rad) ((rad) * (float)(180.0 / M_PI))
+#define RPM2RADPS_f(rpm) ((rpm) * (float)((2.0 * M_PI) / 60.0))
+#define RADPS2RPM_f(rad_per_sec) ((rad_per_sec) * (float)(60.0 / (2.0 * M_PI)))
+
+
+
 
 /**
  * A simple low pass filter.
@@ -94,6 +103,16 @@ const char* utils_hw_type_to_string(HW_TYPE hw);
  * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
  */
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
+
+/**
+ * A fast approximation of a moving average filter with N samples. See
+ * https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
+ * https://en.wikipedia.org/wiki/Exponential_smoothing
+ *
+ * It is not entirely the same as it behaves like an IIR filter rather than a FIR filter, but takes
+ * much less memory and is much faster to run.
+ */
+#define UTILS_LP_MOVING_AVG_APPROX(value, sample, N)	UTILS_LP_FAST(value, sample, 2.0 / ((N) + 1.0))
 
 // Constants
 #define ONE_BY_SQRT3			(0.57735026919)
