@@ -23,6 +23,12 @@
 
 extern int lbm_variables_init(lbm_value *variable_storage, int variable_storage_size);
 extern lbm_value *lbm_get_variable_table(void);
+extern lbm_value lbm_get_variable_by_index(int i);
+extern const char *lbm_get_variable_name_by_index(int index);
+
+
+/* internal use  by evaluator (mostly)*/
 extern lbm_value lbm_get_var(lbm_uint index);
 extern lbm_value lbm_set_var(lbm_uint index, lbm_value value);
+
 #endif 

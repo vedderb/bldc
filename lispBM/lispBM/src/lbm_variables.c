@@ -40,10 +40,13 @@ lbm_value *lbm_get_variable_table(void) {
   return variable_table;
 }
 
-lbm_value lbm_get_var(lbm_uint index) {
+lbm_value lbm_get_var(lbm_uint sym_val) {
 
-  int i = (int)index - VARIABLE_SYMBOLS_START;
-  
+  int i = (int)sym_val - VARIABLE_SYMBOLS_START;
+  return lbm_get_variable_by_index(i);
+}
+
+lbm_value lbm_get_variable_by_index(int i) {
   if (variable_table &&
       i >= 0 &&
       i < variable_table_size) {
@@ -53,10 +56,18 @@ lbm_value lbm_get_var(lbm_uint index) {
   }
 }
 
+const char *lbm_get_variable_name_by_index(int index) {
+  if (index < 0 ||
+      index >= lbm_get_num_variables()) return NULL;
+
+  lbm_uint sym_id = (lbm_uint)index + VARIABLE_SYMBOLS_START;
+  return lbm_get_name_by_symbol(sym_id);
+}
+
 lbm_value lbm_set_var(lbm_uint index, lbm_value value) {
 
   int i = (int)index - VARIABLE_SYMBOLS_START;
- 
+
   if (variable_table &&
       i >= 0 &&
       i < variable_table_size) {
