@@ -31,6 +31,8 @@ static bool encoder_is_incremental_defined(void);
 #define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
 #define SPI_DATASIZE_16BIT				SPI_CR1_DFF
 
+#define CH_MUTEX_INIT_ZERO {{NULL, NULL}, NULL, NULL}
+
 ENCSPI_config_t encoder_conf_ENCSPI =
 {
   ENCODER_VAR_UNINITIALIZED,
@@ -42,15 +44,13 @@ ENCSPI_config_t encoder_conf_ENCSPI =
 	/*MISO*/HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2 ,
 	ENCODER_VAR_UNINITIALIZED,
 	ENCODER_VAR_UNINITIALIZED,
-	NULL
+	CH_MUTEX_INIT_ZERO
   },
 #ifdef HW_SPI_DEV
   {//HARDWARE SPI CONFIG
     NULL, HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, SPI_BaudRatePrescaler_4 | SPI_CR1_CPOL | SPI_CR1_CPHA
 					| SPI_DATASIZE_16BIT
   }
-#else
-	ENCODER_CONFIG_UNUSED
 #endif
 };
 
