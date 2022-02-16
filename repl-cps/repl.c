@@ -416,6 +416,14 @@ int main(int argc, char **argv) {
         curr = lbm_cdr(curr);
         printf("  %s\r\n",output);
       }
+      printf("Variables:\r\n");
+      for (int i = 0; i < lbm_get_num_variables(); i ++) {
+
+        const char *name = lbm_get_variable_name_by_index(i);
+        lbm_print_value(output,1024, lbm_get_variable_by_index(i));
+        printf("  %s = %s\r\n", name ? name : "error", output);
+      }
+
     }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
@@ -524,7 +532,7 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":step", 5) == 0) {
 
       int num = atoi(str + 5);
-      
+
       lbm_step_n_eval((uint32_t)num);
     } else if (strncmp(str, ":array", 6) == 0) {
       lbm_pause_eval_with_gc(30);
@@ -541,7 +549,7 @@ int main(int argc, char **argv) {
       lbm_define("i-arr", arr_val);
 
       lbm_continue_eval();
-    
+
     } else {
       /* Get exclusive access to the heap */
       lbm_pause_eval();
