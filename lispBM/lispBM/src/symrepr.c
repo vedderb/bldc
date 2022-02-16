@@ -130,12 +130,12 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"array-write"    , SYM_ARRAY_WRITE},
 //  {"array-create"   , SYM_ARRAY_CREATE},
   {"type-of"        , SYM_TYPE_OF},
-  {"sym-to-str"     , SYM_SYMBOL_TO_STRING},
-  {"str-to-sym"     , SYM_STRING_TO_SYMBOL},
-  {"sym-to-u"       , SYM_SYMBOL_TO_UINT},
-  {"u-to-sym"       , SYM_UINT_TO_SYMBOL},
-  {"set-car"        , SYM_SET_CAR},
-  {"set-cdr"        , SYM_SET_CDR},
+  {"sym2str"        , SYM_SYMBOL_TO_STRING},
+  {"str2sym"        , SYM_STRING_TO_SYMBOL},
+  {"sym2u"          , SYM_SYMBOL_TO_UINT},
+  {"u2sym"          , SYM_UINT_TO_SYMBOL},
+  {"setcar"         , SYM_SET_CAR},
+  {"setcdr"         , SYM_SET_CDR},
 
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},
@@ -144,7 +144,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
 
-  {"set-var"        , SYM_SETVAR},
+  {"setvar"         , SYM_SETVAR},
 
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},
