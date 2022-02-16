@@ -13,8 +13,9 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/lispbm.c \
             $(LISPBM)/src/eval_cps.c \
             $(LISPBM)/platform/chibios/src/platform_mutex.c \
-            $(LISPBM)/streams.c \
-            $(LISPBM)/lbm_c_interop.c \
+            $(LISPBM)/src/streams.c \
+            $(LISPBM)/src/lbm_c_interop.c \
+            $(LISPBM)/src/lbm_variables.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c
 

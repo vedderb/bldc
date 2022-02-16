@@ -1044,89 +1044,6 @@ static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
 	return hall_list;
 }
 
-void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
-	if (!event_handler_registered) {
-		return;
-	}
-
-	if (!event_can_sid_en && !is_ext) {
-		return;
-	}
-
-	if (!event_can_eid_en && is_ext) {
-		return;
-	}
-
-	bool ok = true;
-
-	int timeout_cnt = 1000;
-	lbm_pause_eval_with_gc(100);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	ok = timeout_cnt > 0;
-
-	if (ok) {
-		lbm_value data = lbm_enc_sym(SYM_NIL);
-		for (int i = len - 1;i >= 0;i--) {
-			data = lbm_cons(lbm_enc_i(data8[i]), data);
-		}
-
-		lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
-		lbm_value msg;
-
-		if (is_ext) {
-			msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
-		} else {
-			msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
-		}
-
-		lbm_send_message(event_handler_pid, msg);
-	}
-
-	lbm_continue_eval();
-}
-
-void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
-	if (!event_handler_registered) {
-		return;
-	}
-
-	if (!event_data_rx_en) {
-		return;
-	}
-
-	bool ok = true;
-
-	int timeout_cnt = 1000;
-	lbm_pause_eval_with_gc(100);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	ok = timeout_cnt > 0;
-
-	if (ok) {
-		lbm_value bytes = lbm_enc_sym(SYM_NIL);
-		for (int i = len - 1;i >= 0;i--) {
-			bytes = lbm_cons(lbm_enc_i(data[i]), bytes);
-		}
-
-		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
-
-		lbm_send_message(event_handler_pid, msg);
-	}
-
-	lbm_continue_eval();
-}
-
-void lispif_disable_all_events(void) {
-	event_handler_registered = false;
-	event_can_sid_en = false;
-	event_can_eid_en = false;
-}
-
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
 	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
@@ -1228,4 +1145,87 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("raw-mod-alpha-measured", ext_raw_mod_alpha_measured);
 	lbm_add_extension("raw-mod-beta-measured", ext_raw_mod_beta_measured);
 	lbm_add_extension("raw-hall", ext_raw_hall);
+}
+
+void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!event_can_sid_en && !is_ext) {
+		return;
+	}
+
+	if (!event_can_eid_en && is_ext) {
+		return;
+	}
+
+	bool ok = true;
+
+	int timeout_cnt = 1000;
+	lbm_pause_eval_with_gc(100);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	ok = timeout_cnt > 0;
+
+	if (ok) {
+		lbm_value data = lbm_enc_sym(SYM_NIL);
+		for (int i = len - 1;i >= 0;i--) {
+			data = lbm_cons(lbm_enc_i(data8[i]), data);
+		}
+
+		lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
+		lbm_value msg;
+
+		if (is_ext) {
+			msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
+		} else {
+			msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
+		}
+
+		lbm_send_message(event_handler_pid, msg);
+	}
+
+	lbm_continue_eval();
+}
+
+void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!event_data_rx_en) {
+		return;
+	}
+
+	bool ok = true;
+
+	int timeout_cnt = 1000;
+	lbm_pause_eval_with_gc(100);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	ok = timeout_cnt > 0;
+
+	if (ok) {
+		lbm_value bytes = lbm_enc_sym(SYM_NIL);
+		for (int i = len - 1;i >= 0;i--) {
+			bytes = lbm_cons(lbm_enc_i(data[i]), bytes);
+		}
+
+		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
+
+		lbm_send_message(event_handler_pid, msg);
+	}
+
+	lbm_continue_eval();
+}
+
+void lispif_disable_all_events(void) {
+	event_handler_registered = false;
+	event_can_sid_en = false;
+	event_can_eid_en = false;
 }
