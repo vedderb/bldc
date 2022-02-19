@@ -29,7 +29,6 @@
 #include <math.h>
 #include "hw.h"
 
-//TODO move defines to encoder_hwconf.h
 #define SINCOS_SAMPLE_RATE_HZ       20000
 #define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
@@ -45,10 +44,8 @@ static float last_enc_angle = 0.0;
 
 void enc_sincos_deinit(void) {
 	last_enc_angle = 0.0;
-
 	sincos_signal_low_error_rate = 0.0;
 	sincos_signal_above_max_error_rate = 0.0;
-	enc_sincos_config_now.is_init = 0;
 }
 
 encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *enc_sincos_config) {
@@ -59,8 +56,6 @@ encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *enc_sincos_config) {
 	sincos_signal_low_error_rate = 0.0;
 	sincos_signal_above_max_error_rate = 0.0;
 	last_enc_angle = 0.0;
-
-	enc_sincos_config->is_init = 1;
 	enc_sincos_config_now = *enc_sincos_config;
 	return ENCODER_OK;
 }

@@ -21,18 +21,11 @@
 #ifndef ENC_AS504X_H_
 #define ENC_AS504X_H_
 
-#include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void enc_as504x_deinit(void);
+// Functions
 encoder_ret_t enc_as504x_init(AS504x_config_t *AS504x_config);
-
-float enc_as504x_read_deg(void);
-void enc_as504x_routine(float rate);
-
-AS504x_diag enc_as504x_get_diag(void);
-float enc_as504x_spi_get_error_rate(void);
-uint32_t enc_as504x_spi_get_val(void);
-uint32_t enc_as504x_spi_get_error_cnt(void);
+void enc_as504x_deinit(AS504x_config_t *cfg);
+void enc_as504x_routine(AS504x_config_t *cfg, float rate);
 
 #endif /* ENC_AS504X_H_ */

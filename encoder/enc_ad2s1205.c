@@ -57,8 +57,6 @@ void enc_ad2s1205_deinit(void) {
 #if defined(AD2S1205_RDVEL_GPIO)
 	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_INPUT_PULLUP);	// Will always read position
 #endif
-
-	AD2S1205_config_now.is_init = 0;
 }
 
 encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
@@ -77,12 +75,12 @@ encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
 	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);	// Prepare for a falling edge SAMPLE assertion
 #endif
+
 #if defined(AD2S1205_RDVEL_GPIO)
 	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
 #endif
 
-	AD2S1205_config->is_init = 1;
 	AD2S1205_config_now = *AD2S1205_config;
 
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
@@ -101,8 +99,8 @@ void enc_ad2s1205_routine(float rate) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
 #endif
 
-	palSetPad(AD2S1205_config_now.sw_spi.sck_gpio,
-			AD2S1205_config_now.sw_spi.sck_pin);
+	palSetPad(AD2S1205_config_now.sw_spi.sck_gpio, AD2S1205_config_now.sw_spi.sck_pin);
+
 	spi_bb_delay();
 	spi_bb_begin(&(AD2S1205_config_now.sw_spi)); // CS uses the same mcu pin as AS5047
 	spi_bb_delay();
@@ -166,7 +164,6 @@ void enc_ad2s1205_routine(float rate) {
 			last_enc_angle = ((float) pos * 360.0) / 4096.0;
 		}
 	}
-
 }
 
 float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void) {

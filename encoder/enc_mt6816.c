@@ -41,71 +41,51 @@ static float last_enc_angle = 0.0;
 static uint32_t spi_error_cnt = 0;
 static uint32_t spi_val = 0;
 
-void enc_mt6816_deinit(void) {
-
-	nvicDisableVector(HW_ENC_EXTI_CH);
-	nvicDisableVector(HW_ENC_TIM_ISR_CH);
-
-	TIM_DeInit(HW_ENC_TIM);
-
-	palSetPadMode(MT6816_config_now.sw_spi.miso_gpio,
-			MT6816_config_now.sw_spi.miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(MT6816_config_now.sw_spi.sck_gpio,
-			MT6816_config_now.sw_spi.sck_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(MT6816_config_now.sw_spi.nss_gpio,
-			MT6816_config_now.sw_spi.nss_pin, PAL_MODE_INPUT_PULLUP);
-
-#if (MT6816_USE_HW_SPI_PINS)
-	palSetPadMode(MT6816_config_now.sw_spi.mosi_gpio, MT6816_config_now.sw_spi.mosi_pin, PAL_MODE_INPUT_PULLUP);
-#endif
-
-#ifdef HW_SPI_DEV
-	spiStop(&HW_SPI_DEV);
-#endif
-
-	palSetPadMode(MT6816_config_now.sw_spi.miso_gpio,
-			MT6816_config_now.sw_spi.miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(MT6816_config_now.sw_spi.sck_gpio,
-			MT6816_config_now.sw_spi.sck_pin, PAL_MODE_INPUT_PULLUP);
-
-	MT6816_config_now.is_init = 0;
-	last_enc_angle = 0.0;
-	spi_error_rate = 0.0;
-}
-
 encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config) {
-#ifdef HW_SPI_DEV
+	if (mt6816_config->spi_dev == NULL) {
+		return ENCODER_ERROR;
+	}
+
 	MT6816_config_now = *mt6816_config;
 
-	palSetPadMode(MT6816_config_now.sw_spi.sck_gpio,
-			MT6816_config_now.sw_spi.sck_pin,
+	palSetPadMode(MT6816_config_now.sck_gpio, MT6816_config_now.sck_pin,
 			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(MT6816_config_now.sw_spi.miso_gpio,
-			MT6816_config_now.sw_spi.miso_pin,
+	palSetPadMode(MT6816_config_now.miso_gpio, MT6816_config_now.miso_pin,
 			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
 
-	spi_bb_nss_init(&(MT6816_config_now.sw_spi));
+	palSetPadMode(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin,
+					PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
-#if (MT6816_USE_HW_SPI_PINS)
-	palSetPadMode(MT6816_config_now.sw_spi.mosi_gpio, MT6816_config_now.sw_spi.mosi_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-#endif
+	palSetPadMode(MT6816_config_now.mosi_gpio, MT6816_config_now.mosi_pin,
+			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
 
-	//Start driver with MT6816 SPI settings
-
-	spiStart(&HW_SPI_DEV, &(MT6816_config_now.hw_spi_cfg));
+	spiStart(MT6816_config_now.spi_dev, &(MT6816_config_now.hw_spi_cfg));
 
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 	spi_error_rate = 0.0;
 	encoder_no_magnet_error_rate = 0.0;
 
-	MT6816_config_now.is_init = 1;
-	mt6816_config->is_init = 1;
-
 	return ENCODER_OK;
-#else
-	(void)mt6816_config;
-	return ENCODER_ERROR;
-#endif
+}
+
+void enc_mt6816_deinit(void) {
+	if (MT6816_config_now.spi_dev == NULL) {
+		return;
+	}
+
+	palSetPadMode(MT6816_config_now.miso_gpio,
+			MT6816_config_now.miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(MT6816_config_now.sck_gpio,
+			MT6816_config_now.sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(MT6816_config_now.nss_gpio,
+			MT6816_config_now.nss_pin, PAL_MODE_INPUT_PULLUP);
+
+	palSetPadMode(MT6816_config_now.mosi_gpio, MT6816_config_now.mosi_pin, PAL_MODE_INPUT_PULLUP);
+
+	spiStop(MT6816_config_now.spi_dev);
+
+	last_enc_angle = 0.0;
+	spi_error_rate = 0.0;
 }
 
 float enc_mt6816_read_deg(void) {
@@ -113,20 +93,22 @@ float enc_mt6816_read_deg(void) {
 }
 
 void enc_mt6816_routine(float rate) {
-#ifdef HW_SPI_DEV
 	uint16_t pos;
 	uint16_t reg_data_03;
 	uint16_t reg_data_04;
 	uint16_t reg_addr_03 = 0x8300;
 	uint16_t reg_addr_04 = 0x8400;
 
-	spi_bb_begin(&(MT6816_config_now.sw_spi));
-	reg_data_03 = spiPolledExchange(&HW_SPI_DEV, reg_addr_03);
-	spi_bb_end(&(MT6816_config_now.sw_spi));
+#define SPI_BEGIN()		spi_bb_delay(); palClearPad(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin); spi_bb_delay();
+#define SPI_END()		spi_bb_delay(); palSetPad(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin); spi_bb_delay();
+
+	SPI_BEGIN();
+	reg_data_03 = spiPolledExchange(MT6816_config_now.spi_dev, reg_addr_03);
+	SPI_END();
 	spi_bb_delay();
-	spi_bb_begin(&(MT6816_config_now.sw_spi));
-	reg_data_04 = spiPolledExchange(&HW_SPI_DEV, reg_addr_04);
-	spi_bb_end(&(MT6816_config_now.sw_spi));
+	SPI_BEGIN();
+	reg_data_04 = spiPolledExchange(MT6816_config_now.spi_dev, reg_addr_04);
+	SPI_END();
 
 	pos = (reg_data_03 << 8) | reg_data_04;
 	spi_val = pos;
@@ -145,9 +127,6 @@ void enc_mt6816_routine(float rate) {
 		++spi_error_cnt;
 		UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / rate);
 	}
-#else
-	(void)rate;
-#endif
 }
 
 uint32_t enc_mt6816_spi_get_val(void) {

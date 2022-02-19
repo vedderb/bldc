@@ -44,26 +44,19 @@ void enc_abi_deinit(void) {
 			PAL_MODE_INPUT_PULLUP);
 
 	last_enc_angle = 0.0;
-
-	ABI_config_now.is_init = 0;
 }
 
 encoder_ret_t enc_abi_init(ABI_config_t *abi_config) {
-
 	EXTI_InitTypeDef EXTI_InitStructure;
 
 	// Initialize variables
 	ABI_config_now = *abi_config;
 
-	palSetPadMode(ABI_config_now.A_gpio,
-			ABI_config_now.A_pin,
-			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
-	palSetPadMode(ABI_config_now.B_gpio,
-			ABI_config_now.B_pin,
-			PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
-//	palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
+	palSetPadMode(ABI_config_now.A_gpio, ABI_config_now.A_pin, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
+	palSetPadMode(ABI_config_now.B_gpio, ABI_config_now.B_pin, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
+	palSetPadMode(ABI_config_now.I_gpio, ABI_config_now.I_pin, PAL_MODE_INPUT_PULLUP);
 
-// Enable timer clock
+	// Enable timer clock
 	HW_ENC_TIM_CLK_EN();
 
 	// Enable SYSCFG clock
@@ -92,7 +85,6 @@ encoder_ret_t enc_abi_init(ABI_config_t *abi_config) {
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	abi_config->is_init = 1;
 	ABI_config_now = *abi_config;
 
 	// Enable and set EXTI Line Interrupt to the highest priority

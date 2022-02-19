@@ -838,19 +838,6 @@ typedef struct {
 	float gyro_offsets[3];
 } imu_config;
 
-typedef struct {
-	uint8_t is_connected;
-	uint8_t AGC_value;
-	uint16_t magnitude;
-	uint8_t is_OCF;
-	uint8_t is_COF;
-	uint8_t is_Comp_low;
-	uint8_t is_Comp_high;
-	uint16_t serial_diag_flgs;
-	uint16_t serial_magnitude;
-	uint16_t serial_error_flags;
-}AS504x_diag;
-
 typedef enum {
 	CAN_MODE_VESC = 0,
 	CAN_MODE_UAVCAN,

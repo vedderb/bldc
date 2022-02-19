@@ -22,21 +22,6 @@
 
 // Software SPI
 
-void spi_bb_deinit(spi_bb_state *s) {
-	chMtxObjectInit(&s->mutex);
-
-	palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
-
-	if (s->mosi_gpio) { // TODO: assure that the gpio is 0x0 when unused
-		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
-	}
-
-	s->has_started = false;
-	s->has_error = false;
-}
-
 void spi_bb_init(spi_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
 
@@ -59,13 +44,19 @@ void spi_bb_init(spi_bb_state *s) {
 	s->has_error = false;
 }
 
-void spi_bb_nss_init(spi_bb_state *s) {
+void spi_bb_deinit(spi_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
 
-	if (s->nss_gpio) {
-		palSetPadMode(s->nss_gpio, s->nss_pin,
-				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(s->miso_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
+
+	if (s->mosi_gpio) { // TODO: assure that the gpio is 0x0 when unused
+		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
 	}
+
+	s->has_started = false;
+	s->has_error = false;
 }
 
 uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x) {
@@ -117,10 +108,8 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 	}
 }
 
-void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf,
-		const uint16_t *out_buf, int length) {
+void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length) {
 	for (int i = 0; i < length; i++) {
-
 		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
 		uint16_t receive = 0;
 

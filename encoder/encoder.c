@@ -30,11 +30,6 @@
 
 #include <math.h>
 
-#define ENCODER_CONFIG_UNUSED {0}
-#define ENCODER_VAR_UNINITIALIZED 0
-#define ENCODER_STRUCT_UNDEFINED {0}
-#define ENCODER_ABI_COUNTER_DEFAULT_VALUE 10000ul
-
 #define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
 #define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
 #define SPI_BaudRatePrescaler_8         ((uint16_t)0x0010) //  10.5 MHz    5.25 MHz
@@ -47,59 +42,92 @@
 
 #define CH_MUTEX_INIT_ZERO {{NULL, NULL}, NULL, NULL}
 
-ENCSPI_config_t encoder_conf_ENCSPI =
-{
-		ENCODER_VAR_UNINITIALIZED,
-		{/*BB_SPI*/
-				/*NSS*/HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
-				/*SCK*/HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
-#ifdef HW_SPI_PORT_MOSI
-				/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+AS504x_config_t as504x_cfg = {
+		{
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+#if defined(HW_SPI_PORT_MOSI) && AS504x_USE_SW_MOSI_PIN
+				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 #else
-				/*MOSI*/0, 0,
+				0, 0,
 #endif
-				/*MISO*/HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				ENCODER_VAR_UNINITIALIZED,
-				ENCODER_VAR_UNINITIALIZED,
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+				0, // has_started
+				0, // has_error
 				CH_MUTEX_INIT_ZERO
 		},
+
+		{0} // State
+};
+
+AD2S1205_config_t ad2s1205_cfg = {
+		{ // BB_SPI
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+#if defined(HW_SPI_PORT_MOSI) && AS504x_USE_SW_MOSI_PIN
+				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+#else
+				0, 0,
+#endif
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+				0, // has_started
+				0, // has_error
+				CH_MUTEX_INIT_ZERO
+		},
+};
+
+MT6816_config_t mt6816_cfg = {
 #ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
 		{//HARDWARE SPI CONFIG
-				NULL, HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, SPI_BaudRatePrescaler_4 | SPI_CR1_CPOL | SPI_CR1_CPHA
-				| SPI_DATASIZE_16BIT
-		}
+				NULL, HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, SPI_BaudRatePrescaler_4 |
+				SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_DATASIZE_16BIT
+		},
+
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+#else
+		0,
+		{0},
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
 #endif
 };
 
 ABI_config_t encoder_conf_ABI =
 {
-		ENCODER_VAR_UNINITIALIZED,
-		ENCODER_ABI_COUNTER_DEFAULT_VALUE,
-		/*INCREMENTAL PROTOCOL PINOUT*/
-		/*A*/HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1 ,
-		/*B*/HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2
+		10000, // counts
+		HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+		HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+		HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3
 };
 
-ENCSINCOS_config_t encoder_conf_ENCSINCOS = ENCODER_STRUCT_UNDEFINED;
+ENCSINCOS_config_t encoder_conf_ENCSINCOS = {0};
 
-TS5700N8501_config_t encoder_conf_TS5700N8501 =
-{
-		ENCODER_VAR_UNINITIALIZED,
+TS5700N8501_config_t encoder_conf_TS5700N8501 = {
+#if defined(HW_ADC_EXT_GPIO) && defined(HW_ADC_EXT_GPIO)
+		&HW_UART_DEV,
 		/*UART PINOUT*/
 		HW_UART_TX_PORT, HW_UART_TX_PIN,
 		HW_UART_RX_PORT, HW_UART_RX_PIN,
-#ifdef HW_ADC_EXT_GPIO
-		HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN
-#else
-		ENCODER_VAR_UNINITIALIZED, ENCODER_VAR_UNINITIALIZED
-#endif
-		,
-		{/*UART CONFIG*/
+		HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN,
+		{// UART CONFIG
 				2500000,
 				0,
 				USART_CR2_LINEN,
 				0
 		}
+#else
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		{0}
+#endif
 };
 
 static encoder_type_t encoder_type_now = ENCODER_TYPE_NONE;
@@ -110,10 +138,6 @@ static float timer_rate_now = 1.0;
 static void terminal_encoder(int argc, const char **argv);
 static void terminal_encoder_clear_errors(int argc, const char **argv);
 static void terminal_encoder_clear_multiturn(int argc, const char **argv);
-
-static bool is_uart_defined(void);
-static bool is_spi_defined(void);
-static bool is_incremental_defined(void);
 static void timer_start(float rate);
 
 void encoder_deinit(void) {
@@ -122,7 +146,7 @@ void encoder_deinit(void) {
 	TIM_DeInit(HW_ENC_TIM);
 
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
-		enc_as504x_deinit();
+		enc_as504x_deinit(&as504x_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit();
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -150,17 +174,9 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 		SENSOR_PORT_5V();
 
 		encoder_conf_ABI.counts = conf->m_encoder_counts;
-		encoder_ret_t encoder_ret;
+		encoder_ret_t encoder_ret = enc_abi_init(&encoder_conf_ABI);
 
-		if (is_incremental_defined() == false) {
-			return ENCODER_ERROR;
-		}
-
-		encoder_conf_ABI.is_init = 0;
-
-		encoder_ret = enc_abi_init(&encoder_conf_ABI);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_ABI.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -173,20 +189,13 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 	case SENSOR_PORT_MODE_AS5047_SPI: {
 		SENSOR_PORT_3V3();
 
-		encoder_ret_t encoder_ret;
+		encoder_ret_t encoder_ret = enc_as504x_init(&as504x_cfg);
 
-		if (is_spi_defined() == false) {
-			return ENCODER_ERROR;
-		}
-
-		encoder_conf_ENCSPI.is_init = 0;
-
-		encoder_ret = enc_as504x_init(&encoder_conf_ENCSPI);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			index_found = false;
 			return ENCODER_ERROR;
 		}
+
 		encoder_type_now = ENCODER_TYPE_AS504x;
 		index_found = true;
 
@@ -197,21 +206,15 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 
 	case SENSOR_PORT_MODE_MT6816_SPI: {
 		SENSOR_PORT_5V();
-		encoder_ret_t encoder_ret;
 
-		if (is_spi_defined() == false) {
-			return ENCODER_ERROR;
-		}
+		encoder_ret_t encoder_ret = enc_mt6816_init(&mt6816_cfg);
 
-		encoder_conf_ENCSPI.is_init = 0;
-
-		encoder_ret = enc_mt6816_init(&encoder_conf_ENCSPI);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
 		}
+
 		encoder_type_now = ENCODER_TYPE_MT6816;
 		index_found = true;
 
@@ -222,17 +225,10 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 
 	case SENSOR_PORT_MODE_AD2S1205: {
 		SENSOR_PORT_5V();
-		encoder_ret_t encoder_ret;
 
-		if (is_spi_defined() == false) {
-			return ENCODER_ERROR;
-		}
+		encoder_ret_t encoder_ret = enc_ad2s1205_init(&ad2s1205_cfg);
 
-		encoder_conf_ENCSPI.is_init = 0;
-
-		encoder_ret = enc_ad2s1205_init(&encoder_conf_ENCSPI);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSPI.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -254,13 +250,9 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 		encoder_conf_ENCSINCOS.c_offset =  conf->foc_encoder_cos_offset;
 		encoder_conf_ENCSINCOS.filter_constant = conf->foc_encoder_sincos_filter_constant;
 
-		encoder_ret_t encoder_ret;
+		encoder_ret_t encoder_ret = enc_sincos_init(&encoder_conf_ENCSINCOS);
 
-		encoder_conf_ENCSINCOS.is_init = 0;
-
-		encoder_ret = enc_sincos_init(&encoder_conf_ENCSINCOS);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_ENCSINCOS.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -284,17 +276,9 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 		}
 		mempools_free_appconf(appconf);
 
-		encoder_ret_t encoder_ret;
+		encoder_ret_t encoder_ret = enc_ts5700n8501_init(&encoder_conf_TS5700N8501);
 
-		if (is_uart_defined() == false) {
-			return ENCODER_ERROR;
-		}
-
-		encoder_conf_TS5700N8501.is_init = 0;
-
-		encoder_ret = enc_ts5700n8501_init(&encoder_conf_TS5700N8501);
-
-		if (ENCODER_OK != encoder_ret || !encoder_conf_TS5700N8501.is_init) {
+		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
 			index_found = false;
 			return ENCODER_ERROR;
@@ -333,7 +317,7 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 
 float encoder_read_deg(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
-		return enc_as504x_read_deg();
+		return as504x_cfg.state.last_enc_angle;
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		return enc_mt6816_read_deg();
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -391,7 +375,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI &&
 			mcpwm_foc_is_using_encoder() &&
-			enc_as504x_spi_get_error_rate() > 0.05) {
+			as504x_cfg.state.spi_error_rate > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 	}
 
@@ -416,7 +400,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 	if (m_conf->motor_type == MOTOR_TYPE_FOC &&
 			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
-		AS504x_diag diag = enc_as504x_get_diag();
+		AS504x_diag diag = as504x_cfg.state.sensor_diag;
 
 		if (!diag.is_connected) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
@@ -475,7 +459,7 @@ void encoder_pin_isr(void) {
 
 void encoder_tim_isr(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
-		enc_as504x_routine(timer_rate_now);
+		enc_as504x_routine(&as504x_cfg, timer_rate_now);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_routine(timer_rate_now);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -500,10 +484,10 @@ static void terminal_encoder(int argc, const char **argv) {
 		AS504x_diag diag = { 0 };
 
 		if (encoder_is_configured() == ENCODER_TYPE_AS504x) {
-			spi_val = enc_as504x_spi_get_val();
-			error_rate = enc_as504x_spi_get_error_rate();
-			error_cnt = enc_as504x_spi_get_error_cnt();
-			diag = enc_as504x_get_diag();
+			spi_val = as504x_cfg.state.spi_val;
+			error_rate = as504x_cfg.state.spi_error_rate;
+			error_cnt = as504x_cfg.state.spi_communication_error_count;
+			diag = as504x_cfg.state.sensor_diag;
 		} else if (encoder_is_configured() == ENCODER_TYPE_MT6816) {
 			spi_val = enc_mt6816_spi_get_val();
 			error_cnt = enc_mt6816_spi_get_error_cnt();
@@ -537,7 +521,7 @@ static void terminal_encoder(int argc, const char **argv) {
 					(double)(enc_mt6816_get_no_magnet_error_rate() * 100.0));
 		}
 
-#if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
+#if AS504x_USE_SW_MOSI_PIN
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
 			commands_printf("\nAS5047 DIAGNOSTICS:\n"
 					"AGC       : %u\n"
@@ -591,31 +575,6 @@ static void terminal_encoder_clear_multiturn(int argc, const char **argv) {
 	(void)argc; (void)argv;
 	encoder_reset_multiturn();
 	commands_printf("Done!\n");
-}
-
-static bool is_uart_defined(void) {
-	if (!encoder_conf_TS5700N8501.RX_gpio
-			|| !encoder_conf_TS5700N8501.TX_gpio) {
-		return false;
-	}
-	return true;
-}
-
-static bool is_spi_defined(void) {
-	if (!encoder_conf_ENCSPI.sw_spi.miso_gpio
-			|| !encoder_conf_ENCSPI.sw_spi.nss_gpio
-			|| !encoder_conf_ENCSPI.sw_spi.sck_gpio) {
-		return false;
-	}
-	return true;
-}
-
-static bool is_incremental_defined(void) {
-	if (!encoder_conf_ABI.A_gpio
-			|| !encoder_conf_ABI.B_gpio) {
-		return false;
-	}
-	return true;
 }
 
 static void timer_start(float rate) {

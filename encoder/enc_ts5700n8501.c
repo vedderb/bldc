@@ -44,7 +44,28 @@ static uint32_t spi_val = 0;
 
 static float last_enc_angle = 0.0;
 
+encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
+	if (ts5700n8501_config->sd == NULL) {
+		return ENCODER_ERROR;
+	}
+
+	spi_error_rate = 0.0;
+	spi_error_cnt = 0;
+	ts5700n8501_is_running = true;
+	ts5700n8501_stop_now = false;
+
+	ts5700n8501_config_now = *ts5700n8501_config;
+
+	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
+	NORMALPRIO - 10, ts5700n8501_thread, NULL);
+
+	return ENCODER_OK;
+}
+
 void enc_ts5700n8501_deinit(void) {
+	if (ts5700n8501_config_now.sd == NULL) {
+		return;
+	}
 
 	ts5700n8501_stop_now = true;
 	while (ts5700n8501_is_running) {
@@ -57,35 +78,10 @@ void enc_ts5700n8501_deinit(void) {
 	palSetPadMode(ts5700n8501_config_now.RX_gpio,
 			ts5700n8501_config_now.RX_pin,
 			PAL_MODE_INPUT_PULLUP);
-#ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin, PAL_MODE_INPUT_ANALOG);
-#endif
-
-	ts5700n8501_config_now.is_init = 0;
 
 	last_enc_angle = 0.0;
 	spi_error_rate = 0.0;
-}
-
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
-#ifdef HW_UART_DEV
-	spi_error_rate = 0.0;
-	spi_error_cnt = 0;
-	ts5700n8501_is_running = true;
-	ts5700n8501_stop_now = false;
-
-	ts5700n8501_config_now = *ts5700n8501_config;
-
-	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
-	NORMALPRIO - 10, ts5700n8501_thread, NULL);
-
-	ts5700n8501_config_now.is_init = 1;
-	ts5700n8501_config->is_init = 1;
-	return ENCODER_OK;
-#else
-	ts5700n8501_config->is_init = 0;
-	return ENCODER_ERROR;
-#endif
 }
 
 float enc_ts5700n8501_read_deg(void) {
@@ -138,9 +134,7 @@ static void TS5700N8501_delay_uart(void) {
  */
 static void TS5700N8501_send_byte(uint8_t b) {
 	utils_sys_lock_cnt();
-#ifdef HW_ADC_EXT_GPIO
 	palSetPad(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin);
-#endif
 	TS5700N8501_delay_uart();
 	palWritePad(ts5700n8501_config_now.TX_gpio,
 			ts5700n8501_config_now.TX_pin, 0);
@@ -186,9 +180,7 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	palWritePad(ts5700n8501_config_now.TX_gpio,
 			ts5700n8501_config_now.TX_pin, 1);
 	TS5700N8501_delay_uart();
-#ifdef HW_ADC_EXT_GPIO
 	palClearPad(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin);
-#endif
 	utils_sys_unlock_cnt();
 }
 
@@ -199,18 +191,16 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 
 	SerialConfig sd_init = ts5700n8501_config_now.uart_param;
 
-	sdStart(&HW_UART_DEV, &sd_init);
+	sdStart(ts5700n8501_config_now.sd, &sd_init);
 	palSetPadMode(ts5700n8501_config_now.TX_gpio,
 			ts5700n8501_config_now.TX_pin,
 			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 	palSetPadMode(ts5700n8501_config_now.RX_gpio,
 			ts5700n8501_config_now.RX_pin,
 			PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
-#ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin, PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
-#endif
 
 	for (;;) {
 		// Check if it is time to stop.
@@ -245,12 +235,12 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 		uint8_t reply[11];
 		int reply_ind = 0;
 
-		msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+		msg_t res = sdGetTimeout(ts5700n8501_config_now.sd, TIME_IMMEDIATE);
 		while (res != MSG_TIMEOUT ) {
 			if (reply_ind < (int) sizeof(reply)) {
 				reply[reply_ind++] = res;
 			}
-			res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+			res = sdGetTimeout(ts5700n8501_config_now.sd, TIME_IMMEDIATE);
 		}
 
 		uint8_t crc = 0;
