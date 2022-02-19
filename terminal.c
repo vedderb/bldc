@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -1303,6 +1303,14 @@ void terminal_add_fault_data(fault_data *data) {
 	fault_vec[fault_vec_write++] = *data;
 	if (fault_vec_write >= FAULT_VEC_LEN) {
 		fault_vec_write = 0;
+	}
+}
+
+mc_fault_code terminal_get_first_fault(void) {
+	if (fault_vec_write == 0) {
+		return FAULT_CODE_NONE;
+	} else {
+		return fault_vec[0].fault;
 	}
 }
 

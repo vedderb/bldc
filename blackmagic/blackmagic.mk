@@ -13,7 +13,7 @@ BLACKMAGICSRC =	blackmagic/bm_if.c \
 				blackmagic/target/stm32f4.c \
 				blackmagic/target/stm32h7.c \
 				blackmagic/target/stm32l0.c \
-				blackmagic/target/stm32l4.c \
+				blackmagic/target/stm32l4.c
 
 BLACKMAGICINC =	blackmagic \
-				blackmagic/target \
+				blackmagic/target

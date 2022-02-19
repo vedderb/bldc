@@ -2,6 +2,7 @@
 * Added stack checks.
 * Release motor fix when cc_min_current is 0.
 * Added support for NTC and PTC temperature sensors with custom resisrance and base temperature.
+* Added sandboxed lisp scripting using https://github.com/svenssonjoel/lispBM.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

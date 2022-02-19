@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -25,6 +25,7 @@
 // Functions
 void terminal_process_string(char *str);
 void terminal_add_fault_data(fault_data *data);
+mc_fault_code terminal_get_first_fault(void);
 void terminal_register_command_callback(
 		const char* command,
 		const char *help,

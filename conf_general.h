@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		4
+#define FW_TEST_VERSION_NUMBER		8
 
 #include "datatypes.h"
 
@@ -172,6 +172,7 @@
 //#define HW_SOURCE "hw_Little_FOCer.c"
 //#define HW_HEADER "hw_Little_FOCer.h"
 
+//#define HW_100_500_VER_75_600
 //#define HW_SOURCE "hw_100_500.c"
 //#define HW_HEADER "hw_100_500.h"
 
@@ -186,6 +187,9 @@
 
 //#define HW_SOURCE "hw_60v2_alva.c"
 //#define HW_HEADER "hw_60v2_alva.h"
+
+//#define HW_SOURCE "hw_60_75.c"
+//#define HW_HEADER "hw_60_75.h"
 #endif
 
 #ifndef HW_SOURCE

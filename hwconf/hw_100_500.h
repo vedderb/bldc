@@ -20,7 +20,11 @@
 #ifndef HW_100_500_H_
 #define HW_100_500_H_
 
+#ifdef HW_100_500_VER_75_600
+#define HW_NAME					"75_600"
+#else
 #define HW_NAME					"100_500"
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -220,10 +224,14 @@
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE			12.0
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			96.0		// Maximum input voltage
+#ifdef HW_100_500_VER_75_600
+#define MCCONF_L_MAX_VOLTAGE			72.0
+#else
+#define MCCONF_L_MAX_VOLTAGE			96.0
+#endif
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -245,10 +253,17 @@
 #endif
 
 // Setting limits
+#ifdef HW_100_500_VER_75_600
+#define HW_LIM_CURRENT			-600.0, 600.0
+#define HW_LIM_CURRENT_IN		-600.0, 600.0
+#define HW_LIM_CURRENT_ABS		0.0, 700.0
+#define HW_LIM_VIN				11.0, 73.0
+#else
 #define HW_LIM_CURRENT			-500.0, 500.0
 #define HW_LIM_CURRENT_IN		-500.0, 500.0
 #define HW_LIM_CURRENT_ABS		0.0, 650.0
 #define HW_LIM_VIN				11.0, 96.0
+#endif
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

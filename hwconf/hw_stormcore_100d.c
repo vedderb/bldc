@@ -39,7 +39,7 @@ typedef enum {
 // Variables
 static volatile bool i2c_running = false;
 static THD_WORKING_AREA(smart_switch_thread_wa, 128);
-static THD_WORKING_AREA(mux_thread_wa, 128);
+static THD_WORKING_AREA(mux_thread_wa, 256);
 static THD_WORKING_AREA(switch_color_thread_wa, 128);
 static THD_FUNCTION(mux_thread, arg);
 static THD_FUNCTION(switch_color_thread, arg);
@@ -408,7 +408,7 @@ bool smart_switch_is_pressed(void) {
 
 static THD_FUNCTION(switch_color_thread, arg) {
 	(void)arg;
-	chRegSetThreadName("switch_color_thread");
+	chRegSetThreadName("switch_color");
 	float switch_red = 0.0;
 	float switch_green = 0.0;
 	float switch_blue = 0.0;
