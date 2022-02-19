@@ -28,119 +28,87 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include "spi_bb.h"
+
 #include <math.h>
+#include <string.h>
 
 #define MT6816_NO_MAGNET_ERROR_MASK		0x0002
 
-static MT6816_config_t MT6816_config_now = { 0 };
-
-static float spi_error_rate = 0.0;
-static float encoder_no_magnet_error_rate = 0.0;
-static float encoder_no_magnet_error_cnt = 0.0;
-static float last_enc_angle = 0.0;
-static uint32_t spi_error_cnt = 0;
-static uint32_t spi_val = 0;
-
-encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config) {
-	if (mt6816_config->spi_dev == NULL) {
+encoder_ret_t enc_mt6816_init(MT6816_config_t *cfg) {
+	if (cfg->spi_dev == NULL) {
 		return ENCODER_ERROR;
 	}
 
-	MT6816_config_now = *mt6816_config;
+	memset(&cfg->state, 0, sizeof(MT6816_state));
 
-	palSetPadMode(MT6816_config_now.sck_gpio, MT6816_config_now.sck_pin,
-			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(MT6816_config_now.miso_gpio, MT6816_config_now.miso_pin,
-			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->sck_gpio, cfg->sck_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->miso_gpio, cfg->miso_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->nss_gpio, cfg->nss_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
 
-	palSetPadMode(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin,
-					PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	spiStart(cfg->spi_dev, &(cfg->hw_spi_cfg));
 
-	palSetPadMode(MT6816_config_now.mosi_gpio, MT6816_config_now.mosi_pin,
-			PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-
-	spiStart(MT6816_config_now.spi_dev, &(MT6816_config_now.hw_spi_cfg));
-
-	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
-	spi_error_rate = 0.0;
-	encoder_no_magnet_error_rate = 0.0;
+	cfg->state.spi_error_rate = 0.0;
+	cfg->state.encoder_no_magnet_error_rate = 0.0;
 
 	return ENCODER_OK;
 }
 
-void enc_mt6816_deinit(void) {
-	if (MT6816_config_now.spi_dev == NULL) {
+void enc_mt6816_deinit(MT6816_config_t *cfg) {
+	if (cfg->spi_dev == NULL) {
 		return;
 	}
 
-	palSetPadMode(MT6816_config_now.miso_gpio,
-			MT6816_config_now.miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(MT6816_config_now.sck_gpio,
-			MT6816_config_now.sck_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(MT6816_config_now.nss_gpio,
-			MT6816_config_now.nss_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->miso_gpio, cfg->miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->sck_gpio, cfg->sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->nss_gpio, cfg->nss_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin, PAL_MODE_INPUT_PULLUP);
 
-	palSetPadMode(MT6816_config_now.mosi_gpio, MT6816_config_now.mosi_pin, PAL_MODE_INPUT_PULLUP);
+	spiStop(cfg->spi_dev);
 
-	spiStop(MT6816_config_now.spi_dev);
-
-	last_enc_angle = 0.0;
-	spi_error_rate = 0.0;
+	cfg->state.last_enc_angle = 0.0;
+	cfg->state.spi_error_rate = 0.0;
 }
 
-float enc_mt6816_read_deg(void) {
-	return last_enc_angle;
-}
-
-void enc_mt6816_routine(float rate) {
+void enc_mt6816_routine(MT6816_config_t *cfg, float rate) {
 	uint16_t pos;
 	uint16_t reg_data_03;
 	uint16_t reg_data_04;
 	uint16_t reg_addr_03 = 0x8300;
 	uint16_t reg_addr_04 = 0x8400;
 
-#define SPI_BEGIN()		spi_bb_delay(); palClearPad(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin); spi_bb_delay();
-#define SPI_END()		spi_bb_delay(); palSetPad(MT6816_config_now.nss_gpio, MT6816_config_now.nss_pin); spi_bb_delay();
+#define SPI_BEGIN()		spi_bb_delay(); palClearPad(cfg->nss_gpio, cfg->nss_pin); spi_bb_delay();
+#define SPI_END()		spi_bb_delay(); palSetPad(cfg->nss_gpio, cfg->nss_pin); spi_bb_delay();
 
+	// TODO: The fact that the polled version is used means that it is
+	// more or less pointless to use the hardware SPI as the CPU sits
+	// and wastes cycles waiting for the hardware to finish.
+	//
+	// A better approach would be to use spiStartExchangeI and use a callback
+	// for when the operation finishes and process the data from there.
 	SPI_BEGIN();
-	reg_data_03 = spiPolledExchange(MT6816_config_now.spi_dev, reg_addr_03);
+	reg_data_03 = spiPolledExchange(cfg->spi_dev, reg_addr_03);
 	SPI_END();
 	spi_bb_delay();
 	SPI_BEGIN();
-	reg_data_04 = spiPolledExchange(MT6816_config_now.spi_dev, reg_addr_04);
+	reg_data_04 = spiPolledExchange(cfg->spi_dev, reg_addr_04);
 	SPI_END();
 
 	pos = (reg_data_03 << 8) | reg_data_04;
-	spi_val = pos;
+	cfg->state.spi_val = pos;
 
 	if (spi_bb_check_parity(pos)) {
 		if (pos & MT6816_NO_MAGNET_ERROR_MASK) {
-			++encoder_no_magnet_error_cnt;
-			UTILS_LP_FAST(encoder_no_magnet_error_rate, 1.0, 1.0 / rate);
+			++cfg->state.encoder_no_magnet_error_cnt;
+			UTILS_LP_FAST(cfg->state.encoder_no_magnet_error_rate, 1.0, 1.0 / rate);
 		} else {
 			pos = pos >> 2;
-			last_enc_angle = ((float) pos * 360.0) / 16384.0;
-			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / rate);
-			UTILS_LP_FAST(encoder_no_magnet_error_rate, 0.0, 1.0 / rate);
+			cfg->state.last_enc_angle = ((float) pos * 360.0) / 16384.0;
+			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(cfg->state.encoder_no_magnet_error_rate, 0.0, 1.0 / rate);
 		}
 	} else {
-		++spi_error_cnt;
-		UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / rate);
+		++cfg->state.spi_error_cnt;
+		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, 1.0 / rate);
 	}
-}
-
-uint32_t enc_mt6816_spi_get_val(void) {
-	return spi_val;
-}
-
-uint32_t enc_mt6816_spi_get_error_cnt(void) {
-	return spi_error_cnt;
-}
-
-uint32_t enc_mt6816_get_no_magnet_error_cnt(void) {
-	return encoder_no_magnet_error_cnt;
-}
-
-uint32_t enc_mt6816_get_no_magnet_error_rate(void) {
-	return encoder_no_magnet_error_rate;
 }

@@ -26,14 +26,10 @@
 #include "encoder/encoder_datatype.h"
 
 encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config);
-void enc_mt6816_deinit(void);
+void enc_mt6816_deinit(MT6816_config_t *cfg);
+void enc_mt6816_routine(MT6816_config_t *cfg, float rate);
 
-float enc_mt6816_read_deg(void);
-void enc_mt6816_routine(float rate);
-
-uint32_t enc_mt6816_spi_get_val(void);
-uint32_t enc_mt6816_spi_get_error_cnt(void);
-uint32_t enc_mt6816_get_no_magnet_error_cnt(void);
-uint32_t enc_mt6816_get_no_magnet_error_rate(void);
+// Macros
+#define MT6816_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
 
 #endif /* ENC_MT6816_H_ */

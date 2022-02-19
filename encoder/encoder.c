@@ -88,6 +88,7 @@ MT6816_config_t mt6816_cfg = {
 		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		{0, 0, 0, 0, 0, 0},
 #else
 		0,
 		{0},
@@ -95,6 +96,7 @@ MT6816_config_t mt6816_cfg = {
 		0, 0,
 		0, 0,
 		0, 0,
+		{0, 0, 0, 0, 0, 0},
 #endif
 };
 
@@ -148,7 +150,7 @@ void encoder_deinit(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
 		enc_as504x_deinit(&as504x_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
-		enc_mt6816_deinit();
+		enc_mt6816_deinit(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		enc_ad2s1205_deinit();
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
@@ -319,7 +321,7 @@ float encoder_read_deg(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&as504x_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
-		return enc_mt6816_read_deg();
+		return MT6816_LAST_ANGLE(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		return enc_ad2s1205_read_deg();
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
@@ -383,7 +385,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI &&
 			mcpwm_foc_is_using_encoder() &&
-			enc_mt6816_get_no_magnet_error_rate() > 0.05) {
+			mt6816_cfg.state.encoder_no_magnet_error_rate > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
 	}
 
@@ -461,7 +463,7 @@ void encoder_tim_isr(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
 		enc_as504x_routine(&as504x_cfg, timer_rate_now);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
-		enc_mt6816_routine(timer_rate_now);
+		enc_mt6816_routine(&mt6816_cfg, timer_rate_now);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		enc_ad2s1205_routine(timer_rate_now);
 	}
@@ -489,8 +491,8 @@ static void terminal_encoder(int argc, const char **argv) {
 			error_cnt = as504x_cfg.state.spi_communication_error_count;
 			diag = as504x_cfg.state.sensor_diag;
 		} else if (encoder_is_configured() == ENCODER_TYPE_MT6816) {
-			spi_val = enc_mt6816_spi_get_val();
-			error_cnt = enc_mt6816_spi_get_error_cnt();
+			spi_val = mt6816_cfg.state.spi_val;
+			error_cnt = mt6816_cfg.state.spi_error_cnt;
 		}
 
 		if (mcconf->m_sensor_port_mode != SENSOR_PORT_MODE_AS5047_SPI) {
@@ -517,12 +519,11 @@ static void terminal_encoder(int argc, const char **argv) {
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
 			commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
-					enc_mt6816_get_no_magnet_error_cnt(),
-					(double)(enc_mt6816_get_no_magnet_error_rate() * 100.0));
+					mt6816_cfg.state.encoder_no_magnet_error_cnt,
+					(double)(mt6816_cfg.state.encoder_no_magnet_error_rate * 100.0));
 		}
 
-#if AS504x_USE_SW_MOSI_PIN
-		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
+		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI && as504x_cfg.sw_spi.mosi_gpio != NULL) {
 			commands_printf("\nAS5047 DIAGNOSTICS:\n"
 					"AGC       : %u\n"
 					"Magnitude : %u\n"
@@ -535,7 +536,6 @@ static void terminal_encoder(int argc, const char **argv) {
 					diag.is_Comp_low,
 					diag.is_Comp_high);
 		}
-#endif
 	}
 
 	if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
@@ -598,4 +598,6 @@ static void timer_start(float rate) {
 
 	// Enable timer
 	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 }

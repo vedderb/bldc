@@ -46,6 +46,15 @@ typedef struct {
 } AD2S1205_config_t;
 
 typedef struct {
+	float spi_error_rate;
+	float encoder_no_magnet_error_rate;
+	uint32_t encoder_no_magnet_error_cnt;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	uint32_t spi_val;
+} MT6816_state;
+
+typedef struct {
 	SPIDriver *spi_dev;
 	SPIConfig hw_spi_cfg;
 	stm32_gpio_t *nss_gpio;
@@ -56,6 +65,8 @@ typedef struct {
 	int mosi_pin;
 	stm32_gpio_t *miso_gpio;
 	int miso_pin;
+
+	MT6816_state state;
 } MT6816_config_t;
 
 typedef struct {
