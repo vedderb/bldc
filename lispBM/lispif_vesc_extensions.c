@@ -33,7 +33,7 @@
 #include "timeout.h"
 #include "servo_dec.h"
 #include "servo_simple.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "comm_can.h"
 #include "bms.h"
 #include "utils.h"
