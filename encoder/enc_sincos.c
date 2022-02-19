@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/ENC_SINCOS.h"
+#include "enc_sincos.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -43,7 +43,7 @@ static float sincos_signal_above_max_error_rate = 0.0;
 
 static float last_enc_angle = 0.0;
 
-void ENC_SINCOS_deinit(void) {
+void enc_sincos_deinit(void) {
 	last_enc_angle = 0.0;
 
 	sincos_signal_low_error_rate = 0.0;
@@ -51,7 +51,7 @@ void ENC_SINCOS_deinit(void) {
 	enc_sincos_config_now.is_init = 0;
 }
 
-encoder_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
+encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *enc_sincos_config) {
 	enc_sincos_config_now = *enc_sincos_config;
 
 	sincos_signal_below_min_error_cnt = 0;
@@ -65,7 +65,7 @@ encoder_ret_t ENC_SINCOS_init(ENCSINCOS_config_t *enc_sincos_config) {
 	return ENCODER_OK;
 }
 
-float ENC_SINCOS_read_deg(void) {
+float enc_sincos_read_deg(void) {
 	float angle = 0.0;
 	float sin = ENCODER_SIN_VOLTS * enc_sincos_config_now.s_gain - enc_sincos_config_now.s_offset;
 	float cos = ENCODER_COS_VOLTS * enc_sincos_config_now.c_gain - enc_sincos_config_now.c_offset;
@@ -95,18 +95,18 @@ float ENC_SINCOS_read_deg(void) {
 	return last_enc_angle;
 }
 
-uint32_t ENC_SINCOS_get_signal_below_min_error_cnt(void) {
+uint32_t enc_sincos_get_signal_below_min_error_cnt(void) {
 	return sincos_signal_below_min_error_cnt;
 }
 
-uint32_t ENC_SINCOS_get_signal_above_max_error_cnt(void) {
+uint32_t enc_sincos_get_signal_above_max_error_cnt(void) {
 	return sincos_signal_above_max_error_cnt;
 }
 
-float ENC_SINCOS_get_signal_below_min_error_rate(void) {
+float enc_sincos_get_signal_below_min_error_rate(void) {
 	return sincos_signal_low_error_rate;
 }
 
-float ENC_SINCOS_get_signal_above_max_error_rate(void) {
+float enc_sincos_get_signal_above_max_error_rate(void) {
 	return sincos_signal_above_max_error_rate;
 }

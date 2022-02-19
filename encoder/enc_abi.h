@@ -18,15 +18,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_ABI_H_
-#define ENCODER_ABI_H_
+#ifndef ENC_ABI_H_
+#define ENC_ABI_H_
 
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void ABI_deinit(void);
-encoder_ret_t ABI_init(ABI_config_t *abi_config);
+void enc_abi_deinit(void);
+encoder_ret_t enc_abi_init(ABI_config_t *abi_config);
 
-float ABI_read_deg(void);
+float enc_abi_read_deg(void);
 
-#endif /* ENCODER_ABI_H_ */
+#endif /* ENC_ABI_H_ */

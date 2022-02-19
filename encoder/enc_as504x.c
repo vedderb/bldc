@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/AS504x.h"
+#include "enc_as504x.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -81,7 +81,7 @@ static uint8_t AS504x_spi_transfer_err_check(uint16_t *in_buf,
 #endif
 static void AS504x_determinate_if_connected(bool was_last_valid);
 
-void AS504x_routine(void) {
+void enc_as504x_routine(float rate) {
 	uint16_t pos;
 // if MOSI is defined, use diagnostics
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
@@ -137,16 +137,14 @@ void AS504x_routine(void) {
 	if (spi_bb_check_parity(pos) && !spi_data_err_raised) {
 		pos &= 0x3FFF;
 		last_enc_angle = ((float) pos * 360.0) / 16384.0;
-		UTILS_LP_FAST(spi_error_rate, 0.0,
-				1. / AS504x_config_now.refresh_rate_hz);
+		UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / rate);
 	} else {
 		++spi_error_cnt;
-		UTILS_LP_FAST(spi_error_rate, 1.0,
-				1. / AS504x_config_now.refresh_rate_hz);
+		UTILS_LP_FAST(spi_error_rate, 1.0, 1. / rate);
 	}
 }
 
-void AS504x_deinit(void) {
+void enc_as504x_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 
@@ -163,26 +161,9 @@ void AS504x_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+encoder_ret_t enc_as504x_init(AS504x_config_t *AS504x_config) {
 	AS504x_config_now = *AS504x_config;
 	spi_bb_init(&(AS504x_config_now.sw_spi));
-
-	HW_ENC_TIM_CLK_EN();
-
-	// Time Base configuration
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2
-			/ AS504x_config->refresh_rate_hz) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
-
-	// Enable overflow interrupt
-	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
-	// Enable timer
-	TIM_Cmd(HW_ENC_TIM, ENABLE);
 
 	AS504x_config->is_init = 1;
 	AS504x_config_now = *AS504x_config;
@@ -204,8 +185,8 @@ static uint8_t AS504x_verify_serial() {
 	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
 	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
 
-	serial_magnitude = AS504x_get_diag().serial_magnitude;
-	serial_diag_flgs = AS504x_get_diag().serial_diag_flgs;
+	serial_magnitude = enc_as504x_get_diag().serial_magnitude;
+	serial_diag_flgs = enc_as504x_get_diag().serial_diag_flgs;
 
 	test_magnitude = serial_magnitude
 			& AS504x_SPI_EXCLUDE_PARITY_AND_ERROR_BITMASK;
@@ -319,22 +300,22 @@ static void AS504x_determinate_if_connected(bool was_last_valid) {
 	}
 }
 
-AS504x_diag AS504x_get_diag(void) {
+AS504x_diag enc_as504x_get_diag(void) {
 	return AS504x_sensor_diag;
 }
 
-float AS504x_read_deg(void) {
+float enc_as504x_read_deg(void) {
 	return last_enc_angle;
 }
 
-uint32_t AS504x_spi_get_val(void) {
+uint32_t enc_as504x_spi_get_val(void) {
 	return spi_val;
 }
 
-uint32_t AS504x_spi_get_error_cnt(void) {
+uint32_t enc_as504x_spi_get_error_cnt(void) {
 	return spi_error_cnt;
 }
 
-float AS504x_spi_get_error_rate(void) {
+float enc_as504x_spi_get_error_rate(void) {
 	return spi_error_rate;
 }

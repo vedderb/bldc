@@ -23,15 +23,16 @@
 
 #include "hal.h"
 #include "encoder_datatype.h"
-#include "TS5700N8501.h"
-#include "AS504x.h"
-#include "MT6816.h"
-#include "ENC_SINCOS.h"
-#include "AD2S1205.h"
+#include "enc_ts5700n8501.h"
+#include "enc_ad2s1205.h"
+#include "enc_mt6816.h"
+#include "enc_sincos.h"
+#include "enc_as504x.h"
+#include "enc_abi.h"
 
-// GENERIC GLOBAL
-void encoder_deinit(void);
+// Functions
 encoder_ret_t encoder_init(volatile mc_configuration *conf);
+void encoder_deinit(void);
 
 float encoder_read_deg(void);
 float encoder_read_deg_multiturn(void);

@@ -18,20 +18,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_TS5700N8501_H_
-#define ENCODER_TS5700N8501_H_
+#ifndef ENC_AS504X_H_
+#define ENC_AS504X_H_
 
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void TS5700N8501_deinit(void);
-encoder_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config);
+void enc_as504x_deinit(void);
+encoder_ret_t enc_as504x_init(AS504x_config_t *AS504x_config);
 
-float TS5700N8501_read_deg(void);
+float enc_as504x_read_deg(void);
+void enc_as504x_routine(float rate);
 
-uint8_t* TS5700N8501_get_raw_status(void);
-int16_t TS5700N8501_get_abm(void);
-void TS5700N8501_reset_errors(void);
-void TS5700N8501_reset_multiturn(void);
+AS504x_diag enc_as504x_get_diag(void);
+float enc_as504x_spi_get_error_rate(void);
+uint32_t enc_as504x_spi_get_val(void);
+uint32_t enc_as504x_spi_get_error_cnt(void);
 
-#endif /* ENCODER_TS5700N8501_H_ */
+#endif /* ENC_AS504X_H_ */

@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/TS5700N8501.h"
+#include "enc_ts5700n8501.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -26,9 +26,6 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include <math.h>
-
-//TODO move defines to encoder_hwconf.h
-#define TS5700N8501_SAMPLE_RATE_HZ	20000
 
 static THD_FUNCTION(ts5700n8501_thread, arg);
 static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
@@ -47,7 +44,7 @@ static uint32_t spi_val = 0;
 
 static float last_enc_angle = 0.0;
 
-void TS5700N8501_deinit(void) {
+void enc_ts5700n8501_deinit(void) {
 
 	ts5700n8501_stop_now = true;
 	while (ts5700n8501_is_running) {
@@ -70,7 +67,7 @@ void TS5700N8501_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoder_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config) {
+encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
 #ifdef HW_UART_DEV
 	spi_error_rate = 0.0;
 	spi_error_cnt = 0;
@@ -91,24 +88,24 @@ encoder_ret_t TS5700N8501_init(TS5700N8501_config_t *ts5700n8501_config) {
 #endif
 }
 
-float TS5700N8501_read_deg(void) {
+float enc_ts5700n8501_read_deg(void) {
 	return last_enc_angle;
 }
 
-uint8_t* TS5700N8501_get_raw_status(void) {
+uint8_t* enc_ts5700n8501_get_raw_status(void) {
 	return (uint8_t*) ts5700n8501_raw_status;
 }
 
-int16_t TS5700N8501_get_abm(void) {
+int16_t enc_ts5700n8501_get_abm(void) {
 	return (uint16_t) ts5700n8501_raw_status[4]
 			| ((uint16_t) ts5700n8501_raw_status[5] << 8);
 }
 
-void TS5700N8501_reset_errors(void) {
+void enc_ts5700n8501_reset_errors(void) {
 	ts5700n8501_reset_errors = true;
 }
 
-void TS5700N8501_reset_multiturn(void) {
+void enc_ts5700n8501_reset_multiturn(void) {
 	ts5700n8501_reset_multiturn = true;
 }
 
@@ -242,6 +239,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 
 		TS5700N8501_send_byte(0b01011000);
 
+#define LOOP_RATE	((float)(CH_CFG_ST_FREQUENCY / 2))
 		chThdSleep(2);
 
 		uint8_t reply[11];
@@ -265,8 +263,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 					+ ((uint32_t) reply[4] << 16);
 			spi_val = pos;
 			last_enc_angle = (float) pos / 131072.0 * 360.0;
-			UTILS_LP_FAST(spi_error_rate, 0.0,
-					1.0 / TS5700N8501_SAMPLE_RATE_HZ);
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / LOOP_RATE);
 
 			ts5700n8501_raw_status[0] = reply[1]; // SF
 			ts5700n8501_raw_status[1] = reply[2]; // ABS0
@@ -278,8 +275,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			ts5700n8501_raw_status[7] = reply[9]; // ALMC
 		} else {
 			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0,
-					1.0 / TS5700N8501_SAMPLE_RATE_HZ);
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / LOOP_RATE);
 		}
 	}
 }

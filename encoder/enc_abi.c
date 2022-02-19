@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/ABI.h"
+#include "encoder/enc_abi.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -31,7 +31,7 @@
 static float last_enc_angle = 0.0;
 static ABI_config_t ABI_config_now = { 0 };
 
-void ABI_deinit(void) {
+void enc_abi_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
 
 	TIM_DeInit(HW_ENC_TIM);
@@ -48,7 +48,7 @@ void ABI_deinit(void) {
 	ABI_config_now.is_init = 0;
 }
 
-encoder_ret_t ABI_init(ABI_config_t *abi_config) {
+encoder_ret_t enc_abi_init(ABI_config_t *abi_config) {
 
 	EXTI_InitTypeDef EXTI_InitStructure;
 
@@ -101,7 +101,7 @@ encoder_ret_t ABI_init(ABI_config_t *abi_config) {
 	return ENCODER_OK;
 }
 
-float ABI_read_deg(void) {
+float enc_abi_read_deg(void) {
 	last_enc_angle = ((float) HW_ENC_TIM->CNT * 360.0) / (float) ABI_config_now.counts;
 	return last_enc_angle;
 }

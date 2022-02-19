@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/AD2S1205.h"
+#include "enc_ad2s1205.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -43,12 +43,7 @@ static uint32_t spi_error_cnt = 0;
 static float spi_error_rate = 0.0;
 static float last_enc_angle = 0.0;
 
-void AD2S1205_deinit(void) {
-	nvicDisableVector(HW_ENC_EXTI_CH);
-	nvicDisableVector(HW_ENC_TIM_ISR_CH);
-
-	TIM_DeInit(HW_ENC_TIM);
-
+void enc_ad2s1205_deinit(void) {
 	spi_bb_deinit(&(AD2S1205_config_now.sw_spi));
 
 #ifdef HW_SPI_DEV
@@ -66,10 +61,7 @@ void AD2S1205_deinit(void) {
 	AD2S1205_config_now.is_init = 0;
 }
 
-encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
-
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-
+encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
 	AD2S1205_config_now = *AD2S1205_config;
 
 	spi_bb_init(&(AD2S1205_config_now.sw_spi));
@@ -79,8 +71,6 @@ encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 	resolver_loss_of_signal_error_rate = 0.0;
 	resolver_loss_of_tracking_error_cnt = 0;
 	resolver_loss_of_signal_error_cnt = 0;
-
-
 
 	// TODO: Choose pins on comm port when these are not defined
 #if defined(AD2S1205_SAMPLE_GPIO)
@@ -92,23 +82,6 @@ encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
 #endif
 
-	// Enable timer clock
-	HW_ENC_TIM_CLK_EN();
-
-	// Time Base configuration
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2
-			/ AD2S1205_config->refresh_rate_hz) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
-
-	// Enable overflow interrupt
-	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
-	// Enable timer
-	TIM_Cmd(HW_ENC_TIM, ENABLE);
-
 	AD2S1205_config->is_init = 1;
 	AD2S1205_config_now = *AD2S1205_config;
 
@@ -117,11 +90,11 @@ encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config) {
 	return ENCODER_OK;
 }
 
-float AD2S1205_read_deg(void) {
+float enc_ad2s1205_read_deg(void) {
 	return last_enc_angle;
 }
 
-void AD2S1205_routine(void) {
+void enc_ad2s1205_routine(float rate) {
 	uint16_t pos;
 	// SAMPLE signal should have been be asserted in sync with ADC sampling
 #ifdef AD2S1205_RDVEL_GPIO
@@ -154,13 +127,11 @@ void AD2S1205_routine(void) {
 		}
 
 		if (!parity_error) {
-			UTILS_LP_FAST(spi_error_rate, 0.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / rate);
 		} else {
 			angle_is_correct = false;
 			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / rate);
 		}
 
 		pos &= 0xFFF0;
@@ -170,31 +141,25 @@ void AD2S1205_routine(void) {
 		if (LOT) {
 			angle_is_correct = false;
 			++resolver_loss_of_tracking_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1.0 / rate);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1.0 / rate);
 		}
 
 		if (DOS) {
 			angle_is_correct = false;
 			++resolver_degradation_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1.0 / rate);
 		} else {
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1.0 / rate);
 		}
 
 		if (LOS) {
 			angle_is_correct = false;
 			++resolver_loss_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1.0 / rate);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0,
-					1. / AD2S1205_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1.0 / rate);
 		}
 
 		if (angle_is_correct) {
@@ -204,27 +169,27 @@ void AD2S1205_routine(void) {
 
 }
 
-float AD2S1205_resolver_loss_of_tracking_error_rate(void) {
+float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void) {
 	return resolver_loss_of_tracking_error_rate;
 }
 
-float AD2S1205_resolver_degradation_of_signal_error_rate(void) {
+float enc_ad2s1205_resolver_degradation_of_signal_error_rate(void) {
 	return resolver_degradation_of_signal_error_rate;
 }
 
-float AD2S1205_resolver_loss_of_signal_error_rate(void) {
+float enc_ad2s1205_resolver_loss_of_signal_error_rate(void) {
 	return resolver_loss_of_signal_error_rate;
 }
 
-uint32_t AD2S1205_resolver_loss_of_tracking_error_cnt(void) {
+uint32_t enc_ad2s1205_resolver_loss_of_tracking_error_cnt(void) {
 	return resolver_loss_of_tracking_error_cnt;
 }
 
-uint32_t AD2S1205_resolver_degradation_of_signal_error_cnt(void) {
+uint32_t enc_ad2s1205_resolver_degradation_of_signal_error_cnt(void) {
 	return resolver_degradation_of_signal_error_cnt;
 }
 
-uint32_t AD2S1205_resolver_loss_of_signal_error_cnt(void) {
+uint32_t enc_ad2s1205_resolver_loss_of_signal_error_cnt(void) {
 	return resolver_loss_of_signal_error_cnt;
 }
 

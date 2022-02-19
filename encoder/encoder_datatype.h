@@ -42,7 +42,6 @@ typedef enum {
 
 typedef struct {
 	bool is_init;
-	uint32_t refresh_rate_hz;
 	spi_bb_state sw_spi;
 #ifdef HW_SPI_DEV
 	SPIConfig hw_spi_cfg;

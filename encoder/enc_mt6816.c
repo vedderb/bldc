@@ -19,7 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "encoder/MT6816.h"
+#include "enc_mt6816.h"
 
 #include "ch.h"
 #include "hal.h"
@@ -41,7 +41,7 @@ static float last_enc_angle = 0.0;
 static uint32_t spi_error_cnt = 0;
 static uint32_t spi_val = 0;
 
-void MT6816_deinit(void) {
+void enc_mt6816_deinit(void) {
 
 	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
@@ -73,10 +73,8 @@ void MT6816_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
+encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config) {
 #ifdef HW_SPI_DEV
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-
 	MT6816_config_now = *mt6816_config;
 
 	palSetPadMode(MT6816_config_now.sw_spi.sck_gpio,
@@ -96,24 +94,6 @@ encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 
 	spiStart(&HW_SPI_DEV, &(MT6816_config_now.hw_spi_cfg));
 
-	// Enable timer clock
-	HW_ENC_TIM_CLK_EN();
-
-	// Time Base configuration
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2
-			/ mt6816_config->refresh_rate_hz) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
-
-	// Enable overflow interrupt
-	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
-
-	// Enable timer
-	TIM_Cmd(HW_ENC_TIM, ENABLE);
-
 	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
 	spi_error_rate = 0.0;
 	encoder_no_magnet_error_rate = 0.0;
@@ -128,11 +108,11 @@ encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 #endif
 }
 
-float MT6816_read_deg(void) {
+float enc_mt6816_read_deg(void) {
 	return last_enc_angle;
 }
 
-void MT6816_routine(void) {
+void enc_mt6816_routine(float rate) {
 #ifdef HW_SPI_DEV
 	uint16_t pos;
 	uint16_t reg_data_03;
@@ -154,36 +134,34 @@ void MT6816_routine(void) {
 	if (spi_bb_check_parity(pos)) {
 		if (pos & MT6816_NO_MAGNET_ERROR_MASK) {
 			++encoder_no_magnet_error_cnt;
-			UTILS_LP_FAST(encoder_no_magnet_error_rate, 1.0,
-					1. / MT6816_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(encoder_no_magnet_error_rate, 1.0, 1.0 / rate);
 		} else {
 			pos = pos >> 2;
 			last_enc_angle = ((float) pos * 360.0) / 16384.0;
-			UTILS_LP_FAST(spi_error_rate, 0.0,
-					1. / MT6816_config_now.refresh_rate_hz);
-			UTILS_LP_FAST(encoder_no_magnet_error_rate, 0.0,
-					1. / MT6816_config_now.refresh_rate_hz);
+			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(encoder_no_magnet_error_rate, 0.0, 1.0 / rate);
 		}
 	} else {
 		++spi_error_cnt;
-		UTILS_LP_FAST(spi_error_rate, 1.0,
-				1. / MT6816_config_now.refresh_rate_hz);
+		UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / rate);
 	}
+#else
+	(void)rate;
 #endif
 }
 
-uint32_t MT6816_spi_get_val(void) {
+uint32_t enc_mt6816_spi_get_val(void) {
 	return spi_val;
 }
 
-uint32_t MT6816_spi_get_error_cnt(void) {
+uint32_t enc_mt6816_spi_get_error_cnt(void) {
 	return spi_error_cnt;
 }
 
-uint32_t MT6816_get_no_magnet_error_cnt(void) {
+uint32_t enc_mt6816_get_no_magnet_error_cnt(void) {
 	return encoder_no_magnet_error_cnt;
 }
 
-uint32_t MT6816_get_no_magnet_error_rate(void) {
+uint32_t enc_mt6816_get_no_magnet_error_rate(void) {
 	return encoder_no_magnet_error_rate;
 }

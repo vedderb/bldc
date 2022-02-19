@@ -19,23 +19,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_AD2S1205_H_
-#define ENCODER_AD2S1205_H_
+#ifndef ENC_MT6816_H_
+#define ENC_MT6816_H_
 
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void AD2S1205_deinit(void);
-encoder_ret_t AD2S1205_init(AD2S1205_config_t *AD2S1205_config);
+void enc_mt6816_deinit(void);
+encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config);
 
-float AD2S1205_read_deg(void);
-void AD2S1205_routine(void);
+float enc_mt6816_read_deg(void);
+void enc_mt6816_routine(float rate);
 
-float AD2S1205_resolver_loss_of_tracking_error_rate(void);
-float AD2S1205_resolver_degradation_of_signal_error_rate(void);
-float AD2S1205_resolver_loss_of_signal_error_rate(void);
-uint32_t AD2S1205_resolver_loss_of_tracking_error_cnt(void);
-uint32_t AD2S1205_resolver_degradation_of_signal_error_cnt(void);
-uint32_t AD2S1205_resolver_loss_of_signal_error_cnt(void);
+uint32_t enc_mt6816_spi_get_val(void);
+uint32_t enc_mt6816_spi_get_error_cnt(void);
+uint32_t enc_mt6816_get_no_magnet_error_cnt(void);
+uint32_t enc_mt6816_get_no_magnet_error_rate(void);
 
-#endif /* ENCODER_AD2S1205_H_ */
+#endif /* ENC_MT6816_H_ */
