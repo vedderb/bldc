@@ -81,9 +81,7 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 		uint8_t receive = 0;
 
 		for (int bit = 0; bit < 8; bit++) {
-
-			if(s->mosi_gpio)
-			{
+			if(s->mosi_gpio) {
 				palWritePad(s->mosi_gpio, s->mosi_pin, send >> 7);
 				send <<= 1;
 			}
@@ -127,9 +125,7 @@ void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf,
 		uint16_t receive = 0;
 
 		for (int bit = 0; bit < 16; bit++) {
-
-			if(s->mosi_gpio)
-			{
+			if(s->mosi_gpio) {
 				palWritePad(s->mosi_gpio, s->mosi_pin, send >> 15);
 				send <<= 1;
 			}
@@ -177,12 +173,6 @@ void spi_bb_end(spi_bb_state *s) {
 
 void spi_bb_delay(void) {
 	for (volatile int i = 0; i < 6; i++) {
-		__NOP();
-	}
-}
-
-void spi_bb_long_delay(void) {
-	for (volatile int i = 0; i < 40; i++) {
 		__NOP();
 	}
 }

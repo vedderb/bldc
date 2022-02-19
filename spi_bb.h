@@ -48,7 +48,6 @@ void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_b
 void spi_bb_begin(spi_bb_state *s);
 void spi_bb_end(spi_bb_state *s);
 void spi_bb_delay(void);
-void spi_bb_long_delay(void);
 
 bool spi_bb_check_parity(uint16_t x);
 

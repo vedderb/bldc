@@ -69,10 +69,9 @@ static float last_enc_angle = 0.0;
 static uint32_t spi_error_cnt = 0;
 static float spi_error_rate = 0.0;
 
-//Private functions
-
-
+// Private functions
 #if (AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)
+static void long_delay(void);
 static uint8_t AS504x_fetch_diag(void);
 static uint8_t AS504x_verify_serial(void);
 static void AS504x_deserialize_diag(void);
@@ -83,7 +82,6 @@ static uint8_t AS504x_spi_transfer_err_check(uint16_t *in_buf,
 static void AS504x_determinate_if_connected(bool was_last_valid);
 
 void AS504x_routine(void) {
-
 	uint16_t pos;
 // if MOSI is defined, use diagnostics
 #if AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS
@@ -91,7 +89,7 @@ void AS504x_routine(void) {
 	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, 0, 1);
 	spi_bb_end(&(AS504x_config_now.sw_spi));
 
-	spi_bb_long_delay();
+	long_delay();
 
 	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	spi_data_err_raised = AS504x_spi_transfer_err_check(&pos, 0, 1);
@@ -196,6 +194,12 @@ encoder_ret_t AS504x_init(AS504x_config_t *AS504x_config) {
 }
 
 #if (AS504x_USE_SW_MOSI_PIN || AS5047_USE_HW_SPI_PINS)
+static void long_delay(void) {
+	for (volatile int i = 0; i < 40; i++) {
+		__NOP();
+	}
+}
+
 static uint8_t AS504x_verify_serial() {
 	uint16_t serial_diag_flgs, serial_magnitude, test_magnitude;
 	uint8_t test_AGC_value, test_is_Comp_high, test_is_Comp_low;
@@ -230,13 +234,13 @@ static uint8_t AS504x_fetch_diag(void) {
 	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, senf, 1);
 	spi_bb_end(&(AS504x_config_now.sw_spi));
 
-	spi_bb_long_delay();
+	long_delay();
 
 	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	ret |= AS504x_spi_transfer_err_check(recf, senf + 1, 1);
 	spi_bb_end(&(AS504x_config_now.sw_spi));
 
-	spi_bb_long_delay();
+	long_delay();
 
 	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	ret |= AS504x_spi_transfer_err_check(recf + 1, 0, 1);
@@ -273,7 +277,7 @@ static void AS504x_fetch_clear_err_diag() {
 	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), 0, &senf, 1);
 	spi_bb_end(&(AS504x_config_now.sw_spi));
 
-	spi_bb_long_delay();
+	long_delay();
 
 	spi_bb_begin(&(AS504x_config_now.sw_spi));
 	spi_bb_transfer_16(&(AS504x_config_now.sw_spi), &recf, 0, 1);

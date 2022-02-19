@@ -120,8 +120,12 @@ encoder_ret_t MT6816_init(MT6816_config_t *mt6816_config) {
 
 	MT6816_config_now.is_init = 1;
 	mt6816_config->is_init = 1;
-#endif
+
 	return ENCODER_OK;
+#else
+	(void)mt6816_config;
+	return ENCODER_ERROR;
+#endif
 }
 
 float MT6816_read_deg(void) {
@@ -129,6 +133,7 @@ float MT6816_read_deg(void) {
 }
 
 void MT6816_routine(void) {
+#ifdef HW_SPI_DEV
 	uint16_t pos;
 	uint16_t reg_data_03;
 	uint16_t reg_data_04;
@@ -164,7 +169,7 @@ void MT6816_routine(void) {
 		UTILS_LP_FAST(spi_error_rate, 1.0,
 				1. / MT6816_config_now.refresh_rate_hz);
 	}
-
+#endif
 }
 
 uint32_t MT6816_spi_get_val(void) {
