@@ -28,4 +28,7 @@ encoder_ret_t enc_as504x_init(AS504x_config_t *AS504x_config);
 void enc_as504x_deinit(AS504x_config_t *cfg);
 void enc_as504x_routine(AS504x_config_t *cfg, float rate);
 
+// Macros
+#define AS504x_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
+
 #endif /* ENC_AS504X_H_ */

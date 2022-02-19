@@ -317,7 +317,7 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 
 float encoder_read_deg(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
-		return as504x_cfg.state.last_enc_angle;
+		return AS504x_LAST_ANGLE(&as504x_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		return enc_mt6816_read_deg();
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
