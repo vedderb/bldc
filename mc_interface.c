@@ -28,7 +28,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "commands.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "buffer.h"
 #include "gpdrive.h"
 #include "comm_can.h"
@@ -147,29 +147,31 @@ static void init_sensor_port(volatile mc_configuration *conf) {
 	switch (conf->m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_ABI:
 		SENSOR_PORT_5V();
-		encoder_init_abi(conf->m_encoder_counts);
+		encoder_set_counts(conf->m_encoder_counts);
+		encoder_init(ENCODER_TYPE_ABI);
 		break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI:
 		SENSOR_PORT_3V3();
-		encoder_init_as5047p_spi();
+		encoder_init(ENCODER_TYPE_AS504x);
 		break;
 
 	case SENSOR_PORT_MODE_MT6816_SPI:
 		SENSOR_PORT_5V();
-		encoder_init_mt6816_spi();
+		encoder_init(ENCODER_TYPE_MT6816);
 		break;
 
 	case SENSOR_PORT_MODE_AD2S1205:
 		SENSOR_PORT_5V();
-		encoder_init_ad2s1205_spi();
+		encoder_init(ENCODER_TYPE_AD2S1205_SPI);
 		break;
 
 	case SENSOR_PORT_MODE_SINCOS:
 		SENSOR_PORT_5V();
-		encoder_init_sincos(conf->foc_encoder_sin_gain, conf->foc_encoder_sin_offset,
+		encoder_sincos_conf_set(conf->foc_encoder_sin_gain, conf->foc_encoder_sin_offset,
 				conf->foc_encoder_cos_gain, conf->foc_encoder_cos_offset,
 				conf->foc_encoder_sincos_filter_constant);
+		encoder_init(ENCODER_TYPE_SINCOS);
 		break;
 
 	case SENSOR_PORT_MODE_TS5700N8501:
@@ -185,7 +187,7 @@ static void init_sensor_port(volatile mc_configuration *conf) {
 			conf_general_store_app_configuration(appconf);
 		}
 		mempools_free_appconf(appconf);
-		encoder_init_ts5700n8501();
+		encoder_init(ENCODER_TYPE_TS5700N8501);
 	} break;
 
 	default:
@@ -2487,22 +2489,22 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 
-		if (encoder_sincos_get_signal_below_min_error_rate() > 0.05)
+		if (encoder_get_signal_below_min_error_rate() > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
-		if (encoder_sincos_get_signal_above_max_error_rate() > 0.05)
+		if (encoder_get_signal_above_max_error_rate() > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
 	}
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
-		if (!encoder_AS504x_get_diag().is_connected) {
+		if (!encoder_get_diag().is_connected) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
 		}
 
-		if (encoder_AS504x_get_diag().is_Comp_high) {
+		if (encoder_get_diag().is_Comp_high) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
-		} else if(encoder_AS504x_get_diag().is_Comp_low) {
+		} else if(encoder_get_diag().is_Comp_low) {
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, false);
 		}
 	}

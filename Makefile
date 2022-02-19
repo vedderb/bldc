@@ -153,7 +153,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       encoder.c \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \
@@ -176,7 +175,14 @@ CSRC = $(STARTUPSRC) \
        $(LORASRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
-       qmlui/qmlui.c
+       qmlui/qmlui.c \
+       encoder/encoder.c \
+       encoder/AS504x.c \
+       encoder/MT6816.c \
+       encoder/AD2S1205.c \
+       encoder/ABI.c \
+       encoder/ENC_SINCOS.c \
+       encoder/TS5700N8501.c
 
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)

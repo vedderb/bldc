@@ -24,7 +24,7 @@
 #include "mc_interface.h"
 #include "mcpwm_foc.h"
 #include "hw.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();

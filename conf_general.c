@@ -27,7 +27,7 @@
 #include "stm32f4xx_conf.h"
 #include "timeout.h"
 #include "commands.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "comm_can.h"
 #include "app.h"
 #include "confgenerator.h"
