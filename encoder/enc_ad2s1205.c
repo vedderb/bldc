@@ -46,10 +46,6 @@ static float last_enc_angle = 0.0;
 void enc_ad2s1205_deinit(void) {
 	spi_bb_deinit(&(AD2S1205_config_now.sw_spi));
 
-#ifdef HW_SPI_DEV
-	spiStop(&HW_SPI_DEV);
-#endif
-
 	// TODO: (TO BE TESTED!!) DEINITIALIZE ALSO SAMPLE AND RDVEL
 #if defined(AD2S1205_SAMPLE_GPIO)
 	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_INPUT_PULLUP);	// Prepare for a falling edge SAMPLE assertion
