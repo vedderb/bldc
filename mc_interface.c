@@ -143,59 +143,6 @@ static thread_t *fault_stop_tp;
 static THD_WORKING_AREA(stat_thread_wa, 512);
 static THD_FUNCTION(stat_thread, arg);
 
-static void init_sensor_port(volatile mc_configuration *conf) {
-	switch (conf->m_sensor_port_mode) {
-	case SENSOR_PORT_MODE_ABI:
-		SENSOR_PORT_5V();
-		encoder_set_counts(conf->m_encoder_counts);
-		encoder_init(ENCODER_TYPE_ABI);
-		break;
-
-	case SENSOR_PORT_MODE_AS5047_SPI:
-		SENSOR_PORT_3V3();
-		encoder_init(ENCODER_TYPE_AS504x);
-		break;
-
-	case SENSOR_PORT_MODE_MT6816_SPI:
-		SENSOR_PORT_5V();
-		encoder_init(ENCODER_TYPE_MT6816);
-		break;
-
-	case SENSOR_PORT_MODE_AD2S1205:
-		SENSOR_PORT_5V();
-		encoder_init(ENCODER_TYPE_AD2S1205_SPI);
-		break;
-
-	case SENSOR_PORT_MODE_SINCOS:
-		SENSOR_PORT_5V();
-		encoder_sincos_conf_set(conf->foc_encoder_sin_gain, conf->foc_encoder_sin_offset,
-				conf->foc_encoder_cos_gain, conf->foc_encoder_cos_offset,
-				conf->foc_encoder_sincos_filter_constant);
-		encoder_init(ENCODER_TYPE_SINCOS);
-		break;
-
-	case SENSOR_PORT_MODE_TS5700N8501:
-	case SENSOR_PORT_MODE_TS5700N8501_MULTITURN: {
-		SENSOR_PORT_5V();
-		app_configuration *appconf = mempools_alloc_appconf();
-		conf_general_read_app_configuration(appconf);
-		if (appconf->app_to_use == APP_ADC ||
-				appconf->app_to_use == APP_UART ||
-				appconf->app_to_use == APP_PPM_UART ||
-				appconf->app_to_use == APP_ADC_UART) {
-			appconf->app_to_use = APP_NONE;
-			conf_general_store_app_configuration(appconf);
-		}
-		mempools_free_appconf(appconf);
-		encoder_init(ENCODER_TYPE_TS5700N8501);
-	} break;
-
-	default:
-		SENSOR_PORT_5V();
-		break;
-	}
-}
-
 void mc_interface_init(void) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
 #ifdef HW_HAS_DUAL_MOTORS
@@ -260,7 +207,7 @@ void mc_interface_init(void) {
 #endif
 	mc_interface_select_motor_thread(motor_old);
 
-	init_sensor_port(&motor_now()->m_conf);
+	encoder_init(&motor_now()->m_conf);
 
 	// Initialize selected implementation
 	switch (motor_now()->m_conf.motor_type) {
@@ -350,11 +297,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
-		init_sensor_port(configuration);
-	}
-
-	if (configuration->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {
-		encoder_set_counts(configuration->m_encoder_counts);
+		encoder_init(configuration);
 	}
 
 #ifdef HW_HAS_DRV8301
@@ -2469,56 +2412,8 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		break;
 	}
 
-	// Trigger encoder error rate fault, using 5% errors as threshold.
-	// Relevant only in FOC mode with encoder enabled
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
-			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			mcpwm_foc_is_using_encoder() &&
-			encoder_spi_get_error_rate() > 0.05) {
-		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
-	}
+	encoder_check_faults(&motor->m_conf, !is_motor_1);
 
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
-			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			mcpwm_foc_is_using_encoder() &&
-			encoder_get_no_magnet_error_rate() > 0.05) {
-		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
-	}
-
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
-			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
-
-		if (encoder_get_signal_below_min_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
-		if (encoder_get_signal_above_max_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, !is_motor_1, false);
-	}
-
-	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
-				motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-				motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
-		if (!encoder_get_diag().is_connected) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
-		}
-
-		if (encoder_get_diag().is_Comp_high) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
-		} else if(encoder_get_diag().is_Comp_low) {
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, !is_motor_1, false);
-		}
-	}
-
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
-			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
-		if (encoder_resolver_loss_of_tracking_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, !is_motor_1, false);
-		if (encoder_resolver_degradation_of_signal_error_rate() > 0.05)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS, !is_motor_1, false);
-		if (encoder_resolver_loss_of_signal_error_rate() > 0.04)
-			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS, !is_motor_1, false);
-	}
 	// TODO: Implement for BLDC and GPDRIVE
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		float curr0_offset;

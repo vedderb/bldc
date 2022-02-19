@@ -1655,7 +1655,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			case CAN_PACKET_POLL_TS5700N8501_STATUS: {
 				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
 						((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
-						encoder_get_raw_status(), 8, true);
+						TS5700N8501_get_raw_status(), 8, true);
 			} break;
 
 			case CAN_PACKET_CONF_BATTERY_CUT:
