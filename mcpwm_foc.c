@@ -2255,7 +2255,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
 #endif
 
-	chThdSleepMilliseconds(10);
+	chThdSleep(1);
 
 	for (float i = 0;i < samples;i++) {
 		current_sum[0] += m_motor_1.m_currents_adc[0];
