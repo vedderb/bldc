@@ -112,7 +112,7 @@ void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_b
 			}
 
 			palSetPad(s->sck_gpio, s->sck_pin);
-			spi_bb_delay();
+			spi_bb_delay_short();
 
 			int samples = 0;
 			samples += palReadPad(s->miso_gpio, s->miso_pin);
@@ -131,7 +131,7 @@ void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_b
 			}
 
 			palClearPad(s->sck_gpio, s->sck_pin);
-			spi_bb_delay();
+			spi_bb_delay_short();
 		}
 
 		if (in_buf) {
@@ -156,6 +156,11 @@ void spi_bb_delay(void) {
 	for (volatile int i = 0; i < 6; i++) {
 		__NOP();
 	}
+}
+
+void spi_bb_delay_short(void) {
+	__NOP(); __NOP();
+	__NOP(); __NOP();
 }
 
 bool spi_bb_check_parity(uint16_t x) {
