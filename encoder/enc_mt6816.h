@@ -27,7 +27,7 @@
 
 encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config);
 void enc_mt6816_deinit(MT6816_config_t *cfg);
-void enc_mt6816_routine(MT6816_config_t *cfg, float rate);
+void enc_mt6816_routine(MT6816_config_t *cfg);
 
 // Macros
 #define MT6816_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)

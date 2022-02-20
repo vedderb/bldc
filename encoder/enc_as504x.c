@@ -27,6 +27,7 @@
 #include "mc_interface.h"
 #include "utils.h"
 #include "spi_bb.h"
+#include "timer.h"
 
 #include <string.h>
 #include <math.h>
@@ -76,8 +77,14 @@ void enc_as504x_deinit(AS504x_config_t *cfg) {
 	cfg->state.spi_error_rate = 0.0;
 }
 
-void enc_as504x_routine(AS504x_config_t *cfg, float rate) {
+void enc_as504x_routine(AS504x_config_t *cfg) {
 	uint16_t pos;
+
+	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
+	if (timestep > 1.0) {
+		timestep = 1.0;
+	}
+	cfg->state.last_update_time = timer_time_now();
 
 	// if MOSI is defined, use diagnostics
 	if (cfg->sw_spi.mosi_gpio != 0) {
@@ -133,10 +140,10 @@ void enc_as504x_routine(AS504x_config_t *cfg, float rate) {
 	if (spi_bb_check_parity(pos) && !cfg->state.spi_data_err_raised) {
 		pos &= 0x3FFF;
 		cfg->state.last_enc_angle = ((float) pos * 360.0) / 16384.0;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, 1.0 / rate);
+		UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
 	} else {
 		++cfg->state.spi_error_cnt;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, 1. / rate);
+		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
 	}
 }
 

@@ -52,6 +52,7 @@ typedef struct {
 	float last_enc_angle;
 	uint32_t spi_error_cnt;
 	uint32_t spi_val;
+	uint32_t last_update_time;
 } MT6816_state;
 
 typedef struct {
@@ -133,6 +134,7 @@ typedef struct {
 	float last_enc_angle;
 	uint32_t spi_error_cnt;
 	float spi_error_rate;
+	uint32_t last_update_time;
 } AS504x_state;
 
 typedef struct {

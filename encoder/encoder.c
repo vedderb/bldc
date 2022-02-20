@@ -88,7 +88,7 @@ MT6816_config_t mt6816_cfg = {
 		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
-		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0},
 #else
 		0,
 		{0},
@@ -96,7 +96,7 @@ MT6816_config_t mt6816_cfg = {
 		0, 0,
 		0, 0,
 		0, 0,
-		{0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0},
 #endif
 };
 
@@ -461,9 +461,9 @@ void encoder_pin_isr(void) {
 
 void encoder_tim_isr(void) {
 	if (encoder_type_now == ENCODER_TYPE_AS504x) {
-		enc_as504x_routine(&as504x_cfg, timer_rate_now);
+		enc_as504x_routine(&as504x_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
-		enc_mt6816_routine(&mt6816_cfg, timer_rate_now);
+		enc_mt6816_routine(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		enc_ad2s1205_routine(timer_rate_now);
 	}
