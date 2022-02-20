@@ -27,44 +27,16 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
-#include <math.h>
 #include "spi_bb.h"
+#include "timer.h"
 
-static AD2S1205_config_t AD2S1205_config_now = { 0 };
+#include <string.h>
+#include <math.h>
 
-static uint16_t spi_val = 0;
-static float resolver_loss_of_tracking_error_rate = 0.0;
-static float resolver_degradation_of_signal_error_rate = 0.0;
-static float resolver_loss_of_signal_error_rate = 0.0;
-static uint32_t resolver_loss_of_tracking_error_cnt = 0;
-static uint32_t resolver_degradation_of_signal_error_cnt = 0;
-static uint32_t resolver_loss_of_signal_error_cnt = 0;
-static uint32_t spi_error_cnt = 0;
-static float spi_error_rate = 0.0;
-static float last_enc_angle = 0.0;
+encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *cfg) {
+	spi_bb_init(&(cfg->sw_spi));
 
-void enc_ad2s1205_deinit(void) {
-	spi_bb_deinit(&(AD2S1205_config_now.sw_spi));
-
-	// TODO: (TO BE TESTED!!) DEINITIALIZE ALSO SAMPLE AND RDVEL
-#if defined(AD2S1205_SAMPLE_GPIO)
-	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_INPUT_PULLUP);	// Prepare for a falling edge SAMPLE assertion
-#endif
-#if defined(AD2S1205_RDVEL_GPIO)
-	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_INPUT_PULLUP);	// Will always read position
-#endif
-}
-
-encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
-	AD2S1205_config_now = *AD2S1205_config;
-
-	spi_bb_init(&(AD2S1205_config_now.sw_spi));
-
-	resolver_loss_of_tracking_error_rate = 0.0;
-	resolver_degradation_of_signal_error_rate = 0.0;
-	resolver_loss_of_signal_error_rate = 0.0;
-	resolver_loss_of_tracking_error_cnt = 0;
-	resolver_loss_of_signal_error_cnt = 0;
+	memset(&cfg->state, 0, sizeof(AD2S1205_state));
 
 	// TODO: Choose pins on comm port when these are not defined
 #if defined(AD2S1205_SAMPLE_GPIO)
@@ -77,36 +49,46 @@ encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
 #endif
 
-	AD2S1205_config_now = *AD2S1205_config;
-
-	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
-
 	return ENCODER_OK;
 }
 
-float enc_ad2s1205_read_deg(void) {
-	return last_enc_angle;
+void enc_ad2s1205_deinit(AD2S1205_config_t *cfg) {
+	spi_bb_deinit(&(cfg->sw_spi));
+
+#if defined(AD2S1205_SAMPLE_GPIO)
+	palSetPadMode(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN, PAL_MODE_INPUT_PULLUP);	// Prepare for a falling edge SAMPLE assertion
+#endif
+#if defined(AD2S1205_RDVEL_GPIO)
+	palSetPadMode(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN, PAL_MODE_INPUT_PULLUP);	// Will always read position
+#endif
 }
 
-void enc_ad2s1205_routine(float rate) {
+void enc_ad2s1205_routine(AD2S1205_config_t *cfg) {
 	uint16_t pos;
+
+	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
+	if (timestep > 1.0) {
+		timestep = 1.0;
+	}
+	cfg->state.last_update_time = timer_time_now();
+
 	// SAMPLE signal should have been be asserted in sync with ADC sampling
 #ifdef AD2S1205_RDVEL_GPIO
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);	// Always read position
 #endif
 
-	palSetPad(AD2S1205_config_now.sw_spi.sck_gpio, AD2S1205_config_now.sw_spi.sck_pin);
+	palSetPad(cfg->sw_spi.sck_gpio, cfg->sw_spi.sck_pin);
 
 	spi_bb_delay();
-	spi_bb_begin(&(AD2S1205_config_now.sw_spi)); // CS uses the same mcu pin as AS5047
+	spi_bb_begin(&(cfg->sw_spi));
 	spi_bb_delay();
 
-	spi_bb_transfer_16(&(AD2S1205_config_now.sw_spi), &pos, 0, 1);
-	spi_bb_end(&(AD2S1205_config_now.sw_spi));
+	spi_bb_transfer_16(&(cfg->sw_spi), &pos, 0, 1);
+	spi_bb_end(&(cfg->sw_spi));
 
-	spi_val = pos;
+	cfg->state.spi_val = pos;
 
-	uint16_t RDVEL = pos & 0x0008; // 1 means a position read
+	uint16_t RDVEL = pos & 0x0008;
 
 	if ((RDVEL != 0)) {
 
@@ -121,11 +103,11 @@ void enc_ad2s1205_routine(float rate) {
 		}
 
 		if (!parity_error) {
-			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
 		} else {
 			angle_is_correct = false;
-			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / rate);
+			++cfg->state.spi_error_cnt;
+			UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
 		}
 
 		pos &= 0xFFF0;
@@ -134,58 +116,30 @@ void enc_ad2s1205_routine(float rate) {
 
 		if (LOT) {
 			angle_is_correct = false;
-			++resolver_loss_of_tracking_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 1.0, 1.0 / rate);
+			++cfg->state.resolver_loss_of_tracking_error_cnt;
+			UTILS_LP_FAST(cfg->state.resolver_loss_of_tracking_error_rate, 1.0, timestep);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_tracking_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(cfg->state.resolver_loss_of_tracking_error_rate, 0.0, timestep);
 		}
 
 		if (DOS) {
 			angle_is_correct = false;
-			++resolver_degradation_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 1.0, 1.0 / rate);
+			++cfg->state.resolver_degradation_of_signal_error_cnt;
+			UTILS_LP_FAST(cfg->state.resolver_degradation_of_signal_error_rate, 1.0, timestep);
 		} else {
-			UTILS_LP_FAST(resolver_degradation_of_signal_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(cfg->state.resolver_degradation_of_signal_error_rate, 0.0, timestep);
 		}
 
 		if (LOS) {
 			angle_is_correct = false;
-			++resolver_loss_of_signal_error_cnt;
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 1.0, 1.0 / rate);
+			++cfg->state.resolver_loss_of_signal_error_cnt;
+			UTILS_LP_FAST(cfg->state.resolver_loss_of_signal_error_rate, 1.0, timestep);
 		} else {
-			UTILS_LP_FAST(resolver_loss_of_signal_error_rate, 0.0, 1.0 / rate);
+			UTILS_LP_FAST(cfg->state.resolver_loss_of_signal_error_rate, 0.0, timestep);
 		}
 
 		if (angle_is_correct) {
-			last_enc_angle = ((float) pos * 360.0) / 4096.0;
+			cfg->state.last_enc_angle = ((float) pos * 360.0) / 4096.0;
 		}
 	}
-}
-
-float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void) {
-	return resolver_loss_of_tracking_error_rate;
-}
-
-float enc_ad2s1205_resolver_degradation_of_signal_error_rate(void) {
-	return resolver_degradation_of_signal_error_rate;
-}
-
-float enc_ad2s1205_resolver_loss_of_signal_error_rate(void) {
-	return resolver_loss_of_signal_error_rate;
-}
-
-uint32_t enc_ad2s1205_resolver_loss_of_tracking_error_cnt(void) {
-	return resolver_loss_of_tracking_error_cnt;
-}
-
-uint32_t enc_ad2s1205_resolver_degradation_of_signal_error_cnt(void) {
-	return resolver_degradation_of_signal_error_cnt;
-}
-
-uint32_t enc_ad2s1205_resolver_loss_of_signal_error_cnt(void) {
-	return resolver_loss_of_signal_error_cnt;
-}
-
-uint32_t AD2S1205_spi_get_error_cnt(void) {
-	return spi_error_cnt;
 }

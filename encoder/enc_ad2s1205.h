@@ -25,17 +25,12 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void enc_ad2s1205_deinit(void);
+// Functions
 encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config);
+void enc_ad2s1205_deinit(AD2S1205_config_t *cfg);
+void enc_ad2s1205_routine(AD2S1205_config_t *cfg);
 
-float enc_ad2s1205_read_deg(void);
-void enc_ad2s1205_routine(float rate);
-
-float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void);
-float enc_ad2s1205_resolver_degradation_of_signal_error_rate(void);
-float enc_ad2s1205_resolver_loss_of_signal_error_rate(void);
-uint32_t enc_ad2s1205_resolver_loss_of_tracking_error_cnt(void);
-uint32_t enc_ad2s1205_resolver_degradation_of_signal_error_cnt(void);
-uint32_t enc_ad2s1205_resolver_loss_of_signal_error_cnt(void);
+// Macros
+#define AD2S1205_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
 
 #endif /* ENC_AD2S1205_H_ */

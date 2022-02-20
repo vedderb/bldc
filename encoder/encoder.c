@@ -74,6 +74,7 @@ AD2S1205_config_t ad2s1205_cfg = {
 				0, // has_error
 				CH_MUTEX_INIT_ZERO
 		},
+		{0},
 };
 
 MT6816_config_t mt6816_cfg = {
@@ -152,7 +153,7 @@ void encoder_deinit(void) {
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
-		enc_ad2s1205_deinit();
+		enc_ad2s1205_deinit(&ad2s1205_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
 		enc_abi_deinit();
 	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
@@ -323,7 +324,7 @@ float encoder_read_deg(void) {
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		return MT6816_LAST_ANGLE(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
-		return enc_ad2s1205_read_deg();
+		return AD2S1205_LAST_ANGLE(&ad2s1205_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
 		return enc_abi_read_deg();
 	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
@@ -373,35 +374,31 @@ void encoder_reset_errors(void) {
 void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_motor) {
 	// Trigger encoder error rate fault, using 5% errors as threshold.
 	// Relevant only in FOC mode with encoder enabled
-	if(m_conf->motor_type == MOTOR_TYPE_FOC &&
+
+	bool is_foc_encoder = m_conf->motor_type == MOTOR_TYPE_FOC &&
 			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			mcpwm_foc_is_using_encoder();
+
+	if (is_foc_encoder &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI &&
-			mcpwm_foc_is_using_encoder() &&
 			as504x_cfg.state.spi_error_rate > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 	}
 
-	if(m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+	if (is_foc_encoder &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI &&
-			mcpwm_foc_is_using_encoder() &&
 			mt6816_cfg.state.encoder_no_magnet_error_rate > 0.05) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
 	}
 
-	if(m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
-
+	if (is_foc_encoder && m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 		if (sincos_cfg.state.signal_low_error_rate > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, is_second_motor, false);
 		if (sincos_cfg.state.signal_above_max_error_rate > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, is_second_motor, false);
 	}
 
-	if (m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
+	if (is_foc_encoder && m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI) {
 		AS504x_diag diag = as504x_cfg.state.sensor_diag;
 
 		if (!diag.is_connected) {
@@ -415,15 +412,16 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 		}
 	}
 
-	if(m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
-		if (enc_ad2s1205_resolver_loss_of_tracking_error_rate() > 0.05)
+	if (is_foc_encoder && m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
+		if (ad2s1205_cfg.state.resolver_loss_of_tracking_error_rate > 0.05) {
 			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, is_second_motor, false);
-		if (enc_ad2s1205_resolver_degradation_of_signal_error_rate() > 0.05)
+		}
+		if (ad2s1205_cfg.state.resolver_degradation_of_signal_error_rate > 0.05) {
 			mc_interface_fault_stop(FAULT_CODE_RESOLVER_DOS, is_second_motor, false);
-		if (enc_ad2s1205_resolver_loss_of_signal_error_rate() > 0.04)
+		}
+		if (ad2s1205_cfg.state.resolver_loss_of_signal_error_rate > 0.04) {
 			mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOS, is_second_motor, false);
+		}
 	}
 }
 
@@ -465,7 +463,7 @@ void encoder_tim_isr(void) {
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_routine(&mt6816_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
-		enc_ad2s1205_routine(timer_rate_now);
+		enc_ad2s1205_routine(&ad2s1205_cfg);
 	}
 }
 
@@ -550,14 +548,14 @@ static void terminal_encoder(int argc, const char **argv) {
 
 	if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
 		commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				enc_ad2s1205_resolver_loss_of_tracking_error_cnt(),
-				(double)(enc_ad2s1205_resolver_loss_of_tracking_error_rate() * 100.0));
+				ad2s1205_cfg.state.resolver_loss_of_signal_error_cnt,
+				(double)(ad2s1205_cfg.state.resolver_loss_of_signal_error_rate * 100.0));
 		commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				enc_ad2s1205_resolver_degradation_of_signal_error_cnt(),
-				(double)(enc_ad2s1205_resolver_degradation_of_signal_error_rate() * 100.0));
+				ad2s1205_cfg.state.resolver_degradation_of_signal_error_cnt,
+				(double)(ad2s1205_cfg.state.resolver_degradation_of_signal_error_rate * 100.0));
 		commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				enc_ad2s1205_resolver_loss_of_signal_error_cnt(),
-				(double)(enc_ad2s1205_resolver_loss_of_signal_error_rate() * 100.0));
+				ad2s1205_cfg.state.resolver_loss_of_signal_error_cnt,
+				(double)(ad2s1205_cfg.state.resolver_loss_of_signal_error_rate * 100.0));
 	}
 
 	if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI) {

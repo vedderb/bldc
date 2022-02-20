@@ -42,7 +42,22 @@ typedef enum {
 } encoder_type_t;
 
 typedef struct {
+	uint16_t spi_val;
+	float resolver_loss_of_tracking_error_rate;
+	float resolver_degradation_of_signal_error_rate;
+	float resolver_loss_of_signal_error_rate;
+	uint32_t resolver_loss_of_tracking_error_cnt;
+	uint32_t resolver_degradation_of_signal_error_cnt;
+	uint32_t resolver_loss_of_signal_error_cnt;
+	uint32_t spi_error_cnt;
+	float spi_error_rate;
+	float last_enc_angle;
+	uint32_t last_update_time;
+} AD2S1205_state;
+
+typedef struct {
 	spi_bb_state sw_spi;
+	AD2S1205_state state;
 } AD2S1205_config_t;
 
 typedef struct {
