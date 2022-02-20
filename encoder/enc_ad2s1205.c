@@ -33,7 +33,7 @@
 #include <string.h>
 #include <math.h>
 
-encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *cfg) {
+bool enc_ad2s1205_init(AD2S1205_config_t *cfg) {
 	spi_bb_init(&(cfg->sw_spi));
 
 	memset(&cfg->state, 0, sizeof(AD2S1205_state));
@@ -49,7 +49,7 @@ encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *cfg) {
 	palSetPad(AD2S1205_RDVEL_GPIO, AD2S1205_RDVEL_PIN);		// Will always read position
 #endif
 
-	return ENCODER_OK;
+	return true;
 }
 
 void enc_ad2s1205_deinit(AD2S1205_config_t *cfg) {

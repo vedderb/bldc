@@ -24,7 +24,7 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *cfg);
+bool enc_ts5700n8501_init(TS5700N8501_config_t *cfg);
 void enc_ts5700n8501_deinit(TS5700N8501_config_t *cfg);
 
 inline float enc_ts5700n8501_read_deg(TS5700N8501_config_t *cfg) {

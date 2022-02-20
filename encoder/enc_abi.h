@@ -24,9 +24,12 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void enc_abi_deinit(void);
-encoder_ret_t enc_abi_init(ABI_config_t *abi_config);
+// Functions
+bool enc_abi_init(ABI_config_t *cfg);
+void enc_abi_deinit(ABI_config_t *cfg);
+float enc_abi_read_deg(ABI_config_t *cfg);
 
-float enc_abi_read_deg(void);
+// Call this functions on index pin change interrupts
+void enc_abi_pin_isr(ABI_config_t *cfg);
 
 #endif /* ENC_ABI_H_ */

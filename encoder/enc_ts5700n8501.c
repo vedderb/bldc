@@ -32,9 +32,9 @@
 // Private functions
 static THD_FUNCTION(ts5700n8501_thread, arg);
 
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
+bool enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
 	if (cfg->sd == NULL) {
-		return ENCODER_ERROR;
+		return false;
 	}
 
 	memset(&cfg->state, 0, sizeof(TS5700N8501_state));
@@ -43,7 +43,7 @@ encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
 	chThdCreateStatic(cfg->thread_wa, cfg->thread_wa_size,
 	NORMALPRIO - 10, ts5700n8501_thread, cfg);
 
-	return ENCODER_OK;
+	return true;
 }
 
 void enc_ts5700n8501_deinit(TS5700N8501_config_t *cfg) {

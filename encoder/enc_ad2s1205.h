@@ -26,7 +26,7 @@
 #include "encoder/encoder_datatype.h"
 
 // Functions
-encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config);
+bool enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config);
 void enc_ad2s1205_deinit(AD2S1205_config_t *cfg);
 void enc_ad2s1205_routine(AD2S1205_config_t *cfg);
 

@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_ENCODER_CFG_H_
-#define ENCODER_ENCODER_CFG_H_
+#ifndef ENCODER_CFG_H_
+#define ENCODER_CFG_H_
 
 #include "encoder_datatype.h"
 
@@ -30,4 +30,4 @@ extern ABI_config_t encoder_cfg_ABI;
 extern ENCSINCOS_config_t encoder_cfg_sincos;
 extern TS5700N8501_config_t encoder_cfg_TS5700N8501;
 
-#endif /* ENCODER_ENCODER_CFG_H_ */
+#endif /* ENCODER_CFG_H_ */

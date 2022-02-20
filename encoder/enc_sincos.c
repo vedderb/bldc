@@ -35,9 +35,9 @@
 #define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
 #define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
 
-encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *cfg) {
+bool enc_sincos_init(ENCSINCOS_config_t *cfg) {
 	memset(&cfg->state, 0, sizeof(ENCSINCOS_state));
-	return ENCODER_OK;
+	return true;
 }
 
 void enc_sincos_deinit(ENCSINCOS_config_t *cfg) {

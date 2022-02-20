@@ -94,12 +94,18 @@ MT6816_config_t encoder_cfg_mt6816 = {
 #endif
 };
 
-ABI_config_t encoder_cfg_ABI =
-{
+ABI_config_t encoder_cfg_ABI = {
 		10000, // counts
 		HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
 		HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-		HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3
+		HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
+		HW_ENC_TIM,
+		HW_ENC_TIM_AF,
+		HW_ENC_EXTI_PORTSRC,
+		HW_ENC_EXTI_PINSRC,
+		HW_ENC_EXTI_LINE,
+		HW_ENC_EXTI_CH,
+		{0, 0, 0}, // State
 };
 
 ENCSINCOS_config_t encoder_cfg_sincos = {0};

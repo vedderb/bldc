@@ -24,7 +24,7 @@
 #include "encoder/encoder_datatype.h"
 
 // Functions
-encoder_ret_t enc_as504x_init(AS504x_config_t *AS504x_config);
+bool enc_as504x_init(AS504x_config_t *AS504x_config);
 void enc_as504x_deinit(AS504x_config_t *cfg);
 void enc_as504x_routine(AS504x_config_t *cfg);
 

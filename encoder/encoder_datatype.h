@@ -28,10 +28,6 @@
 #include "spi_bb.h"
 
 typedef enum {
-	ENCODER_OK = 0, ENCODER_NONE, ENCODER_ERROR
-} encoder_ret_t;
-
-typedef enum {
 	ENCODER_TYPE_NONE = 0,
 	ENCODER_TYPE_AS504x,
 	ENCODER_TYPE_MT6816,
@@ -86,13 +82,27 @@ typedef struct {
 } MT6816_config_t;
 
 typedef struct {
+	volatile bool index_found;
+	volatile float last_enc_angle;
+	volatile int bad_pulses;
+} ABI_state;
+
+typedef struct {
 	uint32_t counts;
-	stm32_gpio_t *A_gpio;
-	uint8_t A_pin;
-	stm32_gpio_t *B_gpio;
-	uint8_t B_pin;
-	stm32_gpio_t *I_gpio;
-	uint8_t I_pin;
+
+	stm32_gpio_t *A_gpio; uint8_t A_pin;
+	stm32_gpio_t *B_gpio; uint8_t B_pin;
+	stm32_gpio_t *I_gpio; uint8_t I_pin;
+
+	TIM_TypeDef *timer;
+	uint8_t tim_af;
+
+	uint8_t exti_portsrc;
+	uint8_t exti_pinsrc;
+	uint32_t exti_line;
+	uint32_t exti_ch;
+
+	ABI_state state;
 } ABI_config_t;
 
 typedef struct {

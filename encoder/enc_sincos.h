@@ -26,7 +26,7 @@
 #include "encoder/encoder_datatype.h"
 
 // Functions
-encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *cfg);
+bool enc_sincos_init(ENCSINCOS_config_t *cfg);
 void enc_sincos_deinit(ENCSINCOS_config_t *cfg);
 float enc_sincos_read_deg(ENCSINCOS_config_t *cfg);
 

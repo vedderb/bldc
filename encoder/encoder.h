@@ -31,7 +31,7 @@
 #include "enc_abi.h"
 
 // Functions
-encoder_ret_t encoder_init(volatile mc_configuration *conf);
+bool encoder_init(volatile mc_configuration *conf);
 void encoder_deinit(void);
 
 float encoder_read_deg(void);
