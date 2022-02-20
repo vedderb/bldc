@@ -24,14 +24,28 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config);
-void enc_ts5700n8501_deinit(void);
+encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *cfg);
+void enc_ts5700n8501_deinit(TS5700N8501_config_t *cfg);
 
-float enc_ts5700n8501_read_deg(void);
+inline float enc_ts5700n8501_read_deg(TS5700N8501_config_t *cfg) {
+	return cfg->state.last_enc_angle;
+}
 
-uint8_t* enc_ts5700n8501_get_raw_status(void);
-int16_t enc_ts5700n8501_get_abm(void);
-void enc_ts5700n8501_reset_errors(void);
-void enc_ts5700n8501_reset_multiturn(void);
+inline uint8_t* enc_ts5700n8501_get_raw_status(TS5700N8501_config_t *cfg) {
+	return (uint8_t*)cfg->state.raw_status;
+}
+
+inline int16_t enc_ts5700n8501_get_abm(TS5700N8501_config_t *cfg) {
+	return (uint16_t) cfg->state.raw_status[4]
+			| ((uint16_t) cfg->state.raw_status[5] << 8);
+}
+
+inline void enc_ts5700n8501_reset_errors(TS5700N8501_config_t *cfg) {
+	cfg->state.reset_errors = true;
+}
+
+inline void enc_ts5700n8501_reset_multiturn(TS5700N8501_config_t *cfg) {
+	cfg->state.reset_multiturn = true;
+}
 
 #endif /* ENC_TS5700N8501_H_ */

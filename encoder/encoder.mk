@@ -1,4 +1,5 @@
 ENCSRC =	encoder/encoder.c \
+			encoder/encoder_cfg.c \
 			encoder/enc_abi.c \
 			encoder/enc_ad2s1205.c \
 			encoder/enc_as504x.c \

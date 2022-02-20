@@ -116,6 +116,18 @@ typedef struct {
 } ENCSINCOS_config_t;
 
 typedef struct {
+	volatile bool stop_now;
+	volatile bool is_running;
+	volatile uint8_t raw_status[8];
+	volatile bool reset_errors;
+	volatile bool reset_multiturn;
+	float spi_error_rate;
+	uint32_t spi_error_cnt;
+	uint32_t spi_val;
+	float last_enc_angle;
+} TS5700N8501_state;
+
+typedef struct {
 	SerialDriver *sd;
 	stm32_gpio_t *TX_gpio;
 	uint8_t TX_pin;
@@ -124,6 +136,10 @@ typedef struct {
 	stm32_gpio_t *EXT_gpio;
 	uint8_t EXT_pin;
 	SerialConfig uart_param;
+	stkalign_t *thread_wa;
+	uint32_t thread_wa_size;
+
+	TS5700N8501_state state;
 } TS5700N8501_config_t;
 
 typedef struct {

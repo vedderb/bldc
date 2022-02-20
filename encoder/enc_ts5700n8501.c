@@ -25,85 +25,47 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "utils.h"
+
+#include <string.h>
 #include <math.h>
 
+// Private functions
 static THD_FUNCTION(ts5700n8501_thread, arg);
-static THD_WORKING_AREA(ts5700n8501_thread_wa, 512);
 
-static volatile bool ts5700n8501_stop_now = true;
-static volatile bool ts5700n8501_is_running = false;
-static volatile uint8_t ts5700n8501_raw_status[8] = { 0 };
-static volatile bool ts5700n8501_reset_errors = false;
-static volatile bool ts5700n8501_reset_multiturn = false;
-
-static TS5700N8501_config_t ts5700n8501_config_now = { 0 };
-
-static float spi_error_rate = 0.0;
-static uint32_t spi_error_cnt = 0;
-static uint32_t spi_val = 0;
-
-static float last_enc_angle = 0.0;
-
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
-	if (ts5700n8501_config->sd == NULL) {
+encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
+	if (cfg->sd == NULL) {
 		return ENCODER_ERROR;
 	}
 
-	spi_error_rate = 0.0;
-	spi_error_cnt = 0;
-	ts5700n8501_is_running = true;
-	ts5700n8501_stop_now = false;
+	memset(&cfg->state, 0, sizeof(TS5700N8501_state));
+	cfg->state.is_running = true;
 
-	ts5700n8501_config_now = *ts5700n8501_config;
-
-	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
-	NORMALPRIO - 10, ts5700n8501_thread, NULL);
+	chThdCreateStatic(cfg->thread_wa, cfg->thread_wa_size,
+	NORMALPRIO - 10, ts5700n8501_thread, cfg);
 
 	return ENCODER_OK;
 }
 
-void enc_ts5700n8501_deinit(void) {
-	if (ts5700n8501_config_now.sd == NULL) {
+void enc_ts5700n8501_deinit(TS5700N8501_config_t *cfg) {
+	if (cfg->sd == NULL) {
 		return;
 	}
 
-	ts5700n8501_stop_now = true;
-	while (ts5700n8501_is_running) {
+	cfg->state.stop_now = true;
+	while (cfg->state.is_running) {
 		chThdSleepMilliseconds(1);
 	}
 
-	palSetPadMode(ts5700n8501_config_now.TX_gpio,
-			ts5700n8501_config_now.TX_pin,
-			PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.RX_gpio,
-			ts5700n8501_config_now.RX_pin,
-			PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(cfg->TX_gpio, cfg->TX_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->RX_gpio, cfg->RX_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->EXT_gpio, cfg->EXT_pin, PAL_MODE_INPUT_ANALOG);
 
-	last_enc_angle = 0.0;
-	spi_error_rate = 0.0;
+	cfg->state.last_enc_angle = 0.0;
+	cfg->state.spi_error_rate = 0.0;
 }
 
-float enc_ts5700n8501_read_deg(void) {
-	return last_enc_angle;
-}
-
-uint8_t* enc_ts5700n8501_get_raw_status(void) {
-	return (uint8_t*) ts5700n8501_raw_status;
-}
-
-int16_t enc_ts5700n8501_get_abm(void) {
-	return (uint16_t) ts5700n8501_raw_status[4]
-			| ((uint16_t) ts5700n8501_raw_status[5] << 8);
-}
-
-void enc_ts5700n8501_reset_errors(void) {
-	ts5700n8501_reset_errors = true;
-}
-
-void enc_ts5700n8501_reset_multiturn(void) {
-	ts5700n8501_reset_multiturn = true;
-}
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
 static void TS5700N8501_delay_uart(void) {
 	__NOP();
@@ -132,12 +94,11 @@ static void TS5700N8501_delay_uart(void) {
  * the system is locked, but it should finish fast enough to not cause problems for other
  * things due to the high baud rate.
  */
-static void TS5700N8501_send_byte(uint8_t b) {
+static void TS5700N8501_send_byte(TS5700N8501_config_t *cfg, uint8_t b) {
 	utils_sys_lock_cnt();
-	palSetPad(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin);
+	palSetPad(cfg->EXT_gpio, cfg->EXT_pin);
 	TS5700N8501_delay_uart();
-	palWritePad(ts5700n8501_config_now.TX_gpio,
-			ts5700n8501_config_now.TX_pin, 0);
+	palWritePad(cfg->TX_gpio, cfg->TX_pin, 0);
 	__NOP();
 	__NOP();
 	__NOP();
@@ -154,9 +115,7 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	__NOP();
 	__NOP();
 	for (int i = 0; i < 8; i++) {
-		palWritePad(ts5700n8501_config_now.TX_gpio,
-				ts5700n8501_config_now.TX_pin,
-				(b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
+		palWritePad(cfg->TX_gpio, cfg->TX_pin, (b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
 		TS5700N8501_delay_uart();
 	}
 	__NOP();
@@ -177,57 +136,56 @@ static void TS5700N8501_send_byte(uint8_t b) {
 	__NOP();
 	__NOP();
 	__NOP();
-	palWritePad(ts5700n8501_config_now.TX_gpio,
-			ts5700n8501_config_now.TX_pin, 1);
+	palWritePad(cfg->TX_gpio, cfg->TX_pin, 1);
 	TS5700N8501_delay_uart();
-	palClearPad(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin);
+	palClearPad(cfg->EXT_gpio, cfg->EXT_pin);
 	utils_sys_unlock_cnt();
 }
 
+#pragma GCC pop_options
+
 static THD_FUNCTION(ts5700n8501_thread, arg) {
-	(void) arg;
+	TS5700N8501_config_t *cfg = (TS5700N8501_config_t*)arg;
 
 	chRegSetThreadName("TS5700N8501");
 
-	SerialConfig sd_init = ts5700n8501_config_now.uart_param;
+	SerialConfig sd_init = cfg->uart_param;
 
-	sdStart(ts5700n8501_config_now.sd, &sd_init);
-	palSetPadMode(ts5700n8501_config_now.TX_gpio,
-			ts5700n8501_config_now.TX_pin,
+	sdStart(cfg->sd, &sd_init);
+	palSetPadMode(cfg->TX_gpio, cfg->TX_pin,
 			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.RX_gpio,
-			ts5700n8501_config_now.RX_pin,
+	palSetPadMode(cfg->RX_gpio, cfg->RX_pin,
 			PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(ts5700n8501_config_now.EXT_gpio, ts5700n8501_config_now.EXT_pin, PAL_MODE_OUTPUT_PUSHPULL |
+	palSetPadMode(cfg->EXT_gpio, cfg->EXT_pin, PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST |
 			PAL_STM32_PUDR_PULLUP);
 
 	for (;;) {
 		// Check if it is time to stop.
-		if (ts5700n8501_stop_now) {
-			ts5700n8501_is_running = false;
+		if (cfg->state.stop_now) {
+			cfg->state.is_running = false;
 			return;
 		}
 
-		if (ts5700n8501_reset_errors) {
+		if (cfg->state.reset_errors) {
 			for (int i = 0; i < 20; i++) {
-				TS5700N8501_send_byte(0b01011101);
+				TS5700N8501_send_byte(cfg, 0b01011101);
 				chThdSleep(2);
 			}
 
-			ts5700n8501_reset_errors = false;
+			cfg->state.reset_errors = false;
 		}
 
-		if (ts5700n8501_reset_multiturn) {
+		if (cfg->state.reset_multiturn) {
 			for (int i = 0; i < 20; i++) {
-				TS5700N8501_send_byte(0b01000110);
+				TS5700N8501_send_byte(cfg, 0b01000110);
 				chThdSleep(2);
 			}
 
-			ts5700n8501_reset_multiturn = false;
+			cfg->state.reset_multiturn = false;
 		}
 
-		TS5700N8501_send_byte(0b01011000);
+		TS5700N8501_send_byte(cfg, 0b01011000);
 
 #define LOOP_RATE	((float)(CH_CFG_ST_FREQUENCY / 2))
 		chThdSleep(2);
@@ -235,12 +193,12 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 		uint8_t reply[11];
 		int reply_ind = 0;
 
-		msg_t res = sdGetTimeout(ts5700n8501_config_now.sd, TIME_IMMEDIATE);
+		msg_t res = sdGetTimeout(cfg->sd, TIME_IMMEDIATE);
 		while (res != MSG_TIMEOUT ) {
 			if (reply_ind < (int) sizeof(reply)) {
 				reply[reply_ind++] = res;
 			}
-			res = sdGetTimeout(ts5700n8501_config_now.sd, TIME_IMMEDIATE);
+			res = sdGetTimeout(cfg->sd, TIME_IMMEDIATE);
 		}
 
 		uint8_t crc = 0;
@@ -251,21 +209,21 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 		if (reply_ind == 11 && crc == reply[reply_ind - 1]) {
 			uint32_t pos = (uint32_t) reply[2] + ((uint32_t) reply[3] << 8)
 					+ ((uint32_t) reply[4] << 16);
-			spi_val = pos;
-			last_enc_angle = (float) pos / 131072.0 * 360.0;
-			UTILS_LP_FAST(spi_error_rate, 0.0, 1.0 / LOOP_RATE);
+			cfg->state.spi_val = pos;
+			cfg->state.last_enc_angle = (float) pos / 131072.0 * 360.0;
+			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, 1.0 / LOOP_RATE);
 
-			ts5700n8501_raw_status[0] = reply[1]; // SF
-			ts5700n8501_raw_status[1] = reply[2]; // ABS0
-			ts5700n8501_raw_status[2] = reply[3]; // ABS1
-			ts5700n8501_raw_status[3] = reply[4]; // ABS2
-			ts5700n8501_raw_status[4] = reply[6]; // ABM0
-			ts5700n8501_raw_status[5] = reply[7]; // ABM1
-			ts5700n8501_raw_status[6] = reply[8]; // ABM2
-			ts5700n8501_raw_status[7] = reply[9]; // ALMC
+			cfg->state.raw_status[0] = reply[1]; // SF
+			cfg->state.raw_status[1] = reply[2]; // ABS0
+			cfg->state.raw_status[2] = reply[3]; // ABS1
+			cfg->state.raw_status[3] = reply[4]; // ABS2
+			cfg->state.raw_status[4] = reply[6]; // ABM0
+			cfg->state.raw_status[5] = reply[7]; // ABM1
+			cfg->state.raw_status[6] = reply[8]; // ABM2
+			cfg->state.raw_status[7] = reply[9]; // ALMC
 		} else {
-			++spi_error_cnt;
-			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / LOOP_RATE);
+			++cfg->state.spi_error_cnt;
+			UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, 1.0 / LOOP_RATE);
 		}
 	}
 }
