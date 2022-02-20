@@ -84,10 +84,6 @@ encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config) {
 	return ENCODER_OK;
 }
 
-float enc_ad2s1205_read_deg(void) {
-	return last_enc_angle;
-}
-
 void enc_ad2s1205_routine(float rate) {
 	uint16_t pos;
 	// SAMPLE signal should have been be asserted in sync with ADC sampling
@@ -160,6 +156,10 @@ void enc_ad2s1205_routine(float rate) {
 			last_enc_angle = ((float) pos * 360.0) / 4096.0;
 		}
 	}
+}
+
+float enc_ad2s1205_read_deg(void) {
+	return last_enc_angle;
 }
 
 float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void) {

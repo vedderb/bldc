@@ -25,8 +25,8 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config);
 void enc_mt6816_deinit(MT6816_config_t *cfg);
+encoder_ret_t enc_mt6816_init(MT6816_config_t *mt6816_config);
 void enc_mt6816_routine(MT6816_config_t *cfg, float rate);
 
 // Macros

@@ -34,6 +34,22 @@
 
 #define MT6816_NO_MAGNET_ERROR_MASK		0x0002
 
+void enc_mt6816_deinit(MT6816_config_t *cfg) {
+	if (cfg->spi_dev == NULL) {
+		return;
+	}
+
+	palSetPadMode(cfg->miso_gpio, cfg->miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->sck_gpio, cfg->sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->nss_gpio, cfg->nss_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin, PAL_MODE_INPUT_PULLUP);
+
+	spiStop(cfg->spi_dev);
+
+	cfg->state.last_enc_angle = 0.0;
+	cfg->state.spi_error_rate = 0.0;
+}
+
 encoder_ret_t enc_mt6816_init(MT6816_config_t *cfg) {
 	if (cfg->spi_dev == NULL) {
 		return ENCODER_ERROR;
@@ -52,22 +68,6 @@ encoder_ret_t enc_mt6816_init(MT6816_config_t *cfg) {
 	cfg->state.encoder_no_magnet_error_rate = 0.0;
 
 	return ENCODER_OK;
-}
-
-void enc_mt6816_deinit(MT6816_config_t *cfg) {
-	if (cfg->spi_dev == NULL) {
-		return;
-	}
-
-	palSetPadMode(cfg->miso_gpio, cfg->miso_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(cfg->sck_gpio, cfg->sck_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(cfg->nss_gpio, cfg->nss_pin, PAL_MODE_INPUT_PULLUP);
-	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin, PAL_MODE_INPUT_PULLUP);
-
-	spiStop(cfg->spi_dev);
-
-	cfg->state.last_enc_angle = 0.0;
-	cfg->state.spi_error_rate = 0.0;
 }
 
 void enc_mt6816_routine(MT6816_config_t *cfg, float rate) {

@@ -44,24 +44,6 @@ static uint32_t spi_val = 0;
 
 static float last_enc_angle = 0.0;
 
-encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
-	if (ts5700n8501_config->sd == NULL) {
-		return ENCODER_ERROR;
-	}
-
-	spi_error_rate = 0.0;
-	spi_error_cnt = 0;
-	ts5700n8501_is_running = true;
-	ts5700n8501_stop_now = false;
-
-	ts5700n8501_config_now = *ts5700n8501_config;
-
-	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
-	NORMALPRIO - 10, ts5700n8501_thread, NULL);
-
-	return ENCODER_OK;
-}
-
 void enc_ts5700n8501_deinit(void) {
 	if (ts5700n8501_config_now.sd == NULL) {
 		return;
@@ -84,25 +66,22 @@ void enc_ts5700n8501_deinit(void) {
 	spi_error_rate = 0.0;
 }
 
-float enc_ts5700n8501_read_deg(void) {
-	return last_enc_angle;
-}
+encoder_ret_t enc_ts5700n8501_init(TS5700N8501_config_t *ts5700n8501_config) {
+	if (ts5700n8501_config->sd == NULL) {
+		return ENCODER_ERROR;
+	}
 
-uint8_t* enc_ts5700n8501_get_raw_status(void) {
-	return (uint8_t*) ts5700n8501_raw_status;
-}
+	spi_error_rate = 0.0;
+	spi_error_cnt = 0;
+	ts5700n8501_is_running = true;
+	ts5700n8501_stop_now = false;
 
-int16_t enc_ts5700n8501_get_abm(void) {
-	return (uint16_t) ts5700n8501_raw_status[4]
-			| ((uint16_t) ts5700n8501_raw_status[5] << 8);
-}
+	ts5700n8501_config_now = *ts5700n8501_config;
 
-void enc_ts5700n8501_reset_errors(void) {
-	ts5700n8501_reset_errors = true;
-}
+	chThdCreateStatic(ts5700n8501_thread_wa, sizeof(ts5700n8501_thread_wa),
+	NORMALPRIO - 10, ts5700n8501_thread, NULL);
 
-void enc_ts5700n8501_reset_multiturn(void) {
-	ts5700n8501_reset_multiturn = true;
+	return ENCODER_OK;
 }
 
 static void TS5700N8501_delay_uart(void) {
@@ -268,4 +247,25 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			UTILS_LP_FAST(spi_error_rate, 1.0, 1.0 / LOOP_RATE);
 		}
 	}
+}
+
+float enc_ts5700n8501_read_deg(void) {
+	return last_enc_angle;
+}
+
+uint8_t* enc_ts5700n8501_get_raw_status(void) {
+	return (uint8_t*) ts5700n8501_raw_status;
+}
+
+int16_t enc_ts5700n8501_get_abm(void) {
+	return (uint16_t) ts5700n8501_raw_status[4]
+			| ((uint16_t) ts5700n8501_raw_status[5] << 8);
+}
+
+void enc_ts5700n8501_reset_errors(void) {
+	ts5700n8501_reset_errors = true;
+}
+
+void enc_ts5700n8501_reset_multiturn(void) {
+	ts5700n8501_reset_multiturn = true;
 }

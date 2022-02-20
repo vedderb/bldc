@@ -28,8 +28,8 @@
 void enc_ad2s1205_deinit(void);
 encoder_ret_t enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config);
 
-float enc_ad2s1205_read_deg(void);
 void enc_ad2s1205_routine(float rate);
+float enc_ad2s1205_read_deg(void);
 
 float enc_ad2s1205_resolver_loss_of_tracking_error_rate(void);
 float enc_ad2s1205_resolver_degradation_of_signal_error_rate(void);
