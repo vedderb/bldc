@@ -108,7 +108,7 @@ ABI_config_t encoder_conf_ABI =
 		HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3
 };
 
-ENCSINCOS_config_t encoder_conf_ENCSINCOS = {0};
+ENCSINCOS_config_t sincos_cfg = {0};
 
 TS5700N8501_config_t encoder_conf_TS5700N8501 = {
 #if defined(HW_ADC_EXT_GPIO) && defined(HW_ADC_EXT_GPIO)
@@ -156,7 +156,7 @@ void encoder_deinit(void) {
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
 		enc_abi_deinit();
 	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
-		enc_sincos_deinit();
+		enc_sincos_deinit(&sincos_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		enc_ts5700n8501_deinit();
 	}
@@ -246,13 +246,13 @@ encoder_ret_t encoder_init(volatile mc_configuration *conf) {
 	case SENSOR_PORT_MODE_SINCOS: {
 		SENSOR_PORT_5V();
 
-		encoder_conf_ENCSINCOS.s_gain = conf->foc_encoder_sin_gain;
-		encoder_conf_ENCSINCOS.s_offset = conf->foc_encoder_sin_offset;
-		encoder_conf_ENCSINCOS.c_gain = conf->foc_encoder_cos_gain;
-		encoder_conf_ENCSINCOS.c_offset =  conf->foc_encoder_cos_offset;
-		encoder_conf_ENCSINCOS.filter_constant = conf->foc_encoder_sincos_filter_constant;
+		sincos_cfg.s_gain = conf->foc_encoder_sin_gain;
+		sincos_cfg.s_offset = conf->foc_encoder_sin_offset;
+		sincos_cfg.c_gain = conf->foc_encoder_cos_gain;
+		sincos_cfg.c_offset =  conf->foc_encoder_cos_offset;
+		sincos_cfg.filter_constant = conf->foc_encoder_sincos_filter_constant;
 
-		encoder_ret_t encoder_ret = enc_sincos_init(&encoder_conf_ENCSINCOS);
+		encoder_ret_t encoder_ret = enc_sincos_init(&sincos_cfg);
 
 		if (ENCODER_OK != encoder_ret) {
 			encoder_type_now = ENCODER_TYPE_NONE;
@@ -327,7 +327,7 @@ float encoder_read_deg(void) {
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
 		return enc_abi_read_deg();
 	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
-		return enc_sincos_read_deg();
+		return enc_sincos_read_deg(&sincos_cfg);
 	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		return enc_ts5700n8501_read_deg();
 	}
@@ -393,9 +393,9 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			m_conf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 
-		if (enc_sincos_get_signal_below_min_error_rate() > 0.05)
+		if (sincos_cfg.state.signal_low_error_rate > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, is_second_motor, false);
-		if (enc_sincos_get_signal_above_max_error_rate() > 0.05)
+		if (sincos_cfg.state.signal_above_max_error_rate > 0.05)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE, is_second_motor, false);
 	}
 
@@ -540,12 +540,12 @@ static void terminal_encoder(int argc, const char **argv) {
 
 	if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 		commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
-				enc_sincos_get_signal_below_min_error_cnt(),
-				(double)(enc_sincos_get_signal_below_min_error_rate() * 100.0));
+				sincos_cfg.state.signal_below_min_error_cnt,
+				(double)(sincos_cfg.state.signal_low_error_rate * 100.0));
 
 		commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
-				enc_sincos_get_signal_above_max_error_cnt(),
-				(double)(enc_sincos_get_signal_above_max_error_rate() * 100.0));
+				sincos_cfg.state.signal_above_max_error_cnt,
+				(double)(sincos_cfg.state.signal_above_max_error_rate * 100.0));
 	}
 
 	if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {

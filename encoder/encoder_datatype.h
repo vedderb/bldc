@@ -80,12 +80,23 @@ typedef struct {
 } ABI_config_t;
 
 typedef struct {
+	uint32_t signal_below_min_error_cnt;
+	uint32_t signal_above_max_error_cnt;
+	float signal_low_error_rate;
+	float signal_above_max_error_rate;
+	float last_enc_angle;
+	uint32_t last_update_time;
+} ENCSINCOS_state;
+
+typedef struct {
 	uint32_t refresh_rate_hz;
 	float s_gain;
 	float s_offset;
 	float c_gain;
 	float c_offset;
 	float filter_constant;
+
+	ENCSINCOS_state state;
 } ENCSINCOS_config_t;
 
 typedef struct {

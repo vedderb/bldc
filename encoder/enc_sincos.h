@@ -25,14 +25,9 @@
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-void enc_sincos_deinit(void);
-encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *enc_sincos_config);
-
-float enc_sincos_read_deg(void);
-
-uint32_t enc_sincos_get_signal_below_min_error_cnt(void);
-uint32_t enc_sincos_get_signal_above_max_error_cnt(void);
-float enc_sincos_get_signal_below_min_error_rate(void);
-float enc_sincos_get_signal_above_max_error_rate(void);
+// Functions
+encoder_ret_t enc_sincos_init(ENCSINCOS_config_t *cfg);
+void enc_sincos_deinit(ENCSINCOS_config_t *cfg);
+float enc_sincos_read_deg(ENCSINCOS_config_t *cfg);
 
 #endif /* ENC_SINCOS_H_ */
