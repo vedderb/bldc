@@ -30,7 +30,7 @@
 #include "utils.h"
 #include "ledpwm.h"
 #include "terminal.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "commands.h"
 #include "timeout.h"
 #include "timer.h"

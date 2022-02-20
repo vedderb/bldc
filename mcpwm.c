@@ -31,7 +31,7 @@
 #include "ledpwm.h"
 #include "terminal.h"
 #include "timeout.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "timer.h"
 
 // Structs

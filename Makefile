@@ -114,6 +114,7 @@ include imu/imu.mk
 include lora/lora.mk
 include lzo/lzo.mk
 include blackmagic/blackmagic.mk
+include encoder/encoder.mk
 
 ifeq ($(USE_LISPBM),1)
   include lispBM/lispbm.mk
@@ -153,7 +154,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       encoder.c \
        flash_helper.c \
        mc_interface.c \
        mcpwm_foc.c \
@@ -176,7 +176,8 @@ CSRC = $(STARTUPSRC) \
        $(LORASRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
-       qmlui/qmlui.c
+       qmlui/qmlui.c \
+       $(ENCSRC)
 
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)
@@ -225,7 +226,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(BLACKMAGICINC) \
          qmlui \
          qmlui/hw \
-         qmlui/app
+         qmlui/app \
+         $(ENCINC)
 
 ifeq ($(USE_LISPBM),1)
   INCDIR += $(LISPBMINC)

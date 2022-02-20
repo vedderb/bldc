@@ -283,10 +283,19 @@
 
 // Sin/Cos Encoder Signals. Override if available
 #ifndef ENCODER_SIN_VOLTS
-#define ENCODER_SIN_VOLTS()		0.0
+#if defined(ADC_IND_EXT) && defined(ADC_VOLTS)
+#define ENCODER_SIN_VOLTS		ADC_VOLTS(ADC_IND_EXT)
+#else
+#define ENCODER_SIN_VOLTS		0.0
 #endif
+#endif
+
 #ifndef ENCODER_COS_VOLTS
-#define ENCODER_COS_VOLTS()		0.0
+#if defined(ADC_IND_EXT2) && defined(ADC_VOLTS)
+#define ENCODER_COS_VOLTS		ADC_VOLTS(ADC_IND_EXT2)
+#else
+#define ENCODER_COS_VOLTS		0.0
+#endif
 #endif
 
 // Current ADC macros. Override them for custom current measurement functions.
