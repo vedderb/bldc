@@ -113,6 +113,7 @@ ENCSINCOS_config_t encoder_cfg_sincos = {0};
 TS5700N8501_config_t encoder_cfg_TS5700N8501 = {
 #if defined(HW_ADC_EXT_GPIO) && defined(HW_ADC_EXT_GPIO)
 		&HW_UART_DEV,
+		HW_UART_GPIO_AF,
 		/*UART PINOUT*/
 		HW_UART_TX_PORT, HW_UART_TX_PIN,
 		HW_UART_RX_PORT, HW_UART_RX_PIN,
@@ -124,6 +125,7 @@ TS5700N8501_config_t encoder_cfg_TS5700N8501 = {
 				0
 		},
 #else
+		0,
 		0,
 		0, 0,
 		0, 0,

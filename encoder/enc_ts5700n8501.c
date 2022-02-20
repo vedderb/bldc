@@ -38,6 +38,7 @@ bool enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
 	}
 
 	memset(&cfg->state, 0, sizeof(TS5700N8501_state));
+	cfg->state.stop_now = false;
 	cfg->state.is_running = true;
 
 	chThdCreateStatic(cfg->thread_wa, cfg->thread_wa_size,
@@ -68,23 +69,12 @@ void enc_ts5700n8501_deinit(TS5700N8501_config_t *cfg) {
 #pragma GCC optimize ("O0")
 
 static void TS5700N8501_delay_uart(void) {
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP();
 }
 
 /*
@@ -95,50 +85,39 @@ static void TS5700N8501_delay_uart(void) {
  * things due to the high baud rate.
  */
 static void TS5700N8501_send_byte(TS5700N8501_config_t *cfg, uint8_t b) {
+	stm32_gpio_t *tx_io = cfg->TX_gpio;
+	uint8_t tx_pin = cfg->TX_pin;
+
+	stm32_gpio_t *ext_io = cfg->EXT_gpio;
+	uint8_t ext_pin = cfg->EXT_pin;
+
 	utils_sys_lock_cnt();
-	palSetPad(cfg->EXT_gpio, cfg->EXT_pin);
+
+	palSetPad(ext_io, ext_pin);
 	TS5700N8501_delay_uart();
-	palWritePad(cfg->TX_gpio, cfg->TX_pin, 0);
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
+	palWritePad(tx_io, tx_pin, 0);
+
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+
 	for (int i = 0; i < 8; i++) {
-		palWritePad(cfg->TX_gpio, cfg->TX_pin, (b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
+		palWritePad(tx_io, tx_pin, (b & (0x80 >> i)) ? PAL_HIGH : PAL_LOW);
 		TS5700N8501_delay_uart();
 	}
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	__NOP();
-	palWritePad(cfg->TX_gpio, cfg->TX_pin, 1);
+
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+	__NOP(); __NOP(); __NOP();
+
+	palWritePad(tx_io, tx_pin, 1);
 	TS5700N8501_delay_uart();
-	palClearPad(cfg->EXT_gpio, cfg->EXT_pin);
+	palClearPad(ext_io, ext_pin);
 	utils_sys_unlock_cnt();
 }
 
@@ -149,16 +128,13 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 
 	chRegSetThreadName("TS5700N8501");
 
-	SerialConfig sd_init = cfg->uart_param;
-
-	sdStart(cfg->sd, &sd_init);
+	sdStart(cfg->sd, &cfg->uart_param);
 	palSetPadMode(cfg->TX_gpio, cfg->TX_pin,
 			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 	palSetPadMode(cfg->RX_gpio, cfg->RX_pin,
-			PAL_MODE_ALTERNATE(HW_UART_GPIO_AF) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(cfg->sd_af) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 	palSetPadMode(cfg->EXT_gpio, cfg->EXT_pin, PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_PULLUP);
+			PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
 
 	for (;;) {
 		// Check if it is time to stop.

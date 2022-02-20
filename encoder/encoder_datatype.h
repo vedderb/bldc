@@ -139,12 +139,10 @@ typedef struct {
 
 typedef struct {
 	SerialDriver *sd;
-	stm32_gpio_t *TX_gpio;
-	uint8_t TX_pin;
-	stm32_gpio_t *RX_gpio;
-	uint8_t RX_pin;
-	stm32_gpio_t *EXT_gpio;
-	uint8_t EXT_pin;
+	uint8_t sd_af;
+	stm32_gpio_t *TX_gpio; uint8_t TX_pin;
+	stm32_gpio_t *RX_gpio; uint8_t RX_pin;
+	stm32_gpio_t *EXT_gpio; uint8_t EXT_pin;
 	SerialConfig uart_param;
 	stkalign_t *thread_wa;
 	uint32_t thread_wa_size;
