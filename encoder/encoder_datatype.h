@@ -18,8 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_ENCODER_DATATYPE_H_
-#define ENCODER_ENCODER_DATATYPE_H_
+#ifndef ENCODER_DATATYPE_H_
+#define ENCODER_DATATYPE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -183,4 +183,4 @@ typedef struct {
 	AS504x_state state;
 } AS504x_config_t;
 
-#endif /* ENCODER_ENCODER_DATATYPE_H_ */
+#endif /* ENCODER_DATATYPE_H_ */
