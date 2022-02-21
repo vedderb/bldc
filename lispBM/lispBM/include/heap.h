@@ -335,6 +335,7 @@ extern lbm_int lbm_dec_as_i(lbm_value val);
  */
 extern lbm_float lbm_dec_as_f(lbm_value val);
 
+extern lbm_uint lbm_dec_raw(lbm_value v);
 /** Allocates an lbm_cons_t cell from the heap and populates it.
  *
  * \param car The value to put in the car field of the allocated lbm_cons_t.
@@ -593,6 +594,18 @@ static inline bool lbm_is_closure(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
+}
+
+static inline bool lbm_is_continuation(lbm_value exp) {
+  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+          (lbm_dec_sym(lbm_car(exp)) == SYM_CONT));
+}
+
+static inline bool lbm_is_macro(lbm_value exp) {
+  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+          (lbm_dec_sym(lbm_car(exp)) == SYM_MACRO));
 }
 
 static inline bool lbm_is_match_binder(lbm_value exp) {

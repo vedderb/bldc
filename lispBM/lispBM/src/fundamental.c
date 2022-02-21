@@ -437,7 +437,7 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
         break;
       case LBM_PTR_TYPE_BOXED_F:
         curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_F_TYPE));
-        if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
+        if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL) return;
         curr = lbm_set_ptr_type(curr, LBM_PTR_TYPE_BOXED_F);
         break;
       default:
@@ -524,12 +524,39 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 }
 
 
-//void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
-//  (void) args;
-//  (void) nargs;
-//  (void) result;
-//
-//}
+/* (array-create type size) */
+void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
+  *result = lbm_enc_sym(SYM_EERROR);
+  lbm_value array;
+
+  if (nargs == 2) {
+
+    if (lbm_type_of(args[0]) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_is_number(args[1])) {
+      switch(lbm_dec_sym(args[0])) {
+      case SYM_TYPE_CHAR: /* fall through */
+      case SYM_TYPE_BYTE:
+        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE))
+          *result = array;
+        break;
+      case SYM_TYPE_I32:
+        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_I))
+          *result = array;
+        break;
+      case SYM_TYPE_U32:
+        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_U))
+          *result = array;
+        break;
+      case SYM_TYPE_FLOAT:
+        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_F))
+          *result = array;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
 
 
 lbm_value index_list(lbm_value l, unsigned int n) {
@@ -979,9 +1006,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ARRAY_WRITE:
     array_write(args, nargs, &result);
     break;
-//  case SYM_ARRAY_CREATE:
-//    array_create(args, nargs, &result);
-//    break;
+  case SYM_ARRAY_CREATE:
+    array_create(args, nargs, &result);
+    break;
   case SYM_TYPE_OF:
     if (nargs != 1) return lbm_enc_sym(SYM_NIL);
     lbm_value val = args[0];
