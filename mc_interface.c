@@ -778,7 +778,8 @@ void mc_interface_release_motor(void) {
 		break;
 	}
 
-	events_add("release_motor", 0.0);}
+	events_add("release_motor", 0.0);
+}
 
 void mc_interface_release_motor_override(void) {
 	switch (motor_now()->m_conf.motor_type) {
