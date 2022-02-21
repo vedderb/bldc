@@ -38,7 +38,6 @@
 #include "packet.h"
 #include "commands.h"
 #include "timeout.h"
-#include "comm_can.h"
 #include "encoder/encoder.h"
 #include "servo_simple.h"
 #include "utils.h"
