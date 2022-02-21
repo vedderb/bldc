@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 109
+#define NUM_SPECIAL_SYMBOLS 110
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -53,6 +53,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"send"         , SYM_SEND},
   {"recv"         , SYM_RECEIVE},
   {"macro"        , SYM_MACRO},
+  {"macro-expand" , SYM_MACRO_EXPAND},
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
@@ -198,7 +199,7 @@ const char *lookup_symrepr_name_memory(lbm_uint id) {
 
 // Lookup symbol name given a symbol id
 const char *lbm_get_name_by_symbol(lbm_uint id) {
-  if (id < NUM_SPECIAL_SYMBOLS) {
+  if (id < SPECIAL_SYMBOLS_END) {
     for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);

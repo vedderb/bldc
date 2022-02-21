@@ -951,6 +951,7 @@ static inline void eval_progn(eval_context_t *ctx) {
   lbm_value env  = ctx->curr_env;
 
   if (lbm_type_of(exps) == LBM_VAL_TYPE_SYMBOL && exps == NIL) {
+    printf("the nil case\n");
     ctx->r = NIL;
     ctx->app_cont = true;
     return;
@@ -1173,6 +1174,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   lbm_value env;
   lbm_pop_u32_2(&ctx->K, &rest, &env);
   if (lbm_type_of(rest) == LBM_VAL_TYPE_SYMBOL && rest == NIL) {
+    printf("cont: rest is nil\n");
     ctx->app_cont = true;
     return;
   }
