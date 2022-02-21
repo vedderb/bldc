@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 104
+#define NUM_SPECIAL_SYMBOLS 109
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -48,10 +48,15 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"read-program" , SYM_READ_PROGRAM},
   //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
   //{"splice"     , SYM_COMMAAT},
-  {"match"      , SYM_MATCH},
-  {"_"          , SYM_DONTCARE},
-  {"send"       , SYM_SEND},
-  {"recv"       , SYM_RECEIVE},
+  {"match"        , SYM_MATCH},
+  {"_"            , SYM_DONTCARE},
+  {"send"         , SYM_SEND},
+  {"recv"         , SYM_RECEIVE},
+  {"macro"        , SYM_MACRO},
+  {"call-cc"      , SYM_CALLCC},
+  {"continuation" , SYM_CONT},
+
+  // pattern matching
   {"?"          , SYM_MATCH_ANY},
   {"?i28"       , SYM_MATCH_I28},
   {"?u28"       , SYM_MATCH_U28},
@@ -99,6 +104,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-array"       , SYM_TYPE_ARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
+  {"type-byte"        , SYM_TYPE_BYTE},
   {"type-ref"         , SYM_TYPE_REF},
   {"type-stream"      , SYM_TYPE_STREAM},
   // Fundamental operations
@@ -128,7 +134,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"append"         , SYM_APPEND},
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
-//  {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-create"   , SYM_ARRAY_CREATE},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},

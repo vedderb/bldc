@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <lbm_types.h>
 #include <string.h>
+#include <strings.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -119,7 +120,7 @@ int match_longest_key(char *string) {
   for (int i = 0; i < NUM_CODES; i ++) {
     unsigned int s_len = strlen(codes[i][KEY]);
     if (s_len <= n) {
-      if (strncmp(codes[i][KEY], string, s_len) == 0) {
+      if (strncasecmp(codes[i][KEY], string, s_len) == 0) {
         if (s_len > longest_match_length) {
           longest_match_ix = i;
           longest_match_length = s_len;

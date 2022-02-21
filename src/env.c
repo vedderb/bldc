@@ -103,7 +103,6 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   return new_env;
 }
 
-
 lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 
   lbm_value curr = env;
@@ -118,7 +117,6 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
   }
   return lbm_enc_sym(SYM_NOT_FOUND);
 }
-
 
 lbm_value lbm_env_build_params_args(lbm_value params,
                             lbm_value args,

@@ -56,6 +56,9 @@
 #define SYM_MATCH         0x13
 #define SYM_SEND          0x14
 #define SYM_RECEIVE       0x15
+#define SYM_MACRO         0x16
+#define SYM_CALLCC        0x17
+#define SYM_CONT          0x18
 
 #define SYM_ARRAY_TYPE     0x20
 #define SYM_BOXED_I_TYPE   0x21
@@ -85,8 +88,9 @@
 #define SYM_TYPE_ARRAY     0x56
 #define SYM_TYPE_SYMBOL    0x57
 #define SYM_TYPE_CHAR      0x58
-#define SYM_TYPE_REF       0x59
-#define SYM_TYPE_STREAM    0x5A
+#define SYM_TYPE_BYTE      0x59
+#define SYM_TYPE_REF       0x5A
+#define SYM_TYPE_STREAM    0x5B
 
 //Relevant for the tokenizer
 #define SYM_OPENPAR        0x70
@@ -130,7 +134,7 @@
 
 #define SYM_ARRAY_READ          0x130
 #define SYM_ARRAY_WRITE         0x131
-//#define SYM_ARRAY_CREATE        0x132
+#define SYM_ARRAY_CREATE        0x132
 
 #define SYM_SYMBOL_TO_STRING    0x140
 #define SYM_STRING_TO_SYMBOL    0x141

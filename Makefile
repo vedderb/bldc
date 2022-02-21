@@ -1,4 +1,3 @@
-
 CCFLAGS = -Wall -Wextra -Wshadow -pedantic -std=c99
 
 ifndef PLATFORM
@@ -52,15 +51,21 @@ ifeq ($(PLATFORM), pi) #for compiling natively on the pi
 endif
 
 SOURCE_DIR = src
-INCLUDE_DIR = include
+INCLUDE_DIR = -I./include -I./include/extensions
+EXTENSIONS = src/extensions
 
 $(shell mkdir -p ${BUILD_DIR})
+$(shell mkdir -p ${BUILD_DIR}/extensions)
+
 
 SRC = src
 OBJ = obj
 
 SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
+SOURCES += $(wildcard $(EXTENSIONS)/*.c)
 OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+
+
 
 PLATSRCS = $(wildcard $(PLATFORMSRC)/*.c)
 PLATOBJS = $(patsubst $(PLATFORMSRC)/%.c, $(BUILD_DIR)/%.o, $(PLATSRCS))
@@ -85,14 +90,17 @@ src/prelude.xxd: src/prelude.lisp
 	xxd -i < src/prelude.lisp > src/prelude.xxd 
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
-	$(CC) -I$(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
-	$(CC) -I$(INCLUDE_DIR) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(INCLUDE_DIR) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
 
+test:
+	cd tests && ./run_tests.sh
 
 clean:
 	rm src/prelude.xxd
 	rm -f ${BUILD_DIR}/*.o
+	rm -f ${BUILD_DIR}/extensions/*.o
 	rm -f ${BUILD_DIR}/*.a
 

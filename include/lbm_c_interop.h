@@ -87,7 +87,13 @@ extern int lbm_send_message(lbm_cid cid, lbm_value msg);
  * \return 1 on success and 0 on failure.
  */
 extern int lbm_define(char *symbol, lbm_value value);
-/** Create a LispBM array from a C array. The array should be created while the evaluator
+/** Remove a definition from the global environment.
+ *
+ * \param symbol Name of symbol to undefine in the environment.
+ * \return 1 if removed any bindings, 0 otherwise.
+ */
+extern int lbm_undefine(char *symbol);
+/** Share a C array with LBM. The array should be created while the evaluator
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
  * The data is stored in the array as C values (not encoded as lbm values).
@@ -97,8 +103,17 @@ extern int lbm_define(char *symbol, lbm_value value);
  * \param type What type are the elements of the array.
  * \param num_elt Number of elements in the array.
  */
-extern int lbm_create_array(lbm_value *value, char *data, lbm_type type, uint32_t num_elt);
-
+extern int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_elt);
+/** Create an array to access from both LBM and C. This function should be called while the evaluator
+ * is paused and the array should be bound to something before un-pausing. Send the array in
+ * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
+ * The data is stored in lbm_memory as C values (not encoded as lbm values).
+ *
+ * \param value Result array value.
+ * \param type What type are the elements of the array.
+ * \param num_elt Number of elements in the array.
+ */
+extern int lbm_create_array(lbm_value *value, lbm_type type, uint32_t num_elt);
 
 
 #endif

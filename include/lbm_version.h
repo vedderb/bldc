@@ -23,18 +23,28 @@
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 3
+#define LBM_MINOR_VERSION 4
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /* Change log */
 
-/* Feb 16 2022: version 0.3.0
+
+/* Feb 20 2022: Version (0.4.0)
+  - Adds support for macros.
+  - Adds call-cc for escaping and abortive continuations.
+*/
+
+/* Feb 17 2022: version 0.3.0
+   - Added lbm_undefine to c_interop.
+   - Added lbm_share_array to c_interop.
+   - Added lbm_create_array to c_interop.
    - #var variables with more efficient storage and lookup.
      variables are set using `setvar`.
    - Spawn optionally takes a number argument before the closure argument
      to specify stack size.
    - Extensions are stored in an array and occupy a range of dedicated symbol values.
+*/
 
 /* Feb 14 2022: version 0.2.0
    Added GEQ >= and LEQ <= comparisons.

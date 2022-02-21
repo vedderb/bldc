@@ -125,6 +125,26 @@ lbm_float lbm_dec_as_f(lbm_value a) {
   return 0;
 }
 
+lbm_uint lbm_dec_raw(lbm_value v) {
+
+  lbm_uint res = 0;
+  switch (lbm_type_of(v)) {
+  case LBM_VAL_TYPE_CHAR: /* fall through */
+  case LBM_VAL_TYPE_I:    /* fall through */
+  case LBM_VAL_TYPE_U:    /* fall through */
+    res = (v >> LBM_VAL_SHIFT);
+    break;
+  case LBM_PTR_TYPE_BOXED_I: /* fall through */
+  case LBM_PTR_TYPE_BOXED_U: /* fall through */
+  case LBM_PTR_TYPE_BOXED_F: /* fall through */
+    res = lbm_car(v);
+    break;
+  default:
+    break;
+  }
+  return res;
+}
+
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set

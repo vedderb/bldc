@@ -69,7 +69,6 @@ extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
  * \return The modified environment of Success and lbm_enc_sym(SYM_NOT_FOUND) if the key does not exist.
  */
 extern lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
-
 // Internal use
 /** Extend an environment given a list of keys and a list of values.
  *
