@@ -57,22 +57,22 @@ bool lbm_array_extensions_init(void) {
     }
   }
   bool res = true;
-  res = res && lbm_add_extension("unsafe-free", array_extension_unsafe_free_array);
-  res = res && lbm_add_extension("buffer-append-i8", array_extension_buffer_append_i8);
-  res = res && lbm_add_extension("buffer-append-i16", array_extension_buffer_append_i16);
-  res = res && lbm_add_extension("buffer-append-i32", array_extension_buffer_append_i32);
-  res = res && lbm_add_extension("buffer-append-u8", array_extension_buffer_append_u8);
-  res = res && lbm_add_extension("buffer-append-u16", array_extension_buffer_append_u16);
-  res = res && lbm_add_extension("buffer-append-u32", array_extension_buffer_append_u32);
-  res = res && lbm_add_extension("buffer-append-f32", array_extension_buffer_append_f32);
+  res = res && lbm_add_extension("free", array_extension_unsafe_free_array);
+  res = res && lbm_add_extension("bufset-i8", array_extension_buffer_append_i8);
+  res = res && lbm_add_extension("bufset-i16", array_extension_buffer_append_i16);
+  res = res && lbm_add_extension("bufset-i32", array_extension_buffer_append_i32);
+  res = res && lbm_add_extension("bufset-u8", array_extension_buffer_append_u8);
+  res = res && lbm_add_extension("bufset-u16", array_extension_buffer_append_u16);
+  res = res && lbm_add_extension("bufset-u32", array_extension_buffer_append_u32);
+  res = res && lbm_add_extension("bufset-f32", array_extension_buffer_append_f32);
 
-  res = res && lbm_add_extension("buffer-get-i8", array_extension_buffer_get_i8);
-  res = res && lbm_add_extension("buffer-get-i16", array_extension_buffer_get_i16);
-  res = res && lbm_add_extension("buffer-get-i32", array_extension_buffer_get_i32);
-  res = res && lbm_add_extension("buffer-get-u8", array_extension_buffer_get_u8);
-  res = res && lbm_add_extension("buffer-get-u16", array_extension_buffer_get_u16);
-  res = res && lbm_add_extension("buffer-get-u32", array_extension_buffer_get_u32);
-  res = res && lbm_add_extension("buffer-get-f32", array_extension_buffer_get_f32); 
+  res = res && lbm_add_extension("bufget-i8", array_extension_buffer_get_i8);
+  res = res && lbm_add_extension("bufget-i16", array_extension_buffer_get_i16);
+  res = res && lbm_add_extension("bufget-i32", array_extension_buffer_get_i32);
+  res = res && lbm_add_extension("bufget-u8", array_extension_buffer_get_u8);
+  res = res && lbm_add_extension("bufget-u16", array_extension_buffer_get_u16);
+  res = res && lbm_add_extension("bufget-u32", array_extension_buffer_get_u32);
+  res = res && lbm_add_extension("bufget-f32", array_extension_buffer_get_f32); 
   return res;
 }
 

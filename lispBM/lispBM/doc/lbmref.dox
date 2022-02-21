@@ -1066,6 +1066,92 @@ Example where a process waits for an i28
 \endcode
 
 
+---
+
+\section sec_macros Macros
+
+lispBM macros are created using the <code>macro</code> keyword. A macro
+is quite similar to <a href="lambda">lambda</a> in lispBM except that
+arguments are passed in unevaluated. Together with the code-splicing
+capabilities given by <a href="sec_quote">quasiquotation</a>, this
+provides a powerful code-generation tool.
+
+A macro application is run through the interpreted two times. Once to
+evaluate the body of the macro on the unevaluated arguments. The result of
+this first application should be a program. The resulting program then goes
+through the interpreter again to compute final values.
+
+Given this repeated evaluation, macros is not a performance boost in lispbm.
+It is really a feature to invent new programming abstractions in cases where
+it is ok to pay a little for the overhead for benefits in expressivity.
+
+<a name="macro"> <h3>macro</h3> </a>
+
+The form of a <code>macro</code> expression is: <code>(macro args body)</code>
+
+\note
+Some lisps provide a <code>defun</code> operation for defining functions
+with a bit less typing. The example below defines a <code>defun</code> macro.
+\code
+(define defun (macro (name args body)
+                     `(define ,name (lambda ,args ,body))))
+\endcode
+With this macro the function <code>inc</code> that adds 1 to its argument
+can be defined as:
+\code
+(defun inc (x) (+ x 1))
+\endcode
+
+
+---
+
+\section sec_cc Call With Current Continuation
+
+"Call with current continuation" is called <code>call-cc</code> in LBM.
+Call with current continuation saves the "current continuation", which encodes what
+the evaluator will do next, into an object in the language. This encoded
+continuation object behaves as a function taking one argument.
+
+The <code>call-cc</code> should be given a function, <code>f</code>, as the single argument. This
+function, <code>f</code>, should also take a single argument, the continuation.
+At any point in the body of <code>f</code> the continuation can be applied to
+a value, in essense replacing the entire <code>call-cc</code> with that value.
+
+\note
+The example below creates a macro for a <code>progn</code> facility that
+allows returning at an arbitrary point. 
+\code
+(define do (macro (body)
+                  `(call-cc (lambda (return) (progn ,@body)))))
+\endcode
+The example using <code>do</code> below makes use of <code>print</code> which is not a
+built-in feature of lispBM. There are just to many different ways a programmer may
+want to implement <code>print</code> on an microcontroller. Use the lispBM extensions
+framework to implement your own version of <code>print</code>
+\code
+(do ((print 10)
+     (return 't)
+     (print 20)))
+\endcode
+In the example above only "10" will be printed. 
+Below is an example that conditionally returns.
+\code
+(define f (lambda (x)
+            (do ((print "hello world" \#newline)
+                 (if (= x 1)
+                     (return 't)
+                     nil)
+                 (print "Gizmo!" \#newline)))))
+\endcode
+
+
+
+--- 
+
+
+
+
+
 
 \section sec_unparse Unparsable symbols
 

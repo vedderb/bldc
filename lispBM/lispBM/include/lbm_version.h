@@ -25,10 +25,13 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 4
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 /* Change log */
 
+/* Feb 21 2022: Version (0.4.1)
+   - Bug fixes in gc related to arrays
+*/
 
 /* Feb 20 2022: Version (0.4.0)
   - Adds support for macros.

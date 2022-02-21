@@ -3,6 +3,8 @@
 
 \section sec_intro Introduction
 
+WORK IN PROGRESS
+
 LispBM is a lisp-like language implemented by a non-lisper.  The inspiration for LispBM came from watching the <a
 href="https://www.youtube.com/watch?v=-J_xL4IGhJA&list=PLE18841CABEA24090">
 SICP course on youtube </a> and a tiny amount of experimenting with EMACS
