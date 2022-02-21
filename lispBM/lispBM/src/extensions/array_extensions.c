@@ -20,12 +20,14 @@
 
 #include "extensions.h"
 #include "symrepr.h"
+#include "lbm_memory.h"
 
 #include <math.h>
 
 static lbm_uint little_endian = 0;
 static lbm_uint big_endian = 0;
 
+static lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn);
@@ -55,6 +57,7 @@ bool lbm_array_extensions_init(void) {
     }
   }
   bool res = true;
+  res = res && lbm_add_extension("unsafe-free", array_extension_unsafe_free_array);
   res = res && lbm_add_extension("buffer-append-i8", array_extension_buffer_append_i8);
   res = res && lbm_add_extension("buffer-append-i16", array_extension_buffer_append_i16);
   res = res && lbm_add_extension("buffer-append-i32", array_extension_buffer_append_i32);
@@ -73,6 +76,25 @@ bool lbm_array_extensions_init(void) {
   return res;
 }
 
+lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  if (argn != 1 ||
+      lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY) {
+    return res;
+  }
+  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+  if (lbm_memory_ptr_inside(array->data)) {
+    lbm_memory_free((uint32_t *)array->data);
+    lbm_uint ptr = lbm_dec_ptr(args[0]);
+    lbm_value cons_ptr = lbm_enc_cons_ptr(ptr);
+    lbm_set_car(cons_ptr,lbm_enc_sym(SYM_NIL));
+    lbm_set_cdr(cons_ptr,lbm_enc_sym(SYM_NIL));
+    res = lbm_enc_sym(SYM_TRUE);
+  }
+  lbm_memory_free((uint32_t *)array);
+  return res;
+}
 
 lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
 
