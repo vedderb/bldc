@@ -474,10 +474,11 @@ int lbm_gc_sweep_phase(void) {
       if (lbm_type_of(heap[i].cdr) == LBM_VAL_TYPE_SYMBOL &&
           lbm_dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
         lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-        if (lbm_memory_ptr_inside((uint32_t*)arr)) {
-          lbm_memory_free((uint32_t *)arr);
+        if (lbm_memory_ptr_inside((uint32_t*)arr->data)) {
+          lbm_memory_free((uint32_t *)arr->data);
           heap_state.gc_recovered_arrays++;
         }
+        lbm_memory_free((uint32_t *)arr);
       }
 
       // create pointer to use as new freelist
@@ -535,7 +536,7 @@ lbm_value lbm_cdr(lbm_value c){
     return lbm_enc_sym(SYM_NIL); // if nil, return nil.
   }
 
-  if (lbm_type_of(c) == LBM_PTR_TYPE_CONS) {
+  if (lbm_is_ptr(c)) {
     lbm_cons_t *cell = ref_cell(c);
     return read_cdr(cell);
   }
@@ -544,7 +545,7 @@ lbm_value lbm_cdr(lbm_value c){
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
-  if (lbm_is_ptr(c) && lbm_type_of(c) == LBM_PTR_TYPE_CONS) {
+  if (lbm_type_of(c) == LBM_PTR_TYPE_CONS) {
     lbm_cons_t *cell = ref_cell(c);
     set_car_(cell,v);
     r = 1;

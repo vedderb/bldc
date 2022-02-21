@@ -236,5 +236,5 @@ int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_el
 }
 
 int lbm_create_array(lbm_value *value, lbm_type type, uint32_t num_elt) {
-  return lbm_heap_allocate_array(value, type, num_elt);
+  return lbm_heap_allocate_array(value, num_elt, type);
 }
