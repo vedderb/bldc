@@ -28,6 +28,7 @@
 #include "mc_interface.h"
 #include "mempools.h"
 #include "terminal.h"
+#include "app.h"
 
 #include <math.h>
 
@@ -134,6 +135,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 				appconf->app_to_use == APP_PPM_UART ||
 				appconf->app_to_use == APP_ADC_UART) {
 			appconf->app_to_use = APP_NONE;
+			app_set_configuration(appconf);
 			conf_general_store_app_configuration(appconf);
 		}
 		mempools_free_appconf(appconf);
