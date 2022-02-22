@@ -1076,14 +1076,15 @@ arguments are passed in unevaluated. Together with the code-splicing
 capabilities given by <a href="sec_quote">quasiquotation</a>, this
 provides a powerful code-generation tool.
 
-A macro application is run through the interpreted two times. Once to
+A macro application is run through the interpreter two times. Once to
 evaluate the body of the macro on the unevaluated arguments. The result of
 this first application should be a program. The resulting program then goes
 through the interpreter again to compute final values.
 
-Given this repeated evaluation, macros is not a performance boost in lispbm.
-It is really a feature to invent new programming abstractions in cases where
-it is ok to pay a little for the overhead for benefits in expressivity.
+Given this repeated evaluation, macros are not a performance boost in
+lispbm.  Macros are really a feature that should be used to invent new
+programming abstractions in cases where it is ok to pay a little for
+the overhead for benefits in expressivity.
 
 <a name="macro"> <h3>macro</h3> </a>
 
@@ -1112,10 +1113,16 @@ Call with current continuation saves the "current continuation", which encodes w
 the evaluator will do next, into an object in the language. This encoded
 continuation object behaves as a function taking one argument.
 
+
 The <code>call-cc</code> should be given a function, <code>f</code>, as the single argument. This
 function, <code>f</code>, should also take a single argument, the continuation.
 At any point in the body of <code>f</code> the continuation can be applied to
-a value, in essense replacing the entire <code>call-cc</code> with that value.
+a value, in essense replacing the entire <code>call-cc</code> with that value. All side-effecting operations
+operations up until the application of the continuation will take effect.
+
+From within a <code>call-cc</code> application it is possible to bind the continuation to a global variable
+which will allow some pretty arbitrary control flow.
+
 
 \note
 The example below creates a macro for a <code>progn</code> facility that
