@@ -27,6 +27,7 @@
 #include "lbm_memory.h"
 #include "env.h"
 #include "lispbm.h"
+#include "extensions/array_extensions.h"
 
 #include "commands.h"
 #include "mc_interface.h"
@@ -40,6 +41,8 @@
 #include "hw.h"
 #include "mcpwm_foc.h"
 #include "imu.h"
+#include "mempools.h"
+#include "app.h"
 
 #include <math.h>
 
@@ -351,32 +354,43 @@ static lbm_value ext_get_imu_mag(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS) {
+	if (argn != 1 || (lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS && lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY)) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
 	lbm_value curr = args[0];
 	const int max_len = 20;
 	uint8_t to_send[max_len];
+	uint8_t *to_send_ptr = to_send;
 	int ind = 0;
 
-	while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
-		lbm_value  arg = lbm_car(curr);
-
-		if (lbm_is_number(arg)) {
-			to_send[ind++] = lbm_dec_as_u(arg);
-		} else {
+	if (lbm_type_of(args[0]) == LBM_PTR_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+		if (array->elt_type != LBM_VAL_TYPE_BYTE) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
 
-		if (ind == max_len) {
-			break;
-		}
+		to_send_ptr = (uint8_t*)array->data;
+		ind = array->size;
+	} else {
+		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+			lbm_value  arg = lbm_car(curr);
 
-		curr = lbm_cdr(curr);
+			if (lbm_is_number(arg)) {
+				to_send[ind++] = lbm_dec_as_u(arg);
+			} else {
+				return lbm_enc_sym(SYM_EERROR);
+			}
+
+			if (ind == max_len) {
+				break;
+			}
+
+			curr = lbm_cdr(curr);
+		}
 	}
 
-	commands_send_app_data(to_send, ind);
+	commands_send_app_data(to_send_ptr, ind);
 
 	return lbm_enc_sym(SYM_TRUE);
 }
@@ -702,8 +716,7 @@ static lbm_value ext_can_scan(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
-	if (argn != 2 ||
-			!lbm_is_number(args[0])) {
+	if (argn != 2 || !lbm_is_number(args[0])) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
@@ -711,20 +724,34 @@ static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 	uint8_t to_send[8];
 	int ind = 0;
 
-	while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
-		lbm_value  arg = lbm_car(curr);
-
-		if (lbm_is_number(arg)) {
-			to_send[ind++] = lbm_dec_as_u(arg);
-		} else {
+	if (lbm_type_of(args[0]) == LBM_PTR_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+		if (array->elt_type != LBM_VAL_TYPE_BYTE) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
 
-		if (ind == 8) {
-			break;
+		ind = array->size;
+		if (ind > 8) {
+			ind = 0;
 		}
 
-		curr = lbm_cdr(curr);
+		memcpy(to_send, array->data, ind);
+	} else {
+		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+			lbm_value  arg = lbm_car(curr);
+
+			if (lbm_is_number(arg)) {
+				to_send[ind++] = lbm_dec_as_u(arg);
+			} else {
+				return lbm_enc_sym(SYM_EERROR);
+			}
+
+			if (ind == 8) {
+				break;
+			}
+
+			curr = lbm_cdr(curr);
+		}
 	}
 
 	if (is_eid) {
@@ -1044,6 +1071,147 @@ static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
 	return hall_list;
 }
 
+// UART
+static SerialConfig uart_cfg = {
+		2500000,
+		0,
+		USART_CR2_LINEN,
+		0
+};
+static bool uart_started = false;
+
+static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+
+	int baud = lbm_dec_as_i(args[0]);
+
+	if (baud < 10 || baud > 10000000) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	app_configuration *appconf = mempools_alloc_appconf();
+	conf_general_read_app_configuration(appconf);
+	if (appconf->app_to_use == APP_UART ||
+			appconf->app_to_use == APP_PPM_UART ||
+			appconf->app_to_use == APP_ADC_UART) {
+		appconf->app_to_use = APP_NONE;
+		conf_general_store_app_configuration(appconf);
+		app_set_configuration(appconf);
+	}
+	mempools_free_appconf(appconf);
+
+	uart_cfg.speed = baud;
+
+	sdStop(&HW_UART_DEV);
+	sdStart(&HW_UART_DEV, &uart_cfg);
+	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+
+	uart_started = true;
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 || (lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS && lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	if (!uart_started) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value curr = args[0];
+	const int max_len = 20;
+	uint8_t to_send[max_len];
+	uint8_t *to_send_ptr = to_send;
+	int ind = 0;
+
+	if (lbm_type_of(args[0]) == LBM_PTR_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+		if (array->elt_type != LBM_VAL_TYPE_BYTE) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		to_send_ptr = (uint8_t*)array->data;
+		ind = array->size;
+	} else {
+		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+			lbm_value  arg = lbm_car(curr);
+
+			if (lbm_is_number(arg)) {
+				to_send[ind++] = lbm_dec_as_u(arg);
+			} else {
+				return lbm_enc_sym(SYM_EERROR);
+			}
+
+			if (ind == max_len) {
+				break;
+			}
+
+			curr = lbm_cdr(curr);
+		}
+	}
+
+	sdWrite(&HW_UART_DEV, to_send_ptr, ind);
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
+	if ((argn != 2 && argn != 3 && argn != 4) ||
+			lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY || !lbm_is_number(args[1])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	unsigned int num = lbm_dec_as_u(args[1]);
+	if (num > 512) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	if (num == 0) {
+		return lbm_enc_i(0);
+	}
+
+	unsigned int offset = 0;
+	if (argn >= 3) {
+		if (!lbm_is_number(args[2])) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+		offset = lbm_dec_as_u(args[2]);
+	}
+
+	int stop_at = -1;
+	if (argn >= 4) {
+		if (!lbm_is_number(args[3])) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+		stop_at = lbm_dec_as_u(args[3]);
+	}
+
+	if (!uart_started) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (array->elt_type != LBM_VAL_TYPE_BYTE || array->size < (num + offset)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	unsigned int count = 0;
+	msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+	while (res != MSG_TIMEOUT) {
+		((uint8_t*)array->data)[offset + count] = (uint8_t)res;
+		count++;
+		if (res == stop_at || count >= num) {
+			break;
+		}
+		res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+	}
+
+	return lbm_enc_i(count);
+}
+
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
 	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
@@ -1145,6 +1313,15 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("raw-mod-alpha-measured", ext_raw_mod_alpha_measured);
 	lbm_add_extension("raw-mod-beta-measured", ext_raw_mod_beta_measured);
 	lbm_add_extension("raw-hall", ext_raw_hall);
+
+	// UART
+	uart_started = false;
+	lbm_add_extension("uart-start", ext_uart_start);
+	lbm_add_extension("uart-write", ext_uart_write);
+	lbm_add_extension("uart-read", ext_uart_read);
+
+	// Array extensions
+	lbm_array_extensions_init();
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -1171,12 +1348,20 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 	ok = timeout_cnt > 0;
 
 	if (ok) {
-		lbm_value data = lbm_enc_sym(SYM_NIL);
-		for (int i = len - 1;i >= 0;i--) {
-			data = lbm_cons(lbm_enc_i(data8[i]), data);
-		}
+//		lbm_value bytes = lbm_enc_sym(SYM_NIL);
+//		for (int i = len - 1;i >= 0;i--) {
+//			bytes = lbm_cons(lbm_enc_i(data8[i]), bytes);
+//		}
 
-		lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), data);
+		lbm_value bytes;
+		if (!lbm_create_array(&bytes, LBM_VAL_TYPE_BYTE, len)) {
+			lbm_continue_eval();
+			return;
+		}
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
+		memcpy(array->data, data8, len);
+
+		lbm_value msg_data = lbm_cons(lbm_enc_I(can_id), bytes);
 		lbm_value msg;
 
 		if (is_ext) {
@@ -1215,6 +1400,14 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		for (int i = len - 1;i >= 0;i--) {
 			bytes = lbm_cons(lbm_enc_i(data[i]), bytes);
 		}
+
+//		lbm_value bytes;
+//		if (!lbm_create_array(&bytes, LBM_VAL_TYPE_BYTE, len)) {
+//			lbm_continue_eval();
+//			return;
+//		}
+//		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
+//		memcpy(array->data, data, len);
 
 		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
 
