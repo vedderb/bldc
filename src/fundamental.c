@@ -23,6 +23,8 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "lbm_variables.h"
+#include "env.h"
+
 #include <stdio.h>
 #include <math.h>
 
@@ -585,6 +587,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       if (s >= VARIABLE_SYMBOLS_START &&
           s <  VARIABLE_SYMBOLS_END) {
         result = lbm_set_var(s, args[1]);
+      } else {
+        *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), args[0], args[1]);
+        result = args[1];
       }
     } break;
   case SYM_IX:
