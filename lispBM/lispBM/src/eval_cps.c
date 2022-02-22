@@ -1322,7 +1322,7 @@ static inline void cont_application(eval_context_t *ctx) {
       lbm_value curr_param = params;
       lbm_uint i = closure_pos + 1;
       while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
-             i <= (lbm_dec_u(count) - (closure_pos - 1))) {
+             i <= lbm_dec_u(count)) {
 
         lbm_value entry;
         WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL);

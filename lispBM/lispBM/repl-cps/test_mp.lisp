@@ -39,6 +39,11 @@
          space))
 
 
+(define f (lambda (x y z)
+            (+ x y z)))
+
+(spawn 20 f 1 2 3)
+
 (define fredpid (spawn fred))
 
 (spawn bella fredpid 0)
