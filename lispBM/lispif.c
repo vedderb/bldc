@@ -24,14 +24,6 @@
 #include "flash_helper.h"
 #include "buffer.h"
 #include "timeout.h"
-
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "lbm_memory.h"
-#include "env.h"
 #include "lispbm.h"
 
 #define HEAP_SIZE				1536
@@ -233,6 +225,7 @@ static bool start_lisp(bool print) {
 		}
 
 		lispif_load_vesc_extensions();
+		lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader);
 
 		if (print) {
 			commands_printf_lisp("Parsing %d characters", strlen(code_data));

@@ -1169,7 +1169,7 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
-	if (num == 0) {
+	if (num == 0 || !uart_started) {
 		return lbm_enc_i(0);
 	}
 
@@ -1187,10 +1187,6 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
 		stop_at = lbm_dec_as_u(args[3]);
-	}
-
-	if (!uart_started) {
-		return lbm_enc_sym(SYM_EERROR);
 	}
 
 	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
@@ -1348,11 +1344,6 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 	ok = timeout_cnt > 0;
 
 	if (ok) {
-//		lbm_value bytes = lbm_enc_sym(SYM_NIL);
-//		for (int i = len - 1;i >= 0;i--) {
-//			bytes = lbm_cons(lbm_enc_i(data8[i]), bytes);
-//		}
-
 		lbm_value bytes;
 		if (!lbm_create_array(&bytes, LBM_VAL_TYPE_BYTE, len)) {
 			lbm_continue_eval();
@@ -1396,18 +1387,13 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 	ok = timeout_cnt > 0;
 
 	if (ok) {
-		lbm_value bytes = lbm_enc_sym(SYM_NIL);
-		for (int i = len - 1;i >= 0;i--) {
-			bytes = lbm_cons(lbm_enc_i(data[i]), bytes);
+		lbm_value bytes;
+		if (!lbm_create_array(&bytes, LBM_VAL_TYPE_BYTE, len)) {
+			lbm_continue_eval();
+			return;
 		}
-
-//		lbm_value bytes;
-//		if (!lbm_create_array(&bytes, LBM_VAL_TYPE_BYTE, len)) {
-//			lbm_continue_eval();
-//			return;
-//		}
-//		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
-//		memcpy(array->data, data, len);
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
+		memcpy(array->data, data, len);
 
 		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
 
