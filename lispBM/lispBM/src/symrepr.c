@@ -185,6 +185,14 @@ int lbm_symrepr_init(void) {
   return 1;
 }
 
+void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {
+
+  uint32_t *curr = symlist;
+  while (curr) {
+    f((const char *)curr[NAME]);
+  }
+}
+
 const char *lookup_symrepr_name_memory(lbm_uint id) {
 
   uint32_t *curr = symlist;

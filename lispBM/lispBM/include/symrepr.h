@@ -179,11 +179,20 @@
 #define RUNTIME_SYMBOLS_START    0x30000
 #define MAX_SYMBOL_VALUE 0x0FFFFFFF
 
+
+typedef void (*symrepr_name_iterator_fun)(const char *);
+
+
 /** Initialize the symbol table.
  *
  * \return 1
  */
 extern int lbm_symrepr_init(void);
+/** Iterate over all symbol names as strings
+ *
+ * \param symrepr_name_iterator_fun function taking a string
+ */
+extern void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
 /** Add a symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
