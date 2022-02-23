@@ -637,8 +637,8 @@ void drop_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
 }
 
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
-                                           lbm_tokenizer_char_stream_t *char_stream,
-                                           char *string){
+                                        lbm_tokenizer_char_stream_t *char_stream,
+                                        const char *string){
   state->str = string;
   state->pos = 0;
 

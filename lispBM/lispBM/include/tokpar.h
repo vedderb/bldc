@@ -25,7 +25,7 @@
  * State struct for the string tokenizer.
  */
 typedef struct {
-  char *str;
+  const char *str;
   unsigned int pos;
 } lbm_tokenizer_string_state_t;
 
@@ -37,7 +37,7 @@ typedef struct {
  */
 extern void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                                lbm_tokenizer_char_stream_t *stream,
-                                               char *str);
+                                               const char *str);
 /** Get the next token from a tokenizer stream (lbm_tokenizer_char_stream_t).
  *
  * \param str Tokenizer stream to get the next token from.

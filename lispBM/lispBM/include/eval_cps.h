@@ -184,7 +184,10 @@ extern void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void));
  * \param fptr Pointer to a "done" function.
  */
 extern void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *));
-
+/** Set a callback for dynamically loading code associated with
+ * an undefined symbol
+ */
+extern void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **));
 /** Create a token stream for parsing for code
  *
  * \param str character stream to convert into a token stream.

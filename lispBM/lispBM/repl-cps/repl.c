@@ -168,6 +168,13 @@ void sleep_callback(uint32_t us) {
 }
 
 
+bool dyn_load(const char *str, const char **code) {
+
+  //*code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
+  return false;
+}
+
+
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
@@ -355,6 +362,7 @@ int main(int argc, char **argv) {
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
+  lbm_set_dynamic_load_callback(dyn_load);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
