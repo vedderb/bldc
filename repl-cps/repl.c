@@ -310,6 +310,11 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
   }
 }
 
+
+void sym_it(const char *str) {
+  printf("%s\n", str);
+}
+
 static uint32_t memory[LBM_MEMORY_SIZE_8K];
 static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
@@ -471,6 +476,8 @@ int main(int argc, char **argv) {
       }
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
+    } else if (strncmp(str, ":symbols", 8) == 0) {
+      lbm_symrepr_name_iterator(sym_it);
     } else if (strncmp(str, ":reset", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {

@@ -190,6 +190,7 @@ void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {
   uint32_t *curr = symlist;
   while (curr) {
     f((const char *)curr[NAME]);
+    curr = (uint32_t *)curr[NEXT];
   }
 }
 
