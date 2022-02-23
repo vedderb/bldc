@@ -52,6 +52,7 @@
 #define APPLICATION_START 15
 #define EVAL_R            16
 #define SET_VARIABLE      17
+#define RESUME            18
 
 
 #define CHECK_STACK(x)                          \
@@ -154,6 +155,7 @@ static eval_context_t ctx_non_concurrent;
 static void (*usleep_callback)(uint32_t) = NULL;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
+static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   usleep_callback = fptr;
@@ -165,6 +167,10 @@ void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
 
 void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
+}
+
+void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
+  dynamic_load_callback = fptr;
 }
 
 /****************************************************/
@@ -874,8 +880,55 @@ static inline void eval_symbol(eval_context_t *ctx) {
       value = lbm_env_lookup(ctx->curr_exp, *lbm_get_env_ptr());
     }
   }
-  ctx->app_cont = true;
-  ctx->r = value;
+
+  if (dynamic_load_callback &&
+      lbm_type_of(value) == LBM_VAL_TYPE_SYMBOL &&
+      lbm_dec_sym(value) == SYM_NOT_FOUND ) {
+    const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
+    const char *code_str = NULL;
+    if (! dynamic_load_callback(sym_str, &code_str)) {
+      error_ctx(lbm_enc_sym(SYM_EERROR));
+    } else {
+      CHECK_STACK(lbm_push_u32_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
+
+      lbm_value stream = NIL;
+      lbm_value cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
+
+      if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
+        gc(NIL,NIL);
+      cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
+      if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
+        error_ctx(cell);
+
+      lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+
+      if (array == NULL) {
+        error_ctx(lbm_enc_sym(SYM_MERROR));
+      }
+
+      array->data = (uint32_t*)code_str;
+      array->elt_type = LBM_VAL_TYPE_CHAR;
+      array->size = strlen(code_str);
+
+      lbm_set_car(cell, (lbm_uint)array);
+      lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
+
+      cell = cell | LBM_PTR_TYPE_ARRAY;
+
+      stream = token_stream_from_string_value(cell);
+
+      lbm_value loader = NIL;
+      CONS_WITH_GC(loader, stream, loader, NIL);
+      CONS_WITH_GC(loader, lbm_enc_sym(SYM_READ), loader, NIL);
+      lbm_value evaluator = NIL;
+      CONS_WITH_GC(evaluator, loader, evaluator, loader);
+      CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, NIL);
+      ctx->curr_exp = evaluator;
+    }
+  } else {
+    ctx->app_cont = true;
+    ctx->r = value;
+  }
 }
 
 
@@ -1166,6 +1219,12 @@ static inline void cont_set_var(eval_context_t *ctx) {
   ctx->r = lbm_set_var(lbm_dec_sym(key), val);
   ctx->app_cont = true;
   return;
+}
+
+static inline void cont_resume(eval_context_t *ctx) {
+  lbm_value exp;
+  lbm_pop_u32(&ctx->K, &exp);
+  ctx->curr_exp = exp;
 }
 
 
@@ -1940,7 +1999,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
     CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                lbm_enc_u(0),
                                args));
-    cont_application_args(ctx); 
+    cont_application_args(ctx);
   }
 }
 
@@ -1984,7 +2043,8 @@ static void evaluation_step(void){
     case READ:              cont_read(ctx); return;
     case APPLICATION_START: cont_application_start(ctx); return;
     case EVAL_R:            cont_eval_r(ctx); return;
-    case SET_VARIABLE:     cont_set_var(ctx); return;
+    case SET_VARIABLE:      cont_set_var(ctx); return;
+    case RESUME:            cont_resume(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
