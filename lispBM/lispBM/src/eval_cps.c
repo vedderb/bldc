@@ -53,7 +53,7 @@
 #define EVAL_R            16
 #define SET_VARIABLE      17
 #define RESUME            18
-
+#define EXPAND_MACRO      19
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -933,8 +933,8 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
 
 static inline void eval_selfevaluating(eval_context_t *ctx) {
-  ctx->app_cont = true;
   ctx->r = ctx->curr_exp;
+  ctx->app_cont = true;
 }
 
 static inline void eval_quote(eval_context_t *ctx) {
@@ -1004,7 +1004,6 @@ static inline void eval_progn(eval_context_t *ctx) {
   lbm_value env  = ctx->curr_env;
 
   if (lbm_type_of(exps) == LBM_VAL_TYPE_SYMBOL && exps == NIL) {
-    printf("the nil case\n");
     ctx->r = NIL;
     ctx->app_cont = true;
     return;
@@ -1227,13 +1226,44 @@ static inline void cont_resume(eval_context_t *ctx) {
   ctx->curr_exp = exp;
 }
 
+static inline void cont_expand_macro(eval_context_t *ctx) {
+
+  lbm_value env;
+  lbm_value args;
+  lbm_pop_u32_2(&ctx->K, &args, &env);
+
+  if (lbm_is_macro(ctx->r)) {
+
+    lbm_value m = ctx->r;
+    lbm_value curr_param = lbm_car(lbm_cdr(m));
+    lbm_value curr_arg = args;
+    lbm_value expand_env = env;
+    while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
+           lbm_type_of(curr_arg)   == LBM_PTR_TYPE_CONS) {
+
+      lbm_value entry;
+      WITH_GC(entry,lbm_cons(lbm_car(curr_param),lbm_car(curr_arg)), expand_env,NIL);
+
+      lbm_value aug_env;
+      WITH_GC(aug_env,lbm_cons(entry, expand_env),expand_env,entry);
+      expand_env = aug_env;
+
+      curr_param = lbm_cdr(curr_param);
+      curr_arg   = lbm_cdr(curr_arg);
+    }
+    ctx->curr_exp = lbm_car(lbm_cdr(lbm_cdr(m)));
+    ctx->curr_env = expand_env;
+    ctx->app_cont = false;
+    return;
+  }
+  error_ctx(lbm_enc_sym(SYM_EERROR));
+}
 
 static inline void cont_progn_rest(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value env;
   lbm_pop_u32_2(&ctx->K, &rest, &env);
   if (lbm_type_of(rest) == LBM_VAL_TYPE_SYMBOL && rest == NIL) {
-    printf("cont: rest is nil\n");
     ctx->app_cont = true;
     return;
   }
@@ -1955,15 +1985,22 @@ static inline void cont_application_start(eval_context_t *ctx) {
 
   lbm_value args;
   lbm_pop_u32(&ctx->K, &args);
+  if (lbm_is_symbol(ctx->r) &&
+      lbm_dec_sym(ctx->r) == SYM_MACRO_EXPAND) {
 
-  if (lbm_is_macro(ctx->r)) {
+    /* (macro-expand (args + (list 1 2 3))) */
+
+    CHECK_STACK(lbm_push_u32_2(&ctx->K,
+                               lbm_cdr(lbm_car(args)),
+                               lbm_enc_u(EXPAND_MACRO)));
+    ctx->curr_exp = lbm_car(lbm_car(args));
+  } else if (lbm_is_macro(ctx->r)) {
     /*
      * Perform macro expansion.
      * Macro expansion is really just evaluation in an
      * environment augmented with the unevaluated expressions passed
      * as arguments.
      */
-
     lbm_value env;
     lbm_pop_u32(&ctx->K, &env);
 
@@ -2045,6 +2082,7 @@ static void evaluation_step(void){
     case EVAL_R:            cont_eval_r(ctx); return;
     case SET_VARIABLE:      cont_set_var(ctx); return;
     case RESUME:            cont_resume(ctx); return;
+    case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
