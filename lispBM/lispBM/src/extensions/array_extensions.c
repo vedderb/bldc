@@ -475,7 +475,7 @@ lbm_value array_extension_buffer_get_i8(lbm_value *args, lbm_uint argn) {
     uint8_t *data = (uint8_t*)array->data;
 
     value = data[index];
-    res = lbm_enc_i((lbm_int)value);
+    res = lbm_enc_i((int8_t)value);
   }
   return res;
 }
@@ -521,7 +521,7 @@ lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn) {
         (lbm_uint) data[index+1] << 8;
     }
 
-    res = lbm_enc_i((lbm_int)value);
+    res = lbm_enc_i((int16_t)value);
     break;
   default:
     break;
