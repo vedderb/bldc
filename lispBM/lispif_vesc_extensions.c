@@ -43,6 +43,8 @@
 #include "imu.h"
 #include "mempools.h"
 #include "app.h"
+#include "spi_bb.h"
+#include "i2c.h"
 
 #include <math.h>
 
@@ -1121,7 +1123,6 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
-	lbm_value curr = args[0];
 	const int max_len = 20;
 	uint8_t to_send[max_len];
 	uint8_t *to_send_ptr = to_send;
@@ -1136,6 +1137,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		to_send_ptr = (uint8_t*)array->data;
 		ind = array->size;
 	} else {
+		lbm_value curr = args[0];
 		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
 			lbm_value  arg = lbm_car(curr);
 
@@ -1206,6 +1208,114 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 	}
 
 	return lbm_enc_i(count);
+}
+
+static i2c_bb_state i2c_cfg = {
+		HW_UART_RX_PORT, HW_UART_RX_PIN,
+		HW_UART_TX_PORT, HW_UART_TX_PIN,
+		0,
+		0,
+		{{NULL, NULL}, NULL, NULL}
+};
+static bool i2c_started = false;
+
+static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	app_configuration *appconf = mempools_alloc_appconf();
+	conf_general_read_app_configuration(appconf);
+	if (appconf->app_to_use == APP_UART ||
+			appconf->app_to_use == APP_PPM_UART ||
+			appconf->app_to_use == APP_ADC_UART) {
+		appconf->app_to_use = APP_NONE;
+		conf_general_store_app_configuration(appconf);
+		app_set_configuration(appconf);
+	}
+	mempools_free_appconf(appconf);
+
+	i2c_bb_init(&i2c_cfg);
+	i2c_started = true;
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
+	if (argn != 2 && argn != 3) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	if (!i2c_started) {
+		return lbm_enc_i(0);
+	}
+
+	uint16_t addr = 0;
+	size_t txlen = 0;
+	size_t rxlen = 0;
+	uint8_t *txbuf = 0;
+	uint8_t *rxbuf = 0;
+
+	const unsigned int max_len = 20;
+	uint8_t to_send[max_len];
+
+	if (!lbm_is_number(args[0])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+	addr = lbm_dec_as_u(args[0]);
+
+	if (lbm_type_of(args[1]) == LBM_PTR_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+		if (array->elt_type != LBM_VAL_TYPE_BYTE) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		txbuf = (uint8_t*)array->data;
+		txlen = array->size;
+	} else {
+		lbm_value curr = args[1];
+		while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+			lbm_value  arg = lbm_car(curr);
+
+			if (lbm_is_number(arg)) {
+				to_send[txlen++] = lbm_dec_as_u(arg);
+			} else {
+				return lbm_enc_sym(SYM_EERROR);
+			}
+
+			if (txlen == max_len) {
+				break;
+			}
+
+			curr = lbm_cdr(curr);
+		}
+
+		if (txlen > 0) {
+			txbuf = to_send;
+		}
+	}
+
+	if (argn >= 3 && lbm_type_of(args[2]) == LBM_PTR_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[2]);
+		if (array->elt_type != LBM_VAL_TYPE_BYTE) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		rxbuf = (uint8_t*)array->data;
+		rxlen = array->size;
+	}
+
+	return lbm_enc_i(i2c_bb_tx_rx(&i2c_cfg, addr, txbuf, txlen, rxbuf, rxlen) ? 1 : 0);
+}
+
+static lbm_value ext_i2c_restore(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	if (!i2c_started) {
+		return lbm_enc_i(0);
+	}
+
+	i2c_bb_restore_bus(&i2c_cfg);
+
+	return lbm_enc_i(1);
 }
 
 void lispif_load_vesc_extensions(void) {
@@ -1315,6 +1425,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("uart-start", ext_uart_start);
 	lbm_add_extension("uart-write", ext_uart_write);
 	lbm_add_extension("uart-read", ext_uart_read);
+
+	// I2C
+	i2c_started = false;
+	lbm_add_extension("i2c-start", ext_i2c_start);
+	lbm_add_extension("i2c-tx-rx", ext_i2c_tx_rx);
+	lbm_add_extension("i2c-restore", ext_i2c_restore);
 
 	// Array extensions
 	lbm_array_extensions_init();

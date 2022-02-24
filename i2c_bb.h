@@ -26,10 +26,8 @@
 #include "stdbool.h"
 
 typedef struct {
-	stm32_gpio_t *sda_gpio;
-	int sda_pin;
-	stm32_gpio_t *scl_gpio;
-	int scl_pin;
+	stm32_gpio_t *sda_gpio; int sda_pin;
+	stm32_gpio_t *scl_gpio; int scl_pin;
 	bool has_started;
 	bool has_error;
 	mutex_t mutex;
