@@ -918,11 +918,11 @@ static inline void eval_symbol(eval_context_t *ctx) {
       stream = token_stream_from_string_value(cell);
 
       lbm_value loader = NIL;
-      CONS_WITH_GC(loader, stream, loader, NIL);
-      CONS_WITH_GC(loader, lbm_enc_sym(SYM_READ), loader, NIL);
+      CONS_WITH_GC(loader, stream, loader, stream);
+      CONS_WITH_GC(loader, lbm_enc_sym(SYM_READ), loader, loader);
       lbm_value evaluator = NIL;
       CONS_WITH_GC(evaluator, loader, evaluator, loader);
-      CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, NIL);
+      CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, evaluator);
       ctx->curr_exp = evaluator;
     }
   } else {

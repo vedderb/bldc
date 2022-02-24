@@ -170,8 +170,26 @@ void sleep_callback(uint32_t us) {
 
 bool dyn_load(const char *str, const char **code) {
 
-  //*code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
-  return false;
+  printf("dyn_load: %s\n", str);
+
+  bool res = false;
+  if (strncmp(str, "defun", 5) == 0) {
+    *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
+    res = true;
+  } else if (strncmp(str, "f", 1) == 0) {
+    *code = "(defun f (x) (+ x 1))";
+    res = true;
+  } else if (strncmp(str, "g", 1) == 0) {
+    *code = "(defun g (x) (+ 100 (f x)))";
+    res = true;
+  } else if (strncmp(str, "h", 1) == 0) {
+    *code = "(defun h (x) (cons (g x) nil))";
+    res = true;
+  } else if (strncmp(str, "i", 1) == 0) {
+    *code = "(defun i (x) (if (= x 0) 0 (+ (i (- x 1)) x)))";
+    res = true;
+  }
+  return res;
 }
 
 
