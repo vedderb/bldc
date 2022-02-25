@@ -947,6 +947,11 @@ static inline void eval_macro(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static inline void eval_closure(eval_context_t *ctx) {
+  ctx->r = ctx->curr_exp;
+  ctx->app_cont = true;
+}
+
 static inline void eval_callcc(eval_context_t *ctx) {
 
   lbm_value continuation = NIL;
@@ -2116,6 +2121,7 @@ static void evaluation_step(void){
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
       case SYM_LAMBDA:  eval_lambda(ctx); return;
+      case SYM_CLOSURE: eval_closure(ctx); return;
       case SYM_IF:      eval_if(ctx); return;
       case SYM_LET:     eval_let(ctx); return;
       case SYM_AND:     eval_and(ctx); return;
