@@ -10,6 +10,8 @@
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 
 int main(int argc, char **argv) {
+  (void)argc;
+  (void)argv;
 
   int res = 1;
 
