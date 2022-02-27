@@ -29,13 +29,14 @@
 #include "tokpar.h"
 #include "qq_expand.h"
 #include "lbm_variables.h"
-
+#include "print.h"
 #include "platform_mutex.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
 
+#define ILLEGAL_CONT      0
 #define DONE              1
 #define SET_GLOBAL_ENV    2
 #define BIND_TO_KEY_REST  3
@@ -55,22 +56,93 @@
 #define RESUME            18
 #define EXPAND_MACRO      19
 
+/* reader continuations */
+//#define PARSE            20
+//#define PARSE_LIST       21
+#define QUOTE_RESULT     20
+#define BACKQUOTE_RESULT 21
+#define COMMAAT_RESULT   22
+#define COMMA_RESULT     23
+#define DOT_TERMINATE    24
+#define EXPECT_CLOSEPAR  25
+
+#define APPEND_CONTINUE  26
+#define READ_DONE        27
+
+const char *continuation_strings[] =
+  {
+   "illegal",
+   "done",
+   "set_global_env",
+   "bind_to_key_rest",
+   "if",
+   "progn_rest",
+   "application",
+   "application_args",
+   "and",
+   "or",
+   "wait",
+   "match",
+   "match_many",
+   "read",
+   "application_start",
+   "eval_r"
+   "set_variable",
+   "resume",
+   "quote_result",
+   "backquote_result",
+   "commaat_result",
+   "comma_result",
+   "dot_terminate",
+   "expect_closepar",
+   "append_continue",
+   "read_done"
+  };
+
+const int continuation_nargs[] =
+  {
+   0, // illegal
+   0, // done
+   1, // set_global_env
+   4, // bind_to_key_rest
+   2, // if
+   2, // progn_rest
+   2, // application
+   3, // application_args
+   1, // and
+   1, // or
+   1, // wait
+   1, // match
+   3, // match_many
+   2, // read
+   2, // application_start
+   1, // eval_r
+   1, // set_variable
+   1, // resume
+   0, // quote_result
+   0, // backquote_result
+   0, // commaat_result
+   0, // comma_result
+   2, // dot_terminate
+   1, // expect_closepar
+   2, // append_continue
+   0, // read_done
+  };
+
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
-    ctx->done=true;                             \
-    ctx->r = lbm_enc_sym(SYM_STACK_ERROR);          \
-    finish_ctx();                               \
+    error_ctx(lbm_enc_sym(SYM_STACK_ERROR));    \
     return;                                     \
   }
 
 #define WITH_GC(y, x, remember1,remember2)      \
   (y) = (x);                                    \
-  if (lbm_is_symbol_merror((y))) {                  \
+  if (lbm_is_symbol_merror((y))) {              \
     gc(remember1, remember2);                   \
     (y) = (x);                                  \
-    if (lbm_is_symbol_merror((y))) {                \
+    if (lbm_is_symbol_merror((y))) {            \
       ctx_running->done = true;                 \
-      error_ctx(lbm_enc_sym(SYM_MERROR));           \
+      error_ctx(lbm_enc_sym(SYM_MERROR));       \
       return;                                   \
     }                                           \
     /* continue executing statements below */   \
@@ -106,7 +178,6 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define DEFAULT_SLEEP_US  1000
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-#define EVAL_CPS_DEFAULT_STACK_GROW_POLICY false
 
 /* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */
 #define EVAL_CPS_QUANTA_US 768
@@ -155,6 +226,7 @@ static eval_context_t ctx_non_concurrent;
 static void (*usleep_callback)(uint32_t) = NULL;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
+static int (*printf_callback)(const char *, ...) = NULL;
 static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
@@ -169,8 +241,140 @@ void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
 }
 
+void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
+  printf_callback = fptr;
+}
+
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
   dynamic_load_callback = fptr;
+}
+/****************************************************/
+/* Error message creation                           */
+
+#define ERROR_MESSAGE_BUFFER_SIZE_BYTES 256
+
+void print_error_explanation(lbm_value error, char *buf, unsigned int size) {
+
+  if (lbm_type_of(error) == LBM_VAL_TYPE_SYMBOL) {
+    switch(lbm_dec_sym(error)){
+    case SYM_RERROR:
+      printf_callback("\tRead errors are most likely caused by syntactically\n"
+                      "\tincorrect input programs.\n"
+                      "\t - Check that all opening parenthesis are properly closed.\n");
+      break;
+    case SYM_TERROR:
+      printf_callback("\tA type error may be caused by passing a value of incompatible type\n"
+                      "\tto a built-in \"fundamental\" operation or an extension\n");
+      break;
+    case SYM_EERROR:
+      printf_callback("\tEvaluation error happens on programs that may be syntactically correct\n"
+                      "\t(LispBM has a very low bar for what is considered syntactically correct),\n"
+                      "\tbut semantically nonsensical.\n"
+                      "\t - Check the program for mistakes.\n"
+                      "\t - Are your parenthesis enclosing the correct subterms?\n"
+                      "\t - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).\n");
+      break;
+    case SYM_MERROR:
+      printf_callback("\tA memory error happens when the heap is completely full\n"
+                    "\tand that no memory can be freed up by running the garbage collector.\n"
+                    "\tThe program you have written requires more memory.\n"
+                    "\t - Increase the heap size.\n"
+                    "\t - Rewrite the application to use less memory.\n");
+    break;
+    case SYM_NOT_FOUND:
+      printf_callback("\tYou are trying to use a variable that is not present in the global\n"
+                      "\tor the local environment. Neither could a binding for the variable be\n"
+                      "\tdynamically loaded.\n"
+                      "\t - Check code for a misspelled variable.\n"
+                      "\t - Check if you are creating the bindings you should (let, define).\n");
+      break;
+    case SYM_DIVZERO:
+      printf_callback("\tA division by zero occured.\n"
+                      "\t - Check your math.\n"
+                      "\t - Add 0-checks into your code at a strategic position.\n");
+      break;
+    case SYM_FATAL_ERROR:
+      printf_callback("\tA fatal error occurs when the runtime system has been irrecoverably\n"
+                      "\tcorrupt.\n"
+                      "\t - If this happens please send the program and the full error message\n"
+                      "\t   to blog.joel.svensson@gmail.com. It will be much appreciated\n");
+      break;
+    case SYM_STACK_ERROR:
+      printf_callback("\tYour program is using up all the stack space available to it.\n"
+                      "\t - Check your program for recursive functions that are not tail-recursive\n"
+                      "\t   Rewrite these in tail-recursive form.\n"
+                      "\t - If you spawned this process in a small stack. For example (spawn 10 prg),\n"
+                      "\t   try to spawn it with a larger stack");
+      break;
+    default:
+      printf_callback("\tNo further explanation available\n");
+      break;
+    }
+  } else {
+    lbm_print_value(buf, size, error);
+    printf_callback("\tThe error value is not a symbol: %s\n", buf);
+    printf_callback("\tThis is most likely a bug in the LispBM implementation\n");
+  }
+}
+
+void print_environments(char *buf, unsigned int size) {
+
+  lbm_value curr_g = lbm_get_env();
+  lbm_value curr_l = ctx_running->curr_env;
+
+  printf_callback("\tCurrent local environment:\n");
+  while (lbm_type_of(curr_l) == LBM_PTR_TYPE_CONS) {
+
+    lbm_print_value(buf, (size/2) - 1,lbm_car(lbm_car(curr_l)));
+    lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
+    printf_callback("\t%s = %s\n", buf, buf+(size/2));
+    curr_l = lbm_cdr(curr_l);
+  }
+
+  printf_callback("\n\n");
+  printf_callback("\tCurrent global environment:\n");
+  while (lbm_type_of(curr_g) == LBM_PTR_TYPE_CONS) {
+
+    lbm_print_value(buf, (size/2) - 1,lbm_car(lbm_car(curr_g)));
+    lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_g)));
+    printf_callback("\t%s = %s\n", buf, buf+(size/2));
+    curr_g = lbm_cdr(curr_g);
+  }
+}
+
+
+void print_error_message(lbm_value error) {
+  if (!printf_callback) return;
+
+  /* try to allocate a lbm_print_value buffer on the lbm_memory */
+  uint32_t* buf32 = lbm_memory_allocate(ERROR_MESSAGE_BUFFER_SIZE_BYTES / 4);
+  if (!buf32) {
+    printf_callback("Error: Not enough free memory to create a human readable error message\n");
+    return;
+  }
+  char *buf = (char*)buf32;
+
+  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
+  printf_callback("***\tError: %s\n", buf);
+  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+  printf_callback("\tWhile evaluating: %s\n", buf);
+  printf_callback("\tIn context: %d\n", ctx_running->id);
+  printf_callback("\tCurrent intermediate result: %s\n\n", buf);
+
+  print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+  printf_callback("\n\n");
+
+  printf_callback("\tError explanation:\n");
+  print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+  printf_callback("\n\n");
+
+  printf_callback("\tStack:\n");
+  for (int i = 0; i < ctx_running->K.sp; i ++) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
+    printf_callback("\t\t%s\n", buf);
+  }
+
+  lbm_memory_free(buf32);
 }
 
 /****************************************************/
@@ -421,6 +625,7 @@ lbm_value lbm_wait_ctx(lbm_cid cid) {
 }
 
 static void error_ctx(lbm_value err_val) {
+  print_error_message(err_val);
   ctx_running->r = err_val;
   finish_ctx();
 }
@@ -887,7 +1092,8 @@ static inline void eval_symbol(eval_context_t *ctx) {
     const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
     const char *code_str = NULL;
     if (! dynamic_load_callback(sym_str, &code_str)) {
-      error_ctx(lbm_enc_sym(SYM_EERROR));
+      error_ctx(lbm_enc_sym(SYM_NOT_FOUND));
+      return;
     } else {
       CHECK_STACK(lbm_push_u32_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
 
@@ -897,8 +1103,10 @@ static inline void eval_symbol(eval_context_t *ctx) {
       if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
         gc(NIL,NIL);
       cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
-      if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
+      if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL) {
         error_ctx(cell);
+        return;
+      }
 
       lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
 
@@ -924,11 +1132,11 @@ static inline void eval_symbol(eval_context_t *ctx) {
       CONS_WITH_GC(evaluator, loader, evaluator, loader);
       CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, evaluator);
       ctx->curr_exp = evaluator;
+      return;
     }
-  } else {
-    ctx->app_cont = true;
-    ctx->r = value;
   }
+  ctx->app_cont = true;
+  ctx->r = value;
 }
 
 
@@ -1015,7 +1223,7 @@ static inline void eval_progn(eval_context_t *ctx) {
   }
 
   if (lbm_is_error(exps)) {
-      error_ctx(exps);
+    error_ctx(exps);
     return;
   }
   CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(exps), lbm_enc_u(PROGN_REST)));
@@ -1274,7 +1482,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   }
 
   if (lbm_is_error(rest)) {
-      error_ctx(rest);
+    error_ctx(rest);
     return;
   }
   // allow for tail recursion
@@ -1500,8 +1708,7 @@ static inline void cont_application(eval_context_t *ctx) {
         /* If it is not a eval_cps specific function, it may be a fundamental operation */
         lbm_value res;
         WITH_GC(res, lbm_fundamental(&fun_args[1], lbm_dec_u(count), fun), NIL, NIL);
-        if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
-            lbm_is_error(res)) {
+        if (lbm_is_error(res)) {
           error_ctx(res);
         }  else {
           lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
@@ -1528,6 +1735,8 @@ static inline void cont_application(eval_context_t *ctx) {
       }
     }
     }
+  } else {
+    error_ctx(lbm_enc_sym(SYM_EERROR));
   }
 }
 
@@ -1706,19 +1915,8 @@ static inline void cont_match(eval_context_t *ctx) {
   }
 }
 
-
-//#define PARSE_PROGRAM 1
-#define PARSE            1
-#define PARSE_LIST       2
-#define QUOTE_RESULT     3
-#define BACKQUOTE_RESULT 4
-#define COMMAAT_RESULT   5
-#define COMMA_RESULT     6
-#define DOT_TERMINATE    7
-#define EXPECT_CLOSEPAR  8
-
-#define APPEND_CONTINUE 100
-#define READ_DONE       110
+/****************************************************/
+/*   READER                                         */
 
 static inline void cont_read(eval_context_t *ctx) {
 
@@ -1740,7 +1938,7 @@ static inline void cont_read(eval_context_t *ctx) {
     if (lbm_dec_sym(prg_val) == SYM_READ) program = false;
     else if (lbm_dec_sym(prg_val) == SYM_READ_PROGRAM) program = true;
   } else {
-    ctx->r = lbm_enc_sym(SYM_FATAL_ERROR);
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
     return;
   }
 
@@ -1801,8 +1999,8 @@ static inline void cont_read(eval_context_t *ctx) {
           ctx->r = res;
           app_cont = true;
         } else {
-          ctx->r = lbm_enc_sym(SYM_RERROR);
-          read_done = true;
+          error_ctx(lbm_enc_sym(SYM_RERROR));
+          return;
         }
       } break;
       case DOT_TERMINATE: {
@@ -1813,8 +2011,8 @@ static inline void cont_read(eval_context_t *ctx) {
         if (lbm_type_of(ctx->r) == LBM_VAL_TYPE_SYMBOL &&
             (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
              lbm_dec_sym(ctx->r) == SYM_DOT)) {
-          ctx->r = lbm_enc_sym(SYM_RERROR);
-          read_done = true;
+          error_ctx(lbm_enc_sym(SYM_RERROR));
+          return;
         } else {
           if (lbm_type_of(last_cell) == LBM_PTR_TYPE_CONS) {
             lbm_set_cdr(last_cell, ctx->r);
@@ -1823,15 +2021,16 @@ static inline void cont_read(eval_context_t *ctx) {
                                    ctx->r,
                                    lbm_enc_u(EXPECT_CLOSEPAR)));
           } else {
-            ctx->r = lbm_enc_sym(SYM_RERROR);
-            read_done = true;
+            error_ctx(lbm_enc_sym(SYM_RERROR));
+            return;
           }
         }
       } break;
       case READ_DONE:
         tok = token_stream_get(str);
         if (tok != lbm_enc_sym(SYM_TOKENIZER_DONE)) {
-          ctx->r = lbm_enc_sym(SYM_RERROR);
+          error_ctx(lbm_enc_sym(SYM_RERROR));
+          return;
         }
         ctx->app_cont = true;
         read_done = true;
@@ -1872,38 +2071,11 @@ static inline void cont_read(eval_context_t *ctx) {
       if (lbm_type_of(tok) == LBM_VAL_TYPE_SYMBOL) {
         switch (lbm_dec_sym(tok)) {
         case SYM_RERROR:
+          error_ctx(lbm_enc_sym(SYM_RERROR));
+          return;
         case SYM_MERROR:
-          // check if stack is corrupted
-          if (program) {
-            if (ctx->K.sp >= sp_start+4 &&
-                ctx->K.data[sp_start] == lbm_enc_u(READ_DONE) &&
-                ctx->K.data[sp_start+3] == lbm_enc_u(APPEND_CONTINUE)) {
-              // stack seems fine
-              ctx->K.sp = sp_start;
-              ctx->r = lbm_enc_sym(SYM_RERROR);
-              ctx->app_cont = true;
-              read_done = true;
-              // as the continuation will run, the result will
-              // be an eval error rather than an READ_ERROR.
-            } else {
-              error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              return;  // there is no context to keep working in so return.
-            }
-          } else {
-            // This may be dead code as the expression case does
-            // not seem to end up here.
-            if (ctx->K.sp >= sp_start &&
-                ctx->K.data[sp_start] == lbm_enc_u(READ_DONE)) {
-              ctx->K.sp = sp_start;
-              ctx->r = lbm_enc_sym(SYM_RERROR);
-              ctx->app_cont = true;
-              read_done = true;
-            } else {
-              error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              return; // there is no context to keep working in so return.
-            }
-          }
-          break;
+          error_ctx(lbm_enc_sym(SYM_MERROR));
+          return;
         case SYM_TOKENIZER_DONE:
           if (program) {
 
@@ -1913,10 +2085,8 @@ static inline void cont_read(eval_context_t *ctx) {
             } else if (ctx->K.data[sp_start] == lbm_enc_u(READ_DONE) &&
                        ctx->K.data[sp_start+3] == lbm_enc_u(APPEND_CONTINUE)) {
               // Parsing failed but stack seems to not be corrupted.
-              ctx->K.sp = sp_start;
-              ctx->r = lbm_enc_sym(SYM_RERROR);
-              ctx->app_cont = true;
-              read_done = true;
+              error_ctx(lbm_enc_sym(SYM_RERROR));
+              return;
             } else {
               // parsing failed and left a corrupted stack.
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
@@ -1925,10 +2095,8 @@ static inline void cont_read(eval_context_t *ctx) {
           } else {
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == lbm_enc_u(READ_DONE)) {
-              ctx->K.sp = sp_start;
-              ctx->r = lbm_enc_sym(SYM_RERROR);
-              ctx->app_cont = true;
-              read_done = true;
+              error_ctx(lbm_enc_sym(SYM_RERROR));
+              return;
             } else if (ctx->K.sp < sp_start) {
               /*the stack is broken */
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
@@ -2074,7 +2242,7 @@ static void evaluation_step(void){
     case SET_GLOBAL_ENV:    cont_set_global_env(ctx); return;
     case PROGN_REST:        cont_progn_rest(ctx); return;
     case WAIT:              cont_wait(ctx); return;
-    case APPLICATION:       cont_application(ctx); return;
+      //    case APPLICATION:       cont_application(ctx); return;
     case APPLICATION_ARGS:  cont_application_args(ctx); return;
     case AND:               cont_and(ctx); return;
     case OR:                cont_or(ctx); return;
@@ -2246,24 +2414,6 @@ void lbm_run_eval(void){
 
     evaluation_step();
   }
-}
-
-lbm_value evaluate_non_concurrent(void) {
-
-  lbm_cid cid = ctx_running->id;
-
-  while (ctx_running) {
-    evaluation_step();
-  }
-
-  eval_context_t *ctx = lookup_ctx(&done, cid);
-  if (ctx) {
-    drop_ctx(&done, ctx);
-  } else {
-    return lbm_enc_sym(SYM_FATAL_ERROR);
-  }
-
-  return ctx_non_concurrent.r;
 }
 
 lbm_cid lbm_eval_program(lbm_value lisp) {

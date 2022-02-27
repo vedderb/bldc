@@ -25,9 +25,12 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 4
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 2
 
 /* Change log */
+
+/* Feb 27 2022: Version (0.4.2)
+   - First go at human-readable error messages.
 
 /* Feb 21 2022: Version (0.4.1)
    - Bug fixes in gc related to arrays

@@ -635,4 +635,16 @@ static inline bool lbm_is_symbol_eval(lbm_value exp) {
 static inline bool lbm_is_symbol_merror(lbm_value exp) {
   return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_MERROR);
 }
+
+
+/* all error signaling symbols are in the range 0x20 - 0x2F */
+static inline bool lbm_is_error(lbm_value v){
+  if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
+      ((lbm_dec_sym(v) & 0xFFFFFF20) == 0x20)) {
+    return true;
+  }
+  return false;
+}
+
+
 #endif
