@@ -381,6 +381,7 @@ int main(int argc, char **argv) {
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dyn_load);
+  lbm_set_printf_callback(printf);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 

@@ -2,7 +2,13 @@
 
 set timeout 10
 
-spawn cu -l /dev/ttyACM0 -s 115200
+if { $argc >= 1 } {
+    set port [lindex $argv 0]
+} else {
+    set port "/dev/ttyACM0"
+}
+
+spawn cu -l $port -s 115200
 
 set systemTime [clock seconds]
 

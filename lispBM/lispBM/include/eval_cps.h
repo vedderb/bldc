@@ -184,6 +184,12 @@ extern void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void));
  * \param fptr Pointer to a "done" function.
  */
 extern void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *));
+/** Set a "printf" callback function. This function will be called by
+ * the evaluator to report error strings back to the user.
+ *
+ * \param fptr Pointer to a "printf" function.
+ */
+extern void lbm_set_printf_callback(int (*prnt)(const char*, ...));
 /** Set a callback for dynamically loading code associated with
  * an undefined symbol
  */
