@@ -27,6 +27,16 @@
 #include "lispbm.h"
 
 #define EVAL_CPS_STACK_SIZE 256
+#define GC_STACK_SIZE 256
+#define PRINT_STACK_SIZE 256
+#define EXTENSION_STORAGE_SIZE 256
+#define VARIABLE_STORAGE_SIZE 256
+
+uint32_t gc_stack_storage[GC_STACK_SIZE];
+uint32_t print_stack_storage[PRINT_STACK_SIZE];
+extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+
 
 /* Tokenizer state for strings */
 static lbm_tokenizer_string_state_t string_tok_state;
@@ -122,8 +132,11 @@ int main(int argc, char **argv) {
   }
 
   lbm_init(heap_storage, heap_size,
+           gc_stack_storage, GC_STACK_SIZE,
            memory, LBM_MEMORY_SIZE_16K,
-           bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
+           bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
+           print_stack_storage, PRINT_STACK_SIZE,
+           extension_storage, EXTENSION_STORAGE_SIZE);
 
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

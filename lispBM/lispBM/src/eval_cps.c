@@ -218,11 +218,6 @@ static eval_context_queue_t done    = {NULL, NULL};
 /* one mutex for all queue operations */
 mutex_t qmutex;
 
-//static eval_context_t *ctx_done = NULL;
-
-
-static eval_context_t ctx_non_concurrent;
-
 static void (*usleep_callback)(uint32_t) = NULL;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
@@ -369,7 +364,7 @@ void print_error_message(lbm_value error) {
   printf_callback("\n\n");
 
   printf_callback("\tStack:\n");
-  for (int i = 0; i < ctx_running->K.sp; i ++) {
+  for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
     printf_callback("\t\t%s\n", buf);
   }
@@ -1097,7 +1092,6 @@ static inline void eval_symbol(eval_context_t *ctx) {
     } else {
       CHECK_STACK(lbm_push_u32_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
 
-      lbm_value stream = NIL;
       lbm_value cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
 
       if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
@@ -1123,7 +1117,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
       cell = cell | LBM_PTR_TYPE_ARRAY;
 
-      stream = token_stream_from_string_value(cell);
+      lbm_value stream = token_stream_from_string_value(cell);
 
       lbm_value loader = NIL;
       CONS_WITH_GC(loader, stream, loader, stream);
