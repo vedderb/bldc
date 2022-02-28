@@ -101,6 +101,7 @@
 #define NTC_RES(adc_val)		(0.0)
 #define NTC_TEMP(adc_ind)		(32.0)
 #define NTC_TEMP_MOTOR(beta)	(0.0)
+#define NTC_RES_MOTOR(adc_val)	(0.0)
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
