@@ -4,10 +4,18 @@
 WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
 ROOT_DIR := $(realpath $(WHEREAMI)/ )
 
-TARGET_PATHS := $(wildcard $(ROOT_DIR)/hwconf/hw_*.h)
+# Define a recursive wildcard function
+# C.f. https://stackoverflow.com/a/18258352
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-# Strip the paths down to just the names. Do this by first removing the prefix (PATH/hw_), and then the suffic (.h)
-ALL_BOARD_NAMES := $(subst .h,,$(subst $(ROOT_DIR)/hwconf/hw_,,$(TARGET_PATHS)))
+# Get the raw paths for all *.h files
+RAW_TARGET_PATHS := $(call rwildcard,hwconf,*.h)
+
+# Get the target paths by filtering out any core.h files, then stripping extra whitespace
+TARGET_PATHS := $(strip $(filter-out %core.h,$(RAW_TARGET_PATHS)))
+
+# Strip the paths down to just the names. Do this by first using `notdir` to remove the paths, then the prefix (hw_), then remove the suffix (.h). Finally, sort into lexical order.
+ALL_BOARD_NAMES := $(sort $(subst .h,,$(subst hw_,,$(filter hw_%, $(notdir $(TARGET_PATHS))))))
 
 # configure some directories that are relative to wherever ROOT_DIR is located
 TOOLS_DIR := $(ROOT_DIR)/tools
@@ -114,6 +122,20 @@ $(TOOLS_DIR):
 ##############################
 
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
+# $(2) = Target hardware directory
+define FIND_TARGET_C_CODE
+   # Look for `*_core.c` file
+   ifneq ("$(wildcard $(2)/hw_*_core.c)","")
+      # Good luck, there it is!
+      HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
+   else
+      # There isn't one, so let's hope for the sister `.c` file
+      HW_SRC_FILE = $(2)/hw_$(1).c
+   endif
+
+endef
+
+# $(1) = Canonical board name all in lower case (e.g. 100_250)
 # $(2) = firmware build directory
 # $(3) = firmware name
 define FW_TEMPLATE
@@ -121,6 +143,8 @@ define FW_TEMPLATE
 $(1): fw_$(1)_vescfw
 fw_$(1): fw_$(1)_vescfw
 
+fw_$(1)_vescfw: $(eval HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS))))  # Find the directory for this header file
+fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR)))  # Find the c code associated to this header file
 fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
 	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
@@ -128,7 +152,7 @@ fw_$(1)_vescfw:
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
-		build_args='-DHW_SOURCE=\"hw_$(1).c\" -DHW_HEADER=\"hw_$(1).h\"' USE_VERBOSE_COMPILE=no
+		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\"' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
 fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
