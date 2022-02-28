@@ -14,8 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef HW_STORMCORE_100D_H_
-#define HW_STORMCORE_100D_H_
+#ifndef HW_STORMCORE_100D_CORE_H_
+#define HW_STORMCORE_100D_CORE_H_
 
 #ifdef HW_DUAL_CONFIG_PARALLEL
 #define HW_HAS_DUAL_PARALLEL
@@ -31,8 +31,10 @@
 #define HW_NAME                 "STORMCORE_100DX"
 #define INVERTED_SHUNT_POLARITY
 #define HW_DEAD_TIME_NSEC               600.0   // Dead time
-#else
+#elif defined(HW_VER_IS_100D)
 #define HW_NAME                 "STORMCORE_100D"
+#else
+#error "Must define hardware type"
 #endif
 
 #ifndef HW_VER_IS_100DX
@@ -471,4 +473,4 @@ bool smart_switch_is_pressed(void);
 void smart_switch_shut_down(void);
 void smart_switch_keep_on(void);
 
-#endif /* HW_STORMCORE_100D_H_ */
+#endif /* HW_STORMCORE_100D_CORE_H_ */

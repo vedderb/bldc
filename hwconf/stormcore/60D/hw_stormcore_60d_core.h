@@ -14,15 +14,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef HW_STORMCORE_60D_H_
-#define HW_STORMCORE_60D_H_
+#ifndef HW_STORMCORE_60D_CORE_H_
+#define HW_STORMCORE_60D_CORE_H_
 
 #ifdef HW_VER_IS_60D_PLUS
 #define HW_NAME                 "STORMCORE_60D+"
 #elif defined (HW_VER_IS_60D_XS)
 #define HW_NAME                 "STORMCORE_60Dxs"
-#else
+#elif defined (HW_VER_IS_60D)
 #define HW_NAME                 "STORMCORE_60D"
+#else
+#error "Must define a hardware type"
 #endif
 
 #define HW_HAS_DUAL_MOTORS
@@ -465,4 +467,4 @@ bool smart_switch_is_pressed(void);
 void smart_switch_shut_down(void);
 void smart_switch_keep_on(void);
 
-#endif /* HW_STORMCORE_60D_H_ */
+#endif /* HW_STORMCORE_60D_CORE_H_ */
