@@ -355,6 +355,34 @@ static lbm_value ext_get_imu_mag(lbm_value *args, lbm_uint argn) {
 	return imu_data;
 }
 
+static lbm_value ext_get_imu_acc_derot(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float acc[3];
+	imu_get_accel_derotated(acc);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(acc[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(acc[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(acc[0]), imu_data);
+
+	return imu_data;
+}
+
+static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float gyro[3];
+	imu_get_gyro_derotated(gyro);
+
+	lbm_value imu_data = lbm_enc_sym(SYM_NIL);
+	imu_data = lbm_cons(lbm_enc_F(gyro[2]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(gyro[1]), imu_data);
+	imu_data = lbm_cons(lbm_enc_F(gyro[0]), imu_data);
+
+	return imu_data;
+}
+
 static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 || (lbm_type_of(args[0]) != LBM_PTR_TYPE_CONS && lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY)) {
 		return lbm_enc_sym(SYM_EERROR);
@@ -828,6 +856,34 @@ static lbm_value ext_log(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1)
 	return lbm_enc_F(log10f(lbm_dec_as_f(args[0])));
+}
+
+static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		return lbm_enc_F(DEG2RAD_f(lbm_dec_as_f(args[0])));
+	} else {
+		lbm_value out_list = lbm_enc_sym(SYM_NIL);
+		for (int i = (argn - 1);i >= 0;i--) {
+			out_list = lbm_cons(lbm_enc_F(DEG2RAD_f(lbm_dec_as_f(args[i]))), out_list);
+		}
+		return out_list;
+	}
+}
+
+static lbm_value ext_rad2deg(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		return lbm_enc_F(RAD2DEG_f(lbm_dec_as_f(args[0])));
+	} else {
+		lbm_value out_list = lbm_enc_sym(SYM_NIL);
+		for (int i = (argn - 1);i >= 0;i--) {
+			out_list = lbm_cons(lbm_enc_F(RAD2DEG_f(lbm_dec_as_f(args[i]))), out_list);
+		}
+		return out_list;
+	}
 }
 
 // Bit operations
@@ -1318,6 +1374,31 @@ static lbm_value ext_i2c_restore(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(1);
 }
 
+static lbm_value ext_vec3_rot(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+	if (argn != 6 && argn != 7) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	float input[] = {lbm_dec_as_f(args[0]), lbm_dec_as_f(args[1]), lbm_dec_as_f(args[2])};
+	float rotation[] = {lbm_dec_as_f(args[3]), lbm_dec_as_f(args[4]), lbm_dec_as_f(args[5])};
+	float output[3];
+
+	bool reverse = false;
+	if (argn == 7) {
+		reverse = lbm_dec_as_i(args[6]);
+	}
+
+	utils_rotate_vector3(input, rotation, output, reverse);
+
+	lbm_value out_list = lbm_enc_sym(SYM_NIL);
+	out_list = lbm_cons(lbm_enc_F(output[2]), out_list);
+	out_list = lbm_cons(lbm_enc_F(output[1]), out_list);
+	out_list = lbm_cons(lbm_enc_F(output[0]), out_list);
+
+	return out_list;
+}
+
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
 	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
@@ -1344,6 +1425,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-imu-acc", ext_get_imu_acc);
 	lbm_add_extension("get-imu-gyro", ext_get_imu_gyro);
 	lbm_add_extension("get-imu-mag", ext_get_imu_mag);
+	lbm_add_extension("get-imu-acc-derot", ext_get_imu_acc_derot);
+	lbm_add_extension("get-imu-gyro-derot", ext_get_imu_gyro_derot);
 	lbm_add_extension("send-data", ext_send_data);
 
 	// Motor set commands
@@ -1406,6 +1489,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("sqrt", ext_sqrt);
 	lbm_add_extension("log", ext_log);
 	lbm_add_extension("log10", ext_log10);
+	lbm_add_extension("deg2rad", ext_deg2rad);
+	lbm_add_extension("rad2deg", ext_rad2deg);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
@@ -1431,6 +1516,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("i2c-start", ext_i2c_start);
 	lbm_add_extension("i2c-tx-rx", ext_i2c_tx_rx);
 	lbm_add_extension("i2c-restore", ext_i2c_restore);
+
+	// Vectors
+	lbm_add_extension("vec3-rot", ext_vec3_rot);
 
 	// Array extensions
 	lbm_array_extensions_init();

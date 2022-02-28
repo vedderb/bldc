@@ -862,6 +862,48 @@ int utils_stack_left_now(void) {
 	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
 }
 
+void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse) {
+	float s1, c1, s2, c2, s3, c3;
+
+	if (rotation[2] != 0.0) {
+		s1 = sinf(rotation[2]);
+		c1 = cosf(rotation[2]);
+	} else {
+		s1 = 0.0;
+		c1 = 1.0;
+	}
+
+	if (rotation[1] != 0.0) {
+		s2 = sinf(rotation[1]);
+		c2 = cosf(rotation[1]);
+	} else {
+		s2 = 0.0;
+		c2 = 1.0;
+	}
+
+	if (rotation[0] != 0.0) {
+		s3 = sinf(rotation[0]);
+		c3 = cosf(rotation[0]);
+	} else {
+		s3 = 0.0;
+		c3 = 1.0;
+	}
+
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
+
+	if (reverse) {
+		output[0] = input[0] * m11 + input[1] * m21 + input[2] * m31;
+		output[1] = input[0] * m12 + input[1] * m22 + input[2] * m32;
+		output[2] = input[0] * m13 + input[1] * m23 + input[2] * m33;
+	} else {
+		output[0] = input[0] * m11 + input[1] * m12 + input[2] * m13;
+		output[1] = input[0] * m21 + input[1] * m22 + input[2] * m23;
+		output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
+	}
+}
+
 const float utils_tab_sin_32_1[] = {
 	0.000000, 0.195090, 0.382683, 0.555570, 0.707107, 0.831470, 0.923880, 0.980785,
 	1.000000, 0.980785, 0.923880, 0.831470, 0.707107, 0.555570, 0.382683, 0.195090,

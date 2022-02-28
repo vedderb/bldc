@@ -201,6 +201,7 @@ static bool start_lisp(bool print) {
 
 			lbm_set_timestamp_us_callback(timestamp_callback);
 			lbm_set_usleep_callback(sleep_callback);
+			lbm_set_printf_callback(commands_printf_lisp);
 			chThdCreateStatic(eval_thread_wa, sizeof(eval_thread_wa), NORMALPRIO, eval_thread, NULL);
 
 			lisp_thd_running = true;

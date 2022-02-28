@@ -68,6 +68,7 @@ uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 const char* utils_hw_type_to_string(HW_TYPE hw);
 int utils_check_min_stack_left(thread_t *th);
 int utils_stack_left_now(void);
+void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse);
 
 // Return the sign of the argument. -1.0 if negative, 1.0 if zero or positive.
 #define SIGN(x)				(((x) < 0.0) ? -1.0 : 1.0)
@@ -89,8 +90,12 @@ int utils_stack_left_now(void);
 #define RPM2RADPS_f(rpm) ((rpm) * (float)((2.0 * M_PI) / 60.0))
 #define RADPS2RPM_f(rad_per_sec) ((rad_per_sec) * (float)(60.0 / (2.0 * M_PI)))
 
-
-
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
 
 /**
  * A simple low pass filter.

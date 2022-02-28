@@ -62,6 +62,15 @@ static const char* functions[] = {
 "(let ((len (lambda (l xs)"
 "(if (= xs nil) l (len (+ l 1) (cdr xs))))))"
 "(len 0 xs)))",
+
+"(defun apply (fun lst) (eval `(,fun ,@lst)))",
+
+"(defun zipwith (f x y)"
+"(let ((map-rec (lambda (f res xs ys)"
+"(if (= xs nil)"
+"(reverse res)"
+"(map-rec f (cons (f (car xs) (car ys)) res) (cdr xs) (cdr ys))))))"
+"(map-rec f nil x y)))",
 };
 
 static const char* macros[] = {

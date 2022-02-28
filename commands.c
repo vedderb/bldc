@@ -61,7 +61,7 @@
 #include <stdio.h>
 
 // Settings
-#define PRINT_BUFFER_SIZE	255
+#define PRINT_BUFFER_SIZE	400
 
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
@@ -1616,7 +1616,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	}
 }
 
-void commands_printf(const char* format, ...) {
+int commands_printf(const char* format, ...) {
 	chMtxLock(&print_mutex);
 
 	va_list arg;
@@ -1627,15 +1627,18 @@ void commands_printf(const char* format, ...) {
 	len = vsnprintf(print_buffer + 1, (PRINT_BUFFER_SIZE - 1), format, arg);
 	va_end (arg);
 
+	int len_to_print = (len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE;
+
 	if(len > 0) {
-		commands_send_packet_last_blocking((unsigned char*)print_buffer,
-				(len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE);
+		commands_send_packet_last_blocking((unsigned char*)print_buffer, len_to_print);
 	}
 
 	chMtxUnlock(&print_mutex);
+
+	return len_to_print - 1;
 }
 
-void commands_printf_lisp(const char* format, ...) {
+int commands_printf_lisp(const char* format, ...) {
 	chMtxLock(&print_mutex);
 
 	va_list arg;
@@ -1646,12 +1649,19 @@ void commands_printf_lisp(const char* format, ...) {
 	len = vsnprintf(print_buffer + 1, (PRINT_BUFFER_SIZE - 1), format, arg);
 	va_end (arg);
 
+	int len_to_print = (len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE;
+
 	if(len > 0) {
-		commands_send_packet_last_blocking((unsigned char*)print_buffer,
-				(len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE);
+		if (print_buffer[len_to_print - 1] == '\n') {
+			len_to_print--;
+		}
+
+		commands_send_packet_last_blocking((unsigned char*)print_buffer, len_to_print);
 	}
 
 	chMtxUnlock(&print_mutex);
+
+	return len_to_print - 1;
 }
 
 void commands_send_rotor_pos(float rotor_pos) {
