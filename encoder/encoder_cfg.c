@@ -39,8 +39,8 @@ AS504x_config_t encoder_cfg_as504x = {
 		{
 				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
 				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
-#if defined(HW_SPI_PORT_MOSI) && AS504x_USE_SW_MOSI_PIN
-				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+#ifdef AS504x_MOSI_GPIO
+				AS504x_MOSI_GPIO, AS504x_MOSI_PIN,
 #else
 				0, 0,
 #endif

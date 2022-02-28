@@ -147,6 +147,11 @@ void enc_as504x_routine(AS504x_config_t *cfg) {
 	}
 }
 
+float enc_as504x_read_angle(AS504x_config_t *cfg) {
+	enc_as504x_routine(cfg);
+	return cfg->state.last_enc_angle;
+}
+
 static void long_delay(void) {
 	for (volatile int i = 0; i < 40; i++) {
 		__NOP();
