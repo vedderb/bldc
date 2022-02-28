@@ -28,6 +28,7 @@
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
 
+#define WAIT_TIMEOUT 2500
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -68,6 +69,30 @@ void sleep_callback(uint32_t us) {
   s.tv_nsec = (long)us * 1000;
   nanosleep(&s, &r);
 }
+volatile bool experiment_success = false;
+volatile bool experiment_done = false;
+
+void context_done_callback(eval_context_t *ctx) {
+  char output[128];
+  lbm_value t = ctx->r;
+
+  int res = lbm_print_value(output, 128, t);
+
+  if ( res >= 0) {
+    printf("O: %s\n", output);
+  } else {
+    printf("%s\n", output);
+  }
+
+  if (res && lbm_type_of(t) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+    experiment_success = true;
+    printf("Test: OK!\n");
+  } else {
+    printf("Test: Failed!\n");
+  }
+
+  experiment_done = true;
+}
 
 lbm_value ext_even(lbm_value *args, lbm_uint argn) {
 
@@ -98,8 +123,6 @@ lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
 
   return lbm_enc_sym(SYM_NIL);
 }
-
-
 
 int main(int argc, char **argv) {
 
@@ -184,7 +207,6 @@ int main(int argc, char **argv) {
     printf("Error initializing printing!\n");
     return 0;
   }
-  
 
   res = lbm_symrepr_init();
   if (res)
@@ -232,7 +254,7 @@ int main(int argc, char **argv) {
   }
 
   lbm_array_extensions_init();
-  
+
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
     printf("Extension added.\n");
@@ -261,7 +283,9 @@ int main(int argc, char **argv) {
 
   prelude_load(&string_tok_state, &string_tok);
   lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  lbm_wait_ctx(cid);
+  if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
+    printf("Waiting for prelude timed out.\n");
+  }
 
   lbm_value t;
   char *compressed_code;
@@ -288,38 +312,19 @@ int main(int argc, char **argv) {
 
   }
 
+  lbm_set_ctx_done_callback(context_done_callback);
   cid = lbm_load_and_eval_program(&string_tok);
 
-  t = lbm_wait_ctx(cid);
-
-  char output[128];
+  while (!experiment_done) {
+    sleep_callback(1000);
+  }
 
   if (compress_decompress) {
     free(compressed_code);
   }
 
-  res = lbm_print_value(output, 128, t);
-
-  if ( res >= 0) {
-    printf("O: %s\n", output);
-  } else {
-    printf("%s\n", output);
-    return 0;
-  }
-
-  if ( lbm_dec_sym(t) == SYM_EERROR) {
-    res = 0;
-  }
-
-  if (res && lbm_type_of(t) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
-    printf("Test: OK!\n");
-    res = 1;
-  } else {
-    printf("Test: Failed!\n");
-    res = 0;
-  }
-
   free(heap_storage);
 
-  return res;
+  if (experiment_success) return 1;
+  return 0;
 }
