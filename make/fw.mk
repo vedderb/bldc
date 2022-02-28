@@ -91,9 +91,6 @@ endif
 # Project, sources and paths
 #
 
-# Define project name here
-PROJECT = BLDC_4_ChibiOS
-
 # Imported source files and paths
 CHIBIOS = ChibiOS_3.0.5
 # Startup files
@@ -247,9 +244,7 @@ endif
 
 MCU  = cortex-m4
 
-#TRGT = arm-elf-
-#TRGT = /home/benjamin/Nextcloud/appimage/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-
-TRGT = arm-none-eabi-
+TRGT = $(TCHAIN_PREFIX)
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -316,53 +311,3 @@ include $(RULESPATH)/rules.mk
 
 build/$(PROJECT).bin: build/$(PROJECT).elf
 	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
-
-# Program
-upload: build/$(PROJECT).elf
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
-
-upload_only:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
-
-clear_option_bytes:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "init" \
-		-c "stm32f2x unlock 0" \
-		-c "mww 0x40023C08 0x08192A3B" \
-		-c "mww 0x40023C08 0x4C5D6E7F" \
-		-c "mww 0x40023C14 0x0fffaaed" \
-		-c "exit"
-
-#program with olimex arm-usb-tiny-h and jtag-swd adapter board.
-upload-olimex: build/$(PROJECT).bin
-	@openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg \
-		-f interface/ftdi/olimex-arm-jtag-swd.cfg \
-		-c "set WORKAREASIZE 0x2000" \
-		-f target/stm32f4x.cfg \
-		-c "program build/$(PROJECT).elf verify reset"
-
-upload-pi: build/$(PROJECT).bin
-	@openocd -f pi_stm32.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
-
-upload-pi-remote: build/$(PROJECT).elf
-	./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
-
-debug-start:
-	@openocd -f stm32-bv_openocd.cfg
-
-size: build/$(PROJECT).elf
-	@$(SZ) $<
-
-mass_erase:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "init" \
-		-c "reset halt" \
-		-c "stm32f2x mass_erase 0" \
-		-c "sleep 200" \
-		-c "shutdown"
