@@ -17,14 +17,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_A200S_V2_H_
-#define HW_A200S_V2_H_
+#ifndef HW_A200S_V2_CORE_H_
+#define HW_A200S_V2_CORE_H_
 
 
 #ifdef HW_A200S_REV_21
-#define HW_NAME					"A200S V2.1"
+ #define HW_NAME					"A200S V2.1"
+#elif defined(HW_A200S_REV_22)
+ #define HW_NAME					"A200S V2.2"
 #else
-#define HW_NAME					"A200S V2.2"
+ #error "Must define hardware type"
 #endif
 
 
@@ -272,4 +274,4 @@
 // HW-specific functions
 float hw_a200s_get_temp(void);
 
-#endif /* HW_A200S_V2_H_ */
+#endif /* HW_A200S_V2_CORE_H_ */
