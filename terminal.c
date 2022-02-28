@@ -100,6 +100,7 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "threads") == 0) {
 		thread_t *tp;
 		static const char *states[] = {CH_STATE_NAMES};
+		static systime_t last_check_time = 0;
 		commands_printf("    addr    stack prio refs     state           name motor stackmin  time    ");
 		commands_printf("-----------------------------------------------------------------------------");
 		tp = chRegFirstThread();
@@ -109,9 +110,11 @@ void terminal_process_string(char *str) {
 					(uint32_t)tp, (uint32_t)tp->p_ctx.r13,
 					(uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
 					states[tp->p_state], tp->p_name, tp->motor_selected, stack_left, (uint32_t)tp->p_time,
-					(double)(100.0 * (float)tp->p_time / (float)chVTGetSystemTimeX()));
+					(double)(100.0 * (float)tp->p_time / (float)(chVTGetSystemTimeX() - last_check_time)));
+			tp->p_time = 0;
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
+		last_check_time = chVTGetSystemTimeX();
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		commands_printf("%s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
