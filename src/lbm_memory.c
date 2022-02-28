@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <lbm_memory.h>
+#include "lbm_memory.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,6 +69,14 @@ int lbm_memory_init(uint32_t *data, uint32_t data_size,
 static inline unsigned int address_to_bitmap_ix(uint32_t *ptr) {
   return ((unsigned int)ptr - memory_base_address) >> 2;
 }
+
+lbm_int lbm_memory_address_to_ix(uint32_t *ptr) {
+  /* TODO: assuming that that index
+           will have more then enough room in the
+           positive halv of a 28bit integer */
+  return (int32_t)address_to_bitmap_ix(ptr);
+}
+
 
 static inline uint32_t *bitmap_ix_to_address(unsigned int ix) {
   return (uint32_t*)(memory_base_address + (ix << 2));

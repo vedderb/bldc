@@ -74,6 +74,7 @@
 #ifndef _LISPBM_MEMORY_H_
 #define _LISPBM_MEMORY_H_
 
+#include "lbm_types.h"
 #include <stdint.h>
 
 //#define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
@@ -139,5 +140,8 @@ extern int lbm_memory_free(uint32_t *ptr);
  * \return 1 for yes and 0 for no.
  */
 extern int lbm_memory_ptr_inside(uint32_t *ptr);
+
+
+extern lbm_int lbm_memory_address_to_ix(uint32_t *ptr);
 
 #endif

@@ -44,8 +44,7 @@ typedef float    lbm_float;
 /**
  * Represents a lisp process "context"-id
  */
-typedef uint16_t lbm_cid;
-#define CID_MAX   65535
+typedef int32_t   lbm_cid;
 
 /* tokenizer */
 
