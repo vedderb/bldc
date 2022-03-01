@@ -124,13 +124,16 @@ $(TOOLS_DIR):
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
 # $(2) = Target hardware directory
 define FIND_TARGET_C_CODE
+   # Remove `_no_limits`
+   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
+
    # Look for `*_core.c` file
    ifneq ("$(wildcard $(2)/hw_*_core.c)","")
       # Good luck, there it is!
       HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
    else
       # There isn't one, so let's hope for the sister `.c` file
-      HW_SRC_FILE = $(2)/hw_$(1).c
+      HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
    endif
 
 endef
