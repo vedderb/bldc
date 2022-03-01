@@ -287,7 +287,6 @@ int main(int argc, char **argv) {
     printf("Waiting for prelude timed out.\n");
   }
 
-  lbm_value t;
   char *compressed_code;
   if (compress_decompress) {
     uint32_t compressed_size = 0;
