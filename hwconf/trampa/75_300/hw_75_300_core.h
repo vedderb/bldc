@@ -17,15 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_75_300_H_
-#define HW_75_300_H_
+#ifndef HW_75_300_CORE_H_
+#define HW_75_300_CORE_H_
 
 #ifdef HW75_300_REV_3
-#define HW_NAME					"75_300_R3"
+  #define HW_NAME					"75_300_R3"
 #elif defined(HW75_300_REV_2)
-#define HW_NAME					"75_300_R2"
+  #define HW_NAME					"75_300_R2"
+#elif defined(HW75_300_REV_1)
+  #define HW_NAME					"75_300"
 #else
-#define HW_NAME					"75_300"
+  #error "Must define hardware type"
 #endif
 
 // HW properties
@@ -308,4 +310,4 @@
 // HW-specific functions
 float hw75_300_get_temp(void);
 
-#endif /* HW_75_300_H_ */
+#endif /* HW_75_300_CORE_H_ */
