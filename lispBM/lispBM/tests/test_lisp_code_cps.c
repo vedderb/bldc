@@ -178,6 +178,8 @@ int main(int argc, char **argv) {
   }
   fseek(fp, 0, SEEK_SET);
   char *code_buffer = malloc((unsigned long)size * sizeof(char) + 1);
+  if (!code_buffer) return 0;
+  memset(code_buffer, 0, (unsigned long)size * sizeof(char) + 1);
   size_t r = fread (code_buffer, 1, (unsigned int)size, fp);
 
   if (r == 0) {
@@ -273,6 +275,7 @@ int main(int argc, char **argv) {
 
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
+  lbm_set_printf_callback(printf);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
@@ -285,6 +288,11 @@ int main(int argc, char **argv) {
   lbm_cid cid = lbm_load_and_eval_program(&string_tok);
   if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
     printf("Waiting for prelude timed out.\n");
+  }
+
+  lbm_pause_eval();
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    sleep_callback(1000);
   }
 
   char *compressed_code;
@@ -301,22 +309,29 @@ int main(int argc, char **argv) {
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
 
     lbm_create_char_stream_from_compressed(&comp_tok_state,
-                                                   &string_tok,
-                                                   compressed_code);
+                                           &string_tok,
+                                           compressed_code);
 
   } else {
     lbm_create_char_stream_from_string(&string_tok_state,
-                                          &string_tok,
-                                          code_buffer);
+                                       &string_tok,
+                                       code_buffer);
 
   }
 
   lbm_set_ctx_done_callback(context_done_callback);
   cid = lbm_load_and_eval_program(&string_tok);
 
+  lbm_continue_eval();
+
+
   while (!experiment_done) {
     sleep_callback(1000);
   }
+
+
+  lbm_pause_eval();
+  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED);
 
   if (compress_decompress) {
     free(compressed_code);

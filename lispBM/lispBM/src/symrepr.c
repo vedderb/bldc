@@ -57,6 +57,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
+  {"set!"           , SYM_SETVAR},
+
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
   {"?i28"       , SYM_MATCH_I28},
@@ -79,7 +81,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
   {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
   {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
-  {"sym_ref"            , SYM_REF_TYPE},
+  {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
@@ -150,8 +152,6 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"bitwise-or"     , SYM_BITWISE_OR},
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
-
-  {"setvar"         , SYM_SETVAR},
 
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},

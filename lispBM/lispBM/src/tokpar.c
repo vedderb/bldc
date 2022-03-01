@@ -154,7 +154,7 @@ bool symchar0(char c) {
 }
 
 bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!";
 
   int i = 0;
   while (allowed[i] != 0) {

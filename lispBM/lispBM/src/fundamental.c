@@ -581,17 +581,17 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   int cmp_res = -1;
 
   switch (lbm_dec_sym(op)) {
-  case SYM_SETVAR:
-    if (nargs == 2 && lbm_is_symbol(args[0])) {
-      lbm_uint s = lbm_dec_sym(args[0]);
-      if (s >= VARIABLE_SYMBOLS_START &&
-          s <  VARIABLE_SYMBOLS_END) {
-        result = lbm_set_var(s, args[1]);
-      } else {
-        *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), args[0], args[1]);
-        result = args[1];
-      }
-    } break;
+  /* case SYM_SETVAR: */
+  /*   if (nargs == 2 && lbm_is_symbol(args[0])) { */
+  /*     lbm_uint s = lbm_dec_sym(args[0]); */
+  /*     if (s >= VARIABLE_SYMBOLS_START && */
+  /*         s <  VARIABLE_SYMBOLS_END) { */
+  /*       result = lbm_set_var(s, args[1]); */
+  /*     } else { */
+  /*       *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), args[0], args[1]); */
+  /*       result = args[1]; */
+  /*     } */
+  /*   } break; */
   case SYM_IX:
     if (nargs == 2 && lbm_is_number(args[0])) {
       result = index_list(args[1], lbm_dec_as_u(args[0]));
