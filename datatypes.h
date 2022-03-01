@@ -1066,6 +1066,8 @@ typedef enum {
 
 	COMM_BMS_SET_BATT_TYPE,
 	COMM_BMS_GET_BATT_TYPE,
+
+	COMM_LISP_REPL_CMD,
 } COMM_PACKET_ID;
 
 // CAN commands

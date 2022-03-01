@@ -50,6 +50,8 @@ static THD_FUNCTION(eval_thread, arg);
 static THD_WORKING_AREA(eval_thread_wa, 2048);
 static bool lisp_thd_running = false;
 
+static int repl_cid = -1;
+
 // Private functions
 static bool start_lisp(bool print);
 static uint32_t timestamp_callback(void);
@@ -178,8 +180,44 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		chMtxUnlock(&send_buffer_mutex);
 	} break;
 
+	case COMM_LISP_REPL_CMD: {
+		if (lisp_thd_running) {
+			bool ok = true;
+			int timeout_cnt = 1000;
+			lbm_pause_eval_with_gc(100);
+			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+				chThdSleep(5);
+				timeout_cnt--;
+			}
+			ok = timeout_cnt > 0;
+
+			if (ok) {
+				lbm_create_char_stream_from_string(&string_tok_state, &string_tok, (char*)data);
+				repl_cid = lbm_load_and_eval_expression(&string_tok);
+				lbm_continue_eval();
+				lbm_wait_ctx(repl_cid, 500);
+				repl_cid = -1;
+			} else {
+				commands_printf_lisp("Could not pause");
+			}
+		} else {
+			commands_printf_lisp("LispBM is not running");
+		}
+	} break;
+
 	default:
 		break;
+	}
+}
+
+static void done_callback(eval_context_t *ctx) {
+	lbm_cid cid = ctx->id;
+	lbm_value t = ctx->r;
+
+	if (cid == repl_cid) {
+		char output[64];
+		lbm_print_value(output, 1024, t);
+		commands_printf_lisp("> %s", output);
 	}
 }
 
@@ -202,6 +240,7 @@ static bool start_lisp(bool print) {
 			lbm_set_timestamp_us_callback(timestamp_callback);
 			lbm_set_usleep_callback(sleep_callback);
 			lbm_set_printf_callback(commands_printf_lisp);
+			lbm_set_ctx_done_callback(done_callback);
 			chThdCreateStatic(eval_thread_wa, sizeof(eval_thread_wa), NORMALPRIO, eval_thread, NULL);
 
 			lisp_thd_running = true;

@@ -1571,7 +1571,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_LISP_SET_RUNNING:
-	case COMM_LISP_GET_STATS: {
+	case COMM_LISP_GET_STATS:
+	case COMM_LISP_REPL_CMD: {
 #ifdef USE_LISPBM
 		lispif_process_cmd(data - 1, len + 1, reply_func);
 #endif
