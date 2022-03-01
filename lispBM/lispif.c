@@ -66,7 +66,7 @@ void lispif_init(void) {
 	}
 }
 
-void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
+static void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
 	if (arg2 != NULL) {
 		lbm_print_value((char*)arg2, 40, ctx->r);
 	}
@@ -75,6 +75,29 @@ void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
 		float *res = (float*)arg1;
 		*res = 100.0 * (float)ctx->K.max_sp / 256.0;
 	}
+}
+
+static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+	(void) arg1;
+	(void) arg2;
+
+	char output[128];
+
+	int print_ret = lbm_print_value(output, sizeof(output), ctx->r);
+
+	commands_printf_lisp("--------------------------------");
+	commands_printf_lisp("ContextID: %u", ctx->id);
+	commands_printf_lisp("Stack SP: %u",  ctx->K.sp);
+	commands_printf_lisp("Stack SP max: %u", ctx->K.max_sp);
+	if (print_ret) {
+		commands_printf_lisp("Value: %s", output);
+	} else {
+		commands_printf_lisp("Error: %s", output);
+	}
+}
+
+static void sym_it(const char *str) {
+	commands_printf_lisp("%s", str);
 }
 
 void lispif_process_cmd(unsigned char *data, unsigned int len,
@@ -186,23 +209,126 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (lisp_thd_running) {
-			bool ok = true;
-			int timeout_cnt = 1000;
-			lbm_pause_eval_with_gc(100);
-			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-				chThdSleep(5);
-				timeout_cnt--;
-			}
-			ok = timeout_cnt > 0;
+			char *str = (char*)data;
 
-			if (ok) {
-				lbm_create_char_stream_from_string(&string_tok_state, &string_tok, (char*)data);
-				repl_cid = lbm_load_and_eval_expression(&string_tok);
+			if (len <= 1) {
+				commands_printf_lisp(" ");
+			} else if (len >= 5 && strncmp(str, ":help", 5) == 0) {
+				commands_printf_lisp("== Special Commands ==");
+				commands_printf_lisp(
+						":help\n"
+						"  Print this help text");
+				commands_printf_lisp(
+						":info\n"
+						"  Print info about memory usage, allocated arrays and garbage collection");
+				commands_printf_lisp(
+						":env\n"
+						"  Print current environment and variables");
+				commands_printf_lisp(
+						":ctxs\n"
+						"  Print context (threads) info");
+				commands_printf_lisp(
+						":symbols\n"
+						"  Print symbol names");
+				commands_printf_lisp(
+						":reset\n"
+						"  Reset LBM");
+				commands_printf_lisp(
+						":pause\n"
+						"  Pause LBM");
+				commands_printf_lisp(
+						":continue\n"
+						"  Continue running LBM");
+				commands_printf_lisp(
+						":step\n"
+						"  Run single LBM step");
+				commands_printf_lisp(" ");
+				commands_printf_lisp("Anything else will be evaluated as an expression in LBM.");
+				commands_printf_lisp(" ");
+			} else if (len >= 5 && strncmp(str, ":info", 5) == 0) {
+				lbm_heap_state_t heap_state;
+				commands_printf_lisp("--(LISP HEAP)-----------------------------------------------\n");
+				lbm_get_heap_state(&heap_state);
+				commands_printf_lisp("Heap size: %u Bytes\n", HEAP_SIZE * 8);
+				commands_printf_lisp("Used cons cells: %d\n", HEAP_SIZE - lbm_heap_num_free());
+				commands_printf_lisp("Free cons cells: %d\n", lbm_heap_num_free());
+				commands_printf_lisp("GC counter: %d\n", heap_state.gc_num);
+				commands_printf_lisp("Recovered: %d\n", heap_state.gc_recovered);
+				commands_printf_lisp("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
+				commands_printf_lisp("Marked: %d\n", heap_state.gc_marked);
+				commands_printf_lisp("--(Symbol and Array memory)---------------------------------\n");
+				commands_printf_lisp("Memory size: %u Words\n", lbm_memory_num_words());
+				commands_printf_lisp("Memory free: %u Words\n", lbm_memory_num_free());
+				commands_printf_lisp("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
+				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
+			} else if (strncmp(str, ":env", 4) == 0) {
+				lbm_value curr = *lbm_get_env_ptr();
+				char output[128];
+
+				commands_printf_lisp("Environment:\n");
+				while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+					lbm_print_value(output, sizeof(output), lbm_car(curr));
+					curr = lbm_cdr(curr);
+					commands_printf_lisp("  %s",output);
+				}
+				commands_printf_lisp("Variables:");
+				for (int i = 0; i < lbm_get_num_variables(); i ++) {
+					const char *name = lbm_get_variable_name_by_index(i);
+					lbm_print_value(output,1024, lbm_get_variable_by_index(i));
+					commands_printf_lisp("  %s = %s", name ? name : "error", output);
+				}
+			} else if (strncmp(str, ":ctxs", 5) == 0) {
+				commands_printf_lisp("****** Running contexts ******");
+				lbm_running_iterator(print_ctx_info, NULL, NULL);
+				commands_printf_lisp("****** Blocked contexts ******");
+				lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+				commands_printf_lisp("****** Done contexts ******");
+				lbm_done_iterator(print_ctx_info, NULL, NULL);
+			} else if (strncmp(str, ":symbols", 8) == 0) {
+				lbm_symrepr_name_iterator(sym_it);
+				commands_printf_lisp(" ");
+			} else if (strncmp(str, ":reset", 6) == 0) {
+				commands_printf_lisp(start_lisp(false, flash_helper_code_size(CODE_IND_LISP) > 0) ?
+						"Reset OK\n\n" : "Reset Failed\n\n");
+			} else if (strncmp(str, ":pause", 6) == 0) {
+				lbm_pause_eval_with_gc(30);
+				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					sleep_callback(10);
+				}
+				commands_printf_lisp("Evaluator paused\n");
+			} else if (strncmp(str, ":continue", 9) == 0) {
 				lbm_continue_eval();
-				lbm_wait_ctx(repl_cid, 500);
-				repl_cid = -1;
+			} else if (strncmp(str, ":step", 5) == 0) {
+				int num = atoi(str + 5);
+				lbm_step_n_eval((uint32_t)num);
+			} else if (strncmp(str, ":undef", 6) == 0) {
+				lbm_pause_eval();
+				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					sleep_callback(10);
+				}
+				char *sym = str + 7;
+				commands_printf_lisp("undefining: %s", sym);
+				commands_printf_lisp("%s", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
+				lbm_continue_eval();
 			} else {
-				commands_printf_lisp("Could not pause");
+				bool ok = true;
+				int timeout_cnt = 1000;
+				lbm_pause_eval_with_gc(30);
+				while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+					chThdSleep(5);
+					timeout_cnt--;
+				}
+				ok = timeout_cnt > 0;
+
+				if (ok) {
+					lbm_create_char_stream_from_string(&string_tok_state, &string_tok, (char*)data);
+					repl_cid = lbm_load_and_eval_expression(&string_tok);
+					lbm_continue_eval();
+					lbm_wait_ctx(repl_cid, 500);
+					repl_cid = -1;
+				} else {
+					commands_printf_lisp("Could not pause");
+				}
 			}
 		} else {
 			commands_printf_lisp("LispBM is not running");
