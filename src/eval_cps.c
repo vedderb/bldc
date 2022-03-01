@@ -171,7 +171,7 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 
 #define CONS_WITH_GC(res, h, t, r)              \
   (res) = cons_with_gc(h,t,r);                  \
-  if (lbm_is_symbol_merror(res)) {                  \
+  if (lbm_is_symbol_merror(res)) {              \
     return;                                     \
   }
 
@@ -584,13 +584,11 @@ static void finish_ctx(void) {
   }
 
   lbm_memory_free((uint32_t*)ctx_running);
-
   ctx_running = NULL;
 }
 
 static void context_exists(eval_context_t *ctx, void *cid, void *b) {
   if (ctx->id == *(lbm_cid*)cid) {
-    printf("%d , %d\n", ctx->id, *(lbm_cid*)cid);
     *(bool*)b = true;
   }
 }
@@ -1105,6 +1103,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
       if (array == NULL) {
         error_ctx(lbm_enc_sym(SYM_MERROR));
+        return;
       }
 
       array->data = (uint32_t*)code_str;

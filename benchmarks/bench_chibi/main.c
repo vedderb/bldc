@@ -33,6 +33,8 @@
    systime_t x = chVTGetSystemTimeX()
 */
 
+#define WAIT_TIMEOUT 2500
+
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -297,7 +299,9 @@ int main(void) {
       bool exists = false;
       lbm_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
       if (exists) {
-        lbm_wait_ctx((lbm_cid)id);
+        if (!lbm_wait_ctx((lbm_cid)id, WAIT_TIMEOUT)) {
+          printf("Wait timed out\n");
+        }
       }
     } else if (strncmp(str, ":pause", 6) == 0) {
       lbm_pause_eval();
@@ -342,7 +346,7 @@ int main(void) {
       lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
       lbm_continue_eval();
-      lbm_wait_ctx((lbm_cid)cid);
+      lbm_wait_ctx((lbm_cid)cid,WAIT_TIMEOUT);
     } else if (strncmp(str, ":quit", 5) == 0) {
 
       break;
@@ -380,7 +384,7 @@ int main(void) {
         lbm_cid cid = lbm_load_and_define_program(&string_tok, "prg");
 
         lbm_continue_eval();
-        lbm_wait_ctx((lbm_cid)cid);
+        lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
 
         systime_t elapsed_load = chVTTimeElapsedSinceX(t_load);
 
@@ -393,7 +397,7 @@ int main(void) {
         cid = lbm_eval_defined_program("prg");
 
         lbm_continue_eval();
-        lbm_wait_ctx((lbm_cid)cid);
+        lbm_wait_ctx((lbm_cid)cid,WAIT_TIMEOUT);
 
         systime_t elapsed_eval = chVTTimeElapsedSinceX(t_load);
 
@@ -431,7 +435,7 @@ int main(void) {
       lbm_continue_eval();
 
       printf("started ctx: %u\n", cid);
-      lbm_wait_ctx((lbm_cid)cid);
+      lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
     }
   }
 }
