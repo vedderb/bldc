@@ -338,23 +338,16 @@ uint16_t EE_WriteVariable(uint16_t VirtAddress, uint16_t Data)
 
 	uint16_t Status = 0;
 
-	/* Return error if MCU VDD is below 2.9V */
-	if (PWR->CSR & PWR_CSR_PVDO)
-	{
-		Status = FLASH_ERROR_PROGRAM;
-	}
-	else
-	{
-		/* Write the variable virtual address and value in the EEPROM */
-		Status = EE_VerifyPageFullWriteVariable(VirtAddress, Data);
+	/* Write the variable virtual address and value in the EEPROM */
+	Status = EE_VerifyPageFullWriteVariable(VirtAddress, Data);
 
-		/* In case the EEPROM active page is full */
-		if (Status == PAGE_FULL)
-		{
-			/* Perform Page transfer */
-			Status = EE_PageTransfer(VirtAddress, Data);
-		}
+	/* In case the EEPROM active page is full */
+	if (Status == PAGE_FULL)
+	{
+		/* Perform Page transfer */
+		Status = EE_PageTransfer(VirtAddress, Data);
 	}
+
 	/* Return last operation status */
 	return Status;
 }

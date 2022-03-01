@@ -4,6 +4,7 @@
 * Added support for NTC and PTC temperature sensors with custom resisrance and base temperature.
 * Added sandboxed lisp scripting using https://github.com/svenssonjoel/lispBM.
 * Encoder driver split and rewrite to make it easier to support more encoders.
+* Flash writes now work on lower MCU voltages too.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

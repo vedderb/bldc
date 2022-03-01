@@ -68,6 +68,8 @@
 #define	APP_CRC_WAS_CALCULATED_FLAG_ADDRESS		((uint32_t*)(ADDR_FLASH_SECTOR_0 + APP_MAX_SIZE - 8))
 #define APP_CRC_ADDRESS							((uint32_t*)(ADDR_FLASH_SECTOR_0 + APP_MAX_SIZE - 4))
 
+#define ERASE_VOLTAGE_RANGE						(uint8_t)((PWR->CSR & PWR_CSR_PVDO) ? VoltageRange_2 : VoltageRange_3)
+
 typedef struct {
 	uint32_t crc_flag;
 	uint32_t crc;
@@ -139,7 +141,7 @@ uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 
 	for (int i = 0;i < NEW_APP_SECTORS;i++) {
 		if (new_app_size > flash_addr[NEW_APP_BASE + i]) {
-			uint16_t res = FLASH_EraseSector(flash_sector[NEW_APP_BASE + i], VoltageRange_3);
+			uint16_t res = FLASH_EraseSector(flash_sector[NEW_APP_BASE + i], ERASE_VOLTAGE_RANGE);
 			if (res != FLASH_COMPLETE) {
 				FLASH_Lock();
 				timeout_configure_IWDT();
@@ -385,7 +387,7 @@ static uint16_t erase_sector(uint32_t sector) {
 	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
-	uint16_t res = FLASH_EraseSector(sector, VoltageRange_3);
+	uint16_t res = FLASH_EraseSector(sector, ERASE_VOLTAGE_RANGE);
 	if (res != FLASH_COMPLETE) {
 		FLASH_Lock();
 		timeout_configure_IWDT();
