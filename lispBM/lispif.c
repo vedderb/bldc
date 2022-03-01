@@ -53,7 +53,7 @@ static bool lisp_thd_running = false;
 static int repl_cid = -1;
 
 // Private functions
-static bool start_lisp(bool print);
+static bool start_lisp(bool print, bool load_code);
 static uint32_t timestamp_callback(void);
 static void sleep_callback(uint32_t us);
 
@@ -62,7 +62,7 @@ void lispif_init(void) {
 	// was the cause of it.
 	// TODO: Anything else to check?
 	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
-		start_lisp(false);
+		start_lisp(false, true);
 	}
 }
 
@@ -100,7 +100,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 			ok = timeout_cnt > 0;
 		} else {
-			ok = start_lisp(true);
+			ok = start_lisp(true, true);
 		}
 
 		int32_t ind = 0;
@@ -181,6 +181,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_LISP_REPL_CMD: {
+		if (!lisp_thd_running) {
+			start_lisp(true, false);
+		}
+
 		if (lisp_thd_running) {
 			bool ok = true;
 			int timeout_cnt = 1000;
@@ -221,13 +225,13 @@ static void done_callback(eval_context_t *ctx) {
 	}
 }
 
-static bool start_lisp(bool print) {
+static bool start_lisp(bool print, bool load_code) {
 	bool res = false;
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
 	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
 
-	if (code_data != 0 && code_len > 0) {
+	if (!load_code || (code_data != 0 && code_len > 0)) {
 		if (!lisp_thd_running) {
 			lbm_init(heap, HEAP_SIZE,
 					gc_stack_storage, GC_STACK_SIZE,
@@ -267,12 +271,15 @@ static bool start_lisp(bool print) {
 		lispif_load_vesc_extensions();
 		lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader);
 
-		if (print) {
-			commands_printf_lisp("Parsing %d characters", strlen(code_data));
+		if (load_code) {
+			if (print) {
+				commands_printf_lisp("Parsing %d characters", strlen(code_data));
+			}
+
+			lbm_create_char_stream_from_string(&string_tok_state, &string_tok, code_data);
+			lbm_load_and_eval_program(&string_tok);
 		}
 
-		lbm_create_char_stream_from_string(&string_tok_state, &string_tok, code_data);
-		lbm_load_and_eval_program(&string_tok);
 		lbm_continue_eval();
 
 		res = true;
