@@ -424,11 +424,11 @@ int lbm_gc_mark_freelist() {
 
   curr = fl;
   while (lbm_is_ptr(curr)){
-     t = ref_cell(curr);
-     set_gc_mark(t);
-     curr = read_cdr(t);
+    t = ref_cell(curr);
+    set_gc_mark(t);
+    curr = lbm_cdr(curr);
 
-     heap_state.gc_marked ++;
+    heap_state.gc_marked ++;
   }
 
   return 1;
@@ -471,14 +471,26 @@ int lbm_gc_sweep_phase(void) {
 
       // Check if this cell is a pointer to an array
       // and free it.
-      if (lbm_type_of(heap[i].cdr) == LBM_VAL_TYPE_SYMBOL &&
-          lbm_dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
-        lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-        if (lbm_memory_ptr_inside((uint32_t*)arr->data)) {
-          lbm_memory_free((uint32_t *)arr->data);
-          heap_state.gc_recovered_arrays++;
+      if (lbm_type_of(heap[i].cdr) == LBM_VAL_TYPE_SYMBOL) {
+        switch(lbm_dec_sym(heap[i].cdr)) {
+
+        case SYM_ARRAY_TYPE:{
+          lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
+          if (lbm_memory_ptr_inside((uint32_t*)arr->data)) {
+            lbm_memory_free((uint32_t *)arr->data);
+            heap_state.gc_recovered_arrays++;
+          }
+          lbm_memory_free((uint32_t *)arr);
+        } break;
+        case SYM_STREAM_TYPE:{
+          lbm_stream_t *stream = (lbm_stream_t*)heap[i].car;
+          if (lbm_memory_ptr_inside((uint32_t*)stream)) {
+            lbm_memory_free((uint32_t*)stream);
+          }
+        } break;
+        default:
+          break;
         }
-        lbm_memory_free((uint32_t *)arr);
       }
 
       // create pointer to use as new freelist

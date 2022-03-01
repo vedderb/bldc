@@ -39,7 +39,7 @@ lbm_value lbm_stream_put(lbm_stream_t *str, lbm_value v) {
 }
 
 lbm_value lbm_stream_create(lbm_stream_t *str) {
-  lbm_value s = lbm_cons((lbm_value)str, lbm_enc_sym(SYM_TYPE_STREAM));
+  lbm_value s = lbm_cons((lbm_value)str, lbm_enc_sym(SYM_STREAM_TYPE));
   if (lbm_type_of(s) == LBM_PTR_TYPE_CONS) {
     s = s | LBM_PTR_TYPE_STREAM;
   }

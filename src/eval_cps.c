@@ -585,6 +585,7 @@ static void finish_ctx(void) {
 
   lbm_memory_free((uint32_t*)ctx_running);
   ctx_running = NULL;
+  gc(NIL,NIL);
 }
 
 static void context_exists(eval_context_t *ctx, void *cid, void *b) {
@@ -1575,6 +1576,32 @@ static inline void cont_application(eval_context_t *ctx) {
     lbm_uint dfun = lbm_dec_sym(fun);
 
     switch(dfun) {
+    case SYM_SETVAR: {
+      if (lbm_dec_u(count) == 2 && lbm_is_symbol(fun_args[1])) {
+        lbm_uint s = lbm_dec_sym(fun_args[1]);
+        if (s >= VARIABLE_SYMBOLS_START &&
+            s <  VARIABLE_SYMBOLS_END) {
+          ctx->r = lbm_set_var(s, fun_args[2]);
+        } else {
+          lbm_value new_env = lbm_env_modify_binding(ctx->curr_env, fun_args[1], fun_args[2]);
+          if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
+              lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
+            new_env = lbm_env_modify_binding(lbm_get_env(), fun_args[1], fun_args[2]);
+          }
+          if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
+              lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
+            ctx->r = NIL;
+          } else {
+            ctx->r = fun_args[2];
+          }
+        }
+      } else {
+        error_ctx(lbm_enc_sym(SYM_EERROR));
+        return;
+      }
+      lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
+      ctx->app_cont = true;
+    } break;
     case SYM_READ: /* fall through */
     case SYM_READ_PROGRAM:
       if (lbm_dec_u(count) == 1) {
@@ -1689,7 +1716,7 @@ static inline void cont_application(eval_context_t *ctx) {
       lbm_value status = lbm_enc_sym(SYM_EERROR);
       if (lbm_dec_u(count) == 2) {
 
-        if (lbm_type_of(fun_args[1]) == LBM_VAL_TYPE_U) { /* CID is of U type */
+        if (lbm_type_of(fun_args[1]) == LBM_VAL_TYPE_I) { /* CID is of U type */
           lbm_cid cid = (lbm_cid)lbm_dec_i(fun_args[1]);
           lbm_value msg = fun_args[2];
 

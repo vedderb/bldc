@@ -18,7 +18,7 @@
 import huffman
 import collections
 
-symchars  = 'abcdefghijklmnopqrstuvwxyz?'
+symchars  = 'abcdefghijklmnopqrstuvwxyz!?'
 numchars  = '0123456789'
 funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'', ' ', '`', ',',',@', '_', '.']
 short_lispnames = ['(', ')', '))', '((']

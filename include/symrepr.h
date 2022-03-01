@@ -53,6 +53,7 @@
 #define SYM_MACRO_EXPAND  0x10
 #define SYM_CALLCC        0x11
 #define SYM_CONT          0x12
+#define SYM_SETVAR        0x13
 
 
 // 0x20 - 0x2F are errors
@@ -64,14 +65,14 @@
 #define SYM_DIVZERO       0x25
 #define SYM_FATAL_ERROR   0x26 /* Runtime system is corrupt */
 #define SYM_STACK_ERROR   0x27
+#define SYM_RECOVERED     0x28
 
 
 #define SYM_ARRAY_TYPE     0x30
 #define SYM_BOXED_I_TYPE   0x31
 #define SYM_BOXED_U_TYPE   0x32
 #define SYM_BOXED_F_TYPE   0x33
-#define SYM_REF_TYPE       0x34
-#define SYM_RECOVERED      0x36
+#define SYM_STREAM_TYPE    0x34
 #define SYM_BYTECODE_TYPE  0x37
 #define SYM_NONSENSE       0x38
 
@@ -169,8 +170,6 @@
 #define SYM_BITWISE_OR          0x173
 #define SYM_BITWISE_XOR         0x174
 #define SYM_BITWISE_NOT         0x175
-
-#define SYM_SETVAR              0x180
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
