@@ -17,13 +17,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_100_500_H_
-#define HW_100_500_H_
+#ifndef HW_100_500_CORE_H_
+#define HW_100_500_CORE_H_
 
-#ifdef HW_100_500_VER_75_600
-#define HW_NAME					"75_600"
+#if defined(HW_100_500_VER_100_500)
+  #define HW_NAME    "100_500"
+#elif defined(HW_100_500_VER_75_600)
+  #define HW_NAME    "75_600"
 #else
-#define HW_NAME					"100_500"
+  #error "Must define hardware type"
 #endif
 
 // HW properties
@@ -272,4 +274,4 @@
 // HW-specific functions
 float hw100_500_get_temp(void);
 
-#endif /* HW_100_500_H_ */
+#endif /* HW_100_500_CORE_H_ */
