@@ -248,9 +248,19 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+
+#ifndef INVERTED_TOP_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
+#else
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+
+#ifndef INVERTED_BOTTOM_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;  // gpio high = bottom fets on
+#else
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
 
 	TIM_OC1Init(TIM1, &TIM_OCInitStructure);
