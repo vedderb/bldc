@@ -345,8 +345,8 @@ static void done_callback(eval_context_t *ctx) {
 	lbm_value t = ctx->r;
 
 	if (cid == repl_cid) {
-		char output[64];
-		lbm_print_value(output, 1024, t);
+		char output[128];
+		lbm_print_value(output, sizeof(output), t);
 		commands_printf_lisp("> %s", output);
 	}
 }
