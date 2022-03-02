@@ -51,8 +51,12 @@ package_targets = ['46', '48',
 
 # Iterate over each target
 for target in package_targets:
-    # Set the target filename and destination
-    file_name = target + '-' + git_hash + '.bin'
+    # Set the target filename
+    if "_no_limits" in target:
+        file_name = "VESC_default_no_limits.bin"
+    else:
+        file_name = "VESC_default.bin"
+
     # Set the target destination
     tmp_destination_path = os.path.join(package_dir, target)
 
