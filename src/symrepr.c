@@ -57,7 +57,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"set!"           , SYM_SETVAR},
+  {"set!"         , SYM_SETVAR},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},

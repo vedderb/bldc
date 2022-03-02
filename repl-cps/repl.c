@@ -144,6 +144,9 @@ void done_callback(eval_context_t *ctx) {
   } else {
     printf("<< Context %d finished with value %s >>\n", cid, output);
   }
+  printf("stack max:  %d\n", ctx->K.max_sp);
+  printf("stack size: %u\n", ctx->K.size);
+  printf("stack sp:   %d\n", ctx->K.sp);
 
   //  if (!eval_cps_remove_done_ctx(cid, &t)) {
   //   printf("Error: done context (%d)  not in list\n", cid);
@@ -618,7 +621,7 @@ int main(int argc, char **argv) {
       /* Something better is needed.
          this sleep ís to ensure the string is alive until parsing
          is done */
-      sleep_callback(10000);
+      sleep_callback(250000);
     }
   }
   free(heap_storage);

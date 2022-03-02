@@ -55,7 +55,6 @@
 #define SYM_CONT          0x12
 #define SYM_SETVAR        0x13
 
-
 // 0x20 - 0x2F are errors
 #define SYM_RERROR        0x20  /* READ ERROR */
 #define SYM_TERROR        0x21  /* TYPE ERROR */
