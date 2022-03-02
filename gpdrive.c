@@ -141,7 +141,7 @@ void gpdrive_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
 
-	#ifndef INVERTED_TOP_DRIVER_INPUT
+#ifndef INVERTED_TOP_DRIVER_INPUT
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
 #else
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
