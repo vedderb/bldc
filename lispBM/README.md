@@ -167,9 +167,9 @@ Note: The AUX output mode must be set to Unused in Motor Settings->General->Adva
 ```
 Get roll, pitch and yaw from the IMU in radians.
 
-The function (ix ind list) can be used to get an element from the list. Example:
+The function (ix list ind) can be used to get an element from the list. Example:
 ```clj
-(ix 0 (get-imu-rpy)) ; Get roll (index 0)
+(ix (get-imu-rpy) 0) ; Get roll (index 0)
 ```
 
 #### get-imu-quat
@@ -196,6 +196,14 @@ Get a list of the x, y and z angular rate from the IMU in degrees/s.
 ```
 Get a list of the x, y and z magnetic field strength from the IMU in uT. Note that most IMUs do not have a magnetometer.
 
+#### get-imu-acc-derot
+
+Same as get-imu-acc, but derotates the result first. This means that the acceleration will be relative to the horizon and not the IMU chip.
+
+#### get-imu-gyro-derot
+
+Same as get-imu-gyro, but derotates the result first. This means that the angular rates will be relative to the horizon and not the IMU chip.
+
 #### send-data
 ```clj
 (send-data dataList)
@@ -209,6 +217,14 @@ Example of sending the numbers 1, 2, 3 and 4:
 ```
 
 *dataList* can be a list or a [byte array](#byte-arrays).
+
+#### sleep-secs
+
+Sleep for seconds seconds. Also works with floating point numbers.
+
+```clj
+(sleep-secs seconds)
+```
 
 ### Motor Set Commands
 
@@ -589,6 +605,27 @@ Get the base-e logarithm of x.
 
 Get the base-10 logarithm of x.
 
+#### deg2rad
+```clj
+(deg2rad x)
+```
+
+Converts x from degrees to radians.
+
+#### rad2deg
+```clj
+(rad2deg x)
+```
+
+Converts x from radians to degrees.
+
+#### vec3-rot
+```clj
+(vec3-rot x1 x2 x3 roll pitch yaw optRev)
+```
+
+Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply the rotation in reverse (apply the inverse of the rotation matrix) if set to 1.
+
 ### Bit Operations
 
 #### bits-enc-int
@@ -672,9 +709,227 @@ Same as (raw-mod-beta), but derives the modulation from the phase voltage readin
 ```
 Read hall sensors for motor (1 or 2) and return their states in a list. The optional argument optSamples (max 20) can be used to set how many times the hall sensors are sampled; if it is not supplied the number of samples from the motor configuration will be used.
 
-The function (ix ind list) can be used to get an element from the list. Example:
+The function (ix list ind) can be used to get an element from the list. Example:
 ```clj
-(ix 0 (raw-hall 1)) ; Get hall sensor 1 state (index 0)
+(ix (raw-hall 1) 0) ; Get hall sensor 1 state (index 0)
+```
+
+### UART
+
+#### uart-start
+
+```clj
+(uart-start baudrate)
+```
+
+Start the UART driver at baudrate on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first. Example:
+
+```clj
+(uart-start 115200)
+```
+
+#### uart-write
+
+```clj
+(uart-write array)
+```
+
+Write array (see [byte array](#byte-arrays) for details) to the UART. Examples:
+
+```clj
+(uart-write "Hello World!") ; Write the string hello world!
+```
+
+```clj
+(define arr (array-create 6)) ; Create a 6 byte long array
+(bufset-i16 arr 0 1123) ; Set byte 0 and 1 to 1123
+(bufset-i32 arr 2 424242) ; Set byte 2 to 5 to 424242 
+(uart-write arr) ; Write arr to the uart
+```
+
+#### uart-read
+
+```clj
+(uart-read array num optOffset optStopAt)
+```
+
+Read num bytes into array at offset optOffset. Stop reading if the character optStopAt is received. The last two arguments are optional. Note that this function returns immediately if there is nothing to be read, so it is not blocking. The return value is the number of bytes read.
+
+#### uart-read-bytes
+
+```clj
+(uart-read-bytes array num offset)
+```
+
+Read num bytes into buffer at offset. This function is blocking, so it will not return until the specified amount of bytes is read.
+
+#### uart-read-until
+
+```clj
+(uart-read-until array num offset end)
+```
+
+Same as uart-read-bytes, but will return when the byte end is read.
+
+### I2C
+
+#### i2c-start
+
+```clj
+(i2c-start)
+```
+
+Start the I2C driver on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first.
+
+#### i2c-tx-rx
+
+```clj
+(i2c-tx-rx addr arrTx optArrRx)
+```
+
+Send array (or list) arrTx to the I2C-device with address addr. Optionally receive a response to opArrRx. Example:
+
+```clj
+; Create 14 byte long array
+(define arr (array-create 14))
+
+; Send 0x3B to device 0x68 and receive 14 bytes into arr
+(i2c-tx-rx 0x68 (list 0x3B) arr)
+```
+
+#### i2c-restore
+
+```clj
+(i2c-restore)
+```
+
+Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an i2c-device hangs and refuses to respond.
+
+### Useful Lisp Functions
+
+There are a number of lisp functions that can be used from lispBM in the VESC firmware. They will be loaded to the environment the first time they are used, so they do not use up memory before the first use.
+
+#### map
+
+```clj
+(map f lst)
+```
+
+Apply function f to every element in list lst. Example:
+
+```clj
+(map (lambda (x) (* x 5)) '(1 2 3 4))
+> (5 10 15 20)
+```
+
+This example creates an anonymous function that takes one argument and returns that argument multiplied by 5. Map then applies it to every element in the list (1 2 3 4), which yields the list (5 10 15 20).
+
+#### iota
+
+```clj
+(iota n)
+```
+
+Create list from 0 to n. Example:
+
+```clj
+(iota 5)
+> (0 1 2 3 4 5)
+```
+
+#### range
+
+```clj
+(range start end)
+```
+
+Create a list from start to end. Example:
+
+```clj
+(range 2 8)
+> (2 3 4 5 6 7 8)
+```
+
+#### foldl
+
+```clj
+(foldl f init lst)
+```
+
+Apply the function f to pairs of init and each element of the list lst and accumulate the result. Example:
+
+```clj
+(foldl + 0 '(1 2 3 4 5))
+> 15
+```
+
+#### foldr
+
+Same as foldl, but start from the right side of lst.
+
+#### reverse
+
+```clj
+(reverse lst)
+```
+
+Returns the list lst in reverse. Example:
+
+```clj
+(reverse '(1 2 3 4 5))
+> (5 4 3 2 1)
+```
+
+#### length
+
+```clj
+(length lst)
+```
+
+Returns the length of list lst. Example:
+
+```clj
+(length '(1 2 3))
+> 3
+```
+
+#### apply
+
+```clj
+(apply f lst)
+```
+
+Use the elements in list lst as arguments to function f. Example:
+
+```clj
+(apply + '(1 2 3))
+> 6
+```
+
+#### zipwith
+
+```clj
+(zipwith f x y)
+```
+
+Apply the function f to pairs between the elements in list x and list y. Example:
+
+```clj
+(zipwith * '(1 2 3) '(3 4 5))
+> (3 8 15)
+```
+
+#### filter
+
+```clj
+(filter f lst)
+```
+
+Filter list by keeping the elements on which f returns true. Example:
+
+```clj
+(filter (lambda (x) (< x 5)) '(3 9 5 8 2 4 7))
+> (3 2 4)
 ```
 
 ## Events
