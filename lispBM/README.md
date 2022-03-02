@@ -208,6 +208,8 @@ Example of sending the numbers 1, 2, 3 and 4:
 (send-data (list 1 2 3 4))
 ```
 
+*dataList* can be a list or a [byte array](#byte-arrays).
+
 ### Motor Set Commands
 
 #### set-current
@@ -499,6 +501,8 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 (can-send-sid 0x11FF11 (list 0xAA 0x11 0x15))
 ```
 
+*data* can be a list or a [byte array](#byte-arrays).
+
 #### can-send-eid
 ```clj
 (can-send-eid id data)
@@ -710,18 +714,92 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable "event-can-sid") ; Sends (signal-can-sid id data), where id is U32 and data is a list of i28
-(event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a list of i28
+(event-enable "event-can-sid") ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
+(event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
 (event-enable "event-data-rx") ; Sends (signal-data-rx data), where data is a list of i28
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
 
+## Byte Arrays
+
+Byte arrays (and text strings) are allocated in memory as consecutive arrays of bytes (not linked lists). They can be shared with C and are more space and performance efficient than linked lists. Several of the extensions also take byte arrays as input as an alternative to lists and some of the events return byte arrays.
+
+To allocate a byte array with 20 bytes and bind the symbol arr to it you can use
+
+```clj
+(define arr (array-create 20))
+```
+
+The length of a byte array can be read with
+
+```clj
+(buflen arr)
+```
+
+Which will return 20 for the array arr above.
+
+To read data from the byte array you can use
+
+```clj
+(bufget-[x] arr index)
+```
+
+Where \[x\] is i8, u8, i16, u16, i32, u32 or f32. Index is the position in the array to start reading from, starting at 0. Here are some examples
+
+```clj
+(bufget-i8 arr 0) ; read byte 0 as int8
+(bufget-i16 arr 0) ; read byte 0 and 1 as int16
+(bufget-i32 arr 0) ; read byte 0 to 3 as i32
+(bufget-u8 arr 0) ; read byte 0 as uint8
+(bufget-u16 arr 0) ; read byte 0 and 1 as uint16
+(bufget-u32 arr 0) ; read byte 0 to 3 as uint32
+(bufget-f32 arr 0) ; read byte 0 to 3 as float32 (IEEE 754)
+```
+
+By default the byte order is big endian. The byte order can also be specified as an extra argument. E.g. to read 4 bytes as int32 from position 6 in little endian you can use
+
+```clj
+(bufget-i32 arr 6 little-endian)
+```
+
+Writing to the array can be done in a similar way
+
+```clj
+(bufset-[x] arr index value)
+```
+
+Here are some examples
+
+```clj
+(bufset-i8 arr 0 12) ; write 12 to byte 0 as int8
+(bufset-i16 arr 0 -5621) ; write -5621 to byte 0 and 1 as int16
+(bufset-i32 arr 0 2441) ; write 2441 to byte 0 to 3 as i32
+(bufset-u8 arr 0 12) ; write 12 to byte 0 as uint8
+(bufset-u16 arr 0 420) ; write 420 to byte 0 and 1 as uint16
+(bufset-u32 arr 0 119) ; write 119 to byte 0 to 3 as uint32
+(bufset-f32 arr 0 3.14) ; write 3.14 to byte 0 to 3 as float32 (IEEE 754)
+```
+
+As with bufget big endian is the default byte order and little-endian can be passed as the last argument to use little-endian byte order instead.
+
+**Note**  
+Byte arrays will be de-allocated by the garbage collector on a regular basis, but can still use a lot of memory until then and large byte arrays cause a risk of running out of memory. It is possible to manually de-allocate the byte arrays when done with them by calling free
+
+```clj
+(free arr)
+```
+
+This will clear the allocated memory for arr.
+
+**Note**  
+Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
+
 ## How to update
 
 To update from remote repository:
 
-```
+```bash
 git remote add lispBM git@github.com:svenssonjoel/lispBM.git
 git subtree pull --squash --prefix=lispBM/lispBM/ lispBM master
 ```
