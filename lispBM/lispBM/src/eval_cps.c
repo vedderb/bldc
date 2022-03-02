@@ -711,6 +711,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
   ctx->program = lbm_cdr(program);
   ctx->curr_exp = lbm_car(program);
   ctx->curr_env = env;
+  ctx->r = lbm_enc_sym(SYM_NIL);
   ctx->mailbox = lbm_enc_sym(SYM_NIL);
   ctx->done = false;
   ctx->app_cont = false;
@@ -1005,11 +1006,11 @@ static int gc(lbm_value remember1, lbm_value remember2) {
     curr = curr->next;
   }
 
-  curr = done.first;
-  while (curr) {
-    lbm_gc_mark_phase(curr->r);
-    curr = curr->next;
-  }
+  /* curr = done.first; */
+  /* while (curr) { */
+  /*   lbm_gc_mark_phase(curr->r); */
+  /*   curr = curr->next; */
+  /* } */
 
   curr = blocked.first;
   while (curr) {
@@ -1577,10 +1578,14 @@ static inline void cont_application(eval_context_t *ctx) {
 
     switch(dfun) {
     case SYM_SETVAR: {
-      if (lbm_dec_u(count) == 2 && lbm_is_symbol(fun_args[1])) {
+      lbm_uint cnt = lbm_dec_u(count);
+
+      if (cnt == 2 && lbm_is_symbol(fun_args[1])) {
+
         lbm_uint s = lbm_dec_sym(fun_args[1]);
         if (s >= VARIABLE_SYMBOLS_START &&
             s <  VARIABLE_SYMBOLS_END) {
+          /* #var case ignores local/global if present */
           ctx->r = lbm_set_var(s, fun_args[2]);
         } else {
           lbm_value new_env = lbm_env_modify_binding(ctx->curr_env, fun_args[1], fun_args[2]);
@@ -1590,7 +1595,8 @@ static inline void cont_application(eval_context_t *ctx) {
           }
           if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
               lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
-            ctx->r = NIL;
+            new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+            *lbm_get_env_ptr() = new_env;
           } else {
             ctx->r = fun_args[2];
           }
@@ -1599,6 +1605,7 @@ static inline void cont_application(eval_context_t *ctx) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
         return;
       }
+      ctx->r = fun_args[2];
       lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
       ctx->app_cont = true;
     } break;
@@ -2057,6 +2064,7 @@ static inline void cont_read(eval_context_t *ctx) {
           error_ctx(lbm_enc_sym(SYM_RERROR));
           return;
         }
+        /* Go back to outer eval loop and apply continuation */
         ctx->app_cont = true;
         read_done = true;
         continue;
@@ -2091,6 +2099,7 @@ static inline void cont_read(eval_context_t *ctx) {
       } break;
       }
     } else {
+      app_cont = false;
       tok = token_stream_get(str);
 
       if (lbm_type_of(tok) == LBM_VAL_TYPE_SYMBOL) {
@@ -2389,9 +2398,6 @@ uint32_t lbm_get_eval_state(void) {
 void lbm_run_eval(void){
 
   while (eval_running) {
-
-    //uint32_t prev_state = eval_cps_run_state;
-    //eval_cps_run_state = eval_cps_next_state;
 
     switch (eval_cps_next_state) {
     case EVAL_CPS_STATE_INIT:

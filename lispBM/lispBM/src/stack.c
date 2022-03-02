@@ -71,8 +71,6 @@ int lbm_push_u32(lbm_stack_t *s, lbm_uint val) {
     return 0;
   }
 
-  if (!res) return res;
-
   s->data[s->sp] = val;
   s->sp++;
 
