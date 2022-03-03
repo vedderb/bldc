@@ -813,6 +813,26 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 There are a number of lisp functions that can be used from lispBM in the VESC firmware. They will be loaded to the environment the first time they are used, so they do not use up memory before the first use.
 
+#### defun
+
+```clj
+(defun (args) body)
+```
+
+Shorthand macro for defining a function. Example:
+
+```clj
+; Create function f with argument x that prints x
+(defun f (x)
+    (print x)
+)
+
+; The above is equivalent to
+(define f (lambda (x)
+    (print x)
+))
+```
+
 #### map
 
 ```clj

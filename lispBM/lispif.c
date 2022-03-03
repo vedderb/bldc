@@ -212,7 +212,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			char *str = (char*)data;
 
 			if (len <= 1) {
-				commands_printf_lisp(" ");
+				commands_printf_lisp(">");
 			} else if (len >= 5 && strncmp(str, ":help", 5) == 0) {
 				commands_printf_lisp("== Special Commands ==");
 				commands_printf_lisp(
