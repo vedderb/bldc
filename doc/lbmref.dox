@@ -825,12 +825,12 @@ Example that combines to lists.
 <a name="ix"> <h3>ix</h3> </a>
 
 Index into a list using the <code>ix</code>. the form of an <code>ix</code> expression
-is <code>(ix index-expr list-expr)</code>. Indexing starts from 0 and if you index out of bounds the result is nil.
+is <code>(ix list-expr index-expr)</code>. Indexing starts from 0 and if you index out of bounds the result is nil.
 
 \note
 Example that evaluates to 2.
 \code
-(ix 1 (list 1 2 3))
+(ix (list 1 2 3) 1)
 \endcode
 
 

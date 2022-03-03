@@ -774,14 +774,14 @@ lbm_value array_extension_buffer_length(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
     switch(array->elt_type) {
     case LBM_VAL_TYPE_CHAR: /* Same as byte */
-      res = lbm_enc_i(array->size);
+      res = lbm_enc_i((lbm_int)array->size);
       break;
     case LBM_VAL_TYPE_I: /* fall through */
     case LBM_VAL_TYPE_U:
     case LBM_PTR_TYPE_BOXED_I:
     case LBM_PTR_TYPE_BOXED_U:
     case LBM_PTR_TYPE_BOXED_F:
-      res = lbm_enc_i(array->size * 4);
+      res = lbm_enc_i((lbm_int)array->size * 4);
       break;
     }
   }
