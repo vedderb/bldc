@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 
   printf("Initialized heap: OK\n"); 
   
-  for (int i = 0; i < heap_size; i ++) {
+  for (unsigned int i = 0; i < heap_size; i ++) {
     cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
     if (!lbm_is_ptr(cell)) {
       printf("Error allocating cell %d\n", i); 

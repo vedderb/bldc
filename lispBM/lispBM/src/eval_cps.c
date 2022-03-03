@@ -1256,9 +1256,10 @@ static inline void eval_lambda(eval_context_t *ctx) {
 
 static inline void eval_if(eval_context_t *ctx) {
 
-  CHECK_STACK(lbm_push_u32_3(&ctx->K,
+  CHECK_STACK(lbm_push_u32_4(&ctx->K,
                              lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
                              lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
+                             ctx->curr_env,
                              lbm_enc_u(IF)));
   ctx->curr_exp = lbm_car(lbm_cdr(ctx->curr_exp));
 }
@@ -1859,15 +1860,19 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
 }
 
 static inline void cont_if(eval_context_t *ctx) {
+
   lbm_value then_branch;
   lbm_value else_branch;
+  lbm_value env;
   lbm_value arg = ctx->r;
 
-  lbm_pop_u32_2(&ctx->K, &then_branch, &else_branch);
+  lbm_pop_u32_3(&ctx->K, &env, &then_branch, &else_branch);
 
   if (lbm_type_of(arg) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(arg) == SYM_TRUE) {
+    ctx->curr_env = env;
     ctx->curr_exp = then_branch;
   } else {
+    ctx->curr_env = env;
     ctx->curr_exp = else_branch;
   }
 }
