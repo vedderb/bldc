@@ -32,7 +32,6 @@ bool tmc_error(void);
 #define HW_HAS_TMC6200
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define INVERTED_SHUNT_POLARITY
 
 // Macros
 #define ENABLE_GATE()			palSetPad(GPIOB, 5)
@@ -82,11 +81,11 @@ bool tmc_error(void);
 #define ADC_IND_CURR1			3
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
-#define ADC_IND_VIN_SENS		9
+#define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOTOR		11
+#define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
 
@@ -112,16 +111,22 @@ bool tmc_error(void);
 #define CURRENT_SHUNT_RES		0.033
 #endif
 
+// We need to scale the ADC_Value because of the voltage divider between the gate driver and the analog inputs
+#define GET_CURRENT1()		(int)((4095.0f - ((float)ADC_Value[ADC_IND_CURR1]*1.11f)))
+#define GET_CURRENT2()		(int)((4095.0f - ((float)ADC_Value[ADC_IND_CURR2]*1.11f)))
+#define GET_CURRENT3()		(int)((4095.0f - ((float)ADC_Value[ADC_IND_CURR3]*1.11f)))
+
+
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // NTC Termistors
-#define NTC_RES_TEMP(unused)   (10000.0)
-#define NTC_TEMP(adc_ind)		(0.0)
+#define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
+#define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(unused)   (10000.0)
-#define NTC_TEMP_MOTOR(beta)	(0.0)
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -212,6 +217,7 @@ bool tmc_error(void);
 #define TMC6200_CS_GPIO			GPIOC
 #define TMC6200_CS_PIN			9
 
+#define HW_RESET_DRV_FAULTS()		tmc6200_reset_faults()
 
 
 // Measurement macros
@@ -230,22 +236,30 @@ bool tmc_error(void);
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		15.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 
+#define MCCONF_L_CURRENT_MAX			2.0	// Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MIN			-2.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MAX			5.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MIN			-5.0	// Input current limit in Amperes (Lower)
+
+#define APPCONF_IMU_TYPE					IMU_TYPE_OFF
+
+
 // Setting limits
-#define HW_LIM_CURRENT			-120.0, 120.0
-#define HW_LIM_CURRENT_IN		-120.0, 120.0
-#define HW_LIM_CURRENT_ABS		0.0, 160.0
+#define HW_LIM_CURRENT			-10.0, 10.0
+#define HW_LIM_CURRENT_IN		-15.0, 15.0
+#define HW_LIM_CURRENT_ABS		0.0, 15.0
 #define HW_LIM_VIN				6.0, 40.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
-#define HW_LIM_TEMP_FET			-40.0, 110.0
-#define HW_MAX_CURRENT_OFFSET 4000
+#define HW_LIM_TEMP_FET			-40.0, 90.0
+#define HW_MAX_CURRENT_OFFSET 620
 
 
 #endif /* HW_XESC2_H_ */

@@ -23,10 +23,10 @@
 // Functions
 bool tmc6200_ok(void);
 void tmc6200_init(void);
-int tmc6200_read_faults(void);
+//int tmc6200_read_faults(void);
 void tmc6200_reset_faults(void);
+void tmc6200_write_conf(void);
 
-#define HW_RESET_DRV_FAULTS()		tmc6200_reset_faults()
 
 
 #endif /* HWCONF_TMC6200_H_ */

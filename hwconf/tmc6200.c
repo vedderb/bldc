@@ -40,6 +40,7 @@ static void spi_delay(void);
 static void terminal_read_reg(int argc, const char **argv);
 static void terminal_write_reg(int argc, const char **argv);
 static void terminal_tmc_6200_found(int argc, const char **argv);
+static void terminal_read_currents(int argc, const char **argv);
 
 // Private variables
 static mutex_t m_spi_mutex;
@@ -80,6 +81,14 @@ void tmc6200_init(void) {
             "",
             terminal_tmc_6200_found);
 
+    terminal_register_command_callback(
+            "tmc6200_get_currents",
+            "Read currents",
+            "",
+            terminal_read_currents);
+
+
+
 	// Disable OC
 
 	//tmc6200_set_current_amp_gain(CURRENT_AMP_GAIN);
@@ -89,17 +98,15 @@ void tmc6200_init(void) {
     tmc6200_found = ic_version == 0x10;
     
     if(tmc6200_found) {
-        // Driver comms OK, configure TMC6200
-        tmc6200_writeInt(0, TMC6200_GCONF,
-                         (0UL << TMC6200_DISABLE_SHIFT) |
-                         (0UL << TMC6200_SINGLELINE_SHIFT) |
-                         (1UL << TMC6200_FAULTDIRECT_SHIFT));
-        tmc6200_writeInt(0, TMC6200_GSTAT, 0xFFFF);
-        tmc6200_writeInt(0, TMC6200_SHORT_CONF, (1UL << TMC6200_DISABLE_S2G_SHIFT) | (1UL << TMC6200_DISABLE_S2VS_SHIFT));
-
+        tmc6200_write_conf();
     }
 }
 
+
+static void terminal_read_currents(int argc, const char **argv) {
+    commands_printf("volts: %d, %d, %d", ADC_V_L1, ADC_V_L2, ADC_V_L3);
+    commands_printf("currents: %d, %d, %d", GET_CURRENT1(), GET_CURRENT2(), GET_CURRENT3());
+}
 
 static void terminal_tmc_6200_found(int argc, const char **argv) {
     if(tmc6200_found) {
@@ -232,5 +239,34 @@ static void spi_delay(void) {
 	}
 }
 
+//int tmc6200_read_faults(void) {
+//    return 1;
+//}
+
+
+void tmc6200_reset_faults(void) {
+    // stay in error, if SPI comms are dead
+    int ic_version = (tmc6200_readInt(0, TMC6200_IOIN_OUTPUT) & TMC6200_VERSION_MASK) >> TMC6200_VERSION_SHIFT;
+    tmc6200_found = ic_version == 0x10;
+
+    if(!tmc6200_found)
+        return;
+    DISABLE_GATE();
+    chThdSleepMilliseconds(100);
+    ENABLE_GATE();
+
+    // we need to set enable for this to work, so do this last
+    tmc6200_write_conf();
+}
+
+void tmc6200_write_conf(void) {
+    // Driver comms OK, configure TMC6200
+    tmc6200_writeInt(0, TMC6200_GCONF,
+                     (0UL << TMC6200_DISABLE_SHIFT) |
+                     (0UL << TMC6200_SINGLELINE_SHIFT) |
+                     (1UL << TMC6200_FAULTDIRECT_SHIFT));
+    tmc6200_writeInt(0, TMC6200_GSTAT, 0xFFFF);
+    tmc6200_writeInt(0, TMC6200_SHORT_CONF, (1UL << TMC6200_DISABLE_S2G_SHIFT) | (1UL << TMC6200_DISABLE_S2VS_SHIFT));
+}
 
 #endif
