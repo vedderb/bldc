@@ -100,27 +100,27 @@ Get currently selected motor on dual motor hardware.
 Get value from BMS. Examples:
 
 ```clj
-(get-bms-val "v_tot") ; Total voltage
-(get-bms-val "v_charge") ; Charge input voltage
-(get-bms-val "i_in_ic") ; Measured current (negative means charging)
-(get-bms-val "ah_cnt") ; Amp hour counter
-(get-bms-val "wh_cnt") ; Watt hour counter
-(get-bms-val "cell_num") ; Number of cells in series
-(get-bms-val "v_cell" 2) ; Cell 3 voltage (index starts from 0)
-(get-bms-val "bal_state 2") ; Cell 3 balancing state. 0: not balancing, 1: balancing
-(get-bms-val "temp_adc_num") ; Temperature sensor count
-(get-bms-val "temps_adc" 2) ; Get sensor 3 temperature (index starts from 0)
-(get-bms-val "temp_ic") ; Balance IC temperature
-(get-bms-val "temp_hum") ; Humidity sensor temperature
-(get-bms-val "hum") ; Humidity
-(get-bms-val "temp_cell_max") ; Maximum cell temperature
-(get-bms-val "soc") ; State of charge (0.0 to 1.0)
-(get-bms-val "can_id") ; CAN ID of BMS
-(get-bms-val "ah_cnt_chg_total") ; Total ah charged
-(get-bms-val "wh_cnt_chg_total") ; Total wh charged
-(get-bms-val "ah_cnt_dis_total") ; Total ah discharged
-(get-bms-val "wh_cnt_dis_total") ; Total wh discharged
-(get-bms-val "msg_age") ; Age of last message from BMS in seconds
+(get-bms-val 'bms-v-tot) ; Total voltage
+(get-bms-val 'bms-v-charge) ; Charge input voltage
+(get-bms-val 'bms-i-in-ic) ; Measured current (negative means charging)
+(get-bms-val 'bms-ah-cnt) ; Amp hour counter
+(get-bms-val 'bms-wh-cnt) ; Watt hour counter
+(get-bms-val 'bms-cell-num) ; Number of cells in series
+(get-bms-val 'bms-v-cell 2) ; Cell 3 voltage (index starts from 0)
+(get-bms-val 'bms-bal-state 2) ; Cell 3 balancing state. 0: not balancing, 1: balancing
+(get-bms-val 'bms-temp-adc-num) ; Temperature sensor count
+(get-bms-val 'bms-temps-adc 2) ; Get sensor 3 temperature (index starts from 0)
+(get-bms-val 'bms-temp-ic) ; Balance IC temperature
+(get-bms-val 'bms-temp-hum") ; Humidity sensor temperature
+(get-bms-val 'bms-hum) ; Humidity
+(get-bms-val 'bms-temp-cell-max) ; Maximum cell temperature
+(get-bms-val 'bms-soc) ; State of charge (0.0 to 1.0)
+(get-bms-val 'bms-can-id) ; CAN ID of BMS
+(get-bms-val 'bms-ah-cnt-chg-total) ; Total ah charged
+(get-bms-val 'bms-wh-cnt-chg-total) ; Total wh charged
+(get-bms-val 'bms-ah-cnt-dis-total) ; Total ah discharged
+(get-bms-val 'bms-wh-cnt-dis-total) ; Total wh discharged
+(get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
 ```
 
 #### get-adc

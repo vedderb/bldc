@@ -138,6 +138,98 @@ static lbm_value ext_get_selected_motor(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(mc_interface_motor_now());
 }
 
+typedef struct {
+	lbm_uint v_tot;
+	lbm_uint v_charge;
+	lbm_uint i_in;
+	lbm_uint i_in_ic;
+	lbm_uint ah_cnt;
+	lbm_uint wh_cnt;
+	lbm_uint cell_num;
+	lbm_uint v_cell;
+	lbm_uint bal_state;
+	lbm_uint temp_adc_num;
+	lbm_uint temps_adc;
+	lbm_uint temp_ic;
+	lbm_uint temp_hum;
+	lbm_uint hum;
+	lbm_uint temp_max_cell;
+	lbm_uint soc;
+	lbm_uint soh;
+	lbm_uint can_id;
+	lbm_uint ah_cnt_chg_total;
+	lbm_uint wh_cnt_chg_total;
+	lbm_uint ah_cnt_dis_total;
+	lbm_uint wh_cnt_dis_total;
+	lbm_uint msg_age;
+} bms_syms;
+
+static bms_syms syms_bms = {0};
+
+static bool get_add_symbol(char *name, lbm_uint* id) {
+	if (!lbm_get_symbol_by_name(name, id)) {
+		if (!lbm_add_symbol_const(name, id)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
+	if (*comp == 0) {
+		if (comp == &syms_bms.v_tot) {
+			get_add_symbol("bms-v-tot", comp);
+		} else if (comp == &syms_bms.v_charge) {
+			get_add_symbol("bms-v-charge", comp);
+		} else if (comp == &syms_bms.i_in) {
+			get_add_symbol("bms-i-in", comp);
+		} else if (comp == &syms_bms.i_in_ic) {
+			get_add_symbol("bms-i-in-ic", comp);
+		} else if (comp == &syms_bms.ah_cnt) {
+			get_add_symbol("bms-ah-cnt", comp);
+		} else if (comp == &syms_bms.wh_cnt) {
+			get_add_symbol("bms-wh-cnt", comp);
+		} else if (comp == &syms_bms.cell_num) {
+			get_add_symbol("bms-cell-num", comp);
+		} else if (comp == &syms_bms.v_cell) {
+			get_add_symbol("bms-v-cell", comp);
+		} else if (comp == &syms_bms.bal_state) {
+			get_add_symbol("bms-bal-state", comp);
+		} else if (comp == &syms_bms.temp_adc_num) {
+			get_add_symbol("bms-temp-adc-num", comp);
+		} else if (comp == &syms_bms.temps_adc) {
+			get_add_symbol("bms-temps-adc", comp);
+		} else if (comp == &syms_bms.temp_ic) {
+			get_add_symbol("bms-temp-ic", comp);
+		} else if (comp == &syms_bms.temp_hum) {
+			get_add_symbol("bms-temp-hum", comp);
+		} else if (comp == &syms_bms.hum) {
+			get_add_symbol("bms-hum", comp);
+		} else if (comp == &syms_bms.temp_max_cell) {
+			get_add_symbol("bms-temp-cell-max", comp);
+		} else if (comp == &syms_bms.soc) {
+			get_add_symbol("bms-soc", comp);
+		} else if (comp == &syms_bms.soh) {
+			get_add_symbol("bms-soh", comp);
+		} else if (comp == &syms_bms.can_id) {
+			get_add_symbol("bms-can-id", comp);
+		} else if (comp == &syms_bms.ah_cnt_chg_total) {
+			get_add_symbol("bms-ah-cnt-chg-total", comp);
+		} else if (comp == &syms_bms.wh_cnt_chg_total) {
+			get_add_symbol("bms-wh-cnt-chg-total", comp);
+		} else if (comp == &syms_bms.ah_cnt_dis_total) {
+			get_add_symbol("bms-ah-cnt-dis-total", comp);
+		} else if (comp == &syms_bms.wh_cnt_dis_total) {
+			get_add_symbol("bms-wh-cnt-dis-total", comp);
+		} else if (comp == &syms_bms.msg_age) {
+			get_add_symbol("bms-msg-age", comp);
+		}
+	}
+
+	return *comp == sym;
+}
+
 static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -145,29 +237,28 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
-	char *name = lbm_dec_str(args[0]);
-
-	if (!name) {
+	if (lbm_type_of(args[0]) != LBM_VAL_TYPE_SYMBOL) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
+	lbm_uint name = lbm_dec_sym(args[0]);
 	bms_values *val = bms_get_values();
 
-	if (strcmp(name, "v_tot") == 0) {
+	if (compare_symbol(name, &syms_bms.v_tot)) {
 		res = lbm_enc_F(val->v_tot);
-	} else if (strcmp(name, "v_charge") == 0) {
+	} else if (compare_symbol(name, &syms_bms.v_charge)) {
 		res = lbm_enc_F(val->v_charge);
-	} else if (strcmp(name, "i_in") == 0) {
+	} else if (compare_symbol(name, &syms_bms.i_in)) {
 		res = lbm_enc_F(val->i_in);
-	} else if (strcmp(name, "i_in_ic") == 0) {
+	} else if (compare_symbol(name, &syms_bms.i_in_ic)) {
 		res = lbm_enc_F(val->i_in_ic);
-	} else if (strcmp(name, "ah_cnt") == 0) {
+	} else if (compare_symbol(name, &syms_bms.ah_cnt)) {
 		res = lbm_enc_F(val->ah_cnt);
-	} else if (strcmp(name, "wh_cnt") == 0) {
+	} else if (compare_symbol(name, &syms_bms.wh_cnt)) {
 		res = lbm_enc_F(val->wh_cnt);
-	} else if (strcmp(name, "cell_num") == 0) {
+	} else if (compare_symbol(name, &syms_bms.cell_num)) {
 		res = lbm_enc_i(val->cell_num);
-	} else if (strcmp(name, "v_cell") == 0) {
+	} else if (compare_symbol(name, &syms_bms.v_cell)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -178,7 +269,7 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_F(val->v_cell[c]);
-	} else if (strcmp(name, "bal_state") == 0) {
+	} else if (compare_symbol(name, &syms_bms.bal_state)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -189,9 +280,9 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_i(val->bal_state[c]);
-	} else if (strcmp(name, "temp_adc_num") == 0) {
+	} else if (compare_symbol(name, &syms_bms.temp_adc_num)) {
 		res = lbm_enc_i(val->temp_adc_num);
-	} else if (strcmp(name, "temps_adc") == 0) {
+	} else if (compare_symbol(name, &syms_bms.temps_adc)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -202,29 +293,29 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_F(val->temps_adc[c]);
-	} else if (strcmp(name, "temp_ic") == 0) {
+	} else if (compare_symbol(name, &syms_bms.temp_ic)) {
 		res = lbm_enc_F(val->temp_ic);
-	} else if (strcmp(name, "temp_hum") == 0) {
+	} else if (compare_symbol(name, &syms_bms.temp_hum)) {
 		res = lbm_enc_F(val->temp_hum);
-	} else if (strcmp(name, "hum") == 0) {
+	} else if (compare_symbol(name, &syms_bms.hum)) {
 		res = lbm_enc_F(val->hum);
-	} else if (strcmp(name, "temp_max_cell") == 0) {
+	} else if (compare_symbol(name, &syms_bms.temp_max_cell)) {
 		res = lbm_enc_F(val->temp_max_cell);
-	} else if (strcmp(name, "soc") == 0) {
+	} else if (compare_symbol(name, &syms_bms.soc)) {
 		res = lbm_enc_F(val->soc);
-	} else if (strcmp(name, "soh") == 0) {
+	} else if (compare_symbol(name, &syms_bms.soh)) {
 		res = lbm_enc_F(val->soh);
-	} else if (strcmp(name, "can_id") == 0) {
+	} else if (compare_symbol(name, &syms_bms.can_id)) {
 		res = lbm_enc_i(val->can_id);
-	} else if (strcmp(name, "ah_cnt_chg_total") == 0) {
+	} else if (compare_symbol(name, &syms_bms.ah_cnt_chg_total)) {
 		res = lbm_enc_F(val->ah_cnt_chg_total);
-	} else if (strcmp(name, "wh_cnt_chg_total") == 0) {
+	} else if (compare_symbol(name, &syms_bms.wh_cnt_chg_total)) {
 		res = lbm_enc_F(val->wh_cnt_chg_total);
-	} else if (strcmp(name, "ah_cnt_dis_total") == 0) {
+	} else if (compare_symbol(name, &syms_bms.ah_cnt_dis_total)) {
 		res = lbm_enc_F(val->ah_cnt_dis_total);
-	} else if (strcmp(name, "wh_cnt_dis_total") == 0) {
+	} else if (compare_symbol(name, &syms_bms.wh_cnt_dis_total)) {
 		res = lbm_enc_F(val->wh_cnt_dis_total);
-	} else if (strcmp(name, "msg_age") == 0) {
+	} else if (compare_symbol(name, &syms_bms.msg_age)) {
 		res = lbm_enc_F(UTILS_AGE_S(val->update_time));
 	}
 
@@ -1412,6 +1503,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
 	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
 	lbm_add_symbol_const("signal-data-rx", &sym_signal_data_rx);
+
+	memset(&syms_bms, 0, sizeof(syms_bms));
 
 	// Various commands
 	lbm_add_extension("print", ext_print);
