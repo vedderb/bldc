@@ -429,54 +429,63 @@ static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_current(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_current_rel(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_duty(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_duty(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_brake(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_brake_current(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_brake_rel(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_brake_current_rel(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_handbrake(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_handbrake(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_handbrake_rel(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_handbrake_rel(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_rpm(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_pid_speed(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_pos(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(1);
+	timeout_reset();
 	mc_interface_set_pid_pos(lbm_dec_as_f(args[0]));
 	return lbm_enc_sym(SYM_TRUE);
 }

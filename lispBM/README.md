@@ -35,7 +35,7 @@ Should work for all types.
 (timeout-reset)
 ```
 
-Reset the timeout that stops the motor. This has to be run on at least every second to keep the motor running. The timeout time can be configured in App Settings->General.
+Reset the timeout that stops the motor. This has to be run on at least every second to keep the motor running. The timeout time can be configured in App Settings->General. The [Motor Set Commands](#motor-set-commands) will also reset the timeout when they are called.
 
 #### get-ppm
 
@@ -779,7 +779,7 @@ Same as uart-read-bytes, but will return when the byte end is read.
 (i2c-start)
 ```
 
-Start the I2C driver on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first.
+Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first.
 
 #### i2c-tx-rx
 
