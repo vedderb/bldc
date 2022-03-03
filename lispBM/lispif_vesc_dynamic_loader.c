@@ -72,7 +72,7 @@ static const char* functions[] = {
 "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
 "(map-rec f nil x y)))",
 
-"(defun sleep-secs (seconds) (yield (* seconds 1000000)))",
+"(defun sleep (seconds) (yield (* seconds 1000000)))",
 
 "(defun filter (f lst)"
 "(let ((filter-rec (lambda (f lst ys)"

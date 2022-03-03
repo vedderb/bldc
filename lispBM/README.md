@@ -218,12 +218,16 @@ Example of sending the numbers 1, 2, 3 and 4:
 
 *dataList* can be a list or a [byte array](#byte-arrays).
 
-#### sleep-secs
-
-Sleep for seconds seconds. Also works with floating point numbers.
+#### sleep
 
 ```clj
-(sleep-secs seconds)
+(sleep seconds)
+```
+
+Sleep for *seconds* seconds. Example:
+
+```clj
+(sleep 0.05) ; Sleep for 0.05 seconds (50 ms)
 ```
 
 ### Motor Set Commands
