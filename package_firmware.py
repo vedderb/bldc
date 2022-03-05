@@ -14,7 +14,7 @@ package_dir = os.path.dirname(os.path.abspath(__file__)) + '/package'
 git_hash = get_git_revision_short_hash()
 
 # Define default destination filenames
-no_limits_name = "VESC_default_no_limits.bin"
+no_limits_name = "VESC_default_no_hw_limits.bin"
 default_name = "VESC_default.bin"
 
 # Add directories and targets to the dictionary
@@ -87,12 +87,12 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 
 # This is the firmware stub string
-res_firmwares_string = '        <file>res/firmwares/TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
+res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
 
 # This is the XML stub string
 resource_xml_stub_string = '''
 <RCC>
-   <qresource prefix="/">
+   <qresource prefix="/res/firmwares/">
 REPLACEABLE_STRING
    </qresource>
 </RCC>
