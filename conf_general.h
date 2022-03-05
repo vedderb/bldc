@@ -192,7 +192,7 @@
 //#define HW_HEADER "hw_60_75.h"
 #endif
 
-#ifndef HW_SOURCE
+#if !defined(HW_SOURCE) && !defined(HW_SOURCE_ALT)
 #error "No hardware source file set"
 #endif
 

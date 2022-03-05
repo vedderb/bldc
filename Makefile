@@ -205,7 +205,8 @@ all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
 all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 
 # Expand the firmware rules
-$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
+#$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
+$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board))))
 
 
 ##############################
