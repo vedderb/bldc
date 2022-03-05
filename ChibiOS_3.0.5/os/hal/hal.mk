@@ -1,7 +1,13 @@
 # List of all the ChibiOS/HAL files, there is no need to remove the files
 # from this list, you can disable parts of the HAL by editing halconf.h.
 ifeq ($(USE_SMART_BUILD),yes)
-HALCONF := $(strip $(shell cat halconf.h | egrep -e "define"))
+
+ifeq ($(OS),Windows_NT)
+  HALCONF := $(strip $(shell pwsh -noprofile -command cat halconf.h | findstr -i define))
+else
+  HALCONF := $(strip $(shell cat halconf.h | egrep -e "define"))
+endif
+
 
 HALSRC := $(CHIBIOS)/os/hal/src/hal.c \
           $(CHIBIOS)/os/hal/src/st.c \

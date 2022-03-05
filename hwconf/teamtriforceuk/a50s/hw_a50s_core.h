@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_A50S_H_
-#define HW_A50S_H_
+#ifndef HW_A50S_CORE_H_
+#define HW_A50S_CORE_H_
 
 
 #define HW_HAS_PHASE_FILTERS
@@ -265,10 +265,7 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.93	// Duty cycle limited to allow rise time of low side shunts
 #define HW_LIM_TEMP_FET			-40.0, 100.0
-#endif
-
-
-#ifdef HW_A50S_6S
+#elif defined (HW_A50S_6S)
 #define HW_NAME				"A50S V2.1 6S"
 #define HW_LIM_CURRENT			-50.0, 50.0
 #define HW_LIM_CURRENT_IN		-30.0, 30.0
@@ -278,6 +275,8 @@
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.93	// Duty cycle limited to allow rise time of low side shunts
 #define HW_LIM_TEMP_FET			-40.0, 100.0
+#else
+#error "Must define a hardware type"
 #endif
 
-#endif /* HW_A50S_H_ */
+#endif /* HW_A50S_CORE_H_ */

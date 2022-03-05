@@ -1,9 +1,16 @@
 *~
 
 build
+tools
+downloads
+
 .dep
 .project
 .cproject
 .settings/language.settings.xml
 .DS_Store
 workspace.code-workspace
+
+# Qt project settings
+*.pro.user
+*.pro.shared
