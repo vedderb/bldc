@@ -198,6 +198,8 @@ static char translate_escape_char(char c) {
   switch(c) {
   case '\\': return '\\';
   case 'n': return '\n';
+  case 't': return '\t';
+  case '\"': return '\"';
   default: return '\\';
   }
 }
@@ -213,10 +215,18 @@ int tok_string(lbm_tokenizer_char_stream_t *str) {
   n++;
 
   // compute length of string
-  while (peek(str,len) != 0 &&
-         peek(str,len) != '\"') {
-    len++;
-  }
+
+  char c;
+  do {
+    c = peek(str,len);
+    if (c == '\\') {
+      len +=2;
+    } else {
+      len ++;
+    }
+  } while (c != 0 &&
+           c != '\"');
+  len = len -1;
 
   if (len > TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH)
     return -1; /* TODO: specific error code that can be presented to user */
@@ -229,7 +239,7 @@ int tok_string(lbm_tokenizer_char_stream_t *str) {
   clear_sym_str();
 
   for (i = 0; i < len; i ++) {
-    char c = get(str);
+    c = get(str);
     if (c == '\\') {
       if (i + 1 < len) {
         char escaped = get(str);
