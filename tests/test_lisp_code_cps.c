@@ -290,7 +290,7 @@ int main(int argc, char **argv) {
     printf("Waiting for prelude timed out.\n");
   }
 
-  lbm_pause_eval();
+  lbm_pause_eval_with_gc(20);
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
     sleep_callback(1000);
   }
@@ -322,6 +322,11 @@ int main(int argc, char **argv) {
   lbm_set_ctx_done_callback(context_done_callback);
   cid = lbm_load_and_eval_program(&string_tok);
 
+  if (cid == -1) {
+    printf("Failed to load and evaluate the test program\n");
+    return 0;
+  }
+  
   lbm_continue_eval();
 
 
