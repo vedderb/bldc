@@ -1,368 +1,284 @@
-##############################################################################
-# Build global options
-# NOTE: Can be overridden externally.
+# Makefile for Rootloader project
+.DEFAULT_GOAL := help
+
+WHEREAMI := $(dir $(lastword $(MAKEFILE_LIST)))
+ROOT_DIR := $(realpath $(WHEREAMI)/ )
+
+# Define a recursive wildcard function
+# C.f. https://stackoverflow.com/a/18258352
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
+# Get the raw paths for all *.h files
+RAW_TARGET_PATHS := $(call rwildcard,hwconf,*.h)
+
+# Get the target paths by filtering out any core.h files, then stripping extra whitespace
+TARGET_PATHS := $(strip $(filter-out %core.h,$(RAW_TARGET_PATHS)))
+
+# Strip the paths down to just the names. Do this by first using `notdir` to remove the paths, then the prefix (hw_), then remove the suffix (.h). Finally, sort into lexical order.
+ALL_BOARD_NAMES := $(sort $(subst .h,,$(subst hw_,,$(filter hw_%, $(notdir $(TARGET_PATHS))))))
+
+# configure some directories that are relative to wherever ROOT_DIR is located
+TOOLS_DIR := $(ROOT_DIR)/tools
+MAKE_DIR := $(ROOT_DIR)/make
+BUILD_DIR := $(ROOT_DIR)/build
+DL_DIR    := $(ROOT_DIR)/downloads
+
+# import macros common to all supported build systems
+include $(ROOT_DIR)/make/system-id.mk
+
+# import macros that are OS specific
+include $(ROOT_DIR)/make/$(OSFAMILY).mk
+
+# include the tools makefile
+include $(ROOT_DIR)/make/tools.mk
+
+# Clean out undesirable variables from the environment and command-line
+# to remove the chance that they will cause problems with our build
+define SANITIZE_VAR
+$(if $(filter-out undefined,$(origin $(1))),
+  $(info *NOTE*      Sanitized $(2) variable '$(1)' from $(origin $(1)))
+  MAKEOVERRIDES = $(filter-out $(1)=%,$(MAKEOVERRIDES))
+  override $(1) :=
+  unexport $(1)
+)
+endef
+
+# These specific variables can influence gcc in unexpected (and undesirable) ways
+SANITIZE_GCC_VARS := TMPDIR GCC_EXEC_PREFIX COMPILER_PATH LIBRARY_PATH
+SANITIZE_GCC_VARS += CFLAGS CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH OBJC_INCLUDE_PATH DEPENDENCIES_OUTPUT
+SANITIZE_GCC_VARS += ARCHFLAGS
+$(foreach var, $(SANITIZE_GCC_VARS), $(eval $(call SANITIZE_VAR,$(var),disallowed)))
+
+# These specific variables used to be valid but now they make no sense
+SANITIZE_DEPRECATED_VARS := FOO_BAR
+$(foreach var, $(SANITIZE_DEPRECATED_VARS), $(eval $(call SANITIZE_VAR,$(var),deprecated)))
+
+# Decide on a verbosity level based on the V= parameter
+export AT := @
+
+ifndef V
+export V0    :=
+export V1    := $(AT)
+else ifeq ($(V), 0)
+export V0    := $(AT)
+export V1    := $(AT)
+else ifeq ($(V), 1)
+endif
+
+# Get the git commit hash
+GIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
+
+
+##############################
 #
-
-USE_LISPBM=1
-
-# Compiler options here.
-ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99 -D_GNU_SOURCE
-  USE_OPT += -DBOARD_OTG_NOVBUSSENS $(build_args)
-  USE_OPT += -fsingle-precision-constant -Wdouble-promotion -specs=nosys.specs
-endif
-
-# C specific options here (added to USE_OPT).
-ifeq ($(USE_COPT),)
-  USE_COPT =
-endif
-
-# C++ specific options here (added to USE_OPT).
-ifeq ($(USE_CPPOPT),)
-  USE_CPPOPT = -fno-rtti
-endif
-
-# Enable this if you want the linker to remove unused code and data
-ifeq ($(USE_LINK_GC),)
-  USE_LINK_GC = yes
-endif
-
-# Linker extra options here.
-ifeq ($(USE_LDOPT),)
-  USE_LDOPT =
-endif
-
-# Enable this if you want link time optimizations (LTO)
-ifeq ($(USE_LTO),)
-  USE_LTO = no
-endif
-
-# If enabled, this option allows to compile the application in THUMB mode.
-ifeq ($(USE_THUMB),)
-  USE_THUMB = yes
-endif
-
-# Enable this if you want to see the full log while compiling.
-ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = no
-endif
-
-# If enabled, this option makes the build process faster by not compiling
-# modules not used in the current configuration.
-ifeq ($(USE_SMART_BUILD),)
-  USE_SMART_BUILD = yes
-endif
-
+# Help instructions
 #
-# Build global options
-##############################################################################
+##############################
+.PHONY: help
+help:
+	@echo
+	@echo "   This Makefile is known to work on Linux and Mac in a standard shell environment."
+	@echo
+	@echo "   Here is a summary of the available targets:"
+	@echo
+	@echo "   [Tool Installers]"
+	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
+	@echo "     qt_install           - Install the all tools for Qt"
+	@echo
+	@echo "   [Big Hammer]"
+	@echo "     all_fw               - Build firmware for all boards"
+	@echo
+	@echo "   [Unit Tests]"
+	@echo "     all_ut               - Build all unit tests"
+	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
+	@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
+	@echo
+	@echo "   [Firmware]"
+	@echo "     fw   - Build firmware for default target"
+	@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
+	@echo "     fw_<board>   - Build firmware for target <board>"
+	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
+	@echo "     fw_<board>_clean     - Remove firmware for <board>"
+	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
+	@echo
+	@echo "   Hint: Add V=1 to your command line to see verbose build output."
+	@echo
+	@echo "   Note: All tools will be installed into $(TOOLS_DIR)"
+	@echo "         All build output will be placed in $(BUILD_DIR)"
+	@echo
 
-##############################################################################
-# Architecture or project specific options
+
+$(DL_DIR):
+	$(V1) $(MKDIR) $@
+
+$(TOOLS_DIR):
+	$(V1) $(MKDIR) $@
+
+##############################
 #
-
-# Stack size to be allocated to the Cortex-M process stack. This stack is
-# the stack used by the main() thread.
-ifeq ($(USE_PROCESS_STACKSIZE),)
-  USE_PROCESS_STACKSIZE = 0x800
-endif
-
-# Stack size to the allocated to the Cortex-M main/exceptions stack. This
-# stack is used for processing interrupts and exceptions.
-ifeq ($(USE_EXCEPTIONS_STACKSIZE),)
-  USE_EXCEPTIONS_STACKSIZE = 0x800
-endif
-
-# Enables the use of FPU on Cortex-M4 (no, softfp, hard).
-ifeq ($(USE_FPU),)
-  USE_FPU = hard
-endif
-
-# Enable this if you really want to use the STM FWLib.
-ifeq ($(USE_FWLIB),)
-  USE_FWLIB = yes
-endif
-
+# Build and Upload
 #
-# Architecture or project specific options
-##############################################################################
+##############################
 
-##############################################################################
-# Project, sources and paths
-#
+# $(1) = Canonical board name all in lower case (e.g. 100_250)
+# $(2) = Target hardware directory
+define FIND_TARGET_C_CODE
+   # Remove `_no_limits`
+   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
 
-# Define project name here
-PROJECT = BLDC_4_ChibiOS
+   # Look for `*_core.c` file
+   ifneq ("$(wildcard $(2)/hw_*_core.c)","")
+      # Good luck, there it is!
+      HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
+   else
+      # There isn't one, so let's hope for the sister `.c` file
+      HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
+   endif
 
-# Imported source files and paths
-CHIBIOS = ChibiOS_3.0.5
-# Startup files
-include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
-# HAL-OSAL files
-include $(CHIBIOS)/os/hal/hal.mk
-include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
-include $(CHIBIOS)/os/hal/osal/rt/osal.mk
-# RTOS files
-include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
-# Other files
-include hwconf/hwconf.mk
-include applications/applications.mk
-include nrf/nrf.mk
-include libcanard/canard.mk
-include imu/imu.mk
-include lora/lora.mk
-include lzo/lzo.mk
-include blackmagic/blackmagic.mk
-include encoder/encoder.mk
+endef
 
-ifeq ($(USE_LISPBM),1)
-  include lispBM/lispbm.mk
-  USE_OPT += -DUSE_LISPBM
+# $(1) = Canonical board name all in lower case (e.g. 100_250)
+# $(2) = firmware build directory
+# $(3) = firmware name
+define FW_TEMPLATE
+.PHONY: $(1) fw_$(1)
+$(1): fw_$(1)_vescfw
+fw_$(1): fw_$(1)_vescfw
+
+fw_$(1)_vescfw: $(eval HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS))))  # Find the directory for this header file
+fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR)))  # Find the c code associated to this header file
+fw_$(1)_vescfw:
+	@echo "********* BUILD: $(1) **********"
+	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
+	$(V1) make -f $(MAKE_DIR)/fw.mk \
+		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
+		BUILDDIR="$(2)" \
+		PROJECT="$(3)" \
+		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\"' USE_VERBOSE_COMPILE=no
+
+$(1)_flash: fw_$(1)_flash
+fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
+
+$(1)_flash_only: fw_$(1)_flash_only
+fw_$(1)_flash_only:
+	@echo "********* PROGRAM: $(1) **********"
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program $(2)/$(3).elf verify reset exit"
+
+.PHONY: $(1)_clean
+$(1)_clean: fw_$(1)_clean
+fw_$(1)_clean: TARGET=fw_$(1)
+fw_$(1)_clean: OUTDIR=$(BUILD_DIR)/$$(TARGET)
+fw_$(1)_clean:
+	$(V0) @echo " CLEAN      $$@"
+ifneq ($(OSFAMILY), windows)
+	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
+else
+	$(V1) pwsh -noprofile -command if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}
 endif
-
-# Define linker script file here
-LDSCRIPT= ld_eeprom_emu.ld
-
-# C sources that can be compiled in ARM or THUMB mode depending on the global
-# setting.
-CSRC = $(STARTUPSRC) \
-       $(KERNSRC) \
-       $(PORTSRC) \
-       $(OSALSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
-       $(CHIBIOS)/os/various/syscalls.c \
-       board.c \
-       main.c \
-       comm_usb_serial.c \
-       irq_handlers.c \
-       buffer.c \
-       comm_usb.c \
-       crc.c \
-       digital_filter.c \
-       ledpwm.c \
-       mcpwm.c \
-       servo_dec.c \
-       utils.c \
-       servo_simple.c \
-       packet.c \
-       terminal.c \
-       conf_general.c \
-       eeprom.c \
-       commands.c \
-       timeout.c \
-       comm_can.c \
-       flash_helper.c \
-       mc_interface.c \
-       mcpwm_foc.c \
-       gpdrive.c \
-       confgenerator.c \
-       timer.c \
-       i2c_bb.c \
-       spi_bb.c \
-       virtual_motor.c \
-       shutdown.c \
-       mempools.c \
-       worker.c \
-       bms.c \
-       events.c \
-       $(HWSRC) \
-       $(APPSRC) \
-       $(NRFSRC) \
-       $(CANARDSRC) \
-       $(IMUSRC) \
-       $(LORASRC) \
-       $(LZOSRC) \
-       $(BLACKMAGICSRC) \
-       qmlui/qmlui.c \
-       $(ENCSRC)
-
-ifeq ($(USE_LISPBM),1)
-  CSRC += $(LISPBMSRC)
-endif
-
-# C++ sources that can be compiled in ARM or THUMB mode depending on the global
-# setting.
-CPPSRC =
-
-# C sources to be compiled in ARM mode regardless of the global setting.
-# NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
-#       option that results in lower performance and larger code size.
-ACSRC =
-
-# C++ sources to be compiled in ARM mode regardless of the global setting.
-# NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
-#       option that results in lower performance and larger code size.
-ACPPSRC =
-
-# C sources to be compiled in THUMB mode regardless of the global setting.
-# NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
-#       option that results in lower performance and larger code size.
-TCSRC =
-
-# C sources to be compiled in THUMB mode regardless of the global setting.
-# NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
-#       option that results in lower performance and larger code size.
-TCPPSRC =
-
-# List ASM source files here
-ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
-
-INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) \
-         $(CHIBIOS)/os/various \
-         $(CHIBIOS)/os/hal/lib/streams \
-         mcconf \
-         appconf \
-         $(HWINC) \
-         $(APPINC) \
-         $(NRFINC) \
-         $(CANARDINC) \
-         $(IMUINC) \
-         $(LORAINC) \
-         $(LZOINC) \
-         $(BLACKMAGICINC) \
-         qmlui \
-         qmlui/hw \
-         qmlui/app \
-         $(ENCINC)
-
-ifeq ($(USE_LISPBM),1)
-  INCDIR += $(LISPBMINC)
-endif
-
-ifdef app_custom_mkfile
-include $(app_custom_mkfile)
-endif
-
-#
-# Project, sources and paths
-##############################################################################
-
-##############################################################################
-# Compiler settings
-#
-
-MCU  = cortex-m4
-
-#TRGT = arm-elf-
-#TRGT = /home/benjamin/Nextcloud/appimage/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-
-TRGT = arm-none-eabi-
-CC   = $(TRGT)gcc
-CPPC = $(TRGT)g++
-# Enable loading with g++ only if you need C++ runtime support.
-# NOTE: You can use C++ even without C++ support if you are careful. C++
-#       runtime support makes code size explode.
-LD   = $(TRGT)gcc
-#LD   = $(TRGT)g++
-CP   = $(TRGT)objcopy
-AS   = $(TRGT)gcc -x assembler-with-cpp
-AR   = $(TRGT)ar
-OD   = $(TRGT)objdump
-SZ   = $(TRGT)size
-HEX  = $(CP) -O ihex
-BIN  = $(CP) -O binary
-
-# ARM-specific options here
-AOPT =
-
-# THUMB-specific options here
-TOPT = -mthumb -DTHUMB
-
-# Define C warning options here
-CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes -Wshadow
-
-# Define C++ warning options here
-CPPWARN = -Wall -Wextra -Wundef
-
-#
-# Compiler settings
-##############################################################################
-
-##############################################################################
-# Start of user section
-#
-
-# List all user C define here, like -D_DEBUG=1
-UDEFS =
-
-# Define ASM defines here
-UADEFS =
-
-# List all user directories here
-UINCDIR =
-
-# List the user directory to look for the libraries here
-ULIBDIR =
-
-# List all user libraries here
-ULIBS = -lm
-
-#
-# End of user defines
-##############################################################################
-
-ifeq ($(USE_FWLIB),yes)
-  include $(CHIBIOS)/ext/stdperiph_stm32f4/stm32lib.mk
-  CSRC += $(STM32SRC)
-  INCDIR += $(STM32INC)
-  USE_OPT += -DUSE_STDPERIPH_DRIVER
-endif
-
-RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
-include $(RULESPATH)/rules.mk
-
-build/$(PROJECT).bin: build/$(PROJECT).elf
-	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
-
-# Program
-upload: build/$(PROJECT).elf
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
-
-upload_only:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
+endef
 
 clear_option_bytes:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "init" \
-		-c "stm32f2x unlock 0" \
-		-c "mww 0x40023C08 0x08192A3B" \
-		-c "mww 0x40023C08 0x4C5D6E7F" \
-		-c "mww 0x40023C14 0x0fffaaed" \
-		-c "exit"
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
 
-#program with olimex arm-usb-tiny-h and jtag-swd adapter board.
-upload-olimex: build/$(PROJECT).bin
-	@openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg \
-		-f interface/ftdi/olimex-arm-jtag-swd.cfg \
-		-c "set WORKAREASIZE 0x2000" \
-		-f target/stm32f4x.cfg \
-		-c "program build/$(PROJECT).elf verify reset"
+#program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
+upload-olimex: fw
+	$(V1) openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
 
-upload-pi: build/$(PROJECT).bin
-	@openocd -f pi_stm32.cfg \
-		-c "reset_config trst_only combined" \
-		-c "program build/$(PROJECT).elf verify reset exit"
+upload-pi: fw
+	$(V1) openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
-upload-pi-remote: build/$(PROJECT).elf
-	./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
+upload-pi-remote: fw
+	$(V1) ./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
 debug-start:
-	@openocd -f stm32-bv_openocd.cfg
+	$(V1) openocd -f stm32-bv_openocd.cfg
 
 size: build/$(PROJECT).elf
 	@$(SZ) $<
 
-mass_erase:
-	@openocd -f board/stm32f4discovery.cfg \
-		-c "init" \
-		-c "reset halt" \
-		-c "stm32f2x mass_erase 0" \
-		-c "sleep 200" \
-		-c "shutdown"
+# Generate the targets for whatever boards are in each list
+FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))
+
+.PHONY: all_fw all_fw_clean
+all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
+all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
+
+# Expand the firmware rules
+#$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
+$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board))))
+
+
+##############################
+#
+# Unit Tests
+#
+##############################
+
+ALL_UNITTESTS := utils
+
+UT_OUT_DIR := $(BUILD_DIR)/unit_tests
+
+$(UT_OUT_DIR):
+	$(V1) mkdir -p $@
+
+.PHONY: all_ut
+all_ut: $(addsuffix _elf, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
+
+.PHONY: all_ut_xml
+all_ut_xml: $(addsuffix _xml, $(addprefix ut_, $(ALL_UNITTESTS)))
+
+.PHONY: all_ut_run
+all_ut_run: $(addsuffix _run, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
+
+.PHONY: all_ut_gcov
+all_ut_gcov: | $(addsuffix _gcov, $(addprefix ut_, $(ALL_UNITTESTS)))
+
+.PHONY: all_ut_clean
+all_ut_clean:
+	$(V0) @echo " CLEAN      $@"
+	$(V1) [ ! -d "$(UT_OUT_DIR)" ] || $(RM) -r "$(UT_OUT_DIR)"
+
+# $(1) = Unit test name
+define UT_TEMPLATE
+.PHONY: ut_$(1)
+ut_$(1): ut_$(1)_run
+ut_$(1)_gcov: | ut_$(1)_xml
+
+ut_$(1)_%: TARGET=$(1)
+ut_$(1)_%: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
+ut_$(1)_%: UT_ROOT_DIR=$(ROOT_DIR)/tests/$(1)
+ut_$(1)_%: $$(UT_OUT_DIR)
+	$(V1) mkdir -p $(UT_OUT_DIR)/$(1)
+	$(V1) cd $$(UT_ROOT_DIR) && \
+		$$(MAKE) -r --no-print-directory \
+		BUILD_TYPE=ut \
+		TCHAIN_PREFIX="" \
+		REMOVE_CMD="$(RM)" \
+		\
+		MAKE_INC_DIR=$(MAKE_INC_DIR) \
+		ROOT_DIR=$(ROOT_DIR) \
+		TARGET=$$(TARGET) \
+		OUTDIR=$$(OUTDIR) \
+		\
+		GTEST_DIR=$(GTEST_DIR) \
+		\
+		$$*
+
+.PHONY: ut_$(1)_clean
+ut_$(1)_clean: TARGET=$(1)
+ut_$(1)_clean: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
+ut_$(1)_clean:
+	$(V0) @echo " CLEAN      $(1)"
+	$(V1) [ ! -d "$$(OUTDIR)" ] || $(RM) -r "$$(OUTDIR)"
+endef
+
+# Expand the unittest rules
+$(foreach ut, $(ALL_UNITTESTS), $(eval $(call UT_TEMPLATE,$(ut))))
+
+# Disable parallel make when the all_ut_run target is requested otherwise the TAP/XML
+# output is interleaved with the rest of the make output.
+ifneq ($(strip $(filter all_ut_run,$(MAKECMDGOALS))),)
+.NOTPARALLEL:
+$(info *NOTE*     Parallel make disabled by all_ut_run target so we have sane console output)
+endif
