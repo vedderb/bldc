@@ -27,12 +27,17 @@
 
 #include "lispbm.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
+#include "lbm_llama_ascii.h"
+#include "lbm_version.h"
+
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define HEAP_SIZE 2048
 #define EXTENSION_STORAGE_SIZE 256
+
+#define WAIT_TIMEOUT 2500
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
@@ -221,6 +226,9 @@ int main(void) {
     chprintf(chp,"Error starting evaluator thread.\r\n");
     return 0;
   }
+
+  chprintf(chp,"%s\n", llama_ascii);
+  chprintf(chp,"LispBM Version %d.%d.%d\r\n\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
   while (1) {
@@ -284,7 +292,7 @@ int main(void) {
       bool exists = false;
       lbm_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
       if (exists) {
-        lbm_wait_ctx((lbm_cid)id);
+        lbm_wait_ctx((lbm_cid)id, WAIT_TIMEOUT);
       }
     } else if (strncmp(str, ":pause", 6) == 0) {
       lbm_pause_eval();
@@ -327,7 +335,12 @@ int main(void) {
       lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
       lbm_continue_eval();
-      lbm_wait_ctx((lbm_cid)cid);
+      if (!lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT)) {
+        chprintf(chp,"Wait for prelude to load timed out.\r\n");
+      } else {
+        chprintf(chp,"Prelude loaded.\r\n");
+      }
+
     } else if (strncmp(str, ":quit", 5) == 0) {
 
       break;
@@ -363,7 +376,7 @@ int main(void) {
         lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
         lbm_continue_eval();
-        lbm_wait_ctx((lbm_cid)cid);
+        lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
 
       }
     } else {
@@ -389,7 +402,7 @@ int main(void) {
       lbm_continue_eval();
 
       printf("started ctx: %u\n", cid);
-      lbm_wait_ctx((lbm_cid)cid);
+      lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
     }
   }
 }

@@ -209,6 +209,12 @@ extern lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str);
  * \param msg Message to deliver
  * \return lbm_enc_sym(SYM_NIL) on failure and lbm_enc_sym(SYM_TRUE) on success.
  */
-lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
-
+extern lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
+/** Perform garbage collection,
+ * If this is called from another thread than the eval thread, evaluation must be
+ * paused! Or there will be lots of trouble!
+ *
+ * \return 1 on success
+ */
+extern int lbm_perform_gc(void);
 #endif

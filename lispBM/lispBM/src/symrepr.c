@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 110
+#define NUM_SPECIAL_SYMBOLS 111
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -58,6 +58,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"continuation" , SYM_CONT},
 
   {"set!"         , SYM_SETVAR},
+  {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},

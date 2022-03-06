@@ -671,9 +671,17 @@ int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type){
 
   array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
 
-  if (array == NULL) return 0;
+  if (array == NULL) {
+    *res = lbm_enc_sym(SYM_MERROR);
+    return 0;
+  }
 
   array->data = (uint32_t*)lbm_memory_allocate(allocate_size);
+
+  if (array->data == NULL) {
+    *res = lbm_enc_sym(SYM_MERROR);
+    return 0;
+  }
 
   array->elt_type = type;
   array->size = size;
