@@ -527,34 +527,26 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
 
 /* (array-create type size) */
-void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
+void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = lbm_enc_sym(SYM_EERROR);
-  lbm_value array;
   if (nargs == 1 && lbm_is_number(args[0])) {
-    if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE)) {
-      *result = array;
-    }
+    lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE);
   } else if (nargs == 2) {
-
     if (lbm_type_of(args[0]) == LBM_VAL_TYPE_SYMBOL &&
         lbm_is_number(args[1])) {
       switch(lbm_dec_sym(args[0])) {
       case SYM_TYPE_CHAR: /* fall through */
       case SYM_TYPE_BYTE:
-        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE))
-          *result = array;
+        lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE);
         break;
       case SYM_TYPE_I32:
-        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_I))
-          *result = array;
+        lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_I);
         break;
       case SYM_TYPE_U32:
-        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_U))
-          *result = array;
+        lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_U);
         break;
       case SYM_TYPE_FLOAT:
-        if (lbm_heap_allocate_array(&array, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_F))
-          *result = array;
+        lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_PTR_TYPE_BOXED_F);
         break;
       default:
         break;
@@ -584,6 +576,10 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   int cmp_res = -1;
 
   switch (lbm_dec_sym(op)) {
+  case SYM_PERFORM_GC:
+    lbm_perform_gc();
+    result = lbm_enc_sym(SYM_TRUE);
+    break;
   case SYM_IX:
     if (nargs == 2 && lbm_is_number(args[1])) {
       result = index_list(args[0], lbm_dec_as_u(args[1]));

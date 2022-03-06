@@ -123,6 +123,7 @@
 #define SYM_GEQ                 0x10A
 #define SYM_EVAL                0x10B
 #define SYM_EVAL_PROGRAM        0x10C
+#define SYM_PERFORM_GC          0x10D
 
 #define SYM_AND                 0x110
 #define SYM_OR                  0x111

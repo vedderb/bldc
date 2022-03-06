@@ -8,12 +8,21 @@ if { $argc >= 1 } {
     set port "/dev/ttyACM0"
 }
 
+if { [lindex $argv 1] eq "store"} {
+    set store "true"
+} else {
+    set store "false"
+}
+
 spawn cu -l $port -s 115200
 
 set systemTime [clock seconds]
 
-set filename  "benchresult[clock format $systemTime -format %y_%m_%d_%H_%M_%S]"
-
+if { $store } {
+    set filename  "./stored_results/benchresult[clock format $systemTime -format %y_%m_%d_%H_%M_%S]"
+} else {
+    set filename  "benchresult[clock format $systemTime -format %y_%m_%d_%H_%M_%S]"
+}
 
 set outfile [open $filename w+]
 

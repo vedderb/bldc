@@ -1006,12 +1006,6 @@ static int gc(lbm_value remember1, lbm_value remember2) {
     curr = curr->next;
   }
 
-  /* curr = done.first; */
-  /* while (curr) { */
-  /*   lbm_gc_mark_phase(curr->r); */
-  /*   curr = curr->next; */
-  /* } */
-
   curr = blocked.first;
   while (curr) {
     lbm_gc_mark_phase(curr->curr_env);
@@ -1055,6 +1049,9 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   return r;
 }
 
+int lbm_perform_gc(void) {
+  return gc(NIL,NIL);
+}
 
 /****************************************************/
 /* Evaluation functions                             */
@@ -1412,7 +1409,6 @@ static inline void cont_set_global_env(eval_context_t *ctx){
   *lbm_get_env_ptr() = new_env;
   ctx->r = key;
 
-  //if (!ctx->done)
   ctx->app_cont = true;
 
   return;
