@@ -701,16 +701,21 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
   if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return -1;
 
-  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
-    gc(NIL, NIL);
-  }
-  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
-    return -1;
-  }
-
   eval_context_t *ctx = NULL;
   ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
-  if (ctx == NULL) return -1; // no more contexts possible!
+  if (ctx == NULL) {
+    gc(program,env);
+    ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
+  }
+  if (ctx == NULL) return -1;
+
+  if (!lbm_stack_allocate(&ctx->K, stack_size)) {
+    gc(program,env);
+    if (!lbm_stack_allocate(&ctx->K, stack_size)) {
+      lbm_memory_free((uint32_t*)ctx);
+      return -1;
+    }
+  }
 
   lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
 
@@ -727,10 +732,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
   ctx->next = NULL;
 
   ctx->id = cid;
-  if (!lbm_stack_allocate(&ctx->K, stack_size)) {
-    lbm_memory_free((uint32_t*)ctx);
-    return -1;
-  }
+
   if (!lbm_push_u32(&ctx->K, lbm_enc_u(DONE))) {
     lbm_stack_free(&ctx->K);
     lbm_memory_free((uint32_t*)ctx);

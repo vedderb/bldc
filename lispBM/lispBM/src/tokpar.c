@@ -194,6 +194,14 @@ int tok_symbol(lbm_tokenizer_char_stream_t *str) {
   return (int)n;
 }
 
+static char translate_escape_char(char c) {
+  switch(c) {
+  case '\\': return '\\';
+  case 'n': return '\n';
+  default: return '\\';
+  }
+}
+
 int tok_string(lbm_tokenizer_char_stream_t *str) {
 
   unsigned int i = 0;
@@ -221,7 +229,15 @@ int tok_string(lbm_tokenizer_char_stream_t *str) {
   clear_sym_str();
 
   for (i = 0; i < len; i ++) {
-    sym_str[i] = get(str);
+    char c = get(str);
+    if (c == '\\') {
+      if (i + 1 < len) {
+        char escaped = get(str);
+        c = translate_escape_char(escaped);
+        len-=1;
+      }
+    }
+    sym_str[i] = c;
     n++;
   }
 
