@@ -701,9 +701,16 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
   if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return -1;
 
+  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
+    gc(NIL, NIL);
+  }
+  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
+    return -1;
+  }
+
   eval_context_t *ctx = NULL;
   ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
-  if (ctx == NULL) return -1;
+  if (ctx == NULL) return -1; // no more contexts possible!
 
   lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
 
@@ -1592,6 +1599,14 @@ static inline void cont_application(eval_context_t *ctx) {
           if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
               lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
             new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+            if (lbm_is_error(new_env)) {
+              gc(NIL,NIL);
+              new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+              if (lbm_is_error(new_env)) {
+                error_ctx(new_env);
+                return;
+              }
+            }
             *lbm_get_env_ptr() = new_env;
           } else {
             ctx->r = fun_args[2];
@@ -1640,6 +1655,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (!lbm_is_closure(fun_args[closure_pos]) ||
           lbm_dec_u(count) < 1) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
+        return;
       }
 
       lbm_value cdr_fun = lbm_cdr(fun_args[closure_pos]);
@@ -1709,7 +1725,7 @@ static inline void cont_application(eval_context_t *ctx) {
 
       if (lbm_type_of(prg) != LBM_PTR_TYPE_CONS) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
-        break;
+        return;
       }
 
       ctx->program = lbm_cdr(prg);
