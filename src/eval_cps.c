@@ -585,7 +585,6 @@ static void finish_ctx(void) {
 
   lbm_memory_free((uint32_t*)ctx_running);
   ctx_running = NULL;
-  gc(NIL,NIL);
 }
 
 static void context_exists(eval_context_t *ctx, void *cid, void *b) {
