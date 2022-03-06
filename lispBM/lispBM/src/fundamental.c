@@ -530,7 +530,7 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = lbm_enc_sym(SYM_EERROR);
   if (nargs == 1 && lbm_is_number(args[0])) {
-    lbm_heap_allocate_array(result, lbm_dec_as_u(args[1]), LBM_VAL_TYPE_BYTE);
+    lbm_heap_allocate_array(result, lbm_dec_as_u(args[0]), LBM_VAL_TYPE_BYTE);
   } else if (nargs == 2) {
     if (lbm_type_of(args[0]) == LBM_VAL_TYPE_SYMBOL &&
         lbm_is_number(args[1])) {
