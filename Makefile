@@ -88,6 +88,7 @@ help:
 	@echo
 	@echo "   [Big Hammer]"
 	@echo "     all_fw               - Build firmware for all boards"
+	@echo "     all_fw_package       - Packaage firmware for boards in package list"
 	@echo
 	@echo "   [Unit Tests]"
 	@echo "     all_ut               - Build all unit tests"
@@ -207,6 +208,28 @@ all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 # Expand the firmware rules
 #$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
 $(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board))))
+
+
+##############################
+#
+# Packaging
+#
+##############################
+
+.PHONY: all_fw_package
+all_fw_package: all_fw
+	# Place all firmware files into `./package` directory
+	$(V1) python3 package_firmware.py
+
+	# Find all the leftover object and lst files
+	$(eval BUILD_CRUFT := $(call rwildcard,$(ROOT_DIR)/build,*.lst *.o))
+
+	# Delete the cruft files, so as not to unnecessarily consume GB of space
+ifneq ($(OSFAMILY), windows)
+	$(V1) $(RM) $(BUILD_CRUFT)
+else
+	$(V1) pwsh -noprofile -command {Remove-Item $(BUILD_CRUFT)}
+endif
 
 
 ##############################
