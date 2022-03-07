@@ -15,7 +15,7 @@ This is the source code for the VESC DC/BLDC/FOC controller. Read more at
 
 ## Supported boards
 
-All  of them!
+All of them!
 
 Check the supported boards by typing `make`
 
@@ -27,12 +27,15 @@ Check the supported boards by typing `make`
 
 There are also many other options that can be changed in [conf_general.h](conf_general.h).
 
-
 ## Prerequisites
 
 ### On Ubuntu (Linux)/macOS
-- Tools: `git`, `wget, and `make`
+- Tools: `git`, `wget`, and `make`
 - Additional Linux requirements: `libgl-dev` and `libxcb-xinerama0`
+- Helpful Ubuntu commands:
+```bash
+sudo apt install git build-essential libgl-dev libxcb-xinerama0 wget git-gui
+```
 - Helpful macOS tools: 
 
 ```bash
@@ -79,7 +82,6 @@ wget vedder.se/Temp/49-stlinkv2.rules
 sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
 sudo udevadm trigger
 ```
-
 
 ## IDE
 ### Prerequisites
