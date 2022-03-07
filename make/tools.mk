@@ -223,3 +223,12 @@ else
   # not installed, hope it's in the path...
   ARM_SDK_PREFIX ?= arm-none-eabi-
 endif
+
+# Get the ARM GCC version
+ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
+
+# Get the git branch name, commit hash, and clean/dirty state
+GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
+

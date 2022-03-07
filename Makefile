@@ -65,10 +65,6 @@ export V1    := $(AT)
 else ifeq ($(V), 1)
 endif
 
-# Get the git commit hash
-GIT_HASH := $(shell git rev-parse --short HEAD)
-GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
-
 
 ##############################
 #
@@ -141,6 +137,9 @@ endef
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
 # $(2) = firmware build directory
 # $(3) = firmware name
+# $(4) = git branch name
+# $(5) = git hash (and dirty flag)
+# $(6) = compiler version
 define FW_TEMPLATE
 .PHONY: $(1) fw_$(1)
 $(1): fw_$(1)_vescfw
@@ -155,7 +154,7 @@ fw_$(1)_vescfw:
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
-		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\"' USE_VERBOSE_COMPILE=no
+		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
 fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
@@ -205,8 +204,7 @@ all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
 all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 
 # Expand the firmware rules
-#$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board)-$(GIT_HASH)$(GIT_DIRTY_LABEL))))
-$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board))))
+$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board),$(GIT_BRANCH_NAME),$(GIT_COMMIT_HASH)$(GIT_DIRTY_LABEL),$(ARM_GCC_VERSION))))
 
 
 ##############################
