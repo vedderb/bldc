@@ -11,6 +11,7 @@ CFLAGS += -O0
 CFLAGS += -Wall -Werror
 CFLAGS += -g
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
+CFLAGS += -DUNIT_TEST
 
 CONLYFLAGS += -std=gnu99
 
