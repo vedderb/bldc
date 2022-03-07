@@ -235,7 +235,7 @@ endif
 all_fw_package_clean:
 	$(V0) @echo " CLEAN        $(ROOT_DIR)/package/*"
 ifneq ($(OSFAMILY), windows)
-	$(V1) [ ! -d "$(ROOT_DIR)/package/*" ] || $(RM) -r $(ROOT_DIR)/package/*
+	$(V1) [ ! -d "$(ROOT_DIR)/package/" ] || $(RM) -rf $(ROOT_DIR)/package/*
 else
 	$(V1) pwsh -noprofile -command if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}
 endif
