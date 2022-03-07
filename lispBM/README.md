@@ -956,6 +956,26 @@ Filter list by keeping the elements on which f returns true. Example:
 > (3 2 4)
 ```
 
+#### sort
+
+```clj
+(sort f lst)
+```
+
+Sort list lst using comparison function f. Example:
+
+```clj
+(sort < '(5 6 2 1 5 63 33 7 7 8))
+> (1 2 5 5 6 7 7 8 33 63)
+
+(sort > '(5 6 2 1 5 63 33 7 7 8))
+> (63 33 8 7 7 6 5 5 2 1)
+
+; Split sentence to words and sort them in ascending order
+(sort str-cmp-asc (str-split "this is a string" " "))
+> ("a" "is" "string" "this")
+```
+
 ### String Manipulation
 
 #### str-from-n
@@ -1136,6 +1156,22 @@ Compare strings str1 and str2. Works in the same way as the strcmp-function in C
 (str-cmp "World" "Hello")
 > 15
 ```
+
+#### str-cmp-asc
+
+```clj
+(str-cmp-asc str1 str1)
+```
+
+Return true if str1 comes before str2, nil otherwise. Useful for sorting strings using the [sort](#sort) function in ascending order.
+
+#### str-cmp-dsc
+
+```clj
+(str-cmp-dsc str1 str1)
+```
+
+Return true if str2 comes before str1, nil otherwise. Useful for sorting strings using the [sort](#sort) function in descending order.
 
 #### str-len
 
