@@ -217,14 +217,16 @@ $(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_
 ##############################
 
 .PHONY: all_fw_package
-	# Place all firmware files into `./package` directory
 all_fw_package: all_fw all_fw_package_clean
+	$(V0) @echo " PACKAGE        $(ROOT_DIR)/package/*"
+
+# Place all firmware files into `./package` directory
 	$(V1) python3 package_firmware.py
 
-	# Find all the leftover object and lst files
+# Find all the leftover object and lst files
 	$(eval BUILD_CRUFT := $(call rwildcard,$(ROOT_DIR)/build,*.lst *.o))
 
-	# Delete the cruft files, so as not to unnecessarily consume GB of space
+# Delete the cruft files, so as not to unnecessarily consume GB of space
 ifneq ($(OSFAMILY), windows)
 	$(V1) $(RM) $(BUILD_CRUFT)
 else
