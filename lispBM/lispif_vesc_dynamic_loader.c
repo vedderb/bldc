@@ -83,6 +83,8 @@ static const char* functions[] = {
 "(filter-rec f (cdr lst) ys))))))"
 "(filter-rec f lst nil)"
 "))",
+
+"(defun str-len (str) (- (buflen str) 1))",
 };
 
 static const char* macros[] = {

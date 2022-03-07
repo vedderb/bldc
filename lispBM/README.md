@@ -956,6 +956,200 @@ Filter list by keeping the elements on which f returns true. Example:
 > (3 2 4)
 ```
 
+### String Manipulation
+
+#### str-from-n
+
+```clj
+(str-from-n n optFormat)
+```
+
+Create a string from the number n. Also takes an optional format argument optFormat that works in the same way as the printf-function in C. The optFormat argument can also be used together with other characters as long as the resulting output string is shorter than 100 characters. Example:
+
+```clj
+(str-from-n 10)
+> "10"
+
+(str-from-n 2.5)
+> "2.500000"
+
+(str-from-n 2.5 "%.1f")
+> "2.5"
+
+(str-from-n 10 "0x%04X") ; Here we also append 0x in front of optFormat
+> "0x000A"
+
+(str-from-n 0.023e3)
+> "2.500000"
+```
+
+#### str-merge
+
+```clj
+(str-merge str1 str2 ...)
+```
+
+Merge a number of strings into one. Example:
+
+```clj
+(str-merge "A" "bC" "D")
+> "AbCD"
+
+(str-merge "Num1: " (str-from-n 10) " Num2: " (str-from-n 2.1 "%.1f"))
+> "Num1: 10 Num2: 2.1"
+```
+
+#### str-to-i
+
+```clj
+(str-to-i str optBase)
+```
+
+Convert string to integer. By default the base is chosen automatically, but it can also be specified. Example:
+
+```clj
+(str-to-i "123")
+> {123}
+
+(str-to-i "a" 16)
+> {10}
+
+(str-to-i "0xa") ; Automatic base16 if str starts with 0x
+> {10}
+```
+
+#### str-to-f
+
+```clj
+(str-to-f str)
+```
+
+Convert string to floating point number. Example:
+
+```clj
+(str-to-f "2.5")
+> {2.500000}
+
+; Also supports scientific notation
+(str-to-f "0.0025e3")
+> {2.500000}
+```
+
+#### str-part
+
+```clj
+(str-part str start optN)
+```
+
+Take part of string str starting at start for optN characters. If optN is omitted the rest of str will be taken. Example:
+
+```clj
+(str-part "Hello World!" 6)
+> "World!"
+
+(str-part "Hello World!" 6 2)
+> "Wo"
+
+(str-part "Hello World!" 0 2)
+> "He"
+```
+
+#### str-split
+
+```clj
+(str-split str delim)
+```
+
+Split string str into tokens using delimiter delim. If delim is a number str will be split into tokens the size of that number. Example:
+
+```clj
+(str-split "This is a test" " ")
+> ("This" "is" "a" "test")
+
+(str-split "this_o_is_o_a_o_test" "_o_")
+> ("This" "is" "a" "test")
+
+(str-split "This is a test" 3)
+> ("Thi" "s i" "s a" " te" "st")
+
+(str-split "This is a test" 1)
+> ("T" "h" "i" "s" " " "i" "s" " " "a" " " "t" "e" "s" "t")
+```
+
+#### str-replace
+
+```clj
+(str-replace str rep optWith)
+```
+
+Replace every occurrence of rep in str with opnWith. If optWith is omitted every rep will be removed. Example:
+
+```clj
+(str-replace "Hello World!" "World" "LispBM")
+> "Hello LispBM!"
+
+(str-replace "Hello World!" " World")
+> "Hello!"
+```
+
+#### str-to-upper
+
+```clj
+(str-to-upper str)
+```
+
+Convert string str to upper case. Example:
+
+```clj
+(str-to-upper "TesTt")
+> "TESTT"
+```
+
+#### str-to-lower
+
+```clj
+(str-to-lower str)
+```
+
+Convert string str to lower case. Example:
+
+```clj
+(str-to-lower "TesTt")
+> "testt"
+```
+
+#### str-cmp
+
+```clj
+(str-cmp str1 str1)
+```
+
+Compare strings str1 and str2. Works in the same way as the strcmp-function in C, meaning that equal strings return 0 and different strings return their difference according how they would be sorted. Example:
+
+```clj
+(str-cmp "Hello" "Hello")
+> 0
+
+(str-cmp "Hello" "World")
+> -15
+
+(str-cmp "World" "Hello")
+> 15
+```
+
+#### str-len
+
+```clj
+(str-len str)
+```
+
+Calculate length of string str excluding the null termination. Example:
+
+```clj
+(str-len "Hello")
+> 5
+```
+
 ## Events
 
 Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
