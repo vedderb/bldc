@@ -53,24 +53,24 @@ brew install openocd
 
 ### On Ubuntu (Linux)/MacOS
 Open up a terminal
-1.   `git clone http://github.com/vedderb/bldc.git`
-2.   `cd bldc`
-3.   Continue with [On all platforms](#on-all-platforms)
+1.  `git clone http://github.com/vedderb/bldc.git`
+2.  `cd bldc`
+3.  Continue with [On all platforms](#on-all-platforms)
 
 ### On Windows
 
-1.   Open up a Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
-2.   Type `choco install make`
-3.   `git clone http://github.com/vedderb/vesc_tool`
-4.   `cd bldc`
-5.   Unzip the file at https://discordapp.com/channels/904830990319485030/910181652192448532/917451210791989248 into this directory
-6.   Continue with [On all platforms](#on-all-platforms)
+1.  Open up a Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
+2.  Type `choco install make`
+3.  `git clone http://github.com/vedderb/vesc_tool`
+4.  `cd bldc`
+5.  Unzip the file at https://discordapp.com/channels/904830990319485030/910181652192448532/917451210791989248 into this directory
+6.  Continue with [On all platforms](#on-all-platforms)
 
 ### On all platforms
 
-1.   `git checkout origin/master`
-2.   `make arm_sdk_install`
-3.   `make` <-- Pick out the name of your target device from the supported boards list. For instance, I have a Trampa **VESC 100/250**, so my target is `100_250`
+1.  `git checkout origin/master`
+2.  `make arm_sdk_install`
+3.  `make` <-- Pick out the name of your target device from the supported boards list. For instance, I have a Trampa **VESC 100/250**, so my target is `100_250`
 4.   `make 100_250` <-- This will build the **VESC 100/250** firmware and place it into the `bldc/builds/100_250/` directory
 
 ## Other tools
@@ -93,36 +93,36 @@ sudo udevadm trigger
 
 ### All platforms
 
-1.   `pip install aqtinstall`
-2.   `make qt_install`
+1.  `pip install aqtinstall`
+2.  `make qt_install`
 
 ## Upload to VESC
 ### Method 1 - Flash it using an STLink SWD debugger
 
-1.   Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) first
-2.   Then `_flash` to the target of your choice. So for instance, for the VESC 100/250: 
+1.  Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) first
+2.  Then `_flash` to the target of your choice. So for instance, for the VESC 100/250: 
 ```bash
 make 100_250_flash
 ```
 
 ### Method 2 - Upload Firmware via VESC tool through USB
 
-1.   Clone and build the firmware in **.bin** format as in the above Build instructions
+1.  Clone and build the firmware in **.bin** format as in the above Build instructions
 
 In VESC tool
 
-2.   Connect to the VESC
-3.   Navigate to the Firmware tab on the left side menu 
-4.   Click on Custom file tab
-5.   Click on the folder icon to select the built firmware in .bin format (e.g. `build/100_250/100_250.bin`)
+2.  Connect to the VESC
+3.  Navigate to the Firmware tab on the left side menu 
+4.  Click on Custom file tab
+5.  Click on the folder icon to select the built firmware in .bin format (e.g. `build/100_250/100_250.bin`)
 
 ##### [ Reminder : It is normal to see VESC disconnects during the firmware upload process ]  
 #####  **[ Warning : DO NOT DISCONNECT POWER/USB to VESC during the upload process, or you will risk bricking your VESC ]**  
 #####  **[ Warning : ONLY DISCONNECT your VESC 10s after the upload loading bar completed and "FW Upload DONE" ]**
 
-6.   Press the upload firmware button (downward arrow) on the bottom right to start upload the selected firmware.
-7.   Wait for **10s** after the loading bar completed (Warning: unplug sooner will risk bricking your VESC)
-8.   The VESC will disconnect itself after new firmware is uploaded.
+6.  Press the upload firmware button (downward arrow) on the bottom right to start upload the selected firmware.
+7.  Wait for **10s** after the loading bar completed (Warning: unplug sooner will risk bricking your VESC)
+8.  The VESC will disconnect itself after new firmware is uploaded.
 
 ## In case you bricked your VESC
 you will need to upload a new working firmware to the VESC.  
