@@ -35,6 +35,7 @@
 #include "worker.h"
 #include "crc.h"
 #include "terminal.h"
+#include "firmware_metadata.h"
 
 #include <string.h>
 #include <math.h>
