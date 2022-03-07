@@ -9,7 +9,7 @@ ROOT_DIR := $(realpath $(WHEREAMI)/ )
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # Get the raw paths for all *.h files
-RAW_TARGET_PATHS := $(call rwildcard,hwconf,*.h)
+RAW_TARGET_PATHS := $(call rwildcard,$(ROOT_DIR)/hwconf,*.h)
 
 # Get the target paths by filtering out any core.h files, then stripping extra whitespace
 TARGET_PATHS := $(strip $(filter-out %core.h,$(RAW_TARGET_PATHS)))
