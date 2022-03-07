@@ -1313,7 +1313,7 @@ float mcpwm_foc_get_abs_motor_current_unbalance(void) {
 float mcpwm_foc_get_abs_motor_voltage(void) {
 	const float vd_tmp = motor_now()->m_motor_state.vd;
 	const float vq_tmp = motor_now()->m_motor_state.vq;
-	return sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
+	return NORM2_f(vd_tmp, vq_tmp);
 }
 
 /**
@@ -1965,7 +1965,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 		i_sum += real_bin0_i;
 
 		// See https://vesc-project.com/comment/8338#comment-8338
-		ld_lq_diff_sum += 4.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
+		ld_lq_diff_sum += 4.0 * NORM2_f(real_bin2, imag_bin2);
 
 		iterations++;
 	}
@@ -2945,7 +2945,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				iq_ref = utils_min_abs(iq_set_tmp, motor_now->m_motor_state.iq_filter);
 			}
 
-			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff) * SQ(iq_ref))) / (4.0 * ld_lq_diff);
+			id_set_tmp = (lambda - sqrtf(SQ(lambda) + 8.0 * SQ(ld_lq_diff * iq_ref))) / (4.0 * ld_lq_diff);
 			iq_set_tmp = SIGN(iq_set_tmp) * sqrtf(SQ(iq_set_tmp) - SQ(id_set_tmp));
 		}
 
@@ -3093,7 +3093,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Calculate duty cycle
 	motor_now->m_motor_state.duty_now = SIGN(motor_now->m_motor_state.vq) *
-			sqrtf(SQ(motor_now->m_motor_state.mod_d) + SQ(motor_now->m_motor_state.mod_q)) / SQRT3_BY_2;
+			NORM2_f(motor_now->m_motor_state.mod_d, motor_now->m_motor_state.mod_q) * TWO_BY_SQRT3;
 
 	// Run PLL for speed estimation
 	pll_run(motor_now->m_motor_state.phase, dt, &motor_now->m_pll_phase, &motor_now->m_pll_speed, conf_now);
@@ -3310,7 +3310,7 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 
 			commands_plot_set_graph(0);
 			commands_send_plot_points(m_motor_1.m_observer_x1, m_motor_1.m_observer_x2);
-			float mag = sqrtf(SQ(m_motor_1.m_observer_x1) + SQ(m_motor_1.m_observer_x2));
+			float mag = NORM2_f(m_motor_1.m_observer_x1, m_motor_1.m_observer_x2);
 			commands_plot_set_graph(1);
 			commands_send_plot_points(0.0, mag);
 		}
@@ -3413,8 +3413,8 @@ static void timer_update(volatile motor_all_state_t *motor, float dt) {
 		const volatile float id_tmp = motor->m_motor_state.id;
 		const volatile float iq_tmp = motor->m_motor_state.iq;
 
-		motor->m_samples.avg_current_tot += sqrtf(SQ(id_tmp) + SQ(iq_tmp));
-		motor->m_samples.avg_voltage_tot += sqrtf(SQ(vd_tmp) + SQ(vq_tmp));
+		motor->m_samples.avg_current_tot += NORM2_f(id_tmp, iq_tmp);
+		motor->m_samples.avg_voltage_tot += NORM2_f(vd_tmp, vq_tmp);
 		motor->m_samples.sample_num++;
 	}
 
@@ -3541,13 +3541,13 @@ static void hfi_update(volatile motor_all_state_t *motor) {
 		motor->m_hfi.fft_bin1_func((float*)motor->m_hfi.buffer, &real_bin1, &imag_bin1);
 		motor->m_hfi.fft_bin2_func((float*)motor->m_hfi.buffer, &real_bin2, &imag_bin2);
 
-		float mag_bin_1 = sqrtf(SQ(imag_bin1) + SQ(real_bin1));
+		float mag_bin_1 = NORM2_f(imag_bin1, real_bin1);
 		float angle_bin_1 = -utils_fast_atan2(imag_bin1, real_bin1);
 
 		angle_bin_1 += M_PI / 1.7; // Why 1.7??
 		utils_norm_angle_rad(&angle_bin_1);
 
-		float mag_bin_2 = sqrtf(SQ(imag_bin2) + SQ(real_bin2));
+		float mag_bin_2 = NORM2_f(imag_bin2, real_bin2);
 		float angle_bin_2 = -utils_fast_atan2(imag_bin2, real_bin2) / 2.0;
 
 		// Assuming this thread is much faster than it takes to fill the HFI buffer completely,
@@ -3775,7 +3775,7 @@ void observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 	UTILS_NAN_ZERO(*x2);
 
 	// Prevent the magnitude from getting too low, as that makes the angle very unstable.
-	float mag = sqrtf(SQ(*x1) + SQ(*x2));
+	float mag = NORM2_f(*x1, *x2);
 	if (mag < (conf_now->foc_motor_flux_linkage * 0.5)) {
 		*x1 *= 1.1;
 		*x2 *= 1.1;
@@ -3974,8 +3974,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	// TODO: Also calculate motor power based on v_alpha, v_beta, i_alpha and i_beta. This is much more accurate
 	// with phase filters than using the modulation and bus current.
 #endif
-    state_m->i_abs = sqrtf(SQ(state_m->id) + SQ(state_m->iq));
-	state_m->i_abs_filter = sqrtf(SQ(state_m->id_filter) + SQ(state_m->iq_filter));
+	state_m->i_abs = NORM2_f(state_m->id, state_m->iq);
+	state_m->i_abs_filter = NORM2_f(state_m->id_filter, state_m->iq_filter);
 
     // Inverse Park transform: transforms the (normalized) voltages from the rotor reference frame to the stator frame 
 	state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
@@ -4176,7 +4176,7 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 		filter_const = utils_map(abs_rpm, 0.0, 10000.0, 0.01, 1.0);
 	}
 
-	float v_mag = sqrtf(SQ(v_alpha) + SQ(v_beta));
+	float v_mag = NORM2_f(v_alpha, v_beta);
 	// The 0.1 * v_mag term below compensates for the filter attenuation as the speed increases.
 	// It is chosen by trial and error, so this can be improved.
 	UTILS_LP_FAST(state_m->v_mag_filter, v_mag + 0.1 * v_mag * filter_const, filter_const);
@@ -4194,7 +4194,7 @@ static void update_valpha_vbeta(volatile motor_all_state_t *motor, float mod_alp
 		if (conf_now->foc_phase_filter_enable && abs_rpm < conf_now->foc_phase_filter_max_erpm) {
 			// Compensate for the phase delay by using the direction of the modulation
 			// together with the magnitude from the phase filters
-			float mod_mag = sqrtf(SQ(mod_alpha) + SQ(mod_beta));
+			float mod_mag = NORM2_f(mod_alpha, mod_beta);
 			if (mod_mag > 0.04) {
 				state_m->v_alpha = mod_alpha / mod_mag * state_m->v_mag_filter;
 				state_m->v_beta = mod_beta / mod_mag * state_m->v_mag_filter;

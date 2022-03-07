@@ -76,6 +76,11 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 // Squared
 #define SQ(x)				((x) * (x))
 
+// Two-norm of 2D vector
+//#define NORM2(x,y)		(sqrt(SQ(x) + SQ(y)))
+#define NORM2_f(x,y)		(sqrtf(SQ(x) + SQ(y)))
+
+
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
 

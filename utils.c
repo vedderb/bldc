@@ -347,7 +347,7 @@ float utils_fast_atan2(float y, float x) {
  */
 bool utils_saturate_vector_2d(float *x, float *y, float max) {
 	bool retval = false;
-	float mag = sqrtf(SQ(*x) + SQ(*y));
+	float mag = NORM2_f(*x, *y);
 	max = fabsf(max);
 
 	if (mag < 1e-10) {
