@@ -196,6 +196,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				strcpy((char*)(send_buffer_global + ind), name);
 				ind += strlen(name) + 1;
 				buffer_append_float32_auto(send_buffer_global, lbm_dec_as_f(var), &ind);
+
+				if (ind > 300) {
+					break;
+				}
 			}
 		}
 
