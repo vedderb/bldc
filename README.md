@@ -31,7 +31,7 @@ There are also many other options that can be changed in [conf_general.h](conf_g
 ## Prerequisites
 
 ### On Ubuntu (Linux)/macOS
-- Tools: `git`, `wget, `make`, `python3`, and `pip`
+- Tools: `git`, `wget, and `make`
 - Additional Linux requirements: `libgl-dev` and `libxcb-xinerama0`
 - Helpful macOS tools: 
 
@@ -45,13 +45,11 @@ brew install openocd
 - Chocolately: https://chocolatey.org/install
 - Powershell: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows
 - Git: https://git-scm.com/download/win. Make sure to click any boxes to add Git to your Environment (aka PATH)
-- Python 3: https://www.python.org/downloads/. Make sure to click the box to add Python3 to your Environment.
 
 ## Install Dev environment and build
 
 ### On Ubuntu (Linux)/MacOS
 Open up a terminal
-1. `pip install aqtinstall`
 5. `git clone http://github.com/vedderb/bldc.git`
 6. `cd bldc`
 6. Continue with [On all platforms](#on-all-platforms)
@@ -60,7 +58,6 @@ Open up a terminal
 
 3. Open up a Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
 4. Type `choco install make`
-4. `pip install aqtinstall`
 5. `git clone http://github.com/vedderb/vesc_tool`
 6. `cd bldc`
 6. Unzip the file at https://discordapp.com/channels/904830990319485030/910181652192448532/917451210791989248 into this directory
@@ -70,7 +67,6 @@ Open up a terminal
 
 7. `git checkout origin/master`
 8. `make arm_sdk_install`
-9. `make qt_install`
 10. `make` <-- Pick out the name of your target device from the supported boards list. For instance, I have a Trampa **VESC 100/250**, so my target is `100_250`
 11. `make 100_250` <-- This will build the **VESC 100/250** firmware and place it into the `bldc/builds/100_250/` directory
 
@@ -85,6 +81,19 @@ sudo udevadm trigger
 ```
 
 
+## IDE
+### Prerequisites
+#### On macOS/Linux
+
+- `python3`, and `pip`
+
+#### On Windows
+- Python 3: https://www.python.org/downloads/. Make sure to click the box to add Python3 to your Environment.
+
+### All platforms
+
+1. `pip install aqtinstall`
+9. `make qt_install`
 
 ## Upload to VESC
 ### Method 1 - Flash it using an STLink SWD debugger
