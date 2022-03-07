@@ -217,8 +217,8 @@ $(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_
 ##############################
 
 .PHONY: all_fw_package
-all_fw_package: all_fw
 	# Place all firmware files into `./package` directory
+all_fw_package: all_fw all_fw_package_clean
 	$(V1) python3 package_firmware.py
 
 	# Find all the leftover object and lst files
@@ -229,6 +229,15 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) $(RM) $(BUILD_CRUFT)
 else
 	$(V1) pwsh -noprofile -command {Remove-Item $(BUILD_CRUFT)}
+endif
+
+.PHONY: all_fw_package_clean
+all_fw_package_clean:
+	$(V0) @echo " CLEAN        $(ROOT_DIR)/package/*"
+ifneq ($(OSFAMILY), windows)
+	$(V1) [ ! -d "$(ROOT_DIR)/package/*" ] || $(RM) -r $(ROOT_DIR)/package/*
+else
+	$(V1) pwsh -noprofile -command if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}
 endif
 
 
