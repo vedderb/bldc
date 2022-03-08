@@ -36,7 +36,7 @@ static const char* functions[] = {
 ")))",
 
 "(defun map (f lst)"
-"(if (= lst nil) nil "
+"(if (eq lst nil) nil "
 "(cons (f (car lst)) (map f (cdr lst)))))",
 
 "(defun iota (n)"
@@ -48,26 +48,26 @@ static const char* functions[] = {
 "(map (lambda (x) (+ x start)) (iota (- end start))))",
 
 "(defun foldl (f init lst)"
-"(if (= lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
+"(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
 
 "(defun foldr (f init lst)"
-"(if (= lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
+"(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
 
 "(defun reverse (lst)"
 "(let ((revacc (lambda (acc lst)"
-"(if (= nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
+"(if (eq nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
 "(revacc nil lst)))",
 
 "(defun length (lst)"
 "(let ((len (lambda (l lst)"
-"(if (= lst nil) l (len (+ l 1) (cdr lst))))))"
+"(if (eq lst nil) l (len (+ l 1) (cdr lst))))))"
 "(len 0 lst)))",
 
 "(defun apply (f lst) (eval `(,f ,@lst)))",
 
 "(defun zipwith (f x y)"
 "(let ((map-rec (lambda (f res lst ys)"
-"(if (= lst nil)"
+"(if (eq lst nil)"
 "(reverse res)"
 "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
 "(map-rec f nil x y)))",
@@ -76,7 +76,7 @@ static const char* functions[] = {
 
 "(defun filter (f lst)"
 "(let ((filter-rec (lambda (f lst ys)"
-"(if (= lst nil)"
+"(if (eq lst nil)"
 "(reverse ys)"
 "(if (f (car lst))"
 "(filter-rec f (cdr lst) (cons (car lst) ys))"
@@ -88,10 +88,10 @@ static const char* functions[] = {
 
 "(defun sort (f lst)"
 "(let ((insert (lambda (elt f sorted-lst)"
-"(if (= sorted-lst nil) (list elt)"
+"(if (eq sorted-lst nil) (list elt)"
 "(if (f elt (car sorted-lst)) (cons elt sorted-lst)"
 "(cons (car sorted-lst) (insert elt f (cdr sorted-lst))))))))"
-"(if (= lst nil) nil (insert (car lst) f (sort f (cdr lst))))))",
+"(if (eq lst nil) nil (insert (car lst) f (sort f (cdr lst))))))",
 
 "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
 "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
