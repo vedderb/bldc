@@ -1,3 +1,3 @@
-(= "hello" "hello")
+(eq "hello" "hello")
 
 

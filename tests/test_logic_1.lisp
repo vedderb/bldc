@@ -1,1 +1,1 @@
-(= (and 't 't) 't)
+(eq (and 't 't) 't)

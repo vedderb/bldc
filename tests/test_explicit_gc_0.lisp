@@ -1,11 +1,11 @@
 
 (define f (lambda (x)
-            (if (num-eq x 0)
+            (if (= x 0)
                 'done
               (progn
                 (gc)
                 (f (- x 1))))))
 
 
-(= (f 100) 'done)
+(eq (f 100) 'done)
               

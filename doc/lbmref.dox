@@ -88,48 +88,53 @@ Compute 5 % 3, evaluates to 2.
 \section sec_comp Comparisons
 
 
-<a name="="> <h3>=</h3> </a>
+<a name="eq"> <h3>eq</h3> </a>
 
-Compare expressions for equality. The = implements structural equality.
-The for of an = expression is <code>(= expr1 ... exprN)</code>
+Compare expressions for equality. The eq implements structural equality.
+The form of an eq expression is <code>(eq expr1 ... exprN)</code>
 
 \note
 Compare the result of <code>(+ 1 2)</code> with 3. The
 result of this comparison is <code>t</code>.
 \code
-(= (+ 1 2) 3)
+(eq (+ 1 2) 3)
 \endcode
 Multiple expressions can be checked at once. The examples below evaluates to
 <code>t</code>
 \code
-(= 1 1 1 1)
+(eq 1 1 1 1)
 
-(= (+ 3 4) (+ 2 5) (+ 1 6))
+(eq (+ 3 4) (+ 2 5) (+ 1 6))
 \endcode
 The following examples evaluate to <code>nil</code> representing false.
 \code
-(= 1 1 1 1 2)
+(eq 1 1 1 1 2)
 
-(= (+ 1 2) (+ 0 2) (+ -1 2))
+(eq (+ 1 2) (+ 0 2) (+ -1 2))
 \endcode
 The = comparison can be used on tree shaped data. The following expression evaluates to
 <code>t</code>.
 \code
-(= '(1 (1 2)) '(1 (1 2)))
+(eq '(1 (1 2)) '(1 (1 2)))
 \endcode
 
 
 ---
 
-<a name="num-eq"> <h3>num-eq</h3> </a>
+<a name="#="> <h3>=</h3> </a>
 
-The <code>num-eq</code> operation can only be used on numerical arguments.
-For numerical arguments <code>num-eq</code> behaves like <a href="#=">=</a>.
+The <code>=</code> operation can only be used on numerical arguments.
 If you know you are comparing numbers, it will be more efficient to use
-<code>num-eq</code>.
+<code>=</code>.
+
+An important difference between <code>eq</code> and <code>=</code> is
+that equals compare the numerical values of the arguments. A 3 is a 3
+independent of them being different types. <code>eq</code> on the other
+hands compares the representations of the arguments exactly and they must
+match in structure, type and value to be considered equal. 
 
 \note
-Example of <code>num-eq</code> comparison.
+Example of <code>=</code> comparison.
 \code
 (num-eq (+ 2 3) (+ 1 4))
 \endcode

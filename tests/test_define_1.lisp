@@ -1,3 +1,3 @@
 
-(= (define a 3) 'a)
+(eq (define a 3) 'a)
 

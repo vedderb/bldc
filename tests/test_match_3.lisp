@@ -5,4 +5,4 @@
 		   ( (?cons c) (+ (car c) (f (cdr c))))
 		   ( _ 'error-not-a-list))))
 
-(= (f 'kurt) 'error-not-a-list)
+(eq (f 'kurt) 'error-not-a-list)

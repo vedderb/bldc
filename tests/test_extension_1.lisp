@@ -1,1 +1,1 @@
-(= (ext-odd 1) t)
+(eq (ext-odd 1) t)
