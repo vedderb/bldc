@@ -1063,9 +1063,9 @@ static volatile bool event_can_sid_en = false;
 static volatile bool event_can_eid_en = false;
 static volatile bool event_data_rx_en = false;
 static lbm_uint event_handler_pid;
-static lbm_uint sym_signal_can_sid;
-static lbm_uint sym_signal_can_eid;
-static lbm_uint sym_signal_data_rx;
+static lbm_uint sym_event_can_sid;
+static lbm_uint sym_event_can_eid;
+static lbm_uint sym_event_data_rx;
 
 static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
@@ -1081,17 +1081,13 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 		en = false;
 	}
 
-	char *name = lbm_dec_str(args[0]);
+	lbm_uint name = lbm_dec_sym(args[0]);
 
-	if (!name) {
-		return lbm_enc_sym(SYM_EERROR);
-	}
-
-	if (strcmp(name, "event-can-sid") == 0) {
+	if (name == sym_event_can_sid) {
 		event_can_sid_en = en;
-	} else if (strcmp(name, "event-can-eid") == 0) {
+	} else if (name == sym_event_can_eid) {
 		event_can_eid_en = en;
-	} else if (strcmp(name, "event-data-rx") == 0) {
+	} else if (name == sym_event_data_rx) {
 		event_data_rx_en = en;
 	} else {
 		return lbm_enc_sym(SYM_EERROR);
@@ -1859,9 +1855,9 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 }
 
 void lispif_load_vesc_extensions(void) {
-	lbm_add_symbol_const("signal-can-sid", &sym_signal_can_sid);
-	lbm_add_symbol_const("signal-can-eid", &sym_signal_can_eid);
-	lbm_add_symbol_const("signal-data-rx", &sym_signal_data_rx);
+	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
+	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
+	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
 
 	memset(&syms_bms, 0, sizeof(syms_bms));
 
@@ -2031,9 +2027,9 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		lbm_value msg;
 
 		if (is_ext) {
-			msg = lbm_cons(lbm_enc_sym(sym_signal_can_eid), msg_data);
+			msg = lbm_cons(lbm_enc_sym(sym_event_can_eid), msg_data);
 		} else {
-			msg = lbm_cons(lbm_enc_sym(sym_signal_can_sid), msg_data);
+			msg = lbm_cons(lbm_enc_sym(sym_event_can_sid), msg_data);
 		}
 
 		lbm_send_message(event_handler_pid, msg);
@@ -2070,7 +2066,7 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
 		memcpy(array->data, data, len);
 
-		lbm_value msg = lbm_cons(lbm_enc_sym(sym_signal_data_rx), bytes);
+		lbm_value msg = lbm_cons(lbm_enc_sym(sym_event_data_rx), bytes);
 
 		lbm_send_message(event_handler_pid, msg);
 	}

@@ -1204,8 +1204,8 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 
 (define event-handler (lambda ()
     (progn
-        (recv ((signal-can-sid (? id) . (? data)) (proc-sid id data))
-        (recv ((signal-data-rx ? data) (proc-data data))
+        (recv ((event-can-sid (? id) . (? data)) (proc-sid id data))
+        (recv ((event-data-rx ? data) (proc-data data))
               (_ nil)) ; Ignore other events
         (event-handler) ; Call self again to make this a loop
 )))
@@ -1214,18 +1214,18 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 (event-register-handler (spawn event-handler))
 
 ; Enable the CAN event for standard ID (SID) frames
-(event-enable "event-can-sid")
+(event-enable 'event-can-sid)
 
 ; Enable the custom app data event
-(event-enable "event-data-rx")
+(event-enable 'event-data-rx)
 ```
 
 Possible events to register are
 
 ```clj
-(event-enable "event-can-sid") ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
-(event-enable "event-can-eid") ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
-(event-enable "event-data-rx") ; Sends (signal-data-rx data), where data is a list of i28
+(event-enable 'event-can-sid) ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
+(event-enable 'event-can-eid) ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
+(event-enable 'event-data-rx) ; Sends (signal-data-rx data), where data is a byte array
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
