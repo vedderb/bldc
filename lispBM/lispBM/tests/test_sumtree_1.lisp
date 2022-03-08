@@ -1,14 +1,14 @@
 (define is-number
   (lambda (x)
-    (if (= (type-of x) type-i28)
+    (if (eq (type-of x) type-i28)
 	't
-      (if (= (type-of x) type-u28)
+      (if (eq (type-of x) type-u28)
 	  't
-	(if (= (type-of x) type-float)
+	(if (eq (type-of x) type-float)
 	    't
-	  (if (= (type-of x) type-i32)
+	  (if (eq (type-of x) type-i32)
 	      't
-	    (if (= (type-of x) type-u32)
+	    (if (eq (type-of x) type-u32)
 		't
 	      'nil)))))))
 	    
@@ -17,7 +17,7 @@
   (lambda (x)
     (if (is-number x)
 	x
-      (if (= x 'nil)
+      (if (eq x 'nil)
 	  0
 	(let ((a (sumtree (car x)))
 	      (b (sumtree (cdr x))))

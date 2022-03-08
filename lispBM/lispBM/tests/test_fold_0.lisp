@@ -1,6 +1,6 @@
 
 (define fold (lambda (f i xs)
-               (if (= xs nil)
+               (if (eq xs nil)
                    i
                    (fold f (f i (car xs)) (cdr xs)))))
 

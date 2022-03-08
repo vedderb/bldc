@@ -1,1 +1,1 @@
-(= (not nil) t)
+(eq (not nil) t)

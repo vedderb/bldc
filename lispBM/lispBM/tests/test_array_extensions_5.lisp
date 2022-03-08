@@ -3,5 +3,5 @@
 
 (free arr)
 
-(and (= (car arr) nil)
-     (= (cdr arr) nil))
+(and (eq (car arr) nil)
+     (eq (cdr arr) nil))

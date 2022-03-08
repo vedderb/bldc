@@ -1,2 +1,2 @@
-(= (if (< 0 1) 'apa 'bepa) 'apa)
+(eq (if (< 0 1) 'apa 'bepa) 'apa)
 

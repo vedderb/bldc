@@ -1189,10 +1189,12 @@ static inline void eval_continuation(eval_context_t *ctx) {
 }
 
 static inline void eval_define(eval_context_t *ctx) {
-  lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
-  lbm_value val_exp = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
+  lbm_value args = lbm_cdr(ctx->curr_exp);
+  lbm_value key = lbm_car(args);
+  lbm_value rest_args = lbm_cdr(args);
+  lbm_value val_exp = lbm_car(rest_args);
 
-  if (lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL) {
+  if (lbm_is_symbol(key) && lbm_is_symbol_nil(lbm_cdr(rest_args))) {
     lbm_uint sym_val = lbm_dec_sym(key);
 
     if ((sym_val >= VARIABLE_SYMBOLS_START) &&

@@ -1,3 +1,3 @@
 
-(= 'bepa (define bepa 3) )
+(eq 'bepa (define bepa 3) )
 

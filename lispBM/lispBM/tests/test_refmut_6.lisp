@@ -2,4 +2,4 @@
 
 (setcdr a (cons 7 8))
 
-(= a (cons 1 (cons 7 8)))
+(eq a (cons 1 (cons 7 8)))

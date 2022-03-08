@@ -1,8 +1,8 @@
 (define sumtree
   (lambda (x)
-    (if (= (type-of x) type-i28)
+    (if (eq (type-of x) type-i28)
 	x
-      (if (= x 'nil)
+      (if (eq x 'nil)
 	  0
 	(let ((a (sumtree (car x)))
 	      (b (sumtree (cdr x))))
