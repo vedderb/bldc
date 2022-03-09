@@ -412,6 +412,13 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	FusionAhrsReinitialise(&m_fusionAhrs);
 }
 
+/*
+ * Set the yaw-component of the IMU state. Currently only works for the fusion filter.
+ */
+void imu_set_yaw(float yaw_deg) {
+	FusionAhrsSetYaw(&m_fusionAhrs, yaw_deg);
+}
+
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 
