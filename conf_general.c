@@ -1067,8 +1067,8 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		id_avg /= samples2;
 
 		float rad_s = RPM2RADPS_f(rpm_now);
-		float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
-		float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
+		float v_mag = NORM2_f(vq_avg, vd_avg);
+		float i_mag = NORM2_f(iq_avg, id_avg);
 		*linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
 
 		mcconf->foc_motor_r = res;
