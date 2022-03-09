@@ -80,43 +80,43 @@ void utils_norm_angle_rad(float *angle) {
 	}
 }
 
-int utils_truncate_number(float *number, float min, float max) {
-	int did_trunc = 0;
+bool utils_truncate_number(float *number, float min, float max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < min) {
 		*number = min;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
 }
 
-int utils_truncate_number_int(int *number, int min, int max) {
-	int did_trunc = 0;
+bool utils_truncate_number_int(int *number, int min, int max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < min) {
 		*number = min;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
 }
 
-int utils_truncate_number_abs(float *number, float max) {
-	int did_trunc = 0;
+bool utils_truncate_number_abs(float *number, float max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < -max) {
 		*number = -max;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
