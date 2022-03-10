@@ -36,6 +36,7 @@ typedef struct eval_context_s{
   lbm_value curr_env;
   lbm_value mailbox;  /*massage passing mailbox */
   lbm_value r;
+  char *error_reason;
   bool  done;
   bool  app_cont;
   lbm_stack_t K;
@@ -141,6 +142,18 @@ extern void lbm_kill_eval(void);
  * \return Current state of the evaluator.
  */
 extern uint32_t lbm_get_eval_state(void);
+/** Provide a description of an error as a string.
+ *  Use when implementing for example extensions to
+ *  report an error message to the programmer in case
+ *  the extension is used incorrectly.
+ *
+ *  The error string can be allocates in lbm_memory
+ *  and will in that case be freed when the context
+ *  that errored is removed.
+ * \param error_str
+ * \return 1 on success and 0 on failure.
+ */
+extern int lbm_set_error_reason(char *error_str);
 /** Create a context and enqueue it as runnable.
  *
  * \param program The program to evaluate in the context.

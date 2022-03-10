@@ -588,8 +588,7 @@ unsigned int lbm_list_length(lbm_value c) {
 
 /* reverse a proper list */
 lbm_value lbm_list_reverse(lbm_value list) {
-  if (lbm_type_of(list) == LBM_VAL_TYPE_SYMBOL &&
-      lbm_dec_sym(list) == SYM_NIL) {
+  if (lbm_type_of(list) == LBM_VAL_TYPE_SYMBOL) {
     return list;
   }
 
@@ -606,6 +605,23 @@ lbm_value lbm_list_reverse(lbm_value list) {
   }
   return new_list;
 }
+
+lbm_value lbm_list_destructive_reverse(lbm_value list) {
+  if (lbm_type_of(list) == LBM_VAL_TYPE_SYMBOL) {
+    return list;
+  }
+  lbm_value curr = list;
+  lbm_value last_cell = lbm_enc_sym(SYM_NIL);
+
+  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    lbm_value next = lbm_cdr(curr);
+    lbm_set_cdr(curr, last_cell);
+    last_cell = curr;
+    curr = next;
+  }
+  return last_cell;
+}
+
 
 lbm_value lbm_list_copy(lbm_value list) {
   // TODO: a more efficient approach

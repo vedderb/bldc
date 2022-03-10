@@ -29,6 +29,9 @@
 
 /*! \page changelog Changelog
 
+Mar 10 2022: Version (0.4.2)
+ - Added the lbm_set_error_reason function.
+
 Mar 02 2022: Version (0.4.2)
  - Bug fix in initialization of contexts.
 
