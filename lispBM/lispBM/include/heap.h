@@ -392,6 +392,14 @@ extern unsigned int lbm_list_length(lbm_value c);
  * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
  */
 extern lbm_value lbm_list_reverse(lbm_value list);
+/** Reverse a proper list destroying the original.
+ * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
+ * may lead to the function not terminating.
+ *
+ * \param list A list
+ * \return The list reversed
+ */
+extern lbm_value lbm_list_destructive_reverse(lbm_value list);
 /** Copy a list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
