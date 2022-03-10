@@ -1689,31 +1689,25 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
 
 		return res;
 	} else {
-		char *p = strtok(str, split);
-		const int tok_max = 32;
-		char *tokens[tok_max];
-		int tokc = 0;
-		while (p && tokc < tok_max) {
-			tokens[tokc++] = p;
-			p = strtok(0, split);
-		}
-
 		lbm_value res = lbm_enc_sym(SYM_NIL);
-		for (int i = (tokc - 1);i >= 0;i--) {
+		const char *s = str;
+		while (*(s += strspn(s, split)) != '\0') {
+			size_t len = strcspn(s, split);
+
 			lbm_value tok;
-			p = tokens[i];
-			int len = strlen(p);
 			if (lbm_create_array(&tok, LBM_VAL_TYPE_CHAR, len + 1)) {
 				lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(tok);
-				sprintf((char*)arr->data, "%s", p);
+				memcpy(arr->data, s, len);
 				((char*)(arr->data))[len] = '\0';
 				res = lbm_cons(tok, res);
 			} else {
 				return lbm_enc_sym(SYM_MERROR);
 			}
+
+			s += len;
 		}
 
-		return res;
+		return lbm_list_destructive_reverse(res);
 	}
 }
 
