@@ -198,8 +198,10 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->controller_id;
 	buffer_append_uint32(buffer, conf->timeout_msec, &ind);
 	buffer_append_float32_auto(buffer, conf->timeout_brake_current, &ind);
-	buffer[ind++] = conf->send_can_status;
-	buffer_append_uint16(buffer, conf->send_can_status_rate_hz, &ind);
+	buffer_append_uint16(buffer, conf->can_status_rate_1, &ind);
+	buffer_append_uint16(buffer, conf->can_status_rate_2, &ind);
+	buffer[ind++] = conf->can_status_msgs_r1;
+	buffer[ind++] = conf->can_status_msgs_r2;
 	buffer[ind++] = conf->can_baud_rate;
 	buffer[ind++] = conf->pairing_done;
 	buffer[ind++] = conf->permanent_uart_enabled;
@@ -572,8 +574,10 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->controller_id = buffer[ind++];
 	conf->timeout_msec = buffer_get_uint32(buffer, &ind);
 	conf->timeout_brake_current = buffer_get_float32_auto(buffer, &ind);
-	conf->send_can_status = buffer[ind++];
-	conf->send_can_status_rate_hz = buffer_get_uint16(buffer, &ind);
+	conf->can_status_rate_1 = buffer_get_uint16(buffer, &ind);
+	conf->can_status_rate_2 = buffer_get_uint16(buffer, &ind);
+	conf->can_status_msgs_r1 = buffer[ind++];
+	conf->can_status_msgs_r2 = buffer[ind++];
 	conf->can_baud_rate = buffer[ind++];
 	conf->pairing_done = buffer[ind++];
 	conf->permanent_uart_enabled = buffer[ind++];
@@ -930,8 +934,10 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->controller_id = HW_DEFAULT_ID;
 	conf->timeout_msec = APPCONF_TIMEOUT_MSEC;
 	conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
-	conf->send_can_status = APPCONF_SEND_CAN_STATUS;
-	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
+	conf->can_status_rate_1 = APPCONF_CAN_STATUS_RATE_1;
+	conf->can_status_rate_2 = APPCONF_CAN_STATUS_RATE_2;
+	conf->can_status_msgs_r1 = APPCONF_CAN_STATUS_MSGS_R1;
+	conf->can_status_msgs_r2 = APPCONF_CAN_STATUS_MSGS_R2;
 	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
 	conf->pairing_done = APPCONF_PAIRING_DONE;
 	conf->permanent_uart_enabled = APPCONF_PERMANENT_UART_ENABLED;

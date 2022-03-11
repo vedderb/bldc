@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -785,16 +785,6 @@ typedef struct {
 	uint16_t turntilt_erpm_boost_end;
 } balance_config;
 
-// CAN status modes
-typedef enum {
-	CAN_STATUS_DISABLED = 0,
-	CAN_STATUS_1,
-	CAN_STATUS_1_2,
-	CAN_STATUS_1_2_3,
-	CAN_STATUS_1_2_3_4,
-	CAN_STATUS_1_2_3_4_5
-} CAN_STATUS_MODE;
-
 typedef enum {
 	SHUTDOWN_MODE_ALWAYS_OFF = 0,
 	SHUTDOWN_MODE_ALWAYS_ON,
@@ -864,8 +854,10 @@ typedef struct {
 	uint8_t controller_id;
 	uint32_t timeout_msec;
 	float timeout_brake_current;
-	CAN_STATUS_MODE send_can_status;
-	uint32_t send_can_status_rate_hz;
+	uint32_t can_status_rate_1;
+	uint8_t can_status_msgs_r1;
+	uint32_t can_status_rate_2;
+	uint8_t can_status_msgs_r2;
 	CAN_BAUD can_baud_rate;
 	bool pairing_done;
 	bool permanent_uart_enabled;

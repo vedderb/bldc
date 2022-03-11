@@ -258,14 +258,51 @@ void terminal_process_string(char *str) {
 		commands_printf("CAN devices seen on the bus the past second:\n");
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
-
 			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
-				commands_printf("ID                 : %i", msg->id);
-				commands_printf("RX Time            : %i", msg->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(msg->rx_time) * 1000.0));
-				commands_printf("RPM                : %.2f", (double)msg->rpm);
-				commands_printf("Current            : %.2f", (double)msg->current);
-				commands_printf("Duty               : %.2f\n", (double)msg->duty);
+				commands_printf("MSG1 ID    : %i", msg->id);
+				commands_printf("RX Time    : %i", msg->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg->rx_time));
+				commands_printf("RPM        : %.2f", (double)msg->rpm);
+				commands_printf("Current    : %.2f", (double)msg->current);
+				commands_printf("Duty       : %.2f\n", (double)msg->duty);
+			}
+
+			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
+			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 1.0) {
+				commands_printf("MSG2 ID    : %i", msg2->id);
+				commands_printf("RX Time    : %i", msg2->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg2->rx_time));
+				commands_printf("Ah         : %.2f", (double)msg2->amp_hours);
+				commands_printf("Ah Charged : %.2f\n", (double)msg2->amp_hours_charged);
+			}
+
+			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
+			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 1.0) {
+				commands_printf("MSG3 ID    : %i", msg3->id);
+				commands_printf("RX Time    : %i", msg3->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg3->rx_time));
+				commands_printf("Wh         : %.2f", (double)msg3->watt_hours);
+				commands_printf("Wh Charged : %.2f\n", (double)msg3->watt_hours_charged);
+			}
+
+			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
+			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 1.0) {
+				commands_printf("MSG4 ID    : %i", msg4->id);
+				commands_printf("RX Time    : %i", msg4->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg4->rx_time));
+				commands_printf("Current In : %.2f", (double)msg4->current_in);
+				commands_printf("Temp FET   : %.2f", (double)msg4->temp_fet);
+				commands_printf("Temp Motor : %.2f", (double)msg4->temp_motor);
+				commands_printf("PID pos    : %.2f\n", (double)msg4->pid_pos_now);
+			}
+
+			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(i);
+			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 1.0) {
+				commands_printf("MSG5 ID    : %i", msg5->id);
+				commands_printf("RX Time    : %i", msg5->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg5->rx_time));
+				commands_printf("Tacho      : %d", msg5->tacho_value);
+				commands_printf("V In       : %.2f\n", (double)msg5->v_in);
 			}
 
 			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);

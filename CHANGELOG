@@ -6,6 +6,8 @@
 * Encoder driver split and rewrite to make it easier to support more encoders.
 * Flash writes now work on lower MCU voltages too.
 * Added fwinfo terminal command.
+* CAN status messages are now configured using bitfields.
+* There are two rates at which CAN status messages can be sent now.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

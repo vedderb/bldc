@@ -52,8 +52,10 @@
 static THD_WORKING_AREA(cancom_read_thread_wa, 256);
 static THD_WORKING_AREA(cancom_process_thread_wa, 2048);
 static THD_WORKING_AREA(cancom_status_thread_wa, 512);
+static THD_WORKING_AREA(cancom_status_thread_2_wa, 512);
 static THD_FUNCTION(cancom_read_thread, arg);
 static THD_FUNCTION(cancom_status_thread, arg);
+static THD_FUNCTION(cancom_status_thread_2, arg);
 static THD_FUNCTION(cancom_process_thread, arg);
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -169,6 +171,8 @@ void comm_can_init(void) {
 			cancom_read_thread, NULL);
 	chThdCreateStatic(cancom_status_thread_wa, sizeof(cancom_status_thread_wa), NORMALPRIO,
 			cancom_status_thread, NULL);
+	chThdCreateStatic(cancom_status_thread_2_wa, sizeof(cancom_status_thread_2_wa), NORMALPRIO,
+			cancom_status_thread_2, NULL);
 	chThdCreateStatic(cancom_process_thread_wa, sizeof(cancom_process_thread_wa), NORMALPRIO,
 			cancom_process_thread, NULL);
 #ifdef HW_HAS_DUAL_MOTORS
@@ -1263,76 +1267,95 @@ static THD_FUNCTION(cancom_status_internal_thread, arg) {
 }
 #endif
 
+static void send_can_status(uint8_t msgs, uint8_t id) {
+	if ((msgs >> 0) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status1(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status1(utils_second_motor_id(), false);
+#endif
+	}
+
+	if ((msgs >> 1) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status2(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status2(utils_second_motor_id(), false);
+#endif
+	}
+
+	if ((msgs >> 2) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status3(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status3(utils_second_motor_id(), false);
+#endif
+	}
+
+	if ((msgs >> 3) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status4(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status4(utils_second_motor_id(), false);
+#endif
+	}
+
+	if ((msgs >> 4) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status5(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status5(utils_second_motor_id(), false);
+#endif
+	}
+}
+
 static THD_FUNCTION(cancom_status_thread, arg) {
 	(void)arg;
-	chRegSetThreadName("CAN status");
+	chRegSetThreadName("CAN status 1");
 
 	for(;;) {
 		const app_configuration *conf = app_get_configuration();
 
 		if (conf->can_mode == CAN_MODE_VESC) {
-			if (conf->send_can_status == CAN_STATUS_1 ||
-					conf->send_can_status == CAN_STATUS_1_2 ||
-					conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
-				mc_interface_select_motor_thread(1);
-				comm_can_send_status1(conf->controller_id, false);
-#ifdef HW_HAS_DUAL_MOTORS
-				mc_interface_select_motor_thread(2);
-				comm_can_send_status1(utils_second_motor_id(), false);
-#endif
-			}
-
-			if (conf->send_can_status == CAN_STATUS_1_2 ||
-					conf->send_can_status == CAN_STATUS_1_2_3||
-					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
-				mc_interface_select_motor_thread(1);
-				comm_can_send_status2(conf->controller_id, false);
-#ifdef HW_HAS_DUAL_MOTORS
-				mc_interface_select_motor_thread(2);
-				comm_can_send_status2(utils_second_motor_id(), false);
-#endif
-			}
-
-			if (conf->send_can_status == CAN_STATUS_1_2_3 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
-				mc_interface_select_motor_thread(1);
-				comm_can_send_status3(conf->controller_id, false);
-#ifdef HW_HAS_DUAL_MOTORS
-				mc_interface_select_motor_thread(2);
-				comm_can_send_status3(utils_second_motor_id(), false);
-#endif
-			}
-
-			if (conf->send_can_status == CAN_STATUS_1_2_3_4 ||
-					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
-				mc_interface_select_motor_thread(1);
-				comm_can_send_status4(conf->controller_id, false);
-#ifdef HW_HAS_DUAL_MOTORS
-				mc_interface_select_motor_thread(2);
-				comm_can_send_status4(utils_second_motor_id(), false);
-#endif
-			}
-
-			if (conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
-				mc_interface_select_motor_thread(1);
-				comm_can_send_status5(conf->controller_id, false);
-#ifdef HW_HAS_DUAL_MOTORS
-				mc_interface_select_motor_thread(2);
-				comm_can_send_status5(utils_second_motor_id(), false);
-#endif
-			}
+			send_can_status(conf->can_status_msgs_r1, conf->controller_id);
 		}
 
-		while (conf->send_can_status_rate_hz == 0) {
+		while (conf->can_status_rate_1 == 0) {
 			chThdSleepMilliseconds(10);
 			conf = app_get_configuration();
 		}
 
-		systime_t sleep_time = CH_CFG_ST_FREQUENCY / conf->send_can_status_rate_hz;
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / conf->can_status_rate_1;
+		if (sleep_time == 0) {
+			sleep_time = 1;
+		}
+
+		chThdSleep(sleep_time);
+	}
+}
+
+static THD_FUNCTION(cancom_status_thread_2, arg) {
+	(void)arg;
+	chRegSetThreadName("CAN status 2");
+
+	for(;;) {
+		const app_configuration *conf = app_get_configuration();
+
+		if (conf->can_mode == CAN_MODE_VESC) {
+			send_can_status(conf->can_status_msgs_r2, conf->controller_id);
+		}
+
+		while (conf->can_status_rate_2 == 0) {
+			chThdSleepMilliseconds(10);
+			conf = app_get_configuration();
+		}
+
+		systime_t sleep_time = CH_CFG_ST_FREQUENCY / conf->can_status_rate_2;
 		if (sleep_time == 0) {
 			sleep_time = 1;
 		}
@@ -1556,8 +1579,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 					app_configuration *appconf = mempools_alloc_appconf();
 					*appconf = *app_get_configuration();
 
-					if (appconf->send_can_status != CAN_STATUS_1_2_3_4) {
-						appconf->send_can_status = CAN_STATUS_1_2_3_4;
+					if (appconf->can_status_msgs_r1 != 0b00001111) {
+						appconf->can_status_msgs_r1 = 0b00001111;
 						conf_general_store_app_configuration(appconf);
 						app_set_configuration(appconf);
 					}

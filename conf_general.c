@@ -1910,9 +1910,9 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 
 	// Store and send settings
 	if (res >= 0) {
-		if (appconf->controller_id != id_new || appconf->send_can_status != CAN_STATUS_1_2_3_4) {
+		if (appconf->controller_id != id_new || appconf->can_status_msgs_r1 != 0b00001111) {
 			appconf->controller_id = id_new;
-			appconf->send_can_status = CAN_STATUS_1_2_3_4;
+			appconf->can_status_msgs_r1 = 0b00001111;
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
 			commands_send_appconf(COMM_GET_APPCONF, appconf);
