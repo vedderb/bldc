@@ -44,7 +44,6 @@ brew install openocd
 ```
 
 ### On Windows
-- MS Visual Compiler
 - Chocolately: https://chocolatey.org/install
 - Powershell: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows
 - Git: https://git-scm.com/download/win. Make sure to click any boxes to add Git to your Environment (aka PATH)
@@ -61,10 +60,9 @@ Open up a terminal
 
 1.  Open up a Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
 2.  Type `choco install make`
-3.  `git clone http://github.com/vedderb/vesc_tool`
+3.  `git clone http://github.com/vedderb/bldc`
 4.  `cd bldc`
-5.  Unzip the file at https://discordapp.com/channels/904830990319485030/910181652192448532/917451210791989248 into this directory
-6.  Continue with [On all platforms](#on-all-platforms)
+5.  Continue with [On all platforms](#on-all-platforms)
 
 ### On all platforms
 
