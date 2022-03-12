@@ -3,7 +3,7 @@
 ifeq ($(USE_SMART_BUILD),yes)
 
 ifeq ($(OS),Windows_NT)
-  CHCONF := $(strip $(shell pwsh -noprofile -command cat chconf.h | findstr -i define))
+  CHCONF := $(strip $(shell powershell -noprofile -command cat chconf.h | findstr -i define))
 else
   CHCONF := $(strip $(shell cat chconf.h | egrep -e "define")),
 endif
