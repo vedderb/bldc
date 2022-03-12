@@ -89,7 +89,7 @@ qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
 qt_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
 qt_sdk_install: qt_sdk_clean
 # binary only release so just download and extract it
-	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_ROOT)
+	$(V1) $(PYTHON) -m aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_ROOT)
 
 .PHONY: qt_sdk_clean
 qt_sdk_clean:
@@ -141,7 +141,7 @@ endif
 
 qt_creator_install:
 # binary only release so just download and extract it
-	$(V1) aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
+	$(V1) $(PYTHON) -m aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
 
 .PHONY: qt_creator_configure
 qt_creator_configure:
