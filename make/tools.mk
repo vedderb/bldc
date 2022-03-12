@@ -216,6 +216,9 @@ gtest_clean:
 
 ifneq ("$(wildcard $(ARM_SDK_DIR))","")
   ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
+
+  # Get the ARM GCC version
+  ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
 else
   ifneq ($(MAKECMDGOALS),arm_sdk_install)
     $(info **WARNING** ARM-SDK not in $(ARM_SDK_DIR)  Please run 'make arm_sdk_install')
@@ -224,8 +227,6 @@ else
   ARM_SDK_PREFIX ?= arm-none-eabi-
 endif
 
-# Get the ARM GCC version
-ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
 
 # Get the git branch name, commit hash, and clean/dirty state
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
