@@ -151,7 +151,7 @@ fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR))) 
 fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
 	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
-	$(V1) make -f $(MAKE_DIR)/fw.mk \
+	$(V1) $$(MAKE) -f $(MAKE_DIR)/fw.mk \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
