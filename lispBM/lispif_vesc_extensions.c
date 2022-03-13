@@ -334,6 +334,8 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 			return lbm_enc_F(ADC_VOLTS(ADC_IND_EXT));
 		} else if (channel == 1) {
 			return lbm_enc_F(ADC_VOLTS(ADC_IND_EXT2));
+		} else if (channel == 2) {
+			return lbm_enc_F(ADC_VOLTS(ADC_IND_EXT3));
 		} else {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -867,6 +869,45 @@ static lbm_value ext_can_get_dist(lbm_value *args, lbm_uint argn) {
 		return lbm_enc_F((float)stat5->tacho_value * tacho_scale);
 	} else {
 		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_ppm(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	can_status_msg_6 *stat6 = comm_can_get_status_msg_6_id(lbm_dec_as_i(args[0]));
+	if (stat6) {
+		return lbm_enc_F((float)stat6->ppm);
+	} else {
+		return lbm_enc_F(0.0);
+	}
+}
+
+static lbm_value ext_can_get_adc(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	CHECK_NUMBER_ALL();
+
+	lbm_int channel = 0;
+	if (argn == 2) {
+		channel = lbm_dec_as_i(args[1]);
+	}
+
+	can_status_msg_6 *stat6 = comm_can_get_status_msg_6_id(lbm_dec_as_i(args[0]));
+
+	if (stat6) {
+		if (channel == 0) {
+			return lbm_enc_F(stat6->adc_1);
+		} else if (channel == 1) {
+			return lbm_enc_F(stat6->adc_2);
+		} else if (channel == 2) {
+			return lbm_enc_F(stat6->adc_3);
+		} else {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+	} else {
+		return lbm_enc_F(-1.0);
 	}
 }
 
@@ -2004,6 +2045,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("canget-temp-motor", ext_can_get_temp_motor);
 	lbm_add_extension("canget-speed", ext_can_get_speed);
 	lbm_add_extension("canget-dist", ext_can_get_dist);
+	lbm_add_extension("canget-ppm", ext_can_get_ppm);
+	lbm_add_extension("canget-adc", ext_can_get_adc);
 
 	lbm_add_extension("can-list-devs", ext_can_list_devs);
 	lbm_add_extension("can-scan", ext_can_scan);

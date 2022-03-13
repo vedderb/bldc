@@ -39,6 +39,7 @@
 #include "shutdown.h"
 #include "bms.h"
 #include "encoder_cfg.h"
+#include "servo_dec.h"
 #ifdef USE_LISPBM
 #include "lispif.h"
 #endif
@@ -83,6 +84,7 @@ static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
+static can_status_msg_6 stat_msgs_6[CAN_STATUS_MSGS_TO_STORE];
 static io_board_adc_values io_board_adc_1_4[CAN_STATUS_MSGS_TO_STORE];
 static io_board_adc_values io_board_adc_5_8[CAN_STATUS_MSGS_TO_STORE];
 static io_board_digial_inputs io_board_digital_in[CAN_STATUS_MSGS_TO_STORE];
@@ -119,6 +121,7 @@ void comm_can_init(void) {
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
 		stat_msgs_5[i].id = -1;
+		stat_msgs_6[i].id = -1;
 
 		io_board_adc_1_4[i].id = -1;
 		io_board_adc_5_8[i].id = -1;
@@ -915,6 +918,42 @@ can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
 	return 0;
 }
 
+/**
+ * Get status message 6 by index.
+ *
+ * @param index
+ * Index in the array
+ *
+ * @return
+ * The message or 0 for an invalid index.
+ */
+can_status_msg_6 *comm_can_get_status_msg_6_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &stat_msgs_6[index];
+	} else {
+		return 0;
+	}
+}
+
+/**
+ * Get status message 6 by id.
+ *
+ * @param id
+ * Id of the controller that sent the status message.
+ *
+ * @return
+ * The message or 0 for an invalid id.
+ */
+can_status_msg_6 *comm_can_get_status_msg_6_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (stat_msgs_6[i].id == id) {
+			return &stat_msgs_6[i];
+		}
+	}
+
+	return 0;
+}
+
 io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
 	if (index < CAN_STATUS_MSGS_TO_STORE) {
 		return &io_board_adc_1_4[index];
@@ -1114,6 +1153,17 @@ void comm_can_send_status5(uint8_t id, bool replace) {
 			buffer, send_index, replace);
 }
 
+void comm_can_send_status6(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_float16(buffer, ADC_VOLTS(ADC_IND_EXT), 1e3, &send_index);
+	buffer_append_float16(buffer, ADC_VOLTS(ADC_IND_EXT2), 1e3, &send_index);
+	buffer_append_float16(buffer, ADC_VOLTS(ADC_IND_EXT3), 1e3, &send_index);
+	buffer_append_float16(buffer, servodec_get_servo(0), 1e3, &send_index);
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_6 << 8),
+			buffer, send_index, replace);
+}
+
 #if CAN_ENABLE
 static THD_FUNCTION(cancom_read_thread, arg) {
 	(void)arg;
@@ -1262,6 +1312,7 @@ static THD_FUNCTION(cancom_status_internal_thread, arg) {
 		comm_can_send_status3(utils_second_motor_id(), true);
 		comm_can_send_status4(utils_second_motor_id(), true);
 		comm_can_send_status5(utils_second_motor_id(), true);
+		comm_can_send_status6(utils_second_motor_id(), true);
 		chThdSleepMilliseconds(2);
 	}
 }
@@ -1310,6 +1361,15 @@ static void send_can_status(uint8_t msgs, uint8_t id) {
 #ifdef HW_HAS_DUAL_MOTORS
 		mc_interface_select_motor_thread(2);
 		comm_can_send_status5(utils_second_motor_id(), false);
+#endif
+	}
+
+	if ((msgs >> 5) & 1) {
+		mc_interface_select_motor_thread(1);
+		comm_can_send_status6(id, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		mc_interface_select_motor_thread(2);
+		comm_can_send_status6(utils_second_motor_id(), false);
 #endif
 	}
 }
@@ -1811,6 +1871,22 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				stat_tmp_5->rx_time = chVTGetSystemTime();
 				stat_tmp_5->tacho_value = buffer_get_int32(data8, &ind);
 				stat_tmp_5->v_in = (float)buffer_get_int16(data8, &ind) / 1e1;
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_STATUS_6:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			can_status_msg_6 *stat_tmp_6 = &stat_msgs_6[i];
+			if (stat_tmp_6->id == id || stat_tmp_6->id == -1) {
+				ind = 0;
+				stat_tmp_6->id = id;
+				stat_tmp_6->rx_time = chVTGetSystemTime();
+				stat_tmp_6->adc_1 = buffer_get_float16(data8, 1e3, &ind);
+				stat_tmp_6->adc_2 = buffer_get_float16(data8, 1e3, &ind);
+				stat_tmp_6->adc_3 = buffer_get_float16(data8, 1e3, &ind);
+				stat_tmp_6->ppm = buffer_get_float16(data8, 1e3, &ind);
 				break;
 			}
 		}

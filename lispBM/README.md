@@ -546,6 +546,20 @@ Get speed in meters per second over CAN-bus on VESC with id. The gearing, wheel 
 
 Get distance traveled in meters over CAN-bus on VESC with id. As with (canget-speed id), the local configuration will be used to convert the tachometer value to meters.
 
+#### canget-ppm
+```clj
+(canget-ppm id)
+```
+
+Get PPM-input from the VESC with id on the CAN-bus. Note that CAN status message 6 as well as the PPM-app must be active on that VESC for this function to work.
+
+#### canget-adc
+```clj
+(canget-adc id ch)
+```
+
+Get ADC channel ch from the VESC with id on the CAN-bus. Note that CAN status message 6 must be active on that VESC for this function to work.
+
 #### can-list-devs
 ```clj
 (can-list-devs)

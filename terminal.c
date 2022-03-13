@@ -258,7 +258,7 @@ void terminal_process_string(char *str) {
 		commands_printf("CAN devices seen on the bus the past second:\n");
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 5.0) {
 				commands_printf("MSG1 ID    : %i", msg->id);
 				commands_printf("RX Time    : %i", msg->rx_time);
 				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg->rx_time));
@@ -268,7 +268,7 @@ void terminal_process_string(char *str) {
 			}
 
 			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 1.0) {
+			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 5.0) {
 				commands_printf("MSG2 ID    : %i", msg2->id);
 				commands_printf("RX Time    : %i", msg2->rx_time);
 				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg2->rx_time));
@@ -277,7 +277,7 @@ void terminal_process_string(char *str) {
 			}
 
 			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 1.0) {
+			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 5.0) {
 				commands_printf("MSG3 ID    : %i", msg3->id);
 				commands_printf("RX Time    : %i", msg3->rx_time);
 				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg3->rx_time));
@@ -286,7 +286,7 @@ void terminal_process_string(char *str) {
 			}
 
 			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 1.0) {
+			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 5.0) {
 				commands_printf("MSG4 ID    : %i", msg4->id);
 				commands_printf("RX Time    : %i", msg4->rx_time);
 				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg4->rx_time));
@@ -297,7 +297,7 @@ void terminal_process_string(char *str) {
 			}
 
 			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(i);
-			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 1.0) {
+			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 5.0) {
 				commands_printf("MSG5 ID    : %i", msg5->id);
 				commands_printf("RX Time    : %i", msg5->rx_time);
 				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg5->rx_time));
@@ -305,8 +305,17 @@ void terminal_process_string(char *str) {
 				commands_printf("V In       : %.2f\n", (double)msg5->v_in);
 			}
 
+			can_status_msg_6 *msg6 = comm_can_get_status_msg_6_index(i);
+			if (msg6->id >= 0 && UTILS_AGE_S(msg6->rx_time) < 5.0) {
+				commands_printf("MSG6 ID    : %i", msg6->id);
+				commands_printf("RX Time    : %i", msg6->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg6->rx_time));
+				commands_printf("ADC 1-3    : %.3f V, %.3f V, %.3f V", (double)msg6->adc_1, (double)msg6->adc_2, (double)msg6->adc_3);
+				commands_printf("PPM	    : %.2f\n", (double)msg6->ppm);
+			}
+
 			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
 				commands_printf("IO Board ADC 1_4");
 				commands_printf("ID                 : %i", io_adc->id);
 				commands_printf("RX Time            : %i", io_adc->rx_time);
@@ -317,7 +326,7 @@ void terminal_process_string(char *str) {
 			}
 
 			io_adc = comm_can_get_io_board_adc_5_8_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 1.0) {
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
 				commands_printf("IO Board ADC 5_8");
 				commands_printf("ID                 : %i", io_adc->id);
 				commands_printf("RX Time            : %i", io_adc->rx_time);
@@ -328,7 +337,7 @@ void terminal_process_string(char *str) {
 			}
 
 			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
-			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 1.0) {
+			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 5.0) {
 				commands_printf("IO Board Inputs");
 				commands_printf("ID                 : %i", io_in->id);
 				commands_printf("RX Time            : %i", io_in->rx_time);

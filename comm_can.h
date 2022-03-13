@@ -68,6 +68,8 @@ can_status_msg_4 *comm_can_get_status_msg_4_index(int index);
 can_status_msg_4 *comm_can_get_status_msg_4_id(int id);
 can_status_msg_5 *comm_can_get_status_msg_5_index(int index);
 can_status_msg_5 *comm_can_get_status_msg_5_id(int id);
+can_status_msg_6 *comm_can_get_status_msg_6_index(int index);
+can_status_msg_6 *comm_can_get_status_msg_6_id(int id);
 
 io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index);
 io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id);
@@ -90,5 +92,6 @@ void comm_can_send_status2(uint8_t id, bool replace);
 void comm_can_send_status3(uint8_t id, bool replace);
 void comm_can_send_status4(uint8_t id, bool replace);
 void comm_can_send_status5(uint8_t id, bool replace);
+void comm_can_send_status6(uint8_t id, bool replace);
 
 #endif /* COMM_CAN_H_ */

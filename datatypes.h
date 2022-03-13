@@ -1122,6 +1122,7 @@ typedef enum {
 	CAN_PACKET_UPDATE_PID_POS_OFFSET,
 	CAN_PACKET_POLL_ROTOR_POS,
 	CAN_PACKET_NOTIFY_BOOT,
+	CAN_PACKET_STATUS_6,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 
@@ -1194,6 +1195,15 @@ typedef struct {
 	float v_in;
 	int32_t tacho_value;
 } can_status_msg_5;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float adc_1;
+	float adc_2;
+	float adc_3;
+	float ppm;
+} can_status_msg_6;
 
 typedef struct {
 	int id;
