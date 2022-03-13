@@ -31,7 +31,7 @@
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_8K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	160
+#define EXTENSION_STORAGE_SIZE	180
 #define VARIABLE_STORAGE_SIZE	128
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));

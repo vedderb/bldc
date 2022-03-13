@@ -533,6 +533,67 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 	return state;
 }
 
+static bool check_eeprom_addr(int addr) {
+	if (addr < 0 || addr > 63) {
+		lbm_set_error_reason("Address must be 0 to 63");
+		return false;
+	}
+
+	return true;
+}
+
+static lbm_value ext_eeprom_store_f(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	int addr = lbm_dec_as_i(args[0]);
+	if (!check_eeprom_addr(addr)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	eeprom_var v;
+	v.as_float = lbm_dec_as_f(args[1]);
+	return lbm_enc_i(conf_general_store_eeprom_var_custom(&v, addr));
+}
+
+static lbm_value ext_eeprom_read_f(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+
+	int addr = lbm_dec_as_i(args[0]);
+	if (!check_eeprom_addr(addr)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	eeprom_var v;
+	bool res = conf_general_read_eeprom_var_custom(&v, addr);
+	return res ? lbm_enc_F(v.as_float) : lbm_enc_sym(SYM_NIL);
+}
+
+static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	int addr = lbm_dec_as_i(args[0]);
+	if (!check_eeprom_addr(addr)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	eeprom_var v;
+	v.as_i32 = lbm_dec_as_f(args[1]);
+	return lbm_enc_i(conf_general_store_eeprom_var_custom(&v, addr));
+}
+
+static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+
+	int addr = lbm_dec_as_i(args[0]);
+	if (!check_eeprom_addr(addr)) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	eeprom_var v;
+	bool res = conf_general_read_eeprom_var_custom(&v, addr);
+	return res ? lbm_enc_I(v.as_i32) : lbm_enc_sym(SYM_NIL);
+}
+
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
@@ -1896,6 +1957,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-imu-gyro-derot", ext_get_imu_gyro_derot);
 	lbm_add_extension("send-data", ext_send_data);
 	lbm_add_extension("get-remote-state", ext_get_remote_state);
+	lbm_add_extension("eeprom-store-f", ext_eeprom_store_f);
+	lbm_add_extension("eeprom-read-f", ext_eeprom_read_f);
+	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
+	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);

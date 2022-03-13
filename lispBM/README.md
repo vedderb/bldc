@@ -248,6 +248,38 @@ Get button and joystick state of connected remote. Note that a remote app such a
 ; is-rev : Reverse active, 0 or 1
 ```
 
+#### eeprom-store-f
+
+```clj
+(eeprom-store-f addr number)
+```
+
+Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
+
+#### eeprom-read-f
+
+```clj
+(eeprom-read-f addr)
+```
+
+Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
+
+#### eeprom-store-i
+
+```clj
+(eeprom-store-i addr number)
+```
+
+Same as eeprom-store-f, but store number as i32 instead of float.
+
+#### eeprom-read-i
+
+```clj
+(eeprom-read-i addr number)
+```
+
+Same as eeprom-read-i, but read number as i32 instead of float.
+
 ### Motor Set Commands
 
 #### set-current
