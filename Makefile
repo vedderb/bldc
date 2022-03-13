@@ -219,7 +219,7 @@ all_fw_package: all_fw all_fw_package_clean
 	$(V0) @echo " PACKAGE        $(ROOT_DIR)/package/*"
 
 # Place all firmware files into `./package` directory
-	$(V1) python3 package_firmware.py
+	$(V1) $(PYTHON) package_firmware.py
 
 # Find all the leftover object and lst files
 	$(eval BUILD_CRUFT := $(call rwildcard,$(ROOT_DIR)/build,*.lst *.o))

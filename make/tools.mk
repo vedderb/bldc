@@ -89,7 +89,7 @@ qt_sdk_install: QT_SDK_FILE := $(notdir $(QT_SDK_URL))
 qt_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
 qt_sdk_install: qt_sdk_clean
 # binary only release so just download and extract it
-	$(V1) aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_ROOT)
+	$(V1) $(PYTHON) -m aqt install-qt --keep --archive-dest "$(DL_DIR)/Qt" $(QT_SDK_HOST) desktop $(QT_SDK_VER) $(QT_SDK_ARCH) --outputdir $(QT_ROOT)
 
 .PHONY: qt_sdk_clean
 qt_sdk_clean:
@@ -141,7 +141,7 @@ endif
 
 qt_creator_install:
 # binary only release so just download and extract it
-	$(V1) aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
+	$(V1) $(PYTHON) -m aqt install-tool --keep --archive-dest "$(DL_DIR)/Qt" $(QT_CREATOR_HOST) desktop tools_qtcreator qt.tools.qtcreator --outputdir $(QT_CREATOR_DIR)
 
 .PHONY: qt_creator_configure
 qt_creator_configure:
@@ -216,6 +216,9 @@ gtest_clean:
 
 ifneq ("$(wildcard $(ARM_SDK_DIR))","")
   ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
+
+  # Get the ARM GCC version
+  ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
 else
   ifneq ($(MAKECMDGOALS),arm_sdk_install)
     $(info **WARNING** ARM-SDK not in $(ARM_SDK_DIR)  Please run 'make arm_sdk_install')
@@ -224,8 +227,6 @@ else
   ARM_SDK_PREFIX ?= arm-none-eabi-
 endif
 
-# Get the ARM GCC version
-ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
 
 # Get the git branch name, commit hash, and clean/dirty state
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
