@@ -873,6 +873,55 @@ Send array (or list) arrTx to the I2C-device with address addr. Optionally recei
 
 Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an i2c-device hangs and refuses to respond.
 
+### GPIO
+
+These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset.
+
+#### gpio-configure
+
+```clj
+(gpio-configure pin mode)
+```
+
+Configure GPIO pin to mode. Example:
+
+```clj
+(gpio-configure 'pin-rx 'pin-mode-out) ; Set pin RX to output
+
+; Available pins
+'pin-rx     ; RX-pin on the COMM-port
+'pin-tx     ; TX-pin on the COMM-port
+'pin-swdio  ; IO-pin on the SWD-port
+'pin-swclk  ; CLK-pin on the SWD-port
+
+; Available modes
+'pin-mode-out    ; Output
+'pin-mode-od     ; Open drain output
+'pin-mode-in     ; Input
+'pin-mode-in-pu  ; Input with pull-up resistor
+'pin-mode-in-pd  ; Input with pull-down resistor
+```
+
+#### gpio-write
+
+```clj
+(gpio-write pin state)
+```
+
+Write state to pin. If the pin is set to an output 1 will set it to VCC and 0 to GND. If the pin is open drain 1 will set it floating and 0 will set it to GND. Example:
+
+```clj
+(gpio-write 'pin-rx 1) ; Set pin rx to 1
+```
+
+#### gpio-read
+
+```clj
+(gpio-read pin)
+```
+
+Read state of pin. Returns 1 if the pin is high, 0 otherwise.
+
 ### Useful Lisp Functions
 
 There are a number of lisp functions that can be used from lispBM in the VESC firmware. They will be loaded to the environment the first time they are used, so they do not use up memory before the first use.
