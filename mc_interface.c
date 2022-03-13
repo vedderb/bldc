@@ -1561,24 +1561,17 @@ uint64_t mc_interface_get_odometer(void) {
  */
 void mc_interface_ignore_input(int time_ms) {
 	volatile motor_if_state_t *motor = motor_now();
-
-	if (time_ms > motor->m_ignore_iterations) {
-		motor->m_ignore_iterations = time_ms;
-	}
+	motor->m_ignore_iterations = time_ms;
 }
 
 /**
  * Ignore motor control commands for this amount of time on both motors.
  */
 void mc_interface_ignore_input_both(int time_ms) {
-	if (time_ms > m_motor_1.m_ignore_iterations) {
-		m_motor_1.m_ignore_iterations = time_ms;
-	}
+	m_motor_1.m_ignore_iterations = time_ms;
 
 #ifdef HW_HAS_DUAL_MOTORS
-	if (time_ms > m_motor_2.m_ignore_iterations) {
-		m_motor_2.m_ignore_iterations = time_ms;
-	}
+	m_motor_2.m_ignore_iterations = time_ms;
 #endif
 }
 
