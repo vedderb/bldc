@@ -230,6 +230,24 @@ Sleep for *seconds* seconds. Example:
 (sleep 0.05) ; Sleep for 0.05 seconds (50 ms)
 ```
 
+#### get-remote-state
+
+```clj
+(get-remote-state)
+```
+
+Get button and joystick state of connected remote. Note that a remote app such as the VESC remote or nunchuk must be configured and running for this to work. Returns the following list:
+
+```clj
+(js-y js-x bt-c bt-z is-rev)
+; Where
+; js-y : Joystick Y axis, range -1.0 to 1.0
+; js-x : Joystick X axis, range -1.0 to 1.0
+; bt-c : C button pressed state, 0 or 1
+; bt-z : Z button pressed state, 0 or 1
+; is-rev : Reverse active, 0 or 1
+```
+
 ### Motor Set Commands
 
 #### set-current

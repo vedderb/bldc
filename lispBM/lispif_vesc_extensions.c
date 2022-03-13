@@ -517,6 +517,22 @@ static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(SYM_TRUE);
 }
 
+static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float gyro[3];
+	imu_get_gyro_derotated(gyro);
+
+	lbm_value state = lbm_enc_sym(SYM_NIL);
+	state = lbm_cons(lbm_enc_i(app_nunchuk_get_is_rev()), state);
+	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_z()), state);
+	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_c()), state);
+	state = lbm_cons(lbm_enc_F(app_nunchuk_get_decoded_x()), state);
+	state = lbm_cons(lbm_enc_F(app_nunchuk_get_decoded_y()), state);
+
+	return state;
+}
+
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
@@ -1879,6 +1895,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-imu-acc-derot", ext_get_imu_acc_derot);
 	lbm_add_extension("get-imu-gyro-derot", ext_get_imu_gyro_derot);
 	lbm_add_extension("send-data", ext_send_data);
+	lbm_add_extension("get-remote-state", ext_get_remote_state);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);

@@ -678,7 +678,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t ind = 0;
 		uint8_t send_buffer[50];
 		send_buffer[ind++] = COMM_GET_DECODED_CHUK;
-		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_chuk() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_nunchuk_get_decoded_y() * 1000000.0), &ind);
 		reply_func(send_buffer, ind);
 	} break;
 
