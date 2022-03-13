@@ -45,4 +45,4 @@ export PYTHON
 ############################
 
 RM := del
-MKDIR := pwsh -noprofile -command New-Item -Force -itemtype "directory"
+MKDIR := powershell -noprofile -command New-Item -Force -itemtype "directory"

@@ -38,7 +38,7 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) tar -C $(TOOLS_DIR) -xjf "$(DL_DIR)/$(ARM_SDK_FILE)"
 else
 	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
-	$(V1) pwsh -noprofile -command Expand-Archive -DestinationPath $(ARM_SDK_DIR) -LiteralPath "$(DL_DIR)/$(ARM_SDK_FILE)"
+	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(ARM_SDK_DIR) -LiteralPath "$(DL_DIR)/$(ARM_SDK_FILE)"
 
 endif
 
@@ -47,7 +47,7 @@ arm_sdk_clean:
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(ARM_SDK_DIR)" ] || $(RM) -r $(ARM_SDK_DIR)
 else
-	$(V1) pwsh -noprofile -command if (Test-Path $(ARM_SDK_DIR)) {Remove-Item -Recurse $(ARM_SDK_DIR)}
+	$(V1) powershell -noprofile -command if (Test-Path $(ARM_SDK_DIR)) {Remove-Item -Recurse $(ARM_SDK_DIR)}
 endif
 
 
@@ -96,7 +96,7 @@ qt_sdk_clean:
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(QT_SDK_DIR)" ] || $(RM) -r $(QT_SDK_DIR)
 else
-	$(V1) pwsh -noprofile -command if (Test-Path $(QT_SDK_DIR)) {Remove-Item -Recurse $(QT_SDK_DIR)}
+	$(V1) powershell -noprofile -command if (Test-Path $(QT_SDK_DIR)) {Remove-Item -Recurse $(QT_SDK_DIR)}
 endif
 
 
@@ -168,7 +168,7 @@ qt_creator_clean: qt_creator_uninstall
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(QT_CREATOR_DIR)" ] || $(RM) -r $(QT_CREATOR_DIR)
 else
-	$(V1) pwsh -noprofile -command if (Test-Path $(QT_CREATOR_DIR)) {Remove-Item -Recurse $(QT_CREATOR_DIR)}
+	$(V1) powershell -noprofile -command if (Test-Path $(QT_CREATOR_DIR)) {Remove-Item -Recurse $(QT_CREATOR_DIR)}
 endif
 
 
