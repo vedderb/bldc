@@ -57,7 +57,7 @@ Open up a terminal
 
 ### On Windows
 
-1.  Open up a Windows Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
+1.  Open up a Windows Powershell terminal (Resist the urge to run Powershell as administrator, that will break things)
 2.  Type `choco install make`
 3.  `git clone http://github.com/vedderb/bldc`
 4.  `cd bldc`
