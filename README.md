@@ -45,7 +45,6 @@ brew install openocd
 
 ### On Windows
 - Chocolately: https://chocolatey.org/install
-- Powershell: https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-windows
 - Git: https://git-scm.com/download/win. Make sure to click any boxes to add Git to your Environment (aka PATH)
 
 ## Install Dev environment and build
@@ -58,7 +57,7 @@ Open up a terminal
 
 ### On Windows
 
-1.  Open up a Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
+1.  Open up a Windows Powershell terminal (Resist the urger to run Powershell as administrator, that will break things)
 2.  Type `choco install make`
 3.  `git clone http://github.com/vedderb/bldc`
 4.  `cd bldc`
