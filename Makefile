@@ -252,7 +252,7 @@ ALL_UNITTESTS := utils
 UT_OUT_DIR := $(BUILD_DIR)/unit_tests
 
 $(UT_OUT_DIR):
-	$(V1) mkdir -p $@
+	$(V1) $(MKDIR) $@
 
 .PHONY: all_ut
 all_ut: $(addsuffix _elf, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
@@ -281,7 +281,7 @@ ut_$(1)_%: TARGET=$(1)
 ut_$(1)_%: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
 ut_$(1)_%: UT_ROOT_DIR=$(ROOT_DIR)/tests/$(1)
 ut_$(1)_%: $$(UT_OUT_DIR)
-	$(V1) mkdir -p $(UT_OUT_DIR)/$(1)
+	$(V1) $(MKDIR) $(UT_OUT_DIR)/$(1)
 	$(V1) cd $$(UT_ROOT_DIR) && \
 		$$(MAKE) -r --no-print-directory \
 		BUILD_TYPE=ut \
