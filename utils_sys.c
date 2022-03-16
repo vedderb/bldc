@@ -143,10 +143,6 @@ int utils_check_min_stack_left(thread_t *tp) {
  * Check how much stack the current thread has left now.
  */
 int utils_stack_left_now(void) {
-#ifndef UNIT_TEST
 	struct port_intctx *r13 = (struct port_intctx *)__get_PSP();
 	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
-#else
-   return -1;
-#endif  // UNIT_TEST
 }
