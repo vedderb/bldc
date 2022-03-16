@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef UTILS_MATH_H_
+#define UTILS_MATH_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -48,8 +48,6 @@ float utils_min_abs(float va, float vb);
 float utils_max_abs(float va, float vb);
 void utils_byte_to_binary(int x, char *b);
 float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mode);
-void utils_sys_lock_cnt(void);
-void utils_sys_unlock_cnt(void);
 uint32_t utils_crc32c(uint8_t *data, uint32_t len);
 void utils_fft32_bin0(float *real_in, float *real, float *imag);
 void utils_fft32_bin1(float *real_in, float *real, float *imag);
@@ -60,14 +58,9 @@ void utils_fft16_bin2(float *real_in, float *real, float *imag);
 void utils_fft8_bin0(float *real_in, float *real, float *imag);
 void utils_fft8_bin1(float *real_in, float *real, float *imag);
 void utils_fft8_bin2(float *real_in, float *real, float *imag);
-uint8_t utils_second_motor_id(void);
-int utils_read_hall(bool is_second_motor, int samples);
 float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
-const char* utils_hw_type_to_string(HW_TYPE hw);
-int utils_check_min_stack_left(thread_t *th);
-int utils_stack_left_now(void);
 void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse);
 
 // Return the sign of the argument. -1.0 if negative, 1.0 if zero or positive.
@@ -80,9 +73,6 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 //#define NORM2(x,y)		(sqrt(SQ(x) + SQ(y)))
 #define NORM2_f(x,y)		(sqrtf(SQ(x) + SQ(y)))
 
-
-// Return the age of a timestamp in seconds
-#define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
 
 // nan and infinity check for floats
 #define UTILS_IS_INF(x)		((x) == (1.0 / 0.0) || (x) == (-1.0 / 0.0))
@@ -141,4 +131,4 @@ extern const float utils_tab_sin_32_2[];
 extern const float utils_tab_cos_32_1[];
 extern const float utils_tab_cos_32_2[];
 
-#endif /* UTILS_H_ */
+#endif  /* UTILS_MATH_H_ */
