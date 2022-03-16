@@ -31,6 +31,6 @@ CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 
 CONLYFLAGS += -std=gnu99
 
-SRC := $(TOP)/utils.c
+SRC := $(TOP)/math_utils.c
 
 include $(TOP)/make/unittest.mk
