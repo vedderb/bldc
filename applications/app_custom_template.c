@@ -23,7 +23,7 @@
 
 // Some useful includes
 #include "mc_interface.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "encoder/encoder.h"
 #include "terminal.h"
 #include "comm_can.h"

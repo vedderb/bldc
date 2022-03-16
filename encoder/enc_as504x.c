@@ -25,7 +25,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
 

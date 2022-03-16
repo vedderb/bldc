@@ -20,7 +20,7 @@
 #include "icm20948.h"
 #include "terminal.h"
 #include "commands.h"
-#include "utils.h"
+#include "utils_math.h"
 
 #include <stdio.h>
 #include <string.h>

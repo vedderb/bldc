@@ -23,7 +23,7 @@
 
 #include "conf_general.h"
 #include "mpu9150.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "stm32f4xx_conf.h"
 #include "i2c_bb.h"
 #include "terminal.h"

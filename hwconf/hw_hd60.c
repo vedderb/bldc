@@ -22,7 +22,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "drv8323s.h"
 #include "terminal.h"
 #include "commands.h"

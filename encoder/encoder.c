@@ -22,7 +22,7 @@
 #include "encoder_datatype.h"
 #include "encoder_cfg.h"
 
-#include "utils.h"
+#include "utils_math.h"
 #include "commands.h"
 #include "mcpwm_foc.h"
 #include "mc_interface.h"

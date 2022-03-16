@@ -27,7 +27,7 @@
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "Fusion.h"
 
 #include <math.h>

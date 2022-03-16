@@ -22,7 +22,7 @@
 #include "hal.h"
 #include "conf_general.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_math.h"
 
 /**
  * TODO: Use the chibios driver instead of the ST-driver.

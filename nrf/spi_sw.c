@@ -18,7 +18,7 @@
     */
 
 #include "spi_sw.h"
-#include "utils.h"
+#include "utils_math.h"
 #include <stdbool.h>
 
 // Private variables

@@ -23,7 +23,8 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "commands.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "timeout.h"
 #include <string.h>
 #include <math.h>

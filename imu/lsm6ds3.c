@@ -21,7 +21,7 @@
 #include "terminal.h"
 #include "i2c_bb.h"
 #include "commands.h"
-#include "utils.h"
+#include "utils_math.h"
 
 #include <stdio.h>
 

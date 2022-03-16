@@ -6,7 +6,7 @@
 #include "mc_interface.h" // Motor control functions
 #include "hw.h" // Pin mapping on this hardware
 #include "timeout.h" // To reset the timeout
-#include "utils.h"
+#include "utils_math.h"
 #include "commands.h"
 #include <math.h>
 #include "isr_vector_table.h"
