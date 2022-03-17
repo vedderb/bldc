@@ -112,6 +112,7 @@ include lora/lora.mk
 include lzo/lzo.mk
 include blackmagic/blackmagic.mk
 include encoder/encoder.mk
+include tmc/tmc.mk
 
 ifeq ($(USE_LISPBM),1)
   include lispBM/lispbm.mk
@@ -174,7 +175,8 @@ CSRC = $(STARTUPSRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
        qmlui/qmlui.c \
-       $(ENCSRC)
+       $(ENCSRC) \
+       $(TMCSRC)
 
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)
@@ -224,7 +226,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          qmlui \
          qmlui/hw \
          qmlui/app \
-         $(ENCINC)
+         $(ENCINC) \
+         $(TMCINC)
 
 ifeq ($(USE_LISPBM),1)
   INCDIR += $(LISPBMINC)
