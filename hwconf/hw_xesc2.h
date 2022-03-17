@@ -20,6 +20,7 @@
 #ifndef HW_XESC2_H_
 #define HW_XESC2_H_
 
+#include "tmc6200.h"
 
 bool tmc_error(void);
 

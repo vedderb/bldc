@@ -104,11 +104,19 @@ void tmc6200_init(void) {
 
 
 static void terminal_read_currents(int argc, const char **argv) {
+    // Avoid unused variable warnings
+    (void)(argc);
+    (void)(argv);
+
     commands_printf("volts: %d, %d, %d", ADC_V_L1, ADC_V_L2, ADC_V_L3);
     commands_printf("currents: %d, %d, %d", GET_CURRENT1(), GET_CURRENT2(), GET_CURRENT3());
 }
 
 static void terminal_tmc_6200_found(int argc, const char **argv) {
+    // Avoid unused variable warnings
+    (void)(argc);
+    (void)(argv);
+
     if(tmc6200_found) {
         commands_printf("TMC6200 found");
     } else {
@@ -175,6 +183,9 @@ static void terminal_write_reg(int argc, const char **argv) {
 
 uint8_t tmc6200_readwriteByte(uint8_t motor, uint8_t data, uint8_t lastTransfer)
 {
+    // Avoid unused variable warnings. We only have one gate driver, therefore we don't need to read the motor parameter.
+    (void)(motor);
+
     spi_begin();
 	uint8_t rx = 0;
 	spi_transfer(&rx, &data, 1);
