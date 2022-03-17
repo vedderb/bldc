@@ -26,7 +26,7 @@
 
 // Private variables
 static THD_FUNCTION(si_read_thread, arg);
-static THD_WORKING_AREA(si_read_thread_wa, 512);
+static THD_WORKING_AREA(si_read_thread_wa, 256);
 static volatile float m_voltages[3];
 
 // Private functions

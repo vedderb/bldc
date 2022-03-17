@@ -84,7 +84,7 @@ static uint8_t my_node_id = 0;
 static bool refresh_parameters_enabled = true;
 
 // Threads
-static THD_WORKING_AREA(canard_thread_wa, 2048);
+static THD_WORKING_AREA(canard_thread_wa, 1024);
 static THD_FUNCTION(canard_thread, arg);
 
 // Private functions
@@ -236,8 +236,8 @@ static void write_app_config(void) {
 
 	appconf->can_mode = (uint8_t)getParamByName("uavcan_mode")->val;
 	appconf->can_baud_rate = (uint8_t)getParamByName("can_baud_rate")->val;
-	appconf->send_can_status_rate_hz = (uint32_t)getParamByName("can_status_rate")->val;
-	appconf->send_can_status = (uint8_t)getParamByName("can_send_status")->val;
+	appconf->can_status_rate_1 = (uint32_t)getParamByName("can_status_rate_1")->val;
+	appconf->can_status_msgs_r1 = (uint8_t)getParamByName("can_status_msgs_r1")->val;
 	appconf->uavcan_esc_index = (uint8_t)getParamByName("can_esc_index")->val;
 	appconf->controller_id = (uint8_t)getParamByName("controller_id")->val; 
 
@@ -258,12 +258,12 @@ static void write_app_config(void) {
 static void refresh_parameters(void){
 	const app_configuration *appconf = app_get_configuration();
 
-	updateParamByName((uint8_t *)"uavcan_mode", 	appconf->can_mode );
-	updateParamByName((uint8_t *)"can_baud_rate", 	appconf->can_baud_rate );
-	updateParamByName((uint8_t *)"can_status_rate",	appconf->send_can_status_rate_hz );
-	updateParamByName((uint8_t *)"can_send_status", appconf->send_can_status );
-	updateParamByName((uint8_t *)"can_esc_index",   appconf->uavcan_esc_index );
-	updateParamByName((uint8_t *)"controller_id",   appconf->controller_id );
+	updateParamByName((uint8_t *)"uavcan_mode", 		appconf->can_mode );
+	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate );
+	updateParamByName((uint8_t *)"can_status_rate_1",	appconf->can_status_rate_1 );
+	updateParamByName((uint8_t *)"can_send_status", 	appconf->can_status_msgs_r1 );
+	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index );
+	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id );
 }
 
 /*
@@ -1168,9 +1168,9 @@ static THD_FUNCTION(canard_thread, arg) {
 			sendNodeStatus();
 		}
 
-		if (conf->send_can_status_rate_hz > 0 &&
-				ST2MS(chVTTimeElapsedSinceX(last_esc_status_time)) >= (1000 / conf->send_can_status_rate_hz) &&
-				conf->send_can_status != CAN_STATUS_DISABLED) {
+		if (conf->can_status_msgs_r1 > 0 &&
+				ST2MS(chVTTimeElapsedSinceX(last_esc_status_time)) >= (1000 / conf->can_status_msgs_r1) &&
+				conf->can_status_msgs_r1 != 0) {
 			last_esc_status_time = chVTGetSystemTimeX();
 			sendEscStatus();
 		}

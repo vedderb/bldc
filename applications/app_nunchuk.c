@@ -39,9 +39,9 @@
 
 // Threads
 static THD_FUNCTION(chuk_thread, arg);
-static THD_WORKING_AREA(chuk_thread_wa, 1024);
+static THD_WORKING_AREA(chuk_thread_wa, 512);
 static THD_FUNCTION(output_thread, arg);
-static THD_WORKING_AREA(output_thread_wa, 1024);
+static THD_WORKING_AREA(output_thread_wa, 512);
 
 // Private variables
 static volatile bool stop_now = true;
@@ -84,8 +84,24 @@ void app_nunchuk_stop(void) {
 	}
 }
 
-float app_nunchuk_get_decoded_chuk(void) {
+float app_nunchuk_get_decoded_x(void) {
+	return ((float)chuck_d.js_x - 128.0) / 128.0;
+}
+
+float app_nunchuk_get_decoded_y(void) {
 	return ((float)chuck_d.js_y - 128.0) / 128.0;
+}
+
+bool app_nunchuk_get_bt_c(void) {
+	return chuck_d.bt_c;
+}
+
+bool app_nunchuk_get_bt_z(void) {
+	return chuck_d.bt_z;
+}
+
+bool app_nunchuk_get_is_rev(void) {
+	return chuck_d.is_rev;
 }
 
 void app_nunchuk_update_output(chuck_data *data) {
@@ -263,7 +279,7 @@ static THD_FUNCTION(output_thread, arg) {
 
 		was_z = chuck_d.bt_z;
 
-		float out_val = app_nunchuk_get_decoded_chuk();
+		float out_val = app_nunchuk_get_decoded_y();
 		utils_deadband(&out_val, config.hyst, 1.0);
 		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 

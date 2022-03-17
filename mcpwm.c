@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -31,7 +31,7 @@
 #include "ledpwm.h"
 #include "terminal.h"
 #include "timeout.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "timer.h"
 
 // Structs
@@ -160,9 +160,9 @@ static void pll_run(float phase, float dt, volatile float *phase_var,
 #define IS_DETECTING()			(state == MC_STATE_DETECTING)
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
-static THD_WORKING_AREA(rpm_thread_wa, 1024);
+static THD_WORKING_AREA(rpm_thread_wa, 512);
 static THD_FUNCTION(rpm_thread, arg);
 static volatile bool timer_thd_stop;
 static volatile bool rpm_thd_stop;
@@ -248,9 +248,19 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+
+#ifndef INVERTED_TOP_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
+#else
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+
+#ifndef INVERTED_BOTTOM_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;  // gpio high = bottom fets on
+#else
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
 
 	TIM_OC1Init(TIM1, &TIM_OCInitStructure);
@@ -649,6 +659,12 @@ void mcpwm_set_current(float current) {
 	if (state != MC_STATE_RUNNING) {
 		set_duty_cycle_hl(SIGN(current) * conf->l_min_duty);
 	}
+}
+
+void mcpwm_release_motor(void) {
+	current_set = 0.0;
+	control_mode = CONTROL_MODE_NONE;
+	stop_pwm_ll();
 }
 
 /**

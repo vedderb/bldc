@@ -81,7 +81,7 @@ static void set_modulation(float mod);
 static void do_dc_cal(void);
 
 // Threads
-static THD_WORKING_AREA(timer_thread_wa, 2048);
+static THD_WORKING_AREA(timer_thread_wa, 512);
 static THD_FUNCTION(timer_thread, arg);
 static volatile bool timer_thd_stop;
 
@@ -140,9 +140,19 @@ void gpdrive_init(volatile mc_configuration *configuration) {
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
+
+#ifndef INVERTED_TOP_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
+#else
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+
+#ifndef INVERTED_BOTTOM_DRIVER_INPUT
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;  // gpio high = bottom fets on
+#else
+	TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
+#endif
 	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Set;
 
 	TIM_OC1Init(TIM1, &TIM_OCInitStructure);

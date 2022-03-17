@@ -58,7 +58,11 @@ void app_uartcomm_send_packet(unsigned char *data, unsigned int len,  UART_PORT 
 void app_nunchuk_start(void);
 void app_nunchuk_stop(void);
 void app_nunchuk_configure(chuk_config *conf);
-float app_nunchuk_get_decoded_chuk(void);
+float app_nunchuk_get_decoded_x(void);
+float app_nunchuk_get_decoded_y(void);
+bool app_nunchuk_get_bt_c(void);
+bool app_nunchuk_get_bt_z(void);
+bool app_nunchuk_get_is_rev(void);
 void app_nunchuk_update_output(chuck_data *data);
 
 void app_balance_start(void);

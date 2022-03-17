@@ -24,7 +24,7 @@
 #include "conf_general.h"
 #include "mc_interface.h"
 #include "utils.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "terminal.h"
 #include "comm_can.h"
 #include "hw.h"

@@ -34,7 +34,7 @@
 
 /* Device voltage range supposed to be [2.7V to 3.6V], the operation will
    be done by word  */
-#define VOLTAGE_RANGE           (uint8_t)VoltageRange_3
+#define VOLTAGE_RANGE           (uint8_t)((PWR->CSR & PWR_CSR_PVDO) ? VoltageRange_2 : VoltageRange_3)
 
 /* EEPROM start address in Flash */
 #define EEPROM_START_ADDRESS  ((uint32_t)0x08004000) /* EEPROM emulation start address:

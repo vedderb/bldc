@@ -18,6 +18,7 @@
     */
 
 #include "bmi160_wrapper.h"
+#include "utils.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +32,12 @@ void user_delay_ms(uint32_t ms);
 
 void bmi160_wrapper_init(BMI_STATE *s, stkalign_t *work_area, size_t work_area_size) {
 	s->read_callback = 0;
+
+	if (s->sensor.interface == BMI160_SPI_INTF) {
+		s->rate_hz = MIN(s->rate_hz, 5000);
+	} else {
+		s->rate_hz = MIN(s->rate_hz, 1000);
+	}
 
 	if (reset_init_bmi(s)) {
 		s->should_stop = false;

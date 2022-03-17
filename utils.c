@@ -18,10 +18,8 @@
     */
 
 #include "utils.h"
-#include "ch.h"
 #include "hal.h"
 #include "app.h"
-#include "conf_general.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -77,48 +75,48 @@ void utils_norm_angle_rad(float *angle) {
 		*angle += 2.0 * M_PI;
 	}
 
-	while (*angle >  M_PI) {
+	while (*angle >=  M_PI) {
 		*angle -= 2.0 * M_PI;
 	}
 }
 
-int utils_truncate_number(float *number, float min, float max) {
-	int did_trunc = 0;
+bool utils_truncate_number(float *number, float min, float max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < min) {
 		*number = min;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
 }
 
-int utils_truncate_number_int(int *number, int min, int max) {
-	int did_trunc = 0;
+bool utils_truncate_number_int(int *number, int min, int max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < min) {
 		*number = min;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
 }
 
-int utils_truncate_number_abs(float *number, float max) {
-	int did_trunc = 0;
+bool utils_truncate_number_abs(float *number, float max) {
+	bool did_trunc = false;
 
 	if (*number > max) {
 		*number = max;
-		did_trunc = 1;
+		did_trunc = true;
 	} else if (*number < -max) {
 		*number = -max;
-		did_trunc = 1;
+		did_trunc = true;
 	}
 
 	return did_trunc;
@@ -349,7 +347,7 @@ float utils_fast_atan2(float y, float x) {
  */
 bool utils_saturate_vector_2d(float *x, float *y, float max) {
 	bool retval = false;
-	float mag = sqrtf(SQ(*x) + SQ(*y));
+	float mag = NORM2_f(*x, *y);
 	max = fabsf(max);
 
 	if (mag < 1e-10) {
@@ -834,6 +832,77 @@ const char* utils_hw_type_to_string(HW_TYPE hw) {
 	case HW_TYPE_VESC_BMS: return "HW_TYPE_VESC_BMS"; break;
 	case HW_TYPE_CUSTOM_MODULE: return "HW_TYPE_CUSTOM_MODULE"; break;
 	default: return "FAULT_HARDWARE"; break;
+	}
+}
+
+/**
+ * Check the minimum stack tp had left by counting the remaining fill characters.
+ */
+int utils_check_min_stack_left(thread_t *tp) {
+	uint32_t *p = (uint32_t *)tp->p_stklimit;
+
+	int free = 0;
+	while (free < 8192) {
+		if (*p++ != 0x55555555) {
+			break;
+		}
+		free += sizeof(uint32_t);
+	}
+
+	return free;
+}
+
+/*
+ * Check how much stack the current thread has left now.
+ */
+int utils_stack_left_now(void) {
+#ifndef UNIT_TEST
+	struct port_intctx *r13 = (struct port_intctx *)__get_PSP();
+	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
+#else
+   return -1;
+#endif  // UNIT_TEST
+}
+
+void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse) {
+	float s1, c1, s2, c2, s3, c3;
+
+	if (rotation[2] != 0.0) {
+		s1 = sinf(rotation[2]);
+		c1 = cosf(rotation[2]);
+	} else {
+		s1 = 0.0;
+		c1 = 1.0;
+	}
+
+	if (rotation[1] != 0.0) {
+		s2 = sinf(rotation[1]);
+		c2 = cosf(rotation[1]);
+	} else {
+		s2 = 0.0;
+		c2 = 1.0;
+	}
+
+	if (rotation[0] != 0.0) {
+		s3 = sinf(rotation[0]);
+		c3 = cosf(rotation[0]);
+	} else {
+		s3 = 0.0;
+		c3 = 1.0;
+	}
+
+	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
+	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
+	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
+
+	if (reverse) {
+		output[0] = input[0] * m11 + input[1] * m21 + input[2] * m31;
+		output[1] = input[0] * m12 + input[1] * m22 + input[2] * m32;
+		output[2] = input[0] * m13 + input[1] * m23 + input[2] * m33;
+	} else {
+		output[0] = input[0] * m11 + input[1] * m12 + input[2] * m13;
+		output[1] = input[0] * m21 + input[1] * m22 + input[2] * m23;
+		output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
 	}
 }
 

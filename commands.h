@@ -22,6 +22,10 @@
 
 #include "datatypes.h"
 
+// Global variables
+extern uint8_t send_buffer_global[];
+extern mutex_t send_buffer_mutex;
+
 // Functions
 void commands_init(void);
 bool commands_is_initialized(void);
@@ -31,7 +35,8 @@ void commands_send_packet_nrf(unsigned char *data, unsigned int len);
 void commands_send_packet_last_blocking(unsigned char *data, unsigned int len);
 void commands_process_packet(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
-void commands_printf(const char* format, ...);
+int commands_printf(const char* format, ...);
+int commands_printf_lisp(const char* format, ...);
 void commands_send_rotor_pos(float rotor_pos);
 void commands_send_experiment_samples(float *samples, int len);
 void commands_fwd_can_frame(int len, unsigned char *data, uint32_t id, bool is_extended);
@@ -47,8 +52,6 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf);
 void commands_init_plot(char *namex, char *namey);
 void commands_plot_add_graph(char *name);
 void commands_plot_set_graph(int graph);
-void commands_set_ble_name(char* name);
-void commands_set_ble_pin(char* pin);
 void commands_send_plot_points(float x, float y);
 int commands_get_fw_version_sent_cnt(void);
 

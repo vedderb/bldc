@@ -28,9 +28,9 @@ void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);
 void utils_norm_angle_rad(float *angle);
-int utils_truncate_number(float *number, float min, float max);
-int utils_truncate_number_int(int *number, int min, int max);
-int utils_truncate_number_abs(float *number, float max);
+bool utils_truncate_number(float *number, float min, float max);
+bool utils_truncate_number_int(int *number, int min, int max);
+bool utils_truncate_number_abs(float *number, float max);
 float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
 int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max);
 void utils_deadband(float *value, float tres, float max);
@@ -66,12 +66,20 @@ float utils_batt_liion_norm_v_to_capacity(float norm_v);
 uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 		unsigned int *buffer_index, unsigned int filter_len, uint16_t sample);
 const char* utils_hw_type_to_string(HW_TYPE hw);
+int utils_check_min_stack_left(thread_t *th);
+int utils_stack_left_now(void);
+void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse);
 
 // Return the sign of the argument. -1.0 if negative, 1.0 if zero or positive.
 #define SIGN(x)				(((x) < 0.0) ? -1.0 : 1.0)
 
 // Squared
 #define SQ(x)				((x) * (x))
+
+// Two-norm of 2D vector
+//#define NORM2(x,y)		(sqrt(SQ(x) + SQ(y)))
+#define NORM2_f(x,y)		(sqrtf(SQ(x) + SQ(y)))
+
 
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
@@ -87,8 +95,12 @@ const char* utils_hw_type_to_string(HW_TYPE hw);
 #define RPM2RADPS_f(rpm) ((rpm) * (float)((2.0 * M_PI) / 60.0))
 #define RADPS2RPM_f(rad_per_sec) ((rad_per_sec) * (float)(60.0 / (2.0 * M_PI)))
 
-
-
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
 
 /**
  * A simple low pass filter.

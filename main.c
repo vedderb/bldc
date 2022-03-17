@@ -38,8 +38,7 @@
 #include "packet.h"
 #include "commands.h"
 #include "timeout.h"
-#include "comm_can.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "servo_simple.h"
 #include "utils.h"
 #include "nrf_driver.h"
@@ -55,6 +54,11 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
+#ifdef CAN_ENABLE
+#include "comm_can.h"
+
+#define CAN_FRAME_MAX_PL_SIZE	8
+#endif
 
 #ifdef USE_LISPBM
 #include "lispif.h"
@@ -80,10 +84,10 @@
  */
 
 // Private variables
-static THD_WORKING_AREA(periodic_thread_wa, 512);
+static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
-static bool m_init_done = false;
+static volatile bool m_init_done = false;
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
 	(void)arg;
@@ -302,16 +306,20 @@ int main(void) {
 
 	imu_reset_orientation();
 
-#ifdef BOOT_OK_GPIO
 	chThdSleepMilliseconds(500);
+	m_init_done = true;
+
+#ifdef BOOT_OK_GPIO
 	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
-#ifdef USE_LISPBM
-	lispif_init();
+#ifdef CAN_ENABLE
+	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
+	comm_can_transmit_eid(
+		app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
+		(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
+		strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
 #endif
-
-	m_init_done = true;
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

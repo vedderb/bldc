@@ -170,6 +170,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->m_out_aux_mode;
 	buffer[ind++] = conf->m_motor_temp_sens_type;
 	buffer_append_float32_auto(buffer, conf->m_ptc_motor_coeff, &ind);
+	buffer_append_float16(buffer, conf->m_ntcx_ptcx_res, 0.1, &ind);
+	buffer_append_float16(buffer, conf->m_ntcx_ptcx_temp_base, 10, &ind);
 	buffer[ind++] = (uint8_t)conf->m_hall_extra_samples;
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
@@ -196,8 +198,10 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->controller_id;
 	buffer_append_uint32(buffer, conf->timeout_msec, &ind);
 	buffer_append_float32_auto(buffer, conf->timeout_brake_current, &ind);
-	buffer[ind++] = conf->send_can_status;
-	buffer_append_uint16(buffer, conf->send_can_status_rate_hz, &ind);
+	buffer_append_uint16(buffer, conf->can_status_rate_1, &ind);
+	buffer_append_uint16(buffer, conf->can_status_rate_2, &ind);
+	buffer[ind++] = conf->can_status_msgs_r1;
+	buffer[ind++] = conf->can_status_msgs_r2;
 	buffer[ind++] = conf->can_baud_rate;
 	buffer[ind++] = conf->pairing_done;
 	buffer[ind++] = conf->permanent_uart_enabled;
@@ -539,6 +543,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_out_aux_mode = buffer[ind++];
 	conf->m_motor_temp_sens_type = buffer[ind++];
 	conf->m_ptc_motor_coeff = buffer_get_float32_auto(buffer, &ind);
+	conf->m_ntcx_ptcx_res = buffer_get_float16(buffer, 0.1, &ind);
+	conf->m_ntcx_ptcx_temp_base = buffer_get_float16(buffer, 10, &ind);
 	conf->m_hall_extra_samples = buffer[ind++];
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
@@ -568,8 +574,10 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->controller_id = buffer[ind++];
 	conf->timeout_msec = buffer_get_uint32(buffer, &ind);
 	conf->timeout_brake_current = buffer_get_float32_auto(buffer, &ind);
-	conf->send_can_status = buffer[ind++];
-	conf->send_can_status_rate_hz = buffer_get_uint16(buffer, &ind);
+	conf->can_status_rate_1 = buffer_get_uint16(buffer, &ind);
+	conf->can_status_rate_2 = buffer_get_uint16(buffer, &ind);
+	conf->can_status_msgs_r1 = buffer[ind++];
+	conf->can_status_msgs_r2 = buffer[ind++];
 	conf->can_baud_rate = buffer[ind++];
 	conf->pairing_done = buffer[ind++];
 	conf->permanent_uart_enabled = buffer[ind++];
@@ -904,6 +912,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_out_aux_mode = MCCONF_M_OUT_AUX_MODE;
 	conf->m_motor_temp_sens_type = MCCONF_M_MOTOR_TEMP_SENS_TYPE;
 	conf->m_ptc_motor_coeff = MCCONF_M_PTC_MOTOR_COEFF;
+	conf->m_ntcx_ptcx_res = MCCONF_M_NTCX_PTCX_RES;
+	conf->m_ntcx_ptcx_temp_base = MCCONF_M_NTCX_PTCX_BASE_TEMP;
 	conf->m_hall_extra_samples = MCCONF_M_HALL_EXTRA_SAMPLES;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
@@ -924,8 +934,10 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->controller_id = HW_DEFAULT_ID;
 	conf->timeout_msec = APPCONF_TIMEOUT_MSEC;
 	conf->timeout_brake_current = APPCONF_TIMEOUT_BRAKE_CURRENT;
-	conf->send_can_status = APPCONF_SEND_CAN_STATUS;
-	conf->send_can_status_rate_hz = APPCONF_SEND_CAN_STATUS_RATE_HZ;
+	conf->can_status_rate_1 = APPCONF_CAN_STATUS_RATE_1;
+	conf->can_status_rate_2 = APPCONF_CAN_STATUS_RATE_2;
+	conf->can_status_msgs_r1 = APPCONF_CAN_STATUS_MSGS_R1;
+	conf->can_status_msgs_r2 = APPCONF_CAN_STATUS_MSGS_R2;
 	conf->can_baud_rate = APPCONF_CAN_BAUD_RATE;
 	conf->pairing_done = APPCONF_PAIRING_DONE;
 	conf->permanent_uart_enabled = APPCONF_PERMANENT_UART_ENABLED;

@@ -25,7 +25,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-//#define HW_HAS_PHASE_FILTERS
+#define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_NO_CAN
 #define HW_HAS_LORA
@@ -151,13 +151,13 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-//#define HW_UART_P_BAUD			115200
-//#define HW_UART_P_DEV			SD4
-//#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
-//#define HW_UART_P_TX_PORT		GPIOC
-//#define HW_UART_P_TX_PIN		10
-//#define HW_UART_P_RX_PORT		GPIOC
-//#define HW_UART_P_RX_PIN		11
+#define HW_UART_P_BAUD			115200
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+#define HW_UART_P_TX_PORT		GPIOC
+#define HW_UART_P_TX_PIN		10
+#define HW_UART_P_RX_PORT		GPIOC
+#define HW_UART_P_RX_PIN		11
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
@@ -172,7 +172,7 @@
 
 // I2C Peripheral
 #define HW_USE_I2CD1
-#define HW_I2C_DEV				I2CD1
+#define HW_I2C_DEV			I2CD1
 #define HW_I2C_GPIO_AF			GPIO_AF_I2C1
 #define HW_I2C_SCL_PORT			GPIOB
 #define HW_I2C_SCL_PIN			8
@@ -225,18 +225,18 @@
 #ifdef HW_HAS_LORA
 #define HW_LORA_SPI_DEV				SPID1
 #define HW_LORA_SPI_GPIO_AF			GPIO_AF_SPI1
-#define HW_LORA_SPI_PORT_NSS			GPIOA
-#define HW_LORA_SPI_PIN_NSS			4
-#define HW_LORA_SPI_PORT_SCK			GPIOA
-#define HW_LORA_SPI_PIN_SCK			5
-#define HW_LORA_SPI_PORT_MOSI		    GPIOA
-#define HW_LORA_SPI_PIN_MOSI			7
-#define HW_LORA_SPI_PORT_MISO		    GPIOA
-#define HW_LORA_SPI_PIN_MISO			6
-#define HW_LORA_SPI_PORT_DIO0         GPIOC
-#define HW_LORA_SPI_PIN_DIO0          5
-#define HW_LORA_SPI_PORT_RESET        GPIOB
-#define HW_LORA_SPI_PIN_RESET         2
+#define HW_LORA_SPI_PORT_NSS			GPIOB
+#define HW_LORA_SPI_PIN_NSS			3
+#define HW_LORA_SPI_PORT_SCK			GPIOB
+#define HW_LORA_SPI_PIN_SCK			6
+#define HW_LORA_SPI_PORT_MOSI		    	GPIOB
+#define HW_LORA_SPI_PIN_MOSI			4
+#define HW_LORA_SPI_PORT_MISO		    	GPIOB
+#define HW_LORA_SPI_PIN_MISO			5
+#define HW_LORA_SPI_PORT_DIO0         		GPIOB
+#define HW_LORA_SPI_PIN_DIO0          		12
+#define HW_LORA_SPI_PORT_RESET        		GPIOB
+#define HW_LORA_SPI_PIN_RESET         		2
 #endif
 
 // Measurement macros
@@ -252,14 +252,14 @@
 
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC       660.0
+#define HW_DEAD_TIME_NSEC       360.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			50.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			57.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -284,7 +284,7 @@
 #define HW_LIM_CURRENT			-120.0, 120.0
 #define HW_LIM_CURRENT_IN		-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		0.0, 160.0
-#define HW_LIM_VIN				12.0, 50.0
+#define HW_LIM_VIN				12.0, 60.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

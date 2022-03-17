@@ -37,7 +37,7 @@
 static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
-static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(2048) / sizeof(stkalign_t)];
+static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
 static spi_bb_state m_spi_bb;
 static ICM20948_STATE m_icm20948_state;
@@ -48,7 +48,6 @@ static bool imu_ready;
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
-static void rotate(float *input, float *rotation, float *output);
 static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
@@ -60,10 +59,10 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
-	mpu9150_set_rate_hz(set->sample_rate_hz);
-	m_icm20948_state.rate_hz = set->sample_rate_hz;
+	mpu9150_set_rate_hz(MIN(set->sample_rate_hz, 1000));
+	m_icm20948_state.rate_hz = MIN(set->sample_rate_hz, 1000);
 	m_bmi_state.rate_hz = set->sample_rate_hz;
-	lsm6ds3_set_rate_hz(set->sample_rate_hz);
+	lsm6ds3_set_rate_hz(MIN(set->sample_rate_hz, 1000));
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
@@ -243,13 +242,13 @@ void imu_get_mag(float *mag) {
 	memcpy(mag, m_mag, sizeof(m_mag));
 }
 
-void imu_get_accel_derotated(float *accel) {
+void imu_derotate(float *input, float *output) {
 	float rpy[3];
 	imu_get_rpy(rpy);
 
-	const float ax = m_accel[0];
-	const float ay = m_accel[1];
-	const float az = m_accel[2];
+	const float ax = input[0];
+	const float ay = input[1];
+	const float az = input[2];
 
 	const float sr = sinf(rpy[0]);
 	const float cr = -cosf(rpy[0]);
@@ -261,12 +260,21 @@ void imu_get_accel_derotated(float *accel) {
 	float c_ax = ax * cp + ay * sp * sr + az * sp * cr;
 	float c_ay = ay * cr - az * sr;
 	float c_az = -ax * sp + ay * cp * sr + az * cp * cr;
+
 	float c_ax2 = cy * c_ax + sy * c_ay;
 	float c_ay2 = sy * c_ax - cy * c_ay;
 
-	accel[0] = c_ax2;
-	accel[1] = c_ay2;
-	accel[2] = c_az;
+	output[0] = c_ax2;
+	output[1] = c_ay2;
+	output[2] = c_az;
+}
+
+void imu_get_accel_derotated(float *accel) {
+	imu_derotate(m_accel, accel);
+}
+
+void imu_get_gyro_derotated(float *gyro) {
+	imu_derotate(m_gyro, gyro);
 }
 
 void imu_get_quaternions(float *q) {
@@ -337,8 +345,8 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.rot_roll = -RAD2DEG_f(roll_sample);
 
 	// Rotate gyro offsets to match new IMU orientation
-	float rotation1[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
-	rotate(original_gyro_offsets, rotation1, m_settings.gyro_offsets);
+	float rotation1[3] = {DEG2RAD_f(m_settings.rot_roll), DEG2RAD_f(m_settings.rot_pitch), DEG2RAD_f(m_settings.rot_yaw)};
+	utils_rotate_vector3(original_gyro_offsets, rotation1, m_settings.gyro_offsets, false);
 
 	// Reset AHRS and wait 1.5 seconds (for AHRS to settle now that pitch is calibrated)
 	ahrs_init_attitude_info(&m_att);
@@ -356,15 +364,15 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.rot_pitch = RAD2DEG_f(pitch_sample);
 
 	// Rotate imu offsets to match
-	float rotation2[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
-	rotate(original_gyro_offsets, rotation2, m_settings.gyro_offsets);
+	float rotation2[3] = {DEG2RAD_f(m_settings.rot_roll), DEG2RAD_f(m_settings.rot_pitch), DEG2RAD_f(m_settings.rot_yaw)};
+	utils_rotate_vector3(original_gyro_offsets, rotation2, m_settings.gyro_offsets, false);
 
 	// Set yaw rotations to match user input
 	m_settings.rot_yaw = yaw;
 
 	// Rotate gyro offsets to match new IMU orientation
-	float rotation3[3] = {m_settings.rot_roll, m_settings.rot_pitch, m_settings.rot_yaw};
-	rotate(original_gyro_offsets, rotation3, m_settings.gyro_offsets);
+	float rotation3[3] = {DEG2RAD_f(m_settings.rot_roll), DEG2RAD_f(m_settings.rot_pitch), DEG2RAD_f(m_settings.rot_yaw)};
+	utils_rotate_vector3(original_gyro_offsets, rotation3, m_settings.gyro_offsets, false);
 
 	// Note to future person interested in calibration:
 	// This is where accel calibration should go, because at this point the values should be 0,0,1
@@ -402,6 +410,13 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsReinitialise(&m_fusionAhrs);
+}
+
+/*
+ * Set the yaw-component of the IMU state. Currently only works for the fusion filter.
+ */
+void imu_set_yaw(float yaw_deg) {
+	FusionAhrsSetYaw(&m_fusionAhrs, yaw_deg);
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
@@ -504,24 +519,6 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 			m_att.q3 = m_fusionAhrs.quaternion.element.z;
 		} break;
 	}
-}
-
-void rotate(float *input, float *rotation, float *output) {
-	// Rotate imu offsets to match
-	float s1 = sinf(DEG2RAD_f(rotation[2]));
-	float c1 = cosf(DEG2RAD_f(rotation[2]));
-	float s2 = sinf(DEG2RAD_f(rotation[1]));
-	float c2 = cosf(DEG2RAD_f(rotation[1]));
-	float s3 = sinf(DEG2RAD_f(rotation[0]));
-	float c3 = cosf(DEG2RAD_f(rotation[0]));
-
-	float m11 = c1 * c2;	float m12 = c1 * s2 * s3 - c3 * s1;	float m13 = s1 * s3 + c1 * c3 * s2;
-	float m21 = c2 * s1;	float m22 = c1 * c3 + s1 * s2 * s3;	float m23 = c3 * s1 * s2 - c1 * s3;
-	float m31 = -s2; 		float m32 = c2 * s3;				float m33 = c2 * c3;
-
-	output[0] = input[0] * m11 + input[1] * m12 + input[2] * m13;
-	output[1] = input[0] * m21 + input[1] * m22 + input[2] * m23;
-	output[2] = input[0] * m31 + input[1] * m32 + input[2] * m33;
 }
 
 static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {

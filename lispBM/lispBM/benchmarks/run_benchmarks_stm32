@@ -1,0 +1,108 @@
+#!/usr/bin/expect
+
+set timeout 10
+
+if { $argc >= 1 } {
+    set port [lindex $argv 0]
+} else {
+    set port "/dev/ttyACM0"
+}
+
+if { [lindex $argv 1] eq "store"} {
+    set store "true"
+} else {
+    set store "false"
+}
+
+spawn cu -l $port -s 115200
+
+set systemTime [clock seconds]
+
+if { $store } {
+    set filename  "./stored_results/benchresult[clock format $systemTime -format %y_%m_%d_%H_%M_%S]"
+} else {
+    set filename  "benchresult[clock format $systemTime -format %y_%m_%d_%H_%M_%S]"
+}
+
+set outfile [open $filename w+]
+
+send_user $filename
+send_user "\n"
+
+
+expect {
+    timeout { send_user "failed to connect\n"; exit 1 }
+    "Connected."
+}
+
+sleep 1
+
+puts $outfile "File, Load time (s), Eval time (s), GC avg time (us), GC min time (us), GC max time (us), GC invocations, GC least free"
+
+foreach lisp_file [glob -type f *.lisp] {
+
+    send "\n"
+
+    expect {
+        timeout { send_user "not getting a prompt\n"; exit 1}
+        "#"
+    }
+
+    send ":read\n"
+    sleep 1
+
+    # Send benchmark code and eof.
+    send [exec cat $lisp_file]
+    send \x04
+
+    expect -re {time eval: ([0-9.]+)} {
+        set eval_time   $expect_out(1,string)
+    }
+
+    expect -re {time load: ([0-9.]+)} {
+        set load_time   $expect_out(1,string)
+    }
+
+    expect -re {gc invocations: ([0-9.]+)} {
+        set gc_num  $expect_out(1,string)
+    }
+
+    expect -re {gc time avg: ([0-9.]+)} {
+        set gc_avg_time   $expect_out(1,string)
+    }
+
+    expect -re {gc min time: ([0-9.]+)} {
+        set gc_min_time   $expect_out(1,string)
+    }
+
+    expect -re {gc max time: ([0-9.]+)} {
+        set gc_max_time   $expect_out(1,string)
+    }
+
+    expect -re {gc least free: ([0-9.]+)} {
+        set gc_least_free   $expect_out(1,string)
+    }
+
+
+
+    puts $outfile "$lisp_file, $load_time, $eval_time, $gc_avg_time, $gc_min_time, $gc_max_time, $gc_num, $gc_least_free"
+    flush $outfile
+
+    send_user -- "----------------------------\n"
+    send_user "Benchmark $lisp_file results:\n"
+    send_user "Evaluation time: $eval_time \n"
+    send_user "Load time: $load_time \n"
+    send_user -- "----------------------------\n"
+
+    expect {
+        timeout { send_user "not getting a prompt\n"; exit 1}
+        "#"
+    }
+
+    send ":reset\n"
+    sleep 1
+}
+
+close $outfile
+
+send "~."
