@@ -175,8 +175,8 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
 	$(V1) [ ! -d "$(ROOT_DIR)/.dep" ] || $(RM) -r "$(ROOT_DIR)/.dep"
 else
-	$(V1) powershell -noprofile -command if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}
-	$(V1) powershell -noprofile -command if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}}"
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}}"
 endif
 endef
 
@@ -230,7 +230,7 @@ all_fw_package: all_fw all_fw_package_clean
 ifneq ($(OSFAMILY), windows)
 	$(V1) $(RM) $(BUILD_CRUFT)
 else
-	$(V1) powershell -noprofile -command {Remove-Item $(BUILD_CRUFT)}
+	$(V1) powershell -noprofile -command "& {Remove-Item $(BUILD_CRUFT)}"
 endif
 
 .PHONY: all_fw_package_clean
@@ -239,7 +239,7 @@ all_fw_package_clean:
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(ROOT_DIR)/package/" ] || $(RM) -rf $(ROOT_DIR)/package/*
 else
-	$(V1) powershell -noprofile -command if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}}"
 endif
 
 
