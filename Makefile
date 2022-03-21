@@ -173,8 +173,10 @@ fw_$(1)_clean:
 	$(V0) @echo " CLEAN      $$@"
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
+	$(V1) [ ! -d "$(ROOT_DIR)/.dep" ] || $(RM) -r "$(ROOT_DIR)/.dep"
 else
 	$(V1) powershell -noprofile -command if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}
+	$(V1) powershell -noprofile -command if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}
 endif
 endef
 
