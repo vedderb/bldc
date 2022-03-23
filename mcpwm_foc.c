@@ -154,6 +154,9 @@ typedef struct {
 	bool m_duty_next_set;
 	float m_i_alpha_sample_next;
 	float m_i_beta_sample_next;
+	float m_i_alpha_sample_with_offset;
+	float m_i_beta_sample_with_offset;
+	float m_i_alpha_beta_has_offset;
 	hfi_state_t m_hfi;
 	int m_hfi_plot_en;
 	float m_hfi_plot_sample;
@@ -581,8 +584,12 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
 	// Note: The half transfer interrupt is used as we already have all current and voltage
 	// samples by then and we can start processing them. Entering the interrupt earlier gives
 	// more cycles to finish it and update the timer before the next zero vector. This helps
-	// at higher f_zv.
+	// at higher f_zv. Only use this if the three first samples are current samples.
+#if ADC_IND_CURR1 < 3 && ADC_IND_CURR2 < 3 && ADC_IND_CURR3 < 3
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_HT, ENABLE);
+#else
+	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
+#endif
 
 	// ADC Common Init
 	// Note that the ADC is running at 42MHz, which is higher than the
@@ -2734,6 +2741,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.i_alpha = ia;
 		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 
+		motor_now->m_i_alpha_sample_with_offset = motor_now->m_motor_state.i_alpha;
+		motor_now->m_i_beta_sample_with_offset = motor_now->m_motor_state.i_beta;
+
+		if (motor_now->m_i_alpha_beta_has_offset) {
+			motor_now->m_motor_state.i_alpha = 0.5 * (motor_now->m_motor_state.i_alpha + motor_now->m_i_alpha_sample_next);
+			motor_now->m_motor_state.i_beta = 0.5 * (motor_now->m_motor_state.i_beta + motor_now->m_i_beta_sample_next);
+			motor_now->m_i_alpha_beta_has_offset = false;
+		}
+
 		const float duty_now = motor_now->m_motor_state.duty_now;
 		const float duty_abs = fabsf(duty_now);
 		const float vq_now = motor_now->m_motor_state.vq;
@@ -2916,6 +2932,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_V2:
+			case FOC_SENSOR_MODE_HFI_V3:
 				if (fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) > conf_now->foc_sl_erpm_hfi) {
 					motor_now->m_hfi.observer_zero_time = 0;
 				} else {
@@ -3060,6 +3077,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				break;
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_V2:
+			case FOC_SENSOR_MODE_HFI_V3:
 			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
@@ -3574,7 +3592,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 	}
 
 	if (motor->m_hfi.ready) {
-		if (motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 &&
+		if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) &&
 				motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
 
 			if (!motor->m_using_encoder) {
@@ -3931,6 +3949,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 ||
+			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3 ||
 			(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START &&
 					motor->m_control_mode != CONTROL_MODE_CURRENT_BRAKE &&
 					fabsf(state_m->iq_target) > conf_now->cc_min_current)) &&
@@ -4098,13 +4117,14 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * (1.0 - fabsf(state_m->duty_now)) * SQRT3_BY_2 * (2.0 / 3.0) * 0.95);
 
-		if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 && hfi_est_done) {
+		if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) && hfi_est_done) {
 			if (motor->m_hfi.is_samp_n) {
 				if (fabsf(state_m->iq_target) > conf_now->foc_hfi_hyst) {
 					motor->m_hfi.sign_last_sample = SIGN(state_m->iq_target);
 				}
 
-				float sample_now = motor->m_hfi.cos_last * state_m->i_alpha + motor->m_hfi.sin_last * state_m->i_beta;
+				float sample_now = motor->m_hfi.cos_last * motor->m_i_alpha_sample_with_offset +
+						motor->m_hfi.sin_last * motor->m_i_beta_sample_with_offset;
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
 				// Use a lower bound on di to avoid division by 0.
@@ -4130,7 +4150,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 						(float*)&motor->m_hfi.sin_last, (float*)&motor->m_hfi.cos_last);
 
 #ifdef HW_HAS_PHASE_SHUNTS
-				if (conf_now->foc_sample_v0_v7) {
+				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
 					mod_alpha_tmp += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
 					mod_beta_tmp += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 				} else {
@@ -4142,7 +4162,9 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 					mod_alpha_tmp -= hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
 					mod_beta_tmp -= hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+
 					motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
+					motor->m_i_alpha_beta_has_offset = true;
 				}
 #else
 				mod_alpha_tmp += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
@@ -4190,9 +4212,11 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			state_m->mod_beta_raw = mod_beta_tmp;
 		} else {
 #ifdef HW_HAS_PHASE_SHUNTS
-			utils_saturate_vector_2d(&mod_alpha_tmp2, &mod_beta_tmp2, SQRT3_BY_2 * 0.95);
-			state_m->mod_alpha_raw = mod_alpha_tmp2;
-			state_m->mod_beta_raw = mod_beta_tmp2;
+			if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2) {
+				utils_saturate_vector_2d(&mod_alpha_tmp2, &mod_beta_tmp2, SQRT3_BY_2 * 0.95);
+				state_m->mod_alpha_raw = mod_alpha_tmp2;
+				state_m->mod_beta_raw = mod_beta_tmp2;
+			}
 #endif
 
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel

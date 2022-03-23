@@ -61,7 +61,8 @@ typedef enum {
 	FOC_SENSOR_MODE_HALL,
 	FOC_SENSOR_MODE_HFI,
 	FOC_SENSOR_MODE_HFI_START,
-	FOC_SENSOR_MODE_HFI_V2
+	FOC_SENSOR_MODE_HFI_V2,
+	FOC_SENSOR_MODE_HFI_V3
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
