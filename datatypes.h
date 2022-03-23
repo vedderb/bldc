@@ -60,7 +60,8 @@ typedef enum {
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
 	FOC_SENSOR_MODE_HFI,
-	FOC_SENSOR_MODE_HFI_START
+	FOC_SENSOR_MODE_HFI_START,
+	FOC_SENSOR_MODE_HFI_V2
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -312,6 +313,11 @@ typedef enum {
 	MTPA_MODE_IQ_MEASURED
 } MTPA_MODE;
 
+typedef enum {
+	SPEED_SRC_CORRECTED = 0,
+	SPEED_SRC_OBSERVER,
+} SPEED_SRC;
+
 typedef struct {
 	// Limits
 	float l_current_max;
@@ -414,6 +420,8 @@ typedef struct {
 	float foc_hfi_voltage_start;
 	float foc_hfi_voltage_run;
 	float foc_hfi_voltage_max;
+	float foc_hfi_gain;
+	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
@@ -430,6 +438,7 @@ typedef struct {
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
+	SPEED_SRC foc_speed_soure;
 
 	// GPDrive
 	int gpd_buffer_notify_left;

@@ -156,37 +156,46 @@ void hw_init_gpio(void) {
 }
 
 void hw_setup_adc_channels(void) {
+	uint8_t t_samp = ADC_SampleTime_3Cycles;
+
 	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, t_samp);
 
 	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, t_samp);
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, t_samp);
+
+	// Current oversampling
+//	for (int i = 6;i <= 15;i++) {
+//		ADC_RegularChannelConfig(ADC1, ADC_Channel_10, i, ADC_SampleTime_56Cycles);
+//		ADC_RegularChannelConfig(ADC2, ADC_Channel_11, i, ADC_SampleTime_56Cycles);
+//		ADC_RegularChannelConfig(ADC3, ADC_Channel_12, i, ADC_SampleTime_56Cycles);
+//	}
 
 	// Injected channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, t_samp);
 }
 
 void hw_start_i2c(void) {
