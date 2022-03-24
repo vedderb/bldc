@@ -374,6 +374,25 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_get_adc_decoded(lbm_value *args, lbm_uint argn) {
+	CHECK_NUMBER_ALL();
+
+	if (argn == 0) {
+		return lbm_enc_F(app_adc_get_decoded_level());
+	} else if (argn == 1) {
+		lbm_int channel = lbm_dec_as_i(args[0]);
+		if (channel == 0) {
+			return lbm_enc_F(app_adc_get_decoded_level());
+		} else if (channel == 1) {
+			return lbm_enc_F(app_adc_get_decoded_level2());
+		} else {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+}
+
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_I(chVTGetSystemTimeX());
@@ -1158,6 +1177,15 @@ static lbm_value ext_vec3_rot(lbm_value *args, lbm_uint argn) {
 	out_list = lbm_cons(lbm_enc_F(output[0]), out_list);
 
 	return out_list;
+}
+
+static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(4);
+	return lbm_enc_F(utils_throttle_curve(
+			lbm_dec_as_f(args[0]),
+			lbm_dec_as_f(args[1]),
+			lbm_dec_as_f(args[2]),
+			lbm_dec_as_i(args[3])));
 }
 
 // Bit operations
@@ -2111,6 +2139,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-selected-motor", ext_get_selected_motor);
 	lbm_add_extension("get-bms-val", ext_get_bms_val);
 	lbm_add_extension("get-adc", ext_get_adc);
+	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);
 	lbm_add_extension("systime", ext_systime);
 	lbm_add_extension("secs-since", ext_secs_since);
 	lbm_add_extension("set-aux", ext_set_aux);
@@ -2195,6 +2224,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("deg2rad", ext_deg2rad);
 	lbm_add_extension("rad2deg", ext_rad2deg);
 	lbm_add_extension("vec3-rot", ext_vec3_rot);
+	lbm_add_extension("throttle-curve", ext_throttle_curve);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);

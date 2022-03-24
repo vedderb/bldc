@@ -131,6 +131,14 @@ Get value from BMS. Examples:
 
 Get ADC voltage on channel ch (0, 1 or 2).
 
+#### get-adc-decoded
+
+```clj
+(get-adc-decoded ch)
+```
+
+Get decoded ADC value on channel ch (0 or 1). Decoded means that the voltage is mapped to the range 0 to 1 according to the configuration in the ADC app. Note that the ADC app must be running for this function to work. No throttle curve is applied to this value, but you can use the [throttle-curve](#throttle-curve) function to apply one if desired.
+
 #### systime
 
 ```clj
@@ -693,6 +701,13 @@ Converts x from radians to degrees.
 ```
 
 Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply the rotation in reverse (apply the inverse of the rotation matrix) if set to 1.
+
+#### throttle-curve
+```clj
+(throttle-curve value accel brake mode)
+```
+
+Apply throttle curve on value. accel (range -1 to 1) is the curve constant for acceleration (when value is greater than 0) and brake (range -1 to 1) is the curve constant for braking (when value is less than 0). mode (0, 1 or 2) is the throttle curve mode. Negative curve constants mean that the throttle will be gentler in the beginning and more aggressive with towards the end and positive curve constants mean the opposite. The modes are 0: Exponential, 1: Natural and 2: Polynomial. You can have a look at the throttle curves in VESC Tool for the PPM, ADC or VESC Remote app and experiment with the mode and curve constants to see a plot of the response.
 
 ### Bit Operations
 
