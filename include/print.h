@@ -30,7 +30,7 @@
  * \param print_stack_size The number of uint32_t elements in the array.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_print_init(uint32_t *print_stack_storage, uint32_t print_stack_size);
+extern int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size);
 
 /** Print an lbm_value into a buffer provided by the user.
  *  If printing fails, the buffer may contain an error message.

@@ -28,8 +28,6 @@ static int ext_offset = EXTENSION_SYMBOLS_START;
 static int ext_max    = -1;
 static extension_fptr *extension_table = NULL;
 
-uint32_t* extensions = NULL;
-
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
   if (extension_storage == NULL || extension_storage_size <= 0) return 0;
 

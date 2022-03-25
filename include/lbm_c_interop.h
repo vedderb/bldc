@@ -103,7 +103,7 @@ extern int lbm_undefine(char *symbol);
  * \param type What type are the elements of the array.
  * \param num_elt Number of elements in the array.
  */
-extern int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_elt);
+extern int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt);
 /** Create an array to access from both LBM and C. This function should be called while the evaluator
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
@@ -113,7 +113,7 @@ extern int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t
  * \param type What type are the elements of the array.
  * \param num_elt Number of elements in the array.
  */
-extern int lbm_create_array(lbm_value *value, lbm_type type, uint32_t num_elt);
+extern int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt);
 
 
 #endif

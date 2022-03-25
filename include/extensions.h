@@ -24,6 +24,9 @@
 #include "heap.h"
 #include "lbm_types.h"
 
+#define LBM_EXTENSION(name, argv, argn)                                 \
+  __attribute__((aligned(LBM_STORABLE_ADDRESS_ALIGNMENT))) lbm_value name(lbm_value *(argv), lbm_uint (argn)) 
+
 /** Type representing an extension function.
  * \param Pointer to array of lbm_values.
  * \param Number of arguments.
@@ -56,7 +59,7 @@ extern bool lbm_add_extension(char *sym_str, extension_fptr ext);
  * \return true if the lbm_value respresents an extension otherwise false.
  */
 static inline bool lbm_is_extension(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_SYMBOL) &&
           (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
 }
 #endif

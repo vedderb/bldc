@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 111
+#define NUM_SPECIAL_SYMBOLS 117
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -62,8 +62,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i28"       , SYM_MATCH_I28},
-  {"?u28"       , SYM_MATCH_U28},
+  {"?i"         , SYM_MATCH_I},
+  {"?u"         , SYM_MATCH_U},
   {"?u32"       , SYM_MATCH_U32},
   {"?i32"       , SYM_MATCH_I32},
   {"?float"     , SYM_MATCH_FLOAT},
@@ -79,9 +79,12 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"sym_array"          , SYM_ARRAY_TYPE},
-  {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
-  {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
-  {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
+  {"sym_raw_i"          , SYM_RAW_I_TYPE},
+  {"sym_raw_u"          , SYM_RAW_U_TYPE},
+  {"sym_raw_f"          , SYM_RAW_F_TYPE},
+  {"sym_ind_i"          , SYM_IND_I_TYPE},
+  {"sym_ind_u"          , SYM_IND_U_TYPE},
+  {"sym_ind_f"          , SYM_IND_F_TYPE},
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
@@ -100,11 +103,14 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
-  {"type-i28"         , SYM_TYPE_I28},
-  {"type-u28"         , SYM_TYPE_U28},
+  {"type-i"           , SYM_TYPE_I},
+  {"type-u"           , SYM_TYPE_U},
   {"type-float"       , SYM_TYPE_FLOAT},
   {"type-i32"         , SYM_TYPE_I32},
   {"type-u32"         , SYM_TYPE_U32},
+  {"type-double"      , SYM_TYPE_DOUBLE},
+  {"type-i64"         , SYM_TYPE_I64},
+  {"type-u64"         , SYM_TYPE_U64},
   {"type-array"       , SYM_TYPE_ARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
@@ -173,7 +179,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 
-static uint32_t *symlist = NULL;
+static lbm_uint *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
 static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
@@ -188,21 +194,21 @@ int lbm_symrepr_init(void) {
 
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     f((const char *)curr[NAME]);
-    curr = (uint32_t *)curr[NEXT];
+    curr = (lbm_uint *)curr[NEXT];
   }
 }
 
 const char *lookup_symrepr_name_memory(lbm_uint id) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     if (id == curr[ID]) {
       return (const char *)curr[NAME];
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return NULL;
 }
@@ -230,14 +236,14 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
     }
   }
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
     if (strcmp(name, str) == 0) {
       *id = curr[ID];
       return 1;
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return 0;
 }
@@ -248,17 +254,17 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
   char *symbol_name_storage = NULL;;
-  if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+  if (n % sizeof(lbm_uint) == 0) {
+    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -268,13 +274,13 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
@@ -290,17 +296,17 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
   char *symbol_name_storage = NULL;;
-  if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+  if (n % sizeof(lbm_uint) == 0) {
+    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -310,13 +316,13 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_variable_symbol_id++;
@@ -328,19 +334,19 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
@@ -352,19 +358,19 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_extension_symbol_id++;
@@ -373,18 +379,18 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
 }
 
 
-unsigned int lbm_get_symbol_table_size(void) {
+lbm_uint lbm_get_symbol_table_size(void) {
 
-  unsigned int n = 0;
-  uint32_t *curr = symlist;
+  lbm_uint n = 0;
+  lbm_uint *curr = symlist;
 
   while (curr) {
     // up to 3 extra bytes are used for string storage if length is not multiple of 4
     size_t s = strlen((char *)curr[NAME]);
     s ++;
-    n += s % 4;
+    n += s % sizeof(lbm_uint);
     n += 12; // sizeof the node in the linked list
-    curr = (uint32_t *)curr[NEXT];
+    curr = (lbm_uint *)curr[NEXT];
   }
   return n;
 }

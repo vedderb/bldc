@@ -6,7 +6,7 @@ include $(LISPBM)/lispbm.mk
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
-CCFLAGS = -g -m32  -Wall -Wconversion -pedantic -std=c11
+CCFLAGS = -g -Wall -Wconversion -pedantic -std=c11
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 
@@ -16,7 +16,12 @@ ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
 
+all: CCFLAGS += -m32
 all: repl $(LISPBM_DEPS)
+
+all64: 	CCFLAGS += -DLBM64
+all64: repl $(LISPBM_DEPS)
+
 
 debug: CCFLAGS += -g
 debug: repl

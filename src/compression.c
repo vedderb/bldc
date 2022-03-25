@@ -193,10 +193,10 @@ int match_longest_key(char *string) {
 
   int longest_match_ix = -1;
   unsigned int longest_match_length = 0;
-  unsigned int n = strlen(string);
+  unsigned int n = (unsigned int)strlen(string);
 
   for (int i = 0; i < NUM_CODES; i ++) {
-    unsigned int s_len = strlen(codes[i][KEY]);
+    unsigned int s_len = (unsigned int)strlen(codes[i][KEY]);
     if (s_len <= n) {
       if (strncasecmp(codes[i][KEY], string, s_len) == 0) {
         if (s_len > longest_match_length) {
@@ -216,7 +216,7 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
   unsigned int longest_match_length = 0;
 
   for (int i = 0; i < NUM_CODES; i++) {
-    unsigned int s_len = strlen(codes[i][CODE]);
+    unsigned int s_len = (unsigned int)strlen(codes[i][CODE]);
     if ((uint32_t)s_len <= bits_left) {
       bool match = true;
       for (uint32_t b = 0; b < (uint32_t)s_len; b ++) {
@@ -242,7 +242,7 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
 int compressed_length(char *string) {
   uint32_t i = 0;
 
-  uint32_t n = strlen(string);
+  uint32_t n = (uint32_t)strlen(string);
   int comp_len = 0; // in bits
 
   bool string_mode = false;
@@ -292,9 +292,9 @@ int compressed_length(char *string) {
       }
 
       if (ix == -1)return -1;
-      unsigned int code_len = strlen(codes[ix][1]);
+      unsigned int code_len = (unsigned int)strlen(codes[ix][1]);
       comp_len += (int)code_len;
-      i += strlen(codes[ix][0]);
+      i += (unsigned int)strlen(codes[ix][0]);
     }
   }
   return comp_len;
@@ -324,7 +324,7 @@ void emit_string_char_code(char *compressed, char c, int *bit_pos) {
 }
 
 void emit_code(char *compressed, char *code, int *bit_pos) {
-  unsigned int n = strlen(code);
+  unsigned int n = (unsigned int)strlen(code);
 
   for (unsigned int i = 0; i < n; i ++) {
     int byte_ix = (*bit_pos) / 8;
@@ -388,7 +388,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
-  uint32_t n = strlen(string);
+  uint32_t n = (uint32_t) strlen(string);
   uint32_t i = 0;
 
   while (i < n) {
@@ -442,7 +442,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
       emit_code(compressed, codes[ix][CODE], &bit_pos);
 
-      i += strlen(codes[ix][0]);
+      i += (unsigned int)strlen(codes[ix][0]);
     }
   }
 
@@ -488,7 +488,7 @@ int lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n
       s->last_string_char = 0;
     }
 
-    unsigned int n_bits_decoded = strlen(codes[ix][CODE]);
+    unsigned int n_bits_decoded = (unsigned int)strlen(codes[ix][CODE]);
     emit_key(dest_buff, codes[ix][KEY], (int)strlen(codes[ix][KEY]), &char_pos);
     s->i+=n_bits_decoded;
     return (int)char_pos;

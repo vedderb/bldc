@@ -67,7 +67,7 @@ void heap_vis_gen_image(void) {
 
   uint32_t fl = hs.freelist; 
 
-  while (lbm_type_of(fl) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(fl) == LBM_TYPE_CONS) {
     uint32_t index = lbm_dec_ptr(fl);
     pix_data[index] = free_color; 
     fl = lbm_cdr(fl);

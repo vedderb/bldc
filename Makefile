@@ -13,8 +13,14 @@ else
   AR=${CROSS_COMPILE}ar
 endif
 
-ifeq ($(PLATFORM),linux-x86-64)
-  $(error WILL NOT SUPPORT 64bit platforms)
+ifeq ($(PLATFORM),linux-x64)
+  BUILD_DIR = build/linux-x64
+  CCFLAGS += -g -O2 -DLBM64
+  CCFLAGS += -D_PRELUDE
+  PLATFORMSRC = platform/linux/src
+  PLATFORMINC = platform/linux/include
+  CC=gcc
+  AR=ar	
 endif
 
 ifeq ($(PLATFORM), zynq)

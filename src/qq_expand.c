@@ -67,14 +67,14 @@ lbm_value qq_expand_list(lbm_value l) {
   lbm_value cdr_val;
 
   switch (lbm_type_of(l)) {
-  case LBM_PTR_TYPE_CONS:
+  case LBM_TYPE_CONS:
     car_val = lbm_car(l);
     cdr_val = lbm_cdr(l);
-    if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+    if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
       res = lbm_cons(lbm_enc_sym(SYM_LIST),
                  lbm_cons(lbm_car(cdr_val), res));
-    } else if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+    } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
       res = lbm_car(cdr_val);
     } else {
@@ -116,13 +116,13 @@ lbm_value lbm_qq_expand(lbm_value qquoted) {
   lbm_value cdr_val;
 
   switch (lbm_type_of(qquoted)) {
-  case LBM_PTR_TYPE_CONS:
+  case LBM_TYPE_CONS:
     car_val = lbm_car(qquoted);
     cdr_val = lbm_cdr(qquoted);
-    if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+    if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
       res = lbm_car(cdr_val);
-    } else if (lbm_type_of(car_val) == LBM_VAL_TYPE_SYMBOL &&
+    } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
       res = lbm_enc_sym(SYM_RERROR); // should have a more specific error here. 
     } else {
