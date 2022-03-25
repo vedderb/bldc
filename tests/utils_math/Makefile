@@ -25,7 +25,7 @@ else
   CFLAGS += $(UNKNOWN_CXXFLAGS)
 endif
 
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall -Wdouble-promotion -Werror
 CFLAGS += -g
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
 
