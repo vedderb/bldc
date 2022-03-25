@@ -195,3 +195,217 @@ TEST_F(NormAngle_rad, ValAboveRange) {
    utils_norm_angle_rad(&inputVal);
    EXPECT_FLOAT_EQ(-0.5*M_PI, inputVal);
 }
+
+
+//----------------------------------------
+// Test fixture for utils_saturate_vector_2d()
+//----------------------------------------
+class Saturate2dVector : public MiscMath {
+protected:
+  virtual void SetUp() {
+  }
+
+  virtual void TearDown() {
+  }
+protected:
+   float eps = 0.000001f;
+
+};
+
+TEST_F(Saturate2dVector, ValsInRange) {
+   float inputVal_x;
+   float inputVal_y;
+   float inputVal_max;
+   bool ret;
+
+   inputVal_x = 1.0;
+   inputVal_y = 1.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(1, inputVal_x);
+   EXPECT_EQ(1, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = 1.0;
+   inputVal_y = -1.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(1, inputVal_x);
+   EXPECT_EQ(-1, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = -1.0;
+   inputVal_y = 1.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(-1, inputVal_x);
+   EXPECT_EQ(1, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = -1.0;
+   inputVal_y = -1.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(-1, inputVal_x);
+   EXPECT_EQ(-1, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = 0.01;
+   inputVal_y = 0.01;
+   inputVal_max = 0.1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(0.01, inputVal_x);
+   EXPECT_EQ(0.01, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = 0.01;
+   inputVal_y = -0.01;
+   inputVal_max = 0.1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(0.01, inputVal_x);
+   EXPECT_EQ(-0.01, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = -0.01;
+   inputVal_y = 0.01;
+   inputVal_max = 0.1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(-0.01, inputVal_x);
+   EXPECT_EQ(0.01, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = -0.01;
+   inputVal_y = -0.01;
+   inputVal_max = 0.1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(-0.01, inputVal_x);
+   EXPECT_EQ(-0.01, inputVal_y);
+   EXPECT_EQ(false, ret);
+}
+
+
+TEST_F(Saturate2dVector, ValsOnEdgeOfRange) {
+   float inputVal_x;
+   float inputVal_y;
+   float inputVal_max;
+   bool ret;
+
+   inputVal_x = 1.0;
+   inputVal_y = 1.0;
+   inputVal_max = sqrtf(2);
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(1, inputVal_x);
+   EXPECT_FLOAT_EQ(1, inputVal_y);
+   /* EXPECT_EQ(false, ret); <-- Do not test, since this is on the edge and we don't need to know if it's explicitly inside or outside*/
+
+   inputVal_x = .1;
+   inputVal_y = .1;
+   inputVal_max = sqrt(.2);
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(.1, inputVal_x);
+   EXPECT_FLOAT_EQ(.1, inputVal_y);
+   /* EXPECT_EQ(false, ret); <-- Do not test, since this is on the edge and we don't need to know if it's explicitly inside or outside*/
+}
+
+
+TEST_F(Saturate2dVector, ValsBeyondRange) {
+   float inputVal_x;
+   float inputVal_y;
+   float inputVal_max;
+   bool ret;
+
+   inputVal_x = 10.0;
+   inputVal_y = 10.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(10/sqrt(2), inputVal_x);
+   EXPECT_FLOAT_EQ(10/sqrt(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = -10.0;
+   inputVal_y = -10.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(-10/sqrt(2), inputVal_x);
+   EXPECT_FLOAT_EQ(-10/sqrt(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = 10.0;
+   inputVal_y = -10.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(10/sqrt(2), inputVal_x);
+   EXPECT_FLOAT_EQ(-10/sqrt(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = -10.0;
+   inputVal_y = 10.0;
+   inputVal_max = 10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(-10/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(10/sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = .1;
+   inputVal_y = .1;
+   inputVal_max = .1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(.10/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(.10 / sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = .1;
+   inputVal_y = -.1;
+   inputVal_max = .1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(.10f/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(-.10f/sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = -.1;
+   inputVal_y = .1;
+   inputVal_max = .1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(-.10f/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(.10f/sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = -.1;
+   inputVal_y = -.1;
+   inputVal_max = .1;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(-.10f/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(-.10f/sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+}
+
+TEST_F(Saturate2dVector, ValsAreDegenerate) {
+   float inputVal_x;
+   float inputVal_y;
+   float inputVal_max;
+   bool ret;
+
+   inputVal_x = 0.0;
+   inputVal_y = 0.0;
+   inputVal_max = 0.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(0, inputVal_x);
+   EXPECT_EQ(0, inputVal_y);
+   EXPECT_EQ(true, ret);
+
+   inputVal_x = 1.0;
+   inputVal_y = 1.0;
+   inputVal_max = -10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_EQ(1, inputVal_x);
+   EXPECT_EQ(1, inputVal_y);
+   EXPECT_EQ(false, ret);
+
+   inputVal_x = 10.0;
+   inputVal_y = 10.0;
+   inputVal_max = -10.0;
+   ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
+   EXPECT_FLOAT_EQ(10/sqrtf(2), inputVal_x);
+   EXPECT_FLOAT_EQ(10/sqrtf(2), inputVal_y);
+   EXPECT_EQ(true, ret);
+}
