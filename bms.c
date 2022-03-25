@@ -26,7 +26,8 @@
 
 #include "bms.h"
 #include "buffer.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "datatypes.h"
 #include "comm_can.h"
 #include "commands.h"

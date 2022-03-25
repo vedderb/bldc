@@ -15,7 +15,7 @@
 
 // Header files
 #include <ahrs.h>
-#include "utils.h"
+#include "utils_math.h"
 #include <math.h>
 
 // Private variables

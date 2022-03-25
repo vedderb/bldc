@@ -40,7 +40,7 @@
 #include "timeout.h"
 #include "encoder/encoder.h"
 #include "servo_simple.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "spi_sw.h"

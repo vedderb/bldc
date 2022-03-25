@@ -24,7 +24,8 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "timeout.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "comm_can.h"
 #include "hw.h"
 #include <math.h>

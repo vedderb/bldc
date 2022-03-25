@@ -18,7 +18,7 @@
     */
 
 #include "bmi160_wrapper.h"
-#include "utils.h"
+#include "utils_math.h"
 
 #include <stdio.h>
 #include <string.h>

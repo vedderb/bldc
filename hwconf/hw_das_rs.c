@@ -20,7 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_math.h"
 
 // Variables
 static volatile bool i2c_running = false;

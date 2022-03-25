@@ -22,7 +22,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
-#include "utils.h"
+#include "utils_math.h"
 
 /*
  * Settings

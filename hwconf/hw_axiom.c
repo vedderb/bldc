@@ -25,7 +25,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "stm32f4xx_rcc.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "terminal.h"
 #include "commands.h"
 #include "mc_interface.h"

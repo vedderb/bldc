@@ -20,7 +20,7 @@
 #include "terminal.h"
 #include "mc_interface.h"
 #include "mcpwm_foc.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "math.h"
 #include "stdio.h"
 #include "commands.h"

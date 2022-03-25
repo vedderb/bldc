@@ -26,7 +26,7 @@
 #include "packet.h"
 #include "commands.h"
 #include "mc_interface.h"
-#include "utils.h"
+#include "utils_math.h"
 #include <math.h>
 #include <string.h>
 #include "comm_can.h"

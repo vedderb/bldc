@@ -28,10 +28,9 @@ endif
 CFLAGS += -Wall -Werror
 CFLAGS += -g
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS)) -I.
-CFLAGS += -DUNIT_TEST
 
 CONLYFLAGS += -std=gnu99
 
-SRC := $(TOP)/utils.c
+SRC := $(TOP)/math_utils.c
 
 include $(TOP)/make/unittest.mk

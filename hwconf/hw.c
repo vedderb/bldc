@@ -18,7 +18,7 @@
 	*/
 
 #include "conf_general.h"
-#include "utils.h"
+#include "utils_math.h"
 #include <math.h>
 
 #ifdef HW_SOURCE_ALT

@@ -34,7 +34,7 @@
 #include "hw.h"
 #include "canard_driver.h"
 #include "encoder/encoder.h"
-#include "utils.h"
+#include "utils_sys.h"
 #include "mempools.h"
 #include "shutdown.h"
 #include "bms.h"
