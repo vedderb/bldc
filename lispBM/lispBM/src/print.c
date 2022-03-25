@@ -38,7 +38,7 @@ static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
-int lbm_print_init(uint32_t *print_stack_storage, uint32_t print_stack_size) {
+int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size) {
 
   if (!print_stack_storage || print_stack_size == 0)
     return 0;
@@ -85,10 +85,10 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       lbm_value car_val = lbm_car(curr);
       lbm_value cdr_val = lbm_cdr(curr);
 
-      if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
         res &= lbm_push_u32(&print_stack, cdr_val);
         res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
-      } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
+      } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
                  lbm_dec_sym(cdr_val) == SYM_NIL) {
         res &= lbm_push_u32(&print_stack, END_LIST);
       } else {
@@ -112,7 +112,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       res = 1;
       lbm_pop_u32(&print_stack, &curr);
 
-      if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL &&
+      if (lbm_type_of(curr) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(curr) == SYM_NIL) {
         break;
       }
@@ -129,10 +129,10 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       }
       offset += n;
 
-      if (lbm_type_of(cdr_val) == LBM_PTR_TYPE_CONS) {
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
         res &= lbm_push_u32(&print_stack, cdr_val);
         res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
-      } else if (lbm_type_of(cdr_val) == LBM_VAL_TYPE_SYMBOL &&
+      } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
                   lbm_dec_sym(cdr_val) == SYM_NIL) {
         res &= lbm_push_u32(&print_stack, END_LIST);
       } else {
@@ -188,7 +188,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
       switch(lbm_type_of(curr)) {
 
-      case LBM_PTR_TYPE_CONS:{
+      case LBM_TYPE_CONS:{
         res = 1;
         res &= lbm_push_u32(&print_stack, curr);
         res &= lbm_push_u32(&print_stack, START_LIST);
@@ -199,7 +199,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
-      case LBM_PTR_TYPE_REF:
+      case LBM_TYPE_REF:
         r = snprintf(buf + offset, len - offset, "_ref_");
         if ( r > 0) {
           n = (unsigned int) r;
@@ -210,10 +210,8 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         offset += n;
         break;
 
-      case LBM_PTR_TYPE_BOXED_F: {
-        lbm_value uv = lbm_car(curr);
-        float v;
-        memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
+      case LBM_TYPE_FLOAT: {
+        float v = lbm_dec_float(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
         if ( r > 0) {
           n = (unsigned int) r;
@@ -225,9 +223,9 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
-      case LBM_PTR_TYPE_BOXED_U: {
-        lbm_value v = lbm_car(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRI_UINT"}", v);
+      case LBM_TYPE_DOUBLE: {
+        double v = lbm_dec_double(curr);
+        r = snprintf(buf + offset, len - offset, "{%lf}", (double)v);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -238,9 +236,9 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
-      case LBM_PTR_TYPE_BOXED_I: {
-        int32_t v = (int32_t)lbm_car(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
+      case LBM_TYPE_U32: {
+        uint32_t v = lbm_dec_u32(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRIu32"}", v);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -251,10 +249,49 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
-      case LBM_PTR_TYPE_ARRAY: {
+      case LBM_TYPE_U64: {
+        uint64_t v = lbm_dec_u64(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRIu64"}", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
+      case LBM_TYPE_I32: {
+        int32_t v = lbm_dec_i32(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRId32"}", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
+      case LBM_TYPE_I64: {
+        int64_t v = lbm_dec_i64(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRId64"}", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
+      case LBM_TYPE_ARRAY: {
         lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
-        case LBM_VAL_TYPE_CHAR:
+        case LBM_TYPE_CHAR:
           r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
           if ( r > 0) {
             n = (unsigned int) r;
@@ -274,14 +311,14 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
           }
           for (unsigned int i = 0; i < array->size; i ++) {
             switch(array->elt_type) {
-            case LBM_PTR_TYPE_BOXED_I:
-              r = snprintf(buf+offset, len - offset, "%lu%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+            case LBM_TYPE_I32:
+              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
-            case LBM_PTR_TYPE_BOXED_U:
-              r = snprintf(buf+offset, len - offset, "%lu%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+            case LBM_TYPE_U32:
+              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
-            case LBM_PTR_TYPE_BOXED_F:
-              r = snprintf(buf+offset, len - offset, "%f%s", (double)((float)array->data[i]), i == array->size - 1 ? "" : ", ");
+            case LBM_TYPE_FLOAT:
+              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(double)(lbm_float)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             default:
               break;
@@ -299,7 +336,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         }
         break;
       }
-      case LBM_PTR_TYPE_STREAM: {
+      case LBM_TYPE_STREAM: {
 
         r = snprintf(buf + offset, len - offset, "~STREAM~");
         if ( r > 0) {
@@ -311,7 +348,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         offset += n;
         break;
       }
-      case LBM_VAL_TYPE_SYMBOL:
+      case LBM_TYPE_SYMBOL:
         str_ptr = lbm_get_name_by_symbol(lbm_dec_sym(curr));
         if (str_ptr == NULL) {
 
@@ -328,7 +365,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         offset += n;
         break; //Break VAL_TYPE_SYMBOL
 
-      case LBM_VAL_TYPE_I:
+      case LBM_TYPE_I:
         r = snprintf(buf + offset, len - offset, "%"PRI_INT"", lbm_dec_i(curr));
         if ( r > 0) {
           n = (unsigned int) r;
@@ -339,7 +376,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         offset += n;
         break;
 
-      case LBM_VAL_TYPE_U:
+      case LBM_TYPE_U:
         r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", lbm_dec_u(curr));
         if ( r > 0) {
           n = (unsigned int) r;
@@ -350,7 +387,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         offset += n;
         break;
 
-      case LBM_VAL_TYPE_CHAR:
+      case LBM_TYPE_CHAR:
         r = snprintf(buf + offset, len - offset, "\\#%c", lbm_dec_char(curr));
         if ( r > 0) {
           n = (unsigned int) r;
@@ -362,7 +399,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
 
       default:
-        snprintf(buf, len, "Error: print does not recognize type of value: %"PRIx32"", curr);
+        snprintf(buf, len, "Error: print does not recognize type of value: %"PRI_HEX"", curr);
         return -1;
         break;
       } // Switch type of curr
