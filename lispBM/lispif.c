@@ -153,7 +153,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 		lbm_get_heap_state(&heap_state);
 		if (heap_state.gc_num > 0) {
-			heap_use = 100.0 * (float)(HEAP_SIZE - heap_state.gc_recovered) / (float)HEAP_SIZE;
+			heap_use = 100.0 * (float)(HEAP_SIZE - heap_state.gc_last_free) / (float)HEAP_SIZE;
 		}
 
 		mem_use = 100.0 * (float)(lbm_memory_num_words() - lbm_memory_num_free()) / (float)lbm_memory_num_words();
