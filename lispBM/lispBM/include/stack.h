@@ -28,9 +28,9 @@
 
 typedef struct {
   lbm_uint* data;
-  unsigned int sp;
-  unsigned int size;
-  unsigned int max_sp;
+  lbm_uint sp;
+  lbm_uint size;
+  lbm_uint max_sp;
 } lbm_stack_t;
 
 /** Allocate a stack on the symbols and arrays memory.
@@ -39,7 +39,7 @@ typedef struct {
  * \param stack_size Size in 32 bit words of stack to allocate.
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size);
+extern int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size);
 /** Create a stack in a statically allocated array.
  *
  * \param s Pointer to an lbm_stack_t to initialize.
@@ -47,7 +47,7 @@ extern int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size);
  * \param size Size in number of 32 bit words.
  * \return 1
  */
-extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, unsigned int size);
+extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size);
 /** Free a stack allocated on the lispbm_memory.
  *
  * \param s Pointer to lbm_stack_t to free.
@@ -65,14 +65,14 @@ extern int lbm_stack_clear(lbm_stack_t *s);
  * \param n Index.
  * \return Pointer into the stack or NULL.
  */
-extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, unsigned int n);
+extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
 /** Drop n elements (from the top) of a stack.
  *
  * \param s Stack to drop elements from.
  * \param n Number of elements to drop.
  * \return 1 on Success and 0 on failure.
  */
-extern int lbm_stack_drop(lbm_stack_t *s, unsigned int n);
+extern int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
 /** Push an element onto a stack.
  *
  * \param s Stack to push a value onto.

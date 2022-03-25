@@ -22,7 +22,7 @@
 #include "stack.h"
 #include "print.h"
 
-int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size) {
+int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size) {
   s->data = lbm_memory_allocate(stack_size);
   s->sp = 0;
   s->size = stack_size;
@@ -32,7 +32,7 @@ int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size) {
   return 0;
 }
 
-int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, unsigned int size) {
+int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size) {
   s->data = data;
   s->sp = 0;
   s->size = size;
@@ -51,13 +51,13 @@ int lbm_stack_clear(lbm_stack_t *s) {
   return 1;
 }
 
-lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, unsigned int n) {
+lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n) {
   if (n > s->sp) return NULL;
-  unsigned int index = s->sp - n;
+  lbm_uint index = s->sp - n;
   return &s->data[index];
 }
 
-int lbm_stack_drop(lbm_stack_t *s, unsigned int n) {
+int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
 
   if (n > s->sp) return 0;
 

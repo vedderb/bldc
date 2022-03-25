@@ -47,10 +47,10 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   for (int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
-    if (lbm_is_ptr(t) && ptr_type(t) == LBM_PTR_TYPE_ARRAY) {
+    if (lbm_is_ptr(t) && ptr_type(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case LBM_VAL_TYPE_CHAR: {
+      case LBM_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	printf("%s", data);
 	break;
@@ -59,7 +59,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(symrepr_nil);
 	break;
       }
-    } else if (val_type(t) == LBM_VAL_TYPE_CHAR) {
+    } else if (val_type(t) == LBM_TYPE_CHAR) {
       printf("%c", lbm_dec_char(t));
     } else {
       int print_ret = lbm_print_value(output, 1024, error, 1024, t);
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
       }
       int env_len = 0;
       lbm_value curr = *lbm_get_env_ptr();
-      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
 	env_len ++;
 	curr = lbm_cdr(curr);
       }

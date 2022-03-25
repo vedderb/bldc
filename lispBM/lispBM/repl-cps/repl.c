@@ -27,6 +27,8 @@
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "extensions/string_extensions.h"
+#include "extensions/math_extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -36,8 +38,8 @@
 
 #define WAIT_TIMEOUT 2500
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
-uint32_t print_stack_storage[PRINT_STACK_SIZE];
+lbm_uint gc_stack_storage[GC_STACK_SIZE];
+lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
@@ -140,13 +142,13 @@ void done_callback(eval_context_t *ctx) {
   int print_ret = lbm_print_value(output, 1024, t);
 
   if (print_ret >= 0) {
-    printf("<< Context %d finished with value %s >>\n", cid, output);
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
   } else {
-    printf("<< Context %d finished with value %s >>\n", cid, output);
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
   }
-  printf("stack max:  %d\n", ctx->K.max_sp);
-  printf("stack size: %u\n", ctx->K.size);
-  printf("stack sp:   %d\n", ctx->K.sp);
+  printf("stack max:  %"PRI_UINT"\n", ctx->K.max_sp);
+  printf("stack size: %"PRI_UINT"\n", ctx->K.size);
+  printf("stack sp:   %"PRI_INT"\n", ctx->K.sp);
 
   //  if (!eval_cps_remove_done_ctx(cid, &t)) {
   //   printf("Error: done context (%d)  not in list\n", cid);
@@ -204,10 +206,10 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   for (int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_PTR_TYPE_ARRAY) {
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case LBM_VAL_TYPE_CHAR: {
+      case LBM_TYPE_CHAR: {
         char *data = (char*)array->data;
         printf("%s", data);
         break;
@@ -216,7 +218,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
         return lbm_enc_sym(SYM_NIL);
         break;
       }
-    } else if (lbm_type_of(t) == LBM_VAL_TYPE_CHAR) {
+    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
       printf("%c", lbm_dec_char(t));
     } else {
       lbm_print_value(output, 1024, t);
@@ -229,7 +231,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 char output[128];
 
 static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
-        if (argn != 2 || lbm_type_of(args[0]) != LBM_VAL_TYPE_I || lbm_type_of(args[1]) != LBM_VAL_TYPE_I) {
+        if (argn != 2 || lbm_type_of(args[0]) != LBM_TYPE_I || lbm_type_of(args[1]) != LBM_TYPE_I) {
                 return lbm_enc_sym(SYM_EERROR);
         }
 
@@ -316,9 +318,9 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   int print_ret = lbm_print_value(output, 1024, ctx->r);
 
   printf("--------------------------------\n");
-  printf("ContextID: %u\n", ctx->id);
-  printf("Stack SP: %u\n",  ctx->K.sp);
-  printf("Stack SP max: %u\n", ctx->K.max_sp);
+  printf("ContextID: %"PRI_UINT"\n", ctx->id);
+  printf("Stack SP: %"PRI_UINT"\n",  ctx->K.sp);
+  printf("Stack SP max: %"PRI_UINT"\n", ctx->K.max_sp);
   if (print_ret) {
     printf("Value: %s\n", output);
   } else {
@@ -341,11 +343,11 @@ void sym_it(const char *str) {
   printf("%s\n", str);
 }
 
-static uint32_t memory[LBM_MEMORY_SIZE_8K];
-static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
+static lbm_uint memory[LBM_MEMORY_SIZE_8K];
+static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
 char char_array[1024];
-uint32_t word_array[1024];
+lbm_uint word_array[1024];
 
 
 int main(int argc, char **argv) {
@@ -361,7 +363,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < 1024; i ++) {
     char_array[i] = (char)i;
-    word_array[i] = (uint32_t)i;
+    word_array[i] = (lbm_uint)i;
   }
 
   //setup_terminal();
@@ -371,12 +373,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_init(heap_storage, heap_size,
-           gc_stack_storage, GC_STACK_SIZE,
-           memory, LBM_MEMORY_SIZE_8K,
-           bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
-           print_stack_storage, PRINT_STACK_SIZE,
-           extension_storage, EXTENSION_STORAGE_SIZE);
+  if (!lbm_init(heap_storage, heap_size,
+                gc_stack_storage, GC_STACK_SIZE,
+                memory, LBM_MEMORY_SIZE_8K,
+                bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                print_stack_storage, PRINT_STACK_SIZE,
+                extension_storage, EXTENSION_STORAGE_SIZE)) {
+    printf("Failed to initialize LispBM\n");
+    return 0;
+  }
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
@@ -386,10 +391,25 @@ int main(int argc, char **argv) {
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
-  if (!lbm_array_extensions_init()) {
-    printf("error adding array extensions");
+  if (lbm_array_extensions_init()) {
+    printf("Array extensions loaded\n");
+  } else {
+    printf("Loading array extensions failed\n");
+  }
+  
+  if (lbm_string_extensions_init()) {
+    printf("String extensions loaded\n");
+  } else {
+    printf("Loading string extensions failed\n");
   }
 
+  if (lbm_math_extensions_init()) {
+    printf("Math extensions loaded\n");
+  } else {
+    printf("Loading math extensions failed\n");
+  }
+  
+  
   res = lbm_add_extension("print", ext_print);
   if (res)
     printf("Extension added.\n");
@@ -435,21 +455,21 @@ int main(int argc, char **argv) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
       lbm_get_heap_state(&heap_state);
       printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Used cons cells: %d\n", heap_size - lbm_heap_num_free());
-      printf("Free cons cells: %d\n", lbm_heap_num_free());
-      printf("GC counter: %d\n", heap_state.gc_num);
-      printf("Recovered: %d\n", heap_state.gc_recovered);
-      printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
-      printf("Marked: %d\n", heap_state.gc_marked);
+      printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
+      printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
+      printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
+      printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
+      printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
+      printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
       printf("--(Symbol and Array memory)---------------------------------\n");
-      printf("Memory size: %u Words\n", lbm_memory_num_words());
-      printf("Memory free: %u Words\n", lbm_memory_num_free());
-      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
-      printf("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
+      printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
+      printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+      printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
+      printf("Symbol table size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();
       printf("Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
         res = lbm_print_value(output,1024, lbm_car(curr));
         curr = lbm_cdr(curr);
         printf("  %s\r\n",output);
@@ -480,7 +500,7 @@ int main(int argc, char **argv) {
 
         lbm_continue_eval();
 
-        printf("started ctx: %u\n", cid);
+        printf("started ctx: %"PRI_UINT"\n", cid);
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
@@ -523,8 +543,25 @@ int main(int argc, char **argv) {
 
       lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
-      lbm_array_extensions_init();
+      if (lbm_array_extensions_init()) {
+        printf("Array extensions loaded\n");
+      } else {
+        printf("Loading array extensions failed\n");
+      }
 
+      if (lbm_string_extensions_init()) {
+        printf("String extensions loaded\n");
+      } else {
+        printf("Loading string extensions failed\n");
+      }
+
+      if (lbm_math_extensions_init()) {
+        printf("Math extensions loaded\n");
+      } else {
+        printf("Loading math extensions failed\n");
+      }
+  
+      
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {
 
@@ -595,10 +632,10 @@ int main(int argc, char **argv) {
       printf("Evaluator paused\n");
 
       lbm_value arr_val;
-      lbm_share_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
+      lbm_share_array(&arr_val, char_array, LBM_TYPE_CHAR,1024);
       lbm_define("c-arr", arr_val);
 
-      lbm_share_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
+      lbm_share_array(&arr_val, (char *)word_array, LBM_TYPE_I32,1024);
       lbm_define("i-arr", arr_val);
 
       lbm_continue_eval();
@@ -617,7 +654,7 @@ int main(int argc, char **argv) {
 
       lbm_continue_eval();
 
-      printf("started ctx: %u\n", cid);
+      printf("started ctx: %"PRI_UINT"\n", cid);
       /* Something better is needed.
          this sleep ís to ensure the string is alive until parsing
          is done */

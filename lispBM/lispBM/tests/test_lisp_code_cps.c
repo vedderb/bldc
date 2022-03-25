@@ -36,8 +36,8 @@
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
-uint32_t print_stack_storage[PRINT_STACK_SIZE];
+lbm_uint gc_stack_storage[GC_STACK_SIZE];
+lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
@@ -84,7 +84,7 @@ void context_done_callback(eval_context_t *ctx) {
     printf("%s\n", output);
   }
 
-  if (res && lbm_type_of(t) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
     experiment_success = true;
     printf("Test: OK!\n");
   } else {
@@ -94,14 +94,14 @@ void context_done_callback(eval_context_t *ctx) {
   experiment_done = true;
 }
 
-lbm_value ext_even(lbm_value *args, lbm_uint argn) {
-
+  //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
+LBM_EXTENSION(ext_even, args, argn){ 
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   lbm_value v = args[0];
 
-  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
-      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+  if (lbm_type_of(v) == LBM_TYPE_I ||
+      lbm_type_of(v) == LBM_TYPE_U) {
     if (lbm_dec_i(v) % 2 == 0)
       return lbm_enc_sym(SYM_TRUE);
   }
@@ -109,14 +109,15 @@ lbm_value ext_even(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_NIL);
 }
 
-lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
+LBM_EXTENSION(ext_odd, args, argn){
+  //lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
 
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   lbm_value v = args[0];
 
-  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
-      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+  if (lbm_type_of(v) == LBM_TYPE_I ||
+      lbm_type_of(v) == LBM_TYPE_U) {
     if (lbm_dec_i(v) % 2 == 1)
       return lbm_enc_sym(SYM_TRUE);
   }
@@ -187,9 +188,9 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  uint32_t *memory = malloc(4 * LBM_MEMORY_SIZE_16K);
+  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_32K);
   if (memory == NULL) return 0;
-  uint32_t *bitmap = malloc(4 * LBM_MEMORY_BITMAP_SIZE_16K);
+  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_32K);
   if (bitmap == NULL) return 0;
 
 
@@ -225,7 +226,7 @@ int main(int argc, char **argv) {
 
   res = lbm_heap_init(heap_storage, heap_size, gc_stack_storage, GC_STACK_SIZE);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
+    printf("Heap initialized. Heap size: %"PRI_FLOAT" MiB. Free cons cells: %"PRI_INT"\n", (double)lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;

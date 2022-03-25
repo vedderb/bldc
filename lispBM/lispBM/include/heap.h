@@ -25,6 +25,7 @@
 #include "symrepr.h"
 #include "streams.h"
 #include "stack.h"
+#include "lbm_memory.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -183,37 +184,83 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
+#ifndef LBM64
 
-#define LBM_CONS_CELL_SIZE              8
-#define LBM_ADDRESS_SHIFT               3
+#define LBM_ADDRESS_SHIFT               2
 #define LBM_VAL_SHIFT                   4
 
-#define LBM_PTR_MASK                    0x00000001u
-#define LBM_PTR_BIT                     0x00000001u
-#define LBM_PTR_VAL_MASK                0x03FFFFF8u
-#define LBM_PTR_TYPE_MASK               0xFC000000u
+#define LBM_PTR_MASK                     0x00000001u
+#define LBM_PTR_BIT                      0x00000001u
+#define LBM_PTR_VAL_MASK                 0x03FFFFFCu
+#define LBM_PTR_TYPE_MASK                0xFC000000u
 
-#define LBM_PTR_TYPE_CONS               0x10000000u
-#define LBM_PTR_TYPE_BOXED_U            0x20000000u
-#define LBM_PTR_TYPE_BOXED_I            0x30000000u
-#define LBM_PTR_TYPE_BOXED_F            0x40000000u
+#define LBM_POINTER_TYPE_FIRST           0x10000000u
+#define LBM_TYPE_CONS                    0x10000000u
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
+#define LBM_TYPE_U32                     0x20000000u
+#define LBM_TYPE_I32                     0x30000000u
+#define LBM_TYPE_I64                     0x40000000u
+#define LBM_TYPE_U64                     0x50000000u
+#define LBM_TYPE_FLOAT                   0x60000000u
+#define LBM_TYPE_DOUBLE                  0x70000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0x70000000u
+#define LBM_POINTER_TYPE_LAST            0x70000000u
 
-#define LBM_PTR_TYPE_ARRAY              0xD0000000u
-#define LBM_PTR_TYPE_REF                0xE0000000u
-#define LBM_PTR_TYPE_STREAM             0xF0000000u
+#define LBM_TYPE_ARRAY                   0xD0000000u
+#define LBM_TYPE_REF                     0xE0000000u
+#define LBM_TYPE_STREAM                  0xF0000000u
 
-#define LBM_GC_MASK                     0x00000002u
-#define LBM_GC_MARKED                   0x00000002u
+#define LBM_GC_MASK                      0x00000002u
+#define LBM_GC_MARKED                    0x00000002u
 
-#define LBM_VAL_MASK                    0xFFFFFFF0u
-#define LBM_VAL_TYPE_MASK               0x0000000Cu
+#define LBM_VAL_MASK                     0xFFFFFFF0u
+#define LBM_VAL_TYPE_MASK                0x0000000Cu
                                                     //    gc ptr
-#define LBM_VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
-/// Character or byte.
-#define LBM_VAL_TYPE_CHAR               0x00000004u // 01  0   0
-#define LBM_VAL_TYPE_BYTE               0x00000004u
-#define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
-#define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
+#define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
+#define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
+#define LBM_TYPE_BYTE                    0x00000004u
+#define LBM_TYPE_U                       0x00000008u // 10  0   0
+#define LBM_TYPE_I                       0x0000000Cu // 11  0   0
+
+#else /* 64 bit Version */
+
+#define LBM_ADDRESS_SHIFT                2
+#define LBM_VAL_SHIFT                    8
+
+#define LBM_PTR_MASK                     (lbm_uint)0x1
+#define LBM_PTR_BIT                      (lbm_uint)0x1
+#define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
+#define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
+
+#define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
+#define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0xA000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0xA000000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0xB000000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0xC000000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0xD000000000000000
+#define LBM_TYPE_REF                     (lbm_uint)0xE000000000000000
+#define LBM_TYPE_STREAM                  (lbm_uint)0xF000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0xF000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xF000000000000000
+
+#define LBM_GC_MASK                      (lbm_uint)0x2
+#define LBM_GC_MARKED                    (lbm_uint)0x2
+
+/* 8 - 2 free bits to encode type information into */
+#define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
+#define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
+//    gc ptr
+#define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
+#define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0
+#define LBM_TYPE_BYTE                   (lbm_uint)0x4
+#define LBM_TYPE_U                      (lbm_uint)0x8 // 00 00 10  0   0
+#define LBM_TYPE_I                      (lbm_uint)0xC // 00 00 11  0   0
+#define LBM_TYPE_U32                    (lbm_uint)0x14// 00 01 01  0   0
+#define LBM_TYPE_I32                    (lbm_uint)0x18// 00 01 10  0   0
+#define LBM_TYPE_FLOAT                  (lbm_uint)0x1C// 00 01 11  0   0
+
+#endif
 
 /** Struct representing a heap cons-cell.
  *
@@ -227,25 +274,27 @@ typedef struct {
  *  Heap state
  */
 typedef struct {
-  lbm_cons_t  *heap;
-  lbm_value freelist;              // list of free cons cells.
+  lbm_cons_t *heap;
+  lbm_value freelist;          // list of free cons cells.
   lbm_stack_t gc_stack;
 
-  uint32_t heap_size;          // In number of cells.
-  uint32_t heap_bytes;         // In bytes.
+  lbm_uint heap_size;          // In number of cells.
+  lbm_uint heap_bytes;         // In bytes.
 
-  uint32_t num_alloc;          // Number of cells allocated.
-  uint32_t num_alloc_arrays;   // Number of arrays allocated.
+  lbm_uint num_alloc;          // Number of cells allocated.
+  lbm_uint num_alloc_arrays;   // Number of arrays allocated.
 
-  uint32_t gc_num;             // Number of times gc has been performed.
-  uint32_t gc_marked;          // Number of cells marked by mark phase.
-  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
-  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
-  uint32_t gc_least_free;      // The smallest length of the freelist.
+  lbm_uint gc_num;             // Number of times gc has been performed.
+  lbm_uint gc_marked;          // Number of cells marked by mark phase.
+  lbm_uint gc_recovered;       // Number of cells recovered by sweep phase.
+  lbm_uint gc_recovered_arrays;// Number of arrays recovered by sweep.
+  lbm_uint gc_least_free;      // The smallest length of the freelist.
+  lbm_uint gc_last_free;       // Number of elements on the freelist
+                               // after most recent GC.
 
-  uint64_t     gc_time_acc;
-  uint32_t     gc_min_duration;
-  uint32_t     gc_max_duration;
+  lbm_uint gc_time_acc;
+  lbm_uint gc_min_duration;
+  lbm_uint gc_max_duration;
 } lbm_heap_state_t;
 
 /**
@@ -253,8 +302,8 @@ typedef struct {
  */
 typedef struct {
   lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
-  uint32_t size;            /// Number of elements
-  uint32_t *data;           /// pointer to lbm_memory array or C array.
+  lbm_uint size;            /// Number of elements
+  lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
 /** Initialize heap storage.
@@ -264,39 +313,39 @@ typedef struct {
  * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
-                         uint32_t *gc_stack_storage, uint32_t gc_stack_size);
+extern int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+                         lbm_uint *gc_stack_storage, lbm_uint gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *
  * \param dur Duration as reported by the timestamp callback.
  */
-extern void lbm_heap_new_gc_time(uint32_t dur);
+extern void lbm_heap_new_gc_time(lbm_uint dur);
 /** Add a new free_list length to the heap_stats.
- *
- * \param l Current length of freelist.
+ *  Calculates a new freelist length and updates
+ *  the GC statistics.
  */
-extern void lbm_heap_new_freelist_length(uint32_t l);
+extern void lbm_heap_new_freelist_length(void);
 /** Check how many lbm_cons_t cells are on the free-list
  *
  * \return Number of free lbm_cons_t cells.
  */
-extern unsigned int lbm_heap_num_free(void);
+extern lbm_uint lbm_heap_num_free(void);
 /** Check how many lbm_cons_t cells are allocated.
  *
  * \return  Number of lbm_cons_t cells that are currently allocated.
  */
-extern unsigned int lbm_heap_num_allocated(void);
+extern lbm_uint lbm_heap_num_allocated(void);
 /** Size of the heap in number of lbm_cons_t cells.
  *
  * \return Size of the heap in number of lbm_cons_t cells.
  */
-extern unsigned int lbm_heap_size(void);
+extern lbm_uint lbm_heap_size(void);
 /** Size of the heap in bytes.
  *
  * \return Size of heap in bytes.
  */
-extern unsigned int lbm_heap_size_bytes(void);
+extern lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
@@ -316,24 +365,48 @@ extern char *lbm_dec_str(lbm_value val);
  * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
  */
 extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+/** Decode a numerical value as if it is char
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to a char. Returns 0 if val does not encode a number.
+ */
+extern char lbm_dec_as_char(lbm_value a);
 /** Decode a numerical value as if it is unsigned
  *
  * \param val Value to decode
  * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
  */
-extern lbm_uint lbm_dec_as_u(lbm_value val);
+extern uint32_t lbm_dec_as_u32(lbm_value val);
 /** Decode a numerical value as a signed integer.
  *
  * \param val Value to decode
  * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
  */
-extern lbm_int lbm_dec_as_i(lbm_value val);
+extern int32_t lbm_dec_as_i32(lbm_value val);
 /** Decode a numerical value as a float.
  *
  * \param val Value to decode.
  * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
  */
-extern lbm_float lbm_dec_as_f(lbm_value val);
+extern float lbm_dec_as_float(lbm_value val);
+/** Decode a numerical value as if it is a 64bit unsigned
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
+ */
+extern uint64_t lbm_dec_as_u64(lbm_value val);
+/** Decode a numerical value as a 64bit signed integer.
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
+ */
+extern int64_t lbm_dec_as_i64(lbm_value val);
+/** Decode a numerical value as a float.
+ *
+ * \param val Value to decode.
+ * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
+ */
+extern double lbm_dec_as_double(lbm_value val);
 
 extern lbm_uint lbm_dec_raw(lbm_value v);
 /** Allocates an lbm_cons_t cell from the heap and populates it.
@@ -450,7 +523,7 @@ extern int lbm_gc_mark_phase2(lbm_value env);
  * \param n Number of elements in roots-array.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_gc_mark_aux(lbm_uint *data, unsigned int n);
+extern int lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
 
 /** Sweep up all non marked heap cells and place them on the free list.
  *
@@ -466,7 +539,7 @@ extern int lbm_gc_sweep_phase(void);
  * \param type The type information to encode onto the heap cell.
  * \return 1 for success of 0 for failure.
  */
-extern int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type);
+extern int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
 
 /** Query the type information of a value.
  *
@@ -482,7 +555,7 @@ static inline bool lbm_is_ptr(lbm_value x) {
 }
 
 static inline lbm_value lbm_enc_cons_ptr(lbm_uint x) {
-  return ((x << LBM_ADDRESS_SHIFT) | LBM_PTR_TYPE_CONS | LBM_PTR_BIT);
+  return ((x << LBM_ADDRESS_SHIFT) | LBM_TYPE_CONS | LBM_PTR_BIT);
 }
 
 static inline lbm_uint lbm_dec_ptr(lbm_value p) {
@@ -490,43 +563,117 @@ static inline lbm_uint lbm_dec_ptr(lbm_value p) {
 }
 
 static inline lbm_value lbm_set_ptr_type(lbm_value p, lbm_type t) {
-  return (LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT;
+  return ((LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT);
 }
 
-static inline lbm_value lbm_enc_sym(uint32_t s) {
-  return (s << LBM_VAL_SHIFT) | LBM_VAL_TYPE_SYMBOL;
+static inline lbm_value lbm_enc_sym(lbm_uint s) {
+  return (s << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL;
 }
 
 static inline lbm_value lbm_enc_i(lbm_int x) {
-  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_I;
+  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_TYPE_I;
 }
 
 static inline lbm_value lbm_enc_u(lbm_uint x) {
-  return (x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_U;
+  return (x << LBM_VAL_SHIFT) | LBM_TYPE_U;
 }
 
-static inline lbm_value lbm_enc_I(lbm_int x) {
-  lbm_value i = lbm_cons((lbm_uint)x, lbm_enc_sym(SYM_BOXED_I_TYPE));
-  if (lbm_type_of(i) == LBM_VAL_TYPE_SYMBOL) return i;
-  return lbm_set_ptr_type(i, LBM_PTR_TYPE_BOXED_I);
+static inline lbm_value lbm_enc_i32(int32_t x) {
+#ifndef LBM64
+  lbm_value i = lbm_cons((lbm_uint)x, lbm_enc_sym(SYM_RAW_I_TYPE));
+  if (lbm_type_of(i) == LBM_TYPE_SYMBOL) return i;
+  return lbm_set_ptr_type(i, LBM_TYPE_I32);
+#else
+  return (((lbm_uint)x) << LBM_VAL_SHIFT) | LBM_TYPE_I32;
+#endif
 }
 
-static inline lbm_value lbm_enc_U(lbm_uint x) {
-  lbm_value u = lbm_cons(x, lbm_enc_sym(SYM_BOXED_U_TYPE));
-  if (lbm_type_of(u) == LBM_VAL_TYPE_SYMBOL) return u;
-  return lbm_set_ptr_type(u, LBM_PTR_TYPE_BOXED_U);
+static inline lbm_value lbm_enc_u32(uint32_t x) {
+#ifndef LBM64
+  lbm_value u = lbm_cons(x, lbm_enc_sym(SYM_RAW_U_TYPE));
+  if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_TYPE_U32);
+#else
+  return (((lbm_uint)x) << LBM_VAL_SHIFT) | LBM_TYPE_U32;
+#endif
 }
 
-static inline lbm_value lbm_enc_F(lbm_float x) {
+static inline lbm_value lbm_enc_float(float x) {
+#ifndef LBM64
   lbm_uint t;
-  memcpy(&t, &x, sizeof(float));
-  lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_BOXED_F_TYPE));
-  if (lbm_type_of(f) == LBM_VAL_TYPE_SYMBOL) return f;
-  return lbm_set_ptr_type(f, LBM_PTR_TYPE_BOXED_F);
+  memcpy(&t, &x, sizeof(lbm_float));
+  lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_RAW_F_TYPE));
+  if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
+  return lbm_set_ptr_type(f, LBM_TYPE_FLOAT);
+#else
+  uint32_t t;
+  memcpy(&t, &x, sizeof(float)); /*TODO: Assumes something about storage here ?*/
+  return (((lbm_uint)t) << LBM_VAL_SHIFT) | LBM_TYPE_FLOAT;
+#endif
 }
+
+static inline lbm_value lbm_enc_i64(int64_t x) {
+#ifndef LBM64
+  lbm_value res = lbm_enc_sym(SYM_MERROR);
+  lbm_uint* storage = lbm_memory_allocate(2);
+  if (storage) {
+    res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_I_TYPE));
+    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+      memcpy(storage,&x, 8);
+      res = lbm_set_ptr_type(res, LBM_TYPE_I64);
+    }
+  }
+  return res;
+#else
+  lbm_value u = lbm_cons((uint64_t)x, lbm_enc_sym(SYM_RAW_I_TYPE));
+  if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_TYPE_I64);
+#endif
+}
+
+static inline lbm_value lbm_enc_u64(uint64_t x) {
+#ifndef LBM64
+  lbm_value res = lbm_enc_sym(SYM_MERROR);
+  lbm_uint* storage = lbm_memory_allocate(2);
+  if (storage) {
+    res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_U_TYPE));
+    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+      memcpy(storage,&x, 8);
+      res = lbm_set_ptr_type(res, LBM_TYPE_U64);
+    }
+  }
+  return res;
+#else
+  lbm_value u = lbm_cons(x, lbm_enc_sym(SYM_RAW_U_TYPE));
+  if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_TYPE_U64);
+#endif
+}
+
+static inline lbm_value lbm_enc_double(double x) {
+#ifndef LBM64
+  lbm_value res = lbm_enc_sym(SYM_MERROR);
+  lbm_uint* storage = lbm_memory_allocate(2);
+  if (storage) {
+    res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_F_TYPE));
+    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+      memcpy(storage,&x, 8);
+      res = lbm_set_ptr_type(res, LBM_TYPE_DOUBLE);
+    }
+  }
+  return res;
+#else
+  lbm_uint t;
+  memcpy(&t, &x, sizeof(lbm_float));
+  lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_RAW_F_TYPE));
+  if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
+  return lbm_set_ptr_type(f, LBM_TYPE_DOUBLE);
+#endif
+}
+
 
 static inline lbm_value lbm_enc_char(char x) {
-  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_VAL_TYPE_CHAR;
+  return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_TYPE_CHAR;
 }
 
 static inline lbm_int lbm_dec_i(lbm_value x) {
@@ -545,20 +692,72 @@ static inline lbm_uint lbm_dec_sym(lbm_value x) {
   return x >> LBM_VAL_SHIFT;
 }
 
-static inline lbm_float lbm_dec_F(lbm_value x) { // Use only when knowing that x is a VAL_TYPE_F
-  lbm_float f_tmp;
+static inline float lbm_dec_float(lbm_value x) {
+#ifndef LBM64
+  float f_tmp;
   lbm_uint tmp = lbm_car(x);
-  memcpy(&f_tmp, &tmp, sizeof(lbm_float));
+  memcpy(&f_tmp, &tmp, sizeof(float));
   return f_tmp;
+#else
+  uint32_t tmp = (uint32_t)(x >> LBM_VAL_SHIFT);
+  float f_tmp;
+  memcpy(&f_tmp, &tmp, sizeof(float));
+  return f_tmp;
+#endif
 }
 
-static inline lbm_uint lbm_dec_U(lbm_value x) {
-  return lbm_car(x);
+static inline double lbm_dec_double(lbm_value x) {
+#ifndef LBM64
+  double d;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&d, data, sizeof(double));
+  return d;
+#else
+  double f_tmp;
+  lbm_uint tmp = lbm_car(x);
+  memcpy(&f_tmp, &tmp, sizeof(double));
+  return f_tmp;
+#endif
 }
 
-static inline lbm_int lbm_dec_I(lbm_value x) {
-  return (lbm_int)lbm_car(x);
+static inline uint32_t lbm_dec_u32(lbm_value x) {
+#ifndef LBM64
+  return (uint32_t)lbm_car(x);
+#else
+   return (uint32_t)(x >> LBM_VAL_SHIFT);
+#endif
 }
+
+static inline uint64_t lbm_dec_u64(lbm_value x) {
+#ifndef LBM64
+  uint64_t u;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&u, data, 8);
+  return u;
+#else
+  return (uint64_t)lbm_car(x);
+#endif
+}
+
+static inline int32_t lbm_dec_i32(lbm_value x) {
+#ifndef LBM64
+  return (int32_t)lbm_car(x);
+#else
+  return (int32_t)(x >> LBM_VAL_SHIFT);
+#endif
+}
+
+static inline int64_t lbm_dec_i64(lbm_value x) {
+#ifndef LBM64
+  int64_t i;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&i, data, 8);
+  return i;
+#else
+  return (int64_t)lbm_car(x);
+#endif
+}
+
 
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
@@ -574,54 +773,57 @@ static inline bool lbm_get_gc_mark(lbm_value x) {
 
 static inline bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
-  return ((t == LBM_VAL_TYPE_I) ||
-          (t == LBM_VAL_TYPE_U) ||
-          (t == LBM_VAL_TYPE_CHAR) ||
-          (t == LBM_PTR_TYPE_BOXED_I) ||
-          (t == LBM_PTR_TYPE_BOXED_U) ||
-          (t == LBM_PTR_TYPE_BOXED_F));
+  return ((t == LBM_TYPE_I) ||
+          (t == LBM_TYPE_U) ||
+          (t == LBM_TYPE_CHAR) ||
+          (t == LBM_TYPE_I32) ||
+          (t == LBM_TYPE_U32) ||
+          (t == LBM_TYPE_I64) ||
+          (t == LBM_TYPE_U64) ||
+          (t == LBM_TYPE_FLOAT) ||
+          (t == LBM_TYPE_DOUBLE));
 }
 
 static inline bool lbm_is_char(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
-  return (t == LBM_VAL_TYPE_CHAR);
+  return (t == LBM_TYPE_CHAR);
 }
 
 static inline bool lbm_is_special(lbm_value symrep) {
-  return ((lbm_type_of(symrep) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(symrep) < SPECIAL_SYMBOLS_END));
 }
 
 static inline bool lbm_is_fundamental(lbm_value symrep) {
-  return ((lbm_type_of(symrep) == LBM_VAL_TYPE_SYMBOL)  &&
+  return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL)  &&
           (lbm_dec_sym(symrep) >= FUNDAMENTALS_START) &&
           (lbm_dec_sym(symrep) <= FUNDAMENTALS_END));
 }
 
 static inline bool lbm_is_closure(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
 }
 
 static inline bool lbm_is_continuation(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_CONT));
 }
 
 static inline bool lbm_is_macro(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_MACRO));
 }
 
 static inline bool lbm_is_match_binder(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_PTR_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I28) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U28) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I32) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U32) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
@@ -629,7 +831,7 @@ static inline bool lbm_is_match_binder(lbm_value exp) {
 }
 
 static inline bool lbm_is_symbol(lbm_value exp) {
-  return (lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL);
+  return (lbm_type_of(exp) == LBM_TYPE_SYMBOL);
 }
 
 static inline bool lbm_is_symbol_nil(lbm_value exp) {
@@ -645,10 +847,16 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 }
 
 
+#ifndef LBM64
+#define ERROR_SYMBOL_MASK 0xFFFFFF20
+#else
+#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFFF20
+#endif
+
 /* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
-  if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
-      ((lbm_dec_sym(v) & 0xFFFFFF20) == 0x20)) {
+  if (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
+      ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20)) {
     return true;
   }
   return false;

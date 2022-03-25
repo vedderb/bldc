@@ -34,20 +34,24 @@
 #define ALLOC_DONE           0xF00DF00D
 #define ALLOC_FAILED         0xDEADBEAF
 
-static uint32_t *bitmap = NULL;
-static uint32_t *memory = NULL;
-static uint32_t memory_size;  // in 4 byte words
-static uint32_t bitmap_size;  // in 4 byte words
-static unsigned int memory_base_address = 0;
+static lbm_uint *bitmap = NULL;
+static lbm_uint *memory = NULL;
+static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit platform
+static lbm_uint bitmap_size;  // in 4 or 8 byte words
+static lbm_uint memory_base_address = 0;
 
-int lbm_memory_init(uint32_t *data, uint32_t data_size,
-                uint32_t *bits, uint32_t bits_size) {
+int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
+                    lbm_uint *bits, lbm_uint bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
 
-  if (((unsigned int)data % 4 != 0) || data_size != 16 * bits_size || data_size % 4 != 0 ||
-      ((unsigned int)bits % 4 != 0) || bits_size < 1 || bits_size % 4 != 0) {
-    // data is not 4 byte aligned
+  if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
+      (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8) ||
+      data_size % 4 != 0 ||
+      ((lbm_uint)bits % sizeof(lbm_uint) != 0) ||
+      bits_size < 1 ||
+      bits_size % 4 != 0) {
+    // data is not aligned to sizeof lbm_uint
     // size is too small
     // or size is not a multiple of 4
     return 0;
@@ -56,66 +60,84 @@ int lbm_memory_init(uint32_t *data, uint32_t data_size,
   bitmap = bits;
   bitmap_size = bits_size;
 
-  for (uint32_t i = 0; i < bitmap_size; i ++) {
+  for (lbm_uint i = 0; i < bitmap_size; i ++) {
     bitmap[i] = 0;
   }
 
   memory = data;
-  memory_base_address = (unsigned int)data;
+  memory_base_address = (lbm_uint)data;
   memory_size = data_size;
   return 1;
 }
 
-static inline unsigned int address_to_bitmap_ix(uint32_t *ptr) {
-  return ((unsigned int)ptr - memory_base_address) >> 2;
+static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
+  #ifndef LBM64
+  return ((lbm_uint)ptr - memory_base_address) >> 2;
+  #else
+  return ((lbm_uint)ptr - memory_base_address) >> 3;
+  #endif
 }
 
-lbm_int lbm_memory_address_to_ix(uint32_t *ptr) {
+lbm_int lbm_memory_address_to_ix(lbm_uint *ptr) {
   /* TODO: assuming that that index
            will have more then enough room in the
            positive halv of a 28bit integer */
-  return (int32_t)address_to_bitmap_ix(ptr);
+  return (lbm_int)address_to_bitmap_ix(ptr);
 }
 
 
-static inline uint32_t *bitmap_ix_to_address(unsigned int ix) {
-  return (uint32_t*)(memory_base_address + (ix << 2));
+static inline lbm_uint *bitmap_ix_to_address(lbm_uint ix) {
+  return &((lbm_uint*)(memory_base_address))[ix];// + (ix << 2));
 }
 
-static inline unsigned int status(unsigned int i) {
+#ifndef LBM64
+#define WORD_IX_SHIFT 5
+#define WORD_MOD_MASK 0x1F
+#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
+#else
+#define WORD_IX_SHIFT 6      // divide by 64
+#define WORD_MOD_MASK 0x3F   // mod 64
+#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
+#endif
 
-  unsigned int ix = i << 1;          // * 2
-  unsigned int word_ix = ix >> 5;    // / 32
-  unsigned int bit_ix  = ix & 0x1F;  // % 32
+static inline lbm_uint status(lbm_uint i) {
 
-  uint32_t mask = ((uint32_t)3) << bit_ix;       // 000110..0
+  lbm_uint ix = i << 1;                      // * 2
+  lbm_uint word_ix = ix >> WORD_IX_SHIFT;    // / 32
+  lbm_uint bit_ix  = ix & WORD_MOD_MASK;              // % 32
+
+  lbm_uint mask = ((lbm_uint)3) << bit_ix;       // 000110..0
+  if (word_ix > bitmap_size) {
+    return (lbm_uint)NULL;
+  }
   return (bitmap[word_ix] & mask) >> bit_ix;
 }
 
-static inline void set_status(unsigned int i, uint32_t status) {
-  unsigned int ix = i << 1;          // * 2
-  unsigned int word_ix = ix >> 5;    // / 32
-  unsigned int bit_ix  = ix & 0x1F;  // % 32
+static inline void set_status(lbm_uint i, lbm_uint status) {
+  lbm_uint ix = i << 1;          // * 2
+  lbm_uint word_ix = ix >> WORD_IX_SHIFT;    // / 32
+  lbm_uint bit_ix  = ix & WORD_MOD_MASK;  // % 32
 
-  uint32_t clr_mask = ~(((uint32_t)3) << bit_ix);
-  uint32_t mask = status << bit_ix;
+  lbm_uint clr_mask = ~(((lbm_uint)3) << bit_ix);
+  lbm_uint mask = status << bit_ix;
+
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
 }
 
-uint32_t lbm_memory_num_words(void) {
+lbm_uint lbm_memory_num_words(void) {
   return memory_size;
 }
 
-uint32_t lbm_memory_num_free(void) {
+lbm_uint lbm_memory_num_free(void) {
   if (memory == NULL || bitmap == NULL) {
     return 0;
   }
 
   unsigned int state = INIT;
-  uint32_t sum_length = 0;
+  lbm_uint sum_length = 0;
 
-  for (unsigned int i = 0; i < (bitmap_size << 4); i ++) {
+  for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
 
     switch(status(i)) {
     case FREE_OR_USED:
@@ -149,18 +171,18 @@ uint32_t lbm_memory_num_free(void) {
   return sum_length;
 }
 
-uint32_t *lbm_memory_allocate(uint32_t num_words) {
+lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 
   if (memory == NULL || bitmap == NULL) {
     return NULL;
   }
 
-  uint32_t start_ix = 0;
-  uint32_t end_ix = 0;
-  uint32_t free_length = 0;
+  lbm_uint start_ix = 0;
+  lbm_uint end_ix = 0;
+  lbm_uint free_length = 0;
   unsigned int state = INIT;
 
-  for (unsigned int i = 0; i < (bitmap_size << 4); i ++) {
+  for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
     if (state == ALLOC_DONE) break;
 
     switch(status(i)) {
@@ -211,17 +233,20 @@ uint32_t *lbm_memory_allocate(uint32_t num_words) {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
+
     return bitmap_ix_to_address(start_ix);
   }
   return NULL;
 }
 
-int lbm_memory_free(uint32_t *ptr) {
-  unsigned int ix = address_to_bitmap_ix(ptr);
+int lbm_memory_free(lbm_uint *ptr) {
+
+  lbm_uint ix = address_to_bitmap_ix(ptr);
+
   switch(status(ix)) {
   case START:
     set_status(ix, FREE_OR_USED);
-    for (unsigned int i = ix; i < (bitmap_size << 4); i ++) {
+    for (lbm_uint i = ix; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
       if (status(i) == END) {
         set_status(i, FREE_OR_USED);
         return 1;
@@ -236,11 +261,11 @@ int lbm_memory_free(uint32_t *ptr) {
   return 0;
 }
 
-int lbm_memory_ptr_inside(uint32_t *ptr) {
+int lbm_memory_ptr_inside(lbm_uint *ptr) {
   int r = 0;
 
-  if ((uint32_t)ptr >= (uint32_t)memory &&
-      (uint32_t)ptr < (uint32_t)memory + (memory_size * 4))
+  if ((lbm_uint)ptr >= (lbm_uint)memory &&
+      (lbm_uint)ptr < (lbm_uint)memory + (memory_size * sizeof(lbm_uint)))
     r = 1;
   return r;
 }

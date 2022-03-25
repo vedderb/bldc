@@ -754,9 +754,9 @@ You can also read code:
 (read "(lambda (x) (+ x 1))")
 ```
 That lambda you just read in from a string can be directly applied to an
-argument.
+argument if using an application of eval to evaluate the read lambda into a closure.
 ```clj
-((read "(lambda (x) (+ x 1))") 10)
+((eval (read "(lambda (x) (+ x 1))")) 10)
 ```
 The code above evaluates to 11.
 

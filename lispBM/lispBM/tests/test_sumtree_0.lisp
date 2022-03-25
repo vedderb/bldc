@@ -1,6 +1,6 @@
 (define sumtree
   (lambda (x)
-    (if (eq (type-of x) type-i28)
+    (if (eq (type-of x) type-i)
 	x
       (if (eq x 'nil)
 	  0
