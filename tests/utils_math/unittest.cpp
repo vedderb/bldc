@@ -131,6 +131,10 @@ TEST_F(NormAngle_rad, ValInRange) {
    utils_norm_angle_rad(&inputVal);
    EXPECT_NEAR(-M_PI, inputVal, eps);
 
+   inputVal = M_PI-1e-6;
+   utils_norm_angle_rad(&inputVal);
+   EXPECT_NEAR(M_PI-1e-6, inputVal, eps);
+
    inputVal = M_PI-1;
    utils_norm_angle_rad(&inputVal);
    EXPECT_NEAR(M_PI-1, inputVal, eps);
@@ -151,9 +155,9 @@ TEST_F(NormAngle_rad, ValInRange) {
 TEST_F(NormAngle_rad, ValBelowRange) {
    float inputVal;
 
-   inputVal = M_PI;
+   inputVal = -M_PI-1e-6;
    utils_norm_angle_rad(&inputVal);
-   EXPECT_EQ(-M_PI, inputVal);
+   EXPECT_NEAR(M_PI-1e-6, inputVal, eps);
 
    inputVal = -2*M_PI;
    utils_norm_angle_rad(&inputVal);
@@ -174,6 +178,10 @@ TEST_F(NormAngle_rad, ValBelowRange) {
  */
 TEST_F(NormAngle_rad, ValAboveRange) {
    float inputVal;
+
+   inputVal = M_PI;
+   utils_norm_angle_rad(&inputVal);
+   EXPECT_NEAR(-M_PI, inputVal, eps);
 
    inputVal = 2*M_PI;
    utils_norm_angle_rad(&inputVal);
