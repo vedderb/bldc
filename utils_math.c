@@ -24,10 +24,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Private variables
-
-
-// Functions
 void utils_step_towards(float *value, float goal, float step) {
     if (*value < goal) {
         if ((*value + step) < goal) {
@@ -158,20 +154,6 @@ void utils_deadband(float *value, float tres, float max) {
  * The difference between the angles
  */
 float utils_angle_difference(float angle1, float angle2) {
-//	utils_norm_angle(&angle1);
-//	utils_norm_angle(&angle2);
-//
-//	if (fabsf(angle1 - angle2) > 180.0) {
-//		if (angle1 < angle2) {
-//			angle1 += 360.0;
-//		} else {
-//			angle2 += 360.0;
-//		}
-//	}
-//
-//	return angle1 - angle2;
-
-	// Faster in most cases
 	float difference = angle1 - angle2;
 	while (difference < -180.0) difference += 2.0 * 180.0;
 	while (difference > 180.0) difference -= 2.0 * 180.0;
@@ -599,8 +581,6 @@ float utils_throttle_curve(float val, float curve_acc, float curve_brake, int mo
 	return ret;
 }
 
-
-
 uint32_t utils_crc32c(uint8_t *data, uint32_t len) {
 	uint32_t crc = 0xFFFFFFFF;
 
@@ -717,7 +697,6 @@ void utils_fft8_bin2(float *real_in, float *real, float *imag) {
 	*imag /= 8.0;
 }
 
-
 // A mapping of a samsung 30q cell for % remaining capacity vs. voltage from
 // 4.2 to 3.2, note that the you lose 15% of the 3Ah rated capacity in this range
 float utils_batt_liion_norm_v_to_capacity(float norm_v) {
@@ -747,8 +726,6 @@ uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 	qsort(buffer_sorted, filter_len, sizeof(uint16_t), uint16_cmp_func);
 	return buffer_sorted[filter_len / 2];
 }
-
-
 
 void utils_rotate_vector3(float *input, float *rotation, float *output, bool reverse) {
 	float s1, c1, s2, c2, s3, c3;

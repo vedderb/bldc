@@ -27,8 +27,6 @@
 // Private variables
 static volatile int sys_lock_cnt = 0;
 
-
-
 /**
  * A system locking function with a counter. For every lock, a corresponding unlock must
  * exist to unlock the system. That means, if lock is called five times, unlock has to
@@ -56,7 +54,6 @@ void utils_sys_unlock_cnt(void) {
 		}
 	}
 }
-
 
 /**
  * Get ID of second motor.
@@ -111,7 +108,6 @@ int utils_read_hall(bool is_second_motor, int samples) {
 
 	return (h1 > tres) | ((h2 > tres) << 1) | ((h3 > tres) << 2);
 }
-
 
 const char* utils_hw_type_to_string(HW_TYPE hw) {
 	switch (hw) {

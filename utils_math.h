@@ -73,7 +73,6 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 //#define NORM2(x,y)		(sqrt(SQ(x) + SQ(y)))
 #define NORM2_f(x,y)		(sqrtf(SQ(x) + SQ(y)))
 
-
 // nan and infinity check for floats
 #define UTILS_IS_INF(x)		((x) == (1.0 / 0.0) || (x) == (-1.0 / 0.0))
 #define UTILS_IS_NAN(x)		((x) != (x))
