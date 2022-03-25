@@ -14,7 +14,7 @@
 
 extern "C" {
 
-#include "math_utils.h"		/* API for misc_math functions */
+#include "utils_math.h"		/* API for misc_math functions */
 
 }
 
@@ -106,6 +106,10 @@ protected:
 
 };
 
+
+/**
+ * @brief TEST_F Test input values which are *in* the range of the function output
+ */
 TEST_F(NormAngle_rad, ValInRange) {
    float inputVal;
 
@@ -113,9 +117,13 @@ TEST_F(NormAngle_rad, ValInRange) {
    utils_norm_angle_rad(&inputVal);
    EXPECT_EQ(0, inputVal);
 
-   inputVal = M_PI;
+   inputVal = -0.0;
    utils_norm_angle_rad(&inputVal);
-   EXPECT_NEAR(M_PI, inputVal, eps);
+   EXPECT_EQ(0, inputVal);
+
+   inputVal = -M_PI;
+   utils_norm_angle_rad(&inputVal);
+   EXPECT_NEAR(-M_PI, inputVal, eps);
 
    inputVal = M_PI-1;
    utils_norm_angle_rad(&inputVal);
@@ -130,14 +138,14 @@ TEST_F(NormAngle_rad, ValInRange) {
    EXPECT_EQ(-1, inputVal);
 }
 
+
+/**
+ * @brief TEST_F Test input values which are *below* the range of the function output
+ */
 TEST_F(NormAngle_rad, ValBelowRange) {
    float inputVal;
 
-   inputVal = -0.0;
-   utils_norm_angle_rad(&inputVal);
-   EXPECT_EQ(0, inputVal);
-
-   inputVal = -M_PI;
+   inputVal = M_PI;
    utils_norm_angle_rad(&inputVal);
    EXPECT_EQ(-M_PI, inputVal);
 
@@ -155,6 +163,9 @@ TEST_F(NormAngle_rad, ValBelowRange) {
 }
 
 
+/**
+ * @brief TEST_F Test input values which are *above* the range of the function output
+ */
 TEST_F(NormAngle_rad, ValAboveRange) {
    float inputVal;
 
