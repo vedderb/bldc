@@ -14,7 +14,7 @@
 
 extern "C" {
 
-#include "math_utils.h"		/* API for misc_math functions */
+#include "utils_math.h"		/* API for misc_math functions */
 
 }
 
