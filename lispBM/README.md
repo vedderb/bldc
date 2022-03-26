@@ -990,6 +990,16 @@ Output:
 4
 ```
 
+Another example that prints "Hello World" every two seconds:
+
+```clj
+(loopwhile t
+    (progn
+        (print "Hello World")
+        (sleep 2)
+))
+```
+
 #### looprange
 
 ```clj
