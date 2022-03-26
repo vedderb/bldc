@@ -2,7 +2,7 @@
 (define fred (lambda ()
                (progn (print "fred iteration" \#newline )
                       (recv ( (apa (? x) 107)  (print "fred received apa " x \#newline))
-                            ( (bepa (?i28 x))  (print "fred received bepa " x \#newline)))
+                            ( (bepa (?i x))  (print "fred received bepa " x \#newline)))
                       (fred))))
 
 (let ((apa 1000))
