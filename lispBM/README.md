@@ -937,6 +937,82 @@ Write state to pin. If the pin is set to an output 1 will set it to VCC and 0 to
 
 Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
+### Loops
+
+In general it is encouraged to do iteration by recursion, but there are a few loop constructs available for convenience.
+
+#### loop-for
+
+```clj
+(loop-for it start cond update body)
+```
+
+For-loop. it is the iterator, start is what it is initialized to, cond is the condition that has the be true for the loop to continue running, update is how to update the iterator after each iteration and body is the code to execute each iteration. The iterator can be accessed from within body. Example:
+
+```clj
+(loop-for i 0 (< i 5) (+ i 1)
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+
+Output:
+0
+1
+2
+3
+4
+```
+
+#### loop-while
+
+```clj
+(loop-while cond body)
+```
+
+While-loop. cond is the condition that has the be true for the loop to continue running and body is the code to execute each iteration. Example:
+
+```clj
+(define i 0)
+
+(loop-while (< i 5)
+    (progn
+        (print i)
+        (sleep 0.5)
+        (define i (+ i 1))
+))
+
+Output:
+0
+1
+2
+3
+4
+```
+
+#### loop-range
+
+```clj
+(loop-range it start end body)
+```
+
+Range-loop. Iterate it from start to end and evaluate body for each iteration. The iterator can be accessed from within body. Example:
+
+```clj
+(loop-range i 0 5
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+
+Output:
+0
+1
+2
+3
+4
+```
+
 ### Useful Lisp Functions
 
 There are a number of lisp functions that can be used from lispBM in the VESC firmware. They will be loaded to the environment the first time they are used, so they do not use up memory before the first use.
@@ -982,11 +1058,11 @@ This example creates an anonymous function that takes one argument and returns t
 (iota n)
 ```
 
-Create list from 0 to n. Example:
+Create list from 0 to n, excluding n. Example:
 
 ```clj
 (iota 5)
-> (0 1 2 3 4 5)
+> (0 1 2 3 4)
 ```
 
 #### range
@@ -995,11 +1071,11 @@ Create list from 0 to n. Example:
 (range start end)
 ```
 
-Create a list from start to end. Example:
+Create a list from start to end, excluding end. Example:
 
 ```clj
 (range 2 8)
-> (2 3 4 5 6 7 8)
+> (2 3 4 5 6 7)
 ```
 
 #### foldl

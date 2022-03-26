@@ -42,7 +42,7 @@ static const char* functions[] = {
 "(defun iota (n)"
 "(let ((iacc (lambda (acc i)"
 "(if (< i 0) acc (iacc (cons i acc) (- i 1))))))"
-"(iacc nil n)))",
+"(iacc nil (- n 1))))",
 
 "(defun range (start end)"
 "(map (lambda (x) (+ x start)) (iota (- end start))))",
@@ -99,6 +99,18 @@ static const char* functions[] = {
 
 static const char* macros[] = {
 "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))",
+
+"(define loop-for (macro (it start cond update body)"
+"`(let ((loop (lambda (,it res)(if ,cond (loop ,update ,body) res"
+"))))(loop ,start nil))))",
+
+"(define loop-while (macro (cond body)"
+"`(let ((loop (lambda (res)(if ,cond (loop ,body)res"
+"))))(loop nil))))",
+
+"(define loop-range (macro (it start end body)"
+"`(let ((loop (lambda (,it res)(if (< ,it ,end)(loop (+ ,it 1),body)res"
+"))))(loop ,start nil))))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {
