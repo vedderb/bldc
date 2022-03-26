@@ -192,20 +192,20 @@ static lbm_value ext_vec3_rotf(lbm_value *args, lbm_uint argn) {
 bool lbm_math_extensions_init(void) {
 
   bool res = true;
-  res = res && lbm_add_extension("sinf", ext_sinf);
-  res = res && lbm_add_extension("cosf", ext_cosf);
-  res = res && lbm_add_extension("tanf", ext_tanf);
-  res = res && lbm_add_extension("asinf", ext_asinf);
-  res = res && lbm_add_extension("acosf", ext_acosf);
-  res = res && lbm_add_extension("atanf", ext_atanf);
-  res = res && lbm_add_extension("atan2f", ext_atan2f);
-  res = res && lbm_add_extension("powf", ext_powf);
-  res = res && lbm_add_extension("sqrtf", ext_sqrtf);
-  res = res && lbm_add_extension("logf", ext_logf);
-  res = res && lbm_add_extension("log10f", ext_log10f);
-  res = res && lbm_add_extension("deg2radf", ext_deg2radf);
-  res = res && lbm_add_extension("rad2degf", ext_rad2degf);
-  res = res && lbm_add_extension("vec3-rotf", ext_vec3_rotf);
+  res = res && lbm_add_extension("sin", ext_sinf);
+  res = res && lbm_add_extension("cos", ext_cosf);
+  res = res && lbm_add_extension("tan", ext_tanf);
+  res = res && lbm_add_extension("asin", ext_asinf);
+  res = res && lbm_add_extension("acos", ext_acosf);
+  res = res && lbm_add_extension("atan", ext_atanf);
+  res = res && lbm_add_extension("atan2", ext_atan2f);
+  res = res && lbm_add_extension("pow", ext_powf);
+  res = res && lbm_add_extension("sqrt", ext_sqrtf);
+  res = res && lbm_add_extension("log", ext_logf);
+  res = res && lbm_add_extension("log10", ext_log10f);
+  res = res && lbm_add_extension("deg2rad", ext_deg2radf);
+  res = res && lbm_add_extension("rad2deg", ext_rad2degf);
+  res = res && lbm_add_extension("vec3-rot", ext_vec3_rotf);
 
   return res;
 }

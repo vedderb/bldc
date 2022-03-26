@@ -70,6 +70,12 @@ char lbm_dec_as_char(lbm_value a) {
     return (char) lbm_dec_u32(a);
   case LBM_TYPE_FLOAT:
     return (char)lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (char) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (char) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (char) lbm_dec_double(a);
   }
   return 0;
 }
@@ -87,6 +93,12 @@ uint32_t lbm_dec_as_u32(lbm_value a) {
     return (uint32_t) lbm_dec_u32(a);
   case LBM_TYPE_FLOAT:
     return (uint32_t)lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (uint32_t) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (uint32_t) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (uint32_t) lbm_dec_double(a);
   }
   return 0;
 }
@@ -127,6 +139,13 @@ int32_t lbm_dec_as_i32(lbm_value a) {
     return (int32_t) lbm_dec_i32(a);
   case LBM_TYPE_FLOAT:
     return (int32_t) lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (int32_t) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (int32_t) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (int32_t) lbm_dec_double(a);
+
   }
   return 0;
 }
@@ -169,6 +188,12 @@ float lbm_dec_as_float(lbm_value a) {
     return (float) lbm_dec_u32(a);
   case LBM_TYPE_FLOAT:
     return (float) lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (float) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (float) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (float) lbm_dec_double(a);
   }
   return 0;
 }
@@ -197,28 +222,6 @@ double lbm_dec_as_double(lbm_value a) {
   }
   return 0;
 }
-
-
-lbm_uint lbm_dec_raw(lbm_value v) {
-
-  lbm_uint res = 0;
-  switch (lbm_type_of(v)) {
-  case LBM_TYPE_CHAR: /* fall through */
-  case LBM_TYPE_I:    /* fall through */
-  case LBM_TYPE_U:    /* fall through */
-    res = (v >> LBM_VAL_SHIFT);
-    break;
-  case LBM_TYPE_I32: /* fall through */
-  case LBM_TYPE_U32: /* fall through */
-  case LBM_TYPE_FLOAT: /* fall through */
-    res = lbm_car(v);
-    break;
-  default:
-    break;
-  }
-  return res;
-}
-
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
