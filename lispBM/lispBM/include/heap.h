@@ -550,10 +550,6 @@ static inline lbm_type lbm_type_of(lbm_value x) {
   return (x & LBM_PTR_MASK) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }
 
-static inline bool lbm_is_ptr(lbm_value x) {
-  return (x & LBM_PTR_MASK);
-}
-
 static inline lbm_value lbm_enc_cons_ptr(lbm_uint x) {
   return ((x << LBM_ADDRESS_SHIFT) | LBM_TYPE_CONS | LBM_PTR_BIT);
 }
@@ -769,6 +765,14 @@ static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
 
 static inline bool lbm_get_gc_mark(lbm_value x) {
   return x & LBM_GC_MASK;
+}
+
+static inline bool lbm_is_ptr(lbm_value x) {
+  return (x & LBM_PTR_MASK);
+}
+
+static inline bool lbm_is_list(lbm_value x) {
+  return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
 static inline bool lbm_is_number(lbm_value x) {
