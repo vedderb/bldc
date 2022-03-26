@@ -100,15 +100,15 @@ static const char* functions[] = {
 static const char* macros[] = {
 "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))",
 
-"(define loop-for (macro (it start cond update body)"
+"(define loopfor (macro (it start cond update body)"
 "`(let ((loop (lambda (,it res)(if ,cond (loop ,update ,body) res"
 "))))(loop ,start nil))))",
 
-"(define loop-while (macro (cond body)"
+"(define loopwhile (macro (cond body)"
 "`(let ((loop (lambda (res)(if ,cond (loop ,body)res"
 "))))(loop nil))))",
 
-"(define loop-range (macro (it start end body)"
+"(define looprange (macro (it start end body)"
 "`(let ((loop (lambda (,it res)(if (< ,it ,end)(loop (+ ,it 1),body)res"
 "))))(loop ,start nil))))",
 };

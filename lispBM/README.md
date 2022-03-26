@@ -941,16 +941,16 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 In general it is encouraged to do iteration by recursion, but there are a few loop constructs available for convenience.
 
-#### loop-for
+#### loopfor
 
 ```clj
-(loop-for it start cond update body)
+(loopfor it start cond update body)
 ```
 
 For-loop. it is the iterator, start is what it is initialized to, cond is the condition that has the be true for the loop to continue running, update is how to update the iterator after each iteration and body is the code to execute each iteration. The iterator can be accessed from within body. Example:
 
 ```clj
-(loop-for i 0 (< i 5) (+ i 1)
+(loopfor i 0 (< i 5) (+ i 1)
     (progn
         (print i)
         (sleep 0.5)
@@ -964,10 +964,10 @@ Output:
 4
 ```
 
-#### loop-while
+#### loopwhile
 
 ```clj
-(loop-while cond body)
+(loopwhile cond body)
 ```
 
 While-loop. cond is the condition that has the be true for the loop to continue running and body is the code to execute each iteration. Example:
@@ -975,7 +975,7 @@ While-loop. cond is the condition that has the be true for the loop to continue 
 ```clj
 (define i 0)
 
-(loop-while (< i 5)
+(loopwhile (< i 5)
     (progn
         (print i)
         (sleep 0.5)
@@ -990,16 +990,16 @@ Output:
 4
 ```
 
-#### loop-range
+#### looprange
 
 ```clj
-(loop-range it start end body)
+(looprange it start end body)
 ```
 
 Range-loop. Iterate it from start to end and evaluate body for each iteration. The iterator can be accessed from within body. Example:
 
 ```clj
-(loop-range i 0 5
+(looprange i 0 5
     (progn
         (print i)
         (sleep 0.5)
