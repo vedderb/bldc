@@ -1997,15 +1997,15 @@ static inline void cont_match(eval_context_t *ctx) {
 
 static inline void cont_read(eval_context_t *ctx) {
 
+  gc(NIL,NIL);
+
   lbm_value stream = NIL;
   lbm_value prg_val = NIL;
   lbm_pop_u32_2(&ctx->K, &prg_val, &stream);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
-
   lbm_value tok;
   bool read_done = false;
-
   bool app_cont = false;
   bool program = false;
 
