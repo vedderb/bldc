@@ -1145,6 +1145,14 @@ static inline void eval_symbol(eval_context_t *ctx) {
       cell = cell | LBM_TYPE_ARRAY;
 
       lbm_value stream = token_stream_from_string_value(cell);
+      if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+        gc(cell,NIL);
+        stream = token_stream_from_string_value(cell);
+        if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+          error_ctx(stream);
+          return;
+        }
+      }
 
       lbm_value loader = NIL;
       CONS_WITH_GC(loader, stream, loader, stream);
@@ -1457,7 +1465,6 @@ static inline void cont_resume(eval_context_t *ctx) {
 static inline void cont_expand_macro(eval_context_t *ctx) {
 
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 2);
-  //lbm_pop_u32_2(&ctx->K, &args, &env);
   lbm_value env = (lbm_value)sptr[0];
   lbm_value args = (lbm_value)sptr[1];
 
