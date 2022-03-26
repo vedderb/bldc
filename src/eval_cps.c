@@ -1115,19 +1115,24 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
       lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
 
-      if (lbm_type_of(cell) == LBM_TYPE_SYMBOL)
-        gc(NIL,NIL);
-      cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
       if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-        error_ctx(cell);
-        return;
+        gc(NIL,NIL);
+        cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+        if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+          error_ctx(cell);
+          return;
+        }
       }
 
       lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
 
       if (array == NULL) {
-        error_ctx(lbm_enc_sym(SYM_MERROR));
-        return;
+        gc(cell,NIL);
+        array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
+        if (array == NULL) {
+          error_ctx(lbm_enc_sym(SYM_MERROR));
+          return;
+        }
       }
 
       array->data = (lbm_uint*)code_str;
@@ -1234,19 +1239,16 @@ static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
 
-  if (lbm_type_of(exps) == LBM_TYPE_SYMBOL && exps == NIL) {
+  if (lbm_is_list(exps)) {
+    CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(exps), lbm_enc_u(PROGN_REST)));
+    ctx->curr_exp = lbm_car(exps);
+    ctx->curr_env = env;
+  } else if (lbm_is_symbol_nil(exps)) {
     ctx->r = NIL;
     ctx->app_cont = true;
-    return;
+  } else {
+    error_ctx(lbm_enc_sym(SYM_EERROR));
   }
-
-  if (lbm_is_error(exps)) {
-    error_ctx(exps);
-    return;
-  }
-  CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(exps), lbm_enc_u(PROGN_REST)));
-  ctx->curr_exp = lbm_car(exps);
-  ctx->curr_env = env;
 }
 
 static inline void eval_lambda(eval_context_t *ctx) {
@@ -1325,8 +1327,7 @@ static inline void eval_let(eval_context_t *ctx) {
 
 static inline void eval_and(eval_context_t *ctx) {
   lbm_value rest = lbm_cdr(ctx->curr_exp);
-  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-      rest == NIL) {
+  if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_TRUE);
   } else {
@@ -1337,11 +1338,9 @@ static inline void eval_and(eval_context_t *ctx) {
 
 static inline void eval_or(eval_context_t *ctx) {
   lbm_value rest = lbm_cdr(ctx->curr_exp);
-  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-      rest == NIL) {
+  if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
-    return;
   } else {
     CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(OR)));
     ctx->curr_exp = lbm_car(rest);
@@ -1370,8 +1369,7 @@ static inline void eval_match(eval_context_t *ctx) {
 
 static inline void eval_receive(eval_context_t *ctx) {
 
-  if (lbm_type_of(ctx->mailbox) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(ctx->mailbox) == SYM_NIL) {
+  if (lbm_is_symbol_nil(ctx->mailbox)) {
     /*nothing in the mailbox: block the context*/
     ctx->timestamp = timestamp_us_callback();
     ctx->sleep_us = 0;
@@ -1381,8 +1379,7 @@ static inline void eval_receive(eval_context_t *ctx) {
     lbm_value pats = ctx->curr_exp;
     lbm_value msgs = ctx->mailbox;
 
-    if (lbm_type_of(pats) == LBM_TYPE_SYMBOL &&
-        pats == NIL) {
+    if (lbm_is_symbol_nil(pats)) {
       /* A receive statement without any patterns */
       ctx->app_cont = true;
       ctx->r = lbm_enc_sym(SYM_NIL);
@@ -1494,26 +1491,19 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value env;
   lbm_pop_u32_2(&ctx->K, &rest, &env);
-  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL && rest == NIL) {
+  if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     return;
   }
-
-  if (lbm_is_error(rest)) {
-    error_ctx(rest);
-    return;
-  }
   // allow for tail recursion
-  if (lbm_type_of(lbm_cdr(rest)) == LBM_TYPE_SYMBOL &&
-      lbm_cdr(rest) == NIL) {
+  if (lbm_is_symbol_nil(lbm_cdr(rest))) {
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
-    return;
+  } else {
+    CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(rest), lbm_enc_u(PROGN_REST)));
+    ctx->curr_exp = lbm_car(rest);
+    ctx->curr_env = env;
   }
-  // Else create a continuation
-  CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(rest), lbm_enc_u(PROGN_REST)));
-  ctx->curr_exp = lbm_car(rest);
-  ctx->curr_env = env;
 }
 
 static inline void cont_wait(eval_context_t *ctx) {
@@ -1553,37 +1543,6 @@ static inline void cont_application(eval_context_t *ctx) {
     return;
   }
   lbm_value fun = fun_args[0];
-
-  /* if (lbm_is_closure(fun)) { // a closure (it better be) */
-
-  /*   lbm_value cdr_fun = lbm_cdr(fun); */
-  /*   lbm_value cddr_fun = lbm_cdr(cdr_fun); */
-  /*   lbm_value cdddr_fun = lbm_cdr(cddr_fun); */
-  /*   lbm_value params  = lbm_car(cdr_fun); */
-  /*   lbm_value exp     = lbm_car(cddr_fun); */
-  /*   lbm_value clo_env = lbm_car(cdddr_fun); */
-
-  /*   lbm_value curr_param = params; */
-  /*   lbm_uint i = 1; */
-  /*   while (lbm_type_of(curr_param) == LBM_TYPE_CONS && */
-  /*       i <= lbm_dec_u(count)) { */
-
-  /*     lbm_value entry; */
-  /*     WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL); */
-
-  /*     lbm_value aug_env; */
-  /*     WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry); */
-  /*     clo_env = aug_env; */
-
-  /*     curr_param = lbm_cdr(curr_param); */
-  /*     i ++; */
-  /*   } */
-
-  /*   lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1); */
-  /*   ctx->curr_exp = exp; */
-  /*   ctx->curr_env = clo_env; // local_env; */
-  /*   return; */
-  /* } else */
   if (lbm_is_continuation(fun)) {
 
     lbm_value c = lbm_car(lbm_cdr(fun)); /* should be the continuation */
@@ -1855,34 +1814,27 @@ static inline void cont_application_args(eval_context_t *ctx) {
   lbm_pop_u32_3(&ctx->K, &rest, &count, &env);
 
   CHECK_STACK(lbm_push_u32(&ctx->K, arg));
-  /* Deal with general fundamentals */
-  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-      rest == NIL) {
+  if (lbm_is_symbol_nil(rest)) {
     // no arguments
     CHECK_STACK(lbm_push_u32(&ctx->K, count));
     cont_application(ctx);
-  } else if (lbm_type_of(rest) == LBM_TYPE_CONS) {
+  } else if (lbm_is_list(rest)) {
     CHECK_STACK(lbm_push_u32_4(&ctx->K, env, lbm_enc_u(lbm_dec_u(count) + 1), lbm_cdr(rest), lbm_enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
   } else {
-    /* TODO: Should pop count elements from the stack here as this application is an error */
-    ctx->curr_exp = lbm_enc_sym(SYM_EERROR);
-    ctx->curr_env = env;
+    error_ctx(lbm_enc_sym(SYM_EERROR));
   }
-  return;
 }
 
 static inline void cont_and(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value arg = ctx->r;
   lbm_pop_u32(&ctx->K, &rest);
-  if (lbm_type_of(arg) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(arg) == SYM_NIL) {
+  if (lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
-  } else if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-             rest == NIL) {
+  } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
   } else {
     CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(AND)));
@@ -1894,11 +1846,9 @@ static inline void cont_or(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value arg = ctx->r;
   lbm_pop_u32(&ctx->K, &rest);
-  if (lbm_type_of(arg) != LBM_TYPE_SYMBOL ||
-      lbm_dec_sym(arg) != SYM_NIL) {
+  if (!lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
-  } else  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-              rest == NIL) {
+  } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
   } else {
@@ -1916,7 +1866,7 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   lbm_env_modify_binding(env, key, arg);
 
-  if ( lbm_type_of(rest) == LBM_TYPE_CONS ){
+  if (lbm_is_list(rest)) {
     lbm_value keyn = lbm_car(lbm_car(rest));
     lbm_value valn_exp = lbm_car(lbm_cdr(lbm_car(rest)));
 
@@ -1991,11 +1941,11 @@ static inline void cont_match(eval_context_t *ctx) {
 
   lbm_pop_u32(&ctx->K, &patterns);
 
-  if (lbm_type_of(patterns) == LBM_TYPE_SYMBOL && lbm_dec_sym(patterns) == SYM_NIL) {
+  if (lbm_is_symbol_nil(patterns)) {
     /* no more patterns */
     ctx->r = lbm_enc_sym(SYM_NO_MATCH);
     ctx->app_cont = true;
-  } else if (lbm_type_of(patterns) == LBM_TYPE_CONS) {
+  } else if (lbm_is_list(patterns)) {
     lbm_value pattern = lbm_car(lbm_car(patterns));
     lbm_value body    = lbm_car(lbm_cdr(lbm_car(patterns)));
 
@@ -2020,9 +1970,7 @@ static inline void cont_match(eval_context_t *ctx) {
       ctx->app_cont = true;
     }
   } else {
-    /* TODO: return type error */
-    ctx->r = lbm_enc_sym(SYM_TERROR);
-    ctx->done = true;
+    error_ctx(lbm_enc_sym(SYM_TERROR));
   }
 }
 
