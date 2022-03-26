@@ -23,11 +23,17 @@
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 4
+#define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 2
+#define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+Mar 26 2022: Version (0.5.0)
+ - Optimized code-path for closure applications.
+ - 64 and 32 bit support from a single source code
+ - Added math extensions library from Benjamin Vedder
+ - Added String manipulation extensions library from Benjamin Vedder
 
 Mar 10 2022: Version (0.4.2)
  - Added the lbm_set_error_reason function.

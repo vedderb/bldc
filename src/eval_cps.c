@@ -55,19 +55,16 @@
 #define SET_VARIABLE      17
 #define RESUME            18
 #define EXPAND_MACRO      19
-
-/* reader continuations */
-//#define PARSE            20
-//#define PARSE_LIST       21
-#define QUOTE_RESULT     20
-#define BACKQUOTE_RESULT 21
-#define COMMAAT_RESULT   22
-#define COMMA_RESULT     23
-#define DOT_TERMINATE    24
-#define EXPECT_CLOSEPAR  25
-
-#define APPEND_CONTINUE  26
-#define READ_DONE        27
+#define QUOTE_RESULT      20
+#define BACKQUOTE_RESULT  21
+#define COMMAAT_RESULT    22
+#define COMMA_RESULT      23
+#define DOT_TERMINATE     24
+#define EXPECT_CLOSEPAR   25
+#define APPEND_CONTINUE   26
+#define READ_DONE         27
+#define CLOSURE_ARGS      28
+#define CLOSURE_APP       29
 
 const char *continuation_strings[] =
   {
@@ -1557,36 +1554,37 @@ static inline void cont_application(eval_context_t *ctx) {
   }
   lbm_value fun = fun_args[0];
 
-  if (lbm_is_closure(fun)) { // a closure (it better be)
+  /* if (lbm_is_closure(fun)) { // a closure (it better be) */
 
-    lbm_value cdr_fun = lbm_cdr(fun);
-    lbm_value cddr_fun = lbm_cdr(cdr_fun);
-    lbm_value cdddr_fun = lbm_cdr(cddr_fun);
-    lbm_value params  = lbm_car(cdr_fun);
-    lbm_value exp     = lbm_car(cddr_fun);
-    lbm_value clo_env = lbm_car(cdddr_fun);
+  /*   lbm_value cdr_fun = lbm_cdr(fun); */
+  /*   lbm_value cddr_fun = lbm_cdr(cdr_fun); */
+  /*   lbm_value cdddr_fun = lbm_cdr(cddr_fun); */
+  /*   lbm_value params  = lbm_car(cdr_fun); */
+  /*   lbm_value exp     = lbm_car(cddr_fun); */
+  /*   lbm_value clo_env = lbm_car(cdddr_fun); */
 
-    lbm_value curr_param = params;
-    lbm_uint i = 1;
-    while (lbm_type_of(curr_param) == LBM_TYPE_CONS &&
-        i <= lbm_dec_u(count)) {
+  /*   lbm_value curr_param = params; */
+  /*   lbm_uint i = 1; */
+  /*   while (lbm_type_of(curr_param) == LBM_TYPE_CONS && */
+  /*       i <= lbm_dec_u(count)) { */
 
-      lbm_value entry;
-      WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL);
+  /*     lbm_value entry; */
+  /*     WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL); */
 
-      lbm_value aug_env;
-      WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry);
-      clo_env = aug_env;
+  /*     lbm_value aug_env; */
+  /*     WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry); */
+  /*     clo_env = aug_env; */
 
-      curr_param = lbm_cdr(curr_param);
-      i ++;
-    }
+  /*     curr_param = lbm_cdr(curr_param); */
+  /*     i ++; */
+  /*   } */
 
-    lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
-    ctx->curr_exp = exp;
-    ctx->curr_env = clo_env; // local_env;
-    return;
-  } else if (lbm_is_continuation(fun)) {
+  /*   lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1); */
+  /*   ctx->curr_exp = exp; */
+  /*   ctx->curr_env = clo_env; // local_env; */
+  /*   return; */
+  /* } else */
+  if (lbm_is_continuation(fun)) {
 
     lbm_value c = lbm_car(lbm_cdr(fun)); /* should be the continuation */
     lbm_value arg = fun_args[1];
@@ -1811,6 +1809,44 @@ static inline void cont_application(eval_context_t *ctx) {
   }
 }
 
+static inline void cont_closure_application_args(eval_context_t *ctx) {
+  lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 5);
+  if (sptr == NULL) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
+  }
+  lbm_value arg_env = (lbm_value)sptr[0];
+  lbm_value clo_env = (lbm_value)sptr[2];
+  lbm_value params  = (lbm_value)sptr[3];
+  lbm_value args    = (lbm_value)sptr[4];
+
+  lbm_value entry;
+  WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), NIL, NIL);
+
+  lbm_value aug_env;
+  WITH_GC(aug_env,lbm_cons(entry, clo_env),entry,NIL);
+
+  if (lbm_is_symbol_nil(args)) {
+    lbm_stack_drop(&ctx->K, 3);
+    lbm_value exp;
+    lbm_pop_u32(&ctx->K, &exp);
+    lbm_stack_drop(&ctx->K, 1); // arg eval env
+    ctx->curr_env = aug_env;
+    ctx->curr_exp = exp;
+    ctx->app_cont = false;
+  } else {
+
+    sptr[2] = aug_env;
+    sptr[3] = lbm_cdr(params);
+    sptr[4] = lbm_cdr(args);
+
+    lbm_push_u32(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
+
+    ctx->curr_exp = lbm_car(args);
+    ctx->curr_env = arg_env;
+  }
+}
+
 static inline void cont_application_args(eval_context_t *ctx) {
   lbm_value count;
   lbm_value env;
@@ -1906,12 +1942,12 @@ static inline void cont_if(eval_context_t *ctx) {
 
   lbm_pop_u32_3(&ctx->K, &env, &then_branch, &else_branch);
 
-  if (lbm_type_of(arg) == LBM_TYPE_SYMBOL && lbm_dec_sym(arg) == SYM_TRUE) {
-    ctx->curr_env = env;
-    ctx->curr_exp = then_branch;
-  } else {
+  if (lbm_is_symbol_nil(arg)) {
     ctx->curr_env = env;
     ctx->curr_exp = else_branch;
+  } else {
+    ctx->curr_env = env;
+    ctx->curr_exp = then_branch;
   }
 }
 
@@ -2300,12 +2336,23 @@ static inline void cont_application_start(eval_context_t *ctx) {
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
   } break;
-  case CLOSURE_APPLY:
-    /* CHECK_STACK(lbm_push_u32(&ctx->K, */
-    /*                          NIL, */
-    /*                          args)); */
-    /* cont_closure_application_args(ctx); */
-    /* break; */
+  case CLOSURE_APPLY: {
+    lbm_value cdr_fun = lbm_cdr(ctx->r);
+    lbm_value cddr_fun = lbm_cdr(cdr_fun);
+    lbm_value cdddr_fun = lbm_cdr(cddr_fun);
+    lbm_value params  = lbm_car(cdr_fun);
+    lbm_value exp     = lbm_car(cddr_fun);
+    lbm_value clo_env = lbm_car(cdddr_fun);
+
+    CHECK_STACK(lbm_push_u32_5(&ctx->K,
+                               exp,
+                               clo_env,
+                               params,
+                               lbm_cdr(args),
+                               lbm_enc_u(CLOSURE_ARGS)));
+    ctx->curr_exp = lbm_car(args);
+    ctx->app_cont = false;
+  } break;
   default:
     CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                lbm_enc_u(0),
@@ -2350,7 +2397,7 @@ static void evaluation_step(void){
     case OR:                cont_or(ctx); return;
     case BIND_TO_KEY_REST:  cont_bind_to_key_rest(ctx); return;
     case IF:                cont_if(ctx); return;
-    case MATCH:             cont_match(ctx); return;
+    case MATCH:            cont_match(ctx); return;
     case MATCH_MANY:        cont_match_many(ctx); return;
     case READ:              cont_read(ctx); return;
     case APPLICATION_START: cont_application_start(ctx); return;
@@ -2358,6 +2405,7 @@ static void evaluation_step(void){
     case SET_VARIABLE:      cont_set_var(ctx); return;
     case RESUME:            cont_resume(ctx); return;
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
+    case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;

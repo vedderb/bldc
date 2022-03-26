@@ -1,7 +1,7 @@
 # lispBM (Lisp Black Magic)
 
 A concurrent lisp-like language with message-passing and
-pattern-matching implemented in C for 32-bit platforms.
+pattern-matching implemented in C for 32 bit and 64 bit platforms.
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
 
@@ -20,7 +20,7 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
 4. 28-Bit signed/unsigned integers and boxed 32-Bit Float, 32-Bit signed/unsigned values.
 5. Arrays (in progress), string is an array.
-6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
+6. Compiles for, and runs on linux-x86.
 7. Compiles for, and runs on Zynq 7000.
 8. Compiles for, and runs on STM32f4.
 9. Compiles for, and runs on NRF52840.
@@ -68,7 +68,7 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 20. [x] Spawn closures specifically instead of expressions in general.
 21. [ ] Implement some looping structure for speed or just ease of use.
 
-## Vague or continuosly ongoing todos 
+## Vague or continuosly ongoing todos
 1. Doxygen?
 2. Tutorials?
 3. Be much more stringent on checking of error conditions etc.
@@ -77,13 +77,17 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 6. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
 
 
-## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
-1. Build the library: `make`
+## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 
-2. Build the repl: `cd repl-cps` and then `make`
+1. Build the repl: `cd repl-cps` and then `make`
 
-3. Run the repl: `./repl`
+2. Run the repl: `./repl`
 
+## Compile a 64bit binary for linux
+
+1. Build the repl: `cd repl-cps` and then `make all64`
+
+2. Run the repl: `./repl`
 
 ## Compile on Raspberry Pi
 
