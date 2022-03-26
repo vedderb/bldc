@@ -1456,9 +1456,10 @@ static inline void cont_resume(eval_context_t *ctx) {
 
 static inline void cont_expand_macro(eval_context_t *ctx) {
 
-  lbm_value env;
-  lbm_value args;
-  lbm_pop_u32_2(&ctx->K, &args, &env);
+  lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 2);
+  //lbm_pop_u32_2(&ctx->K, &args, &env);
+  lbm_value env = (lbm_value)sptr[0];
+  lbm_value args = (lbm_value)sptr[1];
 
   if (lbm_is_macro(ctx->r)) {
 
@@ -1479,6 +1480,7 @@ static inline void cont_expand_macro(eval_context_t *ctx) {
       curr_param = lbm_cdr(curr_param);
       curr_arg   = lbm_cdr(curr_arg);
     }
+    lbm_stack_drop(&ctx->K, 2);
     ctx->curr_exp = lbm_car(lbm_cdr(lbm_cdr(m)));
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
