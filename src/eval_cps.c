@@ -1618,6 +1618,14 @@ static inline void cont_application(eval_context_t *ctx) {
           lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(fun_args[1]);
           if(array->elt_type == LBM_TYPE_CHAR) {
             stream = token_stream_from_string_value(fun_args[1]);
+            if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+              gc(NIL,NIL);
+              stream = token_stream_from_string_value(fun_args[1]);
+              if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+                error_ctx(stream);
+                return;
+              }
+            }
           }
         } else if (lbm_type_of(fun_args[1]) == LBM_TYPE_STREAM) {
           stream = fun_args[1];
@@ -1725,7 +1733,7 @@ static inline void cont_application(eval_context_t *ctx) {
       lbm_value status = lbm_enc_sym(SYM_EERROR);
       if (lbm_dec_u(count) == 2) {
 
-        if (lbm_type_of(fun_args[1]) == LBM_TYPE_I) { /* CID is of U type */
+        if (lbm_type_of(fun_args[1]) == LBM_TYPE_I) {
           lbm_cid cid = (lbm_cid)lbm_dec_i(fun_args[1]);
           lbm_value msg = fun_args[2];
 
@@ -1816,6 +1824,7 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
 }
 
 static inline void cont_application_args(eval_context_t *ctx) {
+
   lbm_value count;
   lbm_value env;
   lbm_value rest;
@@ -2242,16 +2251,18 @@ static inline int application_kind(lbm_value v) {
 
 static inline void cont_application_start(eval_context_t *ctx) {
 
-  lbm_value args;
-  lbm_pop_u32(&ctx->K, &args);
+  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 2);
+  if (sptr == NULL) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+  }
+  lbm_value args = (lbm_value)sptr[1];
 
   switch (application_kind(ctx->r)) {
   case MACRO_EXPAND:
     /* (macro-expand (args + (list 1 2 3))) */
-
-    CHECK_STACK(lbm_push_u32_2(&ctx->K,
-                               lbm_cdr(lbm_car(args)),
-                               lbm_enc_u(EXPAND_MACRO)));
+    sptr[1] = lbm_cdr(args);
+    CHECK_STACK(lbm_push_u32(&ctx->K,
+                             lbm_enc_u(EXPAND_MACRO)));
     ctx->curr_exp = lbm_car(lbm_car(args));
     break;
   case MACRO_APPLY:{
@@ -2261,8 +2272,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
      * environment augmented with the unevaluated expressions passed
      * as arguments.
      */
-    lbm_value env;
-    lbm_pop_u32(&ctx->K, &env);
+    lbm_value env = (lbm_value)sptr[0];
 
     lbm_value curr_param = (lbm_car(lbm_cdr(ctx->r)));
     lbm_value curr_arg = args;
@@ -2285,9 +2295,10 @@ static inline void cont_application_start(eval_context_t *ctx) {
      * First to instantiate the arguments into the macro body.
      * Second to evaluate the resulting program.
      */
-    CHECK_STACK(lbm_push_u32_2(&ctx->K,
-                               env,
-                               lbm_enc_u(EVAL_R)));
+    sptr[1] = lbm_enc_u(EVAL_R);
+    /* CHECK_STACK(lbm_push_u32_2(&ctx->K, */
+    /*                            env, */
+    /*                            lbm_enc_u(EVAL_R))); */
     lbm_value exp = lbm_car(lbm_cdr(lbm_cdr(ctx->r)));
     ctx->curr_exp = exp;
     ctx->curr_env = expand_env;
@@ -2301,8 +2312,8 @@ static inline void cont_application_start(eval_context_t *ctx) {
     lbm_value exp     = lbm_car(cddr_fun);
     lbm_value clo_env = lbm_car(cdddr_fun);
 
-    CHECK_STACK(lbm_push_u32_5(&ctx->K,
-                               exp,
+    sptr[1] = exp;
+    CHECK_STACK(lbm_push_u32_4(&ctx->K,
                                clo_env,
                                params,
                                lbm_cdr(args),
@@ -2311,9 +2322,9 @@ static inline void cont_application_start(eval_context_t *ctx) {
     ctx->app_cont = false;
   } break;
   default:
-    CHECK_STACK(lbm_push_u32_2(&ctx->K,
-                               lbm_enc_u(0),
-                               args));
+    sptr[1] = lbm_enc_u(0);
+    CHECK_STACK(lbm_push_u32(&ctx->K,
+                             args));
     cont_application_args(ctx);
     break;
   }
