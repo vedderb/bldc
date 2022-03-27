@@ -267,6 +267,35 @@ Example
 (< 5 2)
 ```
 
+---
+
+### >= 
+
+Greater than or equal comparison. A less than comparison has the form `(>= expr1 ... exprN)`
+and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN.
+
+
+Example
+```clj
+(>= 5 2)
+```
+
+---
+
+### <=
+
+Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)`
+and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN.
+
+
+Example
+```clj
+(<= 5 2)
+```
+
+
+
+
 
 ---
 
