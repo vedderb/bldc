@@ -184,6 +184,7 @@ static char translate_escape_char(char c) {
   switch(c) {
   case '\\': return '\\';
   case 'n': return '\n';
+  case 'r': return '\r';
   case 't': return '\t';
   case '\"': return '\"';
   default: return '\\';

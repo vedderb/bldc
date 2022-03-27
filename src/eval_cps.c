@@ -1164,8 +1164,12 @@ static inline void eval_symbol(eval_context_t *ctx) {
       return;
     }
   }
-  ctx->app_cont = true;
-  ctx->r = value;
+  if (lbm_is_error(value)) {
+    error_ctx(value);
+  } else {
+    ctx->app_cont = true;
+    ctx->r = value;
+  }
 }
 
 
@@ -1788,39 +1792,42 @@ static inline void cont_application(eval_context_t *ctx) {
 
 static inline void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 5);
+
   if (sptr == NULL) {
     error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
     return;
   }
   lbm_value arg_env = (lbm_value)sptr[0];
+  lbm_value exp     = (lbm_value)sptr[1];
   lbm_value clo_env = (lbm_value)sptr[2];
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-  lbm_value entry;
-  WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), NIL, NIL);
-
-  lbm_value aug_env;
-  WITH_GC(aug_env,lbm_cons(entry, clo_env),entry,NIL);
-
-  if (lbm_is_symbol_nil(args)) {
-    lbm_stack_drop(&ctx->K, 3);
-    lbm_value exp;
-    lbm_pop(&ctx->K, &exp);
-    lbm_stack_drop(&ctx->K, 1); // arg eval env
-    ctx->curr_env = aug_env;
+  if (lbm_is_symbol_nil(params)) { // accepts no more params
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
     ctx->app_cont = false;
   } else {
+    lbm_value entry;
+    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), NIL, NIL);
 
-    sptr[2] = aug_env;
-    sptr[3] = lbm_cdr(params);
-    sptr[4] = lbm_cdr(args);
+    lbm_value aug_env;
+    WITH_GC(aug_env,lbm_cons(entry, clo_env),entry,NIL);
 
-    lbm_push(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
-
-    ctx->curr_exp = lbm_car(args);
-    ctx->curr_env = arg_env;
+    if (lbm_is_symbol_nil(args)) {
+      lbm_stack_drop(&ctx->K, 5);
+      ctx->curr_env = aug_env;
+      ctx->curr_exp = exp;
+      ctx->app_cont = false;
+    } else {
+      sptr[2] = aug_env;
+      sptr[3] = lbm_cdr(params);
+      sptr[4] = lbm_cdr(args);
+      lbm_push(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
+      ctx->curr_exp = lbm_car(args);
+      ctx->curr_env = arg_env;
+    }
   }
 }
 
@@ -2312,14 +2319,15 @@ static inline void cont_application_start(eval_context_t *ctx) {
     lbm_value params  = lbm_car(cdr_fun);
     lbm_value exp     = lbm_car(cddr_fun);
     lbm_value clo_env = lbm_car(cdddr_fun);
-
+    lbm_value arg_env = (lbm_value)sptr[0];
     sptr[1] = exp;
     CHECK_STACK(lbm_push_4(&ctx->K,
-                               clo_env,
-                               params,
-                               lbm_cdr(args),
-                               lbm_enc_u(CLOSURE_ARGS)));
+                           clo_env,
+                           params,
+                           lbm_cdr(args),
+                           lbm_enc_u(CLOSURE_ARGS)));
     ctx->curr_exp = lbm_car(args);
+    ctx->curr_env = arg_env;
     ctx->app_cont = false;
   } break;
   default:
