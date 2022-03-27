@@ -65,7 +65,7 @@ int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
   return 1;
 }
 
-int lbm_push_u32(lbm_stack_t *s, lbm_uint val) {
+int lbm_push(lbm_stack_t *s, lbm_uint val) {
   int res = 1;
   if (s->sp == s->size) {
     return 0;
@@ -79,7 +79,7 @@ int lbm_push_u32(lbm_stack_t *s, lbm_uint val) {
   return res;
 }
 
-int lbm_pop_u32(lbm_stack_t *s, lbm_uint *val) {
+int lbm_pop(lbm_stack_t *s, lbm_uint *val) {
 
   s->sp--;
   *val = s->data[s->sp];

@@ -59,19 +59,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
   int res;
 
   lbm_stack_clear(&print_stack);
-  lbm_push_u32_2(&print_stack, t, PRINT);
+  lbm_push_2(&print_stack, t, PRINT);
 
   while (!lbm_stack_is_empty(&print_stack) && offset <= len - 5) {
 
     lbm_value curr;
     lbm_uint  instr;
-    lbm_pop_u32(&print_stack, &instr);
+    lbm_pop(&print_stack, &instr);
 
     switch(instr) {
 
     case START_LIST: {
       res = 1;
-      lbm_pop_u32(&print_stack, &curr);
+      lbm_pop(&print_stack, &curr);
 
       r = snprintf(buf + offset, len - offset, "(");
       if ( r >= 0 ) {
@@ -86,19 +86,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       lbm_value cdr_val = lbm_cdr(curr);
 
       if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
-        res &= lbm_push_u32(&print_stack, cdr_val);
-        res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
+        res &= lbm_push(&print_stack, cdr_val);
+        res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
                  lbm_dec_sym(cdr_val) == SYM_NIL) {
-        res &= lbm_push_u32(&print_stack, END_LIST);
+        res &= lbm_push(&print_stack, END_LIST);
       } else {
-        res &= lbm_push_u32(&print_stack, END_LIST);
-        res &= lbm_push_u32(&print_stack, cdr_val);
-        res &= lbm_push_u32(&print_stack, PRINT);
-        res &= lbm_push_u32(&print_stack, PRINT_DOT);
+        res &= lbm_push(&print_stack, END_LIST);
+        res &= lbm_push(&print_stack, cdr_val);
+        res &= lbm_push(&print_stack, PRINT);
+        res &= lbm_push(&print_stack, PRINT_DOT);
       }
-      res &= lbm_push_u32(&print_stack, car_val);
-      res &= lbm_push_u32(&print_stack, PRINT);
+      res &= lbm_push(&print_stack, car_val);
+      res &= lbm_push(&print_stack, PRINT);
 
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
@@ -110,7 +110,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
     case CONTINUE_LIST: {
 
       res = 1;
-      lbm_pop_u32(&print_stack, &curr);
+      lbm_pop(&print_stack, &curr);
 
       if (lbm_type_of(curr) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(curr) == SYM_NIL) {
@@ -130,19 +130,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       offset += n;
 
       if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
-        res &= lbm_push_u32(&print_stack, cdr_val);
-        res &= lbm_push_u32(&print_stack, CONTINUE_LIST);
+        res &= lbm_push(&print_stack, cdr_val);
+        res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
                   lbm_dec_sym(cdr_val) == SYM_NIL) {
-        res &= lbm_push_u32(&print_stack, END_LIST);
+        res &= lbm_push(&print_stack, END_LIST);
       } else {
-        res &= lbm_push_u32(&print_stack, END_LIST);
-        res &= lbm_push_u32(&print_stack, cdr_val);
-        res &= lbm_push_u32(&print_stack, PRINT);
-        res &= lbm_push_u32(&print_stack, PRINT_DOT);
+        res &= lbm_push(&print_stack, END_LIST);
+        res &= lbm_push(&print_stack, cdr_val);
+        res &= lbm_push(&print_stack, PRINT);
+        res &= lbm_push(&print_stack, PRINT_DOT);
       }
-      res &= lbm_push_u32(&print_stack, car_val);
-      res &= lbm_push_u32(&print_stack, PRINT);
+      res &= lbm_push(&print_stack, car_val);
+      res &= lbm_push(&print_stack, PRINT);
       if (!res) {
         snprintf(buf, len, "Error: Out of print stack\n");
         return -1;
@@ -184,14 +184,14 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
     case PRINT:
 
-      lbm_pop_u32(&print_stack, &curr);
+      lbm_pop(&print_stack, &curr);
 
       switch(lbm_type_of(curr)) {
 
       case LBM_TYPE_CONS:{
         res = 1;
-        res &= lbm_push_u32(&print_stack, curr);
-        res &= lbm_push_u32(&print_stack, START_LIST);
+        res &= lbm_push(&print_stack, curr);
+        res &= lbm_push(&print_stack, START_LIST);
         if (!res) {
           snprintf(buf, len, "Error: Out of print stack\n");
           return -1;
