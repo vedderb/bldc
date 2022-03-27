@@ -939,8 +939,6 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 ### Loops
 
-In general it is encouraged to do iteration by recursion, but there are a few loop constructs available for convenience.
-
 #### loopfor
 
 ```clj
@@ -951,10 +949,8 @@ For-loop. it is the iterator, start is what it is initialized to, cond is the co
 
 ```clj
 (loopfor i 0 (< i 5) (+ i 1)
-    (progn
-        (print i)
-        (sleep 0.5)
-))
+    (print i)
+)
 
 Output:
 0
@@ -962,6 +958,13 @@ Output:
 2
 3
 4
+
+; Remember that multiple statements in the loop require a progn:
+(loopfor i 0 (< i 5) (+ i 1)
+    (progn
+        (print i)
+        (sleep 0.5)
+))
 ```
 
 #### loopwhile
@@ -978,7 +981,6 @@ While-loop. cond is the condition that has the be true for the loop to continue 
 (loopwhile (< i 5)
     (progn
         (print i)
-        (sleep 0.5)
         (define i (+ i 1))
 ))
 
@@ -1010,10 +1012,8 @@ Range-loop. Iterate it from start to end and evaluate body for each iteration. T
 
 ```clj
 (looprange i 0 5
-    (progn
-        (print i)
-        (sleep 0.5)
-))
+    (print i)
+)
 
 Output:
 0
@@ -1021,6 +1021,13 @@ Output:
 2
 3
 4
+
+; As with the other loops, multiple statements require a progn
+(looprange i 0 5
+    (progn
+        (print i)
+        (sleep 0.5)
+))
 ```
 
 ### Useful Lisp Functions
