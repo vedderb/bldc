@@ -994,7 +994,7 @@ Pattern-matching is expressed using match. The form of a match expression is
 `(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares
 the shape of an expression to each of the `pat1` ... `patN`
 and evaluates the expression `exprM` of the pattern that matches.
-In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i28`,`?u28`,`?float`.
+In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`.
 
 For example the match expression below evaluates to 2.
 ```clj
@@ -1037,32 +1037,33 @@ An example that evaluates to 19.
 
 ---
 
-### ?i28
+### ?i
 
-The `?i28` pattern matches any i28 and binds that value to a variable.
-Using the ?i28 pattern is done as `(?i28 var)` and the part of the expression
-that matches is bound to the `var`.
+The `?i` pattern matches an integer (28bit integer on 32bit platforms
+and a 56bit integer on 64bit platforms) and binds that value to a
+variable.  Using the ?i pattern is done as `(?i var)` and the part
+of the expression that matches is bound to the `var`.
 
-The following example evaluates to `not-an-i28`.
+The following example evaluates to `not-an-i`.
 ```clj
 (match 3.14
-       ( (i28 n) (+ n 1))
-       ( _ 'not-an-i28))
+       ( (?i n) (+ n 1))
+       ( _ 'not-an-i))
 ```
 The example below evaluates to 5.
 ```clj
 (match 4
-       ( (i28 n) (+ n 1))
-       ( _ 'not-an-i28))
+       ( (?i n) (+ n 1))
+       ( _ 'not-an-i))
 ```
 
 
 ---
 
-### ?u28
+### ?u
 
-The `?u28` pattern matches any u28 and binds that value to a variable.
-Using the ?u28 pattern is done as `(?u28 var)` and the part of the expression
+The `?u` pattern matches any unsigned and binds that value to a variable.
+Using the ?u pattern is done as `(?u var)` and the part of the expression
 that matches is bound to the `var`.
 
 ---

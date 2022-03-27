@@ -1265,8 +1265,8 @@ static inline void eval_progn(eval_context_t *ctx) {
 
 static inline void eval_lambda(eval_context_t *ctx) {
 
-  lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
-
+  lbm_value env_cpy = ctx->curr_env; //lbm_env_copy_shallow(ctx->curr_env);
+  /*
   if (lbm_is_symbol_merror(env_cpy)) {
     gc(NIL, NIL);
     env_cpy = lbm_env_copy_shallow(ctx->curr_env);
@@ -1278,6 +1278,19 @@ static inline void eval_lambda(eval_context_t *ctx) {
     }
   }
 
+  lbm_value env_cpy_rev = lbm_list_reverse(env_cpy);
+  if (lbm_is_symbol_merror(env_cpy_rev)) {
+    gc(env_cpy, NIL);
+    env_cpy_rev = lbm_list_reverse(env_cpy);
+    if (lbm_is_symbol_merror(env_cpy_rev)) {
+      ctx_running->done = true;
+      error_ctx(lbm_enc_sym(SYM_MERROR));
+      return;
+    }
+  }
+
+  env_cpy = env_cpy_rev;
+  */
   lbm_value env_end;
   lbm_value body;
   lbm_value params;
