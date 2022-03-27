@@ -23,15 +23,15 @@
 static const char* functions[] = {
 "(defun uart-read-bytes (buffer n ofs)"
 "(let ((rd (uart-read buffer n ofs)))"
-"(if (num-eq rd n)"
-"(bufset-u8 buffer 0 (+ ofs rd))"
+"(if (= rd n)"
+"(bufset-u8 buffer (+ ofs rd) 0)"
 "(progn (yield 4000) (uart-read-bytes buffer (- n rd) (+ ofs rd)))"
 ")))",
 
 "(defun uart-read-until (buffer n ofs end)"
 "(let ((rd (uart-read buffer n ofs end)))"
-"(if (and (> rd 0) (or (num-eq rd n) (num-eq (bufget-u8 buffer (+ ofs (- rd 1))) end)))"
-"(bufset-u8 buffer 0 (+ ofs rd))"
+"(if (and (> rd 0) (or (= rd n) (= (bufget-u8 buffer (+ ofs (- rd 1))) end)))"
+"(bufset-u8 buffer (+ ofs rd) 0)"
 "(progn (yield 10000) (uart-read-until buffer (- n rd) (+ ofs rd) end))"
 ")))",
 
