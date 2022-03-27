@@ -751,7 +751,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
 
   ctx->id = cid;
 
-  if (!lbm_push_u32(&ctx->K, lbm_enc_u(DONE))) {
+  if (!lbm_push(&ctx->K, lbm_enc_u(DONE))) {
     lbm_stack_free(&ctx->K);
     lbm_memory_free((lbm_uint*)ctx);
     return -1;
@@ -766,7 +766,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
 static void advance_ctx(void) {
 
   if (lbm_type_of(ctx_running->program) == LBM_TYPE_CONS) {
-    lbm_push_u32(&ctx_running->K, lbm_enc_u(DONE));
+    lbm_push(&ctx_running->K, lbm_enc_u(DONE));
     ctx_running->curr_exp = lbm_car(ctx_running->program);
     ctx_running->curr_env = lbm_enc_sym(SYM_NIL);
     ctx_running->program = lbm_cdr(ctx_running->program);
@@ -1111,7 +1111,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
       error_ctx(lbm_enc_sym(SYM_NOT_FOUND));
       return;
     } else {
-      CHECK_STACK(lbm_push_u32_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
+      CHECK_STACK(lbm_push_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
 
       lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
 
@@ -1229,11 +1229,11 @@ static inline void eval_define(eval_context_t *ctx) {
 
     if ((sym_val >= VARIABLE_SYMBOLS_START) &&
         (sym_val <  VARIABLE_SYMBOLS_END)) {
-      CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_VARIABLE)));
+      CHECK_STACK(lbm_push_2(&ctx->K, key, lbm_enc_u(SET_VARIABLE)));
       ctx->curr_exp = val_exp;
       return;
     } else if (sym_val >= RUNTIME_SYMBOLS_START) {
-      CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
+      CHECK_STACK(lbm_push_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
       ctx->curr_exp = val_exp;
       return;
     }
@@ -1248,7 +1248,7 @@ static inline void eval_progn(eval_context_t *ctx) {
   lbm_value env  = ctx->curr_env;
 
   if (lbm_is_list(exps)) {
-    CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(exps), lbm_enc_u(PROGN_REST)));
+    CHECK_STACK(lbm_push_3(&ctx->K, env, lbm_cdr(exps), lbm_enc_u(PROGN_REST)));
     ctx->curr_exp = lbm_car(exps);
     ctx->curr_env = env;
   } else if (lbm_is_symbol_nil(exps)) {
@@ -1290,7 +1290,7 @@ static inline void eval_lambda(eval_context_t *ctx) {
 
 static inline void eval_if(eval_context_t *ctx) {
 
-  CHECK_STACK(lbm_push_u32_4(&ctx->K,
+  CHECK_STACK(lbm_push_4(&ctx->K,
                              lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
                              lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
                              ctx->curr_env,
@@ -1317,8 +1317,8 @@ static inline void eval_let(eval_context_t *ctx) {
     lbm_value key = lbm_car(lbm_car(curr));
     lbm_value val = NIL;
     lbm_value binding;
-    CONS_WITH_GC(binding, key, val, NIL);
-    CONS_WITH_GC(new_env, binding, new_env, new_env);
+    WITH_GC(binding, lbm_cons(key, val), new_env, NIL);
+    WITH_GC(new_env, lbm_cons(binding, new_env), new_env, binding);
 
     curr = lbm_cdr(curr);
   }
@@ -1326,7 +1326,7 @@ static inline void eval_let(eval_context_t *ctx) {
   lbm_value key0 = lbm_car(lbm_car(binds));
   lbm_value val0_exp = lbm_car(lbm_cdr(lbm_car(binds)));
 
-  CHECK_STACK(lbm_push_u32_5(&ctx->K, exp, lbm_cdr(binds), new_env,
+  CHECK_STACK(lbm_push_5(&ctx->K, exp, lbm_cdr(binds), new_env,
                          key0, lbm_enc_u(BIND_TO_KEY_REST)));
   ctx->curr_exp = val0_exp;
   ctx->curr_env = new_env;
@@ -1339,7 +1339,7 @@ static inline void eval_and(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_TRUE);
   } else {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(AND)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(AND)));
     ctx->curr_exp = lbm_car(rest);
   }
 }
@@ -1350,7 +1350,7 @@ static inline void eval_or(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
   } else {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(OR)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(OR)));
     ctx->curr_exp = lbm_car(rest);
   }
 }
@@ -1370,7 +1370,7 @@ static inline void eval_match(eval_context_t *ctx) {
     ctx->r = lbm_enc_sym(SYM_NIL);
     return;
   } else {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(MATCH)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(MATCH)));
     ctx->curr_exp = lbm_car(rest); /* Evaluate e next*/
   }
 }
@@ -1434,7 +1434,7 @@ static inline void cont_set_global_env(eval_context_t *ctx){
   lbm_value key;
   lbm_value val = ctx->r;
 
-  lbm_pop_u32(&ctx->K, &key);
+  lbm_pop(&ctx->K, &key);
   lbm_value new_env;
   WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),key,val), key, NIL);
 
@@ -1449,7 +1449,7 @@ static inline void cont_set_global_env(eval_context_t *ctx){
 static inline void cont_set_var(eval_context_t *ctx) {
   lbm_value key;
   lbm_value val = ctx->r;
-  lbm_pop_u32(&ctx->K, &key);
+  lbm_pop(&ctx->K, &key);
 
   ctx->r = lbm_set_var(lbm_dec_sym(key), val);
   ctx->app_cont = true;
@@ -1458,7 +1458,7 @@ static inline void cont_set_var(eval_context_t *ctx) {
 
 static inline void cont_resume(eval_context_t *ctx) {
   lbm_value exp;
-  lbm_pop_u32(&ctx->K, &exp);
+  lbm_pop(&ctx->K, &exp);
   ctx->curr_exp = exp;
 }
 
@@ -1499,7 +1499,7 @@ static inline void cont_expand_macro(eval_context_t *ctx) {
 static inline void cont_progn_rest(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value env;
-  lbm_pop_u32_2(&ctx->K, &rest, &env);
+  lbm_pop_2(&ctx->K, &rest, &env);
   if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     return;
@@ -1509,7 +1509,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
   } else {
-    CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(rest), lbm_enc_u(PROGN_REST)));
+    CHECK_STACK(lbm_push_3(&ctx->K, env, lbm_cdr(rest), lbm_enc_u(PROGN_REST)));
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
   }
@@ -1518,7 +1518,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
 static inline void cont_wait(eval_context_t *ctx) {
 
   lbm_value cid_val;
-  lbm_pop_u32(&ctx->K, &cid_val);
+  lbm_pop(&ctx->K, &cid_val);
   lbm_cid cid = (lbm_cid)lbm_dec_i(cid_val);
 
   bool exists = false;
@@ -1531,7 +1531,7 @@ static inline void cont_wait(eval_context_t *ctx) {
   }
 
   if (exists) {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
     ctx->r = lbm_enc_sym(SYM_TRUE);
     ctx->app_cont = true;
     yield_ctx(50000);
@@ -1543,7 +1543,7 @@ static inline void cont_wait(eval_context_t *ctx) {
 
 static inline void cont_application(eval_context_t *ctx) {
   lbm_value count;
-  lbm_pop_u32(&ctx->K, &count);
+  lbm_pop(&ctx->K, &count);
 
   lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, lbm_dec_u(count)+1);
 
@@ -1558,7 +1558,7 @@ static inline void cont_application(eval_context_t *ctx) {
     lbm_value arg = fun_args[1];
     lbm_stack_clear(&ctx->K);
     while (lbm_type_of(c) == LBM_TYPE_CONS) {
-      lbm_push_u32(&ctx->K, lbm_car(c));
+      lbm_push(&ctx->K, lbm_car(c));
       c = lbm_cdr(c);
     }
     ctx->r = arg;
@@ -1634,7 +1634,7 @@ static inline void cont_application(eval_context_t *ctx) {
           break;
         }
         lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
-        CHECK_STACK(lbm_push_u32_3(&ctx->K, stream, fun, lbm_enc_u(READ)));
+        CHECK_STACK(lbm_push_3(&ctx->K, stream, fun, lbm_enc_u(READ)));
         ctx->r = NIL;
         ctx->app_cont = true;
         break;
@@ -1703,7 +1703,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (lbm_type_of(fun_args[1]) == LBM_TYPE_I) {
         lbm_cid cid = (lbm_cid)lbm_dec_i(fun_args[1]);
         lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
-        CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
+        CHECK_STACK(lbm_push_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
         ctx->r = lbm_enc_sym(SYM_TRUE);
         ctx->app_cont = true;
         yield_ctx(50000);
@@ -1805,7 +1805,7 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
   if (lbm_is_symbol_nil(args)) {
     lbm_stack_drop(&ctx->K, 3);
     lbm_value exp;
-    lbm_pop_u32(&ctx->K, &exp);
+    lbm_pop(&ctx->K, &exp);
     lbm_stack_drop(&ctx->K, 1); // arg eval env
     ctx->curr_env = aug_env;
     ctx->curr_exp = exp;
@@ -1816,7 +1816,7 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     sptr[3] = lbm_cdr(params);
     sptr[4] = lbm_cdr(args);
 
-    lbm_push_u32(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
+    lbm_push(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
 
     ctx->curr_exp = lbm_car(args);
     ctx->curr_env = arg_env;
@@ -1829,15 +1829,15 @@ static inline void cont_application_args(eval_context_t *ctx) {
   lbm_value env;
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_u32_3(&ctx->K, &rest, &count, &env);
+  lbm_pop_3(&ctx->K, &rest, &count, &env);
 
-  CHECK_STACK(lbm_push_u32(&ctx->K, arg));
+  CHECK_STACK(lbm_push(&ctx->K, arg));
   if (lbm_is_symbol_nil(rest)) {
     // no arguments
-    CHECK_STACK(lbm_push_u32(&ctx->K, count));
+    CHECK_STACK(lbm_push(&ctx->K, count));
     cont_application(ctx);
   } else if (lbm_is_list(rest)) {
-    CHECK_STACK(lbm_push_u32_4(&ctx->K, env, lbm_enc_u(lbm_dec_u(count) + 1), lbm_cdr(rest), lbm_enc_u(APPLICATION_ARGS)));
+    CHECK_STACK(lbm_push_4(&ctx->K, env, lbm_enc_u(lbm_dec_u(count) + 1), lbm_cdr(rest), lbm_enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
   } else {
@@ -1848,14 +1848,14 @@ static inline void cont_application_args(eval_context_t *ctx) {
 static inline void cont_and(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_u32(&ctx->K, &rest);
+  lbm_pop(&ctx->K, &rest);
   if (lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
   } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
   } else {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(AND)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(AND)));
     ctx->curr_exp = lbm_car(rest);
   }
 }
@@ -1863,14 +1863,14 @@ static inline void cont_and(eval_context_t *ctx) {
 static inline void cont_or(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_u32(&ctx->K, &rest);
+  lbm_pop(&ctx->K, &rest);
   if (!lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
   } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     ctx->r = lbm_enc_sym(SYM_NIL);
   } else {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(OR)));
+    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(OR)));
     ctx->curr_exp = lbm_car(rest);
   }
 }
@@ -1880,7 +1880,7 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
   lbm_value env;
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_u32_3(&ctx->K, &key, &env, &rest);
+  lbm_pop_3(&ctx->K, &key, &env, &rest);
 
   lbm_env_modify_binding(env, key, arg);
 
@@ -1888,14 +1888,14 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
     lbm_value keyn = lbm_car(lbm_car(rest));
     lbm_value valn_exp = lbm_car(lbm_cdr(lbm_car(rest)));
 
-    CHECK_STACK(lbm_push_u32_4(&ctx->K, lbm_cdr(rest), env, keyn, lbm_enc_u(BIND_TO_KEY_REST)));
+    CHECK_STACK(lbm_push_4(&ctx->K, lbm_cdr(rest), env, keyn, lbm_enc_u(BIND_TO_KEY_REST)));
 
     ctx->curr_exp = valn_exp;
     ctx->curr_env = env;
   } else {
     // Otherwise evaluate the expression in the populated env
     lbm_value exp;
-    lbm_pop_u32(&ctx->K, &exp);
+    lbm_pop(&ctx->K, &exp);
     ctx->curr_exp = exp;
     ctx->curr_env = env;
   }
@@ -1908,7 +1908,7 @@ static inline void cont_if(eval_context_t *ctx) {
   lbm_value env;
   lbm_value arg = ctx->r;
 
-  lbm_pop_u32_3(&ctx->K, &env, &then_branch, &else_branch);
+  lbm_pop_3(&ctx->K, &env, &then_branch, &else_branch);
 
   if (lbm_is_symbol_nil(arg)) {
     ctx->curr_env = env;
@@ -1927,7 +1927,7 @@ static inline void cont_match_many(eval_context_t *ctx) {
   lbm_value pats;
   lbm_value exp;
 
-  lbm_pop_u32_3(&ctx->K, &rest_msgs, &pats, &exp);
+  lbm_pop_3(&ctx->K, &rest_msgs, &pats, &exp);
 
   if (lbm_type_of(r) == LBM_TYPE_SYMBOL &&
       (lbm_dec_sym(r) == SYM_NO_MATCH)) {
@@ -1939,8 +1939,8 @@ static inline void cont_match_many(eval_context_t *ctx) {
 
     } else {
       /* try match the next one */
-      CHECK_STACK(lbm_push_u32_4(&ctx->K, exp, pats, lbm_cdr(rest_msgs), lbm_enc_u(MATCH_MANY)));
-      CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_car(pats), lbm_enc_u(MATCH)));
+      CHECK_STACK(lbm_push_4(&ctx->K, exp, pats, lbm_cdr(rest_msgs), lbm_enc_u(MATCH_MANY)));
+      CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(pats), lbm_enc_u(MATCH)));
       ctx->r = lbm_car(rest_msgs);
       ctx->app_cont = true;
     }
@@ -1957,7 +1957,7 @@ static inline void cont_match(eval_context_t *ctx) {
   lbm_value new_env = ctx->curr_env;
   bool  do_gc = false;
 
-  lbm_pop_u32(&ctx->K, &patterns);
+  lbm_pop(&ctx->K, &patterns);
 
   if (lbm_is_symbol_nil(patterns)) {
     /* no more patterns */
@@ -1983,7 +1983,7 @@ static inline void cont_match(eval_context_t *ctx) {
       ctx->curr_exp = body;
     } else {
       /* set up for checking of next pattern */
-      CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(patterns), lbm_enc_u(MATCH)));
+      CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(patterns), lbm_enc_u(MATCH)));
       /* leave r unaltered */
       ctx->app_cont = true;
     }
@@ -2001,7 +2001,7 @@ static inline void cont_read(eval_context_t *ctx) {
 
   lbm_value stream = NIL;
   lbm_value prg_val = NIL;
-  lbm_pop_u32_2(&ctx->K, &prg_val, &stream);
+  lbm_pop_2(&ctx->K, &prg_val, &stream);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
   lbm_value tok;
@@ -2019,17 +2019,17 @@ static inline void cont_read(eval_context_t *ctx) {
     return;
   }
 
-  CHECK_STACK(lbm_push_u32(&ctx->K, lbm_enc_u(READ_DONE)));
+  CHECK_STACK(lbm_push(&ctx->K, lbm_enc_u(READ_DONE)));
 
   if (program) {
-    CHECK_STACK(lbm_push_u32_3(&ctx->K, NIL, NIL, lbm_enc_u(APPEND_CONTINUE)));
+    CHECK_STACK(lbm_push_3(&ctx->K, NIL, NIL, lbm_enc_u(APPEND_CONTINUE)));
   }
 
   while (!read_done) {
 
     if (app_cont) {
       lbm_value cont = NIL;
-      lbm_pop_u32(&ctx->K, &cont);
+      lbm_pop(&ctx->K, &cont);
       app_cont = false; // false unless explicitly set
 
       switch(lbm_dec_u(cont)) {
@@ -2037,7 +2037,7 @@ static inline void cont_read(eval_context_t *ctx) {
       case APPEND_CONTINUE: {
         lbm_value first_cell = NIL;
         lbm_value last_cell  = NIL;
-        lbm_pop_u32_2(&ctx->K, &last_cell, &first_cell);
+        lbm_pop_2(&ctx->K, &last_cell, &first_cell);
 
         if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
             lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
@@ -2051,7 +2051,7 @@ static inline void cont_read(eval_context_t *ctx) {
           app_cont = true;
         } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
                    lbm_dec_sym(ctx->r) == SYM_DOT) {
-          CHECK_STACK(lbm_push_u32_3(&ctx->K,
+          CHECK_STACK(lbm_push_3(&ctx->K,
                                  first_cell, last_cell,
                                  lbm_enc_u(DOT_TERMINATE)));
         } else {
@@ -2063,7 +2063,7 @@ static inline void cont_read(eval_context_t *ctx) {
           } else {
             first_cell = last_cell = new_cell;
           }
-          CHECK_STACK(lbm_push_u32_3(&ctx->K,
+          CHECK_STACK(lbm_push_3(&ctx->K,
                                  first_cell, last_cell,
                                  lbm_enc_u(APPEND_CONTINUE)));
         }
@@ -2072,7 +2072,7 @@ static inline void cont_read(eval_context_t *ctx) {
         if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
             lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
           lbm_value res = NIL;
-          lbm_pop_u32(&ctx->K, &res);
+          lbm_pop(&ctx->K, &res);
           ctx->r = res;
           app_cont = true;
         } else {
@@ -2083,7 +2083,7 @@ static inline void cont_read(eval_context_t *ctx) {
       case DOT_TERMINATE: {
         lbm_value first_cell = NIL;
         lbm_value last_cell  = NIL;
-        lbm_pop_u32_2(&ctx->K, &last_cell, &first_cell);
+        lbm_pop_2(&ctx->K, &last_cell, &first_cell);
 
         if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
             (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
@@ -2094,7 +2094,7 @@ static inline void cont_read(eval_context_t *ctx) {
           if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
             lbm_set_cdr(last_cell, ctx->r);
             ctx->r = first_cell;
-            CHECK_STACK(lbm_push_u32_2(&ctx->K,
+            CHECK_STACK(lbm_push_2(&ctx->K,
                                    ctx->r,
                                    lbm_enc_u(EXPECT_CLOSEPAR)));
           } else {
@@ -2189,28 +2189,28 @@ static inline void cont_read(eval_context_t *ctx) {
           app_cont = true;
           break;
         case SYM_OPENPAR:
-          CHECK_STACK(lbm_push_u32_3(&ctx->K,
+          CHECK_STACK(lbm_push_3(&ctx->K,
                                  NIL, NIL,
                                  lbm_enc_u(APPEND_CONTINUE)));
           app_cont = false;
           break;
         case SYM_QUOTE_IT:
-          CHECK_STACK(lbm_push_u32(&ctx->K,
+          CHECK_STACK(lbm_push(&ctx->K,
                                lbm_enc_u(QUOTE_RESULT)));
           app_cont = false;
           break;
         case SYM_BACKQUOTE:
-          CHECK_STACK(lbm_push_u32(&ctx->K,
+          CHECK_STACK(lbm_push(&ctx->K,
                                lbm_enc_u(BACKQUOTE_RESULT)));
           app_cont = false;
           break;
         case SYM_COMMAAT:
-          CHECK_STACK(lbm_push_u32(&ctx->K,
+          CHECK_STACK(lbm_push(&ctx->K,
                                lbm_enc_u(COMMAAT_RESULT)));
           app_cont = false;
           break;
         case SYM_COMMA:
-          CHECK_STACK(lbm_push_u32(&ctx->K,
+          CHECK_STACK(lbm_push(&ctx->K,
                                lbm_enc_u(COMMA_RESULT)));
           app_cont = false;
           break;
@@ -2261,7 +2261,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
   case MACRO_EXPAND:
     /* (macro-expand (args + (list 1 2 3))) */
     sptr[1] = lbm_cdr(args);
-    CHECK_STACK(lbm_push_u32(&ctx->K,
+    CHECK_STACK(lbm_push(&ctx->K,
                              lbm_enc_u(EXPAND_MACRO)));
     ctx->curr_exp = lbm_car(lbm_car(args));
     break;
@@ -2313,7 +2313,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
     lbm_value clo_env = lbm_car(cdddr_fun);
 
     sptr[1] = exp;
-    CHECK_STACK(lbm_push_u32_4(&ctx->K,
+    CHECK_STACK(lbm_push_4(&ctx->K,
                                clo_env,
                                params,
                                lbm_cdr(args),
@@ -2323,7 +2323,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
   } break;
   default:
     sptr[1] = lbm_enc_u(0);
-    CHECK_STACK(lbm_push_u32(&ctx->K,
+    CHECK_STACK(lbm_push(&ctx->K,
                              args));
     cont_application_args(ctx);
     break;
@@ -2333,7 +2333,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
 static inline void cont_eval_r(eval_context_t* ctx) {
 
   lbm_value env;
-  lbm_pop_u32(&ctx->K, &env);
+  lbm_pop(&ctx->K, &env);
   ctx->curr_exp = ctx->r;
   ctx->curr_env = env;
   ctx->app_cont = false;
@@ -2351,7 +2351,7 @@ static void evaluation_step(void){
 
   if (ctx->app_cont) {
     lbm_value k;
-    lbm_pop_u32(&ctx->K, &k);
+    lbm_pop(&ctx->K, &k);
     ctx->app_cont = false;
 
     switch(lbm_dec_u(k)) {
@@ -2430,7 +2430,7 @@ static void evaluation_step(void){
      * Anything else would be an error.
      */
 
-    CHECK_STACK(lbm_push_u32_3(&ctx->K,
+    CHECK_STACK(lbm_push_3(&ctx->K,
                                ctx->curr_env,
                                lbm_cdr(ctx->curr_exp),
                                lbm_enc_u(APPLICATION_START)));

@@ -418,12 +418,12 @@ int lbm_gc_mark_phase(lbm_value env) {
       return 1; // Nothing to mark here
   }
 
-  lbm_push_u32(s, env);
+  lbm_push(s, env);
   int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
     lbm_value curr;
-    lbm_pop_u32(s, &curr);
+    lbm_pop(s, &curr);
 
     if (!lbm_is_ptr(curr)) {
       continue;
@@ -444,8 +444,8 @@ int lbm_gc_mark_phase(lbm_value env) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push_u32(s, lbm_cdr(curr));
-    res &= lbm_push_u32(s, lbm_car(curr));
+    res &= lbm_push(s, lbm_cdr(curr));
+    res &= lbm_push(s, lbm_car(curr));
 
     if (!res) break;
   }
