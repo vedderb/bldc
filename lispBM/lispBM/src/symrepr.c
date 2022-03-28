@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 117
+#define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -34,7 +34,7 @@ typedef struct {
   const lbm_uint id;
 } special_sym;
 
-special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
+special_sym const special_symbols[] =  {
   {"nil"        , SYM_NIL},
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
@@ -176,7 +176,14 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"encode-float"   , SYM_ENCODE_FLOAT},
   {"decode"         , SYM_DECODE},
 
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL}
+  {"is-fundamental" , SYM_IS_FUNDAMENTAL},
+
+  // aliases
+  {"first"          , SYM_CAR},
+  {"rest"           , SYM_CDR},
+  {"fn"             , SYM_LAMBDA},
+  {"def"            , SYM_DEFINE}
+
 };
 
 static lbm_uint *symlist = NULL;

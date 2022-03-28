@@ -32,6 +32,8 @@
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
 
+#define WAIT_TIMEOUT 2500
+
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
@@ -63,6 +65,30 @@ void sleep_callback(uint32_t us) {
 void *eval_thd_wrapper(void *v) {
   lbm_run_eval();
   return NULL;
+}
+
+void done_callback(eval_context_t *ctx) {
+
+  char output[1024];
+
+  lbm_cid cid = ctx->id;
+  lbm_value t = ctx->r;
+
+  int print_ret = lbm_print_value(output, 1024, t);
+
+  if (print_ret >= 0) {
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
+  } else {
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
+  }
+  printf("stack max:  %"PRI_UINT"\n", ctx->K.max_sp);
+  printf("stack size: %"PRI_UINT"\n", ctx->K.size);
+  printf("stack sp:   %"PRI_INT"\n", ctx->K.sp);
+
+  //  if (!eval_cps_remove_done_ctx(cid, &t)) {
+  //   printf("Error: done context (%d)  not in list\n", cid);
+  //}
+  fflush(stdout);
 }
 
 int main(int argc, char **argv) {
@@ -138,6 +164,7 @@ int main(int argc, char **argv) {
            print_stack_storage, PRINT_STACK_SIZE,
            extension_storage, EXTENSION_STORAGE_SIZE);
 
+  lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
 
@@ -150,7 +177,7 @@ int main(int argc, char **argv) {
                &string_tok);
   lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
-  lbm_wait_ctx(cid);
+  lbm_wait_ctx(cid, WAIT_TIMEOUT);
 
   lbm_value t;
   char *compressed_code;
@@ -174,9 +201,16 @@ int main(int argc, char **argv) {
                                         code_buffer);
   }
 
+  lbm_pause_eval();
+  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    sleep_callback(10);
+  }
+
   cid = lbm_load_and_eval_program(&string_tok);
 
-  t = lbm_wait_ctx(cid);
+  lbm_continue_eval();
+
+  t = lbm_wait_ctx(cid, WAIT_TIMEOUT);
 
   char output[1024];
 
@@ -184,13 +218,5 @@ int main(int argc, char **argv) {
     free(compressed_code);
   }
 
-  int v =  lbm_print_value(output,1024,t);
-
-  if (v >= 0) {
-    printf("> %s\n", output);
-  } else {
-    printf("> %s\n", output);
-  }
-
-  return v;
+  return 0;
 }
