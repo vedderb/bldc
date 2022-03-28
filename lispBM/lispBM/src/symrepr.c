@@ -223,7 +223,7 @@ const char *lookup_symrepr_name_memory(lbm_uint id) {
 // Lookup symbol name given a symbol id
 const char *lbm_get_name_by_symbol(lbm_uint id) {
   if (id < SPECIAL_SYMBOLS_END) {
-    for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
+    for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);
       }
@@ -236,7 +236,7 @@ const char *lbm_get_name_by_symbol(lbm_uint id) {
 int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through special symbols
-  for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
+  for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
     if (strcmp(name, special_symbols[i].name) == 0) {
       *id = special_symbols[i].id;
       return 1;
