@@ -111,6 +111,11 @@ static const char* macros[] = {
 "(define looprange (macro (it start end body)"
 "`(let ((loop (lambda (,it res)(if (< ,it ,end)(loop (+ ,it 1),body)res"
 "))))(loop ,start nil))))",
+
+"(define loopforeach (macro (it lst body)"
+"`(let ((loop (lambda (,it rest res)"
+"(if (eq ,it nil) res (loop (car rest) (cdr rest) ,body)"
+")))) (loop (car ,lst) (cdr ,lst) nil))))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {

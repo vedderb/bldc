@@ -1008,7 +1008,7 @@ Another example that prints "Hello World" every two seconds:
 (looprange it start end body)
 ```
 
-Range-loop. Iterate it from start to end and evaluate body for each iteration. The iterator can be accessed from within body. Example:
+Range-loop. Iterate it from start to end and evaluate body for each iteration. The iterator it can be accessed from within body. Example:
 
 ```clj
 (looprange i 0 5
@@ -1028,6 +1028,34 @@ Output:
         (print i)
         (sleep 0.5)
 ))
+```
+
+#### loopforeach
+
+```clj
+(loopforeach it lst body)
+```
+
+ForEach-loop. Iterate over every element in the list lst and evaluate body for each iteration. The iterator it can be accessed from within body. Example:
+
+```clj
+(loopforeach i '("AB" "C" "dE" "f")
+    (print i)
+)
+
+Output:
+AB
+C
+dE
+f
+
+; As with the other loops, multiple statements require a progn
+(loopforeach i '("AB" "C" "dE" "f")
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+
 ```
 
 ### Useful Lisp Functions
