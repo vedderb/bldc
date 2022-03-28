@@ -1816,31 +1816,33 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-  if (lbm_is_symbol_nil(params)) { // accepts no more params
-    lbm_stack_drop(&ctx->K, 5);
-    ctx->curr_env = clo_env;
-    ctx->curr_exp = exp;
-    ctx->app_cont = false;
-  } else {
+  if (lbm_is_list(params)) {
     lbm_value entry;
     WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), NIL, NIL);
 
     lbm_value aug_env;
     WITH_GC(aug_env,lbm_cons(entry, clo_env),entry,NIL);
+    clo_env = aug_env;
+  }
 
-    if (lbm_is_symbol_nil(args)) {
-      lbm_stack_drop(&ctx->K, 5);
-      ctx->curr_env = aug_env;
-      ctx->curr_exp = exp;
-      ctx->app_cont = false;
-    } else {
-      sptr[2] = aug_env;
-      sptr[3] = lbm_cdr(params);
-      sptr[4] = lbm_cdr(args);
-      lbm_push(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
-      ctx->curr_exp = lbm_car(args);
-      ctx->curr_env = arg_env;
-    }
+  bool a_nil = lbm_is_symbol_nil(args);
+  bool p_nil = lbm_is_symbol_nil(lbm_cdr(params));
+
+  if (a_nil && p_nil) {
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->curr_env = clo_env;
+    ctx->curr_exp = exp;
+    ctx->app_cont = false;
+  } else if (a_nil || p_nil) {
+    lbm_set_error_reason("Too many arguments.");
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+  } else {
+   sptr[2] = clo_env;
+   sptr[3] = lbm_cdr(params);
+   sptr[4] = lbm_cdr(args);
+   lbm_push(&ctx->K, lbm_enc_u(CLOSURE_ARGS));
+   ctx->curr_exp = lbm_car(args);
+   ctx->curr_env = arg_env;
   }
 }
 
