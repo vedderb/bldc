@@ -95,6 +95,9 @@ static const char* functions[] = {
 
 "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
 "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
+
+"(defun second (x) (car (cdr x)))",
+"(defun third (x) (car (cdr (cdr x))))",
 };
 
 static const char* macros[] = {
@@ -113,8 +116,8 @@ static const char* macros[] = {
 "))))(loop ,start nil))))",
 
 "(define loopforeach (macro (it lst body)"
-"`(let ((loop (lambda (,it rest res)"
-"(if (eq ,it nil) res (loop (car rest) (cdr rest) ,body)"
+"`(let ((loop (lambda (,it rst res)"
+"(if (eq ,it nil) res (loop (car rst) (cdr rst) ,body)"
 ")))) (loop (car ,lst) (cdr ,lst) nil))))",
 };
 
