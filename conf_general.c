@@ -1319,6 +1319,50 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	const float res_old = mcconf->foc_motor_r;
 
 	float i_last = 0.0;
+
+#if 1
+        float i_max_old = 0.0;
+        float i_max_new = 0.0;
+        for(int m =0; m < 10; m++) {
+                float res_tmp = 0.0;
+                for (float i = current_start;i < current_max;i *= 1.5) {
+                        res_tmp = mcpwm_foc_measure_resistance(i, 5, false);
+                        i_last = i;
+
+                        if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+                                mempools_free_mcconf(mcconf);
+                                return false;
+                        }
+
+                        if ((i * i * res_tmp * 1.5) >= (max_power_loss / 5.0)) {
+                                break;
+                        }
+                }
+
+                res_tmp = mcpwm_foc_measure_resistance(i_last, 100, true);
+                mcconf->foc_motor_r = res_tmp;
+                mc_interface_set_configuration(mcconf);
+
+                i_max_new = sqrtf(max_power_loss / res_tmp / 1.5);
+                utils_truncate_number(&i_max_new, HW_LIM_CURRENT);
+
+                if((i_max_new - i_max_old) >= 0.01) {
+                        for(int n = 0; n < 5; n++) {
+                                mcpwm_foc_measure_resistance(i_max_new, 1, false);
+                                chThdSleepMilliseconds(100);
+                                mcpwm_foc_measure_resistance(i_max_new, 1, true);
+                                chThdSleepMilliseconds(10);
+                        }
+                        i_max_old = i_max_new;
+                        i_last = 0.0;
+                }
+                else {
+                        *r = res_tmp;
+                        break;
+                }
+                mcpwm_foc_dc_cal(false);
+        }
+#else	
 	for (float i = current_start;i < current_max;i *= 1.5) {
 		float res_tmp = mcpwm_foc_measure_resistance(i, 5, false);
 		i_last = i;
@@ -1334,6 +1378,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	}
 
 	*r = mcpwm_foc_measure_resistance(i_last, 100, true);
+#endif
 
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);
