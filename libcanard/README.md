@@ -1,11 +1,8 @@
 # Libcanard
-[![Forum](https://img.shields.io/discourse/https/forum.uavcan.org/users.svg)](https://forum.uavcan.org)
-[![Build Status](https://travis-ci.org/UAVCAN/libcanard.svg?branch=master)](https://travis-ci.org/UAVCAN/libcanard)
-[![Coverity Scan](https://scan.coverity.com/projects/uavcan-libcanard/badge.svg)](https://scan.coverity.com/projects/uavcan-libcanard)
 
-Minimal implementation of the UAVCAN protocol stack in C for resource constrained applications.
+Minimal implementation of the DroneCAN protocol stack in C for resource constrained applications.
 
-Get help on the **[UAVCAN Forum](https://forum.uavcan.org)**.
+Get help on the **[DroneCAN Forum](https://dronecan.org/discord)**.
 
 ## Usage
 
@@ -14,7 +11,7 @@ If you're using Git, it is recommended to add Libcanard to your project as a Git
 like this:
 
 ```bash
-git submodule add https://github.com/UAVCAN/libcanard
+git submodule add https://github.com/DroneCAN/libcanard
 ```
 
 The entire library is contained in three files:
@@ -64,8 +61,6 @@ This section is intended only for library developers and contributors.
 
 The library design document can be found in [DESIGN.md](DESIGN.md)
 
-Contributors, please follow the [Zubax C++ Coding Conventions](https://kb.zubax.com/x/84Ah).
-
 ### Building and Running Tests
 
 ```bash
@@ -74,18 +69,3 @@ cmake ../libcanard/tests    # Adjust path if necessary
 make
 ./run_tests
 ```
-
-### Submitting a Coverity Scan Build
-
-First, [get the Coverity build tool](https://scan.coverity.com/download?tab=cxx).
-Then build the tests with it:
-
-```bash
-export PATH=$PATH:<coverity-build-tool-directory>/bin/
-mkdir build && cd build
-cmake ../libcanard/tests -DCMAKE_BUILD_TYPE=Debug   # Adjust path if necessary
-cov-build --dir cov-int make -j8
-tar czvf libcanard.tgz cov-int
-```
-
-Then upload the resulting archive to Coverity.

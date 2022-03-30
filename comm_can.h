@@ -30,7 +30,8 @@
 void comm_can_init(void);
 void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
-void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace);
+void comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int interface);
+void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace, int interface);
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
 void comm_can_set_sid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
@@ -85,7 +86,7 @@ psw_status *comm_can_get_psw_status_id(int id);
 void comm_can_psw_switch(int id, bool is_on, bool plot);
 void comm_can_update_pid_pos_offset(int id, float angle_now, bool store);
 
-CANRxFrame *comm_can_get_rx_frame(void);
+CANRxFrame *comm_can_get_rx_frame(int interface);
 
 void comm_can_send_status1(uint8_t id, bool replace);
 void comm_can_send_status2(uint8_t id, bool replace);
