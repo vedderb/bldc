@@ -58,6 +58,34 @@ void utils_norm_angle(float *angle) {
 	}
 }
 
+/*
+ * Map angle from 0 to 1 in the range min to max. If angle is
+ * outside of the range it will be less truncated to the closest
+ * angle. Angle units: Degrees
+ */
+float utils_map_angle(float angle, float min, float max) {
+	if (max == min) {
+		return -1;
+	}
+
+	float range_pos = max - min;
+	utils_norm_angle(&range_pos);
+	float range_neg = min - max;
+	utils_norm_angle(&range_neg);
+	float margin = range_neg / 2.0;
+
+	angle -= min;
+	utils_norm_angle(&angle);
+	if (angle > (360 - margin)) {
+		angle -= 360.0;
+	}
+
+	float res = angle / range_pos;
+	utils_truncate_number(&res, 0.0, 1.0);
+
+	return res;
+}
+
 /**
  * Make sure that -pi <= angle < pi,
  *
