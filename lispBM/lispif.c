@@ -26,7 +26,7 @@
 #include "timeout.h"
 #include "lispbm.h"
 
-#define HEAP_SIZE				1536
+#define HEAP_SIZE				2048
 #define LISP_MEM_SIZE			LBM_MEMORY_SIZE_8K
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_8K
 #define GC_STACK_SIZE			160

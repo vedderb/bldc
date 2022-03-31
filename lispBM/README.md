@@ -1118,6 +1118,32 @@ f
 
 ```
 
+#### break
+
+```clj
+(break retval)
+```
+
+break can be used to break out of a loop and return retval (the result of the loop will be retval, otherwise the result of the loop will be the result of the last expression in it). break works in all of the loops above. Example:
+
+```clj
+; Below we make a function to determine if
+; the list lst contains number num
+
+(defun contains (num lst)
+    (loopforeach it lst
+        (if (= it num)
+            (break t)
+            nil
+)))
+
+(contains 346 '(12 33 452 11 22 346 99 12))
+> t
+
+(contains 347 '(12 33 452 11 22 346 99 12))
+> nil
+```
+
 ### Useful Lisp Functions
 
 There are a number of lisp functions that can be used from lispBM in the VESC firmware. They will be loaded to the environment the first time they are used, so they do not use up memory before the first use.
