@@ -1478,7 +1478,7 @@ static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
 	int samples = mc_interface_get_configuration()->m_hall_extra_samples;
 
 	if (argn == 2) {
-		lbm_dec_i(args[1]);
+		samples = lbm_dec_i(args[1]);
 	}
 
 	if ((motor != 1 && motor != 2) || samples < 0 || samples > 20) {
