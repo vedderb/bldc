@@ -995,7 +995,7 @@ Get the value of param. optDefault is an optional argument that can be set to 1 
 (conf-store)
 ```
 
-Store the current configuration to flash. This will stop the motor.´
+Store the current configuration to flash. This will stop the motor.
 
 ### Loops
 
