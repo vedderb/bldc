@@ -50,6 +50,46 @@
 #include <math.h>
 #include <ctype.h>
 
+typedef struct {
+	// BMS
+	lbm_uint v_tot;
+	lbm_uint v_charge;
+	lbm_uint i_in;
+	lbm_uint i_in_ic;
+	lbm_uint ah_cnt;
+	lbm_uint wh_cnt;
+	lbm_uint cell_num;
+	lbm_uint v_cell;
+	lbm_uint bal_state;
+	lbm_uint temp_adc_num;
+	lbm_uint temps_adc;
+	lbm_uint temp_ic;
+	lbm_uint temp_hum;
+	lbm_uint hum;
+	lbm_uint temp_max_cell;
+	lbm_uint soc;
+	lbm_uint soh;
+	lbm_uint can_id;
+	lbm_uint ah_cnt_chg_total;
+	lbm_uint wh_cnt_chg_total;
+	lbm_uint ah_cnt_dis_total;
+	lbm_uint wh_cnt_dis_total;
+	lbm_uint msg_age;
+
+	// GPIO
+	lbm_uint pin_mode_out;
+	lbm_uint pin_mode_od;
+	lbm_uint pin_mode_in;
+	lbm_uint pin_mode_in_pu;
+	lbm_uint pin_mode_in_pd;
+	lbm_uint pin_rx;
+	lbm_uint pin_tx;
+	lbm_uint pin_swdio;
+	lbm_uint pin_swclk;
+} vesc_syms;
+
+static vesc_syms syms_vesc = {0};
+
 // Helpers
 
 static bool is_number_all(lbm_value *args, lbm_uint argn) {
@@ -140,44 +180,6 @@ static lbm_value ext_get_selected_motor(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(mc_interface_motor_now());
 }
 
-typedef struct {
-	lbm_uint v_tot;
-	lbm_uint v_charge;
-	lbm_uint i_in;
-	lbm_uint i_in_ic;
-	lbm_uint ah_cnt;
-	lbm_uint wh_cnt;
-	lbm_uint cell_num;
-	lbm_uint v_cell;
-	lbm_uint bal_state;
-	lbm_uint temp_adc_num;
-	lbm_uint temps_adc;
-	lbm_uint temp_ic;
-	lbm_uint temp_hum;
-	lbm_uint hum;
-	lbm_uint temp_max_cell;
-	lbm_uint soc;
-	lbm_uint soh;
-	lbm_uint can_id;
-	lbm_uint ah_cnt_chg_total;
-	lbm_uint wh_cnt_chg_total;
-	lbm_uint ah_cnt_dis_total;
-	lbm_uint wh_cnt_dis_total;
-	lbm_uint msg_age;
-} bms_syms;
-
-static bms_syms syms_bms = {0};
-
-static lbm_uint sym_pin_mode_out;
-static lbm_uint sym_pin_mode_od;
-static lbm_uint sym_pin_mode_in;
-static lbm_uint sym_pin_mode_in_pu;
-static lbm_uint sym_pin_mode_in_pd;
-static lbm_uint sym_pin_rx;
-static lbm_uint sym_pin_tx;
-static lbm_uint sym_pin_swdio;
-static lbm_uint sym_pin_swclk;
-
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
 		if (!lbm_add_symbol_const(name, id)) {
@@ -190,71 +192,71 @@ static bool get_add_symbol(char *name, lbm_uint* id) {
 
 static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 	if (*comp == 0) {
-		if (comp == &syms_bms.v_tot) {
+		if (comp == &syms_vesc.v_tot) {
 			get_add_symbol("bms-v-tot", comp);
-		} else if (comp == &syms_bms.v_charge) {
+		} else if (comp == &syms_vesc.v_charge) {
 			get_add_symbol("bms-v-charge", comp);
-		} else if (comp == &syms_bms.i_in) {
+		} else if (comp == &syms_vesc.i_in) {
 			get_add_symbol("bms-i-in", comp);
-		} else if (comp == &syms_bms.i_in_ic) {
+		} else if (comp == &syms_vesc.i_in_ic) {
 			get_add_symbol("bms-i-in-ic", comp);
-		} else if (comp == &syms_bms.ah_cnt) {
+		} else if (comp == &syms_vesc.ah_cnt) {
 			get_add_symbol("bms-ah-cnt", comp);
-		} else if (comp == &syms_bms.wh_cnt) {
+		} else if (comp == &syms_vesc.wh_cnt) {
 			get_add_symbol("bms-wh-cnt", comp);
-		} else if (comp == &syms_bms.cell_num) {
+		} else if (comp == &syms_vesc.cell_num) {
 			get_add_symbol("bms-cell-num", comp);
-		} else if (comp == &syms_bms.v_cell) {
+		} else if (comp == &syms_vesc.v_cell) {
 			get_add_symbol("bms-v-cell", comp);
-		} else if (comp == &syms_bms.bal_state) {
+		} else if (comp == &syms_vesc.bal_state) {
 			get_add_symbol("bms-bal-state", comp);
-		} else if (comp == &syms_bms.temp_adc_num) {
+		} else if (comp == &syms_vesc.temp_adc_num) {
 			get_add_symbol("bms-temp-adc-num", comp);
-		} else if (comp == &syms_bms.temps_adc) {
+		} else if (comp == &syms_vesc.temps_adc) {
 			get_add_symbol("bms-temps-adc", comp);
-		} else if (comp == &syms_bms.temp_ic) {
+		} else if (comp == &syms_vesc.temp_ic) {
 			get_add_symbol("bms-temp-ic", comp);
-		} else if (comp == &syms_bms.temp_hum) {
+		} else if (comp == &syms_vesc.temp_hum) {
 			get_add_symbol("bms-temp-hum", comp);
-		} else if (comp == &syms_bms.hum) {
+		} else if (comp == &syms_vesc.hum) {
 			get_add_symbol("bms-hum", comp);
-		} else if (comp == &syms_bms.temp_max_cell) {
+		} else if (comp == &syms_vesc.temp_max_cell) {
 			get_add_symbol("bms-temp-cell-max", comp);
-		} else if (comp == &syms_bms.soc) {
+		} else if (comp == &syms_vesc.soc) {
 			get_add_symbol("bms-soc", comp);
-		} else if (comp == &syms_bms.soh) {
+		} else if (comp == &syms_vesc.soh) {
 			get_add_symbol("bms-soh", comp);
-		} else if (comp == &syms_bms.can_id) {
+		} else if (comp == &syms_vesc.can_id) {
 			get_add_symbol("bms-can-id", comp);
-		} else if (comp == &syms_bms.ah_cnt_chg_total) {
+		} else if (comp == &syms_vesc.ah_cnt_chg_total) {
 			get_add_symbol("bms-ah-cnt-chg-total", comp);
-		} else if (comp == &syms_bms.wh_cnt_chg_total) {
+		} else if (comp == &syms_vesc.wh_cnt_chg_total) {
 			get_add_symbol("bms-wh-cnt-chg-total", comp);
-		} else if (comp == &syms_bms.ah_cnt_dis_total) {
+		} else if (comp == &syms_vesc.ah_cnt_dis_total) {
 			get_add_symbol("bms-ah-cnt-dis-total", comp);
-		} else if (comp == &syms_bms.wh_cnt_dis_total) {
+		} else if (comp == &syms_vesc.wh_cnt_dis_total) {
 			get_add_symbol("bms-wh-cnt-dis-total", comp);
-		} else if (comp == &syms_bms.msg_age) {
+		} else if (comp == &syms_vesc.msg_age) {
 			get_add_symbol("bms-msg-age", comp);
 		}
 
-		else if (comp == &sym_pin_mode_out) {
+		else if (comp == &syms_vesc.pin_mode_out) {
 			get_add_symbol("pin-mode-out", comp);
-		} else if (comp == &sym_pin_mode_od) {
+		} else if (comp == &syms_vesc.pin_mode_od) {
 			get_add_symbol("pin-mode-od", comp);
-		} else if (comp == &sym_pin_mode_in) {
+		} else if (comp == &syms_vesc.pin_mode_in) {
 			get_add_symbol("pin-mode-in", comp);
-		} else if (comp == &sym_pin_mode_in_pu) {
+		} else if (comp == &syms_vesc.pin_mode_in_pu) {
 			get_add_symbol("pin-mode-in-pu", comp);
-		} else if (comp == &sym_pin_mode_in_pd) {
+		} else if (comp == &syms_vesc.pin_mode_in_pd) {
 			get_add_symbol("pin-mode-in-pd", comp);
-		} else if (comp == &sym_pin_rx) {
+		} else if (comp == &syms_vesc.pin_rx) {
 			get_add_symbol("pin-rx", comp);
-		} else if (comp == &sym_pin_tx) {
+		} else if (comp == &syms_vesc.pin_tx) {
 			get_add_symbol("pin-tx", comp);
-		} else if (comp == &sym_pin_swdio) {
+		} else if (comp == &syms_vesc.pin_swdio) {
 			get_add_symbol("pin-swdio", comp);
-		} else if (comp == &sym_pin_swclk) {
+		} else if (comp == &syms_vesc.pin_swclk) {
 			get_add_symbol("pin-swclk", comp);
 		}
 	}
@@ -276,21 +278,21 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 	lbm_uint name = lbm_dec_sym(args[0]);
 	bms_values *val = bms_get_values();
 
-	if (compare_symbol(name, &syms_bms.v_tot)) {
+	if (compare_symbol(name, &syms_vesc.v_tot)) {
 		res = lbm_enc_float(val->v_tot);
-	} else if (compare_symbol(name, &syms_bms.v_charge)) {
+	} else if (compare_symbol(name, &syms_vesc.v_charge)) {
 		res = lbm_enc_float(val->v_charge);
-	} else if (compare_symbol(name, &syms_bms.i_in)) {
+	} else if (compare_symbol(name, &syms_vesc.i_in)) {
 		res = lbm_enc_float(val->i_in);
-	} else if (compare_symbol(name, &syms_bms.i_in_ic)) {
+	} else if (compare_symbol(name, &syms_vesc.i_in_ic)) {
 		res = lbm_enc_float(val->i_in_ic);
-	} else if (compare_symbol(name, &syms_bms.ah_cnt)) {
+	} else if (compare_symbol(name, &syms_vesc.ah_cnt)) {
 		res = lbm_enc_float(val->ah_cnt);
-	} else if (compare_symbol(name, &syms_bms.wh_cnt)) {
+	} else if (compare_symbol(name, &syms_vesc.wh_cnt)) {
 		res = lbm_enc_float(val->wh_cnt);
-	} else if (compare_symbol(name, &syms_bms.cell_num)) {
+	} else if (compare_symbol(name, &syms_vesc.cell_num)) {
 		res = lbm_enc_i(val->cell_num);
-	} else if (compare_symbol(name, &syms_bms.v_cell)) {
+	} else if (compare_symbol(name, &syms_vesc.v_cell)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -301,7 +303,7 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_float(val->v_cell[c]);
-	} else if (compare_symbol(name, &syms_bms.bal_state)) {
+	} else if (compare_symbol(name, &syms_vesc.bal_state)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -312,9 +314,9 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_i(val->bal_state[c]);
-	} else if (compare_symbol(name, &syms_bms.temp_adc_num)) {
+	} else if (compare_symbol(name, &syms_vesc.temp_adc_num)) {
 		res = lbm_enc_i(val->temp_adc_num);
-	} else if (compare_symbol(name, &syms_bms.temps_adc)) {
+	} else if (compare_symbol(name, &syms_vesc.temps_adc)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return lbm_enc_sym(SYM_EERROR);
 		}
@@ -325,29 +327,29 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 		}
 
 		res = lbm_enc_float(val->temps_adc[c]);
-	} else if (compare_symbol(name, &syms_bms.temp_ic)) {
+	} else if (compare_symbol(name, &syms_vesc.temp_ic)) {
 		res = lbm_enc_float(val->temp_ic);
-	} else if (compare_symbol(name, &syms_bms.temp_hum)) {
+	} else if (compare_symbol(name, &syms_vesc.temp_hum)) {
 		res = lbm_enc_float(val->temp_hum);
-	} else if (compare_symbol(name, &syms_bms.hum)) {
+	} else if (compare_symbol(name, &syms_vesc.hum)) {
 		res = lbm_enc_float(val->hum);
-	} else if (compare_symbol(name, &syms_bms.temp_max_cell)) {
+	} else if (compare_symbol(name, &syms_vesc.temp_max_cell)) {
 		res = lbm_enc_float(val->temp_max_cell);
-	} else if (compare_symbol(name, &syms_bms.soc)) {
+	} else if (compare_symbol(name, &syms_vesc.soc)) {
 		res = lbm_enc_float(val->soc);
-	} else if (compare_symbol(name, &syms_bms.soh)) {
+	} else if (compare_symbol(name, &syms_vesc.soh)) {
 		res = lbm_enc_float(val->soh);
-	} else if (compare_symbol(name, &syms_bms.can_id)) {
+	} else if (compare_symbol(name, &syms_vesc.can_id)) {
 		res = lbm_enc_i(val->can_id);
-	} else if (compare_symbol(name, &syms_bms.ah_cnt_chg_total)) {
+	} else if (compare_symbol(name, &syms_vesc.ah_cnt_chg_total)) {
 		res = lbm_enc_float(val->ah_cnt_chg_total);
-	} else if (compare_symbol(name, &syms_bms.wh_cnt_chg_total)) {
+	} else if (compare_symbol(name, &syms_vesc.wh_cnt_chg_total)) {
 		res = lbm_enc_float(val->wh_cnt_chg_total);
-	} else if (compare_symbol(name, &syms_bms.ah_cnt_dis_total)) {
+	} else if (compare_symbol(name, &syms_vesc.ah_cnt_dis_total)) {
 		res = lbm_enc_float(val->ah_cnt_dis_total);
-	} else if (compare_symbol(name, &syms_bms.wh_cnt_dis_total)) {
+	} else if (compare_symbol(name, &syms_vesc.wh_cnt_dis_total)) {
 		res = lbm_enc_float(val->wh_cnt_dis_total);
-	} else if (compare_symbol(name, &syms_bms.msg_age)) {
+	} else if (compare_symbol(name, &syms_vesc.msg_age)) {
 		res = lbm_enc_float(UTILS_AGE_S(val->update_time));
 	}
 
@@ -1674,20 +1676,20 @@ static lbm_value ext_i2c_restore(lbm_value *args, lbm_uint argn) {
 }
 
 static bool gpio_get_pin(lbm_uint sym, stm32_gpio_t **port, int *pin) {
-	if (compare_symbol(sym, &sym_pin_rx)) {
+	if (compare_symbol(sym, &syms_vesc.pin_rx)) {
 #ifdef HW_UART_RX_PORT
 		*port = HW_UART_RX_PORT; *pin = HW_UART_RX_PIN;
 		return true;
 #endif
-	} else if (compare_symbol(sym, &sym_pin_tx)) {
+	} else if (compare_symbol(sym, &syms_vesc.pin_tx)) {
 #ifdef HW_UART_TX_PORT
 		*port = HW_UART_TX_PORT; *pin = HW_UART_TX_PIN;
 		return true;
 #endif
-	} else if (compare_symbol(sym, &sym_pin_swdio)) {
+	} else if (compare_symbol(sym, &syms_vesc.pin_swdio)) {
 		*port = GPIOA; *pin = 13;
 		return true;
-	} else if (compare_symbol(sym, &sym_pin_swclk)) {
+	} else if (compare_symbol(sym, &syms_vesc.pin_swclk)) {
 		*port = GPIOA; *pin = 14;
 		return true;
 	}
@@ -1705,15 +1707,15 @@ static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
 	lbm_uint name = lbm_dec_sym(args[1]);
 	iomode_t mode = PAL_MODE_OUTPUT_PUSHPULL;
 
-	if (compare_symbol(name, &sym_pin_mode_out)) {
+	if (compare_symbol(name, &syms_vesc.pin_mode_out)) {
 		mode = PAL_MODE_OUTPUT_PUSHPULL;
-	} else if (compare_symbol(name, &sym_pin_mode_od)) {
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_od)) {
 		mode = PAL_MODE_OUTPUT_OPENDRAIN;
-	} else if (compare_symbol(name, &sym_pin_mode_in)) {
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_in)) {
 		mode = PAL_MODE_INPUT;
-	} else if (compare_symbol(name, &sym_pin_mode_in_pu)) {
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pu)) {
 		mode = PAL_MODE_INPUT_PULLUP;
-	} else if (compare_symbol(name, &sym_pin_mode_in_pd)) {
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pd)) {
 		mode = PAL_MODE_INPUT_PULLDOWN;
 	} else {
 		return lbm_enc_sym(SYM_EERROR);
@@ -2118,16 +2120,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
 
-	memset(&syms_bms, 0, sizeof(syms_bms));
-	sym_pin_mode_out = 0;
-	sym_pin_mode_od = 0;
-	sym_pin_mode_in = 0;
-	sym_pin_mode_in_pu = 0;
-	sym_pin_mode_in_pd = 0;
-	sym_pin_rx = 0;
-	sym_pin_tx = 0;
-	sym_pin_swdio = 0;
-	sym_pin_swclk = 0;
+	memset(&syms_vesc, 0, sizeof(syms_vesc));
 
 	// Various commands
 	lbm_add_extension("print", ext_print);
