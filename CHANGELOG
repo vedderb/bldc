@@ -9,6 +9,7 @@
 * CAN status messages are now configured using bitfields.
 * There are two rates at which CAN status messages can be sent now.
 * New silent HFI mode with much better performance at high load.
+* Added app ADC min and max voltage limits for throttle fault detection.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.
