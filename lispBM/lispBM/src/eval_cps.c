@@ -1195,16 +1195,32 @@ static inline void eval_closure(eval_context_t *ctx) {
 
 static inline void eval_callcc(eval_context_t *ctx) {
 
-  lbm_value continuation = NIL;
+  //lbm_value continuation = NIL;
 
-  for (int i = (int)ctx->K.sp; i > 0; i --) {
-    CONS_WITH_GC(continuation, ctx->K.data[i-1], continuation, continuation);
+  lbm_value cont_array;
+#ifndef LBM64
+  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+    gc(NIL,NIL);
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+      error_ctx(lbm_enc_sym(SYM_MERROR));
+      return;
+    }
   }
+#else
+  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
+    gc(NIL,NIL);
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+      error_ctx(lbm_enc_sym(SYM_MERROR));
+      return;
+    }
+  }
+#endif
 
-  lbm_value acont = NIL;
-  CONS_WITH_GC(acont, continuation, acont, continuation);
-  CONS_WITH_GC(acont, lbm_enc_sym(SYM_CONT), acont, acont);
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont_array);
+  memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
+  lbm_value acont;
+  CONS_WITH_GC(acont, lbm_enc_sym(SYM_CONT), cont_array, cont_array);
 
   /* Create an application */
   lbm_value fun_arg = lbm_car(lbm_cdr(ctx->curr_exp));
@@ -1572,13 +1588,20 @@ static inline void cont_application(eval_context_t *ctx) {
   lbm_value fun = fun_args[0];
   if (lbm_is_continuation(fun)) {
 
-    lbm_value c = lbm_car(lbm_cdr(fun)); /* should be the continuation */
+    lbm_value c = lbm_cdr(fun); /* should be the continuation */
+
+    if (!lbm_is_array(c)) {
+      error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+      return;
+    }
     lbm_value arg = fun_args[1];
     lbm_stack_clear(&ctx->K);
-    while (lbm_type_of(c) == LBM_TYPE_CONS) {
-      lbm_push(&ctx->K, lbm_car(c));
-      c = lbm_cdr(c);
-    }
+
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
+
+    ctx->K.sp = arr->size;
+    memcpy(ctx->K.data, arr->data, arr->size * sizeof(lbm_uint));
+
     ctx->r = arg;
     ctx->app_cont = true;
     return;
