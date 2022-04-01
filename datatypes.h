@@ -612,6 +612,8 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage_min;
+	float voltage_max;
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
