@@ -5,6 +5,7 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 ### Feature Overview
 
 * Development and testing in VESC Tool with variable live monitoring and plotting as well as CPU and memory monitoring.
+* There is a REPL in VESC Tool where code can be executed and tested live. You even have full access to the functions and bindings in the program you have uploaded.
 * Sandboxed environment, meaning that the Lisp code (hopefully) cannot freeze or crash the rest of the VESC code when it gets stuck or runs out of heap or stack memory.
 * The application runs on the VESC itself without the need for having VESC Tool connected and is stored in flash memory.
 * When a lisp-application is written to the VESC it is automatically started on each boot.
