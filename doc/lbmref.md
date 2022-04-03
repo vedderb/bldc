@@ -13,7 +13,7 @@ Example adding up two numbers. The result is 3.
 ```
 When adding up values of different types values are converted.
  ```clj
-(+ 1i28 3.14)
+(+ 1i 3.14)
 ```
 The example above evaluates to float value 4.14.<br>
 You can add up multiple values.
@@ -1053,9 +1053,9 @@ will block on a `recv` until there is a matching message in
 the mailbox.
 The `recv` syntax is very similar to [match](./lbmref.md#match).
 
-Example where a process waits for an i28
+Example where a process waits for an integer `?i`.
 ```clj
-(recv ( (?i28 n) (+ n 1) ))
+(recv ( (?i n) (+ n 1) ))
 ```
 
 
@@ -1223,11 +1223,18 @@ variable (symbol) that is neighter bound nor special (built-in function).
 
 ---
 
-### type-i28
+### type-i
+
+A value with type `type-i` occupy 28bits on the 32 bit version of LBM and
+56bits on the 64bit version.
 
 ---
 
-### type-u28
+### type-u
+
+A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
+56bits on the 64bit version.
+
 
 ---
 
@@ -1240,6 +1247,18 @@ variable (symbol) that is neighter bound nor special (built-in function).
 ---
 
 ### type-u32
+
+---
+
+### type-i64
+
+---
+
+### type-u64
+
+---
+
+### type-double
 
 ---
 
