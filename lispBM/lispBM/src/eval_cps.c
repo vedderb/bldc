@@ -221,6 +221,16 @@ static void (*ctx_done_callback)(eval_context_t *) = NULL;
 static int (*printf_callback)(const char *, ...) = NULL;
 static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
 
+static bool lbm_verbose = false;
+
+void lbm_toggle_verbose(void) {
+  lbm_verbose = !lbm_verbose;
+}
+
+void lbm_set_verbose(bool verbose) {
+  lbm_verbose = verbose;
+}
+
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   usleep_callback = fptr;
 }
@@ -350,27 +360,27 @@ void print_error_message(lbm_value error) {
   printf_callback("***\tError: %s\n\n", buf);
 
   if (ctx_running->error_reason) {
-    printf_callback("Reason:\n%s\n\n", ctx_running->error_reason);
+    printf_callback("Reason:\n\t%s\n\n", ctx_running->error_reason);
   }
+  if (lbm_verbose) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("\tWhile evaluating: %s\n", buf);
+    printf_callback("\tIn context: %d\n", ctx_running->id);
+    printf_callback("\tCurrent intermediate result: %s\n\n", buf);
 
-  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-  printf_callback("\tWhile evaluating: %s\n", buf);
-  printf_callback("\tIn context: %d\n", ctx_running->id);
-  printf_callback("\tCurrent intermediate result: %s\n\n", buf);
+    print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+    printf_callback("\n\n");
 
-  print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-  printf_callback("\n\n");
+    printf_callback("\tError explanation:\n");
+    print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+    printf_callback("\n\n");
 
-  printf_callback("\tError explanation:\n");
-  print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-  printf_callback("\n\n");
-
-  printf_callback("\tStack:\n");
-  for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
-    printf_callback("\t\t%s\n", buf);
+    printf_callback("\tStack:\n");
+    for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
+      printf_callback("\t\t%s\n", buf);
+    }
   }
-
   lbm_memory_free(buf32);
 }
 
@@ -1323,11 +1333,15 @@ static inline void eval_lambda(eval_context_t *ctx) {
 
 static inline void eval_if(eval_context_t *ctx) {
 
+  lbm_value cddr = lbm_cdr(lbm_cdr(ctx->curr_exp));
+  lbm_value then_branch = lbm_car(cddr);
+  lbm_value else_branch = lbm_car(lbm_cdr(cddr));
+
   CHECK_STACK(lbm_push_4(&ctx->K,
-                             lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
-                             lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
-                             ctx->curr_env,
-                             lbm_enc_u(IF)));
+                         else_branch,
+                         then_branch,
+                         ctx->curr_env,
+                         lbm_enc_u(IF)));
   ctx->curr_exp = lbm_car(lbm_cdr(ctx->curr_exp));
 }
 
@@ -1579,7 +1593,9 @@ static inline void cont_application(eval_context_t *ctx) {
   lbm_value count;
   lbm_pop(&ctx->K, &count);
 
-  lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, lbm_dec_u(count)+1);
+  lbm_uint arg_count = lbm_dec_u(count);
+
+  lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, arg_count+1);
 
   if (fun_args == NULL) {
     ctx->r = lbm_enc_sym(SYM_FATAL_ERROR);
@@ -1594,7 +1610,15 @@ static inline void cont_application(eval_context_t *ctx) {
       error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
       return;
     }
-    lbm_value arg = fun_args[1];
+
+    lbm_value arg = NIL;
+    if (arg_count == 1) {
+      arg = fun_args[1];
+    } else if (arg_count > 1) {
+      lbm_set_error_reason("A continuation created by call-cc was applied to too many arguments (>1)");
+      error_ctx(lbm_enc_sym(SYM_EERROR));
+      return;
+    }
     lbm_stack_clear(&ctx->K);
 
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);

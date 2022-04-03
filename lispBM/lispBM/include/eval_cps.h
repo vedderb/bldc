@@ -183,6 +183,14 @@ extern void lbm_blocked_iterator(ctx_fun f, void*, void*);
  * \param arg2 Same as above
  */
 extern void lbm_done_iterator(ctx_fun f, void*, void*);
+/** toggle verbosity level of error messages
+ */
+extern void lbm_toggle_verbose(void);
+/** Set verbosity level of lispbm error messages.
+ *
+ * \param verbose Boolean to turn verbose errors on or off.
+ */
+extern void lbm_set_verbose(bool verbose);
 /** Set a usleep callback for use by the evaluator thread.
  *
  * \param fptr Pointer to a sleep function.
