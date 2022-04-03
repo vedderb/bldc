@@ -244,8 +244,14 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 						":continue\n"
 						"  Continue running LBM");
 				commands_printf_lisp(
-						":step\n"
-						"  Run single LBM step");
+						":step <num_steps>\n"
+						"  Run num_steps LBM steps");
+				commands_printf_lisp(
+						":undef <symbol_name>\n"
+						"  Undefine symbol");
+				commands_printf_lisp(
+						":verb\n"
+						"  Toggle verbose error messages");
 				commands_printf_lisp(" ");
 				commands_printf_lisp("Anything else will be evaluated as an expression in LBM.");
 				commands_printf_lisp(" ");
@@ -314,6 +320,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("undefining: %s", sym);
 				commands_printf_lisp("%s", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
 				lbm_continue_eval();
+			} else if (strncmp(str, ":verb", 5) == 0) {
+				static bool verbose_now = false;
+				verbose_now = !verbose_now;
+				lbm_set_verbose(verbose_now);
+				commands_printf_lisp("Verbose errors %s", verbose_now ? "Enabled" : "Disabled");
 			} else {
 				bool ok = true;
 				int timeout_cnt = 1000;
