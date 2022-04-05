@@ -292,6 +292,7 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 	(void)data;
 	(void)len;
 	(void)replace;
+	(void)interface;
 #endif
 }
 
