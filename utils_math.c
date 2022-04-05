@@ -342,7 +342,7 @@ float utils_fast_atan2(float y, float x) {
 }
 
 /**
- * Truncate the magnitude of a vector.
+ * Saturates the magnitude of a vector.
  *
  * @param x
  * The first component.
@@ -354,19 +354,22 @@ float utils_fast_atan2(float y, float x) {
  * The maximum magnitude.
  *
  * @return
- * True if saturation happened, false otherwise
+ * True if saturated, false otherwise
  */
 bool utils_saturate_vector_2d(float *x, float *y, float max) {
 	bool retval = false;
-	float mag = NORM2_f(*x, *y);
-	max = fabsf(max);
+	float mag2 = SQ(*x) + SQ(*y);
+	float max2 = SQ(max);
 
-	if (mag < 1e-10) {
-		mag = 1e-10;
+	// Ensure magnitude doesn't become too small
+	if (mag2 < 1e-20) {
+		mag2 = 1e-20;
 	}
 
-	if (mag > max) {
-		const float f = max / mag;
+	// Check if we need to normalize. Comparing the squared values
+	// because `x ?> y` and `x^2 ?> y^2` give identical results.
+	if (mag2 > max2) {
+		const float f = sqrtf(max2 / mag2);
 		*x *= f;
 		*y *= f;
 		retval = true;
