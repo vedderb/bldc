@@ -40,6 +40,7 @@ void timeout_init(void);
 void timeout_configure(systime_t timeout, float brake_current, KILL_SW_MODE kill_sw_mode);
 void timeout_reset(void);
 bool timeout_has_timeout(void);
+float timeout_secs_since_update(void);
 bool timeout_kill_sw_active(void);
 systime_t timeout_get_timeout_msec(void);
 void timeout_configure_IWDT(void);

@@ -107,6 +107,7 @@ typedef struct {
 	float cos_last, sin_last;
 	float prev_sample;
 	float angle;
+	float double_integrator;
 	int est_done_cnt;
 	float observer_zero_time;
 	int flip_cnt;
@@ -2934,6 +2935,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_V2:
 			case FOC_SENSOR_MODE_HFI_V3:
+			case FOC_SENSOR_MODE_HFI_V4:
+			case FOC_SENSOR_MODE_HFI_V5:
 				if (fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) > conf_now->foc_sl_erpm_hfi) {
 					motor_now->m_hfi.observer_zero_time = 0;
 				} else {
@@ -3079,6 +3082,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_V2:
 			case FOC_SENSOR_MODE_HFI_V3:
+			case FOC_SENSOR_MODE_HFI_V4:
+			case FOC_SENSOR_MODE_HFI_V5:
 			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
@@ -3098,6 +3103,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		CURRENT_FILTER_ON();
 		motor_now->m_hfi.ind = 0;
 		motor_now->m_hfi.ready = false;
+		motor_now->m_hfi.double_integrator = 0.0;
 		motor_now->m_hfi.is_samp_n = false;
 		motor_now->m_hfi.prev_sample = 0.0;
 		motor_now->m_hfi.angle = motor_now->m_motor_state.phase;
@@ -3593,7 +3599,10 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 	}
 
 	if (motor->m_hfi.ready) {
-		if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) &&
+		if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) &&
+				motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
+			// Nothing done here, the update is done in the interrupt.
+		} else if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) &&
 				motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
 
 			if (!motor->m_using_encoder) {
@@ -3612,7 +3621,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 					// This is where the angle is updated. "Correct" would be to use half of the sine
 					// of this value and have gain 1, but that makes the angle very noisy. Having gain
 					// less than 1 reduces the noise and still keeps up, and sin(0.2) is roughly 0.2
-					// so we can just use the value directly as it we scale it anyway.
+					// so we can just use the value directly as we scale it anyway.
 					motor->m_hfi.angle -= (ind_a / motor->m_conf->foc_motor_ld_lq_diff) * motor->m_conf->foc_hfi_gain;
 					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 
@@ -3951,6 +3960,8 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3 ||
+			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 ||
+			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5 ||
 			(conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START &&
 					motor->m_control_mode != CONTROL_MODE_CURRENT_BRAKE &&
 					fabsf(state_m->iq_target) > conf_now->cc_min_current)) &&
@@ -4020,10 +4031,10 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 	float dec_vq = 0.0;
 	float dec_bemf = 0.0;
 
-	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
-		float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
-		float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
+	float lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
+	float ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
 
+	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
 			dec_vd = state_m->iq_filter * motor->m_speed_est_fast * lq; // m_speed_est_fast is ωe in [rad/s]
@@ -4113,12 +4124,59 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			hfi_voltage = conf_now->foc_hfi_voltage_start;
 		} else {
 			hfi_voltage = utils_map(fabsf(state_m->iq), -0.01, conf_now->l_current_max,
-									conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
+					conf_now->foc_hfi_voltage_run, conf_now->foc_hfi_voltage_max);
 		}
 
 		utils_truncate_number_abs(&hfi_voltage, state_m->v_bus * (1.0 - fabsf(state_m->duty_now)) * SQRT3_BY_2 * (2.0 / 3.0) * 0.95);
 
-		if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) && hfi_est_done) {
+		if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) && hfi_est_done) {
+			if (motor->m_hfi.is_samp_n) {
+				float sample_now = c * motor->m_i_beta_sample_with_offset - s * motor->m_i_alpha_sample_with_offset;
+				float di = (sample_now - motor->m_hfi.prev_sample);
+
+				if (!motor->m_using_encoder) {
+					motor->m_hfi.angle = motor->m_phase_now_observer;
+				} else {
+					// Add extra scaling in addition to foc_hfi_gain so that a similar
+					// default gain parameter works as for the other implementation.
+					// TODO: Figure out if the ratio for the second integrator is sane
+					// or if an additional parameter should be added for it.
+					const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
+					const float gain_int2 = 10.0 * conf_now->foc_hfi_gain;
+
+					float err = di / (dt * hfi_voltage * (1.0 / lq - 1.0 / ld));
+					motor->m_hfi.double_integrator += dt * err * gain_int2;
+					motor->m_hfi.angle += gain_int * err * dt + motor->m_hfi.double_integrator;
+					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
+					motor->m_hfi.ready = true;
+				}
+
+#ifdef HW_HAS_PHASE_SHUNTS
+				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
+					mod_alpha_tmp -= hfi_voltage * c * voltage_normalize;
+					mod_beta_tmp -= hfi_voltage * s * voltage_normalize;
+				} else {
+					motor->m_hfi.prev_sample = c * motor->m_i_beta_sample_next - s * motor->m_i_alpha_sample_next;
+
+					mod_alpha_tmp2 -= hfi_voltage * c * voltage_normalize;
+					mod_beta_tmp2 -= hfi_voltage * s * voltage_normalize;
+
+					mod_alpha_tmp += hfi_voltage * c * voltage_normalize;
+					mod_beta_tmp += hfi_voltage * s * voltage_normalize;
+
+					motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
+					motor->m_i_alpha_beta_has_offset = true;
+				}
+#else
+				mod_alpha_tmp -= hfi_voltage * c * voltage_normalize;
+				mod_beta_tmp -= hfi_voltage * s * voltage_normalize;
+#endif
+			} else {
+				motor->m_hfi.prev_sample = c * state_m->i_beta - s * state_m->i_alpha;
+				mod_alpha_tmp += hfi_voltage * c * voltage_normalize;
+				mod_beta_tmp  += hfi_voltage * s * voltage_normalize;
+			}
+		} else if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) && hfi_est_done) {
 			if (motor->m_hfi.is_samp_n) {
 				if (fabsf(state_m->iq_target) > conf_now->foc_hfi_hyst) {
 					motor->m_hfi.sign_last_sample = SIGN(state_m->iq_target);
@@ -4213,7 +4271,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 			state_m->mod_beta_raw = mod_beta_tmp;
 		} else {
 #ifdef HW_HAS_PHASE_SHUNTS
-			if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2) {
+			if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4) {
 				utils_saturate_vector_2d(&mod_alpha_tmp2, &mod_beta_tmp2, SQRT3_BY_2 * 0.95);
 				state_m->mod_alpha_raw = mod_alpha_tmp2;
 				state_m->mod_beta_raw = mod_beta_tmp2;
@@ -4236,6 +4294,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 		motor->m_hfi.ready = false;
 		motor->m_hfi.is_samp_n = false;
 		motor->m_hfi.prev_sample = 0.0;
+		motor->m_hfi.double_integrator = 0.0;
 	}
 
 	// Set output (HW Dependent)
