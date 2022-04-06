@@ -3392,6 +3392,7 @@ static THD_FUNCTION(timer_thread, arg) {
 }
 
 static void hfi_update(volatile motor_all_state_t *motor, float dt) {
+	(void)dt;
 	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
 	if (rpm_abs > motor->m_conf->foc_sl_erpm_hfi) {
@@ -3399,52 +3400,33 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 	}
 
 	if (motor->m_hfi.ready) {
-		if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) &&
+		if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 ||
+				motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) &&
 				motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
 			// Nothing done here, the update is done in the interrupt.
-		} else if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) &&
+		} else if ((motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 ||
+				motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) &&
 				motor->m_hfi.est_done_cnt >= motor->m_conf->foc_hfi_start_samples) {
+			// Nothing done here, the update is done in the interrupt.
 
-			if (!motor->m_using_encoder) {
-				motor->m_hfi.angle = motor->m_phase_now_observer;
-			} else {
-				// Feed forward on the position based on the current speed
-				motor->m_hfi.angle += 1.0 * dt * motor->m_speed_est_fast;
-
-				if (motor->m_hfi.buffer_current[0] >= 1.0) {
-					utils_sys_lock_cnt();
-					float ind_a = motor->m_hfi.buffer[0] / motor->m_hfi.buffer_current[0];
-					motor->m_hfi.buffer[0] = 0.0;
-					motor->m_hfi.buffer_current[0] = 0.0;
-					utils_sys_unlock_cnt();
-
-					// This is where the angle is updated. "Correct" would be to use half of the sine
-					// of this value and have gain 1, but that makes the angle very noisy. Having gain
-					// less than 1 reduces the noise and still keeps up, and sin(0.2) is roughly 0.2
-					// so we can just use the value directly as we scale it anyway.
-					motor->m_hfi.angle -= (ind_a / motor->m_conf->foc_motor_ld_lq_diff) * motor->m_conf->foc_hfi_gain;
-					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
-
-					// Enable to set the observer position to the HFI angle for plotting the error in the position plot RT page in VESC Tool. Just
-					// remember that enabling this will make the transition to using the observer bad.
+			// Enable to set the observer position to the HFI angle for plotting the error in the position plot RT page in VESC Tool. Just
+			// remember that enabling this will make the transition to using the observer bad.
 #if 0
-					float s, c;
-					utils_fast_sincos_better(motor->m_hfi.angle, &s, &c);
-					motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
-					motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
+			float s, c;
+			utils_fast_sincos_better(motor->m_hfi.angle, &s, &c);
+			motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
+			motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
 #endif
 
-					// Enable to plot the sample together with encoder position
+			// Enable to plot the sample together with encoder position
 #if 0
 
-					commands_plot_set_graph(0);
-					commands_send_plot_points(motor->m_hfi_plot_sample, ind_a);
-					commands_plot_set_graph(1);
-					commands_send_plot_points(motor->m_hfi_plot_sample, RAD2DEG_f(motor->m_phase_now_encoder) / 4e6);
-					motor->m_hfi_plot_sample++;
+			commands_plot_set_graph(0);
+			commands_send_plot_points(motor->m_hfi_plot_sample, ind_a);
+			commands_plot_set_graph(1);
+			commands_send_plot_points(motor->m_hfi_plot_sample, RAD2DEG_f(motor->m_phase_now_encoder) / 4e6);
+			motor->m_hfi_plot_sample++;
 #endif
-				}
-			}
 		} else {
 			float real_bin1, imag_bin1, real_bin2, imag_bin2;
 			motor->m_hfi.fft_bin1_func((float*)motor->m_hfi.buffer, &real_bin1, &imag_bin1);
@@ -3853,7 +3835,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					// TODO: Figure out if the ratio for the second integrator is sane
 					// or if an additional parameter should be added for it.
 					const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
-					const float gain_int2 = 10.0 * conf_now->foc_hfi_gain;
+					const float gain_int2 = 5.0 * conf_now->foc_hfi_gain;
 
 					// Notice that this is a division by 0 when foc_motor_ld_lq_diff is 0. That is
 					// however an invalid configuration as this HFI-method makes no sense on such
@@ -3902,14 +3884,21 @@ static void control_current(motor_all_state_t *motor, float dt) {
 						motor->m_hfi.sin_last * motor->m_i_beta_sample_with_offset;
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
-				// Use a lower bound on di to avoid division by 0.
-				if (di > 0.01) {
-					motor->m_hfi.buffer[0] += motor->m_hfi.sign_last_sample * (hfi_voltage / (conf_now->foc_f_zv * di) - conf_now->foc_motor_l);
-					motor->m_hfi.buffer_current[0] += 1.0;
-				}
+				if (!motor->m_using_encoder) {
+					motor->m_hfi.angle = motor->m_phase_now_observer;
+				} else {
+					if (fabsf(di) > 0.1) {
+						float err = motor->m_hfi.sign_last_sample * (hfi_voltage / (conf_now->foc_f_zv * di) - conf_now->foc_motor_l);
+						err /= conf_now->foc_motor_ld_lq_diff;
 
-				if (motor->m_hfi.buffer_current[0] > 5.0) {
-					motor->m_hfi.ready = true;
+						const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
+						const float gain_int2 = 5.0 * conf_now->foc_hfi_gain;
+						motor->m_hfi.double_integrator += dt * err * gain_int2;
+						utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
+						motor->m_hfi.angle -= gain_int * err * dt + motor->m_hfi.double_integrator;
+						utils_norm_angle_rad((float*)&motor->m_hfi.angle);
+						motor->m_hfi.ready = true;
+					}
 				}
 
 				// TODO: This angle shift will be much faster and more accurate using a rotation
