@@ -11,6 +11,7 @@
 * New silent HFI mode with much better performance at high load.
 * Added app ADC min and max voltage limits for throttle fault detection.
 * Another new silent HFI mode that is less sensitive to getting the inductance correct.
+* Added openloop current boost parameter.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.
