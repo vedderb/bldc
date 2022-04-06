@@ -3828,23 +3828,31 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
 				if (!motor->m_using_encoder) {
+					motor->m_hfi.double_integrator = 0.0;
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
+					float hfi_dt = dt;
+#ifdef HW_HAS_PHASE_SHUNTS
+					if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
+						hfi_dt *= 2.0;
+					}
+#endif
+
 					// Add extra scaling in addition to foc_hfi_gain so that a similar
 					// default gain parameter works as for the other implementation.
 					// TODO: Figure out if the ratio for the second integrator is sane
 					// or if an additional parameter should be added for it.
-					const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
-					const float gain_int2 = 5.0 * conf_now->foc_hfi_gain;
+					const float gain_int = 4000.0 * conf_now->foc_hfi_gain;
+					const float gain_int2 = 10.0 * conf_now->foc_hfi_gain;
 
 					// Notice that this is a division by 0 when foc_motor_ld_lq_diff is 0. That is
 					// however an invalid configuration as this HFI-method makes no sense on such
 					// a motor and should be handled upstream.
 					float err = di / (dt * hfi_voltage * (1.0 / lq - 1.0 / ld));
 
-					motor->m_hfi.double_integrator += dt * err * gain_int2;
+					motor->m_hfi.double_integrator += hfi_dt * err * gain_int2;
 					utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-					motor->m_hfi.angle += gain_int * err * dt + motor->m_hfi.double_integrator;
+					motor->m_hfi.angle += gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
 					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 					motor->m_hfi.ready = true;
 				}
@@ -3885,17 +3893,25 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
 				if (!motor->m_using_encoder) {
+					motor->m_hfi.double_integrator = 0.0;
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
 					if (fabsf(di) > 0.1) {
+						float hfi_dt = dt;
+#ifdef HW_HAS_PHASE_SHUNTS
+						if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
+							hfi_dt *= 2.0;
+						}
+#endif
+
 						float err = motor->m_hfi.sign_last_sample * (hfi_voltage / (conf_now->foc_f_zv * di) - conf_now->foc_motor_l);
 						err /= conf_now->foc_motor_ld_lq_diff;
 
 						const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
 						const float gain_int2 = 5.0 * conf_now->foc_hfi_gain;
-						motor->m_hfi.double_integrator += dt * err * gain_int2;
+						motor->m_hfi.double_integrator += hfi_dt * err * gain_int2;
 						utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-						motor->m_hfi.angle -= gain_int * err * dt + motor->m_hfi.double_integrator;
+						motor->m_hfi.angle -= gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
 						utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 						motor->m_hfi.ready = true;
 					}
