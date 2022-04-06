@@ -2655,6 +2655,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
+				if (duty_now > 0.0) {
+					if (motor_now->m_duty_i_term > 0.0) {
+						motor_now->m_duty_i_term = 0.0;
+					}
+				} else {
+					if (motor_now->m_duty_i_term < 0.0) {
+						motor_now->m_duty_i_term = 0.0;
+					}
+				}
+
 				// Compensation for supply voltage variations
 				float scale = 1.0 / motor_now->m_motor_state.v_bus;
 
