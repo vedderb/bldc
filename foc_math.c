@@ -23,8 +23,7 @@
 
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float motor_temp, float dt, float *x1, float *x2,
-		float *phase, motor_all_state_t *motor) {
+		float dt, float *x1, float *x2, float *phase, motor_all_state_t *motor) {
 
 	mc_configuration *conf_now = motor->m_conf;
 
@@ -38,8 +37,8 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	lambda -= lambda * comp_fact;
 
 	// Temperature compensation
-	if (conf_now->foc_temp_comp && motor_temp > -30.0) {
-		R += R * 0.00386 * (motor_temp - conf_now->foc_temp_comp_base_temp);
+	if (conf_now->foc_temp_comp) {
+		R = motor->m_res_temp_comp;
 	}
 
 	float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;

@@ -183,12 +183,15 @@ typedef struct {
 	// Resistance observer
 	float m_r_est;
 	float m_r_est_state;
+
+	// Temperature-compensated parameters
+	float m_res_temp_comp;
+	float m_current_ki_temp_comp;
 } motor_all_state_t;
 
 // Functions
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float motor_temp, float dt, float *x1, float *x2,
-		float *phase, motor_all_state_t *motor);
+		float dt, float *x1, float *x2, float *phase, motor_all_state_t *motor);
 void foc_pll_run(float phase, float dt, float *phase_var,
 		float *speed_var, mc_configuration *conf);
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,

@@ -2693,8 +2693,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			if (!motor_now->m_phase_override) {
 				foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
-						mc_interface_temp_motor_filtered(), dt, &motor_now->m_observer_x1,
-						&motor_now->m_observer_x2, &motor_now->m_phase_now_observer, motor_now);
+						dt, &motor_now->m_observer_x1, &motor_now->m_observer_x2, &motor_now->m_phase_now_observer, motor_now);
 
 				// Compensate from the phase lag caused by the switching frequency. This is important for motors
 				// that run on high ERPM compared to the switching frequency.
@@ -2880,8 +2879,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// Run observer
 		foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
-						mc_interface_temp_motor_filtered(), dt, &motor_now->m_observer_x1,
-						&motor_now->m_observer_x2, 0, motor_now);
+						dt, &motor_now->m_observer_x1, &motor_now->m_observer_x2, 0, motor_now);
 		motor_now->m_phase_now_observer = utils_fast_atan2(motor_now->m_x2_prev + motor_now->m_observer_x2,
 														   motor_now->m_x1_prev + motor_now->m_observer_x1);
 
@@ -3079,6 +3077,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 static void timer_update(motor_all_state_t *motor, float dt) {
 	foc_run_fw(motor, dt);
+
+	// Calculate temperature-compensated parameters here
+	if (mc_interface_temp_motor_filtered() > -30.0) {
+		float comp_fact = 1.0 + 0.00386 * (mc_interface_temp_motor_filtered() - motor->m_conf->foc_temp_comp_base_temp);
+		motor->m_res_temp_comp = motor->m_conf->foc_motor_r * comp_fact;
+		motor->m_current_ki_temp_comp = motor->m_conf->foc_current_ki * comp_fact;
+	} else {
+		motor->m_res_temp_comp = motor->m_conf->foc_motor_r;
+		motor->m_current_ki_temp_comp = motor->m_conf->foc_current_ki;
+	}
 
 	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
 	// field weakening current.
@@ -3717,11 +3725,9 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	state_m->vd = state_m->vd_int + Ierr_d * conf_now->foc_current_kp * d_gain_scale; //Feedback (PI controller). No D action needed because the plant is a first order system (tf = 1/(Ls+R))
 	state_m->vq = state_m->vq_int + Ierr_q * conf_now->foc_current_kp;
 
-	// Temperature compensation
-	const float t = mc_interface_temp_motor_filtered();
 	float ki = conf_now->foc_current_ki;
-	if (conf_now->foc_temp_comp && t > -30.0) {
-		ki += ki * 0.00386 * (t - conf_now->foc_temp_comp_base_temp);
+	if (conf_now->foc_temp_comp) {
+		ki = motor->m_current_ki_temp_comp;
 	}
 
 	state_m->vd_int += Ierr_d * (ki * d_gain_scale * dt);
