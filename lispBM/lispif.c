@@ -386,7 +386,7 @@ static bool start_lisp(bool print, bool load_code) {
 			lbm_set_usleep_callback(sleep_callback);
 			lbm_set_printf_callback(commands_printf_lisp);
 			lbm_set_ctx_done_callback(done_callback);
-			chThdCreateStatic(eval_thread_wa, sizeof(eval_thread_wa), NORMALPRIO, eval_thread, NULL);
+			chThdCreateStatic(eval_thread_wa, sizeof(eval_thread_wa), NORMALPRIO - 1, eval_thread, NULL);
 
 			lisp_thd_running = true;
 		} else {
