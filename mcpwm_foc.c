@@ -4146,6 +4146,7 @@ static void control_current(volatile motor_all_state_t *motor, float dt) {
 
 					float err = di / (dt * hfi_voltage * (1.0 / lq - 1.0 / ld));
 					motor->m_hfi.double_integrator += dt * err * gain_int2;
+					utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
 					motor->m_hfi.angle += gain_int * err * dt + motor->m_hfi.double_integrator;
 					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 					motor->m_hfi.ready = true;
