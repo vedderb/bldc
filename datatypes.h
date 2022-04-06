@@ -409,6 +409,7 @@ typedef struct {
 	float foc_sl_openloop_time_lock;
 	float foc_sl_openloop_time_ramp;
 	float foc_sl_openloop_boost_q;
+	float foc_sl_openloop_max_q;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_hall_interp_erpm;

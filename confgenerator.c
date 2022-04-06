@@ -89,6 +89,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_ramp, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_boost_q, 100, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_max_q, 100, &ind);
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[0];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[1];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[2];
@@ -468,6 +469,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_sl_openloop_time_ramp = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_boost_q = buffer_get_float16(buffer, 100, &ind);
+	conf->foc_sl_openloop_max_q = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_hall_table[0] = buffer[ind++];
 	conf->foc_hall_table[1] = buffer[ind++];
 	conf->foc_hall_table[2] = buffer[ind++];
@@ -843,6 +845,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_sl_openloop_time_ramp = MCCONF_FOC_SL_OPENLOOP_T_RAMP;
 	conf->foc_sl_openloop_time = MCCONF_FOC_SL_OPENLOOP_TIME;
 	conf->foc_sl_openloop_boost_q = MCCONF_FOC_SL_OPENLOOP_BOOST_Q;
+	conf->foc_sl_openloop_max_q = MCCONF_FOC_SL_OPENLOOP_MAX_Q;
 	conf->foc_hall_table[0] = MCCONF_FOC_HALL_TAB_0;
 	conf->foc_hall_table[1] = MCCONF_FOC_HALL_TAB_1;
 	conf->foc_hall_table[2] = MCCONF_FOC_HALL_TAB_2;

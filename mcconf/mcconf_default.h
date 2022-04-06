@@ -316,6 +316,9 @@
 #ifndef MCCONF_FOC_SL_OPENLOOP_BOOST_Q
 #define MCCONF_FOC_SL_OPENLOOP_BOOST_Q	0.0		// Q-axis current boost during the open loop procedure
 #endif
+#ifndef MCCONF_FOC_SL_OPENLOOP_MAX_Q
+#define MCCONF_FOC_SL_OPENLOOP_MAX_Q	-1.0		// Q-axis maximum current during the open loop procedure
+#endif
 #ifndef MCCONF_FOC_SL_OPENLOOP_T_LOCK
 #define MCCONF_FOC_SL_OPENLOOP_T_LOCK	0.0		// Time to lock motor in beginning of open loop sequence
 #endif
