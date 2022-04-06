@@ -4154,9 +4154,15 @@ static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float
 	if (motor->m_state == MC_STATE_RUNNING) {
 #ifdef HW_HAS_PHASE_FILTERS
 		if (conf_now->foc_phase_filter_enable && abs_rpm < conf_now->foc_phase_filter_max_erpm) {
+			float mod_mag = NORM2_f(mod_alpha, mod_beta);
+			float v_mag_mod = mod_mag * (2.0 / 3.0) * state_m->v_bus;
+
+			if (fabsf(v_mag_mod - state_m->v_mag_filter) > (conf_now->l_max_vin * 0.08)) {
+				mc_interface_fault_stop(FAULT_CODE_PHASE_FILTER, &m_motor_1 != motor, true);
+			}
+
 			// Compensate for the phase delay by using the direction of the modulation
 			// together with the magnitude from the phase filters
-			float mod_mag = NORM2_f(mod_alpha, mod_beta);
 			if (mod_mag > 0.04) {
 				state_m->v_alpha = mod_alpha / mod_mag * state_m->v_mag_filter;
 				state_m->v_beta = mod_beta / mod_mag * state_m->v_mag_filter;
