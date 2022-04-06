@@ -67,7 +67,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_encoder_cos_gain, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_sin_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_cos_offset, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_encoder_sincos_filter_constant, &ind);
+	buffer_append_float16(buffer, conf->foc_encoder_sincos_filter_constant, 1000, &ind);
 	buffer[ind++] = conf->foc_sensor_mode;
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
@@ -82,12 +82,13 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_duty_dowmramp_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_openloop_rpm, &ind);
 	buffer_append_float16(buffer, conf->foc_openloop_rpm_low, 1000, &ind);
-	buffer_append_float32_auto(buffer, conf->foc_d_gain_scale_start, &ind);
+	buffer_append_float16(buffer, conf->foc_d_gain_scale_start, 1000, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_d_gain_scale_max_mod, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_hyst, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_lock, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_ramp, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time, 100, &ind);
+	buffer_append_float16(buffer, conf->foc_sl_openloop_boost_q, 100, &ind);
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[0];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[1];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[2];
@@ -445,7 +446,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_encoder_cos_gain = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_sin_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_cos_offset = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_encoder_sincos_filter_constant = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_sensor_mode = buffer[ind++];
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
@@ -460,12 +461,13 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_duty_dowmramp_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm_low = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_d_gain_scale_start = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_d_gain_scale_start = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_d_gain_scale_max_mod = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sl_openloop_hyst = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_lock = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_ramp = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time = buffer_get_float16(buffer, 100, &ind);
+	conf->foc_sl_openloop_boost_q = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_hall_table[0] = buffer[ind++];
 	conf->foc_hall_table[1] = buffer[ind++];
 	conf->foc_hall_table[2] = buffer[ind++];
@@ -840,6 +842,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_sl_openloop_time_lock = MCCONF_FOC_SL_OPENLOOP_T_LOCK;
 	conf->foc_sl_openloop_time_ramp = MCCONF_FOC_SL_OPENLOOP_T_RAMP;
 	conf->foc_sl_openloop_time = MCCONF_FOC_SL_OPENLOOP_TIME;
+	conf->foc_sl_openloop_boost_q = MCCONF_FOC_SL_OPENLOOP_BOOST_Q;
 	conf->foc_hall_table[0] = MCCONF_FOC_HALL_TAB_0;
 	conf->foc_hall_table[1] = MCCONF_FOC_HALL_TAB_1;
 	conf->foc_hall_table[2] = MCCONF_FOC_HALL_TAB_2;
