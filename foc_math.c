@@ -23,10 +23,10 @@
 
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float motor_temp, float dt, volatile float *x1, volatile float *x2,
-		volatile float *phase, volatile motor_all_state_t *motor) {
+		float motor_temp, float dt, float *x1, float *x2,
+		float *phase, motor_all_state_t *motor) {
 
-	volatile mc_configuration *conf_now = motor->m_conf;
+	mc_configuration *conf_now = motor->m_conf;
 
 	float R = conf_now->foc_motor_r;
 	float L = conf_now->foc_motor_l;
@@ -97,8 +97,8 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	}
 }
 
-void foc_pll_run(float phase, float dt, volatile float *phase_var,
-					volatile float *speed_var, volatile mc_configuration *conf) {
+void foc_pll_run(float phase, float dt, float *phase_var,
+					float *speed_var, mc_configuration *conf) {
 	UTILS_NAN_ZERO(*phase_var);
 	float delta_theta = phase - *phase_var;
 	utils_norm_angle_rad(&delta_theta);
@@ -252,8 +252,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	*svm_sector = sector;
 }
 
-void foc_run_pid_control_pos(bool index_found, float dt, volatile motor_all_state_t *motor) {
-	volatile mc_configuration *conf_now = motor->m_conf;
+void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor) {
+	mc_configuration *conf_now = motor->m_conf;
 
 	float angle_now = motor->m_pos_pid_now;
 	float angle_set = motor->m_pos_pid_set;
@@ -359,8 +359,8 @@ void foc_run_pid_control_pos(bool index_found, float dt, volatile motor_all_stat
 	}
 }
 
-void foc_run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
-	volatile mc_configuration *conf_now = motor->m_conf;
+void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
+	mc_configuration *conf_now = motor->m_conf;
 	float p_term;
 	float d_term;
 
@@ -426,7 +426,7 @@ void foc_run_pid_control_speed(float dt, volatile motor_all_state_t *motor) {
 }
 
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed,
-							 float sl_erpm, volatile motor_all_state_t *motor) {
+							 float sl_erpm, motor_all_state_t *motor) {
 	float rpm_abs = fabsf(RADPS2RPM_f(speed));
 
 	// Hysteresis 5 % of total speed
@@ -444,8 +444,8 @@ float foc_correct_encoder(float obs_angle, float enc_angle, float speed,
 	return motor->m_using_encoder ? enc_angle : obs_angle;
 }
 
-float foc_correct_hall(float angle, float dt, volatile motor_all_state_t *motor, int hall_val) {
-	volatile mc_configuration *conf_now = motor->m_conf;
+float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val) {
+	mc_configuration *conf_now = motor->m_conf;
 	motor->m_hall_dt_diff_now += dt;
 
 	float rad_per_sec = (M_PI / 3.0) / motor->m_hall_dt_diff_last;
@@ -556,7 +556,7 @@ float foc_correct_hall(float angle, float dt, volatile motor_all_state_t *motor,
 	return angle;
 }
 
-void foc_run_fw(volatile motor_all_state_t *motor, float dt) {
+void foc_run_fw(motor_all_state_t *motor, float dt) {
 	if (motor->m_conf->foc_fw_current_max < fmaxf(motor->m_conf->cc_min_current, 0.001)) {
 		return;
 	}

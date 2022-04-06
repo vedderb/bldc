@@ -94,7 +94,7 @@ typedef struct {
 } hfi_state_t;
 
 typedef struct {
-	volatile mc_configuration *m_conf;
+	mc_configuration *m_conf;
 	mc_state m_state;
 	mc_control_mode m_control_mode;
 	motor_state_t m_motor_state;
@@ -187,16 +187,16 @@ typedef struct {
 
 // Functions
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float motor_temp, float dt, volatile float *x1, volatile float *x2,
-		volatile float *phase, volatile motor_all_state_t *motor);
-void foc_pll_run(float phase, float dt, volatile float *phase_var,
-		volatile float *speed_var, volatile mc_configuration *conf);
+		float motor_temp, float dt, float *x1, float *x2,
+		float *phase, motor_all_state_t *motor);
+void foc_pll_run(float phase, float dt, float *phase_var,
+		float *speed_var, mc_configuration *conf);
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
-void foc_run_pid_control_pos(bool index_found, float dt, volatile motor_all_state_t *motor);
-void foc_run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
-float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, volatile motor_all_state_t *motor);
-float foc_correct_hall(float angle, float dt, volatile motor_all_state_t *motor, int hall_val);
-void foc_run_fw(volatile motor_all_state_t *motor, float dt);
+void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor);
+void foc_run_pid_control_speed(float dt, motor_all_state_t *motor);
+float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, motor_all_state_t *motor);
+float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val);
+void foc_run_fw(motor_all_state_t *motor, float dt);
 
 #endif /* FOC_MATH_H_ */
