@@ -3841,10 +3841,10 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					motor->m_hfi.double_integrator = 0.0;
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
-					float hfi_dt = dt;
+					float hfi_dt = dt * 2.0;
 #ifdef HW_HAS_PHASE_SHUNTS
-					if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
-						hfi_dt *= 2.0;
+					if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4) {
+						hfi_dt = dt;
 					}
 #endif
 
@@ -3858,11 +3858,11 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					// Notice that this is a division by 0 when foc_motor_ld_lq_diff is 0. That is
 					// however an invalid configuration as this HFI-method makes no sense on such
 					// a motor and should be handled upstream.
-					float err = di / (dt * hfi_voltage * (1.0 / lq - 1.0 / ld));
+					float err = di / (dt * -hfi_voltage * (1.0 / lq - 1.0 / ld));
 
 					motor->m_hfi.double_integrator += hfi_dt * err * gain_int2;
 					utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-					motor->m_hfi.angle += gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
+					motor->m_hfi.angle -= gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
 					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 					motor->m_hfi.ready = true;
 				}
@@ -3907,10 +3907,10 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
 					if (fabsf(di) > 0.1) {
-						float hfi_dt = dt;
+						float hfi_dt = dt * 2.0;
 #ifdef HW_HAS_PHASE_SHUNTS
-						if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
-							hfi_dt *= 2.0;
+						if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2) {
+							hfi_dt = dt;
 						}
 #endif
 
