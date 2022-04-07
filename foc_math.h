@@ -208,5 +208,6 @@ float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float s
 float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val);
 void foc_run_fw(motor_all_state_t *motor, float dt);
 void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt);
+void foc_precalc_values(motor_all_state_t *motor);
 
 #endif /* FOC_MATH_H_ */
