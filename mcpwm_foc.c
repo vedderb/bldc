@@ -57,6 +57,7 @@ static void control_current(motor_all_state_t *motor, float dt);
 static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float mod_beta);
 static void stop_pwm_hw(motor_all_state_t *motor);
 static void start_pwm_hw(motor_all_state_t *motor);
+static void precalc_values(motor_all_state_t *motor);
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(motor_all_state_t *motor, float dt);
@@ -355,6 +356,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_1.m_state = MC_STATE_OFF;
 	m_motor_1.m_control_mode = CONTROL_MODE_NONE;
 	m_motor_1.m_hall_dt_diff_last = 1.0;
+	precalc_values((motor_all_state_t*)&m_motor_1);
 	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -363,6 +365,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_2.m_state = MC_STATE_OFF;
 	m_motor_2.m_control_mode = CONTROL_MODE_NONE;
 	m_motor_2.m_hall_dt_diff_last = 1.0;
+	precalc_values((motor_all_state_t*)&m_motor_2);
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 #endif
 
@@ -600,6 +603,7 @@ bool mcpwm_foc_init_done(void) {
 
 void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 	get_motor_now()->m_conf = configuration;
+	precalc_values((motor_all_state_t*)get_motor_now());
 
 	// Below we check if anything in the configuration changed that requires stopping the motor.
 
@@ -3100,12 +3104,6 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 		motor->m_current_ki_temp_comp = conf_now->foc_current_ki;
 	}
 
-	// Pre-calculate slowly changing things
-	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
-	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
-	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
-	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
-
 	// Check if it is time to stop the modulation. Notice that modulation is kept on as long as there is
 	// field weakening current.
 	utils_sys_lock_cnt();
@@ -4314,6 +4312,14 @@ static void start_pwm_hw(motor_all_state_t *motor) {
 		motor->m_output_on = true;
 		PHASE_FILTER_ON_M2();
 	}
+}
+
+static void precalc_values(motor_all_state_t *motor) {
+	const mc_configuration *conf_now = motor->m_conf;
+	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
+	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
+	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
+	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
 }
 
 static void terminal_plot_hfi(int argc, const char **argv) {
