@@ -354,7 +354,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 					// does this return actual angle until in pid mode? should have offset
 					float angle_now = mc_interface_get_pid_pos_now(); 
 					// float now_angle = encoder_read_deg(); // will not have offset
-					if (abs(angle - angle_now) < 10) {
+					if (fabsf(angle - angle_now) < 10) {
 						mc_interface_set_pid_pos(angle); // enable position control.
 					}
 					break;
