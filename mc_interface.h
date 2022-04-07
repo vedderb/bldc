@@ -22,6 +22,7 @@
 
 #include "conf_general.h"
 #include "hw.h"
+#include "datatypes.h"
 
 // Functions
 void mc_interface_init(void);

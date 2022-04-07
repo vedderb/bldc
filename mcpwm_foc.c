@@ -640,6 +640,10 @@ mc_state mcpwm_foc_get_state(void) {
 	return get_motor_now()->m_state;
 }
 
+mc_control_mode mcpwm_foc_control_mode(void) {
+	return get_motor_now()->m_control_mode;
+}
+
 bool mcpwm_foc_is_dccal_done(void) {
 	return m_dccal_done;
 }
