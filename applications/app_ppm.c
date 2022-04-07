@@ -144,6 +144,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 			break;
 		}
 
+		// if (config.ctrl_absolute_input) {
+		//	// remap from 0 to 1 only. with middle as 0.
+		// 	servo_val = fabsf(servo_val);
+		// }
+
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
 		if (app_is_output_disabled()) {
@@ -338,8 +343,24 @@ static THD_FUNCTION(ppm_thread, arg) {
 				pulses_without_power++;
 			}
 
+			float angle = servo_val * 360;
+
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_pid_pos(servo_val * 360);
+				// try to more intelligently safe start by waiting until 
+				// ppm input is within 10 degrees of motor angle to go into position mode.
+				// possibly make 10 degrees adjustable?
+				if (mc_interface_get_control_mode() != CONTROL_MODE_POS){ 	
+					
+					// does this return actual angle until in pid mode? should have offset
+					float angle_now = mc_interface_get_pid_pos_now(); 
+					// float now_angle = encoder_read_deg(); // will not have offset
+					if (abs(angle - angle_now) < 10) {
+						mc_interface_set_pid_pos(angle); // enable position control.
+					}
+					break;
+				} else {
+					mc_interface_set_pid_pos(angle);
+				}
 			}
 			break;
 
