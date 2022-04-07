@@ -3835,7 +3835,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) && hfi_est_done) {
 			if (motor->m_hfi.is_samp_n) {
 				float sample_now = c * motor->m_i_beta_sample_with_offset - s * motor->m_i_alpha_sample_with_offset;
-				float di = (sample_now - motor->m_hfi.prev_sample);
+				float di = (motor->m_hfi.prev_sample - sample_now);
 
 				if (!motor->m_using_encoder) {
 					motor->m_hfi.double_integrator = 0.0;
@@ -3848,7 +3848,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					}
 #endif
 					foc_hfi_adjust_angle(
-							(di * conf_now->foc_f_zv) / (-hfi_voltage * (1.0 / lq - 1.0 / ld)),
+							(di * conf_now->foc_f_zv) / (hfi_voltage * (1.0/lq - 1.0/ld)),
 							motor, hfi_dt
 					);
 				}
