@@ -3814,12 +3814,12 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	if (do_hfi) {
 		CURRENT_FILTER_OFF();
 
-		float mod_alpha_tmp = state_m->mod_alpha_raw;
-		float mod_beta_tmp = state_m->mod_beta_raw;
+		float mod_alpha_v7 = state_m->mod_alpha_raw;
+		float mod_beta_v7 = state_m->mod_beta_raw;
 
 #ifdef HW_HAS_PHASE_SHUNTS
-		float mod_alpha_tmp2 = state_m->mod_alpha_raw;
-		float mod_beta_tmp2 = state_m->mod_beta_raw;
+		float mod_alpha_v0 = state_m->mod_alpha_raw;
+		float mod_beta_v0 = state_m->mod_beta_raw;
 #endif
 
 		float hfi_voltage;
@@ -3847,50 +3847,36 @@ static void control_current(motor_all_state_t *motor, float dt) {
 						hfi_dt = dt;
 					}
 #endif
-
-					// Add extra scaling in addition to foc_hfi_gain so that a similar
-					// default gain parameter works as for the other implementation.
-					// TODO: Figure out if the ratio for the second integrator is sane
-					// or if an additional parameter should be added for it.
-					const float gain_int = 4000.0 * conf_now->foc_hfi_gain;
-					const float gain_int2 = 10.0 * conf_now->foc_hfi_gain;
-
-					// Notice that this is a division by 0 when foc_motor_ld_lq_diff is 0. That is
-					// however an invalid configuration as this HFI-method makes no sense on such
-					// a motor and should be handled upstream.
-					float err = di / (dt * -hfi_voltage * (1.0 / lq - 1.0 / ld));
-
-					motor->m_hfi.double_integrator += hfi_dt * err * gain_int2;
-					utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-					motor->m_hfi.angle -= gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
-					utils_norm_angle_rad((float*)&motor->m_hfi.angle);
-					motor->m_hfi.ready = true;
+					foc_hfi_adjust_angle(
+							(di * conf_now->foc_f_zv) / (-hfi_voltage * (1.0 / lq - 1.0 / ld)),
+							motor, hfi_dt
+					);
 				}
 
 #ifdef HW_HAS_PHASE_SHUNTS
 				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
-					mod_alpha_tmp -= hfi_voltage * c * voltage_normalize;
-					mod_beta_tmp -= hfi_voltage * s * voltage_normalize;
+					mod_alpha_v7 -= hfi_voltage * c * voltage_normalize;
+					mod_beta_v7 -= hfi_voltage * s * voltage_normalize;
 				} else {
 					motor->m_hfi.prev_sample = c * motor->m_i_beta_sample_next - s * motor->m_i_alpha_sample_next;
 
-					mod_alpha_tmp2 -= hfi_voltage * c * voltage_normalize;
-					mod_beta_tmp2 -= hfi_voltage * s * voltage_normalize;
+					mod_alpha_v0 -= hfi_voltage * c * voltage_normalize;
+					mod_beta_v0 -= hfi_voltage * s * voltage_normalize;
 
-					mod_alpha_tmp += hfi_voltage * c * voltage_normalize;
-					mod_beta_tmp += hfi_voltage * s * voltage_normalize;
+					mod_alpha_v7 += hfi_voltage * c * voltage_normalize;
+					mod_beta_v7 += hfi_voltage * s * voltage_normalize;
 
 					motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
 					motor->m_i_alpha_beta_has_offset = true;
 				}
 #else
-				mod_alpha_tmp -= hfi_voltage * c * voltage_normalize;
-				mod_beta_tmp -= hfi_voltage * s * voltage_normalize;
+				mod_alpha_v7 -= hfi_voltage * c * voltage_normalize;
+				mod_beta_v7 -= hfi_voltage * s * voltage_normalize;
 #endif
 			} else {
 				motor->m_hfi.prev_sample = c * state_m->i_beta - s * state_m->i_alpha;
-				mod_alpha_tmp += hfi_voltage * c * voltage_normalize;
-				mod_beta_tmp  += hfi_voltage * s * voltage_normalize;
+				mod_alpha_v7 += hfi_voltage * c * voltage_normalize;
+				mod_beta_v7  += hfi_voltage * s * voltage_normalize;
 			}
 		} else if ((conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) && hfi_est_done) {
 			if (motor->m_hfi.is_samp_n) {
@@ -3913,57 +3899,49 @@ static void control_current(motor_all_state_t *motor, float dt) {
 							hfi_dt = dt;
 						}
 #endif
-
-						float err = motor->m_hfi.sign_last_sample * (hfi_voltage / (conf_now->foc_f_zv * di) - conf_now->foc_motor_l);
-						err /= conf_now->foc_motor_ld_lq_diff;
-
-						const float gain_int = 2000.0 * conf_now->foc_hfi_gain;
-						const float gain_int2 = 5.0 * conf_now->foc_hfi_gain;
-						motor->m_hfi.double_integrator += hfi_dt * err * gain_int2;
-						utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-						motor->m_hfi.angle -= gain_int * err * hfi_dt + motor->m_hfi.double_integrator;
-						utils_norm_angle_rad((float*)&motor->m_hfi.angle);
-						motor->m_hfi.ready = true;
+						foc_hfi_adjust_angle(
+								motor->m_hfi.sign_last_sample * ((conf_now->foc_f_zv * di) / hfi_voltage - (0.5/ld + 0.5/lq)) / (1.0/lq - 1.0/ld),
+								motor, hfi_dt
+						);
 					}
 				}
 
-				// TODO: This angle shift will be much faster and more accurate using a rotation
-				// matrix on state_m->phase_sin and state_m->phase_cos. As the shift is a known
-				// angle the rotations can be pre-calculated. I'm just too lazy to fix it now.
-				//
-				// NOTE2: Doing this angle shift only for one of the two opposing vectors
-				// and reusing it for the other seems to be more stable than re-calculating
-				// it with the updated motor position. That is why it is stored in the HFI
-				// state for the next interrupt (except when using phase shunts, where both
-				// values are set from the same interrupt).
-				utils_fast_sincos_better(motor->m_hfi.angle + motor->m_hfi.sign_last_sample * M_PI / 4.0,
-						(float*)&motor->m_hfi.sin_last, (float*)&motor->m_hfi.cos_last);
+				// Use precomputed rotation matrix
+				if (motor->m_hfi.sign_last_sample > 0) {
+					// +45 Degrees
+					motor->m_hfi.sin_last = ONE_BY_SQRT2 * (c + s);
+					motor->m_hfi.cos_last = ONE_BY_SQRT2 * (c - s);
+				} else {
+					// -45 Degrees
+					motor->m_hfi.sin_last = ONE_BY_SQRT2 * (-c + s);
+					motor->m_hfi.cos_last = ONE_BY_SQRT2 * (c + s);
+				}
 
 #ifdef HW_HAS_PHASE_SHUNTS
 				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
-					mod_alpha_tmp += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
-					mod_beta_tmp += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+					mod_alpha_v7 += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
+					mod_beta_v7 += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 				} else {
 					motor->m_hfi.prev_sample = motor->m_hfi.cos_last * motor->m_i_alpha_sample_next +
 							motor->m_hfi.sin_last * motor->m_i_beta_sample_next;
 
-					mod_alpha_tmp2 += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
-					mod_beta_tmp2 += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+					mod_alpha_v0 += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
+					mod_beta_v0 += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 
-					mod_alpha_tmp -= hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
-					mod_beta_tmp -= hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+					mod_alpha_v7 -= hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
+					mod_beta_v7 -= hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 
 					motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
 					motor->m_i_alpha_beta_has_offset = true;
 				}
 #else
-				mod_alpha_tmp += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
-				mod_beta_tmp += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+				mod_alpha_v7 += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
+				mod_beta_v7 += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 #endif
 			} else {
 				motor->m_hfi.prev_sample = motor->m_hfi.cos_last * state_m->i_alpha + motor->m_hfi.sin_last * state_m->i_beta;
-				mod_alpha_tmp -= hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
-				mod_beta_tmp  -= hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
+				mod_alpha_v7 -= hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
+				mod_beta_v7  -= hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 			}
 		} else {
 			if (motor->m_hfi.is_samp_n) {
@@ -3983,36 +3961,36 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					motor->m_hfi.ready = true;
 				}
 
-				mod_alpha_tmp += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
-				mod_beta_tmp  -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_alpha_v7 += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_beta_v7  -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 			} else {
 				motor->m_hfi.prev_sample = utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
 						utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
 
-				mod_alpha_tmp -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
-				mod_beta_tmp  += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_alpha_v7 -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_beta_v7  += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 			}
 		}
 
-		utils_saturate_vector_2d(&mod_alpha_tmp, &mod_beta_tmp, SQRT3_BY_2 * 0.95);
+		utils_saturate_vector_2d(&mod_alpha_v7, &mod_beta_v7, SQRT3_BY_2 * 0.95);
 		motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
 
 		if (conf_now->foc_sample_v0_v7) {
-			state_m->mod_alpha_raw = mod_alpha_tmp;
-			state_m->mod_beta_raw = mod_beta_tmp;
+			state_m->mod_alpha_raw = mod_alpha_v7;
+			state_m->mod_beta_raw = mod_beta_v7;
 		} else {
 #ifdef HW_HAS_PHASE_SHUNTS
 			if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4) {
-				utils_saturate_vector_2d(&mod_alpha_tmp2, &mod_beta_tmp2, SQRT3_BY_2 * 0.95);
-				state_m->mod_alpha_raw = mod_alpha_tmp2;
-				state_m->mod_beta_raw = mod_beta_tmp2;
+				utils_saturate_vector_2d(&mod_alpha_v0, &mod_beta_v0, SQRT3_BY_2 * 0.95);
+				state_m->mod_alpha_raw = mod_alpha_v0;
+				state_m->mod_beta_raw = mod_beta_v0;
 			}
 #endif
 
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
-			foc_svm(mod_alpha_tmp, mod_beta_tmp, TIM1->ARR,
+			foc_svm(mod_alpha_v7, mod_beta_v7, TIM1->ARR,
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,

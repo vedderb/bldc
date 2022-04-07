@@ -596,3 +596,14 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 		}
 	}
 }
+
+void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
+	mc_configuration *conf = motor->m_conf;
+	const float gain_int = 4000.0 * conf->foc_hfi_gain;
+	const float gain_int2 = 10.0 * conf->foc_hfi_gain;
+	motor->m_hfi.double_integrator += dt * ang_err * gain_int2;
+	utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
+	motor->m_hfi.angle -= gain_int * ang_err * dt + motor->m_hfi.double_integrator;
+	utils_norm_angle_rad((float*)&motor->m_hfi.angle);
+	motor->m_hfi.ready = true;
+}
