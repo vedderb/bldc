@@ -333,6 +333,16 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 			break;
 
+		case PPM_CTRL_TYPE_PID_POSITION: // make this an actual type.
+			if (fabsf(servo_val) < 0.001) {
+				pulses_without_power++;
+			}
+
+			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
+				mc_interface_set_pid_pos(servo_val * 360);
+			}
+			break;
+
 		default:
 			continue;
 		}
