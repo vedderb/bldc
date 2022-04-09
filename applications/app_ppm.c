@@ -143,12 +143,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 			input_val = servo_val;
 			break;
 		}
-
-		// if (config.ctrl_absolute_input) {
-		//	// remap from 0 to 1 only. with middle as 0.
-		// 	servo_val = fabsf(servo_val);
-		// }
-
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
 		if (app_is_output_disabled()) {
@@ -198,6 +192,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 			utils_step_towards(&servo_val_ramp, servo_val, ramp_step);
 			servo_val = servo_val_ramp;
 		}
+
+		// if (config.ctrl_absolute_input) {
+		//	// remap from 0 to 1 only. with middle as 0.
+		// 	servo_val = fabsf(servo_val);
+		// }
 
 		float current = 0;
 		bool current_mode = false;
