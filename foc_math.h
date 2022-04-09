@@ -187,6 +187,12 @@ typedef struct {
 	// Temperature-compensated parameters
 	float m_res_temp_comp;
 	float m_current_ki_temp_comp;
+
+	// Pre-calculated values
+	float p_lq;
+	float p_ld;
+	float p_inv_ld_lq; // (1.0/lq - 1.0/ld)
+	float p_v2_v3_inv_avg_half; // (0.5/ld + 0.5/lq)
 } motor_all_state_t;
 
 // Functions
@@ -201,5 +207,7 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor);
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, motor_all_state_t *motor);
 float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val);
 void foc_run_fw(motor_all_state_t *motor, float dt);
+void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt);
+void foc_precalc_values(motor_all_state_t *motor);
 
 #endif /* FOC_MATH_H_ */

@@ -383,22 +383,22 @@
 #define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_RUN
-#define MCCONF_FOC_HFI_VOLTAGE_RUN		3 // HFI voltage during tracking
+#define MCCONF_FOC_HFI_VOLTAGE_RUN		4 // HFI voltage during tracking
 #endif
 #ifndef MCCONF_FOC_HFI_GAIN
-#define MCCONF_FOC_HFI_GAIN				0.4 // Correction gain for HFI V2
+#define MCCONF_FOC_HFI_GAIN				0.3 // Correction gain for HFI V2
 #endif
 #ifndef MCCONF_FOC_HFI_HYST
-#define MCCONF_FOC_HFI_HYST				2.0 // Sense vector offset hysteresis for HFI V2
+#define MCCONF_FOC_HFI_HYST				0.0 // Sense vector offset hysteresis for HFI V2
 #endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_MAX
-#define MCCONF_FOC_HFI_VOLTAGE_MAX		5 // HFI voltage during tracking at max current
+#define MCCONF_FOC_HFI_VOLTAGE_MAX		6 // HFI voltage during tracking at max current
 #endif
 #ifndef MCCONF_FOC_SL_ERPM_HFI
-#define MCCONF_FOC_SL_ERPM_HFI			2000.0	// ERPM above which only the observer is used
+#define MCCONF_FOC_SL_ERPM_HFI			3000.0	// ERPM above which only the observer is used
 #endif
 #ifndef MCCONF_FOC_HFI_START_SAMPLES
-#define MCCONF_FOC_HFI_START_SAMPLES	15 // Sample this often at start to resolve ambiguity
+#define MCCONF_FOC_HFI_START_SAMPLES	5 // Sample this often at start to resolve ambiguity
 #endif
 #ifndef MCCONF_FOC_HFI_OBS_OVR_SEC
 #define MCCONF_FOC_HFI_OBS_OVR_SEC		0.001 // Continue using observer for this long when entering HFI speed

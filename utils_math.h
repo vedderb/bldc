@@ -124,6 +124,7 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define SIN_30_DEG				(0.5)
 #define COS_MINUS_30_DEG		(0.86602540378)
 #define SIN_MINUS_30_DEG		(-0.5)
+#define ONE_BY_SQRT2			(0.7071067811865475)
 
 // Tables
 extern const float utils_tab_sin_32_1[];

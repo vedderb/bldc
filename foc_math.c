@@ -596,3 +596,23 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 		}
 	}
 }
+
+void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
+	mc_configuration *conf = motor->m_conf;
+	// TODO: Check if ratio between these is sane or introduce separate gains
+	const float gain_int = 4000.0 * conf->foc_hfi_gain;
+	const float gain_int2 = 10.0 * conf->foc_hfi_gain;
+	motor->m_hfi.double_integrator += dt * ang_err * gain_int2;
+	utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
+	motor->m_hfi.angle -= gain_int * ang_err * dt + motor->m_hfi.double_integrator;
+	utils_norm_angle_rad((float*)&motor->m_hfi.angle);
+	motor->m_hfi.ready = true;
+}
+
+void foc_precalc_values(motor_all_state_t *motor) {
+	const mc_configuration *conf_now = motor->m_conf;
+	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
+	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
+	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
+	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
+}
