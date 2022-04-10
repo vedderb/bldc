@@ -109,6 +109,13 @@ typedef struct {
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
+
+	// Sysinfo
+	lbm_uint hw_name;
+	lbm_uint fw_ver;
+	lbm_uint has_phase_filters;
+	lbm_uint uuid;
+	lbm_uint runtime;
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
@@ -233,6 +240,18 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("max-speed", comp);
 		} else if (comp == &syms_vesc.controller_id) {
 			get_add_symbol("controller-id", comp);
+		}
+
+		else if (comp == &syms_vesc.hw_name) {
+			get_add_symbol("hw-name", comp);
+		} else if (comp == &syms_vesc.fw_ver) {
+			get_add_symbol("fw-ver", comp);
+		} else if (comp == &syms_vesc.has_phase_filters) {
+			get_add_symbol("has-phase-filters", comp);
+		} else if (comp == &syms_vesc.uuid) {
+			get_add_symbol("uuid", comp);
+		} else if (comp == &syms_vesc.runtime) {
+			get_add_symbol("runtime", comp);
 		}
 	}
 
@@ -711,6 +730,60 @@ static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
 	eeprom_var v;
 	bool res = conf_general_read_eeprom_var_custom(&v, addr);
 	return res ? lbm_enc_i32(v.as_i32) : lbm_enc_sym(SYM_NIL);
+}
+
+static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
+	lbm_value res = lbm_enc_sym(SYM_EERROR);
+
+	if (argn != 1) {
+		return res;
+	}
+
+	if (lbm_type_of(args[0]) != LBM_TYPE_SYMBOL) {
+		return res;
+	}
+
+	lbm_uint name = lbm_dec_sym(args[0]);
+
+	if (compare_symbol(name, &syms_vesc.hw_name)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(HW_NAME))) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, HW_NAME);
+			res = lbm_res;
+		} else {
+			res = lbm_enc_sym(SYM_MERROR);
+		}
+	} else if (compare_symbol(name, &syms_vesc.fw_ver)) {
+		res = lbm_enc_sym(SYM_NIL);
+		res = lbm_cons(lbm_enc_i(FW_TEST_VERSION_NUMBER), res);
+		res = lbm_cons(lbm_enc_i(FW_VERSION_MINOR), res);
+		res = lbm_cons(lbm_enc_i(FW_VERSION_MAJOR), res);
+	} else if (compare_symbol(name, &syms_vesc.has_phase_filters)) {
+#ifdef HW_HAS_PHASE_FILTERS
+		res = lbm_enc_sym(SYM_TRUE);
+#else
+		res = lbm_enc_sym(SYM_NIL);
+#endif
+	} else if (compare_symbol(name, &syms_vesc.uuid)) {
+		res = lbm_enc_sym(SYM_NIL);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[11]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[10]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[9]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[8]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[7]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[6]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[5]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[4]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[3]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[2]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[1]), res);
+		res = lbm_cons(lbm_enc_i(STM32_UUID_8[0]), res);
+	} else if (compare_symbol(name, &syms_vesc.runtime)) {
+		res = lbm_enc_u64(g_backup.runtime);
+	}
+
+	return res;
 }
 
 // Motor set commands
@@ -2430,6 +2503,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-read-f", ext_eeprom_read_f);
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
+	lbm_add_extension("sysinfo", ext_sysinfo);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);

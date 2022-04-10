@@ -289,6 +289,22 @@ Same as eeprom-store-f, but store number as i32 instead of float.
 
 Same as eeprom-read-i, but read number as i32 instead of float.
 
+#### sysinfo
+
+```clj
+(sysinfo param)
+```
+
+Read system info parameter param. Example:
+
+```clj
+(sysinfo 'hw-name) ; Hardware name, e.g 60
+(sysinfo 'fw-ver) ; Firmware version as list (Major Minor BetaNum)
+(sysinfo 'has-phase-filters) ; t if hardware has phase filters
+(sysinfo 'uuid) ; STM32 UUID
+(sysinfo 'runtime) ; Total runtime in seconds
+```
+
 ### Motor Set Commands
 
 #### set-current
