@@ -2541,8 +2541,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-	volatile float enc_ang = 0;
-	volatile bool encoder_is_being_used = false;
+	float enc_ang = 0;
+	bool encoder_is_being_used = false;
 
 	if (virtual_motor_is_connected()) {
 		if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ) {
