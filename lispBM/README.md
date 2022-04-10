@@ -284,7 +284,7 @@ Same as eeprom-store-f, but store number as i32 instead of float.
 #### eeprom-read-i
 
 ```clj
-(eeprom-read-i addr number)
+(eeprom-read-i addr)
 ```
 
 Same as eeprom-read-i, but read number as i32 instead of float.
