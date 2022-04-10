@@ -2541,6 +2541,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
+	float inv_v_bus = 1.0 / motor_now->m_motor_state.v_bus;
+
 	float enc_ang = 0;
 	bool encoder_is_being_used = false;
 
@@ -2672,15 +2674,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					}
 				}
 
-				// Compensation for supply voltage variations
-				float scale = 1.0 / motor_now->m_motor_state.v_bus;
-
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;
 
-				// Compute parameters
-				float p_term = error * conf_now->foc_duty_dowmramp_kp * scale;
-				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * scale;
+				// Compute parameters. Make sure to compensate for supply voltage variations
+				float p_term = error * conf_now->foc_duty_dowmramp_kp * inv_v_bus;
+				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * inv_v_bus;
 
 				// I-term wind-up protection
 				utils_truncate_number((float*)&motor_now->m_duty_i_term, -1.0, 1.0);
@@ -2983,7 +2982,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		// Update corresponding modulation
 		/* voltage_normalize = 1/(2/3*V_bus) */
-		const float voltage_normalize = 1.5 / motor_now->m_motor_state.v_bus;
+		const float voltage_normalize = 1.5 * inv_v_bus;
 
 		motor_now->m_motor_state.mod_d = motor_now->m_motor_state.vd * voltage_normalize;
 		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltage_normalize;
