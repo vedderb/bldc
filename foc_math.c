@@ -348,13 +348,13 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 
 	if (conf_now->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		if (index_found) {
-			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
+			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
 		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.
-			motor->m_iq_set = 0.4 * conf_now->l_current_max * conf_now->l_current_max_scale;;
+			motor->m_iq_set = 0.4 * conf_now->l_current_max * conf_now->l_current_max_scale;
 		}
 	} else {
-		motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
+		motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
 	}
 }
 
