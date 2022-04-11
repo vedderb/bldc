@@ -126,7 +126,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 		case PPM_CTRL_TYPE_CURRENT_NOREV:
 		case PPM_CTRL_TYPE_DUTY_NOREV:
 		case PPM_CTRL_TYPE_PID_NOREV:
-		case PPM_CTRL_TYPE_PID_POSITION:
+		case PPM_CTRL_TYPE_PID_POSITION_360:
 			input_val = servo_val;
 			servo_val += 1.0;
 			servo_val /= 2.0;
@@ -333,18 +333,23 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 			break;
 
-		case PPM_CTRL_TYPE_PID_POSITION:
+		case PPM_CTRL_TYPE_PID_POSITION_180: // -180 to 180. center ppm safestart
+		case PPM_CTRL_TYPE_PID_POSITION_360: // 0 to +360. minimum ppm safestart
 			if (fabsf(servo_val) < 0.001) {
 				pulses_without_power++;
 			}
 
-			float angle = servo_val * 360;
+			float angle;
+			if (config.ctrl_type = PPM_CTRL_TYPE_PID_POSITION_180){
+				angle = (servo_val * 180) + 180;
+			} else {
+				angle = (servo_val * 360);
+			}
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
 				// try to more intelligently safe start by waiting until 
 				// ppm "angle" is close to motor angle to go into position mode.
 				if (mc_interface_get_control_mode() != CONTROL_MODE_POS){ 	
-					float angle_now = mc_interface_get_pid_pos_now(); 
-					if (fabsf(angle - angle_now) < 10) {
+					if (fabsf(angle - mc_interface_get_pid_pos_now()) < 10) {
 						// enable position control.
 						mc_interface_set_pid_pos(angle);
 					}
