@@ -194,11 +194,6 @@ static THD_FUNCTION(ppm_thread, arg) {
 			servo_val = servo_val_ramp;
 		}
 
-		// if (config.ctrl_absolute_input) {
-		//	// remap from 0 to 1 only. with middle as 0.
-		// 	servo_val = fabsf(servo_val);
-		// }
-
 		float current = 0;
 		bool current_mode = false;
 		bool current_mode_brake = false;
@@ -338,24 +333,20 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 			break;
 
-		case PPM_CTRL_TYPE_PID_POSITION: // make this an actual type.
+		case PPM_CTRL_TYPE_PID_POSITION:
 			if (fabsf(servo_val) < 0.001) {
 				pulses_without_power++;
 			}
 
 			float angle = servo_val * 360;
-
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
 				// try to more intelligently safe start by waiting until 
-				// ppm input is within 10 degrees of motor angle to go into position mode.
-				// possibly make 10 degrees adjustable?
+				// ppm "angle" is close to motor angle to go into position mode.
 				if (mc_interface_get_control_mode() != CONTROL_MODE_POS){ 	
-					
-					// does this return actual angle until in pid mode? should have offset
 					float angle_now = mc_interface_get_pid_pos_now(); 
-					// float now_angle = encoder_read_deg(); // will not have offset
 					if (fabsf(angle - angle_now) < 10) {
-						mc_interface_set_pid_pos(angle); // enable position control.
+						// enable position control.
+						mc_interface_set_pid_pos(angle);
 					}
 					break;
 				} else {
