@@ -70,7 +70,7 @@
 #define APPCONF_CAN_STATUS_MSGS_R1			0
 #endif
 #ifndef APPCONF_CAN_STATUS_MSGS_R2
-#define APPCONF_CAN_STATUS_MSGS_R2			0
+#define APPCONF_CAN_STATUS_MSGS_R2			1
 #endif
 
 // The default app is UART in case the UART port is used for
