@@ -210,4 +210,11 @@ void foc_run_fw(motor_all_state_t *motor, float dt);
 void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt);
 void foc_precalc_values(motor_all_state_t *motor);
 
+// The observer is more stable when the inductance is underestimated compared to overestimated,
+// so scale it by `IND_SCALE_FACTOR`. This helps motors that start to saturate at higher currents and when
+// the hardware has problems measuring the inductance correctly. Another reason for decreasing the
+// measured value is that delays in the hardware and/or a high resistance compared to inductance
+// will cause the value to be overestimated.
+#define IND_SCALE_FACTOR 0.9
+
 #endif /* FOC_MATH_H_ */

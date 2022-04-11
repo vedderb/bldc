@@ -1833,23 +1833,17 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 
 	mc_interface_unlock();
 
-	// The observer is more stable when the inductance is underestimated compared to overestimated,
-	// so scale it by 0.8. This helps motors that start to saturate at higher currents and when
-	// the hardware has problems measuring the inductance correctly. Another reason for decreasing the
-	// measured value is that delays in the hardware and/or a high resistance compared to inductance
-	// will cause the value to be overestimated.
-	// NOTE: This used to be 0.8, but was changed to 0.9 as that works better with HFIv2 on most motors.
-	float ind_scale_factor = 0.9;
-
 	if (curr) {
 		*curr = i_sum / iterations;
 	}
 
-	if (ld_lq_diff) {
-		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * ind_scale_factor;
+	// The observer is more stable when the inductance is underestimated compared to
+   // overestimated, so use `IND_SCALE_FACTOR` to tune that
+   if (ld_lq_diff) {
+		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * IND_SCALE_FACTOR;
 	}
 
-	return (l_sum / iterations) * 1e6 * ind_scale_factor;
+	return (l_sum / iterations) * 1e6 * IND_SCALE_FACTOR;
 }
 
 /**
