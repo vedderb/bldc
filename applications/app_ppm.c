@@ -335,16 +335,17 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		case PPM_CTRL_TYPE_PID_POSITION_180: // -180 to 180. center ppm safestart
 		case PPM_CTRL_TYPE_PID_POSITION_360: // 0 to +360. minimum ppm safestart
-			if (fabsf(servo_val) < 0.001) {
+			if (fabsf(servo_val) < 0.02) {
 				pulses_without_power++;
 			}
 
 			float angle;
 			if (config.ctrl_type = PPM_CTRL_TYPE_PID_POSITION_180){
-				angle = (servo_val * 180) + 180;
+				angle = (servo_val * 180); // -1 <> +1
 			} else {
-				angle = (servo_val * 360);
+				angle = (servo_val * 360); // 0 <> +1
 			}
+			utils_norm_angle(&angle);
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
 				// try to more intelligently safe start by waiting until 
 				// ppm "angle" is close to motor angle to go into position mode.
