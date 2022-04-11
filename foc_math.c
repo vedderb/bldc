@@ -613,6 +613,6 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	const mc_configuration *conf_now = motor->m_conf;
 	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
 	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
-	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
+	motor->p_inv_inv_ld_lq = 1.0 / (1.0 / motor->p_lq - 1.0 / motor->p_ld);
 	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * IND_SCALE_FACTOR; // With the `* IND_SCALE_FACTOR` we undo the adjustment from the detection
 }

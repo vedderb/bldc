@@ -191,7 +191,7 @@ typedef struct {
 	// Pre-calculated values
 	float p_lq;
 	float p_ld;
-	float p_inv_ld_lq; // (1.0/lq - 1.0/ld)
+	float p_inv_inv_ld_lq; // 1.0 / (1.0/lq - 1.0/ld)
 	float p_v2_v3_inv_avg_half; // (0.5/ld + 0.5/lq)
 } motor_all_state_t;
 

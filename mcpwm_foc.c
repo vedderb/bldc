@@ -3851,7 +3851,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					}
 #endif
 					foc_hfi_adjust_angle(
-							(di * conf_now->foc_f_zv) / (hfi_voltage * motor->p_inv_ld_lq),
+							((di * conf_now->foc_f_zv) / hfi_voltage) * motor->p_inv_inv_ld_lq,
 							motor, hfi_dt
 					);
 				}
@@ -3903,7 +3903,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 #endif
 					foc_hfi_adjust_angle(
 							motor->m_hfi.sign_last_sample * ((conf_now->foc_f_zv * di) /
-									hfi_voltage - motor->p_v2_v3_inv_avg_half) / motor->p_inv_ld_lq,
+									hfi_voltage - motor->p_v2_v3_inv_avg_half) * motor->p_inv_inv_ld_lq,
 							motor, hfi_dt
 					);
 				}
