@@ -72,7 +72,7 @@ static const char* functions[] = {
 "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
 "(map-rec f nil x y)))",
 
-"(defun sleep (seconds) (yield (* seconds 1000000)))",
+"(defun sleep (seconds) (yield (* seconds 1000000.0)))",
 
 "(defun filter (f lst)"
 "(let ((filter-rec (lambda (f lst ys)"
@@ -104,21 +104,21 @@ static const char* macros[] = {
 "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))",
 
 "(define loopfor (macro (it start cond update body)"
-"`(let ((loop (lambda (,it res)(if ,cond (loop ,update ,body) res"
-"))))(loop ,start nil))))",
+"`(let ((loop (lambda (,it res break)(if ,cond (loop ,update ,body break) res"
+"))))(call-cc (lambda (brk) (loop ,start nil brk))))))",
 
 "(define loopwhile (macro (cond body)"
-"`(let ((loop (lambda (res)(if ,cond (loop ,body)res"
-"))))(loop nil))))",
+"`(let ((loop (lambda (res break)(if ,cond (loop ,body break) res"
+"))))(call-cc (lambda (brk) (loop nil brk))))))",
 
 "(define looprange (macro (it start end body)"
-"`(let ((loop (lambda (,it res)(if (< ,it ,end)(loop (+ ,it 1),body)res"
-"))))(loop ,start nil))))",
+"`(let ((loop (lambda (,it res break)(if (< ,it ,end)(loop (+ ,it 1),body break) res"
+"))))(call-cc (lambda (brk) (loop ,start nil brk))))))",
 
 "(define loopforeach (macro (it lst body)"
-"`(let ((loop (lambda (,it rst res)"
-"(if (eq ,it nil) res (loop (car rst) (cdr rst) ,body)"
-")))) (loop (car ,lst) (cdr ,lst) nil))))",
+"`(let ((loop (lambda (,it rst res break)"
+"(if (eq ,it nil) res (loop (car rst) (cdr rst) ,body break)"
+"))))(call-cc (lambda (brk) (loop (car ,lst) (cdr ,lst) nil brk))))))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {

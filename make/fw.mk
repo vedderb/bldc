@@ -175,7 +175,8 @@ CSRC = $(STARTUPSRC) \
        $(LZOSRC) \
        $(BLACKMAGICSRC) \
        qmlui/qmlui.c \
-       $(ENCSRC)
+       $(ENCSRC) \
+       foc_math.c
 
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)

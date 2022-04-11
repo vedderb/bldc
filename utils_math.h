@@ -27,6 +27,7 @@
 void utils_step_towards(float *value, float goal, float step);
 float utils_calc_ratio(float low, float high, float val);
 void utils_norm_angle(float *angle);
+float utils_map_angle(float angle, float min, float max);
 void utils_norm_angle_rad(float *angle);
 bool utils_truncate_number(float *number, float min, float max);
 bool utils_truncate_number_int(int *number, int min, int max);
@@ -123,6 +124,7 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define SIN_30_DEG				(0.5)
 #define COS_MINUS_30_DEG		(0.86602540378)
 #define SIN_MINUS_30_DEG		(-0.5)
+#define ONE_BY_SQRT2			(0.7071067811865475)
 
 // Tables
 extern const float utils_tab_sin_32_1[];

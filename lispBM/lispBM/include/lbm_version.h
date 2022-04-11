@@ -25,9 +25,13 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 /*! \page changelog Changelog
+
+Apr 02 2022: Version 0.5.1
+ - A continuation created by call-cc can be applied to 0 or 1 argument.
+   If there are 0 arguments an implicit application to nil takes place.
 
 Mar 26 2022: Version (0.5.0)
  - Optimized code-path for closure applications.

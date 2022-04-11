@@ -52,7 +52,7 @@ volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
 volatile float ADC_curr_norm_value[6];
 
 typedef struct {
-	volatile mc_configuration m_conf;
+	mc_configuration m_conf;
 	mc_fault_code m_fault_now;
 	setup_stats m_stats;
 	int m_ignore_iterations;
@@ -218,9 +218,9 @@ void mc_interface_init(void) {
 
 	case MOTOR_TYPE_FOC:
 #ifdef HW_HAS_DUAL_MOTORS
-		mcpwm_foc_init(&m_motor_1.m_conf, &m_motor_2.m_conf);
+		mcpwm_foc_init((mc_configuration*)&m_motor_1.m_conf, (mc_configuration*)&m_motor_2.m_conf);
 #else
-		mcpwm_foc_init(&m_motor_1.m_conf, &m_motor_1.m_conf);
+		mcpwm_foc_init((mc_configuration*)&m_motor_1.m_conf, (mc_configuration*)&m_motor_1.m_conf);
 #endif
 		break;
 
@@ -341,9 +341,9 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 
 		case MOTOR_TYPE_FOC:
 #ifdef HW_HAS_DUAL_MOTORS
-			mcpwm_foc_init(&m_motor_1.m_conf, &m_motor_2.m_conf);
+			mcpwm_foc_init((mc_configuration*)&m_motor_1.m_conf, (mc_configuration*)&m_motor_2.m_conf);
 #else
-			mcpwm_foc_init(&m_motor_1.m_conf, &m_motor_1.m_conf);
+			mcpwm_foc_init((mc_configuration*)&m_motor_1.m_conf, (mc_configuration*)&m_motor_1.m_conf);
 #endif
 			break;
 
@@ -374,7 +374,7 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 			m_motor_1.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
 		}
 #endif
-		mcpwm_foc_set_configuration(&motor->m_conf);
+		mcpwm_foc_set_configuration((mc_configuration*)&motor->m_conf);
 		break;
 
 	case MOTOR_TYPE_GPD:
@@ -477,6 +477,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_RESOLVER_LOS: return "FAULT_CODE_RESOLVER_LOS";
     case FAULT_CODE_ENCODER_NO_MAGNET: return "FAULT_CODE_ENCODER_NO_MAGNET";
     case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
+    case FAULT_CODE_PHASE_FILTER: return "FAULT_CODE_PHASE_FILTER";
 	}
 
 	return "Unknown fault";

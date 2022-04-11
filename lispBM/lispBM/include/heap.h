@@ -788,6 +788,12 @@ static inline bool lbm_is_number(lbm_value x) {
           (t == LBM_TYPE_DOUBLE));
 }
 
+static inline bool lbm_is_array(lbm_value x) {
+  return (lbm_type_of(x) == LBM_TYPE_ARRAY &&
+          lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
+          lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
+}
+
 static inline bool lbm_is_char(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
   return (t == LBM_TYPE_CHAR);

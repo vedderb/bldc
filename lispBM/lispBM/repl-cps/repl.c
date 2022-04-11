@@ -97,6 +97,8 @@ int inputline(char *buffer, unsigned int size) {
       continue;
     }
     switch (c) {
+    case 27:
+      break;
     case 127: /* fall through to below */
     case '\b': /* backspace character received */
       if (n > 0)
@@ -252,23 +254,6 @@ static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
 }
 
 
-static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
-        lbm_value res = lbm_enc_sym(SYM_EERROR);
-
-        if (argn != 1 && argn != 2) {
-                return lbm_enc_sym(SYM_EERROR);
-        }
-
-        char *name = lbm_dec_str(args[0]);
-
-        if (!name) {
-                return lbm_enc_sym(SYM_EERROR);
-        }
-
-        res = lbm_enc_i(20);
-        return res;
-}
-
 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
@@ -416,13 +401,6 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-
-  res = lbm_add_extension("get-bms-val", ext_get_bms_val);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
   res = lbm_add_extension("range", ext_range);
   if (res)
     printf("Extension added.\n");
@@ -502,6 +480,9 @@ int main(int argc, char **argv) {
 
         printf("started ctx: %"PRI_UINT"\n", cid);
       }
+    } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
+      lbm_toggle_verbose();
+      continue;
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
       continue;

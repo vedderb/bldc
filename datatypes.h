@@ -62,7 +62,9 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI,
 	FOC_SENSOR_MODE_HFI_START,
 	FOC_SENSOR_MODE_HFI_V2,
-	FOC_SENSOR_MODE_HFI_V3
+	FOC_SENSOR_MODE_HFI_V3,
+	FOC_SENSOR_MODE_HFI_V4,
+	FOC_SENSOR_MODE_HFI_V5
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -147,7 +149,8 @@ typedef enum {
 	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
 	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
 	FAULT_CODE_ENCODER_NO_MAGNET,
-	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG
+	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
+	FAULT_CODE_PHASE_FILTER,
 } mc_fault_code;
 
 typedef enum {
@@ -406,6 +409,8 @@ typedef struct {
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
 	float foc_sl_openloop_time_ramp;
+	float foc_sl_openloop_boost_q;
+	float foc_sl_openloop_max_q;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_hall_interp_erpm;
@@ -612,6 +617,8 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage_min;
+	float voltage_max;
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
