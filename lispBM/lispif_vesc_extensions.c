@@ -2358,6 +2358,7 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	}
 
 	if (changed_mc > 0) {
+		commands_apply_mcconf_hw_limits(mcconf);
 		if (changed_mc == 2) {
 			mc_interface_set_configuration(mcconf);
 		}
