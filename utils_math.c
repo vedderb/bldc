@@ -20,43 +20,9 @@
 #include "utils_math.h"
 #include "hal.h"
 #include "app.h"
-#include <math.h>
+
 #include <string.h>
 #include <stdlib.h>
-
-void utils_step_towards(float *value, float goal, float step) {
-    if (*value < goal) {
-        if ((*value + step) < goal) {
-            *value += step;
-        } else {
-            *value = goal;
-        }
-    } else if (*value > goal) {
-        if ((*value - step) > goal) {
-            *value -= step;
-        } else {
-            *value = goal;
-        }
-    }
-}
-
-float utils_calc_ratio(float low, float high, float val) {
-	return (val - low) / (high - low);
-}
-
-/**
- * Make sure that 0 <= angle < 360
- *
- * @param angle
- * The angle to normalize.
- */
-void utils_norm_angle(float *angle) {
-	*angle = fmodf(*angle, 360.0);
-
-	if (*angle < 0.0) {
-		*angle += 360.0;
-	}
-}
 
 /*
  * Map angle from 0 to 1 in the range min to max. If angle is
@@ -84,75 +50,6 @@ float utils_map_angle(float angle, float min, float max) {
 	utils_truncate_number(&res, 0.0, 1.0);
 
 	return res;
-}
-
-/**
- * Make sure that -pi <= angle < pi,
- *
- * TODO: Maybe use fmodf instead?
- *
- * @param angle
- * The angle to normalize in radians.
- * WARNING: Don't use too large angles.
- */
-void utils_norm_angle_rad(float *angle) {
-	while (*angle < -M_PI) {
-		*angle += 2.0 * M_PI;
-	}
-
-	while (*angle >=  M_PI) {
-		*angle -= 2.0 * M_PI;
-	}
-}
-
-bool utils_truncate_number(float *number, float min, float max) {
-	bool did_trunc = false;
-
-	if (*number > max) {
-		*number = max;
-		did_trunc = true;
-	} else if (*number < min) {
-		*number = min;
-		did_trunc = true;
-	}
-
-	return did_trunc;
-}
-
-bool utils_truncate_number_int(int *number, int min, int max) {
-	bool did_trunc = false;
-
-	if (*number > max) {
-		*number = max;
-		did_trunc = true;
-	} else if (*number < min) {
-		*number = min;
-		did_trunc = true;
-	}
-
-	return did_trunc;
-}
-
-bool utils_truncate_number_abs(float *number, float max) {
-	bool did_trunc = false;
-
-	if (*number > max) {
-		*number = max;
-		did_trunc = true;
-	} else if (*number < -max) {
-		*number = -max;
-		did_trunc = true;
-	}
-
-	return did_trunc;
-}
-
-float utils_map(float x, float in_min, float in_max, float out_min, float out_max) {
-	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max) {
-	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 /**
@@ -289,21 +186,6 @@ int utils_middle_of_3_int(int a, int b, int c) {
 	return middle;
 }
 
-// Fast inverse square-root
-// See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-float utils_fast_inv_sqrt(float x) {
-	union {
-		float as_float;
-		long as_int;
-	} un;
-
-	float xhalf = 0.5f*x;
-	un.as_float = x;
-	un.as_int = 0x5f3759df - (un.as_int >> 1);
-	un.as_float = un.as_float * (1.5f - xhalf * un.as_float * un.as_float);
-	return un.as_float;
-}
-
 /**
  * Fast atan2
  *
@@ -339,40 +221,6 @@ float utils_fast_atan2(float y, float x) {
 	} else {
 		return(angle);
 	}
-}
-
-/**
- * Truncate the magnitude of a vector.
- *
- * @param x
- * The first component.
- *
- * @param y
- * The second component.
- *
- * @param max
- * The maximum magnitude.
- *
- * @return
- * True if saturation happened, false otherwise
- */
-bool utils_saturate_vector_2d(float *x, float *y, float max) {
-	bool retval = false;
-	float mag = NORM2_f(*x, *y);
-	max = fabsf(max);
-
-	if (mag < 1e-10) {
-		mag = 1e-10;
-	}
-
-	if (mag > max) {
-		const float f = max / mag;
-		*x *= f;
-		*y *= f;
-		retval = true;
-	}
-
-	return retval;
 }
 
 /**
