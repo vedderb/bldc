@@ -887,7 +887,7 @@ also shows that there are no "Variable"-bindings currently.
 These "Variables" are a different kind of global variable supported by LBM. 
 A variable is created whenever you define a symbol starting with the character
 `#`, and the value is stored in a way that is more efficient to look up. 
-There is a limited number of these variables (specifyable by the programmer 
+There is a limited number of these variables (specifiable by the programmer 
 that integrates LBM into a system) so use them only where performance matter 
 the most. 
 
@@ -922,6 +922,27 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 
 ### Values and types
 
+LBM is a dynamically typed language which means that type information 
+is carried along with the values at runtime of the program and that 
+"variables" or bindings are essentially untyped. 
+
+To check what type something is in LBM, you can apply the function 
+`type-of` to the value you are interested in. 
+
+```
+# (type-of 365)
+loading: (type-of 365)
+started ctx: 155
+<< Context 155 finished with value type-i >>
+stack max:  11
+stack size: 256
+stack sp:   0
+``` 
+
+In the example above we see that the value `365` has the type `type-i` 
+for integer. 
+
+Below is a list of LBM types: 
 
 | Type        | Description                                                                           | Example/syntax        | 
 | ---         | ---                                                                                   |  ---                  |
@@ -935,11 +956,52 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 | type-u64    | 64bit unsigned integer.                                                               | `1u64`, `0xFFu64`     |
 | type-float  | Single precision floating point value.                                                | `3.14`, `-6.28`       |
 | type-double | Double precision floating point value.                                                | `3.14f64`, `-6.28f64` |
+| type-list   | LBM linked list.                                                                      | `(list 1 2 3)`        |
+| type-symbol | Symbol                                                                                | `monkey`, `define`    |
+| type-array  | LBM array as created using `array-create` or a string.                                | `"Hello world"`       |
+
+
+Because LBM associates types with runtime values, this type
+information has to be stored somewhere. In LBM the type information is
+stored as part of the value word in in the case of `type-char`,
+`type-i`, `type-u`, `type-list` and `type-symbol`. This is the reason
+why a `type-i` value is a 28bit (56 on 64 bit architecture) quantity,
+the rest of the bits are used for type information. The larger numerical 
+types line `type-i32` (on a 32bit platform) is stored in a kind 
+of encoded pointer/reference to a 32bit value, all of this happens 
+behind the scenes but it may be important to realize that there is an 
+extra indirection when operating on such, so-called, boxed values. 
 
 ### Sequences of operations
 
-### Pattern matching
+LBM has a `progn` special form for evaluation of zero or more expressions
+in sequence. This is needed when one wants to execute some operations 
+for their side-effects, before finally resulting in a value. 
 
+Look at the `if` form for example. Here, `condition`, `then-expr` and
+`else-expr` each should be a single expression not a sequence of
+operations as expected in, for example, a language like C. So if we
+want to do more than a single thing, like print a string, redefine a
+value, and compute a result, you need to use `progn`
+
+``` lisp
+(if condition then-expr else-expr) 
+``` 
+
+A `progn` expression has the form `(progn expr1 ... exprN)` 
+and it can be used anywhere where it is ok to use an expression.
+
+
+Below is an example that defines a value and prints in the same expression.
+```
+# (progn (define ape 'monkey) (print ape))
+loading: (progn (define ape 'monkey) (print ape))
+started ctx: 155
+monkey<< Context 155 finished with value t >>
+stack max:  14
+stack size: 256
+stack sp:   0
+```
 # The special forms (or keywords) of LispBM
  
 The special forms of LBM are a bit like the set of keywords you find
@@ -949,47 +1011,43 @@ want to apply a special form, that special form symbol will be first
 in a list. The special part of a special form is that an application
 of a special form does **not** need to follow the same behavior as a
 function application (where all arguments are evaluated before the
-application). Why this is needed will become clear as we go through 
-whats special about each of the LBM special forms below. There aren't
-many of them, only 12, so fortunately not a lot of "special" behavior 
-to memorize. 
+application). There aren't that many special forms, so fortunately not
+a lot of "special" behavior to memorize.
 
-## define
 
-`define` takes two arguments, a symbol and a value. `define` 
-does not evaluate the first argument, because if it did that could 
-potentially result in something that is not a symbol anymore. Also, 
-if we imagine that define did evaluate the first argument, the result 
-would be that it ends up being impossible to associate any value with 
-any symbol! 
+| Special form | Description                                                   |
+| ---          |  ---                                                          | 
+| `if`         | For expressing conditionals.                                  |
+| `lambda`     | Creates an anonymous function.                                |
+| `let`        | Creating local bindings. Support mutually recursive bindings. | 
+| `define`     | Create a global binding.                                      |
+| `progn`      | Execute a sequence of operations.                             |
+| `read`       | Parse a string into LBM code or data.                         |
+| `match`      | Pattern matching.                                             |
+| `macro`      | Create an anonymous macro.                                    |
+| `and`        | Boolean and.                                                  |
+| `or`         | Boolean or.                                                   |
+| `call-cc`    | This will be a chapter of its own some time in the future.    |
+| `recv`       | Receive a message.                                            |
 
----
 
-Imagine for a second that in the expression `(define a 10)`, the a
-would be evaluated. Evaluating a symbol should result in a value if
-there is a value associated with the symbol (symbols are also values,
-so it could be another symbol) say the value is 5. Defining 5 to be 10 
-doesn't make sense. The other option is that there is no value associated 
-with the symbol `a`, in that case we get an error because `a` could not 
-be evaluated.
+If we look at `(if cond-expr then-expr else-expr)` and `(define a 10)`
+they look very similar to a function application `(f a b)`. In a
+function application the arguments `a` and `b` will be evaluated
+before the function is applied. This behavior would be very strange
+in the case of `if` where it would mean that the `then-expr` and
+`else-expr` are both evaluated. In a definition it would be strange to
+evaluate the symbol `a` before creating the binding.
 
----
+`and` and `or` are special forms to make the short-circuiting behavior
+possible.  This is that they will execute only as far as needed to
+decide what the output result will be.
 
-The second argument to `define` is evaluated so if you write 
-`(define a (+ 1 2))`, `a` will be associated with the value 3, 
-not the expression `(+ 1 2)`.
 
-## quote
+# Concluding Chapter 1
 
-Quote is a special form precisely because it should result in the argument
-unevaluated.
-
-`'a` is syntax for `(quote a)` and is expanded to the `(quote a)` form 
-by the parser.
-
-## progn 
-
-The `progn` special form 
-
+This was a quick walk-through of LBM syntax. Just enough to get
+started.  In the next Chapter we look at some list-processing (lisp -
+LISt Processing).
 
 
