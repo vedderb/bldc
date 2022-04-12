@@ -878,12 +878,12 @@ static inline bool lbm_is_error(lbm_value v){
   return false;
 }
 
-extern lbm_heap_state_t heap_state;
+extern lbm_heap_state_t lbm_heap_state;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
-static inline lbm_cons_t* ref_cell(lbm_value addr) {
-  return &heap_state.heap[lbm_dec_ptr(addr)];
+static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
+  return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 

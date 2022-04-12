@@ -71,12 +71,12 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   }
 
   while (lbm_is_ptr(curr)) {
-    lbm_value c = ref_cell(curr)->car;
-    if ((ref_cell(c)->car) == sym) {
-      *res = ref_cell(c)->cdr;
+    lbm_value c = lbm_ref_cell(curr)->car;
+    if ((lbm_ref_cell(c)->car) == sym) {
+      *res = lbm_ref_cell(c)->cdr;
       return true;
     }
-    curr = ref_cell(curr)->cdr;
+    curr = lbm_ref_cell(curr)->cdr;
   }
   return false;
 }
