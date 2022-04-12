@@ -267,6 +267,32 @@ int tok_char(lbm_tokenizer_char_stream_t *str, char *res) {
   return count;
 }
 
+int tok_byte(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
+  lbm_uint acc = 0;
+  unsigned int n = 0;
+  bool negative = false;
+  bool valid_num = false;
+
+  if (peek(str, 0) == '-') {
+    n = 1;
+    negative = true;
+  }
+
+  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
+    acc = (acc*10) + (lbm_uint)(peek(str,n) - '0');
+    n++;
+  }
+  if ((negative && n > 1) ||
+      (!negative && n > 0)) valid_num = true;
+
+  if ((peek(str,n) == 'b' || peek(str,n) == 'B' ) && valid_num) {
+    *res = (negative ? -acc : acc) % 256;
+    drop(str,n+1);
+    return (int)(n+1);
+  }
+  return 0;
+}
+
 int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
 
   lbm_int acc = 0;
@@ -299,7 +325,7 @@ int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
   if (valid_num) {
     drop(str,ndrop);
     *res = negative ? -acc : acc;
-    return (int)n; /*check that isnt so high that it becomes a negative number when casted */
+    return (int)ndrop; /*check that isnt so high that it becomes a negative number when casted */
   }
   return 0;
 }
@@ -384,7 +410,7 @@ int tok_u(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
   if (peek(str,n) == 'u' && valid_num) {
     *res = negative ? -acc : acc;
     drop(str,n+1);
-    return (int)(n+3);
+    return (int)(n+1);
   }
   return 0;
 }
@@ -729,6 +755,10 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
 
   if (tok_i32(str, &i32_val)) {
     return lbm_enc_i32(i32_val);
+  }
+
+  if (tok_byte(str, &u_val)) {
+    return lbm_enc_char(u_val);
   }
 
   // Shortest form of integer match. Move to last in chain of numerical tokens.

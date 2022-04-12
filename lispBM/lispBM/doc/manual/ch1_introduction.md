@@ -925,10 +925,12 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 
 | Type        | Description                                                                           | Example/syntax        | 
 | ---         | ---                                                                                   |  ---                  |
+| type-char   | 8 bit quantity representing a character.                                              | `\#a`, `\#X`          |
+| type-byte   | 8 bit quantity. type-byte is an alias for type-char.                                  | `1b`, `255b`          |
 | type-i      | 28bit integer on 32bit platforms, 56bit integer on 64bit platforms.                   | `1`, `-5`             |
 | type-u      | 28bit unsigned integer on 32bit platforms, 56bit unsigned integer on 64bit platforms. | `1u`, `5u`            |
 | type-i32    | 32bit integer.                                                                        | `1i32`, `-5i32`       |
-| type-u32    | 32bit unsigned integer.                                                               | `1u32`, `0xFF`        | 
+| type-u32    | 32bit unsigned integer.                                                               | `1u32`, `0xFF`        |
 | type-i64    | 64bit integer.                                                                        | `1i64`, `-5i64`       |
 | type-u64    | 64bit unsigned integer.                                                               | `1u64`, `0xFFu64`     |
 | type-float  | Single precision floating point value.                                                | `3.14`, `-6.28`       |
