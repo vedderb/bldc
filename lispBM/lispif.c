@@ -135,7 +135,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 
 	case COMM_LISP_GET_STATS: {
-		lbm_heap_state_t heap_state;
 
 		float cpu_use = 0.0;
 		float heap_use = 0.0;
@@ -151,9 +150,8 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			break;
 		}
 
-		lbm_get_heap_state(&heap_state);
-		if (heap_state.gc_num > 0) {
-			heap_use = 100.0 * (float)(HEAP_SIZE - heap_state.gc_last_free) / (float)HEAP_SIZE;
+		if (lbm_heap_state.gc_num > 0) {
+			heap_use = 100.0 * (float)(HEAP_SIZE - lbm_heap_state.gc_last_free) / (float)HEAP_SIZE;
 		}
 
 		mem_use = 100.0 * (float)(lbm_memory_num_words() - lbm_memory_num_free()) / (float)lbm_memory_num_words();
@@ -256,20 +254,18 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Anything else will be evaluated as an expression in LBM.");
 				commands_printf_lisp(" ");
 			} else if (len >= 5 && strncmp(str, ":info", 5) == 0) {
-				lbm_heap_state_t heap_state;
 				commands_printf_lisp("--(LISP HEAP)-----------------------------------------------\n");
-				lbm_get_heap_state(&heap_state);
 				commands_printf_lisp("Heap size: %u Bytes\n", HEAP_SIZE * 8);
 				commands_printf_lisp("Used cons cells: %d\n", HEAP_SIZE - lbm_heap_num_free());
 				commands_printf_lisp("Free cons cells: %d\n", lbm_heap_num_free());
-				commands_printf_lisp("GC counter: %d\n", heap_state.gc_num);
-				commands_printf_lisp("Recovered: %d\n", heap_state.gc_recovered);
-				commands_printf_lisp("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
-				commands_printf_lisp("Marked: %d\n", heap_state.gc_marked);
+				commands_printf_lisp("GC counter: %d\n", lbm_heap_state.gc_num);
+				commands_printf_lisp("Recovered: %d\n", lbm_heap_state.gc_recovered);
+				commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
+				commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
 				commands_printf_lisp("--(Symbol and Array memory)---------------------------------\n");
 				commands_printf_lisp("Memory size: %u Words\n", lbm_memory_num_words());
 				commands_printf_lisp("Memory free: %u Words\n", lbm_memory_num_free());
-				commands_printf_lisp("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
+				commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
 				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
 			} else if (strncmp(str, ":env", 4) == 0) {
 				lbm_value curr = *lbm_get_env_ptr();
