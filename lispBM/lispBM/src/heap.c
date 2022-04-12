@@ -399,7 +399,7 @@ lbm_uint lbm_heap_size_bytes(void) {
   return lbm_heap_state.heap_bytes;
 }
 
-void lbm_get_lbm_heap_state(lbm_heap_state_t *res) {
+void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
