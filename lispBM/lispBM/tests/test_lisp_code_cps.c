@@ -94,8 +94,80 @@ void context_done_callback(eval_context_t *ctx) {
   experiment_done = true;
 }
 
+
+bool dyn_load(const char *str, const char **code) {
+
+  bool res = false;
+  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
+    *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
+    res = true;
+  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
+    *code = "(define reverse (lambda (xs)"
+            "(let ((revacc (lambda (acc xs)"
+	    "(if (eq nil xs) acc"
+	    "(revacc (cons (car xs) acc) (cdr xs))))))"
+            "(revacc nil xs))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+    *code = "(define iota (lambda (n)"
+            "(let ((iacc (lambda (acc i)"
+            "(if (< i 0) acc"
+            "(iacc (cons i acc) (- i 1))))))"
+            "(iacc nil n))))";
+    res = true;
+  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
+    *code = "(define length (lambda (xs)"
+	    "(let ((len (lambda (l xs)"
+	    "(if (eq xs nil) l"
+	    "(len (+ l 1) (cdr xs))))))"
+            "(len 0 xs))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
+    *code = "(define take (lambda (n xs)"
+	    "(let ((take-tail (lambda (acc n xs)"
+	    "(if (= n 0) acc"
+	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(reverse (take-tail nil n xs)))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
+    *code = "(define drop (lambda (n xs)"
+	    "(if (= n 0) xs"
+	    "(if (eq xs nil) nil"
+            "(drop (- n 1) (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
+    *code = "(define zip (lambda (xs ys)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq ys nil) nil"
+            "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
+    *code = "(define map (lambda (f xs)"
+	    "(if (eq xs nil) nil"
+            "(cons (f (car xs)) (map f (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
+    *code = "(define lookup (lambda (x xs)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq (car (car xs)) x)"
+	    "(car (cdr (car xs)))"
+            "(lookup x (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
+    *code = "(define foldr (lambda (f i xs)"
+	    "(if (eq xs nil) i"
+            "(f (car xs) (foldr f i (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
+    *code = "(define foldl (lambda (f i xs)"
+            "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
+    res = true;
+  }
+  return res;
+}
+
   //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
-LBM_EXTENSION(ext_even, args, argn){ 
+LBM_EXTENSION(ext_even, args, argn){
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   lbm_value v = args[0];
@@ -274,27 +346,31 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
+  lbm_set_verbose(true);
+
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
   }
 
-  prelude_load(&string_tok_state, &string_tok);
-  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
-    printf("Waiting for prelude timed out.\n");
-  }
+  lbm_cid cid;
+  /* prelude_load(&string_tok_state, &string_tok); */
+  /* lbm_cid cid = lbm_load_and_eval_program(&string_tok); */
+  /* if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) { */
+  /*   printf("Waiting for prelude timed out.\n"); */
+  /* } */
 
-  lbm_pause_eval_with_gc(20);
-  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    sleep_callback(1000);
-  }
+  /* lbm_pause_eval_with_gc(20); */
+  /* while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) { */
+  /*   sleep_callback(1000); */
+  /* } */
 
   char *compressed_code;
   if (compress_decompress) {
@@ -327,7 +403,7 @@ int main(int argc, char **argv) {
     printf("Failed to load and evaluate the test program\n");
     return 0;
   }
-  
+
   lbm_continue_eval();
 
 

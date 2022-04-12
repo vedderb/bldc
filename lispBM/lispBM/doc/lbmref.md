@@ -22,7 +22,6 @@ You can add up multiple values.
 ```
 The example above results in the value 55.
 
-
 ---
 
 ### -
@@ -469,47 +468,47 @@ Example that evaluates to `type-float`.
 
 ---
 
-### sym-to-str
+### sym2str
 
-The `sym-to-str` function converts a symbol to its string representation.
+The `sym2str` function converts a symbol to its string representation.
 The resulting string is a copy of the original so you cannot destroy built in symbols using
 this function.
 
 
 Example that returns the string `"lambda"`.
 ```clj
-(sym-to-str 'lambda)
+(sym2str 'lambda)
 ```
 
 ---
 
-### str-to-sym
+### str2sym
 
-The `str-to-sym` function converts a string to a symbol.
+The `str2sym` function converts a string to a symbol.
 
 Example that returns the symbol `hello`.
 ```clj
-(str-to-sym "hello")
+(str2sym "hello")
 ```
 
 ---
 
-### sym-to-u
+### sym2u
 
-The `sym-to-u` function returns the numerical value used by the runtime system
+The `sym2u` function returns the numerical value used by the runtime system
 for a symbol.
 
 
 Example that evaluates to 4.
 ```clj
-(sym-to-u 'lambda)
+(sym2u 'lambda)
 ```
 
 ---
 
-### u-to-sym
+### u2sym
 
-The `u-to-sym` function returns the symbol associated with the
+The `u2sym` function returns the symbol associated with the
 numerical value provided. This symbol may be undefined in which case you
 get as result a unnamed symbol.
 
@@ -1153,7 +1152,9 @@ being wrong in the code (or that it is exhausting all resources).
 ### no_match
 
 The `no_match` symbol is returned from pattern matching if
-no case matches the expression.
+no case matches the expression. 
+
+    - Add a catch-all case to your pattern-matching. `_`. 
 
 ---
 
@@ -1162,11 +1163,15 @@ no case matches the expression.
 The `read_error` symbol is returned if the reader cannot
 parse the input code.
 
+Read errors are most likely caused by syntactically incorrect input programs.
+
+    - Check that all opening parenthesis are properly closed.
+
 ---
 
 ### type_error
 
-The `type_error` symbol is returned byt built-in functions
+The `type_error` symbol is returned by built-in functions or extensions
 if the values passed in are of incompatible types.
 
 ---
@@ -1177,13 +1182,25 @@ The `eval_error` symbol is returned if evaluation could
 not proceed to evaluate the expression. This could be because the
 expression is malformed.
 
+Evaluation error happens on programs that may be syntactically correct
+(LispBM has a very low bar for what is considered syntactically correct),
+but semantically nonsensical.
+
+    - Check the program for mistakes.
+    - Are your parenthesis enclosing the correct subterms?
+    - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).
+
 ---
 
 ### out_of_memory
 
 The `out_of_memory` symbol is returned if the heap is full and running
-the garbage collector was not able to free any memory up. The program
-uses more memory than the size of the heap. Make the heap larger.
+the garbage collector was not able to free any memory up. 
+
+The program you have written requires more memory.
+
+    - Increase the heap size.
+    - Rewrite the application to use less memory.
 
 ---
 
@@ -1192,6 +1209,9 @@ uses more memory than the size of the heap. Make the heap larger.
 The `fatal_error` symbol is returned in cases where the
 LispBM runtime system cannot proceed. Something is corrupt and it is
 not safe to continue.
+
+    - If this happens please send the program and the full error message
+      to blog.joel.svensson@gmail.com. It will be much appreciated.
 
 ---
 
@@ -1202,11 +1222,19 @@ runs out of continuation stack (this is its runtime-stack). You are
 most likely writing a non-tail-recursive function that is exhausting all
 the resources.
 
+    - Check your program for recursive functions that are not tail-recursive
+      Rewrite these in tail-recursive form.
+    - If you spawned this process in a small stack. For example (spawn 10 prg),
+      try to spawn it with a larger stack.
+
 ---
 
 ### division_by_zero
 
 The `division_by_zero` symbol is returned when dividing by zero.
+
+    - Check your math.
+    - Add 0-checks into your code at a strategic position.
 
 ---
 
