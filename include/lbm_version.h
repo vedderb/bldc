@@ -25,11 +25,22 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 2
 
 /*! \page changelog Changelog
 
-Apr 02 2022: Version 0.5.1
+
+Apr 12 2022: Version 0.5.2
+ - Restructure symbol evaluation for efficiency and readability.
+ - Rewrite progn to update stack in place when possible.
+ - Removed a bunch of convertion back and forth from C and LBM representation
+   of continuation identifiers in eval_cps. They are now compared in encoded
+   form in the evaluator.
+ - Added lbm_cadr and replaced lbm_car(lbm_cdr(x)) with lbm_cadr(x) in
+   the evaluator.
+
+Apr 10 2022: Version 0.5.1
+ - Removed the prelude.lisp, prelude.xxd step of building LBM.
  - A continuation created by call-cc can be applied to 0 or 1 argument.
    If there are 0 arguments an implicit application to nil takes place.
 

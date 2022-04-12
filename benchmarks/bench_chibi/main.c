@@ -334,19 +334,6 @@ int main(void) {
 
       lbm_add_extension("print", ext_print);
 
-    } else if (strncmp(str, ":prelude", 8) == 0) {
-
-      lbm_pause_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        chThdSleepMilliseconds(1);
-      }
-      prelude_load(&string_tok_state,
-                   &string_tok);
-
-      lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-
-      lbm_continue_eval();
-      lbm_wait_ctx((lbm_cid)cid,WAIT_TIMEOUT);
     } else if (strncmp(str, ":quit", 5) == 0) {
 
       break;
@@ -393,7 +380,7 @@ int main(void) {
           sleep_callback(10);
         }
 
-        systime_t t_eval = chVTGetSystemTimeX();
+        //systime_t t_eval = chVTGetSystemTimeX();
         cid = lbm_eval_defined_program("prg");
 
         lbm_continue_eval();
@@ -418,7 +405,7 @@ int main(void) {
         continue;
       }
 
-      lbm_value t;
+      //lbm_value t;
 
       /* Get exclusive access to the heap */
       lbm_pause_eval();
@@ -434,7 +421,7 @@ int main(void) {
 
       lbm_continue_eval();
 
-      printf("started ctx: %u\n", cid);
+      //printf("started ctx: %ld\n", cid);
       lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
     }
   }

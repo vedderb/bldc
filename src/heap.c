@@ -29,7 +29,7 @@
 #include "heap_vis.h"
 #endif
 
-static lbm_heap_state_t heap_state;
+lbm_heap_state_t heap_state;
 
 static lbm_value        NIL;
 static lbm_value        RECOVERED;
@@ -221,13 +221,6 @@ double lbm_dec_as_double(lbm_value a) {
     return (double) lbm_dec_double(a);
   }
   return 0;
-}
-
-// ref_cell: returns a reference to the cell addressed by bits 3 - 26
-//           Assumes user has checked that is_ptr was set
-static inline lbm_cons_t* ref_cell(lbm_value addr) {
-  return &heap_state.heap[lbm_dec_ptr(addr)];
-  //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
 static inline lbm_value read_car(lbm_cons_t *cell) {
@@ -444,8 +437,8 @@ int lbm_gc_mark_phase(lbm_value env) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push(s, lbm_cdr(curr));
-    res &= lbm_push(s, lbm_car(curr));
+    res &= lbm_push(s, ref_cell(curr)->cdr);
+    res &= lbm_push(s, ref_cell(curr)->car);
 
     if (!res) break;
   }
@@ -474,7 +467,7 @@ int lbm_gc_mark_freelist() {
   while (lbm_is_ptr(curr)){
     t = ref_cell(curr);
     set_gc_mark(t);
-    curr = lbm_cdr(curr);
+    curr = t->cdr;
 
     heap_state.gc_marked ++;
   }
@@ -583,6 +576,24 @@ lbm_value lbm_car(lbm_value c){
   if (lbm_is_ptr(c) ){
     lbm_cons_t *cell = ref_cell(c);
     return read_car(cell);
+  }
+  return lbm_enc_sym(SYM_TERROR);
+}
+
+lbm_value lbm_cadr(lbm_value c) {
+
+  lbm_value tmp;
+
+  if (lbm_is_ptr(c)) {
+    tmp = ref_cell(c)->cdr;
+
+    if (lbm_is_ptr(tmp)) {
+      return ref_cell(tmp)->car;
+    } else if (lbm_is_symbol(tmp) && lbm_dec_sym(tmp) == SYM_NIL) {
+      return tmp;
+    }
+  } else if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return c;
   }
   return lbm_enc_sym(SYM_TERROR);
 }
