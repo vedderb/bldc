@@ -2272,92 +2272,109 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 
 	lbm_uint name = lbm_dec_sym(args[0]);
 
-	mc_configuration *mcconf = mempools_alloc_mcconf();
-	*mcconf = *mc_interface_get_configuration();
+	int changed_mc = 0;
+	int changed_app = 0;
 
-	app_configuration *appconf = mempools_alloc_appconf();
-	*appconf = *app_get_configuration();
-
-	bool changed_mc = false;
-	bool changed_app = false;
+	mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
+	app_configuration *appconf = (app_configuration*)app_get_configuration();
 
 	const float speed_fact = ((mcconf->si_motor_poles / 2.0) * 60.0 *
 			mcconf->si_gear_ratio) / (mcconf->si_wheel_diameter * M_PI);
 
+	// Safe changes that can be done instantly on the pointer. It is not that good to do
+	// it this way, but it is much faster.
+	// TODO: Check regularly and make sure that these stay safe.
 	if (compare_symbol(name, &syms_vesc.l_current_min)) {
 		mcconf->l_current_min = -fabsf(lbm_dec_as_float(args[1]));
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_current_max)) {
 		mcconf->l_current_max = lbm_dec_as_float(args[1]);
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_current_min_scale)) {
 		mcconf->l_current_min_scale = lbm_dec_as_float(args[1]);
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_current_max_scale)) {
 		mcconf->l_current_max_scale = lbm_dec_as_float(args[1]);
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_min)) {
 		mcconf->l_in_current_min = -fabsf(lbm_dec_as_float(args[1]));
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_max)) {
 		mcconf->l_in_current_max = lbm_dec_as_float(args[1]);
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_min_erpm)) {
 		mcconf->l_min_erpm = -fabsf(lbm_dec_as_float(args[1]));
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_max_erpm)) {
 		mcconf->l_max_erpm = lbm_dec_as_float(args[1]);
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.l_watt_min)) {
-		mcconf->l_watt_min = -fabsf(lbm_dec_as_float(args[1]));
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.l_watt_max)) {
-		mcconf->l_watt_max = lbm_dec_as_float(args[1]);
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
-		mcconf->foc_current_kp = lbm_dec_as_float(args[1]);
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
-		mcconf->foc_current_ki = lbm_dec_as_float(args[1]);
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_motor_l)) {
-		mcconf->foc_motor_l = lbm_dec_as_float(args[1]) * 1e-6;
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_motor_ld_lq_diff)) {
-		mcconf->foc_motor_ld_lq_diff = lbm_dec_as_float(args[1]) * 1e-6;
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_motor_r)) {
-		mcconf->foc_motor_r = lbm_dec_as_float(args[1]) * 1e-3;
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_motor_flux_linkage)) {
-		mcconf->foc_motor_flux_linkage = lbm_dec_as_float(args[1]) * 1e-3;
-		changed_mc = true;
-	} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
-		mcconf->foc_observer_gain = lbm_dec_as_float(args[1]) * 1e6;
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.min_speed)) {
 		mcconf->l_min_erpm = -fabsf(lbm_dec_as_float(args[1])) * speed_fact;
-		changed_mc = true;
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {
 		mcconf->l_max_erpm = lbm_dec_as_float(args[1]) * speed_fact;
-		changed_mc = true;
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_watt_min)) {
+		mcconf->l_watt_min = -fabsf(lbm_dec_as_float(args[1]));
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_watt_max)) {
+		mcconf->l_watt_max = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
-		changed_app = true;
+		changed_app = 1;
 	}
 
-	if (changed_mc) {
-		mc_interface_set_configuration(mcconf);
+	// Unsafe changes that require reconfiguration.
+	if (changed_mc == 0 && changed_app == 0) {
+		mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+
+		appconf = mempools_alloc_appconf();
+		*appconf = *app_get_configuration();
+
+		if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
+			mcconf->foc_current_kp = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
+			mcconf->foc_current_ki = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_motor_l)) {
+			mcconf->foc_motor_l = lbm_dec_as_float(args[1]) * 1e-6;
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_motor_ld_lq_diff)) {
+			mcconf->foc_motor_ld_lq_diff = lbm_dec_as_float(args[1]) * 1e-6;
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_motor_r)) {
+			mcconf->foc_motor_r = lbm_dec_as_float(args[1]) * 1e-3;
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_motor_flux_linkage)) {
+			mcconf->foc_motor_flux_linkage = lbm_dec_as_float(args[1]) * 1e-3;
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
+			mcconf->foc_observer_gain = lbm_dec_as_float(args[1]) * 1e6;
+			changed_mc = 2;
+		}
+	}
+
+	if (changed_mc > 0) {
+		if (changed_mc == 2) {
+			mc_interface_set_configuration(mcconf);
+		}
 		res = lbm_enc_sym(SYM_TRUE);
-	} else if (changed_app) {
-		app_set_configuration(appconf);
+	} else if (changed_app > 0) {
+		if (changed_app == 2) {
+			app_set_configuration(appconf);
+		}
 		res = lbm_enc_sym(SYM_TRUE);
 	} else {
 		lbm_set_error_reason("Parameter not recognized");
 	}
 
-	mempools_free_mcconf(mcconf);
-	mempools_free_appconf(appconf);
+	if (changed_mc == 2 || changed_app == 2) {
+		mempools_free_mcconf(mcconf);
+		mempools_free_appconf(appconf);
+	}
 
 	return res;
 }
@@ -2384,15 +2401,17 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 
 	lbm_uint name = lbm_dec_sym(args[0]);
 
-	mc_configuration *mcconf = mempools_alloc_mcconf();
-	app_configuration *appconf = mempools_alloc_appconf();
+	mc_configuration *mcconf;
+	app_configuration *appconf;
 
 	if (defaultcfg) {
+		mcconf = mempools_alloc_mcconf();
+		appconf = mempools_alloc_appconf();
 		confgenerator_set_defaults_mcconf(mcconf);
 		confgenerator_set_defaults_appconf(appconf);
 	} else {
-		*mcconf = *mc_interface_get_configuration();
-		*appconf = *app_get_configuration();
+		mcconf = (mc_configuration*)mc_interface_get_configuration();
+		appconf = (app_configuration*)app_get_configuration();
 	}
 
 	const float speed_fact = ((mcconf->si_motor_poles / 2.0) * 60.0 *
@@ -2440,8 +2459,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(appconf->controller_id);
 	}
 
-	mempools_free_mcconf(mcconf);
-	mempools_free_appconf(appconf);
+	if (defaultcfg) {
+		mempools_free_mcconf(mcconf);
+		mempools_free_appconf(appconf);
+	}
 
 	if (lbm_type_of(res) == LBM_TYPE_SYMBOL && lbm_dec_sym(res) == SYM_EERROR) {
 		lbm_set_error_reason("Parameter not recognized");
