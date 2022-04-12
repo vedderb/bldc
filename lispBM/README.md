@@ -10,9 +10,21 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 * The application runs on the VESC itself without the need for having VESC Tool connected and is stored in flash memory.
 * When a lisp-application is written to the VESC it is automatically started on each boot.
 
-## Documentation
+## Language Reference
 
-Basics about LispBM are documented [here](lispBM/doc/lbmref.md). The VESC-specific extensions are documented in this section. Note that VESC Tool includes a collection of examples that can be used as a starting point for using lisp on the VESC.
+[LispBM Language Reference](lispBM/doc/lbmref.md)
+
+## Programming Manual
+
+This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
+
+[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)
+
+## VESC-Specific Commands and Extensions
+
+The VESC-specific extensions are documented below. If you are reading this on GitHub there is an index in the upper left corner that can be used to navigate this document. It follows you as you scroll around and also includes a search function that filters all the titles in this document.
+
+Note that VESC Tool includes a collection of examples that can be used as a starting point for using LispBM on the VESC.
 
 ### Various Commands
 
