@@ -729,8 +729,19 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
     ix++;
   }
 
-  lbm_memory_shrink((lbm_uint*)arr->data, t == LBM_TYPE_BYTE ? ix / 4 : (ix - 1));
-  arr->size = ix - 1;
+  lbm_uint array_size = ix - 1;
+
+  // Calculate array size in number of words
+  if (t = LBM_TYPE_BYTE) {
+    if (array_size % 4) {
+      array_size = (array_size / 4) + 1;
+    } else {
+      array_size = array_size / 4;
+    }
+  }
+
+  lbm_memory_shrink((lbm_uint*)arr->data, array_size);
+  arr->size = ix - 1; 
   *res = array;
   return true;
 }
