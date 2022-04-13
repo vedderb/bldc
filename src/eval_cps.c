@@ -1911,20 +1911,21 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
 
 static inline void cont_if(eval_context_t *ctx) {
 
-  lbm_value then_branch;
-  lbm_value else_branch;
-  lbm_value env;
   lbm_value arg = ctx->r;
 
-  lbm_pop_3(&ctx->K, &env, &then_branch, &else_branch);
-
-  if (lbm_is_symbol_nil(arg)) {
-    ctx->curr_env = env;
-    ctx->curr_exp = else_branch;
-  } else {
-    ctx->curr_env = env;
-    ctx->curr_exp = then_branch;
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
   }
+
+  ctx->curr_env = sptr[2];
+  if (lbm_is_symbol_nil(arg)) {
+    ctx->curr_exp = sptr[0]; // else branch
+  } else {
+    ctx->curr_exp = sptr[1]; // then branch
+  }
+  lbm_stack_drop(&ctx->K, 3);
 }
 
 static inline void cont_match_many(eval_context_t *ctx) {

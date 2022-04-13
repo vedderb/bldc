@@ -766,9 +766,10 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   }
 
   array->data = (lbm_uint*)lbm_memory_allocate(allocate_size);
+  memset(array->data, 0, allocate_size * sizeof(lbm_uint));
 
   if (array->data == NULL) {
-    lbm_memory_free(array->data);
+    lbm_memory_free((lbm_uint*)array);
     *res = lbm_enc_sym(SYM_MERROR);
     return 0;
   }
