@@ -122,6 +122,10 @@ extern lbm_uint lbm_memory_num_words(void);
  * \return The number of free words in the symbols and arrays memory.
  */
 extern lbm_uint lbm_memory_num_free(void);
+/** Find the length of the longest run of consecutire free indices
+ *  in the LBM memory.
+ */
+extern lbm_uint lbm_memory_longest_free(void);
 /** Allocate a number of words from the symbols and arrays memory.
  *
  * \param num_words Number of words to allocate.
@@ -134,6 +138,13 @@ extern lbm_uint *lbm_memory_allocate(lbm_uint num_words);
  * \return 1 on success and 0 on failure.
  */
 extern int lbm_memory_free(lbm_uint *ptr);
+
+/** Shrink an allocated array.
+ * \param ptr Pointer to array to shrink
+ * \param n New smaller size of array
+ * \return 1 on success and 0 on failure.
+ */
+extern int lbm_memory_shrink(lbm_uint *ptr, unsigned int n);
 
 /** Check if a pointer points into the lbm_memory
  *

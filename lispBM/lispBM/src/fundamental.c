@@ -405,7 +405,7 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
       switch(array->elt_type) {
       case LBM_TYPE_CHAR:
-        curr = lbm_enc_char((char)data[i]);
+        curr = lbm_enc_char(((char*)data)[i]);
         break;
       case LBM_TYPE_U:
         curr = lbm_enc_u((uint32_t)data[i]);

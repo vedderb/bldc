@@ -83,6 +83,6 @@ int lbm_pop(lbm_stack_t *s, lbm_uint *val) {
 
   s->sp--;
   *val = s->data[s->sp];
-  s->data[s->sp] = 0;
+  //s->data[s->sp] = 0;
   return 1;
 }
