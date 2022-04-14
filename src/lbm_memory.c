@@ -324,18 +324,40 @@ int lbm_memory_shrink(lbm_uint *ptr, unsigned int n) {
     if (status(ix+i) == END && i < n) {
       return 0; // cannot shrink allocation to a larger size
     }
+    switch(status(ix+i)) {
+    case START:
+      break;
+    case END:
+      break;
+    case START_END:
+      break;
+    case FREE_OR_USED:
+      break;
+    default:
+      break;
+    }
+
     if (i == (n-1)) {
       if (status(ix+i) == END ||
-          status(ix+i) == START_END) done = true;
-      if (i == 0) set_status(ix+i, START_END);
-      else set_status(ix+i, END);
+          status(ix+i) == START_END) {
+        done = true;
+      }
+      if (i == 0) {
+        set_status(ix+i, START_END);
+      }
+      else {
+        set_status(ix+i, END);
+      }
       break;
     }
   }
+
   if (!done) {
+    i++; // move to next position, prev position should be END or START_END
     for (;i < ((bitmap_size << BITMAP_SIZE_SHIFT) - ix); i ++)
       if (status(ix+i) == END) {
         set_status(ix+i, FREE_OR_USED);
+        break;
       }
   }
   return 1;
