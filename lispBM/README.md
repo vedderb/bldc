@@ -731,6 +731,13 @@ Converts x from radians to degrees.
 
 Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply the rotation in reverse (apply the inverse of the rotation matrix) if set to 1.
 
+#### abs
+```clj
+(abs x)
+```
+
+Get the absolute value of x.
+
 #### throttle-curve
 ```clj
 (throttle-curve value accel brake mode)

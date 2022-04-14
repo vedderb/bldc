@@ -98,6 +98,8 @@ static const char* functions[] = {
 
 "(defun second (x) (car (cdr x)))",
 "(defun third (x) (car (cdr (cdr x))))",
+
+"(defun abs (x) (if (< x 0) (- x) x))",
 };
 
 static const char* macros[] = {
