@@ -1329,6 +1329,11 @@ static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
 			lbm_dec_as_i32(args[3])));
 }
 
+static lbm_value ext_cast_i(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1)
+	return lbm_enc_i(roundf(lbm_dec_as_float(args[0])));
+}
+
 // Bit operations
 
 /*
@@ -2534,7 +2539,7 @@ static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
-	memset(array->data + start, clear_byte, len);
+	memset((char*)array->data + start, clear_byte, len);
 	res = lbm_enc_sym(SYM_TRUE);
 
 	return res;
@@ -2645,6 +2650,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("rad2deg", ext_rad2deg);
 	lbm_add_extension("vec3-rot", ext_vec3_rot);
 	lbm_add_extension("throttle-curve", ext_throttle_curve);
+	lbm_add_extension("cast-i", ext_cast_i);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
