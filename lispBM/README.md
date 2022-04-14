@@ -384,6 +384,13 @@ Set RPM speed control.
 
 Position control. Set motor position in degrees, range 0.0 to 360.0.
 
+#### foc-openloop
+```clj
+(foc-openloop current rpm)
+```
+
+Run FOC in open loop. Useful to test thermal properties of motors and power stages.
+
 ### Motor Get Commands
 
 #### get-current
