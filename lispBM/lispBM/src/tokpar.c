@@ -642,6 +642,61 @@ void clean_whitespace(lbm_tokenizer_char_stream_t *str) {
   }
 }
 
+int tok_integer(lbm_tokenizer_char_stream_t *str, uint64_t *res, bool *negative) {
+
+  lbm_int acc = 0;
+  unsigned int n = 0;
+  bool valid_num = false;
+
+  if (peek(str, 0) == '-') {
+    n = 1;
+    *negative = true;
+  }
+
+   // Check if hex notation is used
+  if (peek(str,0) == '0' &&
+      (peek(str,1) == 'x' || peek(str,1) == 'X')) {
+    n+= 2;
+    while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
+            (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
+            (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
+      uint32_t val;
+      if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
+        val = 10 + (uint32_t)(peek(str,n) - 'a');
+      } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
+        val = 10 + (uint32_t)(peek(str,n) - 'A');
+      } else {
+        val = (uint32_t)peek(str,n) - '0';
+      }
+      acc = (acc * 0x10) + val;
+      n++;
+    }
+    if ((negative && n > 1) ||
+        (!negative && n > 0)) valid_num = true;
+
+    if (valid_num) {
+      drop(str,n);
+      *res = acc;
+      return (int)n; /*check that isnt so high that it becomes a negative number when casted */
+    }
+  }
+
+  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
+    acc = (acc*10) + (peek(str,n) - '0');
+    n++;
+  }
+  if ((*negative && n > 1) ||
+      (!*negative && n > 0)) valid_num = true;
+
+  if (valid_num) {
+    drop(str,n);
+    *res = acc;
+    return (int)n; /*check that isnt so high that it becomes a negative number when casted */
+  }
+  return 0;
+}
+
+
 bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_value *res) {
 
   lbm_type t = LBM_TYPE_BYTE; // default
@@ -699,25 +754,28 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
     }
 
     n = 0;
-    lbm_int i_val;
+    uint64_t i_val;
+    bool     i_neg;
+    float f_val;
 
     if (!done) {
       switch (t) {
 
       case LBM_TYPE_BYTE:
-        n = tok_i(str, &i_val);
-        if (n) ((uint8_t*)arr->data)[ix] = (uint8_t)i_val;
+        n = tok_integer(str, &i_val, &i_neg);
+        if (n) ((uint8_t*)arr->data)[ix] = (uint8_t)(i_neg ? -i_val : i_val);
         break;
       case LBM_TYPE_I32:
-        n = tok_i(str, &i_val);
-        if (n) arr->data[ix] = (int32_t)i_val;
+        n = tok_integer(str, &i_val, &i_neg);
+        if (n) arr->data[ix] = (int32_t)(i_neg ? -i_val : i_val);
         break;
       case LBM_TYPE_U32:
-        n = tok_i(str, &i_val);
-        if (n) arr->data[ix] = (uint32_t)i_val;
+        n = tok_integer(str, &i_val, &i_neg);
+        if (n) arr->data[ix] = (uint32_t)(i_neg ? -i_val : i_val);
         break;
       case LBM_TYPE_FLOAT:
-        return false; // todo
+        n = tok_F(str, &f_val);
+        if (n) memcpy(&arr->data[ix], (uint32_t*)&f_val, sizeof(float));
         break;
       }
       if (n == 0) {

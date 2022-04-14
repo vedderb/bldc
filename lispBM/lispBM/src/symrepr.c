@@ -145,6 +145,7 @@ special_sym const special_symbols[] =  {
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
   {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-size"     , SYM_ARRAY_SIZE},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},
