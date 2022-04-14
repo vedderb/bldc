@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -648,6 +648,7 @@ int tok_integer(lbm_tokenizer_char_stream_t *str, uint64_t *res, bool *negative)
   unsigned int n = 0;
   bool valid_num = false;
 
+  *negative = false;
   if (peek(str, 0) == '-') {
     n = 1;
     *negative = true;
