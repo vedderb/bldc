@@ -1482,6 +1482,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   env  = sptr[0];
 
   if (lbm_is_symbol_nil(rest)) {
+    lbm_stack_drop(&ctx->K, 2);
     ctx->app_cont = true;
     return;
   }
