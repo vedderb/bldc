@@ -167,6 +167,16 @@
 #define SYM_ENCODE_FLOAT        0x154
 #define SYM_DECODE              0x155
 
+#define SYM_TO_I                0x160
+#define SYM_TO_I32              0x161
+#define SYM_TO_U                0x162
+#define SYM_TO_U32              0x163
+#define SYM_TO_FLOAT            0x164
+#define SYM_TO_I64              0x165
+#define SYM_TO_U64              0x166
+#define SYM_TO_DOUBLE           0x167
+#define SYM_TO_BYTE             0x168
+
 //#define SYM_STREAM_GET          0x160
 //#define SYM_STREAM_MORE         0x161
 //#define SYM_STREAM_PEEK         0x162
