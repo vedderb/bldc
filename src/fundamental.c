@@ -359,7 +359,6 @@ static int compare(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-
 void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
   (void) nargs;
   if (nargs < 2) return;
@@ -609,6 +608,18 @@ void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
       }
     }
   }
+}
+
+void array_size(lbm_value *args, lbm_uint nargs, lbm_value *result) {
+  *result = lbm_enc_sym(SYM_EERROR);
+  if (nargs != 1) return;
+
+  if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
+
+    *result =  lbm_enc_u(array->size);
+  }
+  return;
 }
 
 
@@ -1057,6 +1068,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   case SYM_ARRAY_CREATE:
     array_create(args, nargs, &result);
+    break;
+  case SYM_ARRAY_SIZE:
+    array_size(args, nargs, &result);
     break;
   case SYM_TYPE_OF:
     if (nargs != 1) return lbm_enc_sym(SYM_NIL);
