@@ -2488,6 +2488,58 @@ static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym((res_mc && res_app) ? SYM_TRUE : SYM_NIL);
 }
 
+// Extra array extensions
+
+static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
+	lbm_value res = lbm_enc_sym(SYM_EERROR);
+
+	if ((argn != 1 && argn != 2 && argn != 3 && argn != 4) || !lbm_is_array(args[0])) {
+		return res;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (array->elt_type != LBM_TYPE_BYTE) {
+		return res;
+	}
+
+	uint8_t clear_byte = 0;
+	if (argn >= 2) {
+		if (!lbm_is_number(args[1])) {
+			return res;
+		}
+		clear_byte = lbm_dec_as_u32(args[1]);
+	}
+
+	unsigned int start = 0;
+	if (argn >= 3) {
+		if (!lbm_is_number(args[2])) {
+			return res;
+		}
+		unsigned int start_new = lbm_dec_as_u32(args[2]);
+		if (start_new < array->size) {
+			start = start_new;
+		} else {
+			return res;
+		}
+	}
+
+	unsigned int len = array->size - start;
+	if (argn >= 4) {
+		if (!lbm_is_number(args[3])) {
+			return res;
+		}
+		unsigned int len_new = lbm_dec_as_u32(args[3]);
+		if (len_new <= len) {
+			len = len_new;
+		}
+	}
+
+	memset(array->data + start, clear_byte, len);
+	res = lbm_enc_sym(SYM_TRUE);
+
+	return res;
+}
+
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
@@ -2643,6 +2695,7 @@ void lispif_load_vesc_extensions(void) {
 
 	// Array extensions
 	lbm_array_extensions_init();
+	lbm_add_extension("bufclear", ext_bufclear);
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {

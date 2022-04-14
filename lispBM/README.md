@@ -1604,6 +1604,8 @@ To allocate a byte array with 20 bytes and bind the symbol arr to it you can use
 (define arr (array-create 20))
 ```
 
+#### buflen
+
 The length of a byte array can be read with
 
 ```clj
@@ -1611,6 +1613,26 @@ The length of a byte array can be read with
 ```
 
 Which will return 20 for the array arr above.
+
+#### bufclear
+
+To clear a byte array the function bufclear can be used:
+
+```clj
+(bufclear arr optByte optStart optLen)
+```
+
+Where arr is the byte array to clear, optByte is the optional argument of what to clear with (default 0), optStart is the optional argument of which position to start clearing (default 0) and optLen is the optional argument of how many bytes to clear after start (default the entire array). Example:
+
+```clj
+(bufclear arr) ; Clear all of arr
+(bufclear arr 0xFF) ; Fill arr with 0xFF
+(bufclear arr 0 5) ; Clear from index 5 to the end
+(bufclear arr 0 5 10) ; Clear 10 bytes starting from index 5
+(bufclear arr 0xAA 5 10) ; Set 10 bytes to 0xAA starting from index 5
+```
+
+#### bufget-\[x\]
 
 To read data from the byte array you can use
 
@@ -1636,6 +1658,8 @@ By default the byte order is big endian. The byte order can also be specified as
 (bufget-i32 arr 6 little-endian)
 ```
 
+#### bufset-\[x\]
+
 Writing to the array can be done in a similar way
 
 ```clj
@@ -1656,7 +1680,8 @@ Here are some examples
 
 As with bufget big endian is the default byte order and little-endian can be passed as the last argument to use little-endian byte order instead.
 
-**Note**  
+#### free
+
 Byte arrays will be de-allocated by the garbage collector on a regular basis, but can still use a lot of memory until then and large byte arrays cause a risk of running out of memory. It is possible to manually de-allocate the byte arrays when done with them by calling free
 
 ```clj
