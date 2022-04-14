@@ -852,9 +852,9 @@ Example that evaluates to 2.
 
 ---
 
-### set-car
+### setcar
 
-The `set-car` is a destructive update of the car field
+The `setcar` is a destructive update of the car field
 of a cons-cell.
 
 Define `apa` to be the pair `(1 . 2)`
@@ -863,15 +863,15 @@ Define `apa` to be the pair `(1 . 2)`
 ```
 Now change the value in the car field of apa to 42.
 ```clj
-(set-car apa 42)
+(setcar apa 42)
 ```
 The `apa` pair is now `(42 . 2)`.
 
 ---
 
-### set-cdr
+### setcdr
 
-The `set-cdr` is a destructive update of the cdr field of a cons-cell.
+The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 Define `apa` to be the pair `(1 . 2)`
@@ -880,7 +880,7 @@ Define `apa` to be the pair `(1 . 2)`
 ```
 Now change the value in the cdr field of apa to 42.
 ```clj
-(set-cdr apa 42)
+(setcdr apa 42)
 ```
 The `apa` pair is now `(1 . 42)`.
 

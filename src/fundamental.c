@@ -1091,40 +1091,84 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     default: return lbm_enc_sym(SYM_TERROR);
     }
     break;
-    case SYM_SHL:
-      if (nargs == 2) {
-        result = shl(args[0],args[1]);
-      }
-      break;
-    case SYM_SHR:
-      if (nargs == 2) {
-        result = shr(args[0],args[1]);
-      }
-      break;
-    case SYM_BITWISE_AND:
-      if (nargs == 2) {
-        result = bitwise_and(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_OR:
-      if (nargs == 2) {
+  case SYM_TO_I:
+    if (nargs == 1) {
+      result = lbm_enc_i((lbm_int)lbm_dec_as_i64(args[0]));
+    }
+    break;
+  case SYM_TO_I32:
+    if (nargs == 1) {
+      result = lbm_enc_i32(lbm_dec_as_i32(args[0]));
+    }
+    break;
+  case SYM_TO_U:
+    if (nargs == 1) {
+      result = lbm_enc_u((lbm_uint)lbm_dec_as_u64(args[0]));
+    }
+    break;
+  case SYM_TO_U32:
+    if (nargs == 1) {
+      result = lbm_enc_u32(lbm_dec_as_u32(args[0]));
+    }
+    break;
+  case SYM_TO_FLOAT:
+    if (nargs == 1) {
+      result = lbm_enc_float(lbm_dec_as_float(args[0]));
+    }
+    break;
+  case SYM_TO_I64:
+    if (nargs == 1) {
+      result = lbm_enc_i64(lbm_dec_as_i64(args[0]));
+    }
+    break;
+  case SYM_TO_U64:
+    if (nargs == 1) {
+      result = lbm_enc_u64(lbm_dec_as_u64(args[0]));
+    }
+    break;
+  case SYM_TO_DOUBLE:
+    if (nargs == 1) {
+      result = lbm_enc_double(lbm_dec_as_double(args[0]));
+    }
+    break;
+  case SYM_TO_BYTE:
+    if (nargs == 1) {
+      result = lbm_enc_char(lbm_dec_as_char(args[0]));
+    }
+    break;
+  case SYM_SHL:
+    if (nargs == 2) {
+      result = shl(args[0],args[1]);
+    }
+    break;
+  case SYM_SHR:
+    if (nargs == 2) {
+      result = shr(args[0],args[1]);
+    }
+    break;
+  case SYM_BITWISE_AND:
+    if (nargs == 2) {
+      result = bitwise_and(args[0], args[1]);
+    }
+    break;
+  case SYM_BITWISE_OR:
+    if (nargs == 2) {
         result = bitwise_or(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_XOR:
-      if (nargs == 2) {
-        result = bitwise_xor(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_NOT:
-      if (nargs == 1) {
-        result = bitwise_not(args[0]);
-      }
-      break;
-    default:
-      result = lbm_enc_sym(SYM_EERROR);
-      break;
+    }
+    break;
+  case SYM_BITWISE_XOR:
+    if (nargs == 2) {
+      result = bitwise_xor(args[0], args[1]);
+    }
+    break;
+  case SYM_BITWISE_NOT:
+    if (nargs == 1) {
+      result = bitwise_not(args[0]);
+    }
+    break;
+  default:
+    result = lbm_enc_sym(SYM_EERROR);
+    break;
   }
-
   return result;
 }
