@@ -745,13 +745,6 @@ Get the absolute value of x.
 
 Apply throttle curve on value. accel (range -1 to 1) is the curve constant for acceleration (when value is greater than 0) and brake (range -1 to 1) is the curve constant for braking (when value is less than 0). mode (0, 1 or 2) is the throttle curve mode. Negative curve constants mean that the throttle will be gentler in the beginning and more aggressive with towards the end and positive curve constants mean the opposite. The modes are 0: Exponential, 1: Natural and 2: Polynomial. You can have a look at the throttle curves in VESC Tool for the PPM, ADC or VESC Remote app and experiment with the mode and curve constants to see a plot of the response.
 
-#### cast-i
-```clj
-(cast-i x)
-```
-
-Type cast the value x to type-i (i28).
-
 ### Bit Operations
 
 #### bits-enc-int
