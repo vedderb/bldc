@@ -59,6 +59,7 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
+	mpu9150_set_mag_enabled(set->use_magnetometer);
 	mpu9150_set_rate_hz(MIN(set->sample_rate_hz, 1000));
 	m_icm20948_state.rate_hz = MIN(set->sample_rate_hz, 1000);
 	m_bmi_state.rate_hz = set->sample_rate_hz;
