@@ -296,7 +296,7 @@ TEST_F(Saturate2dVector, ValsOnEdgeOfRange) {
    ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
    EXPECT_FLOAT_EQ(1, inputVal_x);
    EXPECT_FLOAT_EQ(1, inputVal_y);
-   /* EXPECT_EQ(false, ret); <-- Do not test, since this is on the edge and we don't need to know if it's explicitly inside or outside*/
+   EXPECT_EQ(false, ret);
 
    inputVal_x = .1;
    inputVal_y = .1;
@@ -304,7 +304,7 @@ TEST_F(Saturate2dVector, ValsOnEdgeOfRange) {
    ret = utils_saturate_vector_2d(&inputVal_x, &inputVal_y, inputVal_max);
    EXPECT_FLOAT_EQ(.1, inputVal_x);
    EXPECT_FLOAT_EQ(.1, inputVal_y);
-   /* EXPECT_EQ(false, ret); <-- Do not test, since this is on the edge and we don't need to know if it's explicitly inside or outside*/
+   EXPECT_EQ(false, ret);
 }
 
 
