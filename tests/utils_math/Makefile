@@ -7,7 +7,7 @@ EXTRAINCDIRS += $(TOP)/
 EXTRAINCDIRS += $(HERE)/
 
 
-CFLAGS += -O0
+CFLAGS += -O1
 
 # Set compiler-specific flags
 GCC_CXXFLAGS = -fsingle-precision-constant
