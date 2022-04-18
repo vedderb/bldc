@@ -830,6 +830,28 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       }
     }
     break;
+  case SYM_SET_IX: { // Destructive setix
+    if (nargs == 3) {
+      if (lbm_is_list(args[0]) &&
+          lbm_is_number(args[1])) {
+        lbm_value curr = args[0];
+        lbm_uint i = 0;
+        lbm_uint ix = lbm_dec_as_u32(args[1]);
+        result = lbm_enc_sym(SYM_NIL);
+        while (lbm_is_ptr(curr)) {
+          if (i == ix) {
+            lbm_set_car(curr, args[2]);
+            result = args[0];
+            break;
+          } else if (i > ix) {
+            break;
+          }
+          curr = lbm_cdr(curr);
+          i++;
+        }
+      }
+    }
+  }break;
   case SYM_CONS: {
     lbm_uint a = args[0];
     lbm_uint b = args[1];

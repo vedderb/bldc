@@ -158,6 +158,7 @@
 #define SYM_UINT_TO_SYMBOL      0x143
 #define SYM_SET_CAR             0x145
 #define SYM_SET_CDR             0x146
+#define SYM_SET_IX              0x147
 
 #define SYM_IS_FUNDAMENTAL      0x150
 

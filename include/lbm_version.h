@@ -30,7 +30,8 @@
 /*! \page changelog Changelog
 
 
-Apr 12 2022: Version 0.5.2
+Apr 15 2022: Version 0.5.2
+ - Array-literal syntax.
  - Restructure symbol evaluation for efficiency and readability.
  - Rewrite progn to update stack in place when possible.
  - Removed a bunch of convertion back and forth from C and LBM representation
