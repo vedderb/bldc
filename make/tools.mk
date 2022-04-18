@@ -209,7 +209,12 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) $(RM) -rf "$(GTEST_TMPDIR)"
 else
 	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(GTEST_FILE)" "$(GTEST_URL)"
-	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(GTEST_DIR) -LiteralPath "$(DL_DIR)/$(GTEST_FILE)"
+
+	$(V1) powershell -noprofile -command if (Test-Path $(DL_DIR)/$(basename $(GTEST_FILE))) {Remove-Item -Recurse $(DL_DIR)/$(basename $(GTEST_FILE))}
+	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath "$(DL_DIR)" -LiteralPath "$(DL_DIR)/$(GTEST_FILE)"
+
+	$(V1) powershell -noprofile -command Move-Item -Path "$(DL_DIR)/$(basename $(GTEST_FILE))/googletest" -Destination $(GTEST_DIR)
+	$(V1) powershell -noprofile -command if (Test-Path $(DL_DIR)/$(basename $(GTEST_FILE))) {Remove-Item -Recurse $(DL_DIR)/$(basename $(GTEST_FILE))}
 endif
 
 .PHONY: gtest_clean
