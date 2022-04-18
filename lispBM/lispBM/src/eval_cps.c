@@ -873,9 +873,12 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
       return false;
     }
     binding = lbm_cons(var, e);
+    if ( lbm_type_of(binding) == LBM_TYPE_SYMBOL ) {
+      *gc = true;
+      return false;
+    }
     *env = lbm_cons(binding, *env);
-    if (lbm_type_of(binding) == LBM_TYPE_SYMBOL ||
-        lbm_type_of(*env) == LBM_TYPE_SYMBOL) {
+    if ( lbm_type_of(*env) == LBM_TYPE_SYMBOL ) {
       *gc = true;
       return false;
     }
@@ -1437,6 +1440,10 @@ static inline void cont_resume(eval_context_t *ctx) {
 static inline void cont_expand_macro(eval_context_t *ctx) {
 
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 2);
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_TERROR));
+    return;
+  }
   lbm_value env = (lbm_value)sptr[0];
   lbm_value args = (lbm_value)sptr[1];
 
@@ -1981,8 +1988,9 @@ static inline void cont_match(eval_context_t *ctx) {
       ctx->curr_env = new_env;
       ctx->curr_exp = body;
     } else if (do_gc) {
-      gc(NIL,NIL);
+      gc(patterns,e);
       do_gc = false;
+      new_env = ctx->curr_env;
       match(pattern, e, &new_env, &do_gc);
       if (do_gc) {
         ctx_running->done = true;
@@ -2377,7 +2385,7 @@ static void evaluation_step(void){
     case OR:                cont_or(ctx); return;
     case BIND_TO_KEY_REST:  cont_bind_to_key_rest(ctx); return;
     case IF:                cont_if(ctx); return;
-    case MATCH:            cont_match(ctx); return;
+    case MATCH:             cont_match(ctx); return;
     case MATCH_MANY:        cont_match_many(ctx); return;
     case READ:              cont_read(ctx); return;
     case APPLICATION_START: cont_application_start(ctx); return;

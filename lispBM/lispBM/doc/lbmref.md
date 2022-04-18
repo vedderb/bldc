@@ -632,12 +632,12 @@ Example
 ```
 ---
 
-### set!
+### setvar
 
-The `set!` form is used to change the value of some variable in an environment.
-You can use `set!` to change the value of a global definition, a local definition
-or a variable defintion (`#var`). An application of the `set!` form looks like
-`(set! var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
+The `setvar` form is used to change the value of some variable in an environment.
+You can use `setvar` to change the value of a global definition, a local definition
+or a variable defintion (`#var`). An application of the `setvar` form looks like
+`(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
 rebinding the variable.
 
 Examples:
@@ -646,16 +646,16 @@ Examples:
 ```
 The variable `a` is now `10` in the global environment.
 ```clj
-(set! 'a 20)
+(setvar 'a 20)
 ```
-Now, the value of `a` will be 20. Note that `a` is quoted in the `set!` form application
+Now, the value of `a` will be 20. Note that `a` is quoted in the `setvar` form application
 while it is not in the `define` form. This is because `define` requires the first
-argument to be a symbol while the `set!` form requires the first argument to evaluate
+argument to be a symbol while the `setvar` form requires the first argument to evaluate
 into a symbol. 
 
 You can also set the value of a let bound variable.
 ```clj
-(let ((a 10)) (set! 'a 20))
+(let ((a 10)) (setvar 'a 20))
 ```
 
 And you can change the value of a `#var`.
@@ -886,6 +886,35 @@ The `apa` pair is now `(1 . 42)`.
 
 ## Arrays
 
+### array-create
+
+Create an array of a given type, default is an array of bytes. The 
+form of an `array-create` expression is either `(array-create type size-expr)`
+or `(array-create size-expr)`. If no type is specified, the default is 
+to create an array of bytes. 
+
+Currently the following types can be used for the type field:
+
+| Type | 
+| ---  | 
+| type-char | 
+| type-byte | 
+| type-i32  |
+| type-u32  | 
+| type-float |
+| type-i64 | 
+| type-u64 |
+| type-double | 
+
+---
+
+### array-size
+
+Returns the size of an array in number of elements. The form 
+of an `array-size` expression is `(array-size arr-expr)` where 
+arr-expr has to evaluate into an array. 
+
+---
 
 ### array-read
 
@@ -914,6 +943,40 @@ of an array.
 Example that turns array "hello" into "heflo"
 ```clj
 (array-write "hello" 2 \#f)
+```
+
+---
+
+### Array literal syntax
+
+Array literals can be created using the `[` and `]` syntax to enclose 
+values to initialize the array with. The `[` and `]` syntax is complete
+resolved in the parser and thus cannot contain arbitrary lisp terms. 
+the values listed between the `[` and the `]` must be literals! 
+
+The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
+or `[ val1 ... valN]`. If no type-qualifier is specified the default is 
+to create an array with byte values. 
+
+The currently valid type qualifiers are:
+
+| Type qualifier | 
+| ---            | 
+| type-byte      |
+| type-i32       | 
+| type-u32       | 
+| type-float     | 
+
+(The rest of the numerical types will be supported in the future) 
+
+Example that creates a byte array 
+```lisp
+[ 1 2 3 4 5 6 7 8 9 10 ]
+```
+
+Example that create an array of i32 values
+```lisp
+[ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 ---
@@ -1314,3 +1377,68 @@ A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
 
 ---
 
+## Type convertion functions 
+
+### to-byte
+
+Convert any numerical value to a byte. 
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-i
+
+Convert a value of any numerical type to an integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u 
+
+Convert a value of any numerical type to an unsigned integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i32
+
+Convert any numerical value to a 32bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u32 
+
+Convert any numerical value to a 32bit unsigned int.
+
+--- 
+
+### to-float
+
+Convert any numerical value to a single precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i64
+
+Convert any numerical value to a 64bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int.
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-double
+
+Convert any numerical value to a double precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+---
