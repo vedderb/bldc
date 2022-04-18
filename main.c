@@ -269,8 +269,9 @@ int main(void) {
 	// check whether we're rebooting from a watchdog reset
 	if (timeout_had_IWDG_reset(false)) {
 		// switch to uart app when recovering from an IWDG reset
-		// (but don't write it back to allow power cycling)
 		appconf->app_to_use = APP_UART;
+		// store the changed app permanently, forcing the user to re-selct the desired app
+		conf_general_store_app_configuration(appconf);
 	}
 
 	app_set_configuration(appconf);
