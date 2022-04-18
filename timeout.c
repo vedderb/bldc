@@ -172,12 +172,20 @@ void timeout_configure_IWDT(void) {
 	}
 }
 
-bool timeout_had_IWDG_reset(void) {
+/**
+ * Check if we've rebooted after a watchdog timer reset
+ *
+ * @param preserve_flag   set to true to allow subsequent check
+ *                        set to false to clear the flag after the check
+ */
+bool timeout_had_IWDG_reset(bool preserve_flag) {
 	// Check if the system has resumed from IWDG reset
 	if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET) {
 		/* IWDGRST flag set */
-		/* Clear reset flags */
-		RCC_ClearFlag();
+		if (preserve_flag == false) {
+			/* Clear reset flags */
+			RCC_ClearFlag();
+		}
 		return true;
 	}
 

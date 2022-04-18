@@ -524,7 +524,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	// Check if the system has resumed from IWDG reset and generate fault if it has. This can be used to
 	// tell if some frozen thread caused a watchdog reset. Note that this also will trigger after running
 	// the bootloader and after the reset command.
-	if (timeout_had_IWDG_reset()) {
+	if (timeout_had_IWDG_reset(true)) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
 	}
 

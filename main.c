@@ -265,6 +265,14 @@ int main(void) {
 	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
+
+	// check whether we're rebooting from a watchdog reset
+	if (timeout_had_IWDG_reset(false)) {
+		// switch to uart app when recovering from an IWDG reset
+		// (but don't write it back to allow power cycling)
+		appconf->app_to_use = APP_UART;
+	}
+
 	app_set_configuration(appconf);
 	app_uartcomm_start(UART_PORT_BUILTIN);
 	app_uartcomm_start(UART_PORT_EXTRA_HEADER);

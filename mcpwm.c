@@ -457,7 +457,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	chThdCreateStatic(rpm_thread_wa, sizeof(rpm_thread_wa), NORMALPRIO, rpm_thread, NULL);
 
 	// Check if the system has resumed from IWDG reset
-	if (timeout_had_IWDG_reset()) {
+	if (timeout_had_IWDG_reset(true)) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
 	}
 

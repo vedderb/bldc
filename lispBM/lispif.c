@@ -61,7 +61,7 @@ void lispif_init(void) {
 	// Do not attempt to start lisp after a watchdog reset, in case lisp
 	// was the cause of it.
 	// TODO: Anything else to check?
-	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
+	if (!timeout_had_IWDG_reset(true) && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
 		start_lisp(false, true);
 	}
 }
