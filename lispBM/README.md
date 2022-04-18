@@ -18,7 +18,8 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
 
-[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)
+[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)  
+[Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)
 
 ## VESC-Specific Commands and Extensions
 
