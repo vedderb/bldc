@@ -852,6 +852,40 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       }
     }
   }break;
+  case SYM_ASSOC: {
+    if (nargs == 2 && lbm_is_list(args[0])) {
+      lbm_value r = lbm_env_lookup(args[1], args[0]);
+      if (lbm_is_symbol(r) &&
+          lbm_dec_sym(r) == SYM_NOT_FOUND)
+        r = lbm_enc_sym(SYM_NIL);
+      else result = r;
+    }
+  } break;
+  case SYM_ACONS: {
+    if (nargs == 3) {
+      if (lbm_is_list(args[0])) {
+        lbm_value keyval = lbm_cons(args[1], args[2]);
+        lbm_value new_alist = lbm_cons(keyval, args[0]);
+
+        if (lbm_is_symbol(keyval) ||
+            lbm_is_symbol(new_alist) )
+          result = lbm_enc_sym(SYM_MERROR);
+        else
+          result = new_alist;
+      }
+    } else if (nargs == 2) {
+      result = lbm_cons(args[1], args[0]);
+    }
+  } break;
+  case SYM_SET_ASSOC: {
+    if (nargs == 3) {
+      result = lbm_env_set(args[0], args[1], args[2]);
+    } else if (nargs == 2 && lbm_is_list(args[1])) {
+      lbm_value x = lbm_car(args[1]);
+      lbm_value xs = lbm_cdr(args[1]);
+      result = lbm_env_set(args[0], x, xs);
+    }
+  } break;
   case SYM_CONS: {
     lbm_uint a = args[0];
     lbm_uint b = args[1];

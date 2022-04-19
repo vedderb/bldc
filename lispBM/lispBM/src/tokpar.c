@@ -644,7 +644,7 @@ void clean_whitespace(lbm_tokenizer_char_stream_t *str) {
 
 int tok_integer(lbm_tokenizer_char_stream_t *str, uint64_t *res, bool *negative) {
 
-  lbm_int acc = 0;
+  uint64_t acc = 0;
   unsigned int n = 0;
   bool valid_num = false;
 
@@ -661,7 +661,7 @@ int tok_integer(lbm_tokenizer_char_stream_t *str, uint64_t *res, bool *negative)
     while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
             (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
             (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
-      uint32_t val;
+      uint32_t val; /* values between 0 and 16 */
       if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
         val = 10 + (uint32_t)(peek(str,n) - 'a');
       } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
@@ -683,7 +683,7 @@ int tok_integer(lbm_tokenizer_char_stream_t *str, uint64_t *res, bool *negative)
   }
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
+    acc = (acc*10) + (uint32_t)(peek(str,n) - '0');
     n++;
   }
   if ((*negative && n > 1) ||
@@ -711,13 +711,13 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
   n = tok_symbol(str);
 
   if (n > 0) {
-    if (strncmp(sym_str, "type-i32", n) == 0) {
+    if (strncmp(sym_str, "type-i32", (uint32_t)n) == 0) {
       t = LBM_TYPE_I32;
-    } else if (strncmp(sym_str, "type-u32", n) == 0) {
+    } else if (strncmp(sym_str, "type-u32", (uint32_t)n) == 0) {
       t = LBM_TYPE_U32;
-    } else if (strncmp(sym_str, "type-float", n) == 0) {
+    } else if (strncmp(sym_str, "type-float", (uint32_t)n) == 0) {
       t = LBM_TYPE_FLOAT;
-    } else if (strncmp(sym_str, "type-byte", n) == 0) {
+    } else if (strncmp(sym_str, "type-byte", (uint32_t)n) == 0) {
       t = LBM_TYPE_BYTE;
       initial_size = sizeof(lbm_uint) * initial_size;
     }
@@ -768,7 +768,7 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
         break;
       case LBM_TYPE_I32:
         n = tok_integer(str, &i_val, &i_neg);
-        if (n) arr->data[ix] = (int32_t)(i_neg ? -i_val : i_val);
+        if (n) arr->data[ix] = (uint32_t)(i_neg ? -i_val : i_val);
         break;
       case LBM_TYPE_U32:
         n = tok_integer(str, &i_val, &i_neg);
@@ -950,7 +950,7 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
   }
 
   if (tok_byte(str, &u_val)) {
-    return lbm_enc_char(u_val);
+    return lbm_enc_char((char)u_val);
   }
 
   // Shortest form of integer match. Move to last in chain of numerical tokens.

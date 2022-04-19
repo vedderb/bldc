@@ -846,6 +846,13 @@ static inline bool lbm_is_match_binder(lbm_value exp) {
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
 }
 
+static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
+  return (lbm_is_list(exp) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
+          (lbm_dec_sym(lbm_car(exp)) == SYM_COMMA) &&
+          (lbm_type_of(lbm_car(lbm_cdr(exp))) == LBM_TYPE_SYMBOL));
+}
+
 static inline bool lbm_is_symbol(lbm_value exp) {
   return (lbm_type_of(exp) == LBM_TYPE_SYMBOL);
 }
