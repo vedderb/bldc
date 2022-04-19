@@ -903,17 +903,26 @@ Same as uart-read-bytes, but will return when the byte end is read.
 #### i2c-start
 
 ```clj
-(i2c-start optRate)
+(i2c-start optRate optPinSda optPinScl)
 ```
 
-Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first. optRate is an optional argument for the I2C bitrate. Example:
+Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first. optRate is an optional argument for the I2C bitrate. optPinSda and optPinScl are optional arguments for using different SDA and SCL pins. Example:
 
 ```clj
-; These are the bitrate options
-(i2c-start 'rate-100k) ; 100 kHz bitrate
-(i2c-start 'rate-200k) ; 200 kHz bitrate (default if no argument is passed)
-(i2c-start 'rate-400k) ; 400 kHz bitrate
-(i2c-start 'rate-700k) ; 700 kHz bitrate
+(i2c-start 'rate-400k) ; 400 kbps and the default SDA and SDC pins
+(i2c-start 'rate-200k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
+
+; Available bitrates
+'rate-100k
+'rate-200k
+'rate-400k
+'rate-700k
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
 ```
 
 #### i2c-tx-rx
