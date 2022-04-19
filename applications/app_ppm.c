@@ -340,7 +340,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			float angle;
-			if (config.ctrl_type = PPM_CTRL_TYPE_PID_POSITION_180){
+			if (config.ctrl_type == PPM_CTRL_TYPE_PID_POSITION_180) {
 				angle = (servo_val * 180); // -1 <> +1
 			} else {
 				angle = (servo_val * 360); // 0 <> +1
