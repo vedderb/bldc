@@ -183,7 +183,6 @@ static void timer_reinit(int f_zv) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 
-	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
 	TIM_TimeBaseStructure.TIM_Period = (SYSTEM_CORE_CLOCK / f_zv);
@@ -193,7 +192,6 @@ static void timer_reinit(int f_zv) {
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
 	TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
 
-	// Channel 1, 2 and 3 Configuration in PWM mode
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
@@ -259,8 +257,6 @@ static void timer_reinit(int f_zv) {
 	TIM_CCPreloadControl(TIM8, ENABLE);
 	TIM_ARRPreloadConfig(TIM8, ENABLE);
 
-	// ------------- Timer2 for ADC sampling ------------- //
-	// Time Base configuration
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -290,7 +286,6 @@ static void timer_reinit(int f_zv) {
 	// PWM outputs have to be enabled in order to trigger ADC on CCx
 	TIM_CtrlPWMOutputs(TIM2, ENABLE);
 
-	// TIM1 Master and TIM8 slave
 #if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
 	// See: https://www.cnblogs.com/shangdawei/p/4758988.html
 	TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Enable);
@@ -308,7 +303,6 @@ static void timer_reinit(int f_zv) {
 	TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Reset);
 #endif
 
-	// Enable TIM1 and TIM2
 #ifdef HW_HAS_DUAL_MOTORS
 	TIM8->CNT = TIM1->ARR;
 #else
@@ -324,11 +318,9 @@ static void timer_reinit(int f_zv) {
 	stop_pwm_hw((motor_all_state_t*)&m_motor_2);
 #endif
 
-	// Main Output Enable
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 	TIM_CtrlPWMOutputs(TIM8, ENABLE);
 
-	// Sample intervals
 	TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
 
 	// Enable CC2 interrupt, which will be fired in V0 and V7
@@ -347,7 +339,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 
 	m_init_done = false;
 
-	// Initialize variables
 	memset((void*)&m_motor_1, 0, sizeof(motor_all_state_t));
 	m_isr_motor = 0;
 
@@ -377,12 +368,10 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	TIM2->CNT = 0;
 	TIM8->CNT = 0;
 
-	// ADC
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;
 
-	// Clock
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2 | RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_ADC3, ENABLE);
 
@@ -391,7 +380,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 					  (stm32_dmaisr_t)mcpwm_foc_adc_int_handler,
 					  (void *)0);
 
-	// DMA for the ADC
 	DMA_InitStructure.DMA_Channel = DMA_Channel_0;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC_Value;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC->CDR;
@@ -421,7 +409,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 #endif
 
-	// ADC Common Init
 	// Note that the ADC is running at 42MHz, which is higher than the
 	// specified 36MHz in the data sheet, but it works.
 	ADC_CommonInitStructure.ADC_Mode = ADC_TripleMode_RegSimult;
@@ -430,7 +417,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
 
-	// Channel-specific settings
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
 	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
@@ -461,8 +447,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	stop_pwm_hw((motor_all_state_t*)&m_motor_2);
 #endif
 
-	// Sample intervals. For now they are fixed with voltage samples in the center of V7
-	// and current samples in the center of V0
 	TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
 
 	// Enable CC2 interrupt, which will be fired in V0 and V7
@@ -537,7 +521,9 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	pid_thd_stop = false;
 	chThdCreateStatic(pid_thread_wa, sizeof(pid_thread_wa), NORMALPRIO, pid_thread, NULL);
 
-	// Check if the system has resumed from IWDG reset
+	// Check if the system has resumed from IWDG reset and generate fault if it has. This can be used to
+	// tell if some frozen thread caused a watchdog reset. Note that this also will trigger after running
+	// the bootloader and after the reset command.
 	if (timeout_had_IWDG_reset()) {
 		mc_interface_fault_stop(FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET, false, false);
 	}
@@ -2662,13 +2648,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
-				if (duty_now > 0.0) {
-					if (motor_now->m_duty_i_term > 0.0) {
-						motor_now->m_duty_i_term = 0.0;
-					}
-				} else {
-					if (motor_now->m_duty_i_term < 0.0) {
-						motor_now->m_duty_i_term = 0.0;
+				// Reset the integrator in duty mode to not increase the duty if the load suddenly changes. In braking
+				// mode this would cause a discontinuity, so there we want to keep the value of the integrator.
+				if (motor_now->m_control_mode == CONTROL_MODE_DUTY) {
+					if (duty_now > 0.0) {
+						if (motor_now->m_duty_i_term > 0.0) {
+							motor_now->m_duty_i_term = 0.0;
+						}
+					} else {
+						if (motor_now->m_duty_i_term < 0.0) {
+							motor_now->m_duty_i_term = 0.0;
+						}
 					}
 				}
 
@@ -3202,7 +3192,13 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	float t_ramp = conf_now->foc_sl_openloop_time_ramp;
 	float t_const = conf_now->foc_sl_openloop_time;
 
-	float openloop_rpm_max = utils_map(fabsf(motor->m_motor_state.iq_filter),
+	float openloop_current = fabsf(motor->m_motor_state.iq_filter);
+	openloop_current += conf_now->foc_sl_openloop_boost_q;
+	if (conf_now->foc_sl_openloop_max_q > 0.0) {
+		utils_truncate_number(&openloop_current, 0.0, conf_now->foc_sl_openloop_boost_q);
+	}
+
+	float openloop_rpm_max = utils_map(openloop_current,
 			0.0, conf_now->l_current_max,
 			conf_now->foc_openloop_rpm_low * conf_now->foc_openloop_rpm,
 			conf_now->foc_openloop_rpm);

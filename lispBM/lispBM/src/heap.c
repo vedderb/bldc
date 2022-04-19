@@ -29,7 +29,7 @@
 #include "heap_vis.h"
 #endif
 
-static lbm_heap_state_t heap_state;
+lbm_heap_state_t lbm_heap_state;
 
 static lbm_value        NIL;
 static lbm_value        RECOVERED;
@@ -223,13 +223,6 @@ double lbm_dec_as_double(lbm_value a) {
   return 0;
 }
 
-// ref_cell: returns a reference to the cell addressed by bits 3 - 26
-//           Assumes user has checked that is_ptr was set
-static inline lbm_cons_t* ref_cell(lbm_value addr) {
-  return &heap_state.heap[lbm_dec_ptr(addr)];
-  //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
-}
-
 static inline lbm_value read_car(lbm_cons_t *cell) {
   return cell->car;
 }
@@ -280,21 +273,21 @@ static inline bool get_gc_flag(lbm_cons_t* cell) {
 static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
-  if (!heap_state.heap) return 0;
+  if (!lbm_heap_state.heap) return 0;
 
-  heap_state.freelist = lbm_enc_cons_ptr(0);
+  lbm_heap_state.freelist = lbm_enc_cons_ptr(0);
 
   lbm_cons_t *t;
 
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
-    t = ref_cell(lbm_enc_cons_ptr(i-1));
+    t = lbm_ref_cell(lbm_enc_cons_ptr(i-1));
     set_car_(t, RECOVERED);    // all cars in free list are "RECOVERED"
     set_cdr_(t, lbm_enc_cons_ptr(i));
   }
 
   // Replace the incorrect pointer at the last cell.
-  t = ref_cell(lbm_enc_cons_ptr(num_cells-1));
+  t = lbm_ref_cell(lbm_enc_cons_ptr(num_cells-1));
   set_cdr_(t, NIL);
 
   return 1;
@@ -302,39 +295,39 @@ static int generate_freelist(size_t num_cells) {
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
                             lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
-  heap_state.heap         = addr;
-  heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(lbm_cons_t));
-  heap_state.heap_size    = num_cells;
+  lbm_heap_state.heap         = addr;
+  lbm_heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(lbm_cons_t));
+  lbm_heap_state.heap_size    = num_cells;
 
-  lbm_stack_create(&heap_state.gc_stack, gc_stack_storage, gc_stack_size);
+  lbm_stack_create(&lbm_heap_state.gc_stack, gc_stack_storage, gc_stack_size);
 
-  heap_state.num_alloc           = 0;
-  heap_state.num_alloc_arrays    = 0;
-  heap_state.gc_num              = 0;
-  heap_state.gc_marked           = 0;
-  heap_state.gc_recovered        = 0;
-  heap_state.gc_recovered_arrays = 0;
-  heap_state.gc_least_free       = num_cells;
-  heap_state.gc_last_free        = num_cells;
+  lbm_heap_state.num_alloc           = 0;
+  lbm_heap_state.num_alloc_arrays    = 0;
+  lbm_heap_state.gc_num              = 0;
+  lbm_heap_state.gc_marked           = 0;
+  lbm_heap_state.gc_recovered        = 0;
+  lbm_heap_state.gc_recovered_arrays = 0;
+  lbm_heap_state.gc_least_free       = num_cells;
+  lbm_heap_state.gc_last_free        = num_cells;
 
-  heap_state.gc_time_acc = 0;
-  heap_state.gc_max_duration = 0;
-  heap_state.gc_min_duration = UINT32_MAX;
+  lbm_heap_state.gc_time_acc = 0;
+  lbm_heap_state.gc_max_duration = 0;
+  lbm_heap_state.gc_min_duration = UINT32_MAX;
 }
 
 void lbm_heap_new_gc_time(lbm_uint dur) {
-  heap_state.gc_time_acc += dur;
-  if (dur > heap_state.gc_max_duration)
-    heap_state.gc_max_duration = dur;
-  if (dur < heap_state.gc_min_duration)
-    heap_state.gc_min_duration = dur;
+  lbm_heap_state.gc_time_acc += dur;
+  if (dur > lbm_heap_state.gc_max_duration)
+    lbm_heap_state.gc_max_duration = dur;
+  if (dur < lbm_heap_state.gc_min_duration)
+    lbm_heap_state.gc_min_duration = dur;
 }
 
 void lbm_heap_new_freelist_length(void) {
-  lbm_uint l = heap_state.heap_size - heap_state.num_alloc;
-  heap_state.gc_last_free = l;
-  if (l < heap_state.gc_least_free)
-    heap_state.gc_least_free = l;
+  lbm_uint l = lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
+  lbm_heap_state.gc_last_free = l;
+  if (l < lbm_heap_state.gc_least_free)
+    lbm_heap_state.gc_least_free = l;
 }
 
 int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
@@ -354,17 +347,17 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 }
 
 lbm_uint lbm_heap_num_free(void) {
-  return heap_state.heap_size - heap_state.num_alloc;
+  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
 }
 
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 
   lbm_value res;
 
-  if (!lbm_is_ptr(heap_state.freelist)) {
+  if (!lbm_is_ptr(lbm_heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
-    if ((lbm_type_of(heap_state.freelist) == LBM_TYPE_SYMBOL) &&
-        (lbm_dec_sym(heap_state.freelist) == SYM_NIL)) {
+    if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
+        (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
       // all is as it should be (but no free cells)
       return lbm_enc_sym(SYM_MERROR);
     } else {
@@ -374,45 +367,45 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   }
 
   // it is a ptr replace freelist with cdr of freelist;
-  res = heap_state.freelist;
+  res = lbm_heap_state.freelist;
 
   if (lbm_type_of(res) != LBM_TYPE_CONS) {
     return lbm_enc_sym(SYM_FATAL_ERROR);
   }
 
-  heap_state.freelist = lbm_cdr(heap_state.freelist);
+  lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
 
-  heap_state.num_alloc++;
+  lbm_heap_state.num_alloc++;
 
   // set some ok initial values (nil . nil)
-  set_car_(ref_cell(res), NIL);
-  set_cdr_(ref_cell(res), NIL);
+  set_car_(lbm_ref_cell(res), NIL);
+  set_cdr_(lbm_ref_cell(res), NIL);
 
   // clear GC bit on allocated cell
-  clr_gc_mark(ref_cell(res));
+  clr_gc_mark(lbm_ref_cell(res));
 
   res = res | ptr_type;
   return res;
 }
 
 lbm_uint lbm_heap_num_allocated(void) {
-  return heap_state.num_alloc;
+  return lbm_heap_state.num_alloc;
 }
 lbm_uint lbm_heap_size(void) {
-  return heap_state.heap_size;
+  return lbm_heap_state.heap_size;
 }
 
 lbm_uint lbm_heap_size_bytes(void) {
-  return heap_state.heap_bytes;
+  return lbm_heap_state.heap_bytes;
 }
 
 void lbm_get_heap_state(lbm_heap_state_t *res) {
-  *res = heap_state;
+  *res = lbm_heap_state;
 }
 
 int lbm_gc_mark_phase(lbm_value env) {
 
-  lbm_stack_t *s = &heap_state.gc_stack;
+  lbm_stack_t *s = &lbm_heap_state.gc_stack;
 
   if (!lbm_is_ptr(env)) {
       return 1; // Nothing to mark here
@@ -430,22 +423,22 @@ int lbm_gc_mark_phase(lbm_value env) {
     }
 
     // Circular object on heap, or visited..
-    if (get_gc_mark(ref_cell(curr))) {
+    if (get_gc_mark(lbm_ref_cell(curr))) {
       continue;
     }
 
     // There is at least a pointer to one cell here. Mark it and add children to stack
-    heap_state.gc_marked ++;
+    lbm_heap_state.gc_marked ++;
 
-    set_gc_mark(ref_cell(curr));
+    set_gc_mark(lbm_ref_cell(curr));
 
     lbm_value t_ptr = lbm_type_of(curr);
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push(s, lbm_cdr(curr));
-    res &= lbm_push(s, lbm_car(curr));
+    res &= lbm_push(s, lbm_ref_cell(curr)->cdr);
+    res &= lbm_push(s, lbm_ref_cell(curr)->car);
 
     if (!res) break;
   }
@@ -459,7 +452,7 @@ int lbm_gc_mark_freelist() {
 
   lbm_value curr;
   lbm_cons_t *t;
-  lbm_value fl = heap_state.freelist;
+  lbm_value fl = lbm_heap_state.freelist;
 
   if (!lbm_is_ptr(fl)) {
     if (lbm_type_of(fl) == LBM_TYPE_SYMBOL &&
@@ -472,11 +465,11 @@ int lbm_gc_mark_freelist() {
 
   curr = fl;
   while (lbm_is_ptr(curr)){
-    t = ref_cell(curr);
+    t = lbm_ref_cell(curr);
     set_gc_mark(t);
-    curr = lbm_cdr(curr);
+    curr = t->cdr;
 
-    heap_state.gc_marked ++;
+    lbm_heap_state.gc_marked ++;
   }
 
   return 1;
@@ -492,7 +485,7 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
-          pt_v < heap_state.heap_size) {
+          pt_v < lbm_heap_state.heap_size) {
         lbm_gc_mark_phase(aux_data[i]);
       }
     }
@@ -505,9 +498,9 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 int lbm_gc_sweep_phase(void) {
 
   unsigned int i = 0;
-  lbm_cons_t *heap = (lbm_cons_t *)heap_state.heap;
+  lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
-  for (i = 0; i < heap_state.heap_size; i ++) {
+  for (i = 0; i < lbm_heap_state.heap_size; i ++) {
     if ( !get_gc_mark(&heap[i])){
 
       // Check if this cell is a pointer to an array
@@ -525,7 +518,7 @@ int lbm_gc_sweep_phase(void) {
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
             lbm_memory_free((lbm_uint *)arr->data);
-            heap_state.gc_recovered_arrays++;
+            lbm_heap_state.gc_recovered_arrays++;
           }
           lbm_memory_free((lbm_uint *)arr);
         } break;
@@ -545,10 +538,10 @@ int lbm_gc_sweep_phase(void) {
 
       // Clear the "freed" cell.
       heap[i].car = RECOVERED;
-      heap[i].cdr = heap_state.freelist;
-      heap_state.freelist = addr;
-      heap_state.num_alloc --;
-      heap_state.gc_recovered ++;
+      heap[i].cdr = lbm_heap_state.freelist;
+      lbm_heap_state.freelist = addr;
+      lbm_heap_state.num_alloc --;
+      lbm_heap_state.gc_recovered ++;
     }
     clr_gc_mark(&heap[i]);
   }
@@ -556,17 +549,17 @@ int lbm_gc_sweep_phase(void) {
 }
 
 void lbm_gc_state_inc(void) {
-  heap_state.gc_num ++;
-  heap_state.gc_recovered = 0;
-  heap_state.gc_marked = 0;
+  lbm_heap_state.gc_num ++;
+  lbm_heap_state.gc_recovered = 0;
+  lbm_heap_state.gc_marked = 0;
 }
 
 // construct, alter and break apart
 lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
   lbm_value addr = lbm_heap_allocate_cell(LBM_TYPE_CONS);
   if ( lbm_is_ptr(addr)) {
-    set_car_(ref_cell(addr), car);
-    set_cdr_(ref_cell(addr), cdr);
+    set_car_(lbm_ref_cell(addr), car);
+    set_cdr_(lbm_ref_cell(addr), cdr);
   }
 
   // heap_allocate_cell returns MERROR if out of heap.
@@ -581,8 +574,26 @@ lbm_value lbm_car(lbm_value c){
   }
 
   if (lbm_is_ptr(c) ){
-    lbm_cons_t *cell = ref_cell(c);
+    lbm_cons_t *cell = lbm_ref_cell(c);
     return read_car(cell);
+  }
+  return lbm_enc_sym(SYM_TERROR);
+}
+
+lbm_value lbm_cadr(lbm_value c) {
+
+  lbm_value tmp;
+
+  if (lbm_is_ptr(c)) {
+    tmp = lbm_ref_cell(c)->cdr;
+
+    if (lbm_is_ptr(tmp)) {
+      return lbm_ref_cell(tmp)->car;
+    } else if (lbm_is_symbol(tmp) && lbm_dec_sym(tmp) == SYM_NIL) {
+      return tmp;
+    }
+  } else if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return c;
   }
   return lbm_enc_sym(SYM_TERROR);
 }
@@ -595,7 +606,7 @@ lbm_value lbm_cdr(lbm_value c){
   }
 
   if (lbm_is_ptr(c)) {
-    lbm_cons_t *cell = ref_cell(c);
+    lbm_cons_t *cell = lbm_ref_cell(c);
     return read_cdr(cell);
   }
   return lbm_enc_sym(SYM_TERROR);
@@ -604,7 +615,7 @@ lbm_value lbm_cdr(lbm_value c){
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
   if (lbm_type_of(c) == LBM_TYPE_CONS) {
-    lbm_cons_t *cell = ref_cell(c);
+    lbm_cons_t *cell = lbm_ref_cell(c);
     set_car_(cell,v);
     r = 1;
   }
@@ -614,7 +625,7 @@ int lbm_set_car(lbm_value c, lbm_value v) {
 int lbm_set_cdr(lbm_value c, lbm_value v) {
   int r = 0;
   if (lbm_type_of(c) == LBM_TYPE_CONS){
-    lbm_cons_t *cell = ref_cell(c);
+    lbm_cons_t *cell = lbm_ref_cell(c);
     set_cdr_(cell,v);
     r = 1;
   }
@@ -755,9 +766,10 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   }
 
   array->data = (lbm_uint*)lbm_memory_allocate(allocate_size);
+  memset(array->data, 0, allocate_size * sizeof(lbm_uint));
 
   if (array->data == NULL) {
-    lbm_memory_free(array->data);
+    lbm_memory_free((lbm_uint*)array);
     *res = lbm_enc_sym(SYM_MERROR);
     return 0;
   }
@@ -772,7 +784,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
 
   *res = cell;
 
-  heap_state.num_alloc_arrays ++;
+  lbm_heap_state.num_alloc_arrays ++;
 
   return 1;
 }

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ special_sym const special_symbols[] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"set!"         , SYM_SETVAR},
+  {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
@@ -145,6 +145,7 @@ special_sym const special_symbols[] =  {
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
   {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-size"     , SYM_ARRAY_SIZE},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},
@@ -152,6 +153,7 @@ special_sym const special_symbols[] =  {
   {"u2sym"          , SYM_UINT_TO_SYMBOL},
   {"setcar"         , SYM_SET_CAR},
   {"setcdr"         , SYM_SET_CDR},
+  {"setix"          , SYM_SET_IX},
 
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},
@@ -159,6 +161,16 @@ special_sym const special_symbols[] =  {
   {"bitwise-or"     , SYM_BITWISE_OR},
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
+
+  {"to-i"           , SYM_TO_I},
+  {"to-i32"         , SYM_TO_I32},
+  {"to-u"           , SYM_TO_U},
+  {"to-u32"         , SYM_TO_U32},
+  {"to-float"       , SYM_TO_FLOAT},
+  {"to-i64"         , SYM_TO_I64},
+  {"to-u64"         , SYM_TO_U64},
+  {"to-double"      , SYM_TO_DOUBLE},
+  {"to-byte"        , SYM_TO_BYTE},
 
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},

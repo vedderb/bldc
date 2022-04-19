@@ -359,7 +359,6 @@ static int compare(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-
 void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
   (void) nargs;
   if (nargs < 2) return;
@@ -405,7 +404,7 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
       switch(array->elt_type) {
       case LBM_TYPE_CHAR:
-        curr = lbm_enc_char((char)data[i]);
+        curr = lbm_enc_char(((char*)data)[i]);
         break;
       case LBM_TYPE_U:
         curr = lbm_enc_u((uint32_t)data[i]);
@@ -609,6 +608,18 @@ void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
       }
     }
   }
+}
+
+void array_size(lbm_value *args, lbm_uint nargs, lbm_value *result) {
+  *result = lbm_enc_sym(SYM_EERROR);
+  if (nargs != 1) return;
+
+  if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
+
+    *result =  lbm_enc_u(array->size);
+  }
+  return;
 }
 
 
@@ -819,6 +830,28 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       }
     }
     break;
+  case SYM_SET_IX: { // Destructive setix
+    if (nargs == 3) {
+      if (lbm_is_list(args[0]) &&
+          lbm_is_number(args[1])) {
+        lbm_value curr = args[0];
+        lbm_uint i = 0;
+        lbm_uint ix = lbm_dec_as_u32(args[1]);
+        result = lbm_enc_sym(SYM_NIL);
+        while (lbm_is_ptr(curr)) {
+          if (i == ix) {
+            lbm_set_car(curr, args[2]);
+            result = args[0];
+            break;
+          } else if (i > ix) {
+            break;
+          }
+          curr = lbm_cdr(curr);
+          i++;
+        }
+      }
+    }
+  }break;
   case SYM_CONS: {
     lbm_uint a = args[0];
     lbm_uint b = args[1];
@@ -1058,6 +1091,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ARRAY_CREATE:
     array_create(args, nargs, &result);
     break;
+  case SYM_ARRAY_SIZE:
+    array_size(args, nargs, &result);
+    break;
   case SYM_TYPE_OF:
     if (nargs != 1) return lbm_enc_sym(SYM_NIL);
     lbm_value val = args[0];
@@ -1077,40 +1113,84 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     default: return lbm_enc_sym(SYM_TERROR);
     }
     break;
-    case SYM_SHL:
-      if (nargs == 2) {
-        result = shl(args[0],args[1]);
-      }
-      break;
-    case SYM_SHR:
-      if (nargs == 2) {
-        result = shr(args[0],args[1]);
-      }
-      break;
-    case SYM_BITWISE_AND:
-      if (nargs == 2) {
-        result = bitwise_and(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_OR:
-      if (nargs == 2) {
+  case SYM_TO_I:
+    if (nargs == 1) {
+      result = lbm_enc_i((lbm_int)lbm_dec_as_i64(args[0]));
+    }
+    break;
+  case SYM_TO_I32:
+    if (nargs == 1) {
+      result = lbm_enc_i32(lbm_dec_as_i32(args[0]));
+    }
+    break;
+  case SYM_TO_U:
+    if (nargs == 1) {
+      result = lbm_enc_u((lbm_uint)lbm_dec_as_u64(args[0]));
+    }
+    break;
+  case SYM_TO_U32:
+    if (nargs == 1) {
+      result = lbm_enc_u32(lbm_dec_as_u32(args[0]));
+    }
+    break;
+  case SYM_TO_FLOAT:
+    if (nargs == 1) {
+      result = lbm_enc_float(lbm_dec_as_float(args[0]));
+    }
+    break;
+  case SYM_TO_I64:
+    if (nargs == 1) {
+      result = lbm_enc_i64(lbm_dec_as_i64(args[0]));
+    }
+    break;
+  case SYM_TO_U64:
+    if (nargs == 1) {
+      result = lbm_enc_u64(lbm_dec_as_u64(args[0]));
+    }
+    break;
+  case SYM_TO_DOUBLE:
+    if (nargs == 1) {
+      result = lbm_enc_double(lbm_dec_as_double(args[0]));
+    }
+    break;
+  case SYM_TO_BYTE:
+    if (nargs == 1) {
+      result = lbm_enc_char(lbm_dec_as_char(args[0]));
+    }
+    break;
+  case SYM_SHL:
+    if (nargs == 2) {
+      result = shl(args[0],args[1]);
+    }
+    break;
+  case SYM_SHR:
+    if (nargs == 2) {
+      result = shr(args[0],args[1]);
+    }
+    break;
+  case SYM_BITWISE_AND:
+    if (nargs == 2) {
+      result = bitwise_and(args[0], args[1]);
+    }
+    break;
+  case SYM_BITWISE_OR:
+    if (nargs == 2) {
         result = bitwise_or(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_XOR:
-      if (nargs == 2) {
-        result = bitwise_xor(args[0], args[1]);
-      }
-      break;
-    case SYM_BITWISE_NOT:
-      if (nargs == 1) {
-        result = bitwise_not(args[0]);
-      }
-      break;
-    default:
-      result = lbm_enc_sym(SYM_EERROR);
-      break;
+    }
+    break;
+  case SYM_BITWISE_XOR:
+    if (nargs == 2) {
+      result = bitwise_xor(args[0], args[1]);
+    }
+    break;
+  case SYM_BITWISE_NOT:
+    if (nargs == 1) {
+      result = bitwise_not(args[0]);
+    }
+    break;
+  default:
+    result = lbm_enc_sym(SYM_EERROR);
+    break;
   }
-
   return result;
 }

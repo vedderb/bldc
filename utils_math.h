@@ -22,27 +22,18 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
+
 #include "datatypes.h"
 
-void utils_step_towards(float *value, float goal, float step);
-float utils_calc_ratio(float low, float high, float val);
-void utils_norm_angle(float *angle);
 float utils_map_angle(float angle, float min, float max);
-void utils_norm_angle_rad(float *angle);
-bool utils_truncate_number(float *number, float min, float max);
-bool utils_truncate_number_int(int *number, int min, int max);
-bool utils_truncate_number_abs(float *number, float max);
-float utils_map(float x, float in_min, float in_max, float out_min, float out_max);
-int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max);
 void utils_deadband(float *value, float tres, float max);
 float utils_angle_difference(float angle1, float angle2);
 float utils_angle_difference_rad(float angle1, float angle2);
 float utils_avg_angles_rad_fast(float *angles, float *weights, int angles_num);
 float utils_middle_of_3(float a, float b, float c);
 int utils_middle_of_3_int(int a, int b, int c);
-float utils_fast_inv_sqrt(float x);
 float utils_fast_atan2(float y, float x);
-bool utils_saturate_vector_2d(float *x, float *y, float max);
 void utils_fast_sincos(float angle, float *sin, float *cos);
 void utils_fast_sincos_better(float angle, float *sin, float *cos);
 float utils_min_abs(float va, float vb);
@@ -131,5 +122,114 @@ extern const float utils_tab_sin_32_1[];
 extern const float utils_tab_sin_32_2[];
 extern const float utils_tab_cos_32_1[];
 extern const float utils_tab_cos_32_2[];
+
+// Inline functions
+inline void utils_step_towards(float *value, float goal, float step) {
+    if (*value < goal) {
+        if ((*value + step) < goal) {
+            *value += step;
+        } else {
+            *value = goal;
+        }
+    } else if (*value > goal) {
+        if ((*value - step) > goal) {
+            *value -= step;
+        } else {
+            *value = goal;
+        }
+    }
+}
+
+/**
+ * Make sure that 0 <= angle < 360
+ *
+ * @param angle
+ * The angle to normalize.
+ */
+inline void utils_norm_angle(float *angle) {
+	*angle = fmodf(*angle, 360.0);
+
+	if (*angle < 0.0) {
+		*angle += 360.0;
+	}
+}
+
+/**
+ * Make sure that -pi <= angle < pi,
+ *
+ * @param angle
+ * The angle to normalize in radians.
+ * WARNING: Don't use too large angles.
+ */
+inline void utils_norm_angle_rad(float *angle) {
+	while (*angle < -M_PI) { *angle += 2.0 * M_PI; }
+	while (*angle >=  M_PI) { *angle -= 2.0 * M_PI; }
+}
+
+inline void utils_truncate_number(float *number, float min, float max) {
+	if (*number > max) {
+		*number = max;
+	} else if (*number < min) {
+		*number = min;
+	}
+}
+
+inline void utils_truncate_number_int(int *number, int min, int max) {
+	if (*number > max) {
+		*number = max;
+	} else if (*number < min) {
+		*number = min;
+	}
+}
+
+inline void utils_truncate_number_abs(float *number, float max) {
+	if (*number > max) {
+		*number = max;
+	} else if (*number < -max) {
+		*number = -max;
+	}
+}
+
+inline float utils_map(float x, float in_min, float in_max, float out_min, float out_max) {
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+inline int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max) {
+	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+/**
+ * Truncate the magnitude of a vector.
+ *
+ * @param x
+ * The first component.
+ *
+ * @param y
+ * The second component.
+ *
+ * @param max
+ * The maximum magnitude.
+ *
+ * @return
+ * True if saturation happened, false otherwise
+ */
+inline bool utils_saturate_vector_2d(float *x, float *y, float max) {
+	bool retval = false;
+	float mag = NORM2_f(*x, *y);
+	max = fabsf(max);
+
+	if (mag < 1e-10) {
+		mag = 1e-10;
+	}
+
+	if (mag > max) {
+		const float f = max / mag;
+		*x *= f;
+		*y *= f;
+		retval = true;
+	}
+
+	return retval;
+}
 
 #endif  /* UTILS_MATH_H_ */

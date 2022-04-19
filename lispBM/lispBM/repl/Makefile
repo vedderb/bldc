@@ -17,19 +17,24 @@ ifdef HEAP_VIS
 endif
 
 all: CCFLAGS += -m32
-all: repl $(LISPBM_DEPS)
+all: repl 
 
 all64: 	CCFLAGS += -DLBM64
-all64: repl $(LISPBM_DEPS)
+all64: repl 
+
+
+install: repl
+	mkdir -p ~/.local/bin
+	cp repl ~/.local/bin/lbm
 
 
 debug: CCFLAGS += -g
 debug: repl
 
-repl: repl.c $(LISPBM_SRC)
+repl: repl.c $(LISPBM_SRC) $(LISPBM_DEPS)
 	gcc $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) repl.c -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread
 
-pirepl: repl.c $(LISPBM_SRC)
+pirepl: repl.c $(LISPBM_SRC) $(LISPBM_DEPS)
 	gcc $(PICCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) repl.c -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread
 
 clean:

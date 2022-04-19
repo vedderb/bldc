@@ -315,11 +315,13 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
               r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             case LBM_TYPE_U32:
-              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              r = snprintf(buf+offset, len - offset, "%"PRIu32"%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
-            case LBM_TYPE_FLOAT:
-              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(double)(lbm_float)array->data[i], i == array->size - 1 ? "" : ", ");
-              break;
+            case LBM_TYPE_FLOAT: {
+              float f_val;
+              memcpy(&f_val, &array->data[i], sizeof(float));
+              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(double)f_val, i == array->size - 1 ? "" : ", ");
+            } break;
             default:
               break;
             }

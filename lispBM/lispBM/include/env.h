@@ -52,6 +52,13 @@ extern lbm_value lbm_env_copy_shallow(lbm_value env);
  * \param env The environment to search for the key.
  * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
  */
+extern bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
+/** Lookup a value in from the global environment.
+ *
+ * \param sym The key to look for in the environment
+ * \param env The environment to search for the key.
+ * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
+ */
 extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
 /** Create a new binding on the environment or replace an old binding.
  *

@@ -425,6 +425,12 @@ extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
  * is not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
 extern lbm_value lbm_car(lbm_value cons);
+/** Accesses the car of the cdr of an cons cell
+ * 
+ * \param c Value
+ * \return the cdr field or type error.
+ */
+extern lbm_value lbm_cadr(lbm_value c);
 /** Accesses the cdr field of an lbm_cons_t.
  *
  * \param cons Value
@@ -872,5 +878,13 @@ static inline bool lbm_is_error(lbm_value v){
   return false;
 }
 
+extern lbm_heap_state_t lbm_heap_state;
+
+// ref_cell: returns a reference to the cell addressed by bits 3 - 26
+//           Assumes user has checked that is_ptr was set
+static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
+  return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
+  //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
+}
 
 #endif

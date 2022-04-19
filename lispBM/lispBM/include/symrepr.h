@@ -150,6 +150,7 @@
 #define SYM_ARRAY_READ          0x130
 #define SYM_ARRAY_WRITE         0x131
 #define SYM_ARRAY_CREATE        0x132
+#define SYM_ARRAY_SIZE          0x133
 
 #define SYM_SYMBOL_TO_STRING    0x140
 #define SYM_STRING_TO_SYMBOL    0x141
@@ -157,6 +158,7 @@
 #define SYM_UINT_TO_SYMBOL      0x143
 #define SYM_SET_CAR             0x145
 #define SYM_SET_CDR             0x146
+#define SYM_SET_IX              0x147
 
 #define SYM_IS_FUNDAMENTAL      0x150
 
@@ -165,6 +167,16 @@
 #define SYM_ENCODE_U32          0x153
 #define SYM_ENCODE_FLOAT        0x154
 #define SYM_DECODE              0x155
+
+#define SYM_TO_I                0x160
+#define SYM_TO_I32              0x161
+#define SYM_TO_U                0x162
+#define SYM_TO_U32              0x163
+#define SYM_TO_FLOAT            0x164
+#define SYM_TO_I64              0x165
+#define SYM_TO_U64              0x166
+#define SYM_TO_DOUBLE           0x167
+#define SYM_TO_BYTE             0x168
 
 //#define SYM_STREAM_GET          0x160
 //#define SYM_STREAM_MORE         0x161

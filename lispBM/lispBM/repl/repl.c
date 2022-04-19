@@ -81,7 +81,7 @@ void restore_terminal(void) {
 
 
 int inputline(char *buffer, unsigned int size) {
-  int n = 0;
+  unsigned int n = 0;
   int c;
   for (n = 0; n < size - 1; n++) {
 
@@ -175,23 +175,70 @@ void sleep_callback(uint32_t us) {
 
 bool dyn_load(const char *str, const char **code) {
 
-  printf("dyn_load: %s\n", str);
-
   bool res = false;
-  if (strncmp(str, "defun", 5) == 0) {
+  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  } else if (strncmp(str, "f", 1) == 0) {
-    *code = "(defun f (x) (+ x 1))";
+  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
+    *code = "(define reverse (lambda (xs)"
+            "(let ((revacc (lambda (acc xs)"
+	    "(if (eq nil xs) acc"
+	    "(revacc (cons (car xs) acc) (cdr xs))))))"
+            "(revacc nil xs))))";
     res = true;
-  } else if (strncmp(str, "g", 1) == 0) {
-    *code = "(defun g (x) (+ 100 (f x)))";
+  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+    *code = "(define iota (lambda (n)"
+            "(let ((iacc (lambda (acc i)"
+            "(if (< i 0) acc"
+            "(iacc (cons i acc) (- i 1))))))"
+            "(iacc nil n))))";
     res = true;
-  } else if (strncmp(str, "h", 1) == 0) {
-    *code = "(defun h (x) (cons (g x) nil))";
+  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
+    *code = "(define length (lambda (xs)"
+	    "(let ((len (lambda (l xs)"
+	    "(if (eq xs nil) l"
+	    "(len (+ l 1) (cdr xs))))))"
+            "(len 0 xs))))";
     res = true;
-  } else if (strncmp(str, "i", 1) == 0) {
-    *code = "(defun i (x) (if (= x 0) 0 (+ (i (- x 1)) x)))";
+  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
+    *code = "(define take (lambda (n xs)"
+	    "(let ((take-tail (lambda (acc n xs)"
+	    "(if (= n 0) acc"
+	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(reverse (take-tail nil n xs)))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
+    *code = "(define drop (lambda (n xs)"
+	    "(if (= n 0) xs"
+	    "(if (eq xs nil) nil"
+            "(drop (- n 1) (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
+    *code = "(define zip (lambda (xs ys)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq ys nil) nil"
+            "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
+    *code = "(define map (lambda (f xs)"
+	    "(if (eq xs nil) nil"
+            "(cons (f (car xs)) (map f (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
+    *code = "(define lookup (lambda (x xs)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq (car (car xs)) x)"
+	    "(car (cdr (car xs)))"
+            "(lookup x (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
+    *code = "(define foldr (lambda (f i xs)"
+	    "(if (eq xs nil) i"
+            "(f (car xs) (foldr f i (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
+    *code = "(define foldl (lambda (f i xs)"
+            "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
     res = true;
   }
   return res;
@@ -205,7 +252,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   char output[1024];
 
-  for (int i = 0; i < argn; i ++) {
+  for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
@@ -544,24 +591,6 @@ int main(int argc, char **argv) {
   
       
       lbm_add_extension("print", ext_print);
-    } else if (strncmp(str, ":prelude", 8) == 0) {
-
-      lbm_pause_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-
-      prelude_load(&string_tok_state,
-                   &string_tok);
-
-
-      lbm_load_and_eval_program(&string_tok);
-
-      lbm_continue_eval();
-      /* Something better is needed.
-         this sleep ís to ensure the string is alive until parsing
-         is done */
-      sleep_callback(10000);
     } else if (strncmp(str, ":send", 5) == 0) {
 
       int id;

@@ -22,7 +22,6 @@ You can add up multiple values.
 ```
 The example above results in the value 55.
 
-
 ---
 
 ### -
@@ -450,9 +449,13 @@ Example that evaluates to 3.
 
 Evaluate a list of data where each element represents an expression.
 
-This function is quite awkward as it replaces the program in the running
-context with the program provided in the list. Avoid using this
-function if possible.
+This function interacts with the continuation passing style
+of the evaluator in a slightly non-intuitive way and should
+be avoided in programs. It is used internally by the c-interoperation
+code to start evaluation of newly loaded program.
+
+If you want to evaluate a program you can always use `eval` and
+put the program you wish to evaluate in a `progn` form.
 
 ---
 
@@ -469,47 +472,47 @@ Example that evaluates to `type-float`.
 
 ---
 
-### sym-to-str
+### sym2str
 
-The `sym-to-str` function converts a symbol to its string representation.
+The `sym2str` function converts a symbol to its string representation.
 The resulting string is a copy of the original so you cannot destroy built in symbols using
 this function.
 
 
 Example that returns the string `"lambda"`.
 ```clj
-(sym-to-str 'lambda)
+(sym2str 'lambda)
 ```
 
 ---
 
-### str-to-sym
+### str2sym
 
-The `str-to-sym` function converts a string to a symbol.
+The `str2sym` function converts a string to a symbol.
 
 Example that returns the symbol `hello`.
 ```clj
-(str-to-sym "hello")
+(str2sym "hello")
 ```
 
 ---
 
-### sym-to-u
+### sym2u
 
-The `sym-to-u` function returns the numerical value used by the runtime system
+The `sym2u` function returns the numerical value used by the runtime system
 for a symbol.
 
 
 Example that evaluates to 4.
 ```clj
-(sym-to-u 'lambda)
+(sym2u 'lambda)
 ```
 
 ---
 
-### u-to-sym
+### u2sym
 
-The `u-to-sym` function returns the symbol associated with the
+The `u2sym` function returns the symbol associated with the
 numerical value provided. This symbol may be undefined in which case you
 get as result a unnamed symbol.
 
@@ -629,12 +632,12 @@ Example
 ```
 ---
 
-### set!
+### setvar
 
-The `set!` form is used to change the value of some variable in an environment.
-You can use `set!` to change the value of a global definition, a local definition
-or a variable defintion (`#var`). An application of the `set!` form looks like
-`(set! var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
+The `setvar` form is used to change the value of some variable in an environment.
+You can use `setvar` to change the value of a global definition, a local definition
+or a variable defintion (`#var`). An application of the `setvar` form looks like
+`(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
 rebinding the variable.
 
 Examples:
@@ -643,16 +646,16 @@ Examples:
 ```
 The variable `a` is now `10` in the global environment.
 ```clj
-(set! 'a 20)
+(setvar 'a 20)
 ```
-Now, the value of `a` will be 20. Note that `a` is quoted in the `set!` form application
+Now, the value of `a` will be 20. Note that `a` is quoted in the `setvar` form application
 while it is not in the `define` form. This is because `define` requires the first
-argument to be a symbol while the `set!` form requires the first argument to evaluate
+argument to be a symbol while the `setvar` form requires the first argument to evaluate
 into a symbol. 
 
 You can also set the value of a let bound variable.
 ```clj
-(let ((a 10)) (set! 'a 20))
+(let ((a 10)) (setvar 'a 20))
 ```
 
 And you can change the value of a `#var`.
@@ -849,9 +852,9 @@ Example that evaluates to 2.
 
 ---
 
-### set-car
+### setcar
 
-The `set-car` is a destructive update of the car field
+The `setcar` is a destructive update of the car field
 of a cons-cell.
 
 Define `apa` to be the pair `(1 . 2)`
@@ -860,15 +863,15 @@ Define `apa` to be the pair `(1 . 2)`
 ```
 Now change the value in the car field of apa to 42.
 ```clj
-(set-car apa 42)
+(setcar apa 42)
 ```
 The `apa` pair is now `(42 . 2)`.
 
 ---
 
-### set-cdr
+### setcdr
 
-The `set-cdr` is a destructive update of the cdr field of a cons-cell.
+The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 Define `apa` to be the pair `(1 . 2)`
@@ -877,12 +880,41 @@ Define `apa` to be the pair `(1 . 2)`
 ```
 Now change the value in the cdr field of apa to 42.
 ```clj
-(set-cdr apa 42)
+(setcdr apa 42)
 ```
 The `apa` pair is now `(1 . 42)`.
 
 ## Arrays
 
+### array-create
+
+Create an array of a given type, default is an array of bytes. The 
+form of an `array-create` expression is either `(array-create type size-expr)`
+or `(array-create size-expr)`. If no type is specified, the default is 
+to create an array of bytes. 
+
+Currently the following types can be used for the type field:
+
+| Type | 
+| ---  | 
+| type-char | 
+| type-byte | 
+| type-i32  |
+| type-u32  | 
+| type-float |
+| type-i64 | 
+| type-u64 |
+| type-double | 
+
+---
+
+### array-size
+
+Returns the size of an array in number of elements. The form 
+of an `array-size` expression is `(array-size arr-expr)` where 
+arr-expr has to evaluate into an array. 
+
+---
 
 ### array-read
 
@@ -911,6 +943,40 @@ of an array.
 Example that turns array "hello" into "heflo"
 ```clj
 (array-write "hello" 2 \#f)
+```
+
+---
+
+### Array literal syntax
+
+Array literals can be created using the `[` and `]` syntax to enclose 
+values to initialize the array with. The `[` and `]` syntax is complete
+resolved in the parser and thus cannot contain arbitrary lisp terms. 
+the values listed between the `[` and the `]` must be literals! 
+
+The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
+or `[ val1 ... valN]`. If no type-qualifier is specified the default is 
+to create an array with byte values. 
+
+The currently valid type qualifiers are:
+
+| Type qualifier | 
+| ---            | 
+| type-byte      |
+| type-i32       | 
+| type-u32       | 
+| type-float     | 
+
+(The rest of the numerical types will be supported in the future) 
+
+Example that creates a byte array 
+```lisp
+[ 1 2 3 4 5 6 7 8 9 10 ]
+```
+
+Example that create an array of i32 values
+```lisp
+[ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 ---
@@ -1153,7 +1219,9 @@ being wrong in the code (or that it is exhausting all resources).
 ### no_match
 
 The `no_match` symbol is returned from pattern matching if
-no case matches the expression.
+no case matches the expression. 
+
+    - Add a catch-all case to your pattern-matching. `_`. 
 
 ---
 
@@ -1162,11 +1230,15 @@ no case matches the expression.
 The `read_error` symbol is returned if the reader cannot
 parse the input code.
 
+Read errors are most likely caused by syntactically incorrect input programs.
+
+    - Check that all opening parenthesis are properly closed.
+
 ---
 
 ### type_error
 
-The `type_error` symbol is returned byt built-in functions
+The `type_error` symbol is returned by built-in functions or extensions
 if the values passed in are of incompatible types.
 
 ---
@@ -1177,13 +1249,25 @@ The `eval_error` symbol is returned if evaluation could
 not proceed to evaluate the expression. This could be because the
 expression is malformed.
 
+Evaluation error happens on programs that may be syntactically correct
+(LispBM has a very low bar for what is considered syntactically correct),
+but semantically nonsensical.
+
+    - Check the program for mistakes.
+    - Are your parenthesis enclosing the correct subterms?
+    - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).
+
 ---
 
 ### out_of_memory
 
 The `out_of_memory` symbol is returned if the heap is full and running
-the garbage collector was not able to free any memory up. The program
-uses more memory than the size of the heap. Make the heap larger.
+the garbage collector was not able to free any memory up. 
+
+The program you have written requires more memory.
+
+    - Increase the heap size.
+    - Rewrite the application to use less memory.
 
 ---
 
@@ -1192,6 +1276,9 @@ uses more memory than the size of the heap. Make the heap larger.
 The `fatal_error` symbol is returned in cases where the
 LispBM runtime system cannot proceed. Something is corrupt and it is
 not safe to continue.
+
+    - If this happens please send the program and the full error message
+      to blog.joel.svensson@gmail.com. It will be much appreciated.
 
 ---
 
@@ -1202,11 +1289,19 @@ runs out of continuation stack (this is its runtime-stack). You are
 most likely writing a non-tail-recursive function that is exhausting all
 the resources.
 
+    - Check your program for recursive functions that are not tail-recursive
+      Rewrite these in tail-recursive form.
+    - If you spawned this process in a small stack. For example (spawn 10 prg),
+      try to spawn it with a larger stack.
+
 ---
 
 ### division_by_zero
 
 The `division_by_zero` symbol is returned when dividing by zero.
+
+    - Check your math.
+    - Add 0-checks into your code at a strategic position.
 
 ---
 
@@ -1282,3 +1377,68 @@ A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
 
 ---
 
+## Type convertion functions 
+
+### to-byte
+
+Convert any numerical value to a byte. 
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-i
+
+Convert a value of any numerical type to an integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u 
+
+Convert a value of any numerical type to an unsigned integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i32
+
+Convert any numerical value to a 32bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u32 
+
+Convert any numerical value to a 32bit unsigned int.
+
+--- 
+
+### to-float
+
+Convert any numerical value to a single precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i64
+
+Convert any numerical value to a 64bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int.
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-double
+
+Convert any numerical value to a double precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+---

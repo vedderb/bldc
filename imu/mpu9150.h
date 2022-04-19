@@ -37,6 +37,7 @@ void mpu9150_get_gyro(float *gyro);
 void mpu9150_get_mag(float *mag);
 void mpu9150_get_accel_gyro_mag(float *accel, float *gyro, float *mag);
 void mpu9150_set_rate_hz(int hz);
+void mpu9150_set_mag_enabled(bool enabled);
 void mpu9150_sample_gyro_offsets(uint32_t iteratons);
 void mpu9150_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
 uint32_t mpu9150_get_time_since_update(void);

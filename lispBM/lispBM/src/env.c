@@ -60,6 +60,27 @@ lbm_value lbm_env_copy_shallow(lbm_value env) {
   return  res;
 }
 
+// A less safe version of lookup. It should be fine unless env is corrupted.
+bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
+
+  lbm_value curr = env;
+
+  if (lbm_is_symbol_nil(sym)) {
+    *res = sym;
+    return true;
+  }
+
+  while (lbm_is_ptr(curr)) {
+    lbm_value c = lbm_ref_cell(curr)->car;
+    if ((lbm_ref_cell(c)->car) == sym) {
+      *res = lbm_ref_cell(c)->cdr;
+      return true;
+    }
+    curr = lbm_ref_cell(curr)->cdr;
+  }
+  return false;
+}
+
 lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 

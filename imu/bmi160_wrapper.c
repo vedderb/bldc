@@ -62,12 +62,21 @@ static bool reset_init_bmi(BMI_STATE *s) {
 	bmi160_init(&(s->sensor));
 
 	s->sensor.accel_cfg.range = BMI160_ACCEL_RANGE_16G;
-	s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
 	s->sensor.accel_cfg.power = BMI160_ACCEL_NORMAL_MODE;
 
 	s->sensor.gyro_cfg.range = BMI160_GYRO_RANGE_2000_DPS;
-	s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
 	s->sensor.gyro_cfg.power = BMI160_GYRO_NORMAL_MODE;
+
+	if(s->filter == IMU_FILTER_LOW){
+		s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
+		s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
+	}else if(s->filter == IMU_FILTER_MEDIUM){
+		s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_OSR2_AVG2;
+		s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_OSR2_MODE;
+	}else if(s->filter == IMU_FILTER_HIGH){
+		s->sensor.accel_cfg.bw = BMI160_ACCEL_BW_OSR4_AVG1;
+		s->sensor.gyro_cfg.bw = BMI160_GYRO_BW_OSR4_MODE;
+	}
 
 	if(s->rate_hz <= 25){
 		s->sensor.accel_cfg.odr = BMI160_ACCEL_ODR_25HZ;
@@ -110,6 +119,9 @@ static THD_FUNCTION(bmi_thread, arg) {
 
 	s->is_running = true;
 
+	systime_t iteration_timer = chVTGetSystemTime();
+	const systime_t desired_interval = US2ST(1000000 / s->rate_hz);
+
 	for(;;) {
 		struct bmi160_sensor_data accel;
 		struct bmi160_sensor_data gyro;
@@ -143,6 +155,18 @@ static THD_FUNCTION(bmi_thread, arg) {
 			return;
 		}
 
-		chThdSleepMicroseconds(1000000 / s->rate_hz);
+		// Delay between loops
+		iteration_timer += desired_interval;
+		systime_t current_time = chVTGetSystemTime();
+		systime_t remainin_sleep_time = iteration_timer - current_time;
+		if (remainin_sleep_time > 0 && remainin_sleep_time < desired_interval) {
+			// Sleep the remaining time.
+			chThdSleep(remainin_sleep_time);
+		}
+		else {
+			// Read was too slow or CPU was too buzy, reset the schedule.
+			iteration_timer = current_time;
+			chThdSleep(desired_interval);
+		}
 	}
 }
