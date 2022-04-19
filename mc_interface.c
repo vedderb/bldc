@@ -502,6 +502,19 @@ mc_state mc_interface_get_state(void) {
 	return ret;
 }
 
+mc_control_mode mc_interface_get_control_mode(void) {
+	mc_control_mode ret = CONTROL_MODE_NONE;
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_FOC:
+		ret = mcpwm_foc_control_mode();
+		break;
+
+	default:
+		break;
+	}
+	return ret;
+}
+
 void mc_interface_set_duty(float dutyCycle) {
 	if (fabsf(dutyCycle) > 0.001) {
 		SHUTDOWN_RESET();
