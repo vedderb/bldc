@@ -155,6 +155,10 @@ special_sym const special_symbols[] =  {
   {"setcdr"         , SYM_SET_CDR},
   {"setix"          , SYM_SET_IX},
 
+  {"assoc"          , SYM_ASSOC}, // lookup an association
+  {"acons"          , SYM_ACONS}, // Add to alist
+  {"setassoc"       , SYM_SET_ASSOC}, // Change association
+
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},
   {"bitwise-and"    , SYM_BITWISE_AND},

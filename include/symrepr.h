@@ -160,6 +160,10 @@
 #define SYM_SET_CDR             0x146
 #define SYM_SET_IX              0x147
 
+#define SYM_ASSOC               0x148
+#define SYM_ACONS               0x149
+#define SYM_SET_ASSOC           0x14A
+
 #define SYM_IS_FUNDAMENTAL      0x150
 
 #define SYM_IX                  0x151

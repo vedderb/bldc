@@ -885,6 +885,16 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     return true;
   }
 
+  /* Comma-qualification experiment. */
+  if (lbm_is_comma_qualified_symbol(p)) {
+    lbm_value sym = lbm_car(lbm_cdr(p));
+    lbm_value val = lbm_env_lookup(sym, *env);
+    if (lbm_is_symbol(SYM_NOT_FOUND)) {
+      return false;
+    }
+    return (val == e);
+  }
+
   if (lbm_is_symbol(p)) {
     if (lbm_dec_sym(p) == SYM_DONTCARE) return true;
     return (p == e);

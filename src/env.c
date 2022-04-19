@@ -118,7 +118,7 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
 
   new_env = lbm_cons(keyval, env);
   if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL) {
-    return keyval;
+    return new_env;
   }
 
   return new_env;

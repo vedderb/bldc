@@ -1,5 +1,5 @@
 
-# Chapter 1: Introduction to programming in LispBM 
+# Chapter 1: Introduction to programming in LispBM
 
 LispBM (from now on called LBM) is a lisp dialect that was implemented
 to be run on small resource constrained systems. The look-and-feel of
@@ -8,8 +8,8 @@ the SICP book (Structure and Interpretation of Computer Programs) by
 Harold Abelson, Gerald Jay Sussman and Julie Sussman. The awesome
 series of videos about lisp programming can be found
 [here](https://www.youtube.com/playlist?list=PL8FE88AA54363BC46). Note
-that LBM is not 100% compatible with all code you see in the video series 
-but this is quite OK, there are many slightly different flavors of lisps. 
+that LBM is not 100% compatible with all code you see in the video series
+but this is quite OK, there are many slightly different flavors of lisps.
 
 LBM itself implements the concurrency, communication and a basic set
 of lisp functionality such as arithmetic. The idea with LBM is that it
@@ -23,7 +23,7 @@ integrating LBM into a system to provide these interfaces.
 
 That said, there is an example REPL (Read Evaluate Print Loop) that
 can be run on X86 Linux and that is what will be used in this
-introductory chapter to get started. 
+introductory chapter to get started.
 
 ## Building the example REPL
 
@@ -31,39 +31,39 @@ Clone the LispBM repository from [GitHub](https://github.com/svenssonjoel/lispBM
 
 ```
 git clone https://github.com/svenssonjoel/lispBM.git
-``` 
+```
 Then go into the `lispBM` directory and the `repl` subdirectory.
 
-``` 
+```
 cd lispBM
 cd repl
-``` 
+```
 
-Now you have the choice of compiling the REPL either a 32bit application 
-or a 64bit one. To compile as a 32bit application just type `make`, this 
-requires that you have 32bit libraries installed on you Linux system. The 
-other alternative is to compile as 64bit using `make all64`. 
+Now you have the choice of compiling the REPL either a 32bit application
+or a 64bit one. To compile as a 32bit application just type `make`, this
+requires that you have 32bit libraries installed on you Linux system. The
+other alternative is to compile as 64bit using `make all64`.
 
-``` 
-make 
-``` 
-or 
+```
+make
+```
+or
 
 ```
 make all64
-``` 
+```
 
-If all goes well there should now be an executable called `repl` in 
+If all goes well there should now be an executable called `repl` in
 the current directory. To start the repl type:
 
 ```
 ./repl
-``` 
+```
 
-which should present the following prompt: 
+which should present the following prompt:
 
 
-``` 
+```
 Array extensions loaded
 String extensions loaded
 Math extensions loaded
@@ -73,11 +73,11 @@ Lisp REPL started!
 Type :quit to exit.
      :info for statistics.
      :load [filename] to load lisp source.
-# 
+#
 ```
 
-If you try out the `:info` command you are presented with some 
-information about the current state of the runtime system. 
+If you try out the `:info` command you are presented with some
+information about the current state of the runtime system.
 
 ```
 # :info
@@ -104,7 +104,7 @@ from 0 up to the argument provided.
 To test if this dynamic loading of the library function works type
 `(iota 1024)` and press enter.
 
-``` 
+```
 # (iota 1024)
 loading: (iota 1024)
 started ctx: 144
@@ -128,14 +128,24 @@ stack max:  13
 stack size: 256
 stack sp:   0
 ```
-If things seem to work so far, lets go on and play some with the repl. 
+If things seem to work so far, lets go on and play some with the repl.
 
-## Playing with the REPL 
+---
+**NOTE**
 
-The REPL allows you to enter expressions and have them evaluated. 
+You can also install the REPL into the `~/.local/bin` directory
+by issuing the command `make install`. This installs the REPL binary
+as the command `lbm` and it can be started from anywhere if you
+have your `.local/bin` directory added to your path.
+
+---
+
+## Playing with the REPL
+
+The REPL allows you to enter expressions and have them evaluated.
 For example we can type `(+ 1 2)` at the prompt and get a response.
 
-``` 
+```
 # (+ 1 2)
 loading: (+ 1 2)
 started ctx: 144
@@ -153,9 +163,9 @@ computed to be `3`. While computing this the evaluator used 11
 elements of the stack and after finishing the stack pointer is back at
 position 0.
 
-The context that is being created and that evaluates the expression is 
-related to the concurrent nature of LBM and will be explored in more 
-detail later. 
+The context that is being created and that evaluates the expression is
+related to the concurrent nature of LBM and will be explored in more
+detail later.
 
 The example REPL provides an extension for printing things, for example strings:
 
@@ -168,12 +178,12 @@ hello world!
 stack max:  11
 stack size: 256
 stack sp:   0
-``` 
+```
 
-The program above implements "hello world" as you can see on line 3 of the 
-output presented above. The print function baked into the REPL is capable 
-of printing a lot of different LBM values, not just strings. 
-for example: 
+The program above implements "hello world" as you can see on line 3 of the
+output presented above. The print function baked into the REPL is capable
+of printing a lot of different LBM values, not just strings.
+for example:
 
 ```
 # (print 10)
@@ -185,7 +195,7 @@ stack size: 256
 stack sp:   0
 ```
 
-You can print many things at once by providing more arguments to print. 
+You can print many things at once by providing more arguments to print.
 
 ```
 # (print "hello world!\n")
@@ -197,26 +207,26 @@ stack max:  11
 stack size: 256
 stack sp:   0
 ```
-We will see what else print can print as we progress through the manual. 
+We will see what else print can print as we progress through the manual.
 
-Now let's see if we can implement a small game right in the REPL! Inspired 
-by the book "Land of Lisp" we can try a somewhat simplified version 
-of the "guess-my-number" game that can be typed directly into the repl 
-in small number of steps. 
+Now let's see if we can implement a small game right in the REPL! Inspired
+by the book "Land of Lisp" we can try a somewhat simplified version
+of the "guess-my-number" game that can be typed directly into the REPL
+in small number of steps.
 
 The objective of the game is to have the computer guess what number you,
-the user, is thinking about. 
+the user, is thinking about.
 
-First we specify in what range of numbers in which we are allowed to pick 
-a random number. 
+First we specify in what range of numbers in which we are allowed to pick
+a random number.
 
-Enter the following into the REPL and hit enter: 
+Enter the following into the REPL and hit enter:
 ```
 define small 1
-``` 
-and the REPL replies: 
+```
+and the REPL replies:
 
-``` 
+```
 # (define small 1)
 loading: (define small 1)
 started ctx: 162
@@ -225,19 +235,19 @@ stack max:  11
 stack size: 256
 stack sp:   0
 ```
-Our number must be larger than or equal to 1. 
+Our number must be larger than or equal to 1.
 
 ```
 define big 100
 ```
 Our number must be smaller than or equal to 100.
 
-`define` associates a variable with a value. Here we have defined `small` to 
+`define` associates a variable with a value. Here we have defined `small` to
 be 1 and `big` to be 100. We can ask the REPL about these values now if we want
-by typing `small` or `big` into the REPL and pressing enter. 
+by typing `small` or `big` into the REPL and pressing enter.
 
 
-``` 
+```
 # small
 loading: small
 started ctx: 162
@@ -248,22 +258,22 @@ stack sp:   0
 ```
 
 To get a guess from the computer we call a function called
-`guess-my-number` that is implemented as follows: 
+`guess-my-number` that is implemented as follows:
 
 ```
 (define guess-my-number (lambda () (/ (+ small big) 2)))
 ```
-This time define is used to associate a name with a function. The 
-function itself is created using `lambda`. This function takes no 
-arguments, this is what the `()` means following `lambda`. After the 
-empty list of arguments comes the body of function that computes (small + big) / 2. 
-which means the computer will guess in the middle of the range. 
+This time define is used to associate a name with a function. The
+function itself is created using `lambda`. This function takes no
+arguments, this is what the `()` means following `lambda`. After the
+empty list of arguments comes the body of function that computes (small + big) / 2.
+which means the computer will guess in the middle of the range.
 
 Now we can ask the computer to take a guess by typing
 `(guess-my-number)` at the REPL prompt. The parenthesis around
 `guess-my-number` means function application.
 
-``` 
+```
 # (guess-my-number)
 loading: (guess-my-number)
 started ctx: 162
@@ -271,28 +281,28 @@ started ctx: 162
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
+```
 Now, if the computer's guess is wrong we can help it by saying `(bigger)` or `(smaller)`. 
-Let's implement these functions. 
+Let's implement these functions.
 
 ```
 (define smaller (lambda () (define big (- (guess-my-number) 1))))
 ```
-The `smaller` function takes no arguments and works but setting the upper end 
-of the range for the computer to guess in to the current guess - 1. The current 
-guess is obtained by calling the `guess-my-number` function. `define` is used 
+The `smaller` function takes no arguments and works but setting the upper end
+of the range for the computer to guess in to the current guess - 1. The current
+guess is obtained by calling the `guess-my-number` function. `define` is used
 in the function body here to re-define the value of `big`.
 
-The `bigger` function works similarly but moves the lower end of the range 
-up to the current guess. 
+The `bigger` function works similarly but moves the lower end of the range
+up to the current guess.
 
 ```
 (define bigger (lambda () (define small (+ (guess-my-number) 1))))
 ```
 
-Now we have all the functions we need to play the game. 
+Now we have all the functions we need to play the game.
 
-Let's say that we think about the number 7 and ask the computer to guess: 
+Let's say that we think about the number 7 and ask the computer to guess:
 
 ```
 # (guess-my-number)
@@ -302,10 +312,10 @@ started ctx: 166
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
+```
 
-50, thats to high, type `(smaller)` into the REPL and press enter. 
-The we ask the computer to guess again 
+50, thats to high, type `(smaller)` into the REPL and press enter.
+The we ask the computer to guess again
 
 ```
 # (guess-my-number)
@@ -315,11 +325,11 @@ started ctx: 166
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
-25, that is still too high, `(smaller)`, enter. 
+```
+25, that is still too high, `(smaller)`, enter.
 Guess again computer!
 
-``` 
+```
 # (guess-my-number)
 loading: (guess-my-number)
 started ctx: 166
@@ -327,9 +337,9 @@ started ctx: 166
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
+```
 
-12, too high again, `(smaller)`, enter. 
+12, too high again, `(smaller)`, enter.
 Guess again!
 
 ```
@@ -340,12 +350,12 @@ started ctx: 166
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
+```
 
 6, is too small! `(bigger)`, enter.
 Guess please ;)
 
-``` 
+```
 # (guess-my-number)
 loading: (guess-my-number)
 started ctx: 166
@@ -353,10 +363,10 @@ started ctx: 166
 stack max:  12
 stack size: 256
 stack sp:   0
-``` 
+```
 
 No, no, not 9. `(smaller)`, enter.
-`(guess-my-number)` 
+`(guess-my-number)`
 
 ```
 # (guess-my-number)
@@ -373,24 +383,24 @@ Yay! Go computer!
 ## LBM Syntax and Semantics
 
 Languages in the Lisp family use the same data structure to represent
-programs as they do to organize data. This data structure is the *list*. 
-As a result the syntax relating to lists is very important get down early. 
-Languages that use the same representation for data and code, are said to 
-have a property called homoiconicity. The homoiconicity property is valuable 
-in situations where you are doing "meta-programming", writing programs 
-that result in programs, as for example when writing macros. In the very 
-beginning it can, however, be a bit confusing! But hang in there and 
-the benefits will become clear over time. 
+programs as they do to organize data. This data structure is the *list*.
+As a result the syntax relating to lists is very important get down early.
+Languages that use the same representation for data and code, are said to
+have a property called homoiconicity. The homoiconicity property is valuable
+in situations where you are doing "meta-programming", writing programs
+that result in programs, as for example when writing macros. In the very
+beginning it can, however, be a bit confusing! But hang in there and
+the benefits will become clear over time.
 
 
-### Lists 
+### Lists
 
-Lists in LBM are enclosed in parentheses and can be arbitrarily nested. 
-So `(1 2 3)` is a list and `(1 (2 3) 4)` is a list where the second element 
-is again a list. Now, if we try to write `(1 2 3)` into the REPL and hit enter, 
+Lists in LBM are enclosed in parentheses and can be arbitrarily nested.
+So `(1 2 3)` is a list and `(1 (2 3) 4)` is a list where the second element
+is again a list. Now, if we try to write `(1 2 3)` into the REPL and hit enter,
 the REPL wont be happy with us!
 
-``` 
+```
 # (1 2 3)
 loading: (1 2 3)
 started ctx: 144
@@ -402,15 +412,15 @@ stack size: 256
 stack sp:   4
 ```
 
-Typing `(1 2 3)` into the REPL resulted in an eval error. This is because 
-the default way in which lists are understood by LBM is as code. And 
-`(1 2 3)` is not a valid LBM program. 
+Typing `(1 2 3)` into the REPL resulted in an eval error. This is because
+the default way in which lists are understood by LBM is as code. And
+`(1 2 3)` is not a valid LBM program.
 
 When a list such as `(a b c)` (for any a,b,c) is entered into the REPL
-the LBM evaluator will assume that this is an application of the function 
-`a` to the arguments `b` and `c`. The list `(+ 1 2)` on the other hand 
+the LBM evaluator will assume that this is an application of the function
+`a` to the arguments `b` and `c`. The list `(+ 1 2)` on the other hand
 is a valid program as the first element of the list is the addition function
-and it can be applied to the arguments `1` and `2`. 
+and it can be applied to the arguments `1` and `2`.
 
 ```
 # (+ 1 2)
@@ -441,17 +451,17 @@ stack size: 256
 stack sp:   0
 ```
 
-In a function application the arguments are evaluated before the function 
+In a function application the arguments are evaluated before the function
 at the head of the list is applied to them.
 
 LBM lists are constructed from so-called cons-cells. Each cons-cell
 has two fields and in each field, any LBM value can be stored. The
 list we constructed earlier using `(list 1 2 3)` takes up three cons
 cells.  The first of these cons-cells has the value `1` in the first
-(called `car` for historical reasons) fields of the cons-cell, the 
-second field (called `cdr`) holds a pointer to the "rest of the list". 
-In other words, lists are linked-lists. The very last and unused `cdr` field 
-holds the symbol `nil` terminating the linked-list. `nil` is considered 
+(called `car` for historical reasons) fields of the cons-cell, the
+second field (called `cdr`) holds a pointer to the "rest of the list".
+In other words, lists are linked-lists. The very last and unused `cdr` field
+holds the symbol `nil` terminating the linked-list. `nil` is considered
 an "empty-list".
 
 ### Symbols
@@ -459,13 +469,13 @@ an "empty-list".
 Symbols are very fundamental building blocks of LBM programs
 and data. A symbol is made up from a number of characters and we have
 seen some examples already, for example `list` or `guess-my-number`
-from the dive-in-intro. Symbols are used to name data or functions 
-but can also be used as values in themselves. For this introduction 
-to symbols we will focus on their usefulness for giving names to things. 
+from the dive-in-intro. Symbols are used to name data or functions
+but can also be used as values in themselves. For this introduction
+to symbols we will focus on their usefulness for giving names to things.
 
-To associate a value with a symbol, we use `define`. In this use-case 
-of symbols, you can think of them as basically variables. To define a 
-variable give, for example, the list `(define a 10)` to the REPL. 
+To associate a value with a symbol, we use `define`. In this use-case
+of symbols, you can think of them as basically variables. To define a
+variable give, for example, the list `(define a 10)` to the REPL.
 
 ```
 # (define a 10)
@@ -477,9 +487,9 @@ stack size: 256
 stack sp:   0
 ```
 
-This sets up an association between the symbol `a` and the value 10. And 
-now if we enter `a` into the REPL and press enter, the REPL will reply 
-with `10`. 
+This sets up an association between the symbol `a` and the value 10. And
+now if we enter `a` into the REPL and press enter, the REPL will reply
+with `10`.
 
 ```
 # a
@@ -491,15 +501,15 @@ stack size: 256
 stack sp:   0
 ```
 
-LBM is case-insensitive when it comes to symbols, so `a` and `A` is the 
-considered to be the same symbol. 
+LBM is case-insensitive when it comes to symbols, so `a` and `A` is the
+considered to be the same symbol.
 
 Characters that are ok as the first character in a symbol:
-``` 
+```
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#
 ```
 
-Characters that are ok on any other position within a symbol name string: 
+Characters that are ok on any other position within a symbol name string:
 ```
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?
 ```
@@ -507,23 +517,23 @@ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?
 ---
 **NOTE**
 
-Symbols starting with the character `#` are allocated by the LBM 
-system in a special way in order to make value lookup (if a value 
-is bound to that symbol) more efficient. So, symbols should not start with 
-`#` unless you specifically want to use that symbol as a binding of a value 
+Symbols starting with the character `#` are allocated by the LBM
+system in a special way in order to make value lookup (if a value
+is bound to that symbol) more efficient. So, symbols should not start with
+`#` unless you specifically want to use that symbol as a binding of a value
 that you are going to use a lot and where efficiency will matter a lot.
 
 ---
 
 
-### An important concept with an unremarkable name: Quote 
+### An important concept with an unremarkable name: Quote
 
-The `quote` operation is very important as it will turn up a lot as 
-we move ahead. Quote is written as `'` in code and it tells the evaluator 
-to **not** evaluate the following expression. As we saw earlier, anything we 
-enter into the REPL will be evaluated, and because of that we could not type 
-in `(1 2 3)` without getting an error. Typing in `'(1 2 3)` is perfectly 
-fine and results in the list `(1 2 3)`. 
+The `quote` operation is very important as it will turn up a lot as
+we move ahead. Quote is written as `'` in code and it tells the evaluator
+to **not** evaluate the following expression. As we saw earlier, anything we
+enter into the REPL will be evaluated, and because of that we could not type
+in `(1 2 3)` without getting an error. Typing in `'(1 2 3)` is perfectly
+fine and results in the list `(1 2 3)`.
 
 ```
 # '(1 2 3)
@@ -579,7 +589,7 @@ stack sp:   0
 ```
 
 the result of this quoted addition is a list with the elements `+`,`1`
-and `2`. 
+and `2`.
 
 Quote is a bit interesting as it does not follow the pattern of a
 function application, which is a list where the first element is
@@ -591,19 +601,19 @@ fits the familiar pattern very well. Still, `quote` is not quite a
 function and this is because when quoting something we want the thing
 we quote to be returned to us unevaluated! In a function application
 the arguments are evaluated.  So `quote` falls into a small set of
-operations called **special forms**. All special forms are listed 
+operations called **special forms**. All special forms are listed
 in a section at the end of this chapter.
 
-### Quasiquote 
+### Quasiquote
 
 There is a close relative of quote `'` called quasiquote `` ` `` that
 allows you to mix between not evaluating within an expression. The
-quasiquote back-tick is then used together with the `,` operation, back-tick 
-to "not-evaluate" and comma to "do-evaluate-this-part". 
+quasiquote back-tick is then used together with the `,` operation, back-tick
+to "not-evaluate" and comma to "do-evaluate-this-part".
 
-For example in `` `(+ 1 ,(+ 2 3))``, the subexpression `(+ 2 3)` will be 
+For example in `` `(+ 1 ,(+ 2 3))``, the subexpression `(+ 2 3)` will be
 evaluated because it has the comma sign prepended. The result of this expression
-is: 
+is:
 
 ```
 # `(+ 1 ,(+ 2 3))
@@ -615,11 +625,11 @@ stack size: 256
 stack sp:   0
 ```
 
-To insert the result of evaluating an expression into a data-structure 
-using `,` is called to "splice". There is another splicing operator 
-that can be used together with the quasiquote and it is the `,@`. 
-This `,@` operation should be followed by some expression that 
-evaluates into a list, then all the element of that resulting list 
+To insert the result of evaluating an expression into a data-structure
+using `,` is called to "splice". There is another splicing operator
+that can be used together with the quasiquote and it is the `,@`.
+This `,@` operation should be followed by some expression that
+evaluates into a list, then all the element of that resulting list
 is spliced into the data-structure. For example `` `(+ 1 ,@(list 2 3 4))``
 which results in the list `(+ 1 2 3 4)`.
 
@@ -633,12 +643,12 @@ stack size: 256
 stack sp:   0
 ```
 
-Usages of `` ` ``, `,` and `,@` are also expanded by the parser 
-when the program is read into applications of `quote` and different 
+Usages of `` ` ``, `,` and `,@` are also expanded by the parser
+when the program is read into applications of `quote` and different
 list appending functions. So just as with `'` the back-tick and comma-at
-is just surface syntax. 
+is just surface syntax.
 
-### Functions 
+### Functions
 
 In LBM you create functions using the special-form (keyword) `lambda`.
 The `lambda` creates an unnamed function, that can be bound to a
@@ -665,7 +675,7 @@ arguments.  In the case of the `2x + y` anonymous function an
 application would look like.
 
 ```
-((lambda (x y) (+ (* 2 x) y)) 2 1) 
+((lambda (x y) (+ (* 2 x) y)) 2 1)
 ```
 
 The above expression is a list, the first element in this list is
@@ -685,26 +695,26 @@ stack sp:   0
 ```
 
 ---
-**NOTE** 
+**NOTE**
 
-Actually, the function application form of an expression `(f a b c)` 
-the `f` is also evaluated and should result in an applicable function form. 
-lambdas evaluate into closures which are the function objects that in the 
-end are applied to the arguments. 
+Actually, the function application form of an expression `(f a b c)`
+the `f` is also evaluated and should result in an applicable function form.
+lambdas evaluate into closures which are the function objects that in the
+end are applied to the arguments.
 
 ---
 
-To give a function a name, use `define`. Let's give a name to the 
-function above: 
+To give a function a name, use `define`. Let's give a name to the
+function above:
 
 ```
 (define twoxplusy (lambda (x y) (+ (* 2 x) y)))
-``` 
+```
 
 Now it is possible to apply the function by placing the symbol `twoxplusy`
 at the head of an application form, for example `(twoxplusy 2 1)`:
 
-``` 
+```
 # (twoxplusy 2 1)
 loading: (twoxplusy 2 1)
 started ctx: 178
@@ -717,9 +727,9 @@ stack sp:   0
 ### Macros
 
 Together with quote and quasiquote, macros give powerful
-meta-programming capabilities. With macros you can define new language 
-constructs to use within your programs. Macros is where a lot of 
-the power of lisp-like languages comes from. 
+meta-programming capabilities. With macros you can define new language
+constructs to use within your programs. Macros is where a lot of
+the power of lisp-like languages comes from.
 
 Creating macro is done in a way that is, on the surface, very similar to
 creating a function. Here it is `(macro parameter-list macro-body)`
@@ -727,80 +737,80 @@ compared to `(lambda parameter-list function-body)` for a function.
 
 The `macro-body`, in an LBM program, should be an expression that
 evaluates into a program (this is where quasiqoutation becomes really
-useful). 
+useful).
 
 A big difference between a function application and a macro
 application is that when you apply a macro to arguments, those
-arguments are not evaluated. The arguments are available to the 
-`macro-body` in unevaluated form and you, the macro implementor, 
+arguments are not evaluated. The arguments are available to the
+`macro-body` in unevaluated form and you, the macro implementor,
 decides what to do with those arguments (evaluate or not).
 
-Let's look at a basic macro here and then spend some entire 
-later chapter on the topic. 
+Let's look at a basic macro here and then spend some entire
+later chapter on the topic.
 
 ``` lisp
-(define defun (macro (name args body) 
+(define defun (macro (name args body)
     `(define ,name (lambda ,args ,body))))
-``` 
+```
 
 The above LBM code defines a macro and gives it the name `defun` (for
 define function). The macro itself takes 3 arguments, `name`, `args`
 and `body`. The `macro-body` is the expression `` `(define ,name
-(lambda ,args ,body))``. 
+(lambda ,args ,body))``.
 
 The purpose of the `defun` macro is to let you define a function with
 a bit less typing on the keyboard. Instead of writing `(define f
-(lambda (x) (+ 100 x)))` you would write `(defun f (x) (+ 100 x))`. 
+(lambda (x) (+ 100 x)))` you would write `(defun f (x) (+ 100 x))`.
 
 In the macro application `(defun f (x) (+ 100 x))` we see that `defun`
 is applied to `f`, `(x)` and `(+ 100 x)`. Because `defun` is a macro,
 the arguments are passed into the macro body unevaluated and will be
-spliced into the expression `` `(define ,name (lambda ,args ,body))``, 
-which results in `(define f (lambda (x) (+ 100 x)))`. After splicing 
-in the unevaluated arguments into the macro-body, the resulting program is 
+spliced into the expression `` `(define ,name (lambda ,args ,body))``,
+which results in `(define f (lambda (x) (+ 100 x)))`. After splicing
+in the unevaluated arguments into the macro-body, the resulting program is
 evaluated and, in this case, the definition of `f` takes place.
 
---- 
+---
 **NOTE**
 
-A macro body can execute arbitrary LBM code as long as the result 
-in the end is a program. 
+A macro body can execute arbitrary LBM code as long as the result
+in the end is a program.
 
 ---
 
 ---
-**NOTE** 
+**NOTE**
 
-The `defun` macro is quite useful, so we will be using it from now 
-on. This macro is available to you in the REPL. 
+The `defun` macro is quite useful, so we will be using it from now
+on. This macro is available to you in the REPL.
 
 ---
 
 
 ### Conditionals and truth
 
-in LBM, only the symbol `nil` is considered to be false, any 
-other value is considered true. If you want to explicitly express 
-"true" there is a symbol specifically for this purpose, `t`. 
+in LBM, only the symbol `nil` is considered to be false, any
+other value is considered true. If you want to explicitly express
+"true" there is a symbol specifically for this purpose, `t`.
 
 So `(if t 1 2)` evaluates to `1`. `t` is a special symbol that cannot
 be redefined (using `define` to any new value), by default the symbol
-`t` evaluates to `t`. 
+`t` evaluates to `t`.
 
 The syntax for a conditional is `(if condition-expr then-expr else-expr)`
-and if `condition-expr` evaluates to something that is considered true, 
-the `then-expr` is evaluated. If `condition-expr` evaluates to nil, 
-the `else-expr` is evaluated. 
+and if `condition-expr` evaluates to something that is considered true,
+the `then-expr` is evaluated. If `condition-expr` evaluates to nil,
+the `else-expr` is evaluated.
 
-LBM has two different equality checking functions, one is called `eq` and 
+LBM has two different equality checking functions, one is called `eq` and
 it can be used to compare any LBM value to any other and utilizes what is
-called structural equality. The other equality operation is `=` and 
-it is specifically for comparing numerical values to each other. For example 
-`(= 'monkey 'ostrich)` will result in a `type-error` but the following 
-are all valid expressions: `(eq 'monkey 'ostrich)`, `(eq 1 1)` and 
-`(= 1 2)`. 
+called structural equality. The other equality operation is `=` and
+it is specifically for comparing numerical values to each other. For example
+`(= 'monkey 'ostrich)` will result in a `type-error` but the following
+are all valid expressions: `(eq 'monkey 'ostrich)`, `(eq 1 1)` and
+`(= 1 2)`.
 
-let's define a function that recognizes monkeys. 
+let's define a function that recognizes monkeys.
 
 ``` lisp
 (defun monkey? (animal) (eq animal 'monkey))
@@ -817,7 +827,7 @@ stack max:  11
 stack size: 256
 stack sp:   0
 ```
-and it returns false (`nil`) for anything else. 
+and it returns false (`nil`) for anything else.
 
 ``` lisp
 # (monkey? 'ostrich)
@@ -827,16 +837,16 @@ started ctx: 195
 stack max:  11
 stack size: 256
 stack sp:   0
-``` 
+```
 
 ---
 **NOTE**
 
 In this section we have used quoted symbols quite a bit. For example
 we checked for equality between a monkey and an ostrich by doing `(eq
-'monkey 'ostrich)`. quoting symbol arguments like this is quite normal 
-when we are interested in the symbol itself as the value, and not what 
-it would happen to be bound to. 
+'monkey 'ostrich)`. quoting symbol arguments like this is quite normal
+when we are interested in the symbol itself as the value, and not what
+it would happen to be bound to.
 
 ---
 
@@ -845,20 +855,20 @@ and negate a condition using `not`. The `and` and `or` operations
 takes an arbitrary number of arguments and are short-circuiting, that
 is, they terminate as soon as the resulting value can be known. For an
 `and` operation that means it can return false (`nil`) as soon as it
-sees that one of its arguments are false. For `or` it can return true as 
+sees that one of its arguments are false. For `or` it can return true as
 soon as it sees a non-nil value.
 
 ### Environments: global and local
 
 We have already touched upon environments earlier when we used `define` to
 globally associate a value with a symbol. You can define an association between
-a value and a symbol anywhere and as soon as that definition has evaluated 
-the association is visible everywhere. You can also redefine a symbol to be 
-associated with another value. 
+a value and a symbol anywhere and as soon as that definition has evaluated
+the association is visible everywhere. You can also redefine a symbol to be
+associated with another value.
 
-Type `(define a 10)` into the REPL and press enter. 
+Type `(define a 10)` into the REPL and press enter.
 
-If you now enter `a` into the repl and press enter, the REPL will reply as: 
+If you now enter `a` into the repl and press enter, the REPL will reply as:
 
 ```
 # a
@@ -870,29 +880,29 @@ stack size: 256
 stack sp:   0
 ```
 
-The REPL also supports a command `:env` that shows information about current 
-global bindings: 
+The REPL also supports a command `:env` that shows information about current
+global bindings:
 
 ```
 # :env
 Environment:
   (a . 10)
 Variables:
-``` 
+```
 
-The output above shows that there is one binding present in the global 
-environment and that is the binding of `10` to the symbol `a`. The output 
-also shows that there are no "Variable"-bindings currently. 
+The output above shows that there is one binding present in the global
+environment and that is the binding of `10` to the symbol `a`. The output
+also shows that there are no "Variable"-bindings currently.
 
-These "Variables" are a different kind of global variable supported by LBM. 
+These "Variables" are a different kind of global variable supported by LBM.
 A variable is created whenever you define a symbol starting with the character
-`#`, and the value is stored in a way that is more efficient to look up. 
-There is a limited number of these variables (specifiable by the programmer 
-that integrates LBM into a system) so use them only where performance matter 
-the most. 
+`#`, and the value is stored in a way that is more efficient to look up.
+There is a limited number of these variables (specifiable by the programmer
+that integrates LBM into a system) so use them only where performance matter
+the most.
 
 For example type `(define #a 100)` into the REPL and press enter. Then
-execute the `:env` command again. The output should now read: 
+execute the `:env` command again. The output should now read:
 
 ```
 # :env
@@ -902,32 +912,32 @@ Variables:
   #a = 100
 ```
 
-Local environments are created using the `let` special form in LBM and 
-a let expression takes the following form: 
+Local environments are created using the `let` special form in LBM and
+a let expression takes the following form:
 
 ```
 (let ((binder1 value1-exp)
       (binder2 value2-exp)
-      ... 
-      (binderN valueN-exp)) 
+      ...
+      (binderN valueN-exp))
   body-expr)
-``` 
-The binders `binder1` to `binderN` are all symbols and the bindings are 
-only visible inside of the `body-expr`. If a local binding shares the same 
-name as a global one, inside of the `body-expr`, the local binding shadows 
-the global one. 
+```
+The binders `binder1` to `binderN` are all symbols and the bindings are
+only visible inside of the `body-expr`. If a local binding shares the same
+name as a global one, inside of the `body-expr`, the local binding shadows
+the global one.
 
 Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 `#`-symbol will always yield the globally defined value.
 
 ### Values and types
 
-LBM is a dynamically typed language which means that type information 
-is carried along with the values at runtime of the program and that 
-"variables" or bindings are essentially untyped. 
+LBM is a dynamically typed language which means that type information
+is carried along with the values at runtime of the program and that
+"variables" or bindings are essentially untyped.
 
-To check what type something is in LBM, you can apply the function 
-`type-of` to the value you are interested in. 
+To check what type something is in LBM, you can apply the function
+`type-of` to the value you are interested in.
 
 ```
 # (type-of 365)
@@ -937,14 +947,14 @@ started ctx: 155
 stack max:  11
 stack size: 256
 stack sp:   0
-``` 
+```
 
-In the example above we see that the value `365` has the type `type-i` 
-for integer. 
+In the example above we see that the value `365` has the type `type-i`
+for integer.
 
-Below is a list of LBM types: 
+Below is a list of LBM types:
 
-| Type        | Description                                                                           | Example/syntax        | 
+| Type        | Description                                                                           | Example/syntax        |
 | ---         | ---                                                                                   |  ---                  |
 | type-char   | 8 bit quantity representing a character.                                              | `\#a`, `\#X`          |
 | type-byte   | 8 bit quantity. type-byte is an alias for type-char.                                  | `1b`, `255b`          |
@@ -966,17 +976,17 @@ information has to be stored somewhere. In LBM the type information is
 stored as part of the value word in in the case of `type-char`,
 `type-i`, `type-u`, `type-list` and `type-symbol`. This is the reason
 why a `type-i` value is a 28bit (56 on 64 bit architecture) quantity,
-the rest of the bits are used for type information. The larger numerical 
-types line `type-i32` (on a 32bit platform) is stored in a kind 
-of encoded pointer/reference to a 32bit value, all of this happens 
-behind the scenes but it may be important to realize that there is an 
-extra indirection when operating on such, so-called, boxed values. 
+the rest of the bits are used for type information. The larger numerical
+types line `type-i32` (on a 32bit platform) is stored in a kind
+of encoded pointer/reference to a 32bit value, all of this happens
+behind the scenes but it may be important to realize that there is an
+extra indirection when operating on such, so-called, boxed values.
 
 ### Sequences of operations
 
 LBM has a `progn` special form for evaluation of zero or more expressions
-in sequence. This is needed when one wants to execute some operations 
-for their side-effects, before finally resulting in a value. 
+in sequence. This is needed when one wants to execute some operations
+for their side-effects, before finally resulting in a value.
 
 Look at the `if` form for example. Here, `condition`, `then-expr` and
 `else-expr` each should be a single expression not a sequence of
@@ -985,10 +995,10 @@ want to do more than a single thing, like print a string, redefine a
 value, and compute a result, you need to use `progn`
 
 ``` lisp
-(if condition then-expr else-expr) 
-``` 
+(if condition then-expr else-expr)
+```
 
-A `progn` expression has the form `(progn expr1 ... exprN)` 
+A `progn` expression has the form `(progn expr1 ... exprN)`
 and it can be used anywhere where it is ok to use an expression.
 
 
@@ -1003,7 +1013,7 @@ stack size: 256
 stack sp:   0
 ```
 # The special forms (or keywords) of LispBM
- 
+
 The special forms of LBM are a bit like the set of keywords you find
 in many languages. The special forms are each identified via a symbol
 and they are "applied" in a similar way to functions. That is, if you
@@ -1016,10 +1026,10 @@ a lot of "special" behavior to memorize.
 
 
 | Special form | Description                                                   |
-| ---          |  ---                                                          | 
+| ---          |  ---                                                          |
 | `if`         | For expressing conditionals.                                  |
 | `lambda`     | Creates an anonymous function.                                |
-| `let`        | Creating local bindings. Support mutually recursive bindings. | 
+| `let`        | Creating local bindings. Support mutually recursive bindings. |
 | `define`     | Create a global binding.                                      |
 | `progn`      | Execute a sequence of operations.                             |
 | `read`       | Parse a string into LBM code or data.                         |
