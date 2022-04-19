@@ -1538,11 +1538,34 @@ float mc_interface_temp_motor_filtered(void) {
  */
 float mc_interface_get_battery_level(float *wh_left) {
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	const float v_in = motor_now()->m_input_voltage_filtered_slower;
+	static float v_in = 0.0;
 	float battery_avg_voltage = 0.0;
 	float battery_avg_voltage_left = 0.0;
 	float ah_left = 0;
 	float ah_tot = conf->si_battery_ah;
+	static systime_t last_resting_time = 0.0;
+	static float wh_battery_used_at_last_resting_voltage = 0.0;
+	float wh_battery_used_partial = 0.0;
+
+// this could be an exposed setting along battery Ah, cell type and cell number
+// proper resting time is about a minute, but for now lets not rely too much in the Wh tracker
+#define MIN_RESTING_TIME_SECONDS	5.0
+
+	// modulation state is the quickest way to determine if current is flowing. Needs to be quick to avoid sampling sag
+	if(mcpwm_foc_get_state() != MC_STATE_OFF) {
+		last_resting_time = chVTGetSystemTimeX();
+	}
+	float resting_time = (float)chVTTimeElapsedSinceX(last_resting_time) / (float)CH_CFG_ST_FREQUENCY;
+
+	// only update v_in with no battery current, to use resting voltage for capacity estimation
+	if(resting_time >= MIN_RESTING_TIME_SECONDS) {
+		v_in = motor_now()->m_input_voltage_filtered_slower;
+		wh_battery_used_at_last_resting_voltage = mc_interface_get_watt_hours(false);
+	} else {
+		// track Wh consumption since last resting voltage measurement
+		wh_battery_used_partial = mc_interface_get_watt_hours(false) - wh_battery_used_at_last_resting_voltage;
+		// TODO: this only tracks W.hr discharged, but its ignoring W.hr charged from regen
+	}
 
 	switch (conf->si_battery_type) {
 	case BATTERY_TYPE_LIION_3_0__4_2:
@@ -1575,13 +1598,40 @@ float mc_interface_get_battery_level(float *wh_left) {
 	}
 
 	const float wh_batt_tot = ah_tot * battery_avg_voltage;
-	const float wh_batt_left = ah_left * battery_avg_voltage_left;
+	const float wh_batt_left = ah_left * battery_avg_voltage_left - wh_battery_used_partial;
 
 	if (wh_left) {
 		*wh_left = wh_batt_left;
 	}
 
-	return wh_batt_left / wh_batt_tot;
+	// Note that at very high discharge rates or low temperature wh_batt_tot would decrease dramatically
+	float battery_level = wh_batt_left / wh_batt_tot;
+	
+	// W.hr tracking could produce a negative battery level
+	utils_truncate_number(&battery_level, 0.0, 1.0);
+
+	float ramp_time = 60.0;
+	float filter_constant = 0.01;
+
+	// Force a quick convergence in the first 10 seconds
+	float current_time = (float)chVTGetSystemTimeX() / (float)CH_CFG_ST_FREQUENCY;
+	if( current_time < 10.0 ) {
+		ramp_time = 0.5;
+		filter_constant = 0.5;
+	}
+	// smooth transitions between voltage and Wh tracking
+	// use a ramp instead of LP to avoid the inital fast exponential decay
+	static systime_t last_time = 0;
+	static float battery_level_ramp = 0.0;
+	const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+	utils_step_towards(&battery_level_ramp, battery_level, ramp_step);
+	last_time = chVTGetSystemTimeX();
+
+	// add LP to slow down the tracking of small % variations that the ramp would otherwise quickly follow
+	static float battery_level_filtered = 0.0;
+	UTILS_LP_FAST(battery_level_filtered, battery_level_ramp, filter_constant);
+
+	return battery_level_filtered;
 }
 
 /**
