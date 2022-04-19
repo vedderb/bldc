@@ -25,9 +25,17 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+typedef enum {
+	I2C_BB_RATE_100K = 0,
+	I2C_BB_RATE_200K,
+	I2C_BB_RATE_400K,
+	I2C_BB_RATE_700K
+} I2C_BB_RATE;
+
 typedef struct {
 	stm32_gpio_t *sda_gpio; int sda_pin;
 	stm32_gpio_t *scl_gpio; int scl_pin;
+	I2C_BB_RATE rate;
 	bool has_started;
 	bool has_error;
 	mutex_t mutex;

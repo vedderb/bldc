@@ -903,10 +903,18 @@ Same as uart-read-bytes, but will return when the byte end is read.
 #### i2c-start
 
 ```clj
-(i2c-start)
+(i2c-start optRate)
 ```
 
-Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first.
+Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first. optRate is an optional argument for the I2C bitrate. Example:
+
+```clj
+; These are the bitrate options
+(i2c-start 'rate-100k) ; 100 kHz bitrate
+(i2c-start 'rate-200k) ; 200 kHz bitrate (default if no argument is passed)
+(i2c-start 'rate-400k) ; 400 kHz bitrate
+(i2c-start 'rate-700k) ; 700 kHz bitrate
+```
 
 #### i2c-tx-rx
 

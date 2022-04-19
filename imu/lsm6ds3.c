@@ -53,6 +53,7 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	m_i2c_bb.sda_pin = sda_pin;
 	m_i2c_bb.scl_gpio = scl_gpio;
 	m_i2c_bb.scl_pin = scl_pin;
+	m_i2c_bb.rate = I2C_BB_RATE_400K;
 	i2c_bb_init(&m_i2c_bb);
 
 	uint8_t txb[2];

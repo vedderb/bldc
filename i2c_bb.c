@@ -38,7 +38,18 @@ static bool i2c_read_bit(i2c_bb_state *s);
 static bool i2c_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, unsigned char byte);
 static unsigned char i2c_read_byte(i2c_bb_state *s, bool nack, bool send_stop);
 static bool clock_stretch_timeout(i2c_bb_state *s);
-static void i2c_delay(void);
+static void i2c_delay(float seconds);
+
+static inline float rate2secs(i2c_bb_state *s) {
+	switch (s->rate) {
+	case I2C_BB_RATE_100K: return 3.5e-6;
+	case I2C_BB_RATE_200K: return 1.0e-6;
+	case I2C_BB_RATE_400K: return 2.5e-7;
+	case I2C_BB_RATE_700K: return 0.0;
+	}
+
+	return 1.0e-6;
+}
 
 void i2c_bb_init(i2c_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
@@ -101,7 +112,7 @@ static void i2c_start_cond(i2c_bb_state *s) {
 	if (s->has_started) {
 		// if started, do a restart condition
 		SDA_HIGH();
-		i2c_delay();
+		i2c_delay(rate2secs(s));
 		SCL_HIGH();
 
 		if (!clock_stretch_timeout(s)) {
@@ -109,7 +120,7 @@ static void i2c_start_cond(i2c_bb_state *s) {
 		}
 
 		// Repeated start setup time, minimum 4.7us
-		i2c_delay();
+		i2c_delay(rate2secs(s));
 	}
 
 	if (READ_SDA() == 0) {
@@ -119,14 +130,14 @@ static void i2c_start_cond(i2c_bb_state *s) {
 
 	// SCL is high, set SDA from 1 to 0.
 	SDA_LOW();
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 	SCL_LOW();
 	s->has_started = true;
 }
 
 static void i2c_stop_cond(i2c_bb_state *s) {
 	SDA_LOW();
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	SCL_HIGH();
 
@@ -135,12 +146,12 @@ static void i2c_stop_cond(i2c_bb_state *s) {
 	}
 
 	// Stop bit setup time, minimum 4us
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	// SCL is high, set SDA from 0 to 1
 	SDA_HIGH();
 
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	if (READ_SDA() == 0) {
 //		arbitration_lost();
@@ -158,13 +169,13 @@ static void i2c_write_bit(i2c_bb_state *s, bool bit) {
 	}
 
 	// SDA change propagation delay
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	// Set SCL high to indicate a new valid SDA value is available
 	SCL_HIGH();
 
 	// Wait for SDA value to be read by slave, minimum of 4us for standard mode
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	if (!clock_stretch_timeout(s)) {
 		return;
@@ -189,7 +200,7 @@ static bool i2c_read_bit(i2c_bb_state *s) {
 	SDA_HIGH();
 
 	// Wait for SDA value to be written by slave, minimum of 4us for standard mode
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	// Set SCL high to indicate a new valid SDA value is available
 	SCL_HIGH();
@@ -199,7 +210,7 @@ static bool i2c_read_bit(i2c_bb_state *s) {
 	}
 
 	// Wait for SDA value to be written by slave, minimum of 4us for standard mode
-	i2c_delay();
+	i2c_delay(rate2secs(s));
 
 	// SCL is high, read out bit
 	bit = READ_SDA();
@@ -262,6 +273,6 @@ static bool clock_stretch_timeout(i2c_bb_state *s) {
 	return true;
 }
 
-static void i2c_delay(void) {
-	timer_sleep(2.5e-7);
+static void i2c_delay(float seconds) {
+	timer_sleep(seconds);
 }

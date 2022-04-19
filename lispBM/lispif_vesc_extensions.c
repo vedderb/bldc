@@ -116,6 +116,12 @@ typedef struct {
 	lbm_uint has_phase_filters;
 	lbm_uint uuid;
 	lbm_uint runtime;
+
+	// Rates
+	lbm_uint rate_100k;
+	lbm_uint rate_200k;
+	lbm_uint rate_400k;
+	lbm_uint rate_700k;
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
@@ -252,6 +258,16 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("uuid", comp);
 		} else if (comp == &syms_vesc.runtime) {
 			get_add_symbol("runtime", comp);
+		}
+
+		else if (comp == &syms_vesc.rate_100k) {
+			get_add_symbol("rate-100k", comp);
+		} else if (comp == &syms_vesc.rate_200k) {
+			get_add_symbol("rate-200k", comp);
+		} else if (comp == &syms_vesc.rate_400k) {
+			get_add_symbol("rate-400k", comp);
+		} else if (comp == &syms_vesc.rate_700k) {
+			get_add_symbol("rate-700k", comp);
 		}
 	}
 
@@ -1715,6 +1731,7 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 static i2c_bb_state i2c_cfg = {
 		HW_UART_RX_PORT, HW_UART_RX_PIN,
 		HW_UART_TX_PORT, HW_UART_TX_PIN,
+		I2C_BB_RATE_400K,
 		0,
 		0,
 		{{NULL, NULL}, NULL, NULL}
@@ -1722,7 +1739,28 @@ static i2c_bb_state i2c_cfg = {
 static bool i2c_started = false;
 
 static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
+	if (argn != 0 && argn != 1) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	i2c_cfg.rate = I2C_BB_RATE_200K;
+	if (argn == 1) {
+		if (!lbm_is_symbol(args[0])) {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+
+		if (compare_symbol(lbm_dec_sym(args[0]), &syms_vesc.rate_100k)) {
+			i2c_cfg.rate = I2C_BB_RATE_100K;
+		} else if (compare_symbol(lbm_dec_sym(args[0]), &syms_vesc.rate_200k)) {
+			i2c_cfg.rate = I2C_BB_RATE_200K;
+		} else if (compare_symbol(lbm_dec_sym(args[0]), &syms_vesc.rate_400k)) {
+			i2c_cfg.rate = I2C_BB_RATE_400K;
+		} else if (compare_symbol(lbm_dec_sym(args[0]), &syms_vesc.rate_700k)) {
+			i2c_cfg.rate = I2C_BB_RATE_700K;
+		} else {
+			return lbm_enc_sym(SYM_EERROR);
+		}
+	}
 
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);

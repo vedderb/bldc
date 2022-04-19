@@ -96,6 +96,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	i2cs.sda_pin = sda_pin;
 	i2cs.scl_gpio = scl_gpio;
 	i2cs.scl_pin = scl_pin;
+	i2cs.rate = I2C_BB_RATE_400K;
 	i2c_bb_init(&i2cs);
 
 	reset_init_mpu();
