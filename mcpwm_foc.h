@@ -30,6 +30,7 @@ void mcpwm_foc_deinit(void);
 bool mcpwm_foc_init_done(void);
 void mcpwm_foc_set_configuration(mc_configuration *configuration);
 mc_state mcpwm_foc_get_state(void);
+mc_control_mode mcpwm_foc_control_mode(void);
 bool mcpwm_foc_is_dccal_done(void);
 int mcpwm_foc_isr_motor(void);
 void mcpwm_foc_stop_pwm(bool is_second_motor);
