@@ -841,6 +841,7 @@ typedef struct {
 	AHRS_MODE mode;
 	IMU_FILTER filter;
 	int sample_rate_hz;
+	bool use_magnetometer;
 	float accel_confidence_decay;
 	float mahony_kp;
 	float mahony_ki;

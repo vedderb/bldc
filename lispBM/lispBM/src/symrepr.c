@@ -57,7 +57,7 @@ special_sym const special_symbols[] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"set!"         , SYM_SETVAR},
+  {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
@@ -153,6 +153,7 @@ special_sym const special_symbols[] =  {
   {"u2sym"          , SYM_UINT_TO_SYMBOL},
   {"setcar"         , SYM_SET_CAR},
   {"setcdr"         , SYM_SET_CDR},
+  {"setix"          , SYM_SET_IX},
 
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},

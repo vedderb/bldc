@@ -18,7 +18,8 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
 
-[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)
+[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)  
+[Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)
 
 ## VESC-Specific Commands and Extensions
 
@@ -1690,9 +1691,20 @@ Here are some examples
 (bufset-u16 arr 0 420) ; write 420 to byte 0 and 1 as uint16
 (bufset-u32 arr 0 119) ; write 119 to byte 0 to 3 as uint32
 (bufset-f32 arr 0 3.14) ; write 3.14 to byte 0 to 3 as float32 (IEEE 754)
+(bufset-bit arr 14 1) ; Set bit 14 to 1 (note that this is a bitindex)
 ```
 
 As with bufget big endian is the default byte order and little-endian can be passed as the last argument to use little-endian byte order instead.
+
+#### bufcpy
+
+Copy part of one array into another array.
+
+```clj
+(bufcpy arr1 ind1 arr2 ind2 len)
+```
+
+Copy len bytes from arr2 starting at ind2 to arr1 starting at ind1. Len will be truncated to ensure that nothing is read or written outside of the arrays.
 
 #### free
 

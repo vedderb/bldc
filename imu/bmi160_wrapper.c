@@ -119,6 +119,9 @@ static THD_FUNCTION(bmi_thread, arg) {
 
 	s->is_running = true;
 
+	systime_t iteration_timer = chVTGetSystemTime();
+	const systime_t desired_interval = US2ST(1000000 / s->rate_hz);
+
 	for(;;) {
 		struct bmi160_sensor_data accel;
 		struct bmi160_sensor_data gyro;
@@ -152,6 +155,18 @@ static THD_FUNCTION(bmi_thread, arg) {
 			return;
 		}
 
-		chThdSleepMicroseconds(1000000 / s->rate_hz);
+		// Delay between loops
+		iteration_timer += desired_interval;
+		systime_t current_time = chVTGetSystemTime();
+		systime_t remainin_sleep_time = iteration_timer - current_time;
+		if (remainin_sleep_time > 0 && remainin_sleep_time < desired_interval) {
+			// Sleep the remaining time.
+			chThdSleep(remainin_sleep_time);
+		}
+		else {
+			// Read was too slow or CPU was too buzy, reset the schedule.
+			iteration_timer = current_time;
+			chThdSleep(desired_interval);
+		}
 	}
 }

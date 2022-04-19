@@ -2547,6 +2547,74 @@ static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
 	return res;
 }
 
+static lbm_value ext_bufcpy(lbm_value *args, lbm_uint argn) {
+	lbm_value res = lbm_enc_sym(SYM_EERROR);
+
+	if (argn != 5 || !lbm_is_array(args[0]) || !lbm_is_number(args[1])
+			|| !lbm_is_array(args[2]) || !lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
+		return res;
+	}
+
+	lbm_array_header_t *array1 = (lbm_array_header_t *)lbm_car(args[0]);
+	if (array1->elt_type != LBM_TYPE_BYTE) {
+		return res;
+	}
+
+	unsigned int start1 = lbm_dec_as_u32(args[1]);
+
+	lbm_array_header_t *array2 = (lbm_array_header_t *)lbm_car(args[2]);
+	if (array2->elt_type != LBM_TYPE_BYTE) {
+		return res;
+	}
+
+	unsigned int start2 = lbm_dec_as_u32(args[3]);
+	unsigned int len = lbm_dec_as_u32(args[4]);
+
+	if (start1 < array1->size && start2 < array2->size) {
+		if (len > (array1->size - start1)) {
+			len = (array1->size - start1);
+		}
+		if (len > (array2->size - start2)) {
+			len = (array2->size - start2);
+		}
+
+		memcpy((char*)array1->data + start1, (char*)array2->data + start2, len);
+	}
+
+	res = lbm_enc_sym(SYM_TRUE);
+
+	return res;
+}
+
+static lbm_value ext_bufset_bit(lbm_value *args, lbm_uint argn) {
+	lbm_value res = lbm_enc_sym(SYM_EERROR);
+
+	if (argn != 3 || !lbm_is_array(args[0]) ||
+			!lbm_is_number(args[1]) || !lbm_is_number(args[2])) {
+		return res;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (array->elt_type != LBM_TYPE_BYTE) {
+		return res;
+	}
+
+	unsigned int pos = lbm_dec_as_u32(args[1]);
+	unsigned int bit = lbm_dec_as_u32(args[2]) ? 1 : 0;
+
+	unsigned int bytepos = pos / 8;
+	unsigned int bitpos = pos % 8;
+
+	if (bytepos < array->size) {
+		((uint8_t*)array->data)[bytepos] &= ~(1 << bitpos);
+		((uint8_t*)array->data)[bytepos] |= (bit << bitpos);
+	}
+
+	res = lbm_enc_sym(SYM_TRUE);
+
+	return res;
+}
+
 void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
@@ -2704,6 +2772,8 @@ void lispif_load_vesc_extensions(void) {
 	// Array extensions
 	lbm_array_extensions_init();
 	lbm_add_extension("bufclear", ext_bufclear);
+	lbm_add_extension("bufcpy", ext_bufcpy);
+	lbm_add_extension("bufset-bit", ext_bufset_bit);
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
