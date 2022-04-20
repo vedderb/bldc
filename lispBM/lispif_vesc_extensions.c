@@ -19,13 +19,6 @@
  */
 
 #include "lispif.h"
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "lbm_memory.h"
-#include "env.h"
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
 
@@ -125,6 +118,7 @@ typedef struct {
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
+static void(*ext_callback)(void) = 0;
 
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
@@ -2834,6 +2828,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("bufclear", ext_bufclear);
 	lbm_add_extension("bufcpy", ext_bufcpy);
 	lbm_add_extension("bufset-bit", ext_bufset_bit);
+
+	if (ext_callback) {
+		ext_callback();
+	}
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -2917,6 +2915,10 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 	}
 
 	lbm_continue_eval();
+}
+
+void lispif_set_ext_load_callback(void (*p_func)(void)) {
+	ext_callback = p_func;
 }
 
 void lispif_disable_all_events(void) {

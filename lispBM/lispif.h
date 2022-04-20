@@ -31,6 +31,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len);
+void lispif_set_ext_load_callback(void (*p_func)(void));
 
 void lispif_load_vesc_extensions(void);
 bool lispif_vesc_dynamic_loader(const char *str, const char **code);
