@@ -640,7 +640,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			raw = data[ind++];
 		}
 
-		mc_interface_sample_print_data(mode, sample_len, decimation, raw);
+		mc_interface_sample_print_data(mode, sample_len, decimation, raw, send_func);
 	} break;
 
 	case COMM_REBOOT:
