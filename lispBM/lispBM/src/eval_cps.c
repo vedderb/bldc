@@ -220,6 +220,7 @@ static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
 static int (*printf_callback)(const char *, ...) = NULL;
 static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
+static void (*reader_done_callback)(lbm_cid cid) = NULL;
 
 static bool lbm_verbose = false;
 
@@ -250,6 +251,17 @@ void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
   dynamic_load_callback = fptr;
 }
+
+void lbm_set_reader_done_callback(void (*fptr)(lbm_cid)) {
+  reader_done_callback = fptr;
+}
+
+void done_reading(lbm_cid cid) {
+  if (reader_done_callback != NULL) {
+    reader_done_callback(cid);
+  }
+}
+
 /****************************************************/
 /* Error message creation                           */
 
@@ -1836,8 +1848,11 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
     ctx->app_cont = false;
-  } else if (a_nil || p_nil) {
+  } else if (!a_nil && p_nil) {
     lbm_set_error_reason("Too many arguments.");
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+  } else if (a_nil && !p_nil) {
+    lbm_set_error_reason("Too few arguments.");
     error_ctx(lbm_enc_sym(SYM_EERROR));
   } else {
    sptr[2] = clo_env;
@@ -2038,12 +2053,14 @@ static inline void cont_read(eval_context_t *ctx) {
   bool program = false;
 
   lbm_uint sp_start = ctx->K.sp;
+  lbm_cid cid = ctx->id;
 
   if (lbm_type_of(prg_val) == LBM_TYPE_SYMBOL) {
     if (lbm_dec_sym(prg_val) == SYM_READ) program = false;
     else if (lbm_dec_sym(prg_val) == SYM_READ_PROGRAM) program = true;
   } else {
     error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    done_reading(cid);
     return;
   }
 
@@ -2105,6 +2122,7 @@ static inline void cont_read(eval_context_t *ctx) {
           app_cont = true;
         } else {
           error_ctx(lbm_enc_sym(SYM_RERROR));
+          done_reading(cid);
           return;
         }
       } break;
@@ -2117,6 +2135,7 @@ static inline void cont_read(eval_context_t *ctx) {
             (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
              lbm_dec_sym(ctx->r) == SYM_DOT)) {
           error_ctx(lbm_enc_sym(SYM_RERROR));
+          done_reading(cid);
           return;
         } else {
           if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
@@ -2127,6 +2146,7 @@ static inline void cont_read(eval_context_t *ctx) {
                                    EXPECT_CLOSEPAR));
           } else {
             error_ctx(lbm_enc_sym(SYM_RERROR));
+            done_reading(cid);
             return;
           }
         }
@@ -2135,6 +2155,7 @@ static inline void cont_read(eval_context_t *ctx) {
         tok = token_stream_get(str);
         if (tok != lbm_enc_sym(SYM_TOKENIZER_DONE)) {
           error_ctx(lbm_enc_sym(SYM_RERROR));
+          done_reading(cid);
           return;
         }
         /* Go back to outer eval loop and apply continuation */
@@ -2178,9 +2199,11 @@ static inline void cont_read(eval_context_t *ctx) {
         switch (lbm_dec_sym(tok)) {
         case SYM_RERROR:
           error_ctx(lbm_enc_sym(SYM_RERROR));
+          done_reading(cid);
           return;
         case SYM_MERROR:
           error_ctx(lbm_enc_sym(SYM_MERROR));
+          done_reading(cid);
           return;
         case SYM_TOKENIZER_DONE:
           if (program) {
@@ -2192,20 +2215,24 @@ static inline void cont_read(eval_context_t *ctx) {
                        ctx->K.data[sp_start+3] == APPEND_CONTINUE) {
               // Parsing failed but stack seems to not be corrupted.
               error_ctx(lbm_enc_sym(SYM_RERROR));
+              done_reading(cid);
               return;
             } else {
               // parsing failed and left a corrupted stack.
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+              done_reading(cid);
               return; // there is no context to keep working in so return.
             }
           } else {
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == READ_DONE) {
               error_ctx(lbm_enc_sym(SYM_RERROR));
+              done_reading(cid);
               return;
             } else if (ctx->K.sp < sp_start) {
               /*the stack is broken */
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+              done_reading(cid);
               return; // there is no context to keep working in so return.
             } else {
               app_cont = true;
@@ -2258,6 +2285,8 @@ static inline void cont_read(eval_context_t *ctx) {
   if (ctx->K.sp != sp_start) {
     error_ctx(lbm_enc_sym(SYM_EERROR));
   }
+
+  done_reading(cid);
 }
 
 #define OTHER_APPLY   0

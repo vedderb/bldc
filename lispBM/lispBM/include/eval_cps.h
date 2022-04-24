@@ -217,6 +217,10 @@ extern void lbm_set_printf_callback(int (*prnt)(const char*, ...));
  * an undefined symbol
  */
 extern void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **));
+/** Set a callback that is run when reading source is finishes
+ *  within a context
+ */
+extern void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
 /** Create a token stream for parsing for code
  *
  * \param str character stream to convert into a token stream.

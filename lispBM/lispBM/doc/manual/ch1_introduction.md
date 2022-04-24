@@ -106,28 +106,9 @@ To test if this dynamic loading of the library function works type
 
 ```
 # (iota 1024)
-loading: (iota 1024)
-started ctx: 144
-<< Context 144 finished with value (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
-15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37
-38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60
-61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83
-84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104
-105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121
-122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138
-139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155
-156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172
-173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189
-190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206
-207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223
-224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240
-241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257
-258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274
-275 276 277 278 279 280 281 ... >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 ...
 ```
+
 If things seem to work so far, lets go on and play some with the repl.
 
 ---
@@ -147,66 +128,43 @@ For example we can type `(+ 1 2)` at the prompt and get a response.
 
 ```
 # (+ 1 2)
-loading: (+ 1 2)
-started ctx: 144
-<< Context 144 finished with value 3 >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> 3
 ```
 
 The REPL informs us that it is loading `(+ 1 2)`, and that it started
 a context with ID 144 to evaluate the expression in.  When then
-context then finishes execution the REPL presents `<< Context 144
-finished with value 3 >>` which means that the result of `(+ 1 2)` was
-computed to be `3`. While computing this the evaluator used 11
-elements of the stack and after finishing the stack pointer is back at
-position 0.
+context then finishes execution the REPL presents `3` which means that
+the result of `(+ 1 2)` was computed to be `3`. 
 
-The context that is being created and that evaluates the expression is
-related to the concurrent nature of LBM and will be explored in more
-detail later.
-
-The example REPL provides an extension for printing things, for example strings:
+The example REPL provides an extension for printing things, for
+example strings:
 
 ```
-# (print "hello world!\n")
-loading: (print "hello world!\n")
-started ctx: 141
+# (print "hello world!")
 hello world!
-<< Context 141 finished with value t >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> t
 ```
 
-The program above implements "hello world" as you can see on line 3 of the
-output presented above. The print function baked into the REPL is capable
-of printing a lot of different LBM values, not just strings.
-for example:
+The program above implements "hello world" as you can see on the
+output presented above. The `t` is the return value of print
+symbolising "true" for success. The print function baked into the REPL
+is capable of printing a lot of different LBM values, not just
+strings.  for example:
 
 ```
 # (print 10)
-loading: (print 10)
-started ctx: 147
-10<< Context 147 finished with value t >>
-stack max:  11
-stack size: 256
-stack sp:   0
+10
+> t
 ```
 
 You can print many things at once by providing more arguments to print.
 
 ```
-# (print "hello world!\n")
-loading: (print "hello world!\n")
-started ctx: 141
-hello world!
-<< Context 141 finished with value t >>
-stack max:  11
-stack size: 256
-stack sp:   0
+# (print "The year " 1492)
+The year 1492
+> t
 ```
+
 We will see what else print can print as we progress through the manual.
 
 Now let's see if we can implement a small game right in the REPL! Inspired
@@ -222,23 +180,18 @@ a random number.
 
 Enter the following into the REPL and hit enter:
 ```
-define small 1
+(define small 1)
 ```
 and the REPL replies:
 
 ```
 # (define small 1)
-loading: (define small 1)
-started ctx: 162
-<< Context 162 finished with value small >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> small
 ```
 Our number must be larger than or equal to 1.
 
 ```
-define big 100
+(define big 100)
 ```
 Our number must be smaller than or equal to 100.
 
@@ -249,12 +202,7 @@ by typing `small` or `big` into the REPL and pressing enter.
 
 ```
 # small
-loading: small
-started ctx: 162
-<< Context 162 finished with value 1 >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> 1
 ```
 
 To get a guess from the computer we call a function called
@@ -275,12 +223,7 @@ Now we can ask the computer to take a guess by typing
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 162
-<< Context 162 finished with value 50 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 50
 ```
 Now, if the computer's guess is wrong we can help it by saying `(bigger)` or `(smaller)`. 
 Let's implement these functions.
@@ -306,12 +249,7 @@ Let's say that we think about the number 7 and ask the computer to guess:
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 50 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 50
 ```
 
 50, thats to high, type `(smaller)` into the REPL and press enter.
@@ -319,24 +257,14 @@ The we ask the computer to guess again
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 25 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 25
 ```
 25, that is still too high, `(smaller)`, enter.
 Guess again computer!
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 12 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 12
 ```
 
 12, too high again, `(smaller)`, enter.
@@ -344,12 +272,7 @@ Guess again!
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 6 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 6
 ```
 
 6, is too small! `(bigger)`, enter.
@@ -357,12 +280,7 @@ Guess please ;)
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 9 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 9
 ```
 
 No, no, not 9. `(smaller)`, enter.
@@ -370,12 +288,7 @@ No, no, not 9. `(smaller)`, enter.
 
 ```
 # (guess-my-number)
-loading: (guess-my-number)
-started ctx: 166
-<< Context 166 finished with value 7 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 7
 ```
 Yay! Go computer!
 
@@ -402,14 +315,9 @@ the REPL wont be happy with us!
 
 ```
 # (1 2 3)
-loading: (1 2 3)
-started ctx: 144
 ***	Error: eval_error
 
-<< Context 144 finished with value eval_error >>
-stack max:  11
-stack size: 256
-stack sp:   4
+> eval_error
 ```
 
 Typing `(1 2 3)` into the REPL resulted in an eval error. This is because
@@ -424,12 +332,7 @@ and it can be applied to the arguments `1` and `2`.
 
 ```
 # (+ 1 2)
-loading: (+ 1 2)
-started ctx: 144
-<< Context 144 finished with value 3 >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> 3
 ```
 
 So, if lists that we give to the evaluator are assumed to be code, how
@@ -443,12 +346,7 @@ element is the function `list`.
 
 ```
 # (list 1 2 3)
-loading: (list 1 2 3)
-started ctx: 144
-<< Context 144 finished with value (1 2 3) >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> (1 2 3)
 ```
 
 In a function application the arguments are evaluated before the function
@@ -479,12 +377,7 @@ variable give, for example, the list `(define a 10)` to the REPL.
 
 ```
 # (define a 10)
-loading: (define a 10)
-started ctx: 144
-<< Context 144 finished with value a >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> a
 ```
 
 This sets up an association between the symbol `a` and the value 10. And
@@ -493,12 +386,7 @@ with `10`.
 
 ```
 # a
-loading: a
-started ctx: 148
-<< Context 148 finished with value 10 >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> 10
 ```
 
 LBM is case-insensitive when it comes to symbols, so `a` and `A` is the
@@ -537,12 +425,7 @@ fine and results in the list `(1 2 3)`.
 
 ```
 # '(1 2 3)
-loading: '(1 2 3)
-started ctx: 148
-<< Context 148 finished with value (1 2 3) >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> (1 2 3)
 ```
 
 Any LBM expression can be quoted and essentially then viewed as a
@@ -550,13 +433,8 @@ data-structure rather than as code. For example you can quote any
 symbol:
 
 ```
-# `i-am-a-symbol
-loading: `i-am-a-symbol
-started ctx: 148
-<< Context 148 finished with value i-am-a-symbol >>
-stack max:  11
-stack size: 256
-stack sp:   0
+# 'i-am-a-symbol
+> i-am-a-symbol
 ```
 
 Quoted symbols is very common to see when writing programs that use
@@ -567,12 +445,7 @@ like this `(list (list 'apples 10) (list 'bananas 15))`.
 
 ```
 # (list (list 'apples 10) (list 'bananas 15))
-loading: (list (list 'apples 10) (list 'bananas 15))
-started ctx: 151
-<< Context 151 finished with value ((apples 10) (bananas 15)) >>
-stack max:  14
-stack size: 256
-stack sp:   0
+> ((apples 10) (bananas 15))
 ```
 
 Another example is that you can quote an addition expression such as
@@ -580,12 +453,7 @@ Another example is that you can quote an addition expression such as
 
 ```
 # '(+ 1 2)
-loading: '(+ 1 2)
-started ctx: 151
-<< Context 151 finished with value (+ 1 2) >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> (+ 1 2)
 ```
 
 the result of this quoted addition is a list with the elements `+`,`1`
@@ -616,13 +484,8 @@ evaluated because it has the comma sign prepended. The result of this expression
 is:
 
 ```
-# `(+ 1 ,(+ 2 3))
-loading: `(+ 1 ,(+ 2 3))
-started ctx: 172
-<< Context 172 finished with value (+ 1 5) >>
-stack max:  29
-stack size: 256
-stack sp:   0
+#  `(+ 1 ,(+ 2 3))
+> (+ 1 5)
 ```
 
 To insert the result of evaluating an expression into a data-structure
@@ -635,12 +498,7 @@ which results in the list `(+ 1 2 3 4)`.
 
 ```
 # `(+ 1 ,@(list 2 3 4))
-loading: `(+ 1 ,@(list 2 3 4))
-started ctx: 172
-<< Context 172 finished with value (+ 1 2 3 4) >>
-stack max:  25
-stack size: 256
-stack sp:   0
+> (+ 1 2 3 4)
 ```
 
 Usages of `` ` ``, `,` and `,@` are also expanded by the parser
@@ -686,12 +544,7 @@ at the heap of the list to the arguments.
 
 ```
 # ((lambda (x y) (+ (* 2 x) y)) 2 1)
-loading: ((lambda (x y) (+ (* 2 x) y)) 2 1)
-started ctx: 172
-<< Context 172 finished with value 5 >>
-stack max:  19
-stack size: 256
-stack sp:   0
+> 5
 ```
 
 ---
@@ -716,12 +569,7 @@ at the head of an application form, for example `(twoxplusy 2 1)`:
 
 ```
 # (twoxplusy 2 1)
-loading: (twoxplusy 2 1)
-started ctx: 178
-<< Context 178 finished with value 5 >>
-stack max:  12
-stack size: 256
-stack sp:   0
+> 5
 ```
 
 ### Macros
@@ -820,23 +668,13 @@ The `monkey?` function returns `t` for monkeys
 
 ``` lisp
 # (monkey? 'monkey)
-loading: (monkey? 'monkey)
-started ctx: 195
-<< Context 195 finished with value t >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> t
 ```
 and it returns false (`nil`) for anything else.
 
 ``` lisp
 # (monkey? 'ostrich)
-loading: (monkey? 'ostrich)
-started ctx: 195
-<< Context 195 finished with value nil >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> nil
 ```
 
 ---
@@ -872,12 +710,7 @@ If you now enter `a` into the repl and press enter, the REPL will reply as:
 
 ```
 # a
-loading: a
-started ctx: 141
-<< Context 141 finished with value 10 >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> 10
 ```
 
 The REPL also supports a command `:env` that shows information about current
@@ -941,12 +774,7 @@ To check what type something is in LBM, you can apply the function
 
 ```
 # (type-of 365)
-loading: (type-of 365)
-started ctx: 155
-<< Context 155 finished with value type-i >>
-stack max:  11
-stack size: 256
-stack sp:   0
+> type-i
 ```
 
 In the example above we see that the value `365` has the type `type-i`
@@ -1003,14 +831,11 @@ and it can be used anywhere where it is ok to use an expression.
 
 
 Below is an example that defines a value and prints in the same expression.
+
 ```
 # (progn (define ape 'monkey) (print ape))
-loading: (progn (define ape 'monkey) (print ape))
-started ctx: 155
-monkey<< Context 155 finished with value t >>
-stack max:  14
-stack size: 256
-stack sp:   0
+monkey
+> t
 ```
 # The special forms (or keywords) of LispBM
 
