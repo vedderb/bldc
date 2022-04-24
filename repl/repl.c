@@ -18,6 +18,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
@@ -35,8 +36,8 @@
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
-
 #define WAIT_TIMEOUT 2500
+#define STR_SIZE 1024
 
 lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
@@ -50,6 +51,58 @@ struct termios new_termios;
 
 static lbm_tokenizer_string_state_t string_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
+
+pthread_mutex_t mut;
+
+typedef struct read_s {
+  lbm_cid cid;
+  char *str;
+  struct read_s *next;
+  struct read_s *prev;
+} read_t;
+
+read_t *reading = NULL;
+
+void add_reading( read_t *r ) {
+  pthread_mutex_lock(&mut);
+  r->next = reading;
+  r->prev = NULL;
+  if (reading) reading->prev = r;
+  reading = r;
+  pthread_mutex_unlock(&mut);
+}
+
+read_t *get_reading(lbm_cid cid) {
+  pthread_mutex_lock(&mut);
+  read_t *res = NULL;
+
+  read_t *curr = reading;
+
+  while (curr) {
+
+    if (curr->cid == cid) {
+      res = curr;
+      if (curr->prev) {
+        curr->prev->next = curr->next;
+      } else {
+        reading = curr->next;
+      }
+      if (curr->next) {
+        curr->next->prev = curr->prev;
+      }
+      break;
+    }
+    curr = curr->next;
+  }
+  pthread_mutex_unlock(&mut);
+  return res;
+}
+
+void free_reading(read_t *r) {
+  free(r->str);
+  free(r);
+}
+
 
 void setup_terminal(void) {
 
@@ -79,6 +132,16 @@ void restore_terminal(void) {
   tcsetattr(0, TCSANOW, &old_termios);
 }
 
+void new_prompt() {
+  printf("\33[2K\r");
+  printf("# ");
+  fflush(stdout);
+}
+
+void erase() {
+  printf("\33[2K\r");
+  fflush(stdout);
+}
 
 int inputline(char *buffer, unsigned int size) {
   unsigned int n = 0;
@@ -136,6 +199,7 @@ void *eval_thd_wrapper(void *v) {
 
 void done_callback(eval_context_t *ctx) {
 
+  erase();
   char output[1024];
 
   lbm_cid cid = ctx->id;
@@ -143,19 +207,33 @@ void done_callback(eval_context_t *ctx) {
 
   int print_ret = lbm_print_value(output, 1024, t);
 
-  if (print_ret >= 0) {
-    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
-  } else {
-    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
-  }
-  printf("stack max:  %"PRI_UINT"\n", ctx->K.max_sp);
-  printf("stack size: %"PRI_UINT"\n", ctx->K.size);
-  printf("stack sp:   %"PRI_INT"\n", ctx->K.sp);
+  printf("> %s\n", output);
 
-  //  if (!eval_cps_remove_done_ctx(cid, &t)) {
-  //   printf("Error: done context (%d)  not in list\n", cid);
-  //}
   fflush(stdout);
+  new_prompt();
+}
+
+void read_done_callback(lbm_cid cid) {
+
+  erase();
+  read_t *r = get_reading(cid);
+
+  if (r == NULL) {
+    // This case happens if the lisp code executes "read"
+  } else {
+    free_reading(r);
+  }
+  fflush(stdout);
+  new_prompt();
+}
+
+int error_print(const char *format, ...) {
+  erase();
+  va_list args;
+  va_start (args, format);
+  vprintf(format, args);
+  va_end(args);
+  new_prompt();
 }
 
 uint32_t timestamp_callback() {
@@ -191,7 +269,7 @@ bool dyn_load(const char *str, const char **code) {
             "(let ((iacc (lambda (acc i)"
             "(if (< i 0) acc"
             "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil n))))";
+            "(iacc nil (- n 1)))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
     *code = "(define length (lambda (xs)"
@@ -246,6 +324,7 @@ bool dyn_load(const char *str, const char **code) {
 
 
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  erase();
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   if (!allow_print) return lbm_enc_sym(SYM_TRUE);
@@ -274,6 +353,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       printf("%s", output);
     }
   }
+  printf("\n");
+  new_prompt();
   return lbm_enc_sym(SYM_TRUE);
 }
 
@@ -383,11 +464,12 @@ lbm_uint word_array[1024];
 
 
 int main(int argc, char **argv) {
-  char str[1024];
   unsigned int len = 1024;
   int res = 0;
 
   pthread_t lispbm_thd;
+
+  pthread_mutex_init(&mut, NULL);
 
   lbm_heap_state_t heap_state;
   unsigned int heap_size = 2048;
@@ -419,7 +501,8 @@ int main(int argc, char **argv) {
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dyn_load);
-  lbm_set_printf_callback(printf);
+  lbm_set_printf_callback(error_print);
+  lbm_set_reader_done_callback(read_done_callback);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
@@ -470,11 +553,13 @@ int main(int argc, char **argv) {
 
   while (1) {
     fflush(stdin);
-    printf("# ");
-    memset(str, 0 ,len);
 
-    ssize_t n = inputline(str,len);
-    fflush(stdout);
+    new_prompt();
+
+    char *str = malloc(STR_SIZE);
+    memset(str, 0 ,STR_SIZE);
+
+    ssize_t n = inputline(str,STR_SIZE);
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
@@ -491,6 +576,7 @@ int main(int argc, char **argv) {
       printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
       printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
       printf("Symbol table size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+      free(str);
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();
       printf("Environment:\r\n");
@@ -506,8 +592,11 @@ int main(int argc, char **argv) {
         lbm_print_value(output,1024, lbm_get_variable_by_index(i));
         printf("  %s = %s\r\n", name ? name : "error", output);
       }
-
+      free(str);
     }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+
+      read_t *r = malloc(sizeof(read_t));
+
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
@@ -522,19 +611,26 @@ int main(int argc, char **argv) {
         }
 
         lbm_cid cid = lbm_load_and_eval_program(&string_tok);
+        r->str = file_str;
+        r->cid = cid;
+        add_reading(r);
 
         lbm_continue_eval();
 
-        printf("started ctx: %"PRI_UINT"\n", cid);
+        //printf("started ctx: %"PRI_UINT"\n", cid);
       }
+      free(str);
     } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
       lbm_toggle_verbose();
+      free(str);
       continue;
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
+      free(str);
       continue;
     } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
       allow_print = false;
+      free(str);
       continue;
     } else if (strncmp(str, ":ctxs", 5) == 0) {
       printf("****** Running contexts ******\n");
@@ -543,6 +639,7 @@ int main(int argc, char **argv) {
       lbm_blocked_iterator(print_ctx_info, NULL, NULL);
       printf("****** Done contexts ******\n");
       lbm_done_iterator(print_ctx_info, NULL, NULL);
+      free(str);
     } else if (strncmp(str, ":wait", 5) == 0) {
       int id = atoi(str + 5);
       bool exists = false;
@@ -552,10 +649,56 @@ int main(int argc, char **argv) {
           printf("Timout while waiting for context %d\n", id);
         }
       }
+      free(str);
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-            break;
+      free(str);
+      break;
     } else if (strncmp(str, ":symbols", 8) == 0) {
       lbm_symrepr_name_iterator(sym_it);
+      free(str);
+    } else if (strncmp(str, ":heap", 5) == 0) {
+      int size = atoi(str + 5);
+      if (size > 0) {
+        heap_size = size;
+
+        free(heap_storage);
+        heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
+
+        lbm_pause_eval();
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+
+        lbm_init(heap_storage, heap_size,
+                 gc_stack_storage, GC_STACK_SIZE,
+                 memory, LBM_MEMORY_SIZE_8K,
+                 bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                 print_stack_storage, PRINT_STACK_SIZE,
+                 extension_storage, EXTENSION_STORAGE_SIZE);
+
+        lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+
+        if (lbm_array_extensions_init()) {
+          printf("Array extensions loaded\n");
+        } else {
+          printf("Loading array extensions failed\n");
+        }
+
+        if (lbm_string_extensions_init()) {
+        printf("String extensions loaded\n");
+        } else {
+          printf("Loading string extensions failed\n");
+        }
+
+        if (lbm_math_extensions_init()) {
+          printf("Math extensions loaded\n");
+        } else {
+          printf("Loading math extensions failed\n");
+        }
+
+        lbm_add_extension("print", ext_print);
+        free(str);
+      }
     } else if (strncmp(str, ":reset", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -588,9 +731,9 @@ int main(int argc, char **argv) {
       } else {
         printf("Loading math extensions failed\n");
       }
-  
-      
+
       lbm_add_extension("print", ext_print);
+      free(str);
     } else if (strncmp(str, ":send", 5) == 0) {
 
       int id;
@@ -610,21 +753,23 @@ int main(int argc, char **argv) {
       } else {
         printf("Incorrect arguments to send\n");
       }
-
+      free(str);
     } else if (strncmp(str, ":pause", 6) == 0) {
       lbm_pause_eval_with_gc(30);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
       printf("Evaluator paused\n");
-
+      free(str);
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
+      free(str);
     } else if (strncmp(str, ":step", 5) == 0) {
 
       int num = atoi(str + 5);
 
       lbm_step_n_eval((uint32_t)num);
+      free(str);
     } else if (strncmp(str, ":undef", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -634,41 +779,25 @@ int main(int argc, char **argv) {
       printf("undefining: %s\n", sym);
       printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
       lbm_continue_eval();
-    } else if (strncmp(str, ":array", 6) == 0) {
-      lbm_pause_eval_with_gc(30);
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-      printf("Evaluator paused\n");
-
-      lbm_value arr_val;
-      lbm_share_array(&arr_val, char_array, LBM_TYPE_CHAR,1024);
-      lbm_define("c-arr", arr_val);
-
-      lbm_share_array(&arr_val, (char *)word_array, LBM_TYPE_I32,1024);
-      lbm_define("i-arr", arr_val);
-
-      lbm_continue_eval();
-
+      free(str);
     } else {
       /* Get exclusive access to the heap */
+      read_t *r = malloc(sizeof(read_t));
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      printf("loading: %s\n", str);
+      //printf("loading: %s\n", str);
       lbm_create_char_stream_from_string(&string_tok_state,
                                          &string_tok,
                                          str);
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-
+      r->str = str;
+      r->cid = cid;
+      add_reading(r);
       lbm_continue_eval();
 
-      printf("started ctx: %"PRI_UINT"\n", cid);
-      /* Something better is needed.
-         this sleep ís to ensure the string is alive until parsing
-         is done */
-      sleep_callback(250000);
+      //printf("started ctx: %"PRI_UINT"\n", cid);
     }
   }
   free(heap_storage);

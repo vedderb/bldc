@@ -58,23 +58,14 @@ These equivalent functions are called `first` and `rest`.
 Example of taking the first element from a list:
 ```
 # (first (list 1 2 3))
-loading: (first (list 1 2 3))
-started ctx: 144
-<< Context 144 finished with value 1 >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> 1
 ```
 
 Example of taking the rest of a list:
+
 ```
 # (rest (list 1 2 3))
-loading: (rest (list 1 2 3))
-started ctx: 144
-<< Context 144 finished with value (2 3) >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> (2 3)
 ```
 
 So applying `first` (or equivalently `car`) to the list `(list 1 2 3)` gives
@@ -89,23 +80,13 @@ and returns the value at that position in the list. if the index is too large
 Example of indexing into a list:
 ```
 # (ix (list 1 2 3) 2)
-loading: (ix (list 1 2 3) 2)
-started ctx: 156
-<< Context 156 finished with value 3 >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> 3
 ```
 
 And if you index out of bounds you get the following
 ```
 # (ix (list 1 2 3) 5)
-loading: (ix (list 1 2 3) 5)
-started ctx: 156
-<< Context 156 finished with value nil >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> nil
 ```
 
 The REPL contains a small library of list functions that will be loaded
@@ -121,7 +102,6 @@ these provide.
 | `drop`     | Creates a list by removing some number of elements from a list. |
 | `zip`      | Produces a list of two-element lists from two input lists. |
 | `map`      | Produces a list that contains the results of applying a function to all elements in an input list. |
-| `lookup`   | Looks up a value in a list of key-value bindings. |
 | `foldr`    | Reduces a list to a single element by application of two-input one output function (from the right). |
 | `foldl`    | Similar to above but from the left (beginning). |
 
@@ -131,14 +111,16 @@ as the plan is to implement each of them in the next section.
 ---
 **NOTE**
 
-The `nil` at the end of a list is a convention. There is nothing
-in LBM that enforce that you put `nil` as a termination of a list
-and you could just as well put for example `'cactus` at the end of
-your lists. All your functions on these `'cactus` lists would have to
-be written with that in mind though. So let's stick to convention.
+The `nil` at the end of a list is a convention. There is nothing in
+LBM that enforce that you put `nil` as a termination of a list and you
+could just as well put for example `'cactus` at the end of your
+lists. All your functions on these `'cactus` lists would have to be
+written with that in mind though. So let's stick to convention. Built
+in functions on lists will expect `nil` as the terminator.
 
-Another thing to note about cons-cells is that you do not need
-to arrange then into rightwards-nested lists. You could do the opposite.
+
+Another thing to note about cons-cells is that you do not need to
+arrange then into rightwards-nested lists. You could do the opposite.
 You can also build trees by allowing cons-cells in both the `car` and
 `cdr` fields. This is entirely up to the programmer.
 
@@ -160,6 +142,26 @@ occurs in a list. We call this function `elem` and it takes one list
 and one value as input, if the value is in the list the result is some "true"
 value and otherwise it is `nil`. Since any value other than `nil` is "true"
 we can return the value we search for as the result.
+
+---
+**NOTE**
+
+The REPL currently does not support entering multi-line programs.
+Write the programs here into a file and load that file into the
+REPL using the `:load` command.
+
+The examples here are available in `listcode.lisp` in the
+`ch2_examples` directory ([here](./ch2_examples/listcode.lisp)).
+
+if you start the REPL from the `ch2_examples` directory, you
+can load the list examples using the command:
+
+```
+# :load listcode.lisp
+```
+
+---
+
 
 ```lisp
 (defun elem (ls e)
@@ -216,7 +218,7 @@ into three patterns instead and being a bit more precise in each.
     (match ls
            ( nil nil )
            ( (,e . _) e )
-           ( (_ . (? xs)) (elem-pm2 xs e) ))))
+           ( (_ . (? xs)) (elem-pm2 xs e) )))
 ```
 
 The code above has the
@@ -233,6 +235,286 @@ list and performs the recursion. The pattern matching cases are tested
 in order from the top, so in this last case we know that the first element
 cannot possibly be `e`.
 
+### The importance of tail-recursion
+
+When writing recursive functions one must be careful not to exhaust 
+all stack. It is possible to write recusive functions that evaluate 
+in constant space (not growing linear with number of calls) and these
+recursive functions are called tail-recursive.
+
+What tail-recursion and non-tail-recursion looks like is best illustrated by
+examples. The example below implements the `length` function on a list
+and does so in a non-tail-recursive manner:
+
+```lisp
+(defun length-notail (ls)
+  (if (eq ls nil)
+      0
+    ( + 1 (length-notail (cdr ls)))))
+```
+
+The `length-notail` function expects that the input is a proper list and splits
+into two cases, one for the empty list and one for a list containing at least 1
+element. The empty list is of length 0, a list longer than 0 elements is 1 + the length
+of the rest of the list.
+
+Running this program on a list produces the following:
+
+```
+# (length-notail (list 1 2 3 4 5))
+> 5
+```
+
+So, what is the problem? The problem is this expression containing the
+recursive call `( + 1 (length-notail (cdr ls)))`. There is a `+ 1` on
+the "outside" of the recursive call. If you evaluate `(a (b ..))` then
+`a` is supposed to be applied to the result of `b` which means that we
+must remember that until the `b` returns. In the LBM implementation
+`a` is turned into a so-called "continuation" that occupies some
+amount of space on the runtime stack.  If the recursion is "deep", the
+list we count is long, then this stack space usage will grow
+proportional to the length of the list. That is very bad:
+
+```
+# (length-notail (iota 1024))
+***	Error: out_of_stack
+
+> out_of_stack
+```
+
+The list `(iota 1024)` is 1024 elements long! And while recurring over
+it, we exhaust all stack!
+
+A common pattern to apply that removes the "outside" function
+application around the recursive call is to have the recursive
+function take an extra argument that accumulates partial results
+throughout the recursion. This is usually accomplished using a small
+helper function taking that extra argument:
+
+```lisp
+(defun length-tail (ls)
+  (let ((len-helper (lambda (acc ls)
+                      (if (eq ls nil)
+                          acc
+                        (len-helper (+ 1 acc) (rest ls))))))
+    (len-helper 0 ls)))
+```
+
+The `length-tail` function is implemented using a helper called
+`len-helper`.  `len-helper` takes two arguments, a number and a
+list. The idea is that we use the number argument to accumulate the
+length we have seen so far through the recursion. In each recursive
+call we add 1 to the accumulator.
+
+The key here is again the then-branch `(len-helper (+ 1 acc) (rest
+ls))`. Note that here is nothing on the "outside" of the recursive
+call that we need to remember while executing `len-helper`.
+
+Now its no problem to compute the length of `(iota 1024)`:
+
+```
+# (length-tail (iota 1024))
+> 1025
+```
+
+### Iota and Reverse
+
+The `iota` and the `reverse` functions are both examples building a 
+list. `iota` builds a list based an input argument and enumerates all 
+numbers from 0 up to and including the number providided as argument. 
+`reverse` takes a list as input, deconstructs it and creates a new 
+list in the reversed order. 
+
+Examples: 
+```
+# (iota 10)
+> (0 1 2 3 4 5 6 7 8 9)
+``` 
+
+``` 
+# (reverse (iota 10))
+> (9 8 7 6 5 4 3 2 1 0)
+``` 
+
+Note that the result of `reverse` is a new list as expected in
+functional programming. So if you bind the result of `iota` to a name
+and then run reverse on that "variable", future references to that
+name will result in the original list.
+
+Example: 
+```
+# (define my-list (iota 10))
+> my-list
+# my-list
+> (0 1 2 3 4 5 6 7 8 9)
+# (reverse my-list)
+> (9 8 7 6 5 4 3 2 1 0)
+# my-list
+> (0 1 2 3 4 5 6 7 8 9)
+``` 
+
+Note that calling `(reverse my-list)` returns a new, reversed lists,
+while `my-list` remains intact.
+
+`iota` is implemented using the same tail-recursion "trick" as we have
+seen earlier. The helper function with the extra argument is called
+`iacc` here, for iota-accumulate.
+
+```lisp
+(defun iota (n)
+  (let ((iacc (lambda (acc i)
+                (if (< i 0) acc
+                    (iacc (cons i acc) (- i 1))))))
+    (iacc nil (- n 1))))
+```
+
+`iacc` takes an `acc` parameter in which the result list is accumulated 
+and a number `i` which should be 0 or larger. Applied on a negative 
+number `iota` returns  `nil`. 
+
+
+The `reverse` function is very similar to `iota` in spirit. 
+Instead of decreasing a number for each recursive call, a smaller 
+list is passed as argument. This brings to mind another "rule" to 
+apply when writing recursive functions: the argument given to the 
+recursive application should be closer to the terminating case. 
+Usually this "closer" property means that the argument to the 
+recursive call will be either structurally (as in a shorter list) 
+or numerically smaller than the argument passed to the current 
+"iteration". 
+
+
+```lisp
+(defun reverse (xs)
+  (let ((revacc (lambda (acc xs)
+                  (if (eq nil xs) acc
+                      (revacc (cons (first xs) acc) (rest xs))))))
+    (revacc nil xs)))
+```
+`revacc` splits into two cases, one for the empty list in which the 
+accumulated reversed list is returned and one for non-empty lists. 
+In the non-empty case an element is removed from the start of the 
+input list and placed first in the accumulation-list. 
+
+Imagine having a deck of cards. If you pick a card from the top of
+your deck and place that next to the deck on the table. Then repeat,
+pick the current top of the card next to the deck. continue repeating
+until the entire deck has moved over to the other pile and it is now
+in reversed order.
+
+---
+**NOTE** 
+
+If you run `iota` with a large argument, the resulting list may end 
+up being longer than there are available heap cells. 
+
+``` 
+# (iota 4096)
+***	Error: out_of_memory
+
+> out_of_memory
+```
+
+The REPL starts up with 2048 heap-cells, so it is clearly impossible
+to make a list that is 4096 elements long! 
+
+There is a REPL command to increate the size of the heap. For example type
+`:heap 8192` and press enter. 
+
+```
+# :heap 8192
+Array extensions loaded
+String extensions loaded
+Math extensions loaded
+```
+This command resets the REPL (all state is cleared) and the heap is resized. 
+
+In this larger heap it is possible to run `(iota 4096)`.
+
+```
+# (iota 4096)
+> (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 ...
+``` 
+
+When the REPL prints a long list it will at some point cut off and
+indicate with `...` that there are really more elements in the
+list. Printing arbitrary recursive structures requires storage, a
+printing stack, and the printer is limited to operate within a small
+fixed amount of memory.
+
+---
+
+### Take, Drop and Zip
+
+The `take` function takes n elements from the start of a list 
+and returns these as a new list. 
+
+The code below is a first attempt at implementing `take` but 
+unfortunately it is a non-tail-recursive function!
+
+``` 
+(defun take-n (n xs)
+  (if ( = 0 n)
+      nil
+      (cons (first xs) (take-n (- n 1) (rest xs) ))))
+```
+`take-n` takes a number of elements to take from the list passed 
+as the second argument. `n` is decreased in each recursive call (bringing 
+us closer to the terminating case where `n` is 0. 
+
+```
+# (take-n 5 (iota 10))
+> (0 1 2 3 4)
+```
+
+The problem with the `take-n` function is that there is `cons` outside
+of the recursive call of `take-n` and unfortunately it is not enough
+to just directly apply the "accumulator trick" to make this function
+tail-recursive.  But let's try it and see what happens!
+
+```
+(defun take-t (n xs)
+  (let ((takeacc (lambda (acc n xs)
+                   (if (= n 0) acc
+                       (takeacc (cons (first xs) acc) (- n 1) (rest xs))))))
+    (takeacc nil n xs)))
+``` 
+
+So, the result of `take-t` comes out in reversed order!
+
+``` 
+# (take-t 5 (iota 10))
+> (4 3 2 1 0)
+``` 
+
+To fix this we can add an application of `reverse` to `take-t` 
+
+``` 
+(defun take-t (n xs)
+  (let ((takeacc (lambda (acc n xs)
+                   (if (= n 0) acc
+                       (takeacc (cons (first xs) acc) (- n 1) (rest xs))))))
+    (reverse (takeacc nil n xs))))
+```
+
+It is unfortunate that in some cases we have to make functions more
+expensive when making then tail-recursive.
+
+The `drop` function is, however, very easy to get right. 
+
+```
+(defun drop-n (n xs)
+  (if ( = 0 n)
+      xs
+      (drop-n (- n 1) (rest xs))))
+``` 
+
+
+
+### Map, Foldr and Foldl
+
+
+## Association lists
 
 
 ## Conclusion
