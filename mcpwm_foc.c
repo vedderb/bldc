@@ -2783,6 +2783,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 				if (motor_now->m_hfi.observer_zero_time < conf_now->foc_hfi_obs_ovr_sec) {
 					motor_now->m_hfi.angle = motor_now->m_phase_now_observer;
+					motor_now->m_hfi.double_integrator = -motor_now->m_speed_est_fast;
 				}
 
 				motor_now->m_motor_state.phase = foc_correct_encoder(
@@ -3412,6 +3413,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 
 	if (rpm_abs > motor->m_conf->foc_sl_erpm_hfi) {
 		motor->m_hfi.angle = motor->m_phase_now_observer;
+		motor->m_hfi.double_integrator = -motor->m_speed_est_fast;
 	}
 
 	if (motor->m_hfi.ready) {
@@ -3556,6 +3558,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 		}
 	} else {
 		motor->m_hfi.angle = motor->m_phase_now_observer;
+		motor->m_hfi.double_integrator = -motor->m_speed_est_fast;
 	}
 }
 
@@ -3840,7 +3843,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				float di = (motor->m_hfi.prev_sample - sample_now);
 
 				if (!motor->m_using_encoder) {
-					motor->m_hfi.double_integrator = 0.0;
+					motor->m_hfi.double_integrator = -motor->m_speed_est_fast;
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
 					float hfi_dt = dt * 2.0;
@@ -3891,7 +3894,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
 				if (!motor->m_using_encoder) {
-					motor->m_hfi.double_integrator = 0.0;
+					motor->m_hfi.double_integrator = -motor->m_speed_est_fast;
 					motor->m_hfi.angle = motor->m_phase_now_observer;
 				} else {
 					float hfi_dt = dt * 2.0;
