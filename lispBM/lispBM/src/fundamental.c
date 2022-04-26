@@ -863,18 +863,16 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   } break;
   case SYM_ACONS: {
     if (nargs == 3) {
-      if (lbm_is_list(args[0])) {
-        lbm_value keyval = lbm_cons(args[1], args[2]);
-        lbm_value new_alist = lbm_cons(keyval, args[0]);
+      lbm_value keyval = lbm_cons(args[0], args[1]);
+      lbm_value new_alist = lbm_cons(keyval, args[2]);
 
-        if (lbm_is_symbol(keyval) ||
-            lbm_is_symbol(new_alist) )
-          result = lbm_enc_sym(SYM_MERROR);
-        else
-          result = new_alist;
-      }
+      if (lbm_is_symbol(keyval) ||
+          lbm_is_symbol(new_alist) )
+        result = lbm_enc_sym(SYM_MERROR);
+      else
+        result = new_alist;
     } else if (nargs == 2) {
-      result = lbm_cons(args[1], args[0]);
+      result = lbm_cons(args[0], args[1]);
     }
   } break;
   case SYM_SET_ASSOC: {
