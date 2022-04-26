@@ -17,12 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_75_NO_LIMITS_H_
-#define HW_60_75_NO_LIMITS_H_
+#ifndef HW_60_75_MK2_H_
+#define HW_60_75_MK2_H_
 
 #define HW_60_75_IS_MK2
-#define DISABLE_HW_LIMITS
 
 #include "hw_60_75_core.h"
 
-#endif /* HW_60_75_NO_LIMITS_H_ */
+#endif /* HW_60_75_MK2_H_ */
