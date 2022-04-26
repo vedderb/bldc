@@ -67,3 +67,45 @@
   (if ( = 0 n)
       xs
       (drop-n (- n 1) (rest xs))))
+
+(defun zip (xs ys)
+  (if (or (eq xs nil) (eq ys nil)) nil
+      (cons (cons (first xs) (first ys)) (zip (rest xs) (rest ys)))))
+          
+(defun zip-t (xs ys)
+  (let ((zipacc (lambda (acc xs ys)
+                  (if (or (eq xs nil) (eq ys nil)) acc
+                      (zipacc (cons (cons (first xs) (first ys)) acc) (rest xs) (rest ys)
+                              )))))
+    (reverse (zipacc nil xs ys))))
+
+
+(defun map (f xs)
+  (if (eq xs nil) nil
+      (cons (f (first xs)) (map f (rest xs)))))
+
+
+(defun map-t (f xs)
+  (let ((mapacc (lambda (acc f xs)
+                  (if (eq xs nil) acc
+                      (mapacc (cons (f (first xs)) acc) f (rest xs))))))
+    (reverse (mapacc nil f xs))))
+
+
+(defun foldl (f i xs)
+  (if (eq xs nil) i
+      (foldl f (f i (first xs)) (rest xs))))
+
+(defun foldr (f i xs)
+  (if (eq xs nil) i
+      (f (first xs) (foldr f i (rest xs)))))
+
+
+(defun replace-assoc (x y)
+  (if (eq (first x) (first y))
+      x
+      y))
+
+
+(defun reassoc (x xs) 
+    (map (lambda (y) (replace-assoc x y)) xs))

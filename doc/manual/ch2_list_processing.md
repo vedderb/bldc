@@ -238,7 +238,7 @@ cannot possibly be `e`.
 ### The importance of tail-recursion
 
 When writing recursive functions one must be careful not to exhaust 
-all stack. It is possible to write recusive functions that evaluate 
+all stack. It is possible to write reclusive functions that evaluate 
 in constant space (not growing linear with number of calls) and these
 recursive functions are called tail-recursive.
 
@@ -321,7 +321,7 @@ Now its no problem to compute the length of `(iota 1024)`:
 
 The `iota` and the `reverse` functions are both examples building a 
 list. `iota` builds a list based an input argument and enumerates all 
-numbers from 0 up to and including the number providided as argument. 
+numbers from 0 up to and including the number provided as argument. 
 `reverse` takes a list as input, deconstructs it and creates a new 
 list in the reversed order. 
 
@@ -418,7 +418,7 @@ up being longer than there are available heap cells.
 The REPL starts up with 2048 heap-cells, so it is clearly impossible
 to make a list that is 4096 elements long! 
 
-There is a REPL command to increate the size of the heap. For example type
+There is a REPL command to increase the size of the heap. For example type
 `:heap 8192` and press enter. 
 
 ```
@@ -509,12 +509,232 @@ The `drop` function is, however, very easy to get right.
       (drop-n (- n 1) (rest xs))))
 ``` 
 
+The REPL contains functions with names `drop` and `take` with the 
+functionality implemented above. 
 
+The zip function takes two lists and creates a list of pairs of 
+elements from the two input arrays. 
 
-### Map, Foldr and Foldl
+Example: 
+
+``` 
+# (zip (list 1 2 3 ) (list 'monkey 'zebra 'elephant))
+> ((1 . monkey) (2 . zebra) (3 . elephant))
+```
+
+The implementation of zip is very similar to take, just that 
+here we take all elements and from two arrays at once. Implementing 
+`zip` in a non-tail-recursive looks like this: 
+
+```lisp
+(defun zip (xs ys)
+  (if (or (eq xs nil) (eq ys nil)) nil
+      (cons (cons (first xs) (first ys)) (zip (rest xs) (rest ys)))))
+```
+
+The tail-recursive version of `zip` is included in the
+[listcode.lisp](./ch2_examples/listcode.lisp) file if you are curious.
+Otherwise the implementation of tail-recursive `zip` is left as 
+an exercise.
+
+### Higher order functions: Map, Foldr and Foldl
+
+A higher-order function is a function that takes another function 
+as argument or gives a function back as a result. 
+
+The `map` function is one example of a higher order function. `map`
+takes two arguments, a function and a list, it then applies the function 
+to each element in the list and builds up a list of all the results. 
+
+Example:
+
+``` 
+# (map (lambda (x) (+ x 1)) (list 1 2 3))
+> (2 3 4)
+``` 
+
+In the example above, the anonymous function `(lambda (x) (+ x 1))` 
+is applied to each of the elements of the list `(1 2 3)` resulting 
+in the list `(2 3 4)`. It also works with named functions. 
+
+Example: 
+
+``` 
+# (defun +1 (x) (+ x 1))
+> +1
+``` 
+The function called `+1` defined above, adds 1 to the argument. 
+Now you can `map` this `+1` function over a list if you like: 
+
+```
+# (map +1 (list 1 2 3))
+> (2 3 4)
+```
+
+Let's look at the non-tail-recursive variant of `map`: 
+
+```
+(defun map (f xs)
+  (if (eq xs nil) nil
+      (cons (f (first xs)) (map f (rest xs)))))
+```
+
+The `map` function takes arguments `f` and `xs`, representing 
+the function to map `f` and the list `xs`. If the list is empty 
+return `nil`, otherwise apply `f` to the first element and 
+put the result of that first in the new result list. 
+
+Since this implementation of `map` is non-tail-recursive we cannot 
+use it on long lists: 
+
+```
+# (map +1 (iota 1024))
+***	Error: out_of_stack
+
+> out_of_stack
+# (map-t +1 (iota 1024))
+> (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 28...
+``` 
+
+The tail-recursive version of `map` is, just like `zip`, included in the
+[listcode.lisp](./ch2_examples/listcode.lisp) file if you are curious 
+and otherwise left as an exercise. 
+
+`foldr` and `foldl` are two more higher-order functions that 
+are used to combine elements of a list using a function. The function 
+passed into foldr and foldl takes two arguments compared to the 
+single argument of `map`. These function can for example be used 
+to reduce a list into a single value by summing up all elements. 
+
+Example: 
+
+``` 
+# (foldl + 0 (list 1 2 3 4 5))
+> 15
+``` 
+
+In the case of using `foldl` as in the example, the list is summed 
+up as `(((((0 + 1) + 2) + 3) + 4) + 5)`. The example below 
+shows that `foldr` computes the same result. 
+
+```
+# (foldr + 0 (list 1 2 3 4 5))
+> 15
+``` 
+
+But in this case the sum is computed as `(1 + (2 + (3 + (4 + (5 + 0)))))`. 
+
+There is no rule that says that the result of a fold should be a scalar. 
+For example: 
+
+```
+# (foldr cons nil (list 1 2 3))
+> (1 2 3)
+# (foldl cons nil (list 1 2 3 ))
+> (((nil . 1) . 2) . 3)
+``` 
+
+Above we can see that `foldr cons nil` is an identity function on
+lists and that `foldl cons nil` converts a list into some reversed
+kind of "snoc"-format.
+
+The implementation of `foldr` and `foldl` follow the same pattern as
+we have seen many times before now. Interestingly though `foldl` comes
+very naturally as a tail-recursive function while `foldr` does not!
+
+```lisp
+(defun foldl (f i xs)
+  (if (eq xs nil) i
+      (foldl f (f i (first xs)) (rest xs))))
+```
+
+`foldl` takes three arguments, `f` a function, `i` an identity element, 
+and `xs` a list. Here it is very natural to accumulate up the result 
+in the `i` parameter and it naturally ends up a tail-recursive function.
+
+```lisp
+(defun foldr (f i xs)
+  (if (eq xs nil) i
+      (f (first xs) (foldr f i (rest xs)))))
+```
+
+`foldr` above is more awkward with its application of `f` 
+to `(first xs)` and to the result of `(foldr f i (rest xs))` 
+which means that there will be a build-up of continuations on the 
+stack.
 
 
 ## Association lists
 
+Association lists are meant for maintaining a key-value lookup 
+structure. `(list '(1 . horse) '(2 . donkey) '(3 . shark))` 
+is an example of an association list that associates keys 1, 2, 3 with 
+the animals horse, donkey and shark. You can look up the 
+value associated with a key by using the function `assoc`
 
-## Conclusion
+Example: 
+``` 
+# (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+> donkey
+``` 
+
+So, an association list is just a regular list, you can create it with
+`list` but each element in the list must be a pair. Pairs can be
+created either as in the example using `.` or they could be created
+using cons. `(cons 1 2)` is equivalent to `'(1 . 2)` note the `'`
+mark!
+
+there is a three argument version of `cons` called `acons` that is 
+meant to make adding associations to an association list (alist) easier. 
+
+``` 
+# (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+> ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+``` 
+`acons` takes the key as first argument, then the value and last the alist 
+to append the key-value pair to. Note that `acons` just adds, it doesn't check 
+if the association already exists, it will gladly add a new copy of it anyway. 
+
+
+There is a built in function for destructively updating an alist 
+that you have bound to a name, called `setassoc` 
+
+Example: 
+
+```
+# (define my-alist (list '(1 . blue) '(2 . orange) '(3 . green)))
+> my-alist
+# (setassoc my-alist 2 'purple)
+> ((1 . blue) (2 . purple) (3 . green))
+```
+
+Any future references to `my-alist` will reflect that change. 
+
+```
+# my-alist
+> ((1 . blue) (2 . purple) (3 . green))
+```
+
+There are a bunch of functions like `setassoc` that perform destructive 
+updates in LBM. 
+
+If you want a more functional-programming style way to re-associate, that 
+is by returning a fresh new alist with the updated field then that is 
+quite easy using `map`. 
+
+``` 
+(defun replace-assoc (x y)
+  (if (eq (first x) (first y))
+      x
+      y))
+
+(defun reassoc (x xs) 
+    (map (lambda (y) (replace-assoc x y)) xs))
+``` 
+
+Example 
+
+``` 
+# (reassoc '(2 . dung-beetle) (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark))))
+> ((4 . lemur) (1 . horse) (2 . dung-beetle) (3 . shark))
+```
