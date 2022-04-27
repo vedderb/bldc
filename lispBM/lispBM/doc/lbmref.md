@@ -884,6 +884,55 @@ Now change the value in the cdr field of apa to 42.
 ```
 The `apa` pair is now `(1 . 42)`.
 
+## Associations lists (alists) 
+
+Association lists (alists) are, just like regular lists, built out 
+of cons-cells. The difference is that an alist is a list of pairs 
+where the first element in each par can be thought of as a key and 
+the second element can be thought of as the value. So alists implement
+a key-value lookup structure. 
+
+`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example 
+of an alist with integer keys and symbol values. 
+
+### acons 
+
+The `acons` form is similar to `cons`, it attaches one more element 
+onto an alist. The element that is added consists of a key and a value 
+so `acons` takes one more argument than `cons`. The form of an 
+`acons` expression is `(acons key-expr val-expr alist-expr)`. 
+The `alist-expr` should evaluate to an alist but there are no checks 
+to ensure this. 
+
+Example that adds the key `4` and associated value `lemur` to 
+an existing alist. 
+
+```lisp
+# (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+> ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+```
+
+---
+
+### assoc 
+
+The `assoc` function looks up a value in an alist given a key. 
+The form of an `assoc` expression is `(assoc alist-expr key-expr)`
+
+Example that looks up the value of key `2` in an alist.
+``` 
+# (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+> donkey
+``` 
+
+---
+
+### setassoc
+
+The `setassoc` function destructively updates a key-value mapping in an 
+alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+
+
 ## Arrays
 
 ### array-create
