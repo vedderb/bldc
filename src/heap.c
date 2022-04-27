@@ -496,7 +496,6 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 
 // Sweep moves non-marked heap objects to the free list.
 int lbm_gc_sweep_phase(void) {
-
   unsigned int i = 0;
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
