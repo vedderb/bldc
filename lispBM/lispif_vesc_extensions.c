@@ -1713,7 +1713,17 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
-	sdWrite(&HW_UART_DEV, to_send_ptr, ind);
+	if(uart_cfg.cr3 && USART_CR3_HDSEL){
+		HW_UART_DEV.usart->CR1 &= ~USART_CR1_RE;
+		sdWrite(&HW_UART_DEV, to_send_ptr, ind);
+		while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
+			chThdSleepMilliseconds(1);
+		}
+		chThdSleepMilliseconds(1);
+		HW_UART_DEV.usart->CR1 |= USART_CR1_RE;
+	}else{
+		sdWrite(&HW_UART_DEV, to_send_ptr, ind);
+	}
 
 	return lbm_enc_sym(SYM_TRUE);
 }
