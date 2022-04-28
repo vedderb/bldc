@@ -879,7 +879,7 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 
 ```clj
 (i2c-start 'rate-400k) ; 400 kbps and the default SDA and SDC pins
-(i2c-start 'rate-200k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
+(i2c-start 'rate-100k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
 
 ; Available bitrates
 'rate-100k
