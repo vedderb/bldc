@@ -1622,7 +1622,7 @@ static SerialConfig uart_cfg = {
 static bool uart_started = false;
 
 static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
-	if ((argn != 1 && argn != 2) || lbm_is_number(args[1])) {
+	if ((argn != 1 && argn != 2) || !lbm_is_number(args[0])) {
 		return lbm_enc_sym(SYM_EERROR);
 	}
 
