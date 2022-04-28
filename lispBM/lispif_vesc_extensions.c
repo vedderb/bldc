@@ -786,7 +786,7 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 
 	if (compare_symbol(name, &syms_vesc.hw_name)) {
 		lbm_value lbm_res;
-		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(HW_NAME))) {
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(HW_NAME) + 1)) {
 			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
 			strcpy((char*)arr->data, HW_NAME);
 			res = lbm_res;
