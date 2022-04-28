@@ -814,13 +814,14 @@ The function (ix list ind) can be used to get an element from the list. Example:
 #### uart-start
 
 ```clj
-(uart-start baudrate)
+(uart-start baudrate optHd)
 ```
 
-Start the UART driver at baudrate on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first. Example:
+Start the UART driver at baudrate on the COMM-port on the VESC. optHd is an optional argument that can be set to 'half-duplex to use half-duplex mode. In half-duplex mode only the tx-pin is used. If any app is using the UART pins it will be stopped first. Example:
 
 ```clj
-(uart-start 115200)
+(uart-start 115200) ; Start UART at 115200 baud in full duplex mode
+(uart-start 115200 'half-duplex) ; Start UART at 115200 baud in half duplex mode
 ```
 
 #### uart-write

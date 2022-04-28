@@ -115,6 +115,9 @@ typedef struct {
 	lbm_uint rate_200k;
 	lbm_uint rate_400k;
 	lbm_uint rate_700k;
+
+	// Other
+	lbm_uint half_duplex;
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
@@ -262,6 +265,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("rate-400k", comp);
 		} else if (comp == &syms_vesc.rate_700k) {
 			get_add_symbol("rate-700k", comp);
+		}
+
+		else if (comp == &syms_vesc.half_duplex) {
+			get_add_symbol("half-duplex", comp);
 		}
 	}
 
@@ -1609,20 +1616,33 @@ static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
 
 // UART
 static SerialConfig uart_cfg = {
-		2500000,
-		0,
-		USART_CR2_LINEN,
-		0
+		2500000, 0, 0, 0
 };
+
 static bool uart_started = false;
 
 static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	if ((argn != 1 && argn != 2) || lbm_is_number(args[1])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
 
 	int baud = lbm_dec_as_i32(args[0]);
 
 	if (baud < 10 || baud > 10000000) {
 		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	bool half_duplex = false;
+	if (argn == 2) {
+		if (lbm_is_symbol(args[1])) {
+			if (compare_symbol(lbm_dec_sym(args[1]), &syms_vesc.half_duplex)) {
+				half_duplex = true;
+			} else {
+				return lbm_enc_sym(SYM_EERROR);
+			}
+		} else {
+			return lbm_enc_sym(SYM_TERROR);
+		}
 	}
 
 	app_configuration *appconf = mempools_alloc_appconf();
@@ -1637,11 +1657,15 @@ static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
 	mempools_free_appconf(appconf);
 
 	uart_cfg.speed = baud;
+	uart_cfg.cr3 = half_duplex ? USART_CR3_HDSEL : 0;
 
 	sdStop(&HW_UART_DEV);
 	sdStart(&HW_UART_DEV, &uart_cfg);
-	palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+
 	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+	if (!half_duplex) {
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+	}
 
 	uart_started = true;
 
