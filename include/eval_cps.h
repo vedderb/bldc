@@ -227,6 +227,11 @@ extern void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
  * \return token stream.
  */
 extern lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str);
+/** Explicitly free a stream (if something breaks while creating it)
+ *  The stream must not have been made available to the program
+ * \param stream The stream to free
+ */
+extern int lbm_explicit_free_token_stream(lbm_value stream);
 
 /** deliver a message
  *
