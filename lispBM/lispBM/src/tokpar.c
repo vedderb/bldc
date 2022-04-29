@@ -484,11 +484,7 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
   while (!done) {
     clean_whitespace(str);
     if (!more(str)) {
-      lbm_memory_free((lbm_uint*)arr->data);
-      lbm_memory_free((lbm_uint*)arr);
-      array = lbm_set_ptr_type(array, LBM_TYPE_CONS);
-      lbm_set_car(array, lbm_enc_sym(SYM_NIL));
-      lbm_set_cdr(array, lbm_enc_sym(SYM_NIL));
+      lbm_heap_explicit_free_array(array);
       return false;
     }
 
@@ -499,11 +495,7 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
     case NOTOKEN:
       break;
     default:
-      lbm_memory_free((lbm_uint*)arr->data);
-      lbm_memory_free((lbm_uint*)arr);
-      array = lbm_set_ptr_type(array, LBM_TYPE_CONS);
-      lbm_set_car(array, lbm_enc_sym(SYM_NIL));
-      lbm_set_cdr(array, lbm_enc_sym(SYM_NIL));
+      lbm_heap_explicit_free_array(array);
       return false;
     }
 
@@ -534,11 +526,7 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
       }break;
       }
       if (n == 0) {
-        lbm_memory_free((lbm_uint*)arr->data);
-        lbm_memory_free((lbm_uint*)arr);
-        array = lbm_set_ptr_type(array, LBM_TYPE_CONS);
-        lbm_set_car(array, lbm_enc_sym(SYM_NIL));
-        lbm_set_cdr(array, lbm_enc_sym(SYM_NIL));
+        lbm_heap_explicit_free_array(array);
         return false;
       }
     }

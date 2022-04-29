@@ -380,6 +380,22 @@ lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str) {
   return lbm_stream_create(stream);
 }
 
+int lbm_explicit_free_token_stream(lbm_value stream) {
+  int r = 0;
+  if (lbm_is_stream(stream)) {
+
+    lbm_stream_t *str = (lbm_stream_t*)lbm_car(stream);
+
+    lbm_memory_free((lbm_uint*)str);
+    stream = lbm_set_ptr_type(stream, LBM_TYPE_CONS);
+    lbm_set_car(stream, lbm_enc_sym(SYM_NIL));
+    lbm_set_cdr(stream, lbm_enc_sym(SYM_NIL));
+
+    r = 1;
+  }
+  return r;
+}
+
 lbm_value token_stream_from_string_value(lbm_value s) {
   char *str = lbm_dec_str(s);
 

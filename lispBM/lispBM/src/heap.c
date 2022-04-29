@@ -787,3 +787,40 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
 
   return 1;
 }
+
+
+/* Explicitly freeing an array.
+
+   This is a highly unsafe operation and can only be safely
+   used if the heap cell that points to the array has not been made
+   accessible to the program.
+
+   So This function can be used to free an array in case an array
+   is being constructed and some error case appears while doing so
+   If the array still have not become available it can safely be
+   "explicitly" freed.
+
+   The problem is that if the "array" heap-cell is made available to
+   the program, this cell can easily be duplicated and we would have
+   to search the entire heap to find all cells pointing to the array
+   memory in question and "null"-them out before freeing the memory
+*/
+
+int lbm_heap_explicit_free_array(lbm_value arr) {
+
+  int r = 0;
+  if (lbm_is_array(arr)) {
+
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+
+    lbm_memory_free((lbm_uint*)header->data);
+    lbm_memory_free((lbm_uint*)header);
+
+    arr = lbm_set_ptr_type(arr, LBM_TYPE_CONS);
+    lbm_set_car(arr, lbm_enc_sym(SYM_NIL));
+    lbm_set_cdr(arr, lbm_enc_sym(SYM_NIL));
+    r = 1;
+  }
+
+  return r;
+}
