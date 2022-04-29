@@ -892,6 +892,9 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-tx
 'pin-swdio
 'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
 ```
 
 #### i2c-tx-rx
@@ -920,7 +923,7 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 ### GPIO
 
-These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset.
+These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
 
 #### gpio-configure
 
@@ -938,6 +941,9 @@ Configure GPIO pin to mode. Example:
 'pin-tx     ; TX-pin on the COMM-port
 'pin-swdio  ; IO-pin on the SWD-port
 'pin-swclk  ; CLK-pin on the SWD-port
+'pin-hall1  ; Sensor port hall1
+'pin-hall2  ; Sensor port hall2
+'pin-hall3  ; Sensor port hall3
 
 ; Available modes
 'pin-mode-out    ; Output

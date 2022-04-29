@@ -80,6 +80,9 @@ typedef struct {
 	lbm_uint pin_tx;
 	lbm_uint pin_swdio;
 	lbm_uint pin_swclk;
+	lbm_uint pin_hall1;
+	lbm_uint pin_hall2;
+	lbm_uint pin_hall3;
 
 	// Settings
 	lbm_uint l_current_min;
@@ -201,6 +204,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("pin-swdio", comp);
 		} else if (comp == &syms_vesc.pin_swclk) {
 			get_add_symbol("pin-swclk", comp);
+		} else if (comp == &syms_vesc.pin_hall1) {
+			get_add_symbol("pin-hall1", comp);
+		} else if (comp == &syms_vesc.pin_hall2) {
+			get_add_symbol("pin-hall2", comp);
+		} else if (comp == &syms_vesc.pin_hall3) {
+			get_add_symbol("pin-hall3", comp);
 		}
 
 		else if (comp == &syms_vesc.l_current_min) {
@@ -306,6 +315,15 @@ static bool gpio_get_pin(lbm_uint sym, stm32_gpio_t **port, int *pin) {
 		return true;
 	} else if (compare_symbol(sym, &syms_vesc.pin_swclk)) {
 		*port = GPIOA; *pin = 14;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall1)) {
+		*port = HW_HALL_ENC_GPIO1; *pin = HW_HALL_ENC_PIN1;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall2)) {
+		*port = HW_HALL_ENC_GPIO2; *pin = HW_HALL_ENC_PIN2;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall3)) {
+		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
 		return true;
 	}
 
@@ -2016,7 +2034,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
 	switch (lbm_type_of(args[0])) {
 	case LBM_TYPE_FLOAT:
 		if (!format) {
-			format = "%f";
+			format = "%g";
 		}
 		len = snprintf(buffer, sizeof(buffer), format, (double)lbm_dec_as_float(args[0]));
 		break;
