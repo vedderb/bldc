@@ -1731,7 +1731,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
-	if(uart_cfg.cr3 && USART_CR3_HDSEL){
+	if(uart_cfg.cr3 & USART_CR3_HDSEL){
 		HW_UART_DEV.usart->CR1 &= ~USART_CR1_RE;
 		sdWrite(&HW_UART_DEV, to_send_ptr, ind);
 		while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
