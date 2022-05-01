@@ -40,6 +40,7 @@
 #include "spi_bb.h"
 #include "i2c.h"
 #include "confgenerator.h"
+#include "worker.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -1702,6 +1703,15 @@ static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(SYM_TRUE);
 }
 
+static void wait_uart_tx_task(void *arg) {
+	(void)arg;
+	while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
+		chThdSleepMilliseconds(1);
+	}
+	chThdSleepMilliseconds(1);
+	HW_UART_DEV.usart->CR1 |= USART_CR1_RE;
+}
+
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 || (lbm_type_of(args[0]) != LBM_TYPE_CONS && lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
 		return lbm_enc_sym(SYM_EERROR);
@@ -1743,15 +1753,11 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
-	if(uart_cfg.cr3 & USART_CR3_HDSEL){
+	if (uart_cfg.cr3 & USART_CR3_HDSEL) {
 		HW_UART_DEV.usart->CR1 &= ~USART_CR1_RE;
 		sdWrite(&HW_UART_DEV, to_send_ptr, ind);
-		while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
-			chThdSleepMilliseconds(1);
-		}
-		chThdSleepMilliseconds(1);
-		HW_UART_DEV.usart->CR1 |= USART_CR1_RE;
-	}else{
+		worker_execute(wait_uart_tx_task, 0);
+	} else{
 		sdWrite(&HW_UART_DEV, to_send_ptr, ind);
 	}
 
