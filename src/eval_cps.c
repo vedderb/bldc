@@ -66,66 +66,6 @@
 #define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
-const char *continuation_strings[] =
-  {
-   "illegal",
-   "done",
-   "set_global_env",
-   "bind_to_key_rest",
-   "if",
-   "progn_rest",
-   "application",
-   "application_args",
-   "and",
-   "or",
-   "wait",
-   "match",
-   "match_many",
-   "read",
-   "application_start",
-   "eval_r"
-   "set_variable",
-   "resume",
-   "quote_result",
-   "backquote_result",
-   "commaat_result",
-   "comma_result",
-   "dot_terminate",
-   "expect_closepar",
-   "append_continue",
-   "read_done"
-  };
-
-const int continuation_nargs[] =
-  {
-   0, // illegal
-   0, // done
-   1, // set_global_env
-   4, // bind_to_key_rest
-   2, // if
-   2, // progn_rest
-   2, // application
-   3, // application_args
-   1, // and
-   1, // or
-   1, // wait
-   1, // match
-   3, // match_many
-   2, // read
-   2, // application_start
-   1, // eval_r
-   1, // set_variable
-   1, // resume
-   0, // quote_result
-   0, // backquote_result
-   0, // commaat_result
-   0, // comma_result
-   2, // dot_terminate
-   1, // expect_closepar
-   2, // append_continue
-   0, // read_done
-  };
-
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
     error_ctx(lbm_enc_sym(SYM_STACK_ERROR));    \
@@ -1256,32 +1196,7 @@ static inline void eval_progn(eval_context_t *ctx) {
 
 static inline void eval_lambda(eval_context_t *ctx) {
 
-  lbm_value env_cpy = ctx->curr_env; //lbm_env_copy_shallow(ctx->curr_env);
-  /*
-  if (lbm_is_symbol_merror(env_cpy)) {
-    gc(NIL, NIL);
-    env_cpy = lbm_env_copy_shallow(ctx->curr_env);
-
-    if (lbm_is_symbol_merror(env_cpy)) {
-       ctx_running->done = true;
-       error_ctx(lbm_enc_sym(SYM_MERROR));
-       return;
-    }
-  }
-
-  lbm_value env_cpy_rev = lbm_list_reverse(env_cpy);
-  if (lbm_is_symbol_merror(env_cpy_rev)) {
-    gc(env_cpy, NIL);
-    env_cpy_rev = lbm_list_reverse(env_cpy);
-    if (lbm_is_symbol_merror(env_cpy_rev)) {
-      ctx_running->done = true;
-      error_ctx(lbm_enc_sym(SYM_MERROR));
-      return;
-    }
-  }
-
-  env_cpy = env_cpy_rev;
-  */
+  lbm_value env_cpy = ctx->curr_env;
   lbm_value env_end;
   lbm_value body;
   lbm_value params;
@@ -1408,7 +1323,7 @@ static inline void eval_receive(eval_context_t *ctx) {
       /* The common case */
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
-      bool do_gc = false;;
+      bool do_gc = false;
       int n = find_match(lbm_cdr(pats), msgs, &e, &new_env, &do_gc);
       if (do_gc) {
         gc(NIL, NIL);
@@ -1882,19 +1797,28 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
 
 static inline void cont_application_args(eval_context_t *ctx) {
 
-  lbm_value count;
-  lbm_value env;
-  lbm_value rest;
-  lbm_value arg = ctx->r;
-  lbm_pop_3(&ctx->K, &rest, &count, &env);
+  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K,3);
 
-  CHECK_STACK(lbm_push(&ctx->K, arg));
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
+  }
+
+  lbm_value env = sptr[0];
+  lbm_value count = sptr[1];
+  lbm_value rest = sptr[2];
+  lbm_value arg = ctx->r;
+
+  sptr[0] = arg;
   if (lbm_is_symbol_nil(rest)) {
     // no arguments
-    CHECK_STACK(lbm_push(&ctx->K, count));
+    sptr[1] = count;
+    lbm_stack_drop(&ctx->K, 1);
     cont_application(ctx);
   } else if (lbm_is_list(rest)) {
-    CHECK_STACK(lbm_push_4(&ctx->K, env, lbm_enc_u(lbm_dec_u(count) + 1), lbm_cdr(rest), APPLICATION_ARGS));
+    sptr[1] = env;
+    sptr[2] = lbm_enc_u(lbm_dec_u(count) + 1);
+    CHECK_STACK(lbm_push_2(&ctx->K,lbm_cdr(rest), APPLICATION_ARGS));
     ctx->curr_exp = lbm_car(rest);
     ctx->curr_env = env;
   } else {
