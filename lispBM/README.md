@@ -986,6 +986,10 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-in-current-max       ; Maximum input current in A
 'l-min-erpm             ; Minimum ERPM (a negative value)
 'l-max-erpm             ; Maximum ERPM
+'l-min-vin              ; Minimum input voltage
+'l-max-vin              ; Maximum input voltage
+'l-min-duty             ; Minimum duty cycle
+'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
 'l-watt-max             ; Maximum power regen in W
 'foc-current-kp         ; FOC current controller KP
