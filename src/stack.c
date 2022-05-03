@@ -65,6 +65,16 @@ int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
   return 1;
 }
 
+lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n) {
+
+  if (s->sp + n >= s->size) {
+    return NULL;
+  }
+  lbm_uint *ptr = &s->data[s->sp];
+  s->sp += n;
+  return ptr;
+}
+
 int lbm_push(lbm_stack_t *s, lbm_uint val) {
   int res = 1;
   if (s->sp == s->size) {

@@ -124,7 +124,7 @@ An important difference between `eq` and `=` is
 that equals compare the numerical values of the arguments. A 3 is a 3
 independent of them being different types. `eq` on the other
 hand compares the representations of the arguments exactly and they must
-match in structure, type and value to be considered equal. 
+match in structure, type and value to be considered equal.
 
 
 Example of `=` comparison.
@@ -560,7 +560,7 @@ A lambda can be immediately applied to an argument.
 ```clj
 ((lambda (x) (+ x 1)) 10)
 ```
-The application above results in the value 11. 
+The application above results in the value 11.
 Using <a href="#define"> define </a> you can give a name to the function.
 ```clj
 (define inc (lambda (x) (+ x 1)))
@@ -651,7 +651,7 @@ The variable `a` is now `10` in the global environment.
 Now, the value of `a` will be 20. Note that `a` is quoted in the `setvar` form application
 while it is not in the `define` form. This is because `define` requires the first
 argument to be a symbol while the `setvar` form requires the first argument to evaluate
-into a symbol. 
+into a symbol.
 
 You can also set the value of a let bound variable.
 ```clj
@@ -660,12 +660,12 @@ You can also set the value of a let bound variable.
 
 And you can change the value of a `#var`.
 
-```clj 
+```clj
 (define #a 10)
 
 (set '#a 20)
 ```
-`#a` is now 20. 
+`#a` is now 20.
 
 ---
 
@@ -848,6 +848,19 @@ is `(ix list-expr index-expr)`. Indexing starts from 0 and if you index out of b
 Example that evaluates to 2.
 ```clj
 (ix (list 1 2 3) 1)
+```
+
+---
+
+### setix
+
+Destructively update an element in a list. The form of a `setix` expression
+is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and
+if you index out of bounds the result is nil.
+
+```lisp
+# (setix (list 1 2 3 4 5) 2 77)
+> (1 2 77 4 5)
 ```
 
 ---

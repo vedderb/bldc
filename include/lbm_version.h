@@ -29,6 +29,9 @@
 
 /*! \page changelog Changelog
 
+May 1 2022: Version 0.5.2
+ - Added lbm_stack_reserve for allocating multiple words on stack
+   in one function call (and one check on stack limits).
 
 Apr 19 2022: Version 0.5.2
  - Added a reader_done_callback that is run when a context is done

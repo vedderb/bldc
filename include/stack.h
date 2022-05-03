@@ -73,6 +73,15 @@ extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
  * \return 1 on Success and 0 on failure.
  */
 extern int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
+
+/** Reserve place for n elements on the stack and
+ *  move the stack pointer to the new top.
+ * \param s Stack to reserve values on
+ * \param n Number of values to reserve
+ * \return Pointer into stack position of reserver value 0 or NULL
+ *         on failure
+ */
+extern lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n);
 /** Push an element onto a stack.
  *
  * \param s Stack to push a value onto.
