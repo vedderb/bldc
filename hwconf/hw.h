@@ -40,6 +40,10 @@
 #error "No hardware name set"
 #endif
 
+#ifndef FW_NAME
+#define FW_NAME ""
+#endif
+
 // Possible HW properties.
 
 /*
