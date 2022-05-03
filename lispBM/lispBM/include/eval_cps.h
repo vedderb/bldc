@@ -78,9 +78,9 @@ extern int lbm_eval_init(void);
  * \return 1 if a context was successfully removed otherwise 0.
  */
 extern int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
-/** Wait until a given cid is not present in any of the queues. 
- *  If you have spawned this cid, you can conclude that it has 
- *  run to completion or failure. 
+/** Wait until a given cid is not present in any of the queues.
+ *  If you have spawned this cid, you can conclude that it has
+ *  run to completion or failure.
  *
  * \param cid Context id to wait for.
  * \param timeout_ms timeout in ms or 0 for no timeout.
@@ -162,6 +162,16 @@ extern int lbm_set_error_reason(char *error_str);
  * \return
  */
 extern lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
+/** Block a context from an extension
+ */
+extern void lbm_block_ctx_from_extension(void);
+/** Unblock a context that has been blocked by a C extension
+ *  Trying to unblock a context that is waiting on a message
+ *  in a mailbox is not encouraged
+ * \param cid Lisp process to wake up.
+ * \param result Value passed to the lisp process as the result from the blocking function.
+ */
+extern bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
@@ -221,6 +231,12 @@ extern void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char 
  *  within a context
  */
 extern void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
+/** Get the CID of the currently executing context.
+ *  Should be called from an extension where there is
+ *  a guarantee that a context is running
+ */
+extern lbm_cid lbm_get_current_cid(void);
+
 /** Create a token stream for parsing for code
  *
  * \param str character stream to convert into a token stream.
