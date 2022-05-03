@@ -17,13 +17,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60V2_ALVA_H_
-#define HW_60V2_ALVA_H_
+#ifndef HW_60V2_ALVA_CORE_H_
+#define HW_60V2_ALVA_CORE_H_
 
+#ifdef HW_60V2_ALVA_IS_MK2
+#define HW_NAME					"60v2_alva_mk2"
+#else
 #define HW_NAME					"60v2_alva"
+#endif
 
+#ifndef HW_60V2_ALVA_IS_MK2
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -242,12 +248,25 @@
 #define HW_SPI_PIN_MISO			6
 
 // BMI160
+#ifdef HW_60V2_ALVA_IS_MK2
+#define BMI160_SPI_PORT_NSS		GPIOA
+#define BMI160_SPI_PIN_NSS		15
+#define BMI160_SPI_PORT_SCK		GPIOB
+#define BMI160_SPI_PIN_SCK		3
+#define BMI160_SPI_PORT_MOSI	GPIOC
+#define BMI160_SPI_PIN_MOSI		12
+#define BMI160_SPI_PORT_MISO	GPIOB
+#define BMI160_SPI_PIN_MISO		4
+#define IMU_FLIP
+#define IMU_ROT_90
+#else
 #define BMI160_SDA_GPIO			GPIOC
 #define BMI160_SDA_PIN			11
 #define BMI160_SCL_GPIO			GPIOC
 #define BMI160_SCL_PIN			10
 #define IMU_FLIP
 #define IMU_ROT_180
+#endif
 
 // Second redundant CAN-port
 #define HW_CAN2_RX_PORT			GPIOB
@@ -298,4 +317,4 @@
 // HW Functions
 float alva_temp_motor_max(float beta);
 
-#endif /* HW_60V2_ALVA_H_ */
+#endif /* HW_60V2_ALVA_CORE_H_ */
