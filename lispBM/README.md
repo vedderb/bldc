@@ -944,6 +944,8 @@ Configure GPIO pin to mode. Example:
 'pin-hall1  ; Sensor port hall1
 'pin-hall2  ; Sensor port hall2
 'pin-hall3  ; Sensor port hall3
+'pin-adc1   ; ADC1-pin on COMM-port
+'pin-adc2   ; ADC2-pin on COMM-port
 
 ; Available modes
 'pin-mode-out    ; Output
