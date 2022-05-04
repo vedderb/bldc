@@ -87,6 +87,8 @@ struct lbm_tcs{
   char (*get)(struct lbm_tcs*);
   char (*peek)(struct lbm_tcs*, unsigned int);
   void (*drop)(struct lbm_tcs*, unsigned int);
+  unsigned int (*row)(struct lbm_tcs*);
+  unsigned int (*column)(struct lbm_tcs*);
 };
 
 /** Tokenizer character stream */

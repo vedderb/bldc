@@ -747,7 +747,8 @@ char get_string(lbm_tokenizer_char_stream_t *str) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
   char c = s->str[s->pos];
-  s->pos = s->pos + 1;
+  s->pos ++;
+  s->column ++;
   return c;
 }
 
@@ -762,20 +763,45 @@ char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
 void drop_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
-  s->pos = s->pos + n;
+  for (unsigned int i = 0; i < n; i ++) {
+    if (s->str[s->pos + i] == '\n') {
+      s->row++;
+      s->column = 1;
+    } else {
+      s->column ++;
+    }
+  }
+  s->pos += n;
 }
+
+unsigned int row_string(lbm_tokenizer_char_stream_t *str) {
+  lbm_tokenizer_string_state_t *s =
+    (lbm_tokenizer_string_state_t *)str->state;
+  return s->row;
+}
+
+unsigned int column_string(lbm_tokenizer_char_stream_t *str) {
+  lbm_tokenizer_string_state_t *s =
+    (lbm_tokenizer_string_state_t *)str->state;
+  return s->column;
+}
+
 
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                         lbm_tokenizer_char_stream_t *char_stream,
                                         const char *string){
   state->str = string;
   state->pos = 0;
+  state->row = 1;
+  state->column = 1;
 
   char_stream->state = state;
   char_stream->more  = more_string;
   char_stream->peek  = peek_string;
   char_stream->drop  = drop_string;
   char_stream->get   = get_string;
+  char_stream->row   = row_string;
+  char_stream->column = column_string;
 }
 
 /* VALUE tokpar_parse(tokenizer_char_stream_t *char_stream) { */

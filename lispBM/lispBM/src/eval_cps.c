@@ -242,7 +242,7 @@ void print_environments(char *buf, unsigned int size) {
 }
 
 
-void print_error_message(lbm_value error) {
+void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -254,7 +254,15 @@ void print_error_message(lbm_value error) {
   char *buf = (char*)buf32;
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
-  printf_callback("***\tError: %s\n\n", buf);
+  printf_callback("***\tError:\t%s\n", buf);
+
+  if (lbm_is_symbol(error) &&
+      lbm_dec_sym(error) == SYM_RERROR) {
+    printf_callback("***\t\tLine: %u\n", row);
+    printf_callback("***\t\tColumn: %u\n", col);
+  }
+
+  printf_callback("\n");
 
   if (ctx_running->error_reason) {
     printf_callback("Reason:\n\t%s\n\n", ctx_running->error_reason);
@@ -553,8 +561,14 @@ int lbm_set_error_reason(char *error_str) {
 }
 
 static void error_ctx(lbm_value err_val) {
-  print_error_message(err_val);
+  print_error_message(err_val, 0, 0);
   ctx_running->r = err_val;
+  finish_ctx();
+}
+
+static void read_error_ctx(unsigned int row, unsigned int column) {
+  print_error_message(lbm_enc_sym(SYM_RERROR), row, column);
+  ctx_running->r = lbm_enc_sym(SYM_RERROR);
   finish_ctx();
 }
 
@@ -2050,6 +2064,7 @@ static inline void cont_read(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &prg_val, &stream);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
   lbm_value tok;
   bool read_done = false;
   bool app_cont = false;
@@ -2124,7 +2139,7 @@ static inline void cont_read(eval_context_t *ctx) {
           ctx->r = res;
           app_cont = true;
         } else {
-          error_ctx(lbm_enc_sym(SYM_RERROR));
+          read_error_ctx(s->row(s), s->column(s));
           done_reading(cid);
           return;
         }
@@ -2137,8 +2152,7 @@ static inline void cont_read(eval_context_t *ctx) {
         if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
             (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
              lbm_dec_sym(ctx->r) == SYM_DOT)) {
-          error_ctx(lbm_enc_sym(SYM_RERROR));
-          done_reading(cid);
+          read_error_ctx(s->row(s), s->column(s));
           return;
         } else {
           if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
@@ -2148,7 +2162,7 @@ static inline void cont_read(eval_context_t *ctx) {
                                    ctx->r,
                                    EXPECT_CLOSEPAR));
           } else {
-            error_ctx(lbm_enc_sym(SYM_RERROR));
+            read_error_ctx(s->row(s), s->column(s));
             done_reading(cid);
             return;
           }
@@ -2157,8 +2171,7 @@ static inline void cont_read(eval_context_t *ctx) {
       case READ_DONE:
         tok = token_stream_get(str);
         if (tok != lbm_enc_sym(SYM_TOKENIZER_DONE)) {
-          error_ctx(lbm_enc_sym(SYM_RERROR));
-          done_reading(cid);
+          read_error_ctx(s->row(s), s->column(s));
           return;
         }
         /* Go back to outer eval loop and apply continuation */
@@ -2201,7 +2214,7 @@ static inline void cont_read(eval_context_t *ctx) {
       if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
         switch (lbm_dec_sym(tok)) {
         case SYM_RERROR:
-          error_ctx(lbm_enc_sym(SYM_RERROR));
+          read_error_ctx(s->row(s), s->column(s));
           done_reading(cid);
           return;
         case SYM_MERROR:
@@ -2217,7 +2230,7 @@ static inline void cont_read(eval_context_t *ctx) {
             } else if (ctx->K.data[sp_start] == READ_DONE &&
                        ctx->K.data[sp_start+3] == APPEND_CONTINUE) {
               // Parsing failed but stack seems to not be corrupted.
-              error_ctx(lbm_enc_sym(SYM_RERROR));
+              read_error_ctx(s->row(s), s->column(s));
               done_reading(cid);
               return;
             } else {
@@ -2229,7 +2242,7 @@ static inline void cont_read(eval_context_t *ctx) {
           } else {
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == READ_DONE) {
-              error_ctx(lbm_enc_sym(SYM_RERROR));
+              read_error_ctx(s->row(s), s->column(s));
               done_reading(cid);
               return;
             } else if (ctx->K.sp < sp_start) {
