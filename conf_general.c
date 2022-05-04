@@ -1004,6 +1004,18 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		samples += 1.0;
 		chThdSleepMilliseconds(1);
 	}
+		
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {		
+		timeout_configure(tout, tout_c, tout_ksw);
+		mc_interface_unlock();
+		mc_interface_release_motor();
+		mc_interface_wait_for_motor_release(1.0);
+		mc_interface_set_configuration(mcconf_old);
+		mempools_free_mcconf(mcconf);
+		mempools_free_mcconf(mcconf_old);
+		return false;
+	}
+	
 
 	duty_still /= samples;
 	float duty_max = 0.0;
@@ -1013,10 +1025,15 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		rpm_now += erpm_per_sec / 1000.0;
 		mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
 		
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
-			cnt = max_time;
-			*linkage = -4.0;
-			break;
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {			
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
+			mc_interface_set_configuration(mcconf_old);
+			mempools_free_mcconf(mcconf);
+			mempools_free_mcconf(mcconf_old);
+			return false;
 		}
 		
 		chThdSleepMilliseconds(1);
