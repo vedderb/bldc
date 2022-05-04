@@ -464,9 +464,13 @@ void terminal_process_string(char *str) {
 		float res = 0.0;
 		float ind = 0.0;
 		float ld_lq_diff = 0.0;
-		mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff);
-		commands_printf("Resistance: %.6f ohm", (double)res);
-		commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		if (mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff)) {
+			commands_printf("Resistance: %.6f ohm", (double)res);
+			commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		} else {
+			commands_printf("Error measuring resistance or inductance\n");
+		}
+		
 
 		mc_interface_set_configuration(mcconf_old);
 
