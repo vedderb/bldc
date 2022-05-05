@@ -154,6 +154,18 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8323S_FAULTS  : %s", drv8323s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #endif
+				if (fault_vec[i].info_str != 0) {
+					char f_str[100];
+					strcpy(f_str, "Info             : ");
+					strcpy(f_str + 19, fault_vec[i].info_str);
+					if (fault_vec[i].info_argn == 0) {
+						commands_printf(f_str);
+					} else if (fault_vec[i].info_argn == 1) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0]);
+					} else if (fault_vec[i].info_argn == 2) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0], (double)fault_vec[i].info_args[1]);
+					}
+				}
 				commands_printf(" ");
 			}
 		}
