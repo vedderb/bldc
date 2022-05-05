@@ -121,10 +121,15 @@ void conf_general_init(void) {
 		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
 			backup_tmp.runtime = g_backup.runtime;
 		}
+
+		if (g_backup.hw_config_init_flag == BACKUP_VAR_INIT_CODE) {
+			memcpy((void*)backup_tmp.hw_config, (uint8_t*)g_backup.hw_config, sizeof(g_backup.hw_config));
+		}
 	}
 
 	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
 	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.hw_config_init_flag = BACKUP_VAR_INIT_CODE;
 
 	g_backup = backup_tmp;
 	conf_general_store_backup_data();
