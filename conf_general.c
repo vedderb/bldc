@@ -49,7 +49,7 @@
 #define EEPROM_BASE_APPCONF		2000
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
-#define EEPROM_BASE_MCCONF_2	5000
+#define EEPROM_BASE_MCCONF_2		5000
 #define EEPROM_BASE_BACKUP		6000
 
 // Global variables
@@ -1004,8 +1004,8 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		samples += 1.0;
 		chThdSleepMilliseconds(1);
 	}
-		
-	if (mc_interface_get_fault() != FAULT_CODE_NONE) {		
+
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_unlock();
 		mc_interface_release_motor();
@@ -1015,7 +1015,6 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		mempools_free_mcconf(mcconf_old);
 		return false;
 	}
-	
 
 	duty_still /= samples;
 	float duty_max = 0.0;
@@ -1024,8 +1023,8 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
 		rpm_now += erpm_per_sec / 1000.0;
 		mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
-		
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {			
+
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 			timeout_configure(tout, tout_c, tout_ksw);
 			mc_interface_unlock();
 			mc_interface_release_motor();
@@ -1035,7 +1034,7 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 			mempools_free_mcconf(mcconf_old);
 			return false;
 		}
-		
+
 		chThdSleepMilliseconds(1);
 		cnt++;
 
@@ -1249,7 +1248,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 				break;
 			}
-			chThdSleepMilliseconds(1);			
+			chThdSleepMilliseconds(1);
 		}
 
 		float phase_start = encoder_read_deg();
@@ -1260,8 +1259,8 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			mcpwm_foc_set_openloop_phase(current, i);
 			if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 				break;
-			} 
-			
+			}
+
 			chThdSleepMilliseconds(5);
 
 			if (i == 90) {
@@ -1368,16 +1367,16 @@ static bool measure_r_l_imax(float current_min, float current_max,
 		mempools_free_mcconf(mcconf);
 		return false;
 	}
-	
+
 	mcconf->foc_motor_r = *r;
-	mc_interface_set_configuration(mcconf);	
-	
+	mc_interface_set_configuration(mcconf);
+
 	bool result = true;
 	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff) * 1e-6;
 	if (*l == 0.0) {
 		result = false;
 	}
-	
+
 	*ld_lq_diff *= 1e-6;
 	*i_max = sqrtf(max_power_loss / *r / 1.5);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
