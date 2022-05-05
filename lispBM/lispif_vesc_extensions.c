@@ -44,6 +44,7 @@
 
 #include <math.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 typedef struct {
 	// BMS
@@ -2775,6 +2776,184 @@ static lbm_value ext_bufset_bit(lbm_value *args, lbm_uint argn) {
 	return res;
 }
 
+static lbm_value make_list(int num, ...) {
+	va_list arguments;
+	va_start (arguments, num);
+	lbm_value res = lbm_enc_sym(SYM_NIL);
+	for (int i = 0; i < num; i++) {
+		res = lbm_cons(va_arg(arguments, lbm_value), res);
+	}
+	va_end (arguments);
+	return lbm_list_destructive_reverse(res);
+}
+
+static lbm_uint sym_res;
+static lbm_uint sym_loop;
+static lbm_uint sym_break;
+static lbm_uint sym_brk;
+static lbm_uint sym_rst;
+
+static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
+	if (argn != 3) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value name = argsi[0];
+	lbm_value args = argsi[1];
+	lbm_value body = argsi[2];
+
+	// (define name (lambda args body))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_DEFINE),
+			name,
+			make_list(3,
+					lbm_enc_sym(SYM_LAMBDA),
+					args,
+					body));
+}
+
+static lbm_value ext_me_loopfor(lbm_value *args, lbm_uint argn) {
+	if (argn != 5) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value it = args[0];
+	lbm_value start = args[1];
+	lbm_value cond = args[2];
+	lbm_value update = args[3];
+	lbm_value body = args[4];
+
+	// (let ((loop (lambda (it res break) (if cond (loop update body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_LET),
+			make_list(1,
+					make_list(2,
+							lbm_enc_sym(sym_loop),
+							make_list(3,
+									lbm_enc_sym(SYM_LAMBDA),
+									make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+									make_list(4,
+											lbm_enc_sym(SYM_IF),
+											cond,
+											make_list(4, lbm_enc_sym(sym_loop), update, body, lbm_enc_sym(sym_break)),
+											lbm_enc_sym(sym_res))))),
+											make_list(2,
+													lbm_enc_sym(SYM_CALLCC),
+													make_list(3,
+															lbm_enc_sym(SYM_LAMBDA),
+															make_list(1, lbm_enc_sym(sym_brk)),
+															make_list(4, lbm_enc_sym(sym_loop), start, lbm_enc_sym(SYM_NIL), lbm_enc_sym(sym_brk)))));
+}
+
+static lbm_value ext_me_loopwhile(lbm_value *args, lbm_uint argn) {
+	if (argn != 2) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value cond = args[0];
+	lbm_value body = args[1];
+
+	// (let ((loop (lambda (res break) (if cond (loop body break) res)))) (call-cc (lambda (brk) (loop nil brk))))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_LET),
+			make_list(1,
+					make_list(2,
+							lbm_enc_sym(sym_loop),
+							make_list(3,
+									lbm_enc_sym(SYM_LAMBDA),
+									make_list(2, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+									make_list(4,
+											lbm_enc_sym(SYM_IF),
+											cond,
+											make_list(3, lbm_enc_sym(sym_loop), body, lbm_enc_sym(sym_break)),
+											lbm_enc_sym(sym_res))))),
+											make_list(2,
+													lbm_enc_sym(SYM_CALLCC),
+													make_list(3,
+															lbm_enc_sym(SYM_LAMBDA),
+															make_list(1, lbm_enc_sym(sym_brk)),
+															make_list(3, lbm_enc_sym(sym_loop), lbm_enc_sym(SYM_NIL), lbm_enc_sym(sym_brk)))));
+}
+
+static lbm_value ext_me_looprange(lbm_value *args, lbm_uint argn) {
+	if (argn != 4) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value it = args[0];
+	lbm_value start = args[1];
+	lbm_value end = args[2];
+	lbm_value body = args[3];
+
+	// (let ((loop (lambda (it res break) (if (< it end) (loop (+ it 1) body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_LET),
+			make_list(1,
+					make_list(2,
+							lbm_enc_sym(sym_loop),
+							make_list(3,
+									lbm_enc_sym(SYM_LAMBDA),
+									make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+									make_list(4,
+											lbm_enc_sym(SYM_IF),
+											make_list(3, lbm_enc_sym(SYM_LT), it, end),
+											make_list(4, lbm_enc_sym(sym_loop), make_list(3, lbm_enc_sym(SYM_ADD), it, lbm_enc_i(1)), body, lbm_enc_sym(sym_break)),
+											lbm_enc_sym(sym_res))))),
+											make_list(2,
+													lbm_enc_sym(SYM_CALLCC),
+													make_list(3,
+															lbm_enc_sym(SYM_LAMBDA),
+															make_list(1, lbm_enc_sym(sym_brk)),
+															make_list(4, lbm_enc_sym(sym_loop), start, lbm_enc_sym(SYM_NIL), lbm_enc_sym(sym_brk)))));
+}
+
+static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
+	if (argn != 3) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	lbm_value it = args[0];
+	lbm_value lst = args[1];
+	lbm_value body = args[2];
+
+	// (let ((loop (lambda (it rst res break) (if (eq it nil) res (loop (car rst) (cdr rst) body break))))) (call-cc (lambda (brk) (loop (car lst) (cdr lst) nil brk))))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_LET),
+			make_list(1,
+					make_list(2,
+							lbm_enc_sym(sym_loop),
+							make_list(3,
+									lbm_enc_sym(SYM_LAMBDA),
+									make_list(4, it, lbm_enc_sym(sym_rst), lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+									make_list(4,
+											lbm_enc_sym(SYM_IF),
+											make_list(3, lbm_enc_sym(SYM_EQ), it, lbm_enc_sym(SYM_NIL)),
+											lbm_enc_sym(sym_res),
+											make_list(5,
+													lbm_enc_sym(sym_loop),
+													make_list(2, lbm_enc_sym(SYM_CAR), lbm_enc_sym(sym_rst)),
+													make_list(2, lbm_enc_sym(SYM_CDR), lbm_enc_sym(sym_rst)),
+													body,
+													lbm_enc_sym(sym_break))
+											)))),
+											make_list(2,
+													lbm_enc_sym(SYM_CALLCC),
+													make_list(3,
+															lbm_enc_sym(SYM_LAMBDA),
+															make_list(1, lbm_enc_sym(sym_brk)),
+															make_list(5,
+																	lbm_enc_sym(sym_loop),
+																	make_list(2, lbm_enc_sym(SYM_CAR), lst),
+																	make_list(2, lbm_enc_sym(SYM_CDR), lst),
+																	lbm_enc_sym(SYM_NIL),
+																	lbm_enc_sym(sym_brk)))));
+}
+
 void lispif_load_vesc_extensions(void) {
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
@@ -2786,6 +2965,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
+
+	lbm_add_symbol_const("res", &sym_res);
+	lbm_add_symbol_const("loop", &sym_loop);
+	lbm_add_symbol_const("break", &sym_break);
+	lbm_add_symbol_const("brk", &sym_brk);
+	lbm_add_symbol_const("rst", &sym_rst);
 
 	memset(&syms_vesc, 0, sizeof(syms_vesc));
 
@@ -2941,6 +3126,13 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("bufclear", ext_bufclear);
 	lbm_add_extension("bufcpy", ext_bufcpy);
 	lbm_add_extension("bufset-bit", ext_bufset_bit);
+
+	// Macro expanders
+	lbm_add_extension("me-defun", ext_me_defun);
+	lbm_add_extension("me-loopfor", ext_me_loopfor);
+	lbm_add_extension("me-loopwhile", ext_me_loopwhile);
+	lbm_add_extension("me-looprange", ext_me_looprange);
+	lbm_add_extension("me-loopforeach", ext_me_loopforeach);
 
 	if (ext_callback) {
 		ext_callback();

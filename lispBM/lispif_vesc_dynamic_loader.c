@@ -103,24 +103,11 @@ static const char* functions[] = {
 };
 
 static const char* macros[] = {
-"(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))",
-
-"(define loopfor (macro (it start cond update body)"
-"`(let ((loop (lambda (,it res break)(if ,cond (loop ,update ,body break) res"
-"))))(call-cc (lambda (brk) (loop ,start nil brk))))))",
-
-"(define loopwhile (macro (cond body)"
-"`(let ((loop (lambda (res break)(if ,cond (loop ,body break) res"
-"))))(call-cc (lambda (brk) (loop nil brk))))))",
-
-"(define looprange (macro (it start end body)"
-"`(let ((loop (lambda (,it res break)(if (< ,it ,end)(loop (+ ,it 1),body break) res"
-"))))(call-cc (lambda (brk) (loop ,start nil brk))))))",
-
-"(define loopforeach (macro (it lst body)"
-"`(let ((loop (lambda (,it rst res break)"
-"(if (eq ,it nil) res (loop (car rst) (cdr rst) ,body break)"
-"))))(call-cc (lambda (brk) (loop (car ,lst) (cdr ,lst) nil brk))))))",
+"(define defun (macro (name args body) (me-defun name args body)))",
+"(define loopfor (macro (it start cond update body) (me-loopfor it start cond update body)))",
+"(define loopwhile (macro (cond body) (me-loopwhile cond body)))",
+"(define looprange (macro (it start end body) (me-looprange it start end body)))",
+"(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {
