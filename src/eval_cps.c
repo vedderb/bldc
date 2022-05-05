@@ -66,6 +66,11 @@
 #define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
+static const char* parse_error_eof = "End of parse stream";
+static const char* parse_error_token = "Malformed token";
+static const char* parse_error_dot = "Incorrect usage of '.'";
+static const char* parse_error_close = "Expected closing parenthesis";
+
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
     error_ctx(lbm_enc_sym(SYM_STACK_ERROR));    \
@@ -2139,6 +2144,7 @@ static inline void cont_read(eval_context_t *ctx) {
           ctx->r = res;
           app_cont = true;
         } else {
+          lbm_set_error_reason((char*)parse_error_close);
           read_error_ctx(s->row(s), s->column(s));
           done_reading(cid);
           return;
@@ -2152,6 +2158,7 @@ static inline void cont_read(eval_context_t *ctx) {
         if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
             (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
              lbm_dec_sym(ctx->r) == SYM_DOT)) {
+          lbm_set_error_reason((char*)parse_error_dot);
           read_error_ctx(s->row(s), s->column(s));
           return;
         } else {
@@ -2162,6 +2169,7 @@ static inline void cont_read(eval_context_t *ctx) {
                                    ctx->r,
                                    EXPECT_CLOSEPAR));
           } else {
+            lbm_set_error_reason((char*)parse_error_dot);
             read_error_ctx(s->row(s), s->column(s));
             done_reading(cid);
             return;
@@ -2171,6 +2179,7 @@ static inline void cont_read(eval_context_t *ctx) {
       case READ_DONE:
         tok = token_stream_get(str);
         if (tok != lbm_enc_sym(SYM_TOKENIZER_DONE)) {
+          lbm_set_error_reason((char*)parse_error_eof);
           read_error_ctx(s->row(s), s->column(s));
           return;
         }
@@ -2214,6 +2223,7 @@ static inline void cont_read(eval_context_t *ctx) {
       if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
         switch (lbm_dec_sym(tok)) {
         case SYM_RERROR:
+          lbm_set_error_reason((char*)parse_error_token);
           read_error_ctx(s->row(s), s->column(s));
           done_reading(cid);
           return;
@@ -2230,6 +2240,7 @@ static inline void cont_read(eval_context_t *ctx) {
             } else if (ctx->K.data[sp_start] == READ_DONE &&
                        ctx->K.data[sp_start+3] == APPEND_CONTINUE) {
               // Parsing failed but stack seems to not be corrupted.
+              lbm_set_error_reason((char*)parse_error_eof);
               read_error_ctx(s->row(s), s->column(s));
               done_reading(cid);
               return;
@@ -2242,6 +2253,7 @@ static inline void cont_read(eval_context_t *ctx) {
           } else {
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == READ_DONE) {
+              lbm_set_error_reason((char*)parse_error_eof);
               read_error_ctx(s->row(s), s->column(s));
               done_reading(cid);
               return;
