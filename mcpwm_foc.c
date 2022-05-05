@@ -1908,7 +1908,7 @@ float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *
 bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	volatile motor_all_state_t *motor = get_motor_now();
 	bool result = false;
-	
+
 	const float kp_old = motor->m_conf->foc_current_kp;
 	const float ki_old = motor->m_conf->foc_current_ki;
 	const float res_old = motor->m_conf->foc_motor_r;
@@ -1944,9 +1944,9 @@ bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 		*ind = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff);
 		if (*ind != 0.0) {
 			result = true;
-		}	
+		}
 	}
-	
+
 	motor->m_conf->foc_current_kp = kp_old;
 	motor->m_conf->foc_current_ki = ki_old;
 	motor->m_conf->foc_motor_r = res_old;
