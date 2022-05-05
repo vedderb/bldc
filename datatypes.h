@@ -1365,6 +1365,10 @@ typedef struct __attribute__((packed)) {
 
 	uint32_t runtime_init_flag;
 	uint64_t runtime; // Seconds
+
+	// HW-specific data
+	uint32_t hw_config_init_flag;
+	uint8_t hw_config[128];
 } backup_data;
 
 #endif /* DATATYPES_H_ */
