@@ -1127,7 +1127,7 @@ Example:
 
 ### EEPROM (Nonvolatile Storage)
 
-Up to 64 variables (int32 or float) can be stored in a nonvolatile space reserved for LsipBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
+Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
 
 #### eeprom-store-f
 
