@@ -2824,6 +2824,38 @@ static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym((res_mc && res_app) ? SYM_TRUE : SYM_NIL);
 }
 
+typedef struct {
+	bool detect_can;
+	float max_power_loss;
+	float min_current_in;
+	float max_current_in;
+	float openloop_rpm;
+	float sl_erpm;
+	lbm_cid id;
+} detect_args;
+
+static void detect_task(void *arg) {
+	detect_args *a = (detect_args*)arg;
+	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
+			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm);
+	lbm_unblock_ctx(a->id, lbm_enc_i(res));
+}
+
+static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(6);
+	static detect_args a;
+	a.detect_can = lbm_dec_as_i32(args[0]);
+	a.max_power_loss = lbm_dec_as_float(args[1]);
+	a.min_current_in = lbm_dec_as_float(args[2]);
+	a.max_current_in = lbm_dec_as_float(args[3]);
+	a.openloop_rpm = lbm_dec_as_float(args[4]);
+	a.sl_erpm = lbm_dec_as_float(args[5]);
+	a.id = lbm_get_current_cid();
+	worker_execute(detect_task, &a);
+	lbm_block_ctx_from_extension();
+	return lbm_enc_sym(SYM_TRUE);
+}
+
 // Extra array extensions
 
 static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
@@ -3288,6 +3320,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-set", ext_conf_set);
 	lbm_add_extension("conf-get", ext_conf_get);
 	lbm_add_extension("conf-store", ext_conf_store);
+	lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
 
 	// Array extensions
 	lbm_array_extensions_init();

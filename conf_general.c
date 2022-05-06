@@ -1813,7 +1813,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 }
 
 /**
- * Same as conf_general_detect_apply_all_foc, but also start detection in VESCs found on the CAN-bus.
+ * Same as conf_general_detect_apply_all_foc, but also start detection on VESCs found on the CAN-bus.
  *
  * @param detect_can
  * Run detection on VESCs found on the CAN-bus as well. Setting this to false makes

@@ -1088,6 +1088,43 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 
 Store the current configuration to flash. This will stop the motor.
 
+#### conf-detect-foc
+
+```clj
+(conf-detect-foc canFwd maxLoss minCurrIn maxCurrIn openloopErpm slErpm)
+```
+
+Run the same autodetection as the wizard in VESC Tool does. This function will block the current lispBM-thread until in finishes (other threads will continue running). Arguments:
+
+```clj
+canFwd       ; Scan CAN-bus and detect on all VESCs found on CAN-bus
+maxLoss      ; Maximum power loss in W to derive current limit from
+minCurrIn    ; Minimum input current in A (negative value)
+maxCurrIn    ; Maximum input current in A
+openLoopErpm ; Openlopp ERPM setting
+slErpm       ; Sensorless ERPM setting
+```
+
+Result:
+
+```clj
+  0 ; OK and no sensors found
+  1 ; OK and hall sensors found
+  2 ; OK and AS5047 found
+ -1 ; Fault code during sensor detection
+-10 ; Flux linkage detection failed
+-50 ; CAN-detection failed
+-51 ; CAN-detection timed out
+```
+
+Example:
+
+```clj
+; No can detection, 50w losses max, -20 A to 50 A input current, 800 ERPM openloop and 2500 erpm for sensorless in case sensors are found
+(print (conf-detect-foc 0 50 -20 50 800 2500))
+; Print the result when done
+```
+
 ### EEPROM (Nonvolatile Storage)
 
 Up to 64 variables (int32 or float) can be stored in a nonvolatile space reserved for LsipBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
