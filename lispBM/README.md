@@ -1069,14 +1069,15 @@ Set param to value. This can be done while the motor is running and it will be a
 #### conf-get
 
 ```clj
-(conf-get param optDefault)
+(conf-get param optDefLim)
 ```
 
-Get the value of param. optDefault is an optional argument that can be set to 1 to get the default value of param instead of the current value. Example:
+Get the value of param. optDefLim is an optional argument that can be set to 1 or 2; 1 means get the default value and 2 means get the limit value. Example:
 
 ```clj
 (conf-get 'foc-motor-r) ; Get the motor resistance in milliOhm
 (conf-get 'controller-id 1) ; Get the default CAN ID of this VESC
+(conf-get 'l-current-max 2) ; Get the maximum allowed current on this hardware
 ```
 
 #### conf-store

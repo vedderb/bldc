@@ -2624,6 +2624,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	return res;
 }
 
+static inline float lim_max(float min, float max) { (void)min; return max; }
+static inline float lim_min(float min, float max) { (void)max; return min; }
+
 static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -2639,9 +2642,9 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		return res;
 	}
 
-	bool defaultcfg = false;
+	int defaultcfg = 0;
 	if (argn == 2) {
-		defaultcfg = lbm_dec_as_i32(args[1]) != 0;
+		defaultcfg = lbm_dec_as_i32(args[1]);
 	}
 
 	lbm_uint name = lbm_dec_sym(args[0]);
@@ -2654,6 +2657,59 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		appconf = mempools_alloc_appconf();
 		confgenerator_set_defaults_mcconf(mcconf);
 		confgenerator_set_defaults_appconf(appconf);
+
+		if (defaultcfg == 2) {
+#ifdef HW_LIM_CURRENT
+			mcconf->l_current_max = lim_max(HW_LIM_CURRENT);
+			mcconf->l_current_min = lim_min(HW_LIM_CURRENT);
+#else
+			mcconf->l_current_max = 500.0;
+			mcconf->l_current_min = -500.0;
+#endif
+#ifdef HW_LIM_CURRENT_IN
+			mcconf->l_in_current_max = lim_max(HW_LIM_CURRENT_IN);
+			mcconf->l_in_current_min = lim_min(HW_LIM_CURRENT_IN);
+#else
+			mcconf->l_in_current_max = 500.0;
+			mcconf->l_in_current_min = -500.0;
+#endif
+#ifdef HW_LIM_CURRENT_ABS
+			mcconf->l_abs_current_max = lim_max(HW_LIM_CURRENT_ABS);
+#else
+			mcconf->l_abs_current_max = 500.0;
+#endif
+#ifdef HW_LIM_VIN
+			mcconf->l_max_vin = lim_max(HW_LIM_CURRENT_ABS);
+			mcconf->l_min_vin = lim_min(HW_LIM_CURRENT_ABS);
+#else
+			mcconf->l_max_vin = 100.0;
+			mcconf->l_min_vin = 3.0;
+#endif
+#ifdef HW_LIM_ERPM
+			mcconf->l_max_erpm = lim_max(HW_LIM_ERPM);
+			mcconf->l_min_erpm = lim_min(HW_LIM_ERPM);
+#else
+			mcconf->l_max_erpm = 500000.0;
+			mcconf->l_min_erpm = -500000.0;
+#endif
+#ifdef HW_LIM_DUTY_MIN
+			mcconf->l_min_duty = lim_max(HW_LIM_DUTY_MIN);
+#else
+			mcconf->l_min_duty = 0.1;
+#endif
+#ifdef HW_LIM_DUTY_MAX
+			mcconf->l_max_duty = lim_max(HW_LIM_DUTY_MAX);
+#else
+			mcconf->l_max_duty = 0.98;
+#endif
+#ifdef HW_LIM_TEMP_FET
+			mcconf->l_temp_fet_start = lim_max(HW_LIM_TEMP_FET);
+			mcconf->l_temp_fet_end = lim_max(HW_LIM_TEMP_FET);
+#else
+			mcconf->l_temp_fet_start = 120.0;
+			mcconf->l_temp_fet_end = 120.0;
+#endif
+		}
 	} else {
 		mcconf = (mc_configuration*)mc_interface_get_configuration();
 		appconf = (app_configuration*)app_get_configuration();
