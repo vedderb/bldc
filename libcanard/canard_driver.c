@@ -86,7 +86,6 @@ static uint8_t node_health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
 static uint8_t node_mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
 static int debug_level;
 static status_msg_wrapper_t stat_msgs[STATUS_MSGS_TO_STORE];
-static uint8_t my_node_id = 0;
 static bool refresh_parameters_enabled = true;
 
 // Threads
@@ -376,22 +375,20 @@ static void calculateTotalCurrent(void) {
 */
 static void sendNodeStatus(CanardInstance *ins) {
 	node_mode = fw_update.node_id?UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
-
-	uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 	
 	node_status.health = node_health;
 	node_status.mode = node_mode;
 	node_status.uptime_sec = (uint32_t)ST2S(chVTGetSystemTimeX());
 	// status.sub_mode =
 	// status.vendor_specific_status_code is filled in the firmware update loop
-	uavcan_protocol_NodeStatus_encode(&node_status, buffer);
+	uavcan_protocol_NodeStatus_encode(&node_status, msg_buffer);
 	static uint8_t transfer_id;
 	canardBroadcast(ins,
 		UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
 		UAVCAN_PROTOCOL_NODESTATUS_ID,
 		&transfer_id,
 		CANARD_TRANSFER_PRIORITY_LOW,
-		buffer,
+		msg_buffer,
 		UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE);
 }
 
@@ -400,6 +397,8 @@ static void sendNodeStatus(CanardInstance *ins) {
  */
 static void sendEscStatus(CanardInstance *ins) {
 	uavcan_equipment_esc_Status status;
+	memset(&status, 0, sizeof(status));
+
 	status.current = mc_interface_get_tot_current();
 	status.error_count = mc_interface_get_fault();
 	status.esc_index = app_get_configuration()->uavcan_esc_index;
@@ -446,6 +445,7 @@ static void readUniqueID(uint8_t* out_uid) {
  */
 static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer) {
 	uavcan_protocol_GetNodeInfoResponse pkt;
+	memset(&pkt, 0, sizeof(pkt));
 
 	node_status.uptime_sec = ST2S(chVTGetSystemTimeX());
 
@@ -484,7 +484,7 @@ static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer
 													&transfer->transfer_id,
 													transfer->priority,
 													CanardResponse,
-													&msg_buffer[0],
+													msg_buffer,
 													total_size);
 	if (resp_res <= 0) {
 		if (debug_level > 1) {
@@ -500,9 +500,9 @@ static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transf
 	(void)ins;
 
 	uavcan_equipment_esc_RawCommand cmd;
-	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_MAX_SIZE];
-	memset(buffer, 0, sizeof(buffer));
-	uint8_t *tmp = buffer;
+	memset(&cmd, 0, sizeof(cmd));
+
+	uint8_t *tmp = msg_buffer;
 
 	if (uavcan_equipment_esc_RawCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0) >= 0) {
 		if (cmd.cmd.len > app_get_configuration()->uavcan_esc_index) {
@@ -546,6 +546,8 @@ static void handle_esc_rpm_command(CanardInstance* ins, CanardRxTransfer* transf
 	(void)ins;
 
 	uavcan_equipment_esc_RPMCommand cmd;
+	memset(&cmd, 0, sizeof(cmd));
+
 	uint8_t *tmp = msg_buffer;
 
 	if (uavcan_equipment_esc_RPMCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0) >= 0) {
@@ -565,6 +567,8 @@ static void handle_esc_status(CanardInstance* ins, CanardRxTransfer* transfer) {
 	(void)ins;
 
 	uavcan_equipment_esc_Status msg;
+	memset(&msg, 0, sizeof(msg));
+
 	if (uavcan_equipment_esc_Status_decode_internal(transfer, transfer->payload_len, &msg, 0, 0) >= 0) {
 		for (int i = 0;i < STATUS_MSGS_TO_STORE;i++) {
 			status_msg_wrapper_t *msgw = &stat_msgs[i];
@@ -594,6 +598,8 @@ static void handle_esc_status(CanardInstance* ins, CanardRxTransfer* transfer) {
 static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 {
 	uavcan_protocol_param_GetSetRequest req;
+	memset(&req, 0, sizeof(req));
+
 	uint8_t *arraybuf_ptr = msg_buffer;
 	if (uavcan_protocol_param_GetSetRequest_decode(transfer, transfer->payload_len, &req, &arraybuf_ptr) < 0) {
 		return;
@@ -938,6 +944,8 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
 	}
 
 	uavcan_protocol_file_BeginFirmwareUpdateResponse reply;
+	memset(&reply, 0, sizeof(reply));
+
 	reply.error = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_RESPONSE_ERROR_OK;
 
 	uint32_t total_size = uavcan_protocol_file_BeginFirmwareUpdateResponse_encode(&reply, msg_buffer);
@@ -1119,28 +1127,44 @@ static THD_FUNCTION(canard_thread, arg) {
 
 	getParamByName("controller_id")->defval = HW_DEFAULT_ID;
 
-	canardInit(&canard_ins, canard_memory_pool, sizeof(canard_memory_pool),
-			onTransferReceived, shouldAcceptTransfer, NULL);
-
-#ifdef HW_CAN2_DEV
-	canardInit(&canard_ins_if2, canard_memory_pool_if2, sizeof(canard_memory_pool_if2),
-			onTransferReceived, shouldAcceptTransfer, NULL);
-#endif
-
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
 	systime_t last_tot_current_calc_time = 0;
 	systime_t last_param_refresh = 0;
-	
+	bool was_running = false;
+
 	for (;;) {
 		const app_configuration *conf = app_get_configuration();
 
 		if (conf->can_mode != CAN_MODE_UAVCAN) {
 			chThdSleepMilliseconds(100);
+			was_running = false;
 			continue;
 		}
 
-		my_node_id = conf->controller_id;
+		if (!was_running) {
+			memset(&canard_ins, 0, sizeof(canard_ins));
+			memset(canard_memory_pool, 0, sizeof(canard_memory_pool));
+
+			canardInit(&canard_ins, canard_memory_pool, sizeof(canard_memory_pool),
+					onTransferReceived, shouldAcceptTransfer, NULL);
+
+#ifdef HW_CAN2_DEV
+			memset(&canard_ins_if2, 0, sizeof(canard_ins_if2));
+			memset(canard_memory_pool_if2, 0, sizeof(canard_memory_pool_if2));
+
+			canardInit(&canard_ins_if2, canard_memory_pool_if2, sizeof(canard_memory_pool_if2),
+					onTransferReceived, shouldAcceptTransfer, NULL);
+#endif
+
+			last_status_time = chVTGetSystemTimeX();
+			last_esc_status_time = chVTGetSystemTimeX();
+			last_tot_current_calc_time = chVTGetSystemTimeX();
+			last_param_refresh = chVTGetSystemTimeX();
+
+			was_running = true;
+		}
+
 		canardSetLocalNodeID(&canard_ins, conf->controller_id);
 
 #ifdef HW_CAN2_DEV
