@@ -1028,9 +1028,9 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-motor-flux-linkage ; Motor flux linkage in milliWeber
 'foc-observer-gain      ; Observer gain x1M
 'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
-'foc_hfi_voltage_run    ; HFI voltage (V) HFI voltage at min current
-'foc_hfi_voltage_max    ; HFI voltage (V) at max current
-'foc_sl_erpm_hfi        ; ERPM where to move to sensorless in HFI mode
+'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
+'foc-hfi-voltage-max    ; HFI voltage (V) at max current
+'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
 'controller-id          ; VESC CAN ID
