@@ -492,6 +492,17 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 			}
 		}
 
+		// Wait for fault codes to go away
+		if (!m_dccal_done) {
+			while (mc_interface_get_fault() != FAULT_CODE_NONE) {
+				chThdSleepMilliseconds(1);
+				if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
+					m_dccal_done = true;
+					break;
+				}
+			}
+		}
+
 		if (!m_dccal_done) {
 			m_motor_1.m_conf->foc_offsets_voltage[0] = MCCONF_FOC_OFFSETS_VOLTAGE_0;
 			m_motor_1.m_conf->foc_offsets_voltage[1] = MCCONF_FOC_OFFSETS_VOLTAGE_1;
