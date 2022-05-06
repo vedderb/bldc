@@ -493,17 +493,31 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 		}
 
 		if (!m_dccal_done) {
-			for (int i = 0;i < 3;i++) {
-				m_motor_1.m_conf->foc_offsets_voltage[i] = 0.0;
-				m_motor_1.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
-				m_motor_1.m_conf->foc_offsets_current[i] = 2048;
+			m_motor_1.m_conf->foc_offsets_voltage[0] = MCCONF_FOC_OFFSETS_VOLTAGE_0;
+			m_motor_1.m_conf->foc_offsets_voltage[1] = MCCONF_FOC_OFFSETS_VOLTAGE_1;
+			m_motor_1.m_conf->foc_offsets_voltage[2] = MCCONF_FOC_OFFSETS_VOLTAGE_2;
+
+			m_motor_1.m_conf->foc_offsets_voltage_undriven[0] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_0;
+			m_motor_1.m_conf->foc_offsets_voltage_undriven[1] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1;
+			m_motor_1.m_conf->foc_offsets_voltage_undriven[2] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2;
+
+			m_motor_1.m_conf->foc_offsets_current[0] = MCCONF_FOC_OFFSETS_CURRENT_0;
+			m_motor_1.m_conf->foc_offsets_current[1] = MCCONF_FOC_OFFSETS_CURRENT_1;
+			m_motor_1.m_conf->foc_offsets_current[2] = MCCONF_FOC_OFFSETS_CURRENT_2;
 
 #ifdef HW_HAS_DUAL_MOTORS
-				m_motor_2.m_conf->foc_offsets_voltage[i] = 0.0;
-				m_motor_2.m_conf->foc_offsets_voltage_undriven[i] = 0.0;
-				m_motor_2.m_conf->foc_offsets_current[i] = 2048;
+			m_motor_2.m_conf->foc_offsets_voltage[0] = MCCONF_FOC_OFFSETS_VOLTAGE_0;
+			m_motor_2.m_conf->foc_offsets_voltage[1] = MCCONF_FOC_OFFSETS_VOLTAGE_1;
+			m_motor_2.m_conf->foc_offsets_voltage[2] = MCCONF_FOC_OFFSETS_VOLTAGE_2;
+
+			m_motor_2.m_conf->foc_offsets_voltage_undriven[0] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_0;
+			m_motor_2.m_conf->foc_offsets_voltage_undriven[1] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1;
+			m_motor_2.m_conf->foc_offsets_voltage_undriven[2] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2;
+
+			m_motor_2.m_conf->foc_offsets_current[0] = MCCONF_FOC_OFFSETS_CURRENT_0;
+			m_motor_2.m_conf->foc_offsets_current[1] = MCCONF_FOC_OFFSETS_CURRENT_1;
+			m_motor_2.m_conf->foc_offsets_current[2] = MCCONF_FOC_OFFSETS_CURRENT_2;
 #endif
-			}
 
 			mcpwm_foc_dc_cal(false);
 		}
