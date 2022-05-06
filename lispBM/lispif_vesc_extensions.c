@@ -95,6 +95,7 @@ typedef struct {
 	lbm_uint l_current_max_scale;
 	lbm_uint l_in_current_min;
 	lbm_uint l_in_current_max;
+	lbm_uint l_abs_current_max;
 	lbm_uint l_min_erpm;
 	lbm_uint l_max_erpm;
 	lbm_uint l_min_vin;
@@ -103,6 +104,7 @@ typedef struct {
 	lbm_uint l_max_duty;
 	lbm_uint l_watt_min;
 	lbm_uint l_watt_max;
+	lbm_uint foc_sensor_mode;
 	lbm_uint foc_current_kp;
 	lbm_uint foc_current_ki;
 	lbm_uint foc_motor_l;
@@ -110,9 +112,21 @@ typedef struct {
 	lbm_uint foc_motor_r;
 	lbm_uint foc_motor_flux_linkage;
 	lbm_uint foc_observer_gain;
+	lbm_uint foc_hfi_voltage_start;
+	lbm_uint foc_hfi_voltage_run;
+	lbm_uint foc_hfi_voltage_max;
+	lbm_uint foc_sl_erpm_hfi;
+	lbm_uint m_invert_direction;
+	lbm_uint m_out_aux_mode;
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
+	lbm_uint ppm_ctrl_type;
+	lbm_uint ppm_pulse_start;
+	lbm_uint ppm_pulse_end;
+	lbm_uint ppm_pulse_center;
+	lbm_uint ppm_ramp_time_pos;
+	lbm_uint ppm_ramp_time_neg;
 
 	// Sysinfo
 	lbm_uint hw_name;
@@ -236,6 +250,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("l-in-current-min", comp);
 		} else if (comp == &syms_vesc.l_in_current_max) {
 			get_add_symbol("l-in-current-max", comp);
+		} else if (comp == &syms_vesc.l_abs_current_max) {
+			get_add_symbol("l-abs-current-max", comp);
 		} else if (comp == &syms_vesc.l_min_erpm) {
 			get_add_symbol("l-min-erpm", comp);
 		} else if (comp == &syms_vesc.l_max_erpm) {
@@ -252,6 +268,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("l-watt-min", comp);
 		} else if (comp == &syms_vesc.l_watt_max) {
 			get_add_symbol("l-watt-max", comp);
+		} else if (comp == &syms_vesc.foc_sensor_mode) {
+			get_add_symbol("foc-sensor-mode", comp);
 		} else if (comp == &syms_vesc.foc_current_kp) {
 			get_add_symbol("foc-current-kp", comp);
 		} else if (comp == &syms_vesc.foc_current_ki) {
@@ -266,12 +284,36 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("foc-motor-flux-linkage", comp);
 		} else if (comp == &syms_vesc.foc_observer_gain) {
 			get_add_symbol("foc-observer-gain", comp);
+		} else if (comp == &syms_vesc.foc_hfi_voltage_start) {
+			get_add_symbol("foc-hfi-voltage-start", comp);
+		} else if (comp == &syms_vesc.foc_hfi_voltage_run) {
+			get_add_symbol("foc-hfi-voltage-run", comp);
+		} else if (comp == &syms_vesc.foc_hfi_voltage_max) {
+			get_add_symbol("foc-hfi-voltage-max", comp);
+		} else if (comp == &syms_vesc.foc_sl_erpm_hfi) {
+			get_add_symbol("foc-sl-erpm-hfi", comp);
+		} else if (comp == &syms_vesc.m_invert_direction) {
+			get_add_symbol("m-invert-direction", comp);
+		} else if (comp == &syms_vesc.m_out_aux_mode) {
+			get_add_symbol("m-out-aux-mode", comp);
 		} else if (comp == &syms_vesc.min_speed) {
 			get_add_symbol("min-speed", comp);
 		} else if (comp == &syms_vesc.max_speed) {
 			get_add_symbol("max-speed", comp);
 		} else if (comp == &syms_vesc.controller_id) {
 			get_add_symbol("controller-id", comp);
+		} else if (comp == &syms_vesc.ppm_ctrl_type) {
+			get_add_symbol("ppm-ctrl-type", comp);
+		} else if (comp == &syms_vesc.ppm_pulse_start) {
+			get_add_symbol("ppm-pulse-start", comp);
+		} else if (comp == &syms_vesc.ppm_pulse_end) {
+			get_add_symbol("ppm-pulse-end", comp);
+		} else if (comp == &syms_vesc.ppm_pulse_center) {
+			get_add_symbol("ppm-pulse-center", comp);
+		} else if (comp == &syms_vesc.ppm_ramp_time_pos) {
+			get_add_symbol("ppm-ramp-time-pos", comp);
+		} else if (comp == &syms_vesc.ppm_ramp_time_neg) {
+			get_add_symbol("ppm-ramp-time-neg", comp);
 		}
 
 		else if (comp == &syms_vesc.hw_name) {
@@ -2450,6 +2492,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_max)) {
 		mcconf->l_in_current_max = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_abs_current_max)) {
+		mcconf->l_abs_current_max = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_min_erpm)) {
 		mcconf->l_min_erpm = -fabsf(lbm_dec_as_float(args[1]));
 		changed_mc = 1;
@@ -2480,6 +2525,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_watt_max)) {
 		mcconf->l_watt_max = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
+		mcconf->m_invert_direction = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
+		mcconf->m_out_aux_mode = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -2493,7 +2544,10 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
 
-		if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
+		if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
+			mcconf->foc_sensor_mode = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
 			mcconf->foc_current_kp = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
@@ -2514,6 +2568,36 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
 			mcconf->foc_observer_gain = lbm_dec_as_float(args[1]) * 1e6;
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_start)) {
+			mcconf->foc_hfi_voltage_start = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_run)) {
+			mcconf->foc_hfi_voltage_run = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_max)) {
+			mcconf->foc_hfi_voltage_max = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
+			mcconf->foc_sl_erpm_hfi = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_ctrl_type)) {
+			appconf->app_ppm_conf.ctrl_type = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_pulse_start)) {
+			appconf->app_ppm_conf.pulse_start = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_pulse_end)) {
+			appconf->app_ppm_conf.pulse_end = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_pulse_center)) {
+			appconf->app_ppm_conf.pulse_center = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_pos)) {
+			appconf->app_ppm_conf.ramp_time_pos = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_neg)) {
+			appconf->app_ppm_conf.ramp_time_neg = lbm_dec_as_float(args[1]);
+			changed_app = 2;
 		}
 	}
 
@@ -2590,6 +2674,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_in_current_min);
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_max)) {
 		res = lbm_enc_float(mcconf->l_in_current_max);
+	} else if (compare_symbol(name, &syms_vesc.l_abs_current_max)) {
+		res = lbm_enc_float(mcconf->l_abs_current_max);
 	} else if (compare_symbol(name, &syms_vesc.l_min_erpm)) {
 		res = lbm_enc_float(mcconf->l_min_erpm);
 	} else if (compare_symbol(name, &syms_vesc.l_max_erpm)) {
@@ -2606,6 +2692,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_watt_min);
 	} else if (compare_symbol(name, &syms_vesc.l_watt_max)) {
 		res = lbm_enc_float(mcconf->l_watt_max);
+	} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
+		res = lbm_enc_i(mcconf->foc_sensor_mode);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
 		res = lbm_enc_float(mcconf->foc_current_kp);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
@@ -2620,12 +2708,36 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->foc_motor_flux_linkage * 1e3);
 	} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
 		res = lbm_enc_float(mcconf->foc_observer_gain * 1e-6);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_start)) {
+		res = lbm_enc_float(mcconf->foc_hfi_voltage_start);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_run)) {
+		res = lbm_enc_float(mcconf->foc_hfi_voltage_run);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_max)) {
+		res = lbm_enc_float(mcconf->foc_hfi_voltage_max);
+	} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
+		res = lbm_enc_float(mcconf->foc_sl_erpm_hfi);
+	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
+		res = lbm_enc_i(mcconf->m_invert_direction);
+	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
+		res = lbm_enc_i(mcconf->m_out_aux_mode);
 	} else if (compare_symbol(name, &syms_vesc.min_speed)) {
 		res = lbm_enc_float(mcconf->l_min_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {
 		res = lbm_enc_float(mcconf->l_max_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		res = lbm_enc_i(appconf->controller_id);
+	} else if (compare_symbol(name, &syms_vesc.ppm_ctrl_type)) {
+		res = lbm_enc_i(appconf->app_ppm_conf.ctrl_type);
+	} else if (compare_symbol(name, &syms_vesc.ppm_pulse_start)) {
+		res = lbm_enc_float(appconf->app_ppm_conf.pulse_start);
+	} else if (compare_symbol(name, &syms_vesc.ppm_pulse_end)) {
+		res = lbm_enc_float(appconf->app_ppm_conf.pulse_end);
+	} else if (compare_symbol(name, &syms_vesc.ppm_pulse_center)) {
+		res = lbm_enc_float(appconf->app_ppm_conf.pulse_center);
+	} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_pos)) {
+		res = lbm_enc_float(appconf->app_ppm_conf.ramp_time_pos);
+	} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_neg)) {
+		res = lbm_enc_float(appconf->app_ppm_conf.ramp_time_neg);
 	}
 
 	if (defaultcfg) {

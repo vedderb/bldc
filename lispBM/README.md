@@ -986,6 +986,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-current-max-scale    ; Scaled maximum current, 0.0 to 1.0
 'l-in-current-min       ; Minimum input current in A (a negative value)
 'l-in-current-max       ; Maximum input current in A
+'l-abs-current-max      ; Abs max current in A
 'l-min-erpm             ; Minimum ERPM (a negative value)
 'l-max-erpm             ; Maximum ERPM
 'l-min-vin              ; Minimum input voltage
@@ -994,6 +995,31 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
 'l-watt-max             ; Maximum power regen in W
+'m-invert-direction     ; Invert motor direction, 0 or 1
+'m-out-aux-mode         ; AUX-pin output mode. Options:
+                        ;    0:  OUT_AUX_MODE_OFF
+                        ;    1:  OUT_AUX_MODE_ON_AFTER_2S
+                        ;    2:  OUT_AUX_MODE_ON_AFTER_5S
+                        ;    3:  OUT_AUX_MODE_ON_AFTER_10S
+                        ;    4:  OUT_AUX_MODE_UNUSED
+                        ;    5:  OUT_AUX_MODE_ON_WHEN_RUNNING
+                        ;    6:  OUT_AUX_MODE_ON_WHEN_NOT_RUNNING
+                        ;    7:  OUT_AUX_MODE_MOTOR_50
+                        ;    8:  OUT_AUX_MODE_MOSFET_50
+                        ;    9:  OUT_AUX_MODE_MOTOR_70
+                        ;    10: OUT_AUX_MODE_MOSFET_70
+                        ;    11: OUT_AUX_MODE_MOTOR_MOSFET_50
+                        ;    12: OUT_AUX_MODE_MOTOR_MOSFET_70
+'foc-sensor-mode        ; FOC sensor mode
+                        ;    0: FOC_SENSOR_MODE_SENSORLESS
+                        ;    1: FOC_SENSOR_MODE_ENCODER
+                        ;    2: FOC_SENSOR_MODE_HALL
+                        ;    3: FOC_SENSOR_MODE_HFI
+                        ;    4: FOC_SENSOR_MODE_HFI_START
+                        ;    5: FOC_SENSOR_MODE_HFI_V2
+                        ;    6: FOC_SENSOR_MODE_HFI_V3
+                        ;    7: FOC_SENSOR_MODE_HFI_V4
+                        ;    8: FOC_SENSOR_MODE_HFI_V5
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
 'foc-motor-l            ; Motor inductance in microHenry
@@ -1001,9 +1027,31 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-motor-r            ; Motor resistance in milliOhm
 'foc-motor-flux-linkage ; Motor flux linkage in milliWeber
 'foc-observer-gain      ; Observer gain x1M
+'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
+'foc_hfi_voltage_run    ; HFI voltage (V) HFI voltage at min current
+'foc_hfi_voltage_max    ; HFI voltage (V) at max current
+'foc_sl_erpm_hfi        ; ERPM where to move to sensorless in HFI mode
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
 'controller-id          ; VESC CAN ID
+'ppm-ctrl-type          ; PPM Control Type
+                        ;    0:  PPM_CTRL_TYPE_NONE
+                        ;    1:  PPM_CTRL_TYPE_CURRENT
+                        ;    2:  PPM_CTRL_TYPE_CURRENT_NOREV
+                        ;    3:  PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE
+                        ;    4:  PPM_CTRL_TYPE_DUTY
+                        ;    5:  PPM_CTRL_TYPE_DUTY_NOREV
+                        ;    6:  PPM_CTRL_TYPE_PID
+                        ;    7:  PPM_CTRL_TYPE_PID_NOREV
+                        ;    8:  PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
+                        ;    9:  PPM_CTRL_TYPE_CURRENT_SMART_REV
+                        ;    10: PPM_CTRL_TYPE_PID_POSITION_180
+                        ;    11: PPM_CTRL_TYPE_PID_POSITION_360
+'ppm-pulse-start        ; Shortest PPM pulse in ms
+'ppm-pulse-end          ; Longest PPM pulse in ms
+'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
+'ppm-ramp-time-pos      ; Positive ramping time in seconds
+'ppm-ramp-time-neg      ; Negative ramping time in seconds
 ```
 
 #### conf-set
