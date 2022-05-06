@@ -510,6 +510,8 @@ static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transf
 
 			volatile const app_configuration *conf = app_get_configuration();
 
+			app_disable_output(100);
+
 			switch (conf->uavcan_raw_mode) {
 				case UAVCAN_RAW_MODE_CURRENT:
 					mc_interface_set_current_rel(raw_val);
