@@ -602,9 +602,9 @@ void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
 	// TODO: Check if ratio between these is sane or introduce separate gains
 	const float gain_int = 4000.0 * conf->foc_hfi_gain;
 	const float gain_int2 = 10.0 * conf->foc_hfi_gain;
-	motor->m_hfi.double_integrator += dt * ang_err * gain_int2;
-	utils_norm_angle_rad((float*)&motor->m_hfi.double_integrator);
-	motor->m_hfi.angle -= gain_int * ang_err * dt + motor->m_hfi.double_integrator;
+	motor->m_hfi.double_integrator += ang_err * gain_int2;
+	utils_truncate_number_abs(&motor->m_hfi.double_integrator, fabsf(motor->m_speed_est_fast));
+	motor->m_hfi.angle -= dt * (gain_int * ang_err + motor->m_hfi.double_integrator);
 	utils_norm_angle_rad((float*)&motor->m_hfi.angle);
 	motor->m_hfi.ready = true;
 }

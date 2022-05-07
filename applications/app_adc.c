@@ -58,6 +58,13 @@ void app_adc_configure(adc_config *conf) {
 }
 
 void app_adc_start(bool use_rx_tx) {
+#ifdef HW_ADC_EXT_GPIO
+	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef HW_ADC_EXT2_GPIO
+	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
+#endif
+
 	use_rx_tx_as_buttons = use_rx_tx;
 	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);

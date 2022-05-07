@@ -154,6 +154,18 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8323S_FAULTS  : %s", drv8323s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #endif
+				if (fault_vec[i].info_str != 0) {
+					char f_str[100];
+					strcpy(f_str, "Info             : ");
+					strcpy(f_str + 19, fault_vec[i].info_str);
+					if (fault_vec[i].info_argn == 0) {
+						commands_printf(f_str);
+					} else if (fault_vec[i].info_argn == 1) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0]);
+					} else if (fault_vec[i].info_argn == 2) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0], (double)fault_vec[i].info_args[1]);
+					}
+				}
 				commands_printf(" ");
 			}
 		}
@@ -464,9 +476,13 @@ void terminal_process_string(char *str) {
 		float res = 0.0;
 		float ind = 0.0;
 		float ld_lq_diff = 0.0;
-		mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff);
-		commands_printf("Resistance: %.6f ohm", (double)res);
-		commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		if (mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff)) {
+			commands_printf("Resistance: %.6f ohm", (double)res);
+			commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		} else {
+			commands_printf("Error measuring resistance or inductance\n");
+		}
+		
 
 		mc_interface_set_configuration(mcconf_old);
 

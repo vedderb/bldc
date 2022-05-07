@@ -36,7 +36,7 @@ typedef enum {
 // Variables
 static volatile bool i2c_running = false;
 static THD_WORKING_AREA(smart_switch_thread_wa, 128);
-static THD_WORKING_AREA(mux_thread_wa, 128);
+static THD_WORKING_AREA(mux_thread_wa, 256);
 static THD_FUNCTION(mux_thread, arg);
 static volatile switch_states switch_state = SWITCH_BOOTED;
 

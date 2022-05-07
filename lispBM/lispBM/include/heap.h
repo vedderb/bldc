@@ -426,7 +426,7 @@ extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
  */
 extern lbm_value lbm_car(lbm_value cons);
 /** Accesses the car of the cdr of an cons cell
- * 
+ *
  * \param c Value
  * \return the cdr field or type error.
  */
@@ -546,6 +546,11 @@ extern int lbm_gc_sweep_phase(void);
  * \return 1 for success of 0 for failure.
  */
 extern int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
+/** Explicitly free an array.
+ *  This function needs to be used with care and knowledge.
+ * \param arr Array value.
+ */
+extern int lbm_heap_explicit_free_array(lbm_value arr);
 
 /** Query the type information of a value.
  *
@@ -798,6 +803,12 @@ static inline bool lbm_is_array(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_ARRAY &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
+}
+
+static inline bool lbm_is_stream(lbm_value x) {
+  return (lbm_type_of(x) == LBM_TYPE_STREAM &&
+          lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
+          lbm_dec_sym(lbm_cdr(x)) == SYM_STREAM_TYPE);
 }
 
 static inline bool lbm_is_char(lbm_value x) {

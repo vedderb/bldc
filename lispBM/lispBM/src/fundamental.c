@@ -637,6 +637,19 @@ lbm_value index_list(lbm_value l, unsigned int n) {
   }
 }
 
+lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
+  lbm_value curr = assoc;
+
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+    lbm_value c = lbm_ref_cell(curr)->car;
+    if (struct_eq(lbm_ref_cell(c)->car, key)) {
+      return lbm_ref_cell(c)->cdr;
+    }
+    curr = lbm_ref_cell(curr)->cdr;
+  }
+  return lbm_enc_sym(SYM_NOT_FOUND);
+}
+
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
 
   lbm_uint result = lbm_enc_sym(SYM_EERROR);
@@ -854,27 +867,28 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   }break;
   case SYM_ASSOC: {
     if (nargs == 2 && lbm_is_list(args[0])) {
-      lbm_value r = lbm_env_lookup(args[1], args[0]);
+      lbm_value r = assoc_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
-          lbm_dec_sym(r) == SYM_NOT_FOUND)
-        r = lbm_enc_sym(SYM_NIL);
-      else result = r;
+          lbm_dec_sym(r) == SYM_NOT_FOUND) {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+      else {
+        result = r;
+      }
     }
   } break;
   case SYM_ACONS: {
     if (nargs == 3) {
-      if (lbm_is_list(args[0])) {
-        lbm_value keyval = lbm_cons(args[1], args[2]);
-        lbm_value new_alist = lbm_cons(keyval, args[0]);
+      lbm_value keyval = lbm_cons(args[0], args[1]);
+      lbm_value new_alist = lbm_cons(keyval, args[2]);
 
-        if (lbm_is_symbol(keyval) ||
-            lbm_is_symbol(new_alist) )
-          result = lbm_enc_sym(SYM_MERROR);
-        else
-          result = new_alist;
-      }
+      if (lbm_is_symbol(keyval) ||
+          lbm_is_symbol(new_alist) )
+        result = lbm_enc_sym(SYM_MERROR);
+      else
+        result = new_alist;
     } else if (nargs == 2) {
-      result = lbm_cons(args[1], args[0]);
+      result = lbm_cons(args[0], args[1]);
     }
   } break;
   case SYM_SET_ASSOC: {

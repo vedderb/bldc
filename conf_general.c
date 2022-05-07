@@ -49,7 +49,7 @@
 #define EEPROM_BASE_APPCONF		2000
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
-#define EEPROM_BASE_MCCONF_2	5000
+#define EEPROM_BASE_MCCONF_2		5000
 #define EEPROM_BASE_BACKUP		6000
 
 // Global variables
@@ -121,10 +121,15 @@ void conf_general_init(void) {
 		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
 			backup_tmp.runtime = g_backup.runtime;
 		}
+
+		if (g_backup.hw_config_init_flag == BACKUP_VAR_INIT_CODE) {
+			memcpy((void*)backup_tmp.hw_config, (uint8_t*)g_backup.hw_config, sizeof(g_backup.hw_config));
+		}
 	}
 
 	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
 	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.hw_config_init_flag = BACKUP_VAR_INIT_CODE;
 
 	g_backup = backup_tmp;
 	conf_general_store_backup_data();
@@ -1005,6 +1010,17 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		chThdSleepMilliseconds(1);
 	}
 
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		timeout_configure(tout, tout_c, tout_ksw);
+		mc_interface_unlock();
+		mc_interface_release_motor();
+		mc_interface_wait_for_motor_release(1.0);
+		mc_interface_set_configuration(mcconf_old);
+		mempools_free_mcconf(mcconf);
+		mempools_free_mcconf(mcconf_old);
+		return false;
+	}
+
 	duty_still /= samples;
 	float duty_max = 0.0;
 	const int max_time = 15000;
@@ -1012,6 +1028,17 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
 		rpm_now += erpm_per_sec / 1000.0;
 		mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
+
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
+			mc_interface_set_configuration(mcconf_old);
+			mempools_free_mcconf(mcconf);
+			mempools_free_mcconf(mcconf_old);
+			return false;
+		}
 
 		chThdSleepMilliseconds(1);
 		cnt++;
@@ -1223,6 +1250,9 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 
 		for (int i = 0;i < 1000;i++) {
 			mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, 0.0);
+			if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+				break;
+			}
 			chThdSleepMilliseconds(1);
 		}
 
@@ -1232,6 +1262,10 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 
 		for (int i = 0;i < 180.0;i++) {
 			mcpwm_foc_set_openloop_phase(current, i);
+			if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+				break;
+			}
+
 			chThdSleepMilliseconds(5);
 
 			if (i == 90) {
@@ -1323,7 +1357,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 		float res_tmp = mcpwm_foc_measure_resistance(i, 5, false);
 		i_last = i;
 
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		if (res_tmp == 0.0) {
 			mempools_free_mcconf(mcconf);
 			return false;
 		}
@@ -1334,11 +1368,20 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	}
 
 	*r = mcpwm_foc_measure_resistance(i_last, 100, true);
+	if (*r == 0.0) {
+		mempools_free_mcconf(mcconf);
+		return false;
+	}
 
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);
 
+	bool result = true;
 	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff) * 1e-6;
+	if (*l == 0.0) {
+		result = false;
+	}
+
 	*ld_lq_diff *= 1e-6;
 	*i_max = sqrtf(max_power_loss / *r / 1.5);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
@@ -1347,7 +1390,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	mc_interface_set_configuration(mcconf);
 	mempools_free_mcconf(mcconf);
 
-	return true;
+	return result;
 }
 
 static bool wait_fault(int timeout_ms) {
@@ -1770,7 +1813,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 }
 
 /**
- * Same as conf_general_detect_apply_all_foc, but also start detection in VESCs found on the CAN-bus.
+ * Same as conf_general_detect_apply_all_foc, but also start detection on VESCs found on the CAN-bus.
  *
  * @param detect_can
  * Run detection on VESCs found on the CAN-bus as well. Setting this to false makes

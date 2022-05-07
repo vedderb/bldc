@@ -268,6 +268,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 #endif
 		send_buffer[ind++] = nrf_flags;
 
+		strcpy((char*)(send_buffer + ind), FW_NAME);
+		ind += strlen(FW_NAME) + 1;
+
 		fw_version_sent_cnt++;
 
 		reply_func(send_buffer, ind);
@@ -640,7 +643,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			raw = data[ind++];
 		}
 
-		mc_interface_sample_print_data(mode, sample_len, decimation, raw);
+		mc_interface_sample_print_data(mode, sample_len, decimation, raw, send_func);
 	} break;
 
 	case COMM_REBOOT:

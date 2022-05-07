@@ -27,20 +27,20 @@
 #include "lispbm.h"
 
 #define HEAP_SIZE				2048
-#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_8K
-#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_8K
+#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_16K
+#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_16K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	180
-#define VARIABLE_STORAGE_SIZE	128
+#define EXTENSION_STORAGE_SIZE	200
+#define VARIABLE_STORAGE_SIZE	64
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
-static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
-static uint32_t gc_stack_storage[GC_STACK_SIZE];
-static uint32_t print_stack_storage[PRINT_STACK_SIZE];
-static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
-static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+__attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
+__attribute__((section(".ram4"))) static uint32_t gc_stack_storage[GC_STACK_SIZE];
+__attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STACK_SIZE];
+__attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+__attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 static lbm_tokenizer_string_state_t string_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
@@ -372,8 +372,8 @@ static bool start_lisp(bool print, bool load_code) {
 		if (!lisp_thd_running) {
 			lbm_init(heap, HEAP_SIZE,
 					gc_stack_storage, GC_STACK_SIZE,
-					memory_array, LBM_MEMORY_SIZE_8K,
-					bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+					memory_array, LISP_MEM_SIZE,
+					bitmap_array, LISP_MEM_BITMAP_SIZE,
 					print_stack_storage, PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
 			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
@@ -393,8 +393,8 @@ static bool start_lisp(bool print, bool load_code) {
 
 			lbm_init(heap, HEAP_SIZE,
 					gc_stack_storage, GC_STACK_SIZE,
-					memory_array, LBM_MEMORY_SIZE_8K,
-					bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+					memory_array, LISP_MEM_SIZE,
+					bitmap_array, LISP_MEM_BITMAP_SIZE,
 					print_stack_storage, PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
 			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);

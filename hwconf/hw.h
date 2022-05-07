@@ -40,6 +40,14 @@
 #error "No hardware name set"
 #endif
 
+#ifndef FW_NAME
+#ifdef DISABLE_HW_LIMITS
+#define FW_NAME "no_hw_limits"
+#else
+#define FW_NAME ""
+#endif
+#endif
+
 // Possible HW properties.
 
 /*

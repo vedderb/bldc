@@ -27,6 +27,8 @@
 typedef struct {
   const char *str;
   unsigned int pos;
+  unsigned int row;
+  unsigned int column;
 } lbm_tokenizer_string_state_t;
 
 /** Create an lbm_tokenizer_string_state_t, lbm_tokenizer_char_stream_t pair from a string.

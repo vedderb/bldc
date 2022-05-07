@@ -17,10 +17,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_75_H_
-#define HW_60_75_H_
+#ifndef HW_60_75_CORE_H_
+#define HW_60_75_CORE_H_
 
+#ifdef HW_60_75_IS_MK2
+#define HW_NAME					"60_75_MK2"
+#else
 #define HW_NAME					"60_75"
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -46,8 +50,13 @@
 // Sensor port voltage control
 #define SENSOR_VOLTAGE_GPIO		GPIOC
 #define SENSOR_VOLTAGE_PIN		12
+#ifdef HW_60_75_IS_MK2
+#define SENSOR_PORT_5V()		palSetPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
+#define SENSOR_PORT_3V3()		palClearPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
+#else
 #define SENSOR_PORT_5V()		palClearPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
 #define SENSOR_PORT_3V3()		palSetPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
+#endif
 
 #define CURRENT_FILTER_GPIO		GPIOD
 #define CURRENT_FILTER_PIN		2
@@ -201,6 +210,32 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
+// BMI160
+#ifdef HW_60_75_IS_MK2
+#define BMI160_SPI_PORT_NSS		GPIOC
+#define BMI160_SPI_PIN_NSS		13
+#define BMI160_SPI_PORT_SCK		GPIOB
+#define BMI160_SPI_PIN_SCK		12
+#define BMI160_SPI_PORT_MOSI	GPIOB
+#define BMI160_SPI_PIN_MOSI		3
+#define BMI160_SPI_PORT_MISO	GPIOB
+#define BMI160_SPI_PIN_MISO		4
+#define IMU_FLIP
+#define IMU_ROT_90
+#endif
+
+// Permanent UART
+#ifdef HW_60_75_IS_MK2
+#define HW_UART_P_BAUD			115200
+#define HW_UART_P_DEV			SD4
+#define HW_UART_P_DEV_TX		SD4
+#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
+#define HW_UART_P_TX_PORT		GPIOC
+#define HW_UART_P_TX_PIN		10
+#define HW_UART_P_RX_PORT		GPIOC
+#define HW_UART_P_RX_PIN		11
+#endif
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -253,4 +288,4 @@
 // Functions
 bool hw_sample_shutdown_button(void);
 
-#endif /* HW_60_75_H_ */
+#endif /* HW_60_75_CORE_H_ */

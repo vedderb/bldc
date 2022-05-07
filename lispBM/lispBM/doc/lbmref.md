@@ -124,7 +124,7 @@ An important difference between `eq` and `=` is
 that equals compare the numerical values of the arguments. A 3 is a 3
 independent of them being different types. `eq` on the other
 hand compares the representations of the arguments exactly and they must
-match in structure, type and value to be considered equal. 
+match in structure, type and value to be considered equal.
 
 
 Example of `=` comparison.
@@ -560,7 +560,7 @@ A lambda can be immediately applied to an argument.
 ```clj
 ((lambda (x) (+ x 1)) 10)
 ```
-The application above results in the value 11. 
+The application above results in the value 11.
 Using <a href="#define"> define </a> you can give a name to the function.
 ```clj
 (define inc (lambda (x) (+ x 1)))
@@ -651,7 +651,7 @@ The variable `a` is now `10` in the global environment.
 Now, the value of `a` will be 20. Note that `a` is quoted in the `setvar` form application
 while it is not in the `define` form. This is because `define` requires the first
 argument to be a symbol while the `setvar` form requires the first argument to evaluate
-into a symbol. 
+into a symbol.
 
 You can also set the value of a let bound variable.
 ```clj
@@ -660,12 +660,12 @@ You can also set the value of a let bound variable.
 
 And you can change the value of a `#var`.
 
-```clj 
+```clj
 (define #a 10)
 
 (set '#a 20)
 ```
-`#a` is now 20. 
+`#a` is now 20.
 
 ---
 
@@ -852,6 +852,19 @@ Example that evaluates to 2.
 
 ---
 
+### setix
+
+Destructively update an element in a list. The form of a `setix` expression
+is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and
+if you index out of bounds the result is nil.
+
+```lisp
+# (setix (list 1 2 3 4 5) 2 77)
+> (1 2 77 4 5)
+```
+
+---
+
 ### setcar
 
 The `setcar` is a destructive update of the car field
@@ -883,6 +896,55 @@ Now change the value in the cdr field of apa to 42.
 (setcdr apa 42)
 ```
 The `apa` pair is now `(1 . 42)`.
+
+## Associations lists (alists) 
+
+Association lists (alists) are, just like regular lists, built out 
+of cons-cells. The difference is that an alist is a list of pairs 
+where the first element in each par can be thought of as a key and 
+the second element can be thought of as the value. So alists implement
+a key-value lookup structure. 
+
+`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example 
+of an alist with integer keys and symbol values. 
+
+### acons 
+
+The `acons` form is similar to `cons`, it attaches one more element 
+onto an alist. The element that is added consists of a key and a value 
+so `acons` takes one more argument than `cons`. The form of an 
+`acons` expression is `(acons key-expr val-expr alist-expr)`. 
+The `alist-expr` should evaluate to an alist but there are no checks 
+to ensure this. 
+
+Example that adds the key `4` and associated value `lemur` to 
+an existing alist. 
+
+```lisp
+# (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+> ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+```
+
+---
+
+### assoc 
+
+The `assoc` function looks up a value in an alist given a key. 
+The form of an `assoc` expression is `(assoc alist-expr key-expr)`
+
+Example that looks up the value of key `2` in an alist.
+``` 
+# (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+> donkey
+``` 
+
+---
+
+### setassoc
+
+The `setassoc` function destructively updates a key-value mapping in an 
+alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+
 
 ## Arrays
 

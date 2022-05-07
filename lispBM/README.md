@@ -270,38 +270,6 @@ Get button and joystick state of connected remote. Note that a remote app such a
 ; is-rev : Reverse active, 0 or 1
 ```
 
-#### eeprom-store-f
-
-```clj
-(eeprom-store-f addr number)
-```
-
-Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
-
-#### eeprom-read-f
-
-```clj
-(eeprom-read-f addr)
-```
-
-Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
-
-#### eeprom-store-i
-
-```clj
-(eeprom-store-i addr number)
-```
-
-Same as eeprom-store-f, but store number as i32 instead of float.
-
-#### eeprom-read-i
-
-```clj
-(eeprom-read-i addr)
-```
-
-Same as eeprom-read-i, but read number as i32 instead of float.
-
 #### sysinfo
 
 ```clj
@@ -846,13 +814,14 @@ The function (ix list ind) can be used to get an element from the list. Example:
 #### uart-start
 
 ```clj
-(uart-start baudrate)
+(uart-start baudrate optHd)
 ```
 
-Start the UART driver at baudrate on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first. Example:
+Start the UART driver at baudrate on the COMM-port on the VESC. optHd is an optional argument that can be set to 'half-duplex to use half-duplex mode. In half-duplex mode only the tx-pin is used. If any app is using the UART pins it will be stopped first. Example:
 
 ```clj
-(uart-start 115200)
+(uart-start 115200) ; Start UART at 115200 baud in full duplex mode
+(uart-start 115200 'half-duplex) ; Start UART at 115200 baud in half duplex mode
 ```
 
 #### uart-write
@@ -910,7 +879,7 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 
 ```clj
 (i2c-start 'rate-400k) ; 400 kbps and the default SDA and SDC pins
-(i2c-start 'rate-200k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
+(i2c-start 'rate-100k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
 
 ; Available bitrates
 'rate-100k
@@ -923,6 +892,9 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-tx
 'pin-swdio
 'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
 ```
 
 #### i2c-tx-rx
@@ -951,7 +923,7 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 ### GPIO
 
-These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset.
+These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
 
 #### gpio-configure
 
@@ -969,6 +941,11 @@ Configure GPIO pin to mode. Example:
 'pin-tx     ; TX-pin on the COMM-port
 'pin-swdio  ; IO-pin on the SWD-port
 'pin-swclk  ; CLK-pin on the SWD-port
+'pin-hall1  ; Sensor port hall1
+'pin-hall2  ; Sensor port hall2
+'pin-hall3  ; Sensor port hall3
+'pin-adc1   ; ADC1-pin on COMM-port
+'pin-adc2   ; ADC2-pin on COMM-port
 
 ; Available modes
 'pin-mode-out    ; Output
@@ -1009,10 +986,40 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-current-max-scale    ; Scaled maximum current, 0.0 to 1.0
 'l-in-current-min       ; Minimum input current in A (a negative value)
 'l-in-current-max       ; Maximum input current in A
+'l-abs-current-max      ; Abs max current in A
 'l-min-erpm             ; Minimum ERPM (a negative value)
 'l-max-erpm             ; Maximum ERPM
+'l-min-vin              ; Minimum input voltage
+'l-max-vin              ; Maximum input voltage
+'l-min-duty             ; Minimum duty cycle
+'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
 'l-watt-max             ; Maximum power regen in W
+'m-invert-direction     ; Invert motor direction, 0 or 1
+'m-out-aux-mode         ; AUX-pin output mode. Options:
+                        ;    0:  OUT_AUX_MODE_OFF
+                        ;    1:  OUT_AUX_MODE_ON_AFTER_2S
+                        ;    2:  OUT_AUX_MODE_ON_AFTER_5S
+                        ;    3:  OUT_AUX_MODE_ON_AFTER_10S
+                        ;    4:  OUT_AUX_MODE_UNUSED
+                        ;    5:  OUT_AUX_MODE_ON_WHEN_RUNNING
+                        ;    6:  OUT_AUX_MODE_ON_WHEN_NOT_RUNNING
+                        ;    7:  OUT_AUX_MODE_MOTOR_50
+                        ;    8:  OUT_AUX_MODE_MOSFET_50
+                        ;    9:  OUT_AUX_MODE_MOTOR_70
+                        ;    10: OUT_AUX_MODE_MOSFET_70
+                        ;    11: OUT_AUX_MODE_MOTOR_MOSFET_50
+                        ;    12: OUT_AUX_MODE_MOTOR_MOSFET_70
+'foc-sensor-mode        ; FOC sensor mode
+                        ;    0: FOC_SENSOR_MODE_SENSORLESS
+                        ;    1: FOC_SENSOR_MODE_ENCODER
+                        ;    2: FOC_SENSOR_MODE_HALL
+                        ;    3: FOC_SENSOR_MODE_HFI
+                        ;    4: FOC_SENSOR_MODE_HFI_START
+                        ;    5: FOC_SENSOR_MODE_HFI_V2
+                        ;    6: FOC_SENSOR_MODE_HFI_V3
+                        ;    7: FOC_SENSOR_MODE_HFI_V4
+                        ;    8: FOC_SENSOR_MODE_HFI_V5
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
 'foc-motor-l            ; Motor inductance in microHenry
@@ -1020,9 +1027,31 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-motor-r            ; Motor resistance in milliOhm
 'foc-motor-flux-linkage ; Motor flux linkage in milliWeber
 'foc-observer-gain      ; Observer gain x1M
+'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
+'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
+'foc-hfi-voltage-max    ; HFI voltage (V) at max current
+'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
 'controller-id          ; VESC CAN ID
+'ppm-ctrl-type          ; PPM Control Type
+                        ;    0:  PPM_CTRL_TYPE_NONE
+                        ;    1:  PPM_CTRL_TYPE_CURRENT
+                        ;    2:  PPM_CTRL_TYPE_CURRENT_NOREV
+                        ;    3:  PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE
+                        ;    4:  PPM_CTRL_TYPE_DUTY
+                        ;    5:  PPM_CTRL_TYPE_DUTY_NOREV
+                        ;    6:  PPM_CTRL_TYPE_PID
+                        ;    7:  PPM_CTRL_TYPE_PID_NOREV
+                        ;    8:  PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
+                        ;    9:  PPM_CTRL_TYPE_CURRENT_SMART_REV
+                        ;    10: PPM_CTRL_TYPE_PID_POSITION_180
+                        ;    11: PPM_CTRL_TYPE_PID_POSITION_360
+'ppm-pulse-start        ; Shortest PPM pulse in ms
+'ppm-pulse-end          ; Longest PPM pulse in ms
+'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
+'ppm-ramp-time-pos      ; Positive ramping time in seconds
+'ppm-ramp-time-neg      ; Negative ramping time in seconds
 ```
 
 #### conf-set
@@ -1040,14 +1069,15 @@ Set param to value. This can be done while the motor is running and it will be a
 #### conf-get
 
 ```clj
-(conf-get param optDefault)
+(conf-get param optDefLim)
 ```
 
-Get the value of param. optDefault is an optional argument that can be set to 1 to get the default value of param instead of the current value. Example:
+Get the value of param. optDefLim is an optional argument that can be set to 1 or 2; 1 means get the default value and 2 means get the limit value. Example:
 
 ```clj
 (conf-get 'foc-motor-r) ; Get the motor resistance in milliOhm
 (conf-get 'controller-id 1) ; Get the default CAN ID of this VESC
+(conf-get 'l-current-max 2) ; Get the maximum allowed current on this hardware
 ```
 
 #### conf-store
@@ -1057,6 +1087,79 @@ Get the value of param. optDefault is an optional argument that can be set to 1 
 ```
 
 Store the current configuration to flash. This will stop the motor.
+
+#### conf-detect-foc
+
+```clj
+(conf-detect-foc canFwd maxLoss minCurrIn maxCurrIn openloopErpm slErpm)
+```
+
+Run the same autodetection as the wizard in VESC Tool does. This function will block the current lispBM-thread until in finishes (other threads will continue running). Arguments:
+
+```clj
+canFwd       ; Scan CAN-bus and detect on all VESCs found on CAN-bus
+maxLoss      ; Maximum power loss in W to derive current limit from
+minCurrIn    ; Minimum input current in A (negative value)
+maxCurrIn    ; Maximum input current in A
+openLoopErpm ; Openlopp ERPM setting
+slErpm       ; Sensorless ERPM setting
+```
+
+Result:
+
+```clj
+  0 ; OK and no sensors found
+  1 ; OK and hall sensors found
+  2 ; OK and AS5047 found
+ -1 ; Fault code during sensor detection
+-10 ; Flux linkage detection failed
+-50 ; CAN-detection failed
+-51 ; CAN-detection timed out
+```
+
+Example:
+
+```clj
+; No can detection, 50w losses max, -20 A to 50 A input current, 800 ERPM openloop and 2500 erpm for sensorless in case sensors are found
+(print (conf-detect-foc 0 50 -20 50 800 2500))
+; Print the result when done
+```
+
+### EEPROM (Nonvolatile Storage)
+
+Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
+
+#### eeprom-store-f
+
+```clj
+(eeprom-store-f addr number)
+```
+
+Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
+
+#### eeprom-read-f
+
+```clj
+(eeprom-read-f addr)
+```
+
+Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
+
+#### eeprom-store-i
+
+```clj
+(eeprom-store-i addr number)
+```
+
+Same as eeprom-store-f, but store number as i32 instead of float.
+
+#### eeprom-read-i
+
+```clj
+(eeprom-read-i addr)
+```
+
+Same as eeprom-read-i, but read number as i32 instead of float.
 
 ### Loops
 

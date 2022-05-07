@@ -500,6 +500,15 @@ void drop_compressed(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   }
 }
 
+unsigned int row_compressed(lbm_tokenizer_char_stream_t *str) {
+  (void) str;
+  return 0;
+}
+
+unsigned int column_compressed(lbm_tokenizer_char_stream_t *str) {
+  (void) str;
+  return 0;
+}
 
 void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
                                                     lbm_tokenizer_char_stream_t *str,
