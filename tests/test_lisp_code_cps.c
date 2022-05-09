@@ -260,14 +260,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_32K);
+  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_12K);
   if (memory == NULL) return 0;
-  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_32K);
+  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_12K);
   if (bitmap == NULL) return 0;
 
 
-  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_16K,
-                        bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
+  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_12K,
+                        bitmap, LBM_MEMORY_BITMAP_SIZE_12K);
   if (res)
     printf("Memory initialized.\n");
   else {
