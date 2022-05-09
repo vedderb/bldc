@@ -191,7 +191,7 @@ typedef struct {
 	// Pre-calculated values
 	float p_lq;
 	float p_ld;
-	float p_inv_ld_lq; // (1.0/lq - 1.0/ld)
+	float p_inv_inv_ld_lq; // 1.0 / (1.0/lq - 1.0/ld)
 	float p_v2_v3_inv_avg_half; // (0.5/ld + 0.5/lq)
 } motor_all_state_t;
 
@@ -209,5 +209,12 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 void foc_run_fw(motor_all_state_t *motor, float dt);
 void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt);
 void foc_precalc_values(motor_all_state_t *motor);
+
+// The observer is more stable when the inductance is underestimated compared to overestimated,
+// so scale it by `IND_SCALE_FACTOR`. This helps motors that start to saturate at higher currents and when
+// the hardware has problems measuring the inductance correctly. Another reason for decreasing the
+// measured value is that delays in the hardware and/or a high resistance compared to inductance
+// will cause the value to be overestimated.
+#define IND_SCALE_FACTOR 0.9
 
 #endif /* FOC_MATH_H_ */

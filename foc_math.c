@@ -348,13 +348,13 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 
 	if (conf_now->m_sensor_port_mode != SENSOR_PORT_MODE_HALL) {
 		if (index_found) {
-			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
+			motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
 		} else {
 			// Rotate the motor with 40 % power until the encoder index is found.
-			motor->m_iq_set = 0.4 * conf_now->l_current_max * conf_now->l_current_max_scale;;
+			motor->m_iq_set = 0.4 * conf_now->l_current_max * conf_now->l_current_max_scale;
 		}
 	} else {
-		motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;;
+		motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
 	}
 }
 
@@ -613,6 +613,6 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	const mc_configuration *conf_now = motor->m_conf;
 	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;
 	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
-	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
-	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
+	motor->p_inv_inv_ld_lq = 1.0 / (1.0 / motor->p_lq - 1.0 / motor->p_ld);
+	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * IND_SCALE_FACTOR; // With the `* IND_SCALE_FACTOR` we undo the adjustment from the detection
 }

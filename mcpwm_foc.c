@@ -1861,23 +1861,17 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
 
 	mc_interface_unlock();
 
-	// The observer is more stable when the inductance is underestimated compared to overestimated,
-	// so scale it by 0.8. This helps motors that start to saturate at higher currents and when
-	// the hardware has problems measuring the inductance correctly. Another reason for decreasing the
-	// measured value is that delays in the hardware and/or a high resistance compared to inductance
-	// will cause the value to be overestimated.
-	// NOTE: This used to be 0.8, but was changed to 0.9 as that works better with HFIv2 on most motors.
-	float ind_scale_factor = 0.9;
-
 	if (curr) {
 		*curr = i_sum / iterations;
 	}
 
-	if (ld_lq_diff) {
-		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * ind_scale_factor;
+	// The observer is more stable when the inductance is underestimated compared to
+   // overestimated, so use `IND_SCALE_FACTOR` to tune that
+   if (ld_lq_diff) {
+		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * IND_SCALE_FACTOR;
 	}
 
-	return (l_sum / iterations) * 1e6 * ind_scale_factor;
+	return (l_sum / iterations) * 1e6 * IND_SCALE_FACTOR;
 }
 
 /**
@@ -2581,8 +2575,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
-	volatile float enc_ang = 0;
-	volatile bool encoder_is_being_used = false;
+	float inv_v_bus = 1.0 / motor_now->m_motor_state.v_bus;
+
+	float enc_ang = 0;
+	bool encoder_is_being_used = false;
 
 	if (virtual_motor_is_connected()) {
 		if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ) {
@@ -2712,15 +2708,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					}
 				}
 
-				// Compensation for supply voltage variations
-				float scale = 1.0 / motor_now->m_motor_state.v_bus;
-
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;
 
-				// Compute parameters
-				float p_term = error * conf_now->foc_duty_dowmramp_kp * scale;
-				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * scale;
+				// Compute parameters. Make sure to compensate for supply voltage variations
+				float p_term = error * conf_now->foc_duty_dowmramp_kp * inv_v_bus;
+				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * inv_v_bus;
 
 				// I-term wind-up protection
 				utils_truncate_number((float*)&motor_now->m_duty_i_term, -1.0, 1.0);
@@ -3024,7 +3017,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		// Update corresponding modulation
 		/* voltage_normalize = 1/(2/3*V_bus) */
-		const float voltage_normalize = 1.5 / motor_now->m_motor_state.v_bus;
+		const float voltage_normalize = 1.5 * inv_v_bus;
 
 		motor_now->m_motor_state.mod_d = motor_now->m_motor_state.vd * voltage_normalize;
 		motor_now->m_motor_state.mod_q = motor_now->m_motor_state.vq * voltage_normalize;
@@ -3754,14 +3747,18 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
 	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
+	// TODO: Document this section
 	float d_gain_scale = 1.0;
 	if (conf_now->foc_d_gain_scale_start < 0.99) {
-		float max_mod_norm = fabsf(state_m->duty_now / max_duty);
+		float abs_duty_now;
 		if (max_duty < 0.01) {
-			max_mod_norm = 1.0;
+			abs_duty_now = fabsf(max_duty);
+		} else {
+			abs_duty_now = fabsf(state_m->duty_now);
 		}
-		if (max_mod_norm > conf_now->foc_d_gain_scale_start) {
-			d_gain_scale = utils_map(max_mod_norm, conf_now->foc_d_gain_scale_start, 1.0,
+		float tmp = conf_now->foc_d_gain_scale_start * max_duty;
+		if (abs_duty_now > tmp) {
+			d_gain_scale = utils_map(abs_duty_now, tmp, max_duty,
 					1.0, conf_now->foc_d_gain_scale_max_mod);
 			if (d_gain_scale < conf_now->foc_d_gain_scale_max_mod) {
 				d_gain_scale = conf_now->foc_d_gain_scale_max_mod;
@@ -3903,7 +3900,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					}
 #endif
 					foc_hfi_adjust_angle(
-							(di * conf_now->foc_f_zv) / (hfi_voltage * motor->p_inv_ld_lq),
+							((di * conf_now->foc_f_zv) / hfi_voltage) * motor->p_inv_inv_ld_lq,
 							motor, hfi_dt
 					);
 				}
@@ -3955,7 +3952,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 #endif
 					foc_hfi_adjust_angle(
 							motor->m_hfi.sign_last_sample * ((conf_now->foc_f_zv * di) /
-									hfi_voltage - motor->p_v2_v3_inv_avg_half) / motor->p_inv_ld_lq,
+									hfi_voltage - motor->p_v2_v3_inv_avg_half) * motor->p_inv_inv_ld_lq,
 							motor, hfi_dt
 					);
 				}
