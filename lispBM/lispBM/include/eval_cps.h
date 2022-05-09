@@ -147,7 +147,7 @@ extern uint32_t lbm_get_eval_state(void);
  *  report an error message to the programmer in case
  *  the extension is used incorrectly.
  *
- *  The error string can be allocates in lbm_memory
+ *  The error string can be allocated in lbm_memory
  *  and will in that case be freed when the context
  *  that errored is removed.
  * \param error_str
