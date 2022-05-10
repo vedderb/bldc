@@ -87,13 +87,9 @@ static lbm_value ssd_drawline(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(SYM_TRUE);
 }
 
-static void stop(void) {
-	IF_RAM->printf("Stopping code...");
-}
-
 INIT_FUN(const vesc_c_if *c_if) {
 	*IF_RAM = *c_if;
-	IF_RAM->printf("EXT res: %d", IF_RAM->lbm_add_extension("ext-drawline", ssd_drawline));
-	return stop;
+	IF_RAM->lbm_add_extension("ext-drawline", ssd_drawline);
+	return 0;
 }
 
