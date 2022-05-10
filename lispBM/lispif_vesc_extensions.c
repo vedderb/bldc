@@ -3174,7 +3174,8 @@ static vesc_c_if vesc_if = {
 		lbm_cdr,
 		lbm_is_array,
 		lib_sleep_ms,
-		lib_sleep_us
+		lib_sleep_us,
+		commands_printf_lisp
 };
 
 static lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
