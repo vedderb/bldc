@@ -573,7 +573,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf->foc_offsets_voltage_undriven[2] = mcconf_now->foc_offsets_voltage_undriven[2];
 		}
 
-		commands_send_mcconf(packet_id, mcconf);
+		commands_send_mcconf(packet_id, mcconf, reply_func);
 		mempools_free_mcconf(mcconf);
 	} break;
 
@@ -623,7 +623,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 #endif
 
-		commands_send_appconf(packet_id, appconf);
+		commands_send_appconf(packet_id, appconf, reply_func);
 
 		mempools_free_appconf(appconf);
 	} break;
@@ -1748,19 +1748,27 @@ void commands_send_gpd_buffer_notify(void) {
 	commands_send_packet(buffer, index);
 }
 
-void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf) {
+void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration* mcconf, void(*reply_func)(unsigned char* data, unsigned int len)) {
 	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_mcconf(send_buffer_global + 1, mcconf);
-	commands_send_packet(send_buffer_global, len + 1);
+	if (reply_func) {
+		reply_func(send_buffer_global, len + 1);
+	} else {
+		commands_send_packet(send_buffer_global, len + 1);
+	}
 	chMtxUnlock(&send_buffer_mutex);
 }
 
-void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf) {
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf, void(*reply_func)(unsigned char* data, unsigned int len)) {
 	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_appconf(send_buffer_global + 1, appconf);
-	commands_send_packet(send_buffer_global, len + 1);
+	if (reply_func) {
+		reply_func(send_buffer_global, len + 1);
+	} else {
+		commands_send_packet(send_buffer_global, len + 1);
+	}
 	chMtxUnlock(&send_buffer_mutex);
 }
 
