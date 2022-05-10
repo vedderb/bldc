@@ -3155,6 +3155,12 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+static void lib_sleep_ms(uint32_t ms) { chThdSleepMilliseconds(ms);}
+static void lib_sleep_us(uint32_t us) { chThdSleepMicroseconds(us);}
+
+typedef void (*stop_fun)(void);
+static stop_fun lib_stop_fun = 0;
+
 static vesc_c_if vesc_if = {
 		lbm_add_extension,
 		lbm_dec_as_float,
@@ -3166,7 +3172,9 @@ static vesc_c_if vesc_if = {
 		lbm_cons,
 		lbm_car,
 		lbm_cdr,
-		lbm_is_array
+		lbm_is_array,
+		lib_sleep_ms,
+		lib_sleep_us
 };
 
 static lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
@@ -3184,12 +3192,15 @@ static lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	uint32_t addr = (uint32_t)array->data;
 	addr |= 1; // Ensure that thumb mode is used (??)
 
-	((bool(*)(vesc_c_if*))addr)(&vesc_if);
+	lispif_stop_lib();
+	lib_stop_fun = ((stop_fun(*)(vesc_c_if*))addr)(&vesc_if);
 
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 void lispif_load_vesc_extensions(void) {
+	lispif_stop_lib();
+
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
@@ -3466,7 +3477,15 @@ void lispif_set_ext_load_callback(void (*p_func)(void)) {
 }
 
 void lispif_disable_all_events(void) {
+	lispif_stop_lib();
 	event_handler_registered = false;
 	event_can_sid_en = false;
 	event_can_eid_en = false;
+}
+
+void lispif_stop_lib(void) {
+	if (lib_stop_fun) {
+		lib_stop_fun();
+		lib_stop_fun = 0;
+	}
 }
