@@ -21,6 +21,7 @@
 #include "lispif.h"
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "c_libs/vesc_c_if.h"
 
 #include "commands.h"
 #include "mc_interface.h"
@@ -3154,6 +3155,40 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+static vesc_c_if vesc_if = {
+		lbm_add_extension,
+		lbm_dec_as_float,
+		lbm_dec_as_u32,
+		lbm_dec_as_i32,
+		lbm_enc_float,
+		lbm_enc_u32,
+		lbm_enc_i32,
+		lbm_cons,
+		lbm_car,
+		lbm_cdr,
+		lbm_is_array
+};
+
+static lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
+	lbm_value res = lbm_enc_sym(SYM_EERROR);
+
+	if (argn != 1 || !lbm_is_array(args[0])) {
+		return res;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (array->elt_type != LBM_TYPE_BYTE) {
+		return res;
+	}
+
+	uint32_t addr = (uint32_t)array->data;
+	addr |= 1; // Ensure that thumb mode is used (??)
+
+	((bool(*)(vesc_c_if*))addr)(&vesc_if);
+
+	return lbm_enc_sym(SYM_TRUE);
+}
+
 void lispif_load_vesc_extensions(void) {
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
@@ -3334,6 +3369,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("me-loopwhile", ext_me_loopwhile);
 	lbm_add_extension("me-looprange", ext_me_looprange);
 	lbm_add_extension("me-loopforeach", ext_me_loopforeach);
+
+	// Native libraries
+	lbm_add_extension("load-native-lib", ext_load_native_lib);
 
 	if (ext_callback) {
 		ext_callback();
