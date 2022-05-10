@@ -28,11 +28,19 @@ static lbm_uint ext_offset = EXTENSION_SYMBOLS_START;
 static lbm_uint ext_max    = 0;
 static extension_fptr *extension_table = NULL;
 
+lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
+  return lbm_enc_sym(SYM_EERROR);
+}
+
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
   if (extension_storage == NULL || extension_storage_size <= 0) return 0;
 
   extension_table = extension_storage;
   memset(extension_table, 0, sizeof(extension_fptr) * (unsigned int)extension_storage_size);
+
+  for (int i = 0; i < extension_storage_size; i ++) {
+    extension_storage[i] = lbm_extensions_default;
+  }
 
   ext_max = (lbm_uint)extension_storage_size;
 
