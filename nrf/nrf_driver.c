@@ -499,7 +499,7 @@ void nrf_driver_process_packet(unsigned char *buf, unsigned char len) {
 		conf_general_store_app_configuration(&appconf);
 		app_set_configuration(&appconf);
 
-		commands_send_appconf(COMM_GET_APPCONF, &appconf);
+		commands_send_appconf(COMM_GET_APPCONF, &appconf, 0);
 
 		unsigned char data[2];
 		data[0] = COMM_NRF_START_PAIRING;
