@@ -3161,7 +3161,7 @@ static void lib_sleep_us(uint32_t us) { chThdSleepMicroseconds(us);}
 typedef void (*stop_fun)(void);
 static stop_fun lib_stop_fun = 0;
 
-static vesc_c_if vesc_if = {
+static const vesc_c_if vesc_if = {
 		lbm_add_extension,
 		lbm_dec_as_float,
 		lbm_dec_as_u32,
@@ -3194,7 +3194,7 @@ static lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	addr |= 1; // Ensure that thumb mode is used (??)
 
 	lispif_stop_lib();
-	lib_stop_fun = ((stop_fun(*)(vesc_c_if*))addr)(&vesc_if);
+	lib_stop_fun = ((stop_fun(*)(const vesc_c_if*))addr)(&vesc_if);
 
 	return lbm_enc_sym(SYM_TRUE);
 }
