@@ -254,22 +254,6 @@ static inline bool get_gc_mark(lbm_cons_t* cell) {
   return lbm_get_gc_mark(cdr);
 }
 
-static inline void set_gc_flag(lbm_cons_t *cell) {
-  lbm_value v = read_car(cell);
-  set_car_(cell, lbm_set_gc_mark(v));
-}
-
-static inline void clr_gc_flag(lbm_cons_t *cell) {
-  lbm_value v = read_car(cell);
-  set_car_(cell, lbm_clr_gc_mark(v));
-}
-
-static inline bool get_gc_flag(lbm_cons_t* cell) {
-  lbm_value v = read_car(cell);
-  return lbm_get_gc_mark(v);
-}
-
-
 static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 

@@ -396,6 +396,53 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_add_extension_symbol(char *name, lbm_uint* id) {
+  size_t  n = 0;
+  n = strlen(name) + 1;
+
+  if (n == 1) return 0; // failure if empty symbol
+  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
+  } else {
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
+  }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
+
+  if (symbol_name_storage == NULL) {
+    lbm_memory_free(m);
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
+
+  strcpy(symbol_name_storage, name);
+
+  m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_extension_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
 int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
@@ -421,7 +468,6 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   *id = m[ID];
   return 1;
 }
-
 
 lbm_uint lbm_get_symbol_table_size(void) {
   return (symbol_table_size_list +
