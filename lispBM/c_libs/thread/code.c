@@ -20,20 +20,42 @@
 #include "lbm_if.h"
 #include "vesc_c_if.h"
 
-static lbm_value ext_test(lbm_value *args, lbm_uint argn) {
-	(void)args;
-	(void)argn;
-	return lbm_enc_i(argn + 11);
+typedef struct {
+	int a;
+	int b;
+	lib_thread thread;
+} data;
+
+static void thd(void *arg) {
+	data *d = (data*)arg;
+
+	while (!VESC_IF->should_terminate()) {
+		VESC_IF->printf("Hello Thd");
+		d->b++;
+		VESC_IF->sleep_ms(1000);
+	}
 }
 
 // Called when code is stopped
-static void stop(void) {
-
+static void stop(void *arg) {
+	data *d = (data*)arg;
+	VESC_IF->printf("a: %d, b: %d", d->a, d->b);
+	VESC_IF->request_terminate(d->thread);
+	VESC_IF->printf("Terminated");
+	VESC_IF->free(d);
 }
 
-INIT_FUN(const vesc_c_if *c_if) {
-	*IF_RAM = *c_if;
-	IF_RAM->lbm_add_extension("ext-test", ext_test);
-	return stop;
+INIT_FUN(lib_info *info) {
+	data *d = VESC_IF->malloc(sizeof(data));
+	d->a = 5;
+	d->b = 6;
+	d->thread = VESC_IF->spawn(thd, 1024, "LibThd", d);
+	
+	info->stop_fun = stop;
+	info->arg = d;
+	
+	VESC_IF->printf("Hello Example!");
+	
+	return true;
 }
 

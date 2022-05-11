@@ -24,7 +24,7 @@
 #include <stdbool.h>
 
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
-typedef void (*stop_fun)(void);
+typedef void* lib_thread;
 
 typedef struct {
 	// LBM If
@@ -41,16 +41,24 @@ typedef struct {
 	bool (*lbm_is_array)(lbm_value);
 	
 	// Os
-	void (*lib_sleep_ms)(uint32_t);
-	void (*lib_sleep_us)(uint32_t);
+	void (*sleep_ms)(uint32_t);
+	void (*sleep_us)(uint32_t);
 	int (*printf)(const char*, ...);
+	void* (*malloc)(size_t);
+	void (*free)(void*);
+	lib_thread (*spawn)(void (*)(void*),size_t,char*,void*);
+	void (*request_terminate)(lib_thread);
+	bool (*should_terminate)(void);
 } vesc_c_if;
 
-#define RAM_BASE	0x1000FC00
-#define RAM_LEN		1024
-#define IF_RAM		((vesc_c_if*)(RAM_BASE + 512))
+typedef struct {
+	void (*stop_fun)(void *arg);
+	void *arg;
+	uint32_t base_addr;
+} lib_info;
 
-#define INIT_FUN	stop_fun __attribute__((__section__(".init_fun"))) init
+#define VESC_IF		((vesc_c_if*)(0x1000FC00))
+#define INIT_FUN	bool __attribute__((__section__(".init_fun"))) init
 
 #endif  // VESC_C_IF_H
 

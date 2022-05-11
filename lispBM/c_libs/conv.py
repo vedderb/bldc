@@ -16,11 +16,17 @@ with open(filename, "rb") as f:
 	res = "(def " + name + " [\n"
 	cnt = 0
 	for c in tokens:
-		res += "0x" + c + " "
+		res += "0x" + c
 		cnt = cnt + 1
 		if cnt == 20:
 			cnt = 0
 			res += "\n"
-	res += "\n])\n"
+		else:
+			res += " "
+	
+	if res[-1] == '\n':
+		res += "])\n"
+	else:
+		res += "\n])\n"
 	print(res)
 

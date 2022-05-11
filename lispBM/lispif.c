@@ -27,8 +27,8 @@
 #include "lispbm.h"
 
 #define HEAP_SIZE				2048
-#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_12K
-#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_12K
+#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_14K
+#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_14K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
 #define EXTENSION_STORAGE_SIZE	200
@@ -364,6 +364,8 @@ static void done_callback(eval_context_t *ctx) {
 
 static bool start_lisp(bool print, bool load_code) {
 	bool res = false;
+
+	lispif_stop_lib();
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
 	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
