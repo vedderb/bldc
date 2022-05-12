@@ -599,15 +599,15 @@ lbm_value array_extension_buffer_get_u8(lbm_value *args, lbm_uint argn) {
     }
 
     lbm_uint index = lbm_dec_as_u32(args[1]);
-    lbm_uint value = 0;
+    lbm_int value = 0;
 
     if (index >= array->size) {
       return res;
     }
     uint8_t *data = (uint8_t*)array->data;
 
-    value = data[index];
-    res = lbm_enc_u(value);
+    value = (lbm_int)data[index];
+    res = lbm_enc_i(value);
   }
   return res;
 }
@@ -636,7 +636,7 @@ lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn) {
     }
 
     lbm_uint index = lbm_dec_as_u32(args[1]);
-    lbm_uint value = 0;
+    lbm_int value = 0;
 
     if (index+1 >= array->size) {
       return res;
@@ -644,16 +644,16 @@ lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn) {
     uint8_t *data = (uint8_t*)array->data;
 
     if (be) {
-      value =
+      value = (lbm_int)(
         (lbm_uint) data[index+1] |
-        (lbm_uint) data[index] << 8;
+        (lbm_uint) data[index] << 8);
     } else {
-      value =
+      value = (lbm_int)(
         (lbm_uint) data[index] |
-        (lbm_uint) data[index+1] << 8;
+        (lbm_uint) data[index+1] << 8);
     }
 
-    res = lbm_enc_u(value);
+    res = lbm_enc_i(value);
     break;
   default:
     break;

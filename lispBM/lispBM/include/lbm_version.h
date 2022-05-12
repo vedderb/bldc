@@ -25,9 +25,23 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 2
+#define LBM_PATCH_VERSION 3
 
 /*! \page changelog Changelog
+May 10 2022: Version 0.5.3 
+ - symbols starting with "ext-" will be allocated into the extensions-list 
+   and can on the VESC version of lispbm be dynamically bound to newly loaded
+   extensions at runtime.
+
+May 8 2022: Version 0.5.2
+ - Added new macros for 10, 12 and 14K lbm_memory sizes.
+
+May 5 2022: Version 0.5.2
+ - Line and column numbers associated with read errors.
+ - More explanatory descriptions in error messages related to read errors.
+
+May 2 2022: Version 0.5.2 
+ - Performance tweaks to the evaluator. Small but positive effect.
 
 May 1 2022: Version 0.5.2
  - Added lbm_stack_reserve for allocating multiple words on stack

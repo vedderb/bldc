@@ -47,6 +47,14 @@ extern int lbm_extensions_init(extension_fptr *extension_storage, int extension_
  * \return extension_fptr on success or NULL on failure.
  */
 extern extension_fptr lbm_get_extension(lbm_uint sym);
+/** Reset an extension back to the default value.
+ *  Trying to apply the extension after clearing it will result
+ *  in an eval error.
+ *
+ * \param sym_id Symbol id of the extension to clear.
+ * \return true if successfully cleared an extension otherwise false.
+ */
+extern bool lbm_clr_extension(lbm_uint sym_id);
 /** Adds a symbol-extension mapping.
  * \param sym_str String representation of symbol to use as key.
  * \param ext The extension function pointer.
