@@ -7,9 +7,16 @@ SECTIONS
 {
     . = 0;
     _text = .;
-
-    .init_fun : ALIGN(16) SUBALIGN(16)
+    
+    .program_ptr : ALIGN(4)
     {
+        . = ALIGN(4);
+        *(.program_ptr)
+    } > MEM
+
+    .init_fun : ALIGN(4)
+    {
+    	. = ALIGN(4);
         *(.init_fun)
     } > MEM
 

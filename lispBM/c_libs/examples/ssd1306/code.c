@@ -20,6 +20,8 @@
 #include "lbm_if.h"
 #include "vesc_c_if.h"
 
+HEADER
+
 static int abs(int x) {
 	if (x >= 0) {
 		return x;
@@ -88,6 +90,8 @@ static lbm_value ssd_drawline(lbm_value *args, lbm_uint argn) {
 }
 
 INIT_FUN(lib_info *info) {
+	INIT_START
+
 	(void)info;
 	VESC_IF->lbm_add_extension("ext-drawline", ssd_drawline);
 	return true;

@@ -18,6 +18,7 @@
  */
 
 #include "ch.h"
+#include "hal.h"
 #include "commands.h"
 #include "lispif.h"
 #include "lispbm.h"
@@ -40,8 +41,13 @@ __attribute__((section(".libif"))) static volatile union {
 	char pad[1024];
 } cif;
 
-static void lib_sleep_ms(uint32_t ms) { chThdSleepMilliseconds(ms);}
-static void lib_sleep_us(uint32_t us) { chThdSleepMicroseconds(us);}
+static void lib_sleep_ms(uint32_t ms) {
+	chThdSleepMilliseconds(ms);
+}
+
+static void lib_sleep_us(uint32_t us) {
+	chThdSleepMicroseconds(us);
+}
 
 static void* lib_malloc(size_t size) {
 	lbm_uint alloc_size;
@@ -93,6 +99,27 @@ static bool lib_should_terminate(void) {
 	return chThdShouldTerminateX();
 }
 
+static void** lib_get_arg(uint32_t prog_addr) {
+	for (int i = 0;i < LIB_NUM_MAX;i++) {
+		if (loaded_libs[i].base_addr == prog_addr) {
+			return &loaded_libs[i].arg;
+		}
+	}
+	return 0;
+}
+
+static void lib_set_pad_mode(void *gpio, uint32_t pin, uint32_t mode) {
+	palSetPadMode((stm32_gpio_t*)gpio, pin, mode);
+}
+
+static void lib_set_pad(void *gpio, uint32_t pin) {
+	palSetPad((stm32_gpio_t*)gpio, pin);
+}
+
+static void lib_clear_pad(void *gpio, uint32_t pin) {
+	palClearPad((stm32_gpio_t*)gpio, pin);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -120,6 +147,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.lbm_car = lbm_car;
 		cif.cif.lbm_cdr = lbm_cdr;
 		cif.cif.lbm_is_array = lbm_is_array;
+		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
 
 		// Os
 		cif.cif.sleep_ms = lib_sleep_ms;
@@ -130,6 +158,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.spawn = lib_spawn;
 		cif.cif.request_terminate = lib_request_terminate;
 		cif.cif.should_terminate = lib_should_terminate;
+		cif.cif.get_arg = lib_get_arg;
+
+		// IO
+		cif.cif.set_pad_mode = lib_set_pad_mode;
+		cif.cif.set_pad = lib_set_pad;
+		cif.cif.clear_pad = lib_clear_pad;
 
 		lib_init_done = true;
 	}
@@ -147,6 +181,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	for (int i = 0;i < LIB_NUM_MAX;i++) {
 		if (loaded_libs[i].stop_fun == NULL) {
 			loaded_libs[i].base_addr = addr;
+			addr += 4; // Skip program pointer
 			addr |= 1; // Ensure that thumb mode is used (??)
 			ok = ((bool(*)(lib_info *info))addr)(&loaded_libs[i]);
 			break;

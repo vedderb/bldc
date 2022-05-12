@@ -2716,7 +2716,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 		}
 
 		if (mc_interface_dccal_done() && motor->m_fault_now == FAULT_CODE_NONE) {
-			// Sent to terminal fault logger so that all faults and their conditions
+			// Send to terminal fault logger so that all faults and their conditions
 			// can be printed for debugging.
 			utils_sys_lock_cnt();
 			volatile int val_samp = TIM8->CCR1;

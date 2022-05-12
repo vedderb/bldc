@@ -20,6 +20,8 @@
 #include "lbm_if.h"
 #include "vesc_c_if.h"
 
+HEADER
+
 static lbm_value ext_test(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 || !lbm_is_number(args[0])) {
 		return lbm_enc_sym(SYM_EERROR);
@@ -29,6 +31,8 @@ static lbm_value ext_test(lbm_value *args, lbm_uint argn) {
 }
 
 INIT_FUN(lib_info *info) {
+	INIT_START
+
 	(void)info;
 	VESC_IF->lbm_add_extension("ext-test", ext_test);	
 	return true;

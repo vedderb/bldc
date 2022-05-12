@@ -20,6 +20,8 @@
 #include "lbm_if.h"
 #include "vesc_c_if.h"
 
+HEADER
+
 typedef struct {
 	int a;
 	int b;
@@ -46,6 +48,8 @@ static void stop(void *arg) {
 }
 
 INIT_FUN(lib_info *info) {
+	INIT_START
+
 	data *d = VESC_IF->malloc(sizeof(data));
 	d->a = 5;
 	d->b = 6;

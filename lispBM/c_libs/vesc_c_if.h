@@ -39,6 +39,7 @@ typedef struct {
 	lbm_value (*lbm_car)(lbm_value);
 	lbm_value (*lbm_cdr)(lbm_value);
 	bool (*lbm_is_array)(lbm_value);
+	int (*lbm_set_error_reason)(char*);
 	
 	// Os
 	void (*sleep_ms)(uint32_t);
@@ -49,6 +50,12 @@ typedef struct {
 	lib_thread (*spawn)(void (*)(void*),size_t,char*,void*);
 	void (*request_terminate)(lib_thread);
 	bool (*should_terminate)(void);
+	void** (*get_arg)(uint32_t);
+	
+	// IO
+	void (*set_pad_mode)(void*,uint32_t,uint32_t);
+	void (*set_pad)(void*,uint32_t);
+	void (*clear_pad)(void*,uint32_t);
 } vesc_c_if;
 
 typedef struct {
@@ -57,8 +64,23 @@ typedef struct {
 	uint32_t base_addr;
 } lib_info;
 
+// VESC-interface with function pointers
 #define VESC_IF		((vesc_c_if*)(0x1000FC00))
+
+// Put this at the beginning of your source file
+#define HEADER		static volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
+
+// Init function
 #define INIT_FUN	bool __attribute__((__section__(".init_fun"))) init
+
+// Put this at the start of the init function
+#define INIT_START	(void)prog_ptr;
+
+// Address of this program in memory
+#define PROG_ADDR	((uint32_t)&prog_ptr)
+
+// The argument that was set in the init function (same as the one you get in stop_fun)
+#define ARG			(*VESC_IF->get_arg(PROG_ADDR))
 
 #endif  // VESC_C_IF_H
 
