@@ -1931,8 +1931,8 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 
 	bool is_using_uart_pins =
 			(sda_gpio == HW_UART_TX_PORT && sda_pin == HW_UART_TX_PIN) ||
-			(scl_gpio == HW_UART_RX_PORT && scl_pin == HW_UART_RX_PIN) ||
-			(sda_gpio == HW_UART_TX_PORT && sda_pin == HW_UART_TX_PIN) ||
+			(scl_gpio == HW_UART_TX_PORT && scl_pin == HW_UART_TX_PIN) ||
+			(sda_gpio == HW_UART_RX_PORT && sda_pin == HW_UART_RX_PIN) ||
 			(scl_gpio == HW_UART_RX_PORT && scl_pin == HW_UART_RX_PIN);
 
 	if (is_using_uart_pins) {
