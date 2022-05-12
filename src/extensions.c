@@ -57,6 +57,15 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
   return extension_table[ext_next];
 }
 
+bool lbm_clr_extension(lbm_uint sym_id) {
+  lbm_uint ext_id = sym_id - ext_offset;
+  if (ext_id >= ext_max) {
+    return false;
+  }
+  extension_table[ext_id] = lbm_extensions_default;
+  return true;
+}
+
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
   lbm_uint ext_ix = 0;
