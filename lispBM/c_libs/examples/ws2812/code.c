@@ -241,15 +241,37 @@ static lbm_value ext_init(lbm_value *args, lbm_uint argn) {
 	}
 	
 	ws_cfg *cfg = VESC_IF->malloc(sizeof(ws_cfg));
-	cfg->num_leds = VESC_IF->lbm_dec_as_i32(args[0]);
-	cfg->is_ch2 = VESC_IF->lbm_dec_as_i32(args[1]);
-	cfg->is_tim4 = VESC_IF->lbm_dec_as_i32(args[2]);
-	cfg->bits = VESC_IF->lbm_dec_as_i32(args[3]) == 0 ? 24 : 32;
-	cfg->ledbuf_len = cfg->num_leds + 1;
-	cfg->bitbuf_len = cfg->bits * cfg->ledbuf_len + BITBUFFER_PAD;
-	cfg->bitbuffer = VESC_IF->malloc(sizeof(uint16_t) * cfg->bitbuf_len);
-	cfg->RGBdata = VESC_IF->malloc(sizeof(uint32_t) * cfg->ledbuf_len);
-	cfg->brightness = 100;
+	
+	bool ok = false;
+	
+	if (cfg) {
+		cfg->num_leds = VESC_IF->lbm_dec_as_i32(args[0]);
+		cfg->is_ch2 = VESC_IF->lbm_dec_as_i32(args[1]);
+		cfg->is_tim4 = VESC_IF->lbm_dec_as_i32(args[2]);
+		cfg->bits = VESC_IF->lbm_dec_as_i32(args[3]) == 0 ? 24 : 32;
+		cfg->ledbuf_len = cfg->num_leds + 1;
+		cfg->bitbuf_len = cfg->bits * cfg->ledbuf_len + BITBUFFER_PAD;
+		cfg->bitbuffer = VESC_IF->malloc(sizeof(uint16_t) * cfg->bitbuf_len);
+		cfg->RGBdata = VESC_IF->malloc(sizeof(uint32_t) * cfg->ledbuf_len);
+		cfg->brightness = 100;
+		
+		ok = cfg->bitbuffer != NULL && cfg->RGBdata != NULL;
+	}
+	
+	if (!ok) {
+		if (cfg) {
+			if (cfg->bitbuffer) {
+				VESC_IF->free(cfg->bitbuffer);
+			}
+			if (cfg->RGBdata) {
+				VESC_IF->free(cfg->RGBdata);
+			}
+			VESC_IF->free(cfg);
+		}
+	
+		VESC_IF->lbm_set_error_reason("Not enough memory");
+		return lbm_enc_sym(SYM_EERROR);
+	}
 	
 	ws2812_init(cfg);
 	
