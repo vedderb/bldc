@@ -1929,16 +1929,22 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 	i2c_cfg.scl_gpio = scl_gpio;
 	i2c_cfg.scl_pin = scl_pin;
 
-	app_configuration *appconf = mempools_alloc_appconf();
-	conf_general_read_app_configuration(appconf);
-	if (appconf->app_to_use == APP_UART ||
-			appconf->app_to_use == APP_PPM_UART ||
-			appconf->app_to_use == APP_ADC_UART) {
-		appconf->app_to_use = APP_NONE;
-		conf_general_store_app_configuration(appconf);
-		app_set_configuration(appconf);
+	bool is_using_uart_pins = sda_gpio == HW_UART_TX_PORT || scl_gpio == HW_UART_TX_PORT ||
+			sda_gpio == HW_UART_RX_PORT || scl_gpio == HW_UART_RX_PORT;
+
+	if (is_using_uart_pins) {
+		app_configuration *appconf = mempools_alloc_appconf();
+		conf_general_read_app_configuration(appconf);
+
+		if (appconf->app_to_use == APP_UART ||
+				appconf->app_to_use == APP_PPM_UART ||
+				appconf->app_to_use == APP_ADC_UART) {
+			appconf->app_to_use = APP_NONE;
+			conf_general_store_app_configuration(appconf);
+			app_set_configuration(appconf);
+		}
+		mempools_free_appconf(appconf);
 	}
-	mempools_free_appconf(appconf);
 
 	i2c_bb_init(&i2c_cfg);
 	i2c_started = true;
