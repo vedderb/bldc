@@ -955,7 +955,7 @@ Configure GPIO pin to mode. Example:
 'pin-mode-in     ; Input
 'pin-mode-in-pu  ; Input with pull-up
 'pin-mode-in-pd  ; Input with pull-down
-'pin-mode-analog ; Analog
+'pin-mode-analog ; Analog (NOTE: only works on the ADC-pins)
 ```
 
 #### gpio-write

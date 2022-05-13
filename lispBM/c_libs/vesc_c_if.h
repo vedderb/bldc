@@ -26,36 +26,66 @@
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
 typedef void* lib_thread;
 
+typedef enum {
+	VESC_PIN_COMM_RX = 0,
+	VESC_PIN_COMM_TX,
+	VESC_PIN_SWDIO,
+	VESC_PIN_SWCLK,
+	VESC_PIN_HALL1,
+	VESC_PIN_HALL2,
+	VESC_PIN_HALL3,
+	VESC_PIN_ADC1,
+	VESC_PIN_ADC2,
+} VESC_PIN;
+
+typedef enum {
+	VESC_PIN_MODE_INPUT_NOPULL = 0,
+	VESC_PIN_MODE_INPUT_PULL_UP,
+	VESC_PIN_MODE_INPUT_PULL_DOWN,
+	VESC_PIN_MODE_OUTPUT,
+	VESC_PIN_MODE_OUTPUT_OPEN_DRAIN,
+	VESC_PIN_MODE_OUTPUT_OPEN_DRAIN_PULL_UP,
+	VESC_PIN_MODE_OUTPUT_OPEN_DRAIN_PULL_DOWN,
+	VESC_PIN_MODE_ANALOG,
+} VESC_PIN_MODE;
+
 typedef struct {
 	// LBM If
 	load_extension_fptr lbm_add_extension;
-	float (*lbm_dec_as_float)(lbm_value);
-	uint32_t (*lbm_dec_as_u32)(lbm_value);
-	int32_t (*lbm_dec_as_i32)(lbm_value);
-	lbm_value (*lbm_enc_float)(float);
-	lbm_value (*lbm_enc_u32)(uint32_t);
-	lbm_value (*lbm_enc_i32)(int32_t);
-	lbm_value (*lbm_cons)(lbm_value, lbm_value);
-	lbm_value (*lbm_car)(lbm_value);
-	lbm_value (*lbm_cdr)(lbm_value);
-	bool (*lbm_is_array)(lbm_value);
-	int (*lbm_set_error_reason)(char*);
+	float (*lbm_dec_as_float)(lbm_value val);
+	uint32_t (*lbm_dec_as_u32)(lbm_value val);
+	int32_t (*lbm_dec_as_i32)(lbm_value val);
+	lbm_value (*lbm_enc_float)(float f);
+	lbm_value (*lbm_enc_u32)(uint32_t u);
+	lbm_value (*lbm_enc_i32)(int32_t i);
+	lbm_value (*lbm_cons)(lbm_value car, lbm_value cdr);
+	lbm_value (*lbm_car)(lbm_value val);
+	lbm_value (*lbm_cdr)(lbm_value val);
+	bool (*lbm_is_array)(lbm_value val);
+	int (*lbm_set_error_reason)(char *str);
 	
 	// Os
-	void (*sleep_ms)(uint32_t);
-	void (*sleep_us)(uint32_t);
-	int (*printf)(const char*, ...);
-	void* (*malloc)(size_t);
-	void (*free)(void*);
-	lib_thread (*spawn)(void (*)(void*),size_t,char*,void*);
-	void (*request_terminate)(lib_thread);
+	void (*sleep_ms)(uint32_t ms);
+	void (*sleep_us)(uint32_t us);
+	int (*printf)(const char *str, ...);
+	void* (*malloc)(size_t bytes);
+	void (*free)(void *prt);
+	lib_thread (*spawn)(void (*fun)(void *arg), size_t stack_size, char *name, void *arg);
+	void (*request_terminate)(lib_thread thd);
 	bool (*should_terminate)(void);
-	void** (*get_arg)(uint32_t);
+	void** (*get_arg)(uint32_t prog_addr);
 	
-	// IO
-	void (*set_pad_mode)(void*,uint32_t,uint32_t);
-	void (*set_pad)(void*,uint32_t);
-	void (*clear_pad)(void*,uint32_t);
+	// ST IO
+	void (*set_pad_mode)(void *gpio, uint32_t pin, uint32_t mode);
+	void (*set_pad)(void *gpio, uint32_t pin);
+	void (*clear_pad)(void *gpio, uint32_t pin);
+	
+	// Abstract IO
+	bool (*io_set_mode)(VESC_PIN pin, VESC_PIN_MODE mode);
+	bool (*io_write)(VESC_PIN pin, int state);
+	bool (*io_read)(VESC_PIN pin);
+	float (*io_read_analog)(VESC_PIN pin);
+	bool (*io_get_st_pin)(VESC_PIN vesc_pin, void **gpio, uint32_t *pin);
 } vesc_c_if;
 
 typedef struct {

@@ -19,6 +19,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "hw.h"
+#include "mc_interface.h"
 #include "commands.h"
 #include "lispif.h"
 #include "lispbm.h"
@@ -120,6 +122,154 @@ static void lib_clear_pad(void *gpio, uint32_t pin) {
 	palClearPad((stm32_gpio_t*)gpio, pin);
 }
 
+static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_analog) {
+	bool res = false;
+	*is_analog = false;
+
+	switch (io) {
+	case VESC_PIN_COMM_RX:
+#ifdef HW_UART_RX_PORT
+		*port = HW_UART_RX_PORT; *pin = HW_UART_RX_PIN;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_COMM_TX:
+#ifdef HW_UART_TX_PORT
+		*port = HW_UART_TX_PORT; *pin = HW_UART_TX_PIN;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_SWDIO:
+		*port = GPIOA; *pin = 13;
+		res = true;
+		break;
+	case VESC_PIN_SWCLK:
+		*port = GPIOA; *pin = 14;
+		res = true;
+		break;
+	case VESC_PIN_HALL1:
+		*port = HW_HALL_ENC_GPIO1; *pin = HW_HALL_ENC_PIN1;
+		res = true;
+		break;
+	case VESC_PIN_HALL2:
+		*port = HW_HALL_ENC_GPIO2; *pin = HW_HALL_ENC_PIN2;
+		res = true;
+		break;
+	case VESC_PIN_HALL3:
+		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
+		res = true;
+		break;
+	case VESC_PIN_ADC1:
+#ifdef HW_ADC_EXT_GPIO
+		*port = HW_ADC_EXT_GPIO; *pin = HW_ADC_EXT_PIN;
+		*is_analog = true;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_ADC2:
+#ifdef HW_ADC_EXT2_GPIO
+		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
+		*is_analog = true;
+		res = true;
+#endif
+		break;
+	}
+
+	return res;
+}
+
+static bool lib_io_set_mode(VESC_PIN pin_vesc, VESC_PIN_MODE mode) {
+	stm32_gpio_t *gpio;
+	uint32_t pin;
+	bool is_analog;
+	bool res = false;
+
+	if (get_gpio(pin_vesc, &gpio, &pin, &is_analog)) {
+		switch (mode) {
+		case VESC_PIN_MODE_INPUT_NOPULL:
+			palSetPadMode(gpio, pin, PAL_MODE_INPUT);
+			res = true;
+			break;
+		case VESC_PIN_MODE_INPUT_PULL_UP:
+			palSetPadMode(gpio, pin, PAL_MODE_INPUT_PULLUP);
+			res = true;
+			break;
+		case VESC_PIN_MODE_INPUT_PULL_DOWN:
+			palSetPadMode(gpio, pin, PAL_MODE_INPUT_PULLDOWN);
+			res = true;
+			break;
+		case VESC_PIN_MODE_OUTPUT:
+			palSetPadMode(gpio, pin, PAL_MODE_OUTPUT_PUSHPULL);
+			res = true;
+			break;
+		case VESC_PIN_MODE_OUTPUT_OPEN_DRAIN:
+			palSetPadMode(gpio, pin, PAL_MODE_OUTPUT_OPENDRAIN);
+			res = true;
+			break;
+		case VESC_PIN_MODE_OUTPUT_OPEN_DRAIN_PULL_UP:
+			palSetPadMode(gpio, pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLUP);
+			res = true;
+			break;
+		case VESC_PIN_MODE_OUTPUT_OPEN_DRAIN_PULL_DOWN:
+			palSetPadMode(gpio, pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLDOWN);
+			res = true;
+			break;
+		case VESC_PIN_MODE_ANALOG:
+			if (is_analog) {
+				palSetPadMode(gpio, pin, PAL_STM32_MODE_ANALOG);
+				res = true;
+			}
+			break;
+		}
+	}
+
+	return res;
+}
+
+static bool lib_io_write(VESC_PIN pin_vesc, int state) {
+	stm32_gpio_t *gpio;
+	uint32_t pin;
+	bool is_analog;
+	bool res = false;
+
+	if (get_gpio(pin_vesc, &gpio, &pin, &is_analog)) {
+		palWritePad(gpio, pin, state);
+		res = true;
+	}
+
+	return res;
+}
+
+static bool lib_io_read(VESC_PIN pin_vesc) {
+	stm32_gpio_t *gpio;
+	uint32_t pin;
+	bool is_analog;
+	bool res = false;
+
+	if (get_gpio(pin_vesc, &gpio, &pin, &is_analog)) {
+		res = palReadPad(gpio, pin);
+	}
+
+	return res;
+}
+
+static float lib_io_read_analog(VESC_PIN pin_vesc) {
+	float res = -1.0;
+
+	if (pin_vesc == VESC_PIN_ADC1) {
+		res = ADC_VOLTS(ADC_IND_EXT);
+	} else if (pin_vesc == VESC_PIN_ADC2) {
+		res = ADC_VOLTS(ADC_IND_EXT2);
+	}
+
+	return res;
+}
+
+static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
+	bool analog;
+	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -160,10 +310,17 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.should_terminate = lib_should_terminate;
 		cif.cif.get_arg = lib_get_arg;
 
-		// IO
+		// ST IO
 		cif.cif.set_pad_mode = lib_set_pad_mode;
 		cif.cif.set_pad = lib_set_pad;
 		cif.cif.clear_pad = lib_clear_pad;
+
+		// Abstract IO
+		cif.cif.io_set_mode = lib_io_set_mode;
+		cif.cif.io_write = lib_io_write;
+		cif.cif.io_read = lib_io_read;
+		cif.cif.io_read_analog = lib_io_read_analog;
+		cif.cif.io_get_st_pin = lib_io_get_st_pin;
 
 		lib_init_done = true;
 	}
