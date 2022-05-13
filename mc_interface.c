@@ -239,6 +239,12 @@ void mc_interface_init(void) {
 		break;
 	}
 
+	//Clear fault, to log first fault to terminal
+	m_motor_1.m_fault_now = FAULT_CODE_NONE;
+#ifdef HW_HAS_DUAL_MOTORS
+	m_motor_2.m_fault_now = FAULT_CODE_NONE;
+#endif
+
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
 
