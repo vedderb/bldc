@@ -2715,7 +2715,12 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			continue;
 		}
 
-		if (mc_interface_dccal_done() && motor->m_fault_now == FAULT_CODE_NONE) {
+		// Some hardwares always have a DRV-fault at boot. Therefore we do not log it in the
+		// beginning to avoid confusing the user. After dccal all faults should be gone if
+		// everything is ok.
+		bool is_log_ok = (mc_interface_dccal_done() || motor->m_fault_now != FAULT_CODE_DRV);
+
+		if (is_log_ok && motor->m_fault_now == FAULT_CODE_NONE) {
 			// Send to terminal fault logger so that all faults and their conditions
 			// can be printed for debugging.
 			utils_sys_lock_cnt();
