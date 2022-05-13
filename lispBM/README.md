@@ -950,9 +950,12 @@ Configure GPIO pin to mode. Example:
 ; Available modes
 'pin-mode-out    ; Output
 'pin-mode-od     ; Open drain output
+'pin-mode-od-pu  ; Open drain output with pull-up
+'pin-mode-od-pd  ; Open drain output with pull-down
 'pin-mode-in     ; Input
-'pin-mode-in-pu  ; Input with pull-up resistor
-'pin-mode-in-pd  ; Input with pull-down resistor
+'pin-mode-in-pu  ; Input with pull-up
+'pin-mode-in-pd  ; Input with pull-down
+'pin-mode-analog ; Analog
 ```
 
 #### gpio-write

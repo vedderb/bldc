@@ -75,9 +75,12 @@ typedef struct {
 	// GPIO
 	lbm_uint pin_mode_out;
 	lbm_uint pin_mode_od;
+	lbm_uint pin_mode_od_pu;
+	lbm_uint pin_mode_od_pd;
 	lbm_uint pin_mode_in;
 	lbm_uint pin_mode_in_pu;
 	lbm_uint pin_mode_in_pd;
+	lbm_uint pin_mode_analog;
 	lbm_uint pin_rx;
 	lbm_uint pin_tx;
 	lbm_uint pin_swdio;
@@ -212,12 +215,18 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("pin-mode-out", comp);
 		} else if (comp == &syms_vesc.pin_mode_od) {
 			get_add_symbol("pin-mode-od", comp);
+		} else if (comp == &syms_vesc.pin_mode_od_pu) {
+			get_add_symbol("pin-mode-od-pu", comp);
+		} else if (comp == &syms_vesc.pin_mode_od_pd) {
+			get_add_symbol("pin-mode-od-pd", comp);
 		} else if (comp == &syms_vesc.pin_mode_in) {
 			get_add_symbol("pin-mode-in", comp);
 		} else if (comp == &syms_vesc.pin_mode_in_pu) {
 			get_add_symbol("pin-mode-in-pu", comp);
 		} else if (comp == &syms_vesc.pin_mode_in_pd) {
 			get_add_symbol("pin-mode-in-pd", comp);
+		} else if (comp == &syms_vesc.pin_mode_analog) {
+			get_add_symbol("pin-mode-analog", comp);
 		} else if (comp == &syms_vesc.pin_rx) {
 			get_add_symbol("pin-rx", comp);
 		} else if (comp == &syms_vesc.pin_tx) {
@@ -2048,12 +2057,18 @@ static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
 		mode = PAL_MODE_OUTPUT_PUSHPULL;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_od)) {
 		mode = PAL_MODE_OUTPUT_OPENDRAIN;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_od_pu)) {
+		mode = PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLUP;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_od_pd)) {
+		mode = PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLDOWN;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in)) {
 		mode = PAL_MODE_INPUT;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pu)) {
 		mode = PAL_MODE_INPUT_PULLUP;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pd)) {
 		mode = PAL_MODE_INPUT_PULLDOWN;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_analog)) {
+		mode = PAL_STM32_MODE_ANALOG;
 	} else {
 		return lbm_enc_sym(SYM_EERROR);
 	}
