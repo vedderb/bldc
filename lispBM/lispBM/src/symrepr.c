@@ -207,11 +207,16 @@ static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
 static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 
+static lbm_uint symbol_table_size_list = 0;
+static lbm_uint symbol_table_size_strings = 0;
+
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
   next_extension_symbol_id = EXTENSION_SYMBOLS_START;
   next_variable_symbol_id = VARIABLE_SYMBOLS_START;
+  symbol_table_size_list = 0;
+  symbol_table_size_strings = 0;
   return 1;
 }
 
@@ -283,17 +288,23 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
     return 0;
   }
 
-  char *symbol_name_storage = NULL;;
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
   if (n % sizeof(lbm_uint) == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
+    alloc_size = n/(sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
   }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
 
   if (symbol_name_storage == NULL) {
     lbm_memory_free(m);
     return 0;
   }
+
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
 
   strcpy(symbol_name_storage, name);
 
@@ -325,17 +336,23 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
     return 0;
   }
 
-  char *symbol_name_storage = NULL;;
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
   if (n % sizeof(lbm_uint) == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
+    alloc_size = n/(sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
   }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
 
   if (symbol_name_storage == NULL) {
     lbm_memory_free(m);
     return 0;
   }
+
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
 
   strcpy(symbol_name_storage, name);
 
@@ -363,6 +380,8 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
     return 0;
   }
 
+  symbol_table_size_list += 3;
+
   m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
@@ -377,6 +396,53 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_add_extension_symbol(char *name, lbm_uint* id) {
+  size_t  n = 0;
+  n = strlen(name) + 1;
+
+  if (n == 1) return 0; // failure if empty symbol
+  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
+  } else {
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
+  }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
+
+  if (symbol_name_storage == NULL) {
+    lbm_memory_free(m);
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
+
+  strcpy(symbol_name_storage, name);
+
+  m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_extension_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
 int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
@@ -386,6 +452,8 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (m == NULL) {
     return 0;
   }
+
+  symbol_table_size_list += 3;
 
   m[NAME] = (lbm_uint)name;
 
@@ -401,23 +469,14 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   return 1;
 }
 
-
 lbm_uint lbm_get_symbol_table_size(void) {
-
-  lbm_uint n = 0;
-  lbm_uint *curr = symlist;
-
-  while (curr) {
-    // up to 3 extra bytes are used for string storage if length is not multiple of 4
-    size_t s = strlen((char *)curr[NAME]);
-    s ++;
-    n += s % sizeof(lbm_uint);
-    n += 12; // sizeof the node in the linked list
-    curr = (lbm_uint *)curr[NEXT];
-  }
-  return n;
+  return (symbol_table_size_list +
+          symbol_table_size_strings) * sizeof(lbm_uint);
 }
 
+lbm_uint lbm_get_symbol_table_size_names(void) {
+  return symbol_table_size_strings * sizeof(lbm_uint);
+}
 
 int lbm_get_num_variables(void) {
   return (int)next_variable_symbol_id - VARIABLE_SYMBOLS_START;

@@ -28,7 +28,7 @@
  */
 extern int lbm_init_env(void);
 /**
- * \deprecated There is no value in returning a pointer to the environment. Use lbm_get_env
+ * Get a pointer to the global environment.
  * \return A pointer to the global environment variable.
  */
 extern lbm_value *lbm_get_env_ptr(void);

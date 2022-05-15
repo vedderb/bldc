@@ -24,9 +24,15 @@
 
 #include "extensions.h"
 
-static int ext_offset = EXTENSION_SYMBOLS_START;
-static int ext_max    = -1;
+static lbm_uint ext_offset = EXTENSION_SYMBOLS_START;
+static lbm_uint ext_max    = 0;
 static extension_fptr *extension_table = NULL;
+
+lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  return lbm_enc_sym(SYM_EERROR);
+}
 
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
   if (extension_storage == NULL || extension_storage_size <= 0) return 0;
@@ -34,35 +40,51 @@ int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage
   extension_table = extension_storage;
   memset(extension_table, 0, sizeof(extension_fptr) * (unsigned int)extension_storage_size);
 
-  ext_max = extension_storage_size;
+  for (int i = 0; i < extension_storage_size; i ++) {
+    extension_storage[i] = lbm_extensions_default;
+  }
+
+  ext_max = (lbm_uint)extension_storage_size;
 
   return 1;
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
-  int ext_next = (int)sym - ext_offset;
-
-  if (ext_next < 0 || ext_next > ext_max) {
+  lbm_uint ext_next = sym - ext_offset;
+  if (ext_next >= ext_max) {
     return NULL;
   }
-
   return extension_table[ext_next];
+}
+
+bool lbm_clr_extension(lbm_uint sym_id) {
+  lbm_uint ext_id = sym_id - ext_offset;
+  if (ext_id >= ext_max) {
+    return false;
+  }
+  extension_table[ext_id] = lbm_extensions_default;
+  return true;
 }
 
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
-  int res = lbm_add_extension_symbol_const(sym_str, &symbol);
+  lbm_uint ext_ix = 0;
 
-  if (!res) return false;
-
-  int ext_next = (int)symbol - ext_offset;
-
-  if (ext_next < 0 || ext_next > ext_max) {
-    return false;
+  if (lbm_get_symbol_by_name(sym_str, &symbol)) {
+    // symbol already exists and may or may not be an extension.
+    if (lbm_is_extension(lbm_enc_sym(symbol))) {
+      ext_ix = symbol - ext_offset;
+    } else return false;
+  } else {
+    int res = lbm_add_extension_symbol_const(sym_str, &symbol);
+    if (!res) return false;
+    ext_ix = symbol - ext_offset;
   }
 
-  extension_table[ext_next] = ext;
-
+  if (ext_ix >= ext_max) {
+      return false;
+  }
+  extension_table[ext_ix] = ext;
   return true;
 }
 

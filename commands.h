@@ -46,8 +46,10 @@ void commands_set_hw_data_handler(void(*func)(unsigned char *data, unsigned int 
 void commands_send_app_data(unsigned char *data, unsigned int len);
 void commands_send_hw_data(unsigned char *data, unsigned int len);
 void commands_send_gpd_buffer_notify(void);
-void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration *mcconf);
-void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf);
+void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration* mcconf,
+    void(*reply_func)(unsigned char* data, unsigned int len));
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration* appconf,
+    void(*reply_func)(unsigned char* data, unsigned int len));
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf);
 void commands_init_plot(char *namex, char *namey);
 void commands_plot_add_graph(char *name);

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -587,6 +587,7 @@ int main(int argc, char **argv) {
       printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
       printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
       printf("Symbol table size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+      printf("Symbol names size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
       free(str);
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();

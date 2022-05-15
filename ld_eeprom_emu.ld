@@ -32,7 +32,8 @@ MEMORY
     ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
     ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
     ram3  : org = 0x00000000, len = 0
-    ram4  : org = 0x10000000, len = 64k     /* CCM SRAM */
+    ram4  : org = 0x10000000, len = 63k     /* CCM SRAM */
+    libif : org = 0x1000FC00, len = 1k
     ram5  : org = 0x40024000, len = 4k      /* BCKP SRAM */
     ram6  : org = 0x00000000, len = 0
     ram7  : org = 0x00000000, len = 0
@@ -239,6 +240,12 @@ SECTIONS
         . = ALIGN(4);
         __ram4_free__ = .;
     } > ram4
+    
+    .libif (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.libif)
+    } > libif
 
     .ram5 (NOLOAD) : ALIGN(4)
     {

@@ -13,6 +13,7 @@
 * Another new silent HFI mode that is less sensitive to getting the inductance correct.
 * Added openloop current boost parameter.
 * Added openloop current max parameter.
+* Added support for dynamic loading of C libraries.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

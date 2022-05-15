@@ -1314,7 +1314,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		}
 
 		if (send_mcconf_on_success) {
-			commands_send_mcconf(COMM_GET_MCCONF, mcconf_old);
+			commands_send_mcconf(COMM_GET_MCCONF, mcconf_old, 0);
 		}
 	}
 
@@ -1959,7 +1959,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 			appconf->can_status_msgs_r1 = 0b00001111;
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
-			commands_send_appconf(COMM_GET_APPCONF, appconf);
+			commands_send_appconf(COMM_GET_APPCONF, appconf, 0);
 			chThdSleepMilliseconds(1000);
 		}
 
@@ -1972,7 +1972,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 		mc_interface_select_motor_thread(1);
 		*mcconf = *mc_interface_get_configuration();
 #endif
-		commands_send_mcconf(COMM_GET_MCCONF, mcconf);
+		commands_send_mcconf(COMM_GET_MCCONF, mcconf, 0);
 		chThdSleepMilliseconds(1000);
 	}
 

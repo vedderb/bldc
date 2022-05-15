@@ -709,7 +709,9 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     }
     else {
       int r = 0;
-      if (sym_str[0] == '#') {
+      if (strncmp(sym_str,"ext-",4) == 0) {
+        r = lbm_add_extension_symbol(sym_str, &symbol_id);
+      } else if (sym_str[0] == '#') {
         r = lbm_add_variable_symbol(sym_str, &symbol_id);
       } else {
         r = lbm_add_symbol(sym_str, &symbol_id);

@@ -75,9 +75,12 @@ typedef struct {
 	// GPIO
 	lbm_uint pin_mode_out;
 	lbm_uint pin_mode_od;
+	lbm_uint pin_mode_od_pu;
+	lbm_uint pin_mode_od_pd;
 	lbm_uint pin_mode_in;
 	lbm_uint pin_mode_in_pu;
 	lbm_uint pin_mode_in_pd;
+	lbm_uint pin_mode_analog;
 	lbm_uint pin_rx;
 	lbm_uint pin_tx;
 	lbm_uint pin_swdio;
@@ -212,12 +215,18 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("pin-mode-out", comp);
 		} else if (comp == &syms_vesc.pin_mode_od) {
 			get_add_symbol("pin-mode-od", comp);
+		} else if (comp == &syms_vesc.pin_mode_od_pu) {
+			get_add_symbol("pin-mode-od-pu", comp);
+		} else if (comp == &syms_vesc.pin_mode_od_pd) {
+			get_add_symbol("pin-mode-od-pd", comp);
 		} else if (comp == &syms_vesc.pin_mode_in) {
 			get_add_symbol("pin-mode-in", comp);
 		} else if (comp == &syms_vesc.pin_mode_in_pu) {
 			get_add_symbol("pin-mode-in-pu", comp);
 		} else if (comp == &syms_vesc.pin_mode_in_pd) {
 			get_add_symbol("pin-mode-in-pd", comp);
+		} else if (comp == &syms_vesc.pin_mode_analog) {
+			get_add_symbol("pin-mode-analog", comp);
 		} else if (comp == &syms_vesc.pin_rx) {
 			get_add_symbol("pin-rx", comp);
 		} else if (comp == &syms_vesc.pin_tx) {
@@ -1929,16 +1938,25 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 	i2c_cfg.scl_gpio = scl_gpio;
 	i2c_cfg.scl_pin = scl_pin;
 
-	app_configuration *appconf = mempools_alloc_appconf();
-	conf_general_read_app_configuration(appconf);
-	if (appconf->app_to_use == APP_UART ||
-			appconf->app_to_use == APP_PPM_UART ||
-			appconf->app_to_use == APP_ADC_UART) {
-		appconf->app_to_use = APP_NONE;
-		conf_general_store_app_configuration(appconf);
-		app_set_configuration(appconf);
+	bool is_using_uart_pins =
+			(sda_gpio == HW_UART_TX_PORT && sda_pin == HW_UART_TX_PIN) ||
+			(scl_gpio == HW_UART_TX_PORT && scl_pin == HW_UART_TX_PIN) ||
+			(sda_gpio == HW_UART_RX_PORT && sda_pin == HW_UART_RX_PIN) ||
+			(scl_gpio == HW_UART_RX_PORT && scl_pin == HW_UART_RX_PIN);
+
+	if (is_using_uart_pins) {
+		app_configuration *appconf = mempools_alloc_appconf();
+		conf_general_read_app_configuration(appconf);
+
+		if (appconf->app_to_use == APP_UART ||
+				appconf->app_to_use == APP_PPM_UART ||
+				appconf->app_to_use == APP_ADC_UART) {
+			appconf->app_to_use = APP_NONE;
+			conf_general_store_app_configuration(appconf);
+			app_set_configuration(appconf);
+		}
+		mempools_free_appconf(appconf);
 	}
-	mempools_free_appconf(appconf);
 
 	i2c_bb_init(&i2c_cfg);
 	i2c_started = true;
@@ -2039,12 +2057,18 @@ static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
 		mode = PAL_MODE_OUTPUT_PUSHPULL;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_od)) {
 		mode = PAL_MODE_OUTPUT_OPENDRAIN;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_od_pu)) {
+		mode = PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLUP;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_od_pd)) {
+		mode = PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLDOWN;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in)) {
 		mode = PAL_MODE_INPUT;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pu)) {
 		mode = PAL_MODE_INPUT_PULLUP;
 	} else if (compare_symbol(name, &syms_vesc.pin_mode_in_pd)) {
 		mode = PAL_MODE_INPUT_PULLDOWN;
+	} else if (compare_symbol(name, &syms_vesc.pin_mode_analog)) {
+		mode = PAL_STM32_MODE_ANALOG;
 	} else {
 		return lbm_enc_sym(SYM_EERROR);
 	}
@@ -3154,7 +3178,13 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+// Declare native lib extension
+lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
+lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
+
 void lispif_load_vesc_extensions(void) {
+	lispif_stop_lib();
+
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
@@ -3335,6 +3365,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("me-looprange", ext_me_looprange);
 	lbm_add_extension("me-loopforeach", ext_me_loopforeach);
 
+	// Native libraries
+	lbm_add_extension("load-native-lib", ext_load_native_lib);
+	lbm_add_extension("unload-native-lib", ext_unload_native_lib);
+
 	if (ext_callback) {
 		ext_callback();
 	}
@@ -3428,6 +3462,7 @@ void lispif_set_ext_load_callback(void (*p_func)(void)) {
 }
 
 void lispif_disable_all_events(void) {
+	lispif_stop_lib();
 	event_handler_registered = false;
 	event_can_sid_en = false;
 	event_can_eid_en = false;
