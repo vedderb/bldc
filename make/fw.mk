@@ -105,7 +105,6 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files
 include hwconf/hwconf.mk
 include applications/applications.mk
-include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
 include blackmagic/blackmagic.mk
@@ -140,7 +139,6 @@ CSRC = $(STARTUPSRC) \
        events.c \
        $(HWSRC) \
        $(APPSRC) \
-       $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
        $(BLACKMAGICSRC) \
@@ -184,7 +182,6 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(CHIBIOS)/os/hal/lib/streams \
          $(HWINC) \
          $(APPINC) \
-         $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
          $(BLACKMAGICINC) \
