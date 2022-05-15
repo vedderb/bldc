@@ -1,9 +1,9 @@
 TARGET = test
 LIBS = -lm
 CC = gcc
-CFLAGS = -O2 -g -Wall -Wextra -Wundef -std=gnu99 -I../../ -DNO_STM32
-SOURCES = main.c ../../buffer.c
-HEADERS = ../../buffer.h
+CFLAGS = -O2 -g -Wall -Wextra -Wundef -std=gnu99 -I../../util -DNO_STM32
+SOURCES = main.c ../../util/buffer.c
+HEADERS = ../../util/buffer.h
 OBJECTS = $(notdir $(SOURCES:.c=.o))
 
 .PHONY: default all clean
@@ -15,6 +15,9 @@ all: default
 	$(CC) $(CFLAGS) -c $< -o $@
 	
 %.o: ../../%.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: ../../util/%.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PRECIOUS: $(TARGET) $(OBJECTS)

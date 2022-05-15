@@ -105,11 +105,8 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files
 include hwconf/hwconf.mk
 include applications/applications.mk
-include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
-include lora/lora.mk
-include lzo/lzo.mk
 include blackmagic/blackmagic.mk
 include encoder/encoder.mk
 
@@ -131,52 +128,22 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       board.c \
        main.c \
-       comm_usb_serial.c \
        irq_handlers.c \
-       buffer.c \
-       comm_usb.c \
-       crc.c \
-       digital_filter.c \
-       ledpwm.c \
-       mcpwm.c \
-       servo_dec.c \
-       utils_math.c \
-       utils_sys.c \
-       servo_simple.c \
-       packet.c \
        terminal.c \
        conf_general.c \
-       eeprom.c \
-       commands.c \
        timeout.c \
-       comm_can.c \
        flash_helper.c \
-       mc_interface.c \
-       mcpwm_foc.c \
-       gpdrive.c \
        confgenerator.c \
-       timer.c \
-       i2c_bb.c \
-       spi_bb.c \
-       virtual_motor.c \
-       shutdown.c \
-       mempools.c \
-       worker.c \
        bms.c \
        events.c \
        $(HWSRC) \
        $(APPSRC) \
-       $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
-       $(LORASRC) \
-       $(LZOSRC) \
        $(BLACKMAGICSRC) \
        qmlui/qmlui.c \
-       $(ENCSRC) \
-       foc_math.c
+       $(ENCSRC)
 
 ifeq ($(USE_LISPBM),1)
   CSRC += $(LISPBMSRC)
@@ -213,20 +180,20 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) \
          $(CHIBIOS)/os/various \
          $(CHIBIOS)/os/hal/lib/streams \
-         mcconf \
-         appconf \
          $(HWINC) \
          $(APPINC) \
-         $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
-         $(LORAINC) \
-         $(LZOINC) \
          $(BLACKMAGICINC) \
          qmlui \
          qmlui/hw \
          qmlui/app \
          $(ENCINC)
+
+include comm/comm.mk
+include motor/motor.mk
+include util/util.mk
+include driver/driver.mk
 
 ifeq ($(USE_LISPBM),1)
   INCDIR += $(LISPBMINC)
