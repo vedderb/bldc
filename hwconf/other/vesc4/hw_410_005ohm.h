@@ -15,12 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_46_0005OHM_H_
-#define HW_46_0005OHM_H_
+#ifndef HW_410_005OHM_H_
+#define HW_410_005OHM_H_
 
-#define HW_SOURCE_ALT 		"trampa/vesc4/hw_46.c"
-#define CURRENT_SHUNT_RES	0.0005
+#define HW_SOURCE_ALT 		"other/vesc4/hw_410.c"
+#define CURRENT_SHUNT_RES	0.005
 
-#include "hw_46.h"
+#include "hw_410.h"
 
-#endif /* HW_46_0005OHM_H_ */
+#endif /* HW_410_005OHM_H_ */

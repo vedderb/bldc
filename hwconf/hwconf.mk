@@ -1,4 +1,6 @@
-HWSRC =	hwconf/hw.c \
+HWSRC =	\
+	hwconf/board.c \
+	hwconf/hw.c \
 	hwconf/drv8301.c \
 	hwconf/drv8305.c \
 	hwconf/drv8320s.c \
