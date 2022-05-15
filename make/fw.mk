@@ -136,7 +136,6 @@ CSRC = $(STARTUPSRC) \
        timeout.c \
        flash_helper.c \
        confgenerator.c \
-       shutdown.c \
        bms.c \
        events.c \
        $(HWSRC) \

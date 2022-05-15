@@ -62,7 +62,7 @@ void shutdown_set_sampling_disabled(bool disabled) {
 	chMtxUnlock(&m_sample_mutex);
 }
 
-bool do_shutdown(void) {
+static bool do_shutdown(void) {
 	conf_general_store_backup_data();
 	DISABLE_GATE();
 	HW_SHUTDOWN_HOLD_OFF();

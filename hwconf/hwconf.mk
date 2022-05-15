@@ -6,7 +6,8 @@ HWSRC =	\
 	hwconf/drv8320s.c \
 	hwconf/drv8323s.c \
 	hwconf/luna/luna_display_serial.c \
-	hwconf/si8900.c
+	hwconf/si8900.c \
+	hwconf/shutdown.c \
 
 HWINC = hwconf \
 		hwconf/luna
