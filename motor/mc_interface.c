@@ -2439,8 +2439,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	encoder_check_faults(&motor->m_conf, !is_motor_1);
 
+	bool dc_cal_done = mc_interface_dccal_done();
 	// TODO: Implement for BLDC and GPDRIVE
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC && dc_cal_done) {
 		float curr0_offset;
 		float curr1_offset;
 		float curr2_offset;
@@ -2472,7 +2473,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Monitor currents balance. The sum of the 3 currents should be zero
 #ifdef HW_HAS_3_SHUNTS
-	if (!motor->m_conf.foc_sample_high_current) { // This won't work when high current sampling is used
+	if (!motor->m_conf.foc_sample_high_current && dc_cal_done) { // This won't work when high current sampling is used
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {
