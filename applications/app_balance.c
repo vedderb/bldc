@@ -95,7 +95,7 @@ static float torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_si
 static float tiltback_variable, tiltback_variable_max_erpm, noseangling_step_size;
 
 // Runtime values read from elsewhere
-static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
+static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin, last_gyro_y;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
 static float erpm, abs_erpm, avg_erpm;
@@ -106,7 +106,7 @@ static SwitchState switch_state;
 
 // Rumtime state values
 static BalanceState state;
-static float proportional, integral, derivative;
+static float proportional, integral, derivative, proportional2, integral2, derivative2;
 static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
@@ -298,6 +298,7 @@ static void reset_vars(void){
 	// Clear accumulated values.
 	integral = 0;
 	last_proportional = 0;
+	integral2 = 0;
 	yaw_integral = 0;
 	yaw_last_proportional = 0;
 	d_pt1_lowpass_state = 0;
@@ -625,8 +626,10 @@ static THD_FUNCTION(balance_thread, arg) {
 		motor_current = mc_interface_get_tot_current_directional_filtered();
 		motor_position = mc_interface_get_pid_pos_now();
 
-		// Get the values we want
+		// Set "last" values to previous loops values
 		last_pitch_angle = pitch_angle;
+		last_gyro_y = gyro[1];
+		// Get the values we want
 		pitch_angle = RAD2DEG_f(imu_get_pitch());
 		roll_angle = RAD2DEG_f(imu_get_roll());
 		abs_roll_angle = fabsf(roll_angle);
@@ -732,6 +735,13 @@ static THD_FUNCTION(balance_thread, arg) {
 				}
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
+
+				if(balance_conf.pid_mode == BALANCE_PID_MODE_ANGLE_RATE_CASCADE){
+					proportional2 = pid_value - gyro[1];
+					integral2 = integral2 + proportional2;
+					derivative2 = last_gyro_y - gyro[1];
+					pid_value = (balance_conf.kp2 * proportional2) + (balance_conf.ki2 * integral2) + (balance_conf.kd2 * derivative2);
+				}
 
 				last_proportional = proportional;
 

@@ -295,6 +295,9 @@
 #endif
 
 // Balance app
+#ifndef APPCONF_BALANCE_PID_MODE
+#define APPCONF_BALANCE_PID_MODE					BALANCE_PID_MODE_ANGLE
+#endif
 #ifndef APPCONF_BALANCE_KP
 #define APPCONF_BALANCE_KP							0.0
 #endif
@@ -303,6 +306,15 @@
 #endif
 #ifndef APPCONF_BALANCE_KD
 #define APPCONF_BALANCE_KD							0.0
+#endif
+#ifndef APPCONF_BALANCE_KP2
+#define APPCONF_BALANCE_KP2							0.0
+#endif
+#ifndef APPCONF_BALANCE_KI2
+#define APPCONF_BALANCE_KI2							0.0
+#endif
+#ifndef APPCONF_BALANCE_KD2
+#define APPCONF_BALANCE_KD2							0.0
 #endif
 #ifndef APPCONF_BALANCE_HERTZ
 #define APPCONF_BALANCE_HERTZ 						1000

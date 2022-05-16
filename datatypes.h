@@ -737,10 +737,19 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
+typedef enum {
+	BALANCE_PID_MODE_ANGLE = 0,
+	BALANCE_PID_MODE_ANGLE_RATE_CASCADE
+} BALANCE_PID_MODE;
+
 typedef struct {
+	BALANCE_PID_MODE pid_mode;
 	float kp;
 	float ki;
 	float kd;
+	float kp2;
+	float ki2;
+	float kd2;
 	uint16_t hertz;
 	uint16_t loop_time_filter;
 	float fault_pitch;
