@@ -204,8 +204,9 @@ static param_t parameters[] =
 {
 	{"can_baud_rate", 	AP_PARAM_INT8,   0,   0,   8,   CAN_BAUD_500K},
 	{"can_status_rate",	AP_PARAM_INT32,  0,   0, 1000,  50},
-	{"can_esc_index",   AP_PARAM_INT16,   0,   0, 255,   0},
-	{"controller_id",   AP_PARAM_INT16,   0,   0, 253,   0}
+	{"can_esc_index",   AP_PARAM_INT16,  0,   0, 255,   0},
+	{"controller_id",   AP_PARAM_INT16,  0,   0, 253,   0},
+	{"ctl_dir",         AP_PARAM_INT8,   0,   0, 1,     0}
 };
 
 /*
@@ -238,15 +239,23 @@ static void write_app_config(void) {
 	app_configuration *appconf = mempools_alloc_appconf();
 	*appconf = *app_get_configuration();
 
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+
 	appconf->can_baud_rate = (uint8_t)getParamByName("can_baud_rate")->val;
 	appconf->can_status_rate_1 = (uint32_t)getParamByName("can_status_rate")->val;
 	appconf->uavcan_esc_index = (uint16_t)getParamByName("can_esc_index")->val;
 	appconf->controller_id = (uint16_t)getParamByName("controller_id")->val;
+	mcconf->m_invert_direction = (uint8_t)getParamByName("ctl_dir")->val;;
 
    	conf_general_store_app_configuration(appconf);
    	app_set_configuration(appconf);
 
+   	conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
+   	mc_interface_set_configuration(mcconf);
+
 	mempools_free_appconf(appconf);
+	mempools_free_mcconf(mcconf);
 
 	refresh_parameters_enabled = true;
 }
@@ -259,11 +268,13 @@ static void write_app_config(void) {
  */
 static void refresh_parameters(void){
 	const app_configuration *appconf = app_get_configuration();
+	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
 	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate );
 	updateParamByName((uint8_t *)"can_status_rate",		appconf->can_status_rate_1 );
 	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index );
 	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id );
+	updateParamByName((uint8_t *)"ctl_dir",			   	mcconf->m_invert_direction );
 }
 
 /*
