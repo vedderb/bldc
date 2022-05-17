@@ -503,10 +503,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 				mc_interface_release_motor();
 			} else if (display_position_mode == DISP_POS_MODE_INDUCTANCE) {
 				mcpwm_set_detect();
+				timeout_reset();
 			}
 		}
-
-		timeout_reset();
 	} break;
 
 	case COMM_SET_SERVO_POS: {
