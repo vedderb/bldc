@@ -89,6 +89,8 @@ package_dict["60v2_alva"] = [['60v2_alva', default_name]]
 package_dict["60v2_alva_mk2"] = [['60v2_alva_mk2', default_name]]
 package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
+package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
+                    ['60_75_mk2_no_limits', no_limits_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
