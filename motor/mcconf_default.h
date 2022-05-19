@@ -439,6 +439,9 @@
 #ifndef MCCONF_FOC_PHASE_FILTER_ENABLE
 #define MCCONF_FOC_PHASE_FILTER_ENABLE	true // Use phase voltage filters when available
 #endif
+#ifndef MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT
+#define MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT	false // Disable phase filter fault code
+#endif
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
 #define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	4000.0 // Use phase filter up to this ERPM
 #endif

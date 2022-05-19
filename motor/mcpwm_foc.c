@@ -4199,7 +4199,7 @@ static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float
 			float mod_mag = NORM2_f(mod_alpha, mod_beta);
 			float v_mag_mod = mod_mag * (2.0 / 3.0) * state_m->v_bus;
 
-			if (fabsf(v_mag_mod - state_m->v_mag_filter) > (conf_now->l_max_vin * 0.05)) {
+			if (!conf_now->foc_phase_filter_disable_fault && fabsf(v_mag_mod - state_m->v_mag_filter) > (conf_now->l_max_vin * 0.05)) {
 				mc_interface_set_fault_info("v_mag_mod: %.2f, v_mag_filter: %.2f", 2, v_mag_mod, state_m->v_mag_filter);
 				mc_interface_fault_stop(FAULT_CODE_PHASE_FILTER, &m_motor_1 != motor, true);
 			}

@@ -128,6 +128,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_offsets_voltage_undriven[1], 10000, &ind);
 	buffer_append_float16(buffer, conf->foc_offsets_voltage_undriven[2], 10000, &ind);
 	buffer[ind++] = conf->foc_phase_filter_enable;
+	buffer[ind++] = conf->foc_phase_filter_disable_fault;
 	buffer_append_float32_auto(buffer, conf->foc_phase_filter_max_erpm, &ind);
 	buffer[ind++] = conf->foc_mtpa_mode;
 	buffer_append_float32_auto(buffer, conf->foc_fw_current_max, &ind);
@@ -514,6 +515,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_offsets_voltage_undriven[1] = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_offsets_voltage_undriven[2] = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_phase_filter_enable = buffer[ind++];
+	conf->foc_phase_filter_disable_fault = buffer[ind++];
 	conf->foc_phase_filter_max_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_mtpa_mode = buffer[ind++];
 	conf->foc_fw_current_max = buffer_get_float32_auto(buffer, &ind);
@@ -896,6 +898,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_offsets_voltage_undriven[1] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_1;
 	conf->foc_offsets_voltage_undriven[2] = MCCONF_FOC_OFFSETS_VOLTAGE_UNDRIVEN_2;
 	conf->foc_phase_filter_enable = MCCONF_FOC_PHASE_FILTER_ENABLE;
+	conf->foc_phase_filter_disable_fault = MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT;
 	conf->foc_phase_filter_max_erpm = MCCONF_FOC_PHASE_FILTER_MAX_ERPM;
 	conf->foc_mtpa_mode = MCCONF_FOC_MTPA_MODE;
 	conf->foc_fw_current_max = MCCONF_FOC_FW_CURRENT_MAX;
