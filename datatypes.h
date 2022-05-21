@@ -120,6 +120,9 @@ typedef enum {
 
 typedef enum {
 	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
+	FOC_OBSERVER_MXLEMMING,
+	FOC_OBSERVER_ORTEGA_LAMBDA_COMP,
+	FOC_OBSERVER_MXLEMMING_LAMBDA_COMP,
 } mc_foc_observer_type;
 
 typedef enum {

@@ -23,7 +23,7 @@
 
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float dt, float *x1, float *x2, float *phase, motor_all_state_t *motor) {
+		float dt, observer_state *state, float *phase, motor_all_state_t *motor) {
 
 	mc_configuration *conf_now = motor->m_conf;
 
@@ -50,16 +50,15 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		L = L - ld_lq_diff / 2.0 + ld_lq_diff * SQ(iq) / (SQ(id) + SQ(iq));
 	}
 
-	const float L_ia = L * i_alpha;
-	const float L_ib = L * i_beta;
+	float L_ia = L * i_alpha;
+	float L_ib = L * i_beta;
 	const float R_ia = R * i_alpha;
 	const float R_ib = R * i_beta;
-	const float lambda_2 = SQ(lambda);
 	const float gamma_half = motor->m_gamma_now * 0.5;
 
 	switch (conf_now->foc_observer_type) {
 	case FOC_OBSERVER_ORTEGA_ORIGINAL: {
-		float err = lambda_2 - (SQ(*x1 - L_ia) + SQ(*x2 - L_ib));
+		float err = SQ(lambda) - (SQ(state->x1 - L_ia) + SQ(state->x2 - L_ib));
 
 		// Forcing this term to stay negative helps convergence according to
 		//
@@ -70,29 +69,93 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 			err = 0.0;
 		}
 
-		float x1_dot = v_alpha - R_ia + gamma_half * (*x1 - L_ia) * err;
-		float x2_dot = v_beta - R_ib + gamma_half * (*x2 - L_ib) * err;
+		float x1_dot = v_alpha - R_ia + gamma_half * (state->x1 - L_ia) * err;
+		float x2_dot = v_beta - R_ib + gamma_half * (state->x2 - L_ib) * err;
 
-		*x1 += x1_dot * dt;
-		*x2 += x2_dot * dt;
+		state->x1 += x1_dot * dt;
+		state->x2 += x2_dot * dt;
+	} break;
+
+	case FOC_OBSERVER_MXLEMMING:
+	case FOC_OBSERVER_MXLEMMING_LAMBDA_COMP:
+		// LICENCE NOTE:
+		// This function deviates slightly from the BSD 3 clause licence.
+		// The work here is entirely original to the MESC FOC project, and not based
+		// on any appnotes, or borrowed from another project. This work is free to
+		// use, as granted in BSD 3 clause, with the exception that this note must
+		// be included in where this code is implemented/modified to use your
+		// variable names, structures containing variables or other minor
+		// rearrangements in place of the original names I have chosen, and credit
+		// to David Molony as the original author must be noted.
+
+		state->x1 += (v_alpha - R_ia) * dt - L * (i_alpha - state->i_alpha_last);
+		state->x2 += (v_beta - R_ib) * dt - L * (i_beta - state->i_beta_last);
+
+		if (conf_now->foc_observer_type == FOC_OBSERVER_MXLEMMING_LAMBDA_COMP) {
+			// This is essentially the flux linkage observer from
+			// https://cas.mines-paristech.fr/~praly/Telechargement/Conferences/2017_IFAC_Bernard-Praly.pdf
+			// with a slight modification. We use the same gain here as it is related to the Ortega-gain,
+			// but we scale it down as it is not nearly as critical because the flux linkage is mostly DC.
+			// When the motor starts to saturate we still want to be able to keep up though, so the gain is
+			// still high enough to react with some "reasonable" speed.
+			float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
+			state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
+
+			// Clamp the observed flux linkage (not sure if this is needed)
+			utils_truncate_number(&(state->lambda_est), lambda * 0.5, lambda * 1.5);
+
+			utils_truncate_number_abs(&(state->x1), state->lambda_est);
+			utils_truncate_number_abs(&(state->x2), state->lambda_est);
+		} else {
+			utils_truncate_number_abs(&(state->x1), lambda);
+			utils_truncate_number_abs(&(state->x2), lambda);
+		}
+
+		// Set these to 0 to allow using the same atan2-code as for Ortega
+		L_ia = 0.0;
+		L_ib = 0.0;
+		break;
+
+	case FOC_OBSERVER_ORTEGA_LAMBDA_COMP: {
+		float err = SQ(state->lambda_est) - (SQ(state->x1 - L_ia) + SQ(state->x2 - L_ib));
+
+		// FLux linkage observer. See:
+		// https://cas.mines-paristech.fr/~praly/Telechargement/Conferences/2017_IFAC_Bernard-Praly.pdf
+		state->lambda_est += 0.2 * gamma_half * state->lambda_est * -err * dt;
+
+		// Clamp the observed flux linkage (not sure if this is needed)
+		utils_truncate_number(&(state->lambda_est), lambda * 0.5, lambda * 1.5);
+
+		if (err > 0.0) {
+			err = 0.0;
+		}
+
+		float x1_dot = v_alpha - R_ia + gamma_half * (state->x1 - L_ia) * err;
+		float x2_dot = v_beta - R_ib + gamma_half * (state->x2 - L_ib) * err;
+
+		state->x1 += x1_dot * dt;
+		state->x2 += x2_dot * dt;
 	} break;
 
 	default:
 		break;
 	}
 
-	UTILS_NAN_ZERO(*x1);
-	UTILS_NAN_ZERO(*x2);
+	state->i_alpha_last = i_alpha;
+	state->i_beta_last = i_beta;
+
+	UTILS_NAN_ZERO(state->x1);
+	UTILS_NAN_ZERO(state->x2);
 
 	// Prevent the magnitude from getting too low, as that makes the angle very unstable.
-	float mag = NORM2_f(*x1, *x2);
-	if (mag < (conf_now->foc_motor_flux_linkage * 0.5)) {
-		*x1 *= 1.1;
-		*x2 *= 1.1;
+	float mag = NORM2_f(state->x1, state->x2);
+	if (mag < (lambda * 0.5)) {
+		state->x1 *= 1.1;
+		state->x2 *= 1.1;
 	}
 
 	if (phase) {
-		*phase = utils_fast_atan2(*x2 - L_ib, *x1 - L_ia);
+		*phase = utils_fast_atan2(state->x2 - L_ib, state->x1 - L_ia);
 	}
 }
 
@@ -615,4 +678,5 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	motor->p_ld = conf_now->foc_motor_l - conf_now->foc_motor_ld_lq_diff * 0.5;
 	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
 	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
+	motor->m_observer_state.lambda_est = conf_now->foc_motor_flux_linkage;
 }

@@ -1047,8 +1047,8 @@ bool mcpwm_foc_is_using_encoder(void) {
 
 void mcpwm_foc_get_observer_state(float *x1, float *x2) {
 	volatile motor_all_state_t *motor = get_motor_now();
-	*x1 = motor->m_observer_x1;
-	*x2 = motor->m_observer_x2;
+	*x1 = motor->m_observer_state.x1;
+	*x2 = motor->m_observer_state.x2;
 }
 
 /**
@@ -2330,8 +2330,9 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("iq_target: %.2f", (double)get_motor_now()->m_motor_state.iq_target);
 	commands_printf("i_abs:     %.2f", (double)get_motor_now()->m_motor_state.i_abs);
 	commands_printf("i_abs_flt: %.2f", (double)get_motor_now()->m_motor_state.i_abs_filter);
-	commands_printf("Obs_x1:    %.2f", (double)get_motor_now()->m_observer_x1);
-	commands_printf("Obs_x2:    %.2f", (double)get_motor_now()->m_observer_x2);
+	commands_printf("Obs_x1:    %.2f", (double)get_motor_now()->m_observer_state.x1);
+	commands_printf("Obs_x2:    %.2f", (double)get_motor_now()->m_observer_state.x2);
+	commands_printf("lambda_est:%.2f", (double)get_motor_now()->m_observer_state.lambda_est);
 	commands_printf("vd_int:    %.2f", (double)get_motor_now()->m_motor_state.vd_int);
 	commands_printf("vq_int:    %.2f", (double)get_motor_now()->m_motor_state.vq_int);
 	commands_printf("off_delay: %.2f", (double)get_motor_now()->m_current_off_delay);
@@ -2750,7 +2751,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			if (!motor_now->m_phase_override) {
 				foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
-						dt, &motor_now->m_observer_x1, &motor_now->m_observer_x2, &motor_now->m_phase_now_observer, motor_now);
+						dt, &(motor_now->m_observer_state), &motor_now->m_phase_now_observer, motor_now);
 
 				// Compensate from the phase lag caused by the switching frequency. This is important for motors
 				// that run on high ERPM compared to the switching frequency.
@@ -2788,8 +2789,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_SENSORLESS:
 				if (motor_now->m_phase_observer_override) {
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_observer_override;
-					motor_now->m_observer_x1 = motor_now->m_observer_x1_override;
-					motor_now->m_observer_x2 = motor_now->m_observer_x2_override;
+					motor_now->m_observer_state.x1 = motor_now->m_observer_x1_override;
+					motor_now->m_observer_state.x2 = motor_now->m_observer_x2_override;
 					iq_set_tmp += conf_now->foc_sl_openloop_boost_q * SIGN(iq_set_tmp);
 					if (conf_now->foc_sl_openloop_max_q > conf_now->cc_min_current) {
 						utils_truncate_number_abs(&iq_set_tmp, conf_now->foc_sl_openloop_max_q);
@@ -2937,9 +2938,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// Run observer
 		foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
 						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
-						dt, &motor_now->m_observer_x1, &motor_now->m_observer_x2, 0, motor_now);
-		motor_now->m_phase_now_observer = utils_fast_atan2(motor_now->m_x2_prev + motor_now->m_observer_x2,
-														   motor_now->m_x1_prev + motor_now->m_observer_x1);
+						dt, &(motor_now->m_observer_state), 0, motor_now);
+		motor_now->m_phase_now_observer = utils_fast_atan2(motor_now->m_x2_prev + motor_now->m_observer_state.x2,
+														   motor_now->m_x1_prev + motor_now->m_observer_state.x1);
 
 		// The observer phase offset has to be added here as well, with 0.5 switching cycles offset
 		// compared to when running. Otherwise going from undriven to driven causes a current
@@ -2947,8 +2948,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_phase_now_observer += motor_now->m_pll_speed * dt * conf_now->foc_observer_offset;
 		utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
 
-		motor_now->m_x1_prev = motor_now->m_observer_x1;
-		motor_now->m_x2_prev = motor_now->m_observer_x2;
+		motor_now->m_x1_prev = motor_now->m_observer_state.x1;
+		motor_now->m_x2_prev = motor_now->m_observer_state.x2;
 
 		// Set motor phase
 		{
@@ -3365,7 +3366,7 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 		float i_abs_sq = SQ(motor->m_motor_state.i_abs);
 		motor->m_r_est = motor->m_r_est_state - 0.5 * res_est_gain * conf_now->foc_motor_l * i_abs_sq;
 		float res_dot = -res_est_gain * (motor->m_r_est * i_abs_sq + motor->m_speed_est_fast *
-				(motor->m_motor_state.i_beta * motor->m_observer_x1 - motor->m_motor_state.i_alpha * motor->m_observer_x2) -
+				(motor->m_motor_state.i_beta * motor->m_observer_state.x1 - motor->m_motor_state.i_alpha * motor->m_observer_state.x2) -
 				(motor->m_motor_state.i_alpha * motor->m_motor_state.v_alpha + motor->m_motor_state.i_beta * motor->m_motor_state.v_beta));
 		motor->m_r_est_state += res_dot * dt;
 
@@ -3391,6 +3392,7 @@ static void terminal_tmp(int argc, const char **argv) {
 		commands_init_plot("Time", "Temperature");
 		commands_plot_add_graph("Temp Measured");
 		commands_plot_add_graph("Temp Estimated");
+		commands_plot_add_graph("lambda_est");
 	}
 
 	for (int i = 0;i < top;i++) {
@@ -3405,6 +3407,8 @@ static void terminal_tmp(int argc, const char **argv) {
 			commands_send_plot_points((float)i / 2.0, t_meas);
 			commands_plot_set_graph(1);
 			commands_send_plot_points((float)i / 2.0, t_est);
+			commands_plot_set_graph(2);
+			commands_send_plot_points((float)i / 2.0, m_motor_1.m_observer_state.lambda_est);
 			commands_printf("Sample %d of %d", i, top);
 		}
 
@@ -3540,8 +3544,8 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 				if (motor->m_conf->foc_sensor_mode == FOC_SENSOR_MODE_HFI_START) {
 					float s, c;
 					utils_fast_sincos_better(angle_bin_2, &s, &c);
-					motor->m_observer_x1 = c * motor->m_conf->foc_motor_flux_linkage;
-					motor->m_observer_x2 = s * motor->m_conf->foc_motor_flux_linkage;
+					motor->m_observer_state.x1 = c * motor->m_conf->foc_motor_flux_linkage;
+					motor->m_observer_state.x2 = s * motor->m_conf->foc_motor_flux_linkage;
 				}
 			}
 
