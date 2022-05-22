@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -2072,6 +2072,8 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		rpm_now = mc_interface_get_rpm();
 	}
 
+	float rpm_abs = fabsf(rpm_now);
+
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
@@ -2238,6 +2240,13 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
 	}
 
+	// Start Current Decrease
+	float lo_max_curr_dec = l_current_max_tmp;
+	if (rpm_abs < conf->foc_start_curr_dec_rpm) {
+		lo_max_curr_dec = utils_map(rpm_abs, 0, conf->foc_start_curr_dec_rpm,
+				conf->foc_start_curr_dec * l_current_max_tmp, l_current_max_tmp);
+	}
+
 	// Duty max
 	float lo_max_duty = 0.0;
 	if (duty_now_abs < (conf->l_duty_start * conf->l_max_duty) || conf->l_duty_start > 0.99) {
@@ -2252,6 +2261,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	lo_max = utils_min_abs(lo_max, lo_max_rpm);
 	lo_max = utils_min_abs(lo_max, lo_min_rpm);
+	lo_max = utils_min_abs(lo_max, lo_max_curr_dec);
 	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
 	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
 	lo_max = utils_min_abs(lo_max, lo_max_duty);

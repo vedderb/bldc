@@ -295,6 +295,12 @@
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KI
 #define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
 #endif
+#ifndef MCCONF_FOC_START_CURR_DEC
+#define MCCONF_FOC_START_CURR_DEC		1.0	// Decrease current to this fraction at start
+#endif
+#ifndef MCCONF_FOC_START_CURR_DEC_RPM
+#define MCCONF_FOC_START_CURR_DEC_RPM	2500.0	// At this RPM the full current is available
+#endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
 #define MCCONF_FOC_OPENLOOP_RPM			1500.0	// Openloop RPM (sensorless low speed or when finding index pulse)
 #endif
