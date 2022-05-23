@@ -367,8 +367,11 @@
 #ifndef MCCONF_FOC_SAMPLE_HIGH_CURRENT
 #define MCCONF_FOC_SAMPLE_HIGH_CURRENT	false	// High current sampling mode (requires three shunts)
 #endif
+#ifndef MCCONF_FOC_SAT_COMP_MODE
+#define MCCONF_FOC_SAT_COMP_MODE		SAT_COMP_LAMBDA		// Stator saturation compensation mode
+#endif
 #ifndef MCCONF_FOC_SAT_COMP
-#define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation
+#define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation factor
 #endif
 #ifndef MCCONF_FOC_TEMP_COMP
 #define MCCONF_FOC_TEMP_COMP			false	// Motor temperature compensation

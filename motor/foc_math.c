@@ -32,9 +32,32 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	float lambda = conf_now->foc_motor_flux_linkage;
 
 	// Saturation compensation
-	const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
-	L -= L * comp_fact;
-	lambda -= lambda * comp_fact;
+	switch(conf_now->foc_sat_comp_mode) {
+	case SAT_COMP_LAMBDA:
+		// Here we assume that the inductance drops by the same amount as the flux linkage. I have
+		// no idea if this is a valid or even a reasonable assumption.
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+			L = L * (state->lambda_est / lambda);
+		}
+		break;
+
+	case SAT_COMP_FACTOR: {
+		const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
+		L -= L * comp_fact;
+		lambda -= lambda * comp_fact;
+	} break;
+
+	case SAT_COMP_LAMBDA_AND_FACTOR: {
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+			L = L * (state->lambda_est / lambda);
+		}
+		const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
+		L -= L * comp_fact;
+	} break;
+
+	default:
+		break;
+	}
 
 	// Temperature compensation
 	if (conf_now->foc_temp_comp) {
