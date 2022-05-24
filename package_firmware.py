@@ -74,8 +74,9 @@ package_dict["STORMCORE_100DX"] = [['stormcore_100dx', default_name],
                     ['stormcore_100dx_no_limits', no_limits_name]]
 package_dict["STORMCORE_100S"] = [['stormcore_100s', default_name],
                     ['stormcore_100s_no_limits', no_limits_name]]
-package_dict["Little_FOCer"] = [['Little_FOCer', default_name],
-                    ['Little_FOCer_no_limits', no_limits_name]]
+package_dict["Little_FOCer"] = [['Little_FOCer', default_name]]
+package_dict["Little_FOCer_V3"] = [['Little_FOCer_V3', default_name]]
+package_dict["Little_FOCer_V3_1"] = [['Little_FOCer_V3_1', default_name]]
 package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
 package_dict["Warrior6"] = [['warrior6', default_name]]

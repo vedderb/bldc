@@ -17,12 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_LITTLE_FOCER_NO_LIMITS_H_
-#define HW_LITTLE_FOCER_NO_LIMITS_H_
+#ifndef HW_LITTLE_FOCER_V3_1_H_
+#define HW_LITTLE_FOCER_V3_1_H_
 
-#define DISABLE_HW_LIMITS
+#define LFOC_IS_V3_1
 
-#include "hw_Little_FOCer.h"
+#include "hw_Little_FOCer_core.h"
 
-
-#endif /* HW_LITTLE_FOCER_NO_LIMITS_H_ */
+#endif /* HW_LITTLE_FOCER_V3_1_H_ */
