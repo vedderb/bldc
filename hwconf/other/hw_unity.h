@@ -17,9 +17,7 @@
 #ifndef HW_UNITY_H_
 #define HW_UNITY_H_
 
-#ifdef HW_DUAL_CONFIG_PARALLEL
-#define HW_HAS_DUAL_PARALLEL
-#else
+#ifndef HW_HAS_DUAL_PARALLEL
 #define HW_HAS_DUAL_MOTORS
 #endif
 
@@ -321,6 +319,9 @@
 #define HW_LIM_CURRENT_IN		-200.0, 200.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_FOC_OFFSETS_CURRENT_0	4096.0 // Current 0 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_1	4096.0 // Current 1 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_2	4096.0 // Current 2 offset
 #endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0

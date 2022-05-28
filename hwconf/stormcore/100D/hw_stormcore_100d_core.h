@@ -17,24 +17,35 @@
 #ifndef HW_STORMCORE_100D_CORE_H_
 #define HW_STORMCORE_100D_CORE_H_
 
-#ifdef HW_DUAL_CONFIG_PARALLEL
-#define HW_HAS_DUAL_PARALLEL
-#else
+#ifndef HW_HAS_DUAL_PARALLEL
 #define HW_HAS_DUAL_MOTORS
 #endif
 
 #ifdef HW_HAS_DUAL_PARALLEL
+#ifdef HW_VER_IS_100D_V2
+#define HW_NAME                 "STORMCORE_100D_V2_PARALLEL"
+#elif defined(HW_VER_IS_100DX)
+#define HW_NAME                 "STORMCORE_100DX_PARALLEL"
+#elif defined(HW_VER_IS_100D)
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
-#elif defined(HW_VER_IS_100D_V2)
+#endif
+#else
+#ifdef HW_VER_IS_100D_V2
 #define HW_NAME                 "STORMCORE_100D_V2"
 #elif defined(HW_VER_IS_100DX)
 #define HW_NAME                 "STORMCORE_100DX"
-#define INVERTED_SHUNT_POLARITY
-#define HW_DEAD_TIME_NSEC               600.0   // Dead time
 #elif defined(HW_VER_IS_100D)
 #define HW_NAME                 "STORMCORE_100D"
-#else
+#endif
+#endif
+
+#ifndef HW_NAME
 #error "Must define hardware type"
+#endif
+
+#ifdef HW_VER_IS_100DX
+#define INVERTED_SHUNT_POLARITY
+#define HW_DEAD_TIME_NSEC               600.0   // Dead time
 #endif
 
 #ifndef HW_VER_IS_100DX
@@ -451,6 +462,9 @@
 #define HW_LIM_CURRENT_ABS			0.0, 400.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_FOC_OFFSETS_CURRENT_0	4096.0 // Current 0 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_1	4096.0 // Current 1 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_2	4096.0 // Current 2 offset
 #endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0
