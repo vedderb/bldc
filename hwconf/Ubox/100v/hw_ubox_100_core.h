@@ -256,7 +256,7 @@
 #define MCCONF_L_IN_CURRENT_MAX			84.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			65.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-65.0	// Input current limit in Amperes (Lower)
 #endif
 
 // Setting limits

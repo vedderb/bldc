@@ -313,6 +313,6 @@ $(foreach ut, $(ALL_UNITTESTS), $(eval $(call UT_TEMPLATE,$(ut))))
 # Disable parallel make when the all_ut_run target is requested otherwise the TAP/XML
 # output is interleaved with the rest of the make output.
 ifneq ($(strip $(filter all_ut_run,$(MAKECMDGOALS))),)
-#.NOTPARALLEL:
-#$(info *NOTE*     Parallel make disabled by all_ut_run target so we have sane console output)
+.NOTPARALLEL:
+$(info *NOTE*     Parallel make disabled by all_ut_run target so we have sane console output)
 endif
