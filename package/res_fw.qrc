@@ -1,0 +1,12 @@
+
+<RCC>
+   <qresource prefix="/res/firmwares/">
+        <file>UBOX_SINGLE_75/VESC_default.bin</file>
+        <file>UBOX_V1_75_MICRO/VESC_default.bin</file>
+        <file>UBOX_V1_75_TYPEC/VESC_default.bin</file>
+        <file>UBOX_V2_75/VESC_default.bin</file>
+        <file>UBOX_SINGLE_100/VESC_default.bin</file>
+        <file>UBOX_V2_100/VESC_default.bin</file>
+   </qresource>
+</RCC>
+
