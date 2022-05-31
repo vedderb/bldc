@@ -483,15 +483,13 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
 	motor->m_speed_prev_error = error;
 
 	// Calculate output
-	utils_truncate_number_abs(&p_term, 1.0);
-	utils_truncate_number_abs(&d_term, 1.0);
 	float output = p_term + motor->m_speed_i_term + d_term;
-	float pre_output = output;
 	utils_truncate_number_abs(&output, 1.0);
 
-	float output_saturation = output - pre_output;
+	// Integrator windup protection
+	motor->m_speed_i_term += error * conf_now->s_pid_ki * dt * (1.0 / 20.0);
+	utils_truncate_number_abs(&motor->m_speed_i_term, 1.0);
 
-	motor->m_speed_i_term += error * (conf_now->s_pid_ki * dt) * (1.0 / 20.0) + output_saturation;
 	if (conf_now->s_pid_ki < 1e-9) {
 		motor->m_speed_i_term = 0.0;
 	}
@@ -507,7 +505,7 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
 		}
 	}
 
-	motor->m_iq_set = output * conf_now->l_current_max * conf_now->l_current_max_scale;
+	motor->m_iq_set = output * conf_now->lo_current_max * conf_now->l_current_max_scale;
 }
 
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed,
