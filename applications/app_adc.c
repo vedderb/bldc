@@ -48,9 +48,15 @@ static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
 static volatile float decoded_level2 = 0.0;
 static volatile float read_voltage2 = 0.0;
+static volatile float adc1_override = 0.0;
+static volatile float adc2_override = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile bool adc_detached = false;
+static volatile bool buttons_detached = false;
+static volatile bool rev_override = false;
+static volatile bool cc_override = false;
 
 void app_adc_configure(adc_config *conf) {
 	config = *conf;
@@ -64,8 +70,11 @@ void app_adc_start(bool use_rx_tx) {
 #ifdef HW_ADC_EXT2_GPIO
 	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
-
-	use_rx_tx_as_buttons = use_rx_tx;
+	if(buttons_detached){
+		use_rx_tx_as_buttons = false;
+	}else{
+		use_rx_tx_as_buttons = use_rx_tx;
+	}
 	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
@@ -91,6 +100,34 @@ float app_adc_get_decoded_level2(void) {
 
 float app_adc_get_voltage2(void) {
 	return read_voltage2;
+}
+
+void app_adc_detach_adc(bool detach){
+	adc_detached = detach;
+}
+
+void app_adc_adc1_override(float val){
+	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+	utils_truncate_number(&val, 0, 3.3);
+	adc1_override = val;
+}
+
+void app_adc_adc2_override(float val){
+	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+	utils_truncate_number(&val, 0, 3.3);
+	adc2_override = val;
+}
+
+void app_adc_detach_buttons(bool state){
+	buttons_detached = state;
+}
+
+void app_adc_rev_override(bool state){
+	rev_override = state;
+}
+
+void app_adc_cc_override(bool state){
+	cc_override = state;
 }
 
 
@@ -131,6 +168,12 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read the external ADC pin voltage
 		float pwr = ADC_VOLTS(ADC_IND_EXT);
+
+		// Override pwr value, when used from LISP
+		if(adc_detached){
+			pwr = adc1_override;
+		}
+
 		read_voltage = pwr;
 
 		// Optionally apply a filter
@@ -184,6 +227,12 @@ static THD_FUNCTION(adc_thread, arg) {
 #ifdef HW_HAS_BRAKE_OVERRIDE
 		hw_brake_override(&brake);
 #endif
+
+		// Override brake value, when used from LISP
+		if(adc_detached == true){
+			brake = adc2_override;
+		}
+
 		read_voltage2 = brake;
 
 		// Optionally apply a filter
@@ -233,6 +282,18 @@ static THD_FUNCTION(adc_thread, arg) {
 				if (config.cc_button_inverted) {
 					cc_button = !cc_button;
 				}
+			}
+		}
+
+		// Override button values, when used from LISP
+		if(buttons_detached){
+			cc_button = cc_override;
+			rev_button = rev_override;
+			if (config.cc_button_inverted) {
+				cc_button = !cc_button;
+			}
+			if (config.cc_button_inverted) {
+				cc_button = !cc_button;
 			}
 		}
 
