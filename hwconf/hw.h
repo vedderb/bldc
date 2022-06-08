@@ -265,6 +265,12 @@
 #ifndef CURRENT_FILTER_OFF
 #define CURRENT_FILTER_OFF()
 #endif
+#ifndef CURRENT_FILTER_ON_M2
+#define CURRENT_FILTER_ON_M2()
+#endif
+#ifndef CURRENT_FILTER_OFF_M2
+#define CURRENT_FILTER_OFF_M2()
+#endif
 
 #ifndef SENSOR_PORT_5V
 #define SENSOR_PORT_5V()
