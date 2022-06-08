@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,12 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_LITTLE_FOCER_NO_LIMITS_H_
-#define HW_LITTLE_FOCER_NO_LIMITS_H_
+#ifndef HW_UBOX_V2_75_H_
+#define HW_UBOX_V2_75_H_
 
-#define DISABLE_HW_LIMITS
+#define HW_UBOX_V2_75
 
-#include "hw_Little_FOCer.h"
+#include "hw_ubox_75_core.h"
 
-
-#endif /* HW_LITTLE_FOCER_NO_LIMITS_H_ */
+#endif /* HW_UBOX_V2_75_H_ */

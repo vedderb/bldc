@@ -78,8 +78,9 @@ package_dict["STORMCORE_100DX"] = [['stormcore_100dx', default_name],
                     ['stormcore_100dx_no_limits', no_limits_name]]
 package_dict["STORMCORE_100S"] = [['stormcore_100s', default_name],
                     ['stormcore_100s_no_limits', no_limits_name]]
-package_dict["Little_FOCer"] = [['Little_FOCer', default_name],
-                    ['Little_FOCer_no_limits', no_limits_name]]
+package_dict["Little_FOCer"] = [['Little_FOCer', default_name]]
+package_dict["Little_FOCer_V3"] = [['Little_FOCer_V3', default_name]]
+package_dict["Little_FOCer_V3_1"] = [['Little_FOCer_V3_1', default_name]]
 package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
 package_dict["Warrior6"] = [['warrior6', default_name]]
@@ -95,6 +96,12 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
                     ['60_75_mk2_no_limits', no_limits_name]]
+package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name]]
+package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name]]
+package_dict["UBOX_V1_75_TYPEC"] = [['ubox_v1_75_typec', default_name]]
+package_dict["UBOX_V2_75"] = [['ubox_v2_75', default_name]]
+package_dict["UBOX_SINGLE_100"] = [['ubox_single_100', default_name]]
+package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'

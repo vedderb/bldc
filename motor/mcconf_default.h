@@ -295,6 +295,12 @@
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KI
 #define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
 #endif
+#ifndef MCCONF_FOC_START_CURR_DEC
+#define MCCONF_FOC_START_CURR_DEC		1.0	// Decrease current to this fraction at start
+#endif
+#ifndef MCCONF_FOC_START_CURR_DEC_RPM
+#define MCCONF_FOC_START_CURR_DEC_RPM	2500.0	// At this RPM the full current is available
+#endif
 #ifndef MCCONF_FOC_OPENLOOP_RPM
 #define MCCONF_FOC_OPENLOOP_RPM			1500.0	// Openloop RPM (sensorless low speed or when finding index pulse)
 #endif
@@ -361,8 +367,11 @@
 #ifndef MCCONF_FOC_SAMPLE_HIGH_CURRENT
 #define MCCONF_FOC_SAMPLE_HIGH_CURRENT	false	// High current sampling mode (requires three shunts)
 #endif
+#ifndef MCCONF_FOC_SAT_COMP_MODE
+#define MCCONF_FOC_SAT_COMP_MODE		SAT_COMP_LAMBDA		// Stator saturation compensation mode
+#endif
 #ifndef MCCONF_FOC_SAT_COMP
-#define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation
+#define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation factor
 #endif
 #ifndef MCCONF_FOC_TEMP_COMP
 #define MCCONF_FOC_TEMP_COMP			false	// Motor temperature compensation
@@ -377,7 +386,7 @@
 #define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_DISABLED // Current controller decoupling
 #endif
 #ifndef MCCONF_FOC_OBSERVER_TYPE
-#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
+#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_MXLEMMING_LAMBDA_COMP // Position observer type for FOC
 #endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_START
 #define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity

@@ -14,6 +14,10 @@
 * Added openloop current boost parameter.
 * Added openloop current max parameter.
 * Added support for dynamic loading of C libraries.
+* Added more observers:
+ - mxlemming
+ - ortega with flux linkage tracking
+ - mxlemming with flux linkage tracking
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

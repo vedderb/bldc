@@ -94,6 +94,14 @@ typedef struct {
 } hfi_state_t;
 
 typedef struct {
+	float x1;
+	float x2;
+	float lambda_est;
+	float i_alpha_last;
+	float i_beta_last;
+} observer_state;
+
+typedef struct {
 	mc_configuration *m_conf;
 	mc_state m_state;
 	mc_control_mode m_control_mode;
@@ -120,8 +128,7 @@ typedef struct {
 	bool m_phase_observer_override;
 	float m_phase_now_encoder;
 	float m_phase_now_encoder_no_index;
-	float m_observer_x1;
-	float m_observer_x2;
+	observer_state m_observer_state;
 	float m_pll_phase;
 	float m_pll_speed;
 	mc_sample_t m_samples;
@@ -197,7 +204,7 @@ typedef struct {
 
 // Functions
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
-		float dt, float *x1, float *x2, float *phase, motor_all_state_t *motor);
+		float dt, observer_state *state, float *phase, motor_all_state_t *motor);
 void foc_pll_run(float phase, float dt, float *phase_var,
 		float *speed_var, mc_configuration *conf);
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,

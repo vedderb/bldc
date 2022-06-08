@@ -20,8 +20,10 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils_math.h"
+#include "utils.h"
+#ifdef HW_HAS_DRV8323S
 #include "drv8323s.h"
+#endif
 #include "terminal.h"
 #include "commands.h"
 #include "mc_interface.h"
@@ -91,6 +93,14 @@ void hw_init_gpio(void) {
     palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
     palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
 
+#ifdef HW_HAS_PHASE_FILTERS
+    // Phase filters
+    palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+    PHASE_FILTER_OFF();
+#endif
+
     // Fault pin
     palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
 
@@ -108,7 +118,9 @@ void hw_init_gpio(void) {
     palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
     palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 
+#ifdef HW_HAS_DRV8323S
     drv8323s_init();
+#endif
 }
 
 void hw_setup_adc_channels(void) {

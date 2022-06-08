@@ -1,6 +1,5 @@
 /*
-	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
-	Copyright 2022 Jakub Tomczak
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -16,24 +15,11 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+    */
 
-#ifndef ENC_AS504X_H_
-#define ENC_AS504X_H_
+#ifndef HW_Little_FOCer_H_
+#define HW_Little_FOCer_H_
 
-#include "encoder/encoder_datatype.h"
+#include "hw_Little_FOCer_core.h"
 
-// Functions
-bool enc_as504x_init(AS504x_config_t *AS504x_config);
-void enc_as504x_deinit(AS504x_config_t *cfg);
-void enc_as504x_routine(AS504x_config_t *cfg);
-float enc_as504x_read_angle(AS504x_config_t *cfg);
-
-// Macros
-#define AS504x_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
-#define AS504x_IS_CONNECTED(cfg)	((cfg)->state.sensor_diag.is_connected)
-#define AS504x_IS_COMP_HIGH(cfg)	((cfg)->state.sensor_diag.is_Comp_high)
-#define AS504x_IS_COMP_LOW(cfg)		((cfg)->state.sensor_diag.is_Comp_low)
-
-
-#endif /* ENC_AS504X_H_ */
+#endif /* HW_Little_FOCer_H_ */

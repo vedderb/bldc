@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -2072,9 +2072,16 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		rpm_now = mc_interface_get_rpm();
 	}
 
+	float rpm_abs = fabsf(rpm_now);
+
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
+#ifdef HW_HAS_DUAL_PARALLEL
+	UTILS_LP_FAST(motor->m_temp_fet, fmaxf(NTC_TEMP(ADC_IND_TEMP_MOS), NTC_TEMP(ADC_IND_TEMP_MOS_M2)), 0.1);
+#else
 	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
+#endif
+
 	float temp_motor = 0.0;
 
 	switch(conf->m_motor_temp_sens_type) {
@@ -2238,6 +2245,13 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
 	}
 
+	// Start Current Decrease
+	float lo_max_curr_dec = l_current_max_tmp;
+	if (rpm_abs < conf->foc_start_curr_dec_rpm) {
+		lo_max_curr_dec = utils_map(rpm_abs, 0, conf->foc_start_curr_dec_rpm,
+				conf->foc_start_curr_dec * l_current_max_tmp, l_current_max_tmp);
+	}
+
 	// Duty max
 	float lo_max_duty = 0.0;
 	if (duty_now_abs < (conf->l_duty_start * conf->l_max_duty) || conf->l_duty_start > 0.99) {
@@ -2252,6 +2266,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	lo_max = utils_min_abs(lo_max, lo_max_rpm);
 	lo_max = utils_min_abs(lo_max, lo_min_rpm);
+	lo_max = utils_min_abs(lo_max, lo_max_curr_dec);
 	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
 	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
 	lo_max = utils_min_abs(lo_max, lo_max_duty);
@@ -2439,8 +2454,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	encoder_check_faults(&motor->m_conf, !is_motor_1);
 
+	bool dc_cal_done = mc_interface_dccal_done();
 	// TODO: Implement for BLDC and GPDRIVE
-	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
+	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC && dc_cal_done) {
 		float curr0_offset;
 		float curr1_offset;
 		float curr2_offset;
@@ -2472,7 +2488,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Monitor currents balance. The sum of the 3 currents should be zero
 #ifdef HW_HAS_3_SHUNTS
-	if (!motor->m_conf.foc_sample_high_current) { // This won't work when high current sampling is used
+	if (!motor->m_conf.foc_sample_high_current && dc_cal_done) { // This won't work when high current sampling is used
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {

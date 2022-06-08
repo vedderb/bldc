@@ -41,6 +41,7 @@
 #include "i2c.h"
 #include "confgenerator.h"
 #include "worker.h"
+#include "app.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -923,6 +924,65 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 
 	return res;
 }
+
+// App set commands
+static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
+	if (argn == 1){
+		if(lbm_dec_as_u32(args[0]) != 0){
+			return lbm_enc_sym(SYM_EERROR);
+		}
+	}else{
+		CHECK_ARGN_NUMBER(2);
+	}
+	uint32_t mode = lbm_dec_as_u32(args[0]);
+	bool detach = lbm_dec_as_char(args[1]) > 0 ? true : false;
+	switch (mode){
+		case 0:
+			app_adc_detach_adc(false);
+			app_adc_detach_buttons(false);
+			break;
+		case 1:
+			app_adc_detach_adc(detach);
+			break;
+		case 2:
+			app_adc_detach_buttons(detach);
+			break;
+		case 3:
+			app_adc_detach_adc(detach);
+			app_adc_detach_buttons(detach);
+			break;
+		default:
+			return lbm_enc_sym(SYM_EERROR);
+	}
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	uint32_t target = lbm_dec_as_u32(args[0]);
+	float val = lbm_dec_as_float(args[1]);
+	bool state = val > 0.0 ? true : false;
+
+	switch (target){
+		case 0:
+			app_adc_adc1_override(val);
+			break;
+		case 1:
+			app_adc_adc2_override(val);
+			break;
+		case 2:
+			app_adc_rev_override(state);
+			break;
+		case 3:
+			app_adc_cc_override(state);
+			break;
+		default:
+			return lbm_enc_sym(SYM_EERROR);
+	}
+	return lbm_enc_sym(SYM_TRUE);
+}
+
 
 // Motor set commands
 
@@ -3235,6 +3295,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
+
+	//APP commands
+	lbm_add_extension("app-adc-detach", ext_app_adc_detach);
+	lbm_add_extension("app-adc-override", ext_app_adc_override);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);
