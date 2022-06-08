@@ -295,6 +295,16 @@
 #define NTC_TEMP_MOS3()		0.0
 #endif
 
+#ifndef NTC_TEMP_MOS1_M2
+#define NTC_TEMP_MOS1_M2()	0.0
+#endif
+#ifndef NTC_TEMP_MOS2_M2
+#define NTC_TEMP_MOS2_M2()	0.0
+#endif
+#ifndef NTC_TEMP_MOS3_M2
+#define NTC_TEMP_MOS3_M2()	0.0
+#endif
+
 // Sin/Cos Encoder Signals. Override if available
 #ifndef ENCODER_SIN_VOLTS
 #if defined(ADC_IND_EXT) && defined(ADC_VOLTS)
