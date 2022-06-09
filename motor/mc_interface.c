@@ -120,13 +120,15 @@ static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
 
-static volatile struct {
+typedef struct {
 	bool is_second_motor;
 	mc_fault_code fault_code;
 	const char *info_str;
 	int info_argn;
 	float info_args[2];
-} m_fault_data = {0, FAULT_CODE_NONE, 0, 0, {0, 0}};
+} fault_data_local;
+
+static volatile fault_data_local m_fault_data = {0, FAULT_CODE_NONE, 0, 0, {0, 0}};
 
 // Private functions
 static void update_override_limits(volatile motor_if_state_t *motor, volatile mc_configuration *conf);
@@ -2718,15 +2720,18 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 
 	for(;;) {
 		chEvtWaitAny((eventmask_t) 1);
+
+		fault_data_local fault_data_copy = m_fault_data;
+
 #ifdef HW_HAS_DUAL_MOTORS
-		volatile motor_if_state_t *motor = m_fault_data.is_second_motor ? &m_motor_2 : &m_motor_1;
+		volatile motor_if_state_t *motor = fault_data_copy.is_second_motor ? &m_motor_2 : &m_motor_1;
 #else
 		volatile motor_if_state_t *motor = &m_motor_1;
 #endif
 
-		mc_interface_select_motor_thread(m_fault_data.is_second_motor ? 2 : 1);
+		mc_interface_select_motor_thread(fault_data_copy.is_second_motor ? 2 : 1);
 
-		if (motor->m_fault_now == m_fault_data.fault_code) {
+		if (motor->m_fault_now == fault_data_copy.fault_code) {
 			motor->m_ignore_iterations = motor->m_conf.m_fault_stop_time_ms;
 			continue;
 		}
@@ -2746,8 +2751,8 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			utils_sys_unlock_cnt();
 
 			fault_data fdata;
-			fdata.motor = m_fault_data.is_second_motor ? 2 : 1;
-			fdata.fault = m_fault_data.fault_code;
+			fdata.motor = fault_data_copy.is_second_motor ? 2 : 1;
+			fdata.fault = fault_data_copy.fault_code;
 			fdata.current = mc_interface_get_tot_current();
 			fdata.current_filtered = mc_interface_get_tot_current_filtered();
 			fdata.voltage = GET_INPUT_VOLTAGE();
@@ -2762,24 +2767,24 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			fdata.comm_step = mcpwm_get_comm_step();
 			fdata.temperature = NTC_TEMP(ADC_IND_TEMP_MOS);
 #ifdef HW_HAS_DRV8301
-			if (m_fault_data.fault_code == FAULT_CODE_DRV) {
+			if (fault_data_copy.fault_code == FAULT_CODE_DRV) {
 				fdata.drv8301_faults = drv8301_read_faults();
 			}
 #elif defined(HW_HAS_DRV8320S)
-			if (m_fault_data.fault_code == FAULT_CODE_DRV) {
+			if (fault_data_copy.fault_code == FAULT_CODE_DRV) {
 				fdata.drv8301_faults = drv8320s_read_faults();
 			}
 #elif defined(HW_HAS_DRV8323S)
-			if (m_fault_data.fault_code == FAULT_CODE_DRV) {
+			if (fault_data_copy.fault_code == FAULT_CODE_DRV) {
 				fdata.drv8301_faults = drv8323s_read_faults();
 			}
 #endif
-			fdata.info_str = m_fault_data.info_str;
-			fdata.info_argn = m_fault_data.info_argn;
-			fdata.info_args[0] = m_fault_data.info_args[0];
-			fdata.info_args[1] = m_fault_data.info_args[1];
-			m_fault_data.info_str = 0;
-			m_fault_data.info_argn = 0;
+			fdata.info_str = fault_data_copy.info_str;
+			fdata.info_argn = fault_data_copy.info_argn;
+			fdata.info_args[0] = fault_data_copy.info_args[0];
+			fdata.info_args[1] = fault_data_copy.info_args[1];
+			fault_data_copy.info_str = 0;
+			fault_data_copy.info_argn = 0;
 			terminal_add_fault_data(&fdata);
 		}
 
@@ -2792,7 +2797,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			break;
 
 		case MOTOR_TYPE_FOC:
-			mcpwm_foc_stop_pwm(m_fault_data.is_second_motor);
+			mcpwm_foc_stop_pwm(fault_data_copy.is_second_motor);
 			break;
 
 		case MOTOR_TYPE_GPD:
@@ -2803,7 +2808,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 			break;
 		}
 
-		motor->m_fault_now = m_fault_data.fault_code;
+		motor->m_fault_now = fault_data_copy.fault_code;
 	}
 }
 
