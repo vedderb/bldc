@@ -456,6 +456,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	utils_sys_unlock_cnt();
 
 	CURRENT_FILTER_ON();
+	CURRENT_FILTER_ON_M2();
 	ENABLE_GATE();
 	DCCAL_OFF();
 
@@ -2991,7 +2992,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		// HFI Restore
+#ifdef HW_HAS_DUAL_MOTORS
+		if (is_second_motor) {
+			CURRENT_FILTER_ON_M2();
+		} else {
+			CURRENT_FILTER_ON();
+		}
+#else
 		CURRENT_FILTER_ON();
+#endif
+
 		motor_now->m_hfi.ind = 0;
 		motor_now->m_hfi.ready = false;
 		motor_now->m_hfi.double_integrator = 0.0;
@@ -3872,7 +3882,15 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// HFI
 	if (do_hfi) {
+#ifdef HW_HAS_DUAL_MOTORS
+		if (motor == &m_motor_2) {
+			CURRENT_FILTER_OFF_M2();
+		} else {
+			CURRENT_FILTER_OFF();
+		}
+#else
 		CURRENT_FILTER_OFF();
+#endif
 
 		float mod_alpha_v7 = state_m->mod_alpha_raw;
 		float mod_beta_v7 = state_m->mod_beta_raw;
@@ -4057,7 +4075,15 @@ static void control_current(motor_all_state_t *motor, float dt) {
 			motor->m_duty_next_set = true;
 		}
 	} else {
+#ifdef HW_HAS_DUAL_MOTORS
+		if (motor == &m_motor_2) {
+			CURRENT_FILTER_ON_M2();
+		} else {
+			CURRENT_FILTER_ON();
+		}
+#else
 		CURRENT_FILTER_ON();
+#endif
 		motor->m_hfi.ind = 0;
 		motor->m_hfi.ready = false;
 		motor->m_hfi.is_samp_n = false;

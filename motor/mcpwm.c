@@ -444,6 +444,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	utils_sys_unlock_cnt();
 
 	CURRENT_FILTER_ON();
+	CURRENT_FILTER_ON_M2();
 
 	// Calibrate current offset
 	ENABLE_GATE();

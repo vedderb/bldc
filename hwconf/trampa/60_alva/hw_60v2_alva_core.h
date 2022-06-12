@@ -37,6 +37,12 @@
 #define HW_HAS_PHASE_FILTERS
 
 // Macros
+#ifdef HW_60V2_ALVA_IS_MK2
+#define LED_GREEN_GPIO			GPIOB
+#define LED_GREEN_PIN			1
+#define LED_RED_GPIO			GPIOB
+#define LED_RED_PIN				0
+#else
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			3
 #if defined(ALVA_V0_PPM) || defined(ALVA_V0_ABI_ENC)
@@ -45,6 +51,7 @@
 #else
 #define LED_RED_GPIO			GPIOB
 #define LED_RED_PIN				4
+#endif
 #endif
 
 #define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
