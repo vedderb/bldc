@@ -410,13 +410,14 @@ static void sendEscStatus(CanardInstance *ins) {
 	uavcan_equipment_esc_Status status;
 	memset(&status, 0, sizeof(status));
 
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+
 	status.current = mc_interface_get_tot_current();
 	status.error_count = mc_interface_get_fault();
 	status.esc_index = app_get_configuration()->uavcan_esc_index;
 	status.power_rating_pct = (fabsf(mc_interface_get_tot_current()) /
-			mc_interface_get_configuration()->l_current_max *
-			mc_interface_get_configuration()->l_current_max_scale) * 100.0;
-	status.rpm = mc_interface_get_rpm();
+			conf->l_current_max * conf->l_current_max_scale) * 100.0;
+	status.rpm = mc_interface_get_rpm() / ((float)conf->si_motor_poles / 2.0);
 	status.temperature = fmaxf(mc_interface_temp_fet_filtered(), mc_interface_temp_motor_filtered()) + 273.15;
 	status.voltage = mc_interface_get_input_voltage_filtered();
 
