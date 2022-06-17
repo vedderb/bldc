@@ -393,7 +393,7 @@ Run FOC in open loop. Useful to test thermal properties of motors and power stag
 (foc-beep freq time voltage)
 ```
 
-Use the motor to play a beep sound at frequency freq for time seconds using voltage excitation voltage. The frequency can be set between 380 Hz and 3700 Hz.
+Use the motor to play a beep sound at frequency freq for time seconds using voltage excitation voltage. The frequency can be set between 100 Hz and 7500 Hz.
 
 ### Motor Get Commands
 

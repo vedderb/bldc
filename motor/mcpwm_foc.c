@@ -1943,7 +1943,15 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_8;
 	motor->m_conf->foc_hfi_start_samples = 10;
 
+	freq *= 4.0;
+
+	if (freq > 3500) {
+		motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI_V3;
+		freq /= 8.0;
+	}
+
 	motor->m_conf->foc_f_zv = freq * 8.0;
+
 	utils_truncate_number(&motor->m_conf->foc_f_zv, 3.0e3, 30.0e3);
 
 	mcpwm_foc_set_configuration(motor->m_conf);
