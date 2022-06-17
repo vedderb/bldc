@@ -83,6 +83,7 @@ void mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *r
 float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after);
 float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff);
 float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff);
+bool mcpwm_foc_beep(float freq, float time, float voltage);
 bool mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff);
 bool mcpwm_foc_hall_detect(float current, uint8_t *hall_table);
 int mcpwm_foc_dc_cal(bool cal_undriven);

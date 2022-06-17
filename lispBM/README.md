@@ -388,6 +388,13 @@ Position control. Set motor position in degrees, range 0.0 to 360.0.
 
 Run FOC in open loop. Useful to test thermal properties of motors and power stages.
 
+#### foc-beep
+```clj
+(foc-beep freq time voltage)
+```
+
+Use the motor to play a beep sound at frequency freq for time seconds using voltage excitation voltage. The frequency can be set between 380 Hz and 3700 Hz.
+
 ### Motor Get Commands
 
 #### get-current

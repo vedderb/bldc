@@ -1916,6 +1916,67 @@ float mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *
 	return ind;
 }
 
+bool mcpwm_foc_beep(float freq, float time, float voltage) {
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	mc_foc_sensor_mode sensor_mode_old = motor->m_conf->foc_sensor_mode;
+	float f_zv_old = motor->m_conf->foc_f_zv;
+	float hfi_voltage_start_old = motor->m_conf->foc_hfi_voltage_start;
+	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
+	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
+	float sl_erpm_hfi_old = motor->m_conf->foc_sl_erpm_hfi;
+	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
+	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
+	uint16_t start_samples_old = motor->m_conf->foc_hfi_start_samples;
+
+	mc_interface_lock();
+	motor->m_control_mode = CONTROL_MODE_NONE;
+	motor->m_state = MC_STATE_OFF;
+	stop_pwm_hw((motor_all_state_t*)motor);
+
+	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
+	motor->m_conf->foc_hfi_voltage_start = voltage;
+	motor->m_conf->foc_hfi_voltage_run = voltage;
+	motor->m_conf->foc_hfi_voltage_max = voltage;
+	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
+	motor->m_conf->foc_sample_v0_v7 = false;
+	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_8;
+	motor->m_conf->foc_hfi_start_samples = 10;
+
+	motor->m_conf->foc_f_zv = freq * 8.0;
+	utils_truncate_number(&motor->m_conf->foc_f_zv, 3.0e3, 30.0e3);
+
+	mcpwm_foc_set_configuration(motor->m_conf);
+
+	chThdSleepMilliseconds(1);
+
+	timeout_reset();
+	mcpwm_foc_set_duty(0.0);
+
+	int ms_sleep = (time * 1000.0) - 1;
+	if (ms_sleep > 0) {
+		chThdSleepMilliseconds(ms_sleep);
+	}
+
+	mcpwm_foc_set_current(0.0);
+
+	motor->m_conf->foc_sensor_mode = sensor_mode_old;
+	motor->m_conf->foc_f_zv = f_zv_old;
+	motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
+	motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
+	motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
+	motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
+	motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+	motor->m_conf->foc_hfi_samples = samples_old;
+	motor->m_conf->foc_hfi_start_samples = start_samples_old;
+
+	mcpwm_foc_set_configuration(motor->m_conf);
+
+	mc_interface_unlock();
+
+	return true;
+}
+
 /**
  * Automatically measure the resistance and inductance of the motor with small steps.
  *
