@@ -304,7 +304,7 @@ void comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int
 	comm_can_transmit_eid_replace(id, data, len, false, interface);
 }
 
-void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
+void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 	if (len > 8) {
 		len = 8;
 	}
@@ -1333,7 +1333,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef USE_LISPBM
 				if (!sid_cb_used) {
-					lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+					lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
 				}
 #endif
 			}
@@ -1511,11 +1511,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 		case CAN_PACKET_SET_CURRENT:
 			ind = 0;
-			mc_interface_set_current(buffer_get_float32(data8, 1e3, &ind));
-
 			if (len >= 6) {
 				mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
 			}
+
+			mc_interface_set_current(buffer_get_float32(data8, 1e3, &ind));
 
 			timeout_reset();
 			break;
