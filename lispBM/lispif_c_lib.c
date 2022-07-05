@@ -25,6 +25,7 @@
 #include "comm_can.h"
 #include "lispif.h"
 #include "lispbm.h"
+#include "utils.h"
 #include "c_libs/vesc_c_if.h"
 
 typedef struct {
@@ -50,6 +51,10 @@ static void lib_sleep_ms(uint32_t ms) {
 
 static void lib_sleep_us(uint32_t us) {
 	chThdSleepMicroseconds(us);
+}
+
+static float lib_system_time(void) {
+	return UTILS_AGE_S(0);
 }
 
 static void* lib_malloc(size_t size) {
@@ -328,6 +333,94 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.can_set_eid_cb = comm_can_set_eid_rx_callback;
 		cif.cif.can_transmit_sid = comm_can_transmit_sid;
 		cif.cif.can_transmit_eid = comm_can_transmit_eid;
+		cif.cif.can_send_buffer = comm_can_send_buffer;
+		cif.cif.can_set_duty = comm_can_set_duty;
+		cif.cif.can_set_current = comm_can_set_current;
+		cif.cif.can_set_current_off_delay = comm_can_set_current_off_delay;
+		cif.cif.can_set_current_brake = comm_can_set_current_brake;
+		cif.cif.can_set_rpm = comm_can_set_rpm;
+		cif.cif.can_set_pos = comm_can_set_pos;
+		cif.cif.can_set_current_rel = comm_can_set_current_rel;
+		cif.cif.can_set_current_rel_off_delay = comm_can_set_current_rel_off_delay;
+		cif.cif.can_set_current_brake_rel = comm_can_set_current_brake_rel;
+		cif.cif.can_ping = comm_can_ping;
+		cif.cif.can_get_status_msg_index = comm_can_get_status_msg_index;
+		cif.cif.can_get_status_msg_id = comm_can_get_status_msg_id;
+		cif.cif.can_get_status_msg_2_index = comm_can_get_status_msg_2_index;
+		cif.cif.can_get_status_msg_2_id = comm_can_get_status_msg_2_id;
+		cif.cif.can_get_status_msg_3_index = comm_can_get_status_msg_3_index;
+		cif.cif.can_get_status_msg_3_id = comm_can_get_status_msg_3_id;
+		cif.cif.can_get_status_msg_4_index = comm_can_get_status_msg_4_index;
+		cif.cif.can_get_status_msg_4_id = comm_can_get_status_msg_4_id;
+		cif.cif.can_get_status_msg_5_index = comm_can_get_status_msg_5_index;
+		cif.cif.can_get_status_msg_5_id = comm_can_get_status_msg_5_id;
+		cif.cif.can_get_status_msg_6_index = comm_can_get_status_msg_6_index;
+		cif.cif.can_get_status_msg_6_id = comm_can_get_status_msg_6_id;
+
+		// Motor Control
+		cif.cif.mc_motor_now = mc_interface_motor_now;
+		cif.cif.mc_select_motor_thread = mc_interface_select_motor_thread;
+		cif.cif.mc_get_motor_thread = mc_interface_get_motor_thread;
+		cif.cif.mc_dccal_done = mc_interface_dccal_done;
+		cif.cif.mc_set_pwm_callback = mc_interface_set_pwm_callback;
+		cif.cif.mc_get_fault = mc_interface_get_fault;
+		cif.cif.mc_fault_to_string = mc_interface_fault_to_string;
+		cif.cif.mc_set_duty = mc_interface_set_duty;
+		cif.cif.mc_set_duty_noramp = mc_interface_set_duty_noramp;
+		cif.cif.mc_set_pid_speed = mc_interface_set_pid_speed;
+		cif.cif.mc_set_pid_pos = mc_interface_set_pid_pos;
+		cif.cif.mc_set_current = mc_interface_set_current;
+		cif.cif.mc_set_brake_current = mc_interface_set_brake_current;
+		cif.cif.mc_set_current_rel = mc_interface_set_current_rel;
+		cif.cif.mc_set_brake_current_rel = mc_interface_set_brake_current_rel;
+		cif.cif.mc_set_handbrake = mc_interface_set_handbrake;
+		cif.cif.mc_set_handbrake_rel = mc_interface_set_handbrake_rel;
+		cif.cif.mc_set_tachometer_value = mc_interface_set_tachometer_value;
+		cif.cif.mc_release_motor = mc_interface_release_motor;
+		cif.cif.mc_wait_for_motor_release = mc_interface_wait_for_motor_release;
+		cif.cif.mc_get_duty_cycle_now = mc_interface_get_duty_cycle_now;
+		cif.cif.mc_get_sampling_frequency_now = mc_interface_get_sampling_frequency_now;
+		cif.cif.mc_get_rpm = mc_interface_get_rpm;
+		cif.cif.mc_get_amp_hours = mc_interface_get_amp_hours;
+		cif.cif.mc_get_amp_hours_charged = mc_interface_get_amp_hours_charged;
+		cif.cif.mc_get_watt_hours = mc_interface_get_watt_hours;
+		cif.cif.mc_get_watt_hours_charged = mc_interface_get_watt_hours_charged;
+		cif.cif.mc_get_tot_current = mc_interface_get_tot_current;
+		cif.cif.mc_get_tot_current_filtered = mc_interface_get_tot_current_filtered;
+		cif.cif.mc_get_tot_current_directional = mc_interface_get_tot_current_directional;
+		cif.cif.mc_get_tot_current_directional_filtered = mc_interface_get_tot_current_directional_filtered;
+		cif.cif.mc_get_tot_current_in = mc_interface_get_tot_current_in;
+		cif.cif.mc_get_tot_current_in_filtered = mc_interface_get_tot_current_in_filtered;
+		cif.cif.mc_get_input_voltage_filtered = mc_interface_get_input_voltage_filtered;
+		cif.cif.mc_get_tachometer_value = mc_interface_get_tachometer_value;
+		cif.cif.mc_get_tachometer_abs_value = mc_interface_get_tachometer_abs_value;
+		cif.cif.mc_get_pid_pos_set = mc_interface_get_pid_pos_set;
+		cif.cif.mc_get_pid_pos_now = mc_interface_get_pid_pos_now;
+		cif.cif.mc_update_pid_pos_offset = mc_interface_update_pid_pos_offset;
+		cif.cif.mc_temp_fet_filtered = mc_interface_temp_fet_filtered;
+		cif.cif.mc_temp_motor_filtered = mc_interface_temp_motor_filtered;
+		cif.cif.mc_get_battery_level = mc_interface_get_battery_level;
+		cif.cif.mc_get_speed = mc_interface_get_speed;
+		cif.cif.mc_get_distance = mc_interface_get_distance;
+		cif.cif.mc_get_distance_abs = mc_interface_get_distance_abs;
+		cif.cif.mc_get_odometer = mc_interface_get_odometer;
+		cif.cif.mc_set_odometer = mc_interface_set_odometer;
+		cif.cif.mc_set_current_off_delay = mc_interface_set_current_off_delay;
+		cif.cif.mc_stat_speed_avg = mc_interface_stat_speed_avg;
+		cif.cif.mc_stat_speed_max = mc_interface_stat_speed_max;
+		cif.cif.mc_stat_power_avg = mc_interface_stat_power_avg;
+		cif.cif.mc_stat_power_max = mc_interface_stat_power_max;
+		cif.cif.mc_stat_current_avg = mc_interface_stat_current_avg;
+		cif.cif.mc_stat_current_max = mc_interface_stat_current_max;
+		cif.cif.mc_stat_temp_mosfet_avg = mc_interface_stat_temp_mosfet_avg;
+		cif.cif.mc_stat_temp_mosfet_max = mc_interface_stat_temp_mosfet_max;
+		cif.cif.mc_stat_temp_motor_avg = mc_interface_stat_temp_motor_avg;
+		cif.cif.mc_stat_temp_motor_max = mc_interface_stat_temp_motor_max;
+		cif.cif.mc_stat_count_time = mc_interface_stat_count_time;
+		cif.cif.mc_stat_reset = mc_interface_stat_reset;
+
+		// More
+		cif.cif.system_time = lib_system_time;
 
 		lib_init_done = true;
 	}

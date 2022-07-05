@@ -26,6 +26,94 @@
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
 typedef void* lib_thread;
 
+#ifdef IS_VESC_LIB
+typedef uint32_t systime_t;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float rpm;
+	float current;
+	float duty;
+} can_status_msg;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float amp_hours;
+	float amp_hours_charged;
+} can_status_msg_2;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float watt_hours;
+	float watt_hours_charged;
+} can_status_msg_3;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float temp_fet;
+	float temp_motor;
+	float current_in;
+	float pid_pos_now;
+} can_status_msg_4;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float v_in;
+	int32_t tacho_value;
+} can_status_msg_5;
+
+typedef struct {
+	int id;
+	systime_t rx_time;
+	float adc_1;
+	float adc_2;
+	float adc_3;
+	float ppm;
+} can_status_msg_6;
+
+typedef enum {
+	HW_TYPE_VESC = 0,
+	HW_TYPE_VESC_BMS,
+	HW_TYPE_CUSTOM_MODULE
+} HW_TYPE;
+
+typedef enum {
+	FAULT_CODE_NONE = 0,
+	FAULT_CODE_OVER_VOLTAGE,
+	FAULT_CODE_UNDER_VOLTAGE,
+	FAULT_CODE_DRV,
+	FAULT_CODE_ABS_OVER_CURRENT,
+	FAULT_CODE_OVER_TEMP_FET,
+	FAULT_CODE_OVER_TEMP_MOTOR,
+	FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE,
+	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
+	FAULT_CODE_MCU_UNDER_VOLTAGE,
+	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
+	FAULT_CODE_ENCODER_SPI,
+	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
+	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE,
+	FAULT_CODE_FLASH_CORRUPTION,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
+	FAULT_CODE_UNBALANCED_CURRENTS,
+	FAULT_CODE_BRK,
+	FAULT_CODE_RESOLVER_LOT,
+	FAULT_CODE_RESOLVER_DOS,
+	FAULT_CODE_RESOLVER_LOS,
+	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
+	FAULT_CODE_ENCODER_NO_MAGNET,
+	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
+	FAULT_CODE_PHASE_FILTER,
+} mc_fault_code;
+#endif
+
 typedef enum {
 	VESC_PIN_COMM_RX = 0,
 	VESC_PIN_COMM_TX,
@@ -49,6 +137,10 @@ typedef enum {
 	VESC_PIN_MODE_ANALOG,
 } VESC_PIN_MODE;
 
+/*
+ * Function pointer struct. Always add new function pointers to the end in order to not
+ * break compatibility with old binaries.
+ */
 typedef struct {
 	// LBM If
 	load_extension_fptr lbm_add_extension;
@@ -92,6 +184,94 @@ typedef struct {
 	void (*can_set_eid_cb)(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 	void (*can_transmit_sid)(uint32_t id, const uint8_t *data, uint8_t len);
 	void (*can_transmit_eid)(uint32_t id, const uint8_t *data, uint8_t len);
+	void (*can_send_buffer)(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
+	void (*can_set_duty)(uint8_t controller_id, float duty);
+	void (*can_set_current)(uint8_t controller_id, float current);
+	void (*can_set_current_off_delay)(uint8_t controller_id, float current, float off_delay);
+	void (*can_set_current_brake)(uint8_t controller_id, float current);
+	void (*can_set_rpm)(uint8_t controller_id, float rpm);
+	void (*can_set_pos)(uint8_t controller_id, float pos);
+	void (*can_set_current_rel)(uint8_t controller_id, float current_rel);
+	void (*can_set_current_rel_off_delay)(uint8_t controller_id, float current_rel, float off_delay);
+	void (*can_set_current_brake_rel)(uint8_t controller_id, float current_rel);
+	bool (*can_ping)(uint8_t controller_id, HW_TYPE *hw_type);
+	can_status_msg* (*can_get_status_msg_index)(int index);
+	can_status_msg* (*can_get_status_msg_id)(int id);
+	can_status_msg_2* (*can_get_status_msg_2_index)(int index);
+	can_status_msg_2* (*can_get_status_msg_2_id)(int id);
+	can_status_msg_3* (*can_get_status_msg_3_index)(int index);
+	can_status_msg_3* (*can_get_status_msg_3_id)(int id);
+	can_status_msg_4* (*can_get_status_msg_4_index)(int index);
+	can_status_msg_4* (*can_get_status_msg_4_id)(int id);
+	can_status_msg_5* (*can_get_status_msg_5_index)(int index);
+	can_status_msg_5* (*can_get_status_msg_5_id)(int id);
+	can_status_msg_6* (*can_get_status_msg_6_index)(int index);
+	can_status_msg_6* (*can_get_status_msg_6_id)(int id);
+
+	// Motor Control
+	int (*mc_motor_now)(void);
+	void (*mc_select_motor_thread)(int motor);
+	int (*mc_get_motor_thread)(void);
+	bool (*mc_dccal_done)(void);
+	void (*mc_set_pwm_callback)(void (*p_func)(void));
+	mc_fault_code (*mc_get_fault)(void);
+	const char* (*mc_fault_to_string)(mc_fault_code fault);
+	void (*mc_set_duty)(float dutyCycle);
+	void (*mc_set_duty_noramp)(float dutyCycle);
+	void (*mc_set_pid_speed)(float rpm);
+	void (*mc_set_pid_pos)(float pos);
+	void (*mc_set_current)(float current);
+	void (*mc_set_brake_current)(float current);
+	void (*mc_set_current_rel)(float val);
+	void (*mc_set_brake_current_rel)(float val);
+	void (*mc_set_handbrake)(float current);
+	void (*mc_set_handbrake_rel)(float val);
+	int (*mc_set_tachometer_value)(int steps);
+	void (*mc_release_motor)(void);
+	bool (*mc_wait_for_motor_release)(float timeout);
+	float (*mc_get_duty_cycle_now)(void);
+	float (*mc_get_sampling_frequency_now)(void);
+	float (*mc_get_rpm)(void);
+	float (*mc_get_amp_hours)(bool reset);
+	float (*mc_get_amp_hours_charged)(bool reset);
+	float (*mc_get_watt_hours)(bool reset);
+	float (*mc_get_watt_hours_charged)(bool reset);
+	float (*mc_get_tot_current)(void);
+	float (*mc_get_tot_current_filtered)(void);
+	float (*mc_get_tot_current_directional)(void);
+	float (*mc_get_tot_current_directional_filtered)(void);
+	float (*mc_get_tot_current_in)(void);
+	float (*mc_get_tot_current_in_filtered)(void);
+	float (*mc_get_input_voltage_filtered)(void);
+	int (*mc_get_tachometer_value)(bool reset);
+	int (*mc_get_tachometer_abs_value)(bool reset);
+	float (*mc_get_pid_pos_set)(void);
+	float (*mc_get_pid_pos_now)(void);
+	void (*mc_update_pid_pos_offset)(float angle_now, bool store);
+	float (*mc_temp_fet_filtered)(void);
+	float (*mc_temp_motor_filtered)(void);
+	float (*mc_get_battery_level)(float *wh_left);
+	float (*mc_get_speed)(void);
+	float (*mc_get_distance)(void);
+	float (*mc_get_distance_abs)(void);
+	uint64_t (*mc_get_odometer)(void);
+	void (*mc_set_odometer)(uint64_t new_odometer_meters);
+	void (*mc_set_current_off_delay)(float delay_sec);
+	float (*mc_stat_speed_avg)(void);
+	float (*mc_stat_speed_max)(void);
+	float (*mc_stat_power_avg)(void);
+	float (*mc_stat_power_max)(void);
+	float (*mc_stat_current_avg)(void);
+	float (*mc_stat_current_max)(void);
+	float (*mc_stat_temp_mosfet_avg)(void);
+	float (*mc_stat_temp_mosfet_max)(void);
+	float (*mc_stat_temp_motor_avg)(void);
+	float (*mc_stat_temp_motor_max)(void);
+	float (*mc_stat_count_time)(void);
+	void (*mc_stat_reset)(void);
+
+	// More (added here to not break binary compatibility)
+	float (*system_time)(void);
 } vesc_c_if;
 
 typedef struct {
