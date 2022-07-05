@@ -319,18 +319,22 @@ Sets the override value
 #### set-current
 
 ```clj
-(set-current current)
+(set-current current optOffDelay)
 ```
 
 Set motor current in amperes.
 
+The optional optOffDelay argument (in seconds) will delay turning off the modulation when setting 0 current. This is useful when running e.g. a control loop that will end up setting 0 current in some circumstances when turning off the modulation would make the control less smooth. The delay value should be longer than the rate at which the control loop runs.
+
 #### set-current-rel
 
 ```clj
-(set-current-rel current)
+(set-current-rel current optOffDelay)
 ```
 
 Set motor current relative to the maximum current. Range -1 to 1. For example, if the maximum current is set to 50A, (set-current-rel 0.5) will set the current to 25A.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### set-duty
 ```clj
@@ -480,7 +484,7 @@ Notice that all canget-commands rely on the status messages being active on the 
 
 #### canset-current
 ```clj
-(canset-current id current)
+(canset-current id current optOffDelay)
 ```
 
 Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with id 115:
@@ -489,12 +493,16 @@ Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with i
 (canset-current 115 25)
 ```
 
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
+
 #### canset-current-rel
 ```clj
-(canset-current-rel id current)
+(canset-current-rel id current optOffDelay)
 ```
 
 Same as above, but relative current in the range -1.0 to 1.0. See (set-current) for details on what relative current means.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### canset-duty
 ```clj

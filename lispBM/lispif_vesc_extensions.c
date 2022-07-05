@@ -987,16 +987,32 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
-	timeout_reset();
-	mc_interface_set_current(lbm_dec_as_float(args[0]));
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		mc_interface_set_current(lbm_dec_as_float(args[0]));
+	} else if (argn == 2) {
+		mc_interface_set_current_off_delay(lbm_dec_as_float(args[1]));
+		mc_interface_set_current(lbm_dec_as_float(args[0]));
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
-	timeout_reset();
-	mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	} else if (argn == 2) {
+		mc_interface_set_current_off_delay(lbm_dec_as_float(args[1]));
+		mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
 	return lbm_enc_sym(SYM_TRUE);
 }
 

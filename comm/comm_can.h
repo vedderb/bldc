@@ -32,7 +32,7 @@ void comm_can_set_baud(CAN_BAUD baud);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int interface);
 void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace, int interface);
-void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len);
+void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_set_sid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send);
