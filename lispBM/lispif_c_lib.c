@@ -22,6 +22,7 @@
 #include "hw.h"
 #include "mc_interface.h"
 #include "commands.h"
+#include "comm_can.h"
 #include "lispif.h"
 #include "lispbm.h"
 #include "c_libs/vesc_c_if.h"
@@ -321,6 +322,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.io_read = lib_io_read;
 		cif.cif.io_read_analog = lib_io_read_analog;
 		cif.cif.io_get_st_pin = lib_io_get_st_pin;
+
+		// CAN
+		cif.cif.can_set_sid_cb = comm_can_set_sid_rx_callback;
+		cif.cif.can_set_eid_cb = comm_can_set_eid_rx_callback;
+		cif.cif.can_transmit_sid = comm_can_transmit_sid;
+		cif.cif.can_transmit_eid = comm_can_transmit_eid;
 
 		lib_init_done = true;
 	}

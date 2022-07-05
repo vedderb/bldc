@@ -86,6 +86,12 @@ typedef struct {
 	bool (*io_read)(VESC_PIN pin);
 	float (*io_read_analog)(VESC_PIN pin);
 	bool (*io_get_st_pin)(VESC_PIN vesc_pin, void **gpio, uint32_t *pin);
+
+	// CAN
+	void (*can_set_sid_cb)(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
+	void (*can_set_eid_cb)(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
+	void (*can_transmit_sid)(uint32_t id, const uint8_t *data, uint8_t len);
+	void (*can_transmit_eid)(uint32_t id, const uint8_t *data, uint8_t len);
 } vesc_c_if;
 
 typedef struct {
