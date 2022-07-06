@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <lbm_memory.h>
+#include <lbm_custom_type.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -52,6 +53,14 @@ lbm_stream_t *lbm_dec_stream(lbm_value val) {
 
   if (lbm_type_of(val) == LBM_TYPE_STREAM) {
     res = (lbm_stream_t *)lbm_car(val);
+  }
+  return res;
+}
+
+lbm_uint lbm_dec_custom(lbm_value val) {
+  lbm_uint res = 0;
+  if (lbm_type_of(val) == LBM_TYPE_CUSTOM) {
+    res = (lbm_uint)lbm_car(val);
   }
   return res;
 }
@@ -511,6 +520,11 @@ int lbm_gc_sweep_phase(void) {
             lbm_memory_free((lbm_uint*)stream);
           }
         } break;
+        case SYM_CUSTOM_TYPE: {
+          lbm_uint *t = (lbm_uint*)heap[i].car;
+          lbm_custom_type_destroy(t);
+          lbm_memory_free(t);
+        } break;
         default:
           break;
         }
@@ -763,7 +777,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   lbm_set_car(cell, (lbm_uint)array);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-  cell = cell | LBM_TYPE_ARRAY;
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
 
   *res = cell;
 

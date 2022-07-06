@@ -35,12 +35,14 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define HEAP_SIZE 2048
+#define VARIABLE_STORAGE_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 
 #define WAIT_TIMEOUT 2500
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
+lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
@@ -212,6 +214,8 @@ int main(void) {
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
 
+  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+  
   res = lbm_add_extension("print", ext_print);
   if (res)
     chprintf(chp,"Extension added.\r\n");
@@ -322,24 +326,6 @@ int main(void) {
                extension_storage, EXTENSION_STORAGE_SIZE);
 
       lbm_add_extension("print", ext_print);
-
-    } else if (strncmp(str, ":prelude", 8) == 0) {
-
-      lbm_pause_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        chThdSleepMilliseconds(1);
-      }
-      prelude_load(&string_tok_state,
-                   &string_tok);
-
-      lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-
-      lbm_continue_eval();
-      if (!lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT)) {
-        chprintf(chp,"Wait for prelude to load timed out.\r\n");
-      } else {
-        chprintf(chp,"Prelude loaded.\r\n");
-      }
 
     } else if (strncmp(str, ":quit", 5) == 0) {
 

@@ -1111,7 +1111,7 @@ static inline void dynamic_load(eval_context_t *ctx) {
     lbm_set_car(cell, (lbm_uint)array);
     lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-    cell = cell | LBM_TYPE_ARRAY;
+    cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
 
     lbm_value stream = token_stream_from_string_value(cell);
     if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
@@ -1134,29 +1134,18 @@ static inline void dynamic_load(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_selfevaluating(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
-}
 
 static inline void eval_quote(eval_context_t *ctx) {
   ctx->r = lbm_cadr(ctx->curr_exp);
   ctx->app_cont = true;
 }
 
-static inline void eval_macro(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
-}
-
-static inline void eval_closure(eval_context_t *ctx) {
+static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
   ctx->app_cont = true;
 }
 
 static inline void eval_callcc(eval_context_t *ctx) {
-
-  //lbm_value continuation = NIL;
 
   lbm_value cont_array;
 #ifndef LBM64
@@ -1170,7 +1159,7 @@ static inline void eval_callcc(eval_context_t *ctx) {
 #else
   if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
     gc(NIL,NIL);
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
       error_ctx(lbm_enc_sym(SYM_MERROR));
       return;
     }
@@ -1189,14 +1178,8 @@ static inline void eval_callcc(eval_context_t *ctx) {
   CONS_WITH_GC(app, acont, app, acont);
   CONS_WITH_GC(app, fun_arg, app, app);
 
-  //ctx->r = NIL;
   ctx->curr_exp = app;
   ctx->app_cont = false;
-}
-
-static inline void eval_continuation(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
 }
 
 static inline void eval_define(eval_context_t *ctx) {
@@ -1231,7 +1214,6 @@ static inline void eval_define(eval_context_t *ctx) {
   return;
 }
 
-
 static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
@@ -1247,6 +1229,8 @@ static inline void eval_progn(eval_context_t *ctx) {
     sptr[2] = PROGN_REST;
     ctx->curr_exp = lbm_car(exps);
     ctx->curr_env = env;
+    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
+      lbm_stack_drop(&ctx->K, 3);
   } else if (lbm_is_symbol_nil(exps)) {
     ctx->r = NIL;
     ctx->app_cont = true;
@@ -1255,18 +1239,15 @@ static inline void eval_progn(eval_context_t *ctx) {
   }
 }
 
+static inline lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
+  lbm_value env_end = cons_with_gc( env, NIL, env);
+  lbm_value exp = cons_with_gc(body, env_end, env_end);
+  lbm_value par = cons_with_gc(params, exp, exp);
+  return cons_with_gc(lbm_enc_sym(SYM_CLOSURE), par, par);
+}
+
 static inline void eval_lambda(eval_context_t *ctx) {
-
-  lbm_value env_cpy = ctx->curr_env;
-  lbm_value env_end;
-  lbm_value body;
-  lbm_value params;
-  lbm_value closure;
-  CONS_WITH_GC(env_end, env_cpy, NIL, env_cpy);
-  CONS_WITH_GC(body, lbm_cadr(lbm_cdr(ctx->curr_exp)), env_end, env_end);
-  CONS_WITH_GC(params, lbm_cadr(ctx->curr_exp), body, body);
-  CONS_WITH_GC(closure, lbm_enc_sym(SYM_CLOSURE), params, params);
-
+  lbm_value closure = mk_closure(ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp));
   ctx->app_cont = true;
   ctx->r = closure;
   return;
@@ -1865,8 +1846,13 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     lbm_set_error_reason("Too many arguments.");
     error_ctx(lbm_enc_sym(SYM_EERROR));
   } else if (a_nil && !p_nil) {
-    lbm_set_error_reason("Too few arguments.");
-    error_ctx(lbm_enc_sym(SYM_EERROR));
+    lbm_value new_env = lbm_list_append(arg_env,clo_env);
+    lbm_value closure = mk_closure(new_env, exp, lbm_cdr(params));
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->app_cont = true;
+    ctx->r = closure;
+    //lbm_set_error_reason("Too few arguments.");
+    //error_ctx(lbm_enc_sym(SYM_EERROR));
   } else {
    sptr[2] = clo_env;
    sptr[3] = lbm_cdr(params);
@@ -1939,11 +1925,25 @@ static inline void cont_or(eval_context_t *ctx) {
 }
 
 static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
-  lbm_value key;
-  lbm_value env;
-  lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_3(&ctx->K, &key, &env, &rest);
+
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 4);
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
+  }
+  lbm_value rest = sptr[1];
+  lbm_value env  = sptr[2];
+  lbm_value key  = sptr[3];
+
+  lbm_type keyt = lbm_type_of(key);
+
+  if ((keyt != LBM_TYPE_SYMBOL) ||
+      ((keyt == LBM_TYPE_SYMBOL) && lbm_dec_sym(key) < RUNTIME_SYMBOLS_START)) {
+    lbm_set_error_reason("Incorrect type of name/key in let-binding");
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+    return;
+  }
 
   lbm_env_modify_binding(env, key, arg);
 
@@ -1951,16 +1951,16 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
     lbm_value keyn = lbm_car(lbm_car(rest));
     lbm_value valn_exp = lbm_cadr(lbm_car(rest));
 
-    CHECK_STACK(lbm_push_4(&ctx->K, lbm_cdr(rest), env, keyn, BIND_TO_KEY_REST));
-
+    sptr[1] = lbm_cdr(rest);
+    sptr[3] = keyn;
+    CHECK_STACK(lbm_push(&ctx->K, BIND_TO_KEY_REST));
     ctx->curr_exp = valn_exp;
     ctx->curr_env = env;
   } else {
     // Otherwise evaluate the expression in the populated env
-    lbm_value exp;
-    lbm_pop(&ctx->K, &exp);
-    ctx->curr_exp = exp;
+    ctx->curr_exp = sptr[0];
     ctx->curr_env = env;
+    lbm_stack_drop(&ctx->K, 4);
   }
 }
 
@@ -2450,7 +2450,6 @@ static void evaluation_step(void){
     case SET_GLOBAL_ENV:    cont_set_global_env(ctx); return;
     case PROGN_REST:        cont_progn_rest(ctx); return;
     case WAIT:              cont_wait(ctx); return;
-      //    case APPLICATION:       cont_application(ctx); return;
     case APPLICATION_ARGS:  cont_application_args(ctx); return;
     case AND:               cont_and(ctx); return;
     case OR:                cont_or(ctx); return;
@@ -2519,17 +2518,17 @@ static void evaluation_step(void){
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
       case SYM_LAMBDA:  eval_lambda(ctx); return;
-      case SYM_CLOSURE: eval_closure(ctx); return;
       case SYM_IF:      eval_if(ctx); return;
       case SYM_LET:     eval_let(ctx); return;
       case SYM_AND:     eval_and(ctx); return;
       case SYM_OR:      eval_or(ctx); return;
       case SYM_MATCH:   eval_match(ctx); return;
-        /* message passing primitives */
       case SYM_RECEIVE: eval_receive(ctx); return;
-      case SYM_MACRO:   eval_macro(ctx); return;
       case SYM_CALLCC:  eval_callcc(ctx); return;
-      case SYM_CONT:    eval_continuation(ctx); return;
+
+      case SYM_MACRO:   /* fall through */
+      case SYM_CONT:
+      case SYM_CLOSURE: eval_selfevaluating(ctx); return;
 
       default: break; /* May be general application form. Checked below*/
       }

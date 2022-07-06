@@ -25,9 +25,23 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 3
+#define LBM_PATCH_VERSION 4
 
 /*! \page changelog Changelog
+
+Jul 4 2022: Version 0.5.4
+  - Added possibility to partially apply closures. A partially applied closure
+    is again a closure.
+
+May 24 2022: Version 0.5.3
+  - Fixed bug related to float-array literals not accepting whole numbers unless containing a decimal (0).
+
+May 22 2022: Version 0.5.3
+  - Fixed bug that could cause problems with call-cc on 64bit platforms.
+  - bind_to_key_rest continuation refactoring to use indexing into stack.
+  - Fix evaluator bug in progn that made tail-call not fire properly when there
+    is only one expr in the progn sequence.
+
 May 10 2022: Version 0.5.3 
  - symbols starting with "ext-" will be allocated into the extensions-list 
    and can on the VESC version of lispbm be dynamically bound to newly loaded

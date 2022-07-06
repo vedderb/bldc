@@ -88,6 +88,7 @@ special_sym const special_symbols[] =  {
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
+  {"sym_custom"         , SYM_CUSTOM_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
@@ -165,6 +166,8 @@ special_sym const special_symbols[] =  {
   {"bitwise-or"     , SYM_BITWISE_OR},
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
+
+  {"custom-destruct", SYM_CUSTOM_DESTRUCT},
 
   {"to-i"           , SYM_TO_I},
   {"to-i32"         , SYM_TO_I32},

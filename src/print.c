@@ -20,6 +20,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <lbm_types.h>
+#include <lbm_custom_type.h>
 
 #include "print.h"
 #include "heap.h"
@@ -348,8 +349,16 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
           return -1;
         }
         offset += n;
-        break;
-      }
+      } break;
+      case LBM_TYPE_CUSTOM: {
+        lbm_uint *custom = (lbm_uint*)lbm_car(curr);
+        if (custom[CUSTOM_TYPE_DESCRIPTOR]) {
+          r = snprintf(buf + offset, len - offset, "%s", (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
+        } else {
+          r = snprintf(buf + offset, len - offset, "Unspecified_Custom_Type");
+        }
+        offset += n;
+      } break;
       case LBM_TYPE_SYMBOL:
         str_ptr = lbm_get_name_by_symbol(lbm_dec_sym(curr));
         if (str_ptr == NULL) {
@@ -401,7 +410,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
 
       default:
-        snprintf(buf, len, "Error: print does not recognize type of value: %"PRI_HEX"", curr);
+        snprintf(buf, len, "Error: print does not recognize type %"PRI_HEX" of value: %"PRI_HEX"", lbm_type_of(curr), curr);
         return -1;
         break;
       } // Switch type of curr

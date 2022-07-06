@@ -25,6 +25,7 @@
 #include "lbm_variables.h"
 #include "env.h"
 #include "lbm_utils.h"
+#include "lbm_custom_type.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -639,7 +640,6 @@ lbm_value index_list(lbm_value l, unsigned int n) {
 
 lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->car, key)) {
@@ -647,7 +647,7 @@ lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
     }
     curr = lbm_ref_cell(curr)->cdr;
   }
-  return lbm_enc_sym(SYM_NOT_FOUND);
+  return lbm_enc_sym(SYM_NO_MATCH);
 }
 
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
@@ -866,15 +866,19 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     }
   }break;
   case SYM_ASSOC: {
-    if (nargs == 2 && lbm_is_list(args[0])) {
-      lbm_value r = assoc_lookup(args[1], args[0]);
-      if (lbm_is_symbol(r) &&
-          lbm_dec_sym(r) == SYM_NOT_FOUND) {
-        result = lbm_enc_sym(SYM_NIL);
-      }
-      else {
-        result = r;
-      }
+    if (nargs == 2) {
+      if (lbm_is_list(args[0])) {
+        lbm_value r = assoc_lookup(args[1], args[0]);
+        if (lbm_is_symbol(r) &&
+            lbm_dec_sym(r) == SYM_NO_MATCH) {
+          result = lbm_enc_sym(SYM_NIL);
+        } else {
+          result = r;
+        }
+      } else if (lbm_is_symbol(args[0]) &&
+                 lbm_dec_sym(args[0]) == SYM_NIL) {
+        result = args[0]; /* nil */
+      } /* else error */
     }
   } break;
   case SYM_ACONS: {
@@ -907,11 +911,25 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_CAR: {
-    result = lbm_car(args[0]);
+    if (nargs == 1) {
+      if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+        lbm_cons_t *cell = lbm_ref_cell(args[0]);
+        result = cell->car;
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    }
     break;
   }
   case SYM_CDR: {
-    result = lbm_cdr(args[0]);
+    if (nargs == 1) {
+      if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+        lbm_cons_t *cell = lbm_ref_cell(args[0]);
+        result = cell->cdr;
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    }
     break;
   }
   case SYM_LIST: {
@@ -1236,6 +1254,16 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       result = bitwise_not(args[0]);
     }
     break;
+  case SYM_CUSTOM_DESTRUCT:
+    if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
+      lbm_uint *mem_ptr = (lbm_uint*)lbm_dec_custom(args[0]);
+      lbm_custom_type_destroy(mem_ptr);
+      lbm_value tmp = lbm_set_ptr_type(args[0], LBM_TYPE_CONS);
+      lbm_set_car(tmp, lbm_enc_sym(SYM_NIL));
+      lbm_set_cdr(tmp, lbm_enc_sym(SYM_NIL));
+      /* The original value will still be of type custom_ptr */
+      result = lbm_enc_sym(SYM_TRUE);
+    } break;
   default:
     result = lbm_enc_sym(SYM_EERROR);
     break;
