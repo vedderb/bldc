@@ -1,5 +1,49 @@
 # LispBM language reference
 
+## About Symbols 
+
+Symbols are very important and fundamental to LispBM and also perhaps 
+a bit different from identifiers/names used in languages such as C, so 
+a short intro could be good here. 
+
+A symbol can be thought of as a name and can be used to give names 
+to functions or values (variables). A symbol can also be treated and 
+used as a value in and of itself a value (or data). So it can be used 
+to name data and functions and is itself also data. 
+
+--- 
+**NOTE** 
+
+Symbols are expressed as strings in your program such as `a`, `let`,
+`define`, `+` or `orange`. The "reader", the part of LBM that parses
+code, translates each symbol into a 28bit value. The string `orange`
+for example is only of interest if you print a symbol and then the
+runtime system will look up what string corresponds to the 28bit
+identifier you want to print. So the runtime system is never wasting
+time comparing strings to see if a symbol is this or that symbol, it's
+all integer comparisons.
+
+--- 
+
+You associate values with symbols using, <a href="#define">define</a>,
+<a href="#let">let</a> and you can change the value bound to a "variable" 
+using <a href="#setvar">setvar</a>
+
+Not all symbols are treated the same in LBM. Some symbols are treated as 
+special because of their very fundamental nature. Among these special symbols
+you find `define`, `let` and `lambda` for example. These are things that you 
+should not be able to redefine and trying to redefine them leads to an error. 
+There are two classes of symbols that are special by naming convention and 
+these either start with a `#`, for fast-lookup variables, and `ext-` for 
+extensions that will be bound at runtime.
+
+Examples of symbols used as data are `nil` and `t`. `nil` is used the
+represent nothing, the empty list or other similar things and `t`
+represents true.  But any symbol can be used as data by quoting it
+`'`, see <a href="#quotes-and-quasiquotation"> Quotes and
+Quasiquotation </a>.
+
+
 ## Arithmetic
 
 ### +
@@ -663,7 +707,7 @@ And you can change the value of a `#var`.
 ```clj
 (define #a 10)
 
-(set '#a 20)
+(setvar '#a 20)
 ```
 `#a` is now 20.
 
@@ -1270,7 +1314,6 @@ Below is an example that conditionally returns.
 ```
 
 ---
-
 
 ## Unparsable symbols
 

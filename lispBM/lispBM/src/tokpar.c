@@ -520,8 +520,14 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
         if (n) arr->data[ix] = (uint32_t)(i_val.negative ? -i_val.value : i_val.value);
         break;
       case LBM_TYPE_FLOAT: {
+        float f = 0;
         n = tok_D(str, &f_val);
-        float f = (float)f_val.value;
+        if (n == 0) {
+          n = tok_integer(str, &i_val);
+          f = (float)i_val.value;
+        } else {
+          f = (float)f_val.value;
+        }
         if (n) memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
       }break;
       }
@@ -806,7 +812,3 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->column = column_string;
 }
 
-/* VALUE tokpar_parse(tokenizer_char_stream_t *char_stream) { */
-
-/*   return tokpar_parse_program(char_stream); */
-/* } */

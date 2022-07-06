@@ -230,7 +230,7 @@ int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_el
   lbm_set_car(cell, (lbm_uint)array);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-  cell = cell | LBM_TYPE_ARRAY;
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
   *value = cell;
   return 1;
 }

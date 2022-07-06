@@ -16,6 +16,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/streams.c \
              $(LISPBM)/src/lbm_c_interop.c \
              $(LISPBM)/src/lbm_variables.c \
+             $(LISPBM)/src/lbm_custom_type.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c

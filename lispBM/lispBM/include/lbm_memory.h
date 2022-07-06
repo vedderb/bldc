@@ -150,7 +150,7 @@ extern int lbm_memory_free(lbm_uint *ptr);
  * \param n New smaller size of array
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_memory_shrink(lbm_uint *ptr, unsigned int n);
+extern int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n);
 
 /** Check if a pointer points into the lbm_memory
  *

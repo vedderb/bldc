@@ -77,17 +77,18 @@
 #define SYM_IND_F_TYPE     0x36
 #define SYM_STREAM_TYPE    0x37
 #define SYM_BYTECODE_TYPE  0x38
-#define TYPE_CLASSIFIER_ENDS 0x38
-#define SYM_NONSENSE       0x39
+#define SYM_CUSTOM_TYPE    0x39
+#define TYPE_CLASSIFIER_ENDS 0x39
+#define SYM_NONSENSE       0x3A
 
-#define SYM_NO_MATCH       0x3A
-#define SYM_MATCH_ANY      0x3B
-#define SYM_MATCH_I        0x3C
-#define SYM_MATCH_U        0x3D
-#define SYM_MATCH_U32      0x3E
-#define SYM_MATCH_I32      0x3F
-#define SYM_MATCH_FLOAT    0x40
-#define SYM_MATCH_CONS     0x41
+#define SYM_NO_MATCH       0x40
+#define SYM_MATCH_ANY      0x41
+#define SYM_MATCH_I        0x42
+#define SYM_MATCH_U        0x43
+#define SYM_MATCH_U32      0x44
+#define SYM_MATCH_I32      0x45
+#define SYM_MATCH_FLOAT    0x46
+#define SYM_MATCH_CONS     0x47
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50
@@ -194,6 +195,8 @@
 #define SYM_BITWISE_OR          0x173
 #define SYM_BITWISE_XOR         0x174
 #define SYM_BITWISE_NOT         0x175
+
+#define SYM_CUSTOM_DESTRUCT     0x180 /* run the destructor of a custom type */
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
