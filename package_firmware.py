@@ -98,6 +98,8 @@ package_dict["UBOX_V1_75_TYPEC"] = [['ubox_v1_75_typec', default_name]]
 package_dict["UBOX_V2_75"] = [['ubox_v2_75', default_name]]
 package_dict["UBOX_SINGLE_100"] = [['ubox_single_100', default_name]]
 package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name]]
+package_dict["EDU"] = [['EDU', default_name],
+                    ['EDU_no_limits', no_limits_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
