@@ -20,6 +20,7 @@
 #ifndef HW_60_75_NO_LIMITS_H_
 #define HW_60_75_NO_LIMITS_H_
 
+#define HW_60_75_IS_MK2
 #define DISABLE_HW_LIMITS
 
 #include "hw_60_75_core.h"

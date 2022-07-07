@@ -17,9 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_EDU_H_
-#define HW_EDU_H_
+#ifndef HW_EDU_NO_LIMITS_H_
+#define HW_EDU_NO_LIMITS_H_
+
+#define DISABLE_HW_LIMITS
 
 #include "hw_edu_core.h"
 
-#endif /* HW_EDU_H_ */
+#endif /* HW_EDU_NO_LIMITS_H_ */
