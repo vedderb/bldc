@@ -22,45 +22,20 @@
 #endif
 
 #ifdef HW_HAS_DUAL_PARALLEL
-#ifdef HW_VER_IS_100D_V2
-#define HW_NAME                 "STORMCORE_100D_V2_PARALLEL"
-#elif defined(HW_VER_IS_100DX)
-#define HW_NAME                 "STORMCORE_100DX_PARALLEL"
-#elif defined(HW_VER_IS_100D)
-#define HW_NAME                 "STORMCORE_100D_PARALLEL"
-#endif
+#define HW_NAME                 "MBOT_PARALLEL"
 #else
-#ifdef HW_VER_IS_100D_V2
-#define HW_NAME                 "STORMCORE_100D_V2"
-#elif defined(HW_VER_IS_100DX)
-#define HW_NAME                 "STORMCORE_100DX"
-#elif defined(HW_VER_IS_100D)
-#define HW_NAME                 "STORMCORE_100D"
-#endif
+#define HW_NAME                 "MBOT"
 #endif
 
 #ifndef HW_NAME
 #error "Must define hardware type"
 #endif
 
-#ifdef HW_VER_IS_100DX
 #define INVERTED_SHUNT_POLARITY
-#define HW_DEAD_TIME_NSEC               600.0   // Dead time
-#endif
+#define HW_DEAD_TIME_NSEC               1200.0   // Dead time
 
-#ifndef HW_VER_IS_100DX
-#include "drv8323s.h"
 // HW properties
-#define HW_HAS_DRV8323S // for idrive do 0x073b for reg 4 (LS) and 0x034b for reg 3 (HS)
-#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-		drv8323s_write_reg(3,0x3af); \
-		drv8323s_write_reg(4,0x7af);
-#endif
 #define HW_HAS_3_SHUNTS
-
-
-
-
 
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
@@ -79,16 +54,8 @@
 #define SWITCH_LED_1_GPIO				GPIOD
 #define SWITCH_LED_1_PIN				15
 
-#define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
-#define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
-#define LED_PWM2_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_PWM2_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_PWM3_ON()			palClearPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
-#define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
-
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
-#if  defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO               GPIOE
 #define PHASE_FILTER_PIN                4
@@ -98,14 +65,12 @@
 #define PHASE_FILTER_OFF()              palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_ON_M2()            palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
 #define PHASE_FILTER_OFF_M2()           palClearPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
-#endif
 
 
 
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
-#define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN); \
-		palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
+#define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 
 
 #define DCCAL_ON() //drv8323s_dccal_on()
@@ -113,8 +78,6 @@
 
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
 		smart_switch_thread_start();
-
-
 
 //Pins for BLE UART
 //#define USE_ALT_UART_PORT
@@ -127,34 +90,9 @@
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
 
-#ifdef HW_VER_IS_100D_V2
-//Pins for Third UART
-#define HW_UART_3_BAUD              115200
-#define HW_UART_3_DEV               SD2
-#define HW_UART_3_GPIO_AF           GPIO_AF_USART2
-#define HW_UART_3_TX_PORT           GPIOD
-#define HW_UART_3_TX_PIN            6
-#define HW_UART_3_RX_PORT           GPIOD
-#define HW_UART_3_RX_PIN            5
-#endif
-
-// SPI for DRV8301
-#define DRV8323S_MOSI_GPIO			GPIOC
-#define DRV8323S_MOSI_PIN			12
-#define DRV8323S_MISO_GPIO			GPIOC
-#define DRV8323S_MISO_PIN			11
-#define DRV8323S_SCK_GPIO			GPIOC
-#define DRV8323S_SCK_PIN			10
-#define DRV8323S_CS_GPIO			GPIOC
-#define DRV8323S_CS_PIN				13
-#define DRV8323S_CS_GPIO2			GPIOD
-#define DRV8323S_CS_PIN2			2
-#define DRV8323S_CS_GPIO3			GPIOE
-#define DRV8323S_CS_PIN3			15
-
 // Macros
-#define ENABLE_GATE()				palSetPad(GPIOE, 14); palSetPad(GPIOD, 4);
-#define DISABLE_GATE()				palClearPad(GPIOE, 14); palClearPad(GPIOD, 4);
+#define ENABLE_GATE()
+#define DISABLE_GATE()
 
 #define ADC_SW_EN_PORT		GPIOB
 #define ADC_SW_EN_PIN		12
@@ -177,37 +115,26 @@
 #define ENABLE_MOS_TEMP1()			AD_DIS();	AD3_L();	AD2_L();	AD1_L();	AD_EN();
 #define ENABLE_MOS_TEMP2()			AD_DIS();	AD3_L();	AD2_L();	AD1_H();	AD_EN();
 #define ENABLE_MOT_TEMP1()			AD_DIS();	AD3_L();	AD2_H();	AD1_L();	AD_EN();
-#define ENABLE_MOT_TEMP2()          AD_DIS();	AD3_L();	AD2_H();	AD1_H();	AD_EN();
-#define ENABLE_ADC_EXT_2()          AD_DIS();	AD3_H();	AD2_L();	AD1_L();	AD_EN();
-#define ENABLE_ADC_EXT_1()          AD_DIS();	AD3_H();	AD2_L();	AD1_H();	AD_EN();
-#define ENABLE_ADC_EXT_3()          AD_DIS();	AD3_H();	AD2_H();	AD1_L();	AD_EN();
-#define ENABLE_V_BATT_DIV()         AD_DIS();	AD3_H();	AD2_H();	AD1_H();	AD_EN();
-
-
-#define IS_DRV_FAULT()				(!palReadPad(GPIOE, 3))
-#define IS_DRV_FAULT2()				(!palReadPad(GPIOD, 3))
+#define ENABLE_MOT_TEMP2()      AD_DIS();	AD3_L();	AD2_H();	AD1_H();	AD_EN();
+#define ENABLE_MOS_TEMP2B()      AD_DIS();	AD3_H();	AD2_L();	AD1_L();	AD_EN();
+#define ENABLE_ADC_EXT_1()      AD_DIS();	AD3_H();	AD2_L();	AD1_H();	AD_EN();
+#define ENABLE_ADC_EXT_2()      AD_DIS();	AD3_H();	AD2_H();	AD1_L();	AD_EN();
+#define ENABLE_MOS_TEMP1B()     AD_DIS();	AD3_H();	AD2_H();	AD1_H();	AD_EN();
 
 #define LED_GREEN_ON()				palSetPad(GPIOC, 9);// palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
 #define LED_GREEN_OFF()				palClearPad(GPIOC, 9);// palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN);
 #define LED_RED_ON()				palSetPad(GPIOA, 8); //palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
 #define LED_RED_OFF()				palClearPad(GPIOA, 8); //palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN);
-#define LED_SWITCH_R_ON()			palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
-#define LED_SWITCH_R_OFF()			palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
-#define LED_SWITCH_G_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_SWITCH_G_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
-#define LED_SWITCH_B_ON()			palClearPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
-#define LED_SWITCH_B_OFF()			palSetPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
-
 
 /*
  * ADC Vector
  *
  * 0:    IN9      CURR1
  * 1:    IN8      CURR2
- * 2:    IN10     V BUS DIV
+ * 2:    IN10     V BUS DIV 2
  * 3:    IN14     CURR4
  * 4:    IN15     CURR3
- * 5:    IN3      VM_SENS (12V)
+ * 5:    IN3      V BUS DIV
  * 6:    IN5      CURR6
  * 7:    IN6      CURR5
  * 8:    IN13     SENS4
@@ -226,13 +153,13 @@
 
 // ADC Indexes
 
-#define ADC_IND_CURR1			0
-#define ADC_IND_CURR2			1
-#define ADC_IND_VIN_SENS		2
+#define ADC_IND_CURR1			    0
+#define ADC_IND_CURR2			    1
+#define ADC_IND_VIN_SENS		  2
 
-#define ADC_IND_CURR3			3
-#define ADC_IND_CURR4			4
-#define ADC_IND_VM_SENSE		5
+#define ADC_IND_CURR3			    3
+#define ADC_IND_CURR4			    4
+#define ADC_IND_VIN_SENS_2		5
 
 #define ADC_IND_CURR6			6
 #define ADC_IND_CURR5			7
@@ -250,10 +177,10 @@
 #define ADC_IND_TEMP_MOS_M2		16
 #define ADC_IND_TEMP_MOTOR		17
 #define ADC_IND_TEMP_MOTOR_2	18
-#define ADC_IND_EXT				19
-#define ADC_IND_EXT2			20
-#define ADC_IND_EXT3			21
-#define ADC_IND_V_BATT			22
+#define ADC_IND_EXT				        19
+#define ADC_IND_EXT2		        	20
+#define ADC_IND_TEMP_MOSB		    	21
+#define ADC_IND_TEMP_MOSB_M2			22
 
 // ADC macros and settings
 
@@ -269,24 +196,13 @@
 #endif
 
 
-#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES       0.0005
-#endif
-#else
-#ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN        10.0
-#endif
-#ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES       0.001
-#endif
+#define CURRENT_SHUNT_RES       0.0003
 #endif
 
-#define VBATT_R1					360000.0
-#define VBATT_R2					10000.0
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 #define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VBATT_R1 + VBATT_R2) / VBATT_R2))
