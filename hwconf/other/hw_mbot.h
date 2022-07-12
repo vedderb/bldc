@@ -155,11 +155,11 @@
 
 #define ADC_IND_CURR1			    0
 #define ADC_IND_CURR2			    1
-#define ADC_IND_VIN_SENS		  2
+#define ADC_IND_VIN_SENS_2		  2
 
 #define ADC_IND_CURR3			    3
 #define ADC_IND_CURR4			    4
-#define ADC_IND_VIN_SENS_2		5
+#define ADC_IND_VIN_SENS  		5
 
 #define ADC_IND_CURR6			6
 #define ADC_IND_CURR5			7
