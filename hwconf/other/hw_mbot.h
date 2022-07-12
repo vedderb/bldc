@@ -14,8 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef HW_STORMCORE_100D_CORE_H_
-#define HW_STORMCORE_100D_CORE_H_
+#ifndef HW_MBOT_H_
+#define HW_MBOT_H_
 
 #ifndef HW_HAS_DUAL_PARALLEL
 #define HW_HAS_DUAL_MOTORS
@@ -36,10 +36,6 @@
 
 // HW properties
 #define HW_HAS_3_SHUNTS
-
-//Switch Pins
-#define HW_HAS_STORMCORE_SWITCH
-#define HW_HAS_RGB_SWITCH
 
 #define SWITCH_IN_GPIO					GPIOA
 #define SWITCH_IN_PIN					15
@@ -402,4 +398,4 @@ bool smart_switch_is_pressed(void);
 void smart_switch_shut_down(void);
 void smart_switch_keep_on(void);
 
-#endif /* HW_STORMCORE_100D_CORE_H_ */
+#endif /* HW_MBOT_H_ */
