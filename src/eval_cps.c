@@ -1851,8 +1851,6 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, 5);
     ctx->app_cont = true;
     ctx->r = closure;
-    //lbm_set_error_reason("Too few arguments.");
-    //error_ctx(lbm_enc_sym(SYM_EERROR));
   } else {
    sptr[2] = clo_env;
    sptr[3] = lbm_cdr(params);
