@@ -29,6 +29,10 @@
 
 /*! \page changelog Changelog
 
+Jul 13 2022: Version 0.5.4
+  - Added function that lookups based on the second field in assoc structures.
+    Called it "cossa" as it is like assoc but backwards.
+
 Jul 4 2022: Version 0.5.4
   - Added possibility to partially apply closures. A partially applied closure
     is again a closure.
@@ -42,8 +46,8 @@ May 22 2022: Version 0.5.3
   - Fix evaluator bug in progn that made tail-call not fire properly when there
     is only one expr in the progn sequence.
 
-May 10 2022: Version 0.5.3 
- - symbols starting with "ext-" will be allocated into the extensions-list 
+May 10 2022: Version 0.5.3
+ - symbols starting with "ext-" will be allocated into the extensions-list
    and can on the VESC version of lispbm be dynamically bound to newly loaded
    extensions at runtime.
 
@@ -54,7 +58,7 @@ May 5 2022: Version 0.5.2
  - Line and column numbers associated with read errors.
  - More explanatory descriptions in error messages related to read errors.
 
-May 2 2022: Version 0.5.2 
+May 2 2022: Version 0.5.2
  - Performance tweaks to the evaluator. Small but positive effect.
 
 May 1 2022: Version 0.5.2

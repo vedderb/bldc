@@ -157,6 +157,7 @@ special_sym const special_symbols[] =  {
   {"setix"          , SYM_SET_IX},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
+  {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
   {"acons"          , SYM_ACONS}, // Add to alist
   {"setassoc"       , SYM_SET_ASSOC}, // Change association
 

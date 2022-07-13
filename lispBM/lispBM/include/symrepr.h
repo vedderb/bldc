@@ -164,6 +164,7 @@
 #define SYM_ASSOC               0x148
 #define SYM_ACONS               0x149
 #define SYM_SET_ASSOC           0x14A
+#define SYM_COSSA               0x14B
 
 #define SYM_IS_FUNDAMENTAL      0x150
 
