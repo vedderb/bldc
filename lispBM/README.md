@@ -1079,6 +1079,19 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
+'app-to-use             ; App to use
+                        ;    0: APP_NONE
+                        ;    1: APP_PPM
+                        ;    2: APP_ADC
+                        ;    3: APP_UART
+                        ;    4: APP_PPM_UART
+                        ;    5: APP_ADC_UART
+                        ;    6: APP_NUNCHUK
+                        ;    7: APP_NRF
+                        ;    8: APP_CUSTOM
+                        ;    9: APP_BALANCE
+                        ;    10: APP_PAS
+                        ;    11: APP_ADC_PAS
 'controller-id          ; VESC CAN ID
 'ppm-ctrl-type          ; PPM Control Type
                         ;    0:  PPM_CTRL_TYPE_NONE
