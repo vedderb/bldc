@@ -971,27 +971,27 @@ an existing alist.
 
 ---
 
-### assoc 
+### assoc
 
-The `assoc` function looks up a value in an alist given a key. 
+The `assoc` function looks up the first value in an alist matching a given a key. 
 The form of an `assoc` expression is `(assoc alist-expr key-expr)`
 
 Example that looks up the value of key `2` in an alist.
-``` 
+```
 # (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
 > donkey
-``` 
+```
 
 ---
 
 
-### cossa 
+### cossa
 
-The `cossa` function looks up a key in an alist given a value. 
-The form of an `assoc` expression is `(assoc alist-expr key-expr)`
+The `cossa` function looks up the first key in an alist that matches a given value. 
+The form of an `cossa` expression is `(cossa alist-expr value-expr)`
 
-Example that looks up the first key with value `donkey` in an alist.
-``` 
+Example that looks up the key for the value `donkey` in an alist.
+```
 # (cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
 > 2
 ```
@@ -1000,7 +1000,7 @@ Example that looks up the first key with value `donkey` in an alist.
 
 ### setassoc
 
-The `setassoc` function destructively updates a key-value mapping in an 
+The `setassoc` function destructively updates a key-value mapping in an
 alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
 
 
