@@ -984,6 +984,20 @@ Example that looks up the value of key `2` in an alist.
 
 ---
 
+
+### cossa 
+
+The `cossa` function looks up a key in an alist given a value. 
+The form of an `assoc` expression is `(assoc alist-expr key-expr)`
+
+Example that looks up the first key with value `donkey` in an alist.
+``` 
+# (cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
+> 2
+```
+
+---
+
 ### setassoc
 
 The `setassoc` function destructively updates a key-value mapping in an 
