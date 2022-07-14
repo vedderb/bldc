@@ -1898,6 +1898,74 @@ This will clear the allocated memory for arr.
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
 
+## Native Libraries
+
+Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.
+
+Up to 10 native libraries can be loaded simultaneously and the recommended way to configure and interact with them is by providing LispBM-extensions from them.
+
+Currently the documentation for native libraries is limited, but there are some examples [in this diretory](c_libs/examples). The interface that can be used in native libraries can be found [in this file](c_libs/vesc_c_if.h).
+
+### Features
+
+Native libraries get a list of function pointers that can be used to interact with the rest of the VESC code. The following features are currently supported:
+
+* Register LispBM-extensions.
+* Os-functions like sleep, print, malloc, free, system time.
+* Create one or more threads.
+* GPIO-control (ST and abstract).
+* The ST standard peripheral library can be used.
+* Send and receive CAN-frames and control other VESCs over CAN-bus.
+* Motor control using almost everything from mc_interface.
+
+### Cleanup
+
+Every time lispBM is restarted or when new code is uploaded the native libraries are closed and reloaded, so it is important to do proper cleanup in lib_info->stop_fun when resources such as threads are allocated.
+
+#### load-native-lib
+
+```clj
+(load-native-lib lib)
+```
+
+Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library.
+
+#### unload-native-lib
+
+```clj
+(unload-native-lib lib)
+```
+
+Unload the native library lib. This is done automatically when lispBM is stopped or restarted, so there is no need to do it explicitly. This function is provided in case native libraries need to be explicitly loaded and unloaded while the same program is running.
+
+### Native Library Example
+
+This example creates an extension called ext-test that takes a number as an argument and returns the number multiplied by 3. The code for it can be found [in this diretory](c_libs/examples/extension).
+
+```clj
+; When running make in the example directory a file called example.lisp
+; with this array is created.
+
+(def example [
+0x00 0x00 0x00 0x00 0x08 0xb5 0x07 0x4b 0x07 0x49 0x08 0x48 0x7b 0x44 0x79 0x44 0x1b 0x68 0x03 0x4b
+0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xfc 0x00 0x10 0xf0 0xff 0xff 0xff
+0x2b 0x00 0x00 0x00 0x18 0x00 0x00 0x00 0x65 0x78 0x74 0x2d 0x74 0x65 0x73 0x74 0x00 0x00 0x00 0x00
+0x01 0x29 0x08 0xb5 0x1f 0xd1 0x00 0x68 0xc3 0x07 0x4c 0xbf 0x00 0xf0 0x7c 0x43 0x00 0xf0 0x0c 0x03
+0x08 0x2b 0x0d 0xd0 0x23 0xf0 0x08 0x02 0x04 0x2a 0x09 0xd0 0x23 0xf0 0x80 0x52 0x23 0xf0 0xa0 0x43
+0xb3 0xf1 0x00 0x5f 0x02 0xd0 0xb2 0xf1 0x80 0x4f 0x08 0xd1 0x05 0x4b 0xdb 0x68 0x98 0x47 0x00 0xeb
+0x40 0x00 0x00 0x01 0x40 0xf0 0x0c 0x00 0x08 0xbd 0x4f 0xf4 0x08 0x70 0xfb 0xe7 0x00 0xfc 0x00 0x10
+])
+
+; The array can be loaded like this
+
+(load-native-lib example)
+
+; Now an extension called ext-test is available. Here we use it
+; with the argument 4 and print the result
+
+(print (ext-test 4)) ; Should print 12
+```
+
 ## How to update
 
 To update from remote repository:
