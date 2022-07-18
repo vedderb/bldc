@@ -29,6 +29,11 @@
 
 /*! \page changelog Changelog
 
+Jul 17 2022: Version 0.5.4
+  - Refactoring with readability in focus.
+  - Computing encodings of commonly used symbol constants (for eval_cps) at compile time
+    rather then repeatedly at runtime.
+
 Jul 13 2022: Version 0.5.4
   - Added function that lookups based on the second field in assoc structures.
     Called it "cossa" as it is like assoc but backwards.
