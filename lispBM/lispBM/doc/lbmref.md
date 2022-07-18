@@ -682,7 +682,7 @@ The `setvar` form is used to change the value of some variable in an environment
 You can use `setvar` to change the value of a global definition, a local definition
 or a variable defintion (`#var`). An application of the `setvar` form looks like
 `(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
-rebinding the variable.
+rebinding the variable. `setvar` returns the value that `val-expr` evaluates to.
 
 Examples:
 ```clj
