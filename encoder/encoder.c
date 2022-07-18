@@ -149,6 +149,19 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_AS5x47U_SPI: {
+		SENSOR_PORT_3V3();
+
+		if (!enc_as5x47u_init(&encoder_cfg_as5x47u)) {
+			return false;
+		}
+
+		encoder_type_now = ENCODER_TYPE_AS5x47U;
+		timer_start(10000);
+
+		res = true;
+	} break;
+
 	default:
 		SENSOR_PORT_5V();
 		encoder_type_now = ENCODER_TYPE_NONE;
@@ -157,7 +170,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 	terminal_register_command_callback(
 			"encoder",
-			"Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.",
+			"Prints the status of the AS5047, AS5x47U, AD2S1205, or TS5700N8501 encoder.",
 			0,
 			terminal_encoder);
 
@@ -193,6 +206,8 @@ void encoder_deinit(void) {
 		enc_sincos_deinit(&encoder_cfg_sincos);
 	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		enc_ts5700n8501_deinit(&encoder_cfg_TS5700N8501);
+	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
+		enc_as5x47u_deinit(&encoder_cfg_as5x47u);
 	}
 
 	encoder_type_now = ENCODER_TYPE_NONE;
@@ -211,6 +226,8 @@ float encoder_read_deg(void) {
 		return enc_sincos_read_deg(&encoder_cfg_sincos);
 	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		return enc_ts5700n8501_read_deg(&encoder_cfg_TS5700N8501);
+	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
+		return AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
 	}
 	return 0.0;
 }
@@ -312,6 +329,26 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			break;
 
+		case SENSOR_PORT_MODE_AS5x47U_SPI:
+			if (encoder_cfg_as5x47u.state.spi_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
+			}
+
+			AS5x47U_diag diag = encoder_cfg_as5x47u.state.sensor_diag;
+			if (!diag.is_connected) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
+			}
+
+			if (diag.is_Comp_high) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
+			} else if(diag.is_Comp_low) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, is_second_motor, false);
+			} else if(diag.is_broken_hall || diag.is_COF || diag.is_wdtst) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
+			}
+
+			break;
+
 		default:
 			break;
 		}
@@ -334,6 +371,10 @@ void encoder_tim_isr(void) {
 
 		case ENCODER_TYPE_AD2S1205_SPI:
 			enc_ad2s1205_routine(&encoder_cfg_ad2s1205);
+			break;
+
+		case ENCODER_TYPE_AS5x47U:
+			enc_as5x47u_routine(&encoder_cfg_as5x47u);
 			break;
 
 		default:
@@ -410,6 +451,40 @@ static void terminal_encoder(int argc, const char **argv) {
 
 	case SENSOR_PORT_MODE_ABI:
 		commands_printf("Index found: %d", encoder_index_found());
+		break;
+
+	case SENSOR_PORT_MODE_AS5x47U_SPI:
+		commands_printf("SPI AS5x47U encoder value: %d, errors: %d, error rate: %.3f %%",
+				encoder_cfg_as5x47u.state.spi_val, encoder_cfg_as5x47u.state.spi_communication_error_count,
+				(double)(encoder_cfg_as5x47u.state.spi_error_rate * 100.0));
+
+		commands_printf("\nAS5x47U DIAGNOSTICS:\n"
+				"Connected   : %u\n"
+				"AGC         : %u\n"
+				"Magnitude   : %u\n"
+				"COF         : %u\n"
+				"Hall_Broken : %u\n"
+				"Error       : %u\n"
+				"COMP_low    : %u\n"
+				"COMP_high   : %u\n"
+				"WatchdogTest: %u\n"
+				"CRC Error   : %u\n"
+				"MagHalf     : %u\n"
+				"Error Flags : %04X\n"
+				"Diag Flags  : %04X\n",
+				encoder_cfg_as5x47u.state.sensor_diag.is_connected,
+				encoder_cfg_as5x47u.state.sensor_diag.AGC_value,
+				encoder_cfg_as5x47u.state.sensor_diag.magnitude,
+				encoder_cfg_as5x47u.state.sensor_diag.is_COF,
+				encoder_cfg_as5x47u.state.sensor_diag.is_broken_hall,
+				encoder_cfg_as5x47u.state.sensor_diag.is_error,
+				encoder_cfg_as5x47u.state.sensor_diag.is_Comp_low,
+				encoder_cfg_as5x47u.state.sensor_diag.is_Comp_high,
+				encoder_cfg_as5x47u.state.sensor_diag.is_wdtst,
+				encoder_cfg_as5x47u.state.sensor_diag.is_crc_error,
+				encoder_cfg_as5x47u.state.sensor_diag.is_mag_half,
+				encoder_cfg_as5x47u.state.sensor_diag.serial_error_flgs,
+				encoder_cfg_as5x47u.state.sensor_diag.serial_diag_flgs);
 		break;
 
 	default:

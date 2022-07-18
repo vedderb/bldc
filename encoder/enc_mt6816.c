@@ -42,10 +42,14 @@ bool enc_mt6816_init(MT6816_config_t *cfg) {
 
 	memset(&cfg->state, 0, sizeof(MT6816_state));
 
-	palSetPadMode(cfg->sck_gpio, cfg->sck_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(cfg->miso_gpio, cfg->miso_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(cfg->nss_gpio, cfg->nss_pin, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin, PAL_MODE_ALTERNATE(6) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->sck_gpio, cfg->sck_pin,
+			PAL_MODE_ALTERNATE(cfg->spi_af) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->miso_gpio, cfg->miso_pin,
+			PAL_MODE_ALTERNATE(cfg->spi_af) | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->nss_gpio, cfg->nss_pin,
+			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(cfg->mosi_gpio, cfg->mosi_pin,
+			PAL_MODE_ALTERNATE(cfg->spi_af) | PAL_STM32_OSPEED_HIGHEST);
 
 	spiStart(cfg->spi_dev, &(cfg->hw_spi_cfg));
 
