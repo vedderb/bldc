@@ -357,13 +357,15 @@ static bool check_faults(bool ignoreTimers){
 	}
 
 	// Switch partially open and stopped
-	if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
-		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
-			state = FAULT_SWITCH_HALF;
-			return true;
+	if(!balance_conf.fault_is_dual_switch) {
+		if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
+			if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
+				state = FAULT_SWITCH_HALF;
+				return true;
+			}
+		} else {
+			fault_switch_half_timer = current_time;
 		}
-	} else {
-		fault_switch_half_timer = current_time;
 	}
 
 	// Check pitch angle
@@ -675,7 +677,10 @@ static THD_FUNCTION(balance_thread, arg) {
 			if(adc1 > balance_conf.fault_adc1 && adc2 > balance_conf.fault_adc2){
 				switch_state = ON;
 			}else if(adc1 > balance_conf.fault_adc1 || adc2 > balance_conf.fault_adc2){
-				switch_state = HALF;
+				if (balance_conf.fault_is_dual_switch)
+					switch_state = ON;
+				else
+					switch_state = HALF;
 			}else{
 				switch_state = OFF;
 			}
