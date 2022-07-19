@@ -1,6 +1,6 @@
 /*
 	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
-	Copyright 2022 Jakub Tomczak
+	Copyright 2022 Zach O'Brien
 
 	This file is part of the VESC firmware.
 
