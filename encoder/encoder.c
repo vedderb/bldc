@@ -341,9 +341,9 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 
 			if (diag.is_Comp_high) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
-			} else if(diag.is_Comp_low) {
+			} else if (diag.is_Comp_low) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, is_second_motor, false);
-			} else if(diag.is_broken_hall || diag.is_COF || diag.is_wdtst) {
+			} else if (diag.is_broken_hall || diag.is_COF || diag.is_wdtst) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
 			}
 

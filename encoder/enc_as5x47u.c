@@ -56,10 +56,10 @@
 #define AS5x47U_SPI_POS_ADR									0x3FFF
 
 #define AS5x47U_SPI_READ_ERRFL_MSG			(AS5x47U_SPI_ERRFL_ADR | AS5x47U_SPI_READ_BIT)
-#define AS5x47U_SPI_READ_DIAG_MSG			(AS5x47U_SPI_DIAG_ADR | AS5x47U_SPI_READ_BIT)
-#define AS5x47U_SPI_READ_MAGN_MSG			(AS5x47U_SPI_MAGN_ADR | AS5x47U_SPI_READ_BIT)
-#define AS5x47U_SPI_READ_AGC_MSG			(AS5x47U_SPI_AGC_ADR | AS5x47U_SPI_READ_BIT)
-#define AS5x47U_SPI_READ_POS_MSG			(AS5x47U_SPI_POS_ADR | AS5x47U_SPI_READ_BIT)
+#define AS5x47U_SPI_READ_DIAG_MSG			(AS5x47U_SPI_DIAG_ADR  | AS5x47U_SPI_READ_BIT)
+#define AS5x47U_SPI_READ_MAGN_MSG			(AS5x47U_SPI_MAGN_ADR  | AS5x47U_SPI_READ_BIT)
+#define AS5x47U_SPI_READ_AGC_MSG			(AS5x47U_SPI_AGC_ADR   | AS5x47U_SPI_READ_BIT)
+#define AS5x47U_SPI_READ_POS_MSG			(AS5x47U_SPI_POS_ADR   | AS5x47U_SPI_READ_BIT)
 
 #define AS5x47U_SPI_READ_ERRFL_CRC							(0x06)
 #define AS5x47U_SPI_READ_DIAG_CRC							(0x6F)
@@ -83,7 +83,6 @@ enum {
 
 // Private functions
 static void AS5x47U_determinate_if_connected(AS5x47U_config_t *cfg, bool was_last_valid);
-// static void AS5x47U_start_spi_exchange(AS5x47U_config_t *cfg, uint16_t tx_data);
 static void AS5x47U_start_spi_exchange_precalc_crc(AS5x47U_config_t *cfg,
 		uint16_t tx_data, uint8_t tx_crc);
 static void AS5x47U_process_pos(AS5x47U_config_t *cfg, uint16_t posData);
@@ -365,7 +364,7 @@ static void AS5x47U_start_spi_exchange_precalc_crc(AS5x47U_config_t *cfg,
 	memset(cfg->state.rx_buf, 0, sizeof(cfg->state.rx_buf));
 
 	// There is a weird corner case where the DMA may not read all of the Rx data. This
-	// causes the RXNE flag to be set when an exchange starts, causing the fist byte of
+	// causes the RXNE flag to be set when an exchange starts, causing the first byte of
 	// data received to be from the previous exchange. This is corrected by reading the
 	// SPI data register, clearing the RXNE flag.
 	volatile uint32_t test = cfg->spi_dev->spi->DR;
