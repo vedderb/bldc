@@ -265,7 +265,9 @@ bool enc_as5x47u_init(AS5x47U_config_t *cfg) {
 
 	cfg->spi_dev->app_arg = (void*)cfg;
 	cfg->spi_dev->err_cb = as5x47u_spi_err_callback;
-	// cfg->spi_dev->config->end_cb = enc_as5x47u_spi_callback; // Set in encoder_cfg.c
+
+	// Set in encoder_cfg.c, kept here for visability
+	// cfg->spi_dev->config->end_cb = enc_as5x47u_spi_callback;
 
 	spiStart(cfg->spi_dev, &(cfg->hw_spi_cfg));
 
