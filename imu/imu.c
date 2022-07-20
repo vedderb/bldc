@@ -63,9 +63,10 @@ void imu_init(imu_config *set) {
 	mpu9150_set_rate_hz(MIN(set->sample_rate_hz, 1000));
 	m_icm20948_state.rate_hz = MIN(set->sample_rate_hz, 1000);
 	m_bmi_state.rate_hz = set->sample_rate_hz;
-	lsm6ds3_set_rate_hz(MIN(set->sample_rate_hz, 1000));
+	lsm6ds3_set_rate_hz(set->sample_rate_hz);
 
 	m_bmi_state.filter = set->filter;
+	lsm6ds3_set_filter(set->filter);
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
