@@ -462,7 +462,14 @@ Get speed in meters per second. Requires that the number of motor poles, wheel d
 (get-dist)
 ```
 
-Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
+Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly. When the motor spins forwards this counter counts up and when it spins backwards it counts down.
+
+#### get-dist-abs
+```clj
+(get-dist-abs)
+```
+
+Same as get-dist, but will count up when the motors spins in both directions.
 
 #### get-batt
 ```clj

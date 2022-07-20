@@ -1129,6 +1129,11 @@ static lbm_value ext_get_dist(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_distance());
 }
 
+static lbm_value ext_get_dist_abs(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_distance_abs());
+}
+
 static lbm_value ext_get_batt(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_battery_level(0));
@@ -3354,6 +3359,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
 	lbm_add_extension("get-dist", ext_get_dist);
+	lbm_add_extension("get-dist-abs", ext_get_dist_abs);
 	lbm_add_extension("get-batt", ext_get_batt);
 	lbm_add_extension("get-fault", ext_get_fault);
 
