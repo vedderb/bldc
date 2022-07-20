@@ -66,44 +66,6 @@
 #define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
-
-#define ENC_SYM_STACK_ERROR ((SYM_STACK_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MERROR      ((SYM_MERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_RERROR      ((SYM_RERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EERROR      ((SYM_EERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TERROR      ((SYM_TERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_FATAL_ERROR ((SYM_FATAL_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_NOT_FOUND   ((SYM_NOT_FOUND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NONSENSE    ((SYM_NONSENSE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NO_MATCH    ((SYM_NO_MATCH << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_NIL         ((SYM_NIL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TRUE        ((SYM_TRUE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_ARRAY_TYPE  ((SYM_ARRAY_TYPE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_READ        ((SYM_READ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_READ_PROGRAM ((SYM_READ_PROGRAM << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EVAL        ((SYM_EVAL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EVAL_PROGRAM ((SYM_EVAL_PROGRAM << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CONT        ((SYM_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CLOSURE     ((SYM_CLOSURE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MACRO       ((SYM_MACRO << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MACRO_EXPAND ((SYM_MACRO_EXPAND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SETVAR      ((SYM_SETVAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SPAWN       ((SYM_SPAWN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_YIELD       ((SYM_YIELD << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_WAIT        ((SYM_WAIT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SEND        ((SYM_SEND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_QUOTE       ((SYM_QUOTE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_COMMA       ((SYM_COMMA << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_COMMAAT     ((SYM_COMMAAT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CLOSEPAR    ((SYM_CLOSEPAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TOKENIZER_DONE ((SYM_TOKENIZER_DONE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
 static const char* parse_error_dot = "Incorrect usage of '.'";
@@ -910,6 +872,33 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
         }
       }
       return false;
+    case SYM_MATCH_U64:
+      if (lbm_type_of(e) == LBM_TYPE_U64) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case SYM_MATCH_I64:
+      if (lbm_type_of(e) == LBM_TYPE_I64) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case SYM_MATCH_DOUBLE:
+      if (lbm_type_of(e) == LBM_TYPE_DOUBLE) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
     case SYM_MATCH_CONS:
       if (lbm_type_of(e) == LBM_TYPE_CONS) {
         if (lbm_dec_sym(var) == SYM_DONTCARE) {
@@ -963,13 +952,25 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
              lbm_type_of(e) == LBM_TYPE_FLOAT &&
              lbm_dec_float(p) == lbm_dec_float(e)) {
     return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_DOUBLE &&
+	     lbm_type_of(e) == LBM_TYPE_DOUBLE &&
+	     lbm_dec_double(p) == lbm_dec_double(e)) {
+    return true;
   } else if (lbm_type_of(p) == LBM_TYPE_U32 &&
              lbm_type_of(e) == LBM_TYPE_U32 &&
              lbm_dec_u32(p) == lbm_dec_u32(e)) {
     return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_U64 &&
+	     lbm_type_of(e) == LBM_TYPE_U64 &&
+	     lbm_dec_u64(p) == lbm_dec_u64(e)) {
+    return true;
   } else if (lbm_type_of(p) == LBM_TYPE_I32 &&
-      lbm_type_of(e) == LBM_TYPE_I32 &&
-      lbm_dec_i32(p) == lbm_dec_i32(e)) {
+	     lbm_type_of(e) == LBM_TYPE_I32 &&
+	     lbm_dec_i32(p) == lbm_dec_i32(e)) {
+    return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_I64 &&
+	     lbm_type_of(e) == LBM_TYPE_I64 &&
+	     lbm_dec_i64(p) == lbm_dec_i64(e)) {
     return true;
   } else if (p == e) {
     return true;

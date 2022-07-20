@@ -68,6 +68,9 @@ special_sym const special_symbols[] =  {
   {"?i32"       , SYM_MATCH_I32},
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
+  {"?u64"       , SYM_MATCH_U64},
+  {"?i64"       , SYM_MATCH_I64},
+  {"?double"    , SYM_MATCH_DOUBLE},
 
   // Special symbols with unparsable names
   {"no_match"           , SYM_NO_MATCH},

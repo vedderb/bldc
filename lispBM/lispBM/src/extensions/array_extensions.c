@@ -82,7 +82,7 @@ bool lbm_array_extensions_init(void) {
 
 lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   if (argn != 1 ||
       lbm_type_of(args[0]) != LBM_TYPE_ARRAY) {
     return res;
@@ -92,9 +92,9 @@ lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
     lbm_memory_free((lbm_uint *)array->data);
     lbm_uint ptr = lbm_dec_ptr(args[0]);
     lbm_value cons_ptr = lbm_enc_cons_ptr(ptr);
-    lbm_set_car(cons_ptr,lbm_enc_sym(SYM_NIL));
-    lbm_set_cdr(cons_ptr,lbm_enc_sym(SYM_NIL));
-    res = lbm_enc_sym(SYM_TRUE);
+    lbm_set_car(cons_ptr,ENC_SYM_NIL);
+    lbm_set_cdr(cons_ptr,ENC_SYM_NIL);
+    res = ENC_SYM_TRUE;
   }
   lbm_memory_free((lbm_uint *)array);
   return res;
@@ -102,7 +102,7 @@ lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
 
   if (argn == 3) {
     if(lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
@@ -123,14 +123,14 @@ lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
 
     uint8_t *data = (uint8_t*)array->data;
     data[index] = (uint8_t) value;
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
   }
   return res;
 }
 
 lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -167,7 +167,7 @@ lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
       data[index]    = (uint8_t)value;
       data[index +1] = (uint8_t)(value >> 8);
     }
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -177,7 +177,7 @@ lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -218,7 +218,7 @@ lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn) {
       data[index+2]  = (uint8_t) (value >> 16);
       data[index+3]  = (uint8_t) (value >> 24);
     }
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -228,7 +228,7 @@ lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
 
   switch(argn) {
 
@@ -251,7 +251,7 @@ lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn) {
 
     uint8_t *data = (uint8_t*)array->data;
     data[index] = (uint8_t)value;
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -261,7 +261,7 @@ lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -298,7 +298,7 @@ lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
       data[index]    = (uint8_t)value;
       data[index +1] = (uint8_t)(value >> 8);
     }
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -308,7 +308,7 @@ lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -349,7 +349,7 @@ lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn) {
       data[index+2]  = (uint8_t)(value >> 16);
       data[index+3]  = (uint8_t)(value >> 24);
     }
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -403,7 +403,7 @@ static lbm_float u_to_float(uint32_t v) {
 
 lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
 
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -445,7 +445,7 @@ lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
       data[index+2]  = (uint8_t)(value >> 16);
       data[index+3]  = (uint8_t)(value >> 24);
     }
-    res = lbm_enc_sym(SYM_TRUE);
+    res = ENC_SYM_TRUE;
     break;
   default:
     break;
@@ -457,7 +457,7 @@ lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
 /* (buffer-get-i16 buffer index little-endian) */
 
 lbm_value array_extension_buffer_get_i8(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
 
   if (argn == 2) {
     if(lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
@@ -485,7 +485,7 @@ lbm_value array_extension_buffer_get_i8(lbm_value *args, lbm_uint argn) {
 
 
 lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -533,7 +533,7 @@ lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -586,7 +586,7 @@ lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
 
 
 lbm_value array_extension_buffer_get_u8(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
 
   if (argn == 2) {
     if(lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
@@ -614,7 +614,7 @@ lbm_value array_extension_buffer_get_u8(lbm_value *args, lbm_uint argn) {
 
 
 lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res =  ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -662,7 +662,7 @@ lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -714,7 +714,7 @@ lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   bool be = true;
 
   switch(argn) {
@@ -766,7 +766,7 @@ lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value array_extension_buffer_length(lbm_value *args, lbm_uint argn) {
-  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 &&
       lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     printf("trying\n");

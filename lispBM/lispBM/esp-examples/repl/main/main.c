@@ -23,7 +23,6 @@
 #include "freertos/task.h"
 #include "esp_chip_info.h"
 #include "esp_spi_flash.h"
-#include "driver/uart.h"
 
 #include "lispbm.h"
 #include "lbm_llama_ascii.h"
@@ -36,50 +35,6 @@
 
 #include "lbm_custom_type.h"
 
-#define UART_NUM      0
-#define UART_BAUDRATE 115200
-#define UART_TX       21
-#define UART_RX       20
-
-
-void uart_init(void) {
-	uart_config_t uart_config = {
-			.baud_rate = UART_BAUDRATE,
-			.data_bits = UART_DATA_8_BITS,
-			.parity    = UART_PARITY_DISABLE,
-			.stop_bits = UART_STOP_BITS_1,
-			.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-			.source_clk = UART_SCLK_DEFAULT,
-	};
-
-	uart_driver_install(UART_NUM, 512, 512, 0, 0, 0);
-	uart_param_config(UART_NUM, &uart_config);
-	uart_set_pin(UART_NUM, UART_TX, UART_RX, -1, -1);
-}
-
-int get_char(void) {
-	uint8_t c;
-	int r = 0;
-	do {
-		r = uart_read_bytes(UART_NUM, &c, 1, portMAX_DELAY);
-	} while (r == 0);
-	return (int)c;
-}
-
-void uart_printf(const char* fmt, ...) {
-	char buffer[256];
-	va_list args;
-	va_start (args, fmt);
-	int n = vsnprintf (buffer,256,fmt, args);
-	va_end (args);
-	if (n > 0) {
-		uart_write_bytes(UART_NUM, buffer, n);
-	}
-}
-
-void put_char(char c) {
-   uart_write_bytes(UART_NUM, &c, 1);
-}
 
 int inputline(char *buffer, int size) {
   int n = 0;
@@ -87,16 +42,16 @@ int inputline(char *buffer, int size) {
 
   for (n = 0; n < size - 1; n++) {
 
-    c = get_char();
+    c = getchar();
     switch (c) {
     case 127: /* fall through to below */
     case '\b': /* backspace character received */
       if (n > 0)
         n--;
       buffer[n] = 0;
-      put_char(0x8); /* output backspace character */
-      put_char(' ');
-      put_char(0x8);
+      putchar(0x8); /* output backspace character */
+      putchar(' ');
+      putchar(0x8);
       n--; /* set up next iteration to deal with preceding char location */
       break;
     case '\n': /* fall through to \r */
@@ -105,10 +60,13 @@ int inputline(char *buffer, int size) {
       return n;
     default:
       if (isprint(c)) { /* ignore non-printable characters */
-        put_char(c);
+        putchar(c);
         buffer[n] = c;
       } else {
-        n -= 1;
+    	  // Yield or get a complaint from the watchdog.
+    	  // No character received or unprintable.
+    	  vTaskDelay(1);
+    	  n -= 1;
       }
       break;
     }
@@ -156,9 +114,9 @@ void done_callback(eval_context_t *ctx) {
 	int print_ret = lbm_print_value(output, PRINT_SIZE, t);
 
 	if (print_ret >= 0) {
-		uart_printf("<< Context %d finished with value %s >>\r\n", cid, output);
+		printf("<< Context %d finished with value %s >>\r\n", cid, output);
 	} else {
-		uart_printf("<< Context %d finished with value %s >>\r\n", cid, output);
+		printf("<< Context %d finished with value %s >>\r\n", cid, output);
 	}
 }
 
@@ -186,7 +144,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
       case LBM_TYPE_CHAR:
-        uart_printf("%s", (char*)array->data);
+        printf("%s", (char*)array->data);
         break;
       default:
         return lbm_enc_sym(SYM_NIL);
@@ -194,13 +152,13 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       }
     } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
       if (lbm_dec_char(t) =='\n') {
-        uart_printf("\r\n");
+        printf("\r\n");
       } else {
-        uart_printf("%c", lbm_dec_char(t));
+        printf("%c", lbm_dec_char(t));
       }
     }  else {
       lbm_print_value(output, 1024, t);
-      uart_printf("%s", output);
+      printf("%s", output);
     }
   }
   return lbm_enc_sym(SYM_TRUE);
@@ -211,7 +169,7 @@ static char outbuf[1024];
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
   lbm_print_value(outbuf, 1024, ctx->r);
-  uart_printf("%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf);
+  printf("%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf);
 }
 
 void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
@@ -234,8 +192,6 @@ void app_main(void)
 	lbm_heap_state_t heap_state;
 
 	vTaskDelay(1000);
-	uart_init();
-
 
 	if (!lbm_init(heap, HEAP_SIZE,
 			gc_stack_storage, GC_STACK_SIZE,
@@ -243,10 +199,10 @@ void app_main(void)
 			bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
 			print_stack_storage, PRINT_STACK_SIZE,
 			extension_storage, EXTENSION_STORAGE_SIZE)) {
-		uart_printf("LispBM Init failed.\r\n");
+		printf("LispBM Init failed.\r\n");
 		return;
 	}
-	uart_printf("LispBM Initialized\r\n");
+	printf("LispBM Initialized\r\n");
 
 	lbm_set_ctx_done_callback(done_callback);
 	lbm_set_timestamp_us_callback(timestamp_callback);
@@ -254,9 +210,9 @@ void app_main(void)
 
 	res = lbm_add_extension("print", ext_print);
 	if (res)
-		uart_printf("Extension added.\r\n");
+		printf("Extension added.\r\n");
 	else
-		uart_printf("Error adding extension.\r\n");
+		printf("Error adding extension.\r\n");
 
 
 	TaskHandle_t eval_thd = NULL;
@@ -269,40 +225,40 @@ void app_main(void)
 	);
 
 	if( status == pdPASS ) {
-		uart_printf("Evaluator thread started\r\n");
+		printf("Evaluator thread started\r\n");
 	}
 
-	uart_printf("LispBM Version %d.%d.%d\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
-	uart_printf("Lisp REPL started (ESP32C3)\r\n");
+	printf("LispBM Version %d.%d.%d\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+	printf("Lisp REPL started (ESP32C3)\r\n");
 
 	while (1) {
-		uart_printf("# ");
+		printf("# ");
 		memset(str,0,1024);
 		memset(outbuf,0, 1024);
 		inputline(str, 1024);
-		uart_printf("\r\n");
+		printf("\r\n");
 		if (strncmp(str, ":info", 5) == 0) {
-			uart_printf("------------------------------------------------------------\r\n");
-			uart_printf("Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
-			uart_printf("Free cons cells: %lu\r\n", lbm_heap_num_free());
+			printf("------------------------------------------------------------\r\n");
+			printf("Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
+			printf("Free cons cells: %lu\r\n", lbm_heap_num_free());
 			lbm_get_heap_state(&heap_state);
-			uart_printf("GC counter: %lu\r\n", heap_state.gc_num);
-			uart_printf("Recovered: %lu\r\n", heap_state.gc_recovered);
-			uart_printf("Marked: %lu\r\n", heap_state.gc_marked);
+			printf("GC counter: %lu\r\n", heap_state.gc_num);
+			printf("Recovered: %lu\r\n", heap_state.gc_recovered);
+			printf("Marked: %lu\r\n", heap_state.gc_marked);
 
-			uart_printf("Array and symbol string memory:\r\n");
-			uart_printf("  Size: %u 32Bit words\r\n", lbm_memory_num_words());
-			uart_printf("  Free: %u 32Bit words\r\n", lbm_memory_num_free());
-			uart_printf("------------------------------------------------------------\r\n");
+			printf("Array and symbol string memory:\r\n");
+			printf("  Size: %u 32Bit words\r\n", lbm_memory_num_words());
+			printf("  Free: %u 32Bit words\r\n", lbm_memory_num_free());
+			printf("------------------------------------------------------------\r\n");
 			memset(outbuf,0, 1024);
 		} else if (strncmp(str, ":env", 4) == 0) {
 			lbm_value curr = *lbm_get_env_ptr();
-			uart_printf("Environment:\r\n");
+			printf("Environment:\r\n");
 			while (lbm_type_of(curr) == LBM_TYPE_CONS) {
 				res = lbm_print_value(outbuf,1024, lbm_car(curr));
 				curr = lbm_cdr(curr);
 
-				uart_printf("  %s \r\n", outbuf);
+				printf("  %s \r\n", outbuf);
 			}
 		} else if (strncmp(str, ":ctxs", 5) == 0) {
 			lbm_running_iterator(print_ctx_info, "RUNNABLE", NULL);
@@ -320,7 +276,7 @@ void app_main(void)
 			while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
 				sleep_callback(10);
 			}
-			uart_printf("Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+			printf("Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
 		} else if (strncmp(str, ":continue", 9) == 0) {
 			lbm_continue_eval();
 		} else if (strncmp(str, ":step", 5) == 0) {
@@ -328,7 +284,7 @@ void app_main(void)
 			while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
 				sleep_callback(1);
 			}
-			uart_printf("Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+			printf("Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
 		} else if (strncmp(str, ":reset", 6) == 0) {
 			lbm_pause_eval();
 			while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -341,7 +297,7 @@ void app_main(void)
 					bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
 					print_stack_storage, PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE)) {
-				uart_printf("LispBM Init failed.\r\n");
+				printf("LispBM Init failed.\r\n");
 				return;
 			}
 			lbm_add_extension("print", ext_print);
@@ -368,7 +324,7 @@ void app_main(void)
 
 			lbm_continue_eval();
 
-			uart_printf("started ctx: %u\r\n", cid);
+			printf("started ctx: %u\r\n", cid);
 			lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
 		}
 	}
