@@ -29,6 +29,10 @@
 
 /*! \page changelog Changelog
 
+Jul 18 2022: Version 0.5.4
+  - Added pattern matching support for i64, u64 and double. 
+  - Fixed issue with pattern matching on i32, u32. 
+
 Jul 17 2022: Version 0.5.4
   - Refactoring with readability in focus.
   - Computing encodings of commonly used symbol constants (for eval_cps) at compile time

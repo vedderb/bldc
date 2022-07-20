@@ -786,11 +786,26 @@ has been extended with the binding `(apa 1)`.
 
 ## Lists and cons cells
 
-Lists are build using cons cells. A cons cell is represented by the \ref lbm_cons_t struct in the
+Lists are build using cons cells. A cons cell is represented by the lbm_cons_t struct in the
 implementation and consists of two fields named the `car` and the `cdr`.
 There is no special meaning associated with the `car` and the `cdr` each can hold
-a \ref lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of
+a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of
 cons cells on the heap.
+
+![cons cell](images/cons_cell.png?raw=true "cons cell")
+
+A cons cell can be used to store a pair of values. You create a pair by
+sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or
+`(cons 1 2)`. 
+
+![pair](images/pair.png?raw=true "pair")
+
+A list is a number of cons cells linked together where the car fields hold values
+and the cdr fields hold pointers (the last cdr field is nil). The list below
+can be created either as `'(1 2 3)` or as `(list 1 2 3)`.
+
+![list](images/list.png?raw=true "pair")
+
 
 ### car
 
@@ -814,6 +829,19 @@ The `car` operation accesses the head element of a list. The following program e
 
 ---
 
+### first
+
+`first` is an alternative (and one that makes some sense) name for the `car` operation.
+
+Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`.
+
+```lisp
+# (first (list 1 2 3 4))
+> 1
+```
+
+---
+
 ### cdr
 
 Use `cdr` to access the `cdr` field of a cons cell. A
@@ -826,6 +854,19 @@ The example below evaluates to 2.
 The `cdr` operation gives you the rest of a list. The example below evaluates to the list (8 7).
 ```clj
 (cdr (list 9 8 7))
+```
+
+---
+
+### rest
+
+`rest` is an alternative name for the `cdr` operation.
+
+Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`.
+
+```lisp
+# (rest (list 1 2 3 4))
+> (2 3 4)
 ```
 
 ---
