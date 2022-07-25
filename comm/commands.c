@@ -1445,6 +1445,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			nrf_driver_pause(6000);
 		}
 
+#ifdef USE_LISPBM
+		if (packet_id == COMM_LISP_ERASE_CODE) {
+			lispif_restart(false, false);
+		}
+#endif
+
 		uint16_t flash_res = flash_helper_erase_code(packet_id == COMM_QMLUI_ERASE ? CODE_IND_QML : CODE_IND_LISP);
 
 		int32_t ind = 0;
@@ -1637,7 +1643,7 @@ int commands_printf(const char* format, ...) {
 
 	int len_to_print = (len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE;
 
-	if(len > 0) {
+	if (len > 0) {
 		commands_send_packet_last_blocking((unsigned char*)print_buffer, len_to_print);
 	}
 
@@ -1659,12 +1665,12 @@ int commands_printf_lisp(const char* format, ...) {
 
 	int len_to_print = (len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE;
 
-	if(len > 0) {
+	if (len > 0) {
 		if (print_buffer[len_to_print - 1] == '\n') {
 			len_to_print--;
 		}
 
-		commands_send_packet_last_blocking((unsigned char*)print_buffer, len_to_print);
+		commands_send_packet((unsigned char*)print_buffer, len_to_print);
 	}
 
 	chMtxUnlock(&print_mutex);

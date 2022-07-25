@@ -442,7 +442,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 			addr |= 1; // Ensure that thumb mode is used (??)
 			ok = ((bool(*)(lib_info *info))addr)(&loaded_libs[i]);
 
-			if (loaded_libs[i].stop_fun != NULL && (uint32_t)loaded_libs[i].stop_fun < 0x10000000) {
+			if (loaded_libs[i].stop_fun != NULL && (uint32_t)loaded_libs[i].stop_fun < 0x08000000) {
 				loaded_libs[i].stop_fun = NULL;
 				lbm_set_error_reason("Invalid stop function. Make sure that it is static.");
 				return res;

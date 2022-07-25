@@ -18,6 +18,7 @@
  - mxlemming
  - ortega with flux linkage tracking
  - mxlemming with flux linkage tracking
+* AS5x47 encoder support: https://github.com/vedderb/bldc/pull/511
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

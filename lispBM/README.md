@@ -1905,6 +1905,27 @@ This will clear the allocated memory for arr.
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
 
+## Import Files
+
+Import is a special command that is mostly handled by VESC Tool. When VESC Tool sees a line that imports a file it will open and read that file and attach it as binary data to the end of the uploaded code. VESC Tool also generates a table of the imported files that will be allocated as arrays and passed to LispBM at start and bound to bindings.
+
+Every imported file behaves as a byte array that is read-only (so do not try to modify it). These byte arrays can be used as usual from the lisp code to, for example, load native libraries or to load more lisp code at runtime. As they are stored in flash in raw binary format there is significantly more space available than when using e.g. the array syntax. The lisp script and the imported files can use up to 120 KB together.
+
+#### import
+
+```clj
+(import filename binding)
+```
+
+Load filename as a byte array and bind it to binding. Note that import must be on its own line and that every line can only have one import.
+
+**Example: Load native library**
+
+```clj
+(import "ws2812.bin" 'ws2812) ; Import the native ws2812 library. This creates the byte array ws2812 that can be used usual.
+(load-native-lib ws2812); Load it to get the extensions it provides 
+```
+
 ## Native Libraries
 
 Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.

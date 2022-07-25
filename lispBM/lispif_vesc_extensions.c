@@ -3091,7 +3091,7 @@ static lbm_value ext_bufset_bit(lbm_value *args, lbm_uint argn) {
 		((uint8_t*)array->data)[bytepos] |= (bit << bitpos);
 	}
 
-	res = lbm_enc_sym(SYM_TRUE);
+	res = ENC_SYM_TRUE;
 
 	return res;
 }
@@ -3274,6 +3274,11 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
+	(void)args;(void)argn;
+	return ENC_SYM_TRUE;
+}
+
 // Declare native lib extension
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
@@ -3331,6 +3336,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
+	lbm_add_extension("import", ext_empty);
 
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);
