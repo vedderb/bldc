@@ -202,22 +202,21 @@
 /*
  * ADC Vector
  *
- * 0:  IN0    CURR3
- * 1:  IN15    CURR4
- * 2:  IN3     SERVO2/ADC
- * 3:   IN9     CURR1
- * 4:   IN8     CURR2
- * 5:   IN10    AN_IN
- * 6:   IN0     SENS2
- * 7:   IN1     SENS3
- * 8:   IN2     SENS1
- * 9:   IN5     ADC_EXT
- * 10:   IN4     ADC_TEMP
- * 11:   IN13    SENS4
- * 12:   Vrefint
- * 13:   IN11    SENS6
- * 14:  IN12    SENS5
- * 15:  IN6     ADC_EXT2
+ * 0:    IN9      CURR1
+ * 1:    IN8      CURR2
+ * 2:    IN10     V BUS DIV
+ * 3:    IN14     CURR4
+ * 4:    IN15     CURR3
+ * 5:    IN3      VM_SENS (12V)
+ * 6:    IN5      CURR6
+ * 7:    IN6      CURR5
+ * 8:    IN13     SENS4
+ * 9:    IN4      ADC_MUX
+ * 10:   IN12     SENS5
+ * 11:   IN11     SENS6
+ * 12:   IN0      SENS2
+ * 13:   IN1      SENS3
+ * 14:   IN2      SENS1
  */
 
 #define HW_ADC_CHANNELS			15

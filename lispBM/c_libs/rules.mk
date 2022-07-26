@@ -29,6 +29,7 @@ CFLAGS += -fomit-frame-pointer -falign-functions=16 -mthumb
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=cortex-m4
 CFLAGS += -fdata-sections -ffunction-sections
+CFLAGS += -DIS_VESC_LIB
 
 ifeq ($(USE_STLIB),yes)
 	CFLAGS += -DUSE_STLIB -I$(STLIB_PATH)/inc

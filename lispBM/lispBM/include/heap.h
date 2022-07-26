@@ -203,11 +203,12 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_TYPE_U64                     0x50000000u
 #define LBM_TYPE_FLOAT                   0x60000000u
 #define LBM_TYPE_DOUBLE                  0x70000000u
-#define LBM_TYPE_ARRAY                   0xD0000000u
-#define LBM_TYPE_REF                     0xE0000000u
-#define LBM_TYPE_STREAM                  0xF0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xF0000000u
-#define LBM_POINTER_TYPE_LAST            0xF0000000u
+#define LBM_TYPE_ARRAY                   0x80000000u
+#define LBM_TYPE_REF                     0x90000000u
+#define LBM_TYPE_STREAM                  0xA0000000u
+#define LBM_TYPE_CUSTOM                  0xB0000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
+#define LBM_POINTER_TYPE_LAST            0xB0000000u
 
 
 #define LBM_GC_MASK                      0x00000002u
@@ -215,7 +216,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define LBM_VAL_MASK                     0xFFFFFFF0u
 #define LBM_VAL_TYPE_MASK                0x0000000Cu
-                                                    //    gc ptr
+                                                     //    gc ptr
 #define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
 #define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
 #define LBM_TYPE_BYTE                    0x00000004u
@@ -234,15 +235,16 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0xA000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0xA000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0xB000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0xC000000000000000
-#define LBM_TYPE_ARRAY                   (lbm_uint)0xD000000000000000
-#define LBM_TYPE_REF                     (lbm_uint)0xE000000000000000
-#define LBM_TYPE_STREAM                  (lbm_uint)0xF000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0xF000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xF000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
+#define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
+#define LBM_TYPE_STREAM                  (lbm_uint)0x7000000000000000
+#define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
 #define LBM_GC_MASK                      (lbm_uint)0x2
 #define LBM_GC_MARKED                    (lbm_uint)0x2
@@ -365,6 +367,12 @@ extern char *lbm_dec_str(lbm_value val);
  * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
  */
 extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+/** Decode an lbm_value representing a custom type into a lbm_uint value.
+ * 
+ * \param val Value.
+ * \return The custom type payload.
+ */
+extern lbm_uint lbm_dec_custom(lbm_value val);
 /** Decode a numerical value as if it is char
  *
  * \param val Value to decode
@@ -854,6 +862,9 @@ static inline bool lbm_is_match_binder(lbm_value exp) {
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I32) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U32) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
+	   (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I64) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U64) ||
+           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_DOUBLE) ||
            (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
 }
 

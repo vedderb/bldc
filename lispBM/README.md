@@ -319,18 +319,22 @@ Sets the override value
 #### set-current
 
 ```clj
-(set-current current)
+(set-current current optOffDelay)
 ```
 
 Set motor current in amperes.
 
+The optional optOffDelay argument (in seconds) will delay turning off the modulation when setting 0 current. This is useful when running e.g. a control loop that will end up setting 0 current in some circumstances when turning off the modulation would make the control less smooth. The delay value should be longer than the rate at which the control loop runs.
+
 #### set-current-rel
 
 ```clj
-(set-current-rel current)
+(set-current-rel current optOffDelay)
 ```
 
 Set motor current relative to the maximum current. Range -1 to 1. For example, if the maximum current is set to 50A, (set-current-rel 0.5) will set the current to 25A.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### set-duty
 ```clj
@@ -387,6 +391,13 @@ Position control. Set motor position in degrees, range 0.0 to 360.0.
 ```
 
 Run FOC in open loop. Useful to test thermal properties of motors and power stages.
+
+#### foc-beep
+```clj
+(foc-beep freq time voltage)
+```
+
+Use the motor to play a beep sound at frequency freq for time seconds using voltage excitation voltage. The frequency can be set between 100 Hz and 7500 Hz.
 
 ### Motor Get Commands
 
@@ -451,7 +462,14 @@ Get speed in meters per second. Requires that the number of motor poles, wheel d
 (get-dist)
 ```
 
-Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
+Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly. When the motor spins forwards this counter counts up and when it spins backwards it counts down.
+
+#### get-dist-abs
+```clj
+(get-dist-abs)
+```
+
+Same as get-dist, but will count up when the motors spins in both directions.
 
 #### get-batt
 ```clj
@@ -473,7 +491,7 @@ Notice that all canget-commands rely on the status messages being active on the 
 
 #### canset-current
 ```clj
-(canset-current id current)
+(canset-current id current optOffDelay)
 ```
 
 Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with id 115:
@@ -482,12 +500,16 @@ Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with i
 (canset-current 115 25)
 ```
 
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
+
 #### canset-current-rel
 ```clj
-(canset-current-rel id current)
+(canset-current-rel id current optOffDelay)
 ```
 
 Same as above, but relative current in the range -1.0 to 1.0. See (set-current) for details on what relative current means.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### canset-duty
 ```clj
@@ -1064,6 +1086,19 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
+'app-to-use             ; App to use
+                        ;    0: APP_NONE
+                        ;    1: APP_PPM
+                        ;    2: APP_ADC
+                        ;    3: APP_UART
+                        ;    4: APP_PPM_UART
+                        ;    5: APP_ADC_UART
+                        ;    6: APP_NUNCHUK
+                        ;    7: APP_NRF
+                        ;    8: APP_CUSTOM
+                        ;    9: APP_BALANCE
+                        ;    10: APP_PAS
+                        ;    11: APP_ADC_PAS
 'controller-id          ; VESC CAN ID
 'ppm-ctrl-type          ; PPM Control Type
                         ;    0:  PPM_CTRL_TYPE_NONE
@@ -1869,6 +1904,95 @@ This will clear the allocated memory for arr.
 
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
+
+## Import Files
+
+Import is a special command that is mostly handled by VESC Tool. When VESC Tool sees a line that imports a file it will open and read that file and attach it as binary data to the end of the uploaded code. VESC Tool also generates a table of the imported files that will be allocated as arrays and passed to LispBM at start and bound to bindings.
+
+Every imported file behaves as a byte array that is read-only (so do not try to modify it). These byte arrays can be used as usual from the lisp code to, for example, load native libraries or to load more lisp code at runtime. As they are stored in flash in raw binary format there is significantly more space available than when using e.g. the array syntax. The lisp script and the imported files can use up to 120 KB together.
+
+#### import
+
+```clj
+(import filename binding)
+```
+
+Load filename as a byte array and bind it to binding. Note that import must be on its own line and that every line can only have one import.
+
+**Example: Load native library**
+
+```clj
+(import "ws2812.bin" 'ws2812) ; Import the native ws2812 library. This creates the byte array ws2812 that can be used usual.
+(load-native-lib ws2812); Load it to get the extensions it provides 
+```
+
+## Native Libraries
+
+Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.
+
+Up to 10 native libraries can be loaded simultaneously and the recommended way to configure and interact with them is by providing LispBM-extensions from them.
+
+Currently the documentation for native libraries is limited, but there are some examples [in this diretory](c_libs/examples). The interface that can be used in native libraries can be found [in this file](c_libs/vesc_c_if.h).
+
+### Features
+
+Native libraries get a list of function pointers that can be used to interact with the rest of the VESC code. The following features are currently supported:
+
+* Register LispBM-extensions.
+* Os-functions like sleep, print, malloc, free, system time.
+* Create one or more threads.
+* GPIO-control (ST and abstract).
+* The ST standard peripheral library can be used.
+* Send and receive CAN-frames and control other VESCs over CAN-bus.
+* Motor control using almost everything from mc_interface.
+
+### Cleanup
+
+Every time lispBM is restarted or when new code is uploaded the native libraries are closed and reloaded, so it is important to do proper cleanup in lib_info->stop_fun when resources such as threads are allocated.
+
+#### load-native-lib
+
+```clj
+(load-native-lib lib)
+```
+
+Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library.
+
+#### unload-native-lib
+
+```clj
+(unload-native-lib lib)
+```
+
+Unload the native library lib. This is done automatically when lispBM is stopped or restarted, so there is no need to do it explicitly. This function is provided in case native libraries need to be explicitly loaded and unloaded while the same program is running.
+
+### Native Library Example
+
+This example creates an extension called ext-test that takes a number as an argument and returns the number multiplied by 3. The code for it can be found [in this diretory](c_libs/examples/extension).
+
+```clj
+; When running make in the example directory a file called example.lisp
+; with this array is created.
+
+(def example [
+0x00 0x00 0x00 0x00 0x08 0xb5 0x07 0x4b 0x07 0x49 0x08 0x48 0x7b 0x44 0x79 0x44 0x1b 0x68 0x03 0x4b
+0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xfc 0x00 0x10 0xf0 0xff 0xff 0xff
+0x2b 0x00 0x00 0x00 0x18 0x00 0x00 0x00 0x65 0x78 0x74 0x2d 0x74 0x65 0x73 0x74 0x00 0x00 0x00 0x00
+0x01 0x29 0x08 0xb5 0x1f 0xd1 0x00 0x68 0xc3 0x07 0x4c 0xbf 0x00 0xf0 0x7c 0x43 0x00 0xf0 0x0c 0x03
+0x08 0x2b 0x0d 0xd0 0x23 0xf0 0x08 0x02 0x04 0x2a 0x09 0xd0 0x23 0xf0 0x80 0x52 0x23 0xf0 0xa0 0x43
+0xb3 0xf1 0x00 0x5f 0x02 0xd0 0xb2 0xf1 0x80 0x4f 0x08 0xd1 0x05 0x4b 0xdb 0x68 0x98 0x47 0x00 0xeb
+0x40 0x00 0x00 0x01 0x40 0xf0 0x0c 0x00 0x08 0xbd 0x4f 0xf4 0x08 0x70 0xfb 0xe7 0x00 0xfc 0x00 0x10
+])
+
+; The array can be loaded like this
+
+(load-native-lib example)
+
+; Now an extension called ext-test is available. Here we use it
+; with the argument 4 and print the result
+
+(print (ext-test 4)) ; Should print 12
+```
 
 ## How to update
 

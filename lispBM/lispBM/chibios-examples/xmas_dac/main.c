@@ -360,23 +360,6 @@ int main(void) {
     return 1;
   }
 
-  prelude_load(&string_tok_state,
-               &string_tok);
-
-  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  chprintf(chp,"whats going on here\n");
-
-  if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
-    chprintf(chp,"Wait for prelude to load timed out\r\n");
-  } else {
-    chprintf(chp,"Prelude loaded!\r\n");
-  }
-  lbm_pause_eval();
-  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    chprintf(chp,"pause sleeping\n");
-    sleep_callback(1000);
-  }
-  lbm_continue_eval();
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
   while (1) {

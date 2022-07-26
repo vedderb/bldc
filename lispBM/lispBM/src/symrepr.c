@@ -68,6 +68,9 @@ special_sym const special_symbols[] =  {
   {"?i32"       , SYM_MATCH_I32},
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
+  {"?u64"       , SYM_MATCH_U64},
+  {"?i64"       , SYM_MATCH_I64},
+  {"?double"    , SYM_MATCH_DOUBLE},
 
   // Special symbols with unparsable names
   {"no_match"           , SYM_NO_MATCH},
@@ -88,6 +91,7 @@ special_sym const special_symbols[] =  {
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
+  {"sym_custom"         , SYM_CUSTOM_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
@@ -156,6 +160,7 @@ special_sym const special_symbols[] =  {
   {"setix"          , SYM_SET_IX},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
+  {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
   {"acons"          , SYM_ACONS}, // Add to alist
   {"setassoc"       , SYM_SET_ASSOC}, // Change association
 
@@ -165,6 +170,8 @@ special_sym const special_symbols[] =  {
   {"bitwise-or"     , SYM_BITWISE_OR},
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
+
+  {"custom-destruct", SYM_CUSTOM_DESTRUCT},
 
   {"to-i"           , SYM_TO_I},
   {"to-i32"         , SYM_TO_I32},

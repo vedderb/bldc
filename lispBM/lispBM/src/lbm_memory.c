@@ -307,7 +307,7 @@ int lbm_memory_free(lbm_uint *ptr) {
   return 0;
 }
 
-int lbm_memory_shrink(lbm_uint *ptr, unsigned int n) {
+int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   lbm_uint ix = address_to_bitmap_ix(ptr);
 
   if (status(ix) != START) {

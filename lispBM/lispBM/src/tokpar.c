@@ -56,6 +56,9 @@
 #define TOKMATCHI32     21u
 #define TOKMATCHFLOAT   22u
 #define TOKMATCHCONS    23u
+#define TOKMATCHU64     24u
+#define TOKMATCHI64     25u
+#define TOKMATCHDOUBLE  26u
 
 #define TOKOPENBRACK    30u     // "["
 #define TOKCLOSEBRACK   31u     // "]"
@@ -100,7 +103,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 17
+#define NUM_FIXED_SIZE_TOKENS 20
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -112,12 +115,15 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?i", TOKMATCHI28, 2},
-  {"?u", TOKMATCHU28, 2},
-  {"?u32", TOKMATCHU32, 4},
-  {"?i32", TOKMATCHI32, 4},
+  {"?double" , TOKMATCHDOUBLE, 7},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
+  {"?u64", TOKMATCHU64, 4},
+  {"?i64", TOKMATCHI64, 4},
+  {"?u32", TOKMATCHU32, 4},
+  {"?i32", TOKMATCHI32, 4},
+  {"?i", TOKMATCHI28, 2},
+  {"?u", TOKMATCHU28, 2},
   {"?", TOKMATCHANY, 1}
 };
 
@@ -520,8 +526,14 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
         if (n) arr->data[ix] = (uint32_t)(i_val.negative ? -i_val.value : i_val.value);
         break;
       case LBM_TYPE_FLOAT: {
+        float f = 0;
         n = tok_D(str, &f_val);
-        float f = (float)f_val.value;
+        if (n == 0) {
+          n = tok_integer(str, &i_val);
+          f = (float)i_val.value;
+        } else {
+          f = (float)f_val.value;
+        }
         if (n) memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
       }break;
       }
@@ -610,6 +622,15 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       break;
     case TOKMATCHFLOAT:
       res = lbm_enc_sym(SYM_MATCH_FLOAT);
+      break;
+    case TOKMATCHU64:
+      res = lbm_enc_sym(SYM_MATCH_U64);
+      break;
+    case TOKMATCHI64:
+      res = lbm_enc_sym(SYM_MATCH_I64);
+      break;
+    case TOKMATCHDOUBLE:
+      res = lbm_enc_sym(SYM_MATCH_DOUBLE);
       break;
     case TOKMATCHCONS:
       res = lbm_enc_sym(SYM_MATCH_CONS);
@@ -806,7 +827,3 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->column = column_string;
 }
 
-/* VALUE tokpar_parse(tokenizer_char_stream_t *char_stream) { */
-
-/*   return tokpar_parse_program(char_stream); */
-/* } */

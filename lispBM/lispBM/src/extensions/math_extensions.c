@@ -32,9 +32,9 @@ static bool is_number_all(lbm_value *args, lbm_uint argn) {
 	return true;
 }
 
-#define CHECK_NUMBER_ALL()			if (!is_number_all(args, argn)) {return lbm_enc_sym(SYM_EERROR);}
-#define CHECK_ARGN(n)				if (argn != n) {return lbm_enc_sym(SYM_EERROR);}
-#define CHECK_ARGN_NUMBER(n)		if (argn != n || !is_number_all(args, argn)) {return lbm_enc_sym(SYM_EERROR);}
+#define CHECK_NUMBER_ALL()			if (!is_number_all(args, argn)) {return ENC_SYM_EERROR;}
+#define CHECK_ARGN(n)				if (argn != n) {return ENC_SYM_EERROR;}
+#define CHECK_ARGN_NUMBER(n)		if (argn != n || !is_number_all(args, argn)) {return ENC_SYM_EERROR;}
 
 
 void rotate_vector3(float *input, float *rotation, float *output, bool reverse) {
@@ -142,7 +142,7 @@ static lbm_value ext_deg2radf(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     return lbm_enc_float(DEG2RAD_f(lbm_dec_as_float(args[0])));
   } else {
-    lbm_value out_list = lbm_enc_sym(SYM_NIL);
+    lbm_value out_list = ENC_SYM_NIL;
     for (int i = (int)(argn - 1);i >= 0;i--) {
       out_list = lbm_cons(lbm_enc_float(DEG2RAD_f(lbm_dec_as_float(args[i]))), out_list);
     }
@@ -156,7 +156,7 @@ static lbm_value ext_rad2degf(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     return lbm_enc_float(RAD2DEG_f(lbm_dec_as_float(args[0])));
   } else {
-    lbm_value out_list = lbm_enc_sym(SYM_NIL);
+    lbm_value out_list = ENC_SYM_NIL;
     for (int i = (int)(argn - 1);i >= 0;i--) {
       out_list = lbm_cons(lbm_enc_float(RAD2DEG_f(lbm_dec_as_float(args[i]))), out_list);
     }
@@ -167,7 +167,7 @@ static lbm_value ext_rad2degf(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_vec3_rotf(lbm_value *args, lbm_uint argn) {
   CHECK_NUMBER_ALL();
   if (argn != 6 && argn != 7) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   float input[] = {lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]), lbm_dec_as_float(args[2])};
@@ -181,7 +181,7 @@ static lbm_value ext_vec3_rotf(lbm_value *args, lbm_uint argn) {
 
   rotate_vector3(input, rotation, output, reverse);
 
-  lbm_value out_list = lbm_enc_sym(SYM_NIL);
+  lbm_value out_list = ENC_SYM_NIL;
   out_list = lbm_cons(lbm_enc_float(output[2]), out_list);
   out_list = lbm_cons(lbm_enc_float(output[1]), out_list);
   out_list = lbm_cons(lbm_enc_float(output[0]), out_list);

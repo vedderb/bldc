@@ -33,6 +33,7 @@
 #include "lbm_types.h"
 #include "lbm_c_interop.h"
 #include "lbm_variables.h"
+#include "lbm_custom_type.h"
 
 /** Initialize lispBM. This function initials all subsystems by calling:
  *  - \ref lbm_print_init

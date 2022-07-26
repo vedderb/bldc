@@ -125,6 +125,7 @@ typedef struct {
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
+	lbm_uint app_to_use;
 	lbm_uint ppm_ctrl_type;
 	lbm_uint ppm_pulse_start;
 	lbm_uint ppm_pulse_end;
@@ -312,6 +313,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("max-speed", comp);
 		} else if (comp == &syms_vesc.controller_id) {
 			get_add_symbol("controller-id", comp);
+		} else if (comp == &syms_vesc.app_to_use) {
+			get_add_symbol("app-to-use", comp);
 		} else if (comp == &syms_vesc.ppm_ctrl_type) {
 			get_add_symbol("ppm-ctrl-type", comp);
 		} else if (comp == &syms_vesc.ppm_pulse_start) {
@@ -987,16 +990,32 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
-	timeout_reset();
-	mc_interface_set_current(lbm_dec_as_float(args[0]));
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		mc_interface_set_current(lbm_dec_as_float(args[0]));
+	} else if (argn == 2) {
+		mc_interface_set_current_off_delay(lbm_dec_as_float(args[1]));
+		mc_interface_set_current(lbm_dec_as_float(args[0]));
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
 	return lbm_enc_sym(SYM_TRUE);
 }
 
 static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
-	timeout_reset();
-	mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	CHECK_NUMBER_ALL();
+
+	if (argn == 1) {
+		mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	} else if (argn == 2) {
+		mc_interface_set_current_off_delay(lbm_dec_as_float(args[1]));
+		mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
+	} else {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
 	return lbm_enc_sym(SYM_TRUE);
 }
 
@@ -1056,6 +1075,13 @@ static lbm_value ext_foc_openloop(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_sym(SYM_TRUE);
 }
 
+static lbm_value ext_foc_beep(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(3);
+	timeout_reset();
+	mcpwm_foc_beep(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]), lbm_dec_as_float(args[2]));
+	return lbm_enc_sym(SYM_TRUE);
+}
+
 // Motor get commands
 
 static lbm_value ext_get_current(lbm_value *args, lbm_uint argn) {
@@ -1101,6 +1127,11 @@ static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_dist(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_distance());
+}
+
+static lbm_value ext_get_dist_abs(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_distance_abs());
 }
 
 static lbm_value ext_get_batt(lbm_value *args, lbm_uint argn) {
@@ -2664,6 +2695,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
 			mcconf->foc_sl_erpm_hfi = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
+			appconf->app_to_use = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.ppm_ctrl_type)) {
 			appconf->app_ppm_conf.ctrl_type = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -2866,6 +2900,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_max_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		res = lbm_enc_i(appconf->controller_id);
+	} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
+		res = lbm_enc_i(appconf->app_to_use);
 	} else if (compare_symbol(name, &syms_vesc.ppm_ctrl_type)) {
 		res = lbm_enc_i(appconf->app_ppm_conf.ctrl_type);
 	} else if (compare_symbol(name, &syms_vesc.ppm_pulse_start)) {
@@ -3055,7 +3091,7 @@ static lbm_value ext_bufset_bit(lbm_value *args, lbm_uint argn) {
 		((uint8_t*)array->data)[bytepos] |= (bit << bitpos);
 	}
 
-	res = lbm_enc_sym(SYM_TRUE);
+	res = ENC_SYM_TRUE;
 
 	return res;
 }
@@ -3238,6 +3274,11 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
+	(void)args;(void)argn;
+	return ENC_SYM_TRUE;
+}
+
 // Declare native lib extension
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
@@ -3295,8 +3336,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
+	lbm_add_extension("import", ext_empty);
 
-	//APP commands
+	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);
 	lbm_add_extension("app-adc-override", ext_app_adc_override);
 
@@ -3311,6 +3353,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-rpm", ext_set_rpm);
 	lbm_add_extension("set-pos", ext_set_pos);
 	lbm_add_extension("foc-openloop", ext_foc_openloop);
+	lbm_add_extension("foc-beep", ext_foc_beep);
 
 	// Motor get commands
 	lbm_add_extension("get-current", ext_get_current);
@@ -3322,6 +3365,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
 	lbm_add_extension("get-dist", ext_get_dist);
+	lbm_add_extension("get-dist-abs", ext_get_dist_abs);
 	lbm_add_extension("get-batt", ext_get_batt);
 	lbm_add_extension("get-fault", ext_get_fault);
 
