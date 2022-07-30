@@ -109,7 +109,7 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.37 // (1zuna) figured out by trying, no measurements done ; old value is 3.3, but is is not accurate enough (measured 53,5v instead of 54,6v)
+#define V_REG					3.4137 // (1zuna) calculated from VESC Tool and BMS measurements (see commit comment)
 #endif
 #ifndef VIN_R1
 #define VIN_R1					56000.0 // (jaykup) updated 393 SMD code, 38,800 measured
