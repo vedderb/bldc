@@ -991,6 +991,7 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
 	CHECK_NUMBER_ALL();
+	timeout_reset();
 
 	if (argn == 1) {
 		mc_interface_set_current(lbm_dec_as_float(args[0]));
@@ -1006,6 +1007,7 @@ static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
 	CHECK_NUMBER_ALL();
+	timeout_reset();
 
 	if (argn == 1) {
 		mc_interface_set_current_rel(lbm_dec_as_float(args[0]));
