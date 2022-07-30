@@ -17,9 +17,9 @@ jobs:
         run: make 75_100_V2_no_limits
       - uses: actions/upload-artifact@v3
         with:
-          name: build_75_100
-          path: build/75_100_no_limits
+          name: 75_100_no_limits
+          path: build/75_100_no_limits/75_100_no_limits.bin
       - uses: actions/upload-artifact@v3
         with:
-          name: build_75_100_V2
-          path: build/75_100_V2_no_limits
+          name: 75_100_V2_no_limits
+          path: build/75_100_V2_no_limits/75_100_V2_no_limits.bin
