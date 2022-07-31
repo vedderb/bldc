@@ -1047,6 +1047,11 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-min-duty             ; Minimum duty cycle
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
+'motor-type             ; Motor Type
+                        ;    0: BLDC (6-step commutation)
+                        ;    1: DC (DC motor on phase A and C)
+                        ;	2: FOC (Field Oriented Control)
+                        ;	3: GPD (General Purpose Drive)
 'l-watt-max             ; Maximum power regen in W
 'm-invert-direction     ; Invert motor direction, 0 or 1
 'm-out-aux-mode         ; AUX-pin output mode. Options:

@@ -108,6 +108,7 @@ typedef struct {
 	lbm_uint l_max_duty;
 	lbm_uint l_watt_min;
 	lbm_uint l_watt_max;
+	lbm_uint motor_type;
 	lbm_uint foc_sensor_mode;
 	lbm_uint foc_current_kp;
 	lbm_uint foc_current_ki;
@@ -279,6 +280,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("l-watt-min", comp);
 		} else if (comp == &syms_vesc.l_watt_max) {
 			get_add_symbol("l-watt-max", comp);
+		} else if (comp == &syms_vesc.motor_type) {
+			get_add_symbol("motor-type", comp);
 		} else if (comp == &syms_vesc.foc_sensor_mode) {
 			get_add_symbol("foc-sensor-mode", comp);
 		} else if (comp == &syms_vesc.foc_current_kp) {
@@ -2661,7 +2664,10 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
 
-		if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
+		if (compare_symbol(name, &syms_vesc.motor_type)) {
+			mcconf->motor_type = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
 			mcconf->foc_sensor_mode = lbm_dec_as_i32(args[1]);
 			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
@@ -2868,6 +2874,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_watt_min);
 	} else if (compare_symbol(name, &syms_vesc.l_watt_max)) {
 		res = lbm_enc_float(mcconf->l_watt_max);
+	} else if (compare_symbol(name, &syms_vesc.motor_type)) {
+		res = lbm_enc_i(mcconf->motor_type);
 	} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
 		res = lbm_enc_i(mcconf->foc_sensor_mode);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
