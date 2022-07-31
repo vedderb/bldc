@@ -298,15 +298,15 @@
 #define MCCONF_L_CURRENT_MIN			-20.0	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			20.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			40.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-40.0	// Input current limit in Amperes (Lower)
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-55.0, 55.0
-#define HW_LIM_CURRENT_IN		-55.0, 55.0
+#define HW_LIM_CURRENT			-50.0, 50.0
+#define HW_LIM_CURRENT_IN		-50.0, 50.0
 #define HW_LIM_CURRENT_ABS		0.0, 65.0
 #define HW_LIM_VIN				5.5, 27.0
 #define HW_LIM_ERPM				-200e3, 200e3
