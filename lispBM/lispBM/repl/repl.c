@@ -31,6 +31,8 @@
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
 
+#include "lbm_custom_type.h"
+
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -143,8 +145,8 @@ void erase() {
   fflush(stdout);
 }
 
-int inputline(char *buffer, unsigned int size) {
-  unsigned int n = 0;
+int inputline(char *buffer, int size) {
+  int n = 0;
   int c;
   for (n = 0; n < size - 1; n++) {
 
@@ -202,10 +204,9 @@ void done_callback(eval_context_t *ctx) {
   erase();
   char output[1024];
 
-  lbm_cid cid = ctx->id;
   lbm_value t = ctx->r;
 
-  int print_ret = lbm_print_value(output, 1024, t);
+  lbm_print_value(output, 1024, t);
 
   printf("> %s\n", output);
 
@@ -231,9 +232,10 @@ int error_print(const char *format, ...) {
   erase();
   va_list args;
   va_start (args, format);
-  vprintf(format, args);
+  int n = vprintf(format, args);
   va_end(args);
   new_prompt();
+  return n;
 }
 
 uint32_t timestamp_callback() {
@@ -387,6 +389,21 @@ static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
         return res;
 }
 
+static bool test_destruct(lbm_uint value) {
+  printf("destroying custom value\n");
+  free((lbm_uint*)value);
+  return true;
+}
+
+static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
+
+  lbm_uint *mem = (lbm_uint*)malloc(1000*sizeof(lbm_uint));
+
+  lbm_value res;
+
+  lbm_custom_type_create((lbm_uint)mem, test_destruct, "custom_type", &res);
+  return res;
+}
 
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -457,6 +474,21 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
   }
 }
 
+void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
+
+
+  char output[1024];
+  lbm_value res;
+  if (lbm_env_lookup_b(&res, (lbm_value)arg1, ctx->curr_env)) {
+
+    lbm_print_value(output, 1024, res);
+    printf("CTX %d: %s = %s\n", ctx->id, (char *)arg2, output);
+  } else {
+    printf("not found\n");
+  }
+  
+}
+
 
 void sym_it(const char *str) {
   printf("%s\n", str);
@@ -470,7 +502,6 @@ lbm_uint word_array[1024];
 
 
 int main(int argc, char **argv) {
-  unsigned int len = 1024;
   int res = 0;
 
   pthread_t lispbm_thd;
@@ -478,7 +509,7 @@ int main(int argc, char **argv) {
   pthread_mutex_init(&mut, NULL);
 
   lbm_heap_state_t heap_state;
-  unsigned int heap_size = 2048;
+  unsigned int heap_size = 8192;
   lbm_cons_t *heap_storage = NULL;
 
   for (int i = 0; i < 1024; i ++) {
@@ -543,6 +574,12 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   res = lbm_add_extension("range", ext_range);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("custom", ext_custom);
   if (res)
     printf("Extension added.\n");
   else
@@ -676,7 +713,7 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":heap", 5) == 0) {
       int size = atoi(str + 5);
       if (size > 0) {
-        heap_size = size;
+        heap_size = (unsigned int)size;
 
         free(heap_storage);
         heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
@@ -793,6 +830,21 @@ int main(int argc, char **argv) {
 
       lbm_step_n_eval((uint32_t)num);
       free(str);
+    } else if (strncmp(str, ":inspect", 8) == 0) {
+
+      int i = 8;
+      if (strlen(str) >= 8) {
+	while (str[i] == ' ') i++;
+      }
+      char *sym = str + i;
+      lbm_uint sym_id = 0;
+      if (lbm_get_symbol_by_name(sym, &sym_id)) {
+	lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+	lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+			     lbm_done_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+      } else {
+	printf("symbol does not exist\n");
+      }
     } else if (strncmp(str, ":undef", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {

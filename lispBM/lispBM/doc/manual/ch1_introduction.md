@@ -1,18 +1,18 @@
 
 # Chapter 1: Introduction to programming in LispBM
 
-LispBM (from now on called LBM) is a lisp dialect that was implemented
+LispBM (from now on called LBM) is a Lisp dialect that was implemented
 to be run on small resource constrained systems. The look-and-feel of
-LispBM has been very much influenced by the series of videos based on
+LBM has been very much influenced by the series of videos based on
 the SICP book (Structure and Interpretation of Computer Programs) by
 Harold Abelson, Gerald Jay Sussman and Julie Sussman. The awesome
-series of videos about lisp programming can be found
+series of videos about Lisp programming can be found
 [here](https://www.youtube.com/playlist?list=PL8FE88AA54363BC46). Note
-that LBM is not 100% compatible with all code you see in the video series
-but this is quite OK, there are many slightly different flavors of lisps.
+that LBM is not 100% compatible with the code you see in the video series
+but this is quite OK, there are many slightly different flavors of Lisps.
 
 LBM itself implements the concurrency, communication and a basic set
-of lisp functionality such as arithmetic. The idea with LBM is that it
+of Lisp functionality such as arithmetic. The idea with LBM is that it
 should be embedded into some other embedded system, or other,
 application and functionality specific to that application is exposed
 to LBM via so-called extensions. As a result of that it is for example
@@ -412,6 +412,19 @@ is bound to that symbol) more efficient. So, symbols should not start with
 that you are going to use a lot and where efficiency will matter a lot.
 
 ---
+**NOTE**
+
+Symbols starting with `ext-` are allocated in the table of extensions.
+This means that you should not create symbols starting with `ext-`
+unless you are going to associate that symbol with an
+extension. Currently the only way to associate an `ext-` symbol with
+an extension is by using the dynamic native code loader in the [VESC
+flavor](https://github.com/vedderb/bldc/tree/master/lispBM) of LBM.
+In the VESC LBM, loading of these dynamic extensions is done via an
+extension called `load-native-lib`.
+
+---
+
 
 
 ### An important concept with an unremarkable name: Quote

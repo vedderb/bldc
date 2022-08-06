@@ -329,6 +329,13 @@
 #define SPI_USE_MUTUAL_EXCLUSION    TRUE
 #endif
 
+/**
+ * @brief   Allows adding custom fields to the @p SPIDriver struct.
+ */
+#if !defined(SPI_DRIVER_EXT_FIELDS) || defined(__DOXYGEN__)
+#define SPI_DRIVER_EXT_FIELDS       void* app_arg; void (*err_cb)(SPIDriver *pspi);
+#endif
+
 #endif /* _HALCONF_H_ */
 
 /** @} */

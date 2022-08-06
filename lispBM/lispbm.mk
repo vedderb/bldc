@@ -16,6 +16,7 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/streams.c \
             $(LISPBM)/src/lbm_c_interop.c \
             $(LISPBM)/src/lbm_variables.c \
+            $(LISPBM)/src/lbm_custom_type.c \
             $(LISPBM)/src/extensions/array_extensions.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c \

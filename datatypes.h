@@ -154,6 +154,7 @@ typedef enum {
 	FAULT_CODE_ENCODER_NO_MAGNET,
 	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
 	FAULT_CODE_PHASE_FILTER,
+	FAULT_CODE_ENCODER_FAULT,
 } mc_fault_code;
 
 typedef enum {
@@ -188,7 +189,8 @@ typedef enum {
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
 	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
-	SENSOR_PORT_MODE_MT6816_SPI
+	SENSOR_PORT_MODE_MT6816_SPI,
+	SENSOR_PORT_MODE_AS5x47U_SPI
 } sensor_port_mode;
 
 typedef struct {
@@ -777,6 +779,7 @@ typedef struct {
 	uint16_t fault_delay_switch_half;
 	uint16_t fault_delay_switch_full;
 	uint16_t fault_adc_half_erpm;
+	bool fault_is_dual_switch;
 	float tiltback_duty_angle;
 	float tiltback_duty_speed;
 	float tiltback_duty;

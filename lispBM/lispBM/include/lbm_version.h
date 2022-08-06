@@ -25,11 +25,38 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 3
+#define LBM_PATCH_VERSION 4
 
 /*! \page changelog Changelog
-May 10 2022: Version 0.5.3 
- - symbols starting with "ext-" will be allocated into the extensions-list 
+
+Jul 18 2022: Version 0.5.4
+  - Added pattern matching support for i64, u64 and double. 
+  - Fixed issue with pattern matching on i32, u32. 
+
+Jul 17 2022: Version 0.5.4
+  - Refactoring with readability in focus.
+  - Computing encodings of commonly used symbol constants (for eval_cps) at compile time
+    rather then repeatedly at runtime.
+
+Jul 13 2022: Version 0.5.4
+  - Added function that lookups based on the second field in assoc structures.
+    Called it "cossa" as it is like assoc but backwards.
+
+Jul 4 2022: Version 0.5.4
+  - Added possibility to partially apply closures. A partially applied closure
+    is again a closure.
+
+May 24 2022: Version 0.5.3
+  - Fixed bug related to float-array literals not accepting whole numbers unless containing a decimal (0).
+
+May 22 2022: Version 0.5.3
+  - Fixed bug that could cause problems with call-cc on 64bit platforms.
+  - bind_to_key_rest continuation refactoring to use indexing into stack.
+  - Fix evaluator bug in progn that made tail-call not fire properly when there
+    is only one expr in the progn sequence.
+
+May 10 2022: Version 0.5.3
+ - symbols starting with "ext-" will be allocated into the extensions-list
    and can on the VESC version of lispbm be dynamically bound to newly loaded
    extensions at runtime.
 
@@ -40,7 +67,7 @@ May 5 2022: Version 0.5.2
  - Line and column numbers associated with read errors.
  - More explanatory descriptions in error messages related to read errors.
 
-May 2 2022: Version 0.5.2 
+May 2 2022: Version 0.5.2
  - Performance tweaks to the evaluator. Small but positive effect.
 
 May 1 2022: Version 0.5.2
