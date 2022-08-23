@@ -272,6 +272,13 @@ typedef struct {
 
 	// More (added here to not break binary compatibility)
 	float (*system_time)(void);
+	void (*commands_process_packet)(unsigned char *data, unsigned int len,
+			void(*reply_func)(unsigned char *data, unsigned int len));
+
+	// UART
+	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
+	bool (*uart_write)(uint8_t *data, uint32_t size);
+	int32_t (*uart_read)(void);
 } vesc_c_if;
 
 typedef struct {

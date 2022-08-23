@@ -27,6 +27,9 @@
 #include "lispbm.h"
 #include "utils.h"
 #include "c_libs/vesc_c_if.h"
+#include "worker.h"
+#include "app.h"
+#include "mempools.h"
 
 typedef struct {
 	char *name;
@@ -276,6 +279,61 @@ static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
 	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
 }
 
+static SerialConfig uart_cfg = {
+		2500000, 0, 0, 0
+};
+
+static bool lib_uart_start(uint32_t baudrate, bool half_duplex) {
+	app_configuration *appconf = mempools_alloc_appconf();
+	conf_general_read_app_configuration(appconf);
+	if (appconf->app_to_use == APP_UART ||
+			appconf->app_to_use == APP_PPM_UART ||
+			appconf->app_to_use == APP_ADC_UART) {
+		appconf->app_to_use = APP_NONE;
+		conf_general_store_app_configuration(appconf);
+		app_set_configuration(appconf);
+	}
+	mempools_free_appconf(appconf);
+
+	uart_cfg.speed = baudrate;
+	uart_cfg.cr3 = half_duplex ? USART_CR3_HDSEL : 0;
+
+	sdStop(&HW_UART_DEV);
+	sdStart(&HW_UART_DEV, &uart_cfg);
+
+	palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+	if (!half_duplex) {
+		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_ALTERNATE(HW_UART_GPIO_AF));
+	}
+
+	return true;
+}
+
+static void wait_uart_tx_task(void *arg) {
+	(void)arg;
+	while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
+		chThdSleepMilliseconds(1);
+	}
+	chThdSleepMilliseconds(1);
+	HW_UART_DEV.usart->CR1 |= USART_CR1_RE;
+}
+
+static bool lib_uart_write(uint8_t *data, uint32_t size) {
+	if (uart_cfg.cr3 & USART_CR3_HDSEL) {
+		HW_UART_DEV.usart->CR1 &= ~USART_CR1_RE;
+		sdWrite(&HW_UART_DEV, data, size);
+		worker_execute(wait_uart_tx_task, 0);
+	} else{
+		sdWrite(&HW_UART_DEV, data, size);
+	}
+
+	return true;
+}
+
+static int32_t lib_uart_read(void) {
+	return sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -421,6 +479,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// More
 		cif.cif.system_time = lib_system_time;
+		cif.cif.commands_process_packet = commands_process_packet;
+
+		// UART
+		cif.cif.uart_start = lib_uart_start;
+		cif.cif.uart_write = lib_uart_write;
+		cif.cif.uart_read = lib_uart_read;
 
 		lib_init_done = true;
 	}
