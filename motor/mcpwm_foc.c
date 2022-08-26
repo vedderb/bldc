@@ -3346,7 +3346,7 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	float openloop_current = fabsf(motor->m_motor_state.iq_filter);
 	openloop_current += conf_now->foc_sl_openloop_boost_q;
 	if (conf_now->foc_sl_openloop_max_q > 0.0) {
-		utils_truncate_number(&openloop_current, 0.0, conf_now->foc_sl_openloop_boost_q);
+		utils_truncate_number(&openloop_current, 0.0, conf_now->foc_sl_openloop_max_q);
 	}
 
 	float openloop_rpm_max = utils_map(openloop_current,
