@@ -97,6 +97,7 @@ package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name]]
 package_dict["UBOX_V1_75_TYPEC"] = [['ubox_v1_75_typec', default_name]]
 package_dict["UBOX_V2_75"] = [['ubox_v2_75', default_name]]
 package_dict["UBOX_SINGLE_100"] = [['ubox_single_100', default_name]]
+package_dict["UBOX_SINGLE_80"] = [['ubox_single_80', default_name]]
 package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name]]
 package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
