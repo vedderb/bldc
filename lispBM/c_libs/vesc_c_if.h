@@ -279,6 +279,14 @@ typedef struct {
 	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
 	bool (*uart_write)(uint8_t *data, uint32_t size);
 	int32_t (*uart_read)(void);
+
+	// LBM
+	char* (*lbm_dec_str)(lbm_value);
+	int (*lbm_add_symbol_const)(char *, lbm_uint *);
+	void (*lbm_block_ctx_from_extension)(void);
+	bool (*lbm_unblock_ctx)(lbm_cid, lbm_value);
+	lbm_cid (*lbm_get_current_cid)(void);
+
 } vesc_c_if;
 
 typedef struct {

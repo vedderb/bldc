@@ -27,6 +27,7 @@
 
 typedef uint32_t lbm_value;
 typedef uint32_t lbm_type;
+typedef uint32_t lbm_cid;
 
 typedef uint32_t lbm_uint;
 typedef int32_t  lbm_int;
