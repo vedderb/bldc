@@ -58,11 +58,12 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 #define LBM_TYPE_U64                     0x50000000u
 #define LBM_TYPE_FLOAT                   0x60000000u
 #define LBM_TYPE_DOUBLE                  0x70000000u
-#define LBM_TYPE_ARRAY                   0xD0000000u
-#define LBM_TYPE_REF                     0xE0000000u
-#define LBM_TYPE_STREAM                  0xF0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xF0000000u
-#define LBM_POINTER_TYPE_LAST            0xF0000000u
+#define LBM_TYPE_ARRAY                   0x80000000u
+#define LBM_TYPE_REF                     0x90000000u
+#define LBM_TYPE_STREAM                  0xA0000000u
+#define LBM_TYPE_CUSTOM                  0xB0000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
+#define LBM_POINTER_TYPE_LAST            0xB0000000u
 
 #define LBM_GC_MASK                      0x00000002u
 #define LBM_GC_MARKED                    0x00000002u

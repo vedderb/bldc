@@ -31,6 +31,14 @@
 #include "app.h"
 #include "mempools.h"
 
+// Function prototypes otherwise missing
+void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
+		void (*p_func)(unsigned char *data, unsigned int len), PACKET_STATE_t *state);
+void packet_reset(PACKET_STATE_t *state);
+void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state);
+void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state);
+
+
 typedef struct {
 	char *name;
 	void *arg;
@@ -492,6 +500,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
 		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
 		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
+
+                //packets
+                cif.cif.packet_init = packet_init;
+                cif.cif.packet_reset = packet_reset;
+                cif.cif.packet_process_byte = packet_process_byte;
+                cif.cif.packet_send_packet = packet_send_packet;
 
 		lib_init_done = true;
 	}
