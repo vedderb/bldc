@@ -266,14 +266,10 @@
 #define HW_LIM_CURRENT_IN		-135.0, 135.0
 #define HW_LIM_CURRENT_ABS		0.0, 180.0
 
-#ifdef HW_UBOX_V2_100
-	#define HW_LIM_VIN				11.0, 95.0
-#elif defined HW_UBOX_SINGLE_100
-	#define HW_LIM_VIN				11.0, 95.0
-#elif defined HW_UBOX_SINGLE_80
+#ifdef HW_UBOX_SINGLE_80
 	#define HW_LIM_VIN				11.0, 76.0
 #else
-	#error "Must define HW_LIM_VIN"
+	#define HW_LIM_VIN				11.0, 95.0
 #endif
 
 #define HW_LIM_ERPM				-200e3, 200e3
