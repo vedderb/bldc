@@ -530,7 +530,11 @@ static void apply_turntilt(void){
 	}
 
 	// Limit angle to max angle
-	turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+	if(turntilt_target > 0){
+		turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+	}else{
+		turntilt_target = fmaxf(turntilt_target, -balance_conf.turntilt_angle_limit);
+	}
 
 	// Move towards target limited by max speed
 	if(fabsf(turntilt_target - turntilt_interpolated) < turntilt_step_size){
