@@ -19,7 +19,7 @@ default_name = "VESC_default.bin"
 
 # Add directories and targets to the dictionary
 package_dict = {}
-'''
+
 package_dict["46_o_47"] = [['46', default_name],
                     ['46_33k', 'VESC_33k.bin'],
                     ['46_0005ohm', 'VESC_0005ohm.bin']]
@@ -93,7 +93,7 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
                     ['60_75_mk2_no_limits', no_limits_name]]
-'''
+
 package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name],
                                   ['ubox_single_75_no_limits', no_limits_name]]
 package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name],
@@ -109,9 +109,9 @@ package_dict["UBOX_SINGLE_80"] = [['ubox_single_80', default_name],
 package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name],
                                ['ubox_v2_100_no_limits', no_limits_name]]
 
-'''package_dict["EDU"] = [['edu', default_name],
+package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
-'''
+
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
