@@ -895,6 +895,11 @@ typedef enum {
 } UAVCAN_RAW_MODE;
 
 typedef enum {
+	UAVCAN_STATUS_CURRENT_MODE_MOTOR = 0,
+	UAVCAN_STATUS_CURRENT_MODE_INPUT
+} UAVCAN_STATUS_CURRENT_MODE;
+
+typedef enum {
 	KILL_SW_MODE_DISABLED = 0,
 	KILL_SW_MODE_PPM_LOW,
 	KILL_SW_MODE_PPM_HIGH,
@@ -923,6 +928,7 @@ typedef struct {
 	uint8_t uavcan_esc_index;
 	UAVCAN_RAW_MODE uavcan_raw_mode;
 	float uavcan_raw_rpm_max;
+	UAVCAN_STATUS_CURRENT_MODE uavcan_status_current_mode;
 
 	// Application to use
 	app_use app_to_use;

@@ -464,8 +464,14 @@ static void sendEscStatus(CanardInstance *ins) {
 	memset(&status, 0, sizeof(status));
 
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
 
-	status.current = mc_interface_get_tot_current();
+	if (appconf->uavcan_status_current_mode == UAVCAN_STATUS_CURRENT_MODE_MOTOR) {
+		status.current = mc_interface_get_tot_current_filtered();
+	} else {
+		status.current = mc_interface_get_tot_current_in_filtered();
+	}
+
 	status.error_count = mc_interface_get_fault();
 	status.esc_index = app_get_configuration()->uavcan_esc_index;
 	status.power_rating_pct = (fabsf(mc_interface_get_tot_current()) /
