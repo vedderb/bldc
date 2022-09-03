@@ -582,6 +582,12 @@ static void brake(void){
 }
 
 static void set_current(float current, float yaw_current){
+	// Limit current output to configured max output (does not account for yaw_current)
+	if(current > 0 && current > mc_interface_get_configuration()->l_current_max){
+		current = mc_interface_get_configuration()->l_current_max;
+	}else if(current < 0 && current < mc_interface_get_configuration()->l_current_min){
+		current = mc_interface_get_configuration()->l_current_min;
+	}
 	// Reset the timeout
 	timeout_reset();
 	// Set current
@@ -759,7 +765,6 @@ static THD_FUNCTION(balance_thread, arg) {
 						pid_value += balance_conf.booster_current * SIGN(proportional);
 					}
 				}
-
 
 				if(balance_conf.multi_esc){
 					// Calculate setpoint
