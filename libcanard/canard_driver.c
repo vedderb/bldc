@@ -74,10 +74,19 @@ typedef struct {
 	uavcan_equipment_esc_Status msg;
 } status_msg_wrapper_t;
 
+typedef struct {
+	float rawval;
+	float rpmval;
+	systime_t rawtime;
+	systime_t rpmtime;
+} cmd_info_data;
+
 // Private variables
 static CanardInstance canard_ins;
 static uint8_t canard_memory_pool[1024];
+static cmd_info_data can1_cmd = {0};
 #ifdef HW_CAN2_DEV
+static cmd_info_data can2_cmd = {0};
 static CanardInstance canard_ins_if2;
 static uint8_t canard_memory_pool_if2[1024];
 #endif
@@ -327,6 +336,12 @@ static param_t* getParamByName(char * name)
 void canard_driver_init(void) {
 	debug_level = 0;
 
+	memset(&can1_cmd, 0, sizeof(can1_cmd));
+
+#ifdef HW_CAN2_DEV
+	memset(&can2_cmd, 0, sizeof(can2_cmd));
+#endif
+
 	for (int i = 0;i < STATUS_MSGS_TO_STORE;i++) {
 		stat_msgs[i].id = -1;
 	}
@@ -338,6 +353,44 @@ void canard_driver_init(void) {
 		"Enable UAVCAN debug prints 0: off 1: errors 2: param getset 3: current calc 4: comms stuff)",
 		"[level]",
 		terminal_debug_on);
+}
+
+uavcan_cmd_info canard_driver_last_rawcmd(int can_if) {
+	uavcan_cmd_info res = {0};
+	res.age = UTILS_AGE_S(0);
+
+	if (can_if == 1) {
+		res.value = can1_cmd.rawval;
+		res.age = UTILS_AGE_S(can1_cmd.rawtime);
+	}
+
+#ifdef HW_CAN2_DEV
+	if (can_if == 2) {
+		res.value = can2_cmd.rawval;
+		res.age = UTILS_AGE_S(can2_cmd.rawtime);
+	}
+#endif
+
+	return res;
+}
+
+uavcan_cmd_info canard_driver_last_rpmcmd(int can_if) {
+	uavcan_cmd_info res = {0};
+	res.age = UTILS_AGE_S(0);
+
+	if (can_if == 1) {
+		res.value = can1_cmd.rpmval;
+		res.age = UTILS_AGE_S(can1_cmd.rpmtime);
+	}
+
+#ifdef HW_CAN2_DEV
+	if (can_if == 2) {
+		res.value = can2_cmd.rpmval;
+		res.age = UTILS_AGE_S(can2_cmd.rpmtime);
+	}
+#endif
+
+	return res;
 }
 
 /*
@@ -411,8 +464,14 @@ static void sendEscStatus(CanardInstance *ins) {
 	memset(&status, 0, sizeof(status));
 
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
 
-	status.current = mc_interface_get_tot_current();
+	if (appconf->uavcan_status_current_mode == UAVCAN_STATUS_CURRENT_MODE_MOTOR) {
+		status.current = mc_interface_get_tot_current_filtered();
+	} else {
+		status.current = mc_interface_get_tot_current_in_filtered();
+	}
+
 	status.error_count = mc_interface_get_fault();
 	status.esc_index = app_get_configuration()->uavcan_esc_index;
 	status.power_rating_pct = (fabsf(mc_interface_get_tot_current()) /
@@ -520,6 +579,18 @@ static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transf
 		if (cmd.cmd.len > app_get_configuration()->uavcan_esc_index) {
 			float raw_val = ((float)cmd.cmd.data[app_get_configuration()->uavcan_esc_index]) / 8192.0;
 
+			if (ins == &canard_ins) {
+				can1_cmd.rawtime = chVTGetSystemTimeX();
+				can1_cmd.rawval = raw_val;
+			}
+
+#ifdef HW_CAN2_DEV
+			if (ins == &canard_ins_if2) {
+				can2_cmd.rawtime = chVTGetSystemTimeX();
+				can2_cmd.rawval = raw_val;
+			}
+#endif
+
 			volatile const app_configuration *conf = app_get_configuration();
 
 			app_disable_output(100);
@@ -566,7 +637,21 @@ static void handle_esc_rpm_command(CanardInstance* ins, CanardRxTransfer* transf
 
 	if (uavcan_equipment_esc_RPMCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0) >= 0) {
 		if (cmd.rpm.len > app_get_configuration()->uavcan_esc_index) {
-			mc_interface_set_pid_speed(cmd.rpm.data[app_get_configuration()->uavcan_esc_index]);
+			float rpm_val = cmd.rpm.data[app_get_configuration()->uavcan_esc_index];
+
+			if (ins == &canard_ins) {
+				can1_cmd.rpmtime = chVTGetSystemTimeX();
+				can1_cmd.rpmval = rpm_val;
+			}
+
+#ifdef HW_CAN2_DEV
+			if (ins == &canard_ins_if2) {
+				can2_cmd.rpmtime = chVTGetSystemTimeX();
+				can2_cmd.rpmval = rpm_val;
+			}
+#endif
+
+			mc_interface_set_pid_speed(rpm_val);
 			timeout_reset();
 		}
 	}

@@ -1,5 +1,5 @@
 /*
-	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,19 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef LIBCANARD_CANARD_DRIVER_H_
-#define LIBCANARD_CANARD_DRIVER_H_
+#ifndef HW_60_MK6_H_
+#define HW_60_MK6_H_
 
-#include "ch.h"
-#include "hal.h"
+#define HW60_IS_MK6
+#define HW60_IS_HP
 
-typedef struct {
-	float age;
-	float value;
-} uavcan_cmd_info;
+#include "hw_60_core.h"
 
-void canard_driver_init(void);
-uavcan_cmd_info canard_driver_last_rawcmd(int can_if);
-uavcan_cmd_info canard_driver_last_rpmcmd(int can_if);
-
-#endif /* LIBCANARD_CANARD_DRIVER_H_ */
+#endif /* HW_60_MK5_H_ */

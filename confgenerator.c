@@ -220,6 +220,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->uavcan_raw_mode;
 	buffer_append_float32_auto(buffer, conf->uavcan_raw_rpm_max, &ind);
+	buffer[ind++] = conf->uavcan_status_current_mode;
 	buffer[ind++] = conf->servo_out_enable;
 	buffer[ind++] = conf->kill_sw_mode;
 	buffer[ind++] = conf->app_to_use;
@@ -614,6 +615,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->uavcan_raw_mode = buffer[ind++];
 	conf->uavcan_raw_rpm_max = buffer_get_float32_auto(buffer, &ind);
+	conf->uavcan_status_current_mode = buffer[ind++];
 	conf->servo_out_enable = buffer[ind++];
 	conf->kill_sw_mode = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
@@ -992,6 +994,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->uavcan_raw_mode = APPCONF_UAVCAN_RAW_MODE;
 	conf->uavcan_raw_rpm_max = APPCONF_UAVCAN_RAW_RPM_MAX;
+	conf->uavcan_status_current_mode = APPCONF_UAVCAN_STATUS_CURRENT_MODE;
 	conf->servo_out_enable = APPCONF_SERVO_OUT_ENABLE;
 	conf->kill_sw_mode = APPCONF_KILL_SW_MODE;
 	conf->app_to_use = APPCONF_APP_TO_USE;
