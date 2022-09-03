@@ -276,7 +276,7 @@ typedef struct {
 	float v_cell[32];
 	bool bal_state[32];
 	int temp_adc_num;
-	float temps_adc[10];
+	float temps_adc[50];
 	float temp_ic;
 	float temp_hum;
 	float hum;
