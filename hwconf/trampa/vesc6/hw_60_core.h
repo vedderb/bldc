@@ -21,17 +21,21 @@
 #define HW_60_CORE_H_
 
 #ifdef HW60_IS_MK3
-  #define HW_NAME					"60_MK3"
+#define HW_NAME					"60_MK3"
 #elif defined(HW60_IS_MK4)
-  #define HW_NAME					"60_MK4"
+#define HW_NAME					"60_MK4"
 #elif defined(HW60_IS_MK5)
-  #define HW_NAME					"60_MK5"
+#define HW_NAME					"60_MK5"
 #elif defined(HW60_IS_MK6)
-  #define HW_NAME					"60_MK6"
-#elif defined(HW60_IS_MK1)
-  #define HW_NAME					"60"
+#ifdef HW60_IS_HP
+#define HW_NAME					"60_MK6_HP"
 #else
-  #error "Must include hardware type"
+#define HW_NAME					"60_MK6"
+#endif
+#elif defined(HW60_IS_MK1)
+#define HW_NAME					"60"
+#else
+#error "Must include hardware type"
 #endif
 
 #define HW_MAJOR				6
@@ -196,7 +200,11 @@
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
+#ifdef HW60_IS_HP
+#define CURRENT_SHUNT_RES		0.0003
+#else
 #define CURRENT_SHUNT_RES		0.0005
+#endif
 #endif
 
 // Input voltage
@@ -405,9 +413,18 @@
 #endif
 
 // Setting limits
+#ifdef HW60_IS_HP
+#define HW_LIM_CURRENT			-160.0, 160.0
+#define HW_LIM_CURRENT_IN		-160.0, 160.0
+#define HW_LIM_CURRENT_ABS		0.0, 240.0
+#ifndef MCCONF_M_DRV8301_OC_ADJ
+#define MCCONF_M_DRV8301_OC_ADJ	19 // DRV8301 over current protection threshold
+#endif
+#else
 #define HW_LIM_CURRENT			-120.0, 120.0
 #define HW_LIM_CURRENT_IN		-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		0.0, 160.0
+#endif
 #define HW_LIM_VIN				6.0, 57.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

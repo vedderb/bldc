@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_MK6_H_
-#define HW_60_MK6_H_
+#ifndef HW_75_300_R34_H_
+#define HW_75_300_R34_H_
 
-#define HW60_IS_MK6
+#define HW75_300_REV_34
 
-#include "hw_60_core.h"
+#include "hw_75_300_r34_core.h"
 
-#endif /* HW_60_MK6_H_ */
+#endif /* HW_75_300_R34_H_ */

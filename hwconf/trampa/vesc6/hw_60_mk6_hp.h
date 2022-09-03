@@ -21,7 +21,8 @@
 #define HW_60_MK6_H_
 
 #define HW60_IS_MK6
+#define HW60_IS_HP
 
 #include "hw_60_core.h"
 
-#endif /* HW_60_MK6_H_ */
+#endif /* HW_60_MK5_H_ */
