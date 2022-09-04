@@ -20,18 +20,33 @@
 #ifndef LBM_VERSION_H_
 #define LBM_VERSION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 5
+#define LBM_MINOR_VERSION 6
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 4
+#define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
 
+Sep 3 2022: Version 0.6.0
+  - Round-robin scheduling + Addition of an Atomic construct to use with care.
+
+Aug 1 2022: Version 0.5.4
+  - Easing use of the LBM library from C++ code.
+
+Jul 25 2022: Version 0.5.4
+  - lbm_define can now create variables (#var) in variable memory from
+    the C side of things.
+  - Simple namespaces.
+
 Jul 18 2022: Version 0.5.4
-  - Added pattern matching support for i64, u64 and double. 
-  - Fixed issue with pattern matching on i32, u32. 
+  - Added pattern matching support for i64, u64 and double.
+  - Fixed issue with pattern matching on i32, u32.
 
 Jul 17 2022: Version 0.5.4
   - Refactoring with readability in focus.
@@ -138,5 +153,7 @@ Feb 11 2022: version 0.1.0
 */
 
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

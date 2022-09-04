@@ -63,6 +63,8 @@
 #define TOKOPENBRACK    30u     // "["
 #define TOKCLOSEBRACK   31u     // "]"
 
+#define TOKCOLON        32u
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -103,7 +105,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 20
+#define NUM_FIXED_SIZE_TOKENS 21
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -115,6 +117,7 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
+  {":", TOKCOLON, 1},
   {"?double" , TOKMATCHDOUBLE, 7},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
@@ -309,7 +312,8 @@ int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
   bool valid_num = false;
 
   result->type = TOK_TYPE_FLOAT;
-
+  result->negative = false;
+  
   if (peek(str, 0) == '-') {
     n = 1;
     result->negative = true;
@@ -608,6 +612,9 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
       break;
+    case TOKCOLON:
+      res = lbm_enc_sym(SYM_COLON);
+      break;
     case TOKMATCHI28:
       res = lbm_enc_sym(SYM_MATCH_I);
       break;
@@ -775,6 +782,12 @@ char get_string(lbm_tokenizer_char_stream_t *str) {
   return c;
 }
 
+bool put_string(lbm_tokenizer_char_stream_t *str, char c) {
+  (void) str;
+  (void) c;
+  return false;
+}
+
 char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
@@ -809,7 +822,6 @@ unsigned int column_string(lbm_tokenizer_char_stream_t *str) {
   return s->column;
 }
 
-
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                         lbm_tokenizer_char_stream_t *char_stream,
                                         const char *string){
@@ -823,6 +835,7 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->peek  = peek_string;
   char_stream->drop  = drop_string;
   char_stream->get   = get_string;
+  char_stream->put   = put_string;
   char_stream->row   = row_string;
   char_stream->column = column_string;
 }

@@ -20,7 +20,7 @@ import collections
 
 symchars  = 'abcdefghijklmnopqrstuvwxyz!?'
 numchars  = '0123456789'
-funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'', ' ', '`', ',',',@', '_', '.']
+funchars  = ['+','-','*','/','=','<','>','.',':','#','\\\"','\\\\', '\'', ' ', '`', ',',',@', '_', '.']
 short_lispnames = ['(', ')', '))', '((', '[', ']' ]
 long_lispnames  = ['lambda', 'if', 'list', 'quote', 'progn', 'define', 'let',
                    'cons', 'car', 'cdr', '((',  '))', ')))', '))))', 'nil']

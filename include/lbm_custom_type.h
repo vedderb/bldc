@@ -22,6 +22,9 @@
 #include <stdbool.h>
 #include <lbm_types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Custom type lbm_memory footprint
 #define CUSTOM_TYPE_VALUE        0
@@ -48,13 +51,16 @@ typedef bool (*custom_type_destructor)(lbm_uint);
  * \param result Pointer to lbm_value that will hold the value of the custom type.
  * \return true on success or false otherwise.
  */
-extern bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const char *desc, lbm_value *result);  
+bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const char *desc, lbm_value *result);  
 
 /** Called by garbage collector and invokes the destructor 
  * on the custom value.  
  * 
  * /return true on success or false otherwise.
  */
-extern bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr);
+bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
