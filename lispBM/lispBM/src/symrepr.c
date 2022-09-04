@@ -59,6 +59,7 @@ special_sym const special_symbols[] =  {
 
   {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
+  {"namespace"    , SYM_NAMESPACE},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
@@ -104,6 +105,7 @@ special_sym const special_symbols[] =  {
   {"sym_dot"            , SYM_DOT},
   {"sym_tok_done"       , SYM_TOKENIZER_DONE},
   {"sym_quote_it"       , SYM_QUOTE_IT},
+  {"sym_colon"          , SYM_COLON},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -140,6 +142,7 @@ special_sym const special_symbols[] =  {
   {"yield"          , SYM_YIELD},
   {"wait"           , SYM_WAIT},
   {"spawn"          , SYM_SPAWN},
+  {"atomic"         , SYM_ATOMIC},
   {"eq"             , SYM_EQ},
   {"car"            , SYM_CAR},
   {"cdr"            , SYM_CDR},
@@ -150,6 +153,7 @@ special_sym const special_symbols[] =  {
   {"array-write"    , SYM_ARRAY_WRITE},
   {"array-create"   , SYM_ARRAY_CREATE},
   {"array-size"     , SYM_ARRAY_SIZE},
+  {"array-clear"    , SYM_ARRAY_CLEAR},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},
@@ -184,11 +188,11 @@ special_sym const special_symbols[] =  {
   {"to-byte"        , SYM_TO_BYTE},
 
   // Streams
-//  {"stream-get"     , SYM_STREAM_GET},
-//  {"stream-more"    , SYM_STREAM_MORE},
-//  {"stream-peek"    , SYM_STREAM_PEEK},
-//  {"stream-drop"    , SYM_STREAM_DROP},
-//  {"stream-put"     , SYM_STREAM_PUT},
+  {"stream-get"     , SYM_STREAM_GET},
+  {"stream-more"    , SYM_STREAM_MORE},
+  {"stream-peek"    , SYM_STREAM_PEEK},
+  {"stream-drop"    , SYM_STREAM_DROP},
+  {"stream-put"     , SYM_STREAM_PUT},
 
   // fast access in list
   {"ix"             , SYM_IX},
@@ -329,6 +333,14 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+  if (lbm_get_symbol_by_name(name, sym_id))
+    return 1;
+  else if (lbm_add_symbol(name, sym_id))
+    return 1;
+  return 0;
+}
+
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
@@ -364,6 +376,36 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   strcpy(symbol_name_storage, name);
 
   m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_variable_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
+  size_t  n = 0;
+
+  n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
     m[NEXT] = (lbm_uint) NULL;
