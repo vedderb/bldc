@@ -35,6 +35,10 @@
 #include "lbm_variables.h"
 #include "lbm_custom_type.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** Initialize lispBM. This function initials all subsystems by calling:
  *  - \ref lbm_print_init
  *  - \ref lbm_memory_init
@@ -56,11 +60,14 @@
  * \param extension_storage_size Size of extension array.
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-                    lbm_uint *gc_stack_storage, lbm_uint gc_stack_size,
-                    lbm_uint *memory, lbm_uint memory_size,
-                    lbm_uint *memory_bitmap, lbm_uint bitmap_size,
-                    lbm_uint *print_stack_storage, lbm_uint print_stack_size,
-                    extension_fptr *extension_storage, int extension_storage_size );
+int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
+	     lbm_uint *gc_stack_storage, lbm_uint gc_stack_size,
+	     lbm_uint *memory, lbm_uint memory_size,
+	     lbm_uint *memory_bitmap, lbm_uint bitmap_size,
+	     lbm_uint *print_stack_storage, lbm_uint print_stack_size,
+	     extension_fptr *extension_storage, int extension_storage_size );
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -18,9 +18,13 @@ on the architecture we compile for, so 32bits on 32bit architectures and
 64bits on 64bit architectures. The LBM heap is a collection of cons-cells
 that you can use build up structures such as lists.
 
+![cons cell](../images/cons_cell.png?raw=true "cons cell")
+
 The shortest list possible has zero elements and in LBM we use `nil` to
 represent this list (`nil` is used for a lot of things in LBM). Longer
 lists are constructed from cons-cells that are allocated from the heap.
+
+![list](../images/list.png?raw=true "pair")
 
 There are many different ways to build a list in LBM, the most basic way
 is to build it manually using `cons` and `nil`. `cons` is a function

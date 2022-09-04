@@ -624,6 +624,43 @@ void array_size(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 }
 
 
+int elt_size(lbm_type t) {
+  switch(t) {
+  case LBM_TYPE_BYTE:
+    return 1;
+  case LBM_TYPE_U32:  /* fall through */
+  case LBM_TYPE_I32:
+  case LBM_TYPE_FLOAT:
+    return 4;
+  case LBM_TYPE_U64:  /* fall through */
+  case LBM_TYPE_I64:
+  case LBM_TYPE_DOUBLE:
+    return 8;
+  default:
+    return -1;
+  }
+}
+
+
+void array_clear(lbm_value *args, lbm_uint nargs, lbm_value *result) {
+  *result = ENC_SYM_EERROR;
+  if (nargs != 1) return;
+
+  if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
+
+    int es = elt_size(array->elt_type);
+
+    if (es < 0) return;
+
+    memset(array->data, 0, array->size );
+    *result = args[0];
+  }
+  return;
+}
+
+
+
 lbm_value index_list(lbm_value l, unsigned int n) {
   lbm_value curr = l;
   while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
@@ -1189,7 +1226,10 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ARRAY_SIZE:
     array_size(args, nargs, &result);
     break;
-  case SYM_TYPE_OF:
+  case SYM_ARRAY_CLEAR:
+    array_clear(args, nargs, &result);
+    break;
+  case SYM_TYPE_OF: {
     if (nargs != 1) return ENC_SYM_NIL;
     lbm_value val = args[0];
     switch(lbm_type_of(val)) {
@@ -1207,7 +1247,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
     default: return ENC_SYM_TERROR;
     }
-    break;
+  } break;
   case SYM_TO_I:
     if (nargs == 1) {
       result = lbm_enc_i((lbm_int)lbm_dec_as_i64(args[0]));
@@ -1281,6 +1321,32 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_BITWISE_NOT:
     if (nargs == 1) {
       result = bitwise_not(args[0]);
+    }
+    break;
+  case SYM_STREAM_GET:
+    if (lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
+      lbm_stream_t *str = lbm_dec_stream(args[0]);
+      return str->get(str);
+    }
+    break;
+  case SYM_STREAM_PUT:
+    if (nargs == 2 && lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
+      lbm_stream_t *str = lbm_dec_stream(args[0]);
+      return str->put(str, args[1]);
+    }
+    break;
+  case SYM_STREAM_PEEK:
+    if (nargs == 2 &&
+	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
+      lbm_stream_t *str = lbm_dec_stream(args[0]);
+      return str->peek(str, args[1]);
+    }
+    break;
+  case SYM_STREAM_DROP:
+    if (nargs == 2 &&
+	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
+      lbm_stream_t *str = lbm_dec_stream(args[0]);
+      return str->drop(str, args[1]);
     }
     break;
   case SYM_CUSTOM_DESTRUCT:

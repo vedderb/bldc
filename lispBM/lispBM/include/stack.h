@@ -26,6 +26,10 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   lbm_uint* data;
   lbm_uint sp;
@@ -39,7 +43,7 @@ typedef struct {
  * \param stack_size Size in 32 bit words of stack to allocate.
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size);
+int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size);
 /** Create a stack in a statically allocated array.
  *
  * \param s Pointer to an lbm_stack_t to initialize.
@@ -47,32 +51,32 @@ extern int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size);
  * \param size Size in number of 32 bit words.
  * \return 1
  */
-extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size);
+int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size);
 /** Free a stack allocated on the lispbm_memory.
  *
  * \param s Pointer to lbm_stack_t to free.
  */
-extern void lbm_stack_free(lbm_stack_t *s);
+void lbm_stack_free(lbm_stack_t *s);
 /** Sets the stack SP to 0.
  *
  * \param s Stack to clear.
  * \return 1
  */
-extern int lbm_stack_clear(lbm_stack_t *s);
+int lbm_stack_clear(lbm_stack_t *s);
 /** Get a pointer to the nth element (from the top) of a stack.
  *
  * \param s Stack.
  * \param n Index.
  * \return Pointer into the stack or NULL.
  */
-extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
+lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
 /** Drop n elements (from the top) of a stack.
  *
  * \param s Stack to drop elements from.
  * \param n Number of elements to drop.
  * \return 1 on Success and 0 on failure.
  */
-extern int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
+int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
 
 /** Reserve place for n elements on the stack and
  *  move the stack pointer to the new top.
@@ -81,21 +85,21 @@ extern int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
  * \return Pointer into stack position of reserver value 0 or NULL
  *         on failure
  */
-extern lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n);
+lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n);
 /** Push an element onto a stack.
  *
  * \param s Stack to push a value onto.
  * \param val Value to push to the stack.
  * \return 1 on success and 0 on failure (stack is full).
  */
-extern int lbm_push(lbm_stack_t *s, lbm_uint val);
+int lbm_push(lbm_stack_t *s, lbm_uint val);
 /** Pop a value from a stack.
  *
  * \param s Stack to pop a value from.
  * \param val Pointer to an lbm_value to store the pop:ed value int.
  * \return 1 on success and 0 on failure (stack is empty).
  */
-extern int lbm_pop(lbm_stack_t *s, lbm_uint *val);
+int lbm_pop(lbm_stack_t *s, lbm_uint *val);
 
 /** Check if a stack is empty.
  *
@@ -243,5 +247,7 @@ static inline int lbm_pop_5(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint
   return res;
 }
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif
