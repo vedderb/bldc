@@ -2030,6 +2030,18 @@ Get the last raw uavcan-command and its age. Returns a list where the first elem
 
 Same as uavcan-last-rawcmd, but for the last rpm-command.
 
+## LispBM
+
+#### lbm-set-quota
+
+```clj
+(lbm-set-quota quota)
+```
+
+Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+
+Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
+
 ## How to update
 
 To update from remote repository:
