@@ -2462,17 +2462,18 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
       return;
     }
 
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(0), ctx->r, stream, READ_APPEND_ARRAY));
-    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ctx->r, stream));
+    CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
     ctx->app_cont = true;
   } else if (lbm_is_number(ctx->r)) {
     lbm_value array;
-    if (!lbm_heap_allocate_array(&array, initial_size, LBM_TYPE_CHAR)) {
+    if (!lbm_heap_allocate_array(&array, sizeof(lbm_uint) * initial_size, LBM_TYPE_CHAR)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
 
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(0), ENC_SYM_TYPE_CHAR, stream, READ_APPEND_ARRAY));
+    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ENC_SYM_TYPE_CHAR, stream));
+    CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
     error_ctx(ENC_SYM_RERROR);
@@ -2481,16 +2482,22 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
 
 static inline void cont_read_append_array(eval_context_t *ctx) {
 
-  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 4);
+  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 5);
   if (!sptr) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
 
   lbm_value array  = sptr[0];
-  lbm_value ix     = lbm_dec_as_u32(sptr[1]);
-  lbm_value type   = sptr[2];
-  lbm_value stream = sptr[3];
+  lbm_value size   = lbm_dec_as_u32(sptr[1]);
+  lbm_value ix     = lbm_dec_as_u32(sptr[2]);
+  lbm_value type   = sptr[3];
+  lbm_value stream = sptr[4];
+
+  if (ix >= (size - 1)) {
+    error_ctx(ENC_SYM_MERROR);
+    return;
+  }
 
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(array); // TODO: Check
 
@@ -2513,7 +2520,7 @@ static inline void cont_read_append_array(eval_context_t *ctx) {
       error_ctx(ENC_SYM_TERROR);
       return;
     }
-    sptr[1] = lbm_enc_u(ix + 1);
+    sptr[2] = lbm_enc_u(ix + 1);
     CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
     ctx->app_cont = true;
   } else if (lbm_is_symbol(ctx->r) && lbm_dec_sym(ctx->r) == SYM_CLOSEBRACK) {
@@ -2527,7 +2534,7 @@ static inline void cont_read_append_array(eval_context_t *ctx) {
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
     arr->size = ix;
-    lbm_stack_drop(&ctx->K, 4);
+    lbm_stack_drop(&ctx->K, 5);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
