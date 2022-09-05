@@ -33,6 +33,11 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Set 5 2022: Version 0.6.0
+  - Refactoring of array-reader. Array reading is nolonger done monolithically
+    inside of the tokpar framework, but rather as a cooperation between the
+    evaluator and the tokenizer.
+
 Sep 3 2022: Version 0.6.0
   - Round-robin scheduling + Addition of an Atomic construct to use with care.
 
