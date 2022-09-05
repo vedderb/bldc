@@ -2467,7 +2467,8 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
     ctx->app_cont = true;
   } else if (lbm_is_number(ctx->r)) {
     lbm_value array;
-    if (!lbm_heap_allocate_array(&array, sizeof(lbm_uint) * initial_size, LBM_TYPE_CHAR)) {
+    initial_size = sizeof(lbm_uint) * initial_size;
+    if (!lbm_heap_allocate_array(&array, initial_size, LBM_TYPE_CHAR)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
