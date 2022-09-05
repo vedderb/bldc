@@ -106,6 +106,9 @@ special_sym const special_symbols[] =  {
   {"sym_tok_done"       , SYM_TOKENIZER_DONE},
   {"sym_quote_it"       , SYM_QUOTE_IT},
   {"sym_colon"          , SYM_COLON},
+  {"sym_tok_wait"       , SYM_TOKENIZER_WAIT},
+  {"sym_openbrack"      , SYM_OPENBRACK},
+  {"sym_closebrack"     , SYM_CLOSEBRACK},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},

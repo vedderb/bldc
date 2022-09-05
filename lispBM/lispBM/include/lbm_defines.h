@@ -178,6 +178,9 @@
 #define SYM_DOT            0x76
 #define SYM_QUOTE_IT       0x77
 #define SYM_COLON          0x78
+#define SYM_TOKENIZER_WAIT 0x79
+#define SYM_OPENBRACK      0x80
+#define SYM_CLOSEBRACK     0x81
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
