@@ -526,8 +526,8 @@ static void sendRtData(CanardInstance *ins) {
 	data.temp_mos_2 = NTC_TEMP_MOS2();
 	data.temp_mos_3 = NTC_TEMP_MOS3();
 	data.temp_motor_max = mc_interface_temp_motor_filtered();
-	data.temp_motor_1 = TEMP_MOTOR_1();
-	data.temp_motor_2 = TEMP_MOTOR_2();
+	data.temp_motor_1 = TEMP_MOTOR_1(conf->m_ntc_motor_beta);
+	data.temp_motor_2 = TEMP_MOTOR_2(conf->m_ntc_motor_beta);
 
 	data.curr_motor = mc_interface_get_tot_current_filtered();
 	data.curr_in = mc_interface_get_tot_current_in_filtered();

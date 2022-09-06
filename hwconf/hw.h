@@ -306,10 +306,10 @@
 #endif
 
 #ifndef TEMP_MOTOR_1
-#define TEMP_MOTOR_1()		0.0
+#define TEMP_MOTOR_1(beta)	0.0
 #endif
 #ifndef TEMP_MOTOR_2
-#define TEMP_MOTOR_2()		0.0
+#define TEMP_MOTOR_2(beta)	0.0
 #endif
 
 // Sin/Cos Encoder Signals. Override if available
