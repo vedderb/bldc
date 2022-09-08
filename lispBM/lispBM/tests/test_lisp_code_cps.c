@@ -197,6 +197,21 @@ LBM_EXTENSION(ext_odd, args, argn){
   return lbm_enc_sym(SYM_NIL);
 }
 
+LBM_EXTENSION(ext_numbers, args, argn) {
+
+  bool b = true;
+
+  for (int i = 0; i < argn; i ++) {
+    if (!lbm_is_number(args[i])) {
+      b = false;
+      break;
+    }
+  }
+  return lbm_enc_sym(b ? SYM_TRUE : SYM_NIL);  
+}
+
+
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -338,7 +353,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-   res = lbm_add_extension("ext-odd", ext_odd);
+  res = lbm_add_extension("ext-odd", ext_odd);
   if (res)
     printf("Extension added.\n");
   else {
@@ -346,6 +361,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_add_extension("ext-numbers", ext_numbers);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
@@ -380,9 +403,10 @@ int main(int argc, char **argv) {
       printf("Error compressing code\n");
       return 0;
     }
-    char decompress_code[8192];
+    //char decompress_code[8192];
+    char decompress_code[64000];
 
-    lbm_decompress(decompress_code, 8192, compressed_code);
+    lbm_decompress(decompress_code, 64000, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
 
     lbm_create_char_stream_from_compressed(&comp_tok_state,

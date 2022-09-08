@@ -13,7 +13,8 @@ CANARDSRC =	libcanard/canard.c \
 			libcanard/dsdl/uavcan/protocol/param/param_NumericValue.c \
 			libcanard/dsdl/uavcan/protocol/param/param_Value.c \
 			libcanard/dsdl/uavcan/protocol/file/file_BeginFirmwareUpdate.c \
-			libcanard/dsdl/uavcan/protocol/file/file_Read.c 
+			libcanard/dsdl/uavcan/protocol/file/file_Read.c \
+			libcanard/dsdl/vesc/vesc_RTData.c 
 
 CANARDINC = libcanard \
 			libcanard/dsdl

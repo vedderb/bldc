@@ -20,7 +20,7 @@ for bench in benches:
         file_details = file_info.split('_')
         df = pd.read_csv(file,index_col='File')
         
-        date = file_details[0] + '-' + file_details[1] + '-' + file_details[2]
+        date = file_details[0] + '-' + file_details[1] + '-' + file_details[2] + '-' + file_details[3] + '-' + file_details[4]
 
         if (bench in df.index):
             row = df.loc[bench]

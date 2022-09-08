@@ -65,6 +65,14 @@ Read the decoded value on the PPM input and returns 0.0 to 1.0. Note that the PP
 
 Note that control type can be set to Off in the PPM app to get the input without running the motor automatically, which is useful when running the motor from lisp.
 
+#### get-ppm-age
+
+```clj
+(get-ppm-age)
+```
+
+Get the age of the last PPM update in seconds. Can be used to determine if there is any valid PPM-signal.
+
 #### get-encoder
 
 ```clj
@@ -1998,6 +2006,41 @@ This example creates an extension called ext-test that takes a number as an argu
 
 (print (ext-test 4)) ; Should print 12
 ```
+
+## UAVCAN
+
+#### uavcan-last-rawcmd
+
+```clj
+(uavcan-last-rawcmd canInterface)
+```
+
+Get the last raw uavcan-command and its age. Returns a list where the first element is the value and the second element is the age. canInterface is the interface, which can be 1 or 2. Interface 2 is only valid if the hardware has dual CAN-buses. Example:
+
+```clj
+(print (ix (uavcan-last-rawcmd 1) 0)) ; Print the value
+(print (ix (uavcan-last-rawcmd 1) 1)) ; Print the age in seconds
+```
+
+#### uavcan-last-rpmcmd
+
+```clj
+(uavcan-last-rpmcmd canInterface)
+```
+
+Same as uavcan-last-rawcmd, but for the last rpm-command.
+
+## LispBM
+
+#### lbm-set-quota
+
+```clj
+(lbm-set-quota quota)
+```
+
+Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+
+Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 
 ## How to update
 

@@ -21,13 +21,20 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /** Creates the tokenizer state needed to load the prelude library into the heap.
  *
  * \param lbm_tokenizer_string_state_t pointer
  * \param lbm_tokenizer_char_stream_t pointer
  */
-extern void prelude_load(lbm_tokenizer_string_state_t *,
-                         lbm_tokenizer_char_stream_t *);
+void prelude_load(lbm_tokenizer_string_state_t *,
+		  lbm_tokenizer_char_stream_t *);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

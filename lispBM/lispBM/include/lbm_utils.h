@@ -19,6 +19,10 @@
 #ifndef LBM_UTILS_H_
 #define LBM_UTILS_H_ 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -35,4 +39,7 @@
 
 #define CMP(a,b) (((a) > (b)) - ((a) < (b)));
 
+#ifdef __cplusplus
+}
+#endif
 #endif

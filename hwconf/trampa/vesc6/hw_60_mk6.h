@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_MK5_H_
-#define HW_60_MK5_H_
+#ifndef HW_60_MK6_H_
+#define HW_60_MK6_H_
 
 #define HW60_IS_MK6
 
 #include "hw_60_core.h"
 
-#endif /* HW_60_MK5_H_ */
+#endif /* HW_60_MK6_H_ */

@@ -26,6 +26,11 @@
 #include "streams.h"
 #include "stack.h"
 #include "lbm_memory.h"
+#include "lbm_defines.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
 Planning for a more space efficient heap representation.
@@ -194,35 +199,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
 
-#define LBM_POINTER_TYPE_FIRST           0x10000000u
-#define LBM_TYPE_CONS                    0x10000000u
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
-#define LBM_TYPE_U32                     0x20000000u
-#define LBM_TYPE_I32                     0x30000000u
-#define LBM_TYPE_I64                     0x40000000u
-#define LBM_TYPE_U64                     0x50000000u
-#define LBM_TYPE_FLOAT                   0x60000000u
-#define LBM_TYPE_DOUBLE                  0x70000000u
-#define LBM_TYPE_ARRAY                   0x80000000u
-#define LBM_TYPE_REF                     0x90000000u
-#define LBM_TYPE_STREAM                  0xA0000000u
-#define LBM_TYPE_CUSTOM                  0xB0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
-#define LBM_POINTER_TYPE_LAST            0xB0000000u
-
-
-#define LBM_GC_MASK                      0x00000002u
-#define LBM_GC_MARKED                    0x00000002u
-
-#define LBM_VAL_MASK                     0xFFFFFFF0u
-#define LBM_VAL_TYPE_MASK                0x0000000Cu
-                                                     //    gc ptr
-#define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
-#define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
-#define LBM_TYPE_BYTE                    0x00000004u
-#define LBM_TYPE_U                       0x00000008u // 10  0   0
-#define LBM_TYPE_I                       0x0000000Cu // 11  0   0
-
 #else /* 64 bit Version */
 
 #define LBM_ADDRESS_SHIFT                2
@@ -232,35 +208,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
 #define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
-
-#define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
-#define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
-#define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
-#define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
-#define LBM_TYPE_STREAM                  (lbm_uint)0x7000000000000000
-#define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
-
-#define LBM_GC_MASK                      (lbm_uint)0x2
-#define LBM_GC_MARKED                    (lbm_uint)0x2
-
-/* 8 - 2 free bits to encode type information into */
-#define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
-#define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
-//    gc ptr
-#define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
-#define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0
-#define LBM_TYPE_BYTE                   (lbm_uint)0x4
-#define LBM_TYPE_U                      (lbm_uint)0x8 // 00 00 10  0   0
-#define LBM_TYPE_I                      (lbm_uint)0xC // 00 00 11  0   0
-#define LBM_TYPE_U32                    (lbm_uint)0x14// 00 01 01  0   0
-#define LBM_TYPE_I32                    (lbm_uint)0x18// 00 01 10  0   0
-#define LBM_TYPE_FLOAT                  (lbm_uint)0x1C// 00 01 11  0   0
 
 #endif
 
@@ -299,6 +246,8 @@ typedef struct {
   lbm_uint gc_max_duration;
 } lbm_heap_state_t;
 
+extern lbm_heap_state_t lbm_heap_state;
+
 /**
  *  The header portion of an array stored in array and symbol memory.
  */
@@ -315,115 +264,115 @@ typedef struct {
  * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
                          lbm_uint *gc_stack_storage, lbm_uint gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *
  * \param dur Duration as reported by the timestamp callback.
  */
-extern void lbm_heap_new_gc_time(lbm_uint dur);
+void lbm_heap_new_gc_time(lbm_uint dur);
 /** Add a new free_list length to the heap_stats.
  *  Calculates a new freelist length and updates
  *  the GC statistics.
  */
-extern void lbm_heap_new_freelist_length(void);
+void lbm_heap_new_freelist_length(void);
 /** Check how many lbm_cons_t cells are on the free-list
  *
  * \return Number of free lbm_cons_t cells.
  */
-extern lbm_uint lbm_heap_num_free(void);
+lbm_uint lbm_heap_num_free(void);
 /** Check how many lbm_cons_t cells are allocated.
  *
  * \return  Number of lbm_cons_t cells that are currently allocated.
  */
-extern lbm_uint lbm_heap_num_allocated(void);
+lbm_uint lbm_heap_num_allocated(void);
 /** Size of the heap in number of lbm_cons_t cells.
  *
  * \return Size of the heap in number of lbm_cons_t cells.
  */
-extern lbm_uint lbm_heap_size(void);
+lbm_uint lbm_heap_size(void);
 /** Size of the heap in bytes.
  *
  * \return Size of heap in bytes.
  */
-extern lbm_uint lbm_heap_size_bytes(void);
+lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
  * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
  */
-extern lbm_value lbm_heap_allocate_cell(lbm_type type);
+lbm_value lbm_heap_allocate_cell(lbm_type type);
 
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
  * \return String or NULL if the value does not encode a string.
  */
-extern char *lbm_dec_str(lbm_value val);
+char *lbm_dec_str(lbm_value val);
 /** Decode an lbm_value representing a stream into an lbm_stream_t pointer.
  *
  * \param val Value
  * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
  */
-extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+lbm_stream_t *lbm_dec_stream(lbm_value val);
 /** Decode an lbm_value representing a custom type into a lbm_uint value.
  * 
  * \param val Value.
  * \return The custom type payload.
  */
-extern lbm_uint lbm_dec_custom(lbm_value val);
+lbm_uint lbm_dec_custom(lbm_value val);
 /** Decode a numerical value as if it is char
  *
  * \param val Value to decode
  * \return The value encoded in val casted to a char. Returns 0 if val does not encode a number.
  */
-extern char lbm_dec_as_char(lbm_value a);
+char lbm_dec_as_char(lbm_value a);
 /** Decode a numerical value as if it is unsigned
  *
  * \param val Value to decode
  * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
  */
-extern uint32_t lbm_dec_as_u32(lbm_value val);
+uint32_t lbm_dec_as_u32(lbm_value val);
 /** Decode a numerical value as a signed integer.
  *
  * \param val Value to decode
  * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
  */
-extern int32_t lbm_dec_as_i32(lbm_value val);
+int32_t lbm_dec_as_i32(lbm_value val);
 /** Decode a numerical value as a float.
  *
  * \param val Value to decode.
  * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
  */
-extern float lbm_dec_as_float(lbm_value val);
+float lbm_dec_as_float(lbm_value val);
 /** Decode a numerical value as if it is a 64bit unsigned
  *
  * \param val Value to decode
  * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
  */
-extern uint64_t lbm_dec_as_u64(lbm_value val);
+uint64_t lbm_dec_as_u64(lbm_value val);
 /** Decode a numerical value as a 64bit signed integer.
  *
  * \param val Value to decode
  * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
  */
-extern int64_t lbm_dec_as_i64(lbm_value val);
+int64_t lbm_dec_as_i64(lbm_value val);
 /** Decode a numerical value as a float.
  *
  * \param val Value to decode.
  * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
  */
-extern double lbm_dec_as_double(lbm_value val);
+double lbm_dec_as_double(lbm_value val);
 
-extern lbm_uint lbm_dec_raw(lbm_value v);
+lbm_uint lbm_dec_raw(lbm_value v);
 /** Allocates an lbm_cons_t cell from the heap and populates it.
  *
  * \param car The value to put in the car field of the allocated lbm_cons_t.
  * \param cdr The value to put in the cdr field of the allocated lbm_cons_t.
  * \return A value referencing the lbm_cons_t or enc_sym(SYM_MERROR) if heap is full.
  */
-extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
+lbm_value lbm_cons(lbm_value car, lbm_value cdr);
 
 /** Accesses the car field of an lbm_cons_t.
  *
@@ -432,13 +381,13 @@ extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
  * If cons is nil, the return value is nil. If the value
  * is not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
-extern lbm_value lbm_car(lbm_value cons);
+lbm_value lbm_car(lbm_value cons);
 /** Accesses the car of the cdr of an cons cell
  *
  * \param c Value
  * \return the cdr field or type error.
  */
-extern lbm_value lbm_cadr(lbm_value c);
+lbm_value lbm_cadr(lbm_value c);
 /** Accesses the cdr field of an lbm_cons_t.
  *
  * \param cons Value
@@ -446,21 +395,21 @@ extern lbm_value lbm_cadr(lbm_value c);
  * If cons is nil, the return value is nil. If the value
  * if not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
-extern lbm_value lbm_cdr(lbm_value cons);
+lbm_value lbm_cdr(lbm_value cons);
 /** Update the value stored in the car field of a heap cell.
  *
  * \param c Value referring to a heap cell.
  * \param v Value to replace the car field with.
  * \return 1 on success and 0 if the c value does not refer to a heap cell.
  */
-extern int lbm_set_car(lbm_value c, lbm_value v);
+int lbm_set_car(lbm_value c, lbm_value v);
 /** Update the value stored in the cdr field of a heap cell.
  *
  * \param c Value referring to a heap cell.
  * \param v Value to replace the cdr field with.
  * \return 1 on success and 0 if the c value does not refer to a heap cell.
  */
-extern int lbm_set_cdr(lbm_value c, lbm_value v);
+int lbm_set_cdr(lbm_value c, lbm_value v);
 
 // List functions
 /** Calculate the length of a proper list
@@ -470,7 +419,7 @@ extern int lbm_set_cdr(lbm_value c, lbm_value v);
  * \param c A list
  * \return The length of the list. Unless the value is a cyclic structure on the heap, this function will terminate.
  */
-extern unsigned int lbm_list_length(lbm_value c);
+unsigned int lbm_list_length(lbm_value c);
 /** Reverse a proper list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
@@ -478,7 +427,7 @@ extern unsigned int lbm_list_length(lbm_value c);
  * \param list A list
  * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
  */
-extern lbm_value lbm_list_reverse(lbm_value list);
+lbm_value lbm_list_reverse(lbm_value list);
 /** Reverse a proper list destroying the original.
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
@@ -486,7 +435,7 @@ extern lbm_value lbm_list_reverse(lbm_value list);
  * \param list A list
  * \return The list reversed
  */
-extern lbm_value lbm_list_destructive_reverse(lbm_value list);
+lbm_value lbm_list_destructive_reverse(lbm_value list);
 /** Copy a list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
@@ -494,7 +443,7 @@ extern lbm_value lbm_list_destructive_reverse(lbm_value list);
  * \param list A list.
  * \return Reversed list or enc_sym(SYM_MERROR) if heap is full.
  */
-extern lbm_value lbm_list_copy(lbm_value list);
+lbm_value lbm_list_copy(lbm_value list);
 
 /** A destructive append of two lists
  *
@@ -502,7 +451,7 @@ extern lbm_value lbm_list_copy(lbm_value list);
  * \param list2 A list
  * \return list1 with list2 appended at the end.
  */
-extern lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
+lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
 
 
 // State and statistics
@@ -511,25 +460,25 @@ extern lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
  * \param A pointer to an lbm_heap_state_t to populate
  * with the current statistics.
  */
-extern void lbm_get_heap_state(lbm_heap_state_t *);
+void lbm_get_heap_state(lbm_heap_state_t *);
 
 // Garbage collection
 /** Increment the counter that is counting the number of times GC ran
  *
  */
-extern void lbm_gc_state_inc(void);
+void lbm_gc_state_inc(void);
 /** Mark all heap cells that are on the free-list.
  *
  * \return 1 on success or 0 if the free-list is corrupted.
  */
-extern int lbm_gc_mark_freelist(void);
+int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
  * \param v Root node to start marking from.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-extern int lbm_gc_mark_phase(lbm_value v);
-extern int lbm_gc_mark_phase2(lbm_value env);
+int lbm_gc_mark_phase(lbm_value v);
+int lbm_gc_mark_phase2(lbm_value env);
 
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
@@ -537,13 +486,13 @@ extern int lbm_gc_mark_phase2(lbm_value env);
  * \param n Number of elements in roots-array.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
+int lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
 
 /** Sweep up all non marked heap cells and place them on the free list.
  *
  * \return 1
  */
-extern int lbm_gc_sweep_phase(void);
+int lbm_gc_sweep_phase(void);
 
 // Array functionality
 /** Allocate an array in symbols and arrays memory (lispbm_memory.h)
@@ -553,12 +502,12 @@ extern int lbm_gc_sweep_phase(void);
  * \param type The type information to encode onto the heap cell.
  * \return 1 for success of 0 for failure.
  */
-extern int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.
  */
-extern int lbm_heap_explicit_free_array(lbm_value arr);
+int lbm_heap_explicit_free_array(lbm_value arr);
 
 /** Query the type information of a value.
  *
@@ -907,8 +856,6 @@ static inline bool lbm_is_error(lbm_value v){
   return false;
 }
 
-extern lbm_heap_state_t lbm_heap_state;
-
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
@@ -916,4 +863,7 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -42,6 +42,7 @@
 #include "confgenerator.h"
 #include "worker.h"
 #include "app.h"
+#include "canard_driver.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -466,6 +467,11 @@ static lbm_value ext_reset_timeout(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(servodec_get_servo(0));
+}
+
+static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float((float)servodec_get_time_since_update() / 1000.0);
 }
 
 static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
@@ -3284,6 +3290,38 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 																	lbm_enc_sym(sym_brk)))));
 }
 
+static lbm_value ext_uavcan_last_rawcmd(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	int can_if = lbm_dec_as_i32(args[0]);
+	uavcan_cmd_info info = canard_driver_last_rawcmd(can_if);
+	lbm_value out_list = lbm_enc_sym(SYM_NIL);
+	out_list = lbm_cons(lbm_enc_float(info.age), out_list);
+	out_list = lbm_cons(lbm_enc_float(info.value), out_list);
+	return out_list;
+}
+
+static lbm_value ext_uavcan_last_rpmcmd(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	int can_if = lbm_dec_as_i32(args[0]);
+	uavcan_cmd_info info = canard_driver_last_rpmcmd(can_if);
+	lbm_value out_list = lbm_enc_sym(SYM_NIL);
+	out_list = lbm_cons(lbm_enc_float(info.age), out_list);
+	out_list = lbm_cons(lbm_enc_float(info.value), out_list);
+	return out_list;
+}
+
+static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	uint32_t q = lbm_dec_as_u32(args[0]);
+
+	if (q < 1) {
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_set_eval_step_quota(q);
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -3319,6 +3357,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("print", ext_print);
 	lbm_add_extension("timeout-reset", ext_reset_timeout);
 	lbm_add_extension("get-ppm", ext_get_ppm);
+	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
 	lbm_add_extension("get-encoder", ext_get_encoder);
 	lbm_add_extension("set-servo", ext_set_servo);
 	lbm_add_extension("get-vin", ext_get_vin);
@@ -3486,6 +3525,13 @@ void lispif_load_vesc_extensions(void) {
 	// Native libraries
 	lbm_add_extension("load-native-lib", ext_load_native_lib);
 	lbm_add_extension("unload-native-lib", ext_unload_native_lib);
+
+	// UAVCAN
+	lbm_add_extension("uavcan-last-rawcmd", ext_uavcan_last_rawcmd);
+	lbm_add_extension("uavcan-last-rpmcmd", ext_uavcan_last_rpmcmd);
+
+	// Lbm settings
+	lbm_add_extension("lbm-set-quota", ext_lbm_set_quota);
 
 	if (ext_callback) {
 		ext_callback();

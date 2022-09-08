@@ -31,7 +31,7 @@
 #define TIMER_FREQ				1000000
 
 // Private variables
-static volatile systime_t last_update_time;
+static volatile systime_t last_update_time = 0;
 static volatile float servo_pos[SERVO_NUM];
 static volatile float pulse_start = 1.0;
 static volatile float pulse_end = 2.0;

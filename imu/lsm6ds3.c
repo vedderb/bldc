@@ -68,11 +68,11 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	lsm6ds3_addr = LSM6DS3_ACC_GYRO_ADDR_A;
 	bool res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
 	if (!res || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
-		commands_printf("LSM6DS3 Address A failed, trying B");
+		commands_printf("LSM6DS3 Address A failed, trying B (rx: %d)", rxb[0]);
 		lsm6ds3_addr = LSM6DS3_ACC_GYRO_ADDR_B;
 		res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
 		if (!res || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
-			commands_printf("LSM6DS3 Address B failed");
+			commands_printf("LSM6DS3 Address B failed (rx: %d)", rxb[0]);
 			return;
 		}
 	}
