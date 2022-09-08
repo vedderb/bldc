@@ -137,6 +137,23 @@ typedef enum {
 	VESC_PIN_MODE_ANALOG,
 } VESC_PIN_MODE;
 
+#ifndef PACKET_MAX_PL_LEN
+#define PACKET_MAX_PL_LEN		512
+#endif
+
+#define PACKET_BUFFER_LEN		(PACKET_MAX_PL_LEN + 8)
+
+// Types
+typedef struct {
+	void(*send_func)(unsigned char *data, unsigned int len);
+	void(*process_func)(unsigned char *data, unsigned int len);
+	unsigned int rx_read_ptr;
+	unsigned int rx_write_ptr;
+	int bytes_left;
+	unsigned char rx_buffer[PACKET_BUFFER_LEN];
+	unsigned char tx_buffer[PACKET_BUFFER_LEN];
+} PACKET_STATE_t;
+
 /*
  * Function pointer struct. Always add new function pointers to the end in order to not
  * break compatibility with old binaries.
@@ -279,6 +296,22 @@ typedef struct {
 	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
 	bool (*uart_write)(uint8_t *data, uint32_t size);
 	int32_t (*uart_read)(void);
+
+	// LBM
+	char* (*lbm_dec_str)(lbm_value);
+	int (*lbm_add_symbol_const)(char *, lbm_uint *);
+	void (*lbm_block_ctx_from_extension)(void);
+	bool (*lbm_unblock_ctx)(lbm_cid, lbm_value);
+	lbm_cid (*lbm_get_current_cid)(void);
+
+	// Packets
+	void (*packet_init)(void (*s_func)(unsigned char *, unsigned int),
+			 void (*p_func)(unsigned char *, unsigned int),
+			 PACKET_STATE_t *);
+	void (*packet_reset)(PACKET_STATE_t *);
+	void (*packet_process_byte)(uint8_t, PACKET_STATE_t *);
+	void (*packet_send_packet)(unsigned char *, unsigned int len, PACKET_STATE_t *);
+
 } vesc_c_if;
 
 typedef struct {

@@ -24,6 +24,10 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   uint32_t compressed_bits;
   uint32_t i;
@@ -42,7 +46,7 @@ typedef struct {
   int  buff_pos;
 } tokenizer_compressed_state_t;
 
-extern void lbm_init_compression_state(decomp_state *s, char *src);
+void lbm_init_compression_state(decomp_state *s, char *src);
  
 /** Compress lisp code. This function is not suitable for execution on a microcontroller.
  *
@@ -52,11 +56,11 @@ extern void lbm_init_compression_state(decomp_state *s, char *src);
  * \return A pointer to compressed data allocated using malloc. The user is
  * responsible for freeing this memory.
  */
-extern char *lbm_compress(char *string, uint32_t *res_size);
+char *lbm_compress(char *string, uint32_t *res_size);
 
 /* Maybe these should not be exposed at all */
-extern int  lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
-extern bool lbm_decompress(char *dest, uint32_t dest_n, char *src);
+int  lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
+bool lbm_decompress(char *dest, uint32_t dest_n, char *src);
 
 
 /** Create a tokenizer for compressed data
@@ -65,8 +69,10 @@ extern bool lbm_decompress(char *dest, uint32_t dest_n, char *src);
  * \param str Pointer to tokenizer_char_stream_t to initialize.
  * \param bytes Pointer to the compressed data.
  */
-extern void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
+void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
                                                    lbm_tokenizer_char_stream_t *str,
                                                    char *bytes);
-
+#ifdef __cplusplus
+}
+#endif
 #endif

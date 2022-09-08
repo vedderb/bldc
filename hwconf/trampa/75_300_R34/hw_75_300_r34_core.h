@@ -1,5 +1,5 @@
 /*
-	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,15 +17,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UBOX_SINGLE_75S100
-#define HW_UBOX_SINGLE_75S100
+#ifndef HW_75_300_R34_CORE_H_
+#define HW_75_300_R34_CORE_H_
 
-#define HW_NAME					"UBOX_SINGLE_75S100"
+#ifdef HW75_300_REV_34
+  #define HW_NAME					"75_300_R34"
+#else
+  #error "Must define hardware type"
+#endif
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-//#define HW_HAS_PHASE_FILTERS
+#define HW_HAS_PHASE_FILTERS
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -43,19 +47,30 @@
 #define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 
-#define AUX_GPIO				GPIOC
-#define AUX_PIN					12
+#define AUX_GPIO				GPIOA
+#define AUX_PIN					15
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
-#define BMI160_SCL_GPIO			GPIOA
-#define BMI160_SCL_PIN			15
-#define BMI160_SDA_GPIO			GPIOB
-#define BMI160_SDA_PIN			2
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOC
+#define HW_SHUTDOWN_PIN			5
+#define HW_SHUTDOWN_HOLD_ON()	palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
 
+// Hold shutdown pin early to wake up on short pulses
+#define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								HW_SHUTDOWN_HOLD_ON();
+
+// Sensor port voltage control
+#define SENSOR_VOLTAGE_GPIO		GPIOC
+#define SENSOR_VOLTAGE_PIN		12
+#define SENSOR_PORT_5V()		palSetPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
+#define SENSOR_PORT_3V3()		palClearPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
 
 /*
  * ADC Vector
@@ -70,7 +85,7 @@
  * 7  (2):	IN6		ADC_EXT2
  * 8  (3):	IN3		TEMP_MOS
  * 9  (1):	IN14	TEMP_MOTOR
- * 10 (2):	IN15	ADC_EXT3
+ * 10 (2):	IN15	Shutdown
  * 11 (3):	IN13	AN_IN
  * 12 (1):	Vrefint
  * 13 (2):	IN0		SENS1
@@ -85,16 +100,16 @@
 #define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
-#define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
-#define ADC_IND_CURR1			3
-#define ADC_IND_CURR2			4
-#define ADC_IND_CURR3			5
+#define ADC_IND_SENS1			3
+#define ADC_IND_SENS2			4
+#define ADC_IND_SENS3			5
+#define ADC_IND_CURR1			0
+#define ADC_IND_CURR2			1
+#define ADC_IND_CURR3			2
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_EXT3			10
+#define ADC_IND_SHUTDOWN		10
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		15
 #define ADC_IND_TEMP_MOS_3		16
@@ -105,7 +120,7 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.44
+#define V_REG					3.3
 #endif
 #ifndef VIN_R1
 #define VIN_R1					56000.0
@@ -128,7 +143,6 @@
 #define NTC_TEMP(adc_ind)		hw75_300_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
@@ -137,18 +151,6 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
-
-// Double samples in beginning and end for positive current measurement.
-// Useful when the shunt sense traces have noise that causes offset.
-#ifndef CURR1_DOUBLE_SAMPLE
-#define CURR1_DOUBLE_SAMPLE		0
-#endif
-#ifndef CURR2_DOUBLE_SAMPLE
-#define CURR2_DOUBLE_SAMPLE		0
-#endif
-#ifndef CURR3_DOUBLE_SAMPLE
-#define CURR3_DOUBLE_SAMPLE		0
-#endif
 
 // COMM-port ADC GPIOs
 #define HW_ADC_EXT_GPIO			GPIOA
@@ -164,7 +166,7 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-// Permanent UART Peripheral (for NRF51)
+// Permanent UART Peripheral (SWD/ESP)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
 #define HW_UART_P_GPIO_AF		GPIO_AF_UART4
@@ -212,14 +214,25 @@
 // SPI pins
 #define HW_SPI_DEV				SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
-#define HW_SPI_PORT_NSS			GPIOA
-#define HW_SPI_PIN_NSS			4
+#define HW_SPI_PORT_NSS			GPIOB
+#define HW_SPI_PIN_NSS			11
 #define HW_SPI_PORT_SCK			GPIOA
 #define HW_SPI_PIN_SCK			5
 #define HW_SPI_PORT_MOSI		GPIOA
 #define HW_SPI_PIN_MOSI			7
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
+
+// IMU
+#define LSM6DS3_NSS_GPIO		GPIOC
+#define LSM6DS3_NSS_PIN			13
+#define LSM6DS3_SCK_GPIO		GPIOB
+#define LSM6DS3_SCK_PIN			12
+#define LSM6DS3_MOSI_GPIO		GPIOB
+#define LSM6DS3_MOSI_PIN		3
+#define LSM6DS3_MISO_GPIO		GPIOB
+#define LSM6DS3_MISO_PIN		4
+#define IMU_FLIP
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -248,32 +261,31 @@
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV					30000.0
 #endif
-
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		160.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		420.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			84.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			250.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-65.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-135.0, 135.0
-#define HW_LIM_CURRENT_IN		-135.0, 135.0
-#define HW_LIM_CURRENT_ABS		0.0, 180.0
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
+#define HW_LIM_CURRENT_ABS		0.0, 480.0
 #define HW_LIM_VIN				11.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-
 // HW-specific functions
+bool hw_sample_shutdown_button(void);
 float hw75_300_get_temp(void);
 
-#endif /* HW_UBOX_SINGLE_75S100 */
+#endif /* HW_75_300_R34_CORE_H_ */

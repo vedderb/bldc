@@ -1,4 +1,4 @@
-CCFLAGS = -Wall -Wextra -Wshadow -pedantic -std=c99
+CCFLAGS = -Wall -Wextra -Wshadow -Wjump-misses-init -pedantic -std=c99
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86

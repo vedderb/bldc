@@ -17,7 +17,6 @@
 
 #include "lbm_c_interop.h"
 
-
 /****************************************************/
 /* Interface for loading and running programs and   */
 /* expressions                                      */
@@ -166,12 +165,21 @@ int lbm_define(char *symbol, lbm_value value) {
   lbm_uint sym_id;
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
 
-    if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-      if (!lbm_add_symbol_const(symbol, &sym_id)) {
-        return 0;
+    if (strncmp(symbol, "#",1) == 0) {
+      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+	if (!lbm_add_variable_symbol_const(symbol, &sym_id)) {
+	  return 0;
+	}
       }
+      lbm_set_var(sym_id, value);
+    } else {
+      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+	if (!lbm_add_symbol_const(symbol, &sym_id)) {
+	  return 0;
+	}
+      }
+      *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
     }
-    *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
   }
   return res;
 }

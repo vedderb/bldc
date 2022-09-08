@@ -372,7 +372,7 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 	switch (packet_id) {
 	case COMM_BMS_GET_VALUES: {
 		int32_t ind = 0;
-		uint8_t send_buffer[128];
+		uint8_t send_buffer[256];
 
 		send_buffer[ind++] = packet_id;
 

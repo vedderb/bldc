@@ -63,6 +63,8 @@
 #define TOKOPENBRACK    30u     // "["
 #define TOKCLOSEBRACK   31u     // "]"
 
+#define TOKCOLON        32u
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -103,7 +105,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 20
+#define NUM_FIXED_SIZE_TOKENS 21
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -115,6 +117,7 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
+  {":", TOKCOLON, 1},
   {"?double" , TOKMATCHDOUBLE, 7},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
@@ -309,7 +312,8 @@ int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
   bool valid_num = false;
 
   result->type = TOK_TYPE_FLOAT;
-
+  result->negative = false;
+  
   if (peek(str, 0) == '-') {
     n = 1;
     result->negative = true;
@@ -448,120 +452,6 @@ int tok_integer(lbm_tokenizer_char_stream_t *str, token_int *result ) {
   return 0;
 }
 
-
-bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_value *res) {
-
-  lbm_type t = LBM_TYPE_BYTE; // default
-
-  int n = 0;
-  clean_whitespace(str);
-  if (!more(str)) {
-    return false;
-  }
-
-  n = tok_symbol(str);
-
-  if (n > 0) {
-    if (strncmp(sym_str, "type-i32", (uint32_t)n) == 0) {
-      t = LBM_TYPE_I32;
-    } else if (strncmp(sym_str, "type-u32", (uint32_t)n) == 0) {
-      t = LBM_TYPE_U32;
-    } else if (strncmp(sym_str, "type-float", (uint32_t)n) == 0) {
-      t = LBM_TYPE_FLOAT;
-    } else if (strncmp(sym_str, "type-byte", (uint32_t)n) == 0) {
-      t = LBM_TYPE_BYTE;
-      initial_size = sizeof(lbm_uint) * initial_size;
-    }
-  } else {
-    t = LBM_TYPE_BYTE;
-    initial_size = sizeof(lbm_uint) * initial_size;
-  }
-
-  lbm_value array;
-  if (!lbm_heap_allocate_array(&array, initial_size, t)) {
-    return false;
-  }
-  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(array);
-
-  bool done = false;
-
-  lbm_uint ix = 0;
-
-  while (!done) {
-    clean_whitespace(str);
-    if (!more(str)) {
-      lbm_heap_explicit_free_array(array);
-      return false;
-    }
-
-    switch(tok_match_fixed_size_tokens(str)) {
-    case TOKCLOSEBRACK:
-      done = true;
-      break;
-    case NOTOKEN:
-      break;
-    default:
-      lbm_heap_explicit_free_array(array);
-      return false;
-    }
-
-    n = 0;
-    //float f_val;
-
-    token_int i_val;
-    token_float f_val;
-
-    if (!done) {
-      switch (t) {
-      case LBM_TYPE_BYTE:
-        n = tok_integer(str, &i_val);
-        if (n) ((uint8_t*)arr->data)[ix] = (uint8_t)(i_val.negative ? -i_val.value : i_val.value);
-        break;
-      case LBM_TYPE_I32:
-        n = tok_integer(str, &i_val);
-        if (n) arr->data[ix] = (uint32_t)(i_val.negative ? -i_val.value : i_val.value);
-        break;
-      case LBM_TYPE_U32:
-        n = tok_integer(str, &i_val);
-        if (n) arr->data[ix] = (uint32_t)(i_val.negative ? -i_val.value : i_val.value);
-        break;
-      case LBM_TYPE_FLOAT: {
-        float f = 0;
-        n = tok_D(str, &f_val);
-        if (n == 0) {
-          n = tok_integer(str, &i_val);
-          f = (float)i_val.value;
-        } else {
-          f = (float)f_val.value;
-        }
-        if (n) memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
-      }break;
-      }
-      if (n == 0) {
-        lbm_heap_explicit_free_array(array);
-        return false;
-      }
-    }
-    ix++;
-  }
-
-  lbm_uint array_size = ix - 1;
-
-  // Calculate array size in number of words
-  if (t == LBM_TYPE_BYTE) {
-    if (array_size % 4) {
-      array_size = (array_size / 4) + 1;
-    } else {
-      array_size = array_size / 4;
-    }
-  }
-
-  lbm_memory_shrink((lbm_uint*)arr->data, array_size);
-  arr->size = ix - 1;
-  *res = array;
-  return true;
-}
-
 lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
 
   char c_val;
@@ -608,6 +498,9 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
       break;
+    case TOKCOLON:
+      res = lbm_enc_sym(SYM_COLON);
+      break;
     case TOKMATCHI28:
       res = lbm_enc_sym(SYM_MATCH_I);
       break;
@@ -638,24 +531,13 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     case TOKMATCHANY:
       res = lbm_enc_sym(SYM_MATCH_ANY);
       break;
-    case TOKOPENBRACK: {
-      lbm_uint num_free = lbm_memory_longest_free();
-      lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
-
-      if (initial_size == 0) {
-        res = lbm_enc_sym(SYM_MERROR);
-        break;
-      }
-
-      lbm_value array;
-      if (parse_array(str, initial_size, &array)) {
-        res = array;
-      } else {
-        res = lbm_enc_sym(SYM_RERROR);
-      }
-    } break;
+    case TOKOPENBRACK:
+      res = lbm_enc_sym(SYM_OPENBRACK);
+      break;
     case TOKCLOSEBRACK:
-      res = lbm_enc_sym(SYM_RERROR); // a closing bracket without matching open.
+      res = lbm_enc_sym(SYM_CLOSEBRACK);
+      break;
+      //res = lbm_enc_sym(SYM_RERROR); // a closing bracket without matching open.
     default:
       break;
     }
@@ -775,6 +657,12 @@ char get_string(lbm_tokenizer_char_stream_t *str) {
   return c;
 }
 
+bool put_string(lbm_tokenizer_char_stream_t *str, char c) {
+  (void) str;
+  (void) c;
+  return false;
+}
+
 char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
@@ -809,7 +697,6 @@ unsigned int column_string(lbm_tokenizer_char_stream_t *str) {
   return s->column;
 }
 
-
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                         lbm_tokenizer_char_stream_t *char_stream,
                                         const char *string){
@@ -823,6 +710,7 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->peek  = peek_string;
   char_stream->drop  = drop_string;
   char_stream->get   = get_string;
+  char_stream->put   = put_string;
   char_stream->row   = row_string;
   char_stream->column = column_string;
 }

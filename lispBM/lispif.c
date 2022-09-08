@@ -63,6 +63,8 @@ void lispif_init(void) {
 	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
 		lispif_restart(false, true);
 	}
+
+	lbm_set_eval_step_quota(50);
 }
 
 static void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {

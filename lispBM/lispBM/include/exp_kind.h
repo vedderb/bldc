@@ -22,6 +22,10 @@
 #include "heap.h"
 #include "symrepr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  A set of classes of expressions.
  *  The classification is useful for deciding upon evaluation pattern to apply
@@ -90,4 +94,7 @@ static inline lbm_exp_kind lbm_exp_kind_of(lbm_value exp) {
   return EXP_KIND_ERROR;
 }
 
+#ifdef __cplusplus
+}
+#endif
 #endif
