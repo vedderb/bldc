@@ -27,7 +27,7 @@
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "Fusion.h"
 
 #include <math.h>
@@ -59,10 +59,14 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
+	mpu9150_set_mag_enabled(set->use_magnetometer);
 	mpu9150_set_rate_hz(MIN(set->sample_rate_hz, 1000));
 	m_icm20948_state.rate_hz = MIN(set->sample_rate_hz, 1000);
 	m_bmi_state.rate_hz = set->sample_rate_hz;
-	lsm6ds3_set_rate_hz(MIN(set->sample_rate_hz, 1000));
+	lsm6ds3_set_rate_hz(set->sample_rate_hz);
+
+	m_bmi_state.filter = set->filter;
+	lsm6ds3_set_filter(set->filter);
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
@@ -83,6 +87,16 @@ void imu_init(imu_config *set) {
 #ifdef LSM6DS3_SDA_GPIO
 		imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
 				LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
+#endif
+
+		// SPI not implemented yet, use as I2C
+#ifdef LSM6DS3_NSS_GPIO
+		palSetPadMode(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPad(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN);
+		palSetPadMode(LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palClearPad(LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
+		imu_init_lsm6ds3(LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
+				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN);
 #endif
 
 #ifdef BMI160_SPI_PORT_NSS
@@ -140,6 +154,7 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 	m_i2c_bb.sda_pin = sda_pin;
 	m_i2c_bb.scl_gpio = scl_gpio;
 	m_i2c_bb.scl_pin = scl_pin;
+	m_i2c_bb.rate = I2C_BB_RATE_400K;
 	i2c_bb_init(&m_i2c_bb);
 
 	icm20948_init(&m_icm20948_state,
@@ -156,6 +171,7 @@ void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
 	m_i2c_bb.sda_pin = sda_pin;
 	m_i2c_bb.scl_gpio = scl_gpio;
 	m_i2c_bb.scl_pin = scl_pin;
+	m_i2c_bb.rate = I2C_BB_RATE_400K;
 	i2c_bb_init(&m_i2c_bb);
 
 	m_bmi_state.sensor.id = BMI160_I2C_ADDR;
@@ -456,6 +472,18 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro[1] *= -1.0;
 	mag[0] *= -1.0;
 	mag[1] *= -1.0;
+#endif
+
+#ifdef IMU_ROT_90
+	float a0_old = accel[0];
+	float g0_old = gyro[0];
+	float m0_old = mag[0];
+	accel[0] = accel[1];
+	accel[1] = -a0_old;
+	gyro[0] = gyro[1];
+	gyro[1] = -g0_old;
+	mag[0] = mag[1];
+	mag[1] = -m0_old;
 #endif
 
 	// Rotate axes (ZYX)

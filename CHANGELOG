@@ -8,6 +8,17 @@
 * Added fwinfo terminal command.
 * CAN status messages are now configured using bitfields.
 * There are two rates at which CAN status messages can be sent now.
+* New silent HFI mode with much better performance at high load.
+* Added app ADC min and max voltage limits for throttle fault detection.
+* Another new silent HFI mode that is less sensitive to getting the inductance correct.
+* Added openloop current boost parameter.
+* Added openloop current max parameter.
+* Added support for dynamic loading of C libraries.
+* Added more observers:
+ - mxlemming
+ - ortega with flux linkage tracking
+ - mxlemming with flux linkage tracking
+* AS5x47 encoder support: https://github.com/vedderb/bldc/pull/511
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

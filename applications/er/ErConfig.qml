@@ -47,6 +47,7 @@ Item {
         er_io.led_sport_on = false
         er_io.led_low_batt_on = false
         er_io.led_fault_on = false
+        er_io.stand = false
     }
     
     Timer {
@@ -91,6 +92,8 @@ Item {
                 er_io.led_sport_on = dv.getUint8(ind); ind += 1
                 er_io.led_low_batt_on = dv.getUint8(ind); ind += 1
                 er_io.led_fault_on = dv.getUint8(ind); ind += 1
+                
+                er_io.stand = dv.getUint8(ind); ind += 1
                 
                 updateIoStatus()
             } else if (cmd == er_msg.ER_MSG_SET_MOTORS_ENABLED) {
@@ -192,6 +195,7 @@ Item {
         ioRepeater.itemAt(5).color = (er_io.led_sport_on ? "green" : "darkGray")
         ioRepeater.itemAt(6).color = (er_io.led_low_batt_on ? "green" : "darkGray")
         ioRepeater.itemAt(7).color = (er_io.led_fault_on ? "green" : "darkGray")
+        ioRepeater.itemAt(8).color = (er_io.stand ? "green" : "darkGray")
         
         var title_new = ""
         if (er_io.led_eco_on) {
@@ -347,9 +351,10 @@ Item {
                         id: ioRepeater
                         
                         model: ["mode_btn", "brake_front", "brake_rear", "kill_sw",
-                            "led_eco_on", "led_sport_on", "led_low_batt_on", "led_fault_on"]
+                            "led_eco_on", "led_sport_on", "led_low_batt_on", "led_fault_on",
+                            "stand"]
                             
-                        Rectangle {                            
+                        Rectangle {
                             Layout.fillWidth: true
                             radius: 5
                             height: 30

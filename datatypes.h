@@ -60,7 +60,11 @@ typedef enum {
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
 	FOC_SENSOR_MODE_HFI,
-	FOC_SENSOR_MODE_HFI_START
+	FOC_SENSOR_MODE_HFI_START,
+	FOC_SENSOR_MODE_HFI_V2,
+	FOC_SENSOR_MODE_HFI_V3,
+	FOC_SENSOR_MODE_HFI_V4,
+	FOC_SENSOR_MODE_HFI_V5
 } mc_foc_sensor_mode;
 
 // Auxiliary output mode
@@ -116,6 +120,9 @@ typedef enum {
 
 typedef enum {
 	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
+	FOC_OBSERVER_MXLEMMING,
+	FOC_OBSERVER_ORTEGA_LAMBDA_COMP,
+	FOC_OBSERVER_MXLEMMING_LAMBDA_COMP,
 } mc_foc_observer_type;
 
 typedef enum {
@@ -145,7 +152,9 @@ typedef enum {
 	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
 	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
 	FAULT_CODE_ENCODER_NO_MAGNET,
-	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG
+	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
+	FAULT_CODE_PHASE_FILTER,
+	FAULT_CODE_ENCODER_FAULT,
 } mc_fault_code;
 
 typedef enum {
@@ -180,7 +189,8 @@ typedef enum {
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
 	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
-	SENSOR_PORT_MODE_MT6816_SPI
+	SENSOR_PORT_MODE_MT6816_SPI,
+	SENSOR_PORT_MODE_AS5x47U_SPI
 } sensor_port_mode;
 
 typedef struct {
@@ -266,7 +276,7 @@ typedef struct {
 	float v_cell[32];
 	bool bal_state[32];
 	int temp_adc_num;
-	float temps_adc[10];
+	float temps_adc[50];
 	float temp_ic;
 	float temp_hum;
 	float hum;
@@ -311,6 +321,18 @@ typedef enum {
 	MTPA_MODE_IQ_TARGET,
 	MTPA_MODE_IQ_MEASURED
 } MTPA_MODE;
+
+typedef enum {
+	SPEED_SRC_CORRECTED = 0,
+	SPEED_SRC_OBSERVER,
+} SPEED_SRC;
+
+typedef enum {
+	SAT_COMP_DISABLED = 0,
+	SAT_COMP_FACTOR,
+	SAT_COMP_LAMBDA,
+	SAT_COMP_LAMBDA_AND_FACTOR
+} SAT_COMP_MODE;
 
 typedef struct {
 	// Limits
@@ -391,6 +413,8 @@ typedef struct {
 	float foc_pll_ki;
 	float foc_duty_dowmramp_kp;
 	float foc_duty_dowmramp_ki;
+	float foc_start_curr_dec;
+	float foc_start_curr_dec_rpm;
 	float foc_openloop_rpm;
 	float foc_openloop_rpm_low;
 	float foc_d_gain_scale_start;
@@ -399,12 +423,15 @@ typedef struct {
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
 	float foc_sl_openloop_time_ramp;
+	float foc_sl_openloop_boost_q;
+	float foc_sl_openloop_max_q;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_hall_interp_erpm;
 	float foc_sl_erpm;
 	bool foc_sample_v0_v7;
 	bool foc_sample_high_current;
+	SAT_COMP_MODE foc_sat_comp_mode;
 	float foc_sat_comp;
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
@@ -414,6 +441,8 @@ typedef struct {
 	float foc_hfi_voltage_start;
 	float foc_hfi_voltage_run;
 	float foc_hfi_voltage_max;
+	float foc_hfi_gain;
+	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
@@ -423,6 +452,7 @@ typedef struct {
 	float foc_offsets_voltage[3];
 	float foc_offsets_voltage_undriven[3];
 	bool foc_phase_filter_enable;
+	bool foc_phase_filter_disable_fault;
 	float foc_phase_filter_max_erpm;
 	MTPA_MODE foc_mtpa_mode;
 	// Field Weakening
@@ -430,6 +460,7 @@ typedef struct {
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
+	SPEED_SRC foc_speed_soure;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
@@ -540,7 +571,9 @@ typedef enum {
 	PPM_CTRL_TYPE_PID,
 	PPM_CTRL_TYPE_PID_NOREV,
 	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST,
-	PPM_CTRL_TYPE_CURRENT_SMART_REV
+	PPM_CTRL_TYPE_CURRENT_SMART_REV,
+	PPM_CTRL_TYPE_PID_POSITION_180,
+	PPM_CTRL_TYPE_PID_POSITION_360,
 } ppm_control_type;
 
 typedef struct {
@@ -602,6 +635,8 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage_min;
+	float voltage_max;
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
@@ -718,10 +753,19 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
+typedef enum {
+	BALANCE_PID_MODE_ANGLE = 0,
+	BALANCE_PID_MODE_ANGLE_RATE_CASCADE
+} BALANCE_PID_MODE;
+
 typedef struct {
+	BALANCE_PID_MODE pid_mode;
 	float kp;
 	float ki;
 	float kd;
+	float kp2;
+	float ki2;
+	float kd2;
 	uint16_t hertz;
 	uint16_t loop_time_filter;
 	float fault_pitch;
@@ -735,6 +779,7 @@ typedef struct {
 	uint16_t fault_delay_switch_half;
 	uint16_t fault_delay_switch_full;
 	uint16_t fault_adc_half_erpm;
+	bool fault_is_dual_switch;
 	float tiltback_duty_angle;
 	float tiltback_duty_speed;
 	float tiltback_duty;
@@ -813,10 +858,18 @@ typedef enum {
 	AHRS_MODE_MADGWICK_FUSION
 } AHRS_MODE;
 
+typedef enum {
+	IMU_FILTER_LOW = 0,
+	IMU_FILTER_MEDIUM,
+	IMU_FILTER_HIGH
+} IMU_FILTER;
+
 typedef struct {
 	IMU_TYPE type;
 	AHRS_MODE mode;
+	IMU_FILTER filter;
 	int sample_rate_hz;
+	bool use_magnetometer;
 	float accel_confidence_decay;
 	float mahony_kp;
 	float mahony_ki;
@@ -840,6 +893,11 @@ typedef enum {
 	UAVCAN_RAW_MODE_DUTY,
 	UAVCAN_RAW_MODE_RPM
 } UAVCAN_RAW_MODE;
+
+typedef enum {
+	UAVCAN_STATUS_CURRENT_MODE_MOTOR = 0,
+	UAVCAN_STATUS_CURRENT_MODE_INPUT
+} UAVCAN_STATUS_CURRENT_MODE;
 
 typedef enum {
 	KILL_SW_MODE_DISABLED = 0,
@@ -870,6 +928,7 @@ typedef struct {
 	uint8_t uavcan_esc_index;
 	UAVCAN_RAW_MODE uavcan_raw_mode;
 	float uavcan_raw_rpm_max;
+	UAVCAN_STATUS_CURRENT_MODE uavcan_status_current_mode;
 
 	// Application to use
 	app_use app_to_use;
@@ -1144,6 +1203,9 @@ typedef struct {
 	int comm_step;
 	float temperature;
 	int drv8301_faults;
+	const char *info_str;
+	int info_argn;
+	float info_args[2];
 } fault_data;
 
 typedef struct {
@@ -1338,6 +1400,10 @@ typedef struct __attribute__((packed)) {
 
 	uint32_t runtime_init_flag;
 	uint64_t runtime; // Seconds
+
+	// HW-specific data
+	uint32_t hw_config_init_flag;
+	uint8_t hw_config[128];
 } backup_data;
 
 #endif /* DATATYPES_H_ */

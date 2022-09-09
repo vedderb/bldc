@@ -5,13 +5,27 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 ### Feature Overview
 
 * Development and testing in VESC Tool with variable live monitoring and plotting as well as CPU and memory monitoring.
+* There is a REPL in VESC Tool where code can be executed and tested live. You even have full access to the functions and bindings in the program you have uploaded.
 * Sandboxed environment, meaning that the Lisp code (hopefully) cannot freeze or crash the rest of the VESC code when it gets stuck or runs out of heap or stack memory.
 * The application runs on the VESC itself without the need for having VESC Tool connected and is stored in flash memory.
 * When a lisp-application is written to the VESC it is automatically started on each boot.
 
-## Documentation
+## Language Reference
 
-Basics about LispBM are documented [here](http://svenssonjoel.github.io/lbmdoc/html/lbmref.html). The VESC-specific extensions are documented in this section. Note that VESC Tool includes a collection of examples that can be used as a starting point for using lisp on the VESC.
+[LispBM Language Reference](lispBM/doc/lbmref.md)
+
+## Programming Manual
+
+This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
+
+[Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)  
+[Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)
+
+## VESC-Specific Commands and Extensions
+
+The VESC-specific extensions are documented below. If you are reading this on GitHub there is an index in the upper left corner that can be used to navigate this document. It follows you as you scroll around and also includes a search function that filters all the titles in this document.
+
+Note that VESC Tool includes a collection of examples that can be used as a starting point for using LispBM on the VESC.
 
 ### Various Commands
 
@@ -50,6 +64,14 @@ Read the decoded value on the PPM input and returns 0.0 to 1.0. Note that the PP
 ```
 
 Note that control type can be set to Off in the PPM app to get the input without running the motor automatically, which is useful when running the motor from lisp.
+
+#### get-ppm-age
+
+```clj
+(get-ppm-age)
+```
+
+Get the age of the last PPM update in seconds. Can be used to determine if there is any valid PPM-signal.
 
 #### get-encoder
 
@@ -130,6 +152,14 @@ Get value from BMS. Examples:
 ```
 
 Get ADC voltage on channel ch (0, 1 or 2).
+
+#### get-adc-decoded
+
+```clj
+(get-adc-decoded ch)
+```
+
+Get decoded ADC value on channel ch (0 or 1). Decoded means that the voltage is mapped to the range 0 to 1 according to the configuration in the ADC app. Note that the ADC app must be running for this function to work. No throttle curve is applied to this value, but you can use the [throttle-curve](#throttle-curve) function to apply one if desired.
 
 #### systime
 
@@ -248,55 +278,71 @@ Get button and joystick state of connected remote. Note that a remote app such a
 ; is-rev : Reverse active, 0 or 1
 ```
 
-#### eeprom-store-f
+#### sysinfo
 
 ```clj
-(eeprom-store-f addr number)
+(sysinfo param)
 ```
 
-Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
-
-#### eeprom-read-f
+Read system info parameter param. Example:
 
 ```clj
-(eeprom-read-f addr)
+(sysinfo 'hw-name) ; Hardware name, e.g 60
+(sysinfo 'fw-ver) ; Firmware version as list (Major Minor BetaNum)
+(sysinfo 'has-phase-filters) ; t if hardware has phase filters
+(sysinfo 'uuid) ; STM32 UUID
+(sysinfo 'runtime) ; Total runtime in seconds
 ```
 
-Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
-
-#### eeprom-store-i
+### App Override Commands
 
 ```clj
-(eeprom-store-i addr number)
+(app-adc-detach mode state)
+; Where
+; mode : Select periperial to detach from APP
+;        - 0 All peripherial attached (no second argument)
+;        - 1 ADC1/2
+;        - 2 Buttons
+;        - 3 ADC1/2 + Buttons
+; state : Only when mode 1/2/3/4 - 1 detaches periperial from APP, 0 attaches peripherial to APP 
 ```
 
-Same as eeprom-store-f, but store number as i32 instead of float.
-
-#### eeprom-read-i
+Detaches a peripherial from the APP ADC
 
 ```clj
-(eeprom-read-i addr number)
+(app-adc-override mode value)
+; Where
+; mode : Select periperial to override
+;        - 0 ADC1
+;        - 1 ADC2
+;        - 2 Reverse button
+;        - 3 Cruise control button
+; val : 0.0 to 1.0 (button pressed is > 0.0)
 ```
 
-Same as eeprom-read-i, but read number as i32 instead of float.
+Sets the override value
 
 ### Motor Set Commands
 
 #### set-current
 
 ```clj
-(set-current current)
+(set-current current optOffDelay)
 ```
 
 Set motor current in amperes.
 
+The optional optOffDelay argument (in seconds) will delay turning off the modulation when setting 0 current. This is useful when running e.g. a control loop that will end up setting 0 current in some circumstances when turning off the modulation would make the control less smooth. The delay value should be longer than the rate at which the control loop runs.
+
 #### set-current-rel
 
 ```clj
-(set-current-rel current)
+(set-current-rel current optOffDelay)
 ```
 
 Set motor current relative to the maximum current. Range -1 to 1. For example, if the maximum current is set to 50A, (set-current-rel 0.5) will set the current to 25A.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### set-duty
 ```clj
@@ -346,6 +392,20 @@ Set RPM speed control.
 ```
 
 Position control. Set motor position in degrees, range 0.0 to 360.0.
+
+#### foc-openloop
+```clj
+(foc-openloop current rpm)
+```
+
+Run FOC in open loop. Useful to test thermal properties of motors and power stages.
+
+#### foc-beep
+```clj
+(foc-beep freq time voltage)
+```
+
+Use the motor to play a beep sound at frequency freq for time seconds using voltage excitation voltage. The frequency can be set between 100 Hz and 7500 Hz.
 
 ### Motor Get Commands
 
@@ -410,7 +470,14 @@ Get speed in meters per second. Requires that the number of motor poles, wheel d
 (get-dist)
 ```
 
-Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
+Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly. When the motor spins forwards this counter counts up and when it spins backwards it counts down.
+
+#### get-dist-abs
+```clj
+(get-dist-abs)
+```
+
+Same as get-dist, but will count up when the motors spins in both directions.
 
 #### get-batt
 ```clj
@@ -432,7 +499,7 @@ Notice that all canget-commands rely on the status messages being active on the 
 
 #### canset-current
 ```clj
-(canset-current id current)
+(canset-current id current optOffDelay)
 ```
 
 Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with id 115:
@@ -441,12 +508,16 @@ Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with i
 (canset-current 115 25)
 ```
 
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
+
 #### canset-current-rel
 ```clj
-(canset-current-rel id current)
+(canset-current-rel id current optOffDelay)
 ```
 
 Same as above, but relative current in the range -1.0 to 1.0. See (set-current) for details on what relative current means.
+
+See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### canset-duty
 ```clj
@@ -694,6 +765,20 @@ Converts x from radians to degrees.
 
 Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply the rotation in reverse (apply the inverse of the rotation matrix) if set to 1.
 
+#### abs
+```clj
+(abs x)
+```
+
+Get the absolute value of x.
+
+#### throttle-curve
+```clj
+(throttle-curve value accel brake mode)
+```
+
+Apply throttle curve on value. accel (range -1 to 1) is the curve constant for acceleration (when value is greater than 0) and brake (range -1 to 1) is the curve constant for braking (when value is less than 0). mode (0, 1 or 2) is the throttle curve mode. Negative curve constants mean that the throttle will be gentler in the beginning and more aggressive with towards the end and positive curve constants mean the opposite. The modes are 0: Exponential, 1: Natural and 2: Polynomial. You can have a look at the throttle curves in VESC Tool for the PPM, ADC or VESC Remote app and experiment with the mode and curve constants to see a plot of the response.
+
 ### Bit Operations
 
 #### bits-enc-int
@@ -787,13 +872,14 @@ The function (ix list ind) can be used to get an element from the list. Example:
 #### uart-start
 
 ```clj
-(uart-start baudrate)
+(uart-start baudrate optHd)
 ```
 
-Start the UART driver at baudrate on the COMM-port on the VESC. If any app is using the UART pins it will be stopped first. Example:
+Start the UART driver at baudrate on the COMM-port on the VESC. optHd is an optional argument that can be set to 'half-duplex to use half-duplex mode. In half-duplex mode only the tx-pin is used. If any app is using the UART pins it will be stopped first. Example:
 
 ```clj
-(uart-start 115200)
+(uart-start 115200) ; Start UART at 115200 baud in full duplex mode
+(uart-start 115200 'half-duplex) ; Start UART at 115200 baud in half duplex mode
 ```
 
 #### uart-write
@@ -844,10 +930,30 @@ Same as uart-read-bytes, but will return when the byte end is read.
 #### i2c-start
 
 ```clj
-(i2c-start)
+(i2c-start optRate optPinSda optPinScl)
 ```
 
-Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first.
+Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C pins it will be stopped first. optRate is an optional argument for the I2C bitrate. optPinSda and optPinScl are optional arguments for using different SDA and SCL pins. Example:
+
+```clj
+(i2c-start 'rate-400k) ; 400 kbps and the default SDA and SDC pins
+(i2c-start 'rate-100k 'pin-swdio 'pin-swclk) ; 100 kbps and SWDIO and SWCLK as SDA and SCL
+
+; Available bitrates
+'rate-100k
+'rate-200k
+'rate-400k
+'rate-700k
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+```
 
 #### i2c-tx-rx
 
@@ -875,7 +981,7 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 ### GPIO
 
-These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset.
+These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
 
 #### gpio-configure
 
@@ -893,13 +999,21 @@ Configure GPIO pin to mode. Example:
 'pin-tx     ; TX-pin on the COMM-port
 'pin-swdio  ; IO-pin on the SWD-port
 'pin-swclk  ; CLK-pin on the SWD-port
+'pin-hall1  ; Sensor port hall1
+'pin-hall2  ; Sensor port hall2
+'pin-hall3  ; Sensor port hall3
+'pin-adc1   ; ADC1-pin on COMM-port
+'pin-adc2   ; ADC2-pin on COMM-port
 
 ; Available modes
 'pin-mode-out    ; Output
 'pin-mode-od     ; Open drain output
+'pin-mode-od-pu  ; Open drain output with pull-up
+'pin-mode-od-pd  ; Open drain output with pull-down
 'pin-mode-in     ; Input
-'pin-mode-in-pu  ; Input with pull-up resistor
-'pin-mode-in-pd  ; Input with pull-down resistor
+'pin-mode-in-pu  ; Input with pull-up
+'pin-mode-in-pd  ; Input with pull-down
+'pin-mode-analog ; Analog (NOTE: only works on the ADC-pins)
 ```
 
 #### gpio-write
@@ -921,6 +1035,357 @@ Write state to pin. If the pin is set to an output 1 will set it to VCC and 0 to
 ```
 
 Read state of pin. Returns 1 if the pin is high, 0 otherwise.
+
+### Configuration
+
+The following selection of app and motor parameters can be read and set from LispBM:
+
+```clj
+'l-current-min          ; Minimum current in A (a negative value)
+'l-current-max          ; Maximum current in A
+'l-current-min-scale    ; Scaled minimum current, 0.0 to 1.0
+'l-current-max-scale    ; Scaled maximum current, 0.0 to 1.0
+'l-in-current-min       ; Minimum input current in A (a negative value)
+'l-in-current-max       ; Maximum input current in A
+'l-abs-current-max      ; Abs max current in A
+'l-min-erpm             ; Minimum ERPM (a negative value)
+'l-max-erpm             ; Maximum ERPM
+'l-min-vin              ; Minimum input voltage
+'l-max-vin              ; Maximum input voltage
+'l-min-duty             ; Minimum duty cycle
+'l-max-duty             ; Maximum duty cycle
+'l-watt-min             ; Minimum power regen in W (a negative value)
+'motor-type             ; Motor Type
+                        ;    0: BLDC (6-step commutation)
+                        ;    1: DC (DC motor on phase A and C)
+                        ;	2: FOC (Field Oriented Control)
+                        ;	3: GPD (General Purpose Drive)
+'l-watt-max             ; Maximum power regen in W
+'m-invert-direction     ; Invert motor direction, 0 or 1
+'m-out-aux-mode         ; AUX-pin output mode. Options:
+                        ;    0:  OUT_AUX_MODE_OFF
+                        ;    1:  OUT_AUX_MODE_ON_AFTER_2S
+                        ;    2:  OUT_AUX_MODE_ON_AFTER_5S
+                        ;    3:  OUT_AUX_MODE_ON_AFTER_10S
+                        ;    4:  OUT_AUX_MODE_UNUSED
+                        ;    5:  OUT_AUX_MODE_ON_WHEN_RUNNING
+                        ;    6:  OUT_AUX_MODE_ON_WHEN_NOT_RUNNING
+                        ;    7:  OUT_AUX_MODE_MOTOR_50
+                        ;    8:  OUT_AUX_MODE_MOSFET_50
+                        ;    9:  OUT_AUX_MODE_MOTOR_70
+                        ;    10: OUT_AUX_MODE_MOSFET_70
+                        ;    11: OUT_AUX_MODE_MOTOR_MOSFET_50
+                        ;    12: OUT_AUX_MODE_MOTOR_MOSFET_70
+'foc-sensor-mode        ; FOC sensor mode
+                        ;    0: FOC_SENSOR_MODE_SENSORLESS
+                        ;    1: FOC_SENSOR_MODE_ENCODER
+                        ;    2: FOC_SENSOR_MODE_HALL
+                        ;    3: FOC_SENSOR_MODE_HFI
+                        ;    4: FOC_SENSOR_MODE_HFI_START
+                        ;    5: FOC_SENSOR_MODE_HFI_V2
+                        ;    6: FOC_SENSOR_MODE_HFI_V3
+                        ;    7: FOC_SENSOR_MODE_HFI_V4
+                        ;    8: FOC_SENSOR_MODE_HFI_V5
+'foc-current-kp         ; FOC current controller KP
+'foc-current-ki         ; FOC current controller KI
+'foc-motor-l            ; Motor inductance in microHenry
+'foc-motor-ld-lq-diff   ; D and Q axis inductance difference in microHenry
+'foc-motor-r            ; Motor resistance in milliOhm
+'foc-motor-flux-linkage ; Motor flux linkage in milliWeber
+'foc-observer-gain      ; Observer gain x1M
+'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
+'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
+'foc-hfi-voltage-max    ; HFI voltage (V) at max current
+'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
+'min-speed              ; Minimum speed in meters per second (a negative value)
+'max-speed              ; Maximum speed in meters per second
+'app-to-use             ; App to use
+                        ;    0: APP_NONE
+                        ;    1: APP_PPM
+                        ;    2: APP_ADC
+                        ;    3: APP_UART
+                        ;    4: APP_PPM_UART
+                        ;    5: APP_ADC_UART
+                        ;    6: APP_NUNCHUK
+                        ;    7: APP_NRF
+                        ;    8: APP_CUSTOM
+                        ;    9: APP_BALANCE
+                        ;    10: APP_PAS
+                        ;    11: APP_ADC_PAS
+'controller-id          ; VESC CAN ID
+'ppm-ctrl-type          ; PPM Control Type
+                        ;    0:  PPM_CTRL_TYPE_NONE
+                        ;    1:  PPM_CTRL_TYPE_CURRENT
+                        ;    2:  PPM_CTRL_TYPE_CURRENT_NOREV
+                        ;    3:  PPM_CTRL_TYPE_CURRENT_NOREV_BRAKE
+                        ;    4:  PPM_CTRL_TYPE_DUTY
+                        ;    5:  PPM_CTRL_TYPE_DUTY_NOREV
+                        ;    6:  PPM_CTRL_TYPE_PID
+                        ;    7:  PPM_CTRL_TYPE_PID_NOREV
+                        ;    8:  PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST
+                        ;    9:  PPM_CTRL_TYPE_CURRENT_SMART_REV
+                        ;    10: PPM_CTRL_TYPE_PID_POSITION_180
+                        ;    11: PPM_CTRL_TYPE_PID_POSITION_360
+'ppm-pulse-start        ; Shortest PPM pulse in ms
+'ppm-pulse-end          ; Longest PPM pulse in ms
+'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
+'ppm-ramp-time-pos      ; Positive ramping time in seconds
+'ppm-ramp-time-neg      ; Negative ramping time in seconds
+```
+
+#### conf-set
+
+```clj
+(conf-set param value)
+```
+
+Set param to value. This can be done while the motor is running and it will be applied instantly. Note that the parameter won't be stored in flash, so it will be back to the old value on the next boot. To store all parameters that have been changed you can use [conf-store](#conf-store). Example:
+
+```clj
+(conf-set 'max-speed (/ 25 3.6)) ; Set the maximum speed to 25 km/h
+```
+
+#### conf-get
+
+```clj
+(conf-get param optDefLim)
+```
+
+Get the value of param. optDefLim is an optional argument that can be set to 1 or 2; 1 means get the default value and 2 means get the limit value. Example:
+
+```clj
+(conf-get 'foc-motor-r) ; Get the motor resistance in milliOhm
+(conf-get 'controller-id 1) ; Get the default CAN ID of this VESC
+(conf-get 'l-current-max 2) ; Get the maximum allowed current on this hardware
+```
+
+#### conf-store
+
+```clj
+(conf-store)
+```
+
+Store the current configuration to flash. This will stop the motor.
+
+#### conf-detect-foc
+
+```clj
+(conf-detect-foc canFwd maxLoss minCurrIn maxCurrIn openloopErpm slErpm)
+```
+
+Run the same autodetection as the wizard in VESC Tool does. This function will block the current lispBM-thread until in finishes (other threads will continue running). Arguments:
+
+```clj
+canFwd       ; Scan CAN-bus and detect on all VESCs found on CAN-bus
+maxLoss      ; Maximum power loss in W to derive current limit from
+minCurrIn    ; Minimum input current in A (negative value)
+maxCurrIn    ; Maximum input current in A
+openLoopErpm ; Openlopp ERPM setting
+slErpm       ; Sensorless ERPM setting
+```
+
+Result:
+
+```clj
+  0 ; OK and no sensors found
+  1 ; OK and hall sensors found
+  2 ; OK and AS5047 found
+ -1 ; Fault code during sensor detection
+-10 ; Flux linkage detection failed
+-50 ; CAN-detection failed
+-51 ; CAN-detection timed out
+```
+
+Example:
+
+```clj
+; No can detection, 50w losses max, -20 A to 50 A input current, 800 ERPM openloop and 2500 erpm for sensorless in case sensors are found
+(print (conf-detect-foc 0 50 -20 50 800 2500))
+; Print the result when done
+```
+
+### EEPROM (Nonvolatile Storage)
+
+Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
+
+#### eeprom-store-f
+
+```clj
+(eeprom-store-f addr number)
+```
+
+Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
+
+#### eeprom-read-f
+
+```clj
+(eeprom-read-f addr)
+```
+
+Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
+
+#### eeprom-store-i
+
+```clj
+(eeprom-store-i addr number)
+```
+
+Same as eeprom-store-f, but store number as i32 instead of float.
+
+#### eeprom-read-i
+
+```clj
+(eeprom-read-i addr)
+```
+
+Same as eeprom-read-i, but read number as i32 instead of float.
+
+### Loops
+
+#### loopfor
+
+```clj
+(loopfor it start cond update body)
+```
+
+For-loop. it is the iterator, start is what it is initialized to, cond is the condition that has the be true for the loop to continue running, update is how to update the iterator after each iteration and body is the code to execute each iteration. The iterator can be accessed from within body. Example:
+
+```clj
+(loopfor i 0 (< i 5) (+ i 1)
+    (print i)
+)
+
+Output:
+0
+1
+2
+3
+4
+
+; Remember that multiple statements in the loop require a progn:
+(loopfor i 0 (< i 5) (+ i 1)
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+```
+
+#### loopwhile
+
+```clj
+(loopwhile cond body)
+```
+
+While-loop. cond is the condition that has the be true for the loop to continue running and body is the code to execute each iteration. Example:
+
+```clj
+(define i 0)
+
+(loopwhile (< i 5)
+    (progn
+        (print i)
+        (define i (+ i 1))
+))
+
+Output:
+0
+1
+2
+3
+4
+```
+
+Another example that prints "Hello World" every two seconds:
+
+```clj
+(loopwhile t
+    (progn
+        (print "Hello World")
+        (sleep 2)
+))
+```
+
+#### looprange
+
+```clj
+(looprange it start end body)
+```
+
+Range-loop. Iterate it from start to end and evaluate body for each iteration. The iterator it can be accessed from within body. Example:
+
+```clj
+(looprange i 0 5
+    (print i)
+)
+
+Output:
+0
+1
+2
+3
+4
+
+; As with the other loops, multiple statements require a progn
+(looprange i 0 5
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+```
+
+#### loopforeach
+
+```clj
+(loopforeach it lst body)
+```
+
+ForEach-loop. Iterate over every element in the list lst and evaluate body for each iteration. The iterator it can be accessed from within body. Example:
+
+```clj
+(loopforeach i '("AB" "C" "dE" "f")
+    (print i)
+)
+
+Output:
+AB
+C
+dE
+f
+
+; As with the other loops, multiple statements require a progn
+(loopforeach i '("AB" "C" "dE" "f")
+    (progn
+        (print i)
+        (sleep 0.5)
+))
+
+```
+
+#### break
+
+```clj
+(break retval)
+```
+
+break can be used to break out of a loop and return retval (the result of the loop will be retval, otherwise the result of the loop will be the result of the last expression in it). break works in all of the loops above. Example:
+
+```clj
+; Below we make a function to determine if
+; the list lst contains number num
+
+(defun contains (num lst)
+    (loopforeach it lst
+        (if (= it num)
+            (break t)
+            nil
+)))
+
+(contains 346 '(12 33 452 11 22 346 99 12))
+> t
+
+(contains 347 '(12 33 452 11 22 346 99 12))
+> nil
+```
 
 ### Useful Lisp Functions
 
@@ -967,11 +1432,11 @@ This example creates an anonymous function that takes one argument and returns t
 (iota n)
 ```
 
-Create list from 0 to n. Example:
+Create list from 0 to n, excluding n. Example:
 
 ```clj
 (iota 5)
-> (0 1 2 3 4 5)
+> (0 1 2 3 4)
 ```
 
 #### range
@@ -980,11 +1445,11 @@ Create list from 0 to n. Example:
 (range start end)
 ```
 
-Create a list from start to end. Example:
+Create a list from start to end, excluding end. Example:
 
 ```clj
 (range 2 8)
-> (2 3 4 5 6 7 8)
+> (2 3 4 5 6 7)
 ```
 
 #### foldl
@@ -1353,6 +1818,8 @@ To allocate a byte array with 20 bytes and bind the symbol arr to it you can use
 (define arr (array-create 20))
 ```
 
+#### buflen
+
 The length of a byte array can be read with
 
 ```clj
@@ -1360,6 +1827,26 @@ The length of a byte array can be read with
 ```
 
 Which will return 20 for the array arr above.
+
+#### bufclear
+
+To clear a byte array the function bufclear can be used:
+
+```clj
+(bufclear arr optByte optStart optLen)
+```
+
+Where arr is the byte array to clear, optByte is the optional argument of what to clear with (default 0), optStart is the optional argument of which position to start clearing (default 0) and optLen is the optional argument of how many bytes to clear after start (default the entire array). Example:
+
+```clj
+(bufclear arr) ; Clear all of arr
+(bufclear arr 0xFF) ; Fill arr with 0xFF
+(bufclear arr 0 5) ; Clear from index 5 to the end
+(bufclear arr 0 5 10) ; Clear 10 bytes starting from index 5
+(bufclear arr 0xAA 5 10) ; Set 10 bytes to 0xAA starting from index 5
+```
+
+#### bufget-\[x\]
 
 To read data from the byte array you can use
 
@@ -1385,6 +1872,8 @@ By default the byte order is big endian. The byte order can also be specified as
 (bufget-i32 arr 6 little-endian)
 ```
 
+#### bufset-\[x\]
+
 Writing to the array can be done in a similar way
 
 ```clj
@@ -1401,11 +1890,23 @@ Here are some examples
 (bufset-u16 arr 0 420) ; write 420 to byte 0 and 1 as uint16
 (bufset-u32 arr 0 119) ; write 119 to byte 0 to 3 as uint32
 (bufset-f32 arr 0 3.14) ; write 3.14 to byte 0 to 3 as float32 (IEEE 754)
+(bufset-bit arr 14 1) ; Set bit 14 to 1 (note that this is a bitindex)
 ```
 
 As with bufget big endian is the default byte order and little-endian can be passed as the last argument to use little-endian byte order instead.
 
-**Note**  
+#### bufcpy
+
+Copy part of one array into another array.
+
+```clj
+(bufcpy arr1 ind1 arr2 ind2 len)
+```
+
+Copy len bytes from arr2 starting at ind2 to arr1 starting at ind1. Len will be truncated to ensure that nothing is read or written outside of the arrays.
+
+#### free
+
 Byte arrays will be de-allocated by the garbage collector on a regular basis, but can still use a lot of memory until then and large byte arrays cause a risk of running out of memory. It is possible to manually de-allocate the byte arrays when done with them by calling free
 
 ```clj
@@ -1416,6 +1917,130 @@ This will clear the allocated memory for arr.
 
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
+
+## Import Files
+
+Import is a special command that is mostly handled by VESC Tool. When VESC Tool sees a line that imports a file it will open and read that file and attach it as binary data to the end of the uploaded code. VESC Tool also generates a table of the imported files that will be allocated as arrays and passed to LispBM at start and bound to bindings.
+
+Every imported file behaves as a byte array that is read-only (so do not try to modify it). These byte arrays can be used as usual from the lisp code to, for example, load native libraries or to load more lisp code at runtime. As they are stored in flash in raw binary format there is significantly more space available than when using e.g. the array syntax. The lisp script and the imported files can use up to 120 KB together.
+
+#### import
+
+```clj
+(import filename binding)
+```
+
+Load filename as a byte array and bind it to binding. Note that import must be on its own line and that every line can only have one import.
+
+**Example: Load native library**
+
+```clj
+(import "ws2812.bin" 'ws2812) ; Import the native ws2812 library. This creates the byte array ws2812 that can be used usual.
+(load-native-lib ws2812); Load it to get the extensions it provides 
+```
+
+## Native Libraries
+
+Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.
+
+Up to 10 native libraries can be loaded simultaneously and the recommended way to configure and interact with them is by providing LispBM-extensions from them.
+
+Currently the documentation for native libraries is limited, but there are some examples [in this diretory](c_libs/examples). The interface that can be used in native libraries can be found [in this file](c_libs/vesc_c_if.h).
+
+### Features
+
+Native libraries get a list of function pointers that can be used to interact with the rest of the VESC code. The following features are currently supported:
+
+* Register LispBM-extensions.
+* Os-functions like sleep, print, malloc, free, system time.
+* Create one or more threads.
+* GPIO-control (ST and abstract).
+* The ST standard peripheral library can be used.
+* Send and receive CAN-frames and control other VESCs over CAN-bus.
+* Motor control using almost everything from mc_interface.
+
+### Cleanup
+
+Every time lispBM is restarted or when new code is uploaded the native libraries are closed and reloaded, so it is important to do proper cleanup in lib_info->stop_fun when resources such as threads are allocated.
+
+#### load-native-lib
+
+```clj
+(load-native-lib lib)
+```
+
+Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library.
+
+#### unload-native-lib
+
+```clj
+(unload-native-lib lib)
+```
+
+Unload the native library lib. This is done automatically when lispBM is stopped or restarted, so there is no need to do it explicitly. This function is provided in case native libraries need to be explicitly loaded and unloaded while the same program is running.
+
+### Native Library Example
+
+This example creates an extension called ext-test that takes a number as an argument and returns the number multiplied by 3. The code for it can be found [in this diretory](c_libs/examples/extension).
+
+```clj
+; When running make in the example directory a file called example.lisp
+; with this array is created.
+
+(def example [
+0x00 0x00 0x00 0x00 0x08 0xb5 0x07 0x4b 0x07 0x49 0x08 0x48 0x7b 0x44 0x79 0x44 0x1b 0x68 0x03 0x4b
+0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xfc 0x00 0x10 0xf0 0xff 0xff 0xff
+0x2b 0x00 0x00 0x00 0x18 0x00 0x00 0x00 0x65 0x78 0x74 0x2d 0x74 0x65 0x73 0x74 0x00 0x00 0x00 0x00
+0x01 0x29 0x08 0xb5 0x1f 0xd1 0x00 0x68 0xc3 0x07 0x4c 0xbf 0x00 0xf0 0x7c 0x43 0x00 0xf0 0x0c 0x03
+0x08 0x2b 0x0d 0xd0 0x23 0xf0 0x08 0x02 0x04 0x2a 0x09 0xd0 0x23 0xf0 0x80 0x52 0x23 0xf0 0xa0 0x43
+0xb3 0xf1 0x00 0x5f 0x02 0xd0 0xb2 0xf1 0x80 0x4f 0x08 0xd1 0x05 0x4b 0xdb 0x68 0x98 0x47 0x00 0xeb
+0x40 0x00 0x00 0x01 0x40 0xf0 0x0c 0x00 0x08 0xbd 0x4f 0xf4 0x08 0x70 0xfb 0xe7 0x00 0xfc 0x00 0x10
+])
+
+; The array can be loaded like this
+
+(load-native-lib example)
+
+; Now an extension called ext-test is available. Here we use it
+; with the argument 4 and print the result
+
+(print (ext-test 4)) ; Should print 12
+```
+
+## UAVCAN
+
+#### uavcan-last-rawcmd
+
+```clj
+(uavcan-last-rawcmd canInterface)
+```
+
+Get the last raw uavcan-command and its age. Returns a list where the first element is the value and the second element is the age. canInterface is the interface, which can be 1 or 2. Interface 2 is only valid if the hardware has dual CAN-buses. Example:
+
+```clj
+(print (ix (uavcan-last-rawcmd 1) 0)) ; Print the value
+(print (ix (uavcan-last-rawcmd 1) 1)) ; Print the age in seconds
+```
+
+#### uavcan-last-rpmcmd
+
+```clj
+(uavcan-last-rpmcmd canInterface)
+```
+
+Same as uavcan-last-rawcmd, but for the last rpm-command.
+
+## LispBM
+
+#### lbm-set-quota
+
+```clj
+(lbm-set-quota quota)
+```
+
+Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+
+Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 
 ## How to update
 

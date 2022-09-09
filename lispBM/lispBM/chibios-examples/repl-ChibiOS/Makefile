@@ -129,7 +129,6 @@ LBMSRC = ../../src/compression.c \
          ../../src/fundamental.c \
          ../../src/heap.c \
          ../../src/lbm_memory.c \
-         ../../src/prelude.c \
          ../../src/print.c \
          ../../src/qq_expand.c \
          ../../src/stack.c \
@@ -139,7 +138,11 @@ LBMSRC = ../../src/compression.c \
          ../../src/lispbm.c \
          ../../src/lbm_c_interop.c \
          ../../src/lbm_variables.c \
-         ../../platform/chibios/src/platform_mutex.c
+	 ../../src/lbm_custom_type.c \
+         ../../src/extensions/array_extensions.c \
+         ../../src/extensions/string_extensions.c \
+         ../../platform/chibios/src/platform_mutex.c\
+         ../../platform/chibios/src/platform_uart.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
@@ -193,7 +196,7 @@ UDEFS = -D_32_BIT_ -D_PRELUDE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../../include ../../platform/chibios/include
+UINCDIR = ./ ../../include ../../platform/chibios/include
 
 # List the user directory to look for the libraries here
 ULIBDIR =

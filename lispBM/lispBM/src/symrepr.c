@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 111
+#define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -34,7 +34,7 @@ typedef struct {
   const lbm_uint id;
 } special_sym;
 
-special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
+special_sym const special_symbols[] =  {
   {"nil"        , SYM_NIL},
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
@@ -57,17 +57,21 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"set!"         , SYM_SETVAR},
+  {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
+  {"namespace"    , SYM_NAMESPACE},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i28"       , SYM_MATCH_I28},
-  {"?u28"       , SYM_MATCH_U28},
+  {"?i"         , SYM_MATCH_I},
+  {"?u"         , SYM_MATCH_U},
   {"?u32"       , SYM_MATCH_U32},
   {"?i32"       , SYM_MATCH_I32},
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
+  {"?u64"       , SYM_MATCH_U64},
+  {"?i64"       , SYM_MATCH_I64},
+  {"?double"    , SYM_MATCH_DOUBLE},
 
   // Special symbols with unparsable names
   {"no_match"           , SYM_NO_MATCH},
@@ -79,12 +83,16 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"sym_array"          , SYM_ARRAY_TYPE},
-  {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
-  {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
-  {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
+  {"sym_raw_i"          , SYM_RAW_I_TYPE},
+  {"sym_raw_u"          , SYM_RAW_U_TYPE},
+  {"sym_raw_f"          , SYM_RAW_F_TYPE},
+  {"sym_ind_i"          , SYM_IND_I_TYPE},
+  {"sym_ind_u"          , SYM_IND_U_TYPE},
+  {"sym_ind_f"          , SYM_IND_F_TYPE},
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
+  {"sym_custom"         , SYM_CUSTOM_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
@@ -97,14 +105,21 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_dot"            , SYM_DOT},
   {"sym_tok_done"       , SYM_TOKENIZER_DONE},
   {"sym_quote_it"       , SYM_QUOTE_IT},
+  {"sym_colon"          , SYM_COLON},
+  {"sym_tok_wait"       , SYM_TOKENIZER_WAIT},
+  {"sym_openbrack"      , SYM_OPENBRACK},
+  {"sym_closebrack"     , SYM_CLOSEBRACK},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
-  {"type-i28"         , SYM_TYPE_I28},
-  {"type-u28"         , SYM_TYPE_U28},
+  {"type-i"           , SYM_TYPE_I},
+  {"type-u"           , SYM_TYPE_U},
   {"type-float"       , SYM_TYPE_FLOAT},
   {"type-i32"         , SYM_TYPE_I32},
   {"type-u32"         , SYM_TYPE_U32},
+  {"type-double"      , SYM_TYPE_DOUBLE},
+  {"type-i64"         , SYM_TYPE_I64},
+  {"type-u64"         , SYM_TYPE_U64},
   {"type-array"       , SYM_TYPE_ARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
@@ -130,6 +145,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"yield"          , SYM_YIELD},
   {"wait"           , SYM_WAIT},
   {"spawn"          , SYM_SPAWN},
+  {"atomic"         , SYM_ATOMIC},
   {"eq"             , SYM_EQ},
   {"car"            , SYM_CAR},
   {"cdr"            , SYM_CDR},
@@ -139,6 +155,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
   {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-size"     , SYM_ARRAY_SIZE},
+  {"array-clear"    , SYM_ARRAY_CLEAR},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},
@@ -146,6 +164,12 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"u2sym"          , SYM_UINT_TO_SYMBOL},
   {"setcar"         , SYM_SET_CAR},
   {"setcdr"         , SYM_SET_CDR},
+  {"setix"          , SYM_SET_IX},
+
+  {"assoc"          , SYM_ASSOC}, // lookup an association
+  {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
+  {"acons"          , SYM_ACONS}, // Add to alist
+  {"setassoc"       , SYM_SET_ASSOC}, // Change association
 
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},
@@ -154,12 +178,24 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
 
+  {"custom-destruct", SYM_CUSTOM_DESTRUCT},
+
+  {"to-i"           , SYM_TO_I},
+  {"to-i32"         , SYM_TO_I32},
+  {"to-u"           , SYM_TO_U},
+  {"to-u32"         , SYM_TO_U32},
+  {"to-float"       , SYM_TO_FLOAT},
+  {"to-i64"         , SYM_TO_I64},
+  {"to-u64"         , SYM_TO_U64},
+  {"to-double"      , SYM_TO_DOUBLE},
+  {"to-byte"        , SYM_TO_BYTE},
+
   // Streams
-//  {"stream-get"     , SYM_STREAM_GET},
-//  {"stream-more"    , SYM_STREAM_MORE},
-//  {"stream-peek"    , SYM_STREAM_PEEK},
-//  {"stream-drop"    , SYM_STREAM_DROP},
-//  {"stream-put"     , SYM_STREAM_PUT},
+  {"stream-get"     , SYM_STREAM_GET},
+  {"stream-more"    , SYM_STREAM_MORE},
+  {"stream-peek"    , SYM_STREAM_PEEK},
+  {"stream-drop"    , SYM_STREAM_DROP},
+  {"stream-put"     , SYM_STREAM_PUT},
 
   // fast access in list
   {"ix"             , SYM_IX},
@@ -170,39 +206,51 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"encode-float"   , SYM_ENCODE_FLOAT},
   {"decode"         , SYM_DECODE},
 
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL}
+  {"is-fundamental" , SYM_IS_FUNDAMENTAL},
+
+  // aliases
+  {"first"          , SYM_CAR},
+  {"rest"           , SYM_CDR},
+  {"fn"             , SYM_LAMBDA},
+  {"def"            , SYM_DEFINE}
+
 };
 
-static uint32_t *symlist = NULL;
+static lbm_uint *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
 static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
+
+static lbm_uint symbol_table_size_list = 0;
+static lbm_uint symbol_table_size_strings = 0;
 
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
   next_extension_symbol_id = EXTENSION_SYMBOLS_START;
   next_variable_symbol_id = VARIABLE_SYMBOLS_START;
+  symbol_table_size_list = 0;
+  symbol_table_size_strings = 0;
   return 1;
 }
 
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     f((const char *)curr[NAME]);
-    curr = (uint32_t *)curr[NEXT];
+    curr = (lbm_uint *)curr[NEXT];
   }
 }
 
 const char *lookup_symrepr_name_memory(lbm_uint id) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     if (id == curr[ID]) {
       return (const char *)curr[NAME];
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return NULL;
 }
@@ -210,7 +258,7 @@ const char *lookup_symrepr_name_memory(lbm_uint id) {
 // Lookup symbol name given a symbol id
 const char *lbm_get_name_by_symbol(lbm_uint id) {
   if (id < SPECIAL_SYMBOLS_END) {
-    for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
+    for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);
       }
@@ -223,21 +271,21 @@ const char *lbm_get_name_by_symbol(lbm_uint id) {
 int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through special symbols
-  for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
+  for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
     if (strcmp(name, special_symbols[i].name) == 0) {
       *id = special_symbols[i].id;
       return 1;
     }
   }
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
     if (strcmp(name, str) == 0) {
       *id = curr[ID];
       return 1;
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return 0;
 }
@@ -248,38 +296,52 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  char *symbol_name_storage = NULL;;
-  if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
   }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
 
   if (symbol_name_storage == NULL) {
     lbm_memory_free(m);
     return 0;
   }
 
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
+
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
   *id = m[ID];
   return 1;
+}
+
+int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+  if (lbm_get_symbol_by_name(name, sym_id))
+    return 1;
+  else if (lbm_add_symbol(name, sym_id))
+    return 1;
+  return 0;
 }
 
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
@@ -290,33 +352,69 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  char *symbol_name_storage = NULL;;
-  if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
   }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
 
   if (symbol_name_storage == NULL) {
     lbm_memory_free(m);
     return 0;
   }
 
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
+
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_variable_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
+  size_t  n = 0;
+
+  n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_variable_symbol_id++;
@@ -328,22 +426,71 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int lbm_add_extension_symbol(char *name, lbm_uint* id) {
+  size_t  n = 0;
+  n = strlen(name) + 1;
+
+  if (n == 1) return 0; // failure if empty symbol
+  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  char *symbol_name_storage = NULL;
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
+  } else {
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
+  }
+
+  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
+
+  if (symbol_name_storage == NULL) {
+    lbm_memory_free(m);
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
+
+  strcpy(symbol_name_storage, name);
+
+  m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_extension_symbol_id++;
   *id = m[ID];
   return 1;
 }
@@ -352,19 +499,21 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_extension_symbol_id++;
@@ -372,23 +521,14 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   return 1;
 }
 
-
-unsigned int lbm_get_symbol_table_size(void) {
-
-  unsigned int n = 0;
-  uint32_t *curr = symlist;
-
-  while (curr) {
-    // up to 3 extra bytes are used for string storage if length is not multiple of 4
-    size_t s = strlen((char *)curr[NAME]);
-    s ++;
-    n += s % 4;
-    n += 12; // sizeof the node in the linked list
-    curr = (uint32_t *)curr[NEXT];
-  }
-  return n;
+lbm_uint lbm_get_symbol_table_size(void) {
+  return (symbol_table_size_list +
+          symbol_table_size_strings) * sizeof(lbm_uint);
 }
 
+lbm_uint lbm_get_symbol_table_size_names(void) {
+  return symbol_table_size_strings * sizeof(lbm_uint);
+}
 
 int lbm_get_num_variables(void) {
   return (int)next_variable_symbol_id - VARIABLE_SYMBOLS_START;

@@ -29,8 +29,9 @@
 #include "uavcan/protocol/param/GetSet.h"
 #include "uavcan/protocol/GetNodeInfo.h"
 #include "uavcan/protocol/RestartNode.h"
-#include <uavcan/protocol/file/BeginFirmwareUpdate.h>
-#include <uavcan/protocol/file/Read.h>
+#include "uavcan/protocol/file/BeginFirmwareUpdate.h"
+#include "uavcan/protocol/file/Read.h"
+#include "vesc/RTData.h"
 
 #include "conf_general.h"
 #include "app.h"
@@ -45,12 +46,15 @@
 #include "crc.h"
 #include "nrf_driver.h"
 #include "buffer.h"
+#include "utils.h"
+#include "mcpwm_foc.h"
+#include "imu.h"
 
 // Constants
 #define CAN_APP_NODE_NAME								"org.vesc." HW_NAME
 #define UNIQUE_ID_LENGTH_BYTES							12
 #define STATUS_MSGS_TO_STORE							10
-#define AP_MAX_NAME_SIZE								16
+#define AP_MAX_NAME_SIZE								20
 #define ARRAY_SIZE(_arr) (sizeof(_arr) / sizeof(_arr[0]))
 
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH 16
@@ -73,14 +77,27 @@ typedef struct {
 	uavcan_equipment_esc_Status msg;
 } status_msg_wrapper_t;
 
+typedef struct {
+	float rawval;
+	float rpmval;
+	systime_t rawtime;
+	systime_t rpmtime;
+} cmd_info_data;
+
 // Private variables
-static CanardInstance canard;
+static CanardInstance canard_ins;
 static uint8_t canard_memory_pool[1024];
+static cmd_info_data can1_cmd = {0};
+#ifdef HW_CAN2_DEV
+static cmd_info_data can2_cmd = {0};
+static CanardInstance canard_ins_if2;
+static uint8_t canard_memory_pool_if2[1024];
+#endif
+static uint8_t msg_buffer[512];
 static uint8_t node_health = UAVCAN_PROTOCOL_NODESTATUS_HEALTH_OK;
 static uint8_t node_mode = UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
 static int debug_level;
 static status_msg_wrapper_t stat_msgs[STATUS_MSGS_TO_STORE];
-static uint8_t my_node_id = 0;
 static bool refresh_parameters_enabled = true;
 
 // Threads
@@ -89,7 +106,8 @@ static THD_FUNCTION(canard_thread, arg);
 
 // Private functions
 static void calculateTotalCurrent(void);
-static void sendEscStatus(void);
+static void sendEscStatus(CanardInstance *ins);
+static void sendRtData(CanardInstance *ins);
 static void readUniqueID(uint8_t* out_uid);
 static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer);
 static bool shouldAcceptTransfer(const CanardInstance* ins,
@@ -110,6 +128,7 @@ static struct {
 	uint8_t path[UAVCAN_PROTOCOL_FILE_PATH_PATH_MAX_LENGTH+1];
 	uint8_t sector;
 	uint32_t sector_ofs;
+	CanardInstance *ins;
 } fw_update;
 
 systime_t last_read_file_req = 0;
@@ -196,12 +215,14 @@ static void write_app_config(void);
  */
 static param_t parameters[] =
 {
-	{"uavcan_mode", 	AP_PARAM_INT8,   0,   0,   2,   1},
-	{"can_baud_rate", 	AP_PARAM_INT8,   0,   0,   8,   3},
-	{"can_status_rate",	AP_PARAM_INT32,  0,   0, 100,  50},
-	{"can_send_status", AP_PARAM_INT8,   0,   0,   5,   1},
-	{"can_esc_index",   AP_PARAM_INT8,   0,   0, 255,   0},
-	{"controller_id",   AP_PARAM_INT8,   0,   0, 255,   0}
+	{"can_baud_rate", 		AP_PARAM_INT8,   0,   0,   8,   CAN_BAUD_500K},
+	{"can_status_rate_1",	AP_PARAM_INT32,  0,   0, 1000,  50},
+	{"can_status_rate_2",	AP_PARAM_INT32,  0,   0, 1000,  5},
+	{"can_status_msgs_r1",	AP_PARAM_INT16,  0,   0,   255,   0},
+	{"can_status_msgs_r2",	AP_PARAM_INT16,  0,   0,   255,   0},
+	{"can_esc_index",   	AP_PARAM_INT16,  0,   0, 255,   0},
+	{"controller_id",   	AP_PARAM_INT16,  0,   0, 253,   0},
+	{"ctl_dir",         	AP_PARAM_INT8,   0,   0, 1,     0}
 };
 
 /*
@@ -234,17 +255,26 @@ static void write_app_config(void) {
 	app_configuration *appconf = mempools_alloc_appconf();
 	*appconf = *app_get_configuration();
 
-	appconf->can_mode = (uint8_t)getParamByName("uavcan_mode")->val;
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+
 	appconf->can_baud_rate = (uint8_t)getParamByName("can_baud_rate")->val;
 	appconf->can_status_rate_1 = (uint32_t)getParamByName("can_status_rate_1")->val;
-	appconf->can_status_msgs_r1 = (uint8_t)getParamByName("can_status_msgs_r1")->val;
-	appconf->uavcan_esc_index = (uint8_t)getParamByName("can_esc_index")->val;
-	appconf->controller_id = (uint8_t)getParamByName("controller_id")->val; 
+	appconf->can_status_rate_2 = (uint32_t)getParamByName("can_status_rate_2")->val;
+	appconf->can_status_msgs_r1 = (uint16_t)getParamByName("can_status_msgs_r1")->val;
+	appconf->can_status_msgs_r2 = (uint16_t)getParamByName("can_status_msgs_r2")->val;
+	appconf->uavcan_esc_index = (uint16_t)getParamByName("can_esc_index")->val;
+	appconf->controller_id = (uint16_t)getParamByName("controller_id")->val;
+	mcconf->m_invert_direction = (uint8_t)getParamByName("ctl_dir")->val;;
 
    	conf_general_store_app_configuration(appconf);
    	app_set_configuration(appconf);
 
+   	conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
+   	mc_interface_set_configuration(mcconf);
+
 	mempools_free_appconf(appconf);
+	mempools_free_mcconf(mcconf);
 
 	refresh_parameters_enabled = true;
 }
@@ -257,13 +287,16 @@ static void write_app_config(void) {
  */
 static void refresh_parameters(void){
 	const app_configuration *appconf = app_get_configuration();
+	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
-	updateParamByName((uint8_t *)"uavcan_mode", 		appconf->can_mode );
-	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate );
-	updateParamByName((uint8_t *)"can_status_rate_1",	appconf->can_status_rate_1 );
-	updateParamByName((uint8_t *)"can_send_status", 	appconf->can_status_msgs_r1 );
-	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index );
-	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id );
+	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate);
+	updateParamByName((uint8_t *)"can_status_rate_1",	appconf->can_status_rate_1);
+	updateParamByName((uint8_t *)"can_status_rate_2",	appconf->can_status_rate_2);
+	updateParamByName((uint8_t *)"can_status_msgs_r1",	appconf->can_status_msgs_r1);
+	updateParamByName((uint8_t *)"can_status_msgs_r2",	appconf->can_status_msgs_r2);
+	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index);
+	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id);
+	updateParamByName((uint8_t *)"ctl_dir",			   	mcconf->m_invert_direction);
 }
 
 /*
@@ -273,7 +306,7 @@ static void refresh_parameters(void){
  */
 static param_t* getParamByIndex(uint16_t index)
 {
-	if (index >= (sizeof(parameters)/40))
+	if (index >= (sizeof(parameters) / sizeof(parameters[0])))
 	{
 		if (debug_level == 2) {
 			commands_printf("Index is out of range");
@@ -281,7 +314,7 @@ static param_t* getParamByIndex(uint16_t index)
 		return NULL;
 	}
 	if (debug_level == 2) {
-		commands_printf("Size of parameter array is: %d",sizeof(parameters)/40);
+		commands_printf("Size of parameter array is: %d", (sizeof(parameters) / sizeof(parameters[0])));
 	}
 	return &parameters[index];
 }
@@ -293,7 +326,7 @@ static param_t* getParamByIndex(uint16_t index)
  */
 static param_t* getParamByName(char * name)
 {
-	for (uint16_t i = 0; i < sizeof(parameters)/40; i++)
+	for (uint16_t i = 0; i < (sizeof(parameters) / sizeof(parameters[0])); i++)
 	{
 		if (debug_level == 2) {
 			commands_printf("name: %s paramname: %s", name, parameters[i].name);
@@ -316,6 +349,12 @@ static param_t* getParamByName(char * name)
 void canard_driver_init(void) {
 	debug_level = 0;
 
+	memset(&can1_cmd, 0, sizeof(can1_cmd));
+
+#ifdef HW_CAN2_DEV
+	memset(&can2_cmd, 0, sizeof(can2_cmd));
+#endif
+
 	for (int i = 0;i < STATUS_MSGS_TO_STORE;i++) {
 		stat_msgs[i].id = -1;
 	}
@@ -327,6 +366,44 @@ void canard_driver_init(void) {
 		"Enable UAVCAN debug prints 0: off 1: errors 2: param getset 3: current calc 4: comms stuff)",
 		"[level]",
 		terminal_debug_on);
+}
+
+uavcan_cmd_info canard_driver_last_rawcmd(int can_if) {
+	uavcan_cmd_info res = {0};
+	res.age = UTILS_AGE_S(0);
+
+	if (can_if == 1) {
+		res.value = can1_cmd.rawval;
+		res.age = UTILS_AGE_S(can1_cmd.rawtime);
+	}
+
+#ifdef HW_CAN2_DEV
+	if (can_if == 2) {
+		res.value = can2_cmd.rawval;
+		res.age = UTILS_AGE_S(can2_cmd.rawtime);
+	}
+#endif
+
+	return res;
+}
+
+uavcan_cmd_info canard_driver_last_rpmcmd(int can_if) {
+	uavcan_cmd_info res = {0};
+	res.age = UTILS_AGE_S(0);
+
+	if (can_if == 1) {
+		res.value = can1_cmd.rpmval;
+		res.age = UTILS_AGE_S(can1_cmd.rpmtime);
+	}
+
+#ifdef HW_CAN2_DEV
+	if (can_if == 2) {
+		res.value = can2_cmd.rpmval;
+		res.age = UTILS_AGE_S(can2_cmd.rpmtime);
+	}
+#endif
+
+	return res;
 }
 
 /*
@@ -373,45 +450,50 @@ static void calculateTotalCurrent(void) {
 /*
 * Send Node Status Message
 */
-static void sendNodeStatus(void) {
+static void sendNodeStatus(CanardInstance *ins) {
 	node_mode = fw_update.node_id?UAVCAN_PROTOCOL_NODESTATUS_MODE_SOFTWARE_UPDATE:UAVCAN_PROTOCOL_NODESTATUS_MODE_OPERATIONAL;
-
-	
-	uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
 	
 	node_status.health = node_health;
 	node_status.mode = node_mode;
 	node_status.uptime_sec = (uint32_t)ST2S(chVTGetSystemTimeX());
 	// status.sub_mode =
 	// status.vendor_specific_status_code is filled in the firmware update loop
-	uavcan_protocol_NodeStatus_encode(&node_status, buffer);
+	uavcan_protocol_NodeStatus_encode(&node_status, msg_buffer);
 	static uint8_t transfer_id;
-	canardBroadcast(&canard,
+	canardBroadcast(ins,
 		UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE,
 		UAVCAN_PROTOCOL_NODESTATUS_ID,
 		&transfer_id,
 		CANARD_TRANSFER_PRIORITY_LOW,
-		buffer,
+		msg_buffer,
 		UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE);
 }
 
 /*
  * Send ESC Status Message
  */
-static void sendEscStatus(void) {
-	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE];
+static void sendEscStatus(CanardInstance *ins) {
 	uavcan_equipment_esc_Status status;
-	status.current = mc_interface_get_tot_current();
+	memset(&status, 0, sizeof(status));
+
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
+
+	if (appconf->uavcan_status_current_mode == UAVCAN_STATUS_CURRENT_MODE_MOTOR) {
+		status.current = mc_interface_get_tot_current_filtered();
+	} else {
+		status.current = mc_interface_get_tot_current_in_filtered();
+	}
+
 	status.error_count = mc_interface_get_fault();
 	status.esc_index = app_get_configuration()->uavcan_esc_index;
 	status.power_rating_pct = (fabsf(mc_interface_get_tot_current()) /
-			mc_interface_get_configuration()->l_current_max *
-			mc_interface_get_configuration()->l_current_max_scale) * 100.0;
-	status.rpm = mc_interface_get_rpm();
-	status.temperature = mc_interface_temp_fet_filtered() + 273.15;
+			conf->l_current_max * conf->l_current_max_scale) * 100.0;
+	status.rpm = mc_interface_get_rpm() / ((float)conf->si_motor_poles / 2.0);
+	status.temperature = fmaxf(mc_interface_temp_fet_filtered(), mc_interface_temp_motor_filtered()) + 273.15;
 	status.voltage = mc_interface_get_input_voltage_filtered();
 
-	uavcan_equipment_esc_Status_encode(&status, buffer);
+	uavcan_equipment_esc_Status_encode(&status, msg_buffer);
 
 	static uint8_t transfer_id;
 
@@ -419,13 +501,83 @@ static void sendEscStatus(void) {
 		commands_printf("UAVCAN sendESCStatus");
 	}
 
-	canardBroadcast(&canard,
+	canardBroadcast(ins,
 		UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE,
 		UAVCAN_EQUIPMENT_ESC_STATUS_ID,
 		&transfer_id,
 		CANARD_TRANSFER_PRIORITY_LOW,
-		buffer,
+		msg_buffer,
 		UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE);
+}
+
+static void sendRtData(CanardInstance *ins) {
+	vesc_RTData data;
+	memset(&data, 0, sizeof(data));
+
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
+
+	data.volt_in = mc_interface_get_input_voltage_filtered();
+	data.volt_d = mcpwm_foc_get_vd();
+	data.volt_q = mcpwm_foc_get_vq();
+
+	data.temp_mos_max = mc_interface_temp_fet_filtered();
+	data.temp_mos_1 = NTC_TEMP_MOS1();
+	data.temp_mos_2 = NTC_TEMP_MOS2();
+	data.temp_mos_3 = NTC_TEMP_MOS3();
+	data.temp_motor_max = mc_interface_temp_motor_filtered();
+	data.temp_motor_1 = TEMP_MOTOR_1(conf->m_ntc_motor_beta);
+	data.temp_motor_2 = TEMP_MOTOR_2(conf->m_ntc_motor_beta);
+
+	data.curr_motor = mc_interface_get_tot_current_filtered();
+	data.curr_in = mc_interface_get_tot_current_in_filtered();
+	data.curr_d = mcpwm_foc_get_id();
+	data.curr_q = mcpwm_foc_get_iq();
+
+	float rpy[3], acc[3], gyro[3];
+	imu_get_rpy(rpy);
+	imu_get_accel(acc);
+	imu_get_gyro(gyro);
+
+	data.roll = rpy[0];
+	data.pitch = rpy[1];
+	data.yaw = rpy[2];
+	data.acc_x = acc[0];
+	data.acc_y = acc[1];
+	data.acc_z = acc[2];
+	data.gyro_x = gyro[0];
+	data.gyro_y = gyro[1];
+	data.gyro_z = gyro[2];
+
+	data.erpm = mc_interface_get_rpm();
+	data.rpm = mc_interface_get_rpm() / ((float)conf->si_motor_poles / 2.0);
+	data.duty = mc_interface_get_duty_cycle_now();
+	data.ah_used = mc_interface_get_amp_hours(false);
+	data.ah_charged = mc_interface_get_amp_hours_charged(false);
+	data.wh_used = mc_interface_get_watt_hours(false);
+	data.wh_charged = mc_interface_get_watt_hours_charged(false);
+	data.encoder_pos = mc_interface_get_pid_pos_now();
+	float wh_left = 0.0;
+	data.battery_level = mc_interface_get_battery_level(&wh_left);
+	data.battery_wh_tot = wh_left / data.battery_level;
+	data.fault_code = mc_interface_get_fault();
+	data.vesc_id = appconf->controller_id;
+
+	vesc_RTData_encode(&data, msg_buffer, false);
+
+	static uint8_t transfer_id;
+
+	if (debug_level > 11) {
+		commands_printf("UAVCAN sendRtData");
+	}
+
+	canardBroadcast(ins,
+			VESC_RTDATA_SIGNATURE,
+			VESC_RTDATA_ID,
+			&transfer_id,
+			CANARD_TRANSFER_PRIORITY_LOW,
+			msg_buffer,
+			VESC_RTDATA_MAX_SIZE);
 }
 
 /*
@@ -446,8 +598,8 @@ static void readUniqueID(uint8_t* out_uid) {
  * Node status is syncronize with the data from the node status message. 
  */
 static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer) {
-	uint8_t buffer[UAVCAN_PROTOCOL_GETNODEINFO_RESPONSE_MAX_SIZE];
 	uavcan_protocol_GetNodeInfoResponse pkt;
+	memset(&pkt, 0, sizeof(pkt));
 
 	node_status.uptime_sec = ST2S(chVTGetSystemTimeX());
 
@@ -477,7 +629,7 @@ static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer
 	pkt.name.len = strlen(CAN_APP_NODE_NAME);
 	pkt.name.data = (uint8_t *)name;
 
-	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
+	uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, msg_buffer);
 
 	const int16_t resp_res = canardRequestOrRespond(ins,
 													transfer->source_node_id,
@@ -486,7 +638,7 @@ static void handle_get_node_info(CanardInstance* ins, CanardRxTransfer* transfer
 													&transfer->transfer_id,
 													transfer->priority,
 													CanardResponse,
-													&buffer[0],
+													msg_buffer,
 													total_size);
 	if (resp_res <= 0) {
 		if (debug_level > 1) {
@@ -502,15 +654,29 @@ static void handle_esc_raw_command(CanardInstance* ins, CanardRxTransfer* transf
 	(void)ins;
 
 	uavcan_equipment_esc_RawCommand cmd;
-	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_MAX_SIZE];
-	memset(buffer, 0, sizeof(buffer));
-	uint8_t *tmp = buffer;
+	memset(&cmd, 0, sizeof(cmd));
+
+	uint8_t *tmp = msg_buffer;
 
 	if (uavcan_equipment_esc_RawCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0) >= 0) {
 		if (cmd.cmd.len > app_get_configuration()->uavcan_esc_index) {
 			float raw_val = ((float)cmd.cmd.data[app_get_configuration()->uavcan_esc_index]) / 8192.0;
 
+			if (ins == &canard_ins) {
+				can1_cmd.rawtime = chVTGetSystemTimeX();
+				can1_cmd.rawval = raw_val;
+			}
+
+#ifdef HW_CAN2_DEV
+			if (ins == &canard_ins_if2) {
+				can2_cmd.rawtime = chVTGetSystemTimeX();
+				can2_cmd.rawval = raw_val;
+			}
+#endif
+
 			volatile const app_configuration *conf = app_get_configuration();
+
+			app_disable_output(100);
 
 			switch (conf->uavcan_raw_mode) {
 				case UAVCAN_RAW_MODE_CURRENT:
@@ -548,13 +714,27 @@ static void handle_esc_rpm_command(CanardInstance* ins, CanardRxTransfer* transf
 	(void)ins;
 
 	uavcan_equipment_esc_RPMCommand cmd;
-	uint8_t buffer[UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_MAX_SIZE];
-	memset(buffer, 0, sizeof(buffer));
-	uint8_t *tmp = buffer;
+	memset(&cmd, 0, sizeof(cmd));
+
+	uint8_t *tmp = msg_buffer;
 
 	if (uavcan_equipment_esc_RPMCommand_decode_internal(transfer, transfer->payload_len, &cmd, &tmp, 0) >= 0) {
 		if (cmd.rpm.len > app_get_configuration()->uavcan_esc_index) {
-			mc_interface_set_pid_speed(cmd.rpm.data[app_get_configuration()->uavcan_esc_index]);
+			float rpm_val = cmd.rpm.data[app_get_configuration()->uavcan_esc_index];
+
+			if (ins == &canard_ins) {
+				can1_cmd.rpmtime = chVTGetSystemTimeX();
+				can1_cmd.rpmval = rpm_val;
+			}
+
+#ifdef HW_CAN2_DEV
+			if (ins == &canard_ins_if2) {
+				can2_cmd.rpmtime = chVTGetSystemTimeX();
+				can2_cmd.rpmval = rpm_val;
+			}
+#endif
+
+			mc_interface_set_pid_speed(rpm_val);
 			timeout_reset();
 		}
 	}
@@ -569,6 +749,8 @@ static void handle_esc_status(CanardInstance* ins, CanardRxTransfer* transfer) {
 	(void)ins;
 
 	uavcan_equipment_esc_Status msg;
+	memset(&msg, 0, sizeof(msg));
+
 	if (uavcan_equipment_esc_Status_decode_internal(transfer, transfer->payload_len, &msg, 0, 0) >= 0) {
 		for (int i = 0;i < STATUS_MSGS_TO_STORE;i++) {
 			status_msg_wrapper_t *msgw = &stat_msgs[i];
@@ -598,8 +780,9 @@ static void handle_esc_status(CanardInstance* ins, CanardRxTransfer* transfer) {
 static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 {
 	uavcan_protocol_param_GetSetRequest req;
-	uint8_t arraybuf[UAVCAN_PROTOCOL_PARAM_GETSET_REQUEST_NAME_MAX_LENGTH];
-	uint8_t *arraybuf_ptr = arraybuf;
+	memset(&req, 0, sizeof(req));
+
+	uint8_t *arraybuf_ptr = msg_buffer;
 	if (uavcan_protocol_param_GetSetRequest_decode(transfer, transfer->payload_len, &req, &arraybuf_ptr) < 0) {
 		return;
 	}
@@ -732,8 +915,7 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 	if (debug_level == 2) {
 		commands_printf("UAVCAN param_getset: Sending %s", pkt.name.data);
 	}
-	uint8_t buffer[UAVCAN_PROTOCOL_PARAM_GETSET_RESPONSE_MAX_SIZE];
-	uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, buffer);
+	uint16_t total_size = uavcan_protocol_param_GetSetResponse_encode(&pkt, msg_buffer);
 
 	const int16_t resp_res = canardRequestOrRespond(ins,
 													transfer->source_node_id,
@@ -742,7 +924,7 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 													&transfer->transfer_id,
 													transfer->priority,
 													CanardResponse,
-													&buffer[0],
+													&msg_buffer[0],
 													total_size);
 
 	if ((resp_res <= 0) && (debug_level > 1)) {
@@ -768,8 +950,10 @@ static void handle_restart_node(void) {
  * request before we send a new one. The value is cleared after procesing a response
  * so that we dont have to wait 250ms before sending the next request.
  */
-static void send_fw_read(void)
+static void send_fw_read(CanardInstance *ins)
 {
+	fw_update.ins = ins;
+
 	uint32_t now = ST2MS(chVTGetSystemTimeX());
 	if (now - fw_update.last_ms < 250) {
 		// the server may still be responding
@@ -777,24 +961,23 @@ static void send_fw_read(void)
 	}
 	fw_update.last_ms = now;
 
-	uint8_t buffer[UAVCAN_PROTOCOL_FILE_READ_REQUEST_MAX_SIZE];
-	canardEncodeScalar(buffer, 0, 40, &fw_update.ofs);
+	canardEncodeScalar(msg_buffer, 0, 40, &fw_update.ofs);
 	uint32_t offset = 40;
 	uint8_t len = strlen((const char *)fw_update.path);
 	for (uint8_t i=0; i<len; i++) {
-		canardEncodeScalar(buffer, offset, 8, &fw_update.path[i]);
+		canardEncodeScalar(msg_buffer, offset, 8, &fw_update.path[i]);
 		offset += 8;
 	}
 	uint32_t total_size = (offset+7)/8;
 
-	canardRequestOrRespond(&canard,
+	canardRequestOrRespond(ins,
 						   fw_update.node_id,
 						   UAVCAN_PROTOCOL_FILE_READ_SIGNATURE,
 						   UAVCAN_PROTOCOL_FILE_READ_ID,
 						   &fw_update.transfer_id,
 						   CANARD_TRANSFER_PRIORITY_HIGH,
 						   CanardRequest,
-						   &buffer[0],
+						   &msg_buffer[0],
 						   total_size);
 }
 
@@ -942,11 +1125,12 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
 		}
 	}
 
-	uint8_t buffer[UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_RESPONSE_MAX_SIZE];
 	uavcan_protocol_file_BeginFirmwareUpdateResponse reply;
+	memset(&reply, 0, sizeof(reply));
+
 	reply.error = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_RESPONSE_ERROR_OK;
 
-	uint32_t total_size = uavcan_protocol_file_BeginFirmwareUpdateResponse_encode(&reply, buffer);
+	uint32_t total_size = uavcan_protocol_file_BeginFirmwareUpdateResponse_encode(&reply, msg_buffer);
 	canardRequestOrRespond(ins,
 						   transfer->source_node_id,
 						   UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE,
@@ -954,7 +1138,7 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
 						   &transfer->transfer_id,
 						   transfer->priority,
 						   CanardResponse,
-						   &buffer[0],
+						   &msg_buffer[0],
 						   total_size);
 
 	// Erase the reserved flash for new app
@@ -966,7 +1150,7 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
 		commands_printf("UAVCAN Begin firmware update from node_id: %d",fw_update.node_id);
 	}
 	
-	send_fw_read();
+	send_fw_read(ins);
 }
 
 /**
@@ -1123,26 +1307,56 @@ static THD_FUNCTION(canard_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("UAVCAN");
 
-	canardInit(&canard, canard_memory_pool, sizeof(canard_memory_pool), onTransferReceived, shouldAcceptTransfer, NULL);
+	getParamByName("controller_id")->defval = HW_DEFAULT_ID;
 
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
+	systime_t last_esc_status_time_r2 = 0;
 	systime_t last_tot_current_calc_time = 0;
 	systime_t last_param_refresh = 0;
-	
+	bool was_running = false;
+
 	for (;;) {
 		const app_configuration *conf = app_get_configuration();
 
 		if (conf->can_mode != CAN_MODE_UAVCAN) {
 			chThdSleepMilliseconds(100);
+			was_running = false;
 			continue;
 		}
 
-		my_node_id = conf->controller_id;
-		canardSetLocalNodeID(&canard, conf->controller_id);
+		if (!was_running) {
+			memset(&canard_ins, 0, sizeof(canard_ins));
+			memset(canard_memory_pool, 0, sizeof(canard_memory_pool));
+
+			canardInit(&canard_ins, canard_memory_pool, sizeof(canard_memory_pool),
+					onTransferReceived, shouldAcceptTransfer, NULL);
+
+#ifdef HW_CAN2_DEV
+			memset(&canard_ins_if2, 0, sizeof(canard_ins_if2));
+			memset(canard_memory_pool_if2, 0, sizeof(canard_memory_pool_if2));
+
+			canardInit(&canard_ins_if2, canard_memory_pool_if2, sizeof(canard_memory_pool_if2),
+					onTransferReceived, shouldAcceptTransfer, NULL);
+#endif
+
+			last_status_time = chVTGetSystemTimeX();
+			last_esc_status_time = chVTGetSystemTimeX();
+			last_esc_status_time_r2 = chVTGetSystemTimeX();
+			last_tot_current_calc_time = chVTGetSystemTimeX();
+			last_param_refresh = chVTGetSystemTimeX();
+
+			was_running = true;
+		}
+
+		canardSetLocalNodeID(&canard_ins, conf->controller_id);
+
+#ifdef HW_CAN2_DEV
+		canardSetLocalNodeID(&canard_ins_if2, conf->controller_id);
+#endif
 
 		CANRxFrame *rxmsg;
-		while ((rxmsg = comm_can_get_rx_frame()) != 0) {
+		while ((rxmsg = comm_can_get_rx_frame(1)) != 0) {
 			CanardCANFrame rx_frame;
 
 			if (rxmsg->IDE == CAN_IDE_EXT) {
@@ -1154,25 +1368,70 @@ static THD_FUNCTION(canard_thread, arg) {
 			rx_frame.data_len = rxmsg->DLC;
 			memcpy(rx_frame.data, rxmsg->data8, rxmsg->DLC);
 
-			canardHandleRxFrame(&canard, &rx_frame, ST2US(chVTGetSystemTimeX()));
+			canardHandleRxFrame(&canard_ins, &rx_frame, ST2US(chVTGetSystemTimeX()));
 		}
 
-		for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard)) != NULL;) {
-			comm_can_transmit_eid(txf->id, txf->data, txf->data_len);
-			canardPopTxQueue(&canard);
+		for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard_ins)) != NULL;) {
+			comm_can_transmit_eid_if(txf->id, txf->data, txf->data_len, 1);
+			canardPopTxQueue(&canard_ins);
 		}
+
+#ifdef HW_CAN2_DEV
+		while ((rxmsg = comm_can_get_rx_frame(2)) != 0) {
+			CanardCANFrame rx_frame;
+
+			if (rxmsg->IDE == CAN_IDE_EXT) {
+				rx_frame.id = rxmsg->EID | CANARD_CAN_FRAME_EFF;
+			} else {
+				rx_frame.id = rxmsg->SID;
+			}
+
+			rx_frame.data_len = rxmsg->DLC;
+			memcpy(rx_frame.data, rxmsg->data8, rxmsg->DLC);
+
+			canardHandleRxFrame(&canard_ins_if2, &rx_frame, ST2US(chVTGetSystemTimeX()));
+		}
+
+		for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard_ins_if2)) != NULL;) {
+			comm_can_transmit_eid_if(txf->id, txf->data, txf->data_len, 2);
+			canardPopTxQueue(&canard_ins_if2);
+		}
+#endif
 
 		if (ST2MS(chVTTimeElapsedSinceX(last_status_time)) >= 1000) {
 			last_status_time = chVTGetSystemTimeX();
-			canardCleanupStaleTransfers(&canard, ST2US(chVTGetSystemTimeX()));
-			sendNodeStatus();
+			canardCleanupStaleTransfers(&canard_ins, ST2US(chVTGetSystemTimeX()));
+			sendNodeStatus(&canard_ins);
+#ifdef HW_CAN2_DEV
+			canardCleanupStaleTransfers(&canard_ins_if2, ST2US(chVTGetSystemTimeX()));
+			sendNodeStatus(&canard_ins_if2);
+#endif
 		}
 
-		if (conf->can_status_msgs_r1 > 0 &&
-				ST2MS(chVTTimeElapsedSinceX(last_esc_status_time)) >= (1000 / conf->can_status_msgs_r1) &&
-				conf->can_status_msgs_r1 != 0) {
+		if (conf->can_status_rate_1 > 0 && UTILS_AGE_S(last_esc_status_time) >= (1.0 / (float)conf->can_status_rate_1)) {
 			last_esc_status_time = chVTGetSystemTimeX();
-			sendEscStatus();
+			sendEscStatus(&canard_ins);
+#ifdef HW_CAN2_DEV
+			sendEscStatus(&canard_ins_if2);
+#endif
+
+			if ((conf->can_status_msgs_r1 >> 0) & 1) {
+				sendRtData(&canard_ins);
+#ifdef HW_CAN2_DEV
+				sendRtData(&canard_ins_if2);
+#endif
+			}
+		}
+
+		if (conf->can_status_rate_2 > 0 && UTILS_AGE_S(last_esc_status_time_r2) >= (1.0 / (float)conf->can_status_rate_2)) {
+			last_esc_status_time_r2 = chVTGetSystemTimeX();
+
+			if ((conf->can_status_msgs_r2 >> 0) & 1) {
+				sendRtData(&canard_ins);
+#ifdef HW_CAN2_DEV
+				sendRtData(&canard_ins_if2);
+#endif
+			}
 		}
 
 		if (ST2MS(chVTTimeElapsedSinceX(last_tot_current_calc_time)) >= 1000 / CURRENT_CALC_FREQ_HZ) {
@@ -1197,7 +1456,7 @@ static THD_FUNCTION(canard_thread, arg) {
 
 		if ((ST2MS(chVTTimeElapsedSinceX(last_read_file_req)) >= 10) && (fw_update.node_id != 0)) {
 			last_read_file_req = chVTGetSystemTimeX();
-			send_fw_read();
+			send_fw_read(fw_update.ins);
 		}
 
 		// delay jump to bootloader after receiving data for 0.5 sec

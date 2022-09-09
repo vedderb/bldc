@@ -33,6 +33,7 @@ static THD_WORKING_AREA(encoder_thread_wa, 512);
 #define SPI_BaudRatePrescaler_64        ((uint16_t)0x0028) //  1.3125 MHz  656.25 KHz
 #define SPI_BaudRatePrescaler_128       ((uint16_t)0x0030) //  656.25 KHz  328.125 KHz
 #define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
+#define SPI_DATASIZE_8BIT				0
 #define SPI_DATASIZE_16BIT				SPI_CR1_DFF
 
 AS504x_config_t encoder_cfg_as504x = {
@@ -78,6 +79,7 @@ MT6816_config_t encoder_cfg_mt6816 = {
 				SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_DATASIZE_16BIT
 		},
 
+		HW_SPI_GPIO_AF,
 		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
 		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
@@ -86,6 +88,7 @@ MT6816_config_t encoder_cfg_mt6816 = {
 #else
 		0,
 		{0},
+		0,
 		0, 0,
 		0, 0,
 		0, 0,
@@ -135,4 +138,30 @@ TS5700N8501_config_t encoder_cfg_TS5700N8501 = {
 		encoder_thread_wa,
 		sizeof(encoder_thread_wa),
 		{0}
+};
+
+void enc_as5x47u_spi_callback(SPIDriver *pspi);
+AS5x47U_config_t encoder_cfg_as5x47u = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				enc_as5x47u_spi_callback, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, SPI_BaudRatePrescaler_8 |
+				SPI_CR1_CPHA | SPI_DATASIZE_8BIT
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+#endif
+		{0}, // State
 };

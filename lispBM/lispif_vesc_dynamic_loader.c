@@ -23,15 +23,15 @@
 static const char* functions[] = {
 "(defun uart-read-bytes (buffer n ofs)"
 "(let ((rd (uart-read buffer n ofs)))"
-"(if (num-eq rd n)"
-"(bufset-u8 buffer 0 (+ ofs rd))"
+"(if (= rd n)"
+"(bufset-u8 buffer (+ ofs rd) 0)"
 "(progn (yield 4000) (uart-read-bytes buffer (- n rd) (+ ofs rd)))"
 ")))",
 
 "(defun uart-read-until (buffer n ofs end)"
 "(let ((rd (uart-read buffer n ofs end)))"
-"(if (and (> rd 0) (or (num-eq rd n) (num-eq (bufget-u8 buffer (+ ofs (- rd 1))) end)))"
-"(bufset-u8 buffer 0 (+ ofs rd))"
+"(if (and (> rd 0) (or (= rd n) (= (bufget-u8 buffer (+ ofs (- rd 1))) end)))"
+"(bufset-u8 buffer (+ ofs rd) 0)"
 "(progn (yield 10000) (uart-read-until buffer (- n rd) (+ ofs rd) end))"
 ")))",
 
@@ -42,7 +42,7 @@ static const char* functions[] = {
 "(defun iota (n)"
 "(let ((iacc (lambda (acc i)"
 "(if (< i 0) acc (iacc (cons i acc) (- i 1))))))"
-"(iacc nil n)))",
+"(iacc nil (- n 1))))",
 
 "(defun range (start end)"
 "(map (lambda (x) (+ x start)) (iota (- end start))))",
@@ -72,7 +72,7 @@ static const char* functions[] = {
 "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
 "(map-rec f nil x y)))",
 
-"(defun sleep (seconds) (yield (* seconds 1000000)))",
+"(defun sleep (seconds) (yield (* seconds 1000000.0)))",
 
 "(defun filter (f lst)"
 "(let ((filter-rec (lambda (f lst ys)"
@@ -95,10 +95,19 @@ static const char* functions[] = {
 
 "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
 "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
+
+"(defun second (x) (car (cdr x)))",
+"(defun third (x) (car (cdr (cdr x))))",
+
+"(defun abs (x) (if (< x 0) (- x) x))",
 };
 
 static const char* macros[] = {
-"(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))",
+"(define defun (macro (name args body) (me-defun name args body)))",
+"(define loopfor (macro (it start cond update body) (me-loopfor it start cond update body)))",
+"(define loopwhile (macro (cond body) (me-loopwhile cond body)))",
+"(define looprange (macro (it start end body) (me-looprange it start end body)))",
+"(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {

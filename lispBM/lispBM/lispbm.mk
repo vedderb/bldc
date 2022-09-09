@@ -10,14 +10,16 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/symrepr.c \
              $(LISPBM)/src/tokpar.c \
              $(LISPBM)/src/compression.c \
-             $(LISPBM)/src/prelude.c \
              $(LISPBM)/src/extensions.c \
              $(LISPBM)/src/lispbm.c \
              $(LISPBM)/src/eval_cps.c \
              $(LISPBM)/src/streams.c \
              $(LISPBM)/src/lbm_c_interop.c \
              $(LISPBM)/src/lbm_variables.c \
-             $(LISPBM)/src/extensions/array_extensions.c
+             $(LISPBM)/src/lbm_custom_type.c \
+             $(LISPBM)/src/extensions/array_extensions.c \
+             $(LISPBM)/src/extensions/string_extensions.c \
+             $(LISPBM)/src/extensions/math_extensions.c
 
 
 LISPBM_INC = -I$(LISPBM)/include \
@@ -28,8 +30,3 @@ LISPBM_FLAGS = -lm
 LISPBM_DEPS  =
 
 LISPBM_FLAGS += -D_PRELUDE
-
-LISPBM_DEPS += $(LISPBM)/src/prelude.xxd
-
-$(LISPBM)/src/prelude.xxd: $(LISPBM)/src/prelude.lisp
-	xxd -i < $(LISPBM)/src/prelude.lisp > $(LISPBM)/src/prelude.xxd

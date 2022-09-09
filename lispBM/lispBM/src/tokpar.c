@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -56,6 +56,14 @@
 #define TOKMATCHI32     21u
 #define TOKMATCHFLOAT   22u
 #define TOKMATCHCONS    23u
+#define TOKMATCHU64     24u
+#define TOKMATCHI64     25u
+#define TOKMATCHDOUBLE  26u
+
+#define TOKOPENBRACK    30u     // "["
+#define TOKCLOSEBRACK   31u     // "]"
+
+#define TOKCOLON        32u
 
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
@@ -68,19 +76,28 @@ static void clear_sym_str(void) {
   memset(sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
 }
 
+#define TOK_TYPE_NONE 0
+#define TOK_TYPE_BYTE 1
+#define TOK_TYPE_I    2
+#define TOK_TYPE_U    3
+#define TOK_TYPE_I32  4
+#define TOK_TYPE_U32  5
+#define TOK_TYPE_I64  6
+#define TOK_TYPE_U64  7
+#define TOK_TYPE_FLOAT  8
+#define TOK_TYPE_DOUBLE 9
+
 typedef struct {
+  int type;
+  uint64_t value;
+  bool negative;
+} token_int;
 
-  unsigned int type;
-
-  unsigned int text_len;
-  union {
-    char  c;
-    char  *text;
-    lbm_int   i;
-    lbm_uint  u;
-    lbm_float f;
-  }data;
-} token;
+typedef struct token_float {
+  int type;
+  double value;
+  bool negative;
+} token_float;
 
 typedef struct {
   const char *str;
@@ -88,22 +105,28 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 15
+#define NUM_FIXED_SIZE_TOKENS 21
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
+  {"[", TOKOPENBRACK, 1},
+  {"]", TOKCLOSEBRACK, 1},
   {".", TOKDOT, 1},
   {"_", TOKDONTCARE, 1},
   {"'", TOKQUOTE, 1},
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?i28", TOKMATCHI28, 4},
-  {"?u28", TOKMATCHU28, 4},
-  {"?u32", TOKMATCHU32, 4},
-  {"?i32", TOKMATCHI32, 4},
+  {":", TOKCOLON, 1},
+  {"?double" , TOKMATCHDOUBLE, 7},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
+  {"?u64", TOKMATCHU64, 4},
+  {"?i64", TOKMATCHI64, 4},
+  {"?u32", TOKMATCHU32, 4},
+  {"?i32", TOKMATCHI32, 4},
+  {"?i", TOKMATCHI28, 2},
+  {"?u", TOKMATCHU28, 2},
   {"?", TOKMATCHANY, 1}
 };
 
@@ -154,7 +177,7 @@ bool symchar0(char c) {
 }
 
 bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -198,6 +221,7 @@ static char translate_escape_char(char c) {
   switch(c) {
   case '\\': return '\\';
   case 'n': return '\n';
+  case 'r': return '\r';
   case 't': return '\t';
   case '\"': return '\"';
   default: return '\\';
@@ -280,172 +304,19 @@ int tok_char(lbm_tokenizer_char_stream_t *str, char *res) {
   return count;
 }
 
-int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
-
-  lbm_int acc = 0;
-  unsigned int n = 0;
-  bool negative = false;
-  bool valid_num = false;
-
-  if (peek(str, 0) == '-') {
-    n = 1;
-    negative = true;
-  }
-
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
-    n++;
-  }
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
-
-  // Not needed if strict adherence to ordering of calls to tokenizers.
-  if (peek(str,n) == 'U' ||
-      peek(str,n) == 'u' ||
-      peek(str,n) == '.' ||
-      peek(str,n) == 'I') return 0;
-
-  unsigned int ndrop = n;
-  if (peek(str,n) == 'i' &&
-      peek(str,n+1) == '2' &&
-      peek(str,n+2) == '8' ) {
-    ndrop += 3;
-  }
-  if (valid_num) {
-    drop(str,ndrop);
-    *res = negative ? -acc : acc;
-    return (int)n; /*check that isnt so high that it becomes a negative number when casted */
-  }
-  return 0;
-}
-
-int tok_I(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
-  lbm_int acc = 0;
-  unsigned int n = 0;
-  bool negative = false;
-  bool valid_num = false;
-
-  if (peek(str, 0) == '-') {
-    n = 1;
-    negative = true;
-  }
-
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
-    n++;
-  }
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
-
-  if (peek(str,n) == 'i' &&
-      peek(str,n+1) == '3' &&
-      peek(str,n+2) == '2' &&
-      valid_num) {
-    *res = negative ? -acc : acc;
-    drop(str,n+3);
-    return (int)(n+3);
-  }
-  return 0;
-}
-
-int tok_u(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
-  lbm_uint acc = 0;
-  unsigned int n = 0;
-  bool negative = false;
-  bool valid_num = false;
-
-  if (peek(str, 0) == '-') {
-    n = 1;
-    negative = true;
-  }
-
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (lbm_uint)(peek(str,n) - '0');
-    n++;
-  }
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
-
-  if (peek(str,n) == 'u' &&
-      peek(str,n+1) == '2' &&
-      peek(str,n+2) == '8' &&
-      valid_num) {
-    *res = negative ? -acc : acc;
-    drop(str,n+3);
-    return (int)(n+3);
-  }
-  return 0;
-}
-
-int tok_U(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
-  lbm_uint acc = 0;
-  unsigned int n = 0;
-  bool negative = false;
-  bool valid_num = false;
-
-  if (peek(str, 0) == '-') {
-    n = 1;
-    negative = true;
-  }
-
-  // Check if hex notation is used
-  if (peek(str,0) == '0' &&
-      (peek(str,1) == 'x' || peek(str,1) == 'X')) {
-    n+= 2;
-    while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
-            (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
-            (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
-      lbm_uint val;
-      if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
-        val = 10 + (lbm_uint)(peek(str,n) - 'a');
-      } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
-        val = 10 + (lbm_uint)(peek(str,n) - 'A');
-      } else {
-        val = (lbm_uint)peek(str,n) - '0';
-      }
-      acc = (acc * 0x10) + val;
-      n++;
-    }
-    if ((negative && n > 1) ||
-        (!negative && n > 0)) valid_num = true;
-
-    if (valid_num) {
-      drop(str,n);
-      *res = negative ? -acc : acc;
-      return (int)n; /*check that isnt so high that it becomes a negative number when casted */
-    }
-  }
-
-  // check if nonhex
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (lbm_uint)(peek(str,n) - '0');
-    n++;
-  }
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
-
-  if (peek(str,n) == 'u' &&
-      peek(str,n+1) == '3' &&
-      peek(str,n+2) == '2' &&
-      valid_num) {
-    *res = negative ? -acc : acc;
-    drop(str,n+3);
-    return (int)(n+3);
-  }
-  return 0;
-}
-
-int tok_F(lbm_tokenizer_char_stream_t *str, lbm_float *res) {
+int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
 
   unsigned int n = 0;
   unsigned int m = 0;
   char fbuf[128];
-  bool negative = false;
   bool valid_num = false;
 
+  result->type = TOK_TYPE_FLOAT;
+  result->negative = false;
+  
   if (peek(str, 0) == '-') {
     n = 1;
-    negative = true;
+    result->negative = true;
   }
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
@@ -456,10 +327,18 @@ int tok_F(lbm_tokenizer_char_stream_t *str, lbm_float *res) {
   if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
+  unsigned int drop_extra = 0;
+  if ((peek(str,n) == 'f' &&
+       peek(str,n+1) == '6' &&
+       peek(str,n+2) == '4')) {
+    result->type = TOK_TYPE_DOUBLE;
+    drop_extra = 3;
+  }
 
-  if (n > 127) m = 127;
+  if ((result->negative && n > 1) ||
+      (!result->negative && n > 0)) valid_num = true;
+
+  if (n > 127) return 0;
   else m = n;
   if(valid_num) {
     unsigned int i;
@@ -467,27 +346,16 @@ int tok_F(lbm_tokenizer_char_stream_t *str, lbm_float *res) {
       fbuf[i] = get(str);
     }
 
+    drop(str,drop_extra);
     fbuf[i] = 0;
-    *res = (float)strtod(fbuf, NULL);
+    result->value = (double)strtod(fbuf, NULL);
     return (int)n;
   }
   return 0;
 }
 
+void clean_whitespace(lbm_tokenizer_char_stream_t *str) {
 
-lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
-
-  lbm_int i_val;
-  lbm_uint u_val;
-  char c_val;
-  lbm_float f_val;
-  int n = 0;
-
-  if (!more(str)) {
-    return lbm_enc_sym(SYM_TOKENIZER_DONE);
-  }
-
-  // Eat whitespace and comments.
   bool clean_whitespace = true;
   while ( clean_whitespace ){
     if ( peek(str,0) == ';' ) {
@@ -500,6 +368,101 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       clean_whitespace = false;
     }
   }
+}
+
+int tok_integer(lbm_tokenizer_char_stream_t *str, token_int *result ) {
+
+  uint64_t acc = 0;
+  unsigned int n = 0;
+  bool valid_num = false;
+
+  result->negative = false;
+  if (peek(str, 0) == '-') {
+    n = 1;
+    result->negative = true;
+  }
+
+   // Check if hex notation is used
+  if (peek(str,n) == '0' &&
+      (peek(str,n+1) == 'x' || peek(str,n+1) == 'X')) {
+    n+= 2;
+    while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
+            (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
+            (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
+      uint32_t val; /* values between 0 and 16 */
+      if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
+        val = 10 + (uint32_t)(peek(str,n) - 'a');
+      } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
+        val = 10 + (uint32_t)(peek(str,n) - 'A');
+      } else {
+        val = (uint32_t)peek(str,n) - '0';
+      }
+      acc = (acc * 0x10) + val;
+      n++;
+    }
+  } else {
+    while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
+      acc = (acc*10) + (uint32_t)(peek(str,n) - '0');
+      n++;
+    }
+  }
+
+  unsigned int drop_type_str = 0;
+  if (peek(str,n) == 'u' &&
+      peek(str,n+1) == '6' &&
+      peek(str,n+2) == '4') {
+    drop_type_str = 3;
+    result->type = TOK_TYPE_U64;
+  } else if (peek(str,n) == 'i' &&
+             peek(str,n+1) == '6' &&
+             peek(str,n+2) == '4') {
+    drop_type_str = 3;
+    result->type = TOK_TYPE_I64;
+  } else if (peek(str,n) == 'u' &&
+             peek(str,n+1) == '3' &&
+             peek(str,n+2) == '2') {
+    drop_type_str = 3;
+    result->type = TOK_TYPE_U32;
+  } else if (peek(str,n) == 'i' &&
+             peek(str,n+1) == '3' &&
+             peek(str,n+2) == '2') {
+    drop_type_str = 3;
+    result->type = TOK_TYPE_I32;
+  } else if (peek(str,n) == 'i') {
+    drop_type_str = 1;
+    result->type = TOK_TYPE_I;
+  } else if (peek(str,n) == 'u') {
+    drop_type_str = 1;
+    result->type = TOK_TYPE_U;
+  } else if (peek(str,n) == 'b') {
+    drop_type_str = 1;
+    result->type = TOK_TYPE_BYTE;
+  } else {
+    result->type = TOK_TYPE_I;
+  }
+
+  if ((result->negative && n > 1) ||
+      (!result->negative && n > 0)) valid_num = true;
+
+  if (valid_num) {
+    drop(str,n + drop_type_str);
+    result->value = acc;
+    return (int)n; /*check that isnt so high that it becomes a negative number when casted */
+  }
+  return 0;
+}
+
+lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
+
+  char c_val;
+  int n = 0;
+
+  if (!more(str)) {
+    return lbm_enc_sym(SYM_TOKENIZER_DONE);
+  }
+
+  // Eat whitespace and comments.
+  clean_whitespace(str);
 
   // Check for end of string again
   if (!more(str)) {
@@ -535,11 +498,14 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
       break;
+    case TOKCOLON:
+      res = lbm_enc_sym(SYM_COLON);
+      break;
     case TOKMATCHI28:
-      res = lbm_enc_sym(SYM_MATCH_I28);
+      res = lbm_enc_sym(SYM_MATCH_I);
       break;
     case TOKMATCHU28:
-      res = lbm_enc_sym(SYM_MATCH_U28);
+      res = lbm_enc_sym(SYM_MATCH_U);
       break;
     case TOKMATCHI32:
       res = lbm_enc_sym(SYM_MATCH_I32);
@@ -550,12 +516,28 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     case TOKMATCHFLOAT:
       res = lbm_enc_sym(SYM_MATCH_FLOAT);
       break;
+    case TOKMATCHU64:
+      res = lbm_enc_sym(SYM_MATCH_U64);
+      break;
+    case TOKMATCHI64:
+      res = lbm_enc_sym(SYM_MATCH_I64);
+      break;
+    case TOKMATCHDOUBLE:
+      res = lbm_enc_sym(SYM_MATCH_DOUBLE);
+      break;
     case TOKMATCHCONS:
       res = lbm_enc_sym(SYM_MATCH_CONS);
       break;
     case TOKMATCHANY:
       res = lbm_enc_sym(SYM_MATCH_ANY);
       break;
+    case TOKOPENBRACK:
+      res = lbm_enc_sym(SYM_OPENBRACK);
+      break;
+    case TOKCLOSEBRACK:
+      res = lbm_enc_sym(SYM_CLOSEBRACK);
+      break;
+      //res = lbm_enc_sym(SYM_RERROR); // a closing bracket without matching open.
     default:
       break;
     }
@@ -566,7 +548,7 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
   if (n >= 2) {
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
-    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_VAL_TYPE_CHAR);
+    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     char *data = (char *)arr->data;
     memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
@@ -577,27 +559,47 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     return res;
   }
 
-  if (tok_F(str, &f_val)) {
-    // Will be SYM_MERROR in case of full heap
-    return lbm_enc_F(f_val);
+  token_float f_val;
+
+  if (tok_D(str, &f_val)) {
+    switch (f_val.type) {
+    case TOK_TYPE_FLOAT:
+      return lbm_enc_float((float)f_val.value);
+    case TOK_TYPE_DOUBLE:
+      return lbm_enc_double(f_val.value);
+    }
   }
 
-  if (tok_U(str, &u_val)) {
-    // Will be SYM_MERROR in case of full heap
-    return lbm_enc_U(u_val);
-  }
+  token_int int_result;
 
-  if (tok_u(str, &u_val)) {
-    return lbm_enc_u(u_val);
-  }
+  if (tok_integer(str, &int_result)) {
 
-  if (tok_I(str, &i_val)) {
-    return lbm_enc_I(i_val);
-  }
-
-  // Shortest form of integer match. Move to last in chain of numerical tokens.
-  if (tok_i(str, &i_val)) {
-    return lbm_enc_i(i_val);
+    switch (int_result.type) {
+    case TOK_TYPE_BYTE:
+      return lbm_enc_char((char)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_I:
+      return lbm_enc_i((lbm_int)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_U:
+      return lbm_enc_u((lbm_uint)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_I32:
+      return lbm_enc_i32((lbm_int)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_U32:
+      return lbm_enc_u32((lbm_uint)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_I64:
+      return lbm_enc_i64((int64_t)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOK_TYPE_U64:
+      return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    default:
+      return lbm_enc_sym(SYM_RERROR);
+      break;
+    }
   }
 
   n = tok_symbol(str);
@@ -610,7 +612,9 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     }
     else {
       int r = 0;
-      if (sym_str[0] == '#') {
+      if (strncmp(sym_str,"ext-",4) == 0) {
+        r = lbm_add_extension_symbol(sym_str, &symbol_id);
+      } else if (sym_str[0] == '#') {
         r = lbm_add_variable_symbol(sym_str, &symbol_id);
       } else {
         r = lbm_add_symbol(sym_str, &symbol_id);
@@ -637,15 +641,26 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
 bool more_string(lbm_tokenizer_char_stream_t *str) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
-  return s->str[s->pos] != 0;
+  if ( s->pos > strlen(s->str)) {
+    return false;
+  } else {
+    return s->str[s->pos] != 0;
+  }
 }
 
 char get_string(lbm_tokenizer_char_stream_t *str) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
   char c = s->str[s->pos];
-  s->pos = s->pos + 1;
+  s->pos ++;
+  s->column ++;
   return c;
+}
+
+bool put_string(lbm_tokenizer_char_stream_t *str, char c) {
+  (void) str;
+  (void) c;
+  return false;
 }
 
 char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
@@ -659,7 +674,27 @@ char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
 void drop_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
-  s->pos = s->pos + n;
+  for (unsigned int i = 0; i < n; i ++) {
+    if (s->str[s->pos + i] == '\n') {
+      s->row++;
+      s->column = 1;
+    } else {
+      s->column ++;
+    }
+  }
+  s->pos += n;
+}
+
+unsigned int row_string(lbm_tokenizer_char_stream_t *str) {
+  lbm_tokenizer_string_state_t *s =
+    (lbm_tokenizer_string_state_t *)str->state;
+  return s->row;
+}
+
+unsigned int column_string(lbm_tokenizer_char_stream_t *str) {
+  lbm_tokenizer_string_state_t *s =
+    (lbm_tokenizer_string_state_t *)str->state;
+  return s->column;
 }
 
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
@@ -667,16 +702,16 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                         const char *string){
   state->str = string;
   state->pos = 0;
+  state->row = 1;
+  state->column = 1;
 
   char_stream->state = state;
   char_stream->more  = more_string;
   char_stream->peek  = peek_string;
   char_stream->drop  = drop_string;
   char_stream->get   = get_string;
+  char_stream->put   = put_string;
+  char_stream->row   = row_string;
+  char_stream->column = column_string;
 }
-
-/* VALUE tokpar_parse(tokenizer_char_stream_t *char_stream) { */
-
-/*   return tokpar_parse_program(char_stream); */
-/* } */
 

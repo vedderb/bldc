@@ -20,7 +20,7 @@
 #include "events.h"
 #include "terminal.h"
 #include "commands.h"
-#include "utils.h"
+#include "utils_sys.h"
 #include "ch.h"
 #include <string.h>
 #include <math.h>

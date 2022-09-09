@@ -1,8 +1,8 @@
 (define is-number
   (lambda (x)
-    (if (eq (type-of x) type-i28)
+    (if (eq (type-of x) type-i)
 	't
-      (if (eq (type-of x) type-u28)
+      (if (eq (type-of x) type-u)
 	  't
 	(if (eq (type-of x) type-float)
 	    't
@@ -25,4 +25,4 @@
 	  )))))
 
 
-(= (sumtree (list (list 1u32 1i32 1u28 1 1 1 1 1 1 1) (list 1 2.0) (list 3 4.0))) 20.0)
+(= (sumtree (list (list 1u32 1i32 1u 1 1 1 1 1 1 1) (list 1 2.0) (list 3 4.0))) 20.0)

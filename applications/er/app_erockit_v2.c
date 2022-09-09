@@ -58,11 +58,13 @@ static volatile bool stop_now = true;
 static volatile bool is_running = false;
 static volatile bool plot_state = false;
 static volatile float plot_sample = 0.0;
+static volatile adc_config app_adc_config;
 
 static volatile bool m_brake_rear = false;
 static volatile bool m_brake_front = false;
 static volatile bool m_mode_btn_down = false;
 static volatile bool m_kill_sw = false;
+static volatile bool m_stand = false;
 
 static volatile bool m_led_eco_on = false;
 static volatile bool m_led_sport_on = false;
@@ -117,13 +119,6 @@ static void terminal_plot(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
 static void terminal_mon(int argc, const char **argv);
 static void terminal_restore_settings(int argc, const char **argv);
-static void terminal_set_hyst(int argc, const char **argv);
-static void terminal_set_pedal_current(int argc, const char **argv);
-static void terminal_set_start_gain(int argc, const char **argv);
-static void terminal_set_start_gain_end_speed(int argc, const char **argv);
-static void terminal_set_output_power(int argc, const char **argv);
-static void terminal_set_top_speed_erpm(int argc, const char **argv);
-static void terminal_set_brake_power(int argc, const char **argv);
 
 static void restore_settings(void) {
 	m_set_eco.p_throttle_hyst = 0.04;
@@ -224,6 +219,8 @@ void app_custom_start(void) {
 	load_settings(&m_set_eco, P_OFFSET_ECO);
 	load_settings(&m_set_sport, P_OFFSET_SPORT);
 
+	app_adc_config = app_get_configuration()->app_adc_conf;
+
 	stop_now = false;
 	chThdCreateStatic(my_thread_wa, sizeof(my_thread_wa),
 			NORMALPRIO, my_thread, NULL);
@@ -252,49 +249,9 @@ void app_custom_start(void) {
 			0,
 			terminal_restore_settings);
 
-	terminal_register_command_callback(
-			"er_set_hyst",
-			"Set throttle hysteresis.",
-			"[0.0 - 0.3]",
-			terminal_set_hyst);
-
-	terminal_register_command_callback(
-			"er_set_pedal_current",
-			"Set pedal current (pedal resistance).",
-			"[1.5 - 50.0]",
-			terminal_set_pedal_current);
-
-	terminal_register_command_callback(
-			"er_set_start_gain",
-			"Set the gain factor at 0 RPM",
-			"[1.0 - 10.0]",
-			terminal_set_start_gain);
-
-	terminal_register_command_callback(
-			"er_set_start_gain_end_speed",
-			"Set the speed at which the start gain is back to 1.",
-			"[1.0 - 100.0]",
-			terminal_set_start_gain_end_speed);
-
-	terminal_register_command_callback(
-			"er_set_output_power",
-			"Set the main motor power.",
-			"[0.0 - 1.0]",
-			terminal_set_output_power);
-
-	terminal_register_command_callback(
-			"er_set_top_speed_erpm",
-			"Set how fast you have to pedal to get max power.",
-			"[0.1 - 5000]",
-			terminal_set_top_speed_erpm);
-
-	terminal_register_command_callback(
-			"er_set_brake_power",
-			"Set brake power.",
-			"[front, rear, both] [0.0 - 1.0]",
-			terminal_set_brake_power);
-
 	commands_set_app_data_handler(process_custom_app_data);
+
+	app_adc_start(false);
 }
 
 void app_custom_stop(void) {
@@ -302,12 +259,6 @@ void app_custom_stop(void) {
 	terminal_unregister_callback(terminal_info);
 	terminal_unregister_callback(terminal_mon);
 	terminal_unregister_callback(terminal_restore_settings);
-	terminal_unregister_callback(terminal_set_hyst);
-	terminal_unregister_callback(terminal_set_pedal_current);
-	terminal_unregister_callback(terminal_set_start_gain);
-	terminal_unregister_callback(terminal_set_start_gain_end_speed);
-	terminal_unregister_callback(terminal_set_output_power);
-	terminal_unregister_callback(terminal_set_top_speed_erpm);
 
 	commands_set_app_data_handler(0);
 
@@ -318,7 +269,7 @@ void app_custom_stop(void) {
 }
 
 void app_custom_configure(app_configuration *conf) {
-	(void)conf;
+	app_adc_config = conf->app_adc_conf;
 }
 
 static THD_FUNCTION(my_thread, arg) {
@@ -327,6 +278,8 @@ static THD_FUNCTION(my_thread, arg) {
 	chRegSetThreadName("Erockit");
 
 	is_running = true;
+
+	app_disable_output(5000);
 
 	LED_ECO_ON();
 	chThdSleepMilliseconds(500);
@@ -370,11 +323,40 @@ static THD_FUNCTION(my_thread, arg) {
 			m_brake_front = io_v2->adc_voltages[2] > 6.0;
 			m_kill_sw = io_v1->adc_voltages[0] > 6.0;
 			m_mode_btn_down = io_v1->adc_voltages[1] > 6.0;
+			m_stand = io_v1->adc_voltages[2] > 6.0;
 		} else {
 			m_brake_rear = false;
 			m_brake_front = false;
 			m_kill_sw = false;
 			m_mode_btn_down = false;
+			m_stand = false;
+		}
+
+		// Hook hand throttle up to ADC app
+		float app_adc_pwr = 0.0;
+		{
+			app_disable_output(100);
+			app_adc_pwr = app_adc_get_decoded_level();
+			utils_deadband(&app_adc_pwr, app_adc_config.hyst, 1.0);
+			app_adc_pwr = utils_throttle_curve(
+					app_adc_pwr,
+					app_adc_config.throttle_exp,
+					app_adc_config.throttle_exp_brake,
+					app_adc_config.throttle_exp_mode);
+			static systime_t last_time = 0;
+			static float pwr_ramp = 0.0;
+			float ramp_time = fabsf(app_adc_pwr) > fabsf(pwr_ramp) ? app_adc_config.ramp_time_pos : app_adc_config.ramp_time_neg;
+
+			if (ramp_time > 0.01) {
+				const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
+				utils_step_towards(&pwr_ramp, app_adc_pwr, ramp_step);
+				last_time = chVTGetSystemTimeX();
+				app_adc_pwr = pwr_ramp;
+			}
+
+			if (app_adc_config.ctrl_type == ADC_CTRL_TYPE_NONE) {
+				app_adc_pwr = 0.0;
+			}
 		}
 
 		if (!m_motors_enabled) {
@@ -408,7 +390,7 @@ static THD_FUNCTION(my_thread, arg) {
 			pedal_current_target = utils_map(erpm_motor, 0.0, erpm_ramp_in, 0.0, pedal_current_target);
 		}
 
-		if ((!m_kill_sw || m_brake_front || m_brake_rear) && !m_pedal_test_mode) {
+		if ((!m_kill_sw || m_brake_front || m_brake_rear || m_stand) && !m_pedal_test_mode) {
 			running = false;
 		}
 
@@ -553,12 +535,16 @@ static THD_FUNCTION(my_thread, arg) {
 				}
 			}
 
-			if (!m_kill_sw || m_pedal_test_mode) {
+			if (!m_kill_sw || m_pedal_test_mode || m_stand) {
 				comm_can_set_current_brake_rel(255, 0.0);
 			} else if (brake > 0.0001) {
 				comm_can_set_current_brake_rel(255, brake);
 			} else {
-				comm_can_set_current_rel(255, pwr_out * m_set_now->p_output_power);
+				if (app_adc_pwr > 0.001) {
+					comm_can_set_current_rel(255, app_adc_pwr * m_set_now->p_output_power);
+				} else {
+					comm_can_set_current_rel(255, pwr_out * m_set_now->p_output_power);
+				}
 			}
 
 			plot_pwr = pwr_out;
@@ -642,6 +628,8 @@ static void process_custom_app_data(unsigned char *data, unsigned int len) {
 		dataTx[ind++] = m_led_sport_on;
 		dataTx[ind++] = m_led_low_batt_on;
 		dataTx[ind++] = m_led_fault_on;
+
+		dataTx[ind++] = m_stand;
 
 		commands_send_app_data(dataTx, ind);
 	} break;
@@ -800,154 +788,4 @@ static void terminal_restore_settings(int argc, const char **argv) {
 	store_settings(&m_set_sport, P_OFFSET_SPORT);
 
 	commands_printf("Settings have been restored to their default values.");
-}
-
-static void terminal_set_hyst(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 0.0 && d <= 0.3) {
-			m_set_now->p_throttle_hyst = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_THROTTLE_HYST_ADDR + m_set_now_offset);
-			commands_printf("Throttle hysteresis changed to %.2f", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [hyst] has to be between 0 and 0.3.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_pedal_current(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 1.5 && d <= 50.0) {
-			m_set_now->p_pedal_current = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_PEDAL_CURRENT_ADDR + m_set_now_offset);
-			commands_printf("Pedal current changed to %.2f A", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [current] has to be between 1.5 and 50.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_start_gain(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 1.0 && d <= 10.0) {
-			m_set_now->p_start_gain = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_START_GAIN_ADDR + m_set_now_offset);
-			commands_printf("Start gain changed to %.2f", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [hyst] has to be between 1.0 and 10.0.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_start_gain_end_speed(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 1.0 && d <= 100.0) {
-			m_set_now->p_start_gain_end_speed = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_START_GAIN_END_SPEED_ADDR + m_set_now_offset);
-			commands_printf("Start gain end speed changed to %.2f km/h", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [speed_kmh] has to be between 1.0 and 100.0.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_output_power(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 0.0 && d <= 1.0) {
-			m_set_now->p_output_power = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_OUTPUT_POWER_ADDR + m_set_now_offset);
-			commands_printf("Output power changed to %.2f", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [output_power] has to be between 0.0 and 1.0.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_top_speed_erpm(int argc, const char **argv) {
-	if (argc == 2) {
-		float d = -1.0;
-		sscanf(argv[1], "%f", &d);
-
-		if (d >= 210.0 && d <= 5000.0) {
-			m_set_now->p_top_speed_erpm = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_TOP_SPEED_ERPM_ADDR + m_set_now_offset);
-			commands_printf("Top speed erpm changed to %.1f", (double)d);
-		} else {
-			commands_printf("Invalid Argument. [erpm] has to be between 210 and 5000.\n");
-		}
-	} else {
-		commands_printf("This command requires one argument.\n");
-	}
-}
-
-static void terminal_set_brake_power(int argc, const char **argv) {
-	if (argc == 3) {
-		float d = -1.0;
-		sscanf(argv[2], "%f", &d);
-
-		if (d < 0.0 || d > 1.0) {
-			commands_printf("The second argument (power) must be in the range 0.0 to 1.0.\n");
-			return;
-		}
-
-		if (strcmp(argv[1], "front") == 0) {
-			m_set_now->p_brake_current_front = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_BRAKE_CURRENT_FRONT_ADDR + m_set_now_offset);
-			commands_printf("Front brake changed to %.2f", (double)d);
-		} else if (strcmp(argv[1], "rear") == 0) {
-			m_set_now->p_brake_current_rear = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_BRAKE_CURRENT_REAR_ADDR + m_set_now_offset);
-			commands_printf("Rear brake changed to %.2f", (double)d);
-		} else if (strcmp(argv[1], "both") == 0) {
-			m_set_now->p_brake_current_both = d;
-			eeprom_var v;
-			v.as_float = d;
-			conf_general_store_eeprom_var_custom(&v, P_BRAKE_CURRENT_BOTH_ADDR + m_set_now_offset);
-			commands_printf("Power for both brakes at once changed to %.2f", (double)d);
-		} else {
-			commands_printf("The first argument must be front, rear or both.\n");
-		}
-	} else {
-		commands_printf("This command requires two arguments.\n");
-	}
 }

@@ -21,13 +21,17 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_sys.h"
 #include "mc_interface.h"
 #include "timeout.h"
 #include "hw.h"
 #include "crc.h"
 #include "buffer.h"
 #include <string.h>
+
+#ifdef USE_LISPBM
+#include "lispif.h"
+#endif
 
 /*
  * Defines
@@ -123,6 +127,10 @@ static const uint16_t flash_sector[FLASH_SECTORS] = {
 };
 
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
+#ifdef USE_LISPBM
+	lispif_stop_lib();
+#endif
+
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
@@ -171,6 +179,12 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 }
 
 uint16_t flash_helper_erase_code(int ind) {
+#ifdef USE_LISPBM
+	if (ind == CODE_IND_LISP) {
+		lispif_stop_lib();
+	}
+#endif
+
 	code_checks[ind].check_done = false;
 	code_checks[ind].ok = false;
 	return erase_sector(flash_sector[code_sectors[ind]]);

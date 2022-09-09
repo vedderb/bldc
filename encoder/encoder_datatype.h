@@ -34,7 +34,8 @@ typedef enum {
 	ENCODER_TYPE_AD2S1205_SPI,
 	ENCODER_TYPE_SINCOS,
 	ENCODER_TYPE_TS5700N8501,
-	ENCODER_TYPE_ABI
+	ENCODER_TYPE_ABI,
+	ENCODER_TYPE_AS5x47U,
 } encoder_type_t;
 
 typedef struct {
@@ -69,6 +70,7 @@ typedef struct {
 typedef struct {
 	SPIDriver *spi_dev;
 	SPIConfig hw_spi_cfg;
+	uint8_t spi_af;
 	stm32_gpio_t *nss_gpio;
 	int nss_pin;
 	stm32_gpio_t *sck_gpio;
@@ -180,5 +182,51 @@ typedef struct {
 	spi_bb_state sw_spi;
 	AS504x_state state;
 } AS504x_config_t;
+
+typedef struct {
+	uint8_t is_connected;
+	uint8_t is_broken_hall;
+	uint8_t is_error;
+	uint8_t is_COF;
+	uint8_t is_Comp_low;
+	uint8_t is_Comp_high;
+	uint8_t is_wdtst;
+	uint8_t is_crc_error;
+	uint8_t is_mag_half;
+	uint8_t AGC_value;
+	uint16_t magnitude;
+	uint16_t serial_AGC_value;
+	uint16_t serial_diag_flgs;
+	uint16_t serial_magnitude;
+	uint16_t serial_error_flgs;
+} AS5x47U_diag;
+
+typedef struct {
+	uint16_t spi_seq;
+	uint32_t spi_communication_error_count;
+	AS5x47U_diag sensor_diag;
+	uint16_t spi_val;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	float spi_error_rate;
+	uint32_t last_update_time;
+	uint8_t rx_buf[4];
+	uint8_t tx_buf[4];
+} AS5x47U_state;
+
+typedef struct {
+	SPIDriver *spi_dev;
+	SPIConfig hw_spi_cfg;
+	uint8_t spi_af;
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+	stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+	stm32_gpio_t *miso_gpio;
+	int miso_pin;
+	AS5x47U_state state;
+} AS5x47U_config_t;
 
 #endif /* ENCODER_DATATYPE_H_ */

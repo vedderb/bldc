@@ -40,6 +40,14 @@
 #error "No hardware name set"
 #endif
 
+#ifndef FW_NAME
+#ifdef DISABLE_HW_LIMITS
+#define FW_NAME "no_hw_limits"
+#else
+#define FW_NAME ""
+#endif
+#endif
+
 // Possible HW properties.
 
 /*
@@ -257,6 +265,12 @@
 #ifndef CURRENT_FILTER_OFF
 #define CURRENT_FILTER_OFF()
 #endif
+#ifndef CURRENT_FILTER_ON_M2
+#define CURRENT_FILTER_ON_M2()
+#endif
+#ifndef CURRENT_FILTER_OFF_M2
+#define CURRENT_FILTER_OFF_M2()
+#endif
 
 #ifndef SENSOR_PORT_5V
 #define SENSOR_PORT_5V()
@@ -279,6 +293,23 @@
 #endif
 #ifndef NTC_TEMP_MOS3
 #define NTC_TEMP_MOS3()		0.0
+#endif
+
+#ifndef NTC_TEMP_MOS1_M2
+#define NTC_TEMP_MOS1_M2()	0.0
+#endif
+#ifndef NTC_TEMP_MOS2_M2
+#define NTC_TEMP_MOS2_M2()	0.0
+#endif
+#ifndef NTC_TEMP_MOS3_M2
+#define NTC_TEMP_MOS3_M2()	0.0
+#endif
+
+#ifndef TEMP_MOTOR_1
+#define TEMP_MOTOR_1(beta)	0.0
+#endif
+#ifndef TEMP_MOTOR_2
+#define TEMP_MOTOR_2(beta)	0.0
 #endif
 
 // Sin/Cos Encoder Signals. Override if available

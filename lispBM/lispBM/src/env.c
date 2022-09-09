@@ -44,13 +44,13 @@ lbm_value lbm_env_copy_shallow(lbm_value env) {
   lbm_value res = lbm_enc_sym(SYM_NIL);
   lbm_value curr = env;
 
-  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     lbm_value key = lbm_car(lbm_car(curr));
     if (lbm_dec_sym(key) != SYM_NIL) {
       res = lbm_cons(lbm_car(curr), res);
 
       // Check for "out of memory"
-      if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
+      if (lbm_type_of(res) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(res) == SYM_MERROR) {
         return res;
       }
@@ -60,6 +60,27 @@ lbm_value lbm_env_copy_shallow(lbm_value env) {
   return  res;
 }
 
+// A less safe version of lookup. It should be fine unless env is corrupted.
+bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
+
+  lbm_value curr = env;
+
+  if (lbm_is_symbol_nil(sym)) {
+    *res = sym;
+    return true;
+  }
+
+  while (lbm_is_ptr(curr)) {
+    lbm_value c = lbm_ref_cell(curr)->car;
+    if ((lbm_ref_cell(c)->car) == sym) {
+      *res = lbm_ref_cell(c)->cdr;
+      return true;
+    }
+    curr = lbm_ref_cell(curr)->cdr;
+  }
+  return false;
+}
+
 lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 
@@ -67,7 +88,7 @@ lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
     return sym;
   }
 
-  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_car(lbm_car(curr)) == sym) {
       return lbm_cdr(lbm_car(curr));
     }
@@ -82,7 +103,7 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value new_env;
   lbm_value keyval;
 
-  while(lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+  while(lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_car(lbm_car(curr)) == key) {
       lbm_set_cdr(lbm_car(curr),val);
       return env;
@@ -91,13 +112,13 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   }
 
   keyval = lbm_cons(key,val);
-  if (lbm_type_of(keyval) == LBM_VAL_TYPE_SYMBOL) {
+  if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) {
     return keyval;
   }
 
   new_env = lbm_cons(keyval, env);
-  if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL) {
-    return keyval;
+  if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL) {
+    return new_env;
   }
 
   return new_env;
@@ -107,7 +128,7 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 
   lbm_value curr = env;
 
-  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_car(lbm_car(curr)) == key) {
       lbm_set_cdr(lbm_car(curr), val);
       return env;
@@ -131,16 +152,16 @@ lbm_value lbm_env_build_params_args(lbm_value params,
   }
 
   lbm_value env = env0;
-  while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(curr_param) == LBM_TYPE_CONS) {
 
     lbm_value entry = lbm_cons(lbm_car(curr_param), lbm_car(curr_arg));
-    if (lbm_type_of(entry) == LBM_VAL_TYPE_SYMBOL &&
+    if (lbm_type_of(entry) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(entry) == SYM_MERROR)
       return lbm_enc_sym(SYM_MERROR);
 
     env = lbm_cons(entry,env);
 
-    if (lbm_type_of(env) == LBM_VAL_TYPE_SYMBOL &&
+    if (lbm_type_of(env) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(env) == SYM_MERROR)
       return lbm_enc_sym(SYM_MERROR);
 

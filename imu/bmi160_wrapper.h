@@ -36,6 +36,7 @@ typedef struct {
 	volatile bool is_running;
 	volatile bool should_stop;
 	int rate_hz;
+	IMU_FILTER filter;
 } BMI_STATE;
 
 void bmi160_wrapper_init(BMI_STATE *s, stkalign_t *work_area, size_t work_area_size);

@@ -7,24 +7,10 @@ make
 
 echo "PERFORMING TESTS:"
 
-expected_fails=("test_lisp_code_cps -h 512 test_qq_4.lisp"
-                "test_lisp_code_cps -h 512 test_qq_5.lisp"
-                "test_lisp_code_cps -h 512 test_sumtree_0.lisp"
-                "test_lisp_code_cps -h 512 test_sumtree_1.lisp"
-                "test_lisp_code_cps -h 512 test_sumtree_2.lisp"
-                "test_lisp_code_cps -c -h 512 test_qq_4.lisp"
-                "test_lisp_code_cps -c -h 512 test_qq_5.lisp"
-                "test_lisp_code_cps -c -h 512 test_sumtree_0.lisp"
-                "test_lisp_code_cps -c -h 512 test_sumtree_1.lisp"
-                "test_lisp_code_cps -c -h 512 test_sumtree_2.lisp"
-                "test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -c -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -h 512 test_take_iota_0.lisp"
                 "test_lisp_code_cps -c -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -h 512 test_array_extensions_0.lisp"
-                "test_lisp_code_cps -c -h 512 test_array_extensions_0.lisp"
-                "test_lisp_code_cps -h 512 test_array_extensions_1.lisp"
-                "test_lisp_code_cps -c -h 512 test_array_extensions_1.lisp"
                )
 
 

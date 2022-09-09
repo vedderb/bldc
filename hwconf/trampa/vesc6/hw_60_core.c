@@ -1,5 +1,5 @@
 /*
-	Copyright 2012-2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2012-2022 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "drv8301.h"
 #include "terminal.h"
 #include "commands.h"
@@ -28,7 +28,7 @@
 
 // Variables
 static volatile bool i2c_running = false;
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
 static mutex_t shutdown_mutex;
 static float bt_diff = 0.0;
 #endif
@@ -40,13 +40,13 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
 static void terminal_shutdown_now(int argc, const char **argv);
 static void terminal_button_test(int argc, const char **argv);
 #endif
 
 void hw_init_gpio(void) {
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
 	chMtxObjectInit(&shutdown_mutex);
 #endif
 
@@ -118,6 +118,13 @@ void hw_init_gpio(void) {
 	PHASE_FILTER_OFF();
 #endif
 
+	// Sensor port voltage
+#if defined(HW60_IS_MK6)
+	SENSOR_PORT_3V3();
+	palSetPadMode(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+#endif
+
 	// Fault pin
 	palSetPadMode(GPIOB, 7, PAL_MODE_INPUT_PULLUP);
 
@@ -134,13 +141,13 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_MK6)
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 #endif
 
 	drv8301_init();
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
 	terminal_register_command_callback(
 		"shutdown",
 		"Shutdown VESC now.",
@@ -156,37 +163,46 @@ void hw_init_gpio(void) {
 }
 
 void hw_setup_adc_channels(void) {
+	uint8_t t_samp = ADC_SampleTime_15Cycles;
+
 	// ADC1 regular channels
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 2, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, t_samp);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, t_samp);
 
 	// ADC2 regular channels
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 1, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, t_samp);
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, t_samp);
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 1, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 2, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, t_samp);
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, t_samp);
+
+	// Current oversampling
+//	for (int i = 6;i <= 15;i++) {
+//		ADC_RegularChannelConfig(ADC1, ADC_Channel_10, i, ADC_SampleTime_56Cycles);
+//		ADC_RegularChannelConfig(ADC2, ADC_Channel_11, i, ADC_SampleTime_56Cycles);
+//		ADC_RegularChannelConfig(ADC3, ADC_Channel_12, i, ADC_SampleTime_56Cycles);
+//	}
 
 	// Injected channels
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
-	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 1, t_samp);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 2, t_samp);
+	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, t_samp);
+	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, t_samp);
+	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, t_samp);
 }
 
 void hw_start_i2c(void) {
@@ -283,7 +299,7 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5)
+#if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
 bool hw_sample_shutdown_button(void) {
 	chMtxLock(&shutdown_mutex);
 

@@ -26,7 +26,8 @@
 
 #include "bms.h"
 #include "buffer.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "datatypes.h"
 #include "comm_can.h"
 #include "commands.h"
@@ -371,7 +372,7 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 	switch (packet_id) {
 	case COMM_BMS_GET_VALUES: {
 		int32_t ind = 0;
-		uint8_t send_buffer[128];
+		uint8_t send_buffer[256];
 
 		send_buffer[ind++] = packet_id;
 

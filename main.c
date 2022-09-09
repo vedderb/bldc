@@ -40,7 +40,7 @@
 #include "timeout.h"
 #include "encoder/encoder.h"
 #include "servo_simple.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "spi_sw.h"
@@ -78,8 +78,6 @@
  * 1, 2			I2C1		Nunchuk, temp on rev 4.5
  * 1, 7			I2C1		Nunchuk, temp on rev 4.5
  * 2, 4			ADC			mcpwm
- * 1, 0			TIM4		WS2811/WS2812 LEDs CH1 (Ch 1)
- * 1, 3			TIM4		WS2811/WS2812 LEDs CH2 (Ch 2)
  *
  */
 

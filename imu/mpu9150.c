@@ -23,7 +23,7 @@
 
 #include "conf_general.h"
 #include "mpu9150.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "stm32f4xx_conf.h"
 #include "i2c_bb.h"
 #include "terminal.h"
@@ -34,7 +34,6 @@
 #include <stdio.h>
 
 // Settings
-#define USE_MAGNETOMETER		1
 #define MPU_I2C_TIMEOUT			10
 #define MAG_DIV 				10
 #define FAIL_DELAY_US			1000
@@ -61,14 +60,13 @@ static volatile bool mpu_found;
 static volatile bool is_running;
 static volatile bool should_stop;
 static volatile int rate_hz = 200;
+static volatile bool use_magnetometer = true;
 
 // Private functions
 static int reset_init_mpu(void);
 static int get_raw_accel_gyro(int16_t* accel_gyro);
 static uint8_t read_single_reg(uint8_t reg);
-#if USE_MAGNETOMETER
 static int get_raw_mag(int16_t* mag);
-#endif
 static THD_FUNCTION(mpu_thread, arg);
 static void terminal_status(int argc, const char **argv);
 static void terminal_read_reg(int argc, const char **argv);
@@ -98,6 +96,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	i2cs.sda_pin = sda_pin;
 	i2cs.scl_gpio = scl_gpio;
 	i2cs.scl_pin = scl_pin;
+	i2cs.rate = I2C_BB_RATE_400K;
 	i2c_bb_init(&i2cs);
 
 	reset_init_mpu();
@@ -256,15 +255,15 @@ void mpu9150_get_gyro(float *gyro) {
 }
 
 void mpu9150_get_mag(float *mag) {
-#if USE_MAGNETOMETER
-	mag[0] = (float)raw_accel_gyro_mag[6] * 1200.0 / 4096.0;
-	mag[1] = (float)raw_accel_gyro_mag[7] * 1200.0 / 4096.0;
-	mag[2] = (float)raw_accel_gyro_mag[8] * 1200.0 / 4096.0;
-#else
-	mag[0] = 0.0;
-	mag[1] = 0.0;
-	mag[2] = 0.0;
-#endif
+	if(use_magnetometer){
+		mag[0] = (float)raw_accel_gyro_mag[6] * 1200.0 / 4096.0;
+		mag[1] = (float)raw_accel_gyro_mag[7] * 1200.0 / 4096.0;
+		mag[2] = (float)raw_accel_gyro_mag[8] * 1200.0 / 4096.0;
+	} else {
+		mag[0] = 0.0;
+		mag[1] = 0.0;
+		mag[2] = 0.0;
+	}
 }
 
 void mpu9150_get_accel_gyro_mag(float *accel, float *gyro, float *mag) {
@@ -277,6 +276,10 @@ void mpu9150_set_rate_hz(int hz) {
 	rate_hz = hz;
 }
 
+void mpu9150_set_mag_enabled(bool enabled) {
+	use_magnetometer = enabled;
+}
+
 static THD_FUNCTION(mpu_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("MPU Sampling");
@@ -285,9 +288,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 	mpu_tp = chThdGetSelfX();
 
 	static int16_t raw_accel_gyro_mag_tmp[9];
-#if USE_MAGNETOMETER
 	static int mag_cnt = MAG_DIV;
-#endif
 	static systime_t iteration_timer = 0;
 	static int identical_reads = 0;
 
@@ -336,26 +337,26 @@ static THD_FUNCTION(mpu_thread, arg) {
 					read_callback(tmp_accel, tmp_gyro, tmp_mag);
 				}
 
-#if USE_MAGNETOMETER
-				mag_cnt++;
-				if (mag_cnt >= MAG_DIV) {
-					mag_cnt = 0;
-					mag_updated = 1;
+				if(use_magnetometer){
+					mag_cnt++;
+					if (mag_cnt >= MAG_DIV) {
+						mag_cnt = 0;
+						mag_updated = 1;
 
-					int16_t raw_mag_tmp[3];
+						int16_t raw_mag_tmp[3];
 
-					if (get_raw_mag(raw_mag_tmp)) {
-						memcpy((uint16_t*)raw_accel_gyro_mag_tmp + 6, raw_mag_tmp, sizeof(raw_mag_tmp));
+						if (get_raw_mag(raw_mag_tmp)) {
+							memcpy((uint16_t*)raw_accel_gyro_mag_tmp + 6, raw_mag_tmp, sizeof(raw_mag_tmp));
+						} else {
+							failed_mag_reads++;
+							chThdSleepMicroseconds(FAIL_DELAY_US);
+							reset_init_mpu();
+							iteration_timer = chVTGetSystemTime();
+						}
 					} else {
-						failed_mag_reads++;
-						chThdSleepMicroseconds(FAIL_DELAY_US);
-						reset_init_mpu();
-						iteration_timer = chVTGetSystemTime();
+						mag_updated = 0;
 					}
-				} else {
-					mag_updated = 0;
 				}
-#endif
 			}
 		} else {
 			failed_reads++;
@@ -428,16 +429,16 @@ static int reset_init_mpu(void) {
 		return 0;
 	}
 
-#if USE_MAGNETOMETER
-	// Set the i2c bypass enable pin to true to access the magnetometer
-	tx_buf[0] = MPU9150_INT_PIN_CFG;
-	tx_buf[1] = 0x02;
-	res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	if(use_magnetometer){
+		// Set the i2c bypass enable pin to true to access the magnetometer
+		tx_buf[0] = MPU9150_INT_PIN_CFG;
+		tx_buf[1] = 0x02;
+		res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
 
-	if (!res) {
-		return 0;
+		if (!res) {
+			return 0;
+		}
 	}
-#endif
 
 	is_mpu9250 = read_single_reg(MPU9150_WHO_AM_I) == 0x71;
 
@@ -481,7 +482,6 @@ static uint8_t read_single_reg(uint8_t reg) {
 	}
 }
 
-#if USE_MAGNETOMETER
 static int get_raw_mag(int16_t* mag) {
 	tx_buf[0] = MPU9150_HXL;
 	bool res = i2c_bb_tx_rx(&i2cs, 0x0C, tx_buf, 1, rx_buf, 6);
@@ -505,4 +505,3 @@ static int get_raw_mag(int16_t* mag) {
 
 	return 1;
 }
-#endif

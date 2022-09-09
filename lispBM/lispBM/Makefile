@@ -1,4 +1,4 @@
-CCFLAGS = -Wall -Wextra -Wshadow -pedantic -std=c99
+CCFLAGS = -Wall -Wextra -Wshadow -Wjump-misses-init -pedantic -std=c99
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
@@ -13,8 +13,14 @@ else
   AR=${CROSS_COMPILE}ar
 endif
 
-ifeq ($(PLATFORM),linux-x86-64)
-  $(error WILL NOT SUPPORT 64bit platforms)
+ifeq ($(PLATFORM),linux-x64)
+  BUILD_DIR = build/linux-x64
+  CCFLAGS += -g -O2 -DLBM64
+  CCFLAGS += -D_PRELUDE
+  PLATFORMSRC = platform/linux/src
+  PLATFORMINC = platform/linux/include
+  CC=gcc
+  AR=ar	
 endif
 
 ifeq ($(PLATFORM), zynq)
@@ -86,10 +92,7 @@ debug: $(OBJECTS) $(LIB)
 $(LIB): $(OBJECTS) 
 	$(AR) -rcs $@ $(OBJECTS) 
 
-src/prelude.xxd: src/prelude.lisp
-	xxd -i < src/prelude.lisp > src/prelude.xxd 
-
-$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) $(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
@@ -99,7 +102,6 @@ test:
 	cd tests && ./run_tests.sh
 
 clean:
-	rm src/prelude.xxd
 	rm -f ${BUILD_DIR}/*.o
 	rm -f ${BUILD_DIR}/extensions/*.o
 	rm -f ${BUILD_DIR}/*.a

@@ -230,17 +230,17 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   for (lbm_uint i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_PTR_TYPE_ARRAY) {
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case LBM_VAL_TYPE_CHAR:
+      case LBM_TYPE_CHAR:
         chprintf(chp,"%s", (char*)array + 8);
         break;
       default:
         return lbm_enc_sym(SYM_NIL);
         break;
       }
-    } else if (lbm_type_of(t) == LBM_VAL_TYPE_CHAR) {
+    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
       if (lbm_dec_char(t) =='\n') {
         chprintf(chp, "\r\n");
       } else {
@@ -360,23 +360,6 @@ int main(void) {
     return 1;
   }
 
-  prelude_load(&string_tok_state,
-               &string_tok);
-
-  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  chprintf(chp,"whats going on here\n");
-
-  if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
-    chprintf(chp,"Wait for prelude to load timed out\r\n");
-  } else {
-    chprintf(chp,"Prelude loaded!\r\n");
-  }
-  lbm_pause_eval();
-  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    chprintf(chp,"pause sleeping\n");
-    sleep_callback(1000);
-  }
-  lbm_continue_eval();
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
   while (1) {

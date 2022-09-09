@@ -37,6 +37,7 @@
 #include "hal.h"
 
 void lsm6ds3_set_rate_hz(int hz);
+void lsm6ds3_set_filter(IMU_FILTER f);
 void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin,
 		stkalign_t *work_area, size_t work_area_size);
@@ -652,10 +653,10 @@ typedef enum {
 * Permission    : RW
 *******************************************************************************/
 typedef enum {
-	LSM6DS3_ACC_GYRO_ODR_XL_POWER_DOWN 		 = 0x00,
-	LSM6DS3_ACC_GYRO_ODR_XL_13Hz 		         = 0x10,
-	LSM6DS3_ACC_GYRO_ODR_XL_26Hz 		         = 0x20,
-	LSM6DS3_ACC_GYRO_ODR_XL_52Hz 		         = 0x30,
+	LSM6DS3_ACC_GYRO_ODR_XL_POWER_DOWN   = 0x00,
+	LSM6DS3_ACC_GYRO_ODR_XL_13Hz 		 = 0x10,
+	LSM6DS3_ACC_GYRO_ODR_XL_26Hz 		 = 0x20,
+	LSM6DS3_ACC_GYRO_ODR_XL_52Hz 		 = 0x30,
 	LSM6DS3_ACC_GYRO_ODR_XL_104Hz 		 = 0x40,
 	LSM6DS3_ACC_GYRO_ODR_XL_208Hz 		 = 0x50,
 	LSM6DS3_ACC_GYRO_ODR_XL_416Hz 		 = 0x60,
@@ -697,7 +698,7 @@ typedef enum {
 * Permission    : RW
 *******************************************************************************/
 typedef enum {
-	LSM6DS3_ACC_GYRO_ODR_G_POWER_DOWN 		 = 0x00,
+	LSM6DS3_ACC_GYRO_ODR_G_POWER_DOWN 	 = 0x00,
 	LSM6DS3_ACC_GYRO_ODR_G_13Hz 		 = 0x10,
 	LSM6DS3_ACC_GYRO_ODR_G_26Hz 		 = 0x20,
 	LSM6DS3_ACC_GYRO_ODR_G_52Hz 		 = 0x30,
@@ -706,6 +707,8 @@ typedef enum {
 	LSM6DS3_ACC_GYRO_ODR_G_416Hz 		 = 0x60,
 	LSM6DS3_ACC_GYRO_ODR_G_833Hz 		 = 0x70,
 	LSM6DS3_ACC_GYRO_ODR_G_1660Hz 		 = 0x80,
+	LSM6DS3TRC_ACC_GYRO_ODR_G_3330Hz 	 = 0x90,
+	LSM6DS3TRC_ACC_GYRO_ODR_G_6660Hz 	 = 0xA0,
 } LSM6DS3_ACC_GYRO_ODR_G_t;
 
 /*******************************************************************************

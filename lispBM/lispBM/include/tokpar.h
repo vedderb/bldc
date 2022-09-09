@@ -21,12 +21,18 @@
 
 #include "lbm_types.h"
 
-/**
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**to
  * State struct for the string tokenizer.
  */
 typedef struct {
   const char *str;
   unsigned int pos;
+  unsigned int row;
+  unsigned int column;
 } lbm_tokenizer_string_state_t;
 
 /** Create an lbm_tokenizer_string_state_t, lbm_tokenizer_char_stream_t pair from a string.
@@ -35,7 +41,7 @@ typedef struct {
  * \param stream tokenizer stream is created in this arg.
  * \param str String to tokenize.
  */
-extern void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
+void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                                lbm_tokenizer_char_stream_t *stream,
                                                const char *str);
 /** Get the next token from a tokenizer stream (lbm_tokenizer_char_stream_t).
@@ -44,6 +50,9 @@ extern void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *sta
  * \return an lbm_value representing the token. This token is semi-parsed
  *  at this stage and values for example are already in proper value form.
  */
-extern lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
+lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -33,170 +33,99 @@
    - Depends on the Huffman library (pip3 install huffman)
    - exec(open('gen_codes.py').read())
    - print(make_c())
+
+   - python3 -i gen_codes.py
+   - print(make_c_codes())
 */
-//Total number of bits 433
 
-#define NUM_CODES 70
+#define NUM_CODES 73
 #define MAX_KEY_LENGTH 6
-#define MAX_CODE_LENGTH 7
+#define MAX_CODE_LENGTH 11
 char *codes[NUM_CODES][2] = {
-    { "9", "101001" },
-    { "8", "110100" },
-    { "7", "100110" },
-    { "6", "100000" },
-    { "5", "100111" },
-    { "4", "100010" },
-    { "3", "111000" },
-    { "2", "110000" },
-    { "1", "101100" },
-    { "0", "101101" },
-    { "_", "000011" },
-    { ",@", "000000" },
-    { ",", "000001" },
-    { "`", "1111010" },
-    { " ", "1111011" },
-    { "'", "1110010" },
-    { "\\", "1110011" },
-    { "\"", "1110110" },
-    { "#", "1110111" },
-    { ".", "000010" },
-    { ">", "1110101" },
-    { "<", "1111100" },
-    { "=", "1111101" },
-    { "/", "1111110" },
-    { "*", "1111111" },
-    { "-", "1111000" },
-    { "+", "1111001" },
-    { "nil", "110001" },
-    { "cdr", "101010" },
-    { "car", "101011" },
-    { "cons", "101110" },
-    { "let", "101111" },
-    { "define", "110010" },
-    { "progn", "110011" },
-    { "quote", "101000" },
-    { "list", "100101" },
-    { "if", "100100" },
-    { "lambda", "100001" },
-    { "((", "110101" },
-    { "))", "100011" },
-    { ")", "110110" },
-    { "(", "110111" },
-    { "?", "001011" },
-    { "!", "011100" },
-    { "z", "000111" },
-    { "y", "001000" },
-    { "x", "011000" },
-    { "w", "011001" },
-    { "v", "010000" },
-    { "u", "011110" },
-    { "t", "000100" },
-    { "s", "000101" },
-    { "r", "010100" },
-    { "q", "010101" },
-    { "p", "011011" },
-    { "o", "001100" },
-    { "n", "010111" },
-    { "m", "000110" },
-    { "l", "001001" },
-    { "k", "001111" },
-    { "j", "011111" },
-    { "i", "010010" },
-    { "h", "011010" },
-    { "g", "001101" },
-    { "f", "011101" },
-    { "e", "001110" },
-    { "d", "010011" },
-    { "c", "010110" },
-    { "b", "010001" },
-    { "a", "001010" }
+    { "nil", "11110011010" },
+    { "cdr", "11110011011" },
+    { "car", "11110011100" },
+    { "cons", "11110011101" },
+    { "let", "11110011110" },
+    { "define", "11110011111" },
+    { "progn", "1111001000" },
+    { "quote", "1111001001" },
+    { "list", "1111001010" },
+    { "if", "1111001011" },
+    { "lambda", "1111001100" },
+    { "]", "1101" },
+    { "[", "1010" },
+    { "((", "1001" },
+    { "))", "1011" },
+    { ")", "1110" },
+    { "(", "1100" },
+    { "?", "000111" },
+    { "!", "011001" },
+    { "z", "011100" },
+    { "y", "010001" },
+    { "x", "011111" },
+    { "w", "010000" },
+    { "v", "010100" },
+    { "u", "010101" },
+    { "t", "001010" },
+    { "s", "011101" },
+    { "r", "001100" },
+    { "q", "100010" },
+    { "p", "100001" },
+    { "o", "000101" },
+    { "n", "001110" },
+    { "m", "010010" },
+    { "l", "100011" },
+    { "k", "001001" },
+    { "j", "011010" },
+    { "i", "001011" },
+    { "h", "011000" },
+    { "g", "011011" },
+    { "f", "100000" },
+    { "e", "010111" },
+    { "d", "000110" },
+    { "c", "001101" },
+    { "b", "010110" },
+    { "a", "001111" },
+    { "9", "0000111" },
+    { "8", "0100110" },
+    { "7", "0100111" },
+    { "6", "0010000" },
+    { "5", "0010001" },
+    { "4", "0111100" },
+    { "3", "0111101" },
+    { "2", "0001000" },
+    { "1", "0001001" },
+    { "0", "1111000" },
+    { "_", "11111111" },
+    { ",@", "0000110" },
+    { ",", "0000011" },
+    { "`", "11110100" },
+    { " ", "11110111" },
+    { "'", "11111100" },
+    { "\\", "11111000" },
+    { "\"", "0000100" },
+    { "#", "11111110" },
+    { ":", "0000101" },
+    { ".", "11111010" },
+    { ">", "11110101" },
+    { "<", "11111101" },
+    { "=", "11111001" },
+    { "/", "0000000" },
+    { "*", "11110110" },
+    { "-", "11111011" },
+    { "+", "0000010" }
     };
-
-
-/* #define NUM_CODES 69 */
-/* #define MAX_KEY_LENGTH 6 */
-/* #define MAX_CODE_LENGTH 10 */
-/* char *codes[NUM_CODES][2] = { */
-/*     { "nil", "0011001110" }, */
-/*     { "cdr", "0011001111" }, */
-/*     { "car", "001100000" }, */
-/*     { "cons", "001100001" }, */
-/*     { "let", "001100010" }, */
-/*     { "define", "001100011" }, */
-/*     { "progn", "001100100" }, */
-/*     { "quote", "0011001010" }, */
-/*     { "list", "0011001011" }, */
-/*     { "if", "0011001100" }, */
-/*     { "lambda", "0011001101" }, */
-/*     { "((", "1101" }, */
-/*     { "))", "1110" }, */
-/*     { ")", "000" }, */
-/*     { "(", "1111" }, */
-/*     { "?", "101010" }, */
-/*     { "z", "011000" }, */
-/*     { "y", "101100" }, */
-/*     { "x", "101011" }, */
-/*     { "w", "101001" }, */
-/*     { "v", "100000" }, */
-/*     { "u", "011111" }, */
-/*     { "t", "110001" }, */
-/*     { "s", "010110" }, */
-/*     { "r", "110011" }, */
-/*     { "q", "100100" }, */
-/*     { "p", "100001" }, */
-/*     { "o", "110000" }, */
-/*     { "n", "101111" }, */
-/*     { "m", "00100" }, */
-/*     { "l", "101110" }, */
-/*     { "k", "00101" }, */
-/*     { "j", "100010" }, */
-/*     { "i", "011010" }, */
-/*     { "h", "100110" }, */
-/*     { "g", "010111" }, */
-/*     { "f", "011011" }, */
-/*     { "e", "100101" }, */
-/*     { "d", "101101" }, */
-/*     { "c", "011110" }, */
-/*     { "b", "101000" }, */
-/*     { "a", "011001" }, */
-/*     { "9", "1000110" }, */
-/*     { "8", "1000111" }, */
-/*     { "7", "1100100" }, */
-/*     { "6", "1100101" }, */
-/*     { "5", "1001110" }, */
-/*     { "4", "1001111" }, */
-/*     { "3", "0111010" }, */
-/*     { "2", "0111011" }, */
-/*     { "1", "0111000" }, */
-/*     { "0", "0111001" }, */
-/*     { "_", "0101001" }, */
-/*     { ",@", "0101000" }, */
-/*     { ",", "0011010" }, */
-/*     { "`", "0100011" }, */
-/*     { " ", "0011100" }, */
-/*     { "'", "0100100" }, */
-/*     { "\\", "0100101" }, */
-/*     { "\"", "0011111" }, */
-/*     { "#", "0100111" }, */
-/*     { ".", "0100110" }, */
-/*     { ">", "0011011" }, */
-/*     { "<", "0011101" }, */
-/*     { "=", "0011110" }, */
-/*     { "/", "0101011" }, */
-/*     { "*", "0100000" }, */
-/*     { "-", "0101010" }, */
-/*     { "+", "0100010" } */
-/*     }; */
 
 
 int match_longest_key(char *string) {
 
   int longest_match_ix = -1;
   unsigned int longest_match_length = 0;
-  unsigned int n = strlen(string);
+  unsigned int n = (unsigned int)strlen(string);
 
   for (int i = 0; i < NUM_CODES; i ++) {
-    unsigned int s_len = strlen(codes[i][KEY]);
+    unsigned int s_len = (unsigned int)strlen(codes[i][KEY]);
     if (s_len <= n) {
       if (strncasecmp(codes[i][KEY], string, s_len) == 0) {
         if (s_len > longest_match_length) {
@@ -216,7 +145,7 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
   unsigned int longest_match_length = 0;
 
   for (int i = 0; i < NUM_CODES; i++) {
-    unsigned int s_len = strlen(codes[i][CODE]);
+    unsigned int s_len = (unsigned int)strlen(codes[i][CODE]);
     if ((uint32_t)s_len <= bits_left) {
       bool match = true;
       for (uint32_t b = 0; b < (uint32_t)s_len; b ++) {
@@ -242,7 +171,7 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
 int compressed_length(char *string) {
   uint32_t i = 0;
 
-  uint32_t n = strlen(string);
+  uint32_t n = (uint32_t)strlen(string);
   int comp_len = 0; // in bits
 
   bool string_mode = false;
@@ -292,9 +221,9 @@ int compressed_length(char *string) {
       }
 
       if (ix == -1)return -1;
-      unsigned int code_len = strlen(codes[ix][1]);
+      unsigned int code_len = (unsigned int)strlen(codes[ix][1]);
       comp_len += (int)code_len;
-      i += strlen(codes[ix][0]);
+      i += (unsigned int)strlen(codes[ix][0]);
     }
   }
   return comp_len;
@@ -324,7 +253,7 @@ void emit_string_char_code(char *compressed, char c, int *bit_pos) {
 }
 
 void emit_code(char *compressed, char *code, int *bit_pos) {
-  unsigned int n = strlen(code);
+  unsigned int n = (unsigned int)strlen(code);
 
   for (unsigned int i = 0; i < n; i ++) {
     int byte_ix = (*bit_pos) / 8;
@@ -374,7 +303,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
   if (header_value == 0) return NULL;
 
-  char *compressed = malloc(c_size_bytes);
+  char *compressed = (char*)malloc(c_size_bytes);
   if (!compressed) return NULL;
   memset(compressed, 0, c_size_bytes);
   *res_size = c_size_bytes;
@@ -388,7 +317,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
-  uint32_t n = strlen(string);
+  uint32_t n = (uint32_t) strlen(string);
   uint32_t i = 0;
 
   while (i < n) {
@@ -442,7 +371,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
       emit_code(compressed, codes[ix][CODE], &bit_pos);
 
-      i += strlen(codes[ix][0]);
+      i += (unsigned int)strlen(codes[ix][0]);
     }
   }
 
@@ -488,7 +417,7 @@ int lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n
       s->last_string_char = 0;
     }
 
-    unsigned int n_bits_decoded = strlen(codes[ix][CODE]);
+    unsigned int n_bits_decoded = (unsigned int)strlen(codes[ix][CODE]);
     emit_key(dest_buff, codes[ix][KEY], (int)strlen(codes[ix][KEY]), &char_pos);
     s->i+=n_bits_decoded;
     return (int)char_pos;
@@ -576,6 +505,15 @@ void drop_compressed(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   }
 }
 
+unsigned int row_compressed(lbm_tokenizer_char_stream_t *str) {
+  (void) str;
+  return 0;
+}
+
+unsigned int column_compressed(lbm_tokenizer_char_stream_t *str) {
+  (void) str;
+  return 0;
+}
 
 void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
                                                     lbm_tokenizer_char_stream_t *str,

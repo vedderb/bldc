@@ -21,7 +21,7 @@
 #include "comm_can.h"
 #include "mc_interface.h"
 #include "ledpwm.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "main.h"
 
 #ifndef HW_VER_IS_100DX

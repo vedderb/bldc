@@ -29,7 +29,7 @@
 #include "mc_interface.h"
 #include "terminal.h"
 #include "timeout.h"
-#include "utils.h"
+#include "utils_math.h"
 
 #include <math.h>
 #include <stdio.h>

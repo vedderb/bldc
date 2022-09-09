@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		24
+#define FW_TEST_VERSION_NUMBER		58
 
 #include "datatypes.h"
 
@@ -96,13 +96,6 @@
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
 //#include "er/app_erockit_conf_v2.h"
 //#include "finn/app_finn_az_conf.h"
-//#include "vccu/app_vccu_conf.h"
-//#include "pitch/app_pitch_conf.h"
-
-// CAN-plotter
-//#define APP_CUSTOM_TO_USE			"app_plot_can.c"
-//#define APPCONF_APP_TO_USE			APP_CUSTOM
-//#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 #include "hw.h"
 #include "mcconf_default.h"
@@ -126,12 +119,6 @@
 #undef CAN_ENABLE
 #define CAN_ENABLE 					0
 #endif
-
-/*
- * Settings for the external LEDs (hardcoded for now)
- */
-#define LED_EXT_BATT_LOW			28.0
-#define LED_EXT_BATT_HIGH			33.0
 
 /*
  * Servo output driver

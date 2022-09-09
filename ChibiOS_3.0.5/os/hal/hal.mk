@@ -3,7 +3,7 @@
 ifeq ($(USE_SMART_BUILD),yes)
 
 ifeq ($(OS),Windows_NT)
-  HALCONF := $(strip $(shell powershell -noprofile -command cat halconf.h | findstr -i define))
+  HALCONF := $(strip $(shell powershell -noprofile -command "& {cat halconf.h | findstr -i define}"))
 else
   HALCONF := $(strip $(shell cat halconf.h | egrep -e "define"))
 endif

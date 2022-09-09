@@ -26,7 +26,8 @@
 #include "commands.h"
 #include "hw.h"
 #include "comm_can.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "timeout.h"
 #include "encoder/encoder.h"
 #include "app.h"
@@ -83,9 +84,6 @@ void terminal_process_string(char *str) {
 
 	if (strcmp(argv[0], "ping") == 0) {
 		commands_printf("pong\n");
-	} else if (strcmp(argv[0], "stop") == 0) {
-		mc_interface_set_duty(0);
-		commands_printf("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
@@ -156,17 +154,21 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8323S_FAULTS  : %s", drv8323s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #endif
+				if (fault_vec[i].info_str != 0) {
+					char f_str[100];
+					strcpy(f_str, "Info             : ");
+					strcpy(f_str + 19, fault_vec[i].info_str);
+					if (fault_vec[i].info_argn == 0) {
+						commands_printf(f_str);
+					} else if (fault_vec[i].info_argn == 1) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0]);
+					} else if (fault_vec[i].info_argn == 2) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0], (double)fault_vec[i].info_args[1]);
+					}
+				}
 				commands_printf(" ");
 			}
 		}
-	} else if (strcmp(argv[0], "rpm") == 0) {
-		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
-	} else if (strcmp(argv[0], "tacho") == 0) {
-		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
-	} else if (strcmp(argv[0], "dist") == 0) {
-		commands_printf("Trip dist.      : %.2f m", (double)mc_interface_get_distance());
-		commands_printf("Trip dist. (ABS): %.2f m", (double)mc_interface_get_distance_abs());
-		commands_printf("Odometer        : %llu m\n", mc_interface_get_odometer());
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -474,9 +476,13 @@ void terminal_process_string(char *str) {
 		float res = 0.0;
 		float ind = 0.0;
 		float ld_lq_diff = 0.0;
-		mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff);
-		commands_printf("Resistance: %.6f ohm", (double)res);
-		commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		if (mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff)) {
+			commands_printf("Resistance: %.6f ohm", (double)res);
+			commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		} else {
+			commands_printf("Error measuring resistance or inductance\n");
+		}
+		
 
 		mc_interface_set_configuration(mcconf_old);
 
@@ -1032,40 +1038,6 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument.\n");
 		}
-	} else if (strcmp(argv[0], "io_board_set_output") == 0) {
-		if (argc == 4) {
-			int id = -1;
-			int channel = -1;
-			int state = -1;
-
-			sscanf(argv[1], "%d", &id);
-			sscanf(argv[2], "%d", &channel);
-			sscanf(argv[3], "%d", &state);
-
-			if (id >= 0 && channel >= 0 && state >= 0) {
-				comm_can_io_board_set_output_digital(id, channel, state);
-				commands_printf("OK\n");
-			} else {
-				commands_printf("Invalid arguments\n");
-			}
-		}
-	} else if (strcmp(argv[0], "io_board_set_output_pwm") == 0) {
-		if (argc == 4) {
-			int id = -1;
-			int channel = -1;
-			float duty = -1.0;
-
-			sscanf(argv[1], "%d", &id);
-			sscanf(argv[2], "%d", &channel);
-			sscanf(argv[3], "%f", &duty);
-
-			if (id >= 0 && channel >= 0 && duty >= 0.0 && duty <= 1.0) {
-				comm_can_io_board_set_output_pwm(id, channel, duty);
-				commands_printf("OK\n");
-			} else {
-				commands_printf("Invalid arguments\n");
-			}
-		}
 	} else if (strcmp(argv[0], "crc") == 0) {
 		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
 		unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
@@ -1106,9 +1078,6 @@ void terminal_process_string(char *str) {
 		commands_printf("ping");
 		commands_printf("  Print pong here to see if the reply works");
 
-		commands_printf("stop");
-		commands_printf("  Stop the motor");
-
 		commands_printf("last_adc_duration");
 		commands_printf("  The time the latest ADC interrupt consumed");
 
@@ -1126,15 +1095,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("faults");
 		commands_printf("  Prints all stored fault codes and conditions when they arrived");
-
-		commands_printf("rpm");
-		commands_printf("  Prints the current electrical RPM");
-
-		commands_printf("tacho");
-		commands_printf("  Prints tachometer value");
-
-		commands_printf("dist");
-		commands_printf("  Prints odometer value");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");
@@ -1218,12 +1178,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("hall_analyze [current]");
 		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
-
-		commands_printf("io_board_set_output [id] [ch] [state]");
-		commands_printf("  Set digital output of IO board.");
-
-		commands_printf("io_board_set_output_pwm [id] [ch] [duty]");
-		commands_printf("  Set pwm output of IO board.");
 
 		commands_printf("crc");
 		commands_printf("  Print CRC values.");

@@ -27,7 +27,8 @@
 #include "commands.h"
 #include "imu/imu.h"
 #include "imu/ahrs.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "datatypes.h"
 #include "comm_can.h"
 #include "terminal.h"
@@ -94,7 +95,7 @@ static float torquetilt_on_step_size, torquetilt_off_step_size, turntilt_step_si
 static float tiltback_variable, tiltback_variable_max_erpm, noseangling_step_size;
 
 // Runtime values read from elsewhere
-static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin;
+static float pitch_angle, last_pitch_angle, roll_angle, abs_roll_angle, abs_roll_angle_sin, last_gyro_y;
 static float gyro[3];
 static float duty_cycle, abs_duty_cycle;
 static float erpm, abs_erpm, avg_erpm;
@@ -105,7 +106,7 @@ static SwitchState switch_state;
 
 // Rumtime state values
 static BalanceState state;
-static float proportional, integral, derivative;
+static float proportional, integral, derivative, proportional2, integral2, derivative2;
 static float last_proportional, abs_proportional;
 static float pid_value;
 static float setpoint, setpoint_target, setpoint_target_interpolated;
@@ -297,6 +298,7 @@ static void reset_vars(void){
 	// Clear accumulated values.
 	integral = 0;
 	last_proportional = 0;
+	integral2 = 0;
 	yaw_integral = 0;
 	yaw_last_proportional = 0;
 	d_pt1_lowpass_state = 0;
@@ -355,13 +357,15 @@ static bool check_faults(bool ignoreTimers){
 	}
 
 	// Switch partially open and stopped
-	if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
-		if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
-			state = FAULT_SWITCH_HALF;
-			return true;
+	if(!balance_conf.fault_is_dual_switch) {
+		if((switch_state == HALF || switch_state == OFF) && abs_erpm < balance_conf.fault_adc_half_erpm){
+			if(ST2MS(current_time - fault_switch_half_timer) > balance_conf.fault_delay_switch_half || ignoreTimers){
+				state = FAULT_SWITCH_HALF;
+				return true;
+			}
+		} else {
+			fault_switch_half_timer = current_time;
 		}
-	} else {
-		fault_switch_half_timer = current_time;
 	}
 
 	// Check pitch angle
@@ -526,7 +530,11 @@ static void apply_turntilt(void){
 	}
 
 	// Limit angle to max angle
-	turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+	if(turntilt_target > 0){
+		turntilt_target = fminf(turntilt_target, balance_conf.turntilt_angle_limit);
+	}else{
+		turntilt_target = fmaxf(turntilt_target, -balance_conf.turntilt_angle_limit);
+	}
 
 	// Move towards target limited by max speed
 	if(fabsf(turntilt_target - turntilt_interpolated) < turntilt_step_size){
@@ -578,6 +586,12 @@ static void brake(void){
 }
 
 static void set_current(float current, float yaw_current){
+	// Limit current output to configured max output (does not account for yaw_current)
+	if(current > 0 && current > mc_interface_get_configuration()->l_current_max){
+		current = mc_interface_get_configuration()->l_current_max;
+	}else if(current < 0 && current < mc_interface_get_configuration()->l_current_min){
+		current = mc_interface_get_configuration()->l_current_min;
+	}
 	// Reset the timeout
 	timeout_reset();
 	// Set current
@@ -624,8 +638,10 @@ static THD_FUNCTION(balance_thread, arg) {
 		motor_current = mc_interface_get_tot_current_directional_filtered();
 		motor_position = mc_interface_get_pid_pos_now();
 
-		// Get the values we want
+		// Set "last" values to previous loops values
 		last_pitch_angle = pitch_angle;
+		last_gyro_y = gyro[1];
+		// Get the values we want
 		pitch_angle = RAD2DEG_f(imu_get_pitch());
 		roll_angle = RAD2DEG_f(imu_get_roll());
 		abs_roll_angle = fabsf(roll_angle);
@@ -671,7 +687,10 @@ static THD_FUNCTION(balance_thread, arg) {
 			if(adc1 > balance_conf.fault_adc1 && adc2 > balance_conf.fault_adc2){
 				switch_state = ON;
 			}else if(adc1 > balance_conf.fault_adc1 || adc2 > balance_conf.fault_adc2){
-				switch_state = HALF;
+				if (balance_conf.fault_is_dual_switch)
+					switch_state = ON;
+				else
+					switch_state = HALF;
 			}else{
 				switch_state = OFF;
 			}
@@ -732,6 +751,13 @@ static THD_FUNCTION(balance_thread, arg) {
 
 				pid_value = (balance_conf.kp * proportional) + (balance_conf.ki * integral) + (balance_conf.kd * derivative);
 
+				if(balance_conf.pid_mode == BALANCE_PID_MODE_ANGLE_RATE_CASCADE){
+					proportional2 = pid_value - gyro[1];
+					integral2 = integral2 + proportional2;
+					derivative2 = last_gyro_y - gyro[1];
+					pid_value = (balance_conf.kp2 * proportional2) + (balance_conf.ki2 * integral2) + (balance_conf.kd2 * derivative2);
+				}
+
 				last_proportional = proportional;
 
 				// Apply Booster
@@ -743,7 +769,6 @@ static THD_FUNCTION(balance_thread, arg) {
 						pid_value += balance_conf.booster_current * SIGN(proportional);
 					}
 				}
-
 
 				if(balance_conf.multi_esc){
 					// Calculate setpoint
