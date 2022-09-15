@@ -312,6 +312,21 @@ typedef struct {
 	void (*packet_process_byte)(uint8_t, PACKET_STATE_t *);
 	void (*packet_send_packet)(unsigned char *, unsigned int len, PACKET_STATE_t *);
 
+	// IMU
+	bool (*imu_startup_done)(void);
+	float (*imu_get_roll)(void);
+	float (*imu_get_pitch)(void);
+	float (*imu_get_yaw)(void);
+	void (*imu_get_rpy)(float *rpy);
+	void (*imu_get_accel)(float *accel);
+	void (*imu_get_gyro)(float *gyro);
+	void (*imu_get_mag)(float *mag);
+	void (*imu_derotate)(float *input, float *output);
+	void (*imu_get_accel_derotated)(float *accel);
+	void (*imu_get_gyro_derotated)(float *gyro);
+	void (*imu_get_quaternions)(float *q);
+	void (*imu_get_calibration)(float yaw, float * imu_cal);
+	void (*imu_set_yaw)(float yaw_deg);
 } vesc_c_if;
 
 typedef struct {

@@ -30,6 +30,7 @@
 #include "worker.h"
 #include "app.h"
 #include "mempools.h"
+#include "imu.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -506,6 +507,22 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.packet_reset = packet_reset;
 		cif.cif.packet_process_byte = packet_process_byte;
 		cif.cif.packet_send_packet = packet_send_packet;
+
+		// IMU
+		cif.cif.imu_startup_done = imu_startup_done;
+		cif.cif.imu_get_roll = imu_get_roll;
+		cif.cif.imu_get_pitch = imu_get_pitch;
+		cif.cif.imu_get_yaw = imu_get_yaw;
+		cif.cif.imu_get_rpy = imu_get_rpy;
+		cif.cif.imu_get_accel = imu_get_accel;
+		cif.cif.imu_get_gyro = imu_get_gyro;
+		cif.cif.imu_get_mag = imu_get_mag;
+		cif.cif.imu_derotate = imu_derotate;
+		cif.cif.imu_get_accel_derotated = imu_get_accel_derotated;
+		cif.cif.imu_get_gyro_derotated = imu_get_gyro_derotated;
+		cif.cif.imu_get_quaternions = imu_get_quaternions;
+		cif.cif.imu_get_calibration = imu_get_calibration;
+		cif.cif.imu_set_yaw = imu_set_yaw;
 
 		lib_init_done = true;
 	}
