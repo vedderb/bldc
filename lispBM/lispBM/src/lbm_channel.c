@@ -66,7 +66,7 @@ void lbm_channel_reader_close(lbm_char_channel_t *chan) {
 }
 
 bool lbm_channel_reader_is_closed(lbm_char_channel_t *chan) {
-  chan->reader_is_closed(chan);
+  return chan->reader_is_closed(chan);
 }
 
 unsigned int lbm_channel_row(lbm_char_channel_t *chan) {
