@@ -20,6 +20,7 @@
 #define TOKPAR_H_
 
 #include "lbm_types.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,11 +48,13 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
 /** Get the next token from a tokenizer stream (lbm_tokenizer_char_stream_t).
  *
  * \param str Tokenizer stream to get the next token from.
+ * \param peek Boolean deciding if token is cleared out of channel or left. 
  * \return an lbm_value representing the token. This token is semi-parsed
  *  at this stage and values for example are already in proper value form.
  */
-lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
-
+//lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
+lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek);
+  
 #ifdef __cplusplus
 }
 #endif

@@ -23,10 +23,10 @@
 
 #include "lbm_types.h"
 #include "symrepr.h"
-#include "streams.h"
 #include "stack.h"
 #include "lbm_memory.h"
 #include "lbm_defines.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -310,12 +310,12 @@ lbm_value lbm_heap_allocate_cell(lbm_type type);
  * \return String or NULL if the value does not encode a string.
  */
 char *lbm_dec_str(lbm_value val);
-/** Decode an lbm_value representing a stream into an lbm_stream_t pointer.
+/** Decode an lbm_value representing a char channel into an lbm_char_channel_t pointer.
  *
  * \param val Value
- * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
+ * \return A pointer to an lbm_char_channel_t or NULL if the value does not encode a channel.
  */
-lbm_stream_t *lbm_dec_stream(lbm_value val);
+lbm_char_channel_t *lbm_dec_channel(lbm_value val);
 /** Decode an lbm_value representing a custom type into a lbm_uint value.
  * 
  * \param val Value.
@@ -761,13 +761,11 @@ static inline bool lbm_is_array(lbm_value x) {
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
 }
-
-static inline bool lbm_is_stream(lbm_value x) {
-  return (lbm_type_of(x) == LBM_TYPE_STREAM &&
+static inline bool lbm_is_channel(lbm_value x) {
+  return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
-          lbm_dec_sym(lbm_cdr(x)) == SYM_STREAM_TYPE);
+          lbm_dec_sym(lbm_cdr(x)) == SYM_CHANNEL_TYPE);
 }
-
 static inline bool lbm_is_char(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
   return (t == LBM_TYPE_CHAR);

@@ -36,7 +36,7 @@
 #define LBM_TYPE_DOUBLE                  0x70000000u
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_REF                     0x90000000u
-#define LBM_TYPE_STREAM                  0xA0000000u
+#define LBM_TYPE_CHANNEL                 0xA0000000u
 #define LBM_TYPE_CUSTOM                  0xB0000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
 #define LBM_POINTER_TYPE_LAST            0xB0000000u
@@ -64,7 +64,7 @@
 #define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
 #define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
-#define LBM_TYPE_STREAM                  (lbm_uint)0x7000000000000000
+#define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
@@ -133,7 +133,7 @@
 #define SYM_IND_I_TYPE     0x34
 #define SYM_IND_U_TYPE     0x35
 #define SYM_IND_F_TYPE     0x36
-#define SYM_STREAM_TYPE    0x37
+#define SYM_CHANNEL_TYPE   0x37
 #define SYM_BYTECODE_TYPE  0x38
 #define SYM_CUSTOM_TYPE    0x39
 #define TYPE_CLASSIFIER_ENDS 0x39
@@ -166,7 +166,7 @@
 #define SYM_TYPE_CHAR      0x5B
 #define SYM_TYPE_BYTE      0x5C
 #define SYM_TYPE_REF       0x5D
-#define SYM_TYPE_STREAM    0x5E
+#define SYM_TYPE_CHANNEL   0x5E
 
 //Relevant for the tokenizer
 #define SYM_OPENPAR        0x70
@@ -250,12 +250,6 @@
 #define SYM_TO_U64              0x166
 #define SYM_TO_DOUBLE           0x167
 #define SYM_TO_BYTE             0x168
-
-#define SYM_STREAM_GET          0x169
-#define SYM_STREAM_MORE         0x16A
-#define SYM_STREAM_PEEK         0x16B
-#define SYM_STREAM_DROP         0x16C
-#define SYM_STREAM_PUT          0x16D
 
 #define SYM_SHL                 0x170
 #define SYM_SHR                 0x171

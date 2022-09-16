@@ -20,6 +20,7 @@
 
 #include "lbm_types.h"
 #include "stack.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -245,17 +246,8 @@ void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
  */
 lbm_cid lbm_get_current_cid(void);
 
-/** Create a token stream for parsing for code
- *
- * \param str character stream to convert into a token stream.
- * \return token stream.
- */
-lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str);
-/** Explicitly free a stream (if something breaks while creating it)
- *  The stream must not have been made available to the program
- * \param stream The stream to free
- */
-int lbm_explicit_free_token_stream(lbm_value stream);
+bool create_string_channel(char *str, lbm_value *res);
+bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
 /** deliver a message
  *

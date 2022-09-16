@@ -1323,32 +1323,6 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       result = bitwise_not(args[0]);
     }
     break;
-  case SYM_STREAM_GET:
-    if (lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->get(str);
-    }
-    break;
-  case SYM_STREAM_PUT:
-    if (nargs == 2 && lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->put(str, args[1]);
-    }
-    break;
-  case SYM_STREAM_PEEK:
-    if (nargs == 2 &&
-	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->peek(str, args[1]);
-    }
-    break;
-  case SYM_STREAM_DROP:
-    if (nargs == 2 &&
-	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->drop(str, args[1]);
-    }
-    break;
   case SYM_CUSTOM_DESTRUCT:
     if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
       lbm_uint *mem_ptr = (lbm_uint*)lbm_dec_custom(args[0]);
