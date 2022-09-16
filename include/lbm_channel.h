@@ -59,58 +59,60 @@ typedef struct {
 typedef struct lbm_char_channel_s {
 
   void *state;
-  bool (*more)(struct lbm_char_channel_s *ch);
-  int  (*peek)(struct lbm_char_channel_s *ch, unsigned int n, char *res);
-  bool (*read)(struct lbm_char_channel_s *ch, char *res);
-  bool (*drop)(struct lbm_char_channel_s *ch, unsigned int n);
-  bool (*comment)(struct lbm_char_channel_s *ch);
-  void (*set_comment)(struct lbm_char_channel_s *ch, bool comment);
-  void (*reader_close)(struct lbm_char_channel_s *ch);
+  bool (*more)(struct lbm_char_channel_s *chan);
+  int  (*peek)(struct lbm_char_channel_s *chan, unsigned int n, char *res);
+  bool (*read)(struct lbm_char_channel_s *chan, char *res);
+  bool (*drop)(struct lbm_char_channel_s *chan, unsigned int n);
+  bool (*comment)(struct lbm_char_channel_s *chan);
+  void (*set_comment)(struct lbm_char_channel_s *chan, bool comment);
+  void (*reader_close)(struct lbm_char_channel_s *chan);
   
   /* Either side */
-  bool (*channel_is_empty)(struct lbm_char_channel_s *ch);
-  bool (*channel_is_full)(struct lbm_char_channel_s *ch);
+  bool (*channel_is_empty)(struct lbm_char_channel_s *chan);
+  bool (*channel_is_full)(struct lbm_char_channel_s *chan);
+  bool (*reader_is_closed)(struct lbm_char_channel_s *chan);
   
   /* Write side */
-  int (*write)(struct lbm_char_channel_s *ch, char c);
-  void (*writer_close)(struct lbm_char_channel_s *ch);
+  int (*write)(struct lbm_char_channel_s *chan, char c);
+  void (*writer_close)(struct lbm_char_channel_s *chan);
   
   /* Statistics */
-  unsigned int (*row)(struct lbm_char_channel_s *ch);
-  unsigned int (*column)(struct lbm_char_channel_s *ch);
+  unsigned int (*row)(struct lbm_char_channel_s *chan);
+  unsigned int (*column)(struct lbm_char_channel_s *chan);
   
 } lbm_char_channel_t;
 
 
 /* Read side */
-bool lbm_channel_more(lbm_char_channel_t *ch);
-int lbm_channel_peek(lbm_char_channel_t *ch, unsigned int n, char *res);
-bool lbm_channel_read(lbm_char_channel_t *ch, char *res);
-bool lbm_channel_drop(lbm_char_channel_t *ch, unsigned int n);
-bool lbm_channel_comment(lbm_char_channel_t *ch);
-void lbm_channel_set_comment(lbm_char_channel_t *ch, bool comment);
-void lbm_channel_reader_close(lbm_char_channel_t *ch);
+bool lbm_channel_more(lbm_char_channel_t *chan);
+int lbm_channel_peek(lbm_char_channel_t *chan, unsigned int n, char *res);
+bool lbm_channel_read(lbm_char_channel_t *chan, char *res);
+bool lbm_channel_drop(lbm_char_channel_t *chan, unsigned int n);
+bool lbm_channel_comment(lbm_char_channel_t *chan);
+void lbm_channel_set_comment(lbm_char_channel_t *chan, bool comment);
+void lbm_channel_reader_close(lbm_char_channel_t *chan);
+bool lbm_channel_reader_is_closed(lbm_char_channel_t *chan);
 
 /* Either side */
-bool lbm_channel_is_empty(lbm_char_channel_t *ch);
-bool lbm_channel_is_full(lbm_char_channel_t *ch);
+bool lbm_channel_is_empty(lbm_char_channel_t *chan);
+bool lbm_channel_is_full(lbm_char_channel_t *chan);
 
 /* Write side */
-int  lbm_channel_write(lbm_char_channel_t *ch, char c);
-void lbm_channel_writer_close(lbm_char_channel_t *ch);
+int  lbm_channel_write(lbm_char_channel_t *chan, char c);
+void lbm_channel_writer_close(lbm_char_channel_t *chan);
 
 /* Statistics */
-unsigned int lbm_channel_row(lbm_char_channel_t *ch);
-unsigned int lbm_channel_column(lbm_char_channel_t *ch);
+unsigned int lbm_channel_row(lbm_char_channel_t *chan);
+unsigned int lbm_channel_column(lbm_char_channel_t *chan);
 
 
 /* Interface */
 void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
-                                    lbm_char_channel_t *ch,
+                                    lbm_char_channel_t *chan,
                                     char *str);
 
 void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
-                                      lbm_char_channel_t *ch);
+                                      lbm_char_channel_t *chan);
 
 
 #endif

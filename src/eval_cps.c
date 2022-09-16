@@ -2571,6 +2571,7 @@ static inline void cont_read_done(eval_context_t *ctx) {
   lbm_value tok = lbm_get_next_token(str, false);
   /* May not be absolutely required that we check to
      see if the tokenizer feels it is done here. */
+  lbm_channel_reader_close(str);
   if (tok != ENC_SYM_TOKENIZER_DONE) {
     lbm_set_error_reason((char*)parse_error_eof);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));

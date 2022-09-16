@@ -207,15 +207,18 @@ bool symchar(char c) {
 int tok_symbol(lbm_char_channel_t *ch) {
 
   char c;
+  int r = 0;
 
-  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS || !symchar0(c)) {
+  r = lbm_channel_peek(ch, 0, &c);
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+  if (r == CHANNEL_SUCCESS && !symchar0(c)) {
     return TOKENIZER_NO_TOKEN;
   }
   clear_sym_str();
   sym_str[0] = (char)tolower(c);
 
   int len = 1;
-  int r = 0;
 
   r = lbm_channel_peek(ch,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
@@ -302,30 +305,7 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
   *res = c;
-
   return 3;
-
-  /* int count = 0; */
-  /* if (peek(ch,0) == '\\' && */
-  /*     peek(ch,1) == '#' && */
-  /*     peek(ch,2) == 'n' && */
-  /*     peek(ch,3) == 'e' && */
-  /*     peek(ch,4) == 'w' && */
-  /*     peek(ch,5) == 'l' && */
-  /*     peek(ch,6) == 'i' && */
-  /*     peek(ch,7) == 'n' && */
-  /*     peek(ch,8) == 'e') { */
-  /*   *res = '\n'; */
-  /*   drop(ch,9); */
-  /*   count = 9; */
-  /* } else if (peek(ch,0) == '\\' && */
-  /*            peek(ch,1) == '#' && */
-  /*            isgraph(peek(ch,2))) { */
-  /*   *res = peek(ch,2); */
-  /*   drop(ch,3); */
-  /*   count = 3; */
-  /* } */
-  /* return count; */
 }
 
 int tok_D(lbm_char_channel_t *ch, token_float *result) {
