@@ -28,12 +28,12 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "env.h"
-#include "compression.h"
 #include "lbm_memory.h"
 #include "lbm_types.h"
 #include "lbm_c_interop.h"
 #include "lbm_variables.h"
 #include "lbm_custom_type.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {

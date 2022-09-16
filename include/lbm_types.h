@@ -26,7 +26,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+  
 /* Addresses that are put into lbm_values or into
  * lbm_memory must have this alignment.           */
 #ifndef LBM64
@@ -81,8 +81,6 @@ typedef double    lbm_float;
  */
 typedef int64_t   lbm_cid;
 #endif
-
-
 
 /* tokenizer */
 

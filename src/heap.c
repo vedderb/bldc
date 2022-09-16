@@ -26,6 +26,7 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
+#include "lbm_channel.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -47,16 +48,14 @@ char *lbm_dec_str(lbm_value val) {
   }
   return res;
 }
+lbm_char_channel_t *lbm_dec_channel(lbm_value val) {
+  lbm_char_channel_t *res = NULL;
 
-lbm_stream_t *lbm_dec_stream(lbm_value val) {
-  lbm_stream_t *res = 0;
-
-  if (lbm_type_of(val) == LBM_TYPE_STREAM) {
-    res = (lbm_stream_t *)lbm_car(val);
+  if (lbm_type_of(val) == LBM_TYPE_CHANNEL) {
+    res = (lbm_char_channel_t *)lbm_car(val);
   }
   return res;
 }
-
 lbm_uint lbm_dec_custom(lbm_value val) {
   lbm_uint res = 0;
   if (lbm_type_of(val) == LBM_TYPE_CUSTOM) {
@@ -514,10 +513,10 @@ int lbm_gc_sweep_phase(void) {
           }
           lbm_memory_free((lbm_uint *)arr);
         } break;
-        case SYM_STREAM_TYPE:{
-          lbm_stream_t *stream = (lbm_stream_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)stream)) {
-            lbm_memory_free((lbm_uint*)stream);
+        case SYM_CHANNEL_TYPE:{
+          lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
+          if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
+            lbm_memory_free((lbm_uint*)chan);
           }
         } break;
         case SYM_CUSTOM_TYPE: {

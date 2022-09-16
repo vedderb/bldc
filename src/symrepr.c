@@ -89,7 +89,7 @@ special_sym const special_symbols[] =  {
   {"sym_ind_i"          , SYM_IND_I_TYPE},
   {"sym_ind_u"          , SYM_IND_U_TYPE},
   {"sym_ind_f"          , SYM_IND_F_TYPE},
-  {"sym_stream"         , SYM_STREAM_TYPE},
+  {"sym_channel"        , SYM_CHANNEL_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
   {"sym_custom"         , SYM_CUSTOM_TYPE},
@@ -125,7 +125,7 @@ special_sym const special_symbols[] =  {
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-ref"         , SYM_TYPE_REF},
-  {"type-stream"      , SYM_TYPE_STREAM},
+  {"type-channel"     , SYM_TYPE_CHANNEL},
   // Fundamental operations
   {"+"              , SYM_ADD},
   {"-"              , SYM_SUB},
@@ -189,13 +189,6 @@ special_sym const special_symbols[] =  {
   {"to-u64"         , SYM_TO_U64},
   {"to-double"      , SYM_TO_DOUBLE},
   {"to-byte"        , SYM_TO_BYTE},
-
-  // Streams
-  {"stream-get"     , SYM_STREAM_GET},
-  {"stream-more"    , SYM_STREAM_MORE},
-  {"stream-peek"    , SYM_STREAM_PEEK},
-  {"stream-drop"    , SYM_STREAM_DROP},
-  {"stream-put"     , SYM_STREAM_PUT},
 
   // fast access in list
   {"ix"             , SYM_IX},

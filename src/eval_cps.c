@@ -25,10 +25,10 @@
 #include "fundamental.h"
 #include "extensions.h"
 #include "exp_kind.h"
-#include "streams.h"
 #include "tokpar.h"
 #include "qq_expand.h"
 #include "lbm_variables.h"
+#include "lbm_channel.h"
 #include "print.h"
 #include "platform_mutex.h"
 
@@ -73,7 +73,7 @@
 #define READ_TERMINATE_COLON  ((41 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_START_ARRAY      ((42 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_APPEND_ARRAY     ((43 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-
+#define READ_CHECK_COLON      ((44 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
 
 static const char* parse_error_eof = "End of parse stream";
@@ -316,121 +316,51 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
 /****************************************************/
 /* Tokenizing and parsing                           */
 
-static lbm_value token_stream_peeker = ENC_SYM_NIL;
-static bool token_stream_peeked = false;
+bool create_string_channel(char *str, lbm_value *res) {
 
-static lbm_value token_stream_more(lbm_stream_t *str) {
-  (void) str;
-  return ENC_SYM_NIL;
-}
+  lbm_char_channel_t *ch = NULL;
+  lbm_string_channel_state_t *st = NULL;
 
-static lbm_value token_stream_get(lbm_stream_t *str){
-  if (token_stream_peeked) {
-    token_stream_peeked = false;
-    return token_stream_peeker;
+  st = (lbm_string_channel_state_t*)lbm_memory_allocate(sizeof(lbm_string_channel_state_t) / sizeof(lbm_uint) +1);
+  if (st == NULL) {
+    return false;
   }
-  return lbm_get_next_token((lbm_tokenizer_char_stream_t*)str->state);
-}
-
-static lbm_value token_stream_peek(lbm_stream_t *str, lbm_value n){
-  (void)n;
-  if (token_stream_peeked) {
-    return token_stream_peeker;
-  } else {
-    token_stream_peeker = lbm_get_next_token((lbm_tokenizer_char_stream_t*)str->state);
-    token_stream_peeked = true;
-  }
-  return token_stream_peeker;
-}
-
-static lbm_value token_stream_drop(lbm_stream_t *str, lbm_value n){
-  (void) str;
-  (void) n;
-  return ENC_SYM_NIL;
-}
-
-static lbm_value token_stream_put(lbm_stream_t *str, lbm_value v){
-  (void) str;
-  (void) v;
-  return ENC_SYM_NIL;
-}
-
-lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str) {
-
-  lbm_stream_t *stream;
-  stream = (lbm_stream_t*)lbm_memory_allocate(1+ sizeof(lbm_stream_t) / (sizeof(lbm_uint)));
-
-  if (stream == NULL) {
-    return ENC_SYM_MERROR;
+  ch = (lbm_char_channel_t*)lbm_memory_allocate(sizeof(lbm_char_channel_t) / sizeof(lbm_uint) + 1);
+  if (ch == NULL) {
+    lbm_memory_free((lbm_uint*)st);
+    return false;
   }
 
-  /* gc can check if the state pointer is inside of the
-     lispbm_memory and free it if that is that case.
-     Otherwise we assume it is a statically created tokenizer */
-  stream->state = (void*)str;
-  stream->more = token_stream_more;
-  stream->get  = token_stream_get;
-  stream->peek = token_stream_peek;
-  stream->drop = token_stream_drop;
-  stream->put  = token_stream_put;
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+    lbm_memory_free((lbm_uint*)st);
+    lbm_memory_free((lbm_uint*)ch);
+    return false;
+  }
 
-  return lbm_stream_create(stream);
+  lbm_create_string_char_channel(st, ch, str);
+
+  lbm_set_car(cell, (lbm_uint)ch);
+  lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
+  *res = cell;
+  return true;
 }
 
-int lbm_explicit_free_token_stream(lbm_value stream) {
-  int r = 0;
-  if (lbm_is_stream(stream)) {
-
-    lbm_stream_t *str = (lbm_stream_t*)lbm_car(stream);
-
-    lbm_memory_free((lbm_uint*)str);
-    stream = lbm_set_ptr_type(stream, LBM_TYPE_CONS);
-    lbm_set_car(stream, ENC_SYM_NIL);
-    lbm_set_cdr(stream, ENC_SYM_NIL);
-
-    r = 1;
+bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res) {
+ lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+    return false;
   }
-  return r;
+
+  lbm_set_car(cell, (lbm_uint)ch);
+  lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
+  *res = cell;
+  return true;
 }
 
-lbm_value token_stream_from_string_value(lbm_value s) {
-  char *str = lbm_dec_str(s);
 
-  lbm_stream_t *stream = NULL;
-  lbm_tokenizer_string_state_t *tok_stream_state = NULL;
-  lbm_tokenizer_char_stream_t *tok_stream = NULL;
-
-  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / (sizeof(lbm_uint)));
-  if (stream == NULL) {
-    return ENC_SYM_MERROR;
-  }
-
-  tok_stream_state = (lbm_tokenizer_string_state_t*)lbm_memory_allocate(1 + (sizeof(lbm_tokenizer_string_state_t) / (sizeof(lbm_uint))));
-  if (tok_stream_state == NULL) {
-    lbm_memory_free((lbm_uint*)stream);
-    return ENC_SYM_MERROR;
-  }
-
-  tok_stream = (lbm_tokenizer_char_stream_t*)lbm_memory_allocate(sizeof(lbm_tokenizer_char_stream_t) / (sizeof(lbm_uint)));
-  if (tok_stream == NULL) {
-    lbm_memory_free((lbm_uint*)stream);
-    lbm_memory_free((lbm_uint*)tok_stream_state);
-    return ENC_SYM_MERROR;
-  }
-
-  lbm_create_char_stream_from_string(tok_stream_state,
-                                     tok_stream,
-                                     str);
-
-  stream->state = (void*)tok_stream;
-  stream->more = token_stream_more;
-  stream->get  = token_stream_get;
-  stream->peek = token_stream_peek;
-  stream->drop = token_stream_drop;
-  stream->put  = token_stream_put;
-
-  return lbm_stream_create(stream);
-}
 
 
 /****************************************************/
@@ -1194,49 +1124,16 @@ static inline void dynamic_load(eval_context_t *ctx) {
   } else {
     CHECK_STACK(lbm_push_2(&ctx->K, ctx->curr_exp, RESUME));
 
-    lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-
-    if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-      gc(ENC_SYM_NIL,ENC_SYM_NIL);
-      cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-      if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-        error_ctx(cell);
-        return;
-      }
-    }
-
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
-
-    if (array == NULL) {
-      gc(cell,ENC_SYM_NIL);
-      array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
-      if (array == NULL) {
+    lbm_value chan;
+    if (!create_string_channel((char *)code_str, &chan)) {
+      gc(ENC_SYM_NIL, ENC_SYM_NIL);
+      if (!create_string_channel((char *)code_str, &chan)) {
         error_ctx(ENC_SYM_MERROR);
         return;
       }
     }
-
-    array->data = (lbm_uint*)code_str;
-    array->elt_type = LBM_TYPE_CHAR;
-    array->size = strlen(code_str);
-
-    lbm_set_car(cell, (lbm_uint)array);
-    lbm_set_cdr(cell, ENC_SYM_ARRAY_TYPE);
-
-    cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
-
-    lbm_value stream = token_stream_from_string_value(cell);
-    if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-      gc(cell,ENC_SYM_NIL);
-      stream = token_stream_from_string_value(cell);
-      if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-        error_ctx(stream);
-        return;
-      }
-    }
-
     lbm_value loader = ENC_SYM_NIL;
-    CONS_WITH_GC(loader, stream, loader, stream);
+    CONS_WITH_GC(loader, chan, loader, chan);
     CONS_WITH_GC(loader, ENC_SYM_READ, loader, loader);
     lbm_value evaluator = ENC_SYM_NIL;
     CONS_WITH_GC(evaluator, loader, evaluator, loader);
@@ -1741,29 +1638,24 @@ static inline void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t 
 
 static inline void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 1) {
-    lbm_value stream = ENC_SYM_NIL;
+    lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of(args[1]) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
-      if(array->elt_type == LBM_TYPE_CHAR) {
-        stream = token_stream_from_string_value(args[1]);
-        if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-          gc(ENC_SYM_NIL,ENC_SYM_NIL);
-          stream = token_stream_from_string_value(args[1]);
-          if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-            error_ctx(stream);
-            return;
-          }
+      if (!create_string_channel(lbm_dec_str(args[1]), &chan)) {
+        gc(ENC_SYM_NIL, ENC_SYM_NIL);
+        if (!create_string_channel(lbm_dec_str(args[1]), &chan)) {
+          error_ctx(ENC_SYM_MERROR);
+          return;
         }
       }
-    } else if (lbm_type_of(args[1]) == LBM_TYPE_STREAM) {
-      stream = args[1];
+    } else if (lbm_type_of(args[1]) == LBM_TYPE_CHANNEL) {
+      chan = args[1];
     } else {
       error_ctx(SYM_EERROR);
       return;
     }
     lbm_value fun = args[0];
     lbm_stack_drop(&ctx->K, nargs+1);
-    CHECK_STACK(lbm_push_3(&ctx->K, stream, fun, READ));
+    CHECK_STACK(lbm_push_3(&ctx->K, chan, fun, READ));
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   }
@@ -2293,25 +2185,20 @@ static inline void cont_read(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static inline void cont_read_next_token(eval_context_t *ctx) {
+static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value tok) {
 
-  lbm_value stream;
-  lbm_pop(&ctx->K, &stream);
-
-  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
-  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
-
-  lbm_value tok = token_stream_get(str);
 
   if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
     switch (lbm_dec_sym(tok)) {
     case SYM_RERROR:
+      lbm_channel_reader_close(str);
       lbm_set_error_reason((char*)parse_error_token);
-      read_error_ctx(s->row(s), s->column(s));
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
       done_reading(ctx->id);
       return;
     case SYM_MERROR:
@@ -2320,10 +2207,9 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
       return;
     case SYM_TOKENIZER_WAIT:
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-      ctx->app_cont = true;
       yield_ctx(EVAL_CPS_MIN_SLEEP);
       return;
-    case SYM_TOKENIZER_DONE:
+    case SYM_TOKENIZER_DONE: {
       /* Tokenizer reached "end of file"
          The parser could be in a state where it needs
          more tokens to correctly finish an expression.
@@ -2354,10 +2240,10 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
       } else {
         /* Parsing failed */
         lbm_set_error_reason((char*)parse_error_eof);
-        read_error_ctx(s->row(s), s->column(s));
+        read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
         done_reading(ctx->id);
       }
-      break;
+    } break;
     case SYM_CLOSEPAR:
       ctx->r = tok;
       ctx->app_cont = true;
@@ -2400,21 +2286,30 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
       ctx->app_cont = true;
       break;
     default: // arbitrary symbol form
-      if (token_stream_peek(str, 1) == ENC_SYM_COLON) {
-        token_stream_get(str); // drop the colon
-        CHECK_STACK(lbm_push_2(&ctx->K, tok, READ_TERMINATE_COLON));
-        CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-        ctx->app_cont = true;
-      } else {
-        ctx->r = tok;
-        ctx->app_cont = true;
-      }
+      CHECK_STACK(lbm_push_3(&ctx->K, stream, tok, READ_CHECK_COLON));
+      ctx->app_cont = true;
       break;
     }
   } else { // arbitrary value form
     ctx->r = tok;
     ctx->app_cont = true;
   }
+}
+
+static inline void cont_read_next_token(eval_context_t *ctx) {
+
+  lbm_value stream;
+  lbm_pop(&ctx->K, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  lbm_value tok = lbm_get_next_token(str, false);
+
+  read_process_token(ctx, stream, tok);
 }
 
 static inline void cont_read_start_array(eval_context_t *ctx) {
@@ -2477,6 +2372,7 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
     CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
+    lbm_channel_reader_close(lbm_dec_channel(stream));
     error_ctx(ENC_SYM_RERROR);
   }
 }
@@ -2597,12 +2493,11 @@ static inline void cont_read_expect_closepar(eval_context_t *ctx) {
 
   lbm_pop_2(&ctx->K, &res, &stream);
 
-  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
-  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
       lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
@@ -2610,7 +2505,7 @@ static inline void cont_read_expect_closepar(eval_context_t *ctx) {
     ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)parse_error_close);
-    read_error_ctx(s->row(s), s->column(s));
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     done_reading(ctx->id);
   }
 }
@@ -2627,12 +2522,11 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_value last_cell  = sptr[1];
   lbm_value stream = sptr[2];
 
-  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
-  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   lbm_stack_drop(&ctx->K ,3);
 
@@ -2640,7 +2534,7 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
       (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
        lbm_dec_sym(ctx->r) == SYM_DOT)) {
     lbm_set_error_reason((char*)parse_error_dot);
-    read_error_ctx(s->row(s), s->column(s));
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     return;
   } else {
     if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
@@ -2654,7 +2548,7 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
       ctx->app_cont = true;
     } else {
       lbm_set_error_reason((char*)parse_error_dot);
-      read_error_ctx(s->row(s), s->column(s));
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
       done_reading(ctx->id);
       return;
     }
@@ -2668,19 +2562,18 @@ static inline void cont_read_done(eval_context_t *ctx) {
 
   lbm_pop_2(&ctx->K, &stream, &prg_tag);
 
-  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
-  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
-  lbm_value tok = token_stream_get(str);
+  lbm_value tok = lbm_get_next_token(str, false);
   /* May not be absolutely required that we check to
      see if the tokenizer feels it is done here. */
   if (tok != ENC_SYM_TOKENIZER_DONE) {
     lbm_set_error_reason((char*)parse_error_eof);
-    read_error_ctx(s->row(s), s->column(s));
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   } else {
     ctx->app_cont = true;
   }
@@ -2726,11 +2619,39 @@ static inline void cont_read_terminate_colon(eval_context_t *ctx) {
   lbm_value t2;
   lbm_value t3;
   lbm_pop(&ctx->K, &sym);
+
   CONS_WITH_GC(t1, ctx->r, term, sym);
   CONS_WITH_GC(t2, sym, t1, t1);
   CONS_WITH_GC(t3, ENC_SYM_NAMESPACE, t2, t2);
   ctx->r = t3;
   ctx->app_cont = true;
+}
+
+static inline void cont_read_check_colon(eval_context_t *ctx) {
+
+  lbm_value r;
+  lbm_value stream;
+  lbm_pop_2(&ctx->K, &r, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  lbm_value tok = lbm_get_next_token(str, true);
+
+  switch (lbm_dec_sym(tok)) {
+  case SYM_COLON:
+    lbm_get_next_token(str,false); //drop the colon;
+    CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
+    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+    ctx->app_cont = true;
+    break;
+  default:
+    ctx->r = r;
+    ctx->app_cont = true;
+  }
 }
 
 
@@ -2884,6 +2805,7 @@ static void evaluation_step(void){
     case READ_TERMINATE_COLON:  cont_read_terminate_colon(ctx); return;
     case READ_START_ARRAY:      cont_read_start_array(ctx); return;
     case READ_APPEND_ARRAY:     cont_read_append_array(ctx); return;
+    case READ_CHECK_COLON:      cont_read_check_colon(ctx); return;
     default:
       error_ctx(ENC_SYM_EERROR);
        return;
@@ -2926,7 +2848,7 @@ static void evaluation_step(void){
   case LBM_TYPE_CHAR:
   case LBM_TYPE_ARRAY:
   case LBM_TYPE_REF:
-  case LBM_TYPE_STREAM: eval_selfevaluating(ctx);  return;
+  case LBM_TYPE_CHANNEL: eval_selfevaluating(ctx);  return;
 
   case LBM_TYPE_CONS: {
     head = lbm_car(ctx->curr_exp);
