@@ -318,15 +318,15 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
 
 bool create_string_channel(char *str, lbm_value *res) {
 
-  lbm_char_channel_t *ch = NULL;
+  lbm_char_channel_t *chan = NULL;
   lbm_string_channel_state_t *st = NULL;
 
   st = (lbm_string_channel_state_t*)lbm_memory_allocate(sizeof(lbm_string_channel_state_t) / sizeof(lbm_uint) +1);
   if (st == NULL) {
     return false;
   }
-  ch = (lbm_char_channel_t*)lbm_memory_allocate(sizeof(lbm_char_channel_t) / sizeof(lbm_uint) + 1);
-  if (ch == NULL) {
+  chan = (lbm_char_channel_t*)lbm_memory_allocate(sizeof(lbm_char_channel_t) / sizeof(lbm_uint) + 1);
+  if (chan == NULL) {
     lbm_memory_free((lbm_uint*)st);
     return false;
   }
@@ -334,26 +334,26 @@ bool create_string_channel(char *str, lbm_value *res) {
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
     lbm_memory_free((lbm_uint*)st);
-    lbm_memory_free((lbm_uint*)ch);
+    lbm_memory_free((lbm_uint*)chan);
     return false;
   }
 
-  lbm_create_string_char_channel(st, ch, str);
+  lbm_create_string_char_channel(st, chan, str);
 
-  lbm_set_car(cell, (lbm_uint)ch);
+  lbm_set_car(cell, (lbm_uint)chan);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
   cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
   *res = cell;
   return true;
 }
 
-bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res) {
+bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
     return false;
   }
 
-  lbm_set_car(cell, (lbm_uint)ch);
+  lbm_set_car(cell, (lbm_uint)chan);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
   cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
   *res = cell;
@@ -2641,15 +2641,19 @@ static inline void cont_read_check_colon(eval_context_t *ctx) {
   }
 
   lbm_value tok = lbm_get_next_token(str, true);
-
-  switch (lbm_dec_sym(tok)) {
-  case SYM_COLON:
-    lbm_get_next_token(str,false); //drop the colon;
-    CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
-    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-    ctx->app_cont = true;
-    break;
-  default:
+  if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
+    switch (lbm_dec_sym(tok)) {
+    case SYM_COLON:
+      lbm_get_next_token(str,false); //drop the colon;
+      CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    default:
+      ctx->r = r;
+      ctx->app_cont = true;
+    }
+  } else {
     ctx->r = r;
     ctx->app_cont = true;
   }

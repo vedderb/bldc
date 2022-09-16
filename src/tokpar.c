@@ -155,7 +155,7 @@ const matcher type_qual_table[NUM_TYPE_QUALIFIERS] = {
   {"b"  , TOKTYPEBYTE, 1}
 };
 
-int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
+int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
 
   for (unsigned int i = 0; i < num; i ++) {
     uint32_t tok_len = m[i].len;
@@ -165,7 +165,7 @@ int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsign
     int char_pos;
     int r;
     for (char_pos = 0; char_pos < (int)tok_len; char_pos ++) {
-      r = lbm_channel_peek(ch,(unsigned int)char_pos + start_pos, &c);
+      r = lbm_channel_peek(chan,(unsigned int)char_pos + start_pos, &c);
       if (r == CHANNEL_SUCCESS) {
         if (c != match_str[char_pos]) break;
       } else if (r == CHANNEL_MORE ) {
@@ -204,12 +204,12 @@ bool symchar(char c) {
   return false;
 }
 
-int tok_symbol(lbm_char_channel_t *ch) {
+int tok_symbol(lbm_char_channel_t *chan) {
 
   char c;
   int r = 0;
 
-  r = lbm_channel_peek(ch, 0, &c);
+  r = lbm_channel_peek(chan, 0, &c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
   if (r == CHANNEL_SUCCESS && !symchar0(c)) {
@@ -220,14 +220,14 @@ int tok_symbol(lbm_char_channel_t *ch) {
 
   int len = 1;
 
-  r = lbm_channel_peek(ch,(unsigned int)len, &c);
+  r = lbm_channel_peek(chan,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
     c = (char)tolower(c);
     if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
       sym_str[len] = (char)c;
     }
     len ++;
-    r = lbm_channel_peek(ch,(unsigned int)len, &c);
+    r = lbm_channel_peek(chan,(unsigned int)len, &c);
   }
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   return len;
@@ -244,7 +244,7 @@ static char translate_escape_char(char c) {
   }
 }
 
-int tok_string(lbm_char_channel_t *ch) {
+int tok_string(lbm_char_channel_t *chan) {
 
   unsigned int n = 0;
   unsigned int len = 0;
@@ -252,7 +252,7 @@ int tok_string(lbm_char_channel_t *ch) {
   int r = 0;
   bool encode = false;
 
-  r = lbm_channel_peek(ch,0,&c);
+  r = lbm_channel_peek(chan,0,&c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (r == CHANNEL_END) return TOKENIZER_NO_TOKEN;
 
@@ -263,7 +263,7 @@ int tok_string(lbm_char_channel_t *ch) {
   memset(sym_str, 0 , TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
 
   // read string into buffer
-  r = lbm_channel_peek(ch,n,&c);
+  r = lbm_channel_peek(chan,n,&c);
   while (r == CHANNEL_SUCCESS && c != '\"' &&
          len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
     if (c == '\\') encode = true;
@@ -273,7 +273,7 @@ int tok_string(lbm_char_channel_t *ch) {
       encode = false;
     }
     n ++;
-    r = lbm_channel_peek(ch, n, &c);
+    r = lbm_channel_peek(chan, n, &c);
   }
 
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
@@ -283,24 +283,24 @@ int tok_string(lbm_char_channel_t *ch) {
   return (int)n;
 }
 
-int tok_char(lbm_char_channel_t *ch, char *res) {
+int tok_char(lbm_char_channel_t *chan, char *res) {
 
   char c;
   int r;
 
-  r = lbm_channel_peek(ch, 0, &c);
+  r = lbm_channel_peek(chan, 0, &c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
   if (c != '\\') return TOKENIZER_NO_TOKEN;
 
-  r = lbm_channel_peek(ch, 1, &c);
+  r = lbm_channel_peek(chan, 1, &c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
   if (c != '#') return TOKENIZER_NO_TOKEN;
 
-  r = lbm_channel_peek(ch, 2, &c);
+  r = lbm_channel_peek(chan, 2, &c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
@@ -308,7 +308,7 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   return 3;
 }
 
-int tok_D(lbm_char_channel_t *ch, token_float *result) {
+int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   unsigned int n = 0;
   char fbuf[128];
@@ -321,7 +321,7 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   result->type = TOKTYPEF32;
   result->negative = false;
 
-  res = lbm_channel_peek(ch, 0, &c);
+  res = lbm_channel_peek(chan, 0, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (res == CHANNEL_END) return 0;
   if (c == '-') {
@@ -330,13 +330,13 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
     result->negative = true;
   }
 
-  res = lbm_channel_peek(ch, n, &c);
+  res = lbm_channel_peek(chan, n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (res == CHANNEL_END) return 0;
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
-    res = lbm_channel_peek(ch, n, &c);
+    res = lbm_channel_peek(chan, n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
@@ -347,7 +347,7 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   }
   else return 0;
 
-  res = lbm_channel_peek(ch,n, &c);
+  res = lbm_channel_peek(chan,n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (res == CHANNEL_END) return 0;
   if (!(c >= '0' && c <= '9')) return 0;
@@ -355,13 +355,13 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
-    res = lbm_channel_peek(ch, n, &c);
+    res = lbm_channel_peek(chan, n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
 
   uint32_t tok_res = NOTOKEN;
-  int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
+  int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
 
@@ -394,7 +394,7 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   return 0;
 }
 
-bool clean_whitespace(lbm_char_channel_t *ch) {
+bool clean_whitespace(lbm_char_channel_t *chan) {
 
   bool cleaning_whitespace = true;
   char c;
@@ -402,38 +402,38 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
 
   while (cleaning_whitespace) {
 
-    if (lbm_channel_comment(ch)) {
+    if (lbm_channel_comment(chan)) {
       while (true) {
-        r = lbm_channel_peek(ch, 0, &c);
+        r = lbm_channel_peek(chan, 0, &c);
         if (r == CHANNEL_END) {
-          lbm_channel_set_comment(ch, false);
+          lbm_channel_set_comment(chan, false);
           cleaning_whitespace = false;
           break;
         }
         if (r == CHANNEL_MORE) {
           return false;
         }
-        lbm_channel_drop(ch,1);
+        lbm_channel_drop(chan,1);
         if (c == '\n') {
-          lbm_channel_set_comment(ch, false);
+          lbm_channel_set_comment(chan, false);
           break;
         }
       }
     }
 
     do {
-      r = lbm_channel_peek(ch, 0, &c);
+      r = lbm_channel_peek(chan, 0, &c);
       if (r == CHANNEL_MORE) {
         return false;
       } else if (r == CHANNEL_END) {
         return true;
       }
       if (c == ';') {
-        lbm_channel_set_comment(ch, true);
+        lbm_channel_set_comment(chan, true);
         break;
       }
       if (isspace(c)) {
-        lbm_channel_drop(ch,1);
+        lbm_channel_drop(chan,1);
       } else {
         cleaning_whitespace = false;
       }
@@ -443,14 +443,14 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
   return true;
 }
 
-int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
+int tok_integer(lbm_char_channel_t *chan, token_int *result ) {
   uint64_t acc = 0;
   unsigned int n = 0;
   bool valid_num = false;
   char c;
   int res;
   result-> negative = false;
-  res = lbm_channel_peek(ch, 0, &c);
+  res = lbm_channel_peek(chan, 0, &c);
   if (res == CHANNEL_MORE) {
     return TOKENIZER_NEED_MORE;
   } else if (res == CHANNEL_END) {
@@ -462,9 +462,9 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   }
 
   bool hex = false;
-  res = lbm_channel_peek(ch, n, &c);
+  res = lbm_channel_peek(chan, n, &c);
   if (res == CHANNEL_SUCCESS && c == '0') {
-    res = lbm_channel_peek(ch, n + 1, &c);
+    res = lbm_channel_peek(chan, n + 1, &c);
     if ( res == CHANNEL_SUCCESS && (c == 'x' || c == 'X')) {
       hex = true;
     } else if (res == CHANNEL_MORE) {
@@ -477,7 +477,7 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   if (hex) {
     n += 2;
 
-    res = lbm_channel_peek(ch,n, &c);
+    res = lbm_channel_peek(chan,n, &c);
 
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     else if (res == CHANNEL_END) return 0;
@@ -495,18 +495,18 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
       }
       acc = (acc * 0x10) + val;
       n++;
-      res = lbm_channel_peek(ch, n, &c);
+      res = lbm_channel_peek(chan, n, &c);
       if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
       if (res == CHANNEL_END) break;
 
     }
   } else {
-    res = lbm_channel_peek(ch, n, &c);
+    res = lbm_channel_peek(chan, n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     while (c >= '0' && c <= '9') {
       acc = (acc*10) + (uint32_t)(c - '0');
       n++;
-      res = lbm_channel_peek(ch, n, &c);
+      res = lbm_channel_peek(chan, n, &c);
       if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
       if (res == CHANNEL_END)  break;
     }
@@ -517,7 +517,7 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   result->type = TOKTYPEI;
 
   uint32_t tok_res = NOTOKEN;
-  int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
+  int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
 
@@ -540,35 +540,35 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
       (!result->negative && n > 0)) valid_num = true;
 
   if (valid_num) {
-    //lbm_channel_drop(ch,n + drop_type_str);
+    //lbm_channel_drop(chan,n + drop_type_str);
     result->value = acc;
     return (int)n + type_len;
   }
   return 0;
 }
 
-lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
+lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
 
   char c_val;
   int n = 0;
 
-  if (!lbm_channel_more(ch) && lbm_channel_is_empty(ch)) {
+  if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
     return lbm_enc_sym(SYM_TOKENIZER_DONE);
   }
 
   // Eat whitespace and comments.
-  if (!clean_whitespace(ch)) {
+  if (!clean_whitespace(chan)) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
   // Check for end of string again
-  if (!lbm_channel_more(ch) && lbm_channel_is_empty(ch)) {
+  if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
     return lbm_enc_sym(SYM_TOKENIZER_DONE);
   }
 
   lbm_value res = lbm_enc_sym(SYM_RERROR);
   uint32_t match;
-  n = tok_match_fixed_size_tokens(ch,
+  n = tok_match_fixed_size_tokens(chan,
                                   fixed_size_tokens,
                                   0,
                                   NUM_FIXED_SIZE_TOKENS,
@@ -576,7 +576,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   if (n > 0) {
 
     if (!peek) {
-      if (!lbm_channel_drop(ch, (unsigned int)n)) {
+      if (!lbm_channel_drop(chan, (unsigned int)n)) {
         // Really should not happen (bug in channel implementation)
       }
     }
@@ -653,9 +653,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  n = tok_string(ch);
+  n = tok_string(chan);
   if (n >= 2) {
-    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
+    if (!peek) lbm_channel_drop(chan, (unsigned int)n);
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
     lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
@@ -672,9 +672,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   token_float f_val;
 
-  n = tok_D(ch, &f_val);
+  n = tok_D(chan, &f_val);
   if (n > 0) {
-    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
+    if (!peek) lbm_channel_drop(chan, (unsigned int)n);
     switch (f_val.type) {
     case TOKTYPEF32:
       return lbm_enc_float((float)f_val.value);
@@ -687,9 +687,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   token_int int_result;
 
-  n = tok_integer(ch, &int_result);
+  n = tok_integer(chan, &int_result);
   if (n > 0) {
-    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
+    if (!peek) lbm_channel_drop(chan, (unsigned int)n);
 
     switch (int_result.type) {
     case TOKTYPEBYTE:
@@ -721,10 +721,10 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
      return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  n = tok_symbol(ch);
+  n = tok_symbol(chan);
   if (n > 0) {
 
-    if (!peek) lbm_channel_drop(ch,(unsigned int)n);
+    if (!peek) lbm_channel_drop(chan,(unsigned int)n);
 
     lbm_uint symbol_id;
 
@@ -751,9 +751,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  n = tok_char(ch, &c_val);
+  n = tok_char(chan, &c_val);
   if (n > 0) {
-    if (!peek) lbm_channel_drop(ch,(unsigned int)n);
+    if (!peek) lbm_channel_drop(chan,(unsigned int)n);
     return lbm_enc_char(c_val);
   } else if (n < 0) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
@@ -762,10 +762,10 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   // Status of "more" can have changed between
   // the start of this function and this location.
 
-  if (lbm_channel_more(ch)) {
+  if (lbm_channel_more(chan)) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   } else {
-    if (lbm_channel_is_empty(ch)) {
+    if (lbm_channel_is_empty(chan)) {
       return lbm_enc_sym(SYM_TOKENIZER_DONE);
     } else {
       return lbm_enc_sym(SYM_TOKENIZER_WAIT);
