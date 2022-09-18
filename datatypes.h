@@ -808,10 +808,9 @@ typedef struct {
 	float brake_current;
 	uint16_t brake_timeout;
 	float yaw_current_clamp;
+	float ki_limit;
 	uint16_t kd_pt1_lowpass_frequency;
 	uint16_t kd_pt1_highpass_frequency;
-	float kd_biquad_lowpass;
-	float kd_biquad_highpass;
 	float booster_angle;
 	float booster_ramp;
 	float booster_current;
