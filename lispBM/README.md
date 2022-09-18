@@ -1206,7 +1206,7 @@ Example:
 
 ### EEPROM (Nonvolatile Storage)
 
-Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
+Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
 
 #### eeprom-store-f
 
@@ -1214,7 +1214,7 @@ Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserv
 (eeprom-store-f addr number)
 ```
 
-Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
+Store float number on emulated eeprom at address addr. Addr range: 0 to 127. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
 
 #### eeprom-read-f
 
@@ -1222,7 +1222,7 @@ Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note
 (eeprom-read-f addr)
 ```
 
-Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
+Read float number on emulated eeprom at address addr. Addr range: 0 to 127. If nothing was stored on that address this function returns nil.
 
 #### eeprom-store-i
 

@@ -1,5 +1,5 @@
 /*
-	Copyright 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -15,33 +15,22 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+ */
 
-#ifndef MEMPOOLS_H_
-#define MEMPOOLS_H_
+#ifndef CONF_CUSTOM_H_
+#define CONF_CUSTOM_H_
 
-#include "datatypes.h"
-
-// Settings
-#define MEMPOOLS_MCCONF_NUM				10
-#define MEMPOOLS_APPCONF_NUM			3
+#include <stdint.h>
+#include <stdbool.h>
 
 // Functions
-void mempools_init(void);
+void conf_custom_add_config(
+		int (*get_cfg)(uint8_t *data, bool is_default),
+		bool (*set_cfg)(uint8_t *data),
+		int (*get_cfg_xml)(uint8_t **data));
+void conf_custom_clear_configs(void);
+int conf_custom_cfg_num(void);
+void conf_custom_process_cmd(unsigned char *data, unsigned int len,
+		void(*reply_func)(unsigned char *data, unsigned int len));
 
-mc_configuration *mempools_alloc_mcconf(void);
-void mempools_free_mcconf(mc_configuration *conf);
-
-app_configuration *mempools_alloc_appconf(void);
-void mempools_free_appconf(app_configuration *conf);
-
-int mempools_mcconf_highest(void);
-int mempools_appconf_highest(void);
-
-int mempools_mcconf_allocated_num(void);
-int mempools_appconf_allocated_num(void);
-
-uint8_t *mempools_get_packet_buffer(void);
-void mempools_free_packet_buffer(uint8_t *buffer);
-
-#endif /* MEMPOOLS_H_ */
+#endif /* CONF_CUSTOM_H_ */

@@ -49,7 +49,7 @@
 #define EEPROM_BASE_APPCONF		2000
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
-#define EEPROM_BASE_MCCONF_2		5000
+#define EEPROM_BASE_MCCONF_2	5000
 #define EEPROM_BASE_BACKUP		6000
 
 // Global variables
@@ -176,12 +176,15 @@ bool conf_general_store_backup_data(void) {
  * The variable to read the result from.
  *
  * @param address
- * Mapped address in EEPROM. Range 0 to 63.
+ * Mapped address in EEPROM. Range 0 to 31.
  *
  * @return
  * true for success, false if variable was not found.
  */
 bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address) {
+	if (address < 0 || address > (EEPROM_VARS_HW - 1)) {
+		return false;
+	}
 	return read_eeprom_var(v, address, EEPROM_BASE_HW);
 }
 
@@ -192,12 +195,15 @@ bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address) {
  * The variable to read the result from.
  *
  * @param address
- * Mapped address in EEPROM. Range 0 to 63.
+ * Mapped address in EEPROM. Range 0 to 127.
  *
  * @return
  * true for success, false if variable was not found.
  */
 bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address) {
+	if (address < 0 || address > (EEPROM_VARS_CUSTOM - 1)) {
+		return false;
+	}
 	return read_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
 }
 
@@ -208,12 +214,15 @@ bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address) {
  * The variable to store the result in.
  *
  * @param address
- * Mapped address in EEPROM. Range 0 to 63.
+ * Mapped address in EEPROM. Range 0 to 31.
  *
  * @return
  * true for success, false if something went wrong.
  */
 bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address) {
+	if (address < 0 || address > (EEPROM_VARS_HW - 1)) {
+		return false;
+	}
 	return store_eeprom_var(v, address, EEPROM_BASE_HW);
 }
 
@@ -224,12 +233,15 @@ bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address) {
  * The variable to store the result in.
  *
  * @param address
- * Mapped address in EEPROM. Range 0 to 63.
+ * Mapped address in EEPROM. Range 0 to 127.
  *
  * @return
  * true for success, false if something went wrong.
  */
 bool conf_general_store_eeprom_var_custom(eeprom_var *v, int address) {
+	if (address < 0 || address > (EEPROM_VARS_CUSTOM - 1)) {
+		return false;
+	}
 	return store_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
 }
 

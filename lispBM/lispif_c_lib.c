@@ -31,6 +31,9 @@
 #include "app.h"
 #include "mempools.h"
 #include "imu.h"
+#include "terminal.h"
+#include "timeout.h"
+#include "conf_custom.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -93,6 +96,11 @@ static THD_FUNCTION(lib_thd, arg) {
 }
 
 static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
+	if (!utils_is_func_valid(func)) {
+		commands_printf_lisp("Invalid function address. Make sure that the function is static.");
+		return 0;
+	}
+
 	void *mem = lib_malloc(stack_size);
 
 	if (mem) {
@@ -112,7 +120,21 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 
 static void lib_request_terminate(lib_thread thd) {
 	chThdTerminate((thread_t*)thd);
-	chThdWait((thread_t*)thd);
+
+	int timeout = 2000;
+	while (!chThdTerminatedX((thread_t*)thd)) {
+		chThdSleepMilliseconds(1);
+		timeout--;
+
+		// Not terminating, reset using wdt to not start lbm after reboot.
+		if (timeout == 0) {
+			commands_printf_lisp("Not terminating, crashing...");
+			chThdSleepMilliseconds(20);
+			chSysLock();
+			for (;;) {__NOP();}
+		}
+	}
+
 }
 
 static bool lib_should_terminate(void) {
@@ -524,6 +546,29 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.imu_get_calibration = imu_get_calibration;
 		cif.cif.imu_set_yaw = imu_set_yaw;
 
+		// Terminal
+		cif.cif.terminal_register_command_callback = terminal_register_command_callback;
+		cif.cif.terminal_unregister_callback = terminal_unregister_callback;
+
+		// EEPROM
+		cif.cif.read_eeprom_var = conf_general_read_eeprom_var_custom;
+		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
+
+		// Timeout
+		cif.cif.timeout_reset = timeout_reset;
+		cif.cif.timeout_has_timeout = timeout_has_timeout;
+		cif.cif.timeout_secs_since_update = timeout_secs_since_update;
+
+		// Plot
+		cif.cif.plot_init = commands_init_plot;
+		cif.cif.plot_add_graph = commands_plot_add_graph;
+		cif.cif.plot_set_graph = commands_plot_set_graph;
+		cif.cif.plot_send_points = commands_send_plot_points;
+
+		// Custom config
+		cif.cif.conf_custom_add_config = conf_custom_add_config;
+		cif.cif.conf_custom_clear_configs = conf_custom_clear_configs;
+
 		lib_init_done = true;
 	}
 
@@ -544,7 +589,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 			addr |= 1; // Ensure that thumb mode is used (??)
 			ok = ((bool(*)(lib_info *info))addr)(&loaded_libs[i]);
 
-			if (loaded_libs[i].stop_fun != NULL && (uint32_t)loaded_libs[i].stop_fun < 0x08000000) {
+			if (loaded_libs[i].stop_fun != NULL && !utils_is_func_valid(loaded_libs[i].stop_fun)) {
 				loaded_libs[i].stop_fun = NULL;
 				lbm_set_error_reason("Invalid stop function. Make sure that it is static.");
 				return res;

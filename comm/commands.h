@@ -22,10 +22,6 @@
 
 #include "datatypes.h"
 
-// Global variables
-extern uint8_t send_buffer_global[];
-extern mutex_t send_buffer_mutex;
-
 // Functions
 void commands_init(void);
 bool commands_is_initialized(void);

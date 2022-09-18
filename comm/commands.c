@@ -55,6 +55,7 @@
 #include "lispif.h"
 #endif
 #include "main.h"
+#include "conf_custom.h"
 
 #include <math.h>
 #include <string.h>
@@ -68,10 +69,6 @@
 static THD_FUNCTION(blocking_thread, arg);
 static THD_WORKING_AREA(blocking_thread_wa, 3000);
 static thread_t *blocking_tp;
-
-// Global variables (for conserving RAM)
-uint8_t send_buffer_global[PACKET_MAX_PL_LEN];
-mutex_t send_buffer_mutex;
 
 // Private variables
 static char print_buffer[PRINT_BUFFER_SIZE];
@@ -94,7 +91,6 @@ static int nrf_flags = 0;
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
-	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
 	is_initialized = true;
@@ -235,7 +231,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		send_buffer[ind++] = HW_TYPE_VESC;
 
-		send_buffer[ind++] = 0; // No custom config
+		send_buffer[ind++] = conf_custom_cfg_num();
 
 #ifdef HW_HAS_PHASE_FILTERS
 		send_buffer[ind++] = 1;
@@ -314,12 +310,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO:
 	case COMM_WRITE_NEW_APP_DATA_ALL_CAN:
 		if (packet_id == COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO) {
-			chMtxLock(&send_buffer_mutex);
+			uint8_t *send_buffer_global = mempools_get_packet_buffer();
 			memcpy(send_buffer_global, data + 6, len - 6);
 			int32_t ind = 4;
 			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
 			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
-			chMtxUnlock(&send_buffer_mutex);
+			mempools_free_packet_buffer(send_buffer_global);
 			len = decompressed_len + 4;
 		}
 
@@ -335,12 +331,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_WRITE_NEW_APP_DATA_LZO:
 	case COMM_WRITE_NEW_APP_DATA: {
 		if (packet_id == COMM_WRITE_NEW_APP_DATA_LZO) {
-			chMtxLock(&send_buffer_mutex);
+			uint8_t *send_buffer_global = mempools_get_packet_buffer();
 			memcpy(send_buffer_global, data + 6, len - 6);
 			int32_t ind = 4;
 			lzo_uint decompressed_len = buffer_get_uint16(data, &ind);
 			lzo1x_decompress_safe(send_buffer_global, len - 6, data + 4, &decompressed_len, NULL);
-			chMtxUnlock(&send_buffer_mutex);
+			mempools_free_packet_buffer(send_buffer_global);
 			len = decompressed_len + 4;
 		}
 
@@ -365,8 +361,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_GET_VALUES:
 	case COMM_GET_VALUES_SELECTIVE: {
 		int32_t ind = 0;
-		chMtxLock(&send_buffer_mutex);
-		uint8_t *send_buffer = send_buffer_global;
+		uint8_t *send_buffer = mempools_get_packet_buffer();
 		send_buffer[ind++] = packet_id;
 
 		uint32_t mask = 0xFFFFFFFF;
@@ -461,7 +456,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		reply_func(send_buffer, ind);
-		chMtxUnlock(&send_buffer_mutex);
+		mempools_free_packet_buffer(send_buffer);
 	} break;
 
 	case COMM_SET_DUTY: {
@@ -834,8 +829,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		float battery_level = mc_interface_get_battery_level(&wh_batt_left);
 
 		int32_t ind = 0;
-		chMtxLock(&send_buffer_mutex);
-		uint8_t *send_buffer = send_buffer_global;
+		uint8_t *send_buffer = mempools_get_packet_buffer();
 		send_buffer[ind++] = packet_id;
 
 		uint32_t mask = 0xFFFFFFFF;
@@ -919,7 +913,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		reply_func(send_buffer, ind);
-		chMtxUnlock(&send_buffer_mutex);
+		mempools_free_packet_buffer(send_buffer);
 	    } break;
 
 	case COMM_SET_ODOMETER: {
@@ -1427,7 +1421,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			break;
 		}
 
-		chMtxLock(&send_buffer_mutex);
+		uint8_t *send_buffer_global = mempools_get_packet_buffer();
 		ind = 0;
 		send_buffer_global[ind++] = packet_id;
 		buffer_append_int32(send_buffer_global, qmlui_len, &ind);
@@ -1435,8 +1429,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		memcpy(send_buffer_global + ind, qmlui_data + ofs_qml, len_qml);
 		ind += len_qml;
 		reply_func(send_buffer_global, ind);
-
-		chMtxUnlock(&send_buffer_mutex);
+		mempools_free_packet_buffer(send_buffer_global);
 	} break;
 
 	case COMM_QMLUI_ERASE:
@@ -1585,12 +1578,20 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_LISP_SET_RUNNING:
 	case COMM_LISP_GET_STATS:
-	case COMM_LISP_REPL_CMD: {
+	case COMM_LISP_REPL_CMD:
+	case COMM_LISP_STREAM_CODE: {
 #ifdef USE_LISPBM
 		lispif_process_cmd(data - 1, len + 1, reply_func);
 #endif
 		break;
 	}
+
+	case COMM_GET_CUSTOM_CONFIG:
+	case COMM_GET_CUSTOM_CONFIG_DEFAULT:
+	case COMM_SET_CUSTOM_CONFIG:
+	case COMM_GET_CUSTOM_CONFIG_XML: {
+		conf_custom_process_cmd(data - 1, len + 1, reply_func);
+	} break;
 
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
@@ -1732,22 +1733,22 @@ void commands_set_hw_data_handler(void(*func)(unsigned char *data, unsigned int 
 
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
 	commands_send_packet(send_buffer_global, index);
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 void commands_send_hw_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[index++] = COMM_CUSTOM_HW_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
 	commands_send_packet(send_buffer_global, index);
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 void commands_send_gpd_buffer_notify(void) {
@@ -1758,7 +1759,7 @@ void commands_send_gpd_buffer_notify(void) {
 }
 
 void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration* mcconf, void(*reply_func)(unsigned char* data, unsigned int len)) {
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_mcconf(send_buffer_global + 1, mcconf);
 	if (reply_func) {
@@ -1766,11 +1767,11 @@ void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration* mcconf, vo
 	} else {
 		commands_send_packet(send_buffer_global, len + 1);
 	}
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf, void(*reply_func)(unsigned char* data, unsigned int len)) {
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[0] = packet_id;
 	int32_t len = confgenerator_serialize_appconf(send_buffer_global + 1, appconf);
 	if (reply_func) {
@@ -1778,7 +1779,7 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf,
 	} else {
 		commands_send_packet(send_buffer_global, len + 1);
 	}
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 inline static float hw_lim_upper(float l, float h) {(void)l; return h;}
@@ -1865,7 +1866,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 
 void commands_init_plot(char *namex, char *namey) {
 	int ind = 0;
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[ind++] = COMM_PLOT_INIT;
 	memcpy(send_buffer_global + ind, namex, strlen(namex));
 	ind += strlen(namex);
@@ -1874,18 +1875,18 @@ void commands_init_plot(char *namex, char *namey) {
 	ind += strlen(namey);
 	send_buffer_global[ind++] = '\0';
 	commands_send_packet(send_buffer_global, ind);
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 void commands_plot_add_graph(char *name) {
 	int ind = 0;
-	chMtxLock(&send_buffer_mutex);
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[ind++] = COMM_PLOT_ADD_GRAPH;
 	memcpy(send_buffer_global + ind, name, strlen(name));
 	ind += strlen(name);
 	send_buffer_global[ind++] = '\0';
 	commands_send_packet(send_buffer_global, ind);
-	chMtxUnlock(&send_buffer_mutex);
+	mempools_free_packet_buffer(send_buffer_global);
 }
 
 void commands_plot_set_graph(int graph) {

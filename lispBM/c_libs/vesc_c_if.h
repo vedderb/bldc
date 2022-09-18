@@ -112,6 +112,12 @@ typedef enum {
 	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
 	FAULT_CODE_PHASE_FILTER,
 } mc_fault_code;
+
+typedef union {
+	uint32_t as_u32;
+	int32_t as_i32;
+	float as_float;
+} eeprom_var;
 #endif
 
 typedef enum {
@@ -327,6 +333,36 @@ typedef struct {
 	void (*imu_get_quaternions)(float *q);
 	void (*imu_get_calibration)(float yaw, float * imu_cal);
 	void (*imu_set_yaw)(float yaw_deg);
+
+	// Terminal
+	void (*terminal_register_command_callback)(
+			const char* command,
+			const char *help,
+			const char *arg_names,
+			void(*cbf)(int argc, const char **argv));
+	void (*terminal_unregister_callback)(void(*cbf)(int argc, const char **argv));
+
+	// EEPROM
+	bool (*read_eeprom_var)(eeprom_var *v, int address);
+	bool (*store_eeprom_var)(eeprom_var *v, int address);
+
+	// Timeout
+	void (*timeout_reset)(void);
+	bool (*timeout_has_timeout)(void);
+	float (*timeout_secs_since_update)(void);
+
+	// Plot
+	void (*plot_init)(char *namex, char *namey);
+	void (*plot_add_graph)(char *name);
+	void (*plot_set_graph)(int graph);
+	void (*plot_send_points)(float x, float y);
+
+	// Custom config
+	void (*conf_custom_add_config)(
+			int (*get_cfg)(uint8_t *data, bool is_default),
+			bool (*set_cfg)(uint8_t *data),
+			int (*get_cfg_xml)(uint8_t **data));
+	void (*conf_custom_clear_configs)(void);
 } vesc_c_if;
 
 typedef struct {
