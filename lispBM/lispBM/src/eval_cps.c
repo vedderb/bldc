@@ -3029,6 +3029,8 @@ int lbm_eval_init() {
 
   blocked.first = NULL;
   blocked.last = NULL;
+  sleeping.first = NULL;
+  sleeping.last = NULL;
   queue.first = NULL;
   queue.last = NULL;
   done.first = NULL;

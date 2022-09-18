@@ -75,9 +75,6 @@
 #define TOKTYPEF32      41u
 #define TOKTYPEF64      42u
 
-#define TOKNEEDMORE     1000u
-
-
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -87,7 +84,8 @@
 // Tokenizer return values
 // > 0 : successfully found token
 // = 0 : tokenizer can definitely not create a token
-// < 0 : tokenizer does not know if it can or cannot create a token yet.
+// = -1 : tokenizer does not know if it can or cannot create a token yet.
+// = -2 : tokenizer was reading a string but ran out of space (for example).
 
 #define TOKENIZER_NO_TOKEN   0
 #define TOKENIZER_NEED_MORE -1
@@ -169,7 +167,6 @@ int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *m, unsi
       if (r == CHANNEL_SUCCESS) {
         if (c != match_str[char_pos]) break;
       } else if (r == CHANNEL_MORE ) {
-        *res = TOKNEEDMORE;
         return TOKENIZER_NEED_MORE;
       } else {
         break;
@@ -366,8 +363,6 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
 
   switch (tok_res) {
-  case TOKNEEDMORE:
-    return TOKENIZER_NEED_MORE;
   case NOTOKEN:
     if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
       result->type = TOKTYPEF32;
@@ -522,8 +517,6 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result ) {
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
 
   switch (tok_res) {
-  case TOKNEEDMORE:
-    return TOKENIZER_NEED_MORE;
   case NOTOKEN:
     if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
       result->type = TOKTYPEI;
