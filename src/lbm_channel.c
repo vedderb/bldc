@@ -265,7 +265,7 @@ int string_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
 
   unsigned int peek_pos = st->read_pos + n;
 
-  if (peek_pos < strlen(str)) {
+  if (peek_pos < st->length) {
     *res = str[peek_pos];
     return CHANNEL_SUCCESS;
   }
@@ -274,7 +274,7 @@ int string_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
 
 bool string_channel_is_empty(lbm_char_channel_t *chan) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
-  if (st->read_pos == strlen(st->str)) {
+  if (st->read_pos == st->length) {
     return true;
   }
   return false;
@@ -289,7 +289,7 @@ bool string_read(lbm_char_channel_t *chan, char *res) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
   char *str = st->str;
 
-  if (st->read_pos < strlen(str)) {
+  if (st->read_pos < st->length) {
     *res = str[st->read_pos];
     if (*res == '\n') {
       st->row ++;
@@ -351,6 +351,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
                                     char *str) {
 
   st->str = str;
+  st->length = strlen(str);
   st->read_pos = 0;
   st->more = false;
   st->comment = false;

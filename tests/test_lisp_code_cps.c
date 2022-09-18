@@ -459,10 +459,11 @@ int main(int argc, char **argv) {
       if (ch_res == CHANNEL_SUCCESS) {
         //printf("wrote: %c\n", code_buffer[i]);
         i ++;
-      } if (ch_res == CHANNEL_READER_CLOSED) {
+      } else if (ch_res == CHANNEL_READER_CLOSED) {
         break;
-      } 
-      sleep_callback(2);
+      } else {
+        sleep_callback(2);
+      }
     }
   }
 

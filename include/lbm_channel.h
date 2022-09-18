@@ -48,6 +48,7 @@ typedef struct {
 
 typedef struct {
   char *str;
+  unsigned int length;
   unsigned int read_pos;
   bool more;
   bool comment;
