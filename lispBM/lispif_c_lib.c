@@ -365,6 +365,36 @@ static int32_t lib_uart_read(void) {
 	return sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
 }
 
+static float lib_ts_to_age_s(systime_t ts) {
+	return UTILS_AGE_S(ts);
+}
+
+static float lib_get_cfg_float(CFG_PARAM p) {
+	float res = 0.0;
+
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+
+	switch (p) {
+		case CFG_PARAM_l_current_max: res = conf->l_current_max; break;
+		case CFG_PARAM_l_current_min: res = conf->l_current_min; break;
+		case CFG_PARAM_l_in_current_max: res = conf->l_in_current_max; break;
+		case CFG_PARAM_l_in_current_min: res = conf->l_in_current_min; break;
+		case CFG_PARAM_l_abs_current_max: res = conf->l_abs_current_max; break;
+		case CFG_PARAM_l_min_erpm: res = conf->l_min_erpm; break;
+		case CFG_PARAM_l_max_erpm: res = conf->l_max_erpm; break;
+		case CFG_PARAM_l_erpm_start: res = conf->l_erpm_start; break;
+		case CFG_PARAM_l_max_erpm_fbrake: res = conf->l_max_erpm_fbrake; break;
+		case CFG_PARAM_l_max_erpm_fbrake_cc: res = conf->l_max_erpm_fbrake_cc; break;
+		case CFG_PARAM_l_min_vin: res = conf->l_min_vin; break;
+		case CFG_PARAM_l_max_vin: res = conf->l_max_vin; break;
+		case CFG_PARAM_l_battery_cut_start: res = conf->l_battery_cut_start; break;
+		case CFG_PARAM_l_battery_cut_end: res = conf->l_battery_cut_end; break;
+		default: break;
+	}
+
+	return res;
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -571,6 +601,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// App data
 		cif.cif.send_app_data = commands_send_app_data;
+
+		// Age of timestamp in seconds
+		cif.cif.ts_to_age_s = lib_ts_to_age_s;
+
+		// Settings
+		cif.cif.get_cfg_float = lib_get_cfg_float;
 
 		lib_init_done = true;
 	}

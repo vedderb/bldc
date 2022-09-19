@@ -143,6 +143,23 @@ typedef enum {
 	VESC_PIN_MODE_ANALOG,
 } VESC_PIN_MODE;
 
+typedef enum {
+	CFG_PARAM_l_current_max = 0,
+	CFG_PARAM_l_current_min,
+	CFG_PARAM_l_in_current_max,
+	CFG_PARAM_l_in_current_min,
+	CFG_PARAM_l_abs_current_max,
+	CFG_PARAM_l_min_erpm,
+	CFG_PARAM_l_max_erpm,
+	CFG_PARAM_l_erpm_start,
+	CFG_PARAM_l_max_erpm_fbrake,
+	CFG_PARAM_l_max_erpm_fbrake_cc,
+	CFG_PARAM_l_min_vin,
+	CFG_PARAM_l_max_vin,
+	CFG_PARAM_l_battery_cut_start,
+	CFG_PARAM_l_battery_cut_end,
+} CFG_PARAM;
+
 #ifndef PACKET_MAX_PL_LEN
 #define PACKET_MAX_PL_LEN		512
 #endif
@@ -366,6 +383,12 @@ typedef struct {
 
 	// Send app data (which can be received by QML)
 	void (*send_app_data)(unsigned char *data, unsigned int len);
+
+	// Age of timestamp in seconds
+	float (*ts_to_age_s)(systime_t ts);
+
+	// Settings (TODO: Add more types and also setters)
+	float (*get_cfg_float)(CFG_PARAM p);
 } vesc_c_if;
 
 typedef struct {
