@@ -1374,7 +1374,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			break;
 		}
 
-		chMtxLock(&send_buffer_mutex);
+		uint8_t *send_buffer_global = mempools_get_packet_buffer();
 		ind = 0;
 		send_buffer_global[ind++] = packet_id;
 		buffer_append_int32(send_buffer_global, DATA_QML_HW_SIZE, &ind);
@@ -1383,7 +1383,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		ind += len_qml;
 		reply_func(send_buffer_global, ind);
 
-		chMtxUnlock(&send_buffer_mutex);
+		mempools_free_packet_buffer(send_buffer_global);
 #endif
 	} break;
 
