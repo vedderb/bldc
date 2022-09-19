@@ -191,6 +191,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->si_battery_ah, &ind);
 	buffer_append_float32_auto(buffer, conf->si_motor_nl_current, &ind);
 	buffer[ind++] = conf->bms.type;
+	buffer[ind++] = conf->bms.limit_mode;
 	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
@@ -582,6 +583,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->si_battery_ah = buffer_get_float32_auto(buffer, &ind);
 	conf->si_motor_nl_current = buffer_get_float32_auto(buffer, &ind);
 	conf->bms.type = buffer[ind++];
+	conf->bms.limit_mode = buffer[ind++];
 	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
@@ -969,6 +971,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
 	conf->si_motor_nl_current = MCCONF_SI_MOTOR_NL_CURRENT;
 	conf->bms.type = MCCONF_BMS_TYPE;
+	conf->bms.limit_mode = MCCONF_BMS_LIMIT_MODE;
 	conf->bms.t_limit_start = MCCONF_BMS_T_LIMIT_START;
 	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
 	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;

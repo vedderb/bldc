@@ -588,6 +588,9 @@
 #ifndef MCCONF_BMS_TYPE
 #define MCCONF_BMS_TYPE					BMS_TYPE_VESC
 #endif
+#ifndef MCCONF_BMS_LIMIT_MODE
+#define MCCONF_BMS_LIMIT_MODE			3
+#endif
 #ifndef MCCONF_BMS_T_LIMIT_START
 #define MCCONF_BMS_T_LIMIT_START		45
 #endif

@@ -258,6 +258,7 @@ typedef enum {
 
 typedef struct {
 	BMS_TYPE type;
+	uint8_t limit_mode;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
