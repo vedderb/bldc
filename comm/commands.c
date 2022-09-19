@@ -1723,8 +1723,13 @@ disp_pos_mode commands_get_disp_pos_mode(void) {
 	return display_position_mode;
 }
 
-void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
-	appdata_func = func;
+bool commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	if (utils_is_func_valid(func)) {
+		appdata_func = func;
+		return true;
+	}
+
+	return false;
 }
 
 void commands_set_hw_data_handler(void(*func)(unsigned char *data, unsigned int len)) {

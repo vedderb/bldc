@@ -389,6 +389,9 @@ typedef struct {
 
 	// Settings (TODO: Add more types and also setters)
 	float (*get_cfg_float)(CFG_PARAM p);
+
+	// Add handler for received app data
+	bool (*set_app_data_handler)(void(*func)(unsigned char *data, unsigned int len));
 } vesc_c_if;
 
 typedef struct {

@@ -608,6 +608,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// Settings
 		cif.cif.get_cfg_float = lib_get_cfg_float;
 
+		// Add handler for received app data
+		cif.cif.set_app_data_handler = commands_set_app_data_handler;
+
 		lib_init_done = true;
 	}
 
