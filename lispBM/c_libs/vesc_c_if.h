@@ -363,6 +363,9 @@ typedef struct {
 			bool (*set_cfg)(uint8_t *data),
 			int (*get_cfg_xml)(uint8_t **data));
 	void (*conf_custom_clear_configs)(void);
+
+	// Send app data (which can be received by QML)
+	void (*send_app_data)(unsigned char *data, unsigned int len);
 } vesc_c_if;
 
 typedef struct {

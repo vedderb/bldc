@@ -569,6 +569,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.conf_custom_add_config = conf_custom_add_config;
 		cif.cif.conf_custom_clear_configs = conf_custom_clear_configs;
 
+		// App data
+		cif.cif.send_app_data = commands_send_app_data;
+
 		lib_init_done = true;
 	}
 
