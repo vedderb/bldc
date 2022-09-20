@@ -6,40 +6,22 @@ processes and let's processes communicate with eachother via message
 passing. Currently the runtime system that execute LBM programs is
 entirely sequential and does not make use of multiple cores.
 Concurrency abstractions are very useful even with there not
-being any actual parallelism. Each operation performed by an LBM
-process can be considered atomic in relationship to any other LBM
-process.
+being any actual parallelism.
 
-One use-case of LBM is to run ir in parallel with some larger embedded
-application written in C to provide scripting capabilities of that
-larger application. The operations performed by LBM processes are not
-atomic in relation to operations performed on the C side. This is only
-a problem if the C program is accessing data that is stored in the LBM
-runtime system (such as on the LBM heap, stack or process
-queues). This is something the person integrating LBM into a system
-must consider when writing the interface between the C application and
-the LBM runtime system. Extensions to LBM that are written in C are
-executed synchronously by the runtime system and pose no
-trouble. There is however the possibility to implement asynchronous
-LBM extensions in C as well, and then one needs to be quite
-careful. However, these more advanced use-cases will be explained in a
-future chapter.
-
-LBM implements so-called cooperative concurrency which means that
-processes run uninterrupted until the time that the process itself
-executes an operation that yields usage of the runtime system (such as
-the `yield` operation). Another example of an operation that yeilds is
-the message passing `recv` (receive) operation.  No LBM process will
-ever preempt any other LBM process.
+In LispBM concurrent processess are managed by a round-robin scheduler that
+fairly splits up the usage of the evaluator between the processes.  Each
+process as gets a quota of evaluation steps each time it is scheduled and
+runs until the quota is used up or the proceses itself chooses to sleep by
+yielding. A process can yield explictly using the `yield` command or
+implicitly by blocing on for example a message passing receive
+operation, `recv`.
 
 
 ## Getting started with concurrent programming in LBM
 
-The `yield` function is used in a process to give up the runtime system
-and free it up for doing other work. `yield` takes one argument which is the
-number of microseconds for which the process wishes to sleep and the runtime
-system will not consider waking the process up again until that much time has
-passed.
+The `yield` function is used to put a process to sleep for some number
+of microseconds. When a process yields it gives up the rest of its quota
+for this instance and frees up the runtime system to perform other work.
 
 We can define a `sleep` function that puts a process to sleep for a number of
 seconds instead.

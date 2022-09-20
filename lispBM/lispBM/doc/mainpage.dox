@@ -19,7 +19,7 @@ Heap: \ref heap.h <br>
 LispBM: \ref lispbm.h <br>
 Printing values: \ref print.h <br>
 Stacks: \ref stack.h <br>
-Streams: \ref streams.h <br>
+channels: \ref lbm_channel.h <br>
 Symbol and array memory: \ref lbm_memory.h <br>
 Symbol table: \ref symrepr.h <br>
 Types: \ref lbm_types.h <br>

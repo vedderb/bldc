@@ -184,24 +184,31 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above.
  */
 void lbm_running_iterator(ctx_fun f, void*, void*);
 /** Iterate over all blocked contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
 void lbm_blocked_iterator(ctx_fun f, void*, void*);
 /** Iterate over all done contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
 void lbm_done_iterator(ctx_fun f, void*, void*);
+/** Iterate over all sleeping contexts and apply function on each context.
+ * 
+ * \param f Function to apply to each context.
+ * \param arg1 Pointer argument that can be used to convey information back to user.
+ * \param arg2 Same as above. 
+ */
+void lbm_sleeping_iterator(ctx_fun f, void *, void *);  
 /** toggle verbosity level of error messages
  */
 void lbm_toggle_verbose(void);

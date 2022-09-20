@@ -390,6 +390,10 @@ void lbm_done_iterator(ctx_fun f, void *arg1, void *arg2){
   queue_iterator(&done, f, arg1, arg2);
 }
 
+void lbm_sleeping_iterator(ctx_fun f, void *arg1, void *arg2){
+  queue_iterator(&sleeping, f, arg1, arg2);
+}
+
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
   if (q->last == NULL) {

@@ -693,6 +693,8 @@ int main(int argc, char **argv) {
       lbm_running_iterator(print_ctx_info, NULL, NULL);
       printf("****** Blocked contexts ******\n");
       lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+      printf("****** Sleeping contexts *****\n");
+      lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
       printf("****** Done contexts ******\n");
       lbm_done_iterator(print_ctx_info, NULL, NULL);
       free(str);
