@@ -191,6 +191,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->si_battery_ah, &ind);
 	buffer_append_float32_auto(buffer, conf->si_motor_nl_current, &ind);
 	buffer[ind++] = conf->bms.type;
+	buffer[ind++] = conf->bms.limit_mode;
 	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
@@ -341,10 +342,9 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.brake_current, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.brake_timeout, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_current_clamp, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki_limit, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_lowpass_frequency, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_highpass_frequency, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd_biquad_lowpass, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd_biquad_highpass, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_angle, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_ramp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_current, &ind);
@@ -583,6 +583,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->si_battery_ah = buffer_get_float32_auto(buffer, &ind);
 	conf->si_motor_nl_current = buffer_get_float32_auto(buffer, &ind);
 	conf->bms.type = buffer[ind++];
+	conf->bms.limit_mode = buffer[ind++];
 	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
@@ -736,10 +737,9 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.brake_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.brake_timeout = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.yaw_current_clamp = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.ki_limit = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_lowpass_frequency = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_highpass_frequency = buffer_get_uint16(buffer, &ind);
-	conf->app_balance_conf.kd_biquad_lowpass = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.kd_biquad_highpass = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_angle = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_ramp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_current = buffer_get_float32_auto(buffer, &ind);
@@ -971,6 +971,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
 	conf->si_motor_nl_current = MCCONF_SI_MOTOR_NL_CURRENT;
 	conf->bms.type = MCCONF_BMS_TYPE;
+	conf->bms.limit_mode = MCCONF_BMS_LIMIT_MODE;
 	conf->bms.t_limit_start = MCCONF_BMS_T_LIMIT_START;
 	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
 	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
@@ -1115,10 +1116,9 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.brake_current = APPCONF_BALANCE_BRAKE_CURRENT;
 	conf->app_balance_conf.brake_timeout = APPCONF_BALANCE_BRAKE_TIMEOUT;
 	conf->app_balance_conf.yaw_current_clamp = APPCONF_BALANCE_YAW_CURRENT_CLAMP;
+	conf->app_balance_conf.ki_limit = APPCONF_BALANCE_KI_LIMIT;
 	conf->app_balance_conf.kd_pt1_lowpass_frequency = APPCONF_BALANCE_KD_PT1_LOWPASS_FREQUENCY;
 	conf->app_balance_conf.kd_pt1_highpass_frequency = APPCONF_BALANCE_KD_PT1_HIGHPASS_FREQUENCY;
-	conf->app_balance_conf.kd_biquad_lowpass = APPCONF_BALANCE_KD_BIQUAD_LOWPASS;
-	conf->app_balance_conf.kd_biquad_highpass = APPCONF_BALANCE_KD_BIQUAD_HIGHPASS;
 	conf->app_balance_conf.booster_angle = APPCONF_BALANCE_BOOSTER_ANGLE;
 	conf->app_balance_conf.booster_ramp = APPCONF_BALANCE_BOOSTER_RAMP;
 	conf->app_balance_conf.booster_current = APPCONF_BALANCE_BOOSTER_CURRENT;

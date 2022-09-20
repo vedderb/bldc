@@ -95,8 +95,8 @@ static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static lbm_uint memory[LBM_MEMORY_SIZE_8K];
 static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
-static lbm_tokenizer_string_state_t string_tok_state;
-static lbm_tokenizer_char_stream_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
 
 static char print_output[PRINT_SIZE];
 
@@ -239,12 +239,12 @@ void app_main(void)
 		printf("\r\n");
 		if (strncmp(str, ":info", 5) == 0) {
 			printf("------------------------------------------------------------\r\n");
-			printf("Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
-			printf("Free cons cells: %lu\r\n", lbm_heap_num_free());
+			printf("Used cons cells: %u \r\n", HEAP_SIZE - lbm_heap_num_free());
+			printf("Free cons cells: %u\r\n", lbm_heap_num_free());
 			lbm_get_heap_state(&heap_state);
-			printf("GC counter: %lu\r\n", heap_state.gc_num);
-			printf("Recovered: %lu\r\n", heap_state.gc_recovered);
-			printf("Marked: %lu\r\n", heap_state.gc_marked);
+			printf("GC counter: %u\r\n", heap_state.gc_num);
+			printf("Recovered: %u\r\n", heap_state.gc_recovered);
+			printf("Marked: %u\r\n", heap_state.gc_marked);
 
 			printf("Array and symbol string memory:\r\n");
 			printf("  Size: %u 32Bit words\r\n", lbm_memory_num_words());
@@ -316,9 +316,9 @@ void app_main(void)
 				sleep_callback(10);
 			}
 
-			lbm_create_char_stream_from_string(&string_tok_state,
-					&string_tok,
-					str);
+			lbm_create_string_char_channel(&string_tok_state,
+                                                       &string_tok,
+                                                       str);
 
 			lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
 

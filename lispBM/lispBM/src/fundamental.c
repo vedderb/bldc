@@ -704,8 +704,10 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
 
   lbm_uint result = ENC_SYM_EERROR;
   int cmp_res = -1;
-
   switch (lbm_dec_sym(op)) {
+  case SYM_SELF:
+    result = lbm_enc_i(lbm_get_current_cid());
+    break;
   case SYM_PERFORM_GC:
     lbm_perform_gc();
     result = ENC_SYM_TRUE;
@@ -1321,32 +1323,6 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_BITWISE_NOT:
     if (nargs == 1) {
       result = bitwise_not(args[0]);
-    }
-    break;
-  case SYM_STREAM_GET:
-    if (lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->get(str);
-    }
-    break;
-  case SYM_STREAM_PUT:
-    if (nargs == 2 && lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->put(str, args[1]);
-    }
-    break;
-  case SYM_STREAM_PEEK:
-    if (nargs == 2 &&
-	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->peek(str, args[1]);
-    }
-    break;
-  case SYM_STREAM_DROP:
-    if (nargs == 2 &&
-	lbm_type_of(args[0]) == LBM_TYPE_STREAM) {
-      lbm_stream_t *str = lbm_dec_stream(args[0]);
-      return str->drop(str, args[1]);
     }
     break;
   case SYM_CUSTOM_DESTRUCT:

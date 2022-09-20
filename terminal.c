@@ -1067,6 +1067,9 @@ void terminal_process_string(char *str) {
 		commands_printf("GIT Branch: %s", GIT_BRANCH_NAME);
 		commands_printf("GIT Hash  : %s", GIT_COMMIT_HASH);
 		commands_printf("Compiler  : %s\n", ARM_GCC_VERSION);
+	} else if (strcmp(argv[0], "rebootwdt") == 0) {
+		chSysLock();
+		for (;;) {__NOP();}
 	}
 
 	// The help command
@@ -1190,6 +1193,9 @@ void terminal_process_string(char *str) {
 
 		commands_printf("fwinfo");
 		commands_printf("  Print detailed firmware info.");
+
+		commands_printf("rebootwdt");
+		commands_printf("  Reboot using the watchdog timer.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {

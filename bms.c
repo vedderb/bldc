@@ -308,30 +308,32 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	float i_in_max_bms = i_in_max_conf;
 
 	// Temperature
-	if (UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
-		float temp = m_stat_temp_max.t_cell_max;
+	if ((m_conf.limit_mode >> 0) & 1) {
+		if (UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
+			float temp = m_stat_temp_max.t_cell_max;
 
-		if (temp < (m_conf.t_limit_start + 0.1)) {
-			// OK
-		} else if (temp > (m_conf.t_limit_end - 0.1)) {
-			i_in_min_bms = 0.0;
-			i_in_max_bms = 0.0;
-			// Maybe add fault code?
-//			mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, false, false);
-		} else {
-			float maxc = fabsf(i_in_max_conf);
-			if (fabsf(i_in_min_conf) > maxc) {
-				maxc = fabsf(i_in_min_conf);
-			}
+			if (temp < (m_conf.t_limit_start + 0.1)) {
+				// OK
+			} else if (temp > (m_conf.t_limit_end - 0.1)) {
+				i_in_min_bms = 0.0;
+				i_in_max_bms = 0.0;
+				// Maybe add fault code?
+//				mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, false, false);
+			} else {
+				float maxc = fabsf(i_in_max_conf);
+				if (fabsf(i_in_min_conf) > maxc) {
+					maxc = fabsf(i_in_min_conf);
+				}
 
-			maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
+				maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
 
-			if (fabsf(i_in_min_bms) > maxc) {
-				i_in_min_bms = SIGN(i_in_min_bms) * maxc;
-			}
+				if (fabsf(i_in_min_bms) > maxc) {
+					i_in_min_bms = SIGN(i_in_min_bms) * maxc;
+				}
 
-			if (fabsf(i_in_max_bms) > maxc) {
-				i_in_max_bms = SIGN(i_in_max_bms) * maxc;
+				if (fabsf(i_in_max_bms) > maxc) {
+					i_in_max_bms = SIGN(i_in_max_bms) * maxc;
+				}
 			}
 		}
 	}
@@ -339,16 +341,18 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	// TODO: add support for conf->l_temp_accel_dec to still have braking.
 
 	// SOC
-	if (UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
-		float soc = m_stat_soc_min.soc;
+	if ((m_conf.limit_mode >> 1) & 1) {
+		if (UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
+			float soc = m_stat_soc_min.soc;
 
-		if (soc > (m_conf.soc_limit_start - 0.001)) {
-			// OK
-		} else if (soc < (m_conf.soc_limit_end + 0.001)) {
-			i_in_max_bms = 0.0;
-		} else {
-			i_in_max_bms = utils_map(soc, m_conf.soc_limit_start,
-					m_conf.soc_limit_end, i_in_max_conf, 0.0);
+			if (soc > (m_conf.soc_limit_start - 0.001)) {
+				// OK
+			} else if (soc < (m_conf.soc_limit_end + 0.001)) {
+				i_in_max_bms = 0.0;
+			} else {
+				i_in_max_bms = utils_map(soc, m_conf.soc_limit_start,
+						m_conf.soc_limit_end, i_in_max_conf, 0.0);
+			}
 		}
 	}
 

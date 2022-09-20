@@ -20,6 +20,7 @@
 
 #include "lbm_types.h"
 #include "stack.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -183,24 +184,31 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above.
  */
 void lbm_running_iterator(ctx_fun f, void*, void*);
 /** Iterate over all blocked contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
 void lbm_blocked_iterator(ctx_fun f, void*, void*);
 /** Iterate over all done contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user
+ * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
 void lbm_done_iterator(ctx_fun f, void*, void*);
+/** Iterate over all sleeping contexts and apply function on each context.
+ * 
+ * \param f Function to apply to each context.
+ * \param arg1 Pointer argument that can be used to convey information back to user.
+ * \param arg2 Same as above. 
+ */
+void lbm_sleeping_iterator(ctx_fun f, void *, void *);  
 /** toggle verbosity level of error messages
  */
 void lbm_toggle_verbose(void);
@@ -245,17 +253,8 @@ void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
  */
 lbm_cid lbm_get_current_cid(void);
 
-/** Create a token stream for parsing for code
- *
- * \param str character stream to convert into a token stream.
- * \return token stream.
- */
-lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str);
-/** Explicitly free a stream (if something breaks while creating it)
- *  The stream must not have been made available to the program
- * \param stream The stream to free
- */
-int lbm_explicit_free_token_stream(lbm_value stream);
+bool create_string_channel(char *str, lbm_value *res);
+bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
 /** deliver a message
  *

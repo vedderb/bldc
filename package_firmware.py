@@ -85,7 +85,6 @@ package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
 package_dict["Warrior6"] = [['warrior6', default_name]]
 package_dict["Raiden7"] = [['raiden7', default_name]]
-package_dict["UBOX_SINGLE"] = [['ubox_single', default_name]]
 package_dict["100_500"] = [['100_500', default_name],
                     ['100_500_no_limits', no_limits_name]]
 package_dict["75_600"] = [['75_600', default_name],
@@ -96,12 +95,20 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
                     ['60_75_mk2_no_limits', no_limits_name]]
-package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name]]
-package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name]]
-package_dict["UBOX_V1_75_TYPEC"] = [['ubox_v1_75_typec', default_name]]
-package_dict["UBOX_V2_75"] = [['ubox_v2_75', default_name]]
-package_dict["UBOX_SINGLE_100"] = [['ubox_single_100', default_name]]
-package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name]]
+package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name],
+                                  ['ubox_single_75_no_limits', no_limits_name]]
+package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name],
+                                    ['ubox_v1_75_micro_no_limits', no_limits_name]]
+package_dict["UBOX_V1_75_TYPEC"] = [['ubox_v1_75_typec', default_name],
+                                    ['ubox_v1_75_typec_no_limits', no_limits_name]]
+package_dict["UBOX_V2_75"] = [['ubox_v2_75', default_name],
+                              ['ubox_v2_75_no_limits', no_limits_name]]
+package_dict["UBOX_SINGLE_100"] = [['ubox_single_100', default_name],
+                                   ['ubox_single_100_no_limits', no_limits_name]]
+package_dict["UBOX_SINGLE_80"] = [['ubox_single_80', default_name],
+                                  ['ubox_single_80_no_limits', no_limits_name]]
+package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name],
+                               ['ubox_v2_100_no_limits', no_limits_name]]
 package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
 package_dict["75_300_R34"] = [['75_300_r34', default_name],

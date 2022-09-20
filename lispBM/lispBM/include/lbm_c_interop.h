@@ -24,12 +24,12 @@
 #include "symrepr.h"
 #include "eval_cps.h"
 #include "heap.h"
-#include "streams.h"
 #include "tokpar.h"
 #include "lbm_memory.h"
 #include "lbm_variables.h"
 #include "heap.h"
 #include "lbm_types.h"
+#include "lbm_channel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,27 +40,27 @@ extern "C" {
  * \param tokenizer The tokenizer to read the program from.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer);
+lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer);
 /** Load and schedule an expression for execution.
  *
  * \param tokenizer The tokenizer to read the expression from.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokenizer);
+lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer);
 /** Load a program and bind it to a symbol in the environment.
  *
  * \param tokenizer The tokenizer to read the program from.
  * \param symbol A string with the name you want the binding to have in the environment.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
+lbm_cid lbm_load_and_define_program(lbm_char_channel_t *tokenizer, char *symbol);
 /** Load an expression and bind it to a symbol in the environment.
  *
  * \param tokenizer The tokenizer to read the expression from.
  * \param symbol A string with the name you want the binding to have in the environment.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
+lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symbol);
 
 /* Evaluating a definition in a new context */
 /** Create a context for a bound expression and schedule it for execution

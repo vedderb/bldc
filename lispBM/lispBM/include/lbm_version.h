@@ -32,6 +32,15 @@ extern "C" {
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+Set 16 2022: Version 0.6.0
+  - Source code can be streamed onto the heap. This means there is no need
+    for a large buffer on the MCU (or area of flash) to parse source code
+    from
+
+Sep 5 2022: Version 0.6.0
+  - Refactoring of array-reader. Array reading is nolonger done monolithically
+    inside of the tokpar framework, but rather as a cooperation between the
+    evaluator and the tokenizer.
 
 Sep 3 2022: Version 0.6.0
   - Round-robin scheduling + Addition of an Atomic construct to use with care.

@@ -5,7 +5,8 @@ pattern-matching implemented in C for 32 bit and 64 bit platforms.
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
 
-All programming languages need a mascot, so here is the LispBM llama by [PixiLady](https://www.instagram.com/pixiladyart/).
+The LispBM mascot, Lispy the llama, was created by
+[PixiLadyArt](https://www.instagram.com/pixiladyart/). Thank you, Pixi! 
 
 ## Information
 

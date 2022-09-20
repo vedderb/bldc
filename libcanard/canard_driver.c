@@ -29,8 +29,9 @@
 #include "uavcan/protocol/param/GetSet.h"
 #include "uavcan/protocol/GetNodeInfo.h"
 #include "uavcan/protocol/RestartNode.h"
-#include <uavcan/protocol/file/BeginFirmwareUpdate.h>
-#include <uavcan/protocol/file/Read.h>
+#include "uavcan/protocol/file/BeginFirmwareUpdate.h"
+#include "uavcan/protocol/file/Read.h"
+#include "vesc/RTData.h"
 
 #include "conf_general.h"
 #include "app.h"
@@ -46,12 +47,14 @@
 #include "nrf_driver.h"
 #include "buffer.h"
 #include "utils.h"
+#include "mcpwm_foc.h"
+#include "imu.h"
 
 // Constants
 #define CAN_APP_NODE_NAME								"org.vesc." HW_NAME
 #define UNIQUE_ID_LENGTH_BYTES							12
 #define STATUS_MSGS_TO_STORE							10
-#define AP_MAX_NAME_SIZE								16
+#define AP_MAX_NAME_SIZE								20
 #define ARRAY_SIZE(_arr) (sizeof(_arr) / sizeof(_arr[0]))
 
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH 16
@@ -104,6 +107,7 @@ static THD_FUNCTION(canard_thread, arg);
 // Private functions
 static void calculateTotalCurrent(void);
 static void sendEscStatus(CanardInstance *ins);
+static void sendRtData(CanardInstance *ins);
 static void readUniqueID(uint8_t* out_uid);
 static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer);
 static bool shouldAcceptTransfer(const CanardInstance* ins,
@@ -211,11 +215,14 @@ static void write_app_config(void);
  */
 static param_t parameters[] =
 {
-	{"can_baud_rate", 	AP_PARAM_INT8,   0,   0,   8,   CAN_BAUD_500K},
-	{"can_status_rate",	AP_PARAM_INT32,  0,   0, 1000,  50},
-	{"can_esc_index",   AP_PARAM_INT16,  0,   0, 255,   0},
-	{"controller_id",   AP_PARAM_INT16,  0,   0, 253,   0},
-	{"ctl_dir",         AP_PARAM_INT8,   0,   0, 1,     0}
+	{"can_baud_rate", 		AP_PARAM_INT8,   0,   0,   8,   CAN_BAUD_500K},
+	{"can_status_rate_1",	AP_PARAM_INT32,  0,   0, 1000,  50},
+	{"can_status_rate_2",	AP_PARAM_INT32,  0,   0, 1000,  5},
+	{"can_status_msgs_r1",	AP_PARAM_INT16,  0,   0,   255,   0},
+	{"can_status_msgs_r2",	AP_PARAM_INT16,  0,   0,   255,   0},
+	{"can_esc_index",   	AP_PARAM_INT16,  0,   0, 255,   0},
+	{"controller_id",   	AP_PARAM_INT16,  0,   0, 253,   0},
+	{"ctl_dir",         	AP_PARAM_INT8,   0,   0, 1,     0}
 };
 
 /*
@@ -252,7 +259,10 @@ static void write_app_config(void) {
 	*mcconf = *mc_interface_get_configuration();
 
 	appconf->can_baud_rate = (uint8_t)getParamByName("can_baud_rate")->val;
-	appconf->can_status_rate_1 = (uint32_t)getParamByName("can_status_rate")->val;
+	appconf->can_status_rate_1 = (uint32_t)getParamByName("can_status_rate_1")->val;
+	appconf->can_status_rate_2 = (uint32_t)getParamByName("can_status_rate_2")->val;
+	appconf->can_status_msgs_r1 = (uint16_t)getParamByName("can_status_msgs_r1")->val;
+	appconf->can_status_msgs_r2 = (uint16_t)getParamByName("can_status_msgs_r2")->val;
 	appconf->uavcan_esc_index = (uint16_t)getParamByName("can_esc_index")->val;
 	appconf->controller_id = (uint16_t)getParamByName("controller_id")->val;
 	mcconf->m_invert_direction = (uint8_t)getParamByName("ctl_dir")->val;;
@@ -279,11 +289,14 @@ static void refresh_parameters(void){
 	const app_configuration *appconf = app_get_configuration();
 	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
-	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate );
-	updateParamByName((uint8_t *)"can_status_rate",		appconf->can_status_rate_1 );
-	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index );
-	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id );
-	updateParamByName((uint8_t *)"ctl_dir",			   	mcconf->m_invert_direction );
+	updateParamByName((uint8_t *)"can_baud_rate", 		appconf->can_baud_rate);
+	updateParamByName((uint8_t *)"can_status_rate_1",	appconf->can_status_rate_1);
+	updateParamByName((uint8_t *)"can_status_rate_2",	appconf->can_status_rate_2);
+	updateParamByName((uint8_t *)"can_status_msgs_r1",	appconf->can_status_msgs_r1);
+	updateParamByName((uint8_t *)"can_status_msgs_r2",	appconf->can_status_msgs_r2);
+	updateParamByName((uint8_t *)"can_esc_index",   	appconf->uavcan_esc_index);
+	updateParamByName((uint8_t *)"controller_id",   	appconf->controller_id);
+	updateParamByName((uint8_t *)"ctl_dir",			   	mcconf->m_invert_direction);
 }
 
 /*
@@ -495,6 +508,76 @@ static void sendEscStatus(CanardInstance *ins) {
 		CANARD_TRANSFER_PRIORITY_LOW,
 		msg_buffer,
 		UAVCAN_EQUIPMENT_ESC_STATUS_MAX_SIZE);
+}
+
+static void sendRtData(CanardInstance *ins) {
+	vesc_RTData data;
+	memset(&data, 0, sizeof(data));
+
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
+
+	data.volt_in = mc_interface_get_input_voltage_filtered();
+	data.volt_d = mcpwm_foc_get_vd();
+	data.volt_q = mcpwm_foc_get_vq();
+
+	data.temp_mos_max = mc_interface_temp_fet_filtered();
+	data.temp_mos_1 = NTC_TEMP_MOS1();
+	data.temp_mos_2 = NTC_TEMP_MOS2();
+	data.temp_mos_3 = NTC_TEMP_MOS3();
+	data.temp_motor_max = mc_interface_temp_motor_filtered();
+	data.temp_motor_1 = TEMP_MOTOR_1(conf->m_ntc_motor_beta);
+	data.temp_motor_2 = TEMP_MOTOR_2(conf->m_ntc_motor_beta);
+
+	data.curr_motor = mc_interface_get_tot_current_filtered();
+	data.curr_in = mc_interface_get_tot_current_in_filtered();
+	data.curr_d = mcpwm_foc_get_id();
+	data.curr_q = mcpwm_foc_get_iq();
+
+	float rpy[3], acc[3], gyro[3];
+	imu_get_rpy(rpy);
+	imu_get_accel(acc);
+	imu_get_gyro(gyro);
+
+	data.roll = rpy[0];
+	data.pitch = rpy[1];
+	data.yaw = rpy[2];
+	data.acc_x = acc[0];
+	data.acc_y = acc[1];
+	data.acc_z = acc[2];
+	data.gyro_x = gyro[0];
+	data.gyro_y = gyro[1];
+	data.gyro_z = gyro[2];
+
+	data.erpm = mc_interface_get_rpm();
+	data.rpm = mc_interface_get_rpm() / ((float)conf->si_motor_poles / 2.0);
+	data.duty = mc_interface_get_duty_cycle_now();
+	data.ah_used = mc_interface_get_amp_hours(false);
+	data.ah_charged = mc_interface_get_amp_hours_charged(false);
+	data.wh_used = mc_interface_get_watt_hours(false);
+	data.wh_charged = mc_interface_get_watt_hours_charged(false);
+	data.encoder_pos = mc_interface_get_pid_pos_now();
+	float wh_left = 0.0;
+	data.battery_level = mc_interface_get_battery_level(&wh_left);
+	data.battery_wh_tot = wh_left / data.battery_level;
+	data.fault_code = mc_interface_get_fault();
+	data.vesc_id = appconf->controller_id;
+
+	vesc_RTData_encode(&data, msg_buffer, false);
+
+	static uint8_t transfer_id;
+
+	if (debug_level > 11) {
+		commands_printf("UAVCAN sendRtData");
+	}
+
+	canardBroadcast(ins,
+			VESC_RTDATA_SIGNATURE,
+			VESC_RTDATA_ID,
+			&transfer_id,
+			CANARD_TRANSFER_PRIORITY_LOW,
+			msg_buffer,
+			VESC_RTDATA_MAX_SIZE);
 }
 
 /*
@@ -1228,6 +1311,7 @@ static THD_FUNCTION(canard_thread, arg) {
 
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
+	systime_t last_esc_status_time_r2 = 0;
 	systime_t last_tot_current_calc_time = 0;
 	systime_t last_param_refresh = 0;
 	bool was_running = false;
@@ -1258,6 +1342,7 @@ static THD_FUNCTION(canard_thread, arg) {
 
 			last_status_time = chVTGetSystemTimeX();
 			last_esc_status_time = chVTGetSystemTimeX();
+			last_esc_status_time_r2 = chVTGetSystemTimeX();
 			last_tot_current_calc_time = chVTGetSystemTimeX();
 			last_param_refresh = chVTGetSystemTimeX();
 
@@ -1323,13 +1408,30 @@ static THD_FUNCTION(canard_thread, arg) {
 #endif
 		}
 
-		if (conf->can_status_rate_1 > 0 &&
-				UTILS_AGE_S(last_esc_status_time) >= (1.0 / (float)conf->can_status_rate_1)) {
+		if (conf->can_status_rate_1 > 0 && UTILS_AGE_S(last_esc_status_time) >= (1.0 / (float)conf->can_status_rate_1)) {
 			last_esc_status_time = chVTGetSystemTimeX();
 			sendEscStatus(&canard_ins);
 #ifdef HW_CAN2_DEV
 			sendEscStatus(&canard_ins_if2);
 #endif
+
+			if ((conf->can_status_msgs_r1 >> 0) & 1) {
+				sendRtData(&canard_ins);
+#ifdef HW_CAN2_DEV
+				sendRtData(&canard_ins_if2);
+#endif
+			}
+		}
+
+		if (conf->can_status_rate_2 > 0 && UTILS_AGE_S(last_esc_status_time_r2) >= (1.0 / (float)conf->can_status_rate_2)) {
+			last_esc_status_time_r2 = chVTGetSystemTimeX();
+
+			if ((conf->can_status_msgs_r2 >> 0) & 1) {
+				sendRtData(&canard_ins);
+#ifdef HW_CAN2_DEV
+				sendRtData(&canard_ins_if2);
+#endif
+			}
 		}
 
 		if (ST2MS(chVTTimeElapsedSinceX(last_tot_current_calc_time)) >= 1000 / CURRENT_CALC_FREQ_HZ) {

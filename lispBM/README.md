@@ -19,7 +19,8 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
 
 [Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)  
-[Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)
+[Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)  
+[Chapter 3: Concurrency](lispBM/doc/manual/ch3_concurrency.md)
 
 ## VESC-Specific Commands and Extensions
 
@@ -1206,7 +1207,7 @@ Example:
 
 ### EEPROM (Nonvolatile Storage)
 
-Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
+Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
 
 #### eeprom-store-f
 
@@ -1214,7 +1215,7 @@ Up to 64 variables (int32 or float) can be stored in a nonvolatile memory reserv
 (eeprom-store-f addr number)
 ```
 
-Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
+Store float number on emulated eeprom at address addr. Addr range: 0 to 127. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
 
 #### eeprom-read-f
 
@@ -1222,7 +1223,7 @@ Store float number on emulated eeprom at address addr. Addr range: 0 to 63. Note
 (eeprom-read-f addr)
 ```
 
-Read float number on emulated eeprom at address addr. Addr range: 0 to 63. If nothing was stored on that address this function returns nil.
+Read float number on emulated eeprom at address addr. Addr range: 0 to 127. If nothing was stored on that address this function returns nil.
 
 #### eeprom-store-i
 
@@ -2029,6 +2030,18 @@ Get the last raw uavcan-command and its age. Returns a list where the first elem
 ```
 
 Same as uavcan-last-rawcmd, but for the last rpm-command.
+
+## LispBM
+
+#### lbm-set-quota
+
+```clj
+(lbm-set-quota quota)
+```
+
+Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+
+Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 
 ## How to update
 

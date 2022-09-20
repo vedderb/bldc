@@ -258,6 +258,7 @@ typedef enum {
 
 typedef struct {
 	BMS_TYPE type;
+	uint8_t limit_mode;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
@@ -808,10 +809,9 @@ typedef struct {
 	float brake_current;
 	uint16_t brake_timeout;
 	float yaw_current_clamp;
+	float ki_limit;
 	uint16_t kd_pt1_lowpass_frequency;
 	uint16_t kd_pt1_highpass_frequency;
-	float kd_biquad_lowpass;
-	float kd_biquad_highpass;
 	float booster_angle;
 	float booster_ramp;
 	float booster_current;
@@ -1119,6 +1119,7 @@ typedef enum {
 	COMM_BMS_GET_BATT_TYPE,
 
 	COMM_LISP_REPL_CMD,
+	COMM_LISP_STREAM_CODE,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1364,8 +1365,8 @@ typedef union {
 	float as_float;
 } eeprom_var;
 
-#define EEPROM_VARS_HW			64
-#define EEPROM_VARS_CUSTOM		64
+#define EEPROM_VARS_HW			32
+#define EEPROM_VARS_CUSTOM		128
 
 typedef struct {
 	float ah_tot;

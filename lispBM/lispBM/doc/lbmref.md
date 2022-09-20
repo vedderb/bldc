@@ -1340,13 +1340,31 @@ the part of the expression that matches is bound to the `var`.
 
 ## Concurrency
 
+The concurrency support in LispBM is provided by the set of functions,
+`spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in
+LispBM is scheduled by a round-robin scheduler that splits the runtime
+system evaluator fairly (with caveats, below) between all running tasks.
+
+When a task is scheduled to run, made active, it is given a quota of
+evaluator "steps" to use up. The task then runs until that quota is
+exhausted or the task itself has signaled it wants to sleep by
+yielding or blocking (for example by waiting for a message using the
+message passing system).
+
+A task can also request to not be "pre-empted" while executing a
+certain expression by invoking `atomic`. One should take care to make
+blocks of atomic code as small as possible as it disrupts the fairness
+of the scheduler. While executing inside of an atomic block the task
+has sole ownership of the shared global environment and can perform
+atomic read-modify-write sequences to global data.
+
+
 ### spawn
 
-Use `spawn` to spawn a concurrent task. The concurrency implemented
-by LispBM is called cooperative concurrency and it means that processes must
-sleep using <a href="#yield">yield</a> or they will starve out other processes.
-The form of a spawn expression is `(spawn closure arg1 ... argN)`
-The return value is a process ID.
+Use `spawn` to launch a concurrent task. Spawn takes a closure and
+and arguments to pass to that closure as its arguments: `(spawn closure arg1 ... argN)`.
+Optionally you can provide a numerical first argument that specifies stack size
+that the runtime system should allocate to run the task in: `(spawn stack-size closure args1 ... argN)`.
 
 ---
 
@@ -1355,10 +1373,11 @@ The return value is a process ID.
 Use `wait` to wait for a spawned process to finish.
 The argument to `wait` should be a process id.
 The `wait` blocks until the process with the given process id finishes.
+When the process with with the given id finishes, the wait function returns True.
 
 
-Be careful to only wait for processes that actually exist and do finish. Otherwise
-you will wait forever.
+Be careful to only wait for processes that actually exist and do
+finish. Otherwise you will wait forever.
 
 ---
 
@@ -1366,6 +1385,24 @@ you will wait forever.
 
 To put a process to sleep, call `yield`. The argument to `yield`
 is number indicating at least how many microseconds the process should sleep.
+
+---
+
+### atomic
+
+`atomic` can be used to execute a LispBM expression without allowing
+the runtime system to switch task during the time that takes.
+
+An example that atomically perfoms operations a,b and c. 
+
+```lisp
+(atomic
+   (progn
+     a
+     b
+     c))
+```
+
 
 ---
 

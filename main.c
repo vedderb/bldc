@@ -229,6 +229,7 @@ int main(void) {
 
 	chThdSleepMilliseconds(100);
 
+	mempools_init();
 	events_init();
 	hw_init_gpio();
 	LED_RED_OFF();

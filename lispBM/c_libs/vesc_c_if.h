@@ -112,6 +112,12 @@ typedef enum {
 	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
 	FAULT_CODE_PHASE_FILTER,
 } mc_fault_code;
+
+typedef union {
+	uint32_t as_u32;
+	int32_t as_i32;
+	float as_float;
+} eeprom_var;
 #endif
 
 typedef enum {
@@ -136,6 +142,23 @@ typedef enum {
 	VESC_PIN_MODE_OUTPUT_OPEN_DRAIN_PULL_DOWN,
 	VESC_PIN_MODE_ANALOG,
 } VESC_PIN_MODE;
+
+typedef enum {
+	CFG_PARAM_l_current_max = 0,
+	CFG_PARAM_l_current_min,
+	CFG_PARAM_l_in_current_max,
+	CFG_PARAM_l_in_current_min,
+	CFG_PARAM_l_abs_current_max,
+	CFG_PARAM_l_min_erpm,
+	CFG_PARAM_l_max_erpm,
+	CFG_PARAM_l_erpm_start,
+	CFG_PARAM_l_max_erpm_fbrake,
+	CFG_PARAM_l_max_erpm_fbrake_cc,
+	CFG_PARAM_l_min_vin,
+	CFG_PARAM_l_max_vin,
+	CFG_PARAM_l_battery_cut_start,
+	CFG_PARAM_l_battery_cut_end,
+} CFG_PARAM;
 
 #ifndef PACKET_MAX_PL_LEN
 #define PACKET_MAX_PL_LEN		512
@@ -312,6 +335,63 @@ typedef struct {
 	void (*packet_process_byte)(uint8_t, PACKET_STATE_t *);
 	void (*packet_send_packet)(unsigned char *, unsigned int len, PACKET_STATE_t *);
 
+	// IMU
+	bool (*imu_startup_done)(void);
+	float (*imu_get_roll)(void);
+	float (*imu_get_pitch)(void);
+	float (*imu_get_yaw)(void);
+	void (*imu_get_rpy)(float *rpy);
+	void (*imu_get_accel)(float *accel);
+	void (*imu_get_gyro)(float *gyro);
+	void (*imu_get_mag)(float *mag);
+	void (*imu_derotate)(float *input, float *output);
+	void (*imu_get_accel_derotated)(float *accel);
+	void (*imu_get_gyro_derotated)(float *gyro);
+	void (*imu_get_quaternions)(float *q);
+	void (*imu_get_calibration)(float yaw, float * imu_cal);
+	void (*imu_set_yaw)(float yaw_deg);
+
+	// Terminal
+	void (*terminal_register_command_callback)(
+			const char* command,
+			const char *help,
+			const char *arg_names,
+			void(*cbf)(int argc, const char **argv));
+	void (*terminal_unregister_callback)(void(*cbf)(int argc, const char **argv));
+
+	// EEPROM
+	bool (*read_eeprom_var)(eeprom_var *v, int address);
+	bool (*store_eeprom_var)(eeprom_var *v, int address);
+
+	// Timeout
+	void (*timeout_reset)(void);
+	bool (*timeout_has_timeout)(void);
+	float (*timeout_secs_since_update)(void);
+
+	// Plot
+	void (*plot_init)(char *namex, char *namey);
+	void (*plot_add_graph)(char *name);
+	void (*plot_set_graph)(int graph);
+	void (*plot_send_points)(float x, float y);
+
+	// Custom config
+	void (*conf_custom_add_config)(
+			int (*get_cfg)(uint8_t *data, bool is_default),
+			bool (*set_cfg)(uint8_t *data),
+			int (*get_cfg_xml)(uint8_t **data));
+	void (*conf_custom_clear_configs)(void);
+
+	// Send app data (which can be received by QML)
+	void (*send_app_data)(unsigned char *data, unsigned int len);
+
+	// Age of timestamp in seconds
+	float (*ts_to_age_s)(systime_t ts);
+
+	// Settings (TODO: Add more types and also setters)
+	float (*get_cfg_float)(CFG_PARAM p);
+
+	// Add handler for received app data
+	bool (*set_app_data_handler)(void(*func)(unsigned char *data, unsigned int len));
 } vesc_c_if;
 
 typedef struct {

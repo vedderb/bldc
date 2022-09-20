@@ -3310,6 +3310,18 @@ static lbm_value ext_uavcan_last_rpmcmd(lbm_value *args, lbm_uint argn) {
 	return out_list;
 }
 
+static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	uint32_t q = lbm_dec_as_u32(args[0]);
+
+	if (q < 1) {
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_set_eval_step_quota(q);
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -3517,6 +3529,9 @@ void lispif_load_vesc_extensions(void) {
 	// UAVCAN
 	lbm_add_extension("uavcan-last-rawcmd", ext_uavcan_last_rawcmd);
 	lbm_add_extension("uavcan-last-rpmcmd", ext_uavcan_last_rpmcmd);
+
+	// Lbm settings
+	lbm_add_extension("lbm-set-quota", ext_lbm_set_quota);
 
 	if (ext_callback) {
 		ext_callback();
