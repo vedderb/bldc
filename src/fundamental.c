@@ -704,8 +704,10 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
 
   lbm_uint result = ENC_SYM_EERROR;
   int cmp_res = -1;
-
   switch (lbm_dec_sym(op)) {
+  case SYM_SELF:
+    result = lbm_enc_i(lbm_get_current_cid());
+    break;
   case SYM_PERFORM_GC:
     lbm_perform_gc();
     result = ENC_SYM_TRUE;

@@ -30,8 +30,6 @@
 #include "qq_expand.h"
 #include "env.h"
 
-#define NOTOKEN         0u
-
 #define TOKOPENPAR      1u      // "("
 #define TOKCLOSEPAR     2u      // ")"
 #define TOKQUOTE        3u      // "'"
@@ -82,10 +80,11 @@
 
 
 // Tokenizer return values
-// > 0 : successfully found token
-// = 0 : tokenizer can definitely not create a token
-// = -1 : tokenizer does not know if it can or cannot create a token yet.
-// = -2 : tokenizer was reading a string but ran out of space (for example).
+// > 0 : Successfully found token
+// = 0 : Tokenizer can definitely not create a token
+// = -1 : Tokenizer does not know if it can or cannot create a token yet.
+// = -2 : Tokenizer was reading a string but ran out of space (for example).
+//        This is an error!
 
 #define TOKENIZER_NO_TOKEN   0
 #define TOKENIZER_NEED_MORE -1
@@ -320,7 +319,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   res = lbm_channel_peek(chan, 0, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   if (c == '-') {
     n = 1;
     fbuf[0] = 0;
@@ -329,7 +328,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   res = lbm_channel_peek(chan, n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
@@ -342,12 +341,12 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
     fbuf[n] = c;
     n ++;
   }
-  else return 0;
+  else return TOKENIZER_NO_TOKEN;
 
   res = lbm_channel_peek(chan,n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
-  if (!(c >= '0' && c <= '9')) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
+  if (!(c >= '0' && c <= '9')) return TOKENIZER_NO_TOKEN;
 
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
@@ -357,22 +356,14 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
     if (res == CHANNEL_END) break;
   }
 
-  uint32_t tok_res = NOTOKEN;
+  uint32_t tok_res;
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
-
-  switch (tok_res) {
-  case NOTOKEN:
-    if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
-      result->type = TOKTYPEF32;
-      break;
-    } else {
-      return 0;
-    }
-  default:
+  if (type_len == TOKENIZER_NO_TOKEN) {
+    result->type = TOKTYPEF32;
+  } else {
     result->type = tok_res;
-    break;
   }
 
   if ((result->negative && n > 1) ||
@@ -511,22 +502,14 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result ) {
 
   result->type = TOKTYPEI;
 
-  uint32_t tok_res = NOTOKEN;
+  uint32_t tok_res;
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
-
-  switch (tok_res) {
-  case NOTOKEN:
-    if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
-      result->type = TOKTYPEI;
-      break;
-    } else {
-      return 0;
-    }
-  default:
+  if (type_len == TOKENIZER_NO_TOKEN) {
+    result->type = TOKTYPEI;
+  } else {
     result->type = tok_res;
-    break;
   }
 
   if ((result->negative && n > 1) ||
