@@ -134,7 +134,6 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
 
-
 #define EVAL_STEPS_QUOTA   10
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
@@ -144,8 +143,8 @@ void lbm_set_eval_step_quota(uint32_t quota) {
 }
 
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
-volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
-volatile uint32_t eval_cps_next_state_arg = 0;
+static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
+static volatile uint32_t eval_cps_next_state_arg = 0;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -160,9 +159,7 @@ volatile uint32_t eval_cps_next_state_arg = 0;
    sleep duration possible is 2 * 100us = 200us.
 */
 
-static bool     eval_running = false;
-static uint32_t next_ctx_id = 1;
-
+static bool          eval_running = false;
 static volatile bool blocking_extension = false;
 static bool          is_atomic = false;
 
@@ -534,6 +531,7 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
     exists = false;
     lbm_blocked_iterator(context_exists, &cid, &exists);
     lbm_running_iterator(context_exists, &cid, &exists);
+    lbm_sleeping_iterator(context_exists, &cid, &exists);
 
     if (ctx_running &&
         ctx_running->id == cid) {
@@ -733,11 +731,17 @@ void lbm_block_ctx_from_extension(void) {
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   eval_context_t *found = NULL;
+  bool found_sleeping = false;
 
   found = lookup_ctx(&blocked, cid);
 
   if (found == NULL) {
     found = lookup_ctx(&queue, cid);
+  }
+
+  if (found == NULL) {
+    found = lookup_ctx(&sleeping, cid);
+    found_sleeping = true;
   }
 
   if (found) {
@@ -749,10 +753,12 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
     found->mailbox = new_mailbox;
 
-    drop_ctx(&blocked,found);
-    drop_ctx(&queue,found);
+    if (!found_sleeping){
+      drop_ctx(&blocked,found);
+      drop_ctx(&queue,found);
 
-    enqueue_ctx(&queue,found);
+      enqueue_ctx(&queue,found);
+    }
     return ENC_SYM_TRUE;
   }
 
@@ -2921,7 +2927,6 @@ void lbm_pause_eval_with_gc(uint32_t num_free) {
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
 }
 
-
 void lbm_step_eval(void) {
   eval_cps_next_state_arg = 1;
   eval_cps_next_state = EVAL_CPS_STATE_STEP;
@@ -3040,7 +3045,6 @@ int lbm_eval_init() {
   done.first = NULL;
   done.last = NULL;
   ctx_running = NULL;
-  next_ctx_id = 1;
 
   eval_cps_run_state = EVAL_CPS_STATE_INIT;
 
