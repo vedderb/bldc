@@ -3539,6 +3539,10 @@ void lispif_load_vesc_extensions(void) {
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+		return;
+	}
+
 	if (!event_handler_registered) {
 		return;
 	}
@@ -3586,6 +3590,10 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 }
 
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
+	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+		return;
+	}
+
 	if (!event_handler_registered) {
 		return;
 	}
