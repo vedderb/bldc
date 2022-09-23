@@ -118,28 +118,13 @@
 #define HW_UART_RX_PIN			7
 
 // ICU Peripheral for servo decoding
-#define HW_USE_ICU				TRUE
 #define HW_ICU_TIMER			TIM3
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+#define HW_ICU_DEV				ICUD3
+#define HW_ICU_CHANNEL			ICU_CHANNEL_2
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM3
 #define HW_ICU_GPIO				GPIOB
 #define HW_ICU_PIN				5
-#define HW_ICU_DEV				ICUD3
-#if HW_USE_ICU
-	#define HW_ICU_CHANNEL			ICU_CHANNEL_2
-#else
-	#define HAL_USE_ICU		FALSE
-#endif
-// Pedelec uses the same port as ICU
-
-#define HW_PEDELEC_TIMER			TIM3
-#define HW_PEDELEC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
-#define HW_PEDELEC_GPIO_AF			GPIO_AF_TIM3
-#define HW_PEDELEC_GPIO				GPIOB
-#define HW_PEDELEC_PIN				5
-#define HW_PEDELEC_TIM_ISR_CH		TIM3_IRQn
-#define HW_PEDELEC_TIM_ISR_VEC		TIM3_IRQHandler
-#define HW_PEDELEC_TIM_CHANNEL		TIM_Channel_2
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2

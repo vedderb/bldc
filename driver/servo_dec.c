@@ -199,6 +199,3 @@ float servodec_get_last_pulse_len(int servo_num) {
 		return 0.0;
 	}
 }
-
-
-
