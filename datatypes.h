@@ -616,8 +616,7 @@ typedef enum {
 	ADC_CTRL_TYPE_DUTY_REV_BUTTON,
 	ADC_CTRL_TYPE_PID,
 	ADC_CTRL_TYPE_PID_REV_CENTER,
-	ADC_CTRL_TYPE_PID_REV_BUTTON,
-	ADC_CTRL_TYPE_PEDELEC_SPEED,
+	ADC_CTRL_TYPE_PID_REV_BUTTON
 } adc_control_type;
 
 // PAS control types
@@ -658,10 +657,6 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	uint32_t update_rate_hz;
-	float pedelec_max_rpm;
-	float pedelec_min_rpm;
-	unsigned char pedelec_magnets;
-	bool pedelec_is_on;
 } adc_config;
 
 // Nunchuk control types
