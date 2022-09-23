@@ -64,6 +64,7 @@
 #include "lispif.h"
 #endif
 
+#include "password.h"
 /*
  * HW resources used:
  *
@@ -189,6 +190,32 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 			default:
 				break;
+			}
+		}
+
+		static volatile uint16_t time_to_print_ms = 0;
+
+		if( time_to_print_ms++ > 1000 ){
+			time_to_print_ms = 0;
+			if(password_get_system_locked_flag()){
+				commands_printf("system locked by user password");
+			}
+
+			if(password_get_system_connection_alive()){
+				password_set_system_connection_alive(false);
+				commands_printf("system alive received");
+			}
+		}
+
+		static volatile float current_now_filtered = 0.0;
+		UTILS_LP_FAST(current_now_filtered,mc_interface_get_tot_current(),0.1);
+
+		if((!password_get_system_locked_flag()) &&
+			password_get_system_enable_flag() ){
+			if( fabsf(current_now_filtered) < 0.2){
+				password_timeout_increment(10);//argument should match the timer loop time
+			}else{
+				password_timeout_reset();//if current is higher than threshold, we reinit timer. this prevents that a mobile disconnect issue can lock the system while the bike is still being used.
 			}
 		}
 

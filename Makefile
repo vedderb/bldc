@@ -36,10 +36,10 @@ include $(ROOT_DIR)/make/tools.mk
 # to remove the chance that they will cause problems with our build
 define SANITIZE_VAR
 $(if $(filter-out undefined,$(origin $(1))),
-  $(info *NOTE*      Sanitized $(2) variable '$(1)' from $(origin $(1)))
-  MAKEOVERRIDES = $(filter-out $(1)=%,$(MAKEOVERRIDES))
-  override $(1) :=
-  unexport $(1)
+$(info *NOTE*      Sanitized $(2) variable '$(1)' from $(origin $(1)))
+MAKEOVERRIDES = $(filter-out $(1)=%,$(MAKEOVERRIDES))
+override $(1) :=
+unexport $(1)
 )
 endef
 
@@ -73,44 +73,44 @@ endif
 ##############################
 .PHONY: help
 help:
-	@echo
-	@echo "   This Makefile is known to work on Linux and Mac in a standard shell environment."
-	@echo
-	@echo "   Here is a summary of the available targets:"
-	@echo
-	@echo "   [Tool Installers]"
-	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
-	@echo "     qt_install           - Install the all tools for Qt"
-	@echo
-	@echo "   [Big Hammer]"
-	@echo "     all_fw               - Build firmware for all boards"
-	@echo "     all_fw_package       - Packaage firmware for boards in package list"
-	@echo
-	@echo "   [Unit Tests]"
-	@echo "     all_ut               - Build all unit tests"
-	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
-	@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
-	@echo
-	@echo "   [Firmware]"
-	@echo "     fw   - Build firmware for default target"
-	@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
-	@echo "     fw_<board>   - Build firmware for target <board>"
-	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
-	@echo "     fw_<board>_clean     - Remove firmware for <board>"
-	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
-	@echo
-	@echo "   Hint: Add V=1 to your command line to see verbose build output."
-	@echo
-	@echo "   Note: All tools will be installed into $(TOOLS_DIR)"
-	@echo "         All build output will be placed in $(BUILD_DIR)"
-	@echo
+@echo
+@echo "   This Makefile is known to work on Linux and Mac in a standard shell environment."
+@echo
+@echo "   Here is a summary of the available targets:"
+@echo
+@echo "   [Tool Installers]"
+@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
+@echo "     qt_install           - Install the all tools for Qt"
+@echo
+@echo "   [Big Hammer]"
+@echo "     all_fw               - Build firmware for all boards"
+@echo "     all_fw_package       - Packaage firmware for boards in package list"
+@echo
+@echo "   [Unit Tests]"
+@echo "     all_ut               - Build all unit tests"
+@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
+@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
+@echo
+@echo "   [Firmware]"
+@echo "     fw   - Build firmware for default target"
+@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
+@echo "     fw_<board>   - Build firmware for target <board>"
+@echo "     PROJECT=<target> fw   - Build firmware for <target>"
+@echo "     fw_<board>_clean     - Remove firmware for <board>"
+@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
+@echo
+@echo "   Hint: Add V=1 to your command line to see verbose build output."
+@echo
+@echo "   Note: All tools will be installed into $(TOOLS_DIR)"
+@echo "         All build output will be placed in $(BUILD_DIR)"
+@echo
 
 
 $(DL_DIR):
-	$(V1) $(MKDIR) $@
+$(V1) $(MKDIR) $@
 
 $(TOOLS_DIR):
-	$(V1) $(MKDIR) $@
+$(V1) $(MKDIR) $@
 
 ##############################
 #
@@ -121,17 +121,17 @@ $(TOOLS_DIR):
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
 # $(2) = Target hardware directory
 define FIND_TARGET_C_CODE
-   # Remove `_no_limits`
-   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
+# Remove `_no_limits`
+$(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
 
-   # Look for `*_core.c` file
-   ifneq ("$(wildcard $(2)/hw_*_core.c)","")
-      # Good luck, there it is!
-      HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
-   else
-      # There isn't one, so let's hope for the sister `.c` file
-      HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
-   endif
+# Look for `*_core.c` file
+ifneq ("$(wildcard $(2)/hw_*_core.c)","")
+# Good luck, there it is!
+HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
+else
+# There isn't one, so let's hope for the sister `.c` file
+HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
+endif
 
 endef
 
@@ -149,55 +149,55 @@ fw_$(1): fw_$(1)_vescfw
 fw_$(1)_vescfw: $(eval HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS))))  # Find the directory for this header file
 fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR)))  # Find the c code associated to this header file
 fw_$(1)_vescfw:
-	@echo "********* BUILD: $(1) **********"
-	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
-	$(V1) $$(MAKE) -f $(MAKE_DIR)/fw.mk \
-		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
-		BUILDDIR="$(2)" \
-		PROJECT="$(3)" \
-		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
+@echo "********* BUILD: $(1) **********"
+$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
+$(V1) $$(MAKE) -f $(MAKE_DIR)/fw.mk \
+TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
+BUILDDIR="$(2)" \
+PROJECT="$(3)" \
+build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
 fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
 
 $(1)_flash_only: fw_$(1)_flash_only
 fw_$(1)_flash_only:
-	@echo "********* PROGRAM: $(1) **********"
-	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program $(2)/$(3).elf verify reset exit"
+@echo "********* PROGRAM: $(1) **********"
+$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program $(2)/$(3).elf verify reset exit"
 
 .PHONY: $(1)_clean
 $(1)_clean: fw_$(1)_clean
 fw_$(1)_clean: TARGET=fw_$(1)
 fw_$(1)_clean: OUTDIR=$(BUILD_DIR)/$$(TARGET)
 fw_$(1)_clean:
-	$(V0) @echo " CLEAN      $$@"
+$(V0) @echo " CLEAN      $$@"
 ifneq ($(OSFAMILY), windows)
-	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
-	$(V1) [ ! -d "$(ROOT_DIR)/.dep" ] || $(RM) -r "$(ROOT_DIR)/.dep"
+$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
+$(V1) [ ! -d "$(ROOT_DIR)/.dep" ] || $(RM) -r "$(ROOT_DIR)/.dep"
 else
-	$(V1) powershell -noprofile -command "& {if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}}"
-	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}}"
+$(V1) powershell -noprofile -command "& {if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}}"
+$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}}"
 endif
 endef
 
 clear_option_bytes:
-	$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
+$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
 
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
 upload-olimex: fw
-	$(V1) openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
+$(V1) openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
 
 upload-pi: fw
-	$(V1) openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+$(V1) openocd -f pi_stm32.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
 upload-pi-remote: fw
-	$(V1) ./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
+$(V1) ./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
 debug-start:
-	$(V1) openocd -f stm32-bv_openocd.cfg
+$(V1) openocd -f stm32-bv_openocd.cfg
 
 size: build/$(PROJECT).elf
-	@$(SZ) $<
+@$(SZ) $<
 
 # Generate the targets for whatever boards are in each list
 FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))
@@ -218,28 +218,28 @@ $(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_
 
 .PHONY: all_fw_package
 all_fw_package: all_fw all_fw_package_clean
-	$(V0) @echo " PACKAGE        $(ROOT_DIR)/package/*"
+$(V0) @echo " PACKAGE        $(ROOT_DIR)/package/*"
 
 # Place all firmware files into `./package` directory
-	$(V1) $(PYTHON) package_firmware.py
+$(V1) $(PYTHON) package_firmware.py
 
 # Find all the leftover object and lst files
-	$(eval BUILD_CRUFT := $(call rwildcard,$(ROOT_DIR)/build,*.lst *.o))
+$(eval BUILD_CRUFT := $(call rwildcard,$(ROOT_DIR)/build,*.lst *.o))
 
 # Delete the cruft files, so as not to unnecessarily consume GB of space
 ifneq ($(OSFAMILY), windows)
-	$(V1) $(RM) $(BUILD_CRUFT)
+$(V1) $(RM) $(BUILD_CRUFT)
 else
-	$(V1) powershell -noprofile -command "& {Remove-Item $(BUILD_CRUFT)}"
+$(V1) powershell -noprofile -command "& {Remove-Item $(BUILD_CRUFT)}"
 endif
 
 .PHONY: all_fw_package_clean
 all_fw_package_clean:
-	$(V0) @echo " CLEAN        $(ROOT_DIR)/package/*"
+$(V0) @echo " CLEAN        $(ROOT_DIR)/package/*"
 ifneq ($(OSFAMILY), windows)
-	$(V1) [ ! -d "$(ROOT_DIR)/package/" ] || $(RM) -rf $(ROOT_DIR)/package/*
+$(V1) [ ! -d "$(ROOT_DIR)/package/" ] || $(RM) -rf $(ROOT_DIR)/package/*
 else
-	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}}"
+$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}}"
 endif
 
 
@@ -254,7 +254,7 @@ ALL_UNITTESTS := utils_math
 UT_OUT_DIR := $(BUILD_DIR)/unit_tests
 
 $(UT_OUT_DIR):
-	$(V1) $(MKDIR) $@
+$(V1) $(MKDIR) $@
 
 .PHONY: all_ut
 all_ut: $(addsuffix _elf, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
@@ -270,8 +270,8 @@ all_ut_gcov: | $(addsuffix _gcov, $(addprefix ut_, $(ALL_UNITTESTS)))
 
 .PHONY: all_ut_clean
 all_ut_clean:
-	$(V0) @echo " CLEAN      $@"
-	$(V1) [ ! -d "$(UT_OUT_DIR)" ] || $(RM) -r "$(UT_OUT_DIR)"
+$(V0) @echo " CLEAN      $@"
+$(V1) [ ! -d "$(UT_OUT_DIR)" ] || $(RM) -r "$(UT_OUT_DIR)"
 
 # $(1) = Unit test name
 define UT_TEMPLATE
@@ -283,28 +283,28 @@ ut_$(1)_%: TARGET=$(1)
 ut_$(1)_%: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
 ut_$(1)_%: UT_ROOT_DIR=$(ROOT_DIR)/tests/$(1)
 ut_$(1)_%: $$(UT_OUT_DIR)
-	$(V1) $(MKDIR) $(UT_OUT_DIR)/$(1)
-	$(V1) cd $$(UT_ROOT_DIR) && \
-		$$(MAKE) -r --no-print-directory \
-		BUILD_TYPE=ut \
-		TCHAIN_PREFIX="" \
-		REMOVE_CMD="$(RM)" \
-		\
-		MAKE_INC_DIR=$(MAKE_INC_DIR) \
-		ROOT_DIR=$(ROOT_DIR) \
-		TARGET=$$(TARGET) \
-		OUTDIR=$$(OUTDIR) \
-		\
-		GTEST_DIR=$(GTEST_DIR) \
-		\
-		$$*
+$(V1) $(MKDIR) $(UT_OUT_DIR)/$(1)
+$(V1) cd $$(UT_ROOT_DIR) && \
+$$(MAKE) -r --no-print-directory \
+BUILD_TYPE=ut \
+TCHAIN_PREFIX="" \
+REMOVE_CMD="$(RM)" \
+\
+MAKE_INC_DIR=$(MAKE_INC_DIR) \
+ROOT_DIR=$(ROOT_DIR) \
+TARGET=$$(TARGET) \
+OUTDIR=$$(OUTDIR) \
+\
+GTEST_DIR=$(GTEST_DIR) \
+\
+$$*
 
 .PHONY: ut_$(1)_clean
 ut_$(1)_clean: TARGET=$(1)
 ut_$(1)_clean: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
 ut_$(1)_clean:
-	$(V0) @echo " CLEAN      $(1)"
-	$(V1) [ ! -d "$$(OUTDIR)" ] || $(RM) -r "$$(OUTDIR)"
+$(V0) @echo " CLEAN      $(1)"
+$(V1) [ ! -d "$$(OUTDIR)" ] || $(RM) -r "$$(OUTDIR)"
 endef
 
 # Expand the unittest rules

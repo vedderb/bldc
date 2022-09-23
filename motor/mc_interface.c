@@ -43,6 +43,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include "password.h"
 
 // Macros
 #define DIR_MULT		(motor_now()->m_conf.m_invert_direction ? -1.0 : 1.0)
@@ -240,6 +241,8 @@ void mc_interface_init(void) {
 	default:
 		break;
 	}
+
+	password_init();
 
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
@@ -2526,6 +2529,19 @@ static THD_FUNCTION(timer_thread, arg) {
 #ifdef HW_HAS_DUAL_MOTORS
 		run_timer_tasks(&m_motor_2);
 #endif
+
+		static volatile bool system_locked_now = true;
+
+		if( ( password_get_system_locked_flag() ) && (system_locked_now == false) ){
+			system_locked_now = true;
+			mc_interface_set_current(0.0);
+			mc_interface_lock();
+		}else{
+			if( ( password_get_system_locked_flag() == false ) && (system_locked_now == true) ) {
+				system_locked_now = false;
+				mc_interface_unlock();
+			}
+		}
 
 		chThdSleepMilliseconds(1);
 	}

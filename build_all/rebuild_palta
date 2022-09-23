@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+FWPATH="../"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+#################### HW PALTA ########################
+
+COPYDIR=PALTA
+rm $COPYDIR/*
+
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_VERSION_PALTA"
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+
+
