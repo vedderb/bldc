@@ -31,7 +31,7 @@ static extension_fptr *extension_table = NULL;
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   (void)args;
   (void)argn;
-  return lbm_enc_sym(SYM_EERROR);
+  return ENC_SYM_EERROR;
 }
 
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {

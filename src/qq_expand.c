@@ -32,16 +32,16 @@
 
 
 lbm_value gen_cons(lbm_value a, lbm_value b) {
-  return lbm_cons(lbm_enc_sym(SYM_CONS),
+  return lbm_cons(ENC_SYM_CONS,
                    lbm_cons(a,
-                        lbm_cons(b, lbm_enc_sym(SYM_NIL))));
+                        lbm_cons(b, ENC_SYM_NIL)));
 }
 
 
 lbm_value append(lbm_value front, lbm_value back) {
-  return lbm_cons (lbm_enc_sym(SYM_APPEND),
+  return lbm_cons (ENC_SYM_APPEND,
                lbm_cons(front,
-                    lbm_cons(back, lbm_enc_sym(SYM_NIL))));
+                    lbm_cons(back, ENC_SYM_NIL)));
 }
 
 /* Bawden's qq-expand-list implementation
@@ -62,7 +62,7 @@ lbm_value append(lbm_value front, lbm_value back) {
 */
 
 lbm_value qq_expand_list(lbm_value l) {
-  lbm_value res = lbm_enc_sym(SYM_NIL);
+  lbm_value res = ENC_SYM_NIL;
   lbm_value car_val;
   lbm_value cdr_val;
 
@@ -72,22 +72,22 @@ lbm_value qq_expand_list(lbm_value l) {
     cdr_val = lbm_cdr(l);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
-      res = lbm_cons(lbm_enc_sym(SYM_LIST),
-                 lbm_cons(lbm_car(cdr_val), res));
+      res = lbm_cons(ENC_SYM_LIST,
+                     lbm_cons(lbm_car(cdr_val), res));
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
       res = lbm_car(cdr_val);
     } else {
       lbm_value expand_car = qq_expand_list(car_val);
       lbm_value expand_cdr = lbm_qq_expand(cdr_val);
-      res = lbm_cons(lbm_enc_sym(SYM_LIST),
-                 lbm_cons(append(expand_car, expand_cdr), lbm_enc_sym(SYM_NIL)));
+      res = lbm_cons(ENC_SYM_LIST,
+                     lbm_cons(append(expand_car, expand_cdr), ENC_SYM_NIL));
     }
     break;
   default: {
-    lbm_value a_list = lbm_cons(l, lbm_enc_sym(SYM_NIL));
+    lbm_value a_list = lbm_cons(l, ENC_SYM_NIL);
     res =
-      lbm_cons(lbm_enc_sym(SYM_QUOTE), lbm_cons (a_list, lbm_enc_sym(SYM_NIL)));
+      lbm_cons(ENC_SYM_QUOTE, lbm_cons (a_list, ENC_SYM_NIL));
   }
   }
   return res;
@@ -124,7 +124,7 @@ lbm_value lbm_qq_expand(lbm_value qquoted) {
       res = lbm_car(cdr_val);
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
-      res = lbm_enc_sym(SYM_RERROR); // should have a more specific error here. 
+      res = ENC_SYM_RERROR; // should have a more specific error here.
     } else {
       lbm_value expand_car = qq_expand_list(car_val);
       lbm_value expand_cdr = lbm_qq_expand(cdr_val);
@@ -132,7 +132,7 @@ lbm_value lbm_qq_expand(lbm_value qquoted) {
     }
     break;
   default:
-    res = lbm_cons(lbm_enc_sym(SYM_QUOTE), lbm_cons(qquoted, lbm_enc_sym(SYM_NIL)));
+    res = lbm_cons(ENC_SYM_QUOTE, lbm_cons(qquoted, ENC_SYM_NIL));
     break;
   }
   return res;
