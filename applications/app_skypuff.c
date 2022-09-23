@@ -24,12 +24,12 @@
 // Some useful includes
 #include "comm_can.h"
 #include "commands.h"
-#include "encoder.h"
+#include "encoder/encoder.h"
 #include "hw.h"
 #include "mc_interface.h"
 #include "terminal.h"
 #include "timeout.h"
-#include "utils.h"
+#include "utils_math.h"
 
 #include <math.h>
 #include <stdio.h>

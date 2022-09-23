@@ -24,7 +24,8 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "timeout.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "comm_can.h"
 #include "hw.h"
 #include <math.h>
@@ -40,10 +41,11 @@
 #define FILTER_PEDELEC_SAMPLES			25
 #define RPM_FILTER_PEDELEC_SAMPLES		28
 
+#define TC_DIFF_MAX_PASS				60  // TODO: move to app_conf
 
 // Threads
 static THD_FUNCTION(adc_thread, arg);
-static THD_WORKING_AREA(adc_thread_wa, 1024);
+static THD_WORKING_AREA(adc_thread_wa, 512);
 
 // Private variables
 static volatile adc_config config;
@@ -52,9 +54,15 @@ static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
 static volatile float decoded_level2 = 0.0;
 static volatile float read_voltage2 = 0.0;
+static volatile float adc1_override = 0.0;
+static volatile float adc2_override = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile bool adc_detached = false;
+static volatile bool buttons_detached = false;
+static volatile bool rev_override = false;
+static volatile bool cc_override = false;
 
 //pedelec variables
 static volatile float frecuency;
@@ -70,7 +78,17 @@ void app_adc_configure(adc_config *conf) {
 }
 
 void app_adc_start(bool use_rx_tx) {
-	use_rx_tx_as_buttons = use_rx_tx;
+#ifdef HW_ADC_EXT_GPIO
+	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
+#endif
+#ifdef HW_ADC_EXT2_GPIO
+	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
+#endif
+	if(buttons_detached){
+		use_rx_tx_as_buttons = false;
+	}else{
+		use_rx_tx_as_buttons = use_rx_tx;
+	}
 	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
@@ -96,6 +114,34 @@ float app_adc_get_decoded_level2(void) {
 
 float app_adc_get_voltage2(void) {
 	return read_voltage2;
+}
+
+void app_adc_detach_adc(bool detach){
+	adc_detached = detach;
+}
+
+void app_adc_adc1_override(float val){
+	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+	utils_truncate_number(&val, 0, 3.3);
+	adc1_override = val;
+}
+
+void app_adc_adc2_override(float val){
+	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+	utils_truncate_number(&val, 0, 3.3);
+	adc2_override = val;
+}
+
+void app_adc_detach_buttons(bool state){
+	buttons_detached = state;
+}
+
+void app_adc_rev_override(bool state){
+	rev_override = state;
+}
+
+void app_adc_cc_override(bool state){
+	cc_override = state;
 }
 
 
@@ -134,7 +180,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		pedelec_periodic_task( sleep_time / 10 ); //sleep time to ms
 
 		// For safe start when fault codes occur
-		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		if (mc_interface_get_fault() != FAULT_CODE_NONE && config.safe_start != SAFE_START_NO_FAULT) {
 			ms_without_power = 0;
 		}
 
@@ -144,30 +190,22 @@ static THD_FUNCTION(adc_thread, arg) {
 			continue;
 		}
 
-		// Read the external ADC pin and convert the value to a voltage.
-		static volatile float pwr;
+		// Read the external ADC pin voltage
+		float pwr = ADC_VOLTS(ADC_IND_EXT);
 
-		pwr = (float)ADC_Value[ADC_IND_EXT];
-		pwr /= 4095;
-		pwr *= V_REG;
+		// Override pwr value, when used from LISP
+		if(adc_detached){
+			pwr = adc1_override;
+		}
 
 		read_voltage = pwr;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a filter
+		static float filter_val = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(filter_val, pwr, FILTER_SAMPLES);
+
 		if (config.use_filter) {
-			static float filter_buffer[FILTER_SAMPLES];
-			static int filter_ptr = 0;
-
-			filter_buffer[filter_ptr++] = pwr;
-			if (filter_ptr >= FILTER_SAMPLES) {
-				filter_ptr = 0;
-			}
-
-			pwr = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				pwr += filter_buffer[i];
-			}
-			pwr /= FILTER_SAMPLES;
+			pwr = filter_val;
 		}
 
 		/*
@@ -228,30 +266,28 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read the external ADC pin and convert the value to a voltage.
 #ifdef ADC_IND_EXT2
-		float brake = (float)ADC_Value[ADC_IND_EXT2];
-		brake /= 4095;
-		brake *= V_REG;
+		float brake = ADC_VOLTS(ADC_IND_EXT2);
 #else
 		float brake = 0.0;
 #endif
 
+#ifdef HW_HAS_BRAKE_OVERRIDE
+		hw_brake_override(&brake);
+#endif
+
+		// Override brake value, when used from LISP
+		if(adc_detached == true){
+			brake = adc2_override;
+		}
+
 		read_voltage2 = brake;
 
-		// Optionally apply a mean value filter
+		// Optionally apply a filter
+		static float filter_val_2 = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(filter_val_2, brake, FILTER_SAMPLES);
+
 		if (config.use_filter) {
-			static float filter_buffer2[FILTER_SAMPLES];
-			static int filter_ptr2 = 0;
-
-			filter_buffer2[filter_ptr2++] = brake;
-			if (filter_ptr2 >= FILTER_SAMPLES) {
-				filter_ptr2 = 0;
-			}
-
-			brake = 0.0;
-			for (int i = 0;i < FILTER_SAMPLES;i++) {
-				brake += filter_buffer2[i];
-			}
-			brake /= FILTER_SAMPLES;
+			brake = filter_val_2;
 		}
 
 		// Map and truncate the read voltage
@@ -336,6 +372,18 @@ static THD_FUNCTION(adc_thread, arg) {
 			pwr_pedelec = 0.0;
 		}
 
+		// Override button values, when used from LISP
+		if(buttons_detached){
+			cc_button = cc_override;
+			rev_button = rev_override;
+			if (config.cc_button_inverted) {
+				cc_button = !cc_button;
+			}
+			if (config.cc_button_inverted) {
+				cc_button = !cc_button;
+			}
+		}
+
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
 		if (app_is_output_disabled()) {
@@ -386,11 +434,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		static systime_t last_time = 0;
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
-
-		// TODO: Remember what this was about?
-//		if (fabsf(pwr) > 0.001) {
-//			ramp_time = fminf(config.ramp_time_pos, config.ramp_time_neg);
-//		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -520,8 +563,10 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		}
 
+		bool range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
+
 		// If safe start is enabled and the output has not been zero for long enough
-		if (ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) {
+		if ((ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) || !range_ok) {
 			static int pulses_without_power_before = 0;
 			if (ms_without_power == pulses_without_power_before) {
 				ms_without_power = 0;
@@ -545,50 +590,40 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Reset timeout
 		timeout_reset();
 
-//		// If c is pressed and no throttle is used, maintain the current speed with PID control
-//		static bool was_pid = false;
-//
-//		// Filter RPM to avoid glitches
-//		static float filter_buffer[RPM_FILTER_SAMPLES];
-//		static int filter_ptr = 0;
-//		filter_buffer[filter_ptr++] = mc_interface_get_rpm();
-//		if (filter_ptr >= RPM_FILTER_SAMPLES) {
-//			filter_ptr = 0;
-//		}
-//
-//		float rpm_filtered = 0.0;
-//		for (int i = 0;i < RPM_FILTER_SAMPLES;i++) {
-//			rpm_filtered += filter_buffer[i];
-//		}
-//		rpm_filtered /= RPM_FILTER_SAMPLES;
-//
-//		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
-//			static float pid_rpm = 0.0;
-//
-//			if (!was_pid) {
-//				was_pid = true;
-//				pid_rpm = rpm_filtered;
-//			}
-//
-//			mc_interface_set_pid_speed(pid_rpm);
-//
-//			// Send the same duty cycle to the other controllers
-//			if (config.multi_esc) {
-//				float current = mc_interface_get_tot_current_directional_filtered();
-//
-//				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-//					can_status_msg *msg = comm_can_get_status_msg_index(i);
-//
-//					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-//						comm_can_set_current(msg->id, current);
-//					}
-//				}
-//			}
-//
-//			continue;
-//		}
-//
-//		was_pid = false;
+		// If c is pressed and no throttle is used, maintain the current speed with PID control
+		static bool was_pid = false;
+
+		// Filter RPM to avoid glitches
+		static float rpm_filtered = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), RPM_FILTER_SAMPLES);
+
+		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
+			static float pid_rpm = 0.0;
+
+			if (!was_pid) {
+				was_pid = true;
+				pid_rpm = rpm_filtered;
+			}
+
+			mc_interface_set_pid_speed(pid_rpm);
+
+			// Send the same duty cycle to the other controllers
+			if (config.multi_esc) {
+				float current = mc_interface_get_tot_current_directional_filtered();
+
+				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+					can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+						comm_can_set_current(msg->id, current);
+					}
+				}
+			}
+
+			continue;
+		}
+
+		was_pid = false;
 
 		// Find lowest RPM (for traction control)
 		float rpm_local = mc_interface_get_rpm();
@@ -651,13 +686,15 @@ static THD_FUNCTION(adc_thread, arg) {
 						can_status_msg *msg = comm_can_get_status_msg_index(i);
 
 						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-							if (config.tc) {
+							if (config.tc && config.tc_max_diff > 1.0) {
 								float rpm_tmp = msg->rpm;
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;
 								}
 
 								float diff = rpm_tmp - rpm_lowest;
+                                if (diff < TC_DIFF_MAX_PASS) diff = 0;
+                                if (diff > config.tc_max_diff) diff = config.tc_max_diff;
 								current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 							}
 
@@ -671,6 +708,8 @@ static THD_FUNCTION(adc_thread, arg) {
 
 					if (config.tc) {
 						float diff = rpm_local - rpm_lowest;
+                        if (diff < TC_DIFF_MAX_PASS) diff = 0;
+                        if (diff > config.tc_max_diff) diff = config.tc_max_diff;
 						current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
 					}
 				}

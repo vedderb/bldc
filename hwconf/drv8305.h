@@ -28,6 +28,8 @@ char* drv8305_faults_to_string(int faults);
 unsigned int drv8305_read_reg(int reg);
 void drv8305_write_reg(int reg, int data);
 
+#define HW_RESET_DRV_FAULTS()		drv8305_reset_faults()
+
 // Defines
 #define DRV8301_FAULT_FETLC_OC		(1 << 0)
 #define DRV8301_FAULT_FETHC_OC		(1 << 1)

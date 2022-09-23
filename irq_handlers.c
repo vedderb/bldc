@@ -36,7 +36,7 @@ CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 
 CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
 	if (EXTI_GetITStatus(HW_ENC_EXTI_LINE) != RESET) {
-		encoder_reset();
+		encoder_pin_isr();
 
 		// Clear the EXTI line pending bit
 		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);

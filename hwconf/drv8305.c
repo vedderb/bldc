@@ -17,14 +17,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#include "hw.h"
+#include "conf_general.h"
 #ifdef HW_HAS_DRV8305
 
 #include "drv8305.h"
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils.h"
+#include "utils_math.h"
 #include "terminal.h"
 #include "commands.h"
 #include <string.h>

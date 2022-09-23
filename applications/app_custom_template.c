@@ -23,8 +23,8 @@
 
 // Some useful includes
 #include "mc_interface.h"
-#include "utils.h"
-#include "encoder.h"
+#include "utils_math.h"
+#include "encoder/encoder.h"
 #include "terminal.h"
 #include "comm_can.h"
 #include "hw.h"
@@ -37,7 +37,7 @@
 
 // Threads
 static THD_FUNCTION(my_thread, arg);
-static THD_WORKING_AREA(my_thread_wa, 2048);
+static THD_WORKING_AREA(my_thread_wa, 1024);
 
 // Private functions
 static void pwm_callback(void);

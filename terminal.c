@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -26,17 +26,16 @@
 #include "commands.h"
 #include "hw.h"
 #include "comm_can.h"
-#include "utils.h"
+#include "utils_math.h"
+#include "utils_sys.h"
 #include "timeout.h"
-#include "encoder.h"
-#include "drv8301.h"
-#include "drv8305.h"
-#include "drv8320s.h"
-#include "drv8323s.h"
+#include "encoder/encoder.h"
 #include "app.h"
 #include "comm_usb.h"
 #include "comm_usb_serial.h"
 #include "mempools.h"
+#include "crc.h"
+#include "firmware_metadata.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -85,9 +84,6 @@ void terminal_process_string(char *str) {
 
 	if (strcmp(argv[0], "ping") == 0) {
 		commands_printf("pong\n");
-	} else if (strcmp(argv[0], "stop") == 0) {
-		mc_interface_set_duty(0);
-		commands_printf("Motor stopped\n");
 	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
@@ -103,17 +99,21 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "threads") == 0) {
 		thread_t *tp;
 		static const char *states[] = {CH_STATE_NAMES};
-		commands_printf("    addr    stack prio refs     state           name motor time    ");
-		commands_printf("-------------------------------------------------------------------");
+		static systime_t last_check_time = 0;
+		commands_printf("    addr    stack prio refs     state           name motor stackmin  time    ");
+		commands_printf("-----------------------------------------------------------------------------");
 		tp = chRegFirstThread();
 		do {
-			commands_printf("%.8lx %.8lx %4lu %4lu %9s %14s %5lu %lu (%.1f %%)",
+			int stack_left = utils_check_min_stack_left(tp);
+			commands_printf("%.8lx %.8lx %4lu %4lu %9s %14s %5lu %8d  %lu (%.1f %%)",
 					(uint32_t)tp, (uint32_t)tp->p_ctx.r13,
 					(uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-					states[tp->p_state], tp->p_name, tp->motor_selected, (uint32_t)tp->p_time,
-					(double)(100.0 * (float)tp->p_time / (float)chVTGetSystemTimeX()));
+					states[tp->p_state], tp->p_name, tp->motor_selected, stack_left, (uint32_t)tp->p_time,
+					(double)(100.0 * (float)tp->p_time / (float)(chVTGetSystemTimeX() - last_check_time)));
+			tp->p_time = 0;
 			tp = chRegNextThread(tp);
 		} while (tp != NULL);
+		last_check_time = chVTGetSystemTimeX();
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "fault") == 0) {
 		commands_printf("%s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
@@ -146,7 +146,7 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8301_FAULTS   : %s", drv8301_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #elif defined(HW_HAS_DRV8320S)
- 				if (fault_vec[i].fault == FAULT_CODE_DRV) {
+				if (fault_vec[i].fault == FAULT_CODE_DRV) {
 					commands_printf("DRV8320S_FAULTS  : %s", drv8320s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #elif defined(HW_HAS_DRV8323S)
@@ -154,13 +154,21 @@ void terminal_process_string(char *str) {
 					commands_printf("DRV8323S_FAULTS  : %s", drv8323s_faults_to_string(fault_vec[i].drv8301_faults));
 				}
 #endif
+				if (fault_vec[i].info_str != 0) {
+					char f_str[100];
+					strcpy(f_str, "Info             : ");
+					strcpy(f_str + 19, fault_vec[i].info_str);
+					if (fault_vec[i].info_argn == 0) {
+						commands_printf(f_str);
+					} else if (fault_vec[i].info_argn == 1) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0]);
+					} else if (fault_vec[i].info_argn == 2) {
+						commands_printf(f_str, (double)fault_vec[i].info_args[0], (double)fault_vec[i].info_args[1]);
+					}
+				}
 				commands_printf(" ");
 			}
 		}
-	} else if (strcmp(argv[0], "rpm") == 0) {
-		commands_printf("Electrical RPM: %.2f rpm\n", (double)mc_interface_get_rpm());
-	} else if (strcmp(argv[0], "tacho") == 0) {
-		commands_printf("Tachometer counts: %i\n", mc_interface_get_tachometer_value(0));
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -193,7 +201,7 @@ void terminal_process_string(char *str) {
 		commands_printf("Current 1 sample: %u", current1_samp);
 		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
-		commands_printf("Input voltage: %.2f\n", (double)GET_INPUT_VOLTAGE());
+		commands_printf("Input voltage: %.2f\n", (double)mc_interface_get_input_voltage_filtered());
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 		commands_printf("Gate driver power supply output voltage: %.2f\n", (double)GET_GATE_DRIVER_SUPPLY_VOLTAGE());
 #endif
@@ -252,14 +260,95 @@ void terminal_process_string(char *str) {
 		commands_printf("CAN devices seen on the bus the past second:\n");
 		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 			can_status_msg *msg = comm_can_get_status_msg_index(i);
+			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 5.0) {
+				commands_printf("MSG1 ID    : %i", msg->id);
+				commands_printf("RX Time    : %i", msg->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg->rx_time));
+				commands_printf("RPM        : %.2f", (double)msg->rpm);
+				commands_printf("Current    : %.2f", (double)msg->current);
+				commands_printf("Duty       : %.2f\n", (double)msg->duty);
+			}
 
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
-				commands_printf("ID                 : %i", msg->id);
-				commands_printf("RX Time            : %i", msg->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(msg->rx_time) * 1000.0));
-				commands_printf("RPM                : %.2f", (double)msg->rpm);
-				commands_printf("Current            : %.2f", (double)msg->current);
-				commands_printf("Duty               : %.2f\n", (double)msg->duty);
+			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
+			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 5.0) {
+				commands_printf("MSG2 ID    : %i", msg2->id);
+				commands_printf("RX Time    : %i", msg2->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg2->rx_time));
+				commands_printf("Ah         : %.2f", (double)msg2->amp_hours);
+				commands_printf("Ah Charged : %.2f\n", (double)msg2->amp_hours_charged);
+			}
+
+			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
+			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 5.0) {
+				commands_printf("MSG3 ID    : %i", msg3->id);
+				commands_printf("RX Time    : %i", msg3->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg3->rx_time));
+				commands_printf("Wh         : %.2f", (double)msg3->watt_hours);
+				commands_printf("Wh Charged : %.2f\n", (double)msg3->watt_hours_charged);
+			}
+
+			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
+			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 5.0) {
+				commands_printf("MSG4 ID    : %i", msg4->id);
+				commands_printf("RX Time    : %i", msg4->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg4->rx_time));
+				commands_printf("Current In : %.2f", (double)msg4->current_in);
+				commands_printf("Temp FET   : %.2f", (double)msg4->temp_fet);
+				commands_printf("Temp Motor : %.2f", (double)msg4->temp_motor);
+				commands_printf("PID pos    : %.2f\n", (double)msg4->pid_pos_now);
+			}
+
+			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(i);
+			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 5.0) {
+				commands_printf("MSG5 ID    : %i", msg5->id);
+				commands_printf("RX Time    : %i", msg5->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg5->rx_time));
+				commands_printf("Tacho      : %d", msg5->tacho_value);
+				commands_printf("V In       : %.2f\n", (double)msg5->v_in);
+			}
+
+			can_status_msg_6 *msg6 = comm_can_get_status_msg_6_index(i);
+			if (msg6->id >= 0 && UTILS_AGE_S(msg6->rx_time) < 5.0) {
+				commands_printf("MSG6 ID    : %i", msg6->id);
+				commands_printf("RX Time    : %i", msg6->rx_time);
+				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg6->rx_time));
+				commands_printf("ADC 1-3    : %.3f V, %.3f V, %.3f V", (double)msg6->adc_1, (double)msg6->adc_2, (double)msg6->adc_3);
+				commands_printf("PPM	    : %.2f\n", (double)msg6->ppm);
+			}
+
+			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
+				commands_printf("IO Board ADC 1_4");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_adc = comm_can_get_io_board_adc_5_8_index(i);
+			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
+				commands_printf("IO Board ADC 5_8");
+				commands_printf("ID                 : %i", io_adc->id);
+				commands_printf("RX Time            : %i", io_adc->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
+				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
+						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
+						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
+			}
+
+			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
+			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 5.0) {
+				commands_printf("IO Board Inputs");
+				commands_printf("ID                 : %i", io_in->id);
+				commands_printf("RX Time            : %i", io_in->rx_time);
+				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_in->rx_time) * 1000.0));
+				commands_printf("IN                 : %llu %llu %llu %llu %llu %llu %llu %llu\n",
+						(io_in->inputs >> 0) & 1, (io_in->inputs >> 1) & 1,
+						(io_in->inputs >> 2) & 1, (io_in->inputs >> 3) & 1,
+						(io_in->inputs >> 4) & 1, (io_in->inputs >> 5) & 1,
+						(io_in->inputs >> 6) & 1, (io_in->inputs >> 7) & 1);
 			}
 		}
 	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
@@ -386,9 +475,14 @@ void terminal_process_string(char *str) {
 
 		float res = 0.0;
 		float ind = 0.0;
-		mcpwm_foc_measure_res_ind(&res, &ind);
-		commands_printf("Resistance: %.6f ohm", (double)res);
-		commands_printf("Inductance: %.2f microhenry\n", (double)ind);
+		float ld_lq_diff = 0.0;
+		if (mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff)) {
+			commands_printf("Resistance: %.6f ohm", (double)res);
+			commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
+		} else {
+			commands_printf("Error measuring resistance or inductance\n");
+		}
+		
 
 		mc_interface_set_configuration(mcconf_old);
 
@@ -407,13 +501,13 @@ void terminal_process_string(char *str) {
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
-				const float res = (3.0 / 2.0) * mcconf->foc_motor_r;
 
 				// Disable timeout
 				systime_t tout = timeout_get_timeout_msec();
 				float tout_c = timeout_get_brake_current();
+				KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 				timeout_reset();
-				timeout_configure(60000, 0.0);
+				timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
 
 				for (int i = 0;i < 100;i++) {
 					mc_interface_set_duty(((float)i / 100.0) * duty);
@@ -433,19 +527,20 @@ void terminal_process_string(char *str) {
 				}
 
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
 				mc_interface_set_configuration(mcconf_old);
 
 				mempools_free_mcconf(mcconf);
 				mempools_free_mcconf(mcconf_old);
 
 				// Enable timeout
-				timeout_configure(tout, tout_c);
+				timeout_configure(tout, tout_c, tout_ksw);
 
 				vq_avg /= samples;
 				rpm_avg /= samples;
 				iq_avg /= samples;
 
-				float linkage = (vq_avg - res * iq_avg) / (rpm_avg * ((2.0 * M_PI) / 60.0));
+				float linkage = (vq_avg - mcconf->foc_motor_r * iq_avg) / RPM2RADPS_f(rpm_avg);
 
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {
@@ -487,6 +582,16 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "foc_state") == 0) {
 		mcpwm_foc_print_state();
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "foc_dc_cal") == 0) {
+		commands_printf("Performing DC offset calibration...");
+		int res = mcpwm_foc_dc_cal(true);
+		if (res >= 0) {
+			conf_general_store_mc_configuration((mc_configuration*)mc_interface_get_configuration(),
+					mc_interface_get_motor_thread() == 2);
+			commands_printf("Done!\n");
+		} else {
+			commands_printf("DC Cal Failed: %d\n", res);
+		}
 	} else if (strcmp(argv[0], "hw_status") == 0) {
 		commands_printf("Firmware: %d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR);
 #ifdef HW_NAME
@@ -498,15 +603,34 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
 
-		int curr0_offset;
-		int curr1_offset;
-		int curr2_offset;
+		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
+		commands_printf("Runtime  : %llu s", g_backup.runtime);
+
+		float curr0_offset;
+		float curr1_offset;
+		float curr2_offset;
 
 		mcpwm_foc_get_current_offsets(&curr0_offset, &curr1_offset, &curr2_offset,
 				mc_interface_get_motor_thread() == 2);
 
-		commands_printf("FOC Current Offsets: %d %d %d",
-				curr0_offset, curr1_offset, curr2_offset);
+		commands_printf("FOC Current Offsets: %.2f %.2f %.2f",
+				(double)curr0_offset, (double)curr1_offset, (double)curr2_offset);
+
+		float v0_offset;
+		float v1_offset;
+		float v2_offset;
+
+		mcpwm_foc_get_voltage_offsets(&v0_offset, &v1_offset, &v2_offset,
+				mc_interface_get_motor_thread() == 2);
+
+		commands_printf("FOC Voltage Offsets: %.4f %.4f %.4f",
+				(double)v0_offset, (double)v1_offset, (double)v2_offset);
+
+		mcpwm_foc_get_voltage_offsets_undriven(&v0_offset, &v1_offset, &v2_offset,
+				mc_interface_get_motor_thread() == 2);
+
+		commands_printf("FOC Voltage Offsets Undriven: %.4f %.4f %.4f",
+				(double)v0_offset, (double)v1_offset, (double)v2_offset);
 
 #ifdef COMM_USE_USB
 		commands_printf("USB config events: %d", comm_usb_serial_configured_cnt());
@@ -601,7 +725,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &time);
 			sscanf(argv[3], "%f", &angle);
 
-			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
+			if (fabsf(current) <= mc_interface_get_configuration()->l_current_max &&
 					angle >= 0.0 && angle <= 360.0) {
 				if (time <= 1e-6) {
 					timeout_reset();
@@ -620,6 +744,8 @@ void terminal_process_string(char *str) {
 							commands_printf("T left: %.2f s", (double)(time - t));
 						}
 					}
+
+					mc_interface_set_current(0.0);
 
 					commands_printf("Done\n");
 				}
@@ -651,7 +777,7 @@ void terminal_process_string(char *str) {
 #endif
 					commands_printf("Motor Current       : %.1f A", (double)(mcconf->l_current_max));
 					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf->foc_motor_r * 1e3));
-					commands_printf("Motor L             : %.2f microH", (double)(mcconf->foc_motor_l * 1e6));
+					commands_printf("Motor L             : %.2f uH", (double)(mcconf->foc_motor_l * 1e6));
 					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf->foc_motor_flux_linkage * 1e3));
 					commands_printf("Temp Comp           : %s", mcconf->foc_temp_comp ? "true" : "false");
 					if (mcconf->foc_temp_comp) {
@@ -673,7 +799,7 @@ void terminal_process_string(char *str) {
 					commands_printf("\nMOTOR 2\n");
 					commands_printf("Motor Current       : %.1f A", (double)(mcconf->l_current_max));
 					commands_printf("Motor R             : %.2f mOhm", (double)(mcconf->foc_motor_r * 1e3));
-					commands_printf("Motor L             : %.2f microH", (double)(mcconf->foc_motor_l * 1e6));
+					commands_printf("Motor L             : %.2f uH", (double)(mcconf->foc_motor_l * 1e6));
 					commands_printf("Motor Flux Linkage  : %.3f mWb", (double)(mcconf->foc_motor_flux_linkage * 1e3));
 					commands_printf("Temp Comp           : %s", mcconf->foc_temp_comp ? "true" : "false");
 					if (mcconf->foc_sensor_mode == FOC_SENSOR_MODE_SENSORLESS) {
@@ -706,8 +832,9 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "can_scan") == 0) {
 		bool found = false;
 		for (int i = 0;i < 254;i++) {
-			if (comm_can_ping(i)) {
-				commands_printf("Found VESC with ID: %d", i);
+			HW_TYPE hw_type;
+			if (comm_can_ping(i, &hw_type)) {
+				commands_printf("Found %s with ID: %d", utils_hw_type_to_string(hw_type), i);
 				found = true;
 			}
 		}
@@ -789,54 +916,6 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument.\n");
 		}
-	} else if (strcmp(argv[0], "encoder") == 0) {
-		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
-		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
-			mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
-			commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
-				(unsigned int)encoder_spi_get_val(),
-				encoder_spi_get_error_cnt(),
-				(double)encoder_spi_get_error_rate() * (double)100.0);
-
-			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
-					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
-				char sf[9];
-				char almc[9];
-				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[0], sf);
-				utils_byte_to_binary(encoder_ts5700n8501_get_raw_status()[7], almc);
-				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
-			}
-		}
-
-		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
-			commands_printf("Sin/Cos encoder signal below minimum amplitude: errors: %d, error rate: %.3f %%",
-					encoder_sincos_get_signal_below_min_error_cnt(),
-					(double)encoder_sincos_get_signal_below_min_error_rate() * (double)100.0);
-
-			commands_printf("Sin/Cos encoder signal above maximum amplitude: errors: %d, error rate: %.3f %%",
-					encoder_sincos_get_signal_above_max_error_cnt(),
-					(double)encoder_sincos_get_signal_above_max_error_rate() * (double)100.0);
-		}
-
-		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205) {
-			commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_loss_of_tracking_error_cnt(),
-				(double)encoder_resolver_loss_of_tracking_error_rate() * (double)100.0);
-			commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_degradation_of_signal_error_cnt(),
-				(double)encoder_resolver_degradation_of_signal_error_rate() * (double)100.0);
-			commands_printf("Resolver Loss Of Signal (>57%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_resolver_loss_of_signal_error_cnt(),
-				(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
-		}
-	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
-		encoder_ts57n8501_reset_errors();
-		commands_printf("Done!\n");
-	} else if (strcmp(argv[0], "encoder_clear_multiturn") == 0) {
-		encoder_ts57n8501_reset_multiturn();
-		commands_printf("Done!\n");
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 	} else if (strcmp(argv[0], "hall_analyze") == 0) {
@@ -869,13 +948,13 @@ void terminal_process_string(char *str) {
 				}
 
 				bool is_second_motor = mc_interface_get_motor_thread() == 2;
-				int hall_last = utils_read_hall(is_second_motor);
+				int hall_last = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 				float transitions[7] = {0.0};
 				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 				int transition_index = 0;
 
 				for (int i = 0;i < 720;i++) {
-					int hall = utils_read_hall(is_second_motor);
+					int hall = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
 					if (hall_last != hall) {
 						if (transition_index < 7) {
 							transitions[transition_index++] = phase;
@@ -908,6 +987,7 @@ void terminal_process_string(char *str) {
 
 				mc_interface_lock_override_once();
 				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
 				mcconf->motor_type = motor_type_old;
 				mc_interface_set_configuration(mcconf);
 				mempools_free_mcconf(mcconf);
@@ -958,6 +1038,38 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument.\n");
 		}
+	} else if (strcmp(argv[0], "crc") == 0) {
+		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
+		unsigned mc_crc1 = mc_interface_calc_crc(NULL, false);
+		unsigned app_crc0 = app_get_configuration()->crc;
+		unsigned app_crc1 = app_calc_crc(NULL);
+		commands_printf("MC CFG crc: 0x%04X (stored)  0x%04X (recalc)", mc_crc0, mc_crc1);
+		commands_printf("APP CFG crc: 0x%04X (stored)  0x%04X (recalc)", app_crc0, app_crc1);
+		commands_printf("Discrepancy is expected due to run-time recalculation of config params.\n");
+	} else if (strcmp(argv[0], "drv_reset_faults") == 0) {
+		HW_RESET_DRV_FAULTS();
+	} else if (strcmp(argv[0], "update_pid_pos_offset") == 0) {
+		if (argc == 3) {
+			float angle_now = -500.0;
+			int store = false;
+
+			sscanf(argv[1], "%f", &angle_now);
+			sscanf(argv[2], "%d", &store);
+
+			if (angle_now > -360.0 && angle_now < 360.0) {
+				mc_interface_update_pid_pos_offset(angle_now, store);
+				commands_printf("OK\n");
+			} else {
+				commands_printf("Invalid arguments\n");
+			}
+		}
+	} else if (strcmp(argv[0], "fwinfo") == 0) {
+		commands_printf("GIT Branch: %s", GIT_BRANCH_NAME);
+		commands_printf("GIT Hash  : %s", GIT_COMMIT_HASH);
+		commands_printf("Compiler  : %s\n", ARM_GCC_VERSION);
+	} else if (strcmp(argv[0], "rebootwdt") == 0) {
+		chSysLock();
+		for (;;) {__NOP();}
 	}
 
 	// The help command
@@ -968,9 +1080,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("ping");
 		commands_printf("  Print pong here to see if the reply works");
-
-		commands_printf("stop");
-		commands_printf("  Stop the motor");
 
 		commands_printf("last_adc_duration");
 		commands_printf("  The time the latest ADC interrupt consumed");
@@ -989,12 +1098,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("faults");
 		commands_printf("  Prints all stored fault codes and conditions when they arrived");
-
-		commands_printf("rpm");
-		commands_printf("  Prints the current electrical RPM");
-
-		commands_printf("tacho");
-		commands_printf("  Prints tachometer value");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");
@@ -1035,11 +1138,14 @@ void terminal_process_string(char *str) {
 
 		commands_printf("measure_linkage_openloop [current] [duty] [erpm_per_sec] [motor_res] [motor_ind]");
 		commands_printf("  Run the motor in openloop FOC and measure the flux linkage");
-		commands_printf("  example measure_linkage 5 0.5 1000 0.076 0.000015");
+		commands_printf("  example measure_linkage_openloop 5 0.5 1000 0.076 0.000015");
 		commands_printf("  tip: measure the resistance with measure_res first");
 
 		commands_printf("foc_state");
 		commands_printf("  Print some FOC state variables.");
+
+		commands_printf("foc_dc_cal");
+		commands_printf("  Calibrate current and voltage DC offsets.");
 
 		commands_printf("hw_status");
 		commands_printf("  Print some hardware status information.");
@@ -1069,21 +1175,27 @@ void terminal_process_string(char *str) {
 		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");
 		commands_printf("  initiates detection in all VESCs found on the CAN-bus.");
-		
-		commands_printf("encoder");
-		commands_printf("  Prints the status of the AS5047, AD2S1205, or TS5700N8501 encoder.");
-
-		commands_printf("encoder_clear_errors");
-		commands_printf("  Clear error of the TS5700N8501 encoder.)");
-
-		commands_printf("encoder_clear_multiturn");
-		commands_printf("  Clear multiturn counter of the TS5700N8501 encoder.)");
 
 		commands_printf("uptime");
 		commands_printf("  Prints how many seconds have passed since boot.");
 
 		commands_printf("hall_analyze [current]");
 		commands_printf("  Rotate motor in open loop and analyze hall sensors.");
+
+		commands_printf("crc");
+		commands_printf("  Print CRC values.");
+
+		commands_printf("drv_reset_faults");
+		commands_printf("  Reset gate driver faults (if possible).");
+
+		commands_printf("update_pid_pos_offset [angle_now] [store]");
+		commands_printf("  Update position PID offset.");
+
+		commands_printf("fwinfo");
+		commands_printf("  Print detailed firmware info.");
+
+		commands_printf("rebootwdt");
+		commands_printf("  Reboot using the watchdog timer.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {
@@ -1114,6 +1226,14 @@ void terminal_add_fault_data(fault_data *data) {
 	fault_vec[fault_vec_write++] = *data;
 	if (fault_vec_write >= FAULT_VEC_LEN) {
 		fault_vec_write = 0;
+	}
+}
+
+mc_fault_code terminal_get_first_fault(void) {
+	if (fault_vec_write == 0) {
+		return FAULT_CODE_NONE;
+	} else {
+		return fault_vec[0].fault;
 	}
 }
 

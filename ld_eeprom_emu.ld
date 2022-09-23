@@ -26,13 +26,14 @@
 MEMORY
 {
     flash : org = 0x08000000, len = 16k
-    flash2 : org = 0x0800C000, len = 393216 - 16	/* NEW_APP_MAX_SIZE - CRC_INFO */
-	crcinfo : org = 0x0805FFF0, len = 8		/* CRC info */
+    flash2 : org = 0x0800C000, len = 524288 - 16	/* NEW_APP_MAX_SIZE - CRC_INFO */
+	crcinfo : org = 0x0807FFF0, len = 8		/* CRC info */
     ram0  : org = 0x20000000, len = 128k    /* SRAM1 + SRAM2 */
     ram1  : org = 0x20000000, len = 112k    /* SRAM1 */
     ram2  : org = 0x2001C000, len = 16k     /* SRAM2 */
     ram3  : org = 0x00000000, len = 0
-    ram4  : org = 0x10000000, len = 64k     /* CCM SRAM */
+    ram4  : org = 0x10000000, len = 63k     /* CCM SRAM */
+    libif : org = 0x1000FC00, len = 1k
     ram5  : org = 0x40024000, len = 4k      /* BCKP SRAM */
     ram6  : org = 0x00000000, len = 0
     ram7  : org = 0x00000000, len = 0
@@ -146,7 +147,7 @@ SECTIONS
     _etext = .;
     _textdata = _etext;
     
-    _crcinfo_start_address = 0x0805FFF0;
+    _crcinfo_start_address = 0x0807FFF0;
     
     .crcinfo _crcinfo_start_address :
 	{
@@ -239,6 +240,12 @@ SECTIONS
         . = ALIGN(4);
         __ram4_free__ = .;
     } > ram4
+    
+    .libif (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.libif)
+    } > libif
 
     .ram5 (NOLOAD) : ALIGN(4)
     {

@@ -1,3 +1,107 @@
+=== FW 6.00 <dev> ===
+* Added stack checks.
+* Release motor fix when cc_min_current is 0.
+* Added support for NTC and PTC temperature sensors with custom resisrance and base temperature.
+* Added sandboxed lisp scripting using https://github.com/svenssonjoel/lispBM.
+* Encoder driver split and rewrite to make it easier to support more encoders.
+* Flash writes now work on lower MCU voltages too.
+* Added fwinfo terminal command.
+* CAN status messages are now configured using bitfields.
+* There are two rates at which CAN status messages can be sent now.
+* New silent HFI mode with much better performance at high load.
+* Added app ADC min and max voltage limits for throttle fault detection.
+* Another new silent HFI mode that is less sensitive to getting the inductance correct.
+* Added openloop current boost parameter.
+* Added openloop current max parameter.
+* Added support for dynamic loading of C libraries.
+* Added more observers:
+ - mxlemming
+ - ortega with flux linkage tracking
+ - mxlemming with flux linkage tracking
+* AS5x47 encoder support: https://github.com/vedderb/bldc/pull/511
+* Disable BMS limit options.
+* Added PT1000 temperature sensor support.
+
+=== FW 5.03 ===
+* Fixed inductance measurement bug.
+* Speed tracker windup protection.
+* Phase filter support.
+* Phase voltage offset calibration.
+* Better current offset calibration.
+* Added power switch commands.
+* Synchronize observer state when running in open loop.
+* Force oberver state magnitude above 50% of flux linkage. This prevents the motor from getting stuck and 'screaming'.
+* Observer global convergence update. Helps tracking the motor through 0 speed.
+* Added HFI start sensor mode.
+* Added TEMP_SENSOR_KTY84_130.
+* Major UAVCAN update. See: https://github.com/vedderb/bldc/pull/269
+* Avoid numerical instability when mapping is done over a narrow range. See: https://github.com/vedderb/bldc/issues/262
+* App Balance updates.
+* Added servo_out_enable appconf option, so that the PPM port can be used to control servos with the default firmware.
+* Better current controller windup protection.
+* Field weakening support (experimental, be careful and use at your own risk).
+* Use filtered current for axis decoupling.
+* Odometer is now persistent after firmware updates.
+* Added hw runtime counter (see hw_status in terminal)
+* Added custom UI support.
+* Limit hall sensor angle rate of change based on ERPM.
+* Added p_pid_gain_dec_angle parameter.
+* Low pass filter input voltage.
+* Dual hardware CAN-scan fix.
+* Dynamic QML-script write support.
+* Use fast speed tracker for current controller.
+* Disable motor for 5 seconds after flash operations.
+* Added kill switch support.
+* Added process derivative term to position controller.
+* Added position PID-controller angle offset.
+* Configurable PID controller rate.
+* Added several AUX port modes.
+* Added configurable safe start modes.
+* Added fusion IMU filter.
+* Added constant torque PAS mode.
+* Correct scaling for resistance and inductance.
+* Fixed inductance measurement bug with f_sw > 30k.
+* Corrected inductance measurement algorithm.
+* Fixed max power loss calculation.
+* Better input current estimation.
+* Added raw sampled data mode.
+* Compensate inductance for motor saliency in observer.
+* Added MTPA mode based on measured current.
+* Faster overvoltage protection.
+* Added statistics counters.
+* Added configurable observer offset.
+
+=== FW 5.02 ===
+* IMU calibration improvement.
+* Added COMM_GET_MCCONF_TEMP command.
+* Added bidirectional current command to VESC remote.
+* Fixed motor temperature reading on hw with ADC mux.
+* Added speed PID input ramping option.
+* Added LSM6DS3 IMU support.
+* Added MTPA support. See See: https://github.com/vedderb/bldc/pull/179
+* Added HW_HD75 support.
+* NRF52 UICR write fix.
+* App PPM rework. See https://github.com/vedderb/bldc/pull/192
+* Added bm_reset terminal command.
+* Added bm support for STM32F30x and STM32L47x.
+* App Balance updates. See https://github.com/vedderb/bldc/pull/193
+* Motor current now based on magnitude of both axes.
+* Initial VESC BMS support.
+* Hall sensor interpolation improvement.
+* Made hall sensor filter configurable.
+* Added locking time and ramp up time parameters to sensorless startup.
+* Removed D axis current injection.
+* Initial VESC IO-board support.
+* Added hall sensor interpolation ERPM config option.
+* Use fast speed estimator for RPM limit.
+* Avoid accumulated rounding error when using PID position angle division.
+* Added UAVCAN raw throttle drive mode (current or duty cycle control).
+* Added MT6816 encoder support. See https://github.com/vedderb/bldc/pull/238
+* Added modulation-based D axis current controller gain scaling. Addresses https://github.com/vedderb/bldc/pull/220
+* Added PAS app. See: https://github.com/vedderb/bldc/pull/243
+* Added 100k CAN-baudrate.
+* Added 100k NTC temperature sensor support.
+
 === FW 5.01 ===
 * Fixed PPM bug in previous release.
 
@@ -477,4 +581,3 @@
 * Hardware specific default configuration support.
 * Stop functionality for apps so that reboots are not required anymore when changing app.
 * EEPROM emulation bug fix: https://github.com/vedderb/bldc/issues/27
-

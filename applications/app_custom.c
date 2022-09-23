@@ -22,3 +22,20 @@
 #ifdef APP_CUSTOM_TO_USE
 #include APP_CUSTOM_TO_USE
 #endif
+
+#ifdef APP_CUSTOM_TO_USE_FILE_2
+#include APP_CUSTOM_TO_USE_FILE_2
+#endif
+
+#ifdef APP_CUSTOM_TO_USE_FILE_3
+#include APP_CUSTOM_TO_USE_FILE_3
+#endif
+
+#ifdef APP_CUSTOM_TO_USE_FILE_4
+#include APP_CUSTOM_TO_USE_FILE_4
+#endif
+
+#ifdef APP_CUSTOM_TO_USE_FILE_5
+#include APP_CUSTOM_TO_USE_FILE_5
+#endif
+

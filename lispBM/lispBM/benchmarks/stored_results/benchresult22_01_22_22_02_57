@@ -1,0 +1,9 @@
+File, Load_time, Eval_time
+q2.lisp, 0.002000000, 1.89499
+dec_cnt2.lisp, 0.001399999, 3.629899978
+dec_cnt1.lisp, 0.001399999, 4.436299800
+fibonacci.lisp, 0.001399999, 4.482200145
+dec_cnt3.lisp, 0.001500000, 1.535199999
+tak.lisp, 0.002000000, 4.374100208
+fibonacci_tail.lisp, 0.001900000, 0.005200000
+insertionsort.lisp, 0.002700000, 0.006099999
