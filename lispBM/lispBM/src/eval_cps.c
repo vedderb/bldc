@@ -731,9 +731,10 @@ void lbm_block_ctx_from_extension(void) {
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   eval_context_t *found = NULL;
-  bool found_sleeping = false;
+  bool found_blocked = false;
 
   found = lookup_ctx(&blocked, cid);
+  if (found) found_blocked = true;
 
   if (found == NULL) {
     found = lookup_ctx(&queue, cid);
@@ -741,7 +742,6 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
   if (found == NULL) {
     found = lookup_ctx(&sleeping, cid);
-    found_sleeping = true;
   }
 
   if (found) {
@@ -753,7 +753,7 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
     found->mailbox = new_mailbox;
 
-    if (!found_sleeping){
+    if (found_blocked){
       drop_ctx(&blocked,found);
       drop_ctx(&queue,found);
 
@@ -1118,10 +1118,9 @@ static inline bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
 
   if (lbm_env_lookup_b(value, ctx->curr_exp, ctx->curr_env)) {
     return true;
-  } else if (lbm_env_lookup_b(value, ctx->curr_exp, *lbm_get_env_ptr())) {
-    return true;
+  } else {
+    return lbm_env_lookup_b(value, ctx->curr_exp, *lbm_get_env_ptr());
   }
-  return false;
 }
 
 static inline void dynamic_load(eval_context_t *ctx) {

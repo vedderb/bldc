@@ -31,7 +31,7 @@ int lbm_variables_init(lbm_value *variable_storage, int variable_storage_size) {
   variable_table = variable_storage;
   variable_table_size = variable_storage_size;
   for (int i = 0; i < variable_table_size; i ++) {
-    variable_table[i] = lbm_enc_sym(SYM_NIL);
+    variable_table[i] = ENC_SYM_NIL;
   }
   return 1;
 }
@@ -52,7 +52,7 @@ lbm_value lbm_get_variable_by_index(int i) {
       i < variable_table_size) {
     return variable_table[i];
   } else {
-    return lbm_enc_sym(SYM_NIL);
+    return ENC_SYM_NIL;
   }
 }
 
@@ -73,7 +73,7 @@ lbm_value lbm_set_var(lbm_uint index, lbm_value value) {
       i < variable_table_size) {
     variable_table[i] = value;
   } else {
-    return lbm_enc_sym(SYM_NIL);
+    return ENC_SYM_NIL;
   }
   return value;
 }

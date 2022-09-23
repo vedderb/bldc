@@ -41,11 +41,8 @@ lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 
 /* Tokenizer state for strings */
-static lbm_tokenizer_string_state_t string_tok_state;
-/* Tokenizer statefor compressed data */
-static tokenizer_compressed_state_t comp_tok_state;
-/* shared tokenizer */
-static lbm_tokenizer_char_stream_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
 
 
 bool dyn_load(const char *str, const char **code) {
@@ -166,19 +163,15 @@ void *eval_thd_wrapper(void *v) {
 int main(int argc, char **argv) {
 
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  bool compress_decompress = false;
   pthread_t lispbm_thd;
 
   int c;
   opterr = 1;
 
-  while (( c = getopt(argc, argv, "gch:")) != -1) {
+  while (( c = getopt(argc, argv, "gh:")) != -1) {
     switch (c) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
-      break;
-    case 'c':
-      compress_decompress = true;
       break;
     case '?':
       break;
@@ -188,7 +181,6 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
-  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
 
   if (argc - optind < 1) {
@@ -249,27 +241,9 @@ int main(int argc, char **argv) {
 
   lbm_cid cid;
 
-  lbm_value t;
-  char *compressed_code;
-  char decompress_code[8192];
-
-  if (compress_decompress) {
-    uint32_t compressed_size = 0;
-    compressed_code = lbm_compress(code_buffer, &compressed_size);
-    if (!compressed_code) {
-      printf("Error compressing code\n");
-      return 0;
-    }
-    lbm_decompress(decompress_code, 8192, compressed_code);
-    printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
-    lbm_create_char_stream_from_compressed(&comp_tok_state,
-                                           &string_tok,
-                                           compressed_code);
-  } else {
-     lbm_create_char_stream_from_string(&string_tok_state,
-                                        &string_tok,
-                                        code_buffer);
-  }
+  lbm_create_string_char_channel(&string_tok_state,
+                                 &string_tok,
+                                 code_buffer);
 
   lbm_pause_eval();
   while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -280,13 +254,7 @@ int main(int argc, char **argv) {
 
   lbm_continue_eval();
 
-  t = lbm_wait_ctx(cid, WAIT_TIMEOUT);
-
-  char output[1024];
-
-  if (compress_decompress) {
-    free(compressed_code);
-  }
+  lbm_wait_ctx(cid, WAIT_TIMEOUT);
 
   return 0;
 }
