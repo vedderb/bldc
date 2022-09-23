@@ -20,6 +20,7 @@
  - mxlemming with flux linkage tracking
 * AS5x47 encoder support: https://github.com/vedderb/bldc/pull/511
 * Disable BMS limit options.
+* Added PT1000 temperature sensor support.
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.
