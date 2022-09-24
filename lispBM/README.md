@@ -1870,7 +1870,7 @@ Where \[x\] is i8, u8, i16, u16, i32, u32 or f32. Index is the position in the a
 By default the byte order is big endian. The byte order can also be specified as an extra argument. E.g. to read 4 bytes as int32 from position 6 in little endian you can use
 
 ```clj
-(bufget-i32 arr 6 little-endian)
+(bufget-i32 arr 6 'little-endian)
 ```
 
 #### bufset-\[x\]
