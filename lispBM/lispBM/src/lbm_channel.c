@@ -152,6 +152,11 @@ bool buffered_read(lbm_char_channel_t *chan, char *res) {
   mutex_lock(&st->lock);
   if (!buffered_channel_is_empty(chan)) {
     *res = buffer[st->read_pos];
+    st->column++;
+    if (*res == '\n') {
+      st->column = 0;
+      st->row ++;
+    }
     st->read_pos = (st->read_pos + 1) % TOKENIZER_BUFFER_SIZE;
     ret = true;
   }

@@ -282,7 +282,7 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
   printf_callback("***\tError:\t%s\n", buf);
 
   if (lbm_is_symbol(error) &&
-      error == SYM_RERROR) {
+      error == ENC_SYM_RERROR) {
     printf_callback("***\t\tLine: %u\n", row);
     printf_callback("***\t\tColumn: %u\n", col);
   }
@@ -2381,8 +2381,9 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
     CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
-    lbm_channel_reader_close(lbm_dec_channel(stream));
-    error_ctx(ENC_SYM_RERROR);
+    lbm_char_channel_t *str = lbm_dec_channel(stream);
+    lbm_channel_reader_close(str);
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   }
 }
 
@@ -2544,6 +2545,7 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
        lbm_dec_sym(ctx->r) == SYM_DOT)) {
     lbm_set_error_reason((char*)parse_error_dot);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    done_reading(ctx->id);
     return;
   } else {
     if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
@@ -2587,6 +2589,7 @@ static inline void cont_read_done(eval_context_t *ctx) {
   } else {
     ctx->app_cont = true;
   }
+  done_reading(ctx->id);
 }
 
 static inline void cont_read_quote_result(eval_context_t *ctx) {
