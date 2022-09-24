@@ -30,17 +30,21 @@ static lbm_uint big_endian = 0;
 static lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_append_i24(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_append_u24(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn);
 
 static lbm_value array_extension_buffer_get_i8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_get_i24(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_u8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_get_u24(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn);
 
@@ -62,17 +66,21 @@ bool lbm_array_extensions_init(void) {
   res = res && lbm_add_extension("free", array_extension_unsafe_free_array);
   res = res && lbm_add_extension("bufset-i8", array_extension_buffer_append_i8);
   res = res && lbm_add_extension("bufset-i16", array_extension_buffer_append_i16);
+  res = res && lbm_add_extension("bufset-i24", array_extension_buffer_append_i24);
   res = res && lbm_add_extension("bufset-i32", array_extension_buffer_append_i32);
   res = res && lbm_add_extension("bufset-u8", array_extension_buffer_append_u8);
   res = res && lbm_add_extension("bufset-u16", array_extension_buffer_append_u16);
+  res = res && lbm_add_extension("bufset-u24", array_extension_buffer_append_u24);
   res = res && lbm_add_extension("bufset-u32", array_extension_buffer_append_u32);
   res = res && lbm_add_extension("bufset-f32", array_extension_buffer_append_f32);
 
   res = res && lbm_add_extension("bufget-i8", array_extension_buffer_get_i8);
   res = res && lbm_add_extension("bufget-i16", array_extension_buffer_get_i16);
+  res = res && lbm_add_extension("bufget-i24", array_extension_buffer_get_i24);
   res = res && lbm_add_extension("bufget-i32", array_extension_buffer_get_i32);
   res = res && lbm_add_extension("bufget-u8", array_extension_buffer_get_u8);
   res = res && lbm_add_extension("bufget-u16", array_extension_buffer_get_u16);
+  res = res && lbm_add_extension("bufget-u24", array_extension_buffer_get_u24);
   res = res && lbm_add_extension("bufget-u32", array_extension_buffer_get_u32);
   res = res && lbm_add_extension("bufget-f32", array_extension_buffer_get_f32);
 
@@ -166,6 +174,55 @@ lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
     } else {
       data[index]    = (uint8_t)value;
       data[index +1] = (uint8_t)(value >> 8);
+    }
+    res = ENC_SYM_TRUE;
+  } break;
+  default:
+    break;
+  }
+  return res;
+}
+
+lbm_value array_extension_buffer_append_i24(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_EERROR;
+  bool be = true;
+
+  switch(argn) {
+
+  case 4:
+    if (lbm_type_of(args[3]) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(args[3]) == little_endian) {
+      be = false;
+    }
+    /* fall through */
+  case 3: {
+    if(lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
+       !lbm_is_number(args[1]) ||
+       !lbm_is_number(args[2])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_TYPE_BYTE) {
+      return res;
+    }
+    lbm_uint index = lbm_dec_as_u32(args[1]);
+    lbm_int value = lbm_dec_as_i32(args[2]);
+
+    if (index+2 >= array->size) {
+      return res;
+    }
+
+    uint8_t *data = (uint8_t*)array->data;
+
+    if (be) {
+      data[index+2]  = (uint8_t)value;
+      data[index+1]  = (uint8_t)(value >> 8);
+      data[index]    = (uint8_t)(value >> 16);
+    } else {
+      data[index]    = (uint8_t)value;
+      data[index+1]  = (uint8_t)(value >> 8);
+      data[index+2]  = (uint8_t)(value >> 16);
     }
     res = ENC_SYM_TRUE;
   } break;
@@ -306,6 +363,55 @@ lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+lbm_value array_extension_buffer_append_u24(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_EERROR;
+  bool be = true;
+
+  switch(argn) {
+
+  case 4:
+    if (lbm_type_of(args[3]) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(args[3]) == little_endian) {
+      be = false;
+    }
+    /* fall through */
+  case 3: {
+    if(lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
+       !lbm_is_number(args[1]) ||
+       !lbm_is_number(args[2])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_TYPE_BYTE) {
+      return res;
+    }
+    lbm_uint index = lbm_dec_as_u32(args[1]);
+    lbm_uint value = lbm_dec_as_u32(args[2]);
+
+    if (index+2 >= array->size) {
+      return res;
+    }
+
+    uint8_t *data = (uint8_t*)array->data;
+
+    if (be) {
+      data[index+2]  = (uint8_t)value;
+      data[index+1]  = (uint8_t)(value >> 8);
+      data[index]    = (uint8_t)(value >> 16);
+    } else {
+      data[index]    = (uint8_t)value;
+      data[index +1] = (uint8_t)(value >> 8);
+      data[index +2] = (uint8_t)(value >> 16);
+    }
+    res = ENC_SYM_TRUE;
+  } break;
+  default:
+    break;
+  }
+  return res;
+}
+
 lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_EERROR;
@@ -427,7 +533,7 @@ lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
     float f_value = (float)lbm_dec_as_float(args[2]);
     lbm_value value = float_to_u(f_value);
     lbm_uint index = lbm_dec_as_u32(args[1]);
-    
+
     if (index+3 >= array->size) {
       return res;
     }
@@ -531,6 +637,57 @@ lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+lbm_value array_extension_buffer_get_i24(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  bool be = true;
+
+  switch(argn) {
+
+  case 3:
+    if (lbm_type_of(args[2]) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(args[2]) == little_endian) {
+      be = false;
+    }
+    /* fall through */
+  case 2: {
+    if (lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
+        !lbm_is_number(args[1])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_TYPE_BYTE) {
+      return res;
+    }
+
+    lbm_uint index = lbm_dec_as_u32(args[1]);
+    lbm_uint value = 0;
+
+    if (index+2 >= array->size) {
+      return res;
+    }
+    uint8_t *data = (uint8_t*)array->data;
+
+    if (be) {
+      value =
+        (lbm_uint) data[index+2] |
+        (lbm_uint) data[index+1] << 8 |
+        (lbm_uint) data[index] << 16;
+    } else {
+      value =
+        (lbm_uint) data[index] |
+        (lbm_uint) data[index+1] << 8 |
+        (lbm_uint) data[index+2] << 16;
+    }
+
+    res = lbm_enc_i((int32_t)value);
+  } break;
+  default:
+    break;
+  }
+  return res;
+}
+
 
 lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
@@ -660,6 +817,57 @@ lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+lbm_value array_extension_buffer_get_u24(lbm_value *args, lbm_uint argn) {
+  lbm_value res =  ENC_SYM_EERROR;
+  bool be = true;
+
+  switch(argn) {
+
+  case 3:
+    if (lbm_type_of(args[2]) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(args[2]) == little_endian) {
+      be = false;
+    }
+    /* fall through */
+  case 2: {
+    if (lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
+        !lbm_is_number(args[1])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_TYPE_BYTE) {
+      return res;
+    }
+
+    lbm_uint index = lbm_dec_as_u32(args[1]);
+    lbm_int value = 0;
+
+    if (index+2 >= array->size) {
+      return res;
+    }
+    uint8_t *data = (uint8_t*)array->data;
+
+    if (be) {
+      value = (lbm_int)(
+        (lbm_uint) data[index+2] |
+        (lbm_uint) data[index+1] << 8 |
+        (lbm_uint) data[index] << 16);
+    } else {
+      value = (lbm_int)(
+        (lbm_uint) data[index] |
+        (lbm_uint) data[index+1] << 8 |
+        (lbm_uint) data[index+2] << 16);
+    }
+
+    res = lbm_enc_i(value);
+  } break;
+  default:
+    break;
+  }
+  return res;
+}
+
 
 lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
