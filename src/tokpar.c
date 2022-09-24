@@ -541,7 +541,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
 
   char c_val;
   int n = 0;
-  bool possible = false;
 
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
     return lbm_enc_sym(SYM_TOKENIZER_DONE);
@@ -638,7 +637,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     }
     return res;
   } else if (n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
@@ -654,7 +652,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char));
     return res;
   } else if (n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   } else if (n == TOKENIZER_STRING_ERROR) {
     return lbm_enc_sym(SYM_RERROR);
@@ -672,7 +669,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       return lbm_enc_double(f_val.value);
     }
   } else if ( n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
@@ -709,7 +705,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       break;
     }
   } else if (n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
@@ -740,7 +735,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     }
     return res;
   } else if (n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
@@ -749,25 +743,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     if (!peek) lbm_channel_drop(chan,(unsigned int)n);
     return lbm_enc_char(c_val);
   } else if (n == TOKENIZER_NEED_MORE) {
-    possible = true;
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  // Status of "more" can have changed between
-  // the start of this function and this location.
-
-  if (!possible) {
-    return ENC_SYM_RERROR;
-  }
-  if (lbm_channel_more(chan)) {
-    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
-  } else {
-    if (lbm_channel_is_empty(chan)) {
-      return lbm_enc_sym(SYM_TOKENIZER_DONE);
-    } else {
-      return lbm_enc_sym(SYM_TOKENIZER_WAIT);
-    }
-  }
-  return res;
+  return ENC_SYM_RERROR;
 }
 
