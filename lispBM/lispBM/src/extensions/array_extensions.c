@@ -40,7 +40,6 @@ static lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint arg
 
 static lbm_value array_extension_buffer_get_i8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn);
-static lbm_value array_extension_buffer_get_i24(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_u8(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get_u16(lbm_value *args, lbm_uint argn);
@@ -76,7 +75,6 @@ bool lbm_array_extensions_init(void) {
 
   res = res && lbm_add_extension("bufget-i8", array_extension_buffer_get_i8);
   res = res && lbm_add_extension("bufget-i16", array_extension_buffer_get_i16);
-  res = res && lbm_add_extension("bufget-i24", array_extension_buffer_get_i24);
   res = res && lbm_add_extension("bufget-i32", array_extension_buffer_get_i32);
   res = res && lbm_add_extension("bufget-u8", array_extension_buffer_get_u8);
   res = res && lbm_add_extension("bufget-u16", array_extension_buffer_get_u16);
@@ -637,57 +635,6 @@ lbm_value array_extension_buffer_get_i16(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
-
-lbm_value array_extension_buffer_get_i24(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_EERROR;
-  bool be = true;
-
-  switch(argn) {
-
-  case 3:
-    if (lbm_type_of(args[2]) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(args[2]) == little_endian) {
-      be = false;
-    }
-    /* fall through */
-  case 2: {
-    if (lbm_type_of(args[0]) != LBM_TYPE_ARRAY ||
-        !lbm_is_number(args[1])) {
-      return res;
-    }
-    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-    if (array->elt_type != LBM_TYPE_BYTE) {
-      return res;
-    }
-
-    lbm_uint index = lbm_dec_as_u32(args[1]);
-    lbm_uint value = 0;
-
-    if (index+2 >= array->size) {
-      return res;
-    }
-    uint8_t *data = (uint8_t*)array->data;
-
-    if (be) {
-      value =
-        (lbm_uint) data[index+2] |
-        (lbm_uint) data[index+1] << 8 |
-        (lbm_uint) data[index] << 16;
-    } else {
-      value =
-        (lbm_uint) data[index] |
-        (lbm_uint) data[index+1] << 8 |
-        (lbm_uint) data[index+2] << 16;
-    }
-
-    res = lbm_enc_i((int32_t)value);
-  } break;
-  default:
-    break;
-  }
-  return res;
-}
-
 
 lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
