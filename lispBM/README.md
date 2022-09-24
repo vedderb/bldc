@@ -784,7 +784,7 @@ Apply throttle curve on value. accel (range -1 to 1) is the curve constant for a
 
 #### bits-enc-int
 ```clj
-(bits-enc-int initial number offset bits)
+(bits-enc-int initial offset number bits)
 ```
 
 Put bits of number in initial at offset and return the result. For example, if the bits initial are aaaaaaaa, number is bbb, offset is 2 and bits is 3 the result is aaabbbaa. For reference, the corresponding operation in C is:
