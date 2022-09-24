@@ -57,8 +57,6 @@
 #define EXPAND_MACRO      ((18 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_ARGS      ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define NAMESPACE_POP     ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define TERMINATE_COLON   ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define EXIT_ATOMIC       ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
 #define READ_NEXT_TOKEN       ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
@@ -70,10 +68,8 @@
 #define READ_BACKQUOTE_RESULT ((38 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_COMMAAT_RESULT   ((39 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_COMMA_RESULT     ((40 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_TERMINATE_COLON  ((41 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_START_ARRAY      ((42 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_APPEND_ARRAY     ((43 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_CHECK_COLON      ((44 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
 
 static const char* parse_error_eof = "End of parse stream";
@@ -1215,32 +1211,6 @@ static inline void eval_callcc(eval_context_t *ctx) {
   ctx->app_cont = false;
 }
 
-static inline void eval_namespace(eval_context_t *ctx) {
-
-  lbm_value arg = lbm_cadr(ctx->curr_exp);
-  lbm_value body = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
-
-  if (lbm_is_symbol(arg) && !lbm_is_symbol_nil(arg)) {
-    lbm_value namespace_env = ENC_SYM_NIL;
-    if (lbm_env_lookup_b(&namespace_env, arg, lbm_get_env())) {
-      /* namespace exists, enter it */
-    } else {
-      lbm_value new_env;
-      WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),arg,namespace_env), ENC_SYM_NIL, ENC_SYM_NIL);
-      *lbm_get_env_ptr() = new_env;
-    }
-
-    CHECK_STACK(lbm_push_3(&ctx->K, arg, lbm_get_env(), NAMESPACE_POP));
-
-    *lbm_get_env_ptr() = namespace_env;
-
-    ctx->curr_exp = body;
-    ctx->app_cont = false;
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
-}
-
 static inline void eval_define(eval_context_t *ctx) {
   lbm_value args = lbm_cdr(ctx->curr_exp);
   lbm_value key = lbm_car(args);
@@ -2141,19 +2111,6 @@ static inline void cont_match(eval_context_t *ctx) {
   }
 }
 
-
-static inline void cont_namespace_pop(eval_context_t *ctx) {
-
-  lbm_value env;
-  lbm_value leaving_space;
-  lbm_pop_2(&ctx->K, &env, &leaving_space);
-  lbm_value leaving_env = lbm_get_env();
-  *lbm_get_env_ptr() = env;
-  lbm_value new_env;
-  WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),leaving_space,leaving_env), leaving_space, leaving_env);
-  ctx->app_cont = true;
-}
-
 static inline void cont_exit_atomic(eval_context_t *ctx) {
   is_atomic = false;
   ctx->app_cont = true;
@@ -2215,6 +2172,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       done_reading(ctx->id);
       return;
     case SYM_TOKENIZER_WAIT:
+      printf("wait\n");
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       yield_ctx(EVAL_CPS_MIN_SLEEP);
       return;
@@ -2295,7 +2253,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       ctx->app_cont = true;
       break;
     default: // arbitrary symbol form
-      CHECK_STACK(lbm_push_3(&ctx->K, stream, tok, READ_CHECK_COLON));
+      ctx->r = tok;
       ctx->app_cont = true;
       break;
     }
@@ -2625,53 +2583,6 @@ static inline void cont_read_comma_result(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static inline void cont_read_terminate_colon(eval_context_t *ctx) {
-  lbm_value sym;
-  lbm_value term = ENC_SYM_NIL;
-  lbm_value t1;
-  lbm_value t2;
-  lbm_value t3;
-  lbm_pop(&ctx->K, &sym);
-
-  CONS_WITH_GC(t1, ctx->r, term, sym);
-  CONS_WITH_GC(t2, sym, t1, t1);
-  CONS_WITH_GC(t3, ENC_SYM_NAMESPACE, t2, t2);
-  ctx->r = t3;
-  ctx->app_cont = true;
-}
-
-static inline void cont_read_check_colon(eval_context_t *ctx) {
-
-  lbm_value r;
-  lbm_value stream;
-  lbm_pop_2(&ctx->K, &r, &stream);
-
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
-  if (str == NULL || str->state == NULL) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-    return;
-  }
-
-  lbm_value tok = lbm_get_next_token(str, true);
-  if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
-    switch (lbm_dec_sym(tok)) {
-    case SYM_COLON:
-      lbm_get_next_token(str,false); //drop the colon;
-      CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
-      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-      ctx->app_cont = true;
-      break;
-    default:
-      ctx->r = r;
-      ctx->app_cont = true;
-    }
-  } else {
-    ctx->r = r;
-    ctx->app_cont = true;
-  }
-}
-
-
 static inline void cont_application_start(eval_context_t *ctx) {
 
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 2);
@@ -2808,7 +2719,6 @@ static void evaluation_step(void){
     case RESUME:            cont_resume(ctx); return;
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
-    case NAMESPACE_POP:     cont_namespace_pop(ctx); return;
     case EXIT_ATOMIC:       cont_exit_atomic(ctx); return;
     case READ_NEXT_TOKEN:       cont_read_next_token(ctx); return;
     case READ_APPEND_CONTINUE:  cont_read_append_continue(ctx); return;
@@ -2819,10 +2729,8 @@ static void evaluation_step(void){
     case READ_BACKQUOTE_RESULT: cont_read_backquote_result(ctx); return;
     case READ_COMMAAT_RESULT:   cont_read_commaat_result(ctx); return;
     case READ_COMMA_RESULT:     cont_read_comma_result(ctx); return;
-    case READ_TERMINATE_COLON:  cont_read_terminate_colon(ctx); return;
     case READ_START_ARRAY:      cont_read_start_array(ctx); return;
     case READ_APPEND_ARRAY:     cont_read_append_array(ctx); return;
-    case READ_CHECK_COLON:      cont_read_check_colon(ctx); return;
     default:
       error_ctx(ENC_SYM_EERROR);
        return;
@@ -2886,7 +2794,6 @@ static void evaluation_step(void){
       case SYM_MATCH:   eval_match(ctx); return;
       case SYM_RECEIVE: eval_receive(ctx); return;
       case SYM_CALLCC:  eval_callcc(ctx); return;
-      case SYM_NAMESPACE: eval_namespace(ctx); return;
       case SYM_ATOMIC:  eval_atomic(ctx); return;
 
       case SYM_MACRO:   /* fall through */

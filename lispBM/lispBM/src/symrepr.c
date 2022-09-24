@@ -59,7 +59,6 @@ special_sym const special_symbols[] =  {
 
   {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
-  {"namespace"    , SYM_NAMESPACE},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
