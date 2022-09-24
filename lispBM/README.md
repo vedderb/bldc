@@ -1863,6 +1863,7 @@ Where \[x\] is i8, u8, i16, u16, i32, u32 or f32. Index is the position in the a
 (bufget-i32 arr 0) ; read byte 0 to 3 as i32
 (bufget-u8 arr 0) ; read byte 0 as uint8
 (bufget-u16 arr 0) ; read byte 0 and 1 as uint16
+(bufget-u24 arr 0) ; read byte 0, 1 and 2 as uint24
 (bufget-u32 arr 0) ; read byte 0 to 3 as uint32
 (bufget-f32 arr 0) ; read byte 0 to 3 as float32 (IEEE 754)
 ```
@@ -1889,6 +1890,7 @@ Here are some examples
 (bufset-i32 arr 0 2441) ; write 2441 to byte 0 to 3 as i32
 (bufset-u8 arr 0 12) ; write 12 to byte 0 as uint8
 (bufset-u16 arr 0 420) ; write 420 to byte 0 and 1 as uint16
+(bufset-u24 arr 0 420) ; write 420 to byte 0, 1 and 2 as uint24
 (bufset-u32 arr 0 119) ; write 119 to byte 0 to 3 as uint32
 (bufset-f32 arr 0 3.14) ; write 3.14 to byte 0 to 3 as float32 (IEEE 754)
 (bufset-bit arr 14 1) ; Set bit 14 to 1 (note that this is a bitindex)
