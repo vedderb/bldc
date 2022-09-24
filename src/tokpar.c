@@ -260,7 +260,7 @@ int tok_string(lbm_char_channel_t *chan) {
 
   // read string into buffer
   r = lbm_channel_peek(chan,n,&c);
-  while (r == CHANNEL_SUCCESS && c != '\"' &&
+  while (r == CHANNEL_SUCCESS && (c != '\"' || (c == '\"' && encode)) &&
          len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
     if (c == '\\') encode = true;
     else {
