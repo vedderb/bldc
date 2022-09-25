@@ -1586,10 +1586,10 @@ static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
  */
 static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(4)
-	uint32_t initial = lbm_dec_as_i32(args[0]);
-	uint32_t offset = lbm_dec_as_i32(args[1]);
-	uint32_t number = lbm_dec_as_i32(args[2]);
-	uint32_t bits = lbm_dec_as_i32(args[3]);
+	uint32_t initial = lbm_dec_as_u32(args[0]);
+	uint32_t offset = lbm_dec_as_u32(args[1]);
+	uint32_t number = lbm_dec_as_u32(args[2]);
+	uint32_t bits = lbm_dec_as_u32(args[3]);
 	initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
 	initial |= (number << (32 - bits)) >> (32 - bits - offset);
 
@@ -1607,9 +1607,9 @@ static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
  */
 static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(3)
-	uint32_t val = lbm_dec_as_i32(args[0]);
-	uint32_t offset = lbm_dec_as_i32(args[1]);
-	uint32_t bits = lbm_dec_as_i32(args[2]);
+	uint32_t val = lbm_dec_as_u32(args[0]);
+	uint32_t offset = lbm_dec_as_u32(args[1]);
+	uint32_t bits = lbm_dec_as_u32(args[2]);
 	val >>= offset;
 	val &= 0xFFFFFFFF >> (32 - bits);
 

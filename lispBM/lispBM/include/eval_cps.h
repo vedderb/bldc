@@ -32,6 +32,8 @@ extern "C" {
 #define EVAL_CPS_STATE_STEP    3
 #define EVAL_CPS_STATE_KILL    4
 
+#define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
+
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -39,7 +41,9 @@ typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
   lbm_value curr_env;
-  lbm_value mailbox;  /*massage passing mailbox */
+  lbm_value *mailbox;  /* Message passing mailbox */
+  lbm_uint  mailbox_size;
+  lbm_uint  num_mail; /* Number of messages in mailbox */
   lbm_value r;
   char *error_reason;
   bool  done;
@@ -253,7 +257,21 @@ void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
  */
 lbm_cid lbm_get_current_cid(void);
 
+/** Get the currently executing context.
+ * Should be called from an extension where there is
+ * a guarantee that a context is running
+ */
+eval_context_t *lbm_get_current_context(void);
+
+/** Change the mailbox size for a given context.
+ * \param ctx The context to change mailbox size for.
+ * \param new_size The new size of the mailbox.
+ * \return true on success and false otherwise.
+ */
+bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size);
+
 bool create_string_channel(char *str, lbm_value *res);
+
 bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
 /** deliver a message

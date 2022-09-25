@@ -708,6 +708,14 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_SELF:
     result = lbm_enc_i(lbm_get_current_cid());
     break;
+  case SYM_SET_MAILBOX_SIZE:
+    if (nargs == 1 && lbm_is_number(args[0])) {
+      uint32_t s = lbm_dec_as_u32(args[0]);
+      eval_context_t *ctx = lbm_get_current_context();
+      if (lbm_mailbox_change_size(ctx, s)) {
+        result = ENC_SYM_TRUE;
+      }
+    }  break;
   case SYM_PERFORM_GC:
     lbm_perform_gc();
     result = ENC_SYM_TRUE;

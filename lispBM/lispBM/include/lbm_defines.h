@@ -111,7 +111,6 @@
 #define SYM_CALLCC        0x11
 #define SYM_CONT          0x12
 #define SYM_SETVAR        0x13
-#define SYM_NAMESPACE     0x14
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR        0x20  /* READ ERROR */
@@ -208,6 +207,7 @@
 #define SYM_SPAWN               0x115
 #define SYM_ATOMIC              0x116
 #define SYM_SELF                0x117
+#define SYM_SET_MAILBOX_SIZE    0x118
 
 #define SYM_CONS                0x120
 #define SYM_CAR                 0x121
@@ -335,6 +335,5 @@
 #define ENC_SYM_TYPE_SYMBOL ((SYM_TYPE_SYMBOL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_COLON       ((SYM_COLON << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NAMESPACE   ((SYM_NAMESPACE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #endif
