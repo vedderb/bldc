@@ -1420,6 +1420,7 @@ static inline void eval_receive(eval_context_t *ctx) {
     ctx->timestamp = timestamp_us_callback();
     ctx->sleep_us = 0;
     enqueue_ctx(&blocked,ctx);
+    ctx_running = NULL;
   } else {
     lbm_value pats = ctx->curr_exp;
     lbm_value *msgs = ctx->mailbox;
