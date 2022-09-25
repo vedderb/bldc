@@ -207,6 +207,7 @@
 #define SYM_SPAWN               0x115
 #define SYM_ATOMIC              0x116
 #define SYM_SELF                0x117
+#define SYM_SET_MAILBOX_SIZE    0x118
 
 #define SYM_CONS                0x120
 #define SYM_CAR                 0x121
