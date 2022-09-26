@@ -2045,6 +2045,42 @@ Set how many evaluation steps to run each thread between context switches. Defau
 
 Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 
+## Plotting
+
+VESC Tool can be used for plotting data using the Realtime Data->Experiment page. The following commands are used to set up a plot and send data.
+
+#### plot-init
+
+```clj
+(plot-init namex namey)
+```
+
+Start a new plot with namex as the x axis name and namey as the u axis name.
+
+#### plot-add-graph
+
+```clj
+(plot-add-graph name)
+```
+
+Add a graph to the current plot that will be called name. Every added graph gets a new index, starting from 0.
+
+#### plot-set-graph
+
+```clj
+(plot-set-graph ind)
+```
+
+Set graph index to which data points are sent.
+
+#### plot-send-points
+
+```clj
+(plot-send-points x y)
+```
+
+Send a xy-point to the selected graph in the plot.
+
 ## How to update
 
 To update from remote repository:
