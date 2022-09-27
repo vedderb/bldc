@@ -80,6 +80,12 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
  * \return The modified environment of Success and lbm_enc_sym(SYM_NOT_FOUND) if the key does not exist.
  */
 lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
+/** Removes a binding (destructively) from the input environment.
+ * \param env Environment to modify.
+ * \param key Key to remove from environment.
+ * \return Updated environment or not_found symbol.
+ */
+lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key);
 // Internal use
 /** Extend an environment given a list of keys and a list of values.
  *

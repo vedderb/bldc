@@ -139,6 +139,28 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
   return ENC_SYM_NOT_FOUND;
 }
 
+lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
+
+  lbm_value curr = env;
+  // If key is first in env
+  if (lbm_car(lbm_car(curr)) == key) {
+    return lbm_cdr(curr);
+  }
+
+  lbm_value prev = env;
+  curr = lbm_cdr(curr);
+
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == key) {
+      lbm_set_cdr(prev, lbm_cdr(curr));
+      return env;
+    }
+    prev = curr;
+    curr = lbm_cdr(curr);
+  }
+  return ENC_SYM_NOT_FOUND;
+}
+
 lbm_value lbm_env_build_params_args(lbm_value params,
                             lbm_value args,
                             lbm_value env0) {

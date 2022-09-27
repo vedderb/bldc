@@ -674,6 +674,7 @@ static inline double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
   double d;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0; // no good way to report error from here currently.
   memcpy(&d, data, sizeof(double));
   return d;
 #else
@@ -696,6 +697,7 @@ static inline uint64_t lbm_dec_u64(lbm_value x) {
 #ifndef LBM64
   uint64_t u;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0;
   memcpy(&u, data, 8);
   return u;
 #else
@@ -715,6 +717,7 @@ static inline int64_t lbm_dec_i64(lbm_value x) {
 #ifndef LBM64
   int64_t i;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0;
   memcpy(&i, data, 8);
   return i;
 #else

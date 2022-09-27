@@ -214,6 +214,7 @@
 #define SYM_CDR                 0x122
 #define SYM_LIST                0x123
 #define SYM_APPEND              0x124
+#define SYM_UNDEFINE            0x125
 
 #define SYM_ARRAY_READ          0x130
 #define SYM_ARRAY_WRITE         0x131
