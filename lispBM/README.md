@@ -297,6 +297,10 @@ Read system info parameter param. Example:
 
 ### App Override Commands
 
+Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
+
+#### app-adc-detach
+
 ```clj
 (app-adc-detach mode state)
 ; Where
@@ -309,6 +313,8 @@ Read system info parameter param. Example:
 ```
 
 Detaches a peripherial from the APP ADC
+
+#### app-adc-override
 
 ```clj
 (app-adc-override mode value)
@@ -1005,6 +1011,7 @@ Configure GPIO pin to mode. Example:
 'pin-hall3  ; Sensor port hall3
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
+'pin-ppm    ; Signal-pin on PPM-port
 
 ; Available modes
 'pin-mode-out    ; Output

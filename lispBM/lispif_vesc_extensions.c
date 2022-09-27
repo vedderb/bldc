@@ -92,6 +92,7 @@ typedef struct {
 	lbm_uint pin_hall3;
 	lbm_uint pin_adc1;
 	lbm_uint pin_adc2;
+	lbm_uint pin_ppm;
 
 	// Settings
 	lbm_uint l_current_min;
@@ -249,6 +250,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("pin-adc1", comp);
 		} else if (comp == &syms_vesc.pin_adc2) {
 			get_add_symbol("pin-adc2", comp);
+		} else if (comp == &syms_vesc.pin_ppm) {
+			get_add_symbol("pin-ppm", comp);
 		}
 
 		else if (comp == &syms_vesc.l_current_min) {
@@ -445,6 +448,11 @@ static bool gpio_get_pin(lbm_uint sym, stm32_gpio_t **port, int *pin) {
 	} else if (compare_symbol(sym, &syms_vesc.pin_adc2)) {
 #ifdef HW_ADC_EXT2_GPIO
 		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
+		return true;
+#endif
+	} else if (compare_symbol(sym, &syms_vesc.pin_ppm)) {
+#ifdef HW_ICU_GPIO
+		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
 		return true;
 #endif
 	}
