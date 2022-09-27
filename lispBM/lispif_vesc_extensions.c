@@ -1586,10 +1586,10 @@ static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
  */
 static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(4)
-	uint32_t initial = lbm_dec_as_i32(args[0]);
-	uint32_t offset = lbm_dec_as_i32(args[1]);
-	uint32_t number = lbm_dec_as_i32(args[2]);
-	uint32_t bits = lbm_dec_as_i32(args[3]);
+	uint32_t initial = lbm_dec_as_u32(args[0]);
+	uint32_t offset = lbm_dec_as_u32(args[1]);
+	uint32_t number = lbm_dec_as_u32(args[2]);
+	uint32_t bits = lbm_dec_as_u32(args[3]);
 	initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
 	initial |= (number << (32 - bits)) >> (32 - bits - offset);
 
@@ -1607,9 +1607,9 @@ static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
  */
 static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(3)
-	uint32_t val = lbm_dec_as_i32(args[0]);
-	uint32_t offset = lbm_dec_as_i32(args[1]);
-	uint32_t bits = lbm_dec_as_i32(args[2]);
+	uint32_t val = lbm_dec_as_u32(args[0]);
+	uint32_t offset = lbm_dec_as_u32(args[1]);
+	uint32_t bits = lbm_dec_as_u32(args[2]);
 	val >>= offset;
 	val &= 0xFFFFFFFF >> (32 - bits);
 
@@ -3322,6 +3322,55 @@ static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_plot_init(lbm_value *args, lbm_uint argn) {
+	if (argn != 2) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	char *namex = lbm_dec_str(args[0]);
+	if (!namex) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	char *namey = lbm_dec_str(args[0]);
+	if (!namey) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	commands_init_plot(namex, namey);
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_plot_add_graph(lbm_value *args, lbm_uint argn) {
+	if (argn != 1) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	char *name = lbm_dec_str(args[0]);
+	if (!name) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+
+	commands_plot_add_graph(name);
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_plot_set_graph(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	commands_plot_set_graph(lbm_dec_as_i32(args[0]));
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_plot_send_points(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+	commands_send_plot_points(
+			lbm_dec_as_float(args[0]),
+			lbm_dec_as_float(args[1]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -3533,12 +3582,22 @@ void lispif_load_vesc_extensions(void) {
 	// Lbm settings
 	lbm_add_extension("lbm-set-quota", ext_lbm_set_quota);
 
+	// Plot
+	lbm_add_extension("plot-init", ext_plot_init);
+	lbm_add_extension("plot-add-graph", ext_plot_add_graph);
+	lbm_add_extension("plot-set-graph", ext_plot_set_graph);
+	lbm_add_extension("plot-send-points", ext_plot_send_points);
+
 	if (ext_callback) {
 		ext_callback();
 	}
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
+	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+		return;
+	}
+
 	if (!event_handler_registered) {
 		return;
 	}
@@ -3586,6 +3645,10 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 }
 
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
+	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+		return;
+	}
+
 	if (!event_handler_registered) {
 		return;
 	}

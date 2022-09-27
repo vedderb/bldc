@@ -11,10 +11,7 @@ The LispBM mascot, Lispy the llama, was created by
 ## Information
 
 From version 0.6.0 LispBM implements round-robin scheduling and is
-no-longer cooperatively concurrent.  The documentation is not yet
-updated to reflect this change. If it turns out that the new approach
-to scheduling makes sense over time, the documentation will be
-updated.
+no-longer cooperatively concurrent. 
 
 This is not a semantics preserving update. Using the cooperative
 scheduler one could assume totally exclusive access to the runtime

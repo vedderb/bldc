@@ -15,6 +15,13 @@
 (define b (recv ((? x) x)))
 (define c (recv ((? x) x)))
 
-(and (= a 3)
-     (= b 5)
-     (= c 7))
+(define elem (lambda (x xs)
+               (if (eq xs 'nil) nil
+                 (or (eq x (car xs)) (elem x (cdr xs))))))
+
+(and (elem a '(3 5 7))
+     (elem b '(3 5 7))
+     (elem c '(3 5 7)))
+           
+               
+

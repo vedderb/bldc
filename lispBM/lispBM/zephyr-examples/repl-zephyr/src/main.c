@@ -31,6 +31,9 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
+#define VARIABLE_STORAGE_SIZE 256
+#define EXTENSION_STORAGE_SIZE 256
+#define WAIT_TIMEOUT 2500
 
 static char str[LISPBM_INPUT_BUFFER_SIZE];
 static char outbuf[LISPBM_OUTPUT_BUFFER_SIZE];
@@ -41,10 +44,11 @@ static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 static lbm_cons_t heap[LISPBM_HEAP_SIZE];
 static uint32_t gc_stack_storage[GC_STACK_SIZE];
 static uint32_t print_stack_storage[PRINT_STACK_SIZE];
+static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
-
-static lbm_tokenizer_string_state_t string_tok_state;
-static lbm_tokenizer_char_stream_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
 
 
 void done_callback(eval_context_t *ctx) {
@@ -72,6 +76,78 @@ void sleep_callback(uint32_t us) {
   k_sleep(K_USEC(us));
 }
 
+bool dyn_load(const char *str, const char **code) {
+
+  bool res = false;
+  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
+    *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
+    res = true;
+  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
+    *code = "(define reverse (lambda (xs)"
+            "(let ((revacc (lambda (acc xs)"
+	    "(if (eq nil xs) acc"
+	    "(revacc (cons (car xs) acc) (cdr xs))))))"
+            "(revacc nil xs))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+    *code = "(define iota (lambda (n)"
+            "(let ((iacc (lambda (acc i)"
+            "(if (< i 0) acc"
+            "(iacc (cons i acc) (- i 1))))))"
+            "(iacc nil (- n 1)))))";
+    res = true;
+  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
+    *code = "(define length (lambda (xs)"
+	    "(let ((len (lambda (l xs)"
+	    "(if (eq xs nil) l"
+	    "(len (+ l 1) (cdr xs))))))"
+            "(len 0 xs))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
+    *code = "(define take (lambda (n xs)"
+	    "(let ((take-tail (lambda (acc n xs)"
+	    "(if (= n 0) acc"
+	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(reverse (take-tail nil n xs)))))";
+    res = true;
+  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
+    *code = "(define drop (lambda (n xs)"
+	    "(if (= n 0) xs"
+	    "(if (eq xs nil) nil"
+            "(drop (- n 1) (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
+    *code = "(define zip (lambda (xs ys)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq ys nil) nil"
+            "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
+    res = true;
+  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
+    *code = "(define map (lambda (f xs)"
+	    "(if (eq xs nil) nil"
+            "(cons (f (car xs)) (map f (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
+    *code = "(define lookup (lambda (x xs)"
+	    "(if (eq xs nil) nil"
+	    "(if (eq (car (car xs)) x)"
+	    "(car (cdr (car xs)))"
+            "(lookup x (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
+    *code = "(define foldr (lambda (f i xs)"
+	    "(if (eq xs nil) i"
+            "(f (car xs) (foldr f i (cdr xs))))))";
+    res = true;
+  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
+    *code = "(define foldl (lambda (f i xs)"
+            "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
+    res = true;
+  }
+  return res;
+}
+
+
 
 void main(void)
 {
@@ -86,25 +162,17 @@ void main(void)
            gc_stack_storage, GC_STACK_SIZE,
            memory, LBM_MEMORY_SIZE_8K,
            bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
-           print_stack_storage, PRINT_STACK_SIZE
+           print_stack_storage, PRINT_STACK_SIZE,
+           extension_storage, EXTENSION_STORAGE_SIZE
            );
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
+  lbm_set_printf_callback(usb_printf);
+  lbm_set_dynamic_load_callback(dyn_load);
 
-
-  lbm_pause_eval();
-  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    k_sleep(K_MSEC(1));
-  }
-  prelude_load(&string_tok_state,
-               &string_tok);
-
-  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  
-  lbm_continue_eval();
-  lbm_wait_ctx((lbm_cid)cid);
+  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   usb_printf("Lisp REPL started (ZephyrOS)!\r\n");
 	
@@ -149,15 +217,15 @@ void main(void)
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         k_sleep(K_MSEC(1));
       }
-      lbm_create_char_stream_from_string(&string_tok_state,
-                                         &string_tok,
-                                         str);
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     str);
       
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
       
       lbm_continue_eval();
 
-      lbm_wait_ctx((lbm_cid)cid);
+      lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
     }
   }
 }

@@ -767,8 +767,7 @@ static inline bool lbm_is_channel(lbm_value x) {
           lbm_dec_sym(lbm_cdr(x)) == SYM_CHANNEL_TYPE);
 }
 static inline bool lbm_is_char(lbm_value x) {
-  lbm_uint t = lbm_type_of(x);
-  return (t == LBM_TYPE_CHAR);
+  return (lbm_type_of(x) == LBM_TYPE_CHAR);
 }
 
 static inline bool lbm_is_special(lbm_value symrep) {
@@ -847,11 +846,8 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 
 /* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
-  if (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
-      ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20)) {
-    return true;
-  }
-  return false;
+  return (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
+          ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20));
 }
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
