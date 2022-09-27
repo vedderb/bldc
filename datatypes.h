@@ -644,8 +644,7 @@ typedef struct {
 	float voltage2_end;
 	bool use_filter;
 	SAFE_START_MODE safe_start;
-	bool cc_button_inverted;
-	bool rev_button_inverted;
+	uint8_t buttons;
 	bool voltage_inverted;
 	bool voltage2_inverted;
 	float throttle_exp;

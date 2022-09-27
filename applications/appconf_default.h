@@ -176,6 +176,9 @@
 #ifndef APPCONF_ADC_SAFE_START
 #define APPCONF_ADC_SAFE_START				true
 #endif
+#ifndef APPCONF_ADC_BUTTONS
+#define APPCONF_ADC_BUTTONS					0
+#endif
 #ifndef APPCONF_ADC_CC_BUTTON_INVERTED
 #define APPCONF_ADC_CC_BUTTON_INVERTED		false
 #endif

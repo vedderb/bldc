@@ -255,8 +255,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float16(buffer, conf->app_adc_conf.voltage2_end, 1000, &ind);
 	buffer[ind++] = conf->app_adc_conf.use_filter;
 	buffer[ind++] = conf->app_adc_conf.safe_start;
-	buffer[ind++] = conf->app_adc_conf.cc_button_inverted;
-	buffer[ind++] = conf->app_adc_conf.rev_button_inverted;
+	buffer[ind++] = conf->app_adc_conf.buttons;
 	buffer[ind++] = conf->app_adc_conf.voltage_inverted;
 	buffer[ind++] = conf->app_adc_conf.voltage2_inverted;
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.throttle_exp, &ind);
@@ -650,8 +649,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.voltage2_end = buffer_get_float16(buffer, 1000, &ind);
 	conf->app_adc_conf.use_filter = buffer[ind++];
 	conf->app_adc_conf.safe_start = buffer[ind++];
-	conf->app_adc_conf.cc_button_inverted = buffer[ind++];
-	conf->app_adc_conf.rev_button_inverted = buffer[ind++];
+	conf->app_adc_conf.buttons = buffer[ind++];
 	conf->app_adc_conf.voltage_inverted = buffer[ind++];
 	conf->app_adc_conf.voltage2_inverted = buffer[ind++];
 	conf->app_adc_conf.throttle_exp = buffer_get_float32_auto(buffer, &ind);
@@ -1029,8 +1027,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
-	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
-	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
+	conf->app_adc_conf.buttons = APPCONF_ADC_BUTTONS;
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
 	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
 	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
