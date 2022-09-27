@@ -1639,6 +1639,7 @@ static void detect_sensors_task(void *arg) {
  * >=0: Success, see conf_general_autodetect_apply_sensors_foc codes
  * -10: Flux linkage detection failed
  *  -x: see conf_general_autodetect_apply_sensors_foc faults
+ *  -100 + fault: Fault code that occured during detection see "mc_fault_code"
  */
 int conf_general_detect_apply_all_foc(float max_power_loss,
 		bool store_mcconf_on_success, bool send_mcconf_on_success) {
