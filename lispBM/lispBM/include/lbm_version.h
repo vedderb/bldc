@@ -27,12 +27,17 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 6
+#define LBM_MINOR_VERSION 7
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
-Set 16 2022: Version 0.6.0
+Sep 25: version 0.7.0
+  - Removed namespaces (they were too restricted).
+  - Mailboxes are now stored in arrays of default size 10 mails.
+    Mailbox size can be changed using set-mailbox-size.
+
+Sep 16 2022: Version 0.6.0
   - Source code can be streamed onto the heap. This means there is no need
     for a large buffer on the MCU (or area of flash) to parse source code
     from

@@ -153,6 +153,7 @@ special_sym const special_symbols[] =  {
   {"cons"             , SYM_CONS},
   {"list"             , SYM_LIST},
   {"append"           , SYM_APPEND},
+  {"undefine"         , SYM_UNDEFINE},
   {"array-read"       , SYM_ARRAY_READ},
   {"array-write"      , SYM_ARRAY_WRITE},
   {"array-create"     , SYM_ARRAY_CREATE},

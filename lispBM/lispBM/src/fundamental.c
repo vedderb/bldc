@@ -280,6 +280,8 @@ static bool array_equality(lbm_value a, lbm_value b) {
     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
 
+    if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+
     if (a_->elt_type == b_->elt_type &&
         a_->size == b_->size) {
       switch(a_->elt_type) {
@@ -488,6 +490,10 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
   if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
 
     if (ix >= array->size) {
       *result =  ENC_SYM_NIL;
@@ -617,7 +623,10 @@ void array_size(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 
   if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
     *result =  lbm_enc_u(array->size);
   }
   return;
@@ -648,7 +657,10 @@ void array_clear(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 
   if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
     int es = elt_size(array->elt_type);
 
     if (es < 0) return;
@@ -658,8 +670,6 @@ void array_clear(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   }
   return;
 }
-
-
 
 lbm_value index_list(lbm_value l, unsigned int n) {
   lbm_value curr = l;
@@ -699,7 +709,6 @@ lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   return ENC_SYM_NO_MATCH;
 }
 
-
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
 
   lbm_uint result = ENC_SYM_EERROR;
@@ -716,6 +725,21 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         result = ENC_SYM_TRUE;
       }
     }  break;
+  case SYM_UNDEFINE: {
+    lbm_value env = lbm_get_env();
+    if (nargs == 1 && lbm_is_symbol(args[0])) {
+      result = lbm_env_drop_binding(env, args[0]);
+      *lbm_get_env_ptr() = result;
+    } else if (nargs == 1 && lbm_is_list(args[0])) {
+      lbm_value curr = args[0];
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+        lbm_value key = lbm_car(curr);
+        result = lbm_env_drop_binding(env, key);
+        curr = lbm_cdr(curr);
+      }
+      *lbm_get_env_ptr() = result;
+    }
+  } break;
   case SYM_PERFORM_GC:
     lbm_perform_gc();
     result = ENC_SYM_TRUE;

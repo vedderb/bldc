@@ -2362,8 +2362,12 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
     ctx->app_cont = true;
   } else {
     lbm_char_channel_t *str = lbm_dec_channel(stream);
-    lbm_channel_reader_close(str);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    if (str == NULL) {
+      error_ctx(ENC_SYM_FATAL_ERROR);
+    } else {
+      lbm_channel_reader_close(str);
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    }
   }
 }
 
