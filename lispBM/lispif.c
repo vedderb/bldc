@@ -119,10 +119,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		lispif_disable_all_events();
 
 		if (!running) {
-			int timeout_cnt = 20;
+			int timeout_cnt = 2000;
 			lbm_pause_eval();
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-				chThdSleepMilliseconds(100);
+				chThdSleepMilliseconds(1);
 				timeout_cnt--;
 			}
 			ok = timeout_cnt > 0;
@@ -303,7 +303,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			} else if (strncmp(str, ":pause", 6) == 0) {
 				lbm_pause_eval_with_gc(30);
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-					sleep_callback(10);
+					sleep_callback(1);
 				}
 				commands_printf_lisp("Evaluator paused\n");
 			} else if (strncmp(str, ":continue", 9) == 0) {
@@ -314,7 +314,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			} else if (strncmp(str, ":undef", 6) == 0) {
 				lbm_pause_eval();
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-					sleep_callback(10);
+					sleep_callback(1);
 				}
 				char *sym = str + 7;
 				commands_printf_lisp("undefining: %s", sym);
@@ -518,6 +518,8 @@ bool lispif_restart(bool print, bool load_code) {
 	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
 
 	if (!load_code || (code_data != 0 && code_len > 0)) {
+		lispif_disable_all_events();
+
 		if (!lisp_thd_running) {
 			lbm_init(heap, HEAP_SIZE,
 					gc_stack_storage, GC_STACK_SIZE,
@@ -537,7 +539,7 @@ bool lispif_restart(bool print, bool load_code) {
 		} else {
 			lbm_pause_eval();
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-				chThdSleepMilliseconds(100);
+				chThdSleepMilliseconds(1);
 			}
 
 			lbm_init(heap, HEAP_SIZE,
@@ -551,7 +553,7 @@ bool lispif_restart(bool print, bool load_code) {
 
 		lbm_pause_eval();
 		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-			chThdSleepMilliseconds(100);
+			chThdSleepMilliseconds(1);
 		}
 
 		lispif_load_vesc_extensions();

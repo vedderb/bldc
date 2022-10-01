@@ -297,6 +297,10 @@ Read system info parameter param. Example:
 
 ### App Override Commands
 
+Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
+
+#### app-adc-detach
+
 ```clj
 (app-adc-detach mode state)
 ; Where
@@ -309,6 +313,8 @@ Read system info parameter param. Example:
 ```
 
 Detaches a peripherial from the APP ADC
+
+#### app-adc-override
 
 ```clj
 (app-adc-override mode value)
@@ -784,7 +790,7 @@ Apply throttle curve on value. accel (range -1 to 1) is the curve constant for a
 
 #### bits-enc-int
 ```clj
-(bits-enc-int initial number offset bits)
+(bits-enc-int initial offset number bits)
 ```
 
 Put bits of number in initial at offset and return the result. For example, if the bits initial are aaaaaaaa, number is bbb, offset is 2 and bits is 3 the result is aaabbbaa. For reference, the corresponding operation in C is:
@@ -1005,6 +1011,7 @@ Configure GPIO pin to mode. Example:
 'pin-hall3  ; Sensor port hall3
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
+'pin-ppm    ; Signal-pin on PPM-port
 
 ; Available modes
 'pin-mode-out    ; Output
@@ -1863,6 +1870,7 @@ Where \[x\] is i8, u8, i16, u16, i32, u32 or f32. Index is the position in the a
 (bufget-i32 arr 0) ; read byte 0 to 3 as i32
 (bufget-u8 arr 0) ; read byte 0 as uint8
 (bufget-u16 arr 0) ; read byte 0 and 1 as uint16
+(bufget-u24 arr 0) ; read byte 0, 1 and 2 as uint24
 (bufget-u32 arr 0) ; read byte 0 to 3 as uint32
 (bufget-f32 arr 0) ; read byte 0 to 3 as float32 (IEEE 754)
 ```
@@ -1870,7 +1878,7 @@ Where \[x\] is i8, u8, i16, u16, i32, u32 or f32. Index is the position in the a
 By default the byte order is big endian. The byte order can also be specified as an extra argument. E.g. to read 4 bytes as int32 from position 6 in little endian you can use
 
 ```clj
-(bufget-i32 arr 6 little-endian)
+(bufget-i32 arr 6 'little-endian)
 ```
 
 #### bufset-\[x\]
@@ -1889,6 +1897,7 @@ Here are some examples
 (bufset-i32 arr 0 2441) ; write 2441 to byte 0 to 3 as i32
 (bufset-u8 arr 0 12) ; write 12 to byte 0 as uint8
 (bufset-u16 arr 0 420) ; write 420 to byte 0 and 1 as uint16
+(bufset-u24 arr 0 420) ; write 420 to byte 0, 1 and 2 as uint24
 (bufset-u32 arr 0 119) ; write 119 to byte 0 to 3 as uint32
 (bufset-f32 arr 0 3.14) ; write 3.14 to byte 0 to 3 as float32 (IEEE 754)
 (bufset-bit arr 14 1) ; Set bit 14 to 1 (note that this is a bitindex)
@@ -2042,6 +2051,42 @@ Same as uavcan-last-rawcmd, but for the last rpm-command.
 Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
 
 Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
+
+## Plotting
+
+VESC Tool can be used for plotting data using the Realtime Data->Experiment page. The following commands are used to set up a plot and send data.
+
+#### plot-init
+
+```clj
+(plot-init namex namey)
+```
+
+Start a new plot with namex as the x axis name and namey as the u axis name.
+
+#### plot-add-graph
+
+```clj
+(plot-add-graph name)
+```
+
+Add a graph to the current plot that will be called name. Every added graph gets a new index, starting from 0.
+
+#### plot-set-graph
+
+```clj
+(plot-set-graph ind)
+```
+
+Set graph index to which data points are sent.
+
+#### plot-send-points
+
+```clj
+(plot-send-points x y)
+```
+
+Send a xy-point to the selected graph in the plot.
 
 ## How to update
 

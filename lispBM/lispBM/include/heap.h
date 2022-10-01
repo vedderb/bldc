@@ -674,6 +674,7 @@ static inline double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
   double d;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0; // no good way to report error from here currently.
   memcpy(&d, data, sizeof(double));
   return d;
 #else
@@ -696,6 +697,7 @@ static inline uint64_t lbm_dec_u64(lbm_value x) {
 #ifndef LBM64
   uint64_t u;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0;
   memcpy(&u, data, 8);
   return u;
 #else
@@ -715,6 +717,7 @@ static inline int64_t lbm_dec_i64(lbm_value x) {
 #ifndef LBM64
   int64_t i;
   uint32_t *data = (uint32_t*)lbm_car(x);
+  if (data == NULL) return 0;
   memcpy(&i, data, 8);
   return i;
 #else
@@ -767,8 +770,7 @@ static inline bool lbm_is_channel(lbm_value x) {
           lbm_dec_sym(lbm_cdr(x)) == SYM_CHANNEL_TYPE);
 }
 static inline bool lbm_is_char(lbm_value x) {
-  lbm_uint t = lbm_type_of(x);
-  return (t == LBM_TYPE_CHAR);
+  return (lbm_type_of(x) == LBM_TYPE_CHAR);
 }
 
 static inline bool lbm_is_special(lbm_value symrep) {
@@ -847,11 +849,8 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 
 /* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
-  if (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
-      ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20)) {
-    return true;
-  }
-  return false;
+  return (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
+          ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20));
 }
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26

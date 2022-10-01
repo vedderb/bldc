@@ -259,11 +259,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		bool rev_button = false;
 		if (use_rx_tx_as_buttons) {
 			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
-			if (config.cc_button_inverted) {
+			if ((config.buttons >> 1) & 1) {
 				cc_button = !cc_button;
 			}
 			rev_button = !palReadPad(HW_UART_RX_PORT, HW_UART_RX_PIN);
-			if (config.rev_button_inverted) {
+			if ((config.buttons >> 2) & 1) {
 				rev_button = !rev_button;
 			}
 		} else {
@@ -274,27 +274,31 @@ static THD_FUNCTION(adc_thread, arg) {
 					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON ||
 					config.ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON) {
 				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.rev_button_inverted) {
+				if ((config.buttons >> 2) & 1) {
 					rev_button = !rev_button;
 				}
 			} else {
 				cc_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.cc_button_inverted) {
+				if ((config.buttons >> 1) & 1) {
 					cc_button = !cc_button;
 				}
 			}
 		}
 
 		// Override button values, when used from LISP
-		if(buttons_detached){
+		if (buttons_detached) {
 			cc_button = cc_override;
 			rev_button = rev_override;
-			if (config.cc_button_inverted) {
+			if ((config.buttons >> 1) & 1) {
 				cc_button = !cc_button;
 			}
-			if (config.cc_button_inverted) {
-				cc_button = !cc_button;
+			if ((config.buttons >> 2) & 1) {
+				rev_button = !rev_button;
 			}
+		}
+
+		if (!((config.buttons >> 0) & 1)) {
+			cc_button = false;
 		}
 
 		// All pins and buttons are still decoded for debugging, even

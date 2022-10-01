@@ -255,8 +255,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float16(buffer, conf->app_adc_conf.voltage2_end, 1000, &ind);
 	buffer[ind++] = conf->app_adc_conf.use_filter;
 	buffer[ind++] = conf->app_adc_conf.safe_start;
-	buffer[ind++] = conf->app_adc_conf.cc_button_inverted;
-	buffer[ind++] = conf->app_adc_conf.rev_button_inverted;
+	buffer[ind++] = conf->app_adc_conf.buttons;
 	buffer[ind++] = conf->app_adc_conf.voltage_inverted;
 	buffer[ind++] = conf->app_adc_conf.voltage2_inverted;
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.throttle_exp, &ind);
@@ -375,6 +374,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->imu_conf.type;
 	buffer[ind++] = conf->imu_conf.mode;
 	buffer[ind++] = conf->imu_conf.filter;
+	buffer_append_float32_auto(buffer, conf->imu_conf.accel_lowpass_filter, &ind);
 	buffer_append_uint16(buffer, conf->imu_conf.sample_rate_hz, &ind);
 	buffer[ind++] = conf->imu_conf.use_magnetometer;
 	buffer_append_float32_auto(buffer, conf->imu_conf.accel_confidence_decay, &ind);
@@ -650,8 +650,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.voltage2_end = buffer_get_float16(buffer, 1000, &ind);
 	conf->app_adc_conf.use_filter = buffer[ind++];
 	conf->app_adc_conf.safe_start = buffer[ind++];
-	conf->app_adc_conf.cc_button_inverted = buffer[ind++];
-	conf->app_adc_conf.rev_button_inverted = buffer[ind++];
+	conf->app_adc_conf.buttons = buffer[ind++];
 	conf->app_adc_conf.voltage_inverted = buffer[ind++];
 	conf->app_adc_conf.voltage2_inverted = buffer[ind++];
 	conf->app_adc_conf.throttle_exp = buffer_get_float32_auto(buffer, &ind);
@@ -770,6 +769,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->imu_conf.type = buffer[ind++];
 	conf->imu_conf.mode = buffer[ind++];
 	conf->imu_conf.filter = buffer[ind++];
+	conf->imu_conf.accel_lowpass_filter = buffer_get_float32_auto(buffer, &ind);
 	conf->imu_conf.sample_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->imu_conf.use_magnetometer = buffer[ind++];
 	conf->imu_conf.accel_confidence_decay = buffer_get_float32_auto(buffer, &ind);
@@ -1029,8 +1029,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
-	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
-	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
+	conf->app_adc_conf.buttons = APPCONF_ADC_BUTTONS;
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
 	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
 	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
@@ -1149,6 +1148,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->imu_conf.type = APPCONF_IMU_TYPE;
 	conf->imu_conf.mode = APPCONF_IMU_AHRS_MODE;
 	conf->imu_conf.filter = APPCONF_IMU_FILTER;
+	conf->imu_conf.accel_lowpass_filter = APPCONF_IMU_ACCEL_LOWPASS_FILTER;
 	conf->imu_conf.sample_rate_hz = APPCONF_IMU_SAMPLE_RATE_HZ;
 	conf->imu_conf.use_magnetometer = APPCONF_IMU_USE_MAGNETOMETER;
 	conf->imu_conf.accel_confidence_decay = APPCONF_IMU_ACCEL_CONFIDENCE_DECAY;

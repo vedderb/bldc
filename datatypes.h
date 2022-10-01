@@ -92,7 +92,8 @@ typedef enum {
 	TEMP_SENSOR_NTC_100K_25C,
 	TEMP_SENSOR_KTY84_130,
 	TEMP_SENSOR_NTCX,
-	TEMP_SENSOR_PTCX
+	TEMP_SENSOR_PTCX,
+	TEMP_SENSOR_PT1000
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -643,8 +644,7 @@ typedef struct {
 	float voltage2_end;
 	bool use_filter;
 	SAFE_START_MODE safe_start;
-	bool cc_button_inverted;
-	bool rev_button_inverted;
+	uint8_t buttons;
 	bool voltage_inverted;
 	bool voltage2_inverted;
 	float throttle_exp;
@@ -868,6 +868,7 @@ typedef struct {
 	IMU_TYPE type;
 	AHRS_MODE mode;
 	IMU_FILTER filter;
+	float accel_lowpass_filter;
 	int sample_rate_hz;
 	bool use_magnetometer;
 	float accel_confidence_decay;

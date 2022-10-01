@@ -25,7 +25,7 @@
 lbm_value env_global;
 
 int lbm_init_env(void) {
-  env_global = lbm_enc_sym(SYM_NIL);
+  env_global = ENC_SYM_NIL;
   return 1;
 }
 
@@ -41,7 +41,7 @@ lbm_value lbm_get_env(void) {
 // The new "copy" will have pointers to the original key-val bindings.
 lbm_value lbm_env_copy_shallow(lbm_value env) {
 
-  lbm_value res = lbm_enc_sym(SYM_NIL);
+  lbm_value res = ENC_SYM_NIL;
   lbm_value curr = env;
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
@@ -94,7 +94,7 @@ lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
     }
     curr = lbm_cdr(curr);
   }
-  return lbm_enc_sym(SYM_NOT_FOUND);
+  return ENC_SYM_NOT_FOUND;
 }
 
 lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
@@ -136,7 +136,29 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
     curr = lbm_cdr(curr);
 
   }
-  return lbm_enc_sym(SYM_NOT_FOUND);
+  return ENC_SYM_NOT_FOUND;
+}
+
+lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
+
+  lbm_value curr = env;
+  // If key is first in env
+  if (lbm_car(lbm_car(curr)) == key) {
+    return lbm_cdr(curr);
+  }
+
+  lbm_value prev = env;
+  curr = lbm_cdr(curr);
+
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == key) {
+      lbm_set_cdr(prev, lbm_cdr(curr));
+      return env;
+    }
+    prev = curr;
+    curr = lbm_cdr(curr);
+  }
+  return ENC_SYM_NOT_FOUND;
 }
 
 lbm_value lbm_env_build_params_args(lbm_value params,
@@ -148,7 +170,7 @@ lbm_value lbm_env_build_params_args(lbm_value params,
   // TODO: This should be checked outside of this function.
   //
   if (lbm_list_length(params) != lbm_list_length(args)) { // programmer error
-    return lbm_enc_sym(SYM_FATAL_ERROR);
+    return ENC_SYM_FATAL_ERROR;
   }
 
   lbm_value env = env0;
@@ -157,13 +179,13 @@ lbm_value lbm_env_build_params_args(lbm_value params,
     lbm_value entry = lbm_cons(lbm_car(curr_param), lbm_car(curr_arg));
     if (lbm_type_of(entry) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(entry) == SYM_MERROR)
-      return lbm_enc_sym(SYM_MERROR);
+      return ENC_SYM_MERROR;
 
     env = lbm_cons(entry,env);
 
     if (lbm_type_of(env) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(env) == SYM_MERROR)
-      return lbm_enc_sym(SYM_MERROR);
+      return ENC_SYM_MERROR;
 
     curr_param = lbm_cdr(curr_param);
     curr_arg   = lbm_cdr(curr_arg);
