@@ -868,6 +868,7 @@ typedef struct {
 	IMU_TYPE type;
 	AHRS_MODE mode;
 	IMU_FILTER filter;
+	float accel_lowpass_filter;
 	int sample_rate_hz;
 	bool use_magnetometer;
 	float accel_confidence_decay;
