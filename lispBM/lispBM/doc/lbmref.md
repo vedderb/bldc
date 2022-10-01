@@ -676,6 +676,27 @@ Example
 ```
 ---
 
+### undefine
+
+A definition in the global can be removed using undefine.  The form of
+an undefine expression is `(undefine name-expr)` where name-expr
+should evaluate to a symbol (for example `'apa`).
+
+Example
+```lisp
+(undefine 'apa)
+```
+
+It is also possible to undefine several bindings at the same time by
+providing a list of names.
+
+Example
+```lisp
+(undefine '(apa bepa cepa))
+```
+
+---
+
 ### setvar
 
 The `setvar` form is used to change the value of some variable in an environment.

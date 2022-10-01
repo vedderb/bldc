@@ -504,7 +504,6 @@ static void finish_ctx(void) {
   if (!ctx_running) {
     return;
   }
-
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
 
@@ -515,6 +514,7 @@ static void finish_ctx(void) {
     lbm_memory_free((lbm_uint*)ctx_running->error_reason);
   }
 
+  lbm_memory_free((lbm_uint*) ctx_running->mailbox);
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
 }
@@ -1578,6 +1578,7 @@ static inline void cont_wait(eval_context_t *ctx) {
 
   lbm_blocked_iterator(context_exists, &cid, &exists);
   lbm_running_iterator(context_exists, &cid, &exists);
+  lbm_sleeping_iterator(context_exists, &cid, &exists);
 
   if (ctx_running->id == cid) {
     exists = true;
