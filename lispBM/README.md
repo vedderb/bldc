@@ -1708,7 +1708,7 @@ Split string str into tokens using delimiter delim. If delim is a number str wil
 (str-replace str rep optWith)
 ```
 
-Replace every occurrence of rep in str with opnWith. If optWith is omitted every rep will be removed. Example:
+Replace every occurrence of rep in str with optWith. If optWith is omitted every rep will be removed. Example:
 
 ```clj
 (str-replace "Hello World!" "World" "LispBM")
@@ -1968,6 +1968,46 @@ Load filename as a byte array and bind it to binding. Note that import must be o
 (import "ws2812.bin" 'ws2812) ; Import the native ws2812 library. This creates the byte array ws2812 that can be used usual.
 (load-native-lib ws2812); Load it to get the extensions it provides 
 ```
+
+### Import Paths
+
+Paths for import can be relative or absolute. Absolute paths are always looked up from the root of the file system, but relative paths need to be resolved. If the lisp-file is saved (e.g. there is a path at the bottom of the editor) paths are looked up relative to the location of that lisp file. If they are not found there they are looked up relative to the location where VESC Tool is started. If the file never has been saved (e.g. you just opened a new tab and started typing) the file path is unknown until save as is used, so only the path relative to VESC Tool is looked up then.
+
+### Special Paths
+
+It is also possible to import files from [VESC Packages](https://github.com/vedderb/vesc_pkg) using a special path syntax. If you want to import the lisp-file from a VESC Package you can use the format
+
+```clj
+(import "pkg@path/to/package.vescpkg" 'import-name)
+```
+
+This will import the lisp-file from that VESC Package. It is also possible to import the imports from a lisp-file in a VESC Package. This is a bit confusing as the package itself does not contain the paths anymore, so instead of referring to the path you have to refer to the label. Here is an example of that:
+
+Suppose you have a VESC Package that has a lisp-file that imports a file like this:
+
+```clj
+(import "c_lib/ws2812/ws2812.bin" 'ws2812)
+```
+
+To import the file that is imported as ws2812 in the lisp-file of that vesc package you can use
+
+```clj
+(import "pkg::ws2812@path/to/package.vescpkg" 'ws2812)
+```
+
+This means import the import ws2812 from the lisp file in the VESC Package located at path/to/package.vescpkg.
+
+### Import Official VESC Packages
+
+There is a [github repository](https://github.com/vedderb/vesc_pkg) where official VESC Packages are located. All of the lisp-files and their imports from the packages in this repository can be imported using the special base path **://vesc_packages**. For example, to import the ws2812 import from lib_ws2812 the following import can be used:
+
+```clj
+(import "pkg::ws2812@://vesc_packages/lib_ws2812/ws2812.vescpkg" 'ws2812)
+```
+
+This should work for all VESC Packages in that repository. Most examples there use this pattern.
+
+**NOTE:** The path above does not download the repository on demand, but relies on the cached local version. This cached version is not updated automatically, so you have to run the update manually when you want to get the latest version of the repository. To update the cache you can use the **Update Archive**-button from the VESC Packages-page in VESC Tool.
 
 ## Native Libraries
 
