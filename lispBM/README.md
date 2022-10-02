@@ -1212,6 +1212,26 @@ Example:
 ; Print the result when done
 ```
 
+#### conf-set-pid-offset
+
+```clj
+(conf-set-pid-offset offset optStore)
+```
+
+Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to 1 to store the offset persistently (although that requires stopping the motor).
+
+#### conf-measure-res
+
+```clj
+(conf-measure-res current optSamples)
+```
+
+Measure motor resistance with current. The optional argument optSamples sets the number of samples to use (default 100).
+
+This command is useful to update the configuration before starting the motor as the resistance is the most important when it comes to sensorless low-speed performance. It is also useful to sanity check if the motor is shorted out or if a connector is loose. Such faults cause a relatively significant change in resistance. Changes with more than 50% compared to the detected value are most likely faults.
+
+**NOTE:** Phase filters are required to get accurate resistance measurements, so resistance-based fault detection is not as useful on hardware without phase filters.
+
 ### EEPROM (Nonvolatile Storage)
 
 Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.

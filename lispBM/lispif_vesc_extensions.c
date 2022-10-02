@@ -3033,6 +3033,68 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		lbm_set_error_reason(error_reason_argn);
+		return ENC_SYM_EERROR;
+	}
+
+	CHECK_NUMBER_ALL();
+
+	float angle = lbm_dec_as_float(args[0]);
+	if (angle < -360.0 || angle > 360.0) {
+		lbm_set_error_reason("Invalid angle. Range should be -360 to 360.");
+		return ENC_SYM_EERROR;
+	}
+
+	bool store = false;
+	if (argn == 2) {
+		store = lbm_dec_as_u32(args[1]);
+	}
+
+	mc_interface_update_pid_pos_offset(angle, store);
+
+	return ENC_SYM_TRUE;
+}
+
+typedef struct {
+	float current;
+	int samples;
+	lbm_cid id;
+} measure_res_args;
+
+static void measure_res_task(void *arg) {
+	measure_res_args *a = (measure_res_args*)arg;
+	float res = mcpwm_foc_measure_resistance(a->current, a->samples, true);
+	lbm_unblock_ctx(a->id, lbm_enc_float(res));
+}
+
+static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		lbm_set_error_reason(error_reason_argn);
+		return ENC_SYM_EERROR;
+	}
+
+	CHECK_NUMBER_ALL();
+
+	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
+		lbm_set_error_reason("Motor type must be FOC");
+		return ENC_SYM_EERROR;
+	}
+
+	static measure_res_args a;
+	a.current = lbm_dec_as_float(args[0]);
+	a.samples = 100;
+	if (argn == 2) {
+		a.samples = lbm_dec_as_u32(args[1]);
+	}
+	a.id = lbm_get_current_cid();
+
+	worker_execute(measure_res_task, &a);
+	lbm_block_ctx_from_extension();
+	return ENC_SYM_TRUE;
+}
+
 // Extra array extensions
 
 static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
@@ -3598,6 +3660,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-get", ext_conf_get);
 	lbm_add_extension("conf-store", ext_conf_store);
 	lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
+	lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
+	lbm_add_extension("conf-measure-res", ext_conf_measure_res);
 
 	// Array extensions
 	lbm_array_extensions_init();
