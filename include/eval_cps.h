@@ -62,6 +62,11 @@ typedef struct eval_context_s{
   struct eval_context_s *next;
 } eval_context_t;
 
+/** Fundamental operation type */
+typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
+
+extern const fundamental_fun fundamental_table[];
+
 /** A function pointer type to use together with the queue iterators.
  *
  * \param
