@@ -43,6 +43,7 @@
 #include "worker.h"
 #include "app.h"
 #include "canard_driver.h"
+#include "firmware_metadata.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -142,6 +143,9 @@ typedef struct {
 	lbm_uint has_phase_filters;
 	lbm_uint uuid;
 	lbm_uint runtime;
+	lbm_uint git_branch;
+	lbm_uint git_hash;
+	lbm_uint compiler;
 
 	// Rates
 	lbm_uint rate_100k;
@@ -346,6 +350,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("uuid", comp);
 		} else if (comp == &syms_vesc.runtime) {
 			get_add_symbol("runtime", comp);
+		} else if (comp == &syms_vesc.git_branch) {
+			get_add_symbol("git-branch", comp);
+		} else if (comp == &syms_vesc.git_hash) {
+			get_add_symbol("git-hash", comp);
+		} else if (comp == &syms_vesc.compiler) {
+			get_add_symbol("compiler", comp);
 		}
 
 		else if (comp == &syms_vesc.rate_100k) {
@@ -973,6 +983,33 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 		res = lbm_cons(lbm_enc_i(STM32_UUID_8[0]), res);
 	} else if (compare_symbol(name, &syms_vesc.runtime)) {
 		res = lbm_enc_u64(g_backup.runtime);
+	} else if (compare_symbol(name, &syms_vesc.git_branch)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(GIT_BRANCH_NAME) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, GIT_BRANCH_NAME);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
+	} else if (compare_symbol(name, &syms_vesc.git_hash)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(GIT_COMMIT_HASH) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, GIT_COMMIT_HASH);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
+	} else if (compare_symbol(name, &syms_vesc.compiler)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(ARM_GCC_VERSION) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, ARM_GCC_VERSION);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
 	}
 
 	return res;

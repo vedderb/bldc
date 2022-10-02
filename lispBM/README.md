@@ -293,6 +293,9 @@ Read system info parameter param. Example:
 (sysinfo 'has-phase-filters) ; t if hardware has phase filters
 (sysinfo 'uuid) ; STM32 UUID
 (sysinfo 'runtime) ; Total runtime in seconds
+(sysinfo 'git-branch) ; Git branch name
+(sysinfo 'git-hash) ; Git hash of current commit
+(sysinfo 'compiler) ; GCC version, e.g. 7.3.1
 ```
 
 ### App Override Commands
