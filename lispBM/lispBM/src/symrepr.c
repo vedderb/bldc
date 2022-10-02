@@ -53,7 +53,6 @@ special_sym const special_symbols[] =  {
   {"send"         , SYM_SEND},
   {"recv"         , SYM_RECEIVE},
   {"macro"        , SYM_MACRO},
-  {"macro-expand" , SYM_MACRO_EXPAND},
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 

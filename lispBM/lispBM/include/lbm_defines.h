@@ -28,12 +28,12 @@
 #define LBM_POINTER_TYPE_FIRST           0x10000000u
 #define LBM_TYPE_CONS                    0x10000000u
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
-#define LBM_TYPE_U32                     0x20000000u
-#define LBM_TYPE_I32                     0x30000000u
-#define LBM_TYPE_I64                     0x40000000u
-#define LBM_TYPE_U64                     0x50000000u
-#define LBM_TYPE_FLOAT                   0x60000000u
-#define LBM_TYPE_DOUBLE                  0x70000000u
+#define LBM_TYPE_U32                     0x28000000u
+#define LBM_TYPE_I32                     0x38000000u
+#define LBM_TYPE_I64                     0x48000000u
+#define LBM_TYPE_U64                     0x58000000u
+#define LBM_TYPE_FLOAT                   0x68000000u
+#define LBM_TYPE_DOUBLE                  0x78000000u
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_REF                     0x90000000u
 #define LBM_TYPE_CHANNEL                 0xA0000000u
@@ -94,7 +94,6 @@
 #define SYM_NIL           0x0
 #define SYM_TRUE          0x2
 #define SYM_DONTCARE      0x9
-#define SYM_MACRO_EXPAND  0xD
 
 // Consecutive value symbols for lookup-application
 #define APPLY_FUNS_START  0x10
@@ -307,7 +306,6 @@
 #define ENC_SYM_CONT        ((SYM_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_CLOSURE     ((SYM_CLOSURE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_MACRO       ((SYM_MACRO << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MACRO_EXPAND ((SYM_MACRO_EXPAND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_SETVAR      ((SYM_SETVAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_EXIT_OK     ((SYM_EXIT_OK << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_EXIT_ERROR  ((SYM_EXIT_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
