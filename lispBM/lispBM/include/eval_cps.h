@@ -34,6 +34,9 @@ extern "C" {
 
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
+#define EVAL_CPS_CONTEXT_FLAG_NOTHING       (uint32_t)0x0
+#define EVAL_CPS_CONTEXT_FLAG_TRAP          (uint32_t)0x1
+
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -41,18 +44,19 @@ typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
   lbm_value curr_env;
-  lbm_value *mailbox;  /* Message passing mailbox */
-  lbm_uint  mailbox_size;
-  lbm_uint  num_mail; /* Number of messages in mailbox */
+  lbm_value *mailbox;    /* Message passing mailbox */
+  uint32_t  mailbox_size;
+  uint32_t  num_mail;    /* Number of messages in mailbox */
+  uint32_t  flags;
   lbm_value r;
   char *error_reason;
   bool  done;
   bool  app_cont;
   lbm_stack_t K;
-  /* Process control */
   lbm_uint timestamp;
   lbm_uint sleep_us;
   lbm_cid id;
+  lbm_cid parent;
   /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;

@@ -189,7 +189,7 @@ bool symchar0(char c) {
 }
 
 bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?_";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -556,7 +556,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_DONE);
   }
 
-  lbm_value res = lbm_enc_sym(SYM_RERROR);
+  lbm_value res = lbm_enc_sym(SYM_TOKENIZER_RERROR);
   uint32_t match;
   n = tok_match_fixed_size_tokens(chan,
                                   fixed_size_tokens,
@@ -654,7 +654,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
   } else if (n == TOKENIZER_NEED_MORE) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   } else if (n == TOKENIZER_STRING_ERROR) {
-    return lbm_enc_sym(SYM_RERROR);
+    return ENC_SYM_TOKENIZER_RERROR;
   }
 
   token_float f_val;
@@ -701,7 +701,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
       break;
     default:
-      return lbm_enc_sym(SYM_RERROR);
+      return ENC_SYM_TOKENIZER_RERROR;
       break;
     }
   } else if (n == TOKENIZER_NEED_MORE) {
@@ -730,7 +730,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       if (r) {
         res = lbm_enc_sym(symbol_id);
       } else {
-        res = lbm_enc_sym(SYM_RERROR);
+        res = ENC_SYM_TOKENIZER_RERROR;
       }
     }
     return res;
@@ -746,6 +746,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  return ENC_SYM_RERROR;
+  return ENC_SYM_TOKENIZER_RERROR;
 }
 

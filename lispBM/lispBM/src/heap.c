@@ -513,6 +513,7 @@ int lbm_gc_sweep_phase(void) {
         case SYM_CHANNEL_TYPE:{
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
+            lbm_memory_free((lbm_uint*)chan->state);
             lbm_memory_free((lbm_uint*)chan);
           }
         } break;
@@ -759,13 +760,13 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   }
 
   array->data = (lbm_uint*)lbm_memory_allocate(allocate_size);
-  memset(array->data, 0, allocate_size * sizeof(lbm_uint));
 
   if (array->data == NULL) {
     lbm_memory_free((lbm_uint*)array);
     *res = ENC_SYM_MERROR;
     return 0;
   }
+  memset(array->data, 0, allocate_size * sizeof(lbm_uint));
 
   array->elt_type = type;
   array->size = size;
