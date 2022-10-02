@@ -92,27 +92,26 @@
 
 // Default and fixed symbol ids
 #define SYM_NIL           0x0
-#define SYM_QUOTE         0x1
 #define SYM_TRUE          0x2
-#define SYM_IF            0x3
-#define SYM_LAMBDA        0x4
-#define SYM_CLOSURE       0x5
-#define SYM_LET           0x6
-#define SYM_DEFINE        0x7
-#define SYM_PROGN         0x8
-#define SYM_READ          0x9
-#define SYM_READ_PROGRAM  0xA
-#define SYM_DONTCARE      0xB
-#define SYM_MATCH         0xC
-#define SYM_SEND          0xD
-#define SYM_RECEIVE       0xE
-#define SYM_MACRO         0xF
-#define SYM_MACRO_EXPAND  0x10
-#define SYM_CALLCC        0x11
-#define SYM_CONT          0x12
-#define SYM_SETVAR        0x13
-#define SYM_EXIT_OK       0x14
-#define SYM_EXIT_ERROR    0x15
+#define SYM_DONTCARE      0x9
+#define SYM_MACRO_EXPAND  0xD
+
+// Consecutive value symbols for lookup-application
+#define APPLY_FUNS_START  0x10
+#define SYM_SETVAR        0x10
+#define SYM_READ          0x11
+#define SYM_READ_PROGRAM  0x12
+#define SYM_SPAWN         0x13
+#define SYM_SPAWN_TRAP    0x14
+#define SYM_YIELD         0x15
+#define SYM_WAIT          0x16
+#define SYM_EVAL          0x17
+#define SYM_EVAL_PROGRAM  0x18
+#define SYM_SEND          0x19
+#define SYM_EXIT_OK       0x1A
+#define SYM_EXIT_ERROR    0x1B
+#define APPLY_FUNS_END    0x1B
+
 
 
 // 0x20 - 0x2F are errors
@@ -185,90 +184,90 @@
 #define SYM_CLOSEBRACK       0x81
 #define SYM_TOKENIZER_RERROR 0x82
 
+
+// Built in special forms - consecutive for lookup-application
+#define SPECIAL_FORMS_START     0x100
+#define SYM_QUOTE               0x100
+#define SYM_DEFINE              0x101
+#define SYM_PROGN               0x102
+#define SYM_LAMBDA              0x103
+#define SYM_IF                  0x104
+#define SYM_LET                 0x105
+#define SYM_AND                 0x106
+#define SYM_OR                  0x107
+#define SYM_MATCH               0x108
+#define SYM_RECEIVE             0x109
+#define SYM_CALLCC              0x10A
+#define SYM_ATOMIC              0x10B
+#define SYM_MACRO               0x10C
+#define SYM_CONT                0x10D
+#define SYM_CLOSURE             0x10E
+#define SPECIAL_FORMS_END       0x10E
+
 // Fundamental Operations
-#define FUNDAMENTALS_START      0x100
-#define SYM_ADD                 0x100
-#define SYM_SUB                 0x101
-#define SYM_MUL                 0x102
-#define SYM_DIV                 0x103
-#define SYM_MOD                 0x104
-#define SYM_EQ                  0x105
-#define SYM_NUMEQ               0x106
-#define SYM_LT                  0x107
-#define SYM_GT                  0x108
-#define SYM_LEQ                 0x109
-#define SYM_GEQ                 0x10A
-#define SYM_EVAL                0x10B
-#define SYM_EVAL_PROGRAM        0x10C
-#define SYM_PERFORM_GC          0x10D
-
-#define SYM_AND                 0x110
-#define SYM_OR                  0x111
-#define SYM_NOT                 0x112
-
-#define SYM_YIELD               0x113
-#define SYM_WAIT                0x114
-#define SYM_SPAWN               0x115
-#define SYM_ATOMIC              0x116
-#define SYM_SELF                0x117
-#define SYM_SET_MAILBOX_SIZE    0x118
-#define SYM_SPAWN_TRAP          0x119
-
-#define SYM_CONS                0x120
-#define SYM_CAR                 0x121
-#define SYM_CDR                 0x122
-#define SYM_LIST                0x123
-#define SYM_APPEND              0x124
-#define SYM_UNDEFINE            0x125
-
-#define SYM_ARRAY_READ          0x130
-#define SYM_ARRAY_WRITE         0x131
-#define SYM_ARRAY_CREATE        0x132
-#define SYM_ARRAY_SIZE          0x133
-#define SYM_ARRAY_CLEAR         0x134
-
-#define SYM_SYMBOL_TO_STRING    0x140
-#define SYM_STRING_TO_SYMBOL    0x141
-#define SYM_SYMBOL_TO_UINT      0x142
-#define SYM_UINT_TO_SYMBOL      0x143
-#define SYM_SET_CAR             0x145
-#define SYM_SET_CDR             0x146
-#define SYM_SET_IX              0x147
-
-#define SYM_ASSOC               0x148
-#define SYM_ACONS               0x149
-#define SYM_SET_ASSOC           0x14A
-#define SYM_COSSA               0x14B
-
-#define SYM_IS_FUNDAMENTAL      0x150
-
-#define SYM_IX                  0x151
-#define SYM_ENCODE_I32          0x152
-#define SYM_ENCODE_U32          0x153
-#define SYM_ENCODE_FLOAT        0x154
-#define SYM_DECODE              0x155
-
-#define SYM_TO_I                0x160
-#define SYM_TO_I32              0x161
-#define SYM_TO_U                0x162
-#define SYM_TO_U32              0x163
-#define SYM_TO_FLOAT            0x164
-#define SYM_TO_I64              0x165
-#define SYM_TO_U64              0x166
-#define SYM_TO_DOUBLE           0x167
-#define SYM_TO_BYTE             0x168
-
-#define SYM_SHL                 0x170
-#define SYM_SHR                 0x171
-#define SYM_BITWISE_AND         0x172
-#define SYM_BITWISE_OR          0x173
-#define SYM_BITWISE_XOR         0x174
-#define SYM_BITWISE_NOT         0x175
-
-#define SYM_CUSTOM_DESTRUCT     0x180 /* run the destructor of a custom type */
-
-#define SYM_TYPE_OF             0x200
-#define FUNDAMENTALS_END        0x200
+// Consecutive values for lookup-application
+#define FUNDAMENTALS_START      0x200
+#define SYM_ADD                 0x200
+#define SYM_SUB                 0x201
+#define SYM_MUL                 0x202
+#define SYM_DIV                 0x203
+#define SYM_MOD                 0x204
+#define SYM_EQ                  0x205
+#define SYM_NUMEQ               0x206
+#define SYM_LT                  0x207
+#define SYM_GT                  0x208
+#define SYM_LEQ                 0x209
+#define SYM_GEQ                 0x20A
+#define SYM_NOT                 0x20B
+#define SYM_PERFORM_GC          0x20C
+#define SYM_SELF                0x20D
+#define SYM_SET_MAILBOX_SIZE    0x20E
+#define SYM_CONS                0x20F
+#define SYM_CAR                 0x210
+#define SYM_CDR                 0x211
+#define SYM_LIST                0x212
+#define SYM_APPEND              0x213
+#define SYM_UNDEFINE            0x214
+#define SYM_ARRAY_READ          0x215
+#define SYM_ARRAY_WRITE         0x216
+#define SYM_ARRAY_CREATE        0x217
+#define SYM_ARRAY_SIZE          0x218
+#define SYM_ARRAY_CLEAR         0x219
+#define SYM_SYMBOL_TO_STRING    0x21A
+#define SYM_STRING_TO_SYMBOL    0x21B
+#define SYM_SYMBOL_TO_UINT      0x21C
+#define SYM_UINT_TO_SYMBOL      0x21D
+#define SYM_SET_CAR             0x21E
+#define SYM_SET_CDR             0x21F
+#define SYM_SET_IX              0x220
+#define SYM_ASSOC               0x221
+#define SYM_ACONS               0x222
+#define SYM_SET_ASSOC           0x223
+#define SYM_COSSA               0x224
+#define SYM_IS_FUNDAMENTAL      0x225
+#define SYM_IX                  0x226
+#define SYM_ENCODE_I32          0x227
+#define SYM_ENCODE_U32          0x228
+#define SYM_ENCODE_FLOAT        0x229
+#define SYM_DECODE              0x22A
+#define SYM_TO_I                0x22B
+#define SYM_TO_I32              0x22C
+#define SYM_TO_U                0x22D
+#define SYM_TO_U32              0x22E
+#define SYM_TO_FLOAT            0x22F
+#define SYM_TO_I64              0x230
+#define SYM_TO_U64              0x231
+#define SYM_TO_DOUBLE           0x232
+#define SYM_TO_BYTE             0x233
+#define SYM_SHL                 0x234
+#define SYM_SHR                 0x235
+#define SYM_BITWISE_AND         0x236
+#define SYM_BITWISE_OR          0x237
+#define SYM_BITWISE_XOR         0x238
+#define SYM_BITWISE_NOT         0x239
+#define SYM_CUSTOM_DESTRUCT     0x23A /* run the destructor of a custom type */
+#define SYM_TYPE_OF             0x23B
+#define FUNDAMENTALS_END        0x23B
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
