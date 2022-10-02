@@ -1836,6 +1836,7 @@ static inline void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 }
 
 static inline void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
   lbm_value err_val = ENC_SYM_EERROR;
   if (nargs >= 1) {
     err_val = args[1];
