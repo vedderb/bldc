@@ -908,7 +908,7 @@ static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_cont
   if (nargs == 1 && lbm_is_symbol(args[0])) {
     result = lbm_env_drop_binding(env, args[0]);
     *lbm_get_env_ptr() = result;
-  } else if (nargs == 1 && lbm_is_list(args[0])) {
+  } else if (nargs == 1 && lbm_is_cons(args[0])) {
     lbm_value curr = args[0];
     while (lbm_type_of(curr) == LBM_TYPE_CONS) {
       lbm_value key = lbm_car(curr);
@@ -1066,7 +1066,7 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 3) {
-    if (lbm_is_list(args[0]) &&
+    if (lbm_is_cons(args[0]) &&
         lbm_is_number(args[1])) {
       lbm_value curr = args[0];
       lbm_uint i = 0;
@@ -1092,7 +1092,7 @@ static lbm_value fundamental_assoc(lbm_value *args, lbm_uint nargs, eval_context
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2) {
-    if (lbm_is_list(args[0])) {
+    if (lbm_is_cons(args[0])) {
       lbm_value r = assoc_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
           lbm_dec_sym(r) == SYM_NO_MATCH) {
@@ -1131,7 +1131,7 @@ static lbm_value fundamental_set_assoc(lbm_value *args, lbm_uint nargs, eval_con
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 3) {
     result = lbm_env_set(args[0], args[1], args[2]);
-  } else if (nargs == 2 && lbm_is_list(args[1])) {
+  } else if (nargs == 2 && lbm_is_cons(args[1])) {
     lbm_value x = lbm_car(args[1]);
     lbm_value xs = lbm_cdr(args[1]);
     result = lbm_env_set(args[0], x, xs);
@@ -1143,7 +1143,7 @@ static lbm_value fundamental_cossa(lbm_value *args, lbm_uint nargs, eval_context
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2) {
-    if (lbm_is_list(args[0])) {
+    if (lbm_is_cons(args[0])) {
       lbm_value r = cossa_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
           lbm_dec_sym(r) == SYM_NO_MATCH) {
