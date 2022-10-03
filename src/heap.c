@@ -402,6 +402,15 @@ bool lbm_is_number(lbm_value x) {
 }
 
 
+bool lbm_is_byte_array(lbm_value x) {
+  if (lbm_is_array(x)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(x);
+    return (header != NULL && header->elt_type == LBM_TYPE_BYTE);
+  }
+  return false;
+}
+
+
 
 /****************************************************/
 /* HEAP MANAGEMENT                                  */

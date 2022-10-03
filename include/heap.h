@@ -655,7 +655,7 @@ static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_MASK);
 }
 
-static inline bool lbm_is_list(lbm_value x) {
+static inline bool lbm_is_cons(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
@@ -670,6 +670,13 @@ static inline bool lbm_is_array(lbm_value x) {
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
 }
+
+/** Check if a value represents a byte array.
+ * \param x Value to check.
+ * \return true if x represents a byte array and false otherwise.
+ */
+extern bool lbm_is_byte_array(lbm_value x);
+
 static inline bool lbm_is_channel(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
@@ -724,7 +731,7 @@ static inline bool lbm_is_match_binder(lbm_value exp) {
 }
 
 static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
-  return (lbm_is_list(exp) &&
+  return (lbm_is_cons(exp) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_COMMA) &&
           (lbm_type_of(lbm_car(lbm_cdr(exp))) == LBM_TYPE_SYMBOL));
@@ -738,6 +745,10 @@ static inline bool lbm_is_symbol_nil(lbm_value exp) {
   return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_NIL);
 }
 
+static inline bool lbm_is_symbol_true(lbm_value exp) {
+  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_TRUE);
+}
+
 static inline bool lbm_is_symbol_eval(lbm_value exp) {
   return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_EVAL);
 }
@@ -746,6 +757,9 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
   return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_MERROR);
 }
 
+static inline bool lbm_is_list(lbm_value x) {
+  return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
+}
 
 #ifndef LBM64
 #define ERROR_SYMBOL_MASK 0xFFFFFF20

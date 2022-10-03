@@ -1310,7 +1310,7 @@ static void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
 
-  if (lbm_is_list(exps)) {
+  if (lbm_is_cons(exps)) {
     lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 3);
     if (!sptr) {
       error_ctx(ENC_SYM_STACK_ERROR);
@@ -1944,7 +1944,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-  if (lbm_is_list(params)) {
+  if (lbm_is_cons(params)) {
     lbm_value entry;
     WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), ENC_SYM_NIL, ENC_SYM_NIL);
 
@@ -2000,7 +2000,7 @@ static void cont_application_args(eval_context_t *ctx) {
     sptr[1] = count;
     lbm_stack_drop(&ctx->K, 1);
     cont_application(ctx);
-  } else if (lbm_is_list(rest)) {
+  } else if (lbm_is_cons(rest)) {
     sptr[1] = env;
     sptr[2] = lbm_enc_u(lbm_dec_u(count) + 1);
     CHECK_STACK(lbm_push_2(&ctx->K,lbm_cdr(rest), APPLICATION_ARGS));
@@ -2064,7 +2064,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   lbm_env_modify_binding(env, key, arg);
 
-  if (lbm_is_list(rest)) {
+  if (lbm_is_cons(rest)) {
     lbm_value keyn = lbm_car(lbm_car(rest));
     lbm_value valn_exp = lbm_cadr(lbm_car(rest));
 
@@ -2144,7 +2144,7 @@ static void cont_match(eval_context_t *ctx) {
     /* no more patterns */
     ctx->r = ENC_SYM_NO_MATCH;
     ctx->app_cont = true;
-  } else if (lbm_is_list(patterns)) {
+  } else if (lbm_is_cons(patterns)) {
     lbm_value pattern = lbm_car(lbm_car(patterns));
     lbm_value body    = lbm_cadr(lbm_car(patterns));
 
