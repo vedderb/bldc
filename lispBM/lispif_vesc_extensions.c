@@ -43,6 +43,7 @@
 #include "worker.h"
 #include "app.h"
 #include "canard_driver.h"
+#include "firmware_metadata.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -142,6 +143,9 @@ typedef struct {
 	lbm_uint has_phase_filters;
 	lbm_uint uuid;
 	lbm_uint runtime;
+	lbm_uint git_branch;
+	lbm_uint git_hash;
+	lbm_uint compiler;
 
 	// Rates
 	lbm_uint rate_100k;
@@ -346,6 +350,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("uuid", comp);
 		} else if (comp == &syms_vesc.runtime) {
 			get_add_symbol("runtime", comp);
+		} else if (comp == &syms_vesc.git_branch) {
+			get_add_symbol("git-branch", comp);
+		} else if (comp == &syms_vesc.git_hash) {
+			get_add_symbol("git-hash", comp);
+		} else if (comp == &syms_vesc.compiler) {
+			get_add_symbol("compiler", comp);
 		}
 
 		else if (comp == &syms_vesc.rate_100k) {
@@ -806,12 +816,12 @@ static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || (lbm_type_of(args[0]) != LBM_TYPE_CONS && lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
+	if (argn != 1 || (!lbm_is_cons(args[0]) && !lbm_is_array(args[0]))) {
 		return ENC_SYM_EERROR;
 	}
 
 	lbm_value curr = args[0];
-	const int max_len = 20;
+	const int max_len = 50;
 	uint8_t to_send[max_len];
 	uint8_t *to_send_ptr = to_send;
 	int ind = 0;
@@ -825,7 +835,7 @@ static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 		to_send_ptr = (uint8_t*)array->data;
 		ind = array->size;
 	} else {
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -864,8 +874,8 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 }
 
 static bool check_eeprom_addr(int addr) {
-	if (addr < 0 || addr > 63) {
-		lbm_set_error_reason("Address must be 0 to 63");
+	if (addr < 0 || addr > 127) {
+		lbm_set_error_reason("Address must be 0 to 127");
 		return false;
 	}
 
@@ -973,6 +983,33 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 		res = lbm_cons(lbm_enc_i(STM32_UUID_8[0]), res);
 	} else if (compare_symbol(name, &syms_vesc.runtime)) {
 		res = lbm_enc_u64(g_backup.runtime);
+	} else if (compare_symbol(name, &syms_vesc.git_branch)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(GIT_BRANCH_NAME) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, GIT_BRANCH_NAME);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
+	} else if (compare_symbol(name, &syms_vesc.git_hash)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(GIT_COMMIT_HASH) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, GIT_COMMIT_HASH);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
+	} else if (compare_symbol(name, &syms_vesc.compiler)) {
+		lbm_value lbm_res;
+		if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, strlen(ARM_GCC_VERSION) + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+			strcpy((char*)arr->data, ARM_GCC_VERSION);
+			res = lbm_res;
+		} else {
+			res = ENC_SYM_MERROR;
+		}
 	}
 
 	return res;
@@ -1464,7 +1501,7 @@ static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 
 		memcpy(to_send, array->data, ind);
 	} else {
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -1924,7 +1961,7 @@ static void wait_uart_tx_task(void *arg) {
 }
 
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || (lbm_type_of(args[0]) != LBM_TYPE_CONS && lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
+	if (argn != 1 || (!lbm_is_cons(args[0]) && !lbm_is_array(args[0]))) {
 		return ENC_SYM_EERROR;
 	}
 
@@ -1947,7 +1984,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		ind = array->size;
 	} else {
 		lbm_value curr = args[0];
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -2140,7 +2177,7 @@ static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 		txlen = array->size;
 	} else {
 		lbm_value curr = args[1];
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -2619,7 +2656,7 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		return res;
 	}
 
-	if (lbm_type_of(args[0]) != LBM_TYPE_SYMBOL) {
+	if (!lbm_is_symbol(args[0])) {
 		return res;
 	}
 
@@ -3029,6 +3066,68 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	a.sl_erpm = lbm_dec_as_float(args[5]);
 	a.id = lbm_get_current_cid();
 	worker_execute(detect_task, &a);
+	lbm_block_ctx_from_extension();
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		lbm_set_error_reason(error_reason_argn);
+		return ENC_SYM_EERROR;
+	}
+
+	CHECK_NUMBER_ALL();
+
+	float angle = lbm_dec_as_float(args[0]);
+	if (angle < -360.0 || angle > 360.0) {
+		lbm_set_error_reason("Invalid angle. Range should be -360 to 360.");
+		return ENC_SYM_EERROR;
+	}
+
+	bool store = false;
+	if (argn == 2) {
+		store = lbm_dec_as_u32(args[1]);
+	}
+
+	mc_interface_update_pid_pos_offset(angle, store);
+
+	return ENC_SYM_TRUE;
+}
+
+typedef struct {
+	float current;
+	int samples;
+	lbm_cid id;
+} measure_res_args;
+
+static void measure_res_task(void *arg) {
+	measure_res_args *a = (measure_res_args*)arg;
+	float res = mcpwm_foc_measure_resistance(a->current, a->samples, true);
+	lbm_unblock_ctx(a->id, lbm_enc_float(res));
+}
+
+static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 && argn != 2) {
+		lbm_set_error_reason(error_reason_argn);
+		return ENC_SYM_EERROR;
+	}
+
+	CHECK_NUMBER_ALL();
+
+	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
+		lbm_set_error_reason("Motor type must be FOC");
+		return ENC_SYM_EERROR;
+	}
+
+	static measure_res_args a;
+	a.current = lbm_dec_as_float(args[0]);
+	a.samples = 100;
+	if (argn == 2) {
+		a.samples = lbm_dec_as_u32(args[1]);
+	}
+	a.id = lbm_get_current_cid();
+
+	worker_execute(measure_res_task, &a);
 	lbm_block_ctx_from_extension();
 	return ENC_SYM_TRUE;
 }
@@ -3598,6 +3697,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-get", ext_conf_get);
 	lbm_add_extension("conf-store", ext_conf_store);
 	lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
+	lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
+	lbm_add_extension("conf-measure-res", ext_conf_measure_res);
 
 	// Array extensions
 	lbm_array_extensions_init();

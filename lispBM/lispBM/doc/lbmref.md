@@ -1296,6 +1296,24 @@ that the runtime system should allocate to run the task in: `(spawn stack-size c
 
 ---
 
+### spawn-trap
+
+Use `spawn-trap` to spawn a child process and enable trapping of exit conditions for that
+child. The form of a `spawn-trap` expression is `(spawn-trap closure arg1 .. argN)`.
+If the child process is terminated because of an error, a message is sent to the parent
+process of the form `(exit-error tid err-val)`. If the child process terminates successfully
+a message of the form `(exit-ok tid value)` is sent to the parent.
+
+Example:
+```lisp
+(spawn-trap my-thread)
+
+(recv  ((exit-error (? tid) (? e)) ...)
+       ((exit-ok    (? tid) (? v)) ...))
+```
+
+---
+
 ### wait
 
 Use `wait` to wait for a spawned process to finish.
@@ -1321,7 +1339,7 @@ is number indicating at least how many microseconds the process should sleep.
 `atomic` can be used to execute a LispBM expression without allowing
 the runtime system to switch task during the time that takes.
 
-An example that atomically perfoms operations a,b and c. 
+An example that atomically perfoms operations a,b and c.
 
 ```lisp
 (atomic
@@ -1330,7 +1348,23 @@ An example that atomically perfoms operations a,b and c.
      b
      c))
 ```
+---
 
+### exit-ok
+
+The `exit-ok` function terminates the thread in a "successful" way and returnes a result
+specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.
+If the process that calls `exit-ok` was created using `spawn-trap` a message of the form
+`(exit-ok tid value)` is be sent to the parent of this process.
+
+---
+
+### exit-error
+
+The `exit-error` function terminates the thread with an error specified by the programmer.
+The form of an `exit-error` expression is `(exit-error err_val)`. If the process that
+calls `exit-error` was created using `spawn-trap` a message of the form
+`(exit-error tid err_val)` is sent to the parent of this process.
 
 ---
 

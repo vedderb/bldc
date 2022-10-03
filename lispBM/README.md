@@ -293,6 +293,9 @@ Read system info parameter param. Example:
 (sysinfo 'has-phase-filters) ; t if hardware has phase filters
 (sysinfo 'uuid) ; STM32 UUID
 (sysinfo 'runtime) ; Total runtime in seconds
+(sysinfo 'git-branch) ; Git branch name
+(sysinfo 'git-hash) ; Git hash of current commit
+(sysinfo 'compiler) ; GCC version, e.g. 7.3.1
 ```
 
 ### App Override Commands
@@ -1212,6 +1215,26 @@ Example:
 ; Print the result when done
 ```
 
+#### conf-set-pid-offset
+
+```clj
+(conf-set-pid-offset offset optStore)
+```
+
+Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to 1 to store the offset persistently (although that requires stopping the motor).
+
+#### conf-measure-res
+
+```clj
+(conf-measure-res current optSamples)
+```
+
+Measure motor resistance with current. The optional argument optSamples sets the number of samples to use (default 100).
+
+This command is useful to update the configuration before starting the motor as the resistance is the most important when it comes to sensorless low-speed performance. It is also useful to sanity check if the motor is shorted out or if a connector is loose. Such faults cause a relatively significant change in resistance. Changes with more than 50% compared to the detected value are most likely faults.
+
+**NOTE:** Phase filters are required to get accurate resistance measurements, so resistance-based fault detection is not as useful on hardware without phase filters.
+
 ### EEPROM (Nonvolatile Storage)
 
 Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
@@ -1688,7 +1711,7 @@ Split string str into tokens using delimiter delim. If delim is a number str wil
 (str-replace str rep optWith)
 ```
 
-Replace every occurrence of rep in str with opnWith. If optWith is omitted every rep will be removed. Example:
+Replace every occurrence of rep in str with optWith. If optWith is omitted every rep will be removed. Example:
 
 ```clj
 (str-replace "Hello World!" "World" "LispBM")
@@ -1949,6 +1972,46 @@ Load filename as a byte array and bind it to binding. Note that import must be o
 (load-native-lib ws2812); Load it to get the extensions it provides 
 ```
 
+### Import Paths
+
+Paths for import can be relative or absolute. Absolute paths are always looked up from the root of the file system, but relative paths need to be resolved. If the lisp-file is saved (e.g. there is a path at the bottom of the editor) paths are looked up relative to the location of that lisp file. If they are not found there they are looked up relative to the location where VESC Tool is started. If the file never has been saved (e.g. you just opened a new tab and started typing) the file path is unknown until save as is used, so only the path relative to VESC Tool is looked up then.
+
+### Special Paths
+
+It is also possible to import files from [VESC Packages](https://github.com/vedderb/vesc_pkg) using a special path syntax. If you want to import the lisp-file from a VESC Package you can use the format
+
+```clj
+(import "pkg@path/to/package.vescpkg" 'import-name)
+```
+
+This will import the lisp-file from that VESC Package. It is also possible to import the imports from a lisp-file in a VESC Package. This is a bit confusing as the package itself does not contain the paths anymore, so instead of referring to the path you have to refer to the label. Here is an example of that:
+
+Suppose you have a VESC Package that has a lisp-file that imports a file like this:
+
+```clj
+(import "c_lib/ws2812/ws2812.bin" 'ws2812)
+```
+
+To import the file that is imported as ws2812 in the lisp-file of that vesc package you can use
+
+```clj
+(import "pkg::ws2812@path/to/package.vescpkg" 'ws2812)
+```
+
+This means import the import ws2812 from the lisp file in the VESC Package located at path/to/package.vescpkg.
+
+### Import Official VESC Packages
+
+There is a [github repository](https://github.com/vedderb/vesc_pkg) where official VESC Packages are located. All of the lisp-files and their imports from the packages in this repository can be imported using the special base path **://vesc_packages**. For example, to import the ws2812 import from lib_ws2812 the following import can be used:
+
+```clj
+(import "pkg::ws2812@://vesc_packages/lib_ws2812/ws2812.vescpkg" 'ws2812)
+```
+
+This should work for all VESC Packages in that repository. Most examples there use this pattern.
+
+**NOTE:** The path above does not download the repository on demand, but relies on the cached local version. This cached version is not updated automatically, so you have to run the update manually when you want to get the latest version of the repository. To update the cache you can use the **Update Archive**-button from the VESC Packages-page in VESC Tool.
+
 ## Native Libraries
 
 Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.
@@ -1999,12 +2062,11 @@ This example creates an extension called ext-test that takes a number as an argu
 
 (def example [
 0x00 0x00 0x00 0x00 0x08 0xb5 0x07 0x4b 0x07 0x49 0x08 0x48 0x7b 0x44 0x79 0x44 0x1b 0x68 0x03 0x4b
-0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xfc 0x00 0x10 0xf0 0xff 0xff 0xff
+0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xf8 0x00 0x10 0xf0 0xff 0xff 0xff
 0x2b 0x00 0x00 0x00 0x18 0x00 0x00 0x00 0x65 0x78 0x74 0x2d 0x74 0x65 0x73 0x74 0x00 0x00 0x00 0x00
-0x01 0x29 0x08 0xb5 0x1f 0xd1 0x00 0x68 0xc3 0x07 0x4c 0xbf 0x00 0xf0 0x7c 0x43 0x00 0xf0 0x0c 0x03
-0x08 0x2b 0x0d 0xd0 0x23 0xf0 0x08 0x02 0x04 0x2a 0x09 0xd0 0x23 0xf0 0x80 0x52 0x23 0xf0 0xa0 0x43
-0xb3 0xf1 0x00 0x5f 0x02 0xd0 0xb2 0xf1 0x80 0x4f 0x08 0xd1 0x05 0x4b 0xdb 0x68 0x98 0x47 0x00 0xeb
-0x40 0x00 0x00 0x01 0x40 0xf0 0x0c 0x00 0x08 0xbd 0x4f 0xf4 0x08 0x70 0xfb 0xe7 0x00 0xfc 0x00 0x10
+0x01 0x29 0x70 0xb5 0x05 0x46 0x09 0x4c 0x0d 0xd1 0xe3 0x6f 0x00 0x68 0x98 0x47 0x48 0xb1 0x63 0x6e
+0x28 0x68 0x26 0x6c 0x98 0x47 0x33 0x46 0x00 0xeb 0x40 0x00 0xbd 0xe8 0x70 0x40 0x18 0x47 0xd4 0xf8
+0x94 0x00 0x70 0xbd 0x00 0xf8 0x00 0x10
 ])
 
 ; The array can be loaded like this

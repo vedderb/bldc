@@ -22,9 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-typedef bool (*load_extension_fptr)(char*,extension_fptr);
-typedef void* lib_thread;
+#include <stddef.h>
 
 #ifdef IS_VESC_LIB
 typedef uint32_t systime_t;
@@ -118,7 +116,45 @@ typedef union {
 	int32_t as_i32;
 	float as_float;
 } eeprom_var;
+
+// Packet
+#ifndef PACKET_MAX_PL_LEN
+#define PACKET_MAX_PL_LEN		512
 #endif
+
+#define PACKET_BUFFER_LEN		(PACKET_MAX_PL_LEN + 8)
+
+typedef struct {
+	void(*send_func)(unsigned char *data, unsigned int len);
+	void(*process_func)(unsigned char *data, unsigned int len);
+	unsigned int rx_read_ptr;
+	unsigned int rx_write_ptr;
+	int bytes_left;
+	unsigned char rx_buffer[PACKET_BUFFER_LEN];
+	unsigned char tx_buffer[PACKET_BUFFER_LEN];
+} PACKET_STATE_t;
+
+// LBM
+typedef uint32_t lbm_value;
+typedef uint32_t lbm_type;
+typedef uint32_t lbm_cid;
+
+typedef uint32_t lbm_uint;
+typedef int32_t  lbm_int;
+typedef float    lbm_float;
+
+typedef struct {
+	lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
+	lbm_uint size;            /// Number of elements
+	lbm_uint *data;           /// pointer to lbm_memory array or C array.
+} lbm_array_header_t;
+
+typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
+#endif
+
+typedef bool (*load_extension_fptr)(char*,extension_fptr);
+
+typedef void* lib_thread;
 
 typedef enum {
 	VESC_PIN_COMM_RX = 0,
@@ -130,6 +166,9 @@ typedef enum {
 	VESC_PIN_HALL3,
 	VESC_PIN_ADC1,
 	VESC_PIN_ADC2,
+	VESC_PIN_HALL4,
+	VESC_PIN_HALL5,
+	VESC_PIN_HALL6,
 } VESC_PIN;
 
 typedef enum {
@@ -160,45 +199,66 @@ typedef enum {
 	CFG_PARAM_l_battery_cut_end,
 } CFG_PARAM;
 
-#ifndef PACKET_MAX_PL_LEN
-#define PACKET_MAX_PL_LEN		512
-#endif
-
-#define PACKET_BUFFER_LEN		(PACKET_MAX_PL_LEN + 8)
-
-// Types
-typedef struct {
-	void(*send_func)(unsigned char *data, unsigned int len);
-	void(*process_func)(unsigned char *data, unsigned int len);
-	unsigned int rx_read_ptr;
-	unsigned int rx_write_ptr;
-	int bytes_left;
-	unsigned char rx_buffer[PACKET_BUFFER_LEN];
-	unsigned char tx_buffer[PACKET_BUFFER_LEN];
-} PACKET_STATE_t;
-
 /*
  * Function pointer struct. Always add new function pointers to the end in order to not
  * break compatibility with old binaries.
  */
 typedef struct {
-	// LBM If
+	// LBM
 	load_extension_fptr lbm_add_extension;
-	float (*lbm_dec_as_float)(lbm_value val);
-	uint32_t (*lbm_dec_as_u32)(lbm_value val);
-	int32_t (*lbm_dec_as_i32)(lbm_value val);
-	lbm_value (*lbm_enc_float)(float f);
-	lbm_value (*lbm_enc_u32)(uint32_t u);
-	lbm_value (*lbm_enc_i32)(int32_t i);
+	void (*lbm_block_ctx_from_extension)(void);
+	bool (*lbm_unblock_ctx)(lbm_cid, lbm_value);
+	lbm_cid (*lbm_get_current_cid)(void);
+	int (*lbm_set_error_reason)(char *str);
+	void (*lbm_pause_eval_with_gc)(uint32_t num_free);
+	void (*lbm_continue_eval)(void);
+	int (*lbm_send_message)(lbm_cid cid, lbm_value msg);
+	bool (*lbm_eval_is_paused)(void);
+
 	lbm_value (*lbm_cons)(lbm_value car, lbm_value cdr);
 	lbm_value (*lbm_car)(lbm_value val);
 	lbm_value (*lbm_cdr)(lbm_value val);
-	bool (*lbm_is_array)(lbm_value val);
-	int (*lbm_set_error_reason)(char *str);
-	
+	lbm_value (*lbm_list_destructive_reverse)(lbm_value list);
+	bool (*lbm_create_byte_array)(lbm_value *value, lbm_uint num_elt);
+
+	int (*lbm_add_symbol_const)(char *, lbm_uint *);
+	int (*lbm_get_symbol_by_name)(char *name, lbm_uint* id);
+
+	lbm_value (*lbm_enc_i)(lbm_int x);
+	lbm_value (*lbm_enc_u)(lbm_uint x);
+	lbm_value (*lbm_enc_char)(char x);
+	lbm_value (*lbm_enc_float)(float f);
+	lbm_value (*lbm_enc_u32)(uint32_t u);
+	lbm_value (*lbm_enc_i32)(int32_t i);
+	lbm_value (*lbm_enc_sym)(lbm_uint s);
+
+	float (*lbm_dec_as_float)(lbm_value val);
+	uint32_t (*lbm_dec_as_u32)(lbm_value val);
+	int32_t (*lbm_dec_as_i32)(lbm_value val);
+	char (*lbm_dec_char)(lbm_value x);
+	char* (*lbm_dec_str)(lbm_value);
+	lbm_uint (*lbm_dec_sym)(lbm_value x);
+
+	bool (*lbm_is_byte_array)(lbm_value val);
+	bool (*lbm_is_cons)(lbm_value x);
+	bool (*lbm_is_number)(lbm_value x);
+	bool (*lbm_is_char)(lbm_value x);
+	bool (*lbm_is_symbol)(lbm_value x);
+
+	lbm_uint lbm_enc_sym_nil;
+	lbm_uint lbm_enc_sym_true;
+	lbm_uint lbm_enc_sym_terror;
+	lbm_uint lbm_enc_sym_eerror;
+	lbm_uint lbm_enc_sym_merror;
+
+	bool (*lbm_is_symbol_nil)(lbm_uint);
+	bool (*lbm_is_symbol_true)(lbm_uint);
+
 	// Os
 	void (*sleep_ms)(uint32_t ms);
 	void (*sleep_us)(uint32_t us);
+	float (*system_time)(void); // Time since boot in seconds
+	float (*ts_to_age_s)(systime_t ts); // Age of timestamp in seconds
 	int (*printf)(const char *str, ...);
 	void* (*malloc)(size_t bytes);
 	void (*free)(void *prt);
@@ -310,22 +370,16 @@ typedef struct {
 	float (*mc_stat_count_time)(void);
 	void (*mc_stat_reset)(void);
 
-	// More (added here to not break binary compatibility)
-	float (*system_time)(void);
+	// Comm
 	void (*commands_process_packet)(unsigned char *data, unsigned int len,
 			void(*reply_func)(unsigned char *data, unsigned int len));
+	void (*send_app_data)(unsigned char *data, unsigned int len);
+	bool (*set_app_data_handler)(void(*func)(unsigned char *data, unsigned int len));
 
 	// UART
 	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
 	bool (*uart_write)(uint8_t *data, uint32_t size);
 	int32_t (*uart_read)(void);
-
-	// LBM
-	char* (*lbm_dec_str)(lbm_value);
-	int (*lbm_add_symbol_const)(char *, lbm_uint *);
-	void (*lbm_block_ctx_from_extension)(void);
-	bool (*lbm_unblock_ctx)(lbm_cid, lbm_value);
-	lbm_cid (*lbm_get_current_cid)(void);
 
 	// Packets
 	void (*packet_init)(void (*s_func)(unsigned char *, unsigned int),
@@ -381,17 +435,8 @@ typedef struct {
 			int (*get_cfg_xml)(uint8_t **data));
 	void (*conf_custom_clear_configs)(void);
 
-	// Send app data (which can be received by QML)
-	void (*send_app_data)(unsigned char *data, unsigned int len);
-
-	// Age of timestamp in seconds
-	float (*ts_to_age_s)(systime_t ts);
-
 	// Settings (TODO: Add more types and also setters)
 	float (*get_cfg_float)(CFG_PARAM p);
-
-	// Add handler for received app data
-	bool (*set_app_data_handler)(void(*func)(unsigned char *data, unsigned int len));
 } vesc_c_if;
 
 typedef struct {
@@ -401,7 +446,7 @@ typedef struct {
 } lib_info;
 
 // VESC-interface with function pointers
-#define VESC_IF		((vesc_c_if*)(0x1000FC00))
+#define VESC_IF		((vesc_c_if*)(0x1000F800))
 
 // Put this at the beginning of your source file
 #define HEADER		static volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;

@@ -20,6 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
+#include "packet.h"
 #include "mc_interface.h"
 #include "commands.h"
 #include "comm_can.h"
@@ -57,7 +58,7 @@ static bool lib_init_done = false;
 
 __attribute__((section(".libif"))) static volatile union {
 	vesc_c_if cif;
-	char pad[1024];
+	char pad[2048];
 } cif;
 
 static void lib_sleep_ms(uint32_t ms) {
@@ -210,6 +211,24 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 #ifdef HW_ADC_EXT2_GPIO
 		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
 		*is_analog = true;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL4:
+#ifdef HW_HALL_ENC_GPIO4
+		*port = HW_HALL_ENC_GPIO4; *pin = HW_HALL_ENC_PIN4;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL5:
+#ifdef HW_HALL_ENC_GPIO5
+		*port = HW_HALL_ENC_GPIO5; *pin = HW_HALL_ENC_PIN5;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL6:
+#ifdef HW_HALL_ENC_GPIO6
+		*port = HW_HALL_ENC_GPIO6; *pin = HW_HALL_ENC_PIN6;
 		res = true;
 #endif
 		break;
@@ -395,6 +414,14 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 	return res;
 }
 
+static bool lib_create_byte_array(lbm_value *value, lbm_uint num_elt) {
+	return lbm_heap_allocate_array(value, num_elt, LBM_TYPE_BYTE);
+}
+
+static bool lib_eval_is_paused(void) {
+	return lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED;
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -408,25 +435,63 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	}
 
 	if (!lib_init_done) {
-		memset((char*)cif.pad, 0, 1024);
+		memset((char*)cif.pad, 0, 2048);
 
 		// LBM
 		cif.cif.lbm_add_extension = lbm_add_extension;
-		cif.cif.lbm_dec_as_float = lbm_dec_as_float;
-		cif.cif.lbm_dec_as_u32 =	lbm_dec_as_u32;
-		cif.cif.lbm_dec_as_i32 = lbm_dec_as_i32;
-		cif.cif.lbm_enc_float = lbm_enc_float;
-		cif.cif.lbm_enc_u32 = lbm_enc_u32;
-		cif.cif.lbm_enc_i32 = lbm_enc_i32;
+		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
+		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
+		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
+		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
+		cif.cif.lbm_pause_eval_with_gc = lbm_pause_eval_with_gc;
+		cif.cif.lbm_continue_eval = lbm_continue_eval;
+		cif.cif.lbm_send_message = lbm_send_message;
+		cif.cif.lbm_eval_is_paused = lib_eval_is_paused;
+
 		cif.cif.lbm_cons = lbm_cons;
 		cif.cif.lbm_car = lbm_car;
 		cif.cif.lbm_cdr = lbm_cdr;
-		cif.cif.lbm_is_array = lbm_is_array;
-		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
+		cif.cif.lbm_list_destructive_reverse = lbm_list_destructive_reverse;
+		cif.cif.lbm_create_byte_array = lib_create_byte_array;
+
+		cif.cif.lbm_add_symbol_const = lbm_add_symbol_const;
+		cif.cif.lbm_get_symbol_by_name = lbm_get_symbol_by_name;
+
+		cif.cif.lbm_enc_i = lbm_enc_i;
+		cif.cif.lbm_enc_u = lbm_enc_u;
+		cif.cif.lbm_enc_char = lbm_enc_char;
+		cif.cif.lbm_enc_float = lbm_enc_float;
+		cif.cif.lbm_enc_u32 = lbm_enc_u32;
+		cif.cif.lbm_enc_i32 = lbm_enc_i32;
+		cif.cif.lbm_enc_sym = lbm_enc_sym;
+
+		cif.cif.lbm_dec_as_float = lbm_dec_as_float;
+		cif.cif.lbm_dec_as_u32 = lbm_dec_as_u32;
+		cif.cif.lbm_dec_as_i32 = lbm_dec_as_i32;
+		cif.cif.lbm_dec_char = lbm_dec_char;
+		cif.cif.lbm_dec_str = lbm_dec_str;
+		cif.cif.lbm_dec_sym = lbm_dec_sym;
+
+		cif.cif.lbm_is_byte_array = lbm_is_byte_array;
+		cif.cif.lbm_is_cons = lbm_is_cons;
+		cif.cif.lbm_is_number = lbm_is_number;
+		cif.cif.lbm_is_char = lbm_is_char;
+		cif.cif.lbm_is_symbol = lbm_is_symbol;
+
+		cif.cif.lbm_enc_sym_nil = ENC_SYM_NIL;
+		cif.cif.lbm_enc_sym_true = ENC_SYM_TRUE;
+		cif.cif.lbm_enc_sym_terror = ENC_SYM_TERROR;
+		cif.cif.lbm_enc_sym_eerror = ENC_SYM_EERROR;
+		cif.cif.lbm_enc_sym_merror = ENC_SYM_MERROR;
+
+		cif.cif.lbm_is_symbol_nil = lbm_is_symbol_nil;
+		cif.cif.lbm_is_symbol_true = lbm_is_symbol_true;
 
 		// Os
 		cif.cif.sleep_ms = lib_sleep_ms;
 		cif.cif.sleep_us = lib_sleep_us;
+		cif.cif.system_time = lib_system_time;
+		cif.cif.ts_to_age_s = lib_ts_to_age_s;
 		cif.cif.printf = commands_printf_lisp;
 		cif.cif.malloc = lib_malloc;
 		cif.cif.free = lib_free;
@@ -538,21 +603,15 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.mc_stat_count_time = mc_interface_stat_count_time;
 		cif.cif.mc_stat_reset = mc_interface_stat_reset;
 
-		// More
-		cif.cif.system_time = lib_system_time;
+		// Comm
 		cif.cif.commands_process_packet = commands_process_packet;
+		cif.cif.send_app_data = commands_send_app_data;
+		cif.cif.set_app_data_handler = commands_set_app_data_handler;
 
 		// UART
 		cif.cif.uart_start = lib_uart_start;
 		cif.cif.uart_write = lib_uart_write;
 		cif.cif.uart_read = lib_uart_read;
-
-		// LBM
-		cif.cif.lbm_dec_str = lbm_dec_str;
-		cif.cif.lbm_add_symbol_const = lbm_add_symbol_const;
-		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
-		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
-		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
 
 		// Packets
 		cif.cif.packet_init = packet_init;
@@ -599,17 +658,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.conf_custom_add_config = conf_custom_add_config;
 		cif.cif.conf_custom_clear_configs = conf_custom_clear_configs;
 
-		// App data
-		cif.cif.send_app_data = commands_send_app_data;
-
-		// Age of timestamp in seconds
-		cif.cif.ts_to_age_s = lib_ts_to_age_s;
-
 		// Settings
 		cif.cif.get_cfg_float = lib_get_cfg_float;
-
-		// Add handler for received app data
-		cif.cif.set_app_data_handler = commands_set_app_data_handler;
 
 		lib_init_done = true;
 	}

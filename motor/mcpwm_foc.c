@@ -1679,7 +1679,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 
 	// Ramp up the current slowly
 	while (fabsf(motor->m_iq_set - current) > 0.001) {
-		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);		
+		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 100.0);
 		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 			motor->m_id_set = 0.0;
 			motor->m_iq_set = 0.0;
@@ -1697,7 +1697,7 @@ float mcpwm_foc_measure_resistance(float current, int samples, bool stop_after) 
 	}
 
 	// Wait for the current to rise and the motor to lock.
-	chThdSleepMilliseconds(100);
+	chThdSleepMilliseconds(50);
 
 	// Sample
 	motor->m_samples.avg_current_tot = 0.0;

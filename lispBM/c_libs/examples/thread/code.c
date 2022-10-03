@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lbm_if.h"
 #include "vesc_c_if.h"
 
 HEADER
