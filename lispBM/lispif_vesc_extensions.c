@@ -816,12 +816,12 @@ static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || (lbm_type_of(args[0]) != LBM_TYPE_CONS && lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
+	if (argn != 1 || (!lbm_is_cons(args[0]) && !lbm_is_array(args[0]))) {
 		return ENC_SYM_EERROR;
 	}
 
 	lbm_value curr = args[0];
-	const int max_len = 20;
+	const int max_len = 50;
 	uint8_t to_send[max_len];
 	uint8_t *to_send_ptr = to_send;
 	int ind = 0;
@@ -835,7 +835,7 @@ static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 		to_send_ptr = (uint8_t*)array->data;
 		ind = array->size;
 	} else {
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -874,8 +874,8 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 }
 
 static bool check_eeprom_addr(int addr) {
-	if (addr < 0 || addr > 63) {
-		lbm_set_error_reason("Address must be 0 to 63");
+	if (addr < 0 || addr > 127) {
+		lbm_set_error_reason("Address must be 0 to 127");
 		return false;
 	}
 
@@ -1501,7 +1501,7 @@ static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 
 		memcpy(to_send, array->data, ind);
 	} else {
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -1961,7 +1961,7 @@ static void wait_uart_tx_task(void *arg) {
 }
 
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || (lbm_type_of(args[0]) != LBM_TYPE_CONS && lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
+	if (argn != 1 || (!lbm_is_cons(args[0]) && !lbm_is_array(args[0]))) {
 		return ENC_SYM_EERROR;
 	}
 
@@ -1984,7 +1984,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		ind = array->size;
 	} else {
 		lbm_value curr = args[0];
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -2177,7 +2177,7 @@ static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 		txlen = array->size;
 	} else {
 		lbm_value curr = args[1];
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+		while (lbm_is_cons(curr)) {
 			lbm_value  arg = lbm_car(curr);
 
 			if (lbm_is_number(arg)) {
@@ -2656,7 +2656,7 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		return res;
 	}
 
-	if (lbm_type_of(args[0]) != LBM_TYPE_SYMBOL) {
+	if (!lbm_is_symbol(args[0])) {
 		return res;
 	}
 
