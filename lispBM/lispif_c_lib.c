@@ -214,6 +214,24 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 		res = true;
 #endif
 		break;
+	case VESC_PIN_HALL4:
+#ifdef HW_HALL_ENC_GPIO4
+		*port = HW_HALL_ENC_GPIO4; *pin = HW_HALL_ENC_PIN4;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL5:
+#ifdef HW_HALL_ENC_GPIO5
+		*port = HW_HALL_ENC_GPIO5; *pin = HW_HALL_ENC_PIN5;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL6:
+#ifdef HW_HALL_ENC_GPIO6
+		*port = HW_HALL_ENC_GPIO6; *pin = HW_HALL_ENC_PIN6;
+		res = true;
+#endif
+		break;
 	}
 
 	return res;
