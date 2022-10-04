@@ -463,7 +463,6 @@ static void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
   }
 }
 
-
 /* (array-create type size) */
 static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = ENC_SYM_EERROR;
@@ -1159,137 +1158,12 @@ static lbm_value fundamental_cossa(lbm_value *args, lbm_uint nargs, eval_context
   return result;
 }
 
-static lbm_value fundamental_is_fundamental(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs < 1 ||
-      lbm_type_of(args[0]) != LBM_TYPE_SYMBOL)
-    result = ENC_SYM_NIL;
-  else if (lbm_is_fundamental(args[0]))
-    result = ENC_SYM_TRUE;
-  else
-    result = ENC_SYM_NIL;
-  return result;
-}
-
 static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2 && lbm_is_number(args[1])) {
     result = index_list(args[0], lbm_dec_as_u32(args[1]));
   }
-  return result;
-}
-
-static lbm_value fundamental_encode_i32(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
-    lbm_value curr = args[0];
-    uint32_t r = 0;
-    int n = 4;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
-      if (n < 4) r = r << 8;
-      if (lbm_is_number(lbm_car(curr))) {
-        uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-        r |= (0xFF & v);
-        n --;
-        curr = lbm_cdr(curr);
-      } else {
-        break;
-      }
-    }
-    result = lbm_enc_i32((int32_t)r);
-  }
-  return result;
-}
-
-static lbm_value fundamental_encode_u32(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
-    lbm_value curr = args[0];
-    uint32_t r = 0;
-    int n = 4;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
-      if (n < 4) r = r << 8;
-      if (lbm_is_number(lbm_car(curr))) {
-        uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-        r |= (0xFF & v);
-        n --;
-        curr = lbm_cdr(curr);
-      } else {
-        break;
-      }
-    }
-    result = lbm_enc_u32(r);
-  }
-  return result;
-}
-
-static lbm_value fundamental_encode_float(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
-    lbm_value curr = args[0];
-    uint32_t r = 0;
-    float f;
-    int n = 4;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
-      if (n < 4) r = r << 8;
-      if (lbm_is_number(lbm_car(curr))) {
-        uint32_t v = (uint32_t)lbm_dec_as_u32(lbm_car(curr));
-        r |= (0xFF & v);
-        n --;
-        curr = lbm_cdr(curr);
-      } else {
-        break;
-      }
-    }
-    memcpy(&f,&r, sizeof(float)); // float result
-    result = lbm_enc_float(f);
-  }
-  return result;
-}
-
-static lbm_value fundamental_decode(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-
-  if (nargs == 1 && (lbm_is_number(args[0]) ||
-                     lbm_is_char(args[0]))) {
-    switch (lbm_type_of(args[0])) {
-    case LBM_TYPE_CHAR:
-      /*fall through*/
-    case LBM_TYPE_I:
-      /* fall through */
-    case LBM_TYPE_U: {
-      lbm_uint v = lbm_dec_as_u32(args[0]);
-      result = lbm_cons(lbm_enc_u(v & 0xFF), ENC_SYM_NIL);
-      result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 24 & 0xF), result);
-    } break;
-    case LBM_TYPE_FLOAT: {
-      float tmp = (float)lbm_dec_float(args[0]);
-      uint32_t  v;
-      memcpy(&v, &tmp, sizeof(uint32_t));
-      result = lbm_cons(lbm_enc_u(v & 0xFF), ENC_SYM_NIL);
-      result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 24 & 0xFF), result);
-      } break;
-    case LBM_TYPE_I32:
-        /* fall through */
-    case LBM_TYPE_U32: {
-      lbm_uint v = lbm_dec_as_u32(args[0]);
-      result = lbm_cons(lbm_enc_u(v & 0xFF), ENC_SYM_NIL);
-      result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
-      result = lbm_cons(lbm_enc_u(v >> 24 & 0xFF), result);
-    } break;
-    } // close switch
-  } // close if
   return result;
 }
 
@@ -1568,12 +1442,7 @@ const fundamental_fun fundamental_table[] =
     fundamental_acons,
     fundamental_set_assoc,
     fundamental_cossa,
-    fundamental_is_fundamental,
     fundamental_ix,
-    fundamental_encode_i32,
-    fundamental_encode_u32,
-    fundamental_encode_float,
-    fundamental_decode,
     fundamental_to_i,
     fundamental_to_i32,
     fundamental_to_u,
