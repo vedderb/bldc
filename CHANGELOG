@@ -1,7 +1,7 @@
 === FW 6.00 <dev> ===
 * Added stack checks.
 * Release motor fix when cc_min_current is 0.
-* Added support for NTC and PTC temperature sensors with custom resisrance and base temperature.
+* Added support for NTC and PTC temperature sensors with custom resistance and base temperature.
 * Added sandboxed lisp scripting using https://github.com/svenssonjoel/lispBM.
 * Encoder driver split and rewrite to make it easier to support more encoders.
 * Flash writes now work on lower MCU voltages too.
