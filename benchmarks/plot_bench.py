@@ -36,7 +36,9 @@ for bench in benches:
 lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 ax = plt.gca()
 for tick in ax.get_xticklabels():
-    tick.set_rotation(45)
+    tick.set_rotation(90)
+ax.tick_params(axis='both', which='major', labelsize=6)
+ax.tick_params(axis='both', which='minor', labelsize=4)
 plt.ylabel("Sec")
 plt.grid()
 plt.savefig('benchresults.png', dpi=600, bbox_extra_artists=(lgd,), bbox_inches='tight')     

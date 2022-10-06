@@ -1,7 +1,14 @@
 # lispBM (LBM)
 
-A concurrent lisp-like language with message-passing and
-pattern-matching implemented in C for 32 bit and 64 bit platforms.
+LispBM is a lisp or scheme like programming language for
+microcontrollers.  LispBM also borrows a couple of ideas from Erlang
+when it comes to concurrency, message passing, pattern matching and
+process monitoring.  The LispBM runtime system can be compiled for
+either 32 or 64 bit platforms and runs on a wide range of hardware
+such as for example STM32, NRF52, ESP32 or X86.  When running the
+LispBM runtime system on a microcontroller it can be built on top of
+ChibiOS, FreeRTOS or ZephyrOS and it can also be built to run on top
+of a regular linux. 
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
 
