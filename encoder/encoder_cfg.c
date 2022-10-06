@@ -165,3 +165,36 @@ AS5x47U_config_t encoder_cfg_as5x47u = {
 #endif
 		{0}, // State
 };
+
+// Spi Handler for bissC
+void compute_bissc_callback(SPIDriver *pspi);
+BISSC_config_t encoder_cfg_bissc = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				//NULL, HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, 
+				&compute_bissc_callback, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, 
+				SPI_BaudRatePrescaler_32 | SPI_CR1_CPOL | SPI_CR1_CPHA
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		22,   // enc_res
+		{0}, // crc
+		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		22,   // enc_res
+		{0}, // crc
+		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
+#endif
+};

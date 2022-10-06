@@ -1,5 +1,6 @@
 /*
-	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2022 Manoukian Vincent	    manoukianv@gmail.com
 
 	This file is part of the VESC firmware.
 
@@ -17,19 +18,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_CFG_H_
-#define ENCODER_CFG_H_
+#ifndef ENC_BISSC_H_
+#define ENC_BISSC_H_
 
-#include "encoder_datatype.h"
+#include "encoder/encoder_datatype.h"
 
-// Global encoder configurations
-extern AS504x_config_t encoder_cfg_as504x;
-extern AD2S1205_config_t encoder_cfg_ad2s1205;
-extern MT6816_config_t encoder_cfg_mt6816;
-extern ABI_config_t encoder_cfg_ABI;
-extern ENCSINCOS_config_t encoder_cfg_sincos;
-extern TS5700N8501_config_t encoder_cfg_TS5700N8501;
-extern AS5x47U_config_t encoder_cfg_as5x47u;
+bool enc_bissc_init(BISSC_config_t *cfg);
+void enc_bissc_deinit(BISSC_config_t *cfg);
+void enc_bissc_routine(BISSC_config_t *cfg);
+
 extern BISSC_config_t encoder_cfg_bissc;
 
-#endif /* ENCODER_CFG_H_ */
+// Macros
+#define BISSC_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
+
+#endif /* ENC_BISSC_H_ */
