@@ -137,9 +137,10 @@ void lbm_set_eval_step_quota(uint32_t quota) {
   eval_steps_refill = quota;
 }
 
-static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
-static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
+static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
+static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
 static volatile uint32_t eval_cps_next_state_arg = 0;
+static volatile bool     eval_cps_state_changed = false;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -2884,29 +2885,23 @@ static void evaluation_step(void){
 void lbm_pause_eval(void ) {
   eval_cps_next_state_arg = 0;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
 }
 
 void lbm_pause_eval_with_gc(uint32_t num_free) {
   eval_cps_next_state_arg = num_free;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
-}
-
-void lbm_step_eval(void) {
-  eval_cps_next_state_arg = 1;
-  eval_cps_next_state = EVAL_CPS_STATE_STEP;
-}
-
-void lbm_step_n_eval(uint32_t n) {
-  eval_cps_next_state_arg = n;
-  eval_cps_next_state = EVAL_CPS_STATE_STEP;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
 }
 
 void lbm_continue_eval(void) {
   eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
 }
 
 void lbm_kill_eval(void) {
   eval_cps_next_state = EVAL_CPS_STATE_KILL;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
 }
 
 uint32_t lbm_get_eval_state(void) {
@@ -2920,19 +2915,8 @@ uint32_t lbm_get_eval_state(void) {
 void lbm_run_eval(void){
 
   while (eval_running) {
-
+    eval_cps_state_changed = false;
     switch (eval_cps_next_state) {
-    case EVAL_CPS_STATE_INIT:
-      eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
-      break;
-    case EVAL_CPS_STATE_STEP:
-      if (eval_cps_next_state_arg > 1) {
-        eval_cps_next_state = EVAL_CPS_STATE_STEP;
-        eval_cps_next_state_arg --;
-      } else {
-        eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
-      }
-      break;
     case EVAL_CPS_STATE_PAUSED:
       if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
         if (lbm_heap_num_free() < eval_cps_next_state_arg) {
@@ -2946,46 +2930,49 @@ void lbm_run_eval(void){
     case EVAL_CPS_STATE_KILL:
       eval_running = false;
       continue;
-    default:
+    default: // running state
       eval_cps_run_state = eval_cps_next_state;
       break;
     }
 
-    eval_context_t *next_to_run = NULL;
-    if (eval_steps_quota <= 0 || !ctx_running) {
-      uint32_t us = EVAL_CPS_MIN_SLEEP;
-
-      if (is_atomic) {
-        if (ctx_running) {
-          next_to_run = ctx_running;
-          ctx_running = NULL;
-        } else {
-          is_atomic = false;
-          // This is not right!
-          // but there is no context available to
-          // report an error in.
-        }
+    while (true) {
+      eval_context_t *next_to_run = NULL;
+      if (eval_steps_quota && ctx_running) {
+        eval_steps_quota--;
+        evaluation_step();
       } else {
-        next_to_run = dequeue_ctx(&sleeping, &us);
-      }
+        if (eval_cps_state_changed) break;
+        uint32_t us = EVAL_CPS_MIN_SLEEP;
 
-      if (!next_to_run) {
-        next_to_run = enqueue_dequeue_ctx(&queue, ctx_running);
-      } else if (ctx_running) {
-        enqueue_ctx(&queue, ctx_running);
-      }
+        if (is_atomic) {
+          if (ctx_running) {
+            next_to_run = ctx_running;
+            ctx_running = NULL;
+          } else {
+            is_atomic = false;
+            // This is not right!
+            // but there is no context available to
+            // report an error in.
+          }
+        } else {
+          next_to_run = dequeue_ctx(&sleeping, &us);
+        }
 
-      eval_steps_quota = eval_steps_refill;
-      ctx_running = next_to_run;
+        if (!next_to_run) {
+          next_to_run = enqueue_dequeue_ctx(&queue, ctx_running);
+        } else if (ctx_running) {
+          enqueue_ctx(&queue, ctx_running);
+        }
 
-      if (!ctx_running) {
-        usleep_callback(us);
-        continue;
+        eval_steps_quota = eval_steps_refill;
+        ctx_running = next_to_run;
+
+        if (!ctx_running) {
+          usleep_callback(us);
+          continue;
+        }
       }
     }
-
-    eval_steps_quota--;
-    evaluation_step();
   }
 }
 
@@ -3010,7 +2997,7 @@ int lbm_eval_init() {
   done.last = NULL;
   ctx_running = NULL;
 
-  eval_cps_run_state = EVAL_CPS_STATE_INIT;
+  eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 
   mutex_init(&qmutex);
 

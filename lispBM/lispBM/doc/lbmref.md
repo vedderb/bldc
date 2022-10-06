@@ -347,53 +347,6 @@ the argument.
 
 ## Low level operations
 
-### encode-i32
-
-The `encode-i32` function converts a list of four (byte sized) values
-into an i32 value.
-
-Example that evaluates to the i32 value 1024.
-```clj
-(encode-i32 (list 0 0 4 0))
-```
-
-
----
-
-### encode-u32
-
-The `encode-u32` function converts a list of four (byte sized) values
-into an u32 value.
-
-Example that evaluates to the u32 value 1024.
-```clj
-(encode-u32 (list 0 0 4 0))
-```
-
----
-
-### encode-float
-
-The `encode-float` function converts a list four (byte sized) values
-into a float value.
-
-Example that evaluates to 3.14.
-```clj
-(encode-float (list 64 72 245 195))
-```
-
-
----
-
-### decode
-
-The `decode` function decodes a value into a list of four (byte sized) values.
-
-Example that decodes float 3.14 into the list (64 72 245 195).
-```clj
-(decode 3.14)
-```
-
 ---
 
 ## nil and t

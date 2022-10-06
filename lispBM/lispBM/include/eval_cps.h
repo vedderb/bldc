@@ -141,16 +141,6 @@ void lbm_pause_eval(void);
  * \param num_free Perform GC if there are less than this many elements free on the heap.
  */
 void lbm_pause_eval_with_gc(uint32_t num_free);
-/** Perform a single step of evaluation.
- * The evaluator should be in EVAL_CPS_STATE_PAUSED before running this function.
- * After taking one step of evaluation, the evaluator will return to being in the
- * EVAL_CPS_STATE_PUASED state.
- */
-void lbm_step_eval(void);
-/** Perform multiple steps of evaluation.
- * \param n Number of eval steps to perform.
- */
-void lbm_step_n_eval(uint32_t n);
 /** Resume from being in EVAL_CPS_STATE_PAUSED.
  *
  */
