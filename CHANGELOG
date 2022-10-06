@@ -22,6 +22,7 @@
 * Disable BMS limit options.
 * Added PT1000 temperature sensor support.
 * APP ADC button bitfield and CC disable support.
+* BissC encoder support: https://github.com/vedderb/bldc/pull/536
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.
