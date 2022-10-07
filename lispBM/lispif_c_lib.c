@@ -469,6 +469,7 @@ static bool lib_set_cfg_int(CFG_PARAM p, int value) {
 
 	switch (p) {
 	case CFG_PARAM_app_can_mode: appconf->can_mode = value; res = true; break;
+	case CFG_PARAM_app_can_baud_rate: appconf->can_baud_rate = value; res = true; break;
 	default: break;
 	}
 

@@ -134,6 +134,18 @@ typedef struct {
 	unsigned char tx_buffer[PACKET_BUFFER_LEN];
 } PACKET_STATE_t;
 
+typedef enum {
+	CAN_BAUD_125K = 0,
+	CAN_BAUD_250K,
+	CAN_BAUD_500K,
+	CAN_BAUD_1M,
+	CAN_BAUD_10K,
+	CAN_BAUD_20K,
+	CAN_BAUD_50K,
+	CAN_BAUD_75K,
+	CAN_BAUD_100K
+} CAN_BAUD;
+
 // LBM
 typedef uint32_t lbm_value;
 typedef uint32_t lbm_type;
@@ -201,6 +213,7 @@ typedef enum {
 
 	// App config
 	CFG_PARAM_app_can_mode,
+	CFG_PARAM_app_can_baud_rate,
 } CFG_PARAM;
 
 /*
