@@ -886,7 +886,8 @@ typedef struct {
 typedef enum {
 	CAN_MODE_VESC = 0,
 	CAN_MODE_UAVCAN,
-	CAN_MODE_COMM_BRIDGE
+	CAN_MODE_COMM_BRIDGE,
+	CAN_MODE_UNUSED,
 } CAN_MODE;
 
 typedef enum {

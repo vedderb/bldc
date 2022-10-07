@@ -183,6 +183,7 @@ typedef enum {
 } VESC_PIN_MODE;
 
 typedef enum {
+	// Motor config
 	CFG_PARAM_l_current_max = 0,
 	CFG_PARAM_l_current_min,
 	CFG_PARAM_l_in_current_max,
@@ -197,6 +198,9 @@ typedef enum {
 	CFG_PARAM_l_max_vin,
 	CFG_PARAM_l_battery_cut_start,
 	CFG_PARAM_l_battery_cut_end,
+
+	// App config
+	CFG_PARAM_app_can_mode,
 } CFG_PARAM;
 
 /*
@@ -435,8 +439,12 @@ typedef struct {
 			int (*get_cfg_xml)(uint8_t **data));
 	void (*conf_custom_clear_configs)(void);
 
-	// Settings (TODO: Add more types and also setters)
+	// Settings (TODO: Add more types)
 	float (*get_cfg_float)(CFG_PARAM p);
+	int (*get_cfg_int)(CFG_PARAM p);
+	bool (*set_cfg_float)(CFG_PARAM p, float value);
+	bool (*set_cfg_int)(CFG_PARAM p, int value);
+	bool (*store_cfg)(void);
 } vesc_c_if;
 
 typedef struct {
