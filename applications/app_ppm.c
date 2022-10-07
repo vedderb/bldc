@@ -50,6 +50,8 @@ static volatile ppm_config config;
 static volatile int pulses_without_power = 0;
 static float input_val = 0.0;
 static volatile float direction_hyst = 0;
+static volatile bool ppm_detached = false;
+static volatile float ppm_override = 0.0;
 
 // Private functions
 
@@ -86,6 +88,14 @@ float app_ppm_get_decoded_level(void) {
 	return input_val;
 }
 
+void app_ppm_detach(bool detach) {
+	ppm_detached = detach;
+}
+
+void app_ppm_override(float val) {
+	ppm_override = val;
+}
+
 static void servodec_func(void) {
 	ppm_rx = true;
 	chSysLockFromISR();
@@ -120,6 +130,11 @@ static THD_FUNCTION(ppm_thread, arg) {
 		const float rpm_now = mc_interface_get_rpm();
 		float servo_val = servodec_get_servo(0);
 		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
+
+		if (ppm_detached) {
+			servo_val = ppm_override;
+		}
+
 		static bool servoError = false;
 
 		switch (config.ctrl_type) {

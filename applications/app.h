@@ -33,6 +33,8 @@ unsigned app_calc_crc(app_configuration* conf);
 void app_ppm_start(void);
 void app_ppm_stop(void);
 float app_ppm_get_decoded_level(void);
+void app_ppm_detach(bool detach);
+void app_ppm_override(float val);
 void app_ppm_configure(ppm_config *conf);
 
 void app_adc_start(bool use_rx_tx);

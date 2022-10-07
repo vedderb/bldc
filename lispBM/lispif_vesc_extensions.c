@@ -1073,6 +1073,18 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_app_ppm_detach(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	app_ppm_detach(lbm_dec_as_u32(args[0]) > 0);
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_app_ppm_override(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	app_ppm_override(lbm_dec_as_float(args[0]));
+	return ENC_SYM_TRUE;
+}
+
 
 // Motor set commands
 
@@ -3579,6 +3591,8 @@ void lispif_load_vesc_extensions(void) {
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);
 	lbm_add_extension("app-adc-override", ext_app_adc_override);
+	lbm_add_extension("app-ppm-detach", ext_app_ppm_detach);
+	lbm_add_extension("app-ppm-override", ext_app_ppm_override);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);

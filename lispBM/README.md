@@ -332,6 +332,22 @@ Detaches a peripherial from the APP ADC
 
 Sets the override value
 
+#### app-ppm-detach
+
+```clj
+(app-ppm-detach state)
+```
+
+Detaches the decoded ppm signal from APP PPM. 1 means detach, 0 means attach.
+
+#### app-ppm-override
+
+```clj
+(app-ppm-override value)
+```
+
+Sets the override value. Range -1.0 to 1.0.
+
 ### Motor Set Commands
 
 #### set-current
