@@ -126,10 +126,17 @@ void imu_init(imu_config *set) {
 	}
 
 	// Acc biquad filter
-	if(m_settings.accel_lowpass_filter > 0){
-		float fc = m_settings.accel_lowpass_filter / m_settings.sample_rate_hz;
+	float fc;
+	if(m_settings.accel_lowpass_filter_x > 0){
+		fc = m_settings.accel_lowpass_filter_x / m_settings.sample_rate_hz;
 		biquad_config(&acc_x_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_y > 0){
+		fc = m_settings.accel_lowpass_filter_y / m_settings.sample_rate_hz;
 		biquad_config(&acc_y_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_z > 0){
+		fc = m_settings.accel_lowpass_filter_z / m_settings.sample_rate_hz;
 		biquad_config(&acc_z_biquad, BQ_LOWPASS, fc);
 	}
 }
@@ -533,9 +540,13 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
 
 	// Apply filters
-	if(m_settings.accel_lowpass_filter > 0){ // Acc biquad filter
+	if(m_settings.accel_lowpass_filter_x > 0){ // Acc biquad filter
 		m_accel[0] = biquad_process(&acc_x_biquad, m_accel[0]);
+	}
+	if(m_settings.accel_lowpass_filter_y > 0){ // Acc biquad filter
 		m_accel[1] = biquad_process(&acc_y_biquad, m_accel[1]);
+	}
+	if(m_settings.accel_lowpass_filter_z > 0){ // Acc biquad filter
 		m_accel[2] = biquad_process(&acc_z_biquad, m_accel[2]);
 	}
 
