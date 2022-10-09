@@ -833,12 +833,6 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
       free(str);
-    } else if (strncmp(str, ":step", 5) == 0) {
-
-      int num = atoi(str + 5);
-
-      lbm_step_n_eval((uint32_t)num);
-      free(str);
     } else if (strncmp(str, ":inspect", 8) == 0) {
 
       int i = 8;

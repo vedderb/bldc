@@ -200,14 +200,6 @@ special_sym const special_symbols[] =  {
   // fast access in list
   {"ix"             , SYM_IX},
 
-  // Low-level
-  {"encode-i32"     , SYM_ENCODE_I32},
-  {"encode-u32"     , SYM_ENCODE_U32},
-  {"encode-float"   , SYM_ENCODE_FLOAT},
-  {"decode"         , SYM_DECODE},
-
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL},
-
   // aliases
   {"first"          , SYM_CAR},
   {"rest"           , SYM_CDR},

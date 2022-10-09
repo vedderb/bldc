@@ -134,6 +134,18 @@ typedef struct {
 	unsigned char tx_buffer[PACKET_BUFFER_LEN];
 } PACKET_STATE_t;
 
+typedef enum {
+	CAN_BAUD_125K = 0,
+	CAN_BAUD_250K,
+	CAN_BAUD_500K,
+	CAN_BAUD_1M,
+	CAN_BAUD_10K,
+	CAN_BAUD_20K,
+	CAN_BAUD_50K,
+	CAN_BAUD_75K,
+	CAN_BAUD_100K
+} CAN_BAUD;
+
 // LBM
 typedef uint32_t lbm_value;
 typedef uint32_t lbm_type;
@@ -183,6 +195,7 @@ typedef enum {
 } VESC_PIN_MODE;
 
 typedef enum {
+	// Motor config
 	CFG_PARAM_l_current_max = 0,
 	CFG_PARAM_l_current_min,
 	CFG_PARAM_l_in_current_max,
@@ -197,6 +210,10 @@ typedef enum {
 	CFG_PARAM_l_max_vin,
 	CFG_PARAM_l_battery_cut_start,
 	CFG_PARAM_l_battery_cut_end,
+
+	// App config
+	CFG_PARAM_app_can_mode,
+	CFG_PARAM_app_can_baud_rate,
 } CFG_PARAM;
 
 /*
@@ -435,8 +452,12 @@ typedef struct {
 			int (*get_cfg_xml)(uint8_t **data));
 	void (*conf_custom_clear_configs)(void);
 
-	// Settings (TODO: Add more types and also setters)
+	// Settings (TODO: Add more types)
 	float (*get_cfg_float)(CFG_PARAM p);
+	int (*get_cfg_int)(CFG_PARAM p);
+	bool (*set_cfg_float)(CFG_PARAM p, float value);
+	bool (*set_cfg_int)(CFG_PARAM p, int value);
+	bool (*store_cfg)(void);
 } vesc_c_if;
 
 typedef struct {

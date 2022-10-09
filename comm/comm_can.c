@@ -1282,13 +1282,17 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 		if (app_get_configuration()->can_mode == CAN_MODE_UAVCAN) {
 			continue;
-		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE ||
+				app_get_configuration()->can_mode == CAN_MODE_UNUSED) {
 			CANRxFrame *rxmsg_tmp;
 			while ((rxmsg_tmp = comm_can_get_rx_frame(0)) != 0) {
 				CANRxFrame rxmsg = *rxmsg_tmp;
-				commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
-						rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
-						rxmsg.IDE == CAN_IDE_EXT);
+
+				if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+					commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
+							rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
+									rxmsg.IDE == CAN_IDE_EXT);
+				}
 
 				if (rxmsg.IDE == CAN_IDE_STD) {
 					if (sid_callback) {

@@ -30,6 +30,7 @@
 #include "enc_as504x.h"
 #include "enc_as5x47u.h"
 #include "enc_abi.h"
+#include "enc_bissc.h"
 
 // Functions
 bool encoder_init(volatile mc_configuration *conf);

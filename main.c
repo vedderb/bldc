@@ -293,8 +293,6 @@ int main(void) {
 	timeout_init();
 	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 
-	mempools_free_appconf(appconf);
-
 #if HAS_BLACKMAGIC
 	bm_init();
 #endif
@@ -314,11 +312,15 @@ int main(void) {
 
 #ifdef CAN_ENABLE
 	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
-	comm_can_transmit_eid(
-		app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
-		(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
-		strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
+	if (appconf->can_mode == CAN_MODE_VESC) {
+		comm_can_transmit_eid(
+				app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
+				(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
+						strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
+	}
 #endif
+
+	mempools_free_appconf(appconf);
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

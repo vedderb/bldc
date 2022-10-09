@@ -332,6 +332,36 @@ Detaches a peripherial from the APP ADC
 
 Sets the override value
 
+#### app-ppm-detach
+
+```clj
+(app-ppm-detach state)
+```
+
+Detaches the decoded ppm signal from APP PPM. 1 means detach, 0 means attach.
+
+#### app-ppm-override
+
+```clj
+(app-ppm-override value)
+```
+
+Sets the override value. Range -1.0 to 1.0.
+
+#### set-remote-state
+
+```clj
+(set-remote-state js-y js-x bt-c bt-z is-rev)
+; Where
+; js-y : Joystick Y axis, range -1.0 to 1.0, used for throttle position
+; js-x : Joystick X axis, range -1.0 to 1.0, unused by the app
+; bt-c : C button pressed state, 0 or 1, used for cruise control
+; bt-z : Z button pressed state, 0 or 1, unused by the app
+; is-rev : Reverse active, 0 or 1, reverse mode active
+```
+
+Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sent to this app at any time without detaching it and it will be treated the same as a packet from a VESC Remote. That means the timeout as well as all VESC Remote settings will be used.
+
 ### Motor Set Commands
 
 #### set-current
