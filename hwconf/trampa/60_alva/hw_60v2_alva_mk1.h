@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60V2_ALVA_MK2_H_
-#define HW_60V2_ALVA_MK2_H_
+#ifndef HW_60V2_ALVA_MK1_H_
+#define HW_60V2_ALVA_MK1_H_
 
-#define HW_60V2_ALVA_IS_MK2
+#define HW_60V2_ALVA_IS_MK1
 
 #include "hw_60v2_alva_core.h"
 
-#endif /* HW_60V2_ALVA_MK2_H_ */
+#endif /* HW_60V2_ALVA_MK1_H_ */
