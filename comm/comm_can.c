@@ -1303,6 +1303,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
 					}
 				}
+
+#ifdef USE_LISPBM
+				lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+#endif
 			}
 			continue;
 		}
