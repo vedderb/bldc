@@ -780,21 +780,23 @@ bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
   return true;
 }
 
-static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
-
-  if (ctx->num_mail >= ctx->mailbox_size) return false;
-
-  ctx->mailbox[ctx->num_mail] = mail;
-  ctx->num_mail ++;
-  return true;
-}
-
 static void mailbox_remove_mail(eval_context_t *ctx, lbm_uint ix) {
 
   for (lbm_uint i = ix; i < ctx->num_mail-1; i ++) {
     ctx->mailbox[i] = ctx->mailbox[i+1];
   }
   ctx->num_mail --;
+}
+
+static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
+
+  if (ctx->num_mail >= ctx->mailbox_size) {
+    mailbox_remove_mail(ctx, 0);
+  }
+
+  ctx->mailbox[ctx->num_mail] = mail;
+  ctx->num_mail ++;
+  return true;
 }
 
 /* Advance execution to the next expression in the program */

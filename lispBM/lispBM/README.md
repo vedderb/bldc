@@ -15,27 +15,15 @@ of a regular linux.
 The LispBM mascot, Lispy the llama, was created by
 [PixiLadyArt](https://www.instagram.com/pixiladyart/). Thank you, Pixi! 
 
-## Information
+## Want to get involved and help out?
 
-From version 0.6.0 LispBM implements round-robin scheduling and is
-no-longer cooperatively concurrent. 
+There are lots of interesting things to code on in and around the
+LispBM runtime system.
 
-This is not a semantics preserving update. Using the cooperative
-scheduler one could assume totally exclusive access to the runtime
-system until a process yields. Between yields one could assume that
-all reads and writes to globals were not interspersed by reads and
-writes of other tasks, this is now false. An atomic operation has been
-added in case one wants to be sure that evaluation of an expression is
-done in one go, with no interruption.
-
-For example: 
-```lisp
-(atomic
-  (progn
-     a
-     b
-     c))
-```
+1. Are you interested in microcontrollers and programming languages?
+2. You find it fun to mess around in C code with close to zero comments?
+3. Then join in the fun. Lots to do, so little time!
+4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).
@@ -43,7 +31,6 @@ For example:
  - C code documentation can be found [here](http://svenssonjoel.github.io/lbmdoc/html/index.html).
  - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
-
 
 ## Purpose
 1. Have fun.
@@ -69,12 +56,6 @@ For example:
 14. Concurrency.
 15. Message-passing.
 16. Pattern-matching.
-
-## Want to get involved and help out?
-1. Are you interested in microcontrollers and programming languages?
-2. You find it fun to mess around in C code with close to zero comments?
-3. Then join in the fun. Lots to do, so little time!
-4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
 ## Vague or continuosly ongoing todos
 1. Doxygen?
