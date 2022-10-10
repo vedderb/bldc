@@ -2002,6 +2002,7 @@ static void cont_application_args(eval_context_t *ctx) {
     // no arguments
     sptr[1] = count;
     lbm_stack_drop(&ctx->K, 1);
+    ctx->curr_env = env;
     cont_application(ctx);
   } else if (lbm_is_cons(rest)) {
     sptr[1] = env;
