@@ -1295,18 +1295,26 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 				}
 
 				if (rxmsg.IDE == CAN_IDE_STD) {
+					bool sid_cb_used = false;
 					if (sid_callback) {
-						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+						sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
 					}
-				} else {
-					if (eid_callback) {
-						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
-					}
-				}
-
 #ifdef USE_LISPBM
-				lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+					if (!sid_cb_used) {
+						lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
+					}
 #endif
+				} else {
+					bool eid_cb_used = false;
+					if (eid_callback) {
+						eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+					}
+#ifdef USE_LISPBM
+					if (!eid_cb_used) {
+						lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+					}
+#endif
+				}
 			}
 			continue;
 		}
@@ -1341,7 +1349,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef USE_LISPBM
 				if (!sid_cb_used) {
-					lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+					lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
 				}
 #endif
 			}
