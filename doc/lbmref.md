@@ -515,18 +515,6 @@ get as result a unnamed symbol.
 
 ---
 
-### is-fundamental
-
-The `is-funamental` function returns true for built-in functions.
-
-Example that returns true.
-```clj
-(is-fundamental '+)
-```
-
----
-
-
 ## Special forms
 
 
@@ -636,7 +624,7 @@ an undefine expression is `(undefine name-expr)` where name-expr
 should evaluate to a symbol (for example `'apa`).
 
 Example
-```lisp
+```clj
 (undefine 'apa)
 ```
 
@@ -644,7 +632,7 @@ It is also possible to undefine several bindings at the same time by
 providing a list of names.
 
 Example
-```lisp
+```clj
 (undefine '(apa bepa cepa))
 ```
 
@@ -809,7 +797,7 @@ The `car` operation accesses the head element of a list. The following program e
 
 Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`.
 
-```lisp
+```clj
 # (first (list 1 2 3 4))
 > 1
 ```
@@ -838,7 +826,7 @@ The `cdr` operation gives you the rest of a list. The example below evaluates to
 
 Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`.
 
-```lisp
+```clj
 # (rest (list 1 2 3 4))
 > (2 3 4)
 ```
@@ -917,7 +905,7 @@ Destructively update an element in a list. The form of a `setix` expression
 is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and
 if you index out of bounds the result is nil.
 
-```lisp
+```clj
 # (setix (list 1 2 3 4 5) 2 77)
 > (1 2 77 4 5)
 ```
@@ -979,7 +967,7 @@ to ensure this.
 Example that adds the key `4` and associated value `lemur` to 
 an existing alist. 
 
-```lisp
+```clj
 # (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
 > ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
 ```
@@ -1088,7 +1076,7 @@ Clears an array by writing zeroes to all locations.
 
 Example:
 
-```lisp
+```clj
 (array-clear arr)
 ```
 
@@ -1118,12 +1106,12 @@ The currently valid type qualifiers are:
 (The rest of the numerical types will be supported in the future) 
 
 Example that creates a byte array 
-```lisp
+```clj
 [ 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 Example that create an array of i32 values
-```lisp
+```clj
 [ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
@@ -1258,7 +1246,7 @@ process of the form `(exit-error tid err-val)`. If the child process terminates 
 a message of the form `(exit-ok tid value)` is sent to the parent.
 
 Example:
-```lisp
+```clj
 (spawn-trap my-thread)
 
 (recv  ((exit-error (? tid) (? e)) ...)
@@ -1294,7 +1282,7 @@ the runtime system to switch task during the time that takes.
 
 An example that atomically perfoms operations a,b and c.
 
-```lisp
+```clj
 (atomic
    (progn
      a
@@ -1343,6 +1331,17 @@ Example where a process waits for an integer `?i`.
 (recv ( (?i n) (+ n 1) ))
 ```
 
+---
+
+### set-mailbox-size
+
+Change the size of the mailbox in the current process.
+Standard mailbox size is 10 elements.
+
+Example that changes mailbox size to 100 elements.
+```clj
+(set-mailbox-size 100)
+```
 
 ---
 
