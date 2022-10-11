@@ -1997,19 +1997,17 @@ static void cont_application_args(eval_context_t *ctx) {
   lbm_value rest = sptr[2];
   lbm_value arg = ctx->r;
 
+  ctx->curr_env = env;
   sptr[0] = arg;
   if (lbm_is_symbol_nil(rest)) {
     // no arguments
-    sptr[1] = count;
     lbm_stack_drop(&ctx->K, 1);
-    ctx->curr_env = env;
     cont_application(ctx);
   } else if (lbm_is_cons(rest)) {
     sptr[1] = env;
     sptr[2] = lbm_enc_u(lbm_dec_u(count) + 1);
     CHECK_STACK(lbm_push_2(&ctx->K,lbm_cdr(rest), APPLICATION_ARGS));
     ctx->curr_exp = lbm_car(rest);
-    ctx->curr_env = env;
   } else {
     error_ctx(ENC_SYM_EERROR);
   }
