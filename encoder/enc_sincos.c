@@ -45,8 +45,8 @@ void enc_sincos_deinit(ENCSINCOS_config_t *cfg) {
 }
 
 float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
-	float sin = ENCODER_SIN_VOLTS * cfg->s_gain - cfg->s_offset;
-	float cos = ENCODER_COS_VOLTS * cfg->c_gain - cfg->c_offset;
+	float sin = (ENCODER_SIN_VOLTS - cfg->s_offset) * cfg->s_gain;
+	float cos = (ENCODER_COS_VOLTS - cfg->c_offset) * cfg->c_gain;
 
 	UTILS_LP_FAST(cfg->state.sin_filter, sin, cfg->filter_constant);
 	UTILS_LP_FAST(cfg->state.cos_filter, cos, cfg->filter_constant);
@@ -71,7 +71,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	} else {
 		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
 		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
-		cfg->state.last_enc_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
+		cfg->state.last_enc_angle = RAD2DEG_f(utils_fast_atan2(sin, cos)) + 180.0;
 	}
 
 	return cfg->state.last_enc_angle;
