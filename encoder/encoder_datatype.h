@@ -114,6 +114,8 @@ typedef struct {
 	float signal_low_error_rate;
 	float signal_above_max_error_rate;
 	float last_enc_angle;
+	float sin_filter;
+	float cos_filter;
 	uint32_t last_update_time;
 } ENCSINCOS_state;
 

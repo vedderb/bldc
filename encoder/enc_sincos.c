@@ -45,9 +45,13 @@ void enc_sincos_deinit(ENCSINCOS_config_t *cfg) {
 }
 
 float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
-	float angle = 0.0;
 	float sin = ENCODER_SIN_VOLTS * cfg->s_gain - cfg->s_offset;
 	float cos = ENCODER_COS_VOLTS * cfg->c_gain - cfg->c_offset;
+
+	UTILS_LP_FAST(cfg->state.sin_filter, sin, cfg->filter_constant);
+	UTILS_LP_FAST(cfg->state.cos_filter, cos, cfg->filter_constant);
+	sin = cfg->state.sin_filter;
+	cos = cfg->state.cos_filter;
 
 	float module = SQ(sin) + SQ(cos);
 
@@ -61,21 +65,14 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 		// signals vector outside of the valid area. Increase error count and discard measurement
 		++cfg->state.signal_above_max_error_cnt;
 		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
-		angle = cfg->state.last_enc_angle;
+	} else if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
+		++cfg->state.signal_below_min_error_cnt;
+		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
 	} else {
-		if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
-			++cfg->state.signal_below_min_error_cnt;
-			UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
-			angle = cfg->state.last_enc_angle;
-		} else {
-			UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
-			UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
-
-			float angle_tmp = RAD2DEG_f(utils_fast_atan2(sin, cos));
-			UTILS_LP_FAST(angle, angle_tmp, cfg->filter_constant);
-			cfg->state.last_enc_angle = angle;
-		}
+		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
+		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
+		cfg->state.last_enc_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
 	}
 
-	return angle;
+	return cfg->state.last_enc_angle;
 }
