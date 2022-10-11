@@ -98,6 +98,24 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
 
 /**
+ * A simple low pass filter able to filter wrapping values between 0 and 360
+ *
+ * @param value
+ * The filtered value.
+ *
+ * @param sample
+ * Next sample.
+ *
+ * @param filter_constant
+ * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
+ */
+#define UTILS_LP_FAST_360(value, sample, filter_constant)	( ((sample) - (value)) > 180.0 ? \
+                                                            value -= (filter_constant) * ((value) - ((sample) + 360.0)) : \
+                                                            (((sample) - (value)) < -180.0 ? \
+                                                                (value -= (filter_constant) * ((value) - ((sample) - 360.0))) : \
+                                                                (value -= (filter_constant) * ((value) - (sample)))) )
+
+/**
  * A fast approximation of a moving average filter with N samples. See
  * https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
  * https://en.wikipedia.org/wiki/Exponential_smoothing
