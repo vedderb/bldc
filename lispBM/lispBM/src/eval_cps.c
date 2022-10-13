@@ -780,21 +780,23 @@ bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
   return true;
 }
 
-static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
-
-  if (ctx->num_mail >= ctx->mailbox_size) return false;
-
-  ctx->mailbox[ctx->num_mail] = mail;
-  ctx->num_mail ++;
-  return true;
-}
-
 static void mailbox_remove_mail(eval_context_t *ctx, lbm_uint ix) {
 
   for (lbm_uint i = ix; i < ctx->num_mail-1; i ++) {
     ctx->mailbox[i] = ctx->mailbox[i+1];
   }
   ctx->num_mail --;
+}
+
+static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
+
+  if (ctx->num_mail >= ctx->mailbox_size) {
+    mailbox_remove_mail(ctx, 0);
+  }
+
+  ctx->mailbox[ctx->num_mail] = mail;
+  ctx->num_mail ++;
+  return true;
 }
 
 /* Advance execution to the next expression in the program */
@@ -1995,10 +1997,10 @@ static void cont_application_args(eval_context_t *ctx) {
   lbm_value rest = sptr[2];
   lbm_value arg = ctx->r;
 
+  ctx->curr_env = env;
   sptr[0] = arg;
   if (lbm_is_symbol_nil(rest)) {
     // no arguments
-    sptr[1] = count;
     lbm_stack_drop(&ctx->K, 1);
     cont_application(ctx);
   } else if (lbm_is_cons(rest)) {
@@ -2006,7 +2008,6 @@ static void cont_application_args(eval_context_t *ctx) {
     sptr[2] = lbm_enc_u(lbm_dec_u(count) + 1);
     CHECK_STACK(lbm_push_2(&ctx->K,lbm_cdr(rest), APPLICATION_ARGS));
     ctx->curr_exp = lbm_car(rest);
-    ctx->curr_env = env;
   } else {
     error_ctx(ENC_SYM_EERROR);
   }

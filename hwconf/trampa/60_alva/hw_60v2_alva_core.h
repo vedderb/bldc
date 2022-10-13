@@ -22,11 +22,13 @@
 
 #ifdef HW_60V2_ALVA_IS_MK2
 #define HW_NAME					"60v2_alva_mk2"
+#elif defined(HW_60V2_ALVA_IS_MK1)
+#define HW_NAME					"60v2_alva_mk1"
 #else
 #define HW_NAME					"60v2_alva"
 #endif
 
-#ifndef HW_60V2_ALVA_IS_MK2
+#if !(defined(HW_60V2_ALVA_IS_MK1) || defined(HW_60V2_ALVA_IS_MK2))
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
 #endif

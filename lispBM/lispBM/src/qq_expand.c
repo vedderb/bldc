@@ -37,7 +37,6 @@ lbm_value gen_cons(lbm_value a, lbm_value b) {
                         lbm_cons(b, ENC_SYM_NIL)));
 }
 
-
 lbm_value append(lbm_value front, lbm_value back) {
   return lbm_cons (ENC_SYM_APPEND,
                lbm_cons(front,

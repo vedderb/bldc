@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
                                        file_str);
 
         /* Get exclusive access to the heap */
-        lbm_pause_eval();
+        lbm_pause_eval_with_gc(50);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
@@ -809,7 +809,7 @@ int main(int argc, char **argv) {
       int i_val;
 
       if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
-        lbm_pause_eval();
+        lbm_pause_eval_with_gc(50);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
@@ -849,7 +849,7 @@ int main(int argc, char **argv) {
 	printf("symbol does not exist\n");
       }
     } else if (strncmp(str, ":undef", 6) == 0) {
-      lbm_pause_eval();
+      lbm_pause_eval_with_gc(50);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
@@ -861,7 +861,7 @@ int main(int argc, char **argv) {
     } else {
       /* Get exclusive access to the heap */
       read_t *r = malloc(sizeof(read_t));
-      lbm_pause_eval();
+      lbm_pause_eval_with_gc(50);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
