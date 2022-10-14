@@ -2180,6 +2180,42 @@ Set graph index to which data points are sent.
 
 Send a xy-point to the selected graph in the plot.
 
+## IO-boards
+
+CAN-connected IO-boards can be interfaced using the functions in this section.
+
+#### ioboard-get-adc
+
+```clj
+(ioboard-get-adc can-id channel)
+```
+
+Read ADC-input channel from IO-board with can-id. Channel range: 1 to 8. If the IO-board with can-id is not present on the CAN-bus or if the channel is missing -1 will be returned.
+
+#### ioboard-get-digital
+
+```clj
+(ioboard-get-digital can-id channel)
+```
+
+Read  digital input channel from IO-board with can-id. Channel range: 1 to 64. If the IO-board with can-id is not present on the CAN-bus or if the channel is missing -1 will be returned.
+
+#### ioboard-set-digital
+
+```clj
+(ioboard-set-digital can-id channel state)
+```
+
+Write digital output channel to IO-board with can-id. State can be 1 or 0.
+
+#### ioboard-set-pwm
+
+```clj
+(ioboard-set-pwm can-id channel duty)
+```
+
+Write PWM-output channel to IO-board with can-id. The value duty can be 0.0 to 1.0.
+
 ## How to update
 
 To update from remote repository:
