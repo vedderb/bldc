@@ -3544,6 +3544,71 @@ static lbm_value ext_plot_send_points(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+// IO-boards
+static lbm_value ext_ioboard_get_adc(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	int id = lbm_dec_as_i32(args[0]);
+	int channel = lbm_dec_as_i32(args[1]);
+
+	if (channel < 1 || channel > 8) {
+		lbm_set_error_reason("Channel must be 1 - 8");
+		return ENC_SYM_EERROR;
+	}
+
+	io_board_adc_values *val = 0;
+	if (channel >= 5) {
+		val = comm_can_get_io_board_adc_5_8_id(id);
+		channel -= 4;
+	} else {
+		val = comm_can_get_io_board_adc_1_4_id(id);
+	}
+
+	if (val) {
+		return lbm_enc_float(val->adc_voltages[channel - 1]);
+	} else {
+		return lbm_enc_float(-1.0);
+	}
+}
+
+static lbm_value ext_ioboard_get_digital(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(2);
+
+	int id = lbm_dec_as_i32(args[0]);
+	int channel = lbm_dec_as_i32(args[1]);
+
+	if (channel < 1 || channel > 64) {
+		lbm_set_error_reason("Channel must be 1 - 64");
+		return ENC_SYM_EERROR;
+	}
+
+	io_board_digial_inputs *val = comm_can_get_io_board_digital_in_id(id);
+
+	if (val) {
+		return lbm_enc_i(val->inputs >> (channel - 1));
+	} else {
+		return lbm_enc_i(-1);
+	}
+}
+
+static lbm_value ext_ioboard_set_digital(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(3);
+	int id = lbm_dec_as_i32(args[0]);
+	int channel = lbm_dec_as_i32(args[1]);
+	bool on = lbm_dec_as_i32(args[2]);
+	comm_can_io_board_set_output_digital(id, channel, on);
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_ioboard_set_pwm(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(3);
+	int id = lbm_dec_as_i32(args[0]);
+	int channel = lbm_dec_as_i32(args[1]);
+	float duty = lbm_dec_as_float(args[2]);
+	comm_can_io_board_set_output_pwm(id, channel, duty);
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -3765,6 +3830,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("plot-add-graph", ext_plot_add_graph);
 	lbm_add_extension("plot-set-graph", ext_plot_set_graph);
 	lbm_add_extension("plot-send-points", ext_plot_send_points);
+
+	// IO-boards
+	lbm_add_extension("ioboard-get-adc", ext_ioboard_get_adc);
+	lbm_add_extension("ioboard-get-digital", ext_ioboard_get_digital);
+	lbm_add_extension("ioboard-set-digital", ext_ioboard_set_digital);
+	lbm_add_extension("ioboard-set-pwm", ext_ioboard_set_pwm);
 
 	if (ext_callback) {
 		ext_callback();
