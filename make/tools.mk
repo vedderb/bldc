@@ -216,31 +216,25 @@ else
 	$(V1) powershell -noprofile -command if (Test-Path $(GTEST_DIR)) {Remove-Item -Recurse $(GTEST_DIR)}
 endif
 
+# Get the git branch name, commit hash, and clean/dirty state
+GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
 
 ##############################
 #
 # Set up paths to tools
 #
 ##############################
-
-ifneq ("$(wildcard $(ARM_SDK_DIR))","")
-  ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
-else
-  ifneq ($(MAKECMDGOALS),arm_sdk_install)
-    $(info **WARNING** ARM-SDK not in $(ARM_SDK_DIR)  Please run 'make arm_sdk_install')
-  endif
-  # not installed, hope it's in the path...
-  ARM_SDK_PREFIX ?= arm-none-eabi-
+ifneq ($(shell which arm-none-eabi-gcc), '')
+	ARM_SDK_PREFIX := arm-none-eabi-
+else ifneq ($(wildcard $(ARM_SDK_DIR)), "")
+	ARM_SDK_PREFIX := $(ARM_SDK_DIR)/bin/arm-none-eabi-
+else ifneq ($(MAKECMDGOALS), arm_sdk_install)
+	$(error ERROR no compiler found, please run 'make arm_sdk_install')
 endif
-
 
 # Get the ARM GCC version
-ifneq ("$(ARM_SDK_PREFIX)","")
-  ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
+ifneq ($(ARM_SDK_PREFIX),"")
+	ARM_GCC_VERSION := $(shell $(ARM_SDK_PREFIX)gcc -dumpversion)
 endif
-
-# Get the git branch name, commit hash, and clean/dirty state
-GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
-GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
-GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
-
