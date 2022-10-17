@@ -43,7 +43,6 @@ void packet_reset(PACKET_STATE_t *state);
 void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state);
 void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state);
 
-
 typedef struct {
 	char *name;
 	void *arg;
@@ -60,6 +59,9 @@ __attribute__((section(".libif"))) static volatile union {
 	vesc_c_if cif;
 	char pad[2048];
 } cif;
+
+static thread_t* lib_running_threads[20];
+static size_t lib_running_threads_cnt = 0;
 
 static void lib_sleep_ms(uint32_t ms) {
 	chThdSleepMilliseconds(ms);
@@ -112,7 +114,14 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 			info->func = func;
 			info->name = name;
 			info->w_mem = mem;
-			return (lib_thread)chThdCreateStatic(mem, stack_size, NORMALPRIO, lib_thd, info);
+
+			thread_t *thd = chThdCreateStatic(mem, stack_size, NORMALPRIO, lib_thd, info);
+
+			if (lib_running_threads_cnt < (sizeof(lib_running_threads) / sizeof(lib_running_threads[0]))) {
+				lib_running_threads[lib_running_threads_cnt++] = thd;
+			}
+
+			return (lib_thread)thd;
 		}
 	}
 
@@ -824,4 +833,12 @@ void lispif_stop_lib(void) {
 			loaded_libs[i].stop_fun = NULL;
 		}
 	}
+
+	for (size_t i = 0;i < lib_running_threads_cnt;i++) {
+		if (!chThdTerminatedX(lib_running_threads[i])) {
+			lib_request_terminate(lib_running_threads[i]);
+		}
+	}
+
+	lib_running_threads_cnt = 0;
 }
