@@ -79,7 +79,32 @@ static const char* parse_error_close = "Expected closing parenthesis";
     return;                                     \
   }
 
-#define WITH_GC(y, x, remember1,remember2)      \
+#define WITH_GC(y, x)                           \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    gc();                                       \
+    (y) = (x);                                  \
+    if (lbm_is_symbol_merror((y))) {            \
+      ctx_running->done = true;                 \
+      error_ctx(ENC_SYM_MERROR);                \
+      return;                                   \
+    }                                           \
+    /* continue executing statements below */   \
+  }
+#define WITH_GC_1(y, x, remember1)              \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    lbm_gc_mark_phase(remember1);               \
+    gc();                                       \
+    (y) = (x);                                  \
+    if (lbm_is_symbol_merror((y))) {            \
+      ctx_running->done = true;                 \
+      error_ctx(ENC_SYM_MERROR);                \
+      return;                                   \
+    }                                           \
+    /* continue executing statements below */   \
+  }
+#define WITH_GC_2(y, x, remember1,remember2)    \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
     lbm_gc_mark_phase(remember1);               \
@@ -1334,11 +1359,22 @@ static void eval_progn(eval_context_t *ctx) {
   }
 }
 
+// (closure params body env)
 static lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
-  lbm_value env_end = cons_with_gc( env, ENC_SYM_NIL, env);
-  lbm_value exp = cons_with_gc(body, env_end, env_end);
-  lbm_value par = cons_with_gc(params, exp, exp);
-  return cons_with_gc(ENC_SYM_CLOSURE, par, par);
+  if (lbm_heap_num_free() < 4) {
+    lbm_gc_mark_phase(env);
+    lbm_gc_mark_phase(body);
+    lbm_gc_mark_phase(params);
+    gc();
+  }
+  if (lbm_heap_num_free() >= 4) {
+    lbm_value env_end = lbm_cons(env, ENC_SYM_NIL);
+    lbm_value exp = lbm_cons(body, env_end);
+    lbm_value par = lbm_cons(params, exp);
+    lbm_value clo = lbm_cons(ENC_SYM_CLOSURE, par);
+    return clo;
+  }
+  return ENC_SYM_MERROR;
 }
 
 static void eval_lambda(eval_context_t *ctx) {
@@ -1386,8 +1422,8 @@ static void eval_let(eval_context_t *ctx) {
     lbm_value val = ENC_SYM_NIL;
     lbm_value binding;
     lbm_value new_env_tmp;
-    WITH_GC(binding, lbm_cons(key, val), new_env, ENC_SYM_NIL);
-    WITH_GC(new_env_tmp, lbm_cons(binding, new_env), new_env, binding);
+    WITH_GC_1(binding, lbm_cons(key, val), new_env);
+    WITH_GC_2(new_env_tmp, lbm_cons(binding, new_env), new_env, binding);
     new_env = new_env_tmp;
     curr = lbm_cdr(curr);
   }
@@ -1517,7 +1553,7 @@ static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_pop(&ctx->K, &key);
   lbm_value new_env;
-  WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),key,val), key, ENC_SYM_NIL);
+  WITH_GC_1(new_env, lbm_env_set(*lbm_get_env_ptr(),key,val), key);
 
   *lbm_get_env_ptr() = new_env;
   ctx->r = key;
@@ -1698,10 +1734,10 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
          i <= nargs) {
 
     lbm_value entry;
-    WITH_GC(entry,lbm_cons(lbm_car(curr_param),args[i]), clo_env,ENC_SYM_NIL);
+    WITH_GC_1(entry,lbm_cons(lbm_car(curr_param),args[i]), clo_env);
 
     lbm_value aug_env;
-    WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry);
+    WITH_GC_2(aug_env,lbm_cons(entry, clo_env),clo_env,entry);
     clo_env = aug_env;
     curr_param = lbm_cdr(curr_param);
     i ++;
@@ -1787,7 +1823,7 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[1]);
       lbm_value msg = args[2];
 
-      WITH_GC(status, lbm_find_receiver_and_send(cid, msg), ENC_SYM_NIL, ENC_SYM_NIL);
+      WITH_GC(status, lbm_find_receiver_and_send(cid, msg));
     }
   }
   /* return the status */
@@ -1822,7 +1858,7 @@ static void apply_extension(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   }
 
   lbm_value ext_res;
-  WITH_GC(ext_res, f(&args[1] , nargs), ENC_SYM_NIL, ENC_SYM_NIL);
+  WITH_GC(ext_res, f(&args[1] , nargs));
   if (lbm_is_error(ext_res)) {
     error_ctx(ext_res);
     return;
@@ -1915,7 +1951,7 @@ static void cont_application(eval_context_t *ctx) {
       lbm_uint fund_ix = lbm_dec_sym(fun) -  FUNDAMENTALS_START;
 
       lbm_value res;
-      WITH_GC(res, fundamental_table[fund_ix](&fun_args[1], num_args, ctx), ENC_SYM_NIL, ENC_SYM_NIL);
+      WITH_GC(res, fundamental_table[fund_ix](&fun_args[1], num_args, ctx));
       if (lbm_is_error(res)) {
         error_ctx(res);
         return;
@@ -1949,10 +1985,10 @@ static void cont_closure_application_args(eval_context_t *ctx) {
 
   if (lbm_is_cons(params)) {
     lbm_value entry;
-    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r), ENC_SYM_NIL, ENC_SYM_NIL);
+    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r));
 
     lbm_value aug_env;
-    WITH_GC(aug_env,lbm_cons(entry, clo_env),entry,ENC_SYM_NIL);
+    WITH_GC_1(aug_env,lbm_cons(entry, clo_env),entry);
     clo_env = aug_env;
   }
 
@@ -2676,10 +2712,10 @@ static void cont_application_start(eval_context_t *ctx) {
              lbm_type_of(curr_arg)   == LBM_TYPE_CONS) {
 
         lbm_value entry;
-        WITH_GC(entry,lbm_cons(lbm_car(curr_param),lbm_car(curr_arg)), expand_env,ENC_SYM_NIL);
+        WITH_GC_1(entry,lbm_cons(lbm_car(curr_param),lbm_car(curr_arg)), expand_env);
 
         lbm_value aug_env;
-        WITH_GC(aug_env,lbm_cons(entry, expand_env),expand_env,entry);
+        WITH_GC_2(aug_env,lbm_cons(entry, expand_env),expand_env,entry);
         expand_env = aug_env;
 
         curr_param = lbm_cdr(curr_param);

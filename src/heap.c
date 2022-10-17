@@ -455,6 +455,7 @@ static int generate_freelist(size_t num_cells) {
 
 void lbm_nil_freelist(void) {
   lbm_heap_state.freelist = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc = lbm_heap_state.heap_size;
 }
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
@@ -539,7 +540,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   lbm_heap_state.num_alloc++;
 
   // set some ok initial values (nil . nil)
-  lbm_ref_cell(res)->car =  ENC_SYM_NIL;
+  lbm_ref_cell(res)->car = ENC_SYM_NIL;
   lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
 
   // clear GC bit on allocated cell
