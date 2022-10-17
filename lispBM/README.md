@@ -302,6 +302,8 @@ Read system info parameter param. Example:
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
 
+**Note:** Detach does *not* mean that the app output is disabled, it means that you can provide the input for the app instead of having it read the external peripheral. So if you e.g. detach the app and override the input with 0 the app will keep sending the corresponding command to the motor as usual, even if that command is a stop command. If you want to disable the app output you can have a look at [app-disable-output](#app-disable-output).
+
 #### app-adc-detach
 
 ```clj
@@ -361,6 +363,14 @@ Sets the override value. Range -1.0 to 1.0.
 ```
 
 Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sent to this app at any time without detaching it and it will be treated the same as a packet from a VESC Remote. That means the timeout as well as all VESC Remote settings will be used.
+
+#### app-disable-output
+
+```clj
+(app-disable-output ms)
+```
+
+Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
 
 ### Motor Set Commands
 
