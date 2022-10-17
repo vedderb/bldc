@@ -453,6 +453,10 @@ static int generate_freelist(size_t num_cells) {
   return 1;
 }
 
+void lbm_nil_freelist(void) {
+  lbm_heap_state.freelist = ENC_SYM_NIL;
+}
+
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
                             lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
   lbm_heap_state.heap         = addr;
@@ -657,8 +661,9 @@ int lbm_gc_sweep_phase(void) {
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
   for (i = 0; i < lbm_heap_state.heap_size; i ++) {
-    if ( !get_gc_mark(&heap[i])){
-
+    if ( get_gc_mark(&heap[i])) {
+      clr_gc_mark(&heap[i]);
+    } else {
       // Check if this cell is a pointer to an array
       // and free it.
       if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
@@ -689,12 +694,11 @@ int lbm_gc_sweep_phase(void) {
           lbm_uint *t = (lbm_uint*)heap[i].car;
           lbm_custom_type_destroy(t);
           lbm_memory_free(t);
-        } break;
+          } break;
         default:
           break;
         }
-      }
-
+        }
       // create pointer to use as new freelist
       lbm_uint addr = lbm_enc_cons_ptr(i);
 
@@ -705,7 +709,6 @@ int lbm_gc_sweep_phase(void) {
       lbm_heap_state.num_alloc --;
       lbm_heap_state.gc_recovered ++;
     }
-    clr_gc_mark(&heap[i]);
   }
   return 1;
 }
@@ -773,6 +776,7 @@ lbm_value lbm_cdr(lbm_value c){
   }
   return ENC_SYM_TERROR;
 }
+
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
