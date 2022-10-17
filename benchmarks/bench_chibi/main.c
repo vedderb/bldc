@@ -308,15 +308,9 @@ int main(void) {
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause\r\n");
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
-    } else if (strncmp(str, ":step", 5) == 0) {
-      lbm_step_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        chThdSleepMilliseconds(1);
-      }
-      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
     } else if (strncmp(str, ":reset", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
