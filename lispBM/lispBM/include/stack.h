@@ -118,12 +118,7 @@ static inline int lbm_stack_is_empty(lbm_stack_t *s) {
  * \param val1 Is pushed last.
  * \return 1 on success and 0 on failure (stack is full).
  */
-static inline int lbm_push_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1) {
-  int res = 1;
-  res &= lbm_push(s,val0);
-  res &= lbm_push(s,val1);
-  return res;
-}
+int lbm_push_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1);
 
 /** Push 3 values to a stack.
  *
@@ -133,13 +128,7 @@ static inline int lbm_push_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1) {
  * \param val2
  * \return 1 on success and 0 on failure (stack is full).
  */
-static inline int lbm_push_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2) {
-  int res = 1;
-  res &= lbm_push(s,val0);
-  res &= lbm_push(s,val1);
-  res &= lbm_push(s,val2);
-  return res;
-}
+int lbm_push_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2);
 
 /** Push 4 values to a stack.
  *
@@ -150,14 +139,7 @@ static inline int lbm_push_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_u
  * \param val3
  * \return 1 on success and 0 on failure (stack is full).
  */
-static inline int lbm_push_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3) {
-  int res = 1;
-  res &= lbm_push(s,val0);
-  res &= lbm_push(s,val1);
-  res &= lbm_push(s,val2);
-  res &= lbm_push(s,val3);
-  return res;
-}
+int lbm_push_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3);
 
 /** Push 5 values to a stack.
  *
@@ -169,15 +151,7 @@ static inline int lbm_push_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_u
  * \param val4
  * \return 1 on success and 0 on failure (stack is full).
  */
-static inline int lbm_push_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3, lbm_uint val4) {
-  int res = 1;
-  res &= lbm_push(s,val0);
-  res &= lbm_push(s,val1);
-  res &= lbm_push(s,val2);
-  res &= lbm_push(s,val3);
-  res &= lbm_push(s,val4);
-  return res;
-}
+int lbm_push_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3, lbm_uint val4);
 
 /** Pop 2 values from a stack.
  *
@@ -186,12 +160,7 @@ static inline int lbm_push_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_u
  * \param r1 Pointer to lbm_value where the seconds pop:ed value will be stored.
  * \return 1 on success and 0 on failure (stack is empty).
  */
-static inline int lbm_pop_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1) {
-  int res = 1;
-  res &= lbm_pop(s, r0);
-  res &= lbm_pop(s, r1);
-  return res;
-}
+int lbm_pop_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1);
 
 /** Pop 3 values from a stack.
  *
@@ -201,51 +170,7 @@ static inline int lbm_pop_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1) {
  * \param r2
  * \return 1 on success and 0 on failure (stack is empty).
  */
-static inline int lbm_pop_3(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2) {
-  int res = 1;
-  res &= lbm_pop(s, r0);
-  res &= lbm_pop(s, r1);
-  res &= lbm_pop(s, r2);
-  return res;
-}
-
-/** Pop 4 values from a stack.
- *
- * \param s Stack to pop values from.
- * \param r0
- * \param r1
- * \param r2
- * \param r3
- * \return 1 on success and 0 on failure (stack is empty).
- */
-static inline int lbm_pop_4(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3) {
-  int res = 1;
-  res &= lbm_pop(s, r0);
-  res &= lbm_pop(s, r1);
-  res &= lbm_pop(s, r2);
-  res &= lbm_pop(s, r3);
-  return res;
-}
-
-/** Pop 5 values from a stack.
- *
- * \param s Stack to pop values from.
- * \param r0
- * \param r1
- * \param r2
- * \param r3
- * \param r4
- * \return 1 on success and 0 on failure (stack is empty).
- */
-static inline int lbm_pop_5(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3, lbm_uint *r4) {
-  int res = 1;
-  res &= lbm_pop(s, r0);
-  res &= lbm_pop(s, r1);
-  res &= lbm_pop(s, r2);
-  res &= lbm_pop(s, r3);
-  res &= lbm_pop(s, r4);
-  return res;
-}
+int lbm_pop_3(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2);
 
 #ifdef __cplusplus
 }

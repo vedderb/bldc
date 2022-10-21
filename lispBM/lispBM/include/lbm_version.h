@@ -32,7 +32,10 @@ extern "C" {
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
-Oct 1: Version 0.7.0
+Oct 16: Version 0.7.0
+  - Refactoring for evaluation speed.
+  - Removed possibility to step through code.
+  - Oldest message is removed on mailbox full.
   - Added spawn-trap inspired by Erlang (but simplified).
 
 Sep 25: Version 0.7.0

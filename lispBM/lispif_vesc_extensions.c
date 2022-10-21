@@ -1107,6 +1107,12 @@ static lbm_value ext_set_remote_state(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_app_disable_output(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	app_disable_output(lbm_dec_as_i32(args[0]));
+	return ENC_SYM_TRUE;
+}
+
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
@@ -3680,6 +3686,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("app-ppm-detach", ext_app_ppm_detach);
 	lbm_add_extension("app-ppm-override", ext_app_ppm_override);
 	lbm_add_extension("set-remote-state", ext_set_remote_state);
+	lbm_add_extension("app-disable-output", ext_app_disable_output);
 
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);
