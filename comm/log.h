@@ -1,6 +1,5 @@
 /*
 	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
-	Copyright 2022 Joel Svensson    svenssonjoel@yahoo.se
 
 	This file is part of the VESC firmware.
 
@@ -16,27 +15,36 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+    */
 
-#ifndef LISPBM_LISPIF_H_
-#define LISPBM_LISPIF_H_
+#ifndef COMM_LOG_H_
+#define COMM_LOG_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 
 // Functions
-void lispif_init(void);
-bool lispif_restart(bool print, bool load_code);
-void lispif_disable_all_events(void);
-void lispif_stop_lib(void);
-void lispif_process_cmd(unsigned char *data, unsigned int len,
-		void(*reply_func)(unsigned char *data, unsigned int len));
-void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
-void lispif_process_custom_app_data(unsigned char *data, unsigned int len);
-void lispif_process_shutdown(void);
-void lispif_set_ext_load_callback(void (*p_func)(void));
+void log_start(
+		int can_id,
+		int field_num,
+		float rate_hz,
+		bool append_time,
+		bool append_gnss,
+		bool append_gnss_time);
+void log_stop(int can_id);
+void log_config_field(
+		int can_id,
+		int field_ind,
+		char *key,
+		char *name,
+		char *unit,
+		int precision,
+		bool is_relative,
+		bool is_timestamp);
+void log_send_samples_f32(
+		int can_id,
+		int field_start,
+		float *samples,
+		int sample_num);
 
-void lispif_load_vesc_extensions(void);
-bool lispif_vesc_dynamic_loader(const char *str, const char **code);
-
-#endif /* LISPBM_LISPIF_H_ */
+#endif /* COMM_LOG_H_ */

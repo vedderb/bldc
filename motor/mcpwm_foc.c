@@ -1253,6 +1253,26 @@ float mcpwm_foc_get_iq(void) {
 }
 
 /**
+ * Get the filtered direct axis motor current.
+ *
+ * @return
+ * The D axis current.
+ */
+float mcpwm_foc_get_id_filter(void) {
+	return get_motor_now()->m_motor_state.id_filter;
+}
+
+/**
+ * Get the filtered quadrature axis motor current.
+ *
+ * @return
+ * The Q axis current.
+ */
+float mcpwm_foc_get_iq_filter(void) {
+	return get_motor_now()->m_motor_state.iq_filter;
+}
+
+/**
  * Get the input current to the motor controller.
  *
  * @return

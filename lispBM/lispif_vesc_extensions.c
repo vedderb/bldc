@@ -44,6 +44,8 @@
 #include "app.h"
 #include "canard_driver.h"
 #include "firmware_metadata.h"
+#include "log.h"
+#include "buffer.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -1227,6 +1229,26 @@ static lbm_value ext_get_current_in(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_tot_current_in_filtered());
 }
 
+static lbm_value ext_get_id(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_id_filter());
+}
+
+static lbm_value ext_get_iq(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_iq_filter());
+}
+
+static lbm_value ext_get_vd(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_vd());
+}
+
+static lbm_value ext_get_vq(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_vq());
+}
+
 static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_duty_cycle_now());
@@ -1743,10 +1765,12 @@ static volatile bool event_handler_registered = false;
 static volatile bool event_can_sid_en = false;
 static volatile bool event_can_eid_en = false;
 static volatile bool event_data_rx_en = false;
+static volatile bool event_shutdown_en = false;
 static lbm_uint event_handler_pid;
 static lbm_uint sym_event_can_sid;
 static lbm_uint sym_event_can_eid;
 static lbm_uint sym_event_data_rx;
+static lbm_uint sym_event_shutdown;
 
 static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
@@ -1770,6 +1794,8 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 		event_can_eid_en = en;
 	} else if (name == sym_event_data_rx) {
 		event_data_rx_en = en;
+	} else if (name == sym_event_shutdown) {
+		event_shutdown_en = en;
 	} else {
 		return ENC_SYM_EERROR;
 	}
@@ -3615,6 +3641,159 @@ static lbm_value ext_ioboard_set_pwm(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+// Logging
+static lbm_value ext_log_start(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(6);
+
+	log_start(
+			lbm_dec_as_i32(args[0]),
+			lbm_dec_as_i32(args[1]),
+			lbm_dec_as_float(args[2]),
+			lbm_dec_as_i32(args[3]),
+			lbm_dec_as_i32(args[4]),
+			lbm_dec_as_i32(args[5]));
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_log_stop(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	log_stop(lbm_dec_as_i32(args[0]));
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_log_config_field(lbm_value *args, lbm_uint argn) {
+	if (argn != 8) {
+		lbm_set_error_reason(error_reason_argn);
+		return ENC_SYM_EERROR;
+	}
+
+	int arg_now = 0;
+
+	int can_id = -1;
+	if (lbm_is_number(args[arg_now])) {
+		can_id = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	int field_ind = -1;
+	if (lbm_is_number(args[arg_now])) {
+		field_ind = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	char *key = lbm_dec_str(args[arg_now++]);
+	if (key == NULL) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *name = lbm_dec_str(args[arg_now++]);
+	if (name == NULL) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *unit = lbm_dec_str(args[arg_now++]);
+	if (unit == NULL) {
+		return ENC_SYM_EERROR;
+	}
+
+	int precision = -1;
+	if (lbm_is_number(args[arg_now])) {
+		precision = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	int is_relative = -1;
+	if (lbm_is_number(args[arg_now])) {
+		is_relative = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	int is_timestamp = -1;
+	if (lbm_is_number(args[arg_now])) {
+		is_timestamp = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	log_config_field(can_id, field_ind, key, name, unit, precision, is_relative, is_timestamp);
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
+	unsigned int arg_now = 0;
+
+	int can_id = -1;
+	if (lbm_is_number(args[arg_now])) {
+		can_id = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	int field_start = -1;
+	if (lbm_is_number(args[arg_now])) {
+		field_start = lbm_dec_as_i32(args[arg_now++]);
+	} else {
+		return ENC_SYM_EERROR;
+	}
+
+	int32_t ind = 0;
+	uint8_t *buffer = mempools_get_packet_buffer();
+
+	buffer[ind++] = COMM_LOG_DATA_F32;
+	buffer_append_int16(buffer, field_start, &ind);
+
+	int append_cnt = 0;
+
+	while (arg_now < argn) {
+		if (lbm_is_number(args[arg_now])) {
+			buffer_append_float32_auto(buffer, lbm_dec_as_float(args[arg_now]), &ind);
+			append_cnt++;
+			if (append_cnt >= 100) {
+				mempools_free_packet_buffer(buffer);
+				return ENC_SYM_EERROR;
+			}
+		} else if (lbm_is_cons(args[arg_now])) {
+			lbm_value curr = args[arg_now];
+			while (lbm_is_cons(curr)) {
+				lbm_value  val = lbm_car(curr);
+				if (lbm_is_number(val)) {
+					buffer_append_float32_auto(buffer, lbm_dec_as_float(val), &ind);
+					append_cnt++;
+					if (append_cnt >= 100) {
+						mempools_free_packet_buffer(buffer);
+						return ENC_SYM_EERROR;
+					}
+				} else {
+					mempools_free_packet_buffer(buffer);
+					return ENC_SYM_EERROR;
+				}
+
+				curr = lbm_cdr(curr);
+			}
+		} else {
+			mempools_free_packet_buffer(buffer);
+			return ENC_SYM_EERROR;
+		}
+		arg_now++;
+	}
+
+	if (can_id >= 0 && can_id < 255) {
+		comm_can_send_buffer(can_id, buffer, ind, 0);
+	} else {
+		commands_send_packet(buffer, ind);
+	}
+
+	mempools_free_packet_buffer(buffer);
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -3637,6 +3816,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
+	lbm_add_symbol_const("event-shutdown", &sym_event_shutdown);
 
 	lbm_add_symbol_const("?01", &sym_res);
 	lbm_add_symbol_const("?02", &sym_loop);
@@ -3705,6 +3885,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-current", ext_get_current);
 	lbm_add_extension("get-current-dir", ext_get_current_dir);
 	lbm_add_extension("get-current-in", ext_get_current_in);
+	lbm_add_extension("get-id", ext_get_id);
+	lbm_add_extension("get-iq", ext_get_iq);
+	lbm_add_extension("get-vd", ext_get_vd);
+	lbm_add_extension("get-vq", ext_get_vq);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
@@ -3844,9 +4028,24 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("ioboard-set-digital", ext_ioboard_set_digital);
 	lbm_add_extension("ioboard-set-pwm", ext_ioboard_set_pwm);
 
+	// Logging
+	lbm_add_extension("log-start", ext_log_start);
+	lbm_add_extension("log-stop", ext_log_stop);
+	lbm_add_extension("log-config-field", ext_log_config_field);
+	lbm_add_extension("log-send-f32", ext_log_send_f32);
+
 	if (ext_callback) {
 		ext_callback();
 	}
+}
+
+static bool pause_gc(uint32_t num_free, int timeout_cnt) {
+	lbm_pause_eval_with_gc(num_free);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	return timeout_cnt > 0;
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -3866,17 +4065,7 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	bool ok = true;
-
-	int timeout_cnt = 1000;
-	lbm_pause_eval_with_gc(100);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	ok = timeout_cnt > 0;
-
-	if (ok) {
+	if (pause_gc(100, 1000)) {
 		lbm_value bytes;
 		if (!lbm_create_array(&bytes, LBM_TYPE_BYTE, len)) {
 			lbm_continue_eval();
@@ -3913,17 +4102,7 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	bool ok = true;
-
-	int timeout_cnt = 1000;
-	lbm_pause_eval_with_gc(100);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	ok = timeout_cnt > 0;
-
-	if (ok) {
+	if (pause_gc(100, 1000)) {
 		lbm_value bytes;
 		if (!lbm_create_array(&bytes, LBM_TYPE_BYTE, len)) {
 			lbm_continue_eval();
@@ -3935,6 +4114,26 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		lbm_value msg = lbm_cons(lbm_enc_sym(sym_event_data_rx), bytes);
 
 		lbm_send_message(event_handler_pid, msg);
+	}
+
+	lbm_continue_eval();
+}
+
+void lispif_process_shutdown(void) {
+	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+		return;
+	}
+
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!event_shutdown_en) {
+		return;
+	}
+
+	if (pause_gc(20, 1000)) {
+		lbm_send_message(event_handler_pid, lbm_cons(lbm_enc_sym(sym_event_shutdown), ENC_SYM_TRUE));
 	}
 
 	lbm_continue_eval();

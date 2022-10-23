@@ -478,7 +478,33 @@ Get directional current. Positive for torque in the forward direction and negati
 (get-current-in)
 ```
 
-Get input current. Will always be lower than the motor current. The closer the motor spins to full speed the closer the input current is to the motor current.
+#### get-id
+```clj
+(get-id)
+```
+
+Get FOC d-axis current.
+
+#### get-iq
+```clj
+(get-iq)
+```
+
+Get FOC q-axis current.
+
+#### get-vd
+```clj
+(get-vd)
+```
+
+Get FOC d-axis voltage.
+
+#### get-vq
+```clj
+(get-vq)
+```
+
+Get FOC q-axis voltage.
 
 #### get-duty
 ```clj
@@ -1872,12 +1898,27 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable 'event-can-sid) ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
-(event-enable 'event-can-eid) ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
-(event-enable 'event-data-rx) ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-can-sid)  ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
+(event-enable 'event-can-eid)  ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
+(event-enable 'event-data-rx)  ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-shutdown) ; Sends (signal-shutdown t)
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
+
+### Event Description
+
+**event-can-sid**  
+This event is sent when standard id CAN-frames are received.
+
+**event-can-eid**  
+This event is sent when extended id CAN-frames are received.
+
+**event-data-rx**  
+This event is sent when custom app data is sent from VESC Tool.
+
+**event-shutdown**  
+This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
 
 ## Byte Arrays
 
@@ -2190,7 +2231,7 @@ Set graph index to which data points are sent.
 
 Send a xy-point to the selected graph in the plot.
 
-## IO-boards
+## IO Boards
 
 CAN-connected IO-boards can be interfaced using the functions in this section.
 
@@ -2225,6 +2266,10 @@ Write digital output channel to IO-board with can-id. State can be 1 or 0.
 ```
 
 Write PWM-output channel to IO-board with can-id. The value duty can be 0.0 to 1.0.
+
+## CAN Logging
+
+
 
 ## How to update
 
