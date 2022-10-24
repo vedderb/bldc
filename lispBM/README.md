@@ -1867,12 +1867,12 @@ The following example shows how to spawn a thread that handles SID (standard-id)
         (print data)
 )))
 
-(define event-handler (lambda ()
-    (progn
-        (recv ((event-can-sid (? id) . (? data)) (proc-sid id data))
-        (recv ((event-data-rx ? data) (proc-data data))
-              (_ nil)) ; Ignore other events
-        (event-handler) ; Call self again to make this a loop
+(defun event-handler ()
+    (loopwhile t
+        (recv
+            ((event-can-sid (? id) . (? data)) (proc-sid id data))
+            ((event-data-rx ? data) (proc-data data))
+            (_ nil) ; Ignore other events
 )))
 
 ; Spawn the event handler thread and pass the ID it returns to C
@@ -1891,7 +1891,7 @@ Possible events to register are
 (event-enable 'event-can-sid)  ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
 (event-enable 'event-can-eid)  ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
 (event-enable 'event-data-rx)  ; Sends (signal-data-rx data), where data is a byte array
-(event-enable 'event-shutdown) ; Sends (signal-shutdown t)
+(event-enable 'event-shutdown) ; Sends signal-shutdown
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
