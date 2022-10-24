@@ -4132,8 +4132,8 @@ void lispif_process_shutdown(void) {
 		return;
 	}
 
-	if (pause_gc(20, 1000)) {
-		lbm_send_message(event_handler_pid, lbm_cons(lbm_enc_sym(sym_event_shutdown), ENC_SYM_TRUE));
+	if (pause_gc(5, 1000)) {
+		lbm_send_message(event_handler_pid, lbm_enc_sym(sym_event_shutdown));
 	}
 
 	lbm_continue_eval();
