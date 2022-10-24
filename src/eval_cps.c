@@ -1483,7 +1483,7 @@ static void eval_match(eval_context_t *ctx) {
     ctx->r = ENC_SYM_NIL;
     return;
   } else {
-    CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(rest), MATCH));
+    CHECK_STACK(lbm_push_3(&ctx->K, lbm_cdr(rest), ctx->curr_env, MATCH));
     ctx->curr_exp = lbm_car(rest); /* Evaluate e next*/
   }
 }
@@ -2173,10 +2173,11 @@ static void cont_match_many(eval_context_t *ctx) {
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
   lbm_value patterns;
-  lbm_value new_env = ctx->curr_env;
+  lbm_value new_env;
   bool  do_gc = false;
-
+  lbm_pop(&ctx->K, &new_env); // restore enclosing environment
   lbm_pop(&ctx->K, &patterns);
+  ctx->curr_env = new_env;
 
   if (lbm_is_symbol_nil(patterns)) {
     /* no more patterns */
@@ -2205,7 +2206,7 @@ static void cont_match(eval_context_t *ctx) {
       ctx->curr_exp = body;
     } else {
       /* set up for checking of next pattern */
-      CHECK_STACK(lbm_push_2(&ctx->K, lbm_cdr(patterns), MATCH));
+      CHECK_STACK(lbm_push_3(&ctx->K, lbm_cdr(patterns),ctx->curr_env, MATCH));
       /* leave r unaltered */
       ctx->app_cont = true;
     }

@@ -875,6 +875,47 @@ Example that creates the list (1 2 3 4).
 
 ---
 
+### length
+
+Computes the length of a list. The `length` function takes
+one argument and is of the form `(length expr)`.
+
+Example that evaluates to 4
+```clj
+
+(length (list 1 2 3 4))
+```
+
+---
+
+### range
+
+The `range` function computes a list with integer values from a
+range specified by its endpoints. The form of a range expression
+is `(range start-expr end-expr)`. The end point in the range is excluded.
+
+Example that generates the list (4 5 6 7).
+```clj
+(range 4 8)
+```
+
+A range specified with the end-point being smaller than the
+starting point is in descending order.
+
+Example that generates the list (7 6 5 4).
+```clj
+(range 8 4)
+```
+
+Negative number can be used to specify a range
+
+Example that generates the list (-10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9)
+```clj
+(range -10 10)
+```
+
+---
+
 ### append
 
 The `append` function combines two lists into a longer list.

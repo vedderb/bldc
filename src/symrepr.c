@@ -172,6 +172,8 @@ special_sym const special_symbols[] =  {
   {"setcar"           , SYM_SET_CAR},
   {"setcdr"           , SYM_SET_CDR},
   {"setix"            , SYM_SET_IX},
+  {"length"           , SYM_LIST_LENGTH},
+  {"range"            , SYM_RANGE},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
   {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
