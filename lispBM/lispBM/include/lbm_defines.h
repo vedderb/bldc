@@ -261,7 +261,9 @@
 #define SYM_BITWISE_NOT         0x234
 #define SYM_CUSTOM_DESTRUCT     0x235 /* run the destructor of a custom type */
 #define SYM_TYPE_OF             0x236
-#define FUNDAMENTALS_END        0x236
+#define SYM_LIST_LENGTH         0x237
+#define SYM_RANGE               0x238
+#define FUNDAMENTALS_END        0x238
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
