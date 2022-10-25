@@ -1287,7 +1287,7 @@ Example:
 (conf-set-pid-offset offset optStore)
 ```
 
-Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to 1 to store the offset persistently (although that requires stopping the motor).
+Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to true to store the offset persistently (although that requires stopping the motor).
 
 #### conf-measure-res
 
@@ -2360,7 +2360,6 @@ Timestamp fields are displayed with the format hh:mm:ss.
     rate-hz
     append-time
     apped-gnss
-    append-gnss-time
 )
 ```
 
@@ -2376,13 +2375,10 @@ Number of log fields.
 Log rate in Hz.
 
 **append-time**  
-If set to 1 the log device will append a timestamp to each sample.
+If set to true the log device will append a timestamp to each sample.
 
 **append-gnss**  
-If set to 1 the log device will append a GNSS-position to each sample. This requires a GNSS-receiver on the log device and the log will not start until a valid position is available.
-
-**append-gnss-time**  
-If set to 1 the log device will append a GNSS-timestamp to each sample. This requires a GNSS-receiver on the log device and the log will not start until a valid position is available.
+If set to true the log device will append a GNSS-position to each sample. This requires a GNSS-receiver on the log device and the log will not start until a valid position is available.
 
 #### log-stop
 

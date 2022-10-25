@@ -390,6 +390,12 @@ static bool is_number_all(lbm_value *args, lbm_uint argn) {
 	return true;
 }
 
+static bool is_symbol_true_false(lbm_value v) {
+	bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
+	lbm_set_error_reason("Argument must be t or nil (true or false)");
+	return res;
+}
+
 static char *error_reason_no_number = "Argument(s) must be a number.";
 static char *error_reason_argn = "Invalid number of arguments.";
 
@@ -3141,7 +3147,9 @@ static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	CHECK_NUMBER_ALL();
+	if (!lbm_is_number(args[0]) || (argn == 2 && !is_symbol_true_false(args[1]))) {
+		return ENC_SYM_EERROR;
+	}
 
 	float angle = lbm_dec_as_float(args[0]);
 	if (angle < -360.0 || angle > 360.0) {
@@ -3151,7 +3159,7 @@ static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
 
 	bool store = false;
 	if (argn == 2) {
-		store = lbm_dec_as_u32(args[1]);
+		store = lbm_is_symbol_true(args[1]);
 	}
 
 	mc_interface_update_pid_pos_offset(angle, store);
@@ -3643,15 +3651,23 @@ static lbm_value ext_ioboard_set_pwm(lbm_value *args, lbm_uint argn) {
 
 // Logging
 static lbm_value ext_log_start(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(6);
+	CHECK_ARGN(5);
+
+	if (!lbm_is_number(args[0]) ||
+			!lbm_is_number(args[1]) ||
+			!lbm_is_number(args[2]) ||
+			!is_symbol_true_false(args[3]) ||
+			!is_symbol_true_false(args[4])) {
+		return ENC_SYM_EERROR;
+	}
 
 	log_start(
 			lbm_dec_as_i32(args[0]),
 			lbm_dec_as_i32(args[1]),
 			lbm_dec_as_float(args[2]),
-			lbm_dec_as_i32(args[3]),
-			lbm_dec_as_i32(args[4]),
-			lbm_dec_as_i32(args[5]));
+			lbm_is_symbol_true(args[3]),
+			lbm_is_symbol_true(args[4]),
+			lbm_is_symbol_true(args[4]));
 
 	return ENC_SYM_TRUE;
 }
@@ -3706,16 +3722,16 @@ static lbm_value ext_log_config_field(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	int is_relative = -1;
-	if (lbm_is_number(args[arg_now])) {
-		is_relative = lbm_dec_as_i32(args[arg_now++]);
+	bool is_relative = false;
+	if (is_symbol_true_false(args[arg_now])) {
+		is_relative = lbm_is_symbol_true(args[arg_now++]);
 	} else {
 		return ENC_SYM_EERROR;
 	}
 
-	int is_timestamp = -1;
-	if (lbm_is_number(args[arg_now])) {
-		is_timestamp = lbm_dec_as_i32(args[arg_now++]);
+	bool is_timestamp = false;
+	if (is_symbol_true_false(args[arg_now])) {
+		is_timestamp = lbm_is_symbol_true(args[arg_now++]);
 	} else {
 		return ENC_SYM_EERROR;
 	}
