@@ -206,7 +206,9 @@ special_sym const special_symbols[] =  {
   {"first"          , SYM_CAR},
   {"rest"           , SYM_CDR},
   {"fn"             , SYM_LAMBDA},
-  {"def"            , SYM_DEFINE}
+  {"def"            , SYM_DEFINE},
+  {"true"           , SYM_TRUE},
+  {"false"          , SYM_NIL}
 
 };
 
