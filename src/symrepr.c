@@ -63,15 +63,6 @@ special_sym const special_symbols[] =  {
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i"         , SYM_MATCH_I},
-  {"?u"         , SYM_MATCH_U},
-  {"?u32"       , SYM_MATCH_U32},
-  {"?i32"       , SYM_MATCH_I32},
-  {"?float"     , SYM_MATCH_FLOAT},
-  {"?cons"      , SYM_MATCH_CONS},
-  {"?u64"       , SYM_MATCH_U64},
-  {"?i64"       , SYM_MATCH_I64},
-  {"?double"    , SYM_MATCH_DOUBLE},
 
   // Error symbols with parsable names
   {"no_match"           , SYM_NO_MATCH},

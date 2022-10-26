@@ -125,15 +125,6 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?double" , TOKMATCHDOUBLE, 7},
-  {"?float", TOKMATCHFLOAT, 6},
-  {"?cons", TOKMATCHCONS, 5},
-  {"?u64", TOKMATCHU64, 4},
-  {"?i64", TOKMATCHI64, 4},
-  {"?u32", TOKMATCHU32, 4},
-  {"?i32", TOKMATCHI32, 4},
-  {"?i", TOKMATCHI28, 2},
-  {"?u", TOKMATCHU28, 2},
   {"?", TOKMATCHANY, 1}
 };
 
@@ -594,33 +585,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       break;
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
-      break;
-    case TOKMATCHI28:
-      res = lbm_enc_sym(SYM_MATCH_I);
-      break;
-    case TOKMATCHU28:
-      res = lbm_enc_sym(SYM_MATCH_U);
-      break;
-    case TOKMATCHI32:
-      res = lbm_enc_sym(SYM_MATCH_I32);
-      break;
-    case TOKMATCHU32:
-      res = lbm_enc_sym(SYM_MATCH_U32);
-      break;
-    case TOKMATCHFLOAT:
-      res = lbm_enc_sym(SYM_MATCH_FLOAT);
-      break;
-    case TOKMATCHU64:
-      res = lbm_enc_sym(SYM_MATCH_U64);
-      break;
-    case TOKMATCHI64:
-      res = lbm_enc_sym(SYM_MATCH_I64);
-      break;
-    case TOKMATCHDOUBLE:
-      res = lbm_enc_sym(SYM_MATCH_DOUBLE);
-      break;
-    case TOKMATCHCONS:
-      res = lbm_enc_sym(SYM_MATCH_CONS);
       break;
     case TOKMATCHANY:
       res = lbm_enc_sym(SYM_MATCH_ANY);

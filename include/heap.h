@@ -722,16 +722,7 @@ static inline bool lbm_is_macro(lbm_value exp) {
 static inline bool lbm_is_match_binder(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I32) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U32) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I64) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U64) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_DOUBLE) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
+          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY)));
 }
 
 static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
