@@ -305,6 +305,11 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback("***\tError:\t%s\n", buf);
+  if (lbm_is_symbol(error) &&
+      error == ENC_SYM_NOT_FOUND) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("***\t\t%s\n",buf);
+  }
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
@@ -920,88 +925,6 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
         return true;
       }
       break;
-    case SYM_MATCH_I:
-      if (lbm_type_of(e) == LBM_TYPE_I) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_U:
-      if (lbm_type_of(e) == LBM_TYPE_U) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_I32:
-      if (lbm_type_of(e) == LBM_TYPE_I32) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_U32:
-      if (lbm_type_of(e) == LBM_TYPE_U32) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-
-    case SYM_MATCH_FLOAT:
-      if (lbm_type_of(e) == LBM_TYPE_FLOAT) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_U64:
-      if (lbm_type_of(e) == LBM_TYPE_U64) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_I64:
-      if (lbm_type_of(e) == LBM_TYPE_I64) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_DOUBLE:
-      if (lbm_type_of(e) == LBM_TYPE_DOUBLE) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
-    case SYM_MATCH_CONS:
-      if (lbm_type_of(e) == LBM_TYPE_CONS) {
-        if (lbm_dec_sym(var) == SYM_DONTCARE) {
-          return true;
-        } else {
-          break;
-        }
-      }
-      return false;
     default: /* this should be an error case */
       return false;
     }
@@ -1223,6 +1146,30 @@ static void eval_selfevaluating(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void eval_progn(eval_context_t *ctx) {
+  lbm_value exps = lbm_cdr(ctx->curr_exp);
+  lbm_value env  = ctx->curr_env;
+
+  if (lbm_is_cons(exps)) {
+    lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 3);
+    if (!sptr) {
+      error_ctx(ENC_SYM_STACK_ERROR);
+      return;
+    }
+    sptr[0] = env;
+    sptr[1] = lbm_cdr(exps);
+    sptr[2] = PROGN_REST;
+    ctx->curr_exp = lbm_car(exps);
+    ctx->curr_env = env;
+    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
+      lbm_stack_drop(&ctx->K, 3);
+  } else if (lbm_is_symbol_nil(exps)) {
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
+  } else {
+    error_ctx(ENC_SYM_EERROR);
+  }
+}
 
 static void eval_atomic(eval_context_t *ctx) {
   if (is_atomic) {
@@ -1233,8 +1180,7 @@ static void eval_atomic(eval_context_t *ctx) {
 
   CHECK_STACK(lbm_push(&ctx->K, EXIT_ATOMIC));
   is_atomic = true;
-  ctx->curr_exp = lbm_cadr(ctx->curr_exp);
-  /*NOTE:  ctx->app_cont = false; */
+  eval_progn(ctx);
 }
 
 
@@ -1305,31 +1251,6 @@ static void eval_define(eval_context_t *ctx) {
   }
   error_ctx(ENC_SYM_EERROR);
   return;
-}
-
-static void eval_progn(eval_context_t *ctx) {
-  lbm_value exps = lbm_cdr(ctx->curr_exp);
-  lbm_value env  = ctx->curr_env;
-
-  if (lbm_is_cons(exps)) {
-    lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 3);
-    if (!sptr) {
-      error_ctx(ENC_SYM_STACK_ERROR);
-      return;
-    }
-    sptr[0] = env;
-    sptr[1] = lbm_cdr(exps);
-    sptr[2] = PROGN_REST;
-    ctx->curr_exp = lbm_car(exps);
-    ctx->curr_env = env;
-    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
-      lbm_stack_drop(&ctx->K, 3);
-  } else if (lbm_is_symbol_nil(exps)) {
-    ctx->r = ENC_SYM_NIL;
-    ctx->app_cont = true;
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
 }
 
 // (closure params body env)
