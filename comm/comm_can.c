@@ -1303,6 +1303,8 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					if (!sid_cb_used) {
 						lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
 					}
+#else
+					(void)sid_cb_used;
 #endif
 				} else {
 					bool eid_cb_used = false;
@@ -1313,6 +1315,8 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 					if (!eid_cb_used) {
 						lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
 					}
+#else
+					(void)eid_cb_used;
 #endif
 				}
 			}
