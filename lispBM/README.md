@@ -302,6 +302,8 @@ Read system info parameter param. Example:
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
 
+**Note:** Detach does *not* mean that the app output is disabled, it means that you can provide the input for the app instead of having it read the external peripheral. So if you e.g. detach the app and override the input with 0 the app will keep sending the corresponding command to the motor as usual, even if that command is a stop command. If you want to disable the app output you can have a look at [app-disable-output](#app-disable-output).
+
 #### app-adc-detach
 
 ```clj
@@ -361,6 +363,14 @@ Sets the override value. Range -1.0 to 1.0.
 ```
 
 Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sent to this app at any time without detaching it and it will be treated the same as a packet from a VESC Remote. That means the timeout as well as all VESC Remote settings will be used.
+
+#### app-disable-output
+
+```clj
+(app-disable-output ms)
+```
+
+Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
 
 ### Motor Set Commands
 
@@ -468,7 +478,33 @@ Get directional current. Positive for torque in the forward direction and negati
 (get-current-in)
 ```
 
-Get input current. Will always be lower than the motor current. The closer the motor spins to full speed the closer the input current is to the motor current.
+#### get-id
+```clj
+(get-id)
+```
+
+Get FOC d-axis current.
+
+#### get-iq
+```clj
+(get-iq)
+```
+
+Get FOC q-axis current.
+
+#### get-vd
+```clj
+(get-vd)
+```
+
+Get FOC d-axis voltage.
+
+#### get-vq
+```clj
+(get-vq)
+```
+
+Get FOC q-axis voltage.
 
 #### get-duty
 ```clj
@@ -1251,7 +1287,7 @@ Example:
 (conf-set-pid-offset offset optStore)
 ```
 
-Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to 1 to store the offset persistently (although that requires stopping the motor).
+Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to true to store the offset persistently (although that requires stopping the motor).
 
 #### conf-measure-res
 
@@ -1487,30 +1523,20 @@ Apply function f to every element in list lst. Example:
 
 This example creates an anonymous function that takes one argument and returns that argument multiplied by 5. Map then applies it to every element in the list (1 2 3 4), which yields the list (5 10 15 20).
 
-#### iota
-
-```clj
-(iota n)
-```
-
-Create list from 0 to n, excluding n. Example:
-
-```clj
-(iota 5)
-> (0 1 2 3 4)
-```
-
 #### range
 
 ```clj
-(range start end)
+(range optStart end)
 ```
 
-Create a list from start to end, excluding end. Example:
+Create a list from start to end, excluding end. Range also works with just one argument, which is takes as end assuming start is 0. Example:
 
 ```clj
 (range 2 8)
 > (2 3 4 5 6 7)
+
+(range 5)
+> (0 1 2 3 4)
 ```
 
 #### foldl
@@ -1841,12 +1867,12 @@ The following example shows how to spawn a thread that handles SID (standard-id)
         (print data)
 )))
 
-(define event-handler (lambda ()
-    (progn
-        (recv ((event-can-sid (? id) . (? data)) (proc-sid id data))
-        (recv ((event-data-rx ? data) (proc-data data))
-              (_ nil)) ; Ignore other events
-        (event-handler) ; Call self again to make this a loop
+(defun event-handler ()
+    (loopwhile t
+        (recv
+            ((event-can-sid (? id) . (? data)) (proc-sid id data))
+            ((event-data-rx ? data) (proc-data data))
+            (_ nil) ; Ignore other events
 )))
 
 ; Spawn the event handler thread and pass the ID it returns to C
@@ -1862,12 +1888,27 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable 'event-can-sid) ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
-(event-enable 'event-can-eid) ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
-(event-enable 'event-data-rx) ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-can-sid)  ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
+(event-enable 'event-can-eid)  ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
+(event-enable 'event-data-rx)  ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-shutdown) ; Sends signal-shutdown
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
+
+### Event Description
+
+**event-can-sid**  
+This event is sent when standard id CAN-frames are received.
+
+**event-can-eid**  
+This event is sent when extended id CAN-frames are received.
+
+**event-data-rx**  
+This event is sent when custom app data is sent from VESC Tool.
+
+**event-shutdown**  
+This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
 
 ## Byte Arrays
 
@@ -2180,7 +2221,7 @@ Set graph index to which data points are sent.
 
 Send a xy-point to the selected graph in the plot.
 
-## IO-boards
+## IO Boards
 
 CAN-connected IO-boards can be interfaced using the functions in this section.
 
@@ -2215,6 +2256,145 @@ Write digital output channel to IO-board with can-id. State can be 1 or 0.
 ```
 
 Write PWM-output channel to IO-board with can-id. The value duty can be 0.0 to 1.0.
+
+## Logging
+
+It is possible to log arbitrary data to log-devices such as the VESC Express, which can be connected on the CAN-bus.
+
+Every log field consists of a keyword, name, unit, precision and some flags. Most of these fields control how VESC Tool renders the log. In the csv-file for the log they only show up in the first line as headers for each column.
+
+VESC Tool will look for some special keywords to handle statistics and rendering on the map. If these keywords are missing the log can still be shown, but some of the functionality and statistics in VESC Tool will not be available. The following are the special keywords:
+
+**t_day**  
+Time of day in seconds. Used for statistics. This field is created by the log module when append-time is set to 1.
+
+**gnss_h_acc**  
+GNSS horizontal accuracy. Used for outlier filtering. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_lat**  
+GNSS latitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_lon**  
+GNSS longitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_alt**  
+GNSS altitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**trip_vesc**  
+VESC trip counter in meters. Used for calculating statistics.
+
+**trip_vesc_abs**  
+Absolute VESC trip counter in meters. Used for calculating statistics.
+
+**trip_gnss**  
+GNSS trip counter in meters. Used for calculating statistics. This field is automatically generated by VESC Tool from gnss_lat, gnss_lon and gnss_alt if it is missing.
+
+**cnt_wh**  
+Watt hour counter. Used for calculating statistics.
+
+**cnt_wh_chg**  
+Watt hour counter charging. Used for calculating statistics.
+
+**cnt_ah**  
+Amp hour counter. Used for calculating statistics.
+
+**cnt_ah_chg**  
+Amp hour counter charging. Used for calculating statistics.
+
+**roll**  
+IMU roll in degrees. Used for the IMU 3D plot.
+
+**pitch**  
+IMU pitch in degrees. Used for the IMU 3D plot.
+
+**yaw**  
+IMU yaw in degrees. Used for the IMU 3D plot.
+
+**fault**  
+Fault code. Converted to a fault string in the VESC Tool log analysis tool.
+
+#### log-config-field
+
+```clj
+(log-config-field
+    can-id
+    field-ind
+    key
+    name
+    unit
+    precision
+    is-relative
+    is-timestamp
+)
+```
+
+Configure log field on log device. Parameters:
+
+**can-id**  
+ID on the CAN-bus.
+
+**field-ind**  
+Field index in the log.
+
+**key**  
+Keyword string.
+
+**name**  
+Name string.
+
+**unit**  
+Unit string.
+
+**is-relative**  
+Relative fields are displayed relative to the start value of the log.
+
+**is-timestamp**  
+Timestamp fields are displayed with the format hh:mm:ss.
+
+#### log-start
+
+```clj
+(log-start
+    can-id
+    field-num
+    rate-hz
+    append-time
+    apped-gnss
+)
+```
+
+Start logging. Before starting to log all fields should be configured with [log-config-field](#log-config-field).
+
+**can-id**  
+ID on the CAN-bus.
+
+**field-num**  
+Number of log fields.
+
+**rate-hz**  
+Log rate in Hz.
+
+**append-time**  
+If set to true the log device will append a timestamp to each sample.
+
+**append-gnss**  
+If set to true the log device will append a GNSS-position to each sample. This requires a GNSS-receiver on the log device and the log will not start until a valid position is available.
+
+#### log-stop
+
+```clj
+(log-start can-id)
+```
+
+Stop logging data on log device with can-id.
+
+#### log-send-f32
+
+```clj
+(log-send-f32 can-id from-field-ind sample1 ... sampleN)
+```
+
+Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers.
 
 ## How to update
 

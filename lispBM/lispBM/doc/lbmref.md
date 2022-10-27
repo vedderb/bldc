@@ -875,6 +875,47 @@ Example that creates the list (1 2 3 4).
 
 ---
 
+### length
+
+Computes the length of a list. The `length` function takes
+one argument and is of the form `(length expr)`.
+
+Example that evaluates to 4
+```clj
+
+(length (list 1 2 3 4))
+```
+
+---
+
+### range
+
+The `range` function computes a list with integer values from a
+range specified by its endpoints. The form of a range expression
+is `(range start-expr end-expr)`. The end point in the range is excluded.
+
+Example that generates the list (4 5 6 7).
+```clj
+(range 4 8)
+```
+
+A range specified with the end-point being smaller than the
+starting point is in descending order.
+
+Example that generates the list (7 6 5 4).
+```clj
+(range 8 4)
+```
+
+Negative number can be used to specify a range
+
+Example that generates the list (-10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9)
+```clj
+(range -10 10)
+```
+
+---
+
 ### append
 
 The `append` function combines two lists into a longer list.
@@ -1168,45 +1209,6 @@ An example that evaluates to 19.
 
 ---
 
-### ?i
-
-The `?i` pattern matches an integer (28bit integer on 32bit platforms
-and a 56bit integer on 64bit platforms) and binds that value to a
-variable.  Using the ?i pattern is done as `(?i var)` and the part
-of the expression that matches is bound to the `var`.
-
-The following example evaluates to `not-an-i`.
-```clj
-(match 3.14
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-The example below evaluates to 5.
-```clj
-(match 4
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-
-
----
-
-### ?u
-
-The `?u` pattern matches any unsigned and binds that value to a variable.
-Using the ?u pattern is done as `(?u var)` and the part of the expression
-that matches is bound to the `var`.
-
----
-
-### ?float
-
-The `?float` pattern matches any float and binds that value to a
-variable.  Using the `?float` pattern is done as `(?float var)` and
-the part of the expression that matches is bound to the `var`.
-
----
-
 ## Concurrency
 
 The concurrency support in LispBM is provided by the set of functions,
@@ -1277,17 +1279,16 @@ is number indicating at least how many microseconds the process should sleep.
 
 ### atomic
 
-`atomic` can be used to execute a LispBM expression without allowing
-the runtime system to switch task during the time that takes.
+`atomic` can be used to execute a LispBM one or more expression without allowing
+the runtime system to switch task during that time.
 
 An example that atomically perfoms operations a,b and c.
 
 ```clj
 (atomic
-   (progn
      a
      b
-     c))
+     c)
 ```
 ---
 

@@ -1,9 +1,9 @@
 
 (defun f (x)
-  (match x
-	 ((?i64 a) (+ 1 a))
-	 ((?u64 a) (+ 2 a))
-	 ((?double a) (+ 3 a))))
+  (match (type-of x)
+	 (type-i64 (+ 1 x))
+	 (type-u64 (+ 2 x))
+	 (type-double (+ 3 x))))
 
 
 (and (= (f 1i64) 2i64)

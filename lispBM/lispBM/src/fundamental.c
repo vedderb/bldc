@@ -188,7 +188,7 @@ static bool array_equality(lbm_value a, lbm_value b) {
   return false;
 }
 
-static bool struct_eq(lbm_value a, lbm_value b) {
+bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
 
@@ -518,8 +518,15 @@ static int elt_size(lbm_type t) {
   }
 }
 
-static lbm_value index_list(lbm_value l, unsigned int n) {
+static lbm_value index_list(lbm_value l, int32_t n) {
   lbm_value curr = l;
+
+  if (n < 0) {
+    int32_t len = (int32_t)lbm_list_length(l);
+    n = len + n;
+    if (n < 0) return ENC_SYM_NIL;
+  }
+
   while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
           n > 0) {
     curr = lbm_cdr(curr);
@@ -893,7 +900,7 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_contex
   }
 
   for (int i = n-1; i >= 0; i --) {
-    result = lbm_cons(index_list(a,(unsigned int)i), result);
+    result = lbm_cons(index_list(a,i), result);
     if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
       break;
   }
@@ -1162,7 +1169,7 @@ static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2 && lbm_is_number(args[1])) {
-    result = index_list(args[0], lbm_dec_as_u32(args[1]));
+    result = index_list(args[0], lbm_dec_as_i32(args[1]));
   }
   return result;
 }
@@ -1404,6 +1411,57 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   return ENC_SYM_TERROR;
 }
 
+static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value result = ENC_SYM_EERROR;
+  if (nargs == 1 && lbm_is_list(args[0])) {
+    int32_t len = (int32_t)lbm_list_length(args[0]);
+    result = lbm_enc_i(len);
+  }
+  return result;
+}
+
+static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value result = ENC_SYM_EERROR;
+
+  int32_t start;
+  int32_t end;
+  bool rev = false;
+
+  if (nargs == 1 && lbm_is_number(args[0])) {
+    start = 0;
+    end = lbm_dec_as_i32(args[0]);
+  } else if (nargs == 2 &&
+             lbm_is_number(args[0]) &&
+             lbm_is_number(args[1])) {
+    start = lbm_dec_as_i32(args[0]);
+    end = lbm_dec_as_i32(args[1]);
+  } else {
+    return result;
+  }
+
+  if (end == start) return ENC_SYM_NIL;
+  else if (end < start) {
+    int32_t tmp = end;
+    end = start;
+    start = tmp;
+    rev = true;
+  }
+
+  int num = end - start;
+
+  if ((unsigned int)num > lbm_heap_num_free()) {
+    return ENC_SYM_MERROR;
+  }
+
+  lbm_value r_list = ENC_SYM_NIL;
+  for (int i = end - 1; i >= start; i --) {
+    r_list = lbm_cons(lbm_enc_i(i), r_list);
+  }
+  return rev ? lbm_list_destructive_reverse(r_list) : r_list;
+}
+
 const fundamental_fun fundamental_table[] =
   { fundamental_add,
     fundamental_sub,
@@ -1459,5 +1517,7 @@ const fundamental_fun fundamental_table[] =
     fundamental_bitwise_xor,
     fundamental_bitwise_not,
     fundamental_custom_destruct,
-    fundamental_type_of
+    fundamental_type_of,
+    fundamental_list_length,
+    fundamental_range
   };

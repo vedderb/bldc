@@ -39,13 +39,7 @@ static const char* functions[] = {
 "(if (eq lst nil) nil "
 "(cons (f (car lst)) (map f (cdr lst)))))",
 
-"(defun iota (n)"
-"(let ((iacc (lambda (acc i)"
-"(if (< i 0) acc (iacc (cons i acc) (- i 1))))))"
-"(iacc nil (- n 1))))",
-
-"(defun range (start end)"
-"(map (lambda (x) (+ x start)) (iota (- end start))))",
+"(defun iota (n) (range n))",
 
 "(defun foldl (f init lst)"
 "(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
@@ -58,12 +52,7 @@ static const char* functions[] = {
 "(if (eq nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
 "(revacc nil lst)))",
 
-"(defun length (lst)"
-"(let ((len (lambda (l lst)"
-"(if (eq lst nil) l (len (+ l 1) (cdr lst))))))"
-"(len 0 lst)))",
-
-"(defun apply (f lst) (eval `(,f ,@lst)))",
+"(defun apply (f lst) (eval (cons f lst)))",
 
 "(defun zipwith (f x y)"
 "(let ((map-rec (lambda (f res lst ys)"

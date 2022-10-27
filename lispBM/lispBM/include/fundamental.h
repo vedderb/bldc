@@ -26,7 +26,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+bool struct_eq(lbm_value a, lbm_value b);
 #ifdef __cplusplus
 }
 #endif

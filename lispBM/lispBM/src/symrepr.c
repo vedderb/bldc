@@ -63,15 +63,6 @@ special_sym const special_symbols[] =  {
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i"         , SYM_MATCH_I},
-  {"?u"         , SYM_MATCH_U},
-  {"?u32"       , SYM_MATCH_U32},
-  {"?i32"       , SYM_MATCH_I32},
-  {"?float"     , SYM_MATCH_FLOAT},
-  {"?cons"      , SYM_MATCH_CONS},
-  {"?u64"       , SYM_MATCH_U64},
-  {"?i64"       , SYM_MATCH_I64},
-  {"?double"    , SYM_MATCH_DOUBLE},
 
   // Error symbols with parsable names
   {"no_match"           , SYM_NO_MATCH},
@@ -172,6 +163,8 @@ special_sym const special_symbols[] =  {
   {"setcar"           , SYM_SET_CAR},
   {"setcdr"           , SYM_SET_CDR},
   {"setix"            , SYM_SET_IX},
+  {"length"           , SYM_LIST_LENGTH},
+  {"range"            , SYM_RANGE},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
   {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
@@ -204,7 +197,9 @@ special_sym const special_symbols[] =  {
   {"first"          , SYM_CAR},
   {"rest"           , SYM_CDR},
   {"fn"             , SYM_LAMBDA},
-  {"def"            , SYM_DEFINE}
+  {"def"            , SYM_DEFINE},
+  {"true"           , SYM_TRUE},
+  {"false"          , SYM_NIL}
 
 };
 

@@ -141,15 +141,6 @@
 
 #define SYM_NO_MATCH       0x40
 #define SYM_MATCH_ANY      0x41
-#define SYM_MATCH_I        0x42
-#define SYM_MATCH_U        0x43
-#define SYM_MATCH_U32      0x44
-#define SYM_MATCH_I32      0x45
-#define SYM_MATCH_FLOAT    0x46
-#define SYM_MATCH_CONS     0x47
-#define SYM_MATCH_U64      0x48
-#define SYM_MATCH_I64      0x49
-#define SYM_MATCH_DOUBLE   0x4A
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50
@@ -261,7 +252,9 @@
 #define SYM_BITWISE_NOT         0x234
 #define SYM_CUSTOM_DESTRUCT     0x235 /* run the destructor of a custom type */
 #define SYM_TYPE_OF             0x236
-#define FUNDAMENTALS_END        0x236
+#define SYM_LIST_LENGTH         0x237
+#define SYM_RANGE               0x238
+#define FUNDAMENTALS_END        0x238
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF

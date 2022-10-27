@@ -467,6 +467,10 @@ void lbm_get_heap_state(lbm_heap_state_t *);
  *
  */
 void lbm_gc_state_inc(void);
+/** Set the freelist to NIL. Means that no memory will be available
+ *  until after a garbage collection.
+ */
+void lbm_nil_freelist(void);
 /** Mark all heap cells that are on the free-list.
  *
  * \return 1 on success or 0 if the free-list is corrupted.
@@ -718,16 +722,7 @@ static inline bool lbm_is_macro(lbm_value exp) {
 static inline bool lbm_is_match_binder(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I32) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U32) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_FLOAT) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_I64) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_U64) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_DOUBLE) ||
-           (lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_CONS)));
+          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY)));
 }
 
 static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {

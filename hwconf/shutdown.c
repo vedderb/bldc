@@ -21,6 +21,10 @@
 #include "app.h"
 #include "conf_general.h"
 
+#ifdef USE_LISPBM
+#include "lispif.h"
+#endif
+
 #ifdef HW_SHUTDOWN_HOLD_ON
 
 // Private variables
@@ -64,6 +68,10 @@ void shutdown_set_sampling_disabled(bool disabled) {
 
 static bool do_shutdown(void) {
 	conf_general_store_backup_data();
+#ifdef USE_LISPBM
+	lispif_process_shutdown();
+#endif
+	chThdSleepMilliseconds(100);
 	DISABLE_GATE();
 	HW_SHUTDOWN_HOLD_OFF();
 	return true;

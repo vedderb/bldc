@@ -160,6 +160,7 @@ bool nrf51_probe(target *t)
 	case 0x0086: /* nRF51422 (rev 3) QFAC A1 */
 	case 0x0087: /* nRF51822 (rev 3) CFAC A0 */
 	case 0x0088: /* nRF51422 (rev 3) CFAC A0 */
+	case 0x0169: /* nRF51822 (rev 3) Taiyo EYSGJNZWY*/
 		t->driver = "Nordic nRF51";
 		target_add_ram(t, 0x20000000, 0x8000);
 		nrf51_add_flash(t, 0x00000000, 0x40000, NRF51_PAGE_SIZE);
