@@ -52,7 +52,7 @@ static const char* functions[] = {
 "(if (eq nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
 "(revacc nil lst)))",
 
-"(defun apply (f lst) (eval `(,f ,@lst)))",
+"(defun apply (f lst) (eval (cons f lst)))",
 
 "(defun zipwith (f x y)"
 "(let ((map-rec (lambda (f res lst ys)"
