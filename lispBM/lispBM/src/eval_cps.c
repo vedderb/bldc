@@ -1747,9 +1747,10 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs >= 2 && lbm_is_list(args[2])) {
+  if (nargs == 2 && lbm_is_list(args[2])) {
     if (lbm_is_symbol(args[2]) &&
         args[2] == ENC_SYM_NIL) {
+      lbm_stack_drop(&ctx->K, 3);
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
     }
@@ -1762,13 +1763,10 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value f = args[1];
     lbm_value h = lbm_car(args[2]);
     lbm_value t = lbm_cdr(args[2]);
-    sptr[0] = t;
-    sptr[1] = ctx->curr_env;
-    sptr[2] = ENC_SYM_NIL;
 
     CHECK_STACK(lbm_push(&ctx->K, ENC_SYM_NIL));
-    lbm_value appli_0 = ENC_SYM_NIL;
-    WITH_GC_1(appli_0, lbm_cons(h, ENC_SYM_NIL), t);
+    lbm_value appli_0;
+    WITH_GC(appli_0, lbm_cons(h, ENC_SYM_NIL));
     lbm_value appli_1;
     WITH_GC_1(appli_1, lbm_cons(ENC_SYM_QUOTE, appli_0), appli_0);
     lbm_value appli_2;
@@ -1778,6 +1776,9 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     // cache the function application on the stack for faster
     // successive calls.
     CHECK_STACK(lbm_push_3(&ctx->K, appli, appli_0, MAP_FIRST));
+    sptr[0] = t;     // reuse stack space
+    sptr[1] = ctx->curr_env;
+    sptr[2] = ENC_SYM_NIL;
     ctx->curr_exp = appli;
   } else if (nargs == 1) {
     // Partial application, create a closure.
@@ -2195,7 +2196,7 @@ static void cont_map_first(eval_context_t *ctx) {
     CHECK_STACK(lbm_push(&ctx->K, MAP_REST));
     lbm_set_car(sptr[5], next); // new arguments
     ctx->curr_exp = sptr[4];
-    ctx->curr_env = sptr[1];
+    ctx->curr_env = env;
   } else {
     ctx->r = sptr[2];
     ctx->curr_env = env;
@@ -2224,10 +2225,10 @@ static void cont_map_rest(eval_context_t *ctx) {
     sptr[0] = rest;
     CHECK_STACK(lbm_push(&ctx->K, MAP_REST));
     lbm_set_car(sptr[5], next); // new arguments
-    ctx->curr_env = env;
     ctx->curr_exp = sptr[4];
+    ctx->curr_env = env;
   } else {
-    ctx->r = sptr[2];
+    ctx->r = sptr[2]; //heap of result list
     ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 6);
     ctx->app_cont = true;
