@@ -35,10 +35,6 @@ static const char* functions[] = {
 "(progn (yield 10000) (uart-read-until buffer (- n rd) (+ ofs rd) end))"
 ")))",
 
-"(defun map (f lst)"
-"(if (eq lst nil) nil "
-"(cons (f (car lst)) (map f (cdr lst)))))",
-
 "(defun iota (n) (range n))",
 
 "(defun foldl (f init lst)"
@@ -46,11 +42,6 @@ static const char* functions[] = {
 
 "(defun foldr (f init lst)"
 "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
-
-"(defun reverse (lst)"
-"(let ((revacc (lambda (acc lst)"
-"(if (eq nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
-"(revacc nil lst)))",
 
 "(defun apply (f lst) (eval (cons f lst)))",
 
