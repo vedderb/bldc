@@ -1799,7 +1799,28 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
   } else {
-    lbm_set_error_reason("Map requires at least one argument");
+    lbm_set_error_reason("Map requires at one or two arguments");
+    error_ctx(ENC_SYM_EERROR);
+  }
+}
+
+static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 1 && lbm_is_list(args[1])) {
+    lbm_value curr = args[1];
+
+    lbm_value new_list = ENC_SYM_NIL;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+      WITH_GC_1(new_list, lbm_cons(lbm_car(curr), new_list), new_list);
+      if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
+        error_ctx(ENC_SYM_MERROR);
+      }
+      curr = lbm_cdr(curr);
+    }
+    lbm_stack_drop(&ctx->K, 2);
+    ctx->r = new_list;
+    ctx->app_cont = true;
+  } else {
+    lbm_set_error_reason("Reverse requires a list argument");
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1851,7 +1872,8 @@ static const apply_fun fun_table[] =
    apply_send,
    apply_ok,
    apply_error,
-   apply_map
+   apply_map,
+   apply_reverse
   };
 
 
