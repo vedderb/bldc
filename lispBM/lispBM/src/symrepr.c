@@ -59,6 +59,7 @@ special_sym const special_symbols[] =  {
   {"setvar"       , SYM_SETVAR},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
+  {"map"          , SYM_MAP},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching

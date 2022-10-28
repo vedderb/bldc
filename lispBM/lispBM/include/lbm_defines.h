@@ -109,6 +109,7 @@
 #define SYM_SEND          0x19
 #define SYM_EXIT_OK       0x1A
 #define SYM_EXIT_ERROR    0x1B
+#define SYM_MAP           0x1C
 #define APPLY_FUNS_END    0x1B
 
 
