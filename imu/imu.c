@@ -58,7 +58,31 @@ static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, ui
 static void terminal_imu_type_internal(int argc, const char **argv);
 
 void imu_init(imu_config *set) {
+	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
+			set->type != m_settings.type;
+
 	m_settings = *set;
+
+	// Acc biquad filter
+	float fc;
+	if(m_settings.accel_lowpass_filter_x > 0){
+		fc = m_settings.accel_lowpass_filter_x / m_settings.sample_rate_hz;
+		biquad_config(&acc_x_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_y > 0){
+		fc = m_settings.accel_lowpass_filter_y / m_settings.sample_rate_hz;
+		biquad_config(&acc_y_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_z > 0){
+		fc = m_settings.accel_lowpass_filter_z / m_settings.sample_rate_hz;
+		biquad_config(&acc_z_biquad, BQ_LOWPASS, fc);
+	}
+
+	imu_ready = false;
+
+	if (!imu_changed) {
+		return;
+	}
 
 	imu_stop();
 	imu_reset_orientation();
@@ -131,21 +155,6 @@ void imu_init(imu_config *set) {
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	}
-
-	// Acc biquad filter
-	float fc;
-	if(m_settings.accel_lowpass_filter_x > 0){
-		fc = m_settings.accel_lowpass_filter_x / m_settings.sample_rate_hz;
-		biquad_config(&acc_x_biquad, BQ_LOWPASS, fc);
-	}
-	if(m_settings.accel_lowpass_filter_y > 0){
-		fc = m_settings.accel_lowpass_filter_y / m_settings.sample_rate_hz;
-		biquad_config(&acc_y_biquad, BQ_LOWPASS, fc);
-	}
-	if(m_settings.accel_lowpass_filter_z > 0){
-		fc = m_settings.accel_lowpass_filter_z / m_settings.sample_rate_hz;
-		biquad_config(&acc_z_biquad, BQ_LOWPASS, fc);
 	}
 
 	terminal_register_command_callback(
