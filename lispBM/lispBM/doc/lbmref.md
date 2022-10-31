@@ -1209,6 +1209,24 @@ An example that evaluates to 19.
 
 ---
 
+### Match with guards
+
+Patterns used in a match expressions can be augmented with a boolean
+guard to further discern between cases. A pattern with a guard is of the
+form `(pattern-expr guard-expr expr)`. A pattern with a guard, matches only
+if the pattern structurally matches and if the guard-expr evaluates to true
+in the match environment.
+
+Example:
+```clj
+(match (x)
+       ( (? y) (< y 0) 'less-than-zero)
+       ( (? y) (> y 0) 'greater-than-zero)
+       ( (? y) (= y 0) 'equal-to-zero))
+``` 
+
+---
+
 ## Concurrency
 
 The concurrency support in LispBM is provided by the set of functions,

@@ -1010,8 +1010,9 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
   lbm_value result = ENC_SYM_EERROR;
   if (nargs < 1 ||
       lbm_type_of(args[0] != LBM_TYPE_ARRAY))
-    return result;;
+    return result;
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+  if (!arr) return ENC_SYM_FATAL_ERROR;
   if (arr->elt_type != LBM_TYPE_CHAR)
     return result;
   char *str = (char *)arr->data;
@@ -1380,6 +1381,7 @@ static lbm_value fundamental_custom_destruct(lbm_value *args, lbm_uint nargs, ev
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
     lbm_uint *mem_ptr = (lbm_uint*)lbm_dec_custom(args[0]);
+    if(!mem_ptr) return ENC_SYM_FATAL_ERROR;
     lbm_custom_type_destroy(mem_ptr);
     lbm_value tmp = lbm_set_ptr_type(args[0], LBM_TYPE_CONS);
     lbm_set_car(tmp, ENC_SYM_NIL);
