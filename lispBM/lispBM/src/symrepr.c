@@ -59,6 +59,8 @@ special_sym const special_symbols[] =  {
   {"setvar"       , SYM_SETVAR},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
+  {"map"          , SYM_MAP},
+  {"reverse"      , SYM_REVERSE},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
@@ -210,6 +212,8 @@ static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 
 static lbm_uint symbol_table_size_list = 0;
 static lbm_uint symbol_table_size_strings = 0;
+
+
 
 int lbm_symrepr_init(void) {
   symlist = NULL;

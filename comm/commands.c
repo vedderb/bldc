@@ -577,7 +577,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mempools_free_mcconf(mcconf);
 	} break;
 
-	case COMM_SET_APPCONF: {
+	case COMM_SET_APPCONF:
+	case COMM_SET_APPCONF_NO_STORE: {
 #ifndef	HW_APPCONF_READ_ONLY
 		app_configuration *appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
@@ -590,10 +591,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			}
 #endif
 
-			conf_general_store_app_configuration(appconf);
+			if (packet_id == COMM_SET_APPCONF) {
+				conf_general_store_app_configuration(appconf);
+			}
+
 			app_set_configuration(appconf);
 			timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
-			chThdSleepMilliseconds(200);
+
+			if (packet_id == COMM_SET_APPCONF) {
+				chThdSleepMilliseconds(200);
+			}
 
 			int32_t ind = 0;
 			uint8_t send_buffer[50];

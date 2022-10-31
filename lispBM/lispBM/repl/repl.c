@@ -263,13 +263,6 @@ bool dyn_load(const char *str, const char **code) {
   if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
-    *code = "(define reverse (lambda (xs)"
-            "(let ((revacc (lambda (acc xs)"
-	    "(if (eq nil xs) acc"
-	    "(revacc (cons (car xs) acc) (cdr xs))))))"
-            "(revacc nil xs))))";
-    res = true;
   } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n) (range 0 n)))";
     res = true;
@@ -298,11 +291,6 @@ bool dyn_load(const char *str, const char **code) {
 	    "(if (eq xs nil) nil"
 	    "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
-    *code = "(define map (lambda (f xs)"
-	    "(if (eq xs nil) nil"
-            "(cons (f (car xs)) (map f (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
