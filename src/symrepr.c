@@ -39,6 +39,7 @@ special_sym const special_symbols[] =  {
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
   {"if"         , SYM_IF},
+  {"cond"       , SYM_COND},
   {"lambda"     , SYM_LAMBDA},
   {"closure"    , SYM_CLOSURE},
   {"let"        , SYM_LET},

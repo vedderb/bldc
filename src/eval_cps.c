@@ -1309,6 +1309,35 @@ static void eval_if(eval_context_t *ctx) {
   }
 }
 
+static void eval_cond(eval_context_t *ctx) {
+  lbm_value cond1 = lbm_cadr(ctx->curr_exp);
+
+  if (lbm_is_symbol_nil(cond1)) {
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
+  } else {
+    uint32_t len = lbm_list_length(cond1);
+    if (len != 2) {
+      lbm_set_error_reason("Incorrect syntax in cond");
+      error_ctx(ENC_SYM_EERROR);
+    }
+    lbm_value condition = lbm_car(cond1);
+    lbm_value body = lbm_cadr(cond1);
+    lbm_value rest;
+    WITH_GC(rest, lbm_cons(ENC_SYM_COND, lbm_cdr(lbm_cdr(ctx->curr_exp))));
+    lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 4);
+    if (sptr) {
+      sptr[0] = rest;
+      sptr[1] = body;
+      sptr[2] = ctx->curr_env;
+      sptr[3] = IF;
+      ctx->curr_exp = condition;
+    } else {
+      error_ctx(ENC_SYM_STACK_ERROR);
+    }
+  }
+}
+
 static void eval_let(eval_context_t *ctx) {
   lbm_value orig_env = ctx->curr_env;
   lbm_value binds    = lbm_cadr(ctx->curr_exp); // key value pairs.
@@ -2905,7 +2934,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
   };
 
 /*********************************************************/
-/* Evaluators lookup table                               */
+/* Evaluators lookup table (special forms)               */
 typedef void (*evaluator_fun)(eval_context_t *);
 
 static const evaluator_fun evaluators[] =
@@ -2925,6 +2954,7 @@ static const evaluator_fun evaluators[] =
    eval_selfevaluating, // macro
    eval_selfevaluating, // cont
    eval_selfevaluating, // closure
+   eval_cond,
   };
 
 
