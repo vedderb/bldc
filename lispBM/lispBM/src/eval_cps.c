@@ -1421,18 +1421,17 @@ static void eval_receive(eval_context_t *ctx) {
       /* The common case */
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
-      bool do_gc = false;
       int n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
         gc();
-        do_gc = false;
         n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
-        if (do_gc) {
+        if (n == FM_NEED_GC) {
           ctx_running->done = true;
           error_ctx(ENC_SYM_MERROR);
           return;
         }
-      } else if (n == FM_PATTERN_ERROR) {
+      }
+      if (n == FM_PATTERN_ERROR) {
         lbm_set_error_reason("Incorrect pattern format for recv");
         error_ctx(ENC_SYM_EERROR);
       } else if (n >= 0 ) { /* Match */
