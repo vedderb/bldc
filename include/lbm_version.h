@@ -29,9 +29,14 @@ extern "C" {
 /** LBM minor version */
 #define LBM_MINOR_VERSION 7
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 /*! \page changelog Changelog
+
+Oct 31: Version 0.7.1
+  - Added optional boolean guards to pattern matches.
+  - Built in map and reverse.
+
 Oct 16: Version 0.7.0
   - Refactoring for evaluation speed.
   - Removed possibility to step through code.
