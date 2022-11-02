@@ -205,7 +205,8 @@
 #define SYM_CONT                0x10D
 #define SYM_CLOSURE             0x10E
 #define SYM_COND                0x10F
-#define SPECIAL_FORMS_END       0x10F
+#define SYM_APP_CONT            0x110
+#define SPECIAL_FORMS_END       0x110
 
 // Fundamental Operations
 // Consecutive values for lookup-application
@@ -311,6 +312,8 @@
 #define ENC_SYM_EXIT_OK     ((SYM_EXIT_OK << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_EXIT_ERROR  ((SYM_EXIT_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_COND        ((SYM_COND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_PROGN       ((SYM_PROGN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_APP_CONT    ((SYM_APP_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_SPAWN       ((SYM_SPAWN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_YIELD       ((SYM_YIELD << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)

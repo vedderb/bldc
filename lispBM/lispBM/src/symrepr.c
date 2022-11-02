@@ -106,6 +106,7 @@ special_sym const special_symbols[] =  {
   {"[openbrack]"      , SYM_OPENBRACK},
   {"[closebrack]"     , SYM_CLOSEBRACK},
   {"[rerror]"         , SYM_TOKENIZER_RERROR},
+  {"[appcont]"        , SYM_APP_CONT},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},

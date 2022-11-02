@@ -127,8 +127,8 @@ Compute 5 % 3, evaluates to 2.
 
 ### eq
 
-Compare expressions for equality. The eq implements structural
-equality.  The form of an eq expression is `(eq expr1 ... exprN)`
+Compare expressions for equality. The `eq` operation implements structural
+equality.  The form of an `eq` expression is `(eq expr1 ... exprN)`
 
 
 Compare the result of `(+ 1 2)` with 3. The
@@ -149,8 +149,10 @@ The following examples evaluate to `nil` representing false.
 
 (eq (+ 1 2) (+ 0 2) (+ -1 2))
 ```
-The = comparison can be used on tree shaped data. The following expression evaluates to
-`t`.
+
+The `eq` comparison can be used on tree shaped data. The following
+expression evaluates to `t`.
+
 ```clj
 (eq '(1 (1 2)) '(1 (1 2)))
 ```
@@ -165,7 +167,7 @@ If you know you are comparing numbers, it will be more efficient to use
 `=`.
 
 An important difference between `eq` and `=` is
-that equals compare the numerical values of the arguments. A 3 is a 3
+that `=` compare the numerical values of the arguments. A 3 is a 3
 independent of them being different types. `eq` on the other
 hand compares the representations of the arguments exactly and they must
 match in structure, type and value to be considered equal.
@@ -345,11 +347,9 @@ is the same type as the first of the arguments.
 Performs the bitwise not operations on a value. The result is of same type as
 the argument.
 
-## Low level operations
-
 ---
 
-## nil and t
+## nil and t, true and false
 
 ### nil
 
@@ -366,8 +366,20 @@ and nil in the <a href="#cdr"> cdr </a> field.
 
 ### t
 
-All non nil values are considered true in conditionals. t should be used in cases where an
+All non nil values are considered true in conditionals. `t` should be used in cases where an
 explicit true makes sense.
+
+---
+
+### true
+
+`true` is an alias for `t`.
+
+---
+
+### false
+
+`false` is an alias for `nil`.
 
 ---
 
@@ -540,6 +552,9 @@ based on boolean expression. The form of a `cond` expression is:
 The conditions are checked from first to last and for the first `cond-exprN`
 that evaluates to true, the corresponding `exprN` is evaluated.
 
+If no `cond-exprN` evaluates to true, the result of the entire conditional
+is `nil`. 
+
 Example that prints "Hello world":
 ```clj
 (define a 0)
@@ -548,7 +563,15 @@ Example that prints "Hello world":
       ( (> a 0) (print "llama"))
       ( (= a 0) (print "Hello world")))
 ```
-      
+
+Example that evaluates to `nil` as none of the conditions evaluate to true.
+```clj
+(define a 5)
+
+(cond ( (= a 1)  'doughnut )
+      ( (= a 7)  'apple-strudel )
+      ( (= a 10) 'baklava))
+```
 ---
 
 ### lambda

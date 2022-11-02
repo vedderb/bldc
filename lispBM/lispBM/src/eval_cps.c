@@ -844,7 +844,6 @@ static void advance_ctx(eval_context_t *ctx) {
     ctx->curr_exp = lbm_car(ctx->program);
     ctx->curr_env = ENC_SYM_NIL;
     ctx->program = lbm_cdr(ctx->program);
-    ctx->r = ENC_SYM_NIL;
     ctx->app_cont = false;
   } else {
     ctx->done = true;
@@ -1338,6 +1337,12 @@ static void eval_cond(eval_context_t *ctx) {
   }
 }
 
+static void eval_app_cont(eval_context_t *ctx) {
+  lbm_value tmp;
+  lbm_pop(&ctx->K, &tmp);
+  ctx->app_cont = true;
+}
+
 static void eval_let(eval_context_t *ctx) {
   lbm_value orig_env = ctx->curr_env;
   lbm_value binds    = lbm_cadr(ctx->curr_exp); // key value pairs.
@@ -1738,17 +1743,27 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
   lbm_value prg = args[1];
-  prg = lbm_list_append(prg, ctx->program);
+  lbm_value app_cont;
+  lbm_value app_cont_prg;
+  lbm_value new_prg;
+  if (ctx->K.sp > nargs+2) { // if there is a continuation
+    WITH_GC(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL));
+    WITH_GC_1(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont);
+    new_prg = lbm_list_append(app_cont_prg, ctx->program);
+    new_prg = lbm_list_append(prg, new_prg);
+  } else {
+    new_prg = lbm_list_append(prg, ctx->program);
+  }
 
   lbm_stack_drop(&ctx->K, nargs+1);
 
-  if (lbm_type_of(prg) != LBM_TYPE_CONS) {
+  if (lbm_type_of(new_prg) != LBM_TYPE_CONS) {
     error_ctx(ENC_SYM_EERROR);
     return;
   }
-
-  ctx->program = lbm_cdr(prg);
-  ctx->curr_exp = lbm_car(prg);
+  CHECK_STACK(lbm_push(&ctx->K, DONE));
+  ctx->program = lbm_cdr(new_prg);
+  ctx->curr_exp = lbm_car(new_prg);
 }
 
 static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -2955,6 +2970,7 @@ static const evaluator_fun evaluators[] =
    eval_selfevaluating, // cont
    eval_selfevaluating, // closure
    eval_cond,
+   eval_app_cont,
   };
 
 
