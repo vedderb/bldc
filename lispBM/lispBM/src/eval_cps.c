@@ -1746,17 +1746,20 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
   lbm_value app_cont;
   lbm_value app_cont_prg;
   lbm_value new_prg;
-  if (ctx->K.sp > nargs+2) { // if there is a continuation
-    WITH_GC(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL));
-    WITH_GC_1(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont);
-    new_prg = lbm_list_append(app_cont_prg, ctx->program);
-    new_prg = lbm_list_append(prg, new_prg);
-  } else {
-    new_prg = lbm_list_append(prg, ctx->program);
-  }
 
+  lbm_value prg_copy;
+
+  WITH_GC(prg_copy, lbm_list_copy(prg));
   lbm_stack_drop(&ctx->K, nargs+1);
 
+  if (ctx->K.sp > nargs+2) { // if there is a continuation
+    WITH_GC_1(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), prg_copy);
+    WITH_GC_2(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont, prg_copy);
+    new_prg = lbm_list_append(app_cont_prg, ctx->program);
+    new_prg = lbm_list_append(prg_copy, new_prg);
+  } else {
+    new_prg = lbm_list_append(prg_copy, ctx->program);
+  }
   if (lbm_type_of(new_prg) != LBM_TYPE_CONS) {
     error_ctx(ENC_SYM_EERROR);
     return;
