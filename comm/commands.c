@@ -1734,6 +1734,8 @@ bool commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 	if (utils_is_func_valid(func)) {
 		appdata_func = func;
 		return true;
+	} else {
+		appdata_func = 0;
 	}
 
 	return false;
