@@ -862,7 +862,7 @@ lbm_value lbm_list_copy(lbm_value list) {
     curr = lbm_cdr(curr);
   }
 
-  return lbm_list_reverse(res);
+  return lbm_list_destructive_reverse(res);
 }
 
 // Append for proper lists only
