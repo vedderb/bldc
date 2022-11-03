@@ -50,6 +50,10 @@ const app_configuration* app_get_configuration(void) {
 void app_set_configuration(app_configuration *conf) {
 	bool app_changed = appconf.app_to_use != conf->app_to_use;
 
+	if (!app_changed) {
+		app_changed = appconf.servo_out_enable != conf->servo_out_enable;
+	}
+
 	appconf = *conf;
 
 	if (app_changed) {
