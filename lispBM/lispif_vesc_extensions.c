@@ -4198,7 +4198,7 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	ext_event e;
+	ext_event e = {0};
 	e.type = EXT_EVENT_SYM_INT_ARRAY;
 	e.sym = is_ext ? sym_event_can_eid : sym_event_can_sid;
 	e.i = can_id;
@@ -4210,7 +4210,7 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	ext_event e;
+	ext_event e = {0};
 	e.type = EXT_EVENT_SYM_ARRAY;
 	e.sym = sym_event_data_rx;
 	event_add(e, data, len);
@@ -4221,7 +4221,7 @@ void lispif_process_shutdown(void) {
 		return;
 	}
 
-	ext_event e;
+	ext_event e = {0};
 	e.type = EXT_EVENT_SYM;
 	e.sym = sym_event_shutdown;
 	event_add(e, NULL, 0);

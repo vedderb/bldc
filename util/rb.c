@@ -66,7 +66,7 @@ unsigned int rb_insert_multi(rb_t *rb, const void *data, unsigned int count) {
 	unsigned int cnt = 0;
 	chMtxLock(&(rb->mutex));
 	while (!rb->full && cnt < count) {
-		insert(rb, data + rb->item_size * cnt);
+		insert(rb, (char*)data + rb->item_size * cnt);
 		cnt++;
 	}
 	chMtxUnlock(&(rb->mutex));
@@ -85,7 +85,7 @@ unsigned int rb_pop_multi(rb_t *rb, void *data, unsigned int count) {
 	chMtxLock(&(rb->mutex));
 	while (!is_empty(rb) && cnt < count) {
 		if (data) {
-			pop(rb, data + rb->item_size * cnt);
+			pop(rb, (char*)data + rb->item_size * cnt);
 		} else {
 			pop(rb, 0);
 		}
@@ -154,7 +154,7 @@ static bool pop(rb_t *rb, void *data) {
 
 	// Null will just advance the tail and discard the data
 	if (data) {
-		memcpy(data, rb->data + rb->tail * rb->item_size, rb->item_size);
+		memcpy(data, (char*)(rb->data) + rb->tail * rb->item_size, rb->item_size);
 	}
 
 	rb->tail = (rb->tail + 1) % rb->item_count;
@@ -168,7 +168,7 @@ static bool insert(rb_t *rb, const void *data) {
 		return false;
 	}
 
-	memcpy(rb->data + rb->head * rb->item_size, data, rb->item_size);
+	memcpy((char*)(rb->data) + rb->head * rb->item_size, data, rb->item_size);
 	rb->head = (rb->head + 1) % rb->item_count;
 	rb->full = rb->head == rb->tail;
 
