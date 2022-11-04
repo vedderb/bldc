@@ -52,6 +52,7 @@ static thread_t *eval_tp = 0;
 static THD_FUNCTION(eval_thread, arg);
 static THD_WORKING_AREA(eval_thread_wa, 2048);
 static bool lisp_thd_running = false;
+static mutex_t lbm_mutex;
 
 static int repl_cid = -1;
 
@@ -68,6 +69,16 @@ void lispif_init(void) {
 	}
 
 	lbm_set_eval_step_quota(50);
+
+	chMtxObjectInit(&lbm_mutex);
+}
+
+void lispif_lock_lbm(void) {
+	chMtxLock(&lbm_mutex);
+}
+
+void lispif_unlock_lbm(void) {
+	chMtxUnlock(&lbm_mutex);
 }
 
 static void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
@@ -215,6 +226,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (lisp_thd_running) {
+			lispif_lock_lbm();
 			char *str = (char*)data;
 
 			if (len <= 1) {
@@ -300,6 +312,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			} else if (strncmp(str, ":pause", 6) == 0) {
 				lbm_pause_eval_with_gc(30);
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					lbm_pause_eval();
 					sleep_callback(1);
 				}
 				commands_printf_lisp("Evaluator paused\n");
@@ -308,6 +321,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			} else if (strncmp(str, ":undef", 6) == 0) {
 				lbm_pause_eval();
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					lbm_pause_eval();
 					sleep_callback(1);
 				}
 				char *sym = str + 7;
@@ -339,6 +353,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 					commands_printf_lisp("Could not pause");
 				}
 			}
+			lispif_unlock_lbm();
 		} else {
 			commands_printf_lisp("LispBM is not running");
 		}
@@ -533,6 +548,7 @@ bool lispif_restart(bool print, bool load_code) {
 		} else {
 			lbm_pause_eval();
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+				lbm_pause_eval();
 				chThdSleepMilliseconds(1);
 			}
 
@@ -547,6 +563,7 @@ bool lispif_restart(bool print, bool load_code) {
 
 		lbm_pause_eval();
 		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+			lbm_pause_eval();
 			chThdSleepMilliseconds(1);
 		}
 

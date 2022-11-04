@@ -46,6 +46,7 @@
 #include "firmware_metadata.h"
 #include "log.h"
 #include "buffer.h"
+#include "rb.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -3819,8 +3820,141 @@ static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
+// Event ringbuffer
+
+static bool pause_gc(uint32_t num_free, int timeout_cnt) {
+	lbm_pause_eval_with_gc(num_free);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	return timeout_cnt > 0;
+}
+
+typedef enum {
+	EXT_EVENT_SYM = 0,
+	EXT_EVENT_SYM_ARRAY,
+	EXT_EVENT_SYM_INT_ARRAY
+} EXT_EVENT_t;
+
+typedef struct {
+	EXT_EVENT_t type;
+	lbm_uint sym;
+	int32_t i;
+	char *array;
+	int32_t array_len;
+} ext_event;
+
+#define EVENT_BUFFER_LEN			20
+
+static thread_t *event_tp = NULL;
+static ext_event event_buffer[EVENT_BUFFER_LEN] = {0};
+static rb_t rb_events;
+static THD_WORKING_AREA(event_thread_wa, 256);
+
+static THD_FUNCTION(event_thread, arg) {
+	(void)arg;
+	event_tp = chThdGetSelfX();
+	chRegSetThreadName("Lisp Events");
+
+	for (;;) {
+		chEvtWaitAnyTimeout((eventmask_t)1, 20);
+
+		if (!event_handler_registered) {
+			rb_flush(&rb_events);
+			continue;
+		}
+
+		int event_cnt = rb_get_item_count(&rb_events);
+
+		lispif_lock_lbm();
+
+		if (event_cnt > 0) {
+			if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+				lispif_unlock_lbm();
+				continue;
+			}
+
+			if (!pause_gc(10 * event_cnt, 1000)) {
+				lbm_continue_eval();
+				lispif_unlock_lbm();
+				continue;
+			}
+		} else {
+			lispif_unlock_lbm();
+			continue;
+		}
+
+		while (!rb_is_empty(&rb_events) && event_handler_registered) {
+			ext_event e;
+			rb_pop(&rb_events, &e);
+
+			if (e.type == EXT_EVENT_SYM) {
+				lbm_send_message(event_handler_pid, lbm_enc_sym(e.sym));
+			} else if (e.type == EXT_EVENT_SYM_ARRAY) {
+				lbm_value val;
+				if (lbm_share_array(&val, e.array, LBM_TYPE_BYTE, e.array_len)) {
+					lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), val);
+					if (lbm_is_ptr(msg)) {
+						lbm_send_message(event_handler_pid, msg);
+					} else {
+						lispif_free(e.array);
+					}
+				} else {
+					lispif_free(e.array);
+				}
+			} else if (e.type == EXT_EVENT_SYM_INT_ARRAY) {
+				lbm_value val;
+				if (lbm_share_array(&val, e.array, LBM_TYPE_BYTE, e.array_len)) {
+					lbm_value msg_data = lbm_cons(lbm_enc_i32(e.i), val);
+					lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), msg_data);
+					if (lbm_is_ptr(msg_data) && lbm_is_ptr(msg)) {
+						lbm_send_message(event_handler_pid, msg);
+					} else {
+						lispif_free(e.array);
+					}
+				} else {
+					lispif_free(e.array);
+				}
+			}
+		}
+
+		lbm_continue_eval();
+		lispif_unlock_lbm();
+	}
+}
+
+static void event_add(ext_event e, uint8_t *opt_array, int opt_array_len) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!rb_is_full(&rb_events)) {
+		if (opt_array != NULL) {
+			e.array = lispif_malloc(opt_array_len);
+			if (e.array == NULL) {
+				return;
+			}
+			memcpy(e.array, opt_array, opt_array_len);
+		}
+
+		if (!rb_insert(&rb_events, &e) && e.array != NULL) {
+			lispif_free(e.array);
+		}
+	}
+
+	chEvtSignal(event_tp, (eventmask_t) 1);
+}
+
 void lispif_load_vesc_extensions(void) {
 	lispif_stop_lib();
+
+	if (event_tp == NULL) {
+		rb_init(&rb_events, event_buffer, sizeof(ext_event), EVENT_BUFFER_LEN);
+		chThdCreateStatic(event_thread_wa, sizeof(event_thread_wa), NORMALPRIO - 2, event_thread, NULL);
+	}
+
+	rb_flush(&rb_events);
 
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
@@ -4055,24 +4189,7 @@ void lispif_load_vesc_extensions(void) {
 	}
 }
 
-static bool pause_gc(uint32_t num_free, int timeout_cnt) {
-	lbm_pause_eval_with_gc(num_free);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	return timeout_cnt > 0;
-}
-
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
-	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-		return;
-	}
-
-	if (!event_handler_registered) {
-		return;
-	}
-
 	if (!event_can_sid_en && !is_ext) {
 		return;
 	}
@@ -4081,78 +4198,33 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	if (pause_gc(100, 1000)) {
-		lbm_value bytes;
-		if (!lbm_create_array(&bytes, LBM_TYPE_BYTE, len)) {
-			lbm_continue_eval();
-			return;
-		}
-		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
-		memcpy(array->data, data8, len);
-
-		lbm_value msg_data = lbm_cons(lbm_enc_i32(can_id), bytes);
-		lbm_value msg;
-
-		if (is_ext) {
-			msg = lbm_cons(lbm_enc_sym(sym_event_can_eid), msg_data);
-		} else {
-			msg = lbm_cons(lbm_enc_sym(sym_event_can_sid), msg_data);
-		}
-
-		lbm_send_message(event_handler_pid, msg);
-	}
-
-	lbm_continue_eval();
+	ext_event e;
+	e.type = EXT_EVENT_SYM_INT_ARRAY;
+	e.sym = is_ext ? sym_event_can_eid : sym_event_can_sid;
+	e.i = can_id;
+	event_add(e, data8, len);
 }
 
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
-	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-		return;
-	}
-
-	if (!event_handler_registered) {
-		return;
-	}
-
 	if (!event_data_rx_en) {
 		return;
 	}
 
-	if (pause_gc(100, 1000)) {
-		lbm_value bytes;
-		if (!lbm_create_array(&bytes, LBM_TYPE_BYTE, len)) {
-			lbm_continue_eval();
-			return;
-		}
-		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(bytes);
-		memcpy(array->data, data, len);
-
-		lbm_value msg = lbm_cons(lbm_enc_sym(sym_event_data_rx), bytes);
-
-		lbm_send_message(event_handler_pid, msg);
-	}
-
-	lbm_continue_eval();
+	ext_event e;
+	e.type = EXT_EVENT_SYM_ARRAY;
+	e.sym = sym_event_data_rx;
+	event_add(e, data, len);
 }
 
 void lispif_process_shutdown(void) {
-	if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-		return;
-	}
-
-	if (!event_handler_registered) {
-		return;
-	}
-
 	if (!event_shutdown_en) {
 		return;
 	}
 
-	if (pause_gc(5, 1000)) {
-		lbm_send_message(event_handler_pid, lbm_enc_sym(sym_event_shutdown));
-	}
-
-	lbm_continue_eval();
+	ext_event e;
+	e.type = EXT_EVENT_SYM;
+	e.sym = sym_event_shutdown;
+	event_add(e, NULL, 0);
 }
 
 void lispif_set_ext_load_callback(void (*p_func)(void)) {
@@ -4164,4 +4236,6 @@ void lispif_disable_all_events(void) {
 	event_handler_registered = false;
 	event_can_sid_en = false;
 	event_can_eid_en = false;
+	// Give thread a chance to stop
+	chThdSleepMilliseconds(5);
 }
