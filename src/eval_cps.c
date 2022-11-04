@@ -887,7 +887,6 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   }
 
   if (found) {
-    //lbm_value new_mailbox = lbm_cons(msg, found->mailbox);
     if (!mailbox_add_mail(found, msg)) {
       return ENC_SYM_NIL;
     }
