@@ -3867,21 +3867,18 @@ static THD_FUNCTION(event_thread, arg) {
 
 		int event_cnt = rb_get_item_count(&rb_events);
 
-		lispif_lock_lbm();
-
 		if (event_cnt > 0) {
 			if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-				lispif_unlock_lbm();
 				continue;
 			}
 
+			lispif_lock_lbm();
 			if (!pause_gc(10 * event_cnt, 1000)) {
 				lbm_continue_eval();
 				lispif_unlock_lbm();
 				continue;
 			}
 		} else {
-			lispif_unlock_lbm();
 			continue;
 		}
 
