@@ -426,6 +426,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			int timeout_cnt = 1000;
+			lispif_lock_lbm();
 			lbm_pause_eval_with_gc(30);
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
 				chThdSleep(5);
@@ -433,6 +434,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			if (timeout_cnt == 0) {
+				lispif_unlock_lbm();
 				result_last = -3;
 				offset_last = -1;
 				buffer_append_int16(send_buffer, result_last, &send_ind);
@@ -444,6 +446,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			lbm_create_buffered_char_channel(&buffered_tok_state, &buffered_string_tok);
 
 			if (lbm_load_and_eval_program(&buffered_string_tok) <= 0) {
+				lispif_unlock_lbm();
 				result_last = -4;
 				offset_last = -1;
 				buffer_append_int16(send_buffer, result_last, &send_ind);
@@ -454,6 +457,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 			lbm_continue_eval();
 			buffered_channel_created = true;
+			lispif_unlock_lbm();
 		}
 
 		int32_t written = 0;
