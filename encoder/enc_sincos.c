@@ -46,25 +46,27 @@ void enc_sincos_deinit(ENCSINCOS_config_t *cfg) {
 
 float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	float angle = 0.0;
-	float sin = ENCODER_SIN_VOLTS * cfg->s_gain - cfg->s_offset;
-	float cos = ENCODER_COS_VOLTS * cfg->c_gain - cfg->c_offset;
+	float sin = (ENCODER_SIN_VOLTS - cfg->s_offset ) * cfg->s_gain ;
+	float cos = (ENCODER_COS_VOLTS - cfg->c_offset ) * cfg->c_gain ;
+	/*float sin = ENCODER_SIN_VOLTS * cfg->s_gain - cfg->s_offset;
+	float cos = ENCODER_COS_VOLTS * cfg->c_gain - cfg->c_offset;*/
 
-	float module = SQ(sin) + SQ(cos);
+	//float module = SQ(sin) + SQ(cos);
 
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
+	/*float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
 	if (timestep > 1.0) {
 		timestep = 1.0;
 	}
-	cfg->state.last_update_time = timer_time_now();
+	cfg->state.last_update_time = timer_time_now();*/
 
-	if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
+	/*if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
 		// signals vector outside of the valid area. Increase error count and discard measurement
-		++cfg->state.signal_above_max_error_cnt;
+		//++cfg->state.signal_above_max_error_cnt; //TODO
 		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
 		angle = cfg->state.last_enc_angle;
 	} else {
 		if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
-			++cfg->state.signal_below_min_error_cnt;
+			//++cfg->state.signal_below_min_error_cnt;//TODO
 			UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
 			angle = cfg->state.last_enc_angle;
 		} else {
@@ -75,7 +77,17 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 			UTILS_LP_FAST(angle, angle_tmp, cfg->filter_constant);
 			cfg->state.last_enc_angle = angle;
 		}
-	}
-
+	}*/
+	
+	float last_angle = cfg->state.last_enc_angle;
+	float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
+	
+	angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);
+	
+	cfg->state.last_enc_angle = angle;
+	
+	//float angle_tmp = RAD2DEG_f(utils_fast_atan2(sin, cos));
+	//UTILS_LP_FAST(angle, angle_tmp, cfg->filter_constant);
+	
 	return angle;
 }
