@@ -1946,7 +1946,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 
 	// Wait for all VESCs on the CAN-bus to finish detection
 	int timeout = true;
-	for (int i = 0;i < 4000;i++) {
+	for (int i = 0;i < 18000;i++) {
 		if (comm_can_detect_all_foc_res_size() >= can_devs) {
 			timeout = false;
 			break;
