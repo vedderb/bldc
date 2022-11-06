@@ -1124,6 +1124,12 @@ static lbm_value ext_get_temp_mot(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_temp_motor_filtered());
 }
 
+//TODO totosolat
+static lbm_value ext_get_temp_mot_raw(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(ADC_TEMP_MOTOR_RAW()); //ADC_TEMP_MOTOR_RAW();
+} //TODO totosolat
+
 static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_speed());
@@ -3373,6 +3379,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-rpm", ext_get_rpm);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
+	lbm_add_extension("get-temp-mot-raw", ext_get_temp_mot_raw); //TODO totosolat _raw
 	lbm_add_extension("get-speed", ext_get_speed);
 	lbm_add_extension("get-dist", ext_get_dist);
 	lbm_add_extension("get-dist-abs", ext_get_dist_abs);

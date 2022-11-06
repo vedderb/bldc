@@ -174,6 +174,9 @@
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
 
+//Voltage on ADC "TEMP"
+#define ADC_TEMP_MOTOR_RAW()           ((float)ADC_Value[ADC_IND_TEMP_MOTOR] / 4096.0 * V_REG) //TODO totosolat
+
 // COMM-port ADC GPIOs
 #define HW_ADC_EXT_GPIO			GPIOA
 #define HW_ADC_EXT_PIN			5
