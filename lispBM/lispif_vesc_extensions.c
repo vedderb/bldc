@@ -3966,11 +3966,11 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
 	lbm_add_symbol_const("event-shutdown", &sym_event_shutdown);
 
-	lbm_add_symbol_const("?01", &sym_res);
-	lbm_add_symbol_const("?02", &sym_loop);
+	lbm_add_symbol_const("a01", &sym_res);
+	lbm_add_symbol_const("a02", &sym_loop);
 	lbm_add_symbol_const("break", &sym_break);
-	lbm_add_symbol_const("?03", &sym_brk);
-	lbm_add_symbol_const("?04", &sym_rst);
+	lbm_add_symbol_const("a03", &sym_brk);
+	lbm_add_symbol_const("a04", &sym_rst);
 
 	memset(&syms_vesc, 0, sizeof(syms_vesc));
 
