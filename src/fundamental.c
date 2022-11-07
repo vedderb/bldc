@@ -651,12 +651,24 @@ static lbm_value fundamental_eq(lbm_value *args, lbm_uint nargs, eval_context_t 
   for (lbm_uint i = 1; i < nargs; i ++) {
     b = args[i];
     r = r && struct_eq(a, b);
+    if (!r) break;
   }
   if (r) {
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;
 }
+
+static lbm_value fundamental_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+   lbm_value r = fundamental_eq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
+    return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
+    return ENC_SYM_TERROR;
+  }
+  return ENC_SYM_NIL;
+}
+
 
 static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
@@ -676,6 +688,7 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
       break;
     }
     r = r && (compare(a, b) == 0);
+    if (!r) break;
   }
   if (ok) {
     if (r) {
@@ -686,6 +699,17 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
   }
   return ENC_SYM_TERROR;
 }
+
+static lbm_value fundamental_num_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  lbm_value r = fundamental_numeq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
+    return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
+    return ENC_SYM_TERROR;
+  }
+  return ENC_SYM_NIL;
+}
+
 
 static lbm_value fundamental_lt(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
@@ -1521,5 +1545,7 @@ const fundamental_fun fundamental_table[] =
     fundamental_custom_destruct,
     fundamental_type_of,
     fundamental_list_length,
-    fundamental_range
+    fundamental_range,
+    fundamental_num_not_eq,
+    fundamental_not_eq
   };

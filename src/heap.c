@@ -815,9 +815,8 @@ lbm_value lbm_cdr(lbm_value c){
 
 lbm_value lbm_cddr(lbm_value c) {
 
-  lbm_value tmp = ENC_SYM_NIL;
   if (lbm_is_ptr(c)) {
-    tmp = lbm_ref_cell(c)->cdr;
+    lbm_value tmp = lbm_ref_cell(c)->cdr;
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->cdr;
     }
