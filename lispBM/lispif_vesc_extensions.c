@@ -3929,6 +3929,7 @@ static void event_add(ext_event e, uint8_t *opt_array, int opt_array_len) {
 	if (!rb_is_full(&rb_events)) {
 		if (opt_array != NULL) {
 			e.array = lispif_malloc(opt_array_len);
+			e.array_len = opt_array_len;
 			if (e.array == NULL) {
 				return;
 			}
