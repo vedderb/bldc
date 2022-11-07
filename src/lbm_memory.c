@@ -298,27 +298,32 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 
 int lbm_memory_free(lbm_uint *ptr) {
 
-  mutex_lock(&lbm_mem_mutex);
-  lbm_uint ix = address_to_bitmap_ix(ptr);
+  int r = 0;
+  if (lbm_memory_ptr_inside(ptr)) {
+    mutex_lock(&lbm_mem_mutex);
+    lbm_uint ix = address_to_bitmap_ix(ptr);
 
-  switch(status(ix)) {
-  case START:
-    set_status(ix, FREE_OR_USED);
-    for (lbm_uint i = ix; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
-      if (status(i) == END) {
-        set_status(i, FREE_OR_USED);
-        mutex_unlock(&lbm_mem_mutex);
-        return 1;
+    switch(status(ix)) {
+    case START:
+      set_status(ix, FREE_OR_USED);
+      for (lbm_uint i = ix; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
+        if (status(i) == END) {
+          set_status(i, FREE_OR_USED);
+          r = 1;
+          break;
+        }
       }
+      break;
+    case START_END:
+      set_status(ix, FREE_OR_USED);
+      r = 1;
+      break;
+    default:
+      break;
     }
-    return 0;
-  case START_END:
-    set_status(ix, FREE_OR_USED);
     mutex_unlock(&lbm_mem_mutex);
-    return 1;
   }
-  mutex_unlock(&lbm_mem_mutex);
-  return 0;
+  return r;
 }
 
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
@@ -382,10 +387,6 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
 }
 
 int lbm_memory_ptr_inside(lbm_uint *ptr) {
-  int r = 0;
-
-  if ((lbm_uint)ptr >= (lbm_uint)memory &&
-      (lbm_uint)ptr < (lbm_uint)memory + (memory_size * sizeof(lbm_uint)))
-    r = 1;
-  return r;
+  return ((lbm_uint)ptr >= (lbm_uint)memory &&
+          (lbm_uint)ptr < (lbm_uint)memory + (memory_size * sizeof(lbm_uint)));
 }
