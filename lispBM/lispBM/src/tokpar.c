@@ -170,7 +170,7 @@ int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *m, unsi
 }
 
 bool symchar0(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#!";
 
   int i = 0;
   while (allowed[i] != 0) {
