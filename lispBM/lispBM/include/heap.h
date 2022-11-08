@@ -303,14 +303,6 @@ lbm_uint lbm_heap_size_bytes(void);
  * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
  */
 lbm_value lbm_heap_allocate_cell(lbm_type type);
-/** allocate a number of heap cells from the heap.
- *  The return value is a list of cons-cells. The car fields are uninitialized
- *  and must be set by the caller of this function.
- *
- * \param len The number of cells to allocate.
- * \return a list of cells.
- */
-lbm_value lbm_heap_allocate_list(lbm_uint len);
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
