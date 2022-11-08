@@ -119,6 +119,7 @@ static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
+static volatile gnss_data m_gnss = {0};
 
 typedef struct {
 	bool is_second_motor;
@@ -1561,6 +1562,10 @@ setup_values mc_interface_get_setup_values(void) {
 	}
 
 	return val;
+}
+
+volatile gnss_data *mc_interface_gnss(void) {
+	return &m_gnss;
 }
 
 /**

@@ -1583,6 +1583,31 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_GET_GNSS: {
+		int32_t ind = 0;
+		uint32_t mask = buffer_get_uint16(data, &ind);
+
+		volatile gnss_data *g = mc_interface_gnss();
+
+		ind = 0;
+		uint8_t send_buffer[80];
+		send_buffer[ind++] = packet_id;
+		buffer_append_uint32(send_buffer, mask, &ind);
+
+		if (mask & ((uint32_t)1 << 0)) { buffer_append_double64(send_buffer, g->lat, D(1e16), &ind); }
+		if (mask & ((uint32_t)1 << 1)) { buffer_append_double64(send_buffer, g->lon, D(1e16), &ind); }
+		if (mask & ((uint32_t)1 << 2)) { buffer_append_float32_auto(send_buffer, g->height, &ind); }
+		if (mask & ((uint32_t)1 << 3)) { buffer_append_float32_auto(send_buffer, g->speed, &ind); }
+		if (mask & ((uint32_t)1 << 4)) { buffer_append_float32_auto(send_buffer, g->hdop, &ind); }
+		if (mask & ((uint32_t)1 << 5)) { buffer_append_int32(send_buffer, g->ms_today, &ind); }
+		if (mask & ((uint32_t)1 << 6)) { buffer_append_int16(send_buffer, g->yy, &ind); }
+		if (mask & ((uint32_t)1 << 7)) { send_buffer[ind++] = g->mo; }
+		if (mask & ((uint32_t)1 << 8)) { send_buffer[ind++] = g->dd; }
+		if (mask & ((uint32_t)1 << 9)) { buffer_append_float32_auto(send_buffer, UTILS_AGE_S(g->last_update), &ind); }
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_LISP_SET_RUNNING:
 	case COMM_LISP_GET_STATS:
 	case COMM_LISP_REPL_CMD:

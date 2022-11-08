@@ -1138,6 +1138,7 @@ typedef enum {
 	COMM_LOG_DATA_F32,
 
 	COMM_SET_APPCONF_NO_STORE,
+	COMM_GET_GNSS,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1201,8 +1202,25 @@ typedef enum {
 	CAN_PACKET_POLL_ROTOR_POS,
 	CAN_PACKET_NOTIFY_BOOT,
 	CAN_PACKET_STATUS_6,
+	CAN_PACKET_GNSS_TIME,
+	CAN_PACKET_GNSS_LAT,
+	CAN_PACKET_GNSS_LON,
+	CAN_PACKET_GNSS_ALT_SPEED_HDOP,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
+
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int16_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
 
 // Logged fault data
 typedef struct {

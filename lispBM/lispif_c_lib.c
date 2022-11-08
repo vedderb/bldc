@@ -741,6 +741,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.set_cfg_int = lib_set_cfg_int;
 		cif.cif.store_cfg = lib_store_cfg;
 
+		// Things out of order that got added later
+		cif.cif.mc_gnss = mc_interface_gnss;
+
 		lib_init_done = true;
 	}
 

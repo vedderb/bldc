@@ -94,6 +94,7 @@ float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
 
 setup_values mc_interface_get_setup_values(void);
+volatile gnss_data *mc_interface_gnss(void);
 
 // odometer
 uint64_t mc_interface_get_odometer(void);

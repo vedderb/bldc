@@ -146,6 +146,19 @@ typedef enum {
 	CAN_BAUD_100K
 } CAN_BAUD;
 
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int8_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
+
 // LBM
 typedef uint32_t lbm_value;
 typedef uint32_t lbm_type;
@@ -162,6 +175,9 @@ typedef struct {
 } lbm_array_header_t;
 
 typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
+
+// For double precision literals
+#define D(x) 				((double)x##L)
 #endif
 
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
@@ -458,6 +474,9 @@ typedef struct {
 	bool (*set_cfg_float)(CFG_PARAM p, float value);
 	bool (*set_cfg_int)(CFG_PARAM p, int value);
 	bool (*store_cfg)(void);
+
+	// Things out of order that got added later
+	volatile gnss_data* (*mc_gnss)(void);
 } vesc_c_if;
 
 typedef struct {
