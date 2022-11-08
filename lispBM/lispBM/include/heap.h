@@ -425,7 +425,14 @@ int lbm_set_car(lbm_value c, lbm_value v);
  * \return 1 on success and 0 if the c value does not refer to a heap cell.
  */
 int lbm_set_cdr(lbm_value c, lbm_value v);
-
+/** Update the value stored in the car and cdr fields of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param car_val Value to replace the car field with.
+ * \param cdr_val Value to replace the cdr field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val);
 // List functions
 /** Calculate the length of a proper list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
