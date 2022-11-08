@@ -2044,14 +2044,26 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 	case CAN_PACKET_GNSS_LAT: {
 		volatile gnss_data *d = mc_interface_gnss();
 		ind = 0;
-		d->lat = buffer_get_double64(data8, D(1e16), &ind);
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lat = tmp;
+		utils_sys_unlock_cnt();
+
 		d->last_update = chVTGetSystemTimeX();
 	} break;
 
 	case CAN_PACKET_GNSS_LON: {
 		volatile gnss_data *d = mc_interface_gnss();
 		ind = 0;
-		d->lon = buffer_get_double64(data8, D(1e16), &ind);
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lon = tmp;
+		utils_sys_unlock_cnt();
+
 		d->last_update = chVTGetSystemTimeX();
 	} break;
 
