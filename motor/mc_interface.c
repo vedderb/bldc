@@ -775,6 +775,103 @@ void mc_interface_set_handbrake_rel(float val) {
 	mc_interface_set_handbrake(val * fabsf(motor_now()->m_conf.lo_current_motor_min_now));
 }
 
+void mc_interface_set_openloop_current(float current, float rpm) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_current(current, rpm); // Should this use DIR_MULT?
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_current", current);
+}
+void mc_interface_set_openloop_phase(float current, float phase){
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_phase(current, phase); // Should this use DIR_MULT?
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_phase", phase);
+}
+void mc_interface_set_openloop_duty(float dutyCycle, float rpm){
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_duty(dutyCycle, rpm); // Should this use DIR_MULT?
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_duty", dutyCycle);
+}
+void mc_interface_set_openloop_duty_phase(float dutyCycle, float phase){
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_duty_phase(dutyCycle, phase); // Should this use DIR_MULT?
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_duty_phase", phase);
+}
+
 void mc_interface_brake_now(void) {
 	SHUTDOWN_RESET();
 
