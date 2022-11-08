@@ -1179,12 +1179,12 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 				linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
 
 				// Optionally use magnitude
-				//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
+//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
 
 				// Optionally use magnitude of observer state
-				//              float x1, x2;
-				//              mcpwm_foc_get_observer_state(&x1, &x2);
-				//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
+//              float x1, x2;
+//              mcpwm_foc_get_observer_state(&x1, &x2);
+//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
 
 				linkage_samples += 1.0;
 				chThdSleep(1);
@@ -1205,8 +1205,6 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 			if (*linkage > 0.0) {
 				*result = true;
 			}
-
-
 		}
 	}
 

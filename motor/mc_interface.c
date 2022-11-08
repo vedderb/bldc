@@ -790,7 +790,7 @@ void mc_interface_set_openloop_current(float current, float rpm) {
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_openloop_current(current, rpm); // Should this use DIR_MULT?
+		mcpwm_foc_set_openloop_current(current, DIR_MULT * rpm);
 		break;
 
 	default:
@@ -814,7 +814,7 @@ void mc_interface_set_openloop_phase(float current, float phase){
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_openloop_phase(current, phase); // Should this use DIR_MULT?
+		mcpwm_foc_set_openloop_phase(current, DIR_MULT * phase);
 		break;
 
 	default:
@@ -838,7 +838,7 @@ void mc_interface_set_openloop_duty(float dutyCycle, float rpm){
 		break;
 
 	case MOTOR_TYPE_FOC:
-		mcpwm_foc_set_openloop_duty(dutyCycle, rpm); // Should this use DIR_MULT?
+		mcpwm_foc_set_openloop_duty(dutyCycle, DIR_MULT * rpm);
 		break;
 
 	default:

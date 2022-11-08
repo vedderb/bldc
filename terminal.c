@@ -91,9 +91,7 @@ void terminal_process_string(char *str) {
 		}
 	}
 
-	if (strcmp(argv[0], "ping") == 0) {
-		commands_printf("pong\n");
-	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
+	if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
 		commands_printf("Latest sample ADC duration: %.4f ms\n", (double)(mc_interface_get_last_sample_adc_isr_duration() * 1000.0));
@@ -275,101 +273,6 @@ void terminal_process_string(char *str) {
 		commands_printf("Cycle int limit: %.2f", (double)rpm_dep.cycle_int_limit);
 		commands_printf("Cycle int limit running: %.2f", (double)rpm_dep.cycle_int_limit_running);
 		commands_printf("Cycle int limit max: %.2f\n", (double)rpm_dep.cycle_int_limit_max);
-	} else if (strcmp(argv[0], "can_devs") == 0) {
-		commands_printf("CAN devices seen on the bus the past second:\n");
-		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-			can_status_msg *msg = comm_can_get_status_msg_index(i);
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 5.0) {
-				commands_printf("MSG1 ID    : %i", msg->id);
-				commands_printf("RX Time    : %i", msg->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg->rx_time));
-				commands_printf("RPM        : %.2f", (double)msg->rpm);
-				commands_printf("Current    : %.2f", (double)msg->current);
-				commands_printf("Duty       : %.2f\n", (double)msg->duty);
-			}
-
-			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 5.0) {
-				commands_printf("MSG2 ID    : %i", msg2->id);
-				commands_printf("RX Time    : %i", msg2->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg2->rx_time));
-				commands_printf("Ah         : %.2f", (double)msg2->amp_hours);
-				commands_printf("Ah Charged : %.2f\n", (double)msg2->amp_hours_charged);
-			}
-
-			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 5.0) {
-				commands_printf("MSG3 ID    : %i", msg3->id);
-				commands_printf("RX Time    : %i", msg3->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg3->rx_time));
-				commands_printf("Wh         : %.2f", (double)msg3->watt_hours);
-				commands_printf("Wh Charged : %.2f\n", (double)msg3->watt_hours_charged);
-			}
-
-			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 5.0) {
-				commands_printf("MSG4 ID    : %i", msg4->id);
-				commands_printf("RX Time    : %i", msg4->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg4->rx_time));
-				commands_printf("Current In : %.2f", (double)msg4->current_in);
-				commands_printf("Temp FET   : %.2f", (double)msg4->temp_fet);
-				commands_printf("Temp Motor : %.2f", (double)msg4->temp_motor);
-				commands_printf("PID pos    : %.2f\n", (double)msg4->pid_pos_now);
-			}
-
-			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(i);
-			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 5.0) {
-				commands_printf("MSG5 ID    : %i", msg5->id);
-				commands_printf("RX Time    : %i", msg5->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg5->rx_time));
-				commands_printf("Tacho      : %d", msg5->tacho_value);
-				commands_printf("V In       : %.2f\n", (double)msg5->v_in);
-			}
-
-			can_status_msg_6 *msg6 = comm_can_get_status_msg_6_index(i);
-			if (msg6->id >= 0 && UTILS_AGE_S(msg6->rx_time) < 5.0) {
-				commands_printf("MSG6 ID    : %i", msg6->id);
-				commands_printf("RX Time    : %i", msg6->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg6->rx_time));
-				commands_printf("ADC 1-3    : %.3f V, %.3f V, %.3f V", (double)msg6->adc_1, (double)msg6->adc_2, (double)msg6->adc_3);
-				commands_printf("PPM	    : %.2f\n", (double)msg6->ppm);
-			}
-
-			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
-				commands_printf("IO Board ADC 1_4");
-				commands_printf("ID                 : %i", io_adc->id);
-				commands_printf("RX Time            : %i", io_adc->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
-				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
-						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
-						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
-			}
-
-			io_adc = comm_can_get_io_board_adc_5_8_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
-				commands_printf("IO Board ADC 5_8");
-				commands_printf("ID                 : %i", io_adc->id);
-				commands_printf("RX Time            : %i", io_adc->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
-				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
-						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
-						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
-			}
-
-			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
-			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 5.0) {
-				commands_printf("IO Board Inputs");
-				commands_printf("ID                 : %i", io_in->id);
-				commands_printf("RX Time            : %i", io_in->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_in->rx_time) * 1000.0));
-				commands_printf("IN                 : %llu %llu %llu %llu %llu %llu %llu %llu\n",
-						(io_in->inputs >> 0) & 1, (io_in->inputs >> 1) & 1,
-						(io_in->inputs >> 2) & 1, (io_in->inputs >> 3) & 1,
-						(io_in->inputs >> 4) & 1, (io_in->inputs >> 5) & 1,
-						(io_in->inputs >> 6) & 1, (io_in->inputs >> 7) & 1);
-			}
-		}
 	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
 		if (argc == 2) {
 			float current = -1.0;
@@ -965,21 +868,6 @@ void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires one argument. [Max_power_loss]\n");
 		}
-	} else if (strcmp(argv[0], "can_scan") == 0) {
-		bool found = false;
-		for (int i = 0;i < 254;i++) {
-			HW_TYPE hw_type;
-			if (comm_can_ping(i, &hw_type)) {
-				commands_printf("Found %s with ID: %d", utils_hw_type_to_string(hw_type), i);
-				found = true;
-			}
-		}
-
-		if (found) {
-			commands_printf("Done\n");
-		} else {
-			commands_printf("No CAN devices found\n");
-		}
 	} else if (strcmp(argv[0], "foc_detect_apply_all_can") == 0) {
 		if (argc == 2) {
 			float max_power_loss = -1.0;
@@ -1231,14 +1119,11 @@ void terminal_process_string(char *str) {
 		commands_printf("help");
 		commands_printf("  Show this help");
 
-		commands_printf("ping");
-		commands_printf("  Print pong here to see if the reply works");
-
 		commands_printf("last_adc_duration");
 		commands_printf("  The time the latest ADC interrupt consumed");
 
 		commands_printf("kv");
-		commands_printf("  The calculated kv of the motor");
+		commands_printf("  The calculated kv of the motor (BLDC)");
 
 		commands_printf("mem");
 		commands_printf("  Show memory usage");
@@ -1265,9 +1150,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("rpm_dep");
 		commands_printf("  Prints some rpm-dep values");
-
-		commands_printf("can_devs");
-		commands_printf("  Prints all CAN devices seen on the bus the past second");
 
 		commands_printf("foc_encoder_detect [current]");
 		commands_printf("  Run the motor at 1Hz on open loop and compute encoder settings");
@@ -1321,9 +1203,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("foc_detect_apply_all [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses.");
-
-		commands_printf("can_scan");
-		commands_printf("  Scan CAN-bus using ping commands, and print all devices that are found.");
 
 		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");

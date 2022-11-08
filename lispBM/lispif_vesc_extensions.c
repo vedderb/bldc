@@ -3176,7 +3176,8 @@ typedef struct {
 
 static void measure_res_task(void *arg) {
 	measure_res_args *a = (measure_res_args*)arg;
-	float res = mcpwm_foc_measure_resistance(a->current, a->samples, true);
+	float res = -1.0;
+	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
 	lbm_unblock_ctx(a->id, lbm_enc_float(res));
 }
 
