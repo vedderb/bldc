@@ -731,7 +731,7 @@ void terminal_process_string(char *str) {
 			commands_printf("Running FOC openloop...");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max && erpm >= 0.0) {
 				timeout_reset();
-				mcpwm_foc_set_openloop(current, erpm);
+				mc_interface_set_openloop_current(current, erpm);
 				int fault = mc_interface_get_fault();
 				if (fault != FAULT_CODE_NONE) {
 					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
@@ -759,7 +759,7 @@ void terminal_process_string(char *str) {
 			commands_printf("Running FOC openloop duty...");
 			if (duty >= 0.0 && duty <= 0.9 && erpm >= 0.0) {
 				timeout_reset();
-				mcpwm_foc_set_openloop_duty(duty, erpm);
+				mc_interface_set_openloop_duty(duty, erpm);
 				int fault = mc_interface_get_fault();
 				if (fault != FAULT_CODE_NONE) {
 					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
@@ -838,7 +838,8 @@ void terminal_process_string(char *str) {
 					angle >= 0.0 && angle <= 360.0) {
 				if (time <= 1e-6) {
 					timeout_reset();
-					fault = mcpwm_foc_set_openloop_phase(current, angle);
+					mc_interface_set_openloop_phase(current, angle);
+					fault = mc_interface_get_fault();
 					if (fault != FAULT_CODE_NONE) {
 						commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
 						commands_printf("For more info type \"faults\" to view all logged faults\n");
@@ -849,7 +850,8 @@ void terminal_process_string(char *str) {
 					int print_div = 0;
 					for (float t = 0.0;t < time;t += 0.002) {
 						timeout_reset();
-						fault = mcpwm_foc_set_openloop_phase(current, angle);
+						mc_interface_set_openloop_phase(current, angle);
+						fault = mc_interface_get_fault();
 						if (fault != FAULT_CODE_NONE) {
 							commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
 							commands_printf("For more info type \"faults\" to view all logged faults\n");
@@ -1074,7 +1076,8 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 1000;i++) {
 					timeout_reset();
-					fault = mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, phase);
+					mc_interface_set_openloop_phase((float)i * current / 1000.0, phase);
+					fault = mc_interface_get_fault();
 					if (fault != FAULT_CODE_NONE) {
 						break;
 					}
@@ -1117,7 +1120,8 @@ void terminal_process_string(char *str) {
 
 						phase += 1.0;
 						timeout_reset();
-						fault = mcpwm_foc_set_openloop_phase(current, phase);
+						mc_interface_set_openloop_phase(current, phase);
+						fault = mc_interface_get_fault();
 						if (fault != FAULT_CODE_NONE) {
 							break;
 						}

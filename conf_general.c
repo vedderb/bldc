@@ -1029,7 +1029,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	// Start by locking the motor
 	for (int i = 0;i < 200;i++) {
-		mcpwm_foc_set_openloop((float)i * current / 200.0, rpm_now);
+		mcpwm_foc_set_openloop_current((float)i * current / 200.0, rpm_now);
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			timeout_configure(tout, tout_c, tout_ksw);
@@ -1070,7 +1070,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
 		rpm_now += erpm_per_sec / 1000.0;
-		mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
+		mcpwm_foc_set_openloop_current(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
 
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {

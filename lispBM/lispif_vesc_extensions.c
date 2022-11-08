@@ -1115,7 +1115,7 @@ static lbm_value ext_set_pos(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_foc_openloop(lbm_value *args, lbm_uint argn) {
 	CHECK_ARGN_NUMBER(2);
 	timeout_reset();
-	mcpwm_foc_set_openloop(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]));
+	mc_interface_set_openloop_current(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 

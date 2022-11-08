@@ -777,7 +777,7 @@ void mcpwm_foc_set_current(float current) {
 	get_motor_now()->m_id_set = 0;
 	
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
-        return fault;
+		return;
 	}
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
@@ -805,7 +805,7 @@ void mcpwm_foc_set_brake_current(float current) {
 	get_motor_now()->m_iq_set = current;
 
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
-        return fault;
+		return;
 	}
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
@@ -826,7 +826,7 @@ void mcpwm_foc_set_handbrake(float current) {
 	get_motor_now()->m_iq_set = current;
 
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
-        return fault;
+		return;
 	}
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
@@ -884,7 +884,7 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
 	utils_norm_angle_rad((float*)&get_motor_now()->m_openloop_phase);
 
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
-        return fault;
+		return;
 	}
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
