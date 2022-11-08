@@ -2026,11 +2026,22 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value args    = (lbm_value)sptr[4];
 
   if (lbm_is_cons(params)) {
-    lbm_value entry;
-    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r));
-
-    lbm_value aug_env;
-    WITH_GC_1(aug_env,lbm_cons(entry, clo_env),entry);
+    lbm_value aug_env = lbm_heap_allocate_list(2);
+    if (lbm_is_symbol_merror(aug_env)) {
+      gc();
+      aug_env = lbm_heap_allocate_list(2);
+      if (lbm_is_symbol_merror(aug_env)) {
+        error_ctx(ENC_SYM_MERROR);
+        return;
+      }
+    }
+    lbm_cons_t *c1 = lbm_ref_cell(aug_env);
+    lbm_value entry = c1->cdr;
+    lbm_cons_t *c2 = lbm_ref_cell(entry);
+    c2->car = lbm_car(params);
+    c2->cdr = ctx->r;
+    c1->car = entry;
+    c1->cdr = clo_env;
     clo_env = aug_env;
   }
 
