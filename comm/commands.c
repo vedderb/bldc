@@ -1961,8 +1961,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 			int detect_hall_res;
 
 			if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
-					detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
-					detect_hall_table, &detect_hall_res)) {
+												 detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
+												 detect_hall_table, &detect_hall_res)) {
 				detect_cycle_int_limit = 0.0;
 				detect_coupling_k = 0.0;
 			}
@@ -1993,10 +1993,10 @@ static THD_FUNCTION(blocking_thread, arg) {
 			float l = 0.0;
 			float ld_lq_diff = 0.0;
 
-            int fault = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
+			int fault = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
 			mc_interface_set_configuration(mcconf_old);
 
-            if (fault != FAULT_CODE_NONE) {
+			if (fault != FAULT_CODE_NONE) {
 				r = 0.0;
 				l = 0.0;
 			}
@@ -2101,8 +2101,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 				mc_interface_set_configuration(mcconf);
 
 				uint8_t hall_tab[8];
-                bool res;
-                mcpwm_foc_hall_detect(current, hall_tab, &res);
+				bool res;
+				mcpwm_foc_hall_detect(current, hall_tab, &res);
 				mc_interface_set_configuration(mcconf_old);
 
 				ind = 0;
@@ -2143,22 +2143,22 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 
 			float linkage, linkage_undriven, undriven_samples;
-            bool res;
-            int fault = conf_general_measure_flux_linkage_openloop(current, duty,
-					erpm_per_sec, resistance, inductance,
-                    &linkage, &linkage_undriven, &undriven_samples, &res);
+			bool res;
+			int fault = conf_general_measure_flux_linkage_openloop(current, duty,
+																   erpm_per_sec, resistance, inductance,
+																   &linkage, &linkage_undriven, &undriven_samples, &res);
 
-            if (fault != FAULT_CODE_NONE) {
-                linkage = 0.0;
-            } else {
-                if (undriven_samples > 60) {
-                    linkage = linkage_undriven;
-                }
+			if (fault != FAULT_CODE_NONE) {
+				linkage = 0.0;
+			} else {
+				if (undriven_samples > 60) {
+					linkage = linkage_undriven;
+				}
 
-                if (!res) {
-                    linkage = 0.0;
-                }
-            }
+				if (!res) {
+					linkage = 0.0;
+				}
+			}
 
 
 			ind = 0;

@@ -4,18 +4,18 @@
 	This file is part of the VESC firmware.
 
 	The VESC firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    The VESC firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	The VESC firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #ifndef MCPWM_FOC_H_
 #define MCPWM_FOC_H_
@@ -34,19 +34,19 @@ mc_control_mode mcpwm_foc_control_mode(void);
 bool mcpwm_foc_is_dccal_done(void);
 int mcpwm_foc_isr_motor(void);
 void mcpwm_foc_stop_pwm(bool is_second_motor);
-int mcpwm_foc_set_duty(float dutyCycle);
-int mcpwm_foc_set_duty_noramp(float dutyCycle);
-int mcpwm_foc_set_pid_speed(float rpm);
-int mcpwm_foc_set_pid_pos(float pos);
-int mcpwm_foc_set_current(float current);
+void mcpwm_foc_set_duty(float dutyCycle);
+void mcpwm_foc_set_duty_noramp(float dutyCycle);
+void mcpwm_foc_set_pid_speed(float rpm);
+void mcpwm_foc_set_pid_pos(float pos);
+void mcpwm_foc_set_current(float current);
 void mcpwm_foc_release_motor(void);
-int mcpwm_foc_set_brake_current(float current);
-int mcpwm_foc_set_handbrake(float current);
-int mcpwm_foc_set_openloop(float current, float rpm);
-int mcpwm_foc_set_openloop_phase(float current, float phase);
-int mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm);
-int mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase);
-int mcpwm_foc_set_tachometer_value(int steps);
+void mcpwm_foc_set_brake_current(float current);
+void mcpwm_foc_set_handbrake(float current);
+void mcpwm_foc_set_openloop(float current, float rpm);
+void mcpwm_foc_set_openloop_phase(float current, float phase);
+void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm);
+void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase);
+void mcpwm_foc_set_tachometer_value(int steps);
 float mcpwm_foc_get_duty_cycle_set(void);
 float mcpwm_foc_get_duty_cycle_now(void);
 float mcpwm_foc_get_pid_pos_set(void);

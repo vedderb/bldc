@@ -966,21 +966,21 @@ uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq
  * Fault code
  */
 int conf_general_measure_flux_linkage_openloop(float current, float duty,
-		float erpm_per_sec, float res, float ind, float *linkage,
-        float *linkage_undriven, float *undriven_samples, bool *result) {
+											   float erpm_per_sec, float res, float ind, float *linkage,
+											   float *linkage_undriven, float *undriven_samples, bool *result) {
 
-    *result = false;
-    int fault = FAULT_CODE_NONE;
+	*result = false;
+	int fault = FAULT_CODE_NONE;
 
-    // Don't let impossible values through.
-    if (res <= 0.0 || ind <= 0.0) {
-        return fault;
-    }
-    // Calculate kp and ki from supplied resistance and inductance, default to 1000us time constant.
-    float tc = 1000;
-    float bw = 1.0 / (tc * 1e-6);
-    float kp = ind * bw;
-    float ki = res * bw;
+	// Don't let impossible values through.
+	if (res <= 0.0 || ind <= 0.0) {
+		return fault;
+	}
+	// Calculate kp and ki from supplied resistance and inductance, default to 1000us time constant.
+	float tc = 1000;
+	float bw = 1.0 / (tc * 1e-6);
+	float kp = ind * bw;
+	float ki = res * bw;
 
 	mc_configuration *mcconf = mempools_alloc_mcconf();
 	mc_configuration *mcconf_old = mempools_alloc_mcconf();
@@ -990,8 +990,8 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	mcconf->motor_type = MOTOR_TYPE_FOC;
 	mcconf->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-    mcconf->foc_current_kp = kp;
-    mcconf->foc_current_ki = ki;
+	mcconf->foc_current_kp = kp;
+	mcconf->foc_current_ki = ki;
 	mcconf->foc_cc_decoupling = FOC_CC_DECOUPLING_DISABLED;
 	mc_interface_set_configuration(mcconf);
 
@@ -1003,12 +1003,12 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		chThdSleepMilliseconds(10);
 	}
 
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
+	fault = mc_interface_get_fault();
+	if (fault != FAULT_CODE_NONE) {
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
 		mempools_free_mcconf(mcconf_old);
-        return fault;
+		return fault;
 	}
 
 	// Wait one second for things to get ready after
@@ -1029,18 +1029,19 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	// Start by locking the motor
 	for (int i = 0;i < 200;i++) {
-        fault = mcpwm_foc_set_openloop((float)i * current / 200.0, rpm_now);
-        chThdSleepMilliseconds(1);
-        if (fault != FAULT_CODE_NONE) {
-            timeout_configure(tout, tout_c, tout_ksw);
-            mc_interface_unlock();
-            mc_interface_release_motor();
-            mc_interface_wait_for_motor_release(1.0);
-            mc_interface_set_configuration(mcconf_old);
-            mempools_free_mcconf(mcconf);
-            mempools_free_mcconf(mcconf_old);
-            return fault;
-        }
+		mcpwm_foc_set_openloop((float)i * current / 200.0, rpm_now);
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
+			mc_interface_set_configuration(mcconf_old);
+			mempools_free_mcconf(mcconf);
+			mempools_free_mcconf(mcconf_old);
+			return fault;
+		}
+		chThdSleepMilliseconds(1);
 	}
 
 	float duty_still = 0;
@@ -1051,7 +1052,8 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		chThdSleepMilliseconds(1);
 	}
 
-	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+	fault = mc_interface_get_fault();
+	if (fault != FAULT_CODE_NONE) {
 		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_unlock();
 		mc_interface_release_motor();
@@ -1059,7 +1061,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
 		mempools_free_mcconf(mcconf_old);
-        return fault;
+		return fault;
 	}
 
 	duty_still /= samples;
@@ -1068,19 +1070,19 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
 		rpm_now += erpm_per_sec / 1000.0;
-        mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
+		mcpwm_foc_set_openloop(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
 
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
-            timeout_configure(tout, tout_c, tout_ksw);
-            mc_interface_unlock();
-            mc_interface_release_motor();
-            mc_interface_wait_for_motor_release(1.0);
-            mc_interface_set_configuration(mcconf_old);
-            mempools_free_mcconf(mcconf);
-            mempools_free_mcconf(mcconf_old);
-            return fault;
-        }
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
+			mc_interface_set_configuration(mcconf_old);
+			mempools_free_mcconf(mcconf);
+			mempools_free_mcconf(mcconf_old);
+			return fault;
+		}
 
 
 		chThdSleepMilliseconds(1);
@@ -1131,10 +1133,10 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 			samples2 += 1.0;
 			chThdSleep(1);
 
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                break;
-            }
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				break;
+			}
 		}
 
 		vq_avg /= samples2;
@@ -1167,52 +1169,52 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 		float linkage_sum = 0.0;
 		float linkage_samples = 0.0;
-        if (fault == FAULT_CODE_NONE) {
-            for (int i = 0;i < 2000;i++) {
-                float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
-                if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.02) {
-                    break;
-                }
+		if (fault == FAULT_CODE_NONE) {
+			for (int i = 0;i < 2000;i++) {
+				float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
+				if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.02) {
+					break;
+				}
 
-                linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
+				linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
 
-                // Optionally use magnitude
-//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
+				// Optionally use magnitude
+				//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
 
-                // Optionally use magnitude of observer state
-//              float x1, x2;
-//              mcpwm_foc_get_observer_state(&x1, &x2);
-//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
+				// Optionally use magnitude of observer state
+				//              float x1, x2;
+				//              mcpwm_foc_get_observer_state(&x1, &x2);
+				//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
 
-                linkage_samples += 1.0;
-                chThdSleep(1);
+				linkage_samples += 1.0;
+				chThdSleep(1);
 
-                fault = mc_interface_get_fault();
-                if (fault != FAULT_CODE_NONE) {
-                    break;
-                }
-            }
+				fault = mc_interface_get_fault();
+				if (fault != FAULT_CODE_NONE) {
+					break;
+				}
+			}
 
-            *undriven_samples = linkage_samples;
+			*undriven_samples = linkage_samples;
 
-            if (linkage_samples > 0) {
-                *linkage_undriven = linkage_sum / linkage_samples;
-            } else {
-                *linkage_undriven = 0.0;
-            }
-            if (*linkage > 0.0) {
-                *result = true;
-            }
+			if (linkage_samples > 0) {
+				*linkage_undriven = linkage_sum / linkage_samples;
+			} else {
+				*linkage_undriven = 0.0;
+			}
+			if (*linkage > 0.0) {
+				*result = true;
+			}
 
 
-        }
+		}
 	}
 
-    // Some functions use 0 to detect a failure
-    if (fault != FAULT_CODE_NONE) {
-        *linkage_undriven = 0.0;
-        *linkage = 0.0;
-    }
+	// Some functions use 0 to detect a failure
+	if (fault != FAULT_CODE_NONE) {
+		*linkage_undriven = 0.0;
+		*linkage = 0.0;
+	}
 
 	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
@@ -1221,7 +1223,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 	mc_interface_set_configuration(mcconf_old);
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
-    return fault;
+	return fault;
 }
 
 /**
@@ -1246,9 +1248,9 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
  * The fault code
  */
 int conf_general_autodetect_apply_sensors_foc(float current,
-        bool store_mcconf_on_success, bool send_mcconf_on_success, int *result) {
-    *result = -1;
-    int fault = FAULT_CODE_NONE;
+											  bool store_mcconf_on_success, bool send_mcconf_on_success, int *result) {
+	*result = -1;
+	int fault = FAULT_CODE_NONE;
 	mc_configuration *mcconf = mempools_alloc_mcconf();
 	mc_configuration *mcconf_old = mempools_alloc_mcconf();
 
@@ -1268,12 +1270,12 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		}
 		chThdSleepMilliseconds(10);
 	}
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
+	fault = mc_interface_get_fault();
+	if (fault != FAULT_CODE_NONE) {
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
-		mempools_free_mcconf(mcconf_old);		
-        return fault;
+		mempools_free_mcconf(mcconf_old);
+		return fault;
 	}
 
 	// Wait one second for things to get ready after
@@ -1294,18 +1296,18 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	mc_interface_set_configuration(mcconf);
 
 	uint8_t hall_table[8];
-    bool res;
-    fault = mcpwm_foc_hall_detect(current, hall_table, &res);
-    if (fault != FAULT_CODE_NONE) {
-        timeout_configure(tout, tout_c, tout_ksw);
-        mc_interface_unlock();
-        mc_interface_release_motor();
-        mc_interface_wait_for_motor_release(1.0);
-        mc_interface_set_configuration(mcconf_old);
-        mempools_free_mcconf(mcconf);
-        mempools_free_mcconf(mcconf_old);
-        return fault;
-    }
+	bool res;
+	fault = mcpwm_foc_hall_detect(current, hall_table, &res);
+	if (fault != FAULT_CODE_NONE) {
+		timeout_configure(tout, tout_c, tout_ksw);
+		mc_interface_unlock();
+		mc_interface_release_motor();
+		mc_interface_wait_for_motor_release(1.0);
+		mc_interface_set_configuration(mcconf_old);
+		mempools_free_mcconf(mcconf);
+		mempools_free_mcconf(mcconf_old);
+		return fault;
+	}
 	// Lock again, as hall detection will undo the lock
 	mc_interface_lock();
 
@@ -1316,7 +1318,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			mcconf_old->foc_hall_table[i] = hall_table[i];
 		}
 
-        *result = 1;
+		*result = 1;
 	}
 
 	// AS5047 encoder
@@ -1327,16 +1329,16 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 
 		for (int i = 0;i < 1000;i++) {
 			mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, 0.0);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                timeout_configure(tout, tout_c, tout_ksw);
-                mc_interface_unlock();
-                mc_interface_release_motor();
-                mc_interface_wait_for_motor_release(1.0);
-                mc_interface_set_configuration(mcconf_old);
-                mempools_free_mcconf(mcconf);
-                mempools_free_mcconf(mcconf_old);
-                return fault;
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
+				mc_interface_set_configuration(mcconf_old);
+				mempools_free_mcconf(mcconf);
+				mempools_free_mcconf(mcconf_old);
+				return fault;
 			}
 			chThdSleepMilliseconds(1);
 		}
@@ -1347,16 +1349,16 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 
 		for (int i = 0;i < 180.0;i++) {
 			mcpwm_foc_set_openloop_phase(current, i);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                timeout_configure(tout, tout_c, tout_ksw);
-                mc_interface_unlock();
-                mc_interface_release_motor();
-                mc_interface_wait_for_motor_release(1.0);
-                mc_interface_set_configuration(mcconf_old);
-                mempools_free_mcconf(mcconf);
-                mempools_free_mcconf(mcconf_old);
-                return fault;
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
+				mc_interface_set_configuration(mcconf_old);
+				mempools_free_mcconf(mcconf);
+				mempools_free_mcconf(mcconf_old);
+				return fault;
 			}
 
 			chThdSleepMilliseconds(5);
@@ -1373,7 +1375,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		if (diff > 2.0 && (diff_mid - diff / 2.0) < (diff / 4)) {
 			float offset, ratio;
 			bool inverted;
-            mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
+			mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
 			mcconf_old->m_sensor_port_mode = SENSOR_PORT_MODE_AS5047_SPI;
 			mcconf_old->foc_sensor_mode = FOC_SENSOR_MODE_ENCODER;
 			mcconf_old->foc_encoder_offset = offset;
@@ -1381,7 +1383,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 			mcconf_old->foc_encoder_inverted = inverted;
 
 			res = true;
-            *result = 2;
+			*result = 2;
 		}
 	}
 #endif
@@ -1389,7 +1391,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	// Sensorless
 	if (!res) {
 		mcconf_old->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-        *result = 0;
+		*result = 0;
 		res = true;
 	}
 
@@ -1403,7 +1405,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	if (res) {
 		if (store_mcconf_on_success) {
 			conf_general_store_mc_configuration(mcconf_old,
-					mc_interface_get_motor_thread() == 2);
+												mc_interface_get_motor_thread() == 2);
 		}
 
 		if (send_mcconf_on_success) {
@@ -1414,7 +1416,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
 
-    return fault;
+	return fault;
 }
 
 void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float tc) {
@@ -1426,7 +1428,7 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 	float kp = l * bw;
 	float ki = r * bw;
 	float gain = 1.0e-3 / SQ(lambda);
-//	float gain = (0.00001 / r) / SQ(lambda); // Old method
+	//	float gain = (0.00001 / r) / SQ(lambda); // Old method
 
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;
@@ -1434,13 +1436,13 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 }
 
 static int measure_r_l_imax(float current_min, float current_max,
-		float max_power_loss, float *r, float *l, float *ld_lq_diff, float *i_max) {
+							float max_power_loss, float *r, float *l, float *ld_lq_diff, float *i_max) {
 	float current_start = current_max / 50;
 	if (current_start < (current_min * 1.1)) {
 		current_start = current_min * 1.1;
 	}
 
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 
 	mc_configuration *mcconf = mempools_alloc_mcconf();
 	*mcconf = *mc_interface_get_configuration();
@@ -1449,13 +1451,13 @@ static int measure_r_l_imax(float current_min, float current_max,
 
 	float i_last = 0.0;
 	for (float i = current_start;i < current_max;i *= 1.5) {
-        float res_tmp = 0.0;
-        fault = mcpwm_foc_measure_resistance(i, 5, false, &res_tmp);
+		float res_tmp = 0.0;
+		fault = mcpwm_foc_measure_resistance(i, 5, false, &res_tmp);
 		i_last = i;
 
-        if (fault != FAULT_CODE_NONE) {
+		if (fault != FAULT_CODE_NONE) {
 			mempools_free_mcconf(mcconf);
-            return fault;
+			return fault;
 		}
 
 		if ((i * i * res_tmp * 1.5) >= (max_power_loss / 5.0)) {
@@ -1463,18 +1465,18 @@ static int measure_r_l_imax(float current_min, float current_max,
 		}
 	}
 
-    fault = mcpwm_foc_measure_resistance(i_last, 100, true, r);
-    if (fault != FAULT_CODE_NONE) {
+	fault = mcpwm_foc_measure_resistance(i_last, 100, true, r);
+	if (fault != FAULT_CODE_NONE) {
 		mempools_free_mcconf(mcconf);
-        return fault;
+		return fault;
 	}
 
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);
 
-    fault = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff, l);
+	fault = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff, l);
 
-    *l *= 1e-6;
+	*l *= 1e-6;
 	*ld_lq_diff *= 1e-6;
 	*i_max = sqrtf(max_power_loss / *r / 1.5);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
@@ -1483,7 +1485,7 @@ static int measure_r_l_imax(float current_min, float current_max,
 	mc_interface_set_configuration(mcconf);
 	mempools_free_mcconf(mcconf);
 
-    return fault;
+	return fault;
 }
 
 static bool wait_fault(int timeout_ms) {
@@ -1546,18 +1548,18 @@ typedef struct {
 	float l;
 	float ld_lq_diff;
 	float i_max;
-    int fault;
+	int fault;
 	int motor;
 } measure_r_l_imax_arg_t;
 
 static void measure_r_l_imax_task(void *arg) {
 	measure_r_l_imax_arg_t *args = (measure_r_l_imax_arg_t*)arg;
 	mc_interface_select_motor_thread(args->motor);
-    args->fault = measure_r_l_imax(
-			args->current_min,
-			args->current_max,
-			args->max_power_loss,
-			&args->r, &args->l, &args->ld_lq_diff, &args->i_max);
+	args->fault = measure_r_l_imax(
+				args->current_min,
+				args->current_max,
+				args->max_power_loss,
+				&args->r, &args->l, &args->ld_lq_diff, &args->i_max);
 }
 
 typedef struct {
@@ -1566,9 +1568,9 @@ typedef struct {
 	float erpm_per_sec;
 	float res;
 	float ind;
-	float linkage;	
-    int fault;
-    bool result;
+	float linkage;
+	int fault;
+	bool result;
 	int motor;
 } measure_flux_linkage_arg_t;
 
@@ -1576,24 +1578,24 @@ static void measure_flux_linkage_task(void *arg) {
 	measure_flux_linkage_arg_t *args = (measure_flux_linkage_arg_t*)arg;
 	mc_interface_select_motor_thread(args->motor);
 
-    float linkage, linkage_undriven, undriven_samples;    
+	float linkage, linkage_undriven, undriven_samples;
 
-    args->fault = conf_general_measure_flux_linkage_openloop(
-			args->current,
-			args->duty,
-			args->erpm_per_sec,
-			args->res,
-			args->ind,
-			&linkage,
-			&linkage_undriven,
-            &undriven_samples,
-            &args->result);
+	args->fault = conf_general_measure_flux_linkage_openloop(
+				args->current,
+				args->duty,
+				args->erpm_per_sec,
+				args->res,
+				args->ind,
+				&linkage,
+				&linkage_undriven,
+				&undriven_samples,
+				&args->result);
 
 	if (undriven_samples > 60) {
 		args->linkage = linkage_undriven;
-        if (args->linkage <= 0.0){
-            args->result = false;
-        }
+		if (args->linkage <= 0.0){
+			args->result = false;
+		}
 	} else {
 		args->linkage = linkage;
 	}
@@ -1603,8 +1605,8 @@ typedef struct {
 	float current;
 	bool store_mcconf_on_success;
 	bool send_mcconf_on_success;
-    int fault;
-    int res;
+	int fault;
+	int res;
 	int motor;
 } detect_sensors_arg_t;
 
@@ -1614,11 +1616,11 @@ static void detect_sensors_task(void *arg) {
 
 
 
-    args->fault = conf_general_autodetect_apply_sensors_foc(
-			args->current,
-			args->store_mcconf_on_success,
-            args->send_mcconf_on_success,
-            &args->res);
+	args->fault = conf_general_autodetect_apply_sensors_foc(
+				args->current,
+				args->store_mcconf_on_success,
+				args->send_mcconf_on_success,
+				&args->res);
 }
 #endif
 
@@ -1642,11 +1644,11 @@ static void detect_sensors_task(void *arg) {
  *  -100 + fault: Fault code that occured during detection see "mc_fault_code"
  */
 int conf_general_detect_apply_all_foc(float max_power_loss,
-		bool store_mcconf_on_success, bool send_mcconf_on_success) {
+									  bool store_mcconf_on_success, bool send_mcconf_on_success) {
 	int result = -1;
 
-    int faultM1 = FAULT_CODE_NONE;
-    int faultM2 = FAULT_CODE_NONE;
+	int faultM1 = FAULT_CODE_NONE;
+	int faultM2 = FAULT_CODE_NONE;
 
 	int motor_last = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
@@ -1714,7 +1716,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mempools_free_mcconf(mcconf_old_second);
 #endif
 		mc_interface_select_motor_thread(motor_last);
-        return mc_interface_get_fault() - 100; // Offset fault by -100
+		return mc_interface_get_fault() - 100; // Offset fault by -100
 	}
 
 	// Wait one second for things to get ready after
@@ -1748,16 +1750,16 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	float r = 0.0;
 	float l = 0.0;
 	float ld_lq_diff;
-	float i_max = 0.0;     
-    faultM1 = measure_r_l_imax(mcconf->cc_min_current,
-			mcconf->l_current_max, max_power_loss, &r, &l, &ld_lq_diff, &i_max);
+	float i_max = 0.0;
+	faultM1 = measure_r_l_imax(mcconf->cc_min_current,
+							   mcconf->l_current_max, max_power_loss, &r, &l, &ld_lq_diff, &i_max);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	worker_wait();
-    faultM2 = r_l_imax_args.fault;
+	faultM2 = r_l_imax_args.fault;
 #endif
 
-    if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
+	if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
 		timeout_configure(tout, tout_c, tout_ksw);
 		mc_interface_unlock();
 		mc_interface_release_motor();
@@ -1773,22 +1775,26 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mempools_free_mcconf(mcconf_old_second);
 #endif
 		mc_interface_select_motor_thread(motor_last);
-        if(faultM1 != FAULT_CODE_NONE) {
-            return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
-        } else {
-            return faultM2 - 100;
-        }
+		if(faultM1 != FAULT_CODE_NONE) {
+			return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
+		} else {
+			return faultM2 - 100;
+		}
 	}
 
 	// Increase switching frequency for flux linkage measurement
 	// as dead-time distortion has less effect at higher modulation.
 	// Having a smooth rotation is more important.
-    mcconf->foc_f_zv = 40000.0;
+#ifdef HW_HAS_DUAL_MOTORS
+	mcconf->foc_f_zv = 25000.0;
+#else
+	mcconf->foc_f_zv = 40000.0;
+#endif
 	mc_interface_set_configuration(mcconf);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_select_motor_thread(2);
-    mcconf_second->foc_f_zv = 40000.0; // TODO: Is 40khz here actually OK?
+	mcconf_second->foc_f_zv = 25000.0; // TODO: Is 40khz here actually OK?
 	mc_interface_set_configuration(mcconf_second);
 	mc_interface_select_motor_thread(1);
 #endif
@@ -1800,58 +1806,58 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	linkage_args.erpm_per_sec = 1800;
 	linkage_args.res = r_l_imax_args.r;
 	linkage_args.ind = r_l_imax_args.l;
-	linkage_args.motor = 2;    
+	linkage_args.motor = 2;
 	worker_execute(measure_flux_linkage_task, &linkage_args);
 #endif
 
 	float lambda = 0.0;
 	float lambda_undriven = 0.0;
 	float lambda_undriven_samples = 0.0;
-    bool res;
-    faultM1 = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
-            &lambda, &lambda_undriven, &lambda_undriven_samples, &res);
+	bool res;
+	faultM1 = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
+														 &lambda, &lambda_undriven, &lambda_undriven_samples, &res);
 
 	if (lambda_undriven_samples > 60) {
 		lambda = lambda_undriven;
-        if (lambda <= 0.0){
-            res = false;
-        }
+		if (lambda <= 0.0){
+			res = false;
+		}
 	}
 
-    res = true;
+	res = true;
 
 #ifdef HW_HAS_DUAL_MOTORS
 	worker_wait();
-    faultM2 = linkage_args.fault;
-    bool res_linkage_m2 = linkage_args.result;
+	faultM2 = linkage_args.fault;
+	bool res_linkage_m2 = linkage_args.result;
 #else
-    bool res_linkage_m2 = true;
+	bool res_linkage_m2 = true;
 #endif
 
-    if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
-        timeout_configure(tout, tout_c, tout_ksw);
-        mc_interface_unlock();
-        mc_interface_release_motor();
-        mc_interface_wait_for_motor_release(1.0);
-        mc_interface_set_configuration(mcconf_old);
-        mempools_free_mcconf(mcconf);
-        mempools_free_mcconf(mcconf_old);
+	if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
+		timeout_configure(tout, tout_c, tout_ksw);
+		mc_interface_unlock();
+		mc_interface_release_motor();
+		mc_interface_wait_for_motor_release(1.0);
+		mc_interface_set_configuration(mcconf_old);
+		mempools_free_mcconf(mcconf);
+		mempools_free_mcconf(mcconf_old);
 #ifdef HW_HAS_DUAL_MOTORS
-        mc_interface_select_motor_thread(2);
-        mc_interface_set_configuration(mcconf_old_second);
-        mc_interface_select_motor_thread(1);
-        mempools_free_mcconf(mcconf_second);
-        mempools_free_mcconf(mcconf_old_second);
+		mc_interface_select_motor_thread(2);
+		mc_interface_set_configuration(mcconf_old_second);
+		mc_interface_select_motor_thread(1);
+		mempools_free_mcconf(mcconf_second);
+		mempools_free_mcconf(mcconf_old_second);
 #endif
-        mc_interface_select_motor_thread(motor_last);
-        if(faultM1 != FAULT_CODE_NONE) {
-            return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
-        } else {
-            return faultM2 - 100;
-        }
-    }
+		mc_interface_select_motor_thread(motor_last);
+		if(faultM1 != FAULT_CODE_NONE) {
+			return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
+		} else {
+			return faultM2 - 100;
+		}
+	}
 
-    if (res && res_linkage_m2) {
+	if (res && res_linkage_m2) {
 		mcconf_old->l_current_max = i_max;
 		mcconf_old->l_current_min = -i_max;
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
@@ -1904,13 +1910,13 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #endif
 
 		// This will also store the settings to emulated eeprom and send them to vesc tool
-        faultM1 = conf_general_autodetect_apply_sensors_foc(i_max / 3.0,
-                store_mcconf_on_success, send_mcconf_on_success, &result);
+		faultM1 = conf_general_autodetect_apply_sensors_foc(i_max / 3.0,
+															store_mcconf_on_success, send_mcconf_on_success, &result);
 
 #ifdef HW_HAS_DUAL_MOTORS
 		worker_wait();
 		int res_sensors_m2 = sensors_args.res;
-        faultM2 = sensors_args.fault;
+		faultM2 = sensors_args.fault;
 #else
 		int res_sensors_m2 = 0;
 #endif
@@ -1919,30 +1925,30 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 			result = res_sensors_m2;
 		}
 
-        if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
-            timeout_configure(tout, tout_c, tout_ksw);
-            mc_interface_unlock();
-            mc_interface_release_motor();
-            mc_interface_wait_for_motor_release(1.0);
-            mc_interface_set_configuration(mcconf_old);
-            mempools_free_mcconf(mcconf);
-            mempools_free_mcconf(mcconf_old);
-    #ifdef HW_HAS_DUAL_MOTORS
-            mc_interface_select_motor_thread(2);
-            mc_interface_set_configuration(mcconf_old_second);
-            mc_interface_select_motor_thread(1);
-            mempools_free_mcconf(mcconf_second);
-            mempools_free_mcconf(mcconf_old_second);
-    #endif
-            mc_interface_select_motor_thread(motor_last);
-            if(faultM1 != FAULT_CODE_NONE) {
-                return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
-            } else {
-                return faultM2 - 100;
-            }
-        }
+		if (faultM1 != FAULT_CODE_NONE || faultM2 != FAULT_CODE_NONE) {
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			mc_interface_release_motor();
+			mc_interface_wait_for_motor_release(1.0);
+			mc_interface_set_configuration(mcconf_old);
+			mempools_free_mcconf(mcconf);
+			mempools_free_mcconf(mcconf_old);
+#ifdef HW_HAS_DUAL_MOTORS
+			mc_interface_select_motor_thread(2);
+			mc_interface_set_configuration(mcconf_old_second);
+			mc_interface_select_motor_thread(1);
+			mempools_free_mcconf(mcconf_second);
+			mempools_free_mcconf(mcconf_old_second);
+#endif
+			mc_interface_select_motor_thread(motor_last);
+			if(faultM1 != FAULT_CODE_NONE) {
+				return faultM1 - 100; // Offset fault codes by -100 to leave room for extra fault codes to be added later.
+			} else {
+				return faultM2 - 100;
+			}
+		}
 	} else {
-        result = -10;
+		result = -10;
 	}
 
 	timeout_configure(tout, tout_c, tout_ksw);
@@ -2004,7 +2010,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
  * -51: CAN detection failed
  */
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm) {
+										  float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm) {
 
 	int motor_last = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);

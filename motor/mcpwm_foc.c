@@ -691,20 +691,9 @@ void mcpwm_foc_stop_pwm(bool is_second_motor) {
  * stop the motor.
  *
  * @param dutyCycle
- * The duty cycle to use.
- *
- * @return
- * The fault code
+ * The duty cycle to use
  */
-int mcpwm_foc_set_duty(float dutyCycle) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_duty(float dutyCycle) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_DUTY;
 	get_motor_now()->m_duty_cycle_set = dutyCycle;
 
@@ -712,8 +701,6 @@ int mcpwm_foc_set_duty(float dutyCycle) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-
-    return fault;
 }
 
 /**
@@ -725,13 +712,10 @@ int mcpwm_foc_set_duty(float dutyCycle) {
  *
  * @param dutyCycle
  * The duty cycle to use.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_duty_noramp(float dutyCycle) {
+void mcpwm_foc_set_duty_noramp(float dutyCycle) {
 	// TODO: Actually do this without ramping
-    return mcpwm_foc_set_duty(dutyCycle);
+	mcpwm_foc_set_duty(dutyCycle);
 }
 
 /**
@@ -740,19 +724,8 @@ int mcpwm_foc_set_duty_noramp(float dutyCycle) {
  *
  * @param rpm
  * The electrical RPM goal value to use.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_pid_speed(float rpm) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_pid_speed(float rpm) {
 	if (get_motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
 		if (get_motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
 				get_motor_now()->m_state != MC_STATE_RUNNING) {
@@ -770,8 +743,6 @@ int mcpwm_foc_set_pid_speed(float rpm) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-
-    return fault;
 }
 
 /**
@@ -780,27 +751,16 @@ int mcpwm_foc_set_pid_speed(float rpm) {
  *
  * @param pos
  * The desired position of the motor in degrees.
- *
- * @return
- * The fault code
+
  */
-int mcpwm_foc_set_pid_pos(float pos) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_pid_pos(float pos) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_POS;
 	get_motor_now()->m_pos_pid_set = pos;
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
-	}
-    return fault;
+	}    
 }
 
 /**
@@ -810,19 +770,8 @@ int mcpwm_foc_set_pid_pos(float pos) {
  *
  * @param current
  * The current to use.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_current(float current) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_current(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_CURRENT;
 	get_motor_now()->m_iq_set = current;
 	get_motor_now()->m_id_set = 0;
@@ -835,7 +784,6 @@ int mcpwm_foc_set_current(float current) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-    return fault;
 }
 
 void mcpwm_foc_release_motor(void) {
@@ -851,19 +799,8 @@ void mcpwm_foc_release_motor(void) {
  *
  * @param current
  * The current to use. Positive and negative values give the same effect.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_brake_current(float current) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_brake_current(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	get_motor_now()->m_iq_set = current;
 
@@ -874,8 +811,7 @@ int mcpwm_foc_set_brake_current(float current) {
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
-	}
-    return fault;
+	}   
 }
 
 /**
@@ -884,19 +820,8 @@ int mcpwm_foc_set_brake_current(float current) {
  *
  * @param current
  * The brake current to use.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_handbrake(float current) {
-    // Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-
+void mcpwm_foc_set_handbrake(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_HANDBRAKE;
 	get_motor_now()->m_iq_set = current;
 
@@ -908,7 +833,6 @@ int mcpwm_foc_set_handbrake(float current) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-    return fault;
 }
 
 /**
@@ -920,19 +844,9 @@ int mcpwm_foc_set_handbrake(float current) {
  * @param rpm
  * The RPM to use.
  *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_openloop(float current, float rpm) {
-	// Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-	}
-	
-	utils_truncate_number(&current, -get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale,
+void mcpwm_foc_set_openloop(float current, float rpm) {
+    utils_truncate_number(&current, -get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale,
 						  get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale);
 
 	get_motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP;
@@ -940,14 +854,13 @@ int mcpwm_foc_set_openloop(float current, float rpm) {
 	get_motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
 
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
-        return fault;
+        return;
 	}
 
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-    return fault;
 }
 
 /**
@@ -958,19 +871,8 @@ int mcpwm_foc_set_openloop(float current, float rpm) {
  *
  * @param phase
  * The phase to use in degrees, range [0.0 360.0]
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_openloop_phase(float current, float phase) {
-	// Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-	}
-	
+void mcpwm_foc_set_openloop_phase(float current, float phase) {
 	utils_truncate_number(&current, -get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale,
 						  get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale);
 
@@ -989,7 +891,6 @@ int mcpwm_foc_set_openloop_phase(float current, float phase) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-    return fault;
 }
 
 /**
@@ -1051,19 +952,8 @@ void mcpwm_foc_get_voltage_offsets_undriven(
  *
  * @param rpm
  * The RPM to use.
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
-	// Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-	
+void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY;
 	get_motor_now()->m_duty_cycle_set = dutyCycle;
 	get_motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
@@ -1071,8 +961,7 @@ int mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
 	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
-	}
-    return fault;
+	}    
 }
 
 /**
@@ -1083,19 +972,8 @@ int mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
  *
  * @param phase
  * The phase to use in degrees, range [0.0 360.0]
- *
- * @return
- * The fault code
  */
-int mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
-	// Check for an active fault
-    int fault = FAULT_CODE_NONE;
-
-    fault = mc_interface_get_fault();
-    if (fault != FAULT_CODE_NONE) {
-        return fault;
-    }
-	
+void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 	get_motor_now()->m_duty_cycle_set = dutyCycle;
 	get_motor_now()->m_openloop_phase = DEG2RAD_f(phase);
@@ -1105,7 +983,6 @@ int mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
-    return fault;
 }
 
 float mcpwm_foc_get_duty_cycle_set(void) {
@@ -1522,8 +1399,8 @@ float mcpwm_foc_get_mod_beta_measured(void) {
  * The fault code
  */
 int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
-    int fault = FAULT_CODE_NONE;
-    mc_interface_lock();
+	int fault = FAULT_CODE_NONE;
+	mc_interface_lock();
 
 	volatile motor_all_state_t *motor = get_motor_now();
 
@@ -1557,28 +1434,28 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 	while(!encoder_index_found()) {
 		for (float i = 0.0;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
 			motor->m_phase_now_override = i;
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-                // Restore configuration
-                motor->m_conf->foc_encoder_inverted = inverted_old;
-                motor->m_conf->foc_encoder_offset = offset_old;
-                motor->m_conf->foc_encoder_ratio = ratio_old;
-                motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+				// Restore configuration
+				motor->m_conf->foc_encoder_inverted = inverted_old;
+				motor->m_conf->foc_encoder_offset = offset_old;
+				motor->m_conf->foc_encoder_ratio = ratio_old;
+				motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
 
-                mc_interface_unlock();
-                return fault;
-            }
-            chThdSleepMilliseconds(1);
+				mc_interface_unlock();
+				return fault;
+			}
+			chThdSleepMilliseconds(1);
 		}
 
 
@@ -1596,27 +1473,27 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 	// Rotate
 	for (float i = 0.0;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
 		motor->m_phase_now_override = i;
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
-            motor->m_id_set = 0.0;
-            motor->m_iq_set = 0.0;
-            motor->m_phase_override = false;
-            motor->m_control_mode = CONTROL_MODE_NONE;
-            motor->m_state = MC_STATE_OFF;
-            stop_pwm_hw((motor_all_state_t*)motor);
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_phase_override = false;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw((motor_all_state_t*)motor);
 
-            // Restore configuration
-            motor->m_conf->foc_encoder_inverted = inverted_old;
-            motor->m_conf->foc_encoder_offset = offset_old;
-            motor->m_conf->foc_encoder_ratio = ratio_old;
-            motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+			// Restore configuration
+			motor->m_conf->foc_encoder_inverted = inverted_old;
+			motor->m_conf->foc_encoder_offset = offset_old;
+			motor->m_conf->foc_encoder_ratio = ratio_old;
+			motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-            // Enable timeout
-            timeout_configure(tout, tout_c, tout_ksw);
+			// Enable timeout
+			timeout_configure(tout, tout_c, tout_ksw);
 
-            mc_interface_unlock();
-            return fault;
-        }
+			mc_interface_unlock();
+			return fault;
+		}
 		chThdSleepMilliseconds(1);
 	}
 
@@ -1636,29 +1513,29 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 		float phase_old = motor->m_phase_now_encoder;
 		float phase_ovr_tmp = motor->m_phase_now_override;
 		for (float j = phase_ovr_tmp; j < phase_ovr_tmp + (2.0 / 3.0) * M_PI;
-				j += (2.0 * M_PI) / 500.0) {
+			 j += (2.0 * M_PI) / 500.0) {
 			motor->m_phase_now_override = j;
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-                // Restore configuration
-                motor->m_conf->foc_encoder_inverted = inverted_old;
-                motor->m_conf->foc_encoder_offset = offset_old;
-                motor->m_conf->foc_encoder_ratio = ratio_old;
-                motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+				// Restore configuration
+				motor->m_conf->foc_encoder_inverted = inverted_old;
+				motor->m_conf->foc_encoder_offset = offset_old;
+				motor->m_conf->foc_encoder_ratio = ratio_old;
+				motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
 
-                mc_interface_unlock();
-                return fault;
-            }
+				mc_interface_unlock();
+				return fault;
+			}
 			chThdSleepMilliseconds(1);
 		}
 
@@ -1687,29 +1564,29 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 		float phase_old = motor->m_phase_now_encoder;
 		float phase_ovr_tmp = motor->m_phase_now_override;
 		for (float j = phase_ovr_tmp; j > phase_ovr_tmp - (2.0 / 3.0) * M_PI;
-				j -= (2.0 * M_PI) / 500.0) {
+			 j -= (2.0 * M_PI) / 500.0) {
 			motor->m_phase_now_override = j;
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-                // Restore configuration
-                motor->m_conf->foc_encoder_inverted = inverted_old;
-                motor->m_conf->foc_encoder_offset = offset_old;
-                motor->m_conf->foc_encoder_ratio = ratio_old;
-                motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+				// Restore configuration
+				motor->m_conf->foc_encoder_inverted = inverted_old;
+				motor->m_conf->foc_encoder_offset = offset_old;
+				motor->m_conf->foc_encoder_ratio = ratio_old;
+				motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
 
-                mc_interface_unlock();
-                return fault;
-            }
+				mc_interface_unlock();
+				return fault;
+			}
 			chThdSleepMilliseconds(1);
 		}
 		utils_norm_angle_rad((float*)&motor->m_phase_now_override);
@@ -1746,27 +1623,27 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 	// Rotate
 	for (float i = motor->m_phase_now_override;i < 2.0 * M_PI;i += (2.0 * M_PI) / 500.0) {
 		motor->m_phase_now_override = i;
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
-            motor->m_id_set = 0.0;
-            motor->m_iq_set = 0.0;
-            motor->m_phase_override = false;
-            motor->m_control_mode = CONTROL_MODE_NONE;
-            motor->m_state = MC_STATE_OFF;
-            stop_pwm_hw((motor_all_state_t*)motor);
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_phase_override = false;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw((motor_all_state_t*)motor);
 
-            // Restore configuration
-            motor->m_conf->foc_encoder_inverted = inverted_old;
-            motor->m_conf->foc_encoder_offset = offset_old;
-            motor->m_conf->foc_encoder_ratio = ratio_old;
-            motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+			// Restore configuration
+			motor->m_conf->foc_encoder_inverted = inverted_old;
+			motor->m_conf->foc_encoder_offset = offset_old;
+			motor->m_conf->foc_encoder_ratio = ratio_old;
+			motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-            // Enable timeout
-            timeout_configure(tout, tout_c, tout_ksw);
+			// Enable timeout
+			timeout_configure(tout, tout_c, tout_ksw);
 
-            mc_interface_unlock();
-            return fault;
-        }
+			mc_interface_unlock();
+			return fault;
+		}
 		chThdSleepMilliseconds(2);
 	}
 
@@ -1785,28 +1662,28 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 
 		while (motor->m_phase_now_override != override) {
 			utils_step_towards((float*)&motor->m_phase_now_override, override, step / 100.0);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-                // Restore configuration
-                motor->m_conf->foc_encoder_inverted = inverted_old;
-                motor->m_conf->foc_encoder_offset = offset_old;
-                motor->m_conf->foc_encoder_ratio = ratio_old;
-                motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+				// Restore configuration
+				motor->m_conf->foc_encoder_inverted = inverted_old;
+				motor->m_conf->foc_encoder_offset = offset_old;
+				motor->m_conf->foc_encoder_ratio = ratio_old;
+				motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
 
-                mc_interface_unlock();
-                return fault;
-            }
-            chThdSleepMilliseconds(4);
+				mc_interface_unlock();
+				return fault;
+			}
+			chThdSleepMilliseconds(4);
 		}
 
 		chThdSleepMilliseconds(100);
@@ -1829,28 +1706,28 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 
 		while (motor->m_phase_now_override != override) {
 			utils_step_towards((float*)&motor->m_phase_now_override, override, step / 100.0);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-                // Restore configuration
-                motor->m_conf->foc_encoder_inverted = inverted_old;
-                motor->m_conf->foc_encoder_offset = offset_old;
-                motor->m_conf->foc_encoder_ratio = ratio_old;
-                motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
+				// Restore configuration
+				motor->m_conf->foc_encoder_inverted = inverted_old;
+				motor->m_conf->foc_encoder_offset = offset_old;
+				motor->m_conf->foc_encoder_ratio = ratio_old;
+				motor->m_conf->foc_motor_ld_lq_diff = ldiff_old;
 
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
 
-                mc_interface_unlock();
-                return fault;
-            }
-            chThdSleepMilliseconds(4);
+				mc_interface_unlock();
+				return fault;
+			}
+			chThdSleepMilliseconds(4);
 		}
 
 		chThdSleepMilliseconds(100);
@@ -1896,7 +1773,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 	timeout_configure(tout, tout_c, tout_ksw);
 
 	mc_interface_unlock();
-    return fault;
+	return fault;
 }
 
 /**
@@ -1924,7 +1801,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	mc_interface_lock();
 
 	volatile motor_all_state_t *motor = get_motor_now();
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 
 	motor->m_phase_override = true;
 	motor->m_phase_now_override = 0.0;
@@ -1942,9 +1819,9 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 
 	// Ramp up the current slowly
 	while (fabsf(motor->m_iq_set - current) > 0.001) {
-		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);		
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
+		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
 			motor->m_id_set = 0.0;
 			motor->m_iq_set = 0.0;
 			motor->m_phase_override = false;
@@ -1955,7 +1832,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 			timeout_configure(tout, tout_c, tout_ksw);
 			mc_interface_unlock();
 
-            return fault;
+			return fault;
 		}
 		chThdSleepMilliseconds(1);
 	}
@@ -1976,8 +1853,8 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 		if (cnt > 10000) {
 			break;
 		}
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
 			motor->m_id_set = 0.0;
 			motor->m_iq_set = 0.0;
 			motor->m_phase_override = false;
@@ -1988,7 +1865,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 			timeout_configure(tout, tout_c, tout_ksw);
 			mc_interface_unlock();
 
-            return fault;
+			return fault;
 		}
 	}
 
@@ -2009,9 +1886,9 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
 
-    *resistance = voltage_avg / current_avg;
+	*resistance = voltage_avg / current_avg;
 
-    return fault;
+	return fault;
 }
 
 /**
@@ -2034,7 +1911,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
  */
 int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff, float *inductance) {
 	volatile motor_all_state_t *motor = get_motor_now();
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 
 	mc_foc_sensor_mode sensor_mode_old = motor->m_conf->foc_sensor_mode;
 	float f_zv_old = motor->m_conf->foc_f_zv;
@@ -2090,34 +1967,34 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 	float i_sum = 0.0;
 	float iterations = 0.0;
 
-	for (int i = 0;i < (samples / 10);i++) {        
+	for (int i = 0;i < (samples / 10);i++) {
 		timeout_reset();
 		mcpwm_foc_set_duty(0.0);
 
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
-            motor->m_id_set = 0.0;
-            motor->m_iq_set = 0.0;
-            motor->m_control_mode = CONTROL_MODE_NONE;
-            motor->m_state = MC_STATE_OFF;
-            stop_pwm_hw((motor_all_state_t*)motor);
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw((motor_all_state_t*)motor);
 
-            motor->m_conf->foc_sensor_mode = sensor_mode_old;
-            motor->m_conf->foc_f_zv = f_zv_old;
-            motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
-            motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
-            motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
-            motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
-            motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
-            motor->m_conf->foc_hfi_samples = samples_old;
-            motor->m_conf->foc_sample_high_current = sample_high_current_old;
+			motor->m_conf->foc_sensor_mode = sensor_mode_old;
+			motor->m_conf->foc_f_zv = f_zv_old;
+			motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
+			motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
+			motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
+			motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
+			motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+			motor->m_conf->foc_hfi_samples = samples_old;
+			motor->m_conf->foc_sample_high_current = sample_high_current_old;
 
-            mcpwm_foc_set_configuration(motor->m_conf);
+			mcpwm_foc_set_configuration(motor->m_conf);
 
-            mc_interface_unlock();
+			mc_interface_unlock();
 
-            return fault;
-        }
+			return fault;
+		}
 
 		chThdSleepMilliseconds(10);
 
@@ -2170,8 +2047,8 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * ind_scale_factor;
 	}
 
-    *inductance = (l_sum / iterations) * 1e6 * ind_scale_factor;
-    return fault;
+	*inductance = (l_sum / iterations) * 1e6 * ind_scale_factor;
+	return fault;
 }
 
 /**
@@ -2195,13 +2072,13 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
  * The fault code
  */
 int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff, float *inductance) {
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 	float duty_last = 0.0;
 	for (float i = 0.02;i < 0.5;i *= 1.5) {
 		float i_tmp;
-        fault = mcpwm_foc_measure_inductance(i, 10, &i_tmp, 0, 0);
-        if (fault != FAULT_CODE_NONE) {
-            return fault;
+		fault = mcpwm_foc_measure_inductance(i, 10, &i_tmp, 0, 0);
+		if (fault != FAULT_CODE_NONE) {
+			return fault;
 		}
 
 		duty_last = i;
@@ -2209,8 +2086,8 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 			break;
 		}
 	}
-    fault = mcpwm_foc_measure_inductance(duty_last, samples, curr, ld_lq_diff, inductance);
-    return fault;
+	fault = mcpwm_foc_measure_inductance(duty_last, samples, curr, ld_lq_diff, inductance);
+	return fault;
 }
 
 bool mcpwm_foc_beep(float freq, float time, float voltage) {
@@ -2299,7 +2176,7 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
  */
 int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	volatile motor_all_state_t *motor = get_motor_now();
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 
 	const float kp_old = motor->m_conf->foc_current_kp;
 	const float ki_old = motor->m_conf->foc_current_ki;
@@ -2310,12 +2187,12 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 
 	float i_last = 0.0;
 	for (float i = 2.0;i < (motor->m_conf->l_current_max / 2.0);i *= 1.5) {
-        float r_tmp = 0.0;
-        fault = mcpwm_foc_measure_resistance(i, 20, false, &r_tmp);
-        if (fault != FAULT_CODE_NONE || r_tmp == 0.0) {
+		float r_tmp = 0.0;
+		fault = mcpwm_foc_measure_resistance(i, 20, false, &r_tmp);
+		if (fault != FAULT_CODE_NONE || r_tmp == 0.0) {
 			motor->m_conf->foc_current_kp = kp_old;
 			motor->m_conf->foc_current_ki = ki_old;
-            return fault;
+			return fault;
 		}
 		if (i > (1.0 / r_tmp)) {
 			i_last = i;
@@ -2331,17 +2208,17 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	i_last = (motor->m_conf->l_current_max / 2.0);
 #endif
 
-    fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
-    if (fault == FAULT_CODE_NONE && *res != 0.0) {
+	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
+	if (fault == FAULT_CODE_NONE && *res != 0.0) {
 		motor->m_conf->foc_motor_r = *res;
-        fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
+		fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
 	}
 
 	motor->m_conf->foc_current_kp = kp_old;
 	motor->m_conf->foc_current_ki = ki_old;
 	motor->m_conf->foc_motor_r = res_old;
 
-    return fault;
+	return fault;
 }
 
 /**
@@ -2362,7 +2239,7 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
  */
 int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 	volatile motor_all_state_t *motor = get_motor_now();
-    int fault = FAULT_CODE_NONE;
+	int fault = FAULT_CODE_NONE;
 	mc_interface_lock();
 
 	motor->m_phase_override = true;
@@ -2388,20 +2265,20 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 
 	for (int i = 0;i < 1000;i++) {
 		motor->m_id_set = (float)i * current / 1000.0;
-        fault = mc_interface_get_fault();
-        if (fault != FAULT_CODE_NONE) {
-            motor->m_id_set = 0.0;
-            motor->m_iq_set = 0.0;
-            motor->m_phase_override = false;
-            motor->m_control_mode = CONTROL_MODE_NONE;
-            motor->m_state = MC_STATE_OFF;
-            stop_pwm_hw((motor_all_state_t*)motor);
-            motor->m_conf->foc_mtpa_mode = mtpa_old;
-            // Enable timeout
-            timeout_configure(tout, tout_c, tout_ksw);
-            mc_interface_unlock();
-            return fault;
-        }
+		fault = mc_interface_get_fault();
+		if (fault != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_phase_override = false;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw((motor_all_state_t*)motor);
+			motor->m_conf->foc_mtpa_mode = mtpa_old;
+			// Enable timeout
+			timeout_configure(tout, tout_c, tout_ksw);
+			mc_interface_unlock();
+			return fault;
+		}
 		chThdSleepMilliseconds(1);
 	}
 
@@ -2416,20 +2293,20 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 	for (int i = 0;i < 3;i++) {
 		for (int j = 0;j < 360;j++) {
 			motor->m_phase_now_override = DEG2RAD_f(j);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
-                motor->m_conf->foc_mtpa_mode = mtpa_old;
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
-                mc_interface_unlock();
-                return fault;
-            }
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
+				motor->m_conf->foc_mtpa_mode = mtpa_old;
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				return fault;
+			}
 			chThdSleepMilliseconds(5);
 
 			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
@@ -2445,20 +2322,20 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 	for (int i = 0;i < 3;i++) {
 		for (int j = 360;j >= 0;j--) {
 			motor->m_phase_now_override = DEG2RAD_f(j);
-            fault = mc_interface_get_fault();
-            if (fault != FAULT_CODE_NONE) {
-                motor->m_id_set = 0.0;
-                motor->m_iq_set = 0.0;
-                motor->m_phase_override = false;
-                motor->m_control_mode = CONTROL_MODE_NONE;
-                motor->m_state = MC_STATE_OFF;
-                stop_pwm_hw((motor_all_state_t*)motor);
-                motor->m_conf->foc_mtpa_mode = mtpa_old;
-                // Enable timeout
-                timeout_configure(tout, tout_c, tout_ksw);
-                mc_interface_unlock();
-                return fault;
-            }
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
+				motor->m_conf->foc_mtpa_mode = mtpa_old;
+				// Enable timeout
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				return fault;
+			}
 			chThdSleepMilliseconds(5);
 
 			int hall = utils_read_hall(motor != &m_motor_1, motor->m_conf->m_hall_extra_samples);
@@ -2496,8 +2373,8 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 
 	mc_interface_unlock();
 
-    *result = (fails == 2);
-    return fault;
+	*result = (fails == 2);
+	return fault;
 }
 
 /**
