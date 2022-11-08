@@ -1235,6 +1235,26 @@ float mcpwm_foc_get_iq(void) {
 }
 
 /**
+ * Get the filtered direct axis motor current.
+ *
+ * @return
+ * The D axis current.
+ */
+float mcpwm_foc_get_id_filter(void) {
+	return get_motor_now()->m_motor_state.id_filter;
+}
+
+/**
+ * Get the filtered quadrature axis motor current.
+ *
+ * @return
+ * The Q axis current.
+ */
+float mcpwm_foc_get_iq_filter(void) {
+	return get_motor_now()->m_motor_state.iq_filter;
+}
+
+/**
  * Get the input current to the motor controller.
  *
  * @return
@@ -1819,7 +1839,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 
 	// Ramp up the current slowly
 	while (fabsf(motor->m_iq_set - current) > 0.001) {
-		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 500.0);
+		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 200.0);
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			motor->m_id_set = 0.0;
@@ -1838,7 +1858,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	}
 
 	// Wait for the current to rise and the motor to lock.
-	chThdSleepMilliseconds(100);
+	chThdSleepMilliseconds(50);
 
 	// Sample
 	motor->m_samples.avg_current_tot = 0.0;

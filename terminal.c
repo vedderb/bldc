@@ -38,6 +38,7 @@
 #include "firmware_metadata.h"
 
 #include <string.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -78,6 +79,10 @@ void terminal_process_string(char *str) {
 		return;
 	}
 
+	// force command argument to be lowercase
+	for(int i = 0; argv[0][i] != '\0'; i++){
+  		argv[0][i] = tolower(argv[0][i]);
+	}
 
 	for (int i = 0;i < callback_write;i++) {
 		if (callbacks[i].cbf != 0 && strcmp(argv[0], callbacks[i].command) == 0) {

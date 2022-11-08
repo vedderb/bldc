@@ -374,6 +374,9 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->imu_conf.type;
 	buffer[ind++] = conf->imu_conf.mode;
 	buffer[ind++] = conf->imu_conf.filter;
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_x, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_y, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_z, 1, &ind);
 	buffer_append_uint16(buffer, conf->imu_conf.sample_rate_hz, &ind);
 	buffer[ind++] = conf->imu_conf.use_magnetometer;
 	buffer_append_float32_auto(buffer, conf->imu_conf.accel_confidence_decay, &ind);
@@ -768,6 +771,9 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->imu_conf.type = buffer[ind++];
 	conf->imu_conf.mode = buffer[ind++];
 	conf->imu_conf.filter = buffer[ind++];
+	conf->imu_conf.accel_lowpass_filter_x = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.accel_lowpass_filter_y = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.accel_lowpass_filter_z = buffer_get_float16(buffer, 1, &ind);
 	conf->imu_conf.sample_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->imu_conf.use_magnetometer = buffer[ind++];
 	conf->imu_conf.accel_confidence_decay = buffer_get_float32_auto(buffer, &ind);
@@ -1146,6 +1152,9 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->imu_conf.type = APPCONF_IMU_TYPE;
 	conf->imu_conf.mode = APPCONF_IMU_AHRS_MODE;
 	conf->imu_conf.filter = APPCONF_IMU_FILTER;
+	conf->imu_conf.accel_lowpass_filter_x = APPCONF_IMU_ACCEL_LOWPASS_FILTER_X;
+	conf->imu_conf.accel_lowpass_filter_y = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Y;
+	conf->imu_conf.accel_lowpass_filter_z = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Z;
 	conf->imu_conf.sample_rate_hz = APPCONF_IMU_SAMPLE_RATE_HZ;
 	conf->imu_conf.use_magnetometer = APPCONF_IMU_USE_MAGNETOMETER;
 	conf->imu_conf.accel_confidence_decay = APPCONF_IMU_ACCEL_CONFIDENCE_DECAY;

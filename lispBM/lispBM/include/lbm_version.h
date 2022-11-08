@@ -29,10 +29,21 @@ extern "C" {
 /** LBM minor version */
 #define LBM_MINOR_VERSION 7
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 /*! \page changelog Changelog
-Sep 25: version 0.7.0
+
+Oct 31: Version 0.7.1
+  - Added optional boolean guards to pattern matches.
+  - Built in map and reverse.
+
+Oct 16: Version 0.7.0
+  - Refactoring for evaluation speed.
+  - Removed possibility to step through code.
+  - Oldest message is removed on mailbox full.
+  - Added spawn-trap inspired by Erlang (but simplified).
+
+Sep 25: Version 0.7.0
   - Removed namespaces (they were too restricted).
   - Mailboxes are now stored in arrays of default size 10 mails.
     Mailbox size can be changed using set-mailbox-size.

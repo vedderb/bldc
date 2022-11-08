@@ -263,19 +263,8 @@ bool dyn_load(const char *str, const char **code) {
   if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
-    *code = "(define reverse (lambda (xs)"
-            "(let ((revacc (lambda (acc xs)"
-	    "(if (eq nil xs) acc"
-	    "(revacc (cons (car xs) acc) (cdr xs))))))"
-            "(revacc nil xs))))";
-    res = true;
   } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
-    *code = "(define iota (lambda (n)"
-            "(let ((iacc (lambda (acc i)"
-            "(if (< i 0) acc"
-            "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil (- n 1)))))";
+    *code = "(define iota (lambda (n) (range 0 n)))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
     *code = "(define length (lambda (xs)"
@@ -302,11 +291,6 @@ bool dyn_load(const char *str, const char **code) {
 	    "(if (eq xs nil) nil"
 	    "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
-    *code = "(define map (lambda (f xs)"
-	    "(if (eq xs nil) nil"
-            "(cons (f (car xs)) (map f (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
@@ -661,7 +645,7 @@ int main(int argc, char **argv) {
                                        file_str);
 
         /* Get exclusive access to the heap */
-        lbm_pause_eval();
+        lbm_pause_eval_with_gc(50);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
@@ -809,7 +793,7 @@ int main(int argc, char **argv) {
       int i_val;
 
       if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
-        lbm_pause_eval();
+        lbm_pause_eval_with_gc(50);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
@@ -833,12 +817,6 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
       free(str);
-    } else if (strncmp(str, ":step", 5) == 0) {
-
-      int num = atoi(str + 5);
-
-      lbm_step_n_eval((uint32_t)num);
-      free(str);
     } else if (strncmp(str, ":inspect", 8) == 0) {
 
       int i = 8;
@@ -855,7 +833,7 @@ int main(int argc, char **argv) {
 	printf("symbol does not exist\n");
       }
     } else if (strncmp(str, ":undef", 6) == 0) {
-      lbm_pause_eval();
+      lbm_pause_eval_with_gc(50);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
@@ -867,7 +845,7 @@ int main(int argc, char **argv) {
     } else {
       /* Get exclusive access to the heap */
       read_t *r = malloc(sizeof(read_t));
-      lbm_pause_eval();
+      lbm_pause_eval_with_gc(50);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }

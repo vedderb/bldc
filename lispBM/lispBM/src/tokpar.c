@@ -125,15 +125,6 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?double" , TOKMATCHDOUBLE, 7},
-  {"?float", TOKMATCHFLOAT, 6},
-  {"?cons", TOKMATCHCONS, 5},
-  {"?u64", TOKMATCHU64, 4},
-  {"?i64", TOKMATCHI64, 4},
-  {"?u32", TOKMATCHU32, 4},
-  {"?i32", TOKMATCHI32, 4},
-  {"?i", TOKMATCHI28, 2},
-  {"?u", TOKMATCHU28, 2},
   {"?", TOKMATCHANY, 1}
 };
 
@@ -179,7 +170,7 @@ int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *m, unsi
 }
 
 bool symchar0(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#!";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -189,7 +180,7 @@ bool symchar0(char c) {
 }
 
 bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?_";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -556,7 +547,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_DONE);
   }
 
-  lbm_value res = lbm_enc_sym(SYM_RERROR);
+  lbm_value res = lbm_enc_sym(SYM_TOKENIZER_RERROR);
   uint32_t match;
   n = tok_match_fixed_size_tokens(chan,
                                   fixed_size_tokens,
@@ -595,33 +586,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
       break;
-    case TOKMATCHI28:
-      res = lbm_enc_sym(SYM_MATCH_I);
-      break;
-    case TOKMATCHU28:
-      res = lbm_enc_sym(SYM_MATCH_U);
-      break;
-    case TOKMATCHI32:
-      res = lbm_enc_sym(SYM_MATCH_I32);
-      break;
-    case TOKMATCHU32:
-      res = lbm_enc_sym(SYM_MATCH_U32);
-      break;
-    case TOKMATCHFLOAT:
-      res = lbm_enc_sym(SYM_MATCH_FLOAT);
-      break;
-    case TOKMATCHU64:
-      res = lbm_enc_sym(SYM_MATCH_U64);
-      break;
-    case TOKMATCHI64:
-      res = lbm_enc_sym(SYM_MATCH_I64);
-      break;
-    case TOKMATCHDOUBLE:
-      res = lbm_enc_sym(SYM_MATCH_DOUBLE);
-      break;
-    case TOKMATCHCONS:
-      res = lbm_enc_sym(SYM_MATCH_CONS);
-      break;
     case TOKMATCHANY:
       res = lbm_enc_sym(SYM_MATCH_ANY);
       break;
@@ -654,7 +618,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
   } else if (n == TOKENIZER_NEED_MORE) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   } else if (n == TOKENIZER_STRING_ERROR) {
-    return lbm_enc_sym(SYM_RERROR);
+    return ENC_SYM_TOKENIZER_RERROR;
   }
 
   token_float f_val;
@@ -701,7 +665,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
       break;
     default:
-      return lbm_enc_sym(SYM_RERROR);
+      return ENC_SYM_TOKENIZER_RERROR;
       break;
     }
   } else if (n == TOKENIZER_NEED_MORE) {
@@ -730,7 +694,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       if (r) {
         res = lbm_enc_sym(symbol_id);
       } else {
-        res = lbm_enc_sym(SYM_RERROR);
+        res = ENC_SYM_TOKENIZER_RERROR;
       }
     }
     return res;
@@ -746,6 +710,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  return ENC_SYM_RERROR;
+  return ENC_SYM_TOKENIZER_RERROR;
 }
 

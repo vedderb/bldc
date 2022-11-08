@@ -162,6 +162,22 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_BISSC: {
+		SENSOR_PORT_5V();
+
+		encoder_cfg_bissc.enc_res = conf->m_encoder_counts;
+
+		if (!enc_bissc_init(&encoder_cfg_bissc)) {
+			encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		encoder_type_now = ENCODER_TYPE_BISSC;
+		timer_start(10000);
+
+		res = true;
+	} break;
+
 	default:
 		SENSOR_PORT_5V();
 		encoder_type_now = ENCODER_TYPE_NONE;
@@ -208,6 +224,8 @@ void encoder_deinit(void) {
 		enc_ts5700n8501_deinit(&encoder_cfg_TS5700N8501);
 	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
 		enc_as5x47u_deinit(&encoder_cfg_as5x47u);
+	} else if (encoder_type_now == ENCODER_TYPE_BISSC) {
+		enc_bissc_deinit(&encoder_cfg_bissc);
 	}
 
 	encoder_type_now = ENCODER_TYPE_NONE;
@@ -228,6 +246,8 @@ float encoder_read_deg(void) {
 		return enc_ts5700n8501_read_deg(&encoder_cfg_TS5700N8501);
 	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
 		return AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
+	} else if (encoder_type_now == ENCODER_TYPE_BISSC) {
+		return BISSC_LAST_ANGLE(&encoder_cfg_bissc);
 	}
 	return 0.0;
 }
@@ -349,6 +369,15 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 
 			break;
 
+		case SENSOR_PORT_MODE_BISSC:
+			if (encoder_cfg_bissc.state.spi_comm_error_rate > 0.04) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
+			}
+			if (encoder_cfg_bissc.state.spi_data_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, is_second_motor, false);
+			}
+			break;
+
 		default:
 			break;
 		}
@@ -376,6 +405,9 @@ void encoder_tim_isr(void) {
 		case ENCODER_TYPE_AS5x47U:
 			enc_as5x47u_routine(&encoder_cfg_as5x47u);
 			break;
+
+		case ENCODER_TYPE_BISSC:
+			enc_bissc_routine(&encoder_cfg_bissc);
 
 		default:
 			break;
@@ -485,6 +517,15 @@ static void terminal_encoder(int argc, const char **argv) {
 				encoder_cfg_as5x47u.state.sensor_diag.is_mag_half,
 				encoder_cfg_as5x47u.state.sensor_diag.serial_error_flgs,
 				encoder_cfg_as5x47u.state.sensor_diag.serial_diag_flgs);
+		break;
+
+	case SENSOR_PORT_MODE_BISSC:
+		commands_printf("BissC Loss SPI communication (>4%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_cfg_bissc.state.spi_comm_error_cnt,
+				(double)(encoder_cfg_bissc.state.spi_comm_error_rate * 100.0));
+		commands_printf("BissC Degradation Of Signal (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
+				encoder_cfg_bissc.state.spi_data_error_cnt,
+				(double)(encoder_cfg_bissc.state.spi_data_error_rate * 100.0));
 		break;
 
 	default:

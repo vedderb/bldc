@@ -127,8 +127,8 @@ Compute 5 % 3, evaluates to 2.
 
 ### eq
 
-Compare expressions for equality. The eq implements structural
-equality.  The form of an eq expression is `(eq expr1 ... exprN)`
+Compare expressions for equality. The `eq` operation implements structural
+equality.  The form of an `eq` expression is `(eq expr1 ... exprN)`
 
 
 Compare the result of `(+ 1 2)` with 3. The
@@ -149,8 +149,10 @@ The following examples evaluate to `nil` representing false.
 
 (eq (+ 1 2) (+ 0 2) (+ -1 2))
 ```
-The = comparison can be used on tree shaped data. The following expression evaluates to
-`t`.
+
+The `eq` comparison can be used on tree shaped data. The following
+expression evaluates to `t`.
+
 ```clj
 (eq '(1 (1 2)) '(1 (1 2)))
 ```
@@ -165,7 +167,7 @@ If you know you are comparing numbers, it will be more efficient to use
 `=`.
 
 An important difference between `eq` and `=` is
-that equals compare the numerical values of the arguments. A 3 is a 3
+that `=` compare the numerical values of the arguments. A 3 is a 3
 independent of them being different types. `eq` on the other
 hand compares the representations of the arguments exactly and they must
 match in structure, type and value to be considered equal.
@@ -345,58 +347,9 @@ is the same type as the first of the arguments.
 Performs the bitwise not operations on a value. The result is of same type as
 the argument.
 
-## Low level operations
-
-### encode-i32
-
-The `encode-i32` function converts a list of four (byte sized) values
-into an i32 value.
-
-Example that evaluates to the i32 value 1024.
-```clj
-(encode-i32 (list 0 0 4 0))
-```
-
-
 ---
 
-### encode-u32
-
-The `encode-u32` function converts a list of four (byte sized) values
-into an u32 value.
-
-Example that evaluates to the u32 value 1024.
-```clj
-(encode-u32 (list 0 0 4 0))
-```
-
----
-
-### encode-float
-
-The `encode-float` function converts a list four (byte sized) values
-into a float value.
-
-Example that evaluates to 3.14.
-```clj
-(encode-float (list 64 72 245 195))
-```
-
-
----
-
-### decode
-
-The `decode` function decodes a value into a list of four (byte sized) values.
-
-Example that decodes float 3.14 into the list (64 72 245 195).
-```clj
-(decode 3.14)
-```
-
----
-
-## nil and t
+## nil and t, true and false
 
 ### nil
 
@@ -413,8 +366,20 @@ and nil in the <a href="#cdr"> cdr </a> field.
 
 ### t
 
-All non nil values are considered true in conditionals. t should be used in cases where an
+All non nil values are considered true in conditionals. `t` should be used in cases where an
 explicit true makes sense.
+
+---
+
+### true
+
+`true` is an alias for `t`.
+
+---
+
+### false
+
+`false` is an alias for `nil`.
 
 ---
 
@@ -493,13 +458,18 @@ Example that evaluates to 3.
 
 Evaluate a list of data where each element represents an expression.
 
-This function interacts with the continuation passing style
-of the evaluator in a slightly non-intuitive way and should
-be avoided in programs. It is used internally by the c-interoperation
-code to start evaluation of newly loaded program.
+Example that results in the value 15:
+```
+(define prg '( (+ 1 2) (+ 3 4) (+ 10 5)))
+(eval-program prg)
+```
 
-If you want to evaluate a program you can always use `eval` and
-put the program you wish to evaluate in a `progn` form.
+Example that prints the strings "apa", "bepa" and "cepa":
+```
+(define prg '( (print "apa") (print "bepa") (print "cepa")))
+(eval-program prg)
+```
+
 
 ---
 
@@ -562,18 +532,6 @@ get as result a unnamed symbol.
 
 ---
 
-### is-fundamental
-
-The `is-funamental` function returns true for built-in functions.
-
-Example that returns true.
-```clj
-(is-fundamental '+)
-```
-
----
-
-
 ## Special forms
 
 
@@ -589,6 +547,36 @@ The example below evaluates to 0 if a is less than or equal to 4. Otherwise it e
 (if (> a 4) (+ a 10) 0)
 ```
 
+---
+
+### cond
+
+`cond` is a generalization of `if` to discern between n different cases
+based on boolean expressions. The form of a `cond` expression is:
+`(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`.
+The conditions are checked from first to last and for the first `cond-exprN`
+that evaluates to true, the corresponding `exprN` is evaluated.
+
+If no `cond-exprN` evaluates to true, the result of the entire conditional
+is `nil`. 
+
+Example that prints "Hello world":
+```clj
+(define a 0)
+
+(cond ( (< a 0) (print "abrakadabra"))
+      ( (> a 0) (print "llama"))
+      ( (= a 0) (print "Hello world")))
+```
+
+Example that evaluates to `nil` as none of the conditions evaluate to true.
+```clj
+(define a 5)
+
+(cond ( (= a 1)  'doughnut )
+      ( (= a 7)  'apple-strudel )
+      ( (= a 10) 'baklava))
+```
 ---
 
 ### lambda
@@ -674,6 +662,27 @@ Example
 ```clj
 (define apa 10)
 ```
+---
+
+### undefine
+
+A definition in the global can be removed using undefine.  The form of
+an undefine expression is `(undefine name-expr)` where name-expr
+should evaluate to a symbol (for example `'apa`).
+
+Example
+```clj
+(undefine 'apa)
+```
+
+It is also possible to undefine several bindings at the same time by
+providing a list of names.
+
+Example
+```clj
+(undefine '(apa bepa cepa))
+```
+
 ---
 
 ### setvar
@@ -835,7 +844,7 @@ The `car` operation accesses the head element of a list. The following program e
 
 Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`.
 
-```lisp
+```clj
 # (first (list 1 2 3 4))
 > 1
 ```
@@ -864,7 +873,7 @@ The `cdr` operation gives you the rest of a list. The example below evaluates to
 
 Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`.
 
-```lisp
+```clj
 # (rest (list 1 2 3 4))
 > (2 3 4)
 ```
@@ -913,6 +922,47 @@ Example that creates the list (1 2 3 4).
 
 ---
 
+### length
+
+Computes the length of a list. The `length` function takes
+one argument and is of the form `(length expr)`.
+
+Example that evaluates to 4
+```clj
+
+(length (list 1 2 3 4))
+```
+
+---
+
+### range
+
+The `range` function computes a list with integer values from a
+range specified by its endpoints. The form of a range expression
+is `(range start-expr end-expr)`. The end point in the range is excluded.
+
+Example that generates the list (4 5 6 7).
+```clj
+(range 4 8)
+```
+
+A range specified with the end-point being smaller than the
+starting point is in descending order.
+
+Example that generates the list (7 6 5 4).
+```clj
+(range 8 4)
+```
+
+Negative number can be used to specify a range
+
+Example that generates the list (-10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9)
+```clj
+(range -10 10)
+```
+
+---
+
 ### append
 
 The `append` function combines two lists into a longer list.
@@ -943,7 +993,7 @@ Destructively update an element in a list. The form of a `setix` expression
 is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and
 if you index out of bounds the result is nil.
 
-```lisp
+```clj
 # (setix (list 1 2 3 4 5) 2 77)
 > (1 2 77 4 5)
 ```
@@ -1005,7 +1055,7 @@ to ensure this.
 Example that adds the key `4` and associated value `lemur` to 
 an existing alist. 
 
-```lisp
+```clj
 # (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
 > ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
 ```
@@ -1114,7 +1164,7 @@ Clears an array by writing zeroes to all locations.
 
 Example:
 
-```lisp
+```clj
 (array-clear arr)
 ```
 
@@ -1144,12 +1194,12 @@ The currently valid type qualifiers are:
 (The rest of the numerical types will be supported in the future) 
 
 Example that creates a byte array 
-```lisp
+```clj
 [ 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 Example that create an array of i32 values
-```lisp
+```clj
 [ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
@@ -1206,42 +1256,21 @@ An example that evaluates to 19.
 
 ---
 
-### ?i
+### Match with guards
 
-The `?i` pattern matches an integer (28bit integer on 32bit platforms
-and a 56bit integer on 64bit platforms) and binds that value to a
-variable.  Using the ?i pattern is done as `(?i var)` and the part
-of the expression that matches is bound to the `var`.
+Patterns used in a match expressions can be augmented with a boolean
+guard to further discern between cases. A pattern with a guard is of the
+form `(pattern-expr guard-expr expr)`. A pattern with a guard, matches only
+if the pattern structurally matches and if the guard-expr evaluates to true
+in the match environment.
 
-The following example evaluates to `not-an-i`.
+Example:
 ```clj
-(match 3.14
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-The example below evaluates to 5.
-```clj
-(match 4
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-
-
----
-
-### ?u
-
-The `?u` pattern matches any unsigned and binds that value to a variable.
-Using the ?u pattern is done as `(?u var)` and the part of the expression
-that matches is bound to the `var`.
-
----
-
-### ?float
-
-The `?float` pattern matches any float and binds that value to a
-variable.  Using the `?float` pattern is done as `(?float var)` and
-the part of the expression that matches is bound to the `var`.
+(match (x)
+       ( (? y) (< y 0) 'less-than-zero)
+       ( (? y) (> y 0) 'greater-than-zero)
+       ( (? y) (= y 0) 'equal-to-zero))
+``` 
 
 ---
 
@@ -1275,6 +1304,24 @@ that the runtime system should allocate to run the task in: `(spawn stack-size c
 
 ---
 
+### spawn-trap
+
+Use `spawn-trap` to spawn a child process and enable trapping of exit conditions for that
+child. The form of a `spawn-trap` expression is `(spawn-trap closure arg1 .. argN)`.
+If the child process is terminated because of an error, a message is sent to the parent
+process of the form `(exit-error tid err-val)`. If the child process terminates successfully
+a message of the form `(exit-ok tid value)` is sent to the parent.
+
+Example:
+```clj
+(spawn-trap my-thread)
+
+(recv  ((exit-error (? tid) (? e)) ...)
+       ((exit-ok    (? tid) (? v)) ...))
+```
+
+---
+
 ### wait
 
 Use `wait` to wait for a spawned process to finish.
@@ -1297,19 +1344,34 @@ is number indicating at least how many microseconds the process should sleep.
 
 ### atomic
 
-`atomic` can be used to execute a LispBM expression without allowing
-the runtime system to switch task during the time that takes.
+`atomic` can be used to execute a LispBM one or more expression without allowing
+the runtime system to switch task during that time.
 
-An example that atomically perfoms operations a,b and c. 
+An example that atomically perfoms operations a,b and c.
 
-```lisp
+```clj
 (atomic
-   (progn
      a
      b
-     c))
+     c)
 ```
+---
 
+### exit-ok
+
+The `exit-ok` function terminates the thread in a "successful" way and returnes a result
+specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.
+If the process that calls `exit-ok` was created using `spawn-trap` a message of the form
+`(exit-ok tid value)` is be sent to the parent of this process.
+
+---
+
+### exit-error
+
+The `exit-error` function terminates the thread with an error specified by the programmer.
+The form of an `exit-error` expression is `(exit-error err_val)`. If the process that
+calls `exit-error` was created using `spawn-trap` a message of the form
+`(exit-error tid err_val)` is sent to the parent of this process.
 
 ---
 
@@ -1335,6 +1397,17 @@ Example where a process waits for an integer `?i`.
 (recv ( (?i n) (+ n 1) ))
 ```
 
+---
+
+### set-mailbox-size
+
+Change the size of the mailbox in the current process.
+Standard mailbox size is 10 elements.
+
+Example that changes mailbox size to 100 elements.
+```clj
+(set-mailbox-size 100)
+```
 
 ---
 

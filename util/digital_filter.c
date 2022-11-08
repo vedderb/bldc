@@ -232,3 +232,34 @@ void filter_add_sample(float *buffer, float sample, int bits, uint32_t *offset) 
 	*offset += 1;
 	*offset &= cnt_mask;
 }
+
+/**
+ * Biquad filter
+ */
+float biquad_process(Biquad *biquad, float in) {
+    float out = in * biquad->a0 + biquad->z1;
+    biquad->z1 = in * biquad->a1 + biquad->z2 - biquad->b1 * out;
+    biquad->z2 = in * biquad->a2 - biquad->b2 * out;
+    return out;
+}
+void biquad_config(Biquad *biquad, BiquadType type, float Fc) {
+	float K = tanf(M_PI * Fc);	// -0.0159;
+	float Q = 0.707; // maximum sharpness (0.5 = maximum smoothness)
+	float norm = 1 / (1 + K / Q + K * K);
+	if (type == BQ_LOWPASS) {
+		biquad->a0 = K * K * norm;
+		biquad->a1 = 2 * biquad->a0;
+		biquad->a2 = biquad->a0;
+	}
+	else if (type == BQ_HIGHPASS) {
+		biquad->a0 = 1 * norm;
+		biquad->a1 = -2 * biquad->a0;
+		biquad->a2 = biquad->a0;
+	}
+	biquad->b1 = 2 * (K * K - 1) * norm;
+	biquad->b2 = (1 - K / Q + K * K) * norm;
+}
+void biquad_reset(Biquad *biquad) {
+	biquad->z1 = 0;
+	biquad->z2 = 0;
+}

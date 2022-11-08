@@ -191,7 +191,8 @@ typedef enum {
 	SENSOR_PORT_MODE_TS5700N8501,
 	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
 	SENSOR_PORT_MODE_MT6816_SPI,
-	SENSOR_PORT_MODE_AS5x47U_SPI
+	SENSOR_PORT_MODE_AS5x47U_SPI,
+	SENSOR_PORT_MODE_BISSC
 } sensor_port_mode;
 
 typedef struct {
@@ -868,6 +869,9 @@ typedef struct {
 	IMU_TYPE type;
 	AHRS_MODE mode;
 	IMU_FILTER filter;
+	float accel_lowpass_filter_x;
+	float accel_lowpass_filter_y;
+	float accel_lowpass_filter_z;
 	int sample_rate_hz;
 	bool use_magnetometer;
 	float accel_confidence_decay;
@@ -884,7 +888,8 @@ typedef struct {
 typedef enum {
 	CAN_MODE_VESC = 0,
 	CAN_MODE_UAVCAN,
-	CAN_MODE_COMM_BRIDGE
+	CAN_MODE_COMM_BRIDGE,
+	CAN_MODE_UNUSED,
 } CAN_MODE;
 
 typedef enum {
@@ -1120,6 +1125,19 @@ typedef enum {
 
 	COMM_LISP_REPL_CMD,
 	COMM_LISP_STREAM_CODE,
+
+	COMM_FILE_LIST,
+	COMM_FILE_READ,
+	COMM_FILE_WRITE,
+	COMM_FILE_MKDIR,
+	COMM_FILE_REMOVE,
+
+	COMM_LOG_START,
+	COMM_LOG_STOP,
+	COMM_LOG_CONFIG_FIELD,
+	COMM_LOG_DATA_F32,
+
+	COMM_SET_APPCONF_NO_STORE,
 } COMM_PACKET_ID;
 
 // CAN commands

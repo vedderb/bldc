@@ -293,9 +293,18 @@ Read system info parameter param. Example:
 (sysinfo 'has-phase-filters) ; t if hardware has phase filters
 (sysinfo 'uuid) ; STM32 UUID
 (sysinfo 'runtime) ; Total runtime in seconds
+(sysinfo 'git-branch) ; Git branch name
+(sysinfo 'git-hash) ; Git hash of current commit
+(sysinfo 'compiler) ; GCC version, e.g. 7.3.1
 ```
 
 ### App Override Commands
+
+Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
+
+**Note:** Detach does *not* mean that the app output is disabled, it means that you can provide the input for the app instead of having it read the external peripheral. So if you e.g. detach the app and override the input with 0 the app will keep sending the corresponding command to the motor as usual, even if that command is a stop command. If you want to disable the app output you can have a look at [app-disable-output](#app-disable-output).
+
+#### app-adc-detach
 
 ```clj
 (app-adc-detach mode state)
@@ -310,6 +319,8 @@ Read system info parameter param. Example:
 
 Detaches a peripherial from the APP ADC
 
+#### app-adc-override
+
 ```clj
 (app-adc-override mode value)
 ; Where
@@ -322,6 +333,44 @@ Detaches a peripherial from the APP ADC
 ```
 
 Sets the override value
+
+#### app-ppm-detach
+
+```clj
+(app-ppm-detach state)
+```
+
+Detaches the decoded ppm signal from APP PPM. 1 means detach, 0 means attach.
+
+#### app-ppm-override
+
+```clj
+(app-ppm-override value)
+```
+
+Sets the override value. Range -1.0 to 1.0.
+
+#### set-remote-state
+
+```clj
+(set-remote-state js-y js-x bt-c bt-z is-rev)
+; Where
+; js-y : Joystick Y axis, range -1.0 to 1.0, used for throttle position
+; js-x : Joystick X axis, range -1.0 to 1.0, unused by the app
+; bt-c : C button pressed state, 0 or 1, used for cruise control
+; bt-z : Z button pressed state, 0 or 1, unused by the app
+; is-rev : Reverse active, 0 or 1, reverse mode active
+```
+
+Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sent to this app at any time without detaching it and it will be treated the same as a packet from a VESC Remote. That means the timeout as well as all VESC Remote settings will be used.
+
+#### app-disable-output
+
+```clj
+(app-disable-output ms)
+```
+
+Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
 
 ### Motor Set Commands
 
@@ -429,7 +478,33 @@ Get directional current. Positive for torque in the forward direction and negati
 (get-current-in)
 ```
 
-Get input current. Will always be lower than the motor current. The closer the motor spins to full speed the closer the input current is to the motor current.
+#### get-id
+```clj
+(get-id)
+```
+
+Get FOC d-axis current.
+
+#### get-iq
+```clj
+(get-iq)
+```
+
+Get FOC q-axis current.
+
+#### get-vd
+```clj
+(get-vd)
+```
+
+Get FOC d-axis voltage.
+
+#### get-vq
+```clj
+(get-vq)
+```
+
+Get FOC q-axis voltage.
 
 #### get-duty
 ```clj
@@ -1005,6 +1080,7 @@ Configure GPIO pin to mode. Example:
 'pin-hall3  ; Sensor port hall3
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
+'pin-ppm    ; Signal-pin on PPM-port
 
 ; Available modes
 'pin-mode-out    ; Output
@@ -1059,8 +1135,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'motor-type             ; Motor Type
                         ;    0: BLDC (6-step commutation)
                         ;    1: DC (DC motor on phase A and C)
-                        ;	2: FOC (Field Oriented Control)
-                        ;	3: GPD (General Purpose Drive)
+                        ;    2: FOC (Field Oriented Control)
+                        ;    3: GPD (General Purpose Drive)
 'l-watt-max             ; Maximum power regen in W
 'm-invert-direction     ; Invert motor direction, 0 or 1
 'm-out-aux-mode         ; AUX-pin output mode. Options:
@@ -1204,6 +1280,26 @@ Example:
 (print (conf-detect-foc 0 50 -20 50 800 2500))
 ; Print the result when done
 ```
+
+#### conf-set-pid-offset
+
+```clj
+(conf-set-pid-offset offset optStore)
+```
+
+Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to true to store the offset persistently (although that requires stopping the motor).
+
+#### conf-measure-res
+
+```clj
+(conf-measure-res current optSamples)
+```
+
+Measure motor resistance with current. The optional argument optSamples sets the number of samples to use (default 100).
+
+This command is useful to update the configuration before starting the motor as the resistance is the most important when it comes to sensorless low-speed performance. It is also useful to sanity check if the motor is shorted out or if a connector is loose. Such faults cause a relatively significant change in resistance. Changes with more than 50% compared to the detected value are most likely faults.
+
+**NOTE:** Phase filters are required to get accurate resistance measurements, so resistance-based fault detection is not as useful on hardware without phase filters.
 
 ### EEPROM (Nonvolatile Storage)
 
@@ -1427,30 +1523,20 @@ Apply function f to every element in list lst. Example:
 
 This example creates an anonymous function that takes one argument and returns that argument multiplied by 5. Map then applies it to every element in the list (1 2 3 4), which yields the list (5 10 15 20).
 
-#### iota
-
-```clj
-(iota n)
-```
-
-Create list from 0 to n, excluding n. Example:
-
-```clj
-(iota 5)
-> (0 1 2 3 4)
-```
-
 #### range
 
 ```clj
-(range start end)
+(range optStart end)
 ```
 
-Create a list from start to end, excluding end. Example:
+Create a list from start to end, excluding end. Range also works with just one argument, which is takes as end assuming start is 0. Example:
 
 ```clj
 (range 2 8)
 > (2 3 4 5 6 7)
+
+(range 5)
+> (0 1 2 3 4)
 ```
 
 #### foldl
@@ -1681,7 +1767,7 @@ Split string str into tokens using delimiter delim. If delim is a number str wil
 (str-replace str rep optWith)
 ```
 
-Replace every occurrence of rep in str with opnWith. If optWith is omitted every rep will be removed. Example:
+Replace every occurrence of rep in str with optWith. If optWith is omitted every rep will be removed. Example:
 
 ```clj
 (str-replace "Hello World!" "World" "LispBM")
@@ -1781,12 +1867,12 @@ The following example shows how to spawn a thread that handles SID (standard-id)
         (print data)
 )))
 
-(define event-handler (lambda ()
-    (progn
-        (recv ((event-can-sid (? id) . (? data)) (proc-sid id data))
-        (recv ((event-data-rx ? data) (proc-data data))
-              (_ nil)) ; Ignore other events
-        (event-handler) ; Call self again to make this a loop
+(defun event-handler ()
+    (loopwhile t
+        (recv
+            ((event-can-sid (? id) . (? data)) (proc-sid id data))
+            ((event-data-rx ? data) (proc-data data))
+            (_ nil) ; Ignore other events
 )))
 
 ; Spawn the event handler thread and pass the ID it returns to C
@@ -1802,12 +1888,27 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable 'event-can-sid) ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
-(event-enable 'event-can-eid) ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
-(event-enable 'event-data-rx) ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-can-sid)  ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
+(event-enable 'event-can-eid)  ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
+(event-enable 'event-data-rx)  ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-shutdown) ; Sends signal-shutdown
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
+
+### Event Description
+
+**event-can-sid**  
+This event is sent when standard id CAN-frames are received.
+
+**event-can-eid**  
+This event is sent when extended id CAN-frames are received.
+
+**event-data-rx**  
+This event is sent when custom app data is sent from VESC Tool.
+
+**event-shutdown**  
+This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
 
 ## Byte Arrays
 
@@ -1942,6 +2043,46 @@ Load filename as a byte array and bind it to binding. Note that import must be o
 (load-native-lib ws2812); Load it to get the extensions it provides 
 ```
 
+### Import Paths
+
+Paths for import can be relative or absolute. Absolute paths are always looked up from the root of the file system, but relative paths need to be resolved. If the lisp-file is saved (e.g. there is a path at the bottom of the editor) paths are looked up relative to the location of that lisp file. If they are not found there they are looked up relative to the location where VESC Tool is started. If the file never has been saved (e.g. you just opened a new tab and started typing) the file path is unknown until save as is used, so only the path relative to VESC Tool is looked up then.
+
+### Special Paths
+
+It is also possible to import files from [VESC Packages](https://github.com/vedderb/vesc_pkg) using a special path syntax. If you want to import the lisp-file from a VESC Package you can use the format
+
+```clj
+(import "pkg@path/to/package.vescpkg" 'import-name)
+```
+
+This will import the lisp-file from that VESC Package. It is also possible to import the imports from a lisp-file in a VESC Package. This is a bit confusing as the package itself does not contain the paths anymore, so instead of referring to the path you have to refer to the label. Here is an example of that:
+
+Suppose you have a VESC Package that has a lisp-file that imports a file like this:
+
+```clj
+(import "c_lib/ws2812/ws2812.bin" 'ws2812)
+```
+
+To import the file that is imported as ws2812 in the lisp-file of that vesc package you can use
+
+```clj
+(import "pkg::ws2812@path/to/package.vescpkg" 'ws2812)
+```
+
+This means import the import ws2812 from the lisp file in the VESC Package located at path/to/package.vescpkg.
+
+### Import Official VESC Packages
+
+There is a [github repository](https://github.com/vedderb/vesc_pkg) where official VESC Packages are located. All of the lisp-files and their imports from the packages in this repository can be imported using the special base path **://vesc_packages**. For example, to import the ws2812 import from lib_ws2812 the following import can be used:
+
+```clj
+(import "pkg::ws2812@://vesc_packages/lib_ws2812/ws2812.vescpkg" 'ws2812)
+```
+
+This should work for all VESC Packages in that repository. Most examples there use this pattern.
+
+**NOTE:** The path above does not download the repository on demand, but relies on the cached local version. This cached version is not updated automatically, so you have to run the update manually when you want to get the latest version of the repository. To update the cache you can use the **Update Archive**-button from the VESC Packages-page in VESC Tool.
+
 ## Native Libraries
 
 Native libraries can be used when more performance is needed. They can be created by compiling position-independent C code and loaded/unloaded with the functions below. More care has to be taken when developing native libraries as they have far less sandboxing than lispBM-code, so access to a SWD-programmer is recommended while developing them.
@@ -1992,12 +2133,11 @@ This example creates an extension called ext-test that takes a number as an argu
 
 (def example [
 0x00 0x00 0x00 0x00 0x08 0xb5 0x07 0x4b 0x07 0x49 0x08 0x48 0x7b 0x44 0x79 0x44 0x1b 0x68 0x03 0x4b
-0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xfc 0x00 0x10 0xf0 0xff 0xff 0xff
+0x78 0x44 0x1b 0x68 0x98 0x47 0x01 0x20 0x08 0xbd 0x00 0xbf 0x00 0xf8 0x00 0x10 0xf0 0xff 0xff 0xff
 0x2b 0x00 0x00 0x00 0x18 0x00 0x00 0x00 0x65 0x78 0x74 0x2d 0x74 0x65 0x73 0x74 0x00 0x00 0x00 0x00
-0x01 0x29 0x08 0xb5 0x1f 0xd1 0x00 0x68 0xc3 0x07 0x4c 0xbf 0x00 0xf0 0x7c 0x43 0x00 0xf0 0x0c 0x03
-0x08 0x2b 0x0d 0xd0 0x23 0xf0 0x08 0x02 0x04 0x2a 0x09 0xd0 0x23 0xf0 0x80 0x52 0x23 0xf0 0xa0 0x43
-0xb3 0xf1 0x00 0x5f 0x02 0xd0 0xb2 0xf1 0x80 0x4f 0x08 0xd1 0x05 0x4b 0xdb 0x68 0x98 0x47 0x00 0xeb
-0x40 0x00 0x00 0x01 0x40 0xf0 0x0c 0x00 0x08 0xbd 0x4f 0xf4 0x08 0x70 0xfb 0xe7 0x00 0xfc 0x00 0x10
+0x01 0x29 0x70 0xb5 0x05 0x46 0x09 0x4c 0x0d 0xd1 0xe3 0x6f 0x00 0x68 0x98 0x47 0x48 0xb1 0x63 0x6e
+0x28 0x68 0x26 0x6c 0x98 0x47 0x33 0x46 0x00 0xeb 0x40 0x00 0xbd 0xe8 0x70 0x40 0x18 0x47 0xd4 0xf8
+0x94 0x00 0x70 0xbd 0x00 0xf8 0x00 0x10
 ])
 
 ; The array can be loaded like this
@@ -2080,6 +2220,181 @@ Set graph index to which data points are sent.
 ```
 
 Send a xy-point to the selected graph in the plot.
+
+## IO Boards
+
+CAN-connected IO-boards can be interfaced using the functions in this section.
+
+#### ioboard-get-adc
+
+```clj
+(ioboard-get-adc can-id channel)
+```
+
+Read ADC-input channel from IO-board with can-id. Channel range: 1 to 8. If the IO-board with can-id is not present on the CAN-bus or if the channel is missing -1 will be returned.
+
+#### ioboard-get-digital
+
+```clj
+(ioboard-get-digital can-id channel)
+```
+
+Read  digital input channel from IO-board with can-id. Channel range: 1 to 64. If the IO-board with can-id is not present on the CAN-bus or if the channel is missing -1 will be returned.
+
+#### ioboard-set-digital
+
+```clj
+(ioboard-set-digital can-id channel state)
+```
+
+Write digital output channel to IO-board with can-id. State can be 1 or 0.
+
+#### ioboard-set-pwm
+
+```clj
+(ioboard-set-pwm can-id channel duty)
+```
+
+Write PWM-output channel to IO-board with can-id. The value duty can be 0.0 to 1.0.
+
+## Logging
+
+It is possible to log arbitrary data to log-devices such as the VESC Express, which can be connected on the CAN-bus.
+
+Every log field consists of a keyword, name, unit, precision and some flags. Most of these fields control how VESC Tool renders the log. In the csv-file for the log they only show up in the first line as headers for each column.
+
+VESC Tool will look for some special keywords to handle statistics and rendering on the map. If these keywords are missing the log can still be shown, but some of the functionality and statistics in VESC Tool will not be available. The following are the special keywords:
+
+**t_day**  
+Time of day in seconds. Used for statistics. This field is created by the log module when append-time is set to 1.
+
+**gnss_h_acc**  
+GNSS horizontal accuracy. Used for outlier filtering. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_lat**  
+GNSS latitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_lon**  
+GNSS longitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**gnss_alt**  
+GNSS altitude. Used for plotting traces on the map and for calculating statistics. This field is created by the log module when apped-gnss is set to 1.
+
+**trip_vesc**  
+VESC trip counter in meters. Used for calculating statistics.
+
+**trip_vesc_abs**  
+Absolute VESC trip counter in meters. Used for calculating statistics.
+
+**trip_gnss**  
+GNSS trip counter in meters. Used for calculating statistics. This field is automatically generated by VESC Tool from gnss_lat, gnss_lon and gnss_alt if it is missing.
+
+**cnt_wh**  
+Watt hour counter. Used for calculating statistics.
+
+**cnt_wh_chg**  
+Watt hour counter charging. Used for calculating statistics.
+
+**cnt_ah**  
+Amp hour counter. Used for calculating statistics.
+
+**cnt_ah_chg**  
+Amp hour counter charging. Used for calculating statistics.
+
+**roll**  
+IMU roll in degrees. Used for the IMU 3D plot.
+
+**pitch**  
+IMU pitch in degrees. Used for the IMU 3D plot.
+
+**yaw**  
+IMU yaw in degrees. Used for the IMU 3D plot.
+
+**fault**  
+Fault code. Converted to a fault string in the VESC Tool log analysis tool.
+
+#### log-config-field
+
+```clj
+(log-config-field
+    can-id
+    field-ind
+    key
+    name
+    unit
+    precision
+    is-relative
+    is-timestamp
+)
+```
+
+Configure log field on log device. Parameters:
+
+**can-id**  
+ID on the CAN-bus.
+
+**field-ind**  
+Field index in the log.
+
+**key**  
+Keyword string.
+
+**name**  
+Name string.
+
+**unit**  
+Unit string.
+
+**is-relative**  
+Relative fields are displayed relative to the start value of the log.
+
+**is-timestamp**  
+Timestamp fields are displayed with the format hh:mm:ss.
+
+#### log-start
+
+```clj
+(log-start
+    can-id
+    field-num
+    rate-hz
+    append-time
+    apped-gnss
+)
+```
+
+Start logging. Before starting to log all fields should be configured with [log-config-field](#log-config-field).
+
+**can-id**  
+ID on the CAN-bus.
+
+**field-num**  
+Number of log fields.
+
+**rate-hz**  
+Log rate in Hz.
+
+**append-time**  
+If set to true the log device will append a timestamp to each sample.
+
+**append-gnss**  
+If set to true the log device will append a GNSS-position to each sample. This requires a GNSS-receiver on the log device and the log will not start until a valid position is available.
+
+#### log-stop
+
+```clj
+(log-start can-id)
+```
+
+Stop logging data on log device with can-id.
+
+#### log-send-f32
+
+```clj
+(log-send-f32 can-id from-field-ind sample1 ... sampleN)
+```
+
+Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers.
 
 ## How to update
 

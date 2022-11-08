@@ -29,6 +29,7 @@
 #include "lsm6ds3.h"
 #include "utils_math.h"
 #include "Fusion.h"
+#include "digital_filter.h"
 
 #include <math.h>
 #include <string.h>
@@ -45,6 +46,8 @@ static BMI_STATE m_bmi_state;
 static imu_config m_settings;
 static systime_t init_time;
 static bool imu_ready;
+static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad;
+static char *m_imu_type_internal = "Unknown";
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
@@ -52,9 +55,34 @@ static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, u
 static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
+static void terminal_imu_type_internal(int argc, const char **argv);
 
 void imu_init(imu_config *set) {
+	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
+			set->type != m_settings.type;
+
 	m_settings = *set;
+
+	// Acc biquad filter
+	float fc;
+	if(m_settings.accel_lowpass_filter_x > 0){
+		fc = m_settings.accel_lowpass_filter_x / m_settings.sample_rate_hz;
+		biquad_config(&acc_x_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_y > 0){
+		fc = m_settings.accel_lowpass_filter_y / m_settings.sample_rate_hz;
+		biquad_config(&acc_y_biquad, BQ_LOWPASS, fc);
+	}
+	if(m_settings.accel_lowpass_filter_z > 0){
+		fc = m_settings.accel_lowpass_filter_z / m_settings.sample_rate_hz;
+		biquad_config(&acc_z_biquad, BQ_LOWPASS, fc);
+	}
+
+	imu_ready = false;
+
+	if (!imu_changed) {
+		return;
+	}
 
 	imu_stop();
 	imu_reset_orientation();
@@ -72,21 +100,25 @@ void imu_init(imu_config *set) {
 #ifdef MPU9X50_SDA_GPIO
 		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
 				MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
+		m_imu_type_internal = "MPU9X50";
 #endif
 
 #ifdef ICM20948_SDA_GPIO
 		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
 				ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
+		m_imu_type_internal = "ICM20948";
 #endif
 
 #ifdef BMI160_SDA_GPIO
 		imu_init_bmi160_i2c(BMI160_SDA_GPIO, BMI160_SDA_PIN,
 				BMI160_SCL_GPIO, BMI160_SCL_PIN);
+		m_imu_type_internal = "BMI160";
 #endif
 
 #ifdef LSM6DS3_SDA_GPIO
 		imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
 				LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
+		m_imu_type_internal = "LSM6DS3";
 #endif
 
 		// SPI not implemented yet, use as I2C
@@ -97,6 +129,7 @@ void imu_init(imu_config *set) {
 		palClearPad(LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
 		imu_init_lsm6ds3(LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
 				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN);
+		m_imu_type_internal = "LSM6DS3";
 #endif
 
 #ifdef BMI160_SPI_PORT_NSS
@@ -105,6 +138,7 @@ void imu_init(imu_config *set) {
 				BMI160_SPI_PORT_SCK, BMI160_SPI_PIN_SCK,
 				BMI160_SPI_PORT_MOSI, BMI160_SPI_PIN_MOSI,
 				BMI160_SPI_PORT_MISO, BMI160_SPI_PIN_MISO);
+		m_imu_type_internal = "BMI160_SPI";
 #endif
 	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
 		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
@@ -122,6 +156,12 @@ void imu_init(imu_config *set) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
+
+	terminal_register_command_callback(
+			"imu_type_internal",
+			"Print internal IMU type",
+			0,
+			terminal_imu_type_internal);
 }
 
 void imu_reset_orientation(void) {
@@ -522,6 +562,17 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	gyro_rad[1] = DEG2RAD_f(m_gyro[1]);
 	gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
 
+	// Apply filters
+	if(m_settings.accel_lowpass_filter_x > 0){ // Acc biquad filter
+		m_accel[0] = biquad_process(&acc_x_biquad, m_accel[0]);
+	}
+	if(m_settings.accel_lowpass_filter_y > 0){ // Acc biquad filter
+		m_accel[1] = biquad_process(&acc_y_biquad, m_accel[1]);
+	}
+	if(m_settings.accel_lowpass_filter_z > 0){ // Acc biquad filter
+		m_accel[2] = biquad_process(&acc_z_biquad, m_accel[2]);
+	}
+
 	switch (m_settings.mode) {
 		case AHRS_MODE_MADGWICK:
 			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
@@ -606,4 +657,9 @@ static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, ui
 	chMtxUnlock(&m_spi_bb.mutex);
 
 	return rslt;
+}
+
+static void terminal_imu_type_internal(int argc, const char **argv) {
+	(void)argc;(void)argv;
+	commands_printf(m_imu_type_internal);
 }

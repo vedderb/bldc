@@ -37,6 +37,14 @@
 #define RPM_FILTER_SAMPLES				8
 #define TC_DIFF_MAX_PASS				60  // TODO: move to app_conf
 
+#define CTRL_USES_BUTTON(ctrl_type)(\
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON)
+
 // Threads
 static THD_FUNCTION(adc_thread, arg);
 static THD_WORKING_AREA(adc_thread_wa, 512);
@@ -59,6 +67,15 @@ static volatile bool rev_override = false;
 static volatile bool cc_override = false;
 
 void app_adc_configure(adc_config *conf) {
+	if (!buttons_detached && (((conf->buttons >> 0) & 1) || CTRL_USES_BUTTON(conf->ctrl_type))) {
+		if (use_rx_tx_as_buttons) {
+			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+		} else {
+			palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+		}
+	}
+
 	config = *conf;
 	ms_without_power = 0.0;
 }
@@ -70,11 +87,13 @@ void app_adc_start(bool use_rx_tx) {
 #ifdef HW_ADC_EXT2_GPIO
 	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
-	if(buttons_detached){
+
+	if (buttons_detached) {
 		use_rx_tx_as_buttons = false;
-	}else{
+	} else {
 		use_rx_tx_as_buttons = use_rx_tx;
 	}
+
 	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
@@ -135,15 +154,6 @@ static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_ADC");
-
-	// Set servo pin as an input with pullup
-	if (use_rx_tx_as_buttons) {
-		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
-	} else {
-		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
-	}
-
 	is_running = true;
 
 	for(;;) {

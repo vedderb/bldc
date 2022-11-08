@@ -34,6 +34,9 @@ extern "C" {
 
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
+#define EVAL_CPS_CONTEXT_FLAG_NOTHING       (uint32_t)0x0
+#define EVAL_CPS_CONTEXT_FLAG_TRAP          (uint32_t)0x1
+
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -41,22 +44,28 @@ typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
   lbm_value curr_env;
-  lbm_value *mailbox;  /* Message passing mailbox */
-  lbm_uint  mailbox_size;
-  lbm_uint  num_mail; /* Number of messages in mailbox */
+  lbm_value *mailbox;    /* Message passing mailbox */
+  uint32_t  mailbox_size;
+  uint32_t  num_mail;    /* Number of messages in mailbox */
+  uint32_t  flags;
   lbm_value r;
   char *error_reason;
   bool  done;
   bool  app_cont;
   lbm_stack_t K;
-  /* Process control */
   lbm_uint timestamp;
   lbm_uint sleep_us;
   lbm_cid id;
+  lbm_cid parent;
   /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
+
+/** Fundamental operation type */
+typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
+
+extern const fundamental_fun fundamental_table[];
 
 /** A function pointer type to use together with the queue iterators.
  *
@@ -132,16 +141,6 @@ void lbm_pause_eval(void);
  * \param num_free Perform GC if there are less than this many elements free on the heap.
  */
 void lbm_pause_eval_with_gc(uint32_t num_free);
-/** Perform a single step of evaluation.
- * The evaluator should be in EVAL_CPS_STATE_PAUSED before running this function.
- * After taking one step of evaluation, the evaluator will return to being in the
- * EVAL_CPS_STATE_PUASED state.
- */
-void lbm_step_eval(void);
-/** Perform multiple steps of evaluation.
- * \param n Number of eval steps to perform.
- */
-void lbm_step_n_eval(uint32_t n);
 /** Resume from being in EVAL_CPS_STATE_PAUSED.
  *
  */

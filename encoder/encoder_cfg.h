@@ -30,5 +30,6 @@ extern ABI_config_t encoder_cfg_ABI;
 extern ENCSINCOS_config_t encoder_cfg_sincos;
 extern TS5700N8501_config_t encoder_cfg_TS5700N8501;
 extern AS5x47U_config_t encoder_cfg_as5x47u;
+extern BISSC_config_t encoder_cfg_bissc;
 
 #endif /* ENCODER_CFG_H_ */

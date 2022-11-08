@@ -1282,22 +1282,42 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 		if (app_get_configuration()->can_mode == CAN_MODE_UAVCAN) {
 			continue;
-		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE ||
+				app_get_configuration()->can_mode == CAN_MODE_UNUSED) {
 			CANRxFrame *rxmsg_tmp;
 			while ((rxmsg_tmp = comm_can_get_rx_frame(0)) != 0) {
 				CANRxFrame rxmsg = *rxmsg_tmp;
-				commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
-						rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
-						rxmsg.IDE == CAN_IDE_EXT);
+
+				if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+					commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
+							rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
+									rxmsg.IDE == CAN_IDE_EXT);
+				}
 
 				if (rxmsg.IDE == CAN_IDE_STD) {
+					bool sid_cb_used = false;
 					if (sid_callback) {
-						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+						sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
 					}
+#ifdef USE_LISPBM
+					if (!sid_cb_used) {
+						lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
+					}
+#else
+					(void)sid_cb_used;
+#endif
 				} else {
+					bool eid_cb_used = false;
 					if (eid_callback) {
-						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+						eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
 					}
+#ifdef USE_LISPBM
+					if (!eid_cb_used) {
+						lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+					}
+#else
+					(void)eid_cb_used;
+#endif
 				}
 			}
 			continue;
@@ -1333,7 +1353,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef USE_LISPBM
 				if (!sid_cb_used) {
-					lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+					lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
 				}
 #endif
 			}

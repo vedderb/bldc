@@ -1,5 +1,5 @@
 /*
-    Copyright 2018,2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018,2020 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -106,61 +106,39 @@ bool dyn_load(const char *str, const char **code) {
   if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
-    *code = "(define reverse (lambda (xs)"
-            "(let ((revacc (lambda (acc xs)"
-	    "(if (eq nil xs) acc"
-	    "(revacc (cons (car xs) acc) (cdr xs))))))"
-            "(revacc nil xs))))";
-    res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+  }  else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
-            "(let ((iacc (lambda (acc i)"
-            "(if (< i 0) acc"
-            "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil n))))";
-    res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
-    *code = "(define length (lambda (xs)"
-	    "(let ((len (lambda (l xs)"
-	    "(if (eq xs nil) l"
-	    "(len (+ l 1) (cdr xs))))))"
-            "(len 0 xs))))";
+            "(range 0 n)))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
-	    "(let ((take-tail (lambda (acc n xs)"
-	    "(if (= n 0) acc"
-	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(let ((take-tail (lambda (acc n xs)"
+            "(if (= n 0) acc"
+            "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
-	    "(if (= n 0) xs"
-	    "(if (eq xs nil) nil"
+            "(if (= n 0) xs"
+            "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq ys nil) nil"
+            "(if (eq xs nil) nil"
+            "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
-    *code = "(define map (lambda (f xs)"
-	    "(if (eq xs nil) nil"
-            "(cons (f (car xs)) (map f (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq (car (car xs)) x)"
-	    "(car (cdr (car xs)))"
+            "(if (eq xs nil) nil"
+            "(if (eq (car (car xs)) x)"
+            "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
-	    "(if (eq xs nil) i"
+            "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
@@ -212,7 +190,7 @@ LBM_EXTENSION(ext_numbers, args, argn) {
       break;
     }
   }
-  return lbm_enc_sym(b ? SYM_TRUE : SYM_NIL);  
+  return lbm_enc_sym(b ? SYM_TRUE : SYM_NIL);
 }
 
 
@@ -225,7 +203,7 @@ int main(int argc, char **argv) {
   //  bool compress_decompress = false;
 
   bool stream_source = false;
-  
+
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
 
@@ -378,7 +356,7 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
     return 0;
   }
-  
+
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
@@ -427,6 +405,11 @@ int main(int argc, char **argv) {
   //lbm_create_char_stream_from_string(&string_tok_state,
   //                                   &string_tok,
   //                                   code_buffer);
+
+  lbm_pause_eval_with_gc(20);
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    sleep_callback(1000);
+  }
   if (stream_source) {
     lbm_create_buffered_char_channel(&buffered_tok_state,
                                      &string_tok);
@@ -455,7 +438,7 @@ int main(int argc, char **argv) {
         break;
       }
       int ch_res = lbm_channel_write(&string_tok, code_buffer[i]);
-      
+
       if (ch_res == CHANNEL_SUCCESS) {
         //printf("wrote: %c\n", code_buffer[i]);
         i ++;

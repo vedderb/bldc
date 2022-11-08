@@ -32,7 +32,7 @@
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_14K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	200
+#define EXTENSION_STORAGE_SIZE	220
 #define VARIABLE_STORAGE_SIZE	64
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
@@ -52,6 +52,7 @@ static thread_t *eval_tp = 0;
 static THD_FUNCTION(eval_thread, arg);
 static THD_WORKING_AREA(eval_thread_wa, 2048);
 static bool lisp_thd_running = false;
+static mutex_t lbm_mutex;
 
 static int repl_cid = -1;
 
@@ -68,6 +69,16 @@ void lispif_init(void) {
 	}
 
 	lbm_set_eval_step_quota(50);
+
+	chMtxObjectInit(&lbm_mutex);
+}
+
+void lispif_lock_lbm(void) {
+	chMtxLock(&lbm_mutex);
+}
+
+void lispif_unlock_lbm(void) {
+	chMtxUnlock(&lbm_mutex);
 }
 
 static void ctx_cb(eval_context_t *ctx, void *arg1, void *arg2) {
@@ -215,6 +226,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (lisp_thd_running) {
+			lispif_lock_lbm();
 			char *str = (char*)data;
 
 			if (len <= 1) {
@@ -245,9 +257,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp(
 						":continue\n"
 						"  Continue running LBM");
-				commands_printf_lisp(
-						":step <num_steps>\n"
-						"  Run num_steps LBM steps");
 				commands_printf_lisp(
 						":undef <symbol_name>\n"
 						"  Undefine symbol");
@@ -303,17 +312,16 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			} else if (strncmp(str, ":pause", 6) == 0) {
 				lbm_pause_eval_with_gc(30);
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					lbm_pause_eval();
 					sleep_callback(1);
 				}
 				commands_printf_lisp("Evaluator paused\n");
 			} else if (strncmp(str, ":continue", 9) == 0) {
 				lbm_continue_eval();
-			} else if (strncmp(str, ":step", 5) == 0) {
-				int num = atoi(str + 5);
-				lbm_step_n_eval((uint32_t)num);
 			} else if (strncmp(str, ":undef", 6) == 0) {
 				lbm_pause_eval();
 				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+					lbm_pause_eval();
 					sleep_callback(1);
 				}
 				char *sym = str + 7;
@@ -345,6 +353,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 					commands_printf_lisp("Could not pause");
 				}
 			}
+			lispif_unlock_lbm();
 		} else {
 			commands_printf_lisp("LispBM is not running");
 		}
@@ -417,6 +426,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			int timeout_cnt = 1000;
+			lispif_lock_lbm();
 			lbm_pause_eval_with_gc(30);
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
 				chThdSleep(5);
@@ -424,6 +434,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			if (timeout_cnt == 0) {
+				lispif_unlock_lbm();
 				result_last = -3;
 				offset_last = -1;
 				buffer_append_int16(send_buffer, result_last, &send_ind);
@@ -435,6 +446,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			lbm_create_buffered_char_channel(&buffered_tok_state, &buffered_string_tok);
 
 			if (lbm_load_and_eval_program(&buffered_string_tok) <= 0) {
+				lispif_unlock_lbm();
 				result_last = -4;
 				offset_last = -1;
 				buffer_append_int16(send_buffer, result_last, &send_ind);
@@ -445,6 +457,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 			lbm_continue_eval();
 			buffered_channel_created = true;
+			lispif_unlock_lbm();
 		}
 
 		int32_t written = 0;
@@ -539,6 +552,7 @@ bool lispif_restart(bool print, bool load_code) {
 		} else {
 			lbm_pause_eval();
 			while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+				lbm_pause_eval();
 				chThdSleepMilliseconds(1);
 			}
 
@@ -553,6 +567,7 @@ bool lispif_restart(bool print, bool load_code) {
 
 		lbm_pause_eval();
 		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+			lbm_pause_eval();
 			chThdSleepMilliseconds(1);
 		}
 
