@@ -51,9 +51,13 @@ package_dict["HD60"] = [['hd60', default_name],
 package_dict["HD75"] = [['hd75', default_name],
                     ['hd75_no_limits', no_limits_name]]
 package_dict["A50S_6S"] = [['a50s_6s', default_name]]
+package_dict["A50S_6S_HG"] = [['a50s_6s_hg', default_name]]
 package_dict["A50S_12S"] = [['a50s_12s', default_name]]
-package_dict["A200S_v2.1"] = [['a200s_v2.1', default_name]]
-package_dict["A200S_v2.2"] = [['a200s_v2.2', default_name]]
+package_dict["A50S_12S_HG"] = [['a50s_12s_hg', default_name]]
+package_dict["A200S_V2.1"] = [['a200s_v2.1', default_name]]
+package_dict["A200S_V2.2"] = [['a200s_v2.2', default_name]]
+package_dict["A200S_V3"] = [['a200s_v3', default_name]]
+package_dict["A200S_V4"] = [['a200s_v4', default_name]]
 package_dict["100_250"] = [['100_250', default_name],
                     ['100_250_no_limits', no_limits_name]]
 package_dict["LUNA_BBSHD"] = [['luna_bbshd', default_name]]

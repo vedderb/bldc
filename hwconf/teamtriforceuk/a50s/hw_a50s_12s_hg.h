@@ -3,9 +3,9 @@
 
 #define HW_A50S_12S
 
-#define HW_NAME				"a50s_12s"
-#define CURRENT_AMP_GAIN		20.0
+#define HW_NAME				"a50s_12s_hg"
+#define CURRENT_AMP_GAIN	50.0
 
 #include "hw_a50s_core.h"
 
-#endif /* HW_A50S_12S_H_ */
+#endif /* HW_A50S_12S_HG_H_ */

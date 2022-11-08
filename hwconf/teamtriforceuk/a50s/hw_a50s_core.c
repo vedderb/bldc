@@ -2,18 +2,18 @@
 	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #include "hw.h"
 
@@ -82,10 +82,10 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	PHASE_FILTER_OFF();
 
-	// Current filter
-	palSetPadMode(GPIOH, 1, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	CURRENT_FILTER_ON();	
+	// Current filter, no use on low side shunts
+	//palSetPadMode(GPIOH, 1, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	//palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	//CURRENT_FILTER_ON();	
 
 	// AUX pin
 	AUX_OFF();

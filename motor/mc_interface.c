@@ -489,6 +489,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
     case FAULT_CODE_PHASE_FILTER: return "FAULT_CODE_PHASE_FILTER";
     case FAULT_CODE_ENCODER_FAULT: return "FAULT_CODE_ENCODER_FAULT";
+	case FAULT_CODE_LV_OUTPUT_FAULT: return "FAULT_CODE_LV_OUTPUT_FAULT";
 	}
 
 	return "Unknown fault";
@@ -1955,6 +1956,12 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 	if(motor->m_gate_driver_voltage < HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) {
 		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE, is_second_motor, true);
+	}
+#endif
+
+#ifdef HW_HAS_LV_OUTPUT_PROTECTION
+	if(IS_LV_OUTPUT_FAULT()) {
+		mc_interface_fault_stop(FAULT_CODE_LV_OUTPUT_FAULT, is_second_motor, true);
 	}
 #endif
 
