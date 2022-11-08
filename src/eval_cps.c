@@ -1094,7 +1094,6 @@ int lbm_perform_gc(void) {
 /* Evaluation functions                             */
 
 static bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
-
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s < SPECIAL_SYMBOLS_END ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
@@ -1117,14 +1116,13 @@ static bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
 }
 
 static void dynamic_load(eval_context_t *ctx) {
-
   const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
   const char *code_str = NULL;
   if (! dynamic_load_callback(sym_str, &code_str)) {
     error_ctx(ENC_SYM_NOT_FOUND);
     return;
   } else {
-    CHECK_STACK(lbm_push_2(&ctx->K, ctx->curr_exp, RESUME));
+    CHECK_STACK(lbm_push_3(&ctx->K, ctx->curr_env, ctx->curr_exp, RESUME));
 
     lbm_value chan;
     if (!create_string_channel((char *)code_str, &chan)) {
@@ -1141,6 +1139,7 @@ static void dynamic_load(eval_context_t *ctx) {
     CONS_WITH_GC(evaluator, loader, evaluator, loader);
     CONS_WITH_GC(evaluator, ENC_SYM_EVAL, evaluator, evaluator);
     ctx->curr_exp = evaluator;
+    ctx->curr_env = ENC_SYM_NIL; // dynamics should be evaluable in empty local env
     return;
   }
 }
@@ -1265,28 +1264,21 @@ static void eval_define(eval_context_t *ctx) {
 
 // (closure params body env)
 static bool mk_closure(lbm_value *res, lbm_value env, lbm_value body, lbm_value params) {
-  lbm_value clo;
-  clo = lbm_heap_allocate_list(4);
-  if (lbm_is_symbol_merror(clo)) {
+   if (lbm_heap_num_free() < 4) {
     lbm_gc_mark_phase(env);
     lbm_gc_mark_phase(body);
     lbm_gc_mark_phase(params);
     gc();
-    clo = lbm_heap_allocate_list(4);
-    if (lbm_is_symbol_merror(clo)) {
-      return false;
-    }
   }
-
-  lbm_value clo1 = lbm_cdr(clo);
-  lbm_value clo2 = lbm_cdr(clo1);
-  lbm_value clo3 = lbm_cdr(clo2);
-  lbm_set_car(clo, ENC_SYM_CLOSURE);
-  lbm_set_car(clo1, params);
-  lbm_set_car(clo2, body);
-  lbm_set_car(clo3, env);
-  *res = clo;
-  return true;
+  if (lbm_heap_num_free() >= 4) {
+    lbm_value env_end = lbm_cons(env, ENC_SYM_NIL);
+    lbm_value exp = lbm_cons(body, env_end);
+    lbm_value par = lbm_cons(params, exp);
+    lbm_value clo = lbm_cons(ENC_SYM_CLOSURE, par);
+    *res = clo;
+    return true;
+  }
+  return false;
 }
 
 static void eval_lambda(eval_context_t *ctx) {
@@ -1526,8 +1518,10 @@ static void cont_set_var(eval_context_t *ctx) {
 
 static void cont_resume(eval_context_t *ctx) {
   lbm_value exp;
-  lbm_pop(&ctx->K, &exp);
+  lbm_value env;
+  lbm_pop_2(&ctx->K, &exp, &env);
   ctx->curr_exp = exp;
+  ctx->curr_env = env;
 }
 
 static void cont_progn_rest(eval_context_t *ctx) {
@@ -2025,23 +2019,12 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-  if (lbm_is_cons(params)) {
-    lbm_value aug_env = lbm_heap_allocate_list(2);
-    if (lbm_is_symbol_merror(aug_env)) {
-      gc();
-      aug_env = lbm_heap_allocate_list(2);
-      if (lbm_is_symbol_merror(aug_env)) {
-        error_ctx(ENC_SYM_MERROR);
-        return;
-      }
-    }
-    lbm_cons_t *c1 = lbm_ref_cell(aug_env);
-    lbm_value entry = c1->cdr;
-    lbm_cons_t *c2 = lbm_ref_cell(entry);
-    c2->car = lbm_car(params);
-    c2->cdr = ctx->r;
-    c1->car = entry;
-    c1->cdr = clo_env;
+   if (lbm_is_cons(params)) {
+    lbm_value entry;
+    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r));
+
+    lbm_value aug_env;
+    WITH_GC_1(aug_env,lbm_cons(entry, clo_env),entry);
     clo_env = aug_env;
   }
 
@@ -2932,7 +2915,6 @@ static void cont_application_start(eval_context_t *ctx) {
 }
 
 static void cont_eval_r(eval_context_t* ctx) {
-
   lbm_value env;
   lbm_pop(&ctx->K, &env);
   ctx->curr_exp = ctx->r;
@@ -3010,7 +2992,6 @@ static const evaluator_fun evaluators[] =
 
 static void evaluation_step(void){
   eval_context_t *ctx = ctx_running;
-
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif
