@@ -32,8 +32,8 @@
 #include <math.h>
 #include <string.h>
 
-#define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
-#define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
+#define SINCOS_MIN_AMPLITUDE        0.0         // sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE        1.15        // sqrt(sin^2 + cos^2) has to be smaller than this
 
 bool enc_sincos_init(ENCSINCOS_config_t *cfg) {
 	memset(&cfg->state, 0, sizeof(ENCSINCOS_state));
@@ -51,7 +51,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	/*float sin = ENCODER_SIN_VOLTS * cfg->s_gain - cfg->s_offset;
 	float cos = ENCODER_COS_VOLTS * cfg->c_gain - cfg->c_offset;*/
 
-	//float module = SQ(sin) + SQ(cos);
+	float module = SQ(sin) + SQ(cos);
 
 	/*float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
 	if (timestep > 1.0) {
@@ -59,30 +59,55 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	}
 	cfg->state.last_update_time = timer_time_now();*/
 
-	/*if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
+	if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
 		// signals vector outside of the valid area. Increase error count and discard measurement
 		//++cfg->state.signal_above_max_error_cnt; //TODO
-		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
+		//UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
+		//angle = 0; //cfg->state.last_enc_angle;
 		angle = cfg->state.last_enc_angle;
+
+/*
+		//DBG
+		float last_angle = cfg->state.last_enc_angle;
+		float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
+			
+		angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);
+		//DBG
+*/
 	} else {
 		if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
 			//++cfg->state.signal_below_min_error_cnt;//TODO
-			UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
+			//UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
+			//angle = 0; //cfg->state.last_enc_angle;
 			angle = cfg->state.last_enc_angle;
+
+/*
+			//DBG
+			float last_angle = cfg->state.last_enc_angle;
+			float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
+			
+			angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);
+			//DBG
+*/
 		} else {
-			UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
+			/*UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
 			UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
 
 			float angle_tmp = RAD2DEG_f(utils_fast_atan2(sin, cos));
 			UTILS_LP_FAST(angle, angle_tmp, cfg->filter_constant);
-			cfg->state.last_enc_angle = angle;
+			cfg->state.last_enc_angle = angle;*/
+
+			float last_angle = cfg->state.last_enc_angle;
+			float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
+			
+			angle = new_angle; //UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);
 		}
-	}*/
+	}
 	
-	float last_angle = cfg->state.last_enc_angle;
+	/*float last_angle = cfg->state.last_enc_angle;
 	float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
 	
-	angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);
+	angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);*/
 	
 	cfg->state.last_enc_angle = angle;
 	
