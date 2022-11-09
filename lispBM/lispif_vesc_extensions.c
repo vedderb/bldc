@@ -162,6 +162,7 @@ typedef struct {
 
 static vesc_syms syms_vesc = {0};
 static void(*ext_callback)(void) = 0;
+static char print_val_buffer[256];
 
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
@@ -482,8 +483,6 @@ static bool gpio_get_pin(lbm_uint sym, stm32_gpio_t **port, int *pin) {
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
-	static char output[256];
-
 	for (lbm_uint i = 0; i < argn; i ++) {
 		lbm_value t = args[i];
 
@@ -504,8 +503,8 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 				commands_printf_lisp("%c", lbm_dec_char(t));
 			}
 		}  else {
-			lbm_print_value(output, 256, t);
-			commands_printf_lisp("%s", output);
+			lbm_print_value(print_val_buffer, 256, t);
+			commands_printf_lisp("%s", print_val_buffer);
 		}
 	}
 
@@ -2724,6 +2723,80 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(strcmp(str1, str2));
 }
 
+// TODO: This is very similar to ext-print. Maybe they can share code.
+static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
+	const int str_len = 300;
+	char *str = lispif_malloc(str_len);
+	if (!str) {
+		return ENC_SYM_MERROR;
+	}
+
+	int str_ofs = 0;
+
+	for (lbm_uint i = 0; i < argn; i ++) {
+		lbm_value t = args[i];
+		int max = str_len - str_ofs - 1;
+
+		if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
+			lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
+			switch (array->elt_type){
+			case LBM_TYPE_CHAR: {
+				int chars = 0;
+				if (str_ofs == 0) {
+					chars = snprintf(str + str_ofs, max, "%s", (char*)array->data);
+				} else {
+					chars = snprintf(str + str_ofs, max, " %s", (char*)array->data);
+				}
+				if (chars >= max) {
+					str_ofs += max;
+				} else {
+					str_ofs += chars;
+				}
+			} break;
+			default:
+				return ENC_SYM_NIL;
+				break;
+			}
+		} else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
+			int chars = 0;
+			if (str_ofs == 0) {
+				chars = snprintf(str + str_ofs, max, "%c", lbm_dec_char(t));
+			} else {
+				chars = snprintf(str + str_ofs, max, " %c", lbm_dec_char(t));
+			}
+			if (chars >= max) {
+				str_ofs += max;
+			} else {
+				str_ofs += chars;
+			}
+		}  else {
+			lbm_print_value(print_val_buffer, 256, t);
+
+			int chars = 0;
+			if (str_ofs == 0) {
+				chars = snprintf(str + str_ofs, max, "%s", print_val_buffer);
+			} else {
+				chars = snprintf(str + str_ofs, max, " %s", print_val_buffer);
+			}
+			if (chars >= max) {
+				str_ofs += max;
+			} else {
+				str_ofs += chars;
+			}
+		}
+	}
+
+	lbm_value res;
+	if (lbm_create_array(&res, LBM_TYPE_CHAR, str_ofs + 1)) {
+		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+		strncpy((char*)arr->data, str, str_ofs + 1);
+		return res;
+	} else {
+		lispif_free(str);
+		return ENC_SYM_MERROR;
+	}
+}
+
 // Configuration
 
 static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
@@ -4138,6 +4211,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("str-to-lower", ext_str_to_lower);
 	lbm_add_extension("str-to-upper", ext_str_to_upper);
 	lbm_add_extension("str-cmp", ext_str_cmp);
+	lbm_add_extension("to-str", ext_to_str);
 
 	// Configuration
 	lbm_add_extension("conf-set", ext_conf_set);

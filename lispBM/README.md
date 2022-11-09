@@ -1859,6 +1859,22 @@ Calculate length of string str excluding the null termination. Example:
 > 5
 ```
 
+#### to-str
+
+```clj
+(to-str arg1 ... argN)
+```
+
+Convert LBM-types to their string representation and return that string. Example:
+
+```clj
+(to-str '(1 2 3))
+> "(1 2 3)"
+
+(to-str "aAa" 4 '(a 2 3) 2 3 "Hello")
+> "aAa 4 (a 2 3) 2 3 Hello"
+```
+
 ## Events
 
 Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
