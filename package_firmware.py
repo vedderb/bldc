@@ -92,6 +92,7 @@ package_dict["75_600"] = [['75_600', default_name],
 package_dict["60v2_alva"] = [['60v2_alva', default_name]]
 package_dict["60v2_alva_mk1"] = [['60v2_alva_mk1', default_name]]
 package_dict["60v2_alva_mk2"] = [['60v2_alva_mk2', default_name]]
+package_dict["gp"] = [['gp', default_name]]
 package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
