@@ -146,6 +146,23 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
 ```
 
+#### set-bms-val
+
+```clj
+(set-bms-val val optValArg new-value)
+```
+
+This lets you set BMS-values so that VESC Tool and the BMS limits can see and use them. The same values as described in [get-bms-val](#get-bms-val) can be updated, but with an argument at the end with what the value should be set to.
+
+This is useful if you want to implement communication with a custom BMS and have it show up in VESC Tool.
+
+Example:
+
+```clj
+(set-bms-val 'bms-cell-num 12) ; It is a 12s pack
+(set-bms-val 'bms-v-cell 2 3.92) ; Set cell 2 voltage to 3.92V
+```
+
 #### get-adc
 
 ```clj

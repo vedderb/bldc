@@ -558,8 +558,41 @@ static lbm_value ext_get_selected_motor(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(mc_interface_motor_now());
 }
 
-static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
+static lbm_value get_or_set_float(bool set, float *val, lbm_value *lbm_val) {
+	if (set) {
+		*val = lbm_dec_as_float(*lbm_val);
+		return ENC_SYM_TRUE;
+	} else {
+		return lbm_enc_float(*val);
+	}
+}
+
+static lbm_value get_or_set_i(bool set, int *val, lbm_value *lbm_val) {
+	if (set) {
+		*val = lbm_dec_as_i32(*lbm_val);
+		return ENC_SYM_TRUE;
+	} else {
+		return lbm_enc_i(*val);
+	}
+}
+
+static lbm_value get_or_set_bool(bool set, bool *val, lbm_value *lbm_val) {
+	if (set) {
+		*val = lbm_dec_as_i32(*lbm_val);
+		return ENC_SYM_TRUE;
+	} else {
+		return lbm_enc_i(*val);
+	}
+}
+
+static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	lbm_value res = ENC_SYM_EERROR;
+
+	lbm_value set_arg = 0;
+	if (set && argn >= 1) {
+		set_arg = args[argn - 1];
+		argn--;
+	}
 
 	if (argn != 1 && argn != 2) {
 		return res;
@@ -570,22 +603,22 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 	}
 
 	lbm_uint name = lbm_dec_sym(args[0]);
-	bms_values *val = bms_get_values();
+	bms_values *val = (bms_values*)bms_get_values();
 
 	if (compare_symbol(name, &syms_vesc.v_tot)) {
-		res = lbm_enc_float(val->v_tot);
+		res = get_or_set_float(set, &val->v_tot, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.v_charge)) {
-		res = lbm_enc_float(val->v_charge);
+		res = get_or_set_float(set, &val->v_charge, &res);
 	} else if (compare_symbol(name, &syms_vesc.i_in)) {
-		res = lbm_enc_float(val->i_in);
+		res = get_or_set_float(set, &val->i_in, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.i_in_ic)) {
-		res = lbm_enc_float(val->i_in_ic);
+		res = get_or_set_float(set, &val->i_in_ic, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.ah_cnt)) {
-		res = lbm_enc_float(val->ah_cnt);
+		res = get_or_set_float(set, &val->ah_cnt, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.wh_cnt)) {
-		res = lbm_enc_float(val->wh_cnt);
+		res = get_or_set_float(set, &val->wh_cnt, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.cell_num)) {
-		res = lbm_enc_i(val->cell_num);
+		res = get_or_set_i(set, &val->cell_num, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.v_cell)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return ENC_SYM_EERROR;
@@ -596,7 +629,7 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 			return ENC_SYM_EERROR;
 		}
 
-		res = lbm_enc_float(val->v_cell[c]);
+		res = get_or_set_float(set, &val->v_cell[c], &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.bal_state)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return ENC_SYM_EERROR;
@@ -607,9 +640,9 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 			return ENC_SYM_EERROR;
 		}
 
-		res = lbm_enc_i(val->bal_state[c]);
+		res = get_or_set_bool(set, &val->bal_state[c], &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_adc_num)) {
-		res = lbm_enc_i(val->temp_adc_num);
+		res = get_or_set_i(set, &val->temp_adc_num, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temps_adc)) {
 		if (argn != 2 || !lbm_is_number(args[1])) {
 			return ENC_SYM_EERROR;
@@ -620,34 +653,46 @@ static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
 			return ENC_SYM_EERROR;
 		}
 
-		res = lbm_enc_float(val->temps_adc[c]);
+		res = get_or_set_float(set, &val->temps_adc[c], &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_ic)) {
-		res = lbm_enc_float(val->temp_ic);
+		res = get_or_set_float(set, &val->temp_ic, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_hum)) {
-		res = lbm_enc_float(val->temp_hum);
+		res = get_or_set_float(set, &val->temp_hum, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.hum)) {
-		res = lbm_enc_float(val->hum);
+		res = get_or_set_float(set, &val->hum, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_max_cell)) {
-		res = lbm_enc_float(val->temp_max_cell);
+		res = get_or_set_float(set, &val->temp_max_cell, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.soc)) {
-		res = lbm_enc_float(val->soc);
+		res = get_or_set_float(set, &val->soc, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.soh)) {
-		res = lbm_enc_float(val->soh);
+		res = get_or_set_float(set, &val->soh, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.can_id)) {
-		res = lbm_enc_i(val->can_id);
+		res = get_or_set_i(set, &val->can_id, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.ah_cnt_chg_total)) {
-		res = lbm_enc_float(val->ah_cnt_chg_total);
+		res = get_or_set_float(set, &val->ah_cnt_chg_total, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.wh_cnt_chg_total)) {
-		res = lbm_enc_float(val->wh_cnt_chg_total);
+		res = get_or_set_float(set, &val->wh_cnt_chg_total, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.ah_cnt_dis_total)) {
-		res = lbm_enc_float(val->ah_cnt_dis_total);
+		res = get_or_set_float(set, &val->ah_cnt_dis_total, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.wh_cnt_dis_total)) {
-		res = lbm_enc_float(val->wh_cnt_dis_total);
+		res = get_or_set_float(set, &val->wh_cnt_dis_total, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.msg_age)) {
 		res = lbm_enc_float(UTILS_AGE_S(val->update_time));
 	}
 
+	if (res != ENC_SYM_EERROR && set) {
+		val->update_time = chVTGetSystemTimeX();
+	}
+
 	return res;
+}
+
+static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
+	return get_set_bms_val(false, args, argn);
+}
+
+static lbm_value ext_set_bms_val(lbm_value *args, lbm_uint argn) {
+	return get_set_bms_val(true, args, argn);
 }
 
 static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
@@ -4118,6 +4163,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("select-motor", ext_select_motor);
 	lbm_add_extension("get-selected-motor", ext_get_selected_motor);
 	lbm_add_extension("get-bms-val", ext_get_bms_val);
+	lbm_add_extension("set-bms-val", ext_set_bms_val);
 	lbm_add_extension("get-adc", ext_get_adc);
 	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);
 	lbm_add_extension("systime", ext_systime);

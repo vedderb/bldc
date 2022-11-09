@@ -449,6 +449,6 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 
 }
 
-bms_values *bms_get_values(void) {
-	return (bms_values*)&m_values;
+volatile bms_values *bms_get_values(void) {
+	return &m_values;
 }
