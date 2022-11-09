@@ -592,6 +592,11 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	if (set && argn >= 1) {
 		set_arg = args[argn - 1];
 		argn--;
+
+		if (!lbm_is_number(set_arg)) {
+			lbm_set_error_reason(error_reason_no_number);
+			return ENC_SYM_EERROR;
+		}
 	}
 
 	if (argn != 1 && argn != 2) {
