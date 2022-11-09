@@ -2420,6 +2420,58 @@ Stop logging data on log device with can-id.
 
 Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers.
 
+## GNSS
+
+If a GNSS-receiver such as the VESC Express is connected on the CAN-bus, the position, speed, time and precision data from it can be read from LBM.
+
+#### gnss-lat-lon
+
+```clj
+(gnss-lat-lon)
+```
+
+Returns the latitude and longitude of the position as a list with two elements.
+
+#### gnss-height
+
+```clj
+(gnss-height)
+```
+
+Returns the height of the position in meters.
+
+#### gnss-speed
+
+```clj
+(gnss-speed)
+```
+
+Returns the speed on meters per second.
+
+#### gnss-hdop
+
+```clj
+(gnss-hdop)
+```
+
+Returns the hdop-value of the position. Lower values mean that the precision is better.
+
+#### gnss-date-time
+
+```clj
+(gnss-date-time)
+```
+
+Returns date and time of the last position sample as a list with the format (year month day hours minutes seconds milliseconds).
+
+#### gnss-age
+
+```clj
+(gnss-age)
+```
+
+Returns the age of the last gnss-sample in seconds.
+
 ## How to update
 
 To update from remote repository:

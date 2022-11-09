@@ -3890,6 +3890,60 @@ static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_gnss_lat_lon(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	volatile gnss_data *g = mc_interface_gnss();
+
+	lbm_value lat_lon = ENC_SYM_NIL;
+	lat_lon = lbm_cons(lbm_enc_double(g->lon), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_double(g->lat), lat_lon);
+
+	return lat_lon;
+}
+
+static lbm_value ext_gnss_height(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_gnss()->height);
+}
+
+static lbm_value ext_gnss_speed(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_gnss()->speed);
+}
+
+static lbm_value ext_gnss_hdop(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_gnss()->hdop);
+}
+
+static lbm_value ext_gnss_date_time(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	volatile gnss_data *g = mc_interface_gnss();
+
+	int ms = g->ms_today % 1000;
+	int s = (g->ms_today / 1000) % 60;
+    int m = ((g->ms_today / 1000) / 60) % 60;
+    int h = ((g->ms_today / 1000) / (60 * 60)) % 24;
+
+	lbm_value lat_lon = ENC_SYM_NIL;
+	lat_lon = lbm_cons(lbm_enc_i(ms), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(s), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(m), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(h), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(g->dd), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(g->mo), lat_lon);
+	lat_lon = lbm_cons(lbm_enc_i(g->yy), lat_lon);
+
+	return lat_lon;
+}
+
+static lbm_value ext_gnss_age(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(UTILS_AGE_S(mc_interface_gnss()->last_update));
+}
+
 static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 	(void)args;(void)argn;
 	return ENC_SYM_TRUE;
@@ -4262,6 +4316,14 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("log-stop", ext_log_stop);
 	lbm_add_extension("log-config-field", ext_log_config_field);
 	lbm_add_extension("log-send-f32", ext_log_send_f32);
+
+	// GNSS
+	lbm_add_extension("gnss-lat-lon", ext_gnss_lat_lon);
+	lbm_add_extension("gnss-height", ext_gnss_height);
+	lbm_add_extension("gnss-speed", ext_gnss_speed);
+	lbm_add_extension("gnss-hdop", ext_gnss_hdop);
+	lbm_add_extension("gnss-date-time", ext_gnss_date_time);
+	lbm_add_extension("gnss-age", ext_gnss_age);
 
 	if (ext_callback) {
 		ext_callback();
