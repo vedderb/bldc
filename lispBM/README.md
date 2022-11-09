@@ -372,6 +372,14 @@ Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sen
 
 Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
 
+#### app-pas-get-rpm
+
+```clj
+(app-pas-get-rpm)
+```
+
+Returns the pedal RPM measured by the PAS-app. If you want to implement your own PAS-control based on this RPM you can use [app-disable-output](#app-disable-output) to disable the output of the PAS-app.
+
 ### Motor Set Commands
 
 #### set-current
