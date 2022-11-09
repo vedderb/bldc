@@ -4023,7 +4023,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("app-disable-output", ext_app_disable_output);
 	lbm_add_extension("app-pas-get-rpm", ext_app_pas_get_rpm);
 
-
 	// Motor set commands
 	lbm_add_extension("set-current", ext_set_current);
 	lbm_add_extension("set-current-rel", ext_set_current_rel);
