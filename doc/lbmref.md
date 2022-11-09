@@ -157,6 +157,12 @@ expression evaluates to `t`.
 (eq '(1 (1 2)) '(1 (1 2)))
 ```
 
+---
+
+### not-eq
+
+`not-eq` implements the negation of eq. In other words, `(not-eq a b c)` evaluates
+to the same result as `(not (eq a b c))`. 
 
 ---
 
@@ -178,6 +184,13 @@ Example of `=` comparison.
 (= (+ 2 3) (+ 1 4))
 ```
 
+
+---
+
+### !=
+
+The `!=` operation implements the negation of `=`. So, `(!= a b)` evaluates
+to the same result as `(not (= a b))`.
 
 ---
 
