@@ -1,18 +1,19 @@
 # LispBM language reference
 
-## About Symbols 
+## About Symbols
 
-Symbols are very important and fundamental to LispBM and also perhaps 
-a bit different from identifiers/names used in languages such as C, so 
-a short intro could be good here. 
+Symbols are very important and fundamental to LispBM and also perhaps
+a bit different from identifiers/names used in languages such as C, so
+a short intro could be good here.
 
-A symbol can be thought of as a name and can be used to give names 
-to functions or values (variables). A symbol can also be treated and 
-used as a value in and of itself a value (or data). So it can be used 
-to name data and functions and is itself also data. 
+A symbol can be thought of as a name and can be used to give names
+to functions or values (variables). A symbol can also be treated and
+used as a value in and of itself a value (or data). So it can be used
+to name data and functions and is itself also data.
 
---- 
-**NOTE** 
+---
+
+**NOTE**
 
 Symbols are expressed as strings in your program such as `a`, `let`,
 `define`, `+` or `orange`. The "reader", the part of LBM that parses
@@ -23,18 +24,18 @@ identifier you want to print. So the runtime system is never wasting
 time comparing strings to see if a symbol is this or that symbol, it's
 all integer comparisons.
 
---- 
+---
 
 You associate values with symbols using, <a href="#define">define</a>,
-<a href="#let">let</a> and you can change the value bound to a "variable" 
+<a href="#let">let</a> and you can change the value bound to a "variable"
 using <a href="#setvar">setvar</a>
 
-Not all symbols are treated the same in LBM. Some symbols are treated as 
+Not all symbols are treated the same in LBM. Some symbols are treated as
 special because of their very fundamental nature. Among these special symbols
-you find `define`, `let` and `lambda` for example. These are things that you 
-should not be able to redefine and trying to redefine them leads to an error. 
-There are two classes of symbols that are special by naming convention and 
-these either start with a `#`, for fast-lookup variables, and `ext-` for 
+you find `define`, `let` and `lambda` for example. These are things that you
+should not be able to redefine and trying to redefine them leads to an error.
+There are two classes of symbols that are special by naming convention and
+these either start with a `#`, for fast-lookup variables, and `ext-` for
 extensions that will be bound at runtime.
 
 Examples of symbols used as data are `nil` and `t`. `nil` is used the
@@ -162,7 +163,7 @@ expression evaluates to `t`.
 ### not-eq
 
 `not-eq` implements the negation of eq. In other words, `(not-eq a b c)` evaluates
-to the same result as `(not (eq a b c))`. 
+to the same result as `(not (eq a b c))`.
 
 ---
 
@@ -220,7 +221,7 @@ Example
 
 ---
 
-### >= 
+### >=
 
 Greater than or equal comparison. A less than comparison has the form `(>= expr1 ... exprN)`
 and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN.
@@ -571,7 +572,7 @@ The conditions are checked from first to last and for the first `cond-exprN`
 that evaluates to true, the corresponding `exprN` is evaluated.
 
 If no `cond-exprN` evaluates to true, the result of the entire conditional
-is `nil`. 
+is `nil`.
 
 Example that prints "Hello world":
 ```clj
@@ -818,7 +819,7 @@ cons cells on the heap.
 
 A cons cell can be used to store a pair of values. You create a pair by
 sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or
-`(cons 1 2)`. 
+`(cons 1 2)`.
 
 ![pair](images/pair.png?raw=true "pair")
 
@@ -1045,28 +1046,28 @@ Now change the value in the cdr field of apa to 42.
 ```
 The `apa` pair is now `(1 . 42)`.
 
-## Associations lists (alists) 
+## Associations lists (alists)
 
-Association lists (alists) are, just like regular lists, built out 
-of cons-cells. The difference is that an alist is a list of pairs 
-where the first element in each par can be thought of as a key and 
+Association lists (alists) are, just like regular lists, built out
+of cons-cells. The difference is that an alist is a list of pairs
+where the first element in each par can be thought of as a key and
 the second element can be thought of as the value. So alists implement
-a key-value lookup structure. 
+a key-value lookup structure.
 
-`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example 
-of an alist with integer keys and symbol values. 
+`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example
+of an alist with integer keys and symbol values.
 
-### acons 
+### acons
 
-The `acons` form is similar to `cons`, it attaches one more element 
-onto an alist. The element that is added consists of a key and a value 
-so `acons` takes one more argument than `cons`. The form of an 
-`acons` expression is `(acons key-expr val-expr alist-expr)`. 
-The `alist-expr` should evaluate to an alist but there are no checks 
-to ensure this. 
+The `acons` form is similar to `cons`, it attaches one more element
+onto an alist. The element that is added consists of a key and a value
+so `acons` takes one more argument than `cons`. The form of an
+`acons` expression is `(acons key-expr val-expr alist-expr)`.
+The `alist-expr` should evaluate to an alist but there are no checks
+to ensure this.
 
-Example that adds the key `4` and associated value `lemur` to 
-an existing alist. 
+Example that adds the key `4` and associated value `lemur` to
+an existing alist.
 
 ```clj
 # (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
@@ -1112,31 +1113,31 @@ alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr val
 
 ### array-create
 
-Create an array of a given type, default is an array of bytes. The 
+Create an array of a given type, default is an array of bytes. The
 form of an `array-create` expression is either `(array-create type size-expr)`
-or `(array-create size-expr)`. If no type is specified, the default is 
-to create an array of bytes. 
+or `(array-create size-expr)`. If no type is specified, the default is
+to create an array of bytes.
 
 Currently the following types can be used for the type field:
 
-| Type | 
-| ---  | 
-| type-char | 
-| type-byte | 
+| Type |
+| ---  |
+| type-char |
+| type-byte |
 | type-i32  |
-| type-u32  | 
+| type-u32  |
 | type-float |
-| type-i64 | 
+| type-i64 |
 | type-u64 |
-| type-double | 
+| type-double |
 
 ---
 
 ### array-size
 
-Returns the size of an array in number of elements. The form 
-of an `array-size` expression is `(array-size arr-expr)` where 
-arr-expr has to evaluate into an array. 
+Returns the size of an array in number of elements. The form
+of an `array-size` expression is `(array-size arr-expr)` where
+arr-expr has to evaluate into an array.
 
 ---
 
@@ -1186,27 +1187,27 @@ Example:
 
 ### Array literal syntax
 
-Array literals can be created using the `[` and `]` syntax to enclose 
+Array literals can be created using the `[` and `]` syntax to enclose
 values to initialize the array with. The `[` and `]` syntax is complete
-resolved in the parser and thus cannot contain arbitrary lisp terms. 
-the values listed between the `[` and the `]` must be literals! 
+resolved in the parser and thus cannot contain arbitrary lisp terms.
+the values listed between the `[` and the `]` must be literals!
 
 The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
-or `[ val1 ... valN]`. If no type-qualifier is specified the default is 
-to create an array with byte values. 
+or `[ val1 ... valN]`. If no type-qualifier is specified the default is
+to create an array with byte values.
 
 The currently valid type qualifiers are:
 
-| Type qualifier | 
-| ---            | 
+| Type qualifier |
+| ---            |
 | type-byte      |
-| type-i32       | 
-| type-u32       | 
-| type-float     | 
+| type-i32       |
+| type-u32       |
+| type-float     |
 
-(The rest of the numerical types will be supported in the future) 
+(The rest of the numerical types will be supported in the future)
 
-Example that creates a byte array 
+Example that creates a byte array
 ```clj
 [ 1 2 3 4 5 6 7 8 9 10 ]
 ```
@@ -1235,6 +1236,15 @@ For example the match expression below evaluates to 2.
        (orange 2)
        (blue 3))
 ```
+
+---
+
+### no_match
+
+The `no_match` symbol is returned from pattern matching if
+no case matches the expression.
+
+    - Add a catch-all case to your pattern-matching. `_`.
 
 ---
 
@@ -1506,20 +1516,29 @@ Below is an example that conditionally returns.
 
 ---
 
-## Unparsable symbols
+## Error handling
 
-Unparsable symbols cannot be written into a program. The unparsable symbols
-signals different kinds of error conditions that may point at something
-being wrong in the code (or that it is exhausting all resources).
+If an error occurs while evaluating a program, the process that runs
+that program is killed.  The result of the killed process is set to an
+error symbol indicating what went wrong.
 
-### no_match
+If the process was created using `spawn` (or equivalently, started by a
+issuing a command in the repl), the process dies and an error message
+is presented over the registered printing callback (dependent on how LispBM
+is integrated into your system). The `ctx_done_callback` is also called
+and performs other integration dependent tasks related to the shutting down
+of a process.
 
-The `no_match` symbol is returned from pattern matching if
-no case matches the expression. 
-
-    - Add a catch-all case to your pattern-matching. `_`. 
+If the process was created using `spawn-trap`, in addition to the
+above, a message is sent to the parent process (the process that
+executed the spawn-trap) containing information about the process that
+struck an error. See <a href="#spawn-trap">spawn-trap</a>.
+The parent process can now choose to restart the process that crashed
+or to take some other action.
 
 ---
+
+## Error Symbols
 
 ### read_error
 
@@ -1558,7 +1577,7 @@ but semantically nonsensical.
 ### out_of_memory
 
 The `out_of_memory` symbol is returned if the heap is full and running
-the garbage collector was not able to free any memory up. 
+the garbage collector was not able to free any memory up.
 
 The program you have written requires more memory.
 
@@ -1669,61 +1688,61 @@ A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
 
 ---
 
-### type-stream
+### type-channel
 
 ---
 
-## Type convertion functions 
+## Type convertion functions
 
 ### to-byte
 
-Convert any numerical value to a byte. 
+Convert any numerical value to a byte.
 If the input is not a number the output of this function will be 0.
 
 ---
 
 ### to-i
 
-Convert a value of any numerical type to an integer. 
+Convert a value of any numerical type to an integer.
 The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
 If the input is not a number the output of this function will be 0.
 
---- 
+---
 
-### to-u 
+### to-u
 
-Convert a value of any numerical type to an unsigned integer. 
+Convert a value of any numerical type to an unsigned integer.
 The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
 If the input is not a number the output of this function will be 0.
 
---- 
+---
 
 ### to-i32
 
 Convert any numerical value to a 32bit int.
 If the input is not a number the output of this function will be 0.
 
---- 
+---
 
-### to-u32 
+### to-u32
 
 Convert any numerical value to a 32bit unsigned int.
 
---- 
+---
 
 ### to-float
 
 Convert any numerical value to a single precision floating point value.
 If the input is not a number the output of this function will be 0.
 
---- 
+---
 
 ### to-i64
 
 Convert any numerical value to a 64bit int.
 If the input is not a number the output of this function will be 0.
 
---- 
+---
 
 ### to-u64
 
