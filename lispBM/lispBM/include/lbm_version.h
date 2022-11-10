@@ -34,6 +34,7 @@ extern "C" {
 /*! \page changelog Changelog
 
 Nov 9: Version 0.7.1
+  - Bugfix: string literal lengths.
   - not-eq and != added.
   - Corrected behaviour for eval when applied to no argument.
   - lbm_memory operations are protected by mutex.
