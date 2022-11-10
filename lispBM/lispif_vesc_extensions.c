@@ -434,52 +434,6 @@ static bool check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n) {
 #define CHECK_ARGN(n) if (!check_argn(argn, n)) {return ENC_SYM_EERROR;}
 #define CHECK_ARGN_NUMBER(n) if (!check_argn_number(args, argn, n)) {return ENC_SYM_EERROR;}
 
-static bool gpio_get_pin(lbm_uint sym, stm32_gpio_t **port, int *pin) {
-	if (compare_symbol(sym, &syms_vesc.pin_rx)) {
-#ifdef HW_UART_RX_PORT
-		*port = HW_UART_RX_PORT; *pin = HW_UART_RX_PIN;
-		return true;
-#endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_tx)) {
-#ifdef HW_UART_TX_PORT
-		*port = HW_UART_TX_PORT; *pin = HW_UART_TX_PIN;
-		return true;
-#endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_swdio)) {
-		*port = GPIOA; *pin = 13;
-		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_swclk)) {
-		*port = GPIOA; *pin = 14;
-		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_hall1)) {
-		*port = HW_HALL_ENC_GPIO1; *pin = HW_HALL_ENC_PIN1;
-		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_hall2)) {
-		*port = HW_HALL_ENC_GPIO2; *pin = HW_HALL_ENC_PIN2;
-		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_hall3)) {
-		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
-		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_adc1)) {
-#ifdef HW_ADC_EXT_GPIO
-		*port = HW_ADC_EXT_GPIO; *pin = HW_ADC_EXT_PIN;
-		return true;
-#endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_adc2)) {
-#ifdef HW_ADC_EXT2_GPIO
-		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
-		return true;
-#endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_ppm)) {
-#ifdef HW_ICU_GPIO
-		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
-		return true;
-#endif
-	}
-
-	return false;
-}
-
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
@@ -2229,10 +2183,10 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 	}
 
 	stm32_gpio_t *sda_gpio = HW_UART_RX_PORT;
-	int sda_pin = HW_UART_RX_PIN;
+	uint32_t sda_pin = HW_UART_RX_PIN;
 	if (argn >= 2) {
 		if (!lbm_is_symbol(args[1]) ||
-				!gpio_get_pin(lbm_dec_sym(args[1]), &sda_gpio, &sda_pin)) {
+				!lispif_symbol_to_io(lbm_dec_sym(args[1]), &sda_gpio, &sda_pin)) {
 			return ENC_SYM_EERROR;
 		}
 	}
@@ -2240,10 +2194,10 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 	i2c_cfg.sda_pin = sda_pin;
 
 	stm32_gpio_t *scl_gpio = HW_UART_TX_PORT;
-	int scl_pin = HW_UART_TX_PIN;
+	uint32_t scl_pin = HW_UART_TX_PIN;
 	if (argn >= 3) {
 		if (!lbm_is_symbol(args[2]) ||
-				!gpio_get_pin(lbm_dec_sym(args[2]), &scl_gpio, &scl_pin)) {
+				!lispif_symbol_to_io(lbm_dec_sym(args[2]), &scl_gpio, &scl_pin)) {
 			return ENC_SYM_EERROR;
 		}
 	}
@@ -2385,8 +2339,8 @@ static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	stm32_gpio_t *port; int pin;
-	if (gpio_get_pin(lbm_dec_sym(args[0]), &port, &pin)) {
+	stm32_gpio_t *port; uint32_t pin;
+	if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
 		palSetPadMode(port, pin, mode);
 	} else {
 		return ENC_SYM_EERROR;
@@ -2402,8 +2356,8 @@ static lbm_value ext_gpio_write(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	stm32_gpio_t *port; int pin;
-	if (gpio_get_pin(lbm_dec_sym(args[0]), &port, &pin)) {
+	stm32_gpio_t *port; uint32_t pin;
+	if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
 		palWritePad(port, pin, lbm_dec_as_i32(args[1]));
 	} else {
 		return ENC_SYM_EERROR;
@@ -2419,8 +2373,8 @@ static lbm_value ext_gpio_read(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	stm32_gpio_t *port; int pin;
-	if (gpio_get_pin(lbm_dec_sym(args[0]), &port, &pin)) {
+	stm32_gpio_t *port; uint32_t pin;
+	if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
 		return lbm_enc_i(palReadPad(port, pin));
 	} else {
 		return ENC_SYM_EERROR;
@@ -4469,4 +4423,51 @@ void lispif_disable_all_events(void) {
 	event_can_eid_en = false;
 	// Give thread a chance to stop
 	chThdSleepMilliseconds(5);
+}
+
+// Note: This function is only safe to use from LBM extensions or while the evaluator is paused
+bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin) {
+	if (compare_symbol(sym, &syms_vesc.pin_rx)) {
+#ifdef HW_UART_RX_PORT
+		*port = HW_UART_RX_PORT; *pin = HW_UART_RX_PIN;
+		return true;
+#endif
+	} else if (compare_symbol(sym, &syms_vesc.pin_tx)) {
+#ifdef HW_UART_TX_PORT
+		*port = HW_UART_TX_PORT; *pin = HW_UART_TX_PIN;
+		return true;
+#endif
+	} else if (compare_symbol(sym, &syms_vesc.pin_swdio)) {
+		*port = GPIOA; *pin = 13;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_swclk)) {
+		*port = GPIOA; *pin = 14;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall1)) {
+		*port = HW_HALL_ENC_GPIO1; *pin = HW_HALL_ENC_PIN1;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall2)) {
+		*port = HW_HALL_ENC_GPIO2; *pin = HW_HALL_ENC_PIN2;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_hall3)) {
+		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
+		return true;
+	} else if (compare_symbol(sym, &syms_vesc.pin_adc1)) {
+#ifdef HW_ADC_EXT_GPIO
+		*port = HW_ADC_EXT_GPIO; *pin = HW_ADC_EXT_PIN;
+		return true;
+#endif
+	} else if (compare_symbol(sym, &syms_vesc.pin_adc2)) {
+#ifdef HW_ADC_EXT2_GPIO
+		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
+		return true;
+#endif
+	} else if (compare_symbol(sym, &syms_vesc.pin_ppm)) {
+#ifdef HW_ICU_GPIO
+		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
+		return true;
+#endif
+	}
+
+	return false;
 }

@@ -35,6 +35,7 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "conf_custom.h"
+#include "timer.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -321,6 +322,10 @@ static float lib_io_read_analog(VESC_PIN pin_vesc) {
 static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
 	bool analog;
 	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
+}
+
+static bool lib_symbol_to_io(lbm_uint sym, void **gpio, uint32_t *pin) {
+	return lispif_symbol_to_io(sym, (stm32_gpio_t**)gpio, pin);
 }
 
 static SerialConfig uart_cfg = {
@@ -755,13 +760,25 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.set_cfg_int = lib_set_cfg_int;
 		cif.cif.store_cfg = lib_store_cfg;
 
-		// Things out of order that got added later
+		// GNSS-struct that can be both read and updated
 		cif.cif.mc_gnss = mc_interface_gnss;
 
 		// Mutex
 		cif.cif.mutex_create = lib_mutex_create;
 		cif.cif.mutex_lock = lib_mutex_lock;
 		cif.cif.mutex_unlock = lib_mutex_unlock;
+
+		// Get ST io-pin from lbm symbol (this is only safe from extensions)
+		cif.cif.lbm_symbol_to_io = lib_symbol_to_io;
+
+		// High resolution timer for short busy-wait sleeps and time measurement
+		cif.cif.timer_time_now = timer_time_now;
+		cif.cif.timer_seconds_elapsed_since = timer_seconds_elapsed_since;
+		cif.cif.timer_sleep = timer_sleep;
+
+		// System lock (with counting)
+		cif.cif.sys_lock = utils_sys_lock_cnt;
+		cif.cif.sys_unlock = utils_sys_unlock_cnt;
 
 		lib_init_done = true;
 	}

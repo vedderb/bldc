@@ -476,13 +476,25 @@ typedef struct {
 	bool (*set_cfg_int)(CFG_PARAM p, int value);
 	bool (*store_cfg)(void);
 
-	// Things out of order that got added later
+	// GNSS-struct that can be both read and updated
 	volatile gnss_data* (*mc_gnss)(void);
 
 	// Mutex
 	lib_mutex (*mutex_create)(void);
 	void (*mutex_lock)(lib_mutex);
 	void (*mutex_unlock)(lib_mutex);
+
+	// Get ST io-pin from lbm symbol (this is only safe from extensions)
+	bool (*lbm_symbol_to_io)(lbm_uint sym, void **gpio, uint32_t *pin);
+
+	// High resolution timer for short busy-wait sleeps and time measurement
+	uint32_t (*timer_time_now)(void);
+	float (*timer_seconds_elapsed_since)(uint32_t time);
+	void (*timer_sleep)(float seconds);
+
+	// System lock (with counting)
+	void (*sys_lock)(void);
+	void (*sys_unlock)(void);
 } vesc_c_if;
 
 typedef struct {
