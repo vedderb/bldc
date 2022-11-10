@@ -145,6 +145,13 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 	buffer_append_uint32(buffer, res, index);
 }
 
+void buffer_append_float64_auto(uint8_t* buffer, double number, int32_t *index) {
+	float n = number;
+	float err = (float)(number - (double)n);
+	buffer_append_float32_auto(buffer, n, index);
+	buffer_append_float32_auto(buffer, err, index);
+}
+
 int16_t buffer_get_int16(const uint8_t *buffer, int32_t *index) {
 	int16_t res =	((uint16_t) buffer[*index]) << 8 |
 					((uint16_t) buffer[*index + 1]);
@@ -233,4 +240,10 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 	}
 
 	return ldexpf(sig, e);
+}
+
+double buffer_get_float64_auto(const uint8_t *buffer, int32_t *index) {
+	double n = buffer_get_float32_auto(buffer, index);
+	double err = buffer_get_float32_auto(buffer, index);
+	return n + err;
 }

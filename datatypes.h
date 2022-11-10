@@ -1140,6 +1140,8 @@ typedef enum {
 
 	COMM_SET_APPCONF_NO_STORE,
 	COMM_GET_GNSS,
+
+	COMM_LOG_DATA_F64,
 } COMM_PACKET_ID;
 
 // CAN commands

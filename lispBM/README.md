@@ -2458,6 +2458,14 @@ Stop logging data on log device with can-id.
 
 Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers.
 
+#### log-send-f64
+
+```clj
+(log-send-f64 can-id from-field-ind sample1 ... sampleN)
+```
+
+Same as [log-send-f32](#log-send-f32) but uses 64-bit values for higher precision and takes up to 50 samples. Useful for e.g. gnss-positions where 32-bit floats do not give enough precision due to the size of the earth.
+
 ## GNSS
 
 If a GNSS-receiver such as the VESC Express is connected on the CAN-bus, the position, speed, time and precision data from it can be read from LBM.

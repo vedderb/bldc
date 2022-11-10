@@ -3861,7 +3861,7 @@ static lbm_value ext_log_config_field(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
-static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
+static lbm_value log_send_fxx(bool is_64, lbm_value *args, lbm_uint argn) {
 	unsigned int arg_now = 0;
 
 	int can_id = -1;
@@ -3881,16 +3881,21 @@ static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
 	int32_t ind = 0;
 	uint8_t *buffer = mempools_get_packet_buffer();
 
-	buffer[ind++] = COMM_LOG_DATA_F32;
+	buffer[ind++] = is_64 ? COMM_LOG_DATA_F64 : COMM_LOG_DATA_F32;
 	buffer_append_int16(buffer, field_start, &ind);
 
 	int append_cnt = 0;
+	int append_max = is_64 ? 50 : 100;
 
 	while (arg_now < argn) {
 		if (lbm_is_number(args[arg_now])) {
-			buffer_append_float32_auto(buffer, lbm_dec_as_float(args[arg_now]), &ind);
+			if (is_64) {
+				buffer_append_float64_auto(buffer, lbm_dec_as_double(args[arg_now]), &ind);
+			} else {
+				buffer_append_float32_auto(buffer, lbm_dec_as_float(args[arg_now]), &ind);
+			}
 			append_cnt++;
-			if (append_cnt >= 100) {
+			if (append_cnt >= append_max) {
 				mempools_free_packet_buffer(buffer);
 				return ENC_SYM_EERROR;
 			}
@@ -3899,9 +3904,13 @@ static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
 			while (lbm_is_cons(curr)) {
 				lbm_value  val = lbm_car(curr);
 				if (lbm_is_number(val)) {
-					buffer_append_float32_auto(buffer, lbm_dec_as_float(val), &ind);
+					if (is_64) {
+						buffer_append_float64_auto(buffer, lbm_dec_as_double(val), &ind);
+					} else {
+						buffer_append_float32_auto(buffer, lbm_dec_as_float(val), &ind);
+					}
 					append_cnt++;
-					if (append_cnt >= 100) {
+					if (append_cnt >= append_max) {
 						mempools_free_packet_buffer(buffer);
 						return ENC_SYM_EERROR;
 					}
@@ -3928,6 +3937,14 @@ static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
 	mempools_free_packet_buffer(buffer);
 
 	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_log_send_f32(lbm_value *args, lbm_uint argn) {
+	return log_send_fxx(false, args, argn);
+}
+
+static lbm_value ext_log_send_f64(lbm_value *args, lbm_uint argn) {
+	return log_send_fxx(true, args, argn);
 }
 
 static lbm_value ext_gnss_lat_lon(lbm_value *args, lbm_uint argn) {
@@ -4360,6 +4377,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("log-stop", ext_log_stop);
 	lbm_add_extension("log-config-field", ext_log_config_field);
 	lbm_add_extension("log-send-f32", ext_log_send_f32);
+	lbm_add_extension("log-send-f64", ext_log_send_f64);
 
 	// GNSS
 	lbm_add_extension("gnss-lat-lon", ext_gnss_lat_lon);
