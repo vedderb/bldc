@@ -2774,7 +2774,7 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 }
 
 // TODO: This is very similar to ext-print. Maybe they can share code.
-static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
+static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
 	const int str_len = 300;
 	char *str = lispif_malloc(str_len);
 	if (!str) {
@@ -2795,7 +2795,7 @@ static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
 				if (str_ofs == 0) {
 					chars = snprintf(str + str_ofs, max, "%s", (char*)array->data);
 				} else {
-					chars = snprintf(str + str_ofs, max, " %s", (char*)array->data);
+					chars = snprintf(str + str_ofs, max, "%s%s", delimiter, (char*)array->data);
 				}
 				if (chars >= max) {
 					str_ofs += max;
@@ -2812,7 +2812,7 @@ static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
 			if (str_ofs == 0) {
 				chars = snprintf(str + str_ofs, max, "%c", lbm_dec_char(t));
 			} else {
-				chars = snprintf(str + str_ofs, max, " %c", lbm_dec_char(t));
+				chars = snprintf(str + str_ofs, max, "%s%c", delimiter, lbm_dec_char(t));
 			}
 			if (chars >= max) {
 				str_ofs += max;
@@ -2826,7 +2826,7 @@ static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
 			if (str_ofs == 0) {
 				chars = snprintf(str + str_ofs, max, "%s", print_val_buffer);
 			} else {
-				chars = snprintf(str + str_ofs, max, " %s", print_val_buffer);
+				chars = snprintf(str + str_ofs, max, "%s%s", delimiter, print_val_buffer);
 			}
 			if (chars >= max) {
 				str_ofs += max;
@@ -2845,6 +2845,23 @@ static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
 		lispif_free(str);
 		return ENC_SYM_MERROR;
 	}
+}
+
+static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
+	return to_str(" ", args, argn);
+}
+
+static lbm_value ext_to_str_delim(lbm_value *args, lbm_uint argn) {
+	if (argn < 1) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *delim = lbm_dec_str(args[0]);
+	if (!delim) {
+		return ENC_SYM_EERROR;
+	}
+
+	return to_str(delim, args + 1, argn - 1);
 }
 
 // Configuration
@@ -4317,6 +4334,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("str-to-upper", ext_str_to_upper);
 	lbm_add_extension("str-cmp", ext_str_cmp);
 	lbm_add_extension("to-str", ext_to_str);
+	lbm_add_extension("to-str-delim", ext_to_str_delim);
 
 	// Configuration
 	lbm_add_extension("conf-set", ext_conf_set);

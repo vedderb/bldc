@@ -1892,6 +1892,19 @@ Convert LBM-types to their string representation and return that string. Example
 > "aAa 4 (a 2 3) 2 3 Hello"
 ```
 
+#### to-str-delim
+
+```clj
+(to-str-delim delimiter arg1 ... argN)
+```
+
+Same as [to-str](#to-str), but with a custom delimiter. Example:
+
+```clj
+(to-str-delim "::" "aAa" 4 '(a 2 3) 2 3 "Hello")
+> "aAa::4::(a 2 3)::2::3::Hello"
+```
+
 ## Events
 
 Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
