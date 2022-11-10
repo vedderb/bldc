@@ -163,6 +163,14 @@ Example:
 (set-bms-val 'bms-v-cell 2 3.92) ; Set cell 2 voltage to 3.92V
 ```
 
+#### send-bms-can
+
+```clj
+(send-bms-can)
+```
+
+Send BMS-values on CAN-bus. This his useful if a custom BMS-driver is implemented using [set-bms-val](#set-bms-val) in order to make devices on the CAN-bus aware of the BMS-state using the VESC protocol.
+
 #### get-adc
 
 ```clj

@@ -700,6 +700,12 @@ static lbm_value ext_set_bms_val(lbm_value *args, lbm_uint argn) {
 	return get_set_bms_val(true, args, argn);
 }
 
+static lbm_value ext_send_bms_can(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	bms_send_status_can();
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 	CHECK_NUMBER_ALL();
 
@@ -4186,6 +4192,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-selected-motor", ext_get_selected_motor);
 	lbm_add_extension("get-bms-val", ext_get_bms_val);
 	lbm_add_extension("set-bms-val", ext_set_bms_val);
+	lbm_add_extension("send-bms-can", ext_send_bms_can);
 	lbm_add_extension("get-adc", ext_get_adc);
 	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);
 	lbm_add_extension("systime", ext_systime);

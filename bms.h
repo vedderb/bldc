@@ -32,5 +32,6 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 void bms_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 volatile bms_values *bms_get_values(void);
+void bms_send_status_can(void);
 
 #endif /* BMS_H_ */
