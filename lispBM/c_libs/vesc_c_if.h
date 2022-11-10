@@ -183,6 +183,7 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
 
 typedef void* lib_thread;
+typedef void* lib_mutex;
 
 typedef enum {
 	VESC_PIN_COMM_RX = 0,
@@ -477,6 +478,11 @@ typedef struct {
 
 	// Things out of order that got added later
 	volatile gnss_data* (*mc_gnss)(void);
+
+	// Mutex
+	lib_mutex (*mutex_create)(void);
+	void (*mutex_lock)(lib_mutex);
+	void (*mutex_unlock)(lib_mutex);
 } vesc_c_if;
 
 typedef struct {

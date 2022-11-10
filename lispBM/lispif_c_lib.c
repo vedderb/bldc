@@ -498,6 +498,20 @@ static bool lib_eval_is_paused(void) {
 	return lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED;
 }
 
+static lib_mutex lib_mutex_create(void) {
+	mutex_t *m = lispif_malloc(sizeof(mutex_t));
+	chMtxObjectInit(m);
+	return (lib_mutex)m;
+}
+
+static void lib_mutex_lock(lib_mutex m) {
+	chMtxLock((mutex_t*)m);
+}
+
+static void lib_mutex_unlock(lib_mutex m) {
+	chMtxUnlock((mutex_t*)m);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -743,6 +757,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Things out of order that got added later
 		cif.cif.mc_gnss = mc_interface_gnss;
+
+		// Mutex
+		cif.cif.mutex_create = lib_mutex_create;
+		cif.cif.mutex_lock = lib_mutex_lock;
+		cif.cif.mutex_unlock = lib_mutex_unlock;
 
 		lib_init_done = true;
 	}
