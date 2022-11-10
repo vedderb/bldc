@@ -64,8 +64,6 @@ static const char* functions[] = {
 "(filter-rec f lst nil)"
 "))",
 
-"(defun str-len (str) (- (buflen str) 1))",
-
 "(defun sort (f lst)"
 "(let ((insert (lambda (elt f sorted-lst)"
 "(if (eq sorted-lst nil) (list elt)"

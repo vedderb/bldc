@@ -2870,6 +2870,19 @@ static lbm_value ext_to_str_delim(lbm_value *args, lbm_uint argn) {
 	return to_str(delim, args + 1, argn - 1);
 }
 
+static lbm_value ext_str_len(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN(1);
+
+	char *str = lbm_dec_str(args[0]);
+	if (!str) {
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+
+	return lbm_enc_i(strnlen(str, array->size));
+}
+
 // Configuration
 
 static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
@@ -4342,6 +4355,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("str-cmp", ext_str_cmp);
 	lbm_add_extension("to-str", ext_to_str);
 	lbm_add_extension("to-str-delim", ext_to_str_delim);
+	lbm_add_extension("str-len", ext_str_len);
 
 	// Configuration
 	lbm_add_extension("conf-set", ext_conf_set);
