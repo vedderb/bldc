@@ -2393,7 +2393,7 @@ Fault code. Converted to a fault string in the VESC Tool log analysis tool.
 Configure log field on log device. Parameters:
 
 **can-id**  
-ID on the CAN-bus.
+ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool.
 
 **field-ind**  
 Field index in the log.
@@ -2428,7 +2428,7 @@ Timestamp fields are displayed with the format hh:mm:ss.
 Start logging. Before starting to log all fields should be configured with [log-config-field](#log-config-field).
 
 **can-id**  
-ID on the CAN-bus.
+ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool.
 
 **field-num**  
 Number of log fields.
@@ -2448,7 +2448,7 @@ If set to true the log device will append a GNSS-position to each sample. This r
 (log-start can-id)
 ```
 
-Stop logging data on log device with can-id.
+Stop logging data on log device with can-id. Setting the id to -1 will send the data to VESC Tool.
 
 #### log-send-f32
 
@@ -2456,7 +2456,7 @@ Stop logging data on log device with can-id.
 (log-send-f32 can-id from-field-ind sample1 ... sampleN)
 ```
 
-Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers.
+Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers. Setting the id to -1 will send the data to VESC Tool.
 
 #### log-send-f64
 
