@@ -2716,7 +2716,8 @@ static lbm_value ext_str_to_upper(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
-	if (argn != 2) {
+	if (argn != 2 && argn != 3) {
+		lbm_set_error_reason(error_reason_argn);
 		return ENC_SYM_EERROR;
 	}
 
@@ -2730,7 +2731,20 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	return lbm_enc_i(strcmp(str1, str2));
+	int n = -1;
+	if (argn == 3) {
+		if (!lbm_is_number(args[2])) {
+			return ENC_SYM_EERROR;
+		}
+
+		n = lbm_dec_as_i32(args[2]);
+	}
+
+	if (n > 0) {
+		return lbm_enc_i(strncmp(str1, str2, n));
+	} else {
+		return lbm_enc_i(strcmp(str1, str2));
+	}
 }
 
 // TODO: This is very similar to ext-print. Maybe they can share code.

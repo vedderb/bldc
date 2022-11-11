@@ -1839,10 +1839,14 @@ Convert string str to lower case. Example:
 #### str-cmp
 
 ```clj
-(str-cmp str1 str1)
+(str-cmp str1 str1 optN)
 ```
 
-Compare strings str1 and str2. Works in the same way as the strcmp-function in C, meaning that equal strings return 0 and different strings return their difference according how they would be sorted. Example:
+Compare strings str1 and str2. Works in the same way as the strcmp-function in C, meaning that equal strings return 0 and different strings return their difference according how they would be sorted.
+
+The optional argument optN can be used to specify how many characters to compare (like strncmp in C). If it is left out all characters will be compared.
+
+Example:
 
 ```clj
 (str-cmp "Hello" "Hello")
@@ -1853,6 +1857,9 @@ Compare strings str1 and str2. Works in the same way as the strcmp-function in C
 
 (str-cmp "World" "Hello")
 > 15
+
+(str-cmp "ab" "abcd" 2) ; Compare only the first two characters
+> 0
 ```
 
 #### str-cmp-asc
