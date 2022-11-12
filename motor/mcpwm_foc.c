@@ -1456,7 +1456,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 			motor->m_phase_now_override = i;
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				goto exit;
+				goto exit_encoder_detect;
 			}
 			chThdSleepMilliseconds(1);
 		}
@@ -1477,7 +1477,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 		motor->m_phase_now_override = i;
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
-			goto exit;
+			goto exit_encoder_detect;
 		}
 		chThdSleepMilliseconds(1);
 	}
@@ -1502,7 +1502,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 			motor->m_phase_now_override = j;
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				goto exit;
+				goto exit_encoder_detect;
 			}
 			chThdSleepMilliseconds(1);
 		}
@@ -1535,7 +1535,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 			motor->m_phase_now_override = j;
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				goto exit;
+				goto exit_encoder_detect;
 			}
 			chThdSleepMilliseconds(1);
 		}
@@ -1575,7 +1575,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 		motor->m_phase_now_override = i;
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
-			goto exit;
+			goto exit_encoder_detect;
 		}
 		chThdSleepMilliseconds(2);
 	}
@@ -1597,7 +1597,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 			utils_step_towards((float*)&motor->m_phase_now_override, override, step / 100.0);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				goto exit;
+				goto exit_encoder_detect;
 			}
 			chThdSleepMilliseconds(4);
 		}
@@ -1624,7 +1624,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 			utils_step_towards((float*)&motor->m_phase_now_override, override, step / 100.0);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				goto exit;
+				goto exit_encoder_detect;
 			}
 			chThdSleepMilliseconds(4);
 		}
@@ -1655,7 +1655,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
 		commands_printf("Offset detected");
 	}
 
-	exit:
+	exit_encoder_detect:
 	motor->m_id_set = 0.0;
 	motor->m_iq_set = 0.0;
 	motor->m_phase_override = false;
@@ -2090,9 +2090,7 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 		float r_tmp = 0.0;
 		fault = mcpwm_foc_measure_resistance(i, 20, false, &r_tmp);
 		if (fault != FAULT_CODE_NONE || r_tmp == 0.0) {
-			motor->m_conf->foc_current_kp = kp_old;
-			motor->m_conf->foc_current_ki = ki_old;
-			return fault;
+			goto exit_measure_res_ind;
 		}
 		if (i > (1.0 / r_tmp)) {
 			i_last = i;
@@ -2114,10 +2112,10 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 		fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
 	}
 
+	exit_measure_res_ind:
 	motor->m_conf->foc_current_kp = kp_old;
 	motor->m_conf->foc_current_ki = ki_old;
 	motor->m_conf->foc_motor_r = res_old;
-
 	return fault;
 }
 
@@ -2163,21 +2161,13 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 	// Lock the motor
 	motor->m_phase_now_override = 0;
 
+	*result = false;
+
 	for (int i = 0;i < 1000;i++) {
 		motor->m_id_set = (float)i * current / 1000.0;
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
-			motor->m_id_set = 0.0;
-			motor->m_iq_set = 0.0;
-			motor->m_phase_override = false;
-			motor->m_control_mode = CONTROL_MODE_NONE;
-			motor->m_state = MC_STATE_OFF;
-			stop_pwm_hw((motor_all_state_t*)motor);
-			motor->m_conf->foc_mtpa_mode = mtpa_old;
-			// Enable timeout
-			timeout_configure(tout, tout_c, tout_ksw);
-			mc_interface_unlock();
-			return fault;
+			goto exit_hall_detect;
 		}
 		chThdSleepMilliseconds(1);
 	}
@@ -2195,17 +2185,7 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 			motor->m_phase_now_override = DEG2RAD_f(j);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				motor->m_id_set = 0.0;
-				motor->m_iq_set = 0.0;
-				motor->m_phase_override = false;
-				motor->m_control_mode = CONTROL_MODE_NONE;
-				motor->m_state = MC_STATE_OFF;
-				stop_pwm_hw((motor_all_state_t*)motor);
-				motor->m_conf->foc_mtpa_mode = mtpa_old;
-				// Enable timeout
-				timeout_configure(tout, tout_c, tout_ksw);
-				mc_interface_unlock();
-				return fault;
+				goto exit_hall_detect;
 			}
 			chThdSleepMilliseconds(5);
 
@@ -2224,17 +2204,7 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 			motor->m_phase_now_override = DEG2RAD_f(j);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
-				motor->m_id_set = 0.0;
-				motor->m_iq_set = 0.0;
-				motor->m_phase_override = false;
-				motor->m_control_mode = CONTROL_MODE_NONE;
-				motor->m_state = MC_STATE_OFF;
-				stop_pwm_hw((motor_all_state_t*)motor);
-				motor->m_conf->foc_mtpa_mode = mtpa_old;
-				// Enable timeout
-				timeout_configure(tout, tout_c, tout_ksw);
-				mc_interface_unlock();
-				return fault;
+				goto exit_hall_detect;
 			}
 			chThdSleepMilliseconds(5);
 
@@ -2247,18 +2217,6 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 		}
 	}
 
-	motor->m_id_set = 0.0;
-	motor->m_iq_set = 0.0;
-	motor->m_phase_override = false;
-	motor->m_control_mode = CONTROL_MODE_NONE;
-	motor->m_state = MC_STATE_OFF;
-	stop_pwm_hw((motor_all_state_t*)motor);
-
-	motor->m_conf->foc_mtpa_mode = mtpa_old;
-
-	// Enable timeout
-	timeout_configure(tout, tout_c, tout_ksw);
-
 	int fails = 0;
 	for(int i = 0;i < 8;i++) {
 		if (hall_iterations[i] > 30) {
@@ -2270,10 +2228,19 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
 			fails++;
 		}
 	}
+	*result = (fails == 2);
 
+	exit_hall_detect:
+	motor->m_id_set = 0.0;
+	motor->m_iq_set = 0.0;
+	motor->m_phase_override = false;
+	motor->m_control_mode = CONTROL_MODE_NONE;
+	motor->m_state = MC_STATE_OFF;
+	stop_pwm_hw((motor_all_state_t*)motor);
+	motor->m_conf->foc_mtpa_mode = mtpa_old;
+	timeout_configure(tout, tout_c, tout_ksw);
 	mc_interface_unlock();
 
-	*result = (fails == 2);
 	return fault;
 }
 
