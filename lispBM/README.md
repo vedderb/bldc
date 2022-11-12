@@ -925,6 +925,9 @@ Raw data commands useful for debugging hardware issues.
 
 Get raw current measurements. Motor is the motor index (1 or 2), phase is the phase (1, 2 or 3) and useRaw is whether to convert the measurements to currents or to use raw ADC values.
 
+**NOTE**  
+These samples can come from either V0 or V7 depending on when the function is called (although most likely V7 as less other computations happen then), so when the motor is running this is most likely not going to look good, especially if the hardware does not have phase shunts. This function is intended for debugging hardware and returns just was goes into the ADC without any processing.
+
 Example for reading phase B on motor 1 as raw ADC values:
 
 ```clj
