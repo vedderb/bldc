@@ -1930,14 +1930,13 @@ Events can be used to execute code for certain events, such as when CAN-frames a
 The following example shows how to spawn a thread that handles SID (standard-id) CAN-frames and custom app data:
 
 ```clj
-(define proc-sid (lambda (id data)
-    (print (list id data)) ; Print the ID and data
-))
+(defun proc-sid (id data)
+    (print (list id data))
+)
 
-(define proc-data (lambda (data)
-    (progn
-        (print data)
-)))
+(defun proc-data (data)
+    (print data)
+)
 
 (defun event-handler ()
     (loopwhile t
