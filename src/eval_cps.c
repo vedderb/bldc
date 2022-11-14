@@ -78,6 +78,8 @@ static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
 static const char* parse_error_dot = "Incorrect usage of '.'";
 static const char* parse_error_close = "Expected closing parenthesis";
+static const char* num_args_error = "Incorrect number of arguments";
+static const char* forbidden_in_atomic = "Operation is forbidden in an atomic block";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -315,6 +317,9 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
       error == ENC_SYM_NOT_FOUND) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
     printf_callback("***\t\t%s\n",buf);
+  } else {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("***\tAt:\t%s\n",buf);
   }
 
   if (lbm_is_symbol(error) &&
@@ -330,7 +335,6 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("\tWhile evaluating: %s\n", buf);
     printf_callback("\tIn context: %d\n", ctx_running->id);
     printf_callback("\tCurrent intermediate result: %s\n\n", buf);
 
@@ -1433,7 +1437,7 @@ static void eval_match(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
-    lbm_set_error_reason("Cannot receive inside of an atomic block");
+    lbm_set_error_reason((char*)forbidden_in_atomic);
     error_ctx(ENC_SYM_EERROR);
     return;
   }
@@ -1645,6 +1649,9 @@ static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     CHECK_STACK(lbm_push_3(&ctx->K, chan, fun, READ));
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
@@ -1713,7 +1720,7 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
 static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (is_atomic) {
-    lbm_set_error_reason("Cannot yield inside of an atomic block");
+    lbm_set_error_reason((char*)forbidden_in_atomic);
     error_ctx(ENC_SYM_EERROR);
     return;
   }
@@ -1740,60 +1747,65 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 0) {
-    lbm_stack_drop(&ctx->K, 1);
-    ctx->r = ENC_SYM_NIL;
-    ctx->app_cont = true;
-  } else {
+  if ( nargs == 1) {
     ctx->curr_exp = args[1];
     lbm_stack_drop(&ctx->K, nargs+1);
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 1) {
+    lbm_value prg = args[1];
+    lbm_value app_cont;
+    lbm_value app_cont_prg;
+    lbm_value new_prg;
 
-  lbm_value prg = args[1];
-  lbm_value app_cont;
-  lbm_value app_cont_prg;
-  lbm_value new_prg;
+    lbm_value prg_copy;
 
-  lbm_value prg_copy;
+    WITH_GC(prg_copy, lbm_list_copy(prg));
+    lbm_stack_drop(&ctx->K, nargs+1);
 
-  WITH_GC(prg_copy, lbm_list_copy(prg));
-  lbm_stack_drop(&ctx->K, nargs+1);
-
-  if (ctx->K.sp > nargs+2) { // if there is a continuation
-    WITH_GC_1(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), prg_copy);
-    WITH_GC_2(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont, prg_copy);
-    new_prg = lbm_list_append(app_cont_prg, ctx->program);
-    new_prg = lbm_list_append(prg_copy, new_prg);
+    if (ctx->K.sp > nargs+2) { // if there is a continuation
+      WITH_GC_1(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), prg_copy);
+      WITH_GC_2(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont, prg_copy);
+      new_prg = lbm_list_append(app_cont_prg, ctx->program);
+      new_prg = lbm_list_append(prg_copy, new_prg);
+    } else {
+      new_prg = lbm_list_append(prg_copy, ctx->program);
+    }
+    if (!lbm_is_list(new_prg)) {
+      error_ctx(ENC_SYM_EERROR);
+      return;
+    }
+    CHECK_STACK(lbm_push(&ctx->K, DONE));
+    ctx->program = lbm_cdr(new_prg);
+    ctx->curr_exp = lbm_car(new_prg);
   } else {
-    new_prg = lbm_list_append(prg_copy, ctx->program);
-  }
-  if (lbm_type_of(new_prg) != LBM_TYPE_CONS) {
+    lbm_set_error_reason((char*)num_args_error);
     error_ctx(ENC_SYM_EERROR);
-    return;
   }
-  CHECK_STACK(lbm_push(&ctx->K, DONE));
-  ctx->program = lbm_cdr(new_prg);
-  ctx->curr_exp = lbm_car(new_prg);
 }
 
 static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  lbm_value status = ENC_SYM_EERROR;
   if (nargs == 2) {
-
+    lbm_value status = ENC_SYM_TERROR;
     if (lbm_type_of(args[1]) == LBM_TYPE_I) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[1]);
       lbm_value msg = args[2];
 
       WITH_GC(status, lbm_find_receiver_and_send(cid, msg));
     }
+    /* return the status */
+    lbm_stack_drop(&ctx->K, nargs+1);
+    ctx->r = status;
+    ctx->app_cont = true;
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
-  /* return the status */
-  lbm_stack_drop(&ctx->K, nargs+1);
-  ctx->r = status;
-  ctx->app_cont = true;
 }
 
 static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -1816,11 +1828,11 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[2])) {
-    if (lbm_is_symbol(args[2]) &&
-        args[2] == ENC_SYM_NIL) {
+    if (lbm_is_symbol_nil(args[2])) {
       lbm_stack_drop(&ctx->K, 3);
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
+      return;
     }
     lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
     if (!sptr) {
@@ -1872,7 +1884,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
   } else {
-    lbm_set_error_reason("Map requires at one or two arguments");
+    lbm_set_error_reason((char*)num_args_error);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1939,7 +1951,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     if (arg_count == 1) {
       arg = fun_args[1];
     } else if (arg_count > 1) {
-      lbm_set_error_reason("A continuation created by call-cc was applied to too many arguments (>1)");
+      lbm_set_error_reason((char*)num_args_error);
       error_ctx(ENC_SYM_EERROR);
       return;
     }
@@ -2037,7 +2049,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     ctx->curr_exp = exp;
     ctx->app_cont = false;
   } else if (!a_nil && p_nil) {
-    lbm_set_error_reason("Too many arguments.");
+    lbm_set_error_reason((char*)num_args_error);
     error_ctx(ENC_SYM_EERROR);
   } else if (a_nil && !p_nil) {
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
