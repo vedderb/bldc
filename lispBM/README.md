@@ -602,6 +602,34 @@ Get the battery level, range 0.0 to 1.0. Requires that the battery type and numb
 
 Get fault code.
 
+#### get-ah
+```clj
+(get-ah)
+```
+
+Get the number of amp hours consumed since start.
+
+#### get-wh
+```clj
+(get-wh)
+```
+
+Get the number of watt hours consumed since start.
+
+#### get-ah-chg
+```clj
+(get-ah-chg)
+```
+
+Get the number of amp hours charged since start.
+
+#### get-wh-chg
+```clj
+(get-wh-chg)
+```
+
+Get the number of watt hours charged since start.
+
 ### CAN-Commands
 
 Notice that all canget-commands rely on the status messages being active on the VESCs on the CAN-bus. That can be done from App Settings->General->Can status message mode.
