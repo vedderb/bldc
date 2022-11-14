@@ -2834,6 +2834,7 @@ static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
 	if (lbm_create_array(&res, LBM_TYPE_CHAR, str_ofs + 1)) {
 		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
 		strncpy((char*)arr->data, str, str_ofs + 1);
+		lispif_free(str);
 		return res;
 	} else {
 		lispif_free(str);
