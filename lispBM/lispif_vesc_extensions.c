@@ -1281,8 +1281,31 @@ static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_get_temp_fet(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-	return lbm_enc_float(mc_interface_temp_fet_filtered());
+	CHECK_NUMBER_ALL();
+
+	if (argn > 1) {
+		return ENC_SYM_EERROR;
+	}
+
+	int fet = 0;
+	if (argn == 1) {
+		fet = lbm_dec_as_i32(args[0]);
+	}
+
+	bool is_m2 = mc_interface_get_motor_thread() == 2;
+
+	switch (fet) {
+		case 0:
+			return lbm_enc_float(mc_interface_temp_fet_filtered());
+		case 1:
+			return lbm_enc_float(is_m2 ? NTC_TEMP_MOS1_M2() : NTC_TEMP_MOS1());
+		case 2:
+			return lbm_enc_float(is_m2 ? NTC_TEMP_MOS2_M2() : NTC_TEMP_MOS2());
+		case 3:
+			return lbm_enc_float(is_m2 ? NTC_TEMP_MOS3_M2() : NTC_TEMP_MOS3());
+		default:
+			return ENC_SYM_EERROR;
+	}
 }
 
 static lbm_value ext_get_temp_mot(lbm_value *args, lbm_uint argn) {
