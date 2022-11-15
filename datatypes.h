@@ -873,6 +873,7 @@ typedef struct {
 	float accel_lowpass_filter_x;
 	float accel_lowpass_filter_y;
 	float accel_lowpass_filter_z;
+	float gyro_lowpass_filter;
 	int sample_rate_hz;
 	bool use_magnetometer;
 	float accel_confidence_decay;
