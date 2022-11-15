@@ -560,9 +560,9 @@ Get motor RPM. Negative values mean that the motor spins in the reverse directio
 
 Get MOSFET temperature. The argument optFet can be used to select senor 1 to 3. If it is left out or 0 the highest temperature is returned. If the hardware only has one sensor 0 is returned for sensors 1 to 3.
 
-#### get-temp-motor
+#### get-temp-mot
 ```clj
-(get-temp-motor)
+(get-temp-mot)
 ```
 
 Get motor temperature.
