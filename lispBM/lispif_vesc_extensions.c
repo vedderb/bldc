@@ -1392,7 +1392,7 @@ static lbm_value ext_setup_current_in(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_setup_num_vescs(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	return lbm_enc_float(mc_interface_get_setup_values().num_vescs);
+	return lbm_enc_i(mc_interface_get_setup_values().num_vescs);
 }
 
 // CAN-commands
