@@ -23,14 +23,16 @@
 
 #include "hal.h"
 #include "encoder_datatype.h"
-#include "enc_ts5700n8501.h"
+
+#include "enc_abi.h"
 #include "enc_ad2s1205.h"
+#include "enc_as5x47u.h"
+#include "enc_as504x.h"
+#include "enc_bissc.h"
 #include "enc_mt6816.h"
 #include "enc_sincos.h"
-#include "enc_as504x.h"
-#include "enc_as5x47u.h"
-#include "enc_abi.h"
-#include "enc_bissc.h"
+#include "enc_tle5012.h"
+#include "enc_ts5700n8501.h"
 
 // Functions
 bool encoder_init(volatile mc_configuration *conf);

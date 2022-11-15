@@ -19,17 +19,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENC_MT6816_H_
-#define ENC_MT6816_H_
+#ifndef ENC_TLE5012_H_
+#define ENC_TLE5012_H_
 
 #include "datatypes.h"
 #include "encoder/encoder_datatype.h"
 
-bool enc_mt6816_init(MT6816_config_t *cfg);
-void enc_mt6816_deinit(MT6816_config_t *cfg);
-void enc_mt6816_routine(MT6816_config_t *cfg);
+bool enc_tle5012_init_sw_ssc(TLE5012_config_t *cfg);
+bool enc_tle5012_init_hw_ssc(TLE5012_config_t *cfg);
+void enc_tle5012_deinit(TLE5012_config_t *cfg);
+void enc_tle5012_routine(TLE5012_config_t *cfg);
+tle5012_errortypes enc_tle5012_get_temperature(TLE5012_config_t *cfg, double *temperature);
+tle5012_errortypes enc_tle5012_get_magnet_magnitude(TLE5012_config_t *cfg, uint16_t *magnitude);
 
 // Macros
-#define MT6816_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
+#define TLE5012_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
 
-#endif /* ENC_MT6816_H_ */
+#endif /* ENC_TLE5012_H_ */
