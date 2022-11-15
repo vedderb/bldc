@@ -702,7 +702,7 @@ static lbm_value ext_get_adc_decoded(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	return lbm_enc_i32(chVTGetSystemTimeX());
+	return lbm_enc_u32(chVTGetSystemTimeX());
 }
 
 static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
