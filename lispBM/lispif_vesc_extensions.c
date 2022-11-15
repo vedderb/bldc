@@ -1358,6 +1358,43 @@ static lbm_value ext_get_wh_chg(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_watt_hours_charged(false));
 }
 
+// Setup values
+
+static lbm_value ext_setup_ah(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().ah_tot);
+}
+
+static lbm_value ext_setup_ah_chg(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().ah_charge_tot);
+}
+
+static lbm_value ext_setup_wh(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().wh_tot);
+}
+
+static lbm_value ext_setup_wh_chg(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().wh_charge_tot);
+}
+
+static lbm_value ext_setup_current(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().current_tot);
+}
+
+static lbm_value ext_setup_current_in(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().current_in_tot);
+}
+
+static lbm_value ext_setup_num_vescs(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_setup_values().num_vescs);
+}
+
 // CAN-commands
 
 static lbm_value ext_can_current(lbm_value *args, lbm_uint argn) {
@@ -4301,6 +4338,15 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-wh", ext_get_wh);
 	lbm_add_extension("get-ah-chg", ext_get_ah_chg);
 	lbm_add_extension("get-wh-chg", ext_get_wh_chg);
+
+	// Setup values
+	lbm_add_extension("setup-ah", ext_setup_ah);
+	lbm_add_extension("setup-ah-chg", ext_setup_ah_chg);
+	lbm_add_extension("setup-wh", ext_setup_wh);
+	lbm_add_extension("setup-wh-chg", ext_setup_wh_chg);
+	lbm_add_extension("setup-current", ext_setup_current);
+	lbm_add_extension("setup-current-in", ext_setup_current_in);
+	lbm_add_extension("setup-num-vescs", ext_setup_num_vescs);
 
 	// CAN-comands
 	lbm_add_extension("canset-current", ext_can_current);

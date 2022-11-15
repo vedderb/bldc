@@ -630,6 +630,57 @@ Get the number of amp hours charged since start.
 
 Get the number of watt hours charged since start.
 
+### Setup Values
+
+These commands return the accumulated values from all VESC-based motor controllers on the CAN-bus. Note that the corresponding CAN status messages must be activated for these commands to work.
+
+#### setup-ah
+```clj
+(setup-ah)
+```
+
+Get the number of amp hours consumed since start.
+
+#### setup-ah-chg
+```clj
+(setup-ah-chg)
+```
+
+Get the number of amp hours charged since start.
+
+#### setup-wh
+```clj
+(setup-wh)
+```
+
+Get the number of watt hours consumed since start.
+
+#### setup-wh-chg
+```clj
+(setup-wh-chg)
+```
+
+Get the number of watt hours charged since start.
+
+#### setup-current
+```clj
+(setup-current)
+```
+
+Get total motor current. Positive means that current is flowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
+
+#### setup-current-in
+```clj
+(setup-current-in)
+```
+
+#### setup-num-vescs
+```clj
+(setup-num-vescs)
+```
+
+Get the number of VESC-based motor controllers the setup values are accumulated from.
+
 ### CAN-Commands
 
 Notice that all canget-commands rely on the status messages being active on the VESCs on the CAN-bus. That can be done from App Settings->General->Can status message mode.
