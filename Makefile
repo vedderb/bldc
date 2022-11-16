@@ -73,24 +73,24 @@ endif
 ##############################
 .PHONY: help
 help:
-	@echo
+	@echo ""
 	@echo "   This Makefile is known to work on Linux and Mac in a standard shell environment."
-	@echo
+	@echo ""
 	@echo "   Here is a summary of the available targets:"
-	@echo
+	@echo ""
 	@echo "   [Tool Installers]"
 	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
 	@echo "     qt_install           - Install the all tools for Qt"
-	@echo
+	@echo ""
 	@echo "   [Big Hammer]"
 	@echo "     all_fw               - Build firmware for all boards"
 	@echo "     all_fw_package       - Packaage firmware for boards in package list"
-	@echo
+	@echo ""
 	@echo "   [Unit Tests]"
 	@echo "     all_ut               - Build all unit tests"
 	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
 	@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
-	@echo
+	@echo ""
 	@echo "   [Firmware]"
 	@echo "     fw   - Build firmware for default target"
 	@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
@@ -98,12 +98,12 @@ help:
 	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
 	@echo "     fw_<board>_clean     - Remove firmware for <board>"
 	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
-	@echo
+	@echo ""
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
-	@echo
+	@echo ""
 	@echo "   Note: All tools will be installed into $(TOOLS_DIR)"
 	@echo "         All build output will be placed in $(BUILD_DIR)"
-	@echo
+	@echo ""
 
 
 $(DL_DIR):

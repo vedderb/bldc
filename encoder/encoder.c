@@ -79,7 +79,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
-	case SENSOR_PORT_MODE_MT6816_SPI: {
+	case SENSOR_PORT_MODE_MT6816_SPI_HW: {
 		SENSOR_PORT_5V();
 
 		if (!enc_mt6816_init(&encoder_cfg_mt6816)) {
@@ -89,6 +89,63 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 		encoder_type_now = ENCODER_TYPE_MT6816;
 		timer_start(10000);
+
+		res = true;
+	} break;
+
+	// ssc (3 wire) sw spi on hall pins
+	case SENSOR_PORT_MODE_TLE5014_SSC_SW: {
+		SENSOR_PORT_5V();
+
+		// reuse global config, so must set up complete ssc config
+		spi_bb_state sw_ssc = {
+					HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, // nss
+					HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
+					HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
+					HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
+					ssc_type_sw,
+					0, // has_started
+					0, // has_error
+					{{NULL, NULL}, NULL, NULL} // Mutex
+			};
+		encoder_cfg_tle5012.sw_spi = sw_ssc;
+
+		if (!enc_tle5012_init_sw_ssc(&encoder_cfg_tle5012)) {
+			encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		encoder_type_now = ENCODER_TYPE_TLE5012;
+		timer_start(4000); // slow down sw spi as transactions long
+
+		res = true;
+	} break;
+
+	// ssc (3 wire) hw spi w dma (sw spi using hw spi pins for now)
+	case SENSOR_PORT_MODE_TLE5014_SSC_HW: {
+		SENSOR_PORT_5V();
+
+		// reuse global config, so must set up complete ssc config
+		spi_bb_state sw_ssc = {
+					HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, // nss
+					HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, // sck
+					HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // mosi
+					HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // miso (shared dat line)
+					ssc_type_sw,
+					0, // has_started
+					0, // has_error
+					{{NULL, NULL}, NULL, NULL} // Mutex
+			};
+		encoder_cfg_tle5012.sw_spi = sw_ssc;	
+
+		if (!enc_tle5012_init_hw_ssc(&encoder_cfg_tle5012)) {
+			encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		encoder_type_now = ENCODER_TYPE_TLE5012;
+		// timer_start(10000);
+		timer_start(4000);
 
 		res = true;
 	} break;
@@ -186,7 +243,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 	terminal_register_command_callback(
 			"encoder",
-			"Prints the status of the AS5047, AS5x47U, AD2S1205, or TS5700N8501 encoder.",
+			"Prints the status of the AS5047, AS5x47U, AD2S1205, TLE5012, MT6816, or TS5700N8501 encoder.",
 			0,
 			terminal_encoder);
 
@@ -214,6 +271,8 @@ void encoder_deinit(void) {
 		enc_as504x_deinit(&encoder_cfg_as504x);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&encoder_cfg_mt6816);
+	} else if (encoder_type_now == ENCODER_TYPE_TLE5012) {
+		enc_tle5012_deinit(&encoder_cfg_tle5012);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		enc_ad2s1205_deinit(&encoder_cfg_ad2s1205);
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
@@ -236,6 +295,8 @@ float encoder_read_deg(void) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
 	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
 		return MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
+	} else if (encoder_type_now == ENCODER_TYPE_TLE5012) {
+		return TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
 	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		return AD2S1205_LAST_ANGLE(&encoder_cfg_ad2s1205);
 	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
@@ -322,10 +383,21 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			break;
 
-		case SENSOR_PORT_MODE_MT6816_SPI:
+		case SENSOR_PORT_MODE_MT6816_SPI_HW:
 			if (encoder_cfg_mt6816.state.encoder_no_magnet_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
 			}
+			break;
+		
+		case SENSOR_PORT_MODE_TLE5014_SSC_HW:
+		case SENSOR_PORT_MODE_TLE5014_SSC_SW:
+			if (encoder_cfg_tle5012.state.spi_error_rate > 0.10) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
+			}
+			if (encoder_cfg_tle5012.state.last_status_error != NO_ERROR &&
+			    encoder_cfg_tle5012.state.last_status_error != CRC_ERROR) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
+			} // allow some crc errors below 10% error rate
 			break;
 
 		case SENSOR_PORT_MODE_SINCOS:
@@ -398,6 +470,10 @@ void encoder_tim_isr(void) {
 			enc_mt6816_routine(&encoder_cfg_mt6816);
 			break;
 
+		case ENCODER_TYPE_TLE5012:
+			enc_tle5012_routine(&encoder_cfg_tle5012);
+			break;
+
 		case ENCODER_TYPE_AD2S1205_SPI:
 			enc_ad2s1205_routine(&encoder_cfg_ad2s1205);
 			break;
@@ -422,7 +498,8 @@ static void terminal_encoder(int argc, const char **argv) {
 	switch (mcconf->m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_AS5047_SPI:
 		commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
-				encoder_cfg_as504x.state.spi_val, encoder_cfg_as504x.state.spi_communication_error_count,
+				encoder_cfg_as504x.state.spi_val, 
+				encoder_cfg_as504x.state.spi_communication_error_count,
 				(double)(encoder_cfg_as504x.state.spi_error_rate * 100.0));
 
 		if (encoder_cfg_as504x.sw_spi.mosi_gpio != NULL) {
@@ -444,10 +521,25 @@ static void terminal_encoder(int argc, const char **argv) {
 		}
 		break;
 
-	case SENSOR_PORT_MODE_MT6816_SPI:
+	case SENSOR_PORT_MODE_MT6816_SPI_HW:
 		commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 				encoder_cfg_mt6816.state.encoder_no_magnet_error_cnt,
 				(double)(encoder_cfg_mt6816.state.encoder_no_magnet_error_rate * 100.0));
+		break;
+
+	case SENSOR_PORT_MODE_TLE5014_SSC_HW:
+	case SENSOR_PORT_MODE_TLE5014_SSC_SW: ;
+		uint8_t status = encoder_cfg_tle5012.state.last_status_error; // get before other queries
+		double temperature = 0;
+		uint16_t magnet_magnitude = 0;
+		enc_tle5012_get_temperature(&encoder_cfg_tle5012, &temperature);
+		enc_tle5012_get_magnet_magnitude(&encoder_cfg_tle5012, &magnet_magnitude);
+		commands_printf("Last error: %d, ssc error rate: %.3f %%, magnet strength: %d, temp %.2f C",
+				status,
+				(double)(encoder_cfg_tle5012.state.spi_error_rate * 100.0),
+				magnet_magnitude,
+				temperature);
+		// todo, get/report status word (reg 0x00), make "last error" verbose
 		break;
 
 	case SENSOR_PORT_MODE_TS5700N8501:
