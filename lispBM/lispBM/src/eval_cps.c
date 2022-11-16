@@ -1893,9 +1893,6 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
   if (nargs == 1 && lbm_is_list(args[1])) {
     lbm_value curr = args[1];
 
-    char buf[1024];
-    lbm_print_value(buf,1024, args[1]);
-    printf("before: %s\n", buf);
     lbm_value new_list = ENC_SYM_NIL;
     while (lbm_type_of(curr) == LBM_TYPE_CONS) {
       lbm_value tmp;
@@ -1903,8 +1900,6 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
       new_list = tmp;
       curr = lbm_cdr(curr);
     }
-    lbm_print_value(buf,1024, new_list);
-    printf("after: %s\n", buf);
     lbm_stack_drop(&ctx->K, 2);
     ctx->r = new_list;
     ctx->app_cont = true;
