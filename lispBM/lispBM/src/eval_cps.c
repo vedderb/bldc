@@ -1893,14 +1893,18 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
   if (nargs == 1 && lbm_is_list(args[1])) {
     lbm_value curr = args[1];
 
+    char buf[1024];
+    lbm_print_value(buf,1024, args[1]);
+    printf("before: %s\n", buf);
     lbm_value new_list = ENC_SYM_NIL;
     while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-      WITH_GC_1(new_list, lbm_cons(lbm_car(curr), new_list), new_list);
-      if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
-        error_ctx(ENC_SYM_MERROR);
-      }
+      lbm_value tmp;
+      WITH_GC_1(tmp, lbm_cons(lbm_car(curr), new_list), new_list);
+      new_list = tmp;
       curr = lbm_cdr(curr);
     }
+    lbm_print_value(buf,1024, new_list);
+    printf("after: %s\n", buf);
     lbm_stack_drop(&ctx->K, 2);
     ctx->r = new_list;
     ctx->app_cont = true;
@@ -1976,7 +1980,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
       lbm_value res;
       WITH_GC(res, fundamental_table[fund_ix](&fun_args[1], arg_count, ctx));
-      if (lbm_is_error(res)) {
+      if (lbm_is_error(res)) { //Error other than merror.
         error_ctx(res);
         return;
       }
@@ -1993,7 +1997,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
       lbm_value ext_res;
       WITH_GC(ext_res, f(&fun_args[1], arg_count));
-      if (lbm_is_error(ext_res)) {
+      if (lbm_is_error(ext_res)) { //Error other than merror
         error_ctx(ext_res);
         return;
       }
@@ -2031,7 +2035,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-   if (lbm_is_cons(params)) {
+  if (lbm_is_cons(params)) {
     lbm_value entry;
     WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r));
 
@@ -2044,14 +2048,17 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   bool p_nil = lbm_is_symbol_nil(lbm_cdr(params));
 
   if (a_nil && p_nil) {
+    // Arguments and parameters match up in number
     lbm_stack_drop(&ctx->K, 5);
     ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
     ctx->app_cont = false;
   } else if (!a_nil && p_nil) {
+    // Application with extra arguments
     lbm_set_error_reason((char*)num_args_error);
     error_ctx(ENC_SYM_EERROR);
   } else if (a_nil && !p_nil) {
+    // Ran out of arguments, but there are still parameters.
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
     lbm_value closure;
     if (mk_closure(&closure, new_env, exp, lbm_cdr(params))) {
@@ -2062,12 +2069,13 @@ static void cont_closure_application_args(eval_context_t *ctx) {
       error_ctx(ENC_SYM_MERROR);
     }
   } else {
-   sptr[2] = clo_env;
-   sptr[3] = lbm_cdr(params);
-   sptr[4] = lbm_cdr(args);
-   CHECK_STACK(lbm_push(&ctx->K, CLOSURE_ARGS));
-   ctx->curr_exp = lbm_car(args);
-   ctx->curr_env = arg_env;
+    // evaluate the next argument.
+    sptr[2] = clo_env;
+    sptr[3] = lbm_cdr(params);
+    sptr[4] = lbm_cdr(args);
+    CHECK_STACK(lbm_push(&ctx->K, CLOSURE_ARGS));
+    ctx->curr_exp = lbm_car(args);
+    ctx->curr_env = arg_env;
   }
 }
 
