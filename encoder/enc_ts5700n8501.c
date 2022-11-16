@@ -43,7 +43,7 @@ bool enc_ts5700n8501_init(TS5700N8501_config_t *cfg) {
 	cfg->state.is_running = true;
 
 	chThdCreateStatic(cfg->thread_wa, cfg->thread_wa_size,
-	NORMALPRIO - 10, ts5700n8501_thread, cfg);
+			NORMALPRIO - 10, ts5700n8501_thread, cfg);
 
 	return true;
 }

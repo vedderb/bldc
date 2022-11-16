@@ -96,20 +96,6 @@ bool enc_tle5012_init_sw_ssc(TLE5012_config_t *cfg) {
 	return enc_tle5012_setup(cfg);
 }
 
-bool enc_tle5012_init_hw_ssc(TLE5012_config_t *cfg) {
-
-	// software ssc for now using hw spi pins
-	memset(&cfg->state, 0, sizeof(TLE5012_state)); 
-
-	spi_bb_init(&(cfg->sw_spi));
-
-	cfg->state.last_status_error = 0;
-	cfg->state.spi_error_rate = 0.0;
-	cfg->state.encoder_no_magnet_error_rate = 0.0;
-
-	return enc_tle5012_setup(cfg);
-}
-
 void enc_tle5012_deinit(TLE5012_config_t *cfg) {
 	// sw spi
 	spi_bb_deinit(&(cfg->sw_spi)); 
@@ -179,7 +165,7 @@ bool enc_tle5012_setup(TLE5012_config_t *cfg) {
 
 	// set up control registers to be identical across tle5012 variants using above settings
 	tle5012_errortypes errorCheck = 0;
-	uint16_t tleregister;
+	uint16_t tleregister = 0;
 	// Interface Mode1
 	errorCheck = errorCheck && enc_tle5012_transfer(cfg, 0x06, &tleregister, SSC_READ, true);
 	tleregister = tleregister & ~0b110000000010111; // mask (1 = cleared)
@@ -315,26 +301,23 @@ tle5012_errortypes enc_tle5012_transfer(TLE5012_config_t *cfg, uint8_t address, 
  * @param length length of data
  * @return returns 8bit CRC
  */
-uint8_t crc8(uint8_t *data, uint8_t length)
-{
+uint8_t crc8(uint8_t *data, uint8_t length) {
 	uint32_t crc;
 	int16_t i, bit;
 
 	crc = TLE5012_CRC_SEED;
-	for (i = 0; i < length; i++)
-	{
+	for (i = 0; i < length; i++) {
 		crc ^= data[i];
-		for (bit = 0; bit < 8; bit++)
-		{
-			if ((crc & 0x80) != 0)
-			{
+		for (bit = 0; bit < 8; bit++) {
+			if ((crc & 0x80) != 0) {
 				crc <<= 1;
 				crc ^= TLE5012_CRC_POLYNOMIAL;
-			}else{
+			} else {
 				crc <<= 1;
 			}
 		}
 	}
+
 	return ((~crc) & TLE5012_CRC_SEED);
 }
 

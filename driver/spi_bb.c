@@ -34,9 +34,6 @@ void spi_bb_init(spi_bb_state *s) {
 		palSetPad(s->mosi_gpio, s->mosi_pin);
 		palSetPad(s->nss_gpio, s->nss_pin);
 	}
-
-	s->has_started = false;
-	s->has_error = false;
 }
 
 void spi_bb_deinit(spi_bb_state *s) {
@@ -47,9 +44,6 @@ void spi_bb_deinit(spi_bb_state *s) {
 	if (s->mosi_gpio) {
 		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
 	}
-
-	s->has_started = false;
-	s->has_error = false;
 }
 
 void ssc_bb_init(spi_bb_state *s) {
@@ -65,9 +59,6 @@ void ssc_bb_init(spi_bb_state *s) {
 
 	palClearPad(s->sck_gpio, s->sck_pin);
 	palSetPad(s->nss_gpio, s->nss_pin);
-
-	s->has_started = false;
-	s->has_error = false;
 }
 
 void ssc_bb_deinit(spi_bb_state *s) {
@@ -76,9 +67,6 @@ void ssc_bb_deinit(spi_bb_state *s) {
 	palSetPadMode(s->mosi_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
-
-	s->has_started = false;
-	s->has_error = false;
 }
 
 uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x) {

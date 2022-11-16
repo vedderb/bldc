@@ -26,7 +26,6 @@
 #include "encoder/encoder_datatype.h"
 
 bool enc_tle5012_init_sw_ssc(TLE5012_config_t *cfg);
-bool enc_tle5012_init_hw_ssc(TLE5012_config_t *cfg);
 void enc_tle5012_deinit(TLE5012_config_t *cfg);
 void enc_tle5012_routine(TLE5012_config_t *cfg);
 tle5012_errortypes enc_tle5012_get_temperature(TLE5012_config_t *cfg, double *temperature);

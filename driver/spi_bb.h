@@ -25,25 +25,15 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-enum spi_types{
-	spi_type_sw, // spi = seperate mosi and miso wires, (hw = hw spi pins)
-	spi_type_hw, 
-	ssc_type_sw, // ssc = one data wire using mosi pin
-	ssc_type_hw, 
-	};
-
 typedef struct {
 	stm32_gpio_t *nss_gpio;
 	int nss_pin;
 	stm32_gpio_t *sck_gpio;
 	int sck_pin;
-    stm32_gpio_t *mosi_gpio;
+	stm32_gpio_t *mosi_gpio;
 	int mosi_pin;
-    stm32_gpio_t *miso_gpio;
+	stm32_gpio_t *miso_gpio;
 	int miso_pin;
-	enum spi_types spi_type;
-	bool has_started;
-	bool has_error;
 	mutex_t mutex;
 } spi_bb_state;
 

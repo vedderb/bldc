@@ -32,18 +32,30 @@
 
 #include <math.h>
 
-static encoder_type_t encoder_type_now = ENCODER_TYPE_NONE;
+// These rates turn into even multiples of systicks
+typedef enum {
+	routine_rate_1k = 0,
+	routine_rate_2k,
+	routine_rate_5k,
+	routine_rate_10k
+} routine_rate_t;
+
+volatile routine_rate_t m_routine_rate = routine_rate_1k;
+static encoder_type_t m_encoder_type_now = ENCODER_TYPE_NONE;
+
+static THD_WORKING_AREA(routine_thread_wa, 256);
+static THD_FUNCTION(routine_thread, arg);
 
 // Private functions
 static void terminal_encoder(int argc, const char **argv);
 static void terminal_encoder_clear_errors(int argc, const char **argv);
 static void terminal_encoder_clear_multiturn(int argc, const char **argv);
-static void timer_start(float rate);
+static void timer_start(routine_rate_t rate);
 
 bool encoder_init(volatile mc_configuration *conf) {
 	bool res = false;
 
-	if (encoder_type_now != ENCODER_TYPE_NONE) {
+	if (m_encoder_type_now != ENCODER_TYPE_NONE) {
 		encoder_deinit();
 	}
 
@@ -58,11 +70,11 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_ABI.counts = conf->m_encoder_counts;
 
 		if (!enc_abi_init(&encoder_cfg_ABI)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_ABI;
+		m_encoder_type_now = ENCODER_TYPE_ABI;
 		res = true;
 	} break;
 
@@ -73,8 +85,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_AS504x;
-		timer_start(10000);
+		m_encoder_type_now = ENCODER_TYPE_AS504x;
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
@@ -83,12 +95,12 @@ bool encoder_init(volatile mc_configuration *conf) {
 		SENSOR_PORT_5V();
 
 		if (!enc_mt6816_init(&encoder_cfg_mt6816)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_MT6816;
-		timer_start(10000);
+		m_encoder_type_now = ENCODER_TYPE_MT6816;
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
@@ -103,20 +115,17 @@ bool encoder_init(volatile mc_configuration *conf) {
 					HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
 					HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
 					HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
-					ssc_type_sw,
-					0, // has_started
-					0, // has_error
 					{{NULL, NULL}, NULL, NULL} // Mutex
 			};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;
 
 		if (!enc_tle5012_init_sw_ssc(&encoder_cfg_tle5012)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_TLE5012;
-		timer_start(4000); // slow down sw spi as transactions long
+		m_encoder_type_now = ENCODER_TYPE_TLE5012;
+		timer_start(routine_rate_5k); // slow down sw spi as transactions long
 
 		res = true;
 	} break;
@@ -131,21 +140,18 @@ bool encoder_init(volatile mc_configuration *conf) {
 					HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, // sck
 					HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // mosi
 					HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // miso (shared dat line)
-					ssc_type_sw,
-					0, // has_started
-					0, // has_error
 					{{NULL, NULL}, NULL, NULL} // Mutex
 			};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;	
 
-		if (!enc_tle5012_init_hw_ssc(&encoder_cfg_tle5012)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+		if (!enc_tle5012_init_sw_ssc(&encoder_cfg_tle5012)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_TLE5012;
+		m_encoder_type_now = ENCODER_TYPE_TLE5012;
 		// timer_start(10000);
-		timer_start(4000);
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
@@ -154,12 +160,12 @@ bool encoder_init(volatile mc_configuration *conf) {
 		SENSOR_PORT_5V();
 
 		if (!enc_ad2s1205_init(&encoder_cfg_ad2s1205)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_AD2S1205_SPI;
-		timer_start(10000);
+		m_encoder_type_now = ENCODER_TYPE_AD2S1205_SPI;
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
@@ -174,11 +180,11 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.filter_constant = conf->foc_encoder_sincos_filter_constant;
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_SINCOS;
+		m_encoder_type_now = ENCODER_TYPE_SINCOS;
 		res = true;
 	} break;
 
@@ -198,11 +204,11 @@ bool encoder_init(volatile mc_configuration *conf) {
 		mempools_free_appconf(appconf);
 
 		if (!enc_ts5700n8501_init(&encoder_cfg_TS5700N8501)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_TS5700N8501;
+		m_encoder_type_now = ENCODER_TYPE_TS5700N8501;
 		res = true;
 	} break;
 
@@ -213,8 +219,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_AS5x47U;
-		timer_start(10000);
+		m_encoder_type_now = ENCODER_TYPE_AS5x47U;
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
@@ -225,19 +231,19 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_bissc.enc_res = conf->m_encoder_counts;
 
 		if (!enc_bissc_init(&encoder_cfg_bissc)) {
-			encoder_type_now = ENCODER_TYPE_NONE;
+			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
 
-		encoder_type_now = ENCODER_TYPE_BISSC;
-		timer_start(10000);
+		m_encoder_type_now = ENCODER_TYPE_BISSC;
+		timer_start(routine_rate_10k);
 
 		res = true;
 	} break;
 
 	default:
 		SENSOR_PORT_5V();
-		encoder_type_now = ENCODER_TYPE_NONE;
+		m_encoder_type_now = ENCODER_TYPE_NONE;
 		break;
 	}
 
@@ -267,54 +273,54 @@ void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 
-	if (encoder_type_now == ENCODER_TYPE_AS504x) {
+	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		enc_as504x_deinit(&encoder_cfg_as504x);
-	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&encoder_cfg_mt6816);
-	} else if (encoder_type_now == ENCODER_TYPE_TLE5012) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		enc_tle5012_deinit(&encoder_cfg_tle5012);
-	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		enc_ad2s1205_deinit(&encoder_cfg_ad2s1205);
-	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_ABI) {
 		enc_abi_deinit(&encoder_cfg_ABI);
-	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_SINCOS) {
 		enc_sincos_deinit(&encoder_cfg_sincos);
-	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		enc_ts5700n8501_deinit(&encoder_cfg_TS5700N8501);
-	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_AS5x47U) {
 		enc_as5x47u_deinit(&encoder_cfg_as5x47u);
-	} else if (encoder_type_now == ENCODER_TYPE_BISSC) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		enc_bissc_deinit(&encoder_cfg_bissc);
 	}
 
-	encoder_type_now = ENCODER_TYPE_NONE;
+	m_encoder_type_now = ENCODER_TYPE_NONE;
 }
 
 float encoder_read_deg(void) {
-	if (encoder_type_now == ENCODER_TYPE_AS504x) {
+	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
-	} else if (encoder_type_now == ENCODER_TYPE_MT6816) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		return MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
-	} else if (encoder_type_now == ENCODER_TYPE_TLE5012) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		return TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
-	} else if (encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
 		return AD2S1205_LAST_ANGLE(&encoder_cfg_ad2s1205);
-	} else if (encoder_type_now == ENCODER_TYPE_ABI) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_ABI) {
 		return enc_abi_read_deg(&encoder_cfg_ABI);
-	} else if (encoder_type_now == ENCODER_TYPE_SINCOS) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_SINCOS) {
 		return enc_sincos_read_deg(&encoder_cfg_sincos);
-	} else if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		return enc_ts5700n8501_read_deg(&encoder_cfg_TS5700N8501);
-	} else if (encoder_type_now == ENCODER_TYPE_AS5x47U) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_AS5x47U) {
 		return AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
-	} else if (encoder_type_now == ENCODER_TYPE_BISSC) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		return BISSC_LAST_ANGLE(&encoder_cfg_bissc);
 	}
 	return 0.0;
 }
 
 float encoder_read_deg_multiturn(void) {
-	if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+	if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		float ts_mt = (float)enc_ts5700n8501_get_abm(&encoder_cfg_TS5700N8501);
 		if (fabsf(ts_mt) > 5000.0) {
 			ts_mt = 0;
@@ -330,11 +336,11 @@ float encoder_read_deg_multiturn(void) {
 }
 
 encoder_type_t encoder_is_configured(void) {
-	return encoder_type_now;
+	return m_encoder_type_now;
 }
 
 bool encoder_index_found(void) {
-	if (encoder_type_now == ENCODER_TYPE_ABI) {
+	if (m_encoder_type_now == ENCODER_TYPE_ABI) {
 		return encoder_cfg_ABI.state.index_found;
 	} else {
 		return true;
@@ -342,13 +348,13 @@ bool encoder_index_found(void) {
 }
 
 void encoder_reset_multiturn(void) {
-	if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+	if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		return enc_ts5700n8501_reset_multiturn(&encoder_cfg_TS5700N8501);
 	}
 }
 
 void encoder_reset_errors(void) {
-	if (encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+	if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		enc_ts5700n8501_reset_errors(&encoder_cfg_TS5700N8501);
 	}
 }
@@ -461,33 +467,7 @@ void encoder_pin_isr(void) {
 }
 
 void encoder_tim_isr(void) {
-	switch (encoder_type_now) {
-		case ENCODER_TYPE_AS504x:
-			enc_as504x_routine(&encoder_cfg_as504x);
-			break;
-
-		case ENCODER_TYPE_MT6816:
-			enc_mt6816_routine(&encoder_cfg_mt6816);
-			break;
-
-		case ENCODER_TYPE_TLE5012:
-			enc_tle5012_routine(&encoder_cfg_tle5012);
-			break;
-
-		case ENCODER_TYPE_AD2S1205_SPI:
-			enc_ad2s1205_routine(&encoder_cfg_ad2s1205);
-			break;
-
-		case ENCODER_TYPE_AS5x47U:
-			enc_as5x47u_routine(&encoder_cfg_as5x47u);
-			break;
-
-		case ENCODER_TYPE_BISSC:
-			enc_bissc_routine(&encoder_cfg_bissc);
-
-		default:
-			break;
-	}
+	// Use thread. Maybe use this one for encoders with a higher rate.
 }
 
 static void terminal_encoder(int argc, const char **argv) {
@@ -640,25 +620,56 @@ static void terminal_encoder_clear_multiturn(int argc, const char **argv) {
 	commands_printf("Done!\n");
 }
 
-static void timer_start(float rate) {
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+static THD_FUNCTION(routine_thread, arg) {
+	(void)arg;
+	chRegSetThreadName("Enc Routine");
 
-	// Enable timer clock
-	HW_ENC_TIM_CLK_EN();
+	for (;;) {
+		switch (m_encoder_type_now) {
+		case ENCODER_TYPE_AS504x:
+			enc_as504x_routine(&encoder_cfg_as504x);
+			break;
 
-	// Time Base configuration
-	TIM_TimeBaseStructure.TIM_Prescaler = 0;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period = ((168000000 / 2 / rate) - 1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
+		case ENCODER_TYPE_MT6816:
+			enc_mt6816_routine(&encoder_cfg_mt6816);
+			break;
 
-	// Enable overflow interrupt
-	TIM_ITConfig(HW_ENC_TIM, TIM_IT_Update, ENABLE);
+		case ENCODER_TYPE_TLE5012:
+			enc_tle5012_routine(&encoder_cfg_tle5012);
+			break;
 
-	// Enable timer
-	TIM_Cmd(HW_ENC_TIM, ENABLE);
+		case ENCODER_TYPE_AD2S1205_SPI:
+			enc_ad2s1205_routine(&encoder_cfg_ad2s1205);
+			break;
 
-	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
+		case ENCODER_TYPE_AS5x47U:
+			enc_as5x47u_routine(&encoder_cfg_as5x47u);
+			break;
+
+		case ENCODER_TYPE_BISSC:
+			enc_bissc_routine(&encoder_cfg_bissc);
+			break;
+
+		default:
+			break;
+		}
+
+		switch (m_routine_rate) {
+		case routine_rate_1k: chThdSleep(CH_CFG_ST_FREQUENCY / 1000); break;
+		case routine_rate_2k: chThdSleep(CH_CFG_ST_FREQUENCY / 2000); break;
+		case routine_rate_5k: chThdSleep(CH_CFG_ST_FREQUENCY / 5000); break;
+		case routine_rate_10k: chThdSleep(CH_CFG_ST_FREQUENCY / 10000); break;
+		default: chThdSleep(5);
+		}
+	}
+}
+
+static void timer_start(routine_rate_t rate) {
+	m_routine_rate = rate;
+
+	static bool routine_running = false;
+	if (!routine_running) {
+		routine_running = true;
+		chThdCreateStatic(routine_thread_wa, sizeof(routine_thread_wa), NORMALPRIO + 5, routine_thread, NULL);
+	}
 }
