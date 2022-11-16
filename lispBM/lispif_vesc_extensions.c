@@ -910,7 +910,7 @@ static lbm_value ext_eeprom_store_f(lbm_value *args, lbm_uint argn) {
 
 	eeprom_var v;
 	v.as_float = lbm_dec_as_float(args[1]);
-	return lbm_enc_i(conf_general_store_eeprom_var_custom(&v, addr));
+	return conf_general_store_eeprom_var_custom(&v, addr) ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 static lbm_value ext_eeprom_read_f(lbm_value *args, lbm_uint argn) {
@@ -936,7 +936,7 @@ static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
 
 	eeprom_var v;
 	v.as_i32 = lbm_dec_as_float(args[1]);
-	return lbm_enc_i(conf_general_store_eeprom_var_custom(&v, addr));
+	return conf_general_store_eeprom_var_custom(&v, addr) ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
@@ -3760,7 +3760,7 @@ static lbm_value ext_plot_init(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	char *namey = lbm_dec_str(args[0]);
+	char *namey = lbm_dec_str(args[1]);
 	if (!namey) {
 		return ENC_SYM_EERROR;
 	}
