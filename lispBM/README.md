@@ -2533,7 +2533,7 @@ If set to true the log device will append a GNSS-position to each sample. This r
 #### log-stop
 
 ```clj
-(log-start can-id)
+(log-stop can-id)
 ```
 
 Stop logging data on log device with can-id. Setting the id to -1 will send the data to VESC Tool.
