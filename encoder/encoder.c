@@ -106,7 +106,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 	} break;
 
 	// ssc (3 wire) sw spi on hall pins
-	case SENSOR_PORT_MODE_TLE5014_SSC_SW: {
+	case SENSOR_PORT_MODE_TLE5012_SSC_SW: {
 		SENSOR_PORT_5V();
 
 		// reuse global config, so must set up complete ssc config
@@ -131,7 +131,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 	} break;
 
 	// ssc (3 wire) hw spi w dma (sw spi using hw spi pins for now)
-	case SENSOR_PORT_MODE_TLE5014_SSC_HW: {
+	case SENSOR_PORT_MODE_TLE5012_SSC_HW: {
 #ifdef HW_SPI_DEV
 		SENSOR_PORT_5V();
 
@@ -399,8 +399,8 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			break;
 		
-		case SENSOR_PORT_MODE_TLE5014_SSC_HW:
-		case SENSOR_PORT_MODE_TLE5014_SSC_SW:
+		case SENSOR_PORT_MODE_TLE5012_SSC_HW:
+		case SENSOR_PORT_MODE_TLE5012_SSC_SW:
 			if (encoder_cfg_tle5012.state.spi_error_rate > 0.10) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
 			}
@@ -511,8 +511,8 @@ static void terminal_encoder(int argc, const char **argv) {
 				(double)(encoder_cfg_mt6816.state.encoder_no_magnet_error_rate * 100.0));
 		break;
 
-	case SENSOR_PORT_MODE_TLE5014_SSC_HW:
-	case SENSOR_PORT_MODE_TLE5014_SSC_SW: ;
+	case SENSOR_PORT_MODE_TLE5012_SSC_HW:
+	case SENSOR_PORT_MODE_TLE5012_SSC_SW: ;
 		uint8_t status = encoder_cfg_tle5012.state.last_status_error; // get before other queries
 		double temperature = 0;
 		uint16_t magnet_magnitude = 0;
