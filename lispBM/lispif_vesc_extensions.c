@@ -150,6 +150,19 @@ typedef struct {
 	lbm_uint git_hash;
 	lbm_uint compiler;
 
+	// Statistics
+	lbm_uint stat_speed_avg;
+	lbm_uint stat_speed_max;
+	lbm_uint stat_power_avg;
+	lbm_uint stat_power_max;
+	lbm_uint stat_current_avg;
+	lbm_uint stat_current_max;
+	lbm_uint stat_temp_mosfet_avg;
+	lbm_uint stat_temp_mosfet_max;
+	lbm_uint stat_temp_motor_avg;
+	lbm_uint stat_temp_motor_max;
+	lbm_uint stat_count_time;
+
 	// Rates
 	lbm_uint rate_100k;
 	lbm_uint rate_200k;
@@ -360,6 +373,30 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("git-hash", comp);
 		} else if (comp == &syms_vesc.compiler) {
 			get_add_symbol("compiler", comp);
+		}
+
+		else if (comp == &syms_vesc.stat_speed_avg) {
+			get_add_symbol("stat-speed-avg", comp);
+		} else if (comp == &syms_vesc.stat_speed_max) {
+			get_add_symbol("stat-speed-max", comp);
+		} else if (comp == &syms_vesc.stat_power_avg) {
+			get_add_symbol("stat-power-avg", comp);
+		} else if (comp == &syms_vesc.stat_power_max) {
+			get_add_symbol("stat-power-max", comp);
+		} else if (comp == &syms_vesc.stat_current_avg) {
+			get_add_symbol("stat-current-avg", comp);
+		} else if (comp == &syms_vesc.stat_current_max) {
+			get_add_symbol("stat-current-max", comp);
+		} else if (comp == &syms_vesc.stat_temp_mosfet_avg) {
+			get_add_symbol("stat-temp-mosfet-avg", comp);
+		} else if (comp == &syms_vesc.stat_temp_mosfet_max) {
+			get_add_symbol("stat-temp-mosfet-max", comp);
+		} else if (comp == &syms_vesc.stat_temp_motor_avg) {
+			get_add_symbol("stat-temp-motor-avg", comp);
+		} else if (comp == &syms_vesc.stat_temp_motor_max) {
+			get_add_symbol("stat-temp-motor-max", comp);
+		} else if (comp == &syms_vesc.stat_count_time) {
+			get_add_symbol("stat-count-time", comp);
 		}
 
 		else if (comp == &syms_vesc.rate_100k) {
@@ -1031,6 +1068,52 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 	}
 
 	return res;
+}
+
+static lbm_value ext_stats(lbm_value *args, lbm_uint argn) {
+	lbm_value res = ENC_SYM_EERROR;
+
+	if (argn != 1) {
+		return res;
+	}
+
+	if (lbm_type_of(args[0]) != LBM_TYPE_SYMBOL) {
+		return res;
+	}
+
+	lbm_uint name = lbm_dec_sym(args[0]);
+
+	if (compare_symbol(name, &syms_vesc.stat_speed_avg)) {
+		res = lbm_enc_float(mc_interface_stat_speed_avg());
+	} else if (compare_symbol(name, &syms_vesc.stat_speed_max)) {
+		res = lbm_enc_float(mc_interface_stat_speed_max());
+	} else if (compare_symbol(name, &syms_vesc.stat_power_avg)) {
+		res = lbm_enc_float(mc_interface_stat_power_avg());
+	} else if (compare_symbol(name, &syms_vesc.stat_power_max)) {
+		res = lbm_enc_float(mc_interface_stat_power_max());
+	} else if (compare_symbol(name, &syms_vesc.stat_current_avg)) {
+		res = lbm_enc_float(mc_interface_stat_current_avg());
+	} else if (compare_symbol(name, &syms_vesc.stat_current_max)) {
+		res = lbm_enc_float(mc_interface_stat_current_max());
+	} else if (compare_symbol(name, &syms_vesc.stat_temp_mosfet_avg)) {
+		res = lbm_enc_float(mc_interface_stat_temp_mosfet_avg());
+	} else if (compare_symbol(name, &syms_vesc.stat_temp_mosfet_max)) {
+		res = lbm_enc_float(mc_interface_stat_temp_mosfet_max());
+	} else if (compare_symbol(name, &syms_vesc.stat_temp_motor_avg)) {
+		res = lbm_enc_float(mc_interface_stat_temp_motor_avg());
+	} else if (compare_symbol(name, &syms_vesc.stat_temp_motor_max)) {
+		res = lbm_enc_float(mc_interface_stat_temp_motor_max());
+	} else if (compare_symbol(name, &syms_vesc.stat_count_time)) {
+		res = lbm_enc_float(mc_interface_stat_count_time());
+	}
+
+	return res;
+}
+
+static lbm_value ext_stats_reset(lbm_value *args, lbm_uint argn) {
+	(void)args;(void)argn;
+	mc_interface_stat_reset();
+	return ENC_SYM_TRUE;
 }
 
 // App set commands
@@ -4293,6 +4376,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
+	lbm_add_extension("stats", ext_stats);
+	lbm_add_extension("stats-reset", ext_stats_reset);
 	lbm_add_extension("import", ext_empty);
 
 	// APP commands

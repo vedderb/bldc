@@ -323,6 +323,36 @@ Read system info parameter param. Example:
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1
 ```
 
+#### stats
+
+```clj
+(stats param)
+```
+
+Get statistics about the selected motor since boot (or since stats-reset). The following example shows which stats are available:
+
+```clj
+(stats 'stat-speed-avg) ; Average speed in m/s
+(stats 'stat-speed-max) ; Maximum speed in m/s
+(stats 'stat-power-avg) ; Average power in W
+(stats 'stat-power-max) ; Maximum power in W
+(stats 'stat-current-avg) ; Average current in A
+(stats 'stat-current-max) ; Maximum current in A
+(stats 'stat-temp-mosfet-avg) ; Average MOSFET temp in degC
+(stats 'stat-temp-mosfet-max) ; Maximum MOSFET temp in degC
+(stats 'stat-temp-motor-avg) ; Average motor temp in degC
+(stats 'stat-temp-motor-max) ; Maximum motor temp in degC
+(stats 'stat-count-time) ; Time since start of stat collection in seconds
+```
+
+#### stats-reset
+
+```clj
+(stats-reset)
+```
+
+Reset stat counters to 0.
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
