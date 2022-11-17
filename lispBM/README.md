@@ -1272,6 +1272,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-abs-current-max      ; Abs max current in A
 'l-min-erpm             ; Minimum ERPM (a negative value)
 'l-max-erpm             ; Maximum ERPM
+'l-erpm-start           ; Start limiting current at this fraction of max ERPM
 'l-min-vin              ; Minimum input voltage
 'l-max-vin              ; Maximum input voltage
 'l-min-duty             ; Minimum duty cycle

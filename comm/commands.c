@@ -1841,6 +1841,7 @@ inline static float hw_lim_upper(float l, float h) {(void)l; return h;}
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
+	utils_truncate_number(&mcconf->l_erpm_start, 0.0, 1.0);
 
 	float ctrl_loop_freq = 0.0;
 

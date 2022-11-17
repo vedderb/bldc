@@ -108,6 +108,7 @@ typedef struct {
 	lbm_uint l_abs_current_max;
 	lbm_uint l_min_erpm;
 	lbm_uint l_max_erpm;
+	lbm_uint l_erpm_start;
 	lbm_uint l_min_vin;
 	lbm_uint l_max_vin;
 	lbm_uint l_min_duty;
@@ -293,6 +294,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("l-min-erpm", comp);
 		} else if (comp == &syms_vesc.l_max_erpm) {
 			get_add_symbol("l-max-erpm", comp);
+		} else if (comp == &syms_vesc.l_erpm_start) {
+			get_add_symbol("l-erpm-start", comp);
 		} else if (comp == &syms_vesc.l_min_vin) {
 			get_add_symbol("l-min-vin", comp);
 		} else if (comp == &syms_vesc.l_max_vin) {
@@ -3073,6 +3076,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_max_erpm)) {
 		mcconf->l_max_erpm = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_erpm_start)) {
+		mcconf->l_erpm_start = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_min_vin)) {
 		mcconf->l_min_vin = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
@@ -3314,6 +3320,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_min_erpm);
 	} else if (compare_symbol(name, &syms_vesc.l_max_erpm)) {
 		res = lbm_enc_float(mcconf->l_max_erpm);
+	} else if (compare_symbol(name, &syms_vesc.l_erpm_start)) {
+		res = lbm_enc_float(mcconf->l_erpm_start);
 	} else if (compare_symbol(name, &syms_vesc.l_min_vin)) {
 		res = lbm_enc_float(mcconf->l_min_vin);
 	} else if (compare_symbol(name, &syms_vesc.l_max_vin)) {
