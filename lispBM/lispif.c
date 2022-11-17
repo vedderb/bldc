@@ -27,9 +27,9 @@
 #include "lispbm.h"
 #include "mempools.h"
 
-#define HEAP_SIZE				2048
-#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_14K
-#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_14K
+#define HEAP_SIZE				(2048 + 256 + 160)
+#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_16K
+#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_16K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
 #define EXTENSION_STORAGE_SIZE	240
@@ -37,8 +37,8 @@
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
-__attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
-__attribute__((section(".ram4"))) static uint32_t gc_stack_storage[GC_STACK_SIZE];
+static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
+static uint32_t gc_stack_storage[GC_STACK_SIZE];
 __attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STACK_SIZE];
 __attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
