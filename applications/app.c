@@ -29,8 +29,8 @@
 #include "servo_simple.h"
 
 // Private variables
-static app_configuration appconf;
-static virtual_timer_t output_vt;
+static app_configuration appconf = {0};
+static virtual_timer_t output_vt = {0};
 static bool output_vt_init_done = false;
 static volatile bool output_disabled_now = false;
 
