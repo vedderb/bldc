@@ -189,7 +189,7 @@ ADC2 on the COMM-port
 ADC3 on the COMM-port. Note that some hardware does not have this channel - then the voltage of ADC1 is returned instead.
 
 **Channel 3:**  
-This is the ADC-channel that the motor temperature sensor goes to. 
+This is the ADC-channel that the motor temperature sensor goes to. Note: if you want to use this channel for something else you have to disable the motor temperature sensor in General -> Advanced. Otherwise the input might generate overtemperature faults.
 
 #### override-temp-motor
 
