@@ -713,6 +713,8 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT2));
 		} else if (channel == 2) {
 			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT3));
+		} else if (channel == 3) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_TEMP_MOTOR));
 		} else {
 			return ENC_SYM_EERROR;
 		}

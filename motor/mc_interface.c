@@ -2240,6 +2240,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		float res = NTC_RES_MOTOR(ADC_Value[is_motor_1 ? ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]);
 		temp_motor = -(sqrtf(-0.00232 * res + 17.59246) - 3.908) / 0.00116;
 	} break;
+
+	case TEMP_SENSOR_DISABLED:
+		temp_motor = 0.0;
+		break;
 	}
 
 	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an

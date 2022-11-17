@@ -177,7 +177,19 @@ Send BMS-values on CAN-bus. This his useful if a custom BMS-driver is implemente
 (get-adc ch)
 ```
 
-Get ADC voltage on channel ch (0, 1 or 2).
+Get ADC voltage on channel ch (0, 1, 2 or 3). The channels are the following:
+
+**Channel 0:**  
+ADC1 on the COMM-port
+
+**Channel 1:**  
+ADC2 on the COMM-port
+
+**Channel 2:**  
+ADC3 on the COMM-port. Note that some hardware does not have this channel - then the voltage of ADC1 is returned instead.
+
+**Channel 3:**  
+This is the ADC-channel that the motor temperature sensor goes to. 
 
 #### get-adc-decoded
 
