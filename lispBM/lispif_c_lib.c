@@ -780,6 +780,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.sys_lock = utils_sys_lock_cnt;
 		cif.cif.sys_unlock = utils_sys_unlock_cnt;
 
+		// Unregister pointers to previously used reply function
+		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
+
 		lib_init_done = true;
 	}
 

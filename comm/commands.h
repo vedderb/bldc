@@ -29,6 +29,7 @@ void commands_send_packet(unsigned char *data, unsigned int len);
 void commands_send_packet_can_last(unsigned char *data, unsigned int len);
 void commands_send_packet_nrf(unsigned char *data, unsigned int len);
 void commands_send_packet_last_blocking(unsigned char *data, unsigned int len);
+void commands_unregister_reply_func(void(*reply_func)(unsigned char *data, unsigned int len));
 void commands_process_packet(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 int commands_printf(const char* format, ...);

@@ -495,6 +495,9 @@ typedef struct {
 	// System lock (with counting)
 	void (*sys_lock)(void);
 	void (*sys_unlock)(void);
+
+	// Unregister pointers to previously used reply function
+	void (*commands_unregister_reply_func)(void(*reply_func)(unsigned char *data, unsigned int len));
 } vesc_c_if;
 
 typedef struct {

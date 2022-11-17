@@ -165,6 +165,21 @@ void commands_send_packet_last_blocking(unsigned char *data, unsigned int len) {
 	}
 }
 
+void commands_unregister_reply_func(void(*reply_func)(unsigned char *data, unsigned int len)) {
+	if (send_func == reply_func) {
+		send_func = NULL;
+	}
+	if (send_func_blocking == reply_func) {
+		send_func_blocking = NULL;
+	}
+	if (send_func_nrf == reply_func) {
+		send_func_nrf = NULL;
+	}
+	if (send_func_can_fwd == reply_func) {
+		send_func_can_fwd = NULL;
+	}
+}
+
 /**
  * Process a received buffer with commands and data.
  *
