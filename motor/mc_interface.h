@@ -108,6 +108,8 @@ void mc_interface_ignore_input(int time_ms);
 
 void mc_interface_set_current_off_delay(float delay_sec);
 
+void mc_interface_override_temp_motor(float temp);
+
 void mc_interface_ignore_input_both(int time_ms);
 void mc_interface_release_motor_override_both(void);
 bool mc_interface_wait_for_motor_release_both(float timeout);

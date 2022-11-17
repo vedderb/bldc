@@ -85,6 +85,7 @@ typedef struct {
 	float m_f_samp_now;
 	float m_input_voltage_filtered;
 	float m_input_voltage_filtered_slower;
+	float m_temp_override;
 
 	// Backup data counters
 	uint64_t m_odometer_last;
@@ -1757,6 +1758,10 @@ void mc_interface_set_current_off_delay(float delay_sec) {
 	}
 }
 
+void mc_interface_override_temp_motor(float temp) {
+	motor_now()->m_temp_override = temp;
+}
+
 // MC implementation functions
 
 /**
@@ -2242,7 +2247,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	} break;
 
 	case TEMP_SENSOR_DISABLED:
-		temp_motor = 0.0;
+		temp_motor = motor->m_temp_override;
 		break;
 	}
 

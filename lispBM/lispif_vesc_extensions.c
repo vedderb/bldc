@@ -723,6 +723,12 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_override_temp_motor(lbm_value *args, lbm_uint argn) {
+	CHECK_ARGN_NUMBER(1);
+	mc_interface_override_temp_motor(lbm_dec_as_float(args[0]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_get_adc_decoded(lbm_value *args, lbm_uint argn) {
 	CHECK_NUMBER_ALL();
 
@@ -4366,6 +4372,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-bms-val", ext_set_bms_val);
 	lbm_add_extension("send-bms-can", ext_send_bms_can);
 	lbm_add_extension("get-adc", ext_get_adc);
+	lbm_add_extension("override-temp-motor", ext_override_temp_motor);
 	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);
 	lbm_add_extension("systime", ext_systime);
 	lbm_add_extension("secs-since", ext_secs_since);

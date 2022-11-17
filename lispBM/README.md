@@ -191,6 +191,14 @@ ADC3 on the COMM-port. Note that some hardware does not have this channel - then
 **Channel 3:**  
 This is the ADC-channel that the motor temperature sensor goes to. 
 
+#### override-temp-motor
+
+```clj
+(override-temp-motor temp)
+```
+
+Override motor temperature. This can be used to implement custom motor temperature sensors if the sensor you have is not supported. Note: Motor Temperature Sensor Type has to be set to Disabled in General -> Advanced for the override to work.
+
 #### get-adc-decoded
 
 ```clj
