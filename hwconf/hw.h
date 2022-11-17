@@ -576,6 +576,10 @@
 #endif
 #endif
 
+#ifndef HW_TRIM_HSI
+#define HW_TRIM_HSI()
+#endif
+
 #ifndef HW_RESET_DRV_FAULTS
 #define HW_RESET_DRV_FAULTS()
 #endif

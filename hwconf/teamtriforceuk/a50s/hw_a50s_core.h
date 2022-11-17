@@ -24,6 +24,10 @@
 #define HW_USE_INTERNAL_RC
 #define HW_HAS_PHASE_FILTERS
 
+// Used to remove ground noise from servo input. 
+// Which causes VESC Tool PPM wizard to not work.
+#define HW_VALIDATE_SERVO_INPUT 
+
 // Macros
 /*
  * ADC Vector
@@ -258,5 +262,11 @@
 #else
 #error "Must define a hardware type"
 #endif
+
+// Trim HSI oscillator to compensate for temperature.
+#define HW_TRIM_HSI() hw_a50s_trim_hsi()
+
+// HW-specific functions
+void hw_a50s_trim_hsi(void);
 
 #endif /* HW_A50S_CORE_H_ */
