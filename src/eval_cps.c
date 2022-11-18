@@ -74,12 +74,14 @@
 #define FM_NO_MATCH      -2
 #define FM_PATTERN_ERROR -3
 
-static const char* parse_error_eof = "End of parse stream";
-static const char* parse_error_token = "Malformed token";
-static const char* parse_error_dot = "Incorrect usage of '.'";
-static const char* parse_error_close = "Expected closing parenthesis";
-static const char* num_args_error = "Incorrect number of arguments";
-static const char* forbidden_in_atomic = "Operation is forbidden in an atomic block";
+const char* lbm_error_str_parse_eof = "End of parse stream.";
+const char* lbm_error_str_parse_token = "Malformed token.";
+const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
+const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
+const char* lbm_error_str_num_args = "Incorrect number of arguments.";
+const char* lbm_error_str_forbidden_in_atomic = "Operation is forbidden in an atomic block.";
+const char* lbm_error_str_no_number = "Argument(s) must be a number.";
+const char* lbm_error_str_not_a_boolean = "Argument must be t or nil (true or false).";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -1437,7 +1439,7 @@ static void eval_match(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
-    lbm_set_error_reason((char*)forbidden_in_atomic);
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
     error_ctx(ENC_SYM_EERROR);
     return;
   }
@@ -1650,7 +1652,7 @@ static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1720,7 +1722,7 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
 static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (is_atomic) {
-    lbm_set_error_reason((char*)forbidden_in_atomic);
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
     error_ctx(ENC_SYM_EERROR);
     return;
   }
@@ -1751,7 +1753,7 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     ctx->curr_exp = args[1];
     lbm_stack_drop(&ctx->K, nargs+1);
   } else {
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1784,7 +1786,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     ctx->program = lbm_cdr(new_prg);
     ctx->curr_exp = lbm_car(new_prg);
   } else {
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1803,7 +1805,7 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     ctx->r = status;
     ctx->app_cont = true;
   } else {
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1884,7 +1886,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
   } else {
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   }
 }
@@ -1950,7 +1952,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     if (arg_count == 1) {
       arg = fun_args[1];
     } else if (arg_count > 1) {
-      lbm_set_error_reason((char*)num_args_error);
+      lbm_set_error_reason((char*)lbm_error_str_num_args);
       error_ctx(ENC_SYM_EERROR);
       return;
     }
@@ -2050,7 +2052,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     ctx->app_cont = false;
   } else if (!a_nil && p_nil) {
     // Application with extra arguments
-    lbm_set_error_reason((char*)num_args_error);
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
   } else if (a_nil && !p_nil) {
     // Ran out of arguments, but there are still parameters.
@@ -2430,7 +2432,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
     switch (lbm_dec_sym(tok)) {
     case SYM_TOKENIZER_RERROR:
       lbm_channel_reader_close(str);
-      lbm_set_error_reason((char*)parse_error_token);
+      lbm_set_error_reason((char*)lbm_error_str_parse_token);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
       done_reading(ctx->id);
       return;
@@ -2467,7 +2469,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
         ctx->app_cont = true;
       } else {
         /* Parsing failed */
-        lbm_set_error_reason((char*)parse_error_eof);
+        lbm_set_error_reason((char*)lbm_error_str_parse_eof);
         read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
         done_reading(ctx->id);
       }
@@ -2737,7 +2739,7 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
     ctx->r = res;
     ctx->app_cont = true;
   } else {
-    lbm_set_error_reason((char*)parse_error_close);
+    lbm_set_error_reason((char*)lbm_error_str_parse_close);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     done_reading(ctx->id);
   }
@@ -2766,7 +2768,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
       (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
        lbm_dec_sym(ctx->r) == SYM_DOT)) {
-    lbm_set_error_reason((char*)parse_error_dot);
+    lbm_set_error_reason((char*)lbm_error_str_parse_dot);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     done_reading(ctx->id);
     return;
@@ -2781,7 +2783,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       ctx->app_cont = true;
     } else {
-      lbm_set_error_reason((char*)parse_error_dot);
+      lbm_set_error_reason((char*)lbm_error_str_parse_dot);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
       done_reading(ctx->id);
       return;
@@ -2807,7 +2809,7 @@ static void cont_read_done(eval_context_t *ctx) {
      see if the tokenizer feels it is done here. */
   lbm_channel_reader_close(str);
   if (tok != ENC_SYM_TOKENIZER_DONE) {
-    lbm_set_error_reason((char*)parse_error_eof);
+    lbm_set_error_reason((char*)lbm_error_str_parse_eof);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   } else {
     ctx->app_cont = true;

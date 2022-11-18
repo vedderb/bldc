@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <eval_cps.h>
 
 #include "extensions.h"
 
@@ -88,3 +89,49 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   return true;
 }
 
+
+// Helpers for extension developers:
+
+static bool lbm_is_number_all(lbm_value *args, lbm_uint argn) {
+  for (lbm_uint i = 0;i < argn;i++) {
+    if (!lbm_is_number(args[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool lbm_check_true_false(lbm_value v) {
+  bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
+  lbm_set_error_reason((char*)lbm_error_str_not_a_boolean);
+  return res;
+}
+
+bool lbm_check_number_all(lbm_value *args, lbm_uint argn) {
+  if (!lbm_is_number_all(args, argn)) {
+    lbm_set_error_reason((char*)lbm_error_str_no_number);
+    return false;
+  }
+  return true;
+}
+
+bool lbm_check_argn(lbm_uint argn, lbm_uint n) {
+  if (argn != n) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    return false;
+  } else {
+    return true;
+  }
+}
+
+bool lbm_check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n) {
+  if (!lbm_is_number_all(args, argn)) {
+    lbm_set_error_reason((char*)lbm_error_str_no_number);
+    return false;
+  } else if (argn != n) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    return false;
+  } else {
+    return true;
+  }
+}
