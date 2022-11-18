@@ -178,6 +178,24 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 
 // For double precision literals
 #define D(x) 				((double)x##L)
+
+typedef struct {
+	float q0;
+	float q1;
+	float q2;
+	float q3;
+	float integralFBx;
+	float integralFBy;
+	float integralFBz;
+	float accMagP;
+	int initialUpdateDone;
+
+	// Parameters
+	float acc_confidence_decay;
+	float kp;
+	float ki;
+	float beta;
+} ATTITUDE_INFO;
 #endif
 
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
@@ -498,6 +516,16 @@ typedef struct {
 
 	// Unregister pointers to previously used reply function
 	void (*commands_unregister_reply_func)(void(*reply_func)(unsigned char *data, unsigned int len));
+
+	// IMU AHRS functions and read callback
+	void (*imu_set_read_callback)(void (*func)(float *acc, float *gyro, float *mag, float dt));
+	void (*ahrs_init_attitude_info)(ATTITUDE_INFO *att);
+	void (*ahrs_update_initial_orientation)(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att);
+	void (*ahrs_update_mahony_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	void (*ahrs_update_madgwick_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	float (*ahrs_get_roll)(ATTITUDE_INFO *att);
+	float (*ahrs_get_pitch)(ATTITUDE_INFO *att);
+	float (*ahrs_get_yaw)(ATTITUDE_INFO *att);
 } vesc_c_if;
 
 typedef struct {

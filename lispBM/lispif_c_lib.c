@@ -36,6 +36,7 @@
 #include "timeout.h"
 #include "conf_custom.h"
 #include "timer.h"
+#include "ahrs.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -782,6 +783,16 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Unregister pointers to previously used reply function
 		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
+
+		// IMU AHRS functions and read callback
+		cif.cif.imu_set_read_callback = imu_set_read_callback;
+		cif.cif.ahrs_init_attitude_info = ahrs_init_attitude_info;
+		cif.cif.ahrs_update_initial_orientation = ahrs_update_initial_orientation;
+		cif.cif.ahrs_update_mahony_imu = ahrs_update_mahony_imu;
+		cif.cif.ahrs_update_madgwick_imu = ahrs_update_madgwick_imu;
+		cif.cif.ahrs_get_roll = ahrs_get_roll;
+		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
+		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
 
 		lib_init_done = true;
 	}

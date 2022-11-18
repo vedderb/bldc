@@ -1388,7 +1388,6 @@ typedef enum {
 	NRF_PAIR_FAIL
 } NRF_PAIR_RES;
 
-// Orientation data
 typedef struct {
 	float q0;
 	float q1;
@@ -1399,6 +1398,12 @@ typedef struct {
 	float integralFBz;
 	float accMagP;
 	int initialUpdateDone;
+
+	// Parameters
+	float acc_confidence_decay;
+	float kp;
+	float ki;
+	float beta;
 } ATTITUDE_INFO;
 
 // Custom EEPROM variables

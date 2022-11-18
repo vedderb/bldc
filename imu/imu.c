@@ -57,6 +57,9 @@ static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uin
 static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static void terminal_imu_type_internal(int argc, const char **argv);
 
+// Function pointers
+static void (*m_read_callback)(float *acc, float *gyro, float *mag, float dt) = NULL;
+
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
 			set->type != m_settings.type;
@@ -176,7 +179,7 @@ void imu_reset_orientation(void) {
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
-	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
+	ahrs_update_all_parameters(&m_att, 1.0, 10.0, 0.0, 2.0);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
@@ -364,7 +367,7 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	// Override settings
 	m_settings.sample_rate_hz = 1000;
 	m_settings.mode = AHRS_MODE_MADGWICK;
-	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
+	ahrs_update_all_parameters(&m_att, 1.0, 10.0, 0.0, 2.0);
 	m_settings.rot_roll = 0;
 	m_settings.rot_pitch = 0;
 	m_settings.rot_yaw = 0;
@@ -457,10 +460,11 @@ void imu_get_calibration(float yaw, float *imu_cal) {
 	m_settings.sample_rate_hz = backup_sample_rate;
 	m_settings.mode = backup_ahrs_mode;
 	ahrs_update_all_parameters(
-					m_settings.accel_confidence_decay,
-					m_settings.mahony_kp,
-					m_settings.mahony_ki,
-					m_settings.madgwick_beta);
+			&m_att,
+			m_settings.accel_confidence_decay,
+			m_settings.mahony_kp,
+			m_settings.mahony_ki,
+			m_settings.madgwick_beta);
 	m_settings.rot_roll = backup_roll;
 	m_settings.rot_pitch = backup_pitch;
 	m_settings.rot_yaw = backup_yaw;
@@ -482,6 +486,10 @@ void imu_set_yaw(float yaw_deg) {
 	FusionAhrsSetYaw(&m_fusionAhrs, yaw_deg);
 }
 
+void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, float dt)) {
+	m_read_callback = func;
+}
+
 static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	static uint32_t last_time = 0;
 
@@ -492,6 +500,7 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 
 	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
 		ahrs_update_all_parameters(
+				&m_att,
 				m_settings.accel_confidence_decay,
 				m_settings.mahony_kp,
 				m_settings.mahony_ki,
@@ -581,9 +590,9 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	}
 
 	float gyro_rad[3];
-		gyro_rad[0] = DEG2RAD_f(m_gyro[0]);
-		gyro_rad[1] = DEG2RAD_f(m_gyro[1]);
-		gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
+	gyro_rad[0] = DEG2RAD_f(m_gyro[0]);
+	gyro_rad[1] = DEG2RAD_f(m_gyro[1]);
+	gyro_rad[2] = DEG2RAD_f(m_gyro[2]);
 
 	switch (m_settings.mode) {
 		case AHRS_MODE_MADGWICK:
@@ -609,6 +618,10 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 			m_att.q2 = m_fusionAhrs.quaternion.element.y;
 			m_att.q3 = m_fusionAhrs.quaternion.element.z;
 		} break;
+	}
+
+	if (m_read_callback) {
+		m_read_callback(m_accel, m_gyro, m_mag, dt);
 	}
 }
 
