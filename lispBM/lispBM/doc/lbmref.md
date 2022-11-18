@@ -265,7 +265,7 @@ The example below evaluates to `t`
 ```clj
 (and t t)
 ```
-The folowing example evaluates to 3
+The following example evaluates to 3
 ```clj
 (and t t (+ 1 2))
 ```
@@ -553,7 +553,7 @@ get as result a unnamed symbol.
 
 Conditionals are written as `(if cond-expr then-expr else-expr)`.
 If the cond-expr evaluates to <a href="#nil"> nil </a> the else-expr will be evaluated.
-for any other value of cond-expr the then-expr will be evalated.
+for any other value of cond-expr the then-expr will be evaluated.
 
 
 The example below evaluates to 0 if a is less than or equal to 4. Otherwise it evaluates to a + 10.
@@ -1302,38 +1302,55 @@ Example:
 The concurrency support in LispBM is provided by the set of functions,
 `spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in
 LispBM is scheduled by a round-robin scheduler that splits the runtime
-system evaluator fairly (with caveats, below) between all running tasks.
+system evaluator fairly (with caveats, below) between all running processes.
 
-When a task is scheduled to run, made active, it is given a quota of
-evaluator "steps" to use up. The task then runs until that quota is
-exhausted or the task itself has signaled it wants to sleep by
+When a process is scheduled to run, made active, it is given a quota of
+evaluator "steps" to use up. The process then runs until that quota is
+exhausted or the process itself has signaled it wants to sleep by
 yielding or blocking (for example by waiting for a message using the
 message passing system).
 
-A task can also request to not be "pre-empted" while executing a
+A process can also request to not be "pre-empted" while executing a
 certain expression by invoking `atomic`. One should take care to make
 blocks of atomic code as small as possible as it disrupts the fairness
-of the scheduler. While executing inside of an atomic block the task
+of the scheduler. While executing inside of an atomic block the process
 has sole ownership of the shared global environment and can perform
 atomic read-modify-write sequences to global data.
 
 
 ### spawn
 
-Use `spawn` to launch a concurrent task. Spawn takes a closure and
-and arguments to pass to that closure as its arguments: `(spawn closure arg1 ... argN)`.
-Optionally you can provide a numerical first argument that specifies stack size
-that the runtime system should allocate to run the task in: `(spawn stack-size closure args1 ... argN)`.
+Use `spawn` to launch a concurrent process. Spawn takes a closure and
+and arguments to pass to that closure as its arguments: `(spawn
+closure arg1 ... argN)`.  Optionally you can provide a numerical first
+argument that specifies stack size that the runtime system should
+allocate to run the process in: `(spawn stack-size closure args1
+... argN)`.
+
+Each process has a runtime-stack which is used for the evaluation of
+expressions within that process. The stack size needed by a process
+depends on
+ 1. How deeply nested expressions evaluated by the process are.
+ 2. Number of recursive calls (Only if a function is NOT tail-recursive).
+ 3. The Number of arguments that functions called by the process take.
+
+Having a stack that is too small will result in a `out_of_stack` error.
+
+The default stack size is 256 words (1K Bytes) and should be more than
+enough for reasonable programs. Many processes will work perfectly
+fine with a lot less stack. You can find a good size by trial and error.
 
 ---
 
 ### spawn-trap
 
-Use `spawn-trap` to spawn a child process and enable trapping of exit conditions for that
-child. The form of a `spawn-trap` expression is `(spawn-trap closure arg1 .. argN)`.
-If the child process is terminated because of an error, a message is sent to the parent
-process of the form `(exit-error tid err-val)`. If the child process terminates successfully
-a message of the form `(exit-ok tid value)` is sent to the parent.
+Use `spawn-trap` to spawn a child process and enable trapping of exit
+conditions for that child. The form of a `spawn-trap` expression is
+`(spawn-trap closure arg1 .. argN)`.  If the child process is
+terminated because of an error, a message is sent to the parent
+process of the form `(exit-error tid err-val)`. If the child process
+terminates successfully a message of the form `(exit-ok tid value)` is
+sent to the parent.
 
 Example:
 ```clj
@@ -1368,7 +1385,7 @@ is number indicating at least how many microseconds the process should sleep.
 ### atomic
 
 `atomic` can be used to execute a LispBM one or more expression without allowing
-the runtime system to switch task during that time.
+the runtime system to switch process during that time.
 
 An example that atomically perfoms operations a,b and c.
 
