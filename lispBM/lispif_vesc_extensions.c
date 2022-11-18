@@ -21,6 +21,7 @@
 #include "lispif.h"
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "lbm_constants.h"
 
 #include "commands.h"
 #include "mc_interface.h"
@@ -420,59 +421,11 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 	return *comp == sym;
 }
 
-// Helpers
-
-static bool is_number_all(lbm_value *args, lbm_uint argn) {
-	for (lbm_uint i = 0;i < argn;i++) {
-		if (!lbm_is_number(args[i])) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static bool is_symbol_true_false(lbm_value v) {
 	bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
 	lbm_set_error_reason("Argument must be t or nil (true or false)");
 	return res;
 }
-
-static char *error_reason_no_number = "Argument(s) must be a number.";
-static char *error_reason_argn = "Invalid number of arguments.";
-
-static bool check_number_all(lbm_value *args, lbm_uint argn) {
-	if (!is_number_all(args, argn)) {
-		lbm_set_error_reason(error_reason_no_number);
-		return false;
-	}
-	return true;
-}
-
-static bool check_argn(lbm_uint argn, lbm_uint n) {
-	if (argn != n) {
-		lbm_set_error_reason(error_reason_argn);
-		return false;
-	} else {
-		return true;
-	}
-}
-
-static bool check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n) {
-	if (!is_number_all(args, argn)) {
-		lbm_set_error_reason(error_reason_no_number);
-		return false;
-	} else if (argn != n) {
-		lbm_set_error_reason(error_reason_argn);
-		return false;
-	} else {
-		return true;
-	}
-}
-
-#define CHECK_NUMBER_ALL() if (!check_number_all(args, argn)) {return ENC_SYM_EERROR;}
-#define CHECK_ARGN(n) if (!check_argn(argn, n)) {return ENC_SYM_EERROR;}
-#define CHECK_ARGN_NUMBER(n) if (!check_argn_number(args, argn, n)) {return ENC_SYM_EERROR;}
 
 // Various commands
 
@@ -506,7 +459,7 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_set_servo(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	servo_simple_set_output(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
@@ -538,7 +491,7 @@ static lbm_value ext_get_vin(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_select_motor(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	int i = lbm_dec_as_i32(args[0]);
 	if (i != 0 && i != 1 && i != 2) {
 		return ENC_SYM_EERROR;
@@ -588,7 +541,7 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 		argn--;
 
 		if (!lbm_is_number(set_arg)) {
-			lbm_set_error_reason(error_reason_no_number);
+			lbm_set_error_reason((char*)lbm_error_str_no_number);
 			return ENC_SYM_EERROR;
 		}
 	}
@@ -701,7 +654,7 @@ static lbm_value ext_send_bms_can(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 0) {
 		return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT));
@@ -724,13 +677,13 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_override_temp_motor(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	mc_interface_override_temp_motor(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_get_adc_decoded(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 0) {
 		return lbm_enc_float(app_adc_get_decoded_level());
@@ -754,12 +707,12 @@ static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	return lbm_enc_float(UTILS_AGE_S(lbm_dec_as_u32(args[0])));
 }
 
 static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	int port = lbm_dec_as_u32(args[0]);
 	bool on = lbm_dec_as_u32(args[1]);
@@ -949,7 +902,7 @@ static bool check_eeprom_addr(int addr) {
 }
 
 static lbm_value ext_eeprom_store_f(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	int addr = lbm_dec_as_i32(args[0]);
 	if (!check_eeprom_addr(addr)) {
@@ -962,7 +915,7 @@ static lbm_value ext_eeprom_store_f(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_eeprom_read_f(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 
 	int addr = lbm_dec_as_i32(args[0]);
 	if (!check_eeprom_addr(addr)) {
@@ -975,7 +928,7 @@ static lbm_value ext_eeprom_read_f(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	int addr = lbm_dec_as_i32(args[0]);
 	if (!check_eeprom_addr(addr)) {
@@ -988,7 +941,7 @@ static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 
 	int addr = lbm_dec_as_i32(args[0]);
 	if (!check_eeprom_addr(addr)) {
@@ -1134,7 +1087,7 @@ static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 			return ENC_SYM_EERROR;
 		}
 	}else{
-		CHECK_ARGN_NUMBER(2);
+		LBM_CHECK_ARGN_NUMBER(2);
 	}
 	uint32_t mode = lbm_dec_as_u32(args[0]);
 	bool detach = lbm_dec_as_char(args[1]) > 0 ? true : false;
@@ -1160,7 +1113,7 @@ static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	uint32_t target = lbm_dec_as_u32(args[0]);
 	float val = lbm_dec_as_float(args[1]);
@@ -1186,19 +1139,19 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_app_ppm_detach(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	app_ppm_detach(lbm_dec_as_u32(args[0]) > 0);
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_app_ppm_override(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	app_ppm_override(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_remote_state(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(5);
+	LBM_CHECK_ARGN_NUMBER(5);
 	chuck_data chuk = {0};
 
 	float js_y = (lbm_dec_as_float(args[0]) + 1.0) * 128.0;
@@ -1220,7 +1173,7 @@ static lbm_value ext_set_remote_state(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_app_disable_output(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	app_disable_output(lbm_dec_as_i32(args[0]));
 	return ENC_SYM_TRUE;
 }
@@ -1233,7 +1186,7 @@ static lbm_value ext_app_pas_get_rpm(lbm_value *args, lbm_uint argn) {
 // Motor set commands
 
 static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 	timeout_reset();
 
 	if (argn == 1) {
@@ -1249,7 +1202,7 @@ static lbm_value ext_set_current(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 	timeout_reset();
 
 	if (argn == 1) {
@@ -1265,63 +1218,63 @@ static lbm_value ext_set_current_rel(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_set_duty(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_duty(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_brake(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_brake_current(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_brake_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_brake_current_rel(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_handbrake(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_handbrake(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_handbrake_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_handbrake_rel(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_rpm(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_pid_speed(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_set_pos(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
 	mc_interface_set_pid_pos(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_foc_openloop(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	timeout_reset();
 	mc_interface_set_openloop_current(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_foc_beep(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(3);
+	LBM_CHECK_ARGN_NUMBER(3);
 	timeout_reset();
 	mcpwm_foc_beep(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]), lbm_dec_as_float(args[2]));
 	return ENC_SYM_TRUE;
@@ -1375,7 +1328,7 @@ static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_get_temp_fet(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn > 1) {
 		return ENC_SYM_EERROR;
@@ -1492,7 +1445,7 @@ static lbm_value ext_setup_num_vescs(lbm_value *args, lbm_uint argn) {
 // CAN-commands
 
 static lbm_value ext_can_current(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 2) {
 		comm_can_set_current(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
@@ -1506,7 +1459,7 @@ static lbm_value ext_can_current(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_current_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 2) {
 		comm_can_set_current_rel(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
@@ -1520,37 +1473,37 @@ static lbm_value ext_can_current_rel(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_duty(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	comm_can_set_duty(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_can_brake(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	comm_can_set_current_brake(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_can_brake_rel(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	comm_can_set_current_brake_rel(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_can_rpm(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	comm_can_set_rpm(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_can_pos(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	comm_can_set_pos(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_can_get_current(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
 	if (stat0) {
 		return lbm_enc_float(stat0->current);
@@ -1560,7 +1513,7 @@ static lbm_value ext_can_get_current(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_current_dir(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
 	if (stat0) {
 		return lbm_enc_float(stat0->current * SIGN(stat0->duty));
@@ -1570,7 +1523,7 @@ static lbm_value ext_can_get_current_dir(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_current_in(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i32(args[0]));
 	if (stat4) {
 		return lbm_enc_float((float)stat4->current_in);
@@ -1580,7 +1533,7 @@ static lbm_value ext_can_get_current_in(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_duty(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
 	if (stat0) {
 		return lbm_enc_float(stat0->duty);
@@ -1590,7 +1543,7 @@ static lbm_value ext_can_get_duty(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_rpm(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
 	if (stat0) {
 		return lbm_enc_float(stat0->rpm);
@@ -1600,7 +1553,7 @@ static lbm_value ext_can_get_rpm(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_temp_fet(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i32(args[0]));
 	if (stat4) {
 		return lbm_enc_float((float)stat4->temp_fet);
@@ -1610,7 +1563,7 @@ static lbm_value ext_can_get_temp_fet(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_temp_motor(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg_4 *stat4 = comm_can_get_status_msg_4_id(lbm_dec_as_i32(args[0]));
 	if (stat4) {
 		return lbm_enc_float((float)stat4->temp_motor);
@@ -1620,7 +1573,7 @@ static lbm_value ext_can_get_temp_motor(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_speed(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg *stat0 = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
 	if (stat0) {
 		const volatile mc_configuration *conf = mc_interface_get_configuration();
@@ -1632,7 +1585,7 @@ static lbm_value ext_can_get_speed(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_dist(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg_5 *stat5 = comm_can_get_status_msg_5_id(lbm_dec_as_i32(args[0]));
 	if (stat5) {
 		const volatile mc_configuration *conf = mc_interface_get_configuration();
@@ -1644,7 +1597,7 @@ static lbm_value ext_can_get_dist(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_can_get_ppm(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	can_status_msg_6 *stat6 = comm_can_get_status_msg_6_id(lbm_dec_as_i32(args[0]));
 	if (stat6) {
 		return lbm_enc_float((float)stat6->ppm);
@@ -1658,7 +1611,7 @@ static lbm_value ext_can_get_adc(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	lbm_int channel = 0;
 	if (argn == 2) {
@@ -1794,62 +1747,62 @@ static lbm_value ext_can_send_eid(lbm_value *args, lbm_uint argn) {
 // Math
 
 static lbm_value ext_sin(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(sinf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_cos(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(cosf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_tan(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(tanf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_asin(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(asinf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_acos(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(acosf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_atan(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(atanf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_atan2(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2)
+	LBM_CHECK_ARGN_NUMBER(2)
 	return lbm_enc_float(atan2f(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1])));
 }
 
 static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2)
+	LBM_CHECK_ARGN_NUMBER(2)
 	return lbm_enc_float(powf(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1])));
 }
 
 static lbm_value ext_sqrt(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(sqrtf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_log(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(logf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1)
+	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(log10f(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 1) {
 		return lbm_enc_float(DEG2RAD_f(lbm_dec_as_float(args[0])));
@@ -1863,7 +1816,7 @@ static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_rad2deg(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn == 1) {
 		return lbm_enc_float(RAD2DEG_f(lbm_dec_as_float(args[0])));
@@ -1877,7 +1830,7 @@ static lbm_value ext_rad2deg(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_vec3_rot(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 	if (argn != 6 && argn != 7) {
 		return ENC_SYM_EERROR;
 	}
@@ -1902,7 +1855,7 @@ static lbm_value ext_vec3_rot(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(4);
+	LBM_CHECK_ARGN_NUMBER(4);
 	return lbm_enc_float(utils_throttle_curve(
 			lbm_dec_as_float(args[0]),
 			lbm_dec_as_float(args[1]),
@@ -1919,7 +1872,7 @@ static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
  * args[3]: Size in bits of value to modify with
  */
 static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(4)
+	LBM_CHECK_ARGN_NUMBER(4)
 	uint32_t initial = lbm_dec_as_u32(args[0]);
 	uint32_t offset = lbm_dec_as_u32(args[1]);
 	uint32_t number = lbm_dec_as_u32(args[2]);
@@ -1940,7 +1893,7 @@ static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
  * args[2]: Size in bits of value to get
  */
 static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(3)
+	LBM_CHECK_ARGN_NUMBER(3)
 	uint32_t val = lbm_dec_as_u32(args[0]);
 	uint32_t offset = lbm_dec_as_u32(args[1]);
 	uint32_t bits = lbm_dec_as_u32(args[2]);
@@ -2015,7 +1968,7 @@ static lbm_value ext_register_event_handler(lbm_value *args, lbm_uint argn) {
  * args[2]: Use raw ADC values. Optional argument.
  */
 static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn != 2 && argn != 3) {
 		return ENC_SYM_EERROR;
@@ -2062,7 +2015,7 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
  * args[2]: Use raw ADC values. Optional argument.
  */
 static lbm_value ext_raw_adc_voltage(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn != 2 && argn != 3) {
 		return ENC_SYM_EERROR;
@@ -2126,7 +2079,7 @@ static lbm_value ext_raw_mod_beta_measured(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_raw_hall(lbm_value *args, lbm_uint argn) {
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (argn != 1 && argn != 2) {
 		return ENC_SYM_EERROR;
@@ -2484,7 +2437,7 @@ static lbm_value ext_i2c_restore(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN(2);
+	LBM_CHECK_ARGN(2);
 
 	if (!lbm_is_symbol(args[0]) || !lbm_is_symbol(args[1])) {
 		return ENC_SYM_EERROR;
@@ -2524,7 +2477,7 @@ static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_gpio_write(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN(2);
+	LBM_CHECK_ARGN(2);
 
 	if (!lbm_is_symbol(args[0]) || !lbm_is_number(args[1])) {
 		return ENC_SYM_EERROR;
@@ -2541,7 +2494,7 @@ static lbm_value ext_gpio_write(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_gpio_read(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN(1);
+	LBM_CHECK_ARGN(1);
 
 	if (!lbm_is_symbol(args[0])) {
 		return ENC_SYM_EERROR;
@@ -2891,7 +2844,7 @@ static lbm_value ext_str_to_upper(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 	if (argn != 2 && argn != 3) {
-		lbm_set_error_reason(error_reason_argn);
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_EERROR;
 	}
 
@@ -3014,7 +2967,7 @@ static lbm_value ext_to_str_delim(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_str_len(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN(1);
+	LBM_CHECK_ARGN(1);
 
 	char *str = lbm_dec_str(args[0]);
 	if (!str) {
@@ -3440,7 +3393,7 @@ static void detect_task(void *arg) {
 }
 
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(6);
+	LBM_CHECK_ARGN_NUMBER(6);
 	static detect_args a;
 	a.detect_can = lbm_dec_as_i32(args[0]);
 	a.max_power_loss = lbm_dec_as_float(args[1]);
@@ -3456,7 +3409,7 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
-		lbm_set_error_reason(error_reason_argn);
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_EERROR;
 	}
 
@@ -3495,11 +3448,11 @@ static void measure_res_task(void *arg) {
 
 static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
-		lbm_set_error_reason(error_reason_argn);
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_EERROR;
 	}
 
-	CHECK_NUMBER_ALL();
+	LBM_CHECK_NUMBER_ALL();
 
 	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
 		lbm_set_error_reason("Motor type must be FOC");
@@ -3818,7 +3771,7 @@ static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_uavcan_last_rawcmd(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	int can_if = lbm_dec_as_i32(args[0]);
 	uavcan_cmd_info info = canard_driver_last_rawcmd(can_if);
 	lbm_value out_list = ENC_SYM_NIL;
@@ -3828,7 +3781,7 @@ static lbm_value ext_uavcan_last_rawcmd(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_uavcan_last_rpmcmd(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	int can_if = lbm_dec_as_i32(args[0]);
 	uavcan_cmd_info info = canard_driver_last_rpmcmd(can_if);
 	lbm_value out_list = ENC_SYM_NIL;
@@ -3838,7 +3791,7 @@ static lbm_value ext_uavcan_last_rpmcmd(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	uint32_t q = lbm_dec_as_u32(args[0]);
 
 	if (q < 1) {
@@ -3885,13 +3838,13 @@ static lbm_value ext_plot_add_graph(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_plot_set_graph(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	commands_plot_set_graph(lbm_dec_as_i32(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_plot_send_points(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 	commands_send_plot_points(
 			lbm_dec_as_float(args[0]),
 			lbm_dec_as_float(args[1]));
@@ -3900,7 +3853,7 @@ static lbm_value ext_plot_send_points(lbm_value *args, lbm_uint argn) {
 
 // IO-boards
 static lbm_value ext_ioboard_get_adc(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	int id = lbm_dec_as_i32(args[0]);
 	int channel = lbm_dec_as_i32(args[1]);
@@ -3926,7 +3879,7 @@ static lbm_value ext_ioboard_get_adc(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_ioboard_get_digital(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(2);
+	LBM_CHECK_ARGN_NUMBER(2);
 
 	int id = lbm_dec_as_i32(args[0]);
 	int channel = lbm_dec_as_i32(args[1]);
@@ -3946,7 +3899,7 @@ static lbm_value ext_ioboard_get_digital(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_ioboard_set_digital(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(3);
+	LBM_CHECK_ARGN_NUMBER(3);
 	int id = lbm_dec_as_i32(args[0]);
 	int channel = lbm_dec_as_i32(args[1]);
 	bool on = lbm_dec_as_i32(args[2]);
@@ -3955,7 +3908,7 @@ static lbm_value ext_ioboard_set_digital(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_ioboard_set_pwm(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(3);
+	LBM_CHECK_ARGN_NUMBER(3);
 	int id = lbm_dec_as_i32(args[0]);
 	int channel = lbm_dec_as_i32(args[1]);
 	float duty = lbm_dec_as_float(args[2]);
@@ -3965,7 +3918,7 @@ static lbm_value ext_ioboard_set_pwm(lbm_value *args, lbm_uint argn) {
 
 // Logging
 static lbm_value ext_log_start(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN(5);
+	LBM_CHECK_ARGN(5);
 
 	if (!lbm_is_number(args[0]) ||
 			!lbm_is_number(args[1]) ||
@@ -3987,14 +3940,14 @@ static lbm_value ext_log_start(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_log_stop(lbm_value *args, lbm_uint argn) {
-	CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_ARGN_NUMBER(1);
 	log_stop(lbm_dec_as_i32(args[0]));
 	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_log_config_field(lbm_value *args, lbm_uint argn) {
 	if (argn != 8) {
-		lbm_set_error_reason(error_reason_argn);
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_EERROR;
 	}
 
