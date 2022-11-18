@@ -177,9 +177,9 @@ bool encoder_init(volatile mc_configuration *conf) {
 	case SENSOR_PORT_MODE_SINCOS: {
 		SENSOR_PORT_5V();
 
-		encoder_cfg_sincos.s_gain = conf->foc_encoder_sin_gain;
+		encoder_cfg_sincos.s_gain = 1.0 / conf->foc_encoder_sin_amp;
 		encoder_cfg_sincos.s_offset = conf->foc_encoder_sin_offset;
-		encoder_cfg_sincos.c_gain = conf->foc_encoder_cos_gain;
+		encoder_cfg_sincos.c_gain = 1.0 /conf->foc_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->foc_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->foc_encoder_sincos_filter_constant;
 

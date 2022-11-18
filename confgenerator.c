@@ -64,8 +64,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_encoder_inverted;
 	buffer_append_float32_auto(buffer, conf->foc_encoder_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_ratio, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sin_gain, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_cos_gain, 1000, &ind);
+	buffer_append_float16(buffer, conf->foc_encoder_sin_amp, 1000, &ind);
+	buffer_append_float16(buffer, conf->foc_encoder_cos_amp, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_encoder_sin_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_encoder_cos_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_encoder_sincos_filter_constant, 1000, &ind);
@@ -459,8 +459,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_encoder_inverted = buffer[ind++];
 	conf->foc_encoder_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_ratio = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_encoder_sin_gain = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_cos_gain = buffer_get_float16(buffer, 1000, &ind);
+	conf->foc_encoder_sin_amp = buffer_get_float16(buffer, 1000, &ind);
+	conf->foc_encoder_cos_amp = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
@@ -850,8 +850,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
 	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;
 	conf->foc_encoder_ratio = MCCONF_FOC_ENCODER_RATIO;
-	conf->foc_encoder_sin_gain = MCCONF_FOC_ENCODER_SIN_GAIN;
-	conf->foc_encoder_cos_gain = MCCONF_FOC_ENCODER_COS_GAIN;
+	conf->foc_encoder_sin_amp = MCCONF_FOC_ENCODER_SIN_AMP;
+	conf->foc_encoder_cos_amp = MCCONF_FOC_ENCODER_COS_AMP;
 	conf->foc_encoder_sin_offset = MCCONF_FOC_ENCODER_SIN_OFFSET;
 	conf->foc_encoder_cos_offset = MCCONF_FOC_ENCODER_COS_OFFSET;
 	conf->foc_encoder_sincos_filter_constant = MCCONF_FOC_ENCODER_SINCOS_FILTER;

@@ -147,9 +147,11 @@ typedef struct {
 
 typedef struct {
 	uint32_t refresh_rate_hz;
+	// The gain is 1/amplutide. The reason it is stored like that
+	// is to avoid two divisions when reading the encoder.
 	float s_gain;
-	float s_offset;
 	float c_gain;
+	float s_offset;
 	float c_offset;
 	float filter_constant;
 

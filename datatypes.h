@@ -405,9 +405,9 @@ typedef struct {
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
 	float foc_encoder_sin_offset;
-	float foc_encoder_sin_gain;
+	float foc_encoder_sin_amp;
 	float foc_encoder_cos_offset;
-	float foc_encoder_cos_gain;
+	float foc_encoder_cos_amp;
 	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_ld_lq_diff;
