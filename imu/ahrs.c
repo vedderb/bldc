@@ -23,12 +23,14 @@ static float m_acc_confidence_decay = 1.0;
 static float m_kp = 0.3;
 static float m_ki = 0.0;
 static float m_beta = 0.1;
+static const float m_kp_ref = 0.25;
+static const float m_acc_confidence_decay_ref = 0.1;
 
 // Private functions
 static float invSqrt(float x);
-static float calculateAccConfidence(float accMag, float *accMagP);
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP);
 
-static float calculateAccConfidence(float accMag, float *accMagP) {
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP) {
 	// G.K. Egan (C) computes confidence in accelerometers when
 	// aircraft is being accelerated over and above that due to gravity
 
@@ -37,7 +39,7 @@ static float calculateAccConfidence(float accMag, float *accMagP) {
 	accMag = *accMagP * 0.9f + accMag * 0.1f;
 	*accMagP = accMag;
 
-	confidence = 1.0 - (m_acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
 	utils_truncate_number(&confidence, 0.0, 1.0);
 
 	return confidence;
@@ -100,7 +102,7 @@ void ahrs_update_initial_orientation(float *accelXYZ, float *magXYZ, ATTITUDE_IN
 	att->q3 = cr * cp * sy - sr * sp * cy;
 }
 
-void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att) {
+void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att, bool is_ref) {
 	float accelNorm, recipNorm;
 	float qa, qb, qc;
 
@@ -121,10 +123,13 @@ void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_
 		float halfex, halfey, halfez;
 		float accelConfidence;
 
-		volatile float twoKp = 2.0 * m_kp;
-		volatile float twoKi = 2.0 * m_ki;
+		volatile float twoKp = is_ref ? m_kp_ref : m_kp;
+		volatile float twoKi = is_ref ? 0 : m_ki;
+		twoKp *= 2.0;
+		twoKi *= 2.0;
 
-		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
+		float acc_confidence_decay = is_ref ? m_acc_confidence_decay_ref : m_acc_confidence_decay;
+		accelConfidence = calculateAccConfidence(acc_confidence_decay, accelNorm, &att->accMagP);
 		twoKp *= accelConfidence;
 		twoKi *= accelConfidence;
 
@@ -249,7 +254,7 @@ void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUD
 		s3 *= recipNorm;
 
 		// Apply feedback step
-		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP);
+		accelConfidence = calculateAccConfidence(m_acc_confidence_decay, accelNorm, &att->accMagP);
 		qDot1 -= m_beta * s0 * accelConfidence;
 		qDot2 -= m_beta * s1 * accelConfidence;
 		qDot3 -= m_beta * s2 * accelConfidence;

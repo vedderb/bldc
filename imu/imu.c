@@ -36,6 +36,7 @@
 
 // Private variables
 static ATTITUDE_INFO m_att;
+static ATTITUDE_INFO m_att_ref;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
@@ -175,6 +176,7 @@ void imu_reset_orientation(void) {
 	imu_ready = false;
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
+	ahrs_init_attitude_info(&m_att_ref);
 	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
 	ahrs_update_all_parameters(1.0, 10.0, 0.0, 2.0);
 }
@@ -286,6 +288,18 @@ float imu_get_pitch(void) {
 }
 
 float imu_get_yaw(void) {
+	return ahrs_get_yaw(&m_att);
+}
+
+float imu_get_true_roll(void) {
+	return ahrs_get_roll(&m_att);
+}
+
+float imu_get_true_pitch(void) {
+	return ahrs_get_pitch(&m_att);
+}
+
+float imu_get_true_yaw(void) {
 	return ahrs_get_yaw(&m_att);
 }
 
@@ -590,7 +604,7 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 			ahrs_update_madgwick_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
 			break;
 		case AHRS_MODE_MAHONY:
-			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att);
+			ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att, false);
 			break;
 		case AHRS_MODE_MADGWICK_FUSION: {
 			FusionVector3 calibratedGyroscope = {
@@ -610,6 +624,8 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 			m_att.q3 = m_fusionAhrs.quaternion.element.z;
 		} break;
 	}
+	// Always also update m_att_ref using Mahony for true angle tracking
+	ahrs_update_mahony_imu(gyro_rad, m_accel, dt, (ATTITUDE_INFO *)&m_att_ref, true);
 }
 
 static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
