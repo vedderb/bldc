@@ -624,6 +624,10 @@ void terminal_process_string(char *str) {
 		commands_printf("USB not enabled on hardware.");
 #endif
 
+#if defined (V_REG) && defined (CURRENT_AMP_GAIN) && defined(CURRENT_SHUNT_RES)
+		commands_printf("Current Measurement Range: %.1f A", (double)((V_REG / 2.0) / (CURRENT_AMP_GAIN * CURRENT_SHUNT_RES)));
+#endif
+
 		commands_printf("Mempool mcconf now: %d highest: %d (max %d)",
 				mempools_mcconf_allocated_num(), mempools_mcconf_highest(), MEMPOOLS_MCCONF_NUM - 1);
 		commands_printf("Mempool appconf now: %d highest: %d (max %d)",
