@@ -932,6 +932,7 @@ typedef struct {
 	bool permanent_uart_enabled;
 	SHUTDOWN_MODE shutdown_mode;
 	bool servo_out_enable;
+	bool buzzer_enable;
 	KILL_SW_MODE kill_sw_mode;
 
 	// CAN modes

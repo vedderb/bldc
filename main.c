@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "buzzer.h"
 #include "mc_interface.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
@@ -105,7 +106,7 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 static THD_FUNCTION(led_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("Main LED");
+	chRegSetThreadName("Main LED/Buzzer");
 
 	for(;;) {
 		mc_state state1 = mc_interface_get_state();
@@ -143,6 +144,9 @@ static THD_FUNCTION(led_thread, arg) {
 		} else {
 			ledpwm_set_intensity(LED_RED, 0.0);
 		}
+
+		// no separate thread for the buzzer, call update function from here:
+		update_beep_alert();
 
 		chThdSleepMilliseconds(10);
 	}
@@ -264,6 +268,15 @@ int main(void) {
 	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
 	conf_general_read_app_configuration(appconf);
+
+	if (appconf->buzzer_enable) {
+		buzzer_enable(true);
+		// Let the rider know that the board is booting (short beep early on)
+		beep_on(1);
+		chThdSleepMilliseconds(20);
+		beep_off(1);
+	}
+
 	app_set_configuration(appconf);
 	app_uartcomm_start(UART_PORT_BUILTIN);
 	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
