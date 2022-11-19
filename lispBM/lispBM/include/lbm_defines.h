@@ -95,6 +95,12 @@
 #define SYM_TRUE          0x2
 #define SYM_DONTCARE      0x9
 
+// Apply funs:
+// get their arguments in evaluated form
+// and are in that way similar to fundamentals.
+// They are implemented as part of eval_cps as they
+// have the somewhat ambiguous property of being more
+// "coupled" to how the evaluator works.
 // Consecutive value symbols for lookup-application
 #define APPLY_FUNS_START  0x10
 #define SYM_SETVAR        0x10
@@ -177,7 +183,11 @@
 #define SYM_TOKENIZER_RERROR 0x82
 
 
-// Built in special forms - consecutive for lookup-application
+// Built in special forms:
+// Special forms get their arguments unevaluated
+// and are free to choose to evaluate one or more
+// of them as needed.
+// Consecutive for lookup-application.
 #define SPECIAL_FORMS_START     0x100
 #define SYM_QUOTE               0x100
 #define SYM_DEFINE              0x101
@@ -194,7 +204,9 @@
 #define SYM_MACRO               0x10C
 #define SYM_CONT                0x10D
 #define SYM_CLOSURE             0x10E
-#define SPECIAL_FORMS_END       0x10E
+#define SYM_COND                0x10F
+#define SYM_APP_CONT            0x110
+#define SPECIAL_FORMS_END       0x110
 
 // Fundamental Operations
 // Consecutive values for lookup-application
@@ -256,7 +268,9 @@
 #define SYM_TYPE_OF             0x236
 #define SYM_LIST_LENGTH         0x237
 #define SYM_RANGE               0x238
-#define FUNDAMENTALS_END        0x238
+#define SYM_NUM_NOT_EQ          0x239
+#define SYM_NOT_EQ              0x23A
+#define FUNDAMENTALS_END        0x23A
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
@@ -299,6 +313,9 @@
 #define ENC_SYM_SETVAR      ((SYM_SETVAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_EXIT_OK     ((SYM_EXIT_OK << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_EXIT_ERROR  ((SYM_EXIT_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_COND        ((SYM_COND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_PROGN       ((SYM_PROGN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_APP_CONT    ((SYM_APP_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_SPAWN       ((SYM_SPAWN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_YIELD       ((SYM_YIELD << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
@@ -331,6 +348,9 @@
 #define ENC_SYM_TYPE_U      ((SYM_TYPE_U << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TYPE_CHAR   ((SYM_TYPE_CHAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TYPE_SYMBOL ((SYM_TYPE_SYMBOL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+
+#define ENC_SYM_NUM_NOT_EQ  ((SYM_NUM_NOT_EQ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_NOT_EQ      ((SYM_NOT_EQ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_COLON       ((SYM_COLON << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 

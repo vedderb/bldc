@@ -23,6 +23,8 @@
 * Added PT1000 temperature sensor support.
 * APP ADC button bitfield and CC disable support.
 * BissC encoder support: https://github.com/vedderb/bldc/pull/536
+* Better detection failt handling and reporting: https://github.com/vedderb/bldc/pull/533
+* TLE5012-support: https://github.com/vedderb/bldc/pull/551
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

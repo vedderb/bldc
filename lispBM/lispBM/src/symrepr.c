@@ -39,6 +39,7 @@ special_sym const special_symbols[] =  {
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
   {"if"         , SYM_IF},
+  {"cond"       , SYM_COND},
   {"lambda"     , SYM_LAMBDA},
   {"closure"    , SYM_CLOSURE},
   {"let"        , SYM_LET},
@@ -105,6 +106,7 @@ special_sym const special_symbols[] =  {
   {"[openbrack]"      , SYM_OPENBRACK},
   {"[closebrack]"     , SYM_CLOSEBRACK},
   {"[rerror]"         , SYM_TOKENIZER_RERROR},
+  {"[appcont]"        , SYM_APP_CONT},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -129,6 +131,7 @@ special_sym const special_symbols[] =  {
   {"/"                , SYM_DIV},
   {"mod"              , SYM_MOD},
   {"="                , SYM_NUMEQ},
+  {"!="               , SYM_NUM_NOT_EQ},
   {"<"                , SYM_LT},
   {">"                , SYM_GT},
   {"<="               , SYM_LEQ},
@@ -146,6 +149,7 @@ special_sym const special_symbols[] =  {
   {"spawn-trap"       , SYM_SPAWN_TRAP},
   {"set-mailbox-size" , SYM_SET_MAILBOX_SIZE},
   {"eq"               , SYM_EQ},
+  {"not-eq"           , SYM_NOT_EQ},
   {"car"              , SYM_CAR},
   {"cdr"              , SYM_CDR},
   {"cons"             , SYM_CONS},

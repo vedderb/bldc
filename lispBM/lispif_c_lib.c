@@ -35,6 +35,9 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "conf_custom.h"
+#include "timer.h"
+#include "ahrs.h"
+#include "encoder.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -75,27 +78,12 @@ static float lib_system_time(void) {
 	return UTILS_AGE_S(0);
 }
 
-static void* lib_malloc(size_t size) {
-	lbm_uint alloc_size;
-	if (size % sizeof(lbm_uint) == 0) {
-		alloc_size = size / (sizeof(lbm_uint));
-	} else {
-		alloc_size = (size / (sizeof(lbm_uint))) + 1;
-	}
-
-	return lbm_memory_allocate(alloc_size);
-}
-
-static void lib_free(void *ptr) {
-	lbm_memory_free(ptr);
-}
-
 static THD_FUNCTION(lib_thd, arg) {
 	lib_thd_info *t = (lib_thd_info*)arg;
 	chRegSetThreadName(t->name);
 	t->func(t->arg);
-	lib_free(t->w_mem);
-	lib_free(t);
+	lispif_free(t->w_mem);
+	lispif_free(t);
 }
 
 static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
@@ -104,10 +92,10 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 		return 0;
 	}
 
-	void *mem = lib_malloc(stack_size);
+	void *mem = lispif_malloc(stack_size);
 
 	if (mem) {
-		lib_thd_info *info = lib_malloc(sizeof(lib_thd_info));
+		lib_thd_info *info = lispif_malloc(sizeof(lib_thd_info));
 
 		if (info) {
 			info->arg = arg;
@@ -338,6 +326,10 @@ static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
 	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
 }
 
+static bool lib_symbol_to_io(lbm_uint sym, void **gpio, uint32_t *pin) {
+	return lispif_symbol_to_io(sym, (stm32_gpio_t**)gpio, pin);
+}
+
 static SerialConfig uart_cfg = {
 		2500000, 0, 0, 0
 };
@@ -513,6 +505,20 @@ static bool lib_eval_is_paused(void) {
 	return lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED;
 }
 
+static lib_mutex lib_mutex_create(void) {
+	mutex_t *m = lispif_malloc(sizeof(mutex_t));
+	chMtxObjectInit(m);
+	return (lib_mutex)m;
+}
+
+static void lib_mutex_lock(lib_mutex m) {
+	chMtxLock((mutex_t*)m);
+}
+
+static void lib_mutex_unlock(lib_mutex m) {
+	chMtxUnlock((mutex_t*)m);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -584,8 +590,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.system_time = lib_system_time;
 		cif.cif.ts_to_age_s = lib_ts_to_age_s;
 		cif.cif.printf = commands_printf_lisp;
-		cif.cif.malloc = lib_malloc;
-		cif.cif.free = lib_free;
+		cif.cif.malloc = lispif_malloc;
+		cif.cif.free = lispif_free;
 		cif.cif.spawn = lib_spawn;
 		cif.cif.request_terminate = lib_request_terminate;
 		cif.cif.should_terminate = lib_should_terminate;
@@ -756,6 +762,42 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.set_cfg_int = lib_set_cfg_int;
 		cif.cif.store_cfg = lib_store_cfg;
 
+		// GNSS-struct that can be both read and updated
+		cif.cif.mc_gnss = mc_interface_gnss;
+
+		// Mutex
+		cif.cif.mutex_create = lib_mutex_create;
+		cif.cif.mutex_lock = lib_mutex_lock;
+		cif.cif.mutex_unlock = lib_mutex_unlock;
+
+		// Get ST io-pin from lbm symbol (this is only safe from extensions)
+		cif.cif.lbm_symbol_to_io = lib_symbol_to_io;
+
+		// High resolution timer for short busy-wait sleeps and time measurement
+		cif.cif.timer_time_now = timer_time_now;
+		cif.cif.timer_seconds_elapsed_since = timer_seconds_elapsed_since;
+		cif.cif.timer_sleep = timer_sleep;
+
+		// System lock (with counting)
+		cif.cif.sys_lock = utils_sys_lock_cnt;
+		cif.cif.sys_unlock = utils_sys_unlock_cnt;
+
+		// Unregister pointers to previously used reply function
+		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
+
+		// IMU AHRS functions and read callback
+		cif.cif.imu_set_read_callback = imu_set_read_callback;
+		cif.cif.ahrs_init_attitude_info = ahrs_init_attitude_info;
+		cif.cif.ahrs_update_initial_orientation = ahrs_update_initial_orientation;
+		cif.cif.ahrs_update_mahony_imu = ahrs_update_mahony_imu;
+		cif.cif.ahrs_update_madgwick_imu = ahrs_update_madgwick_imu;
+		cif.cif.ahrs_get_roll = ahrs_get_roll;
+		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
+		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
+
+		// Set custom encoder callbacks
+		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;
+
 		lib_init_done = true;
 	}
 
@@ -841,4 +883,19 @@ void lispif_stop_lib(void) {
 	}
 
 	lib_running_threads_cnt = 0;
+}
+
+void* lispif_malloc(size_t size) {
+	lbm_uint alloc_size;
+	if (size % sizeof(lbm_uint) == 0) {
+		alloc_size = size / (sizeof(lbm_uint));
+	} else {
+		alloc_size = (size / (sizeof(lbm_uint))) + 1;
+	}
+
+	return lbm_memory_allocate(alloc_size);
+}
+
+void lispif_free(void *ptr) {
+	lbm_memory_free(ptr);
 }

@@ -199,3 +199,7 @@ float servodec_get_last_pulse_len(int servo_num) {
 		return 0.0;
 	}
 }
+
+bool servodec_is_running(void) {
+	return is_running;
+}

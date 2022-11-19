@@ -778,6 +778,19 @@ lbm_value lbm_cdr(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+lbm_value lbm_cddr(lbm_value c) {
+
+  if (lbm_is_ptr(c)) {
+    lbm_value tmp = lbm_ref_cell(c)->cdr;
+    if (lbm_is_ptr(tmp)) {
+      return lbm_ref_cell(tmp)->cdr;
+    }
+  }
+  if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
@@ -794,6 +807,17 @@ int lbm_set_cdr(lbm_value c, lbm_value v) {
   if (lbm_type_of(c) == LBM_TYPE_CONS){
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->cdr = v;
+    r = 1;
+  }
+  return r;
+}
+
+int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
+  int r = 0;
+  if (lbm_type_of(c) == LBM_TYPE_CONS) {
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    cell->car = car_val;
+    cell->cdr = cdr_val;
     r = 1;
   }
   return r;
@@ -862,7 +886,7 @@ lbm_value lbm_list_copy(lbm_value list) {
     curr = lbm_cdr(curr);
   }
 
-  return lbm_list_reverse(res);
+  return lbm_list_destructive_reverse(res);
 }
 
 // Append for proper lists only

@@ -27,10 +27,11 @@
 #include "imu.h"
 #include "crc.h"
 #include "servo_simple.h"
+#include "servo_dec.h"
 
 // Private variables
-static app_configuration appconf;
-static virtual_timer_t output_vt;
+static app_configuration appconf = {0};
+static virtual_timer_t output_vt = {0};
 static bool output_vt_init_done = false;
 static volatile bool output_disabled_now = false;
 
@@ -49,6 +50,10 @@ const app_configuration* app_get_configuration(void) {
  */
 void app_set_configuration(app_configuration *conf) {
 	bool app_changed = appconf.app_to_use != conf->app_to_use;
+
+	if (!app_changed) {
+		app_changed = appconf.servo_out_enable != conf->servo_out_enable;
+	}
 
 	appconf = *conf;
 
@@ -82,6 +87,7 @@ void app_set_configuration(app_configuration *conf) {
 		if (appconf.app_to_use != APP_PPM &&
 				appconf.app_to_use != APP_PPM_UART &&
 				appconf.servo_out_enable) {
+			servodec_stop();
 			servo_simple_init();
 		} else {
 			servo_simple_stop();

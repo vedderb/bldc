@@ -23,7 +23,7 @@ LispBM runtime system.
 1. Are you interested in microcontrollers and programming languages?
 2. You find it fun to mess around in C code with close to zero comments?
 3. Then join in the fun. Lots to do, so little time!
-4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
+4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com.
 
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).

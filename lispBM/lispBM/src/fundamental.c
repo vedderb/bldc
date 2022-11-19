@@ -651,12 +651,24 @@ static lbm_value fundamental_eq(lbm_value *args, lbm_uint nargs, eval_context_t 
   for (lbm_uint i = 1; i < nargs; i ++) {
     b = args[i];
     r = r && struct_eq(a, b);
+    if (!r) break;
   }
   if (r) {
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;
 }
+
+static lbm_value fundamental_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+   lbm_value r = fundamental_eq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
+    return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
+    return ENC_SYM_TERROR;
+  }
+  return ENC_SYM_NIL;
+}
+
 
 static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
@@ -676,6 +688,7 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
       break;
     }
     r = r && (compare(a, b) == 0);
+    if (!r) break;
   }
   if (ok) {
     if (r) {
@@ -686,6 +699,17 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
   }
   return ENC_SYM_TERROR;
 }
+
+static lbm_value fundamental_num_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  lbm_value r = fundamental_numeq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
+    return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
+    return ENC_SYM_TERROR;
+  }
+  return ENC_SYM_NIL;
+}
+
 
 static lbm_value fundamental_lt(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
@@ -1010,8 +1034,9 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
   lbm_value result = ENC_SYM_EERROR;
   if (nargs < 1 ||
       lbm_type_of(args[0] != LBM_TYPE_ARRAY))
-    return result;;
+    return result;
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+  if (!arr) return ENC_SYM_FATAL_ERROR;
   if (arr->elt_type != LBM_TYPE_CHAR)
     return result;
   char *str = (char *)arr->data;
@@ -1380,6 +1405,7 @@ static lbm_value fundamental_custom_destruct(lbm_value *args, lbm_uint nargs, ev
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
     lbm_uint *mem_ptr = (lbm_uint*)lbm_dec_custom(args[0]);
+    if(!mem_ptr) return ENC_SYM_FATAL_ERROR;
     lbm_custom_type_destroy(mem_ptr);
     lbm_value tmp = lbm_set_ptr_type(args[0], LBM_TYPE_CONS);
     lbm_set_car(tmp, ENC_SYM_NIL);
@@ -1519,5 +1545,7 @@ const fundamental_fun fundamental_table[] =
     fundamental_custom_destruct,
     fundamental_type_of,
     fundamental_list_length,
-    fundamental_range
+    fundamental_range,
+    fundamental_num_not_eq,
+    fundamental_not_eq
   };

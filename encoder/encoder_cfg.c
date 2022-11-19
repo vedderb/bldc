@@ -23,7 +23,7 @@
 #include "hal.h"
 
 // Stack area for the running encoder
-static THD_WORKING_AREA(encoder_thread_wa, 512);
+static THD_WORKING_AREA(encoder_thread_wa, 256);
 
 #define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
 #define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
@@ -46,8 +46,6 @@ AS504x_config_t encoder_cfg_as504x = {
 				0, 0,
 #endif
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				0, // has_started
-				0, // has_error
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		},
 
@@ -64,8 +62,6 @@ AD2S1205_config_t encoder_cfg_ad2s1205 = {
 				0, 0,
 #endif
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				0, // has_started
-				0, // has_error
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		},
 		{0},
@@ -95,6 +91,17 @@ MT6816_config_t encoder_cfg_mt6816 = {
 		0, 0,
 		{0, 0, 0, 0, 0, 0, 0},
 #endif
+};
+
+TLE5012_config_t encoder_cfg_tle5012 = {
+		{
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, // nss
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
+				{{NULL, NULL}, NULL, NULL} // Mutex
+		}, //ssc
+		{0, 0, 0, 0, 0, 0, 0, 0} // State
 };
 
 ABI_config_t encoder_cfg_ABI = {

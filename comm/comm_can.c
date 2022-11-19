@@ -40,6 +40,7 @@
 #include "bms.h"
 #include "encoder_cfg.h"
 #include "servo_dec.h"
+#include "utils.h"
 #ifdef USE_LISPBM
 #include "lispif.h"
 #endif
@@ -2028,6 +2029,51 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				break;
 			}
 		}
+	} break;
+
+	case CAN_PACKET_GNSS_TIME: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		d->ms_today = buffer_get_int32(data8, &ind);
+		d->yy = buffer_get_int16(data8, &ind);
+		d->mo = data8[ind++];
+		d->dd = data8[ind++];
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_LAT: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lat = tmp;
+		utils_sys_unlock_cnt();
+
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_LON: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lon = tmp;
+		utils_sys_unlock_cnt();
+
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_ALT_SPEED_HDOP: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		d->height = buffer_get_float32_auto(data8, &ind);
+		d->speed = buffer_get_float16(data8, 1.0e2, &ind);
+		d->hdop = buffer_get_float16(data8, 1.0e2, &ind);
+		d->last_update = chVTGetSystemTimeX();
 	} break;
 
 	default:

@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		71
+#define FW_TEST_VERSION_NUMBER		79
 
 #include "datatypes.h"
 
@@ -176,20 +176,20 @@ bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2);
 bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
-		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
+									 float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
-		float min_erpm, float res, float *linkage);
+									   float min_erpm, float res, float *linkage);
 uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq);
-bool conf_general_measure_flux_linkage_openloop(float current, float duty,
-		float erpm_per_sec, float res, float ind, float *linkage,
-		float *linkage_undriven, float *undriven_samples);
+int conf_general_measure_flux_linkage_openloop(float current, float duty,
+											   float erpm_per_sec, float res, float ind, float *linkage,
+											   float *linkage_undriven, float *undriven_samples, bool *result);
 int conf_general_autodetect_apply_sensors_foc(float current,
-		bool store_mcconf_on_success, bool send_mcconf_on_success);
+											  bool store_mcconf_on_success, bool send_mcconf_on_success, int *result);
 void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float tc);
 int conf_general_detect_apply_all_foc(float max_power_loss,
-		bool store_mcconf_on_success, bool send_mcconf_on_success);
+									  bool store_mcconf_on_success, bool send_mcconf_on_success);
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
+										  float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
 
 
 #endif /* CONF_GENERAL_H_ */
