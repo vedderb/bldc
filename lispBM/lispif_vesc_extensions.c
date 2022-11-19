@@ -491,6 +491,11 @@ static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(encoder_read_deg());
 }
 
+static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(encoder_get_error_rate());
+}
+
 static lbm_value ext_get_vin(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_input_voltage_filtered());
@@ -4323,6 +4328,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-ppm", ext_get_ppm);
 	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
 	lbm_add_extension("get-encoder", ext_get_encoder);
+	lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
 	lbm_add_extension("set-servo", ext_set_servo);
 	lbm_add_extension("get-vin", ext_get_vin);
 	lbm_add_extension("select-motor", ext_select_motor);

@@ -402,6 +402,50 @@ void encoder_reset_errors(void) {
 	}
 }
 
+float encoder_get_error_rate(void) {
+	float res = -1.0;
+
+	switch (m_encoder_type_now) {
+	case ENCODER_TYPE_AS504x:
+		res = encoder_cfg_as504x.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_MT6816:
+		res = encoder_cfg_mt6816.state.encoder_no_magnet_error_rate;
+		break;
+	case ENCODER_TYPE_TLE5012:
+		res = encoder_cfg_tle5012.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_AD2S1205_SPI:
+		res = encoder_cfg_ad2s1205.state.resolver_loss_of_tracking_error_rate;
+		if (encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_rate > res) {
+			res = encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_rate;
+		}
+		if (encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_rate > res) {
+			res = encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_rate;
+		}
+		break;
+	case ENCODER_TYPE_SINCOS:
+		res = encoder_cfg_sincos.state.signal_low_error_rate;
+		if (encoder_cfg_sincos.state.signal_above_max_error_rate > res) {
+			res = encoder_cfg_sincos.state.signal_above_max_error_rate;
+		}
+		break;
+	case ENCODER_TYPE_AS5x47U:
+		res = encoder_cfg_as5x47u.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_BISSC:
+		res = encoder_cfg_bissc.state.spi_comm_error_rate;
+		if (encoder_cfg_bissc.state.spi_data_error_rate > res) {
+			res = encoder_cfg_bissc.state.spi_data_error_rate;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return res;
+}
+
 // Check for encoder faults that should stop the motor with a fault code.
 void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_motor) {
 

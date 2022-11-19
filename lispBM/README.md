@@ -82,6 +82,14 @@ Get the age of the last PPM update in seconds. Can be used to determine if there
 
 Get angle from selected encoder in degrees.
 
+#### get-encoder-error-rate
+
+```clj
+(get-encoder-error-rate)
+```
+
+Returns the error rate for the selected encoder, range 0.0 to 1.0. If the selected encoder does not provide any error rate -1.0 is returned. If the selected encoder has multiple error rates the highest one is returned.
+
 #### set-servo
 
 ```clj
