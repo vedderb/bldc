@@ -621,7 +621,7 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	}
 
 	if (m_read_callback) {
-		m_read_callback(m_accel, m_gyro, m_mag, dt);
+		m_read_callback(m_accel, gyro_rad, m_mag, dt);
 	}
 }
 
