@@ -58,10 +58,10 @@ Reset the timeout that stops the motor. This has to be run on at least every sec
 (get-ppm)
 ```
 
-Read the decoded value on the PPM input and returns 0.0 to 1.0. Note that the PPM app has to be configured and running. Example:
+Read the decoded value on the PPM input, range 0.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
 
 ```clj
-(print (list "PPM Value: " (get-ppm)))
+(print (str-from-n (get-ppm) "PPM Value: %.2f"))
 ```
 
 Note that control type can be set to Off in the PPM app to get the input without running the motor automatically, which is useful when running the motor from lisp.

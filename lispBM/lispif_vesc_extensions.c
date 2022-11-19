@@ -472,6 +472,12 @@ static lbm_value ext_reset_timeout(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
+
+	if (!servodec_is_running()) {
+		servo_simple_stop();
+		servodec_init(0);
+	}
+
 	return lbm_enc_float(servodec_get_servo(0));
 }
 

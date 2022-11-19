@@ -27,6 +27,7 @@
 #include "imu.h"
 #include "crc.h"
 #include "servo_simple.h"
+#include "servo_dec.h"
 
 // Private variables
 static app_configuration appconf = {0};
@@ -86,6 +87,7 @@ void app_set_configuration(app_configuration *conf) {
 		if (appconf.app_to_use != APP_PPM &&
 				appconf.app_to_use != APP_PPM_UART &&
 				appconf.servo_out_enable) {
+			servodec_stop();
 			servo_simple_init();
 		} else {
 			servo_simple_stop();
