@@ -37,6 +37,7 @@
 #include "conf_custom.h"
 #include "timer.h"
 #include "ahrs.h"
+#include "encoder.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -793,6 +794,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.ahrs_get_roll = ahrs_get_roll;
 		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
 		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
+
+		// Set custom encoder callbacks
+		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;
 
 		lib_init_done = true;
 	}

@@ -22,7 +22,7 @@
 #include "encoder_datatype.h"
 #include "encoder_cfg.h"
 
-#include "utils_math.h"
+#include "utils.h"
 #include "commands.h"
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
@@ -51,6 +51,11 @@ static void terminal_encoder(int argc, const char **argv);
 static void terminal_encoder_clear_errors(int argc, const char **argv);
 static void terminal_encoder_clear_multiturn(int argc, const char **argv);
 static void timer_start(routine_rate_t rate);
+
+// Function pointers
+static float (*m_enc_custom_read_deg)(void) = NULL;
+static bool (*m_enc_custom_fault)(void) = NULL;
+static char* (*m_enc_custom_print_info)(void) = NULL;
 
 bool encoder_init(volatile mc_configuration *conf) {
 	bool res = false;
@@ -177,11 +182,11 @@ bool encoder_init(volatile mc_configuration *conf) {
 	case SENSOR_PORT_MODE_SINCOS: {
 		SENSOR_PORT_5V();
 
-		encoder_cfg_sincos.s_gain = 1.0 / conf->foc_encoder_sin_amp;
-		encoder_cfg_sincos.s_offset = conf->foc_encoder_sin_offset;
-		encoder_cfg_sincos.c_gain = 1.0 /conf->foc_encoder_cos_amp;
-		encoder_cfg_sincos.c_offset =  conf->foc_encoder_cos_offset;
-		encoder_cfg_sincos.filter_constant = conf->foc_encoder_sincos_filter_constant;
+		encoder_cfg_sincos.s_gain = 1.0 / conf->m_encoder_sin_amp;
+		encoder_cfg_sincos.s_offset = conf->m_encoder_sin_offset;
+		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
+		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
+		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
 			m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -245,6 +250,10 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
+		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
+		break;
+
 	default:
 		SENSOR_PORT_5V();
 		m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -300,6 +309,30 @@ void encoder_deinit(void) {
 	m_encoder_type_now = ENCODER_TYPE_NONE;
 }
 
+void encoder_set_custom_callbacks (
+		float (*read_deg)(void),
+		bool (*has_fault)(void),
+		char* (*print_info)(void)) {
+
+	if (utils_is_func_valid(read_deg)) {
+		m_enc_custom_read_deg = read_deg;
+	} else {
+		m_enc_custom_read_deg = NULL;
+	}
+
+	if (utils_is_func_valid(has_fault)) {
+		m_enc_custom_fault = has_fault;
+	} else {
+		m_enc_custom_fault = NULL;
+	}
+
+	if (utils_is_func_valid(print_info)) {
+		m_enc_custom_print_info = print_info;
+	} else {
+		m_enc_custom_print_info = NULL;
+	}
+}
+
 float encoder_read_deg(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
@@ -319,6 +352,12 @@ float encoder_read_deg(void) {
 		return AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
 	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		return BISSC_LAST_ANGLE(&encoder_cfg_bissc);
+	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
+		if (m_enc_custom_read_deg) {
+			return m_enc_custom_read_deg();
+		} else {
+			return 0.0;
+		}
 	}
 	return 0.0;
 }
@@ -457,6 +496,14 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			if (encoder_cfg_bissc.state.spi_data_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_RESOLVER_LOT, is_second_motor, false);
+			}
+			break;
+
+		case SENSOR_PORT_MODE_CUSTOM_ENCODER:
+			if (m_enc_custom_fault) {
+				if (m_enc_custom_fault()) {
+					mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
+				}
 			}
 			break;
 
@@ -602,6 +649,12 @@ static void terminal_encoder(int argc, const char **argv) {
 		commands_printf("BissC Degradation Of Signal (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
 				encoder_cfg_bissc.state.spi_data_error_cnt,
 				(double)(encoder_cfg_bissc.state.spi_data_error_rate * 100.0));
+		break;
+
+	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
+		if (m_enc_custom_print_info) {
+			commands_printf("%s", m_enc_custom_print_info);
+		}
 		break;
 
 	default:

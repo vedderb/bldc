@@ -259,21 +259,6 @@
 #ifndef MCCONF_FOC_ENCODER_RATIO
 #define MCCONF_FOC_ENCODER_RATIO		7.0
 #endif
-#ifndef MCCONF_FOC_ENCODER_SIN_AMP
-#define MCCONF_FOC_ENCODER_SIN_AMP		1.0	// Sine amplitude
-#endif
-#ifndef MCCONF_FOC_ENCODER_SIN_OFFSET
-#define MCCONF_FOC_ENCODER_SIN_OFFSET	1.65 // Sine offset of the sin/cos encoder
-#endif
-#ifndef MCCONF_FOC_ENCODER_COS_AMP
-#define MCCONF_FOC_ENCODER_COS_AMP		1.0	// Cosine amplitude
-#endif
-#ifndef MCCONF_FOC_ENCODER_COS_OFFSET
-#define MCCONF_FOC_ENCODER_COS_OFFSET	1.65 // Cosine offset of the sin/cos encoder
-#endif
-#ifndef MCCONF_FOC_ENCODER_SINCOS_FILTER
-#define MCCONF_FOC_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
-#endif
 #ifndef MCCONF_FOC_SENSOR_MODE
 #define MCCONF_FOC_SENSOR_MODE			FOC_SENSOR_MODE_SENSORLESS
 #endif
@@ -517,6 +502,21 @@
 #endif
 #ifndef MCCONF_M_ENCODER_COUNTS
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts
+#endif
+#ifndef MCCONF_M_ENCODER_SIN_AMP
+#define MCCONF_M_ENCODER_SIN_AMP		1.0	// Sine amplitude
+#endif
+#ifndef MCCONF_M_ENCODER_SIN_OFFSET
+#define MCCONF_M_ENCODER_SIN_OFFSET		1.65 // Sine offset of the sin/cos encoder
+#endif
+#ifndef MCCONF_M_ENCODER_COS_AMP
+#define MCCONF_M_ENCODER_COS_AMP		1.0	// Cosine amplitude
+#endif
+#ifndef MCCONF_M_ENCODER_COS_OFFSET
+#define MCCONF_M_ENCODER_COS_OFFSET		1.65 // Cosine offset of the sin/cos encoder
+#endif
+#ifndef MCCONF_M_ENCODER_SINCOS_FILTER
+#define MCCONF_M_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
 #endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port

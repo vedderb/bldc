@@ -197,6 +197,7 @@ typedef enum {
 	SENSOR_PORT_MODE_BISSC,
 	SENSOR_PORT_MODE_TLE5012_SSC_SW,
 	SENSOR_PORT_MODE_TLE5012_SSC_HW,
+	SENSOR_PORT_MODE_CUSTOM_ENCODER,
 } sensor_port_mode;
 
 typedef struct {
@@ -404,11 +405,6 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
-	float foc_encoder_sin_offset;
-	float foc_encoder_sin_amp;
-	float foc_encoder_cos_offset;
-	float foc_encoder_cos_amp;
-	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
@@ -508,6 +504,11 @@ typedef struct {
 	float m_duty_ramp_step;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
+	float m_encoder_sin_offset;
+	float m_encoder_sin_amp;
+	float m_encoder_cos_offset;
+	float m_encoder_cos_amp;
+	float m_encoder_sincos_filter_constant;
 	sensor_port_mode m_sensor_port_mode;
 	bool m_invert_direction;
 	drv8301_oc_mode m_drv8301_oc_mode;

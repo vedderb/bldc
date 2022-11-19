@@ -526,6 +526,12 @@ typedef struct {
 	float (*ahrs_get_roll)(ATTITUDE_INFO *att);
 	float (*ahrs_get_pitch)(ATTITUDE_INFO *att);
 	float (*ahrs_get_yaw)(ATTITUDE_INFO *att);
+
+	// Set custom encoder callbacks
+	void (*encoder_set_custom_callbacks)(
+			float (*read_deg)(void),
+			bool (*has_fault)(void),
+			char* (*print_info)(void));
 } vesc_c_if;
 
 typedef struct {
