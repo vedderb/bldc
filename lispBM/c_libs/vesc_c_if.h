@@ -216,6 +216,7 @@ typedef enum {
 	VESC_PIN_HALL4,
 	VESC_PIN_HALL5,
 	VESC_PIN_HALL6,
+	VESC_PIN_PPM,
 } VESC_PIN;
 
 typedef enum {
