@@ -61,6 +61,9 @@ package_dict["A200S_V4"] = [['a200s_v4', default_name]]
 package_dict["100_250"] = [['100_250', default_name],
                     ['100_250_no_limits', no_limits_name]]
 package_dict["LUNA_BBSHD"] = [['luna_bbshd', default_name]]
+package_dict["LUNA_M600"] = [['luna_m600', default_name]]
+package_dict["LUNA_M600_V2"] = [['luna_m600', default_name]]
+package_dict["LUNA_M600_V2_Rev5"] = [['luna_m600_Rev5', default_name]]
 package_dict["UNITY"] = [['unity', default_name],
                     ['unity_no_limits', no_limits_name]]
 package_dict["Cheap_FOCer_2"] = [['Cheap_FOCer_2', default_name]]

@@ -17,35 +17,32 @@
     */
 
 #include "hw.h"
-#include "luna_display_serial.h"
+#include "luna_m600_display.h"
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils_math.h"
+#include "utils.h"
 #include <math.h>
 #include "mc_interface.h"
-#include "terminal.h"
-#include "commands.h"
-#include "stdio.h"
+#include "mempools.h"
+#include "mcpwm_foc.h"
+#include "app.h"
 
-#define EEPROM_ADDR_INITIAL_ASSIST_LEVEL	0
-#define EEPROM_ADDR_MOTOR_HAS_PTC_SENSOR	1
+// for double pulse test:
+#include "stdio.h"
+#include "string.h"
+#include "commands.h"
+#include "terminal.h"
+
 #define EEPROM_ADDR_FIXED_THROTTLE_LEVEL	2
-#define DEFAULT_INITIAL_ASSIST_LEVEL        1
 
 // Variables
 static volatile bool i2c_running = false;
-static volatile bool motor_has_PTC_sensor;
 
-void hw_luna_bbshd_setup_dac(void);
-static void terminal_cmd_set_initial_assist_level(int argc, const char **argv);
-static void terminal_cmd_read_initial_assist_level(int argc, const char **argv);
-static void terminal_cmd_set_bbshd_has_PTC_sensor(int argc, const char **argv);
-static void terminal_cmd_set_bbshd_use_fixed_throttle_level(int argc, const char **argv);
-
-int8_t hw_read_initial_assist_level(void);
-bool hw_bbshd_has_PTC_sensor(void);
-bool hw_bbshd_has_fixed_throttle_level(void);
+// Private functions
+static void terminal_cmd_set_m600_use_fixed_throttle_level(int argc, const char **argv);
+static void terminal_cmd_m600_correct_encoder_offset(int argc, const char **argv);
+static void hw_override_pairing_done(void);
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -54,7 +51,21 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+// Backup data that we want to preserve across firmware updates
+typedef struct __attribute__((packed)) {
+	uint8_t encoder_offset_calibration_done;
+	float encoder_offset;
+	char fw_version[16];
+}m600_backup_t;
+
+// The config is stored in the backup struct so that it is stored while sleeping.
+static volatile m600_backup_t *m600_backup = (m600_backup_t*)g_backup.hw_config;
+
 void hw_init_gpio(void) {
+	
+	//we can use __TIMESTAMP__ if we redefine it in the makefile gcc ... -Wno-builtin-macro-redefined -D__TIMESTAMP__=$(date +'"%Y-%m-%dT%H:%M:%S"') ...
+	// https://stackoverflow.com/questions/17498556/c-preprocessor-timestamp-in-iso-86012004/
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -84,24 +95,40 @@ void hw_init_gpio(void) {
 	palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_TIM1));
 #endif
 
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
 	palSetPadMode(HW_SPEED_SENSOR_PORT, HW_SPEED_SENSOR_PIN, PAL_MODE_INPUT_PULLUP);
-
+#endif
 	// Current filter
 	palSetPadMode(GPIOC, 13, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
 	CURRENT_FILTER_OFF();
+	
+#ifdef M600_Rev5
+	// Phase voltage filter. Disabled by default
+	palSetPadMode(HW_PHASE_A_FILTER_GPIO, HW_PHASE_A_FILTER_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(HW_PHASE_B_FILTER_GPIO, HW_PHASE_B_FILTER_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(HW_PHASE_C_FILTER_GPIO, HW_PHASE_C_FILTER_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	PHASE_FILTER_OFF();
+#else
+	//MT6816 program enable
+	palSetPadMode(MT6816_PROG_EN_GPIO, MT6816_PROG_EN_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	MT6816_PROG_DISABLE();
+#endif
 
 	// AUX pin
 	AUX_OFF();
 	palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
 
+	// Shutdown latch
+	palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
+	HW_SHUTDOWN_HOLD_ON();
+
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);		// ON-OFF button sense
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 
-	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
 
@@ -111,36 +138,22 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-    
 	
-	terminal_register_command_callback(
-			"set_initial_assist_level",
-			"Set initial assist level [0 - 9].",
-			0,
-			terminal_cmd_set_initial_assist_level);
-    
-    terminal_register_command_callback(
-			"read_initial_assist_level",
-			"Read initial assist level.",
-			0,
-			terminal_cmd_read_initial_assist_level);
-        
-	terminal_register_command_callback(
-			"set_motor_temp_sensor",
-			"Usage: set_motor_temp_sensor [NTC or PTC]",
-			0,
-			terminal_cmd_set_bbshd_has_PTC_sensor);
-
 	terminal_register_command_callback(
 			"fix_throttle",
 			"Usage: fix_throttle [1 or 0]",
 			0,
-			terminal_cmd_set_bbshd_use_fixed_throttle_level);
+			terminal_cmd_set_m600_use_fixed_throttle_level);
 
-	int8_t initial_assist_level = hw_read_initial_assist_level();
-	motor_has_PTC_sensor = true;// hw_bbshd_has_PTC_sensor();
+	terminal_register_command_callback(
+			"correct_encoder",
+			"Detect and apply encoder offset",
+			0,
+			terminal_cmd_m600_correct_encoder_offset);
 
-	luna_display_serial_start(initial_assist_level);
+	hw_override_pairing_done();
+
+	luna_canbus_start();
 }
 
 void hw_setup_adc_channels(void) {
@@ -163,7 +176,7 @@ void hw_setup_adc_channels(void) {
 	// ADC3 regular channels
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2,  1, ADC_SampleTime_15Cycles);	// 2	SENS3
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 2, ADC_SampleTime_15Cycles);	// 5	CURR3
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3,  3, ADC_SampleTime_15Cycles);	// 8	PCB_TEMP
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3,  3, ADC_SampleTime_15Cycles);	// 8	ON-OFF button
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);	// 11	VBUS
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_1,  5, ADC_SampleTime_15Cycles);	// 14	UNUSED
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_Vrefint, 6, ADC_SampleTime_15Cycles);// 18	UNUSED
@@ -274,7 +287,8 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-static float wheel_rpm_filtered = 0;
+volatile float wheel_rpm_filtered = 0;
+volatile float trip_odometer = 1.0; //avoids huge consumption numbers in the gauges
 
 void hw_update_speed_sensor(void) {
 	static float wheel_rpm = 0;
@@ -288,13 +302,16 @@ void hw_update_speed_sensor(void) {
 	if(sensor_state == 0 && sensor_state_old == 1 ) {
 		float revolution_duration = current_time - last_sensor_event_time;
 
-		if (revolution_duration > 0.05) {	//ignore periods <50ms
-			
+		if (revolution_duration > 0.11) {	//ignore periods <110ms, which is about 68km/h
 			last_sensor_event_time = current_time;
-
 			wheel_rpm = 60.0 / revolution_duration;
-			// Apply averaging filter
 			UTILS_LP_FAST(wheel_rpm_filtered, (float)wheel_rpm, 0.5);
+
+			// For some reason a race condition on startup crashes the OS if this is executed too soon.
+			// So don't track odometer for the first 4 seconds
+			if(current_time > 4.0) {
+				trip_odometer += mc_interface_get_configuration()->si_wheel_diameter * M_PI;
+			}
 		}
 	} else {
 		// After 3 seconds without sensor signal, set RPM as zero
@@ -312,212 +329,36 @@ float hw_get_speed(void) {
 	return speed;
 }
 
-/* Gear Shift sensor support
- * Read the gear sensor and use it to override the brake adc signal to reduce motor 
- * power during shifting to extend gearing life.
- */
-void hw_brake_override(float *brake_ptr) {
-	float brake = *brake_ptr;
-
-	// Track an independent gearshift sensor ramping to be multiplied by the brake signal
-	static float gear = 0.0;
-	gear = (float)palReadPad(HW_GEAR_SENSOR_PORT, HW_GEAR_SENSOR_PIN);
-
-	// hardcoded ramps for now
-	const float ramp_time_neg = 0.1;
-	const float ramp_time_pos = 0.3;
-
-	// Apply ramping
-	static systime_t last_time = 0;
-	static float gear_ramp = 0.0;
-	float ramp_time = fabsf(gear) > fabsf(gear_ramp) ? ramp_time_pos : ramp_time_neg;
-
-	if (ramp_time > 0.01) {
-		const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
-		utils_step_towards(&gear_ramp, gear, ramp_step);
-		last_time = chVTGetSystemTimeX();
-		*brake_ptr = brake * gear_ramp;
-	}
-
-	static uint16_t delay_to_print = 0;
-	if(delay_to_print ++ > 250){
-		delay_to_print = 0;
-		commands_printf("gear_ramp:%.2f",(double)gear_ramp);
-		commands_printf("brake_output:%.2f",(double)brake);
-	}
+/* Get trip distance in meters */
+float hw_get_distance(void) {
+	return trip_odometer;
 }
 
-// Lookup table linearly interpolated to support the new, undocumented PTC sensor used
-// in these drives
-
-#define PTC_LUT_SIZE	20
-typedef struct { float x; float y; } coord_t;
-
-coord_t ptc_lut[PTC_LUT_SIZE] = 
-{
-    {933.0, -15.0},
-	{940.0, -11.0},
-    {1090.0, 25.0},
-    {1107.0, 30.0},
-    {1124.0, 35.0}, 
-    {1140.0, 40.0}, 
-	{1155.0, 45.0},
-	{1170.0, 50.0},
-	{1181.0, 55.0},
-	{1191.0, 60.0},
-	{1198.0, 65.0},
-	{1202.0, 70.0},
-	{1211.0, 75.0},
-	{1217.0, 80.0},
-	{1224.0, 85.0},
-	{1231.0, 90.0},
-	{1274.0, 95.0},
-	{1385.0, 100.0},
-	{1390.0, 110.0},//made up
-	{1400.0, 200.0}//made up
-};
-
-float interp( coord_t* c, float x)
-{
-    int i;
-	const int n = PTC_LUT_SIZE;
-
-    for( i = 0; i < n-1; i++ )
-    {
-        if ( c[i].x <= x && c[i+1].x >= x )
-        {
-			//utils_map()
-            float diffx = x - c[i].x;
-            float diffn = c[i+1].x - c[i].x;
-
-            return c[i].y + ( c[i+1].y - c[i].y ) * diffx / diffn; 
-        }
-    }
-
-    return 200.0; // Not in range, trip a fault
+float hw_get_distance_abs(void) {
+	return trip_odometer;
 }
 
+float hw_get_mosfet_temp_filtered(void) {
+	static float mosfet_temp_filtered = 25.0;
+	float mosfet_temp = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-
-static void terminal_cmd_set_initial_assist_level(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	eeprom_var initial_assist_level;
-	if( argc == 2 ) {
-		sscanf(argv[1], "%i", (int*) &(initial_assist_level.as_i32));
-
-		// Store data in eeprom
-		conf_general_store_eeprom_var_hw(&initial_assist_level, EEPROM_ADDR_INITIAL_ASSIST_LEVEL);
-
-		//read back written data
-		int32_t assist_level = hw_read_initial_assist_level();
-
-		if(assist_level == initial_assist_level.as_i32) {
-			commands_printf("BBSHD initial assist level set to %d", assist_level);
-		}
-		else {
-			commands_printf("Error storing EEPROM data.");
-		}
-	}
-	else {
-		commands_printf("1 argument required, integer from 0 to 9. Here are some examples:");
-		commands_printf("set_initial_assist_level 0");
-		commands_printf("set_initial_assist_level 1");
-		commands_printf("set_initial_assist_level 4");
-		commands_printf("set_initial_assist_level 9");
-		commands_printf(" ");
-	}
-	commands_printf(" ");
-	return;
+	UTILS_LP_FAST(mosfet_temp_filtered, (float)mosfet_temp, 0.1);
+	return mosfet_temp_filtered;
 }
 
-static void terminal_cmd_read_initial_assist_level(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	commands_printf("BBSHD initial assist level is set at %i", hw_read_initial_assist_level());
-	commands_printf(" ");
-	return;
+bool hw_luna_m600_shutdown_button_down(void) {
+	static float button_filtered = 0.0;
+	UTILS_LP_FAST(button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.01);
+	return (button_filtered < 1.35);
 }
 
-int8_t hw_read_initial_assist_level(void) {
-	eeprom_var assist_level;
-    bool var_not_found = !conf_general_read_eeprom_var_hw(&assist_level, EEPROM_ADDR_INITIAL_ASSIST_LEVEL);
-
-	if( (assist_level.as_i32 < 0) || (assist_level.as_i32 >= 10) || var_not_found)
-		assist_level.as_i32 = DEFAULT_INITIAL_ASSIST_LEVEL;
-	return (int8_t)assist_level.as_i32;
+bool hw_luna_m600_minus_button_down(void) {
+	static float button_filtered = 0.0;
+	UTILS_LP_FAST(button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.05);
+	return (button_filtered >= 1.35 && button_filtered < 2.0);
 }
 
-float hw_read_motor_temp(float beta) {
-	static float sensor_resistance = 1000;
-	UTILS_LP_FAST(sensor_resistance, NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]), 0.1);
-
-	// the ptc sensor has 1.3kOhm at 100°C and 930 Ohm at -15°C. If resistance is outside this
-	// range there is no way this is a PTC sensor
-	if( (sensor_resistance > 2000 ) || (sensor_resistance < 900) ) {
-		motor_has_PTC_sensor = false;
-	}
-	if( motor_has_PTC_sensor ) {
-		// PTC
-		return interp(ptc_lut, sensor_resistance);
-	} else {
-		// NTC
-		return (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15);
-	}
-}
-
-static void terminal_cmd_set_bbshd_has_PTC_sensor(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-
-	eeprom_var has_ptc;
-	if( argc == 2 ) {
-		char sensor_type[32];
-
-		sscanf(argv[1], "%s", sensor_type);
-
-		if( sensor_type[0] == 'N' ) {	// NTC
-			has_ptc.as_i32 = 0;
-		}
-		if( sensor_type[0] == 'P' ) {	// PTC
-			has_ptc.as_i32 = 1;
-		}
-
-		// Store data in eeprom
-		conf_general_store_eeprom_var_hw(&has_ptc, EEPROM_ADDR_MOTOR_HAS_PTC_SENSOR);
-
-		//read back written data
-		motor_has_PTC_sensor = hw_bbshd_has_PTC_sensor();
-		
-		if( motor_has_PTC_sensor ) {
-			commands_printf("Set as PTC\n");
-		} else {
-			commands_printf("Set as NTC\n");
-		}
-	}
-	else {
-		commands_printf("1 argument required, NTC or PTC. Here are some examples:");
-		commands_printf("set_motor_temp_sensor NTC");
-		commands_printf("set_motor_temp_sensor PTC\n");
-	}
-	return;
-}
-
-bool hw_bbshd_has_PTC_sensor(void) {
-	eeprom_var has_ptc;
-	//return 1;
-	bool var_not_found = !conf_general_read_eeprom_var_hw(&has_ptc, EEPROM_ADDR_MOTOR_HAS_PTC_SENSOR);
-
-	if( (has_ptc.as_i32 != 1) || var_not_found) {
-		return false;
-	} else {
-		return true;
-	}
-}
-
-static void terminal_cmd_set_bbshd_use_fixed_throttle_level(int argc, const char **argv) {
+static void terminal_cmd_set_m600_use_fixed_throttle_level(int argc, const char **argv) {
 	(void)argc;
 	(void)argv;
 
@@ -538,7 +379,7 @@ static void terminal_cmd_set_bbshd_use_fixed_throttle_level(int argc, const char
 	return;
 }
 
-bool hw_bbshd_has_fixed_throttle_level(void) {
+bool hw_m600_has_fixed_throttle_level(void) {
 	eeprom_var use_fixed_throttle;
 	bool var_not_found = !conf_general_read_eeprom_var_hw(&use_fixed_throttle, EEPROM_ADDR_FIXED_THROTTLE_LEVEL);
 
@@ -546,5 +387,102 @@ bool hw_bbshd_has_fixed_throttle_level(void) {
 		return false;
 	} else {
 		return true;
+	}
+}
+
+float hw_get_PAS_torque(void) {
+	return luna_canbus_get_PAS_torque();
+}
+
+float hw_get_encoder_error(void) {
+	static float angle_diff_filtered = 0.0;
+	float angle_diff = 0.0;
+	
+	// some batches have only 2 current sensors, so better rely only in
+	// the phase voltage tracker which runs with no modulation and is
+	// accurate at mid-high rpm
+	if(mc_interface_get_state() != MC_STATE_OFF && mc_interface_get_duty_cycle_now() > 0.4) {
+		angle_diff = utils_angle_difference(mcpwm_foc_get_phase_encoder(), mcpwm_foc_get_phase_observer());
+	}
+
+	UTILS_LP_FAST(angle_diff_filtered, angle_diff, 0.005);
+	return angle_diff_filtered;
+}
+
+void hw_recover_encoder_offset(void) {
+	if (mc_interface_get_configuration()->foc_encoder_offset > 360.0 ) {
+		//invalid encoder offset found in flash, probably its the first boot after a fw update
+		if (m600_backup->encoder_offset_calibration_done && m600_backup->encoder_offset <= 360.0) {
+			//invalid offset found in flash, but there is a valid offset backed up. Use it.
+			mc_configuration *mcconf = mempools_alloc_mcconf();
+			*mcconf = *mc_interface_get_configuration();
+
+			mcconf->foc_encoder_offset = m600_backup->encoder_offset;
+			mc_interface_set_configuration(mcconf);
+			conf_general_store_mc_configuration(mcconf, false);
+
+			mempools_free_mcconf(mcconf);
+		}
+	}
+
+	else {
+		// encoder offset is valid, lets check that the backed up value is the same
+		float mc_conf_encoder_offset = mc_interface_get_configuration()->foc_encoder_offset;
+
+		if(mc_conf_encoder_offset <= 360.0) {
+			//user could have written a new offset angle. Update the backup.
+			if(m600_backup->encoder_offset_calibration_done == false || mc_conf_encoder_offset != m600_backup->encoder_offset) {
+				m600_backup->encoder_offset = mc_conf_encoder_offset;
+				m600_backup->encoder_offset_calibration_done = true;
+				conf_general_store_backup_data();
+			}
+		}
+	}
+}
+
+static void terminal_cmd_m600_correct_encoder_offset(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+	mc_configuration *mcconf_old = mempools_alloc_mcconf();
+	*mcconf_old = *mcconf;
+
+	float current = 15.0;
+
+	mcconf->motor_type = MOTOR_TYPE_FOC;
+	mcconf->foc_f_zv = 10000.0;
+	mcconf->foc_current_kp = 0.01;
+	mcconf->foc_current_ki = 10.0;
+	mc_interface_set_configuration(mcconf);
+
+	float offset = 0.0;
+	float ratio = 0.0;
+	bool inverted = false;
+	mcpwm_foc_encoder_detect(current, false, &offset, &ratio, &inverted);
+
+	mcconf_old->foc_encoder_offset = offset;
+	mcconf->foc_encoder_offset = offset;
+	mc_interface_set_configuration(mcconf_old);
+	mc_interface_set_configuration(mcconf);
+
+	mempools_free_mcconf(mcconf);
+	mempools_free_mcconf(mcconf_old);
+
+	return;
+}
+
+// Users are getting locked out because they don't know what pairing means. Lets disable the pairing
+static void hw_override_pairing_done(void) {
+	if( app_get_configuration()->pairing_done == true) {
+		app_configuration *appconf = mempools_alloc_appconf();
+		*appconf = *app_get_configuration();
+		appconf->pairing_done = false;
+
+		conf_general_store_app_configuration(appconf);
+		app_set_configuration(appconf);
+
+		mempools_free_appconf(appconf);
 	}
 }
