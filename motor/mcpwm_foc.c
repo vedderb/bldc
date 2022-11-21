@@ -742,7 +742,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	motor->m_control_mode = CONTROL_MODE_SPEED;
 
 	if (motor->m_state != MC_STATE_RUNNING &&
-			fabsf(motor->m_speed_pid_set_rpm) >= motor->m_conf->s_pid_min_erpm) {
+			fabsf(rpm) >= motor->m_conf->s_pid_min_erpm) {
 		motor->m_motor_released = false;
 		motor->m_state = MC_STATE_RUNNING;
 	}
