@@ -82,6 +82,7 @@ const char* lbm_error_str_num_args = "Incorrect number of arguments.";
 const char* lbm_error_str_forbidden_in_atomic = "Operation is forbidden in an atomic block.";
 const char* lbm_error_str_no_number = "Argument(s) must be a number.";
 const char* lbm_error_str_not_a_boolean = "Argument must be t or nil (true or false).";
+const char* lbm_error_str_incorrect_arg = "Incorrect argument.";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
