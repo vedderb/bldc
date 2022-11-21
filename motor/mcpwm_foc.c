@@ -726,22 +726,25 @@ void mcpwm_foc_set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_foc_set_pid_speed(float rpm) {
-	if (get_motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
-		if (get_motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
-				get_motor_now()->m_state != MC_STATE_RUNNING) {
-			get_motor_now()->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	if (motor->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
+		if (motor->m_control_mode != CONTROL_MODE_SPEED ||
+				motor->m_state != MC_STATE_RUNNING) {
+			motor->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
 		}
 
-		get_motor_now()->m_speed_command_rpm = rpm;
+		motor->m_speed_command_rpm = rpm;
 	} else {
-		get_motor_now()->m_speed_pid_set_rpm = rpm;
+		motor->m_speed_pid_set_rpm = rpm;
 	}
 
-	get_motor_now()->m_control_mode = CONTROL_MODE_SPEED;
+	motor->m_control_mode = CONTROL_MODE_SPEED;
 
-	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
-		get_motor_now()->m_motor_released = false;
-		get_motor_now()->m_state = MC_STATE_RUNNING;
+	if (motor->m_state != MC_STATE_RUNNING &&
+			fabsf(motor->m_speed_pid_set_rpm) >= motor->m_conf->s_pid_min_erpm) {
+		motor->m_motor_released = false;
+		motor->m_state = MC_STATE_RUNNING;
 	}
 }
 
