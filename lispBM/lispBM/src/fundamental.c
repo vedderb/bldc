@@ -26,6 +26,7 @@
 #include "env.h"
 #include "lbm_utils.h"
 #include "lbm_custom_type.h"
+#include "lbm_constants.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -466,38 +467,51 @@ static void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 /* (array-create type size) */
 static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = ENC_SYM_EERROR;
+  uint32_t n;
+  lbm_uint t_sym;
+
   if (nargs == 1 && lbm_is_number(args[0])) {
-    lbm_heap_allocate_array(result, lbm_dec_as_u32(args[0]), LBM_TYPE_BYTE);
-  } else if (nargs == 2) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_SYMBOL &&
-        lbm_is_number(args[1])) {
-      switch(lbm_dec_sym(args[0])) {
-      case SYM_TYPE_CHAR: /* fall through */
-      case SYM_TYPE_BYTE:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_BYTE);
-        break;
-      case SYM_TYPE_I32:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_I32);
-        break;
-      case SYM_TYPE_U32:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_U32);
-        break;
-      case SYM_TYPE_FLOAT:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_FLOAT);
-        break;
-      case SYM_TYPE_I64:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_I64);
-        break;
-      case SYM_TYPE_U64:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_U64);
-        break;
-      case SYM_TYPE_DOUBLE:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_DOUBLE);
-        break;
-      default:
-        break;
-      }
+    n = lbm_dec_as_u32(args[0]);
+    t_sym = SYM_TYPE_CHAR;
+  } else if (nargs == 2 &&
+             lbm_type_of(args[0]) == LBM_TYPE_SYMBOL &&
+             lbm_is_number(args[1])) {
+    n = lbm_dec_as_u32(args[1]);
+    t_sym = lbm_dec_sym(args[0]);
+  } else {
+    *result = ENC_SYM_TERROR;
+    return;
+  }
+
+  if (n > 0) {
+    switch(t_sym) {
+    case SYM_TYPE_CHAR: /* fall through */
+    case SYM_TYPE_BYTE:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_BYTE);
+      break;
+    case SYM_TYPE_I32:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_I32);
+      break;
+    case SYM_TYPE_U32:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_U32);
+      break;
+    case SYM_TYPE_FLOAT:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_FLOAT);
+      break;
+    case SYM_TYPE_I64:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_I64);
+      break;
+    case SYM_TYPE_U64:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_U64);
+      break;
+    case SYM_TYPE_DOUBLE:
+      lbm_heap_allocate_array(result, n, LBM_TYPE_DOUBLE);
+      break;
+    default:
+      break;
     }
+  } else {
+    lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
   }
 }
 

@@ -28,5 +28,5 @@ extern const char* lbm_error_str_num_args;
 extern const char* lbm_error_str_forbidden_in_atomic;
 extern const char* lbm_error_str_no_number;
 extern const char* lbm_error_str_not_a_boolean;
-
+extern const char* lbm_error_str_incorrect_arg;
 #endif
