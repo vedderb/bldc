@@ -248,6 +248,10 @@ void hw_try_restore_i2c(void) {
 // Trim the HSI to reduce affect of temperature
 void hw_a50s_trim_hsi(void){
 	int temp = NTC_TEMP(ADC_IND_TEMP_MOS);
-	uint8_t hsi_trim = utils_map(temp, -30, 80, 21, 9); // Make sure it is at 15 for 25C	
+	uint8_t hsi_trim = 15;
+	if (temp > 25)
+		hsi_trim = utils_map(temp, 25, 80, 15, 9); // above calibrated
+	else if (temp < 25)
+		hsi_trim = utils_map(temp, -40, 25, 31, 15); // below calibrated	
 	RCC_AdjustHSICalibrationValue(hsi_trim);
 }
