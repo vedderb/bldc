@@ -21,7 +21,7 @@
 #ifndef HW_LUNA_M600_H_
 #define HW_LUNA_M600_H_
 
-#define FW_NAME					"2022.11.18"
+#define FW_NAME					"2022.11.22"
 
 #include "mcconf_luna_m600.h"
 #include "appconf_luna_m600.h"
@@ -97,9 +97,17 @@
 #define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
 #define HW_SAMPLE_SHUTDOWN()	!hw_luna_m600_shutdown_button_down()
 
+#define HW_FORCE_SHUTDOWN_GPIO  GPIOC
+#define HW_FORCE_SHUTDOWN_PIN   13
+#define HW_FORCE_SHUTDOWN_OFF()	palClearPad(HW_FORCE_SHUTDOWN_GPIO, HW_FORCE_SHUTDOWN_PIN)
+#define HW_FORCE_SHUTDOWN()		palSetPad(HW_FORCE_SHUTDOWN_GPIO, HW_FORCE_SHUTDOWN_PIN)
+
 // Hold shutdown pin early to wake up on short pulses
 #define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-								HW_SHUTDOWN_HOLD_ON();
+								HW_SHUTDOWN_HOLD_ON(); \
+								HW_FORCE_SHUTDOWN_OFF(); \
+								palSetPadMode(HW_FORCE_SHUTDOWN_GPIO, HW_FORCE_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								HW_FORCE_SHUTDOWN_OFF();
 
 #define HW_ADC_CHANNELS			18
 #define HW_ADC_INJ_CHANNELS		3
