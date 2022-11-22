@@ -250,6 +250,26 @@ typedef enum {
 	// App config
 	CFG_PARAM_app_can_mode,
 	CFG_PARAM_app_can_baud_rate,
+
+	// Temperatures
+	CFG_PARAM_l_temp_fet_start,
+	CFG_PARAM_l_temp_fet_end,
+	CFG_PARAM_l_temp_motor_start,
+	CFG_PARAM_l_temp_motor_end,
+	CFG_PARAM_l_temp_accel_dec,
+
+	// Duty
+	CFG_PARAM_l_min_duty,
+	CFG_PARAM_l_max_duty,
+
+	// IMU
+	CFG_PARAM_IMU_accel_confidence_decay,
+	CFG_PARAM_IMU_mahony_kp,
+	CFG_PARAM_IMU_mahony_ki,
+	CFG_PARAM_IMU_madgwick_beta,
+	CFG_PARAM_IMU_rot_roll,
+	CFG_PARAM_IMU_rot_pitch,
+	CFG_PARAM_IMU_rot_yaw,
 } CFG_PARAM;
 
 /*
@@ -533,6 +553,9 @@ typedef struct {
 			float (*read_deg)(void),
 			bool (*has_fault)(void),
 			char* (*print_info)(void));
+
+	// Store backup data
+	bool (*store_backup_data)(void);
 } vesc_c_if;
 
 typedef struct {

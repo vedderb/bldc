@@ -38,6 +38,7 @@
 #include "timer.h"
 #include "ahrs.h"
 #include "encoder.h"
+#include "conf_general.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -398,23 +399,39 @@ static float lib_ts_to_age_s(systime_t ts) {
 static float lib_get_cfg_float(CFG_PARAM p) {
 	float res = 0.0;
 
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
 
 	switch (p) {
-		case CFG_PARAM_l_current_max: res = conf->l_current_max; break;
-		case CFG_PARAM_l_current_min: res = conf->l_current_min; break;
-		case CFG_PARAM_l_in_current_max: res = conf->l_in_current_max; break;
-		case CFG_PARAM_l_in_current_min: res = conf->l_in_current_min; break;
-		case CFG_PARAM_l_abs_current_max: res = conf->l_abs_current_max; break;
-		case CFG_PARAM_l_min_erpm: res = conf->l_min_erpm; break;
-		case CFG_PARAM_l_max_erpm: res = conf->l_max_erpm; break;
-		case CFG_PARAM_l_erpm_start: res = conf->l_erpm_start; break;
-		case CFG_PARAM_l_max_erpm_fbrake: res = conf->l_max_erpm_fbrake; break;
-		case CFG_PARAM_l_max_erpm_fbrake_cc: res = conf->l_max_erpm_fbrake_cc; break;
-		case CFG_PARAM_l_min_vin: res = conf->l_min_vin; break;
-		case CFG_PARAM_l_max_vin: res = conf->l_max_vin; break;
-		case CFG_PARAM_l_battery_cut_start: res = conf->l_battery_cut_start; break;
-		case CFG_PARAM_l_battery_cut_end: res = conf->l_battery_cut_end; break;
+		case CFG_PARAM_l_current_max: res = mcconf->l_current_max; break;
+		case CFG_PARAM_l_current_min: res = mcconf->l_current_min; break;
+		case CFG_PARAM_l_in_current_max: res = mcconf->l_in_current_max; break;
+		case CFG_PARAM_l_in_current_min: res = mcconf->l_in_current_min; break;
+		case CFG_PARAM_l_abs_current_max: res = mcconf->l_abs_current_max; break;
+		case CFG_PARAM_l_min_erpm: res = mcconf->l_min_erpm; break;
+		case CFG_PARAM_l_max_erpm: res = mcconf->l_max_erpm; break;
+		case CFG_PARAM_l_erpm_start: res = mcconf->l_erpm_start; break;
+		case CFG_PARAM_l_max_erpm_fbrake: res = mcconf->l_max_erpm_fbrake; break;
+		case CFG_PARAM_l_max_erpm_fbrake_cc: res = mcconf->l_max_erpm_fbrake_cc; break;
+		case CFG_PARAM_l_min_vin: res = mcconf->l_min_vin; break;
+		case CFG_PARAM_l_max_vin: res = mcconf->l_max_vin; break;
+		case CFG_PARAM_l_battery_cut_start: res = mcconf->l_battery_cut_start; break;
+		case CFG_PARAM_l_battery_cut_end: res = mcconf->l_battery_cut_end; break;
+		case CFG_PARAM_l_temp_fet_start: res = mcconf->l_temp_fet_start; break;
+		case CFG_PARAM_l_temp_fet_end: res = mcconf->l_temp_fet_end; break;
+		case CFG_PARAM_l_temp_motor_start: res = mcconf->l_temp_motor_start; break;
+		case CFG_PARAM_l_temp_motor_end: res = mcconf->l_temp_motor_end; break;
+		case CFG_PARAM_l_temp_accel_dec: res = mcconf->l_temp_accel_dec; break;
+		case CFG_PARAM_l_min_duty: res = mcconf->l_min_duty; break;
+		case CFG_PARAM_l_max_duty: res = mcconf->l_max_duty; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: res = appconf->imu_conf.accel_confidence_decay; break;
+		case CFG_PARAM_IMU_mahony_kp: res = appconf->imu_conf.mahony_kp; break;
+		case CFG_PARAM_IMU_mahony_ki: res = appconf->imu_conf.mahony_ki; break;
+		case CFG_PARAM_IMU_madgwick_beta: res = appconf->imu_conf.madgwick_beta; break;
+		case CFG_PARAM_IMU_rot_roll: res = appconf->imu_conf.rot_roll; break;
+		case CFG_PARAM_IMU_rot_pitch: res = appconf->imu_conf.rot_pitch; break;
+		case CFG_PARAM_IMU_rot_yaw: res = appconf->imu_conf.rot_yaw; break;
 		default: break;
 	}
 
@@ -440,6 +457,10 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 	mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
 	int changed_mc = 0;
 
+	app_configuration *appconf = mempools_alloc_appconf();
+	*appconf = *app_get_configuration();
+	int changed_app = 0;
+
 	// Safe changes that can be done instantly on the pointer. It is not that good to do
 	// it this way, but it is much faster.
 	// TODO: Check regularly and make sure that these stay safe.
@@ -458,12 +479,33 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_l_max_vin: mcconf->l_max_vin = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_l_battery_cut_start: mcconf->l_battery_cut_start = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_l_battery_cut_end: mcconf->l_battery_cut_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_start: mcconf->l_temp_fet_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_end: mcconf->l_temp_fet_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_start: mcconf->l_temp_motor_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_end: mcconf->l_temp_motor_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_accel_dec: mcconf->l_temp_accel_dec = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_min_duty: mcconf->l_min_duty = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_duty: mcconf->l_max_duty = value; changed_mc = 1; res = true; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: appconf->imu_conf.accel_confidence_decay = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_kp: appconf->imu_conf.mahony_kp = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_ki: appconf->imu_conf.mahony_ki = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_madgwick_beta: appconf->imu_conf.madgwick_beta = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_roll: appconf->imu_conf.rot_roll = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_pitch: appconf->imu_conf.rot_pitch = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_yaw: appconf->imu_conf.rot_yaw = value; changed_app = 1; res = true; break;
 		default: break;
 	}
 
 	if (changed_mc > 0) {
 		commands_apply_mcconf_hw_limits(mcconf);
 	}
+
+	if (changed_app > 0) {
+		app_set_configuration(appconf);
+	}
+
+	mempools_free_appconf(appconf);
 
 	return res;
 }
@@ -803,6 +845,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Set custom encoder callbacks
 		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;
+
+		// Store backup data
+		cif.cif.store_backup_data = conf_general_store_backup_data;
 
 		lib_init_done = true;
 	}
