@@ -3399,7 +3399,7 @@ typedef struct {
 static void detect_task(void *arg) {
 	detect_args *a = (detect_args*)arg;
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
-			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm);
+			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
 	lbm_unblock_ctx(a->id, lbm_enc_i(res));
 }
 

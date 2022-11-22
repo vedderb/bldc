@@ -879,7 +879,7 @@ void terminal_process_string(char *str) {
 			commands_printf("Running detection...");
 			if (max_power_loss > 0.0) {
 
-				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0);
+				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0, NULL);
 
 				commands_printf("Res: %d", res);
 

@@ -2002,13 +2002,19 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
  * @param sl_erpm
  * FOC ERPM above which sensorless should be used in sensored modes. 0 means leave it unchanged.
  *
+ * @param reply_func
+ * Send the motor and app config using this function pointer. If it is null the last function
+ * from commands will be used.
+ *
  * @return
  * Same as conf_general_detect_apply_all_foc, and
  * -50: CAN detection timed out
  * -51: CAN detection failed
  */
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-										  float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm) {
+										  float min_current_in, float max_current_in,
+										  float openloop_rpm, float sl_erpm,
+										  void(*reply_func)(unsigned char* data, unsigned int len)) {
 
 	int motor_last = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
@@ -2126,7 +2132,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 			appconf->can_status_msgs_r1 = 0b00001111;
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
-			commands_send_appconf(COMM_GET_APPCONF, appconf, 0);
+			commands_send_appconf(COMM_GET_APPCONF, appconf, reply_func);
 			chThdSleepMilliseconds(1000);
 		}
 
@@ -2139,7 +2145,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 		mc_interface_select_motor_thread(1);
 		*mcconf = *mc_interface_get_configuration();
 #endif
-		commands_send_mcconf(COMM_GET_MCCONF, mcconf, 0);
+		commands_send_mcconf(COMM_GET_MCCONF, mcconf, reply_func);
 		chThdSleepMilliseconds(1000);
 	}
 

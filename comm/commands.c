@@ -2229,7 +2229,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			float sl_erpm = buffer_get_float32(data, 1e3, &ind);
 
 			int res = conf_general_detect_apply_all_foc_can(detect_can, max_power_loss,
-					min_current_in, max_current_in, openloop_rpm, sl_erpm);
+					min_current_in, max_current_in, openloop_rpm, sl_erpm, send_func_blocking);
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_APPLY_ALL_FOC;
