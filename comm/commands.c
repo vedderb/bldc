@@ -1030,7 +1030,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-					comm_can_send_buffer(msg->id, data - 1, len + 1, 0);
+					comm_can_send_buffer(msg->id, data - 1, len + 1, 2);
 				}
 			}
 		}
@@ -1115,7 +1115,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		if (fwd_can) {
 			data[0] = 0; // Don't continue forwarding
-			comm_can_send_buffer(255, data - 1, len + 1, 0);
+			comm_can_send_buffer(255, data - 1, len + 1, 2);
 		}
 	} break;
 

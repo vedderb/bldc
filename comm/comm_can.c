@@ -1573,8 +1573,13 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 		case CAN_PACKET_PROCESS_RX_BUFFER:
 			ind = 0;
-			rx_buffer_last_id = data8[ind++];
+			unsigned int last_id = data8[ind++];
 			commands_send = data8[ind++];
+
+			if (commands_send == 0) {
+				rx_buffer_last_id = last_id;
+			}
+
 			rxbuf_len = (unsigned int)data8[ind++] << 8;
 			rxbuf_len |= (unsigned int)data8[ind++];
 
