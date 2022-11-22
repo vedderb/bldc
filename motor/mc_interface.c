@@ -1549,8 +1549,9 @@ float mc_interface_get_battery_level(float *wh_left) {
 
 // this could be an exposed setting along battery Ah, cell type and cell number
 // proper resting time is about a minute, but for now lets not rely too much in the Wh tracker
-#define MIN_RESTING_TIME_SECONDS	5.0
-
+#ifndef MIN_RESTING_TIME_SECONDS
+#define MIN_RESTING_TIME_SECONDS	0.0
+#endif
 	// modulation state is the quickest way to determine if current is flowing. Needs to be quick to avoid sampling sag
 	if(mcpwm_foc_get_state() != MC_STATE_OFF) {
 		last_resting_time = chVTGetSystemTimeX();
