@@ -1102,15 +1102,22 @@ int lbm_perform_gc(void) {
 
 static bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
-  if (s < SPECIAL_SYMBOLS_END ||
-      (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
-    // Special symbols and extension symbols evaluate to themselves
+  if (s < SPECIAL_SYMBOLS_END) {
     *value = ctx->curr_exp;
     return true;
   }
 
+  if (s >= EXTENSION_SYMBOLS_START &&
+      s <  EXTENSION_SYMBOLS_END) {
+    if (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL) {
+      *value = ctx->curr_exp;
+      return true;
+    }
+    return false;
+  }
+
   if (s >= VARIABLE_SYMBOLS_START &&
-             s < VARIABLE_SYMBOLS_END) {
+      s < VARIABLE_SYMBOLS_END) {
     *value = lbm_get_var(s);
     return true;
   }
@@ -2361,7 +2368,7 @@ static void cont_map_rest(eval_context_t *ctx) {
     ctx->curr_exp = sptr[4];
     ctx->curr_env = env;
   } else {
-    ctx->r = sptr[2]; //heap of result list
+    ctx->r = sptr[2]; //head of result list
     ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 6);
     ctx->app_cont = true;
@@ -2392,7 +2399,7 @@ static void cont_match_guard(eval_context_t *ctx) {
 
 static void cont_read(eval_context_t *ctx) {
 
-  gc();
+  gc(); // TODO: This should not be necessary
 
   lbm_value stream = ENC_SYM_NIL;
   lbm_value prg_val = ENC_SYM_NIL;
@@ -2449,7 +2456,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
          Three cases
          1. The program / expression is malformed and the context should die.
          2. We are finished reading a program and should close off the
-            internl representation with a closing parenthesis. Then
+            internal representation with a closing parenthesis. Then
             apply continuation.
          3. We are finished reading an expression and should
             apply the continuation.
@@ -3027,7 +3034,7 @@ static void evaluation_step(void){
       continuations[decoded_k](ctx);
       return;
     } else {
-      error_ctx(ENC_SYM_EERROR);
+      error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
   }
@@ -3035,11 +3042,6 @@ static void evaluation_step(void){
   lbm_uint exp_type = lbm_type_of(ctx->curr_exp);
   if (exp_type == LBM_TYPE_SYMBOL) {
      lbm_value s;
-    if (ctx->curr_exp == ENC_SYM_NIL) {
-      ctx->app_cont = true;
-      ctx->r = ENC_SYM_NIL;
-      return;
-    }
 
     if (eval_symbol(ctx, &s)) {
       ctx->app_cont = true;
