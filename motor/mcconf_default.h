@@ -560,6 +560,9 @@
 #ifndef MCCONF_M_HALL_EXTRA_SAMPLES
 #define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
 #endif
+#ifndef MCCONF_M_BATT_FILTER_CONST
+#define MCCONF_M_BATT_FILTER_CONST		45 // Battery level filter constant
+#endif
 
 // Setup Info
 #ifndef MCCONF_SI_MOTOR_POLES

@@ -2466,7 +2466,12 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
 	mc_interface_select_motor_thread(is_motor_1 ? 1 : 2);
 
-	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, 0.01);
+	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
+	if (UTILS_AGE_S(0) < 10) {
+		// Run the filter faster in the beginning to avoid convergance latency at boot
+		voltage_fc = 0.01;
+	}
+	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {

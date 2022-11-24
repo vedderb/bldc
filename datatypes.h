@@ -521,6 +521,7 @@ typedef struct {
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
 	int m_hall_extra_samples;
+	int m_batt_filter_const;
 	float m_ntcx_ptcx_temp_base;
 	float m_ntcx_ptcx_res;
 	// Setup info
