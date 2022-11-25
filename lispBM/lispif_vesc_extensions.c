@@ -131,6 +131,7 @@ typedef struct {
 	lbm_uint foc_sl_erpm_hfi;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
+	lbm_uint si_motor_poles;
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
@@ -339,6 +340,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
 			get_add_symbol("m-out-aux-mode", comp);
+		} else if (comp == &syms_vesc.si_motor_poles) {
+			get_add_symbol("si-motor-poles", comp);
 		} else if (comp == &syms_vesc.min_speed) {
 			get_add_symbol("min-speed", comp);
 		} else if (comp == &syms_vesc.max_speed) {
@@ -3081,6 +3084,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		mcconf->m_out_aux_mode = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
+		mcconf->si_motor_poles = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -3336,6 +3342,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		res = lbm_enc_i(mcconf->m_out_aux_mode);
+	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
+		res = lbm_enc_i(mcconf->si_motor_poles);
 	} else if (compare_symbol(name, &syms_vesc.min_speed)) {
 		res = lbm_enc_float(mcconf->l_min_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {

@@ -1337,6 +1337,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    6: FOC_SENSOR_MODE_HFI_V3
                         ;    7: FOC_SENSOR_MODE_HFI_V4
                         ;    8: FOC_SENSOR_MODE_HFI_V5
+'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
 'foc-motor-l            ; Motor inductance in microHenry
