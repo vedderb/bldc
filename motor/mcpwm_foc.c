@@ -57,6 +57,7 @@ static void control_current(motor_all_state_t *motor, float dt);
 static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float mod_beta);
 static void stop_pwm_hw(motor_all_state_t *motor);
 static void start_pwm_hw(motor_all_state_t *motor);
+
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(motor_all_state_t *motor, float dt);
@@ -779,7 +780,7 @@ void mcpwm_foc_set_current(float current) {
 	get_motor_now()->m_iq_set = current;
 	get_motor_now()->m_id_set = 0;
 	
-	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
+	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current && get_motor_now()->m_state != MC_STATE_FULL_BRAKE) {
 		return;
 	}
 
@@ -794,6 +795,10 @@ void mcpwm_foc_release_motor(void) {
 	get_motor_now()->m_iq_set = 0.0;
 	get_motor_now()->m_id_set = 0.0;
 	get_motor_now()->m_motor_released = true;
+	
+	if (get_motor_now()->m_state == MC_STATE_FULL_BRAKE) {
+		get_motor_now()->m_state = MC_STATE_RUNNING;
+	}
 }
 
 /**
@@ -807,7 +812,7 @@ void mcpwm_foc_set_brake_current(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_CURRENT_BRAKE;
 	get_motor_now()->m_iq_set = current;
 
-	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
+	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current && get_motor_now()->m_state != MC_STATE_FULL_BRAKE) {
 		return;
 	}
 
@@ -828,7 +833,7 @@ void mcpwm_foc_set_handbrake(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_HANDBRAKE;
 	get_motor_now()->m_iq_set = current;
 
-	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
+	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current && get_motor_now()->m_state != MC_STATE_FULL_BRAKE) {
 		return;
 	}
 
@@ -836,6 +841,13 @@ void mcpwm_foc_set_handbrake(float current) {
 		get_motor_now()->m_motor_released = false;
 		get_motor_now()->m_state = MC_STATE_RUNNING;
 	}
+}
+
+void mcpwm_foc_set_passive_brake(void) {
+	get_motor_now()->m_iq_set = 0.0;
+	get_motor_now()->m_id_set = 0.0;
+	get_motor_now()->m_motor_released = false;
+	get_motor_now()->m_state = MC_STATE_FULL_BRAKE;
 }
 
 /**
@@ -2653,6 +2665,28 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
 #endif
 
+	if (motor_now->m_state == MC_STATE_FULL_BRAKE) {
+		const float i0_abs = fabsf(ADC_curr_norm_value[0 + norm_curr_ofs]);
+		const float i1_abs = fabsf(ADC_curr_norm_value[1 + norm_curr_ofs]);
+		const float i2_abs = fabsf(ADC_curr_norm_value[2 + norm_curr_ofs]);
+		
+		//use max abs current through any shunt
+		float i_max = i0_abs;
+		if (i1_abs>i_max) {
+			i_max = i1_abs;
+		}
+		if (i2_abs>i_max) {
+			i_max = i2_abs;
+		}
+		motor_now->m_motor_state.i_abs_passive_brake = i_max * FAC_CURRENT;
+		UTILS_LP_FAST(motor_now->m_motor_state.i_abs_passive_brake_filtered, motor_now->m_motor_state.i_abs_passive_brake, 0.1);
+		
+	} else {
+		motor_now->m_motor_state.i_abs_passive_brake = 0;
+		motor_now->m_motor_state.i_abs_passive_brake_filtered = 0;
+	}
+
+
 	// Use the best current samples depending on the modulation state.
 #ifdef HW_HAS_3_SHUNTS
 	if (conf_now->foc_sample_high_current) {
@@ -2765,6 +2799,36 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		utils_norm_angle((float*)&phase_tmp);
 		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}
+
+	
+	if (motor_now->m_state == MC_STATE_FULL_BRAKE) {	
+		//check current limits
+		if (motor_now->m_motor_state.i_abs_passive_brake > conf_now->l_abs_current_max) {
+			//over current fault
+			mc_interface_fault_stop(FAULT_CODE_ABS_OVER_CURRENT, &m_motor_1 != motor_now, true);
+		} else {
+			//short all phases through low side fets 
+			if (motor_now == &m_motor_1) {
+				TIMER_UPDATE_DUTY_M1(0, 0, 0);
+#ifdef HW_HAS_DUAL_PARALLEL
+				TIMER_UPDATE_DUTY_M2(0, 0, 0);
+#endif
+			} else {
+#ifndef HW_HAS_DUAL_PARALLEL
+				TIMER_UPDATE_DUTY_M2(0, 0, 0);
+#endif
+			}
+
+			// do not allow to turn on PWM outputs if virtual motor is used
+			if(virtual_motor_is_connected() == false) {
+				if (!motor_now->m_output_on) {
+					start_pwm_hw(motor_now);
+				}
+			}
+		}
+	}
+	
+	
 
 	if (motor_now->m_state == MC_STATE_RUNNING) {
 		// Clarke transform assuming balanced currents
@@ -3199,7 +3263,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		UTILS_NAN_ZERO(motor_now->m_motor_state.mod_q_filter);
 		UTILS_LP_FAST(motor_now->m_motor_state.mod_q_filter, motor_now->m_motor_state.mod_q, 0.2);
 		utils_truncate_number_abs((float*)&motor_now->m_motor_state.mod_q_filter, 1.0);
+		
+		
 	}
+	
+	
 
 	// Calculate duty cycle
 	motor_now->m_motor_state.duty_now = SIGN(motor_now->m_motor_state.vq) *
@@ -4495,6 +4563,7 @@ static void stop_pwm_hw(motor_all_state_t *motor) {
 		PHASE_FILTER_OFF_M2();
 	}
 }
+
 
 static void start_pwm_hw(motor_all_state_t *motor) {
 	if (motor == &m_motor_1) {
