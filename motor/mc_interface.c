@@ -1619,9 +1619,13 @@ float mc_interface_get_distance(void) {
  * Absolute distance traveled since boot, in meters
  */
 float mc_interface_get_distance_abs(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_distance_abs();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+#endif
 }
 
 setup_values mc_interface_get_setup_values(void) {
