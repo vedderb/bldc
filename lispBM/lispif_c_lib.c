@@ -849,6 +849,10 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// Store backup data
 		cif.cif.store_backup_data = conf_general_store_backup_data;
 
+		// Input
+		cif.cif.app_ppm_get_servo_val = app_ppm_get_servo_val;
+		cif.cif.app_nunchuk_get_out_val = app_nunchuk_get_out_val;
+
 		lib_init_done = true;
 	}
 

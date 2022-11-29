@@ -50,6 +50,7 @@ static volatile ppm_config config;
 static volatile int pulses_without_power = 0;
 static float input_val = 0.0;
 static volatile float direction_hyst = 0;
+static volatile float ppm_servo_val = 0;
 static volatile bool ppm_detached = false;
 static volatile float ppm_override = 0.0;
 
@@ -86,6 +87,10 @@ void app_ppm_stop(void) {
 
 float app_ppm_get_decoded_level(void) {
 	return input_val;
+}
+
+float app_ppm_get_servo_val(void) {
+	return ppm_servo_val;
 }
 
 void app_ppm_detach(bool detach) {
@@ -167,15 +172,19 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		if (timeout_has_timeout() || servodec_get_time_since_update() > timeout_get_timeout_msec()) {
 			pulses_without_power = 0;
+			ppm_servo_val = 0;
 			servoError = true;
-			float timeoutCurrent = timeout_get_brake_current();
-			mc_interface_set_brake_current(timeoutCurrent);
-			if(config.multi_esc){
-				for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-					can_status_msg *msg = comm_can_get_status_msg_index(i);
 
-					if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
-						comm_can_set_current_brake(msg->id, timeoutCurrent);
+			if (config.ctrl_type != PPM_CTRL_TYPE_NONE) {
+				float timeoutCurrent = timeout_get_brake_current();
+				mc_interface_set_brake_current(timeoutCurrent);
+				if(config.multi_esc){
+					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+						can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+						if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+							comm_can_set_current_brake(msg->id, timeoutCurrent);
+						}
 					}
 				}
 			}
@@ -189,6 +198,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 		// Apply throttle curve
 		servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+
+		ppm_servo_val = servo_val;
+		if (config.ctrl_type == PPM_CTRL_TYPE_NONE) continue;
 
 		// Apply ramping
 		static systime_t last_time = 0;

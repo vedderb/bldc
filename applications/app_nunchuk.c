@@ -52,6 +52,7 @@ static volatile int chuck_error = 0;
 static volatile chuk_config config;
 static volatile bool output_running = false;
 static volatile systime_t last_update_time;
+static volatile float nunchuk_out_val;
 
 // Private functions
 static void terminal_cmd_nunchuk_status(int argc, const char **argv);
@@ -91,6 +92,10 @@ float app_nunchuk_get_decoded_x(void) {
 
 float app_nunchuk_get_decoded_y(void) {
 	return ((float)chuck_d.js_y - 128.0) / 128.0;
+}
+
+float app_nunchuk_get_out_val(void) {
+	return nunchuk_out_val;
 }
 
 bool app_nunchuk_get_bt_c(void) {
@@ -231,7 +236,16 @@ static THD_FUNCTION(output_thread, arg) {
 
 		const float dt = (float)OUTPUT_ITERATION_TIME_MS / 1000.0;
 
-		if (timeout_has_timeout() || chuck_error != 0 || config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
+		if (config.ctrl_type == CHUK_CTRL_TYPE_NONE) {
+			was_pid = false;
+			float out_val = app_nunchuk_get_decoded_y();
+			utils_deadband(&out_val, config.hyst, 1.0);
+			out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+			nunchuk_out_val = out_val;
+			continue;
+		}
+
+		if (timeout_has_timeout() || chuck_error != 0) {
 			was_pid = false;
 			continue;
 		}
@@ -283,6 +297,7 @@ static THD_FUNCTION(output_thread, arg) {
 		float out_val = app_nunchuk_get_decoded_y();
 		utils_deadband(&out_val, config.hyst, 1.0);
 		out_val = utils_throttle_curve(out_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+		nunchuk_out_val = out_val;
 
 		if (chuck_d.bt_c) {
 			static float pid_rpm = 0.0;
