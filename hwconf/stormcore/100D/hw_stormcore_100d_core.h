@@ -45,7 +45,7 @@
 
 #ifdef HW_VER_IS_100DX
 #define INVERTED_SHUNT_POLARITY
-#define HW_DEAD_TIME_NSEC               600.0   // Dead time
+#define HW_DEAD_TIME_NSEC               1000.0   // Dead time
 #endif
 
 #ifndef HW_VER_IS_100DX
@@ -467,9 +467,9 @@
 #endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0
-#define HW_LIM_CURRENT_ABS			0.0, 200.0
+#define HW_LIM_CURRENT_ABS			0.0, 150.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT	150.0	// The maximum absolute current above which a fault is generated
 #endif
 #endif
 #define HW_LIM_CURRENT_IN			-100.0, 100.0
