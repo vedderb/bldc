@@ -51,6 +51,10 @@ void mc_interface_set_current_rel(float val);
 void mc_interface_set_brake_current_rel(float val);
 void mc_interface_set_handbrake(float current);
 void mc_interface_set_handbrake_rel(float val);
+void mc_interface_set_openloop_current(float current, float rpm);
+void mc_interface_set_openloop_phase(float current, float phase);
+void mc_interface_set_openloop_duty(float dutyCycle, float rpm);
+void mc_interface_set_openloop_duty_phase(float dutyCycle, float phase);
 int mc_interface_set_tachometer_value(int steps);
 void mc_interface_brake_now(void);
 void mc_interface_release_motor(void);
@@ -94,6 +98,7 @@ float mc_interface_get_distance(void);
 float mc_interface_get_distance_abs(void);
 
 setup_values mc_interface_get_setup_values(void);
+volatile gnss_data *mc_interface_gnss(void);
 
 // odometer
 uint64_t mc_interface_get_odometer(void);
@@ -102,6 +107,8 @@ void mc_interface_set_odometer(uint64_t new_odometer_meters);
 void mc_interface_ignore_input(int time_ms);
 
 void mc_interface_set_current_off_delay(float delay_sec);
+
+void mc_interface_override_temp_motor(float temp);
 
 void mc_interface_ignore_input_both(int time_ms);
 void mc_interface_release_motor_override_both(void);

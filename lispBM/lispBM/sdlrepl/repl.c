@@ -52,8 +52,8 @@ static volatile bool allow_print = true;
 struct termios old_termios;
 struct termios new_termios;
 
-static lbm_tokenizer_string_state_t string_tok_state;
-static lbm_tokenizer_char_stream_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
 
 pthread_mutex_t mut;
 
@@ -640,9 +640,9 @@ int main(int argc, char **argv) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
-        lbm_create_char_stream_from_string(&string_tok_state,
-                                              &string_tok,
-                                              file_str);
+        lbm_create_string_char_channel(&string_tok_state,
+                                       &string_tok,
+                                       file_str);
 
         /* Get exclusive access to the heap */
         lbm_pause_eval();
@@ -839,9 +839,9 @@ int main(int argc, char **argv) {
         sleep_callback(10);
       }
       //printf("loading: %s\n", str);
-      lbm_create_char_stream_from_string(&string_tok_state,
-                                         &string_tok,
-                                         str);
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     str);
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
       r->str = str;
       r->cid = cid;

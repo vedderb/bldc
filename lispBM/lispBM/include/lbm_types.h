@@ -23,6 +23,10 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+  
 /* Addresses that are put into lbm_values or into
  * lbm_memory must have this alignment.           */
 #ifndef LBM64
@@ -72,12 +76,11 @@ typedef double    lbm_float;
 #define PRI_HEX   PRIx64
 #define PRI_FLOAT "lf"
 
-typedef int64_t   lbm_cid;
-#endif
 /**
  * Represents a lisp process "context"-id
  */
-
+typedef int64_t   lbm_cid;
+#endif
 
 /* tokenizer */
 
@@ -85,6 +88,7 @@ struct lbm_tcs{
   void *state;
   bool (*more)(struct lbm_tcs*);
   char (*get)(struct lbm_tcs*);
+  bool (*put)(struct lbm_tcs*, char c);
   char (*peek)(struct lbm_tcs*, unsigned int);
   void (*drop)(struct lbm_tcs*, unsigned int);
   unsigned int (*row)(struct lbm_tcs*);
@@ -94,6 +98,7 @@ struct lbm_tcs{
 /** Tokenizer character stream */
 typedef struct lbm_tcs lbm_tokenizer_char_stream_t;
 
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif

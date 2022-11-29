@@ -22,11 +22,13 @@
 
 #ifdef HW_60V2_ALVA_IS_MK2
 #define HW_NAME					"60v2_alva_mk2"
+#elif defined(HW_60V2_ALVA_IS_MK1)
+#define HW_NAME					"60v2_alva_mk1"
 #else
 #define HW_NAME					"60v2_alva"
 #endif
 
-#ifndef HW_60V2_ALVA_IS_MK2
+#if !(defined(HW_60V2_ALVA_IS_MK1) || defined(HW_60V2_ALVA_IS_MK2))
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
 #endif
@@ -154,6 +156,8 @@
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	alva_temp_motor_max(beta)
+#define TEMP_MOTOR_1(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_S2]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -315,7 +319,7 @@
 #define HW_LIM_CURRENT			-120.0, 120.0
 #define HW_LIM_CURRENT_IN		-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		0.0, 160.0
-#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_VIN				6.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

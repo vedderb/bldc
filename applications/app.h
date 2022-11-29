@@ -33,6 +33,8 @@ unsigned app_calc_crc(app_configuration* conf);
 void app_ppm_start(void);
 void app_ppm_stop(void);
 float app_ppm_get_decoded_level(void);
+void app_ppm_detach(bool detach);
+void app_ppm_override(float val);
 void app_ppm_configure(ppm_config *conf);
 
 void app_adc_start(bool use_rx_tx);
@@ -91,6 +93,7 @@ void app_pas_stop(void);
 bool app_pas_is_running(void);
 void app_pas_configure(pas_config *conf);
 float app_pas_get_current_target_rel(void);
+float app_pas_get_pedal_rpm(void);
 void app_pas_set_current_sub_scaling(float current_sub_scaling);
 
 // Custom apps

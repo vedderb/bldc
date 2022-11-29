@@ -83,6 +83,9 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+// For double precision literals
+#define D(x) 				((double)x##L)
+
 /**
  * A simple low pass filter.
  *
@@ -124,7 +127,7 @@ extern const float utils_tab_cos_32_1[];
 extern const float utils_tab_cos_32_2[];
 
 // Inline functions
-inline void utils_step_towards(float *value, float goal, float step) {
+static inline void utils_step_towards(float *value, float goal, float step) {
     if (*value < goal) {
         if ((*value + step) < goal) {
             *value += step;
@@ -146,7 +149,7 @@ inline void utils_step_towards(float *value, float goal, float step) {
  * @param angle
  * The angle to normalize.
  */
-inline void utils_norm_angle(float *angle) {
+static inline void utils_norm_angle(float *angle) {
 	*angle = fmodf(*angle, 360.0);
 
 	if (*angle < 0.0) {
@@ -161,12 +164,12 @@ inline void utils_norm_angle(float *angle) {
  * The angle to normalize in radians.
  * WARNING: Don't use too large angles.
  */
-inline void utils_norm_angle_rad(float *angle) {
+static inline void utils_norm_angle_rad(float *angle) {
 	while (*angle < -M_PI) { *angle += 2.0 * M_PI; }
 	while (*angle >=  M_PI) { *angle -= 2.0 * M_PI; }
 }
 
-inline void utils_truncate_number(float *number, float min, float max) {
+static inline void utils_truncate_number(float *number, float min, float max) {
 	if (*number > max) {
 		*number = max;
 	} else if (*number < min) {
@@ -174,7 +177,7 @@ inline void utils_truncate_number(float *number, float min, float max) {
 	}
 }
 
-inline void utils_truncate_number_int(int *number, int min, int max) {
+static inline void utils_truncate_number_int(int *number, int min, int max) {
 	if (*number > max) {
 		*number = max;
 	} else if (*number < min) {
@@ -182,7 +185,7 @@ inline void utils_truncate_number_int(int *number, int min, int max) {
 	}
 }
 
-inline void utils_truncate_number_abs(float *number, float max) {
+static inline void utils_truncate_number_abs(float *number, float max) {
 	if (*number > max) {
 		*number = max;
 	} else if (*number < -max) {
@@ -190,11 +193,11 @@ inline void utils_truncate_number_abs(float *number, float max) {
 	}
 }
 
-inline float utils_map(float x, float in_min, float in_max, float out_min, float out_max) {
+static inline float utils_map(float x, float in_min, float in_max, float out_min, float out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-inline int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max) {
+static inline int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
@@ -213,7 +216,7 @@ inline int utils_map_int(int x, int in_min, int in_max, int out_min, int out_max
  * @return
  * True if saturation happened, false otherwise
  */
-inline bool utils_saturate_vector_2d(float *x, float *y, float max) {
+static inline bool utils_saturate_vector_2d(float *x, float *y, float max) {
 	bool retval = false;
 	float mag = NORM2_f(*x, *y);
 	max = fabsf(max);

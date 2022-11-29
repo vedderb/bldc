@@ -31,6 +31,7 @@ int utils_read_hall(bool is_second_motor, int samples);
 const char* utils_hw_type_to_string(HW_TYPE hw);
 int utils_check_min_stack_left(thread_t *th);
 int utils_stack_left_now(void);
+bool utils_is_func_valid(void *addr);
 
 // Return the age of a timestamp in seconds
 #define UTILS_AGE_S(x)		((float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)

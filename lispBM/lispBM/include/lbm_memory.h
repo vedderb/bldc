@@ -77,6 +77,10 @@
 #include "lbm_types.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
 #ifndef LBM64
 #define LBM_MEMORY_BITMAP_SIZE(X) (X)
@@ -116,50 +120,53 @@
  * \param bitmap_size The size of the meta-data in number of uint32_t elements.
  * \return
  */
-extern int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
+int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                            lbm_uint *bitmap, lbm_uint bitmap_size);
 /** Size of of the symbols and arrays memory in uint32_t chunks.
  *
  * \return Numberof uint32_t words.
  */
-extern lbm_uint lbm_memory_num_words(void);
+lbm_uint lbm_memory_num_words(void);
 /**
  *
  * \return The number of free words in the symbols and arrays memory.
  */
-extern lbm_uint lbm_memory_num_free(void);
+lbm_uint lbm_memory_num_free(void);
 /** Find the length of the longest run of consecutire free indices
  *  in the LBM memory.
  */
-extern lbm_uint lbm_memory_longest_free(void);
+lbm_uint lbm_memory_longest_free(void);
 /** Allocate a number of words from the symbols and arrays memory.
  *
  * \param num_words Number of words to allocate.
  * \return pointer to allocated array or NULL.
  */
-extern lbm_uint *lbm_memory_allocate(lbm_uint num_words);
+lbm_uint *lbm_memory_allocate(lbm_uint num_words);
 /** Free an allocated array int the symbols and arrays memory.
  *
  * \param ptr Pointer to array to free.
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_memory_free(lbm_uint *ptr);
+int lbm_memory_free(lbm_uint *ptr);
 
 /** Shrink an allocated array.
  * \param ptr Pointer to array to shrink
  * \param n New smaller size of array
  * \return 1 on success and 0 on failure.
  */
-extern int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n);
+int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n);
 
 /** Check if a pointer points into the lbm_memory
  *
  * \param ptr
  * \return 1 for yes and 0 for no.
  */
-extern int lbm_memory_ptr_inside(lbm_uint *ptr);
+int lbm_memory_ptr_inside(lbm_uint *ptr);
 
 
-extern lbm_int lbm_memory_address_to_ix(lbm_uint *ptr);
+lbm_int lbm_memory_address_to_ix(lbm_uint *ptr);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

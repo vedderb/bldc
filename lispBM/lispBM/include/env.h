@@ -21,22 +21,26 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //environment interface
 /** Initialize the global environment. This sets the global environment to NIL
  *
  * \return 1
  */
-extern int lbm_init_env(void);
+int lbm_init_env(void);
 /**
  * Get a pointer to the global environment.
  * \return A pointer to the global environment variable.
  */
-extern lbm_value *lbm_get_env_ptr(void);
+lbm_value *lbm_get_env_ptr(void);
 /**
  *
  * \return the global environment
  */
-extern lbm_value lbm_get_env(void);
+lbm_value lbm_get_env(void);
 /** Performs a shallow copy of a proper list. A shallow copy does
  *  not recurse into the elements of the list to copy
  *  those as well. So if the list contains complex elements, the
@@ -45,21 +49,21 @@ extern lbm_value lbm_get_env(void);
  * \param env List to copy.
  * \return Shallow copy of input list.
  */
-extern lbm_value lbm_env_copy_shallow(lbm_value env);
+lbm_value lbm_env_copy_shallow(lbm_value env);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment
  * \param env The environment to search for the key.
  * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
  */
-extern bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
+bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment
  * \param env The environment to search for the key.
  * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
  */
-extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
+lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
 /** Create a new binding on the environment or replace an old binding.
  *
  * \param env Environment to modify.
@@ -67,7 +71,7 @@ extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
  * \param val The value.
  * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
-extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
+lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
 /** Modifies an existing binding on the environment.
  *
  * \param env The environment to modify.
@@ -75,7 +79,13 @@ extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
  * \param val The new value to associate with the key.
  * \return The modified environment of Success and lbm_enc_sym(SYM_NOT_FOUND) if the key does not exist.
  */
-extern lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
+lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
+/** Removes a binding (destructively) from the input environment.
+ * \param env Environment to modify.
+ * \param key Key to remove from environment.
+ * \return Updated environment or not_found symbol.
+ */
+lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key);
 // Internal use
 /** Extend an environment given a list of keys and a list of values.
  *
@@ -84,8 +94,11 @@ extern lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value 
  * \param env0 An initial environment to extend
  * \return The extended environment on success and lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
-extern lbm_value lbm_env_build_params_args(lbm_value params,
-                                           lbm_value args,
-                                           lbm_value env0);
+lbm_value lbm_env_build_params_args(lbm_value params,
+				    lbm_value args,
+				    lbm_value env0);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

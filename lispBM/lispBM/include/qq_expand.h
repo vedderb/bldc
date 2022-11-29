@@ -19,12 +19,19 @@
 #ifndef _QQ_EXPAND_H
 #define _QQ_EXPAND_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** Expand a quasiquoted expression using a C:ified
  *  version of the algorithm presented in Alan Bawden's "Quasiquotation in lisp"
  *
  * \param Quasiquoted value
  * \return value where quasiquotations have been removed and expanded.
  */
-extern lbm_value lbm_qq_expand(lbm_value);
+lbm_value lbm_qq_expand(lbm_value);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -20,6 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
+#include "packet.h"
 #include "mc_interface.h"
 #include "commands.h"
 #include "comm_can.h"
@@ -30,6 +31,21 @@
 #include "worker.h"
 #include "app.h"
 #include "mempools.h"
+#include "imu.h"
+#include "terminal.h"
+#include "timeout.h"
+#include "conf_custom.h"
+#include "timer.h"
+#include "ahrs.h"
+#include "encoder.h"
+#include "conf_general.h"
+
+// Function prototypes otherwise missing
+void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
+		void (*p_func)(unsigned char *data, unsigned int len), PACKET_STATE_t *state);
+void packet_reset(PACKET_STATE_t *state);
+void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state);
+void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state);
 
 typedef struct {
 	char *name;
@@ -45,8 +61,11 @@ static bool lib_init_done = false;
 
 __attribute__((section(".libif"))) static volatile union {
 	vesc_c_if cif;
-	char pad[1024];
+	char pad[2048];
 } cif;
+
+static thread_t* lib_running_threads[20];
+static size_t lib_running_threads_cnt = 0;
 
 static void lib_sleep_ms(uint32_t ms) {
 	chThdSleepMilliseconds(ms);
@@ -60,41 +79,38 @@ static float lib_system_time(void) {
 	return UTILS_AGE_S(0);
 }
 
-static void* lib_malloc(size_t size) {
-	lbm_uint alloc_size;
-	if (size % sizeof(lbm_uint) == 0) {
-		alloc_size = size / (sizeof(lbm_uint));
-	} else {
-		alloc_size = (size / (sizeof(lbm_uint))) + 1;
-	}
-
-	return lbm_memory_allocate(alloc_size);
-}
-
-static void lib_free(void *ptr) {
-	lbm_memory_free(ptr);
-}
-
 static THD_FUNCTION(lib_thd, arg) {
 	lib_thd_info *t = (lib_thd_info*)arg;
 	chRegSetThreadName(t->name);
 	t->func(t->arg);
-	lib_free(t->w_mem);
-	lib_free(t);
+	lispif_free(t->w_mem);
+	lispif_free(t);
 }
 
 static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
-	void *mem = lib_malloc(stack_size);
+	if (!utils_is_func_valid(func)) {
+		commands_printf_lisp("Invalid function address. Make sure that the function is static.");
+		return 0;
+	}
+
+	void *mem = lispif_malloc(stack_size);
 
 	if (mem) {
-		lib_thd_info *info = lib_malloc(sizeof(lib_thd_info));
+		lib_thd_info *info = lispif_malloc(sizeof(lib_thd_info));
 
 		if (info) {
 			info->arg = arg;
 			info->func = func;
 			info->name = name;
 			info->w_mem = mem;
-			return (lib_thread)chThdCreateStatic(mem, stack_size, NORMALPRIO, lib_thd, info);
+
+			thread_t *thd = chThdCreateStatic(mem, stack_size, NORMALPRIO, lib_thd, info);
+
+			if (lib_running_threads_cnt < (sizeof(lib_running_threads) / sizeof(lib_running_threads[0]))) {
+				lib_running_threads[lib_running_threads_cnt++] = thd;
+			}
+
+			return (lib_thread)thd;
 		}
 	}
 
@@ -103,7 +119,21 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 
 static void lib_request_terminate(lib_thread thd) {
 	chThdTerminate((thread_t*)thd);
-	chThdWait((thread_t*)thd);
+
+	int timeout = 2000;
+	while (!chThdTerminatedX((thread_t*)thd)) {
+		chThdSleepMilliseconds(1);
+		timeout--;
+
+		// Not terminating, reset using wdt to not start lbm after reboot.
+		if (timeout == 0) {
+			commands_printf_lisp("Not terminating, crashing...");
+			chThdSleepMilliseconds(20);
+			chSysLock();
+			for (;;) {__NOP();}
+		}
+	}
+
 }
 
 static bool lib_should_terminate(void) {
@@ -179,6 +209,30 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 #ifdef HW_ADC_EXT2_GPIO
 		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
 		*is_analog = true;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL4:
+#ifdef HW_HALL_ENC_GPIO4
+		*port = HW_HALL_ENC_GPIO4; *pin = HW_HALL_ENC_PIN4;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL5:
+#ifdef HW_HALL_ENC_GPIO5
+		*port = HW_HALL_ENC_GPIO5; *pin = HW_HALL_ENC_PIN5;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_HALL6:
+#ifdef HW_HALL_ENC_GPIO6
+		*port = HW_HALL_ENC_GPIO6; *pin = HW_HALL_ENC_PIN6;
+		res = true;
+#endif
+		break;
+	case VESC_PIN_PPM:
+#ifdef HW_ICU_GPIO
+		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
 		res = true;
 #endif
 		break;
@@ -279,6 +333,10 @@ static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
 	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
 }
 
+static bool lib_symbol_to_io(lbm_uint sym, void **gpio, uint32_t *pin) {
+	return lispif_symbol_to_io(sym, (stm32_gpio_t**)gpio, pin);
+}
+
 static SerialConfig uart_cfg = {
 		2500000, 0, 0, 0
 };
@@ -334,6 +392,181 @@ static int32_t lib_uart_read(void) {
 	return sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
 }
 
+static float lib_ts_to_age_s(systime_t ts) {
+	return UTILS_AGE_S(ts);
+}
+
+static float lib_get_cfg_float(CFG_PARAM p) {
+	float res = 0.0;
+
+	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
+
+	switch (p) {
+		case CFG_PARAM_l_current_max: res = mcconf->l_current_max; break;
+		case CFG_PARAM_l_current_min: res = mcconf->l_current_min; break;
+		case CFG_PARAM_l_in_current_max: res = mcconf->l_in_current_max; break;
+		case CFG_PARAM_l_in_current_min: res = mcconf->l_in_current_min; break;
+		case CFG_PARAM_l_abs_current_max: res = mcconf->l_abs_current_max; break;
+		case CFG_PARAM_l_min_erpm: res = mcconf->l_min_erpm; break;
+		case CFG_PARAM_l_max_erpm: res = mcconf->l_max_erpm; break;
+		case CFG_PARAM_l_erpm_start: res = mcconf->l_erpm_start; break;
+		case CFG_PARAM_l_max_erpm_fbrake: res = mcconf->l_max_erpm_fbrake; break;
+		case CFG_PARAM_l_max_erpm_fbrake_cc: res = mcconf->l_max_erpm_fbrake_cc; break;
+		case CFG_PARAM_l_min_vin: res = mcconf->l_min_vin; break;
+		case CFG_PARAM_l_max_vin: res = mcconf->l_max_vin; break;
+		case CFG_PARAM_l_battery_cut_start: res = mcconf->l_battery_cut_start; break;
+		case CFG_PARAM_l_battery_cut_end: res = mcconf->l_battery_cut_end; break;
+		case CFG_PARAM_l_temp_fet_start: res = mcconf->l_temp_fet_start; break;
+		case CFG_PARAM_l_temp_fet_end: res = mcconf->l_temp_fet_end; break;
+		case CFG_PARAM_l_temp_motor_start: res = mcconf->l_temp_motor_start; break;
+		case CFG_PARAM_l_temp_motor_end: res = mcconf->l_temp_motor_end; break;
+		case CFG_PARAM_l_temp_accel_dec: res = mcconf->l_temp_accel_dec; break;
+		case CFG_PARAM_l_min_duty: res = mcconf->l_min_duty; break;
+		case CFG_PARAM_l_max_duty: res = mcconf->l_max_duty; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: res = appconf->imu_conf.accel_confidence_decay; break;
+		case CFG_PARAM_IMU_mahony_kp: res = appconf->imu_conf.mahony_kp; break;
+		case CFG_PARAM_IMU_mahony_ki: res = appconf->imu_conf.mahony_ki; break;
+		case CFG_PARAM_IMU_madgwick_beta: res = appconf->imu_conf.madgwick_beta; break;
+		case CFG_PARAM_IMU_rot_roll: res = appconf->imu_conf.rot_roll; break;
+		case CFG_PARAM_IMU_rot_pitch: res = appconf->imu_conf.rot_pitch; break;
+		case CFG_PARAM_IMU_rot_yaw: res = appconf->imu_conf.rot_yaw; break;
+		default: break;
+	}
+
+	return res;
+}
+
+static int lib_get_cfg_int(CFG_PARAM p) {
+	int res = 0.0;
+
+	const app_configuration *conf = app_get_configuration();
+
+	switch (p) {
+		case CFG_PARAM_app_can_mode: res = conf->can_mode; break;
+		default: break;
+	}
+
+	return res;
+}
+
+static bool lib_set_cfg_float(CFG_PARAM p, float value) {
+	bool res = false;
+
+	mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
+	int changed_mc = 0;
+
+	app_configuration *appconf = mempools_alloc_appconf();
+	*appconf = *app_get_configuration();
+	int changed_app = 0;
+
+	// Safe changes that can be done instantly on the pointer. It is not that good to do
+	// it this way, but it is much faster.
+	// TODO: Check regularly and make sure that these stay safe.
+	switch (p) {
+		case CFG_PARAM_l_current_max: mcconf->l_current_max = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_current_min: mcconf->l_current_min = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_in_current_max: mcconf->l_in_current_max = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_in_current_min: mcconf->l_in_current_min = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_abs_current_max: mcconf->l_abs_current_max = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_min_erpm: mcconf->l_min_erpm = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_erpm: mcconf->l_max_erpm = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_erpm_start: mcconf->l_erpm_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_erpm_fbrake: mcconf->l_max_erpm_fbrake = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_erpm_fbrake_cc: mcconf->l_max_erpm_fbrake_cc = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_min_vin: mcconf->l_min_vin = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_vin: mcconf->l_max_vin = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_battery_cut_start: mcconf->l_battery_cut_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_battery_cut_end: mcconf->l_battery_cut_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_start: mcconf->l_temp_fet_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_end: mcconf->l_temp_fet_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_start: mcconf->l_temp_motor_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_end: mcconf->l_temp_motor_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_accel_dec: mcconf->l_temp_accel_dec = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_min_duty: mcconf->l_min_duty = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_duty: mcconf->l_max_duty = value; changed_mc = 1; res = true; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: appconf->imu_conf.accel_confidence_decay = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_kp: appconf->imu_conf.mahony_kp = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_ki: appconf->imu_conf.mahony_ki = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_madgwick_beta: appconf->imu_conf.madgwick_beta = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_roll: appconf->imu_conf.rot_roll = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_pitch: appconf->imu_conf.rot_pitch = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_yaw: appconf->imu_conf.rot_yaw = value; changed_app = 1; res = true; break;
+		default: break;
+	}
+
+	if (changed_mc > 0) {
+		commands_apply_mcconf_hw_limits(mcconf);
+	}
+
+	if (changed_app > 0) {
+		app_set_configuration(appconf);
+	}
+
+	mempools_free_appconf(appconf);
+
+	return res;
+}
+
+static bool lib_set_cfg_int(CFG_PARAM p, int value) {
+	bool res = false;
+
+	app_configuration *appconf = mempools_alloc_appconf();
+	*appconf = *app_get_configuration();
+
+	switch (p) {
+	case CFG_PARAM_app_can_mode: appconf->can_mode = value; res = true; break;
+	case CFG_PARAM_app_can_baud_rate: appconf->can_baud_rate = value; res = true; break;
+	default: break;
+	}
+
+	if (res) {
+		app_set_configuration(appconf);
+	}
+
+	mempools_free_appconf(appconf);
+
+	return res;
+}
+
+static bool lib_store_cfg(void) {
+	mc_configuration *mcconf = mempools_alloc_mcconf();
+	*mcconf = *mc_interface_get_configuration();
+	bool res_mc = conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
+	mempools_free_mcconf(mcconf);
+
+	app_configuration *appconf = mempools_alloc_appconf();
+	*appconf = *app_get_configuration();
+	bool res_app = conf_general_store_app_configuration(appconf);
+	mempools_free_appconf(appconf);
+
+	return res_mc && res_app;
+}
+
+static bool lib_create_byte_array(lbm_value *value, lbm_uint num_elt) {
+	return lbm_heap_allocate_array(value, num_elt, LBM_TYPE_BYTE);
+}
+
+static bool lib_eval_is_paused(void) {
+	return lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED;
+}
+
+static lib_mutex lib_mutex_create(void) {
+	mutex_t *m = lispif_malloc(sizeof(mutex_t));
+	chMtxObjectInit(m);
+	return (lib_mutex)m;
+}
+
+static void lib_mutex_lock(lib_mutex m) {
+	chMtxLock((mutex_t*)m);
+}
+
+static void lib_mutex_unlock(lib_mutex m) {
+	chMtxUnlock((mutex_t*)m);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -347,28 +580,66 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	}
 
 	if (!lib_init_done) {
-		memset((char*)cif.pad, 0, 1024);
+		memset((char*)cif.pad, 0, 2048);
 
 		// LBM
 		cif.cif.lbm_add_extension = lbm_add_extension;
-		cif.cif.lbm_dec_as_float = lbm_dec_as_float;
-		cif.cif.lbm_dec_as_u32 =	lbm_dec_as_u32;
-		cif.cif.lbm_dec_as_i32 = lbm_dec_as_i32;
-		cif.cif.lbm_enc_float = lbm_enc_float;
-		cif.cif.lbm_enc_u32 = lbm_enc_u32;
-		cif.cif.lbm_enc_i32 = lbm_enc_i32;
+		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
+		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
+		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
+		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
+		cif.cif.lbm_pause_eval_with_gc = lbm_pause_eval_with_gc;
+		cif.cif.lbm_continue_eval = lbm_continue_eval;
+		cif.cif.lbm_send_message = lbm_send_message;
+		cif.cif.lbm_eval_is_paused = lib_eval_is_paused;
+
 		cif.cif.lbm_cons = lbm_cons;
 		cif.cif.lbm_car = lbm_car;
 		cif.cif.lbm_cdr = lbm_cdr;
-		cif.cif.lbm_is_array = lbm_is_array;
-		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
+		cif.cif.lbm_list_destructive_reverse = lbm_list_destructive_reverse;
+		cif.cif.lbm_create_byte_array = lib_create_byte_array;
+
+		cif.cif.lbm_add_symbol_const = lbm_add_symbol_const;
+		cif.cif.lbm_get_symbol_by_name = lbm_get_symbol_by_name;
+
+		cif.cif.lbm_enc_i = lbm_enc_i;
+		cif.cif.lbm_enc_u = lbm_enc_u;
+		cif.cif.lbm_enc_char = lbm_enc_char;
+		cif.cif.lbm_enc_float = lbm_enc_float;
+		cif.cif.lbm_enc_u32 = lbm_enc_u32;
+		cif.cif.lbm_enc_i32 = lbm_enc_i32;
+		cif.cif.lbm_enc_sym = lbm_enc_sym;
+
+		cif.cif.lbm_dec_as_float = lbm_dec_as_float;
+		cif.cif.lbm_dec_as_u32 = lbm_dec_as_u32;
+		cif.cif.lbm_dec_as_i32 = lbm_dec_as_i32;
+		cif.cif.lbm_dec_char = lbm_dec_char;
+		cif.cif.lbm_dec_str = lbm_dec_str;
+		cif.cif.lbm_dec_sym = lbm_dec_sym;
+
+		cif.cif.lbm_is_byte_array = lbm_is_byte_array;
+		cif.cif.lbm_is_cons = lbm_is_cons;
+		cif.cif.lbm_is_number = lbm_is_number;
+		cif.cif.lbm_is_char = lbm_is_char;
+		cif.cif.lbm_is_symbol = lbm_is_symbol;
+
+		cif.cif.lbm_enc_sym_nil = ENC_SYM_NIL;
+		cif.cif.lbm_enc_sym_true = ENC_SYM_TRUE;
+		cif.cif.lbm_enc_sym_terror = ENC_SYM_TERROR;
+		cif.cif.lbm_enc_sym_eerror = ENC_SYM_EERROR;
+		cif.cif.lbm_enc_sym_merror = ENC_SYM_MERROR;
+
+		cif.cif.lbm_is_symbol_nil = lbm_is_symbol_nil;
+		cif.cif.lbm_is_symbol_true = lbm_is_symbol_true;
 
 		// Os
 		cif.cif.sleep_ms = lib_sleep_ms;
 		cif.cif.sleep_us = lib_sleep_us;
+		cif.cif.system_time = lib_system_time;
+		cif.cif.ts_to_age_s = lib_ts_to_age_s;
 		cif.cif.printf = commands_printf_lisp;
-		cif.cif.malloc = lib_malloc;
-		cif.cif.free = lib_free;
+		cif.cif.malloc = lispif_malloc;
+		cif.cif.free = lispif_free;
 		cif.cif.spawn = lib_spawn;
 		cif.cif.request_terminate = lib_request_terminate;
 		cif.cif.should_terminate = lib_should_terminate;
@@ -477,14 +748,106 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.mc_stat_count_time = mc_interface_stat_count_time;
 		cif.cif.mc_stat_reset = mc_interface_stat_reset;
 
-		// More
-		cif.cif.system_time = lib_system_time;
+		// Comm
 		cif.cif.commands_process_packet = commands_process_packet;
+		cif.cif.send_app_data = commands_send_app_data;
+		cif.cif.set_app_data_handler = commands_set_app_data_handler;
 
 		// UART
 		cif.cif.uart_start = lib_uart_start;
 		cif.cif.uart_write = lib_uart_write;
 		cif.cif.uart_read = lib_uart_read;
+
+		// Packets
+		cif.cif.packet_init = packet_init;
+		cif.cif.packet_reset = packet_reset;
+		cif.cif.packet_process_byte = packet_process_byte;
+		cif.cif.packet_send_packet = packet_send_packet;
+
+		// IMU
+		cif.cif.imu_startup_done = imu_startup_done;
+		cif.cif.imu_get_roll = imu_get_roll;
+		cif.cif.imu_get_pitch = imu_get_pitch;
+		cif.cif.imu_get_yaw = imu_get_yaw;
+		cif.cif.imu_get_rpy = imu_get_rpy;
+		cif.cif.imu_get_accel = imu_get_accel;
+		cif.cif.imu_get_gyro = imu_get_gyro;
+		cif.cif.imu_get_mag = imu_get_mag;
+		cif.cif.imu_derotate = imu_derotate;
+		cif.cif.imu_get_accel_derotated = imu_get_accel_derotated;
+		cif.cif.imu_get_gyro_derotated = imu_get_gyro_derotated;
+		cif.cif.imu_get_quaternions = imu_get_quaternions;
+		cif.cif.imu_get_calibration = imu_get_calibration;
+		cif.cif.imu_set_yaw = imu_set_yaw;
+
+		// Terminal
+		cif.cif.terminal_register_command_callback = terminal_register_command_callback;
+		cif.cif.terminal_unregister_callback = terminal_unregister_callback;
+
+		// EEPROM
+		cif.cif.read_eeprom_var = conf_general_read_eeprom_var_custom;
+		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
+
+		// Timeout
+		cif.cif.timeout_reset = timeout_reset;
+		cif.cif.timeout_has_timeout = timeout_has_timeout;
+		cif.cif.timeout_secs_since_update = timeout_secs_since_update;
+
+		// Plot
+		cif.cif.plot_init = commands_init_plot;
+		cif.cif.plot_add_graph = commands_plot_add_graph;
+		cif.cif.plot_set_graph = commands_plot_set_graph;
+		cif.cif.plot_send_points = commands_send_plot_points;
+
+		// Custom config
+		cif.cif.conf_custom_add_config = conf_custom_add_config;
+		cif.cif.conf_custom_clear_configs = conf_custom_clear_configs;
+
+		// Settings
+		cif.cif.get_cfg_float = lib_get_cfg_float;
+		cif.cif.get_cfg_int = lib_get_cfg_int;
+		cif.cif.set_cfg_float = lib_set_cfg_float;
+		cif.cif.set_cfg_int = lib_set_cfg_int;
+		cif.cif.store_cfg = lib_store_cfg;
+
+		// GNSS-struct that can be both read and updated
+		cif.cif.mc_gnss = mc_interface_gnss;
+
+		// Mutex
+		cif.cif.mutex_create = lib_mutex_create;
+		cif.cif.mutex_lock = lib_mutex_lock;
+		cif.cif.mutex_unlock = lib_mutex_unlock;
+
+		// Get ST io-pin from lbm symbol (this is only safe from extensions)
+		cif.cif.lbm_symbol_to_io = lib_symbol_to_io;
+
+		// High resolution timer for short busy-wait sleeps and time measurement
+		cif.cif.timer_time_now = timer_time_now;
+		cif.cif.timer_seconds_elapsed_since = timer_seconds_elapsed_since;
+		cif.cif.timer_sleep = timer_sleep;
+
+		// System lock (with counting)
+		cif.cif.sys_lock = utils_sys_lock_cnt;
+		cif.cif.sys_unlock = utils_sys_unlock_cnt;
+
+		// Unregister pointers to previously used reply function
+		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
+
+		// IMU AHRS functions and read callback
+		cif.cif.imu_set_read_callback = imu_set_read_callback;
+		cif.cif.ahrs_init_attitude_info = ahrs_init_attitude_info;
+		cif.cif.ahrs_update_initial_orientation = ahrs_update_initial_orientation;
+		cif.cif.ahrs_update_mahony_imu = ahrs_update_mahony_imu;
+		cif.cif.ahrs_update_madgwick_imu = ahrs_update_madgwick_imu;
+		cif.cif.ahrs_get_roll = ahrs_get_roll;
+		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
+		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
+
+		// Set custom encoder callbacks
+		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;
+
+		// Store backup data
+		cif.cif.store_backup_data = conf_general_store_backup_data;
 
 		lib_init_done = true;
 	}
@@ -506,7 +869,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 			addr |= 1; // Ensure that thumb mode is used (??)
 			ok = ((bool(*)(lib_info *info))addr)(&loaded_libs[i]);
 
-			if (loaded_libs[i].stop_fun != NULL && (uint32_t)loaded_libs[i].stop_fun < 0x08000000) {
+			if (loaded_libs[i].stop_fun != NULL && !utils_is_func_valid(loaded_libs[i].stop_fun)) {
 				loaded_libs[i].stop_fun = NULL;
 				lbm_set_error_reason("Invalid stop function. Make sure that it is static.");
 				return res;
@@ -563,4 +926,27 @@ void lispif_stop_lib(void) {
 			loaded_libs[i].stop_fun = NULL;
 		}
 	}
+
+	for (size_t i = 0;i < lib_running_threads_cnt;i++) {
+		if (!chThdTerminatedX(lib_running_threads[i])) {
+			lib_request_terminate(lib_running_threads[i]);
+		}
+	}
+
+	lib_running_threads_cnt = 0;
+}
+
+void* lispif_malloc(size_t size) {
+	lbm_uint alloc_size;
+	if (size % sizeof(lbm_uint) == 0) {
+		alloc_size = size / (sizeof(lbm_uint));
+	} else {
+		alloc_size = (size / (sizeof(lbm_uint))) + 1;
+	}
+
+	return lbm_memory_allocate(alloc_size);
+}
+
+void lispif_free(void *ptr) {
+	lbm_memory_free(ptr);
 }

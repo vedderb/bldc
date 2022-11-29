@@ -17,14 +17,17 @@
 
 #include "lbm_c_interop.h"
 
-
 /****************************************************/
 /* Interface for loading and running programs and   */
 /* expressions                                      */
 
-lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool program) {
+lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program) {
 
-  lbm_value stream = lbm_create_token_stream(tokenizer);
+  lbm_value stream;
+
+  if (!lift_char_channel(tokenizer, &stream)) {
+    return 0;
+  }
 
   if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
     // TODO: Check what should be done.
@@ -44,15 +47,19 @@ lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool prog
   if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
       lbm_type_of(evaluator) != LBM_TYPE_CONS ||
       lbm_type_of(start_prg) != LBM_TYPE_CONS ) {
-    lbm_explicit_free_token_stream(stream);
+    //lbm_explicit_free_token_stream(stream);
     return 0;
   }
   return lbm_create_ctx(start_prg, lbm_enc_sym(SYM_NIL), 256);
 }
 
-lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *symbol, bool program) {
+lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bool program) {
 
-  lbm_value stream = lbm_create_token_stream(tokenizer);
+  lbm_value stream;
+
+  if (!lift_char_channel(tokenizer, &stream)) {
+    return 0;
+  }
 
   if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
     return 0;
@@ -62,7 +69,7 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
 
   if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
     if (!lbm_add_symbol(symbol, &sym_id)) {
-      lbm_explicit_free_token_stream(stream);
+      //lbm_explicit_free_token_stream(stream);
       return 0;
     }
   }
@@ -80,7 +87,7 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
   if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
       lbm_type_of(binding) != LBM_TYPE_CONS ||
       lbm_type_of(definer) != LBM_TYPE_CONS ) {
-    lbm_explicit_free_token_stream(stream);
+    //lbm_explicit_free_token_stream(stream);
     return 0;
   }
   return lbm_create_ctx(definer, lbm_enc_sym(SYM_NIL), 256);
@@ -121,19 +128,19 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
 
 
 
-lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokenizer) {
+lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer) {
   return eval_cps_load_and_eval(tokenizer, false);
 }
 
-lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol) {
+lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symbol) {
   return eval_cps_load_and_define(tokenizer, symbol, false);
 }
 
-lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer) {
+lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer) {
   return eval_cps_load_and_eval(tokenizer, true);
 }
 
-lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol) {
+lbm_cid lbm_load_and_define_program(lbm_char_channel_t *tokenizer, char *symbol) {
   return eval_cps_load_and_define(tokenizer, symbol, true);
 }
 
@@ -166,12 +173,21 @@ int lbm_define(char *symbol, lbm_value value) {
   lbm_uint sym_id;
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
 
-    if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-      if (!lbm_add_symbol_const(symbol, &sym_id)) {
-        return 0;
+    if (strncmp(symbol, "#",1) == 0) {
+      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+        if (!lbm_add_variable_symbol_const(symbol, &sym_id)) {
+          return 0;
+        }
       }
+      lbm_set_var(sym_id, value);
+    } else {
+      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+        if (!lbm_add_symbol_const(symbol, &sym_id)) {
+          return 0;
+        }
+      }
+      *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
     }
-    *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
   }
   return res;
 }

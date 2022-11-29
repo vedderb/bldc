@@ -305,6 +305,13 @@
 #define NTC_TEMP_MOS3_M2()	0.0
 #endif
 
+#ifndef TEMP_MOTOR_1
+#define TEMP_MOTOR_1(beta)	0.0
+#endif
+#ifndef TEMP_MOTOR_2
+#define TEMP_MOTOR_2(beta)	0.0
+#endif
+
 // Sin/Cos Encoder Signals. Override if available
 #ifndef ENCODER_SIN_VOLTS
 #if defined(ADC_IND_EXT) && defined(ADC_VOLTS)
@@ -567,6 +574,10 @@
 #define HW_ICU_TIMER			TIM3
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #endif
+#endif
+
+#ifndef HW_TRIM_HSI
+#define HW_TRIM_HSI()
 #endif
 
 #ifndef HW_RESET_DRV_FAULTS

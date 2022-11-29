@@ -339,9 +339,9 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         }
         break;
       }
-      case LBM_TYPE_STREAM: {
+      case LBM_TYPE_CHANNEL: {
 
-        r = snprintf(buf + offset, len - offset, "~STREAM~");
+        r = snprintf(buf + offset, len - offset, "~CHANNEL~");
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
@@ -357,6 +357,12 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         } else {
           r = snprintf(buf + offset, len - offset, "Unspecified_Custom_Type");
         }
+	if (r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(buf, len, "%s", failed_str);
+          return -1;
+	}
         offset += n;
       } break;
       case LBM_TYPE_SYMBOL:

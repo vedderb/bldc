@@ -1,7 +1,7 @@
 === FW 6.00 <dev> ===
 * Added stack checks.
 * Release motor fix when cc_min_current is 0.
-* Added support for NTC and PTC temperature sensors with custom resisrance and base temperature.
+* Added support for NTC and PTC temperature sensors with custom resistance and base temperature.
 * Added sandboxed lisp scripting using https://github.com/svenssonjoel/lispBM.
 * Encoder driver split and rewrite to make it easier to support more encoders.
 * Flash writes now work on lower MCU voltages too.
@@ -19,6 +19,12 @@
  - ortega with flux linkage tracking
  - mxlemming with flux linkage tracking
 * AS5x47 encoder support: https://github.com/vedderb/bldc/pull/511
+* Disable BMS limit options.
+* Added PT1000 temperature sensor support.
+* APP ADC button bitfield and CC disable support.
+* BissC encoder support: https://github.com/vedderb/bldc/pull/536
+* Better detection failt handling and reporting: https://github.com/vedderb/bldc/pull/533
+* TLE5012-support: https://github.com/vedderb/bldc/pull/551
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

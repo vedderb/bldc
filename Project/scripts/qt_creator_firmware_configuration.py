@@ -49,7 +49,7 @@ reference_target_configuration = """   <valuemap type="QVariantMap" key="Project
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
-      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">{TARGET NAME, LOWERCASE}</value>
+      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">{TARGET NAME, NORMAL CASE}</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.Command">make</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.WorkingDirectory">%{sourceDir}/../../</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.ProcessStep</value>
@@ -62,7 +62,7 @@ reference_target_configuration = """   <valuemap type="QVariantMap" key="Project
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.1">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
-      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">{TARGET NAME, LOWERCASE}_clean</value>
+      <value type="QString" key="ProjectExplorer.ProcessStep.Arguments">{TARGET NAME, NORMAL CASE}_clean</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.Command">make</value>
       <value type="QString" key="ProjectExplorer.ProcessStep.WorkingDirectory">%{sourceDir}/../../</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">ProjectExplorer.ProcessStep</value>

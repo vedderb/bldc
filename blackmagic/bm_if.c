@@ -127,6 +127,7 @@ static int idcode_to_device(uint32_t idcode) {
 	case 0x0086: /* nRF51422 (rev 3) QFAC A1 */
 	case 0x0087: /* nRF51822 (rev 3) CFAC A0 */
 	case 0x0088: /* nRF51422 (rev 3) CFAC A0 */
+	case 0x0169: /* nRF51822 (rev 3) Taiyo EYSGJNZWY*/
 		ret = 4; break;
 	case 0x00AC: /* nRF52832 Preview QFAA BA0 */
 	case 0x00C7: /* nRF52832 (rev 1) QFAA B00 */

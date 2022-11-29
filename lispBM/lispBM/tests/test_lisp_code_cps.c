@@ -1,5 +1,5 @@
 /*
-    Copyright 2018,2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018,2020 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
 
@@ -42,13 +43,17 @@ extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 /* Tokenizer state for strings */
-static lbm_tokenizer_string_state_t string_tok_state;
+//static lbm_tokenizer_string_state_t string_tok_state;
 
 /* Tokenizer statefor compressed data */
-static tokenizer_compressed_state_t comp_tok_state;
+//static tokenizer_compressed_state_t comp_tok_state;
 
 /* shared tokenizer */
-static lbm_tokenizer_char_stream_t string_tok;
+//static lbm_tokenizer_char_stream_t string_tok;
+
+static lbm_char_channel_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_buffered_channel_state_t buffered_tok_state;
 
 void *eval_thd_wrapper(void *v) {
   (void)v;
@@ -72,28 +77,28 @@ void sleep_callback(uint32_t us) {
 volatile bool experiment_success = false;
 volatile bool experiment_done = false;
 
+lbm_cid test_cid = -1;
+
 void context_done_callback(eval_context_t *ctx) {
   char output[128];
   lbm_value t = ctx->r;
 
   int res = lbm_print_value(output, 128, t);
 
-  if ( res >= 0) {
-    printf("O: %s\n", output);
+  if (ctx->id == test_cid) {
+    experiment_done = true;
+    if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+      experiment_success = true;
+      printf("Test: OK!\n");
+      printf("Result: %s\n", output);
+    } else {
+      printf("Test: Failed!\n");
+      printf("Result: %s\n", output);
+    }
   } else {
-    printf("%s\n", output);
+    printf("Thread %d finished: %s\n", ctx->id, output);
   }
-
-  if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
-    experiment_success = true;
-    printf("Test: OK!\n");
-  } else {
-    printf("Test: Failed!\n");
-  }
-
-  experiment_done = true;
 }
-
 
 bool dyn_load(const char *str, const char **code) {
 
@@ -101,61 +106,39 @@ bool dyn_load(const char *str, const char **code) {
   if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  } else if (strlen(str) == 7 && strncmp(str, "reverse", 7) == 0) {
-    *code = "(define reverse (lambda (xs)"
-            "(let ((revacc (lambda (acc xs)"
-	    "(if (eq nil xs) acc"
-	    "(revacc (cons (car xs) acc) (cdr xs))))))"
-            "(revacc nil xs))))";
-    res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+  }  else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
-            "(let ((iacc (lambda (acc i)"
-            "(if (< i 0) acc"
-            "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil n))))";
-    res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
-    *code = "(define length (lambda (xs)"
-	    "(let ((len (lambda (l xs)"
-	    "(if (eq xs nil) l"
-	    "(len (+ l 1) (cdr xs))))))"
-            "(len 0 xs))))";
+            "(range 0 n)))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
-	    "(let ((take-tail (lambda (acc n xs)"
-	    "(if (= n 0) acc"
-	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(let ((take-tail (lambda (acc n xs)"
+            "(if (= n 0) acc"
+            "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
-	    "(if (= n 0) xs"
-	    "(if (eq xs nil) nil"
+            "(if (= n 0) xs"
+            "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq ys nil) nil"
+            "(if (eq xs nil) nil"
+            "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "map", 3) == 0) {
-    *code = "(define map (lambda (f xs)"
-	    "(if (eq xs nil) nil"
-            "(cons (f (car xs)) (map f (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq (car (car xs)) x)"
-	    "(car (cdr (car xs)))"
+            "(if (eq xs nil) nil"
+            "(if (eq (car (car xs)) x)"
+            "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
-	    "(if (eq xs nil) i"
+            "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
@@ -197,12 +180,29 @@ LBM_EXTENSION(ext_odd, args, argn){
   return lbm_enc_sym(SYM_NIL);
 }
 
+LBM_EXTENSION(ext_numbers, args, argn) {
+
+  bool b = true;
+
+  for (unsigned int i = 0; i < argn; i ++) {
+    if (!lbm_is_number(args[i])) {
+      b = false;
+      break;
+    }
+  }
+  return lbm_enc_sym(b ? SYM_TRUE : SYM_NIL);
+}
+
+
+
 int main(int argc, char **argv) {
 
   int res = 0;
 
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  bool compress_decompress = false;
+  //  bool compress_decompress = false;
+
+  bool stream_source = false;
 
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
@@ -210,14 +210,16 @@ int main(int argc, char **argv) {
   int c;
   opterr = 1;
 
-  while (( c = getopt(argc, argv, "gch:")) != -1) {
+  while (( c = getopt(argc, argv, "gsch:")) != -1) {
     switch (c) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
       break;
-    case 'c':
-      compress_decompress = true;
-      break;
+      //    case 'c':
+      //compress_decompress = true;
+      //break;
+    case 's':
+      stream_source = true;
     case '?':
       break;
     default:
@@ -226,7 +228,8 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
-  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
+  printf("Streaming source: %s\n", stream_source ? "yes" : "no");
+  //  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
 
   if (argc - optind < 1) {
@@ -338,7 +341,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-   res = lbm_add_extension("ext-odd", ext_odd);
+  res = lbm_add_extension("ext-odd", ext_odd);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("ext-numbers", ext_numbers);
   if (res)
     printf("Extension added.\n");
   else {
@@ -372,29 +383,42 @@ int main(int argc, char **argv) {
   /*   sleep_callback(1000); */
   /* } */
 
-  char *compressed_code;
-  if (compress_decompress) {
-    uint32_t compressed_size = 0;
-    compressed_code = lbm_compress(code_buffer, &compressed_size);
-    if (!compressed_code) {
-      printf("Error compressing code\n");
-      return 0;
-    }
-    char decompress_code[8192];
+  /* char *compressed_code; */
+  /* if (compress_decompress) { */
+  /*   uint32_t compressed_size = 0; */
+  /*   compressed_code = lbm_compress(code_buffer, &compressed_size); */
+  /*   if (!compressed_code) { */
+  /*     printf("Error compressing code\n"); */
+  /*     return 0; */
+  /*   } */
+  /*   //char decompress_code[8192]; */
+  /*   char decompress_code[64000]; */
 
-    lbm_decompress(decompress_code, 8192, compressed_code);
-    printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
+  /*   lbm_decompress(decompress_code, 64000, compressed_code); */
+  /*   printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code); */
 
-    lbm_create_char_stream_from_compressed(&comp_tok_state,
-                                           &string_tok,
-                                           compressed_code);
+  /*   lbm_create_char_stream_from_compressed(&comp_tok_state, */
+  /*                                          &string_tok, */
+  /*                                          compressed_code); */
 
-  } else {
-    lbm_create_char_stream_from_string(&string_tok_state,
-                                       &string_tok,
-                                       code_buffer);
+  /* } else { */
+  //lbm_create_char_stream_from_string(&string_tok_state,
+  //                                   &string_tok,
+  //                                   code_buffer);
 
+  lbm_pause_eval_with_gc(20);
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    sleep_callback(1000);
   }
+  if (stream_source) {
+    lbm_create_buffered_char_channel(&buffered_tok_state,
+                                     &string_tok);
+  } else {
+    lbm_create_string_char_channel(&string_tok_state,
+                                   &string_tok,
+                                   code_buffer);
+  }
+  //}
 
   lbm_set_ctx_done_callback(context_done_callback);
   cid = lbm_load_and_eval_program(&string_tok);
@@ -404,20 +428,48 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  test_cid = cid; // the result which is important for success or failure of test.
+
   lbm_continue_eval();
 
+  if (stream_source) {
+    int i = 0;
+    while (true) {
+      if (code_buffer[i] == 0) {
+        lbm_channel_writer_close(&string_tok);
+        break;
+      }
+      int ch_res = lbm_channel_write(&string_tok, code_buffer[i]);
 
-  while (!experiment_done) {
-    sleep_callback(1000);
+      if (ch_res == CHANNEL_SUCCESS) {
+        //printf("wrote: %c\n", code_buffer[i]);
+        i ++;
+      } else if (ch_res == CHANNEL_READER_CLOSED) {
+        break;
+      } else {
+        sleep_callback(2);
+      }
+    }
   }
 
+  int i = 0;
+  while (!experiment_done) {
+    if (i == 1000000) break;
+    sleep_callback(1000);
+    i ++;
+  }
+
+  if (i == 1000000) {
+    printf ("experiment failed due to taking longer than 10 seconds\n");
+    experiment_success = false;
+  }
 
   lbm_pause_eval();
   while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED);
 
-  if (compress_decompress) {
-    free(compressed_code);
-  }
+  /* if (compress_decompress) { */
+  /*   free(compressed_code); */
+  /* } */
 
   free(heap_storage);
 

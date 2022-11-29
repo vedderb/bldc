@@ -2,18 +2,18 @@
 	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #include "hw.h"
 
@@ -23,6 +23,7 @@
 #include "utils_math.h"
 #include <math.h>
 #include "mc_interface.h"
+#include "stm32f4xx_rcc.h"
 
 // Variables
 static volatile bool i2c_running = false;
@@ -82,10 +83,10 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	PHASE_FILTER_OFF();
 
-	// Current filter
-	palSetPadMode(GPIOH, 1, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	CURRENT_FILTER_ON();	
+	// Current filter, no use on low side shunts
+	//palSetPadMode(GPIOH, 1, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	//palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	//CURRENT_FILTER_ON();	
 
 	// AUX pin
 	AUX_OFF();
@@ -242,4 +243,15 @@ void hw_try_restore_i2c(void) {
 
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
+}
+
+// Trim the HSI to reduce affect of temperature
+void hw_a50s_trim_hsi(void){
+	int temp = NTC_TEMP(ADC_IND_TEMP_MOS);
+	uint8_t hsi_trim = 15;
+	if (temp > 25)
+		hsi_trim = utils_map(temp, 25, 80, 15, 9); // above calibrated
+	else if (temp < 25)
+		hsi_trim = utils_map(temp, -40, 25, 31, 15); // below calibrated	
+	RCC_AdjustHSICalibrationValue(hsi_trim);
 }

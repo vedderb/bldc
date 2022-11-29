@@ -26,22 +26,28 @@
 #include "stdbool.h"
 
 typedef struct {
-	stm32_gpio_t *nss_gpio; int nss_pin;
-	stm32_gpio_t *sck_gpio; int sck_pin;
-    stm32_gpio_t *mosi_gpio; int mosi_pin;
-    stm32_gpio_t *miso_gpio; int miso_pin;
-	bool has_started;
-	bool has_error;
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+	stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+	stm32_gpio_t *miso_gpio;
+	int miso_pin;
 	mutex_t mutex;
 } spi_bb_state;
 
 void spi_bb_init(spi_bb_state *s);
 void spi_bb_deinit(spi_bb_state *s);
+void ssc_bb_init(spi_bb_state *s);
+void ssc_bb_deinit(spi_bb_state *s);
 uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x);
 void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length);
 void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length);
+void ssc_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length, bool write);
 void spi_bb_begin(spi_bb_state *s);
 void spi_bb_end(spi_bb_state *s);
+
 void spi_bb_delay(void);
 void spi_bb_delay_short(void);
 

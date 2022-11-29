@@ -64,11 +64,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_encoder_inverted;
 	buffer_append_float32_auto(buffer, conf->foc_encoder_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_ratio, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sin_gain, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_cos_gain, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sin_offset, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_cos_offset, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sincos_filter_constant, 1000, &ind);
 	buffer[ind++] = conf->foc_sensor_mode;
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
@@ -169,6 +164,11 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_duty_ramp_step, 10000, &ind);
 	buffer_append_float32_auto(buffer, conf->m_current_backoff_gain, &ind);
 	buffer_append_uint32(buffer, conf->m_encoder_counts, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sin_amp, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_cos_amp, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sin_offset, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_cos_offset, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sincos_filter_constant, 1000, &ind);
 	buffer[ind++] = conf->m_sensor_port_mode;
 	buffer[ind++] = conf->m_invert_direction;
 	buffer[ind++] = conf->m_drv8301_oc_mode;
@@ -183,6 +183,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_res, 0.1, &ind);
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_temp_base, 10, &ind);
 	buffer[ind++] = (uint8_t)conf->m_hall_extra_samples;
+	buffer[ind++] = (uint8_t)conf->m_batt_filter_const;
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
 	buffer_append_float32_auto(buffer, conf->si_wheel_diameter, &ind);
@@ -191,6 +192,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->si_battery_ah, &ind);
 	buffer_append_float32_auto(buffer, conf->si_motor_nl_current, &ind);
 	buffer[ind++] = conf->bms.type;
+	buffer[ind++] = conf->bms.limit_mode;
 	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
@@ -220,6 +222,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = (uint8_t)conf->uavcan_esc_index;
 	buffer[ind++] = conf->uavcan_raw_mode;
 	buffer_append_float32_auto(buffer, conf->uavcan_raw_rpm_max, &ind);
+	buffer[ind++] = conf->uavcan_status_current_mode;
 	buffer[ind++] = conf->servo_out_enable;
 	buffer[ind++] = conf->kill_sw_mode;
 	buffer[ind++] = conf->app_to_use;
@@ -253,8 +256,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float16(buffer, conf->app_adc_conf.voltage2_end, 1000, &ind);
 	buffer[ind++] = conf->app_adc_conf.use_filter;
 	buffer[ind++] = conf->app_adc_conf.safe_start;
-	buffer[ind++] = conf->app_adc_conf.cc_button_inverted;
-	buffer[ind++] = conf->app_adc_conf.rev_button_inverted;
+	buffer[ind++] = conf->app_adc_conf.buttons;
 	buffer[ind++] = conf->app_adc_conf.voltage_inverted;
 	buffer[ind++] = conf->app_adc_conf.voltage2_inverted;
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.throttle_exp, &ind);
@@ -340,10 +342,9 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.brake_current, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.brake_timeout, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.yaw_current_clamp, &ind);
+	buffer_append_float32_auto(buffer, conf->app_balance_conf.ki_limit, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_lowpass_frequency, &ind);
 	buffer_append_uint16(buffer, conf->app_balance_conf.kd_pt1_highpass_frequency, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd_biquad_lowpass, &ind);
-	buffer_append_float32_auto(buffer, conf->app_balance_conf.kd_biquad_highpass, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_angle, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_ramp, &ind);
 	buffer_append_float32_auto(buffer, conf->app_balance_conf.booster_current, &ind);
@@ -374,6 +375,10 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->imu_conf.type;
 	buffer[ind++] = conf->imu_conf.mode;
 	buffer[ind++] = conf->imu_conf.filter;
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_x, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_y, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_z, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.gyro_lowpass_filter, 1, &ind);
 	buffer_append_uint16(buffer, conf->imu_conf.sample_rate_hz, &ind);
 	buffer[ind++] = conf->imu_conf.use_magnetometer;
 	buffer_append_float32_auto(buffer, conf->imu_conf.accel_confidence_decay, &ind);
@@ -455,11 +460,6 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_encoder_inverted = buffer[ind++];
 	conf->foc_encoder_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_ratio = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_encoder_sin_gain = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_cos_gain = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_sensor_mode = buffer[ind++];
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
@@ -560,6 +560,11 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_duty_ramp_step = buffer_get_float16(buffer, 10000, &ind);
 	conf->m_current_backoff_gain = buffer_get_float32_auto(buffer, &ind);
 	conf->m_encoder_counts = buffer_get_uint32(buffer, &ind);
+	conf->m_encoder_sin_amp = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_cos_amp = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_sensor_port_mode = buffer[ind++];
 	conf->m_invert_direction = buffer[ind++];
 	conf->m_drv8301_oc_mode = buffer[ind++];
@@ -574,6 +579,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_ntcx_ptcx_res = buffer_get_float16(buffer, 0.1, &ind);
 	conf->m_ntcx_ptcx_temp_base = buffer_get_float16(buffer, 10, &ind);
 	conf->m_hall_extra_samples = buffer[ind++];
+	conf->m_batt_filter_const = buffer[ind++];
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
 	conf->si_wheel_diameter = buffer_get_float32_auto(buffer, &ind);
@@ -582,6 +588,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->si_battery_ah = buffer_get_float32_auto(buffer, &ind);
 	conf->si_motor_nl_current = buffer_get_float32_auto(buffer, &ind);
 	conf->bms.type = buffer[ind++];
+	conf->bms.limit_mode = buffer[ind++];
 	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
 	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
@@ -614,6 +621,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->uavcan_esc_index = buffer[ind++];
 	conf->uavcan_raw_mode = buffer[ind++];
 	conf->uavcan_raw_rpm_max = buffer_get_float32_auto(buffer, &ind);
+	conf->uavcan_status_current_mode = buffer[ind++];
 	conf->servo_out_enable = buffer[ind++];
 	conf->kill_sw_mode = buffer[ind++];
 	conf->app_to_use = buffer[ind++];
@@ -647,8 +655,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.voltage2_end = buffer_get_float16(buffer, 1000, &ind);
 	conf->app_adc_conf.use_filter = buffer[ind++];
 	conf->app_adc_conf.safe_start = buffer[ind++];
-	conf->app_adc_conf.cc_button_inverted = buffer[ind++];
-	conf->app_adc_conf.rev_button_inverted = buffer[ind++];
+	conf->app_adc_conf.buttons = buffer[ind++];
 	conf->app_adc_conf.voltage_inverted = buffer[ind++];
 	conf->app_adc_conf.voltage2_inverted = buffer[ind++];
 	conf->app_adc_conf.throttle_exp = buffer_get_float32_auto(buffer, &ind);
@@ -734,10 +741,9 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_balance_conf.brake_current = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.brake_timeout = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.yaw_current_clamp = buffer_get_float32_auto(buffer, &ind);
+	conf->app_balance_conf.ki_limit = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_lowpass_frequency = buffer_get_uint16(buffer, &ind);
 	conf->app_balance_conf.kd_pt1_highpass_frequency = buffer_get_uint16(buffer, &ind);
-	conf->app_balance_conf.kd_biquad_lowpass = buffer_get_float32_auto(buffer, &ind);
-	conf->app_balance_conf.kd_biquad_highpass = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_angle = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_ramp = buffer_get_float32_auto(buffer, &ind);
 	conf->app_balance_conf.booster_current = buffer_get_float32_auto(buffer, &ind);
@@ -768,6 +774,10 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->imu_conf.type = buffer[ind++];
 	conf->imu_conf.mode = buffer[ind++];
 	conf->imu_conf.filter = buffer[ind++];
+	conf->imu_conf.accel_lowpass_filter_x = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.accel_lowpass_filter_y = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.accel_lowpass_filter_z = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.gyro_lowpass_filter = buffer_get_float16(buffer, 1, &ind);
 	conf->imu_conf.sample_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->imu_conf.use_magnetometer = buffer[ind++];
 	conf->imu_conf.accel_confidence_decay = buffer_get_float32_auto(buffer, &ind);
@@ -842,11 +852,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
 	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;
 	conf->foc_encoder_ratio = MCCONF_FOC_ENCODER_RATIO;
-	conf->foc_encoder_sin_gain = MCCONF_FOC_ENCODER_SIN_GAIN;
-	conf->foc_encoder_cos_gain = MCCONF_FOC_ENCODER_COS_GAIN;
-	conf->foc_encoder_sin_offset = MCCONF_FOC_ENCODER_SIN_OFFSET;
-	conf->foc_encoder_cos_offset = MCCONF_FOC_ENCODER_COS_OFFSET;
-	conf->foc_encoder_sincos_filter_constant = MCCONF_FOC_ENCODER_SINCOS_FILTER;
 	conf->foc_sensor_mode = MCCONF_FOC_SENSOR_MODE;
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
@@ -947,6 +952,11 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
+	conf->m_encoder_sin_amp = MCCONF_M_ENCODER_SIN_AMP;
+	conf->m_encoder_cos_amp = MCCONF_M_ENCODER_COS_AMP;
+	conf->m_encoder_sin_offset = MCCONF_M_ENCODER_SIN_OFFSET;
+	conf->m_encoder_cos_offset = MCCONF_M_ENCODER_COS_OFFSET;
+	conf->m_encoder_sincos_filter_constant = MCCONF_M_ENCODER_SINCOS_FILTER;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
@@ -961,6 +971,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_ntcx_ptcx_res = MCCONF_M_NTCX_PTCX_RES;
 	conf->m_ntcx_ptcx_temp_base = MCCONF_M_NTCX_PTCX_BASE_TEMP;
 	conf->m_hall_extra_samples = MCCONF_M_HALL_EXTRA_SAMPLES;
+	conf->m_batt_filter_const = MCCONF_M_BATT_FILTER_CONST;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
 	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;
@@ -969,6 +980,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->si_battery_ah = MCCONF_SI_BATTERY_AH;
 	conf->si_motor_nl_current = MCCONF_SI_MOTOR_NL_CURRENT;
 	conf->bms.type = MCCONF_BMS_TYPE;
+	conf->bms.limit_mode = MCCONF_BMS_LIMIT_MODE;
 	conf->bms.t_limit_start = MCCONF_BMS_T_LIMIT_START;
 	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
 	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
@@ -992,6 +1004,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->uavcan_esc_index = APPCONF_UAVCAN_ESC_INDEX;
 	conf->uavcan_raw_mode = APPCONF_UAVCAN_RAW_MODE;
 	conf->uavcan_raw_rpm_max = APPCONF_UAVCAN_RAW_RPM_MAX;
+	conf->uavcan_status_current_mode = APPCONF_UAVCAN_STATUS_CURRENT_MODE;
 	conf->servo_out_enable = APPCONF_SERVO_OUT_ENABLE;
 	conf->kill_sw_mode = APPCONF_KILL_SW_MODE;
 	conf->app_to_use = APPCONF_APP_TO_USE;
@@ -1025,8 +1038,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_adc_conf.voltage2_end = APPCONF_ADC_VOLTAGE2_END;
 	conf->app_adc_conf.use_filter = APPCONF_ADC_USE_FILTER;
 	conf->app_adc_conf.safe_start = APPCONF_ADC_SAFE_START;
-	conf->app_adc_conf.cc_button_inverted = APPCONF_ADC_CC_BUTTON_INVERTED;
-	conf->app_adc_conf.rev_button_inverted = APPCONF_ADC_REV_BUTTON_INVERTED;
+	conf->app_adc_conf.buttons = APPCONF_ADC_BUTTONS;
 	conf->app_adc_conf.voltage_inverted = APPCONF_ADC_VOLTAGE_INVERTED;
 	conf->app_adc_conf.voltage2_inverted = APPCONF_ADC_VOLTAGE2_INVERTED;
 	conf->app_adc_conf.throttle_exp = APPCONF_ADC_THROTTLE_EXP;
@@ -1112,10 +1124,9 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_balance_conf.brake_current = APPCONF_BALANCE_BRAKE_CURRENT;
 	conf->app_balance_conf.brake_timeout = APPCONF_BALANCE_BRAKE_TIMEOUT;
 	conf->app_balance_conf.yaw_current_clamp = APPCONF_BALANCE_YAW_CURRENT_CLAMP;
+	conf->app_balance_conf.ki_limit = APPCONF_BALANCE_KI_LIMIT;
 	conf->app_balance_conf.kd_pt1_lowpass_frequency = APPCONF_BALANCE_KD_PT1_LOWPASS_FREQUENCY;
 	conf->app_balance_conf.kd_pt1_highpass_frequency = APPCONF_BALANCE_KD_PT1_HIGHPASS_FREQUENCY;
-	conf->app_balance_conf.kd_biquad_lowpass = APPCONF_BALANCE_KD_BIQUAD_LOWPASS;
-	conf->app_balance_conf.kd_biquad_highpass = APPCONF_BALANCE_KD_BIQUAD_HIGHPASS;
 	conf->app_balance_conf.booster_angle = APPCONF_BALANCE_BOOSTER_ANGLE;
 	conf->app_balance_conf.booster_ramp = APPCONF_BALANCE_BOOSTER_RAMP;
 	conf->app_balance_conf.booster_current = APPCONF_BALANCE_BOOSTER_CURRENT;
@@ -1146,6 +1157,10 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->imu_conf.type = APPCONF_IMU_TYPE;
 	conf->imu_conf.mode = APPCONF_IMU_AHRS_MODE;
 	conf->imu_conf.filter = APPCONF_IMU_FILTER;
+	conf->imu_conf.accel_lowpass_filter_x = APPCONF_IMU_ACCEL_LOWPASS_FILTER_X;
+	conf->imu_conf.accel_lowpass_filter_y = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Y;
+	conf->imu_conf.accel_lowpass_filter_z = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Z;
+	conf->imu_conf.gyro_lowpass_filter = APPCONF_IMU_GYRO_LOWPASS_FILTER;
 	conf->imu_conf.sample_rate_hz = APPCONF_IMU_SAMPLE_RATE_HZ;
 	conf->imu_conf.use_magnetometer = APPCONF_IMU_USE_MAGNETOMETER;
 	conf->imu_conf.accel_confidence_decay = APPCONF_IMU_ACCEL_CONFIDENCE_DECAY;

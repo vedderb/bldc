@@ -56,5 +56,6 @@ void imu_get_gyro_derotated(float *gyro);
 void imu_get_quaternions(float *q);
 void imu_get_calibration(float yaw, float * imu_cal);
 void imu_set_yaw(float yaw_deg);
+void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, float dt));
 
 #endif /* IMU_IMU_H_ */

@@ -39,6 +39,7 @@ special_sym const special_symbols[] =  {
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
   {"if"         , SYM_IF},
+  {"cond"       , SYM_COND},
   {"lambda"     , SYM_LAMBDA},
   {"closure"    , SYM_CLOSURE},
   {"let"        , SYM_LET},
@@ -53,26 +54,20 @@ special_sym const special_symbols[] =  {
   {"send"         , SYM_SEND},
   {"recv"         , SYM_RECEIVE},
   {"macro"        , SYM_MACRO},
-  {"macro-expand" , SYM_MACRO_EXPAND},
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"setvar"         , SYM_SETVAR},
+  {"setvar"       , SYM_SETVAR},
+  {"exit-ok"      , SYM_EXIT_OK},
+  {"exit-error"   , SYM_EXIT_ERROR},
+  {"map"          , SYM_MAP},
+  {"reverse"      , SYM_REVERSE},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i"         , SYM_MATCH_I},
-  {"?u"         , SYM_MATCH_U},
-  {"?u32"       , SYM_MATCH_U32},
-  {"?i32"       , SYM_MATCH_I32},
-  {"?float"     , SYM_MATCH_FLOAT},
-  {"?cons"      , SYM_MATCH_CONS},
-  {"?u64"       , SYM_MATCH_U64},
-  {"?i64"       , SYM_MATCH_I64},
-  {"?double"    , SYM_MATCH_DOUBLE},
 
-  // Special symbols with unparsable names
+  // Error symbols with parsable names
   {"no_match"           , SYM_NO_MATCH},
   {"read_error"         , SYM_RERROR},
   {"type_error"         , SYM_TERROR},
@@ -81,29 +76,37 @@ special_sym const special_symbols[] =  {
   {"fatal_error"        , SYM_FATAL_ERROR},
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
-  {"sym_array"          , SYM_ARRAY_TYPE},
-  {"sym_raw_i"          , SYM_RAW_I_TYPE},
-  {"sym_raw_u"          , SYM_RAW_U_TYPE},
-  {"sym_raw_f"          , SYM_RAW_F_TYPE},
-  {"sym_ind_i"          , SYM_IND_I_TYPE},
-  {"sym_ind_u"          , SYM_IND_U_TYPE},
-  {"sym_ind_f"          , SYM_IND_F_TYPE},
-  {"sym_stream"         , SYM_STREAM_TYPE},
-  {"sym_recovered"      , SYM_RECOVERED},
-  {"sym_bytecode"       , SYM_BYTECODE_TYPE},
-  {"sym_custom"         , SYM_CUSTOM_TYPE},
-  {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
+  // Special symbols with unparsable names
+  {"$array"          , SYM_ARRAY_TYPE},
+  {"$raw_i"          , SYM_RAW_I_TYPE},
+  {"$raw_u"          , SYM_RAW_U_TYPE},
+  {"$raw_f"          , SYM_RAW_F_TYPE},
+  {"$ind_i"          , SYM_IND_I_TYPE},
+  {"$ind_u"          , SYM_IND_U_TYPE},
+  {"$ind_f"          , SYM_IND_F_TYPE},
+  {"$channel"        , SYM_CHANNEL_TYPE},
+  {"$recovered"      , SYM_RECOVERED},
+  {"$bytecode"       , SYM_BYTECODE_TYPE},
+  {"$custom"         , SYM_CUSTOM_TYPE},
+  {"$nonsense"       , SYM_NONSENSE},
+
   // tokenizer symbols with unparsable names
-  {"sym_openpar"        , SYM_OPENPAR},
-  {"sym_closepar"       , SYM_CLOSEPAR},
-  {"sym_backquote"      , SYM_BACKQUOTE},
-  {"sym_comma"          , SYM_COMMA},
-  {"sym_commaat"        , SYM_COMMAAT},
-  {"sym_dot"            , SYM_DOT},
-  {"sym_tok_done"       , SYM_TOKENIZER_DONE},
-  {"sym_quote_it"       , SYM_QUOTE_IT},
+  {"[openpar]"        , SYM_OPENPAR},
+  {"[closepar]"       , SYM_CLOSEPAR},
+  {"[backquote]"      , SYM_BACKQUOTE},
+  {"[comma]"          , SYM_COMMA},
+  {"[commaat]"        , SYM_COMMAAT},
+  {"[dot]"            , SYM_DOT},
+  {"[done]"           , SYM_TOKENIZER_DONE},
+  {"[quote_it]"       , SYM_QUOTE_IT},
+  {"[colon]"          , SYM_COLON},
+  {"[wait]"           , SYM_TOKENIZER_WAIT},
+  {"[openbrack]"      , SYM_OPENBRACK},
+  {"[closebrack]"     , SYM_CLOSEBRACK},
+  {"[rerror]"         , SYM_TOKENIZER_RERROR},
+  {"[appcont]"        , SYM_APP_CONT},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -120,44 +123,54 @@ special_sym const special_symbols[] =  {
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-ref"         , SYM_TYPE_REF},
-  {"type-stream"      , SYM_TYPE_STREAM},
+  {"type-channel"     , SYM_TYPE_CHANNEL},
   // Fundamental operations
-  {"+"              , SYM_ADD},
-  {"-"              , SYM_SUB},
-  {"*"              , SYM_MUL},
-  {"/"              , SYM_DIV},
-  {"mod"            , SYM_MOD},
-  {"="              , SYM_NUMEQ},
-  {"<"              , SYM_LT},
-  {">"              , SYM_GT},
-  {"<="             , SYM_LEQ},
-  {">="             , SYM_GEQ},
-  {"eval"           , SYM_EVAL},
-  {"eval-program"   , SYM_EVAL_PROGRAM},
-  {"and"            , SYM_AND},
-  {"or"             , SYM_OR},
-  {"not"            , SYM_NOT},
-  {"yield"          , SYM_YIELD},
-  {"wait"           , SYM_WAIT},
-  {"spawn"          , SYM_SPAWN},
-  {"eq"             , SYM_EQ},
-  {"car"            , SYM_CAR},
-  {"cdr"            , SYM_CDR},
-  {"cons"           , SYM_CONS},
-  {"list"           , SYM_LIST},
-  {"append"         , SYM_APPEND},
-  {"array-read"     , SYM_ARRAY_READ},
-  {"array-write"    , SYM_ARRAY_WRITE},
-  {"array-create"   , SYM_ARRAY_CREATE},
-  {"array-size"     , SYM_ARRAY_SIZE},
-  {"type-of"        , SYM_TYPE_OF},
-  {"sym2str"        , SYM_SYMBOL_TO_STRING},
-  {"str2sym"        , SYM_STRING_TO_SYMBOL},
-  {"sym2u"          , SYM_SYMBOL_TO_UINT},
-  {"u2sym"          , SYM_UINT_TO_SYMBOL},
-  {"setcar"         , SYM_SET_CAR},
-  {"setcdr"         , SYM_SET_CDR},
-  {"setix"          , SYM_SET_IX},
+  {"+"                , SYM_ADD},
+  {"-"                , SYM_SUB},
+  {"*"                , SYM_MUL},
+  {"/"                , SYM_DIV},
+  {"mod"              , SYM_MOD},
+  {"="                , SYM_NUMEQ},
+  {"!="               , SYM_NUM_NOT_EQ},
+  {"<"                , SYM_LT},
+  {">"                , SYM_GT},
+  {"<="               , SYM_LEQ},
+  {">="               , SYM_GEQ},
+  {"eval"             , SYM_EVAL},
+  {"eval-program"     , SYM_EVAL_PROGRAM},
+  {"and"              , SYM_AND},
+  {"or"               , SYM_OR},
+  {"not"              , SYM_NOT},
+  {"yield"            , SYM_YIELD},
+  {"wait"             , SYM_WAIT},
+  {"spawn"            , SYM_SPAWN},
+  {"atomic"           , SYM_ATOMIC},
+  {"self"             , SYM_SELF},
+  {"spawn-trap"       , SYM_SPAWN_TRAP},
+  {"set-mailbox-size" , SYM_SET_MAILBOX_SIZE},
+  {"eq"               , SYM_EQ},
+  {"not-eq"           , SYM_NOT_EQ},
+  {"car"              , SYM_CAR},
+  {"cdr"              , SYM_CDR},
+  {"cons"             , SYM_CONS},
+  {"list"             , SYM_LIST},
+  {"append"           , SYM_APPEND},
+  {"undefine"         , SYM_UNDEFINE},
+  {"array-read"       , SYM_ARRAY_READ},
+  {"array-write"      , SYM_ARRAY_WRITE},
+  {"array-create"     , SYM_ARRAY_CREATE},
+  {"array-size"       , SYM_ARRAY_SIZE},
+  {"array-clear"      , SYM_ARRAY_CLEAR},
+  {"type-of"          , SYM_TYPE_OF},
+  {"sym2str"          , SYM_SYMBOL_TO_STRING},
+  {"str2sym"          , SYM_STRING_TO_SYMBOL},
+  {"sym2u"            , SYM_SYMBOL_TO_UINT},
+  {"u2sym"            , SYM_UINT_TO_SYMBOL},
+  {"setcar"           , SYM_SET_CAR},
+  {"setcdr"           , SYM_SET_CDR},
+  {"setix"            , SYM_SET_IX},
+  {"length"           , SYM_LIST_LENGTH},
+  {"range"            , SYM_RANGE},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
   {"cossa"          , SYM_COSSA}, // lookup an association "backwards"
@@ -183,29 +196,16 @@ special_sym const special_symbols[] =  {
   {"to-double"      , SYM_TO_DOUBLE},
   {"to-byte"        , SYM_TO_BYTE},
 
-  // Streams
-//  {"stream-get"     , SYM_STREAM_GET},
-//  {"stream-more"    , SYM_STREAM_MORE},
-//  {"stream-peek"    , SYM_STREAM_PEEK},
-//  {"stream-drop"    , SYM_STREAM_DROP},
-//  {"stream-put"     , SYM_STREAM_PUT},
-
   // fast access in list
   {"ix"             , SYM_IX},
-
-  // Low-level
-  {"encode-i32"     , SYM_ENCODE_I32},
-  {"encode-u32"     , SYM_ENCODE_U32},
-  {"encode-float"   , SYM_ENCODE_FLOAT},
-  {"decode"         , SYM_DECODE},
-
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL},
 
   // aliases
   {"first"          , SYM_CAR},
   {"rest"           , SYM_CDR},
   {"fn"             , SYM_LAMBDA},
-  {"def"            , SYM_DEFINE}
+  {"def"            , SYM_DEFINE},
+  {"true"           , SYM_TRUE},
+  {"false"          , SYM_NIL}
 
 };
 
@@ -216,6 +216,8 @@ static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 
 static lbm_uint symbol_table_size_list = 0;
 static lbm_uint symbol_table_size_strings = 0;
+
+
 
 int lbm_symrepr_init(void) {
   symlist = NULL;
@@ -329,6 +331,14 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+  if (lbm_get_symbol_by_name(name, sym_id))
+    return 1;
+  else if (lbm_add_symbol(name, sym_id))
+    return 1;
+  return 0;
+}
+
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
@@ -364,6 +374,36 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   strcpy(symbol_name_storage, name);
 
   m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_variable_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
+  size_t  n = 0;
+
+  n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
     m[NEXT] = (lbm_uint) NULL;

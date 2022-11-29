@@ -449,7 +449,7 @@
 #define MCCONF_FOC_PHASE_FILTER_ENABLE	true // Use phase voltage filters when available
 #endif
 #ifndef MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT
-#define MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT	false // Disable phase filter fault code
+#define MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT	true // Disable phase filter fault code
 #endif
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
 #define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	4000.0 // Use phase filter up to this ERPM
@@ -503,20 +503,20 @@
 #ifndef MCCONF_M_ENCODER_COUNTS
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts
 #endif
-#ifndef MCCONF_FOC_ENCODER_SIN_GAIN
-#define MCCONF_FOC_ENCODER_SIN_GAIN		1.0		// Sine error gain of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_SIN_AMP
+#define MCCONF_M_ENCODER_SIN_AMP		1.0	// Sine amplitude
 #endif
-#ifndef MCCONF_FOC_ENCODER_SIN_OFFSET
-#define MCCONF_FOC_ENCODER_SIN_OFFSET		1.65	// Sine offset of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_SIN_OFFSET
+#define MCCONF_M_ENCODER_SIN_OFFSET		1.65 // Sine offset of the sin/cos encoder
 #endif
-#ifndef MCCONF_FOC_ENCODER_COS_GAIN
-#define MCCONF_FOC_ENCODER_COS_GAIN		1.0		// Cosine error gain of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_COS_AMP
+#define MCCONF_M_ENCODER_COS_AMP		1.0	// Cosine amplitude
 #endif
-#ifndef MCCONF_FOC_ENCODER_COS_OFFSET
-#define MCCONF_FOC_ENCODER_COS_OFFSET		1.65	// Cosine offset of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_COS_OFFSET
+#define MCCONF_M_ENCODER_COS_OFFSET		1.65 // Cosine offset of the sin/cos encoder
 #endif
-#ifndef MCCONF_FOC_ENCODER_SINCOS_FILTER
-#define MCCONF_FOC_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
+#ifndef MCCONF_M_ENCODER_SINCOS_FILTER
+#define MCCONF_M_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
 #endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
@@ -560,6 +560,9 @@
 #ifndef MCCONF_M_HALL_EXTRA_SAMPLES
 #define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
 #endif
+#ifndef MCCONF_M_BATT_FILTER_CONST
+#define MCCONF_M_BATT_FILTER_CONST		45 // Battery level filter constant
+#endif
 
 // Setup Info
 #ifndef MCCONF_SI_MOTOR_POLES
@@ -587,6 +590,9 @@
 // BMS
 #ifndef MCCONF_BMS_TYPE
 #define MCCONF_BMS_TYPE					BMS_TYPE_VESC
+#endif
+#ifndef MCCONF_BMS_LIMIT_MODE
+#define MCCONF_BMS_LIMIT_MODE			3
 #endif
 #ifndef MCCONF_BMS_T_LIMIT_START
 #define MCCONF_BMS_T_LIMIT_START		45
