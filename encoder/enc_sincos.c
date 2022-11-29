@@ -60,9 +60,9 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 			angle = cfg->state.last_enc_angle;
 
 		} else {
-			//float last_angle = cfg->state.last_enc_angle;
+			float last_angle = cfg->state.last_enc_angle;
 			float new_angle = RAD2DEG_f(utils_fast_atan2(sin, cos));
-			angle = new_angle; //UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant); //TODO debug and enable filtering
+			angle = UTILS_LP_FAST(last_angle,new_angle,cfg->filter_constant);//cfg->filter_constant); //TODO debug and enable filtering
 		}
 	}
 	
