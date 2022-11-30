@@ -28,7 +28,7 @@
 #define HW_HAS_DRV8323S
 #define HW_HAS_3_SHUNTS
 
-// drv8323s_write_reg(3,0x3af); \
+// drv8323s_write_reg(3,0x3af);
 // drv8323s_write_reg(4,0x7af);
 
 #define DRV8323S_CUSTOM_SETTINGS()		drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
@@ -239,8 +239,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_SW
-#define MCCONF_FOC_F_SW                 20000.0
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV                 20000.0
 #endif
 
 // Setting limits
