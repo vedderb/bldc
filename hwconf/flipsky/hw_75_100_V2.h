@@ -13,8 +13,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 	
-#ifndef HW_75_100_H_
-#define HW_75_100_H_
+#ifndef HW_75_100_V2_H_
+#define HW_75_100_V2_H_
 
 #define HW_NAME					"75_100_V2"
 
@@ -282,4 +282,4 @@
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-#endif /* HW_75_100_H_ */
+#endif /* HW_75_100_V2_H_ */
