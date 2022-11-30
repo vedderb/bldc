@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_H_
-#define HW_60_H_
+#ifndef HW_GO_FOC_DV6_PRO_H_
+#define HW_GO_FOC_DV6_PRO_H_
 
 #ifdef HW60_IS_MK3
 #define HW_NAME					"60_MK3"
@@ -272,7 +272,7 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_YUTW)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12
@@ -297,16 +297,6 @@
 #define HW_SPI_PIN_MISO			6
 
 // SPI for DRV8301
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_YUTW)
-#define DRV8301_MOSI_GPIO		GPIOB
-#define DRV8301_MOSI_PIN		4
-#define DRV8301_MISO_GPIO		GPIOB
-#define DRV8301_MISO_PIN		3
-#define DRV8301_SCK_GPIO		GPIOC
-#define DRV8301_SCK_PIN			10
-#define DRV8301_CS_GPIO			GPIOC
-#define DRV8301_CS_PIN			9
-#else
 #define DRV8301_MOSI_GPIO		GPIOC
 #define DRV8301_MOSI_PIN		12
 #define DRV8301_MISO_GPIO		GPIOC
@@ -315,7 +305,7 @@
 #define DRV8301_SCK_PIN			10
 #define DRV8301_CS_GPIO			GPIOC
 #define DRV8301_CS_PIN			9
-#endif
+
 
 // MPU9250
 #if !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5)
@@ -353,6 +343,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Default setting overrides
+#define MCCONF_FOC_PHASE_FILTER_ENABLE	false
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
@@ -365,7 +356,7 @@
 
 // Setting limits
 #define HW_LIM_CURRENT			-180.0, 180.0//-120.0, 120.0
-#define HW_LIM_CURRENT_IN  -180.0, 180.0//-120.0, 120.0
+#define HW_LIM_CURRENT_IN		-180.0, 180.0//-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		0.0, 250.0//0.0, 160.0
 #define HW_LIM_VIN				6.0, 57.0
 #define HW_LIM_ERPM				-200e3, 200e3
@@ -378,4 +369,4 @@
 bool hw_sample_shutdown_button(void);
 #endif
 
-#endif /* HW_60_H_ */
+#endif /* HW_GO_FOC_DV6_PRO_H_ */

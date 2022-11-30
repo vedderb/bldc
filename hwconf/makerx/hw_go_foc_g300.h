@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_100_250_H_
-#define HW_100_250_H_
+#ifndef HW_GO_FOC_G100_H_
+#define HW_GO_FOC_G100_H_
 
 #define HW_NAME					"Go-FOC G300"
 
@@ -280,12 +280,10 @@
 // HW-specific functions
 float hw100_250_get_temp(void);
 
-//#endif /* HW_100_250_H_ */
-
 // Functions
 bool hw_sample_shutdown_button(void);
 
-#endif 
+#endif /* HW_GO_FOC_G100_H_ */
 
 
 

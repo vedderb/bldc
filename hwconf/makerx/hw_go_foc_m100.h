@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_100_250_H_
-#define HW_100_250_H_
+#ifndef HW_GO_FOC_M100_H_
+#define HW_GO_FOC_M100_H_
 
 #define HW_NAME					"Go-FOC M100"
 
@@ -265,4 +265,4 @@
 // HW-specific functions
 float hw100_250_get_temp(void);
 
-#endif /* HW_100_250_H_ */
+#endif /* HW_GO_FOC_M100_H_ */
