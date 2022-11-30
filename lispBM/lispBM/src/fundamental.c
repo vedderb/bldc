@@ -924,25 +924,33 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs != 2) return ENC_SYM_TERROR;
+  if (nargs < 2) return ENC_SYM_TERROR;
 
-  lbm_value a = args[0];
-  lbm_value b = args[1];
+  lbm_value res = args[nargs-1];
 
-  lbm_value result = b;
-  lbm_value curr = a;
-  int n = 0;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    n++;
-    curr = lbm_cdr(curr);
+  for (int i = (int)nargs -2; i >= 0; i --) {
+
+    lbm_value curr = args[i];
+    int n = 0;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+      n++;
+      curr = lbm_cdr(curr);
+    }
+
+    curr = args[i];
+
+    bool err = false;
+    for (int j = n-1; j >= 0; j --) {
+      res = lbm_cons(index_list(curr,j), res);
+      if (lbm_is_symbol(res)) {
+        err = true;
+        break;
+      }
+    }
+    if(err) break;
   }
 
-  for (int i = n-1; i >= 0; i --) {
-    result = lbm_cons(index_list(a,i), result);
-    if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
-      break;
-  }
-  return result;
+  return res;
 }
 
 static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
