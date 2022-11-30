@@ -2835,7 +2835,13 @@ static void cont_read_quote_result(eval_context_t *ctx) {
 }
 
 static void cont_read_backquote_result(eval_context_t *ctx) {
+  // The entire expression is in ctx->r
+  // and is thus protected from GC
   lbm_value expanded = lbm_qq_expand(ctx->r);
+  if (lbm_is_error(expanded)) {
+    error_ctx(expanded);
+    return;
+  }
   ctx->r = expanded;
   ctx->app_cont = true;
 }

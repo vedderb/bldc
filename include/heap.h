@@ -770,6 +770,14 @@ static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
 }
 
+static inline bool lbm_is_quoted_list(lbm_value x) {
+  return (lbm_is_cons(x) &&
+          lbm_is_symbol(lbm_car(x)) &&
+          (lbm_dec_sym(lbm_car(x)) == SYM_QUOTE) &&
+          lbm_is_cons(lbm_cdr(x)) &&
+          lbm_is_cons(lbm_car(lbm_cdr(x))));
+}
+
 #ifndef LBM64
 #define ERROR_SYMBOL_MASK 0xFFFFFF20
 #else
