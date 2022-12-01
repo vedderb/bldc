@@ -156,6 +156,8 @@ typedef struct {
 	float c_offset;
 	float filter_constant;
 	float phase_correction;
+	float sph;
+	float cph;
 
 	ENCSINCOS_state state;
 } ENCSINCOS_config_t;

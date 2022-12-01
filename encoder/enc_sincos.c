@@ -54,19 +54,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	cos = cfg->state.cos_filter;
 
 	//phase error compensation
-	if (cfg->filter_constant == 0.11){
-		float sph,cph;
-		sph = sinf(DEG2RAD_f(cfg->phase_correction));
-		cph = cosf(DEG2RAD_f(cfg->phase_correction));
-		//utils_fast_sincos_better(DEG2RAD_f(cfg->phase_correction), &sph, &cph); //todo constant values, compute only once
-		cos = (cos + sin*sph)/cph;
-    }
-	if (cfg->filter_constant == 0.12){
-		cos = 0;
-    }
-	if (cfg->filter_constant == 0.13){
-		cos = (cos + sin*0.139173101)/0.990268069;
-    }
+	cos = (cos + sin*cfg->sph)/cfg->cph;
 
 
 	float module = SQ(sin) + SQ(cos);
