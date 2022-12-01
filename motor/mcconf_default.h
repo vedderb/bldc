@@ -518,6 +518,9 @@
 #ifndef MCCONF_M_ENCODER_SINCOS_FILTER
 #define MCCONF_M_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
 #endif
+#ifndef MCCONF_M_ENCODER_SINCOS_PHASE
+#define MCCONF_M_ENCODER_SINCOS_PHASE		0.0		// Sin/Cos Encoder signal phase correction
+#endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
 #endif
