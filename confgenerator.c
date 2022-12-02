@@ -169,6 +169,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_encoder_sin_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->m_encoder_cos_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->m_encoder_sincos_filter_constant, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sincos_phase_correction, 1000, &ind);
 	buffer[ind++] = conf->m_sensor_port_mode;
 	buffer[ind++] = conf->m_invert_direction;
 	buffer[ind++] = conf->m_drv8301_oc_mode;
@@ -565,6 +566,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sincos_phase_correction = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_sensor_port_mode = buffer[ind++];
 	conf->m_invert_direction = buffer[ind++];
 	conf->m_drv8301_oc_mode = buffer[ind++];
@@ -957,6 +959,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_encoder_sin_offset = MCCONF_M_ENCODER_SIN_OFFSET;
 	conf->m_encoder_cos_offset = MCCONF_M_ENCODER_COS_OFFSET;
 	conf->m_encoder_sincos_filter_constant = MCCONF_M_ENCODER_SINCOS_FILTER;
+	conf->m_encoder_sincos_phase_correction = MCCONF_M_ENCODER_SINCOS_PHASE;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
