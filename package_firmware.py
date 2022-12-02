@@ -126,7 +126,7 @@ package_dict["75_100"] = [['75_100', default_name],
                     ['75_100_no_limits', no_limits_name]]
 package_dict["75_100_V2"] = [['75_100_V2', default_name],
                     ['75_100_V2_no_limits', no_limits_name],
-                    ['hw_75_100_V2_0005ohm', 'VESC_0005ohm.bin']]
+                    ['75_100_V2_0005ohm', 'VESC_0005ohm.bin']]
 package_dict["GO_FOC_DV6_PRO"] = [['go_foc_dv6_pro', default_name],
                     ['go_foc_dv6_pro_no_limits', no_limits_name]]
 package_dict["GO_FOC_G300"] = [['go_foc_g300', default_name],
@@ -137,7 +137,6 @@ package_dict["GO_FOC_HV200"] = [['go_foc_hv200', default_name],
                     ['go_foc_hv200_no_limits', no_limits_name]]
 package_dict["GO_FOC_M100"] = [['go_foc_m100', default_name],
                     ['go_foc_m100_no_limits', no_limits_name]]
-
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
