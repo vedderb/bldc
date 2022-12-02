@@ -1094,6 +1094,36 @@ static lbm_value ext_stats_reset(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(2);
+
+	if (!lbm_is_number(args[0])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	int id = lbm_dec_as_i32(args[0]);
+	if (id < 0 || id > 255) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *str = lbm_dec_str(args[1]);
+	if (!str) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+
+	uint8_t *send_buf = mempools_get_packet_buffer();
+	send_buf[0] = COMM_LISP_REPL_CMD;
+	memcpy(send_buf + 1, array->data, array->size);
+	comm_can_send_buffer(id, send_buf, array->size + 1, 2);
+	mempools_free_packet_buffer(send_buf);
+
+	return ENC_SYM_TRUE;
+}
+
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 	if (argn == 1){
@@ -4448,6 +4478,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-scan", ext_can_scan);
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
+	lbm_add_extension("can-cmd", ext_can_cmd);
 
 	// Math
 	lbm_add_extension("sin", ext_sin);

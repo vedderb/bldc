@@ -911,6 +911,27 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 
 Same as (can-send-sid), but sends extended ID frame.
 
+#### can-cmd
+
+```clj
+(can-cmd id cmd)
+```
+
+Execute command cmd on CAN-device with ID id. The command cmd is sent as a string and will be parsed and evaluated by the receiver.
+
+This is useful to execute arbitrary code on a CAN-device that is not covered by the other [CAN-Commands](#can-commands). This function has more overhead than other CAN-Commands, so if possible they should be used instead.
+
+Example:
+
+```clj
+; Configuration update on ID54:
+(can-cmd 54 "(conf-set max-speed 10.0)")
+
+; The string-functions can be used for setting something from a variable
+(def max-speed-kmh 25.0)
+(can-cmd 54 (str-from-n (/ max-speed-kmh 3.6) "(conf-set 'max-speed %.3f)"))
+```
+
 ### Math Functions
 
 #### sin

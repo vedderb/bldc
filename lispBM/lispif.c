@@ -345,9 +345,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 				if (ok) {
 					lbm_create_string_char_channel(&string_tok_state, &string_tok, (char*)data);
-					repl_cid = lbm_load_and_eval_expression(&string_tok);
-					lbm_continue_eval();
-					lbm_wait_ctx(repl_cid, 500);
+					if (reply_func != NULL) {
+						repl_cid = lbm_load_and_eval_expression(&string_tok);
+						lbm_continue_eval();
+						lbm_wait_ctx(repl_cid, 500);
+					}
 					repl_cid = -1;
 				} else {
 					commands_printf_lisp("Could not pause");
