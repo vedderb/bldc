@@ -53,9 +53,8 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	sin = cfg->state.sin_filter;
 	cos = cfg->state.cos_filter;
 
-	//phase error compensation
-	cos = (cos + sin*cfg->sph)/cfg->cph;
-
+	// phase error compensation
+	cos = (cos + sin * cfg->sph) / cfg->cph;
 
 	float module = SQ(sin) + SQ(cos);
 
