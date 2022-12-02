@@ -1115,6 +1115,10 @@ static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
 
 	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
 
+	if (array->size > 500) {
+		return ENC_SYM_EERROR;
+	}
+
 	uint8_t *send_buf = mempools_get_packet_buffer();
 	send_buf[0] = COMM_LISP_REPL_CMD;
 	memcpy(send_buf + 1, array->data, array->size);
