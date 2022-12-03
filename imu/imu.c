@@ -179,7 +179,7 @@ void imu_reset_orientation(void) {
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
-	ahrs_update_all_parameters(&m_att, 1.0, 10.0, 0.0, 2.0);
+	ahrs_update_all_parameters(&m_att, 1.0, 0.3, 0.0, 0.1);
 }
 
 i2c_bb_state *imu_get_i2c(void) {
