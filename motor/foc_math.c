@@ -658,7 +658,9 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 		float duty_abs = motor->m_duty_abs_filtered;
 
 		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
-				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
+			(duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) &&
+			(fabsf(RADPS2RPM_f(motor->m_motor_state.speed_rad_s)) > motor->m_conf->hall_sl_erpm)) {
+
 			fw_current_now = utils_map(duty_abs,
 					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
 					motor->m_conf->l_max_duty,
