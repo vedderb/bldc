@@ -47,25 +47,14 @@ extern int lbm_perform_gc(void);
       return (y);                  \
   }
 
-#define WITH_GC_1(y, x, r1)        \
-  (y) = (x);                       \
-  if (lbm_is_symbol_merror((y))) { \
-    lbm_gc_mark_phase(r1);         \
-    lbm_perform_gc();              \
-    (y) = (x);                     \
-    if (lbm_is_error((y)))         \
-      return (y);                  \
-  }
-
-#define WITH_GC_2(y, x, r1, r2)    \
-  (y) = (x);                       \
-  if (lbm_is_symbol_merror((y))) { \
-    lbm_gc_mark_phase(r1);         \
-    lbm_gc_mark_phase(r2);         \
-    lbm_perform_gc();              \
-    (y) = (x);                     \
-    if (lbm_is_error((y)))         \
-      return (y);                  \
+#define WITH_GC_RMBR(y, x, n, ...)         \
+  (y) = (x);                               \
+  if (lbm_is_symbol_merror((y))) {         \
+    lbm_gc_mark_phase((n), __VA_ARGS__);   \
+    lbm_perform_gc();                      \
+    (y) = (x);                             \
+    if (lbm_is_error((y)))                 \
+      return (y);                          \
   }
 
 lbm_value quote_it(lbm_value qquoted) {
@@ -74,9 +63,9 @@ lbm_value quote_it(lbm_value qquoted) {
        lbm_is_fundamental(qquoted))) return qquoted;
 
   lbm_value val;
-  WITH_GC_1(val, lbm_cons(qquoted, ENC_SYM_NIL), qquoted);
+  WITH_GC_RMBR(val, lbm_cons(qquoted, ENC_SYM_NIL), 1, qquoted);
   lbm_value q;
-  WITH_GC_1(q, lbm_cons(ENC_SYM_QUOTE, val), val);
+  WITH_GC_RMBR(q, lbm_cons(ENC_SYM_QUOTE, val), 1, val);
   return q;
 }
 
@@ -113,9 +102,9 @@ lbm_value append(lbm_value front, lbm_value back) {
   if (is_append(back)) {
     back  = lbm_cdr(back);
     lbm_value new;
-    WITH_GC_2(new, lbm_cons(front, back), front, back);
+    WITH_GC_RMBR(new, lbm_cons(front, back), 2, front, back);
     lbm_value tmp;
-    WITH_GC_1(tmp, lbm_cons(ENC_SYM_APPEND, new),new);
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_APPEND, new), 1, new);
     return tmp;
   }
 
@@ -155,7 +144,7 @@ lbm_value qq_expand_list(lbm_value l) {
       lbm_value tl;
       WITH_GC(tl, lbm_cons(lbm_car(cdr_val), ENC_SYM_NIL));
       lbm_value tmp;
-      WITH_GC_1(tmp, lbm_cons(ENC_SYM_LIST, tl), tl);
+      WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, tl), 1, tl);
       res = tmp;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
@@ -170,10 +159,10 @@ lbm_value qq_expand_list(lbm_value l) {
       RET_ON_ERROR(apnd, append(expand_car, expand_cdr));
 
       lbm_value apnd_app;
-      WITH_GC_1(apnd_app, lbm_cons(apnd, ENC_SYM_NIL), apnd);
+      WITH_GC_RMBR(apnd_app, lbm_cons(apnd, ENC_SYM_NIL), 1, apnd);
 
       lbm_value tmp;
-      WITH_GC_1(tmp, lbm_cons(ENC_SYM_LIST, apnd_app), apnd_app);
+      WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, apnd_app), 1, apnd_app);
       res = tmp;
     }
     break;
@@ -181,9 +170,9 @@ lbm_value qq_expand_list(lbm_value l) {
     lbm_value a_list;
     WITH_GC(a_list, lbm_cons(l, ENC_SYM_NIL));
     lbm_value tl;
-    WITH_GC_1(tl, lbm_cons(a_list, ENC_SYM_NIL), a_list);
+    WITH_GC_RMBR(tl, lbm_cons(a_list, ENC_SYM_NIL), 1, a_list);
     lbm_value tmp;
-    WITH_GC_1(tmp, lbm_cons(ENC_SYM_QUOTE, tl), tl);
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_QUOTE, tl), 1, tl);
     res = tmp;
   }
   }
