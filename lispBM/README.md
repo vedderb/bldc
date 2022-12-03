@@ -611,6 +611,13 @@ Get duty cycle. Range -1.0 to 1.0.
 
 Get motor RPM. Negative values mean that the motor spins in the reverse direction.
 
+#### get-pos
+```clj
+(get-pos)
+```
+
+Get motor position. Returns the motor PID pos (taking into account the Position Angle Division)
+
 #### get-temp-fet
 ```clj
 (get-temp-fet optFet)

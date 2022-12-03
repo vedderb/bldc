@@ -1375,6 +1375,11 @@ static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_rpm());
 }
 
+static lbm_value ext_get_pos(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_pid_pos_now());
+}
+
 static lbm_value ext_get_temp_fet(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
@@ -4436,6 +4441,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-vq", ext_get_vq);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
+	lbm_add_extension("get-pos", ext_get_pos);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
