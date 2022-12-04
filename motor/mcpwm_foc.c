@@ -2855,8 +2855,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		if (control_duty) {
+			float scale = 1.0 / motor_now->m_motor_state.v_bus;
+
 			// Duty cycle control
-			if (fabsf(duty_set) < (duty_abs - 0.05) ||
+			if (fabsf(duty_set) < (duty_abs - (scale * conf_now->foc_motor_r * conf_now->lo_current_max)) ||
 					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
@@ -2873,9 +2875,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 						}
 					}
 				}
-
-				// Compensation for supply voltage variations
-				float scale = 1.0 / motor_now->m_motor_state.v_bus;
 
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;
