@@ -977,6 +977,7 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 1000;i++) {
 					timeout_reset();
+					mc_interface_lock_override_once();
 					mc_interface_set_openloop_phase((float)i * current / 1000.0, phase);
 					fault = mc_interface_get_fault();
 					if (fault != FAULT_CODE_NONE) {
@@ -1021,6 +1022,7 @@ void terminal_process_string(char *str) {
 
 						phase += 1.0;
 						timeout_reset();
+						mc_interface_lock_override_once();
 						mc_interface_set_openloop_phase(current, phase);
 						fault = mc_interface_get_fault();
 						if (fault != FAULT_CODE_NONE) {
