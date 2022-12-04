@@ -430,6 +430,15 @@ static bool is_symbol_true_false(lbm_value v) {
 	return res;
 }
 
+static bool pause_gc(uint32_t num_free, int timeout_cnt) {
+	lbm_pause_eval_with_gc(num_free);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	return timeout_cnt > 0;
+}
+
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
@@ -3501,7 +3510,16 @@ static void measure_res_task(void *arg) {
 	measure_res_args *a = (measure_res_args*)arg;
 	float res = -1.0;
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
-	lbm_unblock_ctx(a->id, lbm_enc_float(res));
+
+	lispif_lock_lbm();
+	if (pause_gc(5, 1000)) {
+		lbm_unblock_ctx(a->id, lbm_enc_float(res));
+	} else {
+		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	}
+
+	lbm_continue_eval();
+	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
@@ -3513,7 +3531,6 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
 	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
-		lbm_set_error_reason("Motor type must be FOC");
 		return ENC_SYM_EERROR;
 	}
 
@@ -4216,15 +4233,6 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
 // Event ringbuffer
-
-static bool pause_gc(uint32_t num_free, int timeout_cnt) {
-	lbm_pause_eval_with_gc(num_free);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	return timeout_cnt > 0;
-}
 
 typedef enum {
 	EXT_EVENT_SYM = 0,
