@@ -977,7 +977,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		return fault;
 	}
 	// Calculate kp and ki from supplied resistance and inductance, default to 1000us time constant.
-	float tc = 1000;
+	float tc = 1500;
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = ind * bw;
 	float ki = res * bw;
@@ -987,6 +987,10 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	*mcconf = *mc_interface_get_configuration();
 	*mcconf_old = *mcconf;
+
+	if (duty > (mcconf->l_max_duty * 0.9)) {
+		duty = mcconf->l_max_duty * 0.9;
+	}
 
 	mcconf->motor_type = MOTOR_TYPE_FOC;
 	mcconf->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
