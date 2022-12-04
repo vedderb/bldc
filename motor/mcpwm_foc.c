@@ -1978,6 +1978,7 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 	int fault = FAULT_CODE_NONE;
 	float duty_last = 0.0;
 	for (float i = 0.02;i < 0.5;i *= 1.5) {
+		utils_truncate_number_abs(&i, 0.6);
 		float i_tmp;
 		fault = mcpwm_foc_measure_inductance(i, 10, &i_tmp, 0, 0);
 		if (fault != FAULT_CODE_NONE) {
@@ -2112,6 +2113,8 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
 	if (fault == FAULT_CODE_NONE && *res != 0.0) {
 		motor->m_conf->foc_motor_r = *res;
+		mcpwm_foc_set_current(0.0);
+		chThdSleepMilliseconds(10);
 		fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
 	}
 
