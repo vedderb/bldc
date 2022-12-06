@@ -272,6 +272,15 @@ typedef enum {
 	CFG_PARAM_IMU_rot_yaw,
 } CFG_PARAM;
 
+typedef struct {
+	float js_x; // Joystick X, range -1.0 to 1.0 (mostly unused or unavailable)
+	float js_y; // Joystick Y, range -1.0 to 1.0 (this is the throttle value on most remotes)
+	bool bt_c; // Button C pressed (left on wand)
+	bool bt_z; // Button Z pressed (right on wand)
+	bool is_rev; // True if the remote is in the reverse state (can be toggled on e.g the wand)
+	float age_s; // Age of last update in seconds
+} remote_state;
+
 /*
  * Function pointer struct. Always add new function pointers to the end in order to not
  * break compatibility with old binaries.
@@ -556,6 +565,11 @@ typedef struct {
 
 	// Store backup data
 	bool (*store_backup_data)(void);
+
+	// Input Devices
+	remote_state (*get_remote_state)(void);
+	float (*get_ppm)(void); // Get decoded PPM, range 0.0 to 1.0. If the decoder is not running it will be started.
+	float (*get_ppm_age)(void); // Get time since a pulse was decoded in seconds
 } vesc_c_if;
 
 typedef struct {

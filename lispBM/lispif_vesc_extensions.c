@@ -906,6 +906,7 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 	imu_get_gyro_derotated(gyro);
 
 	lbm_value state = ENC_SYM_NIL;
+	state = lbm_cons(lbm_enc_float(app_nunchuk_get_update_age()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_is_rev()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_z()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_c()), state);

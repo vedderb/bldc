@@ -71,6 +71,7 @@ float app_nunchuk_get_decoded_y(void);
 bool app_nunchuk_get_bt_c(void);
 bool app_nunchuk_get_bt_z(void);
 bool app_nunchuk_get_is_rev(void);
+float app_nunchuk_get_update_age(void);
 void app_nunchuk_update_output(chuck_data *data);
 
 void app_balance_start(void);

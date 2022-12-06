@@ -39,6 +39,8 @@
 #include "ahrs.h"
 #include "encoder.h"
 #include "conf_general.h"
+#include "servo_dec.h"
+#include "servo_simple.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -567,6 +569,30 @@ static void lib_mutex_unlock(lib_mutex m) {
 	chMtxUnlock((mutex_t*)m);
 }
 
+static remote_state lib_get_remote_state(void) {
+	remote_state res;
+	res.js_x = app_nunchuk_get_decoded_x();
+	res.js_y = app_nunchuk_get_decoded_y();
+	res.bt_c = app_nunchuk_get_bt_c();
+	res.bt_z = app_nunchuk_get_bt_z();
+	res.is_rev = app_nunchuk_get_is_rev();
+	res.age_s = app_nunchuk_get_update_age();
+	return res;
+}
+
+static float lib_get_ppm(void) {
+	if (!servodec_is_running()) {
+		servo_simple_stop();
+		servodec_init(0);
+	}
+
+	return servodec_get_servo(0);
+}
+
+static float lib_get_ppm_age(void) {
+	return (float)servodec_get_time_since_update() / 1000.0;
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -848,6 +874,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Store backup data
 		cif.cif.store_backup_data = conf_general_store_backup_data;
+
+		// Input Devices
+		cif.cif.get_remote_state = lib_get_remote_state;
+		cif.cif.get_ppm = lib_get_ppm;
+		cif.cif.get_ppm_age = lib_get_ppm_age;
 
 		lib_init_done = true;
 	}
