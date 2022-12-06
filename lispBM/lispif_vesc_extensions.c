@@ -488,6 +488,10 @@ static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	if (!servodec_is_running()) {
 		servo_simple_stop();
 		servodec_init(0);
+		servodec_set_pulse_options(
+				app_get_configuration()->app_ppm_conf.pulse_start,
+				app_get_configuration()->app_ppm_conf.pulse_end,
+				app_get_configuration()->app_ppm_conf.median_filter);
 	}
 
 	return lbm_enc_float(servodec_get_servo(0));
