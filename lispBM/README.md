@@ -58,7 +58,7 @@ Reset the timeout that stops the motor. This has to be run on at least every sec
 (get-ppm)
 ```
 
-Read the decoded value on the PPM input, range 0.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
+Read the decoded value on the PPM input, range -1.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
 
 ```clj
 (print (str-from-n (get-ppm) "PPM Value: %.2f"))
