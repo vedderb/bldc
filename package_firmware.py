@@ -67,7 +67,10 @@ package_dict["LUNA_M600_V2"] = [['luna_m600', default_name]]
 package_dict["LUNA_M600_V2_Rev5"] = [['luna_m600_Rev5', default_name]]
 package_dict["UNITY"] = [['unity', default_name],
                     ['unity_no_limits', no_limits_name]]
-package_dict["Cheap_FOCer_2"] = [['Cheap_FOCer_2', default_name]]
+package_dict["Cheap_FOCer_2"] = [['Cheap_FOCer_2', default_name],
+                    ['Cheap_FOCer_2_no_limits', no_limits_name]]
+package_dict["Cheap_FOCer_2_V09"] = [['Cheap_FOCer_2_V09', default_name],
+                    ['Cheap_FOCer_2_V09_no_limits', no_limits_name]]
 package_dict["STORMCORE_60D"] = [['stormcore_60d', default_name],
                     ['stormcore_60d_no_limits', no_limits_name]]
 package_dict["STORMCORE_60Dxs"] = [['stormcore_60dxs', default_name],
@@ -137,6 +140,10 @@ package_dict["GO_FOC_HV200"] = [['go_foc_hv200', default_name],
                     ['go_foc_hv200_no_limits', no_limits_name]]
 package_dict["GO_FOC_M100"] = [['go_foc_m100', default_name],
                     ['go_foc_m100_no_limits', no_limits_name]]
+package_dict["SOLO"] = [['solo', default_name],
+                    ['solo_no_limits', no_limits_name]]
+package_dict["FSESC_75_200_ALU"] = [['fsesc_75_200_alu', default_name],
+                    ['fsesc_75_200_alu_no_limits', no_limits_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
