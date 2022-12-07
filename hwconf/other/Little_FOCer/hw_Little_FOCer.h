@@ -17,9 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Little_FOCer_H_
-#define HW_Little_FOCer_H_
+#ifndef HW_LITTLE_FOCER_H_
+#define HW_LITTLE_FOCER_H_
+
+#define LFOC_IS_V1
 
 #include "hw_Little_FOCer_core.h"
 
-#endif /* HW_Little_FOCer_H_ */
+#endif /* HW_LITTLE_FOCER_H_ */
