@@ -21,14 +21,14 @@
 #define HW_LITTLE_FOCER_CORE_H_
 
 #ifdef LFOC_IS_V3_1
-#define HW_NAME                 "Little_FOCer_V3_1"
-#define LFOC_IS_V3
+  #define HW_NAME                 "Little_FOCer_V3_1"
+  #define LFOC_IS_V3
+#elif defined(LFOC_IS_V3)
+  #define HW_NAME                 "Little_FOCer_V3"
+#elif defined(LFOC_IS_V1)
+  #define HW_NAME                 "Little_FOCer"
 #else
-#ifdef LFOC_IS_V3
-#define HW_NAME                 "Little_FOCer_V3"
-#else
-#define HW_NAME                 "Little_FOCer"
-#endif
+  #error "Must define hardware type"
 #endif
 
 // HW properties
