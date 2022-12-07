@@ -870,6 +870,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.get_remote_state = lib_get_remote_state;
 		cif.cif.get_ppm = lispif_get_ppm;
 		cif.cif.get_ppm_age = lib_get_ppm_age;
+		cif.cif.app_is_output_disabled = app_is_output_disabled;
 
 		lib_init_done = true;
 	}

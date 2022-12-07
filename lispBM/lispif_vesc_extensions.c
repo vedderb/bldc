@@ -1230,6 +1230,11 @@ static lbm_value ext_app_disable_output(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_app_is_output_disabled(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return app_is_output_disabled() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
 static lbm_value ext_app_pas_get_rpm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(app_pas_get_pedal_rpm());
@@ -4419,6 +4424,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("app-ppm-override", ext_app_ppm_override);
 	lbm_add_extension("set-remote-state", ext_set_remote_state);
 	lbm_add_extension("app-disable-output", ext_app_disable_output);
+	lbm_add_extension("app-is-output-disabled", ext_app_is_output_disabled);
 	lbm_add_extension("app-pas-get-rpm", ext_app_pas_get_rpm);
 
 	// Motor set commands
