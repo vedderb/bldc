@@ -36,6 +36,7 @@
 
 // Functions
 bool encoder_init(volatile mc_configuration *conf);
+void encoder_update_config(volatile mc_configuration *conf);
 void encoder_deinit(void);
 
 void encoder_set_custom_callbacks (

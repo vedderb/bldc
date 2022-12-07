@@ -309,6 +309,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
 		encoder_init(configuration);
+	} else {
+		encoder_update_config(configuration);
 	}
 
 #ifdef HW_HAS_DRV8301

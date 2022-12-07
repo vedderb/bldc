@@ -283,6 +283,22 @@ bool encoder_init(volatile mc_configuration *conf) {
 	return res;
 }
 
+void encoder_update_config(volatile mc_configuration *conf) {
+	switch (conf->m_sensor_port_mode) {
+	case SENSOR_PORT_MODE_SINCOS: {
+		encoder_cfg_sincos.s_gain = 1.0 / conf->m_encoder_sin_amp;
+		encoder_cfg_sincos.s_offset = conf->m_encoder_sin_offset;
+		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
+		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
+		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
+	} break;
+
+	default:
+		break;
+	}
+}
+
 void encoder_deinit(void) {
 	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
