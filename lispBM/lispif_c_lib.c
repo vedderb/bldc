@@ -589,7 +589,20 @@ static float lib_get_ppm(void) {
 	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
 	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
 
-	return servodec_get_servo(0);
+	float servo_val = servodec_get_servo(0);
+	float servo_ms = utils_map(servo_val, -1.0, 1.0, cfg->pulse_start, cfg->pulse_end);
+
+	// Mapping with respect to center pulsewidth
+	if (servo_ms < cfg->pulse_center) {
+		servo_val = utils_map(servo_ms, cfg->pulse_start,
+				cfg->pulse_center, -1.0, 0.0);
+	} else {
+		servo_val = utils_map(servo_ms, cfg->pulse_center,
+				cfg->pulse_end, 0.0, 1.0);
+	}
+	float input_val = servo_val;
+
+	return input_val;
 }
 
 static float lib_get_ppm_age(void) {
