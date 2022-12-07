@@ -17,10 +17,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Cheap_FOCer_2
-#define HW_Cheap_FOCer_2
+#ifndef HW_CHEAP_FOCER_2_CORE_H_
+#define HW_CHEAP_FOCER_2_CORE_H_
 
-#define HW_NAME					"Cheap_FOCer_2"
+#ifdef CFOC_IS_V09
+  #define HW_NAME                 "Cheap_FOCer_2_v09"
+#elif defined(CFOC_IS_V10)
+  #define HW_NAME                 "Cheap_FOCer_2"
+#else
+  #error "Must define hardware type"
+#endif
 
 // HW properties
 #define HW_HAS_DRV8301
@@ -103,7 +109,11 @@
 #define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
+#ifdef CFOC_IS_V09
+#define CURRENT_AMP_GAIN		20
+#else
 #define CURRENT_AMP_GAIN		10
+#endif
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		0.0005
@@ -299,4 +309,4 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 
-#endif /* HW_Cheap_FOCer_2 */
+#endif /* HW_CHEAP_FOCER_2_CORE_H_ */
