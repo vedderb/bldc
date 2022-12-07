@@ -987,13 +987,10 @@ float lispif_get_ppm(void) {
 
 	// Mapping with respect to center pulsewidth
 	if (servo_ms < cfg->pulse_center) {
-		servo_val = utils_map(servo_ms, cfg->pulse_start,
-				cfg->pulse_center, -1.0, 0.0);
+		servo_val = utils_map(servo_ms, cfg->pulse_start, cfg->pulse_center, -1.0, 0.0);
 	} else {
-		servo_val = utils_map(servo_ms, cfg->pulse_center,
-				cfg->pulse_end, 0.0, 1.0);
+		servo_val = utils_map(servo_ms, cfg->pulse_center, cfg->pulse_end, 0.0, 1.0);
 	}
-	float input_val = servo_val;
 
-	return input_val;
+	return servo_val;
 }
