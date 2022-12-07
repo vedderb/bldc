@@ -37,6 +37,7 @@ bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin);
 void lispif_stop_lib(void);
 void* lispif_malloc(size_t size);
 void lispif_free(void *ptr);
+float lispif_get_ppm(void);
 void lispif_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext);

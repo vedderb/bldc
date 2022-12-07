@@ -580,31 +580,6 @@ static remote_state lib_get_remote_state(void) {
 	return res;
 }
 
-static float lib_get_ppm(void) {
-	if (!servodec_is_running()) {
-		servo_simple_stop();
-		servodec_init(0);
-	}
-
-	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
-	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
-
-	float servo_val = servodec_get_servo(0);
-	float servo_ms = utils_map(servo_val, -1.0, 1.0, cfg->pulse_start, cfg->pulse_end);
-
-	// Mapping with respect to center pulsewidth
-	if (servo_ms < cfg->pulse_center) {
-		servo_val = utils_map(servo_ms, cfg->pulse_start,
-				cfg->pulse_center, -1.0, 0.0);
-	} else {
-		servo_val = utils_map(servo_ms, cfg->pulse_center,
-				cfg->pulse_end, 0.0, 1.0);
-	}
-	float input_val = servo_val;
-
-	return input_val;
-}
-
 static float lib_get_ppm_age(void) {
 	return (float)servodec_get_time_since_update() / 1000.0;
 }
@@ -893,7 +868,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Input Devices
 		cif.cif.get_remote_state = lib_get_remote_state;
-		cif.cif.get_ppm = lib_get_ppm;
+		cif.cif.get_ppm = lispif_get_ppm;
 		cif.cif.get_ppm_age = lib_get_ppm_age;
 
 		lib_init_done = true;
@@ -996,4 +971,29 @@ void* lispif_malloc(size_t size) {
 
 void lispif_free(void *ptr) {
 	lbm_memory_free(ptr);
+}
+
+float lispif_get_ppm(void) {
+	if (!servodec_is_running()) {
+		servo_simple_stop();
+		servodec_init(0);
+	}
+
+	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
+	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
+
+	float servo_val = servodec_get_servo(0);
+	float servo_ms = utils_map(servo_val, -1.0, 1.0, cfg->pulse_start, cfg->pulse_end);
+
+	// Mapping with respect to center pulsewidth
+	if (servo_ms < cfg->pulse_center) {
+		servo_val = utils_map(servo_ms, cfg->pulse_start,
+				cfg->pulse_center, -1.0, 0.0);
+	} else {
+		servo_val = utils_map(servo_ms, cfg->pulse_center,
+				cfg->pulse_end, 0.0, 1.0);
+	}
+	float input_val = servo_val;
+
+	return input_val;
 }

@@ -484,16 +484,7 @@ static lbm_value ext_reset_timeout(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-
-	if (!servodec_is_running()) {
-		servo_simple_stop();
-		servodec_init(0);
-	}
-
-	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
-	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
-
-	return lbm_enc_float(servodec_get_servo(0));
+	return lbm_enc_float(lispif_get_ppm());
 }
 
 static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
