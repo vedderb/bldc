@@ -456,6 +456,14 @@ Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sen
 
 Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
 
+#### app-is-output-disabled
+
+```clj
+(app-is-output-disabled)
+```
+
+Check if app output is disabled. VESC Tool will disable app output during some detection routines, so when running a custom control script it might be useful to check this and disable the output when this value is true.
+
 #### app-pas-get-rpm
 
 ```clj
