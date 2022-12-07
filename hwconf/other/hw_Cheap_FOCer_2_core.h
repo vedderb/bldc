@@ -22,7 +22,7 @@
 
 #ifdef CFOC_IS_V09
   #define HW_NAME                 "Cheap_FOCer_2_v09"
-#elif defined(CFOC_IS_V1)
+#elif defined(CFOC_IS_V10)
   #define HW_NAME                 "Cheap_FOCer_2"
 #else
   #error "Must define hardware type"
