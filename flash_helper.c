@@ -128,7 +128,7 @@ static const uint16_t flash_sector[FLASH_SECTORS] = {
 
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 #ifdef USE_LISPBM
-	lispif_stop_lib();
+	lispif_restart(false, false);
 #endif
 
 	FLASH_Unlock();
