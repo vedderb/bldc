@@ -120,8 +120,8 @@ package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name],
                                ['ubox_v2_100_no_limits', no_limits_name]]
 package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
-package_dict["75_300_R34"] = [['75_300_r34', default_name],
-                    ['75_300_r34_no_limits', no_limits_name]]
+package_dict["75_300_MKIV"] = [['75_300_mkiv', default_name],
+                    ['75_300_mkiv_no_limits', no_limits_name]]
 package_dict["60_MK6_HP"] = [['60_mk6_hp', default_name],
                     ['60_mk6_hp_no_limits', no_limits_name]]
 package_dict["KA160"] = [['ka160', default_name]]
