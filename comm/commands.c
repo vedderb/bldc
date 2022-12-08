@@ -1030,7 +1030,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-					comm_can_send_buffer(msg->id, data - 1, len + 1, 0);
+					comm_can_send_buffer(msg->id, data - 1, len + 1, 2);
 				}
 			}
 		}
@@ -1115,7 +1115,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		if (fwd_can) {
 			data[0] = 0; // Don't continue forwarding
-			comm_can_send_buffer(255, data - 1, len + 1, 0);
+			comm_can_send_buffer(255, data - 1, len + 1, 2);
 		}
 	} break;
 
@@ -2037,6 +2037,11 @@ static THD_FUNCTION(blocking_thread, arg) {
 			*mcconf_old = *mcconf;
 
 			mcconf->motor_type = MOTOR_TYPE_FOC;
+
+			// Lower f_zv means less dead time distortion and higher possible current
+			// when measuring inductance on high-inductance motors.
+			mcconf->foc_f_zv = 10000.0;
+
 			mc_interface_set_configuration(mcconf);
 
 			float r = 0.0;
@@ -2229,7 +2234,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			float sl_erpm = buffer_get_float32(data, 1e3, &ind);
 
 			int res = conf_general_detect_apply_all_foc_can(detect_can, max_power_loss,
-					min_current_in, max_current_in, openloop_rpm, sl_erpm);
+					min_current_in, max_current_in, openloop_rpm, sl_erpm, send_func_blocking);
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_APPLY_ALL_FOC;

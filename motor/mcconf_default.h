@@ -518,6 +518,9 @@
 #ifndef MCCONF_M_ENCODER_SINCOS_FILTER
 #define MCCONF_M_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
 #endif
+#ifndef MCCONF_M_ENCODER_SINCOS_PHASE
+#define MCCONF_M_ENCODER_SINCOS_PHASE		0.0		// Sin/Cos Encoder signal phase correction
+#endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
 #endif
@@ -559,6 +562,9 @@
 #endif
 #ifndef MCCONF_M_HALL_EXTRA_SAMPLES
 #define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
+#endif
+#ifndef MCCONF_M_BATT_FILTER_CONST
+#define MCCONF_M_BATT_FILTER_CONST		45 // Battery level filter constant
 #endif
 
 // Setup Info

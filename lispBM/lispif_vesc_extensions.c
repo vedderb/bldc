@@ -131,6 +131,7 @@ typedef struct {
 	lbm_uint foc_sl_erpm_hfi;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
+	lbm_uint si_motor_poles;
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
@@ -339,6 +340,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
 			get_add_symbol("m-out-aux-mode", comp);
+		} else if (comp == &syms_vesc.si_motor_poles) {
+			get_add_symbol("si-motor-poles", comp);
 		} else if (comp == &syms_vesc.min_speed) {
 			get_add_symbol("min-speed", comp);
 		} else if (comp == &syms_vesc.max_speed) {
@@ -427,6 +430,15 @@ static bool is_symbol_true_false(lbm_value v) {
 	return res;
 }
 
+static bool pause_gc(uint32_t num_free, int timeout_cnt) {
+	lbm_pause_eval_with_gc(num_free);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	return timeout_cnt > 0;
+}
+
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
@@ -472,13 +484,7 @@ static lbm_value ext_reset_timeout(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-
-	if (!servodec_is_running()) {
-		servo_simple_stop();
-		servodec_init(0);
-	}
-
-	return lbm_enc_float(servodec_get_servo(0));
+	return lbm_enc_float(lispif_get_ppm());
 }
 
 static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
@@ -489,6 +495,11 @@ static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(encoder_read_deg());
+}
+
+static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(encoder_get_error_rate());
 }
 
 static lbm_value ext_get_vin(lbm_value *args, lbm_uint argn) {
@@ -889,6 +900,7 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 	imu_get_gyro_derotated(gyro);
 
 	lbm_value state = ENC_SYM_NIL;
+	state = lbm_cons(lbm_enc_float(app_nunchuk_get_update_age()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_is_rev()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_z()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_c()), state);
@@ -1086,6 +1098,40 @@ static lbm_value ext_stats_reset(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(2);
+
+	if (!lbm_is_number(args[0])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	int id = lbm_dec_as_i32(args[0]);
+	if (id < 0 || id > 255) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *str = lbm_dec_str(args[1]);
+	if (!str) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+
+	if (array->size > 500) {
+		return ENC_SYM_EERROR;
+	}
+
+	uint8_t *send_buf = mempools_get_packet_buffer();
+	send_buf[0] = COMM_LISP_REPL_CMD;
+	memcpy(send_buf + 1, array->data, array->size);
+	comm_can_send_buffer(id, send_buf, array->size + 1, 2);
+	mempools_free_packet_buffer(send_buf);
+
+	return ENC_SYM_TRUE;
+}
+
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 	if (argn == 1){
@@ -1182,6 +1228,11 @@ static lbm_value ext_app_disable_output(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	app_disable_output(lbm_dec_as_i32(args[0]));
 	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_app_is_output_disabled(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return app_is_output_disabled() ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 static lbm_value ext_app_pas_get_rpm(lbm_value *args, lbm_uint argn) {
@@ -1331,6 +1382,11 @@ static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_rpm());
+}
+
+static lbm_value ext_get_pos(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_pid_pos_now());
 }
 
 static lbm_value ext_get_temp_fet(lbm_value *args, lbm_uint argn) {
@@ -3076,6 +3132,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		mcconf->m_out_aux_mode = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
+		mcconf->si_motor_poles = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -3331,6 +3390,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		res = lbm_enc_i(mcconf->m_out_aux_mode);
+	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
+		res = lbm_enc_i(mcconf->si_motor_poles);
 	} else if (compare_symbol(name, &syms_vesc.min_speed)) {
 		res = lbm_enc_float(mcconf->l_min_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {
@@ -3394,7 +3455,7 @@ typedef struct {
 static void detect_task(void *arg) {
 	detect_args *a = (detect_args*)arg;
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
-			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm);
+			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
 	lbm_unblock_ctx(a->id, lbm_enc_i(res));
 }
 
@@ -3449,7 +3510,16 @@ static void measure_res_task(void *arg) {
 	measure_res_args *a = (measure_res_args*)arg;
 	float res = -1.0;
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
-	lbm_unblock_ctx(a->id, lbm_enc_float(res));
+
+	lispif_lock_lbm();
+	if (pause_gc(5, 1000)) {
+		lbm_unblock_ctx(a->id, lbm_enc_float(res));
+	} else {
+		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	}
+
+	lbm_continue_eval();
+	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
@@ -3461,7 +3531,6 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
 	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
-		lbm_set_error_reason("Motor type must be FOC");
 		return ENC_SYM_EERROR;
 	}
 
@@ -4165,15 +4234,6 @@ lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
 // Event ringbuffer
 
-static bool pause_gc(uint32_t num_free, int timeout_cnt) {
-	lbm_pause_eval_with_gc(num_free);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	return timeout_cnt > 0;
-}
-
 typedef enum {
 	EXT_EVENT_SYM = 0,
 	EXT_EVENT_SYM_ARRAY,
@@ -4323,6 +4383,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-ppm", ext_get_ppm);
 	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
 	lbm_add_extension("get-encoder", ext_get_encoder);
+	lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
 	lbm_add_extension("set-servo", ext_set_servo);
 	lbm_add_extension("get-vin", ext_get_vin);
 	lbm_add_extension("select-motor", ext_select_motor);
@@ -4363,6 +4424,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("app-ppm-override", ext_app_ppm_override);
 	lbm_add_extension("set-remote-state", ext_set_remote_state);
 	lbm_add_extension("app-disable-output", ext_app_disable_output);
+	lbm_add_extension("app-is-output-disabled", ext_app_is_output_disabled);
 	lbm_add_extension("app-pas-get-rpm", ext_app_pas_get_rpm);
 
 	// Motor set commands
@@ -4388,6 +4450,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-vq", ext_get_vq);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
+	lbm_add_extension("get-pos", ext_get_pos);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
@@ -4434,6 +4497,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-scan", ext_can_scan);
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
+	lbm_add_extension("can-cmd", ext_can_cmd);
 
 	// Math
 	lbm_add_extension("sin", ext_sin);

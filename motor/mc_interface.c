@@ -309,6 +309,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
 		encoder_init(configuration);
+	} else {
+		encoder_update_config(configuration);
 	}
 
 #ifdef HW_HAS_DRV8301
@@ -1619,9 +1621,13 @@ float mc_interface_get_distance(void) {
  * Absolute distance traveled since boot, in meters
  */
 float mc_interface_get_distance_abs(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_distance_abs();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+#endif
 }
 
 setup_values mc_interface_get_setup_values(void) {
@@ -2466,7 +2472,12 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
 	mc_interface_select_motor_thread(is_motor_1 ? 1 : 2);
 
-	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, 0.01);
+	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
+	if (UTILS_AGE_S(0) < 10) {
+		// Run the filter faster in the beginning to avoid convergance latency at boot
+		voltage_fc = 0.01;
+	}
+	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {

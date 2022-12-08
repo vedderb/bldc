@@ -24,7 +24,7 @@
 #define FW_VERSION_MAJOR			6
 #define FW_VERSION_MINOR			00
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		79
+#define FW_TEST_VERSION_NUMBER		0
 
 #include "datatypes.h"
 
@@ -189,7 +189,9 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 int conf_general_detect_apply_all_foc(float max_power_loss,
 									  bool store_mcconf_on_success, bool send_mcconf_on_success);
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-										  float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
+										  float min_current_in, float max_current_in,
+										  float openloop_rpm, float sl_erpm,
+										  void(*reply_func)(unsigned char* data, unsigned int len));
 
 
 #endif /* CONF_GENERAL_H_ */

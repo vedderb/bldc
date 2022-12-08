@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,14 +30,84 @@
 #include "stack.h"
 #include "qq_expand.h"
 
+// defined in eval_cps.c
+extern int lbm_perform_gc(void);
 
-lbm_value gen_cons(lbm_value a, lbm_value b) {
-  return lbm_cons(ENC_SYM_CONS,
-                   lbm_cons(a,
-                        lbm_cons(b, ENC_SYM_NIL)));
+// Propagate an error outwards directly.
+#define RET_ON_ERROR(y, x)       \
+  (y) = (x);                     \
+  if (lbm_is_error((y))) return y;
+
+#define WITH_GC(y, x)              \
+  (y) = (x);                       \
+  if (lbm_is_symbol_merror((y))) { \
+    lbm_perform_gc();              \
+    (y) = (x);                     \
+    if (lbm_is_error((y)))         \
+      return (y);                  \
+  }
+
+#define WITH_GC_RMBR(y, x, n, ...)         \
+  (y) = (x);                               \
+  if (lbm_is_symbol_merror((y))) {         \
+    lbm_gc_mark_phase((n), __VA_ARGS__);   \
+    lbm_perform_gc();                      \
+    (y) = (x);                             \
+    if (lbm_is_error((y)))                 \
+      return (y);                          \
+  }
+
+lbm_value quote_it(lbm_value qquoted) {
+  if (lbm_is_symbol(qquoted) &&
+      (lbm_is_special(qquoted) ||
+       lbm_is_fundamental(qquoted))) return qquoted;
+
+  lbm_value val;
+  WITH_GC_RMBR(val, lbm_cons(qquoted, ENC_SYM_NIL), 1, qquoted);
+  lbm_value q;
+  WITH_GC_RMBR(q, lbm_cons(ENC_SYM_QUOTE, val), 1, val);
+  return q;
+}
+
+
+bool is_append(lbm_value a) {
+  return (lbm_is_cons(a) &&
+          lbm_is_symbol(lbm_car(a)) &&
+          (lbm_dec_sym(lbm_car(a)) == SYM_APPEND));
 }
 
 lbm_value append(lbm_value front, lbm_value back) {
+  if (lbm_is_symbol_nil(front)) return back;
+  if (lbm_is_symbol_nil(back)) return front;
+
+  if (lbm_is_quoted_list(front) &&
+      lbm_is_quoted_list(back)) {
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(back));
+    return quote_it(lbm_list_append(f, b));
+  }
+
+  if (is_append(back) &&
+      lbm_is_quoted_list(lbm_car(lbm_cdr(back))) &&
+      lbm_is_quoted_list(front)) {
+    lbm_value ql = lbm_car(lbm_cdr(back));
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(ql));
+
+    lbm_value v = lbm_list_append(f, b);
+    lbm_set_car(lbm_cdr(ql), v);
+    return back;
+  }
+
+  if (is_append(back)) {
+    back  = lbm_cdr(back);
+    lbm_value new;
+    WITH_GC_RMBR(new, lbm_cons(front, back), 2, front, back);
+    lbm_value tmp;
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_APPEND, new), 1, new);
+    return tmp;
+  }
+
   return lbm_cons (ENC_SYM_APPEND,
                lbm_cons(front,
                     lbm_cons(back, ENC_SYM_NIL)));
@@ -71,22 +141,39 @@ lbm_value qq_expand_list(lbm_value l) {
     cdr_val = lbm_cdr(l);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
-      res = lbm_cons(ENC_SYM_LIST,
-                     lbm_cons(lbm_car(cdr_val), res));
+      lbm_value tl;
+      WITH_GC(tl, lbm_cons(lbm_car(cdr_val), ENC_SYM_NIL));
+      lbm_value tmp;
+      WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, tl), 1, tl);
+      res = tmp;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
       res = lbm_car(cdr_val);
     } else {
-      lbm_value expand_car = qq_expand_list(car_val);
-      lbm_value expand_cdr = lbm_qq_expand(cdr_val);
-      res = lbm_cons(ENC_SYM_LIST,
-                     lbm_cons(append(expand_car, expand_cdr), ENC_SYM_NIL));
+      lbm_value expand_car;
+      RET_ON_ERROR(expand_car, qq_expand_list(car_val));
+      lbm_value expand_cdr;
+      RET_ON_ERROR(expand_cdr, lbm_qq_expand(cdr_val));
+
+      lbm_value apnd;
+      RET_ON_ERROR(apnd, append(expand_car, expand_cdr));
+
+      lbm_value apnd_app;
+      WITH_GC_RMBR(apnd_app, lbm_cons(apnd, ENC_SYM_NIL), 1, apnd);
+
+      lbm_value tmp;
+      WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, apnd_app), 1, apnd_app);
+      res = tmp;
     }
     break;
   default: {
-    lbm_value a_list = lbm_cons(l, ENC_SYM_NIL);
-    res =
-      lbm_cons(ENC_SYM_QUOTE, lbm_cons (a_list, ENC_SYM_NIL));
+    lbm_value a_list;
+    WITH_GC(a_list, lbm_cons(l, ENC_SYM_NIL));
+    lbm_value tl;
+    WITH_GC_RMBR(tl, lbm_cons(a_list, ENC_SYM_NIL), 1, a_list);
+    lbm_value tmp;
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_QUOTE, tl), 1, tl);
+    res = tmp;
   }
   }
   return res;
@@ -125,13 +212,15 @@ lbm_value lbm_qq_expand(lbm_value qquoted) {
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
       res = ENC_SYM_RERROR; // should have a more specific error here.
     } else {
-      lbm_value expand_car = qq_expand_list(car_val);
-      lbm_value expand_cdr = lbm_qq_expand(cdr_val);
+      lbm_value expand_car;
+      RET_ON_ERROR(expand_car, qq_expand_list(car_val));
+      lbm_value expand_cdr;
+      RET_ON_ERROR(expand_cdr, lbm_qq_expand(cdr_val));
       res = append(expand_car, expand_cdr);
     }
     break;
   default:
-    res = lbm_cons(ENC_SYM_QUOTE, lbm_cons(qquoted, ENC_SYM_NIL));
+    res = quote_it(qquoted);
     break;
   }
   return res;

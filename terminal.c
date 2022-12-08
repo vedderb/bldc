@@ -628,6 +628,10 @@ void terminal_process_string(char *str) {
 		commands_printf("Current Measurement Range: %.1f A", (double)((V_REG / 2.0) / (CURRENT_AMP_GAIN * CURRENT_SHUNT_RES)));
 #endif
 
+#ifdef HW_DEAD_TIME_NSEC
+		commands_printf("Dead time: %.0f ns", (double)HW_DEAD_TIME_NSEC);
+#endif
+
 		commands_printf("Mempool mcconf now: %d highest: %d (max %d)",
 				mempools_mcconf_allocated_num(), mempools_mcconf_highest(), MEMPOOLS_MCCONF_NUM - 1);
 		commands_printf("Mempool appconf now: %d highest: %d (max %d)",
@@ -879,7 +883,7 @@ void terminal_process_string(char *str) {
 			commands_printf("Running detection...");
 			if (max_power_loss > 0.0) {
 
-				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0);
+				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0, NULL);
 
 				commands_printf("Res: %d", res);
 
@@ -973,6 +977,7 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 1000;i++) {
 					timeout_reset();
+					mc_interface_lock_override_once();
 					mc_interface_set_openloop_phase((float)i * current / 1000.0, phase);
 					fault = mc_interface_get_fault();
 					if (fault != FAULT_CODE_NONE) {
@@ -1017,6 +1022,7 @@ void terminal_process_string(char *str) {
 
 						phase += 1.0;
 						timeout_reset();
+						mc_interface_lock_override_once();
 						mc_interface_set_openloop_phase(current, phase);
 						fault = mc_interface_get_fault();
 						if (fault != FAULT_CODE_NONE) {

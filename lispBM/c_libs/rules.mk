@@ -24,6 +24,7 @@ endif
 UTILS_PATH = $(VESC_C_LIB_PATH)/utils/
 
 SOURCES += $(UTILS_PATH)/rb.c
+SOURCES += $(UTILS_PATH)/utils.c
 
 OBJECTS = $(SOURCES:.c=.so)
 

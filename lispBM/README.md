@@ -58,7 +58,7 @@ Reset the timeout that stops the motor. This has to be run on at least every sec
 (get-ppm)
 ```
 
-Read the decoded value on the PPM input, range 0.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
+Read the decoded value on the PPM input, range -1.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
 
 ```clj
 (print (str-from-n (get-ppm) "PPM Value: %.2f"))
@@ -81,6 +81,14 @@ Get the age of the last PPM update in seconds. Can be used to determine if there
 ```
 
 Get angle from selected encoder in degrees.
+
+#### get-encoder-error-rate
+
+```clj
+(get-encoder-error-rate)
+```
+
+Returns the error rate for the selected encoder, range 0.0 to 1.0. If the selected encoder does not provide any error rate -1.0 is returned. If the selected encoder has multiple error rates the highest one is returned.
 
 #### set-servo
 
@@ -315,13 +323,14 @@ Sleep for *seconds* seconds. Example:
 Get button and joystick state of connected remote. Note that a remote app such as the VESC remote or nunchuk must be configured and running for this to work. Returns the following list:
 
 ```clj
-(js-y js-x bt-c bt-z is-rev)
+(js-y js-x bt-c bt-z is-rev update-age)
 ; Where
 ; js-y : Joystick Y axis, range -1.0 to 1.0
 ; js-x : Joystick X axis, range -1.0 to 1.0
 ; bt-c : C button pressed state, 0 or 1
 ; bt-z : Z button pressed state, 0 or 1
 ; is-rev : Reverse active, 0 or 1
+; update-age : Age of last update from the remote in seconds
 ```
 
 #### sysinfo
@@ -446,6 +455,14 @@ Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sen
 ```
 
 Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
+
+#### app-is-output-disabled
+
+```clj
+(app-is-output-disabled)
+```
+
+Check if app output is disabled. VESC Tool will disable app output during some detection routines, so when running a custom control script it might be useful to check this and disable the output when this value is true.
 
 #### app-pas-get-rpm
 
@@ -602,6 +619,13 @@ Get duty cycle. Range -1.0 to 1.0.
 ```
 
 Get motor RPM. Negative values mean that the motor spins in the reverse direction.
+
+#### get-pos
+```clj
+(get-pos)
+```
+
+Get motor position. Returns the motor PID pos (taking into account the Position Angle Division)
 
 #### get-temp-fet
 ```clj
@@ -902,6 +926,27 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 ```
 
 Same as (can-send-sid), but sends extended ID frame.
+
+#### can-cmd
+
+```clj
+(can-cmd id cmd)
+```
+
+Execute command cmd on CAN-device with ID id. The command cmd is sent as a string and will be parsed and evaluated by the receiver.
+
+This is useful to execute arbitrary code on a CAN-device that is not covered by the other [CAN-Commands](#can-commands). This function has more overhead than other CAN-Commands, so if possible they should be used instead.
+
+Example:
+
+```clj
+; Configuration update on ID54:
+(can-cmd 54 "(conf-set max-speed 10.0)")
+
+; The string-functions can be used for setting something from a variable
+(def max-speed-kmh 25.0)
+(can-cmd 54 (str-from-n (/ max-speed-kmh 3.6) "(conf-set 'max-speed %.3f)"))
+```
 
 ### Math Functions
 
@@ -1329,6 +1374,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    6: FOC_SENSOR_MODE_HFI_V3
                         ;    7: FOC_SENSOR_MODE_HFI_V4
                         ;    8: FOC_SENSOR_MODE_HFI_V5
+'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
 'foc-motor-l            ; Motor inductance in microHenry

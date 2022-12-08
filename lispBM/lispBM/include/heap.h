@@ -492,12 +492,12 @@ void lbm_nil_freelist(void);
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
- * \param v Root node to start marking from.
+ * \param m Number of Root nodes to start marking from.
+ * \param ... list of root nodes.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-int lbm_gc_mark_phase(lbm_value v);
-int lbm_gc_mark_phase2(lbm_value env);
-
+//int lbm_gc_mark_phase(lbm_value v);
+int lbm_gc_mark_phase(int num, ... );
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.
@@ -768,6 +768,14 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 
 static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
+}
+
+static inline bool lbm_is_quoted_list(lbm_value x) {
+  return (lbm_is_cons(x) &&
+          lbm_is_symbol(lbm_car(x)) &&
+          (lbm_dec_sym(lbm_car(x)) == SYM_QUOTE) &&
+          lbm_is_cons(lbm_cdr(x)) &&
+          lbm_is_cons(lbm_car(lbm_cdr(x))));
 }
 
 #ifndef LBM64

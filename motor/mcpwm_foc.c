@@ -726,22 +726,25 @@ void mcpwm_foc_set_duty_noramp(float dutyCycle) {
  * The electrical RPM goal value to use.
  */
 void mcpwm_foc_set_pid_speed(float rpm) {
-	if (get_motor_now()->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
-		if (get_motor_now()->m_control_mode != CONTROL_MODE_SPEED ||
-				get_motor_now()->m_state != MC_STATE_RUNNING) {
-			get_motor_now()->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	if (motor->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
+		if (motor->m_control_mode != CONTROL_MODE_SPEED ||
+				motor->m_state != MC_STATE_RUNNING) {
+			motor->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
 		}
 
-		get_motor_now()->m_speed_command_rpm = rpm;
+		motor->m_speed_command_rpm = rpm;
 	} else {
-		get_motor_now()->m_speed_pid_set_rpm = rpm;
+		motor->m_speed_pid_set_rpm = rpm;
 	}
 
-	get_motor_now()->m_control_mode = CONTROL_MODE_SPEED;
+	motor->m_control_mode = CONTROL_MODE_SPEED;
 
-	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
-		get_motor_now()->m_motor_released = false;
-		get_motor_now()->m_state = MC_STATE_RUNNING;
+	if (motor->m_state != MC_STATE_RUNNING &&
+			fabsf(rpm) >= motor->m_conf->s_pid_min_erpm) {
+		motor->m_motor_released = false;
+		motor->m_state = MC_STATE_RUNNING;
 	}
 }
 
@@ -1975,6 +1978,7 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 	int fault = FAULT_CODE_NONE;
 	float duty_last = 0.0;
 	for (float i = 0.02;i < 0.5;i *= 1.5) {
+		utils_truncate_number_abs(&i, 0.6);
 		float i_tmp;
 		fault = mcpwm_foc_measure_inductance(i, 10, &i_tmp, 0, 0);
 		if (fault != FAULT_CODE_NONE) {
@@ -2109,6 +2113,8 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
 	if (fault == FAULT_CODE_NONE && *res != 0.0) {
 		motor->m_conf->foc_motor_r = *res;
+		mcpwm_foc_set_current(0.0);
+		chThdSleepMilliseconds(10);
 		fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
 	}
 
@@ -2849,8 +2855,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		if (control_duty) {
+			float scale = 1.0 / motor_now->m_motor_state.v_bus;
+
 			// Duty cycle control
-			if (fabsf(duty_set) < (duty_abs - 0.05) ||
+			if (fabsf(duty_set) < (duty_abs - (scale * conf_now->foc_motor_r * conf_now->lo_current_max)) ||
 					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
 
@@ -2867,9 +2875,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 						}
 					}
 				}
-
-				// Compensation for supply voltage variations
-				float scale = 1.0 / motor_now->m_motor_state.v_bus;
 
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;

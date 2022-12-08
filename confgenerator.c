@@ -169,6 +169,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_encoder_sin_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->m_encoder_cos_offset, 1000, &ind);
 	buffer_append_float16(buffer, conf->m_encoder_sincos_filter_constant, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sincos_phase_correction, 1000, &ind);
 	buffer[ind++] = conf->m_sensor_port_mode;
 	buffer[ind++] = conf->m_invert_direction;
 	buffer[ind++] = conf->m_drv8301_oc_mode;
@@ -183,6 +184,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_res, 0.1, &ind);
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_temp_base, 10, &ind);
 	buffer[ind++] = (uint8_t)conf->m_hall_extra_samples;
+	buffer[ind++] = (uint8_t)conf->m_batt_filter_const;
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
 	buffer_append_float32_auto(buffer, conf->si_wheel_diameter, &ind);
@@ -564,6 +566,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sincos_phase_correction = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_sensor_port_mode = buffer[ind++];
 	conf->m_invert_direction = buffer[ind++];
 	conf->m_drv8301_oc_mode = buffer[ind++];
@@ -578,6 +581,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_ntcx_ptcx_res = buffer_get_float16(buffer, 0.1, &ind);
 	conf->m_ntcx_ptcx_temp_base = buffer_get_float16(buffer, 10, &ind);
 	conf->m_hall_extra_samples = buffer[ind++];
+	conf->m_batt_filter_const = buffer[ind++];
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
 	conf->si_wheel_diameter = buffer_get_float32_auto(buffer, &ind);
@@ -955,6 +959,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_encoder_sin_offset = MCCONF_M_ENCODER_SIN_OFFSET;
 	conf->m_encoder_cos_offset = MCCONF_M_ENCODER_COS_OFFSET;
 	conf->m_encoder_sincos_filter_constant = MCCONF_M_ENCODER_SINCOS_FILTER;
+	conf->m_encoder_sincos_phase_correction = MCCONF_M_ENCODER_SINCOS_PHASE;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
@@ -969,6 +974,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_ntcx_ptcx_res = MCCONF_M_NTCX_PTCX_RES;
 	conf->m_ntcx_ptcx_temp_base = MCCONF_M_NTCX_PTCX_BASE_TEMP;
 	conf->m_hall_extra_samples = MCCONF_M_HALL_EXTRA_SAMPLES;
+	conf->m_batt_filter_const = MCCONF_M_BATT_FILTER_CONST;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
 	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;

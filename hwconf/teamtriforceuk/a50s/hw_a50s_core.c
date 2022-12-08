@@ -23,6 +23,7 @@
 #include "utils_math.h"
 #include <math.h>
 #include "mc_interface.h"
+#include "stm32f4xx_rcc.h"
 
 // Variables
 static volatile bool i2c_running = false;
@@ -242,4 +243,15 @@ void hw_try_restore_i2c(void) {
 
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
+}
+
+// Trim the HSI to reduce affect of temperature
+void hw_a50s_trim_hsi(void){
+	int temp = NTC_TEMP(ADC_IND_TEMP_MOS);
+	uint8_t hsi_trim = 15;
+	if (temp > 25)
+		hsi_trim = utils_map(temp, 25, 80, 15, 9); // above calibrated
+	else if (temp < 25)
+		hsi_trim = utils_map(temp, -40, 25, 31, 15); // below calibrated	
+	RCC_AdjustHSICalibrationValue(hsi_trim);
 }

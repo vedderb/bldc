@@ -509,6 +509,7 @@ typedef struct {
 	float m_encoder_cos_offset;
 	float m_encoder_cos_amp;
 	float m_encoder_sincos_filter_constant;
+	float m_encoder_sincos_phase_correction;
 	sensor_port_mode m_sensor_port_mode;
 	bool m_invert_direction;
 	drv8301_oc_mode m_drv8301_oc_mode;
@@ -521,6 +522,7 @@ typedef struct {
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
 	int m_hall_extra_samples;
+	int m_batt_filter_const;
 	float m_ntcx_ptcx_temp_base;
 	float m_ntcx_ptcx_res;
 	// Setup info

@@ -32,7 +32,7 @@
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_16K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	240
+#define EXTENSION_STORAGE_SIZE	250
 #define VARIABLE_STORAGE_SIZE	64
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
@@ -345,9 +345,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 				if (ok) {
 					lbm_create_string_char_channel(&string_tok_state, &string_tok, (char*)data);
-					repl_cid = lbm_load_and_eval_expression(&string_tok);
-					lbm_continue_eval();
-					lbm_wait_ctx(repl_cid, 500);
+					if (reply_func != NULL) {
+						repl_cid = lbm_load_and_eval_expression(&string_tok);
+						lbm_continue_eval();
+						lbm_wait_ctx(repl_cid, 500);
+					}
 					repl_cid = -1;
 				} else {
 					commands_printf_lisp("Could not pause");

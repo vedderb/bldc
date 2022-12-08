@@ -105,6 +105,10 @@ bool app_nunchuk_get_is_rev(void) {
 	return chuck_d.is_rev;
 }
 
+float app_nunchuk_get_update_age(void) {
+	return UTILS_AGE_S(last_update_time);
+}
+
 void app_nunchuk_update_output(chuck_data *data) {
 	if (!output_running) {
 		last_update_time = 0;

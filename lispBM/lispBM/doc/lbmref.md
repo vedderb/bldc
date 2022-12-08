@@ -223,7 +223,7 @@ Example
 
 ### >=
 
-Greater than or equal comparison. A less than comparison has the form `(>= expr1 ... exprN)`
+Greater than or equal comparison. A greater than comparison has the form `(>= expr1 ... exprN)`
 and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN.
 
 

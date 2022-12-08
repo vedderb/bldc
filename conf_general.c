@@ -977,7 +977,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		return fault;
 	}
 	// Calculate kp and ki from supplied resistance and inductance, default to 1000us time constant.
-	float tc = 1000;
+	float tc = 1500;
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = ind * bw;
 	float ki = res * bw;
@@ -987,6 +987,10 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	*mcconf = *mc_interface_get_configuration();
 	*mcconf_old = *mcconf;
+
+	if (duty > (mcconf->l_max_duty * 0.9)) {
+		duty = mcconf->l_max_duty * 0.9;
+	}
 
 	mcconf->motor_type = MOTOR_TYPE_FOC;
 	mcconf->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
@@ -1673,6 +1677,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	mcconf->foc_current_ki = 1.0;
 	mcconf->l_current_max = MCCONF_L_CURRENT_MAX;
 	mcconf->l_current_min = MCCONF_L_CURRENT_MIN;
+	mcconf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;			
 	mcconf->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
 	mcconf->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
 	mcconf->l_watt_max = MCCONF_L_WATT_MAX;
@@ -1689,6 +1694,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	mcconf_second->foc_current_ki = 1.0;
 	mcconf_second->l_current_max = MCCONF_L_CURRENT_MAX;
 	mcconf_second->l_current_min = MCCONF_L_CURRENT_MIN;
+	mcconf_second->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
 	mcconf_second->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
 	mcconf_second->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
 	mcconf_second->l_watt_max = MCCONF_L_WATT_MAX;
@@ -1858,6 +1864,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	if (res && res_linkage_m2) {
 		mcconf_old->l_current_max = i_max;
 		mcconf_old->l_current_min = -i_max;
+		float abs_max = i_max * 1.5;
+		utils_truncate_number(&abs_max, HW_LIM_CURRENT_ABS);
+		mcconf_old->l_abs_current_max = abs_max;		
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
@@ -1877,6 +1886,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #ifdef HW_HAS_DUAL_MOTORS
 		mcconf_old_second->l_current_max = r_l_imax_args.i_max;
 		mcconf_old_second->l_current_min = -r_l_imax_args.i_max;
+		abs_max = r_l_imax_args.i_max * 1.5;
+		utils_truncate_number(&abs_max, HW_LIM_CURRENT_ABS);
+		mcconf_old_second->l_abs_current_max = abs_max;
 		mcconf_old_second->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old_second->foc_motor_r = r_l_imax_args.r;
 		mcconf_old_second->foc_motor_l = r_l_imax_args.l;
@@ -2002,13 +2014,19 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
  * @param sl_erpm
  * FOC ERPM above which sensorless should be used in sensored modes. 0 means leave it unchanged.
  *
+ * @param reply_func
+ * Send the motor and app config using this function pointer. If it is null the last function
+ * from commands will be used.
+ *
  * @return
  * Same as conf_general_detect_apply_all_foc, and
  * -50: CAN detection timed out
  * -51: CAN detection failed
  */
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-										  float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm) {
+										  float min_current_in, float max_current_in,
+										  float openloop_rpm, float sl_erpm,
+										  void(*reply_func)(unsigned char* data, unsigned int len)) {
 
 	int motor_last = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
@@ -2126,7 +2144,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 			appconf->can_status_msgs_r1 = 0b00001111;
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
-			commands_send_appconf(COMM_GET_APPCONF, appconf, 0);
+			commands_send_appconf(COMM_GET_APPCONF, appconf, reply_func);
 			chThdSleepMilliseconds(1000);
 		}
 
@@ -2139,7 +2157,7 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 		mc_interface_select_motor_thread(1);
 		*mcconf = *mc_interface_get_configuration();
 #endif
-		commands_send_mcconf(COMM_GET_MCCONF, mcconf, 0);
+		commands_send_mcconf(COMM_GET_MCCONF, mcconf, reply_func);
 		chThdSleepMilliseconds(1000);
 	}
 

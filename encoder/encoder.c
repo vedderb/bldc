@@ -23,6 +23,7 @@
 #include "encoder_cfg.h"
 
 #include "utils.h"
+#include "utils_math.h"
 #include "commands.h"
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
@@ -187,6 +188,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
 			m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -279,6 +281,22 @@ bool encoder_init(volatile mc_configuration *conf) {
 			terminal_encoder_clear_multiturn);
 
 	return res;
+}
+
+void encoder_update_config(volatile mc_configuration *conf) {
+	switch (conf->m_sensor_port_mode) {
+	case SENSOR_PORT_MODE_SINCOS: {
+		encoder_cfg_sincos.s_gain = 1.0 / conf->m_encoder_sin_amp;
+		encoder_cfg_sincos.s_offset = conf->m_encoder_sin_offset;
+		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
+		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
+		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
+	} break;
+
+	default:
+		break;
+	}
 }
 
 void encoder_deinit(void) {
@@ -400,6 +418,50 @@ void encoder_reset_errors(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
 		enc_ts5700n8501_reset_errors(&encoder_cfg_TS5700N8501);
 	}
+}
+
+float encoder_get_error_rate(void) {
+	float res = -1.0;
+
+	switch (m_encoder_type_now) {
+	case ENCODER_TYPE_AS504x:
+		res = encoder_cfg_as504x.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_MT6816:
+		res = encoder_cfg_mt6816.state.encoder_no_magnet_error_rate;
+		break;
+	case ENCODER_TYPE_TLE5012:
+		res = encoder_cfg_tle5012.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_AD2S1205_SPI:
+		res = encoder_cfg_ad2s1205.state.resolver_loss_of_tracking_error_rate;
+		if (encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_rate > res) {
+			res = encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_rate;
+		}
+		if (encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_rate > res) {
+			res = encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_rate;
+		}
+		break;
+	case ENCODER_TYPE_SINCOS:
+		res = encoder_cfg_sincos.state.signal_low_error_rate;
+		if (encoder_cfg_sincos.state.signal_above_max_error_rate > res) {
+			res = encoder_cfg_sincos.state.signal_above_max_error_rate;
+		}
+		break;
+	case ENCODER_TYPE_AS5x47U:
+		res = encoder_cfg_as5x47u.state.spi_error_rate;
+		break;
+	case ENCODER_TYPE_BISSC:
+		res = encoder_cfg_bissc.state.spi_comm_error_rate;
+		if (encoder_cfg_bissc.state.spi_data_error_rate > res) {
+			res = encoder_cfg_bissc.state.spi_data_error_rate;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return res;
 }
 
 // Check for encoder faults that should stop the motor with a fault code.
