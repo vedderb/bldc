@@ -2855,12 +2855,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		if (control_duty) {
-			float scale = 1.0 / motor_now->m_motor_state.v_bus;
-
 			// Duty cycle control
-			if (fabsf(duty_set) < (duty_abs - (scale * conf_now->foc_motor_r * conf_now->lo_current_max)) ||
-					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
+			if (fabsf(duty_set) < (duty_abs - 0.001) &&
+					(!motor_now->duty_was_pi || SIGN(motor_now->duty_pi_duty_last) == SIGN(duty_now))) {
 				// Truncating the duty cycle here would be dangerous, so run a PID controller.
+
+				motor_now->duty_pi_duty_last = duty_now;
+				motor_now->duty_was_pi = true;
 
 				// Reset the integrator in duty mode to not increase the duty if the load suddenly changes. In braking
 				// mode this would cause a discontinuity, so there we want to keep the value of the integrator.
@@ -2880,6 +2881,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				float error = duty_set - motor_now->m_motor_state.duty_now;
 
 				// Compute parameters
+				float scale = 1.0 / motor_now->m_motor_state.v_bus;
 				float p_term = error * conf_now->foc_duty_dowmramp_kp * scale;
 				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * scale;
 
@@ -2900,10 +2902,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				} else {
 					iq_set_tmp = -conf_now->lo_current_max;
 				}
+				motor_now->duty_was_pi = false;
 			}
 		} else if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Braking
 			iq_set_tmp = -SIGN(speed_fast_now) * fabsf(iq_set_tmp);
+			motor_now->duty_was_pi = false;
+		} else {
+			motor_now->duty_was_pi = false;
 		}
 
 		// Set motor phase
@@ -3085,6 +3091,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
 		motor_now->m_motor_state.iq_filter = 0.0;
+		motor_now->m_duty_i_term = 0.0;
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
 #endif
