@@ -2852,6 +2852,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		if (!control_duty) {
 			motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
+			motor_now->duty_was_pi = false;
 		}
 
 		if (control_duty) {
@@ -2907,9 +2908,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		} else if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Braking
 			iq_set_tmp = -SIGN(speed_fast_now) * fabsf(iq_set_tmp);
-			motor_now->duty_was_pi = false;
-		} else {
-			motor_now->duty_was_pi = false;
 		}
 
 		// Set motor phase
