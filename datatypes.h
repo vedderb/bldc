@@ -93,7 +93,8 @@ typedef enum {
 	TEMP_SENSOR_KTY84_130,
 	TEMP_SENSOR_NTCX,
 	TEMP_SENSOR_PTCX,
-	TEMP_SENSOR_PT1000
+	TEMP_SENSOR_PT1000,
+	TEMP_SENSOR_DISABLED
 } temp_sensor_type;
 
 // General purpose drive output mode
@@ -156,6 +157,7 @@ typedef enum {
 	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
 	FAULT_CODE_PHASE_FILTER,
 	FAULT_CODE_ENCODER_FAULT,
+	FAULT_CODE_LV_OUTPUT_FAULT,
 } mc_fault_code;
 
 typedef enum {
@@ -190,9 +192,12 @@ typedef enum {
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
 	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
-	SENSOR_PORT_MODE_MT6816_SPI,
+	SENSOR_PORT_MODE_MT6816_SPI_HW,
 	SENSOR_PORT_MODE_AS5x47U_SPI,
-	SENSOR_PORT_MODE_BISSC
+	SENSOR_PORT_MODE_BISSC,
+	SENSOR_PORT_MODE_TLE5012_SSC_SW,
+	SENSOR_PORT_MODE_TLE5012_SSC_HW,
+	SENSOR_PORT_MODE_CUSTOM_ENCODER,
 } sensor_port_mode;
 
 typedef struct {
@@ -400,11 +405,6 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
-	float foc_encoder_sin_offset;
-	float foc_encoder_sin_gain;
-	float foc_encoder_cos_offset;
-	float foc_encoder_cos_gain;
-	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
@@ -504,6 +504,12 @@ typedef struct {
 	float m_duty_ramp_step;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
+	float m_encoder_sin_offset;
+	float m_encoder_sin_amp;
+	float m_encoder_cos_offset;
+	float m_encoder_cos_amp;
+	float m_encoder_sincos_filter_constant;
+	float m_encoder_sincos_phase_correction;
 	sensor_port_mode m_sensor_port_mode;
 	bool m_invert_direction;
 	drv8301_oc_mode m_drv8301_oc_mode;
@@ -516,6 +522,7 @@ typedef struct {
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
 	int m_hall_extra_samples;
+	int m_batt_filter_const;
 	float m_ntcx_ptcx_temp_base;
 	float m_ntcx_ptcx_res;
 	// Setup info
@@ -872,6 +879,7 @@ typedef struct {
 	float accel_lowpass_filter_x;
 	float accel_lowpass_filter_y;
 	float accel_lowpass_filter_z;
+	float gyro_lowpass_filter;
 	int sample_rate_hz;
 	bool use_magnetometer;
 	float accel_confidence_decay;
@@ -1138,6 +1146,9 @@ typedef enum {
 	COMM_LOG_DATA_F32,
 
 	COMM_SET_APPCONF_NO_STORE,
+	COMM_GET_GNSS,
+
+	COMM_LOG_DATA_F64,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1201,8 +1212,25 @@ typedef enum {
 	CAN_PACKET_POLL_ROTOR_POS,
 	CAN_PACKET_NOTIFY_BOOT,
 	CAN_PACKET_STATUS_6,
+	CAN_PACKET_GNSS_TIME,
+	CAN_PACKET_GNSS_LAT,
+	CAN_PACKET_GNSS_LON,
+	CAN_PACKET_GNSS_ALT_SPEED_HDOP,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
+
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int16_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
 
 // Logged fault data
 typedef struct {
@@ -1363,7 +1391,6 @@ typedef enum {
 	NRF_PAIR_FAIL
 } NRF_PAIR_RES;
 
-// Orientation data
 typedef struct {
 	float q0;
 	float q1;
@@ -1374,6 +1401,12 @@ typedef struct {
 	float integralFBz;
 	float accMagP;
 	int initialUpdateDone;
+
+	// Parameters
+	float acc_confidence_decay;
+	float kp;
+	float ki;
+	float beta;
 } ATTITUDE_INFO;
 
 // Custom EEPROM variables

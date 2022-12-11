@@ -290,10 +290,10 @@
 #define MCCONF_FOC_OBSERVER_OFFSET		-1.0	// Observer offset in timer update cycles
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
-#define MCCONF_FOC_DUTY_DOWNRAMP_KP		10.0	// PI controller for duty control when decreasing the duty
+#define MCCONF_FOC_DUTY_DOWNRAMP_KP		50.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KI
-#define MCCONF_FOC_DUTY_DOWNRAMP_KI		200.0	// PI controller for duty control when decreasing the duty
+#define MCCONF_FOC_DUTY_DOWNRAMP_KI		1000.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_START_CURR_DEC
 #define MCCONF_FOC_START_CURR_DEC		1.0	// Decrease current to this fraction at start
@@ -503,20 +503,23 @@
 #ifndef MCCONF_M_ENCODER_COUNTS
 #define MCCONF_M_ENCODER_COUNTS			8192	// The number of encoder counts
 #endif
-#ifndef MCCONF_FOC_ENCODER_SIN_GAIN
-#define MCCONF_FOC_ENCODER_SIN_GAIN		1.0		// Sine error gain of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_SIN_AMP
+#define MCCONF_M_ENCODER_SIN_AMP		1.0	// Sine amplitude
 #endif
-#ifndef MCCONF_FOC_ENCODER_SIN_OFFSET
-#define MCCONF_FOC_ENCODER_SIN_OFFSET		1.65	// Sine offset of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_SIN_OFFSET
+#define MCCONF_M_ENCODER_SIN_OFFSET		1.65 // Sine offset of the sin/cos encoder
 #endif
-#ifndef MCCONF_FOC_ENCODER_COS_GAIN
-#define MCCONF_FOC_ENCODER_COS_GAIN		1.0		// Cosine error gain of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_COS_AMP
+#define MCCONF_M_ENCODER_COS_AMP		1.0	// Cosine amplitude
 #endif
-#ifndef MCCONF_FOC_ENCODER_COS_OFFSET
-#define MCCONF_FOC_ENCODER_COS_OFFSET		1.65	// Cosine offset of the sin/cos encoder
+#ifndef MCCONF_M_ENCODER_COS_OFFSET
+#define MCCONF_M_ENCODER_COS_OFFSET		1.65 // Cosine offset of the sin/cos encoder
 #endif
-#ifndef MCCONF_FOC_ENCODER_SINCOS_FILTER
-#define MCCONF_FOC_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
+#ifndef MCCONF_M_ENCODER_SINCOS_FILTER
+#define MCCONF_M_ENCODER_SINCOS_FILTER	0.5		// Sin/Cos Encoder signal filter constant
+#endif
+#ifndef MCCONF_M_ENCODER_SINCOS_PHASE
+#define MCCONF_M_ENCODER_SINCOS_PHASE		0.0		// Sin/Cos Encoder signal phase correction
 #endif
 #ifndef MCCONF_M_SENSOR_PORT_MODE
 #define MCCONF_M_SENSOR_PORT_MODE		SENSOR_PORT_MODE_HALL // The mode of the hall_encoder port
@@ -559,6 +562,9 @@
 #endif
 #ifndef MCCONF_M_HALL_EXTRA_SAMPLES
 #define MCCONF_M_HALL_EXTRA_SAMPLES		1 // Extra samples for filtering when reading hall sensors
+#endif
+#ifndef MCCONF_M_BATT_FILTER_CONST
+#define MCCONF_M_BATT_FILTER_CONST		45 // Battery level filter constant
 #endif
 
 // Setup Info

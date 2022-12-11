@@ -464,10 +464,11 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
 	const float rpm = RADPS2RPM_f(motor->m_motor_state.speed_rad_s);
 	float error = motor->m_speed_pid_set_rpm - rpm;
 
-	// Too low RPM set. Reset state and return.
+	// Too low RPM set. Reset state, release motor and return.
 	if (fabsf(motor->m_speed_pid_set_rpm) < conf_now->s_pid_min_erpm) {
 		motor->m_speed_i_term = 0.0;
 		motor->m_speed_prev_error = error;
+		motor->m_iq_set = 0.0;
 		return;
 	}
 

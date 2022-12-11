@@ -83,6 +83,9 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+// For double precision literals
+#define D(x) 				((double)x##L)
+
 /**
  * A simple low pass filter.
  *

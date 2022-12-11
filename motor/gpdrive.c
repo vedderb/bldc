@@ -35,7 +35,7 @@
 #include <stdlib.h>
 
 // Settings
-#define SAMPLE_BUFFER_SIZE			2048
+#define SAMPLE_BUFFER_SIZE			1024
 
 // Private types
 typedef struct {

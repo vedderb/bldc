@@ -63,6 +63,15 @@
 #define HW_UART_P_RX_PORT						GPIOA
 #define HW_UART_P_RX_PIN						10
 
+// Pins for Third UART - on black connector next to bluetooth module
+#define HW_UART_3_BAUD                          115200
+#define HW_UART_3_DEV                           SD2
+#define HW_UART_3_GPIO_AF                       GPIO_AF_USART2
+#define HW_UART_3_TX_PORT                       GPIOD
+#define HW_UART_3_TX_PIN                        6
+#define HW_UART_3_RX_PORT                       GPIOD
+#define HW_UART_3_RX_PIN                        5
+
 // SPI for DRV8301
 #define HW_HAS_DRV8301
 #define DRV8301_MOSI_GPIO						GPIOC

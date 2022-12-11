@@ -159,6 +159,8 @@ typedef struct {
 	float m_duty_filtered;
 	bool m_was_control_duty;
 	float m_duty_i_term;
+	bool duty_was_pi;
+	float duty_pi_duty_last;
 	float m_openloop_angle;
 	float m_x1_prev;
 	float m_x2_prev;

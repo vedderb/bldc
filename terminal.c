@@ -61,6 +61,9 @@ static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
 void terminal_process_string(char *str) {
+	// Echo command so user can see what they previously ran
+	commands_printf("-> %s \n", str);
+
 	enum { kMaxArgs = 64 };
 	int argc = 0;
 	char *argv[kMaxArgs];
@@ -88,9 +91,7 @@ void terminal_process_string(char *str) {
 		}
 	}
 
-	if (strcmp(argv[0], "ping") == 0) {
-		commands_printf("pong\n");
-	} else if (strcmp(argv[0], "last_adc_duration") == 0) {
+	if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
 		commands_printf("Latest sample ADC duration: %.4f ms\n", (double)(mc_interface_get_last_sample_adc_isr_duration() * 1000.0));
@@ -220,7 +221,7 @@ void terminal_process_string(char *str) {
 			sscanf(argv[1], "%f", &current);
 			sscanf(argv[2], "%f", &min_rpm);
 			sscanf(argv[3], "%f", &low_duty);
-
+			commands_printf("Detecting parameters for BLDC...");
 			if (current > 0.0 && current < mc_interface_get_configuration()->l_current_max &&
 					min_rpm > 10.0 && min_rpm < 3000.0 &&
 					low_duty > 0.02 && low_duty < 0.8) {
@@ -252,111 +253,26 @@ void terminal_process_string(char *str) {
 					commands_printf("Detection failed. Try again with different parameters.\n");
 				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s)");
+				if (!(current > 0.0 && current < mc_interface_get_configuration()->l_current_max)) {
+					commands_printf("Current must be between 0.0 and %.2f", (double)mc_interface_get_configuration()->l_current_max);
+				}
+				if (!(min_rpm > 10.0 && min_rpm < 3000.0)) {
+					commands_printf("ERPM must be between 10 and 3000");
+				}
+				if (!(low_duty > 0.02 && low_duty < 0.8)) {
+					commands_printf("Duty must be between 0.02 and 0.8");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires three arguments.\n");
+			commands_printf("This command requires three arguments. [current erpm duty]\n");
 		}
 	} else if (strcmp(argv[0], "rpm_dep") == 0) {
 		mc_rpm_dep_struct rpm_dep = mcpwm_get_rpm_dep();
 		commands_printf("Cycle int limit: %.2f", (double)rpm_dep.cycle_int_limit);
 		commands_printf("Cycle int limit running: %.2f", (double)rpm_dep.cycle_int_limit_running);
 		commands_printf("Cycle int limit max: %.2f\n", (double)rpm_dep.cycle_int_limit_max);
-	} else if (strcmp(argv[0], "can_devs") == 0) {
-		commands_printf("CAN devices seen on the bus the past second:\n");
-		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
-			can_status_msg *msg = comm_can_get_status_msg_index(i);
-			if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 5.0) {
-				commands_printf("MSG1 ID    : %i", msg->id);
-				commands_printf("RX Time    : %i", msg->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg->rx_time));
-				commands_printf("RPM        : %.2f", (double)msg->rpm);
-				commands_printf("Current    : %.2f", (double)msg->current);
-				commands_printf("Duty       : %.2f\n", (double)msg->duty);
-			}
-
-			can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-			if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 5.0) {
-				commands_printf("MSG2 ID    : %i", msg2->id);
-				commands_printf("RX Time    : %i", msg2->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg2->rx_time));
-				commands_printf("Ah         : %.2f", (double)msg2->amp_hours);
-				commands_printf("Ah Charged : %.2f\n", (double)msg2->amp_hours_charged);
-			}
-
-			can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-			if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 5.0) {
-				commands_printf("MSG3 ID    : %i", msg3->id);
-				commands_printf("RX Time    : %i", msg3->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg3->rx_time));
-				commands_printf("Wh         : %.2f", (double)msg3->watt_hours);
-				commands_printf("Wh Charged : %.2f\n", (double)msg3->watt_hours_charged);
-			}
-
-			can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-			if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 5.0) {
-				commands_printf("MSG4 ID    : %i", msg4->id);
-				commands_printf("RX Time    : %i", msg4->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg4->rx_time));
-				commands_printf("Current In : %.2f", (double)msg4->current_in);
-				commands_printf("Temp FET   : %.2f", (double)msg4->temp_fet);
-				commands_printf("Temp Motor : %.2f", (double)msg4->temp_motor);
-				commands_printf("PID pos    : %.2f\n", (double)msg4->pid_pos_now);
-			}
-
-			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(i);
-			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 5.0) {
-				commands_printf("MSG5 ID    : %i", msg5->id);
-				commands_printf("RX Time    : %i", msg5->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg5->rx_time));
-				commands_printf("Tacho      : %d", msg5->tacho_value);
-				commands_printf("V In       : %.2f\n", (double)msg5->v_in);
-			}
-
-			can_status_msg_6 *msg6 = comm_can_get_status_msg_6_index(i);
-			if (msg6->id >= 0 && UTILS_AGE_S(msg6->rx_time) < 5.0) {
-				commands_printf("MSG6 ID    : %i", msg6->id);
-				commands_printf("RX Time    : %i", msg6->rx_time);
-				commands_printf("Age (s)    : %.4f", (double)UTILS_AGE_S(msg6->rx_time));
-				commands_printf("ADC 1-3    : %.3f V, %.3f V, %.3f V", (double)msg6->adc_1, (double)msg6->adc_2, (double)msg6->adc_3);
-				commands_printf("PPM	    : %.2f\n", (double)msg6->ppm);
-			}
-
-			io_board_adc_values *io_adc = comm_can_get_io_board_adc_1_4_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
-				commands_printf("IO Board ADC 1_4");
-				commands_printf("ID                 : %i", io_adc->id);
-				commands_printf("RX Time            : %i", io_adc->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
-				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
-						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
-						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
-			}
-
-			io_adc = comm_can_get_io_board_adc_5_8_index(i);
-			if (io_adc->id >= 0 && UTILS_AGE_S(io_adc->rx_time) < 5.0) {
-				commands_printf("IO Board ADC 5_8");
-				commands_printf("ID                 : %i", io_adc->id);
-				commands_printf("RX Time            : %i", io_adc->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_adc->rx_time) * 1000.0));
-				commands_printf("ADC                : %.2f %.2f %.2f %.2f\n",
-						(double)io_adc->adc_voltages[0], (double)io_adc->adc_voltages[1],
-						(double)io_adc->adc_voltages[2], (double)io_adc->adc_voltages[3]);
-			}
-
-			io_board_digial_inputs *io_in = comm_can_get_io_board_digital_in_index(i);
-			if (io_in->id >= 0 && UTILS_AGE_S(io_in->rx_time) < 5.0) {
-				commands_printf("IO Board Inputs");
-				commands_printf("ID                 : %i", io_in->id);
-				commands_printf("RX Time            : %i", io_in->rx_time);
-				commands_printf("Age (milliseconds) : %.2f", (double)(UTILS_AGE_S(io_in->rx_time) * 1000.0));
-				commands_printf("IN                 : %llu %llu %llu %llu %llu %llu %llu %llu\n",
-						(io_in->inputs >> 0) & 1, (io_in->inputs >> 1) & 1,
-						(io_in->inputs >> 2) & 1, (io_in->inputs >> 3) & 1,
-						(io_in->inputs >> 4) & 1, (io_in->inputs >> 5) & 1,
-						(io_in->inputs >> 6) & 1, (io_in->inputs >> 7) & 1);
-			}
-		}
 	} else if (strcmp(argv[0], "foc_encoder_detect") == 0) {
 		if (argc == 2) {
 			float current = -1.0;
@@ -364,7 +280,7 @@ void terminal_process_string(char *str) {
 
 			mc_configuration *mcconf = mempools_alloc_mcconf();
 			*mcconf = *mc_interface_get_configuration();
-
+			commands_printf("Detecting encoder...");
 			if (current > 0.0 && current <= mcconf->l_current_max) {
 				if (encoder_is_configured()) {
 					mc_motor_type type_old = mcconf->motor_type;
@@ -386,12 +302,12 @@ void terminal_process_string(char *str) {
 					commands_printf("Encoder not enabled.\n");
 				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s). Current must be between 0.0 and %.2f\n", (double)mcconf->l_current_max);
 			}
 
 			mempools_free_mcconf(mcconf);
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [current]\n");
 		}
 	} else if (strcmp(argv[0], "measure_res") == 0) {
 		if (argc == 2) {
@@ -402,29 +318,34 @@ void terminal_process_string(char *str) {
 			*mcconf = *mc_interface_get_configuration();
 			mc_configuration *mcconf_old = mempools_alloc_mcconf();
 			*mcconf_old = *mc_interface_get_configuration();
-
+			commands_printf("Measuring resistance...");
 			if (current > 0.0 && current <= mcconf->l_current_max) {
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
-
-				commands_printf("Resistance: %.6f ohm\n", (double)mcpwm_foc_measure_resistance(current, 2000, true));
-
+				float tmp_r = 0.0;
+				int fault = mcpwm_foc_measure_resistance(current, 2000, true, &tmp_r);
+				if(fault == FAULT_CODE_NONE) {
+					commands_printf("Resistance: %.6f ohm\n", (double)tmp_r);
+				} else {
+					commands_printf("Resistance measurement failed due to fault: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				}
 				mc_interface_set_configuration(mcconf_old);
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s). Current must be between 0.0 and %.2f\n", (double)mcconf->l_current_max);
 			}
 
 			mempools_free_mcconf(mcconf);
 			mempools_free_mcconf(mcconf_old);
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [current]\n");
 		}
 	} else if (strcmp(argv[0], "measure_ind") == 0) {
 		if (argc == 2) {
 			float duty = -1.0;
 			sscanf(argv[1], "%f", &duty);
-
-			if (duty > 0.0 && duty < 0.9) {
+			commands_printf("Measuring inductance...");
+			if (duty > 0.0 && duty <= 0.9) {
 				mc_configuration *mcconf = mempools_alloc_mcconf();
 				*mcconf = *mc_interface_get_configuration();
 				mc_configuration *mcconf_old = mempools_alloc_mcconf();
@@ -433,20 +354,24 @@ void terminal_process_string(char *str) {
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
 
-				float curr, ld_lq_diff;
-				float ind = mcpwm_foc_measure_inductance(duty, 400, &curr, &ld_lq_diff);
-				commands_printf("Inductance: %.2f uH, ld_lq_diff: %.2f uH (%.2f A)\n",
-						(double)ind, (double)ld_lq_diff, (double)curr);
-
+				float curr, ld_lq_diff, ind;
+				int fault = mcpwm_foc_measure_inductance(duty, 400, &curr, &ld_lq_diff, &ind);
+				if(fault == FAULT_CODE_NONE) {
+					commands_printf("Inductance: %.2f uH, ld_lq_diff: %.2f uH (%.2f A)\n",
+									(double)ind, (double)ld_lq_diff, (double)curr);
+				} else {
+					commands_printf("Inductance measurement failed with fault: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				}
 				mc_interface_set_configuration(mcconf_old);
 
 				mempools_free_mcconf(mcconf);
 				mempools_free_mcconf(mcconf_old);
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument. Duty must be between 0.0 and 0.9 \n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [duty]\n");
 		}
 	} else if (strcmp(argv[0], "measure_linkage") == 0) {
 		if (argc == 5) {
@@ -458,17 +383,30 @@ void terminal_process_string(char *str) {
 			sscanf(argv[2], "%f", &duty);
 			sscanf(argv[3], "%f", &min_erpm);
 			sscanf(argv[4], "%f", &res);
-
+			commands_printf("Measuring flux linkage...");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
-					min_erpm > 0.0 && duty > 0.02 && res >= 0.0) {
+					min_erpm > 0.0 && duty > 0.02 && duty <= 0.9 && res >= 0.0) {
 				float linkage;
 				conf_general_measure_flux_linkage(current, duty, min_erpm, res, &linkage);
 				commands_printf("Flux linkage: %.7f\n", (double)linkage);
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s).");
+				if (!(current > 0.0 && current <= mc_interface_get_configuration()->l_current_max)) {
+					commands_printf("Current must be between 0.0 and %.2f", (double)mc_interface_get_configuration()->l_current_max);
+				}
+				if (!(duty > 0.02 && duty <= 0.9)) {
+					commands_printf("Duty must be between 0.02 and 0.9");
+				}
+				if (!(min_erpm > 0.0)) {
+					commands_printf("ERPM must be greater than 0.0");
+				}
+				if (!(res >= 0.0)) {
+					commands_printf("Resistance must be greater than 0.0");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires four arguments.\n");
+			commands_printf("This command requires four arguments. [current duty min_erpm resistance]\n");
 		}
 	} else if (strcmp(argv[0], "measure_res_ind") == 0) {
 		mc_configuration *mcconf = mempools_alloc_mcconf();
@@ -478,15 +416,17 @@ void terminal_process_string(char *str) {
 
 		mcconf->motor_type = MOTOR_TYPE_FOC;
 		mc_interface_set_configuration(mcconf);
-
+		commands_printf("Measuring resistance and inductance...");
 		float res = 0.0;
 		float ind = 0.0;
 		float ld_lq_diff = 0.0;
-		if (mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff)) {
+		int fault = mcpwm_foc_measure_res_ind(&res, &ind, &ld_lq_diff);
+		if (fault == FAULT_CODE_NONE) {
 			commands_printf("Resistance: %.6f ohm", (double)res);
 			commands_printf("Inductance: %.2f uH (Lq-Ld: %.2f uH)\n", (double)ind, (double)ld_lq_diff);
 		} else {
-			commands_printf("Error measuring resistance or inductance\n");
+			commands_printf("Fault occured while measuring resistance and inductance: %s", mc_interface_fault_to_string(fault));
+			commands_printf("For more info type \"faults\" to view all logged faults\n");
 		}
 		
 
@@ -497,9 +437,10 @@ void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "measure_linkage_foc") == 0) {
 		if (argc == 2) {
 			float duty = -1.0;
+			int fault = FAULT_CODE_NONE;
 			sscanf(argv[1], "%f", &duty);
-
-			if (duty > 0.0) {
+			commands_printf("Measuring flux linkage foc...");
+			if (duty > 0.0 && duty <= 0.9) {
 				mc_configuration *mcconf = mempools_alloc_mcconf();
 				*mcconf = *mc_interface_get_configuration();
 				mc_configuration *mcconf_old = mempools_alloc_mcconf();
@@ -517,6 +458,10 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 100;i++) {
 					mc_interface_set_duty(((float)i / 100.0) * duty);
+					fault = mc_interface_get_fault();
+					if (fault != FAULT_CODE_NONE) {
+						break;
+					}
 					chThdSleepMilliseconds(20);
 				}
 
@@ -548,12 +493,18 @@ void terminal_process_string(char *str) {
 
 				float linkage = (vq_avg - mcconf->foc_motor_r * iq_avg) / RPM2RADPS_f(rpm_avg);
 
-				commands_printf("Flux linkage: %.7f\n", (double)linkage);
+				if (fault == FAULT_CODE_NONE) {
+					commands_printf("Flux linkage: %.7f\n", (double)linkage);
+				} else {
+					commands_printf("Flux linkage detection failed with fault: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+
+				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument. Duty must be between 0.0 and 0.9\n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [duty]\n");
 		}
 	} else if (strcmp(argv[0], "measure_linkage_openloop") == 0) {
 		if (argc == 6) {
@@ -567,25 +518,53 @@ void terminal_process_string(char *str) {
 			sscanf(argv[3], "%f", &erpm_per_sec);
 			sscanf(argv[4], "%f", &res);
 			sscanf(argv[5], "%f", &ind);
-
+			commands_printf("Measuring flux linkage openloop...");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
-					erpm_per_sec > 0.0 && duty > 0.02 && res >= 0.0 && ind >= 0.0) {
-				float linkage, linkage_undriven, undriven_samples;
-				commands_printf("Measuring flux linkage...");
-				conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
-						&linkage, &linkage_undriven, &undriven_samples);
-				commands_printf(
-						"Flux linkage            : %.7f\n"
-						"Flux Linkage (undriven) : %.7f\n"
-						"Undriven samples        : %.1f\n",
-						(double)linkage, (double)linkage_undriven, (double)undriven_samples);
+					erpm_per_sec > 0.0 && duty > 0.02 && duty <= 0.9 && res >= 0.0 && ind >= 0.0) {
+				float linkage = 0.0, linkage_undriven = 0.0, undriven_samples = 0.0;
+				bool result;
+
+				int fault = conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
+																	   &linkage, &linkage_undriven, &undriven_samples, &result);
+				if (fault == FAULT_CODE_NONE) {
+					if (result) {
+						commands_printf(
+									"Flux linkage            : %.7f\n"
+									"Flux Linkage (undriven) : %.7f\n"
+									"Undriven samples        : %.1f\n",
+									(double)linkage, (double)linkage_undriven, (double)undriven_samples);
+					} else {
+						commands_printf("Failed to measure flux linkage");
+					}
+
+				} else {
+					commands_printf("Fault occured while measuring flux linkage: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s).");
+				if (!(current > 0.0 && current <= mc_interface_get_configuration()->l_current_max)) {
+					commands_printf("Current must be between 0.0 and %.2f", (double)mc_interface_get_configuration()->l_current_max);
+				}
+				if (!(duty > 0.02 && duty <= 0.9)) {
+					commands_printf("Duty must be between 0.02 and 0.9");
+				}
+				if (!(erpm_per_sec > 0.0)) {
+					commands_printf("ERPM ramp rate must be greater than 0.0");
+				}
+				if (!(res >= 0.0)) {
+					commands_printf("Resistance must be greater than 0.0");
+				}
+				if (!(ind >= 0.0)) {
+					commands_printf("Inductance must be greater than 0.0");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires five arguments.\n");
+			commands_printf("This command requires five arguments. [current duty erpm_ramp_per_sec resistance inductance]\n");
 		}
 	} else if (strcmp(argv[0], "foc_state") == 0) {
+        commands_printf("FOC State:");
 		mcpwm_foc_print_state();
 		commands_printf(" ");
 	} else if (strcmp(argv[0], "foc_dc_cal") == 0) {
@@ -608,6 +587,11 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+#ifdef HW_HAS_PHASE_SHUNTS
+		commands_printf("Phase Shunts: Yes");
+#else
+		commands_printf("Phase Shunts: No");
+#endif
 
 		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
 		commands_printf("Runtime  : %llu s", g_backup.runtime);
@@ -645,6 +629,14 @@ void terminal_process_string(char *str) {
 		commands_printf("USB not enabled on hardware.");
 #endif
 
+#if defined (V_REG) && defined (CURRENT_AMP_GAIN) && defined(CURRENT_SHUNT_RES)
+		commands_printf("Current Measurement Range: %.1f A", (double)((V_REG / 2.0) / (CURRENT_AMP_GAIN * CURRENT_SHUNT_RES)));
+#endif
+
+#ifdef HW_DEAD_TIME_NSEC
+		commands_printf("Dead time: %.0f ns", (double)HW_DEAD_TIME_NSEC);
+#endif
+
 		commands_printf("Mempool mcconf now: %d highest: %d (max %d)",
 				mempools_mcconf_allocated_num(), mempools_mcconf_highest(), MEMPOOLS_MCCONF_NUM - 1);
 		commands_printf("Mempool appconf now: %d highest: %d (max %d)",
@@ -657,15 +649,27 @@ void terminal_process_string(char *str) {
 			float erpm = -1.0;
 			sscanf(argv[1], "%f", &current);
 			sscanf(argv[2], "%f", &erpm);
-
-			if (current >= 0.0 && erpm >= 0.0) {
+			commands_printf("Running FOC openloop...");
+			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max && erpm >= 0.0) {
 				timeout_reset();
-				mcpwm_foc_set_openloop(current, erpm);
+				mc_interface_set_openloop_current(current, erpm);
+				int fault = mc_interface_get_fault();
+				if (fault != FAULT_CODE_NONE) {
+					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s).");
+				if (!(current > 0.0 && current <= mc_interface_get_configuration()->l_current_max)) {
+					commands_printf("Current must be between 0.0 and %.2f", (double)mc_interface_get_configuration()->l_current_max);
+				}
+				if (!(erpm >= 0.0)) {
+					commands_printf("ERPM must be greater than 0.0");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires two arguments.\n");
+			commands_printf("This command requires two arguments. [current erpm]\n");
 		}
 	} else if (strcmp(argv[0], "foc_openloop_duty") == 0) {
 		if (argc == 3) {
@@ -673,75 +677,107 @@ void terminal_process_string(char *str) {
 			float erpm = -1.0;
 			sscanf(argv[1], "%f", &duty);
 			sscanf(argv[2], "%f", &erpm);
-
-			if (duty >= 0.0 && erpm >= 0.0) {
+			commands_printf("Running FOC openloop duty...");
+			if (duty >= 0.0 && duty <= 0.9 && erpm >= 0.0) {
 				timeout_reset();
-				mcpwm_foc_set_openloop_duty(duty, erpm);
+				mc_interface_set_openloop_duty(duty, erpm);
+				int fault = mc_interface_get_fault();
+				if (fault != FAULT_CODE_NONE) {
+					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s).");
+				if (!(duty >= 0.0 && duty <= 0.9)) {
+					commands_printf("Duty must be between 0.0 and 0.9");
+				}
+				if (!(erpm >= 0.0)) {
+					commands_printf("ERPM must be greater than 0.0");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires two arguments.\n");
+			commands_printf("This command requires two arguments. [duty erpm]\n");
 		}
 	} else if (strcmp(argv[0], "nrf_ext_set_enabled") == 0) {
 		if (argc == 2) {
 			int enabled = -1;
 			sscanf(argv[1], "%d", &enabled);
-
+			commands_printf("Sending COMM_EXT_NRF_SET_ENABLED...");
 			if (enabled >= 0) {
 				uint8_t buffer[2];
 				buffer[0] = COMM_EXT_NRF_SET_ENABLED;
 				buffer[1] = enabled;
 				commands_send_packet_nrf(buffer, 2);
+				commands_printf("Sent.\n");
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument. Enabled must be >= 0 \n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [enabled]\n");
 		}
 	} else if (strcmp(argv[0], "foc_sensors_detect_apply") == 0) {
 		if (argc == 2) {
 			float current = -1.0;
 			sscanf(argv[1], "%f", &current);
-
+			commands_printf("Detecting sensors for FOC...");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max) {
-				int res = conf_general_autodetect_apply_sensors_foc(current, true, true);
+				int res;
+				int fault = conf_general_autodetect_apply_sensors_foc(current, true, true, &res);
 
-				if (res == 0) {
-					commands_printf("No sensors found, using sensorless mode.\n");
-				} else if (res == 1) {
-					commands_printf("Found hall sensors, using them.\n");
-				} else if (res == 2) {
-					commands_printf("Found AS5047 encoder, using it.\n");
+				if (fault == FAULT_CODE_NONE) {
+					if (res == 0) {
+						commands_printf("No sensors found, using sensorless mode.\n");
+					} else if (res == 1) {
+						commands_printf("Found hall sensors, using them.\n");
+					} else if (res == 2) {
+						commands_printf("Found AS5047 encoder, using it.\n");
+					} else {
+						commands_printf("Detection error: %d\n", res);
+					}
 				} else {
-					commands_printf("Detection error: %d\n", res);
+					commands_printf("Fault occured while detecting sensors: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
 				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s). Current must be between 0.0 and %.2f\n", (double)mc_interface_get_configuration()->l_current_max);
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [current]\n");
 		}
 	} else if (strcmp(argv[0], "rotor_lock_openloop") == 0) {
 		if (argc == 4) {
 			float current = -1.0;
 			float time = -1.0;
 			float angle = -1.0;
+			int fault = FAULT_CODE_NONE;
 			sscanf(argv[1], "%f", &current);
 			sscanf(argv[2], "%f", &time);
 			sscanf(argv[3], "%f", &angle);
-
+			commands_printf("Locking rotor with openloop...");
 			if (fabsf(current) <= mc_interface_get_configuration()->l_current_max &&
 					angle >= 0.0 && angle <= 360.0) {
 				if (time <= 1e-6) {
 					timeout_reset();
-					mcpwm_foc_set_openloop_phase(current, angle);
+					mc_interface_set_openloop_phase(current, angle);
+					fault = mc_interface_get_fault();
+					if (fault != FAULT_CODE_NONE) {
+						commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
+						commands_printf("For more info type \"faults\" to view all logged faults\n");
+						return;
+					}
 					commands_printf("OK\n");
 				} else {
 					int print_div = 0;
 					for (float t = 0.0;t < time;t += 0.002) {
 						timeout_reset();
-						mcpwm_foc_set_openloop_phase(current, angle);
+						mc_interface_set_openloop_phase(current, angle);
+						fault = mc_interface_get_fault();
+						if (fault != FAULT_CODE_NONE) {
+							commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
+							commands_printf("For more info type \"faults\" to view all logged faults\n");
+							return;
+						}
 						chThdSleepMilliseconds(2);
 
 						print_div++;
@@ -756,23 +792,29 @@ void terminal_process_string(char *str) {
 					commands_printf("Done\n");
 				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s).");
+				if (!(fabsf(current) <= mc_interface_get_configuration()->l_current_max)) {
+					commands_printf("Current must be less than %.2f", (double)mc_interface_get_configuration()->l_current_max);
+				}
+				if (!(angle >= 0.0 && angle <= 360.0)) {
+					commands_printf("Angle must be between 0.0 and 360.0");
+				}
+				commands_printf(" ");
 			}
 		} else {
-			commands_printf("This command requires three arguments.\n");
+			commands_printf("This command requires three arguments. [current time angle]\n");
 		}
 	} else if (strcmp(argv[0], "foc_detect_apply_all") == 0) {
 		if (argc == 2) {
 			float max_power_loss = -1.0;
 			sscanf(argv[1], "%f", &max_power_loss);
-
+			commands_printf("Running detection...");
 			if (max_power_loss > 0.0) {
 				int motor_thread_old = mc_interface_get_motor_thread();
 
-				commands_printf("Running detection...");
 				int res = conf_general_detect_apply_all_foc(max_power_loss, true, true);
 
-				commands_printf("Res: %d", res);
+				commands_printf("Result: %d", res);
 				mc_interface_select_motor_thread(1);
 
 				if (res >= 0) {
@@ -822,42 +864,31 @@ void terminal_process_string(char *str) {
 					if (res == -10) {
 						commands_printf("Could not measure flux linkage.");
 					} else if (res == -11) {
-						commands_printf("Fault code occurred during detection.");
+						commands_printf("Persistent fault occurred during detection.");
+					} else {
+						commands_printf("Fault code occurred during detection: %s\n", mc_interface_fault_to_string(res+100)); // faults are offset by -100 here
+						commands_printf("For more info type \"faults\" to view all logged faults\n");
 					}
+
 
 					commands_printf("Detection failed.\n");
 				}
 
 				mc_interface_select_motor_thread(motor_thread_old);
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument. Max power loss must be greater than 0\n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
-		}
-	} else if (strcmp(argv[0], "can_scan") == 0) {
-		bool found = false;
-		for (int i = 0;i < 254;i++) {
-			HW_TYPE hw_type;
-			if (comm_can_ping(i, &hw_type)) {
-				commands_printf("Found %s with ID: %d", utils_hw_type_to_string(hw_type), i);
-				found = true;
-			}
-		}
-
-		if (found) {
-			commands_printf("Done\n");
-		} else {
-			commands_printf("No CAN devices found\n");
+			commands_printf("This command requires one argument. [Max_power_loss]\n");
 		}
 	} else if (strcmp(argv[0], "foc_detect_apply_all_can") == 0) {
 		if (argc == 2) {
 			float max_power_loss = -1.0;
 			sscanf(argv[1], "%f", &max_power_loss);
-
+			commands_printf("Running detection...");
 			if (max_power_loss > 0.0) {
-				commands_printf("Running detection...");
-				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0);
+
+				int res = conf_general_detect_apply_all_foc_can(true, max_power_loss, 0.0, 0.0, 0.0, 0.0, NULL);
 
 				commands_printf("Res: %d", res);
 
@@ -911,27 +942,29 @@ void terminal_process_string(char *str) {
 					if (res == -10) {
 						commands_printf("Could not measure flux linkage.");
 					} else if (res == -11) {
-						commands_printf("Fault code occurred during detection.");
+						commands_printf("Persistent fault occurred during detection.");
+					} else {
+						commands_printf("Fault code occurred during detection: %s\n", mc_interface_fault_to_string(res+100)); // faults are offset by -100 here
+						commands_printf("For more info type \"faults\" to view all logged faults\n");
 					}
 
 					commands_printf("Detection failed.\n");
 				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument. Max power loss must be greater than 0\n");
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [Max_power_loss]\n");
 		}
 	} else if (strcmp(argv[0], "uptime") == 0) {
 		commands_printf("Uptime: %.2f s\n", (double)chVTGetSystemTimeX() / (double)CH_CFG_ST_FREQUENCY);
 	} else if (strcmp(argv[0], "hall_analyze") == 0) {
 		if (argc == 2) {
 			float current = -1.0;
+			int fault = FAULT_CODE_NONE;
 			sscanf(argv[1], "%f", &current);
-
+			commands_printf("Starting hall sensor analysis...\n");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max) {
-				commands_printf("Starting hall sensor analysis...\n");
-
 				mc_interface_lock();
 				mc_configuration *mcconf = mempools_alloc_mcconf();
 				*mcconf = *mc_interface_get_configuration();
@@ -949,7 +982,12 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 1000;i++) {
 					timeout_reset();
-					mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, phase);
+					mc_interface_lock_override_once();
+					mc_interface_set_openloop_phase((float)i * current / 1000.0, phase);
+					fault = mc_interface_get_fault();
+					if (fault != FAULT_CODE_NONE) {
+						break;
+					}
 					chThdSleepMilliseconds(1);
 				}
 
@@ -959,38 +997,45 @@ void terminal_process_string(char *str) {
 				int states[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 				int transition_index = 0;
 
-				for (int i = 0;i < 720;i++) {
-					int hall = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
-					if (hall_last != hall) {
-						if (transition_index < 7) {
-							transitions[transition_index++] = phase;
-						}
+				if (fault == FAULT_CODE_NONE) {
 
-						for (int j = 0;j < 8;j++) {
-							if (states[j] == hall || states[j] == -1) {
-								states[j] = hall;
-								break;
+					for (int i = 0;i < 720;i++) {
+						int hall = utils_read_hall(is_second_motor, mcconf->m_hall_extra_samples);
+						if (hall_last != hall) {
+							if (transition_index < 7) {
+								transitions[transition_index++] = phase;
+							}
+
+							for (int j = 0;j < 8;j++) {
+								if (states[j] == hall || states[j] == -1) {
+									states[j] = hall;
+									break;
+								}
 							}
 						}
+						hall_last = hall;
+
+						// Notice that the plots are offset slightly in Y, to make it easier to see them.
+						commands_plot_set_graph(0);
+						commands_send_plot_points(phase, (float)(hall & 1) * 1.02);
+						commands_plot_set_graph(1);
+						commands_send_plot_points(phase, (float)((hall >> 1) & 1) * 1.04);
+						commands_plot_set_graph(2);
+						commands_send_plot_points(phase, (float)((hall >> 2) & 1) * 1.06);
+						commands_plot_set_graph(3);
+						commands_send_plot_points(phase, (float)hall);
+
+						phase += 1.0;
+						timeout_reset();
+						mc_interface_lock_override_once();
+						mc_interface_set_openloop_phase(current, phase);
+						fault = mc_interface_get_fault();
+						if (fault != FAULT_CODE_NONE) {
+							break;
+						}
+						chThdSleepMilliseconds(20);
 					}
-					hall_last = hall;
-
-					// Notice that the plots are offset slightly in Y, to make it easier to see them.
-					commands_plot_set_graph(0);
-					commands_send_plot_points(phase, (float)(hall & 1) * 1.02);
-					commands_plot_set_graph(1);
-					commands_send_plot_points(phase, (float)((hall >> 1) & 1) * 1.04);
-					commands_plot_set_graph(2);
-					commands_send_plot_points(phase, (float)((hall >> 2) & 1) * 1.06);
-					commands_plot_set_graph(3);
-					commands_send_plot_points(phase, (float)hall);
-
-					phase += 1.0;
-					timeout_reset();
-					mcpwm_foc_set_openloop_phase(current, phase);
-					chThdSleepMilliseconds(20);
 				}
-
 				mc_interface_lock_override_once();
 				mc_interface_release_motor();
 				mc_interface_wait_for_motor_release(1.0);
@@ -999,50 +1044,55 @@ void terminal_process_string(char *str) {
 				mempools_free_mcconf(mcconf);
 				mc_interface_unlock();
 
-				int state_num = 0;
-				for (int i = 0;i < 8;i++) {
-					if (states[i] != -1) {
-						state_num++;
-					}
-				}
-
-				if (state_num == 6) {
-					commands_printf("Found 6 different states. This seems correct.\n");
+				if (fault != FAULT_CODE_NONE) {
+					commands_printf("Fault occured while analyzing hall sensors: %s", mc_interface_fault_to_string(fault));
+					commands_printf("For more info type \"faults\" to view all logged faults\n");
 				} else {
-					commands_printf("Found %d different states. Something is most likely wrong...\n", state_num);
-				}
-
-				float min = 900.0;
-				float max = 0.0;
-				for (int i = 0;i < 6;i++) {
-					float diff = fabsf(utils_angle_difference(transitions[i], transitions[i + 1]));
-					commands_printf("Hall diff %d: %.1f degrees", i + 1, (double)diff);
-					if (diff < min) {
-						min = diff;
+					int state_num = 0;
+					for (int i = 0;i < 8;i++) {
+						if (states[i] != -1) {
+							state_num++;
+						}
 					}
-					if (diff > max) {
-						max = diff;
+
+					if (state_num == 6) {
+						commands_printf("Found 6 different states. This seems correct.\n");
+					} else {
+						commands_printf("Found %d different states. Something is most likely wrong...\n", state_num);
 					}
-				}
 
-				float deviation = (max - min) / 2.0;
-				if (deviation < 5) {
-					commands_printf("Maximum deviation: %.2f degrees. This is good alignment.\n", (double)deviation);
-				} else if ((max - min) < 10) {
-					commands_printf("Maximum deviation: %.2f degrees. This is OK, but not great alignment.\n", (double)deviation);
-				} else if ((max - min) < 15) {
-					commands_printf("Maximum deviation: %.2f degrees. This is bad, but probably usable alignment.\n", (double)deviation);
-				} else {
-					commands_printf("Maximum deviation: %.2f degrees. The hall sensors are significantly misaligned. This has "
-							"to be fixed for proper operation.\n", (double)(max - min));
-				}
+					float min = 900.0;
+					float max = 0.0;
+					for (int i = 0;i < 6;i++) {
+						float diff = fabsf(utils_angle_difference(transitions[i], transitions[i + 1]));
+						commands_printf("Hall diff %d: %.1f degrees", i + 1, (double)diff);
+						if (diff < min) {
+							min = diff;
+						}
+						if (diff > max) {
+							max = diff;
+						}
+					}
 
-				commands_printf("Done. Go to the Realtime Data > Experiment page to see the plot.\n");
+					float deviation = (max - min) / 2.0;
+					if (deviation < 5) {
+						commands_printf("Maximum deviation: %.2f degrees. This is good alignment.\n", (double)deviation);
+					} else if ((max - min) < 10) {
+						commands_printf("Maximum deviation: %.2f degrees. This is OK, but not great alignment.\n", (double)deviation);
+					} else if ((max - min) < 15) {
+						commands_printf("Maximum deviation: %.2f degrees. This is bad, but probably usable alignment.\n", (double)deviation);
+					} else {
+						commands_printf("Maximum deviation: %.2f degrees. The hall sensors are significantly misaligned. This has "
+										"to be fixed for proper operation.\n", (double)(max - min));
+					}
+
+					commands_printf("Done. Go to the Realtime Data > Experiment page to see the plot.\n");
+				}
 			} else {
-				commands_printf("Invalid argument(s).\n");
+				commands_printf("Invalid argument(s). Current must be between 0.0 and %.2f\n", (double)mc_interface_get_configuration()->l_current_max);
 			}
 		} else {
-			commands_printf("This command requires one argument.\n");
+			commands_printf("This command requires one argument. [current]\n");
 		}
 	} else if (strcmp(argv[0], "crc") == 0) {
 		unsigned mc_crc0 = mc_interface_get_configuration()->crc;
@@ -1084,14 +1134,11 @@ void terminal_process_string(char *str) {
 		commands_printf("help");
 		commands_printf("  Show this help");
 
-		commands_printf("ping");
-		commands_printf("  Print pong here to see if the reply works");
-
 		commands_printf("last_adc_duration");
 		commands_printf("  The time the latest ADC interrupt consumed");
 
 		commands_printf("kv");
-		commands_printf("  The calculated kv of the motor");
+		commands_printf("  The calculated kv of the motor (BLDC)");
 
 		commands_printf("mem");
 		commands_printf("  Show memory usage");
@@ -1118,9 +1165,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("rpm_dep");
 		commands_printf("  Prints some rpm-dep values");
-
-		commands_printf("can_devs");
-		commands_printf("  Prints all CAN devices seen on the bus the past second");
 
 		commands_printf("foc_encoder_detect [current]");
 		commands_printf("  Run the motor at 1Hz on open loop and compute encoder settings");
@@ -1174,9 +1218,6 @@ void terminal_process_string(char *str) {
 
 		commands_printf("foc_detect_apply_all [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses.");
-
-		commands_printf("can_scan");
-		commands_printf("  Scan CAN-bus using ping commands, and print all devices that are found.");
 
 		commands_printf("foc_detect_apply_all_can [max_power_loss_W]");
 		commands_printf("  Detect and apply all motor settings, based on maximum resistive motor power losses. Also");

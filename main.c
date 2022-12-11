@@ -191,6 +191,8 @@ static THD_FUNCTION(periodic_thread, arg) {
 				break;
 			}
 		}
+	 
+		HW_TRIM_HSI(); // Compensate HSI for temperature
 
 		chThdSleepMilliseconds(10);
 	}

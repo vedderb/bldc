@@ -43,8 +43,11 @@ static volatile bool is_running = false;
 static void(*done_func)(void) = 0;
 
 static void icuwidthcb(ICUDriver *icup) {
-	last_len_received[0] = ((float)icuGetWidthX(icup) / ((float)TIMER_FREQ / 1000.0));
-	float len = last_len_received[0] - pulse_start;
+	float len_received = ((float)icuGetWidthX(icup) / ((float)TIMER_FREQ / 1000.0));
+#ifndef HW_VALIDATE_SERVO_INPUT
+	last_len_received[0] = len_received;
+#endif
+	float len = len_received - pulse_start;
 	const float len_set = (pulse_end - pulse_start);
 
 	if (len > len_set) {
@@ -78,6 +81,9 @@ static void icuwidthcb(ICUDriver *icup) {
 			servo_pos[0] = (len * 2.0 - len_set) / len_set;
 		}
 
+#ifdef HW_VALIDATE_SERVO_INPUT
+		last_len_received[0] = len_received; // Stop noisy lengths from going to vesc tool
+#endif
 		last_update_time = chVTGetSystemTime();
 
 		if (done_func) {
@@ -198,4 +204,8 @@ float servodec_get_last_pulse_len(int servo_num) {
 	} else {
 		return 0.0;
 	}
+}
+
+bool servodec_is_running(void) {
+	return is_running;
 }

@@ -129,3 +129,32 @@ void log_send_samples_f32(
 
 	mempools_free_packet_buffer(buffer);
 }
+
+void log_send_samples_f64(
+		int can_id,
+		int field_start,
+		double *samples,
+		int sample_num) {
+
+	if (sample_num > 50) {
+		return;
+	}
+
+	int32_t ind = 0;
+	uint8_t *buffer = mempools_get_packet_buffer();
+
+	buffer[ind++] = COMM_LOG_DATA_F64;
+	buffer_append_int16(buffer, field_start, &ind);
+
+	for (int i = 0;i < sample_num;i++) {
+		buffer_append_float64_auto(buffer, samples[i], &ind);
+	}
+
+	if (can_id >= 0 && can_id < 255) {
+		comm_can_send_buffer(can_id, buffer, ind, 0);
+	} else {
+		commands_send_packet(buffer, ind);
+	}
+
+	mempools_free_packet_buffer(buffer);
+}

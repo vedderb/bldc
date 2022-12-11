@@ -165,6 +165,21 @@ void commands_send_packet_last_blocking(unsigned char *data, unsigned int len) {
 	}
 }
 
+void commands_unregister_reply_func(void(*reply_func)(unsigned char *data, unsigned int len)) {
+	if (send_func == reply_func) {
+		send_func = NULL;
+	}
+	if (send_func_blocking == reply_func) {
+		send_func_blocking = NULL;
+	}
+	if (send_func_nrf == reply_func) {
+		send_func_nrf = NULL;
+	}
+	if (send_func_can_fwd == reply_func) {
+		send_func_can_fwd = NULL;
+	}
+}
+
 /**
  * Process a received buffer with commands and data.
  *
@@ -1015,7 +1030,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
 				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
-					comm_can_send_buffer(msg->id, data - 1, len + 1, 0);
+					comm_can_send_buffer(msg->id, data - 1, len + 1, 2);
 				}
 			}
 		}
@@ -1100,7 +1115,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		if (fwd_can) {
 			data[0] = 0; // Don't continue forwarding
-			comm_can_send_buffer(255, data - 1, len + 1, 0);
+			comm_can_send_buffer(255, data - 1, len + 1, 2);
 		}
 	} break;
 
@@ -1583,6 +1598,31 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_GET_GNSS: {
+		int32_t ind = 0;
+		uint32_t mask = buffer_get_uint16(data, &ind);
+
+		volatile gnss_data *g = mc_interface_gnss();
+
+		ind = 0;
+		uint8_t send_buffer[80];
+		send_buffer[ind++] = packet_id;
+		buffer_append_uint32(send_buffer, mask, &ind);
+
+		if (mask & ((uint32_t)1 << 0)) { buffer_append_double64(send_buffer, g->lat, D(1e16), &ind); }
+		if (mask & ((uint32_t)1 << 1)) { buffer_append_double64(send_buffer, g->lon, D(1e16), &ind); }
+		if (mask & ((uint32_t)1 << 2)) { buffer_append_float32_auto(send_buffer, g->height, &ind); }
+		if (mask & ((uint32_t)1 << 3)) { buffer_append_float32_auto(send_buffer, g->speed, &ind); }
+		if (mask & ((uint32_t)1 << 4)) { buffer_append_float32_auto(send_buffer, g->hdop, &ind); }
+		if (mask & ((uint32_t)1 << 5)) { buffer_append_int32(send_buffer, g->ms_today, &ind); }
+		if (mask & ((uint32_t)1 << 6)) { buffer_append_int16(send_buffer, g->yy, &ind); }
+		if (mask & ((uint32_t)1 << 7)) { send_buffer[ind++] = g->mo; }
+		if (mask & ((uint32_t)1 << 8)) { send_buffer[ind++] = g->dd; }
+		if (mask & ((uint32_t)1 << 9)) { buffer_append_float32_auto(send_buffer, UTILS_AGE_S(g->last_update), &ind); }
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_LISP_SET_RUNNING:
 	case COMM_LISP_GET_STATS:
 	case COMM_LISP_REPL_CMD:
@@ -1801,6 +1841,7 @@ inline static float hw_lim_upper(float l, float h) {(void)l; return h;}
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
+	utils_truncate_number(&mcconf->l_erpm_start, 0.0, 1.0);
 
 	float ctrl_loop_freq = 0.0;
 
@@ -1970,8 +2011,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 			int detect_hall_res;
 
 			if (!conf_general_detect_motor_param(detect_current, detect_min_rpm,
-					detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
-					detect_hall_table, &detect_hall_res)) {
+												 detect_low_duty, &detect_cycle_int_limit, &detect_coupling_k,
+												 detect_hall_table, &detect_hall_res)) {
 				detect_cycle_int_limit = 0.0;
 				detect_coupling_k = 0.0;
 			}
@@ -1996,15 +2037,21 @@ static THD_FUNCTION(blocking_thread, arg) {
 			*mcconf_old = *mcconf;
 
 			mcconf->motor_type = MOTOR_TYPE_FOC;
+
+			// Lower f_zv means less dead time distortion and higher possible current
+			// when measuring inductance on high-inductance motors.
+			mcconf->foc_f_zv = 10000.0;
+
 			mc_interface_set_configuration(mcconf);
 
 			float r = 0.0;
 			float l = 0.0;
 			float ld_lq_diff = 0.0;
-			bool res = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
+
+			int fault = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
 			mc_interface_set_configuration(mcconf_old);
 
-			if (!res) {
+			if (fault != FAULT_CODE_NONE) {
 				r = 0.0;
 				l = 0.0;
 			}
@@ -2109,7 +2156,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 				mc_interface_set_configuration(mcconf);
 
 				uint8_t hall_tab[8];
-				bool res = mcpwm_foc_hall_detect(current, hall_tab);
+				bool res;
+				mcpwm_foc_hall_detect(current, hall_tab, &res);
 				mc_interface_set_configuration(mcconf_old);
 
 				ind = 0;
@@ -2150,17 +2198,23 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 
 			float linkage, linkage_undriven, undriven_samples;
-			bool res = conf_general_measure_flux_linkage_openloop(current, duty,
-					erpm_per_sec, resistance, inductance,
-					&linkage, &linkage_undriven, &undriven_samples);
+			bool res;
+			int fault = conf_general_measure_flux_linkage_openloop(current, duty,
+																   erpm_per_sec, resistance, inductance,
+																   &linkage, &linkage_undriven, &undriven_samples, &res);
 
-			if (undriven_samples > 60) {
-				linkage = linkage_undriven;
-			}
-
-			if (!res) {
+			if (fault != FAULT_CODE_NONE) {
 				linkage = 0.0;
+			} else {
+				if (undriven_samples > 60) {
+					linkage = linkage_undriven;
+				}
+
+				if (!res) {
+					linkage = 0.0;
+				}
 			}
+
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP;
@@ -2180,7 +2234,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			float sl_erpm = buffer_get_float32(data, 1e3, &ind);
 
 			int res = conf_general_detect_apply_all_foc_can(detect_can, max_power_loss,
-					min_current_in, max_current_in, openloop_rpm, sl_erpm);
+					min_current_in, max_current_in, openloop_rpm, sl_erpm, send_func_blocking);
 
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_APPLY_ALL_FOC;

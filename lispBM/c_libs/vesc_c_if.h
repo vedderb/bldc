@@ -146,6 +146,19 @@ typedef enum {
 	CAN_BAUD_100K
 } CAN_BAUD;
 
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int8_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
+
 // LBM
 typedef uint32_t lbm_value;
 typedef uint32_t lbm_type;
@@ -162,11 +175,33 @@ typedef struct {
 } lbm_array_header_t;
 
 typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
+
+// For double precision literals
+#define D(x) 				((double)x##L)
+
+typedef struct {
+	float q0;
+	float q1;
+	float q2;
+	float q3;
+	float integralFBx;
+	float integralFBy;
+	float integralFBz;
+	float accMagP;
+	int initialUpdateDone;
+
+	// Parameters
+	float acc_confidence_decay;
+	float kp;
+	float ki;
+	float beta;
+} ATTITUDE_INFO;
 #endif
 
 typedef bool (*load_extension_fptr)(char*,extension_fptr);
 
 typedef void* lib_thread;
+typedef void* lib_mutex;
 
 typedef enum {
 	VESC_PIN_COMM_RX = 0,
@@ -181,6 +216,7 @@ typedef enum {
 	VESC_PIN_HALL4,
 	VESC_PIN_HALL5,
 	VESC_PIN_HALL6,
+	VESC_PIN_PPM,
 } VESC_PIN;
 
 typedef enum {
@@ -214,7 +250,36 @@ typedef enum {
 	// App config
 	CFG_PARAM_app_can_mode,
 	CFG_PARAM_app_can_baud_rate,
+
+	// Temperatures
+	CFG_PARAM_l_temp_fet_start,
+	CFG_PARAM_l_temp_fet_end,
+	CFG_PARAM_l_temp_motor_start,
+	CFG_PARAM_l_temp_motor_end,
+	CFG_PARAM_l_temp_accel_dec,
+
+	// Duty
+	CFG_PARAM_l_min_duty,
+	CFG_PARAM_l_max_duty,
+
+	// IMU
+	CFG_PARAM_IMU_accel_confidence_decay,
+	CFG_PARAM_IMU_mahony_kp,
+	CFG_PARAM_IMU_mahony_ki,
+	CFG_PARAM_IMU_madgwick_beta,
+	CFG_PARAM_IMU_rot_roll,
+	CFG_PARAM_IMU_rot_pitch,
+	CFG_PARAM_IMU_rot_yaw,
 } CFG_PARAM;
+
+typedef struct {
+	float js_x; // Joystick X, range -1.0 to 1.0 (mostly unused or unavailable)
+	float js_y; // Joystick Y, range -1.0 to 1.0 (this is the throttle value on most remotes)
+	bool bt_c; // Button C pressed (left on wand)
+	bool bt_z; // Button Z pressed (right on wand)
+	bool is_rev; // True if the remote is in the reverse state (can be toggled on e.g the wand)
+	float age_s; // Age of last update in seconds
+} remote_state;
 
 /*
  * Function pointer struct. Always add new function pointers to the end in order to not
@@ -458,6 +523,54 @@ typedef struct {
 	bool (*set_cfg_float)(CFG_PARAM p, float value);
 	bool (*set_cfg_int)(CFG_PARAM p, int value);
 	bool (*store_cfg)(void);
+
+	// GNSS-struct that can be both read and updated
+	volatile gnss_data* (*mc_gnss)(void);
+
+	// Mutex
+	lib_mutex (*mutex_create)(void);
+	void (*mutex_lock)(lib_mutex);
+	void (*mutex_unlock)(lib_mutex);
+
+	// Get ST io-pin from lbm symbol (this is only safe from extensions)
+	bool (*lbm_symbol_to_io)(lbm_uint sym, void **gpio, uint32_t *pin);
+
+	// High resolution timer for short busy-wait sleeps and time measurement
+	uint32_t (*timer_time_now)(void);
+	float (*timer_seconds_elapsed_since)(uint32_t time);
+	void (*timer_sleep)(float seconds);
+
+	// System lock (with counting)
+	void (*sys_lock)(void);
+	void (*sys_unlock)(void);
+
+	// Unregister pointers to previously used reply function
+	void (*commands_unregister_reply_func)(void(*reply_func)(unsigned char *data, unsigned int len));
+
+	// IMU AHRS functions and read callback
+	void (*imu_set_read_callback)(void (*func)(float *acc, float *gyro, float *mag, float dt));
+	void (*ahrs_init_attitude_info)(ATTITUDE_INFO *att);
+	void (*ahrs_update_initial_orientation)(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att);
+	void (*ahrs_update_mahony_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	void (*ahrs_update_madgwick_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	float (*ahrs_get_roll)(ATTITUDE_INFO *att);
+	float (*ahrs_get_pitch)(ATTITUDE_INFO *att);
+	float (*ahrs_get_yaw)(ATTITUDE_INFO *att);
+
+	// Set custom encoder callbacks
+	void (*encoder_set_custom_callbacks)(
+			float (*read_deg)(void),
+			bool (*has_fault)(void),
+			char* (*print_info)(void));
+
+	// Store backup data
+	bool (*store_backup_data)(void);
+
+	// Input Devices
+	remote_state (*get_remote_state)(void);
+	float (*get_ppm)(void); // Get decoded PPM, range -1.0 to 1.0. If the decoder is not running it will be started.
+	float (*get_ppm_age)(void); // Get time since a pulse was decoded in seconds
+	bool (*app_is_output_disabled)(void); // True if apps should disable their output.
 } vesc_c_if;
 
 typedef struct {

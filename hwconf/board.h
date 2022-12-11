@@ -36,10 +36,13 @@
 #define STM32_LSECLK                0U
 #endif
 
+// Definition moved to mcuconf.h with the other clock settings
+/* 
 #if !defined(STM32_HSECLK)
 #define STM32_HSECLK                8000000U
-#endif
-
+#endif 
+*/
+ 
 /*
  * Board voltages.
  * Required for performance limits calculation.

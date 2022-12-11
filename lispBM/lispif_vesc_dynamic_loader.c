@@ -64,8 +64,6 @@ static const char* functions[] = {
 "(filter-rec f lst nil)"
 "))",
 
-"(defun str-len (str) (- (buflen str) 1))",
-
 "(defun sort (f lst)"
 "(let ((insert (lambda (elt f sorted-lst)"
 "(if (eq sorted-lst nil) (list elt)"
@@ -84,8 +82,8 @@ static const char* functions[] = {
 
 static const char* macros[] = {
 "(define defun (macro (name args body) (me-defun name args body)))",
-"(define loopfor (macro (it start cond update body) (me-loopfor it start cond update body)))",
-"(define loopwhile (macro (cond body) (me-loopwhile cond body)))",
+"(define loopfor (macro (it start cnd update body) (me-loopfor it start cnd update body)))",
+"(define loopwhile (macro (cnd body) (me-loopwhile cnd body)))",
 "(define looprange (macro (it start end body) (me-looprange it start end body)))",
 "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
 };

@@ -17,13 +17,10 @@
 
 // Function declarations
 void ahrs_init_attitude_info(ATTITUDE_INFO *att);
-void ahrs_update_all_parameters(float confidence_decay, float kp, float ki, float beta);
+void ahrs_update_all_parameters(ATTITUDE_INFO *att, float confidence_decay, float kp, float ki, float beta);
 void ahrs_update_initial_orientation(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att);
 
-void ahrs_update_mahony(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt, ATTITUDE_INFO *att);
 void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
-
-void ahrs_update_madgwick(float *gyroXYZ, float *accelXYZ, float *magXYZ, float dt, ATTITUDE_INFO *att);
 void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
 
 float ahrs_get_roll(ATTITUDE_INFO *att);

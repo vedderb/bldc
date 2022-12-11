@@ -21,6 +21,11 @@ ifeq ($(USE_STLIB),yes)
 		$(STLIB_PATH)/src/stm32f4xx_wwdg.c
 endif
 
+UTILS_PATH = $(VESC_C_LIB_PATH)/utils/
+
+SOURCES += $(UTILS_PATH)/rb.c
+SOURCES += $(UTILS_PATH)/utils.c
+
 OBJECTS = $(SOURCES:.c=.so)
 
 ifeq ($(USE_OPT),)
@@ -28,7 +33,7 @@ ifeq ($(USE_OPT),)
 endif
 
 CFLAGS = -fpic -Os -Wall -Wextra -Wundef -std=gnu99 -I$(VESC_C_LIB_PATH)
-CFLAGS += -I$(STLIB_PATH)/CMSIS/include -I$(STLIB_PATH)/CMSIS/ST
+CFLAGS += -I$(STLIB_PATH)/CMSIS/include -I$(STLIB_PATH)/CMSIS/ST -I$(UTILS_PATH)/
 CFLAGS += -fomit-frame-pointer -falign-functions=16 -mthumb
 CFLAGS += -fsingle-precision-constant -Wdouble-promotion
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mcpu=cortex-m4

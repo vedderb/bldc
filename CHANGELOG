@@ -1,4 +1,4 @@
-=== FW 6.00 <dev> ===
+=== FW 6.00 ===
 * Added stack checks.
 * Release motor fix when cc_min_current is 0.
 * Added support for NTC and PTC temperature sensors with custom resistance and base temperature.
@@ -23,6 +23,8 @@
 * Added PT1000 temperature sensor support.
 * APP ADC button bitfield and CC disable support.
 * BissC encoder support: https://github.com/vedderb/bldc/pull/536
+* Better detection failt handling and reporting: https://github.com/vedderb/bldc/pull/533
+* TLE5012-support: https://github.com/vedderb/bldc/pull/551
 
 === FW 5.03 ===
 * Fixed inductance measurement bug.

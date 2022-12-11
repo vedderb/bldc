@@ -32,8 +32,8 @@
 #include <math.h>
 #include <string.h>
 
-#define SINCOS_MIN_AMPLITUDE        1.0         // sqrt(sin^2 + cos^2) has to be larger than this
-#define SINCOS_MAX_AMPLITUDE        1.65        // sqrt(sin^2 + cos^2) has to be smaller than this
+#define SINCOS_MIN_AMPLITUDE        0.7         // sqrt(sin^2 + cos^2) has to be larger than this
+#define SINCOS_MAX_AMPLITUDE        1.3         // sqrt(sin^2 + cos^2) has to be smaller than this
 
 bool enc_sincos_init(ENCSINCOS_config_t *cfg) {
 	memset(&cfg->state, 0, sizeof(ENCSINCOS_state));
@@ -52,6 +52,9 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	UTILS_LP_FAST(cfg->state.cos_filter, cos, cfg->filter_constant);
 	sin = cfg->state.sin_filter;
 	cos = cfg->state.cos_filter;
+
+	// phase error compensation
+	cos = (cos + sin * cfg->sph) / cfg->cph;
 
 	float module = SQ(sin) + SQ(cos);
 

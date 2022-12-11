@@ -170,7 +170,7 @@ int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *m, unsi
 }
 
 bool symchar0(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#!";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -229,7 +229,7 @@ static char translate_escape_char(char c) {
   }
 }
 
-int tok_string(lbm_char_channel_t *chan) {
+int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
 
   unsigned int n = 0;
   unsigned int len = 0;
@@ -264,6 +264,7 @@ int tok_string(lbm_char_channel_t *chan) {
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (c != '\"') return TOKENIZER_STRING_ERROR;
 
+  *string_len = len;
   n ++;
   return (int)n;
 }
@@ -604,16 +605,17 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  n = tok_string(chan);
+  unsigned int string_len = 0;
+  n = tok_string(chan, &string_len);
   if (n >= 2) {
     if (!peek) lbm_channel_drop(chan, (unsigned int)n);
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
-    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
+    lbm_heap_allocate_array(&res, (unsigned int)(string_len+1), LBM_TYPE_CHAR);
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     char *data = (char *)arr->data;
-    memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
-    memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char));
+    memset(data, 0, (string_len+1) * sizeof(char));
+    memcpy(data, sym_str, string_len * sizeof(char));
     return res;
   } else if (n == TOKENIZER_NEED_MORE) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);

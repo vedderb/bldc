@@ -303,7 +303,6 @@ lbm_uint lbm_heap_size_bytes(void);
  * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
  */
 lbm_value lbm_heap_allocate_cell(lbm_type type);
-
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
@@ -396,6 +395,14 @@ lbm_value lbm_cadr(lbm_value c);
  * if not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
 lbm_value lbm_cdr(lbm_value cons);
+/** Accesses the cdr of an cdr field of an lbm_cons_t.
+ *
+ * \param cons Value
+ * \return The cdr of the cdr field of the lbm_cons_t if cons is a reference to a heap cell.
+ * If cons is nil, the return value is nil. If the value
+ * if not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
+ */
+lbm_value lbm_cddr(lbm_value c);
 /** Update the value stored in the car field of a heap cell.
  *
  * \param c Value referring to a heap cell.
@@ -410,7 +417,14 @@ int lbm_set_car(lbm_value c, lbm_value v);
  * \return 1 on success and 0 if the c value does not refer to a heap cell.
  */
 int lbm_set_cdr(lbm_value c, lbm_value v);
-
+/** Update the value stored in the car and cdr fields of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param car_val Value to replace the car field with.
+ * \param cdr_val Value to replace the cdr field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val);
 // List functions
 /** Calculate the length of a proper list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
@@ -478,12 +492,12 @@ void lbm_nil_freelist(void);
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
- * \param v Root node to start marking from.
+ * \param m Number of Root nodes to start marking from.
+ * \param ... list of root nodes.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-int lbm_gc_mark_phase(lbm_value v);
-int lbm_gc_mark_phase2(lbm_value env);
-
+//int lbm_gc_mark_phase(lbm_value v);
+int lbm_gc_mark_phase(int num, ... );
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.
@@ -754,6 +768,14 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 
 static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
+}
+
+static inline bool lbm_is_quoted_list(lbm_value x) {
+  return (lbm_is_cons(x) &&
+          lbm_is_symbol(lbm_car(x)) &&
+          (lbm_dec_sym(lbm_car(x)) == SYM_QUOTE) &&
+          lbm_is_cons(lbm_cdr(x)) &&
+          lbm_is_cons(lbm_car(lbm_cdr(x))));
 }
 
 #ifndef LBM64

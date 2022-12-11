@@ -35,6 +35,12 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "conf_custom.h"
+#include "timer.h"
+#include "ahrs.h"
+#include "encoder.h"
+#include "conf_general.h"
+#include "servo_dec.h"
+#include "servo_simple.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -226,6 +232,12 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 		res = true;
 #endif
 		break;
+	case VESC_PIN_PPM:
+#ifdef HW_ICU_GPIO
+		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
+		res = true;
+#endif
+		break;
 	}
 
 	return res;
@@ -323,6 +335,10 @@ static bool lib_io_get_st_pin(VESC_PIN vesc_pin, void **gpio, uint32_t *pin) {
 	return get_gpio(vesc_pin, (stm32_gpio_t**)gpio, pin, &analog);
 }
 
+static bool lib_symbol_to_io(lbm_uint sym, void **gpio, uint32_t *pin) {
+	return lispif_symbol_to_io(sym, (stm32_gpio_t**)gpio, pin);
+}
+
 static SerialConfig uart_cfg = {
 		2500000, 0, 0, 0
 };
@@ -385,23 +401,39 @@ static float lib_ts_to_age_s(systime_t ts) {
 static float lib_get_cfg_float(CFG_PARAM p) {
 	float res = 0.0;
 
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+	const app_configuration *appconf = app_get_configuration();
 
 	switch (p) {
-		case CFG_PARAM_l_current_max: res = conf->l_current_max; break;
-		case CFG_PARAM_l_current_min: res = conf->l_current_min; break;
-		case CFG_PARAM_l_in_current_max: res = conf->l_in_current_max; break;
-		case CFG_PARAM_l_in_current_min: res = conf->l_in_current_min; break;
-		case CFG_PARAM_l_abs_current_max: res = conf->l_abs_current_max; break;
-		case CFG_PARAM_l_min_erpm: res = conf->l_min_erpm; break;
-		case CFG_PARAM_l_max_erpm: res = conf->l_max_erpm; break;
-		case CFG_PARAM_l_erpm_start: res = conf->l_erpm_start; break;
-		case CFG_PARAM_l_max_erpm_fbrake: res = conf->l_max_erpm_fbrake; break;
-		case CFG_PARAM_l_max_erpm_fbrake_cc: res = conf->l_max_erpm_fbrake_cc; break;
-		case CFG_PARAM_l_min_vin: res = conf->l_min_vin; break;
-		case CFG_PARAM_l_max_vin: res = conf->l_max_vin; break;
-		case CFG_PARAM_l_battery_cut_start: res = conf->l_battery_cut_start; break;
-		case CFG_PARAM_l_battery_cut_end: res = conf->l_battery_cut_end; break;
+		case CFG_PARAM_l_current_max: res = mcconf->l_current_max; break;
+		case CFG_PARAM_l_current_min: res = mcconf->l_current_min; break;
+		case CFG_PARAM_l_in_current_max: res = mcconf->l_in_current_max; break;
+		case CFG_PARAM_l_in_current_min: res = mcconf->l_in_current_min; break;
+		case CFG_PARAM_l_abs_current_max: res = mcconf->l_abs_current_max; break;
+		case CFG_PARAM_l_min_erpm: res = mcconf->l_min_erpm; break;
+		case CFG_PARAM_l_max_erpm: res = mcconf->l_max_erpm; break;
+		case CFG_PARAM_l_erpm_start: res = mcconf->l_erpm_start; break;
+		case CFG_PARAM_l_max_erpm_fbrake: res = mcconf->l_max_erpm_fbrake; break;
+		case CFG_PARAM_l_max_erpm_fbrake_cc: res = mcconf->l_max_erpm_fbrake_cc; break;
+		case CFG_PARAM_l_min_vin: res = mcconf->l_min_vin; break;
+		case CFG_PARAM_l_max_vin: res = mcconf->l_max_vin; break;
+		case CFG_PARAM_l_battery_cut_start: res = mcconf->l_battery_cut_start; break;
+		case CFG_PARAM_l_battery_cut_end: res = mcconf->l_battery_cut_end; break;
+		case CFG_PARAM_l_temp_fet_start: res = mcconf->l_temp_fet_start; break;
+		case CFG_PARAM_l_temp_fet_end: res = mcconf->l_temp_fet_end; break;
+		case CFG_PARAM_l_temp_motor_start: res = mcconf->l_temp_motor_start; break;
+		case CFG_PARAM_l_temp_motor_end: res = mcconf->l_temp_motor_end; break;
+		case CFG_PARAM_l_temp_accel_dec: res = mcconf->l_temp_accel_dec; break;
+		case CFG_PARAM_l_min_duty: res = mcconf->l_min_duty; break;
+		case CFG_PARAM_l_max_duty: res = mcconf->l_max_duty; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: res = appconf->imu_conf.accel_confidence_decay; break;
+		case CFG_PARAM_IMU_mahony_kp: res = appconf->imu_conf.mahony_kp; break;
+		case CFG_PARAM_IMU_mahony_ki: res = appconf->imu_conf.mahony_ki; break;
+		case CFG_PARAM_IMU_madgwick_beta: res = appconf->imu_conf.madgwick_beta; break;
+		case CFG_PARAM_IMU_rot_roll: res = appconf->imu_conf.rot_roll; break;
+		case CFG_PARAM_IMU_rot_pitch: res = appconf->imu_conf.rot_pitch; break;
+		case CFG_PARAM_IMU_rot_yaw: res = appconf->imu_conf.rot_yaw; break;
 		default: break;
 	}
 
@@ -427,6 +459,10 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 	mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
 	int changed_mc = 0;
 
+	app_configuration *appconf = mempools_alloc_appconf();
+	*appconf = *app_get_configuration();
+	int changed_app = 0;
+
 	// Safe changes that can be done instantly on the pointer. It is not that good to do
 	// it this way, but it is much faster.
 	// TODO: Check regularly and make sure that these stay safe.
@@ -445,12 +481,33 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_l_max_vin: mcconf->l_max_vin = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_l_battery_cut_start: mcconf->l_battery_cut_start = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_l_battery_cut_end: mcconf->l_battery_cut_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_start: mcconf->l_temp_fet_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_fet_end: mcconf->l_temp_fet_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_start: mcconf->l_temp_motor_start = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_motor_end: mcconf->l_temp_motor_end = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_temp_accel_dec: mcconf->l_temp_accel_dec = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_min_duty: mcconf->l_min_duty = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_l_max_duty: mcconf->l_max_duty = value; changed_mc = 1; res = true; break;
+
+		case CFG_PARAM_IMU_accel_confidence_decay: appconf->imu_conf.accel_confidence_decay = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_kp: appconf->imu_conf.mahony_kp = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_mahony_ki: appconf->imu_conf.mahony_ki = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_madgwick_beta: appconf->imu_conf.madgwick_beta = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_roll: appconf->imu_conf.rot_roll = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_pitch: appconf->imu_conf.rot_pitch = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_rot_yaw: appconf->imu_conf.rot_yaw = value; changed_app = 1; res = true; break;
 		default: break;
 	}
 
 	if (changed_mc > 0) {
 		commands_apply_mcconf_hw_limits(mcconf);
 	}
+
+	if (changed_app > 0) {
+		app_set_configuration(appconf);
+	}
+
+	mempools_free_appconf(appconf);
 
 	return res;
 }
@@ -496,6 +553,35 @@ static bool lib_create_byte_array(lbm_value *value, lbm_uint num_elt) {
 
 static bool lib_eval_is_paused(void) {
 	return lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED;
+}
+
+static lib_mutex lib_mutex_create(void) {
+	mutex_t *m = lispif_malloc(sizeof(mutex_t));
+	chMtxObjectInit(m);
+	return (lib_mutex)m;
+}
+
+static void lib_mutex_lock(lib_mutex m) {
+	chMtxLock((mutex_t*)m);
+}
+
+static void lib_mutex_unlock(lib_mutex m) {
+	chMtxUnlock((mutex_t*)m);
+}
+
+static remote_state lib_get_remote_state(void) {
+	remote_state res;
+	res.js_x = app_nunchuk_get_decoded_x();
+	res.js_y = app_nunchuk_get_decoded_y();
+	res.bt_c = app_nunchuk_get_bt_c();
+	res.bt_z = app_nunchuk_get_bt_z();
+	res.is_rev = app_nunchuk_get_is_rev();
+	res.age_s = app_nunchuk_get_update_age();
+	return res;
+}
+
+static float lib_get_ppm_age(void) {
+	return (float)servodec_get_time_since_update() / 1000.0;
 }
 
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
@@ -741,6 +827,51 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.set_cfg_int = lib_set_cfg_int;
 		cif.cif.store_cfg = lib_store_cfg;
 
+		// GNSS-struct that can be both read and updated
+		cif.cif.mc_gnss = mc_interface_gnss;
+
+		// Mutex
+		cif.cif.mutex_create = lib_mutex_create;
+		cif.cif.mutex_lock = lib_mutex_lock;
+		cif.cif.mutex_unlock = lib_mutex_unlock;
+
+		// Get ST io-pin from lbm symbol (this is only safe from extensions)
+		cif.cif.lbm_symbol_to_io = lib_symbol_to_io;
+
+		// High resolution timer for short busy-wait sleeps and time measurement
+		cif.cif.timer_time_now = timer_time_now;
+		cif.cif.timer_seconds_elapsed_since = timer_seconds_elapsed_since;
+		cif.cif.timer_sleep = timer_sleep;
+
+		// System lock (with counting)
+		cif.cif.sys_lock = utils_sys_lock_cnt;
+		cif.cif.sys_unlock = utils_sys_unlock_cnt;
+
+		// Unregister pointers to previously used reply function
+		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
+
+		// IMU AHRS functions and read callback
+		cif.cif.imu_set_read_callback = imu_set_read_callback;
+		cif.cif.ahrs_init_attitude_info = ahrs_init_attitude_info;
+		cif.cif.ahrs_update_initial_orientation = ahrs_update_initial_orientation;
+		cif.cif.ahrs_update_mahony_imu = ahrs_update_mahony_imu;
+		cif.cif.ahrs_update_madgwick_imu = ahrs_update_madgwick_imu;
+		cif.cif.ahrs_get_roll = ahrs_get_roll;
+		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
+		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
+
+		// Set custom encoder callbacks
+		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;
+
+		// Store backup data
+		cif.cif.store_backup_data = conf_general_store_backup_data;
+
+		// Input Devices
+		cif.cif.get_remote_state = lib_get_remote_state;
+		cif.cif.get_ppm = lispif_get_ppm;
+		cif.cif.get_ppm_age = lib_get_ppm_age;
+		cif.cif.app_is_output_disabled = app_is_output_disabled;
+
 		lib_init_done = true;
 	}
 
@@ -841,4 +972,26 @@ void* lispif_malloc(size_t size) {
 
 void lispif_free(void *ptr) {
 	lbm_memory_free(ptr);
+}
+
+float lispif_get_ppm(void) {
+	if (!servodec_is_running()) {
+		servo_simple_stop();
+		servodec_init(0);
+	}
+
+	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
+	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
+
+	float servo_val = servodec_get_servo(0);
+	float servo_ms = utils_map(servo_val, -1.0, 1.0, cfg->pulse_start, cfg->pulse_end);
+
+	// Mapping with respect to center pulsewidth
+	if (servo_ms < cfg->pulse_center) {
+		servo_val = utils_map(servo_ms, cfg->pulse_start, cfg->pulse_center, -1.0, 0.0);
+	} else {
+		servo_val = utils_map(servo_ms, cfg->pulse_center, cfg->pulse_end, 0.0, 1.0);
+	}
+
+	return servo_val;
 }

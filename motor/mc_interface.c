@@ -85,6 +85,7 @@ typedef struct {
 	float m_f_samp_now;
 	float m_input_voltage_filtered;
 	float m_input_voltage_filtered_slower;
+	float m_temp_override;
 
 	// Backup data counters
 	uint64_t m_odometer_last;
@@ -119,6 +120,7 @@ static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
+static volatile gnss_data m_gnss = {0};
 
 typedef struct {
 	bool is_second_motor;
@@ -307,6 +309,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
 		encoder_init(configuration);
+	} else {
+		encoder_update_config(configuration);
 	}
 
 #ifdef HW_HAS_DRV8301
@@ -488,6 +492,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
     case FAULT_CODE_PHASE_FILTER: return "FAULT_CODE_PHASE_FILTER";
     case FAULT_CODE_ENCODER_FAULT: return "FAULT_CODE_ENCODER_FAULT";
+	case FAULT_CODE_LV_OUTPUT_FAULT: return "FAULT_CODE_LV_OUTPUT_FAULT";
 	}
 
 	return "Unknown fault";
@@ -772,6 +777,103 @@ void mc_interface_set_handbrake_rel(float val) {
 	}
 
 	mc_interface_set_handbrake(val * fabsf(motor_now()->m_conf.lo_current_motor_min_now));
+}
+
+void mc_interface_set_openloop_current(float current, float rpm) {
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_current(current, DIR_MULT * rpm);
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_current", current);
+}
+void mc_interface_set_openloop_phase(float current, float phase){
+	if (fabsf(current) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_phase(current, DIR_MULT * phase);
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_phase", phase);
+}
+void mc_interface_set_openloop_duty(float dutyCycle, float rpm){
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_duty(dutyCycle, DIR_MULT * rpm);
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_duty", dutyCycle);
+}
+void mc_interface_set_openloop_duty_phase(float dutyCycle, float phase){
+	if (fabsf(dutyCycle) > 0.001) {
+		SHUTDOWN_RESET();
+	}
+
+	if (mc_interface_try_input()) {
+		return;
+	}
+
+	switch (motor_now()->m_conf.motor_type) {
+	case MOTOR_TYPE_BLDC:
+	case MOTOR_TYPE_DC:
+		break;
+
+	case MOTOR_TYPE_FOC:
+		mcpwm_foc_set_openloop_duty_phase(dutyCycle, phase); // Should this use DIR_MULT?
+		break;
+
+	default:
+		break;
+	}
+
+	events_add("set_openloop_duty_phase", phase);
 }
 
 void mc_interface_brake_now(void) {
@@ -1519,9 +1621,13 @@ float mc_interface_get_distance(void) {
  * Absolute distance traveled since boot, in meters
  */
 float mc_interface_get_distance_abs(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_distance_abs();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+#endif
 }
 
 setup_values mc_interface_get_setup_values(void) {
@@ -1561,6 +1667,10 @@ setup_values mc_interface_get_setup_values(void) {
 	}
 
 	return val;
+}
+
+volatile gnss_data *mc_interface_gnss(void) {
+	return &m_gnss;
 }
 
 /**
@@ -1652,6 +1762,10 @@ void mc_interface_set_current_off_delay(float delay_sec) {
 	default:
 		break;
 	}
+}
+
+void mc_interface_override_temp_motor(float temp) {
+	motor_now()->m_temp_override = temp;
 }
 
 // MC implementation functions
@@ -1853,6 +1967,12 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 	if(motor->m_gate_driver_voltage < HW_GATE_DRIVER_SUPPLY_MIN_VOLTAGE) {
 		mc_interface_fault_stop(FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE, is_second_motor, true);
+	}
+#endif
+
+#ifdef HW_HAS_LV_OUTPUT_PROTECTION
+	if(IS_LV_OUTPUT_FAULT()) {
+		mc_interface_fault_stop(FAULT_CODE_LV_OUTPUT_FAULT, is_second_motor, true);
 	}
 #endif
 
@@ -2131,6 +2251,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		float res = NTC_RES_MOTOR(ADC_Value[is_motor_1 ? ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]);
 		temp_motor = -(sqrtf(-0.00232 * res + 17.59246) - 3.908) / 0.00116;
 	} break;
+
+	case TEMP_SENSOR_DISABLED:
+		temp_motor = motor->m_temp_override;
+		break;
 	}
 
 	// If the reading is messed up (by e.g. reading 0 on the ADC and dividing by 0) we avoid putting an
@@ -2266,7 +2390,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_max_duty = l_current_max_tmp;
 	} else {
 		lo_max_duty = utils_map(duty_now_abs, (conf->l_duty_start * conf->l_max_duty),
-				conf->l_max_duty, l_current_max_tmp, 0.0);
+				conf->l_max_duty, l_current_max_tmp, conf->cc_min_current * 5.0);
 	}
 
 	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
@@ -2348,7 +2472,12 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	bool is_motor_1 = motor == &m_motor_1;
 	mc_interface_select_motor_thread(is_motor_1 ? 1 : 2);
 
-	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, 0.01);
+	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
+	if (UTILS_AGE_S(0) < 10) {
+		// Run the filter faster in the beginning to avoid convergance latency at boot
+		voltage_fc = 0.01;
+	}
+	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {

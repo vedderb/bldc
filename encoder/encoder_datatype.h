@@ -31,12 +31,14 @@ typedef enum {
 	ENCODER_TYPE_NONE = 0,
 	ENCODER_TYPE_AS504x,
 	ENCODER_TYPE_MT6816,
+	ENCODER_TYPE_TLE5012,
 	ENCODER_TYPE_AD2S1205_SPI,
 	ENCODER_TYPE_SINCOS,
 	ENCODER_TYPE_TS5700N8501,
 	ENCODER_TYPE_ABI,
 	ENCODER_TYPE_AS5x47U,
-	ENCODER_TYPE_BISSC
+	ENCODER_TYPE_BISSC,
+	ENCODER_TYPE_CUSTOM
 } encoder_type_t;
 
 typedef struct {
@@ -85,6 +87,31 @@ typedef struct {
 } MT6816_config_t;
 
 typedef struct {
+	float spi_error_rate;
+	float encoder_no_magnet_error_rate;
+	uint32_t encoder_no_magnet_error_cnt;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	uint8_t last_status_error;
+	uint32_t spi_val;
+	uint32_t last_update_time;
+} TLE5012_state;
+
+typedef struct { // sw ssc
+	spi_bb_state sw_spi;
+	TLE5012_state state;
+} TLE5012_config_t;
+
+typedef enum tle5012_errortypes {
+	NO_ERROR               = 0x00,  //!< NO_ERROR = Safety word was OK
+	SYSTEM_ERROR           = 0x01,  //!< SYSTEM_ERROR = over/under voltage, VDD negative, GND off, ROM defect, no magnet
+	INTERFACE_ACCESS_ERROR = 0x02,  //!< INTERFACE_ACCESS_ERROR = wrong address or wrong lock
+	INVALID_ANGLE_ERROR    = 0x04,  //!< INVALID_ANGLE_ERROR = NO_GMR_A = 1 or NO_GMR_XY = 1
+	ANGLE_SPEED_ERROR      = 0x08,  //!< ANGLE_SPEED_ERROR = combined error, angular speed calculation wrong
+	CRC_ERROR              = 0xFF   //!< CRC_ERROR = Cyclic Redundancy Check (CRC), which includes the STAT and RESP bits wrong
+} tle5012_errortypes; 
+
+typedef struct {
 	volatile bool index_found;
 	volatile float last_enc_angle;
 	volatile int bad_pulses;
@@ -121,11 +148,16 @@ typedef struct {
 
 typedef struct {
 	uint32_t refresh_rate_hz;
+	// The gain is 1/amplutide. The reason it is stored like that
+	// is to avoid two divisions when reading the encoder.
 	float s_gain;
-	float s_offset;
 	float c_gain;
+	float s_offset;
 	float c_offset;
 	float filter_constant;
+	float phase_correction; //phase angle correction (in deg) when encoder outputs sin(anle)/cos(angle+pase_correction)
+	float sph; // sin of the phase_correction angle
+	float cph; // cos of the phase_correction angle
 
 	ENCSINCOS_state state;
 } ENCSINCOS_config_t;

@@ -64,11 +64,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_encoder_inverted;
 	buffer_append_float32_auto(buffer, conf->foc_encoder_offset, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_encoder_ratio, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sin_gain, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_cos_gain, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sin_offset, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_cos_offset, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_encoder_sincos_filter_constant, 1000, &ind);
 	buffer[ind++] = conf->foc_sensor_mode;
 	buffer_append_float32_auto(buffer, conf->foc_pll_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_pll_ki, &ind);
@@ -169,6 +164,12 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_duty_ramp_step, 10000, &ind);
 	buffer_append_float32_auto(buffer, conf->m_current_backoff_gain, &ind);
 	buffer_append_uint32(buffer, conf->m_encoder_counts, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sin_amp, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_cos_amp, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sin_offset, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_cos_offset, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sincos_filter_constant, 1000, &ind);
+	buffer_append_float16(buffer, conf->m_encoder_sincos_phase_correction, 1000, &ind);
 	buffer[ind++] = conf->m_sensor_port_mode;
 	buffer[ind++] = conf->m_invert_direction;
 	buffer[ind++] = conf->m_drv8301_oc_mode;
@@ -183,6 +184,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_res, 0.1, &ind);
 	buffer_append_float16(buffer, conf->m_ntcx_ptcx_temp_base, 10, &ind);
 	buffer[ind++] = (uint8_t)conf->m_hall_extra_samples;
+	buffer[ind++] = (uint8_t)conf->m_batt_filter_const;
 	buffer[ind++] = (uint8_t)conf->si_motor_poles;
 	buffer_append_float32_auto(buffer, conf->si_gear_ratio, &ind);
 	buffer_append_float32_auto(buffer, conf->si_wheel_diameter, &ind);
@@ -377,6 +379,7 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_x, 1, &ind);
 	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_y, 1, &ind);
 	buffer_append_float16(buffer, conf->imu_conf.accel_lowpass_filter_z, 1, &ind);
+	buffer_append_float16(buffer, conf->imu_conf.gyro_lowpass_filter, 1, &ind);
 	buffer_append_uint16(buffer, conf->imu_conf.sample_rate_hz, &ind);
 	buffer[ind++] = conf->imu_conf.use_magnetometer;
 	buffer_append_float32_auto(buffer, conf->imu_conf.accel_confidence_decay, &ind);
@@ -458,11 +461,6 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_encoder_inverted = buffer[ind++];
 	conf->foc_encoder_offset = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_ratio = buffer_get_float32_auto(buffer, &ind);
-	conf->foc_encoder_sin_gain = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_cos_gain = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_sensor_mode = buffer[ind++];
 	conf->foc_pll_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_pll_ki = buffer_get_float32_auto(buffer, &ind);
@@ -563,6 +561,12 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_duty_ramp_step = buffer_get_float16(buffer, 10000, &ind);
 	conf->m_current_backoff_gain = buffer_get_float32_auto(buffer, &ind);
 	conf->m_encoder_counts = buffer_get_uint32(buffer, &ind);
+	conf->m_encoder_sin_amp = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_cos_amp = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sin_offset = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_cos_offset = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sincos_filter_constant = buffer_get_float16(buffer, 1000, &ind);
+	conf->m_encoder_sincos_phase_correction = buffer_get_float16(buffer, 1000, &ind);
 	conf->m_sensor_port_mode = buffer[ind++];
 	conf->m_invert_direction = buffer[ind++];
 	conf->m_drv8301_oc_mode = buffer[ind++];
@@ -577,6 +581,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->m_ntcx_ptcx_res = buffer_get_float16(buffer, 0.1, &ind);
 	conf->m_ntcx_ptcx_temp_base = buffer_get_float16(buffer, 10, &ind);
 	conf->m_hall_extra_samples = buffer[ind++];
+	conf->m_batt_filter_const = buffer[ind++];
 	conf->si_motor_poles = buffer[ind++];
 	conf->si_gear_ratio = buffer_get_float32_auto(buffer, &ind);
 	conf->si_wheel_diameter = buffer_get_float32_auto(buffer, &ind);
@@ -774,6 +779,7 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->imu_conf.accel_lowpass_filter_x = buffer_get_float16(buffer, 1, &ind);
 	conf->imu_conf.accel_lowpass_filter_y = buffer_get_float16(buffer, 1, &ind);
 	conf->imu_conf.accel_lowpass_filter_z = buffer_get_float16(buffer, 1, &ind);
+	conf->imu_conf.gyro_lowpass_filter = buffer_get_float16(buffer, 1, &ind);
 	conf->imu_conf.sample_rate_hz = buffer_get_uint16(buffer, &ind);
 	conf->imu_conf.use_magnetometer = buffer[ind++];
 	conf->imu_conf.accel_confidence_decay = buffer_get_float32_auto(buffer, &ind);
@@ -848,11 +854,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
 	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;
 	conf->foc_encoder_ratio = MCCONF_FOC_ENCODER_RATIO;
-	conf->foc_encoder_sin_gain = MCCONF_FOC_ENCODER_SIN_GAIN;
-	conf->foc_encoder_cos_gain = MCCONF_FOC_ENCODER_COS_GAIN;
-	conf->foc_encoder_sin_offset = MCCONF_FOC_ENCODER_SIN_OFFSET;
-	conf->foc_encoder_cos_offset = MCCONF_FOC_ENCODER_COS_OFFSET;
-	conf->foc_encoder_sincos_filter_constant = MCCONF_FOC_ENCODER_SINCOS_FILTER;
 	conf->foc_sensor_mode = MCCONF_FOC_SENSOR_MODE;
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
@@ -953,6 +954,12 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_duty_ramp_step = MCCONF_M_RAMP_STEP;
 	conf->m_current_backoff_gain = MCCONF_M_CURRENT_BACKOFF_GAIN;
 	conf->m_encoder_counts = MCCONF_M_ENCODER_COUNTS;
+	conf->m_encoder_sin_amp = MCCONF_M_ENCODER_SIN_AMP;
+	conf->m_encoder_cos_amp = MCCONF_M_ENCODER_COS_AMP;
+	conf->m_encoder_sin_offset = MCCONF_M_ENCODER_SIN_OFFSET;
+	conf->m_encoder_cos_offset = MCCONF_M_ENCODER_COS_OFFSET;
+	conf->m_encoder_sincos_filter_constant = MCCONF_M_ENCODER_SINCOS_FILTER;
+	conf->m_encoder_sincos_phase_correction = MCCONF_M_ENCODER_SINCOS_PHASE;
 	conf->m_sensor_port_mode = MCCONF_M_SENSOR_PORT_MODE;
 	conf->m_invert_direction = MCCONF_M_INVERT_DIRECTION;
 	conf->m_drv8301_oc_mode = MCCONF_M_DRV8301_OC_MODE;
@@ -967,6 +974,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->m_ntcx_ptcx_res = MCCONF_M_NTCX_PTCX_RES;
 	conf->m_ntcx_ptcx_temp_base = MCCONF_M_NTCX_PTCX_BASE_TEMP;
 	conf->m_hall_extra_samples = MCCONF_M_HALL_EXTRA_SAMPLES;
+	conf->m_batt_filter_const = MCCONF_M_BATT_FILTER_CONST;
 	conf->si_motor_poles = MCCONF_SI_MOTOR_POLES;
 	conf->si_gear_ratio = MCCONF_SI_GEAR_RATIO;
 	conf->si_wheel_diameter = MCCONF_SI_WHEEL_DIAMETER;
@@ -1155,6 +1163,7 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->imu_conf.accel_lowpass_filter_x = APPCONF_IMU_ACCEL_LOWPASS_FILTER_X;
 	conf->imu_conf.accel_lowpass_filter_y = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Y;
 	conf->imu_conf.accel_lowpass_filter_z = APPCONF_IMU_ACCEL_LOWPASS_FILTER_Z;
+	conf->imu_conf.gyro_lowpass_filter = APPCONF_IMU_GYRO_LOWPASS_FILTER;
 	conf->imu_conf.sample_rate_hz = APPCONF_IMU_SAMPLE_RATE_HZ;
 	conf->imu_conf.use_magnetometer = APPCONF_IMU_USE_MAGNETOMETER;
 	conf->imu_conf.accel_confidence_decay = APPCONF_IMU_ACCEL_CONFIDENCE_DECAY;

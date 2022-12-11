@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <lbm_memory.h>
 #include <lbm_custom_type.h>
@@ -565,15 +566,20 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
-int lbm_gc_mark_phase(lbm_value env) {
+int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
 
-  if (!lbm_is_ptr(env)) {
-      return 1; // Nothing to mark here
+  va_list valist;
+  va_start(valist, num);
+  lbm_value root;
+  for (int i = 0; i < num; i++) {
+      root = va_arg(valist, lbm_value);
+      if (lbm_is_ptr(root)) {
+        lbm_push(s, root);
+      }
   }
-
-  lbm_push(s, env);
+  va_end(valist);
   int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
@@ -648,7 +654,7 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
-        lbm_gc_mark_phase(aux_data[i]);
+        lbm_gc_mark_phase(1,aux_data[i]);
       }
     }
   }
@@ -778,6 +784,19 @@ lbm_value lbm_cdr(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+lbm_value lbm_cddr(lbm_value c) {
+
+  if (lbm_is_ptr(c)) {
+    lbm_value tmp = lbm_ref_cell(c)->cdr;
+    if (lbm_is_ptr(tmp)) {
+      return lbm_ref_cell(tmp)->cdr;
+    }
+  }
+  if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
@@ -794,6 +813,17 @@ int lbm_set_cdr(lbm_value c, lbm_value v) {
   if (lbm_type_of(c) == LBM_TYPE_CONS){
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->cdr = v;
+    r = 1;
+  }
+  return r;
+}
+
+int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
+  int r = 0;
+  if (lbm_type_of(c) == LBM_TYPE_CONS) {
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    cell->car = car_val;
+    cell->cdr = cdr_val;
     r = 1;
   }
   return r;
