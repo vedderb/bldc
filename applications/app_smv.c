@@ -152,6 +152,10 @@ void app_adc_cc_override(bool state){
 	cc_override = state;
 }
 
+float calc_efficient_power()
+{
+	
+}
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
@@ -229,7 +233,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		if (config.voltage2_inverted) {
 			turbo = 1.0 - turbo;
 		}
-
 		decoded_level2 = turbo;
 
 		// Read the button pins (Keep for Setup)
@@ -288,7 +291,21 @@ static THD_FUNCTION(adc_thread, arg) {
 		utils_deadband(&pwr, config.hyst, 1.0);
 
 		// Apply throttle curve (COME BACK TO)
-		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+		// pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+
+		if ( turbo >= 0.5 )
+		{
+			pwr = 1.0;
+		}
+		else if ( pwr >= 0.5 )
+		{
+			pwr = calc_efficient_power();
+		}
+		else
+		{
+			pwr = 0;
+		}
+
 
 		// Apply ramping (KEEP)
 		static systime_t last_time = 0;
@@ -310,86 +327,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		bool send_duty = false;
 
 		// Use the filtered and mapped voltage for control according to the configuration.
-		switch (config.ctrl_type) {
-		case ADC_CTRL_TYPE_CURRENT:
-		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON:
-			current_mode = true;
-			current_rel = pwr;
+		current_mode = true;
+		current_rel = pwr;
 
-			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-			break;
-
-        case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON:
-		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
-		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
-			current_mode = true;
-			if (pwr >= 0.0) {
-				// if pedal assist (PAS) thread is running, use the highest current command
-				if (app_pas_is_running()) {
-					pwr = utils_max_abs(pwr, app_pas_get_current_target_rel());
-				}
-				current_rel = pwr;
-			} else {
-				current_rel = fabsf(pwr);
-				current_mode_brake = true;
-			}
-
-			if (pwr < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-
-			if ((config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC ||
-			    config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER) && rev_button) {
-				current_rel = -current_rel;
-			}
-			break;
-
-		case ADC_CTRL_TYPE_DUTY:
-		case ADC_CTRL_TYPE_DUTY_REV_CENTER:
-		case ADC_CTRL_TYPE_DUTY_REV_BUTTON:
-			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-
-			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_duty(utils_map(pwr, -1.0, 1.0, -mcconf->l_max_duty, mcconf->l_max_duty));
-				send_duty = true;
-			}
-			break;
-
-		case ADC_CTRL_TYPE_PID:
-		case ADC_CTRL_TYPE_PID_REV_CENTER:
-		case ADC_CTRL_TYPE_PID_REV_BUTTON:
-			if ((pwr >= 0.0 && rpm_now > 0.0) || (pwr < 0.0 && rpm_now < 0.0)) {
-				current_rel = pwr;
-			} else {
-				current_rel = pwr;
-			}
-
-			if (!(ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start)) {
-				float speed = 0.0;
-				if (pwr >= 0.0) {
-					speed = pwr * mcconf->l_max_erpm;
-				} else {
-					speed = pwr * fabsf(mcconf->l_min_erpm);
-				}
-
-				mc_interface_set_pid_speed(speed);
-				send_duty = true;
-			}
-
-			if (fabsf(pwr) < 0.001) {
-				ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-			}
-			break;
-
-		default:
-			continue;
+		if (fabsf(pwr) < 0.001) {
+			ms_without_power += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
 		}
 
 		bool range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
@@ -425,32 +367,20 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Filter RPM to avoid glitches
 		static float rpm_filtered = 0.0;
 		UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), RPM_FILTER_SAMPLES);
-
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
 			static float pid_rpm = 0.0;
-
 			if (!was_pid) {
 				was_pid = true;
 				pid_rpm = rpm_filtered;
 			}
-
 			mc_interface_set_pid_speed(pid_rpm);
-
 			continue;
 		}
-
 		was_pid = false;
 
-		// Find lowest RPM (for traction control)
-		// No traction control
+		// Set the Current!!
+		float current_out = current_rel;
+		mc_interface_set_current_rel(current_out);
 
-		// Optionally send the duty cycles to the other ESCs seen on the CAN-bus
-		// No multi ESC
-
-		if (current_mode) 
-		{
-			float current_out = current_rel;
-			mc_interface_set_current_rel(current_out);
-		}
 	}
 }
