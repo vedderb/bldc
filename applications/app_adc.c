@@ -27,6 +27,7 @@
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "comm_can.h"
+#include "commands.h"
 #include "hw.h"
 #include <math.h>
 
