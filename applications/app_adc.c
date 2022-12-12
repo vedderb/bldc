@@ -155,8 +155,9 @@ void app_adc_cc_override(bool state){
 
 float calc_efficient_power()
 {
+	//float rpm = mc_interface_get_rpm();
 	return 0.5;
-}
+}	
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
