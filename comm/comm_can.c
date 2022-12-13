@@ -524,7 +524,7 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
  */
 void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
 	int32_t send_index = 0;
-	uint8_t buffer[4];
+	uint8_t buffer[6];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
 	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
 	comm_can_transmit_eid_replace(controller_id |
