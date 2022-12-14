@@ -20,6 +20,7 @@
 #include "app.h"
 
 #include "ch.h"
+#include "commands.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
@@ -307,6 +308,8 @@ static THD_FUNCTION(adc_thread, arg) {
 		{
 			pwr = 0;
 		}
+
+		// commands_printf("POWER: %.2f\n", pwr);
 
 
 		// Apply ramping (KEEP)

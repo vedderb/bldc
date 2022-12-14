@@ -53,7 +53,6 @@ typedef struct _terminal_callback_struct {
 	const char *arg_names;
 	void(*cbf)(int argc, const char **argv);
 } terminal_callback_struct;
-
 // Private variables
 static volatile fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
