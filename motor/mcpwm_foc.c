@@ -2493,7 +2493,7 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("i_abs_flt: %.2f", (double)get_motor_now()->m_motor_state.i_abs_filter);
 	commands_printf("Obs_x1:    %.2f", (double)get_motor_now()->m_observer_state.x1);
 	commands_printf("Obs_x2:    %.2f", (double)get_motor_now()->m_observer_state.x2);
-	commands_printf("lambda_est:%.2f", (double)get_motor_now()->m_observer_state.lambda_est);
+	commands_printf("lambda_est:%.4f", (double)get_motor_now()->m_observer_state.lambda_est);
 	commands_printf("vd_int:    %.2f", (double)get_motor_now()->m_motor_state.vd_int);
 	commands_printf("vq_int:    %.2f", (double)get_motor_now()->m_motor_state.vq_int);
 	commands_printf("off_delay: %.2f", (double)get_motor_now()->m_current_off_delay);

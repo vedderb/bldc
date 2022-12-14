@@ -616,7 +616,7 @@ bool lispif_restart(bool print, bool load_code) {
 }
 
 static uint32_t timestamp_callback(void) {
-	systime_t t = chVTGetSystemTime();
+	systime_t t = chVTGetSystemTimeX();
 	return (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
 }
 
