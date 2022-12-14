@@ -1759,8 +1759,8 @@ static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 	uint8_t to_send[8];
 	int ind = 0;
 
-	if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (lbm_type_of(curr) == LBM_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
 		if (array->elt_type != LBM_TYPE_BYTE) {
 			return ENC_SYM_EERROR;
 		}
