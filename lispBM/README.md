@@ -1420,6 +1420,22 @@ The following selection of app and motor parameters can be read and set from Lis
 'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
 'ppm-ramp-time-pos      ; Positive ramping time in seconds
 'ppm-ramp-time-neg      ; Negative ramping time in seconds
+'adc-ctrl-type          ; ADC Control Type (Added in FW 6.02)
+                        ;    0:  ADC_CTRL_TYPE_NONE
+                        ;    1:  ADC_CTRL_TYPE_CURRENT
+                        ;    2:  ADC_CTRL_TYPE_CURRENT_REV_CENTER
+                        ;    3:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON
+                        ;    4:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC
+                        ;    5:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER
+                        ;    6:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER
+                        ;    7:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON
+                        ;    8:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC
+                        ;    9:  ADC_CTRL_TYPE_DUTY
+                        ;    10: ADC_CTRL_TYPE_DUTY_REV_CENTER
+                        ;    11: ADC_CTRL_TYPE_DUTY_REV_BUTTON
+                        ;    12: ADC_CTRL_TYPE_PID
+                        ;    13: ADC_CTRL_TYPE_PID_REV_CENTER
+                        ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
 ```
 
 #### conf-set
