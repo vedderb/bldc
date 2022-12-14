@@ -110,7 +110,7 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				int32_t ind = 0;
 				bms_soc_soh_temp_stat msg;
 				msg.id = id;
-				msg.rx_time = chVTGetSystemTime();
+				msg.rx_time = chVTGetSystemTimeX();
 				msg.v_cell_min = buffer_get_float16(data8, 1e3, &ind);
 				msg.v_cell_max = buffer_get_float16(data8, 1e3, &ind);
 				msg.soc = ((float)((uint8_t)data8[ind++])) / 255.0;
@@ -308,9 +308,21 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	float i_in_min_bms = i_in_min_conf;
 	float i_in_max_bms = i_in_max_conf;
 
+	if (UTILS_AGE_S(m_stat_temp_max.rx_time) > MAX_CAN_AGE_SEC) {
+		m_stat_temp_max.id = -1;
+	}
+
+	if (UTILS_AGE_S(m_stat_soc_min.rx_time) > MAX_CAN_AGE_SEC) {
+		m_stat_soc_min.id = -1;
+	}
+
+	if (UTILS_AGE_S(m_stat_soc_max.rx_time) > MAX_CAN_AGE_SEC) {
+		m_stat_soc_max.id = -1;
+	}
+
 	// Temperature
 	if ((m_conf.limit_mode >> 0) & 1) {
-		if (UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_temp_max.id >= 0 && UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
 			float temp = m_stat_temp_max.t_cell_max;
 
 			if (temp < (m_conf.t_limit_start + 0.1)) {
@@ -343,7 +355,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 
 	// SOC
 	if ((m_conf.limit_mode >> 1) & 1) {
-		if (UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_soc_min.id >= 0 && UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
 			float soc = m_stat_soc_min.soc;
 
 			if (soc > (m_conf.soc_limit_start - 0.001)) {
