@@ -118,7 +118,7 @@ void app_nunchuk_update_output(chuck_data *data) {
 	}
 
 	chuck_d = *data;
-	last_update_time = chVTGetSystemTime();
+	last_update_time = chVTGetSystemTimeX();
 	timeout_reset();
 }
 

@@ -123,7 +123,7 @@ static THD_FUNCTION(bmi_thread, arg) {
 
 	s->is_running = true;
 
-	systime_t iteration_timer = chVTGetSystemTime();
+	systime_t iteration_timer = chVTGetSystemTimeX();
 	const systime_t desired_interval = US2ST(1000000 / s->rate_hz);
 
 	for(;;) {
@@ -161,7 +161,7 @@ static THD_FUNCTION(bmi_thread, arg) {
 
 		// Delay between loops
 		iteration_timer += desired_interval;
-		systime_t current_time = chVTGetSystemTime();
+		systime_t current_time = chVTGetSystemTimeX();
 		systime_t remainin_sleep_time = iteration_timer - current_time;
 		if (remainin_sleep_time > 0 && remainin_sleep_time < desired_interval) {
 			// Sleep the remaining time.
