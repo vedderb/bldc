@@ -41,15 +41,6 @@ lbm_value *lbm_get_env_ptr(void);
  * \return the global environment
  */
 lbm_value lbm_get_env(void);
-/** Performs a shallow copy of a proper list. A shallow copy does
- *  not recurse into the elements of the list to copy
- *  those as well. So if the list contains complex elements, the
- *  original list and the copy will share these elements on the heap.
- *
- * \param env List to copy.
- * \return Shallow copy of input list.
- */
-lbm_value lbm_env_copy_shallow(lbm_value env);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment
