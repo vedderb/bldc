@@ -1027,6 +1027,27 @@ Get the base-e logarithm of x.
 
 Get the base-10 logarithm of x.
 
+#### floor
+```clj
+(floor x)
+```
+
+Round x down to the closest integer. Added in FW 6.02.
+
+#### ceil
+```clj
+(ceil x)
+```
+
+Round x up to the closest integer. Added in FW 6.02.
+
+#### round
+```clj
+(round x)
+```
+
+Round x to the closest integer. Added in FW 6.02.
+
 #### deg2rad
 ```clj
 (deg2rad x)

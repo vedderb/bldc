@@ -1866,6 +1866,21 @@ static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(log10f(lbm_dec_as_float(args[0])));
 }
 
+static lbm_value ext_floor(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(floorf(lbm_dec_as_float(args[0])));
+}
+
+static lbm_value ext_ceil(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(ceilf(lbm_dec_as_float(args[0])));
+}
+
+static lbm_value ext_round(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(roundf(lbm_dec_as_float(args[0])));
+}
+
 static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
@@ -4519,6 +4534,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("sqrt", ext_sqrt);
 	lbm_add_extension("log", ext_log);
 	lbm_add_extension("log10", ext_log10);
+	lbm_add_extension("floor", ext_floor);
+	lbm_add_extension("ceil", ext_ceil);
+	lbm_add_extension("round", ext_round);
 	lbm_add_extension("deg2rad", ext_deg2rad);
 	lbm_add_extension("rad2deg", ext_rad2deg);
 	lbm_add_extension("vec3-rot", ext_vec3_rot);
