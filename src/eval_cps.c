@@ -3042,11 +3042,10 @@ static void evaluation_step(void){
 
     if (decoded_k < NUM_CONTINUATIONS) {
       continuations[decoded_k](ctx);
-      return;
     } else {
       error_ctx(ENC_SYM_FATAL_ERROR);
-      return;
     }
+    return;
   }
 
   lbm_uint exp_type = lbm_type_of(ctx->curr_exp);
@@ -3056,10 +3055,7 @@ static void evaluation_step(void){
     if (eval_symbol(ctx, &s)) {
       ctx->app_cont = true;
       ctx->r = s;
-      return;
-    }
-
-    if (dynamic_load_callback) {
+    } else if (dynamic_load_callback) {
       dynamic_load(ctx);
     } else {
       error_ctx(ENC_SYM_NOT_FOUND);
