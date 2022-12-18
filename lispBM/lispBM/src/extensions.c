@@ -27,6 +27,7 @@
 
 static lbm_uint ext_offset = EXTENSION_SYMBOLS_START;
 static lbm_uint ext_max    = 0;
+static lbm_uint ext_num    = 0;
 static extension_fptr *extension_table = NULL;
 
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
@@ -48,6 +49,14 @@ int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage
   ext_max = (lbm_uint)extension_storage_size;
 
   return 1;
+}
+
+lbm_uint lbm_get_max_extensions(void) {
+  return ext_max;
+}
+
+lbm_uint lbm_get_num_extensions(void) {
+  return ext_num;
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
@@ -85,6 +94,7 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   if (ext_ix >= ext_max) {
       return false;
   }
+  ext_num = ext_ix + 1;
   extension_table[ext_ix] = ext;
   return true;
 }
