@@ -131,7 +131,7 @@ lbm_value append(lbm_value front, lbm_value back) {
 */
 
 lbm_value qq_expand_list(lbm_value l) {
-  lbm_value res = ENC_SYM_NIL;
+  lbm_value res;
   lbm_value car_val;
   lbm_value cdr_val;
 

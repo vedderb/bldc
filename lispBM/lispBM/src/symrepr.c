@@ -285,17 +285,9 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
   return 0;
 }
 
-int lbm_add_symbol(char *name, lbm_uint* id) {
-  size_t  n = 0;
-
-  n = strlen(name) + 1;
+static bool store_symbol_name(char *name, lbm_uint *res) {
+  size_t n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
-
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
-    return 0;
-  }
 
   char *symbol_name_storage = NULL;
   lbm_uint alloc_size;
@@ -307,17 +299,23 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
   symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
 
-  if (symbol_name_storage == NULL) {
-    lbm_memory_free(m);
-    return 0;
-  }
+  if (symbol_name_storage == NULL) return false;
 
-  symbol_table_size_list += 3;
   symbol_table_size_strings += alloc_size;
 
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (lbm_uint)symbol_name_storage;
+  *res = (lbm_uint)symbol_name_storage;
+  return true;
+}
+
+static bool add_symbol_to_symtab(lbm_uint name, lbm_uint id) {
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) return false;
+
+  symbol_table_size_list += 3;
+  m[NAME] = name;
 
   if (symlist == NULL) {
     m[NEXT] = (lbm_uint) NULL;
@@ -326,8 +324,33 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
     m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
-  m[ID] = next_symbol_id++;
-  *id = m[ID];
+  m[ID] =id;
+  return true;
+}
+
+int lbm_add_symbol(char *name, lbm_uint* id) {
+
+  lbm_uint symbol_name_storage;
+  if (!store_symbol_name(name, &symbol_name_storage)) return 0;
+
+  if (!add_symbol_to_symtab(symbol_name_storage, next_symbol_id)) {
+    lbm_memory_free((lbm_uint*)symbol_name_storage);
+    return 0;
+  }
+
+  *id = next_symbol_id ++;
+
+  return 1;
+}
+
+int lbm_add_symbol_const(char *name, lbm_uint* id) {
+
+  if (!add_symbol_to_symtab((lbm_uint)name, next_symbol_id)) {
+    return 0;
+  }
+
+  *id = next_symbol_id ++;
+
   return 1;
 }
 
@@ -340,179 +363,60 @@ int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
 }
 
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
-  if (strlen(name) == 0) return 0; // failure if empty symbol
+
   if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
-  size_t  n = 0;
+  lbm_uint symbol_name_storage;
+  if (!store_symbol_name(name, &symbol_name_storage)) return 0;
 
-  n = strlen(name) + 1;
-  if (n == 1) return 0; // failure if empty symbol
-
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
+  if (!add_symbol_to_symtab(symbol_name_storage, next_variable_symbol_id)) {
+    lbm_memory_free((lbm_uint*)symbol_name_storage);
     return 0;
   }
 
-  char *symbol_name_storage = NULL;
-  lbm_uint alloc_size;
-  if (n % sizeof(lbm_uint) == 0) {
-    alloc_size = n/(sizeof(lbm_uint));
-  } else {
-    alloc_size = (n/(sizeof(lbm_uint))) + 1;
-  }
+  *id = next_variable_symbol_id ++;
 
-  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
-
-  if (symbol_name_storage == NULL) {
-    lbm_memory_free(m);
-    return 0;
-  }
-
-  symbol_table_size_list += 3;
-  symbol_table_size_strings += alloc_size;
-
-  strcpy(symbol_name_storage, name);
-
-  m[NAME] = (lbm_uint)symbol_name_storage;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
-  m[ID] = next_variable_symbol_id++;
-  *id = m[ID];
   return 1;
 }
 
 int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
-  if (strlen(name) == 0) return 0; // failure if empty symbol
+
   if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
-  size_t  n = 0;
 
-  n = strlen(name) + 1;
-  if (n == 1) return 0; // failure if empty symbol
-
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
+  if (!add_symbol_to_symtab((lbm_uint)name, next_variable_symbol_id)) {
     return 0;
   }
 
-  symbol_table_size_list += 3;
+  *id = next_variable_symbol_id ++;
 
-  m[NAME] = (lbm_uint)name;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
-  m[ID] = next_variable_symbol_id++;
-  *id = m[ID];
-  return 1;
-}
-
-
-int lbm_add_symbol_const(char *name, lbm_uint* id) {
-  if (strlen(name) == 0) return 0; // failure if empty symbol
-
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
-    return 0;
-  }
-
-  symbol_table_size_list += 3;
-
-  m[NAME] = (lbm_uint)name;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
-  m[ID] = next_symbol_id++;
-  *id = m[ID];
   return 1;
 }
 
 int lbm_add_extension_symbol(char *name, lbm_uint* id) {
-  size_t  n = 0;
-  n = strlen(name) + 1;
 
-  if (n == 1) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
+  lbm_uint symbol_name_storage;
+  if (!store_symbol_name(name, &symbol_name_storage)) return 0;
 
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
+  if (!add_symbol_to_symtab(symbol_name_storage, next_extension_symbol_id)) {
+    lbm_memory_free((lbm_uint*)symbol_name_storage);
     return 0;
   }
 
-  char *symbol_name_storage = NULL;
-  lbm_uint alloc_size;
-  if (n % sizeof(lbm_uint) == 0) {
-    alloc_size = n/(sizeof(lbm_uint));
-  } else {
-    alloc_size = (n/(sizeof(lbm_uint))) + 1;
-  }
+  *id = next_extension_symbol_id ++;
 
-  symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
-
-  if (symbol_name_storage == NULL) {
-    lbm_memory_free(m);
-    return 0;
-  }
-
-  symbol_table_size_list += 3;
-  symbol_table_size_strings += alloc_size;
-
-  strcpy(symbol_name_storage, name);
-
-  m[NAME] = (lbm_uint)symbol_name_storage;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
-  m[ID] = next_extension_symbol_id++;
-  *id = m[ID];
   return 1;
 }
 
 int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
-  if (strlen(name) == 0) return 0; // failure if empty symbol
+
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
 
-  lbm_uint *m = lbm_memory_allocate(3);
-
-  if (m == NULL) {
+  if (!add_symbol_to_symtab((lbm_uint)name, next_extension_symbol_id)) {
     return 0;
   }
 
-  symbol_table_size_list += 3;
+  *id = next_extension_symbol_id ++;
 
-  m[NAME] = (lbm_uint)name;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
-  m[ID] = next_extension_symbol_id++;
-  *id = m[ID];
   return 1;
 }
 
