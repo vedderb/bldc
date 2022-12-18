@@ -1377,6 +1377,21 @@ static lbm_value ext_get_vq(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mcpwm_foc_get_vq());
 }
 
+static lbm_value ext_foc_est_lambda(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_lambda());
+}
+
+static lbm_value ext_foc_est_res(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_res());
+}
+
+static lbm_value ext_foc_est_ind(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_ind());
+}
+
 static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_duty_cycle_now());
@@ -4471,6 +4486,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-iq", ext_get_iq);
 	lbm_add_extension("get-vd", ext_get_vd);
 	lbm_add_extension("get-vq", ext_get_vq);
+	lbm_add_extension("get-est-lambda", ext_foc_est_lambda);
+	lbm_add_extension("get-est-res", ext_foc_est_res);
+	lbm_add_extension("get-est-ind", ext_foc_est_ind);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
 	lbm_add_extension("get-pos", ext_get_pos);

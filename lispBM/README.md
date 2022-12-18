@@ -606,6 +606,27 @@ Get FOC d-axis voltage.
 
 Get FOC q-axis voltage.
 
+#### get-est-lambda
+```clj
+(get-est-lambda)
+```
+
+Get FOC estimated flux linkage in Weber. Requires that one of the observers with flux linkage tracking is used. Added in FW 6.02.
+
+#### get-est-res
+```clj
+(get-est-res)
+```
+
+Get FOC estimated motor resistance in Ohm. This value is only accurate when the RPM is low and current is high. Added in FW 6.02.
+
+#### get-est-ind
+```clj
+(get-est-ind)
+```
+
+Get FOC estimated motor inductance Henry. Only works while the first HFI is running (not 45 Deg and not Coupled HFI). Added in FW 6.02.
+
 #### get-duty
 ```clj
 (get-duty)

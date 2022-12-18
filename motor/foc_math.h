@@ -190,7 +190,7 @@ typedef struct {
 	bool m_motor_released;
 
 	// Resistance observer
-	float m_r_est;
+	float m_res_est;
 	float m_r_est_state;
 
 	// Temperature-compensated parameters

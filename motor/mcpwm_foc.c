@@ -1395,6 +1395,21 @@ float mcpwm_foc_get_mod_beta_measured(void) {
 	return get_motor_now()->m_motor_state.mod_beta_measured;
 }
 
+float mcpwm_foc_get_est_lambda(void) {
+	return get_motor_now()->m_observer_state.lambda_est;
+}
+
+float mcpwm_foc_get_est_res(void) {
+	return get_motor_now()->m_res_est;
+}
+
+// NOTE: Requires the regular HFI sensor mode to run
+float mcpwm_foc_get_est_ind(void) {
+	float real_bin0, imag_bin0;
+	get_motor_now()->m_hfi.fft_bin0_func((float*)get_motor_now()->m_hfi.buffer, &real_bin0, &imag_bin0);
+	return real_bin0;
+}
+
 /**
  * Measure encoder offset and direction.
  *
@@ -3524,8 +3539,8 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	{
 		float res_est_gain = 0.00002;
 		float i_abs_sq = SQ(motor->m_motor_state.i_abs);
-		motor->m_r_est = motor->m_r_est_state - 0.5 * res_est_gain * conf_now->foc_motor_l * i_abs_sq;
-		float res_dot = -res_est_gain * (motor->m_r_est * i_abs_sq + motor->m_speed_est_fast *
+		motor->m_res_est = motor->m_r_est_state - 0.5 * res_est_gain * conf_now->foc_motor_l * i_abs_sq;
+		float res_dot = -res_est_gain * (motor->m_res_est * i_abs_sq + motor->m_speed_est_fast *
 				(motor->m_motor_state.i_beta * motor->m_observer_state.x1 - motor->m_motor_state.i_alpha * motor->m_observer_state.x2) -
 				(motor->m_motor_state.i_alpha * motor->m_motor_state.v_alpha + motor->m_motor_state.i_beta * motor->m_motor_state.v_beta));
 		motor->m_r_est_state += res_dot * dt;
@@ -3556,7 +3571,7 @@ static void terminal_tmp(int argc, const char **argv) {
 	}
 
 	for (int i = 0;i < top;i++) {
-		float res_est = m_motor_1.m_r_est;
+		float res_est = m_motor_1.m_res_est;
 		float t_base = m_motor_1.m_conf->foc_temp_comp_base_temp;
 		float res_base = m_motor_1.m_conf->foc_motor_r;
 		float t_est = (res_est / res_base - 1) / 0.00386 + t_base;
