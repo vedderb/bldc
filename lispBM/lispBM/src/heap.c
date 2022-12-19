@@ -550,8 +550,8 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
 
     lbm_value curr = res;
-    unsigned int count = 0;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < (n - 1)) {
+    unsigned int count = 1;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
       lbm_ref_cell(curr)->car = ENC_SYM_NIL;
       curr = lbm_cdr(curr);
       count ++;
@@ -732,6 +732,7 @@ int lbm_gc_sweep_phase(void) {
       lbm_heap_state.gc_recovered ++;
     }
   }
+
   return 1;
 }
 
