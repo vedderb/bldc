@@ -308,6 +308,13 @@ lbm_value lbm_heap_allocate_cell(lbm_type type);
  * \return A list of heap-cells of Memory error if unable to allocate.
  */
 lbm_value lbm_heap_allocate_list(unsigned int n);
+/** Allocate a list of n heap-cells and initialize the values.
+ * \pram ls The result list is passed through this ptr.
+ * \param m The length of list to allocate.
+ * \param ... The values to initialize the list with.
+ * \return True of False depending on success of allocation.
+ */
+bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...);
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value

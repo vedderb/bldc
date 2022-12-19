@@ -1264,25 +1264,34 @@ static void eval_define(eval_context_t *ctx) {
 }
 
 // (closure params body env)
-static bool mk_closure(lbm_value *res, lbm_value env, lbm_value body, lbm_value params) {
-   if (lbm_heap_num_free() < 4) {
-     lbm_gc_mark_phase(3, env, body, params);
-     gc();
+static bool mk_closure(lbm_value *closure, lbm_value env, lbm_value body, lbm_value params) {
+
+  bool ret = lbm_heap_allocate_list_init(closure,
+                                         4,
+                                         ENC_SYM_CLOSURE,
+                                         params,
+                                         body,
+                                         env);
+  if (!ret) {
+    lbm_gc_mark_phase(3, env, body, params);
+    gc();
+    ret = lbm_heap_allocate_list_init(closure,
+                                      4,
+                                      ENC_SYM_CLOSURE,
+                                      params,
+                                      body,
+                                      env);
   }
-  if (lbm_heap_num_free() >= 4) {
-    lbm_value env_end = lbm_cons(env, ENC_SYM_NIL);
-    lbm_value exp = lbm_cons(body, env_end);
-    lbm_value par = lbm_cons(params, exp);
-    lbm_value clo = lbm_cons(ENC_SYM_CLOSURE, par);
-    *res = clo;
-    return true;
-  }
-  return false;
+  return ret;
 }
 
 static void eval_lambda(eval_context_t *ctx) {
   lbm_value closure;
-  if (mk_closure(&closure, ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp))) {
+
+  if (mk_closure(&closure,
+                  ctx->curr_env,
+                  lbm_cadr(lbm_cdr(ctx->curr_exp)),
+                  lbm_cadr(ctx->curr_exp))) {
     ctx->app_cont = true;
     ctx->r = closure;
   } else {
@@ -1867,7 +1876,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       WITH_GC_RMBR(body_1, lbm_cons(args[1], body_0), 1, body_0);
       lbm_value body;
       WITH_GC_RMBR(body, lbm_cons(args[0], body_1), 1, body_0);
-      lbm_value closure;
+      lbm_value closure; ;
       if (mk_closure(&closure, ENC_SYM_NIL, body, params)) {
         ctx->r = closure;
         lbm_stack_drop(&ctx->K, 2);
