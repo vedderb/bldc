@@ -39,6 +39,8 @@
 #include "ahrs.h"
 #include "encoder.h"
 #include "conf_general.h"
+#include "servo_dec.h"
+#include "servo_simple.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -567,6 +569,21 @@ static void lib_mutex_unlock(lib_mutex m) {
 	chMtxUnlock((mutex_t*)m);
 }
 
+static remote_state lib_get_remote_state(void) {
+	remote_state res;
+	res.js_x = app_nunchuk_get_decoded_x();
+	res.js_y = app_nunchuk_get_decoded_y();
+	res.bt_c = app_nunchuk_get_bt_c();
+	res.bt_z = app_nunchuk_get_bt_z();
+	res.is_rev = app_nunchuk_get_is_rev();
+	res.age_s = app_nunchuk_get_update_age();
+	return res;
+}
+
+static float lib_get_ppm_age(void) {
+	return (float)servodec_get_time_since_update() / 1000.0;
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -849,6 +866,12 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// Store backup data
 		cif.cif.store_backup_data = conf_general_store_backup_data;
 
+		// Input Devices
+		cif.cif.get_remote_state = lib_get_remote_state;
+		cif.cif.get_ppm = lispif_get_ppm;
+		cif.cif.get_ppm_age = lib_get_ppm_age;
+		cif.cif.app_is_output_disabled = app_is_output_disabled;
+
 		lib_init_done = true;
 	}
 
@@ -949,4 +972,26 @@ void* lispif_malloc(size_t size) {
 
 void lispif_free(void *ptr) {
 	lbm_memory_free(ptr);
+}
+
+float lispif_get_ppm(void) {
+	if (!servodec_is_running()) {
+		servo_simple_stop();
+		servodec_init(0);
+	}
+
+	const ppm_config* cfg = &(app_get_configuration()->app_ppm_conf);
+	servodec_set_pulse_options(cfg->pulse_start, cfg->pulse_end, cfg->median_filter);
+
+	float servo_val = servodec_get_servo(0);
+	float servo_ms = utils_map(servo_val, -1.0, 1.0, cfg->pulse_start, cfg->pulse_end);
+
+	// Mapping with respect to center pulsewidth
+	if (servo_ms < cfg->pulse_center) {
+		servo_val = utils_map(servo_ms, cfg->pulse_start, cfg->pulse_center, -1.0, 0.0);
+	} else {
+		servo_val = utils_map(servo_ms, cfg->pulse_center, cfg->pulse_end, 0.0, 1.0);
+	}
+
+	return servo_val;
 }

@@ -1,5 +1,5 @@
 /*
-	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,11 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_75_300_R34_H_
-#define HW_75_300_R34_H_
+#ifndef HW_CHEAP_FOCER_2_V09_NO_LIMITS_H_
+#define HW_CHEAP_FOCER_2_V09_NO_LIMITS_H_
 
-#define HW75_300_REV_34
+#define CFOC_IS_V09
+#define DISABLE_HW_LIMITS
 
-#include "hw_75_300_r34_core.h"
+#include "hw_Cheap_FOCer_2_core.h"
 
-#endif /* HW_75_300_R34_H_ */
+#endif /* HW_CHEAP_FOCER_2_V09_NO_LIMITS_H_ */

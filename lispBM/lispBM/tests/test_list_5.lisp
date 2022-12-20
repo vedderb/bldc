@@ -1,0 +1,1 @@
+(eq (list) nil)

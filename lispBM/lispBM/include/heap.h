@@ -303,6 +303,18 @@ lbm_uint lbm_heap_size_bytes(void);
  * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
  */
 lbm_value lbm_heap_allocate_cell(lbm_type type);
+/** Allocate a list of n heap-cells.
+ * \param n The number of heap-cells to allocate.
+ * \return A list of heap-cells of Memory error if unable to allocate.
+ */
+lbm_value lbm_heap_allocate_list(unsigned int n);
+/** Allocate a list of n heap-cells and initialize the values.
+ * \pram ls The result list is passed through this ptr.
+ * \param m The length of list to allocate.
+ * \param ... The values to initialize the list with.
+ * \return True of False depending on success of allocation.
+ */
+bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...);
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
@@ -492,12 +504,12 @@ void lbm_nil_freelist(void);
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
- * \param v Root node to start marking from.
+ * \param m Number of Root nodes to start marking from.
+ * \param ... list of root nodes.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-int lbm_gc_mark_phase(lbm_value v);
-int lbm_gc_mark_phase2(lbm_value env);
-
+//int lbm_gc_mark_phase(lbm_value v);
+int lbm_gc_mark_phase(int num, ... );
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.
@@ -768,6 +780,14 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 
 static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
+}
+
+static inline bool lbm_is_quoted_list(lbm_value x) {
+  return (lbm_is_cons(x) &&
+          lbm_is_symbol(lbm_car(x)) &&
+          (lbm_dec_sym(lbm_car(x)) == SYM_QUOTE) &&
+          lbm_is_cons(lbm_cdr(x)) &&
+          lbm_is_cons(lbm_car(lbm_cdr(x))));
 }
 
 #ifndef LBM64

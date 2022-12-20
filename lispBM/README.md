@@ -58,7 +58,7 @@ Reset the timeout that stops the motor. This has to be run on at least every sec
 (get-ppm)
 ```
 
-Read the decoded value on the PPM input, range 0.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
+Read the decoded value on the PPM input, range -1.0 to 1.0. If the PPM-decoder is not running it will be initialized and the PPM-pin will be reconfigured, so make sure that nothing else is using that pin. Example:
 
 ```clj
 (print (str-from-n (get-ppm) "PPM Value: %.2f"))
@@ -323,13 +323,14 @@ Sleep for *seconds* seconds. Example:
 Get button and joystick state of connected remote. Note that a remote app such as the VESC remote or nunchuk must be configured and running for this to work. Returns the following list:
 
 ```clj
-(js-y js-x bt-c bt-z is-rev)
+(js-y js-x bt-c bt-z is-rev update-age)
 ; Where
 ; js-y : Joystick Y axis, range -1.0 to 1.0
 ; js-x : Joystick X axis, range -1.0 to 1.0
 ; bt-c : C button pressed state, 0 or 1
 ; bt-z : Z button pressed state, 0 or 1
 ; is-rev : Reverse active, 0 or 1
+; update-age : Age of last update from the remote in seconds
 ```
 
 #### sysinfo
@@ -454,6 +455,14 @@ Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sen
 ```
 
 Disable app output for ms milliseconds. 0 means enable now and -1 means disable forever. This can be used to override the control of apps temporarily.
+
+#### app-is-output-disabled
+
+```clj
+(app-is-output-disabled)
+```
+
+Check if app output is disabled. VESC Tool will disable app output during some detection routines, so when running a custom control script it might be useful to check this and disable the output when this value is true.
 
 #### app-pas-get-rpm
 
@@ -597,6 +606,27 @@ Get FOC d-axis voltage.
 
 Get FOC q-axis voltage.
 
+#### get-est-lambda
+```clj
+(get-est-lambda)
+```
+
+Get FOC estimated flux linkage in Weber. Requires that one of the observers with flux linkage tracking is used. Added in FW 6.02.
+
+#### get-est-res
+```clj
+(get-est-res)
+```
+
+Get FOC estimated motor resistance in Ohm. This value is only accurate when the RPM is low and current is high. Added in FW 6.02.
+
+#### get-est-ind
+```clj
+(get-est-ind)
+```
+
+Get FOC estimated motor inductance Henry. Only works while the first HFI is running (not 45 Deg and not Coupled HFI). Added in FW 6.02.
+
 #### get-duty
 ```clj
 (get-duty)
@@ -610,6 +640,13 @@ Get duty cycle. Range -1.0 to 1.0.
 ```
 
 Get motor RPM. Negative values mean that the motor spins in the reverse direction.
+
+#### get-pos
+```clj
+(get-pos)
+```
+
+Get motor position. Returns the motor PID pos (taking into account the Position Angle Division)
 
 #### get-temp-fet
 ```clj
@@ -911,6 +948,27 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 
 Same as (can-send-sid), but sends extended ID frame.
 
+#### can-cmd
+
+```clj
+(can-cmd id cmd)
+```
+
+Execute command cmd on CAN-device with ID id. The command cmd is sent as a string and will be parsed and evaluated by the receiver.
+
+This is useful to execute arbitrary code on a CAN-device that is not covered by the other [CAN-Commands](#can-commands). This function has more overhead than other CAN-Commands, so if possible they should be used instead.
+
+Example:
+
+```clj
+; Configuration update on ID54:
+(can-cmd 54 "(conf-set max-speed 10.0)")
+
+; The string-functions can be used for setting something from a variable
+(def max-speed-kmh 25.0)
+(can-cmd 54 (str-from-n (/ max-speed-kmh 3.6) "(conf-set 'max-speed %.3f)"))
+```
+
 ### Math Functions
 
 #### sin
@@ -989,6 +1047,27 @@ Get the base-e logarithm of x.
 ```
 
 Get the base-10 logarithm of x.
+
+#### floor
+```clj
+(floor x)
+```
+
+Round x down to the closest integer. Added in FW 6.02.
+
+#### ceil
+```clj
+(ceil x)
+```
+
+Round x up to the closest integer. Added in FW 6.02.
+
+#### round
+```clj
+(round x)
+```
+
+Round x to the closest integer. Added in FW 6.02.
 
 #### deg2rad
 ```clj
@@ -1383,6 +1462,22 @@ The following selection of app and motor parameters can be read and set from Lis
 'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
 'ppm-ramp-time-pos      ; Positive ramping time in seconds
 'ppm-ramp-time-neg      ; Negative ramping time in seconds
+'adc-ctrl-type          ; ADC Control Type (Added in FW 6.02)
+                        ;    0:  ADC_CTRL_TYPE_NONE
+                        ;    1:  ADC_CTRL_TYPE_CURRENT
+                        ;    2:  ADC_CTRL_TYPE_CURRENT_REV_CENTER
+                        ;    3:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON
+                        ;    4:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC
+                        ;    5:  ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER
+                        ;    6:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER
+                        ;    7:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON
+                        ;    8:  ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC
+                        ;    9:  ADC_CTRL_TYPE_DUTY
+                        ;    10: ADC_CTRL_TYPE_DUTY_REV_CENTER
+                        ;    11: ADC_CTRL_TYPE_DUTY_REV_BUTTON
+                        ;    12: ADC_CTRL_TYPE_PID
+                        ;    13: ADC_CTRL_TYPE_PID_REV_CENTER
+                        ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
 ```
 
 #### conf-set

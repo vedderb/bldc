@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,9 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Little_FOCer_H_
-#define HW_Little_FOCer_H_
+#ifndef HW_GO_FOC_HI200_NO_LIMITS_H_
+#define HW_GO_FOC_HI200_NO_LIMITS_H_
 
-#include "hw_Little_FOCer_core.h"
+#define DISABLE_HW_LIMITS
 
-#endif /* HW_Little_FOCer_H_ */
+#include "hw_go_foc_hi200.h"
+
+#endif /* HW_GO_FOC_HI200_NO_LIMITS_H_ */

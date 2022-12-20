@@ -83,9 +83,9 @@ static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
 }
 
 lbm_int lbm_memory_address_to_ix(lbm_uint *ptr) {
-  /* TODO: assuming that that index
+  /* TODO: assuming that index
            will have more then enough room in the
-           positive halv of a 28bit integer */
+           positive half of a 28bit integer */
   return (lbm_int)address_to_bitmap_ix(ptr);
 }
 

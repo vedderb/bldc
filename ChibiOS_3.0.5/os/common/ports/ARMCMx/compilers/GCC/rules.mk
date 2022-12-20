@@ -142,7 +142,11 @@ else
   LDFLAGS  += -mno-thumb-interwork
 endif
 
-DEPPATH = build/$(PROJECT)/.dep
+ifeq ($(OS),Windows_NT)
+  DEPPATH = build\$(PROJECT)\.dep
+else
+  DEPPATH = build/$(PROJECT)/.dep
+endif
 
 # Generate dependency information
 ASFLAGS  += -MD -MP -MF $(DEPPATH)/$(@F).d

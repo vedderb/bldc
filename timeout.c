@@ -89,7 +89,7 @@ void timeout_configure(systime_t timeout, float brake_current, KILL_SW_MODE kill
 }
 
 void timeout_reset(void) {
-	last_update_time = chVTGetSystemTime();
+	last_update_time = chVTGetSystemTimeX();
 }
 
 bool timeout_has_timeout(void) {

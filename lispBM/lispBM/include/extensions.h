@@ -46,6 +46,14 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
  * \return 1 on success and 0 for failure
  */
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size);
+/** The number of extensions that can be allocated.
+ * \return The maximum number of extensions that can be added.
+ */
+lbm_uint lbm_get_max_extensions(void);
+/** Get the number of allocated extensions
+ * \return The number of extensions that have been added.
+ */
+lbm_uint lbm_get_num_extensions(void);
 /** Look up an extension associated with a key symbol.
  *
  * \param sym Symbol bound to the extension to look for.

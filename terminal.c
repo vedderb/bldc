@@ -587,6 +587,11 @@ void terminal_process_string(char *str) {
 				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
 				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
 		commands_printf("Permanent NRF found: %s", conf_general_permanent_nrf_found ? "Yes" : "No");
+#ifdef HW_HAS_PHASE_SHUNTS
+		commands_printf("Phase Shunts: Yes");
+#else
+		commands_printf("Phase Shunts: No");
+#endif
 
 		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
 		commands_printf("Runtime  : %llu s", g_backup.runtime);
@@ -977,6 +982,7 @@ void terminal_process_string(char *str) {
 
 				for (int i = 0;i < 1000;i++) {
 					timeout_reset();
+					mc_interface_lock_override_once();
 					mc_interface_set_openloop_phase((float)i * current / 1000.0, phase);
 					fault = mc_interface_get_fault();
 					if (fault != FAULT_CODE_NONE) {
@@ -1021,6 +1027,7 @@ void terminal_process_string(char *str) {
 
 						phase += 1.0;
 						timeout_reset();
+						mc_interface_lock_override_once();
 						mc_interface_set_openloop_phase(current, phase);
 						fault = mc_interface_get_fault();
 						if (fault != FAULT_CODE_NONE) {

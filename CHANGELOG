@@ -1,4 +1,4 @@
-=== FW 6.00 <dev> ===
+=== FW 6.00 ===
 * Added stack checks.
 * Release motor fix when cc_min_current is 0.
 * Added support for NTC and PTC temperature sensors with custom resistance and base temperature.

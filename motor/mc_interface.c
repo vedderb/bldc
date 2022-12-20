@@ -309,6 +309,8 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
 		encoder_deinit();
 		encoder_init(configuration);
+	} else {
+		encoder_update_config(configuration);
 	}
 
 #ifdef HW_HAS_DRV8301
@@ -1634,9 +1636,13 @@ float mc_interface_get_distance(void) {
  * Absolute distance traveled since boot, in meters
  */
 float mc_interface_get_distance_abs(void) {
+#ifdef HW_HAS_WHEEL_SPEED_SENSOR
+	return hw_get_distance_abs();
+#else
 	const volatile mc_configuration *conf = mc_interface_get_configuration();
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
+#endif
 }
 
 setup_values mc_interface_get_setup_values(void) {
@@ -2399,7 +2405,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_max_duty = l_current_max_tmp;
 	} else {
 		lo_max_duty = utils_map(duty_now_abs, (conf->l_duty_start * conf->l_max_duty),
-				conf->l_max_duty, l_current_max_tmp, 0.0);
+				conf->l_max_duty, l_current_max_tmp, conf->cc_min_current * 5.0);
 	}
 
 	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);

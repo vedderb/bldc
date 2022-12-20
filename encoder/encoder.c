@@ -23,6 +23,7 @@
 #include "encoder_cfg.h"
 
 #include "utils.h"
+#include "utils_math.h"
 #include "commands.h"
 #include "mcpwm_foc.h"
 #include "mc_interface.h"
@@ -187,6 +188,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
 			m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -279,6 +281,22 @@ bool encoder_init(volatile mc_configuration *conf) {
 			terminal_encoder_clear_multiturn);
 
 	return res;
+}
+
+void encoder_update_config(volatile mc_configuration *conf) {
+	switch (conf->m_sensor_port_mode) {
+	case SENSOR_PORT_MODE_SINCOS: {
+		encoder_cfg_sincos.s_gain = 1.0 / conf->m_encoder_sin_amp;
+		encoder_cfg_sincos.s_offset = conf->m_encoder_sin_offset;
+		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
+		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
+		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
+	} break;
+
+	default:
+		break;
+	}
 }
 
 void encoder_deinit(void) {

@@ -84,7 +84,7 @@ static void icuwidthcb(ICUDriver *icup) {
 #ifdef HW_VALIDATE_SERVO_INPUT
 		last_len_received[0] = len_received; // Stop noisy lengths from going to vesc tool
 #endif
-		last_update_time = chVTGetSystemTime();
+		last_update_time = chVTGetSystemTimeX();
 
 		if (done_func) {
 			done_func();

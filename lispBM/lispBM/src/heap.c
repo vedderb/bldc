@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <inttypes.h>
 #include <lbm_memory.h>
 #include <lbm_custom_type.h>
@@ -516,38 +517,82 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 
   lbm_value res;
 
-  if (!lbm_is_ptr(lbm_heap_state.freelist)) {
-    // Free list not a ptr (should be Symbol NIL)
-    if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
-        (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
-      // all is as it should be (but no free cells)
-      return ENC_SYM_MERROR;
-    } else {
-      // something is most likely very wrong
-      return ENC_SYM_FATAL_ERROR;
-    }
-  }
-
   // it is a ptr replace freelist with cdr of freelist;
   res = lbm_heap_state.freelist;
 
-  if (lbm_type_of(res) != LBM_TYPE_CONS) {
+  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+    lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
+
+    lbm_heap_state.num_alloc++;
+
+    // set some ok initial values (nil . nil)
+    lbm_ref_cell(res)->car = ENC_SYM_NIL;
+    lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
+
+    res = res | ptr_type;
+    return res;
+  }
+  else if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
+           (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
+    // all is as it should be (but no free cells)
+    return ENC_SYM_MERROR;
+  }
+  else {
     return ENC_SYM_FATAL_ERROR;
   }
+}
 
-  lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
+lbm_value lbm_heap_allocate_list(unsigned int n) {
+  if (n == 0) return ENC_SYM_NIL;
+  if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
 
-  lbm_heap_state.num_alloc++;
+  lbm_value res = lbm_heap_state.freelist;
+  if (lbm_type_of(res) == LBM_TYPE_CONS) {
 
-  // set some ok initial values (nil . nil)
-  lbm_ref_cell(res)->car = ENC_SYM_NIL;
-  lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
+    lbm_value curr = res;
+    unsigned int count = 1;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
+      lbm_ref_cell(curr)->car = ENC_SYM_NIL;
+      curr = lbm_cdr(curr);
+      count ++;
+    }
+    lbm_set_car(curr, ENC_SYM_NIL);
+    lbm_heap_state.freelist = lbm_cdr(curr);
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+    lbm_heap_state.num_alloc+=count;
+    return res;
+  } else {
+    return ENC_SYM_FATAL_ERROR;
+  }
+}
 
-  // clear GC bit on allocated cell
-  clr_gc_mark(lbm_ref_cell(res));
+bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
+  if (n == 0) {
+    *ls = ENC_SYM_NIL;
+    return true;
+  }
+  if (lbm_heap_num_free() < n) return false;
 
-  res = res | ptr_type;
-  return res;
+  lbm_value res = lbm_heap_state.freelist;
+  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+    va_list valist;
+    va_start(valist, n);
+    lbm_value curr = res;
+    unsigned int count = 1;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
+      lbm_ref_cell(curr)->car = va_arg(valist, lbm_value);
+      curr = lbm_cdr(curr);
+      count ++;
+    }
+    lbm_set_car(curr, va_arg(valist, lbm_value));
+    lbm_heap_state.freelist = lbm_cdr(curr);
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+    lbm_heap_state.num_alloc+=count;
+    va_end(valist);
+    *ls = res;
+    return true;
+  }
+  return false;
 }
 
 lbm_uint lbm_heap_num_allocated(void) {
@@ -565,15 +610,20 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
-int lbm_gc_mark_phase(lbm_value env) {
+int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
 
-  if (!lbm_is_ptr(env)) {
-      return 1; // Nothing to mark here
+  va_list valist;
+  va_start(valist, num);
+  lbm_value root;
+  for (int i = 0; i < num; i++) {
+      root = va_arg(valist, lbm_value);
+      if (lbm_is_ptr(root)) {
+        lbm_push(s, root);
+      }
   }
-
-  lbm_push(s, env);
+  va_end(valist);
   int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
@@ -648,7 +698,7 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
-        lbm_gc_mark_phase(aux_data[i]);
+        lbm_gc_mark_phase(1,aux_data[i]);
       }
     }
   }
@@ -699,7 +749,7 @@ int lbm_gc_sweep_phase(void) {
         default:
           break;
         }
-        }
+      }
       // create pointer to use as new freelist
       lbm_uint addr = lbm_enc_cons_ptr(i);
 
@@ -711,6 +761,7 @@ int lbm_gc_sweep_phase(void) {
       lbm_heap_state.gc_recovered ++;
     }
   }
+
   return 1;
 }
 

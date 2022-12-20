@@ -33,6 +33,10 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Dec 11: Version 0.7.1
+  - Changes to heap_allocate_cell for readability and perhaps performance.
+  - Added heap_allocate_list for allocation of multiple cells at once.
+
 Nov 9: Version 0.7.1
   - Bugfix: string literal lengths.
   - not-eq and != added.

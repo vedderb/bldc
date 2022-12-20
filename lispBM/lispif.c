@@ -32,7 +32,7 @@
 #define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_16K
 #define GC_STACK_SIZE			160
 #define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	240
+#define EXTENSION_STORAGE_SIZE	250
 #define VARIABLE_STORAGE_SIZE	64
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
@@ -267,7 +267,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Anything else will be evaluated as an expression in LBM.");
 				commands_printf_lisp(" ");
 			} else if (len >= 5 && strncmp(str, ":info", 5) == 0) {
-				commands_printf_lisp("--(LISP HEAP)-----------------------------------------------\n");
+				commands_printf_lisp("--(LISP HEAP)--\n");
 				commands_printf_lisp("Heap size: %u Bytes\n", HEAP_SIZE * 8);
 				commands_printf_lisp("Used cons cells: %d\n", HEAP_SIZE - lbm_heap_num_free());
 				commands_printf_lisp("Free cons cells: %d\n", lbm_heap_num_free());
@@ -275,11 +275,12 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Recovered: %d\n", lbm_heap_state.gc_recovered);
 				commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
 				commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
-				commands_printf_lisp("--(Symbol and Array memory)---------------------------------\n");
+				commands_printf_lisp("--(Symbol and Array memory)--\n");
 				commands_printf_lisp("Memory size: %u Words\n", lbm_memory_num_words());
 				commands_printf_lisp("Memory free: %u Words\n", lbm_memory_num_free());
 				commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
 				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
+				commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
 			} else if (strncmp(str, ":env", 4) == 0) {
 				lbm_value curr = *lbm_get_env_ptr();
 				char output[128];
@@ -345,9 +346,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 				if (ok) {
 					lbm_create_string_char_channel(&string_tok_state, &string_tok, (char*)data);
-					repl_cid = lbm_load_and_eval_expression(&string_tok);
-					lbm_continue_eval();
-					lbm_wait_ctx(repl_cid, 500);
+					if (reply_func != NULL) {
+						repl_cid = lbm_load_and_eval_expression(&string_tok);
+						lbm_continue_eval();
+						lbm_wait_ctx(repl_cid, 500);
+					}
 					repl_cid = -1;
 				} else {
 					commands_printf_lisp("Could not pause");
@@ -614,7 +617,7 @@ bool lispif_restart(bool print, bool load_code) {
 }
 
 static uint32_t timestamp_callback(void) {
-	systime_t t = chVTGetSystemTime();
+	systime_t t = chVTGetSystemTimeX();
 	return (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
 }
 

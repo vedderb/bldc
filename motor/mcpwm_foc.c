@@ -1407,6 +1407,21 @@ float mcpwm_foc_get_mod_beta_measured(void) {
 	return get_motor_now()->m_motor_state.mod_beta_measured;
 }
 
+float mcpwm_foc_get_est_lambda(void) {
+	return get_motor_now()->m_observer_state.lambda_est;
+}
+
+float mcpwm_foc_get_est_res(void) {
+	return get_motor_now()->m_res_est;
+}
+
+// NOTE: Requires the regular HFI sensor mode to run
+float mcpwm_foc_get_est_ind(void) {
+	float real_bin0, imag_bin0;
+	get_motor_now()->m_hfi.fft_bin0_func((float*)get_motor_now()->m_hfi.buffer, &real_bin0, &imag_bin0);
+	return real_bin0;
+}
+
 /**
  * Measure encoder offset and direction.
  *
@@ -1990,6 +2005,7 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 	int fault = FAULT_CODE_NONE;
 	float duty_last = 0.0;
 	for (float i = 0.02;i < 0.5;i *= 1.5) {
+		utils_truncate_number_abs(&i, 0.6);
 		float i_tmp;
 		fault = mcpwm_foc_measure_inductance(i, 10, &i_tmp, 0, 0);
 		if (fault != FAULT_CODE_NONE) {
@@ -2124,6 +2140,8 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
 	if (fault == FAULT_CODE_NONE && *res != 0.0) {
 		motor->m_conf->foc_motor_r = *res;
+		mcpwm_foc_set_current(0.0);
+		chThdSleepMilliseconds(10);
 		fault = mcpwm_foc_measure_inductance_current(i_last, 200, 0, ld_lq_diff, ind);
 	}
 
@@ -2502,7 +2520,7 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("i_abs_flt: %.2f", (double)get_motor_now()->m_motor_state.i_abs_filter);
 	commands_printf("Obs_x1:    %.2f", (double)get_motor_now()->m_observer_state.x1);
 	commands_printf("Obs_x2:    %.2f", (double)get_motor_now()->m_observer_state.x2);
-	commands_printf("lambda_est:%.2f", (double)get_motor_now()->m_observer_state.lambda_est);
+	commands_printf("lambda_est:%.4f", (double)get_motor_now()->m_observer_state.lambda_est);
 	commands_printf("vd_int:    %.2f", (double)get_motor_now()->m_motor_state.vd_int);
 	commands_printf("vq_int:    %.2f", (double)get_motor_now()->m_motor_state.vq_int);
 	commands_printf("off_delay: %.2f", (double)get_motor_now()->m_current_off_delay);
@@ -2913,35 +2931,23 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		if (!control_duty) {
 			motor_now->m_duty_i_term = motor_now->m_motor_state.iq / conf_now->lo_current_max;
+			motor_now->duty_was_pi = false;
 		}
 
 		if (control_duty) {
 			// Duty cycle control
-			if (fabsf(duty_set) < (duty_abs - 0.05) ||
-					(SIGN(motor_now->m_motor_state.vq) * motor_now->m_motor_state.iq) < conf_now->lo_current_min) {
-				// Truncating the duty cycle here would be dangerous, so run a PID controller.
+			if (fabsf(duty_set) < (duty_abs - 0.01) &&
+					(!motor_now->duty_was_pi || SIGN(motor_now->duty_pi_duty_last) == SIGN(duty_now))) {
+				// Truncating the duty cycle here would be dangerous, so run a PI controller.
 
-				// Reset the integrator in duty mode to not increase the duty if the load suddenly changes. In braking
-				// mode this would cause a discontinuity, so there we want to keep the value of the integrator.
-				if (motor_now->m_control_mode == CONTROL_MODE_DUTY) {
-					if (duty_now > 0.0) {
-						if (motor_now->m_duty_i_term > 0.0) {
-							motor_now->m_duty_i_term = 0.0;
-						}
-					} else {
-						if (motor_now->m_duty_i_term < 0.0) {
-							motor_now->m_duty_i_term = 0.0;
-						}
-					}
-				}
-
-				// Compensation for supply voltage variations
-				float scale = 1.0 / motor_now->m_motor_state.v_bus;
+				motor_now->duty_pi_duty_last = duty_now;
+				motor_now->duty_was_pi = true;
 
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;
 
 				// Compute parameters
+				float scale = 1.0 / motor_now->m_motor_state.v_bus;
 				float p_term = error * conf_now->foc_duty_dowmramp_kp * scale;
 				motor_now->m_duty_i_term += error * (conf_now->foc_duty_dowmramp_ki * dt) * scale;
 
@@ -2962,6 +2968,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				} else {
 					iq_set_tmp = -conf_now->lo_current_max;
 				}
+				motor_now->duty_was_pi = false;
 			}
 		} else if (motor_now->m_control_mode == CONTROL_MODE_CURRENT_BRAKE) {
 			// Braking
@@ -3147,6 +3154,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
 		motor_now->m_motor_state.iq_filter = 0.0;
+		motor_now->m_duty_i_term = 0.0;
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 		GET_INPUT_CURRENT_OFFSET(); // TODO: should this be done here?
 #endif
@@ -3599,8 +3607,8 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	{
 		float res_est_gain = 0.00002;
 		float i_abs_sq = SQ(motor->m_motor_state.i_abs);
-		motor->m_r_est = motor->m_r_est_state - 0.5 * res_est_gain * conf_now->foc_motor_l * i_abs_sq;
-		float res_dot = -res_est_gain * (motor->m_r_est * i_abs_sq + motor->m_speed_est_fast *
+		motor->m_res_est = motor->m_r_est_state - 0.5 * res_est_gain * conf_now->foc_motor_l * i_abs_sq;
+		float res_dot = -res_est_gain * (motor->m_res_est * i_abs_sq + motor->m_speed_est_fast *
 				(motor->m_motor_state.i_beta * motor->m_observer_state.x1 - motor->m_motor_state.i_alpha * motor->m_observer_state.x2) -
 				(motor->m_motor_state.i_alpha * motor->m_motor_state.v_alpha + motor->m_motor_state.i_beta * motor->m_motor_state.v_beta));
 		motor->m_r_est_state += res_dot * dt;
@@ -3631,7 +3639,7 @@ static void terminal_tmp(int argc, const char **argv) {
 	}
 
 	for (int i = 0;i < top;i++) {
-		float res_est = m_motor_1.m_r_est;
+		float res_est = m_motor_1.m_res_est;
 		float t_base = m_motor_1.m_conf->foc_temp_comp_base_temp;
 		float res_base = m_motor_1.m_conf->foc_motor_r;
 		float t_est = (res_est / res_base - 1) / 0.00386 + t_base;

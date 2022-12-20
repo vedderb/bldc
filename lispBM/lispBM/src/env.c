@@ -37,29 +37,6 @@ lbm_value lbm_get_env(void) {
   return env_global;
 }
 
-// Copies just the skeleton structure of an environment
-// The new "copy" will have pointers to the original key-val bindings.
-lbm_value lbm_env_copy_shallow(lbm_value env) {
-
-  lbm_value res = ENC_SYM_NIL;
-  lbm_value curr = env;
-
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    lbm_value key = lbm_car(lbm_car(curr));
-    if (lbm_dec_sym(key) != SYM_NIL) {
-      res = lbm_cons(lbm_car(curr), res);
-
-      // Check for "out of memory"
-      if (lbm_type_of(res) == LBM_TYPE_SYMBOL &&
-          lbm_dec_sym(res) == SYM_MERROR) {
-        return res;
-      }
-    }
-    curr = lbm_cdr(curr);
-  }
-  return  res;
-}
-
 // A less safe version of lookup. It should be fine unless env is corrupted.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 

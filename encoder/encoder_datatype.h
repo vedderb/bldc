@@ -155,6 +155,9 @@ typedef struct {
 	float s_offset;
 	float c_offset;
 	float filter_constant;
+	float phase_correction; //phase angle correction (in deg) when encoder outputs sin(anle)/cos(angle+pase_correction)
+	float sph; // sin of the phase_correction angle
+	float cph; // cos of the phase_correction angle
 
 	ENCSINCOS_state state;
 } ENCSINCOS_config_t;

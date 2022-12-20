@@ -17,50 +17,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_LITTLE_FOCER_CORE_H_
-#define HW_LITTLE_FOCER_CORE_H_
+#ifndef HW_SOLO_H_
+#define HW_SOLO_H_
 
-#ifdef LFOC_IS_V3_1
-#define HW_NAME                 "Little_FOCer_V3_1"
-#define LFOC_IS_V3
-#else
-#ifdef LFOC_IS_V3
-#define HW_NAME                 "Little_FOCer_V3"
-#else
-#define HW_NAME                 "Little_FOCer"
-#endif
-#endif
+#define HW_NAME                 "SOLO"
 
 // HW properties
-#if !defined(LFOC_IS_V3)
-#define HW_HAS_DRV8323S
-#endif
-
+#define CURRENT_FILTER_ON()     palSetPad(GPIOD, 2)
+#define CURRENT_FILTER_OFF()    palClearPad(GPIOD, 2)
 #define HW_HAS_3_SHUNTS
-
-#ifdef LFOC_IS_V3
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO       GPIOC
 #define PHASE_FILTER_PIN        13
 #define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define HW_DEAD_TIME_NSEC       660.0
-#endif
-
-#ifdef HW_HAS_DRV8323S
-#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x344); \
-                                    drv8323s_write_reg(4,0x744);
-#endif
+#define HW_DEAD_TIME_NSEC       500.0
 
 // Macros
-#if !defined(LFOC_IS_V3)
-#define ENABLE_GATE()           palSetPad(GPIOB, 5)
-#define DISABLE_GATE()          palClearPad(GPIOB, 5)
-
-#define IS_DRV_FAULT()          (!palReadPad(GPIOB, 7))
-#endif
-
 #define LED_GREEN_ON()          palSetPad(GPIOB, 0)
 #define LED_GREEN_OFF()         palClearPad(GPIOB, 0)
 #define LED_RED_ON()            palSetPad(GPIOB, 1)
@@ -112,7 +85,7 @@
 #define V_REG                   3.3
 #endif
 #ifndef VIN_R1
-#define VIN_R1                  68000.0
+#define VIN_R1                  59000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2                  2200.0
@@ -121,11 +94,7 @@
 #define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#ifdef LFOC_IS_V3
-#define CURRENT_SHUNT_RES       0.0002
-#else
-#define CURRENT_SHUNT_RES       0.0005
-#endif
+#define CURRENT_SHUNT_RES       0.00025
 #endif
 
 // Input voltage
@@ -237,19 +206,11 @@
 #endif
 
 // IMU:
-#ifdef LFOC_IS_V3_1
 // LSM6DS3
 #define LSM6DS3_SDA_GPIO        GPIOB
 #define LSM6DS3_SDA_PIN         2
 #define LSM6DS3_SCL_GPIO        GPIOA
 #define LSM6DS3_SCL_PIN         15
-#else
-// BMI160
-#define BMI160_SDA_GPIO         GPIOB
-#define BMI160_SDA_PIN          2
-#define BMI160_SCL_GPIO         GPIOA
-#define BMI160_SCL_PIN          15
-#endif
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO        GPIOB
@@ -273,58 +234,47 @@
 #define MCCONF_L_MIN_VOLTAGE            18.0        // Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE            95.0    // Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE            80.0    // Maximum input voltage
 #endif
 #ifndef MCCONF_L_CURRENT_MAX
-#ifdef LFOC_IS_V3
-#define MCCONF_L_CURRENT_MAX                100.0    // Current limit in Amperes (Upper)
-#else
 #define MCCONF_L_CURRENT_MAX                70.0    // Current limit in Amperes (Upper)
-#endif
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
 #define MCCONF_L_CURRENT_MIN                -50.0   // Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX             60.0    // Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX             40.0    // Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN             -60.0   // Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN             -20.0   // Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#ifdef LFOC_IS_V3
-#define MCCONF_L_MAX_ABS_CURRENT            300.0   // The maximum absolute current above which a fault is generated
-#else
 #define MCCONF_L_MAX_ABS_CURRENT            130.0   // The maximum absolute current above which a fault is generated
 #endif
-#endif
 #ifndef MCCONF_L_LIM_TEMP_FET_START
-#define MCCONF_L_LIM_TEMP_FET_START     70.0    // MOSFET temperature where current limiting should begin
+#define MCCONF_L_LIM_TEMP_FET_START     80.0    // MOSFET temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_END
-#define MCCONF_L_LIM_TEMP_FET_END       80.0   // MOSFET temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_FET_END       100.0   // MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV                 20000.0
+#define MCCONF_FOC_F_ZV                 30000.0
+#endif
+#ifndef MCCONF_L_SLOW_ABS_OVERCURRENT
+#define MCCONF_L_SLOW_ABS_OVERCURRENT  true  // Use the filtered (and hence slower) current for the overcurrent fault detection
 #endif
 
 // Setting limits
-#ifdef LFOC_IS_V3
-#define HW_LIM_CURRENT          -250.0, 250.0
-#define HW_LIM_CURRENT_IN       -100.0, 100.0
-#define HW_LIM_CURRENT_ABS      0.0, 350.0
-#else
 #define HW_LIM_CURRENT          -150.0, 150.0
-#define HW_LIM_CURRENT_IN       -100.0, 100.0
+#define HW_LIM_CURRENT_IN       -20.0, 100.0
 #define HW_LIM_CURRENT_ABS      0.0, 175.0
-#endif
-#define HW_LIM_VIN              18.0, 95.0
+#define HW_LIM_VIN              18.0, 105.0
 #define HW_LIM_ERPM             -200e3, 200e3
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
 #define HW_LIM_TEMP_FET         -40.0, 110.0
 
-#endif /* HW_LITTLE_FOCER_H_ */
+#endif /* HW_SOLO_H_ */

@@ -142,6 +142,7 @@ typedef struct {
 	lbm_uint ppm_pulse_center;
 	lbm_uint ppm_ramp_time_pos;
 	lbm_uint ppm_ramp_time_neg;
+	lbm_uint adc_ctrl_type;
 
 	// Sysinfo
 	lbm_uint hw_name;
@@ -362,6 +363,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("ppm-ramp-time-pos", comp);
 		} else if (comp == &syms_vesc.ppm_ramp_time_neg) {
 			get_add_symbol("ppm-ramp-time-neg", comp);
+		} else if (comp == &syms_vesc.adc_ctrl_type) {
+			get_add_symbol("adc-ctrl-type", comp);
 		}
 
 		else if (comp == &syms_vesc.hw_name) {
@@ -430,6 +433,15 @@ static bool is_symbol_true_false(lbm_value v) {
 	return res;
 }
 
+static bool pause_gc(uint32_t num_free, int timeout_cnt) {
+	lbm_pause_eval_with_gc(num_free);
+	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+		chThdSleep(1);
+		timeout_cnt--;
+	}
+	return timeout_cnt > 0;
+}
+
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
@@ -475,13 +487,7 @@ static lbm_value ext_reset_timeout(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_ppm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-
-	if (!servodec_is_running()) {
-		servo_simple_stop();
-		servodec_init(0);
-	}
-
-	return lbm_enc_float(servodec_get_servo(0));
+	return lbm_enc_float(lispif_get_ppm());
 }
 
 static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
@@ -897,6 +903,7 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 	imu_get_gyro_derotated(gyro);
 
 	lbm_value state = ENC_SYM_NIL;
+	state = lbm_cons(lbm_enc_float(app_nunchuk_get_update_age()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_is_rev()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_z()), state);
 	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_c()), state);
@@ -1094,6 +1101,40 @@ static lbm_value ext_stats_reset(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(2);
+
+	if (!lbm_is_number(args[0])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	int id = lbm_dec_as_i32(args[0]);
+	if (id < 0 || id > 255) {
+		return ENC_SYM_EERROR;
+	}
+
+	char *str = lbm_dec_str(args[1]);
+	if (!str) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+
+	if (array->size > 500) {
+		return ENC_SYM_EERROR;
+	}
+
+	uint8_t *send_buf = mempools_get_packet_buffer();
+	send_buf[0] = COMM_LISP_REPL_CMD;
+	memcpy(send_buf + 1, array->data, array->size);
+	comm_can_send_buffer(id, send_buf, array->size + 1, 2);
+	mempools_free_packet_buffer(send_buf);
+
+	return ENC_SYM_TRUE;
+}
+
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 	if (argn == 1){
@@ -1190,6 +1231,11 @@ static lbm_value ext_app_disable_output(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	app_disable_output(lbm_dec_as_i32(args[0]));
 	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_app_is_output_disabled(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return app_is_output_disabled() ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 static lbm_value ext_app_pas_get_rpm(lbm_value *args, lbm_uint argn) {
@@ -1338,6 +1384,21 @@ static lbm_value ext_get_vq(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mcpwm_foc_get_vq());
 }
 
+static lbm_value ext_foc_est_lambda(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_lambda());
+}
+
+static lbm_value ext_foc_est_res(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_res());
+}
+
+static lbm_value ext_foc_est_ind(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_est_ind());
+}
+
 static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_duty_cycle_now());
@@ -1346,6 +1407,11 @@ static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_rpm());
+}
+
+static lbm_value ext_get_pos(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_pid_pos_now());
 }
 
 static lbm_value ext_get_temp_fet(lbm_value *args, lbm_uint argn) {
@@ -1718,8 +1784,8 @@ static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 	uint8_t to_send[8];
 	int ind = 0;
 
-	if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+	if (lbm_type_of(curr) == LBM_TYPE_ARRAY) {
+		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
 		if (array->elt_type != LBM_TYPE_BYTE) {
 			return ENC_SYM_EERROR;
 		}
@@ -1820,6 +1886,21 @@ static lbm_value ext_log(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1)
 	return lbm_enc_float(log10f(lbm_dec_as_float(args[0])));
+}
+
+static lbm_value ext_floor(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(floorf(lbm_dec_as_float(args[0])));
+}
+
+static lbm_value ext_ceil(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(ceilf(lbm_dec_as_float(args[0])));
+}
+
+static lbm_value ext_round(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1)
+	return lbm_enc_float(roundf(lbm_dec_as_float(args[0])));
 }
 
 static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
@@ -3167,6 +3248,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_neg)) {
 			appconf->app_ppm_conf.ramp_time_neg = lbm_dec_as_float(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.adc_ctrl_type)) {
+			appconf->app_adc_conf.ctrl_type = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
 		}
 	}
 
@@ -3371,6 +3455,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_ppm_conf.ramp_time_pos);
 	} else if (compare_symbol(name, &syms_vesc.ppm_ramp_time_neg)) {
 		res = lbm_enc_float(appconf->app_ppm_conf.ramp_time_neg);
+	} else if (compare_symbol(name, &syms_vesc.adc_ctrl_type)) {
+		res = lbm_enc_i(appconf->app_adc_conf.ctrl_type);
 	}
 
 	if (defaultcfg) {
@@ -3469,7 +3555,16 @@ static void measure_res_task(void *arg) {
 	measure_res_args *a = (measure_res_args*)arg;
 	float res = -1.0;
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
-	lbm_unblock_ctx(a->id, lbm_enc_float(res));
+
+	lispif_lock_lbm();
+	if (pause_gc(5, 1000)) {
+		lbm_unblock_ctx(a->id, lbm_enc_float(res));
+	} else {
+		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	}
+
+	lbm_continue_eval();
+	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
@@ -3481,7 +3576,6 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
 	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
-		lbm_set_error_reason("Motor type must be FOC");
 		return ENC_SYM_EERROR;
 	}
 
@@ -4185,15 +4279,6 @@ lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
 // Event ringbuffer
 
-static bool pause_gc(uint32_t num_free, int timeout_cnt) {
-	lbm_pause_eval_with_gc(num_free);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	return timeout_cnt > 0;
-}
-
 typedef enum {
 	EXT_EVENT_SYM = 0,
 	EXT_EVENT_SYM_ARRAY,
@@ -4384,6 +4469,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("app-ppm-override", ext_app_ppm_override);
 	lbm_add_extension("set-remote-state", ext_set_remote_state);
 	lbm_add_extension("app-disable-output", ext_app_disable_output);
+	lbm_add_extension("app-is-output-disabled", ext_app_is_output_disabled);
 	lbm_add_extension("app-pas-get-rpm", ext_app_pas_get_rpm);
 
 	// Motor set commands
@@ -4408,8 +4494,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-iq", ext_get_iq);
 	lbm_add_extension("get-vd", ext_get_vd);
 	lbm_add_extension("get-vq", ext_get_vq);
+	lbm_add_extension("get-est-lambda", ext_foc_est_lambda);
+	lbm_add_extension("get-est-res", ext_foc_est_res);
+	lbm_add_extension("get-est-ind", ext_foc_est_ind);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
+	lbm_add_extension("get-pos", ext_get_pos);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
@@ -4456,6 +4546,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-scan", ext_can_scan);
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
+	lbm_add_extension("can-cmd", ext_can_cmd);
 
 	// Math
 	lbm_add_extension("sin", ext_sin);
@@ -4469,6 +4560,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("sqrt", ext_sqrt);
 	lbm_add_extension("log", ext_log);
 	lbm_add_extension("log10", ext_log10);
+	lbm_add_extension("floor", ext_floor);
+	lbm_add_extension("ceil", ext_ceil);
+	lbm_add_extension("round", ext_round);
 	lbm_add_extension("deg2rad", ext_deg2rad);
 	lbm_add_extension("rad2deg", ext_rad2deg);
 	lbm_add_extension("vec3-rot", ext_vec3_rot);

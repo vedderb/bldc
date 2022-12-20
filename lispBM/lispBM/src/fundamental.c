@@ -913,36 +913,46 @@ static lbm_value fundamental_cdr(lbm_value *args, lbm_uint nargs, eval_context_t
 
 static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_value result = ENC_SYM_NIL;
-  for (lbm_uint i = 1; i <= nargs; i ++) {
-    result = lbm_cons(args[nargs-i], result);
-    if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
-      break;
+  lbm_value result = lbm_heap_allocate_list(nargs);
+  if (lbm_is_cons(result)) {
+    lbm_value curr = result;
+    for (lbm_uint i = 0; i < nargs; i ++) {
+      lbm_set_car(curr, args[i]);
+      curr = lbm_cdr(curr);
+    }
   }
   return result;
 }
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs != 2) return ENC_SYM_TERROR;
+  if (nargs < 2) return ENC_SYM_TERROR;
 
-  lbm_value a = args[0];
-  lbm_value b = args[1];
+  lbm_value res = args[nargs-1];
 
-  lbm_value result = b;
-  lbm_value curr = a;
-  int n = 0;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    n++;
-    curr = lbm_cdr(curr);
+  for (int i = (int)nargs -2; i >= 0; i --) {
+
+    lbm_value curr = args[i];
+    int n = 0;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+      n++;
+      curr = lbm_cdr(curr);
+    }
+
+    curr = args[i];
+
+    bool err = false;
+    for (int j = n-1; j >= 0; j --) {
+      res = lbm_cons(index_list(curr,j), res);
+      if (lbm_is_symbol(res)) {
+        err = true;
+        break;
+      }
+    }
+    if(err) break;
   }
 
-  for (int i = n-1; i >= 0; i --) {
-    result = lbm_cons(index_list(a,i), result);
-    if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
-      break;
-  }
-  return result;
+  return res;
 }
 
 static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -1481,25 +1491,31 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
     return result;
   }
 
+  int num;
   if (end == start) return ENC_SYM_NIL;
   else if (end < start) {
-    int32_t tmp = end;
-    end = start;
-    start = tmp;
     rev = true;
+    num = start - end;
+  } else {
+    num = end - start;
   }
 
-  int num = end - start;
-
-  if ((unsigned int)num > lbm_heap_num_free()) {
-    return ENC_SYM_MERROR;
+  lbm_value r_list = lbm_heap_allocate_list((unsigned int)num);
+  if (lbm_is_cons(r_list)) {
+    lbm_value curr = r_list;
+    if (rev) {
+      for (int i = start-1; i >= end; i --) {
+        lbm_set_car(curr, lbm_enc_i(i));
+        curr = lbm_cdr(curr);
+      }
+    } else {
+      for (int i = start; i < end; i ++) {
+        lbm_set_car(curr, lbm_enc_i(i));
+        curr = lbm_cdr(curr);
+      }
+    }
   }
-
-  lbm_value r_list = ENC_SYM_NIL;
-  for (int i = end - 1; i >= start; i --) {
-    r_list = lbm_cons(lbm_enc_i(i), r_list);
-  }
-  return rev ? lbm_list_destructive_reverse(r_list) : r_list;
+  return r_list;
 }
 
 const fundamental_fun fundamental_table[] =

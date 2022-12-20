@@ -292,7 +292,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 	static systime_t iteration_timer = 0;
 	static int identical_reads = 0;
 
-	iteration_timer = chVTGetSystemTime();
+	iteration_timer = chVTGetSystemTimeX();
 
 	for(;;) {
 		if (should_stop) {
@@ -320,7 +320,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 				failed_reads++;
 				chThdSleepMicroseconds(FAIL_DELAY_US);
 				reset_init_mpu();
-				iteration_timer = chVTGetSystemTime();
+				iteration_timer = chVTGetSystemTimeX();
 			} else {
 				memcpy((uint16_t*)raw_accel_gyro_mag_no_offset, raw_accel_gyro_mag_tmp, sizeof(raw_accel_gyro_mag));
 				raw_accel_gyro_mag_tmp[3] -= mpu9150_gyro_offsets[0];
@@ -328,8 +328,8 @@ static THD_FUNCTION(mpu_thread, arg) {
 				raw_accel_gyro_mag_tmp[5] -= mpu9150_gyro_offsets[2];
 				memcpy((uint16_t*)raw_accel_gyro_mag, raw_accel_gyro_mag_tmp, sizeof(raw_accel_gyro_mag));
 
-				update_time_diff = chVTGetSystemTime() - last_update_time;
-				last_update_time = chVTGetSystemTime();
+				update_time_diff = chVTGetSystemTimeX() - last_update_time;
+				last_update_time = chVTGetSystemTimeX();
 
 				if (read_callback) {
 					float tmp_accel[3], tmp_gyro[3], tmp_mag[3];
@@ -351,7 +351,7 @@ static THD_FUNCTION(mpu_thread, arg) {
 							failed_mag_reads++;
 							chThdSleepMicroseconds(FAIL_DELAY_US);
 							reset_init_mpu();
-							iteration_timer = chVTGetSystemTime();
+							iteration_timer = chVTGetSystemTimeX();
 						}
 					} else {
 						mag_updated = 0;
@@ -362,16 +362,16 @@ static THD_FUNCTION(mpu_thread, arg) {
 			failed_reads++;
 			chThdSleepMicroseconds(FAIL_DELAY_US);
 			reset_init_mpu();
-			iteration_timer = chVTGetSystemTime();
+			iteration_timer = chVTGetSystemTimeX();
 		}
 
 		iteration_timer += US2ST(1000000 / rate_hz);
-		systime_t time_start = chVTGetSystemTime();
+		systime_t time_start = chVTGetSystemTimeX();
 		if (iteration_timer > time_start) {
 			chThdSleep(iteration_timer - time_start);
 		} else {
 			chThdSleepMicroseconds(MIN_ITERATION_DELAY_US);
-			iteration_timer = chVTGetSystemTime();
+			iteration_timer = chVTGetSystemTimeX();
 		}
 	}
 }

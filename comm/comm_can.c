@@ -524,7 +524,7 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
  */
 void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
 	int32_t send_index = 0;
-	uint8_t buffer[4];
+	uint8_t buffer[6];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
 	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
 	comm_can_transmit_eid_replace(controller_id |
@@ -1885,7 +1885,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp->id == id || stat_tmp->id == -1) {
 				ind = 0;
 				stat_tmp->id = id;
-				stat_tmp->rx_time = chVTGetSystemTime();
+				stat_tmp->rx_time = chVTGetSystemTimeX();
 				stat_tmp->rpm = (float)buffer_get_int32(data8, &ind);
 				stat_tmp->current = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp->duty = (float)buffer_get_int16(data8, &ind) / 1000.0;
@@ -1900,7 +1900,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_2->id == id || stat_tmp_2->id == -1) {
 				ind = 0;
 				stat_tmp_2->id = id;
-				stat_tmp_2->rx_time = chVTGetSystemTime();
+				stat_tmp_2->rx_time = chVTGetSystemTimeX();
 				stat_tmp_2->amp_hours = (float)buffer_get_int32(data8, &ind) / 1e4;
 				stat_tmp_2->amp_hours_charged = (float)buffer_get_int32(data8, &ind) / 1e4;
 				break;
@@ -1914,7 +1914,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_3->id == id || stat_tmp_3->id == -1) {
 				ind = 0;
 				stat_tmp_3->id = id;
-				stat_tmp_3->rx_time = chVTGetSystemTime();
+				stat_tmp_3->rx_time = chVTGetSystemTimeX();
 				stat_tmp_3->watt_hours = (float)buffer_get_int32(data8, &ind) / 1e4;
 				stat_tmp_3->watt_hours_charged = (float)buffer_get_int32(data8, &ind) / 1e4;
 				break;
@@ -1928,7 +1928,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_4->id == id || stat_tmp_4->id == -1) {
 				ind = 0;
 				stat_tmp_4->id = id;
-				stat_tmp_4->rx_time = chVTGetSystemTime();
+				stat_tmp_4->rx_time = chVTGetSystemTimeX();
 				stat_tmp_4->temp_fet = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp_4->temp_motor = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp_4->current_in = (float)buffer_get_int16(data8, &ind) / 10.0;
@@ -1944,7 +1944,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_5->id == id || stat_tmp_5->id == -1) {
 				ind = 0;
 				stat_tmp_5->id = id;
-				stat_tmp_5->rx_time = chVTGetSystemTime();
+				stat_tmp_5->rx_time = chVTGetSystemTimeX();
 				stat_tmp_5->tacho_value = buffer_get_int32(data8, &ind);
 				stat_tmp_5->v_in = (float)buffer_get_int16(data8, &ind) / 1e1;
 				break;
@@ -1958,7 +1958,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_6->id == id || stat_tmp_6->id == -1) {
 				ind = 0;
 				stat_tmp_6->id = id;
-				stat_tmp_6->rx_time = chVTGetSystemTime();
+				stat_tmp_6->rx_time = chVTGetSystemTimeX();
 				stat_tmp_6->adc_1 = buffer_get_float16(data8, 1e3, &ind);
 				stat_tmp_6->adc_2 = buffer_get_float16(data8, 1e3, &ind);
 				stat_tmp_6->adc_3 = buffer_get_float16(data8, 1e3, &ind);
@@ -1974,7 +1974,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				ind = 0;
 				int j = 0;
 				while (ind < len) {
@@ -1991,7 +1991,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				ind = 0;
 				int j = 0;
 				while (ind < len) {
@@ -2008,7 +2008,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				msg->inputs = 0;
 				ind = 0;
 				while (ind < len) {
@@ -2026,7 +2026,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 
 				msg->v_in = buffer_get_float16(data8, 10.0, &ind);
 				msg->v_out = buffer_get_float16(data8, 10.0, &ind);
