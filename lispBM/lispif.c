@@ -181,9 +181,8 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		buffer_append_float16(send_buffer_global, mem_use, 1e2, &ind);
 		buffer_append_float16(send_buffer_global, stack_use, 1e2, &ind);
 
-		char r_buf[40];
-		r_buf[0] = '\0'; lbm_done_iterator(ctx_cb, NULL, r_buf); r_buf[39] = '\0';
-		strcpy((char*)(send_buffer_global + ind), r_buf); ind += strlen(r_buf) + 1;
+		// Result. Currently unused.
+		send_buffer_global[ind++] = '\0';
 
 		lbm_value curr = *lbm_get_env_ptr();
 		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
@@ -302,8 +301,8 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				lbm_running_iterator(print_ctx_info, NULL, NULL);
 				commands_printf_lisp("****** Blocked contexts ******");
 				lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-				commands_printf_lisp("****** Done contexts ******");
-				lbm_done_iterator(print_ctx_info, NULL, NULL);
+				commands_printf_lisp("****** Sleeping contexts ******");
+				lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
 			} else if (strncmp(str, ":symbols", 8) == 0) {
 				lbm_symrepr_name_iterator(sym_it);
 				commands_printf_lisp(" ");
