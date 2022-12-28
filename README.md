@@ -134,7 +134,6 @@ However, to upload a firmware to a bricked VESC, you have to use a SWD Debugger.
 Head to the [forums](https://vesc-project.com/forum) to get involved and improve this project.
 Join the [Discord](https://discord.gg/JgvV5NwYts) for real-time support and chat
 
-
 ## Tags
 
 Every firmware release has a tag. They are created as follows:
