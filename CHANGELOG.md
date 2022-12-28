@@ -1,4 +1,14 @@
-<!-- vim: syntax=Markdown -->
+### 6.02
+#### Released TBD
+* LispBM:
+	* Bug fixes.
+	* Added floor, ceil, round.
+	* Added resistance, inductance and flux linkage estimator functions.
+	* Added adc_ctrl_type setting.
+	* Added app_is_disabled.
+
+---
+
 ### 6.00
 #### Released 2022-12-08
 * Added stack checks.
