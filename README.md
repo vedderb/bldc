@@ -135,6 +135,15 @@ Head to the [forums](https://vesc-project.com/forum) to get involved and improve
 Join the [Discord](https://discord.gg/JgvV5NwYts) for real-time support and chat
 
 
+## Tags
+
+Every firmware release has a tag. They are created as follows:
+
+```bash
+git tag -a [version] [commit] -m "VESC Firmware Version [version]"
+git push --tags
+```
+
 ## License
 
 The software is released under the GNU General Public License version 3.0
