@@ -204,13 +204,6 @@ void lbm_blocked_iterator(ctx_fun f, void*, void*);
  * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
-void lbm_done_iterator(ctx_fun f, void*, void*);
-/** Iterate over all sleeping contexts and apply function on each context.
- * 
- * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user.
- * \param arg2 Same as above. 
- */
 void lbm_sleeping_iterator(ctx_fun f, void *, void *);  
 /** toggle verbosity level of error messages
  */

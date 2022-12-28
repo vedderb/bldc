@@ -679,23 +679,11 @@ int main(int argc, char **argv) {
       lbm_blocked_iterator(print_ctx_info, NULL, NULL);
       printf("****** Sleeping contexts *****\n");
       lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
-      printf("****** Done contexts ******\n");
-      lbm_done_iterator(print_ctx_info, NULL, NULL);
       free(str);
     } else if (strncmp(str, ":unblock", 8) == 0) {
       int id = atoi(str + 8);
       printf("Unblocking: %d\n", id);
       lbm_unblock_ctx(id, lbm_enc_i(42));
-      free(str);
-    } else if (strncmp(str, ":wait", 5) == 0) {
-      int id = atoi(str + 5);
-      bool exists = false;
-      lbm_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
-      if (exists) {
-        if (!lbm_wait_ctx((lbm_cid)id, WAIT_TIMEOUT)) {
-          printf("Timout while waiting for context %d\n", id);
-        }
-      }
       free(str);
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       free(str);
@@ -828,7 +816,6 @@ int main(int argc, char **argv) {
       if (lbm_get_symbol_by_name(sym, &sym_id)) {
 	lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
 	lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-			     lbm_done_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
       } else {
 	printf("symbol does not exist\n");
       }
