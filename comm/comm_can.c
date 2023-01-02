@@ -47,6 +47,7 @@
 
 // Settings
 #define RX_FRAMES_SIZE	50
+#define RX_BUFFER_NUM	3
 #define RX_BUFFER_SIZE	PACKET_MAX_PL_LEN
 
 #if CAN_ENABLE
@@ -74,7 +75,8 @@ static THD_WORKING_AREA(cancom_status_internal_thread_wa, 512);
 
 static mutex_t can_mtx;
 static mutex_t can_rx_mtx;
-uint8_t rx_buffer[RX_BUFFER_SIZE];
+uint8_t rx_buffer[RX_BUFFER_NUM][RX_BUFFER_SIZE];
+int rx_buffer_offset[RX_BUFFER_NUM];
 unsigned int rx_buffer_last_id;
 static rx_state m_rx_state;
 #ifdef HW_CAN2_DEV
@@ -1497,8 +1499,6 @@ static void send_packet_wrapper(unsigned char *data, unsigned int len) {
 
 static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) {
 	int32_t ind = 0;
-	unsigned int rxbuf_len;
-	unsigned int rxbuf_ind;
 	uint8_t crc_low;
 	uint8_t crc_high;
 	uint8_t commands_send;
@@ -1559,17 +1559,42 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			timeout_reset();
 			break;
 
-		case CAN_PACKET_FILL_RX_BUFFER:
-			memcpy(rx_buffer + data8[0], data8 + 1, len - 1);
-			break;
+		case CAN_PACKET_FILL_RX_BUFFER: {
+			int buf_ind = 0;
+			int offset = data8[0];
+			data8++;
+			len--;
 
-		case CAN_PACKET_FILL_RX_BUFFER_LONG:
-			rxbuf_ind = (unsigned int)data8[0] << 8;
-			rxbuf_ind |= data8[1];
-			if (rxbuf_ind < RX_BUFFER_SIZE) {
-				memcpy(rx_buffer + rxbuf_ind, data8 + 2, len - 2);
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == offset ) {
+					buf_ind = i;
+					break;
+				}
 			}
-			break;
+
+			memcpy(rx_buffer[buf_ind] + offset, data8, len);
+			rx_buffer_offset[buf_ind] += len;
+		} break;
+
+		case CAN_PACKET_FILL_RX_BUFFER_LONG: {
+			int buf_ind = 0;
+			int offset = (int)data8[0] << 8;
+			offset |= data8[1];
+			data8 += 2;
+			len -= 2;
+
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == offset ) {
+					buf_ind = i;
+					break;
+				}
+			}
+
+			if ((offset + len) <= RX_BUFFER_SIZE) {
+				memcpy(rx_buffer[buf_ind] + offset, data8, len);
+				rx_buffer_offset[buf_ind] += len;
+			}
+		} break;
 
 		case CAN_PACKET_PROCESS_RX_BUFFER: {
 			ind = 0;
@@ -1580,39 +1605,57 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				rx_buffer_last_id = last_id;
 			}
 
-			rxbuf_len = (unsigned int)data8[ind++] << 8;
-			rxbuf_len |= (unsigned int)data8[ind++];
+			int rxbuf_len = (int)data8[ind++] << 8;
+			rxbuf_len |= (int)data8[ind++];
 
 			if (rxbuf_len > RX_BUFFER_SIZE) {
 				break;
 			}
 
+			int buf_ind = -1;
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == rxbuf_len ) {
+					buf_ind = i;
+					break;
+				}
+			}
+
+			// Something is wrong, reset all buffers
+			if (buf_ind < 0) {
+				for (int i = 0; i < RX_BUFFER_NUM;i++) {
+					rx_buffer_offset[i] = 0;
+				}
+				break;
+			}
+
+			rx_buffer_offset[buf_ind] = 0;
+
 			crc_high = data8[ind++];
 			crc_low = data8[ind++];
 
-			if (crc16(rx_buffer, rxbuf_len)
+			if (crc16(rx_buffer[buf_ind], rxbuf_len)
 					== ((unsigned short) crc_high << 8
 							| (unsigned short) crc_low)) {
 
 				if (is_replaced) {
-					if (rx_buffer[0] == COMM_JUMP_TO_BOOTLOADER ||
-							rx_buffer[0] == COMM_ERASE_NEW_APP ||
-							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA ||
-							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA_LZO ||
-							rx_buffer[0] == COMM_ERASE_BOOTLOADER) {
+					if (rx_buffer[buf_ind][0] == COMM_JUMP_TO_BOOTLOADER ||
+							rx_buffer[buf_ind][0] == COMM_ERASE_NEW_APP ||
+							rx_buffer[buf_ind][0] == COMM_WRITE_NEW_APP_DATA ||
+							rx_buffer[buf_ind][0] == COMM_WRITE_NEW_APP_DATA_LZO ||
+							rx_buffer[buf_ind][0] == COMM_ERASE_BOOTLOADER) {
 						break;
 					}
 				}
 
 				switch (commands_send) {
 				case 0:
-					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
+					commands_process_packet(rx_buffer[buf_ind], rxbuf_len, send_packet_wrapper);
 					break;
 				case 1:
-					commands_send_packet_can_last(rx_buffer, rxbuf_len);
+					commands_send_packet_can_last(rx_buffer[buf_ind], rxbuf_len);
 					break;
 				case 2:
-					commands_process_packet(rx_buffer, rxbuf_len, 0);
+					commands_process_packet(rx_buffer[buf_ind], rxbuf_len, 0);
 					break;
 				default:
 					break;
