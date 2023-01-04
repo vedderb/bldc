@@ -463,3 +463,35 @@ static void qmlui_check(int ind) {
 
 	code_checks[ind].check_done = true;
 }
+
+#define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
+
+// reads len bytes from a given address in flash region 8
+bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
+	if (address > VESC_IF_NVM_REGION_SIZE) {
+		return false;	// early return for address out of range
+	}
+	len = len > (VESC_IF_NVM_REGION_SIZE - address) ? VESC_IF_NVM_REGION_SIZE - address : len;
+	for (unsigned int i = 0; i < len; i++) {
+		v[i] = *(uint8_t*)(ADDR_FLASH_SECTOR_8 + address + i);
+	}
+	return true;
+}
+
+// writes len bytes to a given address in flash region 8
+bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
+	if (address > VESC_IF_NVM_REGION_SIZE) {
+		return false;	// early return for address out of range
+	}
+
+	uint16_t res = write_data(address, v, len);
+
+	return (res == FLASH_COMPLETE);
+}
+
+// wipes flash region 8
+bool if_wipe_nvm(void) {
+	uint16_t res = erase_sector(flash_sector[8]);
+
+	return (res == FLASH_COMPLETE);
+}

@@ -573,8 +573,8 @@ typedef struct {
 	bool (*app_is_output_disabled)(void); // True if apps should disable their output.
 
 	// NVM
-	bool (*read_nvm_byte)(uint8_t *v, int address);
-	bool (*write_nvm_byte)(uint8_t v, int address);
+	bool (*read_nvm_byte)(uint8_t *v, unsigned int len, unsigned int address);
+	bool (*write_nvm_byte)(uint8_t *v, unsigned int len, unsigned int address);
 	bool (*wipe_nvm)(void);
 } vesc_c_if;
 
