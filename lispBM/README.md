@@ -2210,7 +2210,7 @@ This event is sent when standard id CAN-frames are received.
 This event is sent when extended id CAN-frames are received.
 
 **event-data-rx**  
-This event is sent when custom app data is sent from VESC Tool.
+This event is sent when custom app data is sent from VESC Tool or other connected devices. This works using all communication ports including USB, UART and CAN-bus.
 
 **event-shutdown**  
 This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
