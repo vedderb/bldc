@@ -499,6 +499,11 @@ typedef struct {
 	bool (*read_eeprom_var)(eeprom_var *v, int address);
 	bool (*store_eeprom_var)(eeprom_var *v, int address);
 
+	// NVM
+	bool (*read_nvm_byte)(uint8_t *v, int address);
+	bool (*write_nvm_byte)(uint8_t v, int address);
+	bool (*wipe_nvm)();
+
 	// Timeout
 	void (*timeout_reset)(void);
 	bool (*timeout_has_timeout)(void);

@@ -41,6 +41,22 @@
 #include "conf_general.h"
 #include "servo_dec.h"
 #include "servo_simple.h"
+#include "stm32f4xx_conf.h"
+#include "nrf_driver.h"
+
+// Base address of the Flash sectors
+#define ADDR_FLASH_SECTOR_0    					((uint32_t)0x08000000) // Base @ of Sector 0, 16 Kbytes
+#define ADDR_FLASH_SECTOR_1    					((uint32_t)0x08004000) // Base @ of Sector 1, 16 Kbytes
+#define ADDR_FLASH_SECTOR_2    					((uint32_t)0x08008000) // Base @ of Sector 2, 16 Kbytes
+#define ADDR_FLASH_SECTOR_3						((uint32_t)0x0800C000) // Base @ of Sector 3, 16 Kbytes
+#define ADDR_FLASH_SECTOR_4    					((uint32_t)0x08010000) // Base @ of Sector 4, 64 Kbytes
+#define ADDR_FLASH_SECTOR_5    					((uint32_t)0x08020000) // Base @ of Sector 5, 128 Kbytes
+#define ADDR_FLASH_SECTOR_6     				((uint32_t)0x08040000) // Base @ of Sector 6, 128 Kbytes
+#define ADDR_FLASH_SECTOR_7     				((uint32_t)0x08060000) // Base @ of Sector 7, 128 Kbytes
+#define ADDR_FLASH_SECTOR_8     				((uint32_t)0x08080000) // Base @ of Sector 8, 128 Kbytes
+#define ADDR_FLASH_SECTOR_9 				    ((uint32_t)0x080A0000) // Base @ of Sector 9, 128 Kbytes
+#define ADDR_FLASH_SECTOR_10				    ((uint32_t)0x080C0000) // Base @ of Sector 10, 128 Kbytes
+#define ADDR_FLASH_SECTOR_11				    ((uint32_t)0x080E0000) // Base @ of Sector 11, 128 Kbytes
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -241,6 +257,81 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 	}
 
 	return res;
+}
+
+// reads one byte from a given address in flash region 8
+static bool if_read_nvm_byte(uint8_t *v, int address) {
+	if (address < 0 || (unsigned int)address > ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
+		return false;	// early return for address out of range
+	*v = *(uint8_t*)(ADDR_FLASH_SECTOR_8 + address);
+	return true;
+}
+
+// writes one byte to a given address in flash region 8
+static bool if_write_nvm_byte(uint8_t v, int address) {
+	if (address < 0 || (unsigned int)address > ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
+		return false;	// early return for address out of range
+	
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
+
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
+		return false;
+	}
+
+	utils_sys_lock_cnt();
+	timeout_configure_IWDT_slowest();
+
+	uint16_t res = FLASH_ProgramByte(ADDR_FLASH_SECTOR_8 + address, v);
+
+	FLASH_Lock();
+	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(100);
+	utils_sys_unlock_cnt();
+
+	if (res != FLASH_COMPLETE)
+		return false;
+	return true;
+}
+
+// wipes flash region 8
+static bool if_wipe_nvm() {
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	
+	if (nrf_driver_ext_nrf_running()) {
+		nrf_driver_pause(10000);
+	}
+
+	mc_interface_unlock();
+	
+	mc_interface_ignore_input_both(10000);
+	mc_interface_release_motor_override_both();
+
+	mc_interface_lock();
+	
+	if (!mc_interface_wait_for_motor_release_both(5)) {
+		return false;
+	}
+	
+	utils_sys_lock_cnt();
+	timeout_configure_IWDT_slowest();
+	
+
+	uint16_t res = FLASH_EraseSector(8 << 3, (uint8_t)((PWR->CSR & PWR_CSR_PVDO) ? VoltageRange_2 : VoltageRange_3));
+			//Note the `8 << 3`; this function doesnt bitshift the sector number
+
+	FLASH_Lock();
+	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(100);
+	utils_sys_unlock_cnt();
+	
+	return (res == FLASH_COMPLETE);
 }
 
 static bool lib_io_set_mode(VESC_PIN pin_vesc, VESC_PIN_MODE mode) {
@@ -804,6 +895,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// EEPROM
 		cif.cif.read_eeprom_var = conf_general_read_eeprom_var_custom;
 		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
+
+		// NVM
+		cif.cif.read_nvm_byte = if_read_nvm_byte;
+		cif.cif.write_nvm_byte = if_write_nvm_byte;
+		cif.cif.wipe_nvm = if_wipe_nvm;
 
 		// Timeout
 		cif.cif.timeout_reset = timeout_reset;
