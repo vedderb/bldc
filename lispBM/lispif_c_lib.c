@@ -299,7 +299,7 @@ static bool if_write_nvm_byte(uint8_t v, int address) {
 }
 
 // wipes flash region 8
-static bool if_wipe_nvm() {
+static bool if_wipe_nvm(void) {
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);

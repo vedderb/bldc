@@ -502,7 +502,7 @@ typedef struct {
 	// NVM
 	bool (*read_nvm_byte)(uint8_t *v, int address);
 	bool (*write_nvm_byte)(uint8_t v, int address);
-	bool (*wipe_nvm)();
+	bool (*wipe_nvm)(void);
 
 	// Timeout
 	void (*timeout_reset)(void);
