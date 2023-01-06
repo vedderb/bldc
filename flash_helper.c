@@ -468,10 +468,11 @@ static void qmlui_check(int ind) {
 
 // reads len bytes from a given address in flash region 8
 bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
-	if (address > VESC_IF_NVM_REGION_SIZE) {
+	if (VESC_IF_NVM_REGION_SIZE - address <= 0) {
 		return false;	// early return for address out of range
 	}
-	len = len > (VESC_IF_NVM_REGION_SIZE - address) ? VESC_IF_NVM_REGION_SIZE - address : len;
+	unsigned int remaining_space = VESC_IF_NVM_REGION_SIZE - address;
+	len = len > remaining_space ? remaining_space : len;
 	for (unsigned int i = 0; i < len; i++) {
 		v[i] = *(uint8_t*)(ADDR_FLASH_SECTOR_8 + address + i);
 	}
