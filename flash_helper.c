@@ -484,7 +484,7 @@ bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 		return false;	// early return for address out of range
 	}
 
-	uint16_t res = write_data(address, v, len);
+	uint16_t res = write_data(address + ADDR_FLASH_SECTOR_8, v, len);
 
 	return (res == FLASH_COMPLETE);
 }
