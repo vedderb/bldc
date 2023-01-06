@@ -466,7 +466,13 @@ static void qmlui_check(int ind) {
 
 #define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
 
-// reads len bytes from a given address in flash region 8
+/**
+  * @brief  Package function - Reads len bytes to v from nvm at address
+  * @param	v: array of bytes to which the result will be written
+  * @param	len: number of bytes to read
+  * @param	address: address of the first byte
+  * @retval Boolean indicating success or failure
+  */
 bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	if (VESC_IF_NVM_REGION_SIZE - address <= 0) {
 		return false;	// early return for address out of range
@@ -479,7 +485,13 @@ bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	return true;
 }
 
-// writes len bytes to a given address in flash region 8
+/**
+  * @brief  Package function - Writes len bytes from v to nvm at address
+  * @param	v: array of bytes to write
+  * @param	len: number of bytes to write
+  * @param	address: address of the first byte
+  * @retval Boolean indicating success or failure
+  */
 bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	if (address > VESC_IF_NVM_REGION_SIZE) {
 		return false;	// early return for address out of range
@@ -490,7 +502,10 @@ bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	return (res == FLASH_COMPLETE);
 }
 
-// wipes flash region 8
+/**
+  * @brief  Package function - Erase region of NVM used by packages.
+  * @retval Boolean indicating success or failure
+  */
 bool if_wipe_nvm(void) {
 	uint16_t res = erase_sector(flash_sector[8]);
 
