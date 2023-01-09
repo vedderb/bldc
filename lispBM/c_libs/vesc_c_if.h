@@ -571,6 +571,11 @@ typedef struct {
 	float (*get_ppm)(void); // Get decoded PPM, range -1.0 to 1.0. If the decoder is not running it will be started.
 	float (*get_ppm_age)(void); // Get time since a pulse was decoded in seconds
 	bool (*app_is_output_disabled)(void); // True if apps should disable their output.
+
+	// NVM
+	bool (*read_nvm)(uint8_t *v, unsigned int len, unsigned int address);
+	bool (*write_nvm)(uint8_t *v, unsigned int len, unsigned int address);
+	bool (*wipe_nvm)(void);
 } vesc_c_if;
 
 typedef struct {

@@ -41,4 +41,9 @@ uint8_t* flash_helper_get_sector_address(uint32_t fsector);
 uint32_t flash_helper_verify_flash_memory(void);
 uint32_t flash_helper_verify_flash_memory_chunk(void);
 
+// functions used in vesc_c_if.h and therefore accessible to packages
+bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address);
+bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address);
+bool flash_helper_wipe_nvm(void);
+
 #endif /* FLASH_HELPER_H_ */

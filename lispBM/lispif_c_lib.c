@@ -41,6 +41,7 @@
 #include "conf_general.h"
 #include "servo_dec.h"
 #include "servo_simple.h"
+#include "flash_helper.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -804,6 +805,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// EEPROM
 		cif.cif.read_eeprom_var = conf_general_read_eeprom_var_custom;
 		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
+
+		// NVM
+		cif.cif.read_nvm = 	flash_helper_read_nvm;
+		cif.cif.write_nvm = 	flash_helper_write_nvm;
+		cif.cif.wipe_nvm = 	flash_helper_wipe_nvm;
 
 		// Timeout
 		cif.cif.timeout_reset = timeout_reset;
