@@ -1375,7 +1375,7 @@ Input capture can be used to measure pulse lengths and periods on the PPM input 
 (icu-start freqHz pol)
 ```
 
-Start input capture on the PPM-pin with timer frequency freqHz hertz and polarity pol. Polarity = 1 means that the high part of the pulse is measured and polarity = 0 means that the low part of the pulse is measured. Every time a pulse is received an [event](Events) is generated. Example:
+Start input capture on the PPM-pin with timer frequency freqHz hertz and polarity pol. Polarity = 1 means that the high part of the pulse is measured and polarity = 0 means that the low part of the pulse is measured. Every time a pulse is received an [event](#events) is generated. Example:
 
 ```clj
 ; Run timer at 1 MHz and capture the positive part of the pulse
