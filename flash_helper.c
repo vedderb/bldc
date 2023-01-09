@@ -467,47 +467,43 @@ static void qmlui_check(int ind) {
 #define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
 
 /**
-  * @brief  Package function - Reads len bytes to v from nvm at address
+  * @brief  Reads len bytes to v from nvm at address
   * @param	v: array of bytes to which the result will be written
   * @param	len: number of bytes to read
   * @param	address: address of the first byte
   * @retval Boolean indicating success or failure
   */
 bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
-	if (VESC_IF_NVM_REGION_SIZE - address <= 0) {
-		return false;	// early return for address out of range
+	if ((address + len) > VESC_IF_NVM_REGION_SIZE) {
+		return false;
 	}
-	unsigned int remaining_space = VESC_IF_NVM_REGION_SIZE - address;
-	len = len > remaining_space ? remaining_space : len;
-	for (unsigned int i = 0; i < len; i++) {
-		v[i] = *(uint8_t*)(ADDR_FLASH_SECTOR_8 + address + i);
-	}
+
+	memcpy(v, (uint8_t*)(ADDR_FLASH_SECTOR_8 + address), len);
+
 	return true;
 }
 
 /**
-  * @brief  Package function - Writes len bytes from v to nvm at address
+  * @brief  Writes len bytes from v to nvm at address
   * @param	v: array of bytes to write
   * @param	len: number of bytes to write
   * @param	address: address of the first byte
   * @retval Boolean indicating success or failure
   */
 bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
-	if (address > VESC_IF_NVM_REGION_SIZE) {
-		return false;	// early return for address out of range
+	if ((address + len) > VESC_IF_NVM_REGION_SIZE) {
+		return false;
 	}
 
-	uint16_t res = write_data(address + ADDR_FLASH_SECTOR_8, v, len);
+	uint16_t res = write_data(ADDR_FLASH_SECTOR_8 + address, v, len);
 
 	return (res == FLASH_COMPLETE);
 }
 
 /**
-  * @brief  Package function - Erase region of NVM used by packages.
+  * @brief  Erase region of NVM used by packages.
   * @retval Boolean indicating success or failure
   */
 bool flash_helper_wipe_nvm(void) {
-	uint16_t res = erase_sector(flash_sector[8]);
-
-	return (res == FLASH_COMPLETE);
+	return (erase_sector(flash_sector[8]) == FLASH_COMPLETE);
 }
