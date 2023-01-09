@@ -1365,6 +1365,61 @@ Write state to pin. If the pin is set to an output 1 will set it to VCC and 0 to
 
 Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
+### Input Capture (ICU)
+
+Input capture can be used to measure pulse lengths and periods on the PPM input pin. This can be used to measure the frequency and duty cycle of PWM-signals. The ICU driver was added in FW 6.02.
+
+#### icu-start
+
+```clj
+(icu-start freqHz pol)
+```
+
+Start input capture on the PPM-pin with timer frequency freqHz hertz and polarity pol. Polarity = 1 means that the high part of the pulse is measured and polarity = 0 means that the low part of the pulse is measured. Every time a pulse is received an [event](Events) is generated. Example:
+
+```clj
+; Run timer at 1 MHz and capture the positive part of the pulse
+(icu-start 1000000 1)
+
+(def cb-cnt 0)
+
+(defun proc-icu (width period)
+    (progn
+        (def icu-w width)
+        (def icu-p period)
+        (def cb-cnt (+ cb-cnt 1))
+))
+
+(defun event-handler ()
+    (loopwhile t
+        (recv
+            ((event-icu-period . ((? width) . (? period))) (proc-icu width period))
+            (_ nil)
+)))
+
+; Spawn event handler
+(event-register-handler (spawn event-handler))
+
+; Enable the period event, which is generated at the end of the period.
+(event-enable 'event-icu-period)
+```
+
+#### icu-width
+
+```clj
+(icu-width)
+```
+
+Get the width of the last captured pulse.
+
+#### icu-period
+
+```clj
+(icu-period)
+```
+
+Get the period of the last captured pulse.
+
 ### Configuration
 
 The following selection of app and motor parameters can be read and set from LispBM:
@@ -2175,8 +2230,8 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 (defun event-handler ()
     (loopwhile t
         (recv
-            ((event-can-sid (? id) . (? data)) (proc-sid id data))
-            ((event-data-rx ? data) (proc-data data))
+            ((event-can-sid . ((? id) . (? data))) (proc-sid id data))
+            ((event-data-rx . (? data)) (proc-data data))
             (_ nil) ; Ignore other events
 )))
 
@@ -2193,10 +2248,12 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable 'event-can-sid)  ; Sends (signal-can-sid id data), where id is U32 and data is a byte array
-(event-enable 'event-can-eid)  ; Sends (signal-can-eid id data), where id is U32 and data is a byte array
-(event-enable 'event-data-rx)  ; Sends (signal-data-rx data), where data is a byte array
+(event-enable 'event-can-sid)  ; Sends (signal-can-sid . (id . data)), where id is U32 and data is a byte array
+(event-enable 'event-can-eid)  ; Sends (signal-can-eid . (id . data)), where id is U32 and data is a byte array
+(event-enable 'event-data-rx)  ; Sends (signal-data-rx . data), where data is a byte array
 (event-enable 'event-shutdown) ; Sends signal-shutdown
+(event-enable 'event-icu-width) ; Sends (event-icu-width . (width . period))
+(event-enable 'event-icu-period) ; Sends (event-icu-period . (width . period))
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
@@ -2214,6 +2271,12 @@ This event is sent when custom app data is sent from VESC Tool or other connecte
 
 **event-shutdown**  
 This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
+
+**event-icu-width**  
+This event is sent when the input capture unit captures a pulse. Both the pulse width and the period of the last pulse are provided.
+
+**event-icu-period**  
+This event is sent when the input capture unit ends a period and the next pulse starts. Both the pulse width and the period are provided.
 
 ## Byte Arrays
 

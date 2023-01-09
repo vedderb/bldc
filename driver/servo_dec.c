@@ -92,15 +92,11 @@ static void icuwidthcb(ICUDriver *icup) {
 	}
 }
 
-static void icuperiodcb(ICUDriver *icup) {
-	(void)icup;
-}
-
 static ICUConfig icucfg = {
 		ICU_INPUT_ACTIVE_HIGH,
 		TIMER_FREQ,
 		icuwidthcb,
-		icuperiodcb,
+		NULL,
 		NULL,
 		HW_ICU_CHANNEL,
 		0
@@ -135,6 +131,7 @@ void servodec_init(void (*d_func)(void)) {
  */
 void servodec_stop(void) {
 	if (is_running) {
+		icuStopCapture(&HW_ICU_DEV);
 		icuStop(&HW_ICU_DEV);
 		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
 		pulse_start = 1.0;

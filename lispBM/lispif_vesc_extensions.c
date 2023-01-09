@@ -2009,11 +2009,15 @@ static volatile bool event_can_sid_en = false;
 static volatile bool event_can_eid_en = false;
 static volatile bool event_data_rx_en = false;
 static volatile bool event_shutdown_en = false;
+static volatile bool event_icu_width_en = false;
+static volatile bool event_icu_period_en = false;
 static lbm_uint event_handler_pid;
 static lbm_uint sym_event_can_sid;
 static lbm_uint sym_event_can_eid;
 static lbm_uint sym_event_data_rx;
 static lbm_uint sym_event_shutdown;
+static lbm_uint sym_event_icu_width;
+static lbm_uint sym_event_icu_period;
 
 static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
@@ -2039,6 +2043,10 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 		event_data_rx_en = en;
 	} else if (name == sym_event_shutdown) {
 		event_shutdown_en = en;
+	} else if (name == sym_event_icu_width) {
+		event_icu_width_en = en;
+	} else if (name == sym_event_icu_period) {
+		event_icu_period_en = en;
 	} else {
 		return ENC_SYM_EERROR;
 	}
@@ -4274,6 +4282,8 @@ lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
 typedef enum {
 	EXT_EVENT_SYM = 0,
+	EXT_EVENT_SYM_INT,
+	EXT_EVENT_SYM_INT_INT,
 	EXT_EVENT_SYM_ARRAY,
 	EXT_EVENT_SYM_INT_ARRAY
 } EXT_EVENT_t;
@@ -4282,6 +4292,7 @@ typedef struct {
 	EXT_EVENT_t type;
 	lbm_uint sym;
 	int32_t i;
+	int32_t i2;
 	char *array;
 	int32_t array_len;
 } ext_event;
@@ -4293,13 +4304,62 @@ static ext_event event_buffer[EVENT_BUFFER_LEN] = {0};
 static rb_t rb_events;
 static THD_WORKING_AREA(event_thread_wa, 256);
 
+// ICU
+static volatile uint32_t icu_last_width = 0;
+static volatile uint32_t icu_last_period = 0;
+static volatile bool icu_width_done = false;
+static volatile bool icu_period_done = false;
+
+static void event_add(ext_event e, uint8_t *opt_array, int opt_array_len) {
+	if (!event_handler_registered) {
+		return;
+	}
+
+	if (!rb_is_full(&rb_events)) {
+		if (opt_array != NULL) {
+			e.array = lispif_malloc(opt_array_len);
+			e.array_len = opt_array_len;
+			if (e.array == NULL) {
+				return;
+			}
+			memcpy(e.array, opt_array, opt_array_len);
+		}
+
+		if (!rb_insert(&rb_events, &e) && e.array != NULL) {
+			lispif_free(e.array);
+		}
+	}
+
+	chEvtSignal(event_tp, (eventmask_t) 1);
+}
+
 static THD_FUNCTION(event_thread, arg) {
 	(void)arg;
 	event_tp = chThdGetSelfX();
 	chRegSetThreadName("Lisp Events");
 
 	for (;;) {
-		chEvtWaitAnyTimeout((eventmask_t)1, 20);
+		chEvtWaitAnyTimeout((eventmask_t)1, 1);
+
+		if (icu_width_done && event_icu_width_en) {
+			icu_width_done = false;
+			ext_event e = {0};
+			e.type = EXT_EVENT_SYM_INT_INT;
+			e.sym = sym_event_icu_width;
+			e.i = icu_last_width;
+			e.i2 = icu_last_period;
+			event_add(e, NULL, 0);
+		}
+
+		if (icu_period_done && event_icu_period_en) {
+			icu_period_done = false;
+			ext_event e = {0};
+			e.type = EXT_EVENT_SYM_INT_INT;
+			e.sym = sym_event_icu_period;
+			e.i = icu_last_width;
+			e.i2 = icu_last_period;
+			event_add(e, NULL, 0);
+		}
 
 		if (!event_handler_registered) {
 			rb_flush(&rb_events);
@@ -4329,6 +4389,17 @@ static THD_FUNCTION(event_thread, arg) {
 
 			if (e.type == EXT_EVENT_SYM) {
 				lbm_send_message(event_handler_pid, lbm_enc_sym(e.sym));
+			} else if (e.type == EXT_EVENT_SYM_INT) {
+				lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), lbm_enc_i(e.i));
+				if (lbm_is_ptr(msg)) {
+					lbm_send_message(event_handler_pid, msg);
+				}
+			} else if (e.type == EXT_EVENT_SYM_INT_INT) {
+				lbm_value ints = lbm_cons(lbm_enc_i(e.i), lbm_enc_i(e.i2));
+				lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), ints);
+				if (lbm_is_ptr(ints) && lbm_is_ptr(msg)) {
+					lbm_send_message(event_handler_pid, msg);
+				}
 			} else if (e.type == EXT_EVENT_SYM_ARRAY) {
 				lbm_value val;
 				if (lbm_share_array(&val, e.array, LBM_TYPE_BYTE, e.array_len)) {
@@ -4362,27 +4433,55 @@ static THD_FUNCTION(event_thread, arg) {
 	}
 }
 
-static void event_add(ext_event e, uint8_t *opt_array, int opt_array_len) {
-	if (!event_handler_registered) {
-		return;
+static void icuwidthcb(ICUDriver *icup) {
+	icu_last_width = icuGetWidthX(icup);
+	icu_last_period = icuGetPeriodX(icup);
+	icu_width_done = true;
+}
+
+static void icuperiodcb(ICUDriver *icup) {
+	icu_last_width = icuGetWidthX(icup);
+	icu_last_period = icuGetPeriodX(icup);
+	icu_period_done = true;
+}
+
+static ICUConfig icucfg = {
+		ICU_INPUT_ACTIVE_HIGH,
+		1000000,
+		icuwidthcb,
+		icuperiodcb,
+		NULL,
+		HW_ICU_CHANNEL,
+		0
+};
+
+static lbm_value ext_icu_start(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	servodec_stop();
+	servo_simple_stop();
+
+	if (HW_ICU_DEV.state == ICU_ACTIVE) {
+		icuStopCapture(&HW_ICU_DEV);
+		icuStop(&HW_ICU_DEV);
 	}
 
-	if (!rb_is_full(&rb_events)) {
-		if (opt_array != NULL) {
-			e.array = lispif_malloc(opt_array_len);
-			e.array_len = opt_array_len;
-			if (e.array == NULL) {
-				return;
-			}
-			memcpy(e.array, opt_array, opt_array_len);
-		}
+	icucfg.frequency = lbm_dec_as_i32(args[0]);
+	icucfg.mode = lbm_dec_as_i32(args[1]) ? ICU_INPUT_ACTIVE_HIGH : ICU_INPUT_ACTIVE_LOW;
+	icuStart(&HW_ICU_DEV, &icucfg);
+	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF));
+	icuStartCapture(&HW_ICU_DEV);
+	icuEnableNotifications(&HW_ICU_DEV);
+	return ENC_SYM_TRUE;
+}
 
-		if (!rb_insert(&rb_events, &e) && e.array != NULL) {
-			lispif_free(e.array);
-		}
-	}
+static lbm_value ext_icu_width(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(icu_last_width);
+}
 
-	chEvtSignal(event_tp, (eventmask_t) 1);
+static lbm_value ext_icu_period(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(icu_last_period);
 }
 
 void lispif_load_vesc_extensions(void) {
@@ -4406,6 +4505,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
 	lbm_add_symbol_const("event-shutdown", &sym_event_shutdown);
+	lbm_add_symbol_const("event-icu-width", &sym_event_icu_width);
+	lbm_add_symbol_const("event-icu-period", &sym_event_icu_period);
 
 	lbm_add_symbol_const("a01", &sym_res);
 	lbm_add_symbol_const("a02", &sym_loop);
@@ -4454,6 +4555,9 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("stats", ext_stats);
 	lbm_add_extension("stats-reset", ext_stats_reset);
 	lbm_add_extension("import", ext_empty);
+	lbm_add_extension("icu-start", ext_icu_start);
+	lbm_add_extension("icu-width", ext_icu_width);
+	lbm_add_extension("icu-period", ext_icu_period);
 
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);
@@ -4716,6 +4820,8 @@ void lispif_disable_all_events(void) {
 	event_handler_registered = false;
 	event_can_sid_en = false;
 	event_can_eid_en = false;
+	event_icu_width_en = false;
+	event_icu_period_en = false;
 	// Give thread a chance to stop
 	chThdSleepMilliseconds(5);
 }

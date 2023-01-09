@@ -6,6 +6,7 @@
 	* Added resistance, inductance and flux linkage estimator functions.
 	* Added adc_ctrl_type setting.
 	* Added app_is_disabled.
+	* Added ICU-driver.
 
 ---
 
