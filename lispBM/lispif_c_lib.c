@@ -807,9 +807,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
 
 		// NVM
-		cif.cif.read_nvm = if_read_nvm;
-		cif.cif.write_nvm = if_write_nvm;
-		cif.cif.wipe_nvm = if_wipe_nvm;
+		cif.cif.read_nvm = 	flash_helper_read_nvm;
+		cif.cif.write_nvm = 	flash_helper_write_nvm;
+		cif.cif.wipe_nvm = 	flash_helper_wipe_nvm;
 
 		// Timeout
 		cif.cif.timeout_reset = timeout_reset;

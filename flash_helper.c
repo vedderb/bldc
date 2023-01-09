@@ -473,7 +473,7 @@ static void qmlui_check(int ind) {
   * @param	address: address of the first byte
   * @retval Boolean indicating success or failure
   */
-bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
+bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	if (VESC_IF_NVM_REGION_SIZE - address <= 0) {
 		return false;	// early return for address out of range
 	}
@@ -492,7 +492,7 @@ bool if_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
   * @param	address: address of the first byte
   * @retval Boolean indicating success or failure
   */
-bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
+bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 	if (address > VESC_IF_NVM_REGION_SIZE) {
 		return false;	// early return for address out of range
 	}
@@ -506,7 +506,7 @@ bool if_write_nvm(uint8_t *v, unsigned int len, unsigned int address) {
   * @brief  Package function - Erase region of NVM used by packages.
   * @retval Boolean indicating success or failure
   */
-bool if_wipe_nvm(void) {
+bool flash_helper_wipe_nvm(void) {
 	uint16_t res = erase_sector(flash_sector[8]);
 
 	return (res == FLASH_COMPLETE);
