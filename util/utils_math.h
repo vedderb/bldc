@@ -120,7 +120,7 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 #define SIN_MINUS_30_DEG		(-0.5)
 #define ONE_BY_SQRT2			(0.7071067811865475)
 #define PI_OVER_3				(1.0471975511965977f)	// 60 degrees
-#define SIX_PI_OVER_3			(6.0f*PI_OVER_3)		// 360 degrees
+#define TWO_PI					(6.0f*PI_OVER_3)		// 360 degrees
 
 // Tables
 extern const float utils_tab_sin_32_1[];

@@ -220,12 +220,11 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 #else
 	// using onboard dsp (requires at least v1.10.0 of the cmsis lib)
 	// https://github.com/ARM-software/CMSIS-DSP/releases
-	// 
 	(void)arm_atan2_f32(beta, alpha, &angle);
 #endif
 
 	// convert from (-pi, pi) to (0, 2*pi) via branchless programming
-	angle = angle + (angle < 0.0f)*SIX_PI_OVER_3;
+	angle = angle + (angle < 0.0f)*TWO_PI;
 	sector = ((uint32_t)(angle / PI_OVER_3) % 6u) + 1u;
 	angle = fmodf(angle, PI_OVER_3); // from math.h
 
