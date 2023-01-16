@@ -199,7 +199,7 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  *        Null=V0 variation (reduces switching losses by up to 33%)
  *        See the follwoing links for a full description: 
  *        https://youtu.be/5eQyoVMz1dY
- *        https://go.gale.com/ps/i.do?id=GALE%7CA18320578&sid=sitemap&v=2.1&it=r&p=AONE&sw=w&userGroupName=anon%7E469317a7
+ *        https://link.gale.com/apps/doc/A18320578/AONE
  * @param alpha voltage
  * @param beta Park transformed and normalized voltage
  * @param PWMFullDutyCycle is the peak value of the PWM counter.
