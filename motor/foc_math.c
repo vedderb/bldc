@@ -193,7 +193,6 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 	*speed_var += conf->foc_pll_ki * delta_theta * dt;
 }
 
-//#define USE_ONBOARD_DSP
 /**
  * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
@@ -216,12 +215,12 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	uint32_t tA, tB, tC;	// PWM timings
 
 	// get angle
-#ifdef USE_ONBOARD_DSP
-	// requires at least v1.10.0 of the cmsis lib
+#ifdef USE_MATH_H
+	angle = atan2f(beta, alpha);
+#else
+	// using onboard dsp (requires at least v1.10.0 of the cmsis lib)
 	// https://github.com/ARM-software/CMSIS-DSP/releases
 	(void)arm_atan2_f32(beta, alpha, &angle);
-#else
-	angle = atan2f(beta, alpha); // from math.h
 #endif
 
 	// convert from (-pi, pi) to (0, 2*pi) via branchless programming
@@ -230,21 +229,23 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	angle = fmodf(angle, PI_OVER_3); // from math.h
 
 	// determine magnitude
-#ifdef USE_ONBOARD_DSP
-	(void)arm_sqrt_f32(SQ(alpha)+SQ(beta), &magnitude); // using onboard dsp
+#ifdef USE_MATH_H
+	magnitude = hypotf(alpha, beta);
 #else
-	magnitude = hypotf(alpha, beta); // from math.h
+	// using onboard dsp
+	(void)arm_sqrt_f32(SQ(alpha)+SQ(beta), &magnitude);
 #endif
 
 	// temporary variable for intermediate math
 	temp = (float)PWMFullDutyCycle * magnitude * TWO_BY_SQRT3;
 
-#ifdef USE_ONBOARD_DSP
-	T1 = temp * arm_sin_f32(PI_OVER_3 - angle); // using arm dsp
-	T2 = temp * arm_sin_f32(angle); // using arm dsp
+#ifdef USE_MATH_H
+	T1 = temp * sinf(PI_OVER_3 - angle);
+	T2 = temp * sinf(angle);
 #else
-	T1 = temp * sinf(PI_OVER_3 - angle); // from math.h
-	T2 = temp * sinf(angle); // from math.h
+	// using onboard dsp
+	T1 = temp * arm_sin_f32(PI_OVER_3 - angle);
+	T2 = temp * arm_sin_f32(angle);
 #endif
 
 

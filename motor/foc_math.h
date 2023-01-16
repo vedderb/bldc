@@ -20,6 +20,7 @@
 #ifndef FOC_MATH_H_
 #define FOC_MATH_H_
 
+#include <arm_math.h>
 #include "datatypes.h"
 
 // Types
