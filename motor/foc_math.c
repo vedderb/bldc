@@ -207,6 +207,7 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  * @param tBout PWM duty cycle phase B
  * @param tCout PWM duty cycle phase C
  */
+#define USE_MATH_H
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 
@@ -220,6 +221,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 #else
 	// using onboard dsp (requires at least v1.10.0 of the cmsis lib)
 	// https://github.com/ARM-software/CMSIS-DSP/releases
+	// 
 	(void)arm_atan2_f32(beta, alpha, &angle);
 #endif
 
