@@ -20,7 +20,13 @@
 #ifndef FOC_MATH_H_
 #define FOC_MATH_H_
 
+// comment this to enable usage of the onboard dsp
+#define USE_MATH_H
+
+#ifndef USE_MATH_H
 #include <arm_math.h>
+#endif
+
 #include "datatypes.h"
 
 // Types
