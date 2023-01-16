@@ -193,9 +193,14 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 	*speed_var += conf->foc_pll_ki * delta_theta * dt;
 }
 
+//#define USE_ONBOARD_DSP
 /**
  * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
+ *        Null=V0 variation (reduces switching losses by up to 33%)
+ *        See the follwoing links for a full description: 
+ *        https://youtu.be/5eQyoVMz1dY
+ *        https://go.gale.com/ps/i.do?id=GALE%7CA18320578&sid=sitemap&v=2.1&it=r&p=AONE&sw=w&userGroupName=anon%7E469317a7
  * @param alpha voltage
  * @param beta Park transformed and normalized voltage
  * @param PWMFullDutyCycle is the peak value of the PWM counter.
@@ -205,128 +210,84 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  */
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
+
 	uint32_t sector;
+	float angle, T1, T2, magnitude, temp;
+	uint32_t tA, tB, tC;	// PWM timings
 
-	if (beta >= 0.0f) {
-		if (alpha >= 0.0f) {
-			//quadrant I
-			if (ONE_BY_SQRT3 * beta > alpha) {
-				sector = 2;
-			} else {
-				sector = 1;
-			}
-		} else {
-			//quadrant II
-			if (-ONE_BY_SQRT3 * beta > alpha) {
-				sector = 3;
-			} else {
-				sector = 2;
-			}
-		}
-	} else {
-		if (alpha >= 0.0f) {
-			//quadrant IV5
-			if (-ONE_BY_SQRT3 * beta > alpha) {
-				sector = 5;
-			} else {
-				sector = 6;
-			}
-		} else {
-			//quadrant III
-			if (ONE_BY_SQRT3 * beta > alpha) {
-				sector = 4;
-			} else {
-				sector = 5;
-			}
-		}
-	}
+	// get angle
+#ifdef USE_ONBOARD_DSP
+	// requires at least v1.10.0 of the cmsis lib
+	// https://github.com/ARM-software/CMSIS-DSP/releases
+	(void)arm_atan2_f32(beta, alpha, &angle);
+#else
+	angle = atan2f(beta, alpha); // from math.h
+#endif
 
-	// PWM timings
-	uint32_t tA, tB, tC;
+	// convert from (-pi, pi) to (0, 2*pi) via branchless programming
+	angle = angle + (angle < 0.0f)*SIX_PI_OVER_3;
+	sector = ((uint32_t)(angle / PI_OVER_3) % 6u) + 1u;
+	angle = fmodf(angle, PI_OVER_3); // from math.h
 
-	switch (sector) {
+	// determine magnitude
+#ifdef USE_ONBOARD_DSP
+	(void)arm_sqrt_f32(SQ(alpha)+SQ(beta), &magnitude); // using onboard dsp
+#else
+	magnitude = hypotf(alpha, beta); // from math.h
+#endif
 
-	// sector 1-2
+	// temporary variable for intermediate math
+	temp = (float)PWMFullDutyCycle * magnitude * TWO_BY_SQRT3;
+
+#ifdef USE_ONBOARD_DSP
+	T1 = temp * arm_sin_f32(PI_OVER_3 - angle); // using arm dsp
+	T2 = temp * arm_sin_f32(angle); // using arm dsp
+#else
+	T1 = temp * sinf(PI_OVER_3 - angle); // from math.h
+	T2 = temp * sinf(angle); // from math.h
+#endif
+
+
+	switch(sector) {
 	case 1: {
-		// Vector on-times
-		uint32_t t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t2 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tA = (PWMFullDutyCycle + t1 + t2) / 2;
-		tB = tA - t1;
-		tC = tB - t2;
-
+		tA = (uint32_t)(T1+T2);
+		tB = (uint32_t)(T2);
+		tC = (uint32_t)(0);
 		break;
 	}
-
-	// sector 2-3
+	
 	case 2: {
-		// Vector on-times
-		uint32_t t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tB = (PWMFullDutyCycle + t2 + t3) / 2;
-		tA = tB - t3;
-		tC = tA - t2;
-
+		tA = (uint32_t)(T1);
+		tB = (uint32_t)(T1+T2);
+		tC = (uint32_t)(0);
 		break;
 	}
-
-	// sector 3-4
+	
 	case 3: {
-		// Vector on-times
-		uint32_t t3 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tB = (PWMFullDutyCycle + t3 + t4) / 2;
-		tC = tB - t3;
-		tA = tC - t4;
-
+		tA = (uint32_t)(0);
+		tB = (uint32_t)(T1+T2);
+		tC = (uint32_t)(T2);
 		break;
 	}
-
-	// sector 4-5
+	
 	case 4: {
-		// Vector on-times
-		uint32_t t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t5 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tC = (PWMFullDutyCycle + t4 + t5) / 2;
-		tB = tC - t5;
-		tA = tB - t4;
-
+		tA = (uint32_t)(0);
+		tB = (uint32_t)(T1);
+		tC = (uint32_t)(T1+T2);
 		break;
 	}
-
-	// sector 5-6
+	
 	case 5: {
-		// Vector on-times
-		uint32_t t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tC = (PWMFullDutyCycle + t5 + t6) / 2;
-		tA = tC - t5;
-		tB = tA - t6;
-
+		tA = (uint32_t)(T2);
+		tB = (uint32_t)(0);
+		tC = (uint32_t)(T1+T2);
 		break;
 	}
-
-	// sector 6-1
+	
 	case 6: {
-		// Vector on-times
-		uint32_t t6 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-
-		// PWM timings
-		tA = (PWMFullDutyCycle + t6 + t1) / 2;
-		tC = tA - t1;
-		tB = tC - t6;
-
+		tA = (uint32_t)(T1+T2);
+		tB = (uint32_t)(0);
+		tC = (uint32_t)(T1);
 		break;
 	}
 	}
