@@ -210,82 +210,80 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 
-	uint32_t sector;
-	float angle, T1, T2, magnitude, temp;
-	uint32_t tA, tB, tC;	// PWM timings
+	uint8_t sector;
+	uint32_t tA, tB, tC, N;	// PWM timings
+	float T1, T2, a, b, c, temp = 0.0f;
+	const uint8_t sector_LUT[6] = {6u, 2u, 1u, 4u, 5u, 3u};
 
-	// get angle
-#ifdef USE_MATH_H
-	angle = atan2f(beta, alpha);
-#else
-	// using onboard dsp (requires at least v1.10.0 of the cmsis lib)
-	// https://github.com/ARM-software/CMSIS-DSP/releases
-	(void)arm_atan2_f32(beta, alpha, &angle);
-#endif
 
-	// convert from (-pi, pi) to (0, 2*pi) via branchless programming
-	angle = angle + (angle < 0.0f)*TWO_PI;
-	sector = ((uint32_t)(angle / PI_OVER_3) % 6u) + 1u;
-	angle = fmodf(angle, PI_OVER_3); // from math.h
+	a = SQRT3_BY_2*alpha - 0.5f*beta;
+	b = beta;
 
-	// determine magnitude
-#ifdef USE_MATH_H
-	magnitude = hypotf(alpha, beta);
-#else
-	// using onboard dsp
-	(void)arm_sqrt_f32(SQ(alpha)+SQ(beta), &magnitude);
-#endif
+	temp = (float)PWMFullDutyCycle/SQRT3_BY_2;
 
-	// temporary variable for intermediate math
-	temp = (float)PWMFullDutyCycle * magnitude * TWO_BY_SQRT3;
+	a *= temp;
+	b *= temp;
+	c = -1.0f*(a+b); // kirchhoff current law (current in = current out)
 
-#ifdef USE_MATH_H
-	T1 = temp * sinf(PI_OVER_3 - angle);
-	T2 = temp * sinf(angle);
-#else
-	// using onboard dsp
-	T1 = temp * arm_sin_f32(PI_OVER_3 - angle);
-	T2 = temp * arm_sin_f32(angle);
-#endif
 
+	N = (((int32_t)a)>=0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
+	sector = sector_LUT[N-1];
 
 	switch(sector) {
 	case 1: {
+		T1 = a;
+		T2 = b;
+
 		tA = (uint32_t)(T1+T2);
 		tB = (uint32_t)(T2);
 		tC = (uint32_t)(0);
 		break;
 	}
-	
+
 	case 2: {
+		T1 = -c;
+		T2 = -a;
+
 		tA = (uint32_t)(T1);
 		tB = (uint32_t)(T1+T2);
 		tC = (uint32_t)(0);
 		break;
 	}
-	
+
 	case 3: {
+		T1 = b;
+		T2 = c;
+
 		tA = (uint32_t)(0);
 		tB = (uint32_t)(T1+T2);
 		tC = (uint32_t)(T2);
 		break;
 	}
-	
+
 	case 4: {
+		T1 = -a;
+		T2 = -b;
+
 		tA = (uint32_t)(0);
 		tB = (uint32_t)(T1);
 		tC = (uint32_t)(T1+T2);
 		break;
 	}
-	
+
 	case 5: {
+		T1 = c;
+		T2 = a;
+
 		tA = (uint32_t)(T2);
 		tB = (uint32_t)(0);
 		tC = (uint32_t)(T1+T2);
 		break;
 	}
-	
+
 	case 6: {
+		T1 = -b;
+		T2 = -c;
+
 		tA = (uint32_t)(T1+T2);
 		tB = (uint32_t)(0);
 		tC = (uint32_t)(T1);
@@ -296,7 +294,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	*tAout = tA;
 	*tBout = tB;
 	*tCout = tC;
-	*svm_sector = sector;
+	*svm_sector = (uint32_t)sector;
 }
 
 void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor) {
