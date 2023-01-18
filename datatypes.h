@@ -26,6 +26,14 @@
 
 // Data types
 typedef enum {
+	SVM_ARS = 0,		// default (previous implementation)
+	NULL_V0,			// flat bottom
+	NULL_V7,			// flat top
+	V7_ODD_V0_EVEN,		// v7 in [1,3,5] v0 in [2,4,6]
+	V0_ODD_V7_EVEN,		// v0 in [1,3,5] v7 in [2,4,6]
+} commutation_technique_t;
+
+typedef enum {
 	HW_TYPE_VESC = 0,
 	HW_TYPE_VESC_BMS,
 	HW_TYPE_CUSTOM_MODULE

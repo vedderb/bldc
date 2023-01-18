@@ -210,7 +210,8 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 void foc_pll_run(float phase, float dt, float *phase_var,
 		float *speed_var, mc_configuration *conf);
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
-		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
+		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, 
+		uint32_t *svm_sector, commutation_technique_t comm_tech);
 void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor);
 void foc_run_pid_control_speed(float dt, motor_all_state_t *motor);
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, motor_all_state_t *motor);

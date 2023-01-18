@@ -208,13 +208,11 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  * @param tCout PWM duty cycle phase C
  */
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
-				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
-
+				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, 
+				uint32_t *svm_sector, commutation_technique_t comm_tech) {
 	uint8_t sector;
 	uint32_t tA, tB, tC, N;	// PWM timings
-	float T1, T2, a, b, c, temp = 0.0f;
-	const uint8_t sector_LUT[6] = {6u, 2u, 1u, 4u, 5u, 3u};
-
+	float T0, T1, T2, a, b, c, temp = 0.0f;
 
 	a = SQRT3_BY_2*alpha - 0.5f*beta;
 	b = beta;
@@ -225,7 +223,6 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	b *= temp;
 	c = -1.0f*(a+b); // kirchhoff current law (current in = current out)
 
-
 	N = (((int32_t)a)>=0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
 	sector = sector_LUT[N-1];
 
@@ -233,60 +230,180 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	case 1: {
 		T1 = a;
 		T2 = b;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(T1+T2);
-		tB = (uint32_t)(T2);
-		tC = (uint32_t)(0);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(T1+T2+0.5f*T0);
+			tB = (uint32_t)(T2+0.5f*T0);
+			tC = (uint32_t)(0.5f*T0);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(T1+T2);
+			tB = (uint32_t)(T2);
+			tC = (uint32_t)(0);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(PWMFullDutyCycle);
+			tB = (uint32_t)(T0+T2);
+			tC = (uint32_t)(T0);
+			break;
+		}
 		break;
 	}
 
 	case 2: {
 		T1 = -c;
 		T2 = -a;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(T1);
-		tB = (uint32_t)(T1+T2);
-		tC = (uint32_t)(0);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(T1+0.5f*T0);
+			tB = (uint32_t)(T1+T2+0.5f*T0);
+			tC = (uint32_t)(0.5f*T0);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(T1);
+			tB = (uint32_t)(T1+T2);
+			tC = (uint32_t)(0);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(T0+T1);
+			tB = (uint32_t)(PWMFullDutyCycle);
+			tC = (uint32_t)(T0);
+			break;
+		}
 		break;
 	}
 
 	case 3: {
 		T1 = b;
 		T2 = c;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(0);
-		tB = (uint32_t)(T1+T2);
-		tC = (uint32_t)(T2);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(0.5f*T0);
+			tB = (uint32_t)(T1+T2+0.5f*T0);
+			tC = (uint32_t)(T2+0.5f*T0);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(0);
+			tB = (uint32_t)(T1+T2);
+			tC = (uint32_t)(T2);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(T0);
+			tB = (uint32_t)(PWMFullDutyCycle);
+			tC = (uint32_t)(T0+T2);
+			break;
+		}
 		break;
 	}
 
 	case 4: {
 		T1 = -a;
 		T2 = -b;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(0);
-		tB = (uint32_t)(T1);
-		tC = (uint32_t)(T1+T2);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(0.5f*T0);
+			tB = (uint32_t)(T1+0.5f*T0);
+			tC = (uint32_t)(T1+T2+0.5f*T0);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(0);
+			tB = (uint32_t)(T1);
+			tC = (uint32_t)(T1+T2);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(T0);
+			tB = (uint32_t)(T0+T1);
+			tC = (uint32_t)(PWMFullDutyCycle);
+			break;
+		}
 		break;
 	}
 
 	case 5: {
 		T1 = c;
 		T2 = a;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(T2);
-		tB = (uint32_t)(0);
-		tC = (uint32_t)(T1+T2);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(T2+0.5f*T0);
+			tB = (uint32_t)(0.5f*T0);
+			tC = (uint32_t)(T1+T2+0.5f*T0);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(T2);
+			tB = (uint32_t)(0);
+			tC = (uint32_t)(T1+T2);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(T0+T2);
+			tB = (uint32_t)(T0);
+			tC = (uint32_t)(PWMFullDutyCycle);
+			break;
+		}
 		break;
 	}
 
 	case 6: {
 		T1 = -b;
 		T2 = -c;
+		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
-		tA = (uint32_t)(T1+T2);
-		tB = (uint32_t)(0);
-		tC = (uint32_t)(T1);
+		switch (comm_tech) {
+		case SVM_ARS:
+		default:
+			tA = (uint32_t)(T1+T2+0.5f*T0);
+			tB = (uint32_t)(0.5f*T0);
+			tC = (uint32_t)(T1+0.5f*T0);
+			break;
+
+		case V7_ODD_V0_EVEN:
+		case NULL_V0:
+			tA = (uint32_t)(T1+T2);
+			tB = (uint32_t)(0);
+			tC = (uint32_t)(T1);
+			break;
+
+		case V0_ODD_V7_EVEN:
+		case NULL_V7:
+			tA = (uint32_t)(PWMFullDutyCycle);
+			tB = (uint32_t)(T0);
+			tC = (uint32_t)(T0+T1);
+			break;
+		}
 		break;
 	}
 	}
