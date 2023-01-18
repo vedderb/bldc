@@ -21,6 +21,10 @@
 #include "utils_math.h"
 #include <math.h>
 
+
+const uint8_t sector_LUT[6] = {6u, 2u, 1u, 4u, 5u, 3u};
+
+
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 		float dt, observer_state *state, float *phase, motor_all_state_t *motor) {
