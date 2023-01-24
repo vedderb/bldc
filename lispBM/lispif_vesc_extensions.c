@@ -3947,6 +3947,8 @@ void lispif_disable_all_events(void) {
 	lispif_stop_lib();
 	event_can_sid_en = false;
 	event_can_eid_en = false;
+	event_data_rx_en = false;
+	event_shutdown_en = false;
 	event_icu_width_en = false;
 	event_icu_period_en = false;
 	// Give thread a chance to stop
