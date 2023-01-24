@@ -226,29 +226,7 @@ int lbm_undefine(char *symbol) {
 }
 
 int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
-
-  lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
-    *value = cell;
-    return 0;
-  }
-
-  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
-
-  if (array == NULL) return 0;
-
-  array->data = (lbm_uint*)data;
-  array->elt_type = type;
-  array->size = num_elt;
-
-  lbm_set_car(cell, (lbm_uint)array);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
-
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
-  *value = cell;
-  return 1;
+  return lbm_lift_array(value, data, type, num_elt);
 }
 
 int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt) {

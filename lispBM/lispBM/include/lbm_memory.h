@@ -76,6 +76,7 @@
 
 #include "lbm_types.h"
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -148,7 +149,15 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words);
  * \return 1 on success and 0 on failure.
  */
 int lbm_memory_free(lbm_uint *ptr);
-
+/** Malloc like interface to lbm_memory
+ * \param size Size in bytes of memory to allocate.
+ * \return Pointer to array or NULL.
+ */
+void* lbm_malloc(size_t size);
+/** Free memory allocated with lbm_malloc
+ * \param Pointer to array to free
+ */
+void lbm_free(void *ptr);
 /** Shrink an allocated array.
  * \param ptr Pointer to array to shrink
  * \param n New smaller size of array

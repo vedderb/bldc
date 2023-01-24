@@ -188,11 +188,10 @@ char *lbm_dec_str(lbm_value val) {
   char *res = 0;
   if (lbm_type_of(val) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    if (array == NULL) {
-      return NULL;
-    }
-    if (array->elt_type == LBM_TYPE_CHAR) {
-      res = (char *)array->data;
+    if (array) {
+      if (array->elt_type == LBM_TYPE_CHAR) {
+        res = (char *)array->data;
+      }
     }
   }
   return res;
@@ -885,6 +884,21 @@ unsigned int lbm_list_length(lbm_value c) {
   return len;
 }
 
+/* calculate the length of a list and check that each element
+   fullfills the predicate pred */
+unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_value)) {
+  bool res = true;
+  unsigned int len = 0;
+
+  while (lbm_type_of(c) == LBM_TYPE_CONS){
+    len ++;
+    res = res && pred(lbm_car(c));
+    c = lbm_cdr(c);
+  }
+  *pres = res;
+  return len;
+}
+
 /* reverse a proper list */
 lbm_value lbm_list_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
@@ -1031,6 +1045,33 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   return 1;
 }
 
+// Convert a C array into an lbm_array.
+// if the array is in LBM_MEMORY, the lifetime will be managed by the GC.
+int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
+
+  lbm_array_header_t *array = NULL;
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+
+  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
+    *value = cell;
+    return 0;
+  }
+
+  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+
+  if (array == NULL) return 0;
+
+  array->data = (lbm_uint*)data;
+  array->elt_type = type;
+  array->size = num_elt;
+
+  lbm_set_car(cell, (lbm_uint)array);
+  lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
+
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
+  *value = cell;
+  return 1;
+}
 
 /* Explicitly freeing an array.
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022, 2023 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -164,6 +164,67 @@ static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;
 
+static volatile lbm_event_t *lbm_events = NULL;
+static unsigned int lbm_events_head = 0;
+static unsigned int lbm_events_tail = 0;
+static unsigned int lbm_events_max  = 0;
+static bool         lbm_events_full = false;
+static mutex_t      lbm_events_mutex;
+static bool         lbm_events_mutex_initialized = false;
+static volatile lbm_cid  lbm_event_handler_pid = -1;
+
+lbm_cid lbm_get_event_handler_pid(void) {
+  return lbm_event_handler_pid;
+}
+
+void lbm_set_event_handler_pid(lbm_cid pid) {
+  lbm_event_handler_pid = pid;
+}
+
+bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
+
+  if (lbm_event_handler_pid == -1 || !lbm_events) {
+    return false;
+  }
+  mutex_lock(&lbm_events_mutex);
+  if (lbm_events_full) return false;
+  if (opt_array != NULL) {
+    event.array = lbm_malloc((size_t)opt_array_len);
+    event.array_len = opt_array_len;
+    if (event.array == NULL) return false;
+    memcpy(event.array, opt_array, (size_t)opt_array_len);
+  }
+  lbm_events[lbm_events_head] = event;
+
+  lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+  mutex_unlock(&lbm_events_mutex);
+  return true;
+}
+
+static bool lbm_event_pop(lbm_event_t *event) {
+  mutex_lock(&lbm_events_mutex);
+  if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
+    mutex_unlock(&lbm_events_mutex);
+    return false;
+  }
+  *event = lbm_events[lbm_events_tail];
+  lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
+  lbm_events_full = false;
+  mutex_unlock(&lbm_events_mutex);
+  return true;
+}
+
+static unsigned int lbm_event_num(void) {
+  mutex_lock(&lbm_events_mutex);
+  unsigned int res = lbm_events_max;
+  if (!lbm_events_full) {
+    if (lbm_events_head >= lbm_events_tail) res = lbm_events_head - lbm_events_tail;
+    else res = lbm_events_max - lbm_events_tail + lbm_events_head;
+  }
+  mutex_unlock(&lbm_events_mutex);
+  return res;
+}
+
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
    resolution of the timer used for sleep operations.  If this is set
@@ -194,6 +255,7 @@ static eval_context_queue_t queue    = {NULL, NULL};
 
 /* one mutex for all queue operations */
 mutex_t qmutex;
+bool    qmutex_initialized = false;
 
 static void usleep_nonsense(uint32_t us) {
   (void) us;
@@ -384,8 +446,6 @@ bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
   *res = cell;
   return true;
 }
-
-
 
 
 /****************************************************/
@@ -3126,6 +3186,103 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
+static void process_events(void) {
+
+  if (!lbm_events) return;
+
+  if (lbm_event_handler_pid < 0) {
+    lbm_events_head = 0;
+    lbm_events_tail = 0;
+    lbm_events_full = false;
+    return;
+  }
+
+  unsigned int event_cnt = lbm_event_num();
+
+  lbm_event_t e;
+
+  if (event_cnt > 0) {
+    while (lbm_event_pop(&e) && lbm_event_handler_pid >= 0) {
+      if (e.type == LBM_EVENT_SYM) {
+        lbm_find_receiver_and_send(lbm_event_handler_pid, lbm_enc_sym(e.sym));
+      } else if (e.type == LBM_EVENT_SYM_INT) {
+        lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), lbm_enc_i(e.i));
+        if (lbm_is_symbol_merror(msg)) {
+          gc();
+          msg = lbm_cons(lbm_enc_sym(e.sym), lbm_enc_i(e.i));
+        }
+        if (lbm_is_ptr(msg)) {
+          lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
+        }
+      } else if (e.type == LBM_EVENT_SYM_INT_INT) {
+        lbm_value ints = lbm_cons(lbm_enc_i(e.i), lbm_enc_i(e.i2));
+        if (lbm_is_symbol_merror(ints)) {
+          gc();
+          ints = lbm_cons(lbm_enc_i(e.i), lbm_enc_i(e.i2));
+        }
+        lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), ints);
+        if (lbm_is_symbol_merror(msg)) {
+          lbm_gc_mark_phase(1,ints);
+          gc();
+          msg = lbm_cons(lbm_enc_sym(e.sym), ints);
+        }
+        if (lbm_is_ptr(ints) && lbm_is_ptr(msg)) {
+          lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
+        }
+      } else if (e.type == LBM_EVENT_SYM_ARRAY) {
+        lbm_value val;
+        if (!lbm_lift_array(&val, e.array, LBM_TYPE_BYTE, (size_t)e.array_len)) {
+          gc();
+          lbm_lift_array(&val, e.array, LBM_TYPE_BYTE, (size_t)e.array_len);
+        }
+        if (lbm_is_array(val)) {
+          lbm_value msg;
+          msg = lbm_cons(lbm_enc_sym(e.sym), val);
+          if (lbm_is_symbol_merror(msg)) {
+            lbm_gc_mark_phase(1, val);
+            gc();
+            msg = lbm_cons(lbm_enc_sym(e.sym), val);
+          }
+          if (!lbm_is_symbol_merror(msg)) {
+            lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
+          } else {
+            lbm_heap_explicit_free_array(val);
+          }
+        }
+      } else if (e.type == LBM_EVENT_SYM_INT_ARRAY) {
+        lbm_value val;
+        if (!lbm_lift_array(&val, e.array,  LBM_TYPE_BYTE, (size_t)e.array_len)) {
+          gc();
+          lbm_lift_array(&val, e.array,  LBM_TYPE_BYTE, (size_t)e.array_len);
+        }
+        if (lbm_is_array(val)) {
+          lbm_value msg_data;
+          msg_data = lbm_cons(lbm_enc_i32(e.i),val);
+          if (lbm_is_symbol_merror(msg_data)) {
+            lbm_gc_mark_phase(1,val);
+            gc();
+            msg_data = lbm_cons(lbm_enc_i32(e.i), val);
+          }
+          if (!lbm_is_symbol_merror(msg_data)) {
+            lbm_value msg;
+            msg = lbm_cons(lbm_enc_sym(e.sym), msg_data);
+            if (lbm_is_symbol_merror(msg)) {
+              lbm_gc_mark_phase(1, msg_data);
+              gc();
+              msg = lbm_cons(lbm_enc_sym(e.sym), msg_data);
+            }
+            if (!lbm_is_symbol_merror(msg)) {
+              lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
+            } else {
+              lbm_heap_explicit_free_array(val);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval
@@ -3173,6 +3330,7 @@ void lbm_run_eval(void){
             // report an error in.
           }
         } else {
+          process_events();
           next_to_run = dequeue_ctx(&sleeping, &us);
         }
 
@@ -3205,6 +3363,16 @@ lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
 int lbm_eval_init() {
   int res = 1;
 
+  if (!qmutex_initialized) {
+    mutex_init(&qmutex);
+  }
+  if (!lbm_events_mutex_initialized) {
+    mutex_init(&lbm_events_mutex);
+  }
+
+  mutex_lock(&qmutex);
+  mutex_lock(&lbm_events_mutex);
+
   blocked.first = NULL;
   blocked.last = NULL;
   sleeping.first = NULL;
@@ -3215,7 +3383,8 @@ int lbm_eval_init() {
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 
-  mutex_init(&qmutex);
+  mutex_unlock(&qmutex);
+  mutex_unlock(&lbm_events_mutex);
 
   *lbm_get_env_ptr() = ENC_SYM_NIL;
   eval_running = true;
@@ -3223,3 +3392,17 @@ int lbm_eval_init() {
   return res;
 }
 
+bool lbm_eval_init_events(unsigned int num_events) {
+
+  mutex_lock(&lbm_events_mutex);
+  lbm_events = (lbm_event_t*)lbm_malloc(num_events * sizeof(lbm_event_t));
+
+  if (!lbm_events) return false;
+  lbm_events_max = num_events;
+  lbm_events_head = 0;
+  lbm_events_tail = 0;
+  lbm_events_full = false;
+  lbm_event_handler_pid = -1;
+  mutex_unlock(&lbm_events_mutex);
+  return true;
+}

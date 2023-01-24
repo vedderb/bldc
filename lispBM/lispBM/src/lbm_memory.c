@@ -41,10 +41,16 @@ static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit 
 static lbm_uint bitmap_size;  // in 4 or 8 byte words
 static lbm_uint memory_base_address = 0;
 static mutex_t lbm_mem_mutex;
+static bool    lbm_mem_mutex_initialized;
 
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
 
+  if (!lbm_mem_mutex_initialized) {
+    mutex_init(&lbm_mem_mutex);
+  }
+  mutex_lock(&lbm_mem_mutex);
+  int res = 0;
   if (data == NULL || bits == NULL) return 0;
 
   if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
@@ -56,22 +62,22 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     // data is not aligned to sizeof lbm_uint
     // size is too small
     // or size is not a multiple of 4
-    return 0;
+  } else {
+
+    bitmap = bits;
+    bitmap_size = bits_size;
+
+    for (lbm_uint i = 0; i < bitmap_size; i ++) {
+      bitmap[i] = 0;
+    }
+
+    memory = data;
+    memory_base_address = (lbm_uint)data;
+    memory_size = data_size;
+    res = 1;
   }
-
-  bitmap = bits;
-  bitmap_size = bits_size;
-
-  for (lbm_uint i = 0; i < bitmap_size; i ++) {
-    bitmap[i] = 0;
-  }
-
-  memory = data;
-  memory_base_address = (lbm_uint)data;
-  memory_size = data_size;
-
-  mutex_init(&lbm_mem_mutex);
-  return 1;
+  mutex_unlock(&lbm_mem_mutex);
+  return res;
 }
 
 static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
@@ -324,6 +330,21 @@ int lbm_memory_free(lbm_uint *ptr) {
     mutex_unlock(&lbm_mem_mutex);
   }
   return r;
+}
+//Malloc/free like interface
+void* lbm_malloc(size_t size) {
+  lbm_uint alloc_size;
+  if (size % sizeof(lbm_uint) == 0) {
+    alloc_size = size / (sizeof(lbm_uint));
+  } else {
+    alloc_size = (size / (sizeof(lbm_uint))) + 1;
+  }
+
+  return lbm_memory_allocate(alloc_size);
+}
+
+void lbm_free(void *ptr) {
+  lbm_memory_free(ptr);
 }
 
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {

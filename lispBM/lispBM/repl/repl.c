@@ -268,40 +268,40 @@ bool dyn_load(const char *str, const char **code) {
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
     *code = "(define length (lambda (xs)"
-	    "(let ((len (lambda (l xs)"
-	    "(if (eq xs nil) l"
-	    "(len (+ l 1) (cdr xs))))))"
+            "(let ((len (lambda (l xs)"
+            "(if (eq xs nil) l"
+            "(len (+ l 1) (cdr xs))))))"
             "(len 0 xs))))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
-	    "(let ((take-tail (lambda (acc n xs)"
-	    "(if (= n 0) acc"
-	    "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
+            "(let ((take-tail (lambda (acc n xs)"
+            "(if (= n 0) acc"
+            "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
-	    "(if (= n 0) xs"
-	    "(if (eq xs nil) nil"
+            "(if (= n 0) xs"
+            "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq ys nil) nil"
+            "(if (eq xs nil) nil"
+            "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
-	    "(if (eq xs nil) nil"
-	    "(if (eq (car (car xs)) x)"
-	    "(car (cdr (car xs)))"
+            "(if (eq xs nil) nil"
+            "(if (eq (car (car xs)) x)"
+            "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
-	    "(if (eq xs nil) i"
+            "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
     res = true;
   } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
@@ -393,6 +393,17 @@ static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_event(lbm_value *args, lbm_uint argn) {
+
+  if (argn != 1 || !lbm_is_symbol(args[0])) return ENC_SYM_EERROR;
+  lbm_event_t e;
+  e.type = LBM_EVENT_SYM;
+  e.sym = lbm_dec_sym(args[0]);
+  if (lbm_event(e, NULL, 0)) {
+    return ENC_SYM_TRUE;
+  }
+  return ENC_SYM_NIL;
+}
 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
@@ -474,7 +485,7 @@ void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
   } else {
     printf("not found\n");
   }
-  
+
 }
 
 
@@ -519,6 +530,11 @@ int main(int argc, char **argv) {
                 print_stack_storage, PRINT_STACK_SIZE,
                 extension_storage, EXTENSION_STORAGE_SIZE)) {
     printf("Failed to initialize LispBM\n");
+    return 0;
+  }
+
+  if (!lbm_eval_init_events(20)) {
+    printf("Failed to initialize events\n");
     return 0;
   }
 
@@ -568,6 +584,12 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   res = lbm_add_extension("custom", ext_custom);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("event", ext_event);
   if (res)
     printf("Extension added.\n");
   else
@@ -809,15 +831,15 @@ int main(int argc, char **argv) {
 
       int i = 8;
       if (strlen(str) >= 8) {
-	while (str[i] == ' ') i++;
+        while (str[i] == ' ') i++;
       }
       char *sym = str + i;
       lbm_uint sym_id = 0;
       if (lbm_get_symbol_by_name(sym, &sym_id)) {
-	lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-	lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+        lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+        lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
       } else {
-	printf("symbol does not exist\n");
+        printf("symbol does not exist\n");
       }
     } else if (strncmp(str, ":undef", 6) == 0) {
       lbm_pause_eval_with_gc(50);

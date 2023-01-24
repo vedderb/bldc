@@ -270,7 +270,8 @@
 #define SYM_RANGE               0x238
 #define SYM_NUM_NOT_EQ          0x239
 #define SYM_NOT_EQ              0x23A
-#define FUNDAMENTALS_END        0x23A
+#define SYM_REG_EVENT_HANDLER   0x23B
+#define FUNDAMENTALS_END        0x23B
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF

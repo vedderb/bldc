@@ -30,6 +30,7 @@
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
+#include "extensions/random_extensions.h"
 
 #include "lbm_custom_type.h"
 #include "lbm_sdl.h"
@@ -545,6 +546,12 @@ int main(int argc, char **argv) {
     printf("Math extensions loaded\n");
   } else {
     printf("Loading math extensions failed\n");
+  }
+
+  if (lbm_random_extensions_init()) {
+    printf("Random extensions loaded\n");
+  } else {
+    printf("Loading random extensions failed\n");
   }
 
   res = lbm_add_extension("block", ext_block);
