@@ -21,6 +21,8 @@
 #include "lispif.h"
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "extensions/math_extensions.h"
+#include "extensions/string_extensions.h"
 #include "lbm_constants.h"
 
 #include "commands.h"
@@ -47,7 +49,6 @@
 #include "firmware_metadata.h"
 #include "log.h"
 #include "buffer.h"
-#include "rb.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -179,7 +180,6 @@ typedef struct {
 
 static vesc_syms syms_vesc = {0};
 static void(*ext_callback)(void) = 0;
-static char print_val_buffer[256];
 
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
@@ -445,6 +445,12 @@ static bool pause_gc(uint32_t num_free, int timeout_cnt) {
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+	const int str_len = 256;
+	char *print_val_buffer = lbm_malloc(str_len);
+	if (!print_val_buffer) {
+		return ENC_SYM_MERROR;
+	}
+
 	for (lbm_uint i = 0; i < argn; i ++) {
 		lbm_value t = args[i];
 
@@ -465,10 +471,12 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 				commands_printf_lisp("%c", lbm_dec_char(t));
 			}
 		}  else {
-			lbm_print_value(print_val_buffer, 256, t);
+			lbm_print_value(print_val_buffer, str_len, t);
 			commands_printf_lisp("%s", print_val_buffer);
 		}
 	}
+
+	lbm_free(print_val_buffer);
 
 	return ENC_SYM_TRUE;
 }
@@ -1826,129 +1834,6 @@ static lbm_value ext_can_send_eid(lbm_value *args, lbm_uint argn) {
 
 // Math
 
-static lbm_value ext_sin(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(sinf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_cos(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(cosf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_tan(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(tanf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_asin(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(asinf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_acos(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(acosf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_atan(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(atanf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_atan2(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(2)
-	return lbm_enc_float(atan2f(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1])));
-}
-
-static lbm_value ext_pow(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(2)
-	return lbm_enc_float(powf(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1])));
-}
-
-static lbm_value ext_sqrt(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(sqrtf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_log(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(logf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_log10(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(log10f(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_floor(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(floorf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_ceil(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(ceilf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_round(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1)
-	return lbm_enc_float(roundf(lbm_dec_as_float(args[0])));
-}
-
-static lbm_value ext_deg2rad(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_NUMBER_ALL();
-
-	if (argn == 1) {
-		return lbm_enc_float(DEG2RAD_f(lbm_dec_as_float(args[0])));
-	} else {
-		lbm_value out_list = ENC_SYM_NIL;
-		for (int i = (argn - 1);i >= 0;i--) {
-			out_list = lbm_cons(lbm_enc_float(DEG2RAD_f(lbm_dec_as_float(args[i]))), out_list);
-		}
-		return out_list;
-	}
-}
-
-static lbm_value ext_rad2deg(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_NUMBER_ALL();
-
-	if (argn == 1) {
-		return lbm_enc_float(RAD2DEG_f(lbm_dec_as_float(args[0])));
-	} else {
-		lbm_value out_list = ENC_SYM_NIL;
-		for (int i = (argn - 1);i >= 0;i--) {
-			out_list = lbm_cons(lbm_enc_float(RAD2DEG_f(lbm_dec_as_float(args[i]))), out_list);
-		}
-		return out_list;
-	}
-}
-
-static lbm_value ext_vec3_rot(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_NUMBER_ALL();
-	if (argn != 6 && argn != 7) {
-		return ENC_SYM_EERROR;
-	}
-
-	float input[] = {lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]), lbm_dec_as_float(args[2])};
-	float rotation[] = {lbm_dec_as_float(args[3]), lbm_dec_as_float(args[4]), lbm_dec_as_float(args[5])};
-	float output[3];
-
-	bool reverse = false;
-	if (argn == 7) {
-		reverse = lbm_dec_as_i32(args[6]);
-	}
-
-	utils_rotate_vector3(input, rotation, output, reverse);
-
-	lbm_value out_list = ENC_SYM_NIL;
-	out_list = lbm_cons(lbm_enc_float(output[2]), out_list);
-	out_list = lbm_cons(lbm_enc_float(output[1]), out_list);
-	out_list = lbm_cons(lbm_enc_float(output[0]), out_list);
-
-	return out_list;
-}
-
 static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(4);
 	return lbm_enc_float(utils_throttle_curve(
@@ -2004,14 +1889,12 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 
 // Events that will be sent to lisp if a handler is registered
 
-static volatile bool event_handler_registered = false;
 static volatile bool event_can_sid_en = false;
 static volatile bool event_can_eid_en = false;
 static volatile bool event_data_rx_en = false;
 static volatile bool event_shutdown_en = false;
 static volatile bool event_icu_width_en = false;
 static volatile bool event_icu_period_en = false;
-static lbm_uint event_handler_pid;
 static lbm_uint sym_event_can_sid;
 static lbm_uint sym_event_can_eid;
 static lbm_uint sym_event_data_rx;
@@ -2050,17 +1933,6 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	} else {
 		return ENC_SYM_EERROR;
 	}
-
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_register_event_handler(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || !lbm_is_number(args[0])) {
-		return ENC_SYM_EERROR;
-	}
-
-	event_handler_pid = lbm_dec_i(args[0]);
-	event_handler_registered = true;
 
 	return ENC_SYM_TRUE;
 }
@@ -2611,477 +2483,6 @@ static lbm_value ext_gpio_read(lbm_value *args, lbm_uint argn) {
 	}
 }
 
-static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
-	if ((argn != 1 && argn != 2) || !lbm_is_number(args[0])) {
-		return ENC_SYM_EERROR;
-	}
-
-	if (argn == 2 && lbm_type_of(args[1]) != LBM_TYPE_ARRAY) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *format = 0;
-	if (argn == 2) {
-		format = lbm_dec_str(args[1]);
-	}
-
-	char buffer[100];
-	size_t len = 0;
-
-	switch (lbm_type_of(args[0])) {
-	case LBM_TYPE_FLOAT:
-		if (!format) {
-			format = "%g";
-		}
-		len = snprintf(buffer, sizeof(buffer), format, (double)lbm_dec_as_float(args[0]));
-		break;
-
-	default:
-		if (!format) {
-			format = "%d";
-		}
-		len = snprintf(buffer, sizeof(buffer), format, lbm_dec_as_i32(args[0]));
-		break;
-	}
-
-	if (len > sizeof(buffer)) {
-		len = sizeof(buffer);
-	}
-
-	lbm_value res;
-	if (lbm_create_array(&res, LBM_TYPE_CHAR, len + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-		memcpy(arr->data, buffer, len);
-		((char*)(arr->data))[len] = '\0';
-		return res;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_str_merge(lbm_value *args, lbm_uint argn) {
-	int len_tot = 0;
-	for (unsigned int i = 0;i < argn;i++) {
-		char *str = lbm_dec_str(args[i]);
-		if (str) {
-			len_tot += strlen(str);
-		} else {
-			return ENC_SYM_EERROR;
-		}
-	}
-
-	lbm_value res;
-	if (lbm_create_array(&res, LBM_TYPE_CHAR, len_tot + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-		unsigned int offset = 0;
-		for (unsigned int i = 0;i < argn;i++) {
-			offset += sprintf((char*)arr->data + offset, "%s", lbm_dec_str(args[i]));
-		}
-		((char*)(arr->data))[len_tot] = '\0';
-		return res;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_str_to_i(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 && argn != 2) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *str = lbm_dec_str(args[0]);
-	if (!str) {
-		return ENC_SYM_EERROR;
-	}
-
-	int base = 0;
-	if (argn == 2) {
-		if (!lbm_is_number(args[1])) {
-			return ENC_SYM_EERROR;
-		}
-
-		base = lbm_dec_as_u32(args[1]);
-	}
-
-	return lbm_enc_i32(strtol(str, NULL, base));
-}
-
-static lbm_value ext_str_to_f(lbm_value *args, lbm_uint argn) {
-	if (argn != 1) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *str = lbm_dec_str(args[0]);
-	if (!str) {
-		return ENC_SYM_EERROR;
-	}
-
-	return lbm_enc_float(strtof(str, NULL));
-}
-
-static lbm_value ext_str_part(lbm_value *args, lbm_uint argn) {
-	if ((argn != 2 && argn != 3) || !lbm_is_number(args[1])) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *str = lbm_dec_str(args[0]);
-	if (!str) {
-		return ENC_SYM_EERROR;
-	}
-
-	size_t len = strlen(str);
-
-	unsigned int start = lbm_dec_as_u32(args[1]);
-
-	if (start >= len) {
-		return ENC_SYM_EERROR;
-	}
-
-	unsigned int n = len - start;
-	if (argn == 3) {
-		if (!lbm_is_number(args[2])) {
-			return ENC_SYM_EERROR;
-		}
-
-		n = MIN(lbm_dec_as_u32(args[2]), n);
-	}
-
-	lbm_value res;
-	if (lbm_create_array(&res, LBM_TYPE_CHAR, n + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-		memcpy(arr->data, str + start, n);
-		((char*)(arr->data))[n] = '\0';
-		return res;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
-	if (argn != 2) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *str = lbm_dec_str(args[0]);
-	if (!str) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *split = lbm_dec_str(args[1]);
-	int step = 0;
-	if (!split) {
-		if (lbm_is_number(args[1])) {
-			step = MAX(lbm_dec_as_i32(args[1]), 1);
-		} else {
-			return ENC_SYM_EERROR;
-		}
-	}
-
-	if (step > 0) {
-		lbm_value res = ENC_SYM_NIL;
-		int len = strlen(str);
-		for (int i = len / step;i >= 0;i--) {
-			int ind_now = i * step;
-			if (ind_now >= len) {
-				continue;
-			}
-
-			int step_now = step;
-			while ((ind_now + step_now) > len) {
-				step_now--;
-			}
-
-			lbm_value tok;
-			if (lbm_create_array(&tok, LBM_TYPE_CHAR, step_now + 1)) {
-				lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(tok);
-				memcpy(arr->data, str + ind_now, step_now);
-				((char*)(arr->data))[step_now] = '\0';
-				res = lbm_cons(tok, res);
-			} else {
-				return ENC_SYM_MERROR;
-			}
-		}
-
-		return res;
-	} else {
-		lbm_value res = ENC_SYM_NIL;
-		const char *s = str;
-		while (*(s += strspn(s, split)) != '\0') {
-			size_t len = strcspn(s, split);
-
-			lbm_value tok;
-			if (lbm_create_array(&tok, LBM_TYPE_CHAR, len + 1)) {
-				lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(tok);
-				memcpy(arr->data, s, len);
-				((char*)(arr->data))[len] = '\0';
-				res = lbm_cons(tok, res);
-			} else {
-				return ENC_SYM_MERROR;
-			}
-
-			s += len;
-		}
-
-		return lbm_list_destructive_reverse(res);
-	}
-}
-
-static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
-	if (argn != 2 && argn != 3) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *orig = lbm_dec_str(args[0]);
-	if (!orig) {
-		return ENC_SYM_TERROR;
-	}
-
-	char *rep = lbm_dec_str(args[1]);
-	if (!rep) {
-		return ENC_SYM_TERROR;
-	}
-
-	char *with = "";
-	if (argn == 3) {
-		with = lbm_dec_str(args[2]);
-		if (!with) {
-			return ENC_SYM_TERROR;
-		}
-	}
-
-	// See https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
-	char *result; // the return string
-	char *ins;    // the next insert point
-	char *tmp;    // varies
-	int len_rep;  // length of rep (the string to remove)
-	int len_with; // length of with (the string to replace rep with)
-	int len_front; // distance between rep and end of last rep
-	int count;    // number of replacements
-
-	len_rep = strlen(rep);
-	if (len_rep == 0) {
-		return args[0]; // empty rep causes infinite loop during count
-	}
-
-	len_with = strlen(with);
-
-	// count the number of replacements needed
-	ins = orig;
-	for (count = 0; (tmp = strstr(ins, rep)); ++count) {
-		ins = tmp + len_rep;
-	}
-
-	size_t len_res = strlen(orig) + (len_with - len_rep) * count + 1;
-	lbm_value lbm_res;
-	if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len_res)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
-		tmp = result = (char*)arr->data;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-
-	// first time through the loop, all the variable are set correctly
-	// from here on,
-	//    tmp points to the end of the result string
-	//    ins points to the next occurrence of rep in orig
-	//    orig points to the remainder of orig after "end of rep"
-	while (count--) {
-		ins = strstr(orig, rep);
-		len_front = ins - orig;
-		tmp = strncpy(tmp, orig, len_front) + len_front;
-		tmp = strcpy(tmp, with) + len_with;
-		orig += len_front + len_rep; // move to next "end of rep"
-	}
-	strcpy(tmp, orig);
-
-	return lbm_res;
-}
-
-static lbm_value ext_str_to_lower(lbm_value *args, lbm_uint argn) {
-	if (argn != 1) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *orig = lbm_dec_str(args[0]);
-	if (!orig) {
-		return ENC_SYM_TERROR;
-	}
-
-	int len = strlen(orig);
-	lbm_value lbm_res;
-	if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
-		for (int i = 0;i < len;i++) {
-			((char*)(arr->data))[i] = tolower(orig[i]);
-		}
-		((char*)(arr->data))[len] = '\0';
-		return lbm_res;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_str_to_upper(lbm_value *args, lbm_uint argn) {
-	if (argn != 1) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *orig = lbm_dec_str(args[0]);
-	if (!orig) {
-		return ENC_SYM_TERROR;
-	}
-
-	int len = strlen(orig);
-	lbm_value lbm_res;
-	if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
-		for (int i = 0;i < len;i++) {
-			((char*)(arr->data))[i] = toupper(orig[i]);
-		}
-		((char*)(arr->data))[len] = '\0';
-		return lbm_res;
-	} else {
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
-	if (argn != 2 && argn != 3) {
-		lbm_set_error_reason((char*)lbm_error_str_num_args);
-		return ENC_SYM_EERROR;
-	}
-
-	char *str1 = lbm_dec_str(args[0]);
-	if (!str1) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *str2 = lbm_dec_str(args[1]);
-	if (!str2) {
-		return ENC_SYM_EERROR;
-	}
-
-	int n = -1;
-	if (argn == 3) {
-		if (!lbm_is_number(args[2])) {
-			return ENC_SYM_EERROR;
-		}
-
-		n = lbm_dec_as_i32(args[2]);
-	}
-
-	if (n > 0) {
-		return lbm_enc_i(strncmp(str1, str2, n));
-	} else {
-		return lbm_enc_i(strcmp(str1, str2));
-	}
-}
-
-// TODO: This is very similar to ext-print. Maybe they can share code.
-static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
-	const int str_len = 300;
-	char *str = lispif_malloc(str_len);
-	if (!str) {
-		return ENC_SYM_MERROR;
-	}
-
-	int str_ofs = 0;
-
-	for (lbm_uint i = 0; i < argn; i ++) {
-		lbm_value t = args[i];
-		int max = str_len - str_ofs - 1;
-
-		if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-			lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-			switch (array->elt_type){
-			case LBM_TYPE_CHAR: {
-				int chars = 0;
-				if (str_ofs == 0) {
-					chars = snprintf(str + str_ofs, max, "%s", (char*)array->data);
-				} else {
-					chars = snprintf(str + str_ofs, max, "%s%s", delimiter, (char*)array->data);
-				}
-				if (chars >= max) {
-					str_ofs += max;
-				} else {
-					str_ofs += chars;
-				}
-			} break;
-			default:
-				return ENC_SYM_NIL;
-				break;
-			}
-		} else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
-			int chars = 0;
-			if (str_ofs == 0) {
-				chars = snprintf(str + str_ofs, max, "%c", lbm_dec_char(t));
-			} else {
-				chars = snprintf(str + str_ofs, max, "%s%c", delimiter, lbm_dec_char(t));
-			}
-			if (chars >= max) {
-				str_ofs += max;
-			} else {
-				str_ofs += chars;
-			}
-		}  else {
-			lbm_print_value(print_val_buffer, 256, t);
-
-			int chars = 0;
-			if (str_ofs == 0) {
-				chars = snprintf(str + str_ofs, max, "%s", print_val_buffer);
-			} else {
-				chars = snprintf(str + str_ofs, max, "%s%s", delimiter, print_val_buffer);
-			}
-			if (chars >= max) {
-				str_ofs += max;
-			} else {
-				str_ofs += chars;
-			}
-		}
-	}
-
-	lbm_value res;
-	if (lbm_create_array(&res, LBM_TYPE_CHAR, str_ofs + 1)) {
-		lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-		strncpy((char*)arr->data, str, str_ofs + 1);
-		lispif_free(str);
-		return res;
-	} else {
-		lispif_free(str);
-		return ENC_SYM_MERROR;
-	}
-}
-
-static lbm_value ext_to_str(lbm_value *args, lbm_uint argn) {
-	return to_str(" ", args, argn);
-}
-
-static lbm_value ext_to_str_delim(lbm_value *args, lbm_uint argn) {
-	if (argn < 1) {
-		return ENC_SYM_EERROR;
-	}
-
-	char *delim = lbm_dec_str(args[0]);
-	if (!delim) {
-		return ENC_SYM_EERROR;
-	}
-
-	return to_str(delim, args + 1, argn - 1);
-}
-
-static lbm_value ext_str_len(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN(1);
-
-	char *str = lbm_dec_str(args[0]);
-	if (!str) {
-		return ENC_SYM_EERROR;
-	}
-
-	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-
-	return lbm_enc_i(strnlen(str, array->size));
-}
-
 // Configuration
 
 static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
@@ -3591,126 +2992,6 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	worker_execute(measure_res_task, &a);
 	lbm_block_ctx_from_extension();
 	return ENC_SYM_TRUE;
-}
-
-// Extra array extensions
-
-static lbm_value ext_bufclear(lbm_value *args, lbm_uint argn) {
-	lbm_value res = ENC_SYM_EERROR;
-
-	if ((argn != 1 && argn != 2 && argn != 3 && argn != 4) || !lbm_is_array(args[0])) {
-		return res;
-	}
-
-	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-	if (array->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
-
-	uint8_t clear_byte = 0;
-	if (argn >= 2) {
-		if (!lbm_is_number(args[1])) {
-			return res;
-		}
-		clear_byte = lbm_dec_as_u32(args[1]);
-	}
-
-	unsigned int start = 0;
-	if (argn >= 3) {
-		if (!lbm_is_number(args[2])) {
-			return res;
-		}
-		unsigned int start_new = lbm_dec_as_u32(args[2]);
-		if (start_new < array->size) {
-			start = start_new;
-		} else {
-			return res;
-		}
-	}
-
-	unsigned int len = array->size - start;
-	if (argn >= 4) {
-		if (!lbm_is_number(args[3])) {
-			return res;
-		}
-		unsigned int len_new = lbm_dec_as_u32(args[3]);
-		if (len_new <= len) {
-			len = len_new;
-		}
-	}
-
-	memset((char*)array->data + start, clear_byte, len);
-	res = ENC_SYM_TRUE;
-
-	return res;
-}
-
-static lbm_value ext_bufcpy(lbm_value *args, lbm_uint argn) {
-	lbm_value res = ENC_SYM_EERROR;
-
-	if (argn != 5 || !lbm_is_array(args[0]) || !lbm_is_number(args[1])
-			|| !lbm_is_array(args[2]) || !lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
-		return res;
-	}
-
-	lbm_array_header_t *array1 = (lbm_array_header_t *)lbm_car(args[0]);
-	if (array1->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
-
-	unsigned int start1 = lbm_dec_as_u32(args[1]);
-
-	lbm_array_header_t *array2 = (lbm_array_header_t *)lbm_car(args[2]);
-	if (array2->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
-
-	unsigned int start2 = lbm_dec_as_u32(args[3]);
-	unsigned int len = lbm_dec_as_u32(args[4]);
-
-	if (start1 < array1->size && start2 < array2->size) {
-		if (len > (array1->size - start1)) {
-			len = (array1->size - start1);
-		}
-		if (len > (array2->size - start2)) {
-			len = (array2->size - start2);
-		}
-
-		memcpy((char*)array1->data + start1, (char*)array2->data + start2, len);
-	}
-
-	res = ENC_SYM_TRUE;
-
-	return res;
-}
-
-static lbm_value ext_bufset_bit(lbm_value *args, lbm_uint argn) {
-	lbm_value res = ENC_SYM_EERROR;
-
-	if (argn != 3 || !lbm_is_array(args[0]) ||
-			!lbm_is_number(args[1]) || !lbm_is_number(args[2])) {
-		return res;
-	}
-
-	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-	if (array->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
-
-	unsigned int pos = lbm_dec_as_u32(args[1]);
-	unsigned int bit = lbm_dec_as_u32(args[2]) ? 1 : 0;
-
-	unsigned int bytepos = pos / 8;
-	unsigned int bitpos = pos % 8;
-
-	if (bytepos < array->size) {
-		((uint8_t*)array->data)[bytepos] &= ~(1 << bitpos);
-		((uint8_t*)array->data)[bytepos] |= (bit << bitpos);
-	}
-
-	res = ENC_SYM_TRUE;
-
-	return res;
 }
 
 static lbm_value make_list(int num, ...) {
@@ -4278,30 +3559,7 @@ static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn);
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn);
 
-// Event ringbuffer
-
-typedef enum {
-	EXT_EVENT_SYM = 0,
-	EXT_EVENT_SYM_INT,
-	EXT_EVENT_SYM_INT_INT,
-	EXT_EVENT_SYM_ARRAY,
-	EXT_EVENT_SYM_INT_ARRAY
-} EXT_EVENT_t;
-
-typedef struct {
-	EXT_EVENT_t type;
-	lbm_uint sym;
-	int32_t i;
-	int32_t i2;
-	char *array;
-	int32_t array_len;
-} ext_event;
-
-#define EVENT_BUFFER_LEN			20
-
 static thread_t *event_tp = NULL;
-static ext_event event_buffer[EVENT_BUFFER_LEN] = {0};
-static rb_t rb_events;
 static THD_WORKING_AREA(event_thread_wa, 256);
 
 // ICU
@@ -4310,126 +3568,33 @@ static volatile uint32_t icu_last_period = 0;
 static volatile bool icu_width_done = false;
 static volatile bool icu_period_done = false;
 
-static void event_add(ext_event e, uint8_t *opt_array, int opt_array_len) {
-	if (!event_handler_registered) {
-		return;
-	}
-
-	if (!rb_is_full(&rb_events)) {
-		if (opt_array != NULL) {
-			e.array = lispif_malloc(opt_array_len);
-			e.array_len = opt_array_len;
-			if (e.array == NULL) {
-				return;
-			}
-			memcpy(e.array, opt_array, opt_array_len);
-		}
-
-		if (!rb_insert(&rb_events, &e) && e.array != NULL) {
-			lispif_free(e.array);
-		}
-	}
-
-	chEvtSignal(event_tp, (eventmask_t) 1);
-}
-
 static THD_FUNCTION(event_thread, arg) {
 	(void)arg;
 	event_tp = chThdGetSelfX();
-	chRegSetThreadName("Lisp Events");
+	chRegSetThreadName("Event Helper");
 
 	for (;;) {
-		chEvtWaitAnyTimeout((eventmask_t)1, 1);
-
 		if (icu_width_done && event_icu_width_en) {
 			icu_width_done = false;
-			ext_event e = {0};
-			e.type = EXT_EVENT_SYM_INT_INT;
+			lbm_event_t e = {0};
+			e.type = LBM_EVENT_SYM_INT_INT;
 			e.sym = sym_event_icu_width;
 			e.i = icu_last_width;
 			e.i2 = icu_last_period;
-			event_add(e, NULL, 0);
+			lbm_event(e, NULL, 0);
 		}
 
 		if (icu_period_done && event_icu_period_en) {
 			icu_period_done = false;
-			ext_event e = {0};
-			e.type = EXT_EVENT_SYM_INT_INT;
+			lbm_event_t e = {0};
+			e.type = LBM_EVENT_SYM_INT_INT;
 			e.sym = sym_event_icu_period;
 			e.i = icu_last_width;
 			e.i2 = icu_last_period;
-			event_add(e, NULL, 0);
+			lbm_event(e, NULL, 0);
 		}
 
-		if (!event_handler_registered) {
-			rb_flush(&rb_events);
-			continue;
-		}
-
-		int event_cnt = rb_get_item_count(&rb_events);
-
-		if (event_cnt > 0) {
-			if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-				continue;
-			}
-
-			lispif_lock_lbm();
-			if (!pause_gc(10 * event_cnt, 1000)) {
-				lbm_continue_eval();
-				lispif_unlock_lbm();
-				continue;
-			}
-		} else {
-			continue;
-		}
-
-		while (!rb_is_empty(&rb_events) && event_handler_registered) {
-			ext_event e;
-			rb_pop(&rb_events, &e);
-
-			if (e.type == EXT_EVENT_SYM) {
-				lbm_send_message(event_handler_pid, lbm_enc_sym(e.sym));
-			} else if (e.type == EXT_EVENT_SYM_INT) {
-				lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), lbm_enc_i(e.i));
-				if (lbm_is_ptr(msg)) {
-					lbm_send_message(event_handler_pid, msg);
-				}
-			} else if (e.type == EXT_EVENT_SYM_INT_INT) {
-				lbm_value ints = lbm_cons(lbm_enc_i(e.i), lbm_enc_i(e.i2));
-				lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), ints);
-				if (lbm_is_ptr(ints) && lbm_is_ptr(msg)) {
-					lbm_send_message(event_handler_pid, msg);
-				}
-			} else if (e.type == EXT_EVENT_SYM_ARRAY) {
-				lbm_value val;
-				if (lbm_share_array(&val, e.array, LBM_TYPE_BYTE, e.array_len)) {
-					lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), val);
-					if (lbm_is_ptr(msg)) {
-						lbm_send_message(event_handler_pid, msg);
-					} else {
-						lispif_free(e.array);
-					}
-				} else {
-					lispif_free(e.array);
-				}
-			} else if (e.type == EXT_EVENT_SYM_INT_ARRAY) {
-				lbm_value val;
-				if (lbm_share_array(&val, e.array, LBM_TYPE_BYTE, e.array_len)) {
-					lbm_value msg_data = lbm_cons(lbm_enc_i32(e.i), val);
-					lbm_value msg = lbm_cons(lbm_enc_sym(e.sym), msg_data);
-					if (lbm_is_ptr(msg_data) && lbm_is_ptr(msg)) {
-						lbm_send_message(event_handler_pid, msg);
-					} else {
-						lispif_free(e.array);
-					}
-				} else {
-					lispif_free(e.array);
-				}
-			}
-		}
-
-		lbm_continue_eval();
-		lispif_unlock_lbm();
+		chThdSleepMilliseconds(1);
 	}
 }
 
@@ -4488,11 +3653,8 @@ void lispif_load_vesc_extensions(void) {
 	lispif_stop_lib();
 
 	if (event_tp == NULL) {
-		rb_init(&rb_events, event_buffer, sizeof(ext_event), EVENT_BUFFER_LEN);
 		chThdCreateStatic(event_thread_wa, sizeof(event_thread_wa), NORMALPRIO - 2, event_thread, NULL);
 	}
-
-	rb_flush(&rb_events);
 
 #ifdef HW_ADC_EXT_GPIO
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_ANALOG);
@@ -4536,7 +3698,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("systime", ext_systime);
 	lbm_add_extension("secs-since", ext_secs_since);
 	lbm_add_extension("set-aux", ext_set_aux);
-	lbm_add_extension("event-register-handler", ext_register_event_handler);
 	lbm_add_extension("event-enable", ext_enable_event);
 	lbm_add_extension("get-imu-rpy", ext_get_imu_rpy);
 	lbm_add_extension("get-imu-quat", ext_get_imu_quat);
@@ -4645,23 +3806,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-cmd", ext_can_cmd);
 
 	// Math
-	lbm_add_extension("sin", ext_sin);
-	lbm_add_extension("cos", ext_cos);
-	lbm_add_extension("tan", ext_tan);
-	lbm_add_extension("asin", ext_asin);
-	lbm_add_extension("acos", ext_acos);
-	lbm_add_extension("atan", ext_atan);
-	lbm_add_extension("atan2", ext_atan2);
-	lbm_add_extension("pow", ext_pow);
-	lbm_add_extension("sqrt", ext_sqrt);
-	lbm_add_extension("log", ext_log);
-	lbm_add_extension("log10", ext_log10);
-	lbm_add_extension("floor", ext_floor);
-	lbm_add_extension("ceil", ext_ceil);
-	lbm_add_extension("round", ext_round);
-	lbm_add_extension("deg2rad", ext_deg2rad);
-	lbm_add_extension("rad2deg", ext_rad2deg);
-	lbm_add_extension("vec3-rot", ext_vec3_rot);
 	lbm_add_extension("throttle-curve", ext_throttle_curve);
 
 	// Bit operations
@@ -4694,21 +3838,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("gpio-write", ext_gpio_write);
 	lbm_add_extension("gpio-read", ext_gpio_read);
 
-	// String manipulation
-	lbm_add_extension("str-from-n", ext_str_from_n);
-	lbm_add_extension("str-merge", ext_str_merge);
-	lbm_add_extension("str-to-i", ext_str_to_i);
-	lbm_add_extension("str-to-f", ext_str_to_f);
-	lbm_add_extension("str-part", ext_str_part);
-	lbm_add_extension("str-split", ext_str_split);
-	lbm_add_extension("str-replace", ext_str_replace);
-	lbm_add_extension("str-to-lower", ext_str_to_lower);
-	lbm_add_extension("str-to-upper", ext_str_to_upper);
-	lbm_add_extension("str-cmp", ext_str_cmp);
-	lbm_add_extension("to-str", ext_to_str);
-	lbm_add_extension("to-str-delim", ext_to_str_delim);
-	lbm_add_extension("str-len", ext_str_len);
-
 	// Configuration
 	lbm_add_extension("conf-set", ext_conf_set);
 	lbm_add_extension("conf-get", ext_conf_get);
@@ -4716,12 +3845,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
 	lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
 	lbm_add_extension("conf-measure-res", ext_conf_measure_res);
-
-	// Array extensions
-	lbm_array_extensions_init();
-	lbm_add_extension("bufclear", ext_bufclear);
-	lbm_add_extension("bufcpy", ext_bufcpy);
-	lbm_add_extension("bufset-bit", ext_bufset_bit);
 
 	// Macro expanders
 	lbm_add_extension("me-defun", ext_me_defun);
@@ -4768,6 +3891,11 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("gnss-date-time", ext_gnss_date_time);
 	lbm_add_extension("gnss-age", ext_gnss_age);
 
+	// Extra extensions
+	lbm_array_extensions_init();
+	lbm_math_extensions_init();
+	lbm_string_extensions_init();
+
 	if (ext_callback) {
 		ext_callback();
 	}
@@ -4782,11 +3910,11 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	ext_event e = {0};
-	e.type = EXT_EVENT_SYM_INT_ARRAY;
+	lbm_event_t e = {0};
+	e.type = LBM_EVENT_SYM_INT_ARRAY;
 	e.sym = is_ext ? sym_event_can_eid : sym_event_can_sid;
 	e.i = can_id;
-	event_add(e, data8, len);
+	lbm_event(e, data8, len);
 }
 
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
@@ -4794,10 +3922,10 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	ext_event e = {0};
-	e.type = EXT_EVENT_SYM_ARRAY;
+	lbm_event_t e = {0};
+	e.type = LBM_EVENT_SYM_ARRAY;
 	e.sym = sym_event_data_rx;
-	event_add(e, data, len);
+	lbm_event(e, data, len);
 }
 
 void lispif_process_shutdown(void) {
@@ -4805,10 +3933,10 @@ void lispif_process_shutdown(void) {
 		return;
 	}
 
-	ext_event e = {0};
-	e.type = EXT_EVENT_SYM;
+	lbm_event_t e = {0};
+	e.type = LBM_EVENT_SYM;
 	e.sym = sym_event_shutdown;
-	event_add(e, NULL, 0);
+	lbm_event(e, NULL, 0);
 }
 
 void lispif_set_ext_load_callback(void (*p_func)(void)) {
@@ -4817,7 +3945,6 @@ void lispif_set_ext_load_callback(void (*p_func)(void)) {
 
 void lispif_disable_all_events(void) {
 	lispif_stop_lib();
-	event_handler_registered = false;
 	event_can_sid_en = false;
 	event_can_eid_en = false;
 	event_icu_width_en = false;

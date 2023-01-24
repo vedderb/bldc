@@ -543,6 +543,7 @@ bool lispif_restart(bool print, bool load_code) {
 					print_stack_storage, PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
 			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+			lbm_eval_init_events(20);
 
 			lbm_set_timestamp_us_callback(timestamp_callback);
 			lbm_set_usleep_callback(sleep_callback);
@@ -565,6 +566,7 @@ bool lispif_restart(bool print, bool load_code) {
 					print_stack_storage, PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
 			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+			lbm_eval_init_events(20);
 		}
 
 		lbm_pause_eval();

@@ -6,8 +6,7 @@ CSRC += \
 	util/utils_math.c \
 	util/utils_sys.c \
 	util/worker.c \
-	util/lzo/minilzo.c \
-	util/rb.c
+	util/lzo/minilzo.c
 	
 INCDIR += \
 	util \

@@ -86,8 +86,8 @@ static THD_FUNCTION(lib_thd, arg) {
 	lib_thd_info *t = (lib_thd_info*)arg;
 	chRegSetThreadName(t->name);
 	t->func(t->arg);
-	lispif_free(t->w_mem);
-	lispif_free(t);
+	lbm_free(t->w_mem);
+	lbm_free(t);
 }
 
 static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
@@ -96,10 +96,10 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 		return 0;
 	}
 
-	void *mem = lispif_malloc(stack_size);
+	void *mem = lbm_malloc(stack_size);
 
 	if (mem) {
-		lib_thd_info *info = lispif_malloc(sizeof(lib_thd_info));
+		lib_thd_info *info = lbm_malloc(sizeof(lib_thd_info));
 
 		if (info) {
 			info->arg = arg;
@@ -557,7 +557,7 @@ static bool lib_eval_is_paused(void) {
 }
 
 static lib_mutex lib_mutex_create(void) {
-	mutex_t *m = lispif_malloc(sizeof(mutex_t));
+	mutex_t *m = lbm_malloc(sizeof(mutex_t));
 	chMtxObjectInit(m);
 	return (lib_mutex)m;
 }
@@ -656,8 +656,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.system_time = lib_system_time;
 		cif.cif.ts_to_age_s = lib_ts_to_age_s;
 		cif.cif.printf = commands_printf_lisp;
-		cif.cif.malloc = lispif_malloc;
-		cif.cif.free = lispif_free;
+		cif.cif.malloc = lbm_malloc;
+		cif.cif.free = lbm_free;
 		cif.cif.spawn = lib_spawn;
 		cif.cif.request_terminate = lib_request_terminate;
 		cif.cif.should_terminate = lib_should_terminate;
@@ -963,21 +963,6 @@ void lispif_stop_lib(void) {
 	}
 
 	lib_running_threads_cnt = 0;
-}
-
-void* lispif_malloc(size_t size) {
-	lbm_uint alloc_size;
-	if (size % sizeof(lbm_uint) == 0) {
-		alloc_size = size / (sizeof(lbm_uint));
-	} else {
-		alloc_size = (size / (sizeof(lbm_uint))) + 1;
-	}
-
-	return lbm_memory_allocate(alloc_size);
-}
-
-void lispif_free(void *ptr) {
-	lbm_memory_free(ptr);
 }
 
 float lispif_get_ppm(void) {
