@@ -611,7 +611,12 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     if (!peek) lbm_channel_drop(chan, (unsigned int)n);
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
-    lbm_heap_allocate_array(&res, (unsigned int)(string_len+1), LBM_TYPE_CHAR);
+    if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1), LBM_TYPE_CHAR)) {
+      // Should really be a tokenizer memory error.
+      // GC should run and tokenizer be retried.
+      // Needs some thinking on how to do that.
+      return lbm_enc_sym(TOKENIZER_ERROR);
+    }
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     char *data = (char *)arr->data;
     memset(data, 0, (string_len+1) * sizeof(char));

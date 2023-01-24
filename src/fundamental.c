@@ -1,6 +1,6 @@
 /*
-    Copyright 2019, 2021, 2022 Joel Svensson   svenssonjoel@yahoo.se
-                          2022 Benjamin Vedder
+    Copyright 2019, 2021, 2022, 2023 Joel Svensson   svenssonjoel@yahoo.se
+                          2022       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -1518,6 +1518,16 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
   return r_list;
 }
 
+static lbm_value fundamental_reg_event_handler(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void)ctx;
+  if (argn != 1 || !lbm_is_number(args[0])) {
+    return ENC_SYM_EERROR;
+  }
+
+  lbm_set_event_handler_pid((lbm_cid)lbm_dec_i(args[0]));
+  return ENC_SYM_TRUE;
+}
+
 const fundamental_fun fundamental_table[] =
   { fundamental_add,
     fundamental_sub,
@@ -1577,5 +1587,6 @@ const fundamental_fun fundamental_table[] =
     fundamental_list_length,
     fundamental_range,
     fundamental_num_not_eq,
-    fundamental_not_eq
+    fundamental_not_eq,
+    fundamental_reg_event_handler
   };

@@ -162,6 +162,25 @@ static lbm_value ext_sdl_draw_line(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_sdl_draw_point(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_EERROR;
+
+  if (argn == 3 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
+    lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
+    SDL_Renderer *rend = (SDL_Renderer*)m[CUSTOM_TYPE_VALUE];
+
+    int32_t x1 = lbm_dec_as_i32(args[1]);
+    int32_t y1 = lbm_dec_as_i32(args[2]);
+    res = ENC_SYM_TRUE;
+    if (SDL_RenderDrawPoint(rend, x1, y1)) {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+
 static lbm_value ext_sdl_clear(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = lbm_enc_sym(SYM_TRUE);
@@ -270,6 +289,7 @@ bool lbm_sdl_init(void) {
   res = res && lbm_add_extension("sdl-create-window",ext_sdl_create_window);
   res = res && lbm_add_extension("sdl-create-soft-renderer", ext_sdl_create_soft_renderer);
   res = res && lbm_add_extension("sdl-renderer-set-color", ext_sdl_renderer_set_color);
+  res = res && lbm_add_extension("sdl-draw-point", ext_sdl_draw_point);
   res = res && lbm_add_extension("sdl-draw-line", ext_sdl_draw_line);
   res = res && lbm_add_extension("sdl-clear", ext_sdl_clear);
   res = res && lbm_add_extension("sdl-present", ext_sdl_present);

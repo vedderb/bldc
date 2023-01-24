@@ -62,6 +62,23 @@ typedef struct eval_context_s{
   struct eval_context_s *next;
 } eval_context_t;
 
+typedef enum {
+  LBM_EVENT_SYM = 0,
+  LBM_EVENT_SYM_INT,
+  LBM_EVENT_SYM_INT_INT,
+  LBM_EVENT_SYM_ARRAY,
+  LBM_EVENT_SYM_INT_ARRAY,
+} lbm_event_type_t;
+
+typedef struct {
+  lbm_event_type_t type;
+  lbm_uint sym;
+  int32_t i;
+  int32_t i2;
+  char *array;
+  int32_t array_len;
+} lbm_event_t;
+
 /** Fundamental operation type */
 typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
 
@@ -93,7 +110,26 @@ int lbm_eval_init(void);
  *   \param quota The new quota.
  */
 void lbm_set_eval_step_quota(uint32_t quota);
-
+/** Initialize events
+ * \param num_events The maximum number of unprocessed events.
+ * \return true on success, false otherwise.
+ */
+bool lbm_eval_init_events(unsigned int num_events);
+/** Get the process ID for the current event handler.
+ * \return process ID on success and -1 if no event handler is registered.
+ */
+lbm_cid lbm_get_event_handler_pid(void);
+/** Set the event handler process ID.
+ * \param pid The ID of the process to which events should be sent
+ */
+void lbm_set_event_handler_pid(lbm_cid pid);
+/** Send an event to the registered event handler process.
+ * \param event The event to send to the registered handler.
+ * \param opt_array An optional array to pass to the event handler.
+ * \param opt_array_len Length of array mandatory if array is passed in.
+ * \return true if the event was successfully enqueued to be sent, false otherwise.
+ */
+bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
@@ -204,7 +240,7 @@ void lbm_blocked_iterator(ctx_fun f, void*, void*);
  * \param arg1 Pointer argument that can be used to convey information back to user.
  * \param arg2 Same as above
  */
-void lbm_sleeping_iterator(ctx_fun f, void *, void *);  
+void lbm_sleeping_iterator(ctx_fun f, void *, void *);
 /** toggle verbosity level of error messages
  */
 void lbm_toggle_verbose(void);

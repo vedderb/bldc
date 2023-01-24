@@ -1,5 +1,5 @@
 /*
-    Copyright 2018,2020 Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2023 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,6 +27,11 @@
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "extensions/math_extensions.h"
+#include "extensions/string_extensions.h"
+#include "extensions/runtime_extensions.h"
+#include "extensions/matvec_extensions.h"
+#include "extensions/random_extensions.h"
 #include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
@@ -194,6 +199,30 @@ LBM_EXTENSION(ext_numbers, args, argn) {
 }
 
 
+LBM_EXTENSION(ext_event_sym, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_symbol(args[0])) {
+    lbm_event_t e;
+    e.type = LBM_EVENT_SYM;
+    e.sym  = lbm_dec_sym(args[0]);
+    lbm_event(e, NULL, 0);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_array, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_symbol(args[0])) {
+    lbm_event_t e;
+    e.type = LBM_EVENT_SYM_ARRAY;
+    e.sym = lbm_dec_sym(args[0]);
+    lbm_event(e, "Hello world", 12);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 
 int main(int argc, char **argv) {
 
@@ -263,14 +292,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_12K);
+  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
   if (memory == NULL) return 0;
-  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_12K);
+  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
   if (bitmap == NULL) return 0;
 
 
-  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_12K,
-                        bitmap, LBM_MEMORY_BITMAP_SIZE_12K);
+  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_14K,
+                        bitmap, LBM_MEMORY_BITMAP_SIZE_14K);
   if (res)
     printf("Memory initialized.\n");
   else {
@@ -323,6 +352,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_eval_init_events(20);
+  if (res)
+    printf("Events initialized.\n");
+  else {
+    printf("Error initializing events.\n");
+    return 0;
+  }
+
   res = lbm_extensions_init(extension_storage, EXTENSION_STORAGE_SIZE);
   if (res)
     printf("Extensions initialized.\n");
@@ -331,7 +368,47 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_array_extensions_init();
+  if (lbm_array_extensions_init()) {
+    printf("Array extensions initialized.\n");
+  } else {
+    printf("Array extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_math_extensions_init()) {
+    printf("Math extensions initialized.\n");
+  } else {
+    printf("Math extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_string_extensions_init()) {
+    printf("String extensions initialized.\n");
+  } else {
+    printf("String extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_runtime_extensions_init()) {
+    printf("Runtime extensions initialized.\n");
+  } else {
+    printf("Runtime extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_matvec_extensions_init()) {
+    printf("Matvec extensions initialized.\n");
+  } else {
+    printf("Matvec extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_random_extensions_init()) {
+    printf("Random extensions initialized.\n");
+  } else {
+    printf("Random extensions failed.\n");
+    return 0;
+  }
 
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
@@ -350,6 +427,22 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("ext-numbers", ext_numbers);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-sym", ext_event_sym);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-array", ext_event_array);
   if (res)
     printf("Extension added.\n");
   else {
