@@ -986,7 +986,7 @@ can_status_msg_6 *comm_can_get_status_msg_6_id(int id) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
-	if (index < CAN_STATUS_MSGS_TO_STORE) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_1_4[index].id >= 0) {
 		return &io_board_adc_1_4[index];
 	} else {
 		return 0;
@@ -1008,7 +1008,7 @@ io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
-	if (index < CAN_STATUS_MSGS_TO_STORE) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_5_8[index].id >= 0) {
 		return &io_board_adc_5_8[index];
 	} else {
 		return 0;

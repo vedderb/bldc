@@ -129,11 +129,12 @@ static THD_FUNCTION(ppm_thread, arg) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();
 		float servo_val = servodec_get_servo(0);
-		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
 		if (ppm_detached) {
 			servo_val = ppm_override;
 		}
+
+		float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
 
 		static bool servoError = false;
 
