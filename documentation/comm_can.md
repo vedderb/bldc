@@ -11,6 +11,12 @@ The VESC Firmware supports 4 different CAN-modes, which can be selected from **A
 
 The default and recommended mode CAN-mode is **VESC**.
 
+## Timeout
+
+By default there is a timeout that stops the motor when nothing has been received on the CAN-bus for more than 0.5 seconds. The timeout value can be changed in VESC Tool under App Settings -> General. Settings it to 0 disables the timeout, but it is strongly recommended to not disable it in case something goes wrong with the communication link. There is also a timeout brake current that can be configured on that page that can be used to brake the motor when timeout occurs. By default it is 0, which just releases the motor.
+
+To prevent timeouts it is recommended to keep sending the desired commands over and over at a fixed rate, e.g. 50 Hz.
+
 ## VESC Mode
 
 The VESC CAN-mode supports basic commands that fit in a single CAN-frame as well as everything in https://github.com/vedderb/bldc/blob/master/comm/commands.c by splitting up the commands into multiple frames. The basic commands are described in this document. For a full and precise description of the protocol it is best to look at the source code https://github.com/vedderb/bldc/blob/master/comm/comm_can.c.
@@ -42,7 +48,7 @@ The following simple commands are available:
 | CAN_PACKET_SET_DUTY | 0 | 100000 | % / 100 | Duty Cycle | \-1.0 to 1.0 |
 | CAN_PACKET_SET_CURRENT | 1 | 1000 | A | Motor Current | \-MOTOR_MAX to MOTOR_MAX |
 | CAN_PACKET_SET_CURRENT_BRAKE | 2 | 1000 | A | Braking Current | \-MOTOR_MAX to MOTOR_MAX |
-| CAN_PACKET_SET_RPM | 3 | 1000 | RPM | RPM | \-MAX_RPM to MAX_RPM |
+| CAN_PACKET_SET_RPM | 3 | 1 | RPM | RPM | \-MAX_RPM to MAX_RPM |
 | CAN_PACKET_SET_POS | 4 | 1000000 | Degrees |  | 0 to 360 |
 | CAN_PACKET_SET_CURRENT_REL | 10 | 100000 | % / 100 |  | \-1.0 to 1.0 |
 | CAN_PACKET_SET_CURRENT_BRAKE_REL | 11 | 100000 | % / 100 |  | \-1.0 to 1.0 |
@@ -251,3 +257,8 @@ The content of the status messages is encoded as follows:
 | B2 - B3 | ADC2 | V | 1000 |
 | B4 - B5 | ADC3 | V | 1000 |
 | B6 - B7 | PPM | % / 100 | 1000 |
+
+## Frequently Asked Questions (FAQ)
+
+**What happends when sending commands outside of range?**  
+- When sending commands outside of range they will be truncated at the range limit. For example, if the maximum braking current is set to 50A and CAN_PACKET_SET_CURRENT_BRAKE is sent with 60A the value will be truncated and 50A will be used.
