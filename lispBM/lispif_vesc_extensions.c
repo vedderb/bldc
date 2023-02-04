@@ -2903,7 +2903,16 @@ static void detect_task(void *arg) {
 	detect_args *a = (detect_args*)arg;
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
 			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
-	lbm_unblock_ctx(a->id, lbm_enc_i(res));
+
+	lispif_lock_lbm();
+	if (pause_gc(5, 1000)) {
+		lbm_unblock_ctx(a->id, lbm_enc_i(res));
+	} else {
+		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	}
+
+	lbm_continue_eval();
+	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
