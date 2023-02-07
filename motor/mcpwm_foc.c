@@ -947,6 +947,17 @@ void mcpwm_foc_get_voltage_offsets_undriven(
 	*v2_offset = motor->m_conf->foc_offsets_voltage_undriven[2];
 }
 
+void mcpwm_foc_get_currents_adc(
+		float *ph0,
+		float *ph1,
+		float *ph2,
+		bool is_second_motor) {
+	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
+	*ph0 = motor->m_currents_adc[0];
+	*ph1 = motor->m_currents_adc[1];
+	*ph2 = motor->m_currents_adc[2];
+}
+
 /**
  * Produce an openloop rotating voltage.
  *
@@ -2575,17 +2586,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float curr1;
 
 		if (is_second_motor) {
-			curr0 = ((float)GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-			curr1 = ((float)GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+			curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
+			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
 			TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		} else {
-			curr0 = ((float)GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-			curr1 = ((float)GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
+			curr1 = (GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
 			TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		}
 #else
-		float curr0 = ((float)GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-		float curr1 = ((float)GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
+		float curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
 
 		TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #ifdef HW_HAS_DUAL_PARALLEL

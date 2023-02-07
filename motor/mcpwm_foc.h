@@ -113,6 +113,11 @@ void mcpwm_foc_get_voltage_offsets_undriven(
 		float *v1_offset,
 		float *v2_offset,
 		bool is_second_motor);
+void mcpwm_foc_get_currents_adc(
+		float *ph0,
+		float *ph1,
+		float *ph2,
+		bool is_second_motor);
 float mcpwm_foc_get_ts(void);
 bool mcpwm_foc_is_using_encoder(void);
 void mcpwm_foc_get_observer_state(float *x1, float *x2);

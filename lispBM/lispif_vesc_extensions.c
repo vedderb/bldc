@@ -1954,6 +1954,8 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
 
 	volatile float ofs1, ofs2, ofs3;
 	mcpwm_foc_get_current_offsets(&ofs1, &ofs2, &ofs3, motor == 2);
+	float ph1, ph2, ph3;
+	mcpwm_foc_get_currents_adc(&ph1, &ph2, &ph3, motor == 2);
 	float scale = FAC_CURRENT;
 
 	if (argn == 3 && lbm_dec_as_i32(args[2]) != 0) {
@@ -1961,26 +1963,11 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
 		ofs1 = 0.0; ofs2 = 0.0; ofs3 = 0.0;
 	}
 
-	if (motor == 1) {
-		switch(phase) {
-		case 1: return lbm_enc_float(((float)GET_CURRENT1() - ofs1) * scale);
-		case 2: return lbm_enc_float(((float)GET_CURRENT2() - ofs2) * scale);
-		case 3: return lbm_enc_float(((float)GET_CURRENT3() - ofs3) * scale);
-		default: return ENC_SYM_EERROR;
-		}
-	} else if (motor == 2) {
-#ifdef HW_HAS_DUAL_MOTORS
-		switch(phase) {
-		case 1: return lbm_enc_float(((float)GET_CURRENT1_M2() - ofs1) * scale);
-		case 2: return lbm_enc_float(((float)GET_CURRENT2_M2() - ofs2) * scale);
-		case 3: return lbm_enc_float(((float)GET_CURRENT3_M2() - ofs3) * scale);
-		default: return ENC_SYM_EERROR;
-		}
-#else
-		return ENC_SYM_EERROR;
-#endif
-	} else {
-		return ENC_SYM_EERROR;
+	switch(phase) {
+	case 1: return lbm_enc_float((ph1 - ofs1) * scale);
+	case 2: return lbm_enc_float((ph2 - ofs2) * scale);
+	case 3: return lbm_enc_float((ph3 - ofs3) * scale);
+	default: return ENC_SYM_EERROR;
 	}
 }
 
