@@ -218,17 +218,6 @@ static bool lbm_event_pop(lbm_event_t *event) {
   return true;
 }
 
-static unsigned int lbm_event_num(void) {
-  mutex_lock(&lbm_events_mutex);
-  unsigned int res = lbm_events_max;
-  if (!lbm_events_full) {
-    if (lbm_events_head >= lbm_events_tail) res = lbm_events_head - lbm_events_tail;
-    else res = lbm_events_max - lbm_events_tail + lbm_events_head;
-  }
-  mutex_unlock(&lbm_events_mutex);
-  return res;
-}
-
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
    resolution of the timer used for sleep operations.  If this is set
