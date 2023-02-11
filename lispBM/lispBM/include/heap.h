@@ -20,6 +20,7 @@
 #define HEAP_H_
 
 #include <string.h>
+#include <stdarg.h>
 
 #include "lbm_types.h"
 #include "symrepr.h"
@@ -310,7 +311,14 @@ lbm_value lbm_heap_allocate_cell(lbm_type type);
 lbm_value lbm_heap_allocate_list(unsigned int n);
 /** Allocate a list of n heap-cells and initialize the values.
  * \pram ls The result list is passed through this ptr.
- * \param m The length of list to allocate.
+ * \param n The length of list to allocate.
+ * \param valist The values in a va_list to initialize the list with.
+ * \return True of False depending on success of allocation.
+ */
+bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist);
+/** Allocate a list of n heap-cells and initialize the values.
+ * \pram ls The result list is passed through this ptr.
+ * \param n The length of list to allocate.
  * \param ... The values to initialize the list with.
  * \return True of False depending on success of allocation.
  */
@@ -738,12 +746,6 @@ static inline bool lbm_is_char(lbm_value x) {
 static inline bool lbm_is_special(lbm_value symrep) {
   return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(symrep) < SPECIAL_SYMBOLS_END));
-}
-
-static inline bool lbm_is_fundamental(lbm_value symrep) {
-  return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL)  &&
-          (lbm_dec_sym(symrep) >= FUNDAMENTALS_START) &&
-          (lbm_dec_sym(symrep) <= FUNDAMENTALS_END));
 }
 
 static inline bool lbm_is_closure(lbm_value exp) {

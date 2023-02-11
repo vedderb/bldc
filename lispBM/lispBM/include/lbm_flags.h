@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,18 +15,25 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUNTIME_EXTENSIONS_H_
-#define RUNTIME_EXTENSIONS_H_
+#ifndef LBM_FLAGS_H_
+#define LBM_FLAGS_H_
 
-#include <stdbool.h>
+#include <stdint.h>
+
+#define LBM_FLAG_ATOMIC_MALFUNCTION              (1 << 0)
+#define LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED   (1 << 1)
+#define LBM_FLAG_UNFLATTENING_FAILED             (1 << 2) 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-bool lbm_runtime_extensions_init(bool minimal);
+  
+extern uint32_t lbm_get_flags(void); 
+extern void lbm_set_flags(uint32_t flags);  
+extern void lbm_clr_flags(uint32_t flags);
 
 #ifdef __cplusplus
 }
-#endif
+#endif 
+
 #endif
