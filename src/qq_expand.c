@@ -59,8 +59,7 @@ extern int lbm_perform_gc(void);
 
 lbm_value quote_it(lbm_value qquoted) {
   if (lbm_is_symbol(qquoted) &&
-      (lbm_is_special(qquoted) ||
-       lbm_is_fundamental(qquoted))) return qquoted;
+      lbm_is_special(qquoted)) return qquoted;
 
   lbm_value val;
   WITH_GC_RMBR(val, lbm_cons(qquoted, ENC_SYM_NIL), 1, qquoted);

@@ -94,11 +94,11 @@ lbm_value lbm_enc_i64(int64_t x) {
 lbm_value lbm_enc_u64(uint64_t x) {
 #ifndef LBM64
   lbm_value res = lbm_enc_sym(SYM_MERROR);
-  lbm_uint* storage = lbm_memory_allocate(2);
+  uint8_t* storage = lbm_malloc(sizeof(uint64_t));
   if (storage) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_U_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      memcpy(storage,&x, 8);
+      memcpy(storage,&x, sizeof(uint64_t));
       res = lbm_set_ptr_type(res, LBM_TYPE_U64);
     }
   }
@@ -565,17 +565,19 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
   }
 }
 
-bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
+bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist) {
   if (n == 0) {
     *ls = ENC_SYM_NIL;
     return true;
   }
-  if (lbm_heap_num_free() < n) return false;
+  if (lbm_heap_num_free() < n) {
+    *ls = ENC_SYM_MERROR;
+    return false;
+  }
 
   lbm_value res = lbm_heap_state.freelist;
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    va_list valist;
-    va_start(valist, n);
+
     lbm_value curr = res;
     unsigned int count = 1;
     while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
@@ -592,6 +594,14 @@ bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
     return true;
   }
   return false;
+}
+
+bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
+    va_list valist;
+    va_start(valist, n);
+    bool r = lbm_heap_allocate_list_init_va(ls, n, valist);
+    va_end(valist);
+    return r;
 }
 
 lbm_uint lbm_heap_num_allocated(void) {

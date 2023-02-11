@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUNTIME_EXTENSIONS_H_
-#define RUNTIME_EXTENSIONS_H_
+#ifndef LOOP_EXTENSIONS_H_
+#define LOOP_EXTENSIONS_H_
 
 #include <stdbool.h>
 
@@ -24,7 +24,9 @@
 extern "C" {
 #endif
 
-bool lbm_runtime_extensions_init(bool minimal);
+extern const char *loop_extensions_dyn_load[4];
+
+bool lbm_loop_extensions_init(void);
 
 #ifdef __cplusplus
 }

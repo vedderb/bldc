@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,18 +15,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RUNTIME_EXTENSIONS_H_
-#define RUNTIME_EXTENSIONS_H_
+#include <lbm_flags.h>
 
-#include <stdbool.h>
+static volatile uint32_t lbm_flags;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-bool lbm_runtime_extensions_init(bool minimal);
-
-#ifdef __cplusplus
+uint32_t lbm_get_flags(void) {
+  return lbm_flags;
 }
-#endif
-#endif
+
+void lbm_set_flags(uint32_t flags) {
+  lbm_flags |= flags;
+}
+
+void lbm_clr_flags(uint32_t flags) {
+  lbm_flags &= ~flags;
+}

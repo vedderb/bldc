@@ -303,12 +303,11 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 }
 
 int lbm_memory_free(lbm_uint *ptr) {
-
   int r = 0;
   if (lbm_memory_ptr_inside(ptr)) {
     mutex_lock(&lbm_mem_mutex);
     lbm_uint ix = address_to_bitmap_ix(ptr);
-
+ 
     switch(status(ix)) {
     case START:
       set_status(ix, FREE_OR_USED);

@@ -20,6 +20,21 @@
 #include <eval_cps.h>
 #include <extensions.h>
 #include <lbm_utils.h>
+#include <lbm_version.h>
+
+static lbm_uint sym_heap_size;
+static lbm_uint sym_heap_bytes;
+static lbm_uint sym_num_alloc_cells;
+static lbm_uint sym_num_alloc_arrays;
+static lbm_uint sym_num_gc;
+static lbm_uint sym_num_gc_marked;
+static lbm_uint sym_num_gc_recovered_cells;
+static lbm_uint sym_num_gc_recovered_arrays;
+static lbm_uint sym_num_least_free;
+static lbm_uint sym_num_last_free;
+static lbm_uint sym_gc_time_acc;
+static lbm_uint sym_gc_time_min;
+static lbm_uint sym_gc_time_max;
 
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(1);
@@ -55,13 +70,89 @@ lbm_value ext_memory_word_size(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i((lbm_int)sizeof(lbm_uint));
 }
 
-bool lbm_runtime_extensions_init(void) {
+lbm_value ext_lbm_version(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  lbm_value version;
+  lbm_heap_allocate_list_init(&version, 3,
+                              lbm_enc_i(LBM_MAJOR_VERSION),
+                              lbm_enc_i(LBM_MINOR_VERSION),
+                              lbm_enc_i(LBM_PATCH_VERSION));
+  return version;
+}
+
+lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+
+  lbm_heap_state_t hs;
+  lbm_get_heap_state(&hs);
+
+  if (argn == 1 &&
+      lbm_is_symbol(args[0])) {
+    lbm_uint s = lbm_dec_sym(args[0]);
+    if (s == sym_heap_size) {
+      res = lbm_enc_u(hs.heap_size);
+    } else if (s == sym_heap_bytes) {
+      res = lbm_enc_u(hs.heap_bytes);
+    } else if (s == sym_num_alloc_cells) {
+      res = lbm_enc_u(hs.num_alloc);
+    } else if (s == sym_num_alloc_arrays) {
+      res = lbm_enc_u(hs.num_alloc_arrays);
+    } else if (s == sym_num_gc) {
+      res = lbm_enc_u(hs.gc_num);
+    } else if (s == sym_num_gc_marked) {
+      res = lbm_enc_u(hs.gc_marked);
+    } else if (s == sym_num_gc_recovered_cells) {
+      res = lbm_enc_u(hs.gc_recovered);
+    } else if (s == sym_num_gc_recovered_arrays) {
+      res = lbm_enc_u(hs.gc_recovered_arrays);
+    } else if (s == sym_num_least_free) {
+      res = lbm_enc_u(hs.gc_least_free);
+    } else if (s == sym_num_last_free) {
+      res = lbm_enc_u(hs.gc_last_free);
+    } else if (s == sym_gc_time_acc) {
+      res = lbm_enc_u(hs.gc_time_acc);
+    } else if (s == sym_gc_time_min) {
+      res = lbm_enc_u(hs.gc_min_duration);
+    } else if (s == sym_gc_time_max) {
+      res = lbm_enc_u(hs.gc_max_duration);
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+bool lbm_runtime_extensions_init(bool minimal) {
+
+  if (!minimal) {
+    lbm_add_symbol_const("get-heap-size", &sym_heap_size);
+    lbm_add_symbol_const("get-heap-bytes", &sym_heap_bytes);
+    lbm_add_symbol_const("get-num-alloc-cells", &sym_num_alloc_cells);
+    lbm_add_symbol_const("get-num-alloc-arrays", &sym_num_alloc_arrays);
+    lbm_add_symbol_const("get-gc-num", &sym_num_gc);
+    lbm_add_symbol_const("get-gc-num-marked", &sym_num_gc_marked);
+    lbm_add_symbol_const("get-gc-num-recovered-cells", &sym_num_gc_recovered_cells);
+    lbm_add_symbol_const("get-gc-num-recovered-arrays", &sym_num_gc_recovered_arrays);
+    lbm_add_symbol_const("get-gc-num-least-free", &sym_num_least_free);
+    lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
+    lbm_add_symbol_const("get-gc-time-acc", &sym_gc_time_acc);
+    lbm_add_symbol_const("get-gc-min-dur", &sym_gc_time_min);
+    lbm_add_symbol_const("get-gc-max-dur", &sym_gc_time_max);
+  }
 
   bool res = true;
-  res = res && lbm_add_extension("set-eval-quota", ext_eval_set_quota);
-  res = res && lbm_add_extension("mem-num-free", ext_memory_num_free);
-  res = res && lbm_add_extension("mem-longest-free", ext_memory_longest_free);
-  res = res && lbm_add_extension("mem-size", ext_memory_size);
-  res = res && lbm_add_extension("word-size", ext_memory_word_size);
+  if (minimal) {
+    res = res && lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+  } else {
+    res = res && lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+    res = res && lbm_add_extension("mem-num-free", ext_memory_num_free);
+    res = res && lbm_add_extension("mem-longest-free", ext_memory_longest_free);
+    res = res && lbm_add_extension("mem-size", ext_memory_size);
+    res = res && lbm_add_extension("word-size", ext_memory_word_size);
+    res = res && lbm_add_extension("lbm-version", ext_lbm_version);
+    res = res && lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
+  }
   return res;
 }

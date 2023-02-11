@@ -21,6 +21,7 @@
 #include "lbm_types.h"
 #include "stack.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,7 @@ extern "C" {
 
 #define EVAL_CPS_CONTEXT_FLAG_NOTHING       (uint32_t)0x0
 #define EVAL_CPS_CONTEXT_FLAG_TRAP          (uint32_t)0x1
-
+  
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -63,20 +64,15 @@ typedef struct eval_context_s{
 } eval_context_t;
 
 typedef enum {
-  LBM_EVENT_SYM = 0,
-  LBM_EVENT_SYM_INT,
-  LBM_EVENT_SYM_INT_INT,
-  LBM_EVENT_SYM_ARRAY,
-  LBM_EVENT_SYM_INT_ARRAY,
+  LBM_EVENT_FOR_HANDLER = 0,
+  LBM_EVENT_UNBLOCK_CTX,
 } lbm_event_type_t;
 
 typedef struct {
   lbm_event_type_t type;
-  lbm_uint sym;
-  int32_t i;
-  int32_t i2;
-  char *array;
-  int32_t array_len;
+  lbm_uint parameter; 
+  lbm_uint buf_ptr;
+  uint32_t buf_len;
 } lbm_event_t;
 
 /** Fundamental operation type */
@@ -129,7 +125,7 @@ void lbm_set_event_handler_pid(lbm_cid pid);
  * \param opt_array_len Length of array mandatory if array is passed in.
  * \return true if the event was successfully enqueued to be sent, false otherwise.
  */
-bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len);
+bool lbm_event(lbm_flat_value_t *fv);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
@@ -217,9 +213,9 @@ void lbm_block_ctx_from_extension(void);
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged
  * \param cid Lisp process to wake up.
- * \param result Value passed to the lisp process as the result from the blocking function.
+ * \param fv lbm_flat_value to give return as result from the unblocket process.
  */
-bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
+bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.

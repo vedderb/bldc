@@ -32,7 +32,9 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
+#include "extensions/loop_extensions.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #define WAIT_TIMEOUT 2500
 
@@ -107,50 +109,61 @@ void context_done_callback(eval_context_t *ctx) {
 
 bool dyn_load(const char *str, const char **code) {
 
+  size_t len = strlen(str);
   bool res = false;
-  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
+  if (len == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  }  else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+  }  else if (len == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
             "(range 0 n)))";
     res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
+  } else if (len == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
             "(let ((take-tail (lambda (acc n xs)"
             "(if (= n 0) acc"
             "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
     res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
+  } else if (len == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
             "(if (= n 0) xs"
             "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
+  } else if (len == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
             "(if (eq xs nil) nil"
             "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
     res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
+  } else if (len == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
             "(if (eq xs nil) nil"
             "(if (eq (car (car xs)) x)"
             "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
+  } else if (len == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
             "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
+  } else if (len == 5 && strncmp(str, "foldl", 5) == 0) {
     *code = "(define foldl (lambda (f i xs)"
             "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
     res = true;
   }
+
+
+  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0])); i ++) {
+    if (strncmp (str, loop_extensions_dyn_load[i]+8, len)  == 0) {
+      *code = loop_extensions_dyn_load[i];
+      res = true;
+      break;
+    }
+  }
+
   return res;
 }
 
@@ -202,11 +215,48 @@ LBM_EXTENSION(ext_numbers, args, argn) {
 LBM_EXTENSION(ext_event_sym, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM;
-    e.sym  = lbm_dec_sym(args[0]);
-    lbm_event(e, NULL, 0);
-    res = ENC_SYM_TRUE;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, lbm_dec_sym(args[0]));
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_float, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    float f = lbm_dec_as_float(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_float(&v, f);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_list_of_float, args, argn) {
+  LBM_CHECK_NUMBER_ALL();
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn >= 2) {
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8 + 5 * argn + 5)) {
+      for (int i = 0; i < argn; i ++) {
+        f_cons(&v);
+        float f = lbm_dec_as_float(args[i]);
+        f_float(&v, f);
+      }
+      f_sym(&v, SYM_NIL);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
@@ -214,11 +264,51 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
 LBM_EXTENSION(ext_event_array, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM_ARRAY;
-    e.sym = lbm_dec_sym(args[0]);
-    lbm_event(e, "Hello world", 12);
-    res = ENC_SYM_TRUE;
+    char *array = lbm_malloc(12);
+    array[0] = 'h';
+    array[1] = 'e';
+    array[2] = 'l';
+    array[3] = 'l';
+    array[4] = 'o';
+    array[5] = ' ';
+    array[6] = 'w';
+    array[7] = 'o';
+    array[8] = 'r';
+    array[9] = 'l';
+    array[10] = 'd';
+    array[11] = 0;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 25)) {
+      f_cons(&v);
+      f_sym(&v,lbm_dec_sym(args[0]));
+      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_block, args, argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_block_ctx_from_extension();
+  return ENC_SYM_NIL; //ignored
+}
+
+LBM_EXTENSION(ext_unblock, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, SYM_TRUE);
+      lbm_finish_flatten(&v);
+      lbm_unblock_ctx(c,&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
@@ -389,7 +479,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (lbm_runtime_extensions_init()) {
+  if (lbm_runtime_extensions_init(false)) {
     printf("Runtime extensions initialized.\n");
   } else {
     printf("Runtime extensions failed.\n");
@@ -407,6 +497,13 @@ int main(int argc, char **argv) {
     printf("Random extensions initialized.\n");
   } else {
     printf("Random extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_loop_extensions_init()) {
+    printf("Loop extensions initialized.\n");
+  } else {
+    printf("Loop extensions failed.\n");
     return 0;
   }
 
@@ -442,7 +539,40 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_add_extension("event-float", ext_event_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-list-of-float", ext_event_list_of_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
+
   res = lbm_add_extension("event-array", ext_event_array);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("block", ext_block);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("unblock", ext_unblock);
   if (res)
     printf("Extension added.\n");
   else {
