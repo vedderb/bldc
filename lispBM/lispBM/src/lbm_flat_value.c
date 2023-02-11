@@ -31,7 +31,7 @@ bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
 
   uint8_t *data = lbm_malloc(buffer_size);
   if (!data) return false;
-  
+
   v->buf = data;
   v->buf_size = buffer_size;
   v->buf_pos = 0;
@@ -208,13 +208,6 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
 #define UNFLATTEN_GC_RETRY      -1
 #define UNFLATTEN_OK             0
 
-
-static void flat_value_rewind(lbm_flat_value_t *v, unsigned int n) {
-  if (v->buf_pos >= n) {
-    v->buf_pos -= n;
-  }
-}
-
 /* Recursive and potentially stack hungry for large flat values */
 static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   if (v->buf_size == v->buf_pos) return false;
@@ -223,35 +216,19 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   switch(curr) {
   case S_CONS: {
     lbm_value a;
-    int r = lbm_unflatten_value_internal(v, &a);
-    if (r == UNFLATTEN_GC_RETRY) {
-      lbm_perform_gc();
-      r = lbm_unflatten_value_internal(v, &a);
-      if (r == UNFLATTEN_GC_RETRY) return UNFLATTEN_OUT_OF_MEMORY;
-    } else if (r < UNFLATTEN_GC_RETRY) {
-      return r;
-    }
-
     lbm_value b;
-    r = lbm_unflatten_value_internal(v, &b);
-    if (r == UNFLATTEN_GC_RETRY) {
-      lbm_gc_mark_phase(1, a);
-      lbm_perform_gc();
+    int r = lbm_unflatten_value_internal(v, &a);
+    if (r == UNFLATTEN_OK) {
       r = lbm_unflatten_value_internal(v, &b);
-      if (r == UNFLATTEN_GC_RETRY) return UNFLATTEN_OUT_OF_MEMORY;
-    } else if (r < UNFLATTEN_GC_RETRY) {
-      return r;
+      if (r == UNFLATTEN_OK) {
+        lbm_value c;
+        c = lbm_cons(a,b);
+        if (lbm_is_symbol_merror(c)) return UNFLATTEN_GC_RETRY;
+        *res = c;
+        r = UNFLATTEN_OK;
+      }
     }
-
-    lbm_value c = lbm_cons(a,b);
-    if (lbm_is_symbol_merror(c)) {
-      lbm_gc_mark_phase(2, a, b);
-      lbm_perform_gc();
-      c = lbm_cons(a,b);
-      if (lbm_is_symbol_merror(c)) return UNFLATTEN_OUT_OF_MEMORY;
-    }
-    *res = c;
-    return UNFLATTEN_OK;
+    return r;
   }
   case S_SYM_VALUE: {
     lbm_uint tmp;
@@ -294,7 +271,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
-  }  
+  }
   case S_FLOAT_VALUE: {
     lbm_uint tmp;
     if (extract_word(v, &tmp)) {
@@ -302,7 +279,6 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       memcpy(&f, &tmp, sizeof(float));
       lbm_value im  = lbm_enc_float(f);
       if (lbm_is_symbol_merror(im)) {
-        flat_value_rewind(v, 5);
         return UNFLATTEN_GC_RETRY;
       }
       *res = im;
@@ -315,7 +291,6 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     if (extract_word(v, &tmp)) {
       lbm_value im = lbm_enc_i32((int32_t)tmp);
       if (lbm_is_symbol_merror(im)) {
-        flat_value_rewind(v,5);
         return UNFLATTEN_GC_RETRY;
       }
       *res = im;
@@ -328,7 +303,6 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     if (extract_word(v, &tmp)) {
       lbm_value im = lbm_enc_u32(tmp);
       if (lbm_is_symbol_merror(im)) {
-        flat_value_rewind(v,5);
         return UNFLATTEN_GC_RETRY;
       }
       *res = im;
@@ -341,7 +315,6 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     if (extract_dword(v, &tmp)) {
       lbm_value im = lbm_enc_i64((int32_t)tmp);
       if (lbm_is_symbol_merror(im)) {
-        flat_value_rewind(v,9);
         return UNFLATTEN_GC_RETRY;
       }
       *res = im;
@@ -354,10 +327,9 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     if (extract_dword(v, &tmp)) {
       lbm_value im = lbm_enc_u64(tmp);
       if (lbm_is_symbol_merror(im)) {
-        flat_value_rewind(v,9);
         return UNFLATTEN_GC_RETRY;
       }
-      *res = im;      
+      *res = im;
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
@@ -376,11 +348,10 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
         lbm_uint ptr;
 #ifndef LBM64
         b = extract_word(v,&ptr);
-#else 
+#else
         b = extract_dword(v,&ptr);
 #endif
         if (!lbm_lift_array(res, (char*)ptr, t, num_elt)) {
-          flat_value_rewind(v, 1 + 2 * sizeof(lbm_uint));
           return UNFLATTEN_GC_RETRY;
         }
         return UNFLATTEN_OK;
@@ -398,6 +369,7 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   int r = lbm_unflatten_value_internal(v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();
+    v->buf_pos = 0;
     r = lbm_unflatten_value_internal(v,res);
   }
   if (r == UNFLATTEN_MALFORMED) {
@@ -407,7 +379,7 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
     *res = ENC_SYM_MERROR;
   } else {
     b = true;
-  }  
+  }
   lbm_free(v->buf);
   return b;
 }
