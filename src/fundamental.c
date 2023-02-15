@@ -235,6 +235,7 @@ static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
 
 void fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   lbm_uint sum = lbm_enc_u(0);
+
   for (lbm_uint i = 0; i < nargs; i ++) {
     lbm_value val = args[i];
     if (!lbm_is_number(val)) {

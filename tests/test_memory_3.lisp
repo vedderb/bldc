@@ -1,6 +1,6 @@
 
 
-(def n (* 4 (mem-longest-free)))
+(def n (* (word-size) (mem-longest-free)))
 
 (def a (array-create (- n 1500)))
 

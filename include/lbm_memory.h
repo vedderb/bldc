@@ -112,7 +112,7 @@ extern "C" {
 #define LBM_MEMORY_BITMAP_SIZE_16K LBM_MEMORY_BITMAP_SIZE(256)
 #define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
 #define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
-  
+
 /** Initialize the symbols and arrays memory
  *
  * \param data Pointer to an array of uint32_t for data storage.
@@ -154,6 +154,11 @@ int lbm_memory_free(lbm_uint *ptr);
  * \return Pointer to array or NULL.
  */
 void* lbm_malloc(size_t size);
+/** Allocate memory potentially from the reserved memory.
+ * \param size Size in bytes of memory to allocate.
+ * \return Pointer to array or NULL.
+ */
+void* lbm_malloc_reserve(size_t size);
 /** Free memory allocated with lbm_malloc
  * \param Pointer to array to free
  */

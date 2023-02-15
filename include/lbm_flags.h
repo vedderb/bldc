@@ -22,7 +22,8 @@
 
 #define LBM_FLAG_ATOMIC_MALFUNCTION              (1 << 0)
 #define LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED   (1 << 1)
-#define LBM_FLAG_UNFLATTENING_FAILED             (1 << 2) 
+#define LBM_FLAG_UNFLATTENING_FAILED             (1 << 2)
+#define LBM_FLAG_BLOCKED_NOT_FOUND               (1 << 3)
 
 #ifdef __cplusplus
 extern "C" {
