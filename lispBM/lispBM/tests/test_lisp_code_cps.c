@@ -216,7 +216,7 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
     lbm_flat_value_t v;
-    if (lbm_start_flatten(&v, 8)) {
+    if (lbm_start_flatten(&v, 1 + sizeof(lbm_uint))) {
       f_sym(&v, lbm_dec_sym(args[0]));
       lbm_finish_flatten(&v);
       lbm_event(&v);
@@ -231,7 +231,7 @@ LBM_EXTENSION(ext_event_float, args, argn) {
   if (argn == 1 && lbm_is_number(args[0])) {
     float f = lbm_dec_as_float(args[0]);
     lbm_flat_value_t v;
-    if (lbm_start_flatten(&v, 8)) {
+    if (lbm_start_flatten(&v, 1 + sizeof(float))) {
       f_float(&v, f);
       lbm_finish_flatten(&v);
       lbm_event(&v);
@@ -246,7 +246,7 @@ LBM_EXTENSION(ext_event_list_of_float, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn >= 2) {
     lbm_flat_value_t v;
-    if (lbm_start_flatten(&v, 8 + 5 * argn + 5)) {
+    if (lbm_start_flatten(&v, 8 + ((1 + sizeof(lbm_uint) * argn) + (1 + sizeof(lbm_uint))))) {
       for (int i = 0; i < argn; i ++) {
         f_cons(&v);
         float f = lbm_dec_as_float(args[i]);
@@ -278,7 +278,7 @@ LBM_EXTENSION(ext_event_array, args, argn) {
     array[10] = 'd';
     array[11] = 0;
     lbm_flat_value_t v;
-    if (lbm_start_flatten(&v, 25)) {
+    if (lbm_start_flatten(&v, 100)) {
       f_cons(&v);
       f_sym(&v,lbm_dec_sym(args[0]));
       f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);

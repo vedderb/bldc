@@ -124,6 +124,11 @@ static int gc(void);
 void error_ctx(lbm_value);
 eval_context_t *ctx_running = NULL;
 
+static volatile bool gc_requested = false;
+void lbm_request_gc(void) {
+  gc_requested = true;
+}
+
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_cons(head, tail);
   if (lbm_is_symbol_merror(res)) {
@@ -154,6 +159,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
 #define EVAL_CPS_MIN_SLEEP 200
 
 #define EVAL_STEPS_QUOTA   10
+
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
 
@@ -165,6 +171,41 @@ static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;
+
+static void usleep_nonsense(uint32_t us) {
+  (void) us;
+}
+
+static void (*usleep_callback)(uint32_t) = usleep_nonsense;
+static uint32_t (*timestamp_us_callback)(void) = NULL;
+static void (*ctx_done_callback)(eval_context_t *) = NULL;
+static int (*printf_callback)(const char *, ...) = NULL;
+static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
+static void (*reader_done_callback)(lbm_cid cid) = NULL;
+
+void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
+  usleep_callback = fptr;
+}
+
+void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
+  timestamp_us_callback = fptr;
+}
+
+void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
+  ctx_done_callback = fptr;
+}
+
+void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
+  printf_callback = fptr;
+}
+
+void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
+  dynamic_load_callback = fptr;
+}
+
+void lbm_set_reader_done_callback(void (*fptr)(lbm_cid)) {
+  reader_done_callback = fptr;
+}
 
 static volatile lbm_event_t *lbm_events = NULL;
 static unsigned int lbm_events_head = 0;
@@ -198,10 +239,24 @@ static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_
   return true;
 }
 
+bool lbm_event_unboxed(lbm_value unboxed) {
+  lbm_uint t = lbm_type_of(unboxed);
+  if (t == LBM_TYPE_SYMBOL ||
+      t == LBM_TYPE_I ||
+      t == LBM_TYPE_U ||
+      t == LBM_TYPE_CHAR) {
+    if (lbm_event_handler_pid > 0) {
+      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
+    }
+  }
+  return false;
+}
+
 bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
+  lbm_free(fv->buf);
   return false;
 }
 
@@ -250,17 +305,6 @@ static eval_context_queue_t queue    = {NULL, NULL};
 mutex_t qmutex;
 bool    qmutex_initialized = false;
 
-static void usleep_nonsense(uint32_t us) {
-  (void) us;
-}
-
-static void (*usleep_callback)(uint32_t) = usleep_nonsense;
-static uint32_t (*timestamp_us_callback)(void) = NULL;
-static void (*ctx_done_callback)(eval_context_t *) = NULL;
-static int (*printf_callback)(const char *, ...) = NULL;
-static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
-static void (*reader_done_callback)(lbm_cid cid) = NULL;
-
 static bool lbm_verbose = false;
 
 void lbm_toggle_verbose(void) {
@@ -269,30 +313,6 @@ void lbm_toggle_verbose(void) {
 
 void lbm_set_verbose(bool verbose) {
   lbm_verbose = verbose;
-}
-
-void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
-  usleep_callback = fptr;
-}
-
-void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
-  timestamp_us_callback = fptr;
-}
-
-void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
-  ctx_done_callback = fptr;
-}
-
-void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
-  printf_callback = fptr;
-}
-
-void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
-  dynamic_load_callback = fptr;
-}
-
-void lbm_set_reader_done_callback(void (*fptr)(lbm_cid)) {
-  reader_done_callback = fptr;
 }
 
 lbm_cid lbm_get_current_cid(void) {
@@ -347,12 +367,11 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
-  lbm_uint* buf32 = lbm_memory_allocate(ERROR_MESSAGE_BUFFER_SIZE_BYTES / (sizeof(lbm_uint)));
-  if (!buf32) {
+  char *buf = lbm_malloc_reserve(ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+  if (!buf) {
     printf_callback("Error: Not enough free memory to create a human readable error message\n");
     return;
   }
-  char *buf = (char*)buf32;
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback("***\tError:\t%s\n", buf);
@@ -390,7 +409,7 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
       printf_callback("\t\t%s\n", buf);
     }
   }
-  lbm_memory_free(buf32);
+  lbm_free(buf);
 }
 
 /****************************************************/
@@ -504,7 +523,7 @@ static eval_context_t *enqueue_dequeue_ctx(eval_context_queue_t *q, eval_context
   if (q->first == q->last) { // nothing in q or 1 thing
     q->first = ctx;
     q->last  = ctx;
-  } else {
+   } else {
     q->first = q->first->next;
     q->first->prev = NULL;
     if (ctx != NULL) {
@@ -910,6 +929,22 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
+bool lbm_force_unblock(lbm_cid cid, bool r_val) {
+  bool r = false;
+  lbm_value v = r_val ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
+  found = lookup_ctx_nm(&blocked, cid);
+  if (found) {
+    drop_ctx_nm(&blocked,found);
+    found->r = v;
+    enqueue_ctx_nm(&queue,found);
+    r = true;
+  }
+  mutex_unlock(&qmutex);
+  return r;
+}
+
 void lbm_block_ctx_from_extension(void) {
   blocking_extension = true;
 }
@@ -1067,6 +1102,7 @@ static int gc(void) {
     tstart = timestamp_us_callback();
   }
 
+  gc_requested = false;
   lbm_gc_state_inc();
 
   lbm_value *variables = lbm_get_variable_table();
@@ -2689,6 +2725,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
 
     lbm_value array;
     if (!lbm_heap_allocate_array(&array, initial_size, t)) {
+      lbm_set_error_reason("Out of memory while reading.");
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
@@ -2701,6 +2738,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
     if (!lbm_heap_allocate_array(&array, initial_size, LBM_TYPE_CHAR)) {
+      lbm_set_error_reason("Out of memory while reading.");
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
@@ -3226,31 +3264,34 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
-static void handle_event_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
+static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
 
-  lbm_value v;
-  bool b = lbm_unflatten_value(fv, &v);
-
   found = lookup_ctx(&blocked, cid);
-  if (found) {    
+  if (found) {
     drop_ctx(&blocked,found);
     found->r = v;
     enqueue_ctx(&queue,found);
     return;
   }
-  if (!b)
-    lbm_set_flags(LBM_FLAG_UNFLATTENING_FAILED);
 }
 
-static void handle_event_for_handler(lbm_flat_value_t *fv) {
-
-  lbm_value v;
-  if (lbm_unflatten_value(fv, &v)) {
-    lbm_find_receiver_and_send(lbm_event_handler_pid, v);
+static lbm_value get_event_value(lbm_event_t *e) {
+ lbm_value v;
+  if (e->buf_len > 0) {
+    lbm_flat_value_t fv;
+    fv.buf = (uint8_t*)e->buf_ptr;
+    fv.buf_size = e->buf_len;
+    fv.buf_pos = 0;
+    if (!lbm_unflatten_value(&fv, &v)) {
+      lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
+      v = ENC_SYM_EERROR;
+    }
+    lbm_free(fv.buf);
   } else {
-    lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
+    v = (lbm_value)e->buf_ptr;
   }
+  return v;
 }
 
 static void process_events(void) {
@@ -3259,18 +3300,17 @@ static void process_events(void) {
   lbm_event_t e;
 
   while (lbm_event_pop(&e)) {
-    lbm_flat_value_t fv;
-    fv.buf = (uint8_t*)e.buf_ptr;
-    fv.buf_size = e.buf_len;
-    fv.buf_pos = 0;
 
+    lbm_value event_val = get_event_value(&e);
     switch(e.type) {
     case LBM_EVENT_UNBLOCK_CTX:
-      handle_event_unblock_ctx((lbm_cid)e.parameter,&fv);
+      handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
       break;
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
-        handle_event_for_handler(&fv);
+        lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
+      } else {
+
       }
       break;
     }
@@ -3322,6 +3362,9 @@ void lbm_run_eval(void){
             is_atomic = false;
           }
         } else {
+          if (gc_requested) {
+            gc();
+          }
           process_events();
           next_to_run = dequeue_ctx(&sleeping, &us);
         }
@@ -3379,7 +3422,7 @@ int lbm_eval_init() {
 
   mutex_unlock(&lbm_events_mutex);
   mutex_unlock(&qmutex);
-  
+
   *lbm_get_env_ptr() = ENC_SYM_NIL;
   eval_running = true;
 

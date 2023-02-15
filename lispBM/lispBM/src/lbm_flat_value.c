@@ -41,17 +41,18 @@ bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
 bool lbm_finish_flatten(lbm_flat_value_t *v) {
 
   lbm_uint size_words;
+
   if (v->buf_pos % sizeof(lbm_uint) == 0) {
     size_words = v->buf_pos / sizeof(lbm_uint);
   } else {
     size_words = (v->buf_pos / sizeof(lbm_uint)) + 1;
   }
 
-  return ( lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
+  return (lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
 }
 
 static bool write_byte(lbm_flat_value_t *v, uint8_t b) {
-  if (v->buf_size > v->buf_pos + 1) {
+  if (v->buf_size >= v->buf_pos + 1) {
     v->buf[v->buf_pos++] = b;
     return true;
   }
@@ -60,7 +61,7 @@ static bool write_byte(lbm_flat_value_t *v, uint8_t b) {
 
 static bool write_word(lbm_flat_value_t *v, uint32_t w) {
 
-  if (v->buf_size > v->buf_pos + 4) {
+  if (v->buf_size >= v->buf_pos + 4) {
     v->buf[v->buf_pos++] = (uint8_t)(w >> 24);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 16);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 8);
@@ -71,7 +72,7 @@ static bool write_word(lbm_flat_value_t *v, uint32_t w) {
 }
 
 static bool write_dword(lbm_flat_value_t *v, uint64_t w) {
-  if (v->buf_size > v->buf_pos + 8) {
+  if (v->buf_size >= v->buf_pos + 8) {
     v->buf[v->buf_pos++] = (uint8_t)(w >> 56);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 48);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 40);
@@ -86,7 +87,7 @@ static bool write_dword(lbm_flat_value_t *v, uint64_t w) {
 }
 
 bool f_cons(lbm_flat_value_t *v) {
-  if (v->buf_size > v->buf_pos + 1) {
+  if (v->buf_size >= v->buf_pos + 1) {
     v->buf[v->buf_pos++] = S_CONS;
     return true;
   }
@@ -174,7 +175,7 @@ bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_elts, lbm_uint t, uint8_t *da
 // ------------------------------------------------------------
 // Unflattening
 static bool extract_word(lbm_flat_value_t *v, uint32_t *r) {
-  if (v->buf_size > v->buf_pos + 4) {
+  if (v->buf_size >= v->buf_pos + 4) {
     uint32_t tmp = 0;
     tmp |= (lbm_value)v->buf[v->buf_pos++];
     tmp = tmp << 8 | (uint32_t)v->buf[v->buf_pos++];
@@ -187,7 +188,7 @@ static bool extract_word(lbm_flat_value_t *v, uint32_t *r) {
 }
 
 static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
-  if (v->buf_size > v->buf_pos + 8) {
+  if (v->buf_size >= v->buf_pos + 8) {
     uint64_t tmp = 0;
     tmp |= (lbm_value)v->buf[v->buf_pos++];
     tmp = tmp << 8 | (uint64_t)v->buf[v->buf_pos++];
