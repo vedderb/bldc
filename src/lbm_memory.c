@@ -44,7 +44,7 @@ static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit 
 static lbm_uint bitmap_size;  // in 4 or 8 byte words
 static lbm_uint memory_base_address = 0;
 static lbm_uint memory_num_free = 0;
-static lbm_uint memory_reserve_level = 0;
+static volatile lbm_uint memory_reserve_level = 0;
 static mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
 
@@ -80,11 +80,19 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     memory_base_address = (lbm_uint)data;
     memory_size = data_size;
     memory_num_free = data_size;
-    memory_reserve_level = (lbm_uint)(0.2 * data_size);
+    memory_reserve_level = (lbm_uint)(0.1 * data_size);
     res = 1;
   }
   mutex_unlock(&lbm_mem_mutex);
   return res;
+}
+
+void lbm_memory_set_reserve(lbm_uint num_words) {
+  memory_reserve_level = num_words;
+}
+
+lbm_uint lbm_memory_get_reserve(void) {
+  return memory_reserve_level;
 }
 
 static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
