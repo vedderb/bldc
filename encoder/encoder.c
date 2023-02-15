@@ -370,7 +370,7 @@ float encoder_read_deg(void) {
 		return AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
 	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		return BISSC_LAST_ANGLE(&encoder_cfg_bissc);
-	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
+	} else if (m_encoder_type_now == ENCODER_TYPE_CUSTOM) {
 		if (m_enc_custom_read_deg) {
 			return m_enc_custom_read_deg();
 		} else {
