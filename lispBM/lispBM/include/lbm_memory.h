@@ -53,23 +53,23 @@
    - Memory space is a multiple of 64Bytes.
    - Memory status bitmap is the same multiple of 4Bytes.
 
-  Number of bits in an offset from the base_address 
+  Number of bits in an offset from the base_address
   MEMORY_SIZE_512  => 9
   MEMORY_SIZE_1K   => 10
-  MEMORY_SIZE_2K   => 11 
+  MEMORY_SIZE_2K   => 11
   MEMORY_SIZE_1M   => 20
   MEMORY_SIZE_16M  => 24
   MEMORY_SIZE_32M  => 25
   MEMORY_SIZE_64M  => 26
   MEMORY_SIZE_128M => 27
   MEMORY_SIZE_256M => 28
-  
+
   However, due to alignment on a address multiple of 4, the 2 least
   significant bits are zeroes. So an offset into memory of size up to
   1GB should be possible to represent within a lispBM VALUE. This that
   using the offset into memory could be used as the identity of a
-  symbol when it comes to replacing the symbol table. 
-   
+  symbol when it comes to replacing the symbol table.
+
 */
 #ifndef _LISPBM_MEMORY_H_
 #define _LISPBM_MEMORY_H_
@@ -123,9 +123,18 @@ extern "C" {
  */
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                            lbm_uint *bitmap, lbm_uint bitmap_size);
+
+/** Set the size of the memory reserve in words.
+ * \param num_words Number of words to treat as reserve.
+ */
+void lbm_memory_set_reserve(lbm_uint num_words);
+  /** Get the number of words of memory that is treated as reserve.
+   *\return Number of words that are reserved
+   */
+lbm_uint lbm_memory_get_reserve(void);
 /** Size of of the symbols and arrays memory in uint32_t chunks.
  *
- * \return Numberof uint32_t words.
+ * \return Number of uint32_t words.
  */
 lbm_uint lbm_memory_num_words(void);
 /**
