@@ -583,15 +583,29 @@ static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t
 static lbm_value fundamental_sub(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
 
-  lbm_uint res = nargs == 0 ? lbm_enc_u(0) : args[0];
-  if (nargs == 1) {
-    res = negate(res);
-  } else {
-    for (lbm_uint i = 1; i < nargs; i ++) {
-      res = sub2(res, args[i]);
-      if (lbm_type_of(res) == LBM_TYPE_SYMBOL)
-        break;
-    }
+  lbm_uint res;
+
+  switch (nargs) {
+  case 0:
+      res = lbm_enc_u(0);
+      break;
+
+  case 1:
+      res = negate(args[0]);
+      break;
+
+  case 2:
+      res = sub2(args[0], args[1]);
+      break;
+
+  default:
+      res = args[0];
+      for (lbm_uint i = 1; i < nargs; i ++) {
+          res = sub2(res, args[i]);
+          if (lbm_type_of(res) == LBM_TYPE_SYMBOL)
+              break;
+      }
+      break;
   }
   return res;
 }
