@@ -29,6 +29,8 @@
 #elif defined(HW60_IS_MK6)
 #ifdef HW60_IS_HP
 #define HW_NAME					"60_MK6_HP"
+#elif defined(HW60_IS_MAX)
+#define HW_NAME					"60_MK6_MAX"
 #else
 #define HW_NAME					"60_MK6"
 #endif
@@ -79,8 +81,13 @@
 
 // Sensor port voltage control
 #if defined(HW60_IS_MK6)
+#ifdef HW60_IS_MAX
+#define SENSOR_VOLTAGE_GPIO		GPIOC
+#define SENSOR_VOLTAGE_PIN		14
+#else
 #define SENSOR_VOLTAGE_GPIO		GPIOA
 #define SENSOR_VOLTAGE_PIN		4
+#endif
 #define SENSOR_PORT_5V()		palSetPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
 #define SENSOR_PORT_3V3()		palClearPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
 #endif
@@ -294,7 +301,7 @@
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
-#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
+#if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_MK6)
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
 #define NRF_PIN_CSN				12

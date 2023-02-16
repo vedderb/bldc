@@ -145,6 +145,14 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 #endif
 
+#if defined(HW60_IS_MK6) && defined(HW60_IS_MAX)
+	// DAC as voltage reference for shunt amps
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+	DAC->CR |= DAC_CR_EN1;
+	DAC->DHR12R1 = 2047;
+#endif
+
 	drv8301_init();
 
 #if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)

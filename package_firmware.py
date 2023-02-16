@@ -38,6 +38,7 @@ package_dict["60_MK5"] = [['60_mk5', default_name],
                     ['60_mk5_no_limits', no_limits_name]]
 package_dict["60_MK6"] = [['60_mk6', default_name],
                     ['60_mk6_no_limits', no_limits_name]]
+package_dict["60_MK6_MAX"] = [['60_mk6_max', default_name]]
 package_dict["DAS_RS"] = [['das_rs', default_name]]
 package_dict["75_300"] = [['75_300', default_name],
                     ['75_300_no_limits', no_limits_name]]
