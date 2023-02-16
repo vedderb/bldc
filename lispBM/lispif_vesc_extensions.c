@@ -3919,6 +3919,7 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
 			lbm_finish_flatten(&v);
 			if (!lbm_event(&v)) {
+				lbm_free(arr);
 				lbm_free(v.buf);
 			}
 		} else {
@@ -3943,6 +3944,7 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
 			lbm_finish_flatten(&v);
 			if (!lbm_event(&v)) {
+				lbm_free(arr);
 				lbm_free(v.buf);
 			}
 		} else {
