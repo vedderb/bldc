@@ -2882,12 +2882,7 @@ static void detect_task(void *arg) {
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
 			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
 
-	lbm_flat_value_t v;
-	if (lbm_start_flatten(&v, 10)) {
-		f_i(&v, res);
-		lbm_finish_flatten(&v);
-		lbm_unblock_ctx(a->id, &v);
-	}
+	lbm_unblock_ctx_unboxed(a->id, lbm_enc_i(res));
 }
 
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
@@ -2900,8 +2895,8 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	a.openloop_rpm = lbm_dec_as_float(args[4]);
 	a.sl_erpm = lbm_dec_as_float(args[5]);
 	a.id = lbm_get_current_cid();
-	worker_execute(detect_task, &a);
 	lbm_block_ctx_from_extension();
+	worker_execute(detect_task, &a);
 	return ENC_SYM_TRUE;
 }
 
@@ -2943,10 +2938,20 @@ static void measure_res_task(void *arg) {
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
 
 	lbm_flat_value_t v;
+	bool ok = false;
+
 	if (lbm_start_flatten(&v, 10)) {
 		f_float(&v, res);
 		lbm_finish_flatten(&v);
-		lbm_unblock_ctx(a->id, &v);
+		if (lbm_unblock_ctx(a->id, &v)) {
+			ok = true;
+		} else {
+			lbm_free(v.buf);
+		}
+	}
+
+	if (!ok) {
+		lbm_unblock_ctx_unboxed(a->id, ENC_SYM_NIL);
 	}
 }
 
@@ -2970,8 +2975,8 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	}
 	a.id = lbm_get_current_cid();
 
-	worker_execute(measure_res_task, &a);
 	lbm_block_ctx_from_extension();
+	worker_execute(measure_res_task, &a);
 	return ENC_SYM_TRUE;
 }
 
@@ -3913,7 +3918,9 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 			f_i32(&v, can_id);
 			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
 			lbm_finish_flatten(&v);
-			lbm_event(&v);
+			if (!lbm_event(&v)) {
+				lbm_free(v.buf);
+			}
 		} else {
 			lbm_free(arr);
 		}
@@ -3935,7 +3942,9 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 			f_sym(&v, sym_event_data_rx);
 			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
 			lbm_finish_flatten(&v);
-			lbm_event(&v);
+			if (!lbm_event(&v)) {
+				lbm_free(v.buf);
+			}
 		} else {
 			lbm_free(arr);
 		}
