@@ -204,8 +204,7 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
   return false;
 }
 
-#define UNFLATTEN_MALFORMED     -3
-#define UNFLATTEN_OUT_OF_MEMORY -2
+#define UNFLATTEN_MALFORMED     -2
 #define UNFLATTEN_GC_RETRY      -1
 #define UNFLATTEN_OK             0
 
@@ -375,8 +374,7 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   }
   if (r == UNFLATTEN_MALFORMED) {
     *res = ENC_SYM_EERROR;
-  } else if (r == UNFLATTEN_OUT_OF_MEMORY ||
-             r == UNFLATTEN_GC_RETRY) {
+  } else if (r == UNFLATTEN_GC_RETRY) {
     *res = ENC_SYM_MERROR;
   } else {
     b = true;

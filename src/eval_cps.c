@@ -235,6 +235,7 @@ static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_
   event.buf_len = buf_len;
   lbm_events[lbm_events_head] = event;
   lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+  lbm_events_full = lbm_events_head == lbm_events_tail;
   mutex_unlock(&lbm_events_mutex);
   return true;
 }
@@ -3261,8 +3262,6 @@ static void process_events(void) {
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
         lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
-      } else {
-
       }
       break;
     }
