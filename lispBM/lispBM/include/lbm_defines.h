@@ -200,6 +200,9 @@
 #define SYM_EXIT_ERROR    0x20B
 #define SYM_MAP           0x20C
 #define SYM_REVERSE       0x20D
+#define APPLY_FUNS_END    0x20D
+
+#define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
 #define SYM_SUB           0x20F
 #define SYM_MUL           0x210
@@ -260,8 +263,8 @@
 #define SYM_LIST_LENGTH         0x247
 #define SYM_RANGE               0x248
 #define SYM_REG_EVENT_HANDLER   0x249
+#define FUNDAMENTALS_END         0x249
 
-#define APPLY_FUNS_END    0x249
 
 
 #define SPECIAL_SYMBOLS_START    0

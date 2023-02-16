@@ -2017,66 +2017,6 @@ static const apply_fun fun_table[] =
    apply_error,
    apply_map,
    apply_reverse,
-   fundamental_add,
-   fundamental_sub,
-   fundamental_mul,
-   fundamental_div,
-   fundamental_mod,
-   fundamental_eq,
-   fundamental_not_eq,
-   fundamental_numeq,
-   fundamental_num_not_eq,
-   fundamental_lt,
-   fundamental_gt,
-   fundamental_leq,
-   fundamental_geq,
-   fundamental_not,
-   fundamental_gc,
-   fundamental_self,
-   fundamental_set_mailbox_size,
-   fundamental_cons,
-   fundamental_car,
-   fundamental_cdr,
-   fundamental_list,
-   fundamental_append,
-   fundamental_undefine,
-   fundamental_array_read,
-   fundamental_array_write,
-   fundamental_array_create,
-   fundamental_array_size,
-   fundamental_array_clear,
-   fundamental_symbol_to_string,
-   fundamental_string_to_symbol,
-   fundamental_symbol_to_uint,
-   fundamental_uint_to_symbol,
-   fundamental_set_car,
-   fundamental_set_cdr,
-   fundamental_set_ix,
-   fundamental_assoc,
-   fundamental_acons,
-   fundamental_set_assoc,
-   fundamental_cossa,
-   fundamental_ix,
-   fundamental_to_i,
-   fundamental_to_i32,
-   fundamental_to_u,
-   fundamental_to_u32,
-   fundamental_to_float,
-   fundamental_to_i64,
-   fundamental_to_u64,
-   fundamental_to_double,
-   fundamental_to_byte,
-   fundamental_shl,
-   fundamental_shr,
-   fundamental_bitwise_and,
-   fundamental_bitwise_or,
-   fundamental_bitwise_xor,
-   fundamental_bitwise_not,
-   fundamental_custom_destruct,
-   fundamental_type_of,
-   fundamental_list_length,
-   fundamental_range,
-   fundamental_reg_event_handler
   };
 
 /***************************************************/
@@ -2114,13 +2054,25 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     ctx->app_cont = true;
   } else if (lbm_type_of(fun) == LBM_TYPE_SYMBOL) {
     /* eval_cps specific operations */
-    lbm_uint sym_val = lbm_dec_sym(fun) - APPLY_FUNS_START;
+    lbm_uint fun_val = lbm_dec_sym(fun);
+    lbm_uint apply_val = fun_val - APPLY_FUNS_START;
+    lbm_uint fund_val  = fun_val - FUNDAMENTALS_START;
 
-    if (sym_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
-      fun_table[sym_val](&fun_args[1], arg_count, ctx);
+    if (apply_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
+      fun_table[apply_val](&fun_args[1], arg_count, ctx);
+    } else if (fund_val <= (FUNDAMENTALS_END - FUNDAMENTALS_START)) {
+      lbm_value res;
+      WITH_GC(res, fundamental_table[fund_val](&fun_args[1], arg_count, ctx));
+      if (lbm_is_error(res)) {
+        error_ctx(res);
+        return;
+      }
+      lbm_stack_drop(&ctx->K, arg_count+1);
+      ctx->app_cont = true;
+      ctx->r = res;
     } else {
       // It may be an extension
-      extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
+      extension_fptr f = lbm_get_extension(fun_val);
       if (f == NULL) {
         error_ctx(ENC_SYM_EERROR);
         return;
