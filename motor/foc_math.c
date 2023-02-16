@@ -227,7 +227,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	b *= temp;
 	c = -1.0f*(a+b); // kirchhoff current law (current in = current out)
 
-	N = (((int32_t)a)>=0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
+	N = (((int32_t)a) >= 0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
+	N = (N > 6) ? 3 : N; // if a, b, c are all zero set it to index 3, sector 1 (alpha & beta are zero)
 	sector = sector_LUT[N-1];
 
 	switch(sector) {
