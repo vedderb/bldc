@@ -296,6 +296,8 @@ static bool lbm_event_pop(lbm_event_t *event) {
 
 static bool          eval_running = false;
 static volatile bool blocking_extension = false;
+mutex_t              blocking_extension_mutex;
+bool                 blocking_extension_mutex_initialized = false;
 static bool          is_atomic = false;
 
 typedef struct {
@@ -938,6 +940,7 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
 }
 
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
+  mutex_lock(&blocking_extension_mutex);
   bool r = false;
   lbm_uint t = lbm_type_of(unboxed);
   if (t == LBM_TYPE_SYMBOL ||
@@ -956,10 +959,12 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     }
     mutex_unlock(&qmutex);
   }
+  mutex_unlock(&blocking_extension_mutex);
   return r;
 }
 
 void lbm_block_ctx_from_extension(void) {
+  mutex_lock(&blocking_extension_mutex);
   blocking_extension = true;
 }
 
@@ -2107,6 +2112,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
         ctx->app_cont = true;
         enqueue_ctx(&blocked,ctx);
         ctx_running = NULL;
+        mutex_unlock(&blocking_extension_mutex);
       } else {
         ctx->app_cont = true;
         ctx->r = ext_res;
@@ -3369,6 +3375,10 @@ int lbm_eval_init() {
   if (!lbm_events_mutex_initialized) {
     mutex_init(&lbm_events_mutex);
     lbm_events_mutex_initialized = true;
+  }
+  if (!blocking_extension_mutex_initialized) {
+    mutex_init(&blocking_extension_mutex);
+    blocking_extension_mutex_initialized = true;
   }
 
   mutex_lock(&qmutex);
