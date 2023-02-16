@@ -225,19 +225,23 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 }
 
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, uint32_t buf_len) {
-  if (!lbm_events) return false;
-  mutex_lock(&lbm_events_mutex);
-  if (lbm_events_full) return false;
-  lbm_event_t event;
-  event.type = event_type;
-  event.parameter = parameter;
-  event.buf_ptr = buf_ptr;
-  event.buf_len = buf_len;
-  lbm_events[lbm_events_head] = event;
-  lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
-  lbm_events_full = lbm_events_head == lbm_events_tail;
-  mutex_unlock(&lbm_events_mutex);
-  return true;
+  bool r = false;
+  if (lbm_events) {
+    mutex_lock(&lbm_events_mutex);
+    if (!lbm_events_full) {
+      lbm_event_t event;
+      event.type = event_type;
+      event.parameter = parameter;
+      event.buf_ptr = buf_ptr;
+      event.buf_len = buf_len;
+      lbm_events[lbm_events_head] = event;
+      lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+      lbm_events_full = lbm_events_head == lbm_events_tail;
+      r = true;
+    }
+    mutex_unlock(&lbm_events_mutex);
+  }
+  return r;
 }
 
 bool lbm_event_unboxed(lbm_value unboxed) {
@@ -257,8 +261,11 @@ bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
-  lbm_free(fv->buf);
   return false;
+}
+
+bool lbm_event_handler_exists(void) {
+  return(lbm_event_handler_pid > 0);
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
@@ -930,19 +937,25 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
-bool lbm_force_unblock(lbm_cid cid, bool r_val) {
+bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   bool r = false;
-  lbm_value v = r_val ? ENC_SYM_TRUE : ENC_SYM_NIL;
-  eval_context_t *found = NULL;
-  mutex_lock(&qmutex);
-  found = lookup_ctx_nm(&blocked, cid);
-  if (found) {
-    drop_ctx_nm(&blocked,found);
-    found->r = v;
-    enqueue_ctx_nm(&queue,found);
-    r = true;
+  lbm_uint t = lbm_type_of(unboxed);
+  if (t == LBM_TYPE_SYMBOL ||
+      t == LBM_TYPE_I ||
+      t == LBM_TYPE_U ||
+      t == LBM_TYPE_CHAR) {
+
+    eval_context_t *found = NULL;
+    mutex_lock(&qmutex);
+    found = lookup_ctx_nm(&blocked, cid);
+    if (found) {
+      drop_ctx_nm(&blocked,found);
+      found->r = unboxed;
+      enqueue_ctx_nm(&queue,found);
+      r = true;
+    }
+    mutex_unlock(&qmutex);
   }
-  mutex_unlock(&qmutex);
   return r;
 }
 
