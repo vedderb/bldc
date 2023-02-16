@@ -96,10 +96,10 @@ static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, 
 		return 0;
 	}
 
-	void *mem = lbm_malloc(stack_size);
+	void *mem = lbm_malloc_reserve(stack_size);
 
 	if (mem) {
-		lib_thd_info *info = lbm_malloc(sizeof(lib_thd_info));
+		lib_thd_info *info = lbm_malloc_reserve(sizeof(lib_thd_info));
 
 		if (info) {
 			info->arg = arg;
@@ -557,7 +557,7 @@ static bool lib_eval_is_paused(void) {
 }
 
 static lib_mutex lib_mutex_create(void) {
-	mutex_t *m = lbm_malloc(sizeof(mutex_t));
+	mutex_t *m = lbm_malloc_reserve(sizeof(mutex_t));
 	chMtxObjectInit(m);
 	return (lib_mutex)m;
 }
@@ -656,7 +656,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.system_time = lib_system_time;
 		cif.cif.ts_to_age_s = lib_ts_to_age_s;
 		cif.cif.printf = commands_printf_lisp;
-		cif.cif.malloc = lbm_malloc;
+		cif.cif.malloc = lbm_malloc_reserve;
 		cif.cif.free = lbm_free;
 		cif.cif.spawn = lib_spawn;
 		cif.cif.request_terminate = lib_request_terminate;

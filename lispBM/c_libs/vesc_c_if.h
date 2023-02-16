@@ -169,6 +169,12 @@ typedef int32_t  lbm_int;
 typedef float    lbm_float;
 
 typedef struct {
+	uint8_t *buf;
+	size_t   buf_size;
+	uint32_t buf_pos;
+} lbm_flat_value_t;
+
+typedef struct {
 	lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
 	lbm_uint size;            /// Number of elements
 	lbm_uint *data;           /// pointer to lbm_memory array or C array.
@@ -289,7 +295,7 @@ typedef struct {
 	// LBM
 	load_extension_fptr lbm_add_extension;
 	void (*lbm_block_ctx_from_extension)(void);
-	bool (*lbm_unblock_ctx)(lbm_cid, lbm_value);
+	bool (*lbm_unblock_ctx)(lbm_cid, lbm_flat_value_t*);
 	lbm_cid (*lbm_get_current_cid)(void);
 	int (*lbm_set_error_reason)(char *str);
 	void (*lbm_pause_eval_with_gc)(uint32_t num_free);

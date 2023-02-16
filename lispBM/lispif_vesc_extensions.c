@@ -433,20 +433,11 @@ static bool is_symbol_true_false(lbm_value v) {
 	return res;
 }
 
-static bool pause_gc(uint32_t num_free, int timeout_cnt) {
-	lbm_pause_eval_with_gc(num_free);
-	while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
-		chThdSleep(1);
-		timeout_cnt--;
-	}
-	return timeout_cnt > 0;
-}
-
 // Various commands
 
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 	const int str_len = 256;
-	char *print_val_buffer = lbm_malloc(str_len);
+	char *print_val_buffer = lbm_malloc_reserve(str_len);
 	if (!print_val_buffer) {
 		return ENC_SYM_MERROR;
 	}
@@ -2891,15 +2882,12 @@ static void detect_task(void *arg) {
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
 			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
 
-	lispif_lock_lbm();
-	if (pause_gc(5, 1000)) {
-		lbm_unblock_ctx(a->id, lbm_enc_i(res));
-	} else {
-		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 10)) {
+		f_i(&v, res);
+		lbm_finish_flatten(&v);
+		lbm_unblock_ctx(a->id, &v);
 	}
-
-	lbm_continue_eval();
-	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
@@ -2954,15 +2942,12 @@ static void measure_res_task(void *arg) {
 	float res = -1.0;
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
 
-	lispif_lock_lbm();
-	if (pause_gc(5, 1000)) {
-		lbm_unblock_ctx(a->id, lbm_enc_float(res));
-	} else {
-		lbm_unblock_ctx(a->id, ENC_SYM_EERROR);
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 10)) {
+		f_float(&v, res);
+		lbm_finish_flatten(&v);
+		lbm_unblock_ctx(a->id, &v);
 	}
-
-	lbm_continue_eval();
-	lispif_unlock_lbm();
 }
 
 static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
@@ -3572,22 +3557,32 @@ static THD_FUNCTION(event_thread, arg) {
 	for (;;) {
 		if (icu_width_done && event_icu_width_en) {
 			icu_width_done = false;
-			lbm_event_t e = {0};
-			e.type = LBM_EVENT_SYM_INT_INT;
-			e.sym = sym_event_icu_width;
-			e.i = icu_last_width;
-			e.i2 = icu_last_period;
-			lbm_event(e, NULL, 0);
+
+			lbm_flat_value_t v;
+			if (lbm_start_flatten(&v, 30)) {
+				f_cons(&v);
+				f_sym(&v, sym_event_icu_width);
+				f_cons(&v);
+				f_i(&v, icu_last_width);
+				f_i(&v, icu_last_period);
+				lbm_finish_flatten(&v);
+				lbm_event(&v);
+			}
 		}
 
 		if (icu_period_done && event_icu_period_en) {
 			icu_period_done = false;
-			lbm_event_t e = {0};
-			e.type = LBM_EVENT_SYM_INT_INT;
-			e.sym = sym_event_icu_period;
-			e.i = icu_last_width;
-			e.i2 = icu_last_period;
-			lbm_event(e, NULL, 0);
+
+			lbm_flat_value_t v;
+			if (lbm_start_flatten(&v, 30)) {
+				f_cons(&v);
+				f_sym(&v, sym_event_icu_period);
+				f_cons(&v);
+				f_i(&v, icu_last_width);
+				f_i(&v, icu_last_period);
+				lbm_finish_flatten(&v);
+				lbm_event(&v);
+			}
 		}
 
 		chThdSleepMilliseconds(1);
@@ -3906,11 +3901,23 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	lbm_event_t e = {0};
-	e.type = LBM_EVENT_SYM_INT_ARRAY;
-	e.sym = is_ext ? sym_event_can_eid : sym_event_can_sid;
-	e.i = can_id;
-	lbm_event(e, data8, len);
+	uint8_t *arr = lbm_malloc_reserve(len);
+
+	if (arr) {
+		memcpy(arr, data8, len);
+		lbm_flat_value_t v;
+		if (lbm_start_flatten(&v, 50)) {
+			f_cons(&v);
+			f_sym(&v, is_ext ? sym_event_can_eid : sym_event_can_sid);
+			f_cons(&v);
+			f_i32(&v, can_id);
+			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
+			lbm_finish_flatten(&v);
+			lbm_event(&v);
+		} else {
+			lbm_free(arr);
+		}
+	}
 }
 
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
@@ -3918,10 +3925,21 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	lbm_event_t e = {0};
-	e.type = LBM_EVENT_SYM_ARRAY;
-	e.sym = sym_event_data_rx;
-	lbm_event(e, data, len);
+	uint8_t *arr = lbm_malloc_reserve(len);
+
+	if (arr) {
+		memcpy(arr, data, len);
+		lbm_flat_value_t v;
+		if (lbm_start_flatten(&v, 30)) {
+			f_cons(&v);
+			f_sym(&v, sym_event_data_rx);
+			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
+			lbm_finish_flatten(&v);
+			lbm_event(&v);
+		} else {
+			lbm_free(arr);
+		}
+	}
 }
 
 void lispif_process_shutdown(void) {
@@ -3929,10 +3947,12 @@ void lispif_process_shutdown(void) {
 		return;
 	}
 
-	lbm_event_t e = {0};
-	e.type = LBM_EVENT_SYM;
-	e.sym = sym_event_shutdown;
-	lbm_event(e, NULL, 0);
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 10)) {
+		f_sym(&v, sym_event_shutdown);
+		lbm_finish_flatten(&v);
+		lbm_event(&v);
+	}
 }
 
 void lispif_set_ext_load_callback(void (*p_func)(void)) {
