@@ -214,8 +214,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, 
 				uint32_t *svm_sector, commutation_technique_t comm_tech) {
 
-	uint32_t tA, tB, tC, N, sector = 0u;
-	float T0, T1, T2, a, b, c, temp = 0.0f;
+	uint32_t tA = 0u, tB = 0u, tC = 0u, N = 0u, sector = 0u;
+	float T0 = 0.0f, T1 = 0.0f, T2 = 0.0f, a = 0.0f, b = 0.0f, c = 0.0f, temp = 0.0f;
 
 	a = SQRT3_BY_2*alpha - 0.5f*beta;
 	b = beta;
