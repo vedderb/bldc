@@ -200,7 +200,6 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 /**
  * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
- *        Null=V0 variation (reduces switching losses by up to 33%)
  *        See the follwoing links for a full description: 
  *        https://youtu.be/5eQyoVMz1dY
  *        https://link.gale.com/apps/doc/A18320578/AONE
@@ -208,14 +207,14 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  * @param beta Park transformed and normalized voltage
  * @param PWMFullDutyCycle is the peak value of the PWM counter.
  * @param tAout PWM duty cycle phase A (0 = off all of the time, PWMFullDutyCycle = on all of the time)
- * @param tBout PWM duty cycle phase B
- * @param tCout PWM duty cycle phase C
+ * @param tBout PWM duty cycle phase B (0 = off all of the time, PWMFullDutyCycle = on all of the time)
+ * @param tCout PWM duty cycle phase C (0 = off all of the time, PWMFullDutyCycle = on all of the time)
  */
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, 
 				uint32_t *svm_sector, commutation_technique_t comm_tech) {
-	uint8_t sector;
-	uint32_t tA, tB, tC, N;	// PWM timings
+
+	uint32_t tA, tB, tC, N, sector = 0u;
 	float T0, T1, T2, a, b, c, temp = 0.0f;
 
 	a = SQRT3_BY_2*alpha - 0.5f*beta;
@@ -228,7 +227,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	c = -1.0f*(a+b); // kirchhoff current law (current in = current out)
 
 	N = (((int32_t)a) >= 0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
-	N = (N > 6) ? 3 : N; // if a, b, c are all zero set it to index 3, sector 1 (alpha & beta are zero)
+	N = (N > 6u) ? 3u : N; // if a, b, c are all zero set it to index 3, sector 1 (alpha & beta are zero)
 	sector = sector_LUT[N-1];
 
 	switch(sector) {
@@ -416,7 +415,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	*tAout = tA;
 	*tBout = tB;
 	*tCout = tC;
-	*svm_sector = (uint32_t)sector;
+	*svm_sector = sector;
 }
 
 void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor) {
