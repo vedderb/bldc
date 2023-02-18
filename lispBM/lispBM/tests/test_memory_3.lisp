@@ -2,16 +2,19 @@
 
 (def n (* (word-size) (mem-longest-free)))
 
-(def a (array-create (- n 1500)))
+(def a (array-create (/ n 2)))
 
-(defun f () (array-create 1500)) ;; Should not succeed
+(defun f ()
+  (progn
+    (+ 1 2)
+    (array-create (/ n 2)))) ;; Should not succeed
 
 
 (spawn-trap f)
 
 
-(def err (recv ((exit-error (? tid) (? e)) e)
+(def res (recv ((exit-error (? tid) (? e)) e)
                ((exit-ok    (? tid) (? r)) r)))
 
-(and (eq err out_of_memory) ;; error caught
-     (= (+ 1 2) 3))         ;; eval is alive
+(and (eq res out_of_memory) ;; error caught
+     (= (+ 1 2) 3))        ;; eval is alive

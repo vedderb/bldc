@@ -560,12 +560,12 @@ static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   return NULL;
 }
 
-static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) {
-  mutex_lock(&qmutex);
-  eval_context_t *res = lookup_ctx_nm(q,cid);
-  mutex_unlock(&qmutex);
-  return res;
-}
+/* static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) { */
+/*   mutex_lock(&qmutex); */
+/*   eval_context_t *res = lookup_ctx_nm(q,cid); */
+/*   mutex_unlock(&qmutex); */
+/*   return res; */
+/* } */
 
 static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 
@@ -609,12 +609,12 @@ static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 }
 
 /* Returns true if the context was dropped from the queue */
-static bool drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
-  mutex_lock(&qmutex);
-  bool res = drop_ctx_nm(q,ctx);
-  mutex_unlock(&qmutex);
-  return res;
-}
+/* static bool drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) { */
+/*   mutex_lock(&qmutex); */
+/*   bool res = drop_ctx_nm(q,ctx); */
+/*   mutex_unlock(&qmutex); */
+/*   return res; */
+/* } */
 
 /* End execution of the running context and add it to the
    list of finished contexts. */
@@ -625,7 +625,6 @@ static void finish_ctx(void) {
   }
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
-
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
@@ -806,11 +805,11 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   if (lbm_type_of(program) != LBM_TYPE_CONS) return -1;
 
   eval_context_t *ctx = NULL;
-  ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
+  ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
     lbm_gc_mark_phase(2, program, env);
     gc();
-    ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
+    ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
 
@@ -968,43 +967,53 @@ void lbm_block_ctx_from_extension(void) {
   blocking_extension = true;
 }
 
+void lbm_undo_block_ctx_from_extension(void) {
+  blocking_extension = false;
+  mutex_unlock(&blocking_extension_mutex);
+}
+
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+  mutex_lock(&qmutex);
   eval_context_t *found = NULL;
   bool found_blocked = false;
 
-  found = lookup_ctx(&blocked, cid);
+  found = lookup_ctx_nm(&blocked, cid);
   if (found) found_blocked = true;
 
   if (found == NULL) {
-    found = lookup_ctx(&queue, cid);
+    found = lookup_ctx_nm(&queue, cid);
   }
 
   if (found == NULL) {
-    found = lookup_ctx(&sleeping, cid);
+    found = lookup_ctx_nm(&sleeping, cid);
   }
 
   if (found) {
     if (!mailbox_add_mail(found, msg)) {
+      mutex_unlock(&qmutex);
       return ENC_SYM_NIL;
     }
 
     if (found_blocked){
-      drop_ctx(&blocked,found);
-      drop_ctx(&queue,found);
+      drop_ctx_nm(&blocked,found);
+      //drop_ctx_nm(&queue,found);  ????
 
-      enqueue_ctx(&queue,found);
+      enqueue_ctx_nm(&queue,found);
     }
+    mutex_unlock(&qmutex);
     return ENC_SYM_TRUE;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
     if (!mailbox_add_mail(ctx_running, msg)) {
+      mutex_unlock(&qmutex);
       return ENC_SYM_NIL;
     }
+    mutex_unlock(&qmutex);
     return ENC_SYM_TRUE;
   }
-
+  mutex_unlock(&qmutex);
   return ENC_SYM_NIL;
 }
 
@@ -3238,14 +3247,15 @@ uint32_t lbm_get_eval_state(void) {
 
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
 
-  found = lookup_ctx(&blocked, cid);
+  found = lookup_ctx_nm(&blocked, cid);
   if (found) {
-    drop_ctx(&blocked,found);
+    drop_ctx_nm(&blocked,found);
     found->r = v;
-    enqueue_ctx(&queue,found);
-    return;
+    enqueue_ctx_nm(&queue,found);
   }
+  mutex_unlock(&qmutex);
 }
 
 static lbm_value get_event_value(lbm_event_t *e) {
@@ -3259,7 +3269,6 @@ static lbm_value get_event_value(lbm_event_t *e) {
       lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
       v = ENC_SYM_EERROR;
     }
-    lbm_free(fv.buf);
   } else {
     v = (lbm_value)e->buf_ptr;
   }
@@ -3407,13 +3416,15 @@ bool lbm_eval_init_events(unsigned int num_events) {
 
   mutex_lock(&lbm_events_mutex);
   lbm_events = (lbm_event_t*)lbm_malloc(num_events * sizeof(lbm_event_t));
-
-  if (!lbm_events) return false;
-  lbm_events_max = num_events;
-  lbm_events_head = 0;
-  lbm_events_tail = 0;
-  lbm_events_full = false;
-  lbm_event_handler_pid = -1;
+  bool r = false;
+  if (lbm_events) {
+    lbm_events_max = num_events;
+    lbm_events_head = 0;
+    lbm_events_tail = 0;
+    lbm_events_full = false;
+    lbm_event_handler_pid = -1;
+    r = true;
+  }
   mutex_unlock(&lbm_events_mutex);
-  return true;
+  return r;
 }

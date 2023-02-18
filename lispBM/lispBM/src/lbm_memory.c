@@ -323,10 +323,6 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
 }
 
 lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
- if (memory_num_free < num_words) {
-    lbm_request_gc();
-    return NULL;
-  }
   if (memory_num_free - num_words < memory_reserve_level) {
     lbm_request_gc();
     return NULL;

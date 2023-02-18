@@ -1067,7 +1067,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt
     return 0;
   }
 
-  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+  array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
   if (array == NULL) return 0;
 
@@ -1119,4 +1119,33 @@ int lbm_heap_explicit_free_array(lbm_value arr) {
   }
 
   return r;
+}
+
+lbm_uint lbm_size_of(lbm_type t) {
+  lbm_uint s = 0;
+  switch(t) {
+  case LBM_TYPE_BYTE:
+    s = 1;
+    break;
+  case LBM_TYPE_I: /* fall through */
+  case LBM_TYPE_U:
+  case LBM_TYPE_SYMBOL:
+#ifndef LBM64
+    s = 4;
+#else
+    s = 8;
+#endif
+    break;
+  case LBM_TYPE_I32: /* fall through */
+  case LBM_TYPE_U32:
+  case LBM_TYPE_FLOAT:
+    s = 4;
+    break;
+  case LBM_TYPE_I64: /* fall through */
+  case LBM_TYPE_U64:
+  case LBM_TYPE_DOUBLE:
+    s = 8;
+    break;
+  }
+  return s;
 }
