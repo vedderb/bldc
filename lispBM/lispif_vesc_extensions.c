@@ -3906,24 +3906,16 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 		return;
 	}
 
-	uint8_t *arr = lbm_malloc_reserve(len);
-
-	if (arr) {
-		memcpy(arr, data8, len);
-		lbm_flat_value_t v;
-		if (lbm_start_flatten(&v, 50)) {
-			f_cons(&v);
-			f_sym(&v, is_ext ? sym_event_can_eid : sym_event_can_sid);
-			f_cons(&v);
-			f_i32(&v, can_id);
-			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
-			lbm_finish_flatten(&v);
-			if (!lbm_event(&v)) {
-				lbm_free(arr);
-				lbm_free(v.buf);
-			}
-		} else {
-			lbm_free(arr);
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 50 + len)) {
+		f_cons(&v);
+		f_sym(&v, is_ext ? sym_event_can_eid : sym_event_can_sid);
+		f_cons(&v);
+		f_i32(&v, can_id);
+		f_lbm_array(&v, len, LBM_TYPE_BYTE, data8);
+		lbm_finish_flatten(&v);
+		if (!lbm_event(&v)) {
+			lbm_free(v.buf);
 		}
 	}
 }
@@ -3933,22 +3925,14 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	uint8_t *arr = lbm_malloc_reserve(len);
-
-	if (arr) {
-		memcpy(arr, data, len);
-		lbm_flat_value_t v;
-		if (lbm_start_flatten(&v, 30)) {
-			f_cons(&v);
-			f_sym(&v, sym_event_data_rx);
-			f_lbm_array(&v, len, LBM_TYPE_BYTE, arr);
-			lbm_finish_flatten(&v);
-			if (!lbm_event(&v)) {
-				lbm_free(arr);
-				lbm_free(v.buf);
-			}
-		} else {
-			lbm_free(arr);
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 30 + len)) {
+		f_cons(&v);
+		f_sym(&v, sym_event_data_rx);
+		f_lbm_array(&v, len, LBM_TYPE_BYTE, data);
+		lbm_finish_flatten(&v);
+		if (!lbm_event(&v)) {
+			lbm_free(v.buf);
 		}
 	}
 }
