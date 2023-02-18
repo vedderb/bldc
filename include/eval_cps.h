@@ -222,6 +222,9 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);
+  /** Undo a previous call to lbm_block_ctx_from_extension.
+   */
+  void lbm_undo_block_ctx_from_extension(void);
 /** Unblock a context that has been blocked by a C extension
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged

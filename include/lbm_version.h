@@ -27,14 +27,19 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 8
+#define LBM_MINOR_VERSION 9
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
 
-Feb 5 2023: Version 0.8.1
-  - Added queue locking to GC 
+Feb 18 2023: Version 0.9.0
+  - Arrays in flat_value are stored verbatim, not as ptr.
+  - Mutex locking granularity changed in multiple places.
+
+Feb 10 2023: Version 0.8.1
+  - Flat representation of heap values added.
+  - Added queue locking to GC
   - As an experiment blocked contexts are unblocked by the evaluator in a safe state.
 
 Jan 28 2023: Version 0.8.0

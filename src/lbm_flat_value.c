@@ -1,5 +1,6 @@
 /*
     Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
+              2023 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
 #include <lbm_flat_value.h>
 #include <eval_cps.h>
 #include <stack.h>
+
 
 // ------------------------------------------------------------
 // Access to GC from eval_cps
@@ -156,18 +158,23 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w) {
   return res;
 }
 
-
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_elts, lbm_uint t, uint8_t *data) {
   bool res = true;
   res = res && write_byte(v, S_LBM_ARRAY);
   res = res && write_word(v, num_elts);
 #ifndef LBM64
   res = res && write_word(v, t);
-  res = res && write_word(v, (lbm_uint)data);
 #else
   res = res && write_dword(v, t);
-  res = res && write_dword(v, (lbm_uint)data);
 #endif
+  uint32_t num_bytes = num_elts;
+  num_bytes *= lbm_size_of(t);
+  if (res && v->buf_size >= v->buf_pos + num_bytes) {
+    memcpy(v->buf + v->buf_pos, data, num_bytes);
+    v->buf_pos += num_bytes;
+  } else {
+    res = false;
+  }
   return res;
 }
 
@@ -210,7 +217,7 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
 
 /* Recursive and potentially stack hungry for large flat values */
 static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
-  if (v->buf_size == v->buf_pos) return false;
+  if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED;
   uint8_t curr = v->buf[v->buf_pos++];
 
   switch(curr) {
@@ -345,13 +352,13 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       b = extract_dword(v,&t);
 #endif
       if (b) {
-        lbm_uint ptr;
-#ifndef LBM64
-        b = extract_word(v,&ptr);
-#else
-        b = extract_dword(v,&ptr);
-#endif
-        if (!lbm_lift_array(res, (char*)ptr, t, num_elt)) {
+        if (lbm_heap_allocate_array(res, num_elt, t)) {
+          lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
+          lbm_uint num_bytes = num_elt;
+          num_bytes *= lbm_size_of(t);
+          memcpy(arr->data, v->buf + v->buf_pos, num_bytes);
+          v->buf_pos += num_bytes;
+        } else {
           return UNFLATTEN_GC_RETRY;
         }
         return UNFLATTEN_OK;
