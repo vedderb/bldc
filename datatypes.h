@@ -26,7 +26,7 @@
 
 // Data types
 typedef enum {
-	SVM_ARS = 0,		// default (previous implementation)
+	ALT_REV_SEQ = 0,	// alternating reversing sequence (previous implementation)
 	NULL_V0,			// flat bottom
 	NULL_V7,			// flat top
 	V7_ODD_V0_EVEN,		// v7 in [1,3,5] v0 in [2,4,6]
@@ -466,6 +466,7 @@ typedef struct {
 	bool foc_phase_filter_disable_fault;
 	float foc_phase_filter_max_erpm;
 	MTPA_MODE foc_mtpa_mode;
+	commutation_technique_t foc_commutation_type;
 	// Field Weakening
 	float foc_fw_current_max;
 	float foc_fw_duty_start;

@@ -237,7 +237,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(T1+T2+0.5f*T0);
 			tB = (uint32_t)(T2+0.5f*T0);
@@ -267,7 +267,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(T1+0.5f*T0);
 			tB = (uint32_t)(T1+T2+0.5f*T0);
@@ -297,7 +297,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(0.5f*T0);
 			tB = (uint32_t)(T1+T2+0.5f*T0);
@@ -327,7 +327,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(0.5f*T0);
 			tB = (uint32_t)(T1+0.5f*T0);
@@ -357,7 +357,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(T2+0.5f*T0);
 			tB = (uint32_t)(0.5f*T0);
@@ -387,7 +387,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		T0 = (float)PWMFullDutyCycle - T1 - T2;
 
 		switch (comm_tech) {
-		case SVM_ARS:
+		case ALT_REV_SEQ:
 		default:
 			tA = (uint32_t)(T1+T2+0.5f*T0);
 			tB = (uint32_t)(0.5f*T0);

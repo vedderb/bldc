@@ -130,6 +130,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_phase_filter_disable_fault;
 	buffer_append_float32_auto(buffer, conf->foc_phase_filter_max_erpm, &ind);
 	buffer[ind++] = conf->foc_mtpa_mode;
+	buffer[ind++] = conf->foc_commutation_type;
 	buffer_append_float32_auto(buffer, conf->foc_fw_current_max, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_duty_start, 10000, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_ramp_time, 1000, &ind);
@@ -527,6 +528,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_phase_filter_disable_fault = buffer[ind++];
 	conf->foc_phase_filter_max_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_mtpa_mode = buffer[ind++];
+	conf->foc_commutation_type = buffer[ind++];
 	conf->foc_fw_current_max = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_fw_duty_start = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_fw_ramp_time = buffer_get_float16(buffer, 1000, &ind);
@@ -920,6 +922,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_phase_filter_disable_fault = MCCONF_FOC_PHASE_FILTER_DISABLE_FAULT;
 	conf->foc_phase_filter_max_erpm = MCCONF_FOC_PHASE_FILTER_MAX_ERPM;
 	conf->foc_mtpa_mode = MCCONF_FOC_MTPA_MODE;
+	conf->foc_commutation_type = MCCONF_FOC_COMMUTATION_TYPE;
 	conf->foc_fw_current_max = MCCONF_FOC_FW_CURRENT_MAX;
 	conf->foc_fw_duty_start = MCCONF_FOC_FW_DUTY_START;
 	conf->foc_fw_ramp_time = MCCONF_FOC_FW_RAMP_TIME;

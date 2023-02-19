@@ -472,6 +472,9 @@
 #ifndef MCCONF_FOC_SPEED_SOURCE
 #define MCCONF_FOC_SPEED_SOURCE			SPEED_SRC_OBSERVER // Position source for speed trackers
 #endif
+#ifndef MCCONF_FOC_COMMUTATION_TYPE
+#define MCCONF_FOC_COMMUTATION_TYPE		ALT_REV_SEQ // Commutation method during FOC
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
