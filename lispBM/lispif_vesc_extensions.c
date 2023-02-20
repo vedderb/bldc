@@ -2880,10 +2880,14 @@ typedef struct {
 
 static void detect_task(void *arg) {
 	detect_args *a = (detect_args*)arg;
+	int restart_cnt = lispif_get_restart_cnt();
+
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
 			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
 
-	lbm_unblock_ctx_unboxed(a->id, lbm_enc_i(res));
+	if (restart_cnt == lispif_get_restart_cnt()) {
+		lbm_unblock_ctx_unboxed(a->id, lbm_enc_i(res));
+	}
 }
 
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
@@ -2934,9 +2938,15 @@ typedef struct {
 } measure_res_args;
 
 static void measure_res_task(void *arg) {
+	int restart_cnt = lispif_get_restart_cnt();
+
 	measure_res_args *a = (measure_res_args*)arg;
 	float res = -1.0;
 	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
+
+	if (restart_cnt != lispif_get_restart_cnt()) {
+		return;
+	}
 
 	lbm_flat_value_t v;
 	bool ok = false;

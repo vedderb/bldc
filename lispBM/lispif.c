@@ -55,6 +55,7 @@ static bool lisp_thd_running = false;
 static mutex_t lbm_mutex;
 
 static int repl_cid = -1;
+static int restart_cnt = 0;
 
 // Private functions
 static uint32_t timestamp_callback(void);
@@ -71,6 +72,10 @@ void lispif_init(void) {
 	lbm_set_eval_step_quota(50);
 
 	chMtxObjectInit(&lbm_mutex);
+}
+
+int lispif_get_restart_cnt(void) {
+	return restart_cnt;
 }
 
 void lispif_lock_lbm(void) {
@@ -514,6 +519,8 @@ static void done_callback(eval_context_t *ctx) {
 
 bool lispif_restart(bool print, bool load_code) {
 	bool res = false;
+
+	restart_cnt++;
 
 	lispif_stop_lib();
 
