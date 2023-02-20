@@ -382,6 +382,14 @@ Get statistics about the selected motor since boot (or since stats-reset). The f
 
 Reset stat counters to 0.
 
+#### crc16
+
+```clj
+(crc16 array optLen)
+```
+
+Calculate the 16-bit crc of array. optLen is an optional argument for how many elements to include, if it is left out the entire array will be used. The crc uses the polynomial 0x11021 and initial value 0, which is the same as the VESC packets use. Added in FW 6.02.
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
