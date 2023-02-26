@@ -227,8 +227,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	c = -1.0f*(a+b); // kirchhoff current law (current in = current out)
 
 	N = (((int32_t)a) >= 0) + 2u*(((int32_t)b) >= 0) + 4u*(((int32_t)c) >= 0);
-	N = (N > 6u) ? 3u : N; // if a, b, c are all zero set it to index 3, sector 1 (alpha & beta are zero)
-	sector = sector_LUT[N-1];
+	N = (N > 6u || N == 0u) ? 2u : N-1; // if a, b, c are all zero (happens when alpha & beta are zero) or negative set it to index 2 (sector 1)
+	sector = sector_LUT[N];
 
 	switch(sector) {
 	case 1: {
@@ -253,7 +253,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 
 		case V7_ODD_V0_EVEN:
 		case NULL_V7:
-			tA = (uint32_t)(PWMFullDutyCycle);
+			tA = (uint32_t)(PWMFullDutyCycle+1);
 			tB = (uint32_t)(T0+T2);
 			tC = (uint32_t)(T0);
 			break;
@@ -284,7 +284,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case V0_ODD_V7_EVEN:
 		case NULL_V7:
 			tA = (uint32_t)(T0+T1);
-			tB = (uint32_t)(PWMFullDutyCycle);
+			tB = (uint32_t)(PWMFullDutyCycle+1);
 			tC = (uint32_t)(T0);
 			break;
 		}
@@ -314,7 +314,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case V7_ODD_V0_EVEN:
 		case NULL_V7:
 			tA = (uint32_t)(T0);
-			tB = (uint32_t)(PWMFullDutyCycle);
+			tB = (uint32_t)(PWMFullDutyCycle+1);
 			tC = (uint32_t)(T0+T2);
 			break;
 		}
@@ -345,7 +345,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case NULL_V7:
 			tA = (uint32_t)(T0);
 			tB = (uint32_t)(T0+T1);
-			tC = (uint32_t)(PWMFullDutyCycle);
+			tC = (uint32_t)(PWMFullDutyCycle+1);
 			break;
 		}
 		break;
@@ -375,7 +375,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case NULL_V7:
 			tA = (uint32_t)(T0+T2);
 			tB = (uint32_t)(T0);
-			tC = (uint32_t)(PWMFullDutyCycle);
+			tC = (uint32_t)(PWMFullDutyCycle+1);
 			break;
 		}
 		break;
@@ -403,7 +403,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 
 		case V0_ODD_V7_EVEN:
 		case NULL_V7:
-			tA = (uint32_t)(PWMFullDutyCycle);
+			tA = (uint32_t)(PWMFullDutyCycle+1);
 			tB = (uint32_t)(T0);
 			tC = (uint32_t)(T0+T1);
 			break;
