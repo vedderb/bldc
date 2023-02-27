@@ -32,6 +32,10 @@ Note that VESC Tool includes a collection of examples that can be used as a star
 
 #### print
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (print arg1 ... argN)
 ```
@@ -46,6 +50,10 @@ Should work for all types.
 
 #### timeout-reset
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (timeout-reset)
 ```
@@ -53,6 +61,10 @@ Should work for all types.
 Reset the timeout that stops the motor. This has to be run on at least every second to keep the motor running. The timeout time can be configured in App Settings->General. The [Motor Set Commands](#motor-set-commands) will also reset the timeout when they are called.
 
 #### get-ppm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (get-ppm)
@@ -68,6 +80,10 @@ Note that control type can be set to Off in the PPM app to get the input without
 
 #### get-ppm-age
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-ppm-age)
 ```
@@ -75,6 +91,10 @@ Note that control type can be set to Off in the PPM app to get the input without
 Get the age of the last PPM update in seconds. Can be used to determine if there is any valid PPM-signal.
 
 #### get-encoder
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (get-encoder)
@@ -84,6 +104,10 @@ Get angle from selected encoder in degrees.
 
 #### get-encoder-error-rate
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-encoder-error-rate)
 ```
@@ -91,6 +115,10 @@ Get angle from selected encoder in degrees.
 Returns the error rate for the selected encoder, range 0.0 to 1.0. If the selected encoder does not provide any error rate -1.0 is returned. If the selected encoder has multiple error rates the highest one is returned.
 
 #### set-servo
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (set-servo value)
@@ -100,6 +128,10 @@ Set servo output to value. Range 0 to 1. Note that the servo output has to be en
 
 #### get-vin
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-vin)
 ```
@@ -107,6 +139,10 @@ Set servo output to value. Range 0 to 1. Note that the servo output has to be en
 Get input voltage.
 
 #### select-motor
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (select-motor motor)
@@ -116,6 +152,10 @@ Select which motor to control on dual-motor hardware. Options are 1 for motor 1 
 
 #### get-selected-motor
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-selected-motor)
 ```
@@ -123,6 +163,10 @@ Select which motor to control on dual-motor hardware. Options are 1 for motor 1 
 Get currently selected motor on dual motor hardware.
 
 #### get-bms-val
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (get-bms-val val optValArg)
@@ -156,6 +200,10 @@ Get value from BMS. Examples:
 
 #### set-bms-val
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (set-bms-val val optValArg new-value)
 ```
@@ -173,6 +221,10 @@ Example:
 
 #### send-bms-can
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (send-bms-can)
 ```
@@ -180,6 +232,10 @@ Example:
 Send BMS-values on CAN-bus. This his useful if a custom BMS-driver is implemented using [set-bms-val](#set-bms-val) in order to make devices on the CAN-bus aware of the BMS-state using the VESC protocol.
 
 #### get-adc
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (get-adc ch)
@@ -201,6 +257,10 @@ This is the ADC-channel that the motor temperature sensor goes to. Note: if you 
 
 #### override-temp-motor
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (override-temp-motor temp)
 ```
@@ -208,6 +268,10 @@ This is the ADC-channel that the motor temperature sensor goes to. Note: if you 
 Override motor temperature. This can be used to implement custom motor temperature sensors if the sensor you have is not supported. Note: Motor Temperature Sensor Type has to be set to Disabled in General -> Advanced for the override to work.
 
 #### get-adc-decoded
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (get-adc-decoded ch)
@@ -217,13 +281,21 @@ Get decoded ADC value on channel ch (0 or 1). Decoded means that the voltage is 
 
 #### systime
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (systime)
 ```
 
-Get system time in ticks since boot. Every tick is 0.1 ms.
+Get system time in ticks since boot.
 
 #### secs-since
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (secs-since timestamp)
@@ -232,6 +304,10 @@ Get system time in ticks since boot. Every tick is 0.1 ms.
 Get seconds elapsed since systime timestamp.
 
 #### set-aux
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (set-aux ch state)
@@ -246,6 +322,11 @@ Set AUX output ch (1 or 2) to state. Example:
 Note: The AUX output mode must be set to Unused in Motor Settings->General->Advanced. Otherwise the firmware will change the AUX state directly after it is set using this function.
 
 #### get-imu-rpy
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-imu-rpy)
 ```
@@ -257,24 +338,44 @@ The function (ix list ind) can be used to get an element from the list. Example:
 ```
 
 #### get-imu-quat
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-imu-quat)
 ```
 Get a list of quaternions from the IMU (q0, q1, q2 and q3).
 
 #### get-imu-acc
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-imu-acc)
 ```
 Get a list of the x, y and z acceleration from the IMU in G.
 
 #### get-imu-gyro
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-imu-gyro)
 ```
 Get a list of the x, y and z angular rate from the IMU in degrees/s.
 
 #### get-imu-mag
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-imu-mag)
 ```
@@ -282,13 +383,26 @@ Get a list of the x, y and z magnetic field strength from the IMU in uT. Note th
 
 #### get-imu-acc-derot
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 Same as get-imu-acc, but derotates the result first. This means that the acceleration will be relative to the horizon and not the IMU chip.
 
 #### get-imu-gyro-derot
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 Same as get-imu-gyro, but derotates the result first. This means that the angular rates will be relative to the horizon and not the IMU chip.
 
 #### send-data
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (send-data dataList)
 ```
@@ -304,6 +418,10 @@ Example of sending the numbers 1, 2, 3 and 4:
 
 #### sleep
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (sleep seconds)
 ```
@@ -315,6 +433,10 @@ Sleep for *seconds* seconds. Example:
 ```
 
 #### get-remote-state
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (get-remote-state)
@@ -335,6 +457,10 @@ Get button and joystick state of connected remote. Note that a remote app such a
 
 #### sysinfo
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (sysinfo param)
 ```
@@ -353,6 +479,10 @@ Read system info parameter param. Example:
 ```
 
 #### stats
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (stats param)
@@ -376,6 +506,10 @@ Get statistics about the selected motor since boot (or since stats-reset). The f
 
 #### stats-reset
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (stats-reset)
 ```
@@ -383,6 +517,10 @@ Get statistics about the selected motor since boot (or since stats-reset). The f
 Reset stat counters to 0.
 
 #### crc16
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.02+ |
 
 ```clj
 (crc16 array optLen)
@@ -397,6 +535,10 @@ Several app-inputs can be detached from the external interfaces and overridden f
 **Note:** Detach does *not* mean that the app output is disabled, it means that you can provide the input for the app instead of having it read the external peripheral. So if you e.g. detach the app and override the input with 0 the app will keep sending the corresponding command to the motor as usual, even if that command is a stop command. If you want to disable the app output you can have a look at [app-disable-output](#app-disable-output).
 
 #### app-adc-detach
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (app-adc-detach mode state)
@@ -413,6 +555,10 @@ Detaches a peripherial from the APP ADC
 
 #### app-adc-override
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (app-adc-override mode value)
 ; Where
@@ -428,6 +574,10 @@ Sets the override value
 
 #### app-ppm-detach
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (app-ppm-detach state)
 ```
@@ -436,6 +586,10 @@ Detaches the decoded ppm signal from APP PPM. 1 means detach, 0 means attach.
 
 #### app-ppm-override
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (app-ppm-override value)
 ```
@@ -443,6 +597,10 @@ Detaches the decoded ppm signal from APP PPM. 1 means detach, 0 means attach.
 Sets the override value. Range -1.0 to 1.0.
 
 #### set-remote-state
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (set-remote-state js-y js-x bt-c bt-z is-rev)
@@ -458,6 +616,10 @@ Send input to the VESC Remote app. Unlike the ADC and PPM apps, input can be sen
 
 #### app-disable-output
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (app-disable-output ms)
 ```
@@ -466,6 +628,10 @@ Disable app output for ms milliseconds. 0 means enable now and -1 means disable 
 
 #### app-is-output-disabled
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (app-is-output-disabled)
 ```
@@ -473,6 +639,10 @@ Disable app output for ms milliseconds. 0 means enable now and -1 means disable 
 Check if app output is disabled. VESC Tool will disable app output during some detection routines, so when running a custom control script it might be useful to check this and disable the output when this value is true.
 
 #### app-pas-get-rpm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (app-pas-get-rpm)
@@ -484,6 +654,10 @@ Returns the pedal RPM measured by the PAS-app. If you want to implement your own
 
 #### set-current
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-current current optOffDelay)
 ```
@@ -494,6 +668,10 @@ The optional optOffDelay argument (in seconds) will delay turning off the modula
 
 #### set-current-rel
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-current-rel current optOffDelay)
 ```
@@ -503,6 +681,11 @@ Set motor current relative to the maximum current. Range -1 to 1. For example, i
 See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### set-duty
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-duty dutycycle)
 ```
@@ -510,6 +693,11 @@ See [set-current](#set-current) for details on what the optional argument optOff
 Set duty cycle. Range -1.0 to 1.0.
 
 #### set-brake
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-brake current)
 ```
@@ -517,6 +705,11 @@ Set duty cycle. Range -1.0 to 1.0.
 Set braking current.
 
 #### set-brake-rel
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-brake-rel current)
 ```
@@ -524,6 +717,11 @@ Set braking current.
 Set braking current relative to the maximum current, range 0.0 to 1.0.
 
 #### set-handbrake
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-handbrake current)
 ```
@@ -531,6 +729,11 @@ Set braking current relative to the maximum current, range 0.0 to 1.0.
 Set handbrake current. This sets an open loop current that allows to hold the motor still even at 0 speed at the cost of efficient.
 
 #### set-handbrake-rel
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-handbrake-rel current)
 ```
@@ -538,6 +741,11 @@ Set handbrake current. This sets an open loop current that allows to hold the mo
 Same as set-handbrake, but with a current relative to the maximum current in the range 0.0 to 1.0.
 
 #### set-rpm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-rpm rpm)
 ```
@@ -545,6 +753,11 @@ Same as set-handbrake, but with a current relative to the maximum current in the
 Set RPM speed control.
 
 #### set-pos
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (set-pos pos)
 ```
@@ -552,6 +765,11 @@ Set RPM speed control.
 Position control. Set motor position in degrees, range 0.0 to 360.0.
 
 #### foc-openloop
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (foc-openloop current rpm)
 ```
@@ -559,6 +777,11 @@ Position control. Set motor position in degrees, range 0.0 to 360.0.
 Run FOC in open loop. Useful to test thermal properties of motors and power stages.
 
 #### foc-beep
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (foc-beep freq time voltage)
 ```
@@ -568,6 +791,11 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 ### Motor Get Commands
 
 #### get-current
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-current)
 ```
@@ -575,6 +803,11 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 Get motor current. Positive means that current is flowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
 
 #### get-current-dir
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-current-dir)
 ```
@@ -582,11 +815,21 @@ Get motor current. Positive means that current is flowing into the motor and neg
 Get directional current. Positive for torque in the forward direction and negative for torque in the reverse direction.
 
 #### get-current-in
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-current-in)
 ```
 
 #### get-id
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-id)
 ```
@@ -594,6 +837,11 @@ Get directional current. Positive for torque in the forward direction and negati
 Get FOC d-axis current.
 
 #### get-iq
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-iq)
 ```
@@ -601,6 +849,11 @@ Get FOC d-axis current.
 Get FOC q-axis current.
 
 #### get-vd
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-vd)
 ```
@@ -608,6 +861,11 @@ Get FOC q-axis current.
 Get FOC d-axis voltage.
 
 #### get-vq
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-vq)
 ```
@@ -615,6 +873,11 @@ Get FOC d-axis voltage.
 Get FOC q-axis voltage.
 
 #### get-est-lambda
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
+
 ```clj
 (get-est-lambda)
 ```
@@ -622,6 +885,11 @@ Get FOC q-axis voltage.
 Get FOC estimated flux linkage in Weber. Requires that one of the observers with flux linkage tracking is used. Added in FW 6.02.
 
 #### get-est-res
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
+
 ```clj
 (get-est-res)
 ```
@@ -629,6 +897,11 @@ Get FOC estimated flux linkage in Weber. Requires that one of the observers with
 Get FOC estimated motor resistance in Ohm. This value is only accurate when the RPM is low and current is high. Added in FW 6.02.
 
 #### get-est-ind
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
+
 ```clj
 (get-est-ind)
 ```
@@ -636,6 +909,11 @@ Get FOC estimated motor resistance in Ohm. This value is only accurate when the 
 Get FOC estimated motor inductance Henry. Only works while the first HFI is running (not 45 Deg and not Coupled HFI). Added in FW 6.02.
 
 #### get-duty
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-duty)
 ```
@@ -643,6 +921,11 @@ Get FOC estimated motor inductance Henry. Only works while the first HFI is runn
 Get duty cycle. Range -1.0 to 1.0.
 
 #### get-rpm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-rpm)
 ```
@@ -650,6 +933,11 @@ Get duty cycle. Range -1.0 to 1.0.
 Get motor RPM. Negative values mean that the motor spins in the reverse direction.
 
 #### get-pos
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-pos)
 ```
@@ -657,6 +945,11 @@ Get motor RPM. Negative values mean that the motor spins in the reverse directio
 Get motor position. Returns the motor PID pos (taking into account the Position Angle Division)
 
 #### get-temp-fet
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-temp-fet optFet)
 ```
@@ -664,6 +957,11 @@ Get motor position. Returns the motor PID pos (taking into account the Position 
 Get MOSFET temperature. The argument optFet can be used to select senor 1 to 3. If it is left out or 0 the highest temperature is returned. If the hardware only has one sensor 0 is returned for sensors 1 to 3.
 
 #### get-temp-mot
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-temp-mot)
 ```
@@ -671,6 +969,11 @@ Get MOSFET temperature. The argument optFet can be used to select senor 1 to 3. 
 Get motor temperature.
 
 #### get-speed
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-speed)
 ```
@@ -678,6 +981,11 @@ Get motor temperature.
 Get speed in meters per second. Requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
 
 #### get-dist
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-dist)
 ```
@@ -685,6 +993,11 @@ Get speed in meters per second. Requires that the number of motor poles, wheel d
 Get the distance traveled since start in meters. As with (get-speed) this requires that the number of motor poles, wheel diameter and gear ratio are set up correctly. When the motor spins forwards this counter counts up and when it spins backwards it counts down.
 
 #### get-dist-abs
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-dist-abs)
 ```
@@ -692,6 +1005,11 @@ Get the distance traveled since start in meters. As with (get-speed) this requir
 Same as get-dist, but will count up when the motors spins in both directions.
 
 #### get-batt
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-batt)
 ```
@@ -699,6 +1017,11 @@ Same as get-dist, but will count up when the motors spins in both directions.
 Get the battery level, range 0.0 to 1.0. Requires that the battery type and number of cells is set up correctly.
 
 #### get-fault
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-fault)
 ```
@@ -706,6 +1029,11 @@ Get the battery level, range 0.0 to 1.0. Requires that the battery type and numb
 Get fault code.
 
 #### get-ah
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-ah)
 ```
@@ -713,6 +1041,11 @@ Get fault code.
 Get the number of amp hours consumed since start.
 
 #### get-wh
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-wh)
 ```
@@ -720,6 +1053,11 @@ Get the number of amp hours consumed since start.
 Get the number of watt hours consumed since start.
 
 #### get-ah-chg
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-ah-chg)
 ```
@@ -727,6 +1065,11 @@ Get the number of watt hours consumed since start.
 Get the number of amp hours charged since start.
 
 #### get-wh-chg
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (get-wh-chg)
 ```
@@ -738,6 +1081,11 @@ Get the number of watt hours charged since start.
 These commands return the accumulated values from all VESC-based motor controllers on the CAN-bus. Note that the corresponding CAN status messages must be activated for these commands to work.
 
 #### setup-ah
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-ah)
 ```
@@ -745,6 +1093,11 @@ These commands return the accumulated values from all VESC-based motor controlle
 Get the number of amp hours consumed since start.
 
 #### setup-ah-chg
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-ah-chg)
 ```
@@ -752,6 +1105,11 @@ Get the number of amp hours consumed since start.
 Get the number of amp hours charged since start.
 
 #### setup-wh
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-wh)
 ```
@@ -759,6 +1117,11 @@ Get the number of amp hours charged since start.
 Get the number of watt hours consumed since start.
 
 #### setup-wh-chg
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-wh-chg)
 ```
@@ -766,6 +1129,11 @@ Get the number of watt hours consumed since start.
 Get the number of watt hours charged since start.
 
 #### setup-current
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-current)
 ```
@@ -773,11 +1141,21 @@ Get the number of watt hours charged since start.
 Get total motor current. Positive means that current is flowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
 
 #### setup-current-in
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-current-in)
 ```
 
 #### setup-num-vescs
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (setup-num-vescs)
 ```
@@ -789,6 +1167,11 @@ Get the number of VESC-based motor controllers the setup values are accumulated 
 Notice that all canget-commands rely on the status messages being active on the VESCs on the CAN-bus. That can be done from App Settings->General->Can status message mode.
 
 #### canset-current
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-current id current optOffDelay)
 ```
@@ -802,6 +1185,11 @@ Set current over CAN-bus on VESC with id. Example for setting 25A on VESC with i
 See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### canset-current-rel
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-current-rel id current optOffDelay)
 ```
@@ -811,6 +1199,11 @@ Same as above, but relative current in the range -1.0 to 1.0. See (set-current) 
 See [set-current](#set-current) for details on what the optional argument optOffDelay does.
 
 #### canset-duty
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-duty id duty)
 ```
@@ -818,6 +1211,11 @@ See [set-current](#set-current) for details on what the optional argument optOff
 Set duty cycle over CAN-bus on VESC with id. Range -1.0 to 1.0.
 
 #### canset-brake
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-brake id current)
 ```
@@ -825,6 +1223,11 @@ Set duty cycle over CAN-bus on VESC with id. Range -1.0 to 1.0.
 Set braking current over CAN-bus.
 
 #### canset-brake-rel
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-brake-rel id current)
 ```
@@ -832,6 +1235,11 @@ Set braking current over CAN-bus.
 Set relative braking current over CAN-bus. Range 0.0 to 1.0.
 
 #### canset-rpm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-rpm id rpm)
 ```
@@ -839,6 +1247,11 @@ Set relative braking current over CAN-bus. Range 0.0 to 1.0.
 Set rpm over CAN-bus.
 
 #### canset-pos
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canset-pos id pos)
 ```
@@ -846,6 +1259,11 @@ Set rpm over CAN-bus.
 Set position control in degrees over CAN-bus. Range 0.0 to 1.0.
 
 #### canget-current
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-current id)
 ```
@@ -853,6 +1271,11 @@ Set position control in degrees over CAN-bus. Range 0.0 to 1.0.
 Get current over CAN-bus on VESC with id.
 
 #### canget-current-dir
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-current-dir id)
 ```
@@ -860,6 +1283,11 @@ Get current over CAN-bus on VESC with id.
 Get directional current over CAN-bus on VESC with id. See (get-current-dir) for what directional means.
 
 #### canget-current-in
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-current-in id)
 ```
@@ -867,6 +1295,11 @@ Get directional current over CAN-bus on VESC with id. See (get-current-dir) for 
 Get input current over CAN-bus on VESC with id.
 
 #### canget-duty
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-duty id)
 ```
@@ -874,6 +1307,11 @@ Get input current over CAN-bus on VESC with id.
 Get duty cycle over CAN-bus on VESC with id.
 
 #### canget-rpm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-rpm id)
 ```
@@ -881,6 +1319,11 @@ Get duty cycle over CAN-bus on VESC with id.
 Get RPM over CAN-bus on VESC with id.
 
 #### canget-temp-fet
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-temp-fet id)
 ```
@@ -888,6 +1331,11 @@ Get RPM over CAN-bus on VESC with id.
 Get MOSFET temperature over CAN-bus on VESC with id.
 
 #### canget-temp-motor
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-temp-motor id)
 ```
@@ -895,6 +1343,11 @@ Get MOSFET temperature over CAN-bus on VESC with id.
 Get motor temperature over CAN-bus on VESC with id.
 
 #### canget-speed
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-speed id)
 ```
@@ -902,6 +1355,11 @@ Get motor temperature over CAN-bus on VESC with id.
 Get speed in meters per second over CAN-bus on VESC with id. The gearing, wheel diameter and number of motor poles from the local configuration will be used for converting the RPM to meters per second.
 
 #### canget-dist
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-dist id)
 ```
@@ -909,6 +1367,11 @@ Get speed in meters per second over CAN-bus on VESC with id. The gearing, wheel 
 Get distance traveled in meters over CAN-bus on VESC with id. As with (canget-speed id), the local configuration will be used to convert the tachometer value to meters.
 
 #### canget-ppm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-ppm id)
 ```
@@ -916,6 +1379,11 @@ Get distance traveled in meters over CAN-bus on VESC with id. As with (canget-sp
 Get PPM-input from the VESC with id on the CAN-bus. Note that CAN status message 6 as well as the PPM-app must be active on that VESC for this function to work.
 
 #### canget-adc
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (canget-adc id ch)
 ```
@@ -923,6 +1391,11 @@ Get PPM-input from the VESC with id on the CAN-bus. Note that CAN status message
 Get ADC channel ch from the VESC with id on the CAN-bus. Note that CAN status message 6 must be active on that VESC for this function to work.
 
 #### can-list-devs
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (can-list-devs)
 ```
@@ -930,6 +1403,11 @@ Get ADC channel ch from the VESC with id on the CAN-bus. Note that CAN status me
 List CAN-devices that have been heard on the CAN-bus since boot. This function is fast as it does not actively scan the CAN-bus, but it relies on the devices sending status message 1.
 
 #### can-scan
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (can-scan)
 ```
@@ -937,6 +1415,11 @@ List CAN-devices that have been heard on the CAN-bus since boot. This function i
 Actively scan the CAN-bus and return a list with devices that responded. This function takes several seconds to run, but also finds devices that do not actively send messages and only respond to a ping message.
 
 #### can-send-sid
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (can-send-sid id data)
 ```
@@ -950,6 +1433,11 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 *data* can be a list or a [byte array](#byte-arrays).
 
 #### can-send-eid
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (can-send-eid id data)
 ```
@@ -957,6 +1445,10 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 Same as (can-send-sid), but sends extended ID frame.
 
 #### can-cmd
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (can-cmd id cmd)
@@ -980,6 +1472,11 @@ Example:
 ### Math Functions
 
 #### sin
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (sin angle)
 ```
@@ -987,6 +1484,11 @@ Example:
 Get the sine of angle. Unit: Radians.
 
 #### cos
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (cos angle)
 ```
@@ -994,6 +1496,11 @@ Get the sine of angle. Unit: Radians.
 Get the cosine of angle. Unit: Radians.
 
 #### tan
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (tan angle)
 ```
@@ -1001,6 +1508,11 @@ Get the cosine of angle. Unit: Radians.
 Get the tangent of angle. Unit: Radians.
 
 #### asin
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (asin x)
 ```
@@ -1008,6 +1520,11 @@ Get the tangent of angle. Unit: Radians.
 Get the arc sine of x. Unit: Radians.
 
 #### acos
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (acos x)
 ```
@@ -1015,6 +1532,11 @@ Get the arc sine of x. Unit: Radians.
 Get the arc cosine of x. Unit: Radians.
 
 #### atan
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (atan x)
 ```
@@ -1022,6 +1544,11 @@ Get the arc cosine of x. Unit: Radians.
 Get the arc tangent of x. Unit: Radians.
 
 #### atan2
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (atan2 y x)
 ```
@@ -1029,6 +1556,11 @@ Get the arc tangent of x. Unit: Radians.
 Get the arc tangent of y / x. Unit: Radians. This version uses the signs of y and x to determine the quadrant.
 
 #### pow
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (pow base power)
 ```
@@ -1036,6 +1568,11 @@ Get the arc tangent of y / x. Unit: Radians. This version uses the signs of y an
 Get base raised to power.
 
 #### sqrt
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (sqrt x)
 ```
@@ -1043,6 +1580,11 @@ Get base raised to power.
 Get the square root of x.
 
 #### log
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log x)
 ```
@@ -1050,6 +1592,11 @@ Get the square root of x.
 Get the base-e logarithm of x.
 
 #### log10
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log10 x)
 ```
@@ -1057,6 +1604,11 @@ Get the base-e logarithm of x.
 Get the base-10 logarithm of x.
 
 #### floor
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.02+ |
+
 ```clj
 (floor x)
 ```
@@ -1064,6 +1616,11 @@ Get the base-10 logarithm of x.
 Round x down to the closest integer. Added in FW 6.02.
 
 #### ceil
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.02+ |
+
 ```clj
 (ceil x)
 ```
@@ -1071,6 +1628,11 @@ Round x down to the closest integer. Added in FW 6.02.
 Round x up to the closest integer. Added in FW 6.02.
 
 #### round
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.02+ |
+
 ```clj
 (round x)
 ```
@@ -1078,6 +1640,11 @@ Round x up to the closest integer. Added in FW 6.02.
 Round x to the closest integer. Added in FW 6.02.
 
 #### deg2rad
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (deg2rad x)
 ```
@@ -1085,20 +1652,23 @@ Round x to the closest integer. Added in FW 6.02.
 Converts x from degrees to radians.
 
 #### rad2deg
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (rad2deg x)
 ```
 
 Converts x from radians to degrees.
 
-#### vec3-rot
-```clj
-(vec3-rot x1 x2 x3 roll pitch yaw optRev)
-```
-
-Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply the rotation in reverse (apply the inverse of the rotation matrix) if set to 1.
-
 #### abs
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (abs x)
 ```
@@ -1106,6 +1676,11 @@ Rotate vector x1,x2,x3 around roll, pitch and yaw. optRev (1 or 0) will apply th
 Get the absolute value of x.
 
 #### throttle-curve
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (throttle-curve value accel brake mode)
 ```
@@ -1115,6 +1690,11 @@ Apply throttle curve on value. accel (range -1 to 1) is the curve constant for a
 ### Bit Operations
 
 #### bits-enc-int
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (bits-enc-int initial offset number bits)
 ```
@@ -1127,6 +1707,11 @@ initial |= (number << (32 - bits)) >> (32 - bits - offset);
 ```
 
 #### bits-dec-int
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (bits-dec-int value offset size)
 ```
@@ -1143,6 +1728,11 @@ val &= 0xFFFFFFFF >> (32 - bits);
 Raw data commands useful for debugging hardware issues.
 
 #### raw-adc-current
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-adc-current motor phase useRaw)
 ```
@@ -1159,6 +1749,11 @@ Example for reading phase B on motor 1 as raw ADC values:
 ```
 
 #### raw-adc-voltage
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-adc-voltage motor phase useRaw)
 ```
@@ -1166,6 +1761,11 @@ Example for reading phase B on motor 1 as raw ADC values:
 Same as (raw-adc-current), but measures phase voltages instead.
 
 #### raw-mod-alpha
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-mod-alpha)
 ```
@@ -1173,6 +1773,11 @@ Same as (raw-adc-current), but measures phase voltages instead.
 Get alpha modulation. Range -1.0 to 1.0 (almost).
 
 #### raw-mod-beta
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-mod-beta)
 ```
@@ -1180,6 +1785,11 @@ Get alpha modulation. Range -1.0 to 1.0 (almost).
 Get beta modulation. Range -1.0 to 1.0 (almost).
 
 #### raw-mod-alpha-measured
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-mod-alpha-measured)
 ```
@@ -1187,12 +1797,22 @@ Get beta modulation. Range -1.0 to 1.0 (almost).
 Same as (raw-mod-alpha), but derives the modulation from the phase voltage reading and/or dead-time compensation.
 
 #### raw-mod-beta-measured
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-mod-beta-measured)
 ```
 Same as (raw-mod-beta), but derives the modulation from the phase voltage reading and/or dead-time compensation.
 
 #### raw-hall
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (raw-hall motor optSamples)
 ```
@@ -1207,6 +1827,10 @@ The function (ix list ind) can be used to get an element from the list. Example:
 
 #### uart-start
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (uart-start baudrate optHd)
 ```
@@ -1219,6 +1843,10 @@ Start the UART driver at baudrate on the COMM-port on the VESC. optHd is an opti
 ```
 
 #### uart-write
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (uart-write array)
@@ -1239,6 +1867,10 @@ Write array (see [byte array](#byte-arrays) for details) to the UART. Examples:
 
 #### uart-read
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (uart-read array num optOffset optStopAt)
 ```
@@ -1247,6 +1879,10 @@ Read num bytes into array at offset optOffset. Stop reading if the character opt
 
 #### uart-read-bytes
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (uart-read-bytes array num offset)
 ```
@@ -1254,6 +1890,10 @@ Read num bytes into array at offset optOffset. Stop reading if the character opt
 Read num bytes into buffer at offset. This function is blocking, so it will not return until the specified amount of bytes is read.
 
 #### uart-read-until
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (uart-read-until array num offset end)
@@ -1264,6 +1904,10 @@ Same as uart-read-bytes, but will return when the byte end is read.
 ### I2C
 
 #### i2c-start
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (i2c-start optRate optPinSda optPinScl)
@@ -1289,9 +1933,15 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-hall1
 'pin-hall2
 'pin-hall3
+
+; Note: On express the pins are a number
 ```
 
 #### i2c-tx-rx
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (i2c-tx-rx addr arrTx optArrRx)
@@ -1309,6 +1959,10 @@ Send array (or list) arrTx to the I2C-device with address addr. Optionally recei
 
 #### i2c-restore
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (i2c-restore)
 ```
@@ -1319,7 +1973,13 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
 
+The gpio-extension are also available on the express-platform. There the pins are a number (e.g. 1, 2, etc.) instead of a symbol.
+
 #### gpio-configure
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (gpio-configure pin mode)
@@ -1342,6 +2002,8 @@ Configure GPIO pin to mode. Example:
 'pin-adc2   ; ADC2-pin on COMM-port
 'pin-ppm    ; Signal-pin on PPM-port
 
+; On express the pins are a number and not a symbol.
+
 ; Available modes
 'pin-mode-out    ; Output
 'pin-mode-od     ; Open drain output
@@ -1355,6 +2017,10 @@ Configure GPIO pin to mode. Example:
 
 #### gpio-write
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (gpio-write pin state)
 ```
@@ -1367,6 +2033,10 @@ Write state to pin. If the pin is set to an output 1 will set it to VCC and 0 to
 
 #### gpio-read
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (gpio-read pin)
 ```
@@ -1375,9 +2045,17 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 ### Input Capture (ICU)
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
+
 Input capture can be used to measure pulse lengths and periods on the PPM input pin. This can be used to measure the frequency and duty cycle of PWM-signals. The ICU driver was added in FW 6.02.
 
 #### icu-start
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
 
 ```clj
 (icu-start freqHz pol)
@@ -1414,6 +2092,10 @@ Start input capture on the PPM-pin with timer frequency freqHz hertz and polarit
 
 #### icu-width
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
+
 ```clj
 (icu-width)
 ```
@@ -1421,6 +2103,10 @@ Start input capture on the PPM-pin with timer frequency freqHz hertz and polarit
 Get the width of the last captured pulse.
 
 #### icu-period
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.02+ |
 
 ```clj
 (icu-period)
@@ -1545,6 +2231,10 @@ The following selection of app and motor parameters can be read and set from Lis
 
 #### conf-set
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (conf-set param value)
 ```
@@ -1556,6 +2246,10 @@ Set param to value. This can be done while the motor is running and it will be a
 ```
 
 #### conf-get
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (conf-get param optDefLim)
@@ -1571,6 +2265,10 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 
 #### conf-store
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (conf-store)
 ```
@@ -1578,6 +2276,10 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 Store the current configuration to flash. This will stop the motor.
 
 #### conf-detect-foc
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (conf-detect-foc canFwd maxLoss minCurrIn maxCurrIn openloopErpm slErpm)
@@ -1616,6 +2318,10 @@ Example:
 
 #### conf-set-pid-offset
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (conf-set-pid-offset offset optStore)
 ```
@@ -1623,6 +2329,10 @@ Example:
 Set the PID controller offset such that the current angle becomes offset. This can be used in position control applications when e.g. homing against a limit switch. The optional argument optStore can be set to true to store the offset persistently (although that requires stopping the motor).
 
 #### conf-measure-res
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (conf-measure-res current optSamples)
@@ -1640,6 +2350,10 @@ Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reser
 
 #### eeprom-store-f
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (eeprom-store-f addr number)
 ```
@@ -1647,6 +2361,10 @@ Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reser
 Store float number on emulated eeprom at address addr. Addr range: 0 to 127. Note that this will stop the motor briefly as writing to the flash memory cannot be done at the same time as the motor is running.
 
 #### eeprom-read-f
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (eeprom-read-f addr)
@@ -1656,6 +2374,10 @@ Read float number on emulated eeprom at address addr. Addr range: 0 to 127. If n
 
 #### eeprom-store-i
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (eeprom-store-i addr number)
 ```
@@ -1663,6 +2385,10 @@ Read float number on emulated eeprom at address addr. Addr range: 0 to 127. If n
 Same as eeprom-store-f, but store number as i32 instead of float.
 
 #### eeprom-read-i
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (eeprom-read-i addr)
@@ -1673,6 +2399,10 @@ Same as eeprom-read-i, but read number as i32 instead of float.
 ### Loops
 
 #### loopfor
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (loopfor it start cond update body)
@@ -1701,6 +2431,10 @@ Output:
 ```
 
 #### loopwhile
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (loopwhile cond body)
@@ -1737,6 +2471,10 @@ Another example that prints "Hello World" every two seconds:
 
 #### looprange
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (looprange it start end body)
 ```
@@ -1765,6 +2503,10 @@ Output:
 
 #### loopforeach
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (loopforeach it lst body)
 ```
@@ -1792,6 +2534,10 @@ f
 ```
 
 #### break
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (break retval)
@@ -1823,6 +2569,10 @@ There are a number of lisp functions that can be used from lispBM in the VESC fi
 
 #### defun
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (defun (args) body)
 ```
@@ -1843,6 +2593,10 @@ Shorthand macro for defining a function. Example:
 
 #### map
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (map f lst)
 ```
@@ -1857,6 +2611,10 @@ Apply function f to every element in list lst. Example:
 This example creates an anonymous function that takes one argument and returns that argument multiplied by 5. Map then applies it to every element in the list (1 2 3 4), which yields the list (5 10 15 20).
 
 #### range
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (range optStart end)
@@ -1874,6 +2632,10 @@ Create a list from start to end, excluding end. Range also works with just one a
 
 #### foldl
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (foldl f init lst)
 ```
@@ -1887,9 +2649,17 @@ Apply the function f to pairs of init and each element of the list lst and accum
 
 #### foldr
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 Same as foldl, but start from the right side of lst.
 
 #### reverse
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (reverse lst)
@@ -1904,6 +2674,10 @@ Returns the list lst in reverse. Example:
 
 #### length
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (length lst)
 ```
@@ -1916,6 +2690,10 @@ Returns the length of list lst. Example:
 ```
 
 #### apply
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (apply f lst)
@@ -1930,6 +2708,10 @@ Use the elements in list lst as arguments to function f. Example:
 
 #### zipwith
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (zipwith f x y)
 ```
@@ -1943,6 +2725,10 @@ Apply the function f to pairs between the elements in list x and list y. Example
 
 #### filter
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (filter f lst)
 ```
@@ -1955,6 +2741,10 @@ Filter list by keeping the elements on which f returns true. Example:
 ```
 
 #### sort
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (sort f lst)
@@ -1977,6 +2767,10 @@ Sort list lst using comparison function f. Example:
 ### String Manipulation
 
 #### str-from-n
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-from-n n optFormat)
@@ -2003,6 +2797,10 @@ Create a string from the number n. Also takes an optional format argument optFor
 
 #### str-merge
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-merge str1 str2 ...)
 ```
@@ -2018,6 +2816,10 @@ Merge a number of strings into one. Example:
 ```
 
 #### str-to-i
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-to-i str optBase)
@@ -2038,6 +2840,10 @@ Convert string to integer. By default the base is chosen automatically, but it c
 
 #### str-to-f
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-to-f str)
 ```
@@ -2054,6 +2860,10 @@ Convert string to floating point number. Example:
 ```
 
 #### str-part
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-part str start optN)
@@ -2073,6 +2883,10 @@ Take part of string str starting at start for optN characters. If optN is omitte
 ```
 
 #### str-split
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-split str delim)
@@ -2096,6 +2910,10 @@ Split string str into tokens using delimiter delim. If delim is a number str wil
 
 #### str-replace
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-replace str rep optWith)
 ```
@@ -2112,6 +2930,10 @@ Replace every occurrence of rep in str with optWith. If optWith is omitted every
 
 #### str-to-upper
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-to-upper str)
 ```
@@ -2125,6 +2947,10 @@ Convert string str to upper case. Example:
 
 #### str-to-lower
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-to-lower str)
 ```
@@ -2137,6 +2963,10 @@ Convert string str to lower case. Example:
 ```
 
 #### str-cmp
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-cmp str1 str1 optN)
@@ -2164,6 +2994,10 @@ Example:
 
 #### str-cmp-asc
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-cmp-asc str1 str1)
 ```
@@ -2172,6 +3006,10 @@ Return true if str1 comes before str2, nil otherwise. Useful for sorting strings
 
 #### str-cmp-dsc
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (str-cmp-dsc str1 str1)
 ```
@@ -2179,6 +3017,10 @@ Return true if str1 comes before str2, nil otherwise. Useful for sorting strings
 Return true if str2 comes before str1, nil otherwise. Useful for sorting strings using the [sort](#sort) function in descending order.
 
 #### str-len
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (str-len str)
@@ -2192,6 +3034,10 @@ Calculate length of string str excluding the null termination. Example:
 ```
 
 #### to-str
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (to-str arg1 ... argN)
@@ -2209,6 +3055,10 @@ Convert LBM-types to their string representation and return that string. Example
 
 #### to-str-delim
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (to-str-delim delimiter arg1 ... argN)
 ```
@@ -2221,6 +3071,10 @@ Same as [to-str](#to-str), but with a custom delimiter. Example:
 ```
 
 ## Events
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 Events can be used to execute code for certain events, such as when CAN-frames are received. To use events you must first register an event handler, then enable the events you want to receive. As the event handler blocks until the event arrives it is useful to spawn a thread to handle events so that other things can be done in the main thread at the same time.
 
@@ -2298,6 +3152,10 @@ To allocate a byte array with 20 bytes and bind the symbol arr to it you can use
 
 #### buflen
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 The length of a byte array can be read with
 
 ```clj
@@ -2307,6 +3165,10 @@ The length of a byte array can be read with
 Which will return 20 for the array arr above.
 
 #### bufclear
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 To clear a byte array the function bufclear can be used:
 
@@ -2325,6 +3187,10 @@ Where arr is the byte array to clear, optByte is the optional argument of what t
 ```
 
 #### bufget-\[x\]
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 To read data from the byte array you can use
 
@@ -2353,6 +3219,10 @@ By default the byte order is big endian. The byte order can also be specified as
 
 #### bufset-\[x\]
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 Writing to the array can be done in a similar way
 
 ```clj
@@ -2377,6 +3247,10 @@ As with bufget big endian is the default byte order and little-endian can be pas
 
 #### bufcpy
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 Copy part of one array into another array.
 
 ```clj
@@ -2386,6 +3260,10 @@ Copy part of one array into another array.
 Copy len bytes from arr2 starting at ind2 to arr1 starting at ind1. Len will be truncated to ensure that nothing is read or written outside of the arrays.
 
 #### free
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 Byte arrays will be de-allocated by the garbage collector on a regular basis, but can still use a lot of memory until then and large byte arrays cause a risk of running out of memory. It is possible to manually de-allocate the byte arrays when done with them by calling free
 
@@ -2405,6 +3283,10 @@ Import is a special command that is mostly handled by VESC Tool. When VESC Tool 
 Every imported file behaves as a byte array that is read-only (so do not try to modify it). These byte arrays can be used as usual from the lisp code to, for example, load native libraries or to load more lisp code at runtime. As they are stored in flash in raw binary format there is significantly more space available than when using e.g. the array syntax. The lisp script and the imported files can use up to 120 KB together.
 
 #### import
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (import filename binding)
@@ -2485,6 +3367,10 @@ Every time lispBM is restarted or when new code is uploaded the native libraries
 
 #### load-native-lib
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (load-native-lib lib)
 ```
@@ -2492,6 +3378,10 @@ Every time lispBM is restarted or when new code is uploaded the native libraries
 Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library.
 
 #### unload-native-lib
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
 
 ```clj
 (unload-native-lib lib)
@@ -2530,6 +3420,10 @@ This example creates an extension called ext-test that takes a number as an argu
 
 #### uavcan-last-rawcmd
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (uavcan-last-rawcmd canInterface)
 ```
@@ -2543,6 +3437,10 @@ Get the last raw uavcan-command and its age. Returns a list where the first elem
 
 #### uavcan-last-rpmcmd
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control | 6.00+ |
+
 ```clj
 (uavcan-last-rpmcmd canInterface)
 ```
@@ -2552,6 +3450,10 @@ Same as uavcan-last-rawcmd, but for the last rpm-command.
 ## LispBM
 
 #### lbm-set-quota
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (lbm-set-quota quota)
@@ -2567,6 +3469,10 @@ VESC Tool can be used for plotting data using the Realtime Data->Experiment page
 
 #### plot-init
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (plot-init namex namey)
 ```
@@ -2574,6 +3480,10 @@ VESC Tool can be used for plotting data using the Realtime Data->Experiment page
 Start a new plot with namex as the x axis name and namey as the u axis name.
 
 #### plot-add-graph
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (plot-add-graph name)
@@ -2583,6 +3493,10 @@ Add a graph to the current plot that will be called name. Every added graph gets
 
 #### plot-set-graph
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (plot-set-graph ind)
 ```
@@ -2590,6 +3504,10 @@ Add a graph to the current plot that will be called name. Every added graph gets
 Set graph index to which data points are sent.
 
 #### plot-send-points
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (plot-send-points x y)
@@ -2603,6 +3521,10 @@ CAN-connected IO-boards can be interfaced using the functions in this section.
 
 #### ioboard-get-adc
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (ioboard-get-adc can-id channel)
 ```
@@ -2610,6 +3532,10 @@ CAN-connected IO-boards can be interfaced using the functions in this section.
 Read ADC-input channel from IO-board with can-id. Channel range: 1 to 8. If the IO-board with can-id is not present on the CAN-bus or if the channel is missing -1 will be returned.
 
 #### ioboard-get-digital
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (ioboard-get-digital can-id channel)
@@ -2619,6 +3545,10 @@ Read  digital input channel from IO-board with can-id. Channel range: 1 to 64. I
 
 #### ioboard-set-digital
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (ioboard-set-digital can-id channel state)
 ```
@@ -2626,6 +3556,10 @@ Read  digital input channel from IO-board with can-id. Channel range: 1 to 64. I
 Write digital output channel to IO-board with can-id. State can be 1 or 0.
 
 #### ioboard-set-pwm
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (ioboard-set-pwm can-id channel duty)
@@ -2691,6 +3625,10 @@ Fault code. Converted to a fault string in the VESC Tool log analysis tool.
 
 #### log-config-field
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log-config-field
     can-id
@@ -2707,7 +3645,7 @@ Fault code. Converted to a fault string in the VESC Tool log analysis tool.
 Configure log field on log device. Parameters:
 
 **can-id**  
-ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool.
+ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool. On the express platform -2 will log to the local SD-card.
 
 **field-ind**  
 Field index in the log.
@@ -2729,6 +3667,10 @@ Timestamp fields are displayed with the format hh:mm:ss.
 
 #### log-start
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log-start
     can-id
@@ -2742,7 +3684,7 @@ Timestamp fields are displayed with the format hh:mm:ss.
 Start logging. Before starting to log all fields should be configured with [log-config-field](#log-config-field).
 
 **can-id**  
-ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool.
+ID on the CAN-bus. Setting the id to -1 will send the data to VESC Tool. On the express platform -2 will log to the local SD-card.
 
 **field-num**  
 Number of log fields.
@@ -2758,6 +3700,10 @@ If set to true the log device will append a GNSS-position to each sample. This r
 
 #### log-stop
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log-stop can-id)
 ```
@@ -2766,6 +3712,10 @@ Stop logging data on log device with can-id. Setting the id to -1 will send the 
 
 #### log-send-f32
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (log-send-f32 can-id from-field-ind sample1 ... sampleN)
 ```
@@ -2773,6 +3723,10 @@ Stop logging data on log device with can-id. Setting the id to -1 will send the 
 Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers. Setting the id to -1 will send the data to VESC Tool.
 
 #### log-send-f64
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (log-send-f64 can-id from-field-ind sample1 ... sampleN)
@@ -2786,6 +3740,10 @@ If a GNSS-receiver such as the VESC Express is connected on the CAN-bus, the pos
 
 #### gnss-lat-lon
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (gnss-lat-lon)
 ```
@@ -2793,6 +3751,10 @@ If a GNSS-receiver such as the VESC Express is connected on the CAN-bus, the pos
 Returns the latitude and longitude of the position as a list with two elements.
 
 #### gnss-height
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (gnss-height)
@@ -2802,6 +3764,10 @@ Returns the height of the position in meters.
 
 #### gnss-speed
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (gnss-speed)
 ```
@@ -2809,6 +3775,10 @@ Returns the height of the position in meters.
 Returns the speed on meters per second.
 
 #### gnss-hdop
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (gnss-hdop)
@@ -2818,6 +3788,10 @@ Returns the hdop-value of the position. Lower values mean that the precision is 
 
 #### gnss-date-time
 
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
+
 ```clj
 (gnss-date-time)
 ```
@@ -2825,6 +3799,10 @@ Returns the hdop-value of the position. Lower values mean that the precision is 
 Returns date and time of the last position sample as a list with the format (year month day hours minutes seconds milliseconds).
 
 #### gnss-age
+
+| Platforms | Firmware |
+|---|---|
+| Motor Control, Express | 6.00+ |
 
 ```clj
 (gnss-age)
