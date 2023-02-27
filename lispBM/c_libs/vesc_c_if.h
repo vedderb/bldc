@@ -582,6 +582,16 @@ typedef struct {
 	bool (*read_nvm)(uint8_t *v, unsigned int len, unsigned int address);
 	bool (*write_nvm)(uint8_t *v, unsigned int len, unsigned int address);
 	bool (*wipe_nvm)(void);
+
+	// FOC
+	float (*foc_get_id)(void);
+	float (*foc_get_iq)(void);
+	float (*foc_get_vd)(void);
+	float (*foc_get_vq)(void);
+	void (*foc_set_openloop_current)(float current, float rpm);
+	void (*foc_set_openloop_phase)(float current, float phase);
+	void (*foc_set_openloop_duty)(float dutyCycle, float rpm);
+	void (*foc_set_openloop_duty_phase)(float dutyCycle, float phase);
 } vesc_c_if;
 
 typedef struct {

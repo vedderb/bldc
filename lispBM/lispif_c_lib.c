@@ -42,6 +42,7 @@
 #include "servo_dec.h"
 #include "servo_simple.h"
 #include "flash_helper.h"
+#include "mcpwm_foc.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -806,11 +807,6 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.read_eeprom_var = conf_general_read_eeprom_var_custom;
 		cif.cif.store_eeprom_var = conf_general_store_eeprom_var_custom;
 
-		// NVM
-		cif.cif.read_nvm = 	flash_helper_read_nvm;
-		cif.cif.write_nvm = 	flash_helper_write_nvm;
-		cif.cif.wipe_nvm = 	flash_helper_wipe_nvm;
-
 		// Timeout
 		cif.cif.timeout_reset = timeout_reset;
 		cif.cif.timeout_has_timeout = timeout_has_timeout;
@@ -877,6 +873,21 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.get_ppm = lispif_get_ppm;
 		cif.cif.get_ppm_age = lib_get_ppm_age;
 		cif.cif.app_is_output_disabled = app_is_output_disabled;
+
+		// NVM
+		cif.cif.read_nvm = flash_helper_read_nvm;
+		cif.cif.write_nvm = flash_helper_write_nvm;
+		cif.cif.wipe_nvm = flash_helper_wipe_nvm;
+
+		// FOC
+		cif.cif.foc_get_id = mcpwm_foc_get_id_filter;
+		cif.cif.foc_get_iq = mcpwm_foc_get_iq_filter;
+		cif.cif.foc_get_vd = mcpwm_foc_get_vd;
+		cif.cif.foc_get_vq = mcpwm_foc_get_vq;
+		cif.cif.foc_set_openloop_current = mcpwm_foc_set_openloop_current;
+		cif.cif.foc_set_openloop_phase = mcpwm_foc_set_openloop_phase;
+		cif.cif.foc_set_openloop_duty = mcpwm_foc_set_openloop_duty;
+		cif.cif.foc_set_openloop_duty_phase = mcpwm_foc_set_openloop_duty_phase;
 
 		lib_init_done = true;
 	}

@@ -957,7 +957,7 @@ static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
 	}
 
 	eeprom_var v;
-	v.as_i32 = lbm_dec_as_float(args[1]);
+	v.as_i32 = lbm_dec_as_i32(args[1]);
 	return conf_general_store_eeprom_var_custom(&v, addr) ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
