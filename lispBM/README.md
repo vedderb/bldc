@@ -4559,6 +4559,38 @@ Set LED led-num to color. The color is a number in RGB888. Example:
 
 ---
 
+## Sleep Modes
+
+---
+
+#### sleep-deep
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(sleep-deep time)
+```
+
+Put the CPU in deep sleep mode for time seconds. If time is negative the CPU will sleep forever, or until a wakeup pin triggers a wakeup.
+
+---
+
+#### sleep-config-wakeup-pin
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(sleep-config-wakeup-pin pin state)
+```
+
+Configure pin to wake up the CPU from sleep mode. The available pins are 0 to 5 and state can be 0 or 1. 0 means that a low state wakes up the CPU and 1 means that a high state wakes up the CPU.
+
+---
+
 ## How to update
 
 To update from remote repository:
