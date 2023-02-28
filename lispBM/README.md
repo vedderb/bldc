@@ -599,6 +599,20 @@ Calculate the 16-bit crc of array. optLen is an optional argument for how many e
 
 ---
 
+#### main-init-done
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(main-init-done)
+```
+
+Returns true when the main-function is done with all initialization.
+
+---
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
@@ -4326,6 +4340,222 @@ Returns date and time of the last position sample as a list with the format (yea
 ```
 
 Returns the age of the last gnss-sample in seconds.
+
+---
+
+## ESP-NOW
+
+The VESC Express has full support for ESP-NOW. It can be used in any combination of bluetooth and wifi, the only limitation is that it must use the same channel as the wifi. That is mainly an issue in station mode as there is no way to control the channel that the access point the express connects to uses.
+
+---
+
+#### esp-now-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(esp-now-start)
+```
+
+Start ESP-NOW. This must be run before further ESP-NOW operations.
+
+---
+
+#### esp-now-add-peer
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(esp-now-add-peer peer)
+```
+
+Add peer. The argument is a list with the mac address of the peer to add. This must be run before esp-now-send as it only is possible to send data to peers that have been added. Example:
+
+```clj
+(esp-now-add-peer '(255 255 255 255 255 255)) ; Add broadcast address as peer
+```
+
+---
+
+#### esp-now-send
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(esp-now-send peer data)
+```
+
+Send the array data to peer. The peer argument is a list with the mac address of the peer to send to. If peer is not the broadcast address this function will make a few retries and returns true if the packet arrived at the receiver and false if it was not received. For broadcast only one try is made and it should always return true.
+
+Example:
+
+```clj
+(esp-now-send '(255 255 255 255 255 255) "Hello!") ; Broadcast the string "Hello!"
+```
+
+---
+
+#### get-mac-addr
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(get-mac-addr)
+```
+
+Get the mac address of the device as a list. This address is what peer refers to in the functions above. Example:
+
+```clj
+(get-mac-addr)
+> (112 4 29 15 194 105)
+```
+
+---
+
+#### wifi-get-chan
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(wifi-get-chan)
+```
+
+Get the current wifi-channel. For ESP-NOW to work the communicating devices need to be on the same wifi-channel. By default the channel is 1, but when station mode is used on the wifi the channel will be the same as the access point and cannot be changed.
+
+---
+
+#### wifi-set-chan
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(wifi-set-chan channel)
+```
+
+Set the current wifi-channel. This function cannot be used when wifi is connected.
+
+---
+
+#### wifi-get-bw
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(wifi-get-bw)
+```
+
+Get current wifi bandwidth in MHz.
+
+---
+
+#### wifi-set-bw
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(wifi-set-bw)
+```
+
+Set wifi bandwidth in MHz. This function is experimental and should only be used if you know what you are doing.
+
+---
+
+### Receiving Data
+
+Events can be used to receive ESP-NOW data. This is best described with an example:
+
+```clj
+; Here src is the mac-address of the sender, des is the mac-address
+; of the receiver and data is an array with the sent data. If des is
+; the broadcast address (255 255 255 255 255 255) it means that this
+; was a broadcast packet.
+
+(defun proc-data (src des data)
+    (print (list src des data))
+)
+
+(defun event-handler ()
+    (loopwhile t
+        (recv
+            ((event-esp-now-rx (? src) (? des) (? data)) (proc-data src des data))
+            (_ nil)
+)))
+
+(event-register-handler (spawn event-handler))
+(event-enable 'event-esp-now-rx)
+```
+
+---
+
+## RGB LED (e.g. WS2812)
+
+The express can use the remote peripheral to drive addressable LEDs on any pin. The LED on the DevKitM-1 is actually and addressable LED connected to PIN8, so this driver is required to use it.
+
+---
+
+#### rgbled-init
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(rgbled-init pin num-leds)
+```
+
+Initialize the rgbled-driver on pin for num-leds LEDs. Example:
+
+```clj
+(rgbled-init 8 1) ; This is the LED on the DevKitM-1
+```
+
+---
+
+#### rgbled-deinit
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(rgbled-deinit)
+```
+
+De-initialize the rgbled-driver and release the resources it used.
+
+---
+
+#### rgbled-color
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.02+ |
+
+```clj
+(rgbled-color led-num color)
+```
+
+Set LED led-num to color. The color is a number in RGB888. Example:
+
+```clj
+(rgbled-color 0 0xFF0000) ; Set the first LED to red
+```
 
 ---
 
