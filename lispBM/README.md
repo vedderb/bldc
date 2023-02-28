@@ -1621,6 +1621,20 @@ Get ADC channel ch from the VESC with id on the CAN-bus. Note that CAN status me
 
 ---
 
+#### canget-vin
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.02+ |
+
+```clj
+(canget-vin id)
+```
+
+Get input voltage on ESC with id on the CAN-bus.
+
+---
+
 #### can-list-devs
 
 | Platforms | Firmware |

@@ -1722,6 +1722,16 @@ static lbm_value ext_can_get_adc(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_can_get_vin(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	can_status_msg_5 *stat5 = comm_can_get_status_msg_5_id(lbm_dec_as_i32(args[0]));
+	if (stat5) {
+		return lbm_enc_float(stat5->v_in);
+	} else {
+		return lbm_enc_float(0.0);
+	}
+}
+
 static int cmp_int (const void * a, const void * b) {
 	return ( *(int*)a - *(int*)b );
 }
@@ -3839,6 +3849,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("canget-dist", ext_can_get_dist);
 	lbm_add_extension("canget-ppm", ext_can_get_ppm);
 	lbm_add_extension("canget-adc", ext_can_get_adc);
+	lbm_add_extension("canget-vin", ext_can_get_vin);
 
 	lbm_add_extension("can-list-devs", ext_can_list_devs);
 	lbm_add_extension("can-scan", ext_can_scan);
