@@ -4221,7 +4221,7 @@ If set to true the log device will append a GNSS-position to each sample. This r
 (log-stop can-id)
 ```
 
-Stop logging data on log device with can-id. Setting the id to -1 will send the data to VESC Tool.
+Stop logging data on log device with can-id. The id -1 refers to VESC Tool and id -2 refers to the local express.
 
 ---
 
@@ -4235,7 +4235,7 @@ Stop logging data on log device with can-id. Setting the id to -1 will send the 
 (log-send-f32 can-id from-field-ind sample1 ... sampleN)
 ```
 
-Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers. Setting the id to -1 will send the data to VESC Tool.
+Send log samples to log device with can-id. This function takes 1 to 100 samples as arguments which will be applied to the log fields starting from from-field-ind. The samples can be numbers or lists of numbers. Setting the id to -1 will send the data to VESC Tool and setting id to -2 will store it locally on the express.
 
 ---
 
@@ -4505,7 +4505,7 @@ Events can be used to receive ESP-NOW data. This is best described with an examp
 
 ## RGB LED (e.g. WS2812)
 
-The express can use the remote peripheral to drive addressable LEDs on any pin. The LED on the DevKitM-1 is actually and addressable LED connected to PIN8, so this driver is required to use it.
+The express can use the remote peripheral to drive addressable LEDs on any pin. The LED on the DevKitM-1 is actually and addressable LED connected to pin 8, so this driver is required to use it.
 
 ---
 
