@@ -521,7 +521,7 @@ Get button and joystick state of connected remote. Note that a remote app such a
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (sysinfo param)
@@ -538,6 +538,7 @@ Read system info parameter param. Example:
 (sysinfo 'git-branch) ; Git branch name
 (sysinfo 'git-hash) ; Git hash of current commit
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1
+(sysinfo 'hw-type) ; Hardware type, e.g. hw-express. Added in 6.02.
 ```
 
 ---

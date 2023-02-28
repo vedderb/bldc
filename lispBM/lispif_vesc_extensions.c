@@ -155,6 +155,7 @@ typedef struct {
 	lbm_uint git_branch;
 	lbm_uint git_hash;
 	lbm_uint compiler;
+	lbm_uint hw_type;
 
 	// Statistics
 	lbm_uint stat_speed_avg;
@@ -384,6 +385,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("git-hash", comp);
 		} else if (comp == &syms_vesc.compiler) {
 			get_add_symbol("compiler", comp);
+		} else if (comp == &syms_vesc.hw_type) {
+			get_add_symbol("hw-type", comp);
 		}
 
 		else if (comp == &syms_vesc.stat_speed_avg) {
@@ -974,6 +977,8 @@ static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
 	return res ? lbm_enc_i32(v.as_i32) : ENC_SYM_NIL;
 }
 
+static lbm_uint sym_hw_esc;
+
 static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 	lbm_value res = ENC_SYM_EERROR;
 
@@ -1050,6 +1055,8 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 		} else {
 			res = ENC_SYM_MERROR;
 		}
+	} else if (compare_symbol(name, &syms_vesc.hw_type)) {
+		res = lbm_enc_sym(sym_hw_esc);
 	}
 
 	return res;
@@ -3695,6 +3702,7 @@ void lispif_load_vesc_extensions(void) {
 	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
 
+	lbm_add_symbol_const("hw-esc", &sym_hw_esc);
 	lbm_add_symbol_const("event-can-sid", &sym_event_can_sid);
 	lbm_add_symbol_const("event-can-eid", &sym_event_can_eid);
 	lbm_add_symbol_const("event-data-rx", &sym_event_data_rx);
