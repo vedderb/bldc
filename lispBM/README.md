@@ -1631,7 +1631,7 @@ Get ADC channel ch from the VESC with id on the CAN-bus. Note that CAN status me
 (canget-vin id)
 ```
 
-Get input voltage on ESC with id on the CAN-bus.
+Get input voltage on ESC with id on the CAN-bus. Note that CAN status message 5 must be active on that ESC for this function to work.
 
 ---
 
