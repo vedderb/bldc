@@ -117,6 +117,32 @@ typedef union {
 	float as_float;
 } eeprom_var;
 
+typedef struct {
+	float v_tot;
+	float v_charge;
+	float i_in;
+	float i_in_ic;
+	float ah_cnt;
+	float wh_cnt;
+	int cell_num;
+	float v_cell[32];
+	bool bal_state[32];
+	int temp_adc_num;
+	float temps_adc[50];
+	float temp_ic;
+	float temp_hum;
+	float hum;
+	float temp_max_cell;
+	float soc;
+	float soh;
+	int can_id;
+	float ah_cnt_chg_total;
+	float wh_cnt_chg_total;
+	float ah_cnt_dis_total;
+	float wh_cnt_dis_total;
+	systime_t update_time;
+} bms_values;
+
 // Packet
 #ifndef PACKET_MAX_PL_LEN
 #define PACKET_MAX_PL_LEN		512
@@ -592,6 +618,9 @@ typedef struct {
 	void (*foc_set_openloop_phase)(float current, float phase);
 	void (*foc_set_openloop_duty)(float dutyCycle, float rpm);
 	void (*foc_set_openloop_duty_phase)(float dutyCycle, float phase);
+
+	// BMS-struct that can be both read and updated
+	volatile bms_values* (*bms_get_values)(void);
 } vesc_c_if;
 
 typedef struct {

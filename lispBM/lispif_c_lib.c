@@ -43,6 +43,7 @@
 #include "servo_simple.h"
 #include "flash_helper.h"
 #include "mcpwm_foc.h"
+#include "bms.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -888,6 +889,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.foc_set_openloop_phase = mcpwm_foc_set_openloop_phase;
 		cif.cif.foc_set_openloop_duty = mcpwm_foc_set_openloop_duty;
 		cif.cif.foc_set_openloop_duty_phase = mcpwm_foc_set_openloop_duty_phase;
+
+		// BMS-struct that can be both read and updated
+		cif.cif.bms_get_values = bms_get_values;
 
 		lib_init_done = true;
 	}
