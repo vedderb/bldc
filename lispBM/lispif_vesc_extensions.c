@@ -3008,6 +3008,91 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+typedef struct {
+	float current;
+	int samples;
+	lbm_cid id;
+} measure_ind_args;
+
+static void measure_inductance_task(void *arg) {
+	int restart_cnt = lispif_get_restart_cnt();
+
+	measure_ind_args *a = (measure_ind_args*)arg;
+	float ld_lq_avg, ld_lq_diff, real_measurement_current = -1.0;
+	int fault;
+
+	lbm_flat_value_t v;
+	bool ok = false;
+	if (lbm_start_flatten(&v, 25)) {
+		fault = mcpwm_foc_measure_inductance_current(a->current, a->samples, &real_measurement_current, &ld_lq_diff, &ld_lq_avg);
+		if (restart_cnt != lispif_get_restart_cnt()) {
+			f_sym(&v, ENC_SYM_EERROR);
+			lbm_finish_flatten(&v);
+			return;
+		}
+
+		if(a->current == 3){ // inject fault sometimes
+			fault = 2;
+		}
+
+		if (fault != 0) {
+			f_i(&v, fault);
+		} else {
+			f_cons(&v);
+			f_float(&v, ld_lq_avg);
+			f_cons(&v);
+			f_float(&v, ld_lq_diff);
+			f_cons(&v);
+			f_float(&v, real_measurement_current);
+			f_sym(&v, SYM_NIL);
+		}
+		
+		lbm_finish_flatten(&v);
+		if (lbm_unblock_ctx(a->id, &v)) {
+			ok = true;
+		} else {
+			lbm_free(v.buf);
+		}
+	}
+
+	if (!ok) {
+		lbm_unblock_ctx_unboxed(a->id, ENC_SYM_NIL);
+	}
+}
+
+static lbm_value ext_conf_measure_ind(lbm_value *args, lbm_uint argn) {
+	// measure inductance of motor @ current
+	// arg0: measurement current
+	// arg1: sample number. optional
+	// returns: ({ld_lq_avg} {ld_lq_diff} {actual_measurement_current}) or (fault-code)
+	if (argn != 1 && argn != 2) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_EERROR;
+	}
+
+	LBM_CHECK_NUMBER_ALL();
+
+	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
+		return ENC_SYM_EERROR;
+	}
+
+	static measure_ind_args a;
+	a.current = lbm_dec_as_float(args[0]);
+	a.samples = 100;
+	if (argn == 2) {
+		a.samples = lbm_dec_as_u32(args[1]);
+	}
+	a.id = lbm_get_current_cid();
+
+	if (mc_interface_get_configuration()->l_current_max < a.current) {
+		return ENC_SYM_EERROR;
+	}
+
+	worker_execute(measure_inductance_task, &a);
+	lbm_block_ctx_from_extension();
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value make_list(int num, ...) {
 	va_list arguments;
 	va_start (arguments, num);
@@ -3897,6 +3982,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
 	lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
 	lbm_add_extension("conf-measure-res", ext_conf_measure_res);
+	lbm_add_extension("conf-measure-ind", ext_conf_measure_ind);
 
 	// Macro expanders
 	lbm_add_extension("me-defun", ext_me_defun);
