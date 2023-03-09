@@ -35,7 +35,6 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
-
 // The fsesc 75 300 has LOW SIDE SHUNTS. With filters that must be disabled.
 // #define HW_HAS_PHASE_SHUNTS 
 
@@ -68,7 +67,6 @@
 // #define AUX_PIN					12
 // #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 // #define AUX_OFF()			palClearPad(AUX_GPIO, AUX_PIN)
-
 
 /*
  * ADC Vector
@@ -120,7 +118,6 @@
 
 
 // ADC macros and settings
-
 // Component parameters (can be overridden)
 #ifndef V_REG
 #define V_REG					3.3
@@ -144,17 +141,9 @@
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
-// #define NTC_TEMP(adc_ind)		hw75_300_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
-
-
-// #ifndef HW75_300_VEDDER_FIRST_PCB
-// #define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
-// #define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
-// #define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
-// #endif
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -166,11 +155,10 @@
 #define HW_ADC_EXT2_PIN			6
 #define HW_ADC_EXT3_GPIO		GPIOC // adc15
 #define HW_ADC_EXT3_PIN			5
-
-// can be repurposed for sin/cos encoder.
-#define HW_ADC_EXT4_GPIO		  GPIOA // rx, adc4
+// ext4/5 can be repurposed for sin/cos encoder.
+#define HW_ADC_EXT4_GPIO		GPIOA // rx, adc4
 #define HW_ADC_EXT4_PIN			4
-#define HW_ADC_EXT5_GPIO		  GPIOA // tx, adc7
+#define HW_ADC_EXT5_GPIO		GPIOA // tx, adc7
 #define HW_ADC_EXT5_PIN			7
 
 // UART Peripheral
@@ -254,7 +242,7 @@
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			15.0		// Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE			15.0	// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			80.0	// Maximum input voltage
@@ -282,16 +270,13 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-400.0, 400.0
-#define HW_LIM_CURRENT_IN		-400.0, 400.0
+#define HW_LIM_CURRENT			  -400.0, 400.0
+#define HW_LIM_CURRENT_IN		  -400.0, 400.0
 #define HW_LIM_CURRENT_ABS		0.0, 480.0
-#define HW_LIM_VIN				11.0, 95.0
-#define HW_LIM_ERPM				-200e3, 200e3
-#define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
-#define HW_LIM_TEMP_FET			-40.0, 110.0
-
-// HW-specific functions
-// float hw75_300_get_temp(void);
+#define HW_LIM_VIN				    11.0, 95.0
+#define HW_LIM_ERPM				    -200e3, 200e3
+#define HW_LIM_DUTY_MIN			  0.0, 0.1
+#define HW_LIM_DUTY_MAX			  0.0, 0.99
+#define HW_LIM_TEMP_FET			  -40.0, 110.0
 
 #endif /* HW_FSESC_75_300_CORE_H_ */
