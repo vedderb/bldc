@@ -162,11 +162,11 @@
 #define HW_ADC_EXT2_GPIO		GPIOA
 #define HW_ADC_EXT2_PIN			6
 
-// #define HW_ADC_EXT3_GPIO		GPIOA
-// #define HW_ADC_EXT3_PIN			6
-// #define HW_ADC_EXT4_GPIO		GPIOA // rx, adc4
+// #define HW_ADC_EXT3_GPIO		  GPIOC // adc15
+// #define HW_ADC_EXT3_PIN			5
+// #define HW_ADC_EXT4_GPIO		  GPIOA // rx, adc4
 // #define HW_ADC_EXT4_PIN			4
-// #define HW_ADC_EXT5_GPIO		GPIOA // tx, adc7
+// #define HW_ADC_EXT5_GPIO		  GPIOA // tx, adc7
 // #define HW_ADC_EXT5_PIN			7
 
 // UART Peripheral
