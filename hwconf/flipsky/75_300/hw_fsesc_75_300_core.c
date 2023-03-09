@@ -244,20 +244,3 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
-
-// float hw75_300_get_temp(void) {
-// 	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
-// 	float t2 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
-// 	float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
-// 	float res = 0.0;
-
-// 	if (t1 > t2 && t1 > t3) {
-// 		res = t1;
-// 	} else if (t2 > t1 && t2 > t3) {
-// 		res = t2;
-// 	} else {
-// 		res = t3;
-// 	}
-
-// 	return res;
-// }
