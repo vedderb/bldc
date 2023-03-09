@@ -105,16 +105,19 @@
 #define ADC_IND_SENS2			4
 #define ADC_IND_SENS3			5
 #define ADC_IND_VIN_SENS	11
-#define ADC_IND_EXT				6
-#define ADC_IND_EXT2			7
-#define ADC_IND_EXT3			10
+#define ADC_IND_VREFINT		12
 
 #define ADC_IND_TEMP_MOS		8
 // #define ADC_IND_TEMP_MOS_2		15
 // #define ADC_IND_TEMP_MOS_3		16
-
 #define ADC_IND_TEMP_MOTOR	9
-#define ADC_IND_VREFINT			12
+
+#define ADC_IND_EXT				6
+#define ADC_IND_EXT2			7
+#define ADC_IND_EXT3			10
+#define ADC_IND_EXT4			13
+#define ADC_IND_EXT5			14
+
 
 // ADC macros and settings
 
@@ -161,13 +164,14 @@
 #define HW_ADC_EXT_PIN			5
 #define HW_ADC_EXT2_GPIO		GPIOA
 #define HW_ADC_EXT2_PIN			6
+#define HW_ADC_EXT3_GPIO		GPIOC // adc15
+#define HW_ADC_EXT3_PIN			5
 
-// #define HW_ADC_EXT3_GPIO		  GPIOC // adc15
-// #define HW_ADC_EXT3_PIN			5
-// #define HW_ADC_EXT4_GPIO		  GPIOA // rx, adc4
-// #define HW_ADC_EXT4_PIN			4
-// #define HW_ADC_EXT5_GPIO		  GPIOA // tx, adc7
-// #define HW_ADC_EXT5_PIN			7
+// can be repurposed for sin/cos encoder.
+#define HW_ADC_EXT4_GPIO		  GPIOA // rx, adc4
+#define HW_ADC_EXT4_PIN			4
+#define HW_ADC_EXT5_GPIO		  GPIOA // tx, adc7
+#define HW_ADC_EXT5_PIN			7
 
 // UART Peripheral
 #define HW_UART_DEV				  SD3
