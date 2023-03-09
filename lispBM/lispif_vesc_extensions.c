@@ -3031,10 +3031,6 @@ static void measure_inductance_task(void *arg) {
 			return;
 		}
 
-		if(a->current == 3){ // inject fault sometimes
-			fault = 2;
-		}
-
 		if (fault != 0) {
 			f_i(&v, fault);
 		} else {
