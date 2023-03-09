@@ -2705,6 +2705,26 @@ This command is useful to update the configuration before starting the motor as 
 
 ---
 
+#### conf-measure-ind
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.02+ |
+
+```clj
+(conf-measure-res target-current optSamples)
+```
+
+Measure motor inductance with target-current. The optional argument optSamples sets the number of samples to use (default 100).
+
+returns: ({ld_lq_avg} {ld_lq_diff} {actual_measurement_current} fault-code)
+
+Can not be used when the motor is running. The measurement current is not gaurenteed to reach the target, and the actual_measurement_current parameter should be used to verify the actual current used.
+
+Useful for finding the saturation inductance curve of a motor.
+
+---
+
 ### EEPROM (Nonvolatile Storage)
 
 Up to 128 variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
