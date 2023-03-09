@@ -265,9 +265,6 @@
 #ifndef MCCONF_L_IN_CURRENT_MIN
 #define MCCONF_L_IN_CURRENT_MIN			-100.0	// Input current limit in Amperes (Lower)
 #endif
-#ifndef MCCONF_FOC_PHASE_FILTER_ENABLE
-#define MCCONF_FOC_PHASE_FILTER_ENABLE  false // no phase filters
-#endif
 
 // Setting limits
 #define HW_LIM_CURRENT			  -400.0, 400.0
