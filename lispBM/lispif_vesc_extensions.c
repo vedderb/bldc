@@ -3026,8 +3026,6 @@ static void measure_inductance_task(void *arg) {
 	if (lbm_start_flatten(&v, 25)) {
 		fault = mcpwm_foc_measure_inductance_current(a->current, a->samples, &real_measurement_current, &ld_lq_diff, &ld_lq_avg);
 		if (restart_cnt != lispif_get_restart_cnt()) {
-			f_sym(&v, ENC_SYM_EERROR);
-			lbm_finish_flatten(&v);
 			return;
 		}
 
