@@ -536,8 +536,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	float rpm_abs_fast = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec));
 
-	// Hysteresis 5 % of total speed
-	float hyst = conf_now->foc_sl_erpm * 0.1;
+	float hyst = conf_now->foc_sl_erpm * 0.2;
 	if (motor->m_using_hall) {
 		if (fminf(rpm_abs_fast, rpm_abs_hall) > (conf_now->foc_sl_erpm + hyst)) {
 			motor->m_using_hall = false;
