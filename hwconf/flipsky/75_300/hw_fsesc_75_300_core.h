@@ -120,7 +120,7 @@
 // ADC macros and settings
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.3
+#define V_REG					3.413 // (jaykup) Updated from @1zuna's calculations.
 #endif
 #ifndef VIN_R1
 #define VIN_R1					56000.0
