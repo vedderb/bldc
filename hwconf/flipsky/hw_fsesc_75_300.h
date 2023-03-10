@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_FSESC_75_300_CORE_H_
-#define HW_FSESC_75_300_CORE_H_
+#ifndef HW_FSESC_75_300_H_
+#define HW_FSESC_75_300_H_
 
 #define HW_NAME					"FSESC_75_300"
 
@@ -269,11 +269,11 @@
 // Setting limits
 #define HW_LIM_CURRENT			  -400.0, 400.0
 #define HW_LIM_CURRENT_IN		  -400.0, 400.0
-#define HW_LIM_CURRENT_ABS		0.0, 480.0
+#define HW_LIM_CURRENT_ABS		     0.0, 480.0
 #define HW_LIM_VIN				    11.0, 95.0
-#define HW_LIM_ERPM				    -200e3, 200e3
-#define HW_LIM_DUTY_MIN			  0.0, 0.1
-#define HW_LIM_DUTY_MAX			  0.0, 0.99
-#define HW_LIM_TEMP_FET			  -40.0, 110.0
+#define HW_LIM_ERPM				  -200e3, 200e3
+#define HW_LIM_DUTY_MIN			     0.0, 0.1
+#define HW_LIM_DUTY_MAX			     0.0, 0.99
+#define HW_LIM_TEMP_FET			   -40.0, 110.0
 
-#endif /* HW_FSESC_75_300_CORE_H_ */
+#endif /* HW_FSESC_75_300_H_ */
