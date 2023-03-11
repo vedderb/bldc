@@ -245,7 +245,7 @@
 #define MCCONF_L_MIN_VOLTAGE			15.0	// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			80.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			84.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -270,7 +270,7 @@
 #define HW_LIM_CURRENT			  -400.0, 400.0
 #define HW_LIM_CURRENT_IN		  -400.0, 400.0
 #define HW_LIM_CURRENT_ABS		     0.0, 480.0
-#define HW_LIM_VIN				    11.0, 95.0
+#define HW_LIM_VIN				    11.0, 90.0
 #define HW_LIM_ERPM				  -200e3, 200e3
 #define HW_LIM_DUTY_MIN			     0.0, 0.1
 #define HW_LIM_DUTY_MAX			     0.0, 0.99
