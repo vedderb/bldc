@@ -20,7 +20,6 @@
 
 // HW properties
 #define HW_HAS_3_SHUNTS
-#define INVERTED_SHUNT_POLARITY
 #define HW_HAS_PHASE_SHUNTS
 
 // Macros
@@ -67,12 +66,12 @@
 #define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
-#define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
-#define ADC_IND_CURR1			3
-#define ADC_IND_CURR2			4
-#define ADC_IND_CURR3			5
+#define ADC_IND_SENS1			3
+#define ADC_IND_SENS2			4
+#define ADC_IND_SENS3			5
+#define ADC_IND_CURR1			0
+#define ADC_IND_CURR2			1
+#define ADC_IND_CURR3			2
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
@@ -90,10 +89,10 @@
 #define V_REG					3.44
 #endif
 #ifndef VIN_R1
-#define VIN_R1					150000.0
+#define VIN_R1					56000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					4700.0
+#define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
@@ -107,7 +106,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		hw100_250_get_temp()
+#define NTC_TEMP(adc_ind)		hw75_300_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -118,6 +117,18 @@
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+
+// Double samples in beginning and end for positive current measurement.
+// Useful when the shunt sense traces have noise that causes offset.
+#ifndef CURR1_DOUBLE_SAMPLE
+#define CURR1_DOUBLE_SAMPLE		0
+#endif
+#ifndef CURR2_DOUBLE_SAMPLE
+#define CURR2_DOUBLE_SAMPLE		0
+#endif
+#ifndef CURR3_DOUBLE_SAMPLE
+#define CURR3_DOUBLE_SAMPLE		0
+#endif
 
 // COMM-port ADC GPIOs
 #define HW_ADC_EXT_GPIO			GPIOA
@@ -132,15 +143,6 @@
 #define HW_UART_TX_PIN			10
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
-
-// Permanent UART Peripheral (for NRF52)
-#define HW_UART_P_BAUD			115200
-#define HW_UART_P_DEV			SD4
-#define HW_UART_P_GPIO_AF		GPIO_AF_UART4
-#define HW_UART_P_TX_PORT		GPIOC
-#define HW_UART_P_TX_PIN		10
-#define HW_UART_P_RX_PORT		GPIOC
-#define HW_UART_P_RX_PIN		11
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
@@ -202,7 +204,7 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		660.0
+#define HW_DEAD_TIME_NSEC		1000.0
 
 // Default setting overrides
 #define MCCONF_FOC_PHASE_FILTER_ENABLE	false
@@ -210,7 +212,7 @@
 #define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			75.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			72.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -235,13 +237,13 @@
 #define HW_LIM_CURRENT			-300.0, 300.0
 #define HW_LIM_CURRENT_IN		-300.0, 300.0
 #define HW_LIM_CURRENT_ABS		0.0, 400.0
-#define HW_LIM_VIN				11.0, 100.0
+#define HW_LIM_VIN				11.0, 75.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-float hw100_250_get_temp(void);
+float hw75_300_get_temp(void);
 
 #endif /* HW_GO_FOC_HI200_H_ */
