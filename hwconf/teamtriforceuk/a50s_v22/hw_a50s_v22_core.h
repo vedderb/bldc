@@ -17,8 +17,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef HW_A50S_CORE_H_
-#define HW_A50S_CORE_H_
+#ifndef HW_A50S_V22_CORE_H_
+#define HW_A50S_V22_CORE_H_
 
 // HW properties
 #define HW_USE_INTERNAL_RC
@@ -269,4 +269,4 @@
 // HW-specific functions
 void hw_a50s_trim_hsi(void);
 
-#endif /* HW_A50S_CORE_H_ */
+#endif /* HW_A50S_V22_CORE_H_ */
