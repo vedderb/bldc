@@ -78,7 +78,7 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	}
 
 	bool is_trc = false;
-	if(rxb[0] == 0x6A){
+	if (rxb[0] == 0x6A){
 		is_trc = true;
 	}
 
@@ -91,35 +91,33 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	// Set all accel speeds
 	txb[0] = LSM6DS3_ACC_GYRO_CTRL1_XL;
 	txb[1] = LSM6DS3_ACC_GYRO_BW_XL_400Hz | LSM6DS3_ACC_GYRO_FS_XL_16g;
-	if(rate_hz <= 13){
+	if (rate_hz <= 13) {
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_13Hz;
-	}else if(rate_hz <= 26){
+	} else if (rate_hz <= 26){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_26Hz;
-	}else if(rate_hz <= 52){
+	} else if (rate_hz <= 52){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_52Hz;
-	}else if(rate_hz <= 104){
+	} else if (rate_hz <= 104){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_104Hz;
-	}else if(rate_hz <= 208){
+	} else if (rate_hz <= 208){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_208Hz;
-	}else if(rate_hz <= 416){
+	} else if (rate_hz <= 416){
 		if (is_trc && (filter >= IMU_FILTER_MEDIUM)) {
 			// ODR/4 with 833Hz
 			txb[1] |= LSM6DS3TRC_LPF1_BW_SEL | LSM6DS3_ACC_GYRO_ODR_XL_833Hz;
-		}
-		else {
+		} else {
 			// default: ODR/2 with 416Hz
 			txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_416Hz;
 		}
-	}else if(rate_hz <= 833){
+	} else if (rate_hz <= 833){
 		if (is_trc && (filter >= IMU_FILTER_MEDIUM)) {
 			// ODR/4 with 1660Hz AND Accelerometer Analog Chain Bandwidth = 400Hz
 			txb[1] |= LSM6DS3TRC_BW0_XL | LSM6DS3TRC_LPF1_BW_SEL | LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
-		}
-		else {
+		} else {
 			// default: ODR/2 with 833Hz
 			txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_833Hz;
 		}
-	}else if(rate_hz <= 1660){
+	} else if (rate_hz <= 1660){
 		if (is_trc && (filter >= IMU_FILTER_MEDIUM)) {
 			// ODR/4 with 3330Hz
 			txb[1] |= LSM6DS3TRC_LPF1_BW_SEL | LSM6DS3_ACC_GYRO_ODR_XL_3330Hz;
@@ -127,17 +125,16 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 				// Also enable Accelerometer Analog Chain Bandwidth = 400Hz
 				txb[1] |= LSM6DS3TRC_BW0_XL;
 			}
-		}
-		else {
+		} else {
 			txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
 		}
-	}else if(rate_hz <= 3330){
+	} else if (rate_hz <= 3330){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_3330Hz;
-	}else{
+	} else {
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_XL_6660Hz;
 	}
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	if(!res){
+	if (!res){
 		commands_printf("LSM6DS3 Accel Config FAILED");
 		return;
 	}
@@ -145,29 +142,29 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 	// Set all gyro speeds
 	txb[0] = LSM6DS3_ACC_GYRO_CTRL2_G;
 	txb[1] = LSM6DS3_ACC_GYRO_FS_G_2000dps;
-	if(rate_hz <= 13){
+	if (rate_hz <= 13){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_13Hz;
-	}else if(rate_hz <= 26){
+	} else if (rate_hz <= 26){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_26Hz;
-	}else if(rate_hz <= 52){
+	} else if (rate_hz <= 52){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_52Hz;
-	}else if(rate_hz <= 104){
+	} else if (rate_hz <= 104){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_104Hz;
-	}else if(rate_hz <= 208){
+	} else if (rate_hz <= 208){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_208Hz;
-	}else if(rate_hz <= 416){
+	} else if (rate_hz <= 416){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_416Hz;
-	}else if(rate_hz <= 833){
+	} else if (rate_hz <= 833){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_833Hz;
-	}else if(rate_hz <= 1660 || is_trc == false){
+	} else if (rate_hz <= 1660 || is_trc == false){
 		txb[1] |= LSM6DS3_ACC_GYRO_ODR_G_1660Hz;
-	}else if(rate_hz <= 3330){
+	} else if (rate_hz <= 3330){
 		txb[1] |= LSM6DS3TRC_ACC_GYRO_ODR_G_3330Hz;
-	}else{
+	} else {
 		txb[1] |= LSM6DS3TRC_ACC_GYRO_ODR_G_6660Hz;
 	}
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	if(!res){
+	if (!res){
 		commands_printf("LSM6DS3 Gyro Config FAILED");
 		return;
 	}
@@ -179,17 +176,15 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		if (filter >= IMU_FILTER_MEDIUM) {
 			// Enable gyroscope digital low-pass filter LPF1
 			txb[1] = LSM6DS3_ACC_GYRO_LPF1_SEL_G_ENABLED;
-		}
-		else {
+		} else {
 			txb[1] = 0;
 		}
-	}
-	else {
+	} else {
 		// Standard LSM6DS3 only: Set XL anti-aliasing filter to be manually configured
 		txb[1] = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	}
 	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
-	if(!res){
+	if (!res){
 		commands_printf("LSM6DS3 ODR Config FAILED");
 		return;
 	}
@@ -200,7 +195,7 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		#define LSM6DS3TRC_HPCF_XL_ODR9 (0x2 << 4);
 		txb[0] = LSM6DS3_ACC_GYRO_CTRL8_XL;
 		txb[1] = LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR9;
-		res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
+		i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
 	}
 
 	terminal_register_command_callback(
@@ -213,7 +208,7 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void lsm6ds3_stop(void) {
-	if(lsm6ds3_thread_ref != NULL){
+	if (lsm6ds3_thread_ref != NULL){
 		chThdTerminate(lsm6ds3_thread_ref);
 		chThdWait(lsm6ds3_thread_ref);
 	}
@@ -267,7 +262,6 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 	const systime_t desired_interval = US2ST(1000000 / rate_hz);
 
 	while (!chThdShouldTerminateX()) {
-
 		uint8_t txb[2];
 		uint8_t rxb[12];
 
@@ -300,8 +294,7 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 		if (remainin_sleep_time > 0 && remainin_sleep_time < desired_interval) {
 			// Sleep the remaining time.
 			chThdSleep(remainin_sleep_time);
-		}
-		else {
+		} else {
 			// Read was too slow or CPU was too buzy, reset the schedule.
 			iteration_timer = current_time;
 			chThdSleep(desired_interval);
