@@ -20,7 +20,7 @@
 #ifndef HW_FSESC_75_300_H_
 #define HW_FSESC_75_300_H_
 
-#define HW_NAME					"FLIPSKY_FSESC_75300"
+#define HW_NAME					"FSESC75300"
 
 /* fsesc 75 300 differences from trampa 75/300
 - has 3x low side shunts

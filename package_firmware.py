@@ -131,7 +131,7 @@ package_dict["75_100"] = [['75_100', default_name],
 package_dict["75_100_V2"] = [['75_100_V2', default_name],
                     ['75_100_V2_no_limits', no_limits_name],
                     ['75_100_V2_0005ohm', 'VESC_0005ohm.bin']]
-package_dict["FLIPSKY_FSESC_75300"] = [['fsesc_75_300', default_name]]
+package_dict["FSESC75300"] = [['fsesc_75_300', default_name]]
 package_dict["GO_FOC_DV6_PRO"] = [['go_foc_dv6_pro', default_name],
                     ['go_foc_dv6_pro_no_limits', no_limits_name]]
 package_dict["GO_FOC_G300"] = [['go_foc_g300', default_name],
