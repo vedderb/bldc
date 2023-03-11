@@ -351,6 +351,7 @@
 #ifdef ADC_IND_CURR3
 #define GET_CURRENT3()		((float)ADC_Value[ADC_IND_CURR3])
 #else
+#define ADC_IND_CURR3		0
 #define GET_CURRENT3()		0
 #endif
 #endif
