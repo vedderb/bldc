@@ -3,6 +3,7 @@
 build
 tools
 downloads
+package/
 
 .dep
 .project
