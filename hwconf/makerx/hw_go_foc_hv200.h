@@ -21,7 +21,6 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define INVERTED_SHUNT_POLARITY
-#define HW_HAS_PHASE_SHUNTS
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -67,12 +66,12 @@
 #define HW_ADC_NBR_CONV			6
 
 // ADC Indexes
-#define ADC_IND_SENS1			0
-#define ADC_IND_SENS2			1
-#define ADC_IND_SENS3			2
-#define ADC_IND_CURR1			3
-#define ADC_IND_CURR2			4
-#define ADC_IND_CURR3			5
+#define ADC_IND_SENS1			3
+#define ADC_IND_SENS2			4
+#define ADC_IND_SENS3			5
+#define ADC_IND_CURR1			0
+#define ADC_IND_CURR2			1
+#define ADC_IND_CURR3			2
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
@@ -235,7 +234,7 @@
 #define HW_LIM_CURRENT			-200.0, 200.0
 #define HW_LIM_CURRENT_IN		-200.0, 200.0
 #define HW_LIM_CURRENT_ABS		0.0, 300.0
-#define HW_LIM_VIN				11.0, 100.0
+#define HW_LIM_VIN				11.0, 97.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
