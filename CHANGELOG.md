@@ -1,5 +1,5 @@
 ### 6.02
-#### Released TBD
+#### 2023-03-12
 * LispBM:
 	* Bug fixes.
 	* Added floor, ceil, round.
@@ -7,6 +7,16 @@
 	* Added adc_ctrl_type setting.
 	* Added app_is_disabled.
 	* Added ICU-driver.
+	* Inductance measurement support.
+	* Rewrite of the event system.
+	* Added canget-vin
+	* Added hw-type sysinfo.
+	* Added crc16-extension.
+* IMU filtering changes and new defaults.
+* Increased hall sensor switch hysteresis.
+* Added and updated hardware configs.
+* Systime overflow fix.
+* Some can-command fixes.
 
 ---
 
