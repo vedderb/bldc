@@ -917,6 +917,9 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 
 ### Motor Get Commands
 
+**Note**  
+If the optional optFilter-argument is 1 in the commands below the result will be the average since that function was called the last time. That is also how the plots are filtered in VESC Tool. Polling realtime data in VESC Tool at the same time will affect the averaging as it uses the same integrator. This function was added in firmware 6.05.
+
 ---
 
 #### get-current
@@ -926,7 +929,7 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 | ESC | 6.00+ |
 
 ```clj
-(get-current)
+(get-current optFilter)
 ```
 
 Get motor current. Positive means that current is flowing into the motor and negative means that current is flowing out of the motor (regenerative braking).
@@ -954,7 +957,7 @@ Get directional current. Positive for torque in the forward direction and negati
 | ESC | 6.00+ |
 
 ```clj
-(get-current-in)
+(get-current-in optFilter)
 ```
 
 ---
@@ -966,7 +969,7 @@ Get directional current. Positive for torque in the forward direction and negati
 | ESC | 6.00+ |
 
 ```clj
-(get-id)
+(get-id optFilter)
 ```
 
 Get FOC d-axis current.
@@ -980,7 +983,7 @@ Get FOC d-axis current.
 | ESC | 6.00+ |
 
 ```clj
-(get-iq)
+(get-iq optFilter)
 ```
 
 Get FOC q-axis current.
@@ -994,7 +997,7 @@ Get FOC q-axis current.
 | ESC | 6.00+ |
 
 ```clj
-(get-vd)
+(get-vd optFilter)
 ```
 
 Get FOC d-axis voltage.
@@ -1008,7 +1011,7 @@ Get FOC d-axis voltage.
 | ESC | 6.00+ |
 
 ```clj
-(get-vq)
+(get-vq optFilter)
 ```
 
 Get FOC q-axis voltage.
