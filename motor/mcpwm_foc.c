@@ -4247,7 +4247,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,
-				(uint32_t*)&state_m->svm_sector);
+				(uint32_t*)&state_m->svm_sector,
+				motor->m_conf->foc_commutation_type);
 			motor->m_duty_next_set = true;
 		}
 	} else {
@@ -4273,7 +4274,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
-	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector, motor->m_conf->foc_commutation_type);
 
 	if (motor == &m_motor_1) {
 		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
