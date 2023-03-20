@@ -536,16 +536,8 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	float rpm_abs_fast = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec));
 
-	float hyst = conf_now->foc_sl_erpm * 0.2;
-	if (motor->m_using_hall) {
-		if (fminf(rpm_abs_fast, rpm_abs_hall) > (conf_now->foc_sl_erpm + hyst)) {
-			motor->m_using_hall = false;
-		}
-	} else {
-		if (rpm_abs_fast < (conf_now->foc_sl_erpm - hyst)) {
-			motor->m_using_hall = true;
-		}
-	}
+	motor->m_using_hall = rpm_abs_fast < conf_now->foc_sl_erpm;
+	float angle_old = angle;
 
 	int ang_hall_int = conf_now->foc_hall_table[hall_val];
 
@@ -634,6 +626,25 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 		if (motor->m_phase_observer_override && motor->m_state == MC_STATE_RUNNING) {
 			angle = motor->m_phase_now_observer_override;
 		}
+	}
+
+	// Map output angle between hall angle and observer angle in transition region to make
+	// a smooth transition.
+	// TODO: Using sin, cos and atan2 for this is slow, there should be some more efficient
+	// way to do this.
+	if (angle_old != angle) {
+		float weight_hall = utils_map(rpm_abs_fast, conf_now->foc_sl_erpm_start, conf_now->foc_sl_erpm, 1.0, 0.0);
+		utils_truncate_number(&weight_hall, 0.0, 1.0);
+		float weight_observer = 1.0 - weight_hall;
+
+		float sin_observer, cos_observer;
+		utils_fast_sincos(angle_old, &sin_observer, &cos_observer);
+		float sin_hall, cos_hall;
+		utils_fast_sincos(angle, &sin_hall, &cos_hall);
+
+		float sin_mapped = sin_hall * weight_hall + sin_observer * weight_observer;
+		float cos_mapped = cos_hall * weight_hall + cos_observer * weight_observer;
+		angle = utils_fast_atan2(sin_mapped, cos_mapped);
 	}
 
 	return angle;

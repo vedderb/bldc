@@ -1,3 +1,9 @@
+### 6.05
+#### TBD
+* LispBM:
+	* Support for var in progn.
+* Hall sensors: smooth transition to sensorless.
+
 ### 6.02
 #### 2023-03-12
 * LispBM:

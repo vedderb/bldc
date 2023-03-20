@@ -97,6 +97,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[6];
 	buffer[ind++] = (uint8_t)conf->foc_hall_table[7];
 	buffer_append_float32_auto(buffer, conf->foc_hall_interp_erpm, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_sl_erpm_start, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_sl_erpm, &ind);
 	buffer[ind++] = conf->foc_sample_v0_v7;
 	buffer[ind++] = conf->foc_sample_high_current;
@@ -494,6 +495,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hall_table[6] = buffer[ind++];
 	conf->foc_hall_table[7] = buffer[ind++];
 	conf->foc_hall_interp_erpm = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_sl_erpm_start = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sl_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_sample_v0_v7 = buffer[ind++];
 	conf->foc_sample_high_current = buffer[ind++];
@@ -887,6 +889,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hall_table[6] = MCCONF_FOC_HALL_TAB_6;
 	conf->foc_hall_table[7] = MCCONF_FOC_HALL_TAB_7;
 	conf->foc_hall_interp_erpm = MCCONF_FOC_HALL_INTERP_ERPM;
+	conf->foc_sl_erpm_start = MCCONF_FOC_SL_ERPM_START;
 	conf->foc_sl_erpm = MCCONF_FOC_SL_ERPM;
 	conf->foc_sample_v0_v7 = MCCONF_FOC_SAMPLE_V0_V7;
 	conf->foc_sample_high_current = MCCONF_FOC_SAMPLE_HIGH_CURRENT;
