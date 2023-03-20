@@ -37,6 +37,25 @@ lbm_value lbm_get_env(void) {
   return env_global;
 }
 
+lbm_value lbm_env_copy_spine(lbm_value env) {
+
+  lbm_value r = ENC_SYM_MERROR;
+  lbm_uint len = lbm_list_length(env);
+
+  lbm_value new_env = lbm_heap_allocate_list(len);
+  if (new_env != ENC_SYM_MERROR) {
+    lbm_value curr_tgt = new_env;
+    lbm_value curr_src = env;
+    while (lbm_type_of(curr_tgt) == LBM_TYPE_CONS) {
+      lbm_set_car(curr_tgt, lbm_car(curr_src));
+      curr_tgt = lbm_cdr(curr_tgt);
+      curr_src = lbm_cdr(curr_src);
+    }
+    r = new_env;
+  }
+  return r;
+}
+
 // A less safe version of lookup. It should be fine unless env is corrupted.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 
@@ -94,10 +113,28 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   }
 
   new_env = lbm_cons(keyval, env);
-  if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL) {
-    return new_env;
+
+  return new_env;
+}
+
+lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) {
+
+  lbm_value keyval = lbm_cons(key, val);
+  if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) {
+    return keyval;
   }
 
+  lbm_value curr = env;
+
+  while(lbm_type_of(curr) == LBM_TYPE_CONS) {
+    if (lbm_car(lbm_car(curr)) == key) {
+      lbm_set_car(curr,keyval);
+      return env;
+    }
+    curr = lbm_cdr(curr);
+  }
+
+  lbm_value new_env = lbm_cons(keyval, env);
   return new_env;
 }
 

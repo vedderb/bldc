@@ -56,6 +56,7 @@ special_sym const special_symbols[] =  {
   {"macro"        , SYM_MACRO},
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
+  {"var"          , SYM_PROGN_VAR},
 
   {"setvar"       , SYM_SETVAR},
   {"exit-ok"      , SYM_EXIT_OK},

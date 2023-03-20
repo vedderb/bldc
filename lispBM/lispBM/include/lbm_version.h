@@ -27,11 +27,15 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 9
+#define LBM_MINOR_VERSION 10
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+Mar 19 2023: Version 0.10.0
+  - Added deconstructive let bindings with optional dont-care fields.
+  - Added (var x (....)) for local bindings in progn.
 
 Feb 18 2023: Version 0.9.0
   - Arrays in flat_value are stored verbatim, not as ptr.

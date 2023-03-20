@@ -221,7 +221,10 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   st->row = 0;
   st->column = 0;
 
-  mutex_init(&st->lock);
+  if (!st->mutex_initialized) {
+    mutex_init(&st->lock);
+    st->mutex_initialized = true;
+  }
 
   chan->state = st;
   chan->more = buffered_more;
