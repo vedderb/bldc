@@ -2446,7 +2446,7 @@ Start input capture on the PPM-pin with timer frequency freqHz hertz and polarit
 (icu-width)
 ```
 
-Get the width of the last captured pulse.
+Get the width of the last captured pulse. The unit is timer ticks, which depends on the freqHz you pick when running icu-start. E.g. if freqHz is 1000000 (1 MHz) the unit will be one microsecond.
 
 ---
 
@@ -2460,7 +2460,7 @@ Get the width of the last captured pulse.
 (icu-period)
 ```
 
-Get the period of the last captured pulse.
+Get the period of the last captured pulse. The unit is timer ticks, which depends on the freqHz you pick when running icu-start. E.g. if freqHz is 1000000 (1 MHz) the unit will be one microsecond.
 
 ---
 
