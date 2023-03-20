@@ -53,6 +53,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
 
   if (!lbm_mem_mutex_initialized) {
     mutex_init(&lbm_mem_mutex);
+    lbm_mem_mutex_initialized = true;
   }
   mutex_lock(&lbm_mem_mutex);
   int res = 0;

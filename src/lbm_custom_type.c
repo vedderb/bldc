@@ -48,9 +48,5 @@ bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr) {
 
   lbm_uint value = lbm_mem_ptr[CUSTOM_TYPE_VALUE];
   custom_type_destructor destruct = (custom_type_destructor)lbm_mem_ptr[CUSTOM_TYPE_DESTRUCTOR];
-  destruct(value); 
-  
-  if (lbm_memory_free(lbm_mem_ptr))
-    return true;
-  return false;  
+  return destruct(value);   
 }

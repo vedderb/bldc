@@ -35,6 +35,7 @@
 
 #include "lbm_custom_type.h"
 #include "lbm_channel.h"
+#include "lbm_version.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -637,12 +638,6 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-  res = lbm_add_extension("range", ext_range);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
   res = lbm_add_extension("custom", ext_custom);
   if (res)
     printf("Extension added.\n");
@@ -668,7 +663,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  printf("Lisp REPL started!\n");
+  printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
   printf("     :load [filename] to load lisp source.\n");

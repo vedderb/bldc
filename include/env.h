@@ -41,6 +41,14 @@ lbm_value *lbm_get_env_ptr(void);
  * \return the global environment
  */
 lbm_value lbm_get_env(void);
+/** Copy the spine of an environment. The list structure is
+ * recreated but the values themselves are not copied but rather
+ * just referenced.
+ *
+ * \param env Environment to copy.
+ * \return Copy of environment.
+ */
+lbm_value lbm_env_copy_spine(lbm_value env);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment
@@ -63,6 +71,16 @@ lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
  * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
 lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
+/** Create a new binding on the environment without destroying the old value.
+ *  If the old value is unused (the key-value pair) it will be freed by GC
+ *  at next convenience.
+ *
+ * \param env Environment to modify.
+ * \param key A symbol to associate with a value.
+ * \param val The value.
+ * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
+ */
+lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val);
 /** Modifies an existing binding on the environment.
  *
  * \param env The environment to modify.
@@ -86,8 +104,8 @@ lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key);
  * \return The extended environment on success and lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
 lbm_value lbm_env_build_params_args(lbm_value params,
-				    lbm_value args,
-				    lbm_value env0);
+                                    lbm_value args,
+                                    lbm_value env0);
 
 #ifdef __cplusplus
 }

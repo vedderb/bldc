@@ -41,6 +41,7 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
 #define LBM_POINTER_TYPE_LAST            0xB0000000u
 
+#define LBM_CONTINUATION_INTERNAL        0xFC000000u
 
 #define LBM_GC_MASK                      0x00000002u
 #define LBM_GC_MARKED                    0x00000002u
@@ -68,6 +69,8 @@
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
+
+#define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xFC00000000000000
 
 #define LBM_GC_MASK                      (lbm_uint)0x2
 #define LBM_GC_MARKED                    (lbm_uint)0x2
@@ -180,7 +183,8 @@
 #define SYM_CLOSURE             0x10E
 #define SYM_COND                0x10F
 #define SYM_APP_CONT            0x110
-#define SPECIAL_FORMS_END       0x110
+#define SYM_PROGN_VAR           0x111
+#define SPECIAL_FORMS_END       0x111
 
 // Apply funs:
 // Get their arguments in evaluated form.
@@ -295,6 +299,7 @@
 #define ENC_SYM_NIL         ((SYM_NIL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_RECOVERED   ((SYM_RECOVERED << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TRUE        ((SYM_TRUE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_DONTCARE    ((SYM_DONTCARE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_ARRAY_TYPE  ((SYM_ARRAY_TYPE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 

@@ -414,7 +414,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         }
         offset += n;
         break;
+      case LBM_CONTINUATION_INTERNAL: {
+        lbm_uint v = ((curr & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT);
+        r = snprintf(buf + offset, len - offset,"CONT[" "%"PRI_UINT"]", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
 
+      }
       default:
         snprintf(buf, len, "Error: print does not recognize type %"PRI_HEX" of value: %"PRI_HEX"", lbm_type_of(curr), curr);
         return -1;

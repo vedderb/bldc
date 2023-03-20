@@ -301,6 +301,22 @@ LBM_EXTENSION(ext_unblock, args, argn) {
   return res;
 }
 
+LBM_EXTENSION(ext_unblock_error, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, SYM_EERROR);
+      lbm_finish_flatten(&v);
+      lbm_unblock_ctx(c,&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+
 
 int main(int argc, char **argv) {
 
@@ -578,6 +594,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_add_extension("unblock-error", ext_unblock_error);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

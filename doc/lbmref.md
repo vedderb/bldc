@@ -665,6 +665,18 @@ The mutually recursive program above evaluates to 1.
 
 ---
 
+Let supports deconstructive bindings. These are bindings that decompose a complex
+value into constituents.
+
+Example:
+
+```clj
+(let (( ( a . b) '(1 . 2) ))
+   (+ a b))
+```
+
+In the example, the bindings a = 1 and b = 2 are created for use in the let body.
+
 ### define
 
 You can give names to values in a global scope by using define.
@@ -765,6 +777,32 @@ This program evaluates 30 but also extends the global environment with the
 2 bindings `(a 10)` and `(b 20)` created using <a href="#define">define</a>.
 
 ---
+
+### var
+
+The var special form allows local bindings in a progn expression. A
+var expression is of the form (var symbol expr) and the symbol `symbol`
+is bound to the value that `expr` evaluates to withing the rest of the progn expression.
+
+Example:
+
+```clj
+(defun f ()
+  (progn
+    (var a 10)
+    (var b 20)
+    (+ a b)))
+```
+
+and:
+
+```clj
+(defun f ()
+  (progn
+    (var a 10)
+    (var b (+ a 10))
+    (+ a b)))
+```
 
 ### read
 

@@ -794,15 +794,16 @@ lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
 
 lbm_value lbm_car(lbm_value c){
 
+  if (lbm_is_ptr(c) ){
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    return cell->car;
+  }
+
   if (lbm_type_of(c) == LBM_TYPE_SYMBOL &&
       lbm_dec_sym(c) == SYM_NIL) {
     return ENC_SYM_NIL; // if nil, return nil.
   }
 
-  if (lbm_is_ptr(c) ){
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    return cell->car;
-  }
   return ENC_SYM_TERROR;
 }
 
