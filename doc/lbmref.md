@@ -748,6 +748,56 @@ And you can change the value of a `#var`.
 
 ---
 
+### set
+
+The `set` form is used to change the value of a variable in an environment.
+It behaves identical to `setvar`.
+
+Example:
+
+```clj
+(define a 10)
+```
+The variable `a` is now 10 in the global environment.
+
+```clj
+(set 'a 20)
+```
+
+And now `a` is associated with 20 in the global environment.
+
+`set` works in local environments too such as in the body of a `let`
+or in a `progn`-local variable created using `var`.
+
+Example:
+
+```clj
+(progn (var a 10) (set 'a 20) a)
+``` 
+
+The expression above evaluates to 20.
+
+### setq
+
+The `setq` special-form is similar to `set` and to `setvar` but expects the first argument
+to be a symbol. The first argument to `setq` is NOT evaluated.
+
+Example:
+```clj
+(define a 10)
+```
+The variable `a` is now 10 in the global environment.
+
+```clj
+(setq a 20)
+```
+
+And now `a` has been associated with the value 20 in the global env.
+
+Just like `set` and `setvar`, `setq` can be used on variables that
+are bound locally such as in the body of a `let` or a `progn`-local variable
+created using `var`. 
+
 ### progn
 
 The progn special form allows you to sequence a number of expressions.
@@ -777,6 +827,42 @@ This program evaluates 30 but also extends the global environment with the
 2 bindings `(a 10)` and `(b 20)` created using <a href="#define">define</a>.
 
 ---
+
+### {
+
+The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`.
+The parser replaces occurrences of `{` with `(progn`. The `{` should be
+closed with an `}`. 
+
+These two programs are thus equivalent:
+
+```clj
+(progn
+  (define a 10)
+  (define b 20)
+  (+ a b))
+
+``` 
+
+And
+
+```clj
+{
+  (define a 10)
+  (define b 20)
+  (+ a b)
+}
+
+---
+
+### }
+
+The closing curlybrace `}` should be used to close an opening `{` but purely
+for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`.
+
+The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks
+of sequences expressions. 
+
 
 ### var
 
