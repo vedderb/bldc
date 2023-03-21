@@ -2,6 +2,9 @@
 #### TBD
 * LispBM:
 	* Support for var in progn.
+	* Support for curly braces instead of progn.
+	* Added set and setq.
+	* Added defunret.
 * Hall sensors: smooth transition to sensorless.
 
 ### 6.02
