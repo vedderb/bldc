@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2023 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -18,8 +18,6 @@
     */
 
 #include "utils_math.h"
-#include "hal.h"
-#include "app.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -128,6 +126,30 @@ float utils_avg_angles_rad_fast(float *angles, float *weights, int angles_num) {
 	}
 
 	return utils_fast_atan2(s_sum, c_sum);
+}
+
+/**
+ * Interpolate two angles in radians and normalize the result to
+ * -pi to pi.
+ *
+ * @param a1
+ * The first angle
+ *
+ * @param a2
+ * The second angle
+ *
+ * @param weight_a1
+ * The weight of the first angle. If this is 1.0 the result will
+ * be a1 and if it is 0.0 the result will be a2.
+ *
+ */
+float utils_interpolate_angles_rad(float a1, float a2, float weight_a1) {
+	while ((a1 - a2) > M_PI) a2 += 2.0 * M_PI;
+	while ((a2 - a1) > M_PI) a1 += 2.0 * M_PI;
+
+	float res = a1 * weight_a1 + a2 * (1.0 - weight_a1);
+	utils_norm_angle_rad(&res);
+	return res;
 }
 
 /**
