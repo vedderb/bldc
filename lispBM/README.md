@@ -3001,6 +3001,36 @@ Shorthand macro for defining a function. Example:
 
 ---
 
+#### defunret
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(defunret (args) body)
+```
+
+Same as defun, but allows returning at any point. This one has a bit more overhead than defun as it uses call-cc internally, which is why both exist.
+
+```clj
+(defunret test (a b) {
+        (if (> a b)
+            (return (+ a 5))
+        )
+        
+        (+ a b)
+})
+
+(test 2 2)
+> 4
+
+(test 3 2)
+> 8
+```
+
+---
+
 #### map
 
 | Platforms | Firmware |

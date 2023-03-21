@@ -3170,6 +3170,7 @@ static lbm_uint sym_loop;
 static lbm_uint sym_break;
 static lbm_uint sym_brk;
 static lbm_uint sym_rst;
+static lbm_uint sym_return;
 
 static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
 	if (argn != 3) {
@@ -3189,6 +3190,31 @@ static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
 					lbm_enc_sym(SYM_LAMBDA),
 					args,
 					body));
+}
+
+static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
+	if (argn != 3) {
+		return ENC_SYM_EERROR;
+	}
+
+	lbm_value name = argsi[0];
+	lbm_value args = argsi[1];
+	lbm_value body = argsi[2];
+
+	// (def name (lambda args (call-cc (lambda (return) body))))
+
+	return make_list(3,
+			lbm_enc_sym(SYM_DEFINE),
+			name,
+			make_list(3,
+					lbm_enc_sym(SYM_LAMBDA),
+					args,
+					make_list(2,
+							lbm_enc_sym(SYM_CALLCC),
+							make_list(3,
+									lbm_enc_sym(SYM_LAMBDA),
+									make_list(1, lbm_enc_sym(sym_return)),
+									body))));
 }
 
 static lbm_value ext_me_loopfor(lbm_value *args, lbm_uint argn) {
@@ -3871,6 +3897,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_symbol_const("break", &sym_break);
 	lbm_add_symbol_const("a03", &sym_brk);
 	lbm_add_symbol_const("a04", &sym_rst);
+	lbm_add_symbol_const("return", &sym_return);
 
 	memset(&syms_vesc, 0, sizeof(syms_vesc));
 
@@ -4047,6 +4074,7 @@ void lispif_load_vesc_extensions(void) {
 
 	// Macro expanders
 	lbm_add_extension("me-defun", ext_me_defun);
+	lbm_add_extension("me-defunret", ext_me_defunret);
 	lbm_add_extension("me-loopfor", ext_me_loopfor);
 	lbm_add_extension("me-loopwhile", ext_me_loopwhile);
 	lbm_add_extension("me-looprange", ext_me_looprange);
