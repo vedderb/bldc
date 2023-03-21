@@ -414,7 +414,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         }
         offset += n;
         break;
-      case LBM_CONTINUATION_INTERNAL: {
+      case LBM_CONTINUATION_INTERNAL_TYPE: {
         lbm_uint v = ((curr & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT);
         r = snprintf(buf + offset, len - offset,"CONT[" "%"PRI_UINT"]", v);
         if ( r > 0) {

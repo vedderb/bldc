@@ -58,7 +58,8 @@ special_sym const special_symbols[] =  {
   {"continuation" , SYM_CONT},
   {"var"          , SYM_PROGN_VAR},
 
-  {"setvar"       , SYM_SETVAR},
+  {"set"          , SYM_SETVAR},
+  {"setq"         , SYM_SETQ},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
   {"map"          , SYM_MAP},
@@ -208,8 +209,8 @@ special_sym const special_symbols[] =  {
   {"fn"             , SYM_LAMBDA},
   {"def"            , SYM_DEFINE},
   {"true"           , SYM_TRUE},
-  {"false"          , SYM_NIL}
-
+  {"false"          , SYM_NIL},
+  {"setvar"         , SYM_SETVAR},
 };
 
 static lbm_uint *symlist = NULL;
