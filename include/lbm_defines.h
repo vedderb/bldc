@@ -41,7 +41,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
 #define LBM_POINTER_TYPE_LAST            0xB0000000u
 
-#define LBM_CONTINUATION_INTERNAL        0xFC000000u
+#define LBM_CONTINUATION_INTERNAL        0xFC000001u // PTR bit set
+#define LBM_CONTINUATION_INTERNAL_TYPE   0xFC000000u
 
 #define LBM_GC_MASK                      0x00000002u
 #define LBM_GC_MARKED                    0x00000002u
@@ -70,7 +71,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
-#define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xFC00000000000000
+#define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xFC00000000000001
+#define LBM_CONTINUATION_INTERNAL_TYPE   (lbm_uint)0xFC00000000000000
 
 #define LBM_GC_MASK                      (lbm_uint)0x2
 #define LBM_GC_MARKED                    (lbm_uint)0x2
@@ -158,7 +160,7 @@
 #define SYM_OPENBRACK        0x80
 #define SYM_CLOSEBRACK       0x81
 #define SYM_TOKENIZER_RERROR 0x82
-
+#define SYM_OPENCURL         0x84
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
@@ -184,7 +186,8 @@
 #define SYM_COND                0x10F
 #define SYM_APP_CONT            0x110
 #define SYM_PROGN_VAR           0x111
-#define SPECIAL_FORMS_END       0x111
+#define SYM_SETQ                0x112
+#define SPECIAL_FORMS_END       0x112
 
 // Apply funs:
 // Get their arguments in evaluated form.

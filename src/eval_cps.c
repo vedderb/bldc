@@ -40,7 +40,7 @@
 
 #define DEC_CONTINUATION(x) (((x) & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT)
 #define IS_CONTINUATION(x) (((x) & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)
-#define CONTINUATION(x) (((x) << LBM_ADDRESS_SHIFT) | LBM_CONTINUATION_INTERNAL | LBM_PTR_BIT)
+#define CONTINUATION(x) (((x) << LBM_ADDRESS_SHIFT) | LBM_CONTINUATION_INTERNAL)
 
 #define DONE                  CONTINUATION(0)
 #define SET_GLOBAL_ENV        CONTINUATION(1)
@@ -76,7 +76,8 @@
 #define MATCH_GUARD           CONTINUATION(31)
 #define TERMINATE             CONTINUATION(32)
 #define PROGN_VAR             CONTINUATION(33)
-#define NUM_CONTINUATIONS     34
+#define SETQ                  CONTINUATION(34)
+#define NUM_CONTINUATIONS     35
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1455,12 +1456,21 @@ static void eval_app_cont(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-// (var x (....)) - local binding inside of an progn
+// (var x (...)) - local binding inside of an progn
 static void eval_var(eval_context_t *ctx) {
   lbm_value args = lbm_cdr(ctx->curr_exp);
   lbm_value sym = lbm_car(args);
   lbm_value v_exp = lbm_cadr(args);
   CHECK_STACK(lbm_push_2(&ctx->K, sym, PROGN_VAR));
+  ctx->curr_exp = v_exp;
+}
+
+// (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
+static void eval_setq(eval_context_t *ctx) {
+  lbm_value args = lbm_cdr(ctx->curr_exp);
+  lbm_value sym = lbm_car(args);
+  lbm_value v_exp = lbm_cadr(args);
+  CHECK_STACK(lbm_push_2(&ctx->K, sym, SETQ));
   ctx->curr_exp = v_exp;
 }
 
@@ -1744,45 +1754,41 @@ static void cont_wait(eval_context_t *ctx) {
   }
 }
 
+static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
+
+  lbm_uint s = lbm_dec_sym(key);
+  lbm_value res = val;
+
+  if (s >= VARIABLE_SYMBOLS_START &&
+      s <  VARIABLE_SYMBOLS_END) {
+    return lbm_set_var(s, val);
+  } else if (s >= RUNTIME_SYMBOLS_START) {
+    lbm_value new_env = lbm_env_modify_binding(env, key, val);
+    if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
+      new_env = lbm_env_modify_binding(lbm_get_env(), key, val);
+    }
+    if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
+      new_env = lbm_env_set(lbm_get_env(), key, val);
+      if (!lbm_is_symbol(new_env)) {
+        *lbm_get_env_ptr() = new_env;
+      } else {
+        res = new_env;
+      }
+    }
+  }
+  return res;
+}
+
 static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
- if (nargs == 2 && lbm_is_symbol(args[0])) {
-   lbm_uint s = lbm_dec_sym(args[0]);
-   if (s >= VARIABLE_SYMBOLS_START &&
-       s <  VARIABLE_SYMBOLS_END) {
-     /* #var case ignores local/global if present */
-     ctx->r = lbm_set_var(s, args[1]);
-   } else if (s >= RUNTIME_SYMBOLS_START) {
-     lbm_value new_env = lbm_env_modify_binding(ctx->curr_env, args[0], args[1]);
-     if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL &&
-         new_env == ENC_SYM_NOT_FOUND) {
-       new_env = lbm_env_modify_binding(lbm_get_env(), args[0], args[1]);
-     }
-     if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL &&
-         new_env == ENC_SYM_NOT_FOUND) {
-       new_env = lbm_env_set(lbm_get_env(),  args[0], args[1]);
-       if (lbm_is_error(new_env)) {
-         gc();
-         new_env = lbm_env_set(lbm_get_env(),  args[0], args[1]);
-         if (lbm_is_error(new_env)) {
-           error_ctx(new_env);
-           return;
-         }
-       }
-       *lbm_get_env_ptr() = new_env;
-     } else {
-       ctx->r = args[1];
-     }
-   } else {
-     error_ctx(ENC_SYM_EERROR);
-     return;
-   }
- } else {
-   error_ctx(ENC_SYM_EERROR);
-   return;
- }
- ctx->r = args[1];
- lbm_stack_drop(&ctx->K, nargs+1);
- ctx->app_cont = true;
+  if (nargs == 2 && lbm_is_symbol(args[0])) {
+    lbm_value res;
+    WITH_GC(res, perform_setvar(args[0], args[1], ctx->curr_env));
+    ctx->r = args[1];
+    lbm_stack_drop(&ctx->K, nargs+1);
+    ctx->app_cont = true;
+  } else {
+    error_ctx(ENC_SYM_EERROR);
+  }
 }
 
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program) {
@@ -2664,6 +2670,14 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       ctx->app_cont = true;
       break;
+    case SYM_OPENCURL:
+      CHECK_STACK(lbm_push_4(&ctx->K,
+                             ENC_SYM_NIL, ENC_SYM_NIL,
+                             stream,
+                             READ_APPEND_CONTINUE));
+      ctx->r = ENC_SYM_PROGN;
+      ctx->app_cont = true;
+      break;
     case SYM_CLOSEBRACK:
       ctx->r = tok;
       ctx->app_cont = true;
@@ -3176,6 +3190,15 @@ static void cont_progn_var(eval_context_t* ctx) {
   error_ctx(ENC_SYM_EERROR);
 }
 
+static void cont_setq(eval_context_t *ctx) {
+  lbm_value sym;
+  lbm_pop(&ctx->K, &sym);
+  lbm_value res;
+  WITH_GC(res, perform_setvar(sym, ctx->r, ctx->curr_env));
+  ctx->r = res;
+  ctx->app_cont = true;
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3215,6 +3238,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_match_guard,
     cont_terminate,
     cont_progn_var,
+    cont_setq,
   };
 
 /*********************************************************/
@@ -3241,6 +3265,7 @@ static const evaluator_fun evaluators[] =
    eval_cond,
    eval_app_cont,
    eval_var,
+   eval_setq,
   };
 
 
@@ -3349,7 +3374,7 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   if (found) {
     drop_ctx_nm(&blocked,found);
     if (lbm_is_error(v)) {
-      lbm_uint trash; 
+      lbm_uint trash;
       lbm_pop(&found->K, &trash);
       lbm_push(&found->K, TERMINATE);
       found->app_cont = true;

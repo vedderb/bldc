@@ -71,6 +71,9 @@
 #define TOKTYPEF32      41u
 #define TOKTYPEF64      42u
 
+#define TOKOPENCURL     43u     // "{"
+#define TOKCLOSECURL    44u     // "}"
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -125,7 +128,9 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?", TOKMATCHANY, 1}
+  {"?", TOKMATCHANY, 1},
+  {"{", TOKOPENCURL, 1},
+  {"}", TOKCLOSECURL, 1}
 };
 
 #define NUM_TYPE_QUALIFIERS 9
@@ -566,6 +571,10 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
     case TOKOPENPAR:
       res = lbm_enc_sym(SYM_OPENPAR);
       break;
+    case TOKOPENCURL:
+      res = lbm_enc_sym(SYM_OPENCURL);
+      break;
+    case TOKCLOSECURL: /* fall through */
     case TOKCLOSEPAR:
       res = lbm_enc_sym(SYM_CLOSEPAR);
       break;
