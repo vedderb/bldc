@@ -533,10 +533,10 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	motor->m_hall_dt_diff_now += dt;
 
 	float rad_per_sec = (M_PI / 3.0) / motor->m_hall_dt_diff_last;
-	float rpm_abs_fast = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
+	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_pll_speed));
 	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec));
 
-	motor->m_using_hall = rpm_abs_fast < conf_now->foc_sl_erpm;
+	motor->m_using_hall = rpm_abs < conf_now->foc_sl_erpm;
 	float angle_old = angle;
 
 	int ang_hall_int = conf_now->foc_hall_table[hall_val];
@@ -631,7 +631,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	// Map output angle between hall angle and observer angle in transition region to make
 	// a smooth transition.
 	if (angle_old != angle) {
-		float weight_hall = utils_map(rpm_abs_fast, conf_now->foc_sl_erpm_start, conf_now->foc_sl_erpm, 1.0, 0.0);
+		float weight_hall = utils_map(rpm_abs, conf_now->foc_sl_erpm_start, conf_now->foc_sl_erpm, 1.0, 0.0);
 		utils_truncate_number(&weight_hall, 0.0, 1.0);
 		angle = utils_interpolate_angles_rad(angle, angle_old, weight_hall);
 	}
