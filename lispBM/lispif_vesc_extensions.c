@@ -2410,7 +2410,7 @@ static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 	uint8_t *txbuf = 0;
 	uint8_t *rxbuf = 0;
 
-	const unsigned int max_len = 20;
+	const unsigned int max_len = 40;
 	uint8_t to_send[max_len];
 
 	if (!lbm_is_number(args[0])) {
