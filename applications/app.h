@@ -44,7 +44,7 @@ float app_adc_get_decoded_level(void);
 float app_adc_get_voltage(void);
 float app_adc_get_decoded_level2(void);
 float app_adc_get_voltage2(void);
-void app_adc_detach_adc(bool detach);
+void app_adc_detach_adc(int detach);
 void app_adc_adc1_override(float val);
 void app_adc_adc2_override(float val);
 void app_adc_detach_buttons(bool state);

@@ -1144,33 +1144,38 @@ static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
 
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
-	if (argn == 1){
-		if(lbm_dec_as_u32(args[0]) != 0){
-			return ENC_SYM_EERROR;
+	if (argn == 1) {
+		if(lbm_dec_as_u32(args[0]) != 0) {
+			return ENC_SYM_TERROR;
 		}
-	}else{
+	} else {
 		LBM_CHECK_ARGN_NUMBER(2);
 	}
+
 	uint32_t mode = lbm_dec_as_u32(args[0]);
-	bool detach = lbm_dec_as_char(args[1]) > 0 ? true : false;
+	int detach = lbm_dec_as_i32(args[1]);
+
 	switch (mode){
 		case 0:
-			app_adc_detach_adc(false);
+			app_adc_detach_adc(0);
 			app_adc_detach_buttons(false);
 			break;
 		case 1:
 			app_adc_detach_adc(detach);
+			app_adc_detach_buttons(false);
 			break;
 		case 2:
-			app_adc_detach_buttons(detach);
+			app_adc_detach_adc(0);
+			app_adc_detach_buttons(detach > 0);
 			break;
 		case 3:
 			app_adc_detach_adc(detach);
-			app_adc_detach_buttons(detach);
+			app_adc_detach_buttons(detach > 0);
 			break;
 		default:
 			return ENC_SYM_EERROR;
 	}
+
 	return ENC_SYM_TRUE;
 }
 

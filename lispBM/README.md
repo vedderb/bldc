@@ -635,7 +635,10 @@ Several app-inputs can be detached from the external interfaces and overridden f
 ;        - 1 ADC1/2
 ;        - 2 Buttons
 ;        - 3 ADC1/2 + Buttons
-; state : Only when mode 1/2/3/4 - 1 detaches periperial from APP, 0 attaches peripherial to APP 
+; state : Only used when mode is not 0. State 1, 2 or 3 detaches the peripheral and
+;         state 0 attaches peripheral. For the ADC, 1 means detach both ADCs, 2 means
+;         detach ADC1 only and 3 means detach ADC2 only. For the buttons state
+;         1, 2 and 3 mean the same thing, namely detach.
 ```
 
 Detaches a peripherial from the APP ADC
@@ -651,7 +654,7 @@ Detaches a peripherial from the APP ADC
 ```clj
 (app-adc-override mode value)
 ; Where
-; mode : Select periperial to override
+; mode : Select peripheral to override
 ;        - 0 ADC1
 ;        - 1 ADC2
 ;        - 2 Reverse button
