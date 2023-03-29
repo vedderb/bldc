@@ -43,6 +43,7 @@ typedef enum {
 
 volatile routine_rate_t m_routine_rate = routine_rate_1k;
 static encoder_type_t m_encoder_type_now = ENCODER_TYPE_NONE;
+static float m_enc_custom_pos = 0.0;
 
 static THD_WORKING_AREA(routine_thread_wa, 256);
 static THD_FUNCTION(routine_thread, arg);
@@ -374,7 +375,7 @@ float encoder_read_deg(void) {
 		if (m_enc_custom_read_deg) {
 			return m_enc_custom_read_deg();
 		} else {
-			return 0.0;
+			return m_enc_custom_pos;
 		}
 	}
 	return 0.0;
@@ -393,6 +394,15 @@ float encoder_read_deg_multiturn(void) {
 		return encoder_read_deg() / 10000.0 + (360 * ts_mt) / 10000.0;
 	} else {
 		return encoder_read_deg();
+	}
+}
+
+void encoder_set_deg(float deg) {
+	if (m_encoder_type_now == ENCODER_TYPE_ABI) {
+		encoder_cfg_ABI.timer->CNT = (uint32_t)(deg / 360.0 * (float)encoder_cfg_ABI.counts);
+		encoder_cfg_ABI.state.index_found = true;
+	} if (m_encoder_type_now == ENCODER_TYPE_CUSTOM) {
+		m_enc_custom_pos = deg;
 	}
 }
 

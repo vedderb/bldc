@@ -116,6 +116,22 @@ Get angle from selected encoder in degrees.
 
 ---
 
+#### set-encoder
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(set-encoder degrees)
+```
+
+Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found and in custom encoder more the encoder position is updated (unless a native library provides custom encoder support).
+
+When using an ABI-encoder this is useful if a position can be derived before the index pulse is found.
+
+---
+
 #### get-encoder-error-rate
 
 | Platforms | Firmware |

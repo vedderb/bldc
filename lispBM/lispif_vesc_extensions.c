@@ -503,6 +503,12 @@ static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(encoder_read_deg());
 }
 
+static lbm_value ext_set_encoder(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	encoder_set_deg(lbm_dec_as_float(args[0]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(encoder_get_error_rate());
@@ -3912,6 +3918,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-ppm", ext_get_ppm);
 	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
 	lbm_add_extension("get-encoder", ext_get_encoder);
+	lbm_add_extension("set-encoder", ext_set_encoder);
 	lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
 	lbm_add_extension("set-servo", ext_set_servo);
 	lbm_add_extension("get-vin", ext_get_vin);
