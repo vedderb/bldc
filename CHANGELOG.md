@@ -5,6 +5,7 @@
 	* Support for curly braces instead of progn.
 	* Added set and setq.
 	* Added defunret.
+	* Added support for detaching only one of the ADCs.
 * Hall sensors: smooth transition to sensorless.
 
 ### 6.02

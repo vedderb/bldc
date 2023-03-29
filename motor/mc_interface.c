@@ -2962,7 +2962,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
 	volatile mc_configuration* conf = conf_in;
 
-	if(conf == NULL) {
+	if (conf == NULL) {
 		if(is_motor_2) {
 #ifdef HW_HAS_DUAL_MOTORS
 			conf = &(m_motor_2.m_conf);
