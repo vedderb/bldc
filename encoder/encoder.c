@@ -398,6 +398,8 @@ float encoder_read_deg_multiturn(void) {
 }
 
 void encoder_set_deg(float deg) {
+	utils_norm_angle(&deg);
+
 	if (m_encoder_type_now == ENCODER_TYPE_ABI) {
 		encoder_cfg_ABI.timer->CNT = (uint32_t)(deg / 360.0 * (float)encoder_cfg_ABI.counts);
 		encoder_cfg_ABI.state.index_found = true;
