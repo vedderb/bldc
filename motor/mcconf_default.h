@@ -63,10 +63,10 @@
 #define MCCONF_L_BATTERY_CUT_END		8.0		// Limit the positive current completely at this voltage
 #endif
 #ifndef MCCONF_L_BATTERY_REGEN_CUT_START
-#define MCCONF_L_BATTERY_REGEN_CUT_START    55.0	// Start limiting the regen current at this voltage
+#define MCCONF_L_BATTERY_REGEN_CUT_START    1000.0	// Start limiting the regen current at this voltage
 #endif
 #ifndef MCCONF_L_BATTERY_REGEN_CUT_END
-#define MCCONF_L_BATTERY_REGEN_CUT_END  57.0		// Limit the regen current completely at this voltage
+#define MCCONF_L_BATTERY_REGEN_CUT_END  1100.0		// Limit the regen current completely at this voltage
 #endif
 #ifndef MCCONF_L_RPM_MAX
 #define MCCONF_L_RPM_MAX				100000.0	// The motor speed limit (Upper)
