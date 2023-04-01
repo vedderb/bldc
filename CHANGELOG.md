@@ -8,6 +8,7 @@
 	* Added support for detaching only one of the ADCs.
 	* Added set-encoder.
 * Hall sensors: smooth transition to sensorless.
+* Added soft regen cutoff. See https://github.com/vedderb/vesc_tool/pull/310
 
 ### 6.02
 #### 2023-03-12
