@@ -1874,6 +1874,8 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 10);
     }
 
+    utils_truncate_number_abs(&mcconf->foc_sl_erpm_start, mcconf->foc_sl_erpm * 0.9);
+
 #ifndef DISABLE_HW_LIMITS
 
     // TODO: Maybe truncate values that get close to numerical instabilities when set

@@ -365,7 +365,7 @@
 #define MCCONF_FOC_HALL_INTERP_ERPM		500		// Do not interpolate hall sensors below this ERPM
 #endif
 #ifndef MCCONF_FOC_SL_ERPM_START
-#define MCCONF_FOC_SL_ERPM_START		1000.0	// ERPM below which only sensored commutation is used
+#define MCCONF_FOC_SL_ERPM_START		2500.0	// ERPM below which only sensored commutation is used
 #endif
 #ifndef MCCONF_FOC_SL_ERPM
 #define MCCONF_FOC_SL_ERPM				3500.0	// ERPM above which only the observer is used
