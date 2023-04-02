@@ -295,6 +295,10 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 	} break;
 
+	case SENSOR_PORT_MODE_ABI: {
+		encoder_cfg_ABI.counts = conf->m_encoder_counts;
+	} break;
+
 	default:
 		break;
 	}
