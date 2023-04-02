@@ -408,6 +408,8 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
   }
 }
 
+
+
 // TODO: This is very similar to ext-print. Maybe they can share code.
 static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
   const int str_len = 300;
@@ -422,53 +424,28 @@ static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
     lbm_value t = args[i];
     int max = str_len - str_ofs - 1;
 
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      switch (array->elt_type){
-      case LBM_TYPE_CHAR: {
-        int chars = 0;
-        if (str_ofs == 0) {
-          chars = snprintf(str + str_ofs, (unsigned int)max, "%s", (char*)array->data);
-        } else {
-          chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, (char*)array->data);
-        }
-        if (chars >= max) {
-          str_ofs += max;
-        } else {
-          str_ofs += chars;
-        }
-      } break;
-      default:
-        return ENC_SYM_NIL;
-        break;
-      }
-    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
-      int chars = 0;
-      if (str_ofs == 0) {
-        chars = snprintf(str + str_ofs, (unsigned int)max, "%c", lbm_dec_char(t));
-      } else {
-        chars = snprintf(str + str_ofs, (unsigned int)max, "%s%c", delimiter, lbm_dec_char(t));
-      }
-      if (chars >= max) {
-        str_ofs += max;
-      } else {
-        str_ofs += chars;
-      }
-    }  else {
-      lbm_print_value(print_val_buffer, 256, t);
+    char *arr_str;
+    int chars = 0;
 
-      int chars = 0;
+    if (lbm_value_is_printable_string(t, &arr_str)) {
+      if (str_ofs == 0) {
+        chars = snprintf(str + str_ofs, (unsigned int)max, "%s", arr_str);
+      } else {
+        chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, arr_str);
+      }
+    } else {
+      lbm_print_value(print_val_buffer, 256, t);
       if (str_ofs == 0) {
         chars = snprintf(str + str_ofs, (unsigned int)max, "%s", print_val_buffer);
       } else {
         chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, print_val_buffer);
       }
-      if (chars >= max) {
-        str_ofs += max;
-      } else {
-        str_ofs += chars;
-      }
     }
+    if (chars >= max) {
+      str_ofs += max;
+    } else {
+      str_ofs += chars;
+      }
   }
 
   lbm_value res;

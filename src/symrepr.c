@@ -60,6 +60,7 @@ special_sym const special_symbols[] =  {
 
   {"set"          , SYM_SETVAR},
   {"setq"         , SYM_SETQ},
+  {"move-to-flash", SYM_MOVE_TO_FLASH},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
   {"map"          , SYM_MAP},
@@ -79,6 +80,7 @@ special_sym const special_symbols[] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"variable_not_bound" , SYM_NOT_FOUND},
+  {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
   {"$array"          , SYM_ARRAY_TYPE},
@@ -90,7 +92,6 @@ special_sym const special_symbols[] =  {
   {"$ind_f"          , SYM_IND_F_TYPE},
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
-  {"$bytecode"       , SYM_BYTECODE_TYPE},
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
@@ -124,7 +125,6 @@ special_sym const special_symbols[] =  {
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
-  {"type-ref"         , SYM_TYPE_REF},
   {"type-channel"     , SYM_TYPE_CHANNEL},
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -211,6 +211,8 @@ special_sym const special_symbols[] =  {
   {"true"           , SYM_TRUE},
   {"false"          , SYM_NIL},
   {"setvar"         , SYM_SETVAR},
+  {"type-f32"       , SYM_TYPE_FLOAT},
+  {"type-f64"       , SYM_TYPE_DOUBLE},
 };
 
 static lbm_uint *symlist = NULL;

@@ -43,11 +43,18 @@
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
+#define CONSTANT_MEMORY_SIZE 32*1024
 
 lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
+
+bool const_heap_write(lbm_uint ix, lbm_uint w) {
+  constants_memory[ix] = w;
+}
+
 
 /* Tokenizer state for strings */
 //static lbm_tokenizer_string_state_t string_tok_state;
@@ -330,6 +337,8 @@ int main(int argc, char **argv) {
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
 
+  lbm_const_heap_t const_heap;
+
   int c;
   opterr = 1;
 
@@ -439,6 +448,15 @@ int main(int argc, char **argv) {
     printf("Error initializing heap!\n");
     return 0;
   }
+
+  if (!lbm_const_heap_init(const_heap_write,
+                           &const_heap,constants_memory,
+                           CONSTANT_MEMORY_SIZE)) {
+    return 0;
+  } else {
+    printf("Constants memory initialized\n");
+  }
+  
 
   res = lbm_eval_init();
   if (res)

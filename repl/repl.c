@@ -44,11 +44,18 @@
 #define VARIABLE_STORAGE_SIZE 256
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
+#define CONSTANT_MEMORY_SIZE 32*1024
 
 lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
+
+bool const_heap_write(lbm_uint ix, lbm_uint w) {
+  printf("writing: [%u] <- %x\n",ix, w);
+  constants_memory[ix] = w;
+}
 
 static volatile bool allow_print = true;
 
@@ -566,6 +573,8 @@ int main(int argc, char **argv) {
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
 
+  lbm_const_heap_t const_heap;
+
   for (int i = 0; i < 1024; i ++) {
     char_array[i] = (char)i;
     word_array[i] = (lbm_uint)i;
@@ -593,6 +602,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  if (!lbm_const_heap_init(const_heap_write,
+                           &const_heap,constants_memory,
+                           CONSTANT_MEMORY_SIZE)) {
+    return 0;
+  } else {
+    printf("Constants memory initialized\n");
+  }
+  
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

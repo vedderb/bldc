@@ -26,7 +26,6 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
-#include "prelude.h"
 #include "env.h"
 #include "lbm_memory.h"
 #include "lbm_types.h"

@@ -932,6 +932,40 @@ has been extended with the binding `(apa 1)`.
 
 ---
 
+### move-to-flash
+
+A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.
+A `move-to-flash` expression is of the form (move-to-flash sym opt-sym1 ... opt-symN).
+The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved
+to flash. After the value has been moved, the environment binding is updated to point into flash
+memory. **CAUTION** This function should be used carefully. Ideally a value should be moved
+to flash immediately after it is created so there is no chance that other references to original value
+exists.
+
+Example that moves an array to flash storage:
+
+```clj
+(define a [1 2 3 4 5 6])
+
+(move-to-flash a)
+---
+
+Example that moves a list to flash storage:
+
+```clj
+(define ls '(1 2 3 4 5))
+
+(move-to-flash ls)
+```
+
+Functions can be moved to flash storage as well:
+
+```clj
+(defun f (x) (+ x 1))
+
+(move-to-flash f)
+```
+
 ## Lists and cons cells
 
 Lists are build using cons cells. A cons cell is represented by the lbm_cons_t struct in the

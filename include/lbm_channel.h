@@ -55,6 +55,7 @@ typedef struct {
   char *str;
   unsigned int length;
   unsigned int read_pos;
+  unsigned int write_pos;
   bool more;
   bool comment;
   bool reader_closed;
@@ -203,6 +204,12 @@ unsigned int lbm_channel_column(lbm_char_channel_t *chan);
 void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
                                     lbm_char_channel_t *chan,
                                     char *str);
+
+void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
+                                         lbm_char_channel_t *chan,
+                                         char *str,
+                                         unsigned int size);
+
 
 /** Create a buffered channel that can be read from and written to.
  * \param st Pointer to lbm_buffered_channel_state_t.

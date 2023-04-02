@@ -29,7 +29,7 @@ static lbm_value make_list(unsigned int n, ...) {
   lbm_value res;
   va_list valist;
   va_start(valist, n);
-  lbm_heap_allocate_list_init_va(&res, n, valist);
+  res = lbm_heap_allocate_list_init_va(n, valist);
   va_end(valist);
   return res;
 }

@@ -32,8 +32,26 @@
 #include "heap_vis.h"
 #endif
 
+
+static inline lbm_value lbm_set_gc_mark(lbm_value x) {
+  return x | LBM_GC_MARKED;
+}
+
+static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
+  return x & ~LBM_GC_MASK;
+}
+
+static inline bool lbm_get_gc_mark(lbm_value x) {
+  return x & LBM_GC_MASK;
+}
+
+
+
 lbm_heap_state_t lbm_heap_state;
 
+lbm_const_heap_t *lbm_const_heap_state;
+
+lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
 /****************************************************/
 /* ENCODERS DECODERS                                */
@@ -415,21 +433,6 @@ bool lbm_is_byte_array(lbm_value x) {
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
 
-static inline void set_gc_mark(lbm_cons_t *cell) {
-  lbm_value cdr = cell->cdr;
-  cell->cdr =  lbm_set_gc_mark(cdr);
-}
-
-static inline void clr_gc_mark(lbm_cons_t *cell) {
-  lbm_value cdr = cell->cdr;
-  cell->cdr = lbm_clr_gc_mark(cdr);
-}
-
-static inline bool get_gc_mark(lbm_cons_t* cell) {
-  lbm_value cdr = cell->cdr;
-  return lbm_get_gc_mark(cdr);
-}
-
 static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
@@ -505,6 +508,8 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
+  lbm_heaps[0] = addr;
+
   return generate_freelist(num_cells);
 }
 
@@ -565,14 +570,12 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
   }
 }
 
-bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist) {
+lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
   if (n == 0) {
-    *ls = ENC_SYM_NIL;
-    return true;
+    return ENC_SYM_NIL;
   }
   if (lbm_heap_num_free() < n) {
-    *ls = ENC_SYM_MERROR;
-    return false;
+    return ENC_SYM_MERROR;
   }
 
   lbm_value res = lbm_heap_state.freelist;
@@ -590,16 +593,15 @@ bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valis
     lbm_set_cdr(curr, ENC_SYM_NIL);
     lbm_heap_state.num_alloc+=count;
     va_end(valist);
-    *ls = res;
-    return true;
+    return res;
   }
-  return false;
+  return ENC_SYM_FATAL_ERROR;
 }
 
-bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
+lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {
     va_list valist;
     va_start(valist, n);
-    bool r = lbm_heap_allocate_list_init_va(ls, n, valist);
+    lbm_value r = lbm_heap_allocate_list_init_va(n, valist);
     va_end(valist);
     return r;
 }
@@ -643,15 +645,15 @@ int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
       continue;
     }
 
-    // Circular object on heap, or visited..
-    if (get_gc_mark(lbm_ref_cell(curr))) {
-      continue;
+    bool not_constant = (curr & LBM_PTR_TO_CONSTANT_BIT) == 0;
+    lbm_cons_t *cell = lbm_ref_cell(curr);
+
+    if (not_constant) {
+      lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
+      if (gc_mark) continue;
+      lbm_heap_state.gc_marked ++;
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
     }
-
-    // There is at least a pointer to one cell here. Mark it and add children to stack
-    lbm_heap_state.gc_marked ++;
-
-    set_gc_mark(lbm_ref_cell(curr));
 
     lbm_value t_ptr = lbm_type_of(curr);
 
@@ -687,7 +689,7 @@ int lbm_gc_mark_freelist() {
   curr = fl;
   while (lbm_is_ptr(curr)){
     t = lbm_ref_cell(curr);
-    set_gc_mark(t);
+    t->cdr = lbm_set_gc_mark(t->cdr);
     curr = t->cdr;
 
     lbm_heap_state.gc_marked ++;
@@ -697,13 +699,10 @@ int lbm_gc_mark_freelist() {
 }
 
 int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
-
   for (lbm_uint i = 0; i < aux_size; i ++) {
     if (lbm_is_ptr(aux_data[i])) {
-
       lbm_type pt_t = lbm_type_of(aux_data[i]);
       lbm_uint pt_v = lbm_dec_ptr(aux_data[i]);
-
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
@@ -721,8 +720,8 @@ int lbm_gc_sweep_phase(void) {
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
   for (i = 0; i < lbm_heap_state.heap_size; i ++) {
-    if ( get_gc_mark(&heap[i])) {
-      clr_gc_mark(&heap[i]);
+    if ( lbm_get_gc_mark(heap[i].cdr)) {
+      heap[i].cdr = lbm_clr_gc_mark(heap[i].cdr);
     } else {
       // Check if this cell is a pointer to an array
       // and free it.
@@ -855,6 +854,7 @@ lbm_value lbm_cddr(lbm_value c) {
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
+
   if (lbm_type_of(c) == LBM_TYPE_CONS) {
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->car = v;
@@ -948,12 +948,11 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 
 
 lbm_value lbm_list_copy(lbm_value list) {
-  // TODO: a more efficient approach
   lbm_value res = ENC_SYM_NIL;
 
   lbm_value curr = list;
 
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
     lbm_value c = lbm_cons (lbm_car(curr), res);
     if (lbm_type_of(c) == LBM_TYPE_SYMBOL) {
       return ENC_SYM_MERROR;
@@ -1024,6 +1023,9 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   else {
     allocate_size = size;
   }
+
+  /* lbm_uint header_size = sizeof(lbm_array_header_t); */
+  /* lbm_uint header_allocate_size = 0; */
 
   array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
 
@@ -1150,3 +1152,75 @@ lbm_uint lbm_size_of(lbm_type t) {
   }
   return s;
 }
+
+static const_heap_write_fun const_heap_write = NULL;
+
+int lbm_const_heap_init(const_heap_write_fun w_fun,
+                        lbm_const_heap_t *heap,
+                        lbm_uint *addr,
+                        lbm_uint  num_words) {
+  if (((uintptr_t)addr % 4) != 0) return 0;
+  if ((num_words % 2) != 0) return 0;
+
+  const_heap_write = w_fun;
+
+  heap->heap = addr;
+  heap->size = num_words;
+  heap->next = 0;
+
+  lbm_const_heap_state = heap;
+  // ref_cell views the lbm_uint array as an lbm_cons_t array
+  lbm_heaps[1] = (lbm_cons_t*)addr;
+  return 1;
+}
+
+lbm_value lbm_allocate_const_cell(void) {
+  lbm_uint res = ENC_SYM_ERROR_FLASH_HEAP_FULL;
+
+  // waste a cell if we have ended up unaligned after writing an array to flash.
+  if (lbm_const_heap_state->next % 2 == 1) {
+    lbm_const_heap_state->next++;
+  }
+
+  if (lbm_const_heap_state &&
+      (lbm_const_heap_state->next+1) < lbm_const_heap_state->size) {
+    // A cons cell uses two words.
+    res = lbm_const_heap_state->next;
+    lbm_const_heap_state->next += 2;
+    res = (res << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
+  }
+  return res;
+}
+
+bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) {
+
+  bool r = false;
+
+  if (lbm_const_heap_state &&
+      (lbm_const_heap_state->next + n) < lbm_const_heap_state->size) {
+    lbm_uint ix = lbm_const_heap_state->next;
+
+    for (unsigned int i = 0; i < n; i ++) {
+      const_heap_write(ix + i, ((lbm_uint*)data)[i]);
+    }
+    lbm_const_heap_state->next += n;
+    *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
+    r = true;
+  }
+  return r;
+}
+
+void write_const_cdr(lbm_value cell, lbm_value val) {
+  lbm_uint addr = lbm_dec_ptr(cell);
+  const_heap_write(addr+1, val);
+}
+
+void write_const_car(lbm_value cell, lbm_value val) {
+  lbm_uint addr = lbm_dec_ptr(cell);
+  const_heap_write(addr, val);
+}
+
+lbm_uint lbm_flash_memory_usage(void) {
+  return lbm_const_heap_state->next;
+}
+

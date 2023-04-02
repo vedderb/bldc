@@ -20,7 +20,6 @@
 #include "stack.h"
 #include "heap.h"
 #include "eval_cps.h"
-#include "print.h"
 #include "lbm_variables.h"
 #include "env.h"
 #include "lbm_utils.h"
@@ -190,9 +189,16 @@ static bool array_equality(lbm_value a, lbm_value b) {
 bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
+  lbm_type ta = lbm_type_of(a);
+  lbm_type tb = lbm_type_of(b);
+  
+  if (lbm_is_ptr(a) && lbm_is_ptr(b)) {
+    ta &= LBM_PTR_TO_CONSTANT_MASK;
+    tb &= LBM_PTR_TO_CONSTANT_MASK;
+  }
 
-  if (lbm_type_of(a) == lbm_type_of(b)) {
-    switch(lbm_type_of(a)){
+  if (ta == tb) {
+    switch(ta){
     case LBM_TYPE_SYMBOL:
       return (lbm_dec_sym(a) == lbm_dec_sym(b));
     case LBM_TYPE_I:
@@ -279,7 +285,7 @@ static void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     ix_end = tmp;
   }
 
-  if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_r(arr)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     lbm_uint* data = array->data;
 
@@ -372,7 +378,7 @@ static void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     return;
   }
 
-  if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_rw(arr)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     if (array == NULL) {
       *result = ENC_SYM_FATAL_ERROR;
@@ -526,12 +532,12 @@ static lbm_value index_list(lbm_value l, int32_t n) {
     if (n < 0) return ENC_SYM_NIL;
   }
 
-  while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
+  while (lbm_is_cons_general(curr) &&
           n > 0) {
     curr = lbm_cdr(curr);
     n --;
   }
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  if (lbm_is_cons_general(curr)) {
     return lbm_car(curr);
   } else {
     return ENC_SYM_NIL;
@@ -540,7 +546,7 @@ static lbm_value index_list(lbm_value l, int32_t n) {
 
 static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->car, key)) {
       return lbm_ref_cell(c)->cdr;
@@ -552,7 +558,7 @@ static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
 
 static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->cdr, key)) {
       return lbm_ref_cell(c)->car;
@@ -890,7 +896,7 @@ static lbm_value fundamental_cons(lbm_value *args, lbm_uint nargs, eval_context_
 static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+    if (lbm_is_cons_general(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->car;
     }
@@ -901,7 +907,7 @@ static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t
 static lbm_value fundamental_cdr(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+    if (lbm_is_cons_general(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->cdr;
     }
@@ -922,21 +928,25 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs < 2) return(ENC_SYM_TERROR);
-  lbm_value res = args[nargs-1];
-  for (int i = (int)nargs -2; i >= 0; i --) {
-    lbm_value curr = args[i];
-    int n = 0;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-      n++;
-      curr = lbm_cdr(curr);
+  if (nargs == 0) return ENC_SYM_NIL;
+  if (nargs == 1 && !lbm_is_list_general(args[0])) return ENC_SYM_TERROR;
+  if (nargs > 0) {
+    lbm_value res = args[nargs-1];
+    for (int i = (int)nargs -2; i >= 0; i --) {
+      lbm_value curr = args[i];
+      if (!lbm_is_list_general(curr)) return ENC_SYM_TERROR;
+      int n = 0;
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+        n++;
+        curr = lbm_cdr(curr);
+      }
+      curr = args[i];
+      for (int j = n-1; j >= 0; j --) {
+        res = lbm_cons(index_list(curr,j),res);
+      }
     }
-    curr = args[i];
-    for (int j = n-1; j >= 0; j --) {
-      res = lbm_cons(index_list(curr,j),res);
-    }
+    return(res);
   }
-  return(res);
 }
 
 static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -1428,7 +1438,13 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   (void) ctx;
   if (nargs != 1) return ENC_SYM_NIL;
   lbm_value val = args[0];
-  switch(lbm_type_of(val)) {
+  lbm_type t = lbm_type_of(val);
+
+  if (lbm_is_ptr(val)) {
+    // Ignore constant or not constant.
+    t &= LBM_PTR_TO_CONSTANT_MASK;
+  }
+  switch(t) {
   case LBM_TYPE_CONS: return ENC_SYM_TYPE_LIST;
   case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
   case LBM_TYPE_I32: return ENC_SYM_TYPE_I32;
