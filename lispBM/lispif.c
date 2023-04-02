@@ -290,12 +290,13 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				while (lbm_type_of(curr) == LBM_TYPE_CONS) {
 					lbm_print_value(output, sizeof(output), lbm_car(curr));
 					curr = lbm_cdr(curr);
-					commands_printf_lisp("  %s",output);
+					commands_printf_lisp("  %s", output);
 				}
+
 				commands_printf_lisp("Variables:");
 				for (int i = 0; i < lbm_get_num_variables(); i ++) {
 					const char *name = lbm_get_variable_name_by_index(i);
-					lbm_print_value(output,1024, lbm_get_variable_by_index(i));
+					lbm_print_value(output, sizeof(output), lbm_get_variable_by_index(i));
 					commands_printf_lisp("  %s = %s", name ? name : "error", output);
 				}
 			} else if (strncmp(str, ":ctxs", 5) == 0) {
