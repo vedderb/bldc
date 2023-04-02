@@ -1826,12 +1826,12 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   if (nargs >= 2 &&
       lbm_is_number(args[0]) &&
-      lbm_is_closure(args[1])) {
+      lbm_is_closure_general(args[1])) {
     stack_size = lbm_dec_as_u32(args[0]);
     closure_pos = 1;
   }
 
-  if (!lbm_is_closure(args[closure_pos]) ||
+  if (!lbm_is_closure_general(args[closure_pos]) ||
       nargs < 1) {
     error_ctx(ENC_SYM_EERROR);
     return;
@@ -3385,7 +3385,7 @@ static lbm_value request_flash_storage_cell(lbm_value val) {
   new_val &= ~LBM_PTR_VAL_MASK; // clear the value part of the ptr
   new_val |= (flash_cell & LBM_PTR_VAL_MASK);
   new_val |= LBM_PTR_TO_CONSTANT_BIT;
-  return flash_cell;
+  return new_val;
 }
 
 static void cont_move_to_flash(eval_context_t *ctx) {
@@ -3523,6 +3523,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     }
     ctx->r = flash_cell;
     ctx->app_cont = true;
+    return;
   }
 
   ctx->r = val;
