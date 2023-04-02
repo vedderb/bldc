@@ -200,6 +200,11 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
 
+// The address is an index into the const heap. 
+#define LBM_PTR_TO_CONSTANT_BIT          0x04000000u
+#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
+#define LBM_PTR_TO_CONSTANT_SHIFT        26
+
 #else /* 64 bit Version */
 
 #define LBM_ADDRESS_SHIFT                2
@@ -208,7 +213,11 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_MASK                     (lbm_uint)0x1
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
-#define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
+#define LBM_PTR_TYPE_MASK                (lbm_uint)0xF800000000000000
+
+#define LBM_PTR_TO_CONSTANT_BIT          (lbm_uint)0x0400000000000000
+#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
+#define LBM_PTR_TO_CONSTANT_SHIFT        58
 
 #endif
 
@@ -249,6 +258,14 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
+typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
+  
+typedef struct {
+  lbm_uint *heap;  
+  lbm_uint  next;  // next free index.
+  lbm_uint  size;  // in lbm_uint words. (cons-cells = words / 2)
+} lbm_const_heap_t;
+  
 /**
  *  The header portion of an array stored in array and symbol memory.
  */
@@ -315,18 +332,17 @@ lbm_value lbm_heap_allocate_list(unsigned int n);
  * \param valist The values in a va_list to initialize the list with.
  * \return True of False depending on success of allocation.
  */
-bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist);
+lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist);
 /** Allocate a list of n heap-cells and initialize the values.
- * \pram ls The result list is passed through this ptr.
  * \param n The length of list to allocate.
  * \param ... The values to initialize the list with.
- * \return True of False depending on success of allocation.
+ * \return allocated list or error symbol.
  */
-bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...);
+lbm_value lbm_heap_allocate_list_init(unsigned int n, ...);
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
- * \return String or NULL if the value does not encode a string.
+ * \return allocated list or error symbol
  */
 char *lbm_dec_str(lbm_value val);
 /** Decode an lbm_value representing a char channel into an lbm_char_channel_t pointer.
@@ -571,6 +587,17 @@ int lbm_heap_explicit_free_array(lbm_value arr);
  */
 lbm_uint lbm_size_of(lbm_type t);
 
+int lbm_const_heap_init(const_heap_write_fun w_fun,
+                        lbm_const_heap_t *heap,
+                        lbm_uint *addr,
+                        lbm_uint num_words);
+
+lbm_value lbm_allocate_const_cell(void);
+bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
+void write_const_cdr(lbm_value cell, lbm_value val);
+void write_const_car(lbm_value cell, lbm_value val);
+lbm_uint lbm_flash_memory_usage(void);
+
 /** Query the type information of a value.
  *
  * \param x Value to check the type of.
@@ -586,6 +613,18 @@ static inline lbm_value lbm_enc_cons_ptr(lbm_uint x) {
 
 static inline lbm_uint lbm_dec_ptr(lbm_value p) {
   return ((LBM_PTR_VAL_MASK & p) >> LBM_ADDRESS_SHIFT);
+}
+
+extern lbm_cons_t *lbm_heaps[2];
+
+static inline lbm_uint lbm_dec_cons_cell_ptr(lbm_value p) {
+  lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
+  return lbm_dec_ptr(p) >> h;
+}
+
+static inline lbm_cons_t *lbm_dec_heap(lbm_value p) {
+  lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
+  return lbm_heaps[h];
 }
 
 static inline lbm_value lbm_set_ptr_type(lbm_value p, lbm_type t) {
@@ -701,24 +740,18 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
  */
 extern int64_t lbm_dec_i64(lbm_value x);
 
-static inline lbm_value lbm_set_gc_mark(lbm_value x) {
-  return x | LBM_GC_MARKED;
-}
-
-static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
-  return x & ~LBM_GC_MASK;
-}
-
-static inline bool lbm_get_gc_mark(lbm_value x) {
-  return x & LBM_GC_MASK;
-}
-
 static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_MASK);
 }
 
 static inline bool lbm_is_cons(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CONS);
+}
+
+static inline bool lbm_is_cons_general(lbm_value x) {
+  lbm_type t = lbm_type_of(x);
+  return (t == LBM_TYPE_CONS ||
+          t == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT));
 }
 
 /** Check if a value represents a number
@@ -731,6 +764,15 @@ static inline bool lbm_is_array(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_ARRAY &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
+}
+
+static inline bool lbm_is_array_r(lbm_value x) {
+  lbm_type t = lbm_type_of(x);
+  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+}
+
+static inline bool lbm_is_array_rw(lbm_value x) {
+  return(lbm_is_array_r(x) && !(x & LBM_PTR_TO_CONSTANT_BIT));
 }
 
 /** Check if a value represents a byte array.
@@ -808,6 +850,10 @@ static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
 }
 
+static inline bool lbm_is_list_general(lbm_value x) {
+  return (lbm_is_cons_general(x) || lbm_is_symbol_nil(x));
+}
+  
 static inline bool lbm_is_quoted_list(lbm_value x) {
   return (lbm_is_cons(x) &&
           lbm_is_symbol(lbm_car(x)) &&
@@ -831,10 +877,16 @@ static inline bool lbm_is_error(lbm_value v){
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
-  return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
-  //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
+  return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
+  //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 
+ 
+// lbm_uint a = lbm_heaps[0];
+// lbm_uint b = lbm_heaps[1];
+// lbm_uint i = (addr & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT) - 1;
+// lbm_uint h = (a & i) | (b & ~i);
+  
 #ifdef __cplusplus
 }
 #endif

@@ -73,11 +73,10 @@ lbm_value ext_memory_word_size(lbm_value *args, lbm_uint argn) {
 lbm_value ext_lbm_version(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
-  lbm_value version;
-  lbm_heap_allocate_list_init(&version, 3,
-                              lbm_enc_i(LBM_MAJOR_VERSION),
-                              lbm_enc_i(LBM_MINOR_VERSION),
-                              lbm_enc_i(LBM_PATCH_VERSION));
+  lbm_value version = lbm_heap_allocate_list_init(3,
+                                                  lbm_enc_i(LBM_MAJOR_VERSION),
+                                                  lbm_enc_i(LBM_MINOR_VERSION),
+                                                  lbm_enc_i(LBM_PATCH_VERSION));
   return version;
 }
 
