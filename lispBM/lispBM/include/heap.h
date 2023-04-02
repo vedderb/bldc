@@ -801,6 +801,12 @@ static inline bool lbm_is_closure(lbm_value exp) {
           (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
 }
 
+static inline bool lbm_is_closure_general(lbm_value exp) {
+  return ((lbm_is_cons_general(exp)) &&
+          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
+          (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
+}
+
 static inline bool lbm_is_continuation(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&

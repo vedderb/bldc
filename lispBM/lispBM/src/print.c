@@ -389,7 +389,7 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_CONS: {
         int res = lbm_push_2(&print_stack, curr, START_LIST);
         if (!res) {
-          r = print_emit_string(chan,"Error: Out of print stack\n");
+          print_emit_string(chan," ...");
           return EMIT_OK;
         }
         break;
