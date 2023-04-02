@@ -26,6 +26,7 @@
 #include "timeout.h"
 #include "lispbm.h"
 #include "mempools.h"
+#include "stm32f4xx_conf.h"
 
 #define HEAP_SIZE				(2048 + 256 + 160)
 #define LISP_MEM_SIZE			LBM_MEMORY_SIZE_16K
@@ -48,6 +49,9 @@ static lbm_char_channel_t string_tok;
 static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
 
+lbm_const_heap_t const_heap;
+static lbm_uint *const_heap_ptr = 0;
+
 static thread_t *eval_tp = 0;
 static THD_FUNCTION(eval_thread, arg);
 static THD_WORKING_AREA(eval_thread_wa, 2048);
@@ -60,6 +64,7 @@ static int restart_cnt = 0;
 // Private functions
 static uint32_t timestamp_callback(void);
 static void sleep_callback(uint32_t us);
+static bool const_heap_write(lbm_uint ix, lbm_uint w);
 
 void lispif_init(void) {
 	// Do not attempt to start lisp after a watchdog reset, in case lisp
@@ -273,6 +278,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
 				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
 				commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
+				commands_printf_lisp("--(Flash)--\n");
+				commands_printf_lisp("Size: %u Bytes\n", const_heap.size * 8);
+				commands_printf_lisp("Used cells: %d\n", const_heap.next);
+				commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
 			} else if (strncmp(str, ":env", 4) == 0) {
 				lbm_value curr = *lbm_get_env_ptr();
 				char output[128];
@@ -304,7 +313,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 						"Reset OK\n\n" : "Reset Failed\n\n");
 			} else if (strncmp(str, ":pause", 6) == 0) {
 				lbm_pause_eval_with_gc(30);
-				while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+				while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
 					lbm_pause_eval();
 					sleep_callback(1);
 				}
@@ -595,6 +604,15 @@ bool lispif_restart(bool print, bool load_code) {
 			}
 		}
 
+		if (code_data == 0) {
+			code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP);
+		}
+
+		const_heap_ptr = (lbm_uint*)(code_data + code_len + 8);
+		const_heap_ptr = (lbm_uint*)((uint32_t)const_heap_ptr & 0xFFFFFFF4);
+		uint32_t const_heap_len = ((uint32_t)code_data + 1024 * 128) - (uint32_t)const_heap_ptr;
+		lbm_const_heap_init(const_heap_write, &const_heap, const_heap_ptr, const_heap_len);
+
 		if (load_code) {
 			if (print) {
 				commands_printf_lisp("Parsing %d characters", code_chars);
@@ -619,6 +637,30 @@ static uint32_t timestamp_callback(void) {
 
 static void sleep_callback(uint32_t us) {
 	chThdSleepMicroseconds(us);
+}
+
+static bool const_heap_write(lbm_uint ix, lbm_uint w) {
+	if (const_heap_ptr[ix] == w) {
+		return true;
+	}
+
+	FLASH_Unlock();
+	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
+			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+	FLASH_ProgramWord((uint32_t)(const_heap_ptr + ix), w);
+	FLASH_Lock();
+
+	if (const_heap_ptr[ix] != w) {
+		char *error_str =
+				"Writing to flash failed. Make sure that upload is "
+				"used or that the code is erased before attempting to write to flash.";
+		lbm_set_error_reason(error_str);
+		lbm_pause_eval();
+		commands_printf_lisp(error_str);
+		return false;
+	}
+
+	return true;
 }
 
 static THD_FUNCTION(eval_thread, arg) {
