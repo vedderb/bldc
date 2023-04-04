@@ -3,5 +3,5 @@
 	       (if x
 		   'something)))
 
-(and (eq (test 't) 'something)
-     (eq (test 'nil) 'nil))
+(check (and (eq (test 't) 'something)
+            (eq (test 'nil) 'nil)))

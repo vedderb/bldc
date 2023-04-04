@@ -4,5 +4,5 @@
 
 (setcdr a 199)
 
-(and (= (car a) 1) (= (cdr a) 199))
+(check (and (= (car a) 1) (= (cdr a) 199)))
 

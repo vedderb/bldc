@@ -1,4 +1,4 @@
 
-(define arr [type-float 1.0 2.0 3.0 4.0 5.0])
+(define arr [0xFF 0x00 0xFF 0x00])
 
-(= (array-read arr 3) 4.0)
+(check (= (bufget-u32 arr 0) 0xFF00FF00u32))

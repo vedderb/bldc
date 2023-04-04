@@ -158,29 +158,14 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
 }
 
 static bool array_equality(lbm_value a, lbm_value b) {
-  if (lbm_type_of(a) == LBM_TYPE_ARRAY &&
-      lbm_type_of(a) == lbm_type_of(b)) {
+  if (lbm_is_array_r(a) && lbm_is_array_r(b)) {
     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
 
     if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
 
-    if (a_->elt_type == b_->elt_type &&
-        a_->size == b_->size) {
-      switch(a_->elt_type) {
-      case LBM_TYPE_U:
-      case LBM_TYPE_U32:
-      case LBM_TYPE_I:
-      case LBM_TYPE_I32:
-      case LBM_TYPE_FLOAT:
-        if (memcmp((char*)a_->data, (char*)b_->data, a_->size * sizeof(lbm_int)) == 0) return true;
-        break;
-      case LBM_TYPE_CHAR:
-        if (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0) return true;
-        break;
-      default:
-        break;
-      }
+    if (a_->size == b_->size) {
+      return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
     }
   }
   return false;
@@ -252,274 +237,11 @@ static int compare(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-static void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
-  (void) nargs;
-  if (nargs < 2) return;
-  // Args are: array, index
-  lbm_value arr = args[0];
-  lbm_value index = args[1];
-  lbm_value index_end = index;
-  lbm_value acc = ENC_SYM_NIL;
-  lbm_value curr = ENC_SYM_EERROR;
-  bool read_many = false;
-
-  if (nargs > 2) {
-    index_end = args[2];
-    read_many = true;
-  }
-
-  // Get array index
-  lbm_uint ix;
-  lbm_uint ix_end;
-
-  if (lbm_is_number(index) && lbm_is_number(index_end)) {
-    ix = lbm_dec_as_u32(index);
-    ix_end = lbm_dec_as_u32(index_end);
-  } else {
-    return;
-  }
-
-  if (ix > ix_end) {
-    lbm_uint tmp = ix;
-    ix = ix_end;
-    ix_end = tmp;
-  }
-
-  if (lbm_is_array_r(arr)) {
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
-    lbm_uint* data = array->data;
-
-    for (lbm_int i = (lbm_int)ix_end; i >= (lbm_int)ix; i--) {
-      if ((lbm_uint)i >= array->size){
-        *result = ENC_SYM_NIL;
-        return;
-      }
-
-      switch(array->elt_type) {
-      case LBM_TYPE_CHAR:
-        curr = lbm_enc_char(((char*)data)[i]);
-        break;
-      case LBM_TYPE_U:
-        curr = lbm_enc_u((uint32_t)data[i]);
-        break;
-      case LBM_TYPE_I:
-        curr = lbm_enc_i((int32_t)data[i]);
-        break;
-      case LBM_TYPE_U32:
-        curr = lbm_enc_u32((uint32_t)data[i]);
-        break;
-      case LBM_TYPE_I32:
-        curr = lbm_enc_i32((int32_t)data[i]);
-        break;
-      case LBM_TYPE_FLOAT: {
-        float v;
-        memcpy(&v, &data[i], sizeof(float));
-        curr = lbm_enc_float(v);
-      } break;
-#ifndef LBM64
-      case LBM_TYPE_U64: {
-        uint64_t v = 0;
-        v |= (uint64_t)data[i*2];
-        v |= ((uint64_t)data[i*2+1]) << 32;
-        curr = lbm_enc_u64(v);
-      } break;
-      case LBM_TYPE_I64: {
-        uint64_t v = 0;
-        v |= (uint64_t)data[i*2];
-        v |= ((uint64_t)data[i*2+1]) << 32;
-        curr = lbm_enc_i64((int64_t)v);
-      } break;
-      case LBM_TYPE_DOUBLE: {
-        double v;
-        memcpy(&v, &data[i*2], sizeof(double));
-        curr = lbm_enc_double(v);
-      } break;
-#else
-      case LBM_TYPE_U64:
-        curr = lbm_enc_u64(data[i]);
-        break;
-      case LBM_TYPE_I64:
-        curr = lbm_enc_i64((int64_t)data[i]);
-        break;
-      case LBM_TYPE_DOUBLE: {
-        double v;
-        memcpy(&v, &data[i], sizeof(double));
-        curr = lbm_enc_double(v);
-      } break;
-#endif
-      default:
-        curr = ENC_SYM_EERROR;
-        break;
-      }
-      if (read_many) {
-        acc = lbm_cons(curr, acc);
-      }
-    } /* for i */
-  }
-  if (read_many) {
-    *result = acc;
-  } else {
-    *result = curr;
-  }
-}
-
-static void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
-  (void) nargs;
-  lbm_value arr = args[0];
-  lbm_value index = args[1];
-  lbm_value val = args[2];
-  lbm_uint ix;
-
-  *result = ENC_SYM_EERROR;
-
-  if (lbm_is_number(index)) {
-    ix = lbm_dec_as_u32(index);
-  } else {
-    return;
-  }
-
-  if (lbm_is_array_rw(arr)) {
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
-    if (array == NULL) {
-      *result = ENC_SYM_FATAL_ERROR;
-      return;
-    }
-
-    if (ix >= array->size) {
-      *result =  ENC_SYM_NIL;
-      return;
-    }
-
-    switch(array->elt_type) {
-    case LBM_TYPE_CHAR: {
-      char * data = (char *)array->data;
-      data[ix] = lbm_dec_as_char(val);
-      break;
-    }
-    case LBM_TYPE_U:
-      /* fall through */
-    case LBM_TYPE_U32: {
-      lbm_uint *data = (lbm_uint*)array->data;
-      data[ix] = lbm_dec_as_u32(val);
-      break;
-    }
-    case LBM_TYPE_I:
-      /* fall through */
-    case LBM_TYPE_I32: {
-      lbm_int *data = (lbm_int*)array->data;
-      data[ix] = lbm_dec_as_i32(val);
-      break;
-    }
-    case LBM_TYPE_FLOAT: {
-      lbm_uint *data = (lbm_uint*)array->data;
-      float v = lbm_dec_as_float(val);
-      uint32_t t;
-      memcpy(&t,&v,sizeof(uint32_t));
-      data[ix] = t;
-      break;
-    }
-#ifndef LBM64
-    case LBM_TYPE_U64: {
-      uint64_t v = lbm_dec_as_u64(val);
-      lbm_uint *data = (lbm_uint*)array->data;
-      data[ix*2] = (uint32_t)v;
-      data[ix*2+1] = (uint32_t)(v >> 32);
-      break;
-    }
-    case LBM_TYPE_I64: {
-      int64_t v = lbm_dec_as_i64(val);
-      lbm_uint *data = (lbm_uint*)array->data;
-      data[ix*2] = (uint32_t)v;
-      data[ix*2+1] = (uint32_t)(v >> 32);
-      break;
-    }
-    case LBM_TYPE_DOUBLE: {
-      double v = lbm_dec_as_double(val);
-      uint64_t v2;
-      memcpy(&v2,&v,sizeof(uint64_t));
-      lbm_uint *data = (lbm_uint*)array->data;
-      data[ix*2] = (uint32_t)v2;
-      data[ix*2+1] = (uint32_t)(v2 >> 32);
-      break;
-    }
-#else
-    case LBM_TYPE_U64: {
-      lbm_uint *data = (lbm_uint*)array->data;
-      data[ix] = lbm_dec_as_u64(val);
-      break;
-    }
-    case LBM_TYPE_I64: {
-      lbm_int *data = (lbm_int*)array->data;
-      data[ix] = lbm_dec_as_i64(val);
-      break;
-    }
-    case LBM_TYPE_DOUBLE: {
-      lbm_float *data = (lbm_float*)array->data;
-      data[ix] = lbm_dec_as_double(val);
-      break;
-    }
-#endif
-    default:
-      // Maybe result should be something else than arr here.
-      break;
-    }
-    *result = arr;
-    return;
-  }
-}
-
 /* (array-create type size) */
 static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = ENC_SYM_EERROR;
   if (nargs == 1 && lbm_is_number(args[0])) {
-    lbm_heap_allocate_array(result, lbm_dec_as_u32(args[0]), LBM_TYPE_BYTE);
-  } else if (nargs == 2) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_SYMBOL &&
-        lbm_is_number(args[1])) {
-      switch(lbm_dec_sym(args[0])) {
-      case SYM_TYPE_CHAR: /* fall through */
-      case SYM_TYPE_BYTE:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_BYTE);
-        break;
-      case SYM_TYPE_I32:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_I32);
-        break;
-      case SYM_TYPE_U32:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_U32);
-        break;
-      case SYM_TYPE_FLOAT:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_FLOAT);
-        break;
-      case SYM_TYPE_I64:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_I64);
-        break;
-      case SYM_TYPE_U64:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_U64);
-        break;
-      case SYM_TYPE_DOUBLE:
-        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_DOUBLE);
-        break;
-      default:
-        break;
-      }
-    }
-  }
-}
-
-static int elt_size(lbm_type t) {
-  switch(t) {
-  case LBM_TYPE_BYTE:
-    return 1;
-  case LBM_TYPE_U32:  /* fall through */
-  case LBM_TYPE_I32:
-  case LBM_TYPE_FLOAT:
-    return 4;
-  case LBM_TYPE_U64:  /* fall through */
-  case LBM_TYPE_I64:
-  case LBM_TYPE_DOUBLE:
-    return 8;
-  default:
-    return -1;
+    lbm_heap_allocate_array(result, lbm_dec_as_u32(args[0]));
   }
 }
 
@@ -967,60 +689,10 @@ static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_cont
   return result;
 }
 
-static lbm_value fundamental_array_read(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  array_read(args, nargs, &result);
-  return result;
-}
-
-static lbm_value fundamental_array_write(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  array_write(args, nargs, &result);
-  return result;
-}
-
-static lbm_value fundamental_array_create(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static lbm_value fundamental_buf_create(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   array_create(args, nargs, &result);
-  return result;
-}
-
-static lbm_value fundamental_array_size(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs != 1) return result;
-
-  if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-    if (array == NULL) {
-      result = ENC_SYM_FATAL_ERROR;
-      return result;
-    }
-    result =  lbm_enc_u(array->size);
-  }
-  return result;
-}
-
-static lbm_value fundamental_array_clear(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
-  if (nargs != 1) return ENC_SYM_EERROR;
-
-  if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-    if (array == NULL) {
-      return ENC_SYM_FATAL_ERROR;
-    }
-    int es = elt_size(array->elt_type);
-
-    if (es < 0) return result;
-
-    memset(array->data, 0, array->size );
-    result = args[0];
-  }
   return result;
 }
 
@@ -1035,7 +707,7 @@ static lbm_value fundamental_symbol_to_string(lbm_value *args, lbm_uint nargs, e
   size_t len = strlen(sym_str);
 
   lbm_value v;
-  if (lbm_heap_allocate_array(&v, len+1, LBM_TYPE_CHAR)) {
+  if (lbm_heap_allocate_array(&v, len+1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(v);
     if (!arr) return ENC_SYM_MERROR;
     memset(arr->data,0,len+1);
@@ -1050,12 +722,10 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs < 1 ||
-      lbm_type_of(args[0] != LBM_TYPE_ARRAY))
+      lbm_is_array_r(args[0]))
     return result;
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
   if (!arr) return ENC_SYM_FATAL_ERROR;
-  if (arr->elt_type != LBM_TYPE_CHAR)
-    return result;
   char *str = (char *)arr->data;
   lbm_uint sym;
   if (lbm_get_symbol_by_name(str, &sym)) {
@@ -1545,11 +1215,7 @@ const fundamental_fun fundamental_table[] =
    fundamental_list,
    fundamental_append,
    fundamental_undefine,
-   fundamental_array_read,
-   fundamental_array_write,
-   fundamental_array_create,
-   fundamental_array_size,
-   fundamental_array_clear,
+   fundamental_buf_create,
    fundamental_symbol_to_string,
    fundamental_string_to_symbol,
    fundamental_symbol_to_uint,

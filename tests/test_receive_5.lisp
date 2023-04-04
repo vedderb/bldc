@@ -12,9 +12,9 @@
 
 (gc)
 
-(and (= (recv ((? x) x)) 0)
-     (= (recv ((? x) x)) 1)
-     (= (recv ((? x) x)) 2)
-     (= (recv ((? x) x)) 3)
-     (= (recv ((? x) x)) 4)
-     (= (recv ((? x) x)) 5))
+(check (and (= (recv ((? x) x)) 0)
+            (= (recv ((? x) x)) 1)
+            (= (recv ((? x) x)) 2)
+            (= (recv ((? x) x)) 3)
+            (= (recv ((? x) x)) 4)
+            (= (recv ((? x) x)) 5)))

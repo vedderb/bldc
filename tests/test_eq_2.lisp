@@ -1,3 +1,3 @@
-(eq (= 1 2) nil)
+(check (eq (= 1 2) nil))
 
 

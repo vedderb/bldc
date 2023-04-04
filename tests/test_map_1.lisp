@@ -5,6 +5,6 @@
 ;; 				(accmap (cons (f (car xs)) acc) (cdr xs))))))
 ;; 		(reverse (accmap nil xs)))))
 
-(eq (map (lambda (x) (+ x 1)) (list 1 2 3 4 5 6)) (list 2 3 4 5 6 7))
+(check (eq (map (lambda (x) (+ x 1)) (list 1 2 3 4 5 6)) (list 2 3 4 5 6 7)))
 
 		

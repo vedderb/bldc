@@ -1,1 +1,1 @@
-(eq (not (not (not (not t)))) t)
+(check (eq (not (not (not (not t)))) t))

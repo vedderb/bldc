@@ -13,4 +13,4 @@
     ))
 
 
-(eq (f 100) 'yay)
+(check (eq (f 100) 'yay))

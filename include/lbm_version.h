@@ -27,11 +27,16 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 10
+#define LBM_MINOR_VERSION 11
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+Apr 4 2023: Version 0.11.0
+  - Incremental read evaluates expressions as soon as possible while reading.
+  - move-to-flash for storing constant parts of program in flash.
+  - All arrays are now byte-arrays. [type-X 1 2 3]-syntax removed.
 
 Mar 19 2023: Version 0.10.0
   - Added deconstructive let bindings with optional dont-care fields.

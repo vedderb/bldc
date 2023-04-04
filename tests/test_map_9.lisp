@@ -1,4 +1,4 @@
 
 (defun f (x) (+ x 1))
 
-(eq (map f '()) '())
+(check (eq (map f '()) '()))

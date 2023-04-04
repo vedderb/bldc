@@ -19,9 +19,9 @@
                (if (eq xs 'nil) nil
                  (or (eq x (car xs)) (elem x (cdr xs))))))
 
-(and (elem a '(3 5 7))
-     (elem b '(3 5 7))
-     (elem c '(3 5 7)))
+(check (and (elem a '(3 5 7))
+            (elem b '(3 5 7))
+            (elem c '(3 5 7))))
            
                
 

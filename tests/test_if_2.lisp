@@ -4,4 +4,4 @@
                    x
                    (test f (- x 1)))))
                
-(= (test (lambda (x) (< x 0)) 2) -1)
+(check (= (test (lambda (x) (< x 0)) 2) -1))

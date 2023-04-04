@@ -342,18 +342,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      switch (array->elt_type){
-      case LBM_TYPE_CHAR: {
-        char *data = (char*)array->data;
-        printf("%s", data);
-        break;
-      }
-      default:
-        return lbm_enc_sym(SYM_NIL);
-        break;
-      }
-    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
-      printf("%c", lbm_dec_char(t));
+      char *data = (char*)array->data;
+      printf("%s", data);
     } else {
       lbm_print_value(output, 1024, t);
       printf("%s", output);
@@ -399,7 +389,7 @@ lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
     f_cons(&v); 
     f_u64(&v, 0xFFFF0000FFFF0000);
     f_cons(&v);
-    f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);
+    f_lbm_array(&v, 12, (uint8_t*)array);
     f_sym(&v, SYM_NIL);
     f_sym(&v, SYM_TRUE);
     lbm_finish_flatten(&v);

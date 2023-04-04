@@ -1,2 +1,2 @@
 
-(eq (progn (+ 1 2)) 3)
+(check (eq (progn (+ 1 2)) 3))

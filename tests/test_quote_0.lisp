@@ -1,1 +1,1 @@
-(eq 'x 'x)
+(check (eq 'x 'x))

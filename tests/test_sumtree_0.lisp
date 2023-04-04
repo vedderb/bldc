@@ -10,4 +10,4 @@
 	  )))))
 
 
-(= (sumtree (list (list 1 1 1 1 1 1 1 1 1 1) (list 1 2) (list 3 4))) 20)
+(check (= (sumtree (list (list 1 1 1 1 1 1 1 1 1 1) (list 1 2) (list 3 4))) 20))

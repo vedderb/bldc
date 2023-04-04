@@ -1,3 +1,3 @@
 
 
-(eq (range 2 5) '(2 3 4))
+(check (eq (range 2 5) '(2 3 4)))

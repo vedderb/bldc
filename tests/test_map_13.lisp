@@ -8,4 +8,4 @@
 (def f1 (map f))
 
 
-(eq (f1 (list 1 2 3)) (list 101 102 103))
+(check (eq (f1 (list 1 2 3)) (list 101 102 103)))

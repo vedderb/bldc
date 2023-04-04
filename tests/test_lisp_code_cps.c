@@ -52,7 +52,9 @@ lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
+  if (ix >= CONSTANT_MEMORY_SIZE) return false;
   constants_memory[ix] = w;
+  return true;
 }
 
 
@@ -97,21 +99,12 @@ void context_done_callback(eval_context_t *ctx) {
   char output[128];
   lbm_value t = ctx->r;
 
+  if (test_cid == ctx->id)
+    experiment_done = true;
+
   int res = lbm_print_value(output, 128, t);
 
-  if (ctx->id == test_cid) {
-    experiment_done = true;
-    if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
-      experiment_success = true;
-      printf("Test: OK!\n");
-      printf("Result: %s\n", output);
-    } else {
-      printf("Test: Failed!\n");
-      printf("Result: %s\n", output);
-    }
-  } else {
-    printf("Thread %d finished: %s\n", ctx->id, output);
-  }
+  printf("Thread %d finished: %s\n", ctx->id, output);
 }
 
 bool dyn_load(const char *str, const char **code) {
@@ -254,7 +247,7 @@ LBM_EXTENSION(ext_event_list_of_float, args, argn) {
   if (argn >= 2) {
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 8 + ((1 + sizeof(lbm_uint) * argn) + (1 + sizeof(lbm_uint))))) {
-      for (int i = 0; i < argn; i ++) {
+      for (unsigned int i = 0; i < argn; i ++) {
         f_cons(&v);
         float f = lbm_dec_as_float(args[i]);
         f_float(&v, f);
@@ -276,7 +269,7 @@ LBM_EXTENSION(ext_event_array, args, argn) {
     if (lbm_start_flatten(&v, 100)) {
       f_cons(&v);
       f_sym(&v,lbm_dec_sym(args[0]));
-      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)hello);
+      f_lbm_array(&v, 12, (uint8_t*)hello);
       lbm_finish_flatten(&v);
       lbm_event(&v);
       res = ENC_SYM_TRUE;
@@ -325,6 +318,28 @@ LBM_EXTENSION(ext_unblock_error, args, argn) {
 
 
 
+LBM_EXTENSION(ext_check, args, argn) {
+
+  if (argn != 1) return ENC_SYM_NIL;
+
+  char output[128];
+  lbm_value t = args[0];
+
+  int res = lbm_print_value(output, 128, t);
+
+  experiment_done = true;
+  if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+    experiment_success = true;
+    printf("Test: OK!\n");
+    printf("Result: %s\n", output);
+  } else {
+    printf("Test: Failed!\n");
+    printf("Result: %s\n", output);
+  }
+  return res;
+}
+
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -333,6 +348,7 @@ int main(int argc, char **argv) {
   //  bool compress_decompress = false;
 
   bool stream_source = false;
+  bool incremental = false;
 
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
@@ -342,10 +358,13 @@ int main(int argc, char **argv) {
   int c;
   opterr = 1;
 
-  while (( c = getopt(argc, argv, "gsch:")) != -1) {
+  while (( c = getopt(argc, argv, "igsch:")) != -1) {
     switch (c) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
+      break;
+    case 'i':
+      incremental = true;
       break;
       //    case 'c':
       //compress_decompress = true;
@@ -361,7 +380,7 @@ int main(int argc, char **argv) {
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
   printf("Streaming source: %s\n", stream_source ? "yes" : "no");
-  //  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
+  printf("Incremental read: %s\n", incremental ? "yes" : "no");
   printf("------------------------------------------------------------\n");
 
   if (argc - optind < 1) {
@@ -397,7 +416,7 @@ int main(int argc, char **argv) {
 
   lbm_uint *memory = NULL;
   lbm_uint *bitmap = NULL;
-  if (sizeof(lbm_uint) == 4) { 
+  if (sizeof(lbm_uint) == 4) {
     memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
     if (memory == NULL) return 0;
     bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
@@ -456,7 +475,6 @@ int main(int argc, char **argv) {
   } else {
     printf("Constants memory initialized\n");
   }
-  
 
   res = lbm_eval_init();
   if (res)
@@ -586,7 +604,6 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
     return 0;
   }
-  
 
   res = lbm_add_extension("event-array", ext_event_array);
   if (res)
@@ -619,7 +636,19 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
     return 0;
   }
-  
+
+  res = lbm_add_extension("check", ext_check);
+  if (res)
+    printf("Result check extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  if (incremental) {
+    lbm_set_incremental_read(true);
+  }
+
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

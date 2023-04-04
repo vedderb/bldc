@@ -1,1 +1,1 @@
-(eq (and 't 't) 't)
+(check (eq (and 't 't) 't))

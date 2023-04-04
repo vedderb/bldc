@@ -1,5 +1,5 @@
-(define arr (array-create type-float 10))
+(define arr (bufcreate 10))
 
-(array-write arr 5 3.14)
+(bufset-f32 arr 5 3.14)
 
-(= (array-read arr 5) 3.14)
+(check (= (bufget-f32 arr 5) 3.14))

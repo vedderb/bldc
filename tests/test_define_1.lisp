@@ -1,4 +1,4 @@
 
 (define a 3)
 
-(eq a 3)
+(check (eq a 3))

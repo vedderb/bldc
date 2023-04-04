@@ -62,26 +62,27 @@
 #define EXIT_ATOMIC           CONTINUATION(17)
 #define READ_NEXT_TOKEN       CONTINUATION(18)
 #define READ_APPEND_CONTINUE  CONTINUATION(19)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(20)
-#define READ_DOT_TERMINATE    CONTINUATION(21)
-#define READ_DONE             CONTINUATION(22)
-#define READ_QUOTE_RESULT     CONTINUATION(23)
-#define READ_BACKQUOTE_RESULT CONTINUATION(24)
-#define READ_COMMAAT_RESULT   CONTINUATION(25)
-#define READ_COMMA_RESULT     CONTINUATION(26)
-#define READ_START_ARRAY      CONTINUATION(27)
-#define READ_APPEND_ARRAY     CONTINUATION(28)
-#define MAP_FIRST             CONTINUATION(29)
-#define MAP_REST              CONTINUATION(30)
-#define MATCH_GUARD           CONTINUATION(31)
-#define TERMINATE             CONTINUATION(32)
-#define PROGN_VAR             CONTINUATION(33)
-#define SETQ                  CONTINUATION(34)
-#define MOVE_TO_FLASH         CONTINUATION(35)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(37)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     39
+#define READ_EVAL_CONTINUE    CONTINUATION(20)
+#define READ_EXPECT_CLOSEPAR  CONTINUATION(21)
+#define READ_DOT_TERMINATE    CONTINUATION(22)
+#define READ_DONE             CONTINUATION(23)
+#define READ_QUOTE_RESULT     CONTINUATION(24)
+#define READ_BACKQUOTE_RESULT CONTINUATION(25)
+#define READ_COMMAAT_RESULT   CONTINUATION(26)
+#define READ_COMMA_RESULT     CONTINUATION(27)
+#define READ_START_ARRAY      CONTINUATION(28)
+#define READ_APPEND_ARRAY     CONTINUATION(29)
+#define MAP_FIRST             CONTINUATION(30)
+#define MAP_REST              CONTINUATION(31)
+#define MATCH_GUARD           CONTINUATION(32)
+#define TERMINATE             CONTINUATION(33)
+#define PROGN_VAR             CONTINUATION(34)
+#define SETQ                  CONTINUATION(35)
+#define MOVE_TO_FLASH         CONTINUATION(36)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(37)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(38)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(39)
+#define NUM_CONTINUATIONS     40
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -105,6 +106,8 @@ const char* lbm_error_str_not_a_boolean = "Argument must be t or nil (true or fa
 const char* lbm_error_str_incorrect_arg = "Incorrect argument.";
 const char* lbm_error_str_var_outside_progn = "Usage of var outside of progn.";
 const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash.";
+const char* lbm_error_str_flash_error = "Error writing to flash";
+const char* lbm_error_str_flash_full = "Flash memory is full";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -335,7 +338,10 @@ static eval_context_queue_t queue    = {NULL, NULL};
 mutex_t qmutex;
 bool    qmutex_initialized = false;
 
-static bool lbm_verbose = false;
+
+// MODES
+static volatile bool lbm_verbose = false;
+static volatile bool incremental_read = false;
 
 void lbm_toggle_verbose(void) {
   lbm_verbose = !lbm_verbose;
@@ -343,6 +349,10 @@ void lbm_toggle_verbose(void) {
 
 void lbm_set_verbose(bool verbose) {
   lbm_verbose = verbose;
+}
+
+void lbm_set_incremental_read(bool on_off) {
+  incremental_read = on_off;
 }
 
 lbm_cid lbm_get_current_cid(void) {
@@ -712,6 +722,24 @@ static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int col
 
 void error_ctx(lbm_value err_val) {
   error_ctx_base(err_val, 0, 0);
+}
+
+bool handle_flash_status(lbm_flash_status s) {
+  bool r = false;
+  switch(s) {
+  case LBM_FLASH_WRITE_OK:
+    r = true;
+    break;
+  case LBM_FLASH_FULL:
+    lbm_set_error_reason((char*)lbm_error_str_flash_full);
+    error_ctx(ENC_SYM_EERROR);
+    break;
+  case LBM_FLASH_WRITE_ERROR:
+    lbm_set_error_reason((char*)lbm_error_str_flash_error);
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    break;
+  }
+  return r;
 }
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
@@ -1305,23 +1333,13 @@ static void eval_atomic(eval_context_t *ctx) {
 static void eval_callcc(eval_context_t *ctx) {
 
   lbm_value cont_array;
-#ifndef LBM64
-  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
     gc();
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
       error_ctx(ENC_SYM_MERROR);
       return;
     }
   }
-#else
-  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
-    gc();
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
-      error_ctx(ENC_SYM_MERROR);
-      return;
-    }
-  }
-#endif
 
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
@@ -1431,8 +1449,7 @@ static void eval_cond(eval_context_t *ctx) {
 }
 
 static void eval_app_cont(eval_context_t *ctx) {
-  lbm_value tmp;
-  lbm_pop(&ctx->K, &tmp);
+  lbm_stack_drop(&ctx->K, 1);
   ctx->app_cont = true;
 }
 
@@ -1826,12 +1843,12 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   if (nargs >= 2 &&
       lbm_is_number(args[0]) &&
-      lbm_is_closure_general(args[1])) {
+      lbm_is_closure(args[1])) {
     stack_size = lbm_dec_as_u32(args[0]);
     closure_pos = 1;
   }
 
-  if (!lbm_is_closure_general(args[closure_pos]) ||
+  if (!lbm_is_closure(args[closure_pos]) ||
       nargs < 1) {
     error_ctx(ENC_SYM_EERROR);
     return;
@@ -2110,7 +2127,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     lbm_value c = lbm_cdr(fun); /* should be the continuation */
 
-    if (!lbm_is_array(c)) {
+    if (!lbm_is_array_r(c)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
@@ -2128,8 +2145,8 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
 
-    ctx->K.sp = arr->size;
-    memcpy(ctx->K.data, arr->data, arr->size * sizeof(lbm_uint));
+    ctx->K.sp = arr->size >> 2;
+    memcpy(ctx->K.data, arr->data, arr->size);
 
     ctx->r = arg;
     ctx->app_cont = true;
@@ -2608,7 +2625,11 @@ static void cont_read(eval_context_t *ctx) {
   CHECK_STACK(lbm_push_3(&ctx->K, prg_tag, stream, READ_DONE));
 
   if (program) {
-    CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
+    if (incremental_read) {
+      CHECK_STACK(lbm_push_3(&ctx->K, stream, ctx->curr_env, READ_EVAL_CONTINUE));
+    } else {
+      CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
+    }
   }
   CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
 
@@ -2637,7 +2658,10 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
       lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
     /* successfully finished reading an expression  (CASE 3) */
     ctx->app_cont = true;
-  } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
+  } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->app_cont = true;
+  } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
              lbm_dec_u(ctx->K.data[ctx->K.sp-7]) == 1) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
@@ -2683,6 +2707,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /* Attempt to extract tokens from the character stream */
   int n = 0;
   lbm_value res;
+  unsigned int string_len = 0;
 
   /*
    * SYNTAX
@@ -2760,13 +2785,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /*
    *  STRING
    */
-  unsigned int string_len = 0;
   n = tok_string(chan, &string_len);
   if (n >= 2) {
     lbm_channel_drop(chan, (unsigned int)n);
-    if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1),LBM_TYPE_CHAR)) {
+    if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
       gc();
-      if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1),LBM_TYPE_CHAR)) {
+      if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
         error_ctx(ENC_SYM_MERROR);
       }
     }
@@ -2921,50 +2945,18 @@ static void cont_read_start_array(eval_context_t *ctx) {
     }
   }
 
-  if ((lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) &&
-      ((ctx->r == ENC_SYM_TYPE_I32) ||
-       (ctx->r == ENC_SYM_TYPE_U32) ||
-       (ctx->r == ENC_SYM_TYPE_FLOAT) ||
-       (ctx->r == ENC_SYM_TYPE_CHAR))) {
-
-    lbm_type t;
-    switch (ctx->r) {
-    case ENC_SYM_TYPE_I32: t = LBM_TYPE_I32; break;
-    case ENC_SYM_TYPE_U32: t = LBM_TYPE_U32; break;
-    case ENC_SYM_TYPE_FLOAT: t = LBM_TYPE_FLOAT; break;
-    case ENC_SYM_TYPE_CHAR: t = LBM_TYPE_CHAR; break;
-    default:
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_TERROR);
-      return;
-    }
-
-    if (ctx->r == ENC_SYM_TYPE_CHAR) {
-      initial_size = sizeof(lbm_uint) * initial_size;
-    }
-
-    lbm_value array;
-    if (!lbm_heap_allocate_array(&array, initial_size, t)) {
-      lbm_set_error_reason("Out of memory while reading.");
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_FATAL_ERROR);
-      return;
-    }
-
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ctx->r, stream));
-    CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
-    ctx->app_cont = true;
-  } else if (lbm_is_number(ctx->r)) {
+  if (lbm_is_number(ctx->r)) {
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
-    if (!lbm_heap_allocate_array(&array, initial_size, LBM_TYPE_CHAR)) {
+
+    if (!lbm_heap_allocate_array(&array, initial_size)) {
       lbm_set_error_reason("Out of memory while reading.");
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
 
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ENC_SYM_TYPE_CHAR, stream));
+    CHECK_STACK(lbm_push_4(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), stream));
     CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
@@ -2975,7 +2967,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
 
 static void cont_read_append_array(eval_context_t *ctx) {
 
-  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 5);
+  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 4);
   if (!sptr) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
@@ -2984,8 +2976,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_value array  = sptr[0];
   lbm_value size   = lbm_dec_as_u32(sptr[1]);
   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
-  lbm_value type   = sptr[3];
-  lbm_value stream = sptr[4];
+  lbm_value stream = sptr[3];
 
   if (ix >= (size - 1)) {
     error_ctx(ENC_SYM_MERROR);
@@ -2995,39 +2986,20 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(array); // TODO: Check
 
   if (lbm_is_number(ctx->r)) {
-    switch(type) {
-    case ENC_SYM_TYPE_CHAR:
-      ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_I32:
-      ((lbm_int*)arr->data)[ix] = lbm_dec_as_i32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_U32:
-      ((lbm_uint*)arr->data)[ix] = lbm_dec_as_u32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_FLOAT: {
-      float f = lbm_dec_as_float(ctx->r);
-      memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
-    } break;
-    default:
-      error_ctx(ENC_SYM_TERROR);
-      return;
-    }
+    ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
+
     sptr[2] = lbm_enc_u(ix + 1);
     CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
     ctx->app_cont = true;
   } else if (lbm_is_symbol(ctx->r) && lbm_dec_sym(ctx->r) == SYM_CLOSEBRACK) {
-    lbm_uint array_size = ix;
-    if (type == ENC_SYM_TYPE_CHAR) {
-      if (array_size % 4) {
-        array_size = (array_size / 4) + 1;
-      } else {
-        array_size = array_size / 4;
-      }
+    lbm_uint array_size = ix / sizeof(lbm_uint);
+
+    if (ix % sizeof(lbm_uint) != 0) {
+      array_size = array_size + 1;
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
     arr->size = ix;
-    lbm_stack_drop(&ctx->K, 5);
+    lbm_stack_drop(&ctx->K, 4);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
@@ -3083,9 +3055,6 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
     lbm_set_cdr(last_cell, new_cell);
     last_cell = new_cell;
-  } else if (lbm_type_of(last_cell) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
-    write_const_cdr(last_cell, new_cell);
-    last_cell = new_cell;
   } else {
     first_cell = last_cell = new_cell;
   }
@@ -3093,6 +3062,41 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   sptr[1] = last_cell;
   CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_CONTINUE));
   CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  ctx->app_cont = true;
+}
+
+static void cont_read_eval_continue(eval_context_t *ctx) {
+
+  lbm_value env;
+  lbm_value stream;
+  lbm_pop_2(&ctx->K, &env, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
+
+    switch(lbm_dec_sym(ctx->r)) {
+    case SYM_CLOSEPAR:
+      ctx->app_cont = true;
+      return;
+    case SYM_DOT:
+      CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
+    }
+  }
+
+  CHECK_STACK(lbm_push_3(&ctx->K, stream, env, READ_EVAL_CONTINUE));
+  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+
+  ctx->app_cont = false;
+  ctx->curr_env = env;
+  ctx->curr_exp = ctx->r;
 }
 
 static void cont_read_expect_closepar(eval_context_t *ctx) {
@@ -3376,16 +3380,18 @@ static void cont_setq(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static lbm_value request_flash_storage_cell(lbm_value val) {
-  lbm_value flash_cell = lbm_allocate_const_cell();
-  if (lbm_is_symbol(flash_cell)) {
-    return flash_cell;
-  }
+static lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res) {
+
+  lbm_value flash_cell;
+  lbm_flash_status s = lbm_allocate_const_cell(&flash_cell);
+  if (s != LBM_FLASH_WRITE_OK)
+    return s;
   lbm_value new_val = val;
   new_val &= ~LBM_PTR_VAL_MASK; // clear the value part of the ptr
   new_val |= (flash_cell & LBM_PTR_VAL_MASK);
   new_val |= LBM_PTR_TO_CONSTANT_BIT;
-  return new_val;
+  *res = new_val;
+  return s;
 }
 
 static void cont_move_to_flash(eval_context_t *ctx) {
@@ -3424,12 +3430,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   lbm_pop(&ctx->K, &val);
 
   if (lbm_is_cons(val)) {
-    // Request a flash storage cell.
-    lbm_value flash_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(flash_cell)) {
-      error_ctx(flash_cell);
+    lbm_value flash_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
-    }
     CHECK_STACK(lbm_push_4(&ctx->K, flash_cell, flash_cell, lbm_cdr(val), MOVE_LIST_TO_FLASH));
     CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
     ctx->app_cont = true;
@@ -3444,11 +3447,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
   if (lbm_is_ptr(val)) {
     // Request a flash storage cell.
-    lbm_value flash_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(flash_cell)) {
-      error_ctx(flash_cell);
+    lbm_value flash_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
-    }
     ctx->r = flash_cell;
     lbm_cons_t *ref = lbm_ref_cell(val);
     if (lbm_type_of(ref->cdr) == LBM_TYPE_SYMBOL) {
@@ -3456,8 +3457,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case SYM_RAW_I_TYPE: /* fall through */
       case SYM_RAW_U_TYPE:
       case SYM_RAW_F_TYPE:
-        write_const_car(flash_cell, ref->car);
-        write_const_cdr(flash_cell, ref->cdr);
+        if (!handle_flash_status(write_const_car(flash_cell, ref->car)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
         break;
       case SYM_IND_I_TYPE: /* fall through */
       case SYM_IND_U_TYPE:
@@ -3466,10 +3468,13 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         /* 64 bit values are in lbm mem on 32bit platforms. */
         lbm_uint *lbm_mem_ptr = (lbm_uint*)ref->car;
         lbm_uint flash_ptr;
-        if (lbm_write_const_raw(lbm_mem_ptr, 2, &flash_ptr)) {
-          write_const_car(flash_cell, flash_ptr);
-          write_const_cdr(flash_cell, ref->cdr);
-        }
+
+        if (!handle_flash_status(lbm_write_const_raw(lbm_mem_ptr, 2, &flash_ptr)))
+          return;
+
+        if (!handle_flash_status(write_const_car(flash_cell, flash_ptr)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
 #else
         error_ctx(ENC_SYM_FATAL_ERROR);
         return;
@@ -3484,33 +3489,28 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
           header_size = (header_size / sizeof(lbm_uint));
         }
 
-        lbm_uint size = arr->size;
-        if (arr->elt_type == LBM_TYPE_CHAR) {
-          if (size % (sizeof(lbm_uint)) != 0) {
-            size = (size / sizeof(lbm_uint) + 1);
-          } else {
-            size = size / sizeof(lbm_uint);
-          }
+        lbm_uint size = arr->size / sizeof(lbm_uint); // array size always in bytes
+        if (arr->size % (sizeof(lbm_uint)) != 0) {
+          size++;
         }
+
         lbm_value flash_arr;
-        if (!lbm_write_const_raw(arr->data, size, &flash_arr)) {
-          error_ctx(flash_arr);
+        if (!handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr)))
           return;
-        }
 
         lbm_uint *data_old = arr->data;
         arr->data = (lbm_uint*)flash_arr; // update pointer field
 
         lbm_uint flash_array_header;
-        if (!lbm_write_const_raw((lbm_uint*)ref->car, header_size, &flash_array_header)) {
-          error_ctx(ENC_SYM_ERROR_FLASH_HEAP_FULL);
+        if (!handle_flash_status(lbm_write_const_raw((lbm_uint*)ref->car, header_size, &flash_array_header)))
           return;
-        }
 
         arr->data = data_old; // so gc can remove it.
 
-        write_const_car(flash_cell, flash_array_header);
-        write_const_cdr(flash_cell, ref->cdr);
+        if (!handle_flash_status(write_const_car(flash_cell, flash_array_header)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
+
       } break;
       case SYM_CHANNEL_TYPE: /* fall through */
       case SYM_CUSTOM_TYPE:
@@ -3544,16 +3544,16 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
   lbm_value lst = sptr[1];
   lbm_value val = sptr[2];
 
-  write_const_car(lst, ctx->r);
+  if (!handle_flash_status(write_const_car(lst, ctx->r)))
+    return;
 
   if (lbm_is_cons(val)) {
     // prepare cell for rest of list
-    lbm_value rest_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(rest_cell)) {
-      error_ctx(rest_cell);
+    lbm_value rest_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &rest_cell)))
       return;
-    }
-    write_const_cdr(lst, rest_cell);
+    if (!handle_flash_status(write_const_cdr(lst, rest_cell)))
+      return;
     sptr[1] = rest_cell;
     sptr[2] = lbm_cdr(val);
     CHECK_STACK(lbm_push(&ctx->K, MOVE_LIST_TO_FLASH));
@@ -3572,7 +3572,8 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   lbm_value lst;
   lbm_pop_2(&ctx->K, &lst, &fst);
   lbm_value val = ctx->r;
-  write_const_cdr(lst, val);
+  if (!handle_flash_status(write_const_cdr(lst, val)))
+    return;
   ctx->r = fst;
   ctx->app_cont = true;
 }
@@ -3602,6 +3603,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exit_atomic,
     cont_read_next_token,
     cont_read_append_continue,
+    cont_read_eval_continue,
     cont_read_expect_closepar,
     cont_read_dot_terminate,
     cont_read_done,

@@ -1,1 +1,1 @@
-(eq (ext-even 2) t)
+(check (eq (ext-even 2) t))

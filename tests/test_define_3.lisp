@@ -1,4 +1,4 @@
 
 
 
-(eq (define n 55) 55)
+(check (eq (define n 55) 55))

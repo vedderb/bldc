@@ -17,9 +17,10 @@
 (send (self) 16)
 (send (self) 17)
 
-(and (= (recv ((? x) x)) 8)
-     (= (recv ((? x) x)) 9)
-     (= (recv ((? x) x)) 10)
-     (= (recv ((? x) x)) 11)
-     (= (recv ((? x) x)) 12)
-     (= (recv ((? x) x)) 13))
+(check (and (= (recv ((? x) x)) 8)
+            (= (recv ((? x) x)) 9)
+            (= (recv ((? x) x)) 10)
+            (= (recv ((? x) x)) 11)
+            (= (recv ((? x) x)) 12)
+            (= (recv ((? x) x)) 13)))
+       

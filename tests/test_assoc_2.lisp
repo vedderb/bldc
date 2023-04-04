@@ -2,6 +2,6 @@
 
 (setvar 'alist (acons 't 'e alist))
 
-(and (eq (assoc alist 'q) 'b)
-     (eq (assoc alist 's) 'd)
-     (eq (assoc alist 't) 'e))
+(check (and (eq (assoc alist 'q) 'b)
+            (eq (assoc alist 's) 'd)
+            (eq (assoc alist 't) 'e)))

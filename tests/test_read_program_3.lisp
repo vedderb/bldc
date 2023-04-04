@@ -1,4 +1,4 @@
 
 
-(let ((r 100))
-  (= r (eval-program (read-program "(+ 50 50)"))))
+(check (let ((r 100))
+         (= r (eval-program (read-program "(+ 50 50)")))))

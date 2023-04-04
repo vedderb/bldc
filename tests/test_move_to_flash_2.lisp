@@ -5,4 +5,4 @@
 
 (move-to-flash f a)
 
-(eq (map f a) '(2 3 4 5 6 7))
+(check (eq (map f a) '(2 3 4 5 6 7)))

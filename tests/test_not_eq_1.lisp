@@ -1,1 +1,1 @@
-(not-eq 'apa 'bepa)
+(check (not-eq 'apa 'bepa))

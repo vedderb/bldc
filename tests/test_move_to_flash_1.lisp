@@ -3,4 +3,4 @@
 
 (move-to-flash f)
 
-(= (f 1) 2)
+(check (= (f 1) 2))

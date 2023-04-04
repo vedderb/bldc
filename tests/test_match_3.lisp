@@ -5,4 +5,4 @@
 		   ( ( (? c) . (? cd)) (+ c (f c)))
 		   ( _ 'error-not-a-list))))
 
-(eq (f 'kurt) 'error-not-a-list)
+(check (eq (f 'kurt) 'error-not-a-list))

@@ -200,7 +200,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
 
-// The address is an index into the const heap. 
+// The address is an index into the const heap.
 #define LBM_PTR_TO_CONSTANT_BIT          0x04000000u
 #define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
 #define LBM_PTR_TO_CONSTANT_SHIFT        26
@@ -220,6 +220,15 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_TO_CONSTANT_SHIFT        58
 
 #endif
+
+
+typedef enum {
+  LBM_FLASH_WRITE_OK,
+  LBM_FLASH_FULL,
+  LBM_FLASH_WRITE_ERROR
+} lbm_flash_status;
+
+
 
 /** Struct representing a heap cons-cell.
  *
@@ -259,18 +268,19 @@ typedef struct {
 extern lbm_heap_state_t lbm_heap_state;
 
 typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
-  
+
 typedef struct {
-  lbm_uint *heap;  
+  lbm_uint *heap;
   lbm_uint  next;  // next free index.
   lbm_uint  size;  // in lbm_uint words. (cons-cells = words / 2)
 } lbm_const_heap_t;
-  
+
 /**
  *  The header portion of an array stored in array and symbol memory.
+ *  An array is always a byte array. use the array-extensions for
+ *  storing and reading larger values from arrays.
  */
 typedef struct {
-  lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
   lbm_uint size;            /// Number of elements
   lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
@@ -566,7 +576,7 @@ int lbm_gc_sweep_phase(void);
  * \param type The type information to encode onto the heap cell.
  * \return 1 for success of 0 for failure.
  */
-int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size);
 /** Convert a C array into an lbm array. If the C array is allocated in LBM MEMORY
  *  the lifetime of the array will be managed by GC.
  * \param res lbm_value result pointer for storage of the result array.
@@ -575,7 +585,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
  * \param num_elt Number of elements in the array.
  * \return 1 for success and 0 for failure.
  */
-int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt);
+int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.
@@ -592,10 +602,10 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_uint *addr,
                         lbm_uint num_words);
 
-lbm_value lbm_allocate_const_cell(void);
-bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
-void write_const_cdr(lbm_value cell, lbm_value val);
-void write_const_car(lbm_value cell, lbm_value val);
+lbm_flash_status lbm_allocate_const_cell(lbm_value *res);
+lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
+lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val);
+lbm_flash_status write_const_car(lbm_value cell, lbm_value val);
 lbm_uint lbm_flash_memory_usage(void);
 
 /** Query the type information of a value.
@@ -760,26 +770,18 @@ static inline bool lbm_is_cons_general(lbm_value x) {
  */
 extern bool lbm_is_number(lbm_value x);
 
-static inline bool lbm_is_array(lbm_value x) {
-  return (lbm_type_of(x) == LBM_TYPE_ARRAY &&
-          lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
-          lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
-}
-
+/** Check if value is an array that can be READ
+ * \param x Value to check.
+ * \return true if x represents a readable array and false otherwise.
+ */
 static inline bool lbm_is_array_r(lbm_value x) {
   lbm_type t = lbm_type_of(x);
   return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
 }
 
 static inline bool lbm_is_array_rw(lbm_value x) {
-  return(lbm_is_array_r(x) && !(x & LBM_PTR_TO_CONSTANT_BIT));
+  return( (lbm_type_of(x) == LBM_TYPE_ARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
 }
-
-/** Check if a value represents a byte array.
- * \param x Value to check.
- * \return true if x represents a byte array and false otherwise.
- */
-extern bool lbm_is_byte_array(lbm_value x);
 
 static inline bool lbm_is_channel(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&
@@ -796,12 +798,6 @@ static inline bool lbm_is_special(lbm_value symrep) {
 }
 
 static inline bool lbm_is_closure(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
-}
-
-static inline bool lbm_is_closure_general(lbm_value exp) {
   return ((lbm_is_cons_general(exp)) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
@@ -859,7 +855,7 @@ static inline bool lbm_is_list(lbm_value x) {
 static inline bool lbm_is_list_general(lbm_value x) {
   return (lbm_is_cons_general(x) || lbm_is_symbol_nil(x));
 }
-  
+
 static inline bool lbm_is_quoted_list(lbm_value x) {
   return (lbm_is_cons(x) &&
           lbm_is_symbol(lbm_car(x)) &&
@@ -887,12 +883,12 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 
- 
+
 // lbm_uint a = lbm_heaps[0];
 // lbm_uint b = lbm_heaps[1];
 // lbm_uint i = (addr & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT) - 1;
 // lbm_uint h = (a & i) | (b & ~i);
-  
+
 #ifdef __cplusplus
 }
 #endif

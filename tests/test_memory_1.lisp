@@ -9,6 +9,6 @@
 
 
 (def n (* 4 (mem-longest-free)))
-(repeat 100 (fn () (array-create (- n 1))))
+(repeat 100 (fn () (bufcreate (- n 1))))
 
-t
+(check t)

@@ -17,4 +17,4 @@
 (def diff (zipwith (fn (x y) (- x y))  (vector-to-list v2) '(2.0 4.0 6.0)))
 (def sum (fold (fn (x y) (+ x y)) 0.0 diff))
 
-(< sum 0.001)
+(check (< sum 0.001))

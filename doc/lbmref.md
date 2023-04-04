@@ -1268,112 +1268,120 @@ The `setassoc` function destructively updates a key-value mapping in an
 alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
 
 
-## Arrays
+## Arrays (byte-buffers)
+ 
+### bufcreate
 
-### array-create
+Create an array of bytes. The
+form of an `bufcreate` expression is `(bufcreate size-expr)`
 
-Create an array of a given type, default is an array of bytes. The
-form of an `array-create` expression is either `(array-create type size-expr)`
-or `(array-create size-expr)`. If no type is specified, the default is
-to create an array of bytes.
+Example that creates a 10 element buffer caled data:
 
-Currently the following types can be used for the type field:
-
-| Type |
-| ---  |
-| type-char |
-| type-byte |
-| type-i32  |
-| type-u32  |
-| type-float |
-| type-i64 |
-| type-u64 |
-| type-double |
-
----
-
-### array-size
-
-Returns the size of an array in number of elements. The form
-of an `array-size` expression is `(array-size arr-expr)` where
-arr-expr has to evaluate into an array.
-
----
-
-### array-read
-
-Read one or many elements from an array. The form of
-an `array-read` expression is either `(array-read array-expr index-expr)`
-of `(array-read array-expr start-index-expr end-index-expr)` for reading a range
-of values into a list.
-
-Example that evaluates to the character l.
 ```clj
-(array-read "hello" 3)
+(define data (bufcreate 10))
 ```
-The next example reads a range values
-```clj
-(array-read "hello" 1 3)
-```
-and results in the list `(\#e \#l \#l)`.
+
+Use the buffer extensions to operate `data`.
+See the [VESC](https://github.com/vedderb/bldc/tree/master/lispBM#byte-arrays)
+lbm documentation for details on operations on buffers.
 
 ---
 
-### array-write
+### buflen
 
-The `array-write` function performs a destructive update
-of an array.
+Returns the size of a buffer in number of bytes. The form
+of an `buflen` expression is `(buflen buf-expr)` where
+buf-expr has to evaluate into a buffer.
 
-Example that turns array "hello" into "heflo"
+---
+
+### bufget-[X]
+
+Read a value from a buffer. The contents of a buffer can be read
+as a sized integer or unsigned value using as many bytes from the buffer
+as the X portion of the function name implies. 
+The form of a bufget expression is `(bufget-[X] buf-expr ix-expr)` where
+`ix-expr` evaluates to a number indicating the byte position to start
+reading from.
+
+- `bufget-i8`
+- `bufget-i16`
+- `bufget-i24`
+- `bufget-i32`
+- `bufget-u8`
+- `bufget-u16`
+- `bufget-u24`
+- `bufget-u32`
+
+Example that reads an u8 from a buffer at position 1:
+
 ```clj
-(array-write "hello" 2 \#f)
+(define buf [1 2 3 4])
+
+(bufget-u8 buf 1)
 ```
 
 ---
 
-### array-clear
+### bufset-[X]
 
-Clears an array by writing zeroes to all locations.
+The `bufset` functions performs a destructive updates to a buffer.
+The form of a `bufset` expression is `(bufset-[X] buf-expr ix-expr val-expr)`
+where `ix-expr` evaluates to a number indicating where in the buffer to
+start writing and `val-expr` is the value to write.
 
-Example:
+
+- `bufset-i8`
+- `bufset-i16`
+- `bufset-i24`
+- `bufset-i32`
+- `bufset-u8`
+- `bufset-u16`
+- `bufset-u24`
+- `bufset-u32`
+
+Example that updates position 1 in a buffer:
 
 ```clj
-(array-clear arr)
+
+(define buf [1 2 3 4])
+
+(bufset-u8 buf 1 100)
 ```
 
 ---
 
+### bufclear
 
-### Array literal syntax
+Clears an array by writing zeroes (or a value of choice) to all locations.
+The form of a `bufclear` expression is `(bufclear buf-expr opt-val-expr)`.
 
-Array literals can be created using the `[` and `]` syntax to enclose
+Example that clears a buffer:
+
+```clj
+(bufclear buf)
+```
+
+Example that clears a buffer to all ones:
+
+```clj
+(bufclear buf 1)
+```
+
+---
+
+### Byte-array literal syntax
+
+Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose
 values to initialize the array with. The `[` and `]` syntax is complete
 resolved in the parser and thus cannot contain arbitrary lisp terms.
 the values listed between the `[` and the `]` must be literals!
 
-The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
-or `[ val1 ... valN]`. If no type-qualifier is specified the default is
-to create an array with byte values.
-
-The currently valid type qualifiers are:
-
-| Type qualifier |
-| ---            |
-| type-byte      |
-| type-i32       |
-| type-u32       |
-| type-float     |
-
-(The rest of the numerical types will be supported in the future)
+The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 
 Example that creates a byte array
 ```clj
 [ 1 2 3 4 5 6 7 8 9 10 ]
-```
-
-Example that create an array of i32 values
-```clj
-[ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 ---
