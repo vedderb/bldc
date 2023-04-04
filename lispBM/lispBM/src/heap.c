@@ -204,7 +204,7 @@ int64_t lbm_dec_i64(lbm_value x) {
 
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
-  if (lbm_type_of(val) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
     if (array) {
         res = (char *)array->data;

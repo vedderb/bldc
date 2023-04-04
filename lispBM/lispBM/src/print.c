@@ -55,7 +55,7 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
     unsigned int i;
     for (i = 0; i < array->size; i ++) {
       if (c_data[i] == 0 && i > 0) break;
-      if (!isprint(c_data[i]) && !iscntrl(c_data[i])) {
+      if (!isprint((unsigned char)c_data[i]) && !iscntrl((unsigned char)c_data[i])) {
         is_a_string = false;
         break;
       }
@@ -134,13 +134,13 @@ int print_emit_symbol(lbm_char_channel_t *chan, lbm_value sym) {
 
 int print_emit_i(lbm_char_channel_t *chan, int32_t v) {
   char buf[EMIT_BUFFER_SIZE];
-  snprintf(buf, EMIT_BUFFER_SIZE, "%d", v);
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIi32, v);
   return print_emit_string(chan, buf);
 }
 
 int print_emit_u(lbm_char_channel_t *chan, uint32_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
-  snprintf(buf, EMIT_BUFFER_SIZE, "%u%s", v, ps ? "u" : "");
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIu32"%s", v, ps ? "u" : "");
   return print_emit_string(chan, buf);
 }
 
@@ -152,7 +152,7 @@ int print_emit_byte(lbm_char_channel_t *chan, uint8_t v, bool ps) {
 
 int print_emit_float(lbm_char_channel_t *chan, float v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
-  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_FLOAT"%s", v, ps ? "f32" : "");
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_FLOAT"%s", (double)v, ps ? "f32" : "");
   return print_emit_string(chan, buf);
 }
 

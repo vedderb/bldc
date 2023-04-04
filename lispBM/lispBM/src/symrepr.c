@@ -158,7 +158,7 @@ special_sym const special_symbols[] =  {
   {"list"             , SYM_LIST},
   {"append"           , SYM_APPEND},
   {"undefine"         , SYM_UNDEFINE},
-  {"bufcreate"     , SYM_ARRAY_CREATE},
+  {"bufcreate"        , SYM_ARRAY_CREATE},
   {"type-of"          , SYM_TYPE_OF},
   {"sym2str"          , SYM_SYMBOL_TO_STRING},
   {"str2sym"          , SYM_STRING_TO_SYMBOL},
@@ -209,6 +209,7 @@ special_sym const special_symbols[] =  {
   {"setvar"         , SYM_SETVAR},
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
+  {"array-create"   , SYM_ARRAY_CREATE},
 };
 
 static lbm_uint *symlist = NULL;
