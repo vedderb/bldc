@@ -3430,7 +3430,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   lbm_pop(&ctx->K, &val);
 
   if (lbm_is_cons(val)) {
-    lbm_value flash_cell;
+    lbm_value flash_cell = ENC_SYM_NIL;
     if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
     CHECK_STACK(lbm_push_4(&ctx->K, flash_cell, flash_cell, lbm_cdr(val), MOVE_LIST_TO_FLASH));
@@ -3447,7 +3447,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
   if (lbm_is_ptr(val)) {
     // Request a flash storage cell.
-    lbm_value flash_cell;
+    lbm_value flash_cell = ENC_SYM_NIL;
     if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
     ctx->r = flash_cell;
@@ -3549,7 +3549,7 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
 
   if (lbm_is_cons(val)) {
     // prepare cell for rest of list
-    lbm_value rest_cell;
+    lbm_value rest_cell = ENC_SYM_NIL;
     if (!handle_flash_status(request_flash_storage_cell(val, &rest_cell)))
       return;
     if (!handle_flash_status(write_const_cdr(lst, rest_cell)))
