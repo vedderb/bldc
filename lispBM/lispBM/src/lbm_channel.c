@@ -335,7 +335,7 @@ int string_write(lbm_char_channel_t *chan, char c) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
   char *str = st->str;
 
-  if (st->write_pos < st->length) {
+  if (st->write_pos < st->length - 1) {
     str[st->write_pos] = c;
     st->write_pos = st->write_pos + 1;
   } else {

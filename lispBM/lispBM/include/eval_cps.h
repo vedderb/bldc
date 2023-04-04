@@ -269,6 +269,13 @@ void lbm_toggle_verbose(void);
  * \param verbose Boolean to turn verbose errors on or off.
  */
 void lbm_set_verbose(bool verbose);
+  /** Turn on or off incremental reading.
+   *  When on programs will be evaluated while being read, one top-level
+   *  expression at a time. When off, entire programs are read into
+   *  the heap before evaluation starts.
+   * \param on_off Incremental reading on or off.
+   */
+void lbm_set_incremental_read(bool on_off);
 /** Set a usleep callback for use by the evaluator thread.
  *
  * \param fptr Pointer to a sleep function.

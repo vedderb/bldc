@@ -4,4 +4,4 @@
          ((1 . 2) 'a-symbol)
          ( _ 'whatever)))
 
-(eq (f 1 4) 'whatever)
+(check (eq (f 1 4) 'whatever))

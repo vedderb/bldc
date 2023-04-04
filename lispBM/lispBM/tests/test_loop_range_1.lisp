@@ -5,4 +5,4 @@
 (looprange i 0 11
                (define n (+ n i)))
 
-(eq n 55)
+(check (eq n 55))

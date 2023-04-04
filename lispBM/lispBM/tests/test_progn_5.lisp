@@ -1,2 +1,2 @@
 
-(eq (progn) nil)
+(check (eq (progn) nil))

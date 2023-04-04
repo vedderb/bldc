@@ -5,6 +5,6 @@
 ;; and a fourth as well?
 ;; woa..
 
-(= 1 1) ; a commented piece of code
+(check (= 1 1)) ; a commented piece of code
 ;; a comment after code with no empty line between
 ;; a comment at the end of the file followed by no newline

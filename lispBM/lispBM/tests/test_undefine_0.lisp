@@ -5,4 +5,4 @@
 (undefine 'apa)
 (undefine 'cepa)
 
-(= bepa 2)
+(check (= bepa 2))

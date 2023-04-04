@@ -1,4 +1,4 @@
 
 
-(eq (progn
-      (call-cc (lambda (k) (k))) 'nil))
+(check (eq (progn
+             (call-cc (lambda (k) (k))) 'nil)))

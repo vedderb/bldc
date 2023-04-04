@@ -3,4 +3,4 @@
 
 (define r (setcdr a 999))
 
-(and (not r) (= a 1))
+(check (and (not r) (= a 1)))

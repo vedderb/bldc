@@ -6,6 +6,6 @@
         ( (> x 0)   'meh)))
 
 
-(and (eq (f 101) 'lots)
-     (eq (f 100) 'ok)
-     (eq (f 10)  'meh))
+(check (and (eq (f 101) 'lots)
+            (eq (f 100) 'ok)
+            (eq (f 10)  'meh)))

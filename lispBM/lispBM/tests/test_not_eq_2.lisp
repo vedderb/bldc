@@ -1,1 +1,1 @@
-(not (not-eq 'apa 'apa))
+(check (not (not-eq 'apa 'apa)))

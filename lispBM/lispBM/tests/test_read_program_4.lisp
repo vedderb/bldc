@@ -1,5 +1,5 @@
 
 (define r (eval-program (read-program "(+ 50 50)")))
 
-(= r 100)
+(check (= r 100))
 

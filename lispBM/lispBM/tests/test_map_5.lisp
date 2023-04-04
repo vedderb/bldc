@@ -3,4 +3,4 @@
 
 (defun f (x) (+ x 1))
 
-(eq (map reverse ls) rs)
+(check (eq (map reverse ls) rs))

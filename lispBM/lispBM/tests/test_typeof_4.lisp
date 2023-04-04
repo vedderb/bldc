@@ -1,1 +1,1 @@
-(eq (type-of 2i64) type-i64)
+(check (eq (type-of 2i64) type-i64))

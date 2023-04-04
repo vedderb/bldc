@@ -1,4 +1,4 @@
 
-(define arr [type-u32 1 2 3 4 5 6])
+(define arr [1 2 3 4 5 6])
 
-(= (array-read arr 4) 5)
+(check (= (bufget-i8 arr 4) 5))

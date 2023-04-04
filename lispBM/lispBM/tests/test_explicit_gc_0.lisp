@@ -7,5 +7,5 @@
                 (f (- x 1))))))
 
 
-(eq (f 100) 'done)
+(check (eq (f 100) 'done))
               

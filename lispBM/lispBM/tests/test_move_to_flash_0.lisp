@@ -7,7 +7,7 @@
 
 (move-to-flash a b c d)
 
-(and (= a 1)
-     (= b 2)
-     (= c 1.0)
-     (= d 2.0))
+(check (and (= a 1)
+            (= b 2)
+            (= c 1.0)
+            (= d 2.0)))

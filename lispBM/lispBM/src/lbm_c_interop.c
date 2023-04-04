@@ -225,10 +225,10 @@ int lbm_undefine(char *symbol) {
 
 }
 
-int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
-  return lbm_lift_array(value, data, type, num_elt);
+int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt) {
+  return lbm_lift_array(value, data, num_elt);
 }
 
-int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt) {
-  return lbm_heap_allocate_array(value, num_elt, type);
+int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
+  return lbm_heap_allocate_array(value, num_elt);
 }

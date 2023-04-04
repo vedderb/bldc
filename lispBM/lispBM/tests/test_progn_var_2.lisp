@@ -8,4 +8,4 @@
              (+ b a)))
     (+ a b)))
 
-(= (nestled) 130)
+(check (= (nestled) 130))

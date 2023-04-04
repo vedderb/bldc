@@ -5,4 +5,4 @@
 (define c 30)
 }
 
-(= 60 (+ a b c))
+(check (= 60 (+ a b c)))

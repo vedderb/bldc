@@ -1,3 +1,3 @@
 (define r (random))
 
-(eq (type-of r) type-u)
+(check (eq (type-of r) type-u))

@@ -1,3 +1,3 @@
 
 
-(eq (append) nil)
+(check (eq (append) nil))

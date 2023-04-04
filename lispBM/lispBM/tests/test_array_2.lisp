@@ -1,3 +1,3 @@
-(let ((a "hello"))
-  (= (array-read a 3u) \#l))
+(check (let ((a "hello"))
+         (= (bufget-i8 a 3u) \#l)))
 

@@ -20,6 +20,6 @@
     (0xAF) ; Disaply on
     ))
 
-(and (= (car (car cmds-init)) 0xAE)
-     (= (car (car (cdr cmds-init))) 0xD5)
-     (= (car (car (cdr (cdr cmds-init)))) 0xA8))
+(check (and (= (car (car cmds-init)) 0xAE)
+            (= (car (car (cdr cmds-init))) 0xD5)
+            (= (car (car (cdr (cdr cmds-init)))) 0xA8)))

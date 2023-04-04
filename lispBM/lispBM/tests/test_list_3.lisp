@@ -1,2 +1,2 @@
 
-(= (length (iota 101)) 101)
+(check (= (length (iota 101)) 101))

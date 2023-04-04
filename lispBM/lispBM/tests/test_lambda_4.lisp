@@ -1,4 +1,4 @@
 (define f (lambda (x y z) z))
 
-(= (f 10 11 12) 12)
+(check (= (f 10 11 12) 12))
 

@@ -45,24 +45,24 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
   if (lbm_is_array_r(v)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-    if (array->elt_type == LBM_TYPE_CHAR) {
-      is_a_string = true;
-      char *c_data = (char *)array->data;
-      if (array->size == 1) {
-        *str = c_data;
-        return c_data[0] == 0;
-      }
-      unsigned int i;
-      for (i = 0; i < array->size; i ++) {
-        if (c_data[i] == 0 && i > 0) break;
-        if (!isprint(c_data[i]) && !iscntrl(c_data[i])) {
-          is_a_string = false;
-          break;
-        }
-      }
-      if (i == array->size) i--;
-      if (i > 0 && c_data[i] != 0) is_a_string = false;
+
+    is_a_string = true;
+    char *c_data = (char *)array->data;
+    if (array->size == 1) {
+      *str = c_data;
+      return c_data[0] == 0;
     }
+    unsigned int i;
+    for (i = 0; i < array->size; i ++) {
+      if (c_data[i] == 0 && i > 0) break;
+      if (!isprint(c_data[i]) && !iscntrl(c_data[i])) {
+        is_a_string = false;
+        break;
+      }
+    }
+
+    if (i == array->size) i--;
+    if (i > 0 && c_data[i] != 0) is_a_string = false;
     if (is_a_string) {
       *str = (char*)array->data;
     }
@@ -214,51 +214,12 @@ int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
   int r = print_emit_char(chan, '[');
 
   if (r == EMIT_OK) {
-    switch(array->elt_type) {
-    case LBM_TYPE_CHAR: {
-      break;
-    }
-    case LBM_TYPE_I32:
-      r = print_emit_string(chan, "type-i32 ");
-      break;
-    case LBM_TYPE_U32:
-      r = print_emit_string(chan, "type-u32 ");
-      break;
-    case LBM_TYPE_FLOAT:
-      r = print_emit_string(chan, "type-f32 ");
-      break;
-    default:
-      return EMIT_FAILED;
-    }
-    if (r != EMIT_OK) return r;
 
     for (unsigned int i = 0; i < array->size; i ++) {
-      switch(array->elt_type) {
 
-      case LBM_TYPE_CHAR: {
-        char *c_data = (char*)array->data;
-        r = print_emit_byte(chan, (uint8_t)c_data[i], false);
-        break;
-      }
-      case LBM_TYPE_U32: {
-        uint32_t *c_data = (uint32_t*)array->data;
-        r = print_emit_u32(chan, c_data[i], false);
-        break;
-      }
-      case LBM_TYPE_I32: {
-        int32_t *c_data = (int32_t*)array->data;
-        r = print_emit_i32(chan, c_data[i], false);
-        break;
-      }
-      case LBM_TYPE_FLOAT: {
-        float f_val;
-        memcpy(&f_val, &array->data[i], sizeof(float));
-        r = print_emit_float(chan, f_val, false);
-        break;
-      }
-      default:
-        return EMIT_FAILED;
-      }
+      char *c_data = (char*)array->data;
+      r = print_emit_byte(chan, (uint8_t)c_data[i], false);
+
       if (r == EMIT_OK && i != array->size - 1) {
         r = print_emit_char(chan, ' ');
       }

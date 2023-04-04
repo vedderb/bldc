@@ -1,4 +1,8 @@
 
 (define a [ 1 2 3 4 5 6 7 8 9])
 
-(eq (array-read a 0 4) (map to-byte '(1 2 3 4 5)))
+(defun extract (arr s e)
+  (let ((f (lambda (arr x) (bufget-u8 arr x))))
+    ( map (f arr) (range s e))))
+
+(check (eq (extract a 0 4) '(1 2 3 4)))

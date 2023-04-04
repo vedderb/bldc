@@ -1,4 +1,4 @@
 
 (defun f (x) (+ x 1))
 
-(eq (map f nil) nil)
+(check (eq (map f nil) nil))

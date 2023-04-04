@@ -1,3 +1,3 @@
 
 
-(eq (call-cc (lambda (k) (k))) 'nil)
+(check (eq (call-cc (lambda (k) (k))) 'nil))
