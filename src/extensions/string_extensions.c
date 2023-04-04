@@ -47,7 +47,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_EERROR;
   }
 
-  if (argn == 2 && lbm_type_of(args[1]) != LBM_TYPE_ARRAY) {
+  if (argn == 2 && lbm_is_array_r(args[1])) {
     return ENC_SYM_EERROR;
   }
 
