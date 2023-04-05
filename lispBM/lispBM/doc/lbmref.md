@@ -932,6 +932,53 @@ has been extended with the binding `(apa 1)`.
 
 ---
 
+### read-eval-program
+
+Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression
+then evaluates it before reading the next. 
+
+Example that evaluates to 20:
+
+```clj
+(read-eval-program "(define a 10) (+ a 10)")
+```
+
+`read-eval-program` supports the `@const-start`, `@const-end` which moved all
+global definitions created in the program to constant memory (flash).
+
+Example that evaluates to 20:
+
+```clj
+(read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
+``` 
+---
+
+### @const-start
+
+`@const-start` opens a block of code where each global definition is
+moved to constant memory (flash) automatically. This can be used only together with the
+incremental reader (such as `read-eval-program`).
+
+A `@const-start` opened block should be closed with a `@const-end`. Constant blocks
+cannot be nested. 
+
+Example:
+
+```clj
+@const-start
+
+(defun f (x) (+ x 1))  ; a function stored in constant memory
+
+@const-end
+
+(+ f 2)
+``` 
+
+### @const-end
+
+`@const-end` closes an block opened by `@const-start`.
+
+
 ### move-to-flash
 
 A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.
