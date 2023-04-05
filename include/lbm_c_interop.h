@@ -41,6 +41,12 @@ extern "C" {
  * \return A context id on success or 0 on failure.
  */
 lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer);
+/** Load a program while evaluating incrementally.
+ *
+ * \param tokenizer The tokenizer to read the program from.
+ * \return A context id on success or 0 on failure.
+ */
+lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer);
 /** Load and schedule an expression for execution.
  *
  * \param tokenizer The tokenizer to read the expression from.

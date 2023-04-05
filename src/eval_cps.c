@@ -53,35 +53,35 @@
 #define WAIT                  CONTINUATION(8)
 #define MATCH                 CONTINUATION(9)
 #define MATCH_MANY            CONTINUATION(10)
-#define READ                  CONTINUATION(11)
-#define APPLICATION_START     CONTINUATION(12)
-#define EVAL_R                CONTINUATION(13)
-#define SET_VARIABLE          CONTINUATION(14)
-#define RESUME                CONTINUATION(15)
-#define CLOSURE_ARGS          CONTINUATION(16)
-#define EXIT_ATOMIC           CONTINUATION(17)
-#define READ_NEXT_TOKEN       CONTINUATION(18)
-#define READ_APPEND_CONTINUE  CONTINUATION(19)
-#define READ_EVAL_CONTINUE    CONTINUATION(20)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(21)
-#define READ_DOT_TERMINATE    CONTINUATION(22)
-#define READ_DONE             CONTINUATION(23)
-#define READ_QUOTE_RESULT     CONTINUATION(24)
-#define READ_BACKQUOTE_RESULT CONTINUATION(25)
-#define READ_COMMAAT_RESULT   CONTINUATION(26)
-#define READ_COMMA_RESULT     CONTINUATION(27)
-#define READ_START_ARRAY      CONTINUATION(28)
-#define READ_APPEND_ARRAY     CONTINUATION(29)
-#define MAP_FIRST             CONTINUATION(30)
-#define MAP_REST              CONTINUATION(31)
-#define MATCH_GUARD           CONTINUATION(32)
-#define TERMINATE             CONTINUATION(33)
-#define PROGN_VAR             CONTINUATION(34)
-#define SETQ                  CONTINUATION(35)
-#define MOVE_TO_FLASH         CONTINUATION(36)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(37)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(38)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(39)
+//#define READ                  CONTINUATION(11)
+#define APPLICATION_START     CONTINUATION(11)
+#define EVAL_R                CONTINUATION(12)
+#define SET_VARIABLE          CONTINUATION(13)
+#define RESUME                CONTINUATION(14)
+#define CLOSURE_ARGS          CONTINUATION(15)
+#define EXIT_ATOMIC           CONTINUATION(16)
+#define READ_NEXT_TOKEN       CONTINUATION(17)
+#define READ_APPEND_CONTINUE  CONTINUATION(18)
+#define READ_EVAL_CONTINUE    CONTINUATION(19)
+#define READ_EXPECT_CLOSEPAR  CONTINUATION(20)
+#define READ_DOT_TERMINATE    CONTINUATION(21)
+#define READ_DONE             CONTINUATION(22)
+#define READ_QUOTE_RESULT     CONTINUATION(23)
+#define READ_BACKQUOTE_RESULT CONTINUATION(24)
+#define READ_COMMAAT_RESULT   CONTINUATION(25)
+#define READ_COMMA_RESULT     CONTINUATION(26)
+#define READ_START_ARRAY      CONTINUATION(27)
+#define READ_APPEND_ARRAY     CONTINUATION(28)
+#define MAP_FIRST             CONTINUATION(29)
+#define MAP_REST              CONTINUATION(30)
+#define MATCH_GUARD           CONTINUATION(31)
+#define TERMINATE             CONTINUATION(32)
+#define PROGN_VAR             CONTINUATION(33)
+#define SETQ                  CONTINUATION(34)
+#define MOVE_TO_FLASH         CONTINUATION(35)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(37)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
 #define NUM_CONTINUATIONS     40
 
 #define FM_NEED_GC       -1
@@ -341,7 +341,6 @@ bool    qmutex_initialized = false;
 
 // MODES
 static volatile bool lbm_verbose = false;
-static volatile bool incremental_read = false;
 
 void lbm_toggle_verbose(void) {
   lbm_verbose = !lbm_verbose;
@@ -349,10 +348,6 @@ void lbm_toggle_verbose(void) {
 
 void lbm_set_verbose(bool verbose) {
   lbm_verbose = verbose;
-}
-
-void lbm_set_incremental_read(bool on_off) {
-  incremental_read = on_off;
 }
 
 lbm_cid lbm_get_current_cid(void) {
@@ -1381,6 +1376,9 @@ static void eval_define(eval_context_t *ctx) {
       return;
     } else if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
+      if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
+        CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+      }
       ctx->curr_exp = val_exp;
       return;
     }
@@ -1794,7 +1792,7 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
-static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program) {
+static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
@@ -1812,15 +1810,23 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       return;
     }
     lbm_value *sptr = (lbm_value*)lbm_get_stack_ptr(&ctx->K, 2);
+
     if (sptr == NULL) {
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
-    lbm_value fun = program ? ENC_SYM_READ_PROGRAM : ENC_SYM_READ; //args[0];
-    sptr[0] = sptr[1]; // Remember the string we are reading from.
-    sptr[1] = chan;
-    CHECK_STACK(lbm_push_2(&ctx->K, fun, READ));
-    ctx->r = ENC_SYM_NIL;
+
+    sptr[0] = chan;
+    sptr[1] = READ_DONE;
+
+    if (program) {
+      if (incremental) {
+        CHECK_STACK(lbm_push_3(&ctx->K, chan, ctx->curr_env, READ_EVAL_CONTINUE));
+      } else {
+        CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, chan, READ_APPEND_CONTINUE));
+      }
+    }
+    CHECK_STACK(lbm_push_2(&ctx->K, chan, READ_NEXT_TOKEN));
     ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
@@ -1829,11 +1835,15 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 }
 
 static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  apply_read_base(args,nargs,ctx,true);
+  apply_read_base(args,nargs,ctx,true,false);
+}
+
+static void apply_read_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  apply_read_base(args,nargs,ctx,true,true);
 }
 
 static void apply_read(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  apply_read_base(args,nargs,ctx,false);
+  apply_read_base(args,nargs,ctx,false,false);
 }
 
 static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, uint32_t context_flags) {
@@ -2104,6 +2114,7 @@ static const apply_fun fun_table[] =
    apply_setvar,
    apply_read,
    apply_read_program,
+   apply_read_eval_program,
    apply_spawn,
    apply_spawn_trap,
    apply_yield,
@@ -2601,41 +2612,6 @@ static void cont_terminate(eval_context_t *ctx) {
 /****************************************************/
 /*   READER                                         */
 
-static void cont_read(eval_context_t *ctx) {
-
-  gc(); // TODO: This should not be necessary
-
-  lbm_value stream = ENC_SYM_NIL;
-  lbm_value prg_val = ENC_SYM_NIL;
-  lbm_pop_2(&ctx->K, &prg_val, &stream);
-
-  bool program = false;
-
-  if (lbm_type_of(prg_val) == LBM_TYPE_SYMBOL) {
-    if (lbm_dec_sym(prg_val) == SYM_READ) program = false;
-    else if (lbm_dec_sym(prg_val) == SYM_READ_PROGRAM) program = true;
-  } else {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-    done_reading(ctx->id);
-    return;
-  }
-
-  lbm_value prg_tag = lbm_enc_u(program ? 1 : 0);
-
-  CHECK_STACK(lbm_push_3(&ctx->K, prg_tag, stream, READ_DONE));
-
-  if (program) {
-    if (incremental_read) {
-      CHECK_STACK(lbm_push_3(&ctx->K, stream, ctx->curr_env, READ_EVAL_CONTINUE));
-    } else {
-      CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
-    }
-  }
-  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-
-  ctx->app_cont = true;
-}
-
 static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     /* Tokenizer reached "end of file"
        The parser could be in a state where it needs
@@ -2661,8 +2637,7 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
   } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
     lbm_stack_drop(&ctx->K, 3);
     ctx->app_cont = true;
-  } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
-             lbm_dec_u(ctx->K.data[ctx->K.sp-7]) == 1) {
+  } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
     ctx->app_cont = true;
@@ -2771,6 +2746,16 @@ static void cont_read_next_token(eval_context_t *ctx) {
       return;
     case TOKCLOSECURL:
       ctx->r = ENC_SYM_CLOSEPAR;
+      return;
+    case TOKCONSTSTART:
+      ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
+    case TOKCONSTEND:
+      ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
       return;
     default:
       error_ctx(ENC_SYM_RERROR);
@@ -3175,10 +3160,9 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 static void cont_read_done(eval_context_t *ctx) {
 
   lbm_value stream;
-  lbm_value prg_tag;
 
-  lbm_pop_2(&ctx->K, &stream, &prg_tag);
-  lbm_stack_drop(&ctx->K, 1);
+  lbm_pop(&ctx->K, &stream);
+  //lbm_stack_drop(&ctx->K, 1);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
@@ -3195,7 +3179,7 @@ static void cont_read_done(eval_context_t *ctx) {
   /*   lbm_set_error_reason((char*)lbm_error_str_parse_eof); */
   /*   read_error_ctx(lbm_channel_row(str), lbm_channel_column(str)); */
   /* } else { */
-    ctx->app_cont = true;
+  ctx->app_cont = true;
     //}
   done_reading(ctx->id);
 }
@@ -3416,7 +3400,8 @@ static void cont_move_to_flash(eval_context_t *ctx) {
     if (lbm_is_ptr(val) &&
         (!(val & LBM_PTR_TO_CONSTANT_BIT))) {
       CHECK_STACK(lbm_push_2(&ctx->K, first_arg, SET_GLOBAL_ENV));
-      CHECK_STACK(lbm_push_2(&ctx->K, val, MOVE_VAL_TO_FLASH_DISPATCH));
+      CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+      ctx->r = val;
     }
     ctx->app_cont = true;
     return;
@@ -3426,15 +3411,15 @@ static void cont_move_to_flash(eval_context_t *ctx) {
 
 static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
-  lbm_value val;
-  lbm_pop(&ctx->K, &val);
+  lbm_value val = ctx->r;
 
   if (lbm_is_cons(val)) {
     lbm_value flash_cell = ENC_SYM_NIL;
     if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
     CHECK_STACK(lbm_push_4(&ctx->K, flash_cell, flash_cell, lbm_cdr(val), MOVE_LIST_TO_FLASH));
-    CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r = lbm_car(val);
     ctx->app_cont = true;
     return;
   }
@@ -3476,6 +3461,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
             !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
           return;
 #else
+        // There are no indirect types in LBM64
         error_ctx(ENC_SYM_FATAL_ERROR);
         return;
 #endif
@@ -3525,7 +3511,6 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     ctx->app_cont = true;
     return;
   }
-
   ctx->r = val;
   ctx->app_cont = true;
 }
@@ -3557,12 +3542,14 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
     sptr[1] = rest_cell;
     sptr[2] = lbm_cdr(val);
     CHECK_STACK(lbm_push(&ctx->K, MOVE_LIST_TO_FLASH));
-    CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r = lbm_car(val);
   } else {
     sptr[0] = fst;
     sptr[1] = lst;
     sptr[2] = CLOSE_LIST_IN_FLASH;
-    CHECK_STACK(lbm_push_2(&ctx->K, val, MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r =  val;
   }
   ctx->app_cont = true;
 }
@@ -3594,7 +3581,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_wait,
     cont_match,
     cont_match_many,
-    cont_read,
+    //    cont_read,
     cont_application_start,
     cont_eval_r,
     cont_set_var,
