@@ -585,7 +585,10 @@ bool lispif_restart(bool print, bool load_code) {
 		lispif_load_vesc_extensions();
 		lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader);
 
-		int code_chars = strnlen(code_data, code_len);
+		int code_chars = 0;
+		if (code_data) {
+			code_chars = strnlen(code_data, code_len);
+		}
 
 		// Load imports
 		if (code_len > code_chars + 3) {
