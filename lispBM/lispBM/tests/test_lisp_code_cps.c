@@ -645,10 +645,6 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (incremental) {
-    lbm_set_incremental_read(true);
-  }
-
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
@@ -713,7 +709,11 @@ int main(int argc, char **argv) {
   //}
 
   lbm_set_ctx_done_callback(context_done_callback);
-  cid = lbm_load_and_eval_program(&string_tok);
+  if (incremental) {
+    cid = lbm_load_and_eval_program_incremental(&string_tok);
+  } else {
+    cid = lbm_load_and_eval_program(&string_tok);
+  }
 
   if (cid == -1) {
     printf("Failed to load and evaluate the test program\n");

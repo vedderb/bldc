@@ -1088,11 +1088,7 @@ lbm_uint lbm_size_of(lbm_type t) {
   case LBM_TYPE_I: /* fall through */
   case LBM_TYPE_U:
   case LBM_TYPE_SYMBOL:
-#ifndef LBM64
-    s = 4;
-#else
-    s = 8;
-#endif
+    s = sizeof(lbm_uint);
     break;
   case LBM_TYPE_I32: /* fall through */
   case LBM_TYPE_U32:

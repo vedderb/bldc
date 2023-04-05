@@ -47,6 +47,7 @@ special_sym const special_symbols[] =  {
   {"progn"      , SYM_PROGN},
   {"read"       , SYM_READ},
   {"read-program" , SYM_READ_PROGRAM},
+  {"read-eval-program", SYM_READ_AND_EVAL_PROGRAM},
   //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
   //{"splice"     , SYM_COMMAAT},
   {"match"        , SYM_MATCH},

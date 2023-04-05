@@ -192,22 +192,23 @@
 // Apply funs:
 // Get their arguments in evaluated form.
 // Consecutive value symbols for lookup-application
-#define APPLY_FUNS_START  0x200
-#define SYM_SETVAR        0x200
-#define SYM_READ          0x201
-#define SYM_READ_PROGRAM  0x202
-#define SYM_SPAWN         0x203
-#define SYM_SPAWN_TRAP    0x204
-#define SYM_YIELD         0x205
-#define SYM_WAIT          0x206
-#define SYM_EVAL          0x207
-#define SYM_EVAL_PROGRAM  0x208
-#define SYM_SEND          0x209
-#define SYM_EXIT_OK       0x20A
-#define SYM_EXIT_ERROR    0x20B
-#define SYM_MAP           0x20C
-#define SYM_REVERSE       0x20D
-#define APPLY_FUNS_END    0x20D
+#define APPLY_FUNS_START  0x150
+#define SYM_SETVAR        0x150
+#define SYM_READ          0x151
+#define SYM_READ_PROGRAM  0x152
+#define SYM_READ_AND_EVAL_PROGRAM 0x153
+#define SYM_SPAWN         0x154
+#define SYM_SPAWN_TRAP    0x155
+#define SYM_YIELD         0x156
+#define SYM_WAIT          0x157
+#define SYM_EVAL          0x158
+#define SYM_EVAL_PROGRAM  0x159
+#define SYM_SEND          0x15A
+#define SYM_EXIT_OK       0x15B
+#define SYM_EXIT_ERROR    0x15C
+#define SYM_MAP           0x15D
+#define SYM_REVERSE       0x15E
+#define APPLY_FUNS_END    0x15E
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -369,6 +370,7 @@
 #define ENC_SYM_SETVAR        ENC_SYM(SYM_SETVAR)
 #define ENC_SYM_READ          ENC_SYM(SYM_READ)
 #define ENC_SYM_READ_PROGRAM  ENC_SYM(SYM_READ_PROGRAM)
+#define ENC_SYM_READ_AND_EVAL_PROGRAM ENC_SYM(SYM_READ_AND_EVAL_PROGRAM)
 #define ENC_SYM_SPAWN         ENC_SYM(SYM_SPAWN)
 #define ENC_SYM_SPAWN_TRAP    ENC_SYM(SYM_SPAWN_TRAP)
 #define ENC_SYM_YIELD         ENC_SYM(SYM_YIELD)
