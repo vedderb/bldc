@@ -279,7 +279,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
 				commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
 				commands_printf_lisp("--(Flash)--\n");
-				commands_printf_lisp("Size: %u Bytes\n", const_heap.size * 8);
+				commands_printf_lisp("Size: %u Bytes\n", const_heap.size);
 				commands_printf_lisp("Used cells: %d\n", const_heap.next);
 				commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
 			} else if (strncmp(str, ":env", 4) == 0) {
@@ -598,7 +598,7 @@ bool lispif_restart(bool print, bool load_code) {
 					int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
 					lbm_value val;
-					if (lbm_share_array(&val, code_data + offset, LBM_TYPE_BYTE, len)) {
+					if (lbm_share_array(&val, code_data + offset, len)) {
 						lbm_define(name, val);
 					}
 				}
@@ -620,7 +620,7 @@ bool lispif_restart(bool print, bool load_code) {
 			}
 
 			lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data);
-			lbm_load_and_eval_program(&string_tok);
+			lbm_load_and_eval_program_incremental(&string_tok);
 		}
 
 		lbm_continue_eval();
@@ -652,12 +652,6 @@ static bool const_heap_write(lbm_uint ix, lbm_uint w) {
 	FLASH_Lock();
 
 	if (const_heap_ptr[ix] != w) {
-		char *error_str =
-				"Writing to flash failed. Make sure that upload is "
-				"used or that the code is erased before attempting to write to flash.";
-		lbm_set_error_reason(error_str);
-		lbm_pause_eval();
-		commands_printf_lisp(error_str);
 		return false;
 	}
 

@@ -550,7 +550,7 @@ static bool lib_store_cfg(void) {
 }
 
 static bool lib_create_byte_array(lbm_value *value, lbm_uint num_elt) {
-	return lbm_heap_allocate_array(value, num_elt, LBM_TYPE_BYTE);
+	return lbm_heap_allocate_array(value, num_elt);
 }
 
 static bool lib_eval_is_paused(void) {
@@ -589,14 +589,11 @@ static float lib_get_ppm_age(void) {
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
-	if (argn != 1 || !lbm_is_array(args[0])) {
+	if (argn != 1 || !lbm_is_array_r(args[0])) {
 		return res;
 	}
 
 	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-	if (array->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
 
 	if (!lib_init_done) {
 		memset((char*)cif.pad, 0, 2048);
@@ -636,7 +633,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.lbm_dec_str = lbm_dec_str;
 		cif.cif.lbm_dec_sym = lbm_dec_sym;
 
-		cif.cif.lbm_is_byte_array = lbm_is_byte_array;
+		cif.cif.lbm_is_byte_array = lbm_is_array_r;
 		cif.cif.lbm_is_cons = lbm_is_cons;
 		cif.cif.lbm_is_number = lbm_is_number;
 		cif.cif.lbm_is_char = lbm_is_char;
@@ -931,15 +928,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 lbm_value ext_unload_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
-	if (argn != 1 || !lbm_is_array(args[0])) {
+	if (argn != 1 || !lbm_is_array_r(args[0])) {
 		return res;
 	}
 
 	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-	if (array->elt_type != LBM_TYPE_BYTE) {
-		return res;
-	}
-
 	uint32_t addr = (uint32_t)array->data;
 
 	bool ok = false;
