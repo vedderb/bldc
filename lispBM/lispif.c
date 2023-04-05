@@ -49,7 +49,7 @@ static lbm_char_channel_t string_tok;
 static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
 
-lbm_const_heap_t const_heap;
+static lbm_const_heap_t const_heap;
 static lbm_uint *const_heap_ptr = 0;
 
 static thread_t *eval_tp = 0;
