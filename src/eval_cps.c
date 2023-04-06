@@ -1338,7 +1338,6 @@ static void eval_callcc(eval_context_t *ctx) {
       return;
     }
   }
-
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
@@ -1707,7 +1706,7 @@ static void cont_progn_rest(eval_context_t *ctx) {
 
   lbm_value *sptr = (lbm_value*)lbm_get_stack_ptr(&ctx->K, 3);
   if (sptr == NULL) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -1816,7 +1815,7 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     lbm_value *sptr = (lbm_value*)lbm_get_stack_ptr(&ctx->K, 2);
 
     if (sptr == NULL) {
-      error_ctx(ENC_SYM_FATAL_ERROR);
+      error_ctx(ENC_SYM_STACK_ERROR);
       return;
     }
 
@@ -2031,7 +2030,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
     lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
     if (!sptr) {
-      error_ctx(ENC_SYM_FATAL_ERROR);
+      error_ctx(ENC_SYM_STACK_ERROR);
       return;
     }
 
@@ -2160,7 +2159,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
 
-    ctx->K.sp = arr->size >> 2;
+    ctx->K.sp = arr->size / sizeof(lbm_uint);
     memcpy(ctx->K.data, arr->data, arr->size);
 
     ctx->r = arg;
@@ -2223,7 +2222,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 5);
 
   if (sptr == NULL) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
   lbm_value arg_env = (lbm_value)sptr[0];
@@ -2287,7 +2286,7 @@ static void cont_application_args(eval_context_t *ctx) {
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K,3);
 
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -2369,7 +2368,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 4);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
   lbm_value rest = sptr[1];
@@ -2405,7 +2404,7 @@ static void cont_if(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -2535,7 +2534,7 @@ static void cont_map_first(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 6);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
   lbm_value ls  = sptr[0];
@@ -2564,7 +2563,7 @@ static void cont_map_first(eval_context_t *ctx) {
 static void cont_map_rest(eval_context_t *ctx) {
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 6);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
   lbm_value ls  = sptr[0];
@@ -2963,7 +2962,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
 
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 4);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -3005,7 +3004,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -3122,7 +3121,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
@@ -3239,7 +3238,7 @@ static void cont_application_start(eval_context_t *ctx) {
 
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 2);
   if (sptr == NULL) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
   lbm_value args = (lbm_value)sptr[1];
@@ -3523,7 +3522,7 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
   if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    error_ctx(ENC_SYM_STACK_ERROR);
     return;
   }
 
