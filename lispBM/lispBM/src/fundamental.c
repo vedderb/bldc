@@ -249,12 +249,12 @@ static lbm_value index_list(lbm_value l, int32_t n) {
     if (n < 0) return ENC_SYM_NIL;
   }
 
-  while (lbm_is_cons_general(curr) &&
+  while (lbm_is_cons(curr) &&
           n > 0) {
     curr = lbm_cdr(curr);
     n --;
   }
-  if (lbm_is_cons_general(curr)) {
+  if (lbm_is_cons(curr)) {
     return lbm_car(curr);
   } else {
     return ENC_SYM_NIL;
@@ -263,7 +263,7 @@ static lbm_value index_list(lbm_value l, int32_t n) {
 
 static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_is_cons_general(curr)) {
+  while (lbm_is_cons(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->car, key)) {
       return lbm_ref_cell(c)->cdr;
@@ -275,7 +275,7 @@ static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
 
 static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_is_cons_general(curr)) {
+  while (lbm_is_cons(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->cdr, key)) {
       return lbm_ref_cell(c)->car;
@@ -613,7 +613,7 @@ static lbm_value fundamental_cons(lbm_value *args, lbm_uint nargs, eval_context_
 static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_is_cons_general(args[0])) {
+    if (lbm_is_cons(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->car;
     }
@@ -624,7 +624,7 @@ static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t
 static lbm_value fundamental_cdr(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_is_cons_general(args[0])) {
+    if (lbm_is_cons(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->cdr;
     }
@@ -646,12 +646,12 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 0) return ENC_SYM_NIL;
-  if (nargs == 1 && !lbm_is_list_general(args[0])) return ENC_SYM_TERROR;
+  if (nargs == 1 && !lbm_is_list(args[0])) return ENC_SYM_TERROR;
 
   lbm_value res = args[nargs-1];
   for (int i = (int)nargs -2; i >= 0; i --) {
     lbm_value curr = args[i];
-    if (!lbm_is_list_general(curr)) return ENC_SYM_TERROR;
+    if (!lbm_is_list(curr)) return ENC_SYM_TERROR;
     int n = 0;
     while (lbm_type_of_functional(curr) == LBM_TYPE_CONS) {
       n++;
@@ -665,6 +665,7 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_contex
   return(res);
 }
 
+// TODO: See if trouble
 static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value env = lbm_get_env();
@@ -1128,7 +1129,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
 static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 1 && lbm_is_list_general(args[0])) {
+  if (nargs == 1 && lbm_is_list(args[0])) {
     int32_t len = (int32_t)lbm_list_length(args[0]);
     result = lbm_enc_i(len);
   }

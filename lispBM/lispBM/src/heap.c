@@ -862,7 +862,7 @@ int lbm_set_car(lbm_value c, lbm_value v) {
 
 int lbm_set_cdr(lbm_value c, lbm_value v) {
   int r = 0;
-  if (lbm_type_of(c) == LBM_TYPE_CONS){
+  if (lbm_is_cons_rw(c)){
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->cdr = v;
     r = 1;
@@ -872,7 +872,7 @@ int lbm_set_cdr(lbm_value c, lbm_value v) {
 
 int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
   int r = 0;
-  if (lbm_type_of(c) == LBM_TYPE_CONS) {
+  if (lbm_is_cons_rw(c)) {
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->car = car_val;
     cell->cdr = cdr_val;
@@ -885,7 +885,7 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
 unsigned int lbm_list_length(lbm_value c) {
   unsigned int len = 0;
 
-  while (lbm_is_cons_general(c)){
+  while (lbm_is_cons(c)){
     len ++;
     c = lbm_cdr(c);
   }
@@ -898,7 +898,7 @@ unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_valu
   bool res = true;
   unsigned int len = 0;
 
-  while (lbm_type_of(c) == LBM_TYPE_CONS){
+  while (lbm_is_cons(c)){
     len ++;
     res = res && pred(lbm_car(c));
     c = lbm_cdr(c);
@@ -916,7 +916,7 @@ lbm_value lbm_list_reverse(lbm_value list) {
   lbm_value curr = list;
 
   lbm_value new_list = ENC_SYM_NIL;
-  while (lbm_is_cons_general(curr)) {
+  while (lbm_is_cons(curr)) {
 
     new_list = lbm_cons(lbm_car(curr), new_list);
     if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
@@ -934,7 +934,7 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
   lbm_value curr = list;
   lbm_value last_cell = ENC_SYM_NIL;
 
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_rw(curr)) {
     lbm_value next = lbm_cdr(curr);
     lbm_set_cdr(curr, last_cell);
     last_cell = curr;
@@ -949,7 +949,7 @@ lbm_value lbm_list_copy(lbm_value list) {
 
   lbm_value curr = list;
 
-  while (lbm_is_cons_general(curr)) {
+  while (lbm_is_cons(curr)) {
     lbm_value c = lbm_cons (lbm_car(curr), res);
     if (lbm_type_of(c) == LBM_TYPE_SYMBOL) {
       return ENC_SYM_MERROR;
@@ -965,8 +965,8 @@ lbm_value lbm_list_copy(lbm_value list) {
 // Destructive update of list1.
 lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 
-  if(lbm_is_list(list1) &&
-     lbm_is_list_general(list2)) {
+  if(lbm_is_list_rw(list1) &&
+     lbm_is_list(list2)) {
 
     lbm_value curr = list1;
     while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {

@@ -767,11 +767,11 @@ static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_MASK);
 }
 
-static inline bool lbm_is_cons(lbm_value x) {
+static inline bool lbm_is_cons_rw(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
-static inline bool lbm_is_cons_general(lbm_value x) {
+static inline bool lbm_is_cons(lbm_value x) {
   lbm_type t = lbm_type_of(x);
   return (t == LBM_TYPE_CONS ||
           t == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT));
@@ -811,7 +811,7 @@ static inline bool lbm_is_special(lbm_value symrep) {
 }
 
 static inline bool lbm_is_closure(lbm_value exp) {
-  return ((lbm_is_cons_general(exp)) &&
+  return ((lbm_is_cons(exp)) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
 }
@@ -865,8 +865,8 @@ static inline bool lbm_is_list(lbm_value x) {
   return (lbm_is_cons(x) || lbm_is_symbol_nil(x));
 }
 
-static inline bool lbm_is_list_general(lbm_value x) {
-  return (lbm_is_cons_general(x) || lbm_is_symbol_nil(x));
+static inline bool lbm_is_list_rw(lbm_value x) {
+  return (lbm_is_cons_rw(x) || lbm_is_symbol_nil(x));
 }
 
 static inline bool lbm_is_quoted_list(lbm_value x) {
