@@ -403,17 +403,8 @@ bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
 #ifndef LBM64
   return (t & 0xC || t & 0x08000000);
-
 #else
-  return ((t == LBM_TYPE_I) ||
-          (t == LBM_TYPE_U) ||
-          (t == LBM_TYPE_CHAR) ||
-          (t == LBM_TYPE_I32) ||
-          (t == LBM_TYPE_U32) ||
-          (t == LBM_TYPE_I64) ||
-          (t == LBM_TYPE_U64) ||
-          (t == LBM_TYPE_FLOAT) ||
-          (t == LBM_TYPE_DOUBLE));
+  return (t & 0x1C || t & 0x0800000000000000);
 #endif
 }
 

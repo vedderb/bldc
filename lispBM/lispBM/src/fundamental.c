@@ -33,7 +33,6 @@ static lbm_uint add2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
-    printf("not a number\n");
     return retval;
   }
 
