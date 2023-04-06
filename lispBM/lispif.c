@@ -614,7 +614,7 @@ bool lispif_restart(bool print, bool load_code) {
 			code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP);
 		}
 
-		const_heap_ptr = (lbm_uint*)(code_data + code_len + 8);
+		const_heap_ptr = (lbm_uint*)(code_data + code_len + 16);
 		const_heap_ptr = (lbm_uint*)((uint32_t)const_heap_ptr & 0xFFFFFFF4);
 		uint32_t const_heap_len = ((uint32_t)code_data + 1024 * 128) - (uint32_t)const_heap_ptr;
 		lbm_const_heap_init(const_heap_write, &const_heap, const_heap_ptr, const_heap_len);
