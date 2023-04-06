@@ -367,13 +367,9 @@ int lbm_memory_free(lbm_uint *ptr) {
 void* lbm_malloc(size_t size) {
   lbm_uint alloc_size;
 
-#ifndef LBM64
-  alloc_size = size >> 2;
-  if (size & 3) alloc_size ++;
-#else
-  alloc_size = size >> 3;
-  if (size & 7) alloc_size ++;
-#endif
+  alloc_size = size / sizeof(lbm_uint);
+  if (size % sizeof(lbm_uint)) alloc_size += 1;
+
   if (memory_num_free - alloc_size < memory_reserve_level) {
     lbm_request_gc();
     return NULL;
@@ -383,13 +379,10 @@ void* lbm_malloc(size_t size) {
 
 void* lbm_malloc_reserve(size_t size) {
   lbm_uint alloc_size;
-#ifndef LBM64
-  alloc_size = size >> 2;
-  if (size & 3) alloc_size ++;
-#else
-  alloc_size = size >> 3;
-  if (size & 7) alloc_size ++;
-#endif
+
+  alloc_size = size / sizeof(lbm_uint);
+  if (size % sizeof(lbm_uint)) alloc_size += 1;
+
   if (memory_num_free - alloc_size < memory_reserve_level) {
     lbm_request_gc();
   }

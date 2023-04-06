@@ -1128,7 +1128,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
 static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 1 && lbm_is_list(args[0])) {
+  if (nargs == 1 && lbm_is_list_general(args[0])) {
     int32_t len = (int32_t)lbm_list_length(args[0]);
     result = lbm_enc_i(len);
   }
