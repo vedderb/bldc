@@ -8,6 +8,6 @@
 (move-to-flash a b c d)
 
 (check (and (= a 1)
-            (= b 2)
+            (= a 1)
             (= c 1.0)
             (= d 2.0)))

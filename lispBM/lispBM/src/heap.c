@@ -231,7 +231,7 @@ lbm_uint lbm_dec_custom(lbm_value val) {
 }
 
 char lbm_dec_as_char(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (char) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -255,7 +255,7 @@ char lbm_dec_as_char(lbm_value a) {
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (uint32_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -278,7 +278,7 @@ uint32_t lbm_dec_as_u32(lbm_value a) {
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (uint64_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -301,7 +301,7 @@ uint64_t lbm_dec_as_u64(lbm_value a) {
 
 
 int32_t lbm_dec_as_i32(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (int32_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -325,7 +325,7 @@ int32_t lbm_dec_as_i32(lbm_value a) {
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (int64_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -349,7 +349,7 @@ int64_t lbm_dec_as_i64(lbm_value a) {
 
 float lbm_dec_as_float(lbm_value a) {
 
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (float) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -374,7 +374,7 @@ float lbm_dec_as_float(lbm_value a) {
 
 double lbm_dec_as_double(lbm_value a) {
 
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (double) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -793,6 +793,25 @@ lbm_value lbm_car(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+lbm_value lbm_caar(lbm_value c) {
+
+  lbm_value tmp;
+
+  if (lbm_is_ptr(c)) {
+    tmp = lbm_ref_cell(c)->car;
+
+    if (lbm_is_ptr(tmp)) {
+      return lbm_ref_cell(tmp)->car;
+    } else if (lbm_is_symbol(tmp) && lbm_dec_sym(tmp) == SYM_NIL) {
+      return tmp;
+    }
+  } else if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return c;
+  }
+  return ENC_SYM_TERROR;
+}
+
+
 lbm_value lbm_cadr(lbm_value c) {
 
   lbm_value tmp;
@@ -875,7 +894,7 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
 unsigned int lbm_list_length(lbm_value c) {
   unsigned int len = 0;
 
-  while (lbm_type_of(c) == LBM_TYPE_CONS){
+  while (lbm_is_cons_general(c)){
     len ++;
     c = lbm_cdr(c);
   }
@@ -906,7 +925,7 @@ lbm_value lbm_list_reverse(lbm_value list) {
   lbm_value curr = list;
 
   lbm_value new_list = ENC_SYM_NIL;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
 
     new_list = lbm_cons(lbm_car(curr), new_list);
     if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
@@ -955,19 +974,18 @@ lbm_value lbm_list_copy(lbm_value list) {
 // Destructive update of list1.
 lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 
-  if (lbm_type_of(list1) != LBM_TYPE_CONS) {
-    return list2;
-  }
-  if (lbm_type_of(list1) != LBM_TYPE_CONS) {
+  if(lbm_is_list(list1) &&
+     lbm_is_list_general(list2)) {
+
+    lbm_value curr = list1;
+    while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
+      curr = lbm_cdr(curr);
+    }
+    if (lbm_is_symbol_nil(curr)) return list2;
+    lbm_set_cdr(curr, list2);
     return list1;
   }
-
-  lbm_value curr = list1;
-  while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
-    curr = lbm_cdr(curr);
-  }
-  lbm_set_cdr(curr, list2);
-  return list1;
+  return ENC_SYM_EERROR;
 }
 
 // Arrays are part of the heap module because their lifespan is managed

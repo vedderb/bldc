@@ -33,10 +33,11 @@ static lbm_uint add2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    printf("not a number\n");
     return retval;
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_as_i32(a) + lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_as_u32(a) + lbm_dec_as_u32(b)); break;
@@ -58,7 +59,7 @@ static lbm_uint mul2(lbm_uint a, lbm_uint b) {
     return retval;
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_as_i32(a) * lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_as_u32(a) * lbm_dec_as_u32(b)); break;
@@ -80,7 +81,7 @@ static lbm_uint div2(lbm_uint a, lbm_uint b) {
     return retval;
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: if (lbm_dec_i(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_i(lbm_dec_as_i32(a) / lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: if (lbm_dec_as_u32(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_u(lbm_dec_as_u32(a) / lbm_dec_as_u32(b)); break;
@@ -102,7 +103,7 @@ static lbm_uint mod2(lbm_uint a, lbm_uint b) {
     return retval;
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: if (lbm_dec_i(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_i(lbm_dec_as_i32(a) % lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: if (lbm_dec_as_u32(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_u(lbm_dec_as_u32(a) % lbm_dec_as_u32(b)); break;
@@ -120,8 +121,8 @@ static lbm_uint negate(lbm_uint a) {
 
   lbm_uint retval = ENC_SYM_TERROR;
 
-  if (lbm_type_of(a) > LBM_TYPE_CHAR) {
-    switch (lbm_type_of(a)) {
+  if (lbm_type_of_functional(a) > LBM_TYPE_CHAR) {
+    switch (lbm_type_of_functional(a)) {
     case LBM_TYPE_I: retval = lbm_enc_i(- lbm_dec_i(a)); break;
     case LBM_TYPE_U: retval = lbm_enc_u(- lbm_dec_u(a)); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(- lbm_dec_u32(a)); break;
@@ -143,7 +144,7 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
     return retval;
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_as_i32(a) - lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_as_u32(a) - lbm_dec_as_u32(b)); break;
@@ -174,14 +175,9 @@ static bool array_equality(lbm_value a, lbm_value b) {
 bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
-  lbm_type ta = lbm_type_of(a);
-  lbm_type tb = lbm_type_of(b);
+  lbm_type ta = lbm_type_of_functional(a);
+  lbm_type tb = lbm_type_of_functional(b);
   
-  if (lbm_is_ptr(a) && lbm_is_ptr(b)) {
-    ta &= LBM_PTR_TO_CONSTANT_MASK;
-    tb &= LBM_PTR_TO_CONSTANT_MASK;
-  }
-
   if (ta == tb) {
     switch(ta){
     case LBM_TYPE_SYMBOL:
@@ -223,7 +219,7 @@ static int compare(lbm_uint a, lbm_uint b) {
     return retval; // result is nonsense if arguments are not numbers.
   }
 
-  lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
+  lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
   case LBM_TYPE_I: retval = CMP(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = CMP(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
@@ -574,7 +570,7 @@ static lbm_value fundamental_not(lbm_value *args, lbm_uint nargs, eval_context_t
     return ENC_SYM_NIL;
   }
   lbm_uint a = args[0];
-  if (lbm_type_of(a) == LBM_TYPE_SYMBOL &&
+  if (lbm_type_of_functional(a) == LBM_TYPE_SYMBOL &&
       lbm_dec_sym(a) == SYM_NIL) {
     return ENC_SYM_TRUE;
   }
@@ -658,7 +654,7 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_contex
     lbm_value curr = args[i];
     if (!lbm_is_list_general(curr)) return ENC_SYM_TERROR;
     int n = 0;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+    while (lbm_type_of_functional(curr) == LBM_TYPE_CONS) {
       n++;
       curr = lbm_cdr(curr);
     }
@@ -699,7 +695,7 @@ static lbm_value fundamental_buf_create(lbm_value *args, lbm_uint nargs, eval_co
 static lbm_value fundamental_symbol_to_string(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs < 1 ||
-      lbm_type_of(args[0]) != LBM_TYPE_SYMBOL)
+      lbm_type_of_functional(args[0]) != LBM_TYPE_SYMBOL)
     return ENC_SYM_NIL;
   lbm_value sym = args[0];
   const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(sym));
@@ -740,7 +736,7 @@ static lbm_value fundamental_symbol_to_uint(lbm_value *args, lbm_uint nargs, eva
   (void) ctx;
   if (nargs < 1) return ENC_SYM_EERROR;
   lbm_value s = args[0];
-  if (lbm_type_of(s) == LBM_TYPE_SYMBOL)
+  if (lbm_type_of_functional(s) == LBM_TYPE_SYMBOL)
     return lbm_enc_u(lbm_dec_sym(s));
   else
     return ENC_SYM_TERROR;
@@ -750,7 +746,7 @@ static lbm_value fundamental_uint_to_symbol(lbm_value *args, lbm_uint nargs, eva
   (void) ctx;
   if (nargs < 1) return ENC_SYM_EERROR;
   lbm_value s = args[0];
-  if (lbm_type_of(s) == LBM_TYPE_U)
+  if (lbm_type_of_functional(s) == LBM_TYPE_U)
     return lbm_enc_sym(lbm_dec_u(s));
   else
     return ENC_SYM_TERROR;
@@ -975,7 +971,7 @@ static lbm_value fundamental_shl(lbm_value *args, lbm_uint nargs, eval_context_t
     if (!(lbm_is_number(args[0]) && lbm_is_number(args[1]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_i(args[0]) << lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_u(args[0]) << lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_u32(args[0]) << lbm_dec_as_u32(args[1])); break;
@@ -995,7 +991,7 @@ static lbm_value fundamental_shr(lbm_value *args, lbm_uint nargs, eval_context_t
     if (!(lbm_is_number(args[0]) && lbm_is_number(args[1]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_i(args[0]) >> lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_u(args[0]) >> lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_u32(args[0]) >> lbm_dec_as_u32(args[1])); break;
@@ -1015,7 +1011,7 @@ static lbm_value fundamental_bitwise_and(lbm_value *args, lbm_uint nargs, eval_c
     if (!(lbm_is_number(args[0]) && lbm_is_number(args[1]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_i(args[0]) & lbm_dec_as_i32(args[1])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_u(args[0]) & lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_u32(args[0]) & lbm_dec_as_u32(args[1])); break;
@@ -1035,7 +1031,7 @@ static lbm_value fundamental_bitwise_or(lbm_value *args, lbm_uint nargs, eval_co
     if (!(lbm_is_number(args[0]) && lbm_is_number(args[1]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_i(args[0]) | lbm_dec_as_i32(args[1])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_u(args[0]) | lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_u32(args[0]) | lbm_dec_as_u32(args[1])); break;
@@ -1055,7 +1051,7 @@ static lbm_value fundamental_bitwise_xor(lbm_value *args, lbm_uint nargs, eval_c
     if (!(lbm_is_number(args[0]) && lbm_is_number(args[1]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_i(args[0]) ^ lbm_dec_as_i32(args[1])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_u(args[0]) ^ lbm_dec_as_u32(args[1])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_u32(args[0]) ^ lbm_dec_as_u32(args[1])); break;
@@ -1075,7 +1071,7 @@ static lbm_value fundamental_bitwise_not(lbm_value *args, lbm_uint nargs, eval_c
     if (!(lbm_is_number(args[0]))) {
       return retval;
     }
-    switch (lbm_type_of(args[0])) {
+    switch (lbm_type_of_functional(args[0])) {
     case LBM_TYPE_I: retval = lbm_enc_i(~lbm_dec_i(args[0])); break;
     case LBM_TYPE_U: retval = lbm_enc_u(~lbm_dec_u(args[0])); break;
     case LBM_TYPE_U32: retval = lbm_enc_u32(~lbm_dec_u32(args[0])); break;
