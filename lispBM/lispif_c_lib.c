@@ -634,7 +634,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.lbm_dec_sym = lbm_dec_sym;
 
 		cif.cif.lbm_is_byte_array = lbm_is_array_r;
-		cif.cif.lbm_is_cons = lbm_is_cons_general;
+		cif.cif.lbm_is_cons = lbm_is_cons;
 		cif.cif.lbm_is_number = lbm_is_number;
 		cif.cif.lbm_is_char = lbm_is_char;
 		cif.cif.lbm_is_symbol = lbm_is_symbol;
