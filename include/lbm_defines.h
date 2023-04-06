@@ -61,9 +61,9 @@
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0x2800000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0x3800000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4800000000000000
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
