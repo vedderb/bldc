@@ -28,6 +28,7 @@
 #include "symrepr.h"
 #include "stack.h"
 #include "lbm_channel.h"
+#include "platform_mutex.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -45,13 +46,15 @@ static inline bool lbm_get_gc_mark(lbm_value x) {
   return x & LBM_GC_MASK;
 }
 
-
-
 lbm_heap_state_t lbm_heap_state;
 
 lbm_const_heap_t *lbm_const_heap_state;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
+
+static mutex_t lbm_const_heap_mutex;
+static bool    lbm_const_heap_mutex_initialized;
+
 
 /****************************************************/
 /* ENCODERS DECODERS                                */
@@ -1128,6 +1131,11 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   if (((uintptr_t)addr % 4) != 0) return 0;
   if ((num_words % 2) != 0) return 0;
 
+  if (!lbm_const_heap_mutex_initialized) {
+    mutex_init(&lbm_const_heap_mutex);
+    lbm_const_heap_mutex_initialized = true;
+  }
+
   const_heap_write = w_fun;
 
   heap->heap = addr;
@@ -1143,6 +1151,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
+  mutex_lock(&lbm_const_heap_mutex);
   // waste a cell if we have ended up unaligned after writing an array to flash.
   if (lbm_const_heap_state->next % 2 == 1) {
     lbm_const_heap_state->next++;
@@ -1156,6 +1165,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
     *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
     r = LBM_FLASH_WRITE_OK;
   }
+  mutex_unlock(&lbm_const_heap_mutex);
   return r;
 }
 

@@ -221,14 +221,11 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #endif
 
-
 typedef enum {
   LBM_FLASH_WRITE_OK,
   LBM_FLASH_FULL,
   LBM_FLASH_WRITE_ERROR
 } lbm_flash_status;
-
-
 
 /** Struct representing a heap cons-cell.
  *
