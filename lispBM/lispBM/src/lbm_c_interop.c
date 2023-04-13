@@ -21,7 +21,7 @@
 /* Interface for loading and running programs and   */
 /* expressions                                      */
 
-lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program) {
+lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool incremental) {
 
   lbm_value stream;
 
@@ -34,10 +34,18 @@ lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program) {
     return 0;
   }
 
+  lbm_value read_mode = ENC_SYM_READ;
+  if (program) {
+    if (incremental) {
+      read_mode = ENC_SYM_READ_AND_EVAL_PROGRAM;
+    } else {
+      read_mode = ENC_SYM_READ_PROGRAM;
+    }
+  }
   /* LISP ZONE */
 
   lbm_value launcher = lbm_cons(stream, lbm_enc_sym(SYM_NIL));
-  launcher = lbm_cons(lbm_enc_sym(program ? SYM_READ_PROGRAM : SYM_READ), launcher);
+  launcher = lbm_cons(read_mode, launcher);
   lbm_value evaluator = lbm_cons(launcher, lbm_enc_sym(SYM_NIL));
   evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
   lbm_value start_prg = lbm_cons(evaluator, lbm_enc_sym(SYM_NIL));
@@ -129,7 +137,7 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
 
 
 lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, false);
+  return eval_cps_load_and_eval(tokenizer, false,false);
 }
 
 lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symbol) {
@@ -137,7 +145,11 @@ lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symb
 }
 
 lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, true);
+  return eval_cps_load_and_eval(tokenizer, true, false);
+}
+
+lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer) {
+  return eval_cps_load_and_eval(tokenizer, true, true);
 }
 
 lbm_cid lbm_load_and_define_program(lbm_char_channel_t *tokenizer, char *symbol) {
@@ -225,10 +237,10 @@ int lbm_undefine(char *symbol) {
 
 }
 
-int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
-  return lbm_lift_array(value, data, type, num_elt);
+int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt) {
+  return lbm_lift_array(value, data, num_elt);
 }
 
-int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt) {
-  return lbm_heap_allocate_array(value, num_elt, type);
+int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
+  return lbm_heap_allocate_array(value, num_elt);
 }

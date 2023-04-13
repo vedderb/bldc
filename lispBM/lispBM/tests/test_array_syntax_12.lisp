@@ -13,12 +13,12 @@
 
 
 
-(and (eq arr10 arr9)
-     (eq arr9 arr8)
-     (eq arr8 arr7)
-     (eq arr7 arr6)
-     (eq arr6 arr5)
-     (eq arr5 arr4)
-     (eq arr4 arr3)
-     (eq arr3 arr2)
-     (eq arr2 arr))
+(check (and (eq arr10 arr9)
+            (eq arr9 arr8)
+            (eq arr8 arr7)
+            (eq arr7 arr6)
+            (eq arr6 arr5)
+            (eq arr5 arr4)
+            (eq arr4 arr3)
+            (eq arr3 arr2)
+            (eq arr2 arr)))

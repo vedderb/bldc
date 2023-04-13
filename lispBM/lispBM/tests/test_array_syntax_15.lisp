@@ -1,4 +1,4 @@
 
-(define arr [type-i32 1 2 3 4 5 6 7])
+(define arr [1 2 3 4 5 6 7 8])
 
-(= (array-size arr) 7)
+(check (= (buflen arr) 8))

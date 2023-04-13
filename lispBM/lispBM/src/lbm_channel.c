@@ -289,8 +289,11 @@ bool string_channel_is_empty(lbm_char_channel_t *chan) {
 }
 
 bool string_channel_is_full(lbm_char_channel_t *chan) {
-  (void)chan;
-  return true;
+  lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
+  if (st->write_pos == st->length) {
+    return true;
+  }
+  return false;
 }
 
 bool string_read(lbm_char_channel_t *chan, char *res) {
@@ -329,9 +332,16 @@ bool string_drop(lbm_char_channel_t *chan, unsigned int n) {
 }
 
 int string_write(lbm_char_channel_t *chan, char c) {
-  (void) chan;
-  (void) c;
-  return CHANNEL_FULL;
+  lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
+  char *str = st->str;
+
+  if (st->write_pos < st->length - 1) {
+    str[st->write_pos] = c;
+    st->write_pos = st->write_pos + 1;
+  } else {
+    return CHANNEL_FULL;
+  }
+  return CHANNEL_SUCCESS;
 }
 
 unsigned int string_row(lbm_char_channel_t *chan) {
@@ -361,6 +371,37 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
   st->str = str;
   st->length = strlen(str);
   st->read_pos = 0;
+  st->write_pos = 0;
+  st->more = false;
+  st->comment = false;
+  st->row = 0;
+  st->column = 0;
+
+  chan->state = st;
+  chan->more = string_more;
+  chan->peek = string_peek;
+  chan->read = string_read;
+  chan->drop = string_drop;
+  chan->comment = string_comment;
+  chan->set_comment = string_set_comment;
+  chan->channel_is_empty = string_channel_is_empty;
+  chan->channel_is_full = string_channel_is_full;
+  chan->write = string_write;
+  chan->writer_close = string_writer_close;
+  chan->reader_close = string_reader_close;
+  chan->reader_is_closed = string_reader_is_closed;
+  chan->row = string_row;
+  chan->column = string_column;
+}
+
+void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
+                                         lbm_char_channel_t *chan,
+                                         char *str,
+                                         unsigned int size) {
+  st->str = str;
+  st->length = size;
+  st->read_pos = 0;
+  st->write_pos = 0;
   st->more = false;
   st->comment = false;
   st->row = 0;

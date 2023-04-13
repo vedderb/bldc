@@ -1,5 +1,5 @@
-(define arr (array-create type-u64 10))
+(define arr (bufcreate 10))
 
-(array-write arr 5 77)
+(bufset-u32 arr 5 1234 )
 
-(= (array-read arr 5) 77)
+(check (= (bufget-u32 arr 5) 1234))

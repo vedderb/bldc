@@ -2425,12 +2425,23 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 				conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
 	}
 
+	// Regen overvoltage cutoff
+	float lo_in_min_batt = 0.0;
+	if (v_in < (conf->l_battery_regen_cut_start + 0.1)) {
+		lo_in_min_batt = conf->l_in_current_min;
+	} else if (v_in > (conf->l_battery_regen_cut_end - 0.1)) {
+		lo_in_min_batt = 0.0;
+	} else {
+		lo_in_min_batt = utils_map(v_in, conf->l_battery_regen_cut_start,
+				conf->l_battery_regen_cut_end, conf->l_in_current_min, 0.0);
+	}
+
 	// Wattage limits
 	const float lo_in_max_watt = conf->l_watt_max / v_in;
 	const float lo_in_min_watt = conf->l_watt_min / v_in;
 
 	float lo_in_max = utils_min_abs(lo_in_max_watt, lo_in_max_batt);
-	float lo_in_min = lo_in_min_watt;
+	float lo_in_min = utils_min_abs(lo_in_min_watt, lo_in_min_batt);
 
 	// BMS limits
 	bms_update_limits(&lo_in_min,  &lo_in_max, conf->l_in_current_min, conf->l_in_current_max);
@@ -2962,7 +2973,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 unsigned mc_interface_calc_crc(mc_configuration* conf_in, bool is_motor_2) {
 	volatile mc_configuration* conf = conf_in;
 
-	if(conf == NULL) {
+	if (conf == NULL) {
 		if(is_motor_2) {
 #ifdef HW_HAS_DUAL_MOTORS
 			conf = &(m_motor_2.m_conf);

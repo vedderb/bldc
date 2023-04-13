@@ -217,13 +217,14 @@ static void output_vt_cb(void *arg) {
  * @return
  * CRC16 (with crc field in struct temporarily set to zero).
  */
-unsigned app_calc_crc(app_configuration* conf) {
-	if(NULL == conf)
+unsigned short app_calc_crc(app_configuration* conf) {
+	if (NULL == conf) {
 		conf = &appconf;
+	}
 
-	unsigned crc_old = conf->crc;
+	unsigned short crc_old = conf->crc;
 	conf->crc = 0;
-	unsigned crc_new = crc16((uint8_t*)conf, sizeof(app_configuration));
+	unsigned short crc_new = crc16((uint8_t*)conf, sizeof(app_configuration));
 	conf->crc = crc_old;
 	return crc_new;
 }

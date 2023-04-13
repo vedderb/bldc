@@ -27,6 +27,7 @@
 
 #define LBM_POINTER_TYPE_FIRST           0x10000000u
 #define LBM_TYPE_CONS                    0x10000000u
+#define LBM_TYPE_CONS_CONST              0x14000000u
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
 #define LBM_TYPE_U32                     0x28000000u
 #define LBM_TYPE_I32                     0x38000000u
@@ -35,13 +36,13 @@
 #define LBM_TYPE_FLOAT                   0x68000000u
 #define LBM_TYPE_DOUBLE                  0x78000000u
 #define LBM_TYPE_ARRAY                   0x80000000u
-#define LBM_TYPE_REF                     0x90000000u
-#define LBM_TYPE_CHANNEL                 0xA0000000u
-#define LBM_TYPE_CUSTOM                  0xB0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
-#define LBM_POINTER_TYPE_LAST            0xB0000000u
+#define LBM_TYPE_CHANNEL                 0x90000000u
+#define LBM_TYPE_CUSTOM                  0xA0000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
+#define LBM_POINTER_TYPE_LAST            0xBC000000u
 
-#define LBM_CONTINUATION_INTERNAL        0xFC000000u
+#define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
+#define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
 
 #define LBM_GC_MASK                      0x00000002u
 #define LBM_GC_MARKED                    0x00000002u
@@ -60,17 +61,17 @@
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0x2800000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0x3800000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4800000000000000
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
-#define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
-#define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xFC00000000000000
+#define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xF800000000000001
+#define LBM_CONTINUATION_INTERNAL_TYPE   (lbm_uint)0xF800000000000000
 
 #define LBM_GC_MASK                      (lbm_uint)0x2
 #define LBM_GC_MARKED                    (lbm_uint)0x2
@@ -99,15 +100,16 @@
 #define SYM_DONTCARE      0x9
 
 // 0x20 - 0x2F are errors
-#define SYM_RERROR        0x20  /* READ ERROR */
-#define SYM_TERROR        0x21  /* TYPE ERROR */
-#define SYM_EERROR        0x22  /* EVAL ERROR */
-#define SYM_MERROR        0x23
-#define SYM_NOT_FOUND     0x24
-#define SYM_DIVZERO       0x25
-#define SYM_FATAL_ERROR   0x26 /* Runtime system is corrupt */
-#define SYM_STACK_ERROR   0x27
-#define SYM_RECOVERED     0x28
+#define SYM_RERROR                0x20  /* READ ERROR */
+#define SYM_TERROR                0x21  /* TYPE ERROR */
+#define SYM_EERROR                0x22  /* EVAL ERROR */
+#define SYM_MERROR                0x23
+#define SYM_NOT_FOUND             0x24
+#define SYM_DIVZERO               0x25
+#define SYM_FATAL_ERROR           0x26 /* Runtime system is corrupt */
+#define SYM_STACK_ERROR           0x27
+#define SYM_RECOVERED             0x28
+#define SYM_ERROR_FLASH_HEAP_FULL 0x29
 
 
 #define TYPE_CLASSIFIER_STARTS 0x30
@@ -119,9 +121,8 @@
 #define SYM_IND_U_TYPE     0x35
 #define SYM_IND_F_TYPE     0x36
 #define SYM_CHANNEL_TYPE   0x37
-#define SYM_BYTECODE_TYPE  0x38
-#define SYM_CUSTOM_TYPE    0x39
-#define TYPE_CLASSIFIER_ENDS 0x39
+#define SYM_CUSTOM_TYPE    0x38
+#define TYPE_CLASSIFIER_ENDS 0x38
 #define SYM_NONSENSE       0x3A
 
 #define SYM_NO_MATCH       0x40
@@ -141,10 +142,9 @@
 #define SYM_TYPE_SYMBOL    0x5A
 #define SYM_TYPE_CHAR      0x5B
 #define SYM_TYPE_BYTE      0x5C
-#define SYM_TYPE_REF       0x5D
 #define SYM_TYPE_CHANNEL   0x5E
 
-//Relevant for the tokenizer
+//Relevant for the tokenizer and reader
 #define SYM_OPENPAR          0x70
 #define SYM_CLOSEPAR         0x71
 #define SYM_BACKQUOTE        0x72
@@ -158,7 +158,8 @@
 #define SYM_OPENBRACK        0x80
 #define SYM_CLOSEBRACK       0x81
 #define SYM_TOKENIZER_RERROR 0x82
-
+#define SYM_OPENCURL         0x84
+#define SYM_CONST            0x85
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
@@ -184,27 +185,30 @@
 #define SYM_COND                0x10F
 #define SYM_APP_CONT            0x110
 #define SYM_PROGN_VAR           0x111
-#define SPECIAL_FORMS_END       0x111
+#define SYM_SETQ                0x112
+#define SYM_MOVE_TO_FLASH       0x113
+#define SPECIAL_FORMS_END       0x113
 
 // Apply funs:
 // Get their arguments in evaluated form.
 // Consecutive value symbols for lookup-application
-#define APPLY_FUNS_START  0x200
-#define SYM_SETVAR        0x200
-#define SYM_READ          0x201
-#define SYM_READ_PROGRAM  0x202
-#define SYM_SPAWN         0x203
-#define SYM_SPAWN_TRAP    0x204
-#define SYM_YIELD         0x205
-#define SYM_WAIT          0x206
-#define SYM_EVAL          0x207
-#define SYM_EVAL_PROGRAM  0x208
-#define SYM_SEND          0x209
-#define SYM_EXIT_OK       0x20A
-#define SYM_EXIT_ERROR    0x20B
-#define SYM_MAP           0x20C
-#define SYM_REVERSE       0x20D
-#define APPLY_FUNS_END    0x20D
+#define APPLY_FUNS_START  0x150
+#define SYM_SETVAR        0x150
+#define SYM_READ          0x151
+#define SYM_READ_PROGRAM  0x152
+#define SYM_READ_AND_EVAL_PROGRAM 0x153
+#define SYM_SPAWN         0x154
+#define SYM_SPAWN_TRAP    0x155
+#define SYM_YIELD         0x156
+#define SYM_WAIT          0x157
+#define SYM_EVAL          0x158
+#define SYM_EVAL_PROGRAM  0x159
+#define SYM_SEND          0x15A
+#define SYM_EXIT_OK       0x15B
+#define SYM_EXIT_ERROR    0x15C
+#define SYM_MAP           0x15D
+#define SYM_REVERSE       0x15E
+#define APPLY_FUNS_END    0x15E
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -230,44 +234,40 @@
 #define SYM_LIST                0x222
 #define SYM_APPEND              0x223
 #define SYM_UNDEFINE            0x224
-#define SYM_ARRAY_READ          0x225
-#define SYM_ARRAY_WRITE         0x226
-#define SYM_ARRAY_CREATE        0x227
-#define SYM_ARRAY_SIZE          0x228
-#define SYM_ARRAY_CLEAR         0x229
-#define SYM_SYMBOL_TO_STRING    0x22A
-#define SYM_STRING_TO_SYMBOL    0x22B
-#define SYM_SYMBOL_TO_UINT      0x22C
-#define SYM_UINT_TO_SYMBOL      0x22D
-#define SYM_SET_CAR             0x22E
-#define SYM_SET_CDR             0x22F
-#define SYM_SET_IX              0x230
-#define SYM_ASSOC               0x231
-#define SYM_ACONS               0x232
-#define SYM_SET_ASSOC           0x233
-#define SYM_COSSA               0x234
-#define SYM_IX                  0x235
-#define SYM_TO_I                0x236
-#define SYM_TO_I32              0x237
-#define SYM_TO_U                0x238
-#define SYM_TO_U32              0x239
-#define SYM_TO_FLOAT            0x23A
-#define SYM_TO_I64              0x23B
-#define SYM_TO_U64              0x23C
-#define SYM_TO_DOUBLE           0x23D
-#define SYM_TO_BYTE             0x23E
-#define SYM_SHL                 0x23F
-#define SYM_SHR                 0x240
-#define SYM_BITWISE_AND         0x241
-#define SYM_BITWISE_OR          0x242
-#define SYM_BITWISE_XOR         0x243
-#define SYM_BITWISE_NOT         0x244
-#define SYM_CUSTOM_DESTRUCT     0x245 /* run the destructor of a custom type */
-#define SYM_TYPE_OF             0x246
-#define SYM_LIST_LENGTH         0x247
-#define SYM_RANGE               0x248
-#define SYM_REG_EVENT_HANDLER   0x249
-#define FUNDAMENTALS_END         0x249
+#define SYM_ARRAY_CREATE        0x225
+#define SYM_SYMBOL_TO_STRING    0x226
+#define SYM_STRING_TO_SYMBOL    0x227
+#define SYM_SYMBOL_TO_UINT      0x228
+#define SYM_UINT_TO_SYMBOL      0x229
+#define SYM_SET_CAR             0x22A
+#define SYM_SET_CDR             0x22B
+#define SYM_SET_IX              0x22C
+#define SYM_ASSOC               0x22D
+#define SYM_ACONS               0x22E
+#define SYM_SET_ASSOC           0x22F
+#define SYM_COSSA               0x230
+#define SYM_IX                  0x231
+#define SYM_TO_I                0x232
+#define SYM_TO_I32              0x233
+#define SYM_TO_U                0x234
+#define SYM_TO_U32              0x235
+#define SYM_TO_FLOAT            0x236
+#define SYM_TO_I64              0x237
+#define SYM_TO_U64              0x238
+#define SYM_TO_DOUBLE           0x239
+#define SYM_TO_BYTE             0x23A
+#define SYM_SHL                 0x23B
+#define SYM_SHR                 0x23C
+#define SYM_BITWISE_AND         0x23D
+#define SYM_BITWISE_OR          0x23E
+#define SYM_BITWISE_XOR         0x23F
+#define SYM_BITWISE_NOT         0x240
+#define SYM_CUSTOM_DESTRUCT     0x241 /* run the destructor of a custom type */
+#define SYM_TYPE_OF             0x242
+#define SYM_LIST_LENGTH         0x243
+#define SYM_RANGE               0x244
+#define SYM_REG_EVENT_HANDLER   0x245
+#define FUNDAMENTALS_END         0x245
 
 
 
@@ -284,76 +284,161 @@
    Encoded Symbols
    ------------------------------------------------------------ */
 
-#define ENC_SYM_STACK_ERROR ((SYM_STACK_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MERROR      ((SYM_MERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_RERROR      ((SYM_RERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EERROR      ((SYM_EERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TERROR      ((SYM_TERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_FATAL_ERROR ((SYM_FATAL_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_DIVZERO     ((SYM_DIVZERO << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM(X) (((X) << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
-#define ENC_SYM_NOT_FOUND   ((SYM_NOT_FOUND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NONSENSE    ((SYM_NONSENSE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NO_MATCH    ((SYM_NO_MATCH << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_NIL           ENC_SYM(SYM_NIL)
+#define ENC_SYM_TRUE          ENC_SYM(SYM_TRUE)
+#define ENC_SYM_DONTCARE      ENC_SYM(SYM_DONTCARE)
 
-#define ENC_SYM_NIL         ((SYM_NIL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_RECOVERED   ((SYM_RECOVERED << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TRUE        ((SYM_TRUE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_DONTCARE    ((SYM_DONTCARE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_RERROR                ENC_SYM(SYM_RERROR)
+#define ENC_SYM_TERROR                ENC_SYM(SYM_TERROR)
+#define ENC_SYM_EERROR                ENC_SYM(SYM_EERROR)
+#define ENC_SYM_MERROR                ENC_SYM(SYM_MERROR)
+#define ENC_SYM_NOT_FOUND             ENC_SYM(SYM_NOT_FOUND)
+#define ENC_SYM_DIVZERO               ENC_SYM(SYM_DIVZERO)
+#define ENC_SYM_FATAL_ERROR           ENC_SYM(SYM_FATAL_ERROR)
+#define ENC_SYM_STACK_ERROR           ENC_SYM(SYM_STACK_ERROR)
+#define ENC_SYM_RECOVERED             ENC_SYM(SYM_RECOVERED)
+#define ENC_SYM_ERROR_FLASH_HEAP_FULL ENC_SYM(SYM_ERROR_FLASH_HEAP_FULL)
 
-#define ENC_SYM_ARRAY_TYPE  ((SYM_ARRAY_TYPE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_ARRAY_TYPE     ENC_SYM(SYM_SYM_ARRAY_TYPE)
+#define ENC_SYM_RAW_I_TYPE     ENC_SYM(SYM_RAW_I_TYPE)
+#define ENC_SYM_RAW_U_TYPE     ENC_SYM(SYM_RAW_U_TYPE)
+#define ENC_SYM_RAW_F_TYPE     ENC_SYM(SYM_RAW_F_TYPE)
+#define ENC_SYM_IND_I_TYPE     ENC_SYM(SYM_IND_I_TYPE)
+#define ENC_SYM_IND_U_TYPE     ENC_SYM(SYM_IND_U_TYPE)
+#define ENC_SYM_IND_F_TYPE     ENC_SYM(SYM_IND_F_TYPE)
+#define ENC_SYM_CHANNEL_TYPE   ENC_SYM(SYM_CHANNEL_TYPE)
+#define ENC_SYM_CUSTOM_TYPE    ENC_SYM(SYM_CUSTOM_TYPE)
+#define ENC_SYM_NONSENSE       ENC_SYM(SYM_NONSENSE)
 
-#define ENC_SYM_READ        ((SYM_READ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_READ_PROGRAM ((SYM_READ_PROGRAM << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EVAL        ((SYM_EVAL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EVAL_PROGRAM ((SYM_EVAL_PROGRAM << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CONT        ((SYM_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CLOSURE     ((SYM_CLOSURE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_MACRO       ((SYM_MACRO << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SETVAR      ((SYM_SETVAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EXIT_OK     ((SYM_EXIT_OK << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_EXIT_ERROR  ((SYM_EXIT_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_COND        ((SYM_COND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_PROGN       ((SYM_PROGN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_APP_CONT    ((SYM_APP_CONT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
+#define ENC_SYM_MATCH_ANY      ENC_SYM(SYM_MATCH_ANY)
 
-#define ENC_SYM_SPAWN       ((SYM_SPAWN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_YIELD       ((SYM_YIELD << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_WAIT        ((SYM_WAIT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SEND        ((SYM_SEND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_SPAWN_TRAP  ((SYM_SPAWN_TRAP << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_TYPE_LIST      ENC_SYM(SYM_TYPE_LIST)
+#define ENC_SYM_TYPE_I         ENC_SYM(SYM_TYPE_I)
+#define ENC_SYM_TYPE_U         ENC_SYM(SYM_TYPE_U)
+#define ENC_SYM_TYPE_FLOAT     ENC_SYM(SYM_TYPE_FLOAT)
+#define ENC_SYM_TYPE_I32       ENC_SYM(SYM_TYPE_I32)
+#define ENC_SYM_TYPE_U32       ENC_SYM(SYM_TYPE_U32)
+#define ENC_SYM_TYPE_DOUBLE    ENC_SYM(SYM_TYPE_DOUBLE)
+#define ENC_SYM_TYPE_I64       ENC_SYM(SYM_TYPE_I64)
+#define ENC_SYM_TYPE_U64       ENC_SYM(SYM_TYPE_U64)
+#define ENC_SYM_TYPE_ARRAY     ENC_SYM(SYM_TYPE_ARRAY)
+#define ENC_SYM_TYPE_SYMBOL    ENC_SYM(SYM_TYPE_SYMBOL)
+#define ENC_SYM_TYPE_CHAR      ENC_SYM(SYM_TYPE_CHAR)
+#define ENC_SYM_TYPE_BYTE      ENC_SYM(SYM_TYPE_BYTE)
+#define ENC_SYM_TYPE_CHANNEL   ENC_SYM(SYM_TYPE_CHANNEL)
 
-#define ENC_SYM_CONS        ((SYM_CONS << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CAR         ((SYM_CAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CDR         ((SYM_CDR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_LIST        ((SYM_LIST << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_APPEND      ((SYM_APPEND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
+#define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)
+#define ENC_SYM_BACKQUOTE        ENC_SYM(SYM_BACKQUOTE)
+#define ENC_SYM_COMMA            ENC_SYM(SYM_COMMA)
+#define ENC_SYM_COMMAAT          ENC_SYM(SYM_COMMAAT)
+#define ENC_SYM_TOKENIZER_DONE   ENC_SYM(SYM_TOKENIZER_DONE)
+#define ENC_SYM_DOT              ENC_SYM(SYM_DOT)
+#define ENC_SYM_QUOTE_IT         ENC_SYM(SYM_QUOTE_IT)
+#define ENC_SYM_COLON            ENC_SYM(SYM_COLON)
+#define ENC_SYM_TOKENIZER_WAIT   ENC_SYM(SYM_TOKENIZER_WAIT)
+#define ENC_SYM_OPENBRACK        ENC_SYM(SYM_OPENBRACK)
+#define ENC_SYM_CLOSEBRACK       ENC_SYM(SYM_CLOSEBRACK)
+#define ENC_SYM_TOKENIZER_RERROR ENC_SYM(SYM_TOKENIZER_RERROR)
+#define ENC_SYM_OPENCURL         ENC_SYM(SYM_OPENCURL)
+#define ENC_SYM_CONST            ENC_SYM(SYM_CONST)
 
-#define ENC_SYM_QUOTE       ((SYM_QUOTE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_COMMA       ((SYM_COMMA << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_COMMAAT     ((SYM_COMMAAT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_CLOSEPAR    ((SYM_CLOSEPAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TOKENIZER_DONE ((SYM_TOKENIZER_DONE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TOKENIZER_RERROR ((SYM_TOKENIZER_RERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_QUOTE               ENC_SYM(SYM_QUOTE)
+#define ENC_SYM_DEFINE              ENC_SYM(SYM_DEFINE)
+#define ENC_SYM_PROGN               ENC_SYM(SYM_PROGN)
+#define ENC_SYM_LAMBDA              ENC_SYM(SYM_LAMBDA)
+#define ENC_SYM_IF                  ENC_SYM(SYM_IF)
+#define ENC_SYM_LET                 ENC_SYM(SYM_LET)
+#define ENC_SYM_AND                 ENC_SYM(SYM_AND)
+#define ENC_SYM_OR                  ENC_SYM(SYM_OR)
+#define ENC_SYM_MATCH               ENC_SYM(SYM_MATCH)
+#define ENC_SYM_RECEIVE             ENC_SYM(SYM_RECEIVE)
+#define ENC_SYM_CALLCC              ENC_SYM(SYM_CALLCC)
+#define ENC_SYM_ATOMIC              ENC_SYM(SYM_ATOMIC)
+#define ENC_SYM_MACRO               ENC_SYM(SYM_MACRO)
+#define ENC_SYM_CONT                ENC_SYM(SYM_CONT)
+#define ENC_SYM_CLOSURE             ENC_SYM(SYM_CLOSURE)
+#define ENC_SYM_COND                ENC_SYM(SYM_COND)
+#define ENC_SYM_APP_CONT            ENC_SYM(SYM_APP_CONT)
+#define ENC_SYM_PROGN_VAR           ENC_SYM(SYM_PROGN_VAR)
+#define ENC_SYM_SETQ                ENC_SYM(SYM_SETQ)
+#define ENC_SYM_MOVE_TO_FLASH       ENC_SYM(SYM_MOVE_TO_FLASH)
 
-#define ENC_SYM_TYPE_LIST   ((SYM_TYPE_LIST << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_ARRAY  ((SYM_TYPE_ARRAY << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_I32    ((SYM_TYPE_I32 << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_U32    ((SYM_TYPE_U32 << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_FLOAT  ((SYM_TYPE_FLOAT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_I64    ((SYM_TYPE_I64 << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_U64    ((SYM_TYPE_U64 << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_DOUBLE ((SYM_TYPE_DOUBLE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_I      ((SYM_TYPE_I << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_U      ((SYM_TYPE_U << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_CHAR   ((SYM_TYPE_CHAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_TYPE_SYMBOL ((SYM_TYPE_SYMBOL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_SETVAR        ENC_SYM(SYM_SETVAR)
+#define ENC_SYM_READ          ENC_SYM(SYM_READ)
+#define ENC_SYM_READ_PROGRAM  ENC_SYM(SYM_READ_PROGRAM)
+#define ENC_SYM_READ_AND_EVAL_PROGRAM ENC_SYM(SYM_READ_AND_EVAL_PROGRAM)
+#define ENC_SYM_SPAWN         ENC_SYM(SYM_SPAWN)
+#define ENC_SYM_SPAWN_TRAP    ENC_SYM(SYM_SPAWN_TRAP)
+#define ENC_SYM_YIELD         ENC_SYM(SYM_YIELD)
+#define ENC_SYM_WAIT          ENC_SYM(SYM_WAIT)
+#define ENC_SYM_EVAL          ENC_SYM(SYM_EVAL)
+#define ENC_SYM_EVAL_PROGRAM  ENC_SYM(SYM_EVAL_PROGRAM)
+#define ENC_SYM_SEND          ENC_SYM(SYM_SEND)
+#define ENC_SYM_EXIT_OK       ENC_SYM(SYM_EXIT_OK)
+#define ENC_SYM_EXIT_ERROR    ENC_SYM(SYM_EXIT_ERROR)
+#define ENC_SYM_MAP           ENC_SYM(SYM_MAP)
+#define ENC_SYM_REVERSE       ENC_SYM(SYM_REVERSE)
 
-#define ENC_SYM_NUM_NOT_EQ  ((SYM_NUM_NOT_EQ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-#define ENC_SYM_NOT_EQ      ((SYM_NOT_EQ << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
+#define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
+#define ENC_SYM_MUL           ENC_SYM(SYM_MUL)
+#define ENC_SYM_DIV           ENC_SYM(SYM_DIV)
+#define ENC_SYM_MOD           ENC_SYM(SYM_MOD)
+#define ENC_SYM_EQ            ENC_SYM(SYM_EQ)
+#define ENC_SYM_NOT_EQ        ENC_SYM(SYM_NOT_EQ)
+#define ENC_SYM_NUMEQ         ENC_SYM(SYM_NUMEQ)
+#define ENC_SYM_NUM_NOT_EQ    ENC_SYM(SYM_NUM_NOT_EQ)
+#define ENC_SYM_LT            ENC_SYM(SYM_LT)
+#define ENC_SYM_GT            ENC_SYM(SYM_GT)
+#define ENC_SYM_LEQ           ENC_SYM(SYM_LEQ)
+#define ENC_SYM_GEQ           ENC_SYM(SYM_GEQ)
+#define ENC_SYM_NOT           ENC_SYM(SYM_NOT)
+#define ENC_SYM_PERFORM_GC          ENC_SYM(SYM_PERFORM_GC)
+#define ENC_SYM_SELF                ENC_SYM(SYM_SELF)
+#define ENC_SYM_SET_MAILBOX_SIZE    ENC_SYM(SYM_SET_MAILBOX_SIZE)
+#define ENC_SYM_CONS                ENC_SYM(SYM_CONS)
+#define ENC_SYM_CAR                 ENC_SYM(SYM_CAR)
+#define ENC_SYM_CDR                 ENC_SYM(SYM_CDR)
+#define ENC_SYM_LIST                ENC_SYM(SYM_LIST)
+#define ENC_SYM_APPEND              ENC_SYM(SYM_APPEND)
+#define ENC_SYM_UNDEFINE            ENC_SYM(SYM_UNDEFINE)
+#define ENC_SYM_ARRAY_CREATE        ENC_SYM(SYM_ARRAY_CREATE)
+#define ENC_SYM_SYMBOL_TO_STRING    ENC_SYM(SYM_ENC_SYMBOL_TO_STRING)
+#define ENC_SYM_STRING_TO_SYMBOL    ENC_SYM(SYM_STRING_TO_SYMBOL)
+#define ENC_SYM_SYMBOL_TO_UINT      ENC_SYM(SYM_SYMBOL_TO_UINT)
+#define ENC_SYM_UINT_TO_SYMBOL      ENC_SYM(SYM_UINT_TO_SYMBOL)
+#define ENC_SYM_SET_CAR             ENC_SYM(SYM_SET_CAR)
+#define ENC_SYM_SET_CDR             ENC_SYM(SYM_SET_CDR)
+#define ENC_SYM_SET_IX              ENC_SYM(SYM_SET_IX)
+#define ENC_SYM_ASSOC               ENC_SYM(SYM_ASSOC)
+#define ENC_SYM_ACONS               ENC_SYM(SYM_ACONS)
+#define ENC_SYM_SET_ASSOC           ENC_SYM(SYM_SET_ASSOC)
+#define ENC_SYM_COSSA               ENC_SYM(SYM_COSSA)
+#define ENC_SYM_IX                  ENC_SYM(SYM_IX)
+#define ENC_SYM_TO_I                ENC_SYM(SYM_TO_I)
+#define ENC_SYM_TO_I32              ENC_SYM(SYM_TO_I32)
+#define ENC_SYM_TO_U                ENC_SYM(SYM_TO_U)
+#define ENC_SYM_TO_U32              ENC_SYM(SYM_TO_U32)
+#define ENC_SYM_TO_FLOAT            ENC_SYM(SYM_TO_FLOAT)
+#define ENC_SYM_TO_I64              ENC_SYM(SYM_TO_I64)
+#define ENC_SYM_TO_U64              ENC_SYM(SYM_TO_U64)
+#define ENC_SYM_TO_DOUBLE           ENC_SYM(SYM_TO_DOUBLE)
+#define ENC_SYM_TO_BYTE             ENC_SYM(SYM_TO_BYTE)
+#define ENC_SYM_SHL                 ENC_SYM(SYM_SHL)
+#define ENC_SYM_SHR                 ENC_SYM(SYM_SHR)
+#define ENC_SYM_BITWISE_AND         ENC_SYM(SYM_BITWISE_AND)
+#define ENC_SYM_BITWISE_OR          ENC_SYM(SYM_BITWISE_OR)
+#define ENC_SYM_BITWISE_XOR         ENC_SYM(SYM_BITWISE_XOR)
+#define ENC_SYM_BITWISE_NOT         ENC_SYM(SYM_BITWISE_NOT)
+#define ENC_SYM_CUSTOM_DESTRUCT     ENC_SYM(SYM_CUSTOM_DESTRUCT)
+#define ENC_SYM_TYPE_OF             ENC_SYM(SYM_TYPE_OF)
+#define ENC_SYM_LIST_LENGTH         ENC_SYM(SYM_LIST_LENGTH)
+#define ENC_SYM_RANGE               ENC_SYM(SYM_RANGE)
+#define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
 
-#define ENC_SYM_COLON       ((SYM_COLON << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
-
-#define ENC_SYM_MAP         ((SYM_MAP << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #endif

@@ -4,4 +4,4 @@
 (def lis (vector-to-list vec))
 
 
-(eq lis '(1.0 2.0 3.0))
+(check (eq lis '(1.0 2.0 3.0)))

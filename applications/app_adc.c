@@ -61,7 +61,7 @@ static volatile float adc2_override = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
-static volatile bool adc_detached = false;
+static volatile int adc_detached = 0;
 static volatile bool buttons_detached = false;
 static volatile bool rev_override = false;
 static volatile bool cc_override = false;
@@ -121,34 +121,33 @@ float app_adc_get_voltage2(void) {
 	return read_voltage2;
 }
 
-void app_adc_detach_adc(bool detach){
+void app_adc_detach_adc(int detach) {
 	adc_detached = detach;
 }
 
-void app_adc_adc1_override(float val){
+void app_adc_adc1_override(float val) {
 	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
 	utils_truncate_number(&val, 0, 3.3);
 	adc1_override = val;
 }
 
-void app_adc_adc2_override(float val){
+void app_adc_adc2_override(float val) {
 	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
 	utils_truncate_number(&val, 0, 3.3);
 	adc2_override = val;
 }
 
-void app_adc_detach_buttons(bool state){
+void app_adc_detach_buttons(bool state) {
 	buttons_detached = state;
 }
 
-void app_adc_rev_override(bool state){
+void app_adc_rev_override(bool state) {
 	rev_override = state;
 }
 
-void app_adc_cc_override(bool state){
+void app_adc_cc_override(bool state) {
 	cc_override = state;
 }
-
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
@@ -180,7 +179,7 @@ static THD_FUNCTION(adc_thread, arg) {
 		float pwr = ADC_VOLTS(ADC_IND_EXT);
 
 		// Override pwr value, when used from LISP
-		if(adc_detached){
+		if (adc_detached == 1 || adc_detached == 2) {
 			pwr = adc1_override;
 		}
 
@@ -239,7 +238,7 @@ static THD_FUNCTION(adc_thread, arg) {
 #endif
 
 		// Override brake value, when used from LISP
-		if(adc_detached == true){
+		if (adc_detached == 1 || adc_detached == 3) {
 			brake = adc2_override;
 		}
 

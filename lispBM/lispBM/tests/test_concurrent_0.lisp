@@ -9,7 +9,7 @@
 
 (send cpid (list (self) 1 2))
 
-(recv ((? x) (= x 3)))
+(check (recv ((? x) (= x 3))))
 
 
 

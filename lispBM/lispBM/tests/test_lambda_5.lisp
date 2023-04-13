@@ -2,4 +2,4 @@
     (lambda () 
       (lambda (x) (+ x 1))))
 
-(= ((f) 1) 2 )
+(check (= ((f) 1) 2 ))

@@ -290,7 +290,6 @@ static lbm_value ext_list_to_matrix(lbm_value *args, lbm_uint argn) {
         lbm_value curr = args[1];
         unsigned int i = 0;
         while (lbm_is_cons(curr)) {
-          float f = lbm_dec_as_float(lbm_car(curr));
           lmat->data[i] = lbm_dec_as_float(lbm_car(curr));
           i ++;
           curr = lbm_cdr(curr);

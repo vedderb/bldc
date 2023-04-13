@@ -1,1 +1,1 @@
-(eq (ext-odd 1) t)
+(check (eq (ext-odd 1) t))

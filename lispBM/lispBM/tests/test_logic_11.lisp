@@ -1,1 +1,1 @@
-(eq (not (not (not (not (not t))))) nil)
+(check (eq (not (not (not (not (not t))))) nil))

@@ -1,4 +1,4 @@
 
-(and (= (array-size "apa") 4)
-     (= (array-size "bepa") 5)
-     (= (array-size "kurt1") 6))
+(check (and (= (buflen "apa") 4)
+            (= (buflen "bepa") 5)
+            (= (buflen "kurt1") 6)))

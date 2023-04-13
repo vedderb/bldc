@@ -206,6 +206,10 @@ uint8_t* flash_helper_code_data(int ind) {
 	}
 }
 
+uint8_t* flash_helper_code_data_raw(int ind) {
+	return (uint8_t*)flash_addr[code_sectors[ind]];
+}
+
 uint32_t flash_helper_code_size(int ind) {
 	qmlui_check(ind);
 

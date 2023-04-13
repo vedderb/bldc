@@ -5,4 +5,4 @@
 	0
       (+ x (f (- x 1))))))
 
-(= (progn (define a 5)  (f a) ) 15)
+(check (= (progn (define a 5)  (f a) ) 15))

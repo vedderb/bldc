@@ -1,4 +1,4 @@
 (define f (lambda (x) (+ x 1)))
 
-(= (f 78) 79)
+(check (= (f 78) 79))
 

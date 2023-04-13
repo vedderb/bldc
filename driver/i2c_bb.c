@@ -87,10 +87,12 @@ void i2c_bb_restore_bus(i2c_bb_state *s) {
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes) {
 	chMtxLock(&s->mutex);
 
-	i2c_write_byte(s, true, false, addr << 1);
+	if (txbytes > 0 && txbuf) {
+		i2c_write_byte(s, true, false, addr << 1);
 
-	for (unsigned int i = 0;i < txbytes;i++) {
-		i2c_write_byte(s, false, false, txbuf[i]);
+		for (unsigned int i = 0;i < txbytes;i++) {
+			i2c_write_byte(s, false, false, txbuf[i]);
+		}
 	}
 
 	if (rxbytes > 0) {

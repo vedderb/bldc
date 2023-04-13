@@ -2,5 +2,5 @@
    (+ x (eval-program (read-program "(+ 100 150)"))))
 
 
-(and (= (f 1) 251)
-     (= (f 2) 252))
+(check (and (= (f 1) 251)
+            (= (f 2) 252)))

@@ -158,17 +158,10 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w) {
   return res;
 }
 
-bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_elts, lbm_uint t, uint8_t *data) {
+bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data) {
   bool res = true;
   res = res && write_byte(v, S_LBM_ARRAY);
-  res = res && write_word(v, num_elts);
-#ifndef LBM64
-  res = res && write_word(v, t);
-#else
-  res = res && write_dword(v, t);
-#endif
-  uint32_t num_bytes = num_elts;
-  num_bytes *= lbm_size_of(t);
+  res = res && write_word(v, num_bytes);
   if (res && v->buf_size >= v->buf_pos + num_bytes) {
     memcpy(v->buf + v->buf_pos, data, num_bytes);
     v->buf_pos += num_bytes;
@@ -343,26 +336,16 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_LBM_ARRAY: {
     uint32_t num_elt;
-    lbm_uint t;
     if (extract_word(v, &num_elt)) {
-      bool b;
-#ifndef LBM64
-      b = extract_word(v,&t);
-#else
-      b = extract_dword(v,&t);
-#endif
-      if (b) {
-        if (lbm_heap_allocate_array(res, num_elt, t)) {
-          lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
-          lbm_uint num_bytes = num_elt;
-          num_bytes *= lbm_size_of(t);
-          memcpy(arr->data, v->buf + v->buf_pos, num_bytes);
-          v->buf_pos += num_bytes;
-        } else {
-          return UNFLATTEN_GC_RETRY;
-        }
-        return UNFLATTEN_OK;
+      if (lbm_heap_allocate_array(res, num_elt)) {
+        lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
+        lbm_uint num_bytes = num_elt;
+        memcpy(arr->data, v->buf + v->buf_pos, num_bytes);
+        v->buf_pos += num_bytes;
+      } else {
+        return UNFLATTEN_GC_RETRY;
       }
+      return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
   }

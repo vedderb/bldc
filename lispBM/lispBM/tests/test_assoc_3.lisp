@@ -2,6 +2,6 @@
 
 (setassoc 'alist 3 'e)
 
-(and (eq (assoc alist 3) 'c)
-     (eq (assoc alist 1) 'a))
+(check (and (eq (assoc alist 3) 'c)
+            (eq (assoc alist 1) 'a)))
 

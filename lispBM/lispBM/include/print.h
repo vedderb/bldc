@@ -28,6 +28,13 @@
 extern "C" {
 #endif
 
+/** Check if an lbm_value (very likely) is a printable string
+ *
+ * \param v Value to check stringyness of.
+ * \return True if the value likely is a string, otherwise false.
+ */
+bool lbm_value_is_printable_string(lbm_value v, char **str);
+
 /** Initialize the print_value subsystem.
  *  print value depends on a stack and that stack is initialized here using a storage array provided by the user.
  * \param print_stack_storage Array to use as storage for stack data.

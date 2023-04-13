@@ -2,7 +2,16 @@
 #### TBD
 * LispBM:
 	* Support for var in progn.
+	* Support for curly brackets instead of progn.
+	* Added set and setq.
+	* Added defunret.
+	* Added support for detaching only one of the ADCs.
+	* Added set-encoder.
+	* Support for moving code and data to flash.
+	* Incremental read of uploaded code.
+	* Removed array types other than byte arrays.
 * Hall sensors: smooth transition to sensorless.
+* Added soft regen cutoff. See https://github.com/vedderb/vesc_tool/pull/310
 
 ### 6.02
 #### 2023-03-12

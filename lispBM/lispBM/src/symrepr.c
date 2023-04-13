@@ -47,6 +47,7 @@ special_sym const special_symbols[] =  {
   {"progn"      , SYM_PROGN},
   {"read"       , SYM_READ},
   {"read-program" , SYM_READ_PROGRAM},
+  {"read-eval-program", SYM_READ_AND_EVAL_PROGRAM},
   //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
   //{"splice"     , SYM_COMMAAT},
   {"match"        , SYM_MATCH},
@@ -58,7 +59,9 @@ special_sym const special_symbols[] =  {
   {"continuation" , SYM_CONT},
   {"var"          , SYM_PROGN_VAR},
 
-  {"setvar"       , SYM_SETVAR},
+  {"set"          , SYM_SETVAR},
+  {"setq"         , SYM_SETQ},
+  {"move-to-flash", SYM_MOVE_TO_FLASH},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
   {"map"          , SYM_MAP},
@@ -78,6 +81,7 @@ special_sym const special_symbols[] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"variable_not_bound" , SYM_NOT_FOUND},
+  {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
   {"$array"          , SYM_ARRAY_TYPE},
@@ -89,7 +93,6 @@ special_sym const special_symbols[] =  {
   {"$ind_f"          , SYM_IND_F_TYPE},
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
-  {"$bytecode"       , SYM_BYTECODE_TYPE},
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
@@ -123,7 +126,6 @@ special_sym const special_symbols[] =  {
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
-  {"type-ref"         , SYM_TYPE_REF},
   {"type-channel"     , SYM_TYPE_CHANNEL},
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -157,11 +159,7 @@ special_sym const special_symbols[] =  {
   {"list"             , SYM_LIST},
   {"append"           , SYM_APPEND},
   {"undefine"         , SYM_UNDEFINE},
-  {"array-read"       , SYM_ARRAY_READ},
-  {"array-write"      , SYM_ARRAY_WRITE},
-  {"array-create"     , SYM_ARRAY_CREATE},
-  {"array-size"       , SYM_ARRAY_SIZE},
-  {"array-clear"      , SYM_ARRAY_CLEAR},
+  {"bufcreate"        , SYM_ARRAY_CREATE},
   {"type-of"          , SYM_TYPE_OF},
   {"sym2str"          , SYM_SYMBOL_TO_STRING},
   {"str2sym"          , SYM_STRING_TO_SYMBOL},
@@ -208,8 +206,11 @@ special_sym const special_symbols[] =  {
   {"fn"             , SYM_LAMBDA},
   {"def"            , SYM_DEFINE},
   {"true"           , SYM_TRUE},
-  {"false"          , SYM_NIL}
-
+  {"false"          , SYM_NIL},
+  {"setvar"         , SYM_SETVAR},
+  {"type-f32"       , SYM_TYPE_FLOAT},
+  {"type-f64"       , SYM_TYPE_DOUBLE},
+  {"array-create"   , SYM_ARRAY_CREATE},
 };
 
 static lbm_uint *symlist = NULL;

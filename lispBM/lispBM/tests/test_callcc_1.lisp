@@ -3,4 +3,4 @@
 
 
 
-(= (f (call-cc (lambda (k) (k 10)))) 11)
+(check (= (f (call-cc (lambda (k) (k 10)))) 11))

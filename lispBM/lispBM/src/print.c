@@ -1,6 +1,6 @@
 /*
-    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
-                                2022 Benjamin Vedder
+    Copyright 2018, 2020 - 2023      Joel Svensson    svenssonjoel@yahoo.se
+                           2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <inttypes.h>
 #include <lbm_types.h>
 #include <lbm_custom_type.h>
@@ -26,6 +27,7 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
+#include "lbm_channel.h"
 
 #define PRINT          1
 #define PRINT_SPACE    2
@@ -39,6 +41,36 @@ static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
+bool lbm_value_is_printable_string(lbm_value v, char **str) {
+  bool is_a_string = false;
+  if (lbm_is_array_r(v)) {
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
+
+    is_a_string = true;
+    char *c_data = (char *)array->data;
+    if (array->size == 1) {
+      *str = c_data;
+      return c_data[0] == 0;
+    }
+    unsigned int i;
+    for (i = 0; i < array->size; i ++) {
+      if (c_data[i] == 0 && i > 0) break;
+      if (!isprint((unsigned char)c_data[i]) && !iscntrl((unsigned char)c_data[i])) {
+        is_a_string = false;
+        break;
+      }
+    }
+
+    if (i == array->size) i--;
+    if (i > 0 && c_data[i] != 0) is_a_string = false;
+    if (is_a_string) {
+      *str = (char*)array->data;
+    }
+  }
+  return is_a_string;
+}
+
+
 int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size) {
 
   if (!print_stack_storage || print_stack_size == 0)
@@ -51,42 +83,195 @@ int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size) {
   return 0;
 }
 
-int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
+#define EMIT_BUFFER_SIZE 30
 
-  int r = 0;
-  unsigned int n = 0;
-  unsigned int offset = 0;
-  const char *str_ptr;
-  int res;
+#define EMIT_FAILED -1
+#define EMIT_OK      0
+
+int print_emit_string(lbm_char_channel_t *chan, char* str) {
+  if (str == NULL) return EMIT_FAILED;
+  while (*str != 0) {
+    int r = lbm_channel_write(chan, *str);
+    str++;
+    if (r != CHANNEL_SUCCESS) return EMIT_FAILED;
+  }
+  return EMIT_OK;
+}
+
+int print_emit_char(lbm_char_channel_t *chan, char c) {
+
+  int r = lbm_channel_write(chan, c);
+  if (r != CHANNEL_SUCCESS) return EMIT_FAILED;
+  return EMIT_OK;
+}
+
+
+int emit_escape(lbm_char_channel_t *chan, char c) {
+  switch(c) {
+  case '"': return print_emit_string(chan, "\\\"");
+  case '\n': return print_emit_string(chan, "\\n");
+  case '\r': return print_emit_string(chan, "\\r");
+  case '\t': return print_emit_string(chan, "\\t");
+  case '\\': return print_emit_string(chan, "\\\\");
+  default:
+    return print_emit_char(chan, c);
+  }
+}
+
+int print_emit_string_value(lbm_char_channel_t *chan, char* str) {
+  if (str == NULL) return EMIT_FAILED;
+  while (*str != 0) {
+    int r = emit_escape(chan, *str++);
+    if (r != EMIT_OK) return r;
+  }
+  return EMIT_OK;
+}
+
+int print_emit_symbol(lbm_char_channel_t *chan, lbm_value sym) {
+  char *str_ptr = (char*)lbm_get_name_by_symbol(lbm_dec_sym(sym));
+  return print_emit_string(chan, str_ptr);
+}
+
+int print_emit_i(lbm_char_channel_t *chan, int32_t v) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIi32, v);
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_u(lbm_char_channel_t *chan, uint32_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIu32"%s", v, ps ? "u" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_byte(lbm_char_channel_t *chan, uint8_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf, EMIT_BUFFER_SIZE, "%u%s", v, ps ? "b" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_float(lbm_char_channel_t *chan, float v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_FLOAT"%s", (double)v, ps ? "f32" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_double(lbm_char_channel_t *chan, double v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf, EMIT_BUFFER_SIZE, "%lf%s", v, ps ? "f64" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_u32(lbm_char_channel_t *chan, uint32_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf,EMIT_BUFFER_SIZE, "%"PRIu32"%s", v, ps ? "u32" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_i32(lbm_char_channel_t *chan, int32_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf,EMIT_BUFFER_SIZE, "%"PRId32"%s", v, ps ? "i32" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_u64(lbm_char_channel_t *chan, uint64_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf,EMIT_BUFFER_SIZE, "%"PRIu64"%s", v, ps ? "u64" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_i64(lbm_char_channel_t *chan, int64_t v, bool ps) {
+  char buf[EMIT_BUFFER_SIZE];
+  snprintf(buf,EMIT_BUFFER_SIZE, "%"PRId64"%s", v, ps ? "i64" : "");
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
+  char buf[EMIT_BUFFER_SIZE];
+  lbm_uint cont = (v & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT;
+  snprintf(buf, EMIT_BUFFER_SIZE, "CONT[" "%"PRI_UINT"]", cont);
+  return print_emit_string(chan, buf);
+}
+
+int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
+  lbm_uint *custom = (lbm_uint*)lbm_car(v);
+  int r;
+  if (custom[CUSTOM_TYPE_DESCRIPTOR]) {
+    r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
+  } else {
+    r = print_emit_string(chan, "Unspecified_Custom_Type");
+  }
+  return r;
+}
+
+int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
+  (void) v;
+  return print_emit_string(chan, "~CHANNEL~");
+}
+
+int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
+
+  int r = print_emit_char(chan, '[');
+
+  if (r == EMIT_OK) {
+
+    for (unsigned int i = 0; i < array->size; i ++) {
+
+      char *c_data = (char*)array->data;
+      r = print_emit_byte(chan, (uint8_t)c_data[i], false);
+
+      if (r == EMIT_OK && i != array->size - 1) {
+        r = print_emit_char(chan, ' ');
+      }
+    }
+
+    if (r != EMIT_OK) return r;
+    return print_emit_char(chan, ']');
+  }
+  return r;
+}
+
+int print_emit_array(lbm_char_channel_t *chan, lbm_value v) {
+
+  char *str;
+
+  if (lbm_value_is_printable_string(v, &str)) {
+    int r = print_emit_char(chan, '"');
+    if (r == EMIT_OK) {
+      r = print_emit_string_value(chan, str);
+      if (r == EMIT_OK) {
+        r = print_emit_char(chan, '"');
+      }
+    }
+    return r;
+  }
+
+  lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
+  return print_emit_array_data(chan, array);
+}
+
+
+int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
 
   lbm_stack_clear(&print_stack);
-  lbm_push_2(&print_stack, t, PRINT);
+  lbm_push_2(&print_stack, v, PRINT);
+  bool chan_full = false;
+  lbm_value curr;
+  lbm_uint instr;
+  int r = EMIT_FAILED;
 
-  while (!lbm_stack_is_empty(&print_stack) && offset <= len - 5) {
-
-    lbm_value curr;
-    lbm_uint  instr;
+  while (!lbm_stack_is_empty(&print_stack) && !chan_full) {
     lbm_pop(&print_stack, &instr);
-
-    switch(instr) {
-
+    switch (instr) {
     case START_LIST: {
-      res = 1;
       lbm_pop(&print_stack, &curr);
-
-      r = snprintf(buf + offset, len - offset, "(");
-      if ( r >= 0 ) {
-        n = (unsigned int) r;
-      } else {
-        snprintf(buf, len, "%s", failed_str);
-        return -1;
-      }
-
-      offset += n;
+      r = print_emit_char(chan, '(');
+      if (r != EMIT_OK) return r;
       lbm_value car_val = lbm_car(curr);
       lbm_value cdr_val = lbm_cdr(curr);
-
-      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
+      int res = 1;
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS ||
+          lbm_type_of(cdr_val) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
         res &= lbm_push(&print_stack, cdr_val);
         res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
@@ -100,17 +285,13 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       }
       res &= lbm_push(&print_stack, car_val);
       res &= lbm_push(&print_stack, PRINT);
-
       if (!res) {
-        snprintf(buf, len, "Error: Out of print stack\n");
-        return -1;
+        return EMIT_FAILED;
       }
-
       break;
     }
     case CONTINUE_LIST: {
-
-      res = 1;
+      int res = 1;
       lbm_pop(&print_stack, &curr);
 
       if (lbm_type_of(curr) == LBM_TYPE_SYMBOL &&
@@ -121,16 +302,12 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       lbm_value car_val = lbm_car(curr);
       lbm_value cdr_val = lbm_cdr(curr);
 
-      r = snprintf(buf + offset, len - offset, " ");
-      if ( r > 0) {
-        n = (unsigned int) r;
-      } else {
-        snprintf(buf, len, "%s", failed_str);
-        return -1;
+      r = print_emit_char(chan, ' ');
+      if (r != EMIT_OK) {
+        return r;
       }
-      offset += n;
-
-      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS ||
+          lbm_type_of(cdr_val) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
         res &= lbm_push(&print_stack, cdr_val);
         res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
@@ -145,306 +322,97 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       res &= lbm_push(&print_stack, car_val);
       res &= lbm_push(&print_stack, PRINT);
       if (!res) {
-        snprintf(buf, len, "Error: Out of print stack\n");
-        return -1;
+        return EMIT_FAILED;
       }
       break;
     }
     case END_LIST:
-      r = snprintf(buf + offset, len - offset, ")");
-      if ( r > 0) {
-        n = (unsigned int) r;
-      } else {
-        snprintf(buf, len, "%s", failed_str);
-        return -1;
-      }
-      offset += n;
+      r = print_emit_char(chan, ')');
+      if (r != EMIT_OK) return r;
       break;
-
     case PRINT_SPACE:
-      r = snprintf(buf + offset, len - offset, " ");
-      if ( r > 0) {
-        n = (unsigned int) r;
-      } else {
-        snprintf(buf, len, "%s", failed_str);
-        return -1;
-      }
-
-      offset += n;
+      r = print_emit_char(chan, ' ');
+      if (r != EMIT_OK) return r;
       break;
-    case PRINT_DOT: /* space dot space */
-      r = snprintf(buf + offset, len - offset, " . ");
-      if (r > 0) {
-        n = (unsigned int) r;
-      } else {
-        snprintf(buf, len, "%s", failed_str);
-        return -1;
-      }
-      offset +=n;
+    case PRINT_DOT:
+      r = print_emit_string(chan, " . ");
+      if (r != EMIT_OK) return r;
       break;
-
     case PRINT:
-
       lbm_pop(&print_stack, &curr);
 
-      switch(lbm_type_of(curr)) {
-
-      case LBM_TYPE_CONS:{
-        res = 1;
-        res &= lbm_push(&print_stack, curr);
-        res &= lbm_push(&print_stack, START_LIST);
+      lbm_type t = lbm_type_of(curr);
+      if (lbm_is_ptr(curr))
+          t = t & LBM_PTR_TO_CONSTANT_MASK; // print constants normally
+      
+      switch(t) {
+        //case LBM_TYPE_CONS_CONST: /* fall through */
+      case LBM_TYPE_CONS: {
+        int res = lbm_push_2(&print_stack, curr, START_LIST);
         if (!res) {
-          snprintf(buf, len, "Error: Out of print stack\n");
-          return -1;
+          print_emit_string(chan," ...");
+          return EMIT_OK;
         }
         break;
       }
-
-      case LBM_TYPE_REF:
-        r = snprintf(buf + offset, len - offset, "_ref_");
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-
-      case LBM_TYPE_FLOAT: {
-        float v = lbm_dec_float(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_DOUBLE: {
-        double v = lbm_dec_double(curr);
-        r = snprintf(buf + offset, len - offset, "{%lf}", (double)v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_U32: {
-        uint32_t v = lbm_dec_u32(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRIu32"}", v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_U64: {
-        uint64_t v = lbm_dec_u64(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRIu64"}", v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_I32: {
-        int32_t v = lbm_dec_i32(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRId32"}", v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_I64: {
-        int64_t v = lbm_dec_i64(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRId64"}", v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break;
-      }
-
-      case LBM_TYPE_ARRAY: {
-        lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
-        switch (array->elt_type){
-        case LBM_TYPE_CHAR:
-          r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
-          if ( r > 0) {
-            n = (unsigned int) r;
-          } else {
-            snprintf(buf, len, "%s", failed_str);
-            return -1;
-          }
-          offset += n;
-          break;
-        default:
-          r = snprintf(buf + offset, len - offset, "{");
-          if (r == 1) {
-            offset += 1;
-          } else {
-            snprintf(buf, len, "%s", failed_str);
-            return -1;
-          }
-          for (unsigned int i = 0; i < array->size; i ++) {
-            switch(array->elt_type) {
-            case LBM_TYPE_I32:
-              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
-              break;
-            case LBM_TYPE_U32:
-              r = snprintf(buf+offset, len - offset, "%"PRIu32"%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
-              break;
-            case LBM_TYPE_FLOAT: {
-              float f_val;
-              memcpy(&f_val, &array->data[i], sizeof(float));
-              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(double)f_val, i == array->size - 1 ? "" : ", ");
-            } break;
-            default:
-              break;
-            }
-            if (r > 0) {
-              offset += (unsigned int)r;
-            } else {
-              snprintf(buf, len, "%s", failed_str);
-              return -1;
-            }
-          }
-          snprintf(buf + offset, len - offset, "}");
-          offset ++;
-          break;
-        }
-        break;
-      }
-      case LBM_TYPE_CHANNEL: {
-
-        r = snprintf(buf + offset, len - offset, "~CHANNEL~");
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-      } break;
-      case LBM_TYPE_CUSTOM: {
-        lbm_uint *custom = (lbm_uint*)lbm_car(curr);
-        if (custom[CUSTOM_TYPE_DESCRIPTOR]) {
-          r = snprintf(buf + offset, len - offset, "%s", (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
-        } else {
-          r = snprintf(buf + offset, len - offset, "Unspecified_Custom_Type");
-        }
-	if (r > 0) {
-	  n = (unsigned int) r;
-	} else {
-	  snprintf(buf, len, "%s", failed_str);
-          return -1;
-	}
-        offset += n;
-      } break;
       case LBM_TYPE_SYMBOL:
-        str_ptr = lbm_get_name_by_symbol(lbm_dec_sym(curr));
-        if (str_ptr == NULL) {
-
-          snprintf(buf, len, "Error: Symbol not in table %"PRI_UINT"", lbm_dec_sym(curr));
-          return -1;
-        }
-        r = snprintf(buf + offset, len - offset, "%s", str_ptr);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
-        break; //Break VAL_TYPE_SYMBOL
-
+        r = print_emit_symbol(chan, curr);
+        break;
       case LBM_TYPE_I:
-        r = snprintf(buf + offset, len - offset, "%"PRI_INT"", lbm_dec_i(curr));
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
+        r = print_emit_i(chan, lbm_dec_i(curr));
         break;
-
       case LBM_TYPE_U:
-        r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", lbm_dec_u(curr));
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
+        r = print_emit_u(chan, lbm_dec_u(curr), true);
         break;
-
       case LBM_TYPE_CHAR:
-        r = snprintf(buf + offset, len - offset, "\\#%c", lbm_dec_char(curr));
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
+        r = print_emit_byte(chan, (uint8_t)lbm_dec_char(curr), true);
         break;
-      case LBM_CONTINUATION_INTERNAL: {
-        lbm_uint v = ((curr & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT);
-        r = snprintf(buf + offset, len - offset,"CONT[" "%"PRI_UINT"]", v);
-        if ( r > 0) {
-          n = (unsigned int) r;
-        } else {
-          snprintf(buf, len, "%s", failed_str);
-          return -1;
-        }
-        offset += n;
+      case LBM_TYPE_FLOAT:
+        r = print_emit_float(chan, lbm_dec_float(curr), true);
         break;
-
-      }
+      case LBM_TYPE_DOUBLE:
+        r = print_emit_double(chan, lbm_dec_double(curr), true);
+        break;
+      case LBM_TYPE_U32:
+        r = print_emit_u32(chan, lbm_dec_u32(curr), true);
+        break;
+      case LBM_TYPE_I32:
+        r = print_emit_i32(chan, lbm_dec_i32(curr), true);
+        break;
+      case LBM_TYPE_U64:
+        r = print_emit_u64(chan, lbm_dec_u64(curr), true);
+        break;
+      case LBM_TYPE_I64:
+        r = print_emit_i64(chan, lbm_dec_i64(curr), true);
+        break;
+      case LBM_CONTINUATION_INTERNAL_TYPE:
+        r = print_emit_continuation(chan, curr);
+        break;
+      case LBM_TYPE_CUSTOM:
+        r = print_emit_custom(chan, curr);
+        break;
+      case LBM_TYPE_CHANNEL:
+        r = print_emit_channel(chan, curr);
+        break;
+      case LBM_TYPE_ARRAY:
+        r = print_emit_array(chan, curr);
+        break;
       default:
-        snprintf(buf, len, "Error: print does not recognize type %"PRI_HEX" of value: %"PRI_HEX"", lbm_type_of(curr), curr);
-        return -1;
-        break;
-      } // Switch type of curr
-      break; // case PRINT
-
-    default:
-      snprintf(buf, len, "Error: Corrupt print stack!");
-      return -1;
-    }// Switch instruction
-  }//While not empty stack
-
-  if (!lbm_stack_is_empty(&print_stack)) {
-    snprintf(buf + (len - 5), 4, "...");
-    buf[len-1] = 0;
-    return (int)len;
+        return EMIT_FAILED;
+      }
+    }
   }
-  return (int)n;
+  return r;
 }
 
+int lbm_print_value(char *buf, unsigned int len, lbm_value v) {
+
+  lbm_string_channel_state_t st;
+  lbm_char_channel_t chan;
+
+  memset(buf, 0, len);
+  lbm_create_string_char_channel_size(&st, &chan, buf, len);
+  if (lbm_print_internal(&chan,v) == EMIT_OK)
+    return 1;
+  return 0;
+}

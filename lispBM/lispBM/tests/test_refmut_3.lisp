@@ -3,4 +3,4 @@
 
 (define r (setcar a 999))
 
-(and (not r) (= a 1))
+(check (and (not r) (= a 1)))

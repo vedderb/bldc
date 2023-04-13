@@ -79,12 +79,10 @@ void enc_abi_deinit(ABI_config_t *cfg) {
 	palSetPadMode(cfg->A_gpio, cfg->A_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(cfg->B_gpio, cfg->B_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(cfg->I_gpio, cfg->I_pin, PAL_MODE_INPUT_PULLUP);
-	cfg->state.last_enc_angle = 0.0;
 }
 
 float enc_abi_read_deg(ABI_config_t *cfg) {
-	cfg->state.last_enc_angle = ((float) cfg->timer->CNT * 360.0) / (float) cfg->counts;
-	return cfg->state.last_enc_angle;
+	return ((float)cfg->timer->CNT * 360.0) / (float)cfg->counts;
 }
 
 void enc_abi_pin_isr(ABI_config_t *cfg) {

@@ -6,6 +6,6 @@
 
 (spawn-trap t1 50)
 
-(eq (recv ((exit-error (? tid) (? e)) e)
-          ((exit-ok    (? tid) (? r)) r))
-    variable_not_bound)
+(check (eq (recv ((exit-error (? tid) (? e)) e)
+                 ((exit-ok    (? tid) (? r)) r))
+           variable_not_bound))

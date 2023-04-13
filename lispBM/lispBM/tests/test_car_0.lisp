@@ -1,2 +1,2 @@
 
-(eq (car 1) nil) 
+(check (eq (car 1) nil))

@@ -116,6 +116,22 @@ Get angle from selected encoder in degrees.
 
 ---
 
+#### set-encoder
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(set-encoder degrees)
+```
+
+Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found and in custom encoder more the encoder position is updated (unless a native library provides custom encoder support).
+
+When using an ABI-encoder this is useful if a position can be derived before the index pulse is found.
+
+---
+
 #### get-encoder-error-rate
 
 | Platforms | Firmware |
@@ -635,7 +651,10 @@ Several app-inputs can be detached from the external interfaces and overridden f
 ;        - 1 ADC1/2
 ;        - 2 Buttons
 ;        - 3 ADC1/2 + Buttons
-; state : Only when mode 1/2/3/4 - 1 detaches periperial from APP, 0 attaches peripherial to APP 
+; state : Only used when mode is not 0. State 1, 2 or 3 detaches the peripheral and
+;         state 0 attaches peripheral. For the ADC, 1 means detach both ADCs, 2 means
+;         detach ADC1 only and 3 means detach ADC2 only. For the buttons state
+;         1, 2 and 3 mean the same thing, namely detach.
 ```
 
 Detaches a peripherial from the APP ADC
@@ -651,7 +670,7 @@ Detaches a peripherial from the APP ADC
 ```clj
 (app-adc-override mode value)
 ; Where
-; mode : Select periperial to override
+; mode : Select peripheral to override
 ;        - 0 ADC1
 ;        - 1 ADC2
 ;        - 2 Reverse button
@@ -2997,6 +3016,36 @@ Shorthand macro for defining a function. Example:
 (define f (lambda (x)
     (print x)
 ))
+```
+
+---
+
+#### defunret
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(defunret (args) body)
+```
+
+Same as defun, but allows returning at any point. This one has a bit more overhead than defun as it uses call-cc internally, which is why both exist.
+
+```clj
+(defunret test (a b) {
+        (if (> a b)
+            (return (+ a 5))
+        )
+        
+        (+ a b)
+})
+
+(test 2 2)
+> 4
+
+(test 3 2)
+> 8
 ```
 
 ---

@@ -37,6 +37,7 @@ extern "C" {
 
 #define EVAL_CPS_CONTEXT_FLAG_NOTHING       (uint32_t)0x0
 #define EVAL_CPS_CONTEXT_FLAG_TRAP          (uint32_t)0x1
+#define EVAL_CPS_CONTEXT_FLAG_CONST         (uint32_t)0x2
   
 /** The eval_context_t struct represents a lispbm process.
  *

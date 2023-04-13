@@ -6,4 +6,4 @@
     (var sum (+ acc n))
     (tail-rec (- n 1) sum))))
     
-(= (tail-rec 10000 0) 50005000)
+(check (= (tail-rec 10000 0) 50005000))

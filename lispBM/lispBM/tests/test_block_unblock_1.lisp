@@ -9,5 +9,5 @@
 (def id (spawn proc1 (self)))
 (unblock id)
 
-(recv
- (im-done 't))
+(check (recv
+        (im-done 't)))

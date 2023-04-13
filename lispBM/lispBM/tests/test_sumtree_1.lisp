@@ -25,4 +25,4 @@
 	  )))))
 
 
-(= (sumtree (list (list 1u32 1i32 1u 1 1 1 1 1 1 1) (list 1 2.0) (list 3 4.0))) 20.0)
+(check (= (sumtree (list (list 1u32 1i32 1u 1 1 1 1 1 1 1) (list 1 2.0) (list 3 4.0))) 20.0))

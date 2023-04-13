@@ -8,6 +8,6 @@
 (def id (spawn-trap proc1 (self)))
 (unblock-error id)
 
-(recv ((exit-error (? tid) (? e)) 't)
-      ((exit-ok    (? tid) (? r)) 'nil)
-      (im-done 'this-can-not-happen))
+(check (recv ((exit-error (? tid) (? e)) 't)
+             ((exit-ok    (? tid) (? r)) 'nil)
+             (im-done 'this-can-not-happen)))

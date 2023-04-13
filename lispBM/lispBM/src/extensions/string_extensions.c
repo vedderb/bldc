@@ -47,7 +47,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_EERROR;
   }
 
-  if (argn == 2 && lbm_type_of(args[1]) != LBM_TYPE_ARRAY) {
+  if (argn == 2 && !lbm_is_array_r(args[1])) {
     return ENC_SYM_EERROR;
   }
 
@@ -80,7 +80,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_value res;
-  if (lbm_create_array(&res, LBM_TYPE_CHAR, len + 1)) {
+  if (lbm_create_array(&res, len + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     memcpy(arr->data, buffer, len);
     ((char*)(arr->data))[len] = '\0';
@@ -102,7 +102,7 @@ static lbm_value ext_str_merge(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_value res;
-  if (lbm_create_array(&res, LBM_TYPE_CHAR, len_tot + 1)) {
+  if (lbm_create_array(&res, len_tot + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     unsigned int offset = 0;
     for (unsigned int i = 0;i < argn;i++) {
@@ -178,7 +178,7 @@ static lbm_value ext_str_part(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_value res;
-  if (lbm_create_array(&res, LBM_TYPE_CHAR, n + 1)) {
+  if (lbm_create_array(&res, n + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     memcpy(arr->data, str + start, n);
     ((char*)(arr->data))[n] = '\0';
@@ -223,7 +223,7 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
       }
 
       lbm_value tok;
-      if (lbm_create_array(&tok, LBM_TYPE_CHAR, (lbm_uint)step_now + 1)) {
+      if (lbm_create_array(&tok, (lbm_uint)step_now + 1)) {
         lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(tok);
         memcpy(arr->data, str + ind_now, (unsigned int)step_now);
         ((char*)(arr->data))[step_now] = '\0';
@@ -241,7 +241,7 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
       size_t len = strcspn(s, split);
 
       lbm_value tok;
-      if (lbm_create_array(&tok, LBM_TYPE_CHAR, len + 1)) {
+      if (lbm_create_array(&tok, len + 1)) {
         lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(tok);
         memcpy(arr->data, s, len);
         ((char*)(arr->data))[len] = '\0';
@@ -304,7 +304,7 @@ static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
 
   size_t len_res = strlen(orig) + (len_with - len_rep) * (unsigned int)count + 1;
   lbm_value lbm_res;
-  if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len_res)) {
+  if (lbm_create_array(&lbm_res, len_res)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
     tmp = result = (char*)arr->data;
   } else {
@@ -340,7 +340,7 @@ static lbm_value ext_str_to_lower(lbm_value *args, lbm_uint argn) {
 
   size_t len = strlen(orig);
   lbm_value lbm_res;
-  if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len + 1)) {
+  if (lbm_create_array(&lbm_res, len + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
     for (unsigned int i = 0;i < len;i++) {
       ((char*)(arr->data))[i] = (char)tolower(orig[i]);
@@ -364,7 +364,7 @@ static lbm_value ext_str_to_upper(lbm_value *args, lbm_uint argn) {
 
   int len = (int)strlen(orig);
   lbm_value lbm_res;
-  if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, (lbm_uint)len + 1)) {
+  if (lbm_create_array(&lbm_res, (lbm_uint)len + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
     for (int i = 0;i < len;i++) {
       ((char*)(arr->data))[i] = (char)toupper(orig[i]);
@@ -408,6 +408,8 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
   }
 }
 
+
+
 // TODO: This is very similar to ext-print. Maybe they can share code.
 static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
   const int str_len = 300;
@@ -422,57 +424,32 @@ static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
     lbm_value t = args[i];
     int max = str_len - str_ofs - 1;
 
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      switch (array->elt_type){
-      case LBM_TYPE_CHAR: {
-        int chars = 0;
-        if (str_ofs == 0) {
-          chars = snprintf(str + str_ofs, (unsigned int)max, "%s", (char*)array->data);
-        } else {
-          chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, (char*)array->data);
-        }
-        if (chars >= max) {
-          str_ofs += max;
-        } else {
-          str_ofs += chars;
-        }
-      } break;
-      default:
-        return ENC_SYM_NIL;
-        break;
-      }
-    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
-      int chars = 0;
-      if (str_ofs == 0) {
-        chars = snprintf(str + str_ofs, (unsigned int)max, "%c", lbm_dec_char(t));
-      } else {
-        chars = snprintf(str + str_ofs, (unsigned int)max, "%s%c", delimiter, lbm_dec_char(t));
-      }
-      if (chars >= max) {
-        str_ofs += max;
-      } else {
-        str_ofs += chars;
-      }
-    }  else {
-      lbm_print_value(print_val_buffer, 256, t);
+    char *arr_str;
+    int chars = 0;
 
-      int chars = 0;
+    if (lbm_value_is_printable_string(t, &arr_str)) {
+      if (str_ofs == 0) {
+        chars = snprintf(str + str_ofs, (unsigned int)max, "%s", arr_str);
+      } else {
+        chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, arr_str);
+      }
+    } else {
+      lbm_print_value(print_val_buffer, 256, t);
       if (str_ofs == 0) {
         chars = snprintf(str + str_ofs, (unsigned int)max, "%s", print_val_buffer);
       } else {
         chars = snprintf(str + str_ofs, (unsigned int)max, "%s%s", delimiter, print_val_buffer);
       }
-      if (chars >= max) {
-        str_ofs += max;
-      } else {
-        str_ofs += chars;
-      }
     }
+    if (chars >= max) {
+      str_ofs += max;
+    } else {
+      str_ofs += chars;
+      }
   }
 
   lbm_value res;
-  if (lbm_create_array(&res, LBM_TYPE_CHAR, (lbm_uint)str_ofs + 1)) {
+  if (lbm_create_array(&res, (lbm_uint)str_ofs + 1)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     strncpy((char*)arr->data, str, (unsigned int)str_ofs + 1);
     lbm_free(str);

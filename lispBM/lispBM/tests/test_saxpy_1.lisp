@@ -6,4 +6,4 @@
 
 (define r (axpy alpha x y))
 
-(eq (vector-to-list r) (list 2.1 4.2 6.3))
+(check (eq (vector-to-list r) (list 2.1 4.2 6.3)))

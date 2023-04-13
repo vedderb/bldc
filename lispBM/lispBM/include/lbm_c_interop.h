@@ -41,6 +41,12 @@ extern "C" {
  * \return A context id on success or 0 on failure.
  */
 lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer);
+/** Load a program while evaluating incrementally.
+ *
+ * \param tokenizer The tokenizer to read the program from.
+ * \return A context id on success or 0 on failure.
+ */
+lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer);
 /** Load and schedule an expression for execution.
  *
  * \param tokenizer The tokenizer to read the expression from.
@@ -104,20 +110,18 @@ int lbm_undefine(char *symbol);
  *
  * \param value Result array value.
  * \param data Pointer to the C array
- * \param type What type are the elements of the array.
- * \param num_elt Number of elements in the array.
+ * \param num_elt Number of bytes in the array.
  */
-int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt);
+int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt);
 /** Create an array to access from both LBM and C. This function should be called while the evaluator
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
  * The data is stored in lbm_memory as C values (not encoded as lbm values).
  *
  * \param value Result array value.
- * \param type What type are the elements of the array.
- * \param num_elt Number of elements in the array.
+ * \param num_elt Number of bytes in the array.
  */
-int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt);
+int lbm_create_array(lbm_value *value,lbm_uint num_elt);
 
 #ifdef __cplusplus
 }

@@ -46,6 +46,7 @@ void encoder_set_custom_callbacks (
 
 float encoder_read_deg(void);
 float encoder_read_deg_multiturn(void);
+void encoder_set_deg(float deg);
 encoder_type_t encoder_is_configured(void);
 bool encoder_index_found(void);
 void encoder_reset_multiturn(void);

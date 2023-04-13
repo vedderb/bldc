@@ -2,4 +2,4 @@
 
 (setcar a (cons 7 8))
 
-(eq a (cons (cons 7 8) 2))
+(check (eq a (cons (cons 7 8) 2)))

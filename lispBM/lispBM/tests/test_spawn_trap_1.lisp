@@ -7,6 +7,6 @@
 
 (spawn-trap t1 50)
 
-(= (recv ((exit-error (? tid) (? e)) 'error)
-         ((exit-ok    (? tid) (? r)) r))
-   150)
+(check (= (recv ((exit-error (? tid) (? e)) 'error)
+                ((exit-ok    (? tid) (? r)) r))
+          150))
