@@ -592,6 +592,24 @@ typedef struct {
 	void (*foc_set_openloop_phase)(float current, float phase);
 	void (*foc_set_openloop_duty)(float dutyCycle, float rpm);
 	void (*foc_set_openloop_duty_phase)(float dutyCycle, float phase);
+
+	// Flat values
+	bool (*lbm_start_flatten)(lbm_flat_value_t *v, size_t buffer_size);
+	bool (*lbm_finish_flatten)(lbm_flat_value_t *v);
+	bool (*f_cons)(lbm_flat_value_t *v);
+	bool (*f_sym)(lbm_flat_value_t *v, lbm_uint sym);
+	bool (*f_i)(lbm_flat_value_t *v, lbm_int i);
+	bool (*f_b)(lbm_flat_value_t *v, uint8_t b);
+	bool (*f_i32)(lbm_flat_value_t *v, int32_t w);
+	bool (*f_u32)(lbm_flat_value_t *v, uint32_t w);
+	bool (*f_float)(lbm_flat_value_t *v, float f);
+	bool (*f_i64)(lbm_flat_value_t *v, int64_t w);
+	bool (*f_u64)(lbm_flat_value_t *v, uint64_t w);
+	bool (*f_lbm_array)(lbm_flat_value_t *v, uint32_t num_elts, lbm_type t, uint8_t *data);
+
+	// Unblock unboxed
+	bool (*lbm_unblock_ctx_unboxed)(lbm_cid cid, lbm_value unboxed);
+
 } vesc_c_if;
 
 typedef struct {
