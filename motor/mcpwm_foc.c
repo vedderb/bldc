@@ -2890,6 +2890,20 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->duty_pi_duty_last = duty_now;
 				motor_now->duty_was_pi = true;
 
+				// Reset the integrator in duty mode to not increase the duty if the load suddenly changes. In braking
+				// mode this would cause a discontinuity, so there we want to keep the value of the integrator.
+				if (motor_now->m_control_mode == CONTROL_MODE_DUTY) {
+					if (duty_now > 0.0) {
+						if (motor_now->m_duty_i_term > 0.0) {
+							motor_now->m_duty_i_term = 0.0;
+						}
+					} else {
+						if (motor_now->m_duty_i_term < 0.0) {
+							motor_now->m_duty_i_term = 0.0;
+						}
+					}
+				}
+
 				// Compute error
 				float error = duty_set - motor_now->m_motor_state.duty_now;
 
