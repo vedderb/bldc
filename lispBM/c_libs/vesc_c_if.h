@@ -605,7 +605,7 @@ typedef struct {
 	bool (*f_float)(lbm_flat_value_t *v, float f);
 	bool (*f_i64)(lbm_flat_value_t *v, int64_t w);
 	bool (*f_u64)(lbm_flat_value_t *v, uint64_t w);
-	bool (*f_lbm_array)(lbm_flat_value_t *v, uint32_t num_elts, lbm_type t, uint8_t *data);
+	bool (*f_lbm_array)(lbm_flat_value_t *v, uint32_t num_elts, uint8_t *data);
 
 	// Unblock unboxed
 	bool (*lbm_unblock_ctx_unboxed)(lbm_cid cid, lbm_value unboxed);

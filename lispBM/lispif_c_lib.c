@@ -886,7 +886,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.foc_set_openloop_duty = mcpwm_foc_set_openloop_duty;
 		cif.cif.foc_set_openloop_duty_phase = mcpwm_foc_set_openloop_duty_phase;
 
-		//Flat values
+		// Flat values
 		cif.cif.lbm_start_flatten = lbm_start_flatten;
 		cif.cif.lbm_finish_flatten = lbm_finish_flatten;
 		cif.cif.f_b = f_b;
@@ -900,7 +900,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.f_u32 = f_u32;
 		cif.cif.f_u64 = f_u64;
 
-		//Unblock unboxed
+		// Unblock unboxed
 		cif.cif.lbm_unblock_ctx_unboxed = lbm_unblock_ctx_unboxed;
 
 		lib_init_done = true;
