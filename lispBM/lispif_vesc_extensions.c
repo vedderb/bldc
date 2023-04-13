@@ -494,6 +494,21 @@ static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(encoder_get_error_rate());
 }
 
+static lbm_value ext_get_observer_angle(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase_observer());
+}
+
+static lbm_value ext_get_observer_error(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+}
+
+static lbm_value ext_get_encoder_angle(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(utils_angle_difference(mcpwm_foc_get_phase_encoder());
+}
+
 static lbm_value ext_get_vin(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_input_voltage_filtered());
