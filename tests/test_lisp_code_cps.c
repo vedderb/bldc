@@ -350,6 +350,21 @@ LBM_EXTENSION(ext_check, args, argn) {
   return res;
 }
 
+char *const_prg = "(define a 10) (+ a 1)";
+
+LBM_EXTENSION(ext_const_prg, args, argn) {
+  (void) args;
+  (void) argn;
+  lbm_value v = ENC_SYM_NIL;
+
+  char *str = const_prg;
+
+  if (!lbm_share_const_array(&v, const_prg, strlen(const_prg)+1))
+    return ENC_SYM_NIL;
+  return v;
+}
+
+
 
 int main(int argc, char **argv) {
 
@@ -643,6 +658,14 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("unblock-error", ext_unblock_error);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("const-prg", ext_const_prg);
   if (res)
     printf("Extension added.\n");
   else {

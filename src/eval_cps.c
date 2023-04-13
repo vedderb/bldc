@@ -1306,7 +1306,6 @@ static void dynamic_load(eval_context_t *ctx) {
   }
 }
 
-
 static void eval_quote(eval_context_t *ctx) {
   ctx->r = lbm_cadr(ctx->curr_exp);
   ctx->app_cont = true;
@@ -1814,7 +1813,7 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
-    if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+    if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
       if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
         gc();
         if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
@@ -1825,7 +1824,7 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
     } else {
-      error_ctx(SYM_EERROR);
+      error_ctx(ENC_SYM_EERROR);
       return;
     }
     lbm_value *sptr = NULL;
