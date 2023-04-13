@@ -886,6 +886,23 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.foc_set_openloop_duty = mcpwm_foc_set_openloop_duty;
 		cif.cif.foc_set_openloop_duty_phase = mcpwm_foc_set_openloop_duty_phase;
 
+		//Flat values
+		cif.cif.lbm_start_flatten = lbm_start_flatten;
+		cif.cif.lbm_finish_flatten = lbm_finish_flatten;
+		cif.cif.f_b = f_b;
+		cif.cif.f_cons = f_cons;
+		cif.cif.f_float = f_float;
+		cif.cif.f_i = f_i;
+		cif.cif.f_i32 = f_i32;
+		cif.cif.f_i64 = f_i64;
+		cif.cif.f_lbm_array = f_lbm_array;
+		cif.cif.f_sym = f_sym;
+		cif.cif.f_u32 = f_u32;
+		cif.cif.f_u64 = f_u64;
+
+		//Unblock unboxed
+		cif.cif.lbm_unblock_ctx_unboxed = lbm_unblock_ctx_unboxed;
+
 		lib_init_done = true;
 	}
 
