@@ -113,6 +113,15 @@ int lbm_undefine(char *symbol);
  * \param num_elt Number of bytes in the array.
  */
 int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt);
+
+/** Share a C array stored in flash with LBM.
+ *
+ * \param value Pointer to a heap-cell allocated in flash.
+ * \param data Pointer to the C array.
+ * \param num_elt Number of bytes in the array.
+ * \return 1 on success otherwise 0.
+ */
+int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
 /** Create an array to access from both LBM and C. This function should be called while the evaluator
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.

@@ -241,6 +241,25 @@ int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt) {
   return lbm_lift_array(value, data, num_elt);
 }
 
+int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
+  lbm_value arr = 0;
+  arr = LBM_PTR_BIT | LBM_TYPE_ARRAY;
+
+  lbm_value flash_arr = 0;
+  lbm_flash_status r = request_flash_storage_cell(arr, &flash_arr);
+  if (r == LBM_FLASH_WRITE_OK) {
+    if (!lift_array_flash(flash_arr, flash_ptr, num_elt)) {
+      return 0;
+    }
+  }
+
+  if (r == LBM_FLASH_WRITE_OK) {
+    *res = flash_arr;
+    return 1;
+  }
+  return 0;
+}
+
 int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
   return lbm_heap_allocate_array(value, num_elt);
 }

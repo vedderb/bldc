@@ -8,7 +8,7 @@ either 32 or 64 bit platforms and runs on a wide range of hardware
 such as for example STM32, NRF52, ESP32 or X86.  When running the
 LispBM runtime system on a microcontroller it can be built on top of
 ChibiOS, FreeRTOS or ZephyrOS or, if you are adventurous, on bare-metal.
-LispBM can also be built to run on topof a regular linux. 
+LispBM can also be built to run on top of a regular linux. 
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
 
