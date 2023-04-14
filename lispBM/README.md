@@ -1261,7 +1261,7 @@ Get angle from selected encoder in degrees.
 (set-encoder degrees)
 ```
 
-Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found and in custom encoder more the encoder position is updated (unless a native library provides custom encoder support).
+Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found. In custom encoder mode the encoder position is updated (unless a native library provides custom encoder support).
 
 When using an ABI-encoder this is useful if a position can be derived before the index pulse is found.
 
@@ -1291,7 +1291,7 @@ Returns the error rate for the selected encoder, range 0.0 to 1.0. If the select
 (pos-pid-now)
 ```
 
-Returns the current position of the PID-controller, including the compensation for the angle division and offset. Unit: Degrees.
+Returns the current position of the PID-controller, including compensation for the angle division and offset. Unit: Degrees.
 
 ---
 
@@ -1305,7 +1305,7 @@ Returns the current position of the PID-controller, including the compensation f
 (pos-pid-set)
 ```
 
-Returns the set position of the PID-controller, including the compensation for the angle division and offset. Unit: Degrees.
+Returns the set position of the PID-controller, including compensation for the angle division and offset. Unit: Degrees.
 
 ---
 
@@ -1361,7 +1361,7 @@ Returns the encoder position mapped to the electrical position of the motor. Uni
 (phase-observer)
 ```
 
-Returns FOC observer position. Unit: Degrees.
+Returns the FOC observer position. Unit: Degrees.
 
 ---
 
