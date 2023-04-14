@@ -478,22 +478,6 @@ static lbm_value ext_get_ppm_age(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float((float)servodec_get_time_since_update() / 1000.0);
 }
 
-static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-	return lbm_enc_float(encoder_read_deg());
-}
-
-static lbm_value ext_set_encoder(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-	encoder_set_deg(lbm_dec_as_float(args[0]));
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-	return lbm_enc_float(encoder_get_error_rate());
-}
-
 static lbm_value ext_get_vin(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_input_voltage_filtered());
@@ -1580,6 +1564,59 @@ static lbm_value ext_setup_current_in(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_setup_num_vescs(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_i(mc_interface_get_setup_values().num_vescs);
+}
+
+// Positions
+
+static lbm_value ext_get_encoder(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(encoder_read_deg());
+}
+
+static lbm_value ext_set_encoder(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	encoder_set_deg(lbm_dec_as_float(args[0]));
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(encoder_get_error_rate());
+}
+
+static lbm_value ext_pos_pid_now(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_pid_pos_now());
+}
+
+static lbm_value ext_pos_pid_set(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_pid_pos_set());
+}
+
+static lbm_value ext_pos_pid_error(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+}
+
+static lbm_value ext_phase_motor(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase());
+}
+
+static lbm_value ext_phase_encoder(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase_encoder());
+}
+
+static lbm_value ext_phase_observer(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase_observer());
+}
+
+static lbm_value ext_observer_error(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 }
 
 // CAN-commands
@@ -2966,13 +3003,13 @@ static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
 	}
 
 	if (!lbm_is_number(args[0]) || (argn == 2 && !is_symbol_true_false(args[1]))) {
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 
 	float angle = lbm_dec_as_float(args[0]);
 	if (angle < -360.0 || angle > 360.0) {
 		lbm_set_error_reason("Invalid angle. Range should be -360 to 360.");
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 
 	bool store = false;
@@ -3872,9 +3909,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("timeout-reset", ext_reset_timeout);
 	lbm_add_extension("get-ppm", ext_get_ppm);
 	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
-	lbm_add_extension("get-encoder", ext_get_encoder);
-	lbm_add_extension("set-encoder", ext_set_encoder);
-	lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
 	lbm_add_extension("set-servo", ext_set_servo);
 	lbm_add_extension("get-vin", ext_get_vin);
 	lbm_add_extension("select-motor", ext_select_motor);
@@ -3959,6 +3993,18 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-wh", ext_get_wh);
 	lbm_add_extension("get-ah-chg", ext_get_ah_chg);
 	lbm_add_extension("get-wh-chg", ext_get_wh_chg);
+
+	// Positions
+	lbm_add_extension("get-encoder", ext_get_encoder);
+	lbm_add_extension("set-encoder", ext_set_encoder);
+	lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
+	lbm_add_extension("pos-pid-now", ext_pos_pid_now);
+	lbm_add_extension("pos-pid-set", ext_pos_pid_set);
+	lbm_add_extension("pos-pid-error", ext_pos_pid_error);
+	lbm_add_extension("phase-motor", ext_phase_motor);
+	lbm_add_extension("phase-encoder", ext_phase_encoder);
+	lbm_add_extension("phase-observer", ext_phase_observer);
+	lbm_add_extension("observer-error", ext_observer_error);
 
 	// Setup values
 	lbm_add_extension("setup-ah", ext_setup_ah);

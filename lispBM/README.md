@@ -102,50 +102,6 @@ Get the age of the last PPM update in seconds. Can be used to determine if there
 
 ---
 
-#### get-encoder
-
-| Platforms | Firmware |
-|---|---|
-| ESC | 6.00+ |
-
-```clj
-(get-encoder)
-```
-
-Get angle from selected encoder in degrees.
-
----
-
-#### set-encoder
-
-| Platforms | Firmware |
-|---|---|
-| ESC | 6.05+ |
-
-```clj
-(set-encoder degrees)
-```
-
-Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found and in custom encoder more the encoder position is updated (unless a native library provides custom encoder support).
-
-When using an ABI-encoder this is useful if a position can be derived before the index pulse is found.
-
----
-
-#### get-encoder-error-rate
-
-| Platforms | Firmware |
-|---|---|
-| ESC | 6.00+ |
-
-```clj
-(get-encoder-error-rate)
-```
-
-Returns the error rate for the selected encoder, range 0.0 to 1.0. If the selected encoder does not provide any error rate -1.0 is returned. If the selected encoder has multiple error rates the highest one is returned.
-
----
-
 #### set-servo
 
 | Platforms | Firmware |
@@ -1272,6 +1228,154 @@ Get the number of amp hours charged since start.
 ```
 
 Get the number of watt hours charged since start.
+
+---
+
+### Positions
+
+There are several position sources and many ways to interpret them. The following extensions can be used to get most interpretations of most position sources.
+
+---
+
+#### get-encoder
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.00+ |
+
+```clj
+(get-encoder)
+```
+
+Get angle from selected encoder in degrees.
+
+---
+
+#### set-encoder
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(set-encoder degrees)
+```
+
+Set the encoder position in degrees. This command only has an effect in the ABI and custom encoder modes. In ABI mode the encoder position is updated and the index is set to found and in custom encoder more the encoder position is updated (unless a native library provides custom encoder support).
+
+When using an ABI-encoder this is useful if a position can be derived before the index pulse is found.
+
+---
+
+#### get-encoder-error-rate
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.00+ |
+
+```clj
+(get-encoder-error-rate)
+```
+
+Returns the error rate for the selected encoder, range 0.0 to 1.0. If the selected encoder does not provide any error rate -1.0 is returned. If the selected encoder has multiple error rates the highest one is returned.
+
+---
+
+#### pos-pid-now
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(pos-pid-now)
+```
+
+Returns the current position of the PID-controller, including the compensation for the angle division and offset. Unit: Degrees.
+
+---
+
+#### pos-pid-set
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(pos-pid-set)
+```
+
+Returns the set position of the PID-controller, including the compensation for the angle division and offset. Unit: Degrees.
+
+---
+
+#### pos-pid-error
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(pos-pid-error)
+```
+
+Returns the difference between the current and the set PID position. Unit: Degrees.
+
+---
+
+#### phase-motor
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(phase-motor)
+```
+
+Returns the electrical position of the motor that is used for FOC now. Unit: Degrees.
+
+---
+
+#### phase-encoder
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(phase-encoder)
+```
+
+Returns the encoder position mapped to the electrical position of the motor. Unit: Degrees.
+
+---
+
+#### phase-observer
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(phase-observer)
+```
+
+Returns FOC observer position. Unit: Degrees.
+
+---
+
+#### observer-error
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(observer-error)
+```
+
+Returns the difference between the observer position and the encoder position mapped to the electrical position of the motor. Unit: Degrees.
 
 ---
 
