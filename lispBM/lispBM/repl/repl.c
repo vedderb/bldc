@@ -741,7 +741,7 @@ int main(int argc, char **argv) {
           sleep_callback(10);
         }
 
-        lbm_cid cid = lbm_load_and_eval_program(&string_tok);
+        lbm_cid cid = lbm_load_and_eval_program_incremental(&string_tok);
         r->str = file_str;
         r->cid = cid;
         add_reading(r);
