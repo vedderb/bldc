@@ -53,11 +53,15 @@ lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool
   launcher = lbm_cons(read_mode, launcher);
   lbm_value evaluator;
   lbm_value start_prg;
-  if (program && !incremental) {
+  if (read_mode == ENC_SYM_READ) {
     evaluator = lbm_cons(launcher, ENC_SYM_NIL);
-    evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
+    evaluator = lbm_cons(ENC_SYM_EVAL, evaluator);
     start_prg = lbm_cons(evaluator, ENC_SYM_NIL);
-  } else {
+  } else if (read_mode == ENC_SYM_READ_PROGRAM) {
+    evaluator = lbm_cons(launcher, ENC_SYM_NIL);
+    evaluator = lbm_cons(ENC_SYM_EVAL_PROGRAM, evaluator);
+    start_prg = lbm_cons(evaluator, ENC_SYM_NIL);
+  } else { // ENC_SYM_READ_AND_EVAL_PROGRAM
     evaluator = launcher; // dummy so check below passes
     start_prg = lbm_cons(launcher, ENC_SYM_NIL);
   }
