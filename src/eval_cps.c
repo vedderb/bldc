@@ -2633,7 +2633,6 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     /* successfully finished reading an expression  (CASE 3) */
     ctx->app_cont = true;
   } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
-    printf("read-eval done\n");
     lbm_value env;
     lbm_value s;
     lbm_value sym;
@@ -2642,7 +2641,6 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     ctx->curr_exp = ctx->r;
     ctx->app_cont = false;
   } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
-    printf("read-program done\n");
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
     ctx->app_cont = true;
