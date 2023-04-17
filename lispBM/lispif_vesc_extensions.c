@@ -145,6 +145,7 @@ typedef struct {
 	lbm_uint ppm_ramp_time_pos;
 	lbm_uint ppm_ramp_time_neg;
 	lbm_uint adc_ctrl_type;
+	lbm_uint pas_current_scaling;
 
 	// Sysinfo
 	lbm_uint hw_name;
@@ -367,6 +368,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("ppm-ramp-time-neg", comp);
 		} else if (comp == &syms_vesc.adc_ctrl_type) {
 			get_add_symbol("adc-ctrl-type", comp);
+		} else if (comp == &syms_vesc.pas_current_scaling) {
+			get_add_symbol("pas-current-scaling", comp);
 		}
 
 		else if (comp == &syms_vesc.hw_name) {
@@ -2723,6 +2726,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.adc_ctrl_type)) {
 			appconf->app_adc_conf.ctrl_type = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
+			appconf->app_pas_conf.current_scaling = lbm_dec_as_float(args[1]);
+			changed_app = 2;
 		}
 	}
 
@@ -2929,6 +2935,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_ppm_conf.ramp_time_neg);
 	} else if (compare_symbol(name, &syms_vesc.adc_ctrl_type)) {
 		res = lbm_enc_i(appconf->app_adc_conf.ctrl_type);
+	} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
+		res = lbm_enc_float(appconf->app_pas_conf.current_scaling);
 	}
 
 	if (defaultcfg) {

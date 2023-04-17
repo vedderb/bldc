@@ -2700,6 +2700,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: ADC_CTRL_TYPE_PID
                         ;    13: ADC_CTRL_TYPE_PID_REV_CENTER
                         ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
+'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 ```
 
 ---
