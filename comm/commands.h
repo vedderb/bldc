@@ -53,5 +53,7 @@ void commands_plot_add_graph(char *name);
 void commands_plot_set_graph(int graph);
 void commands_send_plot_points(float x, float y);
 int commands_get_fw_version_sent_cnt(void);
+void commands_lock_writes(bool lock);
+bool commands_check_writelock(void);
 
 #endif /* COMMANDS_H_ */

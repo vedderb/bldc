@@ -70,6 +70,11 @@ static THD_FUNCTION(blocking_thread, arg);
 static THD_WORKING_AREA(blocking_thread_wa, 3000);
 static thread_t *blocking_tp;
 
+// PIN-Based Write-Lock
+static bool is_lock_initialized = false;
+static bool writelock = false;//true;
+static unsigned int writelock_pin = 0;
+
 // Private variables
 static char print_buffer[PRINT_BUFFER_SIZE];
 static uint8_t blocking_thread_cmd_buffer[PACKET_MAX_PL_LEN];
@@ -222,6 +227,35 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	if (!send_func_can_fwd) {
 		send_func_can_fwd = reply_func;
+	}
+
+	if (commands_check_writelock()) {
+		if ((packet_id != COMM_FW_VERSION) &&
+			(packet_id != COMM_GET_MCCONF) &&
+			(packet_id != COMM_GET_APPCONF) &&
+			(packet_id != COMM_GET_VALUES) &&
+			(packet_id != COMM_GET_VALUES_SETUP) &&
+			(packet_id != COMM_GET_VALUES_SELECTIVE) &&
+			(packet_id != COMM_GET_VALUES_SETUP_SELECTIVE) &&
+			(packet_id != COMM_GET_DECODED_BALANCE) &&
+			(packet_id != COMM_GET_STATS) &&
+			(packet_id != COMM_RESET_STATS) &&
+			(packet_id != COMM_GET_CUSTOM_CONFIG) &&
+			(packet_id != COMM_CUSTOM_APP_DATA) &&
+			(packet_id != COMM_LOCK_STATUS) &&
+			(packet_id != COMM_WRITE_LOCK)) {
+			//commands_printf("Blocked command: ID %d\n", packet_id);
+			return;
+		}
+		if ((packet_id == COMM_CUSTOM_APP_DATA) && (len > 2)) {
+			unsigned char magicnr = data[0];
+			unsigned char floatcmd = data[1];
+			if ((magicnr == 101) && (floatcmd != 10) && (floatcmd > 1)) {
+				// reject any float command that isn't just reading rt data
+				return;
+			}
+		}
+
 	}
 
 	switch (packet_id) {
@@ -1643,6 +1677,73 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		conf_custom_process_cmd(data - 1, len + 1, reply_func);
 	} break;
 
+	case COMM_WRITE_LOCK: {
+		int32_t ind = 0;
+		if (len >= 3) {
+			uint8_t magic_number = data[ind++];
+			uint32_t pin = buffer_get_uint16(data, &ind);
+			uint8_t lock_enable = data[ind++];
+
+			if ((magic_number == 169) && (pin == writelock_pin)) {
+				writelock = (lock_enable && pin>0) ? true : false;
+			}
+		}
+	} break;
+
+	case COMM_LOCK_SETPIN: {
+		if (len >= 6) {
+			int32_t ind = 0;
+			uint8_t magic_number = data[ind++];
+			uint32_t old_pin = buffer_get_uint16(data, &ind);
+			uint32_t new_pin = buffer_get_uint16(data, &ind);
+			bool lock_on_boot = (data[ind++] == 1);
+
+			if (magic_number == 169) {
+			  int didset = 0;
+			  if  (old_pin == writelock_pin) {
+				// write new pin to eeprom
+				conf_general_set_writelock_pin(new_pin, lock_on_boot);
+				writelock_pin = conf_general_get_writelock_pin();
+
+				// when lock_on_boot is set, we immediately enable writelock
+				writelock = (writelock_pin > 0) && lock_on_boot;
+				didset = 1;
+			  }
+			  else {
+			    new_pin = 0;
+			  }
+			  ind = 0;
+
+			  // Respond to confirm that pin has indeed been accepted
+			  uint8_t send_buffer[10];
+			  send_buffer[ind++] = packet_id;
+			  send_buffer[ind++] = 169;	// magic number!
+			  send_buffer[ind++] = didset;
+			  send_buffer[ind++] = (new_pin >> 8) & 0xFF;
+			  send_buffer[ind++] = new_pin & 0xFF;
+			  reply_func(send_buffer, ind);
+			}
+		}
+	} break;
+
+	case COMM_LOCK_STATUS: {
+		int32_t ind = 0;
+		uint8_t magic_number = data[ind++];
+		uint32_t pin = buffer_get_uint16(data, &ind);
+
+		if (magic_number == 169) {
+			ind = 0;
+			uint8_t send_buffer[10];
+			send_buffer[ind++] = packet_id;
+			send_buffer[ind++] = 169;	// magic number!
+			send_buffer[ind++] = writelock;
+			send_buffer[ind++] = (pin == writelock_pin);
+			  send_buffer[ind++] = (writelock_pin >> 8) & 0xFF;
+			  send_buffer[ind++] = writelock_pin & 0xFF;
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -2430,4 +2531,29 @@ static THD_FUNCTION(blocking_thread, arg) {
 			break;
 		}
 	}
+}
+
+void commands_lock_writes(bool lock)
+{
+	if (lock && (writelock_pin > 0)) {
+		writelock = true;
+	}
+	if (!lock) {
+		writelock = false;
+	}
+}
+
+bool commands_check_writelock()
+{
+	if (is_lock_initialized) {
+		return writelock;
+	}
+	else {
+		// check PIN and lock if set
+		writelock_pin = conf_general_get_writelock_pin();
+		writelock = conf_general_is_locked_on_boot();
+		is_lock_initialized = true;
+		
+	}
+	return false;
 }
