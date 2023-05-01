@@ -240,12 +240,24 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			(packet_id != COMM_GET_DECODED_BALANCE) &&
 			(packet_id != COMM_GET_STATS) &&
 			(packet_id != COMM_RESET_STATS) &&
+			(packet_id != COMM_SET_ODOMETER) &&
 			(packet_id != COMM_GET_CUSTOM_CONFIG) &&
 			(packet_id != COMM_CUSTOM_APP_DATA) &&
 			(packet_id != COMM_LOCK_STATUS) &&
 			(packet_id != COMM_WRITE_LOCK)) {
 			//commands_printf("Blocked command: ID %d\n", packet_id);
 			return;
+		}
+		if (writelock && (packet_id == COMM_SET_ODOMETER)) {
+		  // Temporary back door, to allow unlocking from older VESC Tools...
+		  int32_t ind = 0;
+		  uint32_t odo_new = buffer_get_uint32(data, &ind);
+		  uint32_t odo_now = mc_interface_get_odometer();
+		  // Writing the current odometer value removes the writelock
+		  if (odo_now == odo_new) {
+		    writelock = false;
+		  }
+		  return;
 		}
 		if ((packet_id == COMM_CUSTOM_APP_DATA) && (len > 2)) {
 			unsigned char magicnr = data[0];
