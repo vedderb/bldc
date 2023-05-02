@@ -1699,6 +1699,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			if ((magic_number == 169) && (pin == writelock_pin)) {
 				writelock = (lock_enable && pin>0) ? true : false;
 			}
+			// Sends no response - call COMM_LOCK_STATUS to check success/fail
 		}
 	} break;
 
@@ -1726,12 +1727,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			  }
 			  ind = 0;
 
-			  // Respond to confirm that pin has indeed been accepted
+			  // Respond to confirm whether pin has indeed been accepted
 			  uint8_t send_buffer[10];
 			  send_buffer[ind++] = packet_id;
-			  send_buffer[ind++] = 169;	// magic number!
-			  send_buffer[ind++] = didset;
-			  send_buffer[ind++] = (new_pin >> 8) & 0xFF;
+			  send_buffer[ind++] = 169;			// magic number!
+			  send_buffer[ind++] = didset;			// if 0 it means old PIN didn't match
+			  send_buffer[ind++] = (new_pin >> 8) & 0xFF;	// return the newly set pin...
 			  send_buffer[ind++] = new_pin & 0xFF;
 			  reply_func(send_buffer, ind);
 			}
@@ -1740,6 +1741,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_LOCK_STATUS: {
 		int32_t ind = 0;
+		// receive 1-byte magic number and 2-byte PIN code
 		uint8_t magic_number = data[ind++];
 		uint32_t pin = buffer_get_uint16(data, &ind);
 
@@ -1747,11 +1749,14 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			ind = 0;
 			uint8_t send_buffer[10];
 			send_buffer[ind++] = packet_id;
-			send_buffer[ind++] = 169;	// magic number!
-			send_buffer[ind++] = writelock;
-			send_buffer[ind++] = (pin == writelock_pin);
-			  send_buffer[ind++] = (writelock_pin >> 8) & 0xFF;
-			  send_buffer[ind++] = writelock_pin & 0xFF;
+			send_buffer[ind++] = 169;			// magic number!
+			send_buffer[ind++] = writelock;			// is writelock currently in place?
+			send_buffer[ind++] = (pin == writelock_pin);	// does the passed pin match?
+			send_buffer[ind++] = (writelock_pin != 0);	// is a pin set?
+
+			// TEMPORARY: for development only, pass the stored pin (obviously unsafe!)
+			send_buffer[ind++] = (writelock_pin >> 8) & 0xFF;
+			send_buffer[ind++] = writelock_pin & 0xFF;
 			reply_func(send_buffer, ind);
 		}
 	} break;
