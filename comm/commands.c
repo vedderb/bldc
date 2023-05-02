@@ -28,7 +28,6 @@
 #include "hw.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
-#include "mc_interface.h"
 #include "app.h"
 #include "timeout.h"
 #include "servo_dec.h"

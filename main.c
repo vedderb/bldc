@@ -299,9 +299,7 @@ int main(void) {
 	bm_init();
 #endif
 
-#ifdef HW_SHUTDOWN_HOLD_ON
 	shutdown_init();
-#endif
 
 	imu_reset_orientation();
 
