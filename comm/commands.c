@@ -250,11 +250,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 		if (writelock && (packet_id == COMM_SET_ODOMETER)) {
 		  // Temporary back door, to allow unlocking from older VESC Tools...
-		  int32_t ind = 0;
+		  int32_t ind = 1;
 		  uint32_t odo_new = buffer_get_uint32(data, &ind);
 		  uint32_t odo_now = mc_interface_get_odometer();
 		  // Writing the current odometer value removes the writelock
-		  if (odo_now == odo_new) {
+		  if (abs(odo_now-odo_new) < 500) {
+		    // the VESC App only allows setting of odometer in km/mi not in meters
 		    writelock = false;
 		  }
 		  return;
