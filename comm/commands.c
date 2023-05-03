@@ -364,6 +364,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			nrf_driver_pause(6000);
 		}
 		uint16_t flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
+               // For now, erase the PIN as well - in the future we may want to let the PIN persist
+               conf_general_set_writelock_pin(0, false);
 
 		ind = 0;
 		uint8_t send_buffer[50];
