@@ -253,7 +253,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 
 		case V7_ODD_V0_EVEN:
 		case NULL_V7:
-			tA = (uint32_t)(PWMFullDutyCycle+1);
+			tA = (uint32_t)(PWMFullDutyCycle);
 			tB = (uint32_t)(T0+T2);
 			tC = (uint32_t)(T0);
 			break;
@@ -284,7 +284,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case V0_ODD_V7_EVEN:
 		case NULL_V7:
 			tA = (uint32_t)(T0+T1);
-			tB = (uint32_t)(PWMFullDutyCycle+1);
+			tB = (uint32_t)(PWMFullDutyCycle);
 			tC = (uint32_t)(T0);
 			break;
 		}
@@ -314,7 +314,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case V7_ODD_V0_EVEN:
 		case NULL_V7:
 			tA = (uint32_t)(T0);
-			tB = (uint32_t)(PWMFullDutyCycle+1);
+			tB = (uint32_t)(PWMFullDutyCycle);
 			tC = (uint32_t)(T0+T2);
 			break;
 		}
@@ -345,7 +345,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case NULL_V7:
 			tA = (uint32_t)(T0);
 			tB = (uint32_t)(T0+T1);
-			tC = (uint32_t)(PWMFullDutyCycle+1);
+			tC = (uint32_t)(PWMFullDutyCycle);
 			break;
 		}
 		break;
@@ -375,7 +375,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		case NULL_V7:
 			tA = (uint32_t)(T0+T2);
 			tB = (uint32_t)(T0);
-			tC = (uint32_t)(PWMFullDutyCycle+1);
+			tC = (uint32_t)(PWMFullDutyCycle);
 			break;
 		}
 		break;
@@ -403,7 +403,7 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 
 		case V0_ODD_V7_EVEN:
 		case NULL_V7:
-			tA = (uint32_t)(PWMFullDutyCycle+1);
+			tA = (uint32_t)(PWMFullDutyCycle);
 			tB = (uint32_t)(T0);
 			tC = (uint32_t)(T0+T1);
 			break;
