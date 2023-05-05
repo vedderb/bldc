@@ -1756,6 +1756,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = writelock;			// is writelock currently in place?
 			send_buffer[ind++] = (pin == writelock_pin);	// does the passed pin match?
 			send_buffer[ind++] = (writelock_pin != 0);	// is a pin set?
+			send_buffer[ind++] = conf_general_is_locked_on_boot();
 
 			// TEMPORARY: for development only, pass the stored pin (obviously unsafe!)
 			send_buffer[ind++] = (writelock_pin >> 8) & 0xFF;
@@ -2565,15 +2566,12 @@ void commands_lock_writes(bool lock)
 
 bool commands_check_writelock()
 {
-	if (is_lock_initialized) {
-		return writelock;
-	}
-	else {
-		// check PIN and lock if set
+	if (!is_lock_initialized) {
+		// load PIN from EEPROM and lock if lock-on-boot is set
 		writelock_pin = conf_general_get_writelock_pin();
 		writelock = conf_general_is_locked_on_boot();
 		is_lock_initialized = true;
 		
 	}
-	return false;
+	return writelock;
 }
