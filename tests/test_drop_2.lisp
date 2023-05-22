@@ -1,6 +1,6 @@
 
 (define ls '(1 2 3 4 5 6 7 8 9 10))
 
-(define sub-ls (drop 10 ls))
+(define sub-ls (drop ls 10))
 
 (check (eq sub-ls nil))

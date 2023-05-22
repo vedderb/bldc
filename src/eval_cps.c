@@ -1943,7 +1943,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   while (lbm_is_cons(curr_param) &&
          i <= nargs) {
 
-    lbm_value entry = cons_with_gc(lbm_car(curr_param), args[1], clo_env);
+    lbm_value entry = cons_with_gc(lbm_car(curr_param), args[i], clo_env);
 
     lbm_value aug_env;
     WITH_GC_RMBR(aug_env,lbm_cons(entry, clo_env),2, clo_env,entry);
