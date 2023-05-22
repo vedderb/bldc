@@ -1,2 +1,2 @@
 
-(check (eq (take 100 (iota 1000)) (iota 100)))
+(check (eq (take (iota 1000) 100) (iota 100)))

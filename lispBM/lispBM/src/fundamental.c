@@ -1189,17 +1189,17 @@ static lbm_value fundamental_reg_event_handler(lbm_value *args, lbm_uint nargs, 
 
 static lbm_value fundamental_take(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs != 2 || !lbm_is_number(args[0]) || !lbm_is_list(args[1]))
+  if (nargs != 2 || !lbm_is_number(args[1]) || !lbm_is_list(args[0]))
     return ENC_SYM_TERROR;
 
-  return lbm_list_copy(lbm_dec_as_i32(args[0]), args[1]);
+  return lbm_list_copy(lbm_dec_as_i32(args[1]), args[0]);
 }
 
 static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs != 2 || !lbm_is_number(args[0]) || !lbm_is_list(args[1]))
+  if (nargs != 2 || !lbm_is_number(args[1]) || !lbm_is_list(args[0]))
     return ENC_SYM_TERROR;
-  return lbm_list_drop(lbm_dec_as_u32(args[0]), args[1]);
+  return lbm_list_drop(lbm_dec_as_u32(args[1]), args[0]);
 }
 
 const fundamental_fun fundamental_table[] =

@@ -1317,32 +1317,32 @@ The `apa` pair is now `(1 . 42)`.
 ### take
 
 `take` creates a list containing the `n` first elements of another list.
-The form of a `take` expression is `(take n-exp list-exp)`.
+The form of a `take` expression is `(take list-exp n-exp)`.
 
 Example that takes 5 elements from a list:
 ```clj
 (define ls (list 1 2 3 4 5 6 7 8 9 10))
 
-(take 5 ls)
+(take ls 5)
 ```
 
-In the example above, the result of `(take 5 ls)` is `(1 2 3 4 5)`.
+In the example above, the result of `(take ls 5)` is `(1 2 3 4 5)`.
 
 ---
 
 ### drop
 
 `drop` creates a list from another list by dropping the `n` first elements of that list.
-The form of a `drop` expression is `(drop n-exp list-exp)`.
+The form of a `drop` expression is `(drop list-exp n-exp)`.
 
 Example that drops 5 elements from a list:
 ```clj
 (define ls (list 1 2 3 4 5 6 7 8 9 10))
 
-(drop 5 ls)
+(drop ls 5)
 ```
 
-Here `(drop 5 ls)` evaluates to the list `(6 7 8 9 10)`.
+Here `(drop ls 5)` evaluates to the list `(6 7 8 9 10)`.
 
 ---
 
