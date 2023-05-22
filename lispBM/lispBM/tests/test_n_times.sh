@@ -6,14 +6,15 @@ make clean
 make
 
 n=$1
-test=$2
+h=$2
+test=$3
 result=0
 success_count=0
 fail_count=0
 
 for ((i=0; i<n; i++));
 do
-    ./test_lisp_code_cps -s -h 32000 $test
+    ./test_lisp_code_cps -i -s -h $h $test
 
     result=$?
 

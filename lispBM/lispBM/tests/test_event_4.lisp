@@ -7,7 +7,9 @@
   (if (= 0 n) ()
     (progn
       (event-sym 'apa)
-      (event-sender (- n 1)))))
+      (yield 100)
+      (event-sender (- n 1))
+      )))
     
 (spawn event-sender 100)
 

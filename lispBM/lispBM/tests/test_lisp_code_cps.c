@@ -694,45 +694,19 @@ int main(int argc, char **argv) {
     printf("Error creating evaluation thread\n");
     return 1;
   }
-
+  sleep_callback(50);
   lbm_cid cid;
-  /* prelude_load(&string_tok_state, &string_tok); */
-  /* lbm_cid cid = lbm_load_and_eval_program(&string_tok); */
-  /* if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) { */
-  /*   printf("Waiting for prelude timed out.\n"); */
-  /* } */
-
-  /* lbm_pause_eval_with_gc(20); */
-  /* while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) { */
-  /*   sleep_callback(1000); */
-  /* } */
-
-  /* char *compressed_code; */
-  /* if (compress_decompress) { */
-  /*   uint32_t compressed_size = 0; */
-  /*   compressed_code = lbm_compress(code_buffer, &compressed_size); */
-  /*   if (!compressed_code) { */
-  /*     printf("Error compressing code\n"); */
-  /*     return 0; */
-  /*   } */
-  /*   //char decompress_code[8192]; */
-  /*   char decompress_code[64000]; */
-
-  /*   lbm_decompress(decompress_code, 64000, compressed_code); */
-  /*   printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code); */
-
-  /*   lbm_create_char_stream_from_compressed(&comp_tok_state, */
-  /*                                          &string_tok, */
-  /*                                          compressed_code); */
-
-  /* } else { */
-  //lbm_create_char_stream_from_string(&string_tok_state,
-  //                                   &string_tok,
-  //                                   code_buffer);
 
   lbm_pause_eval_with_gc(20);
+  int wait_count = 0;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    sleep_callback(1000);
+    if (wait_count >= 10) {
+      printf("Could not pause the evaluator\n");
+      return 1;
+    }
+    printf("Wait for pause init\n");
+    sleep_callback(100);
+    wait_count++;
   }
   if (stream_source) {
     lbm_create_buffered_char_channel(&buffered_tok_state,
@@ -759,6 +733,7 @@ int main(int argc, char **argv) {
   test_cid = cid; // the result which is important for success or failure of test.
 
   lbm_continue_eval();
+  uint32_t stream_i = 0;
 
   if (stream_source) {
     int i = 0;
@@ -775,11 +750,15 @@ int main(int argc, char **argv) {
       } else if (ch_res == CHANNEL_READER_CLOSED) {
         break;
       } else {
+        if ((stream_i % 100) == 99) {
+          printf("stuck streaming\n");
+        }
+        stream_i ++;
         sleep_callback(2);
       }
     }
   }
-
+  printf("Program loaded\n");
   int i = 0;
   while (!experiment_done) {
     if (i == 10000) break;
@@ -794,11 +773,14 @@ int main(int argc, char **argv) {
   }
 
   lbm_pause_eval();
-  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED);
-
-  /* if (compress_decompress) { */
-  /*   free(compressed_code); */
-  /* } */
+  uint32_t pause_i = 0;
+  while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    if ((pause_i % 100) == 99) {
+      printf("Waiting for pause\n");
+    }
+    pause_i ++;
+    sleep_callback(2);
+  }
 
   free(heap_storage);
 

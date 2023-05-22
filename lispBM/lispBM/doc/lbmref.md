@@ -995,7 +995,7 @@ Example that moves an array to flash storage:
 (define a [1 2 3 4 5 6])
 
 (move-to-flash a)
----
+```
 
 Example that moves a list to flash storage:
 
@@ -1012,6 +1012,66 @@ Functions can be moved to flash storage as well:
 
 (move-to-flash f)
 ```
+
+### make-env
+
+The `make-env` form allows you to create an environment as a value.
+The form of an `make-env` expression is `(make-env exp)`. When
+The result of running `(make-env exp)` is the resulting environment after
+evaluating the expression `exp`. The resulting environment is an association list.
+
+`make-env` can be used to encapsulate a set of bindings under a name.
+
+Example:
+
+```clj
+(define my-env (make-env {
+        (defun f (x) (+ x 1))
+        (defun g (x y) (+ x y))
+        }))
+```
+
+See `in-env` for how to evaluate expressions inside of a provided environment.
+
+---
+
+
+### in-env
+
+The `in-env` form allows the evaluation in an environment that has
+been augmented by an environment (association list) provided.
+The form of an `in-env` expression is `(in-env env-expr expr)`. Here the
+expression `expr` is evaluated with the local environemnt augmented with
+the result of `env-expr`. The resulting environment of a `make-env` application
+is compatible with the `env-expr` of `in-env` but any association list is ok.
+
+Example:
+
+```clj
+(define my-env '( (a . 10) (b . 20)))
+
+(in-env my-env (+ a b))
+```
+
+The example above evaluates to 30.
+
+Example combining `in-env` and `make-env`:
+
+```clj
+(define lib
+  (make-env {
+   (define a 10)
+   (define b 20)
+   (define c 30)
+   }))
+
+
+(in-env lib (+ a b))
+```
+
+
+
+---
 
 ## Lists and cons cells
 
@@ -1251,6 +1311,40 @@ Now change the value in the cdr field of apa to 42.
 (setcdr apa 42)
 ```
 The `apa` pair is now `(1 . 42)`.
+
+---
+
+### take
+
+`take` creates a list containing the `n` first elements of another list.
+The form of a `take` expression is `(take n-exp list-exp)`.
+
+Example that takes 5 elements from a list:
+```clj
+(define ls (list 1 2 3 4 5 6 7 8 9 10))
+
+(take 5 ls)
+```
+
+In the example above, the result of `(take 5 ls)` is `(1 2 3 4 5)`.
+
+---
+
+### drop
+
+`drop` creates a list from another list by dropping the `n` first elements of that list.
+The form of a `drop` expression is `(drop n-exp list-exp)`.
+
+Example that drops 5 elements from a list:
+```clj
+(define ls (list 1 2 3 4 5 6 7 8 9 10))
+
+(drop 5 ls)
+```
+
+Here `(drop 5 ls)` evaluates to the list `(6 7 8 9 10)`.
+
+---
 
 ## Associations lists (alists)
 

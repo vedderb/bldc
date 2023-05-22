@@ -1187,6 +1187,21 @@ static lbm_value fundamental_reg_event_handler(lbm_value *args, lbm_uint nargs, 
   return(ENC_SYM_TRUE);
 }
 
+static lbm_value fundamental_take(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  if (nargs != 2 || !lbm_is_number(args[0]) || !lbm_is_list(args[1]))
+    return ENC_SYM_TERROR;
+
+  return lbm_list_copy(lbm_dec_as_i32(args[0]), args[1]);
+}
+
+static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  if (nargs != 2 || !lbm_is_number(args[0]) || !lbm_is_list(args[1]))
+    return ENC_SYM_TERROR;
+  return lbm_list_drop(lbm_dec_as_u32(args[0]), args[1]);
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1243,5 +1258,7 @@ const fundamental_fun fundamental_table[] =
    fundamental_type_of,
    fundamental_list_length,
    fundamental_range,
-   fundamental_reg_event_handler
+   fundamental_reg_event_handler,
+   fundamental_take,
+   fundamental_drop
   };

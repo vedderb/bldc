@@ -47,6 +47,9 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
 
     is_a_string = true;
+    // TODO: Potential null deref.
+    //       Highly unlikely that array is a recognizable NULL though.
+    //       If it is incorrect, it is most likely arbitrary.
     char *c_data = (char *)array->data;
     if (array->size == 1) {
       *str = c_data;

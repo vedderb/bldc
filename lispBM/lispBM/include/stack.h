@@ -60,9 +60,8 @@ void lbm_stack_free(lbm_stack_t *s);
 /** Sets the stack SP to 0.
  *
  * \param s Stack to clear.
- * \return 1
  */
-int lbm_stack_clear(lbm_stack_t *s);
+void lbm_stack_clear(lbm_stack_t *s);
 /** Get a pointer to the nth element (from the top) of a stack.
  *
  * \param s Stack.
@@ -119,39 +118,6 @@ static inline int lbm_stack_is_empty(lbm_stack_t *s) {
  * \return 1 on success and 0 on failure (stack is full).
  */
 int lbm_push_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1);
-
-/** Push 3 values to a stack.
- *
- * \param s Stack to push values onto.
- * \param val0
- * \param val1
- * \param val2
- * \return 1 on success and 0 on failure (stack is full).
- */
-int lbm_push_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2);
-
-/** Push 4 values to a stack.
- *
- * \param s Stack to push values onto.
- * \param val0
- * \param val1
- * \param val2
- * \param val3
- * \return 1 on success and 0 on failure (stack is full).
- */
-int lbm_push_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3);
-
-/** Push 5 values to a stack.
- *
- * \param s Stack to push values onto.
- * \param val0
- * \param val1
- * \param val2
- * \param val3
- * \param val4
- * \return 1 on success and 0 on failure (stack is full).
- */
-int lbm_push_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3, lbm_uint val4);
 
 /** Pop 2 values from a stack.
  *
