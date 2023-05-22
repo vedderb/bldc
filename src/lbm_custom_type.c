@@ -30,15 +30,15 @@ bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const c
   t[CUSTOM_TYPE_DESCRIPTOR] = (lbm_uint)desc;
   t[CUSTOM_TYPE_DESTRUCTOR] = (lbm_uint)fptr;
 
-  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CUSTOM, (lbm_uint) t, ENC_SYM_CUSTOM_TYPE);
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
     *result = cell;
     lbm_memory_free(t);
     return false;
   }
-  lbm_set_car(cell, (lbm_uint)t);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_CUSTOM_TYPE));
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_CUSTOM);
+  //  lbm_set_car(cell, (lbm_uint)t);
+  //lbm_set_cdr(cell, lbm_enc_sym(SYM_CUSTOM_TYPE));
+  //cell = lbm_set_ptr_type(cell, LBM_TYPE_CUSTOM);
   *result = cell;
   
   return true;

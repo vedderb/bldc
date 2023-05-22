@@ -43,7 +43,8 @@ what we call "extensions" which are C functions that can be called from your Lis
 ### Documentation
 
  - Work in progress [LispBM language reference](./doc/lbmref.md).
- - Work in progress [LispBM programming manual](./doc/manual)
+ - Gotchas and caveats [Gotchas and caveats](./doc/gotchas.md).
+ - Work in progress [LispBM programming manual](./doc/manual).
  - C code documentation can be found [here](http://svenssonjoel.github.io/lbmdoc/html/index.html).
  - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).

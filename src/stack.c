@@ -46,9 +46,8 @@ void lbm_stack_free(lbm_stack_t *s) {
   }
 }
 
-int lbm_stack_clear(lbm_stack_t *s) {
+void lbm_stack_clear(lbm_stack_t *s) {
   s->sp = 0;
-  return 1;
 }
 
 lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n) {
@@ -80,8 +79,7 @@ int lbm_push(lbm_stack_t *s, lbm_uint val) {
   if (s->sp == s->size) {
     return 0;
   }
-  s->data[s->sp] = val;
-  s->sp++;
+  s->data[s->sp++] = val;
   if (s->sp > s->max_sp) s->max_sp = s->sp;
   return res;
 }
@@ -97,49 +95,9 @@ int lbm_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   }
 }
 
-int lbm_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
-  if (s->sp + 2 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
-    if (s->sp > s->max_sp) s->max_sp = s->sp;
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-int lbm_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
-  if (s->sp + 3 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
-    s->data[s->sp++] = v4;
-    if (s->sp > s->max_sp) s->max_sp = s->sp;
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-int lbm_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5) {
-  if (s->sp + 4 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
-    s->data[s->sp++] = v4;
-    s->data[s->sp++] = v5;
-    if (s->sp > s->max_sp) s->max_sp = s->sp;
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 int lbm_pop(lbm_stack_t *s, lbm_uint *val) {
   s->sp--;
   *val = s->data[s->sp];
-  //s->data[s->sp] = 0;
   return 1;
 }
 

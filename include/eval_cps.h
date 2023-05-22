@@ -298,10 +298,6 @@ void lbm_set_printf_callback(int (*prnt)(const char*, ...));
  * an undefined symbol
  */
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **));
-/** Set a callback that is run when reading source is finishes
- *  within a context
- */
-void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
 /** Get the CID of the currently executing context.
  *  Should be called from an extension where there is
  *  a guarantee that a context is running
@@ -326,7 +322,7 @@ bool create_string_channel(char *str, lbm_value *res);
 bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
 lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res);
-bool lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt);
+  //bool lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt);
 
 /** deliver a message
  *

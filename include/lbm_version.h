@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,11 +27,21 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 11
+#define LBM_MINOR_VERSION 13
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+MAJ 5 2023: Version 0.13.0
+  - Changed behavior of closure application to zero args. Used to be equivalent
+    to application to nil.
+  - Removed make-env and in-env.
+  - Refactoring for readability. allocate_closure in eval_cps.
+
+APR 30 2023: Version 0.12.0
+  - added make-env and in-env for a kind of namespace management.
+  - Deeply nested errors are resolved using longjmp.
 
 Apr 4 2023: Version 0.11.0
   - Incremental read evaluates expressions as soon as possible while reading.

@@ -196,6 +196,8 @@ special_sym const special_symbols[] =  {
   {"to-byte"        , SYM_TO_BYTE},
 
   {"event-register-handler", SYM_REG_EVENT_HANDLER},
+  {"take"           , SYM_TAKE},
+  {"drop"           , SYM_DROP},
 
   // fast access in list
   {"ix"             , SYM_IX},

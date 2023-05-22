@@ -69,57 +69,6 @@ struct termios new_termios;
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-pthread_mutex_t mut;
-
-typedef struct read_s {
-  lbm_cid cid;
-  char *str;
-  struct read_s *next;
-  struct read_s *prev;
-} read_t;
-
-read_t *reading = NULL;
-
-void add_reading( read_t *r ) {
-  pthread_mutex_lock(&mut);
-  r->next = reading;
-  r->prev = NULL;
-  if (reading) reading->prev = r;
-  reading = r;
-  pthread_mutex_unlock(&mut);
-}
-
-read_t *get_reading(lbm_cid cid) {
-  pthread_mutex_lock(&mut);
-  read_t *res = NULL;
-
-  read_t *curr = reading;
-
-  while (curr) {
-
-    if (curr->cid == cid) {
-      res = curr;
-      if (curr->prev) {
-        curr->prev->next = curr->next;
-      } else {
-        reading = curr->next;
-      }
-      if (curr->next) {
-        curr->next->prev = curr->prev;
-      }
-      break;
-    }
-    curr = curr->next;
-  }
-  pthread_mutex_unlock(&mut);
-  return res;
-}
-
-void free_reading(read_t *r) {
-  free(r->str);
-  free(r);
-}
-
 
 void setup_terminal(void) {
 
@@ -225,20 +174,6 @@ void done_callback(eval_context_t *ctx) {
 
   printf("> %s\n", output);
 
-  fflush(stdout);
-  new_prompt();
-}
-
-void read_done_callback(lbm_cid cid) {
-
-  erase();
-  read_t *r = get_reading(cid);
-
-  if (r == NULL) {
-    // This case happens if the lisp code executes "read"
-  } else {
-    free_reading(r);
-  }
   fflush(stdout);
   new_prompt();
 }
@@ -558,8 +493,6 @@ int main(int argc, char **argv) {
 
   pthread_t lispbm_thd;
 
-  pthread_mutex_init(&mut, NULL);
-
   lbm_heap_state_t heap_state;
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
@@ -606,7 +539,6 @@ int main(int argc, char **argv) {
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_printf_callback(error_print);
-  lbm_set_reader_done_callback(read_done_callback);
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
@@ -723,8 +655,6 @@ int main(int argc, char **argv) {
       free(str);
     }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
 
-      read_t *r = malloc(sizeof(read_t));
-
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
@@ -742,10 +672,6 @@ int main(int argc, char **argv) {
         }
 
         lbm_cid cid = lbm_load_and_eval_program_incremental(&string_tok);
-        r->str = file_str;
-        r->cid = cid;
-        add_reading(r);
-
         lbm_continue_eval();
 
         //printf("started ctx: %"PRI_UINT"\n", cid);
@@ -917,7 +843,6 @@ int main(int argc, char **argv) {
       free(str);
     } else {
       /* Get exclusive access to the heap */
-      read_t *r = malloc(sizeof(read_t));
       lbm_pause_eval_with_gc(50);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
@@ -930,9 +855,6 @@ int main(int argc, char **argv) {
                                      &string_tok,
                                      str);
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-      r->str = str;
-      r->cid = cid;
-      add_reading(r);
       lbm_continue_eval();
 
       //printf("started ctx: %"PRI_UINT"\n", cid);

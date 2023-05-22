@@ -257,6 +257,22 @@ int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt) {
   return lbm_lift_array(value, data, num_elt);
 }
 
+static bool share_const_array(lbm_value flash_cell, char *data, lbm_uint num_elt) {
+  lbm_array_header_t flash_array_header;
+  flash_array_header.size = num_elt;
+  flash_array_header.data = (lbm_uint*)data;
+  lbm_uint flash_array_header_ptr;
+  lbm_flash_status s = lbm_write_const_raw((lbm_uint*)&flash_array_header,
+                                           sizeof(lbm_array_header_t),
+                                           &flash_array_header_ptr);
+  if (s != LBM_FLASH_WRITE_OK) return false;
+  s = write_const_car(flash_cell, flash_array_header_ptr);
+  if (s != LBM_FLASH_WRITE_OK) return false;
+  s = write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE);
+  if (s != LBM_FLASH_WRITE_OK) return false;
+  return true;
+}
+
 int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
   lbm_value arr = 0;
   arr = LBM_PTR_BIT | LBM_TYPE_ARRAY;
@@ -264,7 +280,7 @@ int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
   lbm_value flash_arr = 0;
   lbm_flash_status r = request_flash_storage_cell(arr, &flash_arr);
   if (r == LBM_FLASH_WRITE_OK) {
-    if (!lift_array_flash(flash_arr, flash_ptr, num_elt)) {
+    if (!share_const_array(flash_arr, flash_ptr, num_elt)) {
       return 0;
     }
   }

@@ -498,7 +498,7 @@ lbm_uint lbm_heap_num_free(void) {
   return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
 }
 
-lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
+lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
 
   lbm_value res;
 
@@ -510,11 +510,10 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 
     lbm_heap_state.num_alloc++;
 
-    // set some ok initial values (nil . nil)
-    lbm_ref_cell(res)->car = ENC_SYM_NIL;
-    lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
+    lbm_ref_cell(res)->car = car;
+    lbm_ref_cell(res)->cdr = cdr;
 
-    res = res | ptr_type;
+    res = lbm_set_ptr_type(res, ptr_type);
     return res;
   }
   else if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
@@ -762,14 +761,7 @@ void lbm_gc_state_inc(void) {
 
 // construct, alter and break apart
 lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
-  lbm_value addr = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-  if ( lbm_is_ptr(addr)) {
-    lbm_ref_cell(addr)->car =  car;
-    lbm_ref_cell(addr)->cdr =  cdr;
-  }
-
-  // heap_allocate_cell returns MERROR if out of heap.
-  return addr;
+  return lbm_heap_allocate_cell(LBM_TYPE_CONS, car, cdr);
 }
 
 lbm_value lbm_car(lbm_value c){
@@ -947,21 +939,26 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(lbm_value list) {
-  lbm_value res = ENC_SYM_NIL;
-
+lbm_value lbm_list_copy(int m, lbm_value list) {
   lbm_value curr = list;
+  lbm_uint n = lbm_list_length(list);
+  lbm_uint copy_n = n;
+  if (m >= 0 && (lbm_uint)m < n) {
+    copy_n = (lbm_uint)m;
+  }
+  lbm_uint new_list = lbm_heap_allocate_list(copy_n);
+  if (lbm_is_symbol(new_list)) return new_list;
+  lbm_value curr_targ = new_list;
 
-  while (lbm_is_cons(curr)) {
-    lbm_value c = lbm_cons (lbm_car(curr), res);
-    if (lbm_type_of(c) == LBM_TYPE_SYMBOL) {
-      return ENC_SYM_MERROR;
-    }
-    res = c;
+  while (lbm_is_cons(curr) && copy_n > 0) {
+    lbm_value v = lbm_car(curr);
+    lbm_set_car(curr_targ, v);
+    curr_targ = lbm_cdr(curr_targ);
     curr = lbm_cdr(curr);
+    copy_n --;
   }
 
-  return lbm_list_destructive_reverse(res);
+  return new_list;
 }
 
 // Append for proper lists only
@@ -982,19 +979,23 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
   return ENC_SYM_EERROR;
 }
 
+lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
+  lbm_value curr = ls;
+  while (lbm_type_of_functional(curr) == LBM_TYPE_CONS &&
+         n > 0) {
+    curr = lbm_cdr(curr);
+    n --;
+  }
+  return curr;
+}
+
+
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
 int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 
   lbm_array_header_t *array = NULL;
-  // allocating a cell that will, to start with, be a cons cell.
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
-    *res = cell;
-    return 0;
-  }
 
   array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
 
@@ -1011,15 +1012,18 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
     return 0;
   }
   memset(array->data, 0, size);
-
   array->size = size;
 
-  lbm_set_car(cell, (lbm_uint)array);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
-
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
+  // allocating a cell for array's heap-presence
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_ARRAY, (lbm_uint) array, ENC_SYM_ARRAY_TYPE);
 
   *res = cell;
+
+  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
+    lbm_memory_free((lbm_uint*)array->data);
+    lbm_memory_free((lbm_uint*)array);
+    return 0;
+  }
 
   lbm_heap_state.num_alloc_arrays ++;
 
@@ -1031,7 +1035,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
     *value = cell;
@@ -1046,7 +1050,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
   array->size = num_elt;
 
   lbm_set_car(cell, (lbm_uint)array);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
+  //lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
   cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
   *value = cell;

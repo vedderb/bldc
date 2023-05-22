@@ -325,9 +325,11 @@ lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
+ * \param car Value to write into car position of allocated cell.
+ * \param cdr Value to write into cdr position of allocated cell.
  * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
  */
-lbm_value lbm_heap_allocate_cell(lbm_type type);
+lbm_value lbm_heap_allocate_cell(lbm_type type, lbm_value car, lbm_value cdr);
 /** Allocate a list of n heap-cells.
  * \param n The number of heap-cells to allocate.
  * \return A list of heap-cells of Memory error if unable to allocate.
@@ -427,7 +429,7 @@ lbm_value lbm_car(lbm_value cons);
 /** Accesses the car field the car field of an lbm_cons_t.
  *
  * \param cons Value
- * \return The car of car field or nil. 
+ * \return The car of car field or nil.
  */
 lbm_value lbm_caar(lbm_value c);
 /** Accesses the car of the cdr of an cons cell
@@ -513,10 +515,11 @@ lbm_value lbm_list_destructive_reverse(lbm_value list);
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
  *
+ * \param m Number of elements to copy or -1 for all.
  * \param list A list.
  * \return Reversed list or enc_sym(SYM_MERROR) if heap is full.
  */
-lbm_value lbm_list_copy(lbm_value list);
+lbm_value lbm_list_copy(int m, lbm_value list);
 
 /** A destructive append of two lists
  *
@@ -526,6 +529,12 @@ lbm_value lbm_list_copy(lbm_value list);
  */
 lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
 
+/** Drop values from the head of a list.
+ * \param n Number of values to drop.
+ * \param ls List to drop values from.
+ * \return The list with the n first elements removed.
+ */
+lbm_value lbm_list_drop(unsigned int n, lbm_value ls);
 
 // State and statistics
 /** Get a copy of the heap statistics structure.

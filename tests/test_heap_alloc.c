@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   printf("Initialized heap: OK\n"); 
   
   for (unsigned int i = 0; i < heap_size; i ++) {
-    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL);
     if (!lbm_is_ptr(cell)) {
       printf("Error allocating cell %d\n", i); 
       return 0;
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   printf("Allocated %d heap cells: OK\n", heap_size);
 
   for (int i = 0; i < 34; i ++) {
-    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL);
     if (lbm_is_ptr(cell)) {
       printf("Error allocation succeeded on empty heap\n"); 
       return 0;
