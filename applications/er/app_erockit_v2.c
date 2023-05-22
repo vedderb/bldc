@@ -32,10 +32,13 @@
 #include "timeout.h"
 #include "comm_can.h"
 #include "buffer.h"
+#include "lispif.h"
 
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+
+#define IS_STANDALONE				0
 
 // Macros
 #define IS_SPORT_MODE()				(m_set_now == &m_set_sport)
@@ -119,6 +122,28 @@ static void terminal_plot(int argc, const char **argv);
 static void terminal_info(int argc, const char **argv);
 static void terminal_mon(int argc, const char **argv);
 static void terminal_restore_settings(int argc, const char **argv);
+
+static lbm_value ext_pedal_rpm(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mc_interface_get_speed());
+}
+
+static lbm_value ext_pedal_get_current(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(m_set_now->p_pedal_current);
+}
+
+static lbm_value ext_pedal_set_current(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	m_set_now->p_pedal_current = lbm_dec_as_float(args[0]);
+	return ENC_SYM_TRUE;
+}
+
+void load_lisp_extensions(void) {
+	lbm_add_extension("pedal-get-rpm", ext_pedal_rpm);
+	lbm_add_extension("pedal-set-current", ext_pedal_set_current);
+	lbm_add_extension("pedal-get-current", ext_pedal_get_current);
+}
 
 static void restore_settings(void) {
 	m_set_eco.p_throttle_hyst = 0.04;
@@ -252,6 +277,8 @@ void app_custom_start(void) {
 	commands_set_app_data_handler(process_custom_app_data);
 
 	app_adc_start(false);
+
+	lispif_set_ext_load_callback(load_lisp_extensions);
 }
 
 void app_custom_stop(void) {
@@ -279,6 +306,8 @@ static THD_FUNCTION(my_thread, arg) {
 
 	is_running = true;
 
+#if !IS_STANDALONE
+
 	app_disable_output(5000);
 
 	LED_ECO_ON();
@@ -298,23 +327,28 @@ static THD_FUNCTION(my_thread, arg) {
 	LED_FAULT_OFF();
 	chThdSleepMilliseconds(500);
 
+	const float poles = 8;
+	const float gearing = 112.0 / 18.0;
+	const float wheel_d = 0.585;
+	const float output_filter = 0.3;
+	bool was_mode_button_pressed = false;
+#else
+	m_pedal_test_mode = true;
+#endif
+
 	const float stop_timer_max = 50.0;
 	const float S_min = 200.0;
 	const float S_ramp_step_up = 10.0;
 	const float S_ramp_step_down = 0.1;
-	const float output_filter = 0.3;
-
-	const float poles = 8;
-	const float gearing = 112.0 / 18.0;
-	const float wheel_d = 0.585;
 
 	float erpm_now = 0.0;
 	bool running = false;
 	float stop_timer = stop_timer_max;
 	float S_f = 0.0;
-	bool was_mode_button_pressed = false;
 
 	for(;;) {
+
+#if !IS_STANDALONE
 		io_board_adc_values *io_v1 = comm_can_get_io_board_adc_1_4_index(0);
 		io_board_adc_values *io_v2 = comm_can_get_io_board_adc_5_8_index(0);
 
@@ -331,6 +365,14 @@ static THD_FUNCTION(my_thread, arg) {
 			m_mode_btn_down = false;
 			m_stand = false;
 		}
+
+		float kmh_now = -1.0;
+		can_status_msg *msg = comm_can_get_status_msg_index(0);
+		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.5) {
+			float rpm = fabsf(msg->rpm / (poles / 2.0));
+			kmh_now = ((rpm / 60.0) * wheel_d * M_PI / gearing) * 3.6;
+		}
+#endif
 
 		// Hook hand throttle up to ADC app
 		float app_adc_pwr = 0.0;
@@ -374,13 +416,6 @@ static THD_FUNCTION(my_thread, arg) {
 
 		UTILS_LP_FAST(S_f, mc_interface_get_rpm(), 0.2);
 		float I = mc_interface_get_tot_current_directional_filtered();
-
-		float kmh_now = -1.0;
-		can_status_msg *msg = comm_can_get_status_msg_index(0);
-		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.5) {
-			float rpm = fabsf(msg->rpm / (poles / 2.0));
-			kmh_now = ((rpm / 60.0) * wheel_d * M_PI / gearing) * 3.6;
-		}
 
 		// Ramp up target current on low pedal speeds
 		float erpm_ramp_in = 1500.0;
@@ -428,6 +463,8 @@ static THD_FUNCTION(my_thread, arg) {
 
 			utils_step_towards(&erpm_now, S_min, S_ramp_step_down);
 		}
+
+#if !IS_STANDALONE
 
 		static float plot_pwr = 0.0;
 		static float plot_pwr_nofilter = 0.0;
@@ -565,6 +602,7 @@ static THD_FUNCTION(my_thread, arg) {
 				plot_sample++;
 			}
 		}
+#endif
 
 		chThdSleepMilliseconds(1);
 	}
