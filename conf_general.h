@@ -192,6 +192,8 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 										  float min_current_in, float max_current_in,
 										  float openloop_rpm, float sl_erpm,
 										  void(*reply_func)(unsigned char* data, unsigned int len));
-
+uint16_t conf_general_get_writelock_pin(void);
+bool conf_general_is_locked_on_boot(void);
+void conf_general_set_writelock_pin(uint16_t pin, bool lock_on_boot);
 
 #endif /* CONF_GENERAL_H_ */

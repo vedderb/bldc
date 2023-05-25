@@ -1152,6 +1152,11 @@ typedef enum {
 	COMM_GET_GNSS,
 
 	COMM_LOG_DATA_F64,
+
+	// PIN Lock to write-protect firmware
+	COMM_LOCK_SETPIN,
+	COMM_WRITE_LOCK,
+	COMM_LOCK_STATUS,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1459,6 +1464,9 @@ typedef struct __attribute__((packed)) {
 	// HW-specific data
 	uint32_t hw_config_init_flag;
 	uint8_t hw_config[128];
+
+	uint32_t writelock_pin_init_flag;
+	uint32_t writelock_pin_code;
 } backup_data;
 
 #endif /* DATATYPES_H_ */
