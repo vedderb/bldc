@@ -75,7 +75,7 @@
 #define CURRENT_AMP_GAIN			20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES			0.0005
+#define CURRENT_SHUNT_RES			0.0004 // 0.0005 Slightly less, probably due to solder or location of vias.
 #endif
 
 // Input voltage
@@ -193,24 +193,42 @@
 #define MCCONF_FOC_F_ZV				25000.0 // Switching frequency reduced to allow rise time of low side shunts
 #endif
 #define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 25000.0	//Limit to 50kHz max
+#ifndef MCCONF_FOC_DT_US
+#define MCCONF_FOC_DT_US			0.0 // Microseconds for dead time compensation
+#endif
+// Only use phase filters for detection by default to get good resistance
+// The high ratio makes the signal tiny and it can get stuck
+#ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
+#define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	10.0 
+#endif
+
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT	50.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT	80.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7		false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX		20.0   // Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX		40.0   // Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN		-20.0	// Current limit in Amperes (Lower)
+#define MCCONF_L_CURRENT_MIN		-40.0	// Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX		20.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX		30.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN		-10.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN		-30.0	// Input current limit in Amperes (Lower)
 #endif
+
+// Defaults for BLDC
+#ifndef MCCONF_M_BLDC_F_SW_MIN
+#define MCCONF_M_BLDC_F_SW_MIN			10000 // Minimum switching frequency in bldc mode
+#endif
+#ifndef MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT
+#define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	4000.0	// Minimum RPM to calculate the BEMF coupling from
+#endif
+
 
 // Setting limits
 #define HW_LIM_CURRENT				-85.0, 85.0 
@@ -228,6 +246,9 @@
 #elif defined (HW_A50S_12S)
 #define HW_LIM_VIN					4.0, 56.0
 #define MCCONF_L_MAX_VOLTAGE		55	// Maximum input voltage
+#elif defined (HW_A50S_8S)
+#define HW_LIM_VIN					4.0, 37.0
+#define MCCONF_L_MAX_VOLTAGE		36	// Maximum input voltage
 #elif defined (HW_A50S_6S)
 #define HW_LIM_VIN					4.0, 28.0
 #define MCCONF_L_MAX_VOLTAGE		26	// Maximum input voltage
