@@ -356,15 +356,15 @@ static THD_FUNCTION(output_thread, arg) {
 
 		if (config.ctrl_type == CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL) {
 			if ((out_val > 0.0 && duty_now > 0.0) || (out_val < 0.0 && duty_now < 0.0)) {
-				current = out_val * mcconf->lo_current_motor_max_now;
+				current = out_val * mcconf->lo_current_max;
 			} else {
-				current = out_val * fabsf(mcconf->lo_current_motor_min_now);
+				current = out_val * fabsf(mcconf->lo_current_min);
 			}
 		} else {
 			if (out_val >= 0.0 && ((is_reverse ? -1.0 : 1.0) * duty_now) > 0.0) {
-				current = out_val * mcconf->lo_current_motor_max_now;
+				current = out_val * mcconf->lo_current_max;
 			} else {
-				current = out_val * fabsf(mcconf->lo_current_motor_min_now);
+				current = out_val * fabsf(mcconf->lo_current_min);
 			}
 		}
 

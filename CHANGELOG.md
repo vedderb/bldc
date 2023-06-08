@@ -11,8 +11,10 @@
 	* Incremental read of uploaded code.
 	* Removed array types other than byte arrays.
 	* Added more position extensions.
+	* Use timeout when app_adc is detached.
 * Hall sensors: smooth transition to sensorless.
 * Added soft regen cutoff. See https://github.com/vedderb/vesc_tool/pull/310
+* Attempt at limiting the input current when using MTPA and field weakening.
 
 ### 6.02
 #### 2023-03-12

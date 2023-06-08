@@ -615,6 +615,8 @@ Several app-inputs can be detached from the external interfaces and overridden f
 
 Detaches a peripherial from the APP ADC
 
+**Note:** Since firmware 6.05 the ADC-app will no longer reset the timeout by itself when detached. That means that the override-commands have to be sent at a rate higher than the timeout for the output to stay enabled. This is a safety feature that prevents the motor from running after the timeout time if e.g. your script crashes.
+
 ---
 
 #### app-adc-override

@@ -348,6 +348,7 @@ typedef struct {
 	float l_current_min;
 	float l_in_current_max;
 	float l_in_current_min;
+	float l_in_current_map_start;
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
@@ -378,8 +379,6 @@ typedef struct {
 	float lo_current_min;
 	float lo_in_current_max;
 	float lo_in_current_min;
-	float lo_current_motor_max_now;
-	float lo_current_motor_min_now;
 
 	// BLDC switching and drive
 	mc_pwm_mode pwm_mode;

@@ -1439,7 +1439,7 @@ static THD_FUNCTION(canard_thread, arg) {
 			calculateTotalCurrent();
 			if (debug_level == 3) {
 				const volatile mc_configuration *mcconf = mc_interface_get_configuration();
-				commands_printf("Max Current: %0.02f", (double)mcconf->lo_current_motor_max_now);
+				commands_printf("Max Current: %0.02f", (double)mcconf->lo_current_max);
 			}
 		}
 

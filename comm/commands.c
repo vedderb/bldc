@@ -549,8 +549,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf->lo_current_min = mcconf->l_current_min * mcconf->l_current_min_scale;
 			mcconf->lo_in_current_max = mcconf->l_in_current_max;
 			mcconf->lo_in_current_min = mcconf->l_in_current_min;
-			mcconf->lo_current_motor_max_now = mcconf->lo_current_max;
-			mcconf->lo_current_motor_min_now = mcconf->lo_current_min;
 
 			commands_apply_mcconf_hw_limits(mcconf);
 			conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
@@ -1010,8 +1008,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		mcconf->lo_current_min = mcconf->l_current_min * mcconf->l_current_min_scale;
 		mcconf->lo_current_max = mcconf->l_current_max * mcconf->l_current_max_scale;
-		mcconf->lo_current_motor_min_now = mcconf->lo_current_min;
-		mcconf->lo_current_motor_max_now = mcconf->lo_current_max;
 		mcconf->lo_in_current_min = mcconf->l_in_current_min;
 		mcconf->lo_in_current_max = mcconf->l_in_current_max;
 

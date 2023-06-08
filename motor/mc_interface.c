@@ -715,7 +715,7 @@ void mc_interface_set_current_rel(float val) {
 		SHUTDOWN_RESET();
 	}
 
-	mc_interface_set_current(val * motor_now()->m_conf.lo_current_motor_max_now);
+	mc_interface_set_current(val * motor_now()->m_conf.lo_current_max);
 }
 
 /**
@@ -729,7 +729,7 @@ void mc_interface_set_brake_current_rel(float val) {
 		SHUTDOWN_RESET();
 	}
 
-	mc_interface_set_brake_current(val * fabsf(motor_now()->m_conf.lo_current_motor_min_now));
+	mc_interface_set_brake_current(val * fabsf(motor_now()->m_conf.lo_current_min));
 }
 
 /**
@@ -776,7 +776,7 @@ void mc_interface_set_handbrake_rel(float val) {
 		SHUTDOWN_RESET();
 	}
 
-	mc_interface_set_handbrake(val * fabsf(motor_now()->m_conf.lo_current_motor_min_now));
+	mc_interface_set_handbrake(val * fabsf(motor_now()->m_conf.lo_current_min));
 }
 
 void mc_interface_set_openloop_current(float current, float rpm) {
@@ -2393,26 +2393,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 				conf->l_max_duty, l_current_max_tmp, conf->cc_min_current * 5.0);
 	}
 
-	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
-	float lo_min = utils_min_abs(lo_min_mos, lo_min_mot);
-
-	lo_max = utils_min_abs(lo_max, lo_max_rpm);
-	lo_max = utils_min_abs(lo_max, lo_min_rpm);
-	lo_max = utils_min_abs(lo_max, lo_max_curr_dec);
-	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
-	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
-	lo_max = utils_min_abs(lo_max, lo_max_duty);
-
-	if (lo_max < conf->cc_min_current) {
-		lo_max = conf->cc_min_current;
-	}
-
-	if (lo_min > -conf->cc_min_current) {
-		lo_min = -conf->cc_min_current;
-	}
-
-	conf->lo_current_max = lo_max;
-	conf->lo_current_min = lo_min;
+	// Input current limits
 
 	// Battery cutoff
 	float lo_in_max_batt = 0.0;
@@ -2449,26 +2430,46 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
 	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
 
-	// Maximum current right now
-//	float duty_abs = fabsf(mc_interface_get_duty_cycle_now());
-//
-//	// TODO: This is not an elegant solution.
-//	if (m_conf.motor_type == MOTOR_TYPE_FOC) {
-//		duty_abs *= SQRT3_BY_2;
-//	}
-//
-//	if (duty_abs > 0.001) {
-//		conf->lo_current_motor_max_now = utils_min_abs(conf->lo_current_max, conf->lo_in_current_max / duty_abs);
-//		conf->lo_current_motor_min_now = utils_min_abs(conf->lo_current_min, conf->lo_in_current_min / duty_abs);
-//	} else {
-//		conf->lo_current_motor_max_now = conf->lo_current_max;
-//		conf->lo_current_motor_min_now = conf->lo_current_min;
-//	}
+	// Limit iq based on the input current. The input current depends on id and iq combined, but id is determined
+	// from iq based on MTPA and field weakening, which makes it tricky to limit them together in the fast
+	// current loop. For now that is done here. Note that iq is updated recursively depending on the resulting
+	// input current from id and iq.
 
-	// Note: The above code should work, but many people have reported issues with it. Leaving it
-	// disabled for now until I have done more investigation.
-	conf->lo_current_motor_max_now = conf->lo_current_max;
-	conf->lo_current_motor_min_now = conf->lo_current_min;
+	float lo_max_i_in = l_current_max_tmp;
+	float i_in = mc_interface_get_tot_current_in();
+	if (i_in > 0.0 && conf->l_in_current_map_start < 0.98) {
+		float frac = i_in / conf->lo_in_current_max;
+		if (frac > conf->l_in_current_map_start) {
+			lo_max_i_in = utils_map(frac, conf->l_in_current_map_start,
+					1.0, l_current_max_tmp, 0.0);
+		}
+
+		if (lo_max_i_in < 0.0) {
+			lo_max_i_in = 0.0;
+		}
+	}
+
+	float lo_max = utils_min_abs(lo_max_mos, lo_max_mot);
+	float lo_min = utils_min_abs(lo_min_mos, lo_min_mot);
+
+	lo_max = utils_min_abs(lo_max, lo_max_rpm);
+	lo_max = utils_min_abs(lo_max, lo_min_rpm);
+	lo_max = utils_min_abs(lo_max, lo_max_curr_dec);
+	lo_max = utils_min_abs(lo_max, lo_fet_temp_accel);
+	lo_max = utils_min_abs(lo_max, lo_motor_temp_accel);
+	lo_max = utils_min_abs(lo_max, lo_max_duty);
+	lo_max = utils_min_abs(lo_max, lo_max_i_in);
+
+	if (lo_max < conf->cc_min_current) {
+		lo_max = conf->cc_min_current;
+	}
+
+	if (lo_min > -conf->cc_min_current) {
+		lo_min = -conf->cc_min_current;
+	}
+
+	conf->lo_current_max = lo_max;
+	conf->lo_current_min = lo_min;
 }
 
 static volatile motor_if_state_t *motor_now(void) {
