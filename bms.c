@@ -351,9 +351,8 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 		}
 	}
 
-	// TODO: add support for conf->l_temp_accel_dec to still have braking.
-
 	// SOC
+	float i_in_max_bms_soc = i_in_max_conf;
 	if ((m_conf.limit_mode >> 1) & 1) {
 		if (m_stat_soc_min.id >= 0 && UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
 			float soc = m_stat_soc_min.soc;
@@ -361,13 +360,17 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 			if (soc > (m_conf.soc_limit_start - 0.001)) {
 				// OK
 			} else if (soc < (m_conf.soc_limit_end + 0.001)) {
-				i_in_max_bms = 0.0;
+				i_in_max_bms_soc = 0.0;
 			} else {
-				i_in_max_bms = utils_map(soc, m_conf.soc_limit_start,
+				i_in_max_bms_soc = utils_map(soc, m_conf.soc_limit_start,
 						m_conf.soc_limit_end, i_in_max_conf, 0.0);
 			}
 		}
 	}
+
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_soc);
+
+	// TODO: add support for conf->l_temp_accel_dec to still have braking.
 
 	if (fabsf(i_in_min_bms) < fabsf(*i_in_min)) {
 		*i_in_min = i_in_min_bms;
