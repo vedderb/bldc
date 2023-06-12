@@ -368,7 +368,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
                                     char *str) {
 
   st->str = str;
-  st->length = strlen(str);
+  st->length = (unsigned int)strlen(str);
   st->read_pos = 0;
   st->write_pos = 0;
   st->more = false;

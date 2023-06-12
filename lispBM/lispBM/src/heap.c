@@ -1,6 +1,6 @@
 /*
-    Copyright 2018, 2020, 2022 Joel Svensson  svenssonjoel@yahoo.se
-                          2022 Benjamin Vedder
+    Copyright 2018, 2020, 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+                          2022       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ lbm_value lbm_enc_u32(uint32_t x) {
 #endif
 }
 
-lbm_value lbm_enc_float(float x) {
+lbm_value lbm_enc_float(lbm_float x) {
 #ifndef LBM64
   lbm_uint t;
   memcpy(&t, &x, sizeof(lbm_float));
@@ -427,7 +427,7 @@ static int generate_freelist(size_t num_cells) {
   for (i = 1; i < num_cells; i ++) {
     t = lbm_ref_cell(lbm_enc_cons_ptr(i-1));
     t->car = ENC_SYM_RECOVERED;    // all cars in free list are "RECOVERED"
-    t->cdr =  lbm_enc_cons_ptr(i);
+    t->cdr = lbm_enc_cons_ptr(i);
   }
 
   // Replace the incorrect pointer at the last cell.
@@ -506,12 +506,13 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   res = lbm_heap_state.freelist;
 
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
+    lbm_cons_t *rc = lbm_ref_cell(res);
+    lbm_heap_state.freelist = rc->cdr;
 
     lbm_heap_state.num_alloc++;
 
-    lbm_ref_cell(res)->car = car;
-    lbm_ref_cell(res)->cdr = cdr;
+    rc->car = car;
+    rc->cdr = cdr;
 
     res = lbm_set_ptr_type(res, ptr_type);
     return res;
@@ -526,53 +527,49 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   }
 }
 
-lbm_value lbm_heap_allocate_list(unsigned int n) {
+lbm_value lbm_heap_allocate_list(lbm_uint n) {
   if (n == 0) return ENC_SYM_NIL;
   if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
 
-  lbm_value res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+  lbm_value curr = lbm_heap_state.freelist;
+  lbm_value res  = curr;
+  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
 
-    lbm_value curr = res;
-    unsigned int count = 1;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
-      lbm_ref_cell(curr)->car = ENC_SYM_NIL;
-      curr = lbm_cdr(curr);
+    lbm_cons_t *c_cell = NULL;
+    lbm_uint count = 0;
+    do {
+      c_cell = lbm_ref_cell(curr);
+      c_cell->car = ENC_SYM_NIL;
+      curr = c_cell->cdr;
       count ++;
-    }
-    lbm_set_car(curr, ENC_SYM_NIL);
-    lbm_heap_state.freelist = lbm_cdr(curr);
-    lbm_set_cdr(curr, ENC_SYM_NIL);
+    } while (count < n);
+    lbm_heap_state.freelist = curr;
+    c_cell->cdr = ENC_SYM_NIL;
     lbm_heap_state.num_alloc+=count;
     return res;
-  } else {
-    return ENC_SYM_FATAL_ERROR;
   }
+  return ENC_SYM_FATAL_ERROR;
 }
 
 lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
-  if (n == 0) {
-    return ENC_SYM_NIL;
-  }
-  if (lbm_heap_num_free() < n) {
-    return ENC_SYM_MERROR;
-  }
+  if (n == 0) return ENC_SYM_NIL;
+  if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
 
-  lbm_value res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+  lbm_value curr = lbm_heap_state.freelist;
+  lbm_value res  = curr;
+  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
 
-    lbm_value curr = res;
-    unsigned int count = 1;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < n) {
-      lbm_ref_cell(curr)->car = va_arg(valist, lbm_value);
-      curr = lbm_cdr(curr);
+    lbm_cons_t *c_cell = NULL;
+    unsigned int count = 0;
+    do {
+      c_cell = lbm_ref_cell(curr);
+      c_cell->car = va_arg(valist, lbm_value);
+      curr = c_cell->cdr;
       count ++;
-    }
-    lbm_set_car(curr, va_arg(valist, lbm_value));
-    lbm_heap_state.freelist = lbm_cdr(curr);
-    lbm_set_cdr(curr, ENC_SYM_NIL);
+    } while (count < n);
+    lbm_heap_state.freelist = curr;
+    c_cell->cdr = ENC_SYM_NIL;
     lbm_heap_state.num_alloc+=count;
-    va_end(valist);
     return res;
   }
   return ENC_SYM_FATAL_ERROR;
@@ -640,8 +637,8 @@ int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push(s, lbm_ref_cell(curr)->cdr);
-    res &= lbm_push(s, lbm_ref_cell(curr)->car);
+    res &= lbm_push(s, cell->cdr);
+    res &= lbm_push(s, cell->car);
 
     if (!res) break;
   }
@@ -877,8 +874,8 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
 }
 
 /* calculate length of a proper list */
-unsigned int lbm_list_length(lbm_value c) {
-  unsigned int len = 0;
+lbm_uint lbm_list_length(lbm_value c) {
+  lbm_uint len = 0;
 
   while (lbm_is_cons(c)){
     len ++;

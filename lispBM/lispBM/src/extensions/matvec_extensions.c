@@ -25,7 +25,7 @@ static const char *vector_float_desc = "Vector-Float";
 static const char *matrix_float_desc = "Matrix-Float";
 
 typedef struct {
-  unsigned int size;
+  lbm_uint size;
   float data[1];
 } vector_float_t;
 
@@ -184,7 +184,7 @@ static lbm_value ext_axpy(lbm_value *args, lbm_uint argn ) {
 
     if (X->size == Y->size) {
 
-      unsigned int res_size = X->size;
+      lbm_uint res_size = X->size;
 
       res = vector_float_allocate(res_size);
       if (!lbm_is_symbol_merror(res)) {
@@ -214,7 +214,7 @@ static lbm_value ext_dot(lbm_value *args, lbm_uint argn) {
     vector_float_t *Y = (vector_float_t*)lbm_get_custom_value(y);
 
     if (X->size == Y->size) {
-      unsigned int res_size = X->size;
+      lbm_uint res_size = X->size;
 
       float f_res = 0;
       for (unsigned i = 0; i < res_size; i ++) {
@@ -306,7 +306,7 @@ static lbm_value ext_matrix_to_list(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 && is_matrix_float(args[0])) {
     matrix_float_t *lmat = (matrix_float_t*)lbm_get_custom_value(args[0]);
-    unsigned int size = lmat->rows * lmat->cols;
+    lbm_uint size = lmat->rows * lmat->cols;
 
     res = lbm_heap_allocate_list(size);
     if (lbm_is_cons(res)) {
