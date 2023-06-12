@@ -135,15 +135,15 @@ int print_emit_symbol(lbm_char_channel_t *chan, lbm_value sym) {
   return print_emit_string(chan, str_ptr);
 }
 
-int print_emit_i(lbm_char_channel_t *chan, int32_t v) {
+int print_emit_i(lbm_char_channel_t *chan, lbm_int v) {
   char buf[EMIT_BUFFER_SIZE];
-  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIi32, v);
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_INT, v);
   return print_emit_string(chan, buf);
 }
 
-int print_emit_u(lbm_char_channel_t *chan, uint32_t v, bool ps) {
+int print_emit_u(lbm_char_channel_t *chan, lbm_uint v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
-  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRIu32"%s", v, ps ? "u" : "");
+  snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_UINT"%s", v, ps ? "u" : "");
   return print_emit_string(chan, buf);
 }
 

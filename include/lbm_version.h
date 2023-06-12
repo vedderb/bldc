@@ -27,11 +27,16 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 13
+#define LBM_MINOR_VERSION 14
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+JUN 8 2023: Version 0.14.0
+  - wait-for that blocks code unless a flag is set.
+  - Bug fix in undefine.
+  - Lots of cleaning and refactoring.
 
 MAJ 5 2023: Version 0.13.0
   - Changed behavior of closure application to zero args. Used to be equivalent

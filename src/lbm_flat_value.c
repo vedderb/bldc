@@ -274,9 +274,15 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_FLOAT_VALUE: {
     lbm_uint tmp;
-    if (extract_word(v, &tmp)) {
-      float f;
-      memcpy(&f, &tmp, sizeof(float));
+    bool b;
+#ifndef LBM64
+    b = extract_word(v, &tmp);
+#else
+    b = extract_dword(v, &tmp);
+#endif
+    if (b) {
+      lbm_float f;
+      memcpy(&f, &tmp, sizeof(lbm_float));
       lbm_value im  = lbm_enc_float(f);
       if (lbm_is_symbol_merror(im)) {
         return UNFLATTEN_GC_RETRY;
@@ -287,7 +293,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_I32_VALUE: {
-   lbm_uint tmp;
+   uint32_t tmp;
     if (extract_word(v, &tmp)) {
       lbm_value im = lbm_enc_i32((int32_t)tmp);
       if (lbm_is_symbol_merror(im)) {
@@ -299,7 +305,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_U32_VALUE: {
-    lbm_uint tmp;
+    uint32_t tmp;
     if (extract_word(v, &tmp)) {
       lbm_value im = lbm_enc_u32(tmp);
       if (lbm_is_symbol_merror(im)) {

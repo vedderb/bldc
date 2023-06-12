@@ -22,7 +22,7 @@
 #include "heap.h"
 #include "print.h"
 
-lbm_value env_global;
+static lbm_value env_global;
 
 int lbm_init_env(void) {
   env_global = ENC_SYM_NIL;

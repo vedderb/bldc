@@ -334,7 +334,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type type, lbm_value car, lbm_value cdr);
  * \param n The number of heap-cells to allocate.
  * \return A list of heap-cells of Memory error if unable to allocate.
  */
-lbm_value lbm_heap_allocate_list(unsigned int n);
+lbm_value lbm_heap_allocate_list(lbm_uint n);
 /** Allocate a list of n heap-cells and initialize the values.
  * \pram ls The result list is passed through this ptr.
  * \param n The length of list to allocate.
@@ -484,7 +484,7 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val);
  * \param c A list
  * \return The length of the list. Unless the value is a cyclic structure on the heap, this function will terminate.
  */
-unsigned int lbm_list_length(lbm_value c);
+lbm_uint lbm_list_length(lbm_value c);
 
 /** Calculate the length of a proper list and evaluate a predicate for each element.
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
@@ -688,7 +688,7 @@ extern lbm_value lbm_enc_u32(uint32_t x);
  * \param x float value to encode.
  * \return result encoded value.
  */
-extern lbm_value lbm_enc_float(float x);
+extern lbm_value lbm_enc_float(lbm_float x);
 
 /** Encode a 64 bit integer into an lbm_value.
  * \param x 64 bit integer to encode.

@@ -81,7 +81,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     memory_base_address = (lbm_uint)data;
     memory_size = data_size;
     memory_num_free = data_size;
-    memory_reserve_level = (lbm_uint)(0.1 * data_size);
+    memory_reserve_level = (lbm_uint)(0.1 * (lbm_float)data_size);
     res = 1;
   }
   mutex_unlock(&lbm_mem_mutex);

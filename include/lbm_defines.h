@@ -208,7 +208,8 @@
 #define SYM_EXIT_ERROR    0x15C
 #define SYM_MAP           0x15D
 #define SYM_REVERSE       0x15E
-#define APPLY_FUNS_END    0x15E
+#define SYM_WAIT_FOR      0x15F
+#define APPLY_FUNS_END    0x15F
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -385,6 +386,7 @@
 #define ENC_SYM_EXIT_ERROR    ENC_SYM(SYM_EXIT_ERROR)
 #define ENC_SYM_MAP           ENC_SYM(SYM_MAP)
 #define ENC_SYM_REVERSE       ENC_SYM(SYM_REVERSE)
+#define ENC_SYM_WAIT_FOR      ENC_SYM(SYM_WAIT_FOR)
 #define ENC_SYM_GET_ENV       ENC_SYM(SYM_GET_ENV)
 #define ENC_SYM_SET_ENV       ENC_SYM(SYM_SET_ENV)
 

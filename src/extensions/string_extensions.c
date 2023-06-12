@@ -134,7 +134,7 @@ static lbm_value ext_str_to_i(lbm_value *args, lbm_uint argn) {
     base = (int)lbm_dec_as_u32(args[1]);
   }
 
-  return lbm_enc_i32(strtol(str, NULL, base));
+  return lbm_enc_i32((int32_t)strtol(str, NULL, base));
 }
 
 static lbm_value ext_str_to_f(lbm_value *args, lbm_uint argn) {
@@ -160,15 +160,15 @@ static lbm_value ext_str_part(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_EERROR;
   }
 
-  size_t len = strlen(str);
+  uint32_t len = (uint32_t)strlen(str);
 
-  unsigned int start = lbm_dec_as_u32(args[1]);
+  uint32_t start = lbm_dec_as_u32(args[1]);
 
   if (start >= len) {
     return ENC_SYM_EERROR;
   }
 
-  unsigned int n = len - start;
+  uint32_t n = len - start;
   if (argn == 3) {
     if (!lbm_is_number(args[2])) {
       return ENC_SYM_EERROR;
@@ -257,6 +257,7 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
   }
 }
 
+// Todo: Clean this up for 64bit
 static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
   if (argn != 2 && argn != 3) {
     return ENC_SYM_EERROR;
@@ -413,7 +414,7 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
 // TODO: This is very similar to ext-print. Maybe they can share code.
 static lbm_value to_str(char *delimiter, lbm_value *args, lbm_uint argn) {
   const int str_len = 300;
-  char *str = lbm_malloc(str_len);
+  char *str = lbm_malloc((lbm_uint)str_len);
   if (!str) {
     return ENC_SYM_MERROR;
   }

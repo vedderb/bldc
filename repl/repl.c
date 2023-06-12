@@ -260,7 +260,7 @@ bool dyn_load(const char *str, const char **code) {
 
 lbm_value ext_block(lbm_value *args, lbm_uint argn) {
 
-  printf("blocking CID: %d\n", lbm_get_current_cid());
+  printf("blocking CID: %d\n", (int32_t)lbm_get_current_cid());
   lbm_block_ctx_from_extension();
   return lbm_enc_sym(SYM_TRUE);
 }
@@ -342,31 +342,19 @@ lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
 
 char output[128];
 
-static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
-        if (argn != 2 || lbm_type_of(args[0]) != LBM_TYPE_I || lbm_type_of(args[1]) != LBM_TYPE_I) {
-                return lbm_enc_sym(SYM_EERROR);
-        }
-
-        lbm_int start = lbm_dec_i(args[0]);
-        lbm_int end = lbm_dec_i(args[1]);
-
-        if (start > end || (end - start) > 100) {
-                return lbm_enc_sym(SYM_EERROR);
-        }
-
-        lbm_value res = lbm_enc_sym(SYM_NIL);
-
-        for (lbm_int i = end;i >= start;i--) {
-                res = lbm_cons(lbm_enc_i(i), res);
-        }
-
-        return res;
-}
-
 static bool test_destruct(lbm_uint value) {
   printf("destroying custom value\n");
   free((lbm_uint*)value);
   return true;
+}
+
+static lbm_value ext_trigger(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_trigger_flags(lbm_dec_as_u32(args[0]));
+    return ENC_SYM_TRUE;
+  } else {
+    return ENC_SYM_EERROR;
+  }
 }
 
 static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
@@ -469,7 +457,7 @@ void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
   if (lbm_env_lookup_b(&res, (lbm_value)arg1, ctx->curr_env)) {
 
     lbm_print_value(output, 1024, res);
-    printf("CTX %d: %s = %s\n", ctx->id, (char *)arg2, output);
+    printf("CTX %d: %s = %s\n", (int32_t)ctx->id, (char *)arg2, output);
   } else {
     printf("not found\n");
   }
@@ -596,6 +584,12 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
+  res = lbm_add_extension("trigger", ext_trigger);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
 
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
@@ -671,7 +665,7 @@ int main(int argc, char **argv) {
           sleep_callback(10);
         }
 
-        lbm_cid cid = lbm_load_and_eval_program_incremental(&string_tok);
+        (void)lbm_load_and_eval_program_incremental(&string_tok);
         lbm_continue_eval();
 
         //printf("started ctx: %"PRI_UINT"\n", cid);
@@ -854,7 +848,7 @@ int main(int argc, char **argv) {
       lbm_create_string_char_channel(&string_tok_state,
                                      &string_tok,
                                      str);
-      lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+      (void)lbm_load_and_eval_expression(&string_tok);
       lbm_continue_eval();
 
       //printf("started ctx: %"PRI_UINT"\n", cid);
