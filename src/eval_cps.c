@@ -420,7 +420,7 @@ static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt)
   flash_array_header.data = (lbm_uint*)data;
   lbm_uint flash_array_header_ptr;
   handle_flash_status(lbm_write_const_raw((lbm_uint*)&flash_array_header,
-                                          sizeof(lbm_array_header_t),
+                                          sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                           &flash_array_header_ptr));
   handle_flash_status(write_const_car(flash_cell, flash_array_header_ptr));
   handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE));
