@@ -1847,6 +1847,9 @@ static void eval_receive(eval_context_t *ctx) {
 /*********************************************************/
 /*  Continuation functions                               */
 
+/* cont_set_global_env 
+   sp-1 : Key-symbol
+ */
 static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_value key;
@@ -2205,7 +2208,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value appli_1;
     lbm_value appli;
     WITH_GC(appli_1, lbm_heap_allocate_list(2));
-    WITH_GC(appli, lbm_heap_allocate_list(2));
+    WITH_GC_RMBR(appli, lbm_heap_allocate_list(2),1,appli_1);
 
     lbm_value appli_0 = get_cdr(appli_1);
 
@@ -3400,6 +3403,13 @@ static void cont_eval_r(eval_context_t* ctx) {
   ctx->app_cont = false;
 }
 
+/* progn + var stack
+   sp-5 : env
+   sp-4 : 0
+   sp-3 : rest
+   sp-2 : PROGN_REST
+   sp-1 : symbol
+ */
 static void cont_progn_var(eval_context_t* ctx) {
 
   lbm_value sym;
@@ -3537,14 +3547,25 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case SYM_ARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
 
-        lbm_uint size = arr->size / sizeof(lbm_uint); // array size always in bytes
-        if (arr->size % (sizeof(lbm_uint)) != 0) {
-          size++;
-        }
+        lbm_uint full_words = arr->size / sizeof(lbm_uint); // array size always in bytes
 
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
-        handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr));
+        if ( arr->size % sizeof(lbm_uint) == 0) {
+          handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
+        } else {
+          lbm_uint last_word = 0;
+          memcpy(&last_word, &arr->data[full_words],arr->size % sizeof(lbm_uint));
+
+          if (full_words >= 1) {
+            handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
+            lbm_uint dummy;
+            handle_flash_status(lbm_write_const_raw(&last_word, 1, &dummy));
+          } else {
+            handle_flash_status(lbm_write_const_raw(&last_word, 1, &flash_arr));
+          }
+        }
+
         lift_array_flash(flash_cell,
                          (char *)flash_arr,
                          arr->size);

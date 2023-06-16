@@ -1029,6 +1029,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 
 // Convert a C array into an lbm_array.
 // if the array is in LBM_MEMORY, the lifetime will be managed by the GC.
+// TODO: Use lbm_malloc for header data
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
