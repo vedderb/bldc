@@ -3084,7 +3084,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		iq_set_tmp -= SIGN(mod_q) * motor_now->m_i_fw_set * conf_now->foc_fw_q_current_factor;
 
 		// Apply current limits
-		// TODO: Consider D axis current for the input current as well.
+		// TODO: Consider D axis current for the input current as well. Currently this is done using
+		// l_in_current_map_start in update_override_limits.
 		if (mod_q > 0.001) {
 			utils_truncate_number(&iq_set_tmp, conf_now->lo_in_current_min / mod_q, conf_now->lo_in_current_max / mod_q);
 		} else if (mod_q < -0.001) {
