@@ -8,8 +8,11 @@
       )))
 
 
-(def n (* 4 (mem-longest-free)))
-(defun f () (repeat 100 (fn () (bufcreate (- n 1500)))))
+
+(defun f () {
+       (def n (* 4 (mem-longest-free)))
+       (repeat 100 (fn () (bufcreate (- n 2000))))
+       })
 
 
 
