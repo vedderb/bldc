@@ -8,6 +8,7 @@ PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
 CCFLAGS = -g -O2 -Wall -Wextra -Wshadow -Wconversion -pedantic -std=c99
+# -DLBM_ALWAYS_GC
 CC=gcc
 
 SRC = src

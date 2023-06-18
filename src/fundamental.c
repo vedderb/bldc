@@ -176,7 +176,7 @@ bool struct_eq(lbm_value a, lbm_value b) {
   bool res = false;
   lbm_type ta = lbm_type_of_functional(a);
   lbm_type tb = lbm_type_of_functional(b);
-  
+
   if (ta == tb) {
     switch(ta){
     case LBM_TYPE_SYMBOL:
