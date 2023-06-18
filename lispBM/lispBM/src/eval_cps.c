@@ -614,26 +614,6 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   return res;
 }
 
-static void allocate_cells(lbm_uint n, lbm_value *cell_buff) {
-  #ifdef LBM_ALWAYS_GC
-  gc();
-  #endif
-
-  if (lbm_heap_num_free() < n) {
-    gc();
-    if (lbm_heap_num_free() < n) {
-      error_ctx(ENC_SYM_MERROR);
-    }
-  }
-  lbm_value curr = lbm_heap_state.freelist;
-  for (lbm_uint i = 0; i < n; i ++) {
-    cell_buff[i] = curr;
-    curr = lbm_ref_cell(curr)->cdr;
-  }
-  lbm_heap_state.freelist = lbm_ref_cell(curr)->cdr;
-  lbm_heap_state.num_alloc+=n;
-}
-
 #define CLO_PARAMS 0
 #define CLO_BODY   1
 #define CLO_ENV    2
