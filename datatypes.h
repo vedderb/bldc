@@ -554,7 +554,6 @@ typedef enum {
 	APP_NUNCHUK,
 	APP_NRF,
 	APP_CUSTOM,
-	APP_BALANCE,
 	APP_PAS,
 	APP_ADC_PAS
 } app_use;
@@ -765,82 +764,6 @@ typedef struct {
 } nrf_config;
 
 typedef enum {
-	BALANCE_PID_MODE_ANGLE = 0,
-	BALANCE_PID_MODE_ANGLE_RATE_CASCADE
-} BALANCE_PID_MODE;
-
-typedef struct {
-	BALANCE_PID_MODE pid_mode;
-	float kp;
-	float ki;
-	float kd;
-	float kp2;
-	float ki2;
-	float kd2;
-	uint16_t hertz;
-	uint16_t loop_time_filter;
-	float fault_pitch;
-	float fault_roll;
-	float fault_duty;
-	float fault_adc1;
-	float fault_adc2;
-	uint16_t fault_delay_pitch;
-	uint16_t fault_delay_roll;
-	uint16_t fault_delay_duty;
-	uint16_t fault_delay_switch_half;
-	uint16_t fault_delay_switch_full;
-	uint16_t fault_adc_half_erpm;
-	bool fault_is_dual_switch;
-	float tiltback_duty_angle;
-	float tiltback_duty_speed;
-	float tiltback_duty;
-	float tiltback_hv_angle;
-	float tiltback_hv_speed;
-	float tiltback_hv;
-	float tiltback_lv_angle;
-	float tiltback_lv_speed;
-	float tiltback_lv;
-	float tiltback_return_speed;
-	float tiltback_constant;
-	uint16_t tiltback_constant_erpm;
-	float tiltback_variable;
-	float tiltback_variable_max;
-	float noseangling_speed;
-	float startup_pitch_tolerance;
-	float startup_roll_tolerance;
-	float startup_speed;
-	float deadzone;
-	bool multi_esc;
-	float yaw_kp;
-	float yaw_ki;
-	float yaw_kd;
-	float roll_steer_kp;
-	float roll_steer_erpm_kp;
-	float brake_current;
-	uint16_t brake_timeout;
-	float yaw_current_clamp;
-	float ki_limit;
-	uint16_t kd_pt1_lowpass_frequency;
-	uint16_t kd_pt1_highpass_frequency;
-	float booster_angle;
-	float booster_ramp;
-	float booster_current;
-	float torquetilt_start_current;
-	float torquetilt_angle_limit;
-	float torquetilt_on_speed;
-	float torquetilt_off_speed;
-	float torquetilt_strength;
-	float torquetilt_filter;
-	float turntilt_strength;
-	float turntilt_angle_limit;
-	float turntilt_start_angle;
-	uint16_t turntilt_start_erpm;
-	float turntilt_speed;
-	uint16_t turntilt_erpm_boost;
-	uint16_t turntilt_erpm_boost_end;
-} balance_config;
-
-typedef enum {
 	SHUTDOWN_MODE_ALWAYS_OFF = 0,
 	SHUTDOWN_MODE_ALWAYS_ON,
 	SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY,
@@ -962,9 +885,6 @@ typedef struct {
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
-
-	// Balance application settings
-	balance_config app_balance_conf;
 
 	// Pedal Assist application settings
 	pas_config app_pas_conf;

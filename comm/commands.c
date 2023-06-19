@@ -707,24 +707,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
-	case COMM_GET_DECODED_BALANCE: {
-		int32_t ind = 0;
-		uint8_t send_buffer[50];
-		send_buffer[ind++] = COMM_GET_DECODED_BALANCE;
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pid_output() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_pitch_angle() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_roll_angle() * 1000000.0), &ind);
-		buffer_append_uint32(send_buffer, app_balance_get_diff_time(), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_debug1() * 1000000.0), &ind);
-		buffer_append_uint16(send_buffer, app_balance_get_state(), &ind);
-		buffer_append_uint16(send_buffer, app_balance_get_switch_state(), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_adc1() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_adc2() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_debug2() * 1000000.0), &ind);
-		reply_func(send_buffer, ind);
-	} break;
-
 	case COMM_FORWARD_CAN: {
 		send_func_can_fwd = reply_func;
 
