@@ -2879,6 +2879,8 @@ Useful for finding the saturation inductance curve of a motor.
 
 Restore motor configuration to the default values on the selected motor. The current and voltage offsets are kept from the old configuration.
 
+---
+
 #### conf-restore-app
 
 | Platforms | Firmware |
