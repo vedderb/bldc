@@ -12,6 +12,10 @@
 	* Removed array types other than byte arrays.
 	* Added more position extensions.
 	* Use timeout when app_adc is detached.
+	* Added extension conf-restore-mc.
+	* Added extension conf-restore-app.
+	* Added extension conf-dc-cal.
+	* Added access to several config parameters.
 * Hall sensors: smooth transition to sensorless.
 * Added soft regen cutoff. See https://github.com/vedderb/vesc_tool/pull/310
 * Attempt at limiting the input current when using MTPA and field weakening.

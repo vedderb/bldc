@@ -2609,6 +2609,11 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-min-duty             ; Minimum duty cycle
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
+'l-battery-cut-start    ; The voltage where current starts to get reduced
+'l-battery-cut-end      ; The voltage below which current draw is not allowed
+'l-temp-motor-start     ; Temperature where motor current starts to get reduced
+'l-temp-motor-end       ; Temperature above which motor current is not allowed
+'l-temp-accel-dec       ; Decrease temp limits this much during acceleration
 'motor-type             ; Motor Type
                         ;    0: BLDC (6-step commutation)
                         ;    1: DC (DC motor on phase A and C)
@@ -2640,6 +2645,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    6: FOC_SENSOR_MODE_HFI_V3
                         ;    7: FOC_SENSOR_MODE_HFI_V4
                         ;    8: FOC_SENSOR_MODE_HFI_V5
+'m-ntc-motor-beta       ; Beta Value for Motor Thermistor
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
@@ -2652,6 +2658,13 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
 'foc-hfi-voltage-max    ; HFI voltage (V) at max current
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
+'foc-openloop-rpm       ; Use openloop commutation below this ERPM
+'foc-openloop-rpm-low   ; Openloop ERPM and minimum current
+'foc-sl-openloop-time-lock ; Locking time at the start of openloop
+'foc-sl-openloop-time-ramp ; Time to ramp up to the openloop speed
+'foc-sl-openloop-time   ; Stay in openloop for this amount of time
+'foc-temp-comp          ; Use observer temperature compensation
+'foc-temp-comp-base-temp ; Temperature at which parameters were measured
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
 'app-to-use             ; App to use
@@ -2851,6 +2864,46 @@ returns: ({ld_lq_avg} {ld_lq_diff} {actual_measurement_current} fault-code)
 Can not be used when the motor is running. The measurement current is not gaurenteed to reach the target, and the actual_measurement_current parameter should be used to verify the actual current used.
 
 Useful for finding the saturation inductance curve of a motor.
+
+---
+
+#### conf-restore-mc
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(conf-restore-mc)
+```
+
+Restore motor configuration to the default values on the selected motor. The current and voltage offsets are kept from the old configuration.
+
+#### conf-restore-app
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(conf-restore-app)
+```
+
+Restore app configuration to the default values.
+
+---
+
+#### conf-dc-cal
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(conf-dc-cal calUndriven)
+```
+
+Run FOC DC offset calibration. calUndriven can be set to true for including the undriven voltages in the calibration, which requires that the motor stands still.
 
 ---
 
