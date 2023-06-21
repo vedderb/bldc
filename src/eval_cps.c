@@ -70,22 +70,26 @@ static jmp_buf error_jmp_buf;
 #define READ_DOT_TERMINATE    CONTINUATION(21)
 #define READ_DONE             CONTINUATION(22)
 #define READ_QUOTE_RESULT     CONTINUATION(23)
-#define READ_BACKQUOTE_RESULT CONTINUATION(24)
-#define READ_COMMAAT_RESULT   CONTINUATION(25)
-#define READ_COMMA_RESULT     CONTINUATION(26)
-#define READ_START_ARRAY      CONTINUATION(27)
-#define READ_APPEND_ARRAY     CONTINUATION(28)
-#define MAP_FIRST             CONTINUATION(29)
-#define MAP_REST              CONTINUATION(30)
-#define MATCH_GUARD           CONTINUATION(31)
-#define TERMINATE             CONTINUATION(32)
-#define PROGN_VAR             CONTINUATION(33)
-#define SETQ                  CONTINUATION(34)
-#define MOVE_TO_FLASH         CONTINUATION(35)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(37)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     39
+#define READ_COMMAAT_RESULT   CONTINUATION(24)
+#define READ_COMMA_RESULT     CONTINUATION(25)
+#define READ_START_ARRAY      CONTINUATION(26)
+#define READ_APPEND_ARRAY     CONTINUATION(27)
+#define MAP_FIRST             CONTINUATION(28)
+#define MAP_REST              CONTINUATION(29)
+#define MATCH_GUARD           CONTINUATION(30)
+#define TERMINATE             CONTINUATION(31)
+#define PROGN_VAR             CONTINUATION(32)
+#define SETQ                  CONTINUATION(33)
+#define MOVE_TO_FLASH         CONTINUATION(34)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(35)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(36)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(37)
+#define QQ_EXPAND_START       CONTINUATION(38)
+#define QQ_EXPAND             CONTINUATION(39)
+#define QQ_APPEND             CONTINUATION(40)
+#define QQ_EXPAND_LIST        CONTINUATION(41)
+#define QQ_LIST               CONTINUATION(42)
+#define NUM_CONTINUATIONS     43
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2901,9 +2905,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
       do_next = READ_QUOTE_RESULT;
       break;
     case TOKBACKQUOTE:
-      sptr[0] = stream;
-      sptr[1] = READ_BACKQUOTE_RESULT;
-      stack_push_3(&ctx->K, stream, lbm_enc_u(0), READ_NEXT_TOKEN);
+      sptr[0] = QQ_EXPAND_START;
+      sptr[1] = stream;
+      stack_push_2(&ctx->K, lbm_enc_u(0), READ_NEXT_TOKEN);
       ctx->app_cont = true;
       return;
     case TOKCOMMAAT:
@@ -3206,7 +3210,6 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       stack_push(&ctx->K, READ_DOT_TERMINATE);
       stack_push_3(&ctx->K, stream, lbm_enc_u(0), READ_NEXT_TOKEN);
       ctx->app_cont = true;
-      ctx->app_cont = true;
       return;
     }
   }
@@ -3346,26 +3349,6 @@ static void cont_read_quote_result(eval_context_t *ctx) {
                                             ENC_SYM_QUOTE,
                                             ctx->r));
   ctx->r = cell;
-  ctx->app_cont = true;
-}
-
-static void cont_read_backquote_result(eval_context_t *ctx) {
-  lbm_value stream;
-
-  lbm_pop(&ctx->K, &stream);
-
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
-  if (str == NULL || str->state == NULL) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  // The entire expression is in ctx->r
-  // and is thus protected from GC
-  lbm_value expanded = lbm_qq_expand(ctx->r);
-  if (lbm_is_error(expanded)) {
-    error_ctx(expanded);
-  }
-  ctx->r = expanded;
   ctx->app_cont = true;
 }
 
@@ -3737,6 +3720,196 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_qq_expand_start(eval_context_t *ctx) {
+  stack_push_2(&ctx->K, ctx->r, QQ_EXPAND);
+  ctx->r = ENC_SYM_NIL;
+  ctx->app_cont = true;
+}
+
+lbm_value quote_it(lbm_value qquoted) {
+  if (lbm_is_symbol(qquoted) &&
+      lbm_is_special(qquoted)) return qquoted;
+
+  lbm_value val;
+  WITH_GC_RMBR(val, lbm_cons(qquoted, ENC_SYM_NIL), 1, qquoted);
+  lbm_value q;
+  WITH_GC_RMBR(q, lbm_cons(ENC_SYM_QUOTE, val), 1, val);
+  return q;
+}
+
+bool is_append(lbm_value a) {
+  return (lbm_is_cons(a) &&
+          lbm_is_symbol(lbm_car(a)) &&
+          (lbm_dec_sym(lbm_car(a)) == SYM_APPEND));
+}
+
+lbm_value append(lbm_value front, lbm_value back) {
+  if (lbm_is_symbol_nil(front)) return back;
+  if (lbm_is_symbol_nil(back)) return front;
+
+  if (lbm_is_quoted_list(front) &&
+      lbm_is_quoted_list(back)) {
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(back));
+    return quote_it(lbm_list_append(f, b));
+  }
+
+  if (is_append(back) &&
+      lbm_is_quoted_list(lbm_car(lbm_cdr(back))) &&
+       lbm_is_quoted_list(front)) {
+    lbm_value ql = lbm_car(lbm_cdr(back));
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(ql));
+
+    lbm_value v = lbm_list_append(f, b);
+    lbm_set_car(lbm_cdr(ql), v);
+    return back;
+  }
+
+  if (is_append(back)) {
+    back  = lbm_cdr(back);
+    lbm_value new;
+    WITH_GC_RMBR(new, lbm_cons(front, back), 2, front, back);
+    lbm_value tmp;
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_APPEND, new), 1, new);
+    return tmp;
+  }
+
+  lbm_value t0, t1, t2;
+
+  WITH_GC(t0, lbm_cons(back, ENC_SYM_NIL));
+  WITH_GC_RMBR(t1, lbm_cons(front, t0), 1, t0);
+  WITH_GC_RMBR(t2, lbm_cons(ENC_SYM_APPEND, t1), 1, t1);
+  
+  return t2;
+}
+
+/* Bawden's qq-expand implementation
+(define (qq-expand x)
+  (cond ((tag-comma? x)
+         (tag-data x))
+        ((tag-comma-atsign? x)
+         (error "Illegal"))
+        ((tag-backquote? x)
+         (qq-expand
+          (qq-expand (tag-data x))))
+        ((pair? x)
+         `(append
+           ,(qq-expand-list (car x))
+           ,(qq-expand (cdr x))))
+        (else `',x)))
+ */
+static void cont_qq_expand(eval_context_t *ctx) {
+  lbm_value qquoted; 
+  lbm_pop(&ctx->K, &qquoted);
+  
+  switch(lbm_type_of(qquoted)) {
+  case LBM_TYPE_CONS: {
+    lbm_value car_val = lbm_car(qquoted);
+    lbm_value cdr_val = lbm_cdr(qquoted);
+    if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(car_val) == SYM_COMMA) {
+      ctx->r = append(ctx->r, lbm_car(cdr_val));
+      ctx->app_cont = true;
+    } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
+               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+      error_ctx(ENC_SYM_RERROR);
+    } else {
+      stack_push_2(&ctx->K, ctx->r,  QQ_APPEND);
+      stack_push_2(&ctx->K, cdr_val, QQ_EXPAND);
+      stack_push_2(&ctx->K, car_val, QQ_EXPAND_LIST);
+      ctx->app_cont = true;
+      ctx->r = ENC_SYM_NIL;
+    }
+
+  } break;
+  default: {
+    lbm_value res = quote_it(qquoted);
+    ctx->r = append(ctx->r, res);
+    ctx->app_cont = true;
+  }
+  }
+}
+
+static void cont_qq_append(eval_context_t *ctx) {
+  lbm_value head;
+  lbm_pop(&ctx->K, &head);
+  ctx->r = append(head, ctx->r);
+  ctx->app_cont = true;
+}
+
+/* Bawden's qq-expand-list implementation
+(define (qq-expand-list x)
+  (cond ((tag-comma? x)
+         `(list ,(tag-data x)))
+        ((tag-comma-atsign? x)
+         (tag-data x))
+        ((tag-backquote? x)
+         (qq-expand-list
+          (qq-expand (tag-data x))))
+        ((pair? x)
+         `(list
+           (append
+            ,(qq-expand-list (car x))
+            ,(qq-expand (cdr x)))))
+        (else `'(,x))))
+*/
+
+static void cont_qq_expand_list(eval_context_t* ctx) {
+  lbm_value l;
+  lbm_pop(&ctx->K, &l);
+
+  switch(lbm_type_of(l)) {
+  case LBM_TYPE_CONS: {
+    lbm_value car_val = lbm_car(l);
+    lbm_value cdr_val = lbm_cdr(l);
+    if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
+        lbm_dec_sym(car_val) == SYM_COMMA) {
+      lbm_value tl;
+      WITH_GC(tl, lbm_cons(lbm_car(cdr_val), ENC_SYM_NIL));
+      lbm_value tmp;
+      WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, tl), 1, tl);
+      ctx->r = append(ctx->r, tmp);
+      ctx->app_cont = true;
+      return;
+    } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
+               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+      ctx->r = lbm_car(cdr_val);
+      ctx->app_cont = true;
+      return;
+    } else {
+      stack_push(&ctx->K, QQ_LIST); 
+      stack_push_2(&ctx->K, ctx->r,  QQ_APPEND);
+      stack_push_2(&ctx->K, cdr_val, QQ_EXPAND);
+      stack_push_2(&ctx->K, car_val, QQ_EXPAND_LIST);
+      ctx->app_cont = true;
+      ctx->r = ENC_SYM_NIL;
+    }
+    
+  } break;
+  default: {
+    lbm_value a_list;
+    WITH_GC(a_list, lbm_cons(l, ENC_SYM_NIL));
+    lbm_value tl;
+    WITH_GC_RMBR(tl, lbm_cons(a_list, ENC_SYM_NIL), 1, a_list);
+    lbm_value tmp;
+    WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_QUOTE, tl), 1, tl);
+    ctx->r = append(ctx->r, tmp);
+    ctx->app_cont = true;
+  }
+  }
+}
+
+static void cont_qq_list(eval_context_t *ctx) {
+  lbm_value val = ctx->r;
+  lbm_value apnd_app;
+  lbm_value tmp;
+  WITH_GC(apnd_app, lbm_cons(val, ENC_SYM_NIL));
+  WITH_GC_RMBR(tmp, lbm_cons(ENC_SYM_LIST, apnd_app), 1, apnd_app);
+  ctx->r = tmp;
+  ctx->app_cont = true;
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3766,7 +3939,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_dot_terminate,
     cont_read_done,
     cont_read_quote_result,
-    cont_read_backquote_result,
     cont_read_commaat_result,
     cont_read_comma_result,
     cont_read_start_array,
@@ -3781,6 +3953,11 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_move_val_to_flash_dispatch,
     cont_move_list_to_flash,
     cont_close_list_in_flash,
+    cont_qq_expand_start,
+    cont_qq_expand,
+    cont_qq_append,
+    cont_qq_expand_list,
+    cont_qq_list,
   };
 
 /*********************************************************/
