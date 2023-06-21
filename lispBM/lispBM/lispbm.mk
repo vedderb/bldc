@@ -5,7 +5,6 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/heap.c \
              $(LISPBM)/src/lbm_memory.c \
              $(LISPBM)/src/print.c \
-             $(LISPBM)/src/qq_expand.c \
              $(LISPBM)/src/stack.c \
              $(LISPBM)/src/symrepr.c \
              $(LISPBM)/src/tokpar.c \
