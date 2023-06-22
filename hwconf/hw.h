@@ -593,6 +593,30 @@
 #endif
 #endif
 
+#ifndef HW_SPI_PORT_NSS
+#define HW_SPI_PORT_NSS HW_HALL_ENC_GPIO3
+#endif
+
+#ifndef HW_SPI_PIN_NSS
+#define HW_SPI_PIN_NSS HW_HALL_ENC_PIN3
+#endif
+
+#ifndef HW_SPI_PORT_SCK
+#define HW_SPI_PORT_SCK HW_HALL_ENC_GPIO1
+#endif
+
+#ifndef HW_SPI_PIN_SCK
+#define HW_SPI_PIN_SCK HW_HALL_ENC_PIN1
+#endif
+
+#ifndef HW_SPI_PORT_MISO
+#define HW_SPI_PORT_MISO HW_HALL_ENC_GPIO2
+#endif
+
+#ifndef HW_SPI_PIN_MISO
+#define HW_SPI_PIN_MISO HW_HALL_ENC_PIN2
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

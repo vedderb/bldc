@@ -672,8 +672,8 @@ static void terminal_encoder(int argc, const char **argv) {
 
 	case SENSOR_PORT_MODE_AD2S1205:
 		commands_printf("Resolver Loss Of Tracking (>5%c error): errors: %d, error rate: %.3f %%", 0xB0,
-				encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_cnt,
-				(double)(encoder_cfg_ad2s1205.state.resolver_loss_of_signal_error_rate * 100.0));
+				encoder_cfg_ad2s1205.state.resolver_loss_of_tracking_error_cnt,
+				(double)(encoder_cfg_ad2s1205.state.resolver_loss_of_tracking_error_rate * 100.0));
 		commands_printf("Resolver Degradation Of Signal (>33%c error): errors: %d, error rate: %.3f %%", 0xB0,
 				encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_cnt,
 				(double)(encoder_cfg_ad2s1205.state.resolver_degradation_of_signal_error_rate * 100.0));
