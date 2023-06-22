@@ -27,7 +27,7 @@
 
 //#define HW_AXIOM_USE_DAC
 //#define HW_AXIOM_USE_MOTOR_TEMP
-//#define HW_HAS_INPUT_CURRENT_SENSOR
+#define HW_HAS_INPUT_CURRENT_SENSOR
 #define HW_USE_LINE_TO_LINE
 #define	HW_AXIOM_FORCE_HIGH_CURRENT_MEASUREMENTS
 #define HW_VERSION_AXIOM
@@ -38,8 +38,8 @@
 #define HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 
 // Macros
-#define ENABLE_GATE()			palSetPad(GPIOC, 14)
-#define DISABLE_GATE()			palClearPad(GPIOC, 14)
+#define ENABLE_GATE()			palSetPad(GPIOH, 14)
+#define DISABLE_GATE()			palClearPad(GPIOH, 14)
 #define DCCAL_ON()
 #define DCCAL_OFF()
 #define IS_DRV_FAULT()			(!palReadPad(GPIOB, 12))
@@ -110,16 +110,17 @@
 #define HVDC_TRANSFER_FUNCTION			112.15			//[V/V]
 #define PHASE_VOLTAGE_TRANSFER_FUNCTION	112.15			//[V/V]
 #else
-#define HVDC_TRANSFER_FUNCTION			185.0			//[V/V]
+#define HVDC_TRANSFER_FUNCTION			196.0			//[V/V]
 #define PHASE_VOLTAGE_TRANSFER_FUNCTION	367.7			//[V/V]
 #endif
-#define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
+#define DEFAULT_CURRENT_AMP_GAIN		0.001035	//Transfer Function [V/A]
+//#define DEFAULT_CURRENT_AMP_GAIN		0.003761	//Transfer Function [V/A] for ISB-425-A
 //#define DEFAULT_CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HTFS 800-P
 //#define DEFAULT_CURRENT_AMP_GAIN		0.004994	//Transfer Function [V/A] for HASS 100-S
 //#define DEFAULT_CURRENT_AMP_GAIN		0.001249	//Transfer Function [V/A] for HASS 400-S
 //#define DEFAULT_CURRENT_AMP_GAIN		0.0008324	//Transfer Function [V/A] for HASS 600-S
 
-#define DEFAULT_INPUT_CURRENT_AMP_GAIN		0.004	//Transfer Function [V/A] for 4mv/A
+#define DEFAULT_INPUT_CURRENT_AMP_GAIN		0.00104069	//Transfer Function [V/A] 
 
 // Component parameters (can be overridden)
 #ifndef V_REG
@@ -152,11 +153,11 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)				((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_RES_IGBT(adc_val)			((4095.0 * 5000.0) / adc_val - 5000.0)
+#define NTC_RES_IGBT(adc_val)			((4095.0 * 8870.0 * 2) / adc_val - 18870.0)
 #define NTC_TEMP(adc_ind)				hw_axiom_get_highest_IGBT_temp()
 //#define NTC_TEMP(adc_ind)				(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)			((4095.0 * 10000.0) / adc_val - 10000.0)
+#define NTC_RES_MOTOR(adc_val)			((4095.0 * 8870.0 * 2) / adc_val - 18870.0)
 
 // If DAC enabled, only IGBT_TEMP_3 is available
 #ifdef HW_AXIOM_USE_DAC
@@ -256,6 +257,8 @@
 // Resolver interface pins
 #define AD2S1205_SAMPLE_GPIO	GPIOB
 #define AD2S1205_SAMPLE_PIN		3
+#define AD2S1205_RDVEL_GPIO     GPIOC
+#define AD2S1205_RDVEL_PIN      14
 
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
@@ -311,15 +314,15 @@
 #define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
 
 // Setting limits
-#define HW_LIM_CURRENT					-425.0, 425.0
-#define HW_LIM_CURRENT_IN				-400.0, 400.0
-#define HW_LIM_CURRENT_ABS				0.0, 400.0
-#define HW_LIM_VIN						0.0, 420.0
+#define HW_LIM_CURRENT					-600.0, 600.0
+#define HW_LIM_CURRENT_IN				-500.0, 500.0
+#define HW_LIM_CURRENT_ABS				0.0, 800.0
+#define HW_LIM_VIN						0.0, 525.0
 #define HW_LIM_ERPM						-100e3, 100e3
 #define HW_LIM_DUTY_MIN					0.0, 0.1
 #define HW_LIM_DUTY_MAX					0.0, 1.0
 #define HW_LIM_TEMP_FET					-40.0, 110.0
-#define HW_LIM_FOC_CTRL_LOOP_FREQ		5000.0, 30000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
+#define HW_LIM_FOC_CTRL_LOOP_FREQ		5000.0, 24000.0	//at around 38kHz the RTOS starts crashing (26us FOC ISR)
 
 // HW-specific functions
 char hw_axiom_configure_FPGA(void);
