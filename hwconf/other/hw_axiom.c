@@ -97,6 +97,7 @@ float hw_axiom_read_input_current_sensor_gain(void);
 inline float hw_axiom_get_current_sensor_gain(void);
 static void terminal_cmd_axiom_print_temp_status(int argc, const char **argv);
 static void terminal_cmd_axiom_clear_temp_status(int argc, const char **argv);
+static void terminal_cmd_axiom_print_log(int argc, const char **argv);
 
 void hw_init_gpio(void) {
 
@@ -237,7 +238,13 @@ void hw_init_gpio(void) {
 			"Clear highest mosfet temp",
 			0,
 			terminal_cmd_axiom_clear_temp_status);
-    
+
+     terminal_register_command_callback(
+			"axiom_change_log",
+			"Print change log",
+			0,
+			terminal_cmd_axiom_print_log);
+
     // Send bitstream over SPI to configure FPGA
 	hw_axiom_configure_FPGA();
 
@@ -813,5 +820,18 @@ void terminal_cmd_axiom_clear_temp_status(int argc, const char **argv){
 	(void)argv;
 	commands_printf("Mosfet temp cleared");
 	highest_mos_temp = -100.0;
+
+}
+
+void terminal_cmd_axiom_print_log(int argc, const char **argv){
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Axiom FW %d.%d BETA %d", FW_VERSION_MAJOR,FW_VERSION_MINOR,FW_TEST_VERSION_NUMBER);
+	commands_printf("Change log: ");
+	commands_printf("- 2023-06-22 Fix ad2s1205 spi pin configuration, fix resolver LOT errors info");
+	commands_printf("- 2023-06-22 Update axiom HW constants");
+	commands_printf("- 2023-06-22 Add temps filter and temp info terminal command");
+	commands_printf("- 2023-06-22 Add change log print");
 
 }
