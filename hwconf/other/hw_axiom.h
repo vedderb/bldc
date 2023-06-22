@@ -157,18 +157,18 @@
 #define NTC_TEMP(adc_ind)				hw_axiom_get_highest_IGBT_temp()
 //#define NTC_TEMP(adc_ind)				(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3434.0) + (1.0 / 298.15)) - 273.15)
 
-#define NTC_RES_MOTOR(adc_val)			((4095.0 * 8870.0 * 2) / adc_val - 18870.0)
+#define NTC_RES_MOTOR(adc_val)			hw_axiom_NTC_res_motor_filter(adc_val)
 
 // If DAC enabled, only IGBT_TEMP_3 is available
 #ifdef HW_AXIOM_USE_DAC
 #define NTC_TEMP_MOS1()			(25.0)
 #define NTC_TEMP_MOS2()			(25.0)
-#define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS3()			hw_axiom_temp_sensor_filter(3)
 #else
 // Individual IGBT Temperature sensing
-#define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_1]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
-#define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_2]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
-#define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP_MOS1()			hw_axiom_temp_sensor_filter(1)
+#define NTC_TEMP_MOS2()			hw_axiom_temp_sensor_filter(2)
+#define NTC_TEMP_MOS3()			hw_axiom_temp_sensor_filter(3)
 #endif
 
 #ifdef HW_AXIOM_USE_MOTOR_TEMP
@@ -333,5 +333,7 @@ float hw_axiom_get_highest_IGBT_temp(void);
 float hw_axiom_read_input_current(void);
 void hw_axiom_get_input_current_offset(void);
 void hw_axiom_start_input_current_sensor_offset_measurement(void);
+float hw_axiom_temp_sensor_filter(uint8_t);
+float hw_axiom_NTC_res_motor_filter(uint16_t);
 
 #endif /* HW_AXIOM_H_ */
