@@ -833,5 +833,10 @@ void terminal_cmd_axiom_print_log(int argc, const char **argv){
 	commands_printf("- 2023-06-22 Update axiom HW constants");
 	commands_printf("- 2023-06-22 Add temps filter and temp info terminal command");
 	commands_printf("- 2023-06-22 Add change log print");
+	commands_printf("- 2023-06-22 Add empty SPI message and angle velocity error, add peak values for error rates");
+	commands_printf("	Empty SPI message occurs when the resolver IC is not respoding");
+	commands_printf("	Angular velocity error occurs when resolver IC is reading angular velocity instead of angle position");
+	commands_printf("	Add info of the peak values for resolver errors");
+	commands_printf("	Add clear error function, type encoder_clear_errors in terminal to clear the counters ratio and peak values of the resolver errors");
 
 }
