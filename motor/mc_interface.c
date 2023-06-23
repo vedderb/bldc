@@ -86,6 +86,7 @@ typedef struct {
 	float m_input_voltage_filtered;
 	float m_input_voltage_filtered_slower;
 	float m_temp_override;
+	float m_i_in_filter;
 
 	// Backup data counters
 	uint64_t m_odometer_last;
@@ -1904,6 +1905,9 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		abs_current_filtered = current_filtered;
 	}
 
+	// Additional input current filter for the mapped current limit
+	UTILS_LP_FAST(motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
+
 	if (state == MC_STATE_RUNNING) {
 		motor->m_cycles_running++;
 	} else {
@@ -2436,9 +2440,8 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	// input current from id and iq.
 
 	float lo_max_i_in = l_current_max_tmp;
-	float i_in = mc_interface_get_tot_current_in();
-	if (i_in > 0.0 && conf->l_in_current_map_start < 0.98) {
-		float frac = i_in / conf->lo_in_current_max;
+	if (motor->m_i_in_filter > 0.0 && conf->l_in_current_map_start < 0.98) {
+		float frac = motor->m_i_in_filter / conf->lo_in_current_max;
 		if (frac > conf->l_in_current_map_start) {
 			lo_max_i_in = utils_map(frac, conf->l_in_current_map_start,
 					1.0, l_current_max_tmp, 0.0);

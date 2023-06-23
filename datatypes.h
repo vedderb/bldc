@@ -349,6 +349,7 @@ typedef struct {
 	float l_in_current_max;
 	float l_in_current_min;
 	float l_in_current_map_start;
+	float l_in_current_map_filter;
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;

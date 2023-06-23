@@ -19,6 +19,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->l_in_current_max, &ind);
 	buffer_append_float32_auto(buffer, conf->l_in_current_min, &ind);
 	buffer_append_float16(buffer, conf->l_in_current_map_start, 10000, &ind);
+	buffer_append_float16(buffer, conf->l_in_current_map_filter, 10000, &ind);
 	buffer_append_float32_auto(buffer, conf->l_abs_current_max, &ind);
 	buffer_append_float32_auto(buffer, conf->l_min_erpm, &ind);
 	buffer_append_float32_auto(buffer, conf->l_max_erpm, &ind);
@@ -352,6 +353,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->l_in_current_max = buffer_get_float32_auto(buffer, &ind);
 	conf->l_in_current_min = buffer_get_float32_auto(buffer, &ind);
 	conf->l_in_current_map_start = buffer_get_float16(buffer, 10000, &ind);
+	conf->l_in_current_map_filter = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_abs_current_max = buffer_get_float32_auto(buffer, &ind);
 	conf->l_min_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->l_max_erpm = buffer_get_float32_auto(buffer, &ind);
@@ -681,6 +683,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
 	conf->l_in_current_min = MCCONF_L_IN_CURRENT_MIN;
 	conf->l_in_current_map_start = MCCONF_L_IN_CURRENT_MAP_START;
+	conf->l_in_current_map_filter = MCCONF_L_IN_CURRENT_MAP_FILTER;
 	conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
 	conf->l_min_erpm = MCCONF_L_RPM_MIN;
 	conf->l_max_erpm = MCCONF_L_RPM_MAX;

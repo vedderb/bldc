@@ -50,6 +50,9 @@
 #ifndef MCCONF_L_IN_CURRENT_MAP_START
 #define MCCONF_L_IN_CURRENT_MAP_START	1.0		// Input current to Q axis current limit map start
 #endif
+#ifndef MCCONF_L_IN_CURRENT_MAP_FILTER
+#define MCCONF_L_IN_CURRENT_MAP_FILTER	0.1		// Input current filter for the mapped limit
+#endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
 #endif
