@@ -40,7 +40,7 @@
 #define APPCONF_UAVCAN_RAW_MODE 0
 
 // APP to Use
-#define APPCONF_APP_TO_USE 11
+#define APPCONF_APP_TO_USE 10
 
 // Control Type
 #define APPCONF_PPM_CTRL_TYPE 0
