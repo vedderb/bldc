@@ -331,9 +331,15 @@ typedef enum {
 } MTPA_MODE;
 
 typedef enum {
-	SPEED_SRC_CORRECTED = 0,
-	SPEED_SRC_OBSERVER,
-} SPEED_SRC;
+	FOC_SPEED_SRC_CORRECTED = 0,
+	FOC_SPEED_SRC_OBSERVER,
+} FOC_SPEED_SRC;
+
+typedef enum {
+	S_PID_SPEED_SRC_PLL = 0,
+	S_PID_SPEED_SRC_FAST,
+	S_PID_SPEED_SRC_FASTER,
+} S_PID_SPEED_SRC;
 
 typedef enum {
 	SAT_COMP_DISABLED = 0,
@@ -466,7 +472,7 @@ typedef struct {
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
-	SPEED_SRC foc_speed_soure;
+	FOC_SPEED_SRC foc_speed_soure;
 
 	// GPDrive
 	int gpd_buffer_notify_left;
@@ -485,6 +491,7 @@ typedef struct {
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	float s_pid_ramp_erpms_s;
+	S_PID_SPEED_SRC s_pid_speed_source;
 
 	// Pos PID
 	float p_pid_kp;

@@ -461,7 +461,19 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
 		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_s * dt);
 	}
 
-	const float rpm = RADPS2RPM_f(motor->m_motor_state.speed_rad_s);
+	float rpm = 0.0;
+	switch (conf_now->s_pid_speed_source) {
+	case S_PID_SPEED_SRC_PLL:
+		rpm = RADPS2RPM_f(motor->m_pll_speed);
+		break;
+	case S_PID_SPEED_SRC_FAST:
+		rpm = RADPS2RPM_f(motor->m_speed_est_fast);
+		break;
+	case S_PID_SPEED_SRC_FASTER:
+		rpm = RADPS2RPM_f(motor->m_speed_est_faster);
+		break;
+	}
+
 	float error = motor->m_speed_pid_set_rpm - rpm;
 
 	// Too low RPM set. Reset state, release motor and return.

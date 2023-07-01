@@ -153,6 +153,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->s_pid_min_erpm, &ind);
 	buffer[ind++] = conf->s_pid_allow_braking;
 	buffer_append_float32_auto(buffer, conf->s_pid_ramp_erpms_s, &ind);
+	buffer[ind++] = conf->s_pid_speed_source;
 	buffer_append_float32_auto(buffer, conf->p_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->p_pid_kd, &ind);
@@ -487,6 +488,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->s_pid_min_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_allow_braking = buffer[ind++];
 	conf->s_pid_ramp_erpms_s = buffer_get_float32_auto(buffer, &ind);
+	conf->s_pid_speed_source = buffer[ind++];
 	conf->p_pid_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->p_pid_kd = buffer_get_float32_auto(buffer, &ind);
@@ -817,6 +819,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->s_pid_min_erpm = MCCONF_S_PID_MIN_RPM;
 	conf->s_pid_allow_braking = MCCONF_S_PID_ALLOW_BRAKING;
 	conf->s_pid_ramp_erpms_s = MCCONF_S_PID_RAMP_ERPMS_S;
+	conf->s_pid_speed_source = MCCONF_S_PID_SPEED_SOURCE;
 	conf->p_pid_kp = MCCONF_P_PID_KP;
 	conf->p_pid_ki = MCCONF_P_PID_KI;
 	conf->p_pid_kd = MCCONF_P_PID_KD;

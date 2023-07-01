@@ -60,7 +60,6 @@ typedef struct {
 	float vq;
 	float vd_int;
 	float vq_int;
-	float speed_rad_s;
 	uint32_t svm_sector;
 	bool is_using_phase_filters;
 } motor_state_t;
@@ -131,14 +130,14 @@ typedef struct {
 	observer_state m_observer_state;
 	float m_pll_phase;
 	float m_pll_speed;
+	float m_speed_est_fast;
+	float m_speed_est_faster;
 	mc_sample_t m_samples;
 	int m_tachometer;
 	int m_tachometer_abs;
 	float m_pos_pid_now;
 	float m_gamma_now;
 	bool m_using_encoder;
-	float m_speed_est_fast;
-	float m_speed_est_faster;
 	int m_duty1_next, m_duty2_next, m_duty3_next;
 	bool m_duty_next_set;
 	float m_i_alpha_sample_next;

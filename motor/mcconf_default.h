@@ -51,7 +51,7 @@
 #define MCCONF_L_IN_CURRENT_MAP_START	1.0		// Input current to Q axis current limit map start
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAP_FILTER
-#define MCCONF_L_IN_CURRENT_MAP_FILTER	0.1		// Input current filter for the mapped limit
+#define MCCONF_L_IN_CURRENT_MAP_FILTER	0.005	// Input current filter for the mapped limit
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
@@ -155,6 +155,9 @@
 #endif
 #ifndef MCCONF_S_PID_RAMP_ERPMS_S
 #define MCCONF_S_PID_RAMP_ERPMS_S		25000.0	// Speed input ramping, in ERPM/s
+#endif
+#ifndef MCCONF_S_PID_SPEED_SOURCE
+#define MCCONF_S_PID_SPEED_SOURCE		S_PID_SPEED_SRC_PLL
 #endif
 
 // Position PID parameters
@@ -485,7 +488,7 @@
 #define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.02 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
 #endif
 #ifndef MCCONF_FOC_SPEED_SOURCE
-#define MCCONF_FOC_SPEED_SOURCE			SPEED_SRC_OBSERVER // Position source for speed trackers
+#define MCCONF_FOC_SPEED_SOURCE			FOC_SPEED_SRC_OBSERVER // Position source for speed trackers
 #endif
 
 // GPD
