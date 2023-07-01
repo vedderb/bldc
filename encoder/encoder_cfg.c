@@ -54,14 +54,14 @@ AS504x_config_t encoder_cfg_as504x = {
 
 AD2S1205_config_t encoder_cfg_ad2s1205 = {
 		{ // BB_SPI
-				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
-				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+				HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 #if defined(HW_SPI_PORT_MOSI) && AS504x_USE_SW_MOSI_PIN
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 #else
 				0, 0,
 #endif
-				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		},
 		{0},

@@ -95,6 +95,9 @@ void hw_axiom_configure_VDD_undervoltage(void);
 float hw_axiom_read_current_sensor_gain(void);
 float hw_axiom_read_input_current_sensor_gain(void);
 inline float hw_axiom_get_current_sensor_gain(void);
+static void terminal_cmd_axiom_print_temp_status(int argc, const char **argv);
+static void terminal_cmd_axiom_clear_temp_status(int argc, const char **argv);
+static void terminal_cmd_axiom_print_log(int argc, const char **argv);
 
 void hw_init_gpio(void) {
 
@@ -223,7 +226,25 @@ void hw_init_gpio(void) {
 			"Read current sensor gain.",
 			0,
 			terminal_cmd_read_current_sensor_gain);
-    
+
+	terminal_register_command_callback(
+			"axiom_temp_status",
+			"Print the highest temperature reached",
+			0,
+			terminal_cmd_axiom_print_temp_status);
+
+	terminal_register_command_callback(
+			"axiom_temp_clear",
+			"Clear highest mosfet temp",
+			0,
+			terminal_cmd_axiom_clear_temp_status);
+
+     terminal_register_command_callback(
+			"axiom_change_log",
+			"Print change log",
+			0,
+			terminal_cmd_axiom_print_log);
+
     // Send bitstream over SPI to configure FPGA
 	hw_axiom_configure_FPGA();
 
@@ -731,4 +752,91 @@ void hw_axiom_start_input_current_sensor_offset_measurement(void){
 	current_input_sensor_offset_start_measurement = true;
 	input_current_sensor_offset_samples = 0;
 	input_current_sensor_offset_sum = 0;
+}
+
+float highest_mos_temp = -100.0;
+float hw_axiom_temp_sensor_filter(uint8_t temp_sensor){
+	static float temp1 = 0.0;
+	static float temp2 = 0.0;
+	static float temp3 = 0.0;
+	switch (temp_sensor)
+	{
+	case 1:
+		UTILS_LP_FAST(temp1,
+			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_1]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
+			 0.01);
+
+		if(temp1 > highest_mos_temp){
+			highest_mos_temp = temp1;
+		}
+
+		return temp1;
+		break;
+	case 2:
+		UTILS_LP_FAST(temp2,
+			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_2]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
+			 0.01);
+
+		if(temp2 > highest_mos_temp){
+			highest_mos_temp = temp2;
+		}
+
+		return temp2;
+		break;
+	case 3:
+		UTILS_LP_FAST(temp3,
+			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
+			 0.01);
+
+		if(temp3 > highest_mos_temp){
+			highest_mos_temp = temp3;
+		}
+
+		return temp3;
+		break;
+
+	default:
+		return 0.0;
+		break;
+	}
+}
+
+float hw_axiom_NTC_res_motor_filter(uint16_t adc_val){
+	static float adc_val_filtered = 0.0;
+
+	UTILS_LP_FAST(adc_val_filtered, adc_val, 0.01);
+	return ((4095.0 * 8870.0 * 2) / adc_val_filtered - 18870.0);
+}
+
+void terminal_cmd_axiom_print_temp_status(int argc, const char **argv){
+	(void)argc;
+	(void)argv;
+	commands_printf("The highest mosfets temperature was: %.2f", (double)highest_mos_temp);
+
+}
+
+void terminal_cmd_axiom_clear_temp_status(int argc, const char **argv){
+	(void)argc;
+	(void)argv;
+	commands_printf("Mosfet temp cleared");
+	highest_mos_temp = -100.0;
+
+}
+
+void terminal_cmd_axiom_print_log(int argc, const char **argv){
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Axiom FW %d.%d BETA %d", FW_VERSION_MAJOR,FW_VERSION_MINOR,FW_TEST_VERSION_NUMBER);
+	commands_printf("Change log: ");
+	commands_printf("- 2023-06-22 Fix ad2s1205 spi pin configuration, fix resolver LOT errors info");
+	commands_printf("- 2023-06-22 Update axiom HW constants");
+	commands_printf("- 2023-06-22 Add temps filter and temp info terminal command");
+	commands_printf("- 2023-06-22 Add change log print");
+	commands_printf("- 2023-06-22 Add empty SPI message and angle velocity error, add peak values for error rates");
+	commands_printf("	Empty SPI message occurs when the resolver IC is not respoding");
+	commands_printf("	Angular velocity error occurs when resolver IC is reading angular velocity instead of angle position");
+	commands_printf("	Add info of the peak values for resolver errors");
+	commands_printf("	Add clear error function, type encoder_clear_errors in terminal to clear the counters ratio and peak values of the resolver errors");
+
 }

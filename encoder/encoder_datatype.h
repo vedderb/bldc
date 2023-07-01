@@ -53,6 +53,16 @@ typedef struct {
 	float spi_error_rate;
 	float last_enc_angle;
 	uint32_t last_update_time;
+	uint32_t resolver_void_packet_cnt;
+	uint32_t resolver_vel_packet_cnt;
+	float resolver_void_packet_error_rate;
+	float resolver_vel_packet_error_rate;
+	float resolver_LOT_peak_error_rate;
+	float resolver_LOS_peak_error_rate;
+	float resolver_DOS_peak_error_rate;
+	float resolver_SPI_peak_error_rate;
+	float resolver_VELread_peak_error_rate;
+	float resolver_VOIDspi_peak_error_rate;
 } AD2S1205_state;
 
 typedef struct {
