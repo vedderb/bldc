@@ -54,8 +54,19 @@ lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
-  constants_memory[ix] = w;
-  return true;
+  if (constants_memory[ix] == 0xffffffff) {
+    constants_memory[ix] = w;
+    return true;
+  } else if (constants_memory[ix] == w) {
+    return true;
+  }
+
+  char buf[1024];
+  lbm_print_value(buf, 1024, constants_memory[ix]);
+  printf("prev: %x | %s\n", constants_memory[ix], buf);
+  lbm_print_value(buf, 1024, w);
+  printf("curr: %x | %s\n", w, buf);
+  return false;
 }
 
 static volatile bool allow_print = true;
@@ -514,6 +525,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
                            CONSTANT_MEMORY_SIZE)) {
@@ -717,6 +729,14 @@ int main(int argc, char **argv) {
                  print_stack_storage, PRINT_STACK_SIZE,
                  extension_storage, EXTENSION_STORAGE_SIZE);
 
+        if (!lbm_const_heap_init(const_heap_write,
+                           &const_heap,constants_memory,
+                           CONSTANT_MEMORY_SIZE)) {
+          return 0;
+        } else {
+          printf("Constants memory initialized\n");
+        }
+  
         lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
         if (lbm_array_extensions_init()) {
@@ -759,6 +779,14 @@ int main(int argc, char **argv) {
                print_stack_storage, PRINT_STACK_SIZE,
                extension_storage, EXTENSION_STORAGE_SIZE);
 
+      if (!lbm_const_heap_init(const_heap_write,
+                               &const_heap,constants_memory,
+                               CONSTANT_MEMORY_SIZE)) {
+        return 0;
+      } else {
+        printf("Constants memory initialized\n");
+      }
+  
       lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
       if (lbm_array_extensions_init()) {
@@ -778,6 +806,50 @@ int main(int argc, char **argv) {
       } else {
         printf("Loading math extensions failed\n");
       }
+
+      if (lbm_runtime_extensions_init(false)) {
+        printf("Runtime extensions loaded\n");
+      } else {
+        printf("Loading runtime extensions failed\n");
+      }
+
+      res = lbm_add_extension("block", ext_block);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      res = lbm_add_extension("print", ext_print);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      res = lbm_add_extension("custom", ext_custom);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      res = lbm_add_extension("event", ext_event);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      res = lbm_add_extension("unflatten", ext_unflatten);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      res = lbm_add_extension("trigger", ext_trigger);
+      if (res)
+        printf("Extension added.\n");
+      else
+        printf("Error adding extension.\n");
+
+      
 
       lbm_add_extension("print", ext_print);
       free(str);

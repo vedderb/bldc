@@ -145,6 +145,7 @@
 #define SYM_TYPE_CHANNEL   0x5E
 
 //Relevant for the tokenizer and reader
+#define TOKENIZER_SYMBOLS_START 0x70
 #define SYM_OPENPAR          0x70
 #define SYM_CLOSEPAR         0x71
 #define SYM_BACKQUOTE        0x72
@@ -160,6 +161,7 @@
 #define SYM_TOKENIZER_RERROR 0x82
 #define SYM_OPENCURL         0x84
 #define SYM_CONST            0x85
+#define TOKENIZER_SYMBOLS_END 0x85
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
