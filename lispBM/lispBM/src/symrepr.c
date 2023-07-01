@@ -346,7 +346,6 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   }
 
   *id = next_symbol_id ++;
-
   return 1;
 }
 
