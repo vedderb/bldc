@@ -277,6 +277,9 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Memory free: %u Words\n", lbm_memory_num_free());
 				commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
 				commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
+				commands_printf_lisp("Symbol table size flash: %u Bytes\n", lbm_get_symbol_table_size_flash());
+				commands_printf_lisp("Symbol name size: %u Bytes\n", lbm_get_symbol_table_size_names());
+				commands_printf_lisp("Symbol name size flash: %u Bytes\n", lbm_get_symbol_table_size_names_flash());
 				commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
 				commands_printf_lisp("--(Flash)--\n");
 				commands_printf_lisp("Size: %u Bytes\n", const_heap.size);
