@@ -215,7 +215,6 @@ void sleep_callback(uint32_t us) {
 
 
 bool dyn_load(const char *str, const char **code) {
-
   bool res = false;
   if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
@@ -640,8 +639,10 @@ int main(int argc, char **argv) {
       printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
       printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
       printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
-      printf("Symbol table size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
-      printf("Symbol names size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
+      printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+      printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
+      printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
+      printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
       free(str);
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();

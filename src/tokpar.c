@@ -43,7 +43,7 @@ typedef struct {
 } matcher;
 
 
-#define NUM_FIXED_SIZE_TOKENS 15
+#define NUM_FIXED_SIZE_TOKENS 16
 const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -59,7 +59,8 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"{", TOKOPENCURL, 1},
   {"}", TOKCLOSECURL, 1},
   {"@const-start", TOKCONSTSTART, 12},
-  {"@const-end", TOKCONSTEND, 10}, 
+  {"@const-end", TOKCONSTEND, 10},
+  {"@const-symbol-strings", TOKCONSTSYMSTR, 21},
 };
 
 #define NUM_TYPE_QUALIFIERS 9
@@ -155,6 +156,7 @@ int tok_symbol(lbm_char_channel_t *chan) {
     r = lbm_channel_peek(chan,(unsigned int)len, &c);
   }
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  tokpar_sym_str[len] = 0;
   return len;
 }
 

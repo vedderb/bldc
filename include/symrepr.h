@@ -58,6 +58,13 @@ void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
  * \return 1 for success and 0 for failure.
  */
 int lbm_add_symbol(char *name, lbm_uint *id);
+/** Add a symbol to the symbol table. The symbol name string is copied to flash.
+ *
+ * \param name String representation of the symbol.
+ * \param id Resulting id is returned through this argument.
+ * \return 1 for success and 0 for failure.
+ */
+int lbm_add_symbol_flash(char *name, lbm_uint* id);
 /** Name of symbol to symbol. If the symbol exists the ID of the symbol is returned.
     If the name does not match any existing symbol, one is created and that ID is returned.
     \param name String name of symbol.
@@ -120,13 +127,22 @@ int lbm_get_num_variables(void);
 
 /**
  *
- * \return The total amount of space occupied by the symbol table in bytes.
+ * \return The total amount of lbm_memory space occupied by the symbol table in bytes.
  */
 lbm_uint lbm_get_symbol_table_size(void);
+/**
+ *
+ * \return The total amount of flash space occupied by the symbol table in bytes.
+ */
+lbm_uint lbm_get_symbol_table_size_flash(void);
 /**
  * \return The size in bytes of all symbol strings stored in the symbol table.
  */
 lbm_uint lbm_get_symbol_table_size_names(void);
+/**
+ * \return The size in bytes of all symbol strings stored in flash from the symbol table.
+ */
+lbm_uint lbm_get_symbol_table_size_names_flash(void);
 
 #ifdef __cplusplus
 }
