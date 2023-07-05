@@ -1,4 +1,4 @@
- /*
+/*
     Copyright 2018, 2020, 2021, 2022, 2023 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
@@ -169,7 +169,6 @@ typedef struct {
   eval_context_t *first;
   eval_context_t *last;
 } eval_context_queue_t;
-
 
 static int gc(void);
 void error_ctx(lbm_value);
@@ -656,6 +655,28 @@ static void block_current_ctx(lbm_uint sleep_us, uint32_t wait_mask, bool do_con
   ctx_running->app_cont = do_cont;
   enqueue_ctx(&blocked, ctx_running);
   ctx_running = NULL;
+}
+
+lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res) {
+  lbm_uint full_words = n / sizeof(lbm_uint);
+  lbm_uint n_mod = n % sizeof(lbm_uint);
+
+  if (n_mod == 0) { // perfect fit.
+    return lbm_write_const_raw((lbm_uint*)data, full_words, res);
+  } else {
+    lbm_uint last_word = 0;
+    memcpy(&last_word, &data[full_words * sizeof(lbm_uint)], n_mod);
+    if (full_words >= 1) {
+      lbm_flash_status s = lbm_write_const_raw((lbm_uint*)data, full_words, res);
+      if ( s == LBM_FLASH_WRITE_OK) {
+        lbm_uint dummy;
+        s = lbm_write_const_raw(&last_word, 1, &dummy);
+      }
+      return s;
+    } else {
+      return lbm_write_const_raw(&last_word, 1, res);
+    }
+  }
 }
 
 /****************************************************/
@@ -2957,6 +2978,13 @@ static void cont_read_next_token(eval_context_t *ctx) {
       stack_push(&ctx->K, READ_NEXT_TOKEN);
       ctx->app_cont = true;
       return;
+    case TOKCONSTSYMSTR:
+      ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS;
+      sptr[0] = stream;
+      sptr[1] = lbm_enc_u(0);
+      stack_push(&ctx->K, READ_NEXT_TOKEN);
+      ctx->app_cont = true;
+      return;
     default:
       read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
     }
@@ -3063,15 +3091,18 @@ static void cont_read_next_token(eval_context_t *ctx) {
 
     if (lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       res = lbm_enc_sym(symbol_id);
-    }
-    else {
+    } else {
       int r = 0;
       if (strncmp(tokpar_sym_str,"ext-",4) == 0) {
         r = lbm_add_extension_symbol(tokpar_sym_str, &symbol_id);
       } else if (tokpar_sym_str[0] == '#') {
         r = lbm_add_variable_symbol(tokpar_sym_str, &symbol_id);
       } else {
-        r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS) {
+          r = lbm_add_symbol_flash(tokpar_sym_str, &symbol_id);
+        } else {
+          r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+        }
       }
       if (r) {
         res = lbm_enc_sym(symbol_id);
@@ -3656,26 +3687,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       } break;
       case SYM_ARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
-
-        lbm_uint full_words = arr->size / sizeof(lbm_uint); // array size always in bytes
-
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
-        if ( arr->size % sizeof(lbm_uint) == 0) {
-          handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
-        } else {
-          lbm_uint last_word = 0;
-          memcpy(&last_word, &arr->data[full_words],arr->size % sizeof(lbm_uint));
-
-          if (full_words >= 1) {
-            handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
-            lbm_uint dummy;
-            handle_flash_status(lbm_write_const_raw(&last_word, 1, &dummy));
-          } else {
-            handle_flash_status(lbm_write_const_raw(&last_word, 1, &flash_arr));
-          }
-        }
-
+        handle_flash_status(lbm_write_const_array_padded((uint8_t*)arr->data, arr->size, &flash_arr));
         lift_array_flash(flash_cell,
                          (char *)flash_arr,
                          arr->size);

@@ -1436,21 +1436,25 @@ Example that updates position 1 in a buffer:
 
 ### bufclear
 
-Clears an array by writing zeroes (or a value of choice) to all locations.
-The form of a `bufclear` expression is `(bufclear buf-expr opt-val-expr)`.
-
-Example that clears a buffer:
+To clear a byte array the function bufclear can be used:
 
 ```clj
-(bufclear buf)
+(bufclear arr optByte optStart optLen)
 ```
 
-Example that clears a buffer to all ones:
+Where arr is the byte array to clear, optByte is the optional argument
+of what to clear with (default 0), optStart is the optional argument
+of which position to start clearing (default 0) and optLen is the
+optional argument of how many bytes to clear after start (default the
+entire array). Example:
 
 ```clj
-(bufclear buf 1)
+(bufclear arr) ; Clear all of arr
+(bufclear arr 0xFF) ; Fill arr with 0xFF
+(bufclear arr 0 5) ; Clear from index 5 to the end
+(bufclear arr 0 5 10) ; Clear 10 bytes starting from index 5
+(bufclear arr 0xAA 5 10) ; Set 10 bytes to 0xAA starting from index 5
 ```
-
 ---
 
 ### Byte-array literal syntax
