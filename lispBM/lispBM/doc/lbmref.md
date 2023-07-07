@@ -953,68 +953,6 @@ Example that evaluates to 20:
 ``` 
 ---
 
-### @const-start
-
-`@const-start` opens a block of code where each global definition is
-moved to constant memory (flash) automatically. This can be used only together with the
-incremental reader (such as `read-eval-program`).
-
-A `@const-start` opened block should be closed with a `@const-end`. Constant blocks
-cannot be nested. 
-
-Example:
-
-```clj
-@const-start
-
-(defun f (x) (+ x 1))  ; a function stored in constant memory
-
-@const-end
-
-(+ f 2)
-``` 
-
-### @const-end
-
-`@const-end` closes an block opened by `@const-start`.
-
-
-### move-to-flash
-
-A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.
-A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.
-The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved
-to flash. After the value has been moved, the environment binding is updated to point into flash
-memory. **CAUTION** This function should be used carefully. Ideally a value should be moved
-to flash immediately after it is created so there is no chance that other references to original value
-exists.
-
-Example that moves an array to flash storage:
-
-```clj
-(define a [1 2 3 4 5 6])
-
-(move-to-flash a)
-```
-
-Example that moves a list to flash storage:
-
-```clj
-(define ls '(1 2 3 4 5))
-
-(move-to-flash ls)
-```
-
-Functions can be moved to flash storage as well:
-
-```clj
-(defun f (x) (+ x 1))
-
-(move-to-flash f)
-```
-
----
-
 ## Lists and cons cells
 
 Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the
@@ -1897,6 +1835,86 @@ The `variable_not_bound` symbol is returned when evaluating a
 variable (symbol) that is neighter bound nor special (built-in function).
 
 
+## Flash memory
+
+Flash memory can be used to store data and functions that are constant.
+Things can be moved to flash explicitly using the `move-to-flash` function
+or as part of the reading procedure. To move things automatically to flash during
+reading, there are `@`directives.
+
+---
+
+### @const-symbol-strings
+
+if `@const-symbol-strings` directive is placed in a file, symbols will be created
+in flash memory instead of the arrays memory.
+
+---
+
+### @const-start
+
+`@const-start` opens a block of code where each global definition is
+moved to constant memory (flash) automatically. This can be used only together with the
+incremental reader (such as `read-eval-program`).
+
+A `@const-start` opened block should be closed with a `@const-end`. Constant blocks
+cannot be nested.
+
+Example:
+
+```clj
+@const-start
+
+(defun f (x) (+ x 1))  ; a function stored in constant memory
+
+@const-end
+
+(+ f 2)
+```
+
+---
+
+### @const-end
+
+`@const-end` closes an block opened by `@const-start`.
+
+---
+
+### move-to-flash
+
+A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.
+A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.
+The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved
+to flash. After the value has been moved, the environment binding is updated to point into flash
+memory. **CAUTION** This function should be used carefully. Ideally a value should be moved
+to flash immediately after it is created so there is no chance that other references to original value
+exists.
+
+Example that moves an array to flash storage:
+
+```clj
+(define a [1 2 3 4 5 6])
+
+(move-to-flash a)
+```
+
+Example that moves a list to flash storage:
+
+```clj
+(define ls '(1 2 3 4 5))
+
+(move-to-flash ls)
+```
+
+Functions can be moved to flash storage as well:
+
+```clj
+(defun f (x) (+ x 1))
+
+(move-to-flash f)
+```
+
+---
 
 ## Types
 

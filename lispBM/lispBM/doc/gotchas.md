@@ -45,6 +45,8 @@ Note that the global environment is not "saved" in the same way inside the closu
 Currently no (efficient) solution in mind for this gotcha. Just be careful if you use `undefine`.
 
 
+## Flash memory
+
 
 
 
