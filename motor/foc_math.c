@@ -556,7 +556,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	// Only override the observer if the hall sensor value is valid.
 	if (ang_hall_int < 201) {
 		// Scale to the circle and convert to radians
-		float ang_hall_now = ((float)ang_hall_int / 200.0) * 2 * M_PI;
+		float ang_hall_now = ((float)ang_hall_int / 200.0) * 2.0 * M_PI;
 
 		if (motor->m_ang_hall_int_prev < 0) {
 			// Previous angle not valid
