@@ -3102,6 +3102,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
           r = lbm_add_symbol_flash(tokpar_sym_str, &symbol_id);
         } else {
           r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+          if (!r) {
+            gc();
+            r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+          }
         }
       }
       if (r) {
