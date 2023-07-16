@@ -18,7 +18,11 @@
 	* Added access to several config parameters.
 	* Many improvements and bug fixes.
 	* Better error descriptions.
-* Hall sensors: smooth transition to sensorless.
+* Hall sensors improvements:
+	* Smooth transition to sensorless.
+	* Bug fix in interpolation.
+	* Use less noisy speed estimator for interpolation.
+	* Adjusted rate limit.
 * Added soft regen cutoff. See https://github.com/vedderb/vesc_tool/pull/310
 * Attempt at limiting the input current when using MTPA and field weakening.
 * Removed built-in balance app. The balance-package can be used instead, which is where new development is done.
