@@ -179,7 +179,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	conf = configuration;
 
-	// Initialize variables
 	comm_step = 1;
 	detect_step = 0;
 	direction = 1;
@@ -232,10 +231,8 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM1->CNT = 0;
 	TIM8->CNT = 0;
 
-	// TIM1 clock enable
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
-	// Time Base configuration
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period = SYSTEM_CORE_CLOCK / (int)switching_frequency_now;
@@ -287,14 +284,10 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	TIM_CCPreloadControl(TIM1, ENABLE);
 	TIM_ARRPreloadConfig(TIM1, ENABLE);
 
-	/*
-	 * ADC!
-	 */
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;
 
-	// Clock
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2 | RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_ADC3, ENABLE);
 
@@ -321,10 +314,8 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
 	DMA_Init(DMA2_Stream4, &DMA_InitStructure);
 
-	// DMA2_Stream0 enable
 	DMA_Cmd(DMA2_Stream4, ENABLE);
 
-	// Enable transfer complete interrupt
 	DMA_ITConfig(DMA2_Stream4, DMA_IT_TC, ENABLE);
 
 	// ADC Common Init
@@ -351,7 +342,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	ADC_Init(ADC2, &ADC_InitStructure);
 	ADC_Init(ADC3, &ADC_InitStructure);
 
-	// Enable Vrefint channel
 	ADC_TempSensorVrefintCmd(ENABLE);
 
 	// Enable DMA request after last transfer (Multi-ADC mode)
@@ -376,21 +366,14 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 
 	hw_setup_adc_channels();
 
-	// Interrupt
 	ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE);
 	nvicEnableVector(ADC_IRQn, 6);
 
-	// Enable ADC1
 	ADC_Cmd(ADC1, ENABLE);
-
-	// Enable ADC2
 	ADC_Cmd(ADC2, ENABLE);
-
-	// Enable ADC3
 	ADC_Cmd(ADC3, ENABLE);
 
-	// ------------- Timer8 for ADC sampling ------------- //
-	// Time Base configuration
+	// Timer8 for ADC sampling
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
@@ -465,7 +448,6 @@ void mcpwm_init(volatile mc_configuration *configuration) {
 	// Reset tachometers again
 	tachometer = 0;
 	tachometer_abs = 0;
-
 	init_done = true;
 }
 
@@ -1475,14 +1457,14 @@ static THD_FUNCTION(timer_thread, arg) {
 void mcpwm_adc_inj_int_handler(void) {
 	uint32_t t_start = timer_time_now();
 
-	int curr0 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
-	int curr1 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+	int curr0 = HW_GET_INJ_CURR1();
+	int curr1 = HW_GET_INJ_CURR2();
 
-	int curr0_2 = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2);
-	int curr1_2 = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2);
+	int curr0_2 = HW_GET_INJ_CURR1_S2();
+	int curr1_2 = HW_GET_INJ_CURR1_S2();
 
 #ifdef HW_HAS_3_SHUNTS
-	int curr2 = ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1);
+	int curr2 = HW_GET_INJ_CURR3();
 #endif
 
 #ifdef INVERTED_SHUNT_POLARITY

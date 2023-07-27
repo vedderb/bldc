@@ -617,6 +617,22 @@
 #define HW_SPI_PIN_MISO HW_HALL_ENC_PIN2
 #endif
 
+#ifndef HW_GET_INJ_CURR1
+#define HW_GET_INJ_CURR1()		ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1)
+#endif
+#ifndef HW_GET_INJ_CURR2
+#define HW_GET_INJ_CURR2()		ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1)
+#endif
+#ifndef HW_GET_INJ_CURR3
+#define HW_GET_INJ_CURR3()		ADC_GetInjectedConversionValue(ADC3, ADC_InjectedChannel_1)
+#endif
+#ifndef HW_GET_INJ_CURR1_S2
+#define HW_GET_INJ_CURR1_S2()	ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_2)
+#endif
+#ifndef HW_GET_INJ_CURR2_S2
+#define HW_GET_INJ_CURR2_S2()	ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_2)
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);

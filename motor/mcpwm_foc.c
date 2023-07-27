@@ -364,6 +364,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	TIM_DeInit(TIM1);
 	TIM_DeInit(TIM2);
 	TIM_DeInit(TIM8);
+
 	TIM1->CNT = 0;
 	TIM2->CNT = 0;
 	TIM8->CNT = 0;
@@ -446,12 +447,6 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 #ifdef HW_HAS_DUAL_MOTORS
 	stop_pwm_hw((motor_all_state_t*)&m_motor_2);
 #endif
-
-	TIMER_UPDATE_SAMP(MCPWM_FOC_CURRENT_SAMP_OFFSET);
-
-	// Enable CC2 interrupt, which will be fired in V0 and V7
-	TIM_ITConfig(TIM2, TIM_IT_CC2, ENABLE);
-	nvicEnableVector(TIM2_IRQn, 6);
 
 	utils_sys_unlock_cnt();
 

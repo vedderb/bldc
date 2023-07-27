@@ -541,7 +541,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			utils_truncate_number(&mcconf->l_current_max_scale , 0.0, 1.0);
 			utils_truncate_number(&mcconf->l_current_min_scale , 0.0, 1.0);
 
-#ifdef HW_HAS_DUAL_MOTORS
+#if defined(HW_HAS_DUAL_MOTORS) & !defined(HW_SET_SINGLE_MOTOR)
 			mcconf->motor_type = MOTOR_TYPE_FOC;
 #endif
 

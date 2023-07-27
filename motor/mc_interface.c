@@ -303,8 +303,14 @@ const volatile mc_configuration* mc_interface_get_configuration(void) {
 void mc_interface_set_configuration(mc_configuration *configuration) {
 	volatile motor_if_state_t *motor = motor_now();
 
-#if defined HW_HAS_DUAL_MOTORS || defined HW_HAS_DUAL_PARALLEL
+#if defined HW_HAS_DUAL_PARALLEL
 	configuration->motor_type = MOTOR_TYPE_FOC;
+#else
+#ifdef HW_HAS_DUAL_MOTORS
+#ifndef HW_SET_SINGLE_MOTOR
+	configuration->motor_type = MOTOR_TYPE_FOC;
+#endif
+#endif
 #endif
 
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
@@ -345,6 +351,14 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		mcpwm_foc_deinit();
 		gpdrive_deinit();
 
+#ifdef HW_SET_SINGLE_MOTOR
+		if (configuration->motor_type == MOTOR_TYPE_FOC) {
+			hw_init_gpio();
+		} else {
+			HW_SET_SINGLE_MOTOR();
+		}
+#endif
+
 		motor->m_conf = *configuration;
 
 		switch (motor->m_conf.motor_type) {
@@ -384,8 +398,10 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 #ifdef HW_HAS_DUAL_MOTORS
 		if (motor == &m_motor_1) {
 			m_motor_2.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
+			m_motor_2.m_conf.motor_type = motor->m_conf.motor_type;
 		} else {
 			m_motor_1.m_conf.foc_f_zv = motor->m_conf.foc_f_zv;
+			m_motor_1.m_conf.motor_type = motor->m_conf.motor_type;
 		}
 #endif
 		mcpwm_foc_set_configuration((mc_configuration*)&motor->m_conf);
