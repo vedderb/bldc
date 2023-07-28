@@ -17,11 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UBOX_SINGLE_80_H_
-#define HW_UBOX_SINGLE_80_H_
+#ifndef HW_UBOX_SINGLE_85_200_H_
+#define HW_UBOX_SINGLE_85_200_H_
 
-#define HW_UBOX_SINGLE_80
-#define MCCONF_L_MAX_VOLTAGE	78.0
+#define HW_UBOX_SINGLE_85_200
+
+#define MCCONF_L_MAX_VOLTAGE	82.0
+
+#define MCCONF_L_MAX_ABS_CURRENT		400	// The maximum absolute current above which a fault is generated
+#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_L_IN_CURRENT_MAX			250.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
 
 #include "hw_ubox_100_core.h"
 
