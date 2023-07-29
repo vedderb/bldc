@@ -195,7 +195,6 @@ typedef struct {
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
-static void(*ext_callback)(void) = 0;
 
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
@@ -4304,10 +4303,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_array_extensions_init();
 	lbm_math_extensions_init();
 	lbm_string_extensions_init();
-
-	if (ext_callback) {
-		ext_callback();
-	}
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -4361,10 +4356,6 @@ void lispif_process_shutdown(void) {
 		lbm_finish_flatten(&v);
 		lbm_event(&v);
 	}
-}
-
-void lispif_set_ext_load_callback(void (*p_func)(void)) {
-	ext_callback = p_func;
 }
 
 void lispif_disable_all_events(void) {

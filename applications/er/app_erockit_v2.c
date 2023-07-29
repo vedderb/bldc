@@ -278,7 +278,7 @@ void app_custom_start(void) {
 
 	app_adc_start(false);
 
-	lispif_set_ext_load_callback(load_lisp_extensions);
+	lispif_add_ext_load_callback(load_lisp_extensions);
 }
 
 void app_custom_stop(void) {

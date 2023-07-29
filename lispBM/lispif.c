@@ -35,6 +35,7 @@
 #define PRINT_STACK_SIZE		128
 #define EXTENSION_STORAGE_SIZE	260
 #define VARIABLE_STORAGE_SIZE	50
+#define EXT_LOAD_CALLBACK_LEN	20
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
@@ -65,6 +66,9 @@ static int restart_cnt = 0;
 static uint32_t timestamp_callback(void);
 static void sleep_callback(uint32_t us);
 static bool const_heap_write(lbm_uint ix, lbm_uint w);
+
+// Extension load callbacks
+void(*ext_load_callbacks[EXT_LOAD_CALLBACK_LEN])(void) = {0};
 
 void lispif_init(void) {
 	// Do not attempt to start lisp after a watchdog reset, in case lisp
@@ -585,7 +589,16 @@ bool lispif_restart(bool print, bool load_code) {
 			chThdSleepMilliseconds(1);
 		}
 
+		// Load extensions
 		lispif_load_vesc_extensions();
+		for (int i = 0;i < EXT_LOAD_CALLBACK_LEN;i++) {
+			if (ext_load_callbacks[i] == 0) {
+				break;
+			}
+
+			ext_load_callbacks[i]();
+		}
+
 		lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader);
 
 		int code_chars = 0;
@@ -637,6 +650,15 @@ bool lispif_restart(bool print, bool load_code) {
 	}
 
 	return res;
+}
+
+void lispif_add_ext_load_callback(void (*p_func)(void)) {
+	for (int i = 0;i < EXT_LOAD_CALLBACK_LEN;i++) {
+		if (ext_load_callbacks[i] == 0 || ext_load_callbacks[i] == p_func) {
+			ext_load_callbacks[i] = p_func;
+			break;
+		}
+	}
 }
 
 static uint32_t timestamp_callback(void) {
