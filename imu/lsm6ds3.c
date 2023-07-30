@@ -84,8 +84,8 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	// TRC variant supports configurable hardware filters
 	// oversampling is achieved by configuring higher bandwidth + stronger filtering
-	#define LSM6DS3TRC_BW0_XL 1
-	#define LSM6DS3TRC_LPF1_BW_SEL 2
+	#define LSM6DS3TRC_BW0_XL 0x1
+	#define LSM6DS3TRC_LPF1_BW_SEL 0x2
 
 	// Configure imu
 	// Set all accel speeds
@@ -191,8 +191,8 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	if (is_trc && (filter == IMU_FILTER_HIGH)) {
 		// Low-pass filter with ODR/9 data rate
-		#define LSM6DS3TRC_LPF2_XL_EN 0x40
-		#define LSM6DS3TRC_HPCF_XL_ODR9 (0x2 << 4);
+		#define LSM6DS3TRC_LPF2_XL_EN 0x80
+		#define LSM6DS3TRC_HPCF_XL_ODR9 0x40
 		txb[0] = LSM6DS3_ACC_GYRO_CTRL8_XL;
 		txb[1] = LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR9;
 		res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
