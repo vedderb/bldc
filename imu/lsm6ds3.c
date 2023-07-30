@@ -183,7 +183,7 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		// Standard LSM6DS3 only: Set XL anti-aliasing filter to be manually configured
 		txb[1] = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	}
-	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
+	res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
 	if (!res){
 		commands_printf("LSM6DS3 ODR Config FAILED");
 		return;
@@ -195,7 +195,11 @@ void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
 		#define LSM6DS3TRC_HPCF_XL_ODR9 (0x2 << 4);
 		txb[0] = LSM6DS3_ACC_GYRO_CTRL8_XL;
 		txb[1] = LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR9;
-		i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
+		res = i2c_bb_tx_rx(&m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
+		if (!res) {
+			commands_printf("LSM6DS3 Accel Low Pass Config FAILED");
+			return;
+		}
 	}
 
 	terminal_register_command_callback(
