@@ -596,7 +596,7 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	if (compare_symbol(name, &syms_vesc.v_tot)) {
 		res = get_or_set_float(set, &val->v_tot, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.v_charge)) {
-		res = get_or_set_float(set, &val->v_charge, &res);
+		res = get_or_set_float(set, &val->v_charge, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.i_in)) {
 		res = get_or_set_float(set, &val->i_in, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.i_in_ic)) {
