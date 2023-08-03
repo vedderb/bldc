@@ -1685,16 +1685,16 @@ before the flattening.
 Example:
 ```
 # (define a (flatten (+ 1 2)))
-> ~FLATVAL~
+> ""
 ```
-The example above creates a `~FLATVAL~` representation of the the value `3`.
+The example above creates a byte-array representating the the value `3`.
 
 ```
 # (define a (flatten '(+ 1 2)))
-> ~FLATVAL~
+> "+"
 ```
 
-Now the `~FLATVAL~` contains a representation of the list `(+ 1 2)`
+Now the byte-array contains a representation of the list `(+ 1 2)`
 
 ---
 
@@ -1706,57 +1706,19 @@ Now the `~FLATVAL~` contains a representation of the list `(+ 1 2)`
 Example:
 ```
 # (define a (flatten (+ 1 2)))
-> ~FLATVAL~
+> ""
 # (unflatten a)
 > 3
 ```
 
 and:
+
 ```
 # (define a (flatten '(+ 1 2)))
-> ~FLATVAL~
+> "+"
 # (unflatten a)
 > (+ 1 2)
 ```
-
----
-
-### fv-to-a
-
-Convert a flat value to a byte-array by applying `fv-to-a`. The form of
-an `fv-to-a` expression is `(fv-to-a flat-value)`.
-
-Example:
-
-```
-# (define a (flatten '(1 2 3)))
-> ~FLATVAL~
-# (fv-to-a a)
-> ""
-```
-
----
-
-### a-to-fv
-
-Convert an array representing a valid flat value into a flat value. The form
-of an `a-to-fv` expression is `(a-to-fv array)`.
-
-Example:
-
-```
-# (define a (flatten '(1 2 3)))
-> ~FLATVAL~
-# (define b (fv-to-a a))
-> ""
-# (define c (a-to-fv b))
-> ~FLATVAL~
-# (unflatten c)
-> (1 2 3)
-```
-
----
-
 
 ## Macros
 
