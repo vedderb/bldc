@@ -27,15 +27,17 @@
 #include "lispbm.h"
 #include "mempools.h"
 #include "stm32f4xx_conf.h"
+#include "lbm_prof.h"
 
-#define HEAP_SIZE				(2048 + 256 + 160)
-#define LISP_MEM_SIZE			LBM_MEMORY_SIZE_16K
-#define LISP_MEM_BITMAP_SIZE	LBM_MEMORY_BITMAP_SIZE_16K
-#define GC_STACK_SIZE			160
-#define PRINT_STACK_SIZE		128
-#define EXTENSION_STORAGE_SIZE	260
-#define VARIABLE_STORAGE_SIZE	50
-#define EXT_LOAD_CALLBACK_LEN	20
+#define HEAP_SIZE					(2048 + 256 + 160)
+#define LISP_MEM_SIZE				LBM_MEMORY_SIZE_16K
+#define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_16K
+#define GC_STACK_SIZE				160
+#define PRINT_STACK_SIZE			128
+#define EXTENSION_STORAGE_SIZE		260
+#define VARIABLE_STORAGE_SIZE		50
+#define EXT_LOAD_CALLBACK_LEN		20
+#define PROF_DATA_NUM				30
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
@@ -44,6 +46,7 @@ static uint32_t gc_stack_storage[GC_STACK_SIZE];
 __attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STACK_SIZE];
 __attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+static lbm_prof_t prof_data[PROF_DATA_NUM];
 
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
@@ -116,6 +119,11 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 
 static void sym_it(const char *str) {
 	commands_printf_lisp("%s", str);
+}
+
+static void prof_thd_wrapper(void *v) {
+	(void)v;
+	lbm_prof_run();
 }
 
 void lispif_process_cmd(unsigned char *data, unsigned int len,
@@ -232,7 +240,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 			if (len <= 1) {
 				commands_printf_lisp(">");
-			} else if (len >= 5 && strncmp(str, ":help", 5) == 0) {
+			} else if (strncmp(str, ":help", 5) == 0) {
 				commands_printf_lisp("== Special Commands ==");
 				commands_printf_lisp(
 						":help\n"
@@ -240,6 +248,15 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp(
 						":info\n"
 						"  Print info about memory usage, allocated arrays and garbage collection");
+				commands_printf_lisp(
+						":prof start\n"
+						"  Start profiler");
+				commands_printf_lisp(
+						":prof stop\n"
+						"  Stop profiler");
+				commands_printf_lisp(
+						":prof report\n"
+						"  Print profiler report");
 				commands_printf_lisp(
 						":env\n"
 						"  Print current environment and variables");
@@ -267,7 +284,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp(" ");
 				commands_printf_lisp("Anything else will be evaluated as an expression in LBM.");
 				commands_printf_lisp(" ");
-			} else if (len >= 5 && strncmp(str, ":info", 5) == 0) {
+			} else if (strncmp(str, ":info", 5) == 0) {
 				commands_printf_lisp("--(LISP HEAP)--\n");
 				commands_printf_lisp("Heap size: %u Bytes\n", HEAP_SIZE * 8);
 				commands_printf_lisp("Used cons cells: %d\n", HEAP_SIZE - lbm_heap_num_free());
@@ -289,6 +306,40 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Size: %u Bytes\n", const_heap.size);
 				commands_printf_lisp("Used cells: %d\n", const_heap.next);
 				commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
+			} else if (strncmp(str, ":prof start", 11) == 0) {
+				if (lbm_prof_is_running()) {
+					lbm_prof_init(sleep_callback, 200, prof_data, PROF_DATA_NUM);
+					commands_printf_lisp("Profiler restarted\n");
+				} else {
+					lbm_prof_init(sleep_callback, 200, prof_data, PROF_DATA_NUM);
+					if (lispif_spawn(prof_thd_wrapper, 1024, "LBM Profiler", NULL)) {
+						commands_printf_lisp("Profiler started\n");
+					} else {
+						commands_printf_lisp("Could not start profiler, most likely out of memory\n");
+					}
+				}
+			} else if (strncmp(str, ":prof stop", 10) == 0) {
+				commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
+				lbm_prof_stop();
+			} else if (strncmp(str, ":prof report", 12) == 0) {
+				lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+				lbm_uint tot_samples = lbm_prof_get_num_samples();
+				lbm_uint tot_gc = 0;
+				commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
+				for (int i = 0; i < PROF_DATA_NUM; i ++) {
+					if (prof_data[i].cid == -1) break;
+					tot_gc += prof_data[i].gc_count;
+					commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
+							prof_data[i].cid,
+							prof_data[i].name,
+							prof_data[i].count,
+							(double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
+							(double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
+				}
+				commands_printf_lisp(" ");
+				commands_printf_lisp("GC:\t%u\t%f%%", tot_gc, (double)(100.0 * (float)tot_gc / (float)tot_samples));
+				commands_printf_lisp("sleep:\t%u\t%f%%", num_sleep, (double)(100.0 * (float)num_sleep/(float)tot_samples));
+				commands_printf_lisp("total:\t%u samples", tot_samples);
 			} else if (strncmp(str, ":env", 4) == 0) {
 				lbm_value curr = *lbm_get_env_ptr();
 				char output[128];
@@ -311,8 +362,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				lbm_running_iterator(print_ctx_info, NULL, NULL);
 				commands_printf_lisp("****** Blocked contexts ******");
 				lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-				commands_printf_lisp("****** Sleeping contexts ******");
-				lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
 			} else if (strncmp(str, ":symbols", 8) == 0) {
 				lbm_symrepr_name_iterator(sym_it);
 				commands_printf_lisp(" ");
@@ -541,6 +590,7 @@ bool lispif_restart(bool print, bool load_code) {
 
 	restart_cnt++;
 
+	lbm_prof_stop();
 	lispif_stop_lib();
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);

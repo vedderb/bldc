@@ -91,7 +91,7 @@ static THD_FUNCTION(lib_thd, arg) {
 	lbm_free(t);
 }
 
-static lib_thread lib_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
+lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
 	if (!utils_is_func_valid(func)) {
 		commands_printf_lisp("Invalid function address. Make sure that the function is static.");
 		return 0;
@@ -656,7 +656,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.printf = commands_printf_lisp;
 		cif.cif.malloc = lbm_malloc_reserve;
 		cif.cif.free = lbm_free;
-		cif.cif.spawn = lib_spawn;
+		cif.cif.spawn = lispif_spawn;
 		cif.cif.request_terminate = lib_request_terminate;
 		cif.cif.should_terminate = lib_should_terminate;
 		cif.cif.get_arg = lib_get_arg;

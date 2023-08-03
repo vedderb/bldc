@@ -27,6 +27,8 @@
 #include "lispbm.h"
 #include "hal.h"
 
+typedef void* lib_thread;
+
 // Functions
 void lispif_init(void);
 int lispif_get_restart_cnt(void);
@@ -46,5 +48,6 @@ void lispif_process_shutdown(void);
 
 void lispif_load_vesc_extensions(void);
 bool lispif_vesc_dynamic_loader(const char *str, const char **code);
+lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg);
 
 #endif /* LISPBM_LISPIF_H_ */

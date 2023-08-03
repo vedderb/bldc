@@ -18,6 +18,9 @@
 	* Added access to several config parameters.
 	* Many improvements and bug fixes.
 	* Better error descriptions.
+	* Added thread profiler.
+	* Added flat value support.
+	* Added recv-to with a timeout argument.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.
