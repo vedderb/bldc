@@ -101,7 +101,6 @@ special_sym const special_symbols[] =  {
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
   {"$custom"         , SYM_CUSTOM_TYPE},
-  {"$flatval"        , SYM_FLATVAL_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
   // tokenizer symbols with unparsable names
@@ -135,7 +134,6 @@ special_sym const special_symbols[] =  {
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
-  {"type-flatval"     , SYM_TYPE_FLATVAL},
 
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -223,8 +221,6 @@ special_sym const special_symbols[] =  {
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
   {"array-create"   , SYM_ARRAY_CREATE},
-  {"fv-to-a"        , SYM_FLAT_TO_ARRAY},
-  {"a-to-fv"        , SYM_ARRAY_TO_FLAT},
 };
 
 static lbm_uint *symlist = NULL;

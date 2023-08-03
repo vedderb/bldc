@@ -389,7 +389,7 @@ lbm_value handle_flatten_error(int err_val) {
 
 lbm_value flatten_value( lbm_value v) {
 
-  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
+  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
   if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
     lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
     return ENC_SYM_MERROR;
@@ -424,7 +424,7 @@ lbm_value flatten_value( lbm_value v) {
       array->data = (lbm_uint*)fv.buf;
       array->size = fv.buf_size;
       lbm_set_car(array_cell, (lbm_uint)array);
-      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_FLATVAL);
+      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
       return array_cell;
     } else {
       flatten_set_result(FLATTEN_VALUE_ERROR_FATAL);

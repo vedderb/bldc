@@ -1128,7 +1128,6 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   case LBM_TYPE_U: return ENC_SYM_TYPE_U;
   case LBM_TYPE_CHAR: return ENC_SYM_TYPE_CHAR;
   case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
-  case LBM_TYPE_FLATVAL: return ENC_SYM_TYPE_FLATVAL;
   }
   return ENC_SYM_TERROR;
 }
@@ -1209,26 +1208,6 @@ static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_
   return lbm_list_drop(lbm_dec_as_u32(args[1]), args[0]);
 }
 
-static lbm_value fundamental_fv_to_a(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_FLATVAL) {
-    lbm_value res = args[0];
-    res = lbm_set_ptr_type(res, LBM_TYPE_ARRAY);
-    return res;
-  }
-  return ENC_SYM_TERROR;
-}
-
-static lbm_value fundamental_a_to_fv(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-    lbm_value res = args[0];
-    res = lbm_set_ptr_type(res, LBM_TYPE_FLATVAL);
-    return res;
-  }
-  return ENC_SYM_TERROR;
-}
-
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1288,6 +1267,4 @@ const fundamental_fun fundamental_table[] =
    fundamental_reg_event_handler,
    fundamental_take,
    fundamental_drop,
-   fundamental_fv_to_a,
-   fundamental_a_to_fv,
   };

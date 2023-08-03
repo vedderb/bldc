@@ -2369,7 +2369,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 }
 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_FLATVAL) {
+  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array;
     array = (lbm_array_header_t *)lbm_car(args[0]);
 
