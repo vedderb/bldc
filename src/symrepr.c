@@ -223,6 +223,8 @@ special_sym const special_symbols[] =  {
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
   {"array-create"   , SYM_ARRAY_CREATE},
+  {"fv-to-a"        , SYM_FLAT_TO_ARRAY},
+  {"a-to-fv"        , SYM_ARRAY_TO_FLAT},
 };
 
 static lbm_uint *symlist = NULL;

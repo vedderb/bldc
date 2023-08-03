@@ -125,7 +125,7 @@
 #define SYM_IND_F_TYPE     0x36
 #define SYM_CHANNEL_TYPE   0x37
 #define SYM_CUSTOM_TYPE    0x38
-#define SYM_FLATVAL_TYPE   0x39
+#define SYM_FLATVAL_TYPE   SYM_ARRAY_TYPE
 #define TYPE_CLASSIFIER_ENDS 0x39
 #define SYM_NONSENSE       0x3A
 
@@ -281,7 +281,9 @@
 #define SYM_REG_EVENT_HANDLER   0x245
 #define SYM_TAKE                0x246
 #define SYM_DROP                0x247
-#define FUNDAMENTALS_END         0x247
+#define SYM_FLAT_TO_ARRAY       0x248
+#define SYM_ARRAY_TO_FLAT       0x249
+#define FUNDAMENTALS_END         0x249
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
@@ -462,7 +464,8 @@
 #define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
-
+#define ENC_SYM_FLAT_TO_ARRAY       ENC_SYM(SYM_FLAT_TO_ARRAY)
+#define ENC_SYM_ARRAY_TO_FLAT       ENC_SYM(SYM_ARRAY_TO_FLAT)
 
 
 #endif

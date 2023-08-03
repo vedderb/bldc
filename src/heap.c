@@ -688,7 +688,7 @@ int lbm_gc_sweep_phase(void) {
         case SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-        case SYM_FLATVAL_TYPE:
+        //case SYM_FLATVAL_TYPE:
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
