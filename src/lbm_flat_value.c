@@ -389,7 +389,6 @@ lbm_value handle_flatten_error(int err_val) {
 
 lbm_value flatten_value( lbm_value v) {
 
-  lbm_array_header_t *array = NULL;
   lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
   if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
     lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
@@ -402,6 +401,7 @@ lbm_value flatten_value( lbm_value v) {
     return handle_flatten_error(flatten_value_result);
   }
 
+  lbm_array_header_t *array = NULL;
   int required_mem = flatten_value_size(v, 0, 0, (int)lbm_heap_size());
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
