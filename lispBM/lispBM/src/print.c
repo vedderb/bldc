@@ -212,6 +212,11 @@ int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
   return print_emit_string(chan, "~CHANNEL~");
 }
 
+int print_emit_flatval(lbm_char_channel_t *chan, lbm_value v) {
+  (void) v;
+  return print_emit_string(chan, "~FLATVAL~");
+}
+
 int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
 
   int r = print_emit_char(chan, '[');
@@ -396,6 +401,9 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
         break;
       case LBM_TYPE_CHANNEL:
         r = print_emit_channel(chan, curr);
+        break;
+      case LBM_TYPE_FLATVAL:
+        r = print_emit_flatval(chan, curr);
         break;
       case LBM_TYPE_ARRAY:
         r = print_emit_array(chan, curr);

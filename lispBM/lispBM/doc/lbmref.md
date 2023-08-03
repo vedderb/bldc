@@ -1513,10 +1513,8 @@ atomic read-modify-write sequences to global data.
 ### spawn
 
 Use `spawn` to launch a concurrent process. Spawn takes a closure and
-and arguments to pass to that closure as its arguments: `(spawn
-closure arg1 ... argN)`.  Optionally you can provide a numerical first
-argument that specifies stack size that the runtime system should
-allocate to run the process in: `(spawn stack-size closure args1
+arguments to pass to that closure as its arguments. The form of a
+spawn expression is `(spawn opt-name opt-stack-size closure arg1
 ... argN)`.
 
 Each process has a runtime-stack which is used for the evaluation of
@@ -1538,11 +1536,11 @@ fine with a lot less stack. You can find a good size by trial and error.
 
 Use `spawn-trap` to spawn a child process and enable trapping of exit
 conditions for that child. The form of a `spawn-trap` expression is
-`(spawn-trap closure arg1 .. argN)`.  If the child process is
-terminated because of an error, a message is sent to the parent
-process of the form `(exit-error tid err-val)`. If the child process
-terminates successfully a message of the form `(exit-ok tid value)` is
-sent to the parent.
+`(spawn-trap opt-name opt-stack-size closure arg1 .. argN)`.  If the
+child process is terminated because of an error, a message is sent to
+the parent process of the form `(exit-error tid err-val)`. If the
+child process terminates successfully a message of the form `(exit-ok
+tid value)` is sent to the parent.
 
 Example:
 ```clj
@@ -1628,6 +1626,32 @@ Example where a process waits for an integer `?i`.
 ```clj
 (recv ( (?i n) (+ n 1) ))
 ```
+
+---
+
+### recv-to
+
+Like [recv](./lbmref.md#recv), `recv-to` is used to receive
+messages but `recv-to` takes an extra timeout argument.
+
+The form of an `recv-to` expression is
+```
+(recv-to timeout-secs
+                (pattern1 exp1)
+                ...
+                (patternN expN))
+```
+
+If no message is received before the timout, the message `timeout` is
+delivered to the waiting process. This `timeout` message can be handled
+in one of the receive patterns.
+
+Example
+```
+(recv-to 0.5
+         ( timeout (handle-timeout))
+         ( _       (do-something-else)))
+```       
 
 ---
 

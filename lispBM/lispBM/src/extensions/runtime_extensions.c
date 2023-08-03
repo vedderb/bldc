@@ -33,9 +33,6 @@ static lbm_uint sym_num_gc_recovered_cells;
 static lbm_uint sym_num_gc_recovered_arrays;
 static lbm_uint sym_num_least_free;
 static lbm_uint sym_num_last_free;
-static lbm_uint sym_gc_time_acc;
-static lbm_uint sym_gc_time_min;
-static lbm_uint sym_gc_time_max;
 
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(1);
@@ -111,12 +108,6 @@ lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
       res = lbm_enc_u(hs.gc_least_free);
     } else if (s == sym_num_last_free) {
       res = lbm_enc_u(hs.gc_last_free);
-    } else if (s == sym_gc_time_acc) {
-      res = lbm_enc_u(hs.gc_time_acc);
-    } else if (s == sym_gc_time_min) {
-      res = lbm_enc_u(hs.gc_min_duration);
-    } else if (s == sym_gc_time_max) {
-      res = lbm_enc_u(hs.gc_max_duration);
     } else {
       res = ENC_SYM_NIL;
     }
@@ -150,9 +141,6 @@ bool lbm_runtime_extensions_init(bool minimal) {
     lbm_add_symbol_const("get-gc-num-recovered-arrays", &sym_num_gc_recovered_arrays);
     lbm_add_symbol_const("get-gc-num-least-free", &sym_num_least_free);
     lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
-    lbm_add_symbol_const("get-gc-time-acc", &sym_gc_time_acc);
-    lbm_add_symbol_const("get-gc-min-dur", &sym_gc_time_min);
-    lbm_add_symbol_const("get-gc-max-dur", &sym_gc_time_max);
   }
 
   bool res = true;

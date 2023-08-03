@@ -43,6 +43,12 @@ extern "C" {
 /** The eval_context_t struct represents a lispbm process.
  *
  */
+#define LBM_THREAD_STATE_READY     (uint32_t)0
+#define LBM_THREAD_STATE_BLOCKED   (uint32_t)1
+#define LBM_THREAD_STATE_TIMEOUT   (uint32_t)2
+#define LBM_THREAD_STATE_SLEEPING  (uint32_t)3
+#define LBM_THREAD_STATE_GC_BIT    (uint32_t)(1 << 31)
+  
 typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
@@ -57,6 +63,8 @@ typedef struct eval_context_s{
   lbm_stack_t K;
   lbm_uint timestamp;
   lbm_uint sleep_us;
+  uint32_t state;
+  char *name;
   lbm_cid id;
   lbm_cid parent;
   lbm_uint wait_mask;
@@ -233,9 +241,13 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);
-  /** Undo a previous call to lbm_block_ctx_from_extension.
-   */
-  void lbm_undo_block_ctx_from_extension(void);
+/** Block a context from an extension with a timeout.
+ * \param s Timeout in seconds.
+ */
+void lbm_block_ctx_from_extension_timeout(float s);
+/** Undo a previous call to lbm_block_ctx_from_extension.
+ */
+void lbm_undo_block_ctx_from_extension(void);
 /** Unblock a context that has been blocked by a C extension
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged
@@ -265,13 +277,6 @@ void lbm_running_iterator(ctx_fun f, void*, void*);
  * \param arg2 Same as above
  */
 void lbm_blocked_iterator(ctx_fun f, void*, void*);
-/** Iterate over all done contexts and apply function on each context.
- *
- * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user.
- * \param arg2 Same as above
- */
-void lbm_sleeping_iterator(ctx_fun f, void *, void *);
 /** toggle verbosity level of error messages
  */
 void lbm_toggle_verbose(void);
