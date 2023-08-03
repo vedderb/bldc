@@ -28,6 +28,7 @@
 
 #include "lispbm.h"
 #include "lbm_flat_value.h"
+#include "lbm_prof.h"
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
@@ -45,12 +46,14 @@
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define CONSTANT_MEMORY_SIZE 32*1024
+#define PROF_DATA_NUM 100
 
 lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
+lbm_prof_t prof_data[100];
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
@@ -171,6 +174,11 @@ void *eval_thd_wrapper(void *v) {
 
   lbm_run_eval();
 
+  return NULL;
+}
+
+void *prof_thd_wrapper(void *v) {
+  lbm_prof_run();
   return NULL;
 }
 
@@ -490,7 +498,7 @@ int main(int argc, char **argv) {
   int res = 0;
 
   pthread_t lispbm_thd;
-
+  
   lbm_heap_state_t heap_state;
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
@@ -589,12 +597,6 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-  res = lbm_add_extension("unflatten", ext_unflatten);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
   res = lbm_add_extension("trigger", ext_trigger);
   if (res)
     printf("Extension added.\n");
@@ -644,7 +646,44 @@ int main(int argc, char **argv) {
       printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
       printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
       free(str);
-    }  else if (strncmp(str, ":env", 4) == 0) {
+    } else if (strncmp(str, ":prof start", 11) == 0) {
+      lbm_prof_init(sleep_callback, 
+                    200,
+                    prof_data,
+                    PROF_DATA_NUM);
+      pthread_t prof_thd; // just forget this id. 
+      if (pthread_create(&prof_thd, NULL, prof_thd_wrapper, NULL)) {
+        printf("Error creating profiler thread\n");
+        free(str);
+        continue;
+      }
+      printf("Profiler started\n");
+      free(str);
+    } else if (strncmp(str, ":prof stop", 10) == 0) {
+      printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
+      lbm_prof_stop();
+      free(str);
+    } else if (strncmp(str, ":prof report", 12) == 0) {
+      lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+      lbm_uint tot_samples = lbm_prof_get_num_samples();
+      lbm_uint tot_gc = 0;
+      printf("CID\tName\tSamples\t%%Load\t%%GC\n");
+      for (int i = 0; i < PROF_DATA_NUM; i ++) {
+        if (prof_data[i].cid == -1) break;
+        tot_gc += prof_data[i].gc_count;
+        printf("%d\t%s\t%u\t%f\t%f\n",
+               prof_data[i].cid,
+               prof_data[i].name,
+               prof_data[i].count,
+               100.0 * ((float)prof_data[i].count) / (float) tot_samples,
+               100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
+      }
+      printf("\n");
+      printf("GC:\t%u\t%f%%\n", tot_gc, 100.0 * (float)tot_gc/(float)tot_samples);
+      printf("sleep:\t%u\t%f%%\n", num_sleep, 100.0 * (float)num_sleep/(float)tot_samples);
+      printf("total:\t%u samples\n", tot_samples);
+      free(str);
+    } else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();
       printf("Environment:\r\n");
       while (lbm_type_of(curr) == LBM_TYPE_CONS) {
@@ -701,8 +740,6 @@ int main(int argc, char **argv) {
       lbm_running_iterator(print_ctx_info, NULL, NULL);
       printf("****** Blocked contexts ******\n");
       lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-      printf("****** Sleeping contexts *****\n");
-      lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
       free(str);
     }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       free(str);

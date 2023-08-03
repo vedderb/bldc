@@ -1128,6 +1128,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   case LBM_TYPE_U: return ENC_SYM_TYPE_U;
   case LBM_TYPE_CHAR: return ENC_SYM_TYPE_CHAR;
   case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
+  case LBM_TYPE_FLATVAL: return ENC_SYM_TYPE_FLATVAL;
   }
   return ENC_SYM_TERROR;
 }
