@@ -773,7 +773,7 @@ Example:
 
 ```clj
 (progn (var a 10) (set 'a 20) a)
-``` 
+```
 
 The expression above evaluates to 20.
 
@@ -796,7 +796,7 @@ And now `a` has been associated with the value 20 in the global env.
 
 Just like `set` and `setvar`, `setq` can be used on variables that
 are bound locally such as in the body of a `let` or a `progn`-local variable
-created using `var`. 
+created using `var`.
 
 ### progn
 
@@ -832,7 +832,7 @@ This program evaluates 30 but also extends the global environment with the
 
 The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`.
 The parser replaces occurrences of `{` with `(progn`. The `{` should be
-closed with an `}`. 
+closed with an `}`.
 
 These two programs are thus equivalent:
 
@@ -842,7 +842,7 @@ These two programs are thus equivalent:
   (define b 20)
   (+ a b))
 
-``` 
+```
 
 And
 
@@ -852,7 +852,7 @@ And
   (define b 20)
   (+ a b)
 }
-``` 
+```
 
 ---
 
@@ -862,7 +862,7 @@ The closing curlybrace `}` should be used to close an opening `{` but purely
 for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`.
 
 The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks
-of sequences expressions. 
+of sequences expressions.
 
 
 ### var
@@ -935,7 +935,7 @@ has been extended with the binding `(apa 1)`.
 ### read-eval-program
 
 Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression
-then evaluates it before reading the next. 
+then evaluates it before reading the next.
 
 Example that evaluates to 20:
 
@@ -950,7 +950,7 @@ Example that evaluates to 20:
 
 ```clj
 (read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
-``` 
+```
 ---
 
 ## Lists and cons cells
@@ -1290,7 +1290,7 @@ alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr val
 
 
 ## Arrays (byte-buffers)
- 
+
 ### bufcreate
 
 Create an array of bytes. The
@@ -1485,7 +1485,7 @@ Example:
        ( (? y) (< y 0) 'less-than-zero)
        ( (? y) (> y 0) 'greater-than-zero)
        ( (? y) (= y 0) 'equal-to-zero))
-``` 
+```
 
 ---
 
@@ -1651,7 +1651,7 @@ Example
 (recv-to 0.5
          ( timeout (handle-timeout))
          ( _       (do-something-else)))
-```       
+```
 
 ---
 
@@ -1666,6 +1666,97 @@ Example that changes mailbox size to 100 elements.
 ```
 
 ---
+
+## Flat values
+
+Lisp values can be "flattened" into an array representation. The flat
+representation of a value contains all information needed so that the
+value can be recreated, "unflattened", in another instance of the
+runtime system (for example running on another microcontroller).
+
+Not all values can be flattened, custom types for example cannot.
+
+### flatten
+
+The `flatten` function takes a value as single argument and returns the flat representation if
+successful. A flatten expression has the form `(flatten expr)`. Note that `expr` is evaluated
+before the flattening.
+
+Example:
+```
+# (define a (flatten (+ 1 2)))
+> ~FLATVAL~
+```
+The example above creates a `~FLATVAL~` representation of the the value `3`.
+
+```
+# (define a (flatten '(+ 1 2)))
+> ~FLATVAL~
+```
+
+Now the `~FLATVAL~` contains a representation of the list `(+ 1 2)`
+
+---
+
+### unflatten
+
+`unflatten` converts a flat value back into a lisp value. Te form of an
+`unflatten` expression is `(unflatten flat-value)`
+
+Example:
+```
+# (define a (flatten (+ 1 2)))
+> ~FLATVAL~
+# (unflatten a)
+> 3
+```
+
+and:
+```
+# (define a (flatten '(+ 1 2)))
+> ~FLATVAL~
+# (unflatten a)
+> (+ 1 2)
+```
+
+---
+
+### fv-to-a
+
+Convert a flat value to a byte-array by applying `fv-to-a`. The form of
+an `fv-to-a` expression is `(fv-to-a flat-value)`.
+
+Example:
+
+```
+# (define a (flatten '(1 2 3)))
+> ~FLATVAL~
+# (fv-to-a a)
+> ""
+```
+
+---
+
+### a-to-fv
+
+Convert an array representing a valid flat value into a flat value. The form
+of an `a-to-fv` expression is `(a-to-fv array)`.
+
+Example:
+
+```
+# (define a (flatten '(1 2 3)))
+> ~FLATVAL~
+# (define b (fv-to-a a))
+> ""
+# (define c (a-to-fv b))
+> ~FLATVAL~
+# (unflatten c)
+> (1 2 3)
+```
+
+---
+
 
 ## Macros
 
