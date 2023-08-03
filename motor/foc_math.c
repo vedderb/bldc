@@ -125,7 +125,7 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 			state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
 
 			// Clamp the observed flux linkage (not sure if this is needed)
-			utils_truncate_number(&(state->lambda_est), lambda * 0.5, lambda * 1.5);
+			utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 			utils_truncate_number_abs(&(state->x1), state->lambda_est);
 			utils_truncate_number_abs(&(state->x2), state->lambda_est);
@@ -147,7 +147,7 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		state->lambda_est += 0.2 * gamma_half * state->lambda_est * -err * dt;
 
 		// Clamp the observed flux linkage (not sure if this is needed)
-		utils_truncate_number(&(state->lambda_est), lambda * 0.5, lambda * 1.5);
+		utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 		if (err > 0.0) {
 			err = 0.0;
