@@ -155,6 +155,7 @@ static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
 // The currently executing context.
 eval_context_t *ctx_running = NULL;
+volatile bool  lbm_system_sleeping = false;
 
 static volatile bool gc_requested = false;
 void lbm_request_gc(void) {
@@ -4321,8 +4322,10 @@ void lbm_run_eval(void){
           ctx_running = dequeue_ctx_nm(&queue);
           mutex_unlock(&qmutex);
           if (!ctx_running) {
+            lbm_system_sleeping = true;
             //Fixed sleep interval to poll events regularly.
             usleep_callback(EVAL_CPS_MIN_SLEEP);
+            lbm_system_sleeping = false;
           }
         }
       }

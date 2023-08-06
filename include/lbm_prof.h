@@ -31,13 +31,12 @@ typedef struct {
   lbm_uint gc_count;
 } lbm_prof_t;
 
-bool lbm_prof_init(void (*usleep_fptr)(uint32_t),
-                   lbm_uint sample_interval,
-                   lbm_prof_t *prof_data_buf,
+bool lbm_prof_init(lbm_prof_t *prof_data_buf,
                    lbm_uint    prof_data_buf_num);
 lbm_uint lbm_prof_get_num_samples(void);
+lbm_uint lbm_prof_get_num_system_samples(void);
 lbm_uint lbm_prof_get_num_sleep_samples(void);
 lbm_uint lbm_prof_stop(void);
-bool lbm_prof_is_running(void);
-void lbm_prof_run(void);
+void lbm_prof_sample(void);
+
 #endif
