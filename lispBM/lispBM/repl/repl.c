@@ -177,11 +177,6 @@ void *eval_thd_wrapper(void *v) {
   return NULL;
 }
 
-void *prof_thd_wrapper(void *v) {
-  lbm_prof_run();
-  return NULL;
-}
-
 void done_callback(eval_context_t *ctx) {
 
   erase();
@@ -221,6 +216,15 @@ void sleep_callback(uint32_t us) {
   nanosleep(&s, &r);
 }
 
+static bool prof_running = false;
+
+void *prof_thd(void *v) {
+  while (prof_running) {
+    lbm_prof_sample();
+    sleep_callback(200);
+  }
+  return NULL;
+}
 
 bool dyn_load(const char *str, const char **code) {
   bool res = false;
@@ -647,12 +651,11 @@ int main(int argc, char **argv) {
       printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
       free(str);
     } else if (strncmp(str, ":prof start", 11) == 0) {
-      lbm_prof_init(sleep_callback, 
-                    200,
-                    prof_data,
+      lbm_prof_init(prof_data,
                     PROF_DATA_NUM);
-      pthread_t prof_thd; // just forget this id. 
-      if (pthread_create(&prof_thd, NULL, prof_thd_wrapper, NULL)) {
+      pthread_t thd; // just forget this id.
+      prof_running = true;
+      if (pthread_create(&thd, NULL, prof_thd, NULL)) {
         printf("Error creating profiler thread\n");
         free(str);
         continue;
@@ -660,11 +663,12 @@ int main(int argc, char **argv) {
       printf("Profiler started\n");
       free(str);
     } else if (strncmp(str, ":prof stop", 10) == 0) {
+      prof_running = false;
       printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
-      lbm_prof_stop();
       free(str);
     } else if (strncmp(str, ":prof report", 12) == 0) {
       lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+      lbm_uint num_system = lbm_prof_get_num_system_samples();
       lbm_uint tot_samples = lbm_prof_get_num_samples();
       lbm_uint tot_gc = 0;
       printf("CID\tName\tSamples\t%%Load\t%%GC\n");
@@ -679,9 +683,10 @@ int main(int argc, char **argv) {
                100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
       }
       printf("\n");
-      printf("GC:\t%u\t%f%%\n", tot_gc, 100.0 * (float)tot_gc/(float)tot_samples);
-      printf("sleep:\t%u\t%f%%\n", num_sleep, 100.0 * (float)num_sleep/(float)tot_samples);
-      printf("total:\t%u samples\n", tot_samples);
+      printf("GC:\t%u\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
+      printf("System:\t%u\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
+      printf("Sleep:\t%u\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
+      printf("Total:\t%u samples\n", tot_samples);
       free(str);
     } else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();

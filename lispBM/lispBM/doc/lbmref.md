@@ -473,13 +473,13 @@ Example that evaluates to 3.
 Evaluate a list of data where each element represents an expression.
 
 Example that results in the value 15:
-```
+```clj
 (define prg '( (+ 1 2) (+ 3 4) (+ 10 5)))
 (eval-program prg)
 ```
 
 Example that prints the strings "apa", "bepa" and "cepa":
-```
+```clj
 (define prg '( (print "apa") (print "bepa") (print "cepa")))
 (eval-program prg)
 ```
@@ -1262,7 +1262,7 @@ The `assoc` function looks up the first value in an alist matching a given a key
 The form of an `assoc` expression is `(assoc alist-expr key-expr)`
 
 Example that looks up the value of key `2` in an alist.
-```
+```clj
 # (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
 > donkey
 ```
@@ -1276,7 +1276,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 The form of an `cossa` expression is `(cossa alist-expr value-expr)`
 
 Example that looks up the key for the value `donkey` in an alist.
-```
+```clj
 # (cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
 > 2
 ```
@@ -1635,7 +1635,7 @@ Like [recv](./lbmref.md#recv), `recv-to` is used to receive
 messages but `recv-to` takes an extra timeout argument.
 
 The form of an `recv-to` expression is
-```
+```clj
 (recv-to timeout-secs
                 (pattern1 exp1)
                 ...
@@ -1647,7 +1647,7 @@ delivered to the waiting process. This `timeout` message can be handled
 in one of the receive patterns.
 
 Example
-```
+```clj
 (recv-to 0.5
          ( timeout (handle-timeout))
          ( _       (do-something-else)))
@@ -1683,13 +1683,13 @@ successful. A flatten expression has the form `(flatten expr)`. Note that `expr`
 before the flattening.
 
 Example:
-```
+```clj
 # (define a (flatten (+ 1 2)))
 > ""
 ```
 The example above creates a byte-array representating the the value `3`.
 
-```
+```clj
 # (define a (flatten '(+ 1 2)))
 > "+"
 ```
@@ -1704,7 +1704,7 @@ Now the byte-array contains a representation of the list `(+ 1 2)`
 `unflatten` expression is `(unflatten flat-value)`
 
 Example:
-```
+```clj
 # (define a (flatten (+ 1 2)))
 > ""
 # (unflatten a)
@@ -1713,7 +1713,7 @@ Example:
 
 and:
 
-```
+```clj
 # (define a (flatten '(+ 1 2)))
 > "+"
 # (unflatten a)
