@@ -3985,7 +3985,7 @@ Strings in lispBM are treated the same as byte arrays, so all of the above can b
 
 ---
 
-Remote messages are byte arrays that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 5 different slots to sent messages to.
+Remote messages are byte arrays that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 5 different slots to send messages to.
 
 ---
 
