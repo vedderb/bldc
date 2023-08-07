@@ -7,21 +7,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v1.0.0
+        uses: actions/checkout@v3
+
       - name: install ARM embedded
-        run: |
-          sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-          sudo apt update
-          sudo apt -y install wget gcc-arm-embedded
-      - name: add udev rules
-        run: |
-          wget vedder.se/Temp/49-stlinkv2.rules
-          sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
-          sudo udevadm trigger
+        run: make arm_sdk_install
+
+      - name: test compiler
+        run: tools/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc -v
+
       - name: build
-        run: make
+        run: make -j4 all_fw
+
       - name: publish
         uses: actions/upload-artifact@v2
         with:
           name: builds
-          path: build_all
+          path: build
