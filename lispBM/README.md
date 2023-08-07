@@ -1791,6 +1791,20 @@ Actively scan the CAN-bus and return a list with devices that responded. This fu
 
 ---
 
+#### can-local-id
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(can-local-id)
+```
+
+Get local CAN ID.
+
+---
+
 #### can-send-sid
 
 | Platforms | Firmware |
@@ -3966,6 +3980,40 @@ This will clear the allocated memory for arr.
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
 
 ---
+
+## Remote Messages
+
+---
+
+Remote messages are byte arrays that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 5 different slots to sent messages to.
+
+---
+
+#### rmsg-wait
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rmsg-wait slot timeout)
+```
+
+Wait for message on slot with timeout seconds. Returns a byte array with the received message on success or timeout if nothing is received before the timeout has passed.
+
+---
+
+#### rmsg-send-can
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rmsg-send-can can-id slot msg)
+```
+
+Send msg over CAN-bus to slot on can-id. msg is a byte array.
 
 ## Import Files
 

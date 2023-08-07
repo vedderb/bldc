@@ -47,6 +47,7 @@ __attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STAC
 __attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 static lbm_prof_t prof_data[PROF_DATA_NUM];
+static volatile bool prof_running = false;
 
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
@@ -123,7 +124,11 @@ static void sym_it(const char *str) {
 
 static void prof_thd_wrapper(void *v) {
 	(void)v;
-	lbm_prof_run();
+
+	while (prof_running) {
+		lbm_prof_sample();
+		chThdSleepMicroseconds(200);
+	}
 }
 
 void lispif_process_cmd(unsigned char *data, unsigned int len,
@@ -307,11 +312,12 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Used cells: %d\n", const_heap.next);
 				commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
 			} else if (strncmp(str, ":prof start", 11) == 0) {
-				if (lbm_prof_is_running()) {
-					lbm_prof_init(sleep_callback, 200, prof_data, PROF_DATA_NUM);
+				if (prof_running) {
+					lbm_prof_init(prof_data, PROF_DATA_NUM);
 					commands_printf_lisp("Profiler restarted\n");
 				} else {
-					lbm_prof_init(sleep_callback, 200, prof_data, PROF_DATA_NUM);
+					lbm_prof_init(prof_data, PROF_DATA_NUM);
+					prof_running = true;
 					if (lispif_spawn(prof_thd_wrapper, 1024, "LBM Profiler", NULL)) {
 						commands_printf_lisp("Profiler started\n");
 					} else {
@@ -320,9 +326,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				}
 			} else if (strncmp(str, ":prof stop", 10) == 0) {
 				commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
-				lbm_prof_stop();
+				prof_running = false;
 			} else if (strncmp(str, ":prof report", 12) == 0) {
 				lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+				lbm_uint num_system = lbm_prof_get_num_system_samples();
 				lbm_uint tot_samples = lbm_prof_get_num_samples();
 				lbm_uint tot_gc = 0;
 				commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
@@ -337,9 +344,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 							(double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
 				}
 				commands_printf_lisp(" ");
-				commands_printf_lisp("GC:\t%u\t%f%%", tot_gc, (double)(100.0 * (float)tot_gc / (float)tot_samples));
-				commands_printf_lisp("sleep:\t%u\t%f%%", num_sleep, (double)(100.0 * (float)num_sleep/(float)tot_samples));
-				commands_printf_lisp("total:\t%u samples", tot_samples);
+				commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
+				commands_printf_lisp("System:\t%u\t%f%%\n", num_system, (double)(100.0 * ((float)num_system / (float)tot_samples)));
+				commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
+				commands_printf_lisp("Total:\t%u samples\n", tot_samples);
 			} else if (strncmp(str, ":env", 4) == 0) {
 				lbm_value curr = *lbm_get_env_ptr();
 				char output[128];
@@ -569,6 +577,10 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, send_ind);
 	} break;
 
+	case COMM_LISP_RMSG: {
+		lispif_process_rmsg(data[0], data + 1, len - 1);
+	} break;
+
 	default:
 		break;
 	}
@@ -589,9 +601,7 @@ bool lispif_restart(bool print, bool load_code) {
 	bool res = false;
 
 	restart_cnt++;
-
-	lbm_prof_stop();
-	lispif_stop_lib();
+	prof_running = false;
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
 	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);

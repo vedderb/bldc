@@ -1079,6 +1079,8 @@ typedef enum {
 	COMM_GET_GNSS							= 150,
 
 	COMM_LOG_DATA_F64						= 151,
+
+	COMM_LISP_RMSG							= 152,
 } COMM_PACKET_ID;
 
 // CAN commands
