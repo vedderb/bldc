@@ -68,11 +68,7 @@ void shutdown_set_sampling_disabled(bool disabled) {
 }
 
 static bool do_shutdown(void) {
-	// Store data if 1000m or more have been done to possibly reduce flash
-	// wear. Values could be lower than 1km, say 100m but suggested >500m.
-	if(mc_interface_get_distance_abs() >= 1000) {
-		conf_general_store_backup_data();
-	}
+	conf_general_store_backup_data();
 #ifdef USE_LISPBM
 	lispif_process_shutdown();
 #endif
