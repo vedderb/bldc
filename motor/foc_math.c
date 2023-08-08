@@ -570,18 +570,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 				diff += 200;
 			}
 
-			// This is only valid if the direction did not just change. If it did, we use the
-			// last speed together with the sign right now.
-			if (SIGN(diff) == SIGN(motor->m_hall_dt_diff_last)) {
-				if (diff > 0) {
-					motor->m_hall_dt_diff_last = motor->m_hall_dt_diff_now;
-				} else {
-					motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_now;
-				}
-			} else {
-				motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_last;
-			}
-
+			motor->m_hall_dt_diff_last = motor->m_hall_dt_diff_now;
 			motor->m_hall_dt_diff_now = 0.0;
 
 			// A transition was just made. The angle is in the middle of the new and old angle.
@@ -589,14 +578,13 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 			ang_avg %= 200;
 
 			// Scale to the circle and convert to radians
-			motor->m_ang_hall = ((float)ang_avg / 200.0) * 2 * M_PI;
+			motor->m_ang_hall = ((float)ang_avg / 200.0) * 2.0 * M_PI;
 		}
 
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
-		if (RADPS2RPM_f((M_PI / 3.0) /
-				fmaxf(fabsf(motor->m_hall_dt_diff_now),
-						fabsf(motor->m_hall_dt_diff_last))) < conf_now->foc_hall_interp_erpm) {
+		if (RADPS2RPM_f((M_PI / 3.0) / fmaxf(motor->m_hall_dt_diff_now, motor->m_hall_dt_diff_last))
+				< conf_now->foc_hall_interp_erpm) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;
