@@ -4697,6 +4697,36 @@ Example:
 
 ---
 
+#### esp-now-recv
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(esp-now-recv optTimeout)
+```
+
+Block current thread until esp-now data arrives. The optional argument optTimeout can be used to specify an optional timeout in seconds.
+
+If a timeout occurs the symbol timeout will be returned, otherwise a list with the following format will be returned:
+
+```clj
+(event-esp-now-rx (src-mac-addr) (dest-mac-addr) payload-array rssi-db)
+
+; Example
+(event-esp-now-rx (112 4 29 15 194 105) (16 145 168 52 203 121) "Test" -40)
+```
+
+Usage example:
+
+```clj
+(esp-now-start)
+(loopwhile t (print (esp-now-recv)))
+```
+
+---
+
 #### get-mac-addr
 
 | Platforms | Firmware |
@@ -4782,20 +4812,22 @@ Events can be used to receive ESP-NOW data. This is best described with an examp
 ; the broadcast address (255 255 255 255 255 255) it means that this
 ; was a broadcast packet.
 
-(defun proc-data (src des data)
-    (print (list src des data))
+(defun proc-data (src des data rssi)
+    (print (list src des data rssi))
 )
 
 (defun event-handler ()
     (loopwhile t
         (recv
-            ((event-esp-now-rx (? src) (? des) (? data)) (proc-data src des data))
+            ((event-esp-now-rx (? src) (? des) (? data) (? rssi) (proc-data src des data rssi))
             (_ nil)
 )))
 
 (event-register-handler (spawn event-handler))
 (event-enable 'event-esp-now-rx)
 ```
+
+NOTE: The RSSI was added in firmware 6.05 and should be left out in earlier firmwares.
 
 ---
 
