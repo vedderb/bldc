@@ -1552,6 +1552,18 @@ Example:
 
 ---
 
+### self
+
+Use `self` to obtain the thread-id of the thread in which `self` is evaluated.
+The form of a `self` expression is `(self)`. The thread id is of an integer type.
+
+Example:
+```clj
+# (self)
+> 314
+```
+---
+
 ### wait
 
 Use `wait` to wait for a spawned process to finish.
