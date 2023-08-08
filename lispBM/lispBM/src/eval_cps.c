@@ -2081,6 +2081,7 @@ static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *
 }
 
 static void apply_read_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
   apply_read_base(args,nargs,ctx,true,true);
 }
 
@@ -2878,6 +2879,8 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 
   */
 
+  ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
+
   if (lbm_is_symbol(ctx->r)) {
     lbm_uint sym_val = lbm_dec_sym(ctx->r);
     if (sym_val >= TOKENIZER_SYMBOLS_START &&
@@ -3165,7 +3168,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       } else if (tokpar_sym_str[0] == '#') {
         r = lbm_add_variable_symbol(tokpar_sym_str, &symbol_id);
       } else {
-        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS) {
+        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
+            ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
           r = lbm_add_symbol_flash(tokpar_sym_str, &symbol_id);
         } else {
           r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
