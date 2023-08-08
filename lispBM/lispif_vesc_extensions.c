@@ -1657,6 +1657,11 @@ static lbm_value ext_phase_encoder(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mcpwm_foc_get_phase_encoder());
 }
 
+static lbm_value ext_phase_hall(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase_hall());
+}
+
 static lbm_value ext_phase_observer(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mcpwm_foc_get_phase_observer());
@@ -4268,6 +4273,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("pos-pid-error", ext_pos_pid_error);
 	lbm_add_extension("phase-motor", ext_phase_motor);
 	lbm_add_extension("phase-encoder", ext_phase_encoder);
+	lbm_add_extension("phase-hall", ext_phase_hall);
 	lbm_add_extension("phase-observer", ext_phase_observer);
 	lbm_add_extension("observer-error", ext_observer_error);
 

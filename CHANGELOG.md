@@ -22,6 +22,7 @@
 	* Added flat value support.
 	* Added recv-to with a timeout argument.
 	* Added remote message extensions.
+	* Added phase-hall extension.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

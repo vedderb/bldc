@@ -544,7 +544,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	mc_configuration *conf_now = motor->m_conf;
 	motor->m_hall_dt_diff_now += dt;
 
-	float rad_per_sec = motor->m_speed_est_fast;
+	float rad_per_sec = motor->m_speed_est_fast_corrected;
 	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_pll_speed));
 	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec));
 

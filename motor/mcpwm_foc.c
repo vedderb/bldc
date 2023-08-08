@@ -1341,38 +1341,26 @@ int mcpwm_foc_get_tachometer_abs_value(bool reset) {
 	return val;
 }
 
-/**
- * Read the motor phase.
- *
- * @return
- * The phase angle in degrees.
- */
 float mcpwm_foc_get_phase(void) {
 	float angle = RAD2DEG_f(get_motor_now()->m_motor_state.phase);
 	utils_norm_angle(&angle);
 	return angle;
 }
 
-/**
- * Read the phase that the observer has calculated.
- *
- * @return
- * The phase angle in degrees.
- */
 float mcpwm_foc_get_phase_observer(void) {
 	float angle = RAD2DEG_f(get_motor_now()->m_phase_now_observer);
 	utils_norm_angle(&angle);
 	return angle;
 }
 
-/**
- * Read the phase from based on the encoder.
- *
- * @return
- * The phase angle in degrees.
- */
 float mcpwm_foc_get_phase_encoder(void) {
 	float angle = RAD2DEG_f(get_motor_now()->m_phase_now_encoder);
+	utils_norm_angle(&angle);
+	return angle;
+}
+
+float mcpwm_foc_get_phase_hall(void) {
+	float angle = RAD2DEG_f(get_motor_now()->m_ang_hall_rate_limited);
 	utils_norm_angle(&angle);
 	return angle;
 }
@@ -2966,9 +2954,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				}
 				break;
 			case FOC_SENSOR_MODE_HALL:
-				motor_now->m_phase_now_observer = foc_correct_hall(motor_now->m_phase_now_observer, dt, motor_now,
+				motor_now->m_motor_state.phase = foc_correct_hall(motor_now->m_phase_now_observer, dt, motor_now,
 						utils_read_hall(motor_now != &m_motor_1, conf_now->m_hall_extra_samples));
-				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 
 				if (!motor_now->m_phase_override && motor_now->m_control_mode != CONTROL_MODE_OPENLOOP_PHASE) {
 					id_set_tmp = 0.0;
@@ -3153,9 +3140,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 						motor_now);
 				break;
 			case FOC_SENSOR_MODE_HALL:
-				motor_now->m_phase_now_observer = foc_correct_hall(motor_now->m_phase_now_observer, dt, motor_now,
+				motor_now->m_motor_state.phase = foc_correct_hall(motor_now->m_phase_now_observer, dt, motor_now,
 						utils_read_hall(motor_now != &m_motor_1, conf_now->m_hall_extra_samples));
-				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				break;
 			case FOC_SENSOR_MODE_SENSORLESS:
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
@@ -3261,10 +3247,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		UTILS_LP_FAST(motor_now->m_speed_est_faster, diff / dt, 0.2);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_faster);
 
+		float diff_corr = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before_speed_est_corrected);
+		utils_truncate_number(&diff_corr, -M_PI / 3.0, M_PI / 3.0);
+
+		UTILS_LP_FAST(motor_now->m_speed_est_fast_corrected, diff_corr / dt, 0.01);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_fast_corrected);
+
 		// pll wind-up protection
 		utils_truncate_number_abs((float*)&motor_now->m_pll_speed, fabsf(motor_now->m_speed_est_fast) * 3.0);
 
 		motor_now->m_phase_before_speed_est = phase_for_speed_est;
+		motor_now->m_phase_before_speed_est_corrected = motor_now->m_motor_state.phase;
 	}
 
 	// Update tachometer (resolution = 60 deg as for BLDC)

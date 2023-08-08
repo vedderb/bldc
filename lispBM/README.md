@@ -1353,6 +1353,20 @@ Returns the encoder position mapped to the electrical position of the motor. Uni
 
 ---
 
+#### phase-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(phase-hall)
+```
+
+Returns the hall sensor position of the motor. Unit: Degrees.
+
+---
+
 #### phase-observer
 
 | Platforms | Firmware |

@@ -131,6 +131,7 @@ typedef struct {
 	float m_pll_phase;
 	float m_pll_speed;
 	float m_speed_est_fast;
+	float m_speed_est_fast_corrected; // Same as m_speed_est_fast, but always based on the corrected position
 	float m_speed_est_faster;
 	mc_sample_t m_samples;
 	int m_tachometer;
@@ -164,6 +165,7 @@ typedef struct {
 	float m_x1_prev;
 	float m_x2_prev;
 	float m_phase_before_speed_est;
+	float m_phase_before_speed_est_corrected;
 	int m_tacho_step_last;
 	float m_pid_div_angle_last;
 	float m_pid_div_angle_accumulator;
