@@ -256,10 +256,6 @@ typedef struct {
   lbm_uint gc_least_free;      // The smallest length of the freelist.
   lbm_uint gc_last_free;       // Number of elements on the freelist
                                // after most recent GC.
-
-  lbm_uint gc_time_acc;
-  lbm_uint gc_min_duration;
-  lbm_uint gc_max_duration;
 } lbm_heap_state_t;
 
 extern lbm_heap_state_t lbm_heap_state;
@@ -560,12 +556,9 @@ void lbm_nil_freelist(void);
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
- * \param m Number of Root nodes to start marking from.
- * \param ... list of root nodes.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-//int lbm_gc_mark_phase(lbm_value v);
-int lbm_gc_mark_phase(int num, ... );
+int lbm_gc_mark_phase(void);
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.
@@ -598,6 +591,16 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size);
  * \return 1 for success and 0 for failure.
  */
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt);
+/** Get the size of an array value.
+ * \param arr lbm_value array to get size of.
+ * \return -1 for failure or length of array.
+ */
+lbm_int lbm_heap_array_get_size(lbm_value arr);
+/** Get a pointer to the data of an array.
+ * \param arr lbm_value array to get pointer from.
+ * \return NULL or valid pointer.
+ */
+uint8_t *lbm_heap_array_get_data(lbm_value arr);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.
@@ -835,7 +838,7 @@ static inline bool lbm_is_macro(lbm_value exp) {
 }
 
 static inline bool lbm_is_match_binder(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
+  return (lbm_is_cons(exp) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY)));
 }

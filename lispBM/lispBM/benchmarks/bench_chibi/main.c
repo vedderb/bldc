@@ -371,9 +371,9 @@ int main(void) {
         lbm_get_heap_state(&heap_state);
 
         chprintf(chp, "gc invocations: %d\r\n", heap_state.gc_num);
-        chprintf(chp, "gc time avg: %f\r\n", (float)heap_state.gc_time_acc / (float)heap_state.gc_num);
-        chprintf(chp, "gc min time: %u\r\n", heap_state.gc_min_duration);
-        chprintf(chp, "gc max time: %u\r\n", heap_state.gc_max_duration);
+        chprintf(chp, "gc time avg: %f\r\n", 0.0);
+        chprintf(chp, "gc min time: %u\r\n", 0);
+        chprintf(chp, "gc max time: %u\r\n", 0);
         chprintf(chp, "gc least free: %u\r\n", heap_state.gc_least_free);
       }
     } else {

@@ -195,7 +195,6 @@ typedef struct {
 } vesc_syms;
 
 static vesc_syms syms_vesc = {0};
-static void(*ext_callback)(void) = 0;
 
 static bool get_add_symbol(char *name, lbm_uint* id) {
 	if (!lbm_get_symbol_by_name(name, id)) {
@@ -597,7 +596,7 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	if (compare_symbol(name, &syms_vesc.v_tot)) {
 		res = get_or_set_float(set, &val->v_tot, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.v_charge)) {
-		res = get_or_set_float(set, &val->v_charge, &res);
+		res = get_or_set_float(set, &val->v_charge, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.i_in)) {
 		res = get_or_set_float(set, &val->i_in, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.i_in_ic)) {
@@ -1151,6 +1150,11 @@ static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_can_local_id(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(app_get_configuration()->controller_id);
+}
+
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 	if (argn == 1) {
@@ -1651,6 +1655,11 @@ static lbm_value ext_phase_motor(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_phase_encoder(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mcpwm_foc_get_phase_encoder());
+}
+
+static lbm_value ext_phase_hall(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_phase_hall());
 }
 
 static lbm_value ext_phase_observer(lbm_value *args, lbm_uint argn) {
@@ -3927,6 +3936,18 @@ static volatile uint32_t icu_last_period = 0;
 static volatile bool icu_width_done = false;
 static volatile bool icu_period_done = false;
 
+// Remote Messages
+#define RMSG_SLOT_NUM	5
+
+typedef struct {
+	lbm_cid cid;
+	systime_t start_time;
+	float timeout_secs;
+} rmsg_state;
+
+static mutex_t rmsg_mutex;
+static volatile rmsg_state rmsg_slots[RMSG_SLOT_NUM];
+
 static THD_FUNCTION(event_thread, arg) {
 	(void)arg;
 	event_tp = chThdGetSelfX();
@@ -3962,6 +3983,16 @@ static THD_FUNCTION(event_thread, arg) {
 				lbm_event(&v);
 			}
 		}
+
+		chMtxLock(&rmsg_mutex);
+		for (int i = 0;i < RMSG_SLOT_NUM;i++) {
+			volatile rmsg_state *s = &rmsg_slots[i];
+			if (s->cid >= 0 && s->timeout_secs > 0.0 && UTILS_AGE_S(s->start_time) > s->timeout_secs) {
+				lbm_unblock_ctx_unboxed(s->cid, ENC_SYM_TIMEOUT);
+				s->cid = -1;
+			}
+		}
+		chMtxUnlock(&rmsg_mutex);
 
 		chThdSleepMilliseconds(1);
 	}
@@ -4039,10 +4070,83 @@ static lbm_value ext_crc16(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(crc16((uint8_t*)array->data, len));
 }
 
+// Remote Messages
+
+// (rmsg-wait slot timeout)
+static lbm_value ext_rmsg_wait(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+
+	int slot = lbm_dec_as_i32(args[0]);
+	float timeout = lbm_dec_as_float(args[1]);
+
+	if (slot < 0 || slot >= RMSG_SLOT_NUM) {
+		return ENC_SYM_TERROR;
+	}
+
+	chMtxLock(&rmsg_mutex);
+	rmsg_slots[slot].cid = lbm_get_current_cid();
+	rmsg_slots[slot].start_time = chVTGetSystemTimeX();
+	rmsg_slots[slot].timeout_secs = timeout;
+	chMtxUnlock(&rmsg_mutex);
+
+	lbm_block_ctx_from_extension();
+
+	return ENC_SYM_TRUE;
+}
+
+// (rmsg-send-can can-id slot msg)
+static lbm_value ext_rmsg_send_can(lbm_value *args, lbm_uint argn) {
+	if (argn != 3 ||
+			!lbm_is_number(args[0]) ||
+			!lbm_is_number(args[1]) ||
+			!lbm_is_array_r(args[2])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	int can_id = lbm_dec_as_i32(args[0]);
+	int slot = lbm_dec_as_i32(args[1]);
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[2]);
+
+	if (can_id < 0 || can_id > 254) {
+		return ENC_SYM_TERROR;
+	}
+
+	if (slot < 0 || slot >= RMSG_SLOT_NUM) {
+		return ENC_SYM_TERROR;
+	}
+
+	if (array == NULL) {
+		return ENC_SYM_TERROR;
+	}
+
+	if (array->size > 500) {
+		return ENC_SYM_TERROR;
+	}
+
+	uint8_t *buf = mempools_get_packet_buffer();
+	buf[0] = COMM_LISP_RMSG;
+	buf[1] = slot;
+	memcpy(buf + 2, array->data, array->size);
+	comm_can_send_buffer(can_id, buf, array->size + 2, 2);
+	mempools_free_packet_buffer(buf);
+
+	return ENC_SYM_TRUE;
+}
+
 void lispif_load_vesc_extensions(void) {
 	lispif_stop_lib();
 
 	if (event_tp == NULL) {
+		chMtxObjectInit(&rmsg_mutex);
+
+		chMtxLock(&rmsg_mutex);
+		for (int i = 0;i < RMSG_SLOT_NUM;i++) {
+			rmsg_slots[i].cid = -1;
+			rmsg_slots[i].timeout_secs = -1.0;
+		}
+		chMtxUnlock(&rmsg_mutex);
+
 		chThdCreateStatic(event_thread_wa, sizeof(event_thread_wa), NORMALPRIO - 2, event_thread, NULL);
 	}
 
@@ -4169,6 +4273,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("pos-pid-error", ext_pos_pid_error);
 	lbm_add_extension("phase-motor", ext_phase_motor);
 	lbm_add_extension("phase-encoder", ext_phase_encoder);
+	lbm_add_extension("phase-hall", ext_phase_hall);
 	lbm_add_extension("phase-observer", ext_phase_observer);
 	lbm_add_extension("observer-error", ext_observer_error);
 
@@ -4208,6 +4313,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
 	lbm_add_extension("can-cmd", ext_can_cmd);
+	lbm_add_extension("can-local-id", ext_can_local_id);
 
 	// Math
 	lbm_add_extension("throttle-curve", ext_throttle_curve);
@@ -4300,14 +4406,14 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("gnss-date-time", ext_gnss_date_time);
 	lbm_add_extension("gnss-age", ext_gnss_age);
 
+	// Remote Messages
+	lbm_add_extension("rmsg-wait", ext_rmsg_wait);
+	lbm_add_extension("rmsg-send-can", ext_rmsg_send_can);
+
 	// Extra extensions
 	lbm_array_extensions_init();
 	lbm_math_extensions_init();
 	lbm_string_extensions_init();
-
-	if (ext_callback) {
-		ext_callback();
-	}
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -4363,11 +4469,42 @@ void lispif_process_shutdown(void) {
 	}
 }
 
-void lispif_set_ext_load_callback(void (*p_func)(void)) {
-	ext_callback = p_func;
+void lispif_process_rmsg(int slot, unsigned char *data, unsigned int len) {
+	if (event_tp == NULL) {
+		return;
+	}
+
+	chMtxLock(&rmsg_mutex);
+
+	if (slot < 0 || slot >= RMSG_SLOT_NUM || rmsg_slots[slot].cid < 0) {
+		chMtxUnlock(&rmsg_mutex);
+		return;
+	}
+
+	lbm_flat_value_t v;
+	if (lbm_start_flatten(&v, 10 + len)) {
+		f_lbm_array(&v, len, data);
+		lbm_finish_flatten(&v);
+
+		if (!lbm_unblock_ctx(rmsg_slots[slot].cid, &v)) {
+			lbm_free(v.buf);
+		}
+
+		rmsg_slots[slot].cid = -1;
+	}
+
+	chMtxUnlock(&rmsg_mutex);
 }
 
 void lispif_disable_all_events(void) {
+	if (event_tp != NULL) {
+		chMtxLock(&rmsg_mutex);
+		for (int i = 0;i < RMSG_SLOT_NUM;i++) {
+			rmsg_slots[i].cid = -1;
+		}
+		chMtxUnlock(&rmsg_mutex);
+	}
+
 	lispif_stop_lib();
 	event_can_sid_en = false;
 	event_can_eid_en = false;

@@ -1266,5 +1266,5 @@ const fundamental_fun fundamental_table[] =
    fundamental_range,
    fundamental_reg_event_handler,
    fundamental_take,
-   fundamental_drop
+   fundamental_drop,
   };

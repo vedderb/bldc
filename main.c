@@ -187,6 +187,10 @@ static THD_FUNCTION(periodic_thread, arg) {
 				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 				break;
 
+			case DISP_POS_MODE_HALL_OBSERVER_ERROR:
+				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_hall()));
+				break;
+
 			default:
 				break;
 			}
@@ -300,9 +304,7 @@ int main(void) {
 	bm_init();
 #endif
 
-#ifdef HW_SHUTDOWN_HOLD_ON
 	shutdown_init();
-#endif
 
 	imu_reset_orientation();
 

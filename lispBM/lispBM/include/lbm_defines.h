@@ -38,8 +38,8 @@
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
 #define LBM_TYPE_CUSTOM                  0xA0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
-#define LBM_POINTER_TYPE_LAST            0xBC000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xAC000000u
+#define LBM_POINTER_TYPE_LAST            0xAC000000u
 
 #define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
 #define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
@@ -98,6 +98,7 @@
 #define SYM_NIL           0x0
 #define SYM_TRUE          0x2
 #define SYM_DONTCARE      0x9
+#define SYM_TIMEOUT       0xA
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR                0x20  /* READ ERROR */
@@ -122,7 +123,7 @@
 #define SYM_IND_F_TYPE     0x36
 #define SYM_CHANNEL_TYPE   0x37
 #define SYM_CUSTOM_TYPE    0x38
-#define TYPE_CLASSIFIER_ENDS 0x38
+#define TYPE_CLASSIFIER_ENDS 0x39
 #define SYM_NONSENSE       0x3A
 
 #define SYM_NO_MATCH       0x40
@@ -179,39 +180,43 @@
 #define SYM_OR                  0x107
 #define SYM_MATCH               0x108
 #define SYM_RECEIVE             0x109
-#define SYM_CALLCC              0x10A
-#define SYM_ATOMIC              0x10B
-#define SYM_MACRO               0x10C
-#define SYM_CONT                0x10D
-#define SYM_CLOSURE             0x10E
-#define SYM_COND                0x10F
-#define SYM_APP_CONT            0x110
-#define SYM_PROGN_VAR           0x111
-#define SYM_SETQ                0x112
-#define SYM_MOVE_TO_FLASH       0x113
-#define SPECIAL_FORMS_END       0x113
+#define SYM_RECEIVE_TIMEOUT     0x10A
+#define SYM_CALLCC              0x10B
+#define SYM_ATOMIC              0x10C
+#define SYM_MACRO               0x10D
+#define SYM_CONT                0x10E
+#define SYM_CLOSURE             0x10F
+#define SYM_COND                0x110
+#define SYM_APP_CONT            0x111
+#define SYM_PROGN_VAR           0x112
+#define SYM_SETQ                0x113
+#define SYM_MOVE_TO_FLASH       0x114
+#define SPECIAL_FORMS_END       0x114
 
 // Apply funs:
 // Get their arguments in evaluated form.
 // Consecutive value symbols for lookup-application
-#define APPLY_FUNS_START  0x150
-#define SYM_SETVAR        0x150
-#define SYM_READ          0x151
-#define SYM_READ_PROGRAM  0x152
+#define APPLY_FUNS_START          0x150
+#define SYM_SETVAR                0x150
+#define SYM_READ                  0x151
+#define SYM_READ_PROGRAM          0x152
 #define SYM_READ_AND_EVAL_PROGRAM 0x153
-#define SYM_SPAWN         0x154
-#define SYM_SPAWN_TRAP    0x155
-#define SYM_YIELD         0x156
-#define SYM_WAIT          0x157
-#define SYM_EVAL          0x158
-#define SYM_EVAL_PROGRAM  0x159
-#define SYM_SEND          0x15A
-#define SYM_EXIT_OK       0x15B
-#define SYM_EXIT_ERROR    0x15C
-#define SYM_MAP           0x15D
-#define SYM_REVERSE       0x15E
-#define SYM_WAIT_FOR      0x15F
-#define APPLY_FUNS_END    0x15F
+#define SYM_SPAWN                 0x154
+#define SYM_SPAWN_TRAP            0x155
+#define SYM_YIELD                 0x156
+#define SYM_WAIT                  0x157
+#define SYM_EVAL                  0x158
+#define SYM_EVAL_PROGRAM          0x159 
+#define SYM_SEND                  0x15A
+#define SYM_EXIT_OK               0x15B
+#define SYM_EXIT_ERROR            0x15C
+#define SYM_MAP                   0x15D
+#define SYM_REVERSE               0x15E
+#define SYM_WAIT_FOR              0x15F
+#define SYM_FLATTEN               0x160
+#define SYM_UNFLATTEN             0x161
+#define SYM_KILL                  0x162
+#define APPLY_FUNS_END            0x162
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -272,9 +277,7 @@
 #define SYM_REG_EVENT_HANDLER   0x245
 #define SYM_TAKE                0x246
 #define SYM_DROP                0x247
-#define FUNDAMENTALS_END         0x247
-
-
+#define FUNDAMENTALS_END        0x249
 
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
@@ -294,6 +297,7 @@
 #define ENC_SYM_NIL           ENC_SYM(SYM_NIL)
 #define ENC_SYM_TRUE          ENC_SYM(SYM_TRUE)
 #define ENC_SYM_DONTCARE      ENC_SYM(SYM_DONTCARE)
+#define ENC_SYM_TIMEOUT       ENC_SYM(SYM_TIMEOUT)
 
 #define ENC_SYM_RERROR                ENC_SYM(SYM_RERROR)
 #define ENC_SYM_TERROR                ENC_SYM(SYM_TERROR)
@@ -361,6 +365,7 @@
 #define ENC_SYM_OR                  ENC_SYM(SYM_OR)
 #define ENC_SYM_MATCH               ENC_SYM(SYM_MATCH)
 #define ENC_SYM_RECEIVE             ENC_SYM(SYM_RECEIVE)
+#define ENC_SYM_RECEIVE_TIMEOUT     ENC_SYM(SYM_RECEIVE_TIMEOUT)
 #define ENC_SYM_CALLCC              ENC_SYM(SYM_CALLCC)
 #define ENC_SYM_ATOMIC              ENC_SYM(SYM_ATOMIC)
 #define ENC_SYM_MACRO               ENC_SYM(SYM_MACRO)
@@ -373,25 +378,25 @@
 #define ENC_SYM_MOVE_TO_FLASH       ENC_SYM(SYM_MOVE_TO_FLASH)
 #define ENC_SYM_IN_ENV              ENC_SYM(SYM_IN_ENV)
 
-#define ENC_SYM_SETVAR        ENC_SYM(SYM_SETVAR)
-#define ENC_SYM_READ          ENC_SYM(SYM_READ)
-#define ENC_SYM_READ_PROGRAM  ENC_SYM(SYM_READ_PROGRAM)
+#define ENC_SYM_SETVAR                ENC_SYM(SYM_SETVAR)
+#define ENC_SYM_READ                  ENC_SYM(SYM_READ)
+#define ENC_SYM_READ_PROGRAM          ENC_SYM(SYM_READ_PROGRAM)
 #define ENC_SYM_READ_AND_EVAL_PROGRAM ENC_SYM(SYM_READ_AND_EVAL_PROGRAM)
-#define ENC_SYM_SPAWN         ENC_SYM(SYM_SPAWN)
-#define ENC_SYM_SPAWN_TRAP    ENC_SYM(SYM_SPAWN_TRAP)
-#define ENC_SYM_YIELD         ENC_SYM(SYM_YIELD)
-#define ENC_SYM_WAIT          ENC_SYM(SYM_WAIT)
-#define ENC_SYM_EVAL          ENC_SYM(SYM_EVAL)
-#define ENC_SYM_EVAL_PROGRAM  ENC_SYM(SYM_EVAL_PROGRAM)
-#define ENC_SYM_SEND          ENC_SYM(SYM_SEND)
-#define ENC_SYM_EXIT_OK       ENC_SYM(SYM_EXIT_OK)
-#define ENC_SYM_EXIT_ERROR    ENC_SYM(SYM_EXIT_ERROR)
-#define ENC_SYM_MAP           ENC_SYM(SYM_MAP)
-#define ENC_SYM_REVERSE       ENC_SYM(SYM_REVERSE)
-#define ENC_SYM_WAIT_FOR      ENC_SYM(SYM_WAIT_FOR)
-#define ENC_SYM_GET_ENV       ENC_SYM(SYM_GET_ENV)
-#define ENC_SYM_SET_ENV       ENC_SYM(SYM_SET_ENV)
-
+#define ENC_SYM_SPAWN                 ENC_SYM(SYM_SPAWN)
+#define ENC_SYM_SPAWN_TRAP            ENC_SYM(SYM_SPAWN_TRAP)
+#define ENC_SYM_YIELD                 ENC_SYM(SYM_YIELD)
+#define ENC_SYM_WAIT                  ENC_SYM(SYM_WAIT)
+#define ENC_SYM_EVAL                  ENC_SYM(SYM_EVAL)
+#define ENC_SYM_EVAL_PROGRAM          ENC_SYM(SYM_EVAL_PROGRAM)
+#define ENC_SYM_SEND                  ENC_SYM(SYM_SEND)
+#define ENC_SYM_EXIT_OK               ENC_SYM(SYM_EXIT_OK)
+#define ENC_SYM_EXIT_ERROR            ENC_SYM(SYM_EXIT_ERROR)
+#define ENC_SYM_MAP                   ENC_SYM(SYM_MAP)
+#define ENC_SYM_REVERSE               ENC_SYM(SYM_REVERSE)
+#define ENC_SYM_WAIT_FOR              ENC_SYM(SYM_WAIT_FOR)
+#define ENC_SYM_FLATTEN               ENC_SYM(SYM_FLATTEN)
+#define ENC_SYM_UNFLATTEN             ENC_SYM(SYM_UNFLATTEN)
+#define ENC_SYM_KILL                  ENC_SYM(SYM_KILL)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
@@ -451,7 +456,5 @@
 #define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
-
-
 
 #endif

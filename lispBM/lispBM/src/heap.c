@@ -458,18 +458,6 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
   lbm_heap_state.gc_recovered_arrays = 0;
   lbm_heap_state.gc_least_free       = num_cells;
   lbm_heap_state.gc_last_free        = num_cells;
-
-  lbm_heap_state.gc_time_acc = 0;
-  lbm_heap_state.gc_max_duration = 0;
-  lbm_heap_state.gc_min_duration = UINT32_MAX;
-}
-
-void lbm_heap_new_gc_time(lbm_uint dur) {
-  lbm_heap_state.gc_time_acc += dur;
-  if (dur > lbm_heap_state.gc_max_duration)
-    lbm_heap_state.gc_max_duration = dur;
-  if (dur < lbm_heap_state.gc_min_duration)
-    lbm_heap_state.gc_min_duration = dur;
 }
 
 void lbm_heap_new_freelist_length(void) {
@@ -598,20 +586,9 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
-int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
+int lbm_gc_mark_phase() {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
-
-  va_list valist;
-  va_start(valist, num);
-  lbm_value root;
-  for (int i = 0; i < num; i++) {
-      root = va_arg(valist, lbm_value);
-      if (lbm_is_ptr(root)) {
-        lbm_push(s, root);
-      }
-  }
-  va_end(valist);
   int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
@@ -683,7 +660,8 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
-        lbm_gc_mark_phase(1,aux_data[i]);
+        lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = aux_data[i];
+        lbm_gc_mark_phase();
       }
     }
   }
@@ -710,7 +688,7 @@ int lbm_gc_sweep_phase(void) {
         case SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-
+        //case SYM_FLATVAL_TYPE:
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
@@ -1055,6 +1033,32 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
   return 1;
 }
 
+lbm_int lbm_heap_array_get_size(lbm_value arr) {
+
+  int r = -1;
+  if (lbm_is_array_rw(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (lbm_int)header->size;
+  }
+  return r;
+}
+
+uint8_t *lbm_heap_array_get_data(lbm_value arr) {
+  uint8_t *r = NULL;
+  if (lbm_is_array_rw(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (uint8_t*)header->data;
+  }
+  return r;
+}
+
+
 /* Explicitly freeing an array.
 
    This is a highly unsafe operation and can only be safely
@@ -1207,4 +1211,3 @@ lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
 lbm_uint lbm_flash_memory_usage(void) {
   return lbm_const_heap_state->next;
 }
-

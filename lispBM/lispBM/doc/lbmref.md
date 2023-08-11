@@ -473,13 +473,13 @@ Example that evaluates to 3.
 Evaluate a list of data where each element represents an expression.
 
 Example that results in the value 15:
-```
+```clj
 (define prg '( (+ 1 2) (+ 3 4) (+ 10 5)))
 (eval-program prg)
 ```
 
 Example that prints the strings "apa", "bepa" and "cepa":
-```
+```clj
 (define prg '( (print "apa") (print "bepa") (print "cepa")))
 (eval-program prg)
 ```
@@ -773,7 +773,7 @@ Example:
 
 ```clj
 (progn (var a 10) (set 'a 20) a)
-``` 
+```
 
 The expression above evaluates to 20.
 
@@ -796,7 +796,7 @@ And now `a` has been associated with the value 20 in the global env.
 
 Just like `set` and `setvar`, `setq` can be used on variables that
 are bound locally such as in the body of a `let` or a `progn`-local variable
-created using `var`. 
+created using `var`.
 
 ### progn
 
@@ -832,7 +832,7 @@ This program evaluates 30 but also extends the global environment with the
 
 The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`.
 The parser replaces occurrences of `{` with `(progn`. The `{` should be
-closed with an `}`. 
+closed with an `}`.
 
 These two programs are thus equivalent:
 
@@ -842,7 +842,7 @@ These two programs are thus equivalent:
   (define b 20)
   (+ a b))
 
-``` 
+```
 
 And
 
@@ -852,7 +852,7 @@ And
   (define b 20)
   (+ a b)
 }
-``` 
+```
 
 ---
 
@@ -862,7 +862,7 @@ The closing curlybrace `}` should be used to close an opening `{` but purely
 for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`.
 
 The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks
-of sequences expressions. 
+of sequences expressions.
 
 
 ### var
@@ -935,7 +935,7 @@ has been extended with the binding `(apa 1)`.
 ### read-eval-program
 
 Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression
-then evaluates it before reading the next. 
+then evaluates it before reading the next.
 
 Example that evaluates to 20:
 
@@ -950,7 +950,7 @@ Example that evaluates to 20:
 
 ```clj
 (read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
-``` 
+```
 ---
 
 ## Lists and cons cells
@@ -1262,7 +1262,7 @@ The `assoc` function looks up the first value in an alist matching a given a key
 The form of an `assoc` expression is `(assoc alist-expr key-expr)`
 
 Example that looks up the value of key `2` in an alist.
-```
+```clj
 # (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
 > donkey
 ```
@@ -1276,7 +1276,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 The form of an `cossa` expression is `(cossa alist-expr value-expr)`
 
 Example that looks up the key for the value `donkey` in an alist.
-```
+```clj
 # (cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
 > 2
 ```
@@ -1290,7 +1290,7 @@ alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr val
 
 
 ## Arrays (byte-buffers)
- 
+
 ### bufcreate
 
 Create an array of bytes. The
@@ -1485,7 +1485,7 @@ Example:
        ( (? y) (< y 0) 'less-than-zero)
        ( (? y) (> y 0) 'greater-than-zero)
        ( (? y) (= y 0) 'equal-to-zero))
-``` 
+```
 
 ---
 
@@ -1513,10 +1513,8 @@ atomic read-modify-write sequences to global data.
 ### spawn
 
 Use `spawn` to launch a concurrent process. Spawn takes a closure and
-and arguments to pass to that closure as its arguments: `(spawn
-closure arg1 ... argN)`.  Optionally you can provide a numerical first
-argument that specifies stack size that the runtime system should
-allocate to run the process in: `(spawn stack-size closure args1
+arguments to pass to that closure as its arguments. The form of a
+spawn expression is `(spawn opt-name opt-stack-size closure arg1
 ... argN)`.
 
 Each process has a runtime-stack which is used for the evaluation of
@@ -1538,11 +1536,11 @@ fine with a lot less stack. You can find a good size by trial and error.
 
 Use `spawn-trap` to spawn a child process and enable trapping of exit
 conditions for that child. The form of a `spawn-trap` expression is
-`(spawn-trap closure arg1 .. argN)`.  If the child process is
-terminated because of an error, a message is sent to the parent
-process of the form `(exit-error tid err-val)`. If the child process
-terminates successfully a message of the form `(exit-ok tid value)` is
-sent to the parent.
+`(spawn-trap opt-name opt-stack-size closure arg1 .. argN)`.  If the
+child process is terminated because of an error, a message is sent to
+the parent process of the form `(exit-error tid err-val)`. If the
+child process terminates successfully a message of the form `(exit-ok
+tid value)` is sent to the parent.
 
 Example:
 ```clj
@@ -1552,6 +1550,18 @@ Example:
        ((exit-ok    (? tid) (? v)) ...))
 ```
 
+---
+
+### self
+
+Use `self` to obtain the thread-id of the thread in which `self` is evaluated.
+The form of a `self` expression is `(self)`. The thread id is of an integer type.
+
+Example:
+```clj
+# (self)
+> 314
+```
 ---
 
 ### wait
@@ -1631,6 +1641,32 @@ Example where a process waits for an integer `?i`.
 
 ---
 
+### recv-to
+
+Like [recv](./lbmref.md#recv), `recv-to` is used to receive
+messages but `recv-to` takes an extra timeout argument.
+
+The form of an `recv-to` expression is
+```clj
+(recv-to timeout-secs
+                (pattern1 exp1)
+                ...
+                (patternN expN))
+```
+
+If no message is received before the timout, the message `timeout` is
+delivered to the waiting process. This `timeout` message can be handled
+in one of the receive patterns.
+
+Example
+```clj
+(recv-to 0.5
+         ( timeout (handle-timeout))
+         ( _       (do-something-else)))
+```
+
+---
+
 ### set-mailbox-size
 
 Change the size of the mailbox in the current process.
@@ -1642,6 +1678,59 @@ Example that changes mailbox size to 100 elements.
 ```
 
 ---
+
+## Flat values
+
+Lisp values can be "flattened" into an array representation. The flat
+representation of a value contains all information needed so that the
+value can be recreated, "unflattened", in another instance of the
+runtime system (for example running on another microcontroller).
+
+Not all values can be flattened, custom types for example cannot.
+
+### flatten
+
+The `flatten` function takes a value as single argument and returns the flat representation if
+successful. A flatten expression has the form `(flatten expr)`. Note that `expr` is evaluated
+before the flattening.
+
+Example:
+```clj
+# (define a (flatten (+ 1 2)))
+> ""
+```
+The example above creates a byte-array representating the the value `3`.
+
+```clj
+# (define a (flatten '(+ 1 2)))
+> "+"
+```
+
+Now the byte-array contains a representation of the list `(+ 1 2)`
+
+---
+
+### unflatten
+
+`unflatten` converts a flat value back into a lisp value. Te form of an
+`unflatten` expression is `(unflatten flat-value)`
+
+Example:
+```clj
+# (define a (flatten (+ 1 2)))
+> ""
+# (unflatten a)
+> 3
+```
+
+and:
+
+```clj
+# (define a (flatten '(+ 1 2)))
+> "+"
+# (unflatten a)
+> (+ 1 2)
+```
 
 ## Macros
 

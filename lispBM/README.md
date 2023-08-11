@@ -1353,6 +1353,20 @@ Returns the encoder position mapped to the electrical position of the motor. Uni
 
 ---
 
+#### phase-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(phase-hall)
+```
+
+Returns the hall sensor position of the motor. Unit: Degrees.
+
+---
+
 #### phase-observer
 
 | Platforms | Firmware |
@@ -1788,6 +1802,20 @@ List CAN-devices that have been heard on the CAN-bus since boot. This function i
 ```
 
 Actively scan the CAN-bus and return a list with devices that responded. This function takes several seconds to run, but also finds devices that do not actively send messages and only respond to a ping message.
+
+---
+
+#### can-local-id
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(can-local-id)
+```
+
+Get local CAN ID.
 
 ---
 
@@ -3967,6 +3995,40 @@ Strings in lispBM are treated the same as byte arrays, so all of the above can b
 
 ---
 
+## Remote Messages
+
+---
+
+Remote messages are byte arrays that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 5 different slots to send messages to.
+
+---
+
+#### rmsg-wait
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rmsg-wait slot timeout)
+```
+
+Wait for message on slot with timeout seconds. Returns a byte array with the received message on success or timeout if nothing is received before the timeout has passed.
+
+---
+
+#### rmsg-send-can
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rmsg-send-can can-id slot msg)
+```
+
+Send msg over CAN-bus to slot on can-id. msg is a byte array.
+
 ## Import Files
 
 Import is a special command that is mostly handled by VESC Tool. When VESC Tool sees a line that imports a file it will open and read that file and attach it as binary data to the end of the uploaded code. VESC Tool also generates a table of the imported files that will be allocated as arrays and passed to LispBM at start and bound to bindings.
@@ -4649,6 +4711,36 @@ Example:
 
 ---
 
+#### esp-now-recv
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(esp-now-recv optTimeout)
+```
+
+Block current thread until esp-now data arrives. The optional argument optTimeout can be used to specify an optional timeout in seconds.
+
+If a timeout occurs the symbol timeout will be returned, otherwise a list with the following format will be returned:
+
+```clj
+(event-esp-now-rx (src-mac-addr) (dest-mac-addr) payload-array rssi-db)
+
+; Example
+(event-esp-now-rx (112 4 29 15 194 105) (16 145 168 52 203 121) "Test" -40)
+```
+
+Usage example:
+
+```clj
+(esp-now-start)
+(loopwhile t (print (esp-now-recv)))
+```
+
+---
+
 #### get-mac-addr
 
 | Platforms | Firmware |
@@ -4734,20 +4826,22 @@ Events can be used to receive ESP-NOW data. This is best described with an examp
 ; the broadcast address (255 255 255 255 255 255) it means that this
 ; was a broadcast packet.
 
-(defun proc-data (src des data)
-    (print (list src des data))
+(defun proc-data (src des data rssi)
+    (print (list src des data rssi))
 )
 
 (defun event-handler ()
     (loopwhile t
         (recv
-            ((event-esp-now-rx (? src) (? des) (? data)) (proc-data src des data))
+            ((event-esp-now-rx (? src) (? des) (? data) (? rssi) (proc-data src des data rssi))
             (_ nil)
 )))
 
 (event-register-handler (spawn event-handler))
 (event-enable 'event-esp-now-rx)
 ```
+
+NOTE: The RSSI was added in firmware 6.05 and should be left out in earlier firmwares.
 
 ---
 
