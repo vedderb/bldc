@@ -23,6 +23,7 @@
 	* Added recv-to with a timeout argument.
 	* Added remote message extensions.
 	* Added phase-hall extension.
+	* Added loopwhile-thd.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.
