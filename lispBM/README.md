@@ -3146,6 +3146,38 @@ f
 
 ---
 
+#### loopwhile-thd
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(loopwhile-thd stack cond body)
+```
+
+While-loop that starts in a new thread. The argument stack is the stack-size of the thread, cond is the condition that has the be true for the loop to continue running and body is the code to execute each iteration. The difference from the regular loopwhile is that the evaluator will continue running the code after this one before this one finishes, as this loop is evaluated in a new thread.
+
+Example that forever prints "Hello World" every two seconds:
+
+```clj
+; Note: This example uses the curly backet for progn for convenience
+
+(loopwhile-thd 100 t {
+        (print "Hello World")
+        (sleep 2)
+})
+
+; The above is equivalent to the following code
+
+(spawn 100 (fn () (loopwhile t {
+                (print "Hello World")
+                (sleep 2)
+})))
+```
+
+---
+
 #### break
 
 | Platforms | Firmware |
