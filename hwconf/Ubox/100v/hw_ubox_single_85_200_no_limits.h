@@ -17,12 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UBOX_SINGLE_80_H_
-#define HW_UBOX_SINGLE_80_H_
+#ifndef HW_UBOX_SINGLE_85_200_NO_LIMITS_H_
+#define HW_UBOX_SINGLE_85_200_NO_LIMITS_H_
 
-#define HW_UBOX_SINGLE_80
-#define MCCONF_L_MAX_VOLTAGE	78.0
+#define DISABLE_HW_LIMITS
 
-#include "hw_ubox_100_core.h"
+#include "hw_ubox_single_85_200.h"
 
-#endif /* HW_UBOX_SINGLE_80_H_ */
+#endif /* HW_UBOX_SINGLE_80_NO_LIMITS_H_ */
