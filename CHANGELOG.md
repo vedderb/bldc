@@ -24,6 +24,8 @@
 	* Added remote message extensions.
 	* Added phase-hall extension.
 	* Added loopwhile-thd.
+	* Added can-recv-sid.
+	* Added can-recv-eid.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

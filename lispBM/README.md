@@ -446,6 +446,29 @@ Example of sending the numbers 1, 2, 3 and 4:
 
 ---
 
+#### recv-data
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(recv-data optTimeout)
+```
+
+Block current thread until data from VESC Tool arrives. The optional argument optTimeout can be used to specify a timeout in seconds.
+
+If a timeout occurs the symbol timeout will be returned, otherwise a byte array with the data will arrive.
+
+Usage example:
+
+```clj
+(print (recv-data))
+> [1 2 3]
+```
+
+---
+
 #### sleep
 
 | Platforms | Firmware |
@@ -1850,6 +1873,47 @@ Send standard ID CAN-frame with id and data. Data is a list with bytes, and the 
 ```
 
 Same as (can-send-sid), but sends extended ID frame.
+
+---
+
+#### can-recv-sid
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(can-recv-sid optTimeout)
+```
+
+Block current thread until a standard-id can-frame arrives. The optional argument optTimeout can be used to specify a timeout in seconds.
+
+If a timeout occurs the symbol timeout will be returned, otherwise a list with the following format will be returned:
+
+```clj
+(id data)
+```
+
+Usage example:
+
+```clj
+(print (can-recv-sid))
+> (2i32 [1 2 3])
+```
+
+---
+
+#### can-recv-eid
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(can-recv-eid optTimeout)
+```
+
+Same as (can-recv-sid), but waits for extended ID frame.
 
 ---
 
@@ -4755,22 +4819,20 @@ Example:
 (esp-now-recv optTimeout)
 ```
 
-Block current thread until esp-now data arrives. The optional argument optTimeout can be used to specify an optional timeout in seconds.
+Block current thread until esp-now data arrives. The optional argument optTimeout can be used to specify a timeout in seconds.
 
 If a timeout occurs the symbol timeout will be returned, otherwise a list with the following format will be returned:
 
 ```clj
-(event-esp-now-rx (src-mac-addr) (dest-mac-addr) payload-array rssi-db)
-
-; Example
-(event-esp-now-rx (112 4 29 15 194 105) (16 145 168 52 203 121) "Test" -40)
+(src-mac-addr dest-mac-addr payload-array rssi-db)
 ```
 
 Usage example:
 
 ```clj
 (esp-now-start)
-(loopwhile t (print (esp-now-recv)))
+(print (esp-now-recv))
+> ((112 4 29 15 194 105) (16 145 168 52 203 121) "Test" -40)
 ```
 
 ---
@@ -4867,7 +4929,7 @@ Events can be used to receive ESP-NOW data. This is best described with an examp
 (defun event-handler ()
     (loopwhile t
         (recv
-            ((event-esp-now-rx (? src) (? des) (? data) (? rssi) (proc-data src des data rssi))
+            ((event-esp-now-rx (? src) (? des) (? data) (? rssi)) (proc-data src des data rssi))
             (_ nil)
 )))
 
