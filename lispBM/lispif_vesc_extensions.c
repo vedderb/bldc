@@ -4520,10 +4520,12 @@ void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 			if (!lbm_unblock_ctx(can_recv_sid_cid, &v)) {
 				lbm_free(v.buf);
 			}
+			can_recv_sid_cid = -1;
 		} else if (can_recv_eid_cid >= 0 && is_ext) {
 			if (!lbm_unblock_ctx(can_recv_eid_cid, &v)) {
 				lbm_free(v.buf);
 			}
+			can_recv_eid_cid = -1;
 		} else {
 			if (!lbm_event(&v)) {
 				lbm_free(v.buf);
@@ -4550,6 +4552,7 @@ void lispif_process_custom_app_data(unsigned char *data, unsigned int len) {
 			if (!lbm_unblock_ctx(recv_data_cid, &v)) {
 				lbm_free(v.buf);
 			}
+			recv_data_cid = -1;
 		} else {
 			if (!lbm_event(&v)) {
 				lbm_free(v.buf);
