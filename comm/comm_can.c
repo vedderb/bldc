@@ -1158,7 +1158,7 @@ void comm_can_send_status1(uint8_t id, bool replace) {
 	uint8_t buffer[8];
 	buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
 	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_filtered() * 1e1), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1e3), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_fault()), &send_index);
 	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS << 8),
 			buffer, send_index, replace, 0);
 }
@@ -1166,8 +1166,10 @@ void comm_can_send_status1(uint8_t id, bool replace) {
 void comm_can_send_status2(uint8_t id, bool replace) {
 	int32_t send_index = 0;
 	uint8_t buffer[8];
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours(false) * 1e4), &send_index);
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours_charged(false) * 1e4), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_amp_hours(false) * 1e2), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_temp_fet_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_input_voltage_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_in_filtered() * 1e1), &send_index);
 	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_2 << 8),
 			buffer, send_index, replace, 0);
 }
@@ -1195,7 +1197,7 @@ void comm_can_send_status4(uint8_t id, bool replace) {
 void comm_can_send_status5(uint8_t id, bool replace) {
 	int32_t send_index = 0;
 	uint8_t buffer[8];
-	buffer_append_int32(buffer, mc_interface_get_tachometer_value(false), &send_index);
+	buffer_append_int32(buffer, mc_interface_get_fault(), &send_index);
 	buffer_append_int16(buffer, (int16_t)(mc_interface_get_input_voltage_filtered() * 1e1), &send_index);
 	buffer_append_int16(buffer, 0, &send_index); // Reserved for now
 	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_5 << 8),
@@ -1230,7 +1232,7 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 	while(!chThdShouldTerminateX()) {
 		// Feed watchdog
 		timeout_feed_WDT(THREAD_CANBUS);
-        
+
 		if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(10)) == 0) {
 			continue;
 		}
