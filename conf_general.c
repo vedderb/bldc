@@ -1033,7 +1033,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	// Start by locking the motor
 	for (int i = 0;i < 200;i++) {
-		mcpwm_foc_set_openloop_current((float)i * current / 200.0, rpm_now);
+		mc_interface_set_openloop_current((float)i * current / 200.0, rpm_now);
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			timeout_configure(tout, tout_c, tout_ksw);
@@ -1074,7 +1074,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 
 	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
 		rpm_now += erpm_per_sec / 1000.0;
-		mcpwm_foc_set_openloop_current(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
+		mc_interface_set_openloop_current(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
 
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
@@ -1330,7 +1330,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		mc_interface_set_configuration(mcconf);
 
 		for (int i = 0;i < 1000;i++) {
-			mcpwm_foc_set_openloop_phase((float)i * current / 1000.0, 0.0);
+			mc_interface_set_openloop_phase((float)i * current / 1000.0, 0.0);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
 				timeout_configure(tout, tout_c, tout_ksw);
@@ -1350,7 +1350,7 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		float phase_end = 0.0;
 
 		for (int i = 0;i < 180.0;i++) {
-			mcpwm_foc_set_openloop_phase(current, i);
+			mc_interface_set_openloop_phase(current, i);
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
 				timeout_configure(tout, tout_c, tout_ksw);

@@ -37,6 +37,7 @@
 * Added option to select PID-controller speed source.
 * Try to make odometer persistent even without shutdown switch. See https://github.com/vedderb/bldc/pull/624
 * Dual motor flux linkage measurement current spike bug fix.
+* Fix possible runaway after faults during openloop measurements (flux linkage, encoder).
 
 ### 6.02
 #### 2023-03-12
