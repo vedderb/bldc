@@ -1163,7 +1163,7 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		chThdSleepMilliseconds(500);
 
 		// Turn off the FETs
-		mcpwm_foc_stop_pwm(false);
+		mcpwm_foc_stop_pwm(mc_interface_get_motor_thread() == 2);
 
 		// Clear any lingering current set points
 		mcpwm_foc_set_current(0.0);

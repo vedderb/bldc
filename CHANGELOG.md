@@ -36,6 +36,7 @@
 * Removed built-in balance app. The balance-package can be used instead, which is where new development is done.
 * Added option to select PID-controller speed source.
 * Try to make odometer persistent even without shutdown switch. See https://github.com/vedderb/bldc/pull/624
+* Dual motor flux linkage measurement current spike bug fix.
 
 ### 6.02
 #### 2023-03-12
@@ -868,3 +869,4 @@
 * HW60 support
 * 3 low/high side shunt support
 * permanent NRF option
+
