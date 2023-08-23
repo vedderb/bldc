@@ -12,11 +12,17 @@
 // Timeout Brake Current
 #define APPCONF_TIMEOUT_BRAKE_CURRENT 0
 
-// Can Status Message Mode
-#define APPCONF_SEND_CAN_STATUS 0
+// Can Status Rate 1
+#define APPCONF_CAN_STATUS_RATE_1 50
 
-// Can Status Rate
-#define APPCONF_SEND_CAN_STATUS_RATE_HZ 50
+// Can Status Rate 2
+#define APPCONF_CAN_STATUS_RATE_2 5
+
+// Can Messages Rate 1
+#define APPCONF_CAN_STATUS_MSGS_R1 0
+
+// Can Messages Rate 2
+#define APPCONF_CAN_STATUS_MSGS_R2 0
 
 // CAN Baud Rate
 #define APPCONF_CAN_BAUD_RATE 1
@@ -39,8 +45,17 @@
 // UAVCAN Raw Throttle Mode
 #define APPCONF_UAVCAN_RAW_MODE 0
 
+// UAVCAN Raw RPM Max
+#define APPCONF_UAVCAN_RAW_RPM_MAX 50000
+
+// UAVCAN Status Current Mode
+#define APPCONF_UAVCAN_STATUS_CURRENT_MODE 0
+
 // Enable Servo Output
 #define APPCONF_SERVO_OUT_ENABLE 0
+
+// Kill Switch Mode
+#define APPCONF_KILL_SW_MODE 0
 
 // APP to Use
 #define APPCONF_APP_TO_USE 10
@@ -108,19 +123,25 @@
 // Input Deadband
 #define APPCONF_ADC_HYST 0.02
 
-// ADC1 Min Voltage
+// ADC1 Start Voltage
 #define APPCONF_ADC_VOLTAGE_START 0.55
 
-// ADC1 Max Voltage
+// ADC1 End Voltage
 #define APPCONF_ADC_VOLTAGE_END 2.76
+
+// ADC1 Abs Min Voltage
+#define APPCONF_ADC_VOLTAGE_MIN 0.4
+
+// ADC1 Abs Max Voltage
+#define APPCONF_ADC_VOLTAGE_MAX 3
 
 // ADC1 Center Voltage
 #define APPCONF_ADC_VOLTAGE_CENTER 1.64
 
-// ADC2 Min Voltage
+// ADC2 Start Voltage
 #define APPCONF_ADC_VOLTAGE2_START 0
 
-// ADC2 Max Voltage
+// ADC2 End Voltage
 #define APPCONF_ADC_VOLTAGE2_END 2
 
 // Use Filter
@@ -129,11 +150,8 @@
 // Safe Start
 #define APPCONF_ADC_SAFE_START 1
 
-// Invert Cruise Control Button
-#define APPCONF_ADC_CC_BUTTON_INVERTED 1
-
-// Invert Reverse Button
-#define APPCONF_ADC_REV_BUTTON_INVERTED 0
+// Button Inputs
+#define APPCONF_ADC_BUTTONS 0
 
 // Invert ADC1 Voltage
 #define APPCONF_ADC_VOLTAGE_INVERTED 0
@@ -243,156 +261,6 @@
 // Send ACK
 #define APPCONF_NRF_SEND_CRC_ACK 1
 
-// P
-#define APPCONF_BALANCE_KP 0
-
-// I
-#define APPCONF_BALANCE_KI 0
-
-// D
-#define APPCONF_BALANCE_KD 0
-
-// Loop Hertz
-#define APPCONF_BALANCE_HERTZ 1000
-
-// Pitch Axis Fault Cutoff
-#define APPCONF_BALANCE_FAULT_PITCH 20
-
-// Roll Axis Fault Cutoff
-#define APPCONF_BALANCE_FAULT_ROLL 45
-
-// Duty Cycle Fault Cutoff
-#define APPCONF_BALANCE_FAULT_DUTY 0.9
-
-// ADC1 Switch Voltage
-#define APPCONF_BALANCE_FAULT_ADC1 0
-
-// ADC2 Switch Voltage
-#define APPCONF_BALANCE_FAULT_ADC2 0
-
-// Pitch Fault Delay
-#define APPCONF_BALANCE_FAULT_DELAY_PITCH 0
-
-// Roll Fault Delay
-#define APPCONF_BALANCE_FAULT_DELAY_ROLL 0
-
-// Duty Fault Delay
-#define APPCONF_BALANCE_FAULT_DELAY_DUTY 0
-
-// Half Switch Fault Delay
-#define APPCONF_BALANCE_FAULT_DELAY_SWITCH_HALF 0
-
-// Full Switch Fault Delay
-#define APPCONF_BALANCE_FAULT_DELAY_SWITCH_FULL 0
-
-// ADC Half State Fault ERPM
-#define APPCONF_BALANCE_FAULT_ADC_HALF_ERPM 1000
-
-// Tiltback Angle
-#define APPCONF_BALANCE_TILTBACK_ANGLE 15
-
-// Tiltback Speed
-#define APPCONF_BALANCE_TILTBACK_SPEED 5
-
-// Duty Cycle Tiltback
-#define APPCONF_BALANCE_TILTBACK_DUTY 0.75
-
-// High Voltage Tiltback
-#define APPCONF_BALANCE_TILTBACK_HIGH_V 200
-
-// Low Voltage Tiltback
-#define APPCONF_BALANCE_TILTBACK_LOW_V 0
-
-// Constant Tiltback
-#define APPCONF_BALANCE_TILTBACK_CONSTANT 0
-
-// Constant Tiltback ERPM
-#define APPCONF_BALANCE_TILTBACK_CONSTANT_ERPM 500
-
-// Startup Pitch Axis Angle Tolerance
-#define APPCONF_BALANCE_STARTUP_PITCH_TOLERANCE 20
-
-// Startup Roll Axis Angle Tolerance
-#define APPCONF_BALANCE_STARTUP_ROLL_TOLERANCE 8
-
-// Startup Centering Speed
-#define APPCONF_BALANCE_STARTUP_SPEED 30
-
-// Deadzone
-#define APPCONF_BALANCE_DEADZONE 0
-
-// Multiple VESCs Over CAN
-#define APPCONF_BALANCE_MULTI_ESC 0
-
-// Yaw P
-#define APPCONF_BALANCE_YAW_KP 0
-
-// Yaw I
-#define APPCONF_BALANCE_YAW_KI 0
-
-// Yaw D
-#define APPCONF_BALANCE_YAW_KD 0
-
-// Roll Steer KP
-#define APPCONF_BALANCE_ROLL_STEER_KP 0
-
-// Roll Steer ERPM KP
-#define APPCONF_BALANCE_ROLL_STEER_ERPM_KP 0
-
-// Brake Current
-#define APPCONF_BALANCE_BRAKE_CURRENT 0
-
-// Yaw Current Clamp
-#define APPCONF_BALANCE_YAW_CURRENT_CLAMP 0
-
-// D term PT1 Filter
-#define APPCONF_BALANCE_KD_PT1_FREQUENCY 0
-
-// Start Angle
-#define APPCONF_BALANCE_BOOSTER_ANGLE 8
-
-// Ramp Up
-#define APPCONF_BALANCE_BOOSTER_RAMP 1
-
-// Current Boost
-#define APPCONF_BALANCE_BOOSTER_CURRENT 0
-
-// Start Current Threshold
-#define APPCONF_BALANCE_TORQUETILT_START_CURRENT 10
-
-// Tilitback Angle Limit
-#define APPCONF_BALANCE_TORQUETILT_ANGLE_LIMIT 5
-
-// Max Tiltback Speed
-#define APPCONF_BALANCE_TORQUETILT_SPEED 5
-
-// Strength
-#define APPCONF_BALANCE_TORQUETILT_STRENGTH 0
-
-// Current Filter
-#define APPCONF_BALANCE_TORQUETILT_FILTER 0.95
-
-// Strength
-#define APPCONF_BALANCE_TURNTILT_STRENGTH 0
-
-// Tilitback Angle Limit
-#define APPCONF_BALANCE_TURNTILT_ANGLE_LIMIT 5
-
-// Roll Angle Threshold
-#define APPCONF_BALANCE_TURNTILT_START_ANGLE 1
-
-// ERPM Threshold
-#define APPCONF_BALANCE_TURNTILT_START_ERPM 100
-
-// Max Tiltback Speed
-#define APPCONF_BALANCE_TURNTILT_SPEED 5
-
-// Speed Boost %
-#define APPCONF_BALANCE_TURNTILT_ERPM_BOOST 20
-
-// Speed Boost Max ERPM
-#define APPCONF_BALANCE_TURNTILT_ERPM_BOOST_END 20000
-
 // Control Type
 #define APPCONF_PAS_CTRL_TYPE 2
 
@@ -432,8 +300,26 @@
 // IMU AHRS Mode
 #define APPCONF_IMU_AHRS_MODE 0
 
+// Accel/Gyro Filter
+#define APPCONF_IMU_FILTER 1
+
+// Accel lowpass filter X
+#define APPCONF_IMU_ACCEL_LOWPASS_FILTER_X 0
+
+// Accel lowpass filter Y
+#define APPCONF_IMU_ACCEL_LOWPASS_FILTER_Y 0
+
+// Accel lowpass filter Z
+#define APPCONF_IMU_ACCEL_LOWPASS_FILTER_Z 0
+
+// Gyro lowpass filter
+#define APPCONF_IMU_GYRO_LOWPASS_FILTER 0
+
 // Sample Rate
 #define APPCONF_IMU_SAMPLE_RATE_HZ 200
+
+// Use magnetometer
+#define APPCONF_IMU_USE_MAGNETOMETER 1
 
 // Accelerometer Confidence Decay
 #define APPCONF_IMU_ACCEL_CONFIDENCE_DECAY 1
@@ -473,18 +359,6 @@
 
 // Gyro Offset Z
 #define APPCONF_IMU_G_OFFSET_2 0
-
-// Gyro Offset Comp X
-#define APPCONF_IMU_G_OFFSET_COMP_FACT_0 0
-
-// Gyro Offset Comp Y
-#define APPCONF_IMU_G_OFFSET_COMP_FACT_1 0
-
-// Gyro Offset Comp Z
-#define APPCONF_IMU_G_OFFSET_COMP_FACT_2 0
-
-// Gyro Offset Comp Clamp
-#define APPCONF_IMU_G_OFFSET_COMP_CLAMP 5
 
 // APPCONF_LUNA_M600_H_
 #endif
