@@ -329,34 +329,34 @@ lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
   array[9] = 'l';
   array[10] = 'd';
   array[11] = 0;
-    
-  
+
+
   lbm_flat_value_t v;
-  
+
   if (lbm_start_flatten(&v, 100)) {
-    //  ((1 2 3 {3.000000} {51539607556} "hello world") . t)    
+    //  ((1 2 3 {3.000000} {51539607556} "hello world") . t)
     f_cons(&v);
-    f_cons(&v); 
+    f_cons(&v);
     f_i(&v, 1);
-    f_cons(&v); 
+    f_cons(&v);
     f_i(&v, 2);
-    f_cons(&v); 
+    f_cons(&v);
     f_i(&v, 3);
-    f_cons(&v); 
+    f_cons(&v);
     f_float(&v, 3.14f);
-    f_cons(&v); 
+    f_cons(&v);
     f_u64(&v, 0xFFFF0000FFFF0000);
     f_cons(&v);
     f_lbm_array(&v, 12, (uint8_t*)array);
     f_sym(&v, SYM_NIL);
     f_sym(&v, SYM_TRUE);
     lbm_finish_flatten(&v);
-    
-    
+
+
     v.buf_pos = 0;
     lbm_value res;
     lbm_unflatten_value(&v, &res);
-    return res; 
+    return res;
   } else {
     return ENC_SYM_NIL;
   }
@@ -368,15 +368,6 @@ static bool test_destruct(lbm_uint value) {
   printf("destroying custom value\n");
   free((lbm_uint*)value);
   return true;
-}
-
-static lbm_value ext_trigger(lbm_value *args, lbm_uint argn) {
-  if (argn == 1 && lbm_is_number(args[0])) {
-    lbm_trigger_flags(lbm_dec_as_u32(args[0]));
-    return ENC_SYM_TRUE;
-  } else {
-    return ENC_SYM_EERROR;
-  }
 }
 
 static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
@@ -502,7 +493,7 @@ int main(int argc, char **argv) {
   int res = 0;
 
   pthread_t lispbm_thd;
-  
+
   lbm_heap_state_t heap_state;
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
@@ -544,7 +535,7 @@ int main(int argc, char **argv) {
   } else {
     printf("Constants memory initialized\n");
   }
-  
+
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
@@ -600,13 +591,6 @@ int main(int argc, char **argv) {
     printf("Extension added.\n");
   else
     printf("Error adding extension.\n");
-
-  res = lbm_add_extension("trigger", ext_trigger);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
 
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
@@ -722,7 +706,7 @@ int main(int argc, char **argv) {
           sleep_callback(10);
         }
 
-        (void)lbm_load_and_eval_program_incremental(&string_tok);
+        (void)lbm_load_and_eval_program_incremental(&string_tok, NULL);
         lbm_continue_eval();
 
         //printf("started ctx: %"PRI_UINT"\n", cid);
@@ -779,7 +763,7 @@ int main(int argc, char **argv) {
         } else {
           printf("Constants memory initialized\n");
         }
-  
+
         lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
         if (lbm_array_extensions_init()) {
@@ -829,7 +813,7 @@ int main(int argc, char **argv) {
       } else {
         printf("Constants memory initialized\n");
       }
-  
+
       lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
       if (lbm_array_extensions_init()) {
@@ -885,14 +869,6 @@ int main(int argc, char **argv) {
         printf("Extension added.\n");
       else
         printf("Error adding extension.\n");
-
-      res = lbm_add_extension("trigger", ext_trigger);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      
 
       lbm_add_extension("print", ext_print);
       free(str);

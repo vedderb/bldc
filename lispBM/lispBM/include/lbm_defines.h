@@ -212,11 +212,10 @@
 #define SYM_EXIT_ERROR            0x15C
 #define SYM_MAP                   0x15D
 #define SYM_REVERSE               0x15E
-#define SYM_WAIT_FOR              0x15F
-#define SYM_FLATTEN               0x160
-#define SYM_UNFLATTEN             0x161
-#define SYM_KILL                  0x162
-#define APPLY_FUNS_END            0x162
+#define SYM_FLATTEN               0x15F
+#define SYM_UNFLATTEN             0x160
+#define SYM_KILL                  0x161
+#define APPLY_FUNS_END            0x161
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -393,7 +392,6 @@
 #define ENC_SYM_EXIT_ERROR            ENC_SYM(SYM_EXIT_ERROR)
 #define ENC_SYM_MAP                   ENC_SYM(SYM_MAP)
 #define ENC_SYM_REVERSE               ENC_SYM(SYM_REVERSE)
-#define ENC_SYM_WAIT_FOR              ENC_SYM(SYM_WAIT_FOR)
 #define ENC_SYM_FLATTEN               ENC_SYM(SYM_FLATTEN)
 #define ENC_SYM_UNFLATTEN             ENC_SYM(SYM_UNFLATTEN)
 #define ENC_SYM_KILL                  ENC_SYM(SYM_KILL)

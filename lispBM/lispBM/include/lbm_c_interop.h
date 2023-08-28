@@ -38,15 +38,17 @@ extern "C" {
 /** Load and schedule a program for execution.
  *
  * \param tokenizer The tokenizer to read the program from.
+ * \param name Name of thread (or NULL) thread doing the load and eval.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer);
+  lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer, char *name);
 /** Load a program while evaluating incrementally.
  *
  * \param tokenizer The tokenizer to read the program from.
+ * \param name Name of the thread (or NULL) that performs the incremental load.
  * \return A context id on success or 0 on failure.
  */
-lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer);
+  lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer, char *name);
 /** Load and schedule an expression for execution.
  *
  * \param tokenizer The tokenizer to read the expression from.

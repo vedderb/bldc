@@ -27,11 +27,15 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 17
+#define LBM_MINOR_VERSION 18
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+AUG 26 2023: Version 0.18.0
+  - Removed wait-for flags
+  - Fix bug in unblock_unboxed when unblocking with error value.
 
 JUL 29 2023: Version 0.17.0
   - Addition of a timeout functionality to blocked contexts.
