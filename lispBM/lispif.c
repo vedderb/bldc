@@ -522,7 +522,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 			lbm_create_buffered_char_channel(&buffered_tok_state, &buffered_string_tok);
 
-			if (lbm_load_and_eval_program(&buffered_string_tok) <= 0) {
+			if (lbm_load_and_eval_program(&buffered_string_tok, "repl") <= 0) {
 				lispif_unlock_lbm();
 				result_last = -4;
 				offset_last = -1;
@@ -711,7 +711,7 @@ bool lispif_restart(bool print, bool load_code) {
 			}
 
 			lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data);
-			lbm_load_and_eval_program_incremental(&string_tok);
+			lbm_load_and_eval_program_incremental(&string_tok, "main");
 		}
 
 		lbm_continue_eval();
