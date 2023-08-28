@@ -372,15 +372,6 @@ LBM_EXTENSION(ext_const_prg, args, argn) {
   return v;
 }
 
-LBM_EXTENSION(ext_trigger, args, argn) {
-  if (argn == 1 && lbm_is_number(args[0])) {
-    lbm_trigger_flags(lbm_dec_as_u32(args[0]));
-    return ENC_SYM_TRUE;
-  }
-  return ENC_SYM_NIL;
-}
-
-
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -696,14 +687,6 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  res = lbm_add_extension("trigger", ext_trigger);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
@@ -743,9 +726,9 @@ int main(int argc, char **argv) {
 
   lbm_set_ctx_done_callback(context_done_callback);
   if (incremental) {
-    cid = lbm_load_and_eval_program_incremental(&string_tok);
+    cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
   } else {
-    cid = lbm_load_and_eval_program(&string_tok);
+    cid = lbm_load_and_eval_program(&string_tok, NULL);
   }
 
   if (cid == -1) {

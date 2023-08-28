@@ -887,9 +887,9 @@ static inline bool lbm_is_quoted_list(lbm_value x) {
 }
 
 #ifndef LBM64
-#define ERROR_SYMBOL_MASK 0xFFFFFF20
+#define ERROR_SYMBOL_MASK 0xFFFFFFF0
 #else
-#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFFF20
+#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFFFF0
 #endif
 
 /* all error signaling symbols are in the range 0x20 - 0x2F */

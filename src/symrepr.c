@@ -69,7 +69,6 @@ special_sym const special_symbols[] =  {
   {"exit-error"   , SYM_EXIT_ERROR},
   {"map"          , SYM_MAP},
   {"reverse"      , SYM_REVERSE},
-  {"wait-for"     , SYM_WAIT_FOR},
   {"flatten"      , SYM_FLATTEN},
   {"unflatten"    , SYM_UNFLATTEN},
   {"kill"         , SYM_KILL},

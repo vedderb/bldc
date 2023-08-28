@@ -154,11 +154,6 @@ bool lbm_event(lbm_flat_value_t *fv);
  */
 bool lbm_event_unboxed(lbm_value unboxed);
 
-/** Trigger a flag to wake up all tasks waiting on that flag.
- * \param wait_for_flags Flags to trigger.
- */
-void lbm_trigger_flags(uint32_t wait_for_flags);
-
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
@@ -236,9 +231,10 @@ int lbm_set_error_reason(char *error_str);
  * \param program The program to evaluate in the context.
  * \param env An initial environment.
  * \param stack_size Stack size for the context.
+ * \param name Name of thread or NULL.
  * \return
  */
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);

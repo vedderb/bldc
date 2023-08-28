@@ -327,11 +327,6 @@ static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
 
 static uint32_t          is_atomic = 0;
-static volatile uint32_t wait_for = 0; // wake-up mask
-
-void lbm_trigger_flags(uint32_t wait_for_flags) {
-  wait_for |= wait_for_flags;
-}
 
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
@@ -1188,14 +1183,14 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   return ctx->id;
 }
 
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name) {
   // Creates a parentless context.
   return lbm_create_ctx_parent(program,
                                env,
                                stack_size,
                                -1,
                                EVAL_CPS_CONTEXT_FLAG_NOTHING,
-                               NULL);
+                               name);
 }
 
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
@@ -1271,6 +1266,12 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     if (found) {
       drop_ctx_nm(&blocked,found);
       found->r = unboxed;
+      if (lbm_is_error(unboxed)) {
+        lbm_value trash;
+        lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
+        lbm_push(&found->K, TERMINATE);
+        found->app_cont = true;
+      }
       enqueue_ctx_nm(&queue,found);
       r = true;
     }
@@ -2181,21 +2182,6 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
-static void apply_wait_for(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 1 && lbm_is_number(args[0])) {
-    uint32_t w = lbm_dec_as_u32(args[0]);
-    lbm_stack_drop(&ctx->K, nargs+1);
-    if (w != 0) {
-      block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, w, true);
-    } else {
-      ctx->r = ENC_SYM_NIL;
-      ctx->app_cont = true;
-    }
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
-}
-
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if ( nargs == 1) {
     ctx->curr_exp = args[0];
@@ -2450,7 +2436,6 @@ static const apply_fun fun_table[] =
    apply_error,
    apply_map,
    apply_reverse,
-   apply_wait_for,
    apply_flatten,
    apply_unflatten,
    apply_kill,
@@ -4230,45 +4215,6 @@ static void process_events(void) {
   }
 }
 
-static void process_waiting_nm(void) {
-
-  uint32_t wait_flags = wait_for;   // Should ideally be atomic
-  wait_for = wait_flags ^ wait_for; //
-
-  eval_context_queue_t *q = &blocked;
-
-  eval_context_t *curr = q->first;
-  while (curr != NULL) {
-    eval_context_t *next = curr->next; // grab here
-    if (curr->wait_mask & wait_flags) {
-      eval_context_t *ctx = curr;
-      if (curr == q->last) {
-        if (curr->prev) {
-          q->last = curr->prev;
-          q->last->next = NULL;
-        } else {
-          q->first = NULL;
-          q->last = NULL;
-        }
-      } else if (curr->prev == NULL) {
-        q->first = curr->next;
-        if (q->first) {
-          q->first->prev = NULL;
-        }
-      } else {
-        curr->prev->next = curr->next;
-        if (curr->next) {
-          curr->next->prev = curr->prev;
-        }
-      }
-      ctx->wait_mask = 0;
-      ctx->r = ENC_SYM_TRUE; // woken up task receives true.
-      enqueue_ctx_nm(&queue, ctx); // changes meaning of curr->next.
-    }
-    curr = next;
-  }
-}
-
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval
@@ -4315,9 +4261,6 @@ void lbm_run_eval(void){
           }
           process_events();
           mutex_lock(&qmutex);
-          if (wait_for) {
-            process_waiting_nm();
-          }
           if (ctx_running) {
             enqueue_ctx_nm(&queue, ctx_running);
             ctx_running = NULL;
@@ -4338,11 +4281,11 @@ void lbm_run_eval(void){
 }
 
 lbm_cid lbm_eval_program(lbm_value lisp) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, 256);
+  return lbm_create_ctx(lisp, ENC_SYM_NIL, 256, NULL);
 }
 
 lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size);
+  return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size, NULL);
 }
 
 int lbm_eval_init() {

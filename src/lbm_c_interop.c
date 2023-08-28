@@ -21,7 +21,7 @@
 /* Interface for loading and running programs and   */
 /* expressions                                      */
 
-lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool incremental) {
+lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool incremental, char *name) {
 
   lbm_value stream;
 
@@ -74,7 +74,7 @@ lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool
     //lbm_explicit_free_token_stream(stream);
     return 0;
   }
-  return lbm_create_ctx(start_prg, ENC_SYM_NIL, 256);
+  return lbm_create_ctx(start_prg, ENC_SYM_NIL, 256, name);
 }
 
 lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bool program) {
@@ -114,7 +114,7 @@ lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bo
     //lbm_explicit_free_token_stream(stream);
     return 0;
   }
-  return lbm_create_ctx(definer, lbm_enc_sym(SYM_NIL), 256);
+  return lbm_create_ctx(definer, lbm_enc_sym(SYM_NIL), 256, NULL);
 }
 
 lbm_cid lbm_eval_defined(char *symbol, bool program) {
@@ -147,25 +147,25 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
       lbm_type_of(start_prg) != LBM_TYPE_CONS ) {
     return 0;
   }
-  return lbm_create_ctx(start_prg, lbm_enc_sym(SYM_NIL), 256);
+  return lbm_create_ctx(start_prg, lbm_enc_sym(SYM_NIL), 256, NULL);
 }
 
 
 
 lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, false,false);
+  return eval_cps_load_and_eval(tokenizer, false,false, NULL);
 }
 
 lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symbol) {
   return eval_cps_load_and_define(tokenizer, symbol, false);
 }
 
-lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, true, false);
+lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer, char *name) {
+  return eval_cps_load_and_eval(tokenizer, true, false, name);
 }
 
-lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer) {
-  return eval_cps_load_and_eval(tokenizer, true, true);
+lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer, char *name) {
+  return eval_cps_load_and_eval(tokenizer, true, true, name);
 }
 
 lbm_cid lbm_load_and_define_program(lbm_char_channel_t *tokenizer, char *symbol) {
