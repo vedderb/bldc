@@ -99,6 +99,7 @@ void enc_bissc_routine(BISSC_config_t *cfg) {
 	if (cfg->spi_dev->state == SPI_READY) {
 		spiSelectI(cfg->spi_dev);
 		spiStartReceiveI(cfg->spi_dev, 8, (void *)cfg->state.decod_buf);
+		UTILS_LP_FAST(encoder_cfg_bissc.state.spi_comm_error_rate, 0.0, 0.0001);
 	} else {
 		++encoder_cfg_bissc.state.spi_comm_error_cnt;
 		// compute rate with factor 0.0001 for 10000hz
@@ -161,6 +162,7 @@ void compute_bissc_callback(SPIDriver *pspi) {
 			++cfg->state.spi_data_error_cnt;
 			UTILS_LP_FAST(cfg->state.spi_data_error_rate, 1.0, timestep);
 		} else {
+			UTILS_LP_FAST(cfg->state.spi_data_error_rate, 0.0, timestep);
 			cfg->state.last_enc_angle = ((float)cfg->state.spi_val * 360.0) / ((1<<lenghtDataBit) - 1);
 		}
 
