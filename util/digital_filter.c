@@ -72,11 +72,11 @@ void filter_fft(int dir, int m, float *real, float *imag) {
 			u2 = u1 * c2 + u2 * c1;
 			u1 = z;
 		}
-		c2 = sqrt((1.0 - c1) / 2.0);
+		c2 = sqrtf((1.0 - c1) / 2.0);
 		if (dir) {
 			c2 = -c2;
 		}
-		c1 = sqrt((1.0 + c1) / 2.0);
+		c1 = sqrtf((1.0 + c1) / 2.0);
 	}
 
 	// Scaling for reverse transform
