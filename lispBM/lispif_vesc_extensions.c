@@ -4138,6 +4138,53 @@ static lbm_value ext_crc16(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(crc16((uint8_t*)array->data, len));
 }
 
+static lbm_value ext_buf_find(lbm_value *args, lbm_uint argn) {
+	if ((argn != 2 && argn != 3) || !lbm_is_array_r(args[0]) || !lbm_is_array_r(args[1])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	lbm_array_header_t *buf = (lbm_array_header_t *)lbm_car(args[0]);
+	lbm_array_header_t *seq = (lbm_array_header_t *)lbm_car(args[1]);
+
+	const char* buf_data = (const char*)buf->data;
+	const char* seq_data = (const char*)seq->data;
+
+	int res = -1;
+
+	int occurrence = 0;
+	if (argn == 3) {
+		if (!lbm_is_number(args[2])) {
+			lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+			return ENC_SYM_TERROR;
+		}
+
+		occurrence = lbm_dec_as_i32(args[2]);
+	}
+
+	for (unsigned int i = 0;i < (buf->size - seq->size + 1);i++) {
+		bool same = true;
+
+		for (unsigned int j = 0;j < (seq->size - 1);j++) {
+			if (buf_data[i + j] != seq_data[j]) {
+				same = false;
+				break;
+			}
+		}
+
+		if (same) {
+			if (occurrence == 0) {
+				res = i;
+				break;
+			} else {
+				occurrence--;
+			}
+		}
+	}
+
+	return lbm_enc_i(res);
+}
+
 // Remote Messages
 
 // (canmsg-recv slot timeout)
@@ -4283,6 +4330,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("icu-width", ext_icu_width);
 	lbm_add_extension("icu-period", ext_icu_period);
 	lbm_add_extension("crc16", ext_crc16);
+	lbm_add_extension("buf-find", ext_buf_find);
 
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);

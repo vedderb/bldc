@@ -4127,6 +4127,23 @@ Strings in lispBM are treated the same as byte arrays, so all of the above can b
 
 ---
 
+#### buf-find
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(buf-find arr seq optOccurence)
+```
+
+Find position of seq in array arr. The optional argument optOccurence specifies which occurrence of seq to look for - if it is set to 0 or left out the position of the first occurrence will be returned. If seq is not found -1 will be returned.
+
+**NOTE**  
+The last byte in seq will be ignored as that is the null-terminator if seq is a string (which is the most common use case). If the match should be done on the last byte too seq can be padded with a dummy-byte.
+
+---
+
 ## Import Files
 
 Import is a special command that is mostly handled by VESC Tool. When VESC Tool sees a line that imports a file it will open and read that file and attach it as binary data to the end of the uploaded code. VESC Tool also generates a table of the imported files that will be allocated as arrays and passed to LispBM at start and bound to bindings.
