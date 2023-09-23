@@ -67,6 +67,18 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI_V5
 } mc_foc_sensor_mode;
 
+typedef enum {
+	FOC_CONTROL_SAMPLE_MODE_V0 = 0,
+	FOC_CONTROL_SAMPLE_MODE_V0_V7,
+	FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL
+} mc_foc_control_sample_mode;
+
+typedef enum {
+	FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO = 0,
+	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS,
+	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT
+} mc_foc_current_sample_mode;
+
 // Auxiliary output mode
 typedef enum {
 	OUT_AUX_MODE_OFF = 0,
@@ -442,8 +454,8 @@ typedef struct {
 	float foc_hall_interp_erpm;
 	float foc_sl_erpm_start;
 	float foc_sl_erpm;
-	bool foc_sample_v0_v7;
-	bool foc_sample_high_current;
+	mc_foc_control_sample_mode foc_control_sample_mode;
+	mc_foc_current_sample_mode foc_current_sample_mode;
 	SAT_COMP_MODE foc_sat_comp_mode;
 	float foc_sat_comp;
 	bool foc_temp_comp;

@@ -1831,7 +1831,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	// This limit should always be active, as starving the threads never
 	// makes sense.
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
-    if (mcconf->foc_sample_v0_v7 == true) {
+    if (mcconf->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
 		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
 		ctrl_loop_freq = mcconf->foc_f_zv;

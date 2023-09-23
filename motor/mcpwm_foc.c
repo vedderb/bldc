@@ -1028,7 +1028,7 @@ float mcpwm_foc_get_switching_frequency_now(void) {
  */
 float mcpwm_foc_get_sampling_frequency_now(void) {
 #ifdef HW_HAS_PHASE_SHUNTS
-	if (get_motor_now()->m_conf->foc_sample_v0_v7) {
+	if (get_motor_now()->m_conf->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
 		return get_motor_now()->m_conf->foc_f_zv;
 	} else {
 		return get_motor_now()->m_conf->foc_f_zv / 2.0;
@@ -1043,7 +1043,7 @@ float mcpwm_foc_get_sampling_frequency_now(void) {
  */
 float mcpwm_foc_get_ts(void) {
 #ifdef HW_HAS_PHASE_SHUNTS
-	if (get_motor_now()->m_conf->foc_sample_v0_v7) {
+	if (get_motor_now()->m_conf->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
 		return (1.0 / get_motor_now()->m_conf->foc_f_zv) ;
 	} else {
 		return (1.0 / (get_motor_now()->m_conf->foc_f_zv / 2.0));
@@ -1831,9 +1831,9 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
 	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
 	float sl_erpm_hfi_old = motor->m_conf->foc_sl_erpm_hfi;
-	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
+	mc_foc_control_sample_mode foc_control_sample_mode_old = motor->m_conf->foc_control_sample_mode;
 	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
-	bool sample_high_current_old = motor->m_conf->foc_sample_high_current;
+	mc_foc_current_sample_mode foc_current_sample_mode_old = motor->m_conf->foc_current_sample_mode;
 
 	mc_interface_lock();
 	motor->m_control_mode = CONTROL_MODE_NONE;
@@ -1845,9 +1845,9 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 	motor->m_conf->foc_hfi_voltage_run = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0) * SQRT3_BY_2;
 	motor->m_conf->foc_hfi_voltage_max = duty * mc_interface_get_input_voltage_filtered() * (2.0 / 3.0) * SQRT3_BY_2;
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
-	motor->m_conf->foc_sample_v0_v7 = false;
+	motor->m_conf->foc_control_sample_mode = FOC_CONTROL_SAMPLE_MODE_V0;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
-	motor->m_conf->foc_sample_high_current = false;
+	motor->m_conf->foc_current_sample_mode = FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO;
 
 	if (motor->m_conf->foc_f_zv > 30.0e3) {
 		motor->m_conf->foc_f_zv = 30.0e3;
@@ -1897,9 +1897,9 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 			motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
 			motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
 			motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
-			motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+			motor->m_conf->foc_control_sample_mode = foc_control_sample_mode_old;
 			motor->m_conf->foc_hfi_samples = samples_old;
-			motor->m_conf->foc_sample_high_current = sample_high_current_old;
+			motor->m_conf->foc_current_sample_mode = foc_current_sample_mode_old;
 
 			mcpwm_foc_set_configuration(motor->m_conf);
 
@@ -1935,9 +1935,9 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 	motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
 	motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
 	motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
-	motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+	motor->m_conf->foc_control_sample_mode = foc_control_sample_mode_old;
 	motor->m_conf->foc_hfi_samples = samples_old;
-	motor->m_conf->foc_sample_high_current = sample_high_current_old;
+	motor->m_conf->foc_current_sample_mode = foc_current_sample_mode_old;
 
 	mcpwm_foc_set_configuration(motor->m_conf);
 
@@ -2012,7 +2012,7 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
 	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
 	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
 	float sl_erpm_hfi_old = motor->m_conf->foc_sl_erpm_hfi;
-	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
+	mc_foc_control_sample_mode foc_control_sample_mode_old = motor->m_conf->foc_control_sample_mode;
 	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
 	uint16_t start_samples_old = motor->m_conf->foc_hfi_start_samples;
 
@@ -2026,7 +2026,7 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
 	motor->m_conf->foc_hfi_voltage_run = voltage;
 	motor->m_conf->foc_hfi_voltage_max = voltage;
 	motor->m_conf->foc_sl_erpm_hfi = 20000.0;
-	motor->m_conf->foc_sample_v0_v7 = false;
+	motor->m_conf->foc_control_sample_mode = FOC_CONTROL_SAMPLE_MODE_V0;
 	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_8;
 	motor->m_conf->foc_hfi_start_samples = 10;
 
@@ -2061,7 +2061,7 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
 	motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
 	motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
 	motor->m_conf->foc_sl_erpm_hfi = sl_erpm_hfi_old;
-	motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+	motor->m_conf->foc_control_sample_mode = foc_control_sample_mode_old;
 	motor->m_conf->foc_hfi_samples = samples_old;
 	motor->m_conf->foc_hfi_start_samples = start_samples_old;
 
@@ -2564,9 +2564,12 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	mc_configuration *conf_now = motor_now->m_conf;
 	mc_configuration *conf_other = motor_other->m_conf;
 
+	bool skip_interpolation = motor_other->m_cc_was_hfi;
+
 	// Update modulation for V7 and collect current samples. This is used by the HFI.
 	if (motor_other->m_duty_next_set) {
 		motor_other->m_duty_next_set = false;
+		skip_interpolation = true;
 #ifdef HW_HAS_DUAL_MOTORS
 		float curr0;
 		float curr1;
@@ -2594,17 +2597,67 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_other->m_i_beta_sample_next = ONE_BY_SQRT3 * curr0 + TWO_BY_SQRT3 * curr1;
 	}
 
+	bool do_return = false;
+
 #ifndef HW_HAS_DUAL_MOTORS
 #ifdef HW_HAS_PHASE_SHUNTS
-	if (!conf_now->foc_sample_v0_v7 && is_v7) {
-		return;
+	if (conf_now->foc_control_sample_mode != FOC_CONTROL_SAMPLE_MODE_V0_V7 && is_v7) {
+		do_return = true;
 	}
 #else
 	if (is_v7) {
-		return;
+		do_return = true;
 	}
 #endif
 #endif
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	float dt;
+	if (conf_now->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
+		dt = 1.0 / conf_now->foc_f_zv;
+	} else {
+		dt = 1.0 / (conf_now->foc_f_zv / 2.0);
+	}
+#else
+	float dt = 1.0 / (conf_now->foc_f_zv / 2.0);
+#endif
+
+	if (conf_other->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL && !skip_interpolation) {
+		float interpolated_phase = motor_other->m_motor_state.phase + motor_other->m_speed_est_fast * dt * 0.5;
+
+		float s, c;
+		utils_fast_sincos_better(interpolated_phase, &s, &c);
+
+		volatile motor_state_t *state_m = &(motor_other->m_motor_state);
+		state_m->phase_sin = s;
+		state_m->phase_cos = c;
+		state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
+		state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
+
+		uint32_t duty1, duty2, duty3, top;
+		top = TIM1->ARR;
+		foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw,
+				top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+
+#ifdef HW_HAS_DUAL_MOTORS
+		if (is_second_motor) {
+			TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+#ifdef HW_HAS_DUAL_PARALLEL
+			TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+#endif
+		} else {
+#ifndef HW_HAS_DUAL_PARALLEL
+			TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+#endif
+		}
+#else
+		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+#endif
+	}
+
+	if (do_return) {
+		return;
+	}
 
 	// Reset the watchdog
 	timeout_feed_WDT(THREAD_MCPWM);
@@ -2670,7 +2723,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Use the best current samples depending on the modulation state.
 #ifdef HW_HAS_3_SHUNTS
-	if (conf_now->foc_sample_high_current) {
+	if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT) {
 		// High current sampling mode. Choose the lower currents to derive the highest one
 		// in order to be able to measure higher currents.
 		const float i0_abs = fabsf(ADC_curr_norm_value[0 + norm_curr_ofs]);
@@ -2684,7 +2737,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		} else if (i2_abs > i0_abs && i2_abs > i1_abs) {
 			ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
 		}
-	} else {
+	} else if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO) {
 #ifdef HW_HAS_PHASE_SHUNTS
 		if (is_v7) {
 			if (tim->CCR1 > 500 && tim->CCR2 > 500) {
@@ -2735,18 +2788,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	float ia = ADC_curr_norm_value[0 + norm_curr_ofs] * FAC_CURRENT;
 	float ib = ADC_curr_norm_value[1 + norm_curr_ofs] * FAC_CURRENT;
-//	float ic = -(ia + ib);
-
-#ifdef HW_HAS_PHASE_SHUNTS
-	float dt;
-	if (conf_now->foc_sample_v0_v7) {
-		dt = 1.0 / conf_now->foc_f_zv;
-	} else {
-		dt = 1.0 / (conf_now->foc_f_zv / 2.0);
-	}
-#else
-	float dt = 1.0 / (conf_now->foc_f_zv / 2.0);
-#endif
+	float ic = ADC_curr_norm_value[2 + norm_curr_ofs] * FAC_CURRENT;
 
 	// This has to be done for the skip function to have any chance at working with the
 	// observer and control loops.
@@ -2782,9 +2824,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 
 	if (motor_now->m_state == MC_STATE_RUNNING) {
-		// Clarke transform assuming balanced currents
-		motor_now->m_motor_state.i_alpha = ia;
-		motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+		if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS) {
+			// Full Clarke Transform
+			motor_now->m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
+			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+		} else {
+			// Clarke transform assuming balanced currents
+			motor_now->m_motor_state.i_alpha = ia;
+			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+		}
 
 		motor_now->m_i_alpha_sample_with_offset = motor_now->m_motor_state.i_alpha;
 		motor_now->m_i_beta_sample_with_offset = motor_now->m_motor_state.i_beta;
@@ -3706,7 +3754,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 			// Assuming this thread is much faster than it takes to fill the HFI buffer completely,
 			// we should lag 1/2 HFI buffer behind in phase. Compensate for that here.
 			float dt_sw;
-			if (motor->m_conf->foc_sample_v0_v7) {
+			if (motor->m_conf->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
 				dt_sw = 1.0 / motor->m_conf->foc_f_zv;
 			} else {
 				dt_sw = 1.0 / (motor->m_conf->foc_f_zv / 2.0);
@@ -4101,7 +4149,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				} else {
 					float hfi_dt = dt * 2.0;
 #ifdef HW_HAS_PHASE_SHUNTS
-					if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4) {
+					if (conf_now->foc_control_sample_mode != FOC_CONTROL_SAMPLE_MODE_V0_V7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V4) {
 						hfi_dt = dt;
 					}
 #endif
@@ -4112,7 +4160,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				}
 
 #ifdef HW_HAS_PHASE_SHUNTS
-				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
+				if (conf_now->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V5) {
 					mod_alpha_v7 -= hfi_voltage * c * voltage_normalize;
 					mod_beta_v7 -= hfi_voltage * s * voltage_normalize;
 				} else {
@@ -4152,7 +4200,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				} else {
 					float hfi_dt = dt * 2.0;
 #ifdef HW_HAS_PHASE_SHUNTS
-					if (!conf_now->foc_sample_v0_v7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2) {
+					if (conf_now->foc_control_sample_mode != FOC_CONTROL_SAMPLE_MODE_V0_V7 && conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2) {
 						hfi_dt = dt;
 					}
 #endif
@@ -4175,7 +4223,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				}
 
 #ifdef HW_HAS_PHASE_SHUNTS
-				if (conf_now->foc_sample_v0_v7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
+				if (conf_now->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7 || conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3) {
 					mod_alpha_v7 += hfi_voltage * motor->m_hfi.cos_last * voltage_normalize;
 					mod_beta_v7 += hfi_voltage * motor->m_hfi.sin_last * voltage_normalize;
 				} else {
@@ -4232,7 +4280,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		utils_saturate_vector_2d(&mod_alpha_v7, &mod_beta_v7, SQRT3_BY_2 * 0.95);
 		motor->m_hfi.is_samp_n = !motor->m_hfi.is_samp_n;
 
-		if (conf_now->foc_sample_v0_v7) {
+		if (conf_now->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
 			state_m->mod_alpha_raw = mod_alpha_v7;
 			state_m->mod_beta_raw = mod_beta_v7;
 		} else {
