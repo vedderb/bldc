@@ -294,6 +294,8 @@
 #define STM32_SERIAL_USE_UART4              TRUE
 #define STM32_SERIAL_USE_UART5              TRUE
 #define STM32_SERIAL_USE_USART6             TRUE
+// NOTE: These are ignored as there is a hack in the chibios UART driver to increase these
+// based on the baud rate.
 #define STM32_SERIAL_USART1_PRIORITY        7
 #define STM32_SERIAL_USART2_PRIORITY        7
 #define STM32_SERIAL_USART3_PRIORITY        7
