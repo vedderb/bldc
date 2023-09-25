@@ -2624,6 +2624,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	if (conf_other->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL && !skip_interpolation) {
 		float interpolated_phase = motor_other->m_motor_state.phase + motor_other->m_speed_est_fast * dt * 0.5;
+		utils_norm_angle_rad(&interpolated_phase);
 
 		float s, c;
 		utils_fast_sincos_better(interpolated_phase, &s, &c);
