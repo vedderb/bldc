@@ -4958,6 +4958,196 @@ NOTE: The RSSI was added in firmware 6.05 and should be left out in earlier firm
 
 ---
 
+## File System (SD Card)
+
+On the VESC Express when an SD-card is present files can be listed, read, written and removed. Directories can be created and removed as well. The following extensions describe how that is done.
+
+---
+
+#### f-open
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-open path mode)
+```
+
+Open a file in open-mode mode (r, w or rw). Returns a number that can be used as a handle to the file on success or nil if the file could not be opened. Example:
+
+```clj
+(def f (f-open "test.txt" "w")) ; Open test.txt in write-only mode and store the handle as f.
+```
+
+---
+
+#### f-close
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-close file)
+```
+
+Close file. The argument file is the handle returned by f-open.
+
+---
+
+#### f-read
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-read file size)
+```
+
+Read up to size bytes from file. Returns an array with the read data. Successive calls to f-read will move the file position forwards. If the returned array is smaller than the size-argument it means that the end of the file was reached. When calling read after reaching the end if the file nil is returned.
+
+---
+
+#### f-readline
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-readline file maxlen)
+```
+
+Read one line from file. At most maxlen bytes will be read. If maxlen is set too high this function will fail as it needs to pre-allocate enough memory to fit maxlen. This function advances the file position, so successive calls to it can be used to read the file line-by-line. When the end of the file is reached nil is returned.
+
+---
+
+#### f-write
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-write file buf)
+```
+
+Write array buf to file. This will advance the file position by the size of buf. 
+
+---
+
+#### f-tell
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-tell file)
+```
+
+Get the current position in the file.
+
+---
+
+#### f-seek
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-seek file pos)
+```
+
+Seek to position pos in file. If pos is a negative number the seek is done from the end of the file.
+
+---
+
+#### f-mkdir
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-mkdir path)
+```
+
+Make directory on path.
+
+---
+
+#### f-rm
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-rm path)
+```
+
+Remove path recursively. If path is a file just the file is removed and if it is a directory that directory and all its content will be removed recursively.
+
+---
+
+#### f-ls
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-ls path)
+```
+
+List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name, the second element is true for directories and nil for files and the third element is the size. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+
+Example:
+
+```clj
+(f-ls "")
+> ("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+```
+
+---
+
+#### f-size
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-size file)
+```
+
+Get the size of a file in bytes. File can be a path (e.g. "test.txt") or a file pointer opened with f-open.
+
+---
+
+#### f-fatinfo
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-fatinfo)
+```
+
+Returns a list where the first element is the free space on the file system and the second element is the total size of the file system. Unit: MB. Example:
+
+```clj
+(f-fatinfo)
+> (30298 30417)
+```
+
+---
+
 ## RGB LED (e.g. WS2812)
 
 The express can use the remote peripheral to drive addressable LEDs on any pin. The LED on the DevKitM-1 is actually and addressable LED connected to pin 8, so this driver is required to use it.
