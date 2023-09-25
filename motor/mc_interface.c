@@ -732,7 +732,12 @@ void mc_interface_set_current_rel(float val) {
 		SHUTDOWN_RESET();
 	}
 
-	mc_interface_set_current(val * motor_now()->m_conf.lo_current_max);
+	volatile mc_configuration *cfg = &motor_now()->m_conf;
+	mc_interface_set_current(val * cfg->lo_current_max);
+
+	if (fabsf(val * cfg->l_abs_current_max) > cfg->cc_min_current) {
+		mc_interface_set_current_off_delay(0.1);
+	}
 }
 
 /**
@@ -746,7 +751,12 @@ void mc_interface_set_brake_current_rel(float val) {
 		SHUTDOWN_RESET();
 	}
 
-	mc_interface_set_brake_current(val * fabsf(motor_now()->m_conf.lo_current_min));
+	volatile mc_configuration *cfg = &motor_now()->m_conf;
+
+	mc_interface_set_brake_current(val * fabsf(cfg->lo_current_min));
+	if (fabsf(val * cfg->lo_current_min) > cfg->cc_min_current) {
+		mc_interface_set_current_off_delay(0.1);
+	}
 }
 
 /**
