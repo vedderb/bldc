@@ -4960,7 +4960,7 @@ NOTE: The RSSI was added in firmware 6.05 and should be left out in earlier firm
 
 ## File System (SD Card)
 
-On the VESC Express when an SD-card is present files can be listed, read, written and removed. Directories can be created and removed as well. The following extensions describe how that is done.
+When a SD-card is present in the VESC Express files can be listed, read, written and removed. Directories can also be created and removed.
 
 ---
 
