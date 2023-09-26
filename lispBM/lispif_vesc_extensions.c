@@ -123,6 +123,7 @@ typedef struct {
 	lbm_uint l_temp_motor_start;
 	lbm_uint l_temp_motor_end;
 	lbm_uint l_temp_accel_dec;
+	lbm_uint bms_limit_mode;
 	lbm_uint motor_type;
 	lbm_uint foc_sensor_mode;
 	lbm_uint foc_current_kp;
@@ -355,6 +356,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("l-temp-motor-end", comp);
 		} else if (comp == &syms_vesc.l_temp_accel_dec) {
 			get_add_symbol("l-temp-accel-dec", comp);
+		} else if (comp == &syms_vesc.bms_limit_mode) {
+			get_add_symbol("bms-limit-mode", comp);
 		} else if (comp == &syms_vesc.motor_type) {
 			get_add_symbol("motor-type", comp);
 		} else if (comp == &syms_vesc.foc_sensor_mode) {
@@ -2836,6 +2839,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_temp_accel_dec)) {
 		mcconf->l_temp_accel_dec = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.bms_limit_mode)) {
+		mcconf->bms.limit_mode = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
 		mcconf->m_invert_direction = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
@@ -3167,6 +3173,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_temp_motor_end);
 	} else if (compare_symbol(name, &syms_vesc.l_temp_accel_dec)) {
 		res = lbm_enc_float(mcconf->l_temp_accel_dec);
+	} else if (compare_symbol(name, &syms_vesc.bms_limit_mode)) {
+		res = lbm_enc_i(mcconf->bms.limit_mode);
 	} else if (compare_symbol(name, &syms_vesc.motor_type)) {
 		res = lbm_enc_i(mcconf->motor_type);
 	} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {

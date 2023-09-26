@@ -2757,6 +2757,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
 'l-temp-motor-end       ; Temperature above which motor current is not allowed
 'l-temp-accel-dec       ; Decrease temp limits this much during acceleration
+'bms-limit-mode         ; BMS limit mode bitfield (Added in FW 6.05)
 'motor-type             ; Motor Type
                         ;    0: BLDC (6-step commutation)
                         ;    1: DC (DC motor on phase A and C)

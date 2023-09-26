@@ -26,6 +26,7 @@
 	* Added loopwhile-thd.
 	* Added can-recv-sid.
 	* Added can-recv-eid.
+	* Added app-adc-range-ok.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.
