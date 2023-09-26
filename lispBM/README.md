@@ -663,6 +663,20 @@ Sets the override value
 
 ---
 
+#### app-adc-range-ok
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(app-adc-range-ok)
+```
+
+Returns true when the throttle voltage is within range and false (nil) otherwise.
+
+---
+
 #### app-ppm-detach
 
 | Platforms | Firmware |

@@ -65,6 +65,7 @@ static volatile int adc_detached = 0;
 static volatile bool buttons_detached = false;
 static volatile bool rev_override = false;
 static volatile bool cc_override = false;
+static volatile bool range_ok = true;
 
 void app_adc_configure(adc_config *conf) {
 	if (!buttons_detached && (((conf->buttons >> 0) & 1) || CTRL_USES_BUTTON(conf->ctrl_type))) {
@@ -153,6 +154,10 @@ void app_adc_rev_override(bool state) {
 void app_adc_cc_override(bool state) {
 	cc_override = state;
 	timeout_reset();
+}
+
+bool app_adc_range_ok(void) {
+	return range_ok;
 }
 
 static THD_FUNCTION(adc_thread, arg) {
@@ -464,7 +469,7 @@ static THD_FUNCTION(adc_thread, arg) {
 			continue;
 		}
 
-		bool range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
+		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
 		// If safe start is enabled and the output has not been zero for long enough
 		if ((ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) || !range_ok) {
