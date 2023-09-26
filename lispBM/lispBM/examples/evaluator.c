@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
     sleep_callback(10);
   }
 
-  cid = lbm_load_and_eval_program(&string_tok);
+  cid = lbm_load_and_eval_program(&string_tok,NULL);
 
   lbm_continue_eval();
 

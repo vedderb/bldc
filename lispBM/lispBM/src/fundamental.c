@@ -265,8 +265,12 @@ static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
   while (lbm_is_cons(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
-    if (struct_eq(lbm_ref_cell(c)->car, key)) {
-      return lbm_ref_cell(c)->cdr;
+    if (lbm_is_cons(c)) {
+      if (struct_eq(lbm_ref_cell(c)->car, key)) {
+        return lbm_ref_cell(c)->cdr;
+      }
+    } else {
+      return ENC_SYM_EERROR;
     }
     curr = lbm_ref_cell(curr)->cdr;
   }
@@ -277,8 +281,12 @@ static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
   while (lbm_is_cons(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
-    if (struct_eq(lbm_ref_cell(c)->cdr, key)) {
-      return lbm_ref_cell(c)->car;
+    if (lbm_is_cons(c)) {
+      if (struct_eq(lbm_ref_cell(c)->cdr, key)) {
+        return lbm_ref_cell(c)->car;
+      }
+    } else {
+      return ENC_SYM_EERROR;
     }
     curr = lbm_ref_cell(curr)->cdr;
   }

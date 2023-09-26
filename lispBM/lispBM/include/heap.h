@@ -691,7 +691,7 @@ extern lbm_value lbm_enc_u32(uint32_t x);
  * \param x float value to encode.
  * \return result encoded value.
  */
-extern lbm_value lbm_enc_float(lbm_float x);
+extern lbm_value lbm_enc_float(float x);
 
 /** Encode a 64 bit integer into an lbm_value.
  * \param x 64 bit integer to encode.

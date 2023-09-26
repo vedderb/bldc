@@ -60,6 +60,7 @@
 
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
+#define LBM_TYPE_CONS_CONST              (lbm_uint)0x1400000000000000
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
 #define LBM_TYPE_U64                     (lbm_uint)0x2800000000000000
 #define LBM_TYPE_I64                     (lbm_uint)0x3800000000000000

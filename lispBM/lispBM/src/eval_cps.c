@@ -119,7 +119,6 @@ const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash
 const char* lbm_error_str_flash_error = "Error writing to flash";
 const char* lbm_error_str_flash_full = "Flash memory is full";
 
-
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
@@ -1239,7 +1238,6 @@ static void advance_ctx(eval_context_t *ctx) {
     stack_push(&ctx->K, DONE);
     get_car_and_cdr(ctx->program, &ctx->curr_exp, &ctx->program);
     ctx->curr_env = ENC_SYM_NIL;
-    ctx->app_cont = false;
   } else {
     if (ctx_running == ctx) {  // This should always be the case because of odd historical reasons.
       ok_ctx();
@@ -1609,7 +1607,6 @@ static void eval_callcc(eval_context_t *ctx) {
                                                   acont), acont);
 
   ctx->curr_exp = app;
-  ctx->app_cont = false;
 }
 
 // (define sym exp)
@@ -2531,7 +2528,6 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, 5);
     ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
-    ctx->app_cont = false;
   } else if (!a_nil && p_nil) {
     // Application with extra arguments
     lbm_set_error_reason((char*)lbm_error_str_num_args);
@@ -3361,7 +3357,6 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
   stack_push_3(&ctx->K, stream, env, READ_EVAL_CONTINUE);
   stack_push_3(&ctx->K, stream, lbm_enc_u(1), READ_NEXT_TOKEN);
 
-  ctx->app_cont = false;
   ctx->curr_env = env;
   ctx->curr_exp = ctx->r;
 }
@@ -3498,7 +3493,6 @@ static void cont_application_start(eval_context_t *ctx) {
           // No param closure
           ctx->curr_exp = cl[CLO_BODY];
           ctx->curr_env = cl[CLO_ENV];
-          ctx->app_cont = false;
         } else {
           ctx->app_cont = true;
         }
@@ -3511,7 +3505,6 @@ static void cont_application_start(eval_context_t *ctx) {
         reserved[3] = CLOSURE_ARGS;
         ctx->curr_exp = arg0;
         ctx->curr_env = arg_env;
-        ctx->app_cont = false;
       }
     } break;
     case ENC_SYM_CONT:{
@@ -3545,7 +3538,6 @@ static void cont_application_start(eval_context_t *ctx) {
       memcpy(ctx->K.data, arr->data, arr->size);
 
       ctx->curr_exp = arg;
-      ctx->app_cont = false;
       break;
     }
     case ENC_SYM_MACRO:{
@@ -3582,8 +3574,6 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value exp = get_cadr(get_cdr(ctx->r));
       ctx->curr_exp = exp;
       ctx->curr_env = expand_env;
-
-      ctx->app_cont = false;
     } break;
     default:
       error_ctx(ENC_SYM_EERROR);
@@ -3598,7 +3588,6 @@ static void cont_eval_r(eval_context_t* ctx) {
   lbm_pop(&ctx->K, &env);
   ctx->curr_exp = ctx->r;
   ctx->curr_env = env;
-  ctx->app_cont = false;
 }
 
 /* progn + var stack

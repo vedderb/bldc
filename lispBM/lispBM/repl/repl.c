@@ -55,6 +55,24 @@ lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
+static lbm_uint sym_res;
+static lbm_uint sym_loop;
+static lbm_uint sym_break;
+static lbm_uint sym_brk;
+static lbm_uint sym_rst;
+static lbm_uint sym_return;
+
+static lbm_value make_list(int num, ...) {
+	va_list arguments;
+	va_start (arguments, num);
+	lbm_value res = ENC_SYM_NIL;
+	for (int i = 0; i < num; i++) {
+		res = lbm_cons(va_arg(arguments, lbm_value), res);
+	}
+	va_end (arguments);
+	return lbm_list_destructive_reverse(res);
+}
+
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
   if (constants_memory[ix] == 0xffffffff) {
@@ -276,9 +294,94 @@ bool dyn_load(const char *str, const char **code) {
     *code = "(define foldl (lambda (f i xs)"
             "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
     res = true;
+  } else if (strncmp(str, "loopforeach", 11) == 0) {
+    *code = "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))";
+    res = true;
+  } else if (strncmp(str, "looprange", 9) == 0) {
+    *code = "(define looprange (macro (it start end body) (me-looprange it start end body)))";
+    res = true;
   }
+  
   return res;
 }
+
+static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
+  if (argn != 3) {
+    return ENC_SYM_EERROR;
+  }
+
+  lbm_value it = args[0];
+  lbm_value lst = args[1];
+  lbm_value body = args[2];
+
+  // (let ((loop (lambda (it rst res break) (if (eq it nil) res (loop (car rst) (cdr rst) body break))))) (call-cc (lambda (brk) (loop (car lst) (cdr lst) nil brk))))
+
+  return make_list(3,
+                   lbm_enc_sym(SYM_LET),
+                   make_list(1,
+                             make_list(2,
+                                       lbm_enc_sym(sym_loop),
+                                       make_list(3,
+                                                 lbm_enc_sym(SYM_LAMBDA),
+                                                 make_list(4, it, lbm_enc_sym(sym_rst), lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+                                                 make_list(4,
+                                                           lbm_enc_sym(SYM_IF),
+                                                           make_list(3, lbm_enc_sym(SYM_EQ), it, ENC_SYM_NIL),
+                                                           lbm_enc_sym(sym_res),
+                                                           make_list(5,
+                                                                     lbm_enc_sym(sym_loop),
+                                                                     make_list(2, lbm_enc_sym(SYM_CAR), lbm_enc_sym(sym_rst)),
+                                                                     make_list(2, lbm_enc_sym(SYM_CDR), lbm_enc_sym(sym_rst)),
+                                                                     body,
+                                                                     lbm_enc_sym(sym_break))
+                                                           )))),
+                   make_list(2,
+                             lbm_enc_sym(SYM_CALLCC),
+                             make_list(3,
+                                       lbm_enc_sym(SYM_LAMBDA),
+                                       make_list(1, lbm_enc_sym(sym_brk)),
+                                       make_list(5,
+                                                 lbm_enc_sym(sym_loop),
+                                                 make_list(2, lbm_enc_sym(SYM_CAR), lst),
+                                                 make_list(2, lbm_enc_sym(SYM_CDR), lst),
+                                                 ENC_SYM_NIL,
+                                                 lbm_enc_sym(sym_brk)))));
+}
+
+static lbm_value ext_me_looprange(lbm_value *args, lbm_uint argn) {
+  if (argn != 4) {
+    return ENC_SYM_EERROR;
+  }
+
+  lbm_value it = args[0];
+  lbm_value start = args[1];
+  lbm_value end = args[2];
+  lbm_value body = args[3];
+
+  // (let ((loop (lambda (it res break) (if (< it end) (loop (+ it 1) body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
+
+  return make_list(3,
+                   lbm_enc_sym(SYM_LET),
+                   make_list(1,
+                             make_list(2,
+                                       lbm_enc_sym(sym_loop),
+                                       make_list(3,
+                                                 lbm_enc_sym(SYM_LAMBDA),
+                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
+                                                 make_list(4,
+                                                           lbm_enc_sym(SYM_IF),
+                                                           make_list(3, lbm_enc_sym(SYM_LT), it, end),
+                                                           make_list(4, lbm_enc_sym(sym_loop), make_list(3, lbm_enc_sym(SYM_ADD), it, lbm_enc_i(1)), body, lbm_enc_sym(sym_break)),
+                                                           lbm_enc_sym(sym_res))))),
+                   make_list(2,
+                             lbm_enc_sym(SYM_CALLCC),
+                             make_list(3,
+                                       lbm_enc_sym(SYM_LAMBDA),
+                                       make_list(1, lbm_enc_sym(sym_brk)),
+                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
+}
+
+
 
 lbm_value ext_block(lbm_value *args, lbm_uint argn) {
 
@@ -591,6 +694,25 @@ int main(int argc, char **argv) {
     printf("Extension added.\n");
   else
     printf("Error adding extension.\n");
+
+  res = lbm_add_extension("me-loopforeach", ext_me_loopforeach);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("me-looprange", ext_me_looprange);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+  
+  lbm_add_symbol_const("a01", &sym_res);
+  lbm_add_symbol_const("a02", &sym_loop);
+  lbm_add_symbol_const("break", &sym_break);
+  lbm_add_symbol_const("a03", &sym_brk);
+  lbm_add_symbol_const("a04", &sym_rst);
+  lbm_add_symbol_const("return", &sym_return);
 
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
