@@ -2751,6 +2751,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-min-duty             ; Minimum duty cycle
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
+'l-watt-max             ; Maximum power regen in W
 'l-battery-cut-start    ; The voltage where current starts to get reduced
 'l-battery-cut-end      ; The voltage below which current draw is not allowed
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
@@ -2761,7 +2762,6 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    1: DC (DC motor on phase A and C)
                         ;    2: FOC (Field Oriented Control)
                         ;    3: GPD (General Purpose Drive)
-'l-watt-max             ; Maximum power regen in W
 'm-invert-direction     ; Invert motor direction, 0 or 1
 'm-out-aux-mode         ; AUX-pin output mode. Options:
                         ;    0:  OUT_AUX_MODE_OFF
@@ -2789,6 +2789,8 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    8: FOC_SENSOR_MODE_HFI_V5
 'm-ntc-motor-beta       ; Beta Value for Motor Thermistor
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
+'si-gear-ratio          ; Gear ratio (Added in FW 6.05)
+'si-wheel-diameter      ; Wheel diameter in meters (Added in FW 6.05)
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
 'foc-motor-l            ; Motor inductance in microHenry
@@ -2799,6 +2801,16 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
 'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
 'foc-hfi-voltage-max    ; HFI voltage (V) at max current
+'foc-sl-erpm            ; Full sensorless control (Added in FW 6.05)
+'foc-sl-erpm-start      ; Start sensorless transition here (Added in FW 6.05)
+'foc-hall-t0            ; Hall table index 0 (Added in FW 6.05)
+'foc-hall-t1            ; Hall table index 1 (Added in FW 6.05)
+'foc-hall-t2            ; Hall table index 2 (Added in FW 6.05)
+'foc-hall-t3            ; Hall table index 3 (Added in FW 6.05)
+'foc-hall-t4            ; Hall table index 4 (Added in FW 6.05)
+'foc-hall-t5            ; Hall table index 5 (Added in FW 6.05)
+'foc-hall-t6            ; Hall table index 6 (Added in FW 6.05)
+'foc-hall-t7            ; Hall table index 7 (Added in FW 6.05)
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
 'foc-openloop-rpm       ; Use openloop commutation below this ERPM
 'foc-openloop-rpm-low   ; Openloop ERPM and minimum current
@@ -2819,9 +2831,8 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    6: APP_NUNCHUK
                         ;    7: APP_NRF
                         ;    8: APP_CUSTOM
-                        ;    9: APP_BALANCE
-                        ;    10: APP_PAS
-                        ;    11: APP_ADC_PAS
+                        ;    9: APP_PAS
+                        ;    10: APP_ADC_PAS
 'controller-id          ; VESC CAN ID
 'ppm-ctrl-type          ; PPM Control Type
                         ;    0:  PPM_CTRL_TYPE_NONE
@@ -2857,6 +2868,13 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: ADC_CTRL_TYPE_PID
                         ;    13: ADC_CTRL_TYPE_PID_REV_CENTER
                         ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
+'adc-ramp-time-pos      ; Positive ramping time in seconds (Added in FW 6.05)
+'adc-ramp-time-neg      ; Negative ramping time in seconds (Added in FW 6.05)
+'adc-thr-hyst           ; Throttle hysteresis, range 0 to 1 (Added in FW 6.05)
+'adc-v1-start           ; Throttle 1 start voltage (Added in FW 6.05)
+'adc-v1-end             ; Throttle 1 end voltage (Added in FW 6.05)
+'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
+'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 ```
 
