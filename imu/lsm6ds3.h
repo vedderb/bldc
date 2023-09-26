@@ -36,11 +36,11 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "i2c_bb.h"
+
 void lsm6ds3_set_rate_hz(int hz);
 void lsm6ds3_set_filter(IMU_FILTER f);
-void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin,
-		stkalign_t *work_area, size_t work_area_size);
+void lsm6ds3_init(i2c_bb_state *i2c_state, stkalign_t *work_area, size_t work_area_size);
 void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
 void lsm6ds3_stop(void);
 

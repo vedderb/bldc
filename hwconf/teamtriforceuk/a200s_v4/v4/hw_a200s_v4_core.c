@@ -37,6 +37,7 @@ static volatile bool i2c_running = false;
 
 // Private functions
 static void terminal_cmd_doublepulse(int argc, const char** argv);
+void hw_a200s_setup_dac(void);
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -70,7 +71,14 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 5,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST); 
-	DISABLE_GATE();
+	ENABLE_GATE();
+	 // Lockout
+    palSetPadMode(GPIOB, 12, PAL_MODE_INPUT);
+	
+	#ifdef HW_PROTECTION_CURR_TRIP
+	// DAC for trip current
+    hw_a200s_setup_dac();
+	#endif
 	
 #ifdef HW_USE_BRK
 	// BRK Fault pin
@@ -79,6 +87,8 @@ void hw_init_gpio(void) {
 	// Soft Lockout
 	palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_INPUT);
 #endif
+
+	
 	
 	// AUX
 	AUX_OFF();
@@ -294,6 +304,33 @@ float hw_a200s_get_temp(void) {
 	}
 
 	return res;
+}
+
+void hw_a200s_setup_dac(void) {
+	// GPIOA clock enable
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	// DAC Periph clock enable
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+
+	// DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
+	//palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
+
+	// Enable both DAC channels with output buffer disabled to achieve rail-to-rail output
+	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_EN2 | DAC_CR_BOFF2;
+
+	// Set hardware trip current  
+	//hw_a200s_set_curr_trip(HW_PROTECTION_CURR_TRIP);	
+}
+
+void hw_a200s_set_curr_trip(uint16_t current) {
+    // DAC is 12bit 4096
+    // each adc sample is 3.3 / ((0.0002/3) * 20) = 2475 / 4096 = 0.60424804687A 
+    // So current / 0.6042  = trip value in ADC counts
+    // Then around the midpoint of 2048.
+	DAC->DHR12R1 = 2048 + ((float)current / 0.2417f); // High
+    DAC->DHR12R2 = 2048 - ((float)current / 0.2417f); // Low
 }
 
 void hw_a200s_reset_faults(void) {	  

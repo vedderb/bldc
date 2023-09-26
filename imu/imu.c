@@ -262,9 +262,14 @@ void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 
-	lsm6ds3_init(sda_gpio, sda_pin,
-				scl_gpio, scl_pin,
-				m_thd_work_area, sizeof(m_thd_work_area));
+	m_i2c_bb.sda_gpio = sda_gpio;
+	m_i2c_bb.sda_pin = sda_pin;
+	m_i2c_bb.scl_gpio = scl_gpio;
+	m_i2c_bb.scl_pin = scl_pin;
+	m_i2c_bb.rate = I2C_BB_RATE_400K;
+	i2c_bb_init(&m_i2c_bb);
+
+	lsm6ds3_init(&m_i2c_bb, m_thd_work_area, sizeof(m_thd_work_area));
 	lsm6ds3_set_read_callback(imu_read_callback);
 
 }
