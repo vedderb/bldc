@@ -1652,9 +1652,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	int faultM1 = FAULT_CODE_NONE;
 	int faultM2 = FAULT_CODE_NONE;
 
-	// Measure DC offsets including undriven
+	// Measure DC offsets
 	// Needs to be done before getting the motor configuration
-	if(mcpwm_foc_dc_cal(true) == -1) {
+	if(mcpwm_foc_dc_cal(false) == -1) {
 		return mc_interface_get_fault() - 100; // Offset fault by -100
 	}
 
