@@ -79,7 +79,7 @@ lbm_value lbm_enc_u32(uint32_t x) {
 #endif
 }
 
-lbm_value lbm_enc_float(lbm_float x) {
+lbm_value lbm_enc_float(float x) {
 #ifndef LBM64
   lbm_uint t;
   memcpy(&t, &x, sizeof(lbm_float));
@@ -87,8 +87,8 @@ lbm_value lbm_enc_float(lbm_float x) {
   if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
   return lbm_set_ptr_type(f, LBM_TYPE_FLOAT);
 #else
-  uint32_t t;
-  memcpy(&t, &x, sizeof(float)); /*TODO: Assumes something about storage here ?*/
+  lbm_uint t = 0;
+  memcpy(&t, &x, sizeof(float));
   return (((lbm_uint)t) << LBM_VAL_SHIFT) | LBM_TYPE_FLOAT;
 #endif
 }
