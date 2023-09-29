@@ -110,10 +110,10 @@
 #define VIN_R2					2200.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		50.0
+#define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.00025
+#define CURRENT_SHUNT_RES		0.0005
 #endif
 
 // Input voltage
@@ -234,9 +234,6 @@
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
-#endif
-#ifndef APPCONF_APP_TO_USE
-#define APPCONF_APP_TO_USE				APP_NONE
 #endif
 
 // Setting limits
