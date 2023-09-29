@@ -100,9 +100,10 @@ static volatile motor_if_state_t m_motor_2;
 #endif
 
 // Sampling variables
-#define ADC_SAMPLE_MAX_LEN		2000
+#define ADC_SAMPLE_MAX_LEN		1600
 __attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
+__attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph1_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph2_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_ph3_samples[ADC_SAMPLE_MAX_LEN];
@@ -2157,6 +2158,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			if (state == MC_STATE_DETECTING) {
 				m_curr0_samples[m_sample_now] = (int16_t)mcpwm_detect_currents[mcpwm_get_comm_step() - 1];
 				m_curr1_samples[m_sample_now] = (int16_t)mcpwm_detect_currents_diff[mcpwm_get_comm_step() - 1];
+				m_curr2_samples[m_sample_now] = 0;
 
 				m_ph1_samples[m_sample_now] = (int16_t)mcpwm_detect_voltages[0];
 				m_ph2_samples[m_sample_now] = (int16_t)mcpwm_detect_voltages[1];
@@ -2165,6 +2167,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 				if (is_second_motor) {
 					m_curr0_samples[m_sample_now] = ADC_curr_norm_value[3];
 					m_curr1_samples[m_sample_now] = ADC_curr_norm_value[4];
+					m_curr2_samples[m_sample_now] = ADC_curr_norm_value[5];
 
 					m_ph1_samples[m_sample_now] = ADC_V_L4 - zero;
 					m_ph2_samples[m_sample_now] = ADC_V_L5 - zero;
@@ -2172,6 +2175,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 				} else {
 					m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 					m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
+					m_curr2_samples[m_sample_now] = ADC_curr_norm_value[2];
 
 					m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
 					m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
@@ -2864,6 +2868,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			if (m_sample_raw) {
 				buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp], &index);
 				buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp], &index);
+				buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp], &index);
 				buffer_append_float32_auto(buffer, (float)m_ph1_samples[ind_samp], &index);
 				buffer_append_float32_auto(buffer, (float)m_ph2_samples[ind_samp], &index);
 				buffer_append_float32_auto(buffer, (float)m_ph3_samples[ind_samp], &index);
@@ -2872,6 +2877,7 @@ static THD_FUNCTION(sample_send_thread, arg) {
 			} else {
 				buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp] * FAC_CURRENT, &index);
 				buffer_append_float32_auto(buffer, (float)m_curr1_samples[ind_samp] * FAC_CURRENT, &index);
+				buffer_append_float32_auto(buffer, (float)m_curr2_samples[ind_samp] * FAC_CURRENT, &index);
 				buffer_append_float32_auto(buffer, ((float)m_ph1_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
 				buffer_append_float32_auto(buffer, ((float)m_ph2_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
 				buffer_append_float32_auto(buffer, ((float)m_ph3_samples[ind_samp] / 4096.0 * V_REG) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR, &index);
