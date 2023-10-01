@@ -154,12 +154,16 @@ typedef struct {
 	lbm_uint foc_sl_openloop_time;
 	lbm_uint foc_temp_comp;
 	lbm_uint foc_temp_comp_base_temp;
+	lbm_uint foc_fw_current_max;
+	lbm_uint foc_fw_duty_start;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
 	lbm_uint m_ntc_motor_beta;
 	lbm_uint si_motor_poles;
 	lbm_uint si_gear_ratio;
 	lbm_uint si_wheel_diameter;
+	lbm_uint si_battery_cells;
+	lbm_uint si_battery_ah;
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
@@ -418,6 +422,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("foc-temp-comp", comp);
 		} else if (comp == &syms_vesc.foc_temp_comp_base_temp) {
 			get_add_symbol("foc-temp-comp-base-temp", comp);
+		} else if (comp == &syms_vesc.foc_fw_current_max) {
+			get_add_symbol("foc-fw-current-max", comp);
+		} else if (comp == &syms_vesc.foc_fw_duty_start) {
+			get_add_symbol("foc-fw-duty-start", comp);
 		} else if (comp == &syms_vesc.m_invert_direction) {
 			get_add_symbol("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
@@ -430,6 +438,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("si-gear-ratio", comp);
 		} else if (comp == &syms_vesc.si_wheel_diameter) {
 			get_add_symbol("si-wheel-diameter", comp);
+		} else if (comp == &syms_vesc.si_battery_cells) {
+			get_add_symbol("si-battery-cells", comp);
+		} else if (comp == &syms_vesc.si_battery_ah) {
+			get_add_symbol("si-battery-ah", comp);
 		} else if (comp == &syms_vesc.min_speed) {
 			get_add_symbol("min-speed", comp);
 		} else if (comp == &syms_vesc.max_speed) {
@@ -2860,6 +2872,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.si_wheel_diameter)) {
 		mcconf->si_wheel_diameter = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.si_battery_cells)) {
+		mcconf->si_battery_cells = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.si_battery_ah)) {
+		mcconf->si_battery_ah = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -2962,6 +2980,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_temp_comp_base_temp)) {
 			mcconf->foc_temp_comp_base_temp = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_fw_current_max)) {
+			mcconf->foc_fw_current_max = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
+			mcconf->foc_fw_duty_start = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
 			appconf->app_to_use = lbm_dec_as_i32(args[1]);
@@ -3235,6 +3259,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_temp_comp);
 	} else if (compare_symbol(name, &syms_vesc.foc_temp_comp_base_temp)) {
 		res = lbm_enc_float(mcconf->foc_temp_comp_base_temp);
+	} else if (compare_symbol(name, &syms_vesc.foc_fw_current_max)) {
+		res = lbm_enc_float(mcconf->foc_fw_current_max);
+	} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
+		res = lbm_enc_float(mcconf->foc_fw_duty_start);
 	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
@@ -3247,6 +3275,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->si_gear_ratio);
 	} else if (compare_symbol(name, &syms_vesc.si_wheel_diameter)) {
 		res = lbm_enc_float(mcconf->si_wheel_diameter);
+	} else if (compare_symbol(name, &syms_vesc.si_battery_cells)) {
+		res = lbm_enc_i(mcconf->si_battery_cells);
+	} else if (compare_symbol(name, &syms_vesc.si_battery_ah)) {
+		res = lbm_enc_float(mcconf->si_battery_ah);
 	} else if (compare_symbol(name, &syms_vesc.min_speed)) {
 		res = lbm_enc_float(mcconf->l_min_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {
