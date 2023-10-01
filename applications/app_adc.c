@@ -189,20 +189,17 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Read the external ADC pin voltage
 		float pwr = ADC_VOLTS(ADC_IND_EXT);
 
-		// Override pwr value, when used from LISP
-		if (adc_detached == 1 || adc_detached == 2) {
-			pwr = adc1_override;
-		}
-
-		read_voltage = pwr;
-
-		// Optionally apply a filter
-		static float filter_val = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(filter_val, pwr, FILTER_SAMPLES);
+		// Read voltage and range check
+		static float read_filter = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(read_filter, pwr, FILTER_SAMPLES);
 
 		if (config.use_filter) {
-			pwr = filter_val;
+			read_voltage = read_filter;
+		} else {
+			read_voltage = pwr;
 		}
+
+		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
 		// Map the read voltage
 		switch (config.ctrl_type) {
@@ -225,6 +222,19 @@ static THD_FUNCTION(adc_thread, arg) {
 			// Linear mapping between the start and end voltage
 			pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
 			break;
+		}
+
+		// Override pwr value, when used from LISP
+		if (adc_detached == 1 || adc_detached == 2) {
+			pwr = adc1_override;
+		}
+
+		// Optionally apply a filter
+		static float pwr_filter = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(pwr_filter, pwr, FILTER_SAMPLES);
+
+		if (config.use_filter) {
+			pwr = pwr_filter;
 		}
 
 		// Truncate the read voltage
@@ -320,8 +330,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		if (!((config.buttons >> 0) & 1)) {
 			cc_button = false;
 		}
-
-		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
