@@ -321,6 +321,8 @@ static THD_FUNCTION(adc_thread, arg) {
 			cc_button = false;
 		}
 
+		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
+
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
 		if (app_is_output_disabled()) {
@@ -468,8 +470,6 @@ static THD_FUNCTION(adc_thread, arg) {
 		default:
 			continue;
 		}
-
-		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
 		// If safe start is enabled and the output has not been zero for long enough
 		if ((ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) || !range_ok) {
