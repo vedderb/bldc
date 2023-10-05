@@ -903,6 +903,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// Unblock unboxed
 		cif.cif.lbm_unblock_ctx_unboxed = lbm_unblock_ctx_unboxed;
 
+		// Firmware/hardware version
+		cif.cif.get_fw_version = get_fw_version;
+		cif.cif.get_fw_name = get_fw_name;
+		cif.cif.get_hw_name = get_hw_name;
+
 		lib_init_done = true;
 	}
 

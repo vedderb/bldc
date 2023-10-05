@@ -610,6 +610,10 @@ typedef struct {
 	// Unblock unboxed
 	bool (*lbm_unblock_ctx_unboxed)(lbm_cid cid, lbm_value unboxed);
 
+	// FW/HW Info
+	void (*get_fw_version)(int *vmajor, int *vminor, int *vtest);
+	const char* (*get_fw_name)(void);
+	const char* (*get_hw_name)(void);
 } vesc_c_if;
 
 typedef struct {
