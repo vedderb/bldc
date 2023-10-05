@@ -34,4 +34,7 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 volatile bms_values *bms_get_values(void);
 void bms_send_status_can(void);
 
+bms_fault_state bms_get_fault_state(void);
+bms_op_state bms_get_op_state(void);
+
 #endif /* BMS_H_ */

@@ -54,6 +54,8 @@ void bms_init(bms_config *conf) {
 	memset((void*)&m_stat_soc_max, 0, sizeof(m_stat_soc_max));
 
 	m_values.can_id = -1;
+	m_values.op_state = BMS_OP_STATE_UNKNOWN;
+	m_values.fault_state = BMS_FAULT_CODE_NONE;
 	m_stat_temp_max.id = -1;
 	m_stat_soc_min.id = -1;
 	m_stat_soc_max.id = -1;
@@ -294,6 +296,18 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				}
 			} break;
 
+			case CAN_PACKET_BMS_STATE: {
+				used_data = true;
+
+				if (id == m_values.can_id || UTILS_AGE_S(m_values.update_time) > MAX_CAN_AGE_SEC) {
+					int32_t ind = 0;
+					m_values.can_id = id;
+					m_values.update_time = chVTGetSystemTimeX();
+					m_values.op_state = data8[ind++];
+					m_values.fault_state = data8[ind++];
+				}
+			} break;
+
 			default:
 				break;
 			}
@@ -441,6 +455,9 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		buffer_append_float32_auto(send_buffer, m_values.ah_cnt_dis_total, &ind);
 		buffer_append_float32_auto(send_buffer, m_values.wh_cnt_dis_total, &ind);
 
+		send_buffer[ind++] = m_values.fault_state;
+		send_buffer[ind++] = m_values.op_state;
+
 		reply_func(send_buffer, ind);
 	} break;
 
@@ -584,4 +601,13 @@ void bms_send_status_can(void) {
 	buffer_append_float32_auto(buffer, m_values.ah_cnt_dis_total, &send_index);
 	buffer_append_float32_auto(buffer, m_values.wh_cnt_dis_total, &send_index);
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
+}
+
+bms_fault_state bms_get_fault_state(void)
+{
+	return m_values.fault_state;
+}
+bms_op_state bms_get_op_state(void)
+{
+	return m_values.op_state;
 }

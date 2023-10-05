@@ -111,6 +111,22 @@ typedef enum {
 	FAULT_CODE_PHASE_FILTER,
 } mc_fault_code;
 
+typedef enum {
+	BMS_OP_STATE_UNKNOWN = 0,
+        BMS_OP_STATE_INIT,		// 1
+	BMS_OP_STATE_CHARGING,		// 2
+	BMS_OP_STATE_PRE_CHARGE,		// 3
+	BMS_OP_STATE_LOAD_ENABLED,		// 4
+	BMS_OP_STATE_BATTERY_DEAD,		// 5
+	BMS_OP_STATE_IDLE,			// 6
+	BMS_OP_STATE_EXTERNAL,		// 7
+	BMS_OP_STATE_ERROR,			// 8
+	BMS_OP_STATE_ERROR_PRECHARGE,	// 9
+	BMS_OP_STATE_BALANCING,		// 10
+	BMS_OP_STATE_CHARGED,		// 11
+	BMS_OP_STATE_FORCEON,		// 12
+} bms_op_state;
+
 typedef union {
 	uint32_t as_u32;
 	int32_t as_i32;
@@ -614,6 +630,10 @@ typedef struct {
 	void (*get_fw_version)(int *vmajor, int *vminor, int *vtest);
 	const char* (*get_fw_name)(void);
 	const char* (*get_hw_name)(void);
+
+	// BMS
+	bms_fault_state (*bms_get_fault_state)(void);
+	bms_op_state (*bms_get_op_state)(void);
 } vesc_c_if;
 
 typedef struct {

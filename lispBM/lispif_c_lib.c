@@ -30,6 +30,7 @@
 #include "c_libs/vesc_c_if.h"
 #include "worker.h"
 #include "app.h"
+#include "bms.h"
 #include "mempools.h"
 #include "imu.h"
 #include "terminal.h"
@@ -907,6 +908,10 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.get_fw_version = get_fw_version;
 		cif.cif.get_fw_name = get_fw_name;
 		cif.cif.get_hw_name = get_hw_name;
+
+		// BMS State
+		cif.cif.bms_get_fault_state = bms_get_fault_state;
+		cif.cif.bms_get_op_state = bms_get_op_state;
 
 		lib_init_done = true;
 	}
