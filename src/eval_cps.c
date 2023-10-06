@@ -41,6 +41,7 @@
 #include <setjmp.h>
 
 static jmp_buf error_jmp_buf;
+static jmp_buf critical_error_jmp_buf;
 
 #define S_TO_US(X) (lbm_uint)((X) * 1000000)
 
@@ -213,11 +214,21 @@ static void ctx_done_nonsense(eval_context_t *ctx) {
   (void) ctx;
 }
 
+static void critical_nonsense(void) {
+  return;
+}
+
+static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 static int (*printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
+
+void lbm_set_critical_error_callback(void (*fptr)(void)) {
+  if (fptr == NULL) critical_error_callback = critical_nonsense;
+  else critical_error_callback = fptr;
+}
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
@@ -975,6 +986,10 @@ void error_ctx(lbm_value err_val) {
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
   error_ctx_base(ENC_SYM_RERROR, row, column);
+}
+
+void lbm_critical_error(void) {
+  longjmp(critical_error_jmp_buf, 1);
 }
 
 // successfully finish a context
@@ -2356,7 +2371,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array;
-    array = (lbm_array_header_t *)lbm_car(args[0]);
+    array = (lbm_array_header_t *)get_car(args[0]);
 
     lbm_flat_value_t fv;
     fv.buf = (uint8_t*)array->data;
@@ -2697,9 +2712,10 @@ static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
   lbm_value patterns;
   lbm_value new_env;
+  lbm_value orig_env;
   bool  do_gc = false;
-  lbm_pop_2(&ctx->K, &new_env, &patterns); // restore enclosing environment
-  ctx->curr_env = new_env;
+  lbm_pop_2(&ctx->K, &orig_env, &patterns); // restore enclosing environment
+  new_env = orig_env;
 
   if (lbm_is_symbol_nil(patterns)) {
     /* no more patterns */
@@ -2721,10 +2737,10 @@ static void cont_match(eval_context_t *ctx) {
 
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
-      add_roots_2(patterns, e);
+      add_roots_3(orig_env, patterns, e);
       gc();
       do_gc = false;
-      new_env = ctx->curr_env;
+      new_env = orig_env;
       is_match = match(pattern, e, &new_env, &do_gc);
       if (do_gc) {
         error_ctx(ENC_SYM_MERROR);
@@ -2748,7 +2764,7 @@ static void cont_match(eval_context_t *ctx) {
       }
     } else {
       /* set up for checking of next pattern */
-      stack_push_3(&ctx->K, get_cdr(patterns),ctx->curr_env, MATCH);
+      stack_push_3(&ctx->K, get_cdr(patterns),orig_env, MATCH);
       /* leave r unaltered */
       ctx->app_cont = true;
     }
@@ -3814,8 +3830,8 @@ lbm_value quote_it(lbm_value qquoted) {
 
 bool is_append(lbm_value a) {
   return (lbm_is_cons(a) &&
-          lbm_is_symbol(lbm_car(a)) &&
-          (lbm_dec_sym(lbm_car(a)) == SYM_APPEND));
+          lbm_is_symbol(get_car(a)) &&
+          (lbm_dec_sym(get_car(a)) == SYM_APPEND));
 }
 
 lbm_value append(lbm_value front, lbm_value back) {
@@ -3824,25 +3840,25 @@ lbm_value append(lbm_value front, lbm_value back) {
 
   if (lbm_is_quoted_list(front) &&
       lbm_is_quoted_list(back)) {
-    lbm_value f = lbm_car(lbm_cdr(front));
-    lbm_value b = lbm_car(lbm_cdr(back));
+    lbm_value f = get_car(get_cdr(front));
+    lbm_value b = get_car(get_cdr(back));
     return quote_it(lbm_list_append(f, b));
   }
 
   if (is_append(back) &&
-      lbm_is_quoted_list(lbm_car(lbm_cdr(back))) &&
+      lbm_is_quoted_list(get_car(get_cdr(back))) &&
        lbm_is_quoted_list(front)) {
-    lbm_value ql = lbm_car(lbm_cdr(back));
-    lbm_value f = lbm_car(lbm_cdr(front));
-    lbm_value b = lbm_car(lbm_cdr(ql));
+    lbm_value ql = get_car(get_cdr(back));
+    lbm_value f = get_car(get_cdr(front));
+    lbm_value b = get_car(get_cdr(ql));
 
     lbm_value v = lbm_list_append(f, b);
-    lbm_set_car(lbm_cdr(ql), v);
+    lbm_set_car(get_cdr(ql), v);
     return back;
   }
 
   if (is_append(back)) {
-    back  = lbm_cdr(back);
+    back  = get_cdr(back);
     lbm_value new = cons_with_gc(front, back, ENC_SYM_NIL);
     return cons_with_gc(ENC_SYM_APPEND, new, ENC_SYM_NIL);
   }
@@ -3875,11 +3891,11 @@ static void cont_qq_expand(eval_context_t *ctx) {
 
   switch(lbm_type_of(qquoted)) {
   case LBM_TYPE_CONS: {
-    lbm_value car_val = lbm_car(qquoted);
-    lbm_value cdr_val = lbm_cdr(qquoted);
+    lbm_value car_val = get_car(qquoted);
+    lbm_value cdr_val = get_cdr(qquoted);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
-      ctx->r = append(ctx->r, lbm_car(cdr_val));
+      ctx->r = append(ctx->r, get_car(cdr_val));
       ctx->app_cont = true;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
@@ -3931,20 +3947,20 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
 
   switch(lbm_type_of(l)) {
   case LBM_TYPE_CONS: {
-    lbm_value car_val = lbm_car(l);
-    lbm_value cdr_val = lbm_cdr(l);
+    lbm_value car_val = get_car(l);
+    lbm_value cdr_val = get_cdr(l);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
-      lbm_value tl;
-      WITH_GC(tl, lbm_cons(lbm_car(cdr_val), ENC_SYM_NIL));
-      lbm_value tmp;
-      WITH_GC_RMBR_1(tmp, lbm_cons(ENC_SYM_LIST, tl), tl);
+      lbm_value tl = cons_with_gc(get_car(cdr_val), ENC_SYM_NIL, ENC_SYM_NIL);
+      //WITH_GC(tl, lbm_cons(get_car(cdr_val), ENC_SYM_NIL));
+      lbm_value tmp = cons_with_gc(ENC_SYM_LIST, tl, ENC_SYM_NIL);
+      //WITH_GC_RMBR_1(tmp, lbm_cons(ENC_SYM_LIST, tl), tl);
       ctx->r = append(ctx->r, tmp);
       ctx->app_cont = true;
       return;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                lbm_dec_sym(car_val) == SYM_COMMAAT) {
-      ctx->r = lbm_car(cdr_val);
+      ctx->r = get_car(cdr_val);
       ctx->app_cont = true;
       return;
     } else {
@@ -4210,6 +4226,13 @@ static void process_events(void) {
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
 
+  if (setjmp(critical_error_jmp_buf) > 0) {
+    printf_callback("GC stack overflow!\n");
+    critical_error_callback();
+    // terminate evaluation thread. 
+    return;
+  }
+  
   setjmp(error_jmp_buf);
 
   while (eval_running) {

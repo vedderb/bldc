@@ -7,7 +7,6 @@
 
 #define GC_STACK_SIZE 256
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
 
 int main(int argc, char **argv) {
   (void)argc;
@@ -25,14 +24,25 @@ int main(int argc, char **argv) {
     printf("Error initializing symrepr\n");
     return 0;
   }
-  printf("Initialized symrepr: OK\n"); 
+  printf("Initialized symrepr: OK\n");
+
+  lbm_uint *memory = NULL;
+  lbm_uint *bitmap = NULL;
+ 
+  memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
+  if (memory == NULL) return 0;
+  bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
+  if (bitmap == NULL) return 0;
+  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_14K,
+                        bitmap, LBM_MEMORY_BITMAP_SIZE_14K);
+
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
   if (heap_storage == NULL) {
     return 0;
   }
   
-  res = lbm_heap_init(heap_storage,heap_size, gc_stack_storage, GC_STACK_SIZE);
+  res = lbm_heap_init(heap_storage,heap_size, GC_STACK_SIZE);
   if (!res) {
     printf("Error initializing heap\n"); 
     return 0;

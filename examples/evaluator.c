@@ -34,7 +34,6 @@
 
 #define WAIT_TIMEOUT 2500
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
@@ -222,7 +221,7 @@ int main(int argc, char **argv) {
   }
 
   lbm_init(heap_storage, heap_size,
-           gc_stack_storage, GC_STACK_SIZE,
+           GC_STACK_SIZE,
            memory, LBM_MEMORY_SIZE_16K,
            bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
            print_stack_storage, PRINT_STACK_SIZE,

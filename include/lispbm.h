@@ -60,7 +60,7 @@ extern "C" {
  * \return 1 on success and 0 on failure.
  */
 int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-	     lbm_uint *gc_stack_storage, lbm_uint gc_stack_size,
+	     lbm_uint gc_stack_size,
 	     lbm_uint *memory, lbm_uint memory_size,
 	     lbm_uint *memory_bitmap, lbm_uint bitmap_size,
 	     lbm_uint *print_stack_storage, lbm_uint print_stack_size,

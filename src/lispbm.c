@@ -18,7 +18,7 @@
 #include "lispbm.h"
 
 int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-             lbm_uint *gc_stack_storage, lbm_uint gc_stack_size,
+             lbm_uint gc_stack_size,
              lbm_uint *memory, lbm_uint memory_size,
              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
              lbm_uint *print_stack_storage, lbm_uint print_stack_size,
@@ -34,7 +34,7 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
   if (lbm_symrepr_init() == 0)
     return 0;
 
-  if (lbm_heap_init(heap_storage, heap_size, gc_stack_storage, gc_stack_size) == 0)
+  if (lbm_heap_init(heap_storage, heap_size, gc_stack_size) == 0)
     return 0;
 
   if (lbm_init_env() == 0)

@@ -49,8 +49,6 @@
 #define FAIL 0
 #define SUCCESS 1
 
-
-lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
@@ -494,7 +492,7 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  res = lbm_heap_init(heap_storage, heap_size, gc_stack_storage, GC_STACK_SIZE);
+  res = lbm_heap_init(heap_storage, heap_size, GC_STACK_SIZE);
   if (res)
     printf("Heap initialized. Heap size: %"PRI_FLOAT" MiB. Free cons cells: %"PRI_INT"\n", (double)lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {

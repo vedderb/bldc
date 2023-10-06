@@ -128,6 +128,26 @@ lbm_value ext_env_set(lbm_value *args, lbm_uint argn) {
   }
   return ENC_SYM_NIL;
 }
+
+lbm_value ext_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
+  if (argn == 1) {
+    if (lbm_is_number(args[0])) {
+      uint32_t n = lbm_dec_as_u32(args[0]);
+      lbm_uint *new_stack = lbm_malloc(n * sizeof(lbm_uint));
+      if (new_stack) {
+        lbm_free(lbm_heap_state.gc_stack.data);
+        lbm_heap_state.gc_stack.data = new_stack;
+        lbm_heap_state.gc_stack.size = n;
+        lbm_heap_state.gc_stack.max_sp = 0;
+        lbm_heap_state.gc_stack.sp = 0;  // should already be 0
+        return ENC_SYM_TRUE;
+      }
+      return ENC_SYM_MERROR;
+    }
+  }
+  return ENC_SYM_TERROR;
+}
+ 
 bool lbm_runtime_extensions_init(bool minimal) {
 
   if (!minimal) {
@@ -156,6 +176,7 @@ bool lbm_runtime_extensions_init(bool minimal) {
     res = res && lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
     res = res && lbm_add_extension("env-get", ext_env_get);
     res = res && lbm_add_extension("env-set", ext_env_set);
+    res = res && lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
   }
   return res;
 }
