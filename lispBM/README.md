@@ -4394,6 +4394,20 @@ Lowering this value is useful if there are one or more timing-critical threads (
 
 ---
 
+#### lbm-set-gc-stack-size
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(lbm-set-gc-stack-size new-size)
+```
+
+Change the stack size for the garbage collector. If the GC stack is too small the program can crash during garbage collection and print a message stating that it ran out of GC stack. If that happens increasing the size from the default of 160 can help. Note that the GC stack is on LBM memory and increasing its size leaves less memory available for other things.
+
+---
+
 ## Plotting
 
 VESC Tool can be used for plotting data. The easiest way to plot a variable is to just select it in the binding tab while "Poll Status" is active and go to the binding plot below the editor. The plot commands in this section make plots that show up in the "Experiment Plot" tab below the editor and allow more control over the plotting.

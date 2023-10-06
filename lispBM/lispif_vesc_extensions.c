@@ -3837,6 +3837,25 @@ static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+lbm_value ext_lbm_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
+	if (argn == 1) {
+		if (lbm_is_number(args[0])) {
+			uint32_t n = lbm_dec_as_u32(args[0]);
+			lbm_uint *new_stack = lbm_malloc(n * sizeof(lbm_uint));
+			if (new_stack) {
+				lbm_free(lbm_heap_state.gc_stack.data);
+				lbm_heap_state.gc_stack.data = new_stack;
+				lbm_heap_state.gc_stack.size = n;
+				lbm_heap_state.gc_stack.max_sp = 0;
+				lbm_heap_state.gc_stack.sp = 0;
+				return ENC_SYM_TRUE;
+			}
+			return ENC_SYM_MERROR;
+		}
+	}
+	return ENC_SYM_TERROR;
+}
+
 static lbm_value ext_plot_init(lbm_value *args, lbm_uint argn) {
 	if (argn != 2) {
 		return ENC_SYM_EERROR;
@@ -4695,6 +4714,7 @@ void lispif_load_vesc_extensions(void) {
 
 	// Lbm settings
 	lbm_add_extension("lbm-set-quota", ext_lbm_set_quota);
+	lbm_add_extension("lbm-set-gc-stack-size", ext_lbm_set_gc_stack_size);
 
 	// Plot
 	lbm_add_extension("plot-init", ext_plot_init);

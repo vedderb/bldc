@@ -30,9 +30,12 @@
 #include "lbm_prof.h"
 #include "utils.h"
 
+#define LBM_MEMORY_SIZE_18K LBM_MEMORY_SIZE_64BYTES_TIMES_X(256 + 32)
+#define LBM_MEMORY_BITMAP_SIZE_18K LBM_MEMORY_BITMAP_SIZE(256 + 32)
+
 #define HEAP_SIZE					(2048 + 256 + 160)
-#define LISP_MEM_SIZE				LBM_MEMORY_SIZE_16K
-#define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_16K
+#define LISP_MEM_SIZE				LBM_MEMORY_SIZE_18K
+#define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_18K
 #define GC_STACK_SIZE				160
 #define PRINT_STACK_SIZE			128
 #define EXTENSION_STORAGE_SIZE		280
@@ -42,12 +45,11 @@
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
-static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
-static uint32_t gc_stack_storage[GC_STACK_SIZE];
+__attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
 __attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STACK_SIZE];
 __attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
-static lbm_prof_t prof_data[PROF_DATA_NUM];
+__attribute__((section(".ram4"))) static lbm_prof_t prof_data[PROF_DATA_NUM];
 static volatile bool prof_running = false;
 
 static lbm_string_channel_state_t string_tok_state;
@@ -61,7 +63,7 @@ static lbm_uint *const_heap_ptr = 0;
 static thread_t *eval_tp = 0;
 static THD_FUNCTION(eval_thread, arg);
 static THD_WORKING_AREA(eval_thread_wa, 2048);
-static bool lisp_thd_running = false;
+static volatile bool lisp_thd_running = false;
 static mutex_t lbm_mutex;
 
 static lbm_cid repl_cid = -1;
@@ -306,6 +308,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Recovered: %d\n", lbm_heap_state.gc_recovered);
 				commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
 				commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
+				commands_printf_lisp("GC SP max: %u (size %u)\n", lbm_heap_state.gc_stack.max_sp, lbm_heap_state.gc_stack.size);
 				commands_printf_lisp("--(Symbol and Array memory)--\n");
 				commands_printf_lisp("Memory size: %u Words\n", lbm_memory_num_words());
 				commands_printf_lisp("Memory free: %u Words\n", lbm_memory_num_free());
@@ -639,7 +642,7 @@ bool lispif_restart(bool print, bool load_code) {
 
 		if (!lisp_thd_running) {
 			lbm_init(heap, HEAP_SIZE,
-					gc_stack_storage, GC_STACK_SIZE,
+					GC_STACK_SIZE,
 					memory_array, LISP_MEM_SIZE,
 					bitmap_array, LISP_MEM_BITMAP_SIZE,
 					print_stack_storage, PRINT_STACK_SIZE,
@@ -662,7 +665,7 @@ bool lispif_restart(bool print, bool load_code) {
 			}
 
 			lbm_init(heap, HEAP_SIZE,
-					gc_stack_storage, GC_STACK_SIZE,
+					GC_STACK_SIZE,
 					memory_array, LISP_MEM_SIZE,
 					bitmap_array, LISP_MEM_BITMAP_SIZE,
 					print_stack_storage, PRINT_STACK_SIZE,
@@ -786,4 +789,5 @@ static THD_FUNCTION(eval_thread, arg) {
 	eval_tp = chThdGetSelfX();
 	chRegSetThreadName("Lisp Eval");
 	lbm_run_eval();
+	lisp_thd_running = false;
 }
