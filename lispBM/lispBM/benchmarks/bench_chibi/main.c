@@ -43,7 +43,6 @@
 #define VARIABLE_STORAGE_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
@@ -199,7 +198,7 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                gc_stack_storage, GC_STACK_SIZE,
+                GC_STACK_SIZE,
                 memory_array, LBM_MEMORY_SIZE_8K,
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                 print_stack_storage, PRINT_STACK_SIZE,
@@ -301,7 +300,7 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-               gc_stack_storage, GC_STACK_SIZE,
+               GC_STACK_SIZE,
                memory_array, LBM_MEMORY_SIZE_8K,
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                print_stack_storage, PRINT_STACK_SIZE,
