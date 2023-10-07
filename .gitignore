@@ -17,3 +17,6 @@ workspace.code-workspace
 *.pro.shared
 
 .vscode
+*.so
+*.elf
+*.list
