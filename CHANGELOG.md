@@ -41,6 +41,7 @@
 * Fix possible runaway after faults during openloop measurements (flux linkage, encoder).
 * Added more current sampling modes.
 * Added FOC interpolation mode.
+* Allow passive flux linkage measurement.
 
 ### 6.02
 #### 2023-03-12

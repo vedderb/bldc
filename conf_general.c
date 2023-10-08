@@ -966,11 +966,21 @@ uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq
  * Fault code
  */
 int conf_general_measure_flux_linkage_openloop(float current, float duty,
-											   float erpm_per_sec, float res, float ind, float *linkage,
-											   float *linkage_undriven, float *undriven_samples, bool *result) {
+		float erpm_per_sec, float res, float ind, float *linkage,
+		float *linkage_undriven, float *undriven_samples, bool *result) {
 
 	*result = false;
 	int fault = FAULT_CODE_NONE;
+
+	// Allow using old values when only measuring the flux linkage undriven
+	if (fabsf(current) <= mc_interface_get_configuration()->cc_min_current) {
+		if (res <= 0.0) {
+			res = mc_interface_get_configuration()->foc_motor_r;
+		}
+		if (ind <= 0.0) {
+			ind = mc_interface_get_configuration()->foc_motor_l;
+		}
+	}
 
 	// Don't let impossible values through.
 	if (res <= 0.0 || ind <= 0.0) {
@@ -1031,52 +1041,32 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 	int cnt = 0;
 	float rpm_now = 0;
 
-	// Start by locking the motor
-	for (int i = 0;i < 200;i++) {
-		mc_interface_lock_override_once();
-		mc_interface_set_openloop_current((float)i * current / 200.0, rpm_now);
-		fault = mc_interface_get_fault();
-		if (fault != FAULT_CODE_NONE) {
-			timeout_configure(tout, tout_c, tout_ksw);
-			mc_interface_unlock();
-			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
-			mc_interface_set_configuration(mcconf_old);
-			mempools_free_mcconf(mcconf);
-			mempools_free_mcconf(mcconf_old);
-			return fault;
+	if (fabsf(current) > mcconf->cc_min_current) {
+		// Start by locking the motor
+		for (int i = 0;i < 200;i++) {
+			mc_interface_lock_override_once();
+			mc_interface_set_openloop_current((float)i * current / 200.0, rpm_now);
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
+				mc_interface_set_configuration(mcconf_old);
+				mempools_free_mcconf(mcconf);
+				mempools_free_mcconf(mcconf_old);
+				return fault;
+			}
+			chThdSleepMilliseconds(1);
 		}
-		chThdSleepMilliseconds(1);
-	}
 
-	float duty_still = 0;
-	float samples = 0;
-	for (int i = 0;i < 1000;i++) {
-		duty_still += fabsf(mc_interface_get_duty_cycle_now());
-		samples += 1.0;
-		chThdSleepMilliseconds(1);
-	}
-
-	fault = mc_interface_get_fault();
-	if (fault != FAULT_CODE_NONE) {
-		timeout_configure(tout, tout_c, tout_ksw);
-		mc_interface_unlock();
-		mc_interface_release_motor();
-		mc_interface_wait_for_motor_release(1.0);
-		mc_interface_set_configuration(mcconf_old);
-		mempools_free_mcconf(mcconf);
-		mempools_free_mcconf(mcconf_old);
-		return fault;
-	}
-
-	duty_still /= samples;
-	float duty_max = 0.0;
-	const int max_time = 15000;
-
-	while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
-		rpm_now += erpm_per_sec / 1000.0;
-		mc_interface_lock_override_once();
-		mc_interface_set_openloop_current(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
+		float duty_still = 0;
+		float samples = 0;
+		for (int i = 0;i < 1000;i++) {
+			duty_still += fabsf(mc_interface_get_duty_cycle_now());
+			samples += 1.0;
+			chThdSleepMilliseconds(1);
+		}
 
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
@@ -1090,109 +1080,74 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 			return fault;
 		}
 
+		duty_still /= samples;
+		float duty_max = 0.0;
+		const int max_time = 15000;
 
-		chThdSleepMilliseconds(1);
-		cnt++;
-
-		float duty_now = fabsf(mc_interface_get_duty_cycle_now());
-
-		if (duty_now > duty_max) {
-			duty_max = duty_now;
-		}
-
-		if (cnt >= max_time) {
-			*linkage = -1.0;
-			break;
-		}
-
-		if (cnt > 4000 && duty_now < (duty_max * 0.7)) {
-			cnt = max_time;
-			*linkage = -2.0;
-			break;
-		}
-
-		if (cnt > 4000 && duty < duty_still * 1.1) {
-			cnt = max_time;
-			*linkage = -3.0;
-			break;
-		}
-
-		if (rpm_now >= 12000) {
-			break;
-		}
-	}
-
-	chThdSleepMilliseconds(1000);
-
-	if (cnt < max_time) {
-		float vq_avg = 0.0;
-		float vd_avg = 0.0;
-		float iq_avg = 0.0;
-		float id_avg = 0.0;
-		float samples2 = 0.0;
-
-		for (int i = 0;i < 10000;i++) {
-			vq_avg += mcpwm_foc_get_vq();
-			vd_avg += mcpwm_foc_get_vd();
-			iq_avg += mcpwm_foc_get_iq();
-			id_avg += mcpwm_foc_get_id();
-			samples2 += 1.0;
-			chThdSleep(1);
+		while (fabsf(mc_interface_get_duty_cycle_now()) < duty) {
+			rpm_now += erpm_per_sec / 1000.0;
+			mc_interface_lock_override_once();
+			mc_interface_set_openloop_current(current, mcconf->m_invert_direction ? -rpm_now : rpm_now);
 
 			fault = mc_interface_get_fault();
 			if (fault != FAULT_CODE_NONE) {
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+				mc_interface_release_motor();
+				mc_interface_wait_for_motor_release(1.0);
+				mc_interface_set_configuration(mcconf_old);
+				mempools_free_mcconf(mcconf);
+				mempools_free_mcconf(mcconf_old);
+				return fault;
+			}
+
+
+			chThdSleepMilliseconds(1);
+			cnt++;
+
+			float duty_now = fabsf(mc_interface_get_duty_cycle_now());
+
+			if (duty_now > duty_max) {
+				duty_max = duty_now;
+			}
+
+			if (cnt >= max_time) {
+				*linkage = -1.0;
+				break;
+			}
+
+			if (cnt > 4000 && duty_now < (duty_max * 0.7)) {
+				cnt = max_time;
+				*linkage = -2.0;
+				break;
+			}
+
+			if (cnt > 4000 && duty < duty_still * 1.1) {
+				cnt = max_time;
+				*linkage = -3.0;
+				break;
+			}
+
+			if (rpm_now >= 12000) {
 				break;
 			}
 		}
 
-		vq_avg /= samples2;
-		vd_avg /= samples2;
-		iq_avg /= samples2;
-		id_avg /= samples2;
+		chThdSleepMilliseconds(1000);
 
-		float rad_s = RPM2RADPS_f(rpm_now);
-		float v_mag = NORM2_f(vq_avg, vd_avg);
-		float i_mag = NORM2_f(iq_avg, id_avg);
-		*linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
+		if (cnt < max_time) {
+			float vq_avg = 0.0;
+			float vd_avg = 0.0;
+			float iq_avg = 0.0;
+			float id_avg = 0.0;
+			float samples2 = 0.0;
 
-		mcconf->foc_motor_r = res;
-		mcconf->foc_motor_l = ind;
-		mcconf->foc_motor_flux_linkage = *linkage;
-		mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
-		mc_interface_set_configuration(mcconf);
-
-		// Give the observer time to settle
-		chThdSleepMilliseconds(500);
-
-		// Turn off the FETs
-		mcpwm_foc_stop_pwm(mc_interface_get_motor_thread() == 2);
-
-		// Clear any lingering current set points
-		mcpwm_foc_set_current(0.0);
-
-		// Let the H-bridges settle
-		chThdSleepMilliseconds(5);
-
-		float linkage_sum = 0.0;
-		float linkage_samples = 0.0;
-		if (fault == FAULT_CODE_NONE) {
-			for (int i = 0;i < 2000;i++) {
-				float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
-				if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.02) {
-					break;
-				}
-
-				linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
-
-				// Optionally use magnitude
-//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
-
-				// Optionally use magnitude of observer state
-//              float x1, x2;
-//              mcpwm_foc_get_observer_state(&x1, &x2);
-//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
-
-				linkage_samples += 1.0;
+			for (int i = 0;i < 10000;i++) {
+				vq_avg += mcpwm_foc_get_vq();
+				vd_avg += mcpwm_foc_get_vd();
+				iq_avg += mcpwm_foc_get_iq();
+				id_avg += mcpwm_foc_get_id();
+				samples2 += 1.0;
 				chThdSleep(1);
 
 				fault = mc_interface_get_fault();
@@ -1201,16 +1156,77 @@ int conf_general_measure_flux_linkage_openloop(float current, float duty,
 				}
 			}
 
-			*undriven_samples = linkage_samples;
+			vq_avg /= samples2;
+			vd_avg /= samples2;
+			iq_avg /= samples2;
+			id_avg /= samples2;
 
-			if (linkage_samples > 0) {
-				*linkage_undriven = linkage_sum / linkage_samples;
-			} else {
-				*linkage_undriven = 0.0;
+			float rad_s = RPM2RADPS_f(rpm_now);
+			float v_mag = NORM2_f(vq_avg, vd_avg);
+			float i_mag = NORM2_f(iq_avg, id_avg);
+			*linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
+
+			mcconf->foc_motor_r = res;
+			mcconf->foc_motor_l = ind;
+			mcconf->foc_motor_flux_linkage = *linkage;
+			mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
+			mc_interface_set_configuration(mcconf);
+
+			// Give the observer time to settle
+			chThdSleepMilliseconds(500);
+
+			// Turn off the FETs
+			mcpwm_foc_stop_pwm(mc_interface_get_motor_thread() == 2);
+
+			// Clear any lingering current set points
+			mcpwm_foc_set_current(0.0);
+
+			// Let the H-bridges settle
+			chThdSleepMilliseconds(5);
+		}
+	} else {
+		*linkage = 0.0;
+	}
+
+	float linkage_sum = 0.0;
+	float linkage_samples = 0.0;
+	if (fault == FAULT_CODE_NONE) {
+		for (int i = 0;i < 2000;i++) {
+			float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
+			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.02) {
+				break;
 			}
-			if (*linkage > 0.0) {
-				*result = true;
+
+			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
+
+			// Optionally use magnitude
+			//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
+
+			// Optionally use magnitude of observer state
+			//              float x1, x2;
+			//              mcpwm_foc_get_observer_state(&x1, &x2);
+			//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
+
+			linkage_samples += 1.0;
+			chThdSleep(1);
+
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				break;
 			}
+		}
+
+		*undriven_samples = linkage_samples;
+
+		if (linkage_samples > 0) {
+			*linkage_undriven = linkage_sum / linkage_samples;
+			*result = true;
+		} else {
+			*linkage_undriven = 0.0;
+		}
+
+		if (*linkage > 0.0) {
+			*result = true;
 		}
 	}
 
