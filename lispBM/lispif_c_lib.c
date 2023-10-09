@@ -912,6 +912,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// BMS State
 		cif.cif.bms_get_fault_state = bms_get_fault_state;
 		cif.cif.bms_get_op_state = bms_get_op_state;
+		cif.cif.bms_get_values = bms_get_values;
 
 		lib_init_done = true;
 	}

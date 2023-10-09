@@ -127,6 +127,34 @@ typedef enum {
 	BMS_OP_STATE_FORCEON,		// 12
 } bms_op_state;
 
+typedef struct {
+	float v_tot;
+	float v_charge;
+	float i_in;
+	float i_in_ic;
+	float ah_cnt;
+	float wh_cnt;
+	int cell_num;
+	float v_cell[32];
+	bool bal_state[32];
+	int temp_adc_num;
+	float temps_adc[50];
+	float temp_ic;
+	float temp_hum;
+	float hum;
+	float temp_max_cell;
+	float soc;
+	float soh;
+	int can_id;
+	float ah_cnt_chg_total;
+	float wh_cnt_chg_total;
+	float ah_cnt_dis_total;
+	float wh_cnt_dis_total;
+	systime_t update_time;
+	bms_op_state op_state;
+	bms_fault_state fault_state;
+} bms_values;
+
 typedef union {
 	uint32_t as_u32;
 	int32_t as_i32;
@@ -634,6 +662,7 @@ typedef struct {
 	// BMS
 	bms_fault_state (*bms_get_fault_state)(void);
 	bms_op_state (*bms_get_op_state)(void);
+	volatile bms_values* (*bms_get_values)(void);
 } vesc_c_if;
 
 typedef struct {
