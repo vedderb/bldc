@@ -3596,9 +3596,24 @@ static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_TERROR;
 	}
 
-	int res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[3]));
+	int cal_res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[3]));
 
-	return lbm_enc_i(res);
+	if (cal_res < 0) {
+		return ENC_SYM_NIL;
+	} else {
+		volatile const mc_configuration *conf = mc_interface_get_configuration();
+		lbm_value res = ENC_SYM_NIL;
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage_undriven[2]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage_undriven[1]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage_undriven[0]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage[2]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage[1]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_voltage[0]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_current[2]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_current[1]), res);
+		res = lbm_cons(lbm_enc_float(conf->foc_offsets_current[0]), res);
+		return res;
+	}
 }
 
 static lbm_value make_list(int num, ...) {

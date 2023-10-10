@@ -3070,7 +3070,11 @@ Restore app configuration to the default values.
 (conf-dc-cal calUndriven)
 ```
 
-Run FOC DC offset calibration. calUndriven can be set to true for including the undriven voltages in the calibration, which requires that the motor stands still.
+Run FOC DC offset calibration. calUndriven can be set to true for including the undriven voltages in the calibration, which requires that the motor stands still. If the calibration fails nil is returned and on success a list with the new offsets in the following format is returned:
+
+```clj
+(i0 i1 i2 v0 v1 v2 v0-undriven v1-undriven v2-undriven)
+```
 
 ---
 
