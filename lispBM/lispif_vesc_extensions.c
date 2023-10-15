@@ -1543,6 +1543,16 @@ static lbm_value ext_get_iq(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_get_id_set(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_id_set());
+}
+
+static lbm_value ext_get_iq_set(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_iq_set());
+}
+
 static lbm_value ext_get_vd(lbm_value *args, lbm_uint argn) {
 	int filter = 0;
 	if (!check_arg_filter(args, argn, &filter)) {
@@ -3616,6 +3626,17 @@ static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
 	}
 }
 
+static lbm_value ext_conf_get_limits(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	volatile const mc_configuration *conf = mc_interface_get_configuration();
+	lbm_value res = ENC_SYM_NIL;
+	res = lbm_cons(lbm_enc_float(conf->lo_in_current_max), res);
+	res = lbm_cons(lbm_enc_float(conf->lo_in_current_min), res);
+	res = lbm_cons(lbm_enc_float(conf->lo_current_max), res);
+	res = lbm_cons(lbm_enc_float(conf->lo_current_min), res);
+	return res;
+}
+
 static lbm_value make_list(int num, ...) {
 	va_list arguments;
 	va_start (arguments, num);
@@ -4593,6 +4614,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-current-in", ext_get_current_in);
 	lbm_add_extension("get-id", ext_get_id);
 	lbm_add_extension("get-iq", ext_get_iq);
+	lbm_add_extension("get-id-set", ext_get_id_set);
+	lbm_add_extension("get-iq-set", ext_get_iq_set);
 	lbm_add_extension("get-vd", ext_get_vd);
 	lbm_add_extension("get-vq", ext_get_vq);
 	lbm_add_extension("get-est-lambda", ext_foc_est_lambda);
@@ -4710,6 +4733,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-restore-mc", ext_conf_restore_mc);
 	lbm_add_extension("conf-restore-app", ext_conf_restore_app);
 	lbm_add_extension("conf-dc-cal", ext_conf_dc_cal);
+	lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 
 	// Macro expanders
 	lbm_add_extension("me-defun", ext_me_defun);

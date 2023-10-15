@@ -1245,6 +1245,14 @@ float mcpwm_foc_get_iq(void) {
 	return get_motor_now()->m_motor_state.iq;
 }
 
+float mcpwm_foc_get_id_set(void) {
+	return get_motor_now()->m_id_set;
+}
+
+float mcpwm_foc_get_iq_set(void) {
+	return get_motor_now()->m_iq_set;
+}
+
 /**
  * Get the filtered direct axis motor current.
  *
