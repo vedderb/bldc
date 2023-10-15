@@ -1178,15 +1178,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32_auto(send_buffer, q[3], &ind);
 		}
 
-		if (mask & ((uint32_t)1 << 16)) {
-			uint8_t current_controller_id = app_get_configuration()->controller_id;
+		uint8_t current_controller_id = app_get_configuration()->controller_id;
 #ifdef HW_HAS_DUAL_MOTORS
-			if (mc_interface_get_motor_thread() == 2) {
-				current_controller_id = utils_second_motor_id();
-			}
-#endif
-			send_buffer[ind++] = current_controller_id;
+		if (mc_interface_get_motor_thread() == 2) {
+			current_controller_id = utils_second_motor_id();
 		}
+#endif
+		send_buffer[ind++] = current_controller_id;
 
 		reply_func(send_buffer, ind);
 	} break;
