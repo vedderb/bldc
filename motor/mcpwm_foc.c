@@ -3011,7 +3011,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_br_no_duty_samples++;
 			}
 		} else {
-			motor_now->m_br_no_duty_samples = 0;
+			motor_now->m_br_no_duty_samples = 100;
 		}
 
 		motor_now->m_br_speed_before = speed_fast_now;
