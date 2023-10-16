@@ -42,6 +42,7 @@
 * Added more current sampling modes.
 * Added FOC interpolation mode.
 * Allow passive flux linkage measurement.
+* Fixed some braking glitches.
 
 ### 6.02
 #### 2023-03-12
