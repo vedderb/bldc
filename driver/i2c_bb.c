@@ -90,16 +90,35 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	if (txbytes > 0 && txbuf) {
 		i2c_write_byte(s, true, false, addr << 1);
 
+		if (s->has_error) {
+			chMtxUnlock(&s->mutex);
+			return false;
+		}
+
 		for (unsigned int i = 0;i < txbytes;i++) {
 			i2c_write_byte(s, false, false, txbuf[i]);
+
+			if (s->has_error) {
+				chMtxUnlock(&s->mutex);
+				return false;
+			}
 		}
 	}
 
 	if (rxbytes > 0) {
 		i2c_write_byte(s, true, false, addr << 1 | 1);
 
+		if (s->has_error) {
+			chMtxUnlock(&s->mutex);
+			return false;
+		}
+
 		for (unsigned int i = 0;i < rxbytes;i++) {
 			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
+			if (s->has_error) {
+				chMtxUnlock(&s->mutex);
+				return false;
+			}
 		}
 	}
 
