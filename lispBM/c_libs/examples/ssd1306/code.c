@@ -77,7 +77,7 @@ static lbm_value ssd_drawline(lbm_value *args, lbm_uint argn) {
 		return res;
 	}
 	
-	uint8_t *pixbuf = (uint8_t*)(((lbm_array_header_t *)VESC_IF->lbm_car(args[0]))->data);
+	uint8_t *pixbuf = (uint8_t*)VESC_IF->lbm_dec_str(args[0]);
 	int x0 = VESC_IF->lbm_dec_as_i32(args[1]);
 	int y0 = VESC_IF->lbm_dec_as_i32(args[2]);
 	int x1 = VESC_IF->lbm_dec_as_i32(args[3]);
