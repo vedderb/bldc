@@ -4694,6 +4694,9 @@ Name string.
 **unit**  
 Unit string.
 
+**precision**  
+Number of decimals.
+
 **is-relative**  
 Relative fields are displayed relative to the start value of the log.
 
