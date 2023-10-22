@@ -394,11 +394,26 @@
 #endif
 
 // ADC Channels
+#ifndef ADC_IND_EXT2
+#define ADC_IND_EXT2 			ADC_IND_EXT
+#endif
 #ifndef ADC_IND_EXT3
 #define ADC_IND_EXT3 			ADC_IND_EXT
 #endif
-#ifndef ADC_IND_EXT2
-#define ADC_IND_EXT2 			ADC_IND_EXT
+#ifndef ADC_IND_EXT4
+#define ADC_IND_EXT4 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT5
+#define ADC_IND_EXT5 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT6
+#define ADC_IND_EXT6 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT7
+#define ADC_IND_EXT7 			ADC_IND_EXT
+#endif
+#ifndef ADC_IND_EXT8
+#define ADC_IND_EXT8 			ADC_IND_EXT
 #endif
 
 // Adc voltage scaling on phases and input

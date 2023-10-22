@@ -776,6 +776,16 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT3));
 		} else if (channel == 3) {
 			return lbm_enc_float(ADC_VOLTS(ADC_IND_TEMP_MOTOR));
+		} else if (channel == 4) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT4));
+		} else if (channel == 5) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT5));
+		} else if (channel == 6) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT6));
+		} else if (channel == 7) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT7));
+		} else if (channel == 8) {
+			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT8));
 		} else {
 			return ENC_SYM_EERROR;
 		}
