@@ -688,5 +688,9 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   } else {
     b = true;
   }
+  // Do not free the flat value buffer here.
+  // there are 2 cases:
+  // 1: unflatten was called from lisp code -> GC removes the buffer.
+  // 2: unflatten called from event processing -> event processor frees buffer.
   return b;
 }
