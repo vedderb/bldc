@@ -594,6 +594,10 @@ lbm_uint lbm_get_gc_stack_max(void) {
   return lbm_heap_state.gc_stack.max_sp;
 }
 
+lbm_uint lbm_get_gc_stack_size(void) {
+  return lbm_heap_state.gc_stack.size;
+}
+
 int lbm_gc_mark_phase() {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
@@ -608,15 +612,18 @@ int lbm_gc_mark_phase() {
       continue;
     }
 
-    bool not_constant = (curr & LBM_PTR_TO_CONSTANT_BIT) == 0;
+    if (curr & LBM_PTR_TO_CONSTANT_BIT) {
+      // Go back and pop next root.
+      // Constant values can only refer to non-constants by name.
+      continue;
+    }
     lbm_cons_t *cell = lbm_ref_cell(curr);
 
-    if (not_constant) {
-      lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
-      if (gc_mark) continue;
-      lbm_heap_state.gc_marked ++;
-      cell->cdr = lbm_set_gc_mark(cell->cdr);
-    }
+    lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
+    if (gc_mark) continue;
+    lbm_heap_state.gc_marked ++;
+    cell->cdr = lbm_set_gc_mark(cell->cdr);
+
     lbm_value t_ptr = lbm_type_of(curr);
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&

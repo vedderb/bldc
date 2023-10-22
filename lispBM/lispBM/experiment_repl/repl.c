@@ -38,7 +38,6 @@
 #include "lbm_channel.h"
 #include "lbm_version.h"
 
-#define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
@@ -752,6 +751,7 @@ int main(int argc, char **argv) {
       printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
       printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
       printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
+      printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
       printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
       printf("--(Symbol and Array memory)---------------------------------\n");
       printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());

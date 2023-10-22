@@ -542,6 +542,10 @@ void lbm_get_heap_state(lbm_heap_state_t *);
  * \return maximum value the gc stack sp reached so far.
  */
 lbm_uint lbm_get_gc_stack_max(void);
+/** Get the size of the GC stack.
+ * \return the size of the gc stack.
+ */  
+lbm_uint lbm_get_gc_stack_size(void);
 // Garbage collection
 /** Increment the counter that is counting the number of times GC ran
  *

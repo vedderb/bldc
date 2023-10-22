@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020, 2021, 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -365,6 +365,7 @@ int lbm_memory_free(lbm_uint *ptr) {
 }
 //Malloc/free like interface
 void* lbm_malloc(size_t size) {
+  if (size == 0) return NULL;
   lbm_uint alloc_size;
 
   alloc_size = size / sizeof(lbm_uint);
@@ -378,6 +379,7 @@ void* lbm_malloc(size_t size) {
 }
 
 void* lbm_malloc_reserve(size_t size) {
+  if (size == 0) return NULL;
   lbm_uint alloc_size;
 
   alloc_size = size / sizeof(lbm_uint);
@@ -400,10 +402,6 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   if (status(ix) != START) {
     mutex_unlock(&lbm_mem_mutex);
     return 0; // ptr does not point to the start of an allocated range.
-  }
-  if (status(ix) == START_END) {
-    mutex_unlock(&lbm_mem_mutex);
-    return 0; // Cannot shrink a 1 element allocation
   }
 
   bool done = false;
