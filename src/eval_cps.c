@@ -59,41 +59,40 @@ static jmp_buf critical_error_jmp_buf;
 #define OR                    CONTINUATION(7)
 #define WAIT                  CONTINUATION(8)
 #define MATCH                 CONTINUATION(9)
-#define MATCH_MANY            CONTINUATION(10)
-#define APPLICATION_START     CONTINUATION(11)
-#define EVAL_R                CONTINUATION(12)
-#define SET_VARIABLE          CONTINUATION(13)
-#define RESUME                CONTINUATION(14)
-#define CLOSURE_ARGS          CONTINUATION(15)
-#define EXIT_ATOMIC           CONTINUATION(16)
-#define READ_NEXT_TOKEN       CONTINUATION(17)
-#define READ_APPEND_CONTINUE  CONTINUATION(18)
-#define READ_EVAL_CONTINUE    CONTINUATION(19)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(20)
-#define READ_DOT_TERMINATE    CONTINUATION(21)
-#define READ_DONE             CONTINUATION(22)
-#define READ_QUOTE_RESULT     CONTINUATION(23)
-#define READ_COMMAAT_RESULT   CONTINUATION(24)
-#define READ_COMMA_RESULT     CONTINUATION(25)
-#define READ_START_ARRAY      CONTINUATION(26)
-#define READ_APPEND_ARRAY     CONTINUATION(27)
-#define MAP_FIRST             CONTINUATION(28)
-#define MAP_REST              CONTINUATION(29)
-#define MATCH_GUARD           CONTINUATION(30)
-#define TERMINATE             CONTINUATION(31)
-#define PROGN_VAR             CONTINUATION(32)
-#define SETQ                  CONTINUATION(33)
-#define MOVE_TO_FLASH         CONTINUATION(34)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(35)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(36)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(37)
-#define QQ_EXPAND_START       CONTINUATION(38)
-#define QQ_EXPAND             CONTINUATION(39)
-#define QQ_APPEND             CONTINUATION(40)
-#define QQ_EXPAND_LIST        CONTINUATION(41)
-#define QQ_LIST               CONTINUATION(42)
-#define KILL                  CONTINUATION(43)
-#define NUM_CONTINUATIONS     44
+#define APPLICATION_START     CONTINUATION(10)
+#define EVAL_R                CONTINUATION(11)
+#define SET_VARIABLE          CONTINUATION(12)
+#define RESUME                CONTINUATION(13)
+#define CLOSURE_ARGS          CONTINUATION(14)
+#define EXIT_ATOMIC           CONTINUATION(15)
+#define READ_NEXT_TOKEN       CONTINUATION(16)
+#define READ_APPEND_CONTINUE  CONTINUATION(17)
+#define READ_EVAL_CONTINUE    CONTINUATION(18)
+#define READ_EXPECT_CLOSEPAR  CONTINUATION(19)
+#define READ_DOT_TERMINATE    CONTINUATION(20)
+#define READ_DONE             CONTINUATION(21)
+#define READ_QUOTE_RESULT     CONTINUATION(22)
+#define READ_COMMAAT_RESULT   CONTINUATION(23)
+#define READ_COMMA_RESULT     CONTINUATION(24)
+#define READ_START_ARRAY      CONTINUATION(25)
+#define READ_APPEND_ARRAY     CONTINUATION(26)
+#define MAP_FIRST             CONTINUATION(27)
+#define MAP_REST              CONTINUATION(28)
+#define MATCH_GUARD           CONTINUATION(29)
+#define TERMINATE             CONTINUATION(30)
+#define PROGN_VAR             CONTINUATION(31)
+#define SETQ                  CONTINUATION(32)
+#define MOVE_TO_FLASH         CONTINUATION(33)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(34)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(35)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(36)
+#define QQ_EXPAND_START       CONTINUATION(37)
+#define QQ_EXPAND             CONTINUATION(38)
+#define QQ_APPEND             CONTINUATION(39)
+#define QQ_EXPAND_LIST        CONTINUATION(40)
+#define QQ_LIST               CONTINUATION(41)
+#define KILL                  CONTINUATION(42)
+#define NUM_CONTINUATIONS     43
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1395,7 +1394,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     if (lbm_is_symbol(SYM_NOT_FOUND)) {
       return false;
     }
-    return (val == e);
+    return struct_eq(val, e);
   }
 
   if (lbm_is_symbol(p)) {
@@ -2671,43 +2670,6 @@ static void cont_if(eval_context_t *ctx) {
   }
 }
 
-static void cont_match_many(eval_context_t *ctx) {
-
-  lbm_value r = ctx->r;
-
-  if (lbm_type_of(r) == LBM_TYPE_SYMBOL &&
-      (lbm_dec_sym(r) == SYM_NO_MATCH)) {
-    lbm_value *old_stack = get_stack_ptr(ctx, 3);
-    lbm_value rest_msgs = old_stack[2];
-    lbm_value pats = old_stack[1];
-    lbm_value exp = old_stack[0];
-
-    if (lbm_type_of(rest_msgs) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(rest_msgs) == SYM_NIL) {
-
-      ctx->curr_exp = exp;
-
-    } else {
-      /* try match the next one */
-      lbm_value car_rest_msgs;
-      lbm_value cdr_rest_msgs;
-      get_car_and_cdr(rest_msgs, &car_rest_msgs, &cdr_rest_msgs);
-      lbm_uint *sptr = stack_reserve(ctx, 3);
-      old_stack[2] = cdr_rest_msgs;
-      sptr[0] = MATCH_MANY;
-      sptr[1] = get_cdr(pats);
-      sptr[2] = MATCH;
-      ctx->r = car_rest_msgs;
-      ctx->app_cont = true;
-    }
-  } else {
-  /* I think the else branch will be "do nothing" here. */
-  /* We should just continue executing with the result in ctx->r already*/
-    lbm_stack_drop(&ctx->K, 3);
-    ctx->app_cont = true;
-  }
-}
-
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
   lbm_value patterns;
@@ -2718,7 +2680,7 @@ static void cont_match(eval_context_t *ctx) {
   new_env = orig_env;
 
   if (lbm_is_symbol_nil(patterns)) {
-    /* no more patterns */
+    // no more patterns
     ctx->r = ENC_SYM_NO_MATCH;
     ctx->app_cont = true;
   } else if (lbm_is_cons(patterns)) {
@@ -2763,9 +2725,9 @@ static void cont_match(eval_context_t *ctx) {
         ctx->curr_exp = body;
       }
     } else {
-      /* set up for checking of next pattern */
+      // set up for checking of next pattern
       stack_push_3(&ctx->K, get_cdr(patterns),orig_env, MATCH);
-      /* leave r unaltered */
+      // leave r unaltered
       ctx->app_cont = true;
     }
   } else {
@@ -4011,7 +3973,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_or,
     cont_wait,
     cont_match,
-    cont_match_many,
     cont_application_start,
     cont_eval_r,
     cont_set_var,

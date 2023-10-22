@@ -23,7 +23,6 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
@@ -38,7 +37,6 @@
 
 #define WAIT_TIMEOUT 2500
 
-#define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256

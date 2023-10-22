@@ -27,11 +27,18 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 18
+#define LBM_MINOR_VERSION 19
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
+#define LBM_VERSION_STRING "0.19.0"
+
 /*! \page changelog Changelog
+OCT 8 2024: Version 0.19.0
+  - Error message and callback on GC stack overflow.
+  - Functions for gc stack size statistics added.
+  - GC does not look at constant values.
+  - Changes to environment handling during pattern matches.
 
 AUG 26 2023: Version 0.18.0
   - Removed wait-for flags
