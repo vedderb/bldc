@@ -3050,7 +3050,7 @@ This command is useful to update the configuration before starting the motor as 
 | ESC | 6.02+ |
 
 ```clj
-(conf-measure-res target-current optSamples)
+(conf-measure-ind target-current optSamples)
 ```
 
 Measure motor inductance with target-current. The optional argument optSamples sets the number of samples to use (default 100).
@@ -5252,6 +5252,54 @@ Returns a list where the first element is the free space on the file system and 
 (f-fatinfo)
 > (30298 30417)
 ```
+
+---
+
+## Firmware Update
+
+The firmware can be updated locally and on CAN-devices. This requires that the firmware-file is pre-processed using VESC Tool with the cli-command --createFirmwareForBootloader.
+
+---
+
+#### fw-erase
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(fw-erase size optCanId)
+```
+
+Erase firmware-buffer. This is required before writing the firmware. Returns true on success or nil/timeout on failure. If the optional argument optCanId is omitted or set to -1 the command is performed locally, otherwise it is performed on the CAN-device with id optCanId.
+
+---
+
+#### fw-write
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(fw-write offset data optCanId)
+```
+
+Write data to firmware-buffer at offset. Returns true on success or nil/timeout on failure. If the optional argument optCanId is omitted or set to -1 the command is performed locally, otherwise it is performed on the CAN-device with id optCanId.
+
+---
+
+#### fw-reboot
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(fw-reboot optCanId)
+```
+
+Reboot and attempt to load the new firmware from the firmware-buffer using the bootloader. This function always returns true as there is no easy way to get the response from the bootloader. If the optional argument optCanId is omitted or set to -1 the command is performed locally, otherwise it is performed on the CAN-device with id optCanId.
 
 ---
 
