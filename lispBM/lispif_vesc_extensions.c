@@ -50,6 +50,7 @@
 #include "log.h"
 #include "buffer.h"
 #include "crc.h"
+#include "shutdown.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -3613,11 +3614,11 @@ static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_TERROR;
 	}
 
-	if (!is_symbol_true_false(args[3])) {
+	if (!is_symbol_true_false(args[0])) {
 		return ENC_SYM_TERROR;
 	}
 
-	int cal_res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[3]));
+	int cal_res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[0]));
 
 	if (cal_res < 0) {
 		return ENC_SYM_NIL;
@@ -4448,6 +4449,22 @@ static lbm_value ext_buf_find(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(res);
 }
 
+static lbm_value ext_shutdown_hold(lbm_value *args, lbm_uint argn) {
+	if (argn != 1) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
+
+	if (!is_symbol_true_false(args[0])) {
+		return ENC_SYM_TERROR;
+	}
+
+	shutdown_hold(lbm_is_symbol_true(args[0]));
+
+	return ENC_SYM_TRUE;
+}
+
+
 // Remote Messages
 
 // (canmsg-recv slot timeout)
@@ -4594,6 +4611,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("icu-period", ext_icu_period);
 	lbm_add_extension("crc16", ext_crc16);
 	lbm_add_extension("buf-find", ext_buf_find);
+	lbm_add_extension("shutdown-hold", ext_shutdown_hold);
 
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);

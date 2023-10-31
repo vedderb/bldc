@@ -28,6 +28,7 @@
 	* Added can-recv-eid.
 	* Added app-adc-range-ok.
 	* Much faster return on error for i2c-tx-rx.
+	* Added shutdown-hold.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

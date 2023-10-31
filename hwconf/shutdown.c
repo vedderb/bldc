@@ -35,6 +35,7 @@ static THD_WORKING_AREA(shutdown_thread_wa, 128);
 static mutex_t m_sample_mutex;
 static volatile bool m_init_done = false;
 static volatile bool m_sampling_disabled = false;
+static volatile bool m_shutdown_hold = false;
 
 // Private functions
 static THD_FUNCTION(shutdown_thread, arg);
@@ -67,12 +68,21 @@ void shutdown_set_sampling_disabled(bool disabled) {
 	chMtxUnlock(&m_sample_mutex);
 }
 
+void shutdown_hold(bool hold) {
+	m_shutdown_hold = hold;
+}
+
 static bool do_shutdown(void) {
 	conf_general_store_backup_data();
 #ifdef USE_LISPBM
 	lispif_process_shutdown();
 #endif
 	chThdSleepMilliseconds(100);
+
+	while (m_shutdown_hold) {
+		chThdSleepMilliseconds(5);
+	}
+
 	DISABLE_GATE();
 	HW_SHUTDOWN_HOLD_OFF();
 	return true;
@@ -197,6 +207,10 @@ void shutdown_reset_timer(void) {
 
 float shutdown_get_inactivity_time(void) {
 	return m_inactivity_time;
+}
+
+void shutdown_hold(bool hold) {
+	(void)hold;
 }
 
 static THD_FUNCTION(shutdown_thread, arg) {
