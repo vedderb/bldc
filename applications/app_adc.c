@@ -201,6 +201,11 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
+		// Override pwr value, when used from LISP
+		if (adc_detached == 1 || adc_detached == 2) {
+			pwr = adc1_override;
+		}
+
 		// Map the read voltage
 		switch (config.ctrl_type) {
 		case ADC_CTRL_TYPE_CURRENT_REV_CENTER:
@@ -222,11 +227,6 @@ static THD_FUNCTION(adc_thread, arg) {
 			// Linear mapping between the start and end voltage
 			pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
 			break;
-		}
-
-		// Override pwr value, when used from LISP
-		if (adc_detached == 1 || adc_detached == 2) {
-			pwr = adc1_override;
 		}
 
 		// Optionally apply a filter
