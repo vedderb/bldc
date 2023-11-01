@@ -1,9 +1,12 @@
-(setvar 'a 10)
+(define a 10)
+(define b 1)
 
+;; setvar nolonger works on undefined variables.
+;; so setvar cannot be used in the loop.
 (defun f (n)
   (if (= n 0) 0
     (progn
-      (setvar 'b 100)
+      (define b 10)
       (undefine 'b)
       (f (- n 1)))))
 
