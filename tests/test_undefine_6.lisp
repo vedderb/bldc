@@ -3,7 +3,7 @@
 (defun f (n)
   (if (= n 0) 0
     (progn
-      (set 'a 10)
+      (define a 10)
       (define b 100)
       (undefine 'b)
       (f (- n 1)))))
