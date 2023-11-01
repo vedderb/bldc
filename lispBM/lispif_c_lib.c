@@ -586,6 +586,18 @@ static float lib_get_ppm_age(void) {
 	return (float)servodec_get_time_since_update() / 1000.0;
 }
 
+static bool lib_add_extension(char *sym_str, extension_fptr ext) {
+	if (sym_str[0] != 'e' ||
+			sym_str[1] != 'x' ||
+			sym_str[2] != 't' ||
+			sym_str[3] != '-') {
+		commands_printf_lisp("Error: Extensions must start with ext-");
+		return false;
+	}
+
+	return lbm_add_extension(sym_str, ext);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -599,7 +611,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		memset((char*)cif.pad, 0, 2048);
 
 		// LBM
-		cif.cif.lbm_add_extension = lbm_add_extension;
+		cif.cif.lbm_add_extension = lib_add_extension;
 		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
 		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
 		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
