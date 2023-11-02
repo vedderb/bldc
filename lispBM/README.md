@@ -597,6 +597,20 @@ Calculate the 16-bit crc of array. optLen is an optional argument for how many e
 
 ---
 
+#### crc32
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(crc32 array init optLen)
+```
+
+Calculate the 32-bit crc of array. optLen is an optional argument for how many elements to include, if it is left out the entire array will be used. The crc uses the polynomial 0x4C11DB7 (ethernet) and initial value init.
+
+---
+
 #### main-init-done
 
 | Platforms | Firmware |
