@@ -625,6 +625,20 @@ Hold shutdown. When hold is true hardware shutdown will be delayed until hold is
 
 ---
 
+#### reboot
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(reboot)
+```
+
+Reboot CPU. Required on the express when e.g. changing wifi-settings.
+
+---
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
@@ -2927,6 +2941,39 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
+
+; Express settings (Added in 6.05)
+'controller_id          ; VESC CAN ID
+'can_baud_rate          ; CAN-bus baud rate
+                        ; 0: 125K
+                        ; 1: 250K
+                        ; 2: 500K
+                        ; 3: 1M
+                        ; 4: 10K
+                        ; 5: 20K
+                        ; 6: 50K
+                        ; 7: 75K
+'can_status_rate_hz     ; CAN status message rate
+'wifi_mode              ; Wifi mode
+                        ; 0: Disabled
+                        ; 1: Station
+                        ; 2: Access Point
+'wifi_sta_ssid          ; Wifi station SSID
+'wifi_sta_key           ; Wifi station Key
+'wifi_ap_ssid           ; Wifi access point SSID
+'wifi_ap_key            ; Wifi access point key
+'use_tcp_local          ; Use local TCP server
+'use_tcp_hub            ; Connecto to TCP hub
+'tcp_hub_url            ; TCP hub URL
+'tcp_hub_port           ; TCP hub port
+'tcp_hub_id             ; TCP hub connection ID
+'tcp_hub_pass           ; TCP hub password
+'ble_mode               ; BLE mode
+                        ; 0: Disabled
+                        ; 1: Enabled
+                        ; 2: Enabled and encrypted with pin
+'ble_name               ; Device name (also the name that shows up in VESC Tool)
+'ble_pin                ; BLE pin code
 ```
 
 ---
@@ -2935,7 +2982,7 @@ The following selection of app and motor parameters can be read and set from Lis
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (conf-set param value)
@@ -2953,7 +3000,7 @@ Set param to value. This can be done while the motor is running and it will be a
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (conf-get param optDefLim)
@@ -2973,13 +3020,13 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (conf-store)
 ```
 
-Store the current configuration to flash. This will stop the motor.
+Store the current configuration to flash. This will stop the motor. Note: On the express most settings require a reboot to be applied. Remember to use conf-store before rebooting.
 
 ---
 
@@ -4050,12 +4097,19 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
-(event-enable 'event-can-sid)  ; Sends (signal-can-sid . (id . data)), where id is U32 and data is a byte array
-(event-enable 'event-can-eid)  ; Sends (signal-can-eid . (id . data)), where id is U32 and data is a byte array
-(event-enable 'event-data-rx)  ; Sends (signal-data-rx . data), where data is a byte array
-(event-enable 'event-shutdown) ; Sends signal-shutdown
-(event-enable 'event-icu-width) ; Sends (event-icu-width . (width . period))
-(event-enable 'event-icu-period) ; Sends (event-icu-period . (width . period))
+(event-enable 'event-can-sid)  ; -> (event-can-sid . (id . data)), where id is U32 and data is a byte array
+(event-enable 'event-can-eid)  ; -> (event-can-eid . (id . data)), where id is U32 and data is a byte array
+(event-enable 'event-data-rx)  ; -> (event-data-rx . data), where data is a byte array
+(event-enable 'event-shutdown) ; -> event-shutdown
+(event-enable 'event-icu-width) ; -> (event-icu-width . (width . period))
+(event-enable 'event-icu-period) ; -> (event-icu-period . (width . period))
+
+; BMS events (currently express only)
+(event-enable 'event-bms-chg-allow) ; -> (event-bms-chg-allow allow)
+(event-enable 'event-bms-bal-ovr) ; -> (event-bms-bal-ovr ch bal)
+(event-enable 'event-bms-reset-cnt) ; -> event-bms-reset-cnt
+(event-enable 'event-bms-force-bal) ; -> (event-bms-force-bal force)
+(event-enable 'event-bms-zero-ofs) ; -> event-bms-zero-ofs
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
