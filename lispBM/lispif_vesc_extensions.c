@@ -129,6 +129,7 @@ typedef struct {
 	lbm_uint foc_sensor_mode;
 	lbm_uint foc_current_kp;
 	lbm_uint foc_current_ki;
+	lbm_uint foc_f_zv;
 	lbm_uint foc_motor_l;
 	lbm_uint foc_motor_ld_lq_diff;
 	lbm_uint foc_motor_r;
@@ -371,6 +372,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("foc-current-kp", comp);
 		} else if (comp == &syms_vesc.foc_current_ki) {
 			get_add_symbol("foc-current-ki", comp);
+		} else if (comp == &syms_vesc.foc_f_zv) {
+			get_add_symbol("foc-f-zv", comp);
 		} else if (comp == &syms_vesc.foc_motor_l) {
 			get_add_symbol("foc-motor-l", comp);
 		} else if (comp == &syms_vesc.foc_motor_ld_lq_diff) {
@@ -2925,6 +2928,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
 			mcconf->foc_current_ki = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_f_zv)) {
+			mcconf->foc_f_zv = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_motor_l)) {
 			mcconf->foc_motor_l = lbm_dec_as_float(args[1]) * 1e-6;
 			changed_mc = 2;
@@ -3229,6 +3235,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->foc_current_kp);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
 		res = lbm_enc_float(mcconf->foc_current_ki);
+	} else if (compare_symbol(name, &syms_vesc.foc_f_zv)) {
+		res = lbm_enc_float(mcconf->foc_f_zv);
 	} else if (compare_symbol(name, &syms_vesc.foc_motor_l)) {
 		res = lbm_enc_float(mcconf->foc_motor_l * 1e6);
 	} else if (compare_symbol(name, &syms_vesc.foc_motor_ld_lq_diff)) {
@@ -3377,14 +3385,17 @@ typedef struct {
 	float openloop_rpm;
 	float sl_erpm;
 	lbm_cid id;
+	int motor;
 } detect_args;
 
 static void detect_task(void *arg) {
 	detect_args *a = (detect_args*)arg;
 	int restart_cnt = lispif_get_restart_cnt();
 
+	mc_interface_select_motor_thread(a->motor);
 	int res = conf_general_detect_apply_all_foc_can(a->detect_can, a->max_power_loss,
 			a->min_current_in, a->max_current_in, a->openloop_rpm, a->sl_erpm, NULL);
+	mc_interface_select_motor_thread(1);
 
 	if (restart_cnt == lispif_get_restart_cnt()) {
 		lbm_unblock_ctx_unboxed(a->id, lbm_enc_i(res));
@@ -3401,6 +3412,7 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	a.openloop_rpm = lbm_dec_as_float(args[4]);
 	a.sl_erpm = lbm_dec_as_float(args[5]);
 	a.id = lbm_get_current_cid();
+	a.motor = mc_interface_get_motor_thread();
 	lbm_block_ctx_from_extension();
 	worker_execute(detect_task, &a);
 	return ENC_SYM_TRUE;
@@ -3436,23 +3448,26 @@ typedef struct {
 	float current;
 	int samples;
 	lbm_cid id;
+	int motor;
 } measure_res_args;
 
 static void measure_res_task(void *arg) {
 	int restart_cnt = lispif_get_restart_cnt();
 
 	measure_res_args *a = (measure_res_args*)arg;
-	float res = -1.0;
-	mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
-
-	if (restart_cnt != lispif_get_restart_cnt()) {
-		return;
-	}
-
 	lbm_flat_value_t v;
 	bool ok = false;
 
 	if (lbm_start_flatten(&v, 10)) {
+		float res = -1.0;
+		mc_interface_select_motor_thread(a->motor);
+		mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
+		mc_interface_select_motor_thread(1);
+
+		if (restart_cnt != lispif_get_restart_cnt()) {
+			return;
+		}
+
 		f_float(&v, res);
 		lbm_finish_flatten(&v);
 		if (lbm_unblock_ctx(a->id, &v)) {
@@ -3486,6 +3501,7 @@ static lbm_value ext_conf_measure_res(lbm_value *args, lbm_uint argn) {
 		a.samples = lbm_dec_as_u32(args[1]);
 	}
 	a.id = lbm_get_current_cid();
+	a.motor = mc_interface_get_motor_thread();
 
 	lbm_block_ctx_from_extension();
 	worker_execute(measure_res_task, &a);
@@ -3496,6 +3512,7 @@ typedef struct {
 	float current;
 	int samples;
 	lbm_cid id;
+	int motor;
 } measure_ind_args;
 
 static void measure_inductance_task(void *arg) {
@@ -3508,7 +3525,10 @@ static void measure_inductance_task(void *arg) {
 	lbm_flat_value_t v;
 	bool ok = false;
 	if (lbm_start_flatten(&v, 25)) {
+		mc_interface_select_motor_thread(a->motor);
 		fault = mcpwm_foc_measure_inductance_current(a->current, a->samples, &real_measurement_current, &ld_lq_diff, &ld_lq_avg);
+		mc_interface_select_motor_thread(1);
+
 		if (restart_cnt != lispif_get_restart_cnt()) {
 			return;
 		}
@@ -3561,6 +3581,7 @@ static lbm_value ext_conf_measure_ind(lbm_value *args, lbm_uint argn) {
 		a.samples = lbm_dec_as_u32(args[1]);
 	}
 	a.id = lbm_get_current_cid();
+	a.motor = mc_interface_get_motor_thread();
 
 	if (mc_interface_get_configuration()->l_current_max < a.current) {
 		return ENC_SYM_EERROR;

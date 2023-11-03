@@ -2870,6 +2870,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'si-battery-ah          ; Battery amp hours (Added in FW 6.05)
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
+'foc-f-zv               ; Zero Vector Frequency in Hz
 'foc-motor-l            ; Motor inductance in microHenry
 'foc-motor-ld-lq-diff   ; D and Q axis inductance difference in microHenry
 'foc-motor-r            ; Motor resistance in milliOhm
