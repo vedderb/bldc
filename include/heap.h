@@ -199,6 +199,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_BIT                      0x00000001u
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
+#define LBM_PTR_NULL                     (0x03FFFFFCu >> 2)
 
 // The address is an index into the const heap.
 #define LBM_PTR_TO_CONSTANT_BIT          0x04000000u
@@ -214,6 +215,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
 #define LBM_PTR_TYPE_MASK                (lbm_uint)0xF800000000000000
+#define LBM_PTR_NULL                     ((lbm_uint)0x03FFFFFFFFFFFFFC >> 2)
 
 #define LBM_PTR_TO_CONSTANT_BIT          (lbm_uint)0x0400000000000000
 #define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
@@ -544,7 +546,7 @@ void lbm_get_heap_state(lbm_heap_state_t *);
 lbm_uint lbm_get_gc_stack_max(void);
 /** Get the size of the GC stack.
  * \return the size of the gc stack.
- */  
+ */
 lbm_uint lbm_get_gc_stack_size(void);
 // Garbage collection
 /** Increment the counter that is counting the number of times GC ran
@@ -561,18 +563,22 @@ void lbm_nil_freelist(void);
  */
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
- *
- * \return 1 on success and 0 if the stack used internally is full.
+ * \param  root
  */
-int lbm_gc_mark_phase(void);
+void lbm_gc_mark_phase(lbm_value root);
 /** Performs lbm_gc_mark_phase on all the values of an array.
- *
+ *  This function is similar to lbm_gc_mark_roots but performs
+ *  extra checks to not traverse into non-standard values.
+ *  TODO: Check if this function is really needed.
  * \param data Array of roots to traverse from.
  * \param n Number of elements in roots-array.
- * \return 1 on success or 0 for failure.
  */
-int lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
-
+void lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
+/** Performs lbm_gc_mark_phase on all the values in the roots array.
+ * \param roots pointer to array of roots.
+ * \param num_roots size of array of roots.
+ */
+void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots);
 /** Sweep up all non marked heap cells and place them on the free list.
  *
  * \return 1

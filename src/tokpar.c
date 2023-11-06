@@ -108,9 +108,19 @@ int tok_syntax(lbm_char_channel_t *chan, uint32_t *res) {
   return tok_match_fixed_size_tokens(chan, fixed_size_tokens, 0, NUM_FIXED_SIZE_TOKENS, res);
 }
 
-bool symchar0(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#!";
+static bool alpha_char(char c) {
+  return ((c >= 'a' && c <= 'z') ||
+          (c >= 'A' && c <= 'Z'));
+}
 
+static bool num_char(char c) {
+  return (c >= '0' && c <= '9');
+}
+
+static bool symchar0(char c) {
+  const char *allowed = "+-*/=<>#!";
+
+  if (alpha_char(c)) return true;
   int i = 0;
   while (allowed[i] != 0) {
     if (c == allowed[i]) return true;
@@ -119,9 +129,10 @@ bool symchar0(char c) {
   return false;
 }
 
-bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?_";
+static bool symchar(char c) {
+  const char *allowed = "+-*/=<>!?_";
 
+  if (alpha_char(c) || num_char(c)) return true;
   int i = 0;
   while (allowed[i] != 0) {
     if (c == allowed[i]) return true;
