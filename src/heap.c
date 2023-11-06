@@ -74,18 +74,16 @@ static mutex_t lbm_mark_mutex;
 static bool    lbm_mark_mutex_initialized = false;
 
 #ifdef USE_GC_PTR_REV
-void lbm_gc_lock() {
+void lbm_gc_lock(void) {
   mutex_lock(&lbm_mark_mutex);
 }
-void lbm_gc_unlock() {
+void lbm_gc_unlock(void) {
   mutex_unlock(&lbm_mark_mutex);
 }
 #else
-void lbm_gc_lock() {
-  (void)
+void lbm_gc_lock(void) {
 }
-void lbm_gc_unlock() {
-  (void)
+void lbm_gc_unlock(void) {
 }
 #endif
 
@@ -631,7 +629,6 @@ lbm_uint lbm_get_gc_stack_size(void) {
 }
 
 #ifdef USE_GC_PTR_REV
-#warning "USING POINTER REVERSAL GC"
 static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
