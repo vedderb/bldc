@@ -185,6 +185,13 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			break;
 		}
 
+		bool print_all = true;
+		if (len > 0) {
+			print_all = data[0];
+		}
+
+		lbm_gc_lock();
+
 		if (lbm_heap_state.gc_num > 0) {
 			heap_use = 100.0 * (float)(HEAP_SIZE - lbm_heap_state.gc_last_free) / (float)HEAP_SIZE;
 		}
@@ -210,9 +217,14 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			lbm_value key_val = lbm_car(curr);
 			if (lbm_type_of(lbm_car(key_val)) == LBM_TYPE_SYMBOL && lbm_is_number(lbm_cdr(key_val))) {
 				const char *name = lbm_get_name_by_symbol(lbm_dec_sym(lbm_car(key_val)));
-				strcpy((char*)(send_buffer_global + ind), name);
-				ind += strlen(name) + 1;
-				buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(lbm_cdr(key_val)), &ind);
+
+				if (print_all ||
+						((name[0] == 'v' || name[0] == 'V') &&
+								(name[1] == 't' || name[1] == 'T'))) {
+					strcpy((char*)(send_buffer_global + ind), name);
+					ind += strlen(name) + 1;
+					buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(lbm_cdr(key_val)), &ind);
+				}
 			}
 
 			if (ind > 300) {
@@ -235,6 +247,8 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				}
 			}
 		}
+
+		lbm_gc_unlock();
 
 		reply_func(send_buffer_global, ind);
 		mempools_free_packet_buffer(send_buffer_global);

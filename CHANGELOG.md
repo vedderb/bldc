@@ -30,6 +30,7 @@
 	* Much faster return on error for i2c-tx-rx.
 	* Added shutdown-hold.
 	* Added crc32.
+	* Support for only polling variables starting with VT.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

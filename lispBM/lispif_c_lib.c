@@ -598,6 +598,11 @@ static bool lib_add_extension(char *sym_str, extension_fptr ext) {
 	return lbm_add_extension(sym_str, ext);
 }
 
+static int lib_lbm_set_error_reason(char *str) {
+	lbm_set_error_reason(str);
+	return 1;
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -615,7 +620,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.lbm_block_ctx_from_extension = lbm_block_ctx_from_extension;
 		cif.cif.lbm_unblock_ctx = lbm_unblock_ctx;
 		cif.cif.lbm_get_current_cid = lbm_get_current_cid;
-		cif.cif.lbm_set_error_reason = lbm_set_error_reason;
+		cif.cif.lbm_set_error_reason = lib_lbm_set_error_reason;
 		cif.cif.lbm_pause_eval_with_gc = lbm_pause_eval_with_gc;
 		cif.cif.lbm_continue_eval = lbm_continue_eval;
 		cif.cif.lbm_send_message = lbm_send_message;
