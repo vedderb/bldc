@@ -280,6 +280,15 @@ typedef struct {
   lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
+/** Lock GC mutex
+ *  Locks a mutex during GC marking when using the pointer reversal algorithm.
+ *  Does nothing when using stack based GC mark.
+ */
+void lbm_gc_lock();
+/* Unlock GC mutex
+ */
+void lbm_gc_unlock();
+
 /** Initialize heap storage.
  * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
  * \param num_cells Number of lbm_cons_t elements in the array.
