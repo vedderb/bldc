@@ -68,8 +68,26 @@ lbm_const_heap_t *lbm_const_heap_state;
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
 static mutex_t lbm_const_heap_mutex;
-static bool    lbm_const_heap_mutex_initialized;
+static bool    lbm_const_heap_mutex_initialized = false;
 
+static mutex_t lbm_mark_mutex;
+static bool    lbm_mark_mutex_initialized = false;
+
+#ifdef USE_GC_PTR_REV
+void lbm_gc_lock() {
+  mutex_lock(&lbm_mark_mutex);
+}
+void lbm_gc_unlock() {
+  mutex_unlock(&lbm_mark_mutex);
+}
+#else
+void lbm_gc_lock() {
+  (void)
+}
+void lbm_gc_unlock() {
+  (void)
+}
+#endif
 
 /****************************************************/
 /* ENCODERS DECODERS                                */
@@ -613,7 +631,8 @@ lbm_uint lbm_get_gc_stack_size(void) {
 }
 
 #ifdef USE_GC_PTR_REV
-void value_assign(lbm_value *a, lbm_value b) {
+#warning "USING POINTER REVERSAL GC"
+static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
 }
@@ -623,6 +642,7 @@ void lbm_gc_mark_phase(lbm_value root) {
 
   if (!lbm_is_ptr(root)) return;
 
+  mutex_lock(&lbm_const_heap_mutex);
   lbm_value curr = root;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
 
@@ -668,10 +688,9 @@ void lbm_gc_mark_phase(lbm_value root) {
       value_assign(&cell->car, curr);
       value_assign(&curr, cell->cdr);
       value_assign(&cell->cdr, next);
-    } else {
-      // This should not really happen..
     }
   }
+  mutex_unlock(&lbm_const_heap_mutex);
 }
 
 #else
@@ -1237,6 +1256,11 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   if (!lbm_const_heap_mutex_initialized) {
     mutex_init(&lbm_const_heap_mutex);
     lbm_const_heap_mutex_initialized = true;
+  }
+
+  if (!lbm_mark_mutex_initialized) {
+    mutex_init(&lbm_mark_mutex);
+    lbm_mark_mutex_initialized = true;
   }
 
   const_heap_write = w_fun;

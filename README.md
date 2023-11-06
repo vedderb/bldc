@@ -33,7 +33,11 @@ think of are:
 1. Running LispBM on system simulators.
 2. LispBM efficiency, compilation, byte-code and real time garbage collection.
 3. Documentation and testing.
-4. ...
+4. Useful extension libraries.
+5. Lisp scriptable home automation.
+6. Lisp scriptable MIDI sequencers.
+7. Lisp scriptable Audio synthesizers.
+8. ...
 
 ## Getting started 
 
