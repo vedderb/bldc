@@ -222,14 +222,18 @@ uint32_t lbm_get_eval_state(void);
  *  and will in that case be freed when the context
  *  that errored is removed.
  * \param error_str
- * \return 1 on success and 0 on failure.
  */
-int lbm_set_error_reason(char *error_str);
-/** Terminate the runtime system in response to an 
+void lbm_set_error_reason(char *error_str);
+/** Provide the expression that is most suspicious
+ *  in relation to the error at hand.
+ * \param lbm_value
+ */
+void lbm_set_error_suspect(lbm_value suspect);
+/** Terminate the runtime system in response to an
   *  error that it is not possible to recover from.
   */
 void lbm_critical_error(void);
-/** Set the critical error callback */ 
+/** Set the critical error callback */
 void lbm_set_critical_error_callback(void (*fptr)(void));
 /** Create a context and enqueue it as runnable.
  *
@@ -238,7 +242,7 @@ void lbm_set_critical_error_callback(void (*fptr)(void));
  * \param stack_size Stack size for the context.
  * \param name Name of thread or NULL.
  * \return
- */  
+ */
 lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name);
 /** Block a context from an extension
  */

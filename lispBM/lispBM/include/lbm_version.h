@@ -27,13 +27,19 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 19
+#define LBM_MINOR_VERSION 20
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.19.0"
+#define LBM_VERSION_STRING "0.20.0"
 
 /*! \page changelog Changelog
+NOV 1 2024: Version 0.20.0
+  - Added lbm_set_error_suspect function to enable extension authors to point out in more detail what is wrong.
+  - Improvement to error messages in some cases.
+  - Changed behavior of set family on functions when variable is not already bound (now an error).
+  - Fix of bug in flat_value handling.
+
 OCT 8 2024: Version 0.19.0
   - Error message and callback on GC stack overflow.
   - Functions for gc stack size statistics added.

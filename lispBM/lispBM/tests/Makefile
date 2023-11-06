@@ -28,6 +28,9 @@ all64: $(EXECS)
 #	mv test_lisp_code_cps_nc.exe test_lisp_code_cps_nc
 
 
+allrev: CCFLAGS += -DUSE_GC_PTR_REV -m32
+allrev: $(EXECS)
+	mv test_lisp_code_cps.exe test_lisp_code_cps
 
 %.exe: %.c $(LISPBM_DEPS)
 	$(CC) $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $< -o $@  -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread

@@ -120,6 +120,9 @@ const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
+static lbm_value lbm_error_suspect;
+static bool lbm_error_has_suspect = false;
+
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
@@ -133,8 +136,7 @@ const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 #define WITH_GC_RMBR_1(y, x, r)                 \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
-    add_roots_1(r);                             \
-    lbm_gc_mark_phase();                        \
+    lbm_gc_mark_phase(r);                       \
     gc();                                       \
     (y) = (x);                                  \
     if (lbm_is_symbol_merror((y))) {            \
@@ -373,26 +375,11 @@ eval_context_t *lbm_get_current_context(void) {
 /****************************************************/
 /* Utilities used locally in this file              */
 
-static void add_roots_1(lbm_value r1) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-}
-
-static void add_roots_2(lbm_value r1, lbm_value r2) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r2;
-}
-
-static void add_roots_3(lbm_value r1, lbm_value r2, lbm_value r3) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r2;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r3;
-}
-
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
-    add_roots_3(head, tail, remember);
-    lbm_gc_mark_phase();
+    lbm_value roots[3] = {head, tail, remember};
+    lbm_gc_mark_roots(roots,3);
     gc();
     res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
     if (lbm_is_symbol_merror(res)) {
@@ -712,9 +699,15 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
   printf_callback(  "***   Error: %s\n", buf);
   if (has_at) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
-    printf_callback("***   At:    %s\n",buf);
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***   After: %s\n",buf);
+    printf_callback("***   In:    %s\n",buf);
+    if (lbm_error_has_suspect) {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, lbm_error_suspect);
+      lbm_error_has_suspect = false;
+      printf_callback("***   At:    %s\n", buf);
+    } else {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+      printf_callback("***   After: %s\n",buf);
+    }
   } else {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
     printf_callback("***   Near:  %s\n",buf);
@@ -945,13 +938,15 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
   return true;
 }
 
-int lbm_set_error_reason(char *error_str) {
-  int r = 0;
-  if (ctx_running) {
+void lbm_set_error_suspect(lbm_value suspect) {
+  lbm_error_suspect = suspect;
+  lbm_error_has_suspect = true;
+}
+
+void lbm_set_error_reason(char *error_str) {
+  if (ctx_running != NULL) {
     ctx_running->error_reason = error_str;
-    r = 1;
   }
-  return r;
 }
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
@@ -1125,16 +1120,16 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
     gc();
     ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
 
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
     gc();
     if (!lbm_stack_allocate(&ctx->K, stack_size)) {
       lbm_memory_free((lbm_uint*)ctx);
@@ -1145,8 +1140,8 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   lbm_value *mailbox = NULL;
   mailbox = (lbm_value*)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   if (mailbox == NULL) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_value roots[2] = {program, env};
+    lbm_gc_mark_roots(roots,2);
     gc();
     mailbox = (lbm_value *)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   }
@@ -1161,8 +1156,8 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     lbm_uint name_len = strlen(name) + 1;
     ctx->name = lbm_malloc(strlen(name) + 1);
     if (ctx->name == NULL) {
-      add_roots_2(program, env);
-      lbm_gc_mark_phase();
+      lbm_value roots[2] = {program, env};
+      lbm_gc_mark_roots(roots, 2);
       gc();
       ctx->name = lbm_malloc(strlen(name) + 1);
     }
@@ -1439,12 +1434,14 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 // just return no_match.
 static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
 
+  // A pattern list is a list of pattern, expression lists.
+  // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
   int n = 0;
   bool gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
-    while (lbm_is_cons(curr_p)) {
+    while (!lbm_is_symbol_nil(curr_p)) {
       lbm_value me = get_car(curr_p);
       if (match(get_car(me), curr_e, env, &gc)) {
         if (gc) return FM_NEED_GC;
@@ -1471,8 +1468,8 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
   lbm_value roots[4] = { ctx->curr_env, ctx->curr_exp, ctx->program, ctx->r };
-  lbm_gc_mark_aux(roots, 4);
-  lbm_gc_mark_aux(ctx->mailbox, ctx->num_mail);
+  lbm_gc_mark_roots(roots, 4);
+  lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
   lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
 
@@ -1487,14 +1484,12 @@ static int gc(void) {
   lbm_value *variables = lbm_get_variable_table();
   if (variables) {
     for (int i = 0; i < lbm_get_num_variables(); i ++) {
-      add_roots_1(variables[i]);
-      lbm_gc_mark_phase();
+      lbm_gc_mark_phase(variables[i]);
     }
   }
   // The freelist should generally be NIL when GC runs.
   lbm_nil_freelist();
-  add_roots_1(lbm_get_env());
-  lbm_gc_mark_phase();
+  lbm_gc_mark_phase(lbm_get_env());
 
   mutex_lock(&qmutex); // Lock the queues.
                        // Any concurrent messing with the queues
@@ -1800,8 +1795,7 @@ static void eval_let(eval_context_t *ctx) {
     if (r < 0) {
       if (r == BL_NO_MEMORY) {
         new_env_tmp = new_env;
-        add_roots_1(new_env);
-        lbm_gc_mark_phase();
+        lbm_gc_mark_phase(new_env);
         gc();
         r = create_binding_location(key, &new_env_tmp);
       }
@@ -1855,17 +1849,25 @@ static void eval_or(eval_context_t *ctx) {
   }
 }
 
-/* pattern matching experiment */
-/* format:                     */
-/* (match e (pattern body)     */
-/*          (pattern body)     */
-/*          ...  )             */
+// Pattern matching
+// format:
+// (match e (pattern body)
+//          (pattern body)
+//          ...  )
+//
+// There can be an optional pattern guard:
+// (match e (pattern guard body)
+//          ... )
+// a guard is a boolean expression.
+// Guards make match, pattern matching more complicated
+// than the recv pattern matching and requires staged execution
+// via the continuation system rather than a while loop over a list.
 static void eval_match(eval_context_t *ctx) {
 
   lbm_value rest = get_cdr(ctx->curr_exp);
   if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
       rest == ENC_SYM_NIL) {
-    /* Someone wrote the program (match) */
+    // Someone wrote the program (match)
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
   } else {
@@ -1937,6 +1939,9 @@ static void eval_receive_timeout(eval_context_t *ctx) {
   receive_base(ctx, pats, timeout_time, true);
 }
 
+// Receive
+// (recv (pattern expr)
+//       (pattern expr))
 static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
@@ -2036,7 +2041,6 @@ static void cont_wait(eval_context_t *ctx) {
   }
 }
 
-// Maybe do not create a global but instead raise an error.
 static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);
@@ -2551,7 +2555,10 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   bool a_nil = lbm_is_symbol_nil(args);
   bool p_nil = lbm_is_symbol_nil(cdr_params);
 
-  if (!a_nil && !p_nil) {
+  int ap = (a_nil ? 1 : 0) | ((p_nil ? 1 : 0) << 1);
+
+  switch (ap) {
+  case 0: {
     // evaluate the next argument.
     lbm_value car_args, cdr_args;
     get_car_and_cdr(args, &car_args, &cdr_args);
@@ -2561,22 +2568,29 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     stack_push(&ctx->K, CLOSURE_ARGS);
     ctx->curr_exp = car_args;
     ctx->curr_env = arg_env;
-  } else if (a_nil && p_nil) {
-    // Arguments and parameters match up in number
-    lbm_stack_drop(&ctx->K, 5);
-    ctx->curr_env = clo_env;
-    ctx->curr_exp = exp;
-  } else if (!a_nil && p_nil) {
-    // Application with extra arguments
-    lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
-  } else {
-    // Ran out of arguments, but there are still parameters.
+  } break;
+  case 1: {
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
     sptr[0] = new_env; // keep safe from GC. Overwriting arg_env (safe as subset).
     ctx->r = allocate_closure(cdr_params, exp, new_env);
     lbm_stack_drop(&ctx->K, 5);
     ctx->app_cont = true;
+  } break;
+  case 2:
+    // Application with extra arguments
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_ctx(ENC_SYM_EERROR);
+    // Ran out of arguments, but there are still parameters.
+    break;
+  case 3:
+    // Arguments and parameters match up in number
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->curr_env = clo_env;
+    ctx->curr_exp = exp;
+    break;
+  default:
+    // impossible:
+    error_ctx(ENC_SYM_FATAL_ERROR);
   }
 }
 
@@ -2723,7 +2737,8 @@ static void cont_match(eval_context_t *ctx) {
 
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
-      add_roots_3(orig_env, patterns, e);
+      lbm_uint roots[3] = {orig_env, patterns, e};
+      lbm_gc_mark_roots(roots, 3);
       gc();
       do_gc = false;
       new_env = orig_env;
