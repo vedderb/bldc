@@ -184,10 +184,16 @@ for directory in package_dict:
     for target in package_dict[directory]:
         # Shorthand variable
         destination_file_name = target[1]
+        destination_full_path = os.path.join(destination_path, destination_file_name)
         origin_file_name = target[0] + '.bin'
+        origin_full_path = os.path.join(build_dir, target[0], origin_file_name)
+
+        # Skip firmware that has not been built
+        if not os.path.isfile(origin_full_path):
+            continue
 
         # Copy the file
-        shutil.copy(os.path.join(build_dir, target[0], origin_file_name), os.path.join(destination_path, destination_file_name))
+        shutil.copy(origin_full_path, destination_full_path)
 
         # Replace the stub string with the target specifics
         target_res_string = res_firmwares_string.replace("TARGET_DESTINATION_DIRECTORY", directory).replace("TARGET_DESTINATION_FILENAME", destination_file_name)
