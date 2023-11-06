@@ -736,7 +736,7 @@ void lbm_gc_mark_phase(lbm_value root) {
 
 // The free list should be a "proper list"
 // Using a while loop to traverse over the cdrs
-int lbm_gc_mark_freelist() {
+int lbm_gc_mark_freelist(void) {
 
   lbm_value curr;
   lbm_cons_t *t;
@@ -762,6 +762,23 @@ int lbm_gc_mark_freelist() {
 
   return 1;
 }
+
+//Environments are proper lists with a 2 element list stored in each car.
+void lbm_gc_mark_env(lbm_value env) {
+  lbm_value curr = env;
+  lbm_cons_t *c;
+
+  while (lbm_is_ptr(curr)) {
+    c = lbm_ref_cell(curr);
+    c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
+    lbm_cons_t *b = lbm_ref_cell(c->car);
+    b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
+    lbm_gc_mark_phase(b->cdr);        // mark the bound object.
+    lbm_heap_state.gc_marked +=2;
+    curr = c->cdr;
+  }
+}
+
 
 void lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
   for (lbm_uint i = 0; i < aux_size; i ++) {

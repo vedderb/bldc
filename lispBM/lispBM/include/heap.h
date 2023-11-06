@@ -571,6 +571,10 @@ void lbm_nil_freelist(void);
  * \return 1 on success or 0 if the free-list is corrupted.
  */
 int lbm_gc_mark_freelist(void);
+/** Mark all heap cells reachable from an environment.
+ * \param environment.
+ */
+void lbm_gc_mark_env(lbm_value);
 /** Mark heap cells reachable from the lbm_value v.
  * \param  root
  */
