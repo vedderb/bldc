@@ -284,10 +284,10 @@ typedef struct {
  *  Locks a mutex during GC marking when using the pointer reversal algorithm.
  *  Does nothing when using stack based GC mark.
  */
-void lbm_gc_lock();
+void lbm_gc_lock(void);
 /* Unlock GC mutex
  */
-void lbm_gc_unlock();
+void lbm_gc_unlock(void);
 
 /** Initialize heap storage.
  * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
