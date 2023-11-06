@@ -6,7 +6,7 @@ import subprocess
 def get_git_revision_short_hash() -> str:
     return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
-# Get the origin and destionation directories
+# Get the origin and destination directories
 build_dir = os.path.dirname(os.path.abspath(__file__)) + '/build'
 package_dir = os.path.dirname(os.path.abspath(__file__)) + '/package'
 
