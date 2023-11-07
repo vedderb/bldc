@@ -260,18 +260,41 @@
 #define MCCONF_FOC_DT_US			0 // Microseconds for dead time compensation
 #endif
 
-#define HW_DEAD_TIME_NSEC		50.0
+#define HW_DEAD_TIME_NSEC		100.0
 
-// #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
-// #endif
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV                 50000.0
 #endif
 
-// #ifndef FOC_CONTROL_LOOP_FREQ_DIVIDER
-// #define FOC_CONTROL_LOOP_FREQ_DIVIDER	3
-// #endif
+// Openloop ERPM
+#define MCCONF_FOC_OPENLOOP_RPM 900
+
+// Openloop ERPM at Min Current
+// #define MCCONF_FOC_OPENLOOP_RPM_LOW 0
+
+// D Axis Gain Scaling Start
+// #define MCCONF_FOC_D_GAIN_SCALE_START 1
+
+// D Axis Gain Scaling at Max Mod
+// #define MCCONF_FOC_D_GAIN_SCALE_MAX_MOD 0.2
+
+// Openloop Hysteresis
+#define MCCONF_FOC_SL_OPENLOOP_HYST 0.02
+
+// Openloop Lock Time
+#define MCCONF_FOC_SL_OPENLOOP_T_LOCK 0
+
+// Openloop Ramp Time
+#define MCCONF_FOC_SL_OPENLOOP_T_RAMP 0.01
+
+// Openloop Time
+#define MCCONF_FOC_SL_OPENLOOP_TIME 0.01
+
+// Decrease current to this fraction at start
+#define MCCONF_FOC_START_CURR_DEC		0.3	
+
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
 
 // Setting limits
 #define HW_LIM_CURRENT          -21.3, 21.3 // -21.66, 21.66 
