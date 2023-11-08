@@ -169,6 +169,7 @@ typedef struct {
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
+	lbm_uint can_baud_rate;
 	lbm_uint app_to_use;
 	lbm_uint ppm_ctrl_type;
 	lbm_uint ppm_pulse_start;
@@ -452,6 +453,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("max-speed", comp);
 		} else if (comp == &syms_vesc.controller_id) {
 			get_add_symbol("controller-id", comp);
+		} else if (comp == &syms_vesc.can_baud_rate) {
+			get_add_symbol("can-baud-rate", comp);
 		} else if (comp == &syms_vesc.app_to_use) {
 			get_add_symbol("app-to-use", comp);
 		} else if (comp == &syms_vesc.ppm_ctrl_type) {
@@ -3015,6 +3018,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
 			mcconf->foc_fw_duty_start = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
+			appconf->can_baud_rate = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
 			appconf->app_to_use = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -3315,6 +3321,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_max_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		res = lbm_enc_i(appconf->controller_id);
+	} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
+		res = lbm_enc_i(appconf->can_baud_rate);
 	} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
 		res = lbm_enc_i(appconf->app_to_use);
 	} else if (compare_symbol(name, &syms_vesc.ppm_ctrl_type)) {

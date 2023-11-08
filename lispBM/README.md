@@ -2870,7 +2870,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'si-battery-ah          ; Battery amp hours (Added in FW 6.05)
 'foc-current-kp         ; FOC current controller KP
 'foc-current-ki         ; FOC current controller KI
-'foc-f-zv               ; Zero Vector Frequency in Hz
+'foc-f-zv               ; Zero Vector Frequency in Hz (Added in FW 6.05)
 'foc-motor-l            ; Motor inductance in microHenry
 'foc-motor-ld-lq-diff   ; D and Q axis inductance difference in microHenry
 'foc-motor-r            ; Motor resistance in milliOhm
@@ -2914,6 +2914,16 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    9: APP_PAS
                         ;    10: APP_ADC_PAS
 'controller-id          ; VESC CAN ID
+'can-baud-rate          ; CAN-bus baud rate (Added in FW 6.05)
+                        ; 0: 125K
+                        ; 1: 250K
+                        ; 2: 500K
+                        ; 3: 1M
+                        ; 4: 10K
+                        ; 5: 20K
+                        ; 6: 50K
+                        ; 7: 75K
+                        ; 8: 100K
 'ppm-ctrl-type          ; PPM Control Type
                         ;    0:  PPM_CTRL_TYPE_NONE
                         ;    1:  PPM_CTRL_TYPE_CURRENT
@@ -2958,8 +2968,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 
 ; Express settings (Added in 6.05)
-'controller_id          ; VESC CAN ID
-'can_baud_rate          ; CAN-bus baud rate
+'controller-id          ; VESC CAN ID
+'can-baud-rate          ; CAN-bus baud rate
                         ; 0: 125K
                         ; 1: 250K
                         ; 2: 500K
@@ -2967,28 +2977,27 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; 4: 10K
                         ; 5: 20K
                         ; 6: 50K
-                        ; 7: 75K
-'can_status_rate_hz     ; CAN status message rate
-'wifi_mode              ; Wifi mode
+'can-status-rate-hz     ; CAN status message rate
+'wifi-mode              ; Wifi mode
                         ; 0: Disabled
                         ; 1: Station
                         ; 2: Access Point
-'wifi_sta_ssid          ; Wifi station SSID
-'wifi_sta_key           ; Wifi station Key
-'wifi_ap_ssid           ; Wifi access point SSID
-'wifi_ap_key            ; Wifi access point key
-'use_tcp_local          ; Use local TCP server
-'use_tcp_hub            ; Connecto to TCP hub
-'tcp_hub_url            ; TCP hub URL
-'tcp_hub_port           ; TCP hub port
-'tcp_hub_id             ; TCP hub connection ID
-'tcp_hub_pass           ; TCP hub password
-'ble_mode               ; BLE mode
+'wifi-sta-ssid          ; Wifi station SSID
+'wifi-sta-key           ; Wifi station Key
+'wifi-ap-ssid           ; Wifi access point SSID
+'wifi-ap-key            ; Wifi access point key
+'use-tcp-local          ; Use local TCP server
+'use-tcp-hub            ; Connecto to TCP hub
+'tcp-hub-url            ; TCP hub URL
+'tcp-hub-port           ; TCP hub port
+'tcp-hub-id             ; TCP hub connection ID
+'tcp-hub-pass           ; TCP hub password
+'ble-mode               ; BLE mode
                         ; 0: Disabled
                         ; 1: Enabled
                         ; 2: Enabled and encrypted with pin
-'ble_name               ; Device name (also the name that shows up in VESC Tool)
-'ble_pin                ; BLE pin code
+'ble-name               ; Device name (also the name that shows up in VESC Tool)
+'ble-pin                ; BLE pin code
 ```
 
 ---
