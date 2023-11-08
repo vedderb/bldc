@@ -155,6 +155,16 @@ package_dict["SOLO"] = [['solo', default_name],
                     ['solo_no_limits', no_limits_name]]
 package_dict["FSESC_75_200_ALU"] = [['fsesc_75_200_alu', default_name],
                     ['fsesc_75_200_alu_no_limits', no_limits_name]]
+package_dict["MKSESC_75_100"] = [['mksesc_75_100', default_name],
+                    ['mksesc_75_100_no_limits', no_limits_name]]
+package_dict["MKSESC_75_100_V2"] = [['mksesc_75_100_v2', default_name],
+                    ['mksesc_75_100_v2_no_limits', no_limits_name]]                    
+package_dict["MKSESC_75_200_V2"] = [['mksesc_75_200_v2', default_name],
+                    ['mksesc_75_200_v2_no_limits', no_limits_name]]
+package_dict["MKSESC_84_100_HP"] = [['mksesc_84_100_hp', default_name],
+                    ['mksesc_84_100_hp_no_limits', no_limits_name]]                    
+package_dict["MKSESC_84_200_HP"] = [['mksesc_84_200_hp', default_name],
+                    ['mksesc_84_200_hp_no_limits', no_limits_name]]   
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
