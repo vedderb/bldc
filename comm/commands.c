@@ -2023,7 +2023,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			mempools_free_mcconf(mcconf);
 			mempools_free_mcconf(mcconf_old);
-					} break;
+		} break;
 
 		case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
 			int32_t ind = 0;
