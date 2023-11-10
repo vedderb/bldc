@@ -62,12 +62,12 @@
 /*
  * ADC Vector
  *
- * 0:	IN0		SENS1
- * 1:	IN1		SENS2
- * 2:	IN2		SENS3
- * 3:	IN10	CURR1
- * 4:	IN11	CURR2
- * 5:	IN12	CURR3
+ * 0:	IN10	CURR1
+ * 1:	IN11	CURR2
+ * 2:	IN12	CURR3
+ * 3:	IN0		SENS1
+ * 4:	IN1		SENS2
+ * 5:	IN2		SENS3
  * 6:	IN5		ADC_EXT1
  * 7:	IN6		ADC_EXT2
  * 8:	IN3		TEMP_PCB
