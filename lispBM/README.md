@@ -2805,6 +2805,54 @@ Get the period of the last captured pulse. The unit is timer ticks, which depend
 
 ---
 
+### AS504x Encoder
+
+The AS504x (AS5047, AS5048) encoder can be used on any pins using software SPI.
+
+---
+
+#### as5047x-init
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(as5047x-init pin-miso pin-sck pin-cs)
+```
+
+Initialize the AS504x-driver on the specified pins.
+
+---
+
+#### as5047x-deinit
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(as5047x-deinit)
+```
+
+De-initialize the AS504x-driver and restore the pins.
+
+---
+
+#### as5047x-angle
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(as5047x-angle)
+```
+
+Read angle from the AS504x-encoder in degrees.
+
+---
+
 ### Configuration
 
 The following selection of app and motor parameters can be read and set from LispBM:
