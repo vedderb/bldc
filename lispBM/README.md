@@ -2666,6 +2666,20 @@ Start LSM6DSx IMU driver over i2c. Takes the same arguments as i2c-start and sha
 
 ---
 
+#### imu-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(imu-stop)
+```
+
+Stop IMU-driver and put IMU in sleep mode.
+
+---
+
 ### GPIO
 
 These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
