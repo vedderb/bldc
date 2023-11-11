@@ -342,7 +342,7 @@ Note: The AUX output mode must be set to Unused in Motor Settings->General->Adva
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (get-imu-rpy)
@@ -360,7 +360,7 @@ The function (ix list ind) can be used to get an element from the list. Example:
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (get-imu-quat)
@@ -373,7 +373,7 @@ Get a list of quaternions from the IMU (q0, q1, q2 and q3).
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (get-imu-acc)
@@ -386,7 +386,7 @@ Get a list of the x, y and z acceleration from the IMU in G.
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (get-imu-gyro)
@@ -399,7 +399,7 @@ Get a list of the x, y and z angular rate from the IMU in degrees/s.
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (get-imu-mag)
@@ -412,7 +412,7 @@ Get a list of the x, y and z magnetic field strength from the IMU in uT. Note th
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 Same as get-imu-acc, but derotates the result first. This means that the acceleration will be relative to the horizon and not the IMU chip.
 
@@ -422,7 +422,7 @@ Same as get-imu-acc, but derotates the result first. This means that the acceler
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 Same as get-imu-gyro, but derotates the result first. This means that the angular rates will be relative to the horizon and not the IMU chip.
 
@@ -2645,6 +2645,24 @@ Send array (or list) arrTx to the I2C-device with address addr. Optionally recei
 ```
 
 Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an i2c-device hangs and refuses to respond.
+
+---
+
+#### imu-start-lsm6
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(imu-start-lsm6 optRate optPinSda optPinScl)
+```
+
+Start LSM6DSx IMU driver over i2c. Takes the same arguments as i2c-start and shares the same i2c-pins. Example:
+
+```clj
+(imu-start-lsm6 'rate-400k 21 20)
+```
 
 ---
 
