@@ -168,6 +168,13 @@
  */
 
 /*
+ * #define HW_HAS_NO_LED
+ *
+ * The hardware is missing the green and red LED.
+ * TODO: Maybe split into two defines for green and red LED.
+ */
+
+/*
  * Define these to enable MPU9150 or MPU9250 support
  * on these pins.
  *
