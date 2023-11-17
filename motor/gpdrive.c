@@ -620,7 +620,9 @@ static void adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
+#if LED_ENABLE
 	ledpwm_update_pwm();
+#endif
 
 	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }

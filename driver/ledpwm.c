@@ -78,6 +78,7 @@ void ledpwm_led_off(int led) {
  * Call this function as fast as possible, with a deterministic rate.
  */
 void ledpwm_update_pwm(void) {
+#if LED_ENABLE
 	static int cnt = 0;
 	cnt++;
 	if (cnt == LEDPWM_CNT_TOP) {
@@ -95,6 +96,7 @@ void ledpwm_update_pwm(void) {
 	} else {
 		LED_RED_ON();
 	}
+#endif
 
 #ifdef LED_PWM1_ON
 	if (cnt >= led_values[LED_HW1]) {
