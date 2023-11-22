@@ -27,17 +27,18 @@ do not be shy to make contact. Together we can make great stuff happen ;)
 3. Then join in the fun. Lots to do, so little time!
 4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com.
 
-There are also other areas that could use insights and help. Some I can
+There are areas where insights and help would matter greatly. Some I can
 think of are:
 
 1. Running LispBM on system simulators.
 2. LispBM efficiency, compilation, byte-code and real time garbage collection.
-3. Documentation and testing.
-4. Useful extension libraries.
-5. Lisp scriptable home automation.
-6. Lisp scriptable MIDI sequencers.
-7. Lisp scriptable Audio synthesizers.
-8. ...
+3. Code size optimisation. Do more with less, while maintaining performance.
+4. Documentation and testing.
+5. Useful extension libraries.
+6. Lisp scriptable home automation.
+7. Lisp scriptable MIDI sequencers.
+8. Lisp scriptable Audio synthesizers.
+9. ...
 
 ## Getting started 
 

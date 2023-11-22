@@ -7,7 +7,7 @@ headers = ('File','Eval time (s)')
 
 benches = ['q2.lisp', 'fibonacci_tail.lisp', 'dec_cnt3.lisp',
            'dec_cnt1.lisp', 'fibonacci.lisp', 'tak.lisp',
-           'dec_cnt2.lisp', 'insertionsort.lisp']
+           'dec_cnt2.lisp', 'insertionsort.lisp', 'tail_call_200k.lisp', 'loop_200k.lisp' ]
 
 data = []
 
