@@ -4,7 +4,7 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 ### Feature Overview
 
-* Development and testing in VESC Tool with variable live monitoring and plotting as well as CPU and memory monitoring.
+* Development and testing in VESC Tool with live variable monitoring and plotting as well as CPU and memory monitoring.
 * There is a REPL in VESC Tool where code can be executed and tested live. You even have full access to the functions and bindings in the program you have uploaded.
 * Sandboxed environment, meaning that the Lisp code (hopefully) cannot freeze or crash the rest of the VESC code when it gets stuck or runs out of heap or stack memory.
 * The application runs on the VESC itself without the need for having VESC Tool connected and is stored in flash memory.
@@ -16,15 +16,37 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 ## Programming Manual
 
-This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded to the VESC.
+This is the work-in-progress programming manual for LispBM. Note that the examples in the manual use the REPL quite a lot. All of them also work in the VESC Tool REPL (which is below the console below the code editor) when you are connected to a VESC and will be executed on the VESC itself. The results of the commands will be printed in the console. From the VESC Tool REPL you also have access to all functions and variables in the program that you have uploaded.
 
 [Chapter 1: Introduction to programming in LispBM](lispBM/doc/manual/ch1_introduction.md)  
 [Chapter 2: List Processing](lispBM/doc/manual/ch2_list_processing.md)  
 [Chapter 3: Concurrency](lispBM/doc/manual/ch3_concurrency.md)
 
+## VESC Express Libraries
+
+The VESC Express has some extra libraries that are documented in separate documents.
+
+**VESC Express Display Driver**  
+
+[VESC Express Display Driver](https://github.com/vedderb/vesc_express/blob/main/main/display/README.md)
+
+The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
+
+**VESC Express Wifi and TCP**  
+
+[VESC Express Wifi and TCP](https://github.com/vedderb/vesc_express/blob/main/main/wifi/README.md)
+
+The WiFi and TCP library allows scanning for and connecting to networks as well as creating and managing TCP connections.  
+
+**VESC Express BLE**  
+
+[VESC Express BLE](https://github.com/vedderb/vesc_express/blob/main/main/ble/README.md)
+
+This library allows creating a custom BLE-server with custom characteristics.  
+
 ## VESC-Specific Commands and Extensions
 
-The VESC-specific extensions are documented below. If you are reading this on GitHub there is an index in the upper left corner that can be used to navigate this document. It follows you as you scroll around and also includes a search function that filters all the titles in this document.
+The VESC-specific extensions are documented below. If you are reading this on GitHub there is an index in the upper right corner that can be used to navigate this document. It follows you as you scroll around and also includes a search function that filters all the titles in this document.
 
 Note that VESC Tool includes a collection of examples that can be used as a starting point for using LispBM on the VESC.
 
@@ -51,6 +73,24 @@ Print to the VESC Tool Lisp console. Example:
 ```
 
 Should work for all types.
+
+---
+
+#### puts
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(puts str)
+```
+
+Similar to print, but only takes one string as an argument and prints it without quotes. The string extensions can be used to format the output. Example:
+
+```clj
+(puts "Hello World")
+```
 
 ---
 
@@ -2786,12 +2826,11 @@ Start input capture on the PPM-pin with timer frequency freqHz hertz and polarit
 
 (def cb-cnt 0)
 
-(defun proc-icu (width period)
-    (progn
+(defun proc-icu (width period) {
         (def icu-w width)
         (def icu-p period)
         (def cb-cnt (+ cb-cnt 1))
-))
+})
 
 (defun event-handler ()
     (loopwhile t
@@ -3383,12 +3422,11 @@ Output:
 3
 4
 
-; Remember that multiple statements in the loop require a progn:
-(loopfor i 0 (< i 5) (+ i 1)
-    (progn
+; Remember that multiple statements in the loop require {} or progn:
+(loopfor i 0 (< i 5) (+ i 1) {
         (print i)
         (sleep 0.5)
-))
+})
 ```
 
 ---
@@ -3408,11 +3446,10 @@ While-loop. cond is the condition that has the be true for the loop to continue 
 ```clj
 (define i 0)
 
-(loopwhile (< i 5)
-    (progn
+(loopwhile (< i 5) {
         (print i)
         (define i (+ i 1))
-))
+})
 
 Output:
 0
@@ -3425,11 +3462,10 @@ Output:
 Another example that prints "Hello World" every two seconds:
 
 ```clj
-(loopwhile t
-    (progn
+(loopwhile t {
         (print "Hello World")
         (sleep 2)
-))
+})
 ```
 
 ---
@@ -3458,12 +3494,11 @@ Output:
 3
 4
 
-; As with the other loops, multiple statements require a progn
-(looprange i 0 5
-    (progn
+; As with the other loops, multiple statements require {} or progn
+(looprange i 0 5 {
         (print i)
         (sleep 0.5)
-))
+})
 ```
 
 ---
@@ -3491,12 +3526,11 @@ C
 dE
 f
 
-; As with the other loops, multiple statements require a progn
-(loopforeach i '("AB" "C" "dE" "f")
-    (progn
+; As with the other loops, multiple statements require {} or progn
+(loopforeach i '("AB" "C" "dE" "f") {
         (print i)
         (sleep 0.5)
-))
+})
 
 ```
 
@@ -3517,8 +3551,6 @@ While-loop that starts in a new thread. The argument stack is the stack-size of 
 Example that forever prints "Hello World" every two seconds:
 
 ```clj
-; Note: This example uses the curly backet for progn for convenience
-
 (loopwhile-thd 100 t {
         (print "Hello World")
         (sleep 2)

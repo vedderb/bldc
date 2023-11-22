@@ -578,6 +578,27 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+/**
+ * signature: (puts string)
+ *
+ * Print string without surrounding it with "quotes" first.
+ *
+ * @param string The string to print. Strings longer than 400 characters will be
+ * trimmed.
+*/
+static lbm_value ext_puts(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(1);
+
+	if (!lbm_is_array_r(args[0])) {
+		return ENC_SYM_TERROR;
+	}
+
+	const char *string = lbm_dec_str(args[0]);
+	commands_printf_lisp("%s", string);
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_set_servo(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	servo_simple_set_output(lbm_dec_as_float(args[0]));
@@ -4621,6 +4642,7 @@ void lispif_load_vesc_extensions(void) {
 
 	// Various commands
 	lbm_add_extension("print", ext_print);
+	lbm_add_extension("puts", ext_puts);
 	lbm_add_extension("timeout-reset", ext_reset_timeout);
 	lbm_add_extension("get-ppm", ext_get_ppm);
 	lbm_add_extension("get-ppm-age", ext_get_ppm_age);
