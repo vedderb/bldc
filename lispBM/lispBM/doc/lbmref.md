@@ -677,6 +677,30 @@ Example:
 
 In the example, the bindings a = 1 and b = 2 are created for use in the let body.
 
+### loop
+loop allows to repeatedly evaluate an expression for as long as a condition
+holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`.
+
+The  `list-of-local-bindings` are very similar to how `let` works, just that here
+the `body-exp` is repeated.
+
+Example that prints hello world 5 times:
+```clj
+(loop ( (a 5) ) (> a 0) { (print "hello world") (setq a (- a 1))})
+```
+
+When the `cond-exp` evaluates to false, the loop exits and the entire loop
+expression returns the value `nil`.
+
+Here is an example of a "for each element in a list do something":
+```clj
+(loop ( (a '(1 2 3 4)) ) a { (print (car a)) (setq a (cdr a))})
+```
+
+The example above loops for as long as there are elements in a. Each
+element is printed and a is updated in the body.
+
+
 ### define
 
 You can give names to values in a global scope by using define.
