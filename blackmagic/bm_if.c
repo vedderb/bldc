@@ -147,6 +147,10 @@ static int idcode_to_device(uint32_t idcode) {
 
 	case 0x415: ret = 10; break; // STM32L47x
 
+	case 0x468: ret = 11; break; // STM32G43
+	case 0x469: ret = 12; break; // STM32G47
+	case 0x479: ret = 13; break; // STM32G49
+
 	default: ret = -2; break;
 	}
 
