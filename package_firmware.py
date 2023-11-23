@@ -164,7 +164,9 @@ package_dict["MKSESC_75_200_V2"] = [['mksesc_75_200_v2', default_name],
 package_dict["MKSESC_84_100_HP"] = [['mksesc_84_100_hp', default_name],
                     ['mksesc_84_100_hp_no_limits', no_limits_name]]                    
 package_dict["MKSESC_84_200_HP"] = [['mksesc_84_200_hp', default_name],
-                    ['mksesc_84_200_hp_no_limits', no_limits_name]]   
+                    ['mksesc_84_200_hp_no_limits', no_limits_name]]
+package_dict["STR500"] = [['STR500', default_name],
+                    ['STR500_no_limits', no_limits_name],
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
