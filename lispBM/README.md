@@ -70,9 +70,11 @@ Print to the VESC Tool Lisp console. Example:
 
 ```clj
 (print "Hello World")
+> "Hello World"
 ```
 
-Should work for all types.
+Should work for all types. If multiple arguments are provided, each one will be
+printed on a separate line.
 
 ---
 
@@ -86,10 +88,18 @@ Should work for all types.
 (puts str)
 ```
 
-Similar to print, but only takes one string as an argument and prints it without quotes. The string extensions can be used to format the output. Example:
+Similar to `print`, but only takes one string as an argument and prints it without
+quotes. The string extensions can be used to format the output.
+
+**Note**  
+This extension can print longer strings than `print`. `print` will trim any
+output over 256 bytes, while this extension only trims strings over 400 bytes.
+
+Example:
 
 ```clj
 (puts "Hello World")
+> Hello World
 ```
 
 ---
@@ -4246,6 +4256,10 @@ Possible events to register are
 (event-enable 'event-bms-reset-cnt) ; -> event-bms-reset-cnt
 (event-enable 'event-bms-force-bal) ; -> (event-bms-force-bal force)
 (event-enable 'event-bms-zero-ofs) ; -> event-bms-zero-ofs
+
+; Other express only events
+(event-enable 'event-ble-rx) ; -> (event-ble-rx handle data)
+(event-enable 'event-wifi-disconnect) ; -> ('event-wifi-disconnect reason from-extension)
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
@@ -4270,13 +4284,25 @@ This event is sent when the input capture unit captures a pulse. Both the pulse 
 **event-icu-period**  
 This event is sent when the input capture unit ends a period and the next pulse starts. Both the pulse width and the period are provided.
 
+**event-ble-rx** (Express exclusive)  
+This event is sent when a client connected to the VESC writes a value to a
+characteristic or descriptor. Read the
+[BLE docs](https://github.com/vedderb/vesc_express/tree/main/main/ble#events)
+for details.
+
+**event-wifi-disconnect** (Express exclusive)  
+This event is sent when the VESC disconnects from the currently connected
+network for any reason. Read the
+[Wi-Fi docs](https://github.com/vedderb/vesc_express/tree/main/main/wifi#events)
+for details.
+
 ---
 
 ## Byte Arrays
 
 Byte arrays (and text strings) are allocated in memory as consecutive arrays of bytes (not linked lists). They can be shared with C and are more space and performance efficient than linked lists. Several of the extensions also take byte arrays as input as an alternative to lists and some of the events return byte arrays.
 
-To allocate a byte array with 20 bytes and bind the symbol arr to it you can use
+To allocate a byte array with 20 bytes and bind the symbol `arr` to it you can use
 
 ```clj
 (define arr (array-create 20))
@@ -4296,7 +4322,7 @@ The length of a byte array can be read with
 (buflen arr)
 ```
 
-Which will return 20 for the array arr above.
+Which will return 20 for the array `arr` above.
 
 ---
 
@@ -4312,7 +4338,7 @@ To clear a byte array the function bufclear can be used:
 (bufclear arr optByte optStart optLen)
 ```
 
-Where arr is the byte array to clear, optByte is the optional argument of what to clear with (default 0), optStart is the optional argument of which position to start clearing (default 0) and optLen is the optional argument of how many bytes to clear after start (default the entire array). Example:
+Where `arr` is the byte array to clear, `optByte` is the optional argument of what to clear with (default 0), `optStart` is the optional argument of which position to start clearing (default 0) and `optLen` is the optional argument of how many bytes to clear after start (default the entire array). Example:
 
 ```clj
 (bufclear arr) ; Clear all of arr
@@ -4399,7 +4425,7 @@ Copy part of one array into another array.
 (bufcpy arr1 ind1 arr2 ind2 len)
 ```
 
-Copy len bytes from arr2 starting at ind2 to arr1 starting at ind1. Len will be truncated to ensure that nothing is read or written outside of the arrays.
+Copy len bytes from `arr2` starting at `ind2` to `arr1` starting at `ind1`. `len` will be truncated to ensure that nothing is read or written outside of the arrays.
 
 ---
 
@@ -4415,7 +4441,7 @@ Byte arrays will be de-allocated by the garbage collector on a regular basis, bu
 (free arr)
 ```
 
-This will clear the allocated memory for arr.
+This will clear the allocated memory for `arr`.
 
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
@@ -4432,10 +4458,60 @@ Strings in lispBM are treated the same as byte arrays, so all of the above can b
 (buf-find arr seq optOccurence)
 ```
 
-Find position of seq in array arr. The optional argument optOccurence specifies which occurrence of seq to look for - if it is set to 0 or left out the position of the first occurrence will be returned. If seq is not found -1 will be returned.
+Find position of `seq` in array `arr`. The optional argument optOccurence specifies which occurrence of `seq` to look for - if it is set to 0 or left out the position of the first occurrence will be returned. If `seq` is not found -1 will be returned.
 
 **NOTE**  
-The last byte in seq will be ignored as that is the null-terminator if seq is a string (which is the most common use case). If the match should be done on the last byte too seq can be padded with a dummy-byte.
+The last byte in `seq` will be ignored as that is the null-terminator if `seq` is a string (which is the most common use case). If the match should be done on the last byte too `seq` can be padded with a dummy-byte.
+
+---
+
+#### buf-resize
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(buf-resize arr delta-size opt-absolute-size)
+```
+
+Change the length of array `arr` in bytes. A reference to `arr` is returned.
+This extension can be used in two modes:
+1. Relative: In this mode you set `delta-size` to the amount of bytes the length
+   should be changed by. Negative numbers makes the array smaller.
+   `opt-absolute-size` should not be passed in this mode (it is therefore an
+   optional argument).
+2. Absolute: In this mode you set `delta-size` to be `nil` and set
+   `opt-absolute-size` to the new length in bytes.
+
+Passing `nil` to `delta-size` while not passing any value for
+`opt-absolute-size` will result in an `eval_error`.
+
+When growing the length of the array a new range will be allocated and the old
+data copied over. The new bytes will be initialised to zero. If the new length
+of the array is smaller than the previous the allocated range will simply be
+marked as smaller in an efficient manner which avoids any new allocations.
+
+It is possible to shrink an array to a length of zero.
+
+**Note**  
+The array will be resized in place. The returned reference to `arr` is just for
+convenience.
+
+Example where we remove the terminating null byte from a string buffer:
+```clj
+(buf-resize "hello" -1)
+> [104 101 108 108 111]
+```
+
+Example where we increase the length of `buf` to 5:
+```clj
+(def buf [1 2 3 4])
+(buf-resize buf nil 5)
+(bufset-u8 buf 4 5) ; we set it to avoid LBM printing the array as a string
+(print buf)
+> [1 2 3 4 5]
+```
 
 ---
 
