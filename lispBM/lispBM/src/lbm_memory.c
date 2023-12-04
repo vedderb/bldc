@@ -396,9 +396,15 @@ void lbm_free(void *ptr) {
 }
 
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
+  if (!lbm_memory_ptr_inside(ptr) || n == 0) return 0;
+
   lbm_uint ix = address_to_bitmap_ix(ptr);
 
   mutex_lock(&lbm_mem_mutex);
+  if (status(ix) == START_END) {
+    mutex_unlock(&lbm_mem_mutex);
+    return 1; // A one word arrays always succeeds at remaining at 1 word
+  }
   if (status(ix) != START) {
     mutex_unlock(&lbm_mem_mutex);
     return 0; // ptr does not point to the start of an allocated range.

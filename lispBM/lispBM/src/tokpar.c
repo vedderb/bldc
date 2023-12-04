@@ -42,6 +42,33 @@ typedef struct {
   uint32_t len;
 } matcher;
 
+/*
+  \#\a -> 7                 ; control-g
+  \#\b -> 8                 ; backspace, BS
+  \#\t -> 9                 ; tab, TAB
+  \#\n -> 10                ; newline
+  \#\v -> 11                ; vertical tab
+  \#\f -> 12                ; formfeed character
+  \#\r -> 13                ; carriage return, RET
+  \#\e -> 27                ; escape character, ESC
+  \#\s -> 32                ; space character, SPC
+  \#\\ -> 92                ; backslash character, \
+  \#\d -> 127               ; delete character, DEL
+*/
+
+#define NUM_SPECIAL_CHARS 11
+const char special_chars[NUM_SPECIAL_CHARS][2] =
+  {{'a', '\a'},
+   {'b', '\b'},
+   {'t', '\t'},
+   {'n', '\n'},
+   {'v', '\v'},
+   {'f', '\f'},
+   {'r', '\r'},
+   {'e', 27},
+   {'s', 32},
+   {'\\', '\\'},
+   {'d', 127}};
 
 #define NUM_FIXED_SIZE_TOKENS 16
 const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
@@ -244,6 +271,24 @@ int tok_char(lbm_char_channel_t *chan, char *res) {
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
+  if (c == '\\') {
+    r = lbm_channel_peek(chan, 3, &c);
+    if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+    if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+
+    bool ok = false;
+    for (int i = 0; i < NUM_SPECIAL_CHARS; i ++) {
+      if (c == special_chars[i][0]) {
+        *res = special_chars[i][1];
+        ok = true;
+      }
+    }
+    if (ok) {
+      return 4;
+    } else {
+      return TOKENIZER_CHAR_ERROR;
+    }
+  }
   *res = c;
   return 3;
 }

@@ -27,13 +27,20 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 20
+#define LBM_MINOR_VERSION 21
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.20.0"
+#define LBM_VERSION_STRING "0.21.0"
 
 /*! \page changelog Changelog
+NOV 28 2024: Version 0.21.0
+  - Removed partial evaluation.
+  - Added a built-in loop.
+  - Modification to built-in implementation of map.
+  - Addition of pointer-reversal garbage collector. Not on by default.
+  - Improved error messages.
+
 NOV 1 2024: Version 0.20.0
   - Added lbm_set_error_suspect function to enable extension authors to point out in more detail what is wrong.
   - Improvement to error messages in some cases.
