@@ -500,6 +500,14 @@ static lbm_value ext_event(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_NIL;
 }
 
+
+static lbm_value ext_time(lbm_value *args, lbm_uint argn) {
+
+  uint32_t time = timestamp_callback();
+
+  return lbm_enc_u32(time);
+}
+
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -588,8 +596,8 @@ void sym_it(const char *str) {
   printf("%s\n", str);
 }
 
-static lbm_uint memory[LBM_MEMORY_SIZE_8K];
-static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
+static lbm_uint memory[LBM_MEMORY_SIZE_1M];
+static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_1M];
 
 char char_array[1024];
 lbm_uint word_array[1024];
@@ -620,8 +628,8 @@ int main(int argc, char **argv) {
 
   if (!lbm_init(heap_storage, heap_size,
                 GC_STACK_SIZE,
-                memory, LBM_MEMORY_SIZE_8K,
-                bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                memory, LBM_MEMORY_SIZE_1M,
+                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                 print_stack_storage, PRINT_STACK_SIZE,
                 extension_storage, EXTENSION_STORAGE_SIZE)) {
     printf("Failed to initialize LispBM\n");
@@ -706,6 +714,12 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   res = lbm_add_extension("me-looprange", ext_me_looprange);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("time", ext_time);
   if (res)
     printf("Extension added.\n");
   else
@@ -879,8 +893,8 @@ int main(int argc, char **argv) {
 
         lbm_init(heap_storage, heap_size,
                  GC_STACK_SIZE,
-                 memory, LBM_MEMORY_SIZE_8K,
-                 bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                 memory, LBM_MEMORY_SIZE_1M,
+                 bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                  print_stack_storage, PRINT_STACK_SIZE,
                  extension_storage, EXTENSION_STORAGE_SIZE);
 
@@ -929,8 +943,8 @@ int main(int argc, char **argv) {
 
       lbm_init(heap_storage, heap_size,
                GC_STACK_SIZE,
-               memory, LBM_MEMORY_SIZE_8K,
-               bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+               memory, LBM_MEMORY_SIZE_1M,
+               bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                print_stack_storage, PRINT_STACK_SIZE,
                extension_storage, EXTENSION_STORAGE_SIZE);
 

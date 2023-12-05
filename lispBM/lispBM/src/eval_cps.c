@@ -392,30 +392,33 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
 }
 
 static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
-  if (n > ctx->K.sp) {
-    error_ctx(ENC_SYM_STACK_ERROR);
+  if (n <= ctx->K.sp) {
+    lbm_uint index = ctx->K.sp - n;
+    return &ctx->K.data[index];
   }
-  lbm_uint index = ctx->K.sp - n;
-  return &ctx->K.data[index];
+  error_ctx(ENC_SYM_STACK_ERROR);
+  return 0; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 // pop_stack_ptr is safe when no GC is performed and
 // the values of the stack will be dropped.
 static lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
-  if (n > ctx->K.sp) {
-    error_ctx(ENC_SYM_STACK_ERROR);
+  if (n <= ctx->K.sp) {
+    ctx->K.sp -= n;
+    return &ctx->K.data[ctx->K.sp];
   }
-  ctx->K.sp -= n;
-  return &ctx->K.data[ctx->K.sp];
+  error_ctx(ENC_SYM_STACK_ERROR);
+  return 0; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
-  if (ctx->K.sp + n >= ctx->K.size) {
-    error_ctx(ENC_SYM_STACK_ERROR);
+  if (ctx->K.sp + n < ctx->K.size) {
+    lbm_uint *ptr = &ctx->K.data[ctx->K.sp];
+    ctx->K.sp += n;
+    return ptr;
   }
-  lbm_uint *ptr = &ctx->K.data[ctx->K.sp];
-  ctx->K.sp += n;
-  return ptr;
+  error_ctx(ENC_SYM_STACK_ERROR);
+  return 0; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static void handle_flash_status(lbm_flash_status s) {
@@ -567,7 +570,6 @@ static lbm_value get_cddr(lbm_value a) {
   return(ENC_SYM_TERROR);
 }
 
-
 static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
 
   if (lbm_heap_num_free() < 4) {
@@ -598,11 +600,20 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
 #define CLO_PARAMS 0
 #define CLO_BODY   1
 #define CLO_ENV    2
+#define LOOP_BINDS 0
+#define LOOP_COND  1
+#define LOOP_BODY  2
+
 // (closure params exp env) -> [params, exp, env])
-static void extract_closure(lbm_value closure, lbm_value *res) {
-  lbm_value curr = get_cdr(closure);
-  for (int i = 0; i < 3; i ++) {
-    get_car_and_cdr(curr,&res[i],&curr);
+static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
+  for (unsigned int i = 0; i < n; i ++) {
+    if (lbm_is_ptr(curr)) {
+      lbm_cons_t *cell = lbm_ref_cell(curr);
+      res[i] = cell->car;
+      curr = cell->cdr;
+    } else {
+      error_ctx(ENC_SYM_TERROR);
+    }
   }
 }
 
@@ -1827,18 +1838,14 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
 }
 
 // (loop list-of-local-bindings
-//       condition
+//       condition-exp
 //       body-exp)
 static void eval_loop(eval_context_t *ctx) {
-
   lbm_value env              = ctx->curr_env;
-  lbm_value curr_exp_cdr     = get_cdr(ctx->curr_exp);
-  lbm_value binds            = get_car(curr_exp_cdr); // key value pairs.
-  lbm_value curr_exp_cdr_cdr = get_cdr(curr_exp_cdr);
-  lbm_value cond             = get_car(curr_exp_cdr_cdr); // loop condition
-  lbm_value body_exp         = get_cadr(curr_exp_cdr_cdr); // loop body
-  stack_push_3(&ctx->K, body_exp, cond, LOOP_CONDITION);
-  let_bind_values_eval(binds, cond, env, ctx);
+  lbm_value parts[3];
+  extract_n(get_cdr(ctx->curr_exp), parts, 3);
+  stack_push_3(&ctx->K, parts[LOOP_BODY], parts[LOOP_COND], LOOP_CONDITION);
+  let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
 }
 
 // (let list-of-bindings
@@ -2183,7 +2190,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   }
 
   lbm_value cl[3];
-  extract_closure(args[closure_pos], cl);
+  extract_n(get_cdr(args[closure_pos]), cl, 3);
   lbm_value curr_param = cl[CLO_PARAMS];
   lbm_value clo_env    = cl[CLO_ENV];
   lbm_uint i = closure_pos + 1;
@@ -2366,23 +2373,6 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     sptr[1] = ctx->curr_env;
     sptr[2] = elt;
     ctx->curr_exp = appli;
-  } else if (nargs == 1) {
-    // Partial application, create a closure.
-    lbm_uint sym;
-    if (lbm_str_to_symbol("x", &sym)) {
-      lbm_value *sptr = get_stack_ptr(ctx, 2);
-      // Store params and body on stack temporarily to keep them safe from gc.
-      sptr[0] = cons_with_gc(lbm_enc_sym(sym), ENC_SYM_NIL,ENC_SYM_NIL);
-      WITH_GC(sptr[1], lbm_heap_allocate_list_init(3,
-                                                ENC_SYM_MAP,
-                                                args[0],
-                                                lbm_enc_sym(sym)));
-      ctx->r = allocate_closure(sptr[0], sptr[1], ENC_SYM_NIL);
-      lbm_stack_drop(&ctx->K, 2);
-      ctx->app_cont = true;
-    } else {
-      error_ctx(ENC_SYM_FATAL_ERROR);
-    }
   } else if (nargs == 2 && lbm_is_symbol_nil(args[1])) {
       lbm_stack_drop(&ctx->K, 3);
       ctx->r = ENC_SYM_NIL;
@@ -2581,26 +2571,30 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value car_params, cdr_params;
   get_car_and_cdr(params, &car_params, &cdr_params);
 
-  lbm_value ls;
-  WITH_GC(ls, lbm_heap_allocate_list(2));
-  lbm_value entry = ls;
-  lbm_value aug_env = get_cdr(ls);
-  lbm_cons_t *c1 = lbm_ref_cell(entry);
-  c1->car = car_params;
-  c1->cdr = ctx->r;
-  lbm_cons_t *c2 = lbm_ref_cell(aug_env);
-  c2->car = entry;
-  c2->cdr = clo_env;
-  clo_env = aug_env;
+  if (lbm_heap_num_free() < 2) {
+    gc();
+    if (lbm_heap_num_free() < 2) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  lbm_value cell0 = lbm_heap_state.freelist;
+  lbm_cons_t *cell0_r = lbm_ref_cell(cell0);
+  lbm_value cell1 = cell0_r->cdr;
+  lbm_cons_t *cell1_r = lbm_ref_cell(cell1);
+  lbm_heap_state.freelist = cell1_r->cdr;
+  lbm_heap_state.num_alloc += 2;
 
-  bool a_nil = lbm_is_symbol_nil(args);
-  bool p_nil = lbm_is_symbol_nil(cdr_params);
+  cell0_r->car = car_params;
+  cell0_r->cdr = ctx->r;
+  cell1_r->car = cell0;
+  cell1_r->cdr = clo_env;
+  clo_env = cell1;
 
-  int ap = (a_nil ? 1 : 0) | ((p_nil ? 1 : 0) << 1);
+  // TODO: We are NOT going to implement a lazy sweep.
+  bool a_nil = args == ENC_SYM_NIL;
+  bool p_nil = cdr_params == ENC_SYM_NIL;
 
-  switch (ap) {
-  case 0: {
-    // evaluate the next argument.
+  if (!a_nil && !p_nil) {
     lbm_value car_args, cdr_args;
     get_car_and_cdr(args, &car_args, &cdr_args);
     sptr[2] = clo_env;
@@ -2609,31 +2603,17 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     stack_push(&ctx->K, CLOSURE_ARGS);
     ctx->curr_exp = car_args;
     ctx->curr_env = arg_env;
-  } break;
-  case 1: {
-    lbm_value new_env = lbm_list_append(arg_env,clo_env);
-    sptr[0] = new_env; // keep safe from GC. Overwriting arg_env (safe as subset).
-    ctx->r = allocate_closure(cdr_params, exp, new_env);
-    lbm_stack_drop(&ctx->K, 5);
-    ctx->app_cont = true;
-  } break;
-  case 2:
-    // Application with extra arguments
-    lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
-    // Ran out of arguments, but there are still parameters.
-    break;
-  case 3:
+  } else if (a_nil && p_nil) {
     // Arguments and parameters match up in number
     lbm_stack_drop(&ctx->K, 5);
     ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
-    break;
-  default:
-    // impossible:
-    error_ctx(ENC_SYM_FATAL_ERROR);
+  } else {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
+
 
 static void cont_application_args(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 3);
@@ -3533,7 +3513,7 @@ static void cont_application_start(eval_context_t *ctx) {
     switch (get_car(ctx->r)) {
     case ENC_SYM_CLOSURE: {
       lbm_value cl[3];
-      extract_closure(ctx->r, cl);
+      extract_n(get_cdr(ctx->r), cl, 3);
       lbm_value arg_env = (lbm_value)sptr[0];
       lbm_value arg0, arg_rest;
       get_car_and_cdr(args, &arg0, &arg_rest);
@@ -4142,11 +4122,11 @@ static void evaluation_step(void){
     return;
   }
   if (exp_type == LBM_TYPE_CONS) {
-    lbm_value head = lbm_ref_cell(ctx->curr_exp)->car;
+    lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
 
-    if (lbm_type_of(head) == LBM_TYPE_SYMBOL) {
+    if ((cell->car & LBM_VAL_TYPE_MASK) == LBM_TYPE_SYMBOL) {
 
-      lbm_value eval_index = lbm_dec_sym(head) - SPECIAL_FORMS_START;
+      lbm_value eval_index = lbm_dec_sym(cell->car) - SPECIAL_FORMS_START;
 
       if (eval_index <= (SPECIAL_FORMS_END - SPECIAL_FORMS_START)) {
         evaluators[eval_index](ctx);
@@ -4159,10 +4139,9 @@ static void evaluation_step(void){
      */
     lbm_value *reserved = stack_reserve(ctx, 3);
     reserved[0] = ctx->curr_env;
-    reserved[1] = lbm_ref_cell(ctx->curr_exp)->cdr;
+    reserved[1] = cell->cdr;
     reserved[2] = APPLICATION_START;
-
-    ctx->curr_exp = head; // evaluate the function
+    ctx->curr_exp = cell->car; // evaluate the function
     return;
   }
 

@@ -49,6 +49,8 @@
 
 #define LBM_VAL_MASK                     0xFFFFFFF0u
 #define LBM_VAL_TYPE_MASK                0x0000000Cu
+#define LBM_TYPE_MASK                    0xFC00000Cu
+#define LBM_NUMBER_MASK                  0x08000000u
                                                      //    gc ptr
 #define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
 #define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
@@ -80,6 +82,7 @@
 /* 8 - 2 free bits to encode type information into */
 #define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
 #define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
+#define LBM_TYPE_MASK                   (lbm_uint)0xF8000000000000FC
 //    gc ptr
 #define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
 #define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0

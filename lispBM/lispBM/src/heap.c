@@ -435,11 +435,7 @@ double lbm_dec_as_double(lbm_value a) {
 
 bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
-#ifndef LBM64
-  return (t & 0xC || t & 0x08000000);
-#else
-  return (t & 0x1C || t & 0x0800000000000000);
-#endif
+  return (t & 0xC || t & LBM_NUMBER_MASK);
 }
 
 /****************************************************/
