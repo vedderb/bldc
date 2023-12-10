@@ -1752,7 +1752,7 @@ static void eval_setq(eval_context_t *ctx) {
   lbm_value args = get_cdr(ctx->curr_exp);
   lbm_value sym = get_car(args);
   lbm_value v_exp = get_cadr(args);
-  stack_push_2(&ctx->K, sym, SETQ);
+  stack_push_3(&ctx->K, ctx->curr_env, sym, SETQ);
   ctx->curr_exp = v_exp;
 }
 
@@ -2077,7 +2077,6 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);
   lbm_value res = val;
-
   if (s >= VARIABLE_SYMBOLS_START &&
       s <  VARIABLE_SYMBOLS_END) {
     return lbm_set_var(s, val);
@@ -3659,9 +3658,10 @@ static void cont_progn_var(eval_context_t* ctx) {
 
 static void cont_setq(eval_context_t *ctx) {
   lbm_value sym;
-  lbm_pop(&ctx->K, &sym);
+  lbm_value env;
+  lbm_pop_2(&ctx->K, &sym, &env);
   lbm_value res;
-  WITH_GC(res, perform_setvar(sym, ctx->r, ctx->curr_env));
+  WITH_GC(res, perform_setvar(sym, ctx->r, env));
   ctx->r = res;
   ctx->app_cont = true;
 }
