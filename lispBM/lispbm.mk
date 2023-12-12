@@ -25,7 +25,8 @@ LISPBMSRC = $(LISPBM)/src/env.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c \
 			lispBM/lispif_vesc_dynamic_loader.c \
-			lispBM/lispif_c_lib.c
+			lispBM/lispif_c_lib.c \
+            lispBM/lbm_vesc_utils.c
 
 LISPBMINC = lispBM \
 			$(LISPBM) \
