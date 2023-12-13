@@ -21,9 +21,14 @@
 #ifndef HW_LUNA_M600_H_
 #define HW_LUNA_M600_H_
 
-#define FW_NAME					"2023.08.22"
+#define FW_NAME					"2023.12.13"
 
-#include "mcconf_luna_m600.h"
+#ifdef M600_60V_BATTERY
+#include "mcconf_luna_m600_60V.h"
+#else
+#include "mcconf_luna_m600_48V.h"
+#endif
+
 #include "appconf_luna_m600.h"
 
 #define QMLUI_SOURCE_HW		"hwconf/luna/m600/qmlui_luna_m600.c"
@@ -38,7 +43,11 @@
 #define HW_USE_BRK
 
 #ifdef M600_Rev5
+#ifdef M600_60V_BATTERY
+#define HW_NAME					"LUNA_M600_V2_Rev5_60V"
+#else
 #define HW_NAME					"LUNA_M600_V2_Rev5"
+#endif
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 #define HW_PHASE_A_FILTER_GPIO		GPIOB

@@ -37,7 +37,7 @@
 #include "mcpwm_foc.h" // for encoder angle error
 
 #define LUNA_TORQUE_SENSOR_DEFAULT_TORQUE	0x02EE
-#define LUNA_TORQUE_SENSOR_MINIMUM_TORQUE	0x0300
+#define LUNA_TORQUE_SENSOR_MINIMUM_TORQUE	0x0360
 #define LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE	0x0600
 
 typedef enum {
