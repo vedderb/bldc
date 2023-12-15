@@ -55,7 +55,7 @@
 #define MCCONF_L_MIN_VOLTAGE 30
 
 // Maximum Input Voltage
-#define MCCONF_L_MAX_VOLTAGE 60
+#define MCCONF_L_MAX_VOLTAGE 72
 
 // Battery Voltage Cutoff Start
 #define MCCONF_L_BATTERY_CUT_START 49
