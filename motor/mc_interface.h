@@ -49,6 +49,7 @@ void mc_interface_set_current(float current);
 void mc_interface_set_brake_current(float current);
 void mc_interface_set_current_rel(float val);
 void mc_interface_set_brake_current_rel(float val);
+void mc_interface_set_passive_brake(void);
 void mc_interface_set_handbrake(float current);
 void mc_interface_set_handbrake_rel(float val);
 void mc_interface_set_openloop_current(float current, float rpm);

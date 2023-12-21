@@ -45,6 +45,8 @@ typedef struct {
 	float i_beta;
 	float i_abs;
 	float i_abs_filter;
+	float i_abs_passive_brake;
+	float i_abs_passive_brake_filtered;
 	float i_bus;
 	float v_bus;
 	float v_alpha;

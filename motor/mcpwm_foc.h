@@ -42,6 +42,7 @@ void mcpwm_foc_set_current(float current);
 void mcpwm_foc_release_motor(void);
 void mcpwm_foc_set_brake_current(float current);
 void mcpwm_foc_set_handbrake(float current);
+void mcpwm_foc_set_passive_brake(void);
 void mcpwm_foc_set_openloop_current(float current, float rpm);
 void mcpwm_foc_set_openloop_phase(float current, float phase);
 void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm);

@@ -1493,6 +1493,13 @@ static lbm_value ext_set_brake_rel(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_set_passive_brake(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	timeout_reset();
+	mc_interface_set_passive_brake();
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_set_handbrake(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_reset();
@@ -4822,6 +4829,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-duty", ext_set_duty);
 	lbm_add_extension("set-brake", ext_set_brake);
 	lbm_add_extension("set-brake-rel", ext_set_brake_rel);
+	lbm_add_extension("set-passive-brake", ext_set_passive_brake);
 	lbm_add_extension("set-handbrake", ext_set_handbrake);
 	lbm_add_extension("set-handbrake-rel", ext_set_handbrake_rel);
 	lbm_add_extension("set-rpm", ext_set_rpm);

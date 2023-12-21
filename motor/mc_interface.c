@@ -722,6 +722,20 @@ void mc_interface_set_brake_current(float current) {
 	events_add("set_current_brake", current);
 }
 
+void mc_interface_set_passive_brake(void) {
+	
+	if (mc_interface_try_input()) {
+		return;
+	}
+	
+	if (motor_now()->m_conf.motor_type == MOTOR_TYPE_FOC) {
+		mcpwm_foc_set_passive_brake();
+	}
+	
+	events_add("set_passive_brake", 0.0);
+}
+
+
 /**
  * Set current relative to the minimum and maximum current limits.
  *
@@ -798,6 +812,7 @@ void mc_interface_set_handbrake(float current) {
 
 	events_add("set_handbrake", current);
 }
+
 
 /**
  * Set handbrake brake current relative to the minimum current limit.
