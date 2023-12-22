@@ -116,7 +116,6 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   }
 
   new_env = lbm_cons(keyval, env);
-
   return new_env;
 }
 

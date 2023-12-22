@@ -2527,8 +2527,11 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     if (len == 2) {
       par1 = get_car(cl[CLO_PARAMS]);
       par2 = get_car(get_cdr(cl[CLO_PARAMS]));
-      WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
-      WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b_1)));
+      lbm_value new_env0;
+      lbm_value new_env;
+      WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
+      WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b_1)),new_env0);
+      cmp_env = new_env;
     } else {
       error_at_ctx(ENC_SYM_TERROR, args[0]);
     }
@@ -2587,8 +2590,11 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     if (cl_len == 2) {
       par1 = get_car(cl[CLO_PARAMS]);
       par2 = get_car(get_cdr(cl[CLO_PARAMS]));
-      WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a)));
-      WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b)));
+      lbm_value new_env0;
+      lbm_value new_env;
+      WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
+      WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+      cmp_env = new_env;
     } else {
       error_at_ctx(ENC_SYM_TERROR, args[0]);
     }
@@ -3077,8 +3083,15 @@ static void cont_merge_rest(eval_context_t *ctx) {
   lbm_value par2 = sptr[8];
   lbm_value cmp_body = sptr[5];
   lbm_value cmp_env = sptr[6];
-  WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b)));
+  // Environment should be preallocated already at this point
+  // and the operations below should never need GC.
+  // maybe rewrite this as a more efficient update and
+  // a fatal error if that is not possible.
+  lbm_value new_env0;
+  lbm_value new_env;
+  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
+  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  cmp_env = new_env;
 
   stack_push(&ctx->K, MERGE_REST);
   ctx->curr_exp = cmp_body;
@@ -3182,8 +3195,15 @@ static void cont_merge_layer(eval_context_t *ctx) {
   lbm_value cmp_env = sptr[1];
   lbm_value par1 = sptr[2];
   lbm_value par2 = sptr[3];
-  WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b)));
+  // Environment should be preallocated already at this point
+  // and the operations below should never need GC.
+  // maybe rewrite this as a more efficient update and
+  // a fatal error if that is not possible.
+  lbm_value new_env0;
+  lbm_value new_env;
+  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
+  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  cmp_env = new_env;
 
   lbm_uint *merge_cont = stack_reserve(ctx, 11);
   merge_cont[0] = MERGE_LAYER;

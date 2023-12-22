@@ -609,7 +609,7 @@ int main(int argc, char **argv) {
   pthread_t lispbm_thd;
 
   lbm_heap_state_t heap_state;
-  unsigned int heap_size = 2048;
+  unsigned int heap_size = 8192;//2048;
   lbm_cons_t *heap_storage = NULL;
 
   lbm_const_heap_t const_heap;
