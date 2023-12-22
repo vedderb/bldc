@@ -2488,6 +2488,27 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 // (merge comparator list1 list2)
 static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 3 && lbm_is_list(args[1]) && lbm_is_list(args[2])) {
+
+    if (!lbm_is_closure(args[0])) {
+      lbm_value closure;
+      WITH_GC(closure, lbm_heap_allocate_list(4));
+      lbm_set_car(closure, ENC_SYM_CLOSURE);
+      lbm_value cl1 = lbm_cdr(closure);
+      lbm_value par;
+      WITH_GC_RMBR_1(par, lbm_heap_allocate_list_init(2, symbol_x, symbol_y), closure);
+      lbm_set_car(cl1, par);
+      lbm_value cl2 = lbm_cdr(cl1);
+      lbm_value body;
+      WITH_GC_RMBR_1(body, lbm_heap_allocate_list_init(3, args[0], symbol_x, symbol_y), closure);
+      lbm_set_car(cl2, body);
+      lbm_value cl3 = lbm_cdr(cl2);
+      lbm_set_car(cl3, ENC_SYM_NIL);
+
+      // Replace operator on stack with closure and rest of the code is
+      // compatible.
+      args[0] = closure;
+    }
+
     // Copy input lists for functional behaviour at top-level
     // merge itself is in-place in the copied lists.
     lbm_value a;
@@ -2561,6 +2582,26 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 // (sort comparator list)
 static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[1])) {
+
+    if (!lbm_is_closure(args[0])) {
+      lbm_value closure;
+      WITH_GC(closure, lbm_heap_allocate_list(4));
+      lbm_set_car(closure, ENC_SYM_CLOSURE);
+      lbm_value cl1 = lbm_cdr(closure);
+      lbm_value par;
+      WITH_GC_RMBR_1(par, lbm_heap_allocate_list_init(2, symbol_x, symbol_y), closure);
+      lbm_set_car(cl1, par);
+      lbm_value cl2 = lbm_cdr(cl1);
+      lbm_value body;
+      WITH_GC_RMBR_1(body, lbm_heap_allocate_list_init(3, args[0], symbol_x, symbol_y), closure);
+      lbm_set_car(cl2, body);
+      lbm_value cl3 = lbm_cdr(cl2);
+      lbm_set_car(cl3, ENC_SYM_NIL);
+
+      // Replace operator on stack with closure and rest of the code is
+      // compatible.
+      args[0] = closure;
+    }
 
     int len = -1;
     lbm_value list_copy;
