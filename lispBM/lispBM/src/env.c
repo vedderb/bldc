@@ -93,6 +93,9 @@ lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   return ENC_SYM_NOT_FOUND;
 }
 
+// TODO: env set should ideally copy environment if it has to update
+// in place. This has never come up as an issue, the rest of the code
+// must be very well behaved.
 lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
 
   lbm_value curr = env;
@@ -117,6 +120,7 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   return new_env;
 }
 
+// TODO: same remark as lbm_set_env
 lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) {
 
   lbm_value keyval = lbm_cons(key, val);

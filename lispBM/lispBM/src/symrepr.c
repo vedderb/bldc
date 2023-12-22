@@ -73,6 +73,8 @@ special_sym const special_symbols[] =  {
   {"unflatten"    , SYM_UNFLATTEN},
   {"kill"         , SYM_KILL},
   {"sleep"        , SYM_SLEEP},
+  {"merge"        , SYM_MERGE},
+  {"sort"         , SYM_SORT},
   {"gc"           , SYM_PERFORM_GC},
   {"loop"         , SYM_LOOP},
 

@@ -1040,12 +1040,14 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(int m, lbm_value list) {
+lbm_value lbm_list_copy(int *m, lbm_value list) {
   lbm_value curr = list;
   lbm_uint n = lbm_list_length(list);
   lbm_uint copy_n = n;
-  if (m >= 0 && (lbm_uint)m < n) {
-    copy_n = (lbm_uint)m;
+  if (*m >= 0 && (lbm_uint)*m < n) {
+    copy_n = (lbm_uint)*m;
+  } else if (*m == -1) {
+    *m = (int)n; // TODO: smaller range in target variable.
   }
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;

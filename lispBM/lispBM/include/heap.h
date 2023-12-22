@@ -1,3 +1,4 @@
+
 /*
     Copyright 2018 , 2022 Joel Svensson        svenssonjoel@yahoo.se
 
@@ -521,11 +522,11 @@ lbm_value lbm_list_destructive_reverse(lbm_value list);
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
  *
- * \param m Number of elements to copy or -1 for all.
+ * \param m Number of elements to copy or -1 for all. If 1, m will be updated with the length of the list
  * \param list A list.
  * \return Reversed list or enc_sym(SYM_MERROR) if heap is full.
  */
-lbm_value lbm_list_copy(int m, lbm_value list);
+lbm_value lbm_list_copy(int *m, lbm_value list);
 
 /** A destructive append of two lists
  *

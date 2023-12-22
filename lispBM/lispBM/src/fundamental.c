@@ -1247,7 +1247,8 @@ static lbm_value fundamental_take(lbm_value *args, lbm_uint nargs, eval_context_
   if (nargs != 2 || !IS_NUMBER(args[1]) || !lbm_is_list(args[0]))
     return ENC_SYM_TERROR;
 
-  return lbm_list_copy(lbm_dec_as_i32(args[1]), args[0]);
+  int len = lbm_dec_as_i32(args[1]);
+  return lbm_list_copy(&len, args[0]);
 }
 
 static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
