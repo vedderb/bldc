@@ -31,6 +31,8 @@
 	* Added shutdown-hold.
 	* Added crc32.
 	* Support for only polling variables starting with VT.
+	* Added rand.
+	* Built-in sort function that is much faster and can sort much larger lists.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

@@ -2364,7 +2364,7 @@ Get the absolute value of x.
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+ |
 
 ```clj
 (throttle-curve value accel brake mode)
