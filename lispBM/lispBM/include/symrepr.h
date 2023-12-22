@@ -144,6 +144,10 @@ lbm_uint lbm_get_symbol_table_size_names(void);
  */
 lbm_uint lbm_get_symbol_table_size_names_flash(void);
 
+
+extern lbm_value symbol_x;
+extern lbm_value symbol_y;
+
 #ifdef __cplusplus
 }
 #endif
