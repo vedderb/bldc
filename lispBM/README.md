@@ -2374,6 +2374,42 @@ Apply throttle curve on value. accel (range -1 to 1) is the curve constant for a
 
 ---
 
+#### rand
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rand optSeed)
+```
+
+Generate random number in the range 0 to (rand-max). Example:
+
+```clj
+; Generate integer in the range 0 to 99
+(mod (rand) 100)
+
+; Generate number in the range 0.0 to 1.0
+(/ (to-float (rand)) (rand-max))
+```
+
+---
+
+#### rand-max
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(rand-max)
+```
+
+Returns the maximum number that rand can return.
+
+---
+
 ### Bit Operations
 
 ---

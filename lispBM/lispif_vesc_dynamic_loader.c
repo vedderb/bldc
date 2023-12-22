@@ -62,13 +62,6 @@ static const char* functions[] = {
 "(filter-rec f lst nil)"
 "))",
 
-"(defun sort (f lst)"
-"(let ((insert (lambda (elt f sorted-lst)"
-"(if (eq sorted-lst nil) (list elt)"
-"(if (f elt (car sorted-lst)) (cons elt sorted-lst)"
-"(cons (car sorted-lst) (insert elt f (cdr sorted-lst))))))))"
-"(if (eq lst nil) nil (insert (car lst) f (sort f (cdr lst))))))",
-
 "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
 "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
 

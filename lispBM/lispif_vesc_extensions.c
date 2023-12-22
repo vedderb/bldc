@@ -2216,6 +2216,37 @@ static lbm_value ext_throttle_curve(lbm_value *args, lbm_uint argn) {
 			lbm_dec_as_i32(args[3])));
 }
 
+static lbm_value ext_rand(lbm_value *args, lbm_uint argn) {
+	if (argn != 0 && argn != 1) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
+
+	unsigned int seed = 0;
+	bool seed_set = false;
+
+	if (argn == 1) {
+		if (!lbm_is_number(args[0])) {
+			lbm_set_error_reason((char*)lbm_error_str_no_number);
+			return ENC_SYM_TERROR;
+		}
+
+		seed = lbm_dec_as_u32(args[0]);
+		seed_set = true;
+	}
+
+	if (seed_set) {
+		srand(seed);
+	}
+
+	return lbm_enc_i32(rand());
+}
+
+static lbm_value ext_rand_max(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i32(RAND_MAX);
+}
+
 // Bit operations
 
 /*
@@ -4912,6 +4943,8 @@ void lispif_load_vesc_extensions(void) {
 
 	// Math
 	lbm_add_extension("throttle-curve", ext_throttle_curve);
+	lbm_add_extension("rand", ext_rand);
+	lbm_add_extension("rand-max", ext_rand_max);
 
 	// Bit operations
 	lbm_add_extension("bits-enc-int", ext_bits_enc_int);
