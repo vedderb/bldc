@@ -1250,6 +1250,44 @@ Here `(drop ls 5)` evaluates to the list `(6 7 8 9 10)`.
 
 ---
 
+### Merge
+
+
+`merge` merges two lists that are ordered according to a comparator into
+a single ordered list. The form of a `merge` expression is `(merge comparator-exp list-exp1 list-exp2)`.
+
+Example:
+```clj
+(define a '(2 4 6 8 10 12))
+(define b '(1 3 5))
+
+(merge < a b)
+```
+
+Here `(merge < a b)` evaluates to the list `(1 2 3 4 5 6 8 10 12)`.
+
+---
+
+### Sort
+
+`sort` orders a list of values according to a comparator. The sorting
+algorithm used is an in-place merge-sort. A copy of the input list is created
+at the beginning of the sort to provide a functional interface from the user's
+point of view. The form of a sort expression is `(sort comparator-exp list-exp)`
+
+Example:
+```clj
+(define ls '( 1 9 2 5 1 8 3))
+
+(sort < ls)
+
+```
+
+Here `(sort < ls)` evaluates to the list `(1 1 2 3 5 8 9)`.
+
+---
+
+
 ## Associations lists (alists)
 
 Association lists (alists) are, just like regular lists, built out
