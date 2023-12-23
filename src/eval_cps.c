@@ -2619,8 +2619,9 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value a = list_copy;
     lbm_value b = lbm_cdr(a);
     lbm_value rest = lbm_cdr(b);
-    lbm_set_cdr(a, b);
-    lbm_set_cdr(b, ENC_SYM_NIL);
+    // Do not terminate b. keep rest of list safe from GC in the following
+    // closure extraction.
+    //lbm_set_cdr(a, b); // This is void
 
     lbm_value cl[3]; // Comparator closure
     extract_n(lbm_cdr(args[0]), cl, 3);
@@ -2640,6 +2641,9 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       error_at_ctx(ENC_SYM_TERROR, args[0]);
     }
     lbm_value cmp = cl[CLO_BODY];
+
+    // Terminate the comparator argument list.
+    lbm_set_cdr(b, ENC_SYM_NIL);
 
     lbm_stack_drop(&ctx->K, 3);  //TODO: optimize drop 3, alloc 20 into alloc 17
     lbm_uint *sptr = stack_reserve(ctx, 20);
@@ -3140,13 +3144,15 @@ static void cont_merge_rest(eval_context_t *ctx) {
 }
 
 // merge_layer stack contents
-// s[sp-7] = cmp
-// s[sp-6] = cmp_env
-// s[sp-5] = par1
-// s[sp-4] = par2
-// s[sp-3] = acc
-// s[sp-2] = rest;
-// s[sp-1] = layer
+// s[sp-9] = cmp
+// s[sp-8] = cmp_env
+// s[sp-7] = par1
+// s[sp-6] = par2
+// s[sp-5] = acc - first cell
+// s[sp-4] = acc - last cell
+// s[sp-3] = rest;
+// s[sp-2] = layer
+// s[sp-1] = length or original list
 //
 // ctx->r merged sublist
 static void cont_merge_layer(eval_context_t *ctx) {
@@ -3180,7 +3186,7 @@ static void cont_merge_layer(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 9);
       return;
     } else {
-      // Setup for marges of the next layer
+      // Setup for merges of the next layer
       layer = layer * 2;
       sptr[7] = lbm_enc_i(layer);
       layer_rest = sptr[4]; // continue on the accumulation of all sublists.
@@ -3230,6 +3236,9 @@ static void cont_merge_layer(eval_context_t *ctx) {
   lbm_value a = a_list;
   lbm_value b = b_list;
   lbm_set_cdr(a, b);
+  // Terminating the b list would be incorrect here
+  // if there was any chance that the environment update below
+  // performs GC.
   lbm_set_cdr(b, ENC_SYM_NIL);
 
   lbm_value cmp_body = sptr[0];
