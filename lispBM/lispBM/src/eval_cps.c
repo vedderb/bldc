@@ -2369,7 +2369,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
     lbm_set_car(appli, f);
 
-    lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, appli);
     stack_push_4(&ctx->K, elt, appli, appli_0, MAP);
     sptr[0] = t;     // reuse stack space
     sptr[1] = ctx->curr_env;
