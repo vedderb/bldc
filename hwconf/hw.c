@@ -40,6 +40,22 @@ uint8_t hw_id_from_uuid(void) {
 	return id;
 }
 
+const char *fw_name = FW_NAME;
+const char *hw_name = HW_NAME;
+
+void get_fw_version(int *vmajor, int *vminor, int *vtest) {
+	*vmajor = FW_VERSION_MAJOR;
+	*vminor = FW_VERSION_MINOR;
+	*vtest = FW_TEST_VERSION_NUMBER;
+}
+const char *get_fw_name() {
+	return fw_name;
+}
+const char *get_hw_name() {
+	return hw_name;
+}
+
+
 #if defined(HW_ID_PIN_GPIOS) && defined(HW_ID_PIN_PINS)
 uint8_t hw_id_from_pins(void) {
 	stm32_gpio_t *hw_id_ports[]={HW_ID_PIN_GPIOS};

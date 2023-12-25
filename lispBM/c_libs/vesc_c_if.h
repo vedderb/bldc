@@ -593,6 +593,11 @@ typedef struct {
 	void (*foc_set_openloop_duty)(float dutyCycle, float rpm);
 	void (*foc_set_openloop_duty_phase)(float dutyCycle, float phase);
 
+	// FW/HW Info
+	void (*get_fw_version)(int *vmajor, int *vminor, int *vtest);
+	const char* (*get_fw_name)(void);
+	const char* (*get_hw_name)(void);
+
 	// Flat values
 	bool (*lbm_start_flatten)(lbm_flat_value_t *v, size_t buffer_size);
 	bool (*lbm_finish_flatten)(lbm_flat_value_t *v);
