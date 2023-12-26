@@ -175,7 +175,6 @@ typedef struct {
 } lbm_flat_value_t;
 
 typedef struct {
-	lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
 	lbm_uint size;            /// Number of elements
 	lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;

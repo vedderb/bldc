@@ -330,6 +330,19 @@ static void timer_reinit(int f_zv) {
 	nvicEnableVector(TIM2_IRQn, 6);
 }
 
+static void init_audio_state(volatile mc_audio_state *s) {
+	memset((void*)s, 0, sizeof(mc_audio_state));
+
+	s->mode = MC_AUDIO_OFF;
+	for (int i = 0;i < MC_AUDIO_CHANNELS;i++) {
+		s->table[i] = utils_tab_sin_32_1;
+		s->table_len[i] = 32;
+		s->table_voltage[i] = 0.0;
+		s->table_freq[i] = 1000.0;
+		s->table_pos[i] = 0.0;
+	}
+}
+
 void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	utils_sys_lock_cnt();
 
@@ -348,6 +361,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_1.m_hall_dt_diff_last = 1.0;
 	foc_precalc_values((motor_all_state_t*)&m_motor_1);
 	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
+	init_audio_state(&m_motor_1.m_audio);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	memset((void*)&m_motor_2, 0, sizeof(motor_all_state_t));
@@ -357,6 +371,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_2.m_hall_dt_diff_last = 1.0;
 	foc_precalc_values((motor_all_state_t*)&m_motor_2);
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
+	init_audio_state(&m_motor_2.m_audio);
 #endif
 
 	virtual_motor_init(conf_m1);
@@ -772,17 +787,19 @@ void mcpwm_foc_set_pid_pos(float pos) {
  * The current to use.
  */
 void mcpwm_foc_set_current(float current) {
-	get_motor_now()->m_control_mode = CONTROL_MODE_CURRENT;
-	get_motor_now()->m_iq_set = current;
-	get_motor_now()->m_id_set = 0;
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	motor->m_control_mode = CONTROL_MODE_CURRENT;
+	motor->m_iq_set = current;
+	motor->m_id_set = 0;
 	
-	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
+	if (fabsf(current) < motor->m_conf->cc_min_current) {
 		return;
 	}
 
-	if (get_motor_now()->m_state != MC_STATE_RUNNING) {
-		get_motor_now()->m_motor_released = false;
-		get_motor_now()->m_state = MC_STATE_RUNNING;
+	if (motor->m_state != MC_STATE_RUNNING) {
+		motor->m_motor_released = false;
+		motor->m_state = MC_STATE_RUNNING;
 	}
 }
 
@@ -2014,6 +2031,10 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 }
 
 bool mcpwm_foc_beep(float freq, float time, float voltage) {
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		return false;
+	}
+
 	volatile motor_all_state_t *motor = get_motor_now();
 
 	mc_foc_sensor_mode sensor_mode_old = motor->m_conf->foc_sensor_mode;
@@ -2080,6 +2101,75 @@ bool mcpwm_foc_beep(float freq, float time, float voltage) {
 	mc_interface_unlock();
 
 	return true;
+}
+
+bool mcpwm_foc_play_tone(int channel, float freq, float voltage) {
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		return false;
+	}
+
+	if (channel < 0 || channel >= MC_AUDIO_CHANNELS) {
+		return false;
+	}
+
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	if (freq <= 0.1 || freq > motor->m_conf->foc_f_zv * 0.5) {
+		return false;
+	}
+
+	motor->m_audio.table_freq[channel] = freq;
+	motor->m_audio.table_voltage[channel] = voltage;
+	motor->m_audio.mode = MC_AUDIO_TABLE;
+
+	if (voltage < 0.01) {
+		return true;
+	}
+
+	mcpwm_foc_set_current_off_delay(1.0);
+
+	if (motor->m_state != MC_STATE_RUNNING) {
+		motor->m_control_mode = CONTROL_MODE_CURRENT;
+		motor->m_iq_set = 0.0;
+		motor->m_id_set = 0.0;
+		motor->m_motor_released = false;
+		motor->m_state = MC_STATE_RUNNING;
+	}
+
+	return true;
+}
+
+void mcpwm_foc_stop_audio(bool reset) {
+	volatile motor_all_state_t *motor = get_motor_now();
+	motor->m_audio.mode = MC_AUDIO_OFF;
+
+	if (reset) {
+		init_audio_state(&motor->m_audio);
+	}
+}
+
+bool mcpwm_foc_set_audio_sample_table(int channel, float *samples, int len) {
+	if (channel < 0 || channel >= MC_AUDIO_CHANNELS) {
+		return false;
+	}
+
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	motor->m_audio.table[channel] = samples;
+	motor->m_audio.table_len[channel] = len;
+	motor->m_audio.table_pos[channel] = 0.0;
+
+	return true;
+}
+
+const float *mcpwm_foc_get_audio_sample_table(int channel) {
+	if (channel < 0 || channel >= MC_AUDIO_CHANNELS) {
+		return false;
+	}
+
+	volatile motor_all_state_t *motor = get_motor_now();
+
+	return motor->m_audio.table[channel];
 }
 
 /**
@@ -4237,6 +4327,36 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	// Dead time compensated values for vd and vq. Note that these are not used to control the switching times.
 	state_m->vd = c * motor->m_motor_state.v_alpha + s * motor->m_motor_state.v_beta;
 	state_m->vq = c * motor->m_motor_state.v_beta  - s * motor->m_motor_state.v_alpha;
+
+	mc_audio_state *audio = &motor->m_audio;
+	switch (audio->mode) {
+	case MC_AUDIO_TABLE: {
+		float output = 0.0;
+
+		for (int i = 0;i < MC_AUDIO_CHANNELS; i++) {
+			float volts = audio->table_voltage[i];
+			audio->table_pos[i] += (float)audio->table_len[i] * audio->table_freq[i] * dt;
+			if (audio->table_pos[i] >= audio->table_len[i]) {
+				audio->table_pos[i] -= (float)audio->table_len[i];
+			}
+
+			if (volts > 0.01) {
+				int index = floorf(audio->table_pos[i]);
+				output += audio->table[i][index] * volts;
+			}
+		}
+
+		// Inject voltage along q-axis as that gives the most volume
+		output *= voltage_normalize;
+		state_m->mod_alpha_raw += -s * output;
+		state_m->mod_beta_raw  += c * output;
+		utils_saturate_vector_2d((float*)&state_m->mod_alpha_raw, (float*)&state_m->mod_beta_raw, SQRT3_BY_2 * 0.95);
+	} break;
+
+	default:
+		break;
+
+	}
 
 	// HFI
 	if (do_hfi) {

@@ -100,6 +100,31 @@ typedef struct {
 	float i_beta_last;
 } observer_state;
 
+#define MC_AUDIO_CHANNELS	3
+
+typedef enum {
+	MC_AUDIO_OFF = 0,
+	MC_AUDIO_TABLE,
+	MC_AUDIO_SAMPLED,
+} mc_audio_mode;
+
+typedef struct {
+	mc_audio_mode mode;
+
+	const float *table[MC_AUDIO_CHANNELS];
+	int table_len[MC_AUDIO_CHANNELS];
+	float table_voltage[MC_AUDIO_CHANNELS];
+	float table_freq[MC_AUDIO_CHANNELS];
+	float table_pos[MC_AUDIO_CHANNELS];
+
+	// TODO: Double-buffered fully sampled audio
+//	const float *sample_table[2];
+//	int sample_table_len[2];
+//	int sample_table_now;
+//	float sample_freq;
+//	float sample_pos;
+} mc_audio_state;
+
 typedef struct {
 	mc_configuration *m_conf;
 	mc_state m_state;
@@ -149,6 +174,9 @@ typedef struct {
 	hfi_state_t m_hfi;
 	int m_hfi_plot_en;
 	float m_hfi_plot_sample;
+
+	// Audio Modulation
+	mc_audio_state m_audio;
 
 	// For braking
 	float m_br_speed_before;
