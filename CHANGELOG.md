@@ -33,6 +33,7 @@
 	* Support for only polling variables starting with VT.
 	* Added rand.
 	* Built-in sort function that is much faster and can sort much larger lists.
+	* Added foc-play-tone and foc-play-stop.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

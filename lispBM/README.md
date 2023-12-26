@@ -1025,6 +1025,34 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 
 ---
 
+#### foc-play-tone
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(foc-play-tone channel freq voltage)
+```
+
+Use the motor to play a tone at frequency freq with modulation voltage. Channel can be 0, 1 or 2 and all channels can play tones simultaneously (polyphonic audio). Unlike foc-beep, foc-play-tone also works while the motor is running.
+
+---
+
+#### foc-play-stop
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(foc-play-stop)
+```
+
+Stop playing tones on all channels.
+
+---
+
 ### Motor Get Commands
 
 **Note**  
