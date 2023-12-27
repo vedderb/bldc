@@ -17,11 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Thor300_20s_H_
-#define HW_Thor300_20s_H_
+#ifndef HW_Thor300_AO_H_
+#define HW_Thor300_AO_H_
 
-#define HW_NAME					"Thor300"
+#define HW_NAME					"Thor300_AO"
 
 #include "hw_Thor300_core.h"
+
+#define ALWAYS_ON 1
 
 #endif

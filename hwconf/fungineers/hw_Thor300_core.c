@@ -242,7 +242,11 @@ void hw_try_restore_i2c(void) {
 }
 
 bool hw_sample_shutdown_button(void) {
-	
+
+#ifdef ALWAYS_ON
+	return true;
+#endif
+
 	chMtxLock(&shutdown_mutex);
 	bt_diff = (ADC_VOLTS(ADC_IND_SHUTDOWN));
 	bt_diff = (bt_diff + ADC_VOLTS(ADC_IND_SHUTDOWN))/2;
