@@ -2173,6 +2173,10 @@ const float *mcpwm_foc_get_audio_sample_table(int channel) {
 }
 
 bool mcpwm_foc_play_audio_samples(const int8_t *samples, int num_samp, float f_samp, float voltage) {
+	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+		return false;
+	}
+
 	volatile motor_all_state_t *motor = get_motor_now();
 	volatile mc_audio_state *audio = &motor->m_audio;
 
