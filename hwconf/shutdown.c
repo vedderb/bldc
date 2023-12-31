@@ -72,7 +72,7 @@ void shutdown_hold(bool hold) {
 	m_shutdown_hold = hold;
 }
 
-static bool do_shutdown(bool resample) {
+bool do_shutdown(bool resample) {
 	conf_general_store_backup_data();
 #ifdef USE_LISPBM
 	lispif_process_shutdown();
@@ -221,6 +221,11 @@ float shutdown_get_inactivity_time(void) {
 
 void shutdown_hold(bool hold) {
 	(void)hold;
+}
+
+bool do_shutdown(bool resample) {
+	(void)resample;
+	return false;
 }
 
 static THD_FUNCTION(shutdown_thread, arg) {

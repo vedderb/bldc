@@ -47,5 +47,6 @@ bool shutdown_button_pressed(void);
 float shutdown_get_inactivity_time(void);
 void shutdown_set_sampling_disabled(bool disabled);
 void shutdown_hold(bool hold);
+bool do_shutdown(bool resample);
 
 #endif /* SHUTDOWN_H_ */
