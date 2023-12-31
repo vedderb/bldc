@@ -2140,11 +2140,11 @@ bool mcpwm_foc_play_tone(int channel, float freq, float voltage) {
 }
 
 void mcpwm_foc_stop_audio(bool reset) {
-	volatile motor_all_state_t *motor = get_motor_now();
-	motor->m_audio.mode = MC_AUDIO_OFF;
+	volatile mc_audio_state *audio = &get_motor_now()->m_audio;
+	audio->mode = MC_AUDIO_OFF;
 
 	if (reset) {
-		init_audio_state(&motor->m_audio);
+		init_audio_state(audio);
 	}
 }
 
@@ -2153,11 +2153,11 @@ bool mcpwm_foc_set_audio_sample_table(int channel, float *samples, int len) {
 		return false;
 	}
 
-	volatile motor_all_state_t *motor = get_motor_now();
+	volatile mc_audio_state *audio = &get_motor_now()->m_audio;
 
-	motor->m_audio.table[channel] = samples;
-	motor->m_audio.table_len[channel] = len;
-	motor->m_audio.table_pos[channel] = 0.0;
+	audio->table[channel] = samples;
+	audio->table_len[channel] = len;
+	audio->table_pos[channel] = 0.0;
 
 	return true;
 }
@@ -2167,9 +2167,46 @@ const float *mcpwm_foc_get_audio_sample_table(int channel) {
 		return false;
 	}
 
-	volatile motor_all_state_t *motor = get_motor_now();
+	volatile mc_audio_state *audio = &get_motor_now()->m_audio;
 
-	return motor->m_audio.table[channel];
+	return audio->table[channel];
+}
+
+bool mcpwm_foc_play_audio_samples(const int8_t *samples, int num_samp, float f_samp, float voltage) {
+	volatile motor_all_state_t *motor = get_motor_now();
+	volatile mc_audio_state *audio = &motor->m_audio;
+
+	audio->sample_freq = f_samp;
+	audio->sample_voltage = voltage;
+	motor->m_audio.mode = MC_AUDIO_SAMPLED;
+
+	bool res = false;
+
+	if (samples) {
+		if (!audio->sample_table_filled[0]) {
+			audio->sample_table[0] = samples;
+			audio->sample_table_len[0] = num_samp;
+			audio->sample_table_filled[0] = true;
+			res = true;
+		} else  if (!audio->sample_table_filled[1]) {
+			audio->sample_table[1] = samples;
+			audio->sample_table_len[1] = num_samp;
+			audio->sample_table_filled[1] = true;
+			res = true;
+		}
+	}
+
+	mcpwm_foc_set_current_off_delay(1.0);
+
+	if (motor->m_state != MC_STATE_RUNNING) {
+		motor->m_control_mode = CONTROL_MODE_CURRENT;
+		motor->m_iq_set = 0.0;
+		motor->m_id_set = 0.0;
+		motor->m_motor_released = false;
+		motor->m_state = MC_STATE_RUNNING;
+	}
+
+	return res;
 }
 
 /**
@@ -4350,6 +4387,30 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		output *= voltage_normalize;
 		state_m->mod_alpha_raw += -s * output;
 		state_m->mod_beta_raw  += c * output;
+		utils_saturate_vector_2d((float*)&state_m->mod_alpha_raw, (float*)&state_m->mod_beta_raw, SQRT3_BY_2 * 0.95);
+	} break;
+
+	case MC_AUDIO_SAMPLED: {
+		const int8_t *table = audio->sample_table[audio->sample_table_now];
+
+		if (!table || !audio->sample_table_filled[audio->sample_table_now]) {
+			break;
+		}
+
+		float sample = (float)table[(int)floorf(audio->sample_pos)] / 128.0 * audio->sample_voltage;
+
+		audio->sample_pos += dt * audio->sample_freq;
+		if (floorf(audio->sample_pos) >= audio->sample_table_len[audio->sample_table_now]) {
+			audio->sample_pos -= audio->sample_table_len[audio->sample_table_now];
+			audio->sample_table_filled[audio->sample_table_now] = false;
+			audio->sample_table_now++;
+			if (audio->sample_table_now > 1) {
+				audio->sample_table_now = 0;
+			}
+		}
+
+		state_m->mod_alpha_raw += -s * sample;
+		state_m->mod_beta_raw  += c * sample;
 		utils_saturate_vector_2d((float*)&state_m->mod_alpha_raw, (float*)&state_m->mod_beta_raw, SQRT3_BY_2 * 0.95);
 	} break;
 

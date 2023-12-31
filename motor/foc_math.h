@@ -100,7 +100,7 @@ typedef struct {
 	float i_beta_last;
 } observer_state;
 
-#define MC_AUDIO_CHANNELS	3
+#define MC_AUDIO_CHANNELS	4
 
 typedef enum {
 	MC_AUDIO_OFF = 0,
@@ -117,12 +117,14 @@ typedef struct {
 	float table_freq[MC_AUDIO_CHANNELS];
 	float table_pos[MC_AUDIO_CHANNELS];
 
-	// TODO: Double-buffered fully sampled audio
-//	const float *sample_table[2];
-//	int sample_table_len[2];
-//	int sample_table_now;
-//	float sample_freq;
-//	float sample_pos;
+	// Double-buffered sampled audio
+	const int8_t *sample_table[2];
+	int sample_table_len[2];
+	bool sample_table_filled[2];
+	int sample_table_now;
+	float sample_freq;
+	float sample_pos;
+	float sample_voltage;
 } mc_audio_state;
 
 typedef struct {

@@ -1542,6 +1542,58 @@ static lbm_value ext_foc_play_tone(lbm_value *args, lbm_uint argn) {
 	return res ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
+typedef struct {
+	const int8_t *samples;
+	int num_samp;
+	float f_samp;
+	float voltage;
+	lbm_cid cid;
+} foc_play_args;
+
+static void foc_play_task(void *arg) {
+	foc_play_args *fp = (foc_play_args*)arg;
+
+	for (int i = 0;i < 10000;i++) {
+		if (mcpwm_foc_play_audio_samples(fp->samples,
+				fp->num_samp, fp->f_samp, fp->voltage)) {
+			break;
+		}
+		chThdSleep(1);
+	}
+
+	lbm_unblock_ctx_unboxed(fp->cid, ENC_SYM_TRUE);
+	lbm_free(fp);
+}
+
+static lbm_value ext_foc_play_samples(lbm_value *args, lbm_uint argn) {
+	if (argn != 3 || !lbm_is_array_r(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	timeout_reset();
+
+	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+
+	const int8_t *samples = (const int8_t*)array->data;
+	const int num_samp = array->size;
+	const float f_samp = lbm_dec_as_float(args[1]);
+	const float voltage = lbm_dec_as_float(args[2]);
+
+	if (!mcpwm_foc_play_audio_samples(samples, num_samp, f_samp, voltage)) {
+		foc_play_args *fp = lbm_malloc(sizeof(foc_play_args));
+		fp->samples = samples;
+		fp->num_samp = num_samp;
+		fp->f_samp = f_samp;
+		fp->voltage = voltage;
+		fp->cid = lbm_get_current_cid();
+		lbm_block_ctx_from_extension();
+		worker_execute(foc_play_task, fp);
+	}
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_foc_play_stop(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	mcpwm_foc_stop_audio(true);
@@ -4871,8 +4923,10 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-rpm", ext_set_rpm);
 	lbm_add_extension("set-pos", ext_set_pos);
 	lbm_add_extension("foc-openloop", ext_foc_openloop);
+
 	lbm_add_extension("foc-beep", ext_foc_beep);
 	lbm_add_extension("foc-play-tone", ext_foc_play_tone);
+	lbm_add_extension("foc-play-samples", ext_foc_play_samples);
 	lbm_add_extension("foc-play-stop", ext_foc_play_stop);
 
 	// Motor get commands

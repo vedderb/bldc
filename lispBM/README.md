@@ -1035,7 +1035,23 @@ Use the motor to play a beep sound at frequency freq for time seconds using volt
 (foc-play-tone channel freq voltage)
 ```
 
-Use the motor to play a tone at frequency freq with modulation voltage. Channel can be 0, 1 or 2 and all channels can play tones simultaneously (polyphonic audio). Unlike foc-beep, foc-play-tone also works while the motor is running.
+Use the motor to play a tone at frequency freq with modulation voltage. Channel can be 0, 1, 2 or 3 and all channels can play tones simultaneously (polyphonic audio). Unlike foc-beep, foc-play-tone also works while the motor is running.
+
+---
+
+#### foc-play-samples
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(foc-play-samples samples freq voltage)
+```
+
+Use the motor to play sampled audio. Works while the motor is running. Samples is a byte-array with samples, where each sample has the range -128 to 127. Freq is the sampling frequency and voltage is the voltage amplitude the samples will be played at.
+
+The caller is responsible for making sure that the sample buffer stays valid until it is consumed. Internally this function has two buffers and when both buffers are full the function will block until a buffer is free. For smooth playback, it is important to keep feeding this function with buffers faster than it consumes the samples.
 
 ---
 
