@@ -44,6 +44,29 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+#define EXT_BUZZER_ON()    palSetPad(HW_ICU_GPIO, HW_ICU_PIN)
+#define EXT_BUZZER_OFF()   palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
+
+void buzzer_init(void) {
+    // External Buzzer (using servo pin!)
+    palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN,
+                  PAL_MODE_OUTPUT_PUSHPULL |
+                  PAL_STM32_OSPEED_HIGHEST);
+	EXT_BUZZER_ON();
+    chThdSleepMilliseconds(30);
+    EXT_BUZZER_OFF();
+}
+
+static void beep_off(void)
+{
+	EXT_BUZZER_OFF();
+}
+
+static void beep_on(void)
+{
+	EXT_BUZZER_ON();
+}
+
 // Private functions
 static void terminal_button_test(int argc, const char **argv);
 
@@ -272,11 +295,11 @@ void hw_try_restore_i2c(void) {
  * than the normal/unpressed value, otherwise it gets reset to zero.
  *
  * Once the counter reaches the threshold the button is considered pressed, provided that
- * the erpm is below 100. 
+ * the erpm is below 100. A very short (20ms) beep will go off.
  * Shutdown actually happens on the falling edge when the press is over.
  *
- * If the motor is spinning faster, then a 3s press is required. 
- * Again, shutdown happens on the falling edge.
+ * If the motor is spinning faster, then a 3s press is required. Buzzer will beep once the
+ * time has been reached. Again, shutdown happens on the falling edge.
  *
  * Normal shutdown time:    0.5s
  * Emergency shutdown time: 3.0s
@@ -310,12 +333,14 @@ bool hw_sample_shutdown_button(void) {
         if (!force_poweroff && (fabsf(mc_interface_get_rpm()) > ERPM_THRESHOLD)) {
             will_poweroff = false;
             bt_hold_counter = 0;
+            beep_off();
             return true;
         }
 
         // Now we look for a falling edge to shut down
         if ((bt_diff < -RISING_EDGE_THRESHOLD) || (newval < bt_unpressed + RISING_EDGE_THRESHOLD / 2)) {
             bt_hold_counter++;
+            beep_off();
             return false;
         }
         return true;
@@ -343,10 +368,16 @@ bool hw_sample_shutdown_button(void) {
                     // after 150ms, power-down is triggered by the falling edge (releasing the button)
                     will_poweroff = true;
                     bt_hold_counter = 0;
+
+                    // super short beep to let the user know they can let go of the button now
+                    beep_on();
+                    chThdSleepMilliseconds(20);
+                    beep_off();
                 }
                 else {
                     if (bt_hold_counter  > TIME_3S) {
-                        // Emergency Power-Down
+                        // Emergency Power-Down - beep to let the user know it's ready
+                        beep_on();
                         will_poweroff = true;
                         force_poweroff = true;
                         bt_hold_counter = 0;
@@ -358,6 +389,7 @@ bool hw_sample_shutdown_button(void) {
         else {
             // press is too short, abort
             bt_hold_counter = 0;
+            beep_off();
         }
     }
     return true;

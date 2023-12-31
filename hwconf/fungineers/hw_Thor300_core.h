@@ -24,7 +24,7 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
-
+#define SERVO_BUZZER
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -251,4 +251,8 @@
 // Functions
 float hw_Thor_get_temp(void);
 bool hw_sample_shutdown_button(void);
+void buzzer_init(void);
+
+#define HW_EARLY_INIT()    buzzer_init()
+
 #endif /* HW_Thor300_Core_H_ */
