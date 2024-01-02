@@ -117,11 +117,7 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 	commands_printf_lisp("ContextID: %u", ctx->id);
 	commands_printf_lisp("Stack SP: %u",  ctx->K.sp);
 	commands_printf_lisp("Stack SP max: %u", ctx->K.max_sp);
-	if (print_ret) {
-		commands_printf_lisp("Value: %s", output);
-	} else {
-		commands_printf_lisp("Error: %s", output);
-	}
+	commands_printf_lisp("Result%s: %s", print_ret ? "" : " (trunc)", output);
 }
 
 static void sym_it(const char *str) {
