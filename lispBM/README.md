@@ -4552,7 +4552,7 @@ The last byte in `seq` will be ignored as that is the null-terminator if `seq` i
 | ESC, Express | 6.05+ |
 
 ```clj
-(buf-resize arr delta-size opt-absolute-size)
+(buf-resize arr delta-size opt-absolute-size opt-copy-symbol)
 ```
 
 Change the length of array `arr` in bytes. A reference to `arr` is returned.
@@ -4567,6 +4567,14 @@ This extension can be used in two modes:
 Passing `nil` to `delta-size` while not passing any value for
 `opt-absolute-size` will result in an `eval_error`.
 
+You can optionally pass the symbol `'copy` to `opt-copy-symbol` to specify that
+`arr` should be left unchanged and that a copy should instead be made. Don't
+worry about the exact position of the argument, the only important part is that
+`opt-copy-symbol` is last. So you can give a value for `opt-copy-symbol` even
+when `opt-absolute-size` isn't passed. You can also for completeness pass the
+symbol `'mut` to specify that the standard behaviour of modifying `arr` in place
+should remain in effect.
+
 When growing the length of the array a new range will be allocated and the old
 data copied over. The new bytes will be initialised to zero. If the new length
 of the array is smaller than the previous the allocated range will simply be
@@ -4576,7 +4584,7 @@ It is possible to shrink an array to a length of zero.
 
 **Note**  
 The array will be resized in place. The returned reference to `arr` is just for
-convenience.
+convenience. (Unless `opt-copy-symbol` is `'copy` of course.)
 
 Example where we remove the terminating null byte from a string buffer:
 ```clj
@@ -4591,6 +4599,18 @@ Example where we increase the length of `buf` to 5:
 (bufset-u8 buf 4 5) ; we set it to avoid LBM printing the array as a string
 (print buf)
 > [1 2 3 4 5]
+```
+
+Example where we create a copy of `name` with the terminating null byte
+removed.
+```clj
+(def name "name")
+(def name-array (buf-resize name -1 'copy))
+
+(print name)
+> "name"
+(print name-array)
+> [110 97 109 101]
 ```
 
 ---

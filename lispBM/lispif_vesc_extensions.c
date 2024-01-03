@@ -24,6 +24,7 @@
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "lbm_constants.h"
+#include "lbm_vesc_utils.h"
 
 #include "commands.h"
 #include "mc_interface.h"
@@ -222,6 +223,10 @@ typedef struct {
 	lbm_uint rate_400k;
 	lbm_uint rate_700k;
 
+	// Arrays
+	lbm_uint copy;
+	lbm_uint mut;
+	
 	// Other
 	lbm_uint half_duplex;
 } vesc_syms;
@@ -548,6 +553,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("rate-700k", comp);
 		}
 
+		else if (comp == &syms_vesc.copy) {
+			get_add_symbol("copy", comp);
+		} else if (comp == &syms_vesc.mut) {
+			get_add_symbol("mut", comp);
+		}
+
 		else if (comp == &syms_vesc.half_duplex) {
 			get_add_symbol("half-duplex", comp);
 		}
@@ -562,33 +573,6 @@ static bool is_symbol_true_false(lbm_value v) {
 		lbm_set_error_reason("Argument must be t or nil (true or false)");
 	}
 	return res;
-}
-
-/**
- * Wrapper around lbm_memory_shrink that takes number of bytes instead of number
- * of words. Shrinks the size of an pointer allocated in LBM memory to the
- * smallest possible size while still having capacity for the specified amount
- * of bytes.
- * 
- * @param ptr Pointer to the allocated segment in LBM memory. Should have been
- * obtained through lbm_malloc or other similar way at some point.
- * @param size_bytes The new capacity of the allocation in bytes. Must be
- * smaller or equal to the previous capacity.
- * @return If the operation succeeded. The return value of lbm_memory_shrink is
- * directly passed through, that is: false is returned either if ptr didn't
- * point into the LBM memory/didn't point to the start of an allocated segment
- * or if the new size was larger than the previous (note that since this
- * function converts bytes to words, a larger size in bytes might not cause it
- * to fail, as the size in words could still be the same). Otherwise true is
- * returned. 
-*/
-static bool lbm_memory_shrink_bytes(void *array, lbm_uint size_bytes) {
-	lbm_uint size_words = size_bytes / LBM_WORD_SIZE;
-	if (size_bytes % LBM_WORD_SIZE != 0) {
-		size_words += 1;
-	}
-	
-	return lbm_memory_shrink((lbm_uint *)array, size_words) > 0;
 }
 
 // Various commands
@@ -4664,15 +4648,41 @@ static lbm_value ext_buf_find(lbm_value *args, lbm_uint argn) {
  * reference only for convenience.
  */
 static lbm_value ext_buf_resize(lbm_value *args, lbm_uint argn) {
-	if ((argn != 2 && argn != 3) || !lbm_is_array_rw(args[0])
-		|| (!lbm_is_number(args[1]) && !lbm_is_symbol_nil(args[1]))
-		|| (argn == 3 && !lbm_is_number(args[2]))) {
-		lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
-		return ENC_SYM_TERROR;
+	LBM_CHECK_ARGN_RANGE(2, 4);
+	
+	bool should_copy = false;
+	if (argn > 2 && lbm_is_symbol(args[argn - 1])) {
+		lbm_uint sym = lbm_dec_sym(args[argn - 1]);
+		if (compare_symbol(sym, &syms_vesc.copy)) {
+			should_copy = true;
+		} else if (compare_symbol(sym, &syms_vesc.mut)) {
+			should_copy = false;
+		} else {
+			lbm_set_error_suspect(args[argn - 1]);
+			return ENC_SYM_TERROR;
+		}
 	}
 
+	if ((!should_copy && !lbm_is_array_rw(args[0]))
+		|| (should_copy && !lbm_is_array_r(args[0]))) {
+		lbm_set_error_suspect(args[0]);
+		return ENC_SYM_TERROR;
+	}
+	
 	bool delta_size_passed = !lbm_is_symbol_nil(args[1]);
-	bool new_size_passed   = argn == 3;
+	bool new_size_passed   = argn > 2 && lbm_is_number(args[2]);
+	
+	if (delta_size_passed && !lbm_is_number(args[1])) {
+		lbm_set_error_suspect(args[1]);
+		return ENC_SYM_TERROR;
+	}
+	
+	if (argn == 4 && !lbm_is_number(args[2])) {
+		// The case where argn is 3 is covered by the first check.
+		lbm_set_error_suspect(args[2]);
+		return ENC_SYM_TERROR;
+	}
+	
 	if (!delta_size_passed && !new_size_passed) {
 		lbm_set_error_reason(
 			"delta-size (arg 2) was nil while new-size wasn't provided (arg 3)"
@@ -4680,7 +4690,7 @@ static lbm_value ext_buf_resize(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(args[0]);
+	lbm_array_header_t *header = lbm_dec_array_header(args[0]);
 	if (header == NULL) {
 		// Should be impossible, unless it contained null pointer to header.
 		return ENC_SYM_FATAL_ERROR;
@@ -4701,36 +4711,54 @@ static lbm_value ext_buf_resize(lbm_value *args, lbm_uint argn) {
 		}
 		new_size = (uint32_t)new_size_signed;
 	}
-	
-	if (new_size == header->size) {
-		return args[0];
-	} else if (new_size < header->size) {
-		uint32_t allocated_size = new_size;
-		if (new_size == 0) {
-			// arrays of size 0 still need some memory allocated for them.
-			allocated_size = 1;
-		}
-		// We sadly can't trust the return value, as it fails if the allocation
-		// was previously a single word long. So we just throw it away.
-		lbm_memory_shrink_bytes(header->data, allocated_size);
 		
-		header->size = new_size;
-
-		return args[0];
-	} else {
-		void *buffer = lbm_malloc_reserve(new_size);
-		if (buffer == NULL) {
+	if (should_copy) {
+		void *buffer = lbm_malloc(new_size);
+		if (!buffer) {
 			return ENC_SYM_MERROR;
 		}
+		
+		memcpy(buffer, header->data, MIN(header->size, new_size));
+		if (new_size > header->size) {
+			memset(buffer + header->size, 0, new_size - header->size);
+		}
+		
+		lbm_value result;
+		if (!lbm_lift_array(&result, buffer, new_size)) {
+			return ENC_SYM_MERROR;
+		}
+		return result;
+	} else {
+		if (new_size == header->size) {
+			return args[0];
+		} else if (new_size < header->size) {
+			uint32_t allocated_size = new_size;
+			if (new_size == 0) {
+				// arrays of size 0 still need some memory allocated for them.
+				allocated_size = 1;
+			}
+			// We sadly can't trust the return value, as it fails if the allocation
+			// was previously a single word long. So we just throw it away.
+			lbm_memory_shrink_bytes(header->data, allocated_size);
+			
+			header->size = new_size;
 
-		memcpy(buffer, header->data, header->size);
-		memset(buffer + header->size, 0, new_size - header->size);
+			return args[0];
+		} else {
+			void *buffer = lbm_malloc(new_size);
+			if (buffer == NULL) {
+				return ENC_SYM_MERROR;
+			}
 
-		lbm_memory_free(header->data);
-		header->data = buffer;
-		header->size = new_size;
+			memcpy(buffer, header->data, header->size);
+			memset(buffer + header->size, 0, new_size - header->size);
 
-		return args[0];
+			lbm_memory_free(header->data);
+			header->data = buffer;
+			header->size = new_size;
+
+			return args[0];
+		}
 	}
 }
 
