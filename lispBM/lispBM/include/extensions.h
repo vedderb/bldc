@@ -1,6 +1,6 @@
 /** \file extensions.h */
 /*
-    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022, 2024 Joel Svensson        svenssonjoel@yahoo.se
                     2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -39,13 +39,12 @@ extern "C" {
  */
 typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 
-/** Initialize the extensions subsystem.
+/** Initialize the extensions subsystem. Extension storage is allocated on lbm_memory.
  *
- * \param extension_storage Pointer to array of extension_fptr.
  * \param extension_storage_size Size of function pointer array.
  * \return 1 on success and 0 for failure
  */
-int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size);
+  int lbm_extensions_init(extension_fptr *extension_storage, lbm_uint extension_storage_size);
 /** The number of extensions that can be allocated.
  * \return The maximum number of extensions that can be added.
  */

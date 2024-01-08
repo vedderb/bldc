@@ -26,7 +26,6 @@
 #include "heap.h"
 #include "tokpar.h"
 #include "lbm_memory.h"
-#include "lbm_variables.h"
 #include "heap.h"
 #include "lbm_types.h"
 #include "lbm_channel.h"

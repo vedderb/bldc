@@ -20,7 +20,6 @@
 #include "stack.h"
 #include "heap.h"
 #include "eval_cps.h"
-#include "lbm_variables.h"
 #include "env.h"
 #include "lbm_utils.h"
 #include "lbm_custom_type.h"

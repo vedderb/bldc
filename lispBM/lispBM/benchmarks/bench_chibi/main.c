@@ -40,12 +40,10 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define HEAP_SIZE 4096
-#define VARIABLE_STORAGE_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 
+extension_fptr extensions[EXTENSION_STORAGE_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
@@ -199,11 +197,12 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                GC_STACK_SIZE,
                 memory_array, LBM_MEMORY_SIZE_8K,
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-                print_stack_storage, PRINT_STACK_SIZE,
-                extension_storage, EXTENSION_STORAGE_SIZE)) {
+                GC_STACK_SIZE,
+                PRINT_STACK_SIZE,
+                extensions,
+                EXTENSION_STORAGE_SIZE)) {
 
     chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
@@ -212,8 +211,6 @@ int main(void) {
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
-
-  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   res = lbm_add_extension("print", ext_print);
   if (res)
@@ -304,13 +301,12 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-               GC_STACK_SIZE,
                memory_array, LBM_MEMORY_SIZE_8K,
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-               print_stack_storage, PRINT_STACK_SIZE,
-               extension_storage, EXTENSION_STORAGE_SIZE);
-
-      lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+               GC_STACK_SIZE,
+               PRINT_STACK_SIZE,
+               extensions,
+               EXTENSION_STORAGE_SIZE);
 
       lbm_add_extension("print", ext_print);
 
