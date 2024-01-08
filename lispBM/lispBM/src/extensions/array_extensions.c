@@ -494,7 +494,7 @@ static lbm_float u_to_float(uint32_t v) {
 
   float sig = 0.0;
   if (e != 0 || sig_i != 0) {
-    sig = (float)sig_i / (8388608.0 * 2.0) + 0.5;
+    sig = (float)sig_i / (8388608.0f * 2.0f) + 0.5f;
     e -= 126;
   }
 

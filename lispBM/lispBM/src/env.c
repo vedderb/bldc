@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,19 +21,21 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "print.h"
+#include "env.h"
+#include "lbm_memory.h"
 
-static lbm_value env_global;
+static lbm_value *env_global;
 
 int lbm_init_env(void) {
-  env_global = ENC_SYM_NIL;
+  env_global = (lbm_value*)lbm_malloc(GLOBAL_ENV_ROOTS * sizeof(lbm_value));
+  if (!env_global) return 0;
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+    env_global[i] = ENC_SYM_NIL;
+  }
   return 1;
 }
 
-lbm_value *lbm_get_env_ptr(void) {
-  return &env_global;
-}
-
-lbm_value lbm_get_env(void) {
+lbm_value *lbm_get_global_env(void) {
   return env_global;
 }
 
@@ -61,10 +63,21 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 
   lbm_value curr = env;
 
-  if (lbm_is_symbol_nil(sym)) {
-    *res = sym;
-    return true;
+  while (lbm_is_ptr(curr)) {
+    lbm_value c = lbm_ref_cell(curr)->car;
+    if ((lbm_ref_cell(c)->car) == sym) {
+      *res = lbm_ref_cell(c)->cdr;
+      return true;
+    }
+    curr = lbm_ref_cell(curr)->cdr;
   }
+  return false;
+}
+
+bool lbm_global_env_lookup(lbm_value *res, lbm_value sym) {
+  lbm_uint dec_sym = lbm_dec_sym(sym);
+  lbm_uint ix = dec_sym & GLOBAL_ENV_MASK;
+  lbm_value curr = env_global[ix];
 
   while (lbm_is_ptr(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
@@ -79,10 +92,6 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 
 lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   lbm_value curr = env;
-
-  if(lbm_dec_sym(sym) == SYM_NIL) {
-    return sym;
-  }
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_car(lbm_car(curr)) == sym) {
