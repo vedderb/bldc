@@ -26,7 +26,6 @@
 #include "extensions.h"
 #include "exp_kind.h"
 #include "tokpar.h"
-#include "lbm_variables.h"
 #include "lbm_channel.h"
 #include "print.h"
 #include "platform_mutex.h"
@@ -60,41 +59,40 @@ static jmp_buf critical_error_jmp_buf;
 #define MATCH                 CONTINUATION(9)
 #define APPLICATION_START     CONTINUATION(10)
 #define EVAL_R                CONTINUATION(11)
-#define SET_VARIABLE          CONTINUATION(12)
-#define RESUME                CONTINUATION(13)
-#define CLOSURE_ARGS          CONTINUATION(14)
-#define EXIT_ATOMIC           CONTINUATION(15)
-#define READ_NEXT_TOKEN       CONTINUATION(16)
-#define READ_APPEND_CONTINUE  CONTINUATION(17)
-#define READ_EVAL_CONTINUE    CONTINUATION(18)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(19)
-#define READ_DOT_TERMINATE    CONTINUATION(20)
-#define READ_DONE             CONTINUATION(21)
-#define READ_QUOTE_RESULT     CONTINUATION(22)
-#define READ_COMMAAT_RESULT   CONTINUATION(23)
-#define READ_COMMA_RESULT     CONTINUATION(24)
-#define READ_START_ARRAY      CONTINUATION(25)
-#define READ_APPEND_ARRAY     CONTINUATION(26)
-#define MAP                   CONTINUATION(27)
-#define MATCH_GUARD           CONTINUATION(28)
-#define TERMINATE             CONTINUATION(29)
-#define PROGN_VAR             CONTINUATION(30)
-#define SETQ                  CONTINUATION(31)
-#define MOVE_TO_FLASH         CONTINUATION(32)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(33)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(34)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(35)
-#define QQ_EXPAND_START       CONTINUATION(36)
-#define QQ_EXPAND             CONTINUATION(37)
-#define QQ_APPEND             CONTINUATION(38)
-#define QQ_EXPAND_LIST        CONTINUATION(39)
-#define QQ_LIST               CONTINUATION(40)
-#define KILL                  CONTINUATION(41)
-#define LOOP                  CONTINUATION(42)
-#define LOOP_CONDITION        CONTINUATION(43)
-#define MERGE_REST            CONTINUATION(44)
-#define MERGE_LAYER           CONTINUATION(45)
-#define NUM_CONTINUATIONS     46
+#define RESUME                CONTINUATION(12)
+#define CLOSURE_ARGS          CONTINUATION(13)
+#define EXIT_ATOMIC           CONTINUATION(14)
+#define READ_NEXT_TOKEN       CONTINUATION(15)
+#define READ_APPEND_CONTINUE  CONTINUATION(16)
+#define READ_EVAL_CONTINUE    CONTINUATION(17)
+#define READ_EXPECT_CLOSEPAR  CONTINUATION(18)
+#define READ_DOT_TERMINATE    CONTINUATION(19)
+#define READ_DONE             CONTINUATION(20)
+#define READ_QUOTE_RESULT     CONTINUATION(21)
+#define READ_COMMAAT_RESULT   CONTINUATION(22)
+#define READ_COMMA_RESULT     CONTINUATION(23)
+#define READ_START_ARRAY      CONTINUATION(24)
+#define READ_APPEND_ARRAY     CONTINUATION(25)
+#define MAP                   CONTINUATION(26)
+#define MATCH_GUARD           CONTINUATION(27)
+#define TERMINATE             CONTINUATION(28)
+#define PROGN_VAR             CONTINUATION(29)
+#define SETQ                  CONTINUATION(30)
+#define MOVE_TO_FLASH         CONTINUATION(31)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(32)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(33)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(34)
+#define QQ_EXPAND_START       CONTINUATION(35)
+#define QQ_EXPAND             CONTINUATION(36)
+#define QQ_APPEND             CONTINUATION(37)
+#define QQ_EXPAND_LIST        CONTINUATION(38)
+#define QQ_LIST               CONTINUATION(39)
+#define KILL                  CONTINUATION(40)
+#define LOOP                  CONTINUATION(41)
+#define LOOP_CONDITION        CONTINUATION(42)
+#define MERGE_REST            CONTINUATION(43)
+#define MERGE_LAYER           CONTINUATION(44)
+#define NUM_CONTINUATIONS     45
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -678,7 +676,6 @@ void print_environments(char *buf, unsigned int size) {
   lbm_value curr_l = ctx_running->curr_env;
   printf_callback("\tCurrent local environment:\n");
   while (lbm_type_of(curr_l) == LBM_TYPE_CONS) {
-
     lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_l));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
     printf_callback("\t%s = %s\n", buf, buf+(size/2));
@@ -689,7 +686,6 @@ void print_environments(char *buf, unsigned int size) {
   lbm_value *glob_env = lbm_get_global_env();
 
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-    printf("Global Environment Ix: %d\n", i);
     lbm_value curr_g = glob_env[i];;
     while (lbm_type_of(curr_g) == LBM_TYPE_CONS) {
 
@@ -1498,12 +1494,6 @@ static int gc(void) {
   gc_requested = false;
   lbm_gc_state_inc();
 
-  lbm_value *variables = lbm_get_variable_table();
-  if (variables) {
-    for (int i = 0; i < lbm_get_num_variables(); i ++) {
-      lbm_gc_mark_phase(variables[i]);
-    }
-  }
   // The freelist should generally be NIL when GC runs.
   lbm_nil_freelist();
   lbm_value *env = lbm_get_global_env();
@@ -1543,7 +1533,6 @@ int lbm_perform_gc(void) {
 /* Evaluation functions                             */
 
 
-
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s >= RUNTIME_SYMBOLS_START) {
@@ -1554,18 +1543,11 @@ static void eval_symbol(eval_context_t *ctx) {
       ctx->app_cont = true;
       return;
     }
-  } else {
+  } else if (s <= EXTENSION_SYMBOLS_END) {
     //special symbols and extensions can be handled the same way.
-    if (s <= EXTENSION_SYMBOLS_END) {
-      ctx->r = ctx->curr_exp;
-      ctx->app_cont = true;
-      return;
-    }
-    if (s <= VARIABLE_SYMBOLS_END) {
-      ctx->r = lbm_get_var(s);
-      ctx->app_cont = true;
-      return;
-    }
+    ctx->r = ctx->curr_exp;
+    ctx->app_cont = true;
+    return;
   }
   // Dynamic load attempt
   const char *sym_str = lbm_get_name_by_symbol(s);
@@ -1674,12 +1656,7 @@ static void eval_define(eval_context_t *ctx) {
 
     sptr[0] = key;
 
-    if ((sym_val >= VARIABLE_SYMBOLS_START) &&
-        (sym_val <  VARIABLE_SYMBOLS_END)) {
-      sptr[1] = SET_VARIABLE;
-      ctx->curr_exp = val_exp;
-      return;
-    } else if (sym_val >= RUNTIME_SYMBOLS_START) {
+    if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
         stack_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH);
@@ -2020,16 +1997,6 @@ static void cont_set_global_env(eval_context_t *ctx){
   return;
 }
 
-static void cont_set_var(eval_context_t *ctx) {
-  lbm_value key;
-  lbm_value val = ctx->r;
-  lbm_pop(&ctx->K, &key);
-
-  ctx->r = lbm_set_var(lbm_dec_sym(key), val);
-  ctx->app_cont = true;
-  return;
-}
-
 static void cont_resume(eval_context_t *ctx) {
   lbm_value exp;
   lbm_value env;
@@ -2089,10 +2056,7 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);
   lbm_value res = val;
-  if (s >= VARIABLE_SYMBOLS_START &&
-      s <  VARIABLE_SYMBOLS_END) {
-    return lbm_set_var(s, val);
-  } else if (s >= RUNTIME_SYMBOLS_START) {
+  if (s >= RUNTIME_SYMBOLS_START) {
     lbm_value new_env = lbm_env_modify_binding(env, key, val);
     if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
       lbm_uint ix_key = lbm_dec_sym(key) & GLOBAL_ENV_MASK;
@@ -3593,8 +3557,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       int r = 0;
       if (strncmp(tokpar_sym_str,"ext-",4) == 0) {
         r = lbm_add_extension_symbol(tokpar_sym_str, &symbol_id);
-      } else if (tokpar_sym_str[0] == '#') {
-        r = lbm_add_variable_symbol(tokpar_sym_str, &symbol_id);
       } else {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
@@ -4445,7 +4407,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_match,
     cont_application_start,
     cont_eval_r,
-    cont_set_var,
     cont_resume,
     cont_closure_application_args,
     cont_exit_atomic,

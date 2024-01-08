@@ -52,8 +52,8 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
   } else {
     size_words = (v->buf_pos / sizeof(lbm_uint)) + 1;
   }
+  if (v->buf_size  <= size_words * sizeof(lbm_uint)) return true;
   v->buf_size = size_words * sizeof(lbm_uint);
-
   return (lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
 }
 
@@ -100,18 +100,19 @@ bool f_cons(lbm_flat_value_t *v) {
   return false;
 }
 
-bool f_sym(lbm_flat_value_t *v, lbm_uint sym) {
+bool f_sym(lbm_flat_value_t *v, lbm_value sym) {
   bool res = true;
+  lbm_uint sym_id = lbm_dec_sym(sym);
   res = res && write_byte(v,S_SYM_VALUE);
   #ifndef LBM64
-  res = res && write_word(v,sym);
+  res = res && write_word(v,sym_id);
   #else
-  res = res && write_dword(v,sym);
+  res = res && write_dword(v,sym_id);
   #endif
   return res;
 }
 
-bool f_sym_string(lbm_flat_value_t *v, lbm_uint sym) {
+bool f_sym_string(lbm_flat_value_t *v, lbm_value sym) {
   bool res = true;
   char *sym_str;
   if (lbm_is_symbol(sym)) {
@@ -131,7 +132,7 @@ bool f_sym_string(lbm_flat_value_t *v, lbm_uint sym) {
   return false;
 }
 
-int f_sym_string_bytes(lbm_uint sym) {
+int f_sym_string_bytes(lbm_value sym) {
   char *sym_str;
   if (lbm_is_symbol(sym)) {
     lbm_uint s = lbm_dec_sym(sym);
@@ -147,14 +148,22 @@ int f_sym_string_bytes(lbm_uint sym) {
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
   res = res && write_byte(v,S_I_VALUE);
+#ifndef LBM64
   res = res && write_word(v,(uint32_t)i);
+#else
+  res = res && write_dword(v, (uint64_t)i);
+#endif
   return res;
 }
 
 bool f_u(lbm_flat_value_t *v, lbm_uint u) {
   bool res = true;
   res = res && write_byte(v,S_U_VALUE);
+#ifndef LBM64
   res = res && write_word(v,(uint32_t)u);
+#else
+  res = res && write_dword(v,(uint64_t)u);
+#endif
   return res;
 }
 
@@ -558,11 +567,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   case S_FLOAT_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       lbm_float f;
       memcpy(&f, &tmp, sizeof(lbm_float));

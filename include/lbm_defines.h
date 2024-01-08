@@ -83,6 +83,7 @@
 #define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
 #define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
 #define LBM_TYPE_MASK                   (lbm_uint)0xF8000000000000FC
+#define LBM_NUMBER_MASK                 (lbm_uint)0x0800000000000000
 //    gc ptr
 #define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
 #define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0
