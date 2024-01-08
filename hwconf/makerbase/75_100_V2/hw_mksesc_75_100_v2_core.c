@@ -24,6 +24,10 @@
 
 // Variables
 static volatile bool i2c_running = false;
+#if defined (HW75_100_V2)
+	static mutex_t shutdown_mutex;
+	static float bt_diff = 0.0;
+#endif
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -33,6 +37,9 @@ static const I2CConfig i2cfg = {
 };
 
 void hw_init_gpio(void) {
+	#if defined (HW75_100_V2)
+		chMtxObjectInit(&shutdown_mutex);
+	#endif
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -109,7 +116,9 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
+	#if defined (HW75_100_V2_OLD)
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+	#endif	
 }
 
 void hw_setup_adc_channels(void) {
@@ -242,3 +251,27 @@ void hw_try_restore_i2c(void) {
 		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
+
+#if defined(HW75_100_V2)
+bool hw_sample_shutdown_button(void) {
+	chMtxLock(&shutdown_mutex);
+
+	bt_diff = 0.0;
+
+	for (int i = 0;i < 3;i++) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		chThdSleep(5);
+		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		chThdSleepMilliseconds(1);
+		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		chThdSleepMilliseconds(1);
+
+		bt_diff += (val1 - val2);
+	}
+
+	chMtxUnlock(&shutdown_mutex);
+	
+	return (bt_diff > 0.12);
+}
+#endif
