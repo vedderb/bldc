@@ -30,8 +30,8 @@
 #include "lbm_prof.h"
 #include "utils.h"
 
-#define LBM_MEMORY_SIZE_18K LBM_MEMORY_SIZE_64BYTES_TIMES_X(256 + 32)
-#define LBM_MEMORY_BITMAP_SIZE_18K LBM_MEMORY_BITMAP_SIZE(256 + 32)
+#define LBM_MEMORY_SIZE_18K LBM_MEMORY_SIZE_64BYTES_TIMES_X(256 + 64)
+#define LBM_MEMORY_BITMAP_SIZE_18K LBM_MEMORY_BITMAP_SIZE(256 + 64)
 
 #define HEAP_SIZE					(2048 + 256 + 160)
 #define LISP_MEM_SIZE				LBM_MEMORY_SIZE_18K
@@ -39,16 +39,13 @@
 #define GC_STACK_SIZE				160
 #define PRINT_STACK_SIZE			128
 #define EXTENSION_STORAGE_SIZE		285
-#define VARIABLE_STORAGE_SIZE		50
 #define EXT_LOAD_CALLBACK_LEN		20
 #define PROF_DATA_NUM				30
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
 __attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
-__attribute__((section(".ram4"))) static uint32_t print_stack_storage[PRINT_STACK_SIZE];
 __attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
-__attribute__((section(".ram4"))) static lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_prof_t prof_data[PROF_DATA_NUM];
 static volatile bool prof_running = false;
 
@@ -237,20 +234,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 		}
 
-		for (int i = 0; i < lbm_get_num_variables(); i ++) {
-			const char *name = lbm_get_variable_name_by_index(i);
-			const lbm_value var = lbm_get_variable_by_index(i);
-			if (lbm_is_number(var) && name) {
-				strcpy((char*)(send_buffer_global + ind), name);
-				ind += strlen(name) + 1;
-				buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(var), &ind);
-
-				if (ind > 300) {
-					break;
-				}
-			}
-		}
-
 		lbm_gc_unlock();
 
 		reply_func(send_buffer_global, ind);
@@ -387,13 +370,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 						commands_printf_lisp("  %s", output);
 					}
-				}
-
-				commands_printf_lisp("Variables:");
-				for (int i = 0; i < lbm_get_num_variables(); i ++) {
-					const char *name = lbm_get_variable_name_by_index(i);
-					lbm_print_value(output, sizeof(output), lbm_get_variable_by_index(i));
-					commands_printf_lisp("  %s = %s", name ? name : "error", output);
 				}
 			} else if (strncmp(str, ":ctxs", 5) == 0) {
 				commands_printf_lisp("****** Running contexts ******");
@@ -661,12 +637,11 @@ bool lispif_restart(bool print, bool load_code) {
 
 		if (!lisp_thd_running) {
 			lbm_init(heap, HEAP_SIZE,
-					GC_STACK_SIZE,
 					memory_array, LISP_MEM_SIZE,
 					bitmap_array, LISP_MEM_BITMAP_SIZE,
-					print_stack_storage, PRINT_STACK_SIZE,
+					GC_STACK_SIZE,
+					PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
-			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 			lbm_eval_init_events(20);
 
 			lbm_set_timestamp_us_callback(timestamp_callback);
@@ -684,12 +659,11 @@ bool lispif_restart(bool print, bool load_code) {
 			}
 
 			lbm_init(heap, HEAP_SIZE,
-					GC_STACK_SIZE,
 					memory_array, LISP_MEM_SIZE,
 					bitmap_array, LISP_MEM_BITMAP_SIZE,
-					print_stack_storage, PRINT_STACK_SIZE,
+					GC_STACK_SIZE,
+					PRINT_STACK_SIZE,
 					extension_storage, EXTENSION_STORAGE_SIZE);
-			lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 			lbm_eval_init_events(20);
 		}
 
