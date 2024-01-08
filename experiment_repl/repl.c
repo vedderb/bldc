@@ -304,7 +304,7 @@ bool dyn_load(const char *str, const char **code) {
     *code = "(define looprange (macro (it start end body) (me-looprange it start end body)))";
     res = true;
   }
-  
+
   return res;
 }
 
@@ -724,7 +724,7 @@ int main(int argc, char **argv) {
     printf("Extension added.\n");
   else
     printf("Error adding extension.\n");
-  
+
   lbm_add_symbol_const("a01", &sym_res);
   lbm_add_symbol_const("a02", &sym_loop);
   lbm_add_symbol_const("break", &sym_break);
@@ -815,12 +815,15 @@ int main(int argc, char **argv) {
       printf("Total:\t%u samples\n", tot_samples);
       free(str);
     } else if (strncmp(str, ":env", 4) == 0) {
-      lbm_value curr = *lbm_get_env_ptr();
-      printf("Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-        res = lbm_print_value(output,1024, lbm_car(curr));
-        curr = lbm_cdr(curr);
-        printf("  %s\r\n",output);
+      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+        lbm_value *env = lbm_get_global_env();
+        lbm_value curr = env[i];
+        printf("Environment [%d]:\r\n", i);
+        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+          res = lbm_print_value(output,1024, lbm_car(curr));
+          curr = lbm_cdr(curr);
+          printf("  %s\r\n",output);
+        }
       }
       printf("Variables:\r\n");
       for (int i = 0; i < lbm_get_num_variables(); i ++) {

@@ -514,13 +514,13 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  res = lbm_init_env();
-  if (res)
-    printf("Environment initialized.\n");
-  else {
-    printf("Error initializing environment.\n");
-    return FAIL;
-  }
+  /* res = lbm_init_env(); */
+  /* if (res) */
+  /*   printf("Environment initialized.\n"); */
+  /* else { */
+  /*   printf("Error initializing environment.\n"); */
+  /*   return FAIL; */
+  /* } */
 
   res = lbm_eval_init_events(20);
   if (res)

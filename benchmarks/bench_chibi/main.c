@@ -39,7 +39,7 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define HEAP_SIZE 2048
+#define HEAP_SIZE 4096
 #define VARIABLE_STORAGE_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 
@@ -153,7 +153,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
 static char str[1024];
 static char outbuf[1024];
-static char file_buffer[2048];
+#define FILE_LEN 8192
+static char file_buffer[FILE_LEN];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
@@ -252,13 +253,16 @@ int main(void) {
       chprintf(chp,"------------------------------------------------------------\r\n");
       memset(outbuf,0, 1024);
     } else if (strncmp(str, ":env", 4) == 0) {
-      lbm_value curr = *lbm_get_env_ptr();
-      chprintf(chp,"Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-        res = lbm_print_value(outbuf,1024, lbm_car(curr));
-        curr = lbm_cdr(curr);
+      lbm_value *glob_env = lbm_get_global_env();
+      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+        lbm_value curr = glob_env[i];
+        chprintf(chp,"Global Environment [%d]:\r\n", i);
+        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+          res = lbm_print_value(outbuf,1024, lbm_car(curr));
+          curr = lbm_cdr(curr);
 
-        chprintf(chp,"  %s \r\n", outbuf);
+          chprintf(chp,"  %s \r\n", outbuf);
+        }
       }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;
@@ -314,11 +318,11 @@ int main(void) {
 
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
-      memset(file_buffer, 0, 2048);
+      memset(file_buffer, 0, FILE_LEN);
       bool done = false;
       int c;
 
-      for (int i = 0; i < 2048; i ++) {
+      for (int i = 0; i < FILE_LEN; i ++) {
         c = streamGet(chp);
 
         if (c == 4 || c == 26 || c == STM_RESET) {
