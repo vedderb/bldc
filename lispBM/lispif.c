@@ -208,26 +208,33 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		// Result. Currently unused
 		send_buffer_global[ind++] = '\0';
 
-		lbm_value curr = *lbm_get_env_ptr();
-		while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-			lbm_value key_val = lbm_car(curr);
-			if (lbm_type_of(lbm_car(key_val)) == LBM_TYPE_SYMBOL && lbm_is_number(lbm_cdr(key_val))) {
-				const char *name = lbm_get_name_by_symbol(lbm_dec_sym(lbm_car(key_val)));
-
-				if (print_all ||
-						((name[0] == 'v' || name[0] == 'V') &&
-								(name[1] == 't' || name[1] == 'T'))) {
-					strcpy((char*)(send_buffer_global + ind), name);
-					ind += strlen(name) + 1;
-					buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(lbm_cdr(key_val)), &ind);
-				}
-			}
-
+		lbm_value *glob_env = lbm_get_global_env();
+		for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
 			if (ind > 300) {
 				break;
 			}
 
-			curr = lbm_cdr(curr);
+			lbm_value curr = glob_env[i];
+			while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+				lbm_value key_val = lbm_car(curr);
+				if (lbm_type_of(lbm_car(key_val)) == LBM_TYPE_SYMBOL && lbm_is_number(lbm_cdr(key_val))) {
+					const char *name = lbm_get_name_by_symbol(lbm_dec_sym(lbm_car(key_val)));
+
+					if (print_all ||
+							((name[0] == 'v' || name[0] == 'V') &&
+									(name[1] == 't' || name[1] == 'T'))) {
+						strcpy((char*)(send_buffer_global + ind), name);
+						ind += strlen(name) + 1;
+						buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(lbm_cdr(key_val)), &ind);
+					}
+				}
+
+				if (ind > 300) {
+					break;
+				}
+
+				curr = lbm_cdr(curr);
+			}
 		}
 
 		for (int i = 0; i < lbm_get_num_variables(); i ++) {
@@ -370,14 +377,16 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
 				commands_printf_lisp("Total:\t%u samples\n", tot_samples);
 			} else if (strncmp(str, ":env", 4) == 0) {
-				lbm_value curr = *lbm_get_env_ptr();
+				lbm_value *glob_env = lbm_get_global_env();
 				char output[128];
+				for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+					lbm_value curr = glob_env[i];
+					while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+						lbm_print_value(output, sizeof(output), lbm_car(curr));
+						curr = lbm_cdr(curr);
 
-				commands_printf_lisp("Environment:\n");
-				while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-					lbm_print_value(output, sizeof(output), lbm_car(curr));
-					curr = lbm_cdr(curr);
-					commands_printf_lisp("  %s", output);
+						commands_printf_lisp("  %s", output);
+					}
 				}
 
 				commands_printf_lisp("Variables:");
