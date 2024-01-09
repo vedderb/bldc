@@ -2055,7 +2055,6 @@ static void cont_wait(eval_context_t *ctx) {
 static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);
-  lbm_value res = val;
   if (s >= RUNTIME_SYMBOLS_START) {
     lbm_value new_env = lbm_env_modify_binding(env, key, val);
     if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
@@ -2068,8 +2067,10 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
       lbm_set_error_reason((char*)lbm_error_str_variable_not_bound);
       error_at_ctx(ENC_SYM_NOT_FOUND, key);
     }
+    return val;
   }
-  return res;
+  error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SETVAR);
+  return ENC_SYM_NIL; // unreachable
 }
 
 static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
