@@ -202,7 +202,7 @@ int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
 int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   lbm_uint *custom = (lbm_uint*)lbm_car(v);
   int r;
-  if (custom[CUSTOM_TYPE_DESCRIPTOR]) {
+  if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
     r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
   } else {
     r = print_emit_string(chan, "Unspecified_Custom_Type");
