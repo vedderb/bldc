@@ -176,7 +176,7 @@ lbm_value lbm_enc_double(double x) {
   return res;
 #else
   lbm_uint t;
-  memcpy(&t, &x, sizeof(lbm_float));
+  memcpy(&t, &x, sizeof(double));
   lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_RAW_F_TYPE));
   if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
   return lbm_set_ptr_type(f, LBM_TYPE_DOUBLE);
@@ -435,7 +435,11 @@ double lbm_dec_as_double(lbm_value a) {
 
 bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
+  #ifndef LBM64
   return (t & 0xC || t & LBM_NUMBER_MASK);
+  #else
+  return (t & ((uint64_t)0x1C) || t & LBM_NUMBER_MASK);
+  #endif
 }
 
 /****************************************************/
@@ -718,6 +722,18 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
+    if (cell->car == ENC_SYM_CONT) {
+      lbm_value cont = cell->cdr;
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont);
+      lbm_value *arrdata = (lbm_value *)arr->data;
+      for (lbm_uint i = 0; i < arr->size / 4; i ++) {
+        if (lbm_is_ptr(arrdata[i])){
+          if (!lbm_push (s, arrdata[i])) {
+            lbm_critical_error();
+          }
+        }
+      }
+    }
     if (lbm_is_ptr(cell->cdr)) {
       if (!lbm_push(s, cell->cdr)) {
         lbm_critical_error();

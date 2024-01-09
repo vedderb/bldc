@@ -123,7 +123,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint *id);
  */
 const char* lbm_get_name_by_symbol(lbm_uint id);
 
-int lbm_get_num_variables(void);
+lbm_uint lbm_get_num_variables(void);
 
 /**
  *

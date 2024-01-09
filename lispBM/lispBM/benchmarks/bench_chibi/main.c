@@ -39,13 +39,11 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define HEAP_SIZE 2048
-#define VARIABLE_STORAGE_SIZE 256
+#define HEAP_SIZE 4096
 #define EXTENSION_STORAGE_SIZE 256
 
+extension_fptr extensions[EXTENSION_STORAGE_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
@@ -153,7 +151,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
 static char str[1024];
 static char outbuf[1024];
-static char file_buffer[2048];
+#define FILE_LEN 8192
+static char file_buffer[FILE_LEN];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
@@ -198,11 +197,12 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                GC_STACK_SIZE,
                 memory_array, LBM_MEMORY_SIZE_8K,
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-                print_stack_storage, PRINT_STACK_SIZE,
-                extension_storage, EXTENSION_STORAGE_SIZE)) {
+                GC_STACK_SIZE,
+                PRINT_STACK_SIZE,
+                extensions,
+                EXTENSION_STORAGE_SIZE)) {
 
     chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
@@ -211,8 +211,6 @@ int main(void) {
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
-
-  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   res = lbm_add_extension("print", ext_print);
   if (res)
@@ -252,13 +250,16 @@ int main(void) {
       chprintf(chp,"------------------------------------------------------------\r\n");
       memset(outbuf,0, 1024);
     } else if (strncmp(str, ":env", 4) == 0) {
-      lbm_value curr = *lbm_get_env_ptr();
-      chprintf(chp,"Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-        res = lbm_print_value(outbuf,1024, lbm_car(curr));
-        curr = lbm_cdr(curr);
+      lbm_value *glob_env = lbm_get_global_env();
+      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+        lbm_value curr = glob_env[i];
+        chprintf(chp,"Global Environment [%d]:\r\n", i);
+        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+          res = lbm_print_value(outbuf,1024, lbm_car(curr));
+          curr = lbm_cdr(curr);
 
-        chprintf(chp,"  %s \r\n", outbuf);
+          chprintf(chp,"  %s \r\n", outbuf);
+        }
       }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;
@@ -300,13 +301,12 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-               GC_STACK_SIZE,
                memory_array, LBM_MEMORY_SIZE_8K,
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-               print_stack_storage, PRINT_STACK_SIZE,
-               extension_storage, EXTENSION_STORAGE_SIZE);
-
-      lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+               GC_STACK_SIZE,
+               PRINT_STACK_SIZE,
+               extensions,
+               EXTENSION_STORAGE_SIZE);
 
       lbm_add_extension("print", ext_print);
 
@@ -314,11 +314,11 @@ int main(void) {
 
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
-      memset(file_buffer, 0, 2048);
+      memset(file_buffer, 0, FILE_LEN);
       bool done = false;
       int c;
 
-      for (int i = 0; i < 2048; i ++) {
+      for (int i = 0; i < FILE_LEN; i ++) {
         c = streamGet(chp);
 
         if (c == 4 || c == 26 || c == STM_RESET) {
