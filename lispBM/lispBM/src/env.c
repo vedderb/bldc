@@ -24,11 +24,9 @@
 #include "env.h"
 #include "lbm_memory.h"
 
-static lbm_value *env_global;
+static lbm_value env_global[GLOBAL_ENV_ROOTS];
 
 int lbm_init_env(void) {
-  env_global = (lbm_value*)lbm_malloc(GLOBAL_ENV_ROOTS * sizeof(lbm_value));
-  if (!env_global) return 0;
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
     env_global[i] = ENC_SYM_NIL;
   }
