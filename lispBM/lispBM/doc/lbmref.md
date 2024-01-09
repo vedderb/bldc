@@ -28,21 +28,39 @@ all integer comparisons.
 
 You associate values with symbols using, <a href="#define">define</a>,
 <a href="#let">let</a> and you can change the value bound to a "variable"
-using <a href="#setvar">setvar</a>
+using <a href="#set">set</a>, <a href="#setvar">setq</a> or <a href="#setvar">setvar</a>.
 
 Not all symbols are treated the same in LBM. Some symbols are treated as
 special because of their very fundamental nature. Among these special symbols
 you find `define`, `let` and `lambda` for example. These are things that you
 should not be able to redefine and trying to redefine them leads to an error.
-There are two classes of symbols that are special by naming convention and
-these either start with a `#`, for fast-lookup variables, and `ext-` for
-extensions that will be bound at runtime.
+Symbols that start with `ext-` are special and reserved for use together
+with extensions that are loaded and bound at runtime.
 
 Examples of symbols used as data are `nil` and `t`. `nil` is used the
 represent nothing, the empty list or other similar things and `t`
 represents true.  But any symbol can be used as data by quoting it
 `'`, see <a href="#quotes-and-quasiquotation"> Quotes and
 Quasiquotation </a>.
+
+### Valid symbol names
+
+A symbol is string of characters following the rules:
+1. The first character is a one of 'a' - 'z' or 'A' - 'Z' or '+-*/=<>#!'.
+2. The rest of the characters are in 'a' - 'z' or 'A' - 'Z' or '0' - '9' or '+-*/=<>!?_'.
+3. At most 256 characters long.
+
+Note that lower-case and upper-case alphabetical letters are considers identical
+so the symbol `apa` is the same symbol as `APA`.
+
+examples of valid symbols
+```
+apa
+apa?
+!apa
+kurt_russel_is_great
+```
+
 
 
 ## Arithmetic
@@ -400,7 +418,7 @@ explicit true makes sense.
 ## Quotes and Quasiquotation
 
 Code and data share the same representation, it is only a matter of how
-you look at it. The tools for changing how your view are the quotation and
+you look at it. The tools for changing view, or interpretation,  are the quotation and
 quasiquotation operations.
 
 ---
@@ -738,9 +756,9 @@ Example
 ### setvar
 
 The `setvar` form is used to change the value of some variable in an environment.
-You can use `setvar` to change the value of a global definition, a local definition
-or a variable defintion (`#var`). An application of the `setvar` form looks like
-`(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
+You can use `setvar` to change the value of a global definition or a local definition.
+An application of the `setvar` form looks like `(setvar var-expr val-expr)` where
+`var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
 rebinding the variable. `setvar` returns the value that `val-expr` evaluates to.
 
 Examples:
@@ -760,15 +778,6 @@ You can also set the value of a let bound variable.
 ```clj
 (let ((a 10)) (setvar 'a 20))
 ```
-
-And you can change the value of a `#var`.
-
-```clj
-(define #a 10)
-
-(setvar '#a 20)
-```
-`#a` is now 20.
 
 ---
 
