@@ -736,8 +736,9 @@ static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_cont
       }
       curr = lbm_cdr(curr);
     }
+    return ENC_SYM_TRUE;
   }
-  return ENC_SYM_TRUE;
+  return ENC_SYM_TERROR;
 }
 
 static lbm_value fundamental_buf_create(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {

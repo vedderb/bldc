@@ -57,8 +57,8 @@ typedef struct {
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size);
 bool lbm_finish_flatten(lbm_flat_value_t *v);
 bool f_cons(lbm_flat_value_t *v);
-bool f_sym(lbm_flat_value_t *v, lbm_value sym);
-bool f_sym_string(lbm_flat_value_t *v, lbm_value sym);
+bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id);
+bool f_sym_string(lbm_flat_value_t *v, char *str);
 bool f_i(lbm_flat_value_t *v, lbm_int i);
 bool f_u(lbm_flat_value_t *v, lbm_uint u);
 bool f_b(lbm_flat_value_t *v, uint8_t b);

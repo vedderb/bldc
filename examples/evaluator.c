@@ -33,7 +33,7 @@
 
 #define WAIT_TIMEOUT 2500
 
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+lbm_extension_t extension_storage[EXTENSION_STORAGE_SIZE];
 
 /* Tokenizer state for strings */
 static lbm_string_channel_state_t string_tok_state;
