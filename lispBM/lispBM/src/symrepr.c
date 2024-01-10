@@ -315,7 +315,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
       *id = special_symbols[i].id;
       return 1;
     }
-  }
+   }
 
   // loop through extensions
   for (unsigned int i = 0; i < lbm_get_max_extensions(); i ++) {

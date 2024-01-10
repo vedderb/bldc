@@ -95,7 +95,7 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 
-  // Check if symbol is in traditional symbol table.
+  // Check if symbol already exists.
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
@@ -109,10 +109,10 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   }
 
   if (next_extension_ix < ext_max) {
-    lbm_uint sym_ix = next_extension_ix;
-    next_extension_ix ++;
+    lbm_uint sym_ix = next_extension_ix ++;
     extension_table[sym_ix].name = sym_str;
     extension_table[sym_ix].fptr = ext;
+    ext_num ++;
     return true;
   }
   return false;
