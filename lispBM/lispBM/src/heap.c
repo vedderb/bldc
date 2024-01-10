@@ -722,18 +722,6 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    if (cell->car == ENC_SYM_CONT) {
-      lbm_value cont = cell->cdr;
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont);
-      lbm_value *arrdata = (lbm_value *)arr->data;
-      for (lbm_uint i = 0; i < arr->size / 4; i ++) {
-        if (lbm_is_ptr(arrdata[i])){
-          if (!lbm_push (s, arrdata[i])) {
-            lbm_critical_error();
-          }
-        }
-      }
-    }
     if (lbm_is_ptr(cell->cdr)) {
       if (!lbm_push(s, cell->cdr)) {
         lbm_critical_error();
