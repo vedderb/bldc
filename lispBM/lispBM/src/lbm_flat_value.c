@@ -100,9 +100,8 @@ bool f_cons(lbm_flat_value_t *v) {
   return false;
 }
 
-bool f_sym(lbm_flat_value_t *v, lbm_value sym) {
+bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id) {
   bool res = true;
-  lbm_uint sym_id = lbm_dec_sym(sym);
   res = res && write_byte(v,S_SYM_VALUE);
   #ifndef LBM64
   res = res && write_word(v,sym_id);
@@ -112,21 +111,16 @@ bool f_sym(lbm_flat_value_t *v, lbm_value sym) {
   return res;
 }
 
-bool f_sym_string(lbm_flat_value_t *v, lbm_value sym) {
+bool f_sym_string(lbm_flat_value_t *v, char *str) {
   bool res = true;
-  char *sym_str;
-  if (lbm_is_symbol(sym)) {
-    lbm_uint s = lbm_dec_sym(sym);
-    sym_str = (char*)lbm_get_name_by_symbol(s);
-    if (sym_str) {
-      lbm_uint sym_bytes = strlen(sym_str) + 1;
-      res = res && write_byte(v, S_SYM_STRING);
-      if (res && v->buf_size >= v->buf_pos + sym_bytes) {
-        for (lbm_uint i = 0; i < sym_bytes; i ++ ) {
-          res = res && write_byte(v, (uint8_t)sym_str[i]);
-        }
-        return res;
+  if (str) {
+    lbm_uint sym_bytes = strlen(str) + 1;
+    res = res && write_byte(v, S_SYM_STRING);
+    if (res && v->buf_size >= v->buf_pos + sym_bytes) {
+      for (lbm_uint i = 0; i < sym_bytes; i ++) {
+        res = res && write_byte(v, (uint8_t)str[i]);
       }
+      return res;
     }
   }
   return false;
@@ -358,16 +352,17 @@ int flatten_value_internal(lbm_flat_value_t *fv, lbm_value v) {
       return FLATTEN_VALUE_OK;
     }
     break;
-  case LBM_TYPE_SYMBOL:
-    if (f_sym_string(fv, v)) {
+  case LBM_TYPE_SYMBOL: {
+    char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v));
+    if (f_sym_string(fv, sym_str)) {
       return FLATTEN_VALUE_OK;
     }
-    break;
+  } break;
   case LBM_TYPE_ARRAY: {
     lbm_int s = lbm_heap_array_get_size(v);
-    uint8_t *d = lbm_heap_array_get_data(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
-      if (f_lbm_array(fv, (lbm_uint)s, d)) {
+      if (f_lbm_array(fv, (lbm_uint)s, (uint8_t*)d)) {
         return FLATTEN_VALUE_OK;
       }
     } else {

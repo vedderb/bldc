@@ -42,7 +42,7 @@
 #define HEAP_SIZE 4096
 #define EXTENSION_STORAGE_SIZE 256
 
-extension_fptr extensions[EXTENSION_STORAGE_SIZE];
+lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));

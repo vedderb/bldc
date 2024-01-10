@@ -93,22 +93,12 @@ int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
  * \return 1 for success and 0 for failure.
  */
 int lbm_add_symbol_const(char *name, lbm_uint *id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be a statically allocated constant.
+/** Get a pointer to the list entry holding a symbol name, id mapping.
  *
- * \param name Name of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
+ * \param name Name string to look up.
+ * \return Pointer to list entry or NULL.
  */
-int lbm_add_extension_symbol(char *name, lbm_uint* id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be statically allocated.
- *
- * \param name Statically allocated name string.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
+lbm_uint *lbm_get_symbol_list_entry_by_name(char *name);
 /** Look up an id from the symbol table given a name.
  *
  * \param name Name string to look up.
@@ -143,6 +133,17 @@ lbm_uint lbm_get_symbol_table_size_names(void);
  * \return The size in bytes of all symbol strings stored in flash from the symbol table.
  */
 lbm_uint lbm_get_symbol_table_size_names_flash(void);
+
+/** Check if a symbol name is stored in flash.
+ * \param str Symbol name string.
+ * \return True if symbol name is stored in flash, otherwise False.
+ */
+bool lbm_symbol_in_flash(char *str);
+/** Check if a symbol name id mapping list entry is stored in flash.
+ * \param str Symbol name string.
+ * \return True if symbol name/id mapping list entry is stored in flash, otherwise False.
+ */
+bool lbm_symbol_list_entry_in_flash(char *str);
 
 
 extern lbm_value symbol_x;

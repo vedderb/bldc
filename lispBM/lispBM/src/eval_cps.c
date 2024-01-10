@@ -3557,7 +3557,21 @@ static void cont_read_next_token(eval_context_t *ctx) {
     } else {
       int r = 0;
       if (strncmp(tokpar_sym_str,"ext-",4) == 0) {
-        r = lbm_add_extension_symbol(tokpar_sym_str, &symbol_id);
+        if (!lbm_lookup_extension_id(tokpar_sym_str, &symbol_id)) {
+          char *ext_name = lbm_malloc(strlen(tokpar_sym_str) + 1);
+          if (!ext_name) {
+            gc();
+            ext_name = lbm_malloc(strlen(tokpar_sym_str) + 1);
+          }
+          if (ext_name) {
+            lbm_uint ext_id;
+            r = lbm_add_extension(ext_name, lbm_extensions_default);
+            if (!lbm_lookup_extension_id(ext_name, &ext_id)) {
+              error_ctx(ENC_SYM_FATAL_ERROR);
+            }
+            symbol_id = ext_id + EXTENSION_SYMBOLS_START;
+          }
+        }
       } else {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
