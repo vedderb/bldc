@@ -28,7 +28,9 @@
 static lbm_uint ext_offset = EXTENSION_SYMBOLS_START;
 static lbm_uint ext_max    = 0;
 static lbm_uint ext_num    = 0;
-static extension_fptr *extension_table = NULL;
+static lbm_uint next_extension_ix = 0;
+
+lbm_extension_t *extension_table = NULL;
 
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   (void)args;
@@ -36,16 +38,17 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-int lbm_extensions_init(extension_fptr *extension_storage, lbm_uint extension_storage_size) {
+int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size) {
   if (extension_storage == NULL || extension_storage_size == 0) return 0;
 
   extension_table = extension_storage;
-  memset(extension_table, 0, sizeof(extension_fptr) * extension_storage_size);
+  memset(extension_table, 0, sizeof(lbm_extension_t) * extension_storage_size);
 
   for (lbm_uint i = 0; i < extension_storage_size; i ++) {
-    extension_storage[i] = lbm_extensions_default;
+    extension_storage[i].fptr = lbm_extensions_default;
   }
 
+  next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
   return 1;
@@ -64,7 +67,7 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
   if (ext_next >= ext_max) {
     return NULL;
   }
-  return extension_table[ext_next];
+  return extension_table[ext_next].fptr;
 }
 
 bool lbm_clr_extension(lbm_uint sym_id) {
@@ -72,33 +75,48 @@ bool lbm_clr_extension(lbm_uint sym_id) {
   if (ext_id >= ext_max) {
     return false;
   }
-  extension_table[ext_id] = lbm_extensions_default;
+  extension_table[ext_id].name = NULL;
+  extension_table[ext_id].fptr = lbm_extensions_default;
   return true;
+}
+
+bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
+  for (lbm_uint i = 0; i < ext_max; i ++) {
+    if(extension_table[i].name) {
+      if (strcmp(extension_table[i].name, sym_str) == 0) {
+        *ix = i;
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
-  lbm_uint ext_ix = 0;
 
+  // Check if symbol already exists.
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
-    // symbol already exists and may or may not be an extension.
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
-      ext_ix = symbol - ext_offset;
-    } else return false;
-  } else {
-    int res = lbm_add_extension_symbol_const(sym_str, &symbol);
-    if (!res) return false;
-    ext_ix = symbol - ext_offset;
+      // update the extension entry.
+      if (strcmp(extension_table[symbol - ext_offset].name, sym_str) == 0) {
+        // Do not replace name ptr.
+        extension_table[symbol - ext_offset].fptr = ext;
+        return true;
+      }
+    }
+    return false;
   }
 
-  if (ext_ix >= ext_max) {
-      return false;
+  if (next_extension_ix < ext_max) {
+    lbm_uint sym_ix = next_extension_ix ++;
+    extension_table[sym_ix].name = sym_str;
+    extension_table[sym_ix].fptr = ext;
+    ext_num ++;
+    return true;
   }
-  ext_num = ext_ix + 1;
-  extension_table[ext_ix] = ext;
-  return true;
+  return false;
 }
-
 
 // Helpers for extension developers:
 

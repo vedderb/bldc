@@ -46,7 +46,7 @@
 #define FAIL 0
 #define SUCCESS 1
 
-extension_fptr extensions[EXTENSION_STORAGE_SIZE];
+lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 
@@ -223,7 +223,7 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
   if (argn == 1 && lbm_is_symbol(args[0])) {
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 1 + sizeof(lbm_uint) + 20)) {
-      f_sym(&v, args[0]);
+      f_sym(&v, lbm_dec_sym(args[0]));
       lbm_finish_flatten(&v);
       lbm_event(&v);
       res = ENC_SYM_TRUE;
@@ -274,7 +274,7 @@ LBM_EXTENSION(ext_event_array, args, argn) {
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 100)) {
       f_cons(&v);
-      f_sym(&v,args[0]);
+      f_sym(&v,lbm_dec_sym(args[0]));
       f_lbm_array(&v, 12, (uint8_t*)hello);
       lbm_finish_flatten(&v);
       lbm_event(&v);
@@ -298,7 +298,7 @@ LBM_EXTENSION(ext_unblock, args, argn) {
     lbm_cid c = lbm_dec_as_i32(args[0]);
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 1 + sizeof(lbm_uint))) {
-      f_sym(&v, ENC_SYM_TRUE);
+      f_sym_string(&v, "t");
       lbm_finish_flatten(&v);
       lbm_unblock_ctx(c,&v);
       res = ENC_SYM_TRUE;
@@ -313,7 +313,7 @@ LBM_EXTENSION(ext_unblock_error, args, argn) {
     lbm_cid c = lbm_dec_as_i32(args[0]);
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 1 + sizeof(lbm_uint))) {
-      f_sym(&v, ENC_SYM_EERROR);
+      f_sym(&v, SYM_EERROR);
       lbm_finish_flatten(&v);
       lbm_unblock_ctx(c,&v);
       res = ENC_SYM_TRUE;

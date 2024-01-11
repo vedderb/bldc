@@ -24,6 +24,7 @@
 #include <lbm_memory.h>
 #include <heap.h>
 #include "symrepr.h"
+#include "extensions.h"
 
 #define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
@@ -49,8 +50,6 @@ special_sym const special_symbols[] =  {
   {"read"       , SYM_READ},
   {"read-program" , SYM_READ_PROGRAM},
   {"read-eval-program", SYM_READ_AND_EVAL_PROGRAM},
-  //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
-  //{"splice"     , SYM_COMMAAT},
   {"match"        , SYM_MATCH},
   {"_"            , SYM_DONTCARE},
   {"send"         , SYM_SEND},
@@ -228,9 +227,7 @@ special_sym const special_symbols[] =  {
 
 static lbm_uint *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
-static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
-
 static lbm_uint symbol_table_size_list = 0;
 static lbm_uint symbol_table_size_list_flash = 0;
 static lbm_uint symbol_table_size_strings = 0;
@@ -242,7 +239,6 @@ lbm_value symbol_y = ENC_SYM_NIL;
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
-  next_extension_symbol_id = EXTENSION_SYMBOLS_START;
   next_variable_symbol_id = VARIABLE_SYMBOLS_START;
   symbol_table_size_list = 0;
   symbol_table_size_list_flash = 0;
@@ -287,8 +283,27 @@ const char *lbm_get_name_by_symbol(lbm_uint id) {
         return (special_symbols[i].name);
       }
     }
+    return NULL;
+  } else if (id - EXTENSION_SYMBOLS_START < EXTENSION_SYMBOLS_END) {
+    unsigned int ext_id = id - EXTENSION_SYMBOLS_START;
+    if (ext_id < lbm_get_max_extensions()) {
+        return extension_table[ext_id].name;
+    }
+    return NULL;
   }
   return lookup_symrepr_name_memory(id);
+}
+
+lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
+  lbm_uint *curr = symlist;
+  while (curr) {
+    char *str = (char*)curr[NAME];
+    if (strcmp(name, str) == 0) {
+      return (lbm_uint *)curr;
+    }
+    curr = (lbm_uint*)curr[NEXT];
+  }
+  return NULL;
 }
 
 // Lookup symbol id given symbol name
@@ -298,6 +313,14 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
   for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
     if (strcmp(name, special_symbols[i].name) == 0) {
       *id = special_symbols[i].id;
+      return 1;
+    }
+   }
+
+  // loop through extensions
+  for (unsigned int i = 0; i < lbm_get_max_extensions(); i ++) {
+    if (extension_table[i].name && strcmp(name, extension_table[i].name) == 0) {
+      *id = EXTENSION_SYMBOLS_START + i;
       return 1;
     }
   }
@@ -424,35 +447,6 @@ int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
   return 0;
 }
 
-int lbm_add_extension_symbol(char *name, lbm_uint* id) {
-
-  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
-  lbm_uint symbol_name_storage;
-  if (!store_symbol_name(name, &symbol_name_storage)) return 0;
-
-  if (!add_symbol_to_symtab(symbol_name_storage, next_extension_symbol_id)) {
-    lbm_memory_free((lbm_uint*)symbol_name_storage);
-    return 0;
-  }
-
-  *id = next_extension_symbol_id ++;
-
-  return 1;
-}
-
-int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
-
-  if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
-
-  if (!add_symbol_to_symtab((lbm_uint)name, next_extension_symbol_id)) {
-    return 0;
-  }
-
-  *id = next_extension_symbol_id ++;
-
-  return 1;
-}
-
 lbm_uint lbm_get_symbol_table_size(void) {
   return (symbol_table_size_list +
           symbol_table_size_strings) * sizeof(lbm_uint);
@@ -473,4 +467,13 @@ lbm_uint lbm_get_symbol_table_size_names_flash(void) {
 
 lbm_uint lbm_get_num_variables(void) {
   return next_variable_symbol_id - VARIABLE_SYMBOLS_START;
+}
+
+bool lbm_symbol_in_flash(char *str) {
+  return !lbm_memory_ptr_inside((lbm_uint*)str);
+}
+
+bool lbm_symbol_list_entry_in_flash(char *str) {
+  lbm_uint *entry = lbm_get_symbol_list_entry_by_name(str);
+  return (entry == NULL || !lbm_memory_ptr_inside(entry));
 }

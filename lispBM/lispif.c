@@ -45,7 +45,7 @@
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
 __attribute__((section(".ram4"))) static uint32_t bitmap_array[LISP_MEM_BITMAP_SIZE];
-__attribute__((section(".ram4"))) static extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+__attribute__((section(".ram4"))) static lbm_extension_t extension_storage[EXTENSION_STORAGE_SIZE];
 __attribute__((section(".ram4"))) static lbm_prof_t prof_data[PROF_DATA_NUM];
 static volatile bool prof_running = false;
 
@@ -118,7 +118,12 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 }
 
 static void sym_it(const char *str) {
-	commands_printf_lisp("%s", str);
+	bool sym_name_flash = lbm_symbol_in_flash((char *)str);
+	bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
+	commands_printf_lisp("[%s, %s]: %s\n",
+			sym_name_flash ? "FLASH" : "LBM_MEM",
+					sym_entry_flash ? "FLASH" : "LBM_MEM",
+							str);
 }
 
 static void prof_thd_wrapper(void *v) {

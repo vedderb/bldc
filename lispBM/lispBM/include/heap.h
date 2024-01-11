@@ -622,11 +622,16 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt);
  * \return -1 for failure or length of array.
  */
 lbm_int lbm_heap_array_get_size(lbm_value arr);
-/** Get a pointer to the data of an array.
+/** Get a pointer to the data of an array for read only purposes.
  * \param arr lbm_value array to get pointer from.
  * \return NULL or valid pointer.
  */
-uint8_t *lbm_heap_array_get_data(lbm_value arr);
+const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr);
+/** Get a pointer to the data of an array for read/write purposes.
+ * \param arr lbm_value array to get pointer from.
+ * \return NULL or valid pointer.
+ */
+uint8_t *lbm_heap_array_get_data_rw(lbm_value arr);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.

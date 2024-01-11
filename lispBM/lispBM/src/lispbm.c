@@ -22,7 +22,7 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
              lbm_uint gc_stack_size,
              lbm_uint print_stack_size,
-             extension_fptr *extension_storage,
+             lbm_extension_t *extension_storage,
              lbm_uint extension_storage_size) {
 
   if (lbm_memory_init(memory, memory_size,
