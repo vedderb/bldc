@@ -1442,7 +1442,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 #ifdef USE_LISPBM
 		if (packet_id == COMM_LISP_ERASE_CODE) {
-			lispif_restart(false, false);
+			lispif_restart(false, false, false);
 		}
 #endif
 

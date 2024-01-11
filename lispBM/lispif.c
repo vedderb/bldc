@@ -82,7 +82,7 @@ void lispif_init(void) {
 	// was the cause of it.
 	// TODO: Anything else to check?
 	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
-		lispif_restart(false, true);
+		lispif_restart(false, true, true);
 	}
 
 	lbm_set_eval_step_quota(50);
@@ -158,7 +158,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 			ok = timeout_cnt > 0;
 		} else {
-			ok = lispif_restart(true, true);
+			ok = lispif_restart(true, true, true);
 		}
 
 		int32_t ind = 0;
@@ -251,7 +251,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (!lisp_thd_running) {
-			lispif_restart(true, false);
+			lispif_restart(true, false, true);
 		}
 
 		if (lisp_thd_running) {
@@ -385,7 +385,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				lbm_symrepr_name_iterator(sym_it);
 				commands_printf_lisp(" ");
 			} else if (strncmp(str, ":reset", 6) == 0) {
-				commands_printf_lisp(lispif_restart(false, flash_helper_code_size(CODE_IND_LISP) > 0) ?
+				commands_printf_lisp(lispif_restart(false, flash_helper_code_size(CODE_IND_LISP) > 0, true) ?
 						"Reset OK\n\n" : "Reset Failed\n\n");
 			} else if (strncmp(str, ":pause", 6) == 0) {
 				lbm_pause_eval_with_gc(30);
@@ -464,13 +464,13 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 		if (offset == 0) {
 			if (!lisp_thd_running) {
-				lispif_restart(true, restart == 2 ? true : false);
+				lispif_restart(true, restart == 2 ? true : false, true);
 				buffered_channel_created = false;
 			} else if (restart == 1) {
-				lispif_restart(true, false);
+				lispif_restart(true, false, true);
 				buffered_channel_created = false;
 			} else if (restart == 2) {
-				lispif_restart(true, true);
+				lispif_restart(true, true, true);
 				buffered_channel_created = false;
 			}
 		}
@@ -628,7 +628,7 @@ static void done_callback(eval_context_t *ctx) {
 	}
 }
 
-bool lispif_restart(bool print, bool load_code) {
+bool lispif_restart(bool print, bool load_code, bool load_imports) {
 	bool res = false;
 
 	restart_cnt++;
@@ -705,20 +705,22 @@ bool lispif_restart(bool print, bool load_code) {
 		lbm_const_heap_init(const_heap_write, &const_heap, const_heap_ptr, const_heap_len);
 
 		// Load imports
-		if (code_len > code_chars + 3) {
-			int32_t ind = code_chars + 1;
-			uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
+		if (load_imports) {
+			if (code_len > code_chars + 3) {
+				int32_t ind = code_chars + 1;
+				uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
 
-			if (num_imports > 0 && num_imports < 500) {
-				for (int i = 0;i < num_imports;i++) {
-					char *name = code_data + ind;
-					ind += strlen(name) + 1;
-					int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
-					int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
+				if (num_imports > 0 && num_imports < 500) {
+					for (int i = 0;i < num_imports;i++) {
+						char *name = code_data + ind;
+						ind += strlen(name) + 1;
+						int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
+						int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
-					lbm_value val;
-					if (lbm_share_array(&val, code_data + offset, len)) {
-						lbm_define(name, val);
+						lbm_value val;
+						if (lbm_share_array(&val, code_data + offset, len)) {
+							lbm_define(name, val);
+						}
 					}
 				}
 			}
