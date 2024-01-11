@@ -48,6 +48,7 @@ int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_s
     extension_storage[i].fptr = lbm_extensions_default;
   }
 
+  ext_num = 0;
   next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
