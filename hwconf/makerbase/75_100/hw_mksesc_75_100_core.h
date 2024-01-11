@@ -111,8 +111,8 @@
 #define ADC_IND_EXT2			7
 #define ADC_IND_EXT3			10
 #define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOS_2		15
-#define ADC_IND_TEMP_MOS_3		16
+//#define ADC_IND_TEMP_MOS_2		15
+//#define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -134,9 +134,7 @@
 #define CURRENT_AMP_GAIN		20.0 
 #endif
 #ifndef CURRENT_SHUNT_RES
-    #if defined (HW75_100_OLD)
-    #define CURRENT_SHUNT_RES		(0.0005 / 3.0) 
-    #endif
+#define CURRENT_SHUNT_RES		(0.0005 / 3.0) 
 #endif
 
 // Input voltage

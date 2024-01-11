@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 	
-#ifndef HW_75_200_V2_OLD_H_
-#define HW_75_200_V2_OLD_H_
+#ifndef HW_MKSESC_75_200_V2_OLD_H_
+#define HW_MKSESC_75_200_V2_OLD_H_
 
 #define HW75_200_V2_OLD
 
 #include "hw_mksesc_75_200_v2_core.h"
 
-#endif /* HW_75_200_V2_OLD_H_ */
+#endif /* HW_MKSESC_75_200_V2_OLD_H_ */
