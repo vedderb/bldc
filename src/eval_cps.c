@@ -2104,8 +2104,16 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     }
     lbm_value *sptr = get_stack_ptr(ctx, 2);
 
-    sptr[0] = chan;
-    sptr[1] = READ_DONE;
+    //sptr[0] = Restore context flag to incremental read?
+    //          TRUE -> set incremental
+    //          NIL  -> set non-incremental
+    if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
+      sptr[0] = ENC_SYM_TRUE;
+    } else {
+      sptr[0] = ENC_SYM_NIL;
+    }
+    sptr[1] = chan;
+    stack_push(&ctx->K, READ_DONE);
 
     if (program) {
       if (incremental) {
@@ -3272,8 +3280,6 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 
   */
 
-  ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
-
   if (lbm_is_symbol(ctx->r)) {
     lbm_uint sym_val = lbm_dec_sym(ctx->r);
     if (sym_val >= TOKENIZER_SYMBOLS_START &&
@@ -3849,7 +3855,14 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 
 static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
-  lbm_pop(&ctx->K, &stream);
+  lbm_value restore_incremental;
+  lbm_pop_2(&ctx->K, &stream ,&restore_incremental);
+
+  if (restore_incremental == ENC_SYM_TRUE) {
+    ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
+  } else {
+    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
+  }
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {

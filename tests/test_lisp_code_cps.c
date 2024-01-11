@@ -365,6 +365,22 @@ LBM_EXTENSION(ext_const_prg, args, argn) {
   return v;
 }
 
+LBM_EXTENSION(ext_inc_i, args, argn) {
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_int i = lbm_dec_as_i32(args[0]);
+    return lbm_enc_i(i + 1);
+  }
+  return ENC_SYM_EERROR;
+}
+
+LBM_EXTENSION(ext_load_inc_i, args, argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_add_extension("ext-inc-i", ext_inc_i);
+  return ENC_SYM_TRUE;
+}
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -641,6 +657,14 @@ int main(int argc, char **argv) {
   res = lbm_add_extension("check", ext_check);
   if (res)
     printf("Result check extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return FAIL;
+  }
+
+  res = lbm_add_extension("load-inc-i", ext_load_inc_i);
+  if (res)
+    printf("extension load extension added.\n");
   else {
     printf("Error adding extension.\n");
     return FAIL;
