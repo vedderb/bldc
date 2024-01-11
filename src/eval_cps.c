@@ -3571,6 +3571,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
           symbol_id = ext_id + EXTENSION_SYMBOLS_START;
+        } else {
+          error_ctx(ENC_SYM_MERROR);
         }
       } else {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
