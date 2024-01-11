@@ -120,9 +120,9 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 static void sym_it(const char *str) {
 	bool sym_name_flash = lbm_symbol_in_flash((char *)str);
 	bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
-	commands_printf_lisp("[%s, %s]: %s\n",
-			sym_name_flash ? "FLASH" : "LBM_MEM",
-					sym_entry_flash ? "FLASH" : "LBM_MEM",
+	commands_printf_lisp("[Name: %s, Entry: %s]: %s\n",
+			sym_name_flash ? "FLASH" : "L_MEM",
+					sym_entry_flash ? "FLASH" : "L_MEM",
 							str);
 }
 
