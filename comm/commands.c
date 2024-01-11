@@ -1621,6 +1621,26 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		conf_custom_process_cmd(data - 1, len + 1, reply_func);
 	} break;
 
+
+	case COMM_SHUTDOWN: {
+		int ind = 0;
+		int force = data[ind++];
+		if ((fabsf(mc_interface_get_rpm()) > 100) && (force != 1)) {
+			// Don't allow shutdown/restart while riding, unless force == 1
+			break;
+		}
+
+		int is_restart = data[ind++];
+		if (is_restart == 1) {
+			// same as terminal rebootwdt command
+			chSysLock();
+			for (;;) {__NOP();}
+		}
+		else {
+			do_shutdown(false);
+		}
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.

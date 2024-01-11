@@ -1094,6 +1094,13 @@ typedef enum {
 	COMM_LOG_DATA_F64						= 151,
 
 	COMM_LISP_RMSG							= 152,
+
+	//Placeholders for pinlock commands
+	//COMM_PINLOCK1							= 153,
+	//COMM_PINLOCK2							= 154,
+	//COMM_PINLOCK3							= 155,
+
+	COMM_SHUTDOWN							= 156,
 } COMM_PACKET_ID;
 
 // CAN commands
