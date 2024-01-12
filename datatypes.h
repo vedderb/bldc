@@ -300,6 +300,7 @@ typedef struct {
 	float temps_adc[50];
 	float temp_ic;
 	float temp_hum;
+	float pressure;
 	float hum;
 	float temp_max_cell;
 	float soc;

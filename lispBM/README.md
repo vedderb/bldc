@@ -234,6 +234,7 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-temp-ic) ; Balance IC temperature
 (get-bms-val 'bms-temp-hum) ; Humidity sensor temperature
 (get-bms-val 'bms-hum) ; Humidity
+(get-bms-val 'bms-pres) ; Pressure in PA (Added in 6.05)
 (get-bms-val 'bms-temp-cell-max) ; Maximum cell temperature
 (get-bms-val 'bms-soc) ; State of charge (0.0 to 1.0)
 (get-bms-val 'bms-can-id) ; CAN ID of BMS
