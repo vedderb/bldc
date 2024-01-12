@@ -810,6 +810,34 @@ static lbm_value ext_send_bms_can(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_set_bms_chg_allowed(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	int allowed = lbm_dec_as_i32(args[0]);
+
+	uint8_t data[2];
+	data[0] = COMM_BMS_SET_CHARGE_ALLOWED;
+	data[1] = allowed;
+
+	bms_process_cmd(data, 2, 0);
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_bms_force_balance(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	int force = lbm_dec_as_i32(args[0]);
+
+	uint8_t data[2];
+	data[0] = COMM_BMS_FORCE_BALANCE;
+	data[1] = force;
+
+	bms_process_cmd(data, 2, 0);
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
@@ -4900,6 +4928,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-bms-val", ext_get_bms_val);
 	lbm_add_extension("set-bms-val", ext_set_bms_val);
 	lbm_add_extension("send-bms-can", ext_send_bms_can);
+	lbm_add_extension("set-bms-chg-allowed", ext_set_bms_chg_allowed);
+	lbm_add_extension("bms-force-balance", ext_bms_force_balance);
 	lbm_add_extension("get-adc", ext_get_adc);
 	lbm_add_extension("override-temp-motor", ext_override_temp_motor);
 	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);

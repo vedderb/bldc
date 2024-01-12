@@ -243,6 +243,7 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-ah-cnt-dis-total) ; Total ah discharged
 (get-bms-val 'bms-wh-cnt-dis-total) ; Total wh discharged
 (get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
+(get-bms-val 'bms-chg-allowed) ; Pressure in PA (Added in 6.05, Express only)
 ```
 
 ---
@@ -281,6 +282,34 @@ Example:
 ```
 
 Send BMS-values on CAN-bus. This his useful if a custom BMS-driver is implemented using [set-bms-val](#set-bms-val) in order to make devices on the CAN-bus aware of the BMS-state using the VESC protocol.
+
+---
+
+#### set-bms-chg-allowed
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(set-bms-chg-allowed allow)
+```
+
+Enable or disable charging. 1 means enable and 0 means disable.
+
+---
+
+#### bms-force-balance
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(bms-force-balance balance)
+```
+
+Start or stop balancing. 1 means start and 0 means stop.
 
 ---
 
