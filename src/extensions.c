@@ -25,7 +25,6 @@
 
 #include "extensions.h"
 
-static lbm_uint ext_offset = EXTENSION_SYMBOLS_START;
 static lbm_uint ext_max    = 0;
 static lbm_uint ext_num    = 0;
 static lbm_uint next_extension_ix = 0;
@@ -64,7 +63,7 @@ lbm_uint lbm_get_num_extensions(void) {
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
-  lbm_uint ext_next = sym - ext_offset;
+  lbm_uint ext_next = sym - EXTENSION_SYMBOLS_START;
   if (ext_next >= ext_max) {
     return NULL;
   }
@@ -72,7 +71,7 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
 }
 
 bool lbm_clr_extension(lbm_uint sym_id) {
-  lbm_uint ext_id = sym_id - ext_offset;
+  lbm_uint ext_id = sym_id - EXTENSION_SYMBOLS_START;
   if (ext_id >= ext_max) {
     return false;
   }
@@ -85,7 +84,7 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   for (lbm_uint i = 0; i < ext_max; i ++) {
     if(extension_table[i].name) {
       if (strcmp(extension_table[i].name, sym_str) == 0) {
-        *ix = i;
+        *ix = i + EXTENSION_SYMBOLS_START;
         return true;
       }
     }
@@ -100,9 +99,9 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
-      if (strcmp(extension_table[symbol - ext_offset].name, sym_str) == 0) {
+      if (strcmp(extension_table[symbol - EXTENSION_SYMBOLS_START].name, sym_str) == 0) {
         // Do not replace name ptr.
-        extension_table[symbol - ext_offset].fptr = ext;
+        extension_table[symbol - EXTENSION_SYMBOLS_START].fptr = ext;
         return true;
       }
     }

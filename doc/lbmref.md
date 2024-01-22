@@ -2,9 +2,9 @@
 
 ## About Symbols
 
-Symbols are very important and fundamental to LispBM and also perhaps
+Symbols are very important and central to LispBM and also perhaps
 a bit different from identifiers/names used in languages such as C, so
-a short intro could be good here.
+a short intro on symbols could be good here.
 
 A symbol can be thought of as a name and can be used to give names
 to functions or values (variables). A symbol can also be treated and
@@ -37,20 +37,20 @@ should not be able to redefine and trying to redefine them leads to an error.
 Symbols that start with `ext-` are special and reserved for use together
 with extensions that are loaded and bound at runtime.
 
-Examples of symbols used as data are `nil` and `t`. `nil` is used the
-represent nothing, the empty list or other similar things and `t`
+Examples of symbols used as data are `nil` and `t`. `nil` representds
+"nothing", the empty list or other similar things and `t`
 represents true.  But any symbol can be used as data by quoting it
 `'`, see <a href="#quotes-and-quasiquotation"> Quotes and
 Quasiquotation </a>.
 
 ### Valid symbol names
 
-A symbol is string of characters following the rules:
+A symbol is a string of characters following the rules:
 1. The first character is a one of 'a' - 'z' or 'A' - 'Z' or '+-*/=<>#!'.
 2. The rest of the characters are in 'a' - 'z' or 'A' - 'Z' or '0' - '9' or '+-*/=<>!?_'.
 3. At most 256 characters long.
 
-Note that lower-case and upper-case alphabetical letters are considers identical
+Note that lower-case and upper-case alphabetical letters are considered identical
 so the symbol `apa` is the same symbol as `APA`.
 
 examples of valid symbols
@@ -386,7 +386,7 @@ the argument.
 ### nil
 
 Represents the empty list. The nil value is also considered to be false by
-conditionals
+conditionals.
 
 The example below creates a one element list by allocating a cons cell and putting a value (1) in the <a href="#car"> car </a> field
 and nil in the <a href="#cdr"> cdr </a> field.
@@ -874,7 +874,6 @@ These two programs are thus equivalent:
   (define a 10)
   (define b 20)
   (+ a b))
-
 ```
 
 And
@@ -951,7 +950,7 @@ The code above evaluates to 11.
 
 <a name="read-program"> <h3>read-program</h3> </a>
 
-Parses a string containing multiple sequenced expressed. The resulting list of
+Parses a string containing multiple sequenced expressions. The resulting list of
 expressions can be evaluated as a program using <a href="#eval-program">eval-program</a>.
 The form of a read-program expression is `(read-program string)`.
 
@@ -1170,7 +1169,7 @@ Example that combines to lists.
 
 ### ix
 
-Index into a list using the `ix`. the form of an `ix` expression
+Index into a list using the `ix` function. The form of an `ix` expression
 is `(ix list-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil.
 
 Example that evaluates to 2.
@@ -1365,9 +1364,9 @@ alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr val
 ### bufcreate
 
 Create an array of bytes. The
-form of an `bufcreate` expression is `(bufcreate size-expr)`
+form of a `bufcreate` expression is `(bufcreate size-expr)`
 
-Example that creates a 10 element buffer caled data:
+Example that creates a 10 element buffer called data:
 
 ```clj
 (define data (bufcreate 10))
@@ -1672,19 +1671,21 @@ An example that atomically perfoms operations a,b and c.
 
 ### exit-ok
 
-The `exit-ok` function terminates the thread in a "successful" way and returnes a result
-specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.
-If the process that calls `exit-ok` was created using `spawn-trap` a message of the form
+The `exit-ok` function terminates the thread in a "successful" way and
+returnes a result specified by the programmer. The form of an
+`exit-ok` expression is `(exit-ok value)`.  If the process that calls
+`exit-ok` was created using `spawn-trap` a message of the form
 `(exit-ok tid value)` is be sent to the parent of this process.
 
 ---
 
 ### exit-error
 
-The `exit-error` function terminates the thread with an error specified by the programmer.
-The form of an `exit-error` expression is `(exit-error err_val)`. If the process that
-calls `exit-error` was created using `spawn-trap` a message of the form
-`(exit-error tid err_val)` is sent to the parent of this process.
+The `exit-error` function terminates the thread with an error
+specified by the programmer.  The form of an `exit-error` expression
+is `(exit-error err_val)`. If the process that calls `exit-error` was
+created using `spawn-trap` a message of the form `(exit-error tid
+err_val)` is sent to the parent of this process.
 
 ---
 

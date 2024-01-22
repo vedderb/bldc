@@ -72,20 +72,6 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id);
     \return 1 for success and 0 for failure.
 */
 int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
-/** Add a variable-symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
- *
- * \param name String representation of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_variable_symbol(char *name, lbm_uint* id);
-/** Add a variable-symbol to the symbol table. The symbol name is
- *  considered to be a statically allocated constant.
- * \param name String representation of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
@@ -112,8 +98,6 @@ int lbm_get_symbol_by_name(char *name, lbm_uint *id);
  * \return pointer to the name string if success otherwise NULL.
  */
 const char* lbm_get_name_by_symbol(lbm_uint id);
-
-lbm_uint lbm_get_num_variables(void);
 
 /**
  *

@@ -1,4 +1,4 @@
-/*
+ /*
     Copyright 2018, 2020 - 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
@@ -122,6 +122,24 @@ const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
+#ifdef LBM_ALWAYS_GC
+
+#define WITH_GC(y, x)                           \
+  gc();                                         \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    error_ctx(ENC_SYM_MERROR);                  \
+  }
+
+#define WITH_GC_RMBR_1(y, x, r)                 \
+  lbm_gc_mark_phase(r);                         \
+  gc();                                         \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    error_ctx(ENC_SYM_MERROR);                  \
+  }
+
+#else
 
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
@@ -144,6 +162,8 @@ static bool lbm_error_has_suspect = false;
     }                                           \
     /* continue executing statements below */   \
   }
+
+#endif
 
 typedef struct {
   eval_context_t *first;
@@ -377,6 +397,17 @@ eval_context_t *lbm_get_current_context(void) {
 /* Utilities used locally in this file              */
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+#ifdef LBM_ALWAYS_GC
+  lbm_value roots[3] = {head, tail, remember};
+  lbm_gc_mark_roots(roots, 3);
+  gc();
+  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
+  res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
+  if (lbm_is_symbol_merror(res)) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+  return res;
+#else
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     lbm_value roots[3] = {head, tail, remember};
@@ -388,6 +419,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
     }
   }
   return res;
+#endif
 }
 
 static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
@@ -455,8 +487,10 @@ static void stack_push(lbm_stack_t *s, lbm_uint val) {
 
 static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   if (s->sp + 1 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    s->sp += 2;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
@@ -465,9 +499,11 @@ static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
 
 static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
   if (s->sp + 2 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    t[2] = v3;
+    s->sp += 3;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
@@ -476,10 +512,12 @@ static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) 
 
 static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
   if (s->sp + 3 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
-    s->data[s->sp++] = v4;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    t[2] = v3;
+    t[3] = v4;
+    s->sp += 4;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
@@ -571,24 +609,34 @@ static lbm_value get_cddr(lbm_value a) {
 
 static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
 
+#ifdef LBM_ALWAYS_GC
+  gc();
+  if (lbm_heap_num_free() < 4) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+#else
   if (lbm_heap_num_free() < 4) {
     gc();
     if (lbm_heap_num_free() < 4) {
       error_ctx(ENC_SYM_MERROR);
     }
   }
+#endif
+  // The freelist will always contain just plain heap-cells.
+  // So dec_ptr is sufficient.
   lbm_value res = lbm_heap_state.freelist;
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_cons_t *cell = lbm_ref_cell(res);
-    cell->car = ENC_SYM_CLOSURE;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = params;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = body;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = env;
-    lbm_heap_state.freelist = cell->cdr;
-    cell->cdr = ENC_SYM_NIL;
+    lbm_cons_t *heap = lbm_heap_state.heap;
+    lbm_uint ix = lbm_dec_ptr(res);
+    heap[ix].car = ENC_SYM_CLOSURE;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = params;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = body;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = env;
+    lbm_heap_state.freelist = heap[ix].cdr;
+    heap[ix].cdr = ENC_SYM_NIL;
     lbm_heap_state.num_alloc+=4;
   } else {
     error_ctx(ENC_SYM_FATAL_ERROR);
@@ -625,7 +673,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
       res = fundamental_table[fundamental](args, arg_count, ctx);
     }
     if (lbm_is_error(res)) {
-      error_at_ctx(res, lbm_enc_sym(fundamental+FUNDAMENTALS_START));
+      error_at_ctx(res, lbm_enc_sym(EXTENSION_SYMBOLS_START | fundamental));
     }
   }
   lbm_stack_drop(&ctx->K, arg_count+1);
@@ -1536,25 +1584,20 @@ int lbm_perform_gc(void) {
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s >= RUNTIME_SYMBOLS_START) {
-    lbm_value res;
+    lbm_value res = ENC_SYM_NIL;
     if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
         lbm_global_env_lookup(&res, ctx->curr_exp)) {
       ctx->r =  res;
       ctx->app_cont = true;
       return;
     }
-  } else if (s <= EXTENSION_SYMBOLS_END) {
-    //special symbols and extensions can be handled the same way.
-    ctx->r = ctx->curr_exp;
-    ctx->app_cont = true;
-    return;
-  }
-  // Dynamic load attempt
-  const char *sym_str = lbm_get_name_by_symbol(s);
-  const char *code_str = NULL;
-  if (!dynamic_load_callback(sym_str, &code_str)) {
-    error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
-  } else {
+    // Dynamic load attempt
+    // Only symbols of kind RUNTIME can be dynamically loaded.
+    const char *sym_str = lbm_get_name_by_symbol(s);
+    const char *code_str = NULL;
+    if (!dynamic_load_callback(sym_str, &code_str)) {
+      error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
+    }
     stack_push_3(&ctx->K, ctx->curr_exp, ctx->curr_env, RESUME);
 
     lbm_value chan;
@@ -1575,6 +1618,10 @@ static void eval_symbol(eval_context_t *ctx) {
                                                           loader), loader);
     ctx->curr_exp = evaluator;
     ctx->curr_env = ENC_SYM_NIL; // dynamics should be evaluable in empty local env
+  } else {
+    //special symbols and extensions can be handled the same way.
+    ctx->r = ctx->curr_exp;
+    ctx->app_cont = true;
   }
 }
 
@@ -2701,19 +2748,11 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   lbm_value fun = fun_args[0];
 
   lbm_uint fun_val = lbm_dec_sym(fun);
-  lbm_uint apply_val = fun_val - APPLY_FUNS_START;
-  lbm_uint fund_val  = fun_val - FUNDAMENTALS_START;
+  lbm_uint fun_kind = SYMBOL_KIND(fun_val);
 
-  if (apply_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
-    fun_table[apply_val](&fun_args[1], arg_count, ctx);
-  } else if (fund_val <= (FUNDAMENTALS_END - FUNDAMENTALS_START)) {
-    call_fundamental(fund_val, &fun_args[1], arg_count, ctx);
-  } else {
-    // It may be an extension
-    extension_fptr f = lbm_get_extension(fun_val);
-    if (f == NULL) {
-      error_at_ctx(ENC_SYM_EERROR,fun);
-    }
+  switch (fun_kind) {
+  case SYMBOL_KIND_EXTENSION: {
+    extension_fptr f = extension_table[SYMBOL_IX(fun_val)].fptr;
 
     lbm_value ext_res;
     WITH_GC(ext_res, f(&fun_args[1], arg_count));
@@ -2735,6 +2774,16 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
       ctx->app_cont = true;
       ctx->r = ext_res;
     }
+  }  break;
+  case SYMBOL_KIND_FUNDAMENTAL:
+    call_fundamental(SYMBOL_IX(fun_val), &fun_args[1], arg_count, ctx);
+    break;
+  case SYMBOL_KIND_APPFUN:
+    fun_table[SYMBOL_IX(fun_val)](&fun_args[1], arg_count, ctx);
+    break;
+  default:
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    break;
   }
 }
 
@@ -2756,20 +2805,20 @@ static void cont_closure_application_args(eval_context_t *ctx) {
       error_ctx(ENC_SYM_MERROR);
     }
   }
+  lbm_cons_t* heap = lbm_heap_state.heap;
   lbm_value cell0 = lbm_heap_state.freelist;
-  lbm_cons_t *cell0_r = lbm_ref_cell(cell0);
-  lbm_value cell1 = cell0_r->cdr;
-  lbm_cons_t *cell1_r = lbm_ref_cell(cell1);
-  lbm_heap_state.freelist = cell1_r->cdr;
+  lbm_uint cell0_ix = lbm_dec_ptr(cell0);
+  lbm_value cell1 = heap[cell0_ix].cdr;
+  lbm_uint cell1_ix = lbm_dec_ptr(cell1);
+  lbm_heap_state.freelist = heap[cell1_ix].cdr;
   lbm_heap_state.num_alloc += 2;
 
-  cell0_r->car = car_params;
-  cell0_r->cdr = ctx->r;
-  cell1_r->car = cell0;
-  cell1_r->cdr = clo_env;
+  heap[cell0_ix].car = car_params;
+  heap[cell0_ix].cdr = ctx->r;
+  heap[cell1_ix].car = cell0;
+  heap[cell1_ix].cdr = clo_env;
   clo_env = cell1;
 
-  // TODO: We are NOT going to implement a lazy sweep.
   bool a_nil = args == ENC_SYM_NIL;
   bool p_nil = cdr_params == ENC_SYM_NIL;
 
@@ -2910,12 +2959,12 @@ static void cont_if(eval_context_t *ctx) {
 
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
-  lbm_value patterns;
-  lbm_value new_env;
-  lbm_value orig_env;
   bool  do_gc = false;
-  lbm_pop_2(&ctx->K, &orig_env, &patterns); // restore enclosing environment
-  new_env = orig_env;
+
+  lbm_uint *sptr = get_stack_ptr(ctx, 2);
+  lbm_value patterns = (lbm_value)sptr[0];
+  lbm_value orig_env = (lbm_value)sptr[1]; // restore enclosing environment.
+  lbm_value new_env = orig_env;
 
   if (lbm_is_symbol_nil(patterns)) {
     // no more patterns
@@ -2937,8 +2986,6 @@ static void cont_match(eval_context_t *ctx) {
 
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
-      lbm_uint roots[3] = {orig_env, patterns, e};
-      lbm_gc_mark_roots(roots, 3);
       gc();
       do_gc = false;
       new_env = orig_env;
@@ -2949,23 +2996,26 @@ static void cont_match(eval_context_t *ctx) {
     }
     if (is_match) {
       if (check_guard) {
-        lbm_value *sptr = stack_reserve(ctx,7);
+        lbm_value *rptr = stack_reserve(ctx,5);
         sptr[0] = get_cdr(patterns);
         sptr[1] = ctx->curr_env;
-        sptr[2] = MATCH;
-        sptr[3] = new_env;
-        sptr[4] = body;
-        sptr[5] = e;
-        sptr[6] = MATCH_GUARD;
+        rptr[0] = MATCH;
+        rptr[1] = new_env;
+        rptr[2] = body;
+        rptr[3] = e;
+        rptr[4] = MATCH_GUARD;
         ctx->curr_env = new_env;
         ctx->curr_exp = n1; // The guard
       } else {
+        lbm_stack_drop(&ctx->K, 2);
         ctx->curr_env = new_env;
         ctx->curr_exp = body;
       }
     } else {
       // set up for checking of next pattern
-      stack_push_3(&ctx->K, get_cdr(patterns),orig_env, MATCH);
+      sptr[0] = get_cdr(patterns);
+      sptr[1] = orig_env;
+      stack_push(&ctx->K, MATCH);
       // leave r unaltered
       ctx->app_cont = true;
     }
@@ -3116,12 +3166,11 @@ static void cont_merge_rest(eval_context_t *ctx) {
   lbm_value cmp_env = sptr[6];
   // Environment should be preallocated already at this point
   // and the operations below should never need GC.
-  // maybe rewrite this as a more efficient update and
-  // a fatal error if that is not possible.
-  lbm_value new_env0;
-  lbm_value new_env;
-  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  lbm_value new_env0 = lbm_env_set(cmp_env, par1, lbm_car(a));
+  lbm_value new_env = lbm_env_set(new_env0, par2, lbm_car(b));
+  if (lbm_is_symbol(new_env0) || lbm_is_symbol(new_env)) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+  }
   cmp_env = new_env;
 
   stack_push(&ctx->K, MERGE_REST);
@@ -3233,12 +3282,11 @@ static void cont_merge_layer(eval_context_t *ctx) {
   lbm_value par2 = sptr[3];
   // Environment should be preallocated already at this point
   // and the operations below should never need GC.
-  // maybe rewrite this as a more efficient update and
-  // a fatal error if that is not possible.
-  lbm_value new_env0;
-  lbm_value new_env;
-  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  lbm_value new_env0 = lbm_env_set(cmp_env, par1, lbm_car(a));
+  lbm_value new_env = lbm_env_set(cmp_env, par2, lbm_car(b));
+  if (lbm_is_symbol(new_env0) || lbm_is_symbol(new_env)) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+  }
   cmp_env = new_env;
 
   lbm_uint *merge_cont = stack_reserve(ctx, 11);
@@ -3576,7 +3624,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
           if (!lbm_lookup_extension_id(ext_name, &ext_id)) {
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
-          symbol_id = ext_id + EXTENSION_SYMBOLS_START;
+          symbol_id = ext_id;
         } else {
           error_ctx(ENC_SYM_MERROR);
         }
@@ -4289,7 +4337,7 @@ lbm_value append(lbm_value front, lbm_value back) {
 
   lbm_value t0, t1;
 
-  t0 = cons_with_gc(back, ENC_SYM_NIL, ENC_SYM_NIL);
+  t0 = cons_with_gc(back, ENC_SYM_NIL, front);
   t1 = cons_with_gc(front, t0, ENC_SYM_NIL);
   return cons_with_gc(ENC_SYM_APPEND, t1, ENC_SYM_NIL);
 }
@@ -4376,9 +4424,7 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
       lbm_value tl = cons_with_gc(get_car(cdr_val), ENC_SYM_NIL, ENC_SYM_NIL);
-      //WITH_GC(tl, lbm_cons(get_car(cdr_val), ENC_SYM_NIL));
       lbm_value tmp = cons_with_gc(ENC_SYM_LIST, tl, ENC_SYM_NIL);
-      //WITH_GC_RMBR_1(tmp, lbm_cons(ENC_SYM_LIST, tl), tl);
       ctx->r = append(ctx->r, tmp);
       ctx->app_cont = true;
       return;
