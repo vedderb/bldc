@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -227,7 +227,6 @@ special_sym const special_symbols[] =  {
 
 static lbm_uint *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
-static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 static lbm_uint symbol_table_size_list = 0;
 static lbm_uint symbol_table_size_list_flash = 0;
 static lbm_uint symbol_table_size_strings = 0;
@@ -239,7 +238,6 @@ lbm_value symbol_y = ENC_SYM_NIL;
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
-  next_variable_symbol_id = VARIABLE_SYMBOLS_START;
   symbol_table_size_list = 0;
   symbol_table_size_list_flash = 0;
   symbol_table_size_strings = 0;
@@ -277,21 +275,28 @@ const char *lookup_symrepr_name_memory(lbm_uint id) {
 
 // Lookup symbol name given a symbol id
 const char *lbm_get_name_by_symbol(lbm_uint id) {
-  if (id < SPECIAL_SYMBOLS_END) {
+  lbm_uint sym_kind = SYMBOL_KIND(id);
+  switch (sym_kind) {
+  case SYMBOL_KIND_SPECIAL:  /* fall through */
+  case SYMBOL_KIND_FUNDAMENTAL:
+  case SYMBOL_KIND_APPFUN:
     for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);
       }
     }
     return NULL;
-  } else if (id - EXTENSION_SYMBOLS_START < EXTENSION_SYMBOLS_END) {
+    break;
+  case SYMBOL_KIND_EXTENSION: {
     unsigned int ext_id = id - EXTENSION_SYMBOLS_START;
     if (ext_id < lbm_get_max_extensions()) {
-        return extension_table[ext_id].name;
+      return extension_table[ext_id].name;
     }
     return NULL;
+  } break;
+  default:
+    return lookup_symrepr_name_memory(id);
   }
-  return lookup_symrepr_name_memory(id);
 }
 
 lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
@@ -463,10 +468,6 @@ lbm_uint lbm_get_symbol_table_size_names(void) {
 
 lbm_uint lbm_get_symbol_table_size_names_flash(void) {
   return symbol_table_size_strings_flash * sizeof(lbm_uint);
-}
-
-lbm_uint lbm_get_num_variables(void) {
-  return next_variable_symbol_id - VARIABLE_SYMBOLS_START;
 }
 
 bool lbm_symbol_in_flash(char *str) {

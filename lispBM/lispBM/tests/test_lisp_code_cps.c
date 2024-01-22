@@ -49,6 +49,7 @@
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
+static uint32_t timeout = 10;
 
 void const_heap_init(void) {
   for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
@@ -338,6 +339,7 @@ LBM_EXTENSION(ext_check, args, argn) {
   }
 
   int res = lbm_print_value(output, 128, t);
+  printf("Checking result value: %s\n", output);
 
   if (checks == 2) {
     experiment_done = true;
@@ -401,8 +403,11 @@ int main(int argc, char **argv) {
   int c;
   opterr = 1;
 
-  while (( c = getopt(argc, argv, "igsch:")) != -1) {
+  while (( c = getopt(argc, argv, "igsch:t:")) != -1) {
     switch (c) {
+    case 't':
+      timeout = (uint32_t)atoi((char *)optarg);
+      break;
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
       break;
@@ -752,15 +757,19 @@ int main(int argc, char **argv) {
     }
   }
   printf("Program loaded\n");
-  int i = 0;
+  uint32_t i = 0;
+  bool timed_out = false;
   while (!experiment_done) {
-    if (i == 10000) break;
+    if (i >= timeout * 1000) {
+      timed_out = true;
+      break;
+    }
     sleep_callback(1000);
     i ++;
   }
 
-  if (i == 10000) {
-    printf ("experiment failed due to taking longer than 10 seconds\n");
+  if (timed_out) {
+    printf ("experiment failed due to taking longer than %u seconds\n", timeout);
     experiment_success = false;
     return FAIL;
   }
@@ -778,6 +787,7 @@ int main(int argc, char **argv) {
   free(heap_storage);
 
   printf("Experiment done: ");
+  printf("Check was executed %u times\n", checks);
   if (experiment_success) {
     printf("SUCCESS\n");
     return 1;
