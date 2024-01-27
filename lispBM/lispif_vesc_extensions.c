@@ -332,14 +332,14 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 		} else if (comp == &syms_vesc.pin_ppm) {
 			get_add_symbol("pin-ppm", comp);
 		} 
-#ifdef HW_PIN_1
-		else if (comp == &syms_vesc.hw_pin_1) {
-			get_add_symbol("hwpin-1", comp);
+#ifdef PIN_HW_1
+		else if (comp == &syms_vesc.pin_hw_1) {
+			get_add_symbol("pin-hw-1", comp);
 		} 
 #endif
-#ifdef HW_PIN_2
-		else if (comp == &syms_vesc.hw_pin_2) {
-			get_add_symbol("hwpin-2", comp);
+#ifdef PIN_HW_2
+		else if (comp == &syms_vesc.pin_hw_2) {
+			get_add_symbol("pin-hw-2", comp);
 		} 
 #endif	
 
