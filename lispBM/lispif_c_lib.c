@@ -240,6 +240,18 @@ static bool get_gpio(VESC_PIN io, stm32_gpio_t **port, uint32_t *pin, bool *is_a
 		res = true;
 #endif
 		break;
+#ifdef PIN_HW_1
+	case VESC_PIN_HW_1:
+		*port = PIN_HW_1_GPIO; *pin = PIN_HW_1;
+		res = true;
+		break;
+#endif
+#ifdef PIN_HW_2
+	case VESC_PIN_HW_2:
+		*port = PIN_HW_2_GPIO; *pin = PIN_HW_2;
+		res = true;
+		break;
+#endif			
 	}
 
 	return res;
