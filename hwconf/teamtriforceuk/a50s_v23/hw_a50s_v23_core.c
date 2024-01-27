@@ -98,20 +98,35 @@ void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);          // 0 -  ADC_IND_CURR2
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 2, ADC_SampleTime_15Cycles);	         // 3 -  ADC_IND_SENS3	
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);           // 6 -  ADC_IND_EXT
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);          // 9 -  ADC_IND_TEMP_MOTOR
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);          // 6 -  ADC_IND_CURR2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 4, ADC_SampleTime_15Cycles);          // 9 -  ADC_IND_CURR2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 5, ADC_SampleTime_15Cycles);          // 12 -  ADC_IND_CURR2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 6, ADC_SampleTime_15Cycles);          // 15 -  ADC_IND_CURR2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 7, ADC_SampleTime_15Cycles);          // 18 -  ADC_IND_CURR2
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 8, ADC_SampleTime_15Cycles);           // 21 -  ADC_IND_EXT	
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 9, ADC_SampleTime_56Cycles);     // 24 - ADC_IND_VREFINT     
 	
 	// ADC2 regular channels                                                             
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);          // 1 -  ADC_IND_CURR1
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, ADC_SampleTime_15Cycles);	         // 4 -  ADC_IND_SENS2	
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);           // 7 -  ADC_IND_EXT2
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_Vrefint, 4, ADC_SampleTime_15Cycles);     // 10 - ADC_IND_VREFINT
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, ADC_SampleTime_15Cycles);	         // 4 -  ADC_IND_SENS2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);          // 7 -  ADC_IND_CURR1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 4, ADC_SampleTime_15Cycles);          // 10 -  ADC_IND_CURR1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 5, ADC_SampleTime_15Cycles);          // 13 -  ADC_IND_CURR1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 6, ADC_SampleTime_15Cycles);          // 16 -  ADC_IND_CURR1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 7, ADC_SampleTime_15Cycles);          // 19 -  ADC_IND_CURR1
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 8, ADC_SampleTime_15Cycles);           // 22 -  ADC_IND_EXT2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_14, 9, ADC_SampleTime_56Cycles);     	 // 25 -  ADC_IND_TEMP_MOTOR
 		
-	// ADC3 regular channels                                                             				
+	// ADC3 regular channels	
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 1, ADC_SampleTime_15Cycles);          // 2 -  ADC_IND_VIN_SENS
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 2, ADC_SampleTime_15Cycles);	         // 5 -  ADC_IND_SENS1	
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);           // 8 -  ADC_IND_TEMP_MOS
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);     	 // 11 - UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 3, ADC_SampleTime_15Cycles);          // 8 -  UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);          // 11 -  UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 5, ADC_SampleTime_15Cycles);          // 14 -  UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 6, ADC_SampleTime_15Cycles);          // 17 -  UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 7, ADC_SampleTime_15Cycles);          // 20 -  UNUSED
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 8, ADC_SampleTime_15Cycles);           // 23 -  ADC_IND_TEMP_MOS
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_15, 9, ADC_SampleTime_56Cycles);     	 // 26 - UNUSED
 
 	// Injected channels 	
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_15Cycles);         // ADC_IND_CURR2

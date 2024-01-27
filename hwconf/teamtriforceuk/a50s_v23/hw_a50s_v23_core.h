@@ -24,40 +24,41 @@
 #define HW_HAS_PHASE_FILTERS
 #define HW_USE_25MHZ_EXT_CLOCK
 
-
 // Macros
-/*
- * ADC Vector
- *
- * 0  (1):	IN10		CURR3
- * 1  (2):	IN11		CURR1
- * 2  (3):	IN13		AN_IN
- * 3  (1):	IN0			SENS1
- * 4  (2):	IN1			SENS2
- * 5  (3):	IN2			SENS3
- * 6  (1):	IN5			ADC_EXT1
- * 7  (2):	IN6			ADC_EXT2
- * 8  (3):	IN3			TEMP_MOS
- * 9  (1):	IN14		TEMP_MOTOR
- * 10 (2):	Vrefint
- */
 
-#define HW_ADC_CHANNELS			12
+// ADC Vectors, see .c
+#define HW_ADC_CHANNELS			27
 #define HW_ADC_INJ_CHANNELS		2
-#define HW_ADC_NBR_CONV			4
+#define HW_ADC_NBR_CONV			9
 
 // ADC Indexes
 #define ADC_IND_SENS1			3
 #define ADC_IND_SENS2			4
 #define ADC_IND_SENS3			5
+
 #define ADC_IND_CURR1			1
 #define ADC_IND_CURR2			0
+// Define CURR3 so the half transfer complete interrupt is not used
+// When taking 6 current samples need to wait till they are all there
+#define ADC_IND_CURR3			100 
+#define ADC_IND_CURR1_2			7
+#define ADC_IND_CURR2_2			6
+#define ADC_IND_CURR1_3			10
+#define ADC_IND_CURR2_3			9
+#define ADC_IND_CURR1_4			13
+#define ADC_IND_CURR2_4			12
+#define ADC_IND_CURR1_5			16
+#define ADC_IND_CURR2_5			15
+#define ADC_IND_CURR1_6			19
+#define ADC_IND_CURR2_6			18
+
 #define ADC_IND_VIN_SENS		2
-#define ADC_IND_EXT				6
-#define ADC_IND_EXT2			7
-#define ADC_IND_TEMP_MOS		8
-#define ADC_IND_TEMP_MOTOR		9
-#define ADC_IND_VREFINT			11
+#define ADC_IND_EXT				21
+#define ADC_IND_EXT2			22
+#define ADC_IND_TEMP_MOS		23
+#define ADC_IND_TEMP_MOTOR		25
+#define ADC_IND_VREFINT			24
+
 
 // ADC macros and settings
 
@@ -75,8 +76,18 @@
 #define CURRENT_AMP_GAIN			20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES			0.0004 // 0.0005 Slightly less, probably due to solder or location of vias.
+#define CURRENT_SHUNT_RES			0.0005    
 #endif
+
+#define CURRENT_CAL1				0.97786212
+#define CURRENT_CAL2				1.09967196
+
+// Current is sampled 6 times and averaged to reduce noise
+#define GET_CURRENT1()		(((float)(ADC_Value[ADC_IND_CURR1] + ADC_Value[ADC_IND_CURR1_2] + ADC_Value[ADC_IND_CURR1_3] + ADC_Value[ADC_IND_CURR1_4] + ADC_Value[ADC_IND_CURR1_5] + ADC_Value[ADC_IND_CURR1_6]))/6.0)
+#define GET_CURRENT2()		(((float)(ADC_Value[ADC_IND_CURR2] + ADC_Value[ADC_IND_CURR2_2] + ADC_Value[ADC_IND_CURR2_3] + ADC_Value[ADC_IND_CURR2_4] + ADC_Value[ADC_IND_CURR2_5] + ADC_Value[ADC_IND_CURR2_6]))/6.0)
+#define GET_CURRENT3()		0
+//#define GET_CURRENT1()		(float)(ADC_Value[ADC_IND_CURR1])
+//#define GET_CURRENT2()		(float)(ADC_Value[ADC_IND_CURR2])
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()			((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
@@ -192,12 +203,12 @@
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV				25000.0 // Switching frequency reduced to allow rise time of low side shunts
 #endif
-#define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 25000.0	//Limit to 50kHz max
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 22500.0	//Limit to 45kHz max 
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US			0.0 // Microseconds for dead time compensation
 #endif
-// Only use phase filters for detection by default to get good resistance
-// The high ratio makes the signal tiny and it can get stuck
+// Only use phase filters for detection by default to get good resistance measurement. 
+// In testing I found that phase filters gave worse startup
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
 #define MCCONF_FOC_PHASE_FILTER_MAX_ERPM	10.0 
 #endif
@@ -229,6 +240,11 @@
 #define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	4000.0	// Minimum RPM to calculate the BEMF coupling from
 #endif
 
+// Don't call on boot, cal during motor config instead.
+// This significatly speeds up boot time, which is important for combat robots
+#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
+#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	false 
+#endif
 
 // Setting limits
 #define HW_LIM_CURRENT				-85.0, 85.0 
@@ -255,6 +271,5 @@
 #else
 #error "Must define a hardware type"
 #endif
-
 
 #endif /* HW_A50S_V23_CORE_H_ */
