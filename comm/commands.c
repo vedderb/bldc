@@ -1442,7 +1442,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 #ifdef USE_LISPBM
 		if (packet_id == COMM_LISP_ERASE_CODE) {
-			lispif_restart(false, false);
+			lispif_restart(false, false, false);
 		}
 #endif
 
@@ -1619,6 +1619,26 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_SET_CUSTOM_CONFIG:
 	case COMM_GET_CUSTOM_CONFIG_XML: {
 		conf_custom_process_cmd(data - 1, len + 1, reply_func);
+	} break;
+
+
+	case COMM_SHUTDOWN: {
+		int ind = 0;
+		int force = data[ind++];
+		if ((fabsf(mc_interface_get_rpm()) > 100) && (force != 1)) {
+			// Don't allow shutdown/restart while riding, unless force == 1
+			break;
+		}
+
+		int is_restart = data[ind++];
+		if (is_restart == 1) {
+			// same as terminal rebootwdt command
+			chSysLock();
+			for (;;) {__NOP();}
+		}
+		else {
+			do_shutdown(false);
+		}
 	} break;
 
 	// Blocking commands. Only one of them runs at any given time, in their

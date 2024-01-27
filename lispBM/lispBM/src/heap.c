@@ -176,7 +176,7 @@ lbm_value lbm_enc_double(double x) {
   return res;
 #else
   lbm_uint t;
-  memcpy(&t, &x, sizeof(lbm_float));
+  memcpy(&t, &x, sizeof(double));
   lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_RAW_F_TYPE));
   if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
   return lbm_set_ptr_type(f, LBM_TYPE_DOUBLE);
@@ -435,7 +435,11 @@ double lbm_dec_as_double(lbm_value a) {
 
 bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
+  #ifndef LBM64
   return (t & 0xC || t & LBM_NUMBER_MASK);
+  #else
+  return (t & ((uint64_t)0x1C) || t & LBM_NUMBER_MASK);
+  #endif
 }
 
 /****************************************************/
@@ -524,19 +528,19 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   res = lbm_heap_state.freelist;
 
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_cons_t *rc = lbm_ref_cell(res);
-    lbm_heap_state.freelist = rc->cdr;
+    lbm_uint heap_ix = lbm_dec_ptr(res);
+    //lbm_cons_t *rc = lbm_ref_cell(res);
+    lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
 
     lbm_heap_state.num_alloc++;
 
-    rc->car = car;
-    rc->cdr = cdr;
-
+    lbm_heap_state.heap[heap_ix].car = car;
+    lbm_heap_state.heap[heap_ix].cdr = cdr;
     res = lbm_set_ptr_type(res, ptr_type);
     return res;
   }
-  else if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
-           (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
+  else if ((lbm_type_of(res) == LBM_TYPE_SYMBOL) &&
+           (lbm_dec_sym(res) == SYM_NIL)) {
     // all is as it should be (but no free cells)
     return ENC_SYM_MERROR;
   }
@@ -687,6 +691,7 @@ void lbm_gc_mark_phase(lbm_value root) {
 }
 
 #else
+extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
@@ -718,6 +723,19 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
+    if (cell->car == ENC_SYM_CONT) {
+      lbm_value cont = cell->cdr;
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont);
+      lbm_value *arrdata = (lbm_value *)arr->data;
+      for (lbm_uint i = 0; i < arr->size / 4; i ++) {
+        if (lbm_is_ptr(arrdata[i]) &&
+            !((arrdata[i] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+          if (!lbm_push (s, arrdata[i])) {
+            lbm_critical_error();
+          }
+        }
+      }
+    }
     if (lbm_is_ptr(cell->cdr)) {
       if (!lbm_push(s, cell->cdr)) {
         lbm_critical_error();
@@ -850,7 +868,6 @@ int lbm_gc_sweep_phase(void) {
       lbm_heap_state.gc_recovered ++;
     }
   }
-
   return 1;
 }
 
@@ -1135,7 +1152,6 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 
 // Convert a C array into an lbm_array.
 // if the array is in LBM_MEMORY, the lifetime will be managed by the GC.
-// TODO: Use lbm_malloc for header data
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
@@ -1148,13 +1164,15 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
-  if (array == NULL) return 0;
+  if (array == NULL) {
+    *value = ENC_SYM_MERROR;
+    return 0;
+  }
 
   array->data = (lbm_uint*)data;
   array->size = num_elt;
 
   lbm_set_car(cell, (lbm_uint)array);
-  //lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
   cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
   *value = cell;
@@ -1164,7 +1182,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
   int r = -1;
-  if (lbm_is_array_rw(arr)) {
+  if (lbm_is_array_r(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {
       return r;
@@ -1174,7 +1192,19 @@ lbm_int lbm_heap_array_get_size(lbm_value arr) {
   return r;
 }
 
-uint8_t *lbm_heap_array_get_data(lbm_value arr) {
+const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
+  uint8_t *r = NULL;
+  if (lbm_is_array_r(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (uint8_t*)header->data;
+  }
+  return r;
+}
+
+uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
   uint8_t *r = NULL;
   if (lbm_is_array_rw(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);

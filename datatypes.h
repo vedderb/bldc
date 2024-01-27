@@ -300,6 +300,7 @@ typedef struct {
 	float temps_adc[50];
 	float temp_ic;
 	float temp_hum;
+	float pressure;
 	float hum;
 	float temp_max_cell;
 	float soc;
@@ -1094,6 +1095,13 @@ typedef enum {
 	COMM_LOG_DATA_F64						= 151,
 
 	COMM_LISP_RMSG							= 152,
+
+	//Placeholders for pinlock commands
+	//COMM_PINLOCK1							= 153,
+	//COMM_PINLOCK2							= 154,
+	//COMM_PINLOCK3							= 155,
+
+	COMM_SHUTDOWN							= 156,
 } COMM_PACKET_ID;
 
 // CAN commands

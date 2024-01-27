@@ -118,12 +118,18 @@ lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
 lbm_value ext_env_get(lbm_value *args, lbm_uint argn) {
   (void)args;
   (void)argn;
-  return lbm_get_env();
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_uint ix = lbm_dec_as_u32(args[0]) & GLOBAL_ENV_MASK;
+    return lbm_get_global_env()[ix];
+  }
+  return ENC_SYM_TERROR;
 }
 
 lbm_value ext_env_set(lbm_value *args, lbm_uint argn) {
-  if (argn == 1) {
-    *lbm_get_env_ptr() = args[0];
+  if (argn == 2 && lbm_is_number(args[0])) {
+    lbm_uint ix = lbm_dec_as_u32(args[0]) & GLOBAL_ENV_MASK;
+    lbm_value *glob_env = lbm_get_global_env();
+    glob_env[ix] = args[1];
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;

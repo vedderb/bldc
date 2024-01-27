@@ -234,6 +234,7 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-temp-ic) ; Balance IC temperature
 (get-bms-val 'bms-temp-hum) ; Humidity sensor temperature
 (get-bms-val 'bms-hum) ; Humidity
+(get-bms-val 'bms-pres) ; Pressure in PA (Added in 6.05)
 (get-bms-val 'bms-temp-cell-max) ; Maximum cell temperature
 (get-bms-val 'bms-soc) ; State of charge (0.0 to 1.0)
 (get-bms-val 'bms-can-id) ; CAN ID of BMS
@@ -242,6 +243,7 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-ah-cnt-dis-total) ; Total ah discharged
 (get-bms-val 'bms-wh-cnt-dis-total) ; Total wh discharged
 (get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
+(get-bms-val 'bms-chg-allowed) ; Charging allowed (Added in 6.05, Express only)
 ```
 
 ---
@@ -280,6 +282,34 @@ Example:
 ```
 
 Send BMS-values on CAN-bus. This his useful if a custom BMS-driver is implemented using [set-bms-val](#set-bms-val) in order to make devices on the CAN-bus aware of the BMS-state using the VESC protocol.
+
+---
+
+#### set-bms-chg-allowed
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(set-bms-chg-allowed allow)
+```
+
+Enable or disable charging. 1 means enable and 0 means disable.
+
+---
+
+#### bms-force-balance
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(bms-force-balance balance)
+```
+
+Start or stop balancing. 1 means start and 0 means stop.
 
 ---
 
@@ -4552,7 +4582,7 @@ The last byte in `seq` will be ignored as that is the null-terminator if `seq` i
 | ESC, Express | 6.05+ |
 
 ```clj
-(buf-resize arr delta-size opt-absolute-size)
+(buf-resize arr delta-size opt-absolute-size opt-copy-symbol)
 ```
 
 Change the length of array `arr` in bytes. A reference to `arr` is returned.
@@ -4567,6 +4597,14 @@ This extension can be used in two modes:
 Passing `nil` to `delta-size` while not passing any value for
 `opt-absolute-size` will result in an `eval_error`.
 
+You can optionally pass the symbol `'copy` to `opt-copy-symbol` to specify that
+`arr` should be left unchanged and that a copy should instead be made. Don't
+worry about the exact position of the argument, the only important part is that
+`opt-copy-symbol` is last. So you can give a value for `opt-copy-symbol` even
+when `opt-absolute-size` isn't passed. You can also for completeness pass the
+symbol `'mut` to specify that the standard behaviour of modifying `arr` in place
+should remain in effect.
+
 When growing the length of the array a new range will be allocated and the old
 data copied over. The new bytes will be initialised to zero. If the new length
 of the array is smaller than the previous the allocated range will simply be
@@ -4576,7 +4614,7 @@ It is possible to shrink an array to a length of zero.
 
 **Note**  
 The array will be resized in place. The returned reference to `arr` is just for
-convenience.
+convenience. (Unless `opt-copy-symbol` is `'copy` of course.)
 
 Example where we remove the terminating null byte from a string buffer:
 ```clj
@@ -4591,6 +4629,18 @@ Example where we increase the length of `buf` to 5:
 (bufset-u8 buf 4 5) ; we set it to avoid LBM printing the array as a string
 (print buf)
 > [1 2 3 4 5]
+```
+
+Example where we create a copy of `name` with the terminating null byte
+removed.
+```clj
+(def name "name")
+(def name-array (buf-resize name -1 'copy))
+
+(print name)
+> "name"
+(print name-array)
+> [110 97 109 101]
 ```
 
 ---
@@ -5233,6 +5283,22 @@ Returns date and time of the last position sample as a list with the format (yea
 ```
 
 Returns the age of the last gnss-sample in seconds.
+
+---
+
+#### ublox-init
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(ublox-init optRateMs)
+```
+
+Re-initializes the ublox gnss-module. Returns true on success and nil on failure. Nil most likely means that something is wrong with the connection.
+
+The optional argument optRateMs can be used to set the navigation rate in milliseconds. By default 500 ms us used. Not any navigation rate is possible, it depends on the ublox module in use. Common rates that can work are 100, 200, 500, 1000 and 2000 ms.
 
 ---
 

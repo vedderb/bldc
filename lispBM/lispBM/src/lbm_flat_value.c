@@ -52,8 +52,8 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
   } else {
     size_words = (v->buf_pos / sizeof(lbm_uint)) + 1;
   }
+  if (v->buf_size  <= size_words * sizeof(lbm_uint)) return true;
   v->buf_size = size_words * sizeof(lbm_uint);
-
   return (lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
 }
 
@@ -100,38 +100,33 @@ bool f_cons(lbm_flat_value_t *v) {
   return false;
 }
 
-bool f_sym(lbm_flat_value_t *v, lbm_uint sym) {
+bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id) {
   bool res = true;
   res = res && write_byte(v,S_SYM_VALUE);
   #ifndef LBM64
-  res = res && write_word(v,sym);
+  res = res && write_word(v,sym_id);
   #else
-  res = res && write_dword(v,sym);
+  res = res && write_dword(v,sym_id);
   #endif
   return res;
 }
 
-bool f_sym_string(lbm_flat_value_t *v, lbm_uint sym) {
+bool f_sym_string(lbm_flat_value_t *v, char *str) {
   bool res = true;
-  char *sym_str;
-  if (lbm_is_symbol(sym)) {
-    lbm_uint s = lbm_dec_sym(sym);
-    sym_str = (char*)lbm_get_name_by_symbol(s);
-    if (sym_str) {
-      lbm_uint sym_bytes = strlen(sym_str) + 1;
-      res = res && write_byte(v, S_SYM_STRING);
-      if (res && v->buf_size >= v->buf_pos + sym_bytes) {
-        for (lbm_uint i = 0; i < sym_bytes; i ++ ) {
-          res = res && write_byte(v, (uint8_t)sym_str[i]);
-        }
-        return res;
+  if (str) {
+    lbm_uint sym_bytes = strlen(str) + 1;
+    res = res && write_byte(v, S_SYM_STRING);
+    if (res && v->buf_size >= v->buf_pos + sym_bytes) {
+      for (lbm_uint i = 0; i < sym_bytes; i ++) {
+        res = res && write_byte(v, (uint8_t)str[i]);
       }
+      return res;
     }
   }
   return false;
 }
 
-int f_sym_string_bytes(lbm_uint sym) {
+int f_sym_string_bytes(lbm_value sym) {
   char *sym_str;
   if (lbm_is_symbol(sym)) {
     lbm_uint s = lbm_dec_sym(sym);
@@ -147,14 +142,22 @@ int f_sym_string_bytes(lbm_uint sym) {
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
   res = res && write_byte(v,S_I_VALUE);
+#ifndef LBM64
   res = res && write_word(v,(uint32_t)i);
+#else
+  res = res && write_dword(v, (uint64_t)i);
+#endif
   return res;
 }
 
 bool f_u(lbm_flat_value_t *v, lbm_uint u) {
   bool res = true;
   res = res && write_byte(v,S_U_VALUE);
+#ifndef LBM64
   res = res && write_word(v,(uint32_t)u);
+#else
+  res = res && write_dword(v,(uint64_t)u);
+#endif
   return res;
 }
 
@@ -349,16 +352,17 @@ int flatten_value_internal(lbm_flat_value_t *fv, lbm_value v) {
       return FLATTEN_VALUE_OK;
     }
     break;
-  case LBM_TYPE_SYMBOL:
-    if (f_sym_string(fv, v)) {
+  case LBM_TYPE_SYMBOL: {
+    char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v));
+    if (f_sym_string(fv, sym_str)) {
       return FLATTEN_VALUE_OK;
     }
-    break;
+  } break;
   case LBM_TYPE_ARRAY: {
     lbm_int s = lbm_heap_array_get_size(v);
-    uint8_t *d = lbm_heap_array_get_data(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
-      if (f_lbm_array(fv, (lbm_uint)s, d)) {
+      if (f_lbm_array(fv, (lbm_uint)s, (uint8_t*)d)) {
         return FLATTEN_VALUE_OK;
       }
     } else {
@@ -558,11 +562,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   case S_FLOAT_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       lbm_float f;
       memcpy(&f, &tmp, sizeof(lbm_float));

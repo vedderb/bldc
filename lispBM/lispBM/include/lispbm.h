@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include "lbm_memory.h"
 #include "lbm_types.h"
 #include "lbm_c_interop.h"
-#include "lbm_variables.h"
 #include "lbm_custom_type.h"
 #include "lbm_channel.h"
 
@@ -53,18 +52,20 @@ extern "C" {
  * \param memory_size  Size of the memory array.
  * \param memory_bitmap Pointer to lbm_uint array to use for the memory subsystem meta-data.
  * \param bitmap_size Size of the memory meta-data array.
- * \param print_stack_storage Pointer to lbm_uint array to use as print_value stack.
+ * \param gc_stack_size Size in number of lbm_uint values to use for the GC stack.
  * \param print_stack_size Size in number of lbm_uint values of the print stack.
- * \param extension_storage Pointer to array of extension_fptr.
+ * \param extension_storage Array of lbm_extension_t pointers.
  * \param extension_storage_size Size of extension array.
  * \return 1 on success and 0 on failure.
  */
+
 int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-	     lbm_uint gc_stack_size,
-	     lbm_uint *memory, lbm_uint memory_size,
-	     lbm_uint *memory_bitmap, lbm_uint bitmap_size,
-	     lbm_uint *print_stack_storage, lbm_uint print_stack_size,
-	     extension_fptr *extension_storage, int extension_storage_size );
+             lbm_uint *memory, lbm_uint memory_size,
+             lbm_uint *memory_bitmap, lbm_uint bitmap_size,
+             lbm_uint gc_stack_size,
+             lbm_uint print_stack_size,
+             lbm_extension_t *extension_storage,
+             lbm_uint extension_storage_size);
 
 #ifdef __cplusplus
 }

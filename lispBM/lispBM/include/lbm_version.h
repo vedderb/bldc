@@ -27,13 +27,20 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 21
+#define LBM_MINOR_VERSION 22
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.21.0"
+#define LBM_VERSION_STRING "0.22.0"
 
 /*! \page changelog Changelog
+DEC 26 2024: Version 0.22.0
+  - Built-in sort operation on lists.
+  - Built-in list-merge operation.
+  - Bugfix in map.
+  - Literal forms for special characters.
+
+
 NOV 28 2024: Version 0.21.0
   - Removed partial evaluation.
   - Added a built-in loop.

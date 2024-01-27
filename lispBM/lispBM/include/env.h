@@ -25,6 +25,9 @@
 extern "C" {
 #endif
 
+#define GLOBAL_ENV_ROOTS 32
+#define GLOBAL_ENV_MASK  0x1F
+
 //environment interface
 /** Initialize the global environment. This sets the global environment to NIL
  *
@@ -32,15 +35,10 @@ extern "C" {
  */
 int lbm_init_env(void);
 /**
- * Get a pointer to the global environment.
- * \return A pointer to the global environment variable.
- */
-lbm_value *lbm_get_env_ptr(void);
-/**
  *
  * \return the global environment
  */
-lbm_value lbm_get_env(void);
+lbm_value *lbm_get_global_env(void);
 /** Copy the spine of an environment. The list structure is
  * recreated but the values themselves are not copied but rather
  * just referenced.
@@ -49,13 +47,20 @@ lbm_value lbm_get_env(void);
  * \return Copy of environment.
  */
 lbm_value lbm_env_copy_spine(lbm_value env);
-/** Lookup a value in from the global environment.
- *
+/** Lookup a value in an environment.
+ * \param res Result stored here
  * \param sym The key to look for in the environment
  * \param env The environment to search for the key.
- * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
+ * \return True on success or false otherwise.
  */
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
+/** Lookup a value in the global environment.
+ * \param res Result stored here
+ * \param sym The key to look for in the environment
+ * \param env The environment to search for the key.
+ * \return True on success or false otherwise.
+ */
+bool lbm_global_env_lookup(lbm_value *res, lbm_value sym);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment

@@ -126,10 +126,9 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
     return 0;
   }
 
-  lbm_value binding = lbm_env_lookup(lbm_enc_sym(sym_id), *lbm_get_env_ptr());
+  lbm_value binding;
 
-  if (lbm_type_of(binding) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(binding) == SYM_NOT_FOUND) {
+  if (!lbm_global_env_lookup(&binding, lbm_enc_sym(sym_id))) {
     return 0;
   }
 
@@ -200,22 +199,14 @@ int lbm_define(char *symbol, lbm_value value) {
 
   lbm_uint sym_id;
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-
-    if (strncmp(symbol, "#",1) == 0) {
-      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-        if (!lbm_add_variable_symbol_const(symbol, &sym_id)) {
-          return 0;
-        }
+    if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+      if (!lbm_add_symbol_const(symbol, &sym_id)) {
+        return 0;
       }
-      lbm_set_var(sym_id, value);
-    } else {
-      if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-        if (!lbm_add_symbol_const(symbol, &sym_id)) {
-          return 0;
-        }
-      }
-      *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
     }
+    lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
+    lbm_value *glob_env = lbm_get_global_env();
+    glob_env[ix_key] = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
   }
   return res;
 }
@@ -225,32 +216,13 @@ int lbm_undefine(char *symbol) {
   if (!lbm_get_symbol_by_name(symbol, &sym_id))
     return 0;
 
-  lbm_value *env = lbm_get_env_ptr();
+  lbm_value *glob_env = lbm_get_global_env();
+  lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
+  lbm_value new_env = lbm_env_drop_binding(glob_env[ix_key], lbm_enc_sym(sym_id));
 
-  lbm_value curr;
-  lbm_value prev = *env;
-  int res  = 0;
-
-  while (lbm_dec_sym(lbm_car(lbm_car(prev))) == sym_id ) {
-    *env =lbm_cdr(prev);
-    prev = lbm_cdr(prev);
-    res = 1;
-  }
-
-  curr = lbm_cdr(prev);
-
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_dec_sym(lbm_car(lbm_car(curr))) == sym_id) {
-
-      /* drop the curr mapping from the env */
-      lbm_set_cdr(prev, lbm_cdr(curr));
-      res = 1;
-    }
-    prev = curr;
-    curr = lbm_cdr(curr);
-  }
-  return res;
-
+  if (new_env == ENC_SYM_NOT_FOUND) return 0;
+  glob_env[ix_key] = new_env;
+  return 1;
 }
 
 int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt) {

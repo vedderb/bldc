@@ -14,7 +14,6 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/platform/chibios/src/platform_mutex.c \
             $(LISPBM)/src/lbm_channel.c \
             $(LISPBM)/src/lbm_c_interop.c \
-            $(LISPBM)/src/lbm_variables.c \
             $(LISPBM)/src/lbm_custom_type.c \
             $(LISPBM)/src/lbm_flags.c \
             $(LISPBM)/src/lbm_flat_value.c \
@@ -25,7 +24,8 @@ LISPBMSRC = $(LISPBM)/src/env.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c \
 			lispBM/lispif_vesc_dynamic_loader.c \
-			lispBM/lispif_c_lib.c
+			lispBM/lispif_c_lib.c \
+            lispBM/lbm_vesc_utils.c
 
 LISPBMINC = lispBM \
 			$(LISPBM) \

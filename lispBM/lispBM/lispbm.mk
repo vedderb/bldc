@@ -12,7 +12,6 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lispbm.c \
              $(LISPBM)/src/eval_cps.c \
              $(LISPBM)/src/lbm_c_interop.c \
-             $(LISPBM)/src/lbm_variables.c \
              $(LISPBM)/src/lbm_custom_type.c \
              $(LISPBM)/src/lbm_channel.c \
              $(LISPBM)/src/lbm_flat_value.c\

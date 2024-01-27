@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2023      Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2024      Joel Svensson    svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -74,10 +74,13 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
 }
 
 
-int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size) {
+int lbm_print_init(lbm_uint print_stack_size) {
 
-  if (!print_stack_storage || print_stack_size == 0)
+  if (print_stack_size == 0)
     return 0;
+
+  lbm_uint *print_stack_storage = (lbm_uint*)lbm_malloc(print_stack_size * sizeof(lbm_uint));
+  if (!print_stack_storage) return 0;
 
   if (lbm_stack_create(&print_stack, print_stack_storage, print_stack_size)) {
     print_has_stack = true;
@@ -199,7 +202,7 @@ int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
 int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   lbm_uint *custom = (lbm_uint*)lbm_car(v);
   int r;
-  if (custom[CUSTOM_TYPE_DESCRIPTOR]) {
+  if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
     r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
   } else {
     r = print_emit_string(chan, "Unspecified_Custom_Type");
