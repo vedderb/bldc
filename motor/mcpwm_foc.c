@@ -2674,78 +2674,97 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	motor_now->m_curr_unbalance = curr0 + curr1 + curr2;
 #endif
 
-	ADC_curr_norm_value[0 + norm_curr_ofs] = curr0;
-	ADC_curr_norm_value[1 + norm_curr_ofs] = curr1;
+/***************************************************************************************/
+// MOD for noisy phase currents on Makerbase 75_200_V2
+
+	// ADC_curr_norm_value[0 + norm_curr_ofs] = curr0;
+	// ADC_curr_norm_value[1 + norm_curr_ofs] = curr1;
+
+	ADC_curr_norm_value[0 + norm_curr_ofs] = curr0 - motor_now->m_curr_unbalance / 3;
+	ADC_curr_norm_value[1 + norm_curr_ofs] = curr1 - motor_now->m_curr_unbalance / 3;
+
 #ifdef HW_HAS_3_SHUNTS
-	ADC_curr_norm_value[2 + norm_curr_ofs] = curr2;
+	// ADC_curr_norm_value[2 + norm_curr_ofs] = curr2;
+
+	ADC_curr_norm_value[2 + norm_curr_ofs] = curr2 - motor_now->m_curr_unbalance / 3;
+
+// MOD end
+/***************************************************************************************/
 #else
 	ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
 #endif
 
-	// Use the best current samples depending on the modulation state.
-#ifdef HW_HAS_3_SHUNTS
-	if (conf_now->foc_sample_high_current) {
-		// High current sampling mode. Choose the lower currents to derive the highest one
-		// in order to be able to measure higher currents.
-		const float i0_abs = fabsf(ADC_curr_norm_value[0 + norm_curr_ofs]);
-		const float i1_abs = fabsf(ADC_curr_norm_value[1 + norm_curr_ofs]);
-		const float i2_abs = fabsf(ADC_curr_norm_value[2 + norm_curr_ofs]);
+/***************************************************************************************/
+// MOD for noisy phase currents on Makerbase 75_200_V2
 
-		if (i0_abs > i1_abs && i0_abs > i2_abs) {
-			ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-		} else if (i1_abs > i0_abs && i1_abs > i2_abs) {
-			ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-		} else if (i2_abs > i0_abs && i2_abs > i1_abs) {
-			ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-		}
-	} else {
-#ifdef HW_HAS_PHASE_SHUNTS
-		if (is_v7) {
-			if (tim->CCR1 > 500 && tim->CCR2 > 500) {
-				// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
-				// This is especially important when using HFI.
-				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-			} else {
-				if (tim->CCR1 < tim->CCR2 && tim->CCR1 < tim->CCR3) {
-					ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-				} else if (tim->CCR2 < tim->CCR1 && tim->CCR2 < tim->CCR3) {
-					ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-				} else if (tim->CCR3 < tim->CCR1 && tim->CCR3 < tim->CCR2) {
-					ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-				}
-			}
-		} else {
-			if (tim->CCR1 < (tim->ARR - 500) && tim->CCR2 < (tim->ARR - 500)) {
-				// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
-				// This is especially important when using HFI.
-				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-			} else {
-				if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
-					ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-				} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
-					ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-				} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
-					ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-				}
-			}
-		}
-#else
-		if (tim->CCR1 < (tim->ARR - 500) && tim->CCR2 < (tim->ARR - 500)) {
-			// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
-			// This is especially important when using HFI.
-			ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-		} else {
-			if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
-				ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-			} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
-				ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
-			} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
-				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
-			}
-		}
-#endif
-	}
-#endif
+//
+// 	// Use the best current samples depending on the modulation state.
+// #ifdef HW_HAS_3_SHUNTS
+// 	if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT) {
+// 		// High current sampling mode. Choose the lower currents to derive the highest one
+// 		// in order to be able to measure higher currents.
+// 		const float i0_abs = fabsf(ADC_curr_norm_value[0 + norm_curr_ofs]);
+// 		const float i1_abs = fabsf(ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 		const float i2_abs = fabsf(ADC_curr_norm_value[2 + norm_curr_ofs]);
+
+// 		if (i0_abs > i1_abs && i0_abs > i2_abs) {
+// 			ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 		} else if (i1_abs > i0_abs && i1_abs > i2_abs) {
+// 			ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 		} else if (i2_abs > i0_abs && i2_abs > i1_abs) {
+// 			ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 		}
+// 	} else if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO) {
+// #ifdef HW_HAS_PHASE_SHUNTS
+// 		if (is_v7) {
+// 			if (tim->CCR1 > 500 && tim->CCR2 > 500) {
+// 				// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
+// 				// This is especially important when using HFI.
+// 				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 			} else {
+// 				if (tim->CCR1 < tim->CCR2 && tim->CCR1 < tim->CCR3) {
+// 					ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 				} else if (tim->CCR2 < tim->CCR1 && tim->CCR2 < tim->CCR3) {
+// 					ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 				} else if (tim->CCR3 < tim->CCR1 && tim->CCR3 < tim->CCR2) {
+// 					ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 				}
+// 			}
+// 		} else {
+// 			if (tim->CCR1 < (tim->ARR - 500) && tim->CCR2 < (tim->ARR - 500)) {
+// 				// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
+// 				// This is especially important when using HFI.
+// 				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 			} else {
+// 				if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
+// 					ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 				} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
+// 					ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 				} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
+// 					ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 				}
+// 			}
+// 		}
+// #else
+// 		if (tim->CCR1 < (tim->ARR - 500) && tim->CCR2 < (tim->ARR - 500)) {
+// 			// Use the same 2 shunts on low modulation, as that will avoid jumps in the current reading.
+// 			// This is especially important when using HFI.
+// 			ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 		} else {
+// 			if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
+// 				ADC_curr_norm_value[0 + norm_curr_ofs] = -(ADC_curr_norm_value[1 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 			} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
+// 				ADC_curr_norm_value[1 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[2 + norm_curr_ofs]);
+// 			} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
+// 				ADC_curr_norm_value[2 + norm_curr_ofs] = -(ADC_curr_norm_value[0 + norm_curr_ofs] + ADC_curr_norm_value[1 + norm_curr_ofs]);
+// 			}
+// 		}
+// #endif
+// 	}
+// #endif
+
+// MOD end
+/***************************************************************************************/
 
 	float ia = ADC_curr_norm_value[0 + norm_curr_ofs] * FAC_CURRENT;
 	float ib = ADC_curr_norm_value[1 + norm_curr_ofs] * FAC_CURRENT;

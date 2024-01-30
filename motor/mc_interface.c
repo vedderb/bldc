@@ -2143,9 +2143,19 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 					m_curr0_samples[m_sample_now] = ADC_curr_norm_value[0];
 					m_curr1_samples[m_sample_now] = ADC_curr_norm_value[1];
 
-					m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
-					m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
-					m_ph3_samples[m_sample_now] = ADC_V_L3 - zero;
+/***************************************************************************************/
+// MOD for noisy phase currents on Makerbase 75_200_V2
+
+					// m_ph1_samples[m_sample_now] = ADC_V_L1 - zero;
+					// m_ph2_samples[m_sample_now] = ADC_V_L2 - zero;
+					// m_ph3_samples[m_sample_now] = ADC_V_L3 - zero;
+
+					m_ph1_samples[m_sample_now] = ADC_curr_norm_value[0];
+					m_ph2_samples[m_sample_now] = ADC_curr_norm_value[1];
+					m_ph3_samples[m_sample_now] = ADC_curr_norm_value[2];
+					
+// MOD end
+/***************************************************************************************/
 				}
 			}
 
