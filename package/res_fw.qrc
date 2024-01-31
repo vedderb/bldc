@@ -1,0 +1,28 @@
+
+<RCC>
+   <qresource prefix="/res/firmwares/">
+        <file>75_100/VESC_default.bin</file>
+        <file>75_100/VESC_default_no_hw_limits.bin</file>
+        <file>75_100_V2/VESC_default.bin</file>
+        <file>75_100_V2/VESC_default_no_hw_limits.bin</file>
+        <file>75_100_V2/VESC_0005ohm.bin</file>
+        <file>FSESC75300/VESC_default.bin</file>
+        <file>FSESC_75_200_ALU/VESC_default.bin</file>
+        <file>FSESC_75_200_ALU/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_75_100/VESC_default.bin</file>
+        <file>MKSESC_75_100/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_75_100_V2/VESC_default.bin</file>
+        <file>MKSESC_75_100_V2/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_75_100_V2/VESC_default.bin</file>
+        <file>MKSESC_75_100_V2/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_75_200_V2/VESC_default.bin</file>
+        <file>MKSESC_75_200_V2/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_75_200_V2/VESC_default.bin</file>
+        <file>MKSESC_75_200_V2/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_84_100_HP/VESC_default.bin</file>
+        <file>MKSESC_84_100_HP/VESC_default_no_hw_limits.bin</file>
+        <file>MKSESC_84_200_HP/VESC_default.bin</file>
+        <file>MKSESC_84_200_HP/VESC_default_no_hw_limits.bin</file>
+   </qresource>
+</RCC>
+
