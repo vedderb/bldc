@@ -128,14 +128,12 @@ void app_adc_detach_adc(int detach) {
 }
 
 void app_adc_adc1_override(float val) {
-	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
 	utils_truncate_number(&val, 0, 3.3);
 	adc1_override = val;
 	timeout_reset();
 }
 
 void app_adc_adc2_override(float val) {
-	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
 	utils_truncate_number(&val, 0, 3.3);
 	adc2_override = val;
 	timeout_reset();
