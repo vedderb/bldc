@@ -2442,17 +2442,18 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
 	mcpwm_foc_get_current_offsets(&ofs1, &ofs2, &ofs3, motor == 2);
 	float ph1, ph2, ph3;
 	mcpwm_foc_get_currents_adc(&ph1, &ph2, &ph3, motor == 2);
-	float scale = FAC_CURRENT;
+	float scale1, scale2, scale3;
+	scale1 = FAC_CURRENT1; scale2 = FAC_CURRENT2; scale3 = FAC_CURRENT3;
 
 	if (argn == 3 && lbm_dec_as_i32(args[2]) != 0) {
-		scale = 1.0;
+		scale1 = 1.0; scale2 = 1.0; scale3 = 1.0;
 		ofs1 = 0.0; ofs2 = 0.0; ofs3 = 0.0;
 	}
 
 	switch(phase) {
-	case 1: return lbm_enc_float((ph1 - ofs1) * scale);
-	case 2: return lbm_enc_float((ph2 - ofs2) * scale);
-	case 3: return lbm_enc_float((ph3 - ofs3) * scale);
+	case 1: return lbm_enc_float((ph1 - ofs1) * scale1);
+	case 2: return lbm_enc_float((ph2 - ofs2) * scale2);
+	case 3: return lbm_enc_float((ph3 - ofs3) * scale3);
 	default: return ENC_SYM_EERROR;
 	}
 }

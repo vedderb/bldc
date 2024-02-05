@@ -383,6 +383,16 @@
 #endif
 #endif
 
+#ifndef CURRENT_CAL1
+#define CURRENT_CAL1				1.0
+#endif
+#ifndef CURRENT_CAL2
+#define CURRENT_CAL2				1.0
+#endif
+#ifndef CURRENT_CAL3
+#define CURRENT_CAL3				1.0
+#endif
+
 #ifndef HW_MAX_CURRENT_OFFSET
 #define HW_MAX_CURRENT_OFFSET 				620
 #endif

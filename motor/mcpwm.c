@@ -1562,12 +1562,12 @@ void mcpwm_adc_inj_int_handler(void) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		if (direction) {
 #ifdef HW_HAS_3_SHUNTS
-			curr_tot_sample = -(GET_CURRENT3() - curr2_offset);
+			curr_tot_sample = -(GET_CURRENT3() - curr2_offset)  * FAC_CURRENT3;;
 #else
-			curr_tot_sample = -(GET_CURRENT2() - curr1_offset);
+			curr_tot_sample = -(GET_CURRENT2() - curr1_offset)  * FAC_CURRENT2;;
 #endif
 		} else {
-			curr_tot_sample = -(GET_CURRENT1() - curr0_offset);
+			curr_tot_sample = -(GET_CURRENT1() - curr0_offset)  * FAC_CURRENT1;;
 		}
 	} else {
 		static int detect_now = 0;
@@ -1593,52 +1593,52 @@ void mcpwm_adc_inj_int_handler(void) {
 		 */
 
 		if (state == MC_STATE_FULL_BRAKE) {
-			float c0 = (float)ADC_curr_norm_value[0];
-			float c1 = (float)ADC_curr_norm_value[1];
-			float c2 = (float)ADC_curr_norm_value[2];
+			float c0 = (float)ADC_curr_norm_value[0] * FAC_CURRENT1;
+			float c1 = (float)ADC_curr_norm_value[1] * FAC_CURRENT2;
+			float c2 = (float)ADC_curr_norm_value[2] * FAC_CURRENT3;
 			curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
 		} else {
 #ifdef HW_HAS_3_SHUNTS
 			if (direction) {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
 				default: break;
 				}
 			} else {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
 				default: break;
 				}
 			}
 #else
 			if (direction) {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 3: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
-				case 4: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 3: curr_tot_sample = (float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 4: curr_tot_sample = (float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
 				default: break;
 				}
 			} else {
 				switch (comm_step) {
-				case 1: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
-				case 2: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 1: curr_tot_sample = (float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 2: curr_tot_sample = (float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
 				default: break;
 				}
 			}
@@ -1722,7 +1722,7 @@ void mcpwm_adc_inj_int_handler(void) {
 		}
 	}
 
-	last_current_sample = curr_tot_sample * FAC_CURRENT;
+	last_current_sample = curr_tot_sample;
 
 	// Filter out outliers
 	if (fabsf(last_current_sample) > (conf->l_abs_current_max * 1.2)) {

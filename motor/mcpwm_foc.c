@@ -2830,8 +2830,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float curr1;
 
 		if (is_second_motor) {
-			curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+			curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
+			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
 			TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		} else {
 			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
@@ -2839,8 +2839,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		}
 #else
-		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-		float curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
+		float curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
 
 		TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #ifdef HW_HAS_DUAL_PARALLEL
@@ -3042,9 +3042,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 
-	float ia = ADC_curr_norm_value[0 + norm_curr_ofs] * FAC_CURRENT;
-	float ib = ADC_curr_norm_value[1 + norm_curr_ofs] * FAC_CURRENT;
-	float ic = ADC_curr_norm_value[2 + norm_curr_ofs] * FAC_CURRENT;
+	float ia = ADC_curr_norm_value[0 + norm_curr_ofs] * FAC_CURRENT1;
+	float ib = ADC_curr_norm_value[1 + norm_curr_ofs] * FAC_CURRENT2;
+	float ic = ADC_curr_norm_value[2 + norm_curr_ofs] * FAC_CURRENT3;
 
 	// This has to be done for the skip function to have any chance at working with the
 	// observer and control loops.
