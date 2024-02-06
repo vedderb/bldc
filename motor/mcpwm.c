@@ -1549,11 +1549,11 @@ void mcpwm_adc_inj_int_handler(void) {
 	}
 #endif
 
-	ADC_curr_norm_value[0] = curr0;
-	ADC_curr_norm_value[1] = curr1;
+	ADC_curr_norm_value[0] = curr0 * FAC_CURRENT1;
+	ADC_curr_norm_value[1] = curr1 * FAC_CURRENT2;
 
 #ifdef HW_HAS_3_SHUNTS
-	ADC_curr_norm_value[2] = curr2;
+	ADC_curr_norm_value[2] = curr2 * FAC_CURRENT3;
 #else
 	ADC_curr_norm_value[2] = -(ADC_curr_norm_value[0] + ADC_curr_norm_value[1]);
 #endif
@@ -1593,52 +1593,52 @@ void mcpwm_adc_inj_int_handler(void) {
 		 */
 
 		if (state == MC_STATE_FULL_BRAKE) {
-			float c0 = (float)ADC_curr_norm_value[0] * FAC_CURRENT1;
-			float c1 = (float)ADC_curr_norm_value[1] * FAC_CURRENT2;
-			float c2 = (float)ADC_curr_norm_value[2] * FAC_CURRENT3;
+			float c0 = (float)ADC_curr_norm_value[0];
+			float c1 = (float)ADC_curr_norm_value[1];
+			float c2 = (float)ADC_curr_norm_value[2];
 			curr_tot_sample = sqrtf((c0*c0 + c1*c1 + c2*c2) / 1.5);
 		} else {
 #ifdef HW_HAS_3_SHUNTS
 			if (direction) {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
 				default: break;
 				}
 			} else {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2] * FAC_CURRENT3; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[2]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
 				default: break;
 				}
 			}
 #else
 			if (direction) {
 				switch (comm_step) {
-				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 3: curr_tot_sample = (float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 4: curr_tot_sample = (float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 1: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 3: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
+				case 4: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
 				default: break;
 				}
 			} else {
 				switch (comm_step) {
-				case 1: curr_tot_sample = (float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 2: curr_tot_sample = (float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1] * FAC_CURRENT2; break;
-				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
-				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0] * FAC_CURRENT1; break;
+				case 1: curr_tot_sample = (float)ADC_curr_norm_value[1]; break;
+				case 2: curr_tot_sample = (float)ADC_curr_norm_value[0]; break;
+				case 3: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 4: curr_tot_sample = -(float)ADC_curr_norm_value[1]; break;
+				case 5: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
+				case 6: curr_tot_sample = -(float)ADC_curr_norm_value[0]; break;
 				default: break;
 				}
 			}

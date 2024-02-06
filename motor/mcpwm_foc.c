@@ -2808,7 +2808,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	volatile TIM_TypeDef *tim = is_second_motor ? TIM8 : TIM1;
 #endif
 #else
-	
 	motor_all_state_t *motor_other = (motor_all_state_t*)&m_motor_1;
 	motor_all_state_t *motor_now = (motor_all_state_t*)&m_motor_1;;
 	m_isr_motor = 1;
