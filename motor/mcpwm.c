@@ -1562,12 +1562,12 @@ void mcpwm_adc_inj_int_handler(void) {
 	if (conf->motor_type == MOTOR_TYPE_DC) {
 		if (direction) {
 #ifdef HW_HAS_3_SHUNTS
-			curr_tot_sample = -(GET_CURRENT3() - curr2_offset)  * FAC_CURRENT3;;
+			curr_tot_sample = -(GET_CURRENT3() - curr2_offset)  * FAC_CURRENT3;
 #else
-			curr_tot_sample = -(GET_CURRENT2() - curr1_offset)  * FAC_CURRENT2;;
+			curr_tot_sample = -(GET_CURRENT2() - curr1_offset)  * FAC_CURRENT2;
 #endif
 		} else {
-			curr_tot_sample = -(GET_CURRENT1() - curr0_offset)  * FAC_CURRENT1;;
+			curr_tot_sample = -(GET_CURRENT1() - curr0_offset)  * FAC_CURRENT1;
 		}
 	} else {
 		static int detect_now = 0;
