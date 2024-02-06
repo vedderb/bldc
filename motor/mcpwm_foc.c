@@ -2797,9 +2797,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
 	int norm_curr_ofs = 0;
-
+	bool is_second_motor = 0;
 #ifdef HW_HAS_DUAL_MOTORS
-	bool is_second_motor = is_v7;
+	is_second_motor = is_v7;
 	norm_curr_ofs = is_second_motor ? 3 : 0;
 	motor_all_state_t *motor_now = is_second_motor ? (motor_all_state_t*)&m_motor_2 : (motor_all_state_t*)&m_motor_1;
 	motor_all_state_t *motor_other = is_second_motor ? (motor_all_state_t*)&m_motor_1 : (motor_all_state_t*)&m_motor_2;
@@ -2808,6 +2808,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	volatile TIM_TypeDef *tim = is_second_motor ? TIM8 : TIM1;
 #endif
 #else
+	
 	motor_all_state_t *motor_other = (motor_all_state_t*)&m_motor_1;
 	motor_all_state_t *motor_now = (motor_all_state_t*)&m_motor_1;;
 	m_isr_motor = 1;
@@ -2834,8 +2835,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
 			TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		} else {
-			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT;
-			curr1 = (GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT;
+			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1_M2;
+			curr1 = (GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2_M2;
 			TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		}
 #else
@@ -2923,51 +2924,53 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	palClearPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
 #endif
 
-#ifdef HW_HAS_DUAL_MOTORS
 	float curr0 = 0;
 	float curr1 = 0;
+	float curr2 = 0;
 
+// Get ADC readings 0-4095
 	if (is_second_motor) {
 		curr0 = GET_CURRENT1_M2();
 		curr1 = GET_CURRENT2_M2();
+		curr2 = GET_CURRENT3_M2();
 	} else {
 		curr0 = GET_CURRENT1();
 		curr1 = GET_CURRENT2();
+		curr2 = GET_CURRENT3();
 	}
-#else
-	float curr0 = GET_CURRENT1();
-	float curr1 = GET_CURRENT2();
+
 #ifdef HW_HAS_DUAL_PARALLEL
+	// Add both currents together
 	curr0 += GET_CURRENT1_M2();
 	curr1 += GET_CURRENT2_M2();
-#endif
-#endif
-
-#ifdef HW_HAS_3_SHUNTS
-#ifdef HW_HAS_DUAL_MOTORS
-	float curr2 = is_second_motor ? GET_CURRENT3_M2() : GET_CURRENT3();
-#else
-	float curr2 = GET_CURRENT3();
-#ifdef HW_HAS_DUAL_PARALLEL
-	curr2 += GET_CURRENT3_M2();
-#endif
-#endif
+	curr2 += GET_CURRENT3_M2();	
 #endif
 
+// Store ADC readings
 	motor_now->m_currents_adc[0] = curr0;
 	motor_now->m_currents_adc[1] = curr1;
-#ifdef HW_HAS_3_SHUNTS
 	motor_now->m_currents_adc[2] = curr2;
-#else
-	motor_now->m_currents_adc[2] = 0.0;
-#endif
 
+// Shift to midpoint using offset (should be close to 2048)
 	curr0 -= conf_now->foc_offsets_current[0];
 	curr1 -= conf_now->foc_offsets_current[1];
-#ifdef HW_HAS_3_SHUNTS
 	curr2 -= conf_now->foc_offsets_current[2];
+	
+#ifdef HW_HAS_3_SHUNTS	
+	// Calculate unbalance to detect bad sensor
 	motor_now->m_curr_unbalance = curr0 + curr1 + curr2;
-#endif
+#endif	
+
+// Scale to AMPs using calibrated scaling factors	
+	if (is_second_motor) {
+		curr0 *= FAC_CURRENT1_M2;
+		curr1 *= FAC_CURRENT2_M2;
+		curr2 *= FAC_CURRENT3_M2;
+	} else {
+		curr0 *= FAC_CURRENT1;
+		curr1 *= FAC_CURRENT2;
+		curr2 *= FAC_CURRENT3;
+	}
 
 	ADC_curr_norm_value[0 + norm_curr_ofs] = curr0;
 	ADC_curr_norm_value[1 + norm_curr_ofs] = curr1;
@@ -3042,9 +3045,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 
-	float ia = ADC_curr_norm_value[0 + norm_curr_ofs] * FAC_CURRENT1;
-	float ib = ADC_curr_norm_value[1 + norm_curr_ofs] * FAC_CURRENT2;
-	float ic = ADC_curr_norm_value[2 + norm_curr_ofs] * FAC_CURRENT3;
+	float ia = ADC_curr_norm_value[0 + norm_curr_ofs];
+	float ib = ADC_curr_norm_value[1 + norm_curr_ofs];
+	float ic = ADC_curr_norm_value[2 + norm_curr_ofs];
 
 	// This has to be done for the skip function to have any chance at working with the
 	// observer and control loops.

@@ -2443,8 +2443,12 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
 	float ph1, ph2, ph3;
 	mcpwm_foc_get_currents_adc(&ph1, &ph2, &ph3, motor == 2);
 	float scale1, scale2, scale3;
-	scale1 = FAC_CURRENT1; scale2 = FAC_CURRENT2; scale3 = FAC_CURRENT3;
-
+	if(motor == 2) {
+		scale1 = FAC_CURRENT1_M2; scale2 = FAC_CURRENT2_M2; scale3 = FAC_CURRENT3_M2;
+	} else 
+		scale1 = FAC_CURRENT1; scale2 = FAC_CURRENT2; scale3 = FAC_CURRENT3;
+	}
+	
 	if (argn == 3 && lbm_dec_as_i32(args[2]) != 0) {
 		scale1 = 1.0; scale2 = 1.0; scale3 = 1.0;
 		ofs1 = 0.0; ofs2 = 0.0; ofs3 = 0.0;
