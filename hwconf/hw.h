@@ -346,19 +346,22 @@
 	#endif
 #endif
 
-#ifndef GET_CURRENT3	
-	#ifdef ADC_IND_CURR3
-		#ifdef INVERTED_SHUNT_POLARITY
-			#define GET_CURRENT3()		(4095.0 - (float)ADC_Value[ADC_IND_CURR3])
+#ifdef HW_HAS_3_SHUNTS
+	#ifndef GET_CURRENT3	
+		#ifdef ADC_IND_CURR3
+			#ifdef INVERTED_SHUNT_POLARITY
+				#define GET_CURRENT3()		(4095.0 - (float)ADC_Value[ADC_IND_CURR3])
+			#else
+				#define GET_CURRENT3()		((float)ADC_Value[ADC_IND_CURR3])
+			#endif
 		#else
-			#define GET_CURRENT3()		((float)ADC_Value[ADC_IND_CURR3])
+			#define ADC_IND_CURR3		0
+			#define GET_CURRENT3()		0
 		#endif
-	#else
-		#define ADC_IND_CURR3		0
-		#define GET_CURRENT3()		0
 	#endif
+#else
+	#define GET_CURRENT3()		0
 #endif
-
 
 #ifndef GET_CURRENT1_M2
 	#ifdef INVERTED_SHUNT_POLARITY
@@ -376,17 +379,21 @@
 	#endif
 #endif
 
-#ifndef GET_CURRENT3_M2
-		#ifdef ADC_IND_CURR6
-			#ifdef INVERTED_SHUNT_POLARITY
-				#define GET_CURRENT3_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR6])
+#ifdef HW_HAS_3_SHUNTS
+	#ifndef GET_CURRENT3_M2
+			#ifdef ADC_IND_CURR6
+				#ifdef INVERTED_SHUNT_POLARITY
+					#define GET_CURRENT3_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR6])
+				#else
+					#define GET_CURRENT3_M2()	((float)ADC_Value[ADC_IND_CURR6])
+				#endif
 			#else
-				#define GET_CURRENT3_M2()	((float)ADC_Value[ADC_IND_CURR6])
+				#define GET_CURRENT3_M2()	0
 			#endif
-		#else
-			#define GET_CURRENT3_M2()	0
 		#endif
 	#endif
+#else
+	#define GET_CURRENT3_M2()	0
 #endif
 
 
