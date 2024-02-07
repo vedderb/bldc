@@ -360,7 +360,9 @@
 		#endif
 	#endif
 #else
-	#define ADC_IND_CURR3		0
+	#ifndef ADC_IND_CURR3	
+		#define ADC_IND_CURR3		0
+	#endif
 	#define GET_CURRENT3()		0
 #endif
 
@@ -405,7 +407,9 @@
 	#endif
 #else
 	#define GET_CURRENT3_M2()	0
-	#define ADC_IND_CURR6		0
+	#ifndef ADC_IND_CURR6	
+		#define ADC_IND_CURR6		0
+	#endif
 #endif
 
 
