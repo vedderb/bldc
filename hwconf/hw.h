@@ -360,40 +360,52 @@
 		#endif
 	#endif
 #else
+	#define ADC_IND_CURR3		0
 	#define GET_CURRENT3()		0
 #endif
 
 #ifndef GET_CURRENT1_M2
-	#ifdef INVERTED_SHUNT_POLARITY
-		#define GET_CURRENT1_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR4])
+	#ifdef ADC_IND_CURR4
+		#ifdef INVERTED_SHUNT_POLARITY
+			#define GET_CURRENT1_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR4])
+		#else
+			#define GET_CURRENT1_M2()	((float)ADC_Value[ADC_IND_CURR4])
+		#endif
 	#else
-		#define GET_CURRENT1_M2()	((float)ADC_Value[ADC_IND_CURR4])
+		#define GET_CURRENT1_M2()	0
+		#define ADC_IND_CURR4		0
 	#endif
 #endif
 
 #ifndef GET_CURRENT2_M2
-	#ifdef INVERTED_SHUNT_POLARITY
-		#define GET_CURRENT2_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR5])
+	#ifdef ADC_IND_CURR5
+		#ifdef INVERTED_SHUNT_POLARITY
+			#define GET_CURRENT2_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR5])
+		#else
+			#define GET_CURRENT2_M2()	((float)ADC_Value[ADC_IND_CURR5])
+		#endif
 	#else
-		#define GET_CURRENT2_M2()	((float)ADC_Value[ADC_IND_CURR5])
+		#define GET_CURRENT2_M2()	0
+		#define ADC_IND_CURR5		0
 	#endif
 #endif
 
 #ifdef HW_HAS_3_SHUNTS
 	#ifndef GET_CURRENT3_M2
-			#ifdef ADC_IND_CURR6
-				#ifdef INVERTED_SHUNT_POLARITY
-					#define GET_CURRENT3_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR6])
-				#else
-					#define GET_CURRENT3_M2()	((float)ADC_Value[ADC_IND_CURR6])
-				#endif
+		#ifdef ADC_IND_CURR6
+			#ifdef INVERTED_SHUNT_POLARITY
+				#define GET_CURRENT3_M2()	(4095.0 - (float)ADC_Value[ADC_IND_CURR6])
 			#else
-				#define GET_CURRENT3_M2()	0
+				#define GET_CURRENT3_M2()	((float)ADC_Value[ADC_IND_CURR6])
 			#endif
-		#endif
+		#else
+			#define GET_CURRENT3_M2()	0
+			#define ADC_IND_CURR6		0
+		#endif		
 	#endif
 #else
 	#define GET_CURRENT3_M2()	0
+	#define ADC_IND_CURR6		0
 #endif
 
 

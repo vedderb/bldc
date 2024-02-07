@@ -1552,16 +1552,18 @@ void mcpwm_adc_inj_int_handler(void) {
 	// Store raw ADC readings for raw sampling mode.
 	ADC_curr_raw[0] = curr0;
 	ADC_curr_raw[1] = curr1;
+#ifdef HW_HAS_3_SHUNTS
 	ADC_curr_raw[2] = curr2;
+#endif
 	
 	// Scale to AMPs using calibrated scaling factors	
 	curr0 *= FAC_CURRENT1;
-	curr1 *= FAC_CURRENT2;
+	curr1 *= FAC_CURRENT2;	
+#ifdef HW_HAS_3_SHUNTS
 	curr2 *= FAC_CURRENT3;
-	
-#ifndef HW_HAS_3_SHUNTS
-	curr2 = -(curr0 + curr1);
-#endif	
+#else
+	int curr2 = -(curr0 + curr1);
+#endif
 
 	// Store the currents for sampling
 	ADC_curr_norm_value[0] = curr0;

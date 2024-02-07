@@ -2445,7 +2445,7 @@ static lbm_value ext_raw_adc_current(lbm_value *args, lbm_uint argn) {
 	float scale1, scale2, scale3;
 	if(motor == 2) {
 		scale1 = FAC_CURRENT1_M2; scale2 = FAC_CURRENT2_M2; scale3 = FAC_CURRENT3_M2;
-	} else 
+	} else {
 		scale1 = FAC_CURRENT1; scale2 = FAC_CURRENT2; scale3 = FAC_CURRENT3;
 	}
 	
