@@ -1457,14 +1457,14 @@ static THD_FUNCTION(timer_thread, arg) {
 void mcpwm_adc_inj_int_handler(void) {
 	uint32_t t_start = timer_time_now();
 
-	int curr0 = HW_GET_INJ_CURR1();
-	int curr1 = HW_GET_INJ_CURR2();
+	float curr0 = HW_GET_INJ_CURR1();
+	float curr1 = HW_GET_INJ_CURR2();
 
-	int curr0_2 = HW_GET_INJ_CURR1_S2();
-	int curr1_2 = HW_GET_INJ_CURR1_S2();
+	float curr0_2 = HW_GET_INJ_CURR1_S2();
+	float curr1_2 = HW_GET_INJ_CURR1_S2();
 
 #ifdef HW_HAS_3_SHUNTS
-	int curr2 = HW_GET_INJ_CURR3();
+	float curr2 = HW_GET_INJ_CURR3();
 #endif
 
 #ifdef INVERTED_SHUNT_POLARITY
