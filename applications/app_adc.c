@@ -603,11 +603,12 @@ static THD_FUNCTION(adc_thread, arg) {
 					last_rpm = rpm_filtered;
 					//convert rpm/s to rpm/ticks
 					float rpm_dt_max_diff = config.tc_max_rpm_rate/(float)CH_CFG_ST_FREQUENCY;
-					if (drpm_dt < (rpm_dt_max_diff/20.0)) drpm_dt = 0;
+					float rpm_dt_thresold_diff = (rpm_dt_max_diff/ADVANCED_TC_THRESOLD_FACTOR);
+					if (drpm_dt < rpm_dt_thresold_diff) drpm_dt = rpm_dt_thresold_diff;
 					if (drpm_dt > rpm_dt_max_diff) drpm_dt = rpm_dt_max_diff;
 					//partially limit the current between current_rel and 1/tc_level of that
 					float tc_scaling = 1.0/(1.0-(config.tc_level/100.0)); // 100/(100-tc_level) -> 1/(1-tc_level/100)
-					current_rel = utils_map(drpm_dt, 0.0, rpm_dt_max_diff, current_rel, current_rel/tc_scaling);
+					current_rel = utils_map(drpm_dt, rpm_dt_thresold_diff, rpm_dt_max_diff, current_rel, current_rel/tc_scaling);
 					current_out = current_rel;
 				}
 				// Traction control - rpm difference - only multi esc
