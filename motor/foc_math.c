@@ -444,7 +444,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 }
 
-void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
+void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *motor) {
 	mc_configuration *conf_now = motor->m_conf;
 	float p_term;
 	float d_term;
@@ -459,6 +459,10 @@ void foc_run_pid_control_speed(float dt, motor_all_state_t *motor) {
 
 	if (conf_now->s_pid_ramp_erpms_s > 0.0) {
 		utils_step_towards((float*)&motor->m_speed_pid_set_rpm, motor->m_speed_command_rpm, conf_now->s_pid_ramp_erpms_s * dt);
+		if (!index_found) {
+			utils_truncate_number_abs(&motor->m_speed_pid_set_rpm, conf_now->foc_openloop_rpm);
+		}
+		utils_truncate_number(&motor->m_speed_pid_set_rpm, conf_now->l_min_erpm, conf_now->l_max_erpm);
 	}
 
 	float rpm = 0.0;

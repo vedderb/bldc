@@ -4169,11 +4169,12 @@ static THD_FUNCTION(pid_thread, arg) {
 		float dt = timer_seconds_elapsed_since(last_time);
 		last_time = timer_time_now();
 
-		foc_run_pid_control_pos(encoder_index_found(), dt, (motor_all_state_t*)&m_motor_1);
-		foc_run_pid_control_speed(dt, (motor_all_state_t*)&m_motor_1);
+		bool index_found = encoder_index_found();
+		foc_run_pid_control_pos(index_found, dt, (motor_all_state_t*)&m_motor_1);
+		foc_run_pid_control_speed(index_found, dt, (motor_all_state_t*)&m_motor_1);
 #ifdef HW_HAS_DUAL_MOTORS
-		foc_run_pid_control_pos(encoder_index_found(), dt, (motor_all_state_t*)&m_motor_2);
-		foc_run_pid_control_speed(dt, (motor_all_state_t*)&m_motor_2);
+		foc_run_pid_control_pos(index_found, dt, (motor_all_state_t*)&m_motor_2);
+		foc_run_pid_control_speed(index_found, dt, (motor_all_state_t*)&m_motor_2);
 #endif
 	}
 }
