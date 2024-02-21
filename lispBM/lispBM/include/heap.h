@@ -1,6 +1,6 @@
 
 /*
-    Copyright 2018 , 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2024 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -191,38 +191,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
-#ifndef LBM64
-
-#define LBM_ADDRESS_SHIFT               2
-#define LBM_VAL_SHIFT                   4
-
-#define LBM_PTR_MASK                     0x00000001u
-#define LBM_PTR_BIT                      0x00000001u
-#define LBM_PTR_VAL_MASK                 0x03FFFFFCu
-#define LBM_PTR_TYPE_MASK                0xFC000000u
-#define LBM_PTR_NULL                     (0x03FFFFFCu >> 2)
-
-// The address is an index into the const heap.
-#define LBM_PTR_TO_CONSTANT_BIT          0x04000000u
-#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
-#define LBM_PTR_TO_CONSTANT_SHIFT        26
-
-#else /* 64 bit Version */
-
-#define LBM_ADDRESS_SHIFT                2
-#define LBM_VAL_SHIFT                    8
-
-#define LBM_PTR_MASK                     (lbm_uint)0x1
-#define LBM_PTR_BIT                      (lbm_uint)0x1
-#define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
-#define LBM_PTR_TYPE_MASK                (lbm_uint)0xF800000000000000
-#define LBM_PTR_NULL                     ((lbm_uint)0x03FFFFFFFFFFFFFC >> 2)
-
-#define LBM_PTR_TO_CONSTANT_BIT          (lbm_uint)0x0400000000000000
-#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
-#define LBM_PTR_TO_CONSTANT_SHIFT        58
-
-#endif
 
 typedef enum {
   LBM_FLASH_WRITE_OK,
@@ -567,11 +535,6 @@ void lbm_gc_state_inc(void);
  *  until after a garbage collection.
  */
 void lbm_nil_freelist(void);
-/** Mark all heap cells that are on the free-list.
- *
- * \return 1 on success or 0 if the free-list is corrupted.
- */
-int lbm_gc_mark_freelist(void);
 /** Mark all heap cells reachable from an environment.
  * \param environment.
  */
@@ -797,31 +760,48 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
 #endif
 }
 
-/** Decode an lbm_value representing a 64 bit integert.
+/** Decode an lbm_value representing a 64 bit integer.
  * \param x Value to decode.
  * \return decoded int64_t.
  */
 extern int64_t lbm_dec_i64(lbm_value x);
 
+/**
+ * Check if a value is a heap pointer
+ * \param x Value to check
+ * \return true if x is a pointer to a heap cell, false otherwise.
+ */
 static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_MASK);
 }
 
+/**
+ * Check if a value is a Read/Writeable cons cell
+ * \param x Value to check
+ * \return true if x is a Read/Writeable cons cell, false otherwise.
+ */
 static inline bool lbm_is_cons_rw(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
+/**
+ * Check if a value is a Readable cons cell
+ * \param x Value to check
+ * \return true if x is a readable cons cell, false otherwise.
+ */
 static inline bool lbm_is_cons(lbm_value x) {
-  lbm_type t = lbm_type_of(x);
-  return (t == LBM_TYPE_CONS ||
-          t == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT));
+  return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
 /** Check if a value represents a number
  * \param x Value to check.
  * \return true is x represents a number and false otherwise.
  */
-extern bool lbm_is_number(lbm_value x);
+static inline bool lbm_is_number(lbm_value x) {
+  return (x & LBM_VAL_TYPE_MASK ||
+          ((x & (LBM_NUMBER_MASK | LBM_PTR_MASK)) ==
+           (LBM_NUMBER_MASK | LBM_PTR_MASK)));
+}
 
 /** Check if value is an array that can be READ
  * \param x Value to check.
@@ -882,11 +862,11 @@ static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
 }
 
 static inline bool lbm_is_symbol(lbm_value exp) {
-  return (lbm_type_of(exp) == LBM_TYPE_SYMBOL);
+  return !(exp & LBM_LOW_RESERVED_BITS);
 }
 
 static inline bool lbm_is_symbol_nil(lbm_value exp) {
-  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_NIL);
+  return exp == ENC_SYM_NIL;
 }
 
 static inline bool lbm_is_symbol_true(lbm_value exp) {
@@ -898,7 +878,7 @@ static inline bool lbm_is_symbol_eval(lbm_value exp) {
 }
 
 static inline bool lbm_is_symbol_merror(lbm_value exp) {
-  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_MERROR);
+  return lbm_is_symbol(exp) && (exp == ENC_SYM_MERROR);
 }
 
 static inline bool lbm_is_list(lbm_value x) {
@@ -925,7 +905,7 @@ static inline bool lbm_is_quoted_list(lbm_value x) {
 
 /* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
-  return (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
+  return (lbm_is_symbol(v) &&
           ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20));
 }
 

@@ -184,35 +184,3 @@ lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
   }
   return ENC_SYM_NOT_FOUND;
 }
-
-lbm_value lbm_env_build_params_args(lbm_value params,
-                            lbm_value args,
-                            lbm_value env0) {
-  lbm_value curr_param = params;
-  lbm_value curr_arg = args;
-
-  // TODO: This should be checked outside of this function.
-  //
-  if (lbm_list_length(params) != lbm_list_length(args)) { // programmer error
-    return ENC_SYM_FATAL_ERROR;
-  }
-
-  lbm_value env = env0;
-  while (lbm_type_of(curr_param) == LBM_TYPE_CONS) {
-
-    lbm_value entry = lbm_cons(lbm_car(curr_param), lbm_car(curr_arg));
-    if (lbm_type_of(entry) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(entry) == SYM_MERROR)
-      return ENC_SYM_MERROR;
-
-    env = lbm_cons(entry,env);
-
-    if (lbm_type_of(env) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(env) == SYM_MERROR)
-      return ENC_SYM_MERROR;
-
-    curr_param = lbm_cdr(curr_param);
-    curr_arg   = lbm_cdr(curr_arg);
-  }
-  return env;
-}

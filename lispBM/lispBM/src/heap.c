@@ -430,17 +430,6 @@ double lbm_dec_as_double(lbm_value a) {
   }
   return 0;
 }
-/****************************************************/
-/* IS                                               */
-
-bool lbm_is_number(lbm_value x) {
-  lbm_uint t = lbm_type_of(x);
-  #ifndef LBM64
-  return (t & 0xC || t & LBM_NUMBER_MASK);
-  #else
-  return (t & ((uint64_t)0x1C) || t & LBM_NUMBER_MASK);
-  #endif
-}
 
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
@@ -507,7 +496,7 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 
   lbm_uint *gc_stack_storage = (lbm_uint*)lbm_malloc(gc_stack_size * sizeof(lbm_uint));
   if (gc_stack_storage == NULL) return 0;
-  
+
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
@@ -702,21 +691,15 @@ void lbm_gc_mark_phase(lbm_value root) {
     lbm_pop(s, &curr);
 
   mark_shortcut:
-    if (!lbm_is_ptr(curr)) {
+    if (!lbm_is_ptr(curr) || (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       continue;
     }
 
-    if (curr & LBM_PTR_TO_CONSTANT_BIT) {
-      // Go back and pop next root.
-      // Constant values can only refer to non-constants by name.
-      continue;
-    }
-    lbm_cons_t *cell = lbm_ref_cell(curr);
+    lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
 
-    lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
-    if (gc_mark) continue;
-    lbm_heap_state.gc_marked ++;
+    if (lbm_get_gc_mark(cell->cdr))  continue;
     cell->cdr = lbm_set_gc_mark(cell->cdr);
+    lbm_heap_state.gc_marked ++;
 
     lbm_value t_ptr = lbm_type_of(curr);
 
@@ -724,8 +707,7 @@ void lbm_gc_mark_phase(lbm_value root) {
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
     if (cell->car == ENC_SYM_CONT) {
-      lbm_value cont = cell->cdr;
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont);
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cell->cdr);
       lbm_value *arrdata = (lbm_value *)arr->data;
       for (lbm_uint i = 0; i < arr->size / 4; i ++) {
         if (lbm_is_ptr(arrdata[i]) &&
@@ -747,35 +729,6 @@ void lbm_gc_mark_phase(lbm_value root) {
   }
 }
 #endif
-
-// The free list should be a "proper list"
-// Using a while loop to traverse over the cdrs
-int lbm_gc_mark_freelist(void) {
-
-  lbm_value curr;
-  lbm_cons_t *t;
-  lbm_value fl = lbm_heap_state.freelist;
-
-  if (!lbm_is_ptr(fl)) {
-    if (lbm_type_of(fl) == LBM_TYPE_SYMBOL &&
-        fl == ENC_SYM_NIL){
-      return 1; // Nothing to mark here
-    } else {
-      return 0;
-    }
-  }
-
-  curr = fl;
-  while (lbm_is_ptr(curr)){
-    t = lbm_ref_cell(curr);
-    t->cdr = lbm_set_gc_mark(t->cdr);
-    curr = t->cdr;
-
-    lbm_heap_state.gc_marked ++;
-  }
-
-  return 1;
-}
 
 //Environments are proper lists with a 2 element list stored in each car.
 void lbm_gc_mark_env(lbm_value env) {

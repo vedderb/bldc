@@ -1,0 +1,22 @@
+
+(defun test-print (s) {
+  (send-data s)
+  (send-data "\n")
+  })
+
+(defun start-test (s) {
+  (test-print "\n\n")
+  (test-print (str-merge "TEST BEGIN: " s))
+  }
+  )
+
+(defun end-test ()
+  (test-print "TEST END")
+)
+
+(defun check (x)
+  (if x
+      (test-print "CHECK: SUCCESS")
+    (test-print "CHECK: FAILURE")
+    )
+  )

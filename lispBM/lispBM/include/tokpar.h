@@ -59,11 +59,13 @@
 // = -1 : Tokenizer does not know if it can or cannot create a token yet.
 // = -2 : Tokenizer was reading a string but ran out of space (for example).
 //        This is an error!
+// = -4 : Tokenizer was reading a symbol but ran out of space.
 
 #define TOKENIZER_NO_TOKEN   0
 #define TOKENIZER_NEED_MORE -1
 #define TOKENIZER_STRING_ERROR -2
 #define TOKENIZER_CHAR_ERROR -3
+#define TOKENIZER_SYMBOL_ERROR -4
 
 #define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 256
 

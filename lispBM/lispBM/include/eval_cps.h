@@ -27,11 +27,11 @@
 extern "C" {
 #endif
 
-#define EVAL_CPS_STATE_INIT    0
+#define EVAL_CPS_STATE_NONE    0
 #define EVAL_CPS_STATE_PAUSED  1
 #define EVAL_CPS_STATE_RUNNING 2
-#define EVAL_CPS_STATE_STEP    3
 #define EVAL_CPS_STATE_KILL    4
+#define EVAL_CPS_STATE_DEAD    8
 
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
@@ -40,7 +40,7 @@ extern "C" {
 #define EVAL_CPS_CONTEXT_FLAG_CONST                 (uint32_t)0x2
 #define EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS  (uint32_t)0x4
 #define EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ      (uint32_t)0x8
-  
+
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -49,7 +49,7 @@ extern "C" {
 #define LBM_THREAD_STATE_TIMEOUT   (uint32_t)2
 #define LBM_THREAD_STATE_SLEEPING  (uint32_t)3
 #define LBM_THREAD_STATE_GC_BIT    (uint32_t)(1 << 31)
-  
+
 typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
@@ -79,6 +79,7 @@ typedef struct eval_context_s{
 typedef enum {
   LBM_EVENT_FOR_HANDLER = 0,
   LBM_EVENT_UNBLOCK_CTX,
+  LBM_EVENT_DEFINE,
 } lbm_event_type_t;
 
 typedef struct {
@@ -136,6 +137,7 @@ void lbm_set_event_handler_pid(lbm_cid pid);
  * \return True if event handler exists, otherwise false.
  */
 bool lbm_event_handler_exists(void);
+bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv);
 /** Send an event to the registered event handler process.
  * If lbm_event returns false the C code will still be responsible for
  * the flat_value passed into lbm_event. If lbm_event returns true,
@@ -152,7 +154,10 @@ bool lbm_event(lbm_flat_value_t *fv);
  * \return true on success.
  */
 bool lbm_event_unboxed(lbm_value unboxed);
-
+/** Check if the event queue is empty.
+ * \return true if event queue is empty, otherwise false.
+ */
+bool lbm_event_queue_is_empty(void);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
