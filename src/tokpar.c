@@ -16,7 +16,6 @@
 */
 
 #include <stdbool.h>
-//#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -185,6 +184,7 @@ int tok_symbol(lbm_char_channel_t *chan) {
 
   r = lbm_channel_peek(chan,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
+    if (len >= 255) return TOKENIZER_SYMBOL_ERROR;
     c = (char)tolower(c);
     if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
       tokpar_sym_str[len] = (char)c;

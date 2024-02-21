@@ -5,7 +5,10 @@ echo "BUILDING"
 make clean
 make
 
-echo "PERFORMING TESTS:"
+date=$(date +"%Y-%m-%d_%H-%M")
+logfile="log_${date}.log"
+
+echo "PERFORMING TESTS: " $date
 
 expected_fails=("test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -s -h 1024 test_take_iota_0.lisp"
@@ -75,39 +78,24 @@ test_config=("-h 32768"
               "-s -h 512"
               "-i -s -h 512")
 
-#"test_lisp_code_cps_nc"
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do
+        echo "Configuration: " $arg
         for lisp in *.lisp; do
-
-            ./$prg $arg $lisp
-
+            tmp_file=$(mktemp)
+            ./$prg $arg $lisp > $tmp_file
             result=$?
-
-            echo "------------------------------------------------------------"
-            #echo $arg
             if [ $result -eq 1 ]
             then
                 success_count=$((success_count+1))
-                echo $lisp SUCCESS
             else
-
-                #!/bin/bash
-                # foo=('foo bar' 'foo baz' 'bar baz')
-                # bar=$(printf ",%s" "${foo[@]}")
-                # bar=${bar:1}
-
-                # echo $bar
-                str=$(printf "%s " "$prg $arg $lisp")
-                #echo $str
-
                 failing_tests+=("$prg $arg $lisp")
                 fail_count=$((fail_count+1))
-                #echo $failing_tests
 
                 echo $lisp FAILED
+                cat $tmp_file >> $logfile
             fi
-            echo "------------------------------------------------------------"
+            rm $tmp_file
         done
     done
 done

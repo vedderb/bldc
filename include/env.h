@@ -100,17 +100,6 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
  * \return Updated environment or not_found symbol.
  */
 lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key);
-// Internal use
-/** Extend an environment given a list of keys and a list of values.
- *
- * \param params The list of keys.
- * \param args The list of values.
- * \param env0 An initial environment to extend
- * \return The extended environment on success and lbm_enc_sym(SYM_MERROR) if GC needs to be run.
- */
-lbm_value lbm_env_build_params_args(lbm_value params,
-                                    lbm_value args,
-                                    lbm_value env0);
 
 #ifdef __cplusplus
 }

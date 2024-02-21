@@ -235,7 +235,7 @@ static bool share_const_array(lbm_value flash_cell, char *data, lbm_uint num_elt
   flash_array_header.data = (lbm_uint*)data;
   lbm_uint flash_array_header_ptr;
   lbm_flash_status s = lbm_write_const_raw((lbm_uint*)&flash_array_header,
-                                           sizeof(lbm_array_header_t),
+                                           sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                            &flash_array_header_ptr);
   if (s != LBM_FLASH_WRITE_OK) return false;
   s = write_const_car(flash_cell, flash_array_header_ptr);
@@ -266,4 +266,30 @@ int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
 
 int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
   return lbm_heap_allocate_array(value, num_elt);
+}
+
+
+void lbm_clear_env(void) {
+
+  lbm_value *env = lbm_get_global_env();
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+    env[i] = ENC_SYM_NIL;
+  }
+  lbm_perform_gc();
+}
+
+// Evaluator should be paused when running this.
+// Running gc will reclaim the fv storage.
+bool lbm_flatten_env(int index, lbm_uint** data, lbm_uint *size) {
+  if (index < 0 || index >= GLOBAL_ENV_ROOTS) return false;
+  lbm_value *env = lbm_get_global_env();
+
+  lbm_value fv = flatten_value(env[index]);
+
+  if (lbm_is_symbol(fv)) return false;
+
+  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(fv);
+  *size = array->size;
+  *data = array->data;
+  return true;
 }

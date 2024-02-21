@@ -53,6 +53,7 @@ static lbm_uint add2(lbm_uint a, lbm_uint b) {
 
   lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
+  case LBM_TYPE_BYTE: retval = lbm_enc_char(lbm_dec_as_char(a) + lbm_dec_as_char(b)); break;
   case LBM_TYPE_I: retval = lbm_enc_i(lbm_dec_as_i32(a) + lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = lbm_enc_u(lbm_dec_as_u32(a) + lbm_dec_as_u32(b)); break;
   case LBM_TYPE_U32: retval = lbm_enc_u32(lbm_dec_as_u32(a) + lbm_dec_as_u32(b)); break;
@@ -325,7 +326,7 @@ static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
 
 static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_uint sum = lbm_enc_u(0);
+  lbm_uint sum = lbm_enc_char(0);
   for (lbm_uint i = 0; i < nargs; i ++) {
     sum = add2(sum, args[i]);
     if (lbm_type_of(sum) == LBM_TYPE_SYMBOL) {

@@ -24,7 +24,6 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "exp_kind.h"
 #include "tokpar.h"
 #include "lbm_channel.h"
 #include "print.h"
@@ -106,7 +105,6 @@ static jmp_buf critical_error_jmp_buf;
 #define FB_TYPE_ERROR    -1
 
 const char* lbm_error_str_parse_eof = "End of parse stream.";
-const char* lbm_error_str_parse_token = "Malformed token.";
 const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
 const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
 const char* lbm_error_str_num_args = "Incorrect number of arguments.";
@@ -209,8 +207,8 @@ void lbm_set_eval_step_quota(uint32_t quota) {
   eval_steps_refill = quota;
 }
 
-static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
-static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
+static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_DEAD;
+static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;
 
@@ -320,6 +318,10 @@ static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_
   return r;
 }
 
+bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv) {
+  return event_internal(LBM_EVENT_DEFINE, key, (lbm_uint)fv->buf, fv->buf_size);
+}
+
 bool lbm_event_unboxed(lbm_value unboxed) {
   lbm_uint t = lbm_type_of(unboxed);
   if (t == LBM_TYPE_SYMBOL ||
@@ -351,6 +353,16 @@ static bool lbm_event_pop(lbm_event_t *event) {
   lbm_events_full = false;
   mutex_unlock(&lbm_events_mutex);
   return true;
+}
+
+bool lbm_event_queue_is_empty(void) {
+  mutex_lock(&lbm_events_mutex);
+  bool empty = false;
+  if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
+    empty = true;
+  }
+  mutex_unlock(&lbm_events_mutex);
+  return empty;
 }
 
 static bool              eval_running = false;
@@ -673,7 +685,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
       res = fundamental_table[fundamental](args, arg_count, ctx);
     }
     if (lbm_is_error(res)) {
-      error_at_ctx(res, lbm_enc_sym(EXTENSION_SYMBOLS_START | fundamental));
+      error_at_ctx(res, lbm_enc_sym(FUNDAMENTAL_SYMBOLS_START | fundamental));
     }
   }
   lbm_stack_drop(&ctx->K, arg_count+1);
@@ -1608,11 +1620,11 @@ static void eval_symbol(eval_context_t *ctx) {
       }
     }
 
-    lbm_value loader = ENC_SYM_NIL;
+    lbm_value loader;
     WITH_GC_RMBR_1(loader, lbm_heap_allocate_list_init(2,
                                                        ENC_SYM_READ,
                                                        chan), chan);
-    lbm_value evaluator = ENC_SYM_NIL;
+    lbm_value evaluator;
     WITH_GC_RMBR_1(evaluator, lbm_heap_allocate_list_init(2,
                                                           ENC_SYM_EVAL,
                                                           loader), loader);
@@ -1681,7 +1693,7 @@ static void eval_callcc(eval_context_t *ctx) {
 
   /* Create an application */
   lbm_value fun_arg = get_cadr(ctx->curr_exp);
-  lbm_value app = ENC_SYM_NIL;
+  lbm_value app;
   WITH_GC_RMBR_1(app, lbm_heap_allocate_list_init(2,
                                                   fun_arg,
                                                   acont), acont);
@@ -2740,7 +2752,6 @@ static const apply_fun fun_table[] =
 /* Application of function that takes arguments    */
 /* passed over the stack.                          */
 
-
 static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
   /* If arriving here, we know that the fun is a symbol.
    *  and can be a built in operation or an extension.
@@ -3650,7 +3661,11 @@ static void cont_read_next_token(eval_context_t *ctx) {
     ctx->r = res;
     ctx->app_cont = true;
     return;
-  } else if (n < 0) goto retry_token;
+  } else if (n == TOKENIZER_NEED_MORE) {
+    goto retry_token;
+  } else if (n <= TOKENIZER_STRING_ERROR) {
+    read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
+  }
 
   /*
    * CHAR
@@ -4573,22 +4588,17 @@ static void evaluation_step(void){
     return;
   }
 
-  lbm_uint exp_type = lbm_type_of_functional(ctx->curr_exp);
-  if (exp_type == LBM_TYPE_SYMBOL) {
+  if (lbm_is_symbol(ctx->curr_exp)) {
     eval_symbol(ctx);
     return;
   }
-  if (exp_type == LBM_TYPE_CONS) {
+  if (lbm_is_cons(ctx->curr_exp)) {
     lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
-
-    if ((cell->car & LBM_VAL_TYPE_MASK) == LBM_TYPE_SYMBOL) {
-
-      lbm_value eval_index = lbm_dec_sym(cell->car) - SPECIAL_FORMS_START;
-
-      if (eval_index <= (SPECIAL_FORMS_END - SPECIAL_FORMS_START)) {
-        evaluators[eval_index](ctx);
-        return;
-      }
+    lbm_value h = cell->car;
+    if (lbm_is_symbol(h) && ((h & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
+      lbm_uint eval_index = lbm_dec_sym(h)  & SPECIAL_FORMS_INDEX_MASK;
+      evaluators[eval_index](ctx);
+      return;
     }
     /*
      * At this point head can be anything. It should evaluate
@@ -4598,7 +4608,7 @@ static void evaluation_step(void){
     reserved[0] = ctx->curr_env;
     reserved[1] = cell->cdr;
     reserved[2] = APPLICATION_START;
-    ctx->curr_exp = cell->car; // evaluate the function
+    ctx->curr_exp = h; // evaluate the function
     return;
   }
 
@@ -4653,6 +4663,18 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   mutex_unlock(&qmutex);
 }
 
+static void handle_event_define(lbm_value key, lbm_value val) {
+  lbm_uint dec_key = lbm_dec_sym(key);
+  lbm_uint ix_key  = dec_key & GLOBAL_ENV_MASK;
+  lbm_value *global_env = lbm_get_global_env();
+  lbm_uint orig_env = global_env[ix_key];
+  lbm_value new_env;
+  // A key is a symbol and should not need to be remembered.
+  WITH_GC(new_env, lbm_env_set(orig_env,key,val));
+
+  global_env[ix_key] = new_env;
+}
+
 static lbm_value get_event_value(lbm_event_t *e) {
   lbm_value v;
   if (e->buf_len > 0) {
@@ -4684,6 +4706,9 @@ static void process_events(void) {
     case LBM_EVENT_UNBLOCK_CTX:
       handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
       break;
+    case LBM_EVENT_DEFINE:
+      handle_event_define((lbm_value)e.parameter, event_val);
+      break;
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
         lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
@@ -4709,24 +4734,27 @@ void lbm_run_eval(void){
   setjmp(error_jmp_buf);
 
   while (eval_running) {
-    eval_cps_state_changed = false;
-    switch (eval_cps_next_state) {
-    case EVAL_CPS_STATE_PAUSED:
-      if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
-        if (lbm_heap_num_free() < eval_cps_next_state_arg) {
-          gc();
+    if (eval_cps_state_changed  || eval_cps_run_state == EVAL_CPS_STATE_PAUSED) {
+      eval_cps_state_changed = false;
+      switch (eval_cps_next_state) {
+      case EVAL_CPS_STATE_PAUSED:
+        if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
+          if (lbm_heap_num_free() < eval_cps_next_state_arg) {
+            gc();
+          }
+          eval_cps_next_state_arg = 0;
         }
-        eval_cps_next_state_arg = 0;
+        eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
+        usleep_callback(EVAL_CPS_MIN_SLEEP);
+        continue; /* jump back to start of eval_running loop */
+      case EVAL_CPS_STATE_KILL:
+        eval_cps_run_state = EVAL_CPS_STATE_DEAD;
+        eval_running = false;
+        continue;
+      default: // running state
+        eval_cps_run_state = eval_cps_next_state;
+        break;
       }
-      eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
-      usleep_callback(EVAL_CPS_MIN_SLEEP);
-      continue; /* jump back to start of eval_running loop */
-    case EVAL_CPS_STATE_KILL:
-      eval_running = false;
-      continue;
-    default: // running state
-      eval_cps_run_state = eval_cps_next_state;
-      break;
     }
     while (true) {
       if (eval_steps_quota && ctx_running) {

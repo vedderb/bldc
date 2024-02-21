@@ -1,5 +1,5 @@
  /*
-    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2022, 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -133,6 +133,21 @@ int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
  */
 int lbm_create_array(lbm_value *value,lbm_uint num_elt);
 
+/** Clear the global environment.  
+ */
+void lbm_clear_env(void);
+
+/** Flattens one of the fields of the environment hash-map.
+ * Evaluator should be paused when calling this. All processing 
+ * of data and size should be performed before unpausing the evaluator. 
+ * Unpausing the evaluator enables reclamation of data by GC. 
+ *
+ * \param index Value between 0 and GLOBAL_ENV_ROOTS-1
+ * \param data Result data pointer is returned here.
+ * \param size Result size is returned here.
+ */
+bool lbm_flatten_env(int index, lbm_uint** data, lbm_uint *size);
+  
 #ifdef __cplusplus
 }
 #endif

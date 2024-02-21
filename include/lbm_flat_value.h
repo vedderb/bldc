@@ -54,6 +54,11 @@ typedef struct {
 #define FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY   -6
 #define FLATTEN_VALUE_ERROR_FATAL               -7
 
+#define UNFLATTEN_MALFORMED     -2
+#define UNFLATTEN_GC_RETRY      -1
+#define UNFLATTEN_OK             0
+
+
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size);
 bool lbm_finish_flatten(lbm_flat_value_t *v);
 bool f_cons(lbm_flat_value_t *v);
@@ -69,6 +74,8 @@ bool f_i64(lbm_flat_value_t *v, int64_t w);
 bool f_u64(lbm_flat_value_t *v, uint64_t w);
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data);
 lbm_value flatten_value(lbm_value v);
+int flatten_value_c(lbm_flat_value_t *fv, lbm_value v);
+int flatten_value_size(lbm_value v, int depth, int n_cons, int max_cons);
 void lbm_set_max_flatten_depth(int depth);
 
 /** Unflatten a flat value stored in an lbm_memory array onto the heap
