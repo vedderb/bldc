@@ -682,6 +682,8 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 }
 
 void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
+	utils_truncate_number_abs(&ang_err, 0.1);
+
 	mc_configuration *conf = motor->m_conf;
 	// TODO: Check if ratio between these is sane or introduce separate gains
 	const float gain_int = 4000.0 * conf->foc_hfi_gain;
