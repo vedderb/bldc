@@ -315,7 +315,7 @@ typedef struct {
 
 	lbm_value (*lbm_enc_i)(lbm_int x);
 	lbm_value (*lbm_enc_u)(lbm_uint x);
-	lbm_value (*lbm_enc_char)(char x);
+	lbm_value (*lbm_enc_char)(uint8_t x);
 	lbm_value (*lbm_enc_float)(float f);
 	lbm_value (*lbm_enc_u32)(uint32_t u);
 	lbm_value (*lbm_enc_i32)(int32_t i);
@@ -324,7 +324,7 @@ typedef struct {
 	float (*lbm_dec_as_float)(lbm_value val);
 	uint32_t (*lbm_dec_as_u32)(lbm_value val);
 	int32_t (*lbm_dec_as_i32)(lbm_value val);
-	char (*lbm_dec_char)(lbm_value x);
+	uint8_t (*lbm_dec_char)(lbm_value x);
 	char* (*lbm_dec_str)(lbm_value);
 	lbm_uint (*lbm_dec_sym)(lbm_value x);
 
