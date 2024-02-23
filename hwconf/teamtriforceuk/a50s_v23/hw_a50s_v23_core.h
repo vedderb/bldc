@@ -79,8 +79,8 @@
 #define CURRENT_SHUNT_RES			0.0005    
 #endif
 
-#define CURRENT_CAL1				0.97786212
-#define CURRENT_CAL2				1.09967196
+#define CURRENT_CAL1				0.91
+#define CURRENT_CAL2				0.875
 
 // Current is sampled 6 times and averaged to reduce noise
 #define GET_CURRENT1()		(((float)(ADC_Value[ADC_IND_CURR1] + ADC_Value[ADC_IND_CURR1_2] + ADC_Value[ADC_IND_CURR1_3] + ADC_Value[ADC_IND_CURR1_4] + ADC_Value[ADC_IND_CURR1_5] + ADC_Value[ADC_IND_CURR1_6]))/6.0)

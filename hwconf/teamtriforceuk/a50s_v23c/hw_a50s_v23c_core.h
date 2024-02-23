@@ -67,7 +67,7 @@
 
 
 #ifndef V_REG
-#define V_REG						3.33
+#define V_REG						3.30
 #endif
 #ifndef VIN_R1
 #define VIN_R1						47000.0

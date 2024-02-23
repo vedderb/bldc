@@ -301,7 +301,7 @@ void hw_a50s_read_current_sensor_cal() {
 	int32_t index = 0;	
 	cal1_temp = buffer_get_float32_auto(rxb, &index);
 	if( (cal1_temp <= 0.5) || (cal1_temp >= 1.5) ) {
-		cal1_temp = 0.97786212; 
+		cal1_temp = 0.91; 
 		txb[0] = EEPROM_ADDR_CURRENT_CAL_1;	
 		index = 1;	
 		buffer_append_float32_auto(txb, cal1_temp, &index);
@@ -316,7 +316,7 @@ void hw_a50s_read_current_sensor_cal() {
 	index = 0;	
 	cal2_temp = buffer_get_float32_auto(rxb, &index);	
 	if( (cal2_temp <= 0.5) || (cal2_temp >= 1.5) ) {
-		cal2_temp = 1.09967196; 
+		cal2_temp = 0.9; 
 		txb[0] = EEPROM_ADDR_CURRENT_CAL_2;	
 		index = 1;	
 		buffer_append_float32_auto(txb, cal2_temp, &index);
