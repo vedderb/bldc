@@ -3580,7 +3580,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_channel_drop(chan, (unsigned int)n);
     switch(int_result.type) {
     case TOKTYPEBYTE:
-      res = lbm_enc_char((char)(int_result.negative ? -int_result.value : int_result.value));
+      res = lbm_enc_char((uint8_t)(int_result.negative ? -int_result.value : int_result.value));
       break;
     case TOKTYPEI:
       res = lbm_enc_i((lbm_int)(int_result.negative ? -int_result.value : int_result.value));
@@ -3675,7 +3675,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   if(n > 0) {
     lbm_channel_drop(chan,(unsigned int) n);
     lbm_stack_drop(&ctx->K, 2);
-    ctx->r = lbm_enc_char(c_val);
+    ctx->r = lbm_enc_char((uint8_t)c_val);
     ctx->app_cont = true;
     return;
   }else if (n < 0) goto retry_token;

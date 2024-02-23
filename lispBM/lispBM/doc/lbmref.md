@@ -61,7 +61,51 @@ apa?
 kurt_russel_is_great
 ```
 
+## Numbers and Numerical Types
 
+LBM supports signed and unsigned integer types as well as float and double.
+The numerical types in LBM are
+1. byte   - unsigned 8bit value.
+2. i      - signed 28bit value  (56bits on 64bit platforms).
+3. u      - unsigned 28bit value (56bits on 64bit platforms).
+4. i32    - signed 32bit value.
+5. u32    - unsigned 32bit value.
+6. i64    - signed 64bit value.
+7. u64    - unsigned 64bit value.
+8. f32    - (float) a 32bit floating point value.
+9. f64    - (double) a 64bit floating point value.
+
+The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM.
+
+An integer literal is interpreted to be of type 'i', a 28/56bit signed integer value.
+A literal with decimal point is interpreted to be a type 'f32' or  float value.
+
+To specify literals of the othertype the value is to be postfixed with a qualifier string.
+The qualifiers available in LBM are: 'b', 'i', 'u', 'i32', 'u32', 'i64', 'u64', 'f32' and 'f63'.
+The 'i' and 'f32' qualifiers are never strictly needed but can be added if one so wishes.
+
+So for example:
+1. '1b'     - Specifies a byte typed value of 1
+2. '1.0f64' - Specifies a 64bit float with value 1.0.
+
+**Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM.
+
+We are trying to make type conversions to not feel too unfamilar to people
+who are familiar with the C programming language. On a 32bit platform
+LBM numerical types are ordered according to: 'byte < i < u < i32 < u32 < i64 < u64 < float < double'.
+Operations such as '(+ a b)', figures out the largest type according to the ordering above and converts the
+all values to this largest type.
+
+Example:
+1. '(+ 1u 3i32)' - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
+2. '(+ 1  3.14)' - Here the value 1 is of type 'i' which is smaller than 'f32', the result 4.14f32.
+
+A potential source of confusion is that 'f32' is a larger type than 'i64' and 'u64'. this means
+that if you, for example, add 1.0 to an 'i64' value you will get an 'f32' back. If you instead wanted
+the float to be converted into a double before the addition, this has to be done manually.
+
+Example:
+1. '(+ (to-double 1.0) 5i64)'    - Manually convert a value to double.
 
 ## Arithmetic
 

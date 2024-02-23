@@ -153,7 +153,17 @@ lbm_value ext_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
   }
   return ENC_SYM_TERROR;
 }
- 
+
+lbm_value ext_is_64bit(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  #ifndef LBM64
+  return ENC_SYM_NIL;
+  #else
+  return ENC_SYM_TRUE;
+  #endif
+}
+
 bool lbm_runtime_extensions_init(bool minimal) {
 
   if (!minimal) {
@@ -183,6 +193,7 @@ bool lbm_runtime_extensions_init(bool minimal) {
     res = res && lbm_add_extension("env-get", ext_env_get);
     res = res && lbm_add_extension("env-set", ext_env_set);
     res = res && lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
+    res = res && lbm_add_extension("is-64bit", ext_is_64bit);
   }
   return res;
 }

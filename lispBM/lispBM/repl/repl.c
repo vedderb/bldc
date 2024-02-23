@@ -119,7 +119,7 @@ void done_callback(eval_context_t *ctx) {
   // TODO: report failure in some way.
   if (res_output_file && store_result_cid == ctx->id) {
     store_result_cid = -1;
-    int32_t fv_size = flatten_value_size(ctx->r, 0, 0, (int)lbm_heap_size());
+    int32_t fv_size = flatten_value_size(ctx->r, 0);
     if (fv_size > 0) {
       lbm_flat_value_t fv;
       fv.buf = malloc((uint32_t)fv_size);
@@ -654,7 +654,7 @@ void shutdown_procedure(void) {
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
         if (!name) goto shutdown_procedure_1;
-        int32_t fv_size = flatten_value_size(val_field, 0, 0, (int)lbm_heap_size());
+        int32_t fv_size = flatten_value_size(val_field, 0);
         if (fv_size > 0) {
           lbm_flat_value_t fv;
           fv.buf = malloc((uint32_t)fv_size);

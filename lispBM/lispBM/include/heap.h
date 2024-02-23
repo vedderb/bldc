@@ -346,7 +346,7 @@ lbm_uint lbm_dec_custom(lbm_value val);
  * \param val Value to decode
  * \return The value encoded in val casted to a char. Returns 0 if val does not encode a number.
  */
-char lbm_dec_as_char(lbm_value a);
+uint8_t lbm_dec_as_char(lbm_value a);
 /** Decode a numerical value as if it is unsigned
  *
  * \param val Value to decode
@@ -705,7 +705,7 @@ extern lbm_value lbm_enc_u64(uint64_t x);
  */
 extern lbm_value lbm_enc_double(double x);
 
-static inline lbm_value lbm_enc_char(char x) {
+static inline lbm_value lbm_enc_char(uint8_t x) {
   return ((lbm_uint)x << LBM_VAL_SHIFT) | LBM_TYPE_CHAR;
 }
 
@@ -717,8 +717,8 @@ static inline lbm_uint lbm_dec_u(lbm_value x) {
   return x >> LBM_VAL_SHIFT;
 }
 
-static inline char lbm_dec_char(lbm_value x) {
-  return (char)(x >> LBM_VAL_SHIFT);
+static inline uint8_t lbm_dec_char(lbm_value x) {
+  return (uint8_t)(x >> LBM_VAL_SHIFT);
 }
 
 static inline lbm_uint lbm_dec_sym(lbm_value x) {
