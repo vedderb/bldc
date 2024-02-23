@@ -31,13 +31,13 @@ int main(int argc, char **argv) {
 
   res &= (lbm_dec_char(lbm_enc_char(0)) == 0);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (lbm_dec_char(lbm_enc_char(-1)) == -1);
+  res &= (lbm_dec_char(lbm_enc_char(-1)) == 255);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
   res &= (lbm_dec_char(lbm_enc_char(1)) == 1);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
   res &= (lbm_dec_char(lbm_enc_char(127)) == 127);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (lbm_dec_char(lbm_enc_char(-128)) == -128);
+  res &= (lbm_dec_char(lbm_enc_char(255)) == 255);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
 
   res &= (lbm_dec_sym(lbm_enc_sym(0)) == 0);

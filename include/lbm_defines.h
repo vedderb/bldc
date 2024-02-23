@@ -44,8 +44,8 @@
 #define LBM_TYPE_CONS                    0x10000000u
 #define LBM_TYPE_CONS_CONST              0x14000000u
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
-#define LBM_TYPE_U32                     0x28000000u
-#define LBM_TYPE_I32                     0x38000000u
+#define LBM_TYPE_I32                     0x28000000u
+#define LBM_TYPE_U32                     0x38000000u
 #define LBM_TYPE_I64                     0x48000000u
 #define LBM_TYPE_U64                     0x58000000u
 #define LBM_TYPE_FLOAT                   0x68000000u
@@ -73,8 +73,8 @@
 #define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
 #define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
 #define LBM_TYPE_BYTE                    0x00000004u
-#define LBM_TYPE_U                       0x00000008u // 10  0   0
-#define LBM_TYPE_I                       0x0000000Cu // 11  0   0
+#define LBM_TYPE_I                       0x00000008u // 10  0   0
+#define LBM_TYPE_U                       0x0000000Cu // 11  0   0
 #define LBM_LOW_RESERVED_BITS            0x0000000Fu // 11  1   1
 
 #else /* 64 bit Version */
@@ -97,8 +97,8 @@
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS_CONST              (lbm_uint)0x1400000000000000
 #define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0x2800000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0x3800000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0x2800000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0x3800000000000000
 #define LBM_TYPE_DOUBLE                  (lbm_uint)0x4800000000000000
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
@@ -124,13 +124,13 @@
 #define LBM_TYPE_SYMBOL                 (lbm_uint)0x0  // 00 00 00  0   0
 #define LBM_TYPE_CHAR                   (lbm_uint)0x4  // 00 00 01  0   0
 #define LBM_TYPE_BYTE                   (lbm_uint)0x4
-#define LBM_TYPE_U                      (lbm_uint)0x8  // 00 00 10  0   0
-#define LBM_TYPE_I                      (lbm_uint)0xC  // 00 00 11  0   0
-#define LBM_TYPE_U32                    (lbm_uint)0x14 // 00 01 01  0   0
-#define LBM_TYPE_I32                    (lbm_uint)0x18 // 00 01 10  0   0
+#define LBM_TYPE_I32                    (lbm_uint)0x8  // 00 00 10  0   0
+#define LBM_TYPE_U32                    (lbm_uint)0xC  // 00 00 11  0   0
+#define LBM_TYPE_I                      (lbm_uint)0x14 // 00 01 01  0   0
+#define LBM_TYPE_U                      (lbm_uint)0x18 // 00 01 10  0   0
 #define LBM_TYPE_FLOAT                  (lbm_uint)0x1C // 00 01 11  0   0
 #define LBM_LOW_RESERVED_BITS           (lbm_uint)0xFF // 11 11 11  1   1
-  
+
 #endif
 /* ------------------------------------------------------------
    Built in symbols

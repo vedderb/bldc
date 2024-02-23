@@ -27,7 +27,7 @@ all64: 	CCFLAGS += -DLBM64
 all64: repl 
 
 
-install: repl
+install: all
 	mkdir -p ~/.local/bin
 	cp repl ~/.local/bin/lbm
 

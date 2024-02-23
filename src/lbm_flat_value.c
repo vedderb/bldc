@@ -139,10 +139,11 @@ int f_sym_string_bytes(lbm_value sym) {
 
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
-  res = res && write_byte(v,S_I_VALUE);
 #ifndef LBM64
+  res = res && write_byte(v,S_I28_VALUE);
   res = res && write_word(v,(uint32_t)i);
 #else
+  res = res && write_byte(v,S_I56_VALUE);
   res = res && write_dword(v, (uint64_t)i);
 #endif
   return res;
@@ -150,10 +151,11 @@ bool f_i(lbm_flat_value_t *v, lbm_int i) {
 
 bool f_u(lbm_flat_value_t *v, lbm_uint u) {
   bool res = true;
-  res = res && write_byte(v,S_U_VALUE);
 #ifndef LBM64
+  res = res && write_byte(v,S_U28_VALUE);
   res = res && write_word(v,(uint32_t)u);
 #else
+  res = res && write_byte(v,S_U56_VALUE);
   res = res && write_dword(v,(uint64_t)u);
 #endif
   return res;
@@ -236,21 +238,18 @@ void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, int max_cons) {
+int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
-  }
-  if (n_cons > max_cons) {
-    flatten_error(jb, FLATTEN_VALUE_ERROR_CIRCULAR);
   }
 
   switch (lbm_type_of(v)) {
   case LBM_TYPE_CONS: /* fall through */
   case LBM_TYPE_CONS_CONST: {
     int s2 = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, n_cons+1, max_cons);
+    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
     if (s1 > 0) {
-      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, n_cons+1, max_cons);
+      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
       if (s2 > 0) {
         return (1 + s1 + s2);
       }
@@ -290,13 +289,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, 
   }
 }
 
-int flatten_value_size(lbm_value v, int depth, int n_cons, int max_cons) {
+int flatten_value_size(lbm_value v, int depth) {
   jmp_buf jb;
   int r = setjmp(jb);
   if (r != 0) {
     return r;
   }
-  return flatten_value_size_internal(jb, v, depth, n_cons, max_cons);
+  return flatten_value_size_internal(jb, v, depth);
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
@@ -414,7 +413,7 @@ lbm_value flatten_value(lbm_value v) {
   }
 
   lbm_array_header_t *array = NULL;
-  int required_mem = flatten_value_size(v, 0, 0, (int)lbm_heap_size());
+  int required_mem = flatten_value_size(v, 0);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
@@ -530,35 +529,55 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     uint8_t tmp;
     bool b = extract_byte(v, &tmp);
     if (b) {
-      *res = lbm_enc_char((char)tmp);
+      *res = lbm_enc_char((uint8_t)tmp);
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
   }
-  case S_I_VALUE: {
+  case S_I28_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       *res = lbm_enc_i((int32_t)tmp);
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
   }
-  case S_U_VALUE: {
+  case S_U28_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       *res = lbm_enc_u((uint32_t)tmp);
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_I56_VALUE: {
+    uint64_t tmp;
+    bool b;
+    b = extract_dword(v, &tmp);
+    if (b) {
+#ifndef LBM64
+      *res = lbm_enc_i64((int64_t)tmp);
+#else
+      *res = lbm_enc_i(tmp);
+#endif
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_U56_VALUE: {
+    uint64_t tmp;
+    bool b;
+    b = extract_dword(v, &tmp);
+    if (b) {
+#ifndef LBM64
+      *res = lbm_enc_u64(tmp);
+#else
+      *res = lbm_enc_u(tmp);
+#endif
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
