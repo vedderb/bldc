@@ -2472,10 +2472,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	for (float i = 0;i < samples;i++) {
 		current_sum[0] += m_motor_1.m_currents_adc[0];
-		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1);
+		voltage_sum[0] += ADC_V_L1_VOLTS;
 #ifdef HW_HAS_DUAL_MOTORS
 		current_sum_m2[0] += m_motor_2.m_currents_adc[0];
-		voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4);
+		voltage_sum_m2[0] += ADC_V_L4_VOLTS;
 #endif
 		chThdSleep(1);
 	}
@@ -2501,10 +2501,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	for (float i = 0;i < samples;i++) {
 		current_sum[1] += m_motor_1.m_currents_adc[1];
-		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2);
+		voltage_sum[1] += ADC_V_L2_VOLTS;
 #ifdef HW_HAS_DUAL_MOTORS
 		current_sum_m2[1] += m_motor_2.m_currents_adc[1];
-		voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5);
+		voltage_sum_m2[1] += ADC_V_L5_VOLTS;
 #endif
 		chThdSleep(1);
 	}
@@ -2530,10 +2530,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	for (float i = 0;i < samples;i++) {
 		current_sum[2] += m_motor_1.m_currents_adc[2];
-		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3);
+		voltage_sum[2] += ADC_V_L3_VOLTS;
 #ifdef HW_HAS_DUAL_MOTORS
 		current_sum_m2[2] += m_motor_2.m_currents_adc[2];
-		voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6);
+		voltage_sum_m2[2] += ADC_V_L6_VOLTS;
 #endif
 		chThdSleep(1);
 	}
@@ -2581,15 +2581,15 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 #endif
 
 		for (float i = 0;i < samples;i++) {
-			v_avg = (ADC_VOLTS(ADC_IND_SENS1) + ADC_VOLTS(ADC_IND_SENS2) + ADC_VOLTS(ADC_IND_SENS3)) / 3.0;
-			voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1) - v_avg;
-			voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2) - v_avg;
-			voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3) - v_avg;
+			v_avg = (ADC_V_L1_VOLTS + ADC_V_L2_VOLTS + ADC_V_L3_VOLTS) / 3.0;
+			voltage_sum[0] += ADC_V_L1_VOLTS - v_avg;
+			voltage_sum[1] += ADC_V_L2_VOLTS - v_avg;
+			voltage_sum[2] += ADC_V_L3_VOLTS - v_avg;
 #ifdef HW_HAS_DUAL_MOTORS
-			v_avg = (ADC_VOLTS(ADC_IND_SENS4) + ADC_VOLTS(ADC_IND_SENS5) + ADC_VOLTS(ADC_IND_SENS6)) / 3.0;
-			voltage_sum_m2[0] += ADC_VOLTS(ADC_IND_SENS4) - v_avg;
-			voltage_sum_m2[1] += ADC_VOLTS(ADC_IND_SENS5) - v_avg;
-			voltage_sum_m2[2] += ADC_VOLTS(ADC_IND_SENS6) - v_avg;
+			v_avg = (ADC_V_L4_VOLTS + ADC_V_L5_VOLTS + ADC_V_L6_VOLTS) / 3.0;
+			voltage_sum_m2[0] += ADC_V_L4_VOLTS - v_avg;
+			voltage_sum_m2[1] += ADC_V_L5_VOLTS - v_avg;
+			voltage_sum_m2[2] += ADC_V_L6_VOLTS - v_avg;
 #endif
 			chThdSleep(1);
 		}
@@ -2678,11 +2678,11 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	for (float i = 0; i < samples; i++) {
 		current_sum[0] += m_motor_1.m_currents_adc[0];
-		voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1);
+		voltage_sum[0] += ADC_V_L1_VOLTS;
 		current_sum[1] += m_motor_1.m_currents_adc[1];
-		voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2);
+		voltage_sum[1] += ADC_V_L2_VOLTS;
 		current_sum[2] += m_motor_1.m_currents_adc[2];
-		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3);
+		voltage_sum[2] += ADC_V_L3_VOLTS;
 		chThdSleep(1);
 	}	
 
@@ -2709,10 +2709,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 		voltage_sum[0] = 0.0; voltage_sum[1] = 0.0; voltage_sum[2] = 0.0;
 
 		for (float i = 0;i < samples;i++) {
-			v_avg = (ADC_VOLTS(ADC_IND_SENS1) + ADC_VOLTS(ADC_IND_SENS2) + ADC_VOLTS(ADC_IND_SENS3)) / 3.0;
-			voltage_sum[0] += ADC_VOLTS(ADC_IND_SENS1) - v_avg;
-			voltage_sum[1] += ADC_VOLTS(ADC_IND_SENS2) - v_avg;
-			voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3) - v_avg;
+			v_avg = (ADC_V_L1_VOLTS + ADC_V_L2_VOLTS + ADC_V_L3_VOLTS) / 3.0;
+			voltage_sum[0] += ADC_V_L1_VOLTS - v_avg;
+			voltage_sum[1] += ADC_V_L2_VOLTS - v_avg;
+			voltage_sum[2] += ADC_V_L3_VOLTS - v_avg;
 
 			chThdSleep(1);
 		}
@@ -4685,34 +4685,34 @@ static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float
 #ifdef HW_HAS_DUAL_MOTORS
 #ifdef HW_HAS_3_SHUNTS
 	if (&m_motor_1 != motor) {
-		Va = (ADC_VOLTS(ADC_IND_SENS4) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vb = (ADC_VOLTS(ADC_IND_SENS5) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vc = (ADC_VOLTS(ADC_IND_SENS6) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Va = (ADC_V_L4_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vb = (ADC_V_L5_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vc = (ADC_V_L6_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 	} else {
-		Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vb = (ADC_VOLTS(ADC_IND_SENS2) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vc = (ADC_VOLTS(ADC_IND_SENS3) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Va = (ADC_V_L1_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vb = (ADC_V_L2_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vc = (ADC_V_L3_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 	}
 #else
 	if (&m_motor_1 != motor) {
-		Va = (ADC_VOLTS(ADC_IND_SENS4) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vb = (ADC_VOLTS(ADC_IND_SENS6) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vc = (ADC_VOLTS(ADC_IND_SENS5) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Va = (ADC_V_L4_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vb = (ADC_V_L6_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vc = (ADC_V_L5_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 	} else {
-		Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vb = (ADC_VOLTS(ADC_IND_SENS3) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-		Vc = (ADC_VOLTS(ADC_IND_SENS2) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Va = (ADC_V_L1_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vb = (ADC_V_L3_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+		Vc = (ADC_V_L2_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 	}
 #endif
 #else
 #ifdef HW_HAS_3_SHUNTS
-	Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-	Vb = (ADC_VOLTS(ADC_IND_SENS2) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-	Vc = (ADC_VOLTS(ADC_IND_SENS3) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Va = (ADC_V_L1_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Vb = (ADC_V_L2_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Vc = (ADC_V_L3_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 #else
-	Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-	Vb = (ADC_VOLTS(ADC_IND_SENS3) - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
-	Vc = (ADC_VOLTS(ADC_IND_SENS2) - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Va = (ADC_V_L1_VOLTS - ofs_volt[0]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Vb = (ADC_V_L3_VOLTS - ofs_volt[2]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
+	Vc = (ADC_V_L2_VOLTS - ofs_volt[1]) * ((VIN_R1 + VIN_R2) / VIN_R2) * ADC_VOLTS_PH_FACTOR;
 #endif
 #endif
 
