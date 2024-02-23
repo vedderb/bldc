@@ -28,14 +28,17 @@
 // Macros
 
 // ADC Vectors, see .c
-#define HW_ADC_CHANNELS			27
+#define HW_ADC_CHANNELS			30
 #define HW_ADC_INJ_CHANNELS		2
-#define HW_ADC_NBR_CONV			9
+#define HW_ADC_NBR_CONV			10
 
 // ADC Indexes
 #define ADC_IND_SENS1			3
 #define ADC_IND_SENS2			4
 #define ADC_IND_SENS3			5
+#define ADC_IND_SENS1_2			21
+#define ADC_IND_SENS2_2			22
+#define ADC_IND_SENS3_2			23
 
 #define ADC_IND_CURR1			1
 #define ADC_IND_CURR2			0
@@ -54,11 +57,11 @@
 #define ADC_IND_CURR2_6			18
 
 #define ADC_IND_VIN_SENS		2
-#define ADC_IND_EXT				21
-#define ADC_IND_EXT2			22
-#define ADC_IND_TEMP_MOS		23
-#define ADC_IND_TEMP_MOTOR		25
-#define ADC_IND_VREFINT			24
+#define ADC_IND_EXT				24
+#define ADC_IND_EXT2			25
+#define ADC_IND_TEMP_MOS		26
+#define ADC_IND_TEMP_MOTOR		28
+#define ADC_IND_VREFINT			27
 
 
 // ADC macros and settings
@@ -196,9 +199,9 @@
 #define PIN_HW_2 		2
 
 // Measurement macros
-#define ADC_V_L1					ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2					ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3					ADC_Value[ADC_IND_SENS3]
+#define ADC_V_L1					hw_a50s_get_adc_v_l1()
+#define ADC_V_L2					hw_a50s_get_adc_v_l2()
+#define ADC_V_L3					hw_a50s_get_adc_v_l3()
 #define ADC_V_ZERO					(ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
@@ -291,5 +294,9 @@
 
 float hw_a50s_get_current_cal_1(void);
 float hw_a50s_get_current_cal_2(void);
+
+float hw_a50s_get_adc_v_l1(void);
+float hw_a50s_get_adc_v_l2(void);
+float hw_a50s_get_adc_v_l3(void);
 
 #endif /* HW_A50S_V23C_CORE_H_ */
