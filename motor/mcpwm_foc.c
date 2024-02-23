@@ -2796,8 +2796,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	uint32_t t_start = timer_time_now();
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
+	bool is_second_motor = false;
 	int norm_curr_ofs = 0;
-	bool is_second_motor = 0;
+
 #ifdef HW_HAS_DUAL_MOTORS
 	is_second_motor = is_v7;
 	norm_curr_ofs = is_second_motor ? 3 : 0;
