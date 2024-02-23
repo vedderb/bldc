@@ -468,6 +468,7 @@ typedef struct {
 	float foc_hfi_voltage_run;
 	float foc_hfi_voltage_max;
 	float foc_hfi_gain;
+	float foc_hfi_max_err;
 	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
 	uint16_t foc_hfi_start_samples;

@@ -415,6 +415,9 @@
 #ifndef MCCONF_FOC_HFI_GAIN
 #define MCCONF_FOC_HFI_GAIN				0.3 // Correction gain for HFI V2
 #endif
+#ifndef MCCONF_FOC_HFI_MAX_ERR
+#define MCCONF_FOC_HFI_MAX_ERR			0.15 // Correction gain for HFI V2
+#endif
 #ifndef MCCONF_FOC_HFI_HYST
 #define MCCONF_FOC_HFI_HYST				0.0 // Sense vector offset hysteresis for HFI V2
 #endif

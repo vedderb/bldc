@@ -51,6 +51,7 @@
 * Added FOC interpolation mode.
 * Allow passive flux linkage measurement.
 * Fixed some braking glitches.
+* Configurable HFI error truncation to reject noise.
 
 ### 6.02
 #### 2023-03-12
