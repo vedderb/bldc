@@ -2506,16 +2506,16 @@ static lbm_value ext_raw_adc_voltage(lbm_value *args, lbm_uint argn) {
 	float Va = 0.0, Vb = 0.0, Vc = 0.0;
 	if (motor == 2) {
 #ifdef HW_HAS_DUAL_MOTORS
-		Va = (ADC_VOLTS(ADC_IND_SENS4) - ofs1) * scale;
-		Vb = (ADC_VOLTS(ADC_IND_SENS5) - ofs2) * scale;
-		Vc = (ADC_VOLTS(ADC_IND_SENS6) - ofs3) * scale;
+		Va = (ADC_V_L4_VOLTS - ofs1) * scale;
+		Vb = (ADC_V_L5_VOLTS - ofs2) * scale;
+		Vc = (ADC_V_L6_VOLTS - ofs3) * scale;
 #else
 		return ENC_SYM_EERROR;
 #endif
 	} else if (motor == 1) {
-		Va = (ADC_VOLTS(ADC_IND_SENS1) - ofs1) * scale;
-		Vb = (ADC_VOLTS(ADC_IND_SENS2) - ofs2) * scale;
-		Vc = (ADC_VOLTS(ADC_IND_SENS3) - ofs3) * scale;
+		Va = (ADC_V_L1_VOLTS - ofs1) * scale;
+		Vb = (ADC_V_L2_VOLTS - ofs2) * scale;
+		Vc = (ADC_V_L3_VOLTS - ofs3) * scale;
 	} else {
 		return ENC_SYM_EERROR;
 	}

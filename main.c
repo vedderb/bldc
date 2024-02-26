@@ -237,11 +237,11 @@ int main(void) {
 
 	mempools_init();
 	events_init();
+	timer_init(); // Initialize timer here to allow I2C in hw_init
 	hw_init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
-	timer_init();
 	conf_general_init();
 
 	if (flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION)	{

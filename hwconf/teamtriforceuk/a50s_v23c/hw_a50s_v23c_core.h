@@ -17,12 +17,13 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	*/
 
-#ifndef HW_A50S_V23_CORE_H_
-#define HW_A50S_V23_CORE_H_
+#ifndef HW_A50S_V23C_CORE_H_
+#define HW_A50S_V23C_CORE_H_
 
 // HW properties
 #define HW_HAS_PHASE_FILTERS
 #define HW_USE_25MHZ_EXT_CLOCK
+
 
 // Macros
 
@@ -62,14 +63,17 @@
 #define ADC_IND_TEMP_MOTOR		28
 #define ADC_IND_VREFINT			27
 
+
 // ADC macros and settings
 
 // Component parameters (can be overridden)
+
+
 #ifndef V_REG
-#define V_REG						3.30
+#define V_REG						3.33
 #endif
 #ifndef VIN_R1
-#define VIN_R1						68000.0
+#define VIN_R1						47000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2						2200.0
@@ -81,8 +85,8 @@
 #define CURRENT_SHUNT_RES			0.0005    
 #endif
 
-#define CURRENT_CAL1				0.91
-#define CURRENT_CAL2				0.875
+#define CURRENT_CAL1				hw_a50s_get_current_cal_1()
+#define CURRENT_CAL2				hw_a50s_get_current_cal_2()
 
 // Current is sampled 6 times and averaged to reduce noise
 #define GET_CURRENT1()		(((float)(ADC_Value[ADC_IND_CURR1] + ADC_Value[ADC_IND_CURR1_2] + ADC_Value[ADC_IND_CURR1_3] + ADC_Value[ADC_IND_CURR1_4] + ADC_Value[ADC_IND_CURR1_5] + ADC_Value[ADC_IND_CURR1_6]))/6.0)
@@ -181,6 +185,19 @@
 #define HW_ICU_GPIO					GPIOB
 #define HW_ICU_PIN					6
 
+// I2C for EEPROM
+#define EEPROM_SDA_GPIO		GPIOC
+#define EEPROM_SDA_PIN		13
+#define EEPROM_SCL_GPIO		GPIOB
+#define EEPROM_SCL_PIN		2
+#define EEPROM_ADDR  		0x50
+
+// Lisp custom pins
+#define PIN_HW_1_GPIO 	GPIOC
+#define PIN_HW_1 		13
+#define PIN_HW_2_GPIO 	GPIOB
+#define PIN_HW_2 		2
+
 // Measurement macros
 #define ADC_V_L1					hw_a50s_get_adc_v_l1()
 #define ADC_V_L2					hw_a50s_get_adc_v_l2()
@@ -205,10 +222,11 @@
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV				25000.0 // Switching frequency reduced to allow rise time of low side shunts
 #endif
-#define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 22500.0	//Limit to 45kHz max 
+#define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 22500.0	// Limit to 45kHz max 
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US			0.0 // Microseconds for dead time compensation
 #endif
+
 // Only use phase filters for detection by default to get good resistance measurement. 
 // In testing I found that phase filters gave worse startup
 #ifndef MCCONF_FOC_PHASE_FILTER_MAX_ERPM
@@ -245,11 +263,11 @@
 // Don't call on boot, cal during motor config instead.
 // This significatly speeds up boot time, which is important for combat robots
 #ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
-#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	false 
+#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	false
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT				-85.0, 85.0 
+#define HW_LIM_CURRENT				-80.0, 80.0 
 #define HW_LIM_CURRENT_IN			-40.0, 40.0
 #define HW_LIM_CURRENT_ABS			0.0, 150.0
 #define HW_LIM_ERPM					-200e3, 200e3
@@ -274,8 +292,11 @@
 #error "Must define a hardware type"
 #endif
 
+float hw_a50s_get_current_cal_1(void);
+float hw_a50s_get_current_cal_2(void);
+
 float hw_a50s_get_adc_v_l1(void);
 float hw_a50s_get_adc_v_l2(void);
 float hw_a50s_get_adc_v_l3(void);
 
-#endif /* HW_A50S_V23_CORE_H_ */
+#endif /* HW_A50S_V23C_CORE_H_ */

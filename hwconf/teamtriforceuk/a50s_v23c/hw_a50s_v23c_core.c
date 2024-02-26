@@ -24,9 +24,30 @@
 #include <math.h>
 #include "mc_interface.h"
 #include "stm32f4xx_rcc.h"
+#include "terminal.h"
+#include "commands.h"
+#include "mc_interface.h"
+#include "stdio.h"
+#include <math.h>
+#include "minilzo.h"
+#include "i2c_bb.h"
+#include "buffer.h"
 
+// EEPROM addresses
+#define EEPROM_ADDR_SERIAL			0
+#define EEPROM_ADDR_CURRENT_CAL_1	4
+#define EEPROM_ADDR_CURRENT_CAL_2	8 
+
+// Current sensor calibration
+void hw_a50s_read_current_sensor_cal(void);
+void hw_a50s_read_eeprom_data(void);
+static void terminal_cmd_read_current_cal(int argc, const char **argv);
+float current_cal_1 = 0.0;
+float current_cal_2 = 0.0;
+static i2c_bb_state m_i2c_bb;
 // Variables
 static volatile bool i2c_running = false;
+int32_t serial_number = -1;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -92,6 +113,27 @@ void hw_init_gpio(void) {
 	
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);	
+	
+	
+	
+	terminal_register_command_callback(
+			"read_current_cal",
+			"Read current sensor gain.",
+			0,
+			terminal_cmd_read_current_cal);
+		
+		
+
+	// Setup I2C for EEPROM
+	m_i2c_bb.sda_gpio = EEPROM_SDA_GPIO;
+	m_i2c_bb.sda_pin = EEPROM_SDA_PIN;
+	m_i2c_bb.scl_gpio = EEPROM_SCL_GPIO;
+	m_i2c_bb.scl_pin = EEPROM_SCL_PIN;
+	m_i2c_bb.rate = I2C_BB_RATE_100K;
+	i2c_bb_init(&m_i2c_bb);	
+	chThdSleepMilliseconds(10);
+	hw_a50s_read_eeprom_data(); // Serial, etc
+	hw_a50s_read_current_sensor_cal();	
 }
 
 void hw_setup_adc_channels(void) {
@@ -236,6 +278,95 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+// Read permanent items from eeprom
+void hw_a50s_read_eeprom_data() {
+	uint8_t txb[5];
+	uint8_t rxb[5];			
+	
+	// Serial number
+	txb[0] = EEPROM_ADDR_SERIAL;	
+	i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 1, rxb, 4);	
+	int32_t index = 0;	
+	int32_t serial_number_temp = buffer_get_int32(rxb, &index);
+	if( (serial_number_temp <=0) || (serial_number_temp > 9999999) ) {
+		// Yeah no.
+	} else {
+		serial_number = serial_number_temp;
+	}
+}
+
+// Tries to read current calibration data from eeprom, if the data is crazy then uses reasonable defaults
+void hw_a50s_read_current_sensor_cal() {
+	uint8_t txb[5];
+	uint8_t rxb[5];			
+	
+	float cal1_temp = 0.0;
+	txb[0] = EEPROM_ADDR_CURRENT_CAL_1;	
+	i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 1, rxb, 4);	
+	int32_t index = 0;	
+	cal1_temp = buffer_get_float32_auto(rxb, &index);
+	if( (cal1_temp <= 0.5) || (cal1_temp >= 1.5) ) {
+		cal1_temp = 0.91; 
+		txb[0] = EEPROM_ADDR_CURRENT_CAL_1;	
+		index = 1;	
+		buffer_append_float32_auto(txb, cal1_temp, &index);
+		i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 5, NULL, 0);
+		chThdSleepMilliseconds(10);
+	}
+	current_cal_1 = cal1_temp;
+	
+	float cal2_temp = 0.0;
+	txb[0] = EEPROM_ADDR_CURRENT_CAL_2;	
+	i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 1, rxb, 4);	
+	index = 0;	
+	cal2_temp = buffer_get_float32_auto(rxb, &index);	
+	if( (cal2_temp <= 0.5) || (cal2_temp >= 1.5) ) {
+		cal2_temp = 0.9; 
+		txb[0] = EEPROM_ADDR_CURRENT_CAL_2;	
+		index = 1;	
+		buffer_append_float32_auto(txb, cal2_temp, &index);
+		i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 5, NULL, 0);
+		chThdSleepMilliseconds(10);
+	}
+	current_cal_2 = cal2_temp;
+}
+
+float hw_a50s_get_current_cal_1() {
+	return current_cal_1;
+}
+
+float hw_a50s_get_current_cal_2() {
+	return current_cal_2;
+}
+
+static void terminal_cmd_read_current_cal(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	
+	uint8_t txb[5];
+	uint8_t rxb[5];		
+	
+	txb[0] = EEPROM_ADDR_CURRENT_CAL_1;	
+	i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 1, rxb, 4);	
+	int32_t index = 0;	
+	float cal1_temp = buffer_get_float32_auto(rxb, &index);
+	
+	txb[0] = EEPROM_ADDR_CURRENT_CAL_2;	
+	i2c_bb_tx_rx(&m_i2c_bb, EEPROM_ADDR, txb, 1, rxb, 4);	
+	index = 0;	
+	float cal2_temp = buffer_get_float32_auto(rxb, &index);
+
+	hw_a50s_read_current_sensor_cal();	
+	
+	commands_printf("Cal1 %.8f", (double)cal1_temp);
+	commands_printf("Cal2 %.8f", (double)cal2_temp);
+	
+	commands_printf("Cal1-safe %.8f", (double)current_cal_1);
+	commands_printf("Cal2-safe %.8f", (double)current_cal_2);
+	
+	return;
+}
+
 float hw_a50s_get_adc_v_l1() {
 	if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
 		return ((ADC_Value[ADC_IND_SENS1] + ADC_Value[ADC_IND_SENS1_2]) / 2.0);
@@ -259,3 +390,4 @@ float hw_a50s_get_adc_v_l3() {
 		return ADC_Value[ADC_IND_SENS3];
 	}
 }
+
