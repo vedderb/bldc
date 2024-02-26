@@ -3302,6 +3302,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
+'tc-status              ; Traction Control status 0 = off; 1=on
 
 ; Express settings (Added in 6.05)
 'controller-id          ; VESC CAN ID
