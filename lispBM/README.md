@@ -3303,6 +3303,10 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 'tc-status              ; Traction Control status 0 = off; 1=on
+'tc-slip-thresold       ; Traction wheel slip allowed in % (Added in FW 6.05)
+                        ; values between   0.0%  ->  100.0%
+                        ;                MORE TC ->  LESS TC
+                        ; common values are between 0% to 20%
 'max-rpm-rate           ; erpm rate change limit in ERPM/s
                         ; common values are 3000 to 12000 ERPM/s
                         ; higher values mean more aggressive riding

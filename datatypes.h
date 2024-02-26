@@ -689,6 +689,7 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	uint32_t update_rate_hz;
+	float tc_slip_thresold;
 } adc_config;
 
 // Nunchuk control types
