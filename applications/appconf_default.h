@@ -224,9 +224,6 @@
 #ifndef APPCONF_ADC_TC_LEVEL
 #define APPCONF_ADC_TC_LEVEL			    0.0
 #endif
-#ifndef ADVANCED_TC_THRESOLD_FACTOR
-#define ADVANCED_TC_THRESOLD_FACTOR         4.0 //Traction control thresold = max_tc_rpm/factor
-#endif
 
 // UART app
 #ifndef APPCONF_UART_BAUDRATE
