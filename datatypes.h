@@ -550,6 +550,7 @@ typedef struct {
 	int m_batt_filter_const;
 	float m_ntcx_ptcx_temp_base;
 	float m_ntcx_ptcx_res;
+	float max_erpm_rate;
 	// Setup info
 	uint8_t si_motor_poles;
 	float si_gear_ratio;
