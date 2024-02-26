@@ -594,24 +594,7 @@ static THD_FUNCTION(adc_thread, arg) {
 					rpm_lowest = -rpm_lowest;
 				}
 
-				// Traction Control - derivative of rpm - single/multi esc
-				// TC based on rate of change of rotational speed
-				if(config.tc_level > 1.0 && config.tc_max_rpm_rate > 1.0){
-					static float last_rpm = 0;
-					float drpm = rpm_filtered-last_rpm;
-					float drpm_dt = drpm/((float)sleep_time); // d_rpm/d_ticks
-					last_rpm = rpm_filtered;
-					//convert rpm/s to rpm/ticks
-					float rpm_dt_max_diff = config.tc_max_rpm_rate/(float)CH_CFG_ST_FREQUENCY;
-					if (drpm_dt < (rpm_dt_max_diff/20.0)) drpm_dt = 0;
-					if (drpm_dt > rpm_dt_max_diff) drpm_dt = rpm_dt_max_diff;
-					//partially limit the current between current_rel and 1/tc_level of that
-					float tc_scaling = 1.0/(1.0-(config.tc_level/100.0)); // 100/(100-tc_level) -> 1/(1-tc_level/100)
-					current_rel = utils_map(drpm_dt, 0.0, rpm_dt_max_diff, current_rel, current_rel/tc_scaling);
-					current_out = current_rel;
-				}
-				// Traction control - rpm difference - only multi esc
-				// TC based on rpm difference between esc
+				// Traction control
 				if (config.multi_esc) {
 					for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 						can_status_msg *msg = comm_can_get_status_msg_index(i);
