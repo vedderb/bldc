@@ -322,6 +322,16 @@ static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
   return lbm_enc_u32(time);
 }
 
+static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
+  uint32_t t_now = timestamp();
+
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_EERROR;
+
+  uint32_t t_then = lbm_dec_as_u32(args[0]);
+  uint32_t diff = t_now - t_then;
+  return lbm_enc_float((float)diff / 1000000.0f);
+}
+
 // Init
 
 int init_exts(void) {
@@ -340,6 +350,7 @@ int init_exts(void) {
   } 
 
   lbm_add_extension("systime", ext_systime);
+  lbm_add_extension("secs-since", ext_secs_since);
 
   // Math
   lbm_add_extension("rand", ext_rand);

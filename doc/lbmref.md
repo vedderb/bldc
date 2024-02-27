@@ -37,7 +37,7 @@ should not be able to redefine and trying to redefine them leads to an error.
 Symbols that start with `ext-` are special and reserved for use together
 with extensions that are loaded and bound at runtime.
 
-Examples of symbols used as data are `nil` and `t`. `nil` representds
+Examples of symbols used as data are `nil` and `t`. `nil` represents
 "nothing", the empty list or other similar things and `t`
 represents true.  But any symbol can be used as data by quoting it
 `'`, see <a href="#quotes-and-quasiquotation"> Quotes and
@@ -75,37 +75,254 @@ The numerical types in LBM are
 8. f32    - (float) a 32bit floating point value.
 9. f64    - (double) a 64bit floating point value.
 
-The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM.
+The byte and the char value have identical representation and type,
+thus char is an unsigned 8 bit type in LBM.
 
-An integer literal is interpreted to be of type 'i', a 28/56bit signed integer value.
-A literal with decimal point is interpreted to be a type 'f32' or  float value.
+An integer literal is interpreted to be of type `i`, a 28/56bit signed
+integer value.  A literal with decimal point is interpreted to be a
+type `f32` or float value.
 
-To specify literals of the othertype the value is to be postfixed with a qualifier string.
-The qualifiers available in LBM are: 'b', 'i', 'u', 'i32', 'u32', 'i64', 'u64', 'f32' and 'f63'.
-The 'i' and 'f32' qualifiers are never strictly needed but can be added if one so wishes.
+To specify literals of the other types, the value must be postfixed with
+a qualifier string.  The qualifiers available in LBM are: `b`, `i`,
+`u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.  The `i` and `f32`
+qualifiers are never strictly needed but can be added if one so
+wishes.
 
 So for example:
-1. '1b'     - Specifies a byte typed value of 1
-2. '1.0f64' - Specifies a 64bit float with value 1.0.
+1. `1b`     - Specifies a byte typed value of 1
+2. `1.0f64` - Specifies a 64bit float with value 1.0.
 
-**Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM.
+**Note** that it is an absolute requirement to include a decimal when
+  writing a floating point literal in LBM.
 
-We are trying to make type conversions to not feel too unfamilar to people
-who are familiar with the C programming language. On a 32bit platform
-LBM numerical types are ordered according to: 'byte < i < u < i32 < u32 < i64 < u64 < float < double'.
-Operations such as '(+ a b)', figures out the largest type according to the ordering above and converts the
-all values to this largest type.
-
-Example:
-1. '(+ 1u 3i32)' - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
-2. '(+ 1  3.14)' - Here the value 1 is of type 'i' which is smaller than 'f32', the result 4.14f32.
-
-A potential source of confusion is that 'f32' is a larger type than 'i64' and 'u64'. this means
-that if you, for example, add 1.0 to an 'i64' value you will get an 'f32' back. If you instead wanted
-the float to be converted into a double before the addition, this has to be done manually.
+We are trying to make type conversions feel familar to people who are
+familiar with the C programming language. On a 32bit platform LBM
+numerical types are ordered according to: `byte < i < u < i32 < u32 <
+i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures
+out the largest type according to the ordering above and converts all
+the values to this largest type.
 
 Example:
-1. '(+ (to-double 1.0) 5i64)'    - Manually convert a value to double.
+1. `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
+2. `(+ 1  3.14)` - Here the value 1 is of type `i` which is smaller than `f32`, the result 4.14f32.
+
+A potential source of confusion is that `f32` is a larger type than
+`i64` and `u64`. this means that if you, for example, add 1.0 to an
+`i64` value you will get an `f32` back. If you instead wanted the
+float to be converted into a double before the addition, this has to
+be done manually.
+
+Example:
+1. `(+ (to-double 1.0) 5i64)`    - Manually convert a value to double.
+
+The `type-of` operation can be used to query a value for its type. On the
+numerical types the `type-of` operation answers as follows:
+
+1. `(type-of 1b)`     -> `type-char`
+2. `(type-of 1)`      -> `type-i`
+3. `(type-of 1u)`     -> `type-u`
+4. `(type-of 1i32)`   -> `type-i32`
+5. `(type-of 1u32)`   -> `type-u32`
+6. `(type-of 1i64)`   -> `type-i64`
+7. `(type-of 1u64)`   -> `type-u64`
+8. `(type-of 1.0)`    -> `type-float`
+9. `(type-of 1.0f64)` -> `type-double`
+
+### Overflow behaviour
+
+Operations on fixed bitwidth mumerical types can lead to overflow.
+The ranges representable in 32bit LBMs integer types are the following:
+
+1. `type-char`  : 0 - 255
+2. `type-i`     : -134217728 - 134217727
+3. `type-u`     : 0 - 268435455
+4. `type-i32`   : -2147483648 - 2147483647
+5. `type-u32`   : 0- 4294967295
+6. `type-i64`   : -9223372036854775808 - 9223372036854775807
+7. `type-u64`   : 0 - 18446744073709551615
+
+**Overflow of Byte**
+```
+# (+ 255b 1b)
+> 0b
+```
+
+**Underflow of byte**
+```
+# (- 0b 1b)
+> 255b
+```
+
+**Overflow of i**
+```
+# ( + 134217727 1)
+> -134217728
+```
+
+**Underflow of i**
+
+```
+# (- -134217728 1)
+> 134217727
+```
+
+**Overflow of u**
+
+```
+# (+ 268435455u 1u)
+> 0u
+```
+
+**Underflow of u**
+
+```
+# (- 0u 1u)
+> 268435455u
+```
+
+**Overflow of i32**
+
+```
+# (+ 2147483647i32 1i32)
+> -2147483648i32
+```
+
+**Underflow of i32**
+
+```
+# (- 2147483648i32 1i32)
+> 2147483647i32
+```
+
+**Overflow of u32**
+
+```
+# (+ 4294967295u32 1)
+> 0u32
+```
+
+**Underflow of u32**
+
+```
+# (- 0u32 1)
+> 4294967295u32
+```
+
+**Overflow of i64**
+
+```
+#  (+ 9223372036854775807i64 1i64)
+> -9223372036854775808i64
+```
+
+**Underflow of i64**
+
+```
+#  (- -9223372036854775808i64 1i64)
+> 9223372036854775807i64
+```
+
+**Overflow of u64**
+
+```
+# (+ 18446744073709551615u64 1u64)
+> 0u64
+```
+
+**Underflow of u64**
+
+```
+# (- 0u64 1u64)
+> 18446744073709551615u64
+```
+
+### Cost of numerical operations
+
+All Values in LBM are encoded in one way or another. The encoded value
+holds additional information about type and garbage collection mark
+bit.  Operations that operate on an LBM value needs to unpack this
+encoded format and extract the actual numerical information from the
+representation. This has a cost and operations on numbers are in
+general a bit slower than what one gets in, for example C.
+
+The chart below shows the time it takes to perform 10 million
+additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The
+difference in cost is negligible between the types `byte` - `u32` with
+a huge increase in cost for 64 bit types.
+
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) |![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
+
+The charts below compare floating point operations to `u32` operations on x86 32Bit.
+There is little difference in cost of `f32` and `u32` operations, but a large increase
+in cost when going to `f64` (double).
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) |![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
+
+In 64Bit mode the x86 version of LBM shows negligible differences in
+cost of additions at different types.
+
+All Integer types          |  `f32` and `f64` vs `u32`
+:-------------------------:|:-------------------------:
+ ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
+
+On 64Bit x86 the difference in cost is little accross all LBM types. 
+
+For addition performance on embedded systems, we use the the EDU VESC
+motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a
+RISCV data point. 
+
+On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000
+additions.  There is a more pronounced gap between 28Bit and smaller
+types and the 32Bit types here. Likely because of the differences in
+encoding of 28Bit or less types and 32Bit types.
+
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
+
+On RISCV the difference in cost between `u32` and `f32` operations is small.
+This is a bit surprising as the ESP32C3 does not have a floating point unit. It
+is possible that the encoding/decoding of numbers is dominating the cost
+of any numerical opeation.
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) |![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
+
+On the STM32F4 at 168MHz (an EDU VESC) The results are similar to
+ESP32 but slower.  The slower performance on the VESC compared to the
+VESC_Express ESP32 may be caused by the VESC firmware running
+motorcontrol interrups at a high frequency.
+
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png)  | ![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm_zoom.png)
+
+
+The cost of `f32` operations compared to `u32` on the STM32F4 shows
+little differences.  As expected there is a jump up in cost when going to 64Bit.
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on STM32F4](./images/float_stm.png) |![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
+
+
+In general, on 32Bit platforms, the cost of operations on numerical
+types that are 32Bit or less are about equal in cost. The costs
+presented here was created by timing a large number of 2 argument
+additions. Do not see these measurements as the "truth carved in stone",
+LBM performance keeps changing over time as we make improvements, but
+use them as a rough guiding principle.  If anything can be taken away
+from this it is to stay away from 64Bit value operations in your
+tightest and most time critical loops.
+
+---
+
+# Reference Manual
 
 ## Arithmetic
 

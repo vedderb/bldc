@@ -798,9 +798,10 @@ static inline bool lbm_is_cons(lbm_value x) {
  * \return true is x represents a number and false otherwise.
  */
 static inline bool lbm_is_number(lbm_value x) {
-  return (x & LBM_VAL_TYPE_MASK ||
-          ((x & (LBM_NUMBER_MASK | LBM_PTR_MASK)) ==
-           (LBM_NUMBER_MASK | LBM_PTR_MASK)));
+  return
+    (x & LBM_PTR_BIT) ?
+    ((x & LBM_NUMBER_MASK) == LBM_NUMBER_MASK) :
+    (x & LBM_VAL_TYPE_MASK);
 }
 
 /** Check if value is an array that can be READ
