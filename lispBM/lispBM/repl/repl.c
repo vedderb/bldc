@@ -41,6 +41,7 @@
 #include "lbm_version.h"
 
 #include "repl_exts.h"
+#include "repl_defines.h"
 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -63,6 +64,13 @@ volatile lbm_cid store_result_cid = -1;
 volatile bool silent_mode = false;
 
 void shutdown_procedure(void);
+
+void terminate_repl(int exit_code) {
+  if (!silent_mode) {
+    printf("%s\n", repl_exit_message[exit_code]);
+  }
+  exit(exit_code);
+}
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
@@ -110,7 +118,7 @@ void *eval_thd_wrapper(void *v) {
 
 void critical(void) {
   printf("CRITICAL ERROR\n");
-  exit(0);
+  terminate_repl(REPL_EXIT_CRITICAL_ERROR);
 }
 
 void done_callback(eval_context_t *ctx) {
@@ -340,6 +348,7 @@ typedef struct src_list_s {
 src_list_t *sources = NULL;
 
 bool src_list_add(char *filename) {
+  if (strlen(filename) == 0) return false;
   src_list_t *entry=malloc(sizeof(src_list_t));
   if (!entry) return false;
 
@@ -399,11 +408,11 @@ void parse_opts(int argc, char **argv) {
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
              "on the command-line. Source file N will not start evaluating until after\n" \
              "source file (N-1) has terminated, for N larger than 1.\n");
-      exit(EXIT_SUCCESS);
+      terminate_repl(REPL_EXIT_SUCCESS);
     case 's':
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
-        exit(EXIT_FAILURE);
+        terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
       break;
     case LOAD_ENVIRONMENT:
@@ -524,8 +533,7 @@ void startup_procedure(void) {
   if (env_input_file) {
     FILE *fp = fopen(env_input_file, "r");
     if (!fp) {
-      printf("Error opening environment input file\n");
-      goto startup_procedure_1;
+      terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
     while (true) {
       uint32_t name_len;
@@ -533,41 +541,36 @@ void startup_procedure(void) {
       if ( n < sizeof(uint32_t) ) {
         // We are successfully done if n == 0;
         if (n > 0) {
-          printf("ALERT: Trailing data in env file\n");
+          terminate_repl(REPL_EXIT_INVALID_ENV_FILE);
         }
         break;
       }
       if (name_len ==  0) {
-        printf("ALERT: Zero length name in env file\n");
-        break;
+        terminate_repl(REPL_EXIT_ZERO_LENGTH_KEY_IN_ENV_FILE);
       }
       memset(name_buf, 0, NAME_BUF_SIZE);
       n = fread(name_buf, 1, name_len, fp);
       if (n < name_len) {
-        printf("ALERT: Malformed name in env file\n");
-        break;
+        terminate_repl(REPL_EXIT_INVALID_KEY_IN_ENV_FILE);
       }
 
       lbm_uint sym_id = 0;
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
         if (!lbm_add_symbol(name_buf, &sym_id)) {
-          printf("ALERT: Unable to add symbol\n");
-          break;
+          terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
         }
       }
 
       char *sym = (char*)lbm_get_name_by_symbol(sym_id);
       if (!sym) {
-        printf("ERROR\n");
-        exit(EXIT_FAILURE);
+        terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
       }
 
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
       if (n < sizeof(uint32_t) || val_len == 0) {
-        printf("ALERT: Invalid value size in env file\n");
-        break;
+        terminate_repl(REPL_EXIT_INVALID_VALUE_SIZE_IN_ENV_FILE);
       }
       int retry = 0;
       uint8_t *data = NULL;
@@ -583,14 +586,11 @@ void startup_procedure(void) {
         }
       }
       if (retry >= 100) {
-        printf("ALERT: Unable to allocate memory for flat value inside LBM\n");
-        break;
+        terminate_repl(REPL_EXIT_OUT_OF_MEMORY_WHILE_PROCESSING_ENV_FILE);
       }
       n = fread(data, 1, val_len, fp);
       if (n < val_len) {
-        lbm_free(data);
-        printf("ALERT: Invalid value in env file\n");
-        break;
+        terminate_repl(REPL_EXIT_INVALID_VALUE_IN_ENV_FILE);
       }
 
       // Nonintuitive that fv is reused before event is processed.
@@ -613,38 +613,32 @@ void startup_procedure(void) {
         }
       }
       if (retry >= 100) {
-        printf("ALERT: Unable to create define-event inside LBM\n");
-        break;
+        terminate_repl(REPL_EXIT_LBM_EVENT_QUEUE_FULL);
       }
       while (!lbm_event_queue_is_empty()) {
         sleep_callback(100);
       }
       sleep_callback(1000);
       // delay a little bit to allow all the events to be handled
-    // and the environment be fully populated
+      // and the environment be fully populated
 
     }
   }
- startup_procedure_1:
   if (sources) {
     evaluate_sources();
   }
 
   if(terminate_after_startup) {
     shutdown_procedure();
-    exit(EXIT_SUCCESS);
+    terminate_repl(REPL_EXIT_SUCCESS);
   }
 }
 
-void shutdown_procedure(void) {
 
-  if (env_output_file) {
-
-
+int store_env(char *filename) {
     FILE *fp = fopen(env_output_file, "w");
     if (!fp) {
-      printf("Error opening environment output file\n");
-      goto shutdown_procedure_1;
+      terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
     lbm_value* env = lbm_get_global_env();
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
@@ -653,14 +647,13 @@ void shutdown_procedure(void) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (!name) goto shutdown_procedure_1;
+        if (!name) return REPL_EXIT_UNABLE_TO_ACCESS_SYMBOL_STRING;
         int32_t fv_size = flatten_value_size(val_field, 0);
         if (fv_size > 0) {
           lbm_flat_value_t fv;
           fv.buf = malloc((uint32_t)fv_size);
           if (!fv.buf) {
-            printf("Error allocating memory for flat value\n");
-            exit(EXIT_FAILURE);
+            return REPL_EXIT_ERROR_FLATTEN_NO_MEM;
           }
           fv.buf_size = (uint32_t)fv_size;
           fv.buf_pos = 0;
@@ -673,33 +666,29 @@ void shutdown_procedure(void) {
               fwrite(&fv_size, 1, sizeof(int32_t),fp);
               fwrite(fv.buf,1,(size_t)fv_size,fp);
             } else {
-              printf("ALERT: Malformed key in environment\n");
+              return REPL_EXIT_INVALID_KEY_IN_ENVIRONMENT;
             }
           } else {
-            printf("ALERT: A value in the environment was not flattenable\n");
             switch (r) {
             case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
-              printf("CANNOT_BE_FLATTENED Error!\n");
+              return REPL_EXIT_VALUE_CANNOT_BE_FLATTENED;
               break;
             case FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL:
-              printf("Flat value buffer too small!\n");
+              return REPL_EXIT_FLAT_VALUE_BUFFER_TOO_SMALL;
               break;
             case FLATTEN_VALUE_ERROR_FATAL:
-              printf("Fatal error during flattening\n");
+              return REPL_EXIT_FATAL_ERROR_WHILE_FLATTENING;
               break;
             case FLATTEN_VALUE_ERROR_CIRCULAR:
-              printf("Potentially circular value\n");
+              return REPL_EXIT_CIRCULAR_VALUE;
               break;
             case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
-              printf("Maximum cons depth reached\n");
+              return REPL_EXIT_FLATTENING_MAXIMUM_DEPTH;
               break;
             case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
-              printf("Not enough memory while flattening\n");
+              return REPL_EXIT_OUT_OF_MEMORY_WHILE_FLATTENING;
               break;
             }
-            char buf[1024];
-            lbm_print_value(buf,1024, val_field);
-            printf("Value: %s\n", buf);
           }
           free(fv.buf);
         }
@@ -707,8 +696,15 @@ void shutdown_procedure(void) {
       }
     }
     fclose(fp);
+    return REPL_EXIT_SUCCESS;
+}
+
+void shutdown_procedure(void) {
+
+  if (env_output_file) {
+    int r = store_env(env_output_file);
+    if (r != REPL_EXIT_SUCCESS) terminate_repl(r);
   }
-  shutdown_procedure_1:
   return;
 }
 
@@ -718,8 +714,7 @@ int main(int argc, char **argv) {
   using_history();
 
   if (!init_repl()) {
-    printf ("Failed to initialize REPL\n");
-    return -1;
+    terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
   startup_procedure();
   char output[1024];
@@ -732,7 +727,7 @@ int main(int argc, char **argv) {
     } else {
       str = readline("# ");
     }
-    if (str == NULL) exit(EXIT_SUCCESS);
+    if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
     add_history(str);
     unsigned int n = strlen(str);
 
@@ -880,14 +875,14 @@ int main(int argc, char **argv) {
         heap_size = (unsigned int)size;
         if (!init_repl()) {
           printf("Failed to initialize REPL after heap resize\n");
-          return -1;
+          terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
         }
       }
       free(str);
     } else if (strncmp(str, ":reset", 6) == 0) {
       if (!init_repl()) {
         printf ("Failed to initialize REPL\n");
-        return -1;
+        terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
       }
       free(str);
     } else if (strncmp(str, ":send", 5) == 0) {
@@ -957,5 +952,5 @@ int main(int argc, char **argv) {
     }
   }
   free(heap_storage);
-  return 0;
+  terminate_repl(REPL_EXIT_SUCCESS);
 }

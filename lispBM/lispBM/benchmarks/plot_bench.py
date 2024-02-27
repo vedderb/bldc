@@ -40,6 +40,8 @@ lgd = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 ax = plt.gca()
 for tick in ax.get_xticklabels():
     tick.set_rotation(90)
+n = 4  # Keeps every 7th label
+[l.set_visible(False) for (i,l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]
 ax.tick_params(axis='both', which='major', labelsize=6)
 ax.tick_params(axis='both', which='minor', labelsize=4)
 ax.set_facecolor("lightgray");
