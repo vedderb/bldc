@@ -199,29 +199,6 @@ void *prof_thd(void *v) {
   return NULL;
 }
 
-lbm_value ext_print(lbm_value *args, lbm_uint argn) {
-  if (argn < 1) return lbm_enc_sym(SYM_NIL);
-
-  if (!allow_print) return lbm_enc_sym(SYM_TRUE);
-
-  char output[1024];
-
-  for (unsigned int i = 0; i < argn; i ++) {
-    lbm_value t = args[i];
-
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      char *data = (char*)array->data;
-      printf("%s", data);
-    } else {
-      lbm_print_value(output, 1024, t);
-      printf("%s", output);
-    }
-  }
-  printf("\n");
-  return lbm_enc_sym(SYM_TRUE);
-}
-
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -484,10 +461,6 @@ int init_repl() {
 
   init_exts();
 
-  if (!lbm_add_extension("print", ext_print)) {
-    return 0;
-  }
-
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
@@ -527,6 +500,7 @@ bool evaluate_sources(void) {
 }
 
 #define NAME_BUF_SIZE 1024
+
 void startup_procedure(void) {
   char name_buf[NAME_BUF_SIZE];
 
@@ -535,6 +509,7 @@ void startup_procedure(void) {
     if (!fp) {
       terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
+    uint32_t num_symbols = 0;
     while (true) {
       uint32_t name_len;
       size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
@@ -554,18 +529,27 @@ void startup_procedure(void) {
         terminate_repl(REPL_EXIT_INVALID_KEY_IN_ENV_FILE);
       }
 
+      if (lbm_get_symbol_table_size() > (100 * 1024)) {
+        terminate_repl(REPL_EXIT_SYMBOL_TABLE_TOO_BIG);
+      }
+
       lbm_uint sym_id = 0;
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
         if (!lbm_add_symbol(name_buf, &sym_id)) {
           terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
+          //printf("sym: %s\n", name_buf);
+          //printf("pos1: %u symbols added\n", num_symbols);
         }
       }
 
       char *sym = (char*)lbm_get_name_by_symbol(sym_id);
       if (!sym) {
         terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
+        //printf("sym: %s\n", name_buf);
+        //printf("pos2: %u symbols added\n", num_symbols);
       }
 
+      num_symbols ++;
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
@@ -618,7 +602,15 @@ void startup_procedure(void) {
       while (!lbm_event_queue_is_empty()) {
         sleep_callback(100);
       }
-      sleep_callback(1000);
+
+      lbm_value binding;
+      int count = 0;
+      while (!lbm_global_env_lookup(&binding, key)) {
+        // Wait up to one second for the binding to appear in the env.
+        if (count > 10000) terminate_repl(REPL_EXIT_ENV_POPULATION_TIMEOUT);
+        sleep_callback(100);
+        count++;
+      }
       // delay a little bit to allow all the events to be handled
       // and the environment be fully populated
 
@@ -849,11 +841,11 @@ int main(int argc, char **argv) {
       free(str);
       continue;
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
-      allow_print = true;
+      set_allow_print(true);
       free(str);
       continue;
     } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
-      allow_print = false;
+      set_allow_print(false);
       free(str);
       continue;
     } else if (strncmp(str, ":ctxs", 5) == 0) {

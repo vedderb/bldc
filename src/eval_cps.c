@@ -1908,7 +1908,7 @@ static void eval_and(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = ENC_SYM_TRUE;
   } else {
-    stack_push_2(&ctx->K, get_cdr(rest), AND);
+    stack_push_3(&ctx->K, ctx->curr_env, get_cdr(rest), AND);
     ctx->curr_exp = get_car(rest);
   }
 }
@@ -1920,7 +1920,7 @@ static void eval_or(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
   } else {
-    stack_push_2(&ctx->K, get_cdr(rest), OR);
+    stack_push_3(&ctx->K, ctx->curr_env, get_cdr(rest), OR);
     ctx->curr_exp = get_car(rest);
   }
 }
@@ -2879,32 +2879,36 @@ static void cont_application_args(eval_context_t *ctx) {
 }
 
 static void cont_and(eval_context_t *ctx) {
+  lbm_value env;
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop(&ctx->K, &rest);
+  lbm_pop_2(&ctx->K, &rest, &env);
   if (lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
   } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
   } else {
-    stack_push_2(&ctx->K, get_cdr(rest), AND);
+    stack_push_3(&ctx->K, env, get_cdr(rest), AND);
+    ctx->curr_env = env;
     ctx->curr_exp = get_car(rest);
   }
 }
 
 static void cont_or(eval_context_t *ctx) {
+  lbm_value env;
   lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop(&ctx->K, &rest);
+  lbm_pop_2(&ctx->K, &rest, &env);
   if (!lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
   } else if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
   } else {
-    stack_push_2(&ctx->K, get_cdr(rest), OR);
+    stack_push_3(&ctx->K, env, get_cdr(rest), OR);
     ctx->curr_exp = get_car(rest);
+    ctx->curr_env = env;
   }
 }
 

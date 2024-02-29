@@ -18,6 +18,7 @@
 
 #include "repl_exts.h"
 
+#include <stdio.h>
 #include <sys/time.h>
 
 // Macro expanders
@@ -332,6 +333,37 @@ static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
   return lbm_enc_float((float)diff / 1000000.0f);
 }
 
+
+static bool allow_print = true;
+void set_allow_print(bool on) {
+  allow_print = on;
+}
+
+lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  if (argn < 1) return lbm_enc_sym(SYM_NIL);
+
+  if (!allow_print) return lbm_enc_sym(SYM_TRUE);
+
+  char output[1024];
+
+  for (unsigned int i = 0; i < argn; i ++) {
+    lbm_value t = args[i];
+
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
+      char *data = (char*)array->data;
+      printf("%s", data);
+    } else {
+      lbm_print_value(output, 1024, t);
+      printf("%s", output);
+    }
+  }
+  printf("\n");
+  return lbm_enc_sym(SYM_TRUE);
+}
+
+
+// ------------------------------------------------------------
 // Init
 
 int init_exts(void) {
@@ -349,6 +381,7 @@ int init_exts(void) {
     return 0;
   } 
 
+  lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 

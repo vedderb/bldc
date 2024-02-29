@@ -1438,6 +1438,14 @@ Example that evaluates to 2.
 (ix (list 1 2 3) 1)
 ```
 
+An index can also be negative in which case you are indexing from the
+end of the list.
+
+Example that evaluates to 3.
+```clj
+(ix (list 1 2 3) -1)
+```
+
 ---
 
 ### setix
@@ -1450,6 +1458,15 @@ if you index out of bounds the result is nil.
 # (setix (list 1 2 3 4 5) 2 77)
 > (1 2 77 4 5)
 ```
+
+It is also possible to index from the end of the list by using negative
+indices:
+
+```clj
+# (setix (list 1 2 3 4 5) -1 77)
+>
+```
+Using index `-1` updates the last element.
 
 ---
 
