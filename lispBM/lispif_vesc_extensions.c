@@ -2634,6 +2634,16 @@ static lbm_value ext_uart_start(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_uart_stop(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	if (uart_started) {
+		sdStop(&HW_UART_DEV);
+	}
+
+	return ENC_SYM_TRUE;
+}
+
 static void wait_uart_tx_task(void *arg) {
 	(void)arg;
 	while(!chOQIsEmptyI(&HW_UART_DEV.oqueue)){
@@ -2652,7 +2662,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	const int max_len = 20;
+	const int max_len = 50;
 	uint8_t to_send[max_len];
 	uint8_t *to_send_ptr = to_send;
 	int ind = 0;
@@ -2691,10 +2701,45 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+typedef struct {
+	lbm_cid id;
+	unsigned int num;
+	unsigned int offset;
+	int stop_at;
+	systime_t timeout;
+	uint8_t *data;
+	bool unblock;
+	unsigned int res;
+} uart_rx_args;
+
+static void uart_rx_task(void *arg) {
+	uart_rx_args *a = (uart_rx_args*)arg;
+	int restart_cnt = lispif_get_restart_cnt();
+
+	unsigned int count = 0;
+	msg_t res = sdGetTimeout(&HW_UART_DEV, a->timeout);
+
+	while (res != MSG_TIMEOUT) {
+		a->data[a->offset + count] = (uint8_t)res;
+		count++;
+		if (res == a->stop_at || count >= a->num) {
+			break;
+		}
+		res = sdGetTimeout(&HW_UART_DEV, a->timeout);
+	}
+
+	a->res = count;
+
+	if (a->unblock && restart_cnt == lispif_get_restart_cnt()) {
+		lbm_unblock_ctx_unboxed(a->id, lbm_enc_u(a->res));
+	}
+}
+
+// (uart-read array num optOffset optStopAt optTimeout)
 static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
-	if ((argn != 2 && argn != 3 && argn != 4) ||
+	if ((argn != 2 && argn != 3 && argn != 4 && argn != 5) ||
 			!lbm_is_array_r(args[0]) || !lbm_is_number(args[1])) {
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 
 	unsigned int num = lbm_dec_as_u32(args[1]);
@@ -2708,18 +2753,23 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 
 	unsigned int offset = 0;
 	if (argn >= 3) {
-		if (!lbm_is_number(args[2])) {
-			return ENC_SYM_EERROR;
+		if (lbm_is_number(args[2])) {
+			offset = lbm_dec_as_u32(args[2]);
 		}
-		offset = lbm_dec_as_u32(args[2]);
 	}
 
 	int stop_at = -1;
 	if (argn >= 4) {
-		if (!lbm_is_number(args[3])) {
-			return ENC_SYM_EERROR;
+		if (lbm_is_number(args[3])) {
+			stop_at = lbm_dec_as_u32(args[3]);
 		}
-		stop_at = lbm_dec_as_u32(args[3]);
+	}
+
+	systime_t timeout = TIME_IMMEDIATE;
+	if (argn >= 5) {
+		if (lbm_is_number(args[4])) {
+			timeout = (systime_t)(lbm_dec_as_float(args[4]) * (float)CH_CFG_ST_FREQUENCY);
+		}
 	}
 
 	lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
@@ -2727,18 +2777,24 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	unsigned int count = 0;
-	msg_t res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
-	while (res != MSG_TIMEOUT) {
-		((uint8_t*)array->data)[offset + count] = (uint8_t)res;
-		count++;
-		if (res == stop_at || count >= num) {
-			break;
-		}
-		res = sdGetTimeout(&HW_UART_DEV, TIME_IMMEDIATE);
-	}
+	static uart_rx_args a;
+	a.id = lbm_get_current_cid();
+	a.num = num;
+	a.offset = offset;
+	a.stop_at = stop_at;
+	a.timeout = timeout;
+	a.data = (uint8_t*)array->data;
 
-	return lbm_enc_i(count);
+	if (timeout == TIME_IMMEDIATE) {
+		a.unblock = false;
+		uart_rx_task(&a);
+		return lbm_enc_u(a.res);
+	} else {
+		a.unblock = true;
+		lbm_block_ctx_from_extension();
+		worker_execute(uart_rx_task, &a);
+		return ENC_SYM_TRUE;
+	}
 }
 
 static i2c_bb_state i2c_cfg = {
@@ -5116,6 +5172,7 @@ void lispif_load_vesc_extensions(void) {
 	// UART
 	uart_started = false;
 	lbm_add_extension("uart-start", ext_uart_start);
+	lbm_add_extension("uart-stop", ext_uart_stop);
 	lbm_add_extension("uart-write", ext_uart_write);
 	lbm_add_extension("uart-read", ext_uart_read);
 
