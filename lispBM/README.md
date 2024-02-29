@@ -5860,13 +5860,26 @@ The express can use the remote peripheral to drive addressable LEDs on any pin. 
 | Express | 6.02+ |
 
 ```clj
-(rgbled-init pin num-leds)
+(rgbled-init pin num-leds optLedType)
 ```
 
-Initialize the rgbled-driver on pin for num-leds LEDs. Example:
+Initialize the rgbled-driver on pin for num-leds LEDs. The optional argument optLedType was added in firmware 6.05 and specifies the type of LEDs. If it is omitted type 0 (GRB) is used. The available types are:
+
+| Number | LED Type |
+|---|---|
+| 0 | GRB |
+| 1 | RGB |
+| 2 | GRBW |
+| 3 | RGBW |
+
+Example:
 
 ```clj
-(rgbled-init 8 1) ; This is the LED on the DevKitM-1
+; This is the LED on the DevKitM-1
+(rgbled-init 8 1)
+
+; 10 GRBW-LEDs connected to pin 20 (rx) on the VESC Express
+(rgbled-init 20 10 2)
 ```
 
 ---
@@ -5895,10 +5908,11 @@ De-initialize the rgbled-driver and release the resources it used.
 (rgbled-color led-num color)
 ```
 
-Set LED led-num to color. The color is a number in RGB888. Example:
+Set LED led-num to color. The color is a number in WRGB8888 format. When the white color is used the type must be u32 as all 32 bits are needed then. Example:
 
 ```clj
-(rgbled-color 0 0xFF0000) ; Set the first LED to red
+(rgbled-color 0 0x00FF0000u32) ; Set the first LED to red
+(rgbled-color 1 0xFF000000u32) ; Set the second LED to white
 ```
 
 ---
