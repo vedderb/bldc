@@ -313,6 +313,7 @@ static int compare(lbm_uint a, lbm_uint b) {
   lbm_uint t;
   PROMOTE(t, a, b);
   switch (t) {
+  case LBM_TYPE_CHAR: retval = CMP(lbm_dec_char(a), lbm_dec_char(b)); break;
   case LBM_TYPE_I: retval = CMP(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: retval = CMP(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
   case LBM_TYPE_U32: retval = CMP(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
@@ -910,7 +911,12 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
         IS_NUMBER(args[1])) {
       lbm_value curr = args[0];
       lbm_uint i = 0;
-      lbm_uint ix = lbm_dec_as_u32(args[1]);
+      lbm_int ix_pre = lbm_dec_as_i32(args[1]);
+      if (ix_pre < 0) {
+        lbm_int len = (lbm_int)lbm_list_length(args[0]);
+        ix_pre = len + ix_pre;
+      }
+      lbm_uint ix = (lbm_uint)ix_pre;
       result = ENC_SYM_NIL;
       while (lbm_is_ptr(curr)) {
         if (i == ix) {
