@@ -611,6 +611,10 @@ typedef struct {
 	// Unblock unboxed
 	bool (*lbm_unblock_ctx_unboxed)(lbm_cid cid, lbm_value unboxed);
 
+	// Time since boot in system ticks. Resolution: 100 uS.
+	// Use ts_to_age_s to get the age of a timestamp in
+	// seconds. ts_to_age_s should hanlde overflows.
+	systime_t (*system_time_ticks)(void);
 } vesc_c_if;
 
 typedef struct {

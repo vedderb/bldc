@@ -932,6 +932,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// Unblock unboxed
 		cif.cif.lbm_unblock_ctx_unboxed = lbm_unblock_ctx_unboxed;
 
+		// System time
+		cif.cif.system_time_ticks = chVTGetSystemTimeX;
+
 		lib_init_done = true;
 	}
 
