@@ -113,8 +113,7 @@ typedef struct {
 #endif
 #ifdef PIN_HW_2
 	lbm_uint pin_hw_2;
-#endif	
-	
+#endif
 
 	// Settings
 	lbm_uint l_current_min;

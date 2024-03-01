@@ -934,6 +934,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// System time
 		cif.cif.system_time_ticks = chVTGetSystemTimeX;
+		cif.cif.sleep_ticks = chThdSleep;
 
 		// FOC Audio
 		cif.cif.foc_beep = mcpwm_foc_beep;

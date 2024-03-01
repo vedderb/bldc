@@ -620,6 +620,7 @@ typedef struct {
 	// Use ts_to_age_s to get the age of a timestamp in
 	// seconds. ts_to_age_s should hanlde overflows.
 	systime_t (*system_time_ticks)(void);
+	void (*sleep_ticks)(systime_t ticks);
 
 	// FOC Audio
 	bool (*foc_beep)(float freq, float time, float voltage);
