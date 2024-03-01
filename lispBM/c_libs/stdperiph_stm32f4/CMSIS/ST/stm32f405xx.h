@@ -9,7 +9,7 @@
   *          This file contains:
   *           - Data structures and the address mapping for all peripherals
   *           - Peripheral's registers declarations and bits definition
-  *           - Macros to access peripheral’s registers hardware
+  *           - Macros to access peripherals registers hardware
   *
   ******************************************************************************
   * @attention
@@ -609,7 +609,7 @@ typedef struct
 {
   __IO uint32_t POWER;          /*!< SDIO power control register,    Address offset: 0x00 */
   __IO uint32_t CLKCR;          /*!< SDI clock control register,     Address offset: 0x04 */
-  __IO uint32_t ARG;            /*!< SDIO argument register,         Address offset: 0x08 */
+  __IO uint32_t ARGR;            /*!< SDIO argument register,         Address offset: 0x08 */
   __IO uint32_t CMD;            /*!< SDIO command register,          Address offset: 0x0C */
   __I uint32_t  RESPCMD;        /*!< SDIO command response register, Address offset: 0x10 */
   __I uint32_t  RESP1;          /*!< SDIO response 1 register,       Address offset: 0x14 */
