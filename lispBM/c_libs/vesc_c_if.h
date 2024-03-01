@@ -170,8 +170,8 @@ typedef float    lbm_float;
 
 typedef struct {
 	uint8_t *buf;
-	size_t   buf_size;
-	uint32_t buf_pos;
+	lbm_uint buf_size;
+	lbm_uint buf_pos;
 } lbm_flat_value_t;
 
 typedef struct {
