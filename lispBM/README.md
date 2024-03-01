@@ -5334,12 +5334,14 @@ Returns the age of the last gnss-sample in seconds.
 | Express | 6.05+ |
 
 ```clj
-(ublox-init optRateMs)
+(ublox-init optRateMs optUartNum optPinRx optPinTx)
 ```
 
 Re-initializes the ublox gnss-module. Returns true on success and nil on failure. Nil most likely means that something is wrong with the connection.
 
 The optional argument optRateMs can be used to set the navigation rate in milliseconds. By default 500 ms us used. Not any navigation rate is possible, it depends on the ublox module in use. Common rates that can work are 100, 200, 500, 1000 and 2000 ms.
+
+The optional arguments optUartNum, optPinRx and optPinTx can be used to specify the UART peripheral and pins. optUartNum can be 0 or 1 and the pins can be any valid ESP-pins.
 
 ---
 
