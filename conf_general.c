@@ -1818,7 +1818,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #ifdef HW_HAS_DUAL_MOTORS
 	mcconf->foc_f_zv = 25000.0;
 #else
-	mcconf->foc_f_zv = 40000.0;
+	mcconf->foc_f_zv = 25000.0;
 #endif
 	mc_interface_set_configuration(mcconf);
 
