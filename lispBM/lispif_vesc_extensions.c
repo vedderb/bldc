@@ -3712,7 +3712,7 @@ static void measure_res_task(void *arg) {
 	if (lbm_start_flatten(&v, 10)) {
 		float res = -1.0;
 		mc_interface_select_motor_thread(a->motor);
-		mcpwm_foc_measure_resistance(a->current, a->samples, true, &res);
+		mcpwm_foc_measure_resistance(a->current, a->samples, true, &res, true);
 		mc_interface_select_motor_thread(1);
 
 		if (restart_cnt != lispif_get_restart_cnt()) {

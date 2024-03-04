@@ -1736,7 +1736,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
  * @return
  * The fault code.
  */
-int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, float *resistance) {
+int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, float *resistance, bool settle_first) {
 	mc_interface_lock();
 
 	volatile motor_all_state_t *motor = get_motor_now();
@@ -1755,10 +1755,100 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
 	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	
+	static bool plot_started = false;	
+	static float plot_int = 0.0;
+	static int get_fw_version_cnt = 0;
+	
+	
+	if(settle_first) {
+		for(int i = 0; i < 500; i++) {
+			if (commands_get_fw_version_sent_cnt() != get_fw_version_cnt) {
+				get_fw_version_cnt = commands_get_fw_version_sent_cnt();
+				plot_started = false;
+			}
+			if (!plot_started) {
+				plot_started = true;
+				commands_init_plot("Time", "Current");			
+				commands_plot_add_graph("iq_filter");
+				commands_plot_add_graph("id_filter");
+				commands_plot_add_graph("iq_set");
+				commands_plot_add_graph("id_trip_limit");
+			}		
+			commands_plot_set_graph(0);
+			commands_send_plot_points(plot_int, motor->m_motor_state.iq_filter);
+			commands_plot_set_graph(1);
+			commands_send_plot_points(plot_int, motor->m_motor_state.id_filter);
+			commands_plot_set_graph(2);
+			commands_send_plot_points(plot_int, motor->m_iq_set);
+			commands_plot_set_graph(3);
+			commands_send_plot_points(plot_int, 0);
+			plot_int++;		
+			chThdSleepMilliseconds(1);
+			
+			// report back faults
+			fault = mc_interface_get_fault();
+			if (fault != FAULT_CODE_NONE) {
+				motor->m_id_set = 0.0;
+				motor->m_iq_set = 0.0;
+				motor->m_phase_override = false;
+				motor->m_control_mode = CONTROL_MODE_NONE;
+				motor->m_state = MC_STATE_OFF;
+				stop_pwm_hw((motor_all_state_t*)motor);
 
-	// Ramp up the current slowly
-	while (fabsf(motor->m_iq_set - current) > 0.001) {
-		utils_step_towards((float*)&motor->m_iq_set, current, fabsf(current) / 200.0);
+				timeout_configure(tout, tout_c, tout_ksw);
+				mc_interface_unlock();
+
+				return fault;
+			}	
+		}
+	}
+	
+	// Change setpoint
+	motor->m_iq_set = current;	
+	chThdSleepMilliseconds(1);		
+
+	for(int i = 0; i < 50; i++) {	
+		#ifdef HW_HAS_3_SHUNTS
+			if(i > 30) {
+		#else
+			if(i > 5) {
+		#endif
+			commands_plot_set_graph(0);
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.iq_filter));
+			commands_plot_set_graph(1);
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.id_filter));
+			commands_plot_set_graph(2);
+			commands_send_plot_points(plot_int, motor->m_iq_set);
+			commands_plot_set_graph(3);
+			
+		#ifdef HW_HAS_3_SHUNTS
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.iq_filter) * 0.5);			
+			if (fabs(motor->m_motor_state.id_filter) > fabs(motor->m_motor_state.iq_filter) * 0.5) {
+				mc_interface_fault_stop(FAULT_CODE_PHASE_OUTPUT_ERROR, &m_motor_1 != motor, false);	
+			}
+		#else
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.iq_filter) * 0.4);			
+			if (fabs(motor->m_motor_state.id_filter) > fabs(motor->m_motor_state.iq_filter) * 0.4) {
+				mc_interface_fault_stop(FAULT_CODE_PHASE_OUTPUT_ERROR, &m_motor_1 != motor, false);	
+			}
+		#endif
+			
+			
+		} else {
+			commands_plot_set_graph(0);
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.iq_filter));
+			commands_plot_set_graph(1);
+			commands_send_plot_points(plot_int, fabs(motor->m_motor_state.id_filter));
+			commands_plot_set_graph(2);
+			commands_send_plot_points(plot_int, motor->m_iq_set);
+			commands_plot_set_graph(3);
+			commands_send_plot_points(plot_int, 0);
+		}
+		plot_int++;		
+		chThdSleepMilliseconds(1);
+		
+		// report back faults
 		fault = mc_interface_get_fault();
 		if (fault != FAULT_CODE_NONE) {
 			motor->m_id_set = 0.0;
@@ -1772,12 +1862,9 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 			mc_interface_unlock();
 
 			return fault;
-		}
-		chThdSleepMilliseconds(1);
+		}	
 	}
-
-	// Wait for the current to rise and the motor to lock.
-	chThdSleepMilliseconds(50);
+	
 
 	// Sample
 	motor->m_samples.avg_current_tot = 0.0;
@@ -1785,7 +1872,16 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	motor->m_samples.sample_num = 0;
 
 	int cnt = 0;
-	while (motor->m_samples.sample_num < samples) {
+	while (motor->m_samples.sample_num < samples) {		
+		commands_plot_set_graph(0);
+		commands_send_plot_points(plot_int, fabs(motor->m_motor_state.iq_filter));
+		commands_plot_set_graph(1);
+		commands_send_plot_points(plot_int, fabs(motor->m_motor_state.id_filter));
+		commands_plot_set_graph(2);
+		commands_send_plot_points(plot_int, motor->m_iq_set);
+		commands_plot_set_graph(3);
+		commands_send_plot_points(plot_int, 0);
+		plot_int++;		
 		chThdSleepMilliseconds(1);
 		cnt++;
 		// Timeout
@@ -2239,10 +2335,12 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	motor->m_conf->foc_current_kp = 0.001;
 	motor->m_conf->foc_current_ki = 1.0;
 
+	bool first_run = true;
 	float i_last = 0.0;
 	for (float i = 2.0;i < (motor->m_conf->l_current_max / 2.0);i *= 1.5) {
 		float r_tmp = 0.0;
-		fault = mcpwm_foc_measure_resistance(i, 20, false, &r_tmp);
+		fault = mcpwm_foc_measure_resistance(i, 20, false, &r_tmp, first_run);
+		first_run = false;
 		if (fault != FAULT_CODE_NONE || r_tmp == 0.0) {
 			goto exit_measure_res_ind;
 		}
@@ -2260,7 +2358,7 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
 	i_last = (motor->m_conf->l_current_max / 2.0);
 #endif
 
-	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res);
+	fault = mcpwm_foc_measure_resistance(i_last, 200, true, res, false);
 	if (fault == FAULT_CODE_NONE && *res != 0.0) {
 		motor->m_conf->foc_motor_r = *res;
 		mcpwm_foc_set_current(0.0);

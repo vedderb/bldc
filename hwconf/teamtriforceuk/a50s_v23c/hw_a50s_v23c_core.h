@@ -260,12 +260,6 @@
 #define MCCONF_SL_MIN_ERPM_CYCLE_INT_LIMIT	4000.0	// Minimum RPM to calculate the BEMF coupling from
 #endif
 
-// Don't call on boot, cal during motor config instead.
-// This significatly speeds up boot time, which is important for combat robots
-#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
-#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	false
-#endif
-
 // Setting limits
 #define HW_LIM_CURRENT				-80.0, 80.0 
 #define HW_LIM_CURRENT_IN			-40.0, 40.0
