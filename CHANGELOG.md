@@ -35,6 +35,7 @@
 	* Built-in sort function that is much faster and can sort much larger lists.
 	* Added foc-play-tone and foc-play-stop.
 	* Added foc-play-samples.
+	* Added can-msg-age.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.

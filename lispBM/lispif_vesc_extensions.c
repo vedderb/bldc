@@ -1952,6 +1952,76 @@ static lbm_value ext_observer_error(lbm_value *args, lbm_uint argn) {
 
 // CAN-commands
 
+static lbm_value ext_can_msg_age(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+
+	int id = lbm_dec_as_i32(args[0]);
+	int msg = lbm_dec_as_i32(args[1]);
+
+	if (id < 0 || id > 253) {
+		return ENC_SYM_EERROR;
+	}
+
+	switch (msg) {
+	case 1: {
+		can_status_msg *stat = comm_can_get_status_msg_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	case 2: {
+		can_status_msg_2 *stat = comm_can_get_status_msg_2_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	case 3: {
+		can_status_msg_3 *stat = comm_can_get_status_msg_3_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	case 4: {
+		can_status_msg_4 *stat = comm_can_get_status_msg_4_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	case 5: {
+		can_status_msg_5 *stat = comm_can_get_status_msg_5_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	case 6: {
+		can_status_msg_6 *stat = comm_can_get_status_msg_6_id(lbm_dec_as_i32(args[0]));
+		if (stat) {
+			return lbm_enc_float(UTILS_AGE_S(stat->rx_time));
+		} else {
+			return ENC_SYM_NIL;
+		}
+	}
+
+	default:
+		return ENC_SYM_EERROR;
+	}
+}
+
 static lbm_value ext_can_current(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
@@ -5120,6 +5190,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("setup-num-vescs", ext_setup_num_vescs);
 
 	// CAN-comands
+	lbm_add_extension("can-msg-age", ext_can_msg_age);
 	lbm_add_extension("canset-current", ext_can_current);
 	lbm_add_extension("canset-current-rel", ext_can_current_rel);
 	lbm_add_extension("canset-duty", ext_can_duty);

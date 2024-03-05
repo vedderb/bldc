@@ -1738,6 +1738,20 @@ Notice that all canget-commands rely on the status messages being active on the 
 
 ---
 
+#### can-msg-age
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(can-msg-age id msg)
+```
+
+Get age of can-message msg from device with can-id id. Can be used to determine how up-to-date the values are from the different messages. nil is returned if the given message has never been received from the given id.
+
+---
+
 #### canset-current
 
 | Platforms | Firmware |
