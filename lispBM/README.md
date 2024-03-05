@@ -2156,6 +2156,48 @@ Example:
 
 ---
 
+#### can-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(can-start optPinTx optPinRx)
+```
+
+Start or restart CAN-driver. The optional arguments optPinTx and optPinRx can be used to specify which pins to use as CAN TX and CAN RX. If they are omitted the default pins will be used. If the hardware does not have default CAN pins and no pins are specified an error is returned. This function can also be used while the CAN-driver is running for changing CAN-pins.
+
+---
+
+#### can-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(can-stop)
+```
+
+Stop CAN-bus driver.
+
+---
+
+#### can-use-vesc
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(can-use-vesc use-vesc)
+```
+
+Enable or disable decoding of the VESC Protocol on the CAN-bus. By default it is enabled. The VESC Protocol is used for communication with VESC Tool, the VESC BMS and VESC motor controllers on the CAN-bus. Disabling the VESC Protocol is useful for using the express as a generic CAN sniffer and debugger.
+
+---
+
 ## CAN Messages
 
 ---
