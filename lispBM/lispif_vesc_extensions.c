@@ -5506,18 +5506,18 @@ bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin) {
 		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
 		return true;
 #endif
-	} 
+	}
 #ifdef PIN_HW_1
 	else if (compare_symbol(sym, &syms_vesc.pin_hw_1)) {
 		*port = PIN_HW_1_GPIO; *pin = PIN_HW_1;
 		return true;
-	} 
+	}
 #endif
 #ifdef PIN_HW_2
 	else if (compare_symbol(sym, &syms_vesc.pin_hw_2)) {
 		*port = PIN_HW_2_GPIO; *pin = PIN_HW_2;
 		return true;
-	} 
+	}
 #endif
 	return false;
 }

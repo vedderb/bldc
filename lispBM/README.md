@@ -5439,6 +5439,24 @@ Add peer. The argument is a list with the mac address of the peer to add. This m
 
 ---
 
+#### esp-now-del-peer
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(esp-now-del-peer peer)
+```
+
+Delete peer. There is a limit to how many peers can be added, so if adding another peer does not work old peers can be deleted to free up resources.
+
+```clj
+(esp-now-del-peer '(255 255 255 255 255 255)) ; Remove broadcast peer
+```
+
+---
+
 #### esp-now-send
 
 | Platforms | Firmware |
