@@ -1,6 +1,6 @@
 /*
   Copyright 2024 Joel Svensson  svenssonjoel@yahoo.se
-            2022 Benjamin Vedder benjamin@vedder.se      
+            2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,8 +18,11 @@
 
 #include "repl_exts.h"
 
+#include <unistd.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 // Macro expanders
 
@@ -71,7 +74,7 @@ static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
   lbm_value body = argsi[2];
 
   // (def name (lambda args (call-cc (lambda (return) body))))
- 
+
   return make_list(3,
                    lbm_enc_sym(SYM_DEFINE),
                    name,
@@ -362,6 +365,147 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_TRUE);
 }
 
+// ------------------------------------------------------------
+// File IO
+
+static const char *lbm_file_handle_desc = "File-Handle";
+
+typedef struct {
+  FILE *fp;
+} lbm_file_handle_t;
+
+static bool file_handle_destructor(lbm_uint value) {
+
+  lbm_file_handle_t *h = (lbm_file_handle_t *)value;
+  if (h->fp) {
+    fclose(h->fp);
+  }
+  return true;
+}
+
+static bool is_file_handle(lbm_value h) {
+  return ((lbm_uint)lbm_get_custom_descriptor(h) == (lbm_uint)lbm_file_handle_desc);
+}
+
+static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    FILE *fp = NULL;
+
+    char *filename = lbm_dec_str(args[0]);
+    char *mode = lbm_dec_str(args[1]);
+
+    fp = fopen(filename, mode);
+    if (fp) {
+      lbm_file_handle_t *mem = lbm_malloc(sizeof(lbm_file_handle_t));
+      if (!mem) {
+        fclose(fp);
+        return ENC_SYM_MERROR;
+      }
+      mem->fp = fp;
+      lbm_custom_type_create((lbm_uint)mem,
+                             file_handle_destructor,
+                             lbm_file_handle_desc,
+                             &res);
+    } else {
+      return ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_file_handle(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+    if (array) {
+      fwrite(array->data, 1, array->size, h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+
+}
+
+static lbm_value ext_fwrite_str(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_file_handle(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+    if (array) {
+      fwrite(array->data, 1, strlen((char*)array->data), h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+
+}
+
+static bool all_arrays(lbm_value *args, lbm_uint argn) {
+  bool r = true;
+  for (uint32_t i = 0; i < argn; i ++) {
+    r = r && lbm_is_array_r(args[i]);
+  }
+  return r;
+}
+
+static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  int pid;
+  
+  if (all_arrays(args, argn) && argn >= 1) {
+    char **strs = malloc(argn * sizeof(char*) + 1);
+    for (uint32_t i = 0; i < argn; i ++) {
+      strs[i] = lbm_dec_str(args[i]);
+    }
+    strs[argn] = NULL;
+    fflush(stdout);
+    int status = 0;
+    pid = fork();
+    if (pid == 0) {
+      execvp(strs[0], &strs[1]);
+      exit(0);
+    } else {
+      waitpid(pid, &status, 0);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res; 
+}
+
+static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    int r = system(lbm_dec_str(args[0]));
+    if (r == 0)  {
+      res = ENC_SYM_TRUE;
+    } else {
+      res = lbm_enc_i(r);
+    }
+  }
+  return res;
+}
 
 // ------------------------------------------------------------
 // Init
@@ -379,8 +523,13 @@ int init_exts(void) {
   }
   if (!lbm_runtime_extensions_init(false)) {
     return 0;
-  } 
+  }
 
+  lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
+  lbm_add_extension("exec", ext_exec);
+  lbm_add_extension("fopen", ext_fopen);
+  lbm_add_extension("fwrite", ext_fwrite);
+  lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
@@ -388,11 +537,11 @@ int init_exts(void) {
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
-  
+
   // Bit operations
   lbm_add_extension("bits-enc-int", ext_bits_enc_int);
   lbm_add_extension("bits-dec-int", ext_bits_dec_int);
-  
+
   // Macro expanders
   lbm_add_extension("me-defun", ext_me_defun);
   lbm_add_extension("me-defunret", ext_me_defunret);
@@ -400,7 +549,7 @@ int init_exts(void) {
   lbm_add_extension("me-loopwhile", ext_me_loopwhile);
   lbm_add_extension("me-looprange", ext_me_looprange);
   lbm_add_extension("me-loopforeach", ext_me_loopforeach);
-  
+
   return 1;
 }
 
